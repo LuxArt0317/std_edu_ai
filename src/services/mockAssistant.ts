@@ -1,4 +1,5 @@
 import { knowledgeBase } from '../data/knowledge'
+import { buildGuidedAnswer } from './campusEngine'
 
 type AssistantResponse = {
   answer: string
@@ -21,6 +22,11 @@ export async function askCampusAssistant(question: string): Promise<AssistantRes
   const matchedEntry = knowledgeBase.find((entry) =>
     entry.keywords.some((keyword) => normalizedQuestion.includes(keyword)),
   )
+
+  const guidedAnswer = buildGuidedAnswer(normalizedQuestion)
+  if (guidedAnswer) {
+    return { answer: guidedAnswer }
+  }
 
   if (matchedEntry) {
     return { answer: matchedEntry.answer }

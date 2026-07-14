@@ -4,9 +4,13 @@ import './App.css'
 import {
   audienceEntries,
   contactItems,
+  campusDestinations,
+  evaluationQuestions,
+  faqItems,
   featuredLinks,
   heroSlides,
   hotLinks,
+  knowledgeCategories,
   latestNews,
   performanceStats,
   storySections,
@@ -14,6 +18,7 @@ import {
 } from './data/knowledge'
 import { askCampusAssistant } from './services/mockAssistant'
 import { supabase } from './utils/supabase'
+import { findCampusDestination, searchKnowledge } from './services/campusEngine'
 
 type ChatMessage = {
   id: string
@@ -25,6 +30,8 @@ type Todo = {
   id: number | string
   name: string
 }
+
+type SurveyValues = Record<string, string>
 
 type IconName =
   | 'search'
@@ -123,7 +130,15 @@ function App() {
   const [todos, setTodos] = useState<Todo[]>([])
   const [todosError, setTodosError] = useState('')
   const [isTodosLoading, setIsTodosLoading] = useState(true)
+  const [knowledgeQuery, setKnowledgeQuery] = useState('graduation requirements')
+  const [navigationQuery, setNavigationQuery] = useState('圖資大樓')
+  const [surveySubmitted, setSurveySubmitted] = useState(false)
+  const [surveyValues, setSurveyValues] = useState<SurveyValues>(() =>
+    Object.fromEntries(evaluationQuestions.map((_, index) => [`q${index}`, ''])),
+  )
   const chatViewportRef = useRef<HTMLDivElement | null>(null)
+  const knowledgeResults = searchKnowledge(knowledgeQuery)
+  const navigationResult = findCampusDestination(navigationQuery)
 
   useEffect(() => {
     const viewport = chatViewportRef.current
@@ -152,6 +167,19 @@ function App() {
     }
 
     void getTodos()
+  }, [])
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem('stu-eval-survey')
+    if (!saved) return
+
+    try {
+      const parsed = JSON.parse(saved) as SurveyValues
+      setSurveyValues((current) => ({ ...current, ...parsed }))
+      setSurveySubmitted(true)
+    } catch {
+      // Ignore invalid local state.
+    }
   }, [])
 
   async function submitQuestion(nextQuestion?: string) {
@@ -184,6 +212,12 @@ function App() {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     void submitQuestion()
+  }
+
+  function handleSurveySubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    window.localStorage.setItem('stu-eval-survey', JSON.stringify(surveyValues))
+    setSurveySubmitted(true)
   }
 
   return (
@@ -401,12 +435,135 @@ function App() {
           </form>
           {errorMessage ? <p className="error-banner">{errorMessage}</p> : null}
           <div className="ai-suggestions">
-            {aiSuggestions.map((question) => (
-              <button key={question} type="button" onClick={() => void submitQuestion(question)}>
-                {question}
+            {aiSuggestions.map((suggestion) => (
+              <button key={suggestion} type="button" onClick={() => void submitQuestion(suggestion)}>
+                {suggestion}
               </button>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="smart-modules-band">
+        <div className="smart-section-heading">
+          <p className="ai-label">Research Modules</p>
+          <h2>智慧資訊檢索、導航與評估</h2>
+          <p>
+            These sections implement the concrete system modules described in the research:
+            knowledge retrieval, campus assistance, FAQ support, and user evaluation.
+          </p>
+        </div>
+
+        <div className="module-grid">
+          <article className="module-card">
+            <h3>Knowledge Base Coverage</h3>
+            <div className="chip-list">
+              {knowledgeCategories.map((category) => (
+                <span key={category} className="chip">
+                  {category}
+                </span>
+              ))}
+            </div>
+            <div className="faq-list">
+              {faqItems.map((faq) => (
+                <article key={faq.question}>
+                  <strong>{faq.question}</strong>
+                  <p>{faq.answer}</p>
+                </article>
+              ))}
+            </div>
+          </article>
+
+          <article className="module-card">
+            <h3>Intelligent Information Retrieval</h3>
+            <input
+              className="module-input"
+              value={knowledgeQuery}
+              onChange={(event) => setKnowledgeQuery(event.target.value)}
+              placeholder="Search academic policies, departments, FAQ, or graduation..."
+            />
+            <div className="search-results">
+              {knowledgeResults.length > 0 ? (
+                knowledgeResults.slice(0, 4).map((result) => (
+                  <article key={result.id} className="result-card">
+                    <span>{result.category}</span>
+                    <h4>{result.title}</h4>
+                    <p>{result.content}</p>
+                  </article>
+                ))
+              ) : (
+                <p className="empty-copy">No matching document found in the current knowledge base.</p>
+              )}
+            </div>
+          </article>
+
+          <article className="module-card">
+            <h3>Smart Navigation & Campus Assistance</h3>
+            <input
+              className="module-input"
+              value={navigationQuery}
+              onChange={(event) => setNavigationQuery(event.target.value)}
+              placeholder="Ask for a facility or office location..."
+            />
+            {navigationResult ? (
+              <div className="navigation-card">
+                <span>{navigationResult.type}</span>
+                <h4>{navigationResult.name}</h4>
+                <p><strong>Location:</strong> {navigationResult.location}</p>
+                <p>{navigationResult.guidance}</p>
+              </div>
+            ) : (
+              <p className="empty-copy">No navigation match found for the current query.</p>
+            )}
+            <div className="mini-destination-grid">
+              {campusDestinations.map((destination) => (
+                <button
+                  key={destination.id}
+                  type="button"
+                  className="destination-button"
+                  onClick={() => setNavigationQuery(destination.name)}
+                >
+                  {destination.name}
+                </button>
+              ))}
+            </div>
+          </article>
+
+          <article className="module-card">
+            <h3>User Evaluation Survey</h3>
+            <form className="survey-form" onSubmit={handleSurveySubmit}>
+              {evaluationQuestions.map((question, index) => (
+                <label key={question} className="survey-question">
+                  <span>{question}</span>
+                  <select
+                    value={surveyValues[`q${index}`] ?? ''}
+                    onChange={(event) =>
+                      setSurveyValues((current) => ({
+                        ...current,
+                        [`q${index}`]: event.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">Select a score</option>
+                    <option value="5">5 - Strongly agree</option>
+                    <option value="4">4 - Agree</option>
+                    <option value="3">3 - Neutral</option>
+                    <option value="2">2 - Disagree</option>
+                    <option value="1">1 - Strongly disagree</option>
+                  </select>
+                </label>
+              ))}
+              <button type="submit" className="survey-submit">
+                Save evaluation
+              </button>
+            </form>
+            {surveySubmitted ? (
+              <p className="survey-status">
+                Survey responses saved locally. This matches the research requirement for
+                post-implementation user evaluation.
+              </p>
+            ) : null}
+          </article>
         </div>
       </section>
 

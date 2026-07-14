@@ -11,3 +11,4 @@
 - Reworked the page again to match the screenshot styling more literally, including the hero overlay, turquoise bands, slanted section edges, title treatment, story blocks, contact band, and footer-style lower section.
 - Installed `@supabase/supabase-js`, added the Supabase env variables and browser client, and integrated a live `todos` query panel into the existing page.
 - Verified the frontend integration, build, and lint; verified the live query path reaches Supabase but currently fails because `public.todos` is not present in the target schema cache.
+- Implemented the core research modules in the app: structured knowledge documents, intelligent search, FAQ support, campus destination guidance, context-aware AI answers, and a local survey/evaluation workflow.

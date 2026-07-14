@@ -699,6 +699,147 @@
   color: #2b625d;
 }
 
+.smart-modules-band {
+  padding: 4rem 1.5rem;
+  background: linear-gradient(180deg, #ffffff 0%, #eef8f7 100%);
+  color: #245550;
+}
+
+.smart-section-heading {
+  max-width: 980px;
+  margin: 0 auto 2rem;
+  text-align: center;
+}
+
+.smart-section-heading p:last-child {
+  margin: 1rem 0 0;
+  color: #5d7c79;
+  line-height: 1.8;
+}
+
+.module-grid {
+  width: min(1280px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.module-card {
+  padding: 1.4rem;
+  border-radius: 24px;
+  background: #ffffff;
+  border: 1px solid rgba(73, 188, 175, 0.25);
+  box-shadow: 0 18px 50px rgba(50, 112, 107, 0.08);
+}
+
+.module-card h3 {
+  margin: 0 0 1rem;
+  color: #2d6f67;
+  font-size: 1.5rem;
+}
+
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.chip {
+  padding: 0.55rem 0.75rem;
+  border-radius: 999px;
+  background: #e7f7f3;
+  color: #2d6f67;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.faq-list,
+.search-results {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.faq-list article,
+.result-card,
+.navigation-card {
+  border-radius: 18px;
+  padding: 1rem;
+  background: #f6fbfb;
+  border: 1px solid rgba(73, 188, 175, 0.18);
+}
+
+.faq-list strong,
+.result-card h4,
+.navigation-card h4 {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: #245550;
+}
+
+.faq-list p,
+.result-card p,
+.navigation-card p,
+.empty-copy,
+.survey-status {
+  margin: 0;
+  color: #5d7c79;
+  line-height: 1.7;
+}
+
+.result-card span,
+.navigation-card span {
+  display: inline-block;
+  margin-bottom: 0.6rem;
+  color: #49bcaf;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.module-input,
+.survey-question select {
+  width: 100%;
+  border: 2px solid rgba(73, 188, 175, 0.25);
+  border-radius: 16px;
+  padding: 0.9rem 1rem;
+  font: inherit;
+  margin-bottom: 1rem;
+}
+
+.mini-destination-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.destination-button,
+.survey-submit {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.75rem 1rem;
+  font: inherit;
+  font-weight: 800;
+  background: #e3f5f2;
+  color: #2f6c65;
+}
+
+.survey-form {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.survey-question {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.survey-question span {
+  color: #245550;
+  font-weight: 700;
+}
+
 .news-grid,
 .hot-grid {
   width: min(1280px, 100%);
@@ -754,6 +895,7 @@
   .story-row.reverse,
   .links-banners,
   .contact-grid,
+  .module-grid,
   .news-grid,
   .hot-grid,
   .supabase-panel {
@@ -797,6 +939,7 @@
   .story-row.reverse,
   .links-banners,
   .contact-grid,
+  .module-grid,
   .news-grid,
   .hot-grid,
   .chat-form,

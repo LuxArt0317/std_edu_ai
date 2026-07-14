@@ -84,6 +84,128 @@ export const hotLinks = [
   { title: '企業徵才就業資訊', description: 'Career and recruitment information' },
 ]
 
+export const knowledgeCategories = [
+  'Academic Regulations',
+  'Enrollment & Graduation',
+  'Departments & Programs',
+  'Administrative Offices',
+  'Campus Facilities',
+  'FAQ',
+]
+
+export const knowledgeDocuments = [
+  {
+    id: 'grad-apply',
+    title: '畢業申請流程',
+    category: 'Enrollment & Graduation',
+    audience: '學生',
+    content:
+      '畢業申請需先確認學分、必修、服務學習與相關門檻是否完成，接著透過教務相關流程確認申請時程，再依系所與行政單位要求提交資料。',
+    keywords: ['畢業', 'graduation', '申請', '學分', 'requirements'],
+  },
+  {
+    id: 'enrollment-guide',
+    title: '入學與註冊說明',
+    category: 'Enrollment & Graduation',
+    audience: '新生',
+    content:
+      '入學申請、報到、註冊繳費與新生啟動資訊應集中於招生訊息與新生專區，讓新生不需理解複雜的單位架構也能完成流程。',
+    keywords: ['入學', '招生', '註冊', '新生', 'enrollment', 'admission'],
+  },
+  {
+    id: 'academic-regulations',
+    title: '學術規章與課程資訊',
+    category: 'Academic Regulations',
+    audience: '學生 / 教師',
+    content:
+      '系統應協助查詢學術規定、課程時間表、課程要求與學程資訊，降低學生對多層級網頁結構的依賴。',
+    keywords: ['學術', '課程', 'academic', 'schedule', 'curriculum', 'policy'],
+  },
+  {
+    id: 'office-directory',
+    title: '行政單位資料',
+    category: 'Administrative Offices',
+    audience: '全體使用者',
+    content:
+      '行政單位資訊包含註冊、學務、總務與相關服務窗口。系統應提供單位名稱、功能、位置與常見問題的對應。',
+    keywords: ['行政', '辦公室', 'office', 'registrar', 'services'],
+  },
+  {
+    id: 'facility-directory',
+    title: '校園設施與位置資訊',
+    category: 'Campus Facilities',
+    audience: '學生 / 訪客',
+    content:
+      '校園設施資料應涵蓋圖資大樓、宿舍、體育館、創意基地、服務中心與主要步行路徑，支援位置導引與導航請求。',
+    keywords: ['校園', '設施', '導航', 'location', 'facility', 'navigation'],
+  },
+  {
+    id: 'faq-repository',
+    title: '常見問題資料庫',
+    category: 'FAQ',
+    audience: '全體使用者',
+    content:
+      'FAQ 需聚焦於招生、註冊、畢業、校務流程、課程、校園服務與位置查詢，以快速回應高頻重複問題。',
+    keywords: ['faq', '常見問題', '重複詢問', 'help'],
+  },
+]
+
+export const faqItems = [
+  {
+    question: 'How do I apply for graduation?',
+    answer:
+      'Start by checking credit completion and department requirements, then follow the graduation application timeline and administrative submission process.',
+  },
+  {
+    question: 'Where is the registrar office?',
+    answer:
+      'The registrar-related service should be searchable through the administrative office directory and campus navigation support, with building and location guidance.',
+  },
+  {
+    question: 'Where can I find admissions and new student information?',
+    answer:
+      'Admissions and onboarding information should be accessible from 招生訊息 and 新生專區, supported by the AI assistant for direct question answering.',
+  },
+]
+
+export const campusDestinations = [
+  {
+    id: 'library',
+    name: '圖資大樓',
+    type: 'Facility',
+    location: 'Central academic zone',
+    guidance: 'From the main gate, proceed along the central path and follow the academic core signage toward the library and information building.',
+  },
+  {
+    id: 'registrar',
+    name: '註冊相關行政窗口',
+    type: 'Office',
+    location: 'Academic administration area',
+    guidance: 'Use the administrative office directory to locate registrar services, then follow the campus support path to the academic administration area.',
+  },
+  {
+    id: 'dormitory',
+    name: '學生宿舍',
+    type: 'Facility',
+    location: 'Residential zone',
+    guidance: 'The dormitory cluster is positioned in the residential area of campus and should be reachable through student services and campus navigation guidance.',
+  },
+  {
+    id: 'gym',
+    name: '體育館',
+    type: 'Facility',
+    location: 'Sports and activities zone',
+    guidance: 'Head toward the sports facilities corridor from the main campus circulation path to reach the gymnasium.',
+  },
+]
+
+export const evaluationQuestions = [
+  'The system makes university information easier to find.',
+  'The AI assistant feels useful for routine campus questions.',
+  'The navigation support makes facilities and offices easier to locate.',
+  'The website feels easier to use than a menu-only experience.',
+]
+
 export const knowledgeBase = [
   {
     keywords: ['招生', 'admission', 'enrollment', 'new student'],
@@ -109,5 +231,15 @@ export const knowledgeBase = [
     keywords: ['網站', 'design', 'redesign', 'copy', 'style'],
     answer:
       '目前這個原型的目標是貼近樹德科技大學首頁的版面、色彩、區塊排序與圖片語言，並在不破壞原有導覽習慣的情況下加入 AI 功能。',
+  },
+  {
+    keywords: ['faq', '常見問題', 'frequently asked questions'],
+    answer:
+      '系統研究範圍明確包含 FAQ 資料庫，目標是把招生、註冊、畢業、課程、校園服務與位置查詢這類高頻問題整合成可直接回答的知識庫。',
+  },
+  {
+    keywords: ['nlu', 'nlp', 'rag', '檢索', 'retrieval'],
+    answer:
+      '研究中的 AI 模組包含 NLP / NLU 查詢理解、智慧資訊檢索與 RAG 型上下文比對。這表示系統應先理解意圖，再從經過驗證的大學資訊中擷取最相關內容回應使用者。',
   },
 ]

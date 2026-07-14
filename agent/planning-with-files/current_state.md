@@ -11,5 +11,6 @@ Working status:
 - the AI feature is implemented as a local mocked assistant backed by a small knowledge base
 - Supabase frontend integration has been added with `@supabase/supabase-js`, env variables, and a browser client
 - live Supabase verification currently fails because `public.todos` is not available in the target project schema cache
+- research modules now implemented in the frontend include knowledge retrieval, FAQ coverage, navigation support, AI chat assistance, and a local evaluation survey
 - the production build succeeds
 - GitHub issue tracking is not yet active because the local repository has no configured remote

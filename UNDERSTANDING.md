@@ -99,3 +99,16 @@ Verification against the provided project currently returns:
 - `Could not find the table 'public.todos' in the schema cache`
 
 That means the code path is working, but the target project does not currently provide the example table expected by the sample query.
+
+## Implemented Research Modules
+
+The current prototype now implements the main system elements described in the research as a frontend information-support platform:
+
+- AI chatbot assistance
+- structured knowledge base coverage
+- intelligent information retrieval
+- FAQ support
+- smart navigation and campus assistance
+- user evaluation survey flow
+
+This remains within the research scope because it is still an information and support layer, not an administrative processing or decision-making system.
