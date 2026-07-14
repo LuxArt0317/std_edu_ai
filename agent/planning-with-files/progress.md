@@ -7,3 +7,4 @@
 - Replaced the starter UI with a Shu-Te University smart campus prototype.
 - Added documentation files for understanding, setup, project summary, changelog, and planning state.
 - Installed npm dependencies and verified the app with a successful production build.
+- Inspected the live `https://www.stu.edu.tw` homepage source in the terminal and refactored the prototype to follow its section order and visual composition more closely.

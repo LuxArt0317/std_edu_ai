@@ -61,3 +61,17 @@ My understanding is that the first version of this project should:
 For this repository, the immediate goal is:
 
 to create a Vite-based frontend prototype that demonstrates the new Shu-Te University website direction, with a premium landing page and a working AI assistant experience aligned with the research.
+
+## Homepage Structure Observed From `stu.edu.tw`
+
+From inspecting the live STU homepage source, the current design is organized around:
+
+- a sticky transparent header with the STU logo and anchor-style navigation
+- a large full-width visual hero
+- a role-based entry section for different visitor groups
+- visual campus showcase sections
+- an admissions section with image-based entry cards
+- a latest news section
+- a hot links section for common systems and services
+
+The recreation in this repo now follows that structure more directly, while keeping the AI assistant as the new layer not present on the current homepage.

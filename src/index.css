@@ -1,12 +1,9 @@
 :root {
-  font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+  font-family: "Fira Sans", "Segoe UI", sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #183654;
-  background:
-    radial-gradient(circle at top left, rgba(246, 195, 99, 0.3), transparent 24%),
-    radial-gradient(circle at top right, rgba(25, 70, 108, 0.22), transparent 28%),
-    linear-gradient(180deg, #efe3d0 0%, #f8f3ea 32%, #f3ede2 100%);
+  color: #17382d;
+  background: #17382d;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -25,6 +22,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background: #17382d;
 }
 
 button,

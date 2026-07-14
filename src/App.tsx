@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import './App.css'
-import { campusHighlights, quickLinks, suggestedQuestions } from './data/knowledge'
+import {
+  admissionsGroups,
+  audienceEntries,
+  campusShowcases,
+  hotLinks,
+  latestNews,
+  performanceStats,
+} from './data/knowledge'
 import { askCampusAssistant } from './services/mockAssistant'
 
 type ChatMessage = {
@@ -15,12 +22,18 @@ const initialMessages: ChatMessage[] = [
     id: 'welcome',
     role: 'assistant',
     content:
-      'Welcome to the AI-Enhanced Shu-Te University Campus & Website prototype. Ask about admissions, graduation requirements, offices, campus facilities, or student services.',
+      'Welcome to the AI-enhanced STU prototype. Ask about admissions, offices, campus services, graduation requirements, or how this redesign improves the current website.',
   },
 ]
 
+const quickQuestions = [
+  'How does this redesign improve the current STU website?',
+  'What can the AI assistant answer?',
+  'How does the site support campus navigation?',
+]
+
 function App() {
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
+  const [messages, setMessages] = useState(initialMessages)
   const [query, setQuery] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -28,26 +41,18 @@ function App() {
 
   useEffect(() => {
     const viewport = chatViewportRef.current
-    if (!viewport) {
-      return
-    }
-
+    if (!viewport) return
     viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' })
   }, [messages, isLoading])
 
   async function submitQuestion(nextQuestion?: string) {
     const trimmedQuery = (nextQuestion ?? query).trim()
-    if (!trimmedQuery || isLoading) {
-      return
-    }
+    if (!trimmedQuery || isLoading) return
 
-    const userMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: trimmedQuery,
-    }
-
-    setMessages((current) => [...current, userMessage])
+    setMessages((current) => [
+      ...current,
+      { id: `user-${Date.now()}`, role: 'user', content: trimmedQuery },
+    ])
     setQuery('')
     setErrorMessage('')
     setIsLoading(true)
@@ -56,19 +61,12 @@ function App() {
       const response = await askCampusAssistant(trimmedQuery)
       setMessages((current) => [
         ...current,
-        {
-          id: `assistant-${Date.now()}`,
-          role: 'assistant',
-          content: response.answer,
-        },
+        { id: `assistant-${Date.now()}`, role: 'assistant', content: response.answer },
       ])
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'The assistant is temporarily unavailable.'
-
-      setErrorMessage(message)
+      setErrorMessage(
+        error instanceof Error ? error.message : 'The assistant is temporarily unavailable.',
+      )
     } finally {
       setIsLoading(false)
     }
@@ -80,133 +78,201 @@ function App() {
   }
 
   return (
-    <main className="page-shell">
-      <section className="hero-panel">
-        <div className="hero-copy">
-          <span className="eyebrow">AI-Enhanced Shu-Te University Campus & Website</span>
-          <h1>Rebuilding the Shu-Te University website around search, support, and AI guidance.</h1>
-          <p className="lead">
-            This prototype reimagines the existing university website as a smart campus
-            experience where students, faculty, staff, and visitors can get answers faster
-            through guided navigation, campus service discovery, and a conversational AI
-            assistant.
+    <main className="site-shell">
+      <header className="topbar">
+        <a className="brand" href="#hero" aria-label="Shu-Te University home">
+          <img
+            src="https://www.stu.edu.tw/wp-content/uploads/2026/01/stu-logo-2.png"
+            alt="Shu-Te University"
+          />
+        </a>
+        <nav className="topnav" aria-label="Primary">
+          <a href="#audiences">分眾入口</a>
+          <a href="#showcase">校園亮點</a>
+          <a href="#admissions">招生專區</a>
+          <a href="#news">最新消息</a>
+          <a href="#links">熱門連結</a>
+          <a href="#assistant">AI 助理</a>
+        </nav>
+      </header>
+
+      <section className="hero" id="hero">
+        <div className="hero-overlay" />
+        <div className="hero-content">
+          <p className="hero-kicker">樹德科技大學</p>
+          <h1>愛上宜學、宜居、宜行、宜樂的山水校園</h1>
+          <p className="hero-copy">
+            This recreation follows the structure and visual language of the current STU
+            website, then adds an AI support layer for faster search, guidance, and campus
+            information retrieval.
           </p>
           <div className="hero-actions">
-            <a className="primary-action" href="#assistant">
-              Try the AI assistant
+            <a href="#audiences" className="hero-button solid">
+              進入首頁導覽
             </a>
-            <a className="secondary-action" href="#overview">
-              Review the concept
+            <a href="#assistant" className="hero-button ghost">
+              試用 AI 助理
             </a>
           </div>
-          <ul className="metrics" aria-label="Project goals">
-            <li>
-              <strong>3x faster</strong>
-              <span>information retrieval goal</span>
-            </li>
-            <li>
-              <strong>24/7</strong>
-              <span>AI inquiry support</span>
-            </li>
-            <li>
-              <strong>1 platform</strong>
-              <span>for academic and campus questions</span>
-            </li>
-          </ul>
         </div>
-        <aside className="hero-card">
-          <p className="card-label">Smart campus focus</p>
-          <h2>What this website is designed to solve</h2>
-          <ul>
-            {campusHighlights.map((item) => (
-              <li key={item.title}>
-                <strong>{item.title}</strong>
-                <span>{item.description}</span>
-              </li>
-            ))}
-          </ul>
-        </aside>
       </section>
 
-      <section className="content-grid" id="overview">
-        <article className="overview-card">
-          <span className="section-kicker">Website direction</span>
-          <h2>A premium front door for the current `stu.edu.tw` experience</h2>
-          <p>
-            The research positions this project as a recreation and upgrade of Shu-Te
-            University’s current web presence, with AI layered into the experience instead of
-            leaving users to navigate long menu trees and disconnected pages.
-          </p>
-          <div className="link-grid">
-            {quickLinks.map((item) => (
-              <div className="link-card" key={item.title}>
-                <h3>{item.title}</h3>
-                <p>{item.description}</p>
-              </div>
-            ))}
-          </div>
-        </article>
+      <section className="section audience-section" id="audiences">
+        <div className="section-heading">
+          <p className="section-label">Role Category</p>
+          <h2>分眾入口</h2>
+        </div>
+        <div className="audience-grid">
+          {audienceEntries.map((entry) => (
+            <article className="audience-card" key={entry.title}>
+              <span className="audience-icon">{entry.icon}</span>
+              <h3>{entry.title}</h3>
+              <p>{entry.description}</p>
+              <a href="#assistant">點我更多功能...</a>
+            </article>
+          ))}
+        </div>
+      </section>
 
-        <article className="assistant-card" id="assistant">
-          <div className="assistant-header">
-            <div>
-              <span className="section-kicker">AI assistant</span>
-              <h2>Ask about campus information in plain language</h2>
+      <section className="section stat-band">
+        <div className="section-heading">
+          <p className="section-label">Performance</p>
+          <h2>我們的辦學績效</h2>
+        </div>
+        <div className="stat-grid">
+          {performanceStats.map((item) => (
+            <article className="stat-card" key={item.label}>
+              <strong>{item.value}</strong>
+              <span>{item.label}</span>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="section showcase-section" id="showcase">
+        {campusShowcases.map((group) => (
+          <div className="showcase-block" key={group.title}>
+            <div className="showcase-copy">
+              <p className="section-label">{group.eyebrow}</p>
+              <h2>{group.title}</h2>
+              <p>{group.description}</p>
             </div>
-            <span className={`status-pill ${isLoading ? 'busy' : 'ready'}`}>
-              {isLoading ? 'Responding...' : 'Prototype ready'}
-            </span>
+            <div className="showcase-cards">
+              {group.items.map((item) => (
+                <article className="media-card" key={item.title}>
+                  <img src={item.image} alt={item.title} />
+                  <div className="media-card-body">
+                    <h3>{item.title}</h3>
+                    <p>{item.description}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
+        ))}
+      </section>
 
-          <div className="chat-window" ref={chatViewportRef}>
-            {messages.map((message) => (
-              <article key={message.id} className={`message ${message.role}`}>
-                <span className="message-role">
-                  {message.role === 'assistant' ? 'STU AI' : 'You'}
-                </span>
-                <p>{message.content}</p>
+      <section className="section admissions-section" id="admissions">
+        <div className="section-heading">
+          <p className="section-label">Admissions</p>
+          <h2>招生專區</h2>
+        </div>
+        <div className="admissions-grid">
+          {admissionsGroups.map((group) => (
+            <article className="admission-card" key={group.title}>
+              <img src={group.image} alt={group.title} />
+              <h3>{group.title}</h3>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="section news-section" id="news">
+        <div className="section-heading">
+          <p className="section-label">Latest News</p>
+          <h2>校園新聞</h2>
+        </div>
+        <div className="news-layout">
+          <div className="news-list">
+            {latestNews.map((item) => (
+              <article className="news-item" key={`${item.category}-${item.title}`}>
+                <span className="news-category">{item.category}</span>
+                <h3>{item.title}</h3>
+                <p>{item.date}</p>
               </article>
             ))}
-            {isLoading ? (
-              <article className="message assistant loading">
-                <span className="message-role">STU AI</span>
-                <p>Searching the campus knowledge base for the most relevant answer...</p>
-              </article>
-            ) : null}
           </div>
 
-          <form className="chat-form" onSubmit={handleSubmit}>
-            <label className="sr-only" htmlFor="campus-question">
-              Ask the campus assistant
-            </label>
-            <textarea
-              id="campus-question"
-              name="campus-question"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Example: Where can I find enrollment requirements or office locations?"
-              rows={3}
-            />
-            <button type="submit" disabled={isLoading}>
-              Send question
-            </button>
-          </form>
+          <aside className="assistant-panel" id="assistant">
+            <div className="assistant-heading">
+              <p className="section-label">AI Feature</p>
+              <h2>AI 校園助理</h2>
+              <p>
+                This is the product upgrade missing from the current university website: a
+                conversational layer for campus information.
+              </p>
+            </div>
 
-          {errorMessage ? <p className="error-banner">{errorMessage}</p> : null}
+            <div className="chat-window" ref={chatViewportRef}>
+              {messages.map((message) => (
+                <article key={message.id} className={`message ${message.role}`}>
+                  <span className="message-role">
+                    {message.role === 'assistant' ? 'STU AI' : 'You'}
+                  </span>
+                  <p>{message.content}</p>
+                </article>
+              ))}
+              {isLoading ? (
+                <article className="message assistant">
+                  <span className="message-role">STU AI</span>
+                  <p>Searching the campus knowledge base for the best answer...</p>
+                </article>
+              ) : null}
+            </div>
 
-          <div className="suggestions">
-            {suggestedQuestions.map((question) => (
-              <button
-                key={question}
-                type="button"
-                onClick={() => void submitQuestion(question)}
-                disabled={isLoading}
-              >
-                {question}
+            <form className="chat-form" onSubmit={handleSubmit}>
+              <textarea
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Ask about admissions, graduation, offices, campus facilities, or website support."
+                rows={4}
+              />
+              <button type="submit" disabled={isLoading}>
+                Send
               </button>
-            ))}
-          </div>
-        </article>
+            </form>
+
+            {errorMessage ? <p className="error-banner">{errorMessage}</p> : null}
+
+            <div className="question-pills">
+              {quickQuestions.map((question) => (
+                <button
+                  key={question}
+                  type="button"
+                  disabled={isLoading}
+                  onClick={() => void submitQuestion(question)}
+                >
+                  {question}
+                </button>
+              ))}
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section className="section hotlink-section" id="links">
+        <div className="section-heading">
+          <p className="section-label">Hot Links</p>
+          <h2>熱門連結</h2>
+        </div>
+        <div className="hotlink-grid">
+          {hotLinks.map((item) => (
+            <article className="hotlink-card" key={item.title}>
+              <h3>{item.title}</h3>
+              <p>{item.description}</p>
+            </article>
+          ))}
+        </div>
       </section>
     </main>
   )
