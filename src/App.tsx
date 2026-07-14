@@ -13,11 +13,17 @@ import {
   visionSlides,
 } from './data/knowledge'
 import { askCampusAssistant } from './services/mockAssistant'
+import { supabase } from './utils/supabase'
 
 type ChatMessage = {
   id: string
   role: 'assistant' | 'user'
   content: string
+}
+
+type Todo = {
+  id: number | string
+  name: string
 }
 
 type IconName =
@@ -114,6 +120,9 @@ function App() {
   const [query, setQuery] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [todos, setTodos] = useState<Todo[]>([])
+  const [todosError, setTodosError] = useState('')
+  const [isTodosLoading, setIsTodosLoading] = useState(true)
   const chatViewportRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -121,6 +130,29 @@ function App() {
     if (!viewport) return
     viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' })
   }, [messages, isLoading])
+
+  useEffect(() => {
+    async function getTodos() {
+      setIsTodosLoading(true)
+      setTodosError('')
+
+      const { data, error } = await supabase
+        .from('todos')
+        .select('id, name')
+        .order('id', { ascending: true })
+
+      if (error) {
+        setTodosError(error.message)
+        setTodos([])
+      } else {
+        setTodos(data ?? [])
+      }
+
+      setIsTodosLoading(false)
+    }
+
+    void getTodos()
+  }, [])
 
   async function submitQuestion(nextQuestion?: string) {
     const trimmedQuery = (nextQuestion ?? query).trim()
@@ -314,6 +346,30 @@ function App() {
             在保留現有首頁風格的前提下，新增 AI 問答入口，讓使用者可以更快找到招生、行政、
             學術、位置與校園服務資訊。
           </p>
+        </div>
+        <div className="supabase-panel">
+          <div className="supabase-panel-copy">
+            <p className="ai-label">Supabase Data</p>
+            <h3>Supabase `todos` 查詢</h3>
+            <p>
+              This panel uses the configured Supabase browser client and reads from the
+              `todos` table.
+            </p>
+          </div>
+          <div className="supabase-panel-state">
+            {isTodosLoading ? <p>Loading todos...</p> : null}
+            {todosError ? <p className="error-banner">{todosError}</p> : null}
+            {!isTodosLoading && !todosError && todos.length > 0 ? (
+              <ul className="todo-list">
+                {todos.map((todo) => (
+                  <li key={todo.id}>{todo.name}</li>
+                ))}
+              </ul>
+            ) : null}
+            {!isTodosLoading && !todosError && todos.length === 0 ? (
+              <p>No todos found.</p>
+            ) : null}
+          </div>
         </div>
         <div className="ai-panel">
           <div className="chat-window" ref={chatViewportRef}>

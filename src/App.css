@@ -573,6 +573,42 @@
   box-shadow: 0 18px 50px rgba(50, 112, 107, 0.08);
 }
 
+.supabase-panel {
+  width: min(1100px, 100%);
+  margin: 0 auto 1.25rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 24px;
+  background: #ffffff;
+  border: 2px solid rgba(73, 188, 175, 0.35);
+  box-shadow: 0 18px 50px rgba(50, 112, 107, 0.08);
+  display: grid;
+  grid-template-columns: 0.95fr 1.05fr;
+  gap: 1rem 1.5rem;
+}
+
+.supabase-panel-copy h3 {
+  margin: 0.35rem 0 0.75rem;
+  color: #2f6c65;
+  font-size: 1.6rem;
+}
+
+.supabase-panel-copy p:last-child,
+.supabase-panel-state p {
+  margin: 0;
+  color: #49716c;
+  line-height: 1.7;
+}
+
+.todo-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: #245550;
+}
+
+.todo-list li + li {
+  margin-top: 0.45rem;
+}
+
 .chat-window {
   min-height: 15rem;
   max-height: 22rem;
@@ -719,7 +755,8 @@
   .links-banners,
   .contact-grid,
   .news-grid,
-  .hot-grid {
+  .hot-grid,
+  .supabase-panel {
     grid-template-columns: 1fr 1fr;
   }
 
@@ -762,7 +799,8 @@
   .contact-grid,
   .news-grid,
   .hot-grid,
-  .chat-form {
+  .chat-form,
+  .supabase-panel {
     grid-template-columns: 1fr;
   }
 

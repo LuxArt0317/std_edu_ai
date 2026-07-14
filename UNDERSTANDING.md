@@ -89,3 +89,13 @@ The user clarified that the target is not only structural similarity. The implem
 - the banner strip, contact section, social row, and footer-like lower layout
 
 The AI feature should remain present, but it should be added in a way that does not disrupt the copied homepage look.
+
+## Supabase Integration Status
+
+Supabase has now been wired into the Vite app using the provided project URL and publishable key. The frontend integration is valid and the query path works at the client level, but the example `todos` query currently depends on a `public.todos` table being present and exposed in the target Supabase project.
+
+Verification against the provided project currently returns:
+
+- `Could not find the table 'public.todos' in the schema cache`
+
+That means the code path is working, but the target project does not currently provide the example table expected by the sample query.
