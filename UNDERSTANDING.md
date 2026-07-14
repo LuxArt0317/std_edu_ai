@@ -75,3 +75,17 @@ From inspecting the live STU homepage source, the current design is organized ar
 - a hot links section for common systems and services
 
 The recreation in this repo now follows that structure more directly, while keeping the AI assistant as the new layer not present on the current homepage.
+
+## Visual Fidelity Direction
+
+The user clarified that the target is not only structural similarity. The implementation should closely follow the visible homepage treatment from the live site and screenshots, including:
+
+- the dark green translucent header overlay
+- the large blue-sky hero with centered white headline and outlined button
+- the turquoise `分眾入口` band and tall gradient entry cards
+- the white `看見樹德` section with dotted divider and serif English subtitle
+- the slanted turquoise performance band
+- the image-and-text storytelling blocks
+- the banner strip, contact section, social row, and footer-like lower layout
+
+The AI feature should remain present, but it should be added in a way that does not disrupt the copied homepage look.
