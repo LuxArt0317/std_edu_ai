@@ -19,3 +19,8 @@
 - identified unguarded Supabase client initialization as the highest-risk production failure path
 - updated the Supabase integration to avoid app startup crashes when Vercel env vars are missing
 - updated the app copy and setup docs to reflect the new fallback behavior
+- created GitHub issue #1 to track the Vercel deployment recovery
+- confirmed the existing checkout passes the production build and lint before deployment configuration changes
+- added an explicit Vercel contract for Node.js 22, `npm ci`, the Vite build, `dist`, and SPA route fallback
+- verified a clean `npm ci`, lint, Vercel production build, and valid `vercel.json`
+- verified the production preview returns HTTP 200 at `/` and `/campus/assistant`, with identical application shells

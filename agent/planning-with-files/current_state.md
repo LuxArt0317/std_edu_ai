@@ -12,5 +12,8 @@ Working status:
 - Supabase frontend integration now degrades gracefully when env vars are missing or the `todos` table is unavailable
 - the site should continue rendering on Vercel even when live Supabase data is misconfigured
 - research modules now implemented in the frontend include knowledge retrieval, FAQ coverage, navigation support, AI chat assistance, and a local evaluation survey
-- the production build is being re-verified after the deployment-hardening change
-- GitHub issue tracking is still pending because GitHub MCP access is not installed in this session
+- Vercel now has an explicit Node.js 22, `npm ci`, Vite build, `dist` output, and SPA rewrite contract
+- deployment recovery is tracked in GitHub issue #1
+- `npm ci`, lint, and the Vercel production build pass
+- preview smoke tests return HTTP 200 for both `/` and `/campus/assistant`, with the deep route serving the application shell
+- the local Vercel CLI cannot publish because this workstation has no Vercel credentials; the connected GitHub/Vercel project can deploy the committed configuration from `main`

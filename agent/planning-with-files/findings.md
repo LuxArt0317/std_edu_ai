@@ -9,4 +9,5 @@
 - the research scope is frontend-friendly: it requires information retrieval, user support, FAQ coverage, and navigation assistance, but explicitly excludes full administrative processing and predictive systems
 - the current deployment risk is frontend bootstrap failure when `createClient` is called without valid Vercel env vars
 - production should treat Supabase as optional for page render and isolate backend failure to the data panel
-- GitHub remote exists, but GitHub MCP issue workflows remain blocked until the GitHub plugin is installed
+- the repository previously relied on Vercel framework inference and did not pin a supported runtime, deterministic install command, output directory, or SPA fallback
+- GitHub issue #1 tracks the Vercel recovery

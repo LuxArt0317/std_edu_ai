@@ -2,13 +2,13 @@
 
 ## Requirements
 
-- Node.js 24 or newer
-- npm 11 or newer
+- Node.js 22
+- npm 10 or newer
 
 ## Install
 
 ```bash
-npm install
+npm ci
 ```
 
 ## Environment
@@ -41,3 +41,14 @@ npm run build
 ```bash
 npm run preview
 ```
+
+## Deploy to Vercel
+
+Vercel reads `vercel.json`, installs the locked dependencies with `npm ci`, runs
+`npm run vercel-build`, and publishes `dist`. Node.js 22 is pinned through the
+`engines` field in `package.json`. The rewrite rule keeps client-side routes
+working when opened directly.
+
+Connect this repository to a Vercel project and deploy the `main` branch. Add
+the optional Supabase variables above in the Vercel project settings if live
+data is required.
