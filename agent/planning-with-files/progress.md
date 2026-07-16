@@ -15,3 +15,4 @@
 - published the corrected Node ESM helper with a strict declaration, passed `vercel build --prod`, and deployed commit `d008ea0`
 - verified the custom domain points to Ready deployment `dpl_8pBNQfw983zoMM1RubyV6XYvpRtV`; root, CRM, both lazy bundles, authenticated OpenAI chat, 401 auth boundary, and student 403 grade-scan boundary pass
 - posted the final production evidence to GitHub issue #14 and closed it as completed
+- published the final release-state documentation and verified the current custom-domain deployment returns root 200, CRM 200, and unauthenticated API 401

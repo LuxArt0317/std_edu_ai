@@ -12,7 +12,7 @@ Current platform status:
 - eight API contracts, lint, the route-split production build, clean Vercel function compilation, and protected deployment checks pass
 - Supabase performance advisors have no structural warnings; unused-index notices are informational on the new low-volume schema
 - two security-definer notices are intentional for internally authorized atomic workflows; leaked-password protection remains a dashboard-level configuration notice
-- commits `a1701e3` and `d008ea0` are published on `main`; production deployment `dpl_8pBNQfw983zoMM1RubyV6XYvpRtV` is Ready on `www.stu.best`
+- implementation, runtime fix, and release-state commits are published on `main`; the latest production deployment is Ready on `www.stu.best`
 - deployed `/`, `/crm`, public/CRM bundles, unauthenticated 401, authenticated faculty OpenAI chat, and student grade-scan 403 boundaries are verified
 
 The plain-language STU Nexus portal explanation is available at `src/crm/PORTAL_GUIDE.md` and tracked by GitHub issue #13. It documents the staff audience, operational workspaces, human-reviewed AI assistance, example workflows, and the distinction between production infrastructure and demonstration seed records.
