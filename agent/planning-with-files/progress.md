@@ -11,3 +11,4 @@
 - ran Supabase security/performance advisors; all foreign-key index findings are resolved, leaving intentional trusted-workflow and dashboard leaked-password notices
 - synchronized operator, role, platform, setup, architecture, changelog, and Supabase documentation
 - closed final review gaps by binding displayed roles to fresh trusted Auth metadata, denying direct role-column writes, and verifying transactional grade-scan rollback/approval
+- traced the first Vercel runtime probe to TypeScript-extension helper imports and corrected all API functions to use compiled Node ESM paths

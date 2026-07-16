@@ -1,22 +1,8 @@
-export type ApiUser = {
-  id: string
-  email: string
-  role: string
-  isOwner: boolean
-}
-export type AuthenticatedApiRequest = {
-  headers: Record<string, string | string[] | undefined>
-}
-
-export type ApiAuthResult =
-  | { ok: true; user: ApiUser }
-  | { ok: false; status: 401 | 503; message: string }
-
-function headerValue(value: string | string[] | undefined) {
+function headerValue(value) {
   return Array.isArray(value) ? value[0] : value
 }
 
-export async function verifySupabaseRequest(request: AuthenticatedApiRequest): Promise<ApiAuthResult> {
+export async function verifySupabaseRequest(request) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL
   const publishableKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY
   if (!supabaseUrl || !publishableKey) {
@@ -37,10 +23,8 @@ export async function verifySupabaseRequest(request: AuthenticatedApiRequest): P
       signal: AbortSignal.timeout(8_000),
     })
     if (!response.ok) return { ok: false, status: 401, message: 'The STU Nexus session is invalid or expired.' }
-    const payload = await response.json() as Record<string, unknown>
-    const appMetadata = payload.app_metadata && typeof payload.app_metadata === 'object'
-      ? payload.app_metadata as Record<string, unknown>
-      : {}
+    const payload = await response.json()
+    const appMetadata = payload.app_metadata && typeof payload.app_metadata === 'object' ? payload.app_metadata : {}
     const id = typeof payload.id === 'string' ? payload.id : ''
     const email = typeof payload.email === 'string' ? payload.email : ''
     const role = typeof appMetadata.role === 'string' ? appMetadata.role : 'student'

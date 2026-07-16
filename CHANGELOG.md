@@ -14,6 +14,7 @@
 - split the public homepage and authenticated school platform into route-specific production bundles
 - enforced grade-item score ceilings and atomic, enrollment-validated approval for human-reviewed AI grade scans
 - locked profile authorization columns against direct authenticated writes and aligned the UI role with fresh trusted Auth metadata
+- published the shared authentication helper as a directly traceable Node ESM module with a strict TypeScript declaration, preventing Vercel runtime import failures
 
 - added a plain-language STU Nexus portal guide covering its audience, workspaces, AI role, example workflows, security boundaries, and current seed-data status
 - verified the production owner credential against Supabase Auth and added a secure local clipboard handoff without exposing plaintext secrets

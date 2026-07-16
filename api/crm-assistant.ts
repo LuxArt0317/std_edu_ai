@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { verifySupabaseRequest } from '../server/apiAuth.ts'
+import { verifySupabaseRequest } from '../server/apiAuth.js'
 
 type ApiRequest = {
   method?: string
@@ -159,7 +159,7 @@ export default async function handler(request: ApiRequest, response: ApiResponse
   }
 
   const auth = await verifySupabaseRequest(request)
-  if (!auth.ok) {
+  if (auth.ok === false) {
     response.status(auth.status).json({ error: auth.message })
     return
   }

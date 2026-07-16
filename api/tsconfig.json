@@ -1,0 +1,8 @@
+{
+  "extends": "../tsconfig.api.json",
+  "compilerOptions": {
+    "composite": false,
+    "tsBuildInfoFile": "../node_modules/.tmp/api-vercel.tsbuildinfo"
+  },
+  "include": ["./**/*.ts", "../server/**/*.d.ts"]
+}

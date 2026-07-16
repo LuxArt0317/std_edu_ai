@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { verifySupabaseRequest } from '../server/apiAuth.ts'
+import { verifySupabaseRequest } from '../server/apiAuth.js'
 
 type ApiRequest = { method?: string; body?: unknown; headers: Record<string, string | string[] | undefined>; socket?: { remoteAddress?: string } }
 type ApiResponse = { status: (code: number) => ApiResponse; json: (body: unknown) => void; setHeader: (name: string, value: string) => void }
@@ -72,7 +72,7 @@ export default async function handler(request: ApiRequest, response: ApiResponse
   const input = parseBody(request.body)
   if (!input) { response.status(400).json({ error: 'A supported grade-sheet image, roster, and maximum score are required.' }); return }
   const auth = await verifySupabaseRequest(request)
-  if (!auth.ok) { response.status(auth.status).json({ error: auth.message }); return }
+  if (auth.ok === false) { response.status(auth.status).json({ error: auth.message }); return }
   if (!allowedRoles.has(auth.user.role)) { response.status(403).json({ error: 'Your role cannot scan or review grades.' }); return }
   if (isRateLimited(auth.user.id)) { response.status(429).json({ error: 'Grade scanning is rate limited. Please wait before trying again.' }); return }
   const apiKey = process.env.OPENAI_API_KEY
