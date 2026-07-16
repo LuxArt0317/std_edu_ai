@@ -24,3 +24,6 @@
 - added an explicit Vercel contract for Node.js 22, `npm ci`, the Vite build, `dist`, and SPA route fallback
 - verified a clean `npm ci`, lint, Vercel production build, and valid `vercel.json`
 - verified the production preview returns HTTP 200 at `/` and `/campus/assistant`, with identical application shells
+- reopened GitHub issue #1 after GitHub reported two failed Vercel production deployments
+- reproduced the Vercel install failure with Node 22/npm 11: `npm ci` rejected four missing transitive `@emnapi/*` lockfile entries
+- regenerated `package-lock.json` with npm 11 and verified clean install, lint, and production build with Node 22/npm 11

@@ -11,3 +11,4 @@
 - production should treat Supabase as optional for page render and isolate backend failure to the data panel
 - the repository previously relied on Vercel framework inference and did not pin a supported runtime, deterministic install command, output directory, or SPA fallback
 - GitHub issue #1 tracks the Vercel recovery
+- Vercel's Node 22/npm 11 install fails when the npm lockfile omits optional transitive `@emnapi/core` and `@emnapi/runtime` entries, even though older local npm versions accept the same lockfile
