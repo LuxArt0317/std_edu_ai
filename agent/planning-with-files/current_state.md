@@ -1,11 +1,19 @@
 # Current State
 
-Production Supabase activation is in progress under GitHub issue #9. MCP now has full access to the healthy `stu_edu_ai` project, which is currently empty and ready for the reviewed CRM schema, authentication, and live persistence integration.
+Production Supabase activation is complete. GitHub issue #12 tracks the final secure credential handoff for the existing owner administrator.
+
+Credential handoff status:
+
+- the owner email is `winsonbaring10@gmail.com`
+- the credential exists in the macOS login keychain as an internet password for `www.stu.best`
+- production Supabase password authentication passes and returns the trusted `admin` app role
+- the verified password has been copied to the owner's local clipboard for direct paste into the CRM login form
+- no plaintext password was written to the repository, command output, planning files, or GitHub
 
 Activation status:
 
 - project ref `zhcchldvgqrkfqoknewk` is `ACTIVE_HEALTHY` in `ap-northeast-1`
-- current remote state: zero public tables, zero migrations, zero auth users
+- current remote state: 11 RLS-protected public CRM tables, three migrations, and the provisioned owner administrator
 - the existing CRM remains available through its persistent continuity adapter while live integration is implemented
 - no unrelated Supabase project will be modified
 - remote schema is now live through three tracked migrations with 11 RLS-protected tables and safe seed data

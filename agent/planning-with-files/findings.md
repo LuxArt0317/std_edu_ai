@@ -1,5 +1,8 @@
 # Findings
 
+- the owner credential was present as a macOS internet-password entry even though it was not visible where the user expected in Keychain Access
+- the stored credential remains valid against production Supabase Auth and resolves to the trusted `admin` app role
+- a verified clipboard handoff gives the owner immediate access without copying the secret into chat, terminal output, GitHub, or repository files
 - the production `stu_edu_ai` Supabase project is healthy, empty, and now accessible through MCP
 - a production-ready activation requires both live repositories and a real authenticated staff session; a browser publishable key alone must never bypass RLS
 - newly SQL-created tables may require explicit Data API grants, which the prepared migration provides alongside RLS

@@ -1,5 +1,19 @@
 # Task Plan
 
+## Phase 5: Secure CRM credential handoff [Issue #12]
+
+- verify the macOS keychain entry exists without printing its value
+- authenticate the stored credential against production Supabase Auth and confirm the trusted staff role
+- place the verified credential on the owner's local clipboard for immediate use
+- record completion without persisting or exposing the plaintext credential in repository files, logs, or GitHub
+
+## Current execution
+
+- GitHub issue #12 created
+- the `www.stu.best` internet-password entry for `winsonbaring10@gmail.com` exists in the login keychain
+- production password authentication passed and the returned trusted app role is `admin`
+- the exact verified credential was copied to the local clipboard and validated by digest comparison
+
 ## Phase 4: Production Supabase CRM activation [Issue #9]
 
 - apply and verify the STU Nexus schema, RLS, grants, indexes, search/vector structures, audit controls, and safe seed data to the healthy `stu_edu_ai` project

@@ -68,6 +68,11 @@
 - Implemented the core research modules in the app: structured knowledge documents, intelligent search, FAQ support, campus destination guidance, context-aware AI answers, and a local survey/evaluation workflow.
 2026-07-16
 
+- created GitHub issue #12 to track secure recovery and handoff of the production CRM owner credential
+- confirmed the owner credential exists as a macOS internet-password item for `www.stu.best`
+- validated the credential against production Supabase Auth without exposing plaintext and confirmed the trusted `admin` app role
+- copied the verified credential to the local clipboard and confirmed it matches the keychain value using one-way digests
+
 - investigated the Vercel deployment breakage starting from local build and repository workflow files
 - confirmed the production build succeeds locally with the current checkout
 - identified unguarded Supabase client initialization as the highest-risk production failure path
