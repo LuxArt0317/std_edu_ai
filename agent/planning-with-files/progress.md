@@ -11,6 +11,7 @@
 - stored each unique generated credential only as a `www.stu.best` macOS internet password and verified every live password login, trusted Auth claim, owner marker, and self-profile role
 - added the production role account directory, secure provisioning documentation, live account verifier, and API security contracts
 - passed 11 API tests, lint, production build, diff validation, production SQL integrity checks, and Supabase security/performance advisors
+- published release commit `9e3e949`, verified the resulting Vercel production deployment is Ready on `www.stu.best`, and passed deployed root, CRM, and unauthenticated AI boundary checks
 
 2026-07-16 — All-in-one school operating platform [Issue #14]
 

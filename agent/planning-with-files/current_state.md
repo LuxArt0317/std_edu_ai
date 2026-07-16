@@ -4,6 +4,8 @@ GitHub issue #15 now has a complete production identity for every canonical STU 
 
 Every account passed a real password login plus trusted Auth-role and self-profile authorization check. The credential-safe test is `npm run test:live-accounts`, and the sign-in email directory is `src/platform/ROLE_ACCOUNTS.md`. API tests, lint, production build, migration verification, and Supabase advisors pass with only the pre-existing intentional trusted-workflow notices, leaked-password dashboard notice, and low-volume unused-index information.
 
+Release commit `9e3e949` is published on `main`. Vercel production deployment `dpl_CfVE9KuT5HAA3wLQr5MiaSSmxWpq` is Ready and aliased to `www.stu.best`; deployed `/` and `/crm` return HTTP 200 and the unauthenticated school-assistant boundary returns HTTP 401.
+
 The all-in-one platform expansion is complete under closed GitHub issue #14. One authenticated STU Nexus application now enforces owner, leadership, administrative, teacher, specialist-staff, and student boundaries in Supabase RLS. `winsonbaring10@gmail.com` is the protected platform owner and has a safe role-preview capability.
 
 Current platform status:

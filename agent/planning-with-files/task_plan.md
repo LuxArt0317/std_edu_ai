@@ -31,6 +31,7 @@
 - eleven missing identities provisioned and the full 14-account directory synchronized through one production migration
 - all 14 unique credentials stored only in the macOS keychain; all 14 live password logins and matching profile roles verified
 - API contracts, lint, production build, migration integrity, security advisors, performance advisors, and credential-safe documentation pass review
+- release commit `9e3e949` published to `main`; Vercel deployment `dpl_CfVE9KuT5HAA3wLQr5MiaSSmxWpq` is Ready on `www.stu.best` with root/CRM 200 and unauthenticated AI 401 checks passing
 
 ## Phase 7: All-in-one school operating platform [Issue #14]
 
