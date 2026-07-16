@@ -14,6 +14,7 @@ Working status:
 - lint, full TypeScript/Vite build, 3 API contract tests, and `/crm` HTTP smoke checks pass
 - PR #6 merged to `main`, GitHub issue #5 closed as completed, and the Vercel production deployment passed
 - production remains protected by the project's configured Vercel SSO; anonymous CRM requests redirect to authentication and anonymous API requests return 401
+- OpenAI production/preview variables are encrypted in Vercel; tests live outside the reserved `/api` directory so only the intended assistant function is deployed
 
 - pixel-faithful homepage reconstruction is tracked in GitHub issue #3
 - the live Elementor page structure, styles, content, links, and assets have been extracted using terminal-only inspection

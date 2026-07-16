@@ -7,6 +7,7 @@
 - added a server-only OpenAI Responses API endpoint with validation, rate limiting, structured output, de-identification, timeout handling, safety identifiers, and client continuity fallback
 - added a production Supabase migration with normalized CRM data, role-based RLS, operational indexes, full-text/vector knowledge search, privacy-minimized AI audit logs, and demo seeds
 - added API contract tests plus `/crm` production-build and route verification
+- kept API contract tests outside Vercel's reserved `/api` directory so production publishes only the intended CRM assistant function
 
 - scaffolded the repository with the latest Vite React TypeScript app
 - replaced the starter page with an AI-enhanced Shu-Te University landing page

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { after, test } from 'node:test'
-import handler from './crm-assistant.ts'
+import handler from '../../api/crm-assistant.ts'
 
 type CapturedResponse = {
   statusCode: number
@@ -78,3 +78,4 @@ test('returns validated structured OpenAI output', async () => {
     source: 'openai',
   })
 })
+

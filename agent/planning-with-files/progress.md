@@ -18,6 +18,8 @@
 - published the implementation as PR #6, passed Vercel and automated review checks, and merged it to `main`
 - confirmed GitHub issue #5 closed as completed and the main-branch Vercel production deployment succeeded
 - confirmed production `/crm` redirects anonymous traffic to the configured Vercel SSO boundary
+- securely added `OPENAI_API_KEY`, `OPENAI_MODEL`, and `SAFETY_HASH_SALT` to Vercel Production and Preview without exposing their values
+- detected that Vercel treated the endpoint test under `/api` as a function and moved all tests to `tests/api` before the final deployment
 
 2026-07-16 — Pixel-faithful homepage clone
 
