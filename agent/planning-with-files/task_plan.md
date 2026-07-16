@@ -20,6 +20,8 @@
 - anonymous isolation, admin access to six CRM modules, and a reversible remote mutation pass through the browser-safe publishable key
 - CRM Auth gate, live repository, targeted remote mutations, continuity rollback, generated database types, and AI audit logging implemented
 - Vercel Production and Preview now contain the browser-safe Supabase URL and publishable key
+- PR #10 passed Vercel checks, merged to `main`, and closed issue #9
+- the final production deployment is Ready at `www.stu.best`; `/crm` and the OpenAI endpoint passed protected production smoke tests
 
 ## Phase 3: STU Nexus CRM and AI student-success platform [Issue #5]
 

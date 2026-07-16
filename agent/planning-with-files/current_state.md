@@ -15,6 +15,8 @@ Activation status:
 - the application now uses Supabase Auth and live persistence with explicit continuity fallback and rollback behavior
 - Vercel Production and Preview have browser-safe Supabase configuration
 - the only remaining Supabase advisor warning is the dashboard-level leaked-password protection toggle; the provisioned owner password is a randomly generated 40-character credential
+- PR #10 merged to `main`, issue #9 closed as completed, and the Vercel production deployment is Ready
+- production `/crm` returns HTTP 200 behind Vercel SSO and the production OpenAI endpoint returns structured grounded output
 
 The repository contains the responsive STU homepage reconstruction and the completed STU Nexus school CRM at `/crm`, aligned with `research.md` and `UNDERSTANDING.md`.
 

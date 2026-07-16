@@ -14,6 +14,9 @@
 - generated database TypeScript contracts and implemented the authenticated CRM root, live Supabase repository, targeted mutations, rollback, continuity cache, and AI audit metadata
 - added browser-safe Supabase configuration to Vercel Production and Preview
 - added a repeatable live CRM integration test and passed it against production
+- published the activation in PR #10, passed Vercel preview checks, and merged it to `main`
+- confirmed issue #9 closed as completed and the main-branch Vercel production deployment reached Ready
+- verified protected production `/crm` returns HTTP 200 and the deployed OpenAI endpoint returns structured grounded output
 
 2026-07-16 — STU Nexus CRM
 
