@@ -18,4 +18,5 @@ Working status:
 - preview smoke tests return HTTP 200 for both `/` and `/campus/assistant`, with the deep route serving the application shell
 - the first configured production deployment failed during `npm ci` because npm 11 rejected missing transitive `@emnapi/*` lockfile entries
 - the lockfile has been regenerated with Node 22/npm 11 and now passes clean install, lint, and production build under the deployment toolchain
-- the local Vercel CLI has no credentials, so production verification is performed through the connected GitHub deployment integration
+- the corrected preview and production deployments completed successfully through the GitHub/Vercel integration
+- the production root and `/campus/assistant` routes respond through Vercel deployment protection; anonymous requests redirect to Vercel SSO as configured for the project

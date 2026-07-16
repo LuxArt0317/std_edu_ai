@@ -18,4 +18,5 @@
 - root and deep-link HTTP smoke tests both returned 200 with the built application shell
 - production deployment failed because npm 11 rejected missing transitive `@emnapi/*` lockfile entries
 - lockfile regenerated and verified with the pinned Node 22 and npm 11 deployment toolchain
-- production redeployment and live endpoint verification in progress
+- preview and production Vercel deployments completed successfully after the lockfile repair
+- production root and SPA deep-link routes respond through Vercel deployment protection

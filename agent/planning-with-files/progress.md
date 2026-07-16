@@ -27,3 +27,6 @@
 - reopened GitHub issue #1 after GitHub reported two failed Vercel production deployments
 - reproduced the Vercel install failure with Node 22/npm 11: `npm ci` rejected four missing transitive `@emnapi/*` lockfile entries
 - regenerated `package-lock.json` with npm 11 and verified clean install, lint, and production build with Node 22/npm 11
+- pushed the repair in PR #2 and verified its Vercel preview deployment completed successfully
+- merged PR #2 to `main` and verified production deployment 5472729645 completed successfully
+- confirmed the production root and `/campus/assistant` routes are reachable behind the project's Vercel SSO deployment protection
