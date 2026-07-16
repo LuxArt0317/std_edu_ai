@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- provisioned one confirmed production Auth identity for each of the 14 canonical school roles, with unique credentials stored only in the macOS keychain
+- added an owner-only Supabase Edge Function for validated non-owner account creation and credential rotation through the server-side Auth Admin API
+- added an atomic role-directory synchronization migration plus credential-safe live verification of every Auth claim and profile role
+- documented the complete role sign-in directory without exposing passwords
+
 - revalidated the protected owner login and refreshed its secure local clipboard handoff without exposing plaintext credential material
 
 - expanded `/crm` into a unified role-aware school operating platform for owner, leadership, administrators, department heads, faculty, advisors, admissions, finance, support, librarians, and students

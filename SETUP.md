@@ -44,7 +44,9 @@ The production schema has already been applied to `stu_edu_ai`. The migrations i
 
 Assign roles with the owner-only People & Roles workspace or the audited `assign_platform_role` RPC. Authorization uses trusted `app_metadata.role`; never use user-editable metadata. The complete role catalog is documented in [src/platform/ROLE_MATRIX.md](./src/platform/ROLE_MATRIX.md).
 
-The protected owner is `winsonbaring10@gmail.com`. Validation identities for faculty and student views use `winsonbaring10+faculty@gmail.com` and `winsonbaring10+student@gmail.com`. Their generated credentials are stored as internet passwords in the local macOS login keychain for `www.stu.best`; no password is committed or documented in plaintext.
+The protected owner is `winsonbaring10@gmail.com`. A confirmed owner-controlled acceptance identity is provisioned for every canonical role; the complete sign-in directory is in [src/platform/ROLE_ACCOUNTS.md](./src/platform/ROLE_ACCOUNTS.md). Each unique generated credential is stored as a macOS internet password for service `www.stu.best` and the account email. No password is committed or documented in plaintext.
+
+New non-owner accounts and credential rotations must pass through the deployed owner-only `provision-role-account` Edge Function. Role changes for existing accounts continue through the audited `assign_platform_role` RPC. Neither path can create or transfer the protected owner role.
 
 The homepage currently references official public STU media assets from `www.stu.edu.tw`. An internet connection is required to load those images and the Roboto web font during local development.
 
@@ -69,10 +71,11 @@ npm test
 npm run test:live-school
 npm run test:live-crm
 npm run test:live-roles
+npm run test:live-accounts
 npm run test:live-ai
 ```
 
-The `test:live-*` commands require the existing ignored `.env.local` values and network access. They exercise reversible production workflows and clean up test assessment attempts.
+The `test:live-*` commands require the existing ignored local environment values and network access. They exercise reversible production workflows and clean up test assessment attempts. `test:live-accounts` additionally requires the provisioner's macOS keychain and verifies all 14 production credentials without printing them.
 
 Open `http://localhost:5173/crm` during local development to use STU Nexus.
 

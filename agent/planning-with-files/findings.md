@@ -10,7 +10,7 @@
 - transactional assessment grading provides a reliable boundary for attempt limits, enrollment, scoring, and cleanup while keeping answer keys unavailable to learners
 - all new foreign keys need covering indexes even in a new low-volume deployment; the final performance advisor now reports only expected unused-index information
 - the owner credential was present as a macOS internet-password entry even though it was not visible where the user expected in Keychain Access
-- the stored credential remains valid against production Supabase Auth and resolves to the trusted `admin` app role
+- the stored owner credential remains valid against production Supabase Auth and resolves to the trusted `owner` app role
 - a verified clipboard handoff gives the owner immediate access without copying the secret into chat, terminal output, GitHub, or repository files
 - the production `stu_edu_ai` Supabase project is healthy, empty, and now accessible through MCP
 - a production-ready activation requires both live repositories and a real authenticated staff session; a browser publishable key alone must never bypass RLS
@@ -20,6 +20,9 @@
 - production RLS validation confirms anonymous requests are denied and trusted admin JWTs can read and mutate only through explicit policies
 - policy-specific insert/update rules remove the multiple-permissive-policy advisor findings without broadening authorization
 - Supabase's leaked-password-protection setting is a dashboard-level control not exposed by the connected MCP toolset; the strong generated credential substantially mitigates the current warning until that toggle is available
+- hosted self-signup is constrained by email-delivery rate limits and is not an appropriate administrative provisioning workflow for a complete role directory
+- an owner-authorized Edge Function backed by the Auth Admin API provides an idempotent creation/rotation boundary while keeping the service role server-only and excluding second-owner creation
+- acceptance testing is strongest when every canonical role has a real confirmed identity and the verifier checks both the fresh Auth claim and the RLS-visible profile role
 
 - the live homepage is WordPress 7.0.1 using Elementor 3.35 and exposes its page-243 styling inline
 - the current desktop hero is 800px tall, uses three 5-second slides, and overlays the centered logo/navigation with a dark green gradient

@@ -4,6 +4,8 @@
 
 Every signed-in identity has one trusted role in Supabase Auth `app_metadata` and a matching profile role. Navigation is tailored for usability, but database RLS and trusted functions are the authorization boundary. Course visibility is further narrowed by teaching assignment or student enrollment.
 
+The complete set of owner-controlled acceptance identities is documented in [ROLE_ACCOUNTS.md](./ROLE_ACCOUNTS.md).
+
 | Tier | Roles | Primary workspace and authority |
 | --- | --- | --- |
 | Ownership | `owner` | Full institutional oversight, safe role preview, audited role governance, academic operations, CRM, and immutable owner protection |

@@ -15,6 +15,7 @@ Primary references:
 - [PROJECT.md](./PROJECT.md)
 - [STU Nexus portal guide](./src/crm/PORTAL_GUIDE.md)
 - [Role and permission matrix](./src/platform/ROLE_MATRIX.md)
+- [Production role account directory](./src/platform/ROLE_ACCOUNTS.md)
 - [Unified platform architecture](./src/platform/README.md)
 - [src/crm/README.md](./src/crm/README.md)
 - [supabase/README.md](./supabase/README.md)

@@ -7,7 +7,8 @@ This folder contains the role-aware school operating experience layered over the
 - `platformAi.ts` calls authenticated school-chat and grade-scan endpoints.
 - `platform.css` contains the responsive visual system for the unified portal.
 - `types.ts` defines the frontend academic and role contracts.
+- `ROLE_ACCOUNTS.md` is the credential-safe production acceptance-account directory.
 
 The interface adapts to the authenticated role, but authorization is enforced by Supabase RLS and trusted database functions.
 
-See [ROLE_MATRIX.md](./ROLE_MATRIX.md) for the complete role hierarchy, visibility rules, owner guarantees, and AI decision boundaries.
+See [ROLE_MATRIX.md](./ROLE_MATRIX.md) for the complete role hierarchy, visibility rules, owner guarantees, and AI decision boundaries. See [ROLE_ACCOUNTS.md](./ROLE_ACCOUNTS.md) for the production sign-in emails and secure credential-storage model.

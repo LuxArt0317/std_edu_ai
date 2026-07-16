@@ -1,5 +1,37 @@
 # Task Plan
 
+## Phase 8: Production account for every school role [Issue #15]
+
+### Secure provisioning
+
+- provision one confirmed Supabase Auth identity for every canonical STU Nexus role
+- use owner-controlled `winsonbaring10+<role>@gmail.com` aliases for non-owner role validation accounts
+- generate a unique high-entropy password for every new identity and store it only in the local macOS keychain for `www.stu.best`
+- preserve `winsonbaring10@gmail.com` as the only immutable platform owner
+
+### Trusted role synchronization
+
+- synchronize trusted Auth `app_metadata.role` and `public.profiles.role` through one idempotent reviewed migration
+- assign production-shaped names, departments, and job titles while retaining the existing faculty/student roster links
+- validate that all expected accounts exist before committing any role updates
+
+### Production verification
+
+- authenticate every account through the live password-token endpoint and verify its returned trusted role
+- verify all 14 Auth identities are confirmed and match their profile role, with exactly one platform owner
+- add a repeatable credential-safe live account test and an operator account directory
+- run application tests, lint, production build, Supabase security/performance advisors, deployment verification, and documentation synchronization
+
+## Current execution
+
+- GitHub issue #15 created and provisioning progress recorded
+- canonical 14-role catalog and three existing owner/faculty/student identities verified
+- current Supabase Auth and trusted `app_metadata` guidance reviewed
+- owner-only `provision-role-account` Edge Function deployed with verified student denial and no owner-role creation path
+- eleven missing identities provisioned and the full 14-account directory synchronized through one production migration
+- all 14 unique credentials stored only in the macOS keychain; all 14 live password logins and matching profile roles verified
+- API contracts, lint, production build, migration integrity, security advisors, performance advisors, and credential-safe documentation pass review
+
 ## Phase 7: All-in-one school operating platform [Issue #14]
 
 ### Product model and authorization

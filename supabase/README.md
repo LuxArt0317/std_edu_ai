@@ -4,7 +4,9 @@ This folder contains the deployed production database contract for the complete 
 
 The production project is `stu_edu_ai` (`zhcchldvgqrkfqoknewk`). Schema changes are applied through reviewed migrations and verified with Supabase security and performance advisors. Set staff authorization in each user's `app_metadata.role`; never use editable user metadata for authorization.
 
-The initial owner account has been provisioned and the one-time bootstrap RPC is locked. `winsonbaring10@gmail.com` is protected as the only owner by database triggers and trusted Auth metadata. New accounts must be created through a trusted Supabase administrative workflow, then assigned a non-owner role through the audited `assign_platform_role` function or equivalent server-admin workflow.
+The initial owner account has been provisioned and the one-time bootstrap RPC is locked. `winsonbaring10@gmail.com` is protected as the only owner by database triggers and trusted Auth metadata. The owner-only `provision-role-account` Edge Function creates or rotates confirmed non-owner identities through the Supabase Auth Admin API; its server-only service credential never reaches the application client. Role changes use the audited `assign_platform_role` function.
+
+One confirmed acceptance identity now exists for each of the 14 canonical roles. Their emails and Keychain storage contract are documented in [../src/platform/ROLE_ACCOUNTS.md](../src/platform/ROLE_ACCOUNTS.md).
 
 The production security advisor reports two intentional authenticated `SECURITY DEFINER` functions: `submit_assessment` and `assign_platform_role`. Both use fixed search paths, explicit execute grants, and internal identity/role checks because they must atomically cross otherwise protected tables. Leaked-password protection remains a Supabase dashboard setting to enable when the plan exposes it. Performance advisors report only unused-index informational notices expected for newly seeded, low-traffic tables; no unindexed foreign-key notices remain.
 

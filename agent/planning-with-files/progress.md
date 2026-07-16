@@ -1,5 +1,17 @@
 # Progress Log
 
+2026-07-17 — Production account for every school role [Issue #15]
+
+- created the GitHub issue and mapped the secure provisioning, trusted role synchronization, verification, documentation, and release work into the monolithic task plan
+- verified the canonical 14-role hierarchy and the existing protected owner, faculty, and student Auth identities
+- reviewed current Supabase Auth metadata and database-security guidance before production mutation
+- selected owner-controlled Gmail aliases and macOS Keychain-only credential storage for the eleven missing roles
+- deployed the protected-owner-only `provision-role-account` Edge Function after hosted public signup reached its email-delivery limit; verified a real student receives HTTP 403
+- provisioned all eleven missing identities, confirmed all 14 accounts, and applied the idempotent role/profile synchronization migration without persisting credentials or generated IDs
+- stored each unique generated credential only as a `www.stu.best` macOS internet password and verified every live password login, trusted Auth claim, owner marker, and self-profile role
+- added the production role account directory, secure provisioning documentation, live account verifier, and API security contracts
+- passed 11 API tests, lint, production build, diff validation, production SQL integrity checks, and Supabase security/performance advisors
+
 2026-07-16 — All-in-one school operating platform [Issue #14]
 
 - promoted `winsonbaring10@gmail.com` to the protected owner tier and provisioned isolated faculty/student validation identities with credentials stored only in the local keychain
