@@ -1,6 +1,6 @@
 # Current State
 
-The repository now contains a working Vite-based prototype for an AI-enhanced Shu-Te University website.
+The repository contains a Vite-based prototype for an AI-enhanced Shu-Te University website, and the active fix is focused on stabilizing the Vercel deployment path.
 
 Working status:
 
@@ -9,8 +9,8 @@ Working status:
 - the homepage structure now more closely mirrors the live `stu.edu.tw` homepage layout and section order
 - the homepage styling has been pushed closer to the screenshots, including hero treatment, turquoise section bands, slanted separators, content blocks, and footer/contact composition
 - the AI feature is implemented as a local mocked assistant backed by a small knowledge base
-- Supabase frontend integration has been added with `@supabase/supabase-js`, env variables, and a browser client
-- live Supabase verification currently fails because `public.todos` is not available in the target project schema cache
+- Supabase frontend integration now degrades gracefully when env vars are missing or the `todos` table is unavailable
+- the site should continue rendering on Vercel even when live Supabase data is misconfigured
 - research modules now implemented in the frontend include knowledge retrieval, FAQ coverage, navigation support, AI chat assistance, and a local evaluation survey
-- the production build succeeds
-- GitHub issue tracking is not yet active because the local repository has no configured remote
+- the production build is being re-verified after the deployment-hardening change
+- GitHub issue tracking is still pending because GitHub MCP access is not installed in this session

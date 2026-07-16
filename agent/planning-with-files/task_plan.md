@@ -1,16 +1,15 @@
 # Task Plan
 
-## Phase 1: Local bootstrap [Issue: GitHub issue pending remote configuration]
+## Phase 1: Deployment recovery [Issue: GitHub issue pending plugin installation]
 
-- scaffold the latest Vite React TypeScript application
-- replace the starter UI with a research-aligned Shu-Te University homepage
-- add an initial mocked AI assistant experience
-- document understanding and setup
+- reproduce the Vercel-facing failure locally
+- inspect runtime-sensitive integrations and deployment configuration
+- harden the production path so missing environment data does not crash the app
+- verify the production build and preview output
 
 ## Current execution
 
-- Vite scaffold completed
-- homepage implementation completed
-- AI assistant prototype completed
-- local verification completed with successful production build
-- GitHub issue creation blocked because no git remote is configured in this checkout
+- local production build reproduced as successful
+- Supabase browser client identified as an unguarded runtime dependency
+- deployment-safe fallback implemented for missing `VITE_SUPABASE_*` variables and unavailable `todos` data
+- verification in progress

@@ -7,5 +7,6 @@ It demonstrates:
 - a redesigned homepage for the university digital experience
 - a smart-campus positioning aligned with the research
 - a mocked AI assistant for natural-language campus questions
+- a deployment-safe Supabase integration that degrades gracefully when Vercel env vars or the `todos` table are unavailable
 
 For setup and run instructions, see [SETUP.md](./SETUP.md).

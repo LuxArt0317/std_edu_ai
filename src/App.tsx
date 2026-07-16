@@ -17,18 +17,13 @@ import {
   visionSlides,
 } from './data/knowledge'
 import { askCampusAssistant } from './services/mockAssistant'
-import { supabase } from './utils/supabase'
 import { findCampusDestination, searchKnowledge } from './services/campusEngine'
+import { fetchTodos, hasSupabaseConfig, supabaseStatusMessage } from './utils/supabase'
 
 type ChatMessage = {
   id: string
   role: 'assistant' | 'user'
   content: string
-}
-
-type Todo = {
-  id: number | string
-  name: string
 }
 
 type SurveyValues = Record<string, string>
@@ -127,7 +122,7 @@ function App() {
   const [query, setQuery] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
-  const [todos, setTodos] = useState<Todo[]>([])
+  const [todos, setTodos] = useState<Array<{ id: number | string; name: string }>>([])
   const [todosError, setTodosError] = useState('')
   const [isTodosLoading, setIsTodosLoading] = useState(true)
   const [knowledgeQuery, setKnowledgeQuery] = useState('graduation requirements')
@@ -149,12 +144,9 @@ function App() {
   useEffect(() => {
     async function getTodos() {
       setIsTodosLoading(true)
-      setTodosError('')
+      setTodosError(supabaseStatusMessage)
 
-      const { data, error } = await supabase
-        .from('todos')
-        .select('id, name')
-        .order('id', { ascending: true })
+      const { data, error } = await fetchTodos()
 
       if (error) {
         setTodosError(error.message)
@@ -386,8 +378,8 @@ function App() {
             <p className="ai-label">Supabase Data</p>
             <h3>Supabase `todos` 查詢</h3>
             <p>
-              This panel uses the configured Supabase browser client and reads from the
-              `todos` table.
+              This panel reads from the configured Supabase browser client when Vercel
+              environment variables and the `todos` table are available.
             </p>
           </div>
           <div className="supabase-panel-state">
@@ -402,6 +394,9 @@ function App() {
             ) : null}
             {!isTodosLoading && !todosError && todos.length === 0 ? (
               <p>No todos found.</p>
+            ) : null}
+            {!isTodosLoading && !hasSupabaseConfig ? (
+              <p>Add the two `VITE_SUPABASE_*` variables in Vercel to re-enable live data.</p>
             ) : null}
           </div>
         </div>

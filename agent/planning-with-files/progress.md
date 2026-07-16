@@ -12,3 +12,10 @@
 - Installed `@supabase/supabase-js`, added the Supabase env variables and browser client, and integrated a live `todos` query panel into the existing page.
 - Verified the frontend integration, build, and lint; verified the live query path reaches Supabase but currently fails because `public.todos` is not present in the target schema cache.
 - Implemented the core research modules in the app: structured knowledge documents, intelligent search, FAQ support, campus destination guidance, context-aware AI answers, and a local survey/evaluation workflow.
+2026-07-16
+
+- investigated the Vercel deployment breakage starting from local build and repository workflow files
+- confirmed the production build succeeds locally with the current checkout
+- identified unguarded Supabase client initialization as the highest-risk production failure path
+- updated the Supabase integration to avoid app startup crashes when Vercel env vars are missing
+- updated the app copy and setup docs to reflect the new fallback behavior
