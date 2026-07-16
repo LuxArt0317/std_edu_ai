@@ -1,5 +1,20 @@
 # Progress Log
 
+2026-07-16 — Production Supabase CRM activation
+
+- restored Supabase MCP access to the intended `stu_edu_ai` project
+- verified the target is healthy and currently has no public tables, migrations, or auth users
+- created GitHub issue #9 for production schema, authentication, live persistence, Vercel configuration, and end-to-end verification
+- reviewed current Supabase changelog, Auth/Data API/RLS guidance, and Postgres schema/index/security practices
+- applied the core CRM migration and verified 11 RLS-enabled tables, 19 initial policies, migration history, and production seed records
+- applied policy hardening to remove duplicate permissive policies, add the missing FK index, and explicitly deny direct bootstrap-settings access
+- provisioned and confirmed the initial owner admin through Supabase Auth, stored the generated credential in the macOS login keychain, and locked the bootstrap RPC
+- inserted owner-assigned production tasks and campaigns
+- verified anonymous users cannot read student rows and a real admin session can read all six core CRM modules and persist/restore a case mutation
+- generated database TypeScript contracts and implemented the authenticated CRM root, live Supabase repository, targeted mutations, rollback, continuity cache, and AI audit metadata
+- added browser-safe Supabase configuration to Vercel Production and Preview
+- added a repeatable live CRM integration test and passed it against production
+
 2026-07-16 — STU Nexus CRM
 
 - confirmed secure OpenAI credential presence and moved it out of the tracked `.env` into ignored `.env.local` with owner-only permissions

@@ -5,7 +5,7 @@ This repository contains two connected Shu-Te University experiences:
 - `/` is the responsive reconstruction of the institutional `stu.edu.tw` homepage, with its research-driven campus assistant preserved as an additive overlay.
 - `/crm` is STU Nexus, a premium school relationship platform spanning Student 360, early-support intelligence, admissions, service cases, campaigns, institutional knowledge, analytics, and a privacy-conscious OpenAI copilot.
 
-The CRM ships with a persistent local continuity workspace and a production Supabase schema so it remains fully interactive before the intended remote project is linked.
+The CRM is backed by production Supabase Auth and Postgres with role-based RLS. Its browser cache is used only for explicit continuity recovery when the live service is interrupted.
 
 Primary references:
 

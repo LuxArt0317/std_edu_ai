@@ -1,5 +1,21 @@
 # Current State
 
+Production Supabase activation is in progress under GitHub issue #9. MCP now has full access to the healthy `stu_edu_ai` project, which is currently empty and ready for the reviewed CRM schema, authentication, and live persistence integration.
+
+Activation status:
+
+- project ref `zhcchldvgqrkfqoknewk` is `ACTIVE_HEALTHY` in `ap-northeast-1`
+- current remote state: zero public tables, zero migrations, zero auth users
+- the existing CRM remains available through its persistent continuity adapter while live integration is implemented
+- no unrelated Supabase project will be modified
+- remote schema is now live through three tracked migrations with 11 RLS-protected tables and safe seed data
+- the confirmed owner account has trusted `admin` app metadata; its generated password is stored only in the local macOS keychain for `www.stu.best`
+- the one-time bootstrap RPC is no longer executable by authenticated users
+- authenticated live reads and reversible case mutation tests pass; anonymous student access is denied
+- the application now uses Supabase Auth and live persistence with explicit continuity fallback and rollback behavior
+- Vercel Production and Preview have browser-safe Supabase configuration
+- the only remaining Supabase advisor warning is the dashboard-level leaked-password protection toggle; the provisioned owner password is a randomly generated 40-character credential
+
 The repository contains the responsive STU homepage reconstruction and the completed STU Nexus school CRM at `/crm`, aligned with `research.md` and `UNDERSTANDING.md`.
 
 Working status:

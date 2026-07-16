@@ -35,6 +35,19 @@ create table public.profiles (
   updated_at timestamptz not null default now()
 );
 
+create table private.bootstrap_settings (
+  singleton boolean primary key default true check (singleton),
+  allowed_email text,
+  claimed_by uuid references auth.users(id) on delete set null,
+  claimed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+insert into private.bootstrap_settings (singleton) values (true);
+alter table private.bootstrap_settings enable row level security;
+revoke all on table private.bootstrap_settings from public, anon, authenticated;
+
 create table public.students (
   id uuid primary key default extensions.gen_random_uuid(),
   profile_id uuid unique references public.profiles(id) on delete set null,
@@ -215,6 +228,98 @@ begin
 end;
 $$;
 
+create or replace function private.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  requested_role text;
+begin
+  requested_role := new.raw_app_meta_data ->> 'role';
+  if requested_role is null or requested_role not in ('admin', 'advisor', 'admissions', 'support', 'faculty', 'student') then
+    requested_role := 'student';
+  end if;
+
+  insert into public.profiles (id, full_name, role)
+  values (
+    new.id,
+    coalesce(
+      nullif(trim(new.raw_user_meta_data ->> 'full_name'), ''),
+      nullif(split_part(coalesce(new.email, ''), '@', 1), ''),
+      'STU user'
+    ),
+    requested_role
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+revoke all on function private.handle_new_user() from public, anon, authenticated;
+
+create trigger on_auth_user_created
+after insert on auth.users
+for each row execute function private.handle_new_user();
+
+create or replace function public.claim_initial_admin()
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  actor_id uuid := (select auth.uid());
+  actor_email text;
+  allowed_email text;
+  existing_claim uuid;
+begin
+  if actor_id is null then
+    raise exception 'Authentication is required' using errcode = '42501';
+  end if;
+
+  select lower(email) into actor_email
+  from auth.users
+  where id = actor_id;
+
+  select lower(bs.allowed_email), bs.claimed_by
+  into allowed_email, existing_claim
+  from private.bootstrap_settings bs
+  where bs.singleton = true
+  for update;
+
+  if allowed_email is null or actor_email is distinct from allowed_email then
+    raise exception 'This account is not authorized to bootstrap the CRM' using errcode = '42501';
+  end if;
+
+  if existing_claim is not null then
+    return existing_claim = actor_id;
+  end if;
+
+  if exists (select 1 from public.profiles p where p.role = 'admin' and p.id <> actor_id) then
+    raise exception 'An administrator already exists' using errcode = '42501';
+  end if;
+
+  update auth.users
+  set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || jsonb_build_object('role', 'admin')
+  where id = actor_id;
+
+  update public.profiles
+  set role = 'admin', updated_at = now()
+  where id = actor_id;
+
+  update private.bootstrap_settings
+  set claimed_by = actor_id, claimed_at = now(), updated_at = now()
+  where singleton = true;
+
+  return true;
+end;
+$$;
+
+revoke all on function public.claim_initial_admin() from public, anon;
+grant execute on function public.claim_initial_admin() to authenticated;
+
 create trigger profiles_set_updated_at before update on public.profiles for each row execute function public.set_updated_at();
 create trigger students_set_updated_at before update on public.students for each row execute function public.set_updated_at();
 create trigger cases_set_updated_at before update on public.cases for each row execute function public.set_updated_at();
@@ -324,6 +429,7 @@ grant select on public.student_success_summary to authenticated;
 
 comment on table public.ai_audit_logs is 'Privacy-minimized AI telemetry. Never store prompts, raw model output, or direct contact details here.';
 comment on column public.students.risk_score is 'Decision-support signal only; a staff member must review before intervention.';
+comment on function public.claim_initial_admin() is 'One-time, email-allowlisted CRM administrator bootstrap. Refresh the JWT immediately after a successful claim.';
 
 insert into public.students (
   id, student_number, full_name, preferred_name, program, year_level, gpa,

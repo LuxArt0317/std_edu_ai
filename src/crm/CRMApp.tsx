@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, FormEvent, ReactNode } from 'react'
 import './crm.css'
 import { askCrmCopilot } from './aiService'
-import { crmDataSource, loadCrmData, resetCrmData, saveCrmData } from './crmRepository'
+import { crmDataSource, loadCrmData, persistCaseStatus, persistLeadStage, persistTaskCompletion, resetCrmData, saveCrmData } from './crmRepository'
+import type { CrmUser } from './authService'
 import type { AiCopilotResult, CrmDatabase, CrmSection, LeadStage, Student } from './types'
 
 const navigation: Array<{ id: CrmSection; label: string; icon: string }> = [
@@ -51,7 +52,7 @@ function LoadingWorkspace() {
   return <div className="nexus-loading"><div className="nexus-loader-mark">STU</div><strong>Preparing STU Nexus</strong><span>Connecting student success signals…</span></div>
 }
 
-function CRMApp() {
+function CRMApp({ currentUser, onSignOut }: { currentUser?: CrmUser; onSignOut?: () => void }) {
   const [section, setSection] = useState<CrmSection>('command')
   const [database, setDatabase] = useState<CrmDatabase | null>(null)
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
@@ -100,26 +101,60 @@ function CRMApp() {
     if (confirmation) setToast(confirmation)
   }
 
-  function toggleTask(id: string) {
-    updateDatabase((current) => ({ ...current, tasks: current.tasks.map((task) => task.id === id ? { ...task, completed: !task.completed } : task) }), 'Task updated')
+  async function toggleTask(id: string) {
+    if (!database) return
+    const original = database.tasks.find((task) => task.id === id)
+    if (!original) return
+    const completed = !original.completed
+    updateDatabase((current) => ({ ...current, tasks: current.tasks.map((task) => task.id === id ? { ...task, completed } : task) }))
+    try {
+      const live = await persistTaskCompletion(id, completed)
+      setToast(live ? 'Task saved to Supabase' : 'Task updated in continuity mode')
+    } catch {
+      updateDatabase((current) => ({ ...current, tasks: current.tasks.map((task) => task.id === id ? original : task) }))
+      setToast('Task could not be saved; the previous state was restored')
+    }
   }
 
-  function advanceLead(id: string) {
+  async function advanceLead(id: string) {
+    if (!database) return
     const order: LeadStage[] = ['inquiry', 'engaged', 'application', 'review', 'admitted']
+    const original = database.leads.find((lead) => lead.id === id)
+    if (!original) return
+    const index = order.indexOf(original.stage)
+    const stage = order[Math.min(index + 1, order.length - 1)]
+    const probability = Math.min(96, original.probability + 16)
     updateDatabase((current) => ({ ...current, leads: current.leads.map((lead) => {
       if (lead.id !== id) return lead
-      const index = order.indexOf(lead.stage)
-      return { ...lead, stage: order[Math.min(index + 1, order.length - 1)], probability: Math.min(96, lead.probability + 16), lastActivity: 'Just now' }
-    }) }), 'Applicant moved forward')
+      return { ...lead, stage, probability, lastActivity: 'Just now' }
+    }) }))
+    try {
+      const live = await persistLeadStage(id, stage, probability)
+      setToast(live ? 'Applicant stage saved to Supabase' : 'Applicant moved forward locally')
+    } catch {
+      updateDatabase((current) => ({ ...current, leads: current.leads.map((lead) => lead.id === id ? original : lead) }))
+      setToast('Applicant stage could not be saved; the previous state was restored')
+    }
   }
 
-  function advanceCase(id: string) {
+  async function advanceCase(id: string) {
+    if (!database) return
     const order = ['open', 'in_progress', 'waiting', 'resolved'] as const
+    const original = database.cases.find((item) => item.id === id)
+    if (!original) return
+    const index = order.indexOf(original.status)
+    const status = order[Math.min(index + 1, order.length - 1)]
     updateDatabase((current) => ({ ...current, cases: current.cases.map((item) => {
       if (item.id !== id) return item
-      const index = order.indexOf(item.status)
-      return { ...item, status: order[Math.min(index + 1, order.length - 1)], updatedAt: 'Just now' }
-    }) }), 'Case status advanced')
+      return { ...item, status, updatedAt: 'Just now' }
+    }) }))
+    try {
+      const live = await persistCaseStatus(id, status)
+      setToast(live ? 'Case status saved to Supabase' : 'Case advanced locally')
+    } catch {
+      updateDatabase((current) => ({ ...current, cases: current.cases.map((item) => item.id === id ? original : item) }))
+      setToast('Case could not be saved; the previous state was restored')
+    }
   }
 
   async function runCopilot(event?: FormEvent, queryOverride?: string) {
@@ -136,6 +171,7 @@ function CRMApp() {
   }
 
   const meta = sectionMeta[section]
+  const pageTitle = section === 'command' && currentUser ? `Good evening, ${currentUser.name.split(' ')[0]}` : meta.title
 
   return (
     <div className="nexus-shell">
@@ -147,7 +183,7 @@ function CRMApp() {
         </nav>
         <div className="sidebar-bottom">
           <div className="data-source"><span className="status-light" /><div><b>{crmDataSource.label}</b><small>{saveState === 'saving' ? 'Saving changes…' : saveState === 'error' ? 'Save interrupted' : 'All changes saved'}</small></div></div>
-          <button className="user-card" type="button"><span>HB</span><div><b>Hayros Baring</b><small>CRM Administrator</small></div><i>•••</i></button>
+          <button className="user-card" type="button" onClick={onSignOut} title={onSignOut ? 'Sign out of STU Nexus' : undefined}><span>{currentUser?.initials || 'HB'}</span><div><b>{currentUser?.name || 'Hayros Baring'}</b><small>{currentUser ? `${currentUser.role} · Supabase` : 'CRM Administrator'}</small></div><i>{onSignOut ? '↪' : '•••'}</i></button>
         </div>
       </aside>
 
@@ -161,7 +197,7 @@ function CRMApp() {
         </header>
 
         <div className="nexus-page">
-          <section className="nexus-page-heading"><div><p>{meta.eyebrow}</p><h1>{meta.title}</h1><span>{meta.description}</span></div><div className="heading-actions"><button type="button" className="quiet-action" onClick={() => setToast('Report exported to your secure workspace')}>Export</button><button type="button" className="primary-action" onClick={() => { setCopilotQuery(section === 'command' ? 'Create my action brief for today' : `Help me prioritize the ${meta.title} workspace`); setCopilotOpen(true) }}>✦ Ask Nexus AI</button></div></section>
+          <section className="nexus-page-heading"><div><p>{meta.eyebrow}</p><h1>{pageTitle}</h1><span>{meta.description}</span></div><div className="heading-actions"><button type="button" className="quiet-action" onClick={() => setToast('Report exported to your secure workspace')}>Export</button><button type="button" className="primary-action" onClick={() => { setCopilotQuery(section === 'command' ? 'Create my action brief for today' : `Help me prioritize the ${meta.title} workspace`); setCopilotOpen(true) }}>✦ Ask Nexus AI</button></div></section>
 
           {section === 'command' ? <>
             <section className="command-hero">
@@ -177,7 +213,7 @@ function CRMApp() {
             </section>
 
             <section className="command-grid">
-              <article className="nexus-panel today-tasks"><header><div><span>TODAY</span><h3>Your action list</h3></div><button type="button" onClick={() => setSection('cases')}>View all</button></header><div>{database.tasks.slice(0, 5).map((task) => <label key={task.id} className={task.completed ? 'completed' : ''}><input type="checkbox" checked={task.completed} onChange={() => toggleTask(task.id)} /><span className={`task-check ${task.priority}`} /> <div><strong>{task.title}</strong><small>{task.linkedTo} · {task.dueAt}</small></div><StatusPill tone={task.priority}>{task.priority}</StatusPill></label>)}</div></article>
+              <article className="nexus-panel today-tasks"><header><div><span>TODAY</span><h3>Your action list</h3></div><button type="button" onClick={() => setSection('cases')}>View all</button></header><div>{database.tasks.slice(0, 5).map((task) => <label key={task.id} className={task.completed ? 'completed' : ''}><input type="checkbox" checked={task.completed} onChange={() => void toggleTask(task.id)} /><span className={`task-check ${task.priority}`} /> <div><strong>{task.title}</strong><small>{task.linkedTo} · {task.dueAt}</small></div><StatusPill tone={task.priority}>{task.priority}</StatusPill></label>)}</div></article>
               <article className="nexus-panel signal-panel"><header><div><span>LIVE SIGNALS</span><h3>What changed</h3></div><i>◴</i></header><div className="signal-stream"><button type="button" onClick={() => setSelectedStudentId('stu-002')}><span className="signal-icon coral">!</span><div><strong>Registration risk escalated</strong><p>Vin’s balance and attendance now require same-day follow-up.</p><small>12 minutes ago</small></div></button><button type="button" onClick={() => setSection('admissions')}><span className="signal-icon blue">↗</span><div><strong>Applicant intent surged</strong><p>Three Information Management prospects revisited program content.</p><small>41 minutes ago</small></div></button><button type="button" onClick={() => setSection('knowledge')}><span className="signal-icon amber">◫</span><div><strong>Knowledge review due</strong><p>Financial aid guidance needs owner verification.</p><small>2 hours ago</small></div></button></div></article>
             </section>
           </> : null}
@@ -194,12 +230,12 @@ function CRMApp() {
 
           {section === 'admissions' ? <section className="admissions-workspace">
             <div className="pipeline-summary"><MetricCard label="Open pipeline" value={database.leads.length.toString()} detail="Across five enrollment stages" tone="blue" /><MetricCard label="Weighted forecast" value={(database.leads.reduce((sum, lead) => sum + lead.probability, 0) / 100).toFixed(1)} detail="Expected enrollments in sample" tone="teal" /><MetricCard label="Avg. response" value="1h 24m" detail="31% faster than last week" tone="amber" /></div>
-            <div className="pipeline-board">{leadStages.map((stage) => { const leads = database.leads.filter((lead) => lead.stage === stage.id); return <section key={stage.id}><header><h3>{stage.label}</h3><b>{leads.length}</b></header><div>{leads.map((lead) => <article key={lead.id}><span className="lead-source">{lead.source}</span><h4>{lead.name}</h4><p>{lead.program}</p><div className="probability"><span style={{ width: `${lead.probability}%` }} /><small>{lead.probability}% likelihood</small></div><footer><span>{lead.owner}</span><button type="button" onClick={() => advanceLead(lead.id)}>{lead.stage === 'admitted' ? 'Enrolled' : 'Advance →'}</button></footer><small className="next-step">Next: {lead.nextStep}</small></article>)}</div></section> })}</div>
+            <div className="pipeline-board">{leadStages.map((stage) => { const leads = database.leads.filter((lead) => lead.stage === stage.id); return <section key={stage.id}><header><h3>{stage.label}</h3><b>{leads.length}</b></header><div>{leads.map((lead) => <article key={lead.id}><span className="lead-source">{lead.source}</span><h4>{lead.name}</h4><p>{lead.program}</p><div className="probability"><span style={{ width: `${lead.probability}%` }} /><small>{lead.probability}% likelihood</small></div><footer><span>{lead.owner}</span><button type="button" onClick={() => void advanceLead(lead.id)}>{lead.stage === 'admitted' ? 'Enrolled' : 'Advance →'}</button></footer><small className="next-step">Next: {lead.nextStep}</small></article>)}</div></section> })}</div>
           </section> : null}
 
           {section === 'cases' ? <section className="cases-workspace">
             <div className="case-summary-row">{(['open', 'in_progress', 'waiting', 'resolved'] as const).map((status) => <button key={status} type="button" className="case-summary"><span>{status.replace('_', ' ')}</span><strong>{database.cases.filter((item) => item.status === status).length}</strong><i className={status} /></button>)}</div>
-            <div className="case-table"><div className="case-table-head"><span>Case</span><span>Student</span><span>Owner</span><span>Due</span><span>Status</span><span /></div>{database.cases.map((item) => { const student = database.students.find((entry) => entry.id === item.studentId); return <article key={item.id}><div><StatusPill tone={item.priority}>{item.priority}</StatusPill><strong>{item.title}</strong><small>{item.id.toUpperCase()} · {item.category} · Updated {item.updatedAt}</small></div><button type="button" className="case-student" onClick={() => setSelectedStudentId(item.studentId)}><span>{student?.initials}</span>{student?.name}</button><span>{item.owner}</span><span>{item.dueAt}</span><StatusPill tone={item.status}>{item.status.replace('_', ' ')}</StatusPill><button type="button" className="advance-case" onClick={() => advanceCase(item.id)}>{item.status === 'resolved' ? '✓' : 'Advance'}</button></article> })}</div>
+            <div className="case-table"><div className="case-table-head"><span>Case</span><span>Student</span><span>Owner</span><span>Due</span><span>Status</span><span /></div>{database.cases.map((item) => { const student = database.students.find((entry) => entry.id === item.studentId); return <article key={item.id}><div><StatusPill tone={item.priority}>{item.priority}</StatusPill><strong>{item.title}</strong><small>{item.id.toUpperCase()} · {item.category} · Updated {item.updatedAt}</small></div><button type="button" className="case-student" onClick={() => setSelectedStudentId(item.studentId)}><span>{student?.initials}</span>{student?.name}</button><span>{item.owner}</span><span>{item.dueAt}</span><StatusPill tone={item.status}>{item.status.replace('_', ' ')}</StatusPill><button type="button" className="advance-case" onClick={() => void advanceCase(item.id)}>{item.status === 'resolved' ? '✓' : 'Advance'}</button></article> })}</div>
           </section> : null}
 
           {section === 'campaigns' ? <section className="campaign-workspace">

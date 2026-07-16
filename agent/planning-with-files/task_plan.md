@@ -1,5 +1,26 @@
 # Task Plan
 
+## Phase 4: Production Supabase CRM activation [Issue #9]
+
+- apply and verify the STU Nexus schema, RLS, grants, indexes, search/vector structures, audit controls, and safe seed data to the healthy `stu_edu_ai` project
+- add Supabase Auth session handling, initial-admin bootstrap safeguards, staff login, logout, and role-aware access
+- replace continuity-only CRM reads and mutations with live Supabase repositories while preserving explicit offline fallback behavior
+- configure browser-safe Supabase variables in Vercel Production and Preview without exposing service credentials
+- run live database workflow tests plus security/performance advisors, application lint/build/tests, PR checks, merge, and production deployment verification
+
+## Current execution
+
+- GitHub issue #9 created
+- Supabase MCP access verified for project `zhcchldvgqrkfqoknewk` (`stu_edu_ai`, `ACTIVE_HEALTHY`)
+- the production project currently has zero public tables, zero migrations, and zero auth users
+- current Supabase Auth, Data API exposure, RLS, and Postgres performance guidance reviewed
+- three migrations applied: core CRM, policy hardening, and bootstrap lock
+- 11 public tables are RLS-enabled; duplicate permissive policies and the missing bootstrap FK index were corrected
+- initial owner administrator provisioned through Supabase Auth with its generated credential stored only in the macOS login keychain
+- anonymous isolation, admin access to six CRM modules, and a reversible remote mutation pass through the browser-safe publishable key
+- CRM Auth gate, live repository, targeted remote mutations, continuity rollback, generated database types, and AI audit logging implemented
+- Vercel Production and Preview now contain the browser-safe Supabase URL and publishable key
+
 ## Phase 3: STU Nexus CRM and AI student-success platform [Issue #5]
 
 - build a premium responsive CRM workspace at `/crm` without disrupting the public STU homepage

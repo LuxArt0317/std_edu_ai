@@ -1,5 +1,14 @@
 # Findings
 
+- the production `stu_edu_ai` Supabase project is healthy, empty, and now accessible through MCP
+- a production-ready activation requires both live repositories and a real authenticated staff session; a browser publishable key alone must never bypass RLS
+- newly SQL-created tables may require explicit Data API grants, which the prepared migration provides alongside RLS
+- the initial administrator must be bootstrapped through a constrained, auditable path and subsequent authorization must rely on trusted `app_metadata`
+- a generated 40-character owner password stored in the macOS login keychain avoids plaintext credential handoff while keeping the deployed CRM immediately usable
+- production RLS validation confirms anonymous requests are denied and trusted admin JWTs can read and mutate only through explicit policies
+- policy-specific insert/update rules remove the multiple-permissive-policy advisor findings without broadening authorization
+- Supabase's leaked-password-protection setting is a dashboard-level control not exposed by the connected MCP toolset; the strong generated credential substantially mitigates the current warning until that toggle is available
+
 - the live homepage is WordPress 7.0.1 using Elementor 3.35 and exposes its page-243 styling inline
 - the current desktop hero is 800px tall, uses three 5-second slides, and overlays the centered logo/navigation with a dark green gradient
 - the official core visual tokens are `#3CB69E` teal and `#D2E3E0` mist, with Roboto typography and clipped diagonal section transitions

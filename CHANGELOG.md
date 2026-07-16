@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- activated the production `stu_edu_ai` Supabase project with three reviewed migrations, 11 RLS-protected CRM tables, explicit Data API grants, operational indexes, knowledge search/vector support, and safe seed records
+- added production Supabase Auth login, session restoration, staff-role enforcement, and secure logout for `/crm`
+- replaced continuity-only CRM reads with live Student 360, cases, tasks, admissions, campaigns, knowledge, signals, interactions, and profile queries
+- added optimistic task, admission-stage, and case-status mutations with remote persistence, rollback, and continuity caching
+- provisioned the initial owner administrator using a generated credential stored only in the macOS login keychain and locked the bootstrap RPC afterward
+- added generated TypeScript database contracts and privacy-minimized AI audit logging
+
 - added STU Nexus at `/crm`, a premium responsive CRM spanning command center, Student 360, Success Radar, admissions, cases, campaigns, knowledge, and analytics
 - added persistent stateful demo workflows for tasks, applicants, cases, student search, profiles, and AI-assisted interventions
 - added a server-only OpenAI Responses API endpoint with validation, rate limiting, structured output, de-identification, timeout handling, safety identifiers, and client continuity fallback

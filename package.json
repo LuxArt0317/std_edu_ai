@@ -12,6 +12,7 @@
     "vercel-build": "npm run build",
     "lint": "oxlint",
     "test": "node --experimental-strip-types --test tests/api/crm-assistant.test.ts",
+    "test:live-crm": "node tests/integration/crm-live.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -1,7 +1,7 @@
 # STU Nexus Supabase
 
-This folder contains the production database contract for the CRM. The migration creates normalized student-success, service, admissions, campaign, knowledge, and privacy-minimized AI audit data, with RLS enabled on every exposed table.
+This folder contains the deployed production database contract for the CRM. The migrations create normalized student-success, service, admissions, campaign, knowledge, and privacy-minimized AI audit data, with RLS enabled on every exposed table.
 
-Apply it to the intended Supabase project with `supabase db push` after linking the CLI to that project. Set staff authorization in each user's `app_metadata.role`; never use editable user metadata for authorization.
+The production project is `stu_edu_ai` (`zhcchldvgqrkfqoknewk`). Schema changes are applied through reviewed migrations and verified with Supabase security and performance advisors. Set staff authorization in each user's `app_metadata.role`; never use editable user metadata for authorization.
 
-The repository's configured Supabase project was not available through the connected account during implementation, so the CRM currently uses its persistent local continuity adapter until this migration is applied and the data adapter is switched on.
+The initial owner account has been provisioned and the one-time bootstrap RPC is locked. New staff accounts must be created through a trusted Supabase administrative workflow and assigned one of `admin`, `advisor`, `admissions`, `support`, or `faculty` in `app_metadata`.

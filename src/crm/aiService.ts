@@ -1,4 +1,5 @@
 import type { AiCopilotResult, Student } from './types'
+import { supabase } from '../utils/supabase'
 
 type CopilotMode = 'brief' | 'answer' | 'draft'
 
@@ -17,7 +18,28 @@ function fallbackResult(message: string, student?: Student): AiCopilotResult {
   }
 }
 
+async function recordAiAudit(mode: CopilotMode, result: AiCopilotResult, startedAt: number, student?: Student) {
+  if (!supabase) return
+  try {
+    const { data } = await supabase.auth.getUser()
+    if (!data.user) return
+    await supabase.from('ai_audit_logs').insert({
+      user_id: data.user.id,
+      student_id: student?.id && /^[0-9a-f-]{36}$/i.test(student.id) ? student.id : null,
+      use_case: mode,
+      model: result.source === 'openai' ? 'openai-responses' : 'local-continuity',
+      context_fields: student ? ['program', 'yearLevel', 'gpa', 'attendance', 'engagement', 'hasBalance', 'riskScore', 'riskLevel', 'signals', 'nextAction'] : [],
+      output_citations: result.citations,
+      outcome: result.source === 'openai' ? 'success' : 'fallback',
+      latency_ms: Math.max(0, Date.now() - startedAt),
+    })
+  } catch {
+    // AI assistance remains available if privacy-minimized telemetry is interrupted.
+  }
+}
+
 export async function askCrmCopilot(message: string, mode: CopilotMode, student?: Student): Promise<AiCopilotResult> {
+  const startedAt = Date.now()
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), 30_000)
 
@@ -47,12 +69,24 @@ export async function askCrmCopilot(message: string, mode: CopilotMode, student?
       signal: controller.signal,
     })
 
-    if (!response.ok) return fallbackResult(message, student)
+    if (!response.ok) {
+      const fallback = fallbackResult(message, student)
+      await recordAiAudit(mode, fallback, startedAt, student)
+      return fallback
+    }
     const data = await response.json() as AiCopilotResult
-    if (!data.answer || !Array.isArray(data.actions)) return fallbackResult(message, student)
-    return { ...data, source: 'openai' }
+    if (!data.answer || !Array.isArray(data.actions)) {
+      const fallback = fallbackResult(message, student)
+      await recordAiAudit(mode, fallback, startedAt, student)
+      return fallback
+    }
+    const result = { ...data, source: 'openai' as const }
+    await recordAiAudit(mode, result, startedAt, student)
+    return result
   } catch {
-    return fallbackResult(message, student)
+    const fallback = fallbackResult(message, student)
+    await recordAiAudit(mode, fallback, startedAt, student)
+    return fallback
   } finally {
     window.clearTimeout(timeout)
   }

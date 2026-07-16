@@ -30,9 +30,9 @@ VITE_SUPABASE_URL=your-project-url
 VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 ```
 
-The homepage and CRM render without Supabase. Until the intended Supabase project is linked and migrated, `/crm` uses a realistic stateful workspace stored in localStorage. If OpenAI is unavailable, Nexus AI returns a clearly labeled grounded local response.
+The homepage renders without Supabase. `/crm` requires an authorized Supabase staff session in production and falls back to its last local continuity cache only after an authenticated live workspace has been interrupted. If OpenAI is unavailable, Nexus AI returns a clearly labeled grounded local response.
 
-## Activate Supabase CRM Storage
+## Supabase CRM Storage
 
 ```bash
 npx supabase login
@@ -40,7 +40,9 @@ npx supabase link --project-ref your-project-ref
 npx supabase db push
 ```
 
-The migration in `supabase/migrations` enables RLS on every exposed table. Assign staff roles through trusted `app_metadata.role` values such as `admin`, `advisor`, `admissions`, or `support`; never use user-editable metadata for authorization.
+The production schema has already been applied to `stu_edu_ai`. The migrations in `supabase/migrations` enable RLS on every exposed table, explicit Data API grants, operational indexes, full-text/vector knowledge retrieval, and privacy-minimized AI audit logs.
+
+Assign staff roles through trusted `app_metadata.role` values such as `admin`, `advisor`, `admissions`, or `support`; never use user-editable metadata for authorization. The initial owner credential is stored in the local macOS login keychain as an internet password for `www.stu.best` and is not committed to this repository.
 
 The homepage currently references official public STU media assets from `www.stu.edu.tw`. An internet connection is required to load those images and the Roboto web font during local development.
 

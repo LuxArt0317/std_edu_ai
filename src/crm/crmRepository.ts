@@ -1,18 +1,26 @@
+import { supabase } from '../utils/supabase'
+import type { Tables } from '../types/database.generated'
 import { initialCrmData } from './mockData'
-import type { CrmDatabase } from './types'
+import type { AdmissionLead, Campaign, CaseStatus, CrmDatabase, CrmTask, KnowledgeArticle, LeadStage, RiskLevel, Student, SupportCase } from './types'
 
 const STORAGE_KEY = 'stu-nexus-crm-v1'
+
+type StudentRow = Tables<'students'>
+type SignalRow = Tables<'student_signals'>
+type InteractionRow = Tables<'interactions'>
+type CaseRow = Tables<'cases'>
+type LeadRow = Tables<'admission_leads'>
+type CampaignRow = Tables<'campaigns'>
+type RecipientRow = Tables<'campaign_recipients'>
+type TaskRow = Tables<'crm_tasks'>
+type KnowledgeRow = Tables<'knowledge_articles'>
+type ProfileRow = Tables<'profiles'>
 
 function cloneInitialData(): CrmDatabase {
   return JSON.parse(JSON.stringify(initialCrmData)) as CrmDatabase
 }
 
-function delay(milliseconds = 220) {
-  return new Promise((resolve) => window.setTimeout(resolve, milliseconds))
-}
-
-export async function loadCrmData(): Promise<CrmDatabase> {
-  await delay()
+function getLocalData(): CrmDatabase {
   try {
     const saved = window.localStorage.getItem(STORAGE_KEY)
     if (!saved) return cloneInitialData()
@@ -24,23 +32,272 @@ export async function loadCrmData(): Promise<CrmDatabase> {
   }
 }
 
-export async function saveCrmData(data: CrmDatabase): Promise<void> {
-  await delay(100)
+function cacheData(data: CrmDatabase) {
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+}
+
+function initials(name: string) {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'ST'
+}
+
+function relativeTime(value: string | null) {
+  if (!value) return 'No contact recorded'
+  const milliseconds = Date.now() - new Date(value).getTime()
+  const days = Math.max(0, Math.round(milliseconds / 86_400_000))
+  if (days === 0) return 'Today'
+  if (days === 1) return 'Yesterday'
+  return `${days} days ago`
+}
+
+function shortDate(value: string | null) {
+  if (!value) return 'Not scheduled'
+  return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value))
+}
+
+function riskLevel(value: string): RiskLevel {
+  return value === 'critical' || value === 'high' || value === 'medium' ? value : 'low'
+}
+
+function leadStage(value: string): LeadStage {
+  return value === 'engaged' || value === 'application' || value === 'review' || value === 'admitted' ? value : 'inquiry'
+}
+
+function caseStatus(value: string): CaseStatus {
+  return value === 'in_progress' || value === 'waiting' || value === 'resolved' ? value : 'open'
+}
+
+function casePriority(value: string): SupportCase['priority'] {
+  if (value === 'urgent' || value === 'high' || value === 'low') return value
+  return 'normal'
+}
+
+function taskPriority(value: string): CrmTask['priority'] {
+  if (value === 'high' || value === 'low') return value
+  return value === 'urgent' ? 'high' : 'normal'
+}
+
+function campaignChannel(value: string): Campaign['channel'] {
+  if (value === 'sms') return 'SMS'
+  if (value === 'line') return 'LINE'
+  if (value === 'multichannel') return 'Multi-channel'
+  return 'Email'
+}
+
+function campaignStatus(value: string): Campaign['status'] {
+  if (value === 'scheduled' || value === 'active' || value === 'completed') return value
+  return 'draft'
+}
+
+function knowledgeStatus(value: string): KnowledgeArticle['status'] {
+  if (value === 'verified' || value === 'review_due') return value
+  return 'draft'
+}
+
+function requireRows<T>(result: { data: T[] | null; error: { message: string } | null }, label: string) {
+  if (result.error) throw new Error(`${label}: ${result.error.message}`)
+  return result.data ?? []
+}
+
+async function loadRemoteData(): Promise<CrmDatabase> {
+  if (!supabase) throw new Error('Supabase is not configured.')
+  const { data: userData, error: userError } = await supabase.auth.getUser()
+  if (userError || !userData.user) throw new Error('An authenticated staff session is required.')
+
+  const [studentsResult, signalsResult, interactionsResult, casesResult, leadsResult, campaignsResult, recipientsResult, tasksResult, knowledgeResult, profilesResult] = await Promise.all([
+    supabase.from('students').select('*').order('risk_score', { ascending: false }),
+    supabase.from('student_signals').select('*').order('observed_at', { ascending: false }),
+    supabase.from('interactions').select('*').order('occurred_at', { ascending: false }),
+    supabase.from('cases').select('*').order('updated_at', { ascending: false }),
+    supabase.from('admission_leads').select('*').order('last_activity_at', { ascending: false }),
+    supabase.from('campaigns').select('*').order('created_at', { ascending: false }),
+    supabase.from('campaign_recipients').select('*'),
+    supabase.from('crm_tasks').select('*').order('due_at', { ascending: true }),
+    supabase.from('knowledge_articles').select('*').order('updated_at', { ascending: false }),
+    supabase.from('profiles').select('*'),
+  ])
+
+  const studentRows = requireRows<StudentRow>(studentsResult, 'Students')
+  const signalRows = requireRows<SignalRow>(signalsResult, 'Signals')
+  const interactionRows = requireRows<InteractionRow>(interactionsResult, 'Interactions')
+  const caseRows = requireRows<CaseRow>(casesResult, 'Cases')
+  const leadRows = requireRows<LeadRow>(leadsResult, 'Admissions')
+  const campaignRows = requireRows<CampaignRow>(campaignsResult, 'Campaigns')
+  const recipientRows = requireRows<RecipientRow>(recipientsResult, 'Campaign recipients')
+  const taskRows = requireRows<TaskRow>(tasksResult, 'Tasks')
+  const knowledgeRows = requireRows<KnowledgeRow>(knowledgeResult, 'Knowledge')
+  const profileRows = requireRows<ProfileRow>(profilesResult, 'Profiles')
+
+  const profiles = new Map(profileRows.map((profile) => [profile.id, profile.full_name]))
+  const studentNames = new Map(studentRows.map((student) => [student.id, student.preferred_name || student.full_name]))
+  const caseNames = new Map(caseRows.map((item) => [item.id, item.title]))
+
+  const students: Student[] = studentRows.map((row) => {
+    const name = row.preferred_name || row.full_name
+    const signals = signalRows.filter((signal) => signal.student_id === row.id).map((signal) => ({
+      label: signal.label,
+      detail: signal.detail,
+      tone: signal.severity === 'positive' ? 'positive' as const : signal.severity === 'critical' ? 'negative' as const : 'warning' as const,
+    }))
+    const timeline = interactionRows.filter((interaction) => interaction.student_id === row.id).map((interaction) => ({
+      date: shortDate(interaction.occurred_at),
+      title: interaction.subject,
+      detail: interaction.summary,
+      type: interaction.interaction_type === 'campaign' || interaction.interaction_type === 'email' || interaction.interaction_type === 'call' ? 'message' as const : interaction.interaction_type === 'portal' ? 'system' as const : 'case' as const,
+    }))
+    return {
+      id: row.id,
+      studentNumber: row.student_number,
+      name,
+      initials: initials(name),
+      program: row.program,
+      yearLevel: row.year_level,
+      email: row.email || '',
+      phone: row.phone || '',
+      advisor: row.advisor_id ? profiles.get(row.advisor_id) || 'Assigned staff' : 'Unassigned',
+      gpa: Number(row.gpa),
+      attendance: row.attendance_percent,
+      engagement: row.engagement_score,
+      balance: Number(row.outstanding_balance),
+      riskScore: row.risk_score,
+      riskLevel: riskLevel(row.risk_level),
+      tags: row.tags,
+      nextAction: row.next_best_action || 'Review the latest student signals',
+      lastContact: relativeTime(row.last_contact_at),
+      signals,
+      timeline: timeline.length ? timeline : [{ date: relativeTime(row.created_at), title: 'Student profile activated', detail: 'The student record is available in STU Nexus.', type: 'system' }],
+    }
+  })
+
+  const cases: SupportCase[] = caseRows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    studentId: row.student_id,
+    category: row.category,
+    priority: casePriority(row.priority),
+    status: caseStatus(row.status),
+    owner: row.owner_id ? profiles.get(row.owner_id) || 'Assigned staff' : 'Unassigned',
+    updatedAt: relativeTime(row.updated_at),
+    dueAt: shortDate(row.due_at),
+  }))
+
+  const leads: AdmissionLead[] = leadRows.map((row) => ({
+    id: row.id,
+    name: row.full_name,
+    program: row.program_interest,
+    source: row.source,
+    stage: leadStage(row.stage),
+    probability: row.probability,
+    owner: row.owner_id ? profiles.get(row.owner_id) || 'Assigned staff' : 'Unassigned',
+    lastActivity: relativeTime(row.last_activity_at),
+    nextStep: row.next_step || 'Review applicant record',
+  }))
+
+  const campaigns: Campaign[] = campaignRows.map((row) => {
+    const recipients = recipientRows.filter((item) => item.campaign_id === row.id)
+    const engaged = recipients.filter((item) => item.opened_at || item.delivery_status === 'clicked').length
+    const audience = row.audience_definition && typeof row.audience_definition === 'object' && !Array.isArray(row.audience_definition) && typeof row.audience_definition.segment === 'string' ? row.audience_definition.segment : 'Defined CRM segment'
+    return {
+      id: row.id,
+      name: row.name,
+      audience,
+      channel: campaignChannel(row.channel),
+      status: campaignStatus(row.status),
+      reach: recipients.length,
+      engagement: recipients.length ? Math.round((engaged / recipients.length) * 100) : 0,
+      scheduledFor: shortDate(row.scheduled_for),
+    }
+  })
+
+  const tasks: CrmTask[] = taskRows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    linkedTo: (row.student_id && studentNames.get(row.student_id)) || (row.case_id && caseNames.get(row.case_id)) || 'CRM workspace',
+    owner: profiles.get(row.assigned_to) || 'Assigned staff',
+    dueAt: shortDate(row.due_at),
+    priority: taskPriority(row.priority),
+    completed: Boolean(row.completed_at),
+  }))
+
+  const knowledge: KnowledgeArticle[] = knowledgeRows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    category: row.category,
+    owner: row.owner_id ? profiles.get(row.owner_id) || 'Assigned staff' : 'Institutional owner',
+    status: knowledgeStatus(row.status),
+    updatedAt: relativeTime(row.updated_at),
+    sourceUrl: row.source_url || 'https://www.stu.edu.tw',
+    summary: row.summary,
+    usageCount: row.usage_count,
+  }))
+
+  return { students, cases, leads, campaigns, tasks, knowledge }
+}
+
+export const crmDataSource: { mode: 'live' | 'fallback' | 'demo'; label: string; detail: string } = {
+  mode: 'demo',
+  label: 'Continuity workspace',
+  detail: 'This browser is using the local recovery dataset.',
+}
+
+export async function loadCrmData(): Promise<CrmDatabase> {
+  if (!supabase) return getLocalData()
+  const { data } = await supabase.auth.getSession()
+  if (!data.session) return getLocalData()
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+    const remote = await loadRemoteData()
+    cacheData(remote)
+    crmDataSource.mode = 'live'
+    crmDataSource.label = 'Supabase production'
+    crmDataSource.detail = 'Authenticated, RLS-protected live data'
+    return remote
   } catch (error) {
-    throw new Error(error instanceof Error ? `Unable to persist CRM changes: ${error.message}` : 'Unable to persist CRM changes.')
+    crmDataSource.mode = 'fallback'
+    crmDataSource.label = 'Offline continuity cache'
+    crmDataSource.detail = error instanceof Error ? error.message : 'Live CRM data is temporarily unavailable.'
+    return getLocalData()
   }
 }
 
-export async function resetCrmData(): Promise<CrmDatabase> {
-  await delay(180)
-  window.localStorage.removeItem(STORAGE_KEY)
-  return cloneInitialData()
+export async function saveCrmData(data: CrmDatabase): Promise<void> {
+  try {
+    cacheData(data)
+  } catch (error) {
+    throw new Error(error instanceof Error ? `Unable to cache CRM changes: ${error.message}` : 'Unable to cache CRM changes.')
+  }
 }
 
-export const crmDataSource = {
-  mode: 'demo' as const,
-  label: 'Persistent demo workspace',
-  detail: 'Changes are saved in this browser. Supabase activation files are included in the repository.',
+async function canPersistRemotely() {
+  if (!supabase) return false
+  const { data } = await supabase.auth.getSession()
+  return Boolean(data.session)
+}
+
+export async function persistTaskCompletion(id: string, completed: boolean) {
+  if (!await canPersistRemotely() || !supabase) return false
+  const { error } = await supabase.from('crm_tasks').update({ completed_at: completed ? new Date().toISOString() : null }).eq('id', id)
+  if (error) throw new Error(error.message)
+  return true
+}
+
+export async function persistLeadStage(id: string, stage: LeadStage, probability: number) {
+  if (!await canPersistRemotely() || !supabase) return false
+  const { error } = await supabase.from('admission_leads').update({ stage, probability, last_activity_at: new Date().toISOString() }).eq('id', id)
+  if (error) throw new Error(error.message)
+  return true
+}
+
+export async function persistCaseStatus(id: string, status: CaseStatus) {
+  if (!await canPersistRemotely() || !supabase) return false
+  const { error } = await supabase.from('cases').update({ status, resolved_at: status === 'resolved' ? new Date().toISOString() : null }).eq('id', id)
+  if (error) throw new Error(error.message)
+  return true
+}
+
+export async function resetCrmData(): Promise<CrmDatabase> {
+  if (supabase) {
+    const { data } = await supabase.auth.getSession()
+    if (data.session) return loadCrmData()
+  }
+  window.localStorage.removeItem(STORAGE_KEY)
+  return cloneInitialData()
 }
