@@ -5,6 +5,11 @@
 - the official core visual tokens are `#3CB69E` teal and `#D2E3E0` mist, with Roboto typography and clipped diagonal section transitions
 - the full homepage order is hero, ten audience entrances, campus vision carousel, four performance counters, three institutional stories, campus-life banner, eight admissions routes, news tabs, student/teacher hot links, six public-information banners, contact/social links, and copyright footer
 - the research-driven AI layer should remain an overlay so the official clone remains structurally and visually intact
+- the highest-leverage CRM experience is a daily student-success copilot that connects academic, engagement, service, and financial signals into reviewable next-best actions with evidence citations
+- student context sent to OpenAI can remain useful while excluding name, student number, email, phone, and exact financial amounts
+- the configured OpenAI Responses API path successfully returns schema-constrained, cited output with the current model
+- the connected Supabase account cannot access the repository's configured project, so production safety requires an explicit local continuity adapter rather than mutating an unrelated database
+- Supabase activation is fully represented in a migration with role-based RLS, indexed operational paths, searchable/vectorized knowledge, and privacy-minimized AI audits
 
 - `research.md` defines the project as an AI-enhanced Shu-Te University campus and website experience
 - the goal is to improve accessibility, usability, information retrieval, and user experience

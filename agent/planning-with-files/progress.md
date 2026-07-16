@@ -1,5 +1,21 @@
 # Progress Log
 
+2026-07-16 — STU Nexus CRM
+
+- confirmed secure OpenAI credential presence and moved it out of the tracked `.env` into ignored `.env.local` with owner-only permissions
+- reviewed the research objectives, system architecture, RAG requirements, navigation support, and evaluation goals
+- reviewed current OpenAI Responses API/model guidance and current Supabase auth, API-key, RLS, and vector-search guidance
+- confirmed the connected Supabase account cannot access the project configured by this repository and avoided mutating an unrelated project
+- created GitHub issue #5 for the full CRM and AI student-success implementation
+- implemented the premium responsive `/crm` shell and eight operational workspaces
+- implemented persistent stateful tasks, case status, admission stage, student search/detail, campaigns, knowledge, and analytics experiences
+- implemented a server-only OpenAI Responses API endpoint with validation, best-effort rate limiting, structured JSON, de-identification, safety hashing, and timeouts
+- live-verified the configured OpenAI credential and current model without printing the credential or student identifiers
+- generated the Supabase CRM migration with normalized tables, RLS, grants, indexes, full-text/vector knowledge search, audit controls, and safe demo seed data
+- added and passed three AI endpoint contract tests
+- passed lint, full TypeScript/Vite production build, and HTTP 200 smoke checks for `/crm` and its built assets
+- synchronized README, PROJECT, SETUP, CHANGELOG, findings, plan, and current-state documentation
+
 2026-07-16 — Pixel-faithful homepage clone
 
 - created GitHub issue #3 for the full `stu.edu.tw` homepage reconstruction

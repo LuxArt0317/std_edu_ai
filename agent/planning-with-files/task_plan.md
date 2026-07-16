@@ -1,5 +1,25 @@
 # Task Plan
 
+## Phase 3: STU Nexus CRM and AI student-success platform [Issue #5]
+
+- build a premium responsive CRM workspace at `/crm` without disrupting the public STU homepage
+- implement executive dashboard, Student 360, success-risk radar, admissions pipeline, case management, campaigns, tasks, institutional knowledge, and analytics
+- add a stateful persistent data adapter with realistic production-shaped demo records and explicit backend status
+- add a server-only OpenAI Responses API endpoint for de-identified student-success briefs, grounded answers, recommended actions, and communication drafting
+- create Supabase-ready auth, multi-role schema, RLS policies, indexes, knowledge/search structures, and seed data migrations
+- verify security boundaries, lint, production build, API behavior, route smoke tests, GitHub review checks, and Vercel deployment
+
+## Current execution
+
+- GitHub issue #5 created
+- OpenAI credential isolated in ignored `.env.local` with owner-only permissions
+- current OpenAI model and Responses API guidance reviewed
+- connected Supabase account lacks access to the repository's configured project; unrelated projects will not be mutated
+- all eight CRM workspaces, persistent mutations, Student 360, Success Radar, and Nexus AI interaction flows implemented at `/crm`
+- server-only OpenAI endpoint verified against the configured live key with structured, cited output
+- activation-ready Supabase migration completed with RLS, indexes, search/vector support, audit controls, and demo seeds
+- lint, TypeScript production build, API tests, and `/crm` HTTP smoke checks pass
+
 ## Phase 2: Pixel-faithful STU homepage clone [Issue #3]
 
 - capture the live `stu.edu.tw` homepage structure, content, links, imagery, styles, and responsive rules using terminal-only inspection

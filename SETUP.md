@@ -13,14 +13,34 @@ npm ci
 
 ## Environment
 
-For live Supabase reads, configure these variables in the local shell or in the Vercel project settings:
+Create an ignored `.env.local` file for server-only AI configuration:
+
+```bash
+OPENAI_API_KEY=your-server-side-key
+OPENAI_MODEL=gpt-5.6-terra
+SAFETY_HASH_SALT=a-long-random-value
+```
+
+`OPENAI_API_KEY` must never use the `VITE_` prefix and must also be configured in the Vercel project for the deployed AI endpoint. `OPENAI_MODEL` and `SAFETY_HASH_SALT` are optional.
+
+For Supabase, configure these browser-safe variables locally and in Vercel:
 
 ```bash
 VITE_SUPABASE_URL=your-project-url
 VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 ```
 
-The homepage and current AI drawer render without these variables. The Supabase client remains available for later research modules and degrades safely when the variables are absent.
+The homepage and CRM render without Supabase. Until the intended Supabase project is linked and migrated, `/crm` uses a realistic stateful workspace stored in localStorage. If OpenAI is unavailable, Nexus AI returns a clearly labeled grounded local response.
+
+## Activate Supabase CRM Storage
+
+```bash
+npx supabase login
+npx supabase link --project-ref your-project-ref
+npx supabase db push
+```
+
+The migration in `supabase/migrations` enables RLS on every exposed table. Assign staff roles through trusted `app_metadata.role` values such as `admin`, `advisor`, `admissions`, or `support`; never use user-editable metadata for authorization.
 
 The homepage currently references official public STU media assets from `www.stu.edu.tw`. An internet connection is required to load those images and the Roboto web font during local development.
 
@@ -38,6 +58,14 @@ The Vite dev server will print a local URL, usually `http://localhost:5173`.
 npm run build
 ```
 
+## Test
+
+```bash
+npm test
+```
+
+Open `http://localhost:5173/crm` during local development to use STU Nexus.
+
 ## Preview Production Build
 
 ```bash
@@ -52,5 +80,5 @@ Vercel reads `vercel.json`, installs the locked dependencies with `npm ci`, runs
 working when opened directly.
 
 Connect this repository to a Vercel project and deploy the `main` branch. Add
-the optional Supabase variables above in the Vercel project settings if live
-data is required.
+the server-only OpenAI key and browser-safe Supabase values in Vercel project
+settings. Never place the OpenAI key in a `VITE_*` variable.

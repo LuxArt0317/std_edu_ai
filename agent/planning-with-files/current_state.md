@@ -1,8 +1,17 @@
 # Current State
 
-The repository contains a Vite-based prototype for an AI-enhanced Shu-Te University website. The active work is rebuilding the homepage as a pixel-faithful clone of the current official `stu.edu.tw` homepage while retaining the AI layer as an additive research feature.
+The repository contains the responsive STU homepage reconstruction and the completed STU Nexus school CRM at `/crm`, aligned with `research.md` and `UNDERSTANDING.md`.
 
 Working status:
+
+- full CRM implementation is tracked in GitHub issue #5
+- the OpenAI key is stored only in ignored `.env.local` with mode `600`
+- the connected Supabase account cannot access the project ref configured in this repository, so no remote schema mutation is authorized
+- the CRM provides command center, Student 360, Success Radar, admissions, cases, campaigns, Knowledge Hub, analytics, and stateful local persistence
+- the server-only OpenAI endpoint sends de-identified context, enforces structured responses, and has a grounded client fallback
+- the configured OpenAI key and current model returned a successful structured response in live verification
+- the Supabase migration is activation-ready with normalized tables, RLS, indexes, full-text/vector search, AI audit controls, and demo seeds
+- lint, full TypeScript/Vite build, 3 API contract tests, and `/crm` HTTP smoke checks pass
 
 - pixel-faithful homepage reconstruction is tracked in GitHub issue #3
 - the live Elementor page structure, styles, content, links, and assets have been extracted using terminal-only inspection

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- added STU Nexus at `/crm`, a premium responsive CRM spanning command center, Student 360, Success Radar, admissions, cases, campaigns, knowledge, and analytics
+- added persistent stateful demo workflows for tasks, applicants, cases, student search, profiles, and AI-assisted interventions
+- added a server-only OpenAI Responses API endpoint with validation, rate limiting, structured output, de-identification, timeout handling, safety identifiers, and client continuity fallback
+- added a production Supabase migration with normalized CRM data, role-based RLS, operational indexes, full-text/vector knowledge search, privacy-minimized AI audit logs, and demo seeds
+- added API contract tests plus `/crm` production-build and route verification
+
 - scaffolded the repository with the latest Vite React TypeScript app
 - replaced the starter page with an AI-enhanced Shu-Te University landing page
 - added a mocked campus AI assistant service and knowledge base
