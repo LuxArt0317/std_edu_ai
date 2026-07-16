@@ -1,5 +1,7 @@
 # Current State
 
+The plain-language STU Nexus portal explanation is available at `src/crm/PORTAL_GUIDE.md` and tracked by GitHub issue #13. It documents the staff audience, operational workspaces, human-reviewed AI assistance, example workflows, and the distinction between production infrastructure and demonstration seed records.
+
 Production Supabase activation is complete. GitHub issue #12 tracks the final secure credential handoff for the existing owner administrator.
 
 Credential handoff status:

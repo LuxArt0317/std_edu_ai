@@ -1,5 +1,18 @@
 # Task Plan
 
+## Phase 6: CRM portal guide [Issue #13]
+
+- explain the portal's purpose and intended staff audience in plain language
+- document every operational workspace, Nexus AI, and representative student-support and admissions workflows
+- state the production backend and seed-data boundaries accurately
+- link the guide from the CRM and root documentation
+
+## Current execution
+
+- GitHub issue #13 created
+- portal guide written at `src/crm/PORTAL_GUIDE.md`
+- root and CRM documentation linked to the guide
+
 ## Phase 5: Secure CRM credential handoff [Issue #12]
 
 - verify the macOS keychain entry exists without printing its value

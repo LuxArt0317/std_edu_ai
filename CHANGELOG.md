@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- added a plain-language STU Nexus portal guide covering its audience, workspaces, AI role, example workflows, security boundaries, and current seed-data status
 - verified the production owner credential against Supabase Auth and added a secure local clipboard handoff without exposing plaintext secrets
 - activated the production `stu_edu_ai` Supabase project with three reviewed migrations, 11 RLS-protected CRM tables, explicit Data API grants, operational indexes, knowledge search/vector support, and safe seed records
 - added production Supabase Auth login, session restoration, staff-role enforcement, and secure logout for `/crm`

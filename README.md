@@ -13,5 +13,6 @@ Primary references:
 - [agent/planning-with-files/task_plan.md](./agent/planning-with-files/task_plan.md)
 - [SETUP.md](./SETUP.md)
 - [PROJECT.md](./PROJECT.md)
+- [STU Nexus portal guide](./src/crm/PORTAL_GUIDE.md)
 - [src/crm/README.md](./src/crm/README.md)
 - [supabase/README.md](./supabase/README.md)

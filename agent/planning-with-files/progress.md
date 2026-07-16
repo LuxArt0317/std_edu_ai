@@ -68,6 +68,9 @@
 - Implemented the core research modules in the app: structured knowledge documents, intelligent search, FAQ support, campus destination guidance, context-aware AI answers, and a local survey/evaluation workflow.
 2026-07-16
 
+- created GitHub issue #13 for the requested CRM portal explanation
+- added `src/crm/PORTAL_GUIDE.md` with the portal purpose, roles, modules, AI responsibilities, workflows, and current production-data boundaries
+- linked the portal guide from the root and CRM READMEs
 - created GitHub issue #12 to track secure recovery and handoff of the production CRM owner credential
 - confirmed the owner credential exists as a macOS internet-password item for `www.stu.best`
 - validated the credential against production Supabase Auth without exposing plaintext and confirmed the trusted `admin` app role

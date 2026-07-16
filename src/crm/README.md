@@ -2,6 +2,8 @@
 
 This folder contains the school-wide CRM workspace.
 
+For a plain-language explanation of the portal, its users, workspaces, AI capabilities, and example workflows, see [PORTAL_GUIDE.md](./PORTAL_GUIDE.md).
+
 - `CRMApp.tsx` renders the operational dashboard and workflows.
 - `CRMRoot.tsx` enforces Supabase Auth and role-aware staff access before rendering the workspace.
 - `authService.ts` owns session restoration, login, logout, and staff-role checks.
