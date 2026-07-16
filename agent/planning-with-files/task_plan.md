@@ -1,5 +1,23 @@
 # Task Plan
 
+## Phase 2: Pixel-faithful STU homepage clone [Issue #3]
+
+- capture the live `stu.edu.tw` homepage structure, content, links, imagery, styles, and responsive rules using terminal-only inspection
+- rebuild the React page to match the official homepage section order and visual system
+- preserve current university destinations and interactive homepage behaviors
+- keep the research-driven AI assistant as a distinct enhancement that does not alter the cloned institutional homepage
+- verify lint, production build, local routes, responsive layout, and Vercel deployment
+- update documentation, GitHub issue status, and persistent project state
+
+## Current execution
+
+- GitHub issue #3 created
+- live Elementor HTML, CSS, assets, navigation, and content extracted
+- full official homepage section order, content, external links, responsive styling, and interactions implemented
+- AI assistant moved to a floating drawer outside the cloned page flow
+- Node 22/npm 11 clean install, lint, production build, asset availability, and local route smoke tests pass
+- GitHub publication and Vercel production verification in progress
+
 ## Phase 1: Deployment recovery [Issue #1]
 
 - reproduce the Vercel-facing failure locally
@@ -8,7 +26,7 @@
 - verify the production build and preview output
 - configure a deterministic Vercel runtime, install, build, output, and SPA routing contract
 
-## Current execution
+## Phase 1 completion
 
 - local production build reproduced as successful
 - Supabase browser client identified as an unguarded runtime dependency

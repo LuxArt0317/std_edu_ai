@@ -2,23 +2,19 @@ import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import './App.css'
 import {
+  admissions,
   audienceEntries,
   contactItems,
-  campusDestinations,
-  evaluationQuestions,
-  faqItems,
   featuredLinks,
   heroSlides,
   hotLinks,
-  knowledgeCategories,
   latestNews,
   performanceStats,
+  primaryNavigation,
   storySections,
   visionSlides,
 } from './data/knowledge'
 import { askCampusAssistant } from './services/mockAssistant'
-import { findCampusDestination, searchKnowledge } from './services/campusEngine'
-import { fetchTodos, hasSupabaseConfig, supabaseStatusMessage } from './utils/supabase'
 
 type ChatMessage = {
   id: string
@@ -26,10 +22,12 @@ type ChatMessage = {
   content: string
 }
 
-type SurveyValues = Record<string, string>
-
 type IconName =
   | 'search'
+  | 'menu'
+  | 'close'
+  | 'arrow-left'
+  | 'arrow-right'
   | 'list'
   | 'building'
   | 'badge'
@@ -38,164 +36,121 @@ type IconName =
   | 'cap'
   | 'pin'
   | 'globe'
-  | 'briefcase'
-  | 'card'
-  | 'trophy'
   | 'phone'
   | 'mail'
-  | 'users'
   | 'bus'
   | 'spark'
 
-const navItems = [
-  '關於樹德',
-  '招生訊息',
-  '行政單位',
-  '學術單位',
-  '推廣教育',
-  '弱勢勸募',
-  '分眾入口',
-  '最新消息',
-  '熱門連結',
-  'English',
-  '全站搜尋',
-]
+const newsTabs = ['ALL', '行政公告', '單位訊息', '焦點新聞', '就業情報', '其他事項']
 
 const initialMessages: ChatMessage[] = [
   {
     id: 'welcome',
     role: 'assistant',
-    content:
-      '您好，這是 STU AI 助理。可詢問招生訊息、行政單位、畢業規定、校園設施、位置與常用入口。',
+    content: '您好，我是 STU AI 校園助理。可以詢問招生、行政單位、畢業規定、校園設施或常用系統。',
   },
 ]
 
-const aiSuggestions = [
-  '如何查詢招生訊息？',
-  '行政單位在哪裡？',
-  '這個新版網站加入了什麼 AI 功能？',
-]
+const aiSuggestions = ['如何查詢招生訊息？', '行政單位在哪裡？', '畢業規定怎麼查？']
 
 function Icon({ name, className }: { name: IconName; className?: string }) {
-  const common = { className, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '1.8', strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+  const common = {
+    className,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: '1.8',
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true,
+  }
 
   switch (name) {
     case 'search':
       return <svg {...common}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+    case 'menu':
+      return <svg {...common}><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+    case 'close':
+      return <svg {...common}><path d="m5 5 14 14M19 5 5 19" /></svg>
+    case 'arrow-left':
+      return <svg {...common}><path d="m15 18-6-6 6-6" /></svg>
+    case 'arrow-right':
+      return <svg {...common}><path d="m9 18 6-6-6-6" /></svg>
     case 'list':
       return <svg {...common}><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M9 8h7M9 12h7M9 16h7M7 8h.01M7 12h.01M7 16h.01" /></svg>
     case 'building':
       return <svg {...common}><path d="M3 21h18M6 18V9l6-3 6 3v9M9 21v-5h6v5" /></svg>
     case 'badge':
-      return <svg {...common}><path d="M12 3 6 6v5c0 4.2 2.5 7.5 6 9 3.5-1.5 6-4.8 6-9V6l-6-3Z" /><path d="M8.5 10.5c1.5-.4 2.8-.4 3.5-.2 1-.8 2.4-1.2 3.5-1" /></svg>
+      return <svg {...common}><path d="M12 3 6 6v5c0 4.2 2.5 7.5 6 9 3.5-1.5 6-4.8 6-9V6l-6-3Z" /><path d="m9 11 2 2 4-4" /></svg>
     case 'teacher':
       return <svg {...common}><path d="M12 4 4 8l8 4 8-4-8-4Z" /><path d="M8 11v3.5c0 1.7 1.8 3 4 3s4-1.3 4-3V11" /></svg>
     case 'lamp':
       return <svg {...common}><path d="M9 18h6M10 22h4M12 2a6 6 0 0 0-3.7 10.7c.5.4.7.8.7 1.3V15h6v-1c0-.5.2-.9.7-1.3A6 6 0 0 0 12 2Z" /></svg>
     case 'cap':
-      return <svg {...common}><path d="m2 9 10-5 10 5-10 5L2 9Z" /><path d="M6 11.5v3.5c0 1.7 2.7 3 6 3s6-1.3 6-3v-3.5" /></svg>
+      return <svg {...common}><path d="m2 9 10-5 10 5-10 5L2 9Z" /><path d="M6 11.5V15c0 1.7 2.7 3 6 3s6-1.3 6-3v-3.5" /></svg>
     case 'pin':
       return <svg {...common}><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" /><circle cx="12" cy="10" r="2.5" /></svg>
     case 'globe':
       return <svg {...common}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" /></svg>
-    case 'briefcase':
-      return <svg {...common}><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><rect x="3" y="7" width="18" height="12" rx="2" /><path d="M3 12h18" /></svg>
-    case 'card':
-      return <svg {...common}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18M7 15h3" /></svg>
-    case 'trophy':
-      return <svg {...common}><path d="M8 4h8v2a4 4 0 0 1-8 0V4Z" /><path d="M6 4H4a2 2 0 0 0 2 4M18 4h2a2 2 0 0 1-2 4M12 10v4M9 21h6M10 14h4l1 3H9l1-3Z" /></svg>
     case 'phone':
       return <svg {...common}><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7l.5 3a2 2 0 0 1-.6 1.8l-1.3 1.3a16 16 0 0 0 6.1 6.1l1.3-1.3a2 2 0 0 1 1.8-.6l3 .5a2 2 0 0 1 1.7 2Z" /></svg>
     case 'mail':
       return <svg {...common}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m4 7 8 6 8-6" /></svg>
-    case 'users':
-      return <svg {...common}><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" /><circle cx="9.5" cy="7" r="3.5" /><path d="M20 21v-2a4 4 0 0 0-3-3.9M15 3.2a3.5 3.5 0 0 1 0 6.6" /></svg>
     case 'bus':
       return <svg {...common}><path d="M7 17h10M6 17V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10" /><path d="M6 11h12M8 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2ZM16 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" /></svg>
     case 'spark':
-      return <svg {...common}><path d="m12 3 1.8 4.8L19 9.6l-4.2 2.4L13 17l-1.8-5-4.2-2.4 5.2-1.8L12 3Z" /></svg>
+      return <svg {...common}><path d="m12 2 1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8L12 2Z" /><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z" /></svg>
   }
 }
 
 function App() {
+  const [heroIndex, setHeroIndex] = useState(0)
+  const [visionIndex, setVisionIndex] = useState(0)
+  const [newsTab, setNewsTab] = useState('ALL')
+  const [hotLinkTab, setHotLinkTab] = useState<'student' | 'teacher'>('student')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [assistantOpen, setAssistantOpen] = useState(false)
   const [messages, setMessages] = useState(initialMessages)
   const [query, setQuery] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
-  const [todos, setTodos] = useState<Array<{ id: number | string; name: string }>>([])
-  const [todosError, setTodosError] = useState('')
-  const [isTodosLoading, setIsTodosLoading] = useState(true)
-  const [knowledgeQuery, setKnowledgeQuery] = useState('graduation requirements')
-  const [navigationQuery, setNavigationQuery] = useState('圖資大樓')
-  const [surveySubmitted, setSurveySubmitted] = useState(false)
-  const [surveyValues, setSurveyValues] = useState<SurveyValues>(() =>
-    Object.fromEntries(evaluationQuestions.map((_, index) => [`q${index}`, ''])),
-  )
   const chatViewportRef = useRef<HTMLDivElement | null>(null)
-  const knowledgeResults = searchKnowledge(knowledgeQuery)
-  const navigationResult = findCampusDestination(navigationQuery)
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setHeroIndex((current) => (current + 1) % heroSlides.length)
+    }, 5000)
+    return () => window.clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     const viewport = chatViewportRef.current
-    if (!viewport) return
-    viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' })
+    if (viewport) viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' })
   }, [messages, isLoading])
 
-  useEffect(() => {
-    async function getTodos() {
-      setIsTodosLoading(true)
-      setTodosError(supabaseStatusMessage)
+  const visibleNews = newsTab === 'ALL'
+    ? latestNews.slice(0, 8)
+    : latestNews.filter((item) => item.category === newsTab).slice(0, 8)
 
-      const { data, error } = await fetchTodos()
+  const visibleHotLinks = hotLinks.filter((link) => link.audience === hotLinkTab)
+  const activeHero = heroSlides[heroIndex]
 
-      if (error) {
-        setTodosError(error.message)
-        setTodos([])
-      } else {
-        setTodos(data ?? [])
-      }
-
-      setIsTodosLoading(false)
-    }
-
-    void getTodos()
-  }, [])
-
-  useEffect(() => {
-    const saved = window.localStorage.getItem('stu-eval-survey')
-    if (!saved) return
-
-    try {
-      const parsed = JSON.parse(saved) as SurveyValues
-      setSurveyValues((current) => ({ ...current, ...parsed }))
-      setSurveySubmitted(true)
-    } catch {
-      // Ignore invalid local state.
-    }
-  }, [])
+  function moveHero(direction: number) {
+    setHeroIndex((current) => (current + direction + heroSlides.length) % heroSlides.length)
+  }
 
   async function submitQuestion(nextQuestion?: string) {
-    const trimmedQuery = (nextQuestion ?? query).trim()
-    if (!trimmedQuery || isLoading) return
-
-    setMessages((current) => [
-      ...current,
-      { id: `user-${Date.now()}`, role: 'user', content: trimmedQuery },
-    ])
+    const trimmed = (nextQuestion ?? query).trim()
+    if (!trimmed || isLoading) return
+    setMessages((current) => [...current, { id: `user-${Date.now()}`, role: 'user', content: trimmed }])
     setQuery('')
     setErrorMessage('')
     setIsLoading(true)
-
     try {
-      const response = await askCampusAssistant(trimmedQuery)
-      setMessages((current) => [
-        ...current,
-        { id: `assistant-${Date.now()}`, role: 'assistant', content: response.answer },
-      ])
+      const response = await askCampusAssistant(trimmed)
+      setMessages((current) => [...current, { id: `assistant-${Date.now()}`, role: 'assistant', content: response.answer }])
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : 'AI 助理目前暫時無法回應。',
-      )
+      setErrorMessage(error instanceof Error ? error.message : 'AI 助理目前暫時無法回應。')
     } finally {
       setIsLoading(false)
     }
@@ -206,385 +161,174 @@ function App() {
     void submitQuestion()
   }
 
-  function handleSurveySubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    window.localStorage.setItem('stu-eval-survey', JSON.stringify(surveyValues))
-    setSurveySubmitted(true)
-  }
-
   return (
     <main className="stu-page">
-      <a className="floating-search" href="#assistant" aria-label="Search and AI assistant">
-        <Icon name="search" className="floating-search-icon" />
+      <a className="site-search-tab" href="https://www.stu.edu.tw/%e5%85%a8%e7%ab%99%e6%90%9c%e5%b0%8b/" aria-label="全站搜尋">
+        <Icon name="search" />
       </a>
 
-      <section className="hero" id="hero">
-        <div className="hero-shade" />
-        <header className="hero-header">
-          <img
-            className="hero-logo"
-            src="https://www.stu.edu.tw/wp-content/uploads/2026/01/stu-logo-2.png"
-            alt="Shu-Te University"
-          />
-          <nav className="hero-nav" aria-label="Primary">
-            {navItems.map((item, index) => (
-              <span className="hero-nav-item" key={item}>
-                <a href={item === '分眾入口' ? '#audiences' : item === '熱門連結' ? '#links' : item === '最新消息' ? '#news' : '#hero'}>
-                  {item}
-                </a>
-                {index < navItems.length - 1 ? <span className="nav-divider">|</span> : null}
-              </span>
+      <section className="hero" id="top" style={{ backgroundImage: `url(${activeHero.image})` }}>
+        <div className="hero-overlay" />
+        <header className="site-header">
+          <a href="#top" className="logo-link" aria-label="樹德科技大學首頁">
+            <img src="https://www.stu.edu.tw/wp-content/uploads/2026/01/stu-logo-2.png" alt="樹德科技大學 Shu-Te University" />
+          </a>
+          <button className="mobile-menu-button" type="button" aria-label="開啟主選單" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen((open) => !open)}>
+            <Icon name={mobileMenuOpen ? 'close' : 'menu'} />
+          </button>
+          <nav className={`primary-nav ${mobileMenuOpen ? 'open' : ''}`} aria-label="主選單">
+            {primaryNavigation.map((item) => (
+              <a key={item.label} href={item.href} onClick={() => setMobileMenuOpen(false)}>{item.label}</a>
             ))}
           </nav>
         </header>
 
-        <div className="hero-stage">
-          <button className="hero-arrow left" type="button" aria-label="Previous slide">
-            ‹
-          </button>
-          <div className="hero-copy">
-            <h1>新首頁上線</h1>
-            <p>請填寫回饋單留寶貴意見</p>
-            <a className="hero-cta" href="#assistant">
-              填寫首頁使用回饋單
-            </a>
-          </div>
-          <button className="hero-arrow right" type="button" aria-label="Next slide">
-            ›
-          </button>
+        <button className="hero-arrow hero-arrow-left" type="button" aria-label="上一張輪播" onClick={() => moveHero(-1)}><Icon name="arrow-left" /></button>
+        <div className="hero-content" key={activeHero.title}>
+          <h1>{activeHero.title}</h1>
+          <p>{activeHero.subtitle}</p>
+          {activeHero.button && activeHero.href ? <a href={activeHero.href}>{activeHero.button}</a> : null}
         </div>
-
-        <div className="hero-dots" aria-hidden="true">
+        <button className="hero-arrow hero-arrow-right" type="button" aria-label="下一張輪播" onClick={() => moveHero(1)}><Icon name="arrow-right" /></button>
+        <div className="carousel-dots" aria-label="首頁輪播選擇">
           {heroSlides.map((slide, index) => (
-            <span key={slide + index} className={index === 0 ? 'active' : ''} />
+            <button key={slide.image} className={index === heroIndex ? 'active' : ''} type="button" aria-label={`顯示第 ${index + 1} 張`} onClick={() => setHeroIndex(index)} />
           ))}
         </div>
       </section>
 
-      <section className="audience-band" id="audiences">
+      <section className="audience-section angled-bottom" id="rolecategory">
         <h2>分眾入口</h2>
         <div className="audience-grid">
           {audienceEntries.map((entry) => (
-            <article className="audience-card" key={entry.title}>
-              <div>
-                <h3>{entry.title}</h3>
-                <p>{entry.description}</p>
-              </div>
-              <Icon name={entry.icon} className="audience-icon" />
-            </article>
+            <a className="audience-card" href={entry.href} key={entry.title}>
+              <div><h3>{entry.title}</h3><p>{entry.description}</p></div>
+              <Icon name={entry.icon} />
+            </a>
           ))}
         </div>
       </section>
 
       <section className="vision-section">
-        <div className="section-title-stack">
+        <div className="title-lockup teal-title">
           <h2>看見樹德</h2>
-          <div className="dots-line">
-            {Array.from({ length: 28 }).map((_, index) => (
-              <span
-                key={index}
-                className={index >= 11 && index <= 15 ? `color-dot color-${index - 10}` : ''}
-              />
-            ))}
-          </div>
+          <img src="https://www.stu.edu.tw/wp-content/uploads/2026/01/bar.svg" alt="" />
           <p>SHU-TE UNIVERSITY</p>
         </div>
-
-        <div className="vision-grid">
-          {visionSlides.map((slide, index) => (
-            <article className="vision-card" key={slide.image}>
-              <img src={slide.image} alt={slide.title} />
-              <button className={`vision-arrow ${index === 0 ? 'left' : 'right'}`} type="button" aria-label={index === 0 ? 'Previous' : 'Next'}>
-                {index === 0 ? '‹' : '›'}
-              </button>
-            </article>
-          ))}
+        <div className="vision-carousel">
+          <button type="button" aria-label="上一張校園照片" onClick={() => setVisionIndex((visionIndex - 1 + visionSlides.length) % visionSlides.length)}><Icon name="arrow-left" /></button>
+          <img src={visionSlides[visionIndex].image} alt={visionSlides[visionIndex].title} />
+          <button type="button" aria-label="下一張校園照片" onClick={() => setVisionIndex((visionIndex + 1) % visionSlides.length)}><Icon name="arrow-right" /></button>
         </div>
-
-        <div className="vision-pager" aria-hidden="true">
-          <span className="active" />
-          <span />
-        </div>
+        <div className="small-dots" aria-hidden="true">{visionSlides.map((slide, index) => <span key={slide.image} className={index === visionIndex ? 'active' : ''} />)}</div>
       </section>
 
-      <section className="stats-band">
+      <section className="performance-section angled-both">
         <h2>我們的辦學績效</h2>
-        <div className="stats-grid">
+        <div className="performance-grid">
           {performanceStats.map((item) => (
-            <article className="stat-item" key={item.title}>
+            <article key={item.title}>
               <h3>{item.title}</h3>
               <strong>{item.value}</strong>
-              <Icon name={item.icon} className="stat-icon" />
+              <img src={item.image} alt="" />
             </article>
           ))}
         </div>
       </section>
 
-      <section className="story-section">
+      <section className="stories-section">
         {storySections.map((story, index) => (
-          <article
-            key={story.title}
-            className={`story-row ${index % 2 === 1 ? 'reverse' : ''}`}
-          >
-            <img src={story.image} alt={story.title} className="story-image" />
+          <article className={`story ${index % 2 ? 'reverse' : ''}`} key={story.title}>
+            <img className="story-photo" src={story.image} alt={story.title} />
             <div className="story-copy">
               <h2>{story.title}</h2>
-              <span className="story-underline" />
+              <span />
               <p>{story.description}</p>
-              <a href="#hero">了解更多</a>
+              {index === 0 ? <a href={story.href}>了解更多</a> : null}
             </div>
           </article>
         ))}
       </section>
 
-      <section className="links-strip">
-        <div className="links-banners">
-          {featuredLinks.map((item) => (
-            <img key={item} src={item} alt="" />
+      <section className="campus-life-section">
+        <div className="title-lockup white-title"><h2>進一步了解樹德的生活</h2><img src="https://www.stu.edu.tw/wp-content/uploads/2026/01/bar.svg" alt="" /></div>
+        <a href="http://about.stu.edu.tw"><img src="https://www.stu.edu.tw/wp-content/uploads/2025/12/aboutstu-1024x532.jpg" alt="樹德科技大學校園生活" /></a>
+      </section>
+
+      <section className="admissions-section">
+        <h2>招生專區</h2>
+        <div className="admissions-grid">
+          {admissions.map((item) => (
+            <a href={item.href} key={item.title}>
+              <img src={item.image} alt="" />
+              <div><h3>{item.title}</h3><p>{item.description}</p></div>
+            </a>
           ))}
         </div>
       </section>
 
-      <section className="contact-band" id="links">
-        <div className="contact-grid">
-          {contactItems.map((item) => (
-            <article className="contact-card" key={item.title}>
-              <Icon name={item.icon} className="contact-icon" />
-              <div className="contact-pill">{item.title}</div>
-              <p>{item.detail}</p>
-            </article>
+      <section className="news-section" id="stunews">
+        <div className="news-heading"><p>LATEST NEWS</p><h2>校園新聞</h2></div>
+        <div className="news-tabs" role="tablist" aria-label="新聞分類">
+          {newsTabs.map((tab) => <button key={tab} type="button" className={tab === newsTab ? 'active' : ''} onClick={() => setNewsTab(tab)}>{tab}</button>)}
+        </div>
+        <div className="news-list">
+          {visibleNews.map((item) => (
+            <a href={item.href} key={`${item.category}-${item.title}`}><span>{item.category}</span><strong>{item.title}</strong><b>›</b></a>
           ))}
         </div>
-
-        <div className="social-row">
-          <span className="social facebook">f</span>
-          <span className="social youtube">▶</span>
-          <span className="social instagram">◎</span>
-          <span className="social line">L</span>
-        </div>
+        <a className="more-link" href="https://www.stu.edu.tw/latestnews">more</a>
       </section>
 
-      <section className="ai-band" id="assistant">
-        <div className="ai-intro">
-          <p className="ai-label">AI Campus Assistant</p>
-          <h2>AI 校園助理</h2>
-          <p>
-            在保留現有首頁風格的前提下，新增 AI 問答入口，讓使用者可以更快找到招生、行政、
-            學術、位置與校園服務資訊。
-          </p>
-        </div>
-        <div className="supabase-panel">
-          <div className="supabase-panel-copy">
-            <p className="ai-label">Supabase Data</p>
-            <h3>Supabase `todos` 查詢</h3>
-            <p>
-              This panel reads from the configured Supabase browser client when Vercel
-              environment variables and the `todos` table are available.
-            </p>
-          </div>
-          <div className="supabase-panel-state">
-            {isTodosLoading ? <p>Loading todos...</p> : null}
-            {todosError ? <p className="error-banner">{todosError}</p> : null}
-            {!isTodosLoading && !todosError && todos.length > 0 ? (
-              <ul className="todo-list">
-                {todos.map((todo) => (
-                  <li key={todo.id}>{todo.name}</li>
-                ))}
-              </ul>
-            ) : null}
-            {!isTodosLoading && !todosError && todos.length === 0 ? (
-              <p>No todos found.</p>
-            ) : null}
-            {!isTodosLoading && !hasSupabaseConfig ? (
-              <p>Add the two `VITE_SUPABASE_*` variables in Vercel to re-enable live data.</p>
-            ) : null}
-          </div>
-        </div>
-        <div className="ai-panel">
-          <div className="chat-window" ref={chatViewportRef}>
-            {messages.map((message) => (
-              <article key={message.id} className={`message ${message.role}`}>
-                <span className="message-role">
-                  {message.role === 'assistant' ? 'STU AI' : 'You'}
-                </span>
-                <p>{message.content}</p>
-              </article>
-            ))}
-            {isLoading ? (
-              <article className="message assistant">
-                <span className="message-role">STU AI</span>
-                <p>正在查詢校園資訊...</p>
-              </article>
-            ) : null}
-          </div>
-          <form className="chat-form" onSubmit={handleSubmit}>
-            <textarea
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="例如：招生訊息在哪裡？行政單位有哪些？"
-              rows={3}
-            />
-            <button type="submit" disabled={isLoading}>
-              送出
-            </button>
-          </form>
-          {errorMessage ? <p className="error-banner">{errorMessage}</p> : null}
-          <div className="ai-suggestions">
-            {aiSuggestions.map((suggestion) => (
-              <button key={suggestion} type="button" onClick={() => void submitQuestion(suggestion)}>
-                {suggestion}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="smart-modules-band">
-        <div className="smart-section-heading">
-          <p className="ai-label">Research Modules</p>
-          <h2>智慧資訊檢索、導航與評估</h2>
-          <p>
-            These sections implement the concrete system modules described in the research:
-            knowledge retrieval, campus assistance, FAQ support, and user evaluation.
-          </p>
-        </div>
-
-        <div className="module-grid">
-          <article className="module-card">
-            <h3>Knowledge Base Coverage</h3>
-            <div className="chip-list">
-              {knowledgeCategories.map((category) => (
-                <span key={category} className="chip">
-                  {category}
-                </span>
-              ))}
-            </div>
-            <div className="faq-list">
-              {faqItems.map((faq) => (
-                <article key={faq.question}>
-                  <strong>{faq.question}</strong>
-                  <p>{faq.answer}</p>
-                </article>
-              ))}
-            </div>
-          </article>
-
-          <article className="module-card">
-            <h3>Intelligent Information Retrieval</h3>
-            <input
-              className="module-input"
-              value={knowledgeQuery}
-              onChange={(event) => setKnowledgeQuery(event.target.value)}
-              placeholder="Search academic policies, departments, FAQ, or graduation..."
-            />
-            <div className="search-results">
-              {knowledgeResults.length > 0 ? (
-                knowledgeResults.slice(0, 4).map((result) => (
-                  <article key={result.id} className="result-card">
-                    <span>{result.category}</span>
-                    <h4>{result.title}</h4>
-                    <p>{result.content}</p>
-                  </article>
-                ))
-              ) : (
-                <p className="empty-copy">No matching document found in the current knowledge base.</p>
-              )}
-            </div>
-          </article>
-
-          <article className="module-card">
-            <h3>Smart Navigation & Campus Assistance</h3>
-            <input
-              className="module-input"
-              value={navigationQuery}
-              onChange={(event) => setNavigationQuery(event.target.value)}
-              placeholder="Ask for a facility or office location..."
-            />
-            {navigationResult ? (
-              <div className="navigation-card">
-                <span>{navigationResult.type}</span>
-                <h4>{navigationResult.name}</h4>
-                <p><strong>Location:</strong> {navigationResult.location}</p>
-                <p>{navigationResult.guidance}</p>
-              </div>
-            ) : (
-              <p className="empty-copy">No navigation match found for the current query.</p>
-            )}
-            <div className="mini-destination-grid">
-              {campusDestinations.map((destination) => (
-                <button
-                  key={destination.id}
-                  type="button"
-                  className="destination-button"
-                  onClick={() => setNavigationQuery(destination.name)}
-                >
-                  {destination.name}
-                </button>
-              ))}
-            </div>
-          </article>
-
-          <article className="module-card">
-            <h3>User Evaluation Survey</h3>
-            <form className="survey-form" onSubmit={handleSurveySubmit}>
-              {evaluationQuestions.map((question, index) => (
-                <label key={question} className="survey-question">
-                  <span>{question}</span>
-                  <select
-                    value={surveyValues[`q${index}`] ?? ''}
-                    onChange={(event) =>
-                      setSurveyValues((current) => ({
-                        ...current,
-                        [`q${index}`]: event.target.value,
-                      }))
-                    }
-                  >
-                    <option value="">Select a score</option>
-                    <option value="5">5 - Strongly agree</option>
-                    <option value="4">4 - Agree</option>
-                    <option value="3">3 - Neutral</option>
-                    <option value="2">2 - Disagree</option>
-                    <option value="1">1 - Strongly disagree</option>
-                  </select>
-                </label>
-              ))}
-              <button type="submit" className="survey-submit">
-                Save evaluation
-              </button>
-            </form>
-            {surveySubmitted ? (
-              <p className="survey-status">
-                Survey responses saved locally. This matches the research requirement for
-                post-implementation user evaluation.
-              </p>
-            ) : null}
-          </article>
-        </div>
-      </section>
-
-      <section className="news-band" id="news">
-        <div className="section-title-stack compact">
-          <h2>最新消息</h2>
-          <p>Latest News</p>
-        </div>
-        <div className="news-grid">
-          {latestNews.map((item) => (
-            <article className="news-card" key={`${item.category}-${item.title}`}>
-              <span>{item.category}</span>
-              <h3>{item.title}</h3>
-              <p>{item.date}</p>
-            </article>
-          ))}
+      <section className="hot-links-section" id="hotlink">
+        <h2>熱門連結</h2>
+        <div className="hot-tabs">
+          <button type="button" className={hotLinkTab === 'student' ? 'active' : ''} onClick={() => setHotLinkTab('student')}>學生專區</button>
+          <button type="button" className={hotLinkTab === 'teacher' ? 'active' : ''} onClick={() => setHotLinkTab('teacher')}>教師專區</button>
         </div>
         <div className="hot-grid">
-          {hotLinks.map((item) => (
-            <article className="hot-card" key={item.title}>
-              <h3>{item.title}</h3>
-              <p>{item.description}</p>
-            </article>
-          ))}
+          {visibleHotLinks.map((item, index) => <a href={item.href} key={`${item.audience}-${item.title}-${index}`}>{item.title}</a>)}
         </div>
       </section>
+
+      <section className="public-links-section">
+        <h2>公開訊息</h2>
+        <div className="public-links-grid">
+          {featuredLinks.map((item) => <a href={item.href} key={item.image}><img src={item.image} alt={item.label} /></a>)}
+        </div>
+      </section>
+
+      <footer className="site-footer">
+        <div className="contact-grid">
+          {contactItems.map((item) => (
+            <a href={item.href} key={item.title}><Icon name={item.icon} /><span>{item.title}</span><strong>{item.detail}</strong></a>
+          ))}
+        </div>
+        <div className="community-row">
+          <a className="community-card" href="https://lin.ee/ZYTiDs2"><img src="https://www.stu.edu.tw/wp-content/uploads/2025/11/20-%E5%8A%A0%E5%85%A5%E6%9C%AC%E6%A0%A1%E7%A4%BE%E7%BE%A4-150x150.png" alt="加入本校社群" /><span>加入本校社群</span></a>
+          <div className="social-links" aria-label="社群網站">
+            <a className="facebook" href="https://www.facebook.com/ShuTeUniversity/" aria-label="Facebook">f</a>
+            <a className="youtube" href="https://www.youtube.com/c/StuEduTw" aria-label="Youtube">▶</a>
+            <a className="instagram" href="https://www.instagram.com/shute59/" aria-label="Instagram">◎</a>
+            <a className="line" href="https://lin.ee/ZYTiDs2" aria-label="Line">L</a>
+          </div>
+          <a className="bus-link" href="https://things.stu.edu.tw/%e4%ba%a4%e9%80%9a%e8%bb%8a%e8%b3%87%e8%a8%8a/"><Icon name="bus" /><span>公車資訊</span></a>
+        </div>
+        <div className="copyright-row"><span>Copyright 2025. All Rights Reserved.</span><a href="https://www.stu.edu.tw/%e7%b6%b2%e7%ab%99%e5%9c%b0%e5%9c%96/">網站地圖</a></div>
+      </footer>
+
+      <button className="ai-launcher" type="button" aria-label="開啟 AI 校園助理" aria-expanded={assistantOpen} onClick={() => setAssistantOpen(true)}><Icon name="spark" /><span>AI 校園助理</span></button>
+      {assistantOpen ? <button className="assistant-backdrop" type="button" aria-label="關閉 AI 校園助理" onClick={() => setAssistantOpen(false)} /> : null}
+      <aside className={`assistant-drawer ${assistantOpen ? 'open' : ''}`} aria-hidden={!assistantOpen}>
+        <header><div><span>AI-ENHANCED CAMPUS</span><h2>STU AI 校園助理</h2></div><button type="button" aria-label="關閉" onClick={() => setAssistantOpen(false)}><Icon name="close" /></button></header>
+        <div className="assistant-messages" ref={chatViewportRef}>
+          {messages.map((message) => <article className={message.role} key={message.id}><b>{message.role === 'assistant' ? 'STU AI' : 'YOU'}</b><p>{message.content}</p></article>)}
+          {isLoading ? <article className="assistant"><b>STU AI</b><p>正在檢索校園資訊...</p></article> : null}
+        </div>
+        <div className="assistant-suggestions">{aiSuggestions.map((item) => <button type="button" key={item} onClick={() => void submitQuestion(item)}>{item}</button>)}</div>
+        {errorMessage ? <p className="assistant-error">{errorMessage}</p> : null}
+        <form onSubmit={handleSubmit}><textarea rows={2} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="輸入校園相關問題..." /><button type="submit" disabled={isLoading}>送出</button></form>
+      </aside>
     </main>
   )
 }

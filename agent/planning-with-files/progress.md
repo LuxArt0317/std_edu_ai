@@ -1,5 +1,17 @@
 # Progress Log
 
+2026-07-16 — Pixel-faithful homepage clone
+
+- created GitHub issue #3 for the full `stu.edu.tw` homepage reconstruction
+- confirmed the live homepage is WordPress 7.0.1 with Elementor 3.35 and page-specific inline styling for page 243
+- began extracting the live navigation, section content, image assets, and exact responsive CSS using terminal-only inspection
+- extracted all official navigation, hero, audience, performance, story, admissions, news, hot-link, public-information, contact, social, and footer data
+- replaced the prototype page with a section-complete responsive STU homepage reconstruction
+- implemented hero autoplay/navigation, campus-image navigation, responsive mobile menu, news filters, hot-link tabs, and official external destinations
+- preserved the research AI assistant as a floating drawer rather than an in-flow homepage section
+- verified every referenced STU media asset returns HTTP 200
+- verified Node 22/npm 11 clean install, lint, production build, and HTTP 200 responses for `/` and `/campus/assistant`
+
 - Checked repository contents and confirmed `research.md` is the only existing project document.
 - Read `research.md` and extracted the website direction and AI-support goals.
 - Verified the current Vite scaffold command against the official Vite documentation.

@@ -1,6 +1,6 @@
 # STU Edu AI
 
-This repository contains a Vite + React prototype for an AI-enhanced Shu-Te University website. The prototype is based on the research in [research.md](./research.md) and focuses on recreating the university web experience with an added AI assistant layer for information retrieval and campus support.
+This repository contains a Vite + React reconstruction of the Shu-Te University homepage with a research-driven AI campus assistant layered on top. The institutional homepage follows the current `stu.edu.tw` structure, content, links, imagery, colors, responsive behavior, and interactions; the AI experience remains an additive floating drawer so it does not alter the cloned page flow.
 
 Primary references:
 

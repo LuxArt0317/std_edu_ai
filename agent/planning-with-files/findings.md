@@ -1,5 +1,11 @@
 # Findings
 
+- the live homepage is WordPress 7.0.1 using Elementor 3.35 and exposes its page-243 styling inline
+- the current desktop hero is 800px tall, uses three 5-second slides, and overlays the centered logo/navigation with a dark green gradient
+- the official core visual tokens are `#3CB69E` teal and `#D2E3E0` mist, with Roboto typography and clipped diagonal section transitions
+- the full homepage order is hero, ten audience entrances, campus vision carousel, four performance counters, three institutional stories, campus-life banner, eight admissions routes, news tabs, student/teacher hot links, six public-information banners, contact/social links, and copyright footer
+- the research-driven AI layer should remain an overlay so the official clone remains structurally and visually intact
+
 - `research.md` defines the project as an AI-enhanced Shu-Te University campus and website experience
 - the goal is to improve accessibility, usability, information retrieval, and user experience
 - the most important product addition is an AI assistant for academic, administrative, and campus questions

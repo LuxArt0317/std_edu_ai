@@ -20,7 +20,9 @@ VITE_SUPABASE_URL=your-project-url
 VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 ```
 
-The app now renders without them, but the Supabase panel will stay in fallback mode until both values are present.
+The homepage and current AI drawer render without these variables. The Supabase client remains available for later research modules and degrades safely when the variables are absent.
+
+The homepage currently references official public STU media assets from `www.stu.edu.tw`. An internet connection is required to load those images and the Roboto web font during local development.
 
 ## Run Locally
 

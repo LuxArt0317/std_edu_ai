@@ -1,8 +1,15 @@
 # Current State
 
-The repository contains a Vite-based prototype for an AI-enhanced Shu-Te University website, and the active fix is focused on stabilizing the Vercel deployment path.
+The repository contains a Vite-based prototype for an AI-enhanced Shu-Te University website. The active work is rebuilding the homepage as a pixel-faithful clone of the current official `stu.edu.tw` homepage while retaining the AI layer as an additive research feature.
 
 Working status:
+
+- pixel-faithful homepage reconstruction is tracked in GitHub issue #3
+- the live Elementor page structure, styles, content, links, and assets have been extracted using terminal-only inspection
+- the homepage now reproduces the full official section order with live STU imagery and destinations
+- hero and campus carousels, mobile navigation, news filters, hot-link tabs, and the floating AI assistant are interactive
+- the Node 22/npm 11 clean install, lint, production build, media validation, and local root/deep-route smoke tests pass
+- publication and production Vercel verification remain in progress
 
 - the Vite scaffold has been installed and configured locally
 - the homepage now reflects the Shu-Te University smart campus concept from the research
