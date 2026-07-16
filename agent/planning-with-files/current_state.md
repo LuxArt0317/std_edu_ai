@@ -25,6 +25,7 @@ Credential handoff status:
 - the credential exists in the macOS login keychain as an internet password for `www.stu.best`
 - production Supabase password authentication passes and returns the trusted `owner` app role
 - the verified password has been copied to the owner's local clipboard for direct paste into the CRM login form
+- the clipboard was refreshed and the owner login revalidated on 2026-07-17 after the user's access request
 - no plaintext password was written to the repository, command output, planning files, or GitHub
 
 Activation status:

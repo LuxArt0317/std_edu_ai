@@ -16,3 +16,10 @@
 - verified the custom domain points to Ready deployment `dpl_8pBNQfw983zoMM1RubyV6XYvpRtV`; root, CRM, both lazy bundles, authenticated OpenAI chat, 401 auth boundary, and student 403 grade-scan boundary pass
 - posted the final production evidence to GitHub issue #14 and closed it as completed
 - published the final release-state documentation and verified the current custom-domain deployment returns root 200, CRM 200, and unauthenticated API 401
+
+2026-07-17 — Secure owner credential re-handoff [Issue #12]
+
+- retrieved the protected owner credential from the local macOS keychain without displaying it
+- revalidated production Supabase password authentication and trusted `owner` role
+- copied the exact verified password to the local clipboard and confirmed it by one-way digest comparison
+- recorded the handoff on GitHub issue #12 without exposing plaintext credential material
