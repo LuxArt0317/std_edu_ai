@@ -16,7 +16,9 @@
 - full official homepage section order, content, external links, responsive styling, and interactions implemented
 - AI assistant moved to a floating drawer outside the cloned page flow
 - Node 22/npm 11 clean install, lint, production build, asset availability, and local route smoke tests pass
-- GitHub publication and Vercel production verification in progress
+- PR #4 merged to `main`
+- Vercel preview and production deployments completed successfully
+- production root and deep route respond through the configured Vercel SSO protection
 
 ## Phase 1: Deployment recovery [Issue #1]
 

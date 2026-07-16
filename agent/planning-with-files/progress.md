@@ -11,6 +11,9 @@
 - preserved the research AI assistant as a floating drawer rather than an in-flow homepage section
 - verified every referenced STU media asset returns HTTP 200
 - verified Node 22/npm 11 clean install, lint, production build, and HTTP 200 responses for `/` and `/campus/assistant`
+- published the implementation in PR #4 and verified its Vercel preview deployment passed
+- merged PR #4 to `main` and verified the production Vercel deployment completed successfully
+- confirmed the production root and `/campus/assistant` routes respond through the configured Vercel SSO protection
 
 - Checked repository contents and confirmed `research.md` is the only existing project document.
 - Read `research.md` and extracted the website direction and AI-support goals.

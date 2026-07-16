@@ -9,7 +9,9 @@ Working status:
 - the homepage now reproduces the full official section order with live STU imagery and destinations
 - hero and campus carousels, mobile navigation, news filters, hot-link tabs, and the floating AI assistant are interactive
 - the Node 22/npm 11 clean install, lint, production build, media validation, and local root/deep-route smoke tests pass
-- publication and production Vercel verification remain in progress
+- PR #4 is merged to `main` and GitHub issue #3 is resolved
+- the Vercel preview and production deployments completed successfully
+- the production root and deep route respond through the configured Vercel SSO deployment protection
 
 - the Vite scaffold has been installed and configured locally
 - the homepage now reflects the Shu-Te University smart campus concept from the research
