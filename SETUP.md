@@ -30,9 +30,9 @@ VITE_SUPABASE_URL=your-project-url
 VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 ```
 
-The homepage renders without Supabase. `/crm` requires an authorized Supabase staff session in production and falls back to its last local continuity cache only after an authenticated live workspace has been interrupted. If OpenAI is unavailable, Nexus AI returns a clearly labeled grounded local response.
+The homepage renders without Supabase. `/crm` requires an authorized Supabase session. School OS data is always loaded live through RLS; the legacy CRM retains an explicit continuity cache for interrupted authenticated sessions. If OpenAI is unavailable, Nexus AI returns a clearly labeled grounded continuity response and never silently fabricates a successful scan.
 
-## Supabase CRM Storage
+## Supabase School Platform
 
 ```bash
 npx supabase login
@@ -40,9 +40,11 @@ npx supabase link --project-ref your-project-ref
 npx supabase db push
 ```
 
-The production schema has already been applied to `stu_edu_ai`. The migrations in `supabase/migrations` enable RLS on every exposed table, explicit Data API grants, operational indexes, full-text/vector knowledge retrieval, and privacy-minimized AI audit logs.
+The production schema has already been applied to `stu_edu_ai`. The migrations in `supabase/migrations` enable RLS on every exposed table, explicit Data API grants, academic/CRM indexes, protected assessment answers, role-change audits, full-text/vector knowledge retrieval, and privacy-minimized AI audit logs.
 
-Assign staff roles through trusted `app_metadata.role` values such as `admin`, `advisor`, `admissions`, or `support`; never use user-editable metadata for authorization. The initial owner credential is stored in the local macOS login keychain as an internet password for `www.stu.best` and is not committed to this repository.
+Assign roles with the owner-only People & Roles workspace or the audited `assign_platform_role` RPC. Authorization uses trusted `app_metadata.role`; never use user-editable metadata. The complete role catalog is documented in [src/platform/ROLE_MATRIX.md](./src/platform/ROLE_MATRIX.md).
+
+The protected owner is `winsonbaring10@gmail.com`. Validation identities for faculty and student views use `winsonbaring10+faculty@gmail.com` and `winsonbaring10+student@gmail.com`. Their generated credentials are stored as internet passwords in the local macOS login keychain for `www.stu.best`; no password is committed or documented in plaintext.
 
 The homepage currently references official public STU media assets from `www.stu.edu.tw`. An internet connection is required to load those images and the Roboto web font during local development.
 
@@ -64,7 +66,13 @@ npm run build
 
 ```bash
 npm test
+npm run test:live-school
+npm run test:live-crm
+npm run test:live-roles
+npm run test:live-ai
 ```
+
+The `test:live-*` commands require the existing ignored `.env.local` values and network access. They exercise reversible production workflows and clean up test assessment attempts.
 
 Open `http://localhost:5173/crm` during local development to use STU Nexus.
 

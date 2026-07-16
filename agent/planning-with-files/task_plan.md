@@ -1,5 +1,51 @@
 # Task Plan
 
+## Phase 7: All-in-one school operating platform [Issue #14]
+
+### Product model and authorization
+
+- make `winsonbaring10@gmail.com` the protected platform owner above the ordinary administrator tier
+- establish a school role hierarchy covering owner, administrator, executive/academic leadership, registrar, department heads, faculty, advisors, admissions, finance, support, librarians, and students
+- enforce every data boundary in Supabase RLS and trusted server-side functions; role-specific UI is an additional usability layer, not the security boundary
+- give the owner a safe role-preview control for auditing student, teacher, and administrative experiences
+
+### Academic operating system
+
+- add departments, programs, academic terms, courses, sections, enrollment/teaching assignments, modules/topics, announcements, notifications, and schedules
+- add teacher workspaces for assigned classes, learning content, assessments, gradebook, grade-scan review, and class schedules
+- add student workspaces for enrolled classes, topics, quizzes, answer feedback, published grades, announcements, and personal schedules
+- add owner/admin workspaces for institutional health, people/role hierarchy, academic catalog, and platform configuration
+
+### Assessment and grade intelligence
+
+- implement assessment questions, choices, protected answer keys, attempts, answers, deterministic transactional scoring, and teacher review
+- implement grade items and publishable grades with student-only access to their own published results
+- add authenticated AI image analysis for grade sheets with structured extraction, confidence flags, and mandatory human review before persistence
+
+### Conversational intelligence
+
+- replace the single-turn copilot experience with a durable role-aware chatbot backed by local Supabase threads/messages
+- ground responses in role, course, student-success, and verified institutional context while minimizing personal data sent to OpenAI
+- require authenticated API requests, rate limits, structured responses, safety identifiers, and graceful continuity behavior
+
+### Production completion
+
+- seed safe academic content, topics, a functioning quiz, schedule entries, announcements, and gradebook examples
+- apply the reviewed migration to production, regenerate database types, and run security/performance advisors
+- verify owner protection, role-specific RLS, quiz scoring, grade privacy, authenticated AI endpoints, application tests, production build, and deployed routes
+- update setup/product/portal documentation, GitHub issue status, changelog, and persistent project state
+
+## Current execution
+
+- GitHub issue #14 created
+- reusable OpenAI key confirmed in the ignored owner-only `.env.local`; prior user authorization to reuse it remains in effect
+- current Supabase RBAC/RLS, Storage, OpenAI Responses multi-turn, vision input, and latest-model guidance reviewed
+- architecture selected: a single authenticated platform with database-enforced role boundaries and human-reviewed AI decisions
+- nine production migrations applied; owner protection, role hierarchy, academics, teaching, learning, quizzes, bounded atomic grade scans, schedules, chat, audits, rosters, authorization-column locks, and indexes are live
+- unified role-aware interface and owner preview implemented; the original CRM is available from authorized workspaces
+- owner, real faculty, real student, cross-role RLS, deterministic quiz, grade privacy, authenticated chatbot, and authenticated vision extraction tests pass
+- documentation synchronized; final build, commit, push, GitHub status, and Vercel production verification remain
+
 ## Phase 6: CRM portal guide [Issue #13]
 
 - explain the portal's purpose and intended staff audience in plain language

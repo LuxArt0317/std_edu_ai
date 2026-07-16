@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import CRMApp from './CRMApp'
+import UnifiedPortal from '../platform/UnifiedPortal'
 import { canUseCrm, getCrmSession, getCrmUser, hasSupabaseConfig, signInCrm, signOutCrm, subscribeToCrmAuth } from './authService'
 import type { CrmUser } from './authService'
 import './crm.css'
@@ -71,13 +72,13 @@ function CRMRoot() {
 
   if (loading) return <div className="nexus-auth-shell"><div className="nexus-auth-loading"><span>樹</span><strong>Securing STU Nexus</strong><p>Restoring your authenticated workspace…</p></div></div>
 
-  if (session && user && canUseCrm(user)) return <CRMApp currentUser={user} onSignOut={() => void signOut()} />
+  if (session && user && canUseCrm(user)) return <UnifiedPortal currentUser={user} onSignOut={() => void signOut()} />
 
   if (session && user) {
-    return <div className="nexus-auth-shell"><section className="nexus-auth-card access-card"><div className="nexus-auth-mark">樹</div><p className="nexus-auth-kicker">ACCESS CONTROL</p><h1>Staff access is required</h1><p>Your account is authenticated as <strong>{user.email}</strong>, but its role does not permit CRM access. Contact an STU Nexus administrator for a staff role.</p>{error ? <div className="nexus-auth-error">{error}</div> : null}<button type="button" onClick={() => void signOut()}>Sign out</button></section></div>
+    return <div className="nexus-auth-shell"><section className="nexus-auth-card access-card"><div className="nexus-auth-mark">樹</div><p className="nexus-auth-kicker">ACCESS CONTROL</p><h1>Platform access is required</h1><p>Your account is authenticated as <strong>{user.email}</strong>, but it does not have a recognized STU Nexus role. Contact the platform owner.</p>{error ? <div className="nexus-auth-error">{error}</div> : null}<button type="button" onClick={() => void signOut()}>Sign out</button></section></div>
   }
 
-  return <div className="nexus-auth-shell"><section className="nexus-auth-card"><a href="/" className="nexus-auth-brand"><span>樹</span><div><b>STU NEXUS</b><small>Student Relationship Cloud</small></div></a><div className="nexus-auth-copy"><p className="nexus-auth-kicker">SECURE STAFF WORKSPACE</p><h1>Welcome back</h1><p>Sign in with your authorized Shu-Te University CRM account.</p></div><form onSubmit={submit}><label><span>Email address</span><input type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@stu.edu.tw" required /></label><label><span>Password</span><input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your secure password" required /></label>{error ? <div className="nexus-auth-error" role="alert">{error}</div> : null}<button type="submit" disabled={submitting}>{submitting ? 'Signing in…' : 'Sign in to STU Nexus →'}</button></form><footer><span><i />Supabase Auth</span><span>RLS protected</span><span>Encrypted in transit</span></footer></section></div>
+  return <div className="nexus-auth-shell"><section className="nexus-auth-card"><a href="/" className="nexus-auth-brand"><span>樹</span><div><b>STU NEXUS</b><small>School Operating Platform</small></div></a><div className="nexus-auth-copy"><p className="nexus-auth-kicker">SECURE SCHOOL WORKSPACE</p><h1>Welcome back</h1><p>Sign in with your authorized Shu-Te University platform account.</p></div><form onSubmit={submit}><label><span>Email address</span><input type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@stu.edu.tw" required /></label><label><span>Password</span><input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your secure password" required /></label>{error ? <div className="nexus-auth-error" role="alert">{error}</div> : null}<button type="submit" disabled={submitting}>{submitting ? 'Signing in…' : 'Sign in to STU Nexus →'}</button></form><footer><span><i />Supabase Auth</span><span>RLS protected</span><span>Encrypted in transit</span></footer></section></div>
 }
 
 export default CRMRoot

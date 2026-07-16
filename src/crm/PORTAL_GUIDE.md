@@ -1,14 +1,46 @@
-# STU Nexus CRM Portal Guide
+# STU Nexus School Platform Guide
 
 ## What this portal is
 
-STU Nexus is an internal school relationship-management and student-success platform. It is designed for authorized university staff, not as a replacement for the public university website or as a general student self-service portal.
+STU Nexus is the authenticated operating platform for the university. It gives each person a role-specific home while keeping one shared source of truth for academics, teaching, learning, assessment, grades, schedules, communications, student success, admissions, and service work.
 
-The public STU website helps people discover the university and find public information. STU Nexus helps staff manage the relationships and operational work that follow: prospective-student inquiries, admissions, enrolled-student support, cases, tasks, outreach, institutional knowledge, and school-wide reporting.
+The public STU website helps visitors discover the university. STU Nexus handles the signed-in work that follows. Students can learn, take quizzes, review feedback, see published grades, and follow their schedule. Teachers can manage visible classes, content, assessment review, gradebooks, AI-assisted grade capture, and calendars. Leaders and administrators can oversee the academic structure, people, permissions, and original CRM operations.
 
 ## Who uses it
 
-Access is intended for authorized staff roles such as administrators, academic advisors, admissions personnel, support teams, and faculty. Supabase Auth verifies each account, while database row-level security enforces the permitted access on the server.
+Supabase Auth verifies every account. Database row-level security filters each query and mutation for the trusted role and the person's teaching, enrollment, ownership, or operational relationship. The interface then presents the same boundary in an understandable workspace. The protected platform owner can safely preview every role's interface without changing the owner's database authority.
+
+See [../platform/ROLE_MATRIX.md](../platform/ROLE_MATRIX.md) for the complete hierarchy and permission model.
+
+## Academic and learning workspaces
+
+### My Day / School Overview
+
+Shows role-relevant courses, assessments, upcoming events, announcements, and the fastest next actions. Owners and leaders receive institution-wide oversight; students see only their learning scope.
+
+### Academics and Teaching
+
+Organizes departments, programs, courses, active sections, teachers, rooms, modality, and rosters. Faculty receive assigned-class views while leadership receives the wider academic catalog permitted by policy.
+
+### Learning Topics
+
+Delivers sequenced course material with summaries, full topic content, estimated study time, and publication state. Students see published content for enrolled sections.
+
+### Assessments
+
+Students answer a real seeded quiz and receive transactional scoring plus per-question explanations. Correct answers are stored separately and are invisible to students. Teachers and authorized leadership can review assessment structure and submitted attempts.
+
+### Grades and AI Scan Review
+
+Students see only their own published results. Teachers can review class gradebooks, publish a reviewed grade, or upload a JPEG, PNG, or WebP grade sheet. OpenAI vision extracts candidate rows with confidence and warnings; a teacher must review before candidates are stored as drafts, and publishing remains a separate explicit action.
+
+### One Calendar
+
+Combines classes, examinations, deadlines, meetings, and campus events. Policies derive visibility from enrollment, teaching assignment, personal ownership, and intended role audience.
+
+### People and Roles
+
+The owner and authorized leadership see the role hierarchy and provisioned identities. Role changes use an audited server-side function that updates Auth metadata and the profile atomically. The protected owner cannot be demoted or deleted and a second owner cannot be assigned.
 
 ## Main workspaces
 
@@ -50,7 +82,7 @@ Summarizes admissions progress, student-success signals, case workload, task act
 
 ## Nexus AI
 
-Nexus AI is the staff copilot inside the CRM. Depending on the available context, it can:
+Nexus AI is a persistent, role-aware school chatbot. Depending on the user's visible context, it can:
 
 - summarize a student's current situation;
 - explain the evidence behind a success-risk signal;
@@ -58,8 +90,11 @@ Nexus AI is the staff copilot inside the CRM. Depending on the available context
 - answer questions using institutional knowledge;
 - help draft clear, supportive communications; and
 - turn scattered operational information into a concise staff brief.
+- explain a learner's next topic or assessment;
+- summarize a teacher's class and schedule; and
+- suggest grounded next actions with visible citations.
 
-The AI receives privacy-minimized context and returns suggestions for human review. Staff remain responsible for decisions and communications.
+Conversation threads and messages are saved in Supabase for their owner. Only bounded, privacy-minimized context is sent to OpenAI. The endpoint authenticates the Supabase bearer token, derives the trusted role from Auth metadata, applies rate limits, requests structured output, and disables provider-side response storage. People remain responsible for decisions and communications.
 
 ## Example student-support workflow
 
@@ -80,10 +115,10 @@ The AI receives privacy-minimized context and returns suggestions for human revi
 
 ## Current production status
 
-The CRM is connected to production Supabase Auth and Postgres. Authentication, role enforcement, database row-level security, live reads, and supported mutations are active.
+The platform is connected to production Supabase Auth and Postgres. Authentication, role enforcement, database row-level security, live reads, transactional assessment scoring, reviewed grade workflows, persistent chat, and supported CRM mutations are active.
 
 The records currently included are safe seed records created to demonstrate and verify the workflows. They are not real university student records. Before operational rollout, the university should establish approved data integrations, staff-account provisioning, privacy governance, retention rules, and owner-specific workflows.
 
 ## In one sentence
 
-STU Nexus gives authorized school staff one coordinated place to manage applicants, support students, resolve cases, organize outreach, use institutional knowledge, and receive human-reviewed AI assistance.
+STU Nexus gives the whole school one permission-aware place to learn, teach, assess, schedule, administer, support students, and use human-reviewed AI assistance.

@@ -60,7 +60,7 @@ My understanding is that the first version of this project should:
 
 For this repository, the immediate goal is:
 
-to maintain a section-complete, responsive reconstruction of the current Shu-Te University homepage and add a working AI assistant experience aligned with the research without changing the official homepage flow.
+to maintain a section-complete, responsive reconstruction of the current Shu-Te University homepage while providing a separate authenticated, all-in-one school operating platform at `/crm`. The public clone remains visually independent from internal school workflows.
 
 ## Homepage Structure Observed From `stu.edu.tw`
 
@@ -92,13 +92,7 @@ The AI feature should remain present, but it should be added in a way that does 
 
 ## Supabase Integration Status
 
-Supabase has now been wired into the Vite app using the provided project URL and publishable key. The frontend integration is valid and the query path works at the client level, but the example `todos` query currently depends on a `public.todos` table being present and exposed in the target Supabase project.
-
-Verification against the provided project currently returns:
-
-- `Could not find the table 'public.todos' in the schema cache`
-
-That means the code path is working, but the target project does not currently provide the example table expected by the sample query.
+Supabase is the live system of record for both CRM and academic operations. Production now contains Auth identities, role metadata, RLS-protected CRM and school tables, safe academic seed content, a working quiz, gradebook examples, schedules, persistent chat, and trusted transactional workflows.
 
 ## Implemented Research Modules
 
@@ -111,4 +105,4 @@ The current prototype now implements the main system elements described in the r
 - smart navigation and campus assistance
 - user evaluation survey flow
 
-This remains within the research scope because it is still an information and support layer, not an administrative processing or decision-making system.
+The original research scoped the first experience as an information and support layer. The user's later product direction explicitly expands `/crm` into administrative and academic processing. High-impact outcomes remain human-controlled: objective quizzes are scored deterministically from protected answer keys, AI grade scans create reviewable candidates only, and AI guidance never publishes grades or changes roles automatically.

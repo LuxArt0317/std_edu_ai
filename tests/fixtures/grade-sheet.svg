@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <rect width="1200" height="800" fill="#f7f3e8"/>
+  <rect x="55" y="55" width="1090" height="690" rx="8" fill="#fffef9" stroke="#233c38" stroke-width="4"/>
+  <text x="100" y="125" font-family="Arial, sans-serif" font-size="38" font-weight="700" fill="#183d37">IM101 · Systems and Security Check</text>
+  <text x="100" y="172" font-family="Arial, sans-serif" font-size="23" fill="#536863">Maximum score: 5</text>
+  <line x1="90" y1="210" x2="1110" y2="210" stroke="#233c38" stroke-width="3"/>
+  <text x="115" y="260" font-family="Arial, sans-serif" font-size="24" font-weight="700">Student number</text>
+  <text x="480" y="260" font-family="Arial, sans-serif" font-size="24" font-weight="700">Student</text>
+  <text x="950" y="260" font-family="Arial, sans-serif" font-size="24" font-weight="700">Score</text>
+  <g font-family="Arial, sans-serif" font-size="29" fill="#172b28">
+    <text x="115" y="340">STU-DEMO-001</text><text x="480" y="340">Student A</text><text x="975" y="340">5</text>
+    <text x="115" y="440">STU-DEMO-002</text><text x="480" y="440">Student B</text><text x="975" y="440">3</text>
+    <text x="115" y="540">STU-DEMO-003</text><text x="480" y="540">Student C</text><text x="975" y="540">4</text>
+  </g>
+  <g stroke="#9eaaa7" stroke-width="2"><line x1="90" y1="285" x2="1110" y2="285"/><line x1="90" y1="375" x2="1110" y2="375"/><line x1="90" y1="475" x2="1110" y2="475"/><line x1="90" y1="575" x2="1110" y2="575"/></g>
+  <text x="100" y="685" font-family="Arial, sans-serif" font-size="20" fill="#71817d">Controlled synthetic fixture · Human review required</text>
+</svg>

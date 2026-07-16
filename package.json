@@ -11,8 +11,11 @@
     "build": "tsc -b && vite build",
     "vercel-build": "npm run build",
     "lint": "oxlint",
-    "test": "node --experimental-strip-types --test tests/api/crm-assistant.test.ts",
+    "test": "node --experimental-strip-types --test tests/api/*.test.ts",
     "test:live-crm": "node tests/integration/crm-live.mjs",
+    "test:live-school": "node tests/integration/school-live.mjs",
+    "test:live-roles": "node tests/integration/role-portals-live.mjs",
+    "test:live-ai": "node --experimental-strip-types tests/integration/ai-live.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -1,0 +1,15 @@
+create index announcements_author_idx on public.announcements (author_id) where author_id is not null;
+create index assessment_answer_keys_option_idx on public.assessment_answer_keys (correct_option_id) where correct_option_id is not null;
+create index assessment_answers_question_idx on public.assessment_answers (question_id);
+create index assessment_answers_selected_option_idx on public.assessment_answers (selected_option_id) where selected_option_id is not null;
+create index assessments_creator_idx on public.assessments (created_by) where created_by is not null;
+create index course_sections_faculty_idx on public.course_sections (faculty_id, status) where faculty_id is not null;
+create index course_topics_creator_idx on public.course_topics (created_by) where created_by is not null;
+create index courses_program_idx on public.courses (program_id) where program_id is not null;
+create index departments_head_idx on public.departments (head_id) where head_id is not null;
+create index grade_items_assessment_idx on public.grade_items (assessment_id) where assessment_id is not null;
+create index grade_scan_jobs_grade_item_idx on public.grade_scan_jobs (grade_item_id) where grade_item_id is not null;
+create index grade_scan_jobs_reviewer_idx on public.grade_scan_jobs (reviewed_by) where reviewed_by is not null;
+create index grade_scan_jobs_section_idx on public.grade_scan_jobs (section_id, created_at desc);
+create index grades_graded_by_idx on public.grades (graded_by) where graded_by is not null;
+create index schedule_events_creator_idx on public.schedule_events (created_by) where created_by is not null;

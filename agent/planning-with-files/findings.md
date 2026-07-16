@@ -1,5 +1,14 @@
 # Findings
 
+- a credible all-in-one school platform needs database-enforced separation between the owner, institutional administrators, academic staff, specialist staff, teachers, and students; hiding navigation items is not authorization
+- answer keys must live in a separately protected table and deterministic database grading must remain the source of truth for objective quizzes
+- AI grade-sheet scanning should extract candidate values and confidence only; a teacher must review before any grade is saved or published
+- durable chatbot history belongs in first-party Supabase tables while only bounded, privacy-minimized context is sent to OpenAI
+- a protected owner tier plus an owner-only role preview is safer and more useful than giving the main account an ordinary mutable admin role
+- real faculty and student Auth sessions confirm that RLS filters course, topic, answer-key, grade, schedule, and mutation access independently of interface navigation
+- PostgREST may return a successful response for an RLS-filtered update that affected zero rows, so authorization tests must verify persisted state rather than relying only on the error field
+- transactional assessment grading provides a reliable boundary for attempt limits, enrollment, scoring, and cleanup while keeping answer keys unavailable to learners
+- all new foreign keys need covering indexes even in a new low-volume deployment; the final performance advisor now reports only expected unused-index information
 - the owner credential was present as a macOS internet-password entry even though it was not visible where the user expected in Keychain Access
 - the stored credential remains valid against production Supabase Auth and resolves to the trusted `admin` app role
 - a verified clipboard handoff gives the owner immediate access without copying the secret into chat, terminal output, GitHub, or repository files

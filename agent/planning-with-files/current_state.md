@@ -1,30 +1,43 @@
 # Current State
 
+The all-in-one platform expansion is implemented under GitHub issue #14 and is in final verification/deployment. One authenticated STU Nexus application now enforces owner, leadership, administrative, teacher, specialist-staff, and student boundaries in Supabase RLS. `winsonbaring10@gmail.com` is the protected platform owner and has a safe role-preview capability.
+
+Current platform status:
+
+- nine issue-#14 migrations are applied to production Supabase
+- the role hierarchy, academic catalog, rosters, learning content, working quiz, grades, schedules, announcements, persistent chat, grade scans, and role audits are live
+- owner demotion/deletion and second-owner assignment are blocked at the database layer
+- faculty and student validation identities are provisioned and linked to safe seed rosters; their credentials remain only in the local macOS keychain
+- owner, CRM, faculty, student, RLS, quiz, grade privacy, real OpenAI chatbot, and real OpenAI vision tests pass
+- API contracts, lint, build, and final protected deployment checks are the remaining release gate
+- Supabase performance advisors have no structural warnings; unused-index notices are informational on the new low-volume schema
+- two security-definer notices are intentional for internally authorized atomic workflows; leaked-password protection remains a dashboard-level configuration notice
+
 The plain-language STU Nexus portal explanation is available at `src/crm/PORTAL_GUIDE.md` and tracked by GitHub issue #13. It documents the staff audience, operational workspaces, human-reviewed AI assistance, example workflows, and the distinction between production infrastructure and demonstration seed records.
 
-Production Supabase activation is complete. GitHub issue #12 tracks the final secure credential handoff for the existing owner administrator.
+Production Supabase activation is complete. GitHub issue #12 tracked the secure credential handoff for the existing owner administrator.
 
 Credential handoff status:
 
 - the owner email is `winsonbaring10@gmail.com`
 - the credential exists in the macOS login keychain as an internet password for `www.stu.best`
-- production Supabase password authentication passes and returns the trusted `admin` app role
+- production Supabase password authentication passes and returns the trusted `owner` app role
 - the verified password has been copied to the owner's local clipboard for direct paste into the CRM login form
 - no plaintext password was written to the repository, command output, planning files, or GitHub
 
 Activation status:
 
 - project ref `zhcchldvgqrkfqoknewk` is `ACTIVE_HEALTHY` in `ap-northeast-1`
-- current remote state: 11 RLS-protected public CRM tables, three migrations, and the provisioned owner administrator
-- the existing CRM remains available through its persistent continuity adapter while live integration is implemented
+- current remote state includes the original 11 CRM tables plus the complete RLS-protected academic platform schema and twelve total migrations
+- the original CRM remains available inside the unified platform and retains its continuity adapter for interrupted authenticated sessions
 - no unrelated Supabase project will be modified
 - remote schema is now live through three tracked migrations with 11 RLS-protected tables and safe seed data
-- the confirmed owner account has trusted `admin` app metadata; its generated password is stored only in the local macOS keychain for `www.stu.best`
+- the confirmed owner account has trusted `owner` app metadata; its generated password is stored only in the local macOS keychain for `www.stu.best`
 - the one-time bootstrap RPC is no longer executable by authenticated users
 - authenticated live reads and reversible case mutation tests pass; anonymous student access is denied
 - the application now uses Supabase Auth and live persistence with explicit continuity fallback and rollback behavior
 - Vercel Production and Preview have browser-safe Supabase configuration
-- the only remaining Supabase advisor warning is the dashboard-level leaked-password protection toggle; the provisioned owner password is a randomly generated 40-character credential
+- remaining advisor security notices are the two intentional trusted workflow RPCs and the dashboard-level leaked-password-protection toggle
 - PR #10 merged to `main`, issue #9 closed as completed, and the Vercel production deployment is Ready
 - production `/crm` returns HTTP 200 behind Vercel SSO and the production OpenAI endpoint returns structured grounded output
 

@@ -44,9 +44,13 @@ export async function askCrmCopilot(message: string, mode: CopilotMode, student?
   const timeout = window.setTimeout(() => controller.abort(), 30_000)
 
   try {
+    if (!supabase) throw new Error('Supabase is required for Nexus AI.')
+    const { data: sessionData } = await supabase.auth.getSession()
+    const accessToken = sessionData.session?.access_token
+    if (!accessToken) throw new Error('An authenticated session is required for Nexus AI.')
     const response = await fetch('/api/crm-assistant', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
       body: JSON.stringify({
         message,
         mode,

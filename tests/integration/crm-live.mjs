@@ -20,7 +20,7 @@ if (anonymousRows?.length) throw new Error('Anonymous users unexpectedly receive
 const client = createClient(environment.VITE_SUPABASE_URL, environment.VITE_SUPABASE_PUBLISHABLE_KEY, options)
 const { data: auth, error: authError } = await client.auth.signInWithPassword({ email, password })
 if (authError || !auth.session) throw authError || new Error('No authenticated session was issued.')
-if (auth.user.app_metadata.role !== 'admin') throw new Error('The live test account is not an administrator.')
+if (!['owner', 'admin'].includes(auth.user.app_metadata.role)) throw new Error('The live test account is not a platform owner or administrator.')
 
 const tables = ['students', 'cases', 'admission_leads', 'crm_tasks', 'campaigns', 'knowledge_articles']
 const counts = []
@@ -40,4 +40,4 @@ const { error: restoreError } = await client.from('cases').update({ status: orig
 if (restoreError) throw restoreError
 
 await client.auth.signOut()
-console.log(JSON.stringify({ anonymousIsolation: true, authenticatedRole: 'admin', counts, mutationRestored: true }))
+console.log(JSON.stringify({ anonymousIsolation: true, authenticatedRole: auth.user.app_metadata.role, counts, mutationRestored: true }))

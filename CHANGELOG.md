@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- expanded `/crm` into a unified role-aware school operating platform for owner, leadership, administrators, department heads, faculty, advisors, admissions, finance, support, librarians, and students
+- promoted `winsonbaring10@gmail.com` to an immutable single-owner tier with safe role preview, audited role assignment, and synchronized Auth/profile authorization
+- added production departments, programs, terms, courses, sections, rosters, topics, announcements, notifications, schedules, assessments, protected answer keys, attempts, grades, grade-scan jobs, and persistent chat data
+- added a working seeded quiz with transactionally enforced enrollment, attempt limits, protected-answer scoring, feedback, and review controls
+- added role-filtered learning, teaching, assessment, gradebook, schedule, academic-catalog, and people-governance interfaces
+- added authenticated OpenAI multi-turn school chat and vision grade-sheet extraction with structured output, confidence flags, rate limits, privacy-minimized context, and mandatory human review
+- provisioned isolated faculty and student validation identities, linked them to safe SIS seed records, and verified their real production RLS boundaries
+- added API contracts and live owner, CRM, role, quiz, grade-privacy, chatbot, and grade-vision integration tests
+- resolved all Supabase unindexed-foreign-key advisor findings and documented the intentional trusted workflow functions
+- split the public homepage and authenticated school platform into route-specific production bundles
+- enforced grade-item score ceilings and atomic, enrollment-validated approval for human-reviewed AI grade scans
+- locked profile authorization columns against direct authenticated writes and aligned the UI role with fresh trusted Auth metadata
+
 - added a plain-language STU Nexus portal guide covering its audience, workspaces, AI role, example workflows, security boundaries, and current seed-data status
 - verified the production owner credential against Supabase Auth and added a secure local clipboard handoff without exposing plaintext secrets
 - activated the production `stu_edu_ai` Supabase project with three reviewed migrations, 11 RLS-protected CRM tables, explicit Data API grants, operational indexes, knowledge search/vector support, and safe seed records

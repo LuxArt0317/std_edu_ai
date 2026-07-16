@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { verifySupabaseRequest } from '../server/apiAuth.ts'
 
 type ApiRequest = {
   method?: string
@@ -157,6 +158,12 @@ export default async function handler(request: ApiRequest, response: ApiResponse
     return
   }
 
+  const auth = await verifySupabaseRequest(request)
+  if (!auth.ok) {
+    response.status(auth.status).json({ error: auth.message })
+    return
+  }
+
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) {
     response.status(503).json({ error: 'AI service is not configured.' })
@@ -164,7 +171,7 @@ export default async function handler(request: ApiRequest, response: ApiResponse
   }
 
   const safetyIdentifier = createHash('sha256')
-    .update(`${process.env.SAFETY_HASH_SALT || 'stu-nexus'}:${clientAddress}`)
+    .update(`${process.env.SAFETY_HASH_SALT || 'stu-nexus'}:${auth.user.id}`)
     .digest('hex')
 
   const controller = new AbortController()

@@ -2,7 +2,8 @@
 
 The React application lives in `App.tsx`, with global styling in `index.css` and the full responsive STU homepage treatment in `App.css`.
 
-- `crm/` contains the `/crm` application, production-shaped data contracts, persistent continuity adapter, and de-identified AI client.
+- `crm/` contains authentication plus the original Student 360, success, admissions, case, campaign, knowledge, and analytics workspace.
+- `platform/` contains the unified role-aware owner, administrator, teacher, specialist, and student school operating experience.
 - `data/` contains official homepage content and the research knowledge base.
 - `services/` contains local information-retrieval and AI-assistant behavior.
 - `utils/` contains optional external-service clients with deployment-safe fallbacks.

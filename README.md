@@ -3,9 +3,9 @@
 This repository contains two connected Shu-Te University experiences:
 
 - `/` is the responsive reconstruction of the institutional `stu.edu.tw` homepage, with its research-driven campus assistant preserved as an additive overlay.
-- `/crm` is STU Nexus, a premium school relationship platform spanning Student 360, early-support intelligence, admissions, service cases, campaigns, institutional knowledge, analytics, and a privacy-conscious OpenAI copilot.
+- `/crm` is STU Nexus, a role-aware school operating platform spanning academics, teaching, learning content, quizzes, gradebooks, AI-assisted grade-sheet review, schedules, people and role governance, Student 360, admissions, service cases, analytics, and a persistent OpenAI assistant.
 
-The CRM is backed by production Supabase Auth and Postgres with role-based RLS. Its browser cache is used only for explicit continuity recovery when the live service is interrupted.
+STU Nexus is backed by production Supabase Auth and Postgres. Owner, leadership, administrative, faculty, specialist-staff, and student access is enforced by database row-level security; the interface adapts to the same trusted role. The protected owner is `winsonbaring10@gmail.com`.
 
 Primary references:
 
@@ -14,5 +14,7 @@ Primary references:
 - [SETUP.md](./SETUP.md)
 - [PROJECT.md](./PROJECT.md)
 - [STU Nexus portal guide](./src/crm/PORTAL_GUIDE.md)
+- [Role and permission matrix](./src/platform/ROLE_MATRIX.md)
+- [Unified platform architecture](./src/platform/README.md)
 - [src/crm/README.md](./src/crm/README.md)
 - [supabase/README.md](./supabase/README.md)

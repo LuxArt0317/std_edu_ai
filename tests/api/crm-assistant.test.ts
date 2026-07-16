@@ -10,14 +10,20 @@ type CapturedResponse = {
 
 const originalFetch = globalThis.fetch
 const originalApiKey = process.env.OPENAI_API_KEY
+const originalSupabaseUrl = process.env.VITE_SUPABASE_URL
+const originalSupabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY
 
 after(() => {
   globalThis.fetch = originalFetch
   if (originalApiKey === undefined) delete process.env.OPENAI_API_KEY
   else process.env.OPENAI_API_KEY = originalApiKey
+  if (originalSupabaseUrl === undefined) delete process.env.VITE_SUPABASE_URL
+  else process.env.VITE_SUPABASE_URL = originalSupabaseUrl
+  if (originalSupabaseKey === undefined) delete process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+  else process.env.VITE_SUPABASE_PUBLISHABLE_KEY = originalSupabaseKey
 })
 
-async function invoke(method: string, body: unknown, address: string) {
+async function invoke(method: string, body: unknown, address: string, authenticated = false) {
   const captured: CapturedResponse = { statusCode: 200, body: null, headers: {} }
   const response = {
     status(code: number) {
@@ -32,7 +38,7 @@ async function invoke(method: string, body: unknown, address: string) {
     },
   }
 
-  await handler({ method, body, headers: { 'x-forwarded-for': address } }, response)
+  await handler({ method, body, headers: { 'x-forwarded-for': address, ...(authenticated ? { authorization: 'Bearer test-session-token-with-sufficient-length' } : {}) } }, response)
   return captured
 }
 
@@ -49,7 +55,12 @@ test('validates assistant input before contacting OpenAI', async () => {
 
 test('returns validated structured OpenAI output', async () => {
   process.env.OPENAI_API_KEY = 'test-key-never-sent-to-a-real-service'
-  globalThis.fetch = async (_input, init) => {
+  process.env.VITE_SUPABASE_URL = 'https://test.supabase.co'
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_test'
+  globalThis.fetch = async (input, init) => {
+    if (String(input).includes('/auth/v1/user')) {
+      return new Response(JSON.stringify({ id: 'user-1', email: 'owner@example.test', app_metadata: { role: 'owner', platform_owner: true } }), { status: 200 })
+    }
     assert.equal(init?.method, 'POST')
     const headers = init?.headers as Record<string, string> | undefined
     assert.match(String(headers?.Authorization), /^Bearer test-key/)
@@ -68,7 +79,7 @@ test('returns validated structured OpenAI output', async () => {
     mode: 'brief',
     message: 'Create a staff action brief',
     context: { studentRef: 'AB', riskScore: 72, email: 'student@example.com' },
-  }, 'test-success')
+  }, 'test-success', true)
 
   assert.equal(response.statusCode, 200)
   assert.deepEqual(response.body, {
@@ -78,4 +89,3 @@ test('returns validated structured OpenAI output', async () => {
     source: 'openai',
   })
 })
-
