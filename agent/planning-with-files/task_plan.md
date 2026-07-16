@@ -19,6 +19,8 @@
 - server-only OpenAI endpoint verified against the configured live key with structured, cited output
 - activation-ready Supabase migration completed with RLS, indexes, search/vector support, audit controls, and demo seeds
 - lint, TypeScript production build, API tests, and `/crm` HTTP smoke checks pass
+- PR #6 passed Vercel and automated review checks, merged to `main`, and closed issue #5
+- the main-branch Vercel production deployment completed successfully behind configured SSO protection
 
 ## Phase 2: Pixel-faithful STU homepage clone [Issue #3]
 

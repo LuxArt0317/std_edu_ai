@@ -12,6 +12,8 @@ Working status:
 - the configured OpenAI key and current model returned a successful structured response in live verification
 - the Supabase migration is activation-ready with normalized tables, RLS, indexes, full-text/vector search, AI audit controls, and demo seeds
 - lint, full TypeScript/Vite build, 3 API contract tests, and `/crm` HTTP smoke checks pass
+- PR #6 merged to `main`, GitHub issue #5 closed as completed, and the Vercel production deployment passed
+- production remains protected by the project's configured Vercel SSO; anonymous CRM requests redirect to authentication and anonymous API requests return 401
 
 - pixel-faithful homepage reconstruction is tracked in GitHub issue #3
 - the live Elementor page structure, styles, content, links, and assets have been extracted using terminal-only inspection

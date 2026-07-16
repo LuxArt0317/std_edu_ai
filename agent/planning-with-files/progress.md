@@ -15,6 +15,9 @@
 - added and passed three AI endpoint contract tests
 - passed lint, full TypeScript/Vite production build, and HTTP 200 smoke checks for `/crm` and its built assets
 - synchronized README, PROJECT, SETUP, CHANGELOG, findings, plan, and current-state documentation
+- published the implementation as PR #6, passed Vercel and automated review checks, and merged it to `main`
+- confirmed GitHub issue #5 closed as completed and the main-branch Vercel production deployment succeeded
+- confirmed production `/crm` redirects anonymous traffic to the configured Vercel SSO boundary
 
 2026-07-16 — Pixel-faithful homepage clone
 
