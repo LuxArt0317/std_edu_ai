@@ -12,3 +12,6 @@
 - synchronized operator, role, platform, setup, architecture, changelog, and Supabase documentation
 - closed final review gaps by binding displayed roles to fresh trusted Auth metadata, denying direct role-column writes, and verifying transactional grade-scan rollback/approval
 - traced the first Vercel runtime probe to TypeScript-extension helper imports and corrected all API functions to use compiled Node ESM paths
+- published the corrected Node ESM helper with a strict declaration, passed `vercel build --prod`, and deployed commit `d008ea0`
+- verified the custom domain points to Ready deployment `dpl_8pBNQfw983zoMM1RubyV6XYvpRtV`; root, CRM, both lazy bundles, authenticated OpenAI chat, 401 auth boundary, and student 403 grade-scan boundary pass
+- posted the final production evidence to GitHub issue #14 and closed it as completed

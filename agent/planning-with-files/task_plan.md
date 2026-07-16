@@ -44,7 +44,7 @@
 - nine production migrations applied; owner protection, role hierarchy, academics, teaching, learning, quizzes, bounded atomic grade scans, schedules, chat, audits, rosters, authorization-column locks, and indexes are live
 - unified role-aware interface and owner preview implemented; the original CRM is available from authorized workspaces
 - owner, real faculty, real student, cross-role RLS, deterministic quiz, grade privacy, authenticated chatbot, and authenticated vision extraction tests pass
-- documentation synchronized; final build, commit, push, GitHub status, and Vercel production verification remain
+- documentation synchronized; commits `a1701e3` and `d008ea0` published; issue #14 closed completed; Vercel production and authenticated deployed API checks passed
 
 ## Phase 6: CRM portal guide [Issue #13]
 

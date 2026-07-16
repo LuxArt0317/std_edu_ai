@@ -1,6 +1,6 @@
 # Current State
 
-The all-in-one platform expansion is implemented under GitHub issue #14 and is in final verification/deployment. One authenticated STU Nexus application now enforces owner, leadership, administrative, teacher, specialist-staff, and student boundaries in Supabase RLS. `winsonbaring10@gmail.com` is the protected platform owner and has a safe role-preview capability.
+The all-in-one platform expansion is complete under closed GitHub issue #14. One authenticated STU Nexus application now enforces owner, leadership, administrative, teacher, specialist-staff, and student boundaries in Supabase RLS. `winsonbaring10@gmail.com` is the protected platform owner and has a safe role-preview capability.
 
 Current platform status:
 
@@ -9,9 +9,11 @@ Current platform status:
 - owner demotion/deletion and second-owner assignment are blocked at the database layer
 - faculty and student validation identities are provisioned and linked to safe seed rosters; their credentials remain only in the local macOS keychain
 - owner, CRM, faculty, student, RLS, quiz, grade privacy, real OpenAI chatbot, and real OpenAI vision tests pass
-- API contracts, lint, build, and final protected deployment checks are the remaining release gate
+- eight API contracts, lint, the route-split production build, clean Vercel function compilation, and protected deployment checks pass
 - Supabase performance advisors have no structural warnings; unused-index notices are informational on the new low-volume schema
 - two security-definer notices are intentional for internally authorized atomic workflows; leaked-password protection remains a dashboard-level configuration notice
+- commits `a1701e3` and `d008ea0` are published on `main`; production deployment `dpl_8pBNQfw983zoMM1RubyV6XYvpRtV` is Ready on `www.stu.best`
+- deployed `/`, `/crm`, public/CRM bundles, unauthenticated 401, authenticated faculty OpenAI chat, and student grade-scan 403 boundaries are verified
 
 The plain-language STU Nexus portal explanation is available at `src/crm/PORTAL_GUIDE.md` and tracked by GitHub issue #13. It documents the staff audience, operational workspaces, human-reviewed AI assistance, example workflows, and the distinction between production infrastructure and demonstration seed records.
 
