@@ -83,4 +83,6 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 
 - Production Supabase now has the rich-content page schema and managed instructional-image Storage/RLS.
 - Application implementation includes multi-page Tiptap lessons, image upload, rich student reading, knowledge CRUD, and live CRM metrics.
-- Remaining: run final contracts/build, live RLS CRUD verification, GitHub/Vercel release, and production smoke test.
+- All 29 contracts pass, including reversible live production checks for teacher authoring, student reading, and student write denial.
+- PR #43 passed CodeRabbit and Vercel checks, merged to `main`, and deployed Ready. `https://www.stu.best/crm` returns HTTP 200 and serves the verified rich-content CRM bundle.
+- Issue #42 is closed; no release work remains for this phase.

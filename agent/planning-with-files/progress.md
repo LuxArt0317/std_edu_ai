@@ -157,3 +157,5 @@
 - Added multi-page Tiptap lesson authoring with direct managed image upload and a textbook-style student reader.
 - Added knowledge source create/edit/delete with rich content, plus module/material/page update and delete services.
 - Removed hardcoded CRM identity, date, notification counts, and knowledge-health percentage.
+- Passed all 29 contracts, lint, TypeScript/Vite production build, and reversible live Supabase authorization/CRUD checks.
+- PR #43 passed CodeRabbit and Vercel, merged to `main`, and deployed Ready; `www.stu.best/crm` returns HTTP 200 with the expected multi-page, knowledge-publisher, and managed-media bundle markers.
