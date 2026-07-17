@@ -49,6 +49,25 @@ const { error: cleanupError } = await owner.from('schedule_events').delete().eq(
 if (cleanupError) throw cleanupError
 if (conflictValidationError) throw conflictValidationError
 
+const editableTargets = [
+  ['departments', 'description'],
+  ['academic_programs', 'description'],
+  ['academic_terms', 'name'],
+  ['courses', 'description'],
+  ['course_sections', 'room'],
+  ['students', 'phone'],
+  ['profiles', 'job_title'],
+]
+for (const [table, column] of editableTargets) {
+  const original = await owner.from(table).select(`id,${column}`).limit(1).single()
+  if (original.error) throw original.error
+  const prior = original.data[column]
+  const edited = await owner.from(table).update({ [column]: `${prior || ''} ${marker}`.trim() }).eq('id', original.data.id).select(column).single()
+  if (edited.error || !String(edited.data[column]).includes(marker)) throw edited.error || new Error(`${table} editing failed.`)
+  const restored = await owner.from(table).update({ [column]: prior }).eq('id', original.data.id)
+  if (restored.error) throw restored.error
+}
+
 const student = createClient(environment.VITE_SUPABASE_URL, environment.VITE_SUPABASE_PUBLISHABLE_KEY, options)
 const studentEmail = 'winsonbaring10+student@gmail.com'
 const { data: studentAuth, error: studentAuthError } = await student.auth.signInWithPassword({ email: studentEmail, password: password(studentEmail) })
@@ -58,4 +77,4 @@ const denial = await fetch(`${environment.VITE_SUPABASE_URL}/functions/v1/manage
 })
 if (denial.status !== 403) throw new Error(`Student provisioning authorization returned ${denial.status}, expected 403.`)
 
-console.log(JSON.stringify({ enrollmentWorkflow: 'verified-and-restored', roomConflict: 'rejected', studentProvisioning: 'denied-for-student', cleanup: true }))
+console.log(JSON.stringify({ enrollmentWorkflow: 'verified-and-restored', roomConflict: 'rejected', academicEditing: editableTargets.map(([table]) => table), studentProvisioning: 'denied-for-student', cleanup: true }))

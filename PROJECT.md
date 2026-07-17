@@ -17,10 +17,11 @@ It demonstrates:
 - one confirmed production acceptance identity for every canonical role, with owner-only Auth provisioning and Keychain-only generated credentials
 - a preserved role-specific onboarding system for all 14 roles that is currently disconnected from the runtime and disabled for every account
 - departments, programs, terms, courses, sections, rosters, topics, assessments, protected answer keys, attempts, transactional scoring, gradebooks, announcements, notifications, and calendars
+- visible pre-filled lifecycle editors for academic structure, students, teacher/staff profiles, schedules, rich multi-page materials, quizzes/exams/assignments/projects, attendance, announcements, CRM cases, prospects, campaigns, tasks, and knowledge
 - AI-assisted grade-sheet image extraction with confidence signals and mandatory teacher review before a draft grade can be saved or published
 - durable, authenticated, multi-turn school conversations grounded in the signed-in user's visible courses, topics, schedule, and role
 - the original Student 360, early-support, admissions, task, case, campaign, knowledge, and analytics CRM available inside the unified platform
 - deployed Supabase migrations with RLS on every exposed school table, trusted workflow functions, covering indexes, role audits, and safe production seed records
 - automated API contracts plus live owner-protection, cross-role RLS, onboarding evidence, quiz, grade-privacy, CRM, and OpenAI vision/chat validation
 
-For setup and run instructions, see [SETUP.md](./SETUP.md). For detailed capabilities and authorization, see [src/crm/PORTAL_GUIDE.md](./src/crm/PORTAL_GUIDE.md) and [src/platform/ROLE_MATRIX.md](./src/platform/ROLE_MATRIX.md).
+For setup and run instructions, see [SETUP.md](./SETUP.md). The authoritative scope and acceptance contract is [PRODUCT_REQUIREMENTS.md](./PRODUCT_REQUIREMENTS.md). For detailed capabilities and authorization, see [src/crm/PORTAL_GUIDE.md](./src/crm/PORTAL_GUIDE.md) and [src/platform/ROLE_MATRIX.md](./src/platform/ROLE_MATRIX.md).

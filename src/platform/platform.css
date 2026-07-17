@@ -1,3 +1,5 @@
+.lms-record-actions,.crm-inline-actions{display:flex;flex-wrap:wrap;gap:.55rem;align-items:center}.academic-lifecycle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin-top:1rem}.academic-lifecycle-grid>article>div:not(:first-child){display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.85rem 1rem;border-top:1px solid #dce9e6}.academic-lifecycle-grid small{display:block;margin-top:.2rem}@media(max-width:760px){.academic-lifecycle-grid{grid-template-columns:1fr}}
+
 :root {
   --school-ink: #152d2a;
   --school-muted: #657d79;

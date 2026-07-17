@@ -1,3 +1,5 @@
+.crm-lifecycle-toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.2rem;margin-bottom:1rem;border:1px solid var(--nexus-line);border-radius:18px;background:var(--nexus-surface)}.crm-lifecycle-toolbar span{color:var(--nexus-teal);font-size:.72rem;font-weight:800;letter-spacing:.12em}.crm-lifecycle-toolbar h3{margin:.2rem 0 0}.crm-inline-actions{display:flex;flex-wrap:wrap;gap:.45rem}.crm-record-modal{width:min(980px,calc(100vw - 2rem))}.crm-record-modal .tiptap-editor{min-height:220px}@media(max-width:680px){.crm-lifecycle-toolbar{align-items:stretch;flex-direction:column}}
+
 :root {
   --nexus-bg: #f4f7f6;
   --nexus-surface: #fff;

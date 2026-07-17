@@ -59,12 +59,14 @@ Production services:
 No implementation or release work remains for issue #18. The platform is production-ready for users to sign in at `/crm` and begin the role-specific journey.
 Issue #30 is complete. Academic Office supports student account/SIS creation, departments, programs, terms, subjects, sections, capacity-aware rosters, and conflict-safe schedule events. PR #31 merged as `f561155`; the production Supabase migration and JWT-protected Edge Function are active; Vercel production is Ready. All 22 contracts, all-role account checks, owner/faculty/student RLS tests, reversible enrollment, room-conflict rejection, lint, build, and released `/` and `/crm` diagnostics pass.
 Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. The integrated LMS schema/private Storage, teacher course studio, and student learning path are live. All 26 contracts, lint, guarded/standard builds, advisor review, released route diagnostics, and the reversible real-faculty/student LMS lifecycle pass.
+
 # Current release: Issue #36
 
 - Branch `agent/instant-navigation` now contains instant authenticated portal restoration with silent refresh, confirmation-gated Nexus AI LMS actions, Tiptap lesson authoring, rich learner reading, and the Learner Support rename.
 - Local verification passes: 26 tests, oxlint, TypeScript, Vite production build, and built-asset validation.
 - PR #37 passed GitHub/Vercel review checks, merged to `main`, and deployed Ready to `https://www.stu.best/crm`.
 - Production returns HTTP 200; the released lazy bundle contains the Learner Support, AI confirmation, and Tiptap editor contracts; the assistant endpoint correctly rejects unauthenticated requests with HTTP 401.
+
 # Current release: Issue #38
 
 - Production CRUD failure isolated to incomplete CORS headers on browser-invoked Supabase Edge Functions.
@@ -72,6 +74,7 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - Production preflight, authenticated owner invocation/validation, role denial, reversible enrollment/schedule operations, and the complete reversible LMS workflow pass.
 - PR #39 passed GitHub/Vercel checks, merged to `main`, and deployed Ready. `https://www.stu.best/crm` returns HTTP 200 with the new production entry bundle.
 - Issue #38 is closed; no unresolved CRUD failure was found in the reversible Academic Office and LMS workflow audits.
+
 # Current release: Issue #40
 
 - School OS and Learner Support now remain mounted; navigation only changes visibility, so returning never recreates either workspace.
@@ -79,6 +82,7 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - Verification passes: 28 tests, lint, TypeScript/Vite production build, and built-asset validation.
 - PR #41 passed GitHub/Vercel checks, merged to `main`, and deployed Ready. The custom production domain serves the new entry/CRM bundle and `/crm` returns HTTP 200.
 - Issue #40 is closed; School OS ↔ Learner Support switching no longer causes workspace remounting or repeat loading.
+
 # Current release: Issue #42
 
 - Production Supabase now has the rich-content page schema and managed instructional-image Storage/RLS.
@@ -86,3 +90,11 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - All 29 contracts pass, including reversible live production checks for teacher authoring, student reading, and student write denial.
 - PR #43 passed CodeRabbit and Vercel checks, merged to `main`, and deployed Ready. `https://www.stu.best/crm` returns HTTP 200 and serves the verified rich-content CRM bundle.
 - Issue #42 is closed; no release work remains for this phase.
+
+# Current release: Issue #44
+
+- `PRODUCT_REQUIREMENTS.md` is the authoritative role, lifecycle, rich-content, AI, security, UX, and production acceptance specification.
+- Visible pre-filled editors now cover academic structure, students, teacher/staff profiles, schedules, modules, multi-page materials, assessments/questions/choices/keys, grades, attendance, announcements, CRM students, cases, prospects, campaigns, tasks, signals, interactions, and knowledge.
+- Production Supabase has atomic pre-attempt assessment replacement, complete authorized CRM deletion grants, and managed institutional rich-image Storage.
+- All 32 contracts, lint (one existing hook advisory), TypeScript/Vite production build, reversible LMS/academic/CRM live workflows, and cleanup pass.
+- Remaining: reviewed GitHub PR, Vercel deployment, and custom-domain feature smoke verification.

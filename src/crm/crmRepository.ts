@@ -219,8 +219,11 @@ async function loadRemoteData(): Promise<CrmDatabase> {
     const signals = signalRows
       .filter((signal) => signal.student_id === row.id)
       .map((signal) => ({
+        id: signal.id,
         label: signal.label,
         detail: signal.detail,
+        severity: signal.severity,
+        active: !signal.resolved_at,
         tone:
           signal.severity === "positive"
             ? ("positive" as const)
@@ -231,9 +234,11 @@ async function loadRemoteData(): Promise<CrmDatabase> {
     const timeline = interactionRows
       .filter((interaction) => interaction.student_id === row.id)
       .map((interaction) => ({
+        id: interaction.id,
         date: shortDate(interaction.occurred_at),
         title: interaction.subject,
         detail: interaction.summary,
+        interactionType: interaction.interaction_type,
         type:
           interaction.interaction_type === "campaign" ||
           interaction.interaction_type === "email" ||
@@ -269,9 +274,11 @@ async function loadRemoteData(): Promise<CrmDatabase> {
         ? timeline
         : [
             {
+              id: `profile-${row.id}`,
               date: relativeTime(row.created_at),
               title: "Student profile activated",
               detail: "The student record is available in STU Nexus.",
+              interactionType: "system",
               type: "system",
             },
           ],
@@ -290,6 +297,8 @@ async function loadRemoteData(): Promise<CrmDatabase> {
       : "Unassigned",
     updatedAt: relativeTime(row.updated_at),
     dueAt: shortDate(row.due_at),
+    dueAtIso: row.due_at ?? "",
+    description: row.description,
   }));
 
   const leads: AdmissionLead[] = leadRows.map((row) => ({
@@ -304,6 +313,8 @@ async function loadRemoteData(): Promise<CrmDatabase> {
       : "Unassigned",
     lastActivity: relativeTime(row.last_activity_at),
     nextStep: row.next_step || "Review applicant record",
+    email: row.email || "",
+    phone: row.phone || "",
   }));
 
   const campaigns: Campaign[] = campaignRows.map((row) => {
@@ -331,6 +342,8 @@ async function loadRemoteData(): Promise<CrmDatabase> {
         ? Math.round((engaged / recipients.length) * 100)
         : 0,
       scheduledFor: shortDate(row.scheduled_for),
+      scheduledForIso: row.scheduled_for ?? "",
+      message: row.message_template,
     };
   });
 
@@ -343,8 +356,11 @@ async function loadRemoteData(): Promise<CrmDatabase> {
       "CRM workspace",
     owner: profiles.get(row.assigned_to) || "Assigned staff",
     dueAt: shortDate(row.due_at),
+    dueAtIso: row.due_at ?? "",
     priority: taskPriority(row.priority),
     completed: Boolean(row.completed_at),
+    studentId: row.student_id || "",
+    caseId: row.case_id || "",
   }));
 
   const knowledge: KnowledgeArticle[] = knowledgeRows.map((row) => ({
@@ -538,6 +554,273 @@ export async function deleteKnowledgeArticle(id: string) {
     .from("knowledge_articles")
     .delete()
     .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+function requireCrmClient() {
+  if (!supabase) throw new Error("Supabase is required for CRM changes.");
+  return supabase;
+}
+
+export async function uploadInstitutionalImage(file: File) {
+  const client = requireCrmClient();
+  if (
+    !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)
+  )
+    throw new Error("Choose a JPEG, PNG, WebP, or GIF image.");
+  if (file.size > 8_388_608) throw new Error("Images must be 8 MB or smaller.");
+  const { data: user } = await client.auth.getUser();
+  if (!user.user) throw new Error("Authentication is required.");
+  const extension =
+    file.name
+      .split(".")
+      .pop()
+      ?.replace(/[^a-zA-Z0-9]/g, "")
+      .slice(0, 8) || "img";
+  const path = `${user.user.id}/${crypto.randomUUID()}.${extension}`;
+  const { error } = await client.storage
+    .from("institutional-media")
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (error) throw new Error(error.message);
+  return client.storage.from("institutional-media").getPublicUrl(path).data
+    .publicUrl;
+}
+
+export async function saveCrmStudent(
+  id: string,
+  input: {
+    name: string;
+    studentNumber: string;
+    program: string;
+    yearLevel: string;
+    email: string;
+    phone: string;
+    gpa: number;
+    attendance: number;
+    engagement: number;
+    balance: number;
+    riskScore: number;
+    riskLevel: RiskLevel;
+    nextAction: string;
+    tags: string[];
+  },
+) {
+  const client = requireCrmClient();
+  const { error } = await client
+    .from("students")
+    .update({
+      full_name: input.name.trim().slice(0, 120),
+      student_number: input.studentNumber.trim().slice(0, 32),
+      program: input.program.trim().slice(0, 160),
+      year_level: input.yearLevel.trim().slice(0, 40),
+      email: input.email.trim().toLowerCase().slice(0, 254) || null,
+      phone: input.phone.trim().slice(0, 40) || null,
+      gpa: input.gpa,
+      attendance_percent: input.attendance,
+      engagement_score: input.engagement,
+      outstanding_balance: input.balance,
+      risk_score: input.riskScore,
+      risk_level: input.riskLevel,
+      next_best_action: input.nextAction.trim().slice(0, 1000),
+      tags: input.tags,
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function saveCrmCase(
+  id: string | null,
+  input: {
+    studentId: string;
+    title: string;
+    description: string;
+    category: string;
+    priority: SupportCase["priority"];
+    status: CaseStatus;
+    dueAt: string;
+  },
+) {
+  const client = requireCrmClient();
+  const { data: user } = await client.auth.getUser();
+  if (!user.user) throw new Error("Authentication is required.");
+  const values = {
+    student_id: input.studentId,
+    title: input.title.trim().slice(0, 180),
+    description: input.description.trim().slice(0, 10000),
+    category: input.category.trim().slice(0, 80),
+    priority: input.priority,
+    status: input.status,
+    due_at: input.dueAt || null,
+    owner_id: user.user.id,
+    resolved_at: input.status === "resolved" ? new Date().toISOString() : null,
+  };
+  const result = id
+    ? await client.from("cases").update(values).eq("id", id)
+    : await client.from("cases").insert(values);
+  if (result.error) throw new Error(result.error.message);
+}
+
+export async function deleteCrmCase(id: string) {
+  const client = requireCrmClient();
+  const { error } = await client.from("cases").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function saveAdmissionLead(
+  id: string | null,
+  input: {
+    name: string;
+    email: string;
+    phone: string;
+    program: string;
+    source: string;
+    stage: LeadStage;
+    probability: number;
+    nextStep: string;
+  },
+) {
+  const client = requireCrmClient();
+  const { data: user } = await client.auth.getUser();
+  const values = {
+    full_name: input.name.trim().slice(0, 120),
+    email: input.email.trim().toLowerCase().slice(0, 254) || null,
+    phone: input.phone.trim().slice(0, 40) || null,
+    program_interest: input.program.trim().slice(0, 160),
+    source: input.source.trim().slice(0, 80),
+    stage: input.stage,
+    probability: input.probability,
+    next_step: input.nextStep.trim().slice(0, 1000),
+    owner_id: user.user?.id,
+    last_activity_at: new Date().toISOString(),
+  };
+  const result = id
+    ? await client.from("admission_leads").update(values).eq("id", id)
+    : await client.from("admission_leads").insert(values);
+  if (result.error) throw new Error(result.error.message);
+}
+
+export async function deleteAdmissionLead(id: string) {
+  const client = requireCrmClient();
+  const { error } = await client.from("admission_leads").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function saveCrmTask(
+  id: string | null,
+  input: {
+    title: string;
+    studentId: string;
+    caseId: string;
+    dueAt: string;
+    priority: CrmTask["priority"];
+    completed: boolean;
+  },
+) {
+  const client = requireCrmClient();
+  const { data: user } = await client.auth.getUser();
+  if (!user.user) throw new Error("Authentication is required.");
+  const values = {
+    title: input.title.trim().slice(0, 180),
+    student_id: input.studentId || null,
+    case_id: input.caseId || null,
+    due_at: input.dueAt || null,
+    priority: input.priority,
+    assigned_to: user.user.id,
+    completed_at: input.completed ? new Date().toISOString() : null,
+  };
+  const result = id
+    ? await client.from("crm_tasks").update(values).eq("id", id)
+    : await client.from("crm_tasks").insert(values);
+  if (result.error) throw new Error(result.error.message);
+}
+
+export async function deleteCrmTask(id: string) {
+  const client = requireCrmClient();
+  const { error } = await client.from("crm_tasks").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function saveCampaign(
+  id: string | null,
+  input: {
+    name: string;
+    audience: string;
+    channel: Campaign["channel"];
+    status: Campaign["status"];
+    scheduledFor: string;
+    message: string;
+  },
+) {
+  const client = requireCrmClient();
+  const { data: user } = await client.auth.getUser();
+  const channel =
+    input.channel === "Multi-channel"
+      ? "multichannel"
+      : input.channel.toLowerCase();
+  const values = {
+    name: input.name.trim().slice(0, 180),
+    audience_definition: { segment: input.audience },
+    channel,
+    status: input.status,
+    scheduled_for: input.scheduledFor || null,
+    message_template: input.message.trim().slice(0, 150000),
+    created_by: user.user?.id,
+  };
+  const result = id
+    ? await client.from("campaigns").update(values).eq("id", id)
+    : await client.from("campaigns").insert(values);
+  if (result.error) throw new Error(result.error.message);
+}
+
+export async function saveStudentSignal(
+  id: string | null,
+  input: {
+    studentId: string;
+    label: string;
+    detail: string;
+    severity: string;
+    signalType: string;
+    active: boolean;
+  },
+) {
+  const client = requireCrmClient();
+  const values = {
+    student_id: input.studentId,
+    label: input.label.trim().slice(0, 120),
+    detail: input.detail.trim().slice(0, 2000),
+    severity: input.severity,
+    signal_type: input.signalType,
+    source_system: "staff",
+    resolved_at: input.active ? null : new Date().toISOString(),
+  };
+  const result = id
+    ? await client.from("student_signals").update(values).eq("id", id)
+    : await client.from("student_signals").insert(values);
+  if (result.error) throw new Error(result.error.message);
+}
+
+export async function logStudentInteraction(input: {
+  studentId: string;
+  subject: string;
+  summary: string;
+  interactionType: string;
+}) {
+  const client = requireCrmClient();
+  const { data: user } = await client.auth.getUser();
+  if (!user.user) throw new Error("Authentication is required.");
+  const { error } = await client.from("interactions").insert({
+    student_id: input.studentId,
+    actor_id: user.user.id,
+    subject: input.subject.trim().slice(0, 180),
+    summary: input.summary.trim().slice(0, 10000),
+    interaction_type: input.interactionType,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteCampaign(id: string) {
+  const client = requireCrmClient();
+  const { error } = await client.from("campaigns").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
 

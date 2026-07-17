@@ -13,6 +13,24 @@ export type CaseStatus = "open" | "in_progress" | "waiting" | "resolved";
 export type LeadStage =
   "inquiry" | "engaged" | "application" | "review" | "admitted";
 
+export interface StudentSignal {
+  id?: string;
+  label: string;
+  detail: string;
+  severity?: string;
+  active?: boolean;
+  tone: "negative" | "warning" | "positive";
+}
+
+export interface StudentInteraction {
+  id?: string;
+  date: string;
+  title: string;
+  detail: string;
+  interactionType?: string;
+  type: "case" | "message" | "academic" | "system";
+}
+
 export interface Student {
   id: string;
   studentNumber: string;
@@ -32,17 +50,8 @@ export interface Student {
   tags: string[];
   nextAction: string;
   lastContact: string;
-  signals: Array<{
-    label: string;
-    detail: string;
-    tone: "negative" | "warning" | "positive";
-  }>;
-  timeline: Array<{
-    date: string;
-    title: string;
-    detail: string;
-    type: "case" | "message" | "academic" | "system";
-  }>;
+  signals: StudentSignal[];
+  timeline: StudentInteraction[];
 }
 
 export interface SupportCase {
@@ -55,6 +64,8 @@ export interface SupportCase {
   owner: string;
   updatedAt: string;
   dueAt: string;
+  dueAtIso?: string;
+  description?: string;
 }
 
 export interface AdmissionLead {
@@ -67,6 +78,8 @@ export interface AdmissionLead {
   owner: string;
   lastActivity: string;
   nextStep: string;
+  email?: string;
+  phone?: string;
 }
 
 export interface Campaign {
@@ -78,6 +91,8 @@ export interface Campaign {
   reach: number;
   engagement: number;
   scheduledFor: string;
+  scheduledForIso?: string;
+  message?: string;
 }
 
 export interface CrmTask {
@@ -86,8 +101,11 @@ export interface CrmTask {
   linkedTo: string;
   owner: string;
   dueAt: string;
+  dueAtIso?: string;
   priority: "high" | "normal" | "low";
   completed: boolean;
+  studentId?: string;
+  caseId?: string;
 }
 
 export interface KnowledgeArticle {

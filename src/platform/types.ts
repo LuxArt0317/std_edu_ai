@@ -148,6 +148,7 @@ export type AssessmentQuestion = {
   position: number;
   explanation: string;
   options: AssessmentOption[];
+  correctOption: number | null;
 };
 
 export type SchoolAssessment = {
@@ -206,6 +207,7 @@ export type ScheduleEvent = {
 
 export type Announcement = {
   id: string;
+  sectionId: string | null;
   title: string;
   body: string;
   priority: string;
@@ -220,6 +222,10 @@ export type PlatformStudent = {
   program: string;
   yearLevel: string;
   email: string | null;
+  fullName: string;
+  preferredName: string;
+  phone: string;
+  advisorId: string | null;
 };
 
 export type AcademicTerm = {

@@ -219,6 +219,17 @@ try {
   });
   if (quiz.error) throw quiz.error;
   quizId = quiz.data;
+  const updatedQuiz = await faculty.rpc("update_lms_assessment", {
+    p_assessment_id: quizId,
+    p_title: `${marker} edited quiz`,
+    p_instructions: "<p>Edited rich instructions.</p>",
+    p_type: "quiz",
+    p_due_at: null,
+    p_max_score: 3,
+    p_publish: true,
+    p_questions: [{ prompt: "Which answer was edited?", points: 3, options: ["Incorrect", "Edited answer"], correctOption: 2, explanation: "The second answer is correct." }],
+  });
+  if (updatedQuiz.error) throw updatedQuiz.error;
   const question = await student
     .from("assessment_questions")
     .select("id")
@@ -240,10 +251,15 @@ try {
     throw keys.error || new Error("Protected answer key leaked to student.");
   const result = await student.rpc("submit_assessment", {
     p_assessment_id: quizId,
-    p_answers: [{ questionId: question.data.id, optionId: options.data[0].id }],
+    p_answers: [{ questionId: question.data.id, optionId: options.data[1].id }],
   });
-  if (result.error || Number(result.data?.[0]?.score) !== 2)
+  if (result.error || Number(result.data?.[0]?.score) !== 3)
     throw result.error || new Error("Built quiz did not score correctly.");
+  const unsafeEdit = await faculty.rpc("update_lms_assessment", {
+    p_assessment_id: quizId, p_title: "Unsafe edit", p_instructions: "", p_type: "quiz", p_due_at: null, p_max_score: 1, p_publish: true,
+    p_questions: [{ prompt: "Changed after attempt", points: 1, options: ["A", "B"], correctOption: 1 }],
+  });
+  if (!unsafeEdit.error) throw new Error("Assessment questions changed after an attempt existed.");
   const sessionResult = await faculty
     .from("attendance_sessions")
     .insert({
@@ -298,6 +314,8 @@ console.log(
     progress: true,
     assignmentGrading: true,
     quizBuilder: true,
+    quizEditing: true,
+    attemptedQuizLocked: true,
     answerKeysProtected: true,
     scoreCeiling: true,
     attendance: true,

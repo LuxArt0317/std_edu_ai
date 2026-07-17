@@ -1,5 +1,34 @@
 # Task Plan
 
+## Phase 44: Complete lifecycle UX and authoritative product specification [Issue #44]
+
+### Product contract
+
+- [x] publish the authoritative PRD for scope, roles, permissions, entity lifecycles, UX states, rich content, AI actions, security, observability, and release criteria
+- [x] maintain a visible CRUD matrix distinguishing editable records, controlled state transitions, append-only evidence, and derived read models
+- [x] define consistent create/detail/edit/archive-delete patterns with validation, confirmations, optimistic safety, and responsive accessibility
+
+### Academic and identity operations
+
+- [x] complete edit and lifecycle controls for departments, programs, terms, subjects, sections, students, enrollments, schedules, and permitted profiles
+- [x] preserve immutable owner/audit boundaries and avoid destructive deletion where institutional history requires archiving
+
+### LMS and teaching operations
+
+- [x] complete edit workflows for modules, materials, every material page, assessments/questions, submissions/grades, attendance sessions/records, and announcements
+- [x] use Tiptap and managed images for content-bearing records and preserve multi-page ordering and publication state
+- [x] provide polished detail/read modes, empty/loading/error/success states, and mobile-safe actions
+
+### CRM and AI operations
+
+- [x] complete authorized lifecycle controls for students, leads, cases, tasks, campaigns, interactions, signals, and knowledge
+- [x] make AI-proposed mutations use the same validation, permissions, confirmation, audit, and refresh paths as manual actions
+
+### Verification and release
+
+- [x] add entity-level contracts and reversible live role tests for every newly exposed mutation
+- [ ] pass lint, TypeScript, production build, Supabase advisors, reviewed PR, Vercel deployment, and custom-domain smoke checks
+
 ## Phase 15: Comprehensive platform and CRM Word manual [Issue #28]
 
 ### Functional and role documentation
@@ -379,6 +408,7 @@
 - lockfile regenerated and verified with the pinned Node 22 and npm 11 deployment toolchain
 - preview and production Vercel deployments completed successfully after the lockfile repair
 - production root and SPA deep-link routes respond through Vercel deployment protection
+
 ## Phase 30: Operational Academic Office [Issue #30]
 
 - [x] design secure enrollment integrity and schedule-conflict controls
@@ -387,6 +417,7 @@
 - [x] deploy the database migration and Edge Function to production Supabase
 - [x] verify contracts, production build, all-role authentication, RLS, reversible enrollment, and conflict cleanup
 - [x] release through GitHub/Vercel and verify the public production deployment
+
 ## Phase 33: Integrated teacher and student LMS [Issue #33]
 
 - [x] research current Supabase Data API, RLS, and private Storage requirements

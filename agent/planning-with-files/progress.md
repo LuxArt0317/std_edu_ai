@@ -95,7 +95,7 @@
 - revalidated production Supabase password authentication and trusted `owner` role
 - copied the exact verified password to the local clipboard and confirmed it by one-way digest comparison
 - recorded the handoff on GitHub issue #12 without exposing plaintext credential material
-2026-07-17 — Protected production role credential sheet [Issue #26]
+  2026-07-17 — Protected production role credential sheet [Issue #26]
 
 - created GitHub issue #26 and mapped account verification, protected local export, documentation, and validation into the monolithic task plan
 - reviewed current Supabase Auth user-data guidance and the service changelog before changing the credential workflow
@@ -104,7 +104,7 @@
 - generated the local root sheet with 14 verified accounts; confirmed it is ignored by Git and restricted to mode `0600`
 - passed all 19 contracts, lint, and the guarded TypeScript/Vite production build
 - merged PR #27 as `2da1aed` after Vercel and CodeRabbit passed; issue #26 closed completed with credential-safe evidence
-2026-07-17 — Comprehensive platform and CRM Word manual [Issue #28]
+  2026-07-17 — Comprehensive platform and CRM Word manual [Issue #28]
 
 - created GitHub issue #28 and mapped repository audit, functional/role authoring, Word construction, render QA, and delivery into the monolithic task plan
 - read the document-production skill, selected the compact reference guide preset with an editorial cover, and resolved page, typography, heading, list, table, callout, header, and footer tokens
@@ -113,14 +113,14 @@
 - rendered the document with Microsoft Word and inspected all 31 page images; corrected contents pagination and continuous list numbering, then rerendered every page successfully
 - passed the document accessibility audit with zero high, medium, or low findings and confirmed the manual contains no credential directory or secret value
 - merged PR #29 as `ef70241` after Vercel and CodeRabbit passed; issue #28 closed completed with the final document quality evidence
-2026-07-17 — Operational Academic Office [Issue #30]
+  2026-07-17 — Operational Academic Office [Issue #30]
 
 - created issue #30 and implemented the missing write workflows for students, academic structure, subjects, sections, enrollment, and schedules
 - deployed `academic_operations_workflows` and the JWT-protected `manage-student-account` Edge Function to production Supabase
 - verified all 14 production role accounts, owner school workflows, faculty/student RLS, reversible enrollment, room conflict rejection, and cleanup
 - passed 22 API/security contracts, lint, TypeScript, Vite, and guarded build verification
 - merged PR #31 as `f561155`; Vercel production became Ready and both public routes plus the released academic operations workflow passed post-deploy verification
-2026-07-17 — Integrated LMS [Issue #33]
+  2026-07-17 — Integrated LMS [Issue #33]
 
 - created issue #33 and researched current Supabase Data API, RLS, and private Storage requirements
 - deployed three reviewed migrations covering six LMS tables, private files, enrollment/score triggers, explicit grants, covering indexes, and consolidated update policies
@@ -159,3 +159,11 @@
 - Removed hardcoded CRM identity, date, notification counts, and knowledge-health percentage.
 - Passed all 29 contracts, lint, TypeScript/Vite production build, and reversible live Supabase authorization/CRUD checks.
 - PR #43 passed CodeRabbit and Vercel, merged to `main`, and deployed Ready; `www.stu.best/crm` returns HTTP 200 with the expected multi-page, knowledge-publisher, and managed-media bundle markers.
+
+## 2026-07-18 — Issue #44
+
+- Published the authoritative PRD and full entity lifecycle/role matrix.
+- Replaced incomplete status shortcuts and browser prompts with visible pre-filled editors across Academic Office, Course Studio, People, Gradebook, and Learner Support CRM.
+- Added complete quiz/exam/assignment/project creation and atomic editing with protected correct-answer positions and attempt locking.
+- Added Tiptap plus managed images to materials, assessments, announcements, knowledge, campaign content, case plans, signals, interactions, and grade feedback.
+- Reversible production tests pass for academic/profile edits, material/page/image workflows, quiz editing and attempt lock, and CRM student/case/lead/task/campaign/signal/interaction/knowledge/media lifecycles with cleanup.

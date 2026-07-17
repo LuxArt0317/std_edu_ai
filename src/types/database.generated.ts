@@ -2373,6 +2373,19 @@ export type Database = {
         };
         Returns: string;
       };
+      update_lms_assessment: {
+        Args: {
+          p_assessment_id: string;
+          p_due_at: string;
+          p_instructions: string;
+          p_max_score: number;
+          p_publish: boolean;
+          p_questions?: Json;
+          p_title: string;
+          p_type: string;
+        };
+        Returns: string;
+      };
       manage_section_enrollment: {
         Args: { p_section_id: string; p_status?: string; p_student_id: string };
         Returns: {

@@ -18,6 +18,7 @@ type SectionRow = Tables<"course_sections">;
 type EnrollmentRow = Tables<"section_enrollments">;
 type QuestionRow = Tables<"assessment_questions">;
 type OptionRow = Tables<"assessment_options">;
+type AnswerKeyRow = Tables<"assessment_answer_keys">;
 
 type PlatformSnapshot = {
   userId: string;
@@ -99,6 +100,7 @@ export async function loadPlatformData(): Promise<PlatformData> {
     assessmentsResult,
     questionsResult,
     optionsResult,
+    answerKeysResult,
     gradeItemsResult,
     gradesResult,
     scheduleResult,
@@ -132,6 +134,7 @@ export async function loadPlatformData(): Promise<PlatformData> {
       client.from("assessments").select("*").order("due_at"),
       client.from("assessment_questions").select("*").order("position"),
       client.from("assessment_options").select("*").order("position"),
+      client.from("assessment_answer_keys").select("*"),
       client.from("grade_items").select("*").order("due_at"),
       client
         .from("grades")
@@ -180,6 +183,10 @@ export async function loadPlatformData(): Promise<PlatformData> {
     "Assessment questions",
   );
   const optionRows = rows<OptionRow>(optionsResult, "Assessment choices");
+  const answerKeyRows = rows<AnswerKeyRow>(
+    answerKeysResult,
+    "Assessment answer keys",
+  );
   const gradeItemRows = rows(gradeItemsResult, "Grade items");
   const gradeRows = rows(gradesResult, "Grades");
   const scheduleRows = rows(scheduleResult, "Schedule");
@@ -257,6 +264,14 @@ export async function loadPlatformData(): Promise<PlatformData> {
         label: option.label,
         position: option.position,
       })),
+    correctOption: (() => {
+      const optionId = answerKeyRows.find(
+        (key) => key.question_id === question.id,
+      )?.correct_option_id;
+      return (
+        optionRows.find((option) => option.id === optionId)?.position ?? null
+      );
+    })(),
   }));
 
   const assessments: SchoolAssessment[] = assessmentRows.map((assessment) => ({
@@ -301,6 +316,10 @@ export async function loadPlatformData(): Promise<PlatformData> {
       program: student.program,
       yearLevel: student.year_level,
       email: student.email,
+      fullName: student.full_name,
+      preferredName: student.preferred_name ?? "",
+      phone: student.phone ?? "",
+      advisorId: student.advisor_id,
     })),
     departments: departmentRows.map((department) => ({
       id: department.id,
@@ -474,6 +493,7 @@ export async function loadPlatformData(): Promise<PlatformData> {
     })),
     announcements: announcementRows.map((announcement) => ({
       id: announcement.id,
+      sectionId: announcement.section_id,
       title: announcement.title,
       body: announcement.body,
       priority: announcement.priority,
@@ -624,6 +644,30 @@ export async function publishGrade(gradeId: string) {
   if (error) throw new Error(error.message);
 }
 
+export async function updateGradeRecord(
+  gradeId: string,
+  input: {
+    score: number;
+    letterGrade: string;
+    feedback: string;
+    status: "draft" | "reviewed" | "published";
+  },
+) {
+  const client = requireClient();
+  const { error } = await client
+    .from("grades")
+    .update({
+      score: input.score,
+      letter_grade: input.letterGrade.trim().slice(0, 8) || null,
+      feedback: input.feedback.trim().slice(0, 10000),
+      status: input.status,
+      published_at:
+        input.status === "published" ? new Date().toISOString() : null,
+    })
+    .eq("id", gradeId);
+  if (error) throw new Error(error.message);
+}
+
 export async function assignPlatformRole(
   profileId: string,
   role: PlatformRole,
@@ -668,6 +712,30 @@ export async function createDepartment(input: {
   return data.id;
 }
 
+export async function updateDepartment(
+  id: string,
+  input: {
+    code: string;
+    name: string;
+    description: string;
+    headId?: string;
+    status: string;
+  },
+) {
+  const client = requireClient();
+  const { error } = await client
+    .from("departments")
+    .update({
+      code: clean(input.code, "Department code", 20).toUpperCase(),
+      name: clean(input.name, "Department name", 120),
+      description: input.description.trim().slice(0, 1000),
+      head_id: input.headId || null,
+      status: input.status,
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
 export async function createProgram(input: {
   departmentId: string;
   code: string;
@@ -691,6 +759,34 @@ export async function createProgram(input: {
     .single();
   if (error) throw new Error(error.message);
   return data.id;
+}
+
+export async function updateProgram(
+  id: string,
+  input: {
+    departmentId: string;
+    code: string;
+    name: string;
+    level: string;
+    durationYears: number;
+    description: string;
+    status: string;
+  },
+) {
+  const client = requireClient();
+  const { error } = await client
+    .from("academic_programs")
+    .update({
+      department_id: clean(input.departmentId, "Department"),
+      code: clean(input.code, "Program code", 30).toUpperCase(),
+      name: clean(input.name, "Program name", 160),
+      level: input.level,
+      duration_years: input.durationYears,
+      description: input.description.trim().slice(0, 1500),
+      status: input.status,
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
 }
 
 export async function createAcademicTerm(input: {
@@ -720,6 +816,36 @@ export async function createAcademicTerm(input: {
   return data.id;
 }
 
+export async function updateAcademicTerm(
+  id: string,
+  input: {
+    code: string;
+    name: string;
+    startsOn: string;
+    endsOn: string;
+    enrollmentStartsOn?: string;
+    enrollmentEndsOn?: string;
+    status: string;
+  },
+) {
+  if (new Date(input.endsOn) < new Date(input.startsOn))
+    throw new Error("The term must end after it starts.");
+  const client = requireClient();
+  const { error } = await client
+    .from("academic_terms")
+    .update({
+      code: clean(input.code, "Term code", 30).toUpperCase(),
+      name: clean(input.name, "Term name", 120),
+      starts_on: input.startsOn,
+      ends_on: input.endsOn,
+      enrollment_starts_on: input.enrollmentStartsOn || null,
+      enrollment_ends_on: input.enrollmentEndsOn || null,
+      status: input.status,
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
 export async function createCatalogCourse(input: {
   departmentId: string;
   programId?: string;
@@ -744,6 +870,34 @@ export async function createCatalogCourse(input: {
     .single();
   if (error) throw new Error(error.message);
   return data.id;
+}
+
+export async function updateCatalogCourse(
+  id: string,
+  input: {
+    departmentId: string;
+    programId?: string;
+    code: string;
+    title: string;
+    description: string;
+    credits: number;
+    status: string;
+  },
+) {
+  const client = requireClient();
+  const { error } = await client
+    .from("courses")
+    .update({
+      department_id: clean(input.departmentId, "Department"),
+      program_id: input.programId || null,
+      code: clean(input.code, "Subject code", 30).toUpperCase(),
+      title: clean(input.title, "Subject title", 180),
+      description: input.description.trim().slice(0, 2000),
+      credits: input.credits,
+      status: input.status,
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
 }
 
 export async function createCourseSection(input: {
@@ -846,6 +1000,40 @@ export async function createScheduleEvent(input: {
     .single();
   if (error) throw new Error(error.message);
   return data.id;
+}
+
+export async function updateScheduleEvent(
+  eventId: string,
+  input: {
+    sectionId?: string;
+    ownerProfileId?: string;
+    title: string;
+    description: string;
+    eventType: string;
+    startsAt: string;
+    endsAt: string;
+    location?: string;
+    audienceRoles?: PlatformRole[];
+  },
+) {
+  if (new Date(input.endsAt) <= new Date(input.startsAt))
+    throw new Error("The event must end after it starts.");
+  const client = requireClient();
+  const { error } = await client
+    .from("schedule_events")
+    .update({
+      section_id: input.sectionId || null,
+      owner_profile_id: input.ownerProfileId || null,
+      title: clean(input.title, "Event title", 180),
+      description: input.description.trim().slice(0, 2000),
+      event_type: input.eventType,
+      starts_at: input.startsAt,
+      ends_at: input.endsAt,
+      location: input.location?.trim().slice(0, 160) || null,
+      audience_roles: input.audienceRoles ?? [],
+    })
+    .eq("id", eventId);
+  if (error) throw new Error(error.message);
 }
 
 export async function deleteScheduleEvent(eventId: string) {
@@ -985,8 +1173,10 @@ export async function updateLearningMaterial(
     type: string;
     content: string;
     externalUrl?: string;
+    storagePath?: string;
     minutes: number;
     required: boolean;
+    publish?: boolean;
   },
 ) {
   const client = requireClient();
@@ -998,8 +1188,15 @@ export async function updateLearningMaterial(
       material_type: input.type,
       content_markdown: input.content.trim().slice(0, 100000),
       external_url: input.externalUrl?.trim() || null,
+      ...(input.storagePath ? { storage_path: input.storagePath } : {}),
       estimated_minutes: input.minutes,
       is_required: input.required,
+      ...(typeof input.publish === "boolean"
+        ? {
+            status: input.publish ? "published" : "draft",
+            published_at: input.publish ? new Date().toISOString() : null,
+          }
+        : {}),
     })
     .eq("id", materialId);
   if (error) throw new Error(error.message);
@@ -1034,7 +1231,7 @@ export async function createLearningMaterialPage(input: {
 
 export async function updateLearningMaterialPage(
   pageId: string,
-  input: { title: string; content: string },
+  input: { title: string; content: string; position?: number },
 ) {
   const client = requireClient();
   const { error } = await client
@@ -1042,6 +1239,7 @@ export async function updateLearningMaterialPage(
     .update({
       title: clean(input.title, "Page title", 180),
       content_html: input.content.trim().slice(0, 150000),
+      ...(input.position ? { position: input.position } : {}),
     })
     .eq("id", pageId);
   if (error) throw new Error(error.message);
@@ -1139,6 +1337,56 @@ export async function createCourseAssessment(input: {
   if (error) throw new Error(error.message);
 }
 
+export async function updateCourseAssessment(
+  assessmentId: string,
+  input: {
+    title: string;
+    instructions: string;
+    type: "quiz" | "exam" | "assignment" | "project";
+    dueAt?: string;
+    maxScore: number;
+    publish: boolean;
+    questions?: Array<{
+      prompt: string;
+      points: number;
+      options: string[];
+      correctOption: number;
+      explanation?: string;
+    }>;
+  },
+) {
+  const client = requireClient();
+  const { error } = await client.rpc("update_lms_assessment", {
+    p_assessment_id: assessmentId,
+    p_title: clean(input.title, "Assessment title", 180),
+    p_instructions: input.instructions.trim().slice(0, 10000),
+    p_type: input.type,
+    p_due_at: (input.dueAt || null) as unknown as string,
+    p_max_score: input.maxScore,
+    p_publish: input.publish,
+    p_questions: (input.questions ?? []) as unknown as Json,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteCourseAssessment(assessmentId: string) {
+  const client = requireClient();
+  const { count, error: attemptError } = await client
+    .from("assessment_attempts")
+    .select("id", { count: "exact", head: true })
+    .eq("assessment_id", assessmentId);
+  if (attemptError) throw new Error(attemptError.message);
+  if (count)
+    throw new Error(
+      "This assessment has student attempts and cannot be deleted. Unpublish it instead.",
+    );
+  const { error } = await client
+    .from("assessments")
+    .delete()
+    .eq("id", assessmentId);
+  if (error) throw new Error(error.message);
+}
+
 export async function submitAssignment(input: {
   assessmentId: string;
   sectionId: string;
@@ -1209,6 +1457,34 @@ export async function createAttendanceSession(input: {
   return data.id;
 }
 
+export async function updateAttendanceSession(
+  sessionId: string,
+  input: { title: string; startsAt: string; endsAt: string; status: string },
+) {
+  if (new Date(input.endsAt) <= new Date(input.startsAt))
+    throw new Error("Attendance must end after it starts.");
+  const client = requireClient();
+  const { error } = await client
+    .from("attendance_sessions")
+    .update({
+      title: clean(input.title, "Attendance title", 180),
+      starts_at: input.startsAt,
+      ends_at: input.endsAt,
+      status: input.status,
+    })
+    .eq("id", sessionId);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteAttendanceSession(sessionId: string) {
+  const client = requireClient();
+  const { error } = await client
+    .from("attendance_sessions")
+    .delete()
+    .eq("id", sessionId);
+  if (error) throw new Error(error.message);
+}
+
 export async function saveAttendance(
   sessionId: string,
   records: Array<{ profileId: string; status: string; notes?: string }>,
@@ -1244,6 +1520,77 @@ export async function createCourseAnnouncement(input: {
     priority: input.priority,
     published_at: new Date().toISOString(),
   });
+  if (error) throw new Error(error.message);
+}
+
+export async function updateCourseAnnouncement(
+  announcementId: string,
+  input: { title: string; body: string; priority: string },
+) {
+  const client = requireClient();
+  const { error } = await client
+    .from("announcements")
+    .update({
+      title: clean(input.title, "Announcement title", 180),
+      body: clean(input.body, "Announcement", 10000),
+      priority: input.priority,
+    })
+    .eq("id", announcementId);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteCourseAnnouncement(announcementId: string) {
+  const client = requireClient();
+  const { error } = await client
+    .from("announcements")
+    .delete()
+    .eq("id", announcementId);
+  if (error) throw new Error(error.message);
+}
+
+export async function updateStudentRecord(
+  studentId: string,
+  input: {
+    fullName: string;
+    preferredName?: string;
+    studentNumber: string;
+    program: string;
+    yearLevel: string;
+    email?: string;
+    phone?: string;
+    advisorId?: string;
+  },
+) {
+  const client = requireClient();
+  const { error } = await client
+    .from("students")
+    .update({
+      full_name: clean(input.fullName, "Full name", 120),
+      preferred_name: input.preferredName?.trim().slice(0, 120) || null,
+      student_number: clean(input.studentNumber, "Student number", 32),
+      program: clean(input.program, "Program", 160),
+      year_level: clean(input.yearLevel, "Year level", 40),
+      email: input.email?.trim().toLowerCase().slice(0, 254) || null,
+      phone: input.phone?.trim().slice(0, 40) || null,
+      advisor_id: input.advisorId || null,
+    })
+    .eq("id", studentId);
+  if (error) throw new Error(error.message);
+}
+
+export async function updatePlatformProfile(
+  profileId: string,
+  input: { fullName: string; department: string; jobTitle: string },
+) {
+  const client = requireClient();
+  const { error } = await client
+    .from("profiles")
+    .update({
+      full_name: clean(input.fullName, "Full name", 120),
+      department: input.department.trim().slice(0, 160) || null,
+      job_title: input.jobTitle.trim().slice(0, 160) || null,
+    })
+    .eq("id", profileId);
   if (error) throw new Error(error.message);
 }
 

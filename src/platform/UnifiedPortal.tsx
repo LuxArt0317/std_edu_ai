@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import CRMApp from "../crm/CRMApp";
 import { clearCrmDataSnapshot } from "../crm/crmRepository";
@@ -21,6 +21,8 @@ import {
   recordGradeScan,
   saveReviewedScan,
   submitAssessment,
+  updatePlatformProfile,
+  updateGradeRecord,
 } from "./platformRepository";
 import type {
   AssessmentAttemptResult,
@@ -35,6 +37,7 @@ import type {
 } from "./types";
 import { AcademicOperations, ScheduleOperations } from "./AcademicOperations";
 import { StudentLmsLearning, TeacherLmsStudio } from "./LmsWorkspace";
+import { RichTextContent, RichTextEditor } from "./RichTextEditor";
 import "./platform.css";
 
 type PortalView = PortalSection | "crm";
@@ -190,7 +193,7 @@ function UnifiedPortal({
   const [toast, setToast] = useState("");
   const [assistantOpen, setAssistantOpen] = useState(false);
 
-  async function refresh(silent = false) {
+  const refresh = useCallback(async (silent = false) => {
     try {
       setData(await loadPlatformDataCached(currentUser.id, true));
       setLoadError("");
@@ -207,11 +210,11 @@ function UnifiedPortal({
         );
       }
     }
-  }
+  }, [currentUser.id]);
 
   useEffect(() => {
     void refresh(Boolean(getPlatformDataSnapshot(currentUser.id)));
-  }, []);
+  }, [currentUser.id, refresh]);
 
   function signOut() {
     clearPlatformDataSnapshot();
@@ -889,7 +892,11 @@ function AssessmentsView({
                 </Pill>
               </header>
               <h3>{assessment.title}</h3>
-              <p>{assessment.instructions}</p>
+              {assessment.instructions ? (
+                <RichTextContent html={assessment.instructions} />
+              ) : (
+                <p>No instructions provided.</p>
+              )}
               <div>
                 <span>◷ {assessment.durationMinutes ?? "Untimed"} min</span>
                 <span>↻ {assessment.attemptLimit} attempts</span>
@@ -925,7 +932,11 @@ function AssessmentsView({
               <div>
                 <span>ASSESSMENT</span>
                 <h2>{active.title}</h2>
-                <p>{active.instructions}</p>
+                {active.instructions ? (
+                  <RichTextContent html={active.instructions} />
+                ) : (
+                  <p>No instructions provided.</p>
+                )}
               </div>
               <button type="button" onClick={() => setActive(null)}>
                 ×
@@ -1040,6 +1051,8 @@ function GradesView({
   const [scan, setScan] = useState<GradeScanResult | null>(null);
   const [scanJobId, setScanJobId] = useState("");
   const [scanning, setScanning] = useState(false);
+  const [editingGradeId, setEditingGradeId] = useState("");
+  const [gradeFeedback, setGradeFeedback] = useState("");
   const selectedItem =
     data.gradeItems.find((item) => item.id === gradeItemId) ??
     data.gradeItems[0];
@@ -1153,7 +1166,11 @@ function GradesView({
                       </small>
                     </span>
                   </div>
-                  <p>{grade.feedback}</p>
+                  {grade.feedback ? (
+                    <RichTextContent html={grade.feedback} />
+                  ) : (
+                    <p>No feedback yet.</p>
+                  )}
                 </article>
               );
             })
@@ -1261,26 +1278,39 @@ function GradesView({
               >
                 {grade?.status || "not graded"}
               </Pill>
-              {grade && grade.status !== "published" ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    void publishGrade(grade.id)
-                      .then(() => {
-                        onToast("Grade published to the student portal.");
-                        onChanged();
-                      })
-                      .catch((error: unknown) =>
-                        onToast(
-                          error instanceof Error
-                            ? error.message
-                            : "Grade could not be published.",
-                        ),
-                      )
-                  }
-                >
-                  Publish
-                </button>
+              {grade ? (
+                <div className="grade-row-actions">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingGradeId(grade.id);
+                      setGradeFeedback(grade.feedback);
+                    }}
+                  >
+                    Edit
+                  </button>
+                  {grade.status !== "published" ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void publishGrade(grade.id)
+                          .then(() => {
+                            onToast("Grade published to the student portal.");
+                            onChanged();
+                          })
+                          .catch((error: unknown) =>
+                            onToast(
+                              error instanceof Error
+                                ? error.message
+                                : "Grade could not be published.",
+                            ),
+                          )
+                      }
+                    >
+                      Publish
+                    </button>
+                  ) : null}
+                </div>
               ) : (
                 <span />
               )}
@@ -1333,6 +1363,120 @@ function GradesView({
           </div>
         </section>
       ) : null}
+      {editingGradeId
+        ? (() => {
+            const grade = data.grades.find(
+              (item) => item.id === editingGradeId,
+            );
+            const item = data.gradeItems.find(
+              (entry) => entry.id === grade?.gradeItemId,
+            );
+            if (!grade) return null;
+            return (
+              <div className="academic-modal-layer">
+                <button
+                  type="button"
+                  className="academic-modal-backdrop"
+                  aria-label="Close grade editor"
+                  onClick={() => setEditingGradeId("")}
+                />
+                <section
+                  className="academic-modal"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Edit grade"
+                >
+                  <header>
+                    <div>
+                      <span>TEACHER GRADEBOOK</span>
+                      <h2>Edit {grade.studentName}'s grade</h2>
+                      <p>
+                        Correct the score, letter grade, feedback, and
+                        publication state.
+                      </p>
+                    </div>
+                    <button type="button" onClick={() => setEditingGradeId("")}>
+                      ×
+                    </button>
+                  </header>
+                  <form
+                    className="academic-form"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      const f = new FormData(event.currentTarget);
+                      void updateGradeRecord(grade.id, {
+                        score: Number(f.get("score")),
+                        letterGrade: String(f.get("letterGrade")),
+                        feedback: gradeFeedback,
+                        status: String(f.get("status")) as
+                          "draft" | "reviewed" | "published",
+                      })
+                        .then(() => {
+                          setEditingGradeId("");
+                          onToast("Grade updated.");
+                          onChanged();
+                        })
+                        .catch((error: unknown) =>
+                          onToast(
+                            error instanceof Error
+                              ? error.message
+                              : "Grade update failed.",
+                          ),
+                        );
+                    }}
+                  >
+                    <div className="academic-form-grid">
+                      <label>
+                        <span>Score out of {item?.maxScore}</span>
+                        <input
+                          name="score"
+                          type="number"
+                          min="0"
+                          max={item?.maxScore ?? 100}
+                          step="0.01"
+                          required
+                          defaultValue={grade.score}
+                        />
+                      </label>
+                      <label>
+                        <span>Letter grade</span>
+                        <input
+                          name="letterGrade"
+                          maxLength={8}
+                          defaultValue={grade.letterGrade}
+                        />
+                      </label>
+                      <label>
+                        <span>Status</span>
+                        <select name="status" defaultValue={grade.status}>
+                          <option value="draft">Draft</option>
+                          <option value="reviewed">Reviewed</option>
+                          <option value="published">Published</option>
+                        </select>
+                      </label>
+                      <label className="wide">
+                        <span>Feedback</span>
+                        <RichTextEditor
+                          value={gradeFeedback}
+                          onChange={setGradeFeedback}
+                        />
+                      </label>
+                    </div>
+                    <footer>
+                      <button
+                        type="button"
+                        onClick={() => setEditingGradeId("")}
+                      >
+                        Cancel
+                      </button>
+                      <button type="submit">Save grade changes</button>
+                    </footer>
+                  </form>
+                </section>
+              </div>
+            );
+          })()
+        : null}
     </>
   );
 }
@@ -1451,6 +1595,9 @@ function PeopleView({
   onToast: (message: string) => void;
 }) {
   const [changing, setChanging] = useState("");
+  const [editingProfileId, setEditingProfileId] = useState("");
+  const editingProfile =
+    data.profiles.find((profile) => profile.id === editingProfileId) ?? null;
 
   async function changeRole(profileId: string, role: PlatformRole) {
     setChanging(profileId);
@@ -1542,6 +1689,12 @@ function PeopleView({
                   ))}
               </select>
             )}
+            <button
+              type="button"
+              onClick={() => setEditingProfileId(profile.id)}
+            >
+              Edit profile
+            </button>
           </div>
         ))}
       </section>
@@ -1578,6 +1731,93 @@ function PeopleView({
           ),
         )}
       </section>
+      {editingProfile ? (
+        <div className="academic-modal-layer">
+          <button
+            type="button"
+            className="academic-modal-backdrop"
+            aria-label="Close dialog"
+            onClick={() => setEditingProfileId("")}
+          />
+          <section
+            className="academic-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Edit profile"
+          >
+            <header>
+              <div>
+                <span>PEOPLE & PERMISSIONS</span>
+                <h2>Edit {editingProfile.name}</h2>
+                <p>
+                  Update directory information. Trusted role changes remain a
+                  separate audited action.
+                </p>
+              </div>
+              <button type="button" onClick={() => setEditingProfileId("")}>
+                ×
+              </button>
+            </header>
+            <form
+              className="academic-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const f = new FormData(event.currentTarget);
+                setChanging(editingProfile.id);
+                void updatePlatformProfile(editingProfile.id, {
+                  fullName: String(f.get("fullName")),
+                  department: String(f.get("department")),
+                  jobTitle: String(f.get("jobTitle")),
+                })
+                  .then(() => {
+                    onToast("Profile updated.");
+                    setEditingProfileId("");
+                    onChanged();
+                  })
+                  .catch((error: unknown) =>
+                    onToast(
+                      error instanceof Error
+                        ? error.message
+                        : "Profile update failed.",
+                    ),
+                  )
+                  .finally(() => setChanging(""));
+              }}
+            >
+              <div className="academic-form-grid">
+                <label>
+                  <span>Full name</span>
+                  <input
+                    name="fullName"
+                    required
+                    defaultValue={editingProfile.name}
+                  />
+                </label>
+                <label>
+                  <span>Department</span>
+                  <input
+                    name="department"
+                    defaultValue={editingProfile.department}
+                  />
+                </label>
+                <label>
+                  <span>Job title</span>
+                  <input
+                    name="jobTitle"
+                    defaultValue={editingProfile.jobTitle}
+                  />
+                </label>
+              </div>
+              <footer>
+                <span>Authorization is not changed by this form.</span>
+                <button disabled={changing === editingProfile.id}>
+                  {changing ? "Saving…" : "Save profile changes"}
+                </button>
+              </footer>
+            </form>
+          </section>
+        </div>
+      ) : null}
     </>
   );
 }

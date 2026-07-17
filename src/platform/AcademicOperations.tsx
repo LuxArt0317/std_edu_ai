@@ -12,6 +12,12 @@ import {
   deleteScheduleEvent,
   manageSectionEnrollment,
   updateCourseSection,
+  updateAcademicTerm,
+  updateCatalogCourse,
+  updateDepartment,
+  updateProgram,
+  updateScheduleEvent,
+  updateStudentRecord,
 } from "./platformRepository";
 import type {
   PlatformData,
@@ -21,11 +27,7 @@ import type {
 } from "./types";
 
 type AcademicTab =
-  | "overview"
-  | "students"
-  | "subjects"
-  | "sections"
-  | "enrollment";
+  "overview" | "students" | "subjects" | "sections" | "enrollment";
 type ModalName =
   | "student"
   | "department"
@@ -67,6 +69,13 @@ function generatedPassword() {
   return Array.from(bytes, (value) => alphabet[value % alphabet.length]).join(
     "",
   );
+}
+
+function localDateTimeInput(value: string) {
+  const date = new Date(value);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 16);
 }
 
 function Modal({
@@ -169,6 +178,7 @@ export function AcademicOperations({
   const [editingSection, setEditingSection] = useState<SchoolCourse | null>(
     null,
   );
+  const [editingId, setEditingId] = useState("");
   const [selectedSectionId, setSelectedSectionId] = useState(
     data.courses[0]?.sectionId ?? "",
   );
@@ -201,6 +211,15 @@ export function AcademicOperations({
         (item) => item.studentId === student.id && item.status !== "dropped",
       ),
   );
+  const editingDepartment =
+    data.departments.find((item) => item.id === editingId) ?? null;
+  const editingProgram =
+    data.programs.find((item) => item.id === editingId) ?? null;
+  const editingTerm = data.terms.find((item) => item.id === editingId) ?? null;
+  const editingSubject =
+    data.catalogCourses.find((item) => item.id === editingId) ?? null;
+  const editingStudent =
+    data.students.find((item) => item.id === editingId) ?? null;
 
   async function perform(action: () => Promise<unknown>, success: string) {
     setBusy(true);
@@ -209,6 +228,7 @@ export function AcademicOperations({
       onToast(success);
       setModal(null);
       setEditingSection(null);
+      setEditingId("");
       onChanged();
     } catch (error) {
       onToast(
@@ -224,6 +244,20 @@ export function AcademicOperations({
   function openSection(course?: SchoolCourse) {
     setEditingSection(course ?? null);
     setModal("section");
+  }
+
+  function openEdit(
+    name: Exclude<ModalName, "student" | "section" | "event" | null>,
+    id: string,
+  ) {
+    setEditingId(id);
+    setModal(name);
+  }
+
+  function closeModal() {
+    setModal(null);
+    setEditingId("");
+    setEditingSection(null);
   }
 
   return (
@@ -395,8 +429,70 @@ export function AcademicOperations({
                       </small>
                     ))}
                 </div>
+                {departmentManagers.has(role) ? (
+                  <button
+                    type="button"
+                    onClick={() => openEdit("department", department.id)}
+                  >
+                    Edit department
+                  </button>
+                ) : null}
               </article>
             ))}
+          </section>
+          <section className="academic-lifecycle-grid">
+            <article className="school-card">
+              <header>
+                <div>
+                  <span>PROGRAMS</span>
+                  <h3>Credential pathways</h3>
+                </div>
+              </header>
+              {data.programs.map((program) => (
+                <div key={program.id}>
+                  <span>
+                    <b>{program.code}</b>
+                    <small>
+                      {program.name} · {program.status}
+                    </small>
+                  </span>
+                  {academicManagers.has(role) ? (
+                    <button
+                      type="button"
+                      onClick={() => openEdit("program", program.id)}
+                    >
+                      Edit
+                    </button>
+                  ) : null}
+                </div>
+              ))}
+            </article>
+            <article className="school-card">
+              <header>
+                <div>
+                  <span>ACADEMIC TERMS</span>
+                  <h3>Delivery calendar</h3>
+                </div>
+              </header>
+              {data.terms.map((term) => (
+                <div key={term.id}>
+                  <span>
+                    <b>{term.code}</b>
+                    <small>
+                      {term.name} · {term.status}
+                    </small>
+                  </span>
+                  {registrarRoles.has(role) ? (
+                    <button
+                      type="button"
+                      onClick={() => openEdit("term", term.id)}
+                    >
+                      Edit
+                    </button>
+                  ) : null}
+                </div>
+              ))}
+            </article>
           </section>
         </>
       ) : null}
@@ -433,6 +529,17 @@ export function AcademicOperations({
               <span className={student.profileId ? "status-ok" : "status-warn"}>
                 {student.profileId ? "Connected" : "SIS only"}
               </span>
+              {registrarRoles.has(role) ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingId(student.id);
+                    setModal("student");
+                  }}
+                >
+                  Edit
+                </button>
+              ) : null}
             </div>
           ))}
         </section>
@@ -456,6 +563,14 @@ export function AcademicOperations({
                   <span>{department?.name || "Department"}</span>
                   <small>{course.status}</small>
                 </footer>
+                {academicManagers.has(role) ? (
+                  <button
+                    type="button"
+                    onClick={() => openEdit("subject", course.id)}
+                  >
+                    Edit subject
+                  </button>
+                ) : null}
               </article>
             );
           })}
@@ -640,38 +755,62 @@ export function AcademicOperations({
 
       {modal === "student" ? (
         <Modal
-          title="Create student account"
-          description="Creates a confirmed portal identity and its linked academic record. The temporary password is never stored."
-          onClose={() => setModal(null)}
+          title={
+            editingStudent ? "Edit student record" : "Create student account"
+          }
+          description={
+            editingStudent
+              ? "Updates the academic student record. Authentication credentials remain protected."
+              : "Creates a confirmed portal identity and its linked academic record. The temporary password is never stored."
+          }
+          onClose={closeModal}
         >
           <ActionForm
-            submitLabel="Create student"
+            submitLabel={
+              editingStudent ? "Save student changes" : "Create student"
+            }
             busy={busy}
             onSubmit={(event) => {
               event.preventDefault();
               const form = new FormData(event.currentTarget);
+              const values = {
+                email: String(form.get("email")),
+                fullName: String(form.get("fullName")),
+                preferredName: String(form.get("preferredName")),
+                studentNumber: String(form.get("studentNumber")),
+                program: String(form.get("program")),
+                yearLevel: String(form.get("yearLevel")),
+                phone: String(form.get("phone")),
+                advisorId: String(form.get("advisorId")),
+              };
               void perform(
                 () =>
-                  createStudentAccount({
-                    email: String(form.get("email")),
-                    password: String(form.get("password")),
-                    fullName: String(form.get("fullName")),
-                    preferredName: String(form.get("preferredName")),
-                    studentNumber: String(form.get("studentNumber")),
-                    program: String(form.get("program")),
-                    yearLevel: String(form.get("yearLevel")),
-                    phone: String(form.get("phone")),
-                    advisorId: String(form.get("advisorId")),
-                  }),
-                "Student account and academic record created.",
+                  editingStudent
+                    ? updateStudentRecord(editingStudent.id, values)
+                    : createStudentAccount({
+                        ...values,
+                        password: String(form.get("password")),
+                      }),
+                editingStudent
+                  ? "Student record updated."
+                  : "Student account and academic record created.",
               );
             }}
           >
             <Field label="Full name">
-              <input name="fullName" required maxLength={120} />
+              <input
+                name="fullName"
+                required
+                maxLength={120}
+                defaultValue={editingStudent?.fullName}
+              />
             </Field>
             <Field label="Preferred name">
-              <input name="preferredName" maxLength={120} />
+              <input
+                name="preferredName"
+                maxLength={120}
+                defaultValue={editingStudent?.preferredName}
+              />
             </Field>
             <Field label="Student number">
               <input
@@ -679,34 +818,47 @@ export function AcademicOperations({
                 required
                 maxLength={32}
                 placeholder="STU-2026-0001"
+                defaultValue={editingStudent?.studentNumber}
               />
             </Field>
             <Field label="Email">
-              <input name="email" required type="email" maxLength={254} />
+              <input
+                name="email"
+                required
+                type="email"
+                maxLength={254}
+                defaultValue={editingStudent?.email ?? ""}
+              />
             </Field>
-            <Field label="Temporary password">
-              <div className="password-create">
-                <input
-                  name="password"
-                  required
-                  minLength={24}
-                  maxLength={128}
-                  defaultValue={generatedPassword()}
-                />
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    const input = e.currentTarget
-                      .previousElementSibling as HTMLInputElement;
-                    input.value = generatedPassword();
-                  }}
-                >
-                  Regenerate
-                </button>
-              </div>
-            </Field>
+            {!editingStudent ? (
+              <Field label="Temporary password">
+                <div className="password-create">
+                  <input
+                    name="password"
+                    required
+                    minLength={24}
+                    maxLength={128}
+                    defaultValue={generatedPassword()}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      const input = e.currentTarget
+                        .previousElementSibling as HTMLInputElement;
+                      input.value = generatedPassword();
+                    }}
+                  >
+                    Regenerate
+                  </button>
+                </div>
+              </Field>
+            ) : null}
             <Field label="Program">
-              <select name="program" required>
+              <select
+                name="program"
+                required
+                defaultValue={editingStudent?.program ?? ""}
+              >
                 <option value="">Select program…</option>
                 {data.programs.map((program) => (
                   <option key={program.id} value={program.name}>
@@ -716,7 +868,11 @@ export function AcademicOperations({
               </select>
             </Field>
             <Field label="Year level">
-              <select name="yearLevel" required>
+              <select
+                name="yearLevel"
+                required
+                defaultValue={editingStudent?.yearLevel ?? "1st Year"}
+              >
                 <option>1st Year</option>
                 <option>2nd Year</option>
                 <option>3rd Year</option>
@@ -725,7 +881,10 @@ export function AcademicOperations({
               </select>
             </Field>
             <Field label="Advisor">
-              <select name="advisorId">
+              <select
+                name="advisorId"
+                defaultValue={editingStudent?.advisorId ?? ""}
+              >
                 <option value="">Unassigned</option>
                 {advisors.map((advisor) => (
                   <option key={advisor.id} value={advisor.id}>
@@ -735,7 +894,12 @@ export function AcademicOperations({
               </select>
             </Field>
             <Field label="Phone">
-              <input name="phone" type="tel" maxLength={40} />
+              <input
+                name="phone"
+                type="tel"
+                maxLength={40}
+                defaultValue={editingStudent?.phone}
+              />
             </Field>
           </ActionForm>
         </Modal>
@@ -743,36 +907,60 @@ export function AcademicOperations({
 
       {modal === "department" ? (
         <Modal
-          title="Add department"
+          title={editingDepartment ? "Edit department" : "Add department"}
           description="Creates an academic home for programs, subjects, and departmental leadership."
-          onClose={() => setModal(null)}
+          onClose={closeModal}
         >
           <ActionForm
-            submitLabel="Create department"
+            submitLabel={
+              editingDepartment ? "Save department" : "Create department"
+            }
             busy={busy}
             onSubmit={(event) => {
               event.preventDefault();
               const f = new FormData(event.currentTarget);
               void perform(
-                () =>
-                  createDepartment({
+                () => {
+                  const values = {
                     code: String(f.get("code")),
                     name: String(f.get("name")),
                     description: String(f.get("description")),
                     headId: String(f.get("headId")),
-                  }),
-                "Department created.",
+                  };
+                  return editingDepartment
+                    ? updateDepartment(editingDepartment.id, {
+                        ...values,
+                        status: String(f.get("status")),
+                      })
+                    : createDepartment(values);
+                },
+                editingDepartment
+                  ? "Department updated."
+                  : "Department created.",
               );
             }}
           >
             <Field label="Code">
-              <input name="code" required maxLength={20} />
+              <input
+                name="code"
+                required
+                maxLength={20}
+                defaultValue={editingDepartment?.code}
+              />
             </Field>
             <Field label="Name">
-              <input name="name" required maxLength={120} />
+              <input
+                name="name"
+                required
+                maxLength={120}
+                defaultValue={editingDepartment?.name}
+              />
             </Field>
             <Field label="Department head">
-              <select name="headId">
+              <select
+                name="headId"
+                defaultValue={editingDepartment?.headId ?? ""}
+              >
                 <option value="">Unassigned</option>
                 {data.profiles
                   .filter((p) => p.role === "department_head")
@@ -784,40 +972,68 @@ export function AcademicOperations({
               </select>
             </Field>
             <Field label="Description" wide>
-              <textarea name="description" rows={4} maxLength={1000} />
+              <textarea
+                name="description"
+                rows={4}
+                maxLength={1000}
+                defaultValue={editingDepartment?.description}
+              />
             </Field>
+            {editingDepartment ? (
+              <Field label="Status">
+                <select name="status" defaultValue={editingDepartment.status}>
+                  <option value="active">Active</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </Field>
+            ) : null}
           </ActionForm>
         </Modal>
       ) : null}
 
       {modal === "program" ? (
         <Modal
-          title="Add academic program"
+          title={
+            editingProgram ? "Edit academic program" : "Add academic program"
+          }
           description="Defines a credential pathway inside an existing department."
-          onClose={() => setModal(null)}
+          onClose={closeModal}
         >
           <ActionForm
-            submitLabel="Create program"
+            submitLabel={editingProgram ? "Save program" : "Create program"}
             busy={busy}
             onSubmit={(event) => {
               event.preventDefault();
               const f = new FormData(event.currentTarget);
               void perform(
-                () =>
-                  createProgram({
+                () => {
+                  const values = {
                     departmentId: String(f.get("departmentId")),
                     code: String(f.get("code")),
                     name: String(f.get("name")),
                     level: String(f.get("level")),
                     durationYears: Number(f.get("durationYears")),
                     description: String(f.get("description")),
-                  }),
-                "Academic program created.",
+                  };
+                  return editingProgram
+                    ? updateProgram(editingProgram.id, {
+                        ...values,
+                        status: String(f.get("status")),
+                      })
+                    : createProgram(values);
+                },
+                editingProgram
+                  ? "Academic program updated."
+                  : "Academic program created.",
               );
             }}
           >
             <Field label="Department">
-              <select name="departmentId" required>
+              <select
+                name="departmentId"
+                required
+                defaultValue={editingProgram?.departmentId ?? ""}
+              >
                 <option value="">Select department…</option>
                 {data.departments.map((d) => (
                   <option key={d.id} value={d.id}>
@@ -827,13 +1043,27 @@ export function AcademicOperations({
               </select>
             </Field>
             <Field label="Program code">
-              <input name="code" required maxLength={30} />
+              <input
+                name="code"
+                required
+                maxLength={30}
+                defaultValue={editingProgram?.code}
+              />
             </Field>
             <Field label="Program name">
-              <input name="name" required maxLength={160} />
+              <input
+                name="name"
+                required
+                maxLength={160}
+                defaultValue={editingProgram?.name}
+              />
             </Field>
             <Field label="Level">
-              <select name="level" required>
+              <select
+                name="level"
+                required
+                defaultValue={editingProgram?.level ?? "bachelor"}
+              >
                 <option value="certificate">Certificate</option>
                 <option value="bachelor">Bachelor</option>
                 <option value="master">Master</option>
@@ -847,32 +1077,45 @@ export function AcademicOperations({
                 min="0.5"
                 max="12"
                 step="0.5"
-                defaultValue="4"
+                defaultValue={editingProgram?.durationYears ?? 4}
                 required
               />
             </Field>
             <Field label="Description" wide>
-              <textarea name="description" rows={4} maxLength={1500} />
+              <textarea
+                name="description"
+                rows={4}
+                maxLength={1500}
+                defaultValue={editingProgram?.description}
+              />
             </Field>
+            {editingProgram ? (
+              <Field label="Status">
+                <select name="status" defaultValue={editingProgram.status}>
+                  <option value="active">Active</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </Field>
+            ) : null}
           </ActionForm>
         </Modal>
       ) : null}
 
       {modal === "term" ? (
         <Modal
-          title="Add academic term"
+          title={editingTerm ? "Edit academic term" : "Add academic term"}
           description="Defines teaching and enrollment dates for course delivery."
-          onClose={() => setModal(null)}
+          onClose={closeModal}
         >
           <ActionForm
-            submitLabel="Create term"
+            submitLabel={editingTerm ? "Save term" : "Create term"}
             busy={busy}
             onSubmit={(event) => {
               event.preventDefault();
               const f = new FormData(event.currentTarget);
               void perform(
-                () =>
-                  createAcademicTerm({
+                () => {
+                  const values = {
                     code: String(f.get("code")),
                     name: String(f.get("name")),
                     startsOn: String(f.get("startsOn")),
@@ -880,8 +1123,14 @@ export function AcademicOperations({
                     enrollmentStartsOn: String(f.get("enrollmentStartsOn")),
                     enrollmentEndsOn: String(f.get("enrollmentEndsOn")),
                     status: String(f.get("status")),
-                  }),
-                "Academic term created.",
+                  };
+                  return editingTerm
+                    ? updateAcademicTerm(editingTerm.id, values)
+                    : createAcademicTerm(values);
+                },
+                editingTerm
+                  ? "Academic term updated."
+                  : "Academic term created.",
               );
             }}
           >
@@ -891,25 +1140,52 @@ export function AcademicOperations({
                 required
                 maxLength={30}
                 placeholder="2027-SPRING"
+                defaultValue={editingTerm?.code}
               />
             </Field>
             <Field label="Name">
-              <input name="name" required maxLength={120} />
+              <input
+                name="name"
+                required
+                maxLength={120}
+                defaultValue={editingTerm?.name}
+              />
             </Field>
             <Field label="Teaching starts">
-              <input name="startsOn" type="date" required />
+              <input
+                name="startsOn"
+                type="date"
+                required
+                defaultValue={editingTerm?.startsOn}
+              />
             </Field>
             <Field label="Teaching ends">
-              <input name="endsOn" type="date" required />
+              <input
+                name="endsOn"
+                type="date"
+                required
+                defaultValue={editingTerm?.endsOn}
+              />
             </Field>
             <Field label="Enrollment starts">
-              <input name="enrollmentStartsOn" type="date" />
+              <input
+                name="enrollmentStartsOn"
+                type="date"
+                defaultValue={editingTerm?.enrollmentStartsOn ?? ""}
+              />
             </Field>
             <Field label="Enrollment ends">
-              <input name="enrollmentEndsOn" type="date" />
+              <input
+                name="enrollmentEndsOn"
+                type="date"
+                defaultValue={editingTerm?.enrollmentEndsOn ?? ""}
+              />
             </Field>
             <Field label="Status">
-              <select name="status">
+              <select
+                name="status"
+                defaultValue={editingTerm?.status ?? "planning"}
+              >
                 <option value="planning">Planning</option>
                 <option value="enrollment">Enrollment</option>
                 <option value="active">Active</option>
@@ -922,32 +1198,45 @@ export function AcademicOperations({
 
       {modal === "subject" ? (
         <Modal
-          title="Add subject"
+          title={editingSubject ? "Edit subject" : "Add subject"}
           description="Creates a reusable catalog subject before class sections are opened."
           onClose={() => setModal(null)}
         >
           <ActionForm
-            submitLabel="Create subject"
+            submitLabel={editingSubject ? "Save subject" : "Create subject"}
             busy={busy}
             onSubmit={(event) => {
               event.preventDefault();
               const f = new FormData(event.currentTarget);
               void perform(
-                () =>
-                  createCatalogCourse({
+                () => {
+                  const values = {
                     departmentId: String(f.get("departmentId")),
                     programId: String(f.get("programId")),
                     code: String(f.get("code")),
                     title: String(f.get("title")),
                     description: String(f.get("description")),
                     credits: Number(f.get("credits")),
-                  }),
-                "Subject added to the catalog.",
+                  };
+                  return editingSubject
+                    ? updateCatalogCourse(editingSubject.id, {
+                        ...values,
+                        status: String(f.get("status")),
+                      })
+                    : createCatalogCourse(values);
+                },
+                editingSubject
+                  ? "Subject updated."
+                  : "Subject added to the catalog.",
               );
             }}
           >
             <Field label="Department">
-              <select name="departmentId" required>
+              <select
+                name="departmentId"
+                required
+                defaultValue={editingSubject?.departmentId ?? ""}
+              >
                 <option value="">Select department…</option>
                 {data.departments.map((d) => (
                   <option key={d.id} value={d.id}>
@@ -957,7 +1246,10 @@ export function AcademicOperations({
               </select>
             </Field>
             <Field label="Program">
-              <select name="programId">
+              <select
+                name="programId"
+                defaultValue={editingSubject?.programId ?? ""}
+              >
                 <option value="">Shared / no program</option>
                 {data.programs.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -967,10 +1259,21 @@ export function AcademicOperations({
               </select>
             </Field>
             <Field label="Subject code">
-              <input name="code" required maxLength={30} placeholder="IM204" />
+              <input
+                name="code"
+                required
+                maxLength={30}
+                placeholder="IM204"
+                defaultValue={editingSubject?.code}
+              />
             </Field>
             <Field label="Title">
-              <input name="title" required maxLength={180} />
+              <input
+                name="title"
+                required
+                maxLength={180}
+                defaultValue={editingSubject?.title}
+              />
             </Field>
             <Field label="Credits">
               <input
@@ -979,13 +1282,26 @@ export function AcademicOperations({
                 min="0.5"
                 max="30"
                 step="0.5"
-                defaultValue="3"
+                defaultValue={editingSubject?.credits ?? 3}
                 required
               />
             </Field>
             <Field label="Description" wide>
-              <textarea name="description" rows={5} maxLength={2000} />
+              <textarea
+                name="description"
+                rows={5}
+                maxLength={2000}
+                defaultValue={editingSubject?.description}
+              />
             </Field>
+            {editingSubject ? (
+              <Field label="Status">
+                <select name="status" defaultValue={editingSubject.status}>
+                  <option value="active">Active</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </Field>
+            ) : null}
           </ActionForm>
         </Modal>
       ) : null}
@@ -1140,6 +1456,7 @@ export function ScheduleOperations({
 }) {
   const [modal, setModal] = useState<ModalName>(null);
   const [busy, setBusy] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<ScheduleEvent | null>(null);
   const canManage = scheduleManagers.has(currentUser.role);
   const manageableSectionIds = useMemo(
     () =>
@@ -1159,6 +1476,7 @@ export function ScheduleOperations({
       await action();
       onToast(success);
       setModal(null);
+      setEditingEvent(null);
       onChanged();
     } catch (error) {
       onToast(
@@ -1227,6 +1545,16 @@ export function ScheduleOperations({
                 </span>
                 <button
                   type="button"
+                  onClick={() => {
+                    setEditingEvent(event);
+                    setModal("event");
+                  }}
+                  disabled={busy}
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
                   onClick={() => void remove(event)}
                   disabled={busy}
                 >
@@ -1238,9 +1566,12 @@ export function ScheduleOperations({
       ) : null}
       {modal === "event" ? (
         <Modal
-          title="Add schedule event"
+          title={editingEvent ? "Edit schedule event" : "Add schedule event"}
           description="Class, exam, and meeting events are checked for room, teacher, learner, and academic-term conflicts."
-          onClose={() => setModal(null)}
+          onClose={() => {
+            setModal(null);
+            setEditingEvent(null);
+          }}
         >
           <ActionForm
             submitLabel="Save event"
@@ -1252,8 +1583,8 @@ export function ScheduleOperations({
               const sectionId = String(f.get("sectionId"));
               const audience = String(f.get("audienceRole"));
               void perform(
-                () =>
-                  createScheduleEvent({
+                () => {
+                  const values = {
                     sectionId,
                     ownerProfileId: !sectionId ? currentUser.id : undefined,
                     title: String(f.get("title")),
@@ -1263,13 +1594,23 @@ export function ScheduleOperations({
                     endsAt: new Date(String(f.get("endsAt"))).toISOString(),
                     location: String(f.get("location")),
                     audienceRoles: audience ? [audience as PlatformRole] : [],
-                  }),
-                "Schedule event created without conflicts.",
+                  };
+                  return editingEvent
+                    ? updateScheduleEvent(editingEvent.id, values)
+                    : createScheduleEvent(values);
+                },
+                editingEvent
+                  ? "Schedule event updated without conflicts."
+                  : "Schedule event created without conflicts.",
               );
             }}
           >
             <Field label="Event type">
-              <select name="eventType" required>
+              <select
+                name="eventType"
+                required
+                defaultValue={editingEvent?.type ?? "class"}
+              >
                 <option value="class">Class</option>
                 <option value="exam">Exam</option>
                 <option value="deadline">Deadline</option>
@@ -1279,7 +1620,10 @@ export function ScheduleOperations({
               </select>
             </Field>
             <Field label="Class section">
-              <select name="sectionId">
+              <select
+                name="sectionId"
+                defaultValue={editingEvent?.sectionId ?? ""}
+              >
                 <option value="">Personal / role event</option>
                 {data.courses
                   .filter((course) =>
@@ -1293,19 +1637,45 @@ export function ScheduleOperations({
               </select>
             </Field>
             <Field label="Title">
-              <input name="title" required maxLength={180} />
+              <input
+                name="title"
+                required
+                maxLength={180}
+                defaultValue={editingEvent?.title}
+              />
             </Field>
             <Field label="Location">
-              <input name="location" maxLength={160} />
+              <input
+                name="location"
+                maxLength={160}
+                defaultValue={editingEvent?.location}
+              />
             </Field>
             <Field label="Starts">
-              <input name="startsAt" type="datetime-local" required />
+              <input
+                name="startsAt"
+                type="datetime-local"
+                required
+                defaultValue={
+                  editingEvent ? localDateTimeInput(editingEvent.startsAt) : ""
+                }
+              />
             </Field>
             <Field label="Ends">
-              <input name="endsAt" type="datetime-local" required />
+              <input
+                name="endsAt"
+                type="datetime-local"
+                required
+                defaultValue={
+                  editingEvent ? localDateTimeInput(editingEvent.endsAt) : ""
+                }
+              />
             </Field>
             <Field label="Role audience">
-              <select name="audienceRole">
+              <select
+                name="audienceRole"
+                defaultValue={editingEvent?.audienceRoles[0] ?? ""}
+              >
                 <option value="">Section / personal only</option>
                 {data.roles.map((role) => (
                   <option key={role.code} value={role.code}>
@@ -1315,7 +1685,12 @@ export function ScheduleOperations({
               </select>
             </Field>
             <Field label="Description" wide>
-              <textarea name="description" rows={4} maxLength={2000} />
+              <textarea
+                name="description"
+                rows={4}
+                maxLength={2000}
+                defaultValue={editingEvent?.description}
+              />
             </Field>
           </ActionForm>
         </Modal>

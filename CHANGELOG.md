@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- added the authoritative platform PRD with a role, entity-lifecycle, rich-content, AI-safety, security, UX, and production acceptance contract
+- completed visible pre-filled editing for academic departments, programs, terms, subjects, sections, schedules, students, and teacher/staff profiles
+- completed teacher assessment authoring and editing for quizzes, exams, assignments, and projects, including protected correct answers, rich instructions, question replacement before attempts, safe attempt locking, and detail access
+- completed multi-page material editing, page add/edit/remove/reorder, module dialogs, attendance-session editing, and rich-image announcement editing
+- added complete CRM record editors for student-success records, cases, prospects, campaigns, tasks, signals, append-only interactions, and knowledge, with production RLS CRUD verification and cleanup
+- added editable grade score/letter/feedback/publication workflows plus managed rich images for assessments, announcements, cases, campaigns, signals, interactions, and institutional knowledge
+
 - added RLS-protected multi-page learning materials, public instructional-image media with manager-only uploads, and polished page-by-page student reading
 - upgraded the shared Tiptap editor with managed image uploads and reused it for institutional knowledge publishing
 - added create, edit, and delete workflows for verified knowledge plus update/delete operations for LMS modules, materials, and lesson pages

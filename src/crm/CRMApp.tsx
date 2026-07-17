@@ -5,7 +5,11 @@ import { askCrmCopilot } from "./aiService";
 import {
   createKnowledgeArticle,
   crmDataSource,
+  deleteAdmissionLead,
+  deleteCampaign,
+  deleteCrmCase,
   deleteKnowledgeArticle,
+  deleteCrmTask,
   getCrmDataSnapshot,
   loadCrmData,
   persistCaseStatus,
@@ -14,8 +18,11 @@ import {
   resetCrmData,
   saveCrmData,
   updateKnowledgeArticle,
+  uploadInstitutionalImage,
 } from "./crmRepository";
 import { RichTextEditor } from "../platform/RichTextEditor";
+import { CrmRecordEditor } from "./CrmRecordEditor";
+import type { EditableCrmRecord } from "./CrmRecordEditor";
 import type { CrmUser } from "./authService";
 import type {
   AiCopilotResult,
@@ -24,6 +31,7 @@ import type {
   LeadStage,
   KnowledgeArticle,
   Student,
+  StudentSignal,
 } from "./types";
 
 const navigation: Array<{ id: CrmSection; label: string; icon: string }> = [
@@ -251,7 +259,11 @@ function KnowledgeEditor({
           </div>
           <label className="knowledge-rich-label">
             Article content
-            <RichTextEditor value={content} onChange={setContent} />
+            <RichTextEditor
+              value={content}
+              onChange={setContent}
+              onImageUpload={uploadInstitutionalImage}
+            />
           </label>
           {error ? <p className="knowledge-editor-error">{error}</p> : null}
           <footer>
@@ -297,6 +309,9 @@ function CRMApp({
   const [knowledgeEditor, setKnowledgeEditor] = useState<
     KnowledgeArticle | "new" | null
   >(null);
+  const [recordEditor, setRecordEditor] = useState<EditableCrmRecord | null>(
+    null,
+  );
 
   useEffect(() => {
     void loadCrmData(Boolean(getCrmDataSnapshot())).then(setDatabase);
@@ -720,6 +735,14 @@ function CRMApp({
                     <button type="button" onClick={() => setSection("cases")}>
                       View all
                     </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setRecordEditor({ kind: "task", record: null })
+                      }
+                    >
+                      + Task
+                    </button>
                   </header>
                   <div>
                     {database.tasks.slice(0, 5).map((task) => (
@@ -742,6 +765,29 @@ function CRMApp({
                         <StatusPill tone={task.priority}>
                           {task.priority}
                         </StatusPill>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            setRecordEditor({ kind: "task", record: task });
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            if (!window.confirm(`Delete task “${task.title}”?`))
+                              return;
+                            void deleteCrmTask(task.id)
+                              .then(() => loadCrmData(true))
+                              .then(setDatabase)
+                              .then(() => setToast("Task deleted."));
+                          }}
+                        >
+                          Delete
+                        </button>
                       </label>
                     ))}
                   </div>
@@ -884,7 +930,20 @@ function CRMApp({
                             {student.nextAction}
                           </p>
                         </td>
-                        <td>›</td>
+                        <td>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setRecordEditor({
+                                kind: "student",
+                                record: student,
+                              });
+                            }}
+                          >
+                            Edit
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1026,6 +1085,20 @@ function CRMApp({
 
           {section === "admissions" ? (
             <section className="admissions-workspace">
+              <div className="crm-lifecycle-toolbar">
+                <div>
+                  <span>ADMISSIONS RECORDS</span>
+                  <h3>Prospect pipeline</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setRecordEditor({ kind: "lead", record: null })
+                  }
+                >
+                  + Add prospect
+                </button>
+              </div>
               <div className="pipeline-summary">
                 <MetricCard
                   label="Open pipeline"
@@ -1086,6 +1159,36 @@ function CRMApp({
                             <small className="next-step">
                               Next: {lead.nextStep}
                             </small>
+                            <div className="crm-inline-actions">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setRecordEditor({
+                                    kind: "lead",
+                                    record: lead,
+                                  })
+                                }
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (
+                                    !window.confirm(
+                                      `Delete prospect “${lead.name}”?`,
+                                    )
+                                  )
+                                    return;
+                                  void deleteAdmissionLead(lead.id)
+                                    .then(() => loadCrmData(true))
+                                    .then(setDatabase)
+                                    .then(() => setToast("Prospect deleted."));
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </article>
                         ))}
                       </div>
@@ -1098,6 +1201,20 @@ function CRMApp({
 
           {section === "cases" ? (
             <section className="cases-workspace">
+              <div className="crm-lifecycle-toolbar">
+                <div>
+                  <span>SUPPORT LIFECYCLE</span>
+                  <h3>Cases</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setRecordEditor({ kind: "case", record: null })
+                  }
+                >
+                  + Create case
+                </button>
+              </div>
               <div className="case-summary-row">
                 {(["open", "in_progress", "waiting", "resolved"] as const).map(
                   (status) => (
@@ -1160,6 +1277,29 @@ function CRMApp({
                       >
                         {item.status === "resolved" ? "✓" : "Advance"}
                       </button>
+                      <div className="crm-inline-actions">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setRecordEditor({ kind: "case", record: item })
+                          }
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!window.confirm(`Delete case “${item.title}”?`))
+                              return;
+                            void deleteCrmCase(item.id)
+                              .then(() => loadCrmData(true))
+                              .then(setDatabase)
+                              .then(() => setToast("Case deleted."));
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </article>
                   );
                 })}
@@ -1188,6 +1328,14 @@ function CRMApp({
                   }}
                 >
                   ✦ Draft with Nexus AI
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setRecordEditor({ kind: "campaign", record: null })
+                  }
+                >
+                  + New campaign
                 </button>
               </div>
               <div className="campaign-grid">
@@ -1219,10 +1367,30 @@ function CRMApp({
                       <button
                         type="button"
                         onClick={() =>
-                          setToast(`${campaign.name} opened in campaign editor`)
+                          setRecordEditor({
+                            kind: "campaign",
+                            record: campaign,
+                          })
                         }
                       >
-                        Open →
+                        Edit →
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (
+                            !window.confirm(
+                              `Delete campaign “${campaign.name}”?`,
+                            )
+                          )
+                            return;
+                          void deleteCampaign(campaign.id)
+                            .then(() => loadCrmData(true))
+                            .then(setDatabase)
+                            .then(() => setToast("Campaign deleted."));
+                        }}
+                      >
+                        Delete
                       </button>
                     </footer>
                   </article>
@@ -1488,6 +1656,52 @@ function CRMApp({
             );
             setCopilotOpen(true);
           }}
+          onEdit={() =>
+            setRecordEditor({ kind: "student", record: selectedStudent })
+          }
+          onCreateCase={() =>
+            setRecordEditor({
+              kind: "case",
+              record: null,
+              studentId: selectedStudent.id,
+            })
+          }
+          onLogInteraction={() =>
+            setRecordEditor({
+              kind: "interaction",
+              record: null,
+              studentId: selectedStudent.id,
+            })
+          }
+          onCreateSignal={() =>
+            setRecordEditor({
+              kind: "signal",
+              record: null,
+              studentId: selectedStudent.id,
+            })
+          }
+          onEditSignal={(signal) =>
+            setRecordEditor({
+              kind: "signal",
+              record: signal,
+              studentId: selectedStudent.id,
+            })
+          }
+        />
+      ) : null}
+
+      {recordEditor ? (
+        <CrmRecordEditor
+          value={recordEditor}
+          database={database}
+          onClose={() => setRecordEditor(null)}
+          onError={setToast}
+          onSaved={(message) => {
+            setRecordEditor(null);
+            void loadCrmData(true)
+              .then(setDatabase)
+              .then(() => setToast(message));
+          }}
         />
       ) : null}
 
@@ -1656,11 +1870,21 @@ function StudentDrawer({
   cases,
   onClose,
   onAskAi,
+  onEdit,
+  onCreateCase,
+  onLogInteraction,
+  onCreateSignal,
+  onEditSignal,
 }: {
   student: Student;
   cases: number;
   onClose: () => void;
   onAskAi: () => void;
+  onEdit: () => void;
+  onCreateCase: () => void;
+  onLogInteraction: () => void;
+  onCreateSignal: () => void;
+  onEditSignal: (signal: StudentSignal) => void;
 }) {
   return (
     <div className="student-drawer-layer">
@@ -1692,7 +1916,18 @@ function StudentDrawer({
             ✦ AI success brief
           </button>
           <a href={`mailto:${student.email}`}>Send message</a>
-          <button type="button">Create case</button>
+          <button type="button" onClick={onEdit}>
+            Edit student
+          </button>
+          <button type="button" onClick={onCreateCase}>
+            Create case
+          </button>
+          <button type="button" onClick={onLogInteraction}>
+            Log interaction
+          </button>
+          <button type="button" onClick={onCreateSignal}>
+            Add signal
+          </button>
         </div>
         <section className="student-vitals">
           <div>
@@ -1723,12 +1958,17 @@ function StudentDrawer({
             <span>{student.signals.length} active</span>
           </header>
           {student.signals.map((signal) => (
-            <article className="drawer-signal" key={signal.label}>
+            <article className="drawer-signal" key={signal.id ?? signal.label}>
               <i className={signal.tone} />
               <div>
                 <strong>{signal.label}</strong>
                 <p>{signal.detail}</p>
               </div>
+              {signal.id ? (
+                <button type="button" onClick={() => onEditSignal(signal)}>
+                  Edit
+                </button>
+              ) : null}
             </article>
           ))}
         </section>
