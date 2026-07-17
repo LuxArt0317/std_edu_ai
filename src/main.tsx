@@ -4,7 +4,9 @@ import { ApplicationErrorBoundary } from './ApplicationErrorBoundary'
 import './index.css'
 
 const isCrmRoute = window.location.pathname === '/crm' || window.location.pathname.startsWith('/crm/')
-export const RootApplication = lazy(() => isCrmRoute ? import('./crm/CRMRoot.tsx') : import('./App.tsx'))
+const CrmApplication = lazy(() => import('./crm/CRMRoot.tsx'))
+const PublicApplication = lazy(() => import('./App.tsx'))
+export const RootApplication = isCrmRoute ? CrmApplication : PublicApplication
 
 function RouteLoading() {
   return <main className="route-loading" role="status" aria-live="polite"><section><span>樹</span><p>STU NEXUS</p><strong>Loading the latest workspace</strong><small>Your secure school portal is starting…</small><i aria-hidden="true" /></section></main>

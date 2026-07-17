@@ -1,5 +1,16 @@
 # Progress Log
 
+2026-07-17 — CRM route stylesheet recovery and deployment guardrails [Issue #22]
+
+- captured the production `/crm` route at desktop and mobile widths and confirmed only default browser form controls were visible on the global dark background
+- verified HTTP 200, complete authentication DOM, reachable CRM CSS, and a generated entry preload map that referenced only the public App CSS
+- created the incident issue, reviewed Vite's current async CSS and dynamic-import preload guarantees, and selected distinct statically analyzable lazy boundaries
+- separated the CRM and public lazy imports and added a source regression contract forbidding the route-dependent lazy ternary
+- rendered the repaired local production build at desktop and mobile widths; desktop styling is restored, and the mobile capture revealed a content-box overflow now corrected with an authentication-shell border-box contract
+- added the semantic generated-asset gate to every standard build, strengthened the live production verifier, and documented `npm run diagnose:production`
+- proved the live diagnostic fails clearly against the broken production asset graph, while the repaired build exposes the CRM JavaScript and authentication stylesheet together
+- passed 19 contracts, lint, guarded Vite build, and Vercel production compilation; desktop and true 390×844 rendering show the complete card and responsive margins
+
 2026-07-17 — Vercel framework defaults and Node.js 24 [Issue #20]
 
 - created the GitHub issue and reviewed current official Vercel build configuration, Vite, CLI build, and Node.js 24 guidance

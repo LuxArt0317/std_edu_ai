@@ -1,5 +1,10 @@
 # Findings
 
+- production HTTP 200, a non-empty React DOM, and reachable JavaScript assets do not prove a route is usable; the `/crm` incident rendered the full sign-in DOM with browser-default controls because its route CSS was absent from the runtime preload graph
+- Vite normally extracts CSS used by async chunks and loads it before evaluating the chunk, but the route-dependent ternary inside a single `lazy` callback produced an incorrect dependency association under Vite 8.1.4
+- separate top-level lazy boundaries keep both dynamic imports statically analyzable and allow Vite to associate each route with its own extracted CSS
+- deployment verification must require meaningful selectors from the fetched CRM CSS, not merely count CSS responses or search the CRM JavaScript bundle
+
 - Vercel automatically configures install, build, and output settings after framework detection; `framework`, `installCommand`, `buildCommand`, and `outputDirectory` in `vercel.json` are repository-level overrides rather than requirements for a standard Vite deployment
 - the SPA rewrite is independent routing configuration and must remain so direct requests such as `/crm` resolve to the React application shell
 - Vercel supports Node.js 24 for builds and functions, and a major-only `24.x` engine range lets Vercel select the maintained minor and patch release

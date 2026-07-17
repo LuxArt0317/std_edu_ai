@@ -92,10 +92,24 @@ Supabase session restoration, identity validation, sign-in, sign-out, and initia
 ## Preview Production Build
 
 ```bash
+npm run build
 npm run preview
 ```
 
-The preview HTML for both `/` and `/crm` must contain `data-stu-boot` before release. `npm test` enforces this contract automatically.
+Every standard build runs `verify:build` after Vite. The release is rejected if the generated CRM route graph does not include a stylesheet containing the authentication-shell and card selectors. The preview HTML for both `/` and `/crm` must contain `data-stu-boot`; `npm test` enforces the source contract automatically.
+
+## Diagnose Production Rendering
+
+```bash
+npm run diagnose:production
+```
+
+This read-only command checks `https://www.stu.best` by default. It recursively
+fetches the generated assets for `/` and `/crm`, then requires the recovery shell,
+onboarding bundle, and semantic CRM authentication stylesheet. Set
+`STU_BASE_URL` to diagnose a different public deployment. A missing-style failure
+explicitly reports that the portal can return HTTP 200 while showing an unstyled
+sign-in form.
 
 ## Deploy to Vercel
 

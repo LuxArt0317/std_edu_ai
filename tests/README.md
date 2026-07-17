@@ -2,7 +2,7 @@
 
 The test suite lives outside Vercel's reserved `/api` directory so test modules are never deployed as serverless functions. `api/` contains contract coverage for validation, authentication, privacy filtering, provider calls, structured chatbot output, and human-reviewed grade scanning.
 
-`api/boot-recovery.test.ts` protects the non-empty pre-JavaScript boot shell, lazy-route error boundary, finite startup timeouts, and local-session recovery contract that prevents a blank deployment screen.
+`api/boot-recovery.test.ts` protects the non-empty pre-JavaScript boot shell, distinct statically analyzable lazy-route boundaries, lazy-route error handling, finite startup timeouts, and local-session recovery contract that prevents a blank deployment screen.
 
 `integration/crm-live.mjs` verifies anonymous isolation, authenticated staff access, table availability, and a reversible RLS-protected mutation against the configured production Supabase project. It requires credentials through environment variables and never stores them in the repository.
 
@@ -14,6 +14,8 @@ The test suite lives outside Vercel's reserved `/api` directory so test modules 
 
 `integration/onboarding-live.mjs` authenticates all 14 role accounts, writes a temporary role-matched readiness record and append-only action evidence for each, verifies self/owner visibility, rejects a forged-role write and user deletion, and prints the temporary journey key for immediate operator cleanup.
 
-`integration/deployment-shell-live.mjs` verifies that deployed `/` and `/crm` contain useful pre-JavaScript recovery content instead of an empty root, recursively checks compiled entry/style/lazy-route assets, and confirms that the released CRM chunk contains the role-readiness onboarding contract.
+`integration/build-assets.mjs` runs after every production build and fails the build unless the generated entry graph exposes the CRM JavaScript chunk and a linked stylesheet containing the semantic authentication selectors `.nexus-auth-shell` and `.nexus-auth-card`.
+
+`integration/deployment-shell-live.mjs` verifies that deployed `/` and `/crm` contain useful pre-JavaScript recovery content instead of an empty root, recursively checks compiled entry/style/lazy-route assets, confirms that the released CRM chunk contains the role-readiness onboarding contract, and requires the live hashed asset graph to expose the CRM authentication stylesheet.
 
 `integration/ai-live.mjs` invokes the real authenticated school chatbot and OpenAI vision grade extraction using the synthetic `fixtures/grade-sheet.svg` fixture converted to PNG. It verifies structured responses and the mandatory human-review flag without saving grades.

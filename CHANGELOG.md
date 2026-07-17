@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- fixed the production CRM sign-in screen losing its route stylesheet by replacing a conditional lazy-import callback with distinct statically analyzable route boundaries
+- corrected the authentication card's border-box sizing so its padding cannot push the form outside narrow mobile viewports
+- added a mandatory post-build asset-graph verifier that rejects CRM bundles missing the semantic authentication stylesheet
+- strengthened the live production diagnostic to detect HTTP-200 deployments that render an unstyled portal and report the missing CSS contract directly
+
 - restored Vercel's standard Vite framework detection by removing repository-level framework, install, build, and output overrides
 - upgraded the supported Vercel and local runtime from Node.js 22 to the major-only Node.js 24 line
 - removed the redundant `vercel-build` script while preserving the `/crm` SPA rewrite required for direct navigation

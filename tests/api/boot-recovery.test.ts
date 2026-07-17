@@ -22,6 +22,17 @@ test('the React entry protects lazy routes with loading and error UI', () => {
   assert.match(boundary, /dynamically imported module/)
 })
 
+test('each route has a statically analyzable lazy boundary', () => {
+  const entry = fs.readFileSync('src/main.tsx', 'utf8')
+  const crmStyles = fs.readFileSync('src/crm/crm.css', 'utf8')
+  assert.match(entry, /lazy\(\(\) => import\('\.\/crm\/CRMRoot\.tsx'\)\)/)
+  assert.match(entry, /lazy\(\(\) => import\('\.\/App\.tsx'\)\)/)
+  assert.doesNotMatch(entry, /lazy\(\(\) => isCrmRoute \?/)
+  assert.match(crmStyles, /\.nexus-auth-shell, \.nexus-auth-shell \*/)
+  assert.match(crmStyles, /box-sizing: border-box/)
+  assert.match(crmStyles, /width: min\(460px, calc\(100vw - 56px\)\)/)
+})
+
 test('timeout helper resolves successful work and rejects stalled work', async () => {
   assert.equal(await withTimeout(Promise.resolve('ready'), 50, 'timed out'), 'ready')
   await assert.rejects(withTimeout(new Promise(() => undefined), 5, 'startup timed out'), /startup timed out/)

@@ -1,5 +1,35 @@
 # Task Plan
 
+## Phase 12: CRM route stylesheet recovery and deployment guardrails [Issue #22]
+
+### Incident recovery
+
+- replace the route-dependent ternary inside one lazy callback with distinct, statically analyzable CRM and public lazy boundaries
+- preserve route-level JavaScript and CSS splitting without disabling Vite's maintained CSS code-splitting behavior
+- verify the unauthenticated STU Nexus card at desktop and mobile widths
+
+### Prevention and diagnosis
+
+- make the standard production build fail when the generated CRM route graph does not include CSS containing the required authentication selectors
+- strengthen the live deployment verifier to fetch the emitted route graph and require the same CSS contract
+- document the precise production diagnostic command and failure signature so an HTTP 200 cannot conceal an unstyled portal
+
+### Production verification
+
+- pass contracts, lint, guarded production build, Vercel build, preview rendering, and production rendering
+- merge through a reviewed PR, verify both custom domains, record the deployment, and close issue #22 only after the live CSS contract passes
+
+## Current execution
+
+- GitHub issue #22 created
+- production desktop/mobile capture confirmed the complete authentication DOM renders without its CRM stylesheet
+- generated entry inspection proved the CRM JavaScript path was emitted while the dependency map contained only the public App CSS
+- current official Vite CSS code-splitting and dynamic-import preload behavior reviewed
+- distinct route lazy boundaries implemented and source-level regression coverage added
+- standard `npm run build` now runs a semantic asset-graph gate requiring the CRM lazy JavaScript and linked authentication CSS; the live diagnostic enforces the same contract against deployed hashes
+- production diagnostic correctly fails against the currently broken release with a precise HTTP-200-but-unstyled explanation
+- 19 contracts, lint, guarded Vite build, and `vercel build --prod` pass; rendered desktop and true 390px viewport captures show the complete responsive sign-in card without overflow
+
 ## Phase 11: Vercel framework defaults and Node.js 24 [Issue #20]
 
 ### Standard deployment contract
