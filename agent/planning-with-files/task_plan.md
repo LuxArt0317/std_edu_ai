@@ -402,4 +402,4 @@
 - [x] add Tiptap rich lesson authoring and a dedicated learner reading surface
 - [x] let Nexus AI propose safe LMS writes with exact resource IDs and mandatory user confirmation
 - [x] keep Student 360 capabilities while renaming the workspace to Learner Support
-- [ ] publish through GitHub/Vercel and verify production
+- [x] publish through GitHub/Vercel and verify production

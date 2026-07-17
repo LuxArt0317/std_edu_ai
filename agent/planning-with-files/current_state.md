@@ -63,4 +63,5 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 
 - Branch `agent/instant-navigation` now contains instant authenticated portal restoration with silent refresh, confirmation-gated Nexus AI LMS actions, Tiptap lesson authoring, rich learner reading, and the Learner Support rename.
 - Local verification passes: 26 tests, oxlint, TypeScript, Vite production build, and built-asset validation.
-- Remaining: push the release, merge after GitHub/Vercel checks, and verify `https://www.stu.best/crm` in production.
+- PR #37 passed GitHub/Vercel review checks, merged to `main`, and deployed Ready to `https://www.stu.best/crm`.
+- Production returns HTTP 200; the released lazy bundle contains the Learner Support, AI confirmation, and Tiptap editor contracts; the assistant endpoint correctly rejects unauthenticated requests with HTTP 401.
