@@ -103,3 +103,4 @@
 - implemented a fail-closed atomic root Markdown exporter backed by macOS Keychain, explicit Git exclusion, and mode `0600`
 - generated the local root sheet with 14 verified accounts; confirmed it is ignored by Git and restricted to mode `0600`
 - passed all 19 contracts, lint, and the guarded TypeScript/Vite production build
+- merged PR #27 as `2da1aed` after Vercel and CodeRabbit passed; issue #26 closed completed with credential-safe evidence
