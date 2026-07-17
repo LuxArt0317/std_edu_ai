@@ -410,3 +410,10 @@
 - [x] repair CORS contracts for browser-invoked account functions
 - [x] surface structured server errors instead of generic network failures
 - [x] audit CRUD contracts, deploy functions, and run production verification
+
+## Phase 40: Zero-delay workspace switching [Issue #40]
+
+- [x] identify Learner Support unmount/remount and repeated CRM loading
+- [x] keep School OS and Learner Support mounted while switching visibility instantly
+- [x] cache and deduplicate CRM data, warm it after sign-in, and clear it on sign-out
+- [ ] verify, release, and smoke-test production navigation contracts

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- removed Learner Support tab loading by keeping both workspaces mounted, warming CRM data after sign-in, deduplicating its fetch, and restoring it synchronously from memory
+- isolated the CRM snapshot by clearing it with the authenticated platform snapshot on sign-out
+
 - fixed production account-creation requests being blocked after CORS preflight by allowing Supabase's `x-client-info` header in both provisioning Edge Functions
 - added actionable Edge Function error extraction so CRUD failures show the server's real validation or authorization message
 

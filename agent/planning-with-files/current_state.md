@@ -72,3 +72,9 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - Production preflight, authenticated owner invocation/validation, role denial, reversible enrollment/schedule operations, and the complete reversible LMS workflow pass.
 - PR #39 passed GitHub/Vercel checks, merged to `main`, and deployed Ready. `https://www.stu.best/crm` returns HTTP 200 with the new production entry bundle.
 - Issue #38 is closed; no unresolved CRUD failure was found in the reversible Academic Office and LMS workflow audits.
+# Current release: Issue #40
+
+- School OS and Learner Support now remain mounted; navigation only changes visibility, so returning never recreates either workspace.
+- CRM data warms after authentication, restores synchronously from memory, deduplicates background loads, and clears on sign-out.
+- Verification passes: 28 tests, lint, TypeScript/Vite production build, and built-asset validation.
+- Remaining: merge after GitHub/Vercel checks and verify the new production bundle.

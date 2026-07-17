@@ -2132,6 +2132,10 @@ textarea {
 .crm-bridge {
   min-height: 100vh;
 }
+.school-shell[hidden],
+.crm-bridge[hidden] {
+  display: none !important;
+}
 .crm-bridge-bar {
   position: fixed;
   top: 10px;

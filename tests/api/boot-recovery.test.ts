@@ -47,3 +47,15 @@ test('authentication and platform startup have finite recovery bounds', () => {
   assert.match(portal, /20_000/)
   assert.match(root, /Start with a clean local session/)
 })
+
+test('workspace navigation retains School OS and Learner Support without remount loading', () => {
+  const portal = fs.readFileSync('src/platform/UnifiedPortal.tsx', 'utf8')
+  const crm = fs.readFileSync('src/crm/crmRepository.ts', 'utf8')
+  const crmApp = fs.readFileSync('src/crm/CRMApp.tsx', 'utf8')
+  assert.match(portal, /school-shell" hidden=\{showingCrm\}/)
+  assert.match(portal, /crm-bridge" hidden=\{!showingCrm\}/)
+  assert.doesNotMatch(portal, /if \(view === "crm"[\s\S]{0,120}return/)
+  assert.match(crm, /getCrmDataSnapshot/)
+  assert.match(crm, /crmLoad/)
+  assert.match(crmApp, /useState<CrmDatabase \| null>\(\(\) =>\s*getCrmDataSnapshot\(\)/)
+})

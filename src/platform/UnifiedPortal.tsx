@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import CRMApp from "../crm/CRMApp";
+import { clearCrmDataSnapshot } from "../crm/crmRepository";
 import type { CrmUser } from "../crm/authService";
 import { askSchoolAssistant, scanGradeSheet } from "./platformAi";
 import {
@@ -214,6 +215,7 @@ function UnifiedPortal({
 
   function signOut() {
     clearPlatformDataSnapshot();
+    clearCrmDataSnapshot();
     onSignOut();
   }
   useEffect(() => {
@@ -229,22 +231,7 @@ function UnifiedPortal({
     if (!navigation.includes(view)) setView("home");
   }, [navigation, view]);
 
-  if (view === "crm" && crmRoles.has(effectiveRole)) {
-    return (
-      <div className="crm-bridge">
-        <div className="crm-bridge-bar">
-          <button type="button" onClick={() => setView("home")}>
-            ← Back to School OS
-          </button>
-          <span>STU Nexus · Learner Support</span>
-          {currentUser.isOwner ? (
-            <Pill tone="owner">Owner workspace</Pill>
-          ) : null}
-        </div>
-        <CRMApp currentUser={currentUser} onSignOut={signOut} />
-      </div>
-    );
-  }
+  const showingCrm = view === "crm" && crmRoles.has(effectiveRole);
 
   if (!data && !loadError) return <PortalLoading />;
   if (!data)
@@ -260,222 +247,238 @@ function UnifiedPortal({
     );
 
   return (
-    <div className="school-shell">
-      <aside className={`school-sidebar ${sidebarOpen ? "open" : ""}`}>
-        <a className="school-brand" href="/">
-          <span>樹</span>
-          <div>
-            <b>STU NEXUS</b>
-            <small>One School · One Platform</small>
+    <>
+      <div className="school-shell" hidden={showingCrm}>
+        <aside className={`school-sidebar ${sidebarOpen ? "open" : ""}`}>
+          <a className="school-brand" href="/">
+            <span>樹</span>
+            <div>
+              <b>STU NEXUS</b>
+              <small>One School · One Platform</small>
+            </div>
+          </a>
+          <div className="school-role-card">
+            <span>{currentUser.initials}</span>
+            <div>
+              <b>{currentUser.name}</b>
+              <small>{roleNames[currentUser.role]}</small>
+            </div>
+            {currentUser.isOwner ? <i>OWNER</i> : null}
           </div>
-        </a>
-        <div className="school-role-card">
-          <span>{currentUser.initials}</span>
-          <div>
-            <b>{currentUser.name}</b>
-            <small>{roleNames[currentUser.role]}</small>
-          </div>
-          {currentUser.isOwner ? <i>OWNER</i> : null}
-        </div>
-        <nav>
-          <p>YOUR WORKSPACE</p>
-          {navigation.map((item) => (
-            <button
-              key={item}
-              type="button"
-              className={view === item ? "active" : ""}
-              onClick={() => {
-                setView(item);
-                setSidebarOpen(false);
-              }}
-            >
-              <i>{navMeta[item].icon}</i>
-              <span>{navMeta[item].label}</span>
-              {item === "assessments" && data.assessments.length ? (
-                <b>{data.assessments.length}</b>
-              ) : null}
+          <nav>
+            <p>YOUR WORKSPACE</p>
+            {navigation.map((item) => (
+              <button
+                key={item}
+                type="button"
+                className={view === item ? "active" : ""}
+                onClick={() => {
+                  setView(item);
+                  setSidebarOpen(false);
+                }}
+              >
+                <i>{navMeta[item].icon}</i>
+                <span>{navMeta[item].label}</span>
+                {item === "assessments" && data.assessments.length ? (
+                  <b>{data.assessments.length}</b>
+                ) : null}
+              </button>
+            ))}
+          </nav>
+          <div className="school-sidebar-foot">
+            <button type="button" onClick={() => setAssistantOpen(true)}>
+              ✦ <span>Ask Nexus AI</span>
             </button>
-          ))}
-        </nav>
-        <div className="school-sidebar-foot">
-          <button type="button" onClick={() => setAssistantOpen(true)}>
-            ✦ <span>Ask Nexus AI</span>
-          </button>
-          <div>
-            <span className="live-dot" />
-            <p>
-              <b>Production connected</b>
-              <small>Supabase RLS active</small>
-            </p>
+            <div>
+              <span className="live-dot" />
+              <p>
+                <b>Production connected</b>
+                <small>Supabase RLS active</small>
+              </p>
+            </div>
           </div>
-        </div>
-      </aside>
-      {sidebarOpen ? (
-        <button
-          className="school-nav-backdrop"
-          type="button"
-          aria-label="Close navigation"
-          onClick={() => setSidebarOpen(false)}
-        />
-      ) : null}
-
-      <main className="school-main">
-        <header className="school-topbar">
+        </aside>
+        {sidebarOpen ? (
           <button
-            className="school-menu"
+            className="school-nav-backdrop"
             type="button"
-            onClick={() => setSidebarOpen(true)}
-          >
-            ☰
-          </button>
-          <div className="school-breadcrumb">
-            <span>STU Nexus</span>
-            <b>/</b>
-            <strong>{navMeta[view].label}</strong>
-          </div>
-          <div className="school-top-actions">
-            {currentUser.isOwner ? (
-              <label className="role-preview">
-                <span>View as</span>
-                <select
-                  value={previewRole}
-                  onChange={(event) =>
-                    setPreviewRole(event.target.value as PlatformRole)
-                  }
-                >
-                  {data.roles.map((role) => (
-                    <option key={role.code} value={role.code}>
-                      {role.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-            <button
-              type="button"
-              className="school-alert"
-              title="Notifications"
-            >
-              ♢<b>{data.announcements.length}</b>
-            </button>
-            <button type="button" className="school-user" onClick={signOut}>
-              {currentUser.initials}
-              <span>Sign out</span>
-            </button>
-          </div>
-        </header>
-
-        {currentUser.isOwner && effectiveRole !== "owner" ? (
-          <div className="preview-banner">
-            <span>OWNER PREVIEW</span>
-            <p>
-              You are safely previewing the{" "}
-              <strong>{roleNames[effectiveRole]}</strong> interface. Your
-              database permissions remain owner-level for auditing.
-            </p>
-            <button type="button" onClick={() => setPreviewRole("owner")}>
-              Exit preview
-            </button>
-          </div>
+            aria-label="Close navigation"
+            onClick={() => setSidebarOpen(false)}
+          />
         ) : null}
 
-        <div className="school-content">
-          {view === "home" ? (
-            <HomeView
-              data={data}
-              role={effectiveRole}
-              user={currentUser}
-              onNavigate={setView}
-              onAsk={() => setAssistantOpen(true)}
-            />
+        <main className="school-main">
+          <header className="school-topbar">
+            <button
+              className="school-menu"
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+            >
+              ☰
+            </button>
+            <div className="school-breadcrumb">
+              <span>STU Nexus</span>
+              <b>/</b>
+              <strong>{navMeta[view].label}</strong>
+            </div>
+            <div className="school-top-actions">
+              {currentUser.isOwner ? (
+                <label className="role-preview">
+                  <span>View as</span>
+                  <select
+                    value={previewRole}
+                    onChange={(event) =>
+                      setPreviewRole(event.target.value as PlatformRole)
+                    }
+                  >
+                    {data.roles.map((role) => (
+                      <option key={role.code} value={role.code}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+              <button
+                type="button"
+                className="school-alert"
+                title="Notifications"
+              >
+                ♢<b>{data.announcements.length}</b>
+              </button>
+              <button type="button" className="school-user" onClick={signOut}>
+                {currentUser.initials}
+                <span>Sign out</span>
+              </button>
+            </div>
+          </header>
+
+          {currentUser.isOwner && effectiveRole !== "owner" ? (
+            <div className="preview-banner">
+              <span>OWNER PREVIEW</span>
+              <p>
+                You are safely previewing the{" "}
+                <strong>{roleNames[effectiveRole]}</strong> interface. Your
+                database permissions remain owner-level for auditing.
+              </p>
+              <button type="button" onClick={() => setPreviewRole("owner")}>
+                Exit preview
+              </button>
+            </div>
           ) : null}
-          {view === "academics" ? (
-            <AcademicsView
-              data={data}
-              currentUser={currentUser}
-              onChanged={() => void refresh(true)}
-              onToast={setToast}
-            />
-          ) : null}
-          {view === "learning" ? (
-            effectiveRole === "student" ? (
-              <StudentLmsLearning
+
+          <div className="school-content">
+            {view === "home" ? (
+              <HomeView
+                data={data}
+                role={effectiveRole}
+                user={currentUser}
+                onNavigate={setView}
+                onAsk={() => setAssistantOpen(true)}
+              />
+            ) : null}
+            {view === "academics" ? (
+              <AcademicsView
                 data={data}
                 currentUser={currentUser}
                 onChanged={() => void refresh(true)}
                 onToast={setToast}
               />
-            ) : (
-              <LearningView data={data} role={effectiveRole} />
-            )
-          ) : null}
-          {view === "teaching" ? (
-            <TeacherLmsStudio
-              data={data}
-              currentUser={currentUser}
-              onChanged={() => void refresh(true)}
-              onToast={setToast}
-            />
-          ) : null}
-          {view === "assessments" ? (
-            <AssessmentsView
-              data={data}
-              role={effectiveRole}
-              onComplete={(message) => {
-                setToast(message);
-                void refresh(true);
-              }}
-            />
-          ) : null}
-          {view === "grades" ? (
-            <GradesView
-              data={data}
-              role={effectiveRole}
-              currentUser={currentUser}
-              onChanged={() => void refresh(true)}
-              onToast={setToast}
-            />
-          ) : null}
-          {view === "schedule" ? (
-            <ScheduleView
-              data={data}
-              currentUser={currentUser}
-              onChanged={() => void refresh(true)}
-              onToast={setToast}
-            />
-          ) : null}
-          {view === "people" ? (
-            <PeopleView
-              data={data}
-              currentUser={currentUser}
-              onChanged={() => void refresh(true)}
-              onToast={setToast}
-            />
-          ) : null}
-        </div>
-      </main>
+            ) : null}
+            {view === "learning" ? (
+              effectiveRole === "student" ? (
+                <StudentLmsLearning
+                  data={data}
+                  currentUser={currentUser}
+                  onChanged={() => void refresh(true)}
+                  onToast={setToast}
+                />
+              ) : (
+                <LearningView data={data} role={effectiveRole} />
+              )
+            ) : null}
+            {view === "teaching" ? (
+              <TeacherLmsStudio
+                data={data}
+                currentUser={currentUser}
+                onChanged={() => void refresh(true)}
+                onToast={setToast}
+              />
+            ) : null}
+            {view === "assessments" ? (
+              <AssessmentsView
+                data={data}
+                role={effectiveRole}
+                onComplete={(message) => {
+                  setToast(message);
+                  void refresh(true);
+                }}
+              />
+            ) : null}
+            {view === "grades" ? (
+              <GradesView
+                data={data}
+                role={effectiveRole}
+                currentUser={currentUser}
+                onChanged={() => void refresh(true)}
+                onToast={setToast}
+              />
+            ) : null}
+            {view === "schedule" ? (
+              <ScheduleView
+                data={data}
+                currentUser={currentUser}
+                onChanged={() => void refresh(true)}
+                onToast={setToast}
+              />
+            ) : null}
+            {view === "people" ? (
+              <PeopleView
+                data={data}
+                currentUser={currentUser}
+                onChanged={() => void refresh(true)}
+                onToast={setToast}
+              />
+            ) : null}
+          </div>
+        </main>
 
-      <SchoolAssistant
-        open={assistantOpen}
-        onClose={() => setAssistantOpen(false)}
-        data={data}
-        view={view}
-        onDataChanged={() => void refresh(true)}
-      />
-      {toast ? (
-        <div className="school-toast">
-          <span>✓</span>
-          {toast}
+        <SchoolAssistant
+          open={assistantOpen}
+          onClose={() => setAssistantOpen(false)}
+          data={data}
+          view={view}
+          onDataChanged={() => void refresh(true)}
+        />
+        {toast ? (
+          <div className="school-toast">
+            <span>✓</span>
+            {toast}
+          </div>
+        ) : null}
+        <button
+          className="school-ai-fab"
+          type="button"
+          onClick={() => setAssistantOpen(true)}
+        >
+          ✦<span>Ask Nexus</span>
+        </button>
+      </div>
+      {crmRoles.has(effectiveRole) ? (
+        <div className="crm-bridge" hidden={!showingCrm}>
+          <div className="crm-bridge-bar">
+            <button type="button" onClick={() => setView("home")}>
+              ← Back to School OS
+            </button>
+            <span>STU Nexus · Learner Support</span>
+            {currentUser.isOwner ? (
+              <Pill tone="owner">Owner workspace</Pill>
+            ) : null}
+          </div>
+          <CRMApp currentUser={currentUser} onSignOut={signOut} />
         </div>
       ) : null}
-      <button
-        className="school-ai-fab"
-        type="button"
-        onClick={() => setAssistantOpen(true)}
-      >
-        ✦<span>Ask Nexus</span>
-      </button>
-    </div>
+    </>
   );
 }
 

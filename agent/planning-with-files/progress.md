@@ -143,3 +143,9 @@
 - Root cause: both account Edge Functions omitted Supabase's `x-client-info` header from `Access-Control-Allow-Headers`; the browser blocked the actual request.
 - Added complete production origin/header contracts and structured Edge Function error extraction.
 - PR #39 merged and deployed Ready; the custom production domain serves the new bundle and issue #38 is closed.
+
+## 2026-07-17 — Issue #40
+
+- Removed the conditional return that destroyed School OS and recreated CRM on every Learner Support visit.
+- Both workspaces now remain mounted and switch using immediate visibility state.
+- CRM data is warmed after sign-in, restored synchronously, fetch-deduplicated, updated with local mutations, and cleared on sign-out.
