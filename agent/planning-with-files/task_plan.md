@@ -22,6 +22,9 @@
 - Vercel build overrides removed, the Vercel-only script removed, and Node.js metadata advanced to `24.x`; the required SPA rewrite remains
 - the linked Vercel project reports Node.js `24.x`, Vite detection, `npm run build`, `dist`, and an auto-detected package-manager install with no command overrides
 - clean npm 11 install, 18 contracts, lint, TypeScript/Vite production build, and `vercel build --prod` pass under Node.js 24.12.0
+- PR #21 passed Vercel with no review threads, merged as production commit `0048d45`, and closed issue #20 completed
+- deployment `dpl_ECCAjgYr1EvCMnnbKAE2p6JJSw29` is Ready on `stu.best` and `www.stu.best`; its build log confirms the Node.js 22-to-24 cache transition, standard dependency installation, and `npm run build`
+- deployed `/` and `/crm` return HTTP 200 with the recovery shell, five recursively verified assets, and the role-readiness bundle
 
 ## Phase 10: Role-specific guided onboarding and readiness [Issue #18]
 

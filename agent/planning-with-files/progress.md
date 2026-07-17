@@ -7,6 +7,9 @@
 - replaced the custom `vercel-build` alias with Vercel's standard use of the package `build` script and advanced runtime metadata to Node.js `24.x`
 - verified the linked project already uses Node.js `24.x` and exposes Vite's detected install, build, and `dist` settings without custom command overrides
 - passed a clean npm 11 install, 18 contracts, lint, TypeScript/Vite production build, and Vercel's production build under Node.js 24.12.0
+- opened PR #21, passed its Ready Vercel preview and direct-route checks, confirmed no review threads, and merged production commit `0048d45`
+- verified Ready production deployment `dpl_ECCAjgYr1EvCMnnbKAE2p6JJSw29` on both custom domains; hosted logs confirm the Node.js 24 cache transition, default install, and `npm run build`
+- passed the live shell verifier on `/` and `/crm`, including HTTP 200, non-empty recovery content, five recursively loaded assets, and the role-readiness bundle; issue #20 closed completed
 
 2026-07-17 — Blank-screen production recovery [Issue #16]
 
