@@ -27,7 +27,7 @@
 ### Verification and release
 
 - [x] add entity-level contracts and reversible live role tests for every newly exposed mutation
-- [ ] pass lint, TypeScript, production build, Supabase advisors, reviewed PR, Vercel deployment, and custom-domain smoke checks
+- [x] pass lint, TypeScript, production build, Supabase advisors, reviewed PR, Vercel deployment, and custom-domain smoke checks
 
 ## Phase 15: Comprehensive platform and CRM Word manual [Issue #28]
 

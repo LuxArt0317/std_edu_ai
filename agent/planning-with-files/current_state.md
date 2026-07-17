@@ -97,4 +97,6 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - Visible pre-filled editors now cover academic structure, students, teacher/staff profiles, schedules, modules, multi-page materials, assessments/questions/choices/keys, grades, attendance, announcements, CRM students, cases, prospects, campaigns, tasks, signals, interactions, and knowledge.
 - Production Supabase has atomic pre-attempt assessment replacement, complete authorized CRM deletion grants, and managed institutional rich-image Storage.
 - All 32 contracts, lint (one existing hook advisory), TypeScript/Vite production build, reversible LMS/academic/CRM live workflows, and cleanup pass.
-- Remaining: reviewed GitHub PR, Vercel deployment, and custom-domain feature smoke verification.
+- PR #45 passed CodeRabbit and Vercel, merged as `32ef675`, and deployed Ready as `dpl_Df6sucy57jq4Hr1kazB6LkixE3AX` to both custom domains.
+- `https://www.stu.best/crm` returns HTTP 200 and its released CRM bundle contains the assessment, student, profile, grade, prospect, interaction, signal, and multi-page material editor contracts.
+- Issue #44 is closed; no release work remains for this phase.

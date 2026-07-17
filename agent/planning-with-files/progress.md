@@ -167,3 +167,5 @@
 - Added complete quiz/exam/assignment/project creation and atomic editing with protected correct-answer positions and attempt locking.
 - Added Tiptap plus managed images to materials, assessments, announcements, knowledge, campaign content, case plans, signals, interactions, and grade feedback.
 - Reversible production tests pass for academic/profile edits, material/page/image workflows, quiz editing and attempt lock, and CRM student/case/lead/task/campaign/signal/interaction/knowledge/media lifecycles with cleanup.
+- PR #45 passed CodeRabbit and Vercel, merged to `main`, and deployed Ready to `stu.best` and `www.stu.best`.
+- Production `/crm` returns HTTP 200 and serves all expected lifecycle-editor markers; Issue #44 is closed.
