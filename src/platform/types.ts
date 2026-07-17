@@ -328,14 +328,21 @@ export type SchoolChatAnswer = {
 
 export type SchoolAiAction = {
   type:
+    | "navigate"
     | "create_module"
     | "create_material"
+    | "create_material_page"
     | "create_assessment"
     | "create_announcement"
-    | "create_attendance";
+    | "create_attendance"
+    | "create_schedule_event"
+    | "mark_learning_progress";
   confirmation: string;
+  targetId: string | null;
   sectionId: string | null;
   moduleId: string | null;
+  materialId: string | null;
+  destination: PortalSection | "crm" | null;
   title: string;
   description: string;
   content: string;
@@ -343,12 +350,14 @@ export type SchoolAiAction = {
   externalUrl: string | null;
   minutes: number | null;
   required: boolean | null;
-  assessmentType: "assignment" | "project" | null;
+  assessmentType: "quiz" | "exam" | "assignment" | "project" | null;
   dueAt: string | null;
   maxScore: number | null;
   priority: "normal" | "important" | "urgent" | null;
   startsAt: string | null;
   endsAt: string | null;
+  location: string | null;
+  completed: boolean | null;
   publish: boolean;
 };
 

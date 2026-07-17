@@ -1,5 +1,26 @@
 # Task Plan
 
+## Phase 46: Role-aware Nexus action agent [Issue #46]
+
+### Agent contract and safety
+
+- [x] replace the narrow LMS-only proposal with a typed, centrally validated action catalog mapped to the portal's existing repository services
+- [x] derive the action allowlist from the authenticated trusted role and include only bounded, RLS-visible record identifiers in model context
+- [x] prohibit student assignment/assessment answering, completion, modification, grading, and submission in the prompt, server response filter, client validator, and executor
+- [x] require explicit confirmation for every mutation, revalidate targets immediately before execution, and show precise success or denial feedback
+
+### Role-complete workflows
+
+- [x] support the safe agent catalog for schedule, LMS, assessments, announcements, attendance, navigation, and learner self-service operations exposed by the current portal
+- [x] allow students to navigate and update their own learning progress while keeping graded-work actions human-only
+- [x] preserve the same repository validation, Supabase session, RLS, refresh, and audit paths used by manual controls
+
+### Verification and release
+
+- [x] add contract tests for action schemas, role allowlists, malformed outputs, stale targets, and student forbidden-action prompts
+- [x] update PRD, operator/API documentation, changelog, progress, and current state
+- [ ] pass contracts, lint, production build, Supabase advisors/live role checks, reviewed PR, Vercel deployment, and custom-domain diagnostics
+
 ## Phase 44: Complete lifecycle UX and authoritative product specification [Issue #44]
 
 ### Product contract

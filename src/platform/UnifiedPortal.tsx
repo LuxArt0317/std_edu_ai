@@ -3,7 +3,11 @@ import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import CRMApp from "../crm/CRMApp";
 import { clearCrmDataSnapshot } from "../crm/crmRepository";
 import type { CrmUser } from "../crm/authService";
-import { askSchoolAssistant, scanGradeSheet } from "./platformAi";
+import {
+  askSchoolAssistant,
+  recordSchoolAgentAction,
+  scanGradeSheet,
+} from "./platformAi";
 import {
   appendChatMessage,
   assignPlatformRole,
@@ -12,11 +16,14 @@ import {
   createChatThread,
   createCourseAnnouncement,
   createCourseAssessment,
+  createLearningMaterialPage,
   createLearningMaterial,
   createLearningModule,
+  createScheduleEvent,
   getPlatformDataSnapshot,
   loadChatMessages,
   loadPlatformDataCached,
+  markLearningProgress,
   publishGrade,
   recordGradeScan,
   saveReviewedScan,
@@ -193,24 +200,27 @@ function UnifiedPortal({
   const [toast, setToast] = useState("");
   const [assistantOpen, setAssistantOpen] = useState(false);
 
-  const refresh = useCallback(async (silent = false) => {
-    try {
-      setData(await loadPlatformDataCached(currentUser.id, true));
-      setLoadError("");
-    } catch (error) {
-      if (!silent && !getPlatformDataSnapshot(currentUser.id)) {
-        setLoadError(
-          error instanceof Error
-            ? error.message
-            : "The platform could not be loaded.",
-        );
-      } else {
-        setToast(
-          "Could not sync the latest updates. Showing your saved workspace.",
-        );
+  const refresh = useCallback(
+    async (silent = false) => {
+      try {
+        setData(await loadPlatformDataCached(currentUser.id, true));
+        setLoadError("");
+      } catch (error) {
+        if (!silent && !getPlatformDataSnapshot(currentUser.id)) {
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "The platform could not be loaded.",
+          );
+        } else {
+          setToast(
+            "Could not sync the latest updates. Showing your saved workspace.",
+          );
+        }
       }
-    }
-  }, [currentUser.id]);
+    },
+    [currentUser.id],
+  );
 
   useEffect(() => {
     void refresh(Boolean(getPlatformDataSnapshot(currentUser.id)));
@@ -451,6 +461,8 @@ function UnifiedPortal({
           onClose={() => setAssistantOpen(false)}
           data={data}
           view={view}
+          role={effectiveRole}
+          onNavigate={setView}
           onDataChanged={() => void refresh(true)}
         />
         {toast ? (
@@ -1827,12 +1839,16 @@ function SchoolAssistant({
   onClose,
   data,
   view,
+  role,
+  onNavigate,
   onDataChanged,
 }: {
   open: boolean;
   onClose: () => void;
   data: PlatformData;
   view: PortalView;
+  role: PlatformRole;
+  onNavigate: (view: PortalView) => void;
   onDataChanged: () => void;
 }) {
   const [threadId, setThreadId] = useState(data.threads[0]?.id ?? "");
@@ -1917,11 +1933,84 @@ function SchoolAssistant({
   async function confirmAction() {
     if (!pendingAction || loading) return;
     const action = pendingAction;
+    const allowed =
+      role === "student"
+        ? new Set(["navigate", "mark_learning_progress"])
+        : teachingRoles.has(role)
+          ? new Set([
+              "navigate",
+              "create_module",
+              "create_material",
+              "create_material_page",
+              "create_assessment",
+              "create_announcement",
+              "create_attendance",
+              "create_schedule_event",
+            ])
+          : new Set(["navigate", "create_schedule_event"]);
+    if (!allowed.has(action.type)) {
+      void recordSchoolAgentAction(action.type, "blocked");
+      setPendingAction(null);
+      setError("That action is not available for your signed-in role.");
+      return;
+    }
+    if (role === "student" && action.type.includes("assessment")) {
+      void recordSchoolAgentAction(action.type, "blocked");
+      setPendingAction(null);
+      setError("Nexus cannot complete or change assessed work for students.");
+      return;
+    }
+    if (action.type === "navigate") {
+      if (
+        !action.destination ||
+        !navigationFor(role).includes(action.destination)
+      ) {
+        setError("That workspace is not available for your role.");
+        return;
+      }
+      onNavigate(action.destination);
+      void recordSchoolAgentAction(action.type, "success");
+      const confirmation = `Done — I opened ${navMeta[action.destination].label}.`;
+      setMessages((current) => [
+        ...current,
+        {
+          id: `assistant-action-${Date.now()}`,
+          threadId,
+          role: "assistant",
+          content: confirmation,
+          citations: ["Confirmed portal action"],
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+      if (threadId)
+        void appendChatMessage(threadId, "assistant", confirmation, [
+          "Confirmed portal action",
+        ]);
+      setPendingAction(null);
+      return;
+    }
     const course = data.courses.find(
       (item) => item.sectionId === action.sectionId,
     );
     const module = data.modules.find((item) => item.id === action.moduleId);
-    if (action.type !== "create_material" && !course) {
+    const material = data.materials.find(
+      (item) => item.id === action.materialId,
+    );
+    if (action.type === "mark_learning_progress") {
+      if (!material || !action.materialId) {
+        setError("That learning material is no longer available.");
+        return;
+      }
+    } else if (action.type === "create_material_page") {
+      if (!material || !action.materialId) {
+        setError("That learning material is no longer available.");
+        return;
+      }
+    } else if (
+      action.type !== "create_material" &&
+      action.type !== "create_schedule_event" &&
+      !course
+    ) {
       setError(
         "That course is no longer available. Ask Nexus to prepare the change again.",
       );
@@ -1964,6 +2053,16 @@ function SchoolAssistant({
           required: action.required ?? true,
           publish: action.publish,
         });
+      if (action.type === "create_material_page")
+        await createLearningMaterialPage({
+          materialId: action.materialId!,
+          title: action.title,
+          content: action.content,
+          position:
+            data.materialPages.filter(
+              (item) => item.materialId === action.materialId,
+            ).length + 1,
+        });
       if (action.type === "create_assessment")
         await createCourseAssessment({
           sectionId: action.sectionId!,
@@ -1990,9 +2089,45 @@ function SchoolAssistant({
             action.endsAt ??
             new Date(Date.now() + 60 * 60 * 1000).toISOString(),
         });
+      if (action.type === "create_schedule_event")
+        await createScheduleEvent({
+          sectionId: action.sectionId ?? undefined,
+          title: action.title,
+          description: action.description || action.content,
+          eventType: "school_event",
+          startsAt: action.startsAt ?? new Date().toISOString(),
+          endsAt:
+            action.endsAt ??
+            new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          location: action.location ?? undefined,
+        });
+      if (action.type === "mark_learning_progress")
+        await markLearningProgress(
+          action.materialId!,
+          action.completed ?? true,
+        );
+      await recordSchoolAgentAction(action.type, "success");
+      const confirmation =
+        "Done — the confirmed change is saved and your workspace is refreshing.";
+      setMessages((current) => [
+        ...current,
+        {
+          id: `assistant-action-${Date.now()}`,
+          threadId,
+          role: "assistant",
+          content: confirmation,
+          citations: ["Confirmed platform action"],
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+      if (threadId)
+        void appendChatMessage(threadId, "assistant", confirmation, [
+          "Confirmed platform action",
+        ]);
       setPendingAction(null);
       onDataChanged();
     } catch (reason) {
+      void recordSchoolAgentAction(action.type, "error");
       setError(
         reason instanceof Error
           ? reason.message

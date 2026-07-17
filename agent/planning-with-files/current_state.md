@@ -1,5 +1,13 @@
 # Current State
 
+# Current release: Issue #46
+
+- Nexus AI now proposes typed, confirmation-gated actions for role-valid navigation, modules, materials, rich material pages, quizzes/exams/assignments/projects, announcements, attendance sessions, schedule events, and student-owned learning progress.
+- Trusted `app_metadata.role` determines the server allowlist; the client independently revalidates role, current visible target IDs, and destination access before invoking the ordinary repository under the signed-in user's RLS session.
+- Students can navigate and mark their own learning materials in progress/completed. Nexus cannot answer, complete, modify, grade, or submit assessed work for a student; this is blocked in model instructions, API output filtering, the UI executor, RLS, and tests.
+- Production `ai_audit_logs` accepts privacy-minimized `action` outcomes without storing prompts or payload values.
+- 34 contracts, lint, TypeScript/Vite build, guarded asset verification, live OpenAI faculty action proposal, and live student assessed-work denial pass. Release PR/deployment remains in progress.
+
 GitHub issue #28 is closed completed. PR #29 passed Vercel and CodeRabbit and merged as commit `ef70241`. `docs/STU_Nexus_Comprehensive_Platform_Manual.docx` is a 31-page combined functional reference, role handbook, user guide, technical manual, security/AI boundary, deployment runbook, troubleshooting guide, and production-readiness roadmap. It documents the public website, school operating system, CRM, all 14 canonical roles, workflows, and how-to procedures without including credentials. The tracked builder produces 437 paragraphs, 129 structured headings, and 17 fixed-geometry tables. Microsoft Word rendering and visual inspection covered all 31 pages; a second render confirmed corrected contents pagination and independently restarting procedures. The accessibility audit reports zero findings.
 
 GitHub issue #26 is closed completed. PR #27 passed Vercel and CodeRabbit and merged as commit `2da1aed`. All 14 existing production role identities pass live password authentication, trusted Auth role metadata, protected-owner claim, and RLS-visible profile verification. No duplicate accounts or credential rotations were needed. The requested `PRODUCTION_ROLE_CREDENTIALS.local.md` exists in the root with 14 verified entries, is explicitly ignored by Git, and has owner-only mode `0600`. The exporter writes atomically only after every account passes and prints no password. All 19 contracts, lint, and the guarded production build pass.

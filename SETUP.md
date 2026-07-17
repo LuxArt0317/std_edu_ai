@@ -78,6 +78,7 @@ npm run test:live-lms
 npm run test:live-crm
 npm run test:live-roles
 npm run test:live-accounts
+npm run test:live-nexus-agent
 npm run export:role-credentials
 npm run test:live-onboarding
 npm run test:live-shell

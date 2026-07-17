@@ -47,12 +47,26 @@ export async function askSchoolAssistant(
           sectionId: module.sectionId,
           title: module.title,
         })),
-        assessmentTitles: context.data.assessments.map(
-          (assessment) => assessment.title,
-        ),
-        scheduleSummary: context.data.schedule
-          .slice(0, 8)
-          .map((event) => `${event.title} · ${event.startsAt}`),
+        materials: context.data.materials.map((material) => ({
+          id: material.id,
+          moduleId: material.moduleId,
+          title: material.title,
+        })),
+        assessments: context.data.assessments.map((assessment) => ({
+          id: assessment.id,
+          sectionId: assessment.sectionId,
+          title: assessment.title,
+        })),
+        schedule: context.data.schedule.slice(0, 20).map((event) => ({
+          id: event.id,
+          sectionId: event.sectionId,
+          title: event.title,
+        })),
+        announcements: context.data.announcements.map((announcement) => ({
+          id: announcement.id,
+          sectionId: announcement.sectionId,
+          title: announcement.title,
+        })),
         knowledgeTitles: context.data.topics
           .slice(0, 12)
           .map((topic) => topic.title),
@@ -76,6 +90,27 @@ export async function askSchoolAssistant(
     proposedAction: (payload.proposedAction ?? null) as SchoolAiAction | null,
     source: "openai",
   };
+}
+
+export async function recordSchoolAgentAction(
+  actionType: SchoolAiAction["type"],
+  outcome: "success" | "blocked" | "error",
+) {
+  if (!supabase) return;
+  try {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) return;
+    await supabase.from("ai_audit_logs").insert({
+      user_id: data.user.id,
+      use_case: "action",
+      model: "openai-responses",
+      context_fields: [`action:${actionType}`],
+      output_citations: [],
+      outcome,
+    });
+  } catch {
+    // The authorized operation is not rolled back when telemetry is unavailable.
+  }
 }
 
 function readAsDataUrl(file: File) {

@@ -118,6 +118,99 @@ test("school assistant uses the trusted Supabase role and returns structured out
   });
 });
 
+test("school assistant strips every assessed-work action proposed for a student", async () => {
+  configure();
+  globalThis.fetch = async (input) => {
+    if (String(input).includes("/auth/v1/user"))
+      return new Response(
+        JSON.stringify({ id: "student-1", app_metadata: { role: "student" } }),
+        { status: 200 },
+      );
+    return new Response(
+      JSON.stringify({
+        output: [
+          {
+            content: [
+              {
+                text: JSON.stringify({
+                  answer: "I cannot do assessed work for you.",
+                  suggestedActions: ["Review the lesson"],
+                  citations: ["Platform context"],
+                  proposedAction: { type: "create_assessment" },
+                }),
+              },
+            ],
+          },
+        ],
+      }),
+      { status: 200 },
+    );
+  };
+  const { captured, response } = responseCapture();
+  await schoolHandler(
+    {
+      method: "POST",
+      body: { message: "Do my assignment", history: [], context: {} },
+      headers: { authorization: "Bearer authenticated-test-session-token" },
+      socket: {},
+    },
+    response,
+  );
+  assert.equal(captured.statusCode, 200);
+  assert.equal(
+    (captured.body as { proposedAction: unknown }).proposedAction,
+    null,
+  );
+});
+
+test("school assistant permits student-owned learning progress actions", async () => {
+  configure();
+  globalThis.fetch = async (input) => {
+    if (String(input).includes("/auth/v1/user"))
+      return new Response(
+        JSON.stringify({ id: "student-1", app_metadata: { role: "student" } }),
+        { status: 200 },
+      );
+    return new Response(
+      JSON.stringify({
+        output: [
+          {
+            content: [
+              {
+                text: JSON.stringify({
+                  answer: "I prepared the progress update for your review.",
+                  suggestedActions: [],
+                  citations: ["Platform context"],
+                  proposedAction: {
+                    type: "mark_learning_progress",
+                    materialId: "material-1",
+                  },
+                }),
+              },
+            ],
+          },
+        ],
+      }),
+      { status: 200 },
+    );
+  };
+  const { captured, response } = responseCapture();
+  await schoolHandler(
+    {
+      method: "POST",
+      body: { message: "Mark this lesson complete", history: [], context: {} },
+      headers: { authorization: "Bearer authenticated-test-session-token" },
+      socket: {},
+    },
+    response,
+  );
+  assert.equal(captured.statusCode, 200);
+  assert.equal(
+    (captured.body as { proposedAction: { type: string } }).proposedAction.type,
+    "mark_learning_progress",
+  );
+});
+
 test("grade scan refuses student roles before contacting OpenAI vision", async () => {
   configure();
   globalThis.fetch = async (input) => {

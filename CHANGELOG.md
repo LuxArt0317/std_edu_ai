@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- expanded Ask Nexus AI into a role-aware action agent for workspace navigation, LMS authoring, assessments, announcements, attendance, schedule events, and learner-owned progress
+- added authenticated server and client action allowlists, stale-target checks, explicit confirmation, ordinary repository/RLS execution, and privacy-minimized action outcomes
+- enforced a layered student boundary that prevents Nexus from answering, completing, modifying, grading, or submitting any assignment, quiz, exam, or project
+- added API and live OpenAI role tests proving faculty action proposals and student assessed-work denial
+
 - added the authoritative platform PRD with a role, entity-lifecycle, rich-content, AI-safety, security, UX, and production acceptance contract
 - completed visible pre-filled editing for academic departments, programs, terms, subjects, sections, schedules, students, and teacher/staff profiles
 - completed teacher assessment authoring and editing for quizzes, exams, assignments, and projects, including protected correct answers, rich instructions, question replacement before attempts, safe attempt locking, and detail access

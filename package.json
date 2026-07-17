@@ -23,6 +23,7 @@
     "verify:build": "node tests/integration/build-assets.mjs",
     "diagnose:production": "npm run test:live-shell",
     "test:live-ai": "node --experimental-strip-types tests/integration/ai-live.mjs",
+    "test:live-nexus-agent": "node --experimental-strip-types tests/integration/nexus-agent-live.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

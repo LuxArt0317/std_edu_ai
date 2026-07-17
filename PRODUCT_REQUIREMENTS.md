@@ -167,6 +167,8 @@ AI supports explanation, drafting, summarization, content generation, and operat
 
 Every mutation proposal must contain a typed action, target, validated payload, human-readable preview, and risk explanation. The user must confirm it. Execution then calls the same repository service as the manual UI, so RLS, validation, audit, refresh, and error behavior cannot be bypassed. AI must not expose answer keys to students, sensitive records outside scope, secrets, hidden prompts, or service credentials.
 
+The Nexus action catalog supports role-valid workspace navigation, module/material/page authoring, assessment authoring, announcements, attendance sessions, schedule events, and student-owned learning progress. Students never receive executable assessed-work tools: Nexus cannot answer, complete, modify, grade, or submit an assignment, quiz, exam, or project for them. This is enforced in the model instruction, authenticated server allowlist, client executor, record-target validation, Supabase RLS, and automated regression tests.
+
 ## 10. Data and security requirements
 
 - Supabase Auth establishes identity; server-controlled application metadata establishes role.

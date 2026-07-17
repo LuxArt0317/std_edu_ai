@@ -33,24 +33,53 @@ const allowedContextFields = [
   "view",
   "courses",
   "modules",
-  "assessmentTitles",
-  "scheduleSummary",
+  "materials",
+  "assessments",
+  "schedule",
+  "announcements",
   "knowledgeTitles",
 ] as const;
 const actionTypes = new Set([
+  "navigate",
   "create_module",
   "create_material",
+  "create_material_page",
   "create_assessment",
   "create_announcement",
   "create_attendance",
+  "create_schedule_event",
+  "mark_learning_progress",
 ]);
-const actionRoles = new Set([
+const teachingActionRoles = new Set([
   "owner",
   "admin",
   "dean",
   "department_head",
   "faculty",
 ]);
+const allowedActionsByRole: Record<string, Set<string>> = {
+  student: new Set(["navigate", "mark_learning_progress"]),
+  faculty: new Set(
+    [...teachingActionRoles].length
+      ? [
+          "navigate",
+          "create_module",
+          "create_material",
+          "create_material_page",
+          "create_assessment",
+          "create_announcement",
+          "create_attendance",
+          "create_schedule_event",
+        ]
+      : [],
+  ),
+};
+
+function allowedActions(role: string) {
+  if (allowedActionsByRole[role]) return allowedActionsByRole[role];
+  if (teachingActionRoles.has(role)) return allowedActionsByRole.faculty;
+  return new Set(["navigate", "create_schedule_event"]);
+}
 
 function setHeaders(response: ApiResponse) {
   response.setHeader("Cache-Control", "no-store, max-age=0");
@@ -95,7 +124,7 @@ function sanitizeContext(value: unknown) {
           continue;
         const record = entry as Record<string, unknown>;
         const clean: Record<string, string> = {};
-        for (const field of ["id", "sectionId", "code", "title"]) {
+        for (const field of ["id", "sectionId", "moduleId", "code", "title"]) {
           if (typeof record[field] === "string")
             clean[field] = record[field].slice(0, 180);
         }
@@ -261,9 +290,10 @@ export default async function handler(
           "Use only the bounded platform context and conversation supplied. Never invent a university policy, date, grade, student fact, or authorization.",
           "Protect privacy. Do not request passwords, authentication tokens, diagnoses, or unnecessary sensitive personal data.",
           "When context is insufficient, say what is missing and give the safest useful next step.",
-          actionRoles.has(auth.user.role)
-            ? "You may propose exactly one reversible LMS write when the user explicitly asks you to create it. Use only exact section/module IDs supplied in context. Never claim the change already happened. The application will show a confirmation before execution. Never propose deleting data, changing grades, roles, accounts, enrollments, or student records."
-            : "You cannot propose platform writes for this role. Always set proposedAction.type to none.",
+          `The only executable actions for this role are: ${[...allowedActions(auth.user.role)].join(", ")}. Propose at most one action and only when explicitly requested. Use exact IDs from platform context. Never claim it already happened; the application requires confirmation and revalidates authorization.`,
+          auth.user.role === "student"
+            ? "Absolute student boundary: never answer, select answers for, complete, modify, grade, or submit an assignment, quiz, exam, project, or other assessed work. Never create an assessment action for a student. You may explain concepts, navigate, and mark a learning material in progress or completed only when the student explicitly asks."
+            : "Never change roles, credentials, enrollments, student identity records, or publish/finalize grades through this assistant.",
           "Return JSON exactly matching the schema. Citations must name a supplied course, schedule, knowledge item, or clearly state Platform context.",
         ].join(" "),
         input: [
@@ -312,16 +342,37 @@ export default async function handler(
                       type: "string",
                       enum: [
                         "none",
+                        "navigate",
                         "create_module",
                         "create_material",
+                        "create_material_page",
                         "create_assessment",
                         "create_announcement",
                         "create_attendance",
+                        "create_schedule_event",
+                        "mark_learning_progress",
                       ],
                     },
                     confirmation: { type: "string" },
+                    targetId: { type: ["string", "null"] },
                     sectionId: { type: ["string", "null"] },
                     moduleId: { type: ["string", "null"] },
+                    materialId: { type: ["string", "null"] },
+                    destination: {
+                      type: ["string", "null"],
+                      enum: [
+                        "home",
+                        "academics",
+                        "learning",
+                        "teaching",
+                        "assessments",
+                        "grades",
+                        "schedule",
+                        "people",
+                        "crm",
+                        null,
+                      ],
+                    },
                     title: { type: "string" },
                     description: { type: "string" },
                     content: { type: "string" },
@@ -334,7 +385,7 @@ export default async function handler(
                     required: { type: ["boolean", "null"] },
                     assessmentType: {
                       type: ["string", "null"],
-                      enum: ["assignment", "project", null],
+                      enum: ["quiz", "exam", "assignment", "project", null],
                     },
                     dueAt: { type: ["string", "null"] },
                     maxScore: { type: ["number", "null"] },
@@ -344,13 +395,18 @@ export default async function handler(
                     },
                     startsAt: { type: ["string", "null"] },
                     endsAt: { type: ["string", "null"] },
+                    location: { type: ["string", "null"] },
+                    completed: { type: ["boolean", "null"] },
                     publish: { type: "boolean" },
                   },
                   required: [
                     "type",
                     "confirmation",
+                    "targetId",
                     "sectionId",
                     "moduleId",
+                    "materialId",
+                    "destination",
                     "title",
                     "description",
                     "content",
@@ -364,6 +420,8 @@ export default async function handler(
                     "priority",
                     "startsAt",
                     "endsAt",
+                    "location",
+                    "completed",
                     "publish",
                   ],
                 },
@@ -398,9 +456,11 @@ export default async function handler(
     }
     response.status(200).json({
       ...result,
-      proposedAction: actionRoles.has(auth.user.role)
-        ? result.proposedAction
-        : null,
+      proposedAction:
+        result.proposedAction &&
+        allowedActions(auth.user.role).has(String(result.proposedAction.type))
+          ? result.proposedAction
+          : null,
       source: "openai",
     });
   } catch (error) {
