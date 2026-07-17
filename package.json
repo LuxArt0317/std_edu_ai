@@ -14,6 +14,7 @@
     "test:live-crm": "node tests/integration/crm-live.mjs",
     "test:live-school": "node tests/integration/school-live.mjs",
     "test:live-academic-operations": "node tests/integration/academic-operations-live.mjs",
+    "test:live-lms": "node tests/integration/lms-live.mjs",
     "test:live-roles": "node tests/integration/role-portals-live.mjs",
     "test:live-accounts": "node tests/integration/all-role-accounts-live.mjs",
     "export:role-credentials": "node tests/integration/export-role-credentials.mjs",

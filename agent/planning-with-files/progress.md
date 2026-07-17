@@ -120,3 +120,9 @@
 - verified all 14 production role accounts, owner school workflows, faculty/student RLS, reversible enrollment, room conflict rejection, and cleanup
 - passed 22 API/security contracts, lint, TypeScript, Vite, and guarded build verification
 - merged PR #31 as `f561155`; Vercel production became Ready and both public routes plus the released academic operations workflow passed post-deploy verification
+2026-07-17 — Integrated LMS [Issue #33]
+
+- created issue #33 and researched current Supabase Data API, RLS, and private Storage requirements
+- deployed three reviewed migrations covering six LMS tables, private files, enrollment/score triggers, explicit grants, covering indexes, and consolidated update policies
+- implemented teacher modules/materials/files, assessments, submission review/grading, attendance, and announcements plus student learning progress, files, submissions, feedback, and attendance
+- passed 25 contracts, lint, guarded build, and a reversible live faculty/student lifecycle including authorization denial and cleanup

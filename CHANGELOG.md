@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- added a complete integrated LMS course studio with ordered modules, lessons, links, videos, activities, private file materials, assessments, assignment submissions, grading feedback, attendance, announcements, and learner progress
+- added the enrolled-student learning path with completion tracking, private material access, assignment submission, feedback, grades, and attendance visibility
+- deployed six RLS-protected LMS tables, a private 50 MB constrained Storage bucket, enrollment/score integrity triggers, explicit Data API grants, and optimized policy/index coverage
+
 - transformed Academic Office from a read-only catalog into working student, department, program, term, subject, class-section, roster, and schedule management
 - added owner/admin/registrar student account provisioning with a confirmed Supabase Auth identity, linked profile/SIS records, validation, and compensating cleanup
 - added transactional capacity-aware enrollment and database-enforced room, faculty, and shared-student schedule collision prevention

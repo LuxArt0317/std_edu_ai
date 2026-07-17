@@ -1,131 +1,226 @@
-import { supabase } from '../utils/supabase'
-import { withTimeout } from '../utils/async'
-import type { Json, Tables } from '../types/database.generated'
+import { supabase } from "../utils/supabase";
+import { withTimeout } from "../utils/async";
+import type { Json, Tables } from "../types/database.generated";
 import type {
-  AssessmentAttemptResult, AssessmentOption, AssessmentQuestion, ChatMessage, ChatThread,
-  GradeScanResult, PlatformData, PlatformRole, SchoolAssessment,
-} from './types'
+  AssessmentAttemptResult,
+  AssessmentOption,
+  AssessmentQuestion,
+  ChatMessage,
+  ChatThread,
+  GradeScanResult,
+  PlatformData,
+  PlatformRole,
+  SchoolAssessment,
+} from "./types";
 
-type CourseRow = Tables<'courses'>
-type SectionRow = Tables<'course_sections'>
-type EnrollmentRow = Tables<'section_enrollments'>
-type QuestionRow = Tables<'assessment_questions'>
-type OptionRow = Tables<'assessment_options'>
+type CourseRow = Tables<"courses">;
+type SectionRow = Tables<"course_sections">;
+type EnrollmentRow = Tables<"section_enrollments">;
+type QuestionRow = Tables<"assessment_questions">;
+type OptionRow = Tables<"assessment_options">;
 
 function requireClient() {
-  if (!supabase) throw new Error('Supabase is not configured.')
-  return supabase
+  if (!supabase) throw new Error("Supabase is not configured.");
+  return supabase;
 }
 
-function rows<T>(result: { data: T[] | null; error: { message: string } | null }, label: string) {
-  if (result.error) throw new Error(`${label}: ${result.error.message}`)
-  return result.data ?? []
+function rows<T>(
+  result: { data: T[] | null; error: { message: string } | null },
+  label: string,
+) {
+  if (result.error) throw new Error(`${label}: ${result.error.message}`);
+  return result.data ?? [];
 }
 
 function shortDate(value: string | null) {
-  if (!value) return null
-  return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value))
+  if (!value) return null;
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 export async function loadPlatformData(): Promise<PlatformData> {
-  const client = requireClient()
+  const client = requireClient();
   const { data: authData, error: authError } = await withTimeout(
     client.auth.getUser(),
     12_000,
-    'Session verification took too long. Check the connection and try again.',
-  )
-  if (authError || !authData.user) throw new Error('An authenticated STU Nexus session is required.')
+    "Session verification took too long. Check the connection and try again.",
+  );
+  if (authError || !authData.user)
+    throw new Error("An authenticated STU Nexus session is required.");
 
   const [
-    rolesResult, profilesResult, studentsResult, departmentsResult, programsResult, termsResult,
-    coursesResult, sectionsResult, enrollmentsResult, topicsResult, assessmentsResult,
-    questionsResult, optionsResult, gradeItemsResult, gradesResult, scheduleResult,
-    announcementsResult, threadsResult,
+    rolesResult,
+    profilesResult,
+    studentsResult,
+    departmentsResult,
+    programsResult,
+    termsResult,
+    coursesResult,
+    sectionsResult,
+    enrollmentsResult,
+    topicsResult,
+    assessmentsResult,
+    questionsResult,
+    optionsResult,
+    gradeItemsResult,
+    gradesResult,
+    scheduleResult,
+    announcementsResult,
+    threadsResult,
+    modulesResult,
+    materialsResult,
+    progressResult,
+    submissionsResult,
+    attendanceSessionsResult,
+    attendanceRecordsResult,
   ] = await withTimeout(
     Promise.all([
-      client.from('role_definitions').select('*').order('hierarchy_level', { ascending: false }),
-      client.from('profiles').select('*').order('full_name'),
-      client.from('students').select('*').order('full_name'),
-      client.from('departments').select('*').order('name'),
-      client.from('academic_programs').select('*').order('name'),
-      client.from('academic_terms').select('*').order('starts_on', { ascending: false }),
-      client.from('courses').select('*').order('code'),
-      client.from('course_sections').select('*').order('section_code'),
-      client.from('section_enrollments').select('*'),
-      client.from('course_topics').select('*').order('position'),
-      client.from('assessments').select('*').order('due_at'),
-      client.from('assessment_questions').select('*').order('position'),
-      client.from('assessment_options').select('*').order('position'),
-      client.from('grade_items').select('*').order('due_at'),
-      client.from('grades').select('*').order('updated_at', { ascending: false }),
-      client.from('schedule_events').select('*').order('starts_at'),
-      client.from('announcements').select('*').order('published_at', { ascending: false }),
-      client.from('chat_threads').select('*').order('updated_at', { ascending: false }),
+      client
+        .from("role_definitions")
+        .select("*")
+        .order("hierarchy_level", { ascending: false }),
+      client.from("profiles").select("*").order("full_name"),
+      client.from("students").select("*").order("full_name"),
+      client.from("departments").select("*").order("name"),
+      client.from("academic_programs").select("*").order("name"),
+      client
+        .from("academic_terms")
+        .select("*")
+        .order("starts_on", { ascending: false }),
+      client.from("courses").select("*").order("code"),
+      client.from("course_sections").select("*").order("section_code"),
+      client.from("section_enrollments").select("*"),
+      client.from("course_topics").select("*").order("position"),
+      client.from("assessments").select("*").order("due_at"),
+      client.from("assessment_questions").select("*").order("position"),
+      client.from("assessment_options").select("*").order("position"),
+      client.from("grade_items").select("*").order("due_at"),
+      client
+        .from("grades")
+        .select("*")
+        .order("updated_at", { ascending: false }),
+      client.from("schedule_events").select("*").order("starts_at"),
+      client
+        .from("announcements")
+        .select("*")
+        .order("published_at", { ascending: false }),
+      client
+        .from("chat_threads")
+        .select("*")
+        .order("updated_at", { ascending: false }),
+      client.from("learning_modules").select("*").order("position"),
+      client.from("learning_materials").select("*").order("position"),
+      client.from("learning_progress").select("*"),
+      client
+        .from("assignment_submissions")
+        .select("*")
+        .order("updated_at", { ascending: false }),
+      client
+        .from("attendance_sessions")
+        .select("*")
+        .order("starts_at", { ascending: false }),
+      client.from("attendance_records").select("*"),
     ]),
     20_000,
-    'The school workspace took too long to load. Check the connection and try again.',
-  )
+    "The school workspace took too long to load. Check the connection and try again.",
+  );
 
-  const roleRows = rows(rolesResult, 'Roles')
-  const profileRows = rows(profilesResult, 'People')
-  const studentRows = rows(studentsResult, 'Students')
-  const departmentRows = rows(departmentsResult, 'Departments')
-  const programRows = rows(programsResult, 'Programs')
-  const termRows = rows(termsResult, 'Terms')
-  const courseRows = rows<CourseRow>(coursesResult, 'Courses')
-  const sectionRows = rows<SectionRow>(sectionsResult, 'Course sections')
-  const enrollmentRows = rows<EnrollmentRow>(enrollmentsResult, 'Enrollments')
-  const topicRows = rows(topicsResult, 'Topics')
-  const assessmentRows = rows(assessmentsResult, 'Assessments')
-  const questionRows = rows<QuestionRow>(questionsResult, 'Assessment questions')
-  const optionRows = rows<OptionRow>(optionsResult, 'Assessment choices')
-  const gradeItemRows = rows(gradeItemsResult, 'Grade items')
-  const gradeRows = rows(gradesResult, 'Grades')
-  const scheduleRows = rows(scheduleResult, 'Schedule')
-  const announcementRows = rows(announcementsResult, 'Announcements')
-  const threadRows = rows(threadsResult, 'AI conversations')
+  const roleRows = rows(rolesResult, "Roles");
+  const profileRows = rows(profilesResult, "People");
+  const studentRows = rows(studentsResult, "Students");
+  const departmentRows = rows(departmentsResult, "Departments");
+  const programRows = rows(programsResult, "Programs");
+  const termRows = rows(termsResult, "Terms");
+  const courseRows = rows<CourseRow>(coursesResult, "Courses");
+  const sectionRows = rows<SectionRow>(sectionsResult, "Course sections");
+  const enrollmentRows = rows<EnrollmentRow>(enrollmentsResult, "Enrollments");
+  const topicRows = rows(topicsResult, "Topics");
+  const assessmentRows = rows(assessmentsResult, "Assessments");
+  const questionRows = rows<QuestionRow>(
+    questionsResult,
+    "Assessment questions",
+  );
+  const optionRows = rows<OptionRow>(optionsResult, "Assessment choices");
+  const gradeItemRows = rows(gradeItemsResult, "Grade items");
+  const gradeRows = rows(gradesResult, "Grades");
+  const scheduleRows = rows(scheduleResult, "Schedule");
+  const announcementRows = rows(announcementsResult, "Announcements");
+  const threadRows = rows(threadsResult, "AI conversations");
+  const moduleRows = rows(modulesResult, "Learning modules");
+  const materialRows = rows(materialsResult, "Learning materials");
+  const progressRows = rows(progressResult, "Learning progress");
+  const submissionRows = rows(submissionsResult, "Assignment submissions");
+  const attendanceSessionRows = rows(
+    attendanceSessionsResult,
+    "Attendance sessions",
+  );
+  const attendanceRecordRows = rows(
+    attendanceRecordsResult,
+    "Attendance records",
+  );
 
-  const profilesById = new Map(profileRows.map((profile) => [profile.id, profile]))
-  const studentsById = new Map(studentRows.map((student) => [student.id, student]))
-  const termsById = new Map(termRows.map((term) => [term.id, term]))
-  const coursesById = new Map(courseRows.map((course) => [course.id, course]))
+  const profilesById = new Map(
+    profileRows.map((profile) => [profile.id, profile]),
+  );
+  const studentsById = new Map(
+    studentRows.map((student) => [student.id, student]),
+  );
+  const termsById = new Map(termRows.map((term) => [term.id, term]));
+  const coursesById = new Map(courseRows.map((course) => [course.id, course]));
 
   const courses = sectionRows.map((section) => {
-    const course = coursesById.get(section.course_id)
-    const term = termsById.get(section.term_id)
-    const faculty = section.faculty_id ? profilesById.get(section.faculty_id) : null
-    const enrollments = enrollmentRows.filter((item) => item.section_id === section.id && item.status !== 'dropped')
+    const course = coursesById.get(section.course_id);
+    const term = termsById.get(section.term_id);
+    const faculty = section.faculty_id
+      ? profilesById.get(section.faculty_id)
+      : null;
+    const enrollments = enrollmentRows.filter(
+      (item) => item.section_id === section.id && item.status !== "dropped",
+    );
     return {
       sectionId: section.id,
       courseId: section.course_id,
-      code: course?.code ?? 'COURSE',
-      title: course?.title ?? 'Course',
-      description: course?.description ?? '',
+      code: course?.code ?? "COURSE",
+      title: course?.title ?? "Course",
+      description: course?.description ?? "",
       credits: Number(course?.credits ?? 0),
       sectionCode: section.section_code,
-      term: term?.name ?? 'Academic term',
-      termStatus: term?.status ?? 'planning',
+      term: term?.name ?? "Academic term",
+      termStatus: term?.status ?? "planning",
       facultyId: section.faculty_id,
-      facultyName: faculty?.full_name ?? 'Faculty assignment pending',
+      facultyName: faculty?.full_name ?? "Faculty assignment pending",
       modality: section.modality,
-      room: section.room ?? 'To be announced',
+      room: section.room ?? "To be announced",
       capacity: section.capacity,
       status: section.status,
-      enrolledStudentIds: enrollments.flatMap((item) => item.student_id ? [item.student_id] : []),
-      enrolledProfileIds: enrollments.flatMap((item) => item.student_profile_id ? [item.student_profile_id] : []),
-    }
-  })
+      enrolledStudentIds: enrollments.flatMap((item) =>
+        item.student_id ? [item.student_id] : [],
+      ),
+      enrolledProfileIds: enrollments.flatMap((item) =>
+        item.student_profile_id ? [item.student_profile_id] : [],
+      ),
+    };
+  });
 
   const questions: AssessmentQuestion[] = questionRows.map((question) => ({
     id: question.id,
     assessmentId: question.assessment_id,
     prompt: question.prompt,
-    type: question.question_type as AssessmentQuestion['type'],
+    type: question.question_type as AssessmentQuestion["type"],
     points: Number(question.points),
     position: question.position,
     explanation: question.explanation,
-    options: optionRows.filter((option) => option.question_id === question.id).map<AssessmentOption>((option) => ({ id: option.id, label: option.label, position: option.position })),
-  }))
+    options: optionRows
+      .filter((option) => option.question_id === question.id)
+      .map<AssessmentOption>((option) => ({
+        id: option.id,
+        label: option.label,
+        position: option.position,
+      })),
+  }));
 
   const assessments: SchoolAssessment[] = assessmentRows.map((assessment) => ({
     id: assessment.id,
@@ -139,242 +234,867 @@ export async function loadPlatformData(): Promise<PlatformData> {
     durationMinutes: assessment.duration_minutes,
     attemptLimit: assessment.attempt_limit,
     maxScore: Number(assessment.max_score),
-    questions: questions.filter((question) => question.assessmentId === assessment.id),
-  }))
+    questions: questions.filter(
+      (question) => question.assessmentId === assessment.id,
+    ),
+  }));
 
   return {
-    roles: roleRows.map((role) => ({ code: role.role_code as PlatformRole, name: role.display_name, level: role.hierarchy_level, category: role.category, description: role.description, capabilities: role.capabilities })),
-    profiles: profileRows.map((profile) => ({ id: profile.id, name: profile.full_name, role: profile.role as PlatformRole, department: profile.department ?? '', jobTitle: profile.job_title ?? '', isOwner: profile.is_platform_owner })),
-    students: studentRows.map((student) => ({ id: student.id, profileId: student.profile_id, studentNumber: student.student_number, name: student.preferred_name || student.full_name, program: student.program, yearLevel: student.year_level, email: student.email })),
-    departments: departmentRows.map((department) => ({ id: department.id, code: department.code, name: department.name, description: department.description, status: department.status, headId: department.head_id })),
-    programs: programRows.map((program) => ({ id: program.id, code: program.code, name: program.name, level: program.level, departmentId: program.department_id, description: program.description, durationYears: Number(program.duration_years), status: program.status })),
-    terms: termRows.map((term) => ({ id: term.id, code: term.code, name: term.name, startsOn: term.starts_on, endsOn: term.ends_on, enrollmentStartsOn: term.enrollment_starts_on, enrollmentEndsOn: term.enrollment_ends_on, status: term.status })),
-    catalogCourses: courseRows.map((course) => ({ id: course.id, departmentId: course.department_id, programId: course.program_id, code: course.code, title: course.title, description: course.description, credits: Number(course.credits), status: course.status })),
+    roles: roleRows.map((role) => ({
+      code: role.role_code as PlatformRole,
+      name: role.display_name,
+      level: role.hierarchy_level,
+      category: role.category,
+      description: role.description,
+      capabilities: role.capabilities,
+    })),
+    profiles: profileRows.map((profile) => ({
+      id: profile.id,
+      name: profile.full_name,
+      role: profile.role as PlatformRole,
+      department: profile.department ?? "",
+      jobTitle: profile.job_title ?? "",
+      isOwner: profile.is_platform_owner,
+    })),
+    students: studentRows.map((student) => ({
+      id: student.id,
+      profileId: student.profile_id,
+      studentNumber: student.student_number,
+      name: student.preferred_name || student.full_name,
+      program: student.program,
+      yearLevel: student.year_level,
+      email: student.email,
+    })),
+    departments: departmentRows.map((department) => ({
+      id: department.id,
+      code: department.code,
+      name: department.name,
+      description: department.description,
+      status: department.status,
+      headId: department.head_id,
+    })),
+    programs: programRows.map((program) => ({
+      id: program.id,
+      code: program.code,
+      name: program.name,
+      level: program.level,
+      departmentId: program.department_id,
+      description: program.description,
+      durationYears: Number(program.duration_years),
+      status: program.status,
+    })),
+    terms: termRows.map((term) => ({
+      id: term.id,
+      code: term.code,
+      name: term.name,
+      startsOn: term.starts_on,
+      endsOn: term.ends_on,
+      enrollmentStartsOn: term.enrollment_starts_on,
+      enrollmentEndsOn: term.enrollment_ends_on,
+      status: term.status,
+    })),
+    catalogCourses: courseRows.map((course) => ({
+      id: course.id,
+      departmentId: course.department_id,
+      programId: course.program_id,
+      code: course.code,
+      title: course.title,
+      description: course.description,
+      credits: Number(course.credits),
+      status: course.status,
+    })),
     courses,
-    enrollments: enrollmentRows.map((enrollment) => ({ id: enrollment.id, sectionId: enrollment.section_id, studentId: enrollment.student_id, profileId: enrollment.student_profile_id, status: enrollment.status, enrolledAt: enrollment.enrolled_at })),
-    topics: topicRows.map((topic) => ({ id: topic.id, sectionId: topic.section_id, title: topic.title, summary: topic.summary, content: topic.content_markdown, position: topic.position, minutes: topic.estimated_minutes, published: Boolean(topic.published_at) })),
+    enrollments: enrollmentRows.map((enrollment) => ({
+      id: enrollment.id,
+      sectionId: enrollment.section_id,
+      studentId: enrollment.student_id,
+      profileId: enrollment.student_profile_id,
+      status: enrollment.status,
+      enrolledAt: enrollment.enrolled_at,
+    })),
+    topics: topicRows.map((topic) => ({
+      id: topic.id,
+      sectionId: topic.section_id,
+      title: topic.title,
+      summary: topic.summary,
+      content: topic.content_markdown,
+      position: topic.position,
+      minutes: topic.estimated_minutes,
+      published: Boolean(topic.published_at),
+    })),
+    modules: moduleRows.map((module) => ({
+      id: module.id,
+      sectionId: module.section_id,
+      title: module.title,
+      description: module.description,
+      position: module.position,
+      status: module.status,
+      unlocksAt: module.unlocks_at,
+      publishedAt: module.published_at,
+    })),
+    materials: materialRows.map((material) => ({
+      id: material.id,
+      moduleId: material.module_id,
+      title: material.title,
+      description: material.description,
+      type: material.material_type,
+      content: material.content_markdown,
+      externalUrl: material.external_url,
+      storagePath: material.storage_path,
+      position: material.position,
+      minutes: material.estimated_minutes,
+      required: material.is_required,
+      status: material.status,
+    })),
+    progress: progressRows.map((item) => ({
+      id: item.id,
+      materialId: item.material_id,
+      profileId: item.student_profile_id,
+      status: item.status,
+      completedAt: item.completed_at,
+    })),
+    submissions: submissionRows.map((item) => ({
+      id: item.id,
+      assessmentId: item.assessment_id,
+      profileId: item.student_profile_id,
+      text: item.submission_text,
+      storagePath: item.storage_path,
+      status: item.status,
+      submittedAt: item.submitted_at,
+      score: item.score === null ? null : Number(item.score),
+      feedback: item.feedback,
+    })),
+    attendanceSessions: attendanceSessionRows.map((item) => ({
+      id: item.id,
+      sectionId: item.section_id,
+      title: item.title,
+      startsAt: item.starts_at,
+      endsAt: item.ends_at,
+      status: item.status,
+    })),
+    attendanceRecords: attendanceRecordRows.map((item) => ({
+      id: item.id,
+      sessionId: item.session_id,
+      profileId: item.student_profile_id,
+      status: item.status,
+      notes: item.notes,
+    })),
     assessments,
-    gradeItems: gradeItemRows.map((item) => ({ id: item.id, sectionId: item.section_id, assessmentId: item.assessment_id, title: item.title, category: item.category, maxScore: Number(item.max_score), weight: Number(item.weight_percent), dueAt: item.due_at })),
+    gradeItems: gradeItemRows.map((item) => ({
+      id: item.id,
+      sectionId: item.section_id,
+      assessmentId: item.assessment_id,
+      title: item.title,
+      category: item.category,
+      maxScore: Number(item.max_score),
+      weight: Number(item.weight_percent),
+      dueAt: item.due_at,
+    })),
     grades: gradeRows.map((grade) => {
-      const student = grade.student_id ? studentsById.get(grade.student_id) : null
-      const profile = grade.student_profile_id ? profilesById.get(grade.student_profile_id) : null
-      return { id: grade.id, gradeItemId: grade.grade_item_id, studentId: grade.student_id, profileId: grade.student_profile_id, studentName: student?.preferred_name || student?.full_name || profile?.full_name || 'Student', studentNumber: student?.student_number || 'Portal learner', score: Number(grade.score), letterGrade: grade.letter_grade ?? '', feedback: grade.feedback ?? '', status: grade.status as 'draft' | 'reviewed' | 'published', publishedAt: grade.published_at }
+      const student = grade.student_id
+        ? studentsById.get(grade.student_id)
+        : null;
+      const profile = grade.student_profile_id
+        ? profilesById.get(grade.student_profile_id)
+        : null;
+      return {
+        id: grade.id,
+        gradeItemId: grade.grade_item_id,
+        studentId: grade.student_id,
+        profileId: grade.student_profile_id,
+        studentName:
+          student?.preferred_name ||
+          student?.full_name ||
+          profile?.full_name ||
+          "Student",
+        studentNumber: student?.student_number || "Portal learner",
+        score: Number(grade.score),
+        letterGrade: grade.letter_grade ?? "",
+        feedback: grade.feedback ?? "",
+        status: grade.status as "draft" | "reviewed" | "published",
+        publishedAt: grade.published_at,
+      };
     }),
-    schedule: scheduleRows.map((event) => ({ id: event.id, sectionId: event.section_id, title: event.title, description: event.description, type: event.event_type, startsAt: event.starts_at, endsAt: event.ends_at, location: event.location ?? 'Online', ownerProfileId: event.owner_profile_id, audienceRoles: event.audience_roles, createdBy: event.created_by })),
-    announcements: announcementRows.map((announcement) => ({ id: announcement.id, title: announcement.title, body: announcement.body, priority: announcement.priority, publishedAt: shortDate(announcement.published_at) ?? 'Draft' })),
-    threads: threadRows.map((thread) => ({ id: thread.id, title: thread.title, updatedAt: thread.updated_at })),
-  }
+    schedule: scheduleRows.map((event) => ({
+      id: event.id,
+      sectionId: event.section_id,
+      title: event.title,
+      description: event.description,
+      type: event.event_type,
+      startsAt: event.starts_at,
+      endsAt: event.ends_at,
+      location: event.location ?? "Online",
+      ownerProfileId: event.owner_profile_id,
+      audienceRoles: event.audience_roles,
+      createdBy: event.created_by,
+    })),
+    announcements: announcementRows.map((announcement) => ({
+      id: announcement.id,
+      title: announcement.title,
+      body: announcement.body,
+      priority: announcement.priority,
+      publishedAt: shortDate(announcement.published_at) ?? "Draft",
+    })),
+    threads: threadRows.map((thread) => ({
+      id: thread.id,
+      title: thread.title,
+      updatedAt: thread.updated_at,
+    })),
+  };
 }
 
-export async function submitAssessment(assessmentId: string, answers: Array<{ questionId: string; optionId?: string; text?: string }>): Promise<AssessmentAttemptResult> {
-  const client = requireClient()
-  const { data, error } = await client.rpc('submit_assessment', { p_assessment_id: assessmentId, p_answers: answers as unknown as Json })
-  if (error) throw new Error(error.message)
-  const result = data?.[0]
-  if (!result) throw new Error('The assessment did not return a result.')
-  return { attemptId: result.attempt_id, score: Number(result.score), maxScore: Number(result.max_score), status: result.status }
+export async function submitAssessment(
+  assessmentId: string,
+  answers: Array<{ questionId: string; optionId?: string; text?: string }>,
+): Promise<AssessmentAttemptResult> {
+  const client = requireClient();
+  const { data, error } = await client.rpc("submit_assessment", {
+    p_assessment_id: assessmentId,
+    p_answers: answers as unknown as Json,
+  });
+  if (error) throw new Error(error.message);
+  const result = data?.[0];
+  if (!result) throw new Error("The assessment did not return a result.");
+  return {
+    attemptId: result.attempt_id,
+    score: Number(result.score),
+    maxScore: Number(result.max_score),
+    status: result.status,
+  };
 }
 
 export async function createChatThread(title: string): Promise<ChatThread> {
-  const client = requireClient()
-  const { data: userData } = await client.auth.getUser()
-  if (!userData.user) throw new Error('Authentication is required.')
-  const { data, error } = await client.from('chat_threads').insert({ owner_id: userData.user.id, title: title.trim().slice(0, 120) || 'New conversation' }).select('*').single()
-  if (error) throw new Error(error.message)
-  return { id: data.id, title: data.title, updatedAt: data.updated_at }
+  const client = requireClient();
+  const { data: userData } = await client.auth.getUser();
+  if (!userData.user) throw new Error("Authentication is required.");
+  const { data, error } = await client
+    .from("chat_threads")
+    .insert({
+      owner_id: userData.user.id,
+      title: title.trim().slice(0, 120) || "New conversation",
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return { id: data.id, title: data.title, updatedAt: data.updated_at };
 }
 
-export async function loadChatMessages(threadId: string): Promise<ChatMessage[]> {
-  const client = requireClient()
-  const { data, error } = await client.from('chat_messages').select('*').eq('thread_id', threadId).order('created_at')
-  if (error) throw new Error(error.message)
-  return (data ?? []).map((message) => ({ id: message.id, threadId: message.thread_id, role: message.author_role as ChatMessage['role'], content: message.content, citations: message.citations, createdAt: message.created_at }))
+export async function loadChatMessages(
+  threadId: string,
+): Promise<ChatMessage[]> {
+  const client = requireClient();
+  const { data, error } = await client
+    .from("chat_messages")
+    .select("*")
+    .eq("thread_id", threadId)
+    .order("created_at");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((message) => ({
+    id: message.id,
+    threadId: message.thread_id,
+    role: message.author_role as ChatMessage["role"],
+    content: message.content,
+    citations: message.citations,
+    createdAt: message.created_at,
+  }));
 }
 
-export async function appendChatMessage(threadId: string, role: ChatMessage['role'], content: string, citations: string[] = []) {
-  const client = requireClient()
-  const { error } = await client.from('chat_messages').insert({ thread_id: threadId, author_role: role, content, citations })
-  if (error) throw new Error(error.message)
-  await client.from('chat_threads').update({ updated_at: new Date().toISOString() }).eq('id', threadId)
+export async function appendChatMessage(
+  threadId: string,
+  role: ChatMessage["role"],
+  content: string,
+  citations: string[] = [],
+) {
+  const client = requireClient();
+  const { error } = await client
+    .from("chat_messages")
+    .insert({ thread_id: threadId, author_role: role, content, citations });
+  if (error) throw new Error(error.message);
+  await client
+    .from("chat_threads")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", threadId);
 }
 
-export async function recordGradeScan(sectionId: string, gradeItemId: string, sourceName: string, result: GradeScanResult) {
-  const client = requireClient()
-  const { data: userData } = await client.auth.getUser()
-  if (!userData.user) throw new Error('Authentication is required.')
-  const { data, error } = await client.from('grade_scan_jobs').insert({
-    section_id: sectionId,
-    grade_item_id: gradeItemId,
-    uploaded_by: userData.user.id,
-    source_name: sourceName.slice(0, 255),
-    status: 'needs_review',
-    extracted_payload: result as unknown as Json,
-    confidence: result.overallConfidence,
-  }).select('id').single()
-  if (error) throw new Error(error.message)
-  return data.id
+export async function recordGradeScan(
+  sectionId: string,
+  gradeItemId: string,
+  sourceName: string,
+  result: GradeScanResult,
+) {
+  const client = requireClient();
+  const { data: userData } = await client.auth.getUser();
+  if (!userData.user) throw new Error("Authentication is required.");
+  const { data, error } = await client
+    .from("grade_scan_jobs")
+    .insert({
+      section_id: sectionId,
+      grade_item_id: gradeItemId,
+      uploaded_by: userData.user.id,
+      source_name: sourceName.slice(0, 255),
+      status: "needs_review",
+      extracted_payload: result as unknown as Json,
+      confidence: result.overallConfidence,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+  return data.id;
 }
 
-export async function saveReviewedScan(jobId: string, result: GradeScanResult, students: PlatformData['students']) {
-  const client = requireClient()
-  const reviewedRows = []
+export async function saveReviewedScan(
+  jobId: string,
+  result: GradeScanResult,
+  students: PlatformData["students"],
+) {
+  const client = requireClient();
+  const reviewedRows = [];
   for (const row of result.rows) {
-    if (row.score === null || row.confidence < 0.6) continue
-    const student = students.find((item) => item.studentNumber.toLowerCase() === row.studentNumber.toLowerCase() || item.name.toLowerCase() === row.studentName.toLowerCase())
-    if (!student) continue
-    reviewedRows.push({ studentId: student.id, score: row.score, feedback: row.notes || 'Imported from reviewed grade-sheet scan.' })
+    if (row.score === null || row.confidence < 0.6) continue;
+    const student = students.find(
+      (item) =>
+        item.studentNumber.toLowerCase() === row.studentNumber.toLowerCase() ||
+        item.name.toLowerCase() === row.studentName.toLowerCase(),
+    );
+    if (!student) continue;
+    reviewedRows.push({
+      studentId: student.id,
+      score: row.score,
+      feedback: row.notes || "Imported from reviewed grade-sheet scan.",
+    });
   }
-  const { data, error } = await client.rpc('approve_grade_scan', { p_job_id: jobId, p_rows: reviewedRows as unknown as Json })
-  if (error) throw new Error(error.message)
-  return Number(data?.[0]?.saved_count ?? 0)
+  const { data, error } = await client.rpc("approve_grade_scan", {
+    p_job_id: jobId,
+    p_rows: reviewedRows as unknown as Json,
+  });
+  if (error) throw new Error(error.message);
+  return Number(data?.[0]?.saved_count ?? 0);
 }
 
 export async function publishGrade(gradeId: string) {
-  const client = requireClient()
-  const { error } = await client.from('grades').update({ status: 'published', published_at: new Date().toISOString() }).eq('id', gradeId)
-  if (error) throw new Error(error.message)
+  const client = requireClient();
+  const { error } = await client
+    .from("grades")
+    .update({ status: "published", published_at: new Date().toISOString() })
+    .eq("id", gradeId);
+  if (error) throw new Error(error.message);
 }
 
-export async function assignPlatformRole(profileId: string, role: PlatformRole, reason: string) {
-  const client = requireClient()
-  const { data, error } = await client.rpc('assign_platform_role', { p_profile_id: profileId, p_new_role: role, p_reason: reason })
-  if (error) throw new Error(error.message)
-  if (!data?.[0]) throw new Error('The role change was not confirmed.')
-  return data[0]
+export async function assignPlatformRole(
+  profileId: string,
+  role: PlatformRole,
+  reason: string,
+) {
+  const client = requireClient();
+  const { data, error } = await client.rpc("assign_platform_role", {
+    p_profile_id: profileId,
+    p_new_role: role,
+    p_reason: reason,
+  });
+  if (error) throw new Error(error.message);
+  if (!data?.[0]) throw new Error("The role change was not confirmed.");
+  return data[0];
 }
 
 function clean(value: string, label: string, max = 160) {
-  const result = value.trim()
-  if (!result) throw new Error(`${label} is required.`)
-  if (result.length > max) throw new Error(`${label} is too long.`)
-  return result
+  const result = value.trim();
+  if (!result) throw new Error(`${label} is required.`);
+  if (result.length > max) throw new Error(`${label} is too long.`);
+  return result;
 }
 
-export async function createDepartment(input: { code: string; name: string; description: string; headId?: string }) {
-  const client = requireClient()
-  const { data, error } = await client.from('departments').insert({
-    code: clean(input.code, 'Department code', 20).toUpperCase(),
-    name: clean(input.name, 'Department name', 120),
-    description: input.description.trim().slice(0, 1000),
-    head_id: input.headId || null,
-  }).select('id').single()
-  if (error) throw new Error(error.message)
-  return data.id
+export async function createDepartment(input: {
+  code: string;
+  name: string;
+  description: string;
+  headId?: string;
+}) {
+  const client = requireClient();
+  const { data, error } = await client
+    .from("departments")
+    .insert({
+      code: clean(input.code, "Department code", 20).toUpperCase(),
+      name: clean(input.name, "Department name", 120),
+      description: input.description.trim().slice(0, 1000),
+      head_id: input.headId || null,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+  return data.id;
 }
 
-export async function createProgram(input: { departmentId: string; code: string; name: string; level: string; durationYears: number; description: string }) {
-  const client = requireClient()
-  const { data, error } = await client.from('academic_programs').insert({
-    department_id: clean(input.departmentId, 'Department'),
-    code: clean(input.code, 'Program code', 30).toUpperCase(),
-    name: clean(input.name, 'Program name', 160),
-    level: input.level,
-    duration_years: input.durationYears,
-    description: input.description.trim().slice(0, 1500),
-  }).select('id').single()
-  if (error) throw new Error(error.message)
-  return data.id
+export async function createProgram(input: {
+  departmentId: string;
+  code: string;
+  name: string;
+  level: string;
+  durationYears: number;
+  description: string;
+}) {
+  const client = requireClient();
+  const { data, error } = await client
+    .from("academic_programs")
+    .insert({
+      department_id: clean(input.departmentId, "Department"),
+      code: clean(input.code, "Program code", 30).toUpperCase(),
+      name: clean(input.name, "Program name", 160),
+      level: input.level,
+      duration_years: input.durationYears,
+      description: input.description.trim().slice(0, 1500),
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+  return data.id;
 }
 
-export async function createAcademicTerm(input: { code: string; name: string; startsOn: string; endsOn: string; enrollmentStartsOn?: string; enrollmentEndsOn?: string; status: string }) {
-  const client = requireClient()
-  const { data, error } = await client.from('academic_terms').insert({
-    code: clean(input.code, 'Term code', 30).toUpperCase(),
-    name: clean(input.name, 'Term name', 120),
-    starts_on: input.startsOn,
-    ends_on: input.endsOn,
-    enrollment_starts_on: input.enrollmentStartsOn || null,
-    enrollment_ends_on: input.enrollmentEndsOn || null,
-    status: input.status,
-  }).select('id').single()
-  if (error) throw new Error(error.message)
-  return data.id
+export async function createAcademicTerm(input: {
+  code: string;
+  name: string;
+  startsOn: string;
+  endsOn: string;
+  enrollmentStartsOn?: string;
+  enrollmentEndsOn?: string;
+  status: string;
+}) {
+  const client = requireClient();
+  const { data, error } = await client
+    .from("academic_terms")
+    .insert({
+      code: clean(input.code, "Term code", 30).toUpperCase(),
+      name: clean(input.name, "Term name", 120),
+      starts_on: input.startsOn,
+      ends_on: input.endsOn,
+      enrollment_starts_on: input.enrollmentStartsOn || null,
+      enrollment_ends_on: input.enrollmentEndsOn || null,
+      status: input.status,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+  return data.id;
 }
 
-export async function createCatalogCourse(input: { departmentId: string; programId?: string; code: string; title: string; description: string; credits: number }) {
-  const client = requireClient()
-  const { data, error } = await client.from('courses').insert({
-    department_id: clean(input.departmentId, 'Department'),
-    program_id: input.programId || null,
-    code: clean(input.code, 'Subject code', 30).toUpperCase(),
-    title: clean(input.title, 'Subject title', 180),
-    description: input.description.trim().slice(0, 2000),
-    credits: input.credits,
-    status: 'active',
-  }).select('id').single()
-  if (error) throw new Error(error.message)
-  return data.id
+export async function createCatalogCourse(input: {
+  departmentId: string;
+  programId?: string;
+  code: string;
+  title: string;
+  description: string;
+  credits: number;
+}) {
+  const client = requireClient();
+  const { data, error } = await client
+    .from("courses")
+    .insert({
+      department_id: clean(input.departmentId, "Department"),
+      program_id: input.programId || null,
+      code: clean(input.code, "Subject code", 30).toUpperCase(),
+      title: clean(input.title, "Subject title", 180),
+      description: input.description.trim().slice(0, 2000),
+      credits: input.credits,
+      status: "active",
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+  return data.id;
 }
 
-export async function createCourseSection(input: { courseId: string; termId: string; sectionCode: string; facultyId?: string; modality: string; room?: string; capacity: number; status: string }) {
-  const client = requireClient()
-  const { data, error } = await client.from('course_sections').insert({
-    course_id: clean(input.courseId, 'Subject'),
-    term_id: clean(input.termId, 'Academic term'),
-    section_code: clean(input.sectionCode, 'Section code', 30).toUpperCase(),
-    faculty_id: input.facultyId || null,
-    modality: input.modality,
-    room: input.room?.trim().slice(0, 120) || null,
-    capacity: input.capacity,
-    status: input.status,
-  }).select('id').single()
-  if (error) throw new Error(error.message)
-  return data.id
+export async function createCourseSection(input: {
+  courseId: string;
+  termId: string;
+  sectionCode: string;
+  facultyId?: string;
+  modality: string;
+  room?: string;
+  capacity: number;
+  status: string;
+}) {
+  const client = requireClient();
+  const { data, error } = await client
+    .from("course_sections")
+    .insert({
+      course_id: clean(input.courseId, "Subject"),
+      term_id: clean(input.termId, "Academic term"),
+      section_code: clean(input.sectionCode, "Section code", 30).toUpperCase(),
+      faculty_id: input.facultyId || null,
+      modality: input.modality,
+      room: input.room?.trim().slice(0, 120) || null,
+      capacity: input.capacity,
+      status: input.status,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+  return data.id;
 }
 
-export async function updateCourseSection(sectionId: string, input: { facultyId?: string; modality: string; room?: string; capacity: number; status: string }) {
-  const client = requireClient()
-  const { error } = await client.from('course_sections').update({
-    faculty_id: input.facultyId || null,
-    modality: input.modality,
-    room: input.room?.trim().slice(0, 120) || null,
-    capacity: input.capacity,
-    status: input.status,
-  }).eq('id', sectionId)
-  if (error) throw new Error(error.message)
+export async function updateCourseSection(
+  sectionId: string,
+  input: {
+    facultyId?: string;
+    modality: string;
+    room?: string;
+    capacity: number;
+    status: string;
+  },
+) {
+  const client = requireClient();
+  const { error } = await client
+    .from("course_sections")
+    .update({
+      faculty_id: input.facultyId || null,
+      modality: input.modality,
+      room: input.room?.trim().slice(0, 120) || null,
+      capacity: input.capacity,
+      status: input.status,
+    })
+    .eq("id", sectionId);
+  if (error) throw new Error(error.message);
 }
 
-export async function manageSectionEnrollment(sectionId: string, studentId: string, status: string) {
-  const client = requireClient()
-  const { data, error } = await client.rpc('manage_section_enrollment', {
+export async function manageSectionEnrollment(
+  sectionId: string,
+  studentId: string,
+  status: string,
+) {
+  const client = requireClient();
+  const { data, error } = await client.rpc("manage_section_enrollment", {
     p_section_id: sectionId,
     p_student_id: studentId,
     p_status: status,
-  })
-  if (error) throw new Error(error.message)
-  return data?.[0]
+  });
+  if (error) throw new Error(error.message);
+  return data?.[0];
 }
 
-export async function createScheduleEvent(input: { sectionId?: string; ownerProfileId?: string; title: string; description: string; eventType: string; startsAt: string; endsAt: string; location?: string; audienceRoles?: PlatformRole[] }) {
-  const client = requireClient()
-  const { data: userData } = await client.auth.getUser()
-  if (!userData.user) throw new Error('Authentication is required.')
-  const { data, error } = await client.from('schedule_events').insert({
-    section_id: input.sectionId || null,
-    owner_profile_id: input.ownerProfileId || null,
-    title: clean(input.title, 'Event title', 180),
-    description: input.description.trim().slice(0, 2000),
-    event_type: input.eventType,
-    starts_at: input.startsAt,
-    ends_at: input.endsAt,
-    location: input.location?.trim().slice(0, 160) || null,
-    audience_roles: input.audienceRoles ?? [],
-    created_by: userData.user.id,
-  }).select('id').single()
-  if (error) throw new Error(error.message)
-  return data.id
+export async function createScheduleEvent(input: {
+  sectionId?: string;
+  ownerProfileId?: string;
+  title: string;
+  description: string;
+  eventType: string;
+  startsAt: string;
+  endsAt: string;
+  location?: string;
+  audienceRoles?: PlatformRole[];
+}) {
+  const client = requireClient();
+  const { data: userData } = await client.auth.getUser();
+  if (!userData.user) throw new Error("Authentication is required.");
+  const { data, error } = await client
+    .from("schedule_events")
+    .insert({
+      section_id: input.sectionId || null,
+      owner_profile_id: input.ownerProfileId || null,
+      title: clean(input.title, "Event title", 180),
+      description: input.description.trim().slice(0, 2000),
+      event_type: input.eventType,
+      starts_at: input.startsAt,
+      ends_at: input.endsAt,
+      location: input.location?.trim().slice(0, 160) || null,
+      audience_roles: input.audienceRoles ?? [],
+      created_by: userData.user.id,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+  return data.id;
 }
 
 export async function deleteScheduleEvent(eventId: string) {
-  const client = requireClient()
-  const { error } = await client.from('schedule_events').delete().eq('id', eventId)
-  if (error) throw new Error(error.message)
+  const client = requireClient();
+  const { error } = await client
+    .from("schedule_events")
+    .delete()
+    .eq("id", eventId);
+  if (error) throw new Error(error.message);
 }
 
-export async function createStudentAccount(input: { email: string; password: string; fullName: string; preferredName?: string; studentNumber: string; program: string; yearLevel: string; phone?: string; advisorId?: string }) {
-  const client = requireClient()
-  const { data, error } = await client.functions.invoke('manage-student-account', { body: input })
-  if (error) throw new Error(error.message)
-  if (data?.error) throw new Error(String(data.error))
-  return data.student as { id: string; profile_id: string; student_number: string; full_name: string }
+export async function createLearningModule(input: {
+  sectionId: string;
+  title: string;
+  description: string;
+  position: number;
+  publish: boolean;
+}) {
+  const client = requireClient();
+  const { data: user } = await client.auth.getUser();
+  const { error } = await client.from("learning_modules").insert({
+    section_id: input.sectionId,
+    title: clean(input.title, "Module title", 180),
+    description: input.description.trim().slice(0, 4000),
+    position: input.position,
+    status: input.publish ? "published" : "draft",
+    published_at: input.publish ? new Date().toISOString() : null,
+    created_by: user.user?.id,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function setLearningModuleStatus(
+  moduleId: string,
+  status: "draft" | "published" | "archived",
+) {
+  const client = requireClient();
+  const { error } = await client
+    .from("learning_modules")
+    .update({
+      status,
+      published_at: status === "published" ? new Date().toISOString() : null,
+    })
+    .eq("id", moduleId);
+  if (error) throw new Error(error.message);
+}
+
+export async function uploadLmsFile(
+  sectionId: string,
+  folder: "materials" | "submissions",
+  file: File,
+) {
+  const client = requireClient();
+  if (file.size > 52_428_800)
+    throw new Error("Files must be 50 MB or smaller.");
+  const { data: user } = await client.auth.getUser();
+  if (!user.user) throw new Error("Authentication is required.");
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(-120);
+  const path =
+    folder === "submissions"
+      ? `${sectionId}/submissions/${user.user.id}/${crypto.randomUUID()}-${safeName}`
+      : `${sectionId}/materials/${crypto.randomUUID()}-${safeName}`;
+  const { error } = await client.storage
+    .from("lms-files")
+    .upload(path, file, { upsert: false, contentType: file.type || undefined });
+  if (error) throw new Error(error.message);
+  return path;
+}
+
+export async function createLearningMaterial(input: {
+  moduleId: string;
+  title: string;
+  description: string;
+  type: string;
+  content: string;
+  externalUrl?: string;
+  storagePath?: string;
+  position: number;
+  minutes: number;
+  required: boolean;
+  publish: boolean;
+}) {
+  const client = requireClient();
+  const { data: user } = await client.auth.getUser();
+  const { error } = await client.from("learning_materials").insert({
+    module_id: input.moduleId,
+    title: clean(input.title, "Material title", 180),
+    description: input.description.trim().slice(0, 4000),
+    material_type: input.type,
+    content_markdown: input.content.trim().slice(0, 100000),
+    external_url: input.externalUrl?.trim() || null,
+    storage_path: input.storagePath || null,
+    position: input.position,
+    estimated_minutes: input.minutes,
+    is_required: input.required,
+    status: input.publish ? "published" : "draft",
+    published_at: input.publish ? new Date().toISOString() : null,
+    created_by: user.user?.id,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function getLmsFileUrl(path: string) {
+  const client = requireClient();
+  const { data, error } = await client.storage
+    .from("lms-files")
+    .createSignedUrl(path, 300);
+  if (error) throw new Error(error.message);
+  return data.signedUrl;
+}
+
+export async function markLearningProgress(
+  materialId: string,
+  completed: boolean,
+) {
+  const client = requireClient();
+  const { data: user } = await client.auth.getUser();
+  if (!user.user) throw new Error("Authentication is required.");
+  const now = new Date().toISOString();
+  const { error } = await client.from("learning_progress").upsert(
+    {
+      material_id: materialId,
+      student_profile_id: user.user.id,
+      status: completed ? "completed" : "in_progress",
+      started_at: now,
+      completed_at: completed ? now : null,
+      last_viewed_at: now,
+    },
+    { onConflict: "material_id,student_profile_id" },
+  );
+  if (error) throw new Error(error.message);
+}
+
+export async function createCourseAssessment(input: {
+  sectionId: string;
+  title: string;
+  instructions: string;
+  type: "quiz" | "exam" | "assignment" | "project";
+  dueAt?: string;
+  maxScore: number;
+  publish: boolean;
+  questions?: Array<{
+    prompt: string;
+    points: number;
+    options: string[];
+    correctOption: number;
+    explanation?: string;
+  }>;
+}) {
+  const client = requireClient();
+  const { error } = await client.rpc("create_lms_assessment", {
+    p_section_id: input.sectionId,
+    p_title: clean(input.title, "Assessment title", 180),
+    p_instructions: input.instructions.trim().slice(0, 10000),
+    p_type: input.type,
+    p_due_at: (input.dueAt || null) as unknown as string,
+    p_max_score: input.maxScore,
+    p_publish: input.publish,
+    p_questions: (input.questions ?? []) as unknown as Json,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function submitAssignment(input: {
+  assessmentId: string;
+  sectionId: string;
+  text: string;
+  file?: File;
+}) {
+  const client = requireClient();
+  const { data: user } = await client.auth.getUser();
+  if (!user.user) throw new Error("Authentication is required.");
+  const storagePath = input.file
+    ? await uploadLmsFile(input.sectionId, "submissions", input.file)
+    : null;
+  const { error } = await client.from("assignment_submissions").upsert(
+    {
+      assessment_id: input.assessmentId,
+      student_profile_id: user.user.id,
+      submission_text: input.text.trim().slice(0, 100000),
+      storage_path: storagePath,
+      status: "submitted",
+      submitted_at: new Date().toISOString(),
+    },
+    { onConflict: "assessment_id,student_profile_id" },
+  );
+  if (error) throw new Error(error.message);
+}
+
+export async function gradeAssignmentSubmission(
+  id: string,
+  score: number,
+  feedback: string,
+) {
+  const client = requireClient();
+  const { data: user } = await client.auth.getUser();
+  const { error } = await client
+    .from("assignment_submissions")
+    .update({
+      score,
+      feedback: feedback.trim().slice(0, 10000),
+      status: "graded",
+      graded_by: user.user?.id,
+      graded_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function createAttendanceSession(input: {
+  sectionId: string;
+  title: string;
+  startsAt: string;
+  endsAt: string;
+}) {
+  const client = requireClient();
+  const { data: user } = await client.auth.getUser();
+  const { data, error } = await client
+    .from("attendance_sessions")
+    .insert({
+      section_id: input.sectionId,
+      title: clean(input.title, "Attendance title", 180),
+      starts_at: input.startsAt,
+      ends_at: input.endsAt,
+      status: "open",
+      created_by: user.user?.id,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+  return data.id;
+}
+
+export async function saveAttendance(
+  sessionId: string,
+  records: Array<{ profileId: string; status: string; notes?: string }>,
+) {
+  const client = requireClient();
+  const { data: user } = await client.auth.getUser();
+  const { error } = await client.from("attendance_records").upsert(
+    records.map((record) => ({
+      session_id: sessionId,
+      student_profile_id: record.profileId,
+      status: record.status,
+      notes: record.notes?.trim().slice(0, 2000) || "",
+      marked_by: user.user?.id,
+    })),
+    { onConflict: "session_id,student_profile_id" },
+  );
+  if (error) throw new Error(error.message);
+}
+
+export async function createCourseAnnouncement(input: {
+  sectionId: string;
+  title: string;
+  body: string;
+  priority: string;
+}) {
+  const client = requireClient();
+  const { data: user } = await client.auth.getUser();
+  const { error } = await client.from("announcements").insert({
+    section_id: input.sectionId,
+    author_id: user.user?.id,
+    title: clean(input.title, "Announcement title", 180),
+    body: clean(input.body, "Announcement", 10000),
+    priority: input.priority,
+    published_at: new Date().toISOString(),
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function createStudentAccount(input: {
+  email: string;
+  password: string;
+  fullName: string;
+  preferredName?: string;
+  studentNumber: string;
+  program: string;
+  yearLevel: string;
+  phone?: string;
+  advisorId?: string;
+}) {
+  const client = requireClient();
+  const { data, error } = await client.functions.invoke(
+    "manage-student-account",
+    { body: input },
+  );
+  if (error) throw new Error(error.message);
+  if (data?.error) throw new Error(String(data.error));
+  return data.student as {
+    id: string;
+    profile_id: string;
+    student_number: string;
+    full_name: string;
+  };
 }

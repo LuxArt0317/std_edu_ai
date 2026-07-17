@@ -387,3 +387,10 @@
 - [x] deploy the database migration and Edge Function to production Supabase
 - [x] verify contracts, production build, all-role authentication, RLS, reversible enrollment, and conflict cleanup
 - [x] release through GitHub/Vercel and verify the public production deployment
+## Phase 33: Integrated teacher and student LMS [Issue #33]
+
+- [x] research current Supabase Data API, RLS, and private Storage requirements
+- [x] deploy modules, materials, progress, submissions, attendance, private files, integrity triggers, and optimized policies/indexes
+- [x] implement the integrated teacher course studio and enrolled-student learning path
+- [x] verify content, private files, student denial, progress, submission/grading, score ceiling, attendance, and cleanup using real production roles
+- [ ] complete release checks, merge, and verify Vercel production

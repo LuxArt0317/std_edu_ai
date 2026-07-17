@@ -9,3 +9,5 @@ These opt-in scripts exercise the configured production deployment and Supabase 
 `export-role-credentials.mjs` retrieves all 14 passwords from the local macOS Keychain, verifies each production Auth identity and RLS-visible profile, then atomically writes the ignored root file `PRODUCTION_ROLE_CREDENTIALS.local.md` with mode `0600`. It never prints a password or persists a file if verification is incomplete.
 
 `academic-operations-live.mjs` performs and restores a real enrollment update, proves overlapping room bookings are rejected, removes its temporary event, and confirms a student cannot invoke account provisioning.
+
+`lms-live.mjs` runs a reversible production course lifecycle as real faculty and student identities: publish content/private files, deny student authoring, track progress, submit and grade work, enforce the score ceiling, take attendance, verify student visibility, and clean up.

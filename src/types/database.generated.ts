@@ -558,6 +558,179 @@ export type Database = {
           },
         ]
       }
+      assignment_submissions: {
+        Row: {
+          assessment_id: string
+          created_at: string
+          feedback: string
+          graded_at: string | null
+          graded_by: string | null
+          id: string
+          score: number | null
+          status: string
+          storage_path: string | null
+          student_profile_id: string
+          submission_text: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string
+          feedback?: string
+          graded_at?: string | null
+          graded_by?: string | null
+          id?: string
+          score?: number | null
+          status?: string
+          storage_path?: string | null
+          student_profile_id: string
+          submission_text?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string
+          feedback?: string
+          graded_at?: string | null
+          graded_by?: string | null
+          id?: string
+          score?: number | null
+          status?: string
+          storage_path?: string | null
+          student_profile_id?: string
+          submission_text?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_submissions_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_submissions_graded_by_fkey"
+            columns: ["graded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_submissions_student_profile_id_fkey"
+            columns: ["student_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_records: {
+        Row: {
+          id: string
+          marked_at: string
+          marked_by: string | null
+          notes: string
+          session_id: string
+          status: string
+          student_profile_id: string
+        }
+        Insert: {
+          id?: string
+          marked_at?: string
+          marked_by?: string | null
+          notes?: string
+          session_id: string
+          status: string
+          student_profile_id: string
+        }
+        Update: {
+          id?: string
+          marked_at?: string
+          marked_by?: string | null
+          notes?: string
+          session_id?: string
+          status?: string
+          student_profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_records_marked_by_fkey"
+            columns: ["marked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_records_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_records_student_profile_id_fkey"
+            columns: ["student_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_sessions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ends_at: string
+          id: string
+          section_id: string
+          starts_at: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ends_at: string
+          id?: string
+          section_id: string
+          starts_at: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string
+          id?: string
+          section_id?: string
+          starts_at?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_sessions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_sessions_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "course_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_recipients: {
         Row: {
           campaign_id: string
@@ -1401,6 +1574,180 @@ export type Database = {
           },
         ]
       }
+      learning_materials: {
+        Row: {
+          content_markdown: string
+          created_at: string
+          created_by: string | null
+          description: string
+          estimated_minutes: number
+          external_url: string | null
+          id: string
+          is_required: boolean
+          material_type: string
+          module_id: string
+          position: number
+          published_at: string | null
+          status: string
+          storage_path: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content_markdown?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          estimated_minutes?: number
+          external_url?: string | null
+          id?: string
+          is_required?: boolean
+          material_type: string
+          module_id: string
+          position: number
+          published_at?: string | null
+          status?: string
+          storage_path?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content_markdown?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          estimated_minutes?: number
+          external_url?: string | null
+          id?: string
+          is_required?: boolean
+          material_type?: string
+          module_id?: string
+          position?: number
+          published_at?: string | null
+          status?: string
+          storage_path?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_materials_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_materials_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "learning_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_modules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          position: number
+          published_at: string | null
+          section_id: string
+          status: string
+          title: string
+          unlocks_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          position: number
+          published_at?: string | null
+          section_id: string
+          status?: string
+          title: string
+          unlocks_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          position?: number
+          published_at?: string | null
+          section_id?: string
+          status?: string
+          title?: string
+          unlocks_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_modules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_modules_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "course_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_progress: {
+        Row: {
+          completed_at: string | null
+          id: string
+          last_viewed_at: string
+          material_id: string
+          started_at: string | null
+          status: string
+          student_profile_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          last_viewed_at?: string
+          material_id: string
+          started_at?: string | null
+          status?: string
+          student_profile_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          last_viewed_at?: string
+          material_id?: string
+          started_at?: string | null
+          status?: string
+          student_profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_progress_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "learning_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_progress_student_profile_id_fkey"
+            columns: ["student_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           action_url: string | null
@@ -1965,12 +2312,21 @@ export type Database = {
         }[]
       }
       claim_initial_admin: { Args: never; Returns: boolean }
-      manage_section_enrollment: {
+      create_lms_assessment: {
         Args: {
+          p_due_at: string
+          p_instructions: string
+          p_max_score: number
+          p_publish: boolean
+          p_questions?: Json
           p_section_id: string
-          p_status: string
-          p_student_id: string
+          p_title: string
+          p_type: string
         }
+        Returns: string
+      }
+      manage_section_enrollment: {
+        Args: { p_section_id: string; p_status?: string; p_student_id: string }
         Returns: {
           capacity: number
           enrolled_count: number

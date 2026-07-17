@@ -74,6 +74,7 @@ npm run build
 npm test
 npm run test:live-school
 npm run test:live-academic-operations
+npm run test:live-lms
 npm run test:live-crm
 npm run test:live-roles
 npm run test:live-accounts

@@ -4,6 +4,7 @@ This folder contains the role-aware school operating experience layered over the
 
 - `UnifiedPortal.tsx` renders owner, administrator, teacher, specialist-staff, and student workspaces.
 - `AcademicOperations.tsx` provides working student, department, program, term, subject, class, enrollment, and conflict-safe scheduling workflows.
+- `LmsWorkspace.tsx` turns every existing section into an integrated teacher course studio and enrolled-student learning path, including modules, materials, private files, assessments, submissions, feedback, attendance, announcements, and progress.
 - `platformRepository.ts` loads RLS-filtered academic data and owns quiz, grade, and chat persistence.
 - `platformAi.ts` calls authenticated school-chat and grade-scan endpoints.
 - `onboarding.ts`, `RoleOnboarding.tsx`, and `onboardingRepository.ts` preserve the currently disabled role-onboarding implementation and RLS-backed history for a reviewed future re-enable.
