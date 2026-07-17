@@ -38,11 +38,46 @@ export type PlatformProfile = {
   name: string;
   role: PlatformRole;
   department: string;
+  departmentId: string | null;
+  programId: string | null;
   jobTitle: string;
   isOwner: boolean;
   accountStatus: "active" | "suspended" | "archived";
   statusChangedAt: string | null;
   statusReason: string;
+};
+
+export type ProfileSectionAssignment = {
+  id: string;
+  profileId: string;
+  sectionId: string;
+  responsibility: "faculty" | "assistant" | "coordinator" | "observer";
+  assignedBy: string;
+  reason: string;
+  createdAt: string;
+};
+
+export type AttendanceCorrectionRequest = {
+  id: string;
+  attendanceRecordId: string;
+  studentProfileId: string;
+  requestedStatus: "present" | "absent" | "late" | "excused";
+  reason: string;
+  status: "pending" | "approved" | "rejected" | "cancelled";
+  decisionReason: string;
+  decidedBy: string | null;
+  decidedAt: string | null;
+  createdAt: string;
+};
+
+export type ControlledActionAudit = {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  actorId: string;
+  reason: string;
+  createdAt: string;
 };
 
 export type AuthDirectoryAccount = {
@@ -368,6 +403,9 @@ export type PlatformData = {
     createdAt: string;
   }>;
   supportRequests: StudentSupportRequest[];
+  sectionAssignments: ProfileSectionAssignment[];
+  attendanceCorrections: AttendanceCorrectionRequest[];
+  controlledAudits: ControlledActionAudit[];
 };
 
 export type SchoolChatAnswer = {

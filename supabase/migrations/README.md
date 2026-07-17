@@ -13,3 +13,5 @@ The integrated LMS migration set adds modules, materials, submissions, attendanc
 `20260717232914_account_directory_and_session_revocation.sql` adds immutable access-operation history and the service-role-only session revocation command. `20260717233309_student_support_self_service.sql` lets a student open a case only against their own linked SIS record while leaving assignment and resolution with authorized staff.
 
 `20260717233540_optimize_account_and_support_policies.sql` covers every new audit foreign key and consolidates staff/student case creation into one role-aware insert policy.
+
+`20260717234309_complete_needed_controlled_workflows.sql` adds relational department/program/class responsibilities, student attendance-correction requests, and reasoned final-grade publication, published-grade correction, term closing, and attendance decisions with immutable before/after evidence. The two following migrations make pending correction uniqueness lifecycle-safe and cover all new policy foreign keys without duplicate permissive reads.

@@ -620,3 +620,14 @@ Some operations should never be ordinary CRUD:
 - Permanent data deletion
 
 These require confirmation, an actor, timestamp, reason, authorization check, and audit record.
+
+# 17. Implementation evidence ledger
+
+This ledger records shipped evidence without weakening the completion rule at the top of this document.
+
+- Account provisioning, bulk import, invitation/resend, credential rotation, lifecycle control, session revocation, last-login review, role changes, and immutable account/role audits are available in **People & Roles** through the JWT-protected server boundary.
+- Department, program, class, and advisee responsibilities are relational assignments and are visible in each account row. The Owner can configure the non-owner role capability catalog; RLS remains the enforcement boundary.
+- Academic Office provides department, program, term, subject, section, student, enrollment, room, capacity, modality, schedule, and advisor maintenance. Term closure is a reasoned controlled action and refuses closure while recorded grades remain unpublished.
+- Teacher Studio provides module/material/page, assessment/question/key, submission, grade, attendance, announcement, file, and rich-content workflows. Final-grade publication and later correction preserve immutable before/after evidence.
+- Students can read published multi-page content, record progress, submit their own work, view released grades/feedback, open support requests, and request attendance corrections. They cannot access answer keys or use Nexus to complete assessed work.
+- Attendance correction decisions require an authorized class operator, a reason, actor, timestamp, and audit entry. Only one request may be pending for a record while completed history remains repeatable and immutable.

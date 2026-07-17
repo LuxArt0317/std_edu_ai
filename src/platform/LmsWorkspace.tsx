@@ -28,6 +28,8 @@ import {
   updateLearningMaterial,
   updateLearningMaterialPage,
   deleteLearningMaterialPage,
+  requestAttendanceCorrection,
+  decideAttendanceCorrection,
 } from "./platformRepository";
 import type {
   Announcement,
@@ -617,6 +619,10 @@ export function TeacherLmsStudio({
               text="Create a meeting to start recording present, late, absent, and excused learners."
             />
           ) : null}
+          {data.attendanceCorrections.filter((item) => item.status === "pending" && data.attendanceRecords.some((record) => record.id === item.attendanceRecordId && sessions.some((session) => session.id === record.sessionId))).map((request) => {
+            const learner=data.profiles.find((item) => item.id === request.studentProfileId);
+            return <article className="lms-attendance-card" key={request.id}><header><div><span>CORRECTION REQUEST</span><h3>{learner?.name ?? "Learner"} requests “{request.requestedStatus}”</h3><p>{request.reason}</p></div><button type="button" onClick={() => { const reason=window.prompt("Approval reason (at least 12 characters)"); if (reason) void perform(() => decideAttendanceCorrection({requestId:request.id,approve:true,reason}),"Attendance corrected and audited."); }}>Approve</button><button type="button" onClick={() => { const reason=window.prompt("Rejection reason (at least 12 characters)"); if (reason) void perform(() => decideAttendanceCorrection({requestId:request.id,approve:false,reason}),"Correction request rejected and audited."); }}>Reject</button></header></article>;
+          })}
         </section>
       ) : null}
 
@@ -1823,6 +1829,15 @@ export function StudentLmsLearning({
           </b>{" "}
           sessions present
         </span>
+      </section>
+      <section className="lms-workspace">
+        <header><div><span>MY ATTENDANCE</span><h2>Attendance records and corrections</h2><p>Review each class record and request a documented correction when needed.</p></div></header>
+        {attendance.map((record) => {
+          const session=data.attendanceSessions.find((item) => item.id === record.sessionId);
+          const pending=data.attendanceCorrections.find((item) => item.attendanceRecordId === record.id && item.status === "pending");
+          return <article className="lms-attendance-card" key={record.id}><header><div><span>{record.status}</span><h3>{session?.title ?? "Class session"}</h3><p>{session ? dateTime(session.startsAt) : ""}{record.notes ? ` · ${record.notes}` : ""}</p></div>{pending ? <b>Correction pending: {pending.requestedStatus}</b> : <button type="button" onClick={() => { const requestedStatus=window.prompt("Requested status: present, absent, late, or excused",record.status); if (!requestedStatus || !["present","absent","late","excused"].includes(requestedStatus)) { if(requestedStatus) onToast("Choose present, absent, late, or excused."); return; } const reason=window.prompt("Explain the correction request (at least 12 characters)"); if (!reason) return; void requestAttendanceCorrection({attendanceRecordId:record.id,studentProfileId:currentUser.id,requestedStatus:requestedStatus as "present"|"absent"|"late"|"excused",reason}).then(() => {onToast("Attendance correction requested.");onChanged();}).catch((error: unknown) => onToast(error instanceof Error ? error.message : "Correction request failed.")); }}>Request correction</button>}</header></article>;
+        })}
+        {!attendance.length ? <Empty title="No attendance records" text="Your class attendance appears here after a teacher records a session." /> : null}
       </section>
       <div className="lms-learning-layout">
         <aside>

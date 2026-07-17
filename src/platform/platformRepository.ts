@@ -119,6 +119,9 @@ export async function loadPlatformData(): Promise<PlatformData> {
     accountAuditsResult,
     accessAuditsResult,
     supportRequestsResult,
+    sectionAssignmentsResult,
+    attendanceCorrectionsResult,
+    controlledAuditsResult,
   ] = await withTimeout(
     Promise.all([
       client
@@ -184,6 +187,9 @@ export async function loadPlatformData(): Promise<PlatformData> {
         .order("created_at", { ascending: false })
         .limit(100),
       client.from("cases").select("*").order("updated_at", { ascending: false }),
+      client.from("profile_section_assignments").select("*").order("created_at", { ascending: false }),
+      client.from("attendance_correction_requests").select("*").order("created_at", { ascending: false }),
+      client.from("controlled_action_audit").select("*").order("created_at", { ascending: false }).limit(100),
     ]),
     20_000,
     "The school workspace took too long to load. Check the connection and try again.",
@@ -231,6 +237,9 @@ export async function loadPlatformData(): Promise<PlatformData> {
   const accountAuditRows = rows(accountAuditsResult, "Account audit");
   const accessAuditRows = rows(accessAuditsResult, "Account access audit");
   const supportRequestRows = rows(supportRequestsResult, "Support requests");
+  const sectionAssignmentRows = rows(sectionAssignmentsResult, "Class responsibilities");
+  const attendanceCorrectionRows = rows(attendanceCorrectionsResult, "Attendance corrections");
+  const controlledAuditRows = rows(controlledAuditsResult, "Controlled action audit");
 
   const profilesById = new Map(
     profileRows.map((profile) => [profile.id, profile]),
@@ -331,6 +340,8 @@ export async function loadPlatformData(): Promise<PlatformData> {
       name: profile.full_name,
       role: profile.role as PlatformRole,
       department: profile.department ?? "",
+      departmentId: profile.department_id ?? null,
+      programId: profile.program_id ?? null,
       jobTitle: profile.job_title ?? "",
       isOwner: profile.is_platform_owner,
       accountStatus: (profile.account_status ??
@@ -571,6 +582,36 @@ export async function loadPlatformData(): Promise<PlatformData> {
       createdAt: item.created_at,
       updatedAt: item.updated_at,
     })),
+    sectionAssignments: sectionAssignmentRows.map((item) => ({
+      id: item.id,
+      profileId: item.profile_id,
+      sectionId: item.section_id,
+      responsibility: item.responsibility as "faculty" | "assistant" | "coordinator" | "observer",
+      assignedBy: item.assigned_by,
+      reason: item.reason,
+      createdAt: item.created_at,
+    })),
+    attendanceCorrections: attendanceCorrectionRows.map((item) => ({
+      id: item.id,
+      attendanceRecordId: item.attendance_record_id,
+      studentProfileId: item.student_profile_id,
+      requestedStatus: item.requested_status as "present" | "absent" | "late" | "excused",
+      reason: item.reason,
+      status: item.status as "pending" | "approved" | "rejected" | "cancelled",
+      decisionReason: item.decision_reason ?? "",
+      decidedBy: item.decided_by,
+      decidedAt: item.decided_at,
+      createdAt: item.created_at,
+    })),
+    controlledAudits: controlledAuditRows.map((item) => ({
+      id: item.id,
+      action: item.action,
+      entityType: item.entity_type,
+      entityId: item.entity_id,
+      actorId: item.actor_id,
+      reason: item.reason,
+      createdAt: item.created_at,
+    })),
   };
 }
 
@@ -702,13 +743,99 @@ export async function saveReviewedScan(
   return Number(data?.[0]?.saved_count ?? 0);
 }
 
-export async function publishGrade(gradeId: string) {
+export async function publishGrade(gradeId: string, reason: string) {
   const client = requireClient();
-  const { error } = await client
-    .from("grades")
-    .update({ status: "published", published_at: new Date().toISOString() })
-    .eq("id", gradeId);
+  const { error } = await client.rpc("publish_final_grade", {
+    p_grade_id: gradeId,
+    p_reason: clean(reason, "Publication reason", 1000),
+  });
   if (error) throw new Error(error.message);
+}
+
+export async function correctPublishedGrade(input: {
+  gradeId: string;
+  score: number;
+  letterGrade: string;
+  feedback: string;
+  reason: string;
+}) {
+  const client = requireClient();
+  const { error } = await client.rpc("correct_published_grade", {
+    p_grade_id: input.gradeId,
+    p_score: input.score,
+    p_letter_grade: input.letterGrade.trim().slice(0, 8),
+    p_feedback: input.feedback.trim().slice(0, 10000),
+    p_reason: clean(input.reason, "Correction reason", 1000),
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function closeAcademicTerm(termId: string, reason: string) {
+  const client = requireClient();
+  const { error } = await client.rpc("close_academic_term", {
+    p_term_id: termId,
+    p_reason: clean(reason, "Closure reason", 1000),
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function requestAttendanceCorrection(input: {
+  attendanceRecordId: string;
+  studentProfileId: string;
+  requestedStatus: "present" | "absent" | "late" | "excused";
+  reason: string;
+}) {
+  const client = requireClient();
+  const { error } = await client.from("attendance_correction_requests").insert({
+    attendance_record_id: input.attendanceRecordId,
+    student_profile_id: input.studentProfileId,
+    requested_status: input.requestedStatus,
+    reason: clean(input.reason, "Correction reason", 1000),
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function decideAttendanceCorrection(input: {
+  requestId: string;
+  approve: boolean;
+  reason: string;
+}) {
+  const client = requireClient();
+  const { error } = await client.rpc("decide_attendance_correction", {
+    p_request_id: input.requestId,
+    p_approve: input.approve,
+    p_reason: clean(input.reason, "Decision reason", 1000),
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function assignProfileResponsibilities(input: {
+  profileId: string;
+  departmentId: string | null;
+  programId: string | null;
+  sectionId: string | null;
+  responsibility: "faculty" | "assistant" | "coordinator" | "observer";
+  reason: string;
+}) {
+  const client = requireClient();
+  const reason = clean(input.reason, "Assignment reason", 500);
+  const { error: profileError } = await client.from("profiles").update({
+    department_id: input.departmentId,
+    program_id: input.programId,
+  }).eq("id", input.profileId);
+  if (profileError) throw new Error(profileError.message);
+  if (input.sectionId) {
+    const { data: userData, error: userError } = await client.auth.getUser();
+    if (userError || !userData.user) throw new Error("An authenticated operator is required.");
+    const { error } = await client.from("profile_section_assignments").upsert({
+      profile_id: input.profileId,
+      section_id: input.sectionId,
+      responsibility: input.responsibility,
+      assigned_by: userData.user.id,
+      reason,
+    }, { onConflict: "profile_id,section_id,responsibility" });
+    if (error) throw new Error(error.message);
+  }
 }
 
 export async function updateGradeRecord(
@@ -749,6 +876,13 @@ export async function assignPlatformRole(
   if (error) throw new Error(error.message);
   if (!data?.[0]) throw new Error("The role change was not confirmed.");
   return data[0];
+}
+
+export async function updateRoleCapabilities(role: Exclude<PlatformRole, "owner">, capabilities: string[]) {
+  const client = requireClient();
+  const normalized = [...new Set(capabilities.map((item) => item.trim().toLowerCase().replace(/[^a-z0-9_:-]+/g, "_")).filter(Boolean))].slice(0, 100);
+  const { error } = await client.from("role_definitions").update({ capabilities: normalized }).eq("role_code", role);
+  if (error) throw new Error(error.message);
 }
 
 export async function provisionRoleAccount(input: {
@@ -852,6 +986,22 @@ export async function revokeAccountSessions(input: {
   if (!data?.id || typeof data.revokedCount !== "number")
     throw new Error("Session revocation was not confirmed.");
   return data as { id: string; revokedCount: number };
+}
+
+export async function inviteRoleAccount(input: {
+  email: string;
+  role: Exclude<PlatformRole, "owner">;
+  fullName: string;
+}) {
+  const data = await invokeAccountControl({ action: "invite", ...input });
+  if (!data?.id || data.status !== "invited") throw new Error("The invitation was not confirmed by Auth.");
+  return data as { id: string; email: string; status: "invited" };
+}
+
+export async function resendRoleInvitation(email: string) {
+  const data = await invokeAccountControl({ action: "resend_invitation", email });
+  if (!data?.id || data.status !== "invitation_resent") throw new Error("The invitation resend was not confirmed by Auth.");
+  return data as { id: string; email: string; status: "invitation_resent" };
 }
 
 export async function createStudentSupportRequest(input: {

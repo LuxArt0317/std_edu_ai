@@ -12,11 +12,11 @@
 - [x] expose protected-owner general account creation for every non-owner role using the existing server-only Auth provisioning boundary
 - [x] complete account detail editing, role assignment, Auth-enforced activation/suspension/archive/restore, credential rotation through existing-account provisioning, and visible immutable role/lifecycle audit controls
 - [x] add explicit session revocation, last-login/activity inspection, bulk account provisioning, and credential rotation controls
-- [ ] add email invitation/resend and complete department/program/class/advisee responsibility-assignment controls
+- [x] add email invitation/resend and complete department/program/class/advisee responsibility-assignment controls
 
 ### Role-complete academic, LMS, CRM, and self-service actions
 
-- [ ] close every catalog gap across academic lifecycle, teaching and assessment, submissions/grades, attendance, schedule, CRM, knowledge, notifications, and controlled transitions
+- [ ] close every catalog gap across academic lifecycle, teaching and assessment, submissions/grades, attendance, schedule, CRM, knowledge, notifications, and controlled transitions (final-grade publication/correction, term closure, and attendance correction are complete)
 - [x] add student-owned support request creation and status tracking without exposing staff-only case triage
 - [ ] ensure every role sees its required action and no forbidden action, with student personal submission preserved and student AI completion prohibited
 

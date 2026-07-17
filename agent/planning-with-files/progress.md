@@ -28,3 +28,11 @@
 - Passed 34 contracts, lint, TypeScript/Vite build, asset verification, and the live Nexus agent role test.
 - PR #47 passed CodeRabbit and Vercel, merged, and deployed Ready to production.
 - Custom-domain diagnostics passed for `/` and `/crm`; recursive bundle inspection confirmed the learner-progress, rich-page, schedule-action, and client role-denial markers.
+
+## 2026-07-18 — Issue #48 controlled workflows slice
+
+- Audited `needed.md` against the portal repository, Supabase schema/RLS, Edge Functions, and visible controls.
+- Applied production migrations for responsibility assignments, controlled academic transitions, attendance corrections, lifecycle-safe request uniqueness, and advisor-driven index/policy optimization.
+- Deployed `provision-role-account` version 5 with institutional invitation and resend operations.
+- Added UI/repository workflows for role capability configuration, assigned responsibilities, audited grade publication/correction, term closure, and attendance correction request/decision.
+- TypeScript, oxlint, Vite build, and semantic asset verification pass.

@@ -18,6 +18,7 @@ import {
   updateProgram,
   updateScheduleEvent,
   updateStudentRecord,
+  closeAcademicTerm,
 } from "./platformRepository";
 import type {
   PlatformData,
@@ -483,12 +484,7 @@ export function AcademicOperations({
                     </small>
                   </span>
                   {registrarRoles.has(role) ? (
-                    <button
-                      type="button"
-                      onClick={() => openEdit("term", term.id)}
-                    >
-                      Edit
-                    </button>
+                    <span className="academic-row-actions"><button type="button" onClick={() => openEdit("term", term.id)}>Edit</button>{term.status !== "completed" ? <button type="button" onClick={() => { const reason=window.prompt("Term closure reason (at least 12 characters)"); if (!reason) return; void perform(() => closeAcademicTerm(term.id,reason),"Academic term closed and locked with audit evidence."); }}>Close term</button> : null}</span>
                   ) : null}
                 </div>
               ))}

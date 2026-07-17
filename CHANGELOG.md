@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- added institutional email invitation and resend controls, owner-managed role capability catalogs, and visible department, program, class, and advisee responsibility assignments
+- added governed final-grade publication and post-publication correction, academic-term closure, and student attendance-correction requests with authorized teacher decisions and immutable before/after audit evidence
+- added RLS-protected responsibility, attendance-correction, and controlled-action records with complete foreign-key indexes and production Edge Function version 5
+
 - added owner-only live Auth directory activity, explicit audited session revocation, temporary-password rotation, and bulk non-owner account provisioning with one-time credential handoff
 - added student self-service support requests linked to the authenticated student's own SIS record, with status tracking and staff-only triage controls
 

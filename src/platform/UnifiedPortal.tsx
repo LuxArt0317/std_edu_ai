@@ -11,6 +11,7 @@ import {
 import {
   appendChatMessage,
   assignPlatformRole,
+  assignProfileResponsibilities,
   clearPlatformDataSnapshot,
   changeAccountLifecycle,
   createAttendanceSession,
@@ -26,15 +27,19 @@ import {
   loadAccountDirectory,
   loadChatMessages,
   loadPlatformDataCached,
+  inviteRoleAccount,
   markLearningProgress,
   publishGrade,
+  correctPublishedGrade,
   provisionRoleAccount,
   revokeAccountSessions,
+  resendRoleInvitation,
   recordGradeScan,
   saveReviewedScan,
   submitAssessment,
   updatePlatformProfile,
   updateGradeRecord,
+  updateRoleCapabilities,
 } from "./platformRepository";
 import type {
   AssessmentAttemptResult,
@@ -1136,6 +1141,7 @@ function GradesView({
   const [scanning, setScanning] = useState(false);
   const [editingGradeId, setEditingGradeId] = useState("");
   const [gradeFeedback, setGradeFeedback] = useState("");
+  const [publishingGradeId, setPublishingGradeId] = useState("");
   const selectedItem =
     data.gradeItems.find((item) => item.id === gradeItemId) ??
     data.gradeItems[0];
@@ -1375,20 +1381,7 @@ function GradesView({
                   {grade.status !== "published" ? (
                     <button
                       type="button"
-                      onClick={() =>
-                        void publishGrade(grade.id)
-                          .then(() => {
-                            onToast("Grade published to the student portal.");
-                            onChanged();
-                          })
-                          .catch((error: unknown) =>
-                            onToast(
-                              error instanceof Error
-                                ? error.message
-                                : "Grade could not be published.",
-                            ),
-                          )
-                      }
+                      onClick={() => setPublishingGradeId(grade.id)}
                     >
                       Publish
                     </button>
@@ -1446,6 +1439,18 @@ function GradesView({
           </div>
         </section>
       ) : null}
+      {publishingGradeId ? (
+        <div className="academic-modal-layer">
+          <button type="button" className="academic-modal-backdrop" aria-label="Cancel grade publication" onClick={() => setPublishingGradeId("")} />
+          <section className="academic-modal" role="dialog" aria-modal="true" aria-label="Publish final grade">
+            <header><div><span>CONTROLLED ACADEMIC RECORD</span><h2>Publish this final grade?</h2><p>The student will see it immediately. Later changes require the audited correction workflow.</p></div><button type="button" onClick={() => setPublishingGradeId("")}>×</button></header>
+            <form className="academic-form" onSubmit={(event) => { event.preventDefault(); const reason=String(new FormData(event.currentTarget).get("reason")); void publishGrade(publishingGradeId, reason).then(() => { setPublishingGradeId(""); onToast("Final grade published with immutable audit evidence."); onChanged(); }).catch((error: unknown) => onToast(error instanceof Error ? error.message : "Grade could not be published.")); }}>
+              <label><span>Publication reason</span><textarea name="reason" minLength={12} maxLength={1000} rows={4} required placeholder="Confirm grading review and publication basis." /></label>
+              <footer><span>Actor, timestamp, reason, and before/after state are preserved.</span><button>Publish final grade</button></footer>
+            </form>
+          </section>
+        </div>
+      ) : null}
       {editingGradeId
         ? (() => {
             const grade = data.grades.find(
@@ -1487,13 +1492,10 @@ function GradesView({
                     onSubmit={(event) => {
                       event.preventDefault();
                       const f = new FormData(event.currentTarget);
-                      void updateGradeRecord(grade.id, {
-                        score: Number(f.get("score")),
-                        letterGrade: String(f.get("letterGrade")),
-                        feedback: gradeFeedback,
-                        status: String(f.get("status")) as
-                          "draft" | "reviewed" | "published",
-                      })
+                      const operation = grade.status === "published"
+                        ? correctPublishedGrade({ gradeId: grade.id, score: Number(f.get("score")), letterGrade: String(f.get("letterGrade")), feedback: gradeFeedback, reason: String(f.get("reason")) })
+                        : updateGradeRecord(grade.id, { score: Number(f.get("score")), letterGrade: String(f.get("letterGrade")), feedback: gradeFeedback, status: String(f.get("status")) as "draft" | "reviewed" | "published" });
+                      void operation
                         .then(() => {
                           setEditingGradeId("");
                           onToast("Grade updated.");
@@ -1521,6 +1523,7 @@ function GradesView({
                           defaultValue={grade.score}
                         />
                       </label>
+                      {grade.status === "published" ? <label><span>Required correction reason</span><textarea name="reason" minLength={12} maxLength={1000} rows={4} required /></label> : null}
                       <label>
                         <span>Letter grade</span>
                         <input
@@ -1531,10 +1534,10 @@ function GradesView({
                       </label>
                       <label>
                         <span>Status</span>
-                        <select name="status" defaultValue={grade.status}>
-                          <option value="draft">Draft</option>
-                          <option value="reviewed">Reviewed</option>
-                          <option value="published">Published</option>
+                        <select name="status" defaultValue={grade.status} disabled={grade.status === "published"}>
+                          {grade.status === "published" ? <option value="published">Published</option> : null}
+                          {grade.status !== "published" ? <option value="draft">Draft</option> : null}
+                          {grade.status !== "published" ? <option value="reviewed">Reviewed</option> : null}
                         </select>
                       </label>
                       <label className="wide">
@@ -1690,6 +1693,7 @@ function PeopleView({
   } | null>(null);
   const [provisioning, setProvisioning] = useState(false);
   const [showProvisioner, setShowProvisioner] = useState(false);
+  const [inviteMode, setInviteMode] = useState(false);
   const [showBulkProvisioner, setShowBulkProvisioner] = useState(false);
   const [bulkAccounts, setBulkAccounts] = useState("");
   const [bulkResults, setBulkResults] = useState("");
@@ -1700,6 +1704,7 @@ function PeopleView({
   const [temporaryPassword, setTemporaryPassword] = useState(() =>
     generateTemporaryPassword(),
   );
+  const [editingPermissionsRole, setEditingPermissionsRole] = useState<PlatformRole | "">("");
   const editingProfile =
     data.profiles.find((profile) => profile.id === editingProfileId) ?? null;
   const rotatingProfile =
@@ -1767,10 +1772,13 @@ function PeopleView({
             </p>
           </div>
           <div className="people-provision-actions">
+            <button type="button" onClick={() => { setInviteMode(true); setShowProvisioner(true); }}>
+              Invite by email
+            </button>
             <button type="button" onClick={() => setShowBulkProvisioner(true)}>
               Bulk import
             </button>
-            <button type="button" onClick={() => setShowProvisioner(true)}>
+            <button type="button" onClick={() => { setInviteMode(false); setShowProvisioner(true); }}>
               + Add account
             </button>
           </div>
@@ -1820,6 +1828,17 @@ function PeopleView({
                     : "Never"}
                 </small>
               ) : null}
+              <small>
+                Responsibilities: {[
+                  data.departments.find((item) => item.id === profile.departmentId)?.code,
+                  data.programs.find((item) => item.id === profile.programId)?.code,
+                  ...data.sectionAssignments.filter((item) => item.profileId === profile.id).map((item) => {
+                    const course = data.courses.find((courseItem) => courseItem.sectionId === item.sectionId);
+                    return course ? `${course.code} (${item.responsibility})` : item.responsibility;
+                  }),
+                  ...data.students.filter((student) => student.advisorId === profile.id).map((student) => `Advisee: ${student.name}`),
+                ].filter(Boolean).join(" · ") || "No assigned responsibilities"}
+              </small>
             </p>
             {profile.isOwner ? (
               <Pill tone="owner">Protected owner</Pill>
@@ -1888,6 +1907,7 @@ function PeopleView({
                 <button type="button" onClick={() => setPendingSessionRevoke(profile.id)}>
                   Revoke sessions
                 </button>
+                {(() => { const account=directory.find((item) => item.id === profile.id); return account?.invitedAt && !account.confirmedAt ? <button type="button" onClick={() => { setChanging(profile.id); void resendRoleInvitation(account.email).then(() => onToast("Institutional invitation resent.")).catch((error: unknown) => onToast(error instanceof Error ? error.message : "Invitation resend failed.")).finally(() => setChanging("")); }}>Resend invite</button> : null; })()}
               </div>
             )}
             <button
@@ -1979,12 +1999,14 @@ function PeopleView({
                       }
                       <small>assigned</small>
                     </b>
+                    {currentUser.isOwner && role.code !== "owner" ? <button type="button" onClick={() => setEditingPermissionsRole(role.code)}>Configure permissions</button> : null}
                   </article>
                 ))}
             </div>
           ),
         )}
       </section>
+      {editingPermissionsRole ? (() => { const definition=data.roles.find((item) => item.code === editingPermissionsRole); if(!definition) return null; return <div className="academic-modal-layer"><button type="button" className="academic-modal-backdrop" aria-label="Close permission editor" onClick={() => setEditingPermissionsRole("")} /><section className="academic-modal" role="dialog" aria-modal="true" aria-label="Configure role permissions"><header><div><span>OWNER POLICY CONTROL</span><h2>Configure {definition.name}</h2><p>Maintain the named capability catalog used for governance review. Database RLS remains the trusted enforcement boundary.</p></div><button type="button" onClick={() => setEditingPermissionsRole("")}>×</button></header><form className="academic-form" onSubmit={(event) => {event.preventDefault(); const capabilities=String(new FormData(event.currentTarget).get("capabilities")).split(/[\n,]+/); void updateRoleCapabilities(editingPermissionsRole as Exclude<PlatformRole,"owner">,capabilities).then(() => {setEditingPermissionsRole("");onToast("Role capability policy updated.");onChanged();}).catch((error: unknown) => onToast(error instanceof Error ? error.message : "Permission update failed."));}}><label><span>Capabilities, one per line</span><textarea name="capabilities" rows={10} defaultValue={definition.capabilities.join("\n")} required /></label><footer><span>Owner protection and forbidden actions cannot be removed here.</span><button>Save role policy</button></footer></form></section></div>; })() : null}
       {showProvisioner ? (
         <div className="academic-modal-layer">
           <button
@@ -2002,8 +2024,8 @@ function PeopleView({
             <header>
               <div>
                 <span>PEOPLE & PERMISSIONS</span>
-                <h2>Add school account</h2>
-                <p>Create or securely rotate a confirmed non-owner identity.</p>
+                <h2>{inviteMode ? "Invite school account" : "Add school account"}</h2>
+                <p>{inviteMode ? "Send a secure institutional invitation. The recipient chooses their password." : "Create or securely rotate a confirmed non-owner identity."}</p>
               </div>
               <button type="button" onClick={() => setShowProvisioner(false)}>
                 ×
@@ -2015,18 +2037,13 @@ function PeopleView({
                 event.preventDefault();
                 const form = new FormData(event.currentTarget);
                 setProvisioning(true);
-                void provisionRoleAccount({
-                  fullName: String(form.get("fullName")),
-                  email: String(form.get("email")),
-                  password: temporaryPassword,
-                  role: String(form.get("role")) as Exclude<
-                    PlatformRole,
-                    "owner"
-                  >,
-                })
+                const accountInput = { fullName: String(form.get("fullName")), email: String(form.get("email")), role: String(form.get("role")) as Exclude<PlatformRole, "owner"> };
+                void (inviteMode ? inviteRoleAccount(accountInput) : provisionRoleAccount({ ...accountInput, password: temporaryPassword }))
                   .then((result) => {
                     onToast(
-                      result.status === "created"
+                      result.status === "invited"
+                        ? "Invitation sent. The recipient can choose a password securely."
+                        : result.status === "created"
                         ? "Account created. Copy the temporary password before closing."
                         : "Existing account credentials and role were securely updated.",
                     );
@@ -2047,10 +2064,10 @@ function PeopleView({
                   <span>Full name</span>
                   <input name="fullName" required maxLength={120} />
                 </label>
-                <label>
+                {!inviteMode ? <label>
                   <span>School email</span>
                   <input name="email" type="email" required maxLength={254} />
-                </label>
+                </label> : null}
                 <label>
                   <span>Role</span>
                   <select name="role" required defaultValue="faculty">
@@ -2081,7 +2098,7 @@ function PeopleView({
               <footer>
                 <span>Only the protected owner can perform this action.</span>
                 <button disabled={provisioning}>
-                  {provisioning ? "Creating…" : "Create account"}
+                  {provisioning ? "Working…" : inviteMode ? "Send invitation" : "Create account"}
                 </button>
               </footer>
             </form>
@@ -2408,11 +2425,21 @@ function PeopleView({
                 event.preventDefault();
                 const f = new FormData(event.currentTarget);
                 setChanging(editingProfile.id);
-                void updatePlatformProfile(editingProfile.id, {
-                  fullName: String(f.get("fullName")),
-                  department: String(f.get("department")),
-                  jobTitle: String(f.get("jobTitle")),
-                })
+                void Promise.all([
+                  updatePlatformProfile(editingProfile.id, {
+                    fullName: String(f.get("fullName")),
+                    department: String(f.get("department")),
+                    jobTitle: String(f.get("jobTitle")),
+                  }),
+                  assignProfileResponsibilities({
+                    profileId: editingProfile.id,
+                    departmentId: String(f.get("departmentId")) || null,
+                    programId: String(f.get("programId")) || null,
+                    sectionId: String(f.get("sectionId")) || null,
+                    responsibility: String(f.get("responsibility")) as "faculty" | "assistant" | "coordinator" | "observer",
+                    reason: String(f.get("assignmentReason")),
+                  }),
+                ])
                   .then(() => {
                     onToast("Profile updated.");
                     setEditingProfileId("");
@@ -2444,6 +2471,11 @@ function PeopleView({
                     defaultValue={editingProfile.department}
                   />
                 </label>
+                <label><span>Assigned department</span><select name="departmentId" defaultValue={editingProfile.departmentId ?? ""}><option value="">No department assignment</option>{data.departments.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</select></label>
+                <label><span>Assigned program</span><select name="programId" defaultValue={editingProfile.programId ?? ""}><option value="">No program assignment</option>{data.programs.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</select></label>
+                <label><span>Class responsibility</span><select name="sectionId" defaultValue=""><option value="">No new class assignment</option>{data.courses.map((item) => <option key={item.sectionId} value={item.sectionId}>{item.code} · {item.sectionCode}</option>)}</select></label>
+                <label><span>Class responsibility type</span><select name="responsibility" defaultValue="faculty"><option value="faculty">Faculty</option><option value="assistant">Teaching assistant</option><option value="coordinator">Coordinator</option><option value="observer">Observer</option></select></label>
+                <label className="academic-form-wide"><span>Assignment reason</span><textarea name="assignmentReason" minLength={12} maxLength={500} rows={3} required defaultValue="Authorized directory and responsibility update." /></label>
                 <label>
                   <span>Job title</span>
                   <input
