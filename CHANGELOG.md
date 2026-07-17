@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- added a Tiptap-powered rich lesson editor and a polished, responsive student reading experience for structured learning materials
+- upgraded Nexus AI to prepare role-authorized modules, materials, assignments, announcements, and attendance sessions with explicit human confirmation before every write
+- added an authenticated in-memory platform snapshot with background refresh and sign-out isolation to remove repeated blocking portal loads
+- renamed Student CRM to Learner Support so its advising, intervention, attendance-risk, and Student 360 purpose is clear
+
 - added a complete integrated LMS course studio with ordered modules, lessons, links, videos, activities, private file materials, assessments, assignment submissions, grading feedback, attendance, announcements, and learner progress
 - added the enrolled-student learning path with completion tracking, private material access, assignment submission, feedback, grades, and attendance visibility
 - deployed six RLS-protected LMS tables, a private 50 MB constrained Storage bucket, enrollment/score integrity triggers, explicit Data API grants, and optimized policy/index coverage

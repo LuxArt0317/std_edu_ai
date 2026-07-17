@@ -394,3 +394,12 @@
 - [x] implement the integrated teacher course studio and enrolled-student learning path
 - [x] verify content, private files, student denial, progress, submission/grading, score ceiling, attendance, and cleanup using real production roles
 - [x] complete release checks, merge, and verify Vercel production
+
+## Phase 36: Instant navigation, actionable AI, and rich LMS authoring [Issue #36]
+
+- [x] preserve an authenticated platform snapshot and refresh silently in the background
+- [x] clear cached role-scoped data on sign-out and deduplicate platform loads
+- [x] add Tiptap rich lesson authoring and a dedicated learner reading surface
+- [x] let Nexus AI propose safe LMS writes with exact resource IDs and mandatory user confirmation
+- [x] keep Student 360 capabilities while renaming the workspace to Learner Support
+- [ ] publish through GitHub/Vercel and verify production

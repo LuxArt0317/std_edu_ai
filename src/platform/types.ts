@@ -308,7 +308,34 @@ export type SchoolChatAnswer = {
   answer: string;
   suggestedActions: string[];
   citations: string[];
+  proposedAction: SchoolAiAction | null;
   source: "openai" | "continuity";
+};
+
+export type SchoolAiAction = {
+  type:
+    | "create_module"
+    | "create_material"
+    | "create_assessment"
+    | "create_announcement"
+    | "create_attendance";
+  confirmation: string;
+  sectionId: string | null;
+  moduleId: string | null;
+  title: string;
+  description: string;
+  content: string;
+  materialType: "lesson" | "link" | "video" | "activity" | null;
+  externalUrl: string | null;
+  minutes: number | null;
+  required: boolean | null;
+  assessmentType: "assignment" | "project" | null;
+  dueAt: string | null;
+  maxScore: number | null;
+  priority: "normal" | "important" | "urgent" | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  publish: boolean;
 };
 
 export type GradeScanRow = {

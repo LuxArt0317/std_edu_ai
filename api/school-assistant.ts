@@ -1,182 +1,379 @@
-import { createHash } from 'node:crypto'
-import { verifySupabaseRequest } from '../server/apiAuth.js'
+import { createHash } from "node:crypto";
+import { verifySupabaseRequest } from "../server/apiAuth.js";
 
 type ApiRequest = {
-  method?: string
-  body?: unknown
-  headers: Record<string, string | string[] | undefined>
-  socket?: { remoteAddress?: string }
-}
+  method?: string;
+  body?: unknown;
+  headers: Record<string, string | string[] | undefined>;
+  socket?: { remoteAddress?: string };
+};
 type ApiResponse = {
-  status: (code: number) => ApiResponse
-  json: (body: unknown) => void
-  setHeader: (name: string, value: string) => void
-}
+  status: (code: number) => ApiResponse;
+  json: (body: unknown) => void;
+  setHeader: (name: string, value: string) => void;
+};
 
-type ChatMessage = { role: 'user' | 'assistant'; content: string }
+type ChatMessage = { role: "user" | "assistant"; content: string };
 type SchoolRequest = {
-  message: string
-  history: ChatMessage[]
-  context: Record<string, unknown>
-}
+  message: string;
+  history: ChatMessage[];
+  context: Record<string, unknown>;
+};
 
 type SchoolAnswer = {
-  answer: string
-  suggestedActions: string[]
-  citations: string[]
-}
+  answer: string;
+  suggestedActions: string[];
+  citations: string[];
+  proposedAction: Record<string, unknown> | null;
+};
 
-const requestWindows = new Map<string, number[]>()
-const MAX_REQUESTS_PER_MINUTE = 24
-const allowedContextFields = ['view', 'courseCodes', 'courseTitles', 'assessmentTitles', 'scheduleSummary', 'knowledgeTitles'] as const
+const requestWindows = new Map<string, number[]>();
+const MAX_REQUESTS_PER_MINUTE = 24;
+const allowedContextFields = [
+  "view",
+  "courses",
+  "modules",
+  "assessmentTitles",
+  "scheduleSummary",
+  "knowledgeTitles",
+] as const;
+const actionTypes = new Set([
+  "create_module",
+  "create_material",
+  "create_assessment",
+  "create_announcement",
+  "create_attendance",
+]);
+const actionRoles = new Set([
+  "owner",
+  "admin",
+  "dean",
+  "department_head",
+  "faculty",
+]);
 
 function setHeaders(response: ApiResponse) {
-  response.setHeader('Cache-Control', 'no-store, max-age=0')
-  response.setHeader('Content-Type', 'application/json; charset=utf-8')
-  response.setHeader('X-Content-Type-Options', 'nosniff')
-  response.setHeader('Referrer-Policy', 'no-referrer')
+  response.setHeader("Cache-Control", "no-store, max-age=0");
+  response.setHeader("Content-Type", "application/json; charset=utf-8");
+  response.setHeader("X-Content-Type-Options", "nosniff");
+  response.setHeader("Referrer-Policy", "no-referrer");
 }
 
 function getClientAddress(request: ApiRequest) {
-  const forwarded = request.headers['x-forwarded-for']
-  const value = Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(',')[0]
-  return value?.trim() || request.socket?.remoteAddress || 'unknown'
+  const forwarded = request.headers["x-forwarded-for"];
+  const value = Array.isArray(forwarded)
+    ? forwarded[0]
+    : forwarded?.split(",")[0];
+  return value?.trim() || request.socket?.remoteAddress || "unknown";
 }
 
 function isRateLimited(identifier: string) {
-  const cutoff = Date.now() - 60_000
-  const recent = (requestWindows.get(identifier) ?? []).filter((value) => value > cutoff)
-  recent.push(Date.now())
-  requestWindows.set(identifier, recent)
-  return recent.length > MAX_REQUESTS_PER_MINUTE
+  const cutoff = Date.now() - 60_000;
+  const recent = (requestWindows.get(identifier) ?? []).filter(
+    (value) => value > cutoff,
+  );
+  recent.push(Date.now());
+  requestWindows.set(identifier, recent);
+  return recent.length > MAX_REQUESTS_PER_MINUTE;
 }
 
 function sanitizeContext(value: unknown) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
-  const source = value as Record<string, unknown>
-  const safe: Record<string, unknown> = {}
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const source = value as Record<string, unknown>;
+  const safe: Record<string, unknown> = {};
   for (const key of allowedContextFields) {
-    const item = source[key]
-    if (typeof item === 'string') safe[key] = item.trim().slice(0, 1_000)
-    if (Array.isArray(item)) safe[key] = item.filter((entry) => typeof entry === 'string').slice(0, 20).map((entry) => entry.slice(0, 300))
+    const item = source[key];
+    if (typeof item === "string") safe[key] = item.trim().slice(0, 1_000);
+    if (Array.isArray(item)) {
+      const entries: unknown[] = [];
+      for (const entry of item.slice(0, 30)) {
+        if (typeof entry === "string") {
+          entries.push(entry.slice(0, 300));
+          continue;
+        }
+        if (!entry || typeof entry !== "object" || Array.isArray(entry))
+          continue;
+        const record = entry as Record<string, unknown>;
+        const clean: Record<string, string> = {};
+        for (const field of ["id", "sectionId", "code", "title"]) {
+          if (typeof record[field] === "string")
+            clean[field] = record[field].slice(0, 180);
+        }
+        if (Object.keys(clean).length) entries.push(clean);
+      }
+      safe[key] = entries;
+    }
   }
-  return safe
+  return safe;
 }
 
 function parseBody(body: unknown): SchoolRequest | null {
-  let candidate = body
-  if (typeof candidate === 'string') {
-    try { candidate = JSON.parse(candidate) as unknown } catch { return null }
+  let candidate = body;
+  if (typeof candidate === "string") {
+    try {
+      candidate = JSON.parse(candidate) as unknown;
+    } catch {
+      return null;
+    }
   }
-  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return null
-  const value = candidate as Record<string, unknown>
-  const message = typeof value.message === 'string' ? value.message.trim() : ''
-  if (!message || message.length > 2_500) return null
-  const history = Array.isArray(value.history) ? value.history.slice(-12).flatMap((entry) => {
-    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return []
-    const item = entry as Record<string, unknown>
-    if ((item.role !== 'user' && item.role !== 'assistant') || typeof item.content !== 'string') return []
-    return [{ role: item.role, content: item.content.trim().slice(0, 3_000) } satisfies ChatMessage]
-  }) : []
-  return { message, history, context: sanitizeContext(value.context) }
+  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate))
+    return null;
+  const value = candidate as Record<string, unknown>;
+  const message = typeof value.message === "string" ? value.message.trim() : "";
+  if (!message || message.length > 2_500) return null;
+  const history = Array.isArray(value.history)
+    ? value.history.slice(-12).flatMap((entry) => {
+        if (!entry || typeof entry !== "object" || Array.isArray(entry))
+          return [];
+        const item = entry as Record<string, unknown>;
+        if (
+          (item.role !== "user" && item.role !== "assistant") ||
+          typeof item.content !== "string"
+        )
+          return [];
+        return [
+          {
+            role: item.role,
+            content: item.content.trim().slice(0, 3_000),
+          } satisfies ChatMessage,
+        ];
+      })
+    : [];
+  return { message, history, context: sanitizeContext(value.context) };
 }
 
 function outputText(payload: unknown) {
-  if (!payload || typeof payload !== 'object') return ''
-  const data = payload as { output?: Array<{ content?: Array<{ text?: string }> }> }
-  return data.output?.flatMap((item) => item.content ?? []).map((item) => item.text ?? '').join('').trim() ?? ''
+  if (!payload || typeof payload !== "object") return "";
+  const data = payload as {
+    output?: Array<{ content?: Array<{ text?: string }> }>;
+  };
+  return (
+    data.output
+      ?.flatMap((item) => item.content ?? [])
+      .map((item) => item.text ?? "")
+      .join("")
+      .trim() ?? ""
+  );
 }
 
 function parseOutput(payload: unknown): SchoolAnswer | null {
   try {
-    const candidate = JSON.parse(outputText(payload)) as Record<string, unknown>
-    if (typeof candidate.answer !== 'string' || !Array.isArray(candidate.suggestedActions) || !Array.isArray(candidate.citations)) return null
-    if (!candidate.suggestedActions.every((item) => typeof item === 'string') || !candidate.citations.every((item) => typeof item === 'string')) return null
+    const candidate = JSON.parse(outputText(payload)) as Record<
+      string,
+      unknown
+    >;
+    if (
+      typeof candidate.answer !== "string" ||
+      !Array.isArray(candidate.suggestedActions) ||
+      !Array.isArray(candidate.citations)
+    )
+      return null;
+    if (
+      !candidate.suggestedActions.every((item) => typeof item === "string") ||
+      !candidate.citations.every((item) => typeof item === "string")
+    )
+      return null;
+    const rawAction = candidate.proposedAction;
+    const proposedAction =
+      rawAction &&
+      typeof rawAction === "object" &&
+      !Array.isArray(rawAction) &&
+      actionTypes.has((rawAction as Record<string, unknown>).type as string)
+        ? (rawAction as Record<string, unknown>)
+        : null;
     return {
       answer: candidate.answer.trim().slice(0, 7_500),
-      suggestedActions: candidate.suggestedActions.slice(0, 5).map((item) => item.slice(0, 500)),
-      citations: candidate.citations.slice(0, 8).map((item) => item.slice(0, 300)),
-    }
+      suggestedActions: candidate.suggestedActions
+        .slice(0, 5)
+        .map((item) => item.slice(0, 500)),
+      citations: candidate.citations
+        .slice(0, 8)
+        .map((item) => item.slice(0, 300)),
+      proposedAction,
+    };
   } catch {
-    return null
+    return null;
   }
 }
 
-export default async function handler(request: ApiRequest, response: ApiResponse) {
-  setHeaders(response)
-  if (request.method !== 'POST') {
-    response.setHeader('Allow', 'POST')
-    response.status(405).json({ error: 'Method not allowed' })
-    return
+export default async function handler(
+  request: ApiRequest,
+  response: ApiResponse,
+) {
+  setHeaders(response);
+  if (request.method !== "POST") {
+    response.setHeader("Allow", "POST");
+    response.status(405).json({ error: "Method not allowed" });
+    return;
   }
 
-  const input = parseBody(request.body)
+  const input = parseBody(request.body);
   if (!input) {
-    response.status(400).json({ error: 'A valid message is required.' })
-    return
+    response.status(400).json({ error: "A valid message is required." });
+    return;
   }
 
-  const auth = await verifySupabaseRequest(request)
+  const auth = await verifySupabaseRequest(request);
   if (auth.ok === false) {
-    response.status(auth.status).json({ error: auth.message })
-    return
+    response.status(auth.status).json({ error: auth.message });
+    return;
   }
 
-  const clientAddress = getClientAddress(request)
+  const clientAddress = getClientAddress(request);
   if (isRateLimited(`${auth.user.id}:${clientAddress}`)) {
-    response.status(429).json({ error: 'Too many requests. Please wait a moment and try again.' })
-    return
+    response.status(429).json({
+      error: "Too many requests. Please wait a moment and try again.",
+    });
+    return;
   }
 
-  const apiKey = process.env.OPENAI_API_KEY
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    response.status(503).json({ error: 'AI service is not configured.' })
-    return
+    response.status(503).json({ error: "AI service is not configured." });
+    return;
   }
 
-  const safetyIdentifier = createHash('sha256')
-    .update(`${process.env.SAFETY_HASH_SALT || 'stu-nexus'}:${auth.user.id}`)
-    .digest('hex')
+  const safetyIdentifier = createHash("sha256")
+    .update(`${process.env.SAFETY_HASH_SALT || "stu-nexus"}:${auth.user.id}`)
+    .digest("hex");
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 28_000)
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 28_000);
   try {
-    const roleInstruction = auth.user.role === 'student'
-      ? 'Support the learner with explanations, study planning, course navigation, and formative guidance. Do not complete graded work for them; teach the reasoning instead.'
-      : auth.user.role === 'faculty'
-        ? 'Support teaching, lesson preparation, assessment quality, feedback drafting, schedule planning, and evidence-based student support. Never publish or finalize a grade.'
-        : 'Support authorized school operations, planning, policy-grounded answers, and responsible coordination. High-impact actions require human confirmation.'
+    const roleInstruction =
+      auth.user.role === "student"
+        ? "Support the learner with explanations, study planning, course navigation, and formative guidance. Do not complete graded work for them; teach the reasoning instead."
+        : auth.user.role === "faculty"
+          ? "Support teaching, lesson preparation, assessment quality, feedback drafting, schedule planning, and evidence-based student support. Never publish or finalize a grade."
+          : "Support authorized school operations, planning, policy-grounded answers, and responsible coordination. High-impact actions require human confirmation.";
 
-    const openAiResponse = await fetch('https://api.openai.com/v1/responses', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    const openAiResponse = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || 'gpt-5.6-terra',
+        model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
         instructions: [
-          'You are Nexus, the role-aware conversational assistant inside the Shu-Te University operating platform.',
+          "You are Nexus, the role-aware conversational assistant inside the Shu-Te University operating platform.",
           roleInstruction,
-          'Use only the bounded platform context and conversation supplied. Never invent a university policy, date, grade, student fact, or authorization.',
-          'Protect privacy. Do not request passwords, authentication tokens, diagnoses, or unnecessary sensitive personal data.',
-          'When context is insufficient, say what is missing and give the safest useful next step.',
-          'Return JSON exactly matching the schema. Citations must name a supplied course, schedule, knowledge item, or clearly state Platform context.',
-        ].join(' '),
+          "Use only the bounded platform context and conversation supplied. Never invent a university policy, date, grade, student fact, or authorization.",
+          "Protect privacy. Do not request passwords, authentication tokens, diagnoses, or unnecessary sensitive personal data.",
+          "When context is insufficient, say what is missing and give the safest useful next step.",
+          actionRoles.has(auth.user.role)
+            ? "You may propose exactly one reversible LMS write when the user explicitly asks you to create it. Use only exact section/module IDs supplied in context. Never claim the change already happened. The application will show a confirmation before execution. Never propose deleting data, changing grades, roles, accounts, enrollments, or student records."
+            : "You cannot propose platform writes for this role. Always set proposedAction.type to none.",
+          "Return JSON exactly matching the schema. Citations must name a supplied course, schedule, knowledge item, or clearly state Platform context.",
+        ].join(" "),
         input: [
-          ...input.history.map((item) => ({ role: item.role, content: item.content })),
-          { role: 'user', content: JSON.stringify({ question: input.message, trusted_role: auth.user.role, platform_context: input.context }) },
+          ...input.history.map((item) => ({
+            role: item.role,
+            content: item.content,
+          })),
+          {
+            role: "user",
+            content: JSON.stringify({
+              question: input.message,
+              trusted_role: auth.user.role,
+              platform_context: input.context,
+            }),
+          },
         ],
-        reasoning: { effort: 'low' },
+        reasoning: { effort: "low" },
         text: {
-          verbosity: 'medium',
+          verbosity: "medium",
           format: {
-            type: 'json_schema', name: 'stu_nexus_chat_response', strict: true,
+            type: "json_schema",
+            name: "stu_nexus_chat_response",
+            strict: true,
             schema: {
-              type: 'object', additionalProperties: false,
+              type: "object",
+              additionalProperties: false,
               properties: {
-                answer: { type: 'string' },
-                suggestedActions: { type: 'array', minItems: 0, maxItems: 5, items: { type: 'string' } },
-                citations: { type: 'array', minItems: 1, maxItems: 8, items: { type: 'string' } },
+                answer: { type: "string" },
+                suggestedActions: {
+                  type: "array",
+                  minItems: 0,
+                  maxItems: 5,
+                  items: { type: "string" },
+                },
+                citations: {
+                  type: "array",
+                  minItems: 1,
+                  maxItems: 8,
+                  items: { type: "string" },
+                },
+                proposedAction: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    type: {
+                      type: "string",
+                      enum: [
+                        "none",
+                        "create_module",
+                        "create_material",
+                        "create_assessment",
+                        "create_announcement",
+                        "create_attendance",
+                      ],
+                    },
+                    confirmation: { type: "string" },
+                    sectionId: { type: ["string", "null"] },
+                    moduleId: { type: ["string", "null"] },
+                    title: { type: "string" },
+                    description: { type: "string" },
+                    content: { type: "string" },
+                    materialType: {
+                      type: ["string", "null"],
+                      enum: ["lesson", "link", "video", "activity", null],
+                    },
+                    externalUrl: { type: ["string", "null"] },
+                    minutes: { type: ["number", "null"] },
+                    required: { type: ["boolean", "null"] },
+                    assessmentType: {
+                      type: ["string", "null"],
+                      enum: ["assignment", "project", null],
+                    },
+                    dueAt: { type: ["string", "null"] },
+                    maxScore: { type: ["number", "null"] },
+                    priority: {
+                      type: ["string", "null"],
+                      enum: ["normal", "important", "urgent", null],
+                    },
+                    startsAt: { type: ["string", "null"] },
+                    endsAt: { type: ["string", "null"] },
+                    publish: { type: "boolean" },
+                  },
+                  required: [
+                    "type",
+                    "confirmation",
+                    "sectionId",
+                    "moduleId",
+                    "title",
+                    "description",
+                    "content",
+                    "materialType",
+                    "externalUrl",
+                    "minutes",
+                    "required",
+                    "assessmentType",
+                    "dueAt",
+                    "maxScore",
+                    "priority",
+                    "startsAt",
+                    "endsAt",
+                    "publish",
+                  ],
+                },
               },
-              required: ['answer', 'suggestedActions', 'citations'],
+              required: [
+                "answer",
+                "suggestedActions",
+                "citations",
+                "proposedAction",
+              ],
             },
           },
         },
@@ -185,21 +382,35 @@ export default async function handler(request: ApiRequest, response: ApiResponse
         store: false,
       }),
       signal: controller.signal,
-    })
+    });
     if (!openAiResponse.ok) {
-      response.status(openAiResponse.status === 429 ? 429 : 502).json({ error: 'Nexus AI is temporarily unavailable.' })
-      return
+      response
+        .status(openAiResponse.status === 429 ? 429 : 502)
+        .json({ error: "Nexus AI is temporarily unavailable." });
+      return;
     }
-    const result = parseOutput(await openAiResponse.json() as unknown)
+    const result = parseOutput((await openAiResponse.json()) as unknown);
     if (!result) {
-      response.status(502).json({ error: 'Nexus AI returned an invalid response.' })
-      return
+      response
+        .status(502)
+        .json({ error: "Nexus AI returned an invalid response." });
+      return;
     }
-    response.status(200).json({ ...result, source: 'openai' })
+    response.status(200).json({
+      ...result,
+      proposedAction: actionRoles.has(auth.user.role)
+        ? result.proposedAction
+        : null,
+      source: "openai",
+    });
   } catch (error) {
-    const timedOut = error instanceof Error && error.name === 'AbortError'
-    response.status(timedOut ? 504 : 502).json({ error: timedOut ? 'Nexus AI timed out.' : 'Nexus AI is temporarily unavailable.' })
+    const timedOut = error instanceof Error && error.name === "AbortError";
+    response.status(timedOut ? 504 : 502).json({
+      error: timedOut
+        ? "Nexus AI timed out."
+        : "Nexus AI is temporarily unavailable.",
+    });
   } finally {
-    clearTimeout(timeout)
+    clearTimeout(timeout);
   }
 }

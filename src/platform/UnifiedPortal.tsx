@@ -6,9 +6,16 @@ import { askSchoolAssistant, scanGradeSheet } from "./platformAi";
 import {
   appendChatMessage,
   assignPlatformRole,
+  clearPlatformDataSnapshot,
+  createAttendanceSession,
   createChatThread,
+  createCourseAnnouncement,
+  createCourseAssessment,
+  createLearningMaterial,
+  createLearningModule,
+  getPlatformDataSnapshot,
   loadChatMessages,
-  loadPlatformData,
+  loadPlatformDataCached,
   publishGrade,
   recordGradeScan,
   saveReviewedScan,
@@ -21,6 +28,7 @@ import type {
   PlatformData,
   PlatformRole,
   PortalSection,
+  SchoolAiAction,
   SchoolAssessment,
   SchoolCourse,
 } from "./types";
@@ -88,7 +96,7 @@ const navMeta: Record<PortalView, { label: string; icon: string }> = {
   grades: { label: "Grades", icon: "▤" },
   schedule: { label: "Schedule", icon: "◷" },
   people: { label: "People & Roles", icon: "◎" },
-  crm: { label: "Student CRM", icon: "◇" },
+  crm: { label: "Learner Support", icon: "◇" },
 };
 
 function navigationFor(role: PlatformRole): PortalView[] {
@@ -169,7 +177,9 @@ function UnifiedPortal({
   currentUser: CrmUser;
   onSignOut: () => void;
 }) {
-  const [data, setData] = useState<PlatformData | null>(null);
+  const [data, setData] = useState<PlatformData | null>(() =>
+    getPlatformDataSnapshot(currentUser.id),
+  );
   const [loadError, setLoadError] = useState("");
   const [view, setView] = useState<PortalView>("home");
   const [previewRole, setPreviewRole] = useState<PlatformRole>(
@@ -179,22 +189,33 @@ function UnifiedPortal({
   const [toast, setToast] = useState("");
   const [assistantOpen, setAssistantOpen] = useState(false);
 
-  async function refresh() {
+  async function refresh(silent = false) {
     try {
-      setData(await loadPlatformData());
+      setData(await loadPlatformDataCached(currentUser.id, true));
       setLoadError("");
     } catch (error) {
-      setLoadError(
-        error instanceof Error
-          ? error.message
-          : "The platform could not be loaded.",
-      );
+      if (!silent && !getPlatformDataSnapshot(currentUser.id)) {
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "The platform could not be loaded.",
+        );
+      } else {
+        setToast(
+          "Could not sync the latest updates. Showing your saved workspace.",
+        );
+      }
     }
   }
 
   useEffect(() => {
-    void refresh();
+    void refresh(Boolean(getPlatformDataSnapshot(currentUser.id)));
   }, []);
+
+  function signOut() {
+    clearPlatformDataSnapshot();
+    onSignOut();
+  }
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(""), 3500);
@@ -215,12 +236,12 @@ function UnifiedPortal({
           <button type="button" onClick={() => setView("home")}>
             ← Back to School OS
           </button>
-          <span>STU Nexus · CRM Operations</span>
+          <span>STU Nexus · Learner Support</span>
           {currentUser.isOwner ? (
             <Pill tone="owner">Owner workspace</Pill>
           ) : null}
         </div>
-        <CRMApp currentUser={currentUser} onSignOut={onSignOut} />
+        <CRMApp currentUser={currentUser} onSignOut={signOut} />
       </div>
     );
   }
@@ -337,7 +358,7 @@ function UnifiedPortal({
             >
               ♢<b>{data.announcements.length}</b>
             </button>
-            <button type="button" className="school-user" onClick={onSignOut}>
+            <button type="button" className="school-user" onClick={signOut}>
               {currentUser.initials}
               <span>Sign out</span>
             </button>
@@ -372,7 +393,7 @@ function UnifiedPortal({
             <AcademicsView
               data={data}
               currentUser={currentUser}
-              onChanged={() => void refresh()}
+              onChanged={() => void refresh(true)}
               onToast={setToast}
             />
           ) : null}
@@ -381,7 +402,7 @@ function UnifiedPortal({
               <StudentLmsLearning
                 data={data}
                 currentUser={currentUser}
-                onChanged={() => void refresh()}
+                onChanged={() => void refresh(true)}
                 onToast={setToast}
               />
             ) : (
@@ -392,7 +413,7 @@ function UnifiedPortal({
             <TeacherLmsStudio
               data={data}
               currentUser={currentUser}
-              onChanged={() => void refresh()}
+              onChanged={() => void refresh(true)}
               onToast={setToast}
             />
           ) : null}
@@ -402,7 +423,7 @@ function UnifiedPortal({
               role={effectiveRole}
               onComplete={(message) => {
                 setToast(message);
-                void refresh();
+                void refresh(true);
               }}
             />
           ) : null}
@@ -411,7 +432,7 @@ function UnifiedPortal({
               data={data}
               role={effectiveRole}
               currentUser={currentUser}
-              onChanged={() => void refresh()}
+              onChanged={() => void refresh(true)}
               onToast={setToast}
             />
           ) : null}
@@ -419,7 +440,7 @@ function UnifiedPortal({
             <ScheduleView
               data={data}
               currentUser={currentUser}
-              onChanged={() => void refresh()}
+              onChanged={() => void refresh(true)}
               onToast={setToast}
             />
           ) : null}
@@ -427,7 +448,7 @@ function UnifiedPortal({
             <PeopleView
               data={data}
               currentUser={currentUser}
-              onChanged={() => void refresh()}
+              onChanged={() => void refresh(true)}
               onToast={setToast}
             />
           ) : null}
@@ -439,7 +460,7 @@ function UnifiedPortal({
         onClose={() => setAssistantOpen(false)}
         data={data}
         view={view}
-        onDataChanged={() => void refresh()}
+        onDataChanged={() => void refresh(true)}
       />
       {toast ? (
         <div className="school-toast">
@@ -1576,6 +1597,9 @@ function SchoolAssistant({
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [pendingAction, setPendingAction] = useState<SchoolAiAction | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!threadId) {
@@ -1620,6 +1644,7 @@ function SchoolAssistant({
       setMessages(nextMessages);
       await appendChatMessage(activeThread, "user", prompt);
       const answer = await askSchoolAssistant(prompt, messages, { view, data });
+      setPendingAction(answer.proposedAction);
       await appendChatMessage(
         activeThread,
         "assistant",
@@ -1640,6 +1665,95 @@ function SchoolAssistant({
     } catch (reason) {
       setError(
         reason instanceof Error ? reason.message : "Nexus AI could not answer.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function confirmAction() {
+    if (!pendingAction || loading) return;
+    const action = pendingAction;
+    const course = data.courses.find(
+      (item) => item.sectionId === action.sectionId,
+    );
+    const module = data.modules.find((item) => item.id === action.moduleId);
+    if (action.type !== "create_material" && !course) {
+      setError(
+        "That course is no longer available. Ask Nexus to prepare the change again.",
+      );
+      return;
+    }
+    if (
+      action.type === "create_material" &&
+      (!module || module.sectionId !== action.sectionId)
+    ) {
+      setError(
+        "That learning module is no longer available. Ask Nexus to prepare the change again.",
+      );
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      if (action.type === "create_module")
+        await createLearningModule({
+          sectionId: action.sectionId!,
+          title: action.title,
+          description: action.description,
+          position:
+            data.modules.filter((item) => item.sectionId === action.sectionId)
+              .length + 1,
+          publish: action.publish,
+        });
+      if (action.type === "create_material")
+        await createLearningMaterial({
+          moduleId: action.moduleId!,
+          title: action.title,
+          description: action.description,
+          type: action.materialType ?? "lesson",
+          content: action.content,
+          externalUrl: action.externalUrl ?? undefined,
+          position:
+            data.materials.filter((item) => item.moduleId === action.moduleId)
+              .length + 1,
+          minutes: Math.max(1, Math.min(1440, action.minutes ?? 20)),
+          required: action.required ?? true,
+          publish: action.publish,
+        });
+      if (action.type === "create_assessment")
+        await createCourseAssessment({
+          sectionId: action.sectionId!,
+          title: action.title,
+          instructions: action.content || action.description,
+          type: action.assessmentType ?? "assignment",
+          dueAt: action.dueAt ?? undefined,
+          maxScore: Math.max(1, Math.min(1000, action.maxScore ?? 100)),
+          publish: action.publish,
+        });
+      if (action.type === "create_announcement")
+        await createCourseAnnouncement({
+          sectionId: action.sectionId!,
+          title: action.title,
+          body: action.content || action.description,
+          priority: action.priority ?? "normal",
+        });
+      if (action.type === "create_attendance")
+        await createAttendanceSession({
+          sectionId: action.sectionId!,
+          title: action.title,
+          startsAt: action.startsAt ?? new Date().toISOString(),
+          endsAt:
+            action.endsAt ??
+            new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        });
+      setPendingAction(null);
+      onDataChanged();
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "The proposed change could not be saved.",
       );
     } finally {
       setLoading(false);
@@ -1743,6 +1857,28 @@ function SchoolAssistant({
           ) : null}
         </div>
         {error ? <div className="chat-error">{error}</div> : null}
+        {pendingAction ? (
+          <section className="chat-action-card">
+            <span>READY FOR REVIEW</span>
+            <strong>{pendingAction.confirmation || pendingAction.title}</strong>
+            <p>
+              Nexus prepared this change but has not saved it. Review and
+              confirm to apply it with your account permissions.
+            </p>
+            <div>
+              <button type="button" onClick={() => setPendingAction(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => void confirmAction()}
+              >
+                Confirm change
+              </button>
+            </div>
+          </section>
+        ) : null}
         <form onSubmit={send}>
           <textarea
             rows={3}

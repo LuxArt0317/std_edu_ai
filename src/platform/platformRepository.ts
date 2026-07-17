@@ -19,6 +19,40 @@ type EnrollmentRow = Tables<"section_enrollments">;
 type QuestionRow = Tables<"assessment_questions">;
 type OptionRow = Tables<"assessment_options">;
 
+type PlatformSnapshot = {
+  userId: string;
+  data: PlatformData;
+  loadedAt: number;
+};
+let platformSnapshot: PlatformSnapshot | null = null;
+let platformLoad: { userId: string; promise: Promise<PlatformData> } | null =
+  null;
+
+export function getPlatformDataSnapshot(userId: string) {
+  return platformSnapshot?.userId === userId ? platformSnapshot.data : null;
+}
+
+export function clearPlatformDataSnapshot() {
+  platformSnapshot = null;
+  platformLoad = null;
+}
+
+export async function loadPlatformDataCached(userId: string, force = false) {
+  if (!force && platformSnapshot?.userId === userId)
+    return platformSnapshot.data;
+  if (platformLoad?.userId === userId) return platformLoad.promise;
+  const promise = loadPlatformData()
+    .then((data) => {
+      platformSnapshot = { userId, data, loadedAt: Date.now() };
+      return data;
+    })
+    .finally(() => {
+      if (platformLoad?.promise === promise) platformLoad = null;
+    });
+  platformLoad = { userId, promise };
+  return promise;
+}
+
 function requireClient() {
   if (!supabase) throw new Error("Supabase is not configured.");
   return supabase;

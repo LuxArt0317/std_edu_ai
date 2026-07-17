@@ -16,14 +16,11 @@ import {
   uploadLmsFile,
 } from "./platformRepository";
 import type { LearningMaterial, PlatformData, SchoolCourse } from "./types";
+import { RichTextContent, RichTextEditor } from "./RichTextEditor";
 
 type Toast = (message: string) => void;
 type TeacherTab =
-  | "content"
-  | "assessment"
-  | "submissions"
-  | "attendance"
-  | "announcements";
+  "content" | "assessment" | "submissions" | "attendance" | "announcements";
 
 function dateTime(value: string | null) {
   return value
@@ -721,6 +718,7 @@ function MaterialForm({
   onClose: () => void;
   onSave: (action: () => Promise<unknown>, message: string) => Promise<void>;
 }) {
+  const [content, setContent] = useState("");
   return (
     <FormModal title="Add learning material" onClose={onClose}>
       <form
@@ -738,7 +736,7 @@ function MaterialForm({
               title: String(f.get("title")),
               description: String(f.get("description")),
               type: String(f.get("type")),
-              content: String(f.get("content")),
+              content,
               externalUrl: String(f.get("url")),
               storagePath: path,
               position,
@@ -779,13 +777,9 @@ function MaterialForm({
           Description
           <textarea name="description" rows={2} />
         </label>
-        <label>
+        <label className="lms-editor-field">
           Lesson content
-          <textarea
-            name="content"
-            rows={7}
-            placeholder="Write instructions and learning content…"
-          />
+          <RichTextEditor value={content} onChange={setContent} />
         </label>
         <label>
           HTTPS link
@@ -1374,18 +1368,7 @@ export function StudentLmsLearning({
               </span>
               <h2>{activeMaterial.title}</h2>
               <p className="lead">{activeMaterial.description}</p>
-              <div>
-                {activeMaterial.content
-                  .split("\n")
-                  .filter(Boolean)
-                  .map((line, index) =>
-                    line.startsWith("#") ? (
-                      <h3 key={index}>{line.replace(/^#+\s*/, "")}</h3>
-                    ) : (
-                      <p key={index}>{line}</p>
-                    ),
-                  )}
-              </div>
+              <RichTextContent html={activeMaterial.content} />
               {activeMaterial.externalUrl ? (
                 <a
                   href={activeMaterial.externalUrl}

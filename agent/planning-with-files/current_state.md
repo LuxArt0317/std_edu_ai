@@ -59,3 +59,8 @@ Production services:
 No implementation or release work remains for issue #18. The platform is production-ready for users to sign in at `/crm` and begin the role-specific journey.
 Issue #30 is complete. Academic Office supports student account/SIS creation, departments, programs, terms, subjects, sections, capacity-aware rosters, and conflict-safe schedule events. PR #31 merged as `f561155`; the production Supabase migration and JWT-protected Edge Function are active; Vercel production is Ready. All 22 contracts, all-role account checks, owner/faculty/student RLS tests, reversible enrollment, room-conflict rejection, lint, build, and released `/` and `/crm` diagnostics pass.
 Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. The integrated LMS schema/private Storage, teacher course studio, and student learning path are live. All 26 contracts, lint, guarded/standard builds, advisor review, released route diagnostics, and the reversible real-faculty/student LMS lifecycle pass.
+# Current release: Issue #36
+
+- Branch `agent/instant-navigation` now contains instant authenticated portal restoration with silent refresh, confirmation-gated Nexus AI LMS actions, Tiptap lesson authoring, rich learner reading, and the Learner Support rename.
+- Local verification passes: 26 tests, oxlint, TypeScript, Vite production build, and built-asset validation.
+- Remaining: push the release, merge after GitHub/Vercel checks, and verify `https://www.stu.best/crm` in production.

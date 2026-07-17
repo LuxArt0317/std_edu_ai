@@ -127,3 +127,11 @@
 - implemented teacher modules/materials/files, assessments, submission review/grading, attendance, and announcements plus student learning progress, files, submissions, feedback, and attendance
 - passed 25 contracts, lint, guarded build, and a reversible live faculty/student lifecycle including authorization denial and cleanup
 - passed the final 26-contract suite, Vercel and CodeRabbit gates with no review threads, merged PR #34 as `87204bd`, and reverified the released routes plus complete live LMS lifecycle
+
+## 2026-07-17 — Issue #36
+
+- Added authenticated in-memory platform snapshots, silent background refresh, request deduplication, and sign-out cache isolation.
+- Added Tiptap lesson authoring and rich read-only student lesson rendering.
+- Extended Nexus AI structured output with confirmation-gated LMS actions for authorized teaching roles; students and non-authoring roles cannot receive executable proposals.
+- Renamed Student CRM to Learner Support without removing Student 360 or intervention workflows.
+- Passed 26 API/contract tests, lint (one pre-existing-style dependency advisory), TypeScript, Vite production build, and build-asset verification.
