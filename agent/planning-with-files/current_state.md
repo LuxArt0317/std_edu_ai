@@ -123,4 +123,4 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - Production Supabase now contains relational department/program/class responsibilities, attendance correction requests, and immutable controlled-action evidence.
 - Final grade publication, post-publication correction, term closing, and attendance decisions are authorized reasoned RPC transitions rather than direct CRUD.
 - People & Roles includes institutional invite/resend, role capability configuration, and visible responsibility review. Edge Function version 5 is ACTIVE with JWT verification.
-- Local TypeScript, lint, production build, and asset validation pass. Issue #48 remains open for the remaining catalog-wide evidence pass and controlled transitions not yet represented by this slice.
+- TypeScript, lint, production build, asset validation, and production diagnostics pass. PR #51 merged as `012cd53`; Vercel deployment `dpl_Cf49oiwdYtcM2KRwDi73KtwFM3zh` is Ready and both custom-domain routes return HTTP 200 with the released bundle. Issue #48 remains open for the remaining catalog-wide evidence pass and controlled transitions not yet represented by this slice.

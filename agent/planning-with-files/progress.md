@@ -36,3 +36,4 @@
 - Deployed `provision-role-account` version 5 with institutional invitation and resend operations.
 - Added UI/repository workflows for role capability configuration, assigned responsibilities, audited grade publication/correction, term closure, and attendance correction request/decision.
 - TypeScript, oxlint, Vite build, and semantic asset verification pass.
+- PR #51 passed CodeRabbit and Vercel, merged as `012cd53`, and deployed Ready as `dpl_Cf49oiwdYtcM2KRwDi73KtwFM3zh`; custom-domain diagnostics pass on `/` and `/crm`.
