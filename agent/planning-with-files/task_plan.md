@@ -28,7 +28,10 @@
 - additive progress/event migrations applied to production with RLS, explicit least-privilege grants, and a covering composite ownership index
 - all 14 role journeys, spotlight tour, actual-action detector, role scenario checks, readiness calculation, persistence repository, and Readiness Center implemented
 - 18 contracts, lint, TypeScript/Vite production build, and the live 14-account onboarding RLS acceptance test pass; all 14 temporary progress rows and their events were removed
-- Supabase advisors report no new structural or unindexed-foreign-key finding; preview/deployment release verification remains
+- Supabase advisors report no new structural or unindexed-foreign-key finding
+- PR #19 passed Vercel and CodeRabbit, merged as production commit `2af21a4`, and issue #18 closed completed
+- deployment `dpl_H177E9qhzCVWmwS2JtQGEH5nZZMT` is Ready on `stu.best` and `www.stu.best`; both routes expose the recovery shell, five recursively verified assets, and the onboarding bundle
+- post-deploy 14-account Auth/profile, onboarding RLS/evidence, owner aggregate, forged-role denial, event deletion denial, faculty/student scope, protected answers, grade denial, schedule, and quiz checks pass with full cleanup
 
 ## Phase 9: Blank-screen production recovery [Issue #16]
 

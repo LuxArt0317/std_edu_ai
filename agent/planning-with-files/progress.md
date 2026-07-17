@@ -19,6 +19,9 @@
 - implemented first-login auto-start, responsive spotlight masks, mobile target revealing, pause/resume, cross-device persistence, review, restart, sync recovery, and the top-bar Readiness Center
 - added generated database contracts, API/static coverage, a 14-account production acceptance verifier, operator documentation, and folder READMEs
 - passed 18 tests, lint, TypeScript/Vite production build, all-role live onboarding RLS verification, and Supabase advisors; removed all 14 temporary acceptance progress rows and cascading events
+- published PR #19, verified the Ready preview recovery shell, five recursively discovered assets, and compiled onboarding bundle on both routes; Vercel and CodeRabbit passed with no review threads
+- merged production commit `2af21a4`, verified Ready deployment `dpl_H177E9qhzCVWmwS2JtQGEH5nZZMT` on `stu.best`/`www.stu.best`, and reran deployed shell, all 14 sequential accounts, faculty/student RLS, quiz cleanup, and all-role onboarding evidence tests
+- removed all 14 post-deploy acceptance progress rows and cascading events, posted the production evidence, and closed issue #18 completed
 
 2026-07-17 — Production account for every school role [Issue #15]
 

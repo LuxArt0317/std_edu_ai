@@ -1,6 +1,6 @@
 # Current State
 
-GitHub issue #18 is active for production role onboarding. The implementation is complete locally and the additive database contract is live in Supabase; branch review, Vercel preview, merge, and final custom-domain verification remain.
+GitHub issue #18 is closed completed. PR #19 passed Vercel and CodeRabbit, merged as production commit `2af21a4`, and deployed as `dpl_H177E9qhzCVWmwS2JtQGEH5nZZMT`, Ready and aliased to both `stu.best` and `www.stu.best`.
 
 Current onboarding status:
 
@@ -17,6 +17,9 @@ Current onboarding status:
 - all 14 temporary acceptance progress rows and their cascading event rows were removed
 - Supabase security advisors show only the pre-existing two intentional trusted workflow functions and dashboard leaked-password notice
 - Supabase performance advisors show no unindexed foreign key; newly created indexes have expected low-traffic unused notices
+- production `/` and `/crm` return HTTP 200 with the recovery shell, recursively verified assets, and the compiled role-readiness bundle
+- all 14 production accounts pass sequential Auth/profile checks; faculty/student RLS, protected-answer, grade-denial, schedule, and 5/5 quiz workflows pass with cleanup
+- the post-deploy 14-account onboarding acceptance passed again, and all 14 temporary progress rows plus cascading event rows were removed
 
 The blank green production incident under issue #16 is complete. PR #17 merged as commit `2370cc6`; Vercel deployment `dpl_5GpBbZQphy1Hd7bhcRXpvyaUfBaQ` is Ready and aliased to `www.stu.best`. Both `/` and `/crm` ship dependency-free recovery content, every route asset returns HTTP 200, Auth/data startup is bounded, and real faculty/student portal workflows pass. Issue #16 is closed.
 
@@ -37,4 +40,4 @@ Production services:
 - the public STU homepage clone remains available at `/` with its additive research-driven AI drawer
 - portal purpose, workspaces, AI boundaries, and safe seed-data status are documented in `src/crm/PORTAL_GUIDE.md`
 
-Outstanding work for the active issue is release-only: final diff review, Vercel preview checks, GitHub PR/merge, production deployment, deployed shell/asset verification, and signed-in role/readiness verification on the released bundle.
+No implementation or release work remains for issue #18. The platform is production-ready for users to sign in at `/crm` and begin the role-specific journey.
