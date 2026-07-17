@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- added premium first-login onboarding for all 14 school roles with responsive spotlight masks, directional instructions, real navigation-action detection, role-specific scenario checks, pause/resume, review, and restart
+- added a persistent Readiness Center with an evidence-only 0–100 score; reading instructions alone does not count as understanding and readiness never changes authorization
+- deployed RLS-protected, versioned `onboarding_progress` and append-only `onboarding_events` tables with explicit Data API grants and covering ownership indexes
+- added all-role onboarding contracts plus live 14-account RLS acceptance coverage for self progress, owner aggregate visibility, forged-role denial, and event-history deletion denial
+
 - replaced the empty pre-JavaScript root with a branded boot and stalled-load recovery shell so blocked or delayed bundles never produce a blank green screen
 - added a global React error boundary for render and lazy-chunk failures with latest-version reload and local-session reset actions
 - bounded Supabase session, identity, sign-in, sign-out, and multi-query portal startup so network or cached-session failures resolve to actionable UI

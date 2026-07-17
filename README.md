@@ -7,6 +7,8 @@ This repository contains two connected Shu-Te University experiences:
 
 STU Nexus is backed by production Supabase Auth and Postgres. Owner, leadership, administrative, faculty, specialist-staff, and student access is enforced by database row-level security; the interface adapts to the same trusted role. The protected owner is `winsonbaring10@gmail.com`.
 
+Each of the 14 roles now receives a first-login guided journey that spotlights real controls, waits for demonstrated navigation actions, asks a role-specific safety scenario, and saves a 0–100 readiness score plus append-only evidence to the signed-in account. The top-bar Readiness Center supports pause/resume, review, restart, and cross-device continuation without affecting authorization.
+
 The deployment always renders a dependency-free branded boot shell before JavaScript starts. Lazy-chunk, React render, authentication, and portal-loading failures resolve to visible reload or local-session recovery controls instead of an empty background.
 
 Primary references:

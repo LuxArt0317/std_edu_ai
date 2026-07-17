@@ -25,6 +25,12 @@
 - acceptance testing is strongest when every canonical role has a real confirmed identity and the verifier checks both the fresh Auth claim and the RLS-visible profile role
 - a healthy Vercel deployment can still show an empty green screen when its HTML ships an empty React root and the entry or lazy route fails before mounting; useful pre-JavaScript content is a separate production requirement
 - client error recovery must cover the entry-before-mount path, React/lazy-chunk failures, stalled authentication, stalled multi-query data loading, and corrupted or locked device-local session state
+- onboarding comprehension is more credible when the score counts demonstrated interface actions and correct scenario answers, not passive step views or dismissal
+- role onboarding must use the authenticated role rather than owner preview state; preview changes presentation but must not forge training evidence for another role
+- a four-panel spotlight mask leaves the real highlighted control clickable while blocking unintended surrounding actions, and the navigation revealer makes the same contract work on mobile
+- versioned per-user/per-role progress supports role changes and future journey revisions without overwriting historical readiness
+- append-only onboarding events can remain user-visible and owner/admin-readable while denying authenticated update/delete; the readiness score remains a usability signal and never an authorization input
+- live acceptance across all 14 real accounts confirmed current-role RLS writes, owner aggregate reads, forged-role denial, and event-history deletion denial
 
 - the live homepage is WordPress 7.0.1 using Elementor 3.35 and exposes its page-243 styling inline
 - the current desktop hero is 800px tall, uses three 5-second slides, and overlays the centered logo/navigation with a dark green gradient

@@ -1,3 +1,3 @@
 # Generated database types
 
-`database.generated.ts` is generated from the production Supabase schema. Regenerate it after schema migrations; do not hand-edit table contracts.
+`database.generated.ts` mirrors the production Supabase schema, including versioned onboarding progress and append-only onboarding events. Regenerate it after schema migrations and review the resulting table and relationship contracts before release.

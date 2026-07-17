@@ -40,7 +40,7 @@ npx supabase link --project-ref your-project-ref
 npx supabase db push
 ```
 
-The production schema has already been applied to `stu_edu_ai`. The migrations in `supabase/migrations` enable RLS on every exposed table, explicit Data API grants, academic/CRM indexes, protected assessment answers, role-change audits, full-text/vector knowledge retrieval, and privacy-minimized AI audit logs.
+The production schema has already been applied to `stu_edu_ai`. The migrations in `supabase/migrations` enable RLS on every exposed table, explicit Data API grants, academic/CRM indexes, protected assessment answers, role-change audits, versioned onboarding progress, append-only onboarding evidence, full-text/vector knowledge retrieval, and privacy-minimized AI audit logs.
 
 Assign roles with the owner-only People & Roles workspace or the audited `assign_platform_role` RPC. Authorization uses trusted `app_metadata.role`; never use user-editable metadata. The complete role catalog is documented in [src/platform/ROLE_MATRIX.md](./src/platform/ROLE_MATRIX.md).
 
@@ -72,11 +72,14 @@ npm run test:live-school
 npm run test:live-crm
 npm run test:live-roles
 npm run test:live-accounts
+npm run test:live-onboarding
 npm run test:live-shell
 npm run test:live-ai
 ```
 
-The `test:live-*` commands require the existing ignored local environment values and network access. They exercise reversible production workflows and clean up test assessment attempts. `test:live-accounts` additionally requires the provisioner's macOS keychain and verifies all 14 production credentials without printing them.
+The `test:live-*` commands require the existing ignored local environment values and network access. They exercise reversible production workflows and clean up test assessment attempts. `test:live-accounts` and `test:live-onboarding` additionally require the provisioner's macOS keychain and never print passwords. The onboarding acceptance test prints a temporary journey key; remove those temporary progress rows with a trusted operator connection after the run (event rows cascade automatically).
+
+On first authenticated portal load, the current role's onboarding journey starts automatically. Use **Readiness** in the top bar to pause, resume, review, or restart it. The readiness score increases only after the required highlighted controls are actually used and the role-specific scenario is answered correctly.
 
 Open `http://localhost:5173/crm` during local development to use STU Nexus.
 

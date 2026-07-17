@@ -8,6 +8,17 @@
 - identified the blank green screen as the empty pre-JavaScript root plus missing render/chunk recovery and unbounded Auth/data startup
 - added branded dependency-free boot/stall content, a global React recovery boundary, finite Supabase timeouts, and device-local session reset controls
 - added static, timeout, session-recovery, and live deployment-shell coverage; 15 tests, lint, production build, local root/CRM probes, and `vercel build --prod` pass
+- merged PR #17 to production commit `2370cc6`, verified deployment `dpl_5GpBbZQphy1Hd7bhcRXpvyaUfBaQ` on `www.stu.best`, passed root/CRM shell and six-asset probes, reran real faculty/student workflows, and closed issue #16
+
+2026-07-17 — Role-specific guided onboarding and readiness [Issue #18]
+
+- created the GitHub issue and mapped demonstrated understanding, durable evidence, all-role UX, security, verification, and release work into the monolithic task plan
+- reviewed current Supabase RLS, explicit Data API grant, migration, and July 2026 changelog guidance
+- created and applied versioned `onboarding_progress` plus append-only `onboarding_events` with self/current-role writes, owner/admin reads, explicit grants, RLS, and covering ownership indexes
+- defined six-step journeys for all 14 canonical roles with two real navigation actions, AI guidance, one role-specific safety scenario, and evidence-only readiness scoring
+- implemented first-login auto-start, responsive spotlight masks, mobile target revealing, pause/resume, cross-device persistence, review, restart, sync recovery, and the top-bar Readiness Center
+- added generated database contracts, API/static coverage, a 14-account production acceptance verifier, operator documentation, and folder READMEs
+- passed 18 tests, lint, TypeScript/Vite production build, all-role live onboarding RLS verification, and Supabase advisors; removed all 14 temporary acceptance progress rows and cascading events
 
 2026-07-17 — Production account for every school role [Issue #15]
 

@@ -1,5 +1,35 @@
 # Task Plan
 
+## Phase 10: Role-specific guided onboarding and readiness [Issue #18]
+
+### Demonstrated understanding
+
+- define a distinct foundations journey for every canonical owner, leadership, academic, operations, and learner role
+- spotlight real interface controls with responsive dimming, directional callouts, keyboard-accessible instructions, and mobile navigation revealing
+- require safe real navigation actions plus a role-specific scenario answer; reading or dismissing instructions must not count as demonstrated understanding
+- calculate a transparent 0–100 readiness score with Explore, Practicing, and Ready states
+
+### Durable, secure evidence
+
+- persist progress per authenticated user, trusted role, journey key, and version
+- preserve append-only event evidence for viewed steps, verified actions, answers, completion, and restart
+- enforce self-only current-role writes through RLS while allowing owner/admin aggregate reads; never use readiness for authorization
+- provide first-login auto-start, pause/resume, cross-device continuation, an always-available Readiness Center, review, and restart
+
+### Production verification
+
+- test all 14 journey definitions, action/check scoring, interface target wiring, RLS, grants, and migration contracts
+- authenticate every production role account and verify role-matched progress, append-only events, owner aggregate visibility, forged-role denial, and delete denial
+- pass lint, production build, Supabase advisors, Vercel compilation, deployed shell/assets, signed-in role workflows, and release documentation
+
+## Current execution
+
+- GitHub issue #18 created and current Supabase RLS/Data API guidance plus the July 2026 changelog reviewed
+- additive progress/event migrations applied to production with RLS, explicit least-privilege grants, and a covering composite ownership index
+- all 14 role journeys, spotlight tour, actual-action detector, role scenario checks, readiness calculation, persistence repository, and Readiness Center implemented
+- 18 contracts, lint, TypeScript/Vite production build, and the live 14-account onboarding RLS acceptance test pass; all 14 temporary progress rows and their events were removed
+- Supabase advisors report no new structural or unindexed-foreign-key finding; preview/deployment release verification remains
+
 ## Phase 9: Blank-screen production recovery [Issue #16]
 
 ### Incident diagnosis
@@ -27,6 +57,9 @@
 - identified the deterministic blank-screen path: deployed HTML had an empty root over the dark-green body, no global render/chunk boundary, and unbounded Auth/data startup
 - implemented dependency-free boot/stall recovery, React lazy/render recovery, bounded Supabase startup, and device-local session reset
 - 15 API/boot contracts, lint, TypeScript/Vite production build, local root/CRM boot-shell probes, and `vercel build --prod` pass
+- merged PR #17 as production commit `2370cc6`; Vercel deployment `dpl_5GpBbZQphy1Hd7bhcRXpvyaUfBaQ` is Ready and aliased to `www.stu.best`
+- production `/` and `/crm` contain the recovery shell and all six route assets return HTTP 200; live faculty/student role, RLS, quiz, grade, and schedule workflows pass
+- issue #16 is closed completed
 
 ## Phase 8: Production account for every school role [Issue #15]
 

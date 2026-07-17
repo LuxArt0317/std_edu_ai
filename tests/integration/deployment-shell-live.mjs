@@ -22,10 +22,22 @@ for (const route of ['/', '/crm']) {
     ...[...entry.matchAll(/assets\/[A-Za-z0-9_.-]+\.(?:js|css)/g)].map((match) => `/${match[0]}`),
     ...[...entry.matchAll(/\.\/([A-Za-z0-9_.-]+\.js)/g)].map((match) => `/assets/${match[1]}`),
   ])
-  for (const assetPath of dynamicAssets) {
+  const verifiedAssets = new Set([entryPath])
+  let onboardingBundle = false
+  const queue = [...dynamicAssets]
+  while (queue.length) {
+    const assetPath = queue.shift()
+    if (!assetPath || verifiedAssets.has(assetPath)) continue
     const asset = await fetch(new URL(assetPath, baseUrl), { headers: { 'Cache-Control': 'no-cache' } })
+    const body = await asset.text()
     if (!asset.ok) throw new Error(`${assetPath} returned HTTP ${asset.status}.`)
+    verifiedAssets.add(assetPath)
+    if (!assetPath.endsWith('.js')) continue
+    if (body.includes('ROLE READINESS CENTER') && body.includes('Click the highlighted control') && body.includes('stu-nexus-role-foundations')) onboardingBundle = true
+    for (const match of body.matchAll(/assets\/[A-Za-z0-9_.-]+\.(?:js|css)/g)) queue.push(`/${match[0]}`)
+    for (const match of body.matchAll(/\.\/([A-Za-z0-9_.-]+\.(?:js|css))/g)) queue.push(`/assets/${match[1]}`)
   }
+  if (!onboardingBundle) throw new Error(`${route} did not expose the compiled role-readiness onboarding bundle.`)
 
-  console.log(JSON.stringify({ route, status: response.status, bootShell: true, entry: entryPath, verifiedAssets: dynamicAssets.size + 1 }))
+  console.log(JSON.stringify({ route, status: response.status, bootShell: true, entry: entryPath, verifiedAssets: verifiedAssets.size, onboardingBundle }))
 }

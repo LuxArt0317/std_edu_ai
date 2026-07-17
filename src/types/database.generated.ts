@@ -1442,6 +1442,112 @@ export type Database = {
           },
         ]
       }
+      onboarding_events: {
+        Row: {
+          created_at: string
+          event_data: Json
+          event_type: string
+          id: string
+          progress_id: string
+          role: string
+          step_key: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json
+          event_type: string
+          id?: string
+          progress_id: string
+          role: string
+          step_key: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json
+          event_type?: string
+          id?: string
+          progress_id?: string
+          role?: string
+          step_key?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_events_progress_owner_fk"
+            columns: ["progress_id", "user_id", "role"]
+            isOneToOne: false
+            referencedRelation: "onboarding_progress"
+            referencedColumns: ["id", "user_id", "role"]
+          },
+        ]
+      }
+      onboarding_progress: {
+        Row: {
+          check_results: Json
+          completed_at: string | null
+          completed_step_keys: string[]
+          created_at: string
+          current_step_key: string
+          id: string
+          journey_key: string
+          journey_version: number
+          last_seen_at: string
+          role: string
+          started_at: string | null
+          status: string
+          understanding_score: number
+          updated_at: string
+          user_id: string
+          verified_action_keys: string[]
+        }
+        Insert: {
+          check_results?: Json
+          completed_at?: string | null
+          completed_step_keys?: string[]
+          created_at?: string
+          current_step_key?: string
+          id?: string
+          journey_key?: string
+          journey_version?: number
+          last_seen_at?: string
+          role: string
+          started_at?: string | null
+          status?: string
+          understanding_score?: number
+          updated_at?: string
+          user_id: string
+          verified_action_keys?: string[]
+        }
+        Update: {
+          check_results?: Json
+          completed_at?: string | null
+          completed_step_keys?: string[]
+          created_at?: string
+          current_step_key?: string
+          id?: string
+          journey_key?: string
+          journey_version?: number
+          last_seen_at?: string
+          role?: string
+          started_at?: string | null
+          status?: string
+          understanding_score?: number
+          updated_at?: string
+          user_id?: string
+          verified_action_keys?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
