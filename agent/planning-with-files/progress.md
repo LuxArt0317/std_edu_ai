@@ -11,3 +11,5 @@
 - Applied the production `nexus_agent_action_audit` migration and verified its constraint through Supabase MCP.
 - Added two API security contracts and a live production-identity OpenAI test proving faculty action proposal and student assessed-work denial.
 - Passed 34 contracts, lint, TypeScript/Vite build, asset verification, and the live Nexus agent role test.
+- PR #47 passed CodeRabbit and Vercel, merged, and deployed Ready to production.
+- Custom-domain diagnostics passed for `/` and `/crm`; recursive bundle inspection confirmed the learner-progress, rich-page, schedule-action, and client role-denial markers.

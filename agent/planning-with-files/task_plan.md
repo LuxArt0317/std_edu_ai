@@ -19,7 +19,7 @@
 
 - [x] add contract tests for action schemas, role allowlists, malformed outputs, stale targets, and student forbidden-action prompts
 - [x] update PRD, operator/API documentation, changelog, progress, and current state
-- [ ] pass contracts, lint, production build, Supabase advisors/live role checks, reviewed PR, Vercel deployment, and custom-domain diagnostics
+- [x] pass contracts, lint, production build, Supabase advisors/live role checks, reviewed PR, Vercel deployment, and custom-domain diagnostics
 
 ## Phase 44: Complete lifecycle UX and authoritative product specification [Issue #44]
 

@@ -6,6 +6,7 @@
 - added authenticated server and client action allowlists, stale-target checks, explicit confirmation, ordinary repository/RLS execution, and privacy-minimized action outcomes
 - enforced a layered student boundary that prevents Nexus from answering, completing, modifying, grading, or submitting any assignment, quiz, exam, or project
 - added API and live OpenAI role tests proving faculty action proposals and student assessed-work denial
+- released through PR #47 to production deployment `dpl_HEEw9bLnaf5QwP828Xsh3P776KQp` and verified both custom-domain routes plus the emitted action-agent bundle
 
 - added the authoritative platform PRD with a role, entity-lifecycle, rich-content, AI-safety, security, UX, and production acceptance contract
 - completed visible pre-filled editing for academic departments, programs, terms, subjects, sections, schedules, students, and teacher/staff profiles
