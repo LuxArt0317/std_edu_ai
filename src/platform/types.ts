@@ -97,6 +97,13 @@ export type LearningMaterial = {
   required: boolean;
   status: string;
 };
+export type LearningMaterialPage = {
+  id: string;
+  materialId: string;
+  title: string;
+  content: string;
+  position: number;
+};
 export type LearningProgress = {
   id: string;
   materialId: string;
@@ -292,6 +299,7 @@ export type PlatformData = {
   topics: CourseTopic[];
   modules: LearningModule[];
   materials: LearningMaterial[];
+  materialPages: LearningMaterialPage[];
   progress: LearningProgress[];
   submissions: AssignmentSubmission[];
   attendanceSessions: AttendanceSession[];

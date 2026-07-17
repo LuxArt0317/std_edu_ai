@@ -6,7 +6,10 @@ import {
   createCourseAnnouncement,
   createCourseAssessment,
   createLearningMaterial,
+  createLearningMaterialPage,
   createLearningModule,
+  deleteLearningMaterial,
+  deleteLearningModule,
   getLmsFileUrl,
   gradeAssignmentSubmission,
   markLearningProgress,
@@ -14,6 +17,8 @@ import {
   setLearningModuleStatus,
   submitAssignment,
   uploadLmsFile,
+  uploadLearningImage,
+  updateLearningModule,
 } from "./platformRepository";
 import type { LearningMaterial, PlatformData, SchoolCourse } from "./types";
 import { RichTextContent, RichTextEditor } from "./RichTextEditor";
@@ -243,6 +248,26 @@ export function TeacherLmsStudio({
                     <header>
                       <i>{String(module.position).padStart(2, "0")}</i>
                       <div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const title = window.prompt(
+                              "Rename module",
+                              module.title,
+                            );
+                            if (!title?.trim()) return;
+                            void perform(
+                              () =>
+                                updateLearningModule(module.id, {
+                                  title,
+                                  description: module.description,
+                                }),
+                              "Module updated.",
+                            );
+                          }}
+                        >
+                          Edit
+                        </button>
                         <span>{module.status}</span>
                         <h3>{module.title}</h3>
                         <p>
@@ -276,6 +301,23 @@ export function TeacherLmsStudio({
                           onClick={() => setModal(`material:${module.id}`)}
                         >
                           + Material
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (
+                              !window.confirm(
+                                `Delete “${module.title}” and all of its materials?`,
+                              )
+                            )
+                              return;
+                            void perform(
+                              () => deleteLearningModule(module.id),
+                              "Module deleted.",
+                            );
+                          }}
+                        >
+                          Delete
                         </button>
                       </div>
                     </header>
@@ -321,6 +363,21 @@ export function TeacherLmsStudio({
                                 Open file
                               </button>
                             ) : null}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (
+                                  !window.confirm(`Delete “${material.title}”?`)
+                                )
+                                  return;
+                                void perform(
+                                  () => deleteLearningMaterial(material.id),
+                                  "Material deleted.",
+                                );
+                              }}
+                            >
+                              Delete
+                            </button>
                           </div>
                         ))
                       ) : (
@@ -718,7 +775,7 @@ function MaterialForm({
   onClose: () => void;
   onSave: (action: () => Promise<unknown>, message: string) => Promise<void>;
 }) {
-  const [content, setContent] = useState("");
+  const [pages, setPages] = useState([{ title: "Page 1", content: "" }]);
   return (
     <FormModal title="Add learning material" onClose={onClose}>
       <form
@@ -731,12 +788,12 @@ function MaterialForm({
             const path = file?.size
               ? await uploadLmsFile(sectionId, "materials", file)
               : undefined;
-            await createLearningMaterial({
+            const materialId = await createLearningMaterial({
               moduleId,
               title: String(f.get("title")),
               description: String(f.get("description")),
               type: String(f.get("type")),
-              content,
+              content: pages[0]?.content ?? "",
               externalUrl: String(f.get("url")),
               storagePath: path,
               position,
@@ -744,6 +801,16 @@ function MaterialForm({
               required: f.get("required") === "on",
               publish: f.get("publish") === "on",
             });
+            await Promise.all(
+              pages.map((page, index) =>
+                createLearningMaterialPage({
+                  materialId,
+                  title: page.title || `Page ${index + 1}`,
+                  content: page.content,
+                  position: index + 1,
+                }),
+              ),
+            );
           }, "Learning material added.");
         }}
       >
@@ -777,10 +844,68 @@ function MaterialForm({
           Description
           <textarea name="description" rows={2} />
         </label>
-        <label className="lms-editor-field">
-          Lesson content
-          <RichTextEditor value={content} onChange={setContent} />
-        </label>
+        <section className="lms-page-builder">
+          <header>
+            <div>
+              <b>Lesson pages</b>
+              <small>Build a guided, image-rich reading experience.</small>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                setPages((current) => [
+                  ...current,
+                  { title: `Page ${current.length + 1}`, content: "" },
+                ])
+              }
+            >
+              + Add page
+            </button>
+          </header>
+          {pages.map((page, index) => (
+            <article key={index}>
+              <div>
+                <span>PAGE {index + 1}</span>
+                <input
+                  value={page.title}
+                  onChange={(event) =>
+                    setPages((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index
+                          ? { ...item, title: event.target.value }
+                          : item,
+                      ),
+                    )
+                  }
+                  required
+                />
+                {pages.length > 1 ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPages((current) =>
+                        current.filter((_, itemIndex) => itemIndex !== index),
+                      )
+                    }
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
+              <RichTextEditor
+                value={page.content}
+                onChange={(content) =>
+                  setPages((current) =>
+                    current.map((item, itemIndex) =>
+                      itemIndex === index ? { ...item, content } : item,
+                    ),
+                  )
+                }
+                onImageUpload={(file) => uploadLearningImage(sectionId, file)}
+              />
+            </article>
+          ))}
+        </section>
         <label>
           HTTPS link
           <input name="url" type="url" placeholder="https://…" />
@@ -1206,6 +1331,7 @@ export function StudentLmsLearning({
   const [activeMaterial, setActiveMaterial] = useState<LearningMaterial | null>(
     null,
   );
+  const [activePage, setActivePage] = useState(0);
   const [assignmentId, setAssignmentId] = useState<string | null>(null);
   const course =
     data.courses.find((item) => item.sectionId === sectionId) ??
@@ -1239,6 +1365,12 @@ export function StudentLmsLearning({
   const percent = materials.length
     ? Math.round((completed / materials.length) * 100)
     : 0;
+  const materialPages = activeMaterial
+    ? data.materialPages
+        .filter((page) => page.materialId === activeMaterial.id)
+        .sort((a, b) => a.position - b.position)
+    : [];
+  const displayedPage = materialPages[activePage];
 
   if (!course)
     return (
@@ -1341,6 +1473,7 @@ export function StudentLmsLearning({
                       }
                       onClick={() => {
                         setActiveMaterial(material);
+                        setActivePage(0);
                         void markLearningProgress(material.id, done).then(
                           onChanged,
                         );
@@ -1368,7 +1501,54 @@ export function StudentLmsLearning({
               </span>
               <h2>{activeMaterial.title}</h2>
               <p className="lead">{activeMaterial.description}</p>
-              <RichTextContent html={activeMaterial.content} />
+              {materialPages.length ? (
+                <>
+                  <nav className="lms-page-nav" aria-label="Lesson pages">
+                    {materialPages.map((page, index) => (
+                      <button
+                        type="button"
+                        key={page.id}
+                        className={index === activePage ? "active" : ""}
+                        onClick={() => setActivePage(index)}
+                      >
+                        <span>{index + 1}</span>
+                        {page.title}
+                      </button>
+                    ))}
+                  </nav>
+                  <div className="lms-page-document">
+                    <small>
+                      PAGE {activePage + 1} OF {materialPages.length}
+                    </small>
+                    <h3>{displayedPage?.title}</h3>
+                    <RichTextContent html={displayedPage?.content ?? ""} />
+                    <footer>
+                      <button
+                        type="button"
+                        disabled={activePage === 0}
+                        onClick={() =>
+                          setActivePage((page) => Math.max(0, page - 1))
+                        }
+                      >
+                        ← Previous
+                      </button>
+                      <button
+                        type="button"
+                        disabled={activePage === materialPages.length - 1}
+                        onClick={() =>
+                          setActivePage((page) =>
+                            Math.min(materialPages.length - 1, page + 1),
+                          )
+                        }
+                      >
+                        Next →
+                      </button>
+                    </footer>
+                  </div>
+                </>
+              ) : (
+                <RichTextContent html={activeMaterial.content} />
+              )}
               {activeMaterial.externalUrl ? (
                 <a
                   href={activeMaterial.externalUrl}

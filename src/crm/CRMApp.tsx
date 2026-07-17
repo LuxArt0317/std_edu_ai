@@ -3,7 +3,9 @@ import type { CSSProperties, FormEvent, ReactNode } from "react";
 import "./crm.css";
 import { askCrmCopilot } from "./aiService";
 import {
+  createKnowledgeArticle,
   crmDataSource,
+  deleteKnowledgeArticle,
   getCrmDataSnapshot,
   loadCrmData,
   persistCaseStatus,
@@ -11,13 +13,16 @@ import {
   persistTaskCompletion,
   resetCrmData,
   saveCrmData,
+  updateKnowledgeArticle,
 } from "./crmRepository";
+import { RichTextEditor } from "../platform/RichTextEditor";
 import type { CrmUser } from "./authService";
 import type {
   AiCopilotResult,
   CrmDatabase,
   CrmSection,
   LeadStage,
+  KnowledgeArticle,
   Student,
 } from "./types";
 
@@ -37,8 +42,8 @@ const sectionMeta: Record<
   { eyebrow: string; title: string; description: string }
 > = {
   command: {
-    eyebrow: "THURSDAY · JULY 16",
-    title: "Good evening, Hayros",
+    eyebrow: "TODAY",
+    title: "Your student-success command center",
     description:
       "Here is the pulse of student success across Shu-Te University.",
   },
@@ -139,6 +144,128 @@ function LoadingWorkspace() {
   );
 }
 
+function KnowledgeEditor({
+  article,
+  onClose,
+  onSaved,
+}: {
+  article: KnowledgeArticle | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [content, setContent] = useState(
+    article?.content || article?.summary || "",
+  );
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  return (
+    <div className="knowledge-editor-layer">
+      <button
+        type="button"
+        aria-label="Close knowledge editor"
+        onClick={onClose}
+      />
+      <section>
+        <header>
+          <div>
+            <span>KNOWLEDGE PUBLISHER</span>
+            <h2>
+              {article
+                ? "Edit institutional source"
+                : "Add institutional source"}
+            </h2>
+          </div>
+          <button type="button" onClick={onClose}>
+            ×
+          </button>
+        </header>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            const form = new FormData(event.currentTarget);
+            const input = {
+              title: String(form.get("title")),
+              category: String(form.get("category")),
+              summary: String(form.get("summary")),
+              sourceUrl: String(form.get("sourceUrl")),
+              status: String(form.get("status")) as
+                "verified" | "review_due" | "draft",
+              content,
+            };
+            setBusy(true);
+            setError("");
+            void (
+              article
+                ? updateKnowledgeArticle(article.id, input)
+                : createKnowledgeArticle(input)
+            )
+              .then(onSaved)
+              .catch((reason: unknown) =>
+                setError(
+                  reason instanceof Error
+                    ? reason.message
+                    : "Knowledge could not be saved.",
+                ),
+              )
+              .finally(() => setBusy(false));
+          }}
+        >
+          <div className="knowledge-fields">
+            <label>
+              Title
+              <input name="title" defaultValue={article?.title} required />
+            </label>
+            <label>
+              Category
+              <input
+                name="category"
+                defaultValue={article?.category || "Academic"}
+                required
+              />
+            </label>
+            <label className="wide">
+              Summary
+              <textarea
+                name="summary"
+                defaultValue={article?.summary}
+                rows={2}
+                required
+              />
+            </label>
+            <label>
+              Source URL
+              <input
+                name="sourceUrl"
+                type="url"
+                defaultValue={article?.sourceUrl}
+              />
+            </label>
+            <label>
+              Status
+              <select name="status" defaultValue={article?.status || "draft"}>
+                <option value="draft">Draft</option>
+                <option value="review_due">Review due</option>
+                <option value="verified">Verified</option>
+              </select>
+            </label>
+          </div>
+          <label className="knowledge-rich-label">
+            Article content
+            <RichTextEditor value={content} onChange={setContent} />
+          </label>
+          {error ? <p className="knowledge-editor-error">{error}</p> : null}
+          <footer>
+            <span>
+              Verified sources become available for grounded school guidance.
+            </span>
+            <button disabled={busy}>{busy ? "Saving…" : "Save source"}</button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  );
+}
+
 function CRMApp({
   currentUser,
   onSignOut,
@@ -167,6 +294,9 @@ function CRMApp({
   const [saveState, setSaveState] = useState<"saved" | "saving" | "error">(
     "saved",
   );
+  const [knowledgeEditor, setKnowledgeEditor] = useState<
+    KnowledgeArticle | "new" | null
+  >(null);
 
   useEffect(() => {
     void loadCrmData(Boolean(getCrmDataSnapshot())).then(setDatabase);
@@ -332,10 +462,28 @@ function CRMApp({
   }
 
   const meta = sectionMeta[section];
-  const pageTitle =
-    section === "command" && currentUser
-      ? `Good evening, ${currentUser.name.split(" ")[0]}`
+  const headingTitle =
+    section === "command"
+      ? `Welcome, ${currentUser?.name || "school leader"}`
       : meta.title;
+  const headingEyebrow =
+    section === "command"
+      ? new Intl.DateTimeFormat("en", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+        })
+          .format(new Date())
+          .toUpperCase()
+      : meta.eyebrow;
+  const knowledgeCoverage = database.knowledge.length
+    ? Math.round(
+        (database.knowledge.filter((item) => item.status === "verified")
+          .length /
+          database.knowledge.length) *
+          100,
+      )
+    : 0;
 
   return (
     <div className="nexus-shell">
@@ -389,7 +537,7 @@ function CRMApp({
           >
             <span>{currentUser?.initials || "HB"}</span>
             <div>
-              <b>{currentUser?.name || "Hayros Baring"}</b>
+              <b>{currentUser?.name || "Authorized user"}</b>
               <small>
                 {currentUser
                   ? `${currentUser.role} · Supabase`
@@ -431,10 +579,10 @@ function CRMApp({
           </button>
           <div className="topbar-actions">
             <button type="button" title="Updates">
-              ◴<b>3</b>
+              ◴<b>{database.tasks.filter((task) => !task.completed).length}</b>
             </button>
             <button type="button" title="Notifications">
-              ♢<b>5</b>
+              ♢<b>{openCases.length}</b>
             </button>
             <a href="/">University site ↗</a>
           </div>
@@ -443,8 +591,8 @@ function CRMApp({
         <div className="nexus-page">
           <section className="nexus-page-heading">
             <div>
-              <p>{meta.eyebrow}</p>
-              <h1>{pageTitle}</h1>
+              <p>{headingEyebrow}</p>
+              <h1>{headingTitle}</h1>
               <span>{meta.description}</span>
             </div>
             <div className="heading-actions">
@@ -1088,15 +1236,18 @@ function CRMApp({
               <div className="knowledge-health">
                 <div>
                   <span>KNOWLEDGE HEALTH</span>
-                  <strong>83%</strong>
+                  <strong>{knowledgeCoverage}%</strong>
                   <p>of high-demand answers are verified and current</p>
                 </div>
                 <div
                   className="knowledge-ring"
-                  style={{ "--coverage": "83%" } as CSSProperties}
+                  style={
+                    { "--coverage": `${knowledgeCoverage}%` } as CSSProperties
+                  }
                 >
                   <span>
-                    83<small>%</small>
+                    {knowledgeCoverage}
+                    <small>%</small>
                   </span>
                 </div>
                 <div className="health-actions">
@@ -1138,7 +1289,7 @@ function CRMApp({
                   <button
                     className="primary-action"
                     type="button"
-                    onClick={() => setToast("New knowledge workflow started")}
+                    onClick={() => setKnowledgeEditor("new")}
                   >
                     + Add source
                   </button>
@@ -1160,13 +1311,41 @@ function CRMApp({
                         Used {article.usageCount.toLocaleString()} times
                       </small>
                     </div>
-                    <a
-                      href={article.sourceUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Source ↗
-                    </a>
+                    <div className="knowledge-row-actions">
+                      <button
+                        type="button"
+                        onClick={() => setKnowledgeEditor(article)}
+                      >
+                        Edit
+                      </button>
+                      <a
+                        href={article.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Source ↗
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!window.confirm(`Delete “${article.title}”?`))
+                            return;
+                          void deleteKnowledgeArticle(article.id)
+                            .then(() => loadCrmData(true))
+                            .then(setDatabase)
+                            .then(() => setToast("Knowledge source deleted."))
+                            .catch((reason: unknown) =>
+                              setToast(
+                                reason instanceof Error
+                                  ? reason.message
+                                  : "Knowledge source could not be deleted.",
+                              ),
+                            );
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </article>
                 ))}
               </div>
@@ -1312,6 +1491,18 @@ function CRMApp({
         />
       ) : null}
 
+      {knowledgeEditor ? (
+        <KnowledgeEditor
+          article={knowledgeEditor === "new" ? null : knowledgeEditor}
+          onClose={() => setKnowledgeEditor(null)}
+          onSaved={() => {
+            setKnowledgeEditor(null);
+            void loadCrmData(true)
+              .then(setDatabase)
+              .then(() => setToast("Knowledge source saved."));
+          }}
+        />
+      ) : null}
       {copilotOpen ? (
         <div className="copilot-layer">
           <button
@@ -1443,17 +1634,19 @@ function CRMApp({
       >
         ✦<span>Ask Nexus AI</span>
       </button>
-      <button
-        className="demo-reset"
-        type="button"
-        title="Reset demo data"
-        onClick={() => {
-          void resetCrmData().then(setDatabase);
-          setToast("Demo workspace reset");
-        }}
-      >
-        ↻
-      </button>
+      {crmDataSource.mode !== "live" ? (
+        <button
+          className="demo-reset"
+          type="button"
+          title="Reset demo data"
+          onClick={() => {
+            void resetCrmData().then(setDatabase);
+            setToast("Demo workspace reset");
+          }}
+        >
+          ↻
+        </button>
+      ) : null}
     </div>
   );
 }

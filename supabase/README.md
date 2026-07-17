@@ -4,6 +4,8 @@ This folder contains the deployed production database contract for the complete 
 
 The integrated LMS adds publishable course modules and materials, student-owned progress and assignment submissions, teacher-managed attendance, and the private `lms-files` Storage bucket. Section enrollment and teacher assignment drive database and Storage authorization; grading ceilings and roster integrity are enforced by triggers.
 
+Rich content adds RLS-protected material pages and the constrained public `learning-media` bucket for non-sensitive instructional images. Only section managers can upload, replace, or delete media; students receive page rows only through published enrolled sections.
+
 The production project is `stu_edu_ai` (`zhcchldvgqrkfqoknewk`). Schema changes are applied through reviewed migrations and verified with Supabase security and performance advisors. Set staff authorization in each user's `app_metadata.role`; never use editable user metadata for authorization.
 
 The initial owner account has been provisioned and the one-time bootstrap RPC is locked. `winsonbaring10@gmail.com` is protected as the only owner by database triggers and trusted Auth metadata. The owner-only `provision-role-account` Edge Function creates or rotates confirmed non-owner staff identities through the Supabase Auth Admin API. The owner/admin/registrar `manage-student-account` function creates a confirmed student identity and links its profile and SIS record. Server-only service credentials never reach the application client. Role changes use the audited `assign_platform_role` function.

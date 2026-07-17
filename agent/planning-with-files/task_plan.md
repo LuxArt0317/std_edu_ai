@@ -417,3 +417,13 @@
 - [x] keep School OS and Learner Support mounted while switching visibility instantly
 - [x] cache and deduplicate CRM data, warm it after sign-in, and clear it on sign-out
 - [x] verify, release, and smoke-test production navigation contracts
+
+## Phase 42: Database-backed rich content platform [Issue #42]
+
+- [x] inventory hardcoded/demo surfaces and incomplete content CRUD
+- [x] deploy RLS-protected multi-page learning content and managed image Storage
+- [x] extend Tiptap with image upload and multi-page authoring
+- [x] add polished student page navigation and rich document reading
+- [x] implement knowledge create/edit/delete and LMS update/delete repository operations
+- [x] replace prominent hardcoded CRM metrics and identity copy with live data
+- [ ] complete live security/workflow verification and production release

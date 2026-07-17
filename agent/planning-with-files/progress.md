@@ -150,3 +150,10 @@
 - Both workspaces now remain mounted and switch using immediate visibility state.
 - CRM data is warmed after sign-in, restored synchronously, fetch-deduplicated, updated with local mutations, and cleared on sign-out.
 - PR #41 merged and deployed Ready; the production bundle contains the persistent workspace contract and `/crm` returns HTTP 200.
+
+## 2026-07-17 — Issue #42
+
+- Deployed `learning_material_pages` with manager-write/enrolled-reader RLS and a constrained instructional-image bucket.
+- Added multi-page Tiptap lesson authoring with direct managed image upload and a textbook-style student reader.
+- Added knowledge source create/edit/delete with rich content, plus module/material/page update and delete services.
+- Removed hardcoded CRM identity, date, notification counts, and knowledge-health percentage.

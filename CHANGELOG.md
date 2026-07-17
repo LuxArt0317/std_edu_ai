@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- added RLS-protected multi-page learning materials, public instructional-image media with manager-only uploads, and polished page-by-page student reading
+- upgraded the shared Tiptap editor with managed image uploads and reused it for institutional knowledge publishing
+- added create, edit, and delete workflows for verified knowledge plus update/delete operations for LMS modules, materials, and lesson pages
+- replaced hardcoded CRM greeting, date, alert counts, and knowledge-health percentage with authenticated and live database values
+
 - removed Learner Support tab loading by keeping both workspaces mounted, warming CRM data after sign-in, deduplicating its fetch, and restoring it synchronously from memory
 - isolated the CRM snapshot by clearing it with the authenticated platform snapshot on sign-out
 

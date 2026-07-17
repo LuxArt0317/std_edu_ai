@@ -79,3 +79,8 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - Verification passes: 28 tests, lint, TypeScript/Vite production build, and built-asset validation.
 - PR #41 passed GitHub/Vercel checks, merged to `main`, and deployed Ready. The custom production domain serves the new entry/CRM bundle and `/crm` returns HTTP 200.
 - Issue #40 is closed; School OS ↔ Learner Support switching no longer causes workspace remounting or repeat loading.
+# Current release: Issue #42
+
+- Production Supabase now has the rich-content page schema and managed instructional-image Storage/RLS.
+- Application implementation includes multi-page Tiptap lessons, image upload, rich student reading, knowledge CRUD, and live CRM metrics.
+- Remaining: run final contracts/build, live RLS CRUD verification, GitHub/Vercel release, and production smoke test.

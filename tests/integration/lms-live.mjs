@@ -54,7 +54,7 @@ const { data: enrollment, error: ee } = await student
   .single();
 if (ee) throw ee;
 const marker = `LMS-${Date.now()}`;
-let moduleId, assessmentId, quizId, sessionId, storagePath;
+let moduleId, materialId, assessmentId, quizId, sessionId, storagePath, mediaPath;
 try {
   const moduleResult = await faculty
     .from("learning_modules")
@@ -86,6 +86,18 @@ try {
     .select("id")
     .single();
   if (materialResult.error) throw materialResult.error;
+  materialId = materialResult.data.id;
+  const page = await faculty.from("learning_material_pages").insert({ material_id: materialId, title: "Page 1", content_html: "<p>Verified rich page</p>", position: 1, created_by: fa.user.id }).select("id").single();
+  if (page.error) throw page.error;
+  const studentPage = await student.from("learning_material_pages").select("title,content_html").eq("id", page.data.id).single();
+  if (studentPage.error || studentPage.data.title !== "Page 1") throw studentPage.error || new Error("Student rich-page visibility failed.");
+  const deniedPage = await student.from("learning_material_pages").insert({ material_id: materialId, title: "Denied", position: 2 });
+  if (!deniedPage.error) throw new Error("Student created a learning page.");
+  mediaPath = `${enrollment.section_id}/${marker}.png`;
+  const mediaUpload = await faculty.storage.from("learning-media").upload(mediaPath, new Blob([new Uint8Array([137,80,78,71])], { type: "image/png" }));
+  if (mediaUpload.error) throw mediaUpload.error;
+  const deniedMedia = await student.storage.from("learning-media").upload(`${enrollment.section_id}/${marker}-denied.png`, new Blob([new Uint8Array([137,80,78,71])], { type: "image/png" }));
+  if (!deniedMedia.error) throw new Error("Student uploaded instructional media.");
   storagePath = `${enrollment.section_id}/materials/${marker}.txt`;
   const upload = await faculty.storage
     .from("lms-files")
@@ -267,6 +279,7 @@ try {
 } finally {
   if (storagePath)
     await faculty.storage.from("lms-files").remove([storagePath]);
+  if (mediaPath) await faculty.storage.from("learning-media").remove([mediaPath]);
   if (sessionId)
     await faculty.from("attendance_sessions").delete().eq("id", sessionId);
   if (assessmentId)
@@ -279,6 +292,7 @@ console.log(
   JSON.stringify({
     teacherContent: true,
     privateFiles: true,
+    richPagesAndImages: true,
     studentPublishedAccess: true,
     studentAuthoringDenied: true,
     progress: true,

@@ -106,6 +106,7 @@ export async function loadPlatformData(): Promise<PlatformData> {
     threadsResult,
     modulesResult,
     materialsResult,
+    materialPagesResult,
     progressResult,
     submissionsResult,
     attendanceSessionsResult,
@@ -147,6 +148,7 @@ export async function loadPlatformData(): Promise<PlatformData> {
         .order("updated_at", { ascending: false }),
       client.from("learning_modules").select("*").order("position"),
       client.from("learning_materials").select("*").order("position"),
+      client.from("learning_material_pages").select("*").order("position"),
       client.from("learning_progress").select("*"),
       client
         .from("assignment_submissions")
@@ -185,6 +187,7 @@ export async function loadPlatformData(): Promise<PlatformData> {
   const threadRows = rows(threadsResult, "AI conversations");
   const moduleRows = rows(modulesResult, "Learning modules");
   const materialRows = rows(materialsResult, "Learning materials");
+  const materialPageRows = rows(materialPagesResult, "Learning material pages");
   const progressRows = rows(progressResult, "Learning progress");
   const submissionRows = rows(submissionsResult, "Assignment submissions");
   const attendanceSessionRows = rows(
@@ -379,6 +382,13 @@ export async function loadPlatformData(): Promise<PlatformData> {
       minutes: material.estimated_minutes,
       required: material.is_required,
       status: material.status,
+    })),
+    materialPages: materialPageRows.map((page) => ({
+      id: page.id,
+      materialId: page.material_id,
+      title: page.title,
+      content: page.content_html,
+      position: page.position,
     })),
     progress: progressRows.map((item) => ({
       id: item.id,
@@ -883,6 +893,30 @@ export async function setLearningModuleStatus(
   if (error) throw new Error(error.message);
 }
 
+export async function updateLearningModule(
+  moduleId: string,
+  input: { title: string; description: string },
+) {
+  const client = requireClient();
+  const { error } = await client
+    .from("learning_modules")
+    .update({
+      title: clean(input.title, "Module title", 180),
+      description: input.description.trim().slice(0, 4000),
+    })
+    .eq("id", moduleId);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteLearningModule(moduleId: string) {
+  const client = requireClient();
+  const { error } = await client
+    .from("learning_modules")
+    .delete()
+    .eq("id", moduleId);
+  if (error) throw new Error(error.message);
+}
+
 export async function uploadLmsFile(
   sectionId: string,
   folder: "materials" | "submissions",
@@ -920,22 +954,128 @@ export async function createLearningMaterial(input: {
 }) {
   const client = requireClient();
   const { data: user } = await client.auth.getUser();
-  const { error } = await client.from("learning_materials").insert({
-    module_id: input.moduleId,
-    title: clean(input.title, "Material title", 180),
-    description: input.description.trim().slice(0, 4000),
-    material_type: input.type,
-    content_markdown: input.content.trim().slice(0, 100000),
-    external_url: input.externalUrl?.trim() || null,
-    storage_path: input.storagePath || null,
+  const { data, error } = await client
+    .from("learning_materials")
+    .insert({
+      module_id: input.moduleId,
+      title: clean(input.title, "Material title", 180),
+      description: input.description.trim().slice(0, 4000),
+      material_type: input.type,
+      content_markdown: input.content.trim().slice(0, 100000),
+      external_url: input.externalUrl?.trim() || null,
+      storage_path: input.storagePath || null,
+      position: input.position,
+      estimated_minutes: input.minutes,
+      is_required: input.required,
+      status: input.publish ? "published" : "draft",
+      published_at: input.publish ? new Date().toISOString() : null,
+      created_by: user.user?.id,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+  return data.id;
+}
+
+export async function updateLearningMaterial(
+  materialId: string,
+  input: {
+    title: string;
+    description: string;
+    type: string;
+    content: string;
+    externalUrl?: string;
+    minutes: number;
+    required: boolean;
+  },
+) {
+  const client = requireClient();
+  const { error } = await client
+    .from("learning_materials")
+    .update({
+      title: clean(input.title, "Material title", 180),
+      description: input.description.trim().slice(0, 4000),
+      material_type: input.type,
+      content_markdown: input.content.trim().slice(0, 100000),
+      external_url: input.externalUrl?.trim() || null,
+      estimated_minutes: input.minutes,
+      is_required: input.required,
+    })
+    .eq("id", materialId);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteLearningMaterial(materialId: string) {
+  const client = requireClient();
+  const { error } = await client
+    .from("learning_materials")
+    .delete()
+    .eq("id", materialId);
+  if (error) throw new Error(error.message);
+}
+
+export async function createLearningMaterialPage(input: {
+  materialId: string;
+  title: string;
+  content: string;
+  position: number;
+}) {
+  const client = requireClient();
+  const { data: user } = await client.auth.getUser();
+  const { error } = await client.from("learning_material_pages").insert({
+    material_id: input.materialId,
+    title: clean(input.title, "Page title", 180),
+    content_html: input.content.trim().slice(0, 150000),
     position: input.position,
-    estimated_minutes: input.minutes,
-    is_required: input.required,
-    status: input.publish ? "published" : "draft",
-    published_at: input.publish ? new Date().toISOString() : null,
     created_by: user.user?.id,
   });
   if (error) throw new Error(error.message);
+}
+
+export async function updateLearningMaterialPage(
+  pageId: string,
+  input: { title: string; content: string },
+) {
+  const client = requireClient();
+  const { error } = await client
+    .from("learning_material_pages")
+    .update({
+      title: clean(input.title, "Page title", 180),
+      content_html: input.content.trim().slice(0, 150000),
+    })
+    .eq("id", pageId);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteLearningMaterialPage(pageId: string) {
+  const client = requireClient();
+  const { error } = await client
+    .from("learning_material_pages")
+    .delete()
+    .eq("id", pageId);
+  if (error) throw new Error(error.message);
+}
+
+export async function uploadLearningImage(sectionId: string, file: File) {
+  const client = requireClient();
+  if (
+    !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)
+  )
+    throw new Error("Choose a JPEG, PNG, WebP, or GIF image.");
+  if (file.size > 8_388_608) throw new Error("Images must be 8 MB or smaller.");
+  const extension =
+    file.name
+      .split(".")
+      .pop()
+      ?.replace(/[^a-zA-Z0-9]/g, "")
+      .slice(0, 8) || "img";
+  const path = `${sectionId}/${crypto.randomUUID()}.${extension}`;
+  const { error } = await client.storage
+    .from("learning-media")
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (error) throw new Error(error.message);
+  return client.storage.from("learning-media").getPublicUrl(path).data
+    .publicUrl;
 }
 
 export async function getLmsFileUrl(path: string) {

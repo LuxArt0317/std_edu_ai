@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import { EditorContent, useEditor } from "@tiptap/react";
@@ -6,6 +7,10 @@ import StarterKit from "@tiptap/starter-kit";
 
 const extensions = [
   StarterKit,
+  Image.configure({
+    allowBase64: false,
+    HTMLAttributes: { class: "lms-content-image" },
+  }),
   Link.configure({
     openOnClick: false,
     autolink: true,
@@ -21,10 +26,14 @@ const extensions = [
 export function RichTextEditor({
   value,
   onChange,
+  onImageUpload,
 }: {
   value: string;
   onChange: (html: string) => void;
+  onImageUpload?: (file: File) => Promise<string>;
 }) {
+  const imageInput = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
   const editor = useEditor({
     extensions,
     content: value,
@@ -117,6 +126,38 @@ export function RichTextEditor({
         >
           Link
         </button>
+        {onImageUpload ? (
+          <>
+            <button
+              type="button"
+              disabled={uploading}
+              onClick={() => imageInput.current?.click()}
+            >
+              {uploading ? "Uploading…" : "Image"}
+            </button>
+            <input
+              ref={imageInput}
+              className="lms-image-input"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (!file) return;
+                setUploading(true);
+                void onImageUpload(file)
+                  .then((url) =>
+                    editor
+                      .chain()
+                      .focus()
+                      .setImage({ src: url, alt: file.name })
+                      .run(),
+                  )
+                  .finally(() => setUploading(false));
+              }}
+            />
+          </>
+        ) : null}
         <button
           type="button"
           onClick={() => editor.chain().focus().undo().run()}

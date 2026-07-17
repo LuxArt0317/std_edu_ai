@@ -358,6 +358,7 @@ async function loadRemoteData(): Promise<CrmDatabase> {
     updatedAt: relativeTime(row.updated_at),
     sourceUrl: row.source_url || "https://www.stu.edu.tw",
     summary: row.summary,
+    content: row.content,
     usageCount: row.usage_count,
   }));
 
@@ -474,6 +475,70 @@ export async function persistCaseStatus(id: string, status: CaseStatus) {
     .eq("id", id);
   if (error) throw new Error(error.message);
   return true;
+}
+
+export async function createKnowledgeArticle(input: {
+  title: string;
+  category: string;
+  summary: string;
+  content: string;
+  sourceUrl: string;
+  status: "verified" | "review_due" | "draft";
+}) {
+  if (!supabase)
+    throw new Error("Supabase is required to publish institutional knowledge.");
+  const { data: user } = await supabase.auth.getUser();
+  if (!user.user) throw new Error("Authentication is required.");
+  const { error } = await supabase.from("knowledge_articles").insert({
+    title: input.title.trim().slice(0, 180),
+    category: input.category.trim().slice(0, 80),
+    summary: input.summary.trim().slice(0, 2000),
+    content: input.content.trim().slice(0, 150000),
+    source_url: input.sourceUrl.trim() || null,
+    status: input.status,
+    owner_id: user.user.id,
+    verified_at: input.status === "verified" ? new Date().toISOString() : null,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function updateKnowledgeArticle(
+  id: string,
+  input: {
+    title: string;
+    category: string;
+    summary: string;
+    content: string;
+    sourceUrl: string;
+    status: "verified" | "review_due" | "draft";
+  },
+) {
+  if (!supabase)
+    throw new Error("Supabase is required to update institutional knowledge.");
+  const { error } = await supabase
+    .from("knowledge_articles")
+    .update({
+      title: input.title.trim().slice(0, 180),
+      category: input.category.trim().slice(0, 80),
+      summary: input.summary.trim().slice(0, 2000),
+      content: input.content.trim().slice(0, 150000),
+      source_url: input.sourceUrl.trim() || null,
+      status: input.status,
+      verified_at:
+        input.status === "verified" ? new Date().toISOString() : null,
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteKnowledgeArticle(id: string) {
+  if (!supabase)
+    throw new Error("Supabase is required to delete institutional knowledge.");
+  const { error } = await supabase
+    .from("knowledge_articles")
+    .delete()
+    .eq("id", id);
+  if (error) throw new Error(error.message);
 }
 
 export async function resetCrmData(): Promise<CrmDatabase> {
