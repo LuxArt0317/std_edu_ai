@@ -7,6 +7,9 @@
 - changed guarded builds and live production diagnostics to reject onboarding UI markers while the temporary shutdown is active
 - synchronized user, operator, platform, project, test, changelog, and planning documentation
 - passed 19 contracts, lint, guarded Vite build, and Vercel production compilation; the CRM runtime shrank by 29.78 KB and the semantic gate reports `onboardingDisabled: true`
+- published PR #25, verified its hosted build gate and protected preview bundle, confirmed no review threads, and merged production commit `633c931`
+- verified Ready deployment `dpl_FNT89h5EATXXQx53aq9V6fus5yQb` on both custom domains; live diagnostics pass both routes with six assets, CRM styles, and `onboardingDisabled: true`
+- confirmed released CRM JavaScript contains no onboarding UI markers and no onboarding progress/event table identifiers
 
 2026-07-17 — CRM route stylesheet recovery and deployment guardrails [Issue #22]
 

@@ -21,6 +21,9 @@
 - build and live diagnostics changed from requiring the onboarding bundle to requiring its absence
 - user, operator, project, platform, test, changelog, and persistent planning documentation updated to describe the temporary shutdown
 - all 19 contracts, lint, guarded Vite build, and `vercel build --prod` pass; the generated CRM bundle is 29.78 KB smaller and reports `onboardingDisabled: true`
+- PR #25 passed Vercel with no review threads, its hosted build gate reported onboarding disabled, and it merged as production commit `633c931`
+- deployment `dpl_FNT89h5EATXXQx53aq9V6fus5yQb` is Ready and aliased to both custom domains
+- live `/` and `/crm` diagnostics return HTTP 200 with six recursive assets, `crmAuthStyles: true`, and `onboardingDisabled: true`; released CRM JavaScript contains neither onboarding UI nor persistence-table markers
 
 ## Phase 12: CRM route stylesheet recovery and deployment guardrails [Issue #22]
 
