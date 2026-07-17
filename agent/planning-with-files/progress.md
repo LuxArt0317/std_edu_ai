@@ -112,3 +112,4 @@
 - authored a deterministic 31-page DOCX with 437 paragraphs, 129 Word headings, 17 fixed-geometry tables, all-role purpose/access/responsibility/boundary profiles, workflows, how-to procedures, and governance guidance
 - rendered the document with Microsoft Word and inspected all 31 page images; corrected contents pagination and continuous list numbering, then rerendered every page successfully
 - passed the document accessibility audit with zero high, medium, or low findings and confirmed the manual contains no credential directory or secret value
+- merged PR #29 as `ef70241` after Vercel and CodeRabbit passed; issue #28 closed completed with the final document quality evidence
