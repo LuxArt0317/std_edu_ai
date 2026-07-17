@@ -403,3 +403,10 @@
 - [x] let Nexus AI propose safe LMS writes with exact resource IDs and mandatory user confirmation
 - [x] keep Student 360 capabilities while renaming the workspace to Learner Support
 - [x] publish through GitHub/Vercel and verify production
+
+## Phase 38: Production CRUD recovery [Issue #38]
+
+- [x] trace the failed student creation through production Edge Function logs
+- [x] repair CORS contracts for browser-invoked account functions
+- [x] surface structured server errors instead of generic network failures
+- [ ] audit CRUD contracts, deploy functions, and run production verification

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- fixed production account-creation requests being blocked after CORS preflight by allowing Supabase's `x-client-info` header in both provisioning Edge Functions
+- added actionable Edge Function error extraction so CRUD failures show the server's real validation or authorization message
+
 - added a Tiptap-powered rich lesson editor and a polished, responsive student reading experience for structured learning materials
 - upgraded Nexus AI to prepare role-authorized modules, materials, assignments, announcements, and attendance sessions with explicit human confirmation before every write
 - added an authenticated in-memory platform snapshot with background refresh and sign-out isolation to remove repeated blocking portal loads

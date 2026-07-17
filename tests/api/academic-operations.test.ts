@@ -24,15 +24,38 @@ test('student provisioning is role-gated and never returns the temporary passwor
   assert.match(edgeFunction, /new Set\(\['owner', 'admin', 'registrar'\]\)/)
   assert.match(edgeFunction, /temporary password must contain 24 to 128 characters/)
   assert.match(edgeFunction, /email_confirm: true/)
+  assert.match(edgeFunction, /Access-Control-Allow-Headers[^\n]+x-client-info/i)
   assert.doesNotMatch(edgeFunction, /JSON\.stringify\([^)]*password/)
+})
+
+test('all browser-invoked account functions allow Supabase client headers and production origins', async () => {
+  for (const path of [
+    'supabase/functions/manage-student-account/index.ts',
+    'supabase/functions/provision-role-account/index.ts',
+  ]) {
+    const edgeFunction = await source(path)
+    assert.match(edgeFunction, /https:\/\/stu\.best/)
+    assert.match(edgeFunction, /https:\/\/www\.stu\.best/)
+    assert.match(
+      edgeFunction,
+      /Access-Control-Allow-Headers[^\n]+authorization[^\n]+x-client-info[^\n]+apikey[^\n]+content-type/i,
+    )
+  }
 })
 
 test('the Academic Office exposes complete setup and daily workflows', async () => {
   const ui = await source('src/platform/AcademicOperations.tsx')
   for (const expected of [
-    'Add student', 'Add subject', 'Open class', 'Create department',
-    'Create program', 'Create term', 'Enroll', 'Add schedule event',
-  ]) assert.match(ui, new RegExp(expected))
+    'Add student',
+    'Add subject',
+    'Open class',
+    'Create department',
+    'Create program',
+    'Create term',
+    'Enroll',
+    'Add schedule event',
+  ])
+    assert.match(ui, new RegExp(expected))
   assert.match(ui, /createStudentAccount/)
   assert.match(ui, /manageSectionEnrollment/)
   assert.match(ui, /createScheduleEvent/)

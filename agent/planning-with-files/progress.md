@@ -136,3 +136,9 @@
 - Renamed Student CRM to Learner Support without removing Student 360 or intervention workflows.
 - Passed 26 API/contract tests, lint (one pre-existing-style dependency advisory), TypeScript, Vite production build, and build-asset verification.
 - PR #37 passed CodeRabbit and Vercel checks, merged to `main`, deployed Ready, and passed production HTTP, bundle-marker, and authenticated-boundary smoke checks.
+
+## 2026-07-17 — Issue #38
+
+- Production logs showed repeated successful OPTIONS requests without POST for student creation.
+- Root cause: both account Edge Functions omitted Supabase's `x-client-info` header from `Access-Control-Allow-Headers`; the browser blocked the actual request.
+- Added complete production origin/header contracts and structured Edge Function error extraction.

@@ -1123,7 +1123,27 @@ export async function createStudentAccount(input: {
     "manage-student-account",
     { body: input },
   );
-  if (error) throw new Error(error.message);
+  if (error) {
+    const response =
+      "context" in error && error.context instanceof Response
+        ? error.context
+        : null;
+    if (response) {
+      const payload = (await response
+        .clone()
+        .json()
+        .catch(() => null)) as { error?: unknown } | null;
+      if (typeof payload?.error === "string" && payload.error.trim()) {
+        throw new Error(payload.error);
+      }
+      const code = response.headers.get("sb-error-code");
+      if (code)
+        throw new Error(
+          `Student account service failed (${code}). Please sign in again and retry.`,
+        );
+    }
+    throw new Error(error.message);
+  }
   if (data?.error) throw new Error(String(data.error));
   return data.student as {
     id: string;
