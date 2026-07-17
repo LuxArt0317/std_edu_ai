@@ -12,6 +12,8 @@ The test suite lives outside Vercel's reserved `/api` directory so test modules 
 
 `integration/all-role-accounts-live.mjs` retrieves the 14 acceptance credentials from the local macOS keychain, authenticates each identity against production, and verifies that its trusted Auth claim and self-visible profile authorization agree. It never displays or persists a password.
 
+`integration/export-role-credentials.mjs` performs those production authorization checks before exporting the local Keychain credentials to the ignored root file `PRODUCTION_ROLE_CREDENTIALS.local.md`. The export is atomic, restricted to mode `0600`, and never written unless all 14 roles pass.
+
 `integration/onboarding-live.mjs` authenticates all 14 role accounts, writes a temporary role-matched readiness record and append-only action evidence for each, verifies self/owner visibility, rejects a forged-role write and user deletion, and prints the temporary journey key for immediate operator cleanup.
 
 `integration/build-assets.mjs` runs after every production build and fails the build unless the generated entry graph exposes the CRM JavaScript chunk and a linked stylesheet containing the semantic authentication selectors `.nexus-auth-shell` and `.nexus-auth-card`.

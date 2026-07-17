@@ -1,5 +1,22 @@
 # Task Plan
 
+## Phase 14: Protected production role credential sheet [Issue #26]
+
+### Verified credential export
+
+- authenticate every canonical production role with its macOS Keychain credential
+- require matching trusted Auth role metadata, protected-owner claim, and RLS-visible profile before any output is persisted
+- atomically write the requested root Markdown sheet with mode `0600` and an explicit Git ignore rule
+- never emit passwords to command output, source control, CI, GitHub issues, or release documentation
+
+### Current execution
+
+- GitHub issue #26 created
+- all 14 existing production identities passed live Auth and profile authorization verification; no duplicate accounts or credential rotations were required
+- protected local exporter, package command, ignore rule, and operator documentation implemented
+- requested root credential sheet generated with 14 verified entries, Git exclusion confirmed, and file mode confirmed as `0600`
+- all 19 contracts, lint, guarded production build, and credential export checks pass
+
 ## Phase 13: Temporary onboarding shutdown [Issue #24]
 
 ### Complete runtime shutdown

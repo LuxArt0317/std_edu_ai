@@ -95,3 +95,11 @@
 - revalidated production Supabase password authentication and trusted `owner` role
 - copied the exact verified password to the local clipboard and confirmed it by one-way digest comparison
 - recorded the handoff on GitHub issue #12 without exposing plaintext credential material
+2026-07-17 — Protected production role credential sheet [Issue #26]
+
+- created GitHub issue #26 and mapped account verification, protected local export, documentation, and validation into the monolithic task plan
+- reviewed current Supabase Auth user-data guidance and the service changelog before changing the credential workflow
+- verified all 14 existing production credentials against Supabase Auth, trusted role metadata, the protected-owner claim, and each RLS-visible profile
+- implemented a fail-closed atomic root Markdown exporter backed by macOS Keychain, explicit Git exclusion, and mode `0600`
+- generated the local root sheet with 14 verified accounts; confirmed it is ignored by Git and restricted to mode `0600`
+- passed all 19 contracts, lint, and the guarded TypeScript/Vite production build

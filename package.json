@@ -15,6 +15,7 @@
     "test:live-school": "node tests/integration/school-live.mjs",
     "test:live-roles": "node tests/integration/role-portals-live.mjs",
     "test:live-accounts": "node tests/integration/all-role-accounts-live.mjs",
+    "export:role-credentials": "node tests/integration/export-role-credentials.mjs",
     "test:live-onboarding": "node tests/integration/onboarding-live.mjs",
     "test:live-shell": "node tests/integration/deployment-shell-live.mjs",
     "verify:build": "node tests/integration/build-assets.mjs",

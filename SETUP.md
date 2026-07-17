@@ -44,7 +44,9 @@ The production schema has already been applied to `stu_edu_ai`. The migrations i
 
 Assign roles with the owner-only People & Roles workspace or the audited `assign_platform_role` RPC. Authorization uses trusted `app_metadata.role`; never use user-editable metadata. The complete role catalog is documented in [src/platform/ROLE_MATRIX.md](./src/platform/ROLE_MATRIX.md).
 
-The protected owner is `winsonbaring10@gmail.com`. A confirmed owner-controlled acceptance identity is provisioned for every canonical role; the complete sign-in directory is in [src/platform/ROLE_ACCOUNTS.md](./src/platform/ROLE_ACCOUNTS.md). Each unique generated credential is stored as a macOS internet password for service `www.stu.best` and the account email. No password is committed or documented in plaintext.
+The protected owner is `winsonbaring10@gmail.com`. A confirmed owner-controlled acceptance identity is provisioned for every canonical role; the complete sign-in directory is in [src/platform/ROLE_ACCOUNTS.md](./src/platform/ROLE_ACCOUNTS.md). Each unique generated credential is stored as a macOS internet password for service `www.stu.best` and the account email. No password is committed to Git.
+
+On the provisioner's Mac, run `npm run export:role-credentials` to verify every live account and atomically generate `PRODUCTION_ROLE_CREDENTIALS.local.md` in the repository root. This local-only POC file is explicitly Git-ignored and restricted to mode `0600`; never upload or paste its contents into GitHub, CI, tickets, or logs.
 
 New non-owner accounts and credential rotations must pass through the deployed owner-only `provision-role-account` Edge Function. Role changes for existing accounts continue through the audited `assign_platform_role` RPC. Neither path can create or transfer the protected owner role.
 
@@ -72,6 +74,7 @@ npm run test:live-school
 npm run test:live-crm
 npm run test:live-roles
 npm run test:live-accounts
+npm run export:role-credentials
 npm run test:live-onboarding
 npm run test:live-shell
 npm run test:live-ai

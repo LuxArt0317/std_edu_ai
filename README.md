@@ -23,3 +23,5 @@ Primary references:
 - [Unified platform architecture](./src/platform/README.md)
 - [src/crm/README.md](./src/crm/README.md)
 - [supabase/README.md](./supabase/README.md)
+
+Authorized POC operators can generate the protected local root credential sheet with `npm run export:role-credentials`. The generated `PRODUCTION_ROLE_CREDENTIALS.local.md` is Git-ignored, written only after all 14 live accounts pass authorization checks, and restricted to file mode `0600`.

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- added a fail-closed production credential exporter that verifies all 14 Auth roles, protected-owner claims, and RLS-visible profiles before atomically writing the local root Markdown sheet
+- explicitly ignored `PRODUCTION_ROLE_CREDENTIALS.local.md`, enforced owner-only file mode `0600`, and kept passwords out of logs, Git, CI, and issue tracking
+
 - temporarily disabled role onboarding for every account by disconnecting its runtime component, progress loading/writes, action signals, Readiness control, and guided overlays
 - preserved the onboarding implementation, migrations, and RLS-protected historical data for a deliberate future re-enable
 - changed build and live production diagnostics to reject released CRM JavaScript containing onboarding UI markers while the feature is disabled
