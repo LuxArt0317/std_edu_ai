@@ -45,6 +45,28 @@ export type PlatformProfile = {
   statusReason: string;
 };
 
+export type AuthDirectoryAccount = {
+  id: string;
+  email: string;
+  createdAt: string;
+  lastSignInAt: string | null;
+  invitedAt: string | null;
+  confirmedAt: string | null;
+  bannedUntil: string | null;
+};
+
+export type StudentSupportRequest = {
+  id: string;
+  studentId: string;
+  title: string;
+  category: string;
+  description: string;
+  priority: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type SchoolCourse = {
   sectionId: string;
   courseId: string;
@@ -337,6 +359,15 @@ export type PlatformData = {
     reason: string;
     createdAt: string;
   }>;
+  accessAudits: Array<{
+    id: string;
+    targetProfileId: string;
+    changedBy: string;
+    action: string;
+    reason: string;
+    createdAt: string;
+  }>;
+  supportRequests: StudentSupportRequest[];
 };
 
 export type SchoolChatAnswer = {

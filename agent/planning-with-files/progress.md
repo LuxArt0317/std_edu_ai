@@ -12,6 +12,8 @@
 - Extended the protected-owner Edge Function and People & Roles UI with reason-confirmed activation, suspension, archival, and restoration while preventing owner mutation.
 - Added a visible combined account/role governance feed and generated database types.
 - Passed 38 contracts, lint, TypeScript/Vite build, guarded asset verification, zero new Supabase advisor findings, and a reversible production test proving suspension blocks login and activation restores it.
+- Added real owner account activity, bulk provisioning, credential rotation, explicit session revocation, and access audit workflows; deployed the session migration and Edge Function v4.
+- Added student self-service support request creation/status tracking with own-record RLS and deployed the production policy migration.
 
 ## 2026-07-18 — Issue #46
 

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- added owner-only live Auth directory activity, explicit audited session revocation, temporary-password rotation, and bulk non-owner account provisioning with one-time credential handoff
+- added student self-service support requests linked to the authenticated student's own SIS record, with status tracking and staff-only triage controls
+
 - published the exhaustive 14-account role/action catalog and entity lifecycle definition of done
 - added protected-owner general account provisioning for every non-owner role in People & Roles using the existing server-only Auth boundary
 - replaced immediate role dropdown mutation with an impact preview, mandatory reason, explicit confirmation, session-refresh notice, and immutable audit workflow

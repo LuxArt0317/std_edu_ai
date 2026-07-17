@@ -21,12 +21,15 @@ import {
   createLearningMaterial,
   createLearningModule,
   createScheduleEvent,
+  createStudentSupportRequest,
   getPlatformDataSnapshot,
+  loadAccountDirectory,
   loadChatMessages,
   loadPlatformDataCached,
   markLearningProgress,
   publishGrade,
   provisionRoleAccount,
+  revokeAccountSessions,
   recordGradeScan,
   saveReviewedScan,
   submitAssessment,
@@ -35,6 +38,7 @@ import {
 } from "./platformRepository";
 import type {
   AssessmentAttemptResult,
+  AuthDirectoryAccount,
   ChatMessage,
   GradeScanResult,
   PlatformData,
@@ -397,6 +401,8 @@ function UnifiedPortal({
                 user={currentUser}
                 onNavigate={setView}
                 onAsk={() => setAssistantOpen(true)}
+                onChanged={() => void refresh(true)}
+                onToast={setToast}
               />
             ) : null}
             {view === "academics" ? (
@@ -535,13 +541,19 @@ function HomeView({
   user,
   onNavigate,
   onAsk,
+  onChanged,
+  onToast,
 }: {
   data: PlatformData;
   role: PlatformRole;
   user: CrmUser;
   onNavigate: (view: PortalView) => void;
   onAsk: () => void;
+  onChanged: () => void;
+  onToast: (message: string) => void;
 }) {
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [supportBusy, setSupportBusy] = useState(false);
   const greeting =
     role === "student"
       ? "Ready for your next learning step?"
@@ -550,6 +562,10 @@ function HomeView({
         : "The whole university, in one clear view.";
   const upcoming = data.schedule.slice(0, 3);
   const roleDefinition = data.roles.find((item) => item.code === role);
+  const student = data.students.find((item) => item.profileId === user.id);
+  const supportRequests = student
+    ? data.supportRequests.filter((item) => item.studentId === student.id)
+    : [];
   return (
     <>
       <PageIntro
@@ -667,6 +683,52 @@ function HomeView({
           ))}
         </article>
       </section>
+      {role === "student" ? (
+        <section className="school-card student-support-center">
+          <header>
+            <div><span>HELP & SERVICES</span><h3>My support requests</h3></div>
+            <button type="button" onClick={() => setSupportOpen(true)}>+ Request support</button>
+          </header>
+          {supportRequests.length ? supportRequests.map((request) => (
+            <article key={request.id}>
+              <div><b>{request.title}</b><span>{request.category}</span></div>
+              <Pill tone={request.status === "resolved" ? "green" : "amber"}>{request.status.replaceAll("_", " ")}</Pill>
+              <p>{request.description}</p>
+              <small>Updated {formatMoment(request.updatedAt)}</small>
+            </article>
+          )) : <div className="school-empty">You have no support requests.</div>}
+        </section>
+      ) : null}
+      {supportOpen && student ? (
+        <div className="academic-modal-layer">
+          <button type="button" className="academic-modal-backdrop" aria-label="Close support request" onClick={() => setSupportOpen(false)} />
+          <section className="academic-modal" role="dialog" aria-modal="true" aria-label="Request support">
+            <header><div><span>STUDENT SELF-SERVICE</span><h2>Request support</h2><p>Your request is linked only to your own student record and routed to authorized staff.</p></div><button type="button" onClick={() => setSupportOpen(false)}>×</button></header>
+            <form className="academic-form" onSubmit={(event) => {
+              event.preventDefault();
+              const form = new FormData(event.currentTarget);
+              setSupportBusy(true);
+              void createStudentSupportRequest({
+                studentId: student.id,
+                title: String(form.get("title")),
+                category: String(form.get("category")),
+                description: String(form.get("description")),
+                priority: String(form.get("priority")) as "low" | "medium" | "high",
+              }).then(() => { onToast("Support request submitted."); setSupportOpen(false); onChanged(); })
+                .catch((error: unknown) => onToast(error instanceof Error ? error.message : "Support request failed."))
+                .finally(() => setSupportBusy(false));
+            }}>
+              <div className="academic-form-grid">
+                <label><span>Subject</span><input name="title" maxLength={160} required /></label>
+                <label><span>Category</span><select name="category" defaultValue="academic"><option value="academic">Academic</option><option value="technical">Technical</option><option value="financial">Financial</option><option value="wellbeing">Wellbeing</option><option value="records">Records</option><option value="other">Other</option></select></label>
+                <label><span>Priority</span><select name="priority" defaultValue="medium"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label>
+                <label className="wide"><span>What do you need help with?</span><textarea name="description" rows={6} maxLength={5000} required /></label>
+              </div>
+              <footer><span>You can track the request status here.</span><button disabled={supportBusy}>{supportBusy ? "Submitting…" : "Submit request"}</button></footer>
+            </form>
+          </section>
+        </div>
+      ) : null}
     </>
   );
 }
@@ -1628,11 +1690,40 @@ function PeopleView({
   } | null>(null);
   const [provisioning, setProvisioning] = useState(false);
   const [showProvisioner, setShowProvisioner] = useState(false);
+  const [showBulkProvisioner, setShowBulkProvisioner] = useState(false);
+  const [bulkAccounts, setBulkAccounts] = useState("");
+  const [bulkResults, setBulkResults] = useState("");
+  const [directory, setDirectory] = useState<AuthDirectoryAccount[]>([]);
+  const [directoryError, setDirectoryError] = useState("");
+  const [pendingSessionRevoke, setPendingSessionRevoke] = useState<string>("");
+  const [rotatingProfileId, setRotatingProfileId] = useState("");
   const [temporaryPassword, setTemporaryPassword] = useState(() =>
     generateTemporaryPassword(),
   );
   const editingProfile =
     data.profiles.find((profile) => profile.id === editingProfileId) ?? null;
+  const rotatingProfile =
+    data.profiles.find((profile) => profile.id === rotatingProfileId) ?? null;
+
+  useEffect(() => {
+    if (!currentUser.isOwner) return;
+    let active = true;
+    void loadAccountDirectory()
+      .then((accounts) => {
+        if (active) setDirectory(accounts);
+      })
+      .catch((error: unknown) => {
+        if (active)
+          setDirectoryError(
+            error instanceof Error
+              ? error.message
+              : "Account activity could not be loaded.",
+          );
+      });
+    return () => {
+      active = false;
+    };
+  }, [currentUser.isOwner, data.profiles]);
 
   async function changeRole(
     profileId: string,
@@ -1675,9 +1766,14 @@ function PeopleView({
               The temporary password is shown here only and is never stored.
             </p>
           </div>
-          <button type="button" onClick={() => setShowProvisioner(true)}>
-            + Add account
-          </button>
+          <div className="people-provision-actions">
+            <button type="button" onClick={() => setShowBulkProvisioner(true)}>
+              Bulk import
+            </button>
+            <button type="button" onClick={() => setShowProvisioner(true)}>
+              + Add account
+            </button>
+          </div>
         </section>
       ) : null}
       <section className="owner-protection">
@@ -1717,6 +1813,13 @@ function PeopleView({
                   profile.department ||
                   roleNames[profile.role]}
               </small>
+              {currentUser.isOwner ? (
+                <small>
+                  Last sign-in: {directory.find((item) => item.id === profile.id)?.lastSignInAt
+                    ? formatMoment(directory.find((item) => item.id === profile.id)!.lastSignInAt!)
+                    : "Never"}
+                </small>
+              ) : null}
             </p>
             {profile.isOwner ? (
               <Pill tone="owner">Protected owner</Pill>
@@ -1779,6 +1882,12 @@ function PeopleView({
                     Archive
                   </button>
                 ) : null}
+                <button type="button" onClick={() => setRotatingProfileId(profile.id)}>
+                  Reset password
+                </button>
+                <button type="button" onClick={() => setPendingSessionRevoke(profile.id)}>
+                  Revoke sessions
+                </button>
               </div>
             )}
             <button
@@ -1790,6 +1899,9 @@ function PeopleView({
           </div>
         ))}
       </section>
+      {directoryError ? (
+        <div className="school-inline-error" role="alert">{directoryError}</div>
+      ) : null}
       {currentUser.isOwner ? (
         <section className="people-audit school-card">
           <header>
@@ -1798,7 +1910,7 @@ function PeopleView({
               <h3>Recent account and role activity</h3>
             </div>
           </header>
-          {[...data.accountAudits, ...data.roleAudits]
+          {[...data.accountAudits, ...data.roleAudits, ...data.accessAudits]
             .sort((left, right) =>
               right.createdAt.localeCompare(left.createdAt),
             )
@@ -1811,7 +1923,9 @@ function PeopleView({
                 (profile) => profile.id === entry.changedBy,
               );
               const transition =
-                "newStatus" in entry
+                "action" in entry
+                  ? entry.action
+                  : "newStatus" in entry
                   ? `${entry.previousStatus} → ${entry.newStatus}`
                   : `${entry.previousRole} → ${entry.newRole}`;
               return (
@@ -1831,7 +1945,7 @@ function PeopleView({
                 </article>
               );
             })}
-          {!data.accountAudits.length && !data.roleAudits.length ? (
+          {!data.accountAudits.length && !data.roleAudits.length && !data.accessAudits.length ? (
             <div className="school-empty-state">
               No account or role changes have been recorded.
             </div>
@@ -1974,6 +2088,125 @@ function PeopleView({
           </section>
         </div>
       ) : null}
+      {showBulkProvisioner ? (
+        <div className="academic-modal-layer">
+          <button
+            type="button"
+            className="academic-modal-backdrop"
+            aria-label="Close bulk account dialog"
+            onClick={() => setShowBulkProvisioner(false)}
+          />
+          <section className="academic-modal" role="dialog" aria-modal="true" aria-label="Bulk import accounts">
+            <header>
+              <div>
+                <span>CONTROLLED BULK PROVISIONING</span>
+                <h2>Bulk import school accounts</h2>
+                <p>One account per line: full name, email, role, optional temporary password. Maximum 100.</p>
+              </div>
+              <button type="button" onClick={() => setShowBulkProvisioner(false)}>×</button>
+            </header>
+            <form
+              className="academic-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const allowed = new Set(data.roles.filter((item) => item.code !== "owner").map((item) => item.code));
+                const rows = bulkAccounts.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+                if (!rows.length || rows.length > 100) {
+                  onToast("Enter between 1 and 100 account rows.");
+                  return;
+                }
+                setProvisioning(true);
+                void (async () => {
+                  const completed: string[] = [];
+                  for (const [index, row] of rows.entries()) {
+                    const [fullName = "", email = "", role = "", suppliedPassword = ""] = row.split(",").map((value) => value.trim());
+                    if (!fullName || !email || !allowed.has(role as PlatformRole))
+                      throw new Error(`Row ${index + 1} has an invalid name, email, or role.`);
+                    const password = suppliedPassword || generateTemporaryPassword();
+                    await provisionRoleAccount({
+                      fullName,
+                      email,
+                      role: role as Exclude<PlatformRole, "owner">,
+                      password,
+                    });
+                    completed.push(`${fullName},${email},${role},${password}`);
+                  }
+                  setBulkResults(completed.join("\n"));
+                  onToast(`${completed.length} accounts were provisioned. Copy the one-time credentials now.`);
+                  onChanged();
+                })()
+                  .catch((error: unknown) => onToast(error instanceof Error ? error.message : "Bulk provisioning failed."))
+                  .finally(() => setProvisioning(false));
+              }}
+            >
+              <label>
+                <span>Account rows</span>
+                <textarea rows={8} value={bulkAccounts} onChange={(event) => setBulkAccounts(event.target.value)} placeholder="Maria Santos,maria@stu.best,faculty" required />
+              </label>
+              {bulkResults ? (
+                <label>
+                  <span>One-time credentials — copy before closing</span>
+                  <textarea rows={8} value={bulkResults} readOnly />
+                </label>
+              ) : null}
+              <footer>
+                <span>Passwords are displayed once and are never stored in the application database.</span>
+                <button disabled={provisioning}>{provisioning ? "Provisioning…" : "Import accounts"}</button>
+              </footer>
+            </form>
+          </section>
+        </div>
+      ) : null}
+      {rotatingProfile ? (
+        <div className="academic-modal-layer">
+          <button type="button" className="academic-modal-backdrop" aria-label="Cancel password reset" onClick={() => setRotatingProfileId("")} />
+          <section className="academic-modal" role="dialog" aria-modal="true" aria-label="Reset temporary password">
+            <header>
+              <div><span>CREDENTIAL ROTATION</span><h2>Reset {rotatingProfile.name}’s password</h2><p>The new temporary password is shown only in this dialog.</p></div>
+              <button type="button" onClick={() => setRotatingProfileId("")}>×</button>
+            </header>
+            <form className="academic-form" onSubmit={(event) => {
+              event.preventDefault();
+              const authAccount = directory.find((item) => item.id === rotatingProfile.id);
+              if (!authAccount?.email) { onToast("The Auth email is unavailable."); return; }
+              setProvisioning(true);
+              void provisionRoleAccount({ email: authAccount.email, password: temporaryPassword, role: rotatingProfile.role as Exclude<PlatformRole, "owner">, fullName: rotatingProfile.name })
+                .then(() => { onToast("Temporary credentials rotated and audited. Copy the password before closing."); onChanged(); })
+                .catch((error: unknown) => onToast(error instanceof Error ? error.message : "Credential rotation failed."))
+                .finally(() => setProvisioning(false));
+            }}>
+              <label><span>New temporary password</span><div className="password-generator-field"><input value={temporaryPassword} readOnly /><button type="button" onClick={() => setTemporaryPassword(generateTemporaryPassword())}>Regenerate</button></div></label>
+              <footer><span>Existing credentials will stop working immediately.</span><button disabled={provisioning}>{provisioning ? "Rotating…" : "Rotate credentials"}</button></footer>
+            </form>
+          </section>
+        </div>
+      ) : null}
+      {pendingSessionRevoke
+        ? (() => {
+            const profile = data.profiles.find((item) => item.id === pendingSessionRevoke);
+            if (!profile) return null;
+            return (
+              <div className="academic-modal-layer">
+                <button type="button" className="academic-modal-backdrop" aria-label="Cancel session revocation" onClick={() => setPendingSessionRevoke("")} />
+                <section className="academic-modal" role="dialog" aria-modal="true" aria-label="Revoke account sessions">
+                  <header><div><span>ACCESS CONTROL</span><h2>Revoke {profile.name}’s sessions?</h2><p>Refresh sessions will be removed immediately. Short-lived access tokens expire at the configured JWT boundary.</p></div><button type="button" onClick={() => setPendingSessionRevoke("")}>×</button></header>
+                  <form className="academic-form" onSubmit={(event) => {
+                    event.preventDefault();
+                    const reason = String(new FormData(event.currentTarget).get("reason"));
+                    setChanging(profile.id);
+                    void revokeAccountSessions({ targetId: profile.id, reason })
+                      .then((result) => { onToast(`${result.revokedCount} active session records revoked and audited.`); setPendingSessionRevoke(""); })
+                      .catch((error: unknown) => onToast(error instanceof Error ? error.message : "Session revocation failed."))
+                      .finally(() => setChanging(""));
+                  }}>
+                    <label><span>Reason</span><textarea name="reason" minLength={12} maxLength={500} rows={4} required /></label>
+                    <footer><span>This cannot target the protected owner.</span><button disabled={changing === profile.id}>{changing === profile.id ? "Revoking…" : "Revoke sessions"}</button></footer>
+                  </form>
+                </section>
+              </div>
+            );
+          })()
+        : null}
       {pendingRoleChange
         ? (() => {
             const profile = data.profiles.find(

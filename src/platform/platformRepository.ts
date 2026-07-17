@@ -11,6 +11,7 @@ import type {
   PlatformData,
   PlatformProfile,
   PlatformRole,
+  AuthDirectoryAccount,
   SchoolAssessment,
 } from "./types";
 
@@ -116,6 +117,8 @@ export async function loadPlatformData(): Promise<PlatformData> {
     attendanceRecordsResult,
     roleAuditsResult,
     accountAuditsResult,
+    accessAuditsResult,
+    supportRequestsResult,
   ] = await withTimeout(
     Promise.all([
       client
@@ -175,6 +178,12 @@ export async function loadPlatformData(): Promise<PlatformData> {
         .select("*")
         .order("created_at", { ascending: false })
         .limit(100),
+      client
+        .from("account_access_audit")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100),
+      client.from("cases").select("*").order("updated_at", { ascending: false }),
     ]),
     20_000,
     "The school workspace took too long to load. Check the connection and try again.",
@@ -220,6 +229,8 @@ export async function loadPlatformData(): Promise<PlatformData> {
   );
   const roleAuditRows = rows(roleAuditsResult, "Role audit");
   const accountAuditRows = rows(accountAuditsResult, "Account audit");
+  const accessAuditRows = rows(accessAuditsResult, "Account access audit");
+  const supportRequestRows = rows(supportRequestsResult, "Support requests");
 
   const profilesById = new Map(
     profileRows.map((profile) => [profile.id, profile]),
@@ -541,6 +552,25 @@ export async function loadPlatformData(): Promise<PlatformData> {
       reason: item.reason,
       createdAt: item.created_at,
     })),
+    accessAudits: accessAuditRows.map((item) => ({
+      id: item.id,
+      targetProfileId: item.target_profile_id,
+      changedBy: item.acted_by,
+      action: item.action,
+      reason: item.reason,
+      createdAt: item.created_at,
+    })),
+    supportRequests: supportRequestRows.map((item) => ({
+      id: item.id,
+      studentId: item.student_id,
+      title: item.title,
+      category: item.category,
+      description: item.description,
+      priority: item.priority,
+      status: item.status,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+    })),
   };
 }
 
@@ -780,6 +810,73 @@ export async function changeAccountLifecycle(input: {
   if (!data?.id || !data?.status)
     throw new Error("The lifecycle change was not confirmed by Auth.");
   return data as { id: string; status: PlatformProfile["accountStatus"] };
+}
+
+async function invokeAccountControl(body: Record<string, unknown>) {
+  const client = requireClient();
+  const { data, error } = await client.functions.invoke(
+    "provision-role-account",
+    { body },
+  );
+  if (error) {
+    const response =
+      "context" in error && error.context instanceof Response
+        ? error.context
+        : null;
+    if (response) {
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      throw new Error(payload?.error || error.message);
+    }
+    throw new Error(error.message);
+  }
+  return data;
+}
+
+export async function loadAccountDirectory(): Promise<AuthDirectoryAccount[]> {
+  const data = await invokeAccountControl({ action: "directory" });
+  if (!Array.isArray(data?.accounts))
+    throw new Error("The Auth directory returned an invalid response.");
+  return data.accounts as AuthDirectoryAccount[];
+}
+
+export async function revokeAccountSessions(input: {
+  targetId: string;
+  reason: string;
+}) {
+  const data = await invokeAccountControl({
+    action: "revoke_sessions",
+    ...input,
+  });
+  if (!data?.id || typeof data.revokedCount !== "number")
+    throw new Error("Session revocation was not confirmed.");
+  return data as { id: string; revokedCount: number };
+}
+
+export async function createStudentSupportRequest(input: {
+  studentId: string;
+  title: string;
+  category: string;
+  description: string;
+  priority: "low" | "medium" | "high";
+}) {
+  const client = requireClient();
+  const { data, error } = await client
+    .from("cases")
+    .insert({
+      student_id: input.studentId,
+      title: clean(input.title, "Title", 160),
+      category: clean(input.category, "Category", 80),
+      description: clean(input.description, "Description", 5000),
+      priority: input.priority,
+      status: "open",
+      owner_id: null,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+  return data.id;
 }
 
 function clean(value: string, label: string, max = 160) {

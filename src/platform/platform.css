@@ -1737,6 +1737,67 @@ textarea {
   font-weight: 850;
   cursor: pointer;
 }
+
+.people-provision-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+
+.people-provision-actions button,
+.student-support-center > header button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.8rem 1.15rem;
+  background: var(--school-teal);
+  color: white;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.people-provision-actions button:first-child {
+  background: color-mix(in srgb, var(--school-teal) 12%, white);
+  color: var(--school-ink);
+  border: 1px solid color-mix(in srgb, var(--school-teal) 35%, white);
+}
+
+.student-support-center {
+  margin-top: 1.25rem;
+  padding: 1.25rem;
+}
+
+.student-support-center > header,
+.student-support-center article > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.student-support-center article {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) auto;
+  gap: 0.45rem 1rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--school-line);
+}
+
+.student-support-center article p,
+.student-support-center article small {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.student-support-center article div {
+  display: grid;
+}
+
+.student-support-center article div span,
+.student-support-center article small {
+  color: var(--school-muted);
+  font-size: 0.78rem;
+}
 .password-generator-field {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

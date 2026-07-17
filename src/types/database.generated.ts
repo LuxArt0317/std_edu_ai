@@ -2036,6 +2036,51 @@ export type Database = {
           },
         ];
       };
+      account_access_audit: {
+        Row: {
+          acted_by: string;
+          action: string;
+          created_at: string;
+          details: Json;
+          id: string;
+          reason: string;
+          target_profile_id: string;
+        };
+        Insert: {
+          acted_by: string;
+          action: string;
+          created_at?: string;
+          details?: Json;
+          id?: string;
+          reason: string;
+          target_profile_id: string;
+        };
+        Update: {
+          acted_by?: string;
+          action?: string;
+          created_at?: string;
+          details?: Json;
+          id?: string;
+          reason?: string;
+          target_profile_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "account_access_audit_acted_by_fkey";
+            columns: ["acted_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "account_access_audit_target_profile_id_fkey";
+            columns: ["target_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       account_lifecycle_audit: {
         Row: {
           changed_by: string;
@@ -2436,6 +2481,14 @@ export type Database = {
           enrollment_id: string;
           status: string;
         }[];
+      };
+      revoke_platform_sessions: {
+        Args: {
+          p_acted_by: string;
+          p_reason: string;
+          p_target_profile_id: string;
+        };
+        Returns: number;
       };
       submit_assessment: {
         Args: { p_answers: Json; p_assessment_id: string };

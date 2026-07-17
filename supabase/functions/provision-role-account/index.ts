@@ -126,6 +126,84 @@ Deno.serve(async (request) => {
   const targetId = typeof input.targetId === "string" ? input.targetId : "";
   const reason = typeof input.reason === "string" ? input.reason.trim() : "";
 
+  if (action === "directory") {
+    try {
+      const accounts: Array<Record<string, unknown>> = [];
+      for (let page = 1; page <= 25; page += 1) {
+        const { data, error } = await admin.auth.admin.listUsers({
+          page,
+          perPage: 200,
+        });
+        if (error) throw error;
+        accounts.push(
+          ...data.users.map((user) => ({
+            id: user.id,
+            email: user.email ?? "",
+            createdAt: user.created_at,
+            lastSignInAt: user.last_sign_in_at ?? null,
+            invitedAt: user.invited_at ?? null,
+            confirmedAt: user.confirmed_at ?? null,
+            bannedUntil: user.banned_until ?? null,
+          })),
+        );
+        if (data.users.length < 200) break;
+      }
+      return response(request, 200, { accounts });
+    } catch (error) {
+      return response(request, 500, {
+        error:
+          error instanceof Error
+            ? error.message
+            : "The Auth directory could not be loaded.",
+      });
+    }
+  }
+
+  if (action === "revoke_sessions") {
+    if (
+      !/^[0-9a-f-]{36}$/i.test(targetId) ||
+      reason.length < 12 ||
+      reason.length > 500
+    ) {
+      return response(request, 400, {
+        error:
+          "A target account and a reason between 12 and 500 characters are required.",
+      });
+    }
+    try {
+      const { data: target, error: targetError } =
+        await admin.auth.admin.getUserById(targetId);
+      if (targetError || !target.user)
+        throw targetError ?? new Error("Account not found.");
+      if (
+        target.user.app_metadata.platform_owner === true ||
+        target.user.app_metadata.role === "owner"
+      ) {
+        return response(request, 403, {
+          error: "The protected owner sessions cannot be revoked here.",
+        });
+      }
+      const { data: revokedCount, error: revokeError } = await admin.rpc(
+        "revoke_platform_sessions",
+        {
+          p_target_profile_id: targetId,
+          p_acted_by: identity.user.id,
+          p_reason: reason,
+        },
+      );
+      if (revokeError) throw revokeError;
+      return response(request, 200, {
+        id: targetId,
+        revokedCount: Number(revokedCount ?? 0),
+      });
+    } catch (error) {
+      return response(request, 500, {
+        error:
+          error instanceof Error ? error.message : "Session revocation failed.",
+      });
+    }
+  }
+
   if (action !== "provision") {
     if (!["activate", "suspend", "archive", "restore"].includes(action)) {
       return response(request, 400, {
@@ -244,6 +322,18 @@ Deno.serve(async (request) => {
 
     if (result.error || !result.data.user)
       throw result.error ?? new Error("Auth did not return a user.");
+    if (existing) {
+      const { error: auditError } = await admin
+        .from("account_access_audit")
+        .insert({
+          target_profile_id: result.data.user.id,
+          acted_by: identity.user.id,
+          action: "credentials_rotated",
+          reason: "Protected owner rotated temporary account credentials.",
+          details: { role },
+        });
+      if (auditError) throw auditError;
+    }
     return response(request, existing ? 200 : 201, {
       id: result.data.user.id,
       email,
