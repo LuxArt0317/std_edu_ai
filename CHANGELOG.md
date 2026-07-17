@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- temporarily disabled role onboarding for every account by disconnecting its runtime component, progress loading/writes, action signals, Readiness control, and guided overlays
+- preserved the onboarding implementation, migrations, and RLS-protected historical data for a deliberate future re-enable
+- changed build and live production diagnostics to reject released CRM JavaScript containing onboarding UI markers while the feature is disabled
+
 - fixed the production CRM sign-in screen losing its route stylesheet by replacing a conditional lazy-import callback with distinct statically analyzable route boundaries
 - corrected the authentication card's border-box sizing so its padding cannot push the form outside narrow mobile viewports
 - added a mandatory post-build asset-graph verifier that rejects CRM bundles missing the semantic authentication stylesheet

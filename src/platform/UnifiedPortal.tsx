@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent, FormEvent, ReactNode } from 'react'
 import CRMApp from '../crm/CRMApp'
 import type { CrmUser } from '../crm/authService'
 import { askSchoolAssistant, scanGradeSheet } from './platformAi'
-import RoleOnboarding from './RoleOnboarding'
-import type { OnboardingActionSignal } from './RoleOnboarding'
 import {
   appendChatMessage, assignPlatformRole, createChatThread, loadChatMessages, loadPlatformData, publishGrade,
   recordGradeScan, saveReviewedScan, submitAssessment,
@@ -66,20 +64,6 @@ function UnifiedPortal({ currentUser, onSignOut }: { currentUser: CrmUser; onSig
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [toast, setToast] = useState('')
   const [assistantOpen, setAssistantOpen] = useState(false)
-  const [onboardingAction, setOnboardingAction] = useState<OnboardingActionSignal>(null)
-
-  const signalOnboardingAction = useCallback((key: string) => {
-    setOnboardingAction({ key, nonce: Date.now() })
-  }, [])
-
-  const revealOnboardingTarget = useCallback((target: string) => {
-    if ((target.startsWith('nav-') && target !== 'nav-crm') || target === 'assistant') {
-      setView((current) => current === 'crm' ? 'home' : current)
-    }
-    if (window.matchMedia('(max-width: 900px)').matches && (target.startsWith('nav-') || target === 'assistant')) {
-      setSidebarOpen(true)
-    }
-  }, [])
 
   async function refresh() {
     try { setData(await loadPlatformData()); setLoadError('') }
@@ -97,7 +81,7 @@ function UnifiedPortal({ currentUser, onSignOut }: { currentUser: CrmUser; onSig
   }, [navigation, view])
 
   if (view === 'crm' && crmRoles.has(effectiveRole)) {
-    return <div className="crm-bridge"><div className="crm-bridge-bar"><button type="button" data-onboarding="nav-home" onClick={() => { signalOnboardingAction('navigate:home'); setView('home') }}>← Back to School OS</button><span>STU Nexus · CRM Operations</span>{currentUser.isOwner ? <Pill tone="owner">Owner workspace</Pill> : null}<RoleOnboarding userId={currentUser.id} role={currentUser.role} actionSignal={onboardingAction} onRevealTarget={revealOnboardingTarget} /></div><CRMApp currentUser={currentUser} onSignOut={onSignOut} /></div>
+    return <div className="crm-bridge"><div className="crm-bridge-bar"><button type="button" onClick={() => setView('home')}>← Back to School OS</button><span>STU Nexus · CRM Operations</span>{currentUser.isOwner ? <Pill tone="owner">Owner workspace</Pill> : null}</div><CRMApp currentUser={currentUser} onSignOut={onSignOut} /></div>
   }
 
   if (!data && !loadError) return <PortalLoading />
@@ -107,13 +91,13 @@ function UnifiedPortal({ currentUser, onSignOut }: { currentUser: CrmUser; onSig
     <aside className={`school-sidebar ${sidebarOpen ? 'open' : ''}`}>
       <a className="school-brand" href="/"><span>樹</span><div><b>STU NEXUS</b><small>One School · One Platform</small></div></a>
       <div className="school-role-card"><span>{currentUser.initials}</span><div><b>{currentUser.name}</b><small>{roleNames[currentUser.role]}</small></div>{currentUser.isOwner ? <i>OWNER</i> : null}</div>
-      <nav><p>YOUR WORKSPACE</p>{navigation.map((item) => <button key={item} type="button" data-onboarding={`nav-${item}`} className={view === item ? 'active' : ''} onClick={() => { signalOnboardingAction(`navigate:${item}`); setView(item); setSidebarOpen(false) }}><i>{navMeta[item].icon}</i><span>{navMeta[item].label}</span>{item === 'assessments' && data.assessments.length ? <b>{data.assessments.length}</b> : null}</button>)}</nav>
-      <div className="school-sidebar-foot"><button type="button" data-onboarding="assistant" onClick={() => { signalOnboardingAction('open:assistant'); setAssistantOpen(true) }}>✦ <span>Ask Nexus AI</span></button><div><span className="live-dot" /><p><b>Production connected</b><small>Supabase RLS active</small></p></div></div>
+      <nav><p>YOUR WORKSPACE</p>{navigation.map((item) => <button key={item} type="button" className={view === item ? 'active' : ''} onClick={() => { setView(item); setSidebarOpen(false) }}><i>{navMeta[item].icon}</i><span>{navMeta[item].label}</span>{item === 'assessments' && data.assessments.length ? <b>{data.assessments.length}</b> : null}</button>)}</nav>
+      <div className="school-sidebar-foot"><button type="button" onClick={() => setAssistantOpen(true)}>✦ <span>Ask Nexus AI</span></button><div><span className="live-dot" /><p><b>Production connected</b><small>Supabase RLS active</small></p></div></div>
     </aside>
     {sidebarOpen ? <button className="school-nav-backdrop" type="button" aria-label="Close navigation" onClick={() => setSidebarOpen(false)} /> : null}
 
     <main className="school-main">
-      <header className="school-topbar"><button className="school-menu" type="button" onClick={() => setSidebarOpen(true)}>☰</button><div className="school-breadcrumb"><span>STU Nexus</span><b>/</b><strong>{navMeta[view].label}</strong></div><div className="school-top-actions"><RoleOnboarding userId={currentUser.id} role={currentUser.role} actionSignal={onboardingAction} onRevealTarget={revealOnboardingTarget} />{currentUser.isOwner ? <label className="role-preview" data-onboarding="role-preview"><span>View as</span><select value={previewRole} onChange={(event) => { signalOnboardingAction('change:role-preview'); setPreviewRole(event.target.value as PlatformRole) }}>{data.roles.map((role) => <option key={role.code} value={role.code}>{role.name}</option>)}</select></label> : null}<button type="button" className="school-alert" title="Notifications">♢<b>{data.announcements.length}</b></button><button type="button" className="school-user" onClick={onSignOut}>{currentUser.initials}<span>Sign out</span></button></div></header>
+      <header className="school-topbar"><button className="school-menu" type="button" onClick={() => setSidebarOpen(true)}>☰</button><div className="school-breadcrumb"><span>STU Nexus</span><b>/</b><strong>{navMeta[view].label}</strong></div><div className="school-top-actions">{currentUser.isOwner ? <label className="role-preview"><span>View as</span><select value={previewRole} onChange={(event) => setPreviewRole(event.target.value as PlatformRole)}>{data.roles.map((role) => <option key={role.code} value={role.code}>{role.name}</option>)}</select></label> : null}<button type="button" className="school-alert" title="Notifications">♢<b>{data.announcements.length}</b></button><button type="button" className="school-user" onClick={onSignOut}>{currentUser.initials}<span>Sign out</span></button></div></header>
 
       {currentUser.isOwner && effectiveRole !== 'owner' ? <div className="preview-banner"><span>OWNER PREVIEW</span><p>You are safely previewing the <strong>{roleNames[effectiveRole]}</strong> interface. Your database permissions remain owner-level for auditing.</p><button type="button" onClick={() => setPreviewRole('owner')}>Exit preview</button></div> : null}
 
@@ -131,7 +115,7 @@ function UnifiedPortal({ currentUser, onSignOut }: { currentUser: CrmUser; onSig
 
     <SchoolAssistant open={assistantOpen} onClose={() => setAssistantOpen(false)} data={data} view={view} onDataChanged={() => void refresh()} />
     {toast ? <div className="school-toast"><span>✓</span>{toast}</div> : null}
-    <button className="school-ai-fab" type="button" data-onboarding="assistant-fab" onClick={() => { signalOnboardingAction('open:assistant'); setAssistantOpen(true) }}>✦<span>Ask Nexus</span></button>
+    <button className="school-ai-fab" type="button" onClick={() => setAssistantOpen(true)}>✦<span>Ask Nexus</span></button>
   </div>
 }
 

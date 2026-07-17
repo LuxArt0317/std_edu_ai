@@ -16,6 +16,6 @@ The test suite lives outside Vercel's reserved `/api` directory so test modules 
 
 `integration/build-assets.mjs` runs after every production build and fails the build unless the generated entry graph exposes the CRM JavaScript chunk and a linked stylesheet containing the semantic authentication selectors `.nexus-auth-shell` and `.nexus-auth-card`.
 
-`integration/deployment-shell-live.mjs` verifies that deployed `/` and `/crm` contain useful pre-JavaScript recovery content instead of an empty root, recursively checks compiled entry/style/lazy-route assets, confirms that the released CRM chunk contains the role-readiness onboarding contract, and requires the live hashed asset graph to expose the CRM authentication stylesheet.
+`integration/deployment-shell-live.mjs` verifies that deployed `/` and `/crm` contain useful pre-JavaScript recovery content instead of an empty root, recursively checks compiled entry/style/lazy-route assets, requires the live hashed asset graph to expose the CRM authentication stylesheet, and fails while onboarding is disabled if any onboarding UI marker appears in JavaScript.
 
 `integration/ai-live.mjs` invokes the real authenticated school chatbot and OpenAI vision grade extraction using the synthetic `fixtures/grade-sheet.svg` fixture converted to PNG. It verifies structured responses and the mandatory human-review flag without saving grades.

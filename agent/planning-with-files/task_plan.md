@@ -1,5 +1,27 @@
 # Task Plan
 
+## Phase 13: Temporary onboarding shutdown [Issue #24]
+
+### Complete runtime shutdown
+
+- disconnect the onboarding component from every owner, leadership, staff, faculty, specialist, and student portal path
+- remove onboarding action state, navigation signals, target-reveal behavior, target attributes, Readiness controls, tours, and automatic progress initialization
+- retain the implementation, migrations, tables, policies, and existing history without using readiness for runtime behavior or authorization
+
+### Release enforcement
+
+- make the standard build fail if onboarding UI markers remain in the generated CRM JavaScript
+- make the live production diagnostic fail if deployed assets expose onboarding UI while the shutdown is active
+- verify ordinary navigation, AI controls, CRM bridging, responsive rendering, and authentication remain healthy
+
+## Current execution
+
+- GitHub issue #24 created
+- onboarding imports, mounts, action state, signals, target revealing, and target attributes removed from `UnifiedPortal`
+- build and live diagnostics changed from requiring the onboarding bundle to requiring its absence
+- user, operator, project, platform, test, changelog, and persistent planning documentation updated to describe the temporary shutdown
+- all 19 contracts, lint, guarded Vite build, and `vercel build --prod` pass; the generated CRM bundle is 29.78 KB smaller and reports `onboardingDisabled: true`
+
 ## Phase 12: CRM route stylesheet recovery and deployment guardrails [Issue #22]
 
 ### Incident recovery

@@ -2,6 +2,6 @@
 
 These opt-in scripts exercise the configured production deployment and Supabase project with protected local credentials. They never print passwords. Mutating workflows are reversible; the onboarding acceptance test emits its unique temporary journey key so a trusted operator can delete those test progress rows immediately, with event cleanup cascading through the foreign key.
 
-`build-assets.mjs` is the non-networked release gate invoked by every standard production build. It validates the generated route dependency graph and fails when the CRM JavaScript can render without the stylesheet containing the authentication-card contract.
+`build-assets.mjs` is the non-networked release gate invoked by every standard production build. It validates the generated route dependency graph, fails when the CRM JavaScript can render without the stylesheet containing the authentication-card contract, and currently rejects onboarding UI markers in the CRM runtime bundle.
 
-`deployment-shell-live.mjs` is the read-only production diagnostic. It recursively follows the deployed hashed asset graph for both public routes and reports whether the boot shell, onboarding bundle, and CRM authentication styles are present.
+`deployment-shell-live.mjs` is the read-only production diagnostic. It recursively follows the deployed hashed asset graph for both public routes and reports whether the boot shell and CRM authentication styles are present while confirming onboarding remains disabled.

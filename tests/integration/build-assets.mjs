@@ -28,6 +28,13 @@ for (const dependencyPath of dependencyPaths) {
 
 const crmScript = [...dependencyPaths].find((dependencyPath) => /^assets\/CRMRoot-[\w-]+\.js$/.test(dependencyPath))
 assert.ok(crmScript, 'Build verification failed: the entry asset does not expose the CRM lazy-route JavaScript dependency.')
+const crmScriptBody = fs.readFileSync(path.join(outputDirectory, crmScript), 'utf8')
+for (const onboardingMarker of ['ROLE READINESS CENTER', 'Click the highlighted control', 'stu-nexus-role-foundations']) {
+  assert.ok(
+    !crmScriptBody.includes(onboardingMarker),
+    `Build verification failed: onboarding is disabled, but the CRM runtime bundle still contains ${JSON.stringify(onboardingMarker)}.`,
+  )
+}
 
 const cssDependencies = [...dependencyPaths].filter((dependencyPath) => dependencyPath.endsWith('.css'))
 const crmStylesheet = cssDependencies.find((dependencyPath) => {
@@ -45,5 +52,6 @@ console.log(JSON.stringify({
   entry: normalizeAssetPath(entryPath),
   crmScript,
   crmStylesheet,
+  onboardingDisabled: true,
   dependencyCount: dependencyPaths.size,
 }))

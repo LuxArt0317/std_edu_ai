@@ -1,5 +1,9 @@
 # Current State
 
+GitHub issue #24 is in progress on `agent/disable-onboarding`. Role onboarding is disconnected from `UnifiedPortal` for every account: there is no component import or mount, no automatic progress load/create, no persistence effect, no action/reveal state, no target attributes, and no Readiness/tour UI. Implementation files, migrations, RLS policies, and historical rows remain intact for a deliberate future re-enable.
+
+The guarded build and live diagnostic now reject onboarding UI markers while the shutdown is active. All 19 contracts, lint, the standard guarded build, and `vercel build --prod` pass. The generated CRM JavaScript fell from 336.78 KB to 307.00 KB and reports `onboardingDisabled: true` while retaining the verified CRM authentication stylesheet. PR, preview, production deployment, and authenticated runtime verification remain.
+
 GitHub issue #22 is closed completed. PR #23 passed Vercel with no review threads and merged as production commit `545efc7`. The original production failure was a Vite 8.1.4 dependency association from a route-dependent lazy callback: `/crm` returned HTTP 200 and rendered its complete Auth DOM while loading only the public App CSS. The live production diagnostic detects this failure mode directly.
 
 The released fix gives CRM and the public site distinct statically analyzable lazy boundaries, adds border-box and viewport-bounded mobile sizing to the Auth card, and makes the standard build run a semantic asset-graph verifier. Production deployment `dpl_9HYcdDSXtQPEZzR3jdVexAYMSQf7` is Ready and aliased to both custom domains. All 19 contracts, lint, guarded local/Vercel builds, hosted semantic gate, and protected preview assets pass. Live `/` and `/crm` diagnostics return HTTP 200, verify six recursive assets, and report `crmAuthStyles: true`; actual production desktop and 390×844 captures show the complete centered STU Nexus card with no horizontal overflow.

@@ -23,7 +23,7 @@ for (const route of ['/', '/crm']) {
     ...[...entry.matchAll(/\.\/([A-Za-z0-9_.-]+\.js)/g)].map((match) => `/assets/${match[1]}`),
   ])
   const verifiedAssets = new Set([entryPath])
-  let onboardingBundle = false
+  let onboardingUiPresent = false
   let crmAuthStyles = false
   const queue = [...dynamicAssets]
   while (queue.length) {
@@ -35,14 +35,14 @@ for (const route of ['/', '/crm']) {
     verifiedAssets.add(assetPath)
     if (assetPath.endsWith('.css') && body.includes('.nexus-auth-shell') && body.includes('.nexus-auth-card')) crmAuthStyles = true
     if (!assetPath.endsWith('.js')) continue
-    if (body.includes('ROLE READINESS CENTER') && body.includes('Click the highlighted control') && body.includes('stu-nexus-role-foundations')) onboardingBundle = true
+    if (body.includes('ROLE READINESS CENTER') || body.includes('Click the highlighted control') || body.includes('stu-nexus-role-foundations')) onboardingUiPresent = true
     for (const match of body.matchAll(/assets\/[A-Za-z0-9_.-]+\.(?:js|css)/g)) queue.push(`/${match[0]}`)
     for (const match of body.matchAll(/\.\/([A-Za-z0-9_.-]+\.(?:js|css))/g)) queue.push(`/assets/${match[1]}`)
   }
-  if (!onboardingBundle) throw new Error(`${route} did not expose the compiled role-readiness onboarding bundle.`)
+  if (onboardingUiPresent) throw new Error(`${route} still exposes onboarding UI code even though onboarding is temporarily disabled.`)
   if (!crmAuthStyles) {
     throw new Error(`${route} did not expose a linked CRM stylesheet containing .nexus-auth-shell and .nexus-auth-card. The portal may return HTTP 200 while rendering an unstyled sign-in form.`)
   }
 
-  console.log(JSON.stringify({ route, status: response.status, bootShell: true, entry: entryPath, verifiedAssets: verifiedAssets.size, onboardingBundle, crmAuthStyles }))
+  console.log(JSON.stringify({ route, status: response.status, bootShell: true, entry: entryPath, verifiedAssets: verifiedAssets.size, onboardingDisabled: true, crmAuthStyles }))
 }

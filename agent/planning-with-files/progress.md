@@ -1,5 +1,13 @@
 # Progress Log
 
+2026-07-17 — Temporary onboarding shutdown [Issue #24]
+
+- created the production shutdown issue and traced all onboarding mounts, automatic persistence effects, navigation action signals, target attributes, and release checks
+- disconnected onboarding from the unified portal for every role and removed all action/reveal integration without deleting implementation or historical data
+- changed guarded builds and live production diagnostics to reject onboarding UI markers while the temporary shutdown is active
+- synchronized user, operator, platform, project, test, changelog, and planning documentation
+- passed 19 contracts, lint, guarded Vite build, and Vercel production compilation; the CRM runtime shrank by 29.78 KB and the semantic gate reports `onboardingDisabled: true`
+
 2026-07-17 — CRM route stylesheet recovery and deployment guardrails [Issue #22]
 
 - captured the production `/crm` route at desktop and mobile widths and confirmed only default browser form controls were visible on the global dark background

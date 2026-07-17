@@ -1,5 +1,9 @@
 # Findings
 
+- hiding only the Readiness button would not fully disable onboarding because mounting `RoleOnboarding` automatically loads or creates progress and can persist evidence; the shutdown boundary must remove the component mount itself
+- removing `RoleOnboarding` from `UnifiedPortal` prevents every onboarding repository effect while preserving database history and implementation files for a deliberate future re-enable
+- a build assertion against the three stable onboarding UI markers ensures tree-shaking actually excludes the runtime feature rather than merely hiding its visible trigger
+
 - production HTTP 200, a non-empty React DOM, and reachable JavaScript assets do not prove a route is usable; the `/crm` incident rendered the full sign-in DOM with browser-default controls because its route CSS was absent from the runtime preload graph
 - Vite normally extracts CSS used by async chunks and loads it before evaluating the chunk, but the route-dependent ternary inside a single `lazy` callback produced an incorrect dependency association under Vite 8.1.4
 - separate top-level lazy boundaries keep both dynamic imports statically analyzable and allow Vite to associate each route with its own extracted CSS

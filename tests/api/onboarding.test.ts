@@ -51,13 +51,15 @@ test('readiness requires demonstrated actions and a correct understanding check'
   assert.deepEqual(ready, { score: 100, status: 'ready', verified: 3, required: 3 })
 })
 
-test('portal targets and durable evidence storage are wired into production code', () => {
+test('onboarding is disconnected from runtime while durable data remains protected', () => {
   const portal = fs.readFileSync('src/platform/UnifiedPortal.tsx', 'utf8')
   const component = fs.readFileSync('src/platform/RoleOnboarding.tsx', 'utf8')
   const migration = fs.readFileSync('supabase/migrations/20260717102132_role_onboarding_progress.sql', 'utf8')
 
-  assert.match(portal, /data-onboarding={`nav-\$\{item\}`}/)
-  assert.match(portal, /signalOnboardingAction\(`navigate:\$\{item\}`\)/)
+  assert.doesNotMatch(portal, /RoleOnboarding/)
+  assert.doesNotMatch(portal, /OnboardingActionSignal/)
+  assert.doesNotMatch(portal, /signalOnboardingAction/)
+  assert.doesNotMatch(portal, /data-onboarding/)
   assert.match(component, /Click the highlighted control/)
   assert.match(component, /Instructions alone do not increase this score/)
   assert.match(component, /Saved to your account/)

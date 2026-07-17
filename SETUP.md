@@ -79,7 +79,11 @@ npm run test:live-ai
 
 The `test:live-*` commands require the existing ignored local environment values and network access. They exercise reversible production workflows and clean up test assessment attempts. `test:live-accounts` and `test:live-onboarding` additionally require the provisioner's macOS keychain and never print passwords. The onboarding acceptance test prints a temporary journey key; remove those temporary progress rows with a trusted operator connection after the run (event rows cascade automatically).
 
-On first authenticated portal load, the current role's onboarding journey starts automatically. Use **Readiness** in the top bar to pause, resume, review, or restart it. The readiness score increases only after the required highlighted controls are actually used and the role-specific scenario is answered correctly.
+Role onboarding is temporarily disabled. Authenticated portal loads do not mount
+the onboarding component, create or update readiness progress, append evidence,
+or display the Readiness control and guided overlays. The implementation,
+migrations, and existing historical rows remain intact for a reviewed future
+re-enable.
 
 Open `http://localhost:5173/crm` during local development to use STU Nexus.
 
@@ -106,7 +110,7 @@ npm run diagnose:production
 
 This read-only command checks `https://www.stu.best` by default. It recursively
 fetches the generated assets for `/` and `/crm`, then requires the recovery shell,
-onboarding bundle, and semantic CRM authentication stylesheet. Set
+semantic CRM authentication stylesheet, and absence of onboarding UI markers. Set
 `STU_BASE_URL` to diagnose a different public deployment. A missing-style failure
 explicitly reports that the portal can return HTTP 200 while showing an unstyled
 sign-in form.
