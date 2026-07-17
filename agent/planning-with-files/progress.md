@@ -119,3 +119,4 @@
 - deployed `academic_operations_workflows` and the JWT-protected `manage-student-account` Edge Function to production Supabase
 - verified all 14 production role accounts, owner school workflows, faculty/student RLS, reversible enrollment, room conflict rejection, and cleanup
 - passed 22 API/security contracts, lint, TypeScript, Vite, and guarded build verification
+- merged PR #31 as `f561155`; Vercel production became Ready and both public routes plus the released academic operations workflow passed post-deploy verification

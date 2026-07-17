@@ -386,4 +386,4 @@
 - [x] implement department, program, term, subject, class, roster, and schedule workflows
 - [x] deploy the database migration and Edge Function to production Supabase
 - [x] verify contracts, production build, all-role authentication, RLS, reversible enrollment, and conflict cleanup
-- [ ] release through GitHub/Vercel and verify the public production deployment
+- [x] release through GitHub/Vercel and verify the public production deployment
