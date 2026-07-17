@@ -40,6 +40,9 @@ export type PlatformProfile = {
   department: string;
   jobTitle: string;
   isOwner: boolean;
+  accountStatus: "active" | "suspended" | "archived";
+  statusChangedAt: string | null;
+  statusReason: string;
 };
 
 export type SchoolCourse = {
@@ -316,6 +319,24 @@ export type PlatformData = {
   schedule: ScheduleEvent[];
   announcements: Announcement[];
   threads: ChatThread[];
+  roleAudits: Array<{
+    id: string;
+    targetProfileId: string;
+    changedBy: string;
+    previousRole: string;
+    newRole: string;
+    reason: string;
+    createdAt: string;
+  }>;
+  accountAudits: Array<{
+    id: string;
+    targetProfileId: string;
+    changedBy: string;
+    previousStatus: string;
+    newStatus: string;
+    reason: string;
+    createdAt: string;
+  }>;
 };
 
 export type SchoolChatAnswer = {

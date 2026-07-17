@@ -9,6 +9,7 @@ import type {
   ChatThread,
   GradeScanResult,
   PlatformData,
+  PlatformProfile,
   PlatformRole,
   SchoolAssessment,
 } from "./types";
@@ -113,6 +114,8 @@ export async function loadPlatformData(): Promise<PlatformData> {
     submissionsResult,
     attendanceSessionsResult,
     attendanceRecordsResult,
+    roleAuditsResult,
+    accountAuditsResult,
   ] = await withTimeout(
     Promise.all([
       client
@@ -162,6 +165,16 @@ export async function loadPlatformData(): Promise<PlatformData> {
         .select("*")
         .order("starts_at", { ascending: false }),
       client.from("attendance_records").select("*"),
+      client
+        .from("role_change_audit")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100),
+      client
+        .from("account_lifecycle_audit")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100),
     ]),
     20_000,
     "The school workspace took too long to load. Check the connection and try again.",
@@ -205,6 +218,8 @@ export async function loadPlatformData(): Promise<PlatformData> {
     attendanceRecordsResult,
     "Attendance records",
   );
+  const roleAuditRows = rows(roleAuditsResult, "Role audit");
+  const accountAuditRows = rows(accountAuditsResult, "Account audit");
 
   const profilesById = new Map(
     profileRows.map((profile) => [profile.id, profile]),
@@ -307,6 +322,10 @@ export async function loadPlatformData(): Promise<PlatformData> {
       department: profile.department ?? "",
       jobTitle: profile.job_title ?? "",
       isOwner: profile.is_platform_owner,
+      accountStatus: (profile.account_status ??
+        "active") as PlatformProfile["accountStatus"],
+      statusChangedAt: profile.status_changed_at ?? null,
+      statusReason: profile.status_reason ?? "",
     })),
     students: studentRows.map((student) => ({
       id: student.id,
@@ -504,6 +523,24 @@ export async function loadPlatformData(): Promise<PlatformData> {
       title: thread.title,
       updatedAt: thread.updated_at,
     })),
+    roleAudits: roleAuditRows.map((item) => ({
+      id: item.id,
+      targetProfileId: item.target_profile_id,
+      changedBy: item.changed_by,
+      previousRole: item.previous_role,
+      newRole: item.new_role,
+      reason: item.reason,
+      createdAt: item.created_at,
+    })),
+    accountAudits: accountAuditRows.map((item) => ({
+      id: item.id,
+      targetProfileId: item.target_profile_id,
+      changedBy: item.changed_by,
+      previousStatus: item.previous_status,
+      newStatus: item.new_status,
+      reason: item.reason,
+      createdAt: item.created_at,
+    })),
   };
 }
 
@@ -682,6 +719,67 @@ export async function assignPlatformRole(
   if (error) throw new Error(error.message);
   if (!data?.[0]) throw new Error("The role change was not confirmed.");
   return data[0];
+}
+
+export async function provisionRoleAccount(input: {
+  email: string;
+  password: string;
+  role: Exclude<PlatformRole, "owner">;
+  fullName: string;
+}) {
+  const client = requireClient();
+  const { data, error } = await client.functions.invoke(
+    "provision-role-account",
+    { body: input },
+  );
+  if (error) {
+    const response =
+      "context" in error && error.context instanceof Response
+        ? error.context
+        : null;
+    if (response) {
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      throw new Error(payload?.error || error.message);
+    }
+    throw new Error(error.message);
+  }
+  if (!data?.id) throw new Error("The account was not confirmed by Auth.");
+  return data as {
+    id: string;
+    email: string;
+    role: Exclude<PlatformRole, "owner">;
+    status: "created" | "updated";
+  };
+}
+
+export async function changeAccountLifecycle(input: {
+  targetId: string;
+  action: "activate" | "suspend" | "archive" | "restore";
+  reason: string;
+}) {
+  const client = requireClient();
+  const { data, error } = await client.functions.invoke(
+    "provision-role-account",
+    { body: input },
+  );
+  if (error) {
+    const response =
+      "context" in error && error.context instanceof Response
+        ? error.context
+        : null;
+    if (response) {
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      throw new Error(payload?.error || error.message);
+    }
+    throw new Error(error.message);
+  }
+  if (!data?.id || !data?.status)
+    throw new Error("The lifecycle change was not confirmed by Auth.");
+  return data as { id: string; status: PlatformProfile["accountStatus"] };
 }
 
 function clean(value: string, label: string, max = 160) {

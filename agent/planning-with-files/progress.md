@@ -1,5 +1,18 @@
 # Progress
 
+## 2026-07-18 — Issue #48
+
+- Created Issue #48 and added Phase 48 to the monolithic plan.
+- Published `ROLE_ACTION_CATALOG.md` with all 14 accounts, every domain entity, controlled actions, student personal-assessment rights, student Nexus prohibitions, and an evidence-based definition of done.
+- Added visible protected-owner general non-owner account provisioning to People & Roles.
+- Replaced immediate dropdown role mutation with impact review, mandatory reason, explicit confirmation, session refresh notice, and audited execution.
+- Added role/catalog/provisioning/governance source contracts.
+- Promoted the user-authored `needed.md` to the authoritative action contract and linked tests and project documentation to it.
+- Added account status fields and immutable lifecycle audit storage with RLS, explicit grants, and production migration deployment.
+- Extended the protected-owner Edge Function and People & Roles UI with reason-confirmed activation, suspension, archival, and restoration while preventing owner mutation.
+- Added a visible combined account/role governance feed and generated database types.
+- Passed 38 contracts, lint, TypeScript/Vite build, guarded asset verification, zero new Supabase advisor findings, and a reversible production test proving suspension blocks login and activation restores it.
+
 ## 2026-07-18 — Issue #46
 
 - Created GitHub issue #46 and Phase 46 in the monolithic task plan.

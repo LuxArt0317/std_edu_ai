@@ -38,7 +38,7 @@ test('all browser-invoked account functions allow Supabase client headers and pr
     assert.match(edgeFunction, /https:\/\/www\.stu\.best/)
     assert.match(
       edgeFunction,
-      /Access-Control-Allow-Headers[^\n]+authorization[^\n]+x-client-info[^\n]+apikey[^\n]+content-type/i,
+      /Access-Control-Allow-Headers[\s\S]{0,120}authorization[^\n]+x-client-info[^\n]+apikey[^\n]+content-type/i,
     )
   }
 })

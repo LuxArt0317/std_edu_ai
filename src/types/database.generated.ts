@@ -1945,6 +1945,7 @@ export type Database = {
       };
       profiles: {
         Row: {
+          account_status: string;
           created_at: string;
           department: string | null;
           employee_number: string | null;
@@ -1953,9 +1954,13 @@ export type Database = {
           is_platform_owner: boolean;
           job_title: string | null;
           role: string;
+          status_changed_at: string | null;
+          status_changed_by: string | null;
+          status_reason: string | null;
           updated_at: string;
         };
         Insert: {
+          account_status?: string;
           created_at?: string;
           department?: string | null;
           employee_number?: string | null;
@@ -1964,9 +1969,13 @@ export type Database = {
           is_platform_owner?: boolean;
           job_title?: string | null;
           role?: string;
+          status_changed_at?: string | null;
+          status_changed_by?: string | null;
+          status_reason?: string | null;
           updated_at?: string;
         };
         Update: {
+          account_status?: string;
           created_at?: string;
           department?: string | null;
           employee_number?: string | null;
@@ -1975,6 +1984,9 @@ export type Database = {
           is_platform_owner?: boolean;
           job_title?: string | null;
           role?: string;
+          status_changed_at?: string | null;
+          status_changed_by?: string | null;
+          status_reason?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -2023,6 +2035,36 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      account_lifecycle_audit: {
+        Row: {
+          changed_by: string;
+          created_at: string;
+          id: string;
+          new_status: string;
+          previous_status: string;
+          reason: string;
+          target_profile_id: string;
+        };
+        Insert: {
+          changed_by: string;
+          created_at?: string;
+          id?: string;
+          new_status: string;
+          previous_status: string;
+          reason: string;
+          target_profile_id: string;
+        };
+        Update: {
+          changed_by?: string;
+          created_at?: string;
+          id?: string;
+          new_status?: string;
+          previous_status?: string;
+          reason?: string;
+          target_profile_id?: string;
+        };
+        Relationships: [];
       };
       role_definitions: {
         Row: {

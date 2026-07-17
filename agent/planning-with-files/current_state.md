@@ -1,5 +1,13 @@
 # Current State
 
+# Active implementation: Issue #48
+
+- `needed.md` is the authoritative 14-role action, entity lifecycle, controlled-transition, and Nexus boundary contract.
+- The protected Owner now has a visible People & Roles account-provisioning form for every non-owner role, using the existing owner-only Edge Function and a locally generated 28-character temporary password that is never persisted.
+- Role assignment now requires an impact preview, a 12–500 character reason, explicit confirmation, session-refresh notice, and the existing immutable database audit workflow.
+- People & Roles now provides protected-owner-safe activate, suspend, archive, and restore controls backed by Supabase Auth bans and a RLS-protected immutable lifecycle audit. A reversible live test proves suspension blocks a real student acceptance account login and activation restores it.
+- Catalog/UI/repository contracts, all 38 API tests, lint, the TypeScript/Vite build, guarded asset verification, production migration/function deployment, and live lifecycle acceptance pass. Remaining catalog gaps stay tracked in Issue #48 and the monolithic plan; the issue is intentionally open until every mapped action and production role test is complete.
+
 # Current release: Issue #46
 
 - Nexus AI now proposes typed, confirmation-gated actions for role-valid navigation, modules, materials, rich material pages, quizzes/exams/assignments/projects, announcements, attendance sessions, schedule events, and student-owned learning progress.

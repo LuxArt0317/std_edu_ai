@@ -1,5 +1,27 @@
 # Task Plan
 
+## Phase 48: Complete role-action catalog [Issue #48]
+
+### Authoritative contract
+
+- [x] publish `needed.md` as the root role/action catalog for all 14 canonical accounts, every domain entity, controlled transitions, AI boundaries, and definition of done
+- [ ] map every catalog action to visible UI, repository operation, trusted authorization/RLS, audit evidence, and automated/live verification
+
+### Identity and role operations
+
+- [x] expose protected-owner general account creation for every non-owner role using the existing server-only Auth provisioning boundary
+- [x] complete account detail editing, role assignment, Auth-enforced activation/suspension/archive/restore, credential rotation through existing-account provisioning, and visible immutable role/lifecycle audit controls
+- [ ] add explicit session revocation, last-login/activity inspection, bulk import/invitation, and responsibility-assignment controls
+
+### Role-complete academic, LMS, CRM, and self-service actions
+
+- [ ] close every catalog gap across academic lifecycle, teaching and assessment, submissions/grades, attendance, schedule, CRM, knowledge, notifications, and controlled transitions
+- [ ] ensure every role sees its required action and no forbidden action, with student personal submission preserved and student AI completion prohibited
+
+### Verification and release
+
+- [ ] add comprehensive source contracts and reversible production role tests, update documentation/state/changelog, pass advisors/build/review, deploy, and verify the custom domain
+
 ## Phase 46: Role-aware Nexus action agent [Issue #46]
 
 ### Agent contract and safety

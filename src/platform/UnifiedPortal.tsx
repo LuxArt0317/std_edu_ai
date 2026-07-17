@@ -12,6 +12,7 @@ import {
   appendChatMessage,
   assignPlatformRole,
   clearPlatformDataSnapshot,
+  changeAccountLifecycle,
   createAttendanceSession,
   createChatThread,
   createCourseAnnouncement,
@@ -25,6 +26,7 @@ import {
   loadPlatformDataCached,
   markLearningProgress,
   publishGrade,
+  provisionRoleAccount,
   recordGradeScan,
   saveReviewedScan,
   submitAssessment,
@@ -109,6 +111,13 @@ const navMeta: Record<PortalView, { label: string; icon: string }> = {
   people: { label: "People & Roles", icon: "◎" },
   crm: { label: "Learner Support", icon: "◇" },
 };
+
+function generateTemporaryPassword() {
+  const alphabet =
+    "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%*_-";
+  const bytes = crypto.getRandomValues(new Uint8Array(28));
+  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
+}
 
 function navigationFor(role: PlatformRole): PortalView[] {
   if (role === "student")
@@ -1608,21 +1617,36 @@ function PeopleView({
 }) {
   const [changing, setChanging] = useState("");
   const [editingProfileId, setEditingProfileId] = useState("");
+  const [pendingRoleChange, setPendingRoleChange] = useState<{
+    profileId: string;
+    previousRole: PlatformRole;
+    nextRole: PlatformRole;
+  } | null>(null);
+  const [pendingLifecycle, setPendingLifecycle] = useState<{
+    profileId: string;
+    action: "activate" | "suspend" | "archive" | "restore";
+  } | null>(null);
+  const [provisioning, setProvisioning] = useState(false);
+  const [showProvisioner, setShowProvisioner] = useState(false);
+  const [temporaryPassword, setTemporaryPassword] = useState(() =>
+    generateTemporaryPassword(),
+  );
   const editingProfile =
     data.profiles.find((profile) => profile.id === editingProfileId) ?? null;
 
-  async function changeRole(profileId: string, role: PlatformRole) {
+  async function changeRole(
+    profileId: string,
+    role: PlatformRole,
+    reason: string,
+  ) {
     setChanging(profileId);
     try {
-      await assignPlatformRole(
-        profileId,
-        role,
-        `Role updated by ${currentUser.email} from the People & Roles workspace.`,
-      );
+      await assignPlatformRole(profileId, role, reason);
       onToast(
         "Role updated and written to the audit trail. The user must refresh their session.",
       );
       onChanged();
+      setPendingRoleChange(null);
     } catch (error) {
       onToast(
         error instanceof Error
@@ -1641,6 +1665,21 @@ function PeopleView({
         title="People and permissions"
         description="Every provisioned identity receives a clear school role. Supabase policies enforce access even if the interface is bypassed."
       />
+      {currentUser.isOwner ? (
+        <section className="people-provision-callout school-card">
+          <div>
+            <span>OWNER ACCOUNT CONTROL</span>
+            <h3>Add a school account</h3>
+            <p>
+              Create a confirmed non-owner identity and assign its trusted role.
+              The temporary password is shown here only and is never stored.
+            </p>
+          </div>
+          <button type="button" onClick={() => setShowProvisioner(true)}>
+            + Add account
+          </button>
+        </section>
+      ) : null}
       <section className="owner-protection">
         <span>{currentUser.initials}</span>
         <div>
@@ -1682,24 +1721,65 @@ function PeopleView({
             {profile.isOwner ? (
               <Pill tone="owner">Protected owner</Pill>
             ) : (
-              <select
-                value={profile.role}
-                disabled={changing === profile.id}
-                onChange={(event) =>
-                  void changeRole(
-                    profile.id,
-                    event.target.value as PlatformRole,
-                  )
-                }
-              >
-                {data.roles
-                  .filter((role) => role.code !== "owner")
-                  .map((role) => (
-                    <option key={role.code} value={role.code}>
-                      {role.name}
-                    </option>
-                  ))}
-              </select>
+              <div className="people-account-controls">
+                <Pill
+                  tone={profile.accountStatus === "active" ? "green" : "amber"}
+                >
+                  {profile.accountStatus}
+                </Pill>
+                <select
+                  value={profile.role}
+                  disabled={changing === profile.id}
+                  onChange={(event) =>
+                    setPendingRoleChange({
+                      profileId: profile.id,
+                      previousRole: profile.role,
+                      nextRole: event.target.value as PlatformRole,
+                    })
+                  }
+                >
+                  {data.roles
+                    .filter((role) => role.code !== "owner")
+                    .map((role) => (
+                      <option key={role.code} value={role.code}>
+                        {role.name}
+                      </option>
+                    ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPendingLifecycle({
+                      profileId: profile.id,
+                      action:
+                        profile.accountStatus === "active"
+                          ? "suspend"
+                          : profile.accountStatus === "archived"
+                            ? "restore"
+                            : "activate",
+                    })
+                  }
+                >
+                  {profile.accountStatus === "active"
+                    ? "Suspend"
+                    : profile.accountStatus === "archived"
+                      ? "Restore"
+                      : "Activate"}
+                </button>
+                {profile.accountStatus !== "archived" ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPendingLifecycle({
+                        profileId: profile.id,
+                        action: "archive",
+                      })
+                    }
+                  >
+                    Archive
+                  </button>
+                ) : null}
+              </div>
             )}
             <button
               type="button"
@@ -1710,6 +1790,54 @@ function PeopleView({
           </div>
         ))}
       </section>
+      {currentUser.isOwner ? (
+        <section className="people-audit school-card">
+          <header>
+            <div>
+              <span>IMMUTABLE GOVERNANCE EVIDENCE</span>
+              <h3>Recent account and role activity</h3>
+            </div>
+          </header>
+          {[...data.accountAudits, ...data.roleAudits]
+            .sort((left, right) =>
+              right.createdAt.localeCompare(left.createdAt),
+            )
+            .slice(0, 20)
+            .map((entry) => {
+              const target = data.profiles.find(
+                (profile) => profile.id === entry.targetProfileId,
+              );
+              const actor = data.profiles.find(
+                (profile) => profile.id === entry.changedBy,
+              );
+              const transition =
+                "newStatus" in entry
+                  ? `${entry.previousStatus} → ${entry.newStatus}`
+                  : `${entry.previousRole} → ${entry.newRole}`;
+              return (
+                <article key={entry.id}>
+                  <div>
+                    <b>{target?.name ?? "Account"}</b>
+                    <span>{transition.replaceAll("_", " ")}</span>
+                  </div>
+                  <p>{entry.reason}</p>
+                  <small>
+                    {actor?.name ?? "Authorized operator"} ·{" "}
+                    {new Intl.DateTimeFormat("en", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    }).format(new Date(entry.createdAt))}
+                  </small>
+                </article>
+              );
+            })}
+          {!data.accountAudits.length && !data.roleAudits.length ? (
+            <div className="school-empty-state">
+              No account or role changes have been recorded.
+            </div>
+          ) : null}
+        </section>
+      ) : null}
       <section className="role-hierarchy">
         {["ownership", "leadership", "academic", "operations", "learner"].map(
           (category) => (
@@ -1743,6 +1871,277 @@ function PeopleView({
           ),
         )}
       </section>
+      {showProvisioner ? (
+        <div className="academic-modal-layer">
+          <button
+            type="button"
+            className="academic-modal-backdrop"
+            aria-label="Close account dialog"
+            onClick={() => setShowProvisioner(false)}
+          />
+          <section
+            className="academic-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Add school account"
+          >
+            <header>
+              <div>
+                <span>PEOPLE & PERMISSIONS</span>
+                <h2>Add school account</h2>
+                <p>Create or securely rotate a confirmed non-owner identity.</p>
+              </div>
+              <button type="button" onClick={() => setShowProvisioner(false)}>
+                ×
+              </button>
+            </header>
+            <form
+              className="academic-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const form = new FormData(event.currentTarget);
+                setProvisioning(true);
+                void provisionRoleAccount({
+                  fullName: String(form.get("fullName")),
+                  email: String(form.get("email")),
+                  password: temporaryPassword,
+                  role: String(form.get("role")) as Exclude<
+                    PlatformRole,
+                    "owner"
+                  >,
+                })
+                  .then((result) => {
+                    onToast(
+                      result.status === "created"
+                        ? "Account created. Copy the temporary password before closing."
+                        : "Existing account credentials and role were securely updated.",
+                    );
+                    onChanged();
+                  })
+                  .catch((error: unknown) =>
+                    onToast(
+                      error instanceof Error
+                        ? error.message
+                        : "Account creation failed.",
+                    ),
+                  )
+                  .finally(() => setProvisioning(false));
+              }}
+            >
+              <div className="academic-form-grid">
+                <label>
+                  <span>Full name</span>
+                  <input name="fullName" required maxLength={120} />
+                </label>
+                <label>
+                  <span>School email</span>
+                  <input name="email" type="email" required maxLength={254} />
+                </label>
+                <label>
+                  <span>Role</span>
+                  <select name="role" required defaultValue="faculty">
+                    {data.roles
+                      .filter((item) => item.code !== "owner")
+                      .map((item) => (
+                        <option key={item.code} value={item.code}>
+                          {item.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Temporary password</span>
+                  <div className="password-generator-field">
+                    <input value={temporaryPassword} readOnly />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setTemporaryPassword(generateTemporaryPassword())
+                      }
+                    >
+                      Regenerate
+                    </button>
+                  </div>
+                </label>
+              </div>
+              <footer>
+                <span>Only the protected owner can perform this action.</span>
+                <button disabled={provisioning}>
+                  {provisioning ? "Creating…" : "Create account"}
+                </button>
+              </footer>
+            </form>
+          </section>
+        </div>
+      ) : null}
+      {pendingRoleChange
+        ? (() => {
+            const profile = data.profiles.find(
+              (item) => item.id === pendingRoleChange.profileId,
+            );
+            if (!profile) return null;
+            return (
+              <div className="academic-modal-layer">
+                <button
+                  type="button"
+                  className="academic-modal-backdrop"
+                  aria-label="Cancel role change"
+                  onClick={() => setPendingRoleChange(null)}
+                />
+                <section
+                  className="academic-modal"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Confirm role change"
+                >
+                  <header>
+                    <div>
+                      <span>CONTROLLED ROLE TRANSITION</span>
+                      <h2>Change {profile.name}’s role?</h2>
+                      <p>
+                        {roleNames[pendingRoleChange.previousRole]} →{" "}
+                        {roleNames[pendingRoleChange.nextRole]}. Their current
+                        session must refresh before the new authorization takes
+                        effect.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPendingRoleChange(null)}
+                    >
+                      ×
+                    </button>
+                  </header>
+                  <form
+                    className="academic-form"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      const form = new FormData(event.currentTarget);
+                      void changeRole(
+                        pendingRoleChange.profileId,
+                        pendingRoleChange.nextRole,
+                        String(form.get("reason")),
+                      );
+                    }}
+                  >
+                    <label>
+                      <span>Reason for this authorization change</span>
+                      <textarea
+                        name="reason"
+                        required
+                        minLength={12}
+                        maxLength={500}
+                        rows={4}
+                        placeholder="Describe the approved responsibility or staffing change."
+                      />
+                    </label>
+                    <footer>
+                      <span>
+                        An immutable role-audit entry will be written.
+                      </span>
+                      <button disabled={changing === profile.id}>
+                        {changing === profile.id
+                          ? "Applying…"
+                          : "Confirm role change"}
+                      </button>
+                    </footer>
+                  </form>
+                </section>
+              </div>
+            );
+          })()
+        : null}
+      {pendingLifecycle
+        ? (() => {
+            const profile = data.profiles.find(
+              (item) => item.id === pendingLifecycle.profileId,
+            );
+            if (!profile) return null;
+            return (
+              <div className="academic-modal-layer">
+                <button
+                  type="button"
+                  className="academic-modal-backdrop"
+                  aria-label="Cancel account change"
+                  onClick={() => setPendingLifecycle(null)}
+                />
+                <section
+                  className="academic-modal"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Confirm account lifecycle change"
+                >
+                  <header>
+                    <div>
+                      <span>ACCOUNT LIFECYCLE</span>
+                      <h2>
+                        {pendingLifecycle.action} {profile.name}’s account?
+                      </h2>
+                      <p>
+                        Suspended and archived identities are blocked from new
+                        Auth sessions. Existing access expires according to the
+                        configured JWT lifetime.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPendingLifecycle(null)}
+                    >
+                      ×
+                    </button>
+                  </header>
+                  <form
+                    className="academic-form"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      const form = new FormData(event.currentTarget);
+                      setChanging(profile.id);
+                      void changeAccountLifecycle({
+                        targetId: profile.id,
+                        action: pendingLifecycle.action,
+                        reason: String(form.get("reason")),
+                      })
+                        .then(() => {
+                          onToast("Account lifecycle updated and audited.");
+                          setPendingLifecycle(null);
+                          onChanged();
+                        })
+                        .catch((error: unknown) =>
+                          onToast(
+                            error instanceof Error
+                              ? error.message
+                              : "Account lifecycle change failed.",
+                          ),
+                        )
+                        .finally(() => setChanging(""));
+                    }}
+                  >
+                    <label>
+                      <span>Reason</span>
+                      <textarea
+                        name="reason"
+                        required
+                        minLength={12}
+                        maxLength={500}
+                        rows={4}
+                      />
+                    </label>
+                    <footer>
+                      <span>
+                        This action writes immutable lifecycle evidence.
+                      </span>
+                      <button disabled={changing === profile.id}>
+                        {changing === profile.id
+                          ? "Applying…"
+                          : `Confirm ${pendingLifecycle.action}`}
+                      </button>
+                    </footer>
+                  </form>
+                </section>
+              </div>
+            );
+          })()
+        : null}
       {editingProfile ? (
         <div className="academic-modal-layer">
           <button

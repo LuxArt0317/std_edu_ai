@@ -26,3 +26,5 @@ It demonstrates:
 - automated API contracts plus live owner-protection, cross-role RLS, onboarding evidence, quiz, grade-privacy, CRM, and OpenAI vision/chat validation
 
 For setup and run instructions, see [SETUP.md](./SETUP.md). The authoritative scope and acceptance contract is [PRODUCT_REQUIREMENTS.md](./PRODUCT_REQUIREMENTS.md). For detailed capabilities and authorization, see [src/crm/PORTAL_GUIDE.md](./src/crm/PORTAL_GUIDE.md) and [src/platform/ROLE_MATRIX.md](./src/platform/ROLE_MATRIX.md).
+
+The exhaustive account-by-account operational contract and implementation checklist is [needed.md](./needed.md).

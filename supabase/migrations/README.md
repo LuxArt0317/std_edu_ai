@@ -7,3 +7,5 @@ The onboarding migrations add per-user/per-role/per-version readiness and append
 `20260717133008_academic_operations_workflows.sql` adds a transactional, role-gated enrollment command with identity synchronization and capacity enforcement, plus room, faculty, and shared-student schedule collision checks.
 
 The integrated LMS migration set adds modules, materials, submissions, attendance, progress, private Storage authorization, integrity triggers, advisor-driven policy/index optimization, and an atomic objective assessment builder with protected answer keys.
+
+`20260717231612_account_lifecycle_controls.sql` adds the account status projection and an immutable, owner-readable lifecycle audit for Auth-enforced activation, suspension, archival, and restoration.

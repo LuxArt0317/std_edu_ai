@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- published the exhaustive 14-account role/action catalog and entity lifecycle definition of done
+- added protected-owner general account provisioning for every non-owner role in People & Roles using the existing server-only Auth boundary
+- replaced immediate role dropdown mutation with an impact preview, mandatory reason, explicit confirmation, session-refresh notice, and immutable audit workflow
+- added Auth-enforced activation, suspension, archival, and restoration with reasoned confirmation, protected-owner denial, immutable lifecycle history, and a visible governance activity feed
+- added a reversible production acceptance test proving suspension blocks a real account login and activation restores it without leaving test state behind
+
 - expanded Ask Nexus AI into a role-aware action agent for workspace navigation, LMS authoring, assessments, announcements, attendance, schedule events, and learner-owned progress
 - added authenticated server and client action allowlists, stale-target checks, explicit confirmation, ordinary repository/RLS execution, and privacy-minimized action outcomes
 - enforced a layered student boundary that prevents Nexus from answering, completing, modifying, grading, or submitting any assignment, quiz, exam, or project
