@@ -10,7 +10,7 @@ It demonstrates:
 - a smart-campus positioning aligned with the research
 - a non-disruptive floating AI assistant for natural-language campus questions
 - a production Supabase Auth and Postgres backend with browser-safe publishable credentials and database-enforced authorization
-- a deterministic Vercel deployment using Node.js 22, the npm lockfile, explicit Vite output settings, and SPA route fallback
+- a Vercel deployment using Node.js 24, Vite's framework-detected defaults, the npm lockfile, and the required SPA route fallback
 - resilient client boot with dependency-free initial content, lazy-route/render recovery, and finite authentication and school-data startup
 - a premium `/crm` school OS with distinct owner, leadership, administrator, teacher, specialist-staff, and student experiences
 - a protected owner tier for `winsonbaring10@gmail.com`, safe role preview, audited role assignment, and immutable owner guarantees

@@ -1,5 +1,9 @@
 # Current State
 
+GitHub issue #20 is in progress on `agent/vercel-defaults-node-24`. Repository-level Vercel framework, install, build, and output overrides have been removed; the only remaining `vercel.json` behavior is the SPA rewrite required for direct `/crm` navigation. The custom `vercel-build` alias is gone, and package metadata plus the lockfile now select Node.js `24.x`.
+
+The linked Vercel project currently reports Node.js `24.x` and its detected Vite defaults: package-manager install, `npm run build`/`vite build`, and `dist`. Under local Node.js 24.12.0 and npm 11.6.2, clean install, all 18 contracts, lint, TypeScript/Vite production build, and `vercel build --prod` pass. The generated `.vercel/output/config.json` identifies Vite 8.1.4 and contains the direct-route rewrite. PR, production deployment, and custom-domain verification remain.
+
 GitHub issue #18 is closed completed. PR #19 passed Vercel and CodeRabbit, merged as production commit `2af21a4`, and deployed as `dpl_H177E9qhzCVWmwS2JtQGEH5nZZMT`, Ready and aliased to both `stu.best` and `www.stu.best`.
 
 Current onboarding status:

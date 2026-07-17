@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- restored Vercel's standard Vite framework detection by removing repository-level framework, install, build, and output overrides
+- upgraded the supported Vercel and local runtime from Node.js 22 to the major-only Node.js 24 line
+- removed the redundant `vercel-build` script while preserving the `/crm` SPA rewrite required for direct navigation
+
 - added premium first-login onboarding for all 14 school roles with responsive spotlight masks, directional instructions, real navigation-action detection, role-specific scenario checks, pause/resume, review, and restart
 - added a persistent Readiness Center with an evidence-only 0–100 score; reading instructions alone does not count as understanding and readiness never changes authorization
 - deployed RLS-protected, versioned `onboarding_progress` and append-only `onboarding_events` tables with explicit Data API grants and covering ownership indexes

@@ -2,8 +2,8 @@
 
 ## Requirements
 
-- Node.js 22
-- npm 10 or newer
+- Node.js 24
+- npm 11 or newer
 
 ## Install
 
@@ -99,10 +99,11 @@ The preview HTML for both `/` and `/crm` must contain `data-stu-boot` before rel
 
 ## Deploy to Vercel
 
-Vercel reads `vercel.json`, installs the locked dependencies with `npm ci`, runs
-`npm run vercel-build`, and publishes `dist`. Node.js 22 is pinned through the
-`engines` field in `package.json`. The rewrite rule keeps client-side routes
-working when opened directly.
+Vercel auto-detects Vite and uses its standard framework settings for dependency
+installation, the `build` script, and the build output directory. Node.js 24 is
+selected through the major-only `engines` entry in `package.json`. The minimal
+`vercel.json` contains no build overrides; it keeps only the rewrite required for
+client-side routes such as `/crm` to work when opened directly.
 
 Connect this repository to a Vercel project and deploy the `main` branch. Add
 the server-only OpenAI key and browser-safe Supabase values in Vercel project

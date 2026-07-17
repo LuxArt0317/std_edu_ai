@@ -1,5 +1,13 @@
 # Progress Log
 
+2026-07-17 — Vercel framework defaults and Node.js 24 [Issue #20]
+
+- created the GitHub issue and reviewed current official Vercel build configuration, Vite, CLI build, and Node.js 24 guidance
+- removed repository-level framework, install, build, and output overrides while retaining the direct-route SPA fallback
+- replaced the custom `vercel-build` alias with Vercel's standard use of the package `build` script and advanced runtime metadata to Node.js `24.x`
+- verified the linked project already uses Node.js `24.x` and exposes Vite's detected install, build, and `dist` settings without custom command overrides
+- passed a clean npm 11 install, 18 contracts, lint, TypeScript/Vite production build, and Vercel's production build under Node.js 24.12.0
+
 2026-07-17 — Blank-screen production recovery [Issue #16]
 
 - created the GitHub production-incident issue and mapped deployment diagnosis, resilient rendering, regression verification, and release work into the monolithic task plan

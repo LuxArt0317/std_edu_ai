@@ -1,5 +1,9 @@
 # Findings
 
+- Vercel automatically configures install, build, and output settings after framework detection; `framework`, `installCommand`, `buildCommand`, and `outputDirectory` in `vercel.json` are repository-level overrides rather than requirements for a standard Vite deployment
+- the SPA rewrite is independent routing configuration and must remain so direct requests such as `/crm` resolve to the React application shell
+- Vercel supports Node.js 24 for builds and functions, and a major-only `24.x` engine range lets Vercel select the maintained minor and patch release
+
 - a credible all-in-one school platform needs database-enforced separation between the owner, institutional administrators, academic staff, specialist staff, teachers, and students; hiding navigation items is not authorization
 - answer keys must live in a separately protected table and deterministic database grading must remain the source of truth for objective quizzes
 - AI grade-sheet scanning should extract candidate values and confidence only; a teacher must review before any grade is saved or published

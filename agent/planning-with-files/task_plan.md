@@ -1,5 +1,28 @@
 # Task Plan
 
+## Phase 11: Vercel framework defaults and Node.js 24 [Issue #20]
+
+### Standard deployment contract
+
+- remove repository-level framework, install, build, and output-directory overrides so Vercel auto-detects Vite and applies its maintained defaults
+- keep the standard package `build` script and remove the redundant Vercel-only alias
+- preserve only the SPA rewrite required for direct `/crm` navigation
+- select the supported Node.js 24 major line in package metadata and the npm lockfile
+
+### Production verification
+
+- verify a clean locked install, automated contracts, lint, TypeScript/Vite build, and `vercel build --prod`
+- confirm the Vercel build detects Vite, uses Node.js 24, and emits the Build Output API without custom repository build settings
+- publish through a reviewed pull request and verify `/`, `/crm`, their application assets, and the deployment state in production
+
+## Current execution
+
+- GitHub issue #20 created
+- current official Vercel build configuration, Vite deployment, CLI build, and Node.js 24 availability guidance reviewed
+- Vercel build overrides removed, the Vercel-only script removed, and Node.js metadata advanced to `24.x`; the required SPA rewrite remains
+- the linked Vercel project reports Node.js `24.x`, Vite detection, `npm run build`, `dist`, and an auto-detected package-manager install with no command overrides
+- clean npm 11 install, 18 contracts, lint, TypeScript/Vite production build, and `vercel build --prod` pass under Node.js 24.12.0
+
 ## Phase 10: Role-specific guided onboarding and readiness [Issue #18]
 
 ### Demonstrated understanding
