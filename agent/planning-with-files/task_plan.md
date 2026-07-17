@@ -416,4 +416,4 @@
 - [x] identify Learner Support unmount/remount and repeated CRM loading
 - [x] keep School OS and Learner Support mounted while switching visibility instantly
 - [x] cache and deduplicate CRM data, warm it after sign-in, and clear it on sign-out
-- [ ] verify, release, and smoke-test production navigation contracts
+- [x] verify, release, and smoke-test production navigation contracts

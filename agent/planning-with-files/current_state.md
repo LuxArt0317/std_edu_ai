@@ -77,4 +77,5 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - School OS and Learner Support now remain mounted; navigation only changes visibility, so returning never recreates either workspace.
 - CRM data warms after authentication, restores synchronously from memory, deduplicates background loads, and clears on sign-out.
 - Verification passes: 28 tests, lint, TypeScript/Vite production build, and built-asset validation.
-- Remaining: merge after GitHub/Vercel checks and verify the new production bundle.
+- PR #41 passed GitHub/Vercel checks, merged to `main`, and deployed Ready. The custom production domain serves the new entry/CRM bundle and `/crm` returns HTTP 200.
+- Issue #40 is closed; School OS ↔ Learner Support switching no longer causes workspace remounting or repeat loading.

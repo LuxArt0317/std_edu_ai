@@ -149,3 +149,4 @@
 - Removed the conditional return that destroyed School OS and recreated CRM on every Learner Support visit.
 - Both workspaces now remain mounted and switch using immediate visibility state.
 - CRM data is warmed after sign-in, restored synchronously, fetch-deduplicated, updated with local mutations, and cleared on sign-out.
+- PR #41 merged and deployed Ready; the production bundle contains the persistent workspace contract and `/crm` returns HTTP 200.
