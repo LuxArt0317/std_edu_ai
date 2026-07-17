@@ -409,4 +409,4 @@
 - [x] trace the failed student creation through production Edge Function logs
 - [x] repair CORS contracts for browser-invoked account functions
 - [x] surface structured server errors instead of generic network failures
-- [ ] audit CRUD contracts, deploy functions, and run production verification
+- [x] audit CRUD contracts, deploy functions, and run production verification

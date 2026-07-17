@@ -70,4 +70,5 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - Production CRUD failure isolated to incomplete CORS headers on browser-invoked Supabase Edge Functions.
 - `manage-student-account` and `provision-role-account` version 2 are ACTIVE with `x-client-info` allowed and both production origins recognized.
 - Production preflight, authenticated owner invocation/validation, role denial, reversible enrollment/schedule operations, and the complete reversible LMS workflow pass.
-- Remaining: release the client-side structured error improvement through GitHub/Vercel and verify the production bundle.
+- PR #39 passed GitHub/Vercel checks, merged to `main`, and deployed Ready. `https://www.stu.best/crm` returns HTTP 200 with the new production entry bundle.
+- Issue #38 is closed; no unresolved CRUD failure was found in the reversible Academic Office and LMS workflow audits.

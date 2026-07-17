@@ -142,3 +142,4 @@
 - Production logs showed repeated successful OPTIONS requests without POST for student creation.
 - Root cause: both account Edge Functions omitted Supabase's `x-client-info` header from `Access-Control-Allow-Headers`; the browser blocked the actual request.
 - Added complete production origin/header contracts and structured Edge Function error extraction.
+- PR #39 merged and deployed Ready; the custom production domain serves the new bundle and issue #38 is closed.
