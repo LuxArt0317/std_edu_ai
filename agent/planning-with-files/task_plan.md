@@ -29,6 +29,9 @@
 - standard `npm run build` now runs a semantic asset-graph gate requiring the CRM lazy JavaScript and linked authentication CSS; the live diagnostic enforces the same contract against deployed hashes
 - production diagnostic correctly fails against the currently broken release with a precise HTTP-200-but-unstyled explanation
 - 19 contracts, lint, guarded Vite build, and `vercel build --prod` pass; rendered desktop and true 390px viewport captures show the complete responsive sign-in card without overflow
+- PR #23 passed Vercel, its hosted build log contains the successful semantic CSS gate, its protected preview exposes the CRM JavaScript/CSS pair, and it merged as production commit `545efc7`
+- production deployment `dpl_9HYcdDSXtQPEZzR3jdVexAYMSQf7` is Ready and aliased to `stu.best` plus `www.stu.best`
+- live `/` and `/crm` diagnostics return HTTP 200, recursively verify six assets, and report `crmAuthStyles: true`; actual production desktop and 390×844 captures show the complete responsive sign-in card
 
 ## Phase 11: Vercel framework defaults and Node.js 24 [Issue #20]
 

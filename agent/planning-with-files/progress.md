@@ -10,6 +10,9 @@
 - added the semantic generated-asset gate to every standard build, strengthened the live production verifier, and documented `npm run diagnose:production`
 - proved the live diagnostic fails clearly against the broken production asset graph, while the repaired build exposes the CRM JavaScript and authentication stylesheet together
 - passed 19 contracts, lint, guarded Vite build, and Vercel production compilation; desktop and true 390×844 rendering show the complete card and responsive margins
+- published PR #23, verified its hosted semantic asset gate and protected preview CRM JavaScript/CSS pair, confirmed no review threads, and merged production commit `545efc7`
+- verified Ready deployment `dpl_9HYcdDSXtQPEZzR3jdVexAYMSQf7` on both custom domains; the live diagnostic passes both routes with six assets and `crmAuthStyles: true`
+- rendered the actual production `/crm` at 1440×1000 and 390×844; both show the complete styled card, and mobile has balanced viewport margins with no horizontal overflow
 
 2026-07-17 — Vercel framework defaults and Node.js 24 [Issue #20]
 
