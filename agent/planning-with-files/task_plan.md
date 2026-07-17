@@ -1,5 +1,28 @@
 # Task Plan
 
+## Phase 15: Comprehensive platform and CRM Word manual [Issue #28]
+
+### Functional and role documentation
+
+- document the public university website, authenticated school operating system, academic workspaces, CRM modules, and AI experiences
+- define the purpose, access, responsibilities, common work, and authority boundary for all 14 canonical roles
+- provide end-user, owner, faculty, student, technical operator, deployment, troubleshooting, and governance procedures
+- distinguish implemented POC behavior from institutional controls required before real-data rollout
+
+### Document quality and delivery
+
+- apply a professional compact-reference style with an editorial cover, real Word headings and numbering, fixed-width tables, callouts, running furniture, and page fields
+- build the document deterministically from a tracked generator without including credentials or secrets
+- render the DOCX through Microsoft Word, inspect all 31 page images, correct pagination and list-numbering issues, and rerender
+- pass the document accessibility audit with zero findings
+
+### Current execution
+
+- GitHub issue #28 created
+- repository platform, role, portal, Supabase, API, deployment, research, and operator references audited
+- final 31-page Word manual generated and all rendered pages visually verified with no clipping, overlap, broken tables, or unintended blank pages
+- accessibility audit reports zero high, medium, or low findings
+
 ## Phase 14: Protected production role credential sheet [Issue #26]
 
 ### Verified credential export

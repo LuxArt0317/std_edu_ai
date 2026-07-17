@@ -21,6 +21,7 @@ Primary references:
 - [Role and permission matrix](./src/platform/ROLE_MATRIX.md)
 - [Production role account directory](./src/platform/ROLE_ACCOUNTS.md)
 - [Unified platform architecture](./src/platform/README.md)
+- [Comprehensive Word platform manual](./docs/STU_Nexus_Comprehensive_Platform_Manual.docx)
 - [src/crm/README.md](./src/crm/README.md)
 - [supabase/README.md](./supabase/README.md)
 

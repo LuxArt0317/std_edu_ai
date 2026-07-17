@@ -104,3 +104,11 @@
 - generated the local root sheet with 14 verified accounts; confirmed it is ignored by Git and restricted to mode `0600`
 - passed all 19 contracts, lint, and the guarded TypeScript/Vite production build
 - merged PR #27 as `2da1aed` after Vercel and CodeRabbit passed; issue #26 closed completed with credential-safe evidence
+2026-07-17 — Comprehensive platform and CRM Word manual [Issue #28]
+
+- created GitHub issue #28 and mapped repository audit, functional/role authoring, Word construction, render QA, and delivery into the monolithic task plan
+- read the document-production skill, selected the compact reference guide preset with an editorial cover, and resolved page, typography, heading, list, table, callout, header, and footer tokens
+- audited the implemented public website, school platform, CRM, 14-role hierarchy, Supabase/Auth/RLS model, trusted workflows, AI boundaries, deployment, diagnostics, and research rationale
+- authored a deterministic 31-page DOCX with 437 paragraphs, 129 Word headings, 17 fixed-geometry tables, all-role purpose/access/responsibility/boundary profiles, workflows, how-to procedures, and governance guidance
+- rendered the document with Microsoft Word and inspected all 31 page images; corrected contents pagination and continuous list numbering, then rerendered every page successfully
+- passed the document accessibility audit with zero high, medium, or low findings and confirmed the manual contains no credential directory or secret value

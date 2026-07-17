@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- added a comprehensive 31-page Word manual covering the public website, STU Nexus school OS, CRM modules, all 14 canonical roles, end-user procedures, AI and security boundaries, technical architecture, deployment, troubleshooting, and governance
+- added a deterministic document builder, accessible Word heading/navigation structure, fixed-width reference tables, and render-based visual quality verification
+
 - added a fail-closed production credential exporter that verifies all 14 Auth roles, protected-owner claims, and RLS-visible profiles before atomically writing the local root Markdown sheet
 - explicitly ignored `PRODUCTION_ROLE_CREDENTIALS.local.md`, enforced owner-only file mode `0600`, and kept passwords out of logs, Git, CI, and issue tracking
 
