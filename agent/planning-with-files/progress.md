@@ -113,3 +113,9 @@
 - rendered the document with Microsoft Word and inspected all 31 page images; corrected contents pagination and continuous list numbering, then rerendered every page successfully
 - passed the document accessibility audit with zero high, medium, or low findings and confirmed the manual contains no credential directory or secret value
 - merged PR #29 as `ef70241` after Vercel and CodeRabbit passed; issue #28 closed completed with the final document quality evidence
+2026-07-17 — Operational Academic Office [Issue #30]
+
+- created issue #30 and implemented the missing write workflows for students, academic structure, subjects, sections, enrollment, and schedules
+- deployed `academic_operations_workflows` and the JWT-protected `manage-student-account` Edge Function to production Supabase
+- verified all 14 production role accounts, owner school workflows, faculty/student RLS, reversible enrollment, room conflict rejection, and cleanup
+- passed 22 API/security contracts, lint, TypeScript, Vite, and guarded build verification

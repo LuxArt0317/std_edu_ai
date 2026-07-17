@@ -48,6 +48,7 @@ export type SchoolCourse = {
   facultyName: string
   modality: string
   room: string
+  capacity: number
   status: string
   enrolledStudentIds: string[]
   enrolledProfileIds: string[]
@@ -125,6 +126,9 @@ export type ScheduleEvent = {
   startsAt: string
   endsAt: string
   location: string
+  ownerProfileId: string | null
+  audienceRoles: string[]
+  createdBy: string | null
 }
 
 export type Announcement = {
@@ -142,6 +146,38 @@ export type PlatformStudent = {
   name: string
   program: string
   yearLevel: string
+  email: string | null
+}
+
+export type AcademicTerm = {
+  id: string
+  code: string
+  name: string
+  startsOn: string
+  endsOn: string
+  enrollmentStartsOn: string | null
+  enrollmentEndsOn: string | null
+  status: string
+}
+
+export type CatalogCourse = {
+  id: string
+  departmentId: string
+  programId: string | null
+  code: string
+  title: string
+  description: string
+  credits: number
+  status: string
+}
+
+export type SectionEnrollment = {
+  id: string
+  sectionId: string
+  studentId: string | null
+  profileId: string | null
+  status: string
+  enrolledAt: string
 }
 
 export type AssessmentAttemptResult = { attemptId: string; score: number; maxScore: number; status: string }
@@ -153,9 +189,12 @@ export type PlatformData = {
   roles: RoleDefinition[]
   profiles: PlatformProfile[]
   students: PlatformStudent[]
-  departments: Array<{ id: string; code: string; name: string; description: string }>
-  programs: Array<{ id: string; code: string; name: string; level: string; departmentId: string; description: string }>
+  departments: Array<{ id: string; code: string; name: string; description: string; status: string; headId: string | null }>
+  programs: Array<{ id: string; code: string; name: string; level: string; departmentId: string; description: string; durationYears: number; status: string }>
+  terms: AcademicTerm[]
+  catalogCourses: CatalogCourse[]
   courses: SchoolCourse[]
+  enrollments: SectionEnrollment[]
   topics: CourseTopic[]
   assessments: SchoolAssessment[]
   gradeItems: GradeItem[]

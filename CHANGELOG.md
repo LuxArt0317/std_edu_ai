@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- transformed Academic Office from a read-only catalog into working student, department, program, term, subject, class-section, roster, and schedule management
+- added owner/admin/registrar student account provisioning with a confirmed Supabase Auth identity, linked profile/SIS records, validation, and compensating cleanup
+- added transactional capacity-aware enrollment and database-enforced room, faculty, and shared-student schedule collision prevention
+- added production integration coverage that reversibly verifies enrollment, conflict rejection, cleanup, and student provisioning denial
+
 - added a comprehensive 31-page Word manual covering the public website, STU Nexus school OS, CRM modules, all 14 canonical roles, end-user procedures, AI and security boundaries, technical architecture, deployment, troubleshooting, and governance
 - added a deterministic document builder, accessible Word heading/navigation structure, fixed-width reference tables, and render-based visual quality verification
 

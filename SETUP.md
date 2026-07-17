@@ -50,6 +50,8 @@ On the provisioner's Mac, run `npm run export:role-credentials` to verify every 
 
 New non-owner accounts and credential rotations must pass through the deployed owner-only `provision-role-account` Edge Function. Role changes for existing accounts continue through the audited `assign_platform_role` RPC. Neither path can create or transfer the protected owner role.
 
+Student accounts are created from **Academic Office → Students → Add student** by an owner, administrator, or registrar. This creates the confirmed Auth identity and linked SIS/profile records as one guarded workflow. Subjects, terms, class sections, rosters, and schedule events are managed from Academic Office and Schedule; enrollment capacity and timetable collisions are enforced in the database.
+
 The homepage currently references official public STU media assets from `www.stu.edu.tw`. An internet connection is required to load those images and the Roboto web font during local development.
 
 ## Run Locally
@@ -71,6 +73,7 @@ npm run build
 ```bash
 npm test
 npm run test:live-school
+npm run test:live-academic-operations
 npm run test:live-crm
 npm run test:live-roles
 npm run test:live-accounts

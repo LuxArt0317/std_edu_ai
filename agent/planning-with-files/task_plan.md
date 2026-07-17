@@ -379,3 +379,11 @@
 - lockfile regenerated and verified with the pinned Node 22 and npm 11 deployment toolchain
 - preview and production Vercel deployments completed successfully after the lockfile repair
 - production root and SPA deep-link routes respond through Vercel deployment protection
+## Phase 30: Operational Academic Office [Issue #30]
+
+- [x] design secure enrollment integrity and schedule-conflict controls
+- [x] implement role-gated linked student identity provisioning
+- [x] implement department, program, term, subject, class, roster, and schedule workflows
+- [x] deploy the database migration and Edge Function to production Supabase
+- [x] verify contracts, production build, all-role authentication, RLS, reversible enrollment, and conflict cleanup
+- [ ] release through GitHub/Vercel and verify the public production deployment

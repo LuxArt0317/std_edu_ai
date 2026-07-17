@@ -1965,6 +1965,19 @@ export type Database = {
         }[]
       }
       claim_initial_admin: { Args: never; Returns: boolean }
+      manage_section_enrollment: {
+        Args: {
+          p_section_id: string
+          p_status: string
+          p_student_id: string
+        }
+        Returns: {
+          capacity: number
+          enrolled_count: number
+          enrollment_id: string
+          status: string
+        }[]
+      }
       submit_assessment: {
         Args: { p_answers: Json; p_assessment_id: string }
         Returns: {

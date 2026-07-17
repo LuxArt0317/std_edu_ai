@@ -11,6 +11,7 @@ import type {
   AssessmentAttemptResult, ChatMessage, GradeScanResult, PlatformData, PlatformRole,
   PortalSection, SchoolAssessment, SchoolCourse,
 } from './types'
+import { AcademicOperations, ScheduleOperations } from './AcademicOperations'
 import './platform.css'
 
 type PortalView = PortalSection | 'crm'
@@ -103,12 +104,12 @@ function UnifiedPortal({ currentUser, onSignOut }: { currentUser: CrmUser; onSig
 
       <div className="school-content">
         {view === 'home' ? <HomeView data={data} role={effectiveRole} user={currentUser} onNavigate={setView} onAsk={() => setAssistantOpen(true)} /> : null}
-        {view === 'academics' ? <AcademicsView data={data} /> : null}
+        {view === 'academics' ? <AcademicsView data={data} currentUser={currentUser} onChanged={() => void refresh()} onToast={setToast} /> : null}
         {view === 'learning' ? <LearningView data={data} role={effectiveRole} /> : null}
         {view === 'teaching' ? <TeachingView data={data} /> : null}
         {view === 'assessments' ? <AssessmentsView data={data} role={effectiveRole} onComplete={(message) => { setToast(message); void refresh() }} /> : null}
         {view === 'grades' ? <GradesView data={data} role={effectiveRole} currentUser={currentUser} onChanged={() => void refresh()} onToast={setToast} /> : null}
-        {view === 'schedule' ? <ScheduleView data={data} /> : null}
+        {view === 'schedule' ? <ScheduleView data={data} currentUser={currentUser} onChanged={() => void refresh()} onToast={setToast} /> : null}
         {view === 'people' ? <PeopleView data={data} currentUser={currentUser} onChanged={() => void refresh()} onToast={setToast} /> : null}
       </div>
     </main>
@@ -135,11 +136,9 @@ function HomeView({ data, role, user, onNavigate, onAsk }: { data: PlatformData;
   </>
 }
 
-function AcademicsView({ data }: { data: PlatformData }) {
+function AcademicsView({ data, currentUser, onChanged, onToast }: { data: PlatformData; currentUser: CrmUser; onChanged: () => void; onToast: (message: string) => void }) {
   return <><PageIntro eyebrow="ACADEMIC OPERATING SYSTEM" title="Academic Office" description="One catalog for departments, programs, terms, courses, sections, and institutional delivery." />
-    <section className="academic-overview"><article><span>DEPARTMENTS</span><strong>{data.departments.length}</strong><p>Active academic homes</p></article><article><span>PROGRAMS</span><strong>{data.programs.length}</strong><p>Credential pathways</p></article><article><span>LIVE SECTIONS</span><strong>{data.courses.filter((course) => course.status === 'active').length}</strong><p>Current teaching spaces</p></article></section>
-    <section className="school-card catalog-table"><header><div><span>COURSE CATALOG</span><h3>Current delivery</h3></div></header><div className="catalog-head"><span>Course</span><span>Section</span><span>Faculty</span><span>Delivery</span><span>Roster</span><span>Status</span></div>{data.courses.map((course) => <div className="catalog-row" key={course.sectionId}><span><b>{course.code}</b><small>{course.title}</small></span><span>{course.sectionCode} · {course.term}</span><span>{course.facultyName}</span><span>{course.modality}<small>{course.room}</small></span><span>{course.enrolledStudentIds.length + course.enrolledProfileIds.length} learners</span><Pill tone={course.status === 'active' ? 'teal' : 'amber'}>{course.status}</Pill></div>)}</section>
-    <section className="department-grid">{data.departments.map((department) => <article key={department.id}><span>{department.code}</span><h3>{department.name}</h3><p>{department.description}</p><div>{data.programs.filter((program) => program.departmentId === department.id).map((program) => <small key={program.id}>{program.code} · {program.name}</small>)}</div></article>)}</section>
+    <AcademicOperations data={data} currentUser={currentUser} onChanged={onChanged} onToast={onToast} />
   </>
 }
 
@@ -235,9 +234,9 @@ function GradesView({ data, role, currentUser, onChanged, onToast }: { data: Pla
   </>
 }
 
-function ScheduleView({ data }: { data: PlatformData }) {
+function ScheduleView({ data, currentUser, onChanged, onToast }: { data: PlatformData; currentUser: CrmUser; onChanged: () => void; onToast: (message: string) => void }) {
   const grouped = useMemo(() => data.schedule.reduce<Record<string, typeof data.schedule>>((result, event) => { const key = new Intl.DateTimeFormat('en', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(event.startsAt)); (result[key] ??= []).push(event); return result }, {}), [data.schedule])
-  return <><PageIntro eyebrow="ONE CALENDAR" title="Schedule" description="Classes, exams, deadlines, meetings, and campus events—filtered automatically for your role." /><div className="schedule-layout"><section>{Object.entries(grouped).map(([day, events]) => <article key={day}><header><span>{day}</span><b>{events.length} event{events.length === 1 ? '' : 's'}</b></header>{events.map((event) => <div key={event.id}><time><b>{new Intl.DateTimeFormat('en', { hour: 'numeric', minute: '2-digit' }).format(new Date(event.startsAt))}</b><small>{new Intl.DateTimeFormat('en', { hour: 'numeric', minute: '2-digit' }).format(new Date(event.endsAt))}</small></time><i className={event.type} /><p><b>{event.title}</b><span>{event.description}</span><small>⌖ {event.location}</small></p><Pill tone="blue">{event.type}</Pill></div>)}</article>)}</section><aside><span>CALENDAR HEALTH</span><h3>This role sees {data.schedule.length} relevant events</h3><p>Section enrollment, teaching assignments, personal ownership, and role audiences are evaluated by database policy.</p><div>{['class', 'exam', 'deadline', 'meeting', 'campus'].map((type) => <span key={type}><i className={type} />{type}<b>{data.schedule.filter((event) => event.type === type).length}</b></span>)}</div></aside></div></>
+  return <><PageIntro eyebrow="ONE CALENDAR" title="Schedule" description="Classes, exams, deadlines, meetings, and campus events—filtered automatically for your role." /><ScheduleOperations data={data} currentUser={currentUser} onChanged={onChanged} onToast={onToast} /><div className="schedule-layout"><section>{Object.entries(grouped).map(([day, events]) => <article key={day}><header><span>{day}</span><b>{events.length} event{events.length === 1 ? '' : 's'}</b></header>{events.map((event) => <div key={event.id}><time><b>{new Intl.DateTimeFormat('en', { hour: 'numeric', minute: '2-digit' }).format(new Date(event.startsAt))}</b><small>{new Intl.DateTimeFormat('en', { hour: 'numeric', minute: '2-digit' }).format(new Date(event.endsAt))}</small></time><i className={event.type} /><p><b>{event.title}</b><span>{event.description}</span><small>⌖ {event.location}</small></p><Pill tone="blue">{event.type}</Pill></div>)}</article>)}</section><aside><span>CALENDAR HEALTH</span><h3>This role sees {data.schedule.length} relevant events</h3><p>Section enrollment, teaching assignments, personal ownership, and role audiences are evaluated by database policy.</p><div>{['class', 'exam', 'deadline', 'meeting', 'campus'].map((type) => <span key={type}><i className={type} />{type}<b>{data.schedule.filter((event) => event.type === type).length}</b></span>)}</div></aside></div></>
 }
 
 function PeopleView({ data, currentUser, onChanged, onToast }: { data: PlatformData; currentUser: CrmUser; onChanged: () => void; onToast: (message: string) => void }) {

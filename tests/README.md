@@ -2,6 +2,8 @@
 
 The test suite lives outside Vercel's reserved `/api` directory so test modules are never deployed as serverless functions. `api/` contains contract coverage for validation, authentication, privacy filtering, provider calls, structured chatbot output, and human-reviewed grade scanning.
 
+Academic operations contracts cover student, subject, class, enrollment, and schedule management.
+
 `api/boot-recovery.test.ts` protects the non-empty pre-JavaScript boot shell, distinct statically analyzable lazy-route boundaries, lazy-route error handling, finite startup timeouts, and local-session recovery contract that prevents a blank deployment screen.
 
 `integration/crm-live.mjs` verifies anonymous isolation, authenticated staff access, table availability, and a reversible RLS-protected mutation against the configured production Supabase project. It requires credentials through environment variables and never stores them in the repository.
