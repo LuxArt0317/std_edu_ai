@@ -1,5 +1,6 @@
 import type { Session } from '@supabase/supabase-js'
 import { hasSupabaseConfig, supabase } from '../utils/supabase'
+import { withTimeout } from '../utils/async'
 import type { PlatformRole } from '../platform/types'
 
 export type CrmUser = {
@@ -18,23 +19,34 @@ const platformRoles = new Set<PlatformRole>([
   'faculty', 'advisor', 'admissions', 'finance', 'support', 'librarian', 'student',
 ])
 
+const sessionRestoreTimeoutMs = 10_000
+const authRequestTimeoutMs = 15_000
+
 function initialsFor(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'ST'
 }
 
 export async function getCrmSession(): Promise<Session | null> {
   if (!supabase) return null
-  const { data, error } = await supabase.auth.getSession()
+  const { data, error } = await withTimeout(
+    supabase.auth.getSession(),
+    sessionRestoreTimeoutMs,
+    'Session restoration took too long. Reset the local session and sign in again.',
+  )
   if (error) throw new Error(error.message)
   return data.session
 }
 
 export async function getCrmUser(session: Session): Promise<CrmUser> {
   if (!supabase) throw new Error('Supabase is not configured.')
-  const [{ data, error }, identity] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, role, is_platform_owner, job_title, department').eq('id', session.user.id).single(),
-    supabase.auth.getUser(),
-  ])
+  const [{ data, error }, identity] = await withTimeout(
+    Promise.all([
+      supabase.from('profiles').select('id, full_name, role, is_platform_owner, job_title, department').eq('id', session.user.id).single(),
+      supabase.auth.getUser(),
+    ]),
+    authRequestTimeoutMs,
+    'Identity verification took too long. Check the connection and try again.',
+  )
   if (error) throw new Error(error.message)
   if (identity.error || !identity.data.user) throw new Error('Your authenticated identity could not be verified.')
   const trustedRole = identity.data.user.app_metadata.role
@@ -54,7 +66,11 @@ export async function getCrmUser(session: Session): Promise<CrmUser> {
 
 export async function signInCrm(email: string, password: string) {
   if (!supabase) throw new Error('Supabase is not configured.')
-  const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+  const { data, error } = await withTimeout(
+    supabase.auth.signInWithPassword({ email: email.trim(), password }),
+    authRequestTimeoutMs,
+    'Sign-in took too long. Check the connection and try again.',
+  )
   if (error) throw new Error(error.message)
   if (!data.session) throw new Error('Supabase did not issue a session.')
   return data.session
@@ -62,7 +78,11 @@ export async function signInCrm(email: string, password: string) {
 
 export async function signOutCrm() {
   if (!supabase) return
-  const { error } = await supabase.auth.signOut()
+  const { error } = await withTimeout(
+    supabase.auth.signOut(),
+    authRequestTimeoutMs,
+    'Sign-out took too long. Reset the local session to continue.',
+  )
   if (error) throw new Error(error.message)
 }
 
@@ -74,6 +94,15 @@ export function subscribeToCrmAuth(callback: (session: Session | null) => void) 
   if (!supabase) return () => undefined
   const { data } = supabase.auth.onAuthStateChange((_event, session) => callback(session))
   return () => data.subscription.unsubscribe()
+}
+
+export function clearLocalCrmSession() {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.removeItem('stu-nexus-auth')
+  } catch {
+    // Storage may be blocked by the browser; recovery still reloads the app.
+  }
 }
 
 export { hasSupabaseConfig }

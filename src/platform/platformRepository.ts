@@ -1,4 +1,5 @@
 import { supabase } from '../utils/supabase'
+import { withTimeout } from '../utils/async'
 import type { Json, Tables } from '../types/database.generated'
 import type {
   AssessmentAttemptResult, AssessmentOption, AssessmentQuestion, ChatMessage, ChatThread,
@@ -28,7 +29,11 @@ function shortDate(value: string | null) {
 
 export async function loadPlatformData(): Promise<PlatformData> {
   const client = requireClient()
-  const { data: authData, error: authError } = await client.auth.getUser()
+  const { data: authData, error: authError } = await withTimeout(
+    client.auth.getUser(),
+    12_000,
+    'Session verification took too long. Check the connection and try again.',
+  )
   if (authError || !authData.user) throw new Error('An authenticated STU Nexus session is required.')
 
   const [
@@ -36,26 +41,30 @@ export async function loadPlatformData(): Promise<PlatformData> {
     coursesResult, sectionsResult, enrollmentsResult, topicsResult, assessmentsResult,
     questionsResult, optionsResult, gradeItemsResult, gradesResult, scheduleResult,
     announcementsResult, threadsResult,
-  ] = await Promise.all([
-    client.from('role_definitions').select('*').order('hierarchy_level', { ascending: false }),
-    client.from('profiles').select('*').order('full_name'),
-    client.from('students').select('*').order('full_name'),
-    client.from('departments').select('*').order('name'),
-    client.from('academic_programs').select('*').order('name'),
-    client.from('academic_terms').select('*').order('starts_on', { ascending: false }),
-    client.from('courses').select('*').order('code'),
-    client.from('course_sections').select('*').order('section_code'),
-    client.from('section_enrollments').select('*'),
-    client.from('course_topics').select('*').order('position'),
-    client.from('assessments').select('*').order('due_at'),
-    client.from('assessment_questions').select('*').order('position'),
-    client.from('assessment_options').select('*').order('position'),
-    client.from('grade_items').select('*').order('due_at'),
-    client.from('grades').select('*').order('updated_at', { ascending: false }),
-    client.from('schedule_events').select('*').order('starts_at'),
-    client.from('announcements').select('*').order('published_at', { ascending: false }),
-    client.from('chat_threads').select('*').order('updated_at', { ascending: false }),
-  ])
+  ] = await withTimeout(
+    Promise.all([
+      client.from('role_definitions').select('*').order('hierarchy_level', { ascending: false }),
+      client.from('profiles').select('*').order('full_name'),
+      client.from('students').select('*').order('full_name'),
+      client.from('departments').select('*').order('name'),
+      client.from('academic_programs').select('*').order('name'),
+      client.from('academic_terms').select('*').order('starts_on', { ascending: false }),
+      client.from('courses').select('*').order('code'),
+      client.from('course_sections').select('*').order('section_code'),
+      client.from('section_enrollments').select('*'),
+      client.from('course_topics').select('*').order('position'),
+      client.from('assessments').select('*').order('due_at'),
+      client.from('assessment_questions').select('*').order('position'),
+      client.from('assessment_options').select('*').order('position'),
+      client.from('grade_items').select('*').order('due_at'),
+      client.from('grades').select('*').order('updated_at', { ascending: false }),
+      client.from('schedule_events').select('*').order('starts_at'),
+      client.from('announcements').select('*').order('published_at', { ascending: false }),
+      client.from('chat_threads').select('*').order('updated_at', { ascending: false }),
+    ]),
+    20_000,
+    'The school workspace took too long to load. Check the connection and try again.',
+  )
 
   const roleRows = rows(rolesResult, 'Roles')
   const profileRows = rows(profilesResult, 'People')

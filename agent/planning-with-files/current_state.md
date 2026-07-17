@@ -1,5 +1,7 @@
 # Current State
 
+GitHub issue #16 is active for a user-reported blank green screen. Vercel and every deployed bundle are healthy; the failure path was the empty server-rendered root over a green body when client JavaScript was delayed, blocked, or failed before mounting. The fix now guarantees useful dependency-free boot content, a ten-second stalled-load action, global lazy-chunk/render recovery, bounded Auth/data startup, and local-session reset. Local contracts, lint, production build, root/CRM preview probes, and Vercel production compilation pass; preview and production release verification remain.
+
 GitHub issue #15 now has a complete production identity for every canonical STU Nexus role: 14 confirmed Auth accounts, 14 synchronized trusted/profile roles, and exactly one protected owner. All unique generated passwords are restricted to the local macOS keychain for `www.stu.best`. The owner-only `provision-role-account` Edge Function is live for non-owner account creation and credential rotation, and its student denial boundary is verified.
 
 Every account passed a real password login plus trusted Auth-role and self-profile authorization check. The credential-safe test is `npm run test:live-accounts`, and the sign-in email directory is `src/platform/ROLE_ACCOUNTS.md`. API tests, lint, production build, migration verification, and Supabase advisors pass with only the pre-existing intentional trusted-workflow notices, leaked-password dashboard notice, and low-volume unused-index information.

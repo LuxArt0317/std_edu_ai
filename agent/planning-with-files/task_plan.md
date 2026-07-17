@@ -1,5 +1,33 @@
 # Task Plan
 
+## Phase 9: Blank-screen production recovery [Issue #16]
+
+### Incident diagnosis
+
+- verify the current Vercel production deployment, HTML entry, JavaScript/CSS assets, and runtime logs
+- trace the React bootstrap, route selection, lazy CRM import, Supabase session restoration, and initial data-loading paths for render-blocking failures
+- reproduce the failure or prove each startup boundary with terminal-driven checks that comply with the repository's no-browser rule
+
+### Resilient rendering
+
+- guarantee visible branded boot content before JavaScript loads and a recoverable application error boundary after React starts
+- ensure authentication and CRM data failures resolve to actionable UI rather than an indefinite or empty green shell
+- preserve the complete role-aware portal and database authorization model
+
+### Production verification
+
+- add regression coverage for boot, route, error, and recovery behavior
+- pass tests, lint, production build, asset inspection, Vercel compilation, and deployed root/CRM/API checks
+- synchronize documentation, GitHub issue state, changelog, persistent planning state, and the production release
+
+## Current execution
+
+- GitHub issue #16 created
+- confirmed Vercel is Ready with no server runtime errors and every current entry/lazy asset returns HTTP 200
+- identified the deterministic blank-screen path: deployed HTML had an empty root over the dark-green body, no global render/chunk boundary, and unbounded Auth/data startup
+- implemented dependency-free boot/stall recovery, React lazy/render recovery, bounded Supabase startup, and device-local session reset
+- 15 API/boot contracts, lint, TypeScript/Vite production build, local root/CRM boot-shell probes, and `vercel build --prod` pass
+
 ## Phase 8: Production account for every school role [Issue #15]
 
 ### Secure provisioning

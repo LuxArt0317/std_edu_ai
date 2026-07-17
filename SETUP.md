@@ -72,6 +72,7 @@ npm run test:live-school
 npm run test:live-crm
 npm run test:live-roles
 npm run test:live-accounts
+npm run test:live-shell
 npm run test:live-ai
 ```
 
@@ -79,11 +80,19 @@ The `test:live-*` commands require the existing ignored local environment values
 
 Open `http://localhost:5173/crm` during local development to use STU Nexus.
 
+## Portal Recovery
+
+The HTML entry shows a branded boot shell before any application bundle runs. After ten seconds without a successful React mount it changes to an explicit reload message, so missing or blocked JavaScript cannot appear as an empty green screen. React render and lazy-chunk failures show a separate recovery card.
+
+Supabase session restoration, identity validation, sign-in, sign-out, and initial school-data loading all have finite timeouts. If a device has a stale or locked saved session, use **Start with a clean local session** on the loading screen or **Reset this device's saved session** on the sign-in card. This removes only the browser's `stu-nexus-auth` value; it does not delete the Supabase account or school data.
+
 ## Preview Production Build
 
 ```bash
 npm run preview
 ```
+
+The preview HTML for both `/` and `/crm` must contain `data-stu-boot` before release. `npm test` enforces this contract automatically.
 
 ## Deploy to Vercel
 

@@ -11,6 +11,7 @@ It demonstrates:
 - a non-disruptive floating AI assistant for natural-language campus questions
 - a production Supabase Auth and Postgres backend with browser-safe publishable credentials and database-enforced authorization
 - a deterministic Vercel deployment using Node.js 22, the npm lockfile, explicit Vite output settings, and SPA route fallback
+- resilient client boot with dependency-free initial content, lazy-route/render recovery, and finite authentication and school-data startup
 - a premium `/crm` school OS with distinct owner, leadership, administrator, teacher, specialist-staff, and student experiences
 - a protected owner tier for `winsonbaring10@gmail.com`, safe role preview, audited role assignment, and immutable owner guarantees
 - one confirmed production acceptance identity for every canonical role, with owner-only Auth provisioning and Keychain-only generated credentials

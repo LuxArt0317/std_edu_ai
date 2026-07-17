@@ -23,6 +23,8 @@
 - hosted self-signup is constrained by email-delivery rate limits and is not an appropriate administrative provisioning workflow for a complete role directory
 - an owner-authorized Edge Function backed by the Auth Admin API provides an idempotent creation/rotation boundary while keeping the service role server-only and excluding second-owner creation
 - acceptance testing is strongest when every canonical role has a real confirmed identity and the verifier checks both the fresh Auth claim and the RLS-visible profile role
+- a healthy Vercel deployment can still show an empty green screen when its HTML ships an empty React root and the entry or lazy route fails before mounting; useful pre-JavaScript content is a separate production requirement
+- client error recovery must cover the entry-before-mount path, React/lazy-chunk failures, stalled authentication, stalled multi-query data loading, and corrupted or locked device-local session state
 
 - the live homepage is WordPress 7.0.1 using Elementor 3.35 and exposes its page-243 styling inline
 - the current desktop hero is 800px tall, uses three 5-second slides, and overlays the centered logo/navigation with a dark green gradient

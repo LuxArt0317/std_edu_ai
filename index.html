@@ -9,10 +9,37 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" />
+    <style>
+      .stu-boot{min-height:100vh;display:grid;place-items:center;padding:28px;color:#173f35;background:radial-gradient(circle at 14% 14%,rgba(78,190,165,.2),transparent 30%),radial-gradient(circle at 88% 84%,rgba(30,107,89,.17),transparent 31%),linear-gradient(135deg,#eef7f4,#f8fbfa 55%,#e7f2ef);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.stu-boot-card{width:min(460px,100%);padding:38px;border:1px solid rgba(45,126,107,.18);border-radius:24px;background:rgba(255,255,255,.94);box-shadow:0 28px 80px rgba(18,72,59,.16);text-align:center}.stu-boot-mark{width:68px;height:68px;display:grid;place-items:center;margin:0 auto 20px;border-radius:20px;color:#fff;background:linear-gradient(135deg,#174b3f,#2e9f87);font:32px Georgia,serif;box-shadow:0 15px 40px rgba(25,89,74,.2);animation:stu-boot-pulse 1.5s infinite ease-in-out}.stu-boot-kicker{margin:0 0 9px;color:#249078;font-size:10px;font-weight:850;letter-spacing:.16em}.stu-boot h1{margin:0;font:500 clamp(30px,7vw,42px)/1.05 Georgia,serif;letter-spacing:-.035em}.stu-boot-status{min-height:44px;margin:13px auto 22px;color:#71857f;font-size:13px;line-height:1.65}.stu-boot-progress{height:4px;overflow:hidden;border-radius:99px;background:#e0ece9}.stu-boot-progress i{display:block;width:42%;height:100%;border-radius:inherit;background:linear-gradient(90deg,#2ca98d,#7bdec9);animation:stu-boot-slide 1.4s infinite ease-in-out}.stu-boot-actions{display:flex;justify-content:center;gap:9px;margin-top:22px}.stu-boot-actions a{padding:10px 14px;border:1px solid #cfe0dc;border-radius:10px;color:#315b50;background:#fff;font-size:11px;font-weight:750;text-decoration:none}.stu-boot-actions a:first-child{color:#fff;border-color:#1d745f;background:#1d745f}.stu-boot.stalled .stu-boot-progress i{width:100%;animation:none;background:#e09b5f}@keyframes stu-boot-pulse{50%{transform:translateY(-5px);box-shadow:0 21px 45px rgba(25,89,74,.15)}}@keyframes stu-boot-slide{0%{transform:translateX(-110%)}100%{transform:translateX(350%)}}@media(max-width:520px){.stu-boot{padding:16px}.stu-boot-card{padding:30px 22px}.stu-boot-actions{flex-direction:column}.stu-boot-actions a{display:block}}
+    </style>
     <title>樹德科技大學 – 愛上宜學、宜居、宜行、宜樂的山水校園</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main class="stu-boot" data-stu-boot role="status" aria-live="polite">
+        <section class="stu-boot-card">
+          <div class="stu-boot-mark" aria-hidden="true">樹</div>
+          <p class="stu-boot-kicker">STU NEXUS · SECURE SCHOOL WORKSPACE</p>
+          <h1>Opening your workspace</h1>
+          <p class="stu-boot-status" data-stu-boot-status>Loading the latest school portal and restoring your secure session…</p>
+          <div class="stu-boot-progress" aria-hidden="true"><i></i></div>
+          <div class="stu-boot-actions">
+            <a href="/crm">Reload the portal</a>
+            <a href="/">Open university homepage</a>
+          </div>
+          <noscript><p class="stu-boot-status">JavaScript is required to use STU Nexus. Enable it, then reload this page.</p></noscript>
+        </section>
+      </main>
+    </div>
+    <script>
+      window.setTimeout(function () {
+        var boot = document.querySelector('[data-stu-boot]')
+        var status = document.querySelector('[data-stu-boot-status]')
+        if (!boot || !status) return
+        boot.classList.add('stalled')
+        status.textContent = 'The portal is taking longer than expected. Reload to fetch the latest version, or open the university homepage.'
+      }, 10000)
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

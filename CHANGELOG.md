@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- replaced the empty pre-JavaScript root with a branded boot and stalled-load recovery shell so blocked or delayed bundles never produce a blank green screen
+- added a global React error boundary for render and lazy-chunk failures with latest-version reload and local-session reset actions
+- bounded Supabase session, identity, sign-in, sign-out, and multi-query portal startup so network or cached-session failures resolve to actionable UI
+- added regression coverage for the static boot contract, lazy-route recovery, startup timeouts, and session-reset path
+
 - provisioned one confirmed production Auth identity for each of the 14 canonical school roles, with unique credentials stored only in the macOS keychain
 - added an owner-only Supabase Edge Function for validated non-owner account creation and credential rotation through the server-side Auth Admin API
 - added an atomic role-directory synchronization migration plus credential-safe live verification of every Auth claim and profile role

@@ -1,5 +1,14 @@
 # Progress Log
 
+2026-07-17 — Blank-screen production recovery [Issue #16]
+
+- created the GitHub production-incident issue and mapped deployment diagnosis, resilient rendering, regression verification, and release work into the monolithic task plan
+- began tracing the deployed entry point, client bootstrap, lazy CRM route, Supabase session restoration, and data-loading boundaries without browser tooling
+- confirmed the production deployment and entry, CSS, public, and CRM chunks are healthy; Vercel has no server runtime error cluster
+- identified the blank green screen as the empty pre-JavaScript root plus missing render/chunk recovery and unbounded Auth/data startup
+- added branded dependency-free boot/stall content, a global React recovery boundary, finite Supabase timeouts, and device-local session reset controls
+- added static, timeout, session-recovery, and live deployment-shell coverage; 15 tests, lint, production build, local root/CRM probes, and `vercel build --prod` pass
+
 2026-07-17 — Production account for every school role [Issue #15]
 
 - created the GitHub issue and mapped the secure provisioning, trusted role synchronization, verification, documentation, and release work into the monolithic task plan
