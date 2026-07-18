@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a release-blocking `needed.md` catalog verifier that maps every action to implementation evidence and names unresolved governed workflows precisely.
+
 - added controlled student withdrawal and record merging, program archival guards, reasoned enrollment transitions, and teacher return/void submission actions with immutable before/after evidence
 - fixed department status values to match the production active/inactive contract and removed direct program deactivation from the ordinary editor
 

@@ -2,6 +2,9 @@
 
 # Active implementation: Issue #48
 
+- The normal test path now begins with `scripts/verify-needed-catalog.mjs`, which parses all actionable `needed.md` bullets and verifies their domain evidence anchors.
+- The verifier currently fails intentionally on seven confirmed implementation gaps: first-login password change, account email/phone completion, accepted-applicant conversion and Registrar handoff, sensitive-case access evidence, bulk campaign approval/delivery, and explicit permanent-deletion denial. These are the next production slices; Issue #48 is not complete.
+
 - Controlled student withdrawal/merge, program archival, enrollment completion/status changes, and submission return/void are deployed in production Supabase and wired into Academic Office and Teacher Studio with reasoned immutable evidence.
 - Notifications and approved communications are now implemented in production Supabase and the portal: recipient-only notices, read state, student-to-authorized-staff requests, support/admin approval or rejection, delivery, and immutable action evidence.
 - `.codex/hooks.json` now loads the unfinished Phase 48 contract on session start/resume and runs a Stop guard before handoff. The guard currently reports four remaining completion gates and cannot be satisfied by prose alone; each plan checkbox still requires production evidence.
