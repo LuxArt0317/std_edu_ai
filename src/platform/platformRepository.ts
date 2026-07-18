@@ -367,6 +367,9 @@ export async function loadPlatformData(): Promise<PlatformData> {
       preferredName: student.preferred_name ?? "",
       phone: student.phone ?? "",
       advisorId: student.advisor_id,
+      recordStatus: student.record_status as "active" | "withdrawn" | "graduated" | "merged" | "archived",
+      statusReason: student.status_reason ?? "",
+      mergedIntoId: student.merged_into_id,
     })),
     departments: departmentRows.map((department) => ({
       id: department.id,
@@ -642,6 +645,12 @@ export async function decideCommunicationRequest(input: { requestId: string; app
   const { error } = await client.rpc("decide_communication_request", { p_request_id: input.requestId, p_approve: input.approve, p_reason: clean(input.reason,"Decision reason",1000) });
   if (error) throw new Error(error.message);
 }
+
+export async function withdrawStudentRecord(studentId: string, reason: string) { const { error } = await requireClient().rpc("withdraw_student_record", { p_student_id: studentId, p_reason: clean(reason,"Withdrawal reason",1000) }); if (error) throw new Error(error.message); }
+export async function mergeStudentRecords(sourceId: string, targetId: string, reason: string) { const { error } = await requireClient().rpc("merge_student_records", { p_source_id: sourceId, p_target_id: targetId, p_reason: clean(reason,"Merge reason",1000) }); if (error) throw new Error(error.message); }
+export async function archiveAcademicProgram(programId: string, reason: string) { const { error } = await requireClient().rpc("archive_academic_program", { p_program_id: programId, p_reason: clean(reason,"Archive reason",1000) }); if (error) throw new Error(error.message); }
+export async function transitionEnrollment(enrollmentId: string, status: "waitlisted" | "enrolled" | "dropped" | "completed", reason: string) { const { error } = await requireClient().rpc("transition_enrollment", { p_enrollment_id: enrollmentId, p_status: status, p_reason: clean(reason,"Enrollment transition reason",1000) }); if (error) throw new Error(error.message); }
+export async function transitionAssignmentSubmission(submissionId: string, action: "return" | "void", reason: string) { const { error } = await requireClient().rpc("transition_assignment_submission", { p_submission_id: submissionId, p_action: action, p_reason: clean(reason,"Submission transition reason",1000) }); if (error) throw new Error(error.message); }
 
 export async function submitAssessment(
   assessmentId: string,

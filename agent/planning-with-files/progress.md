@@ -49,3 +49,9 @@
 - Applied the production communication migration with participant RLS, staff approval, recipient-only notification delivery, and immutable controlled audit evidence.
 - Added the portal notification center, live unread count, read/unread actions, approved contact form, and support/admin decision queue.
 - Generated current production database types; TypeScript and Supabase advisor checks pass with no missing foreign-key indexes or duplicate permissive policies.
+
+## 2026-07-18 — Controlled institutional records
+
+- Applied production commands for student withdrawal, student record merge lineage, guarded program archival, reasoned enrollment transitions, and submission return/void.
+- Added visible Registrar and Teacher controls for each transition and removed direct program deactivation from ordinary CRUD.
+- All commands require fresh role authorization and a reason and write immutable before/after controlled-action evidence.

@@ -30,6 +30,7 @@ import {
   deleteLearningMaterialPage,
   requestAttendanceCorrection,
   decideAttendanceCorrection,
+  transitionAssignmentSubmission,
 } from "./platformRepository";
 import type {
   Announcement,
@@ -528,6 +529,8 @@ export function TeacherLmsStudio({
                         ? `${submission.score} pts · Edit`
                         : "Grade work"}
                     </button>
+                    {submission.status !== "returned" && submission.status !== "voided" ? <button type="button" onClick={() => {const reason=window.prompt("Return-for-revision reason (at least 12 characters)");if(reason) void perform(() => transitionAssignmentSubmission(submission.id,"return",reason),"Submission returned for revision with audit evidence.");}}>Return for revision</button> : null}
+                    {submission.status !== "voided" ? <button type="button" onClick={() => {const reason=window.prompt("Void reason (at least 12 characters)");if(reason) void perform(() => transitionAssignmentSubmission(submission.id,"void",reason),"Submission voided with audit evidence.");}}>Void submission</button> : null}
                   </article>
                 );
               })}

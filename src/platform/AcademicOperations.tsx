@@ -19,6 +19,10 @@ import {
   updateScheduleEvent,
   updateStudentRecord,
   closeAcademicTerm,
+  withdrawStudentRecord,
+  mergeStudentRecords,
+  archiveAcademicProgram,
+  transitionEnrollment,
 } from "./platformRepository";
 import type {
   PlatformData,
@@ -458,12 +462,7 @@ export function AcademicOperations({
                     </small>
                   </span>
                   {academicManagers.has(role) ? (
-                    <button
-                      type="button"
-                      onClick={() => openEdit("program", program.id)}
-                    >
-                      Edit
-                    </button>
+                    <span className="academic-row-actions"><button type="button" onClick={() => openEdit("program", program.id)}>Edit</button>{program.status !== "inactive" ? <button type="button" onClick={() => {const reason=window.prompt("Program archival reason (at least 12 characters)");if(reason) void perform(() => archiveAcademicProgram(program.id,reason),"Program archived with immutable evidence.");}}>Archive</button> : null}</span>
                   ) : null}
                 </div>
               ))}
@@ -523,18 +522,10 @@ export function AcademicOperations({
               <span>{student.program}</span>
               <span>{student.yearLevel}</span>
               <span className={student.profileId ? "status-ok" : "status-warn"}>
-                {student.profileId ? "Connected" : "SIS only"}
+                {student.recordStatus} · {student.profileId ? "Connected" : "SIS only"}
               </span>
               {registrarRoles.has(role) ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingId(student.id);
-                    setModal("student");
-                  }}
-                >
-                  Edit
-                </button>
+                <span className="academic-row-actions"><button type="button" onClick={() => {setEditingId(student.id);setModal("student");}}>Edit</button>{student.recordStatus === "active" ? <button type="button" onClick={() => {const reason=window.prompt("Withdrawal reason (at least 12 characters)");if(reason) void perform(() => withdrawStudentRecord(student.id,reason),"Student withdrawn and active enrollments dropped.");}}>Withdraw</button> : null}{student.recordStatus === "active" ? <button type="button" onClick={() => {const targetNumber=window.prompt(`Target student number for merging ${student.studentNumber}`);if(!targetNumber)return;const target=data.students.find((item) => item.studentNumber.toLowerCase()===targetNumber.trim().toLowerCase());if(!target){onToast("No student matches that student number.");return;}const reason=window.prompt("Merge reason (at least 12 characters)");if(reason) void perform(() => mergeStudentRecords(student.id,target.id,reason),"Student records merged with history preserved.");}}>Merge</button> : null}</span>
               ) : null}
             </div>
           ))}
@@ -721,15 +712,7 @@ export function AcademicOperations({
                       value={enrollment.status}
                       disabled={busy}
                       onChange={(event) =>
-                        void perform(
-                          () =>
-                            manageSectionEnrollment(
-                              selectedSectionId,
-                              student!.id,
-                              event.target.value,
-                            ),
-                          `Enrollment changed to ${event.target.value}.`,
-                        )
+                        (() => { const status=event.target.value as "waitlisted"|"enrolled"|"dropped"|"completed"; const reason=window.prompt(`Reason for changing enrollment to ${status} (at least 12 characters)`); if(!reason){event.target.value=enrollment.status;return;} void perform(() => transitionEnrollment(enrollment.id,status,reason),`Enrollment changed to ${status} with audit evidence.`); })()
                       }
                     >
                       <option value="enrolled">Enrolled</option>
@@ -979,7 +962,7 @@ export function AcademicOperations({
               <Field label="Status">
                 <select name="status" defaultValue={editingDepartment.status}>
                   <option value="active">Active</option>
-                  <option value="archived">Archived</option>
+                  <option value="inactive">Inactive</option>
                 </select>
               </Field>
             ) : null}
@@ -1014,7 +997,7 @@ export function AcademicOperations({
                   return editingProgram
                     ? updateProgram(editingProgram.id, {
                         ...values,
-                        status: String(f.get("status")),
+                        status: editingProgram.status,
                       })
                     : createProgram(values);
                 },
@@ -1085,14 +1068,7 @@ export function AcademicOperations({
                 defaultValue={editingProgram?.description}
               />
             </Field>
-            {editingProgram ? (
-              <Field label="Status">
-                <select name="status" defaultValue={editingProgram.status}>
-                  <option value="active">Active</option>
-                  <option value="archived">Archived</option>
-                </select>
-              </Field>
-            ) : null}
+            {editingProgram ? <p className="academic-controlled-note">Status: <strong>{editingProgram.status}</strong>. Use the audited Archive control in the program list to make a program inactive.</p> : null}
           </ActionForm>
         </Modal>
       ) : null}

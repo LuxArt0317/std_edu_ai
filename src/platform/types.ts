@@ -308,6 +308,9 @@ export type PlatformStudent = {
   preferredName: string;
   phone: string;
   advisorId: string | null;
+  recordStatus: "active" | "withdrawn" | "graduated" | "merged" | "archived";
+  statusReason: string;
+  mergedIntoId: string | null;
 };
 
 export type AcademicTerm = {

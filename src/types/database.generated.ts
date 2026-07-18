@@ -2618,14 +2618,18 @@ export type Database = {
           gpa: number
           id: string
           last_contact_at: string | null
+          merged_into_id: string | null
           next_best_action: string | null
           outstanding_balance: number
           phone: string | null
           preferred_name: string | null
           profile_id: string | null
           program: string
+          record_status: string
           risk_level: string
           risk_score: number
+          status_changed_at: string | null
+          status_reason: string | null
           student_number: string
           tags: string[]
           updated_at: string
@@ -2641,14 +2645,18 @@ export type Database = {
           gpa?: number
           id?: string
           last_contact_at?: string | null
+          merged_into_id?: string | null
           next_best_action?: string | null
           outstanding_balance?: number
           phone?: string | null
           preferred_name?: string | null
           profile_id?: string | null
           program: string
+          record_status?: string
           risk_level?: string
           risk_score?: number
+          status_changed_at?: string | null
+          status_reason?: string | null
           student_number: string
           tags?: string[]
           updated_at?: string
@@ -2664,14 +2672,18 @@ export type Database = {
           gpa?: number
           id?: string
           last_contact_at?: string | null
+          merged_into_id?: string | null
           next_best_action?: string | null
           outstanding_balance?: number
           phone?: string | null
           preferred_name?: string | null
           profile_id?: string | null
           program?: string
+          record_status?: string
           risk_level?: string
           risk_score?: number
+          status_changed_at?: string | null
+          status_reason?: string | null
           student_number?: string
           tags?: string[]
           updated_at?: string
@@ -2683,6 +2695,20 @@ export type Database = {
             columns: ["advisor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "students_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "student_success_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "students_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "students"
             referencedColumns: ["id"]
           },
           {
@@ -2721,6 +2747,27 @@ export type Database = {
         Returns: {
           saved_count: number
         }[]
+      }
+      archive_academic_program: {
+        Args: { p_program_id: string; p_reason: string }
+        Returns: {
+          code: string
+          created_at: string
+          department_id: string
+          description: string
+          duration_years: number
+          id: string
+          level: string
+          name: string
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "academic_programs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       assign_platform_role: {
         Args: { p_new_role: string; p_profile_id: string; p_reason: string }
@@ -2848,6 +2895,42 @@ export type Database = {
           status: string
         }[]
       }
+      merge_student_records: {
+        Args: { p_reason: string; p_source_id: string; p_target_id: string }
+        Returns: {
+          advisor_id: string | null
+          attendance_percent: number
+          created_at: string
+          email: string | null
+          engagement_score: number
+          full_name: string
+          gpa: number
+          id: string
+          last_contact_at: string | null
+          merged_into_id: string | null
+          next_best_action: string | null
+          outstanding_balance: number
+          phone: string | null
+          preferred_name: string | null
+          profile_id: string | null
+          program: string
+          record_status: string
+          risk_level: string
+          risk_score: number
+          status_changed_at: string | null
+          status_reason: string | null
+          student_number: string
+          tags: string[]
+          updated_at: string
+          year_level: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "students"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       publish_final_grade: {
         Args: { p_grade_id: string; p_reason: string }
         Returns: {
@@ -2888,6 +2971,48 @@ export type Database = {
           status: string
         }[]
       }
+      transition_assignment_submission: {
+        Args: { p_action: string; p_reason: string; p_submission_id: string }
+        Returns: {
+          assessment_id: string
+          created_at: string
+          feedback: string
+          graded_at: string | null
+          graded_by: string | null
+          id: string
+          score: number | null
+          status: string
+          storage_path: string | null
+          student_profile_id: string
+          submission_text: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "assignment_submissions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      transition_enrollment: {
+        Args: { p_enrollment_id: string; p_reason: string; p_status: string }
+        Returns: {
+          completed_at: string | null
+          enrolled_at: string
+          id: string
+          section_id: string
+          status: string
+          student_id: string | null
+          student_profile_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "section_enrollments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       update_lms_assessment: {
         Args: {
           p_assessment_id: string
@@ -2900,6 +3025,42 @@ export type Database = {
           p_type: string
         }
         Returns: string
+      }
+      withdraw_student_record: {
+        Args: { p_reason: string; p_student_id: string }
+        Returns: {
+          advisor_id: string | null
+          attendance_percent: number
+          created_at: string
+          email: string | null
+          engagement_score: number
+          full_name: string
+          gpa: number
+          id: string
+          last_contact_at: string | null
+          merged_into_id: string | null
+          next_best_action: string | null
+          outstanding_balance: number
+          phone: string | null
+          preferred_name: string | null
+          profile_id: string | null
+          program: string
+          record_status: string
+          risk_level: string
+          risk_score: number
+          status_changed_at: string | null
+          status_reason: string | null
+          student_number: string
+          tags: string[]
+          updated_at: string
+          year_level: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "students"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {
