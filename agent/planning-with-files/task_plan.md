@@ -6,7 +6,7 @@
 - [x] implement a rich contribution workflow that links visible calendar events and routes non-publishers through review
 - [x] give Nexus a consistent profile/avatar and top-aligned reply identity
 - [x] repair assessment answer indexing and reject unchanged proposals after Request changes
-- [ ] verify database policies, action retries, tests/build, review, deploy, and production behavior
+- [x] verify database policies, action retries, tests/build, review, deploy, and production behavior
 
 ## Phase 84: Unified role-aware school calendar [Issue #84]
 

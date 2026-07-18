@@ -5,6 +5,7 @@
 - Added governed rich-text knowledge contributions sourced from staff expertise or linked personal, class, and whole-campus events, with institution/role/class/staff audiences and contributor/reviewer provenance.
 - Added RLS-enforced contributor submission and owner/administrator/librarian verification, production indexes, and verified-knowledge grounding for Nexus.
 - Added a consistent Nexus profile avatar and reply identity, corrected quiz answers to the database's one-based choice contract, and forced genuine parameter changes after rejected proposals.
+- Released through PR #87 as `f887c10`; Vercel production is Ready and the custom-domain recursive asset graph serves all governed-knowledge and Nexus-correction markers.
 
 - Added a role-aware unified school calendar with month, week, and agenda views, filters, event details, and existing conflict-safe schedule CRUD.
 - Composed personal, class, assessment, attendance, learning-release, standalone-grade, institutional, enrollment, and academic-term dates without duplicating their authoritative records.

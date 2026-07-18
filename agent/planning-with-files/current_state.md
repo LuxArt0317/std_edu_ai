@@ -245,4 +245,4 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - RLS permits authorized staff contributions, routes non-publishers through review, and reserves verification/publication for platform owners, administrators, and librarians. Nexus receives only verified RLS-visible knowledge.
 - Nexus quiz actions now use the database's one-based answer positions, corrections must change the semantic proposal, execution errors become retry observations, and replies use a consistent profile identity.
 - Both production Supabase migrations are applied. Security advisors report no knowledge-specific finding; covering indexes resolve the new foreign-key performance findings.
-- All 89 contracts, lint, TypeScript, Vite build, asset verification, and live Nexus quiz correction checks pass. GitHub review and production deployment remain.
+- All 89 contracts, lint, TypeScript, Vite build, asset verification, and live Nexus quiz correction checks pass. PR #87 merged as `f887c10`; Vercel production is Ready and the custom-domain recursive asset graph serves every released knowledge, avatar, and correction marker.
