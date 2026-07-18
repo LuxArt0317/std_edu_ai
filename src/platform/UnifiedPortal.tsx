@@ -3129,10 +3129,20 @@ function SchoolAssistant({
             rows={3}
             value={message}
             onChange={(event) => setMessage(event.target.value)}
+            onKeyDown={(event) => {
+              if (
+                event.key !== "Enter" ||
+                event.shiftKey ||
+                event.nativeEvent.isComposing
+              )
+                return;
+              event.preventDefault();
+              event.currentTarget.form?.requestSubmit();
+            }}
             placeholder="Message Nexus AI…"
           />
           <div>
-            <span>No passwords or sensitive unnecessary data</span>
+            <span>Enter to send · Shift+Enter for a new line</span>
             <button type="submit" disabled={loading || !message.trim()}>
               Send →
             </button>

@@ -1,5 +1,11 @@
 # Task Plan
 
+## Phase 66: Nexus Enter-to-send [Issue #66]
+
+- [x] submit non-composing Enter through the existing Nexus form while preserving Shift+Enter newlines
+- [x] add regression coverage and visible keyboard guidance
+- [ ] pass verification, review, deployment, and custom-domain diagnostics
+
 ## Phase 64: Owner Nexus authorization and stable background tabs [Issue #64]
 
 - [x] separate trusted actor authorization from the owner's interface-preview role

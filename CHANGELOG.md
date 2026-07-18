@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- added Enter-to-send to the Nexus composer while preserving Shift+Enter multiline input, IME composition, existing loading protection, and form validation
+
 - fixed protected-owner Nexus confirmations by authorizing client actions with the trusted signed-in role instead of the optional interface-preview role
 - stopped repeated same-user `SIGNED_IN` and `TOKEN_REFRESHED` events from remounting the authenticated portal or showing a blocking loader after command-tab/browser visibility changes, while preserving sign-out, recovery, user-update, and account-change handling
 - added stable-session and owner-role regression contracts plus live protected-owner curriculum generation coverage

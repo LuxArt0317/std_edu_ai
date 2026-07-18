@@ -174,3 +174,8 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - Repeated same-owner token refresh/sign-in events preserve the mounted portal and never enter the blocking identity-loading state. Genuine sign-out, recovery, user updates, and account changes still propagate.
 - The protected production owner claim is verified, live OpenAI generated 40 curriculum subjects and eight blocks for that owner, and all 60 contracts, lint, TypeScript, Vite build, and asset verification pass.
 - PR #65 passed CodeRabbit/Vercel, merged as `72639bc`, and deployed Ready as `dpl_3tzKLuQzpoqeWk9bTDDWShtdUNFU`. Both custom domains pass recursive assets and the released stable-auth markers. Issue #64 is complete.
+
+# Active release: Issue #66 Nexus Enter-to-send
+
+- Nexus submits the existing form on non-composing Enter, retains Shift+Enter for new lines, and displays the shortcut beside the send control.
+- All 61 contracts, lint, TypeScript, Vite build, and asset verification pass. GitHub review and production release remain.

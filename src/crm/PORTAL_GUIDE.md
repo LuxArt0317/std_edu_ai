@@ -96,6 +96,8 @@ Nexus AI is a persistent, role-aware school chatbot. Depending on the user's vis
 
 Conversation threads and messages are saved in Supabase for their owner. Only bounded, privacy-minimized context is sent to OpenAI. The endpoint authenticates the Supabase bearer token, derives the trusted role from Auth metadata, applies rate limits, requests structured output, and disables provider-side response storage. People remain responsible for decisions and communications.
 
+In the Nexus composer, Enter sends the current message and Shift+Enter inserts a new line. Input-method composition is allowed to finish before submission.
+
 For an actionable request, Nexus creates a visible goal and works through one authorized step at a time. It observes the real portal result after each step and continues until complete. Navigation can happen automatically; every database change stops on a review card and requires confirmation. A user can cancel at any point. Nexus stops with a clear explanation when the goal is unauthorized, unsupported, stale, repeatedly makes no progress, exceeds eight steps, or runs longer than five minutes.
 
 Authorized academic leaders can request a complete degree curriculum in ordinary language. Nexus prepares all years, semesters, subjects, units, prerequisite relationships, and yearly block sections, then shows the full plan for confirmation. One confirmed action saves the draft atomically; an invalid subject or prerequisite saves nothing. The plan appears in Academic Office → Curricula and remains subject to formal curriculum review and approval.
