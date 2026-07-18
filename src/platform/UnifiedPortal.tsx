@@ -96,6 +96,7 @@ import type {
   SchoolCourse,
 } from "./types";
 import { AcademicOperations, ScheduleOperations } from "./AcademicOperations";
+import { buildUnifiedCalendar, type UnifiedCalendarEvent } from "./schoolCalendar";
 import { StudentLmsLearning, TeacherLmsStudio } from "./LmsWorkspace";
 import { RichTextContent, RichTextEditor } from "./RichTextEditor";
 import "./platform.css";
@@ -1682,25 +1683,31 @@ function ScheduleView({
   onChanged: () => void;
   onToast: (message: string) => void;
 }) {
-  const grouped = useMemo(
-    () =>
-      [...data.schedule].sort((left, right) =>
-        Number(right.sectionId === initialSectionId) - Number(left.sectionId === initialSectionId))
-      .reduce<Record<string, typeof data.schedule>>(
-        (result, event) => {
-          const key = new Intl.DateTimeFormat("en", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-          }).format(new Date(event.startsAt));
-          (result[key] ??= []).push(event);
-          return result;
-        },
-        {},
-      ),
-    [data.schedule, initialSectionId],
-  );
+  const [calendarMode, setCalendarMode] = useState<"month" | "week" | "agenda">("month");
+  const [anchorDate, setAnchorDate] = useState(() => new Date());
+  const [category, setCategory] = useState("all");
+  const [selectedEvent, setSelectedEvent] = useState<UnifiedCalendarEvent | null>(null);
+  const allEvents = useMemo(() => buildUnifiedCalendar(data, currentUser), [currentUser, data]);
+  const filteredEvents = useMemo(() => allEvents.filter((event) => category === "all" || event.category === category), [allEvents, category]);
+  const monthStart = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1);
+  const monthGridStart = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1 - monthStart.getDay());
+  const monthDays = Array.from({ length: 42 }, (_, index) => new Date(monthGridStart.getFullYear(), monthGridStart.getMonth(), monthGridStart.getDate() + index));
+  const weekStart = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), anchorDate.getDate() - anchorDate.getDay());
+  const weekDays = Array.from({ length: 7 }, (_, index) => new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + index));
+  const sameDay = (value: string, day: Date) => { const date = new Date(value); return date.getFullYear() === day.getFullYear() && date.getMonth() === day.getMonth() && date.getDate() === day.getDate(); };
+  const visibleAgenda = filteredEvents.filter((event) => new Date(event.endsAt) >= new Date(anchorDate.getFullYear(), anchorDate.getMonth(), anchorDate.getDate())).slice(0, 40);
+  function move(direction: number) {
+    setAnchorDate((current) => calendarMode === "month" ? new Date(current.getFullYear(), current.getMonth() + direction, 1) : new Date(current.getFullYear(), current.getMonth(), current.getDate() + direction * (calendarMode === "week" ? 7 : 30)));
+  }
   const focusedCourse = data.courses.find((course) => course.sectionId === initialSectionId);
+  const todayEvents = allEvents.filter((event) => sameDay(event.startsAt, new Date()));
+  const upcomingImportant = allEvents.filter((event) => event.importance !== "normal" && new Date(event.endsAt) >= new Date()).slice(0, 5);
+  const renderEvent = (event: UnifiedCalendarEvent, compact = false) => (
+    <button type="button" key={event.id} className={`unified-calendar-event ${event.category} ${event.importance}`} onClick={() => setSelectedEvent(event)} title={event.title}>
+      <time>{new Intl.DateTimeFormat("en", { hour: "numeric", minute: "2-digit" }).format(new Date(event.startsAt))}</time>
+      <span>{event.title}</span>{compact ? null : <small>{event.scope}</small>}
+    </button>
+  );
   return (
     <>
       <PageIntro
@@ -1709,70 +1716,22 @@ function ScheduleView({
         description="Classes, exams, deadlines, meetings, and campus events—filtered automatically for your role."
       />
       {focusedCourse ? <div className="workspace-focus-banner"><b>Showing {focusedCourse.code} first</b><span>{focusedCourse.title} · {focusedCourse.sectionCode}</span></div> : null}
-      <ScheduleOperations
-        data={data}
-        currentUser={currentUser}
-        onChanged={onChanged}
-        onToast={onToast}
-      />
-      <div className="schedule-layout">
-        <section>
-          {Object.entries(grouped).map(([day, events]) => (
-            <article key={day}>
-              <header>
-                <span>{day}</span>
-                <b>
-                  {events.length} event{events.length === 1 ? "" : "s"}
-                </b>
-              </header>
-              {events.map((event) => (
-                <div key={event.id}>
-                  <time>
-                    <b>
-                      {new Intl.DateTimeFormat("en", {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      }).format(new Date(event.startsAt))}
-                    </b>
-                    <small>
-                      {new Intl.DateTimeFormat("en", {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      }).format(new Date(event.endsAt))}
-                    </small>
-                  </time>
-                  <i className={event.type} />
-                  <p>
-                    <b>{event.title}</b>
-                    <span>{event.description}</span>
-                    <small>⌖ {event.location}</small>
-                  </p>
-                  <Pill tone="blue">{event.type}</Pill>
-                </div>
-              ))}
-            </article>
-          ))}
-        </section>
-        <aside>
-          <span>CALENDAR HEALTH</span>
-          <h3>This role sees {data.schedule.length} relevant events</h3>
-          <p>
-            Section enrollment, teaching assignments, personal ownership, and
-            role audiences are evaluated by database policy.
-          </p>
-          <div>
-            {["class", "exam", "deadline", "meeting", "campus"].map((type) => (
-              <span key={type}>
-                <i className={type} />
-                {type}
-                <b>
-                  {data.schedule.filter((event) => event.type === type).length}
-                </b>
-              </span>
-            ))}
-          </div>
-        </aside>
-      </div>
+      <section className="unified-calendar school-card">
+        <header className="unified-calendar-head">
+          <div><span>YOUR TIME, IN ONE PLACE</span><h2>{new Intl.DateTimeFormat("en", { month: "long", year: "numeric" }).format(anchorDate)}</h2><p>{todayEvents.length ? `${todayEvents.length} item${todayEvents.length === 1 ? "" : "s"} today` : "Nothing scheduled today"} · {upcomingImportant.length} important coming up</p></div>
+          <div className="unified-calendar-actions"><button type="button" onClick={()=>move(-1)} aria-label="Previous period">‹</button><button type="button" onClick={()=>setAnchorDate(new Date())}>Today</button><button type="button" onClick={()=>move(1)} aria-label="Next period">›</button></div>
+        </header>
+        <div className="unified-calendar-toolbar">
+          <div>{(["month","week","agenda"] as const).map((mode)=><button type="button" key={mode} className={calendarMode===mode?"active":""} onClick={()=>setCalendarMode(mode)}>{mode}</button>)}</div>
+          <select value={category} onChange={(event)=>setCategory(event.target.value)} aria-label="Filter calendar"><option value="all">Everything important</option><option value="class">Classes</option><option value="assessment">Assessments</option><option value="deadline">Deadlines</option><option value="meeting">Meetings</option><option value="campus">Campus events</option><option value="personal">Personal</option><option value="academic">Academic dates</option></select>
+        </div>
+        {calendarMode === "month" ? <div className="unified-month"><div className="unified-weekdays">{["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((day)=><b key={day}>{day}</b>)}</div><div className="unified-month-grid">{monthDays.map((day)=><section key={day.toISOString()} className={`${day.getMonth()!==anchorDate.getMonth()?"outside":""} ${sameDay(new Date().toISOString(),day)?"today":""}`}><time>{day.getDate()}</time><div>{filteredEvents.filter((event)=>sameDay(event.startsAt,day)).slice(0,3).map((event)=>renderEvent(event,true))}{filteredEvents.filter((event)=>sameDay(event.startsAt,day)).length>3?<small>+{filteredEvents.filter((event)=>sameDay(event.startsAt,day)).length-3} more</small>:null}</div></section>)}</div></div> : null}
+        {calendarMode === "week" ? <div className="unified-week">{weekDays.map((day)=><section key={day.toISOString()} className={sameDay(new Date().toISOString(),day)?"today":""}><header><span>{new Intl.DateTimeFormat("en",{weekday:"short"}).format(day)}</span><b>{day.getDate()}</b></header><div>{filteredEvents.filter((event)=>sameDay(event.startsAt,day)).map((event)=>renderEvent(event))}{!filteredEvents.some((event)=>sameDay(event.startsAt,day))?<small>Open</small>:null}</div></section>)}</div> : null}
+        {calendarMode === "agenda" ? <div className="unified-agenda">{visibleAgenda.map((event)=><article key={event.id}><time><b>{new Intl.DateTimeFormat("en",{month:"short",day:"numeric"}).format(new Date(event.startsAt))}</b><small>{new Intl.DateTimeFormat("en",{hour:"numeric",minute:"2-digit"}).format(new Date(event.startsAt))}</small></time><i className={event.category}/><div><b>{event.title}</b><span>{event.description}</span><small>{event.scope} · {event.location}</small></div><button type="button" onClick={()=>setSelectedEvent(event)}>Details</button></article>)}{!visibleAgenda.length?<div className="unified-calendar-empty"><b>Your agenda is clear</b><span>No matching events from this date forward.</span></div>:null}</div> : null}
+        <footer className="unified-calendar-legend"><span><i className="class"/>Class</span><span><i className="assessment"/>Assessment</span><span><i className="deadline"/>Deadline</span><span><i className="meeting"/>Meeting</span><span><i className="campus"/>Campus</span><span><i className="personal"/>Personal</span><span><i className="academic"/>Academic date</span></footer>
+      </section>
+      {selectedEvent ? <div className="calendar-event-detail" role="dialog" aria-modal="false" aria-label="Calendar event details"><button type="button" className="calendar-detail-close" onClick={()=>setSelectedEvent(null)} aria-label="Close details">×</button><span>{selectedEvent.scope}</span><h3>{selectedEvent.title}</h3><p>{selectedEvent.description || "No additional notes."}</p><dl><div><dt>When</dt><dd>{new Intl.DateTimeFormat("en",{dateStyle:"full",timeStyle:"short"}).format(new Date(selectedEvent.startsAt))}</dd></div><div><dt>Where</dt><dd>{selectedEvent.location || "Not specified"}</dd></div><div><dt>Source</dt><dd>{selectedEvent.source} · {selectedEvent.category}</dd></div>{selectedEvent.sectionId?<div><dt>Class</dt><dd>{data.courses.find((course)=>course.sectionId===selectedEvent.sectionId)?.code ?? "Class section"}</dd></div>:null}</dl></div> : null}
+      <ScheduleOperations data={data} currentUser={currentUser} onChanged={onChanged} onToast={onToast} />
     </>
   );
 }

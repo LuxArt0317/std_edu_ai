@@ -1,5 +1,13 @@
 # Task Plan
 
+## Phase 84: Unified role-aware school calendar [Issue #84]
+
+- [x] audit event-bearing schema, relationships, RLS, and existing schedule CRUD
+- [x] define one role-aware calendar model for personal, class, assessment, attendance, institutional, and term events
+- [x] implement month, week, and agenda views with navigation, filters, event details, and useful source context
+- [x] preserve authorized event CRUD and add clear personal/class/role-wide targeting
+- [ ] verify data visibility, contracts/build, review, deploy, and confirm production behavior
+
 ## Phase 82: Compact Nexus popup and correctable validated actions [Issue #82]
 
 - [x] replace the fullscreen blurred drawer with a non-blocking Messenger-style popup

@@ -36,7 +36,7 @@ Students see only their own published results. Teachers can review class gradebo
 
 ### One Calendar
 
-Combines classes, examinations, deadlines, meetings, and campus events. Policies derive visibility from enrollment, teaching assignment, personal ownership, and intended role audience.
+Combines personal and role-wide events, enrolled or taught classes, assessment and standalone grade deadlines, attendance sessions, learning releases, assigned institutional work, enrollment windows, and term milestones. Month, week, and agenda views share filters and compact event details. Policies derive visibility from enrollment, teaching assignment, personal ownership, intended role audience, and each source domain's RLS.
 
 ### People and Roles
 
