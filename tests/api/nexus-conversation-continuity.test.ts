@@ -20,23 +20,22 @@ test("Nexus follows new messages without stealing an intentional reading positio
   assert.match(portal, /viewport\.scrollHeight - viewport\.scrollTop - viewport\.clientHeight < 96/);
 });
 
-test("the compact goal card exposes live action state without dominating the conversation", () => {
+test("goal activity is a collapsed assistant reply inside the compact popup", () => {
   assert.match(portal, /"idle" \| "thinking" \| "executing" \| "refreshing" \| "waiting" \| "complete" \| "blocked"/);
-  for (const label of ["Thinking", "Executing", "Refreshing", "Waiting", "Complete", "Stopped"])
+  for (const label of ["Thinking", "Working", "Waiting for you", "Goal complete", "Stopped"])
     assert.match(portal, new RegExp(`"${label}"`));
-  assert.match(portal, /actions?"} completed · \{agentRun\.remainingWork\.length\} remaining/);
-  assert.match(portal, /goalExpanded \? "expanded" : "compact"/);
-  assert.match(portal, /Hide details/);
-  assert.match(portal, /You can close Nexus while it thinks or executes/);
+  assert.match(portal, /<details className=\{`chat-agent-run/);
+  assert.match(portal, /<article className="assistant agent-progress-reply"/);
+  assert.match(portal, /\{agentRun\.step\} done · \{agentRun\.remainingWork\.length\} remaining/);
   assert.match(portal, /Nexus working/);
   assert.match(portal, /onActivityChange=\{setAssistantActivity\}/);
   assert.match(styles, /\.chat-agent-activity/);
   assert.match(styles, /\.school-ai-fab\.thinking/);
   assert.match(styles, /animation: schoolPulse/);
-  assert.match(styles, /\.chat-agent-run\.compact/);
-  assert.match(styles, /flex: 0 0 auto/);
-  assert.match(styles, /\.chat-agent-run\.compact \{ height: auto !important; min-height: 0 !important; max-height: 150px/);
-  assert.match(styles, /\.chat-agent-run\.compact \.chat-agent-activity \{ height: auto !important; min-height: 0 !important; max-height: 42px; display: flex !important/);
+  assert.match(styles, /\.school-ai-layer \{[\s\S]*right: 18px;[\s\S]*bottom: 18px;/);
+  assert.match(styles, /pointer-events: none/);
+  assert.doesNotMatch(portal, /school-ai-backdrop/);
+  assert.doesNotMatch(styles, /\.school-ai-backdrop/);
 });
 
 test("closing the drawer hides it without unmounting the assistant state", () => {

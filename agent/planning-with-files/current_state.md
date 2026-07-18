@@ -222,4 +222,11 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - Nexus restores the last-used valid thread, falls back to the most recently updated conversation, and opens at the newest rendered message without stealing the scroll position from someone reading older messages.
 - The goal card now shows named action outcomes and explicit thinking, execution, refresh, confirmation, completion, and stopped phases. The eight value is labelled as a safety limit rather than mandatory steps.
 - Closing the drawer leaves the assistant mounted and the run active; the floating Nexus control displays background, confirmation, complete, or attention status.
+
+# Active work: Issue #82 compact Nexus popup and corrected proposals
+
+- Nexus is now a bottom-right, non-blocking 390px chat popup; it has no fullscreen hit area, backdrop, or page blur.
+- Goal and runtime activity render as a collapsed assistant reply inside the conversation. Clarification remains a focused assistant question with quick answers.
+- Review supports confirm, cancel, or a correction comment that resumes the same goal. Invalid proposal parameters are rejected before review and automatically replanned.
+- Quiz/exam actions now carry complete question payloads through the structured API contract into the atomic LMS assessment RPC.
 - All 70 contracts, lint, TypeScript, Vite production build, and asset verification pass. PR #73 merged as `710d6df`; deployment `dpl_4x6t7wRiLWaqpgwBoWAoSu8hmRZt` is Ready and the custom domain serves the last-thread, background-activity, and safety-limit markers.

@@ -2028,29 +2028,26 @@ textarea {
 .school-ai-fab.blocked { background: linear-gradient(135deg, #a95549, #6d332c); }
 .school-ai-layer {
   position: fixed;
-  inset: 0;
+  right: 18px;
+  bottom: 18px;
   z-index: 120;
-  display: flex;
-  justify-content: flex-end;
-}
-.school-ai-backdrop {
-  position: absolute;
-  inset: 0;
-  border: 0;
-  background: rgba(7, 25, 22, 0.5);
-  backdrop-filter: blur(3px);
+  pointer-events: none;
 }
 .school-ai-layer > aside {
   position: relative;
-  width: min(520px, 96vw);
-  height: 100%;
+  width: min(390px, calc(100vw - 28px));
+  height: min(650px, calc(100vh - 88px));
   display: flex;
   flex-direction: column;
+  pointer-events: auto;
+  overflow: hidden;
+  border: 1px solid rgb(13 74 62 / 18%);
+  border-radius: 18px;
   background: #f8fbfa;
-  box-shadow: -20px 0 70px rgba(5, 25, 22, 0.3);
+  box-shadow: 0 22px 65px rgba(5, 25, 22, 0.28);
 }
 .school-ai-layer > aside > header {
-  padding: 22px;
+  padding: 12px 14px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -2058,8 +2055,8 @@ textarea {
   background: linear-gradient(135deg, #153e37, #0d2723);
 }
 .school-ai-layer > aside > header > span {
-  width: 42px;
-  height: 42px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
   border-radius: 13px;
@@ -2075,9 +2072,9 @@ textarea {
   letter-spacing: 0.15em;
 }
 .school-ai-layer header h2 {
-  margin: 3px 0;
+  margin: 1px 0;
   font-family: Georgia, serif;
-  font-size: 21px;
+  font-size: 16px;
   font-weight: 500;
 }
 .school-ai-layer header p {
@@ -2117,7 +2114,7 @@ textarea {
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 14px;
 }
 .chat-messages article {
   margin-bottom: 15px;
@@ -2244,14 +2241,23 @@ textarea {
 .chat-warning { margin: 0 16px 10px; padding: 9px 11px; color: #755b24; border-radius: 9px; background: #fff5d8; font-size: .76rem; }
 
 .chat-agent-run {
-  flex: 0 0 auto;
-  margin: 0 16px 12px;
-  padding: 14px;
+  width: 100%;
+  margin: 0;
+  padding: 10px 12px;
   border: 1px solid #b9d8d0;
   border-radius: 14px;
   background: linear-gradient(145deg, #f4fbf9, #e8f5f1);
   box-shadow: 0 10px 28px rgb(13 73 61 / 8%);
 }
+.agent-progress-reply > details,
+.agent-question-reply > section { max-width: calc(100% - 39px) !important; }
+.agent-progress-reply .chat-agent-run { border-radius: 5px 14px 14px; }
+.chat-agent-run > summary { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 7px; align-items: center; color: #184a40; cursor: pointer; list-style: none; }
+.chat-agent-run > summary::-webkit-details-marker { display: none; }
+.chat-agent-run > summary::after { content: "⌄"; grid-column: 2; grid-row: 1 / span 2; font-size: 15px; }
+.chat-agent-run[open] > summary::after { content: "⌃"; }
+.chat-agent-run > summary > b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.chat-agent-run > summary > small { color: #668079; font-size: 8px; }
 .chat-agent-run.compact { height: auto !important; min-height: 0 !important; max-height: 150px; padding: 10px 12px; overflow: hidden; }
 .chat-agent-run.compact .chat-agent-summary { min-height: 0; }
 .chat-agent-run.compact .chat-agent-activity { height: auto !important; min-height: 0 !important; max-height: 42px; display: flex !important; align-items: center; margin: 7px 0; padding: 7px 9px; overflow: hidden; }
@@ -2266,6 +2272,7 @@ textarea {
 .chat-agent-plan ol { max-height: 150px; }
 .chat-agent-plan li.done { opacity: .7; }
 .chat-agent-question { flex: 0 0 auto; margin: 0 16px 12px; padding: 13px; border: 1px solid #e0be79; border-radius: 14px; background: #fff9e9; box-shadow: 0 8px 22px rgb(92 65 15 / 8%); }
+.agent-question-reply .chat-agent-question { margin: 0; }
 .chat-agent-question > span { color: #986715; font-size: .64rem; font-weight: 850; letter-spacing: .13em; }
 .chat-agent-question h3 { margin: 5px 0; color: #4c3a18; font-size: .9rem; line-height: 1.35; }
 .chat-agent-question p { margin: 0 0 9px; color: #715d34; font-size: .72rem; line-height: 1.4; }
@@ -2346,6 +2353,14 @@ textarea {
   font-size: 9px;
   font-weight: 800;
   cursor: pointer;
+}
+.chat-action-feedback { display: grid !important; gap: 6px; margin: 8px 0 !important; padding: 9px; border-radius: 9px; background: #eef7f4; }
+.chat-action-feedback label { color: #315c53; font-size: 8px; font-weight: 800; }
+.chat-action-feedback textarea { min-height: 58px; padding: 8px; border: 1px solid #c9ddd8; border-radius: 8px; resize: vertical; font-size: 9px; }
+.chat-action-feedback button { justify-self: end; }
+@media (max-width: 540px) {
+  .school-ai-layer { right: 8px; bottom: 8px; }
+  .school-ai-layer > aside { width: calc(100vw - 16px); height: min(72vh, 650px); border-radius: 16px; }
 }
 @keyframes schoolPulse {
   to {

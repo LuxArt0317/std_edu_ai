@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Redesigned Nexus as a compact, non-blocking Messenger-style popup with no page overlay or blur.
+- Moved live goal progress into a collapsed assistant reply and preserved focused clarification questions.
+- Added proposal comments and same-goal retries, plus pre-review parameter validation and complete quiz/exam question payloads.
+
 - constrained the compact Nexus goal card and activity row to intrinsic content height so the thinking state cannot stretch into a large empty panel
 - released through PR #81 as `1849406`; Vercel production is Ready and serves the 150px card and 42px activity-row constraints
 

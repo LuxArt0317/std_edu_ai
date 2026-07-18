@@ -1,5 +1,13 @@
 # Task Plan
 
+## Phase 82: Compact Nexus popup and correctable validated actions [Issue #82]
+
+- [x] replace the fullscreen blurred drawer with a non-blocking Messenger-style popup
+- [x] render goal, thinking, progress, and clarification as compact assistant replies with details collapsed by default
+- [x] let users confirm, cancel, or comment on a proposal so Nexus replans the same goal
+- [x] validate all proposed parameters before review and require complete questions for quizzes/exams
+- [ ] verify contracts/build, review, deploy, and confirm production behavior
+
 ## Phase 80: Compact Nexus card intrinsic sizing [Issue #80]
 
 - [x] reproduce the stretched activity panel from the production screenshot
