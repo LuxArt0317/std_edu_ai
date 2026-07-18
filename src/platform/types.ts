@@ -307,6 +307,7 @@ export type PlatformStudent = {
   studentNumber: string;
   name: string;
   program: string;
+  programId: string | null;
   yearLevel: string;
   email: string | null;
   fullName: string;

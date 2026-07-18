@@ -154,6 +154,13 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - PR #45 passed CodeRabbit and Vercel, merged as `32ef675`, and deployed Ready as `dpl_Df6sucy57jq4Hr1kazB6LkixE3AX` to both custom domains.
 - `https://www.stu.best/crm` returns HTTP 200 and its released CRM bundle contains the assessment, student, profile, grade, prospect, interaction, signal, and multi-page material editor contracts.
 - Issue #44 is closed; no release work remains for this phase.
+# Active release: Issue #74 connected academic relationships
+
+- The complete production schema is mapped in `docs/PLATFORM_SCHEMA_MAP.md`; the authoritative academic chain is Department → Program → Curriculum → Curriculum Subject → Subject → Class → Enrollment → Student.
+- Production Supabase now has an indexed `students.program_id` foreign key. All four existing students were backfilled, no student remains unlinked, and student provisioning Edge Function version 3 is ACTIVE.
+- Academic Office is program-centered and exposes curriculum origin, related subjects/classes/staff/students, relationship-health diagnostics, contextual creation/editing, and class-aware transitions into all instructional workspaces.
+- All 73 contracts, lint, TypeScript, Vite production build, and built-asset verification pass. GitHub/Vercel release remains in progress.
+
 # Current release: Issue #48 controlled workflows
 
 - Production Supabase now contains relational department/program/class responsibilities, attendance correction requests, and immutable controlled-action evidence.

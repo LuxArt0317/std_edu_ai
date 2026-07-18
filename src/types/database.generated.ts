@@ -2997,6 +2997,7 @@ export type Database = {
           preferred_name: string | null
           profile_id: string | null
           program: string
+          program_id: string | null
           record_status: string
           risk_level: string
           risk_score: number
@@ -3024,6 +3025,7 @@ export type Database = {
           preferred_name?: string | null
           profile_id?: string | null
           program: string
+          program_id?: string | null
           record_status?: string
           risk_level?: string
           risk_score?: number
@@ -3051,6 +3053,7 @@ export type Database = {
           preferred_name?: string | null
           profile_id?: string | null
           program?: string
+          program_id?: string | null
           record_status?: string
           risk_level?: string
           risk_score?: number
@@ -3081,6 +3084,13 @@ export type Database = {
             columns: ["merged_into_id"]
             isOneToOne: false
             referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "students_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "academic_programs"
             referencedColumns: ["id"]
           },
           {

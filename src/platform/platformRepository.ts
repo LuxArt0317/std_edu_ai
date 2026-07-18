@@ -383,6 +383,7 @@ export async function loadPlatformData(): Promise<PlatformData> {
       studentNumber: student.student_number,
       name: student.preferred_name || student.full_name,
       program: student.program,
+      programId: student.program_id ?? null,
       yearLevel: student.year_level,
       email: student.email,
       fullName: student.full_name,
@@ -2035,6 +2036,7 @@ export async function updateStudentRecord(
     preferredName?: string;
     studentNumber: string;
     program: string;
+    programId: string;
     yearLevel: string;
     email?: string;
     phone?: string;
@@ -2049,6 +2051,7 @@ export async function updateStudentRecord(
       preferred_name: input.preferredName?.trim().slice(0, 120) || null,
       student_number: clean(input.studentNumber, "Student number", 32),
       program: clean(input.program, "Program", 160),
+      program_id: clean(input.programId, "Program ID", 80),
       year_level: clean(input.yearLevel, "Year level", 40),
       email: input.email?.trim().toLowerCase().slice(0, 254) || null,
       phone: input.phone?.trim().slice(0, 40) || null,
@@ -2081,6 +2084,7 @@ export async function createStudentAccount(input: {
   preferredName?: string;
   studentNumber: string;
   program: string;
+  programId: string;
   yearLevel: string;
   phone?: string;
   advisorId?: string;

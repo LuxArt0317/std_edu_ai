@@ -170,11 +170,15 @@ export function AcademicOperations({
   currentUser,
   onChanged,
   onToast,
+  onAskNexus,
+  onOpenSectionWorkspace,
 }: {
   data: PlatformData;
   currentUser: CrmUser;
   onChanged: () => void;
   onToast: (message: string) => void;
+  onAskNexus: () => void;
+  onOpenSectionWorkspace: (destination: "learning" | "teaching" | "assessments" | "grades" | "schedule", sectionId: string) => void;
 }) {
   const role = currentUser.role;
   const [tab, setTab] = useState<AcademicTab>("overview");
@@ -187,6 +191,11 @@ export function AcademicOperations({
   const [selectedSectionId, setSelectedSectionId] = useState(
     data.courses[0]?.sectionId ?? "",
   );
+  const [selectedProgramId, setSelectedProgramId] = useState(
+    data.programs[0]?.id ?? "",
+  );
+  const [contextProgramId, setContextProgramId] = useState("");
+  const [contextSubjectId, setContextSubjectId] = useState("");
 
   const faculty = data.profiles.filter((profile) =>
     ["faculty", "department_head", "dean"].includes(profile.role),
@@ -225,6 +234,38 @@ export function AcademicOperations({
     data.catalogCourses.find((item) => item.id === editingId) ?? null;
   const editingStudent =
     data.students.find((item) => item.id === editingId) ?? null;
+  const selectedProgram =
+    data.programs.find((item) => item.id === selectedProgramId) ??
+    data.programs[0] ??
+    null;
+  const selectedProgramDepartment = selectedProgram
+    ? data.departments.find((item) => item.id === selectedProgram.departmentId) ?? null
+    : null;
+  const selectedProgramCurricula = selectedProgram
+    ? data.curricula.filter((item) => item.programId === selectedProgram.id)
+    : [];
+  const selectedProgramSubjects = selectedProgram
+    ? data.catalogCourses.filter((item) => item.programId === selectedProgram.id)
+    : [];
+  const selectedProgramSubjectIds = new Set(selectedProgramSubjects.map((item) => item.id));
+  const selectedProgramSections = data.courses.filter((item) =>
+    selectedProgramSubjectIds.has(item.courseId),
+  );
+  const selectedProgramStudents = selectedProgram
+    ? data.students.filter((item) => item.programId === selectedProgram.id)
+    : [];
+  const selectedProgramStaff = selectedProgram
+    ? data.profiles.filter((item) => item.programId === selectedProgram.id)
+    : [];
+  const contextProgram = data.programs.find((item) => item.id === contextProgramId) ?? null;
+  const relationshipGaps = {
+    programsWithoutCurricula: data.programs.filter(
+      (program) => !data.curricula.some((plan) => plan.programId === program.id),
+    ),
+    subjectsWithoutPrograms: data.catalogCourses.filter((course) => !course.programId),
+    studentsWithoutPrograms: data.students.filter((student) => !student.programId),
+    classesWithoutFaculty: data.courses.filter((course) => !course.facultyId),
+  };
 
   async function perform(action: () => Promise<unknown>, success: string) {
     setBusy(true);
@@ -234,6 +275,8 @@ export function AcademicOperations({
       setModal(null);
       setEditingSection(null);
       setEditingId("");
+      setContextProgramId("");
+      setContextSubjectId("");
       onChanged();
     } catch (error) {
       onToast(
@@ -248,6 +291,24 @@ export function AcademicOperations({
 
   function openSection(course?: SchoolCourse) {
     setEditingSection(course ?? null);
+    setContextSubjectId(course?.courseId ?? "");
+    setModal("section");
+  }
+
+  function openProgram(programId: string) {
+    setSelectedProgramId(programId);
+    setTab("curricula");
+  }
+
+  function addSubjectForProgram(programId: string) {
+    setContextProgramId(programId);
+    setEditingId("");
+    setModal("subject");
+  }
+
+  function openClassForSubject(courseId: string) {
+    setContextSubjectId(courseId);
+    setEditingSection(null);
     setModal("section");
   }
 
@@ -263,6 +324,8 @@ export function AcademicOperations({
     setModal(null);
     setEditingId("");
     setEditingSection(null);
+    setContextProgramId("");
+    setContextSubjectId("");
   }
 
   function exportCsv(filename: string, rows: Array<Array<string | number>>) {
@@ -291,7 +354,7 @@ export function AcademicOperations({
             </button>
           ) : null}
           {academicManagers.has(role) ? (
-            <button type="button" onClick={() => setModal("subject")}>
+            <button type="button" onClick={() => addSubjectForProgram("")}>
               + Add subject
             </button>
           ) : null}
@@ -357,6 +420,15 @@ export function AcademicOperations({
               <p>Current teaching spaces</p>
             </article>
           </section>
+          <section className="academic-relationship-health school-card">
+            <header><div><span>RELATIONSHIP HEALTH</span><h3>Academic records that still need a connection</h3><p>These are recoverable workflow gaps, not hidden records. Open the affected area to complete each relationship.</p></div></header>
+            <div>
+              <button type="button" className={relationshipGaps.programsWithoutCurricula.length ? "warning" : "healthy"} onClick={() => {const first=relationshipGaps.programsWithoutCurricula[0];if(first)openProgram(first.id);else setTab("curricula");}}><b>{relationshipGaps.programsWithoutCurricula.length}</b><span>Programs without curriculum</span><small>{relationshipGaps.programsWithoutCurricula.length ? "Open program pathway" : "All programs connected"}</small></button>
+              <button type="button" className={relationshipGaps.subjectsWithoutPrograms.length ? "warning" : "healthy"} onClick={() => setTab("subjects")}><b>{relationshipGaps.subjectsWithoutPrograms.length}</b><span>Shared/unassigned subjects</span><small>Review catalog ownership</small></button>
+              <button type="button" className={relationshipGaps.studentsWithoutPrograms.length ? "warning" : "healthy"} onClick={() => setTab("students")}><b>{relationshipGaps.studentsWithoutPrograms.length}</b><span>Students without program ID</span><small>Open student directory</small></button>
+              <button type="button" className={relationshipGaps.classesWithoutFaculty.length ? "warning" : "healthy"} onClick={() => setTab("sections")}><b>{relationshipGaps.classesWithoutFaculty.length}</b><span>Classes without teacher</span><small>Open class delivery</small></button>
+            </div>
+          </section>
           <section className="academic-setup-grid">
             <article>
               <span>01</span>
@@ -396,7 +468,7 @@ export function AcademicOperations({
               </div>
               <div>
                 {academicManagers.has(role) ? (
-                  <button type="button" onClick={() => setModal("subject")}>
+                  <button type="button" onClick={() => addSubjectForProgram("")}>
                     Add subject
                   </button>
                 ) : null}
@@ -467,12 +539,10 @@ export function AcademicOperations({
                   <span>
                     <b>{program.code}</b>
                     <small>
-                      {program.name} · {program.status}
+                      {data.departments.find((item) => item.id === program.departmentId)?.code ?? "Unlinked department"} → {program.name} · {data.curricula.filter((item) => item.programId === program.id).length || "No"} curriculum · {data.catalogCourses.filter((item) => item.programId === program.id).length} subjects
                     </small>
                   </span>
-                  {academicManagers.has(role) ? (
-                    <span className="academic-row-actions"><button type="button" onClick={() => openEdit("program", program.id)}>Edit</button>{program.status !== "inactive" ? <button type="button" onClick={() => {const reason=window.prompt("Program archival reason (at least 12 characters)");if(reason) void perform(() => archiveAcademicProgram(program.id,reason),"Program archived with immutable evidence.");}}>Archive</button> : null}</span>
-                  ) : null}
+                  <span className="academic-row-actions"><button type="button" onClick={() => openProgram(program.id)}>Open pathway</button>{academicManagers.has(role) ? <><button type="button" onClick={() => openEdit("program", program.id)}>Edit</button>{program.status !== "inactive" ? <button type="button" onClick={() => {const reason=window.prompt("Program archival reason (at least 12 characters)");if(reason) void perform(() => archiveAcademicProgram(program.id,reason),"Program archived with immutable evidence.");}}>Archive</button> : null}</> : null}</span>
                 </div>
               ))}
             </article>
@@ -504,13 +574,42 @@ export function AcademicOperations({
       {tab === "curricula" ? (
         <section className="curriculum-library">
           <header>
-            <div><span>DEGREE MAPS</span><h3>Curriculum plans and block templates</h3><p>Drafts created by Nexus remain reviewable academic records. Programs and catalog subjects stay editable through their ordinary controls.</p></div>
-            <button type="button" onClick={() => setTab("subjects")}>Edit catalog subjects</button>
+            <div><span>PROGRAM-CENTERED ACADEMIC MAP</span><h3>Programs, curricula, subjects, and delivery</h3><p>Select a program to see its department, curriculum versions, subject sequence, classes, staff, and students as one connected academic pathway.</p></div>
+            {academicManagers.has(role) && selectedProgram ? <button type="button" onClick={() => addSubjectForProgram(selectedProgram.id)}>+ Add subject to {selectedProgram.code}</button> : null}
           </header>
-          {data.curricula.length ? data.curricula.map((plan) => {
-            const program = data.programs.find((item) => item.id === plan.programId);
-            return <article key={plan.id} className="curriculum-plan-card">
-              <div className="curriculum-plan-title"><div><span>{plan.status.toUpperCase()} · EFFECTIVE {plan.effectiveYear}</span><h4>{program?.code ?? plan.source.programCode} · {program?.name ?? plan.source.programName}</h4></div><b>{plan.source.subjects.reduce((total, subject) => total + subject.units, 0)} total units</b></div>
+          <div className="program-relationship-layout">
+            <aside className="program-relationship-list" aria-label="Academic programs">
+              <span>PROGRAMS</span>
+              {data.programs.map((program) => {
+                const department = data.departments.find((item) => item.id === program.departmentId);
+                const curriculumCount = data.curricula.filter((item) => item.programId === program.id).length;
+                const subjectCount = data.catalogCourses.filter((item) => item.programId === program.id).length;
+                return <button type="button" key={program.id} className={selectedProgram?.id === program.id ? "active" : ""} onClick={() => setSelectedProgramId(program.id)}>
+                  <b>{program.code} · {program.name}</b>
+                  <small>{department?.code ?? "No department"} → {curriculumCount ? `${curriculumCount} curriculum ${curriculumCount === 1 ? "version" : "versions"}` : "Curriculum missing"} → {subjectCount} subjects</small>
+                </button>;
+              })}
+            </aside>
+            <div className="program-relationship-detail">
+              {selectedProgram ? <>
+                <section className="program-context-card">
+                  <div><span>{selectedProgramDepartment?.code ?? "UNLINKED DEPARTMENT"} → {selectedProgram.code}</span><h3>{selectedProgram.name}</h3><p>{selectedProgram.description || "No program description has been recorded."}</p></div>
+                  <div className="program-context-metrics">
+                    <span><b>{selectedProgramCurricula.length}</b><small>Curriculum versions</small></span>
+                    <span><b>{selectedProgramSubjects.length}</b><small>Subjects</small></span>
+                    <span><b>{selectedProgramSections.length}</b><small>Classes</small></span>
+                    <span><b>{selectedProgramStudents.length}</b><small>Students</small></span>
+                    <span><b>{selectedProgramStaff.length}</b><small>Assigned staff</small></span>
+                  </div>
+                  <div className="program-context-actions">
+                    {academicManagers.has(role) ? <button type="button" onClick={() => openEdit("program", selectedProgram.id)}>Edit program</button> : null}
+                    {academicManagers.has(role) ? <button type="button" onClick={() => addSubjectForProgram(selectedProgram.id)}>Add subject</button> : null}
+                    <button type="button" onClick={() => setTab("subjects")}>View subjects</button>
+                    <button type="button" onClick={() => setTab("sections")}>View classes</button>
+                  </div>
+                </section>
+                {selectedProgramCurricula.length ? selectedProgramCurricula.map((plan) => <article key={plan.id} className="curriculum-plan-card">
+              <div className="curriculum-plan-title"><div><span>{plan.status.toUpperCase()} · EFFECTIVE {plan.effectiveYear}</span><h4>{selectedProgramDepartment?.name ?? "Department not linked"} → {selectedProgram.code} → Curriculum {plan.effectiveYear}</h4><small>Source: {plan.source.programCode} curriculum transaction · Record {plan.id.slice(0, 8)}</small></div><b>{plan.source.subjects.reduce((total, subject) => total + subject.units, 0)} total units</b></div>
               <div className="curriculum-years">{Array.from({length: plan.source.durationYears}, (_, index) => index + 1).map((year) => <section key={year}>
                 <header><strong>Year {year}</strong><small>{plan.source.blocks.filter((block) => block.yearLevel === year).map((block) => `${block.blockCode} (${block.capacity})`).join(" · ")}</small></header>
                 {[1, 2, 3].map((semester) => {
@@ -518,8 +617,10 @@ export function AcademicOperations({
                   return subjects.length ? <div key={semester}><b>Semester {semester}</b><ul>{subjects.map((subject) => <li key={subject.code}><span><strong>{subject.code}</strong>{subject.title}</span><small>{subject.units} units{subject.prerequisiteCodes.length ? ` · Prereq: ${subject.prerequisiteCodes.join(", ")}` : ""}</small></li>)}</ul></div> : null;
                 })}
               </section>)}</div>
-            </article>;
-          }) : <div className="academic-empty"><strong>No curriculum plans yet</strong><p>Ask Nexus to prepare a complete curriculum, review its subject and block preview, then confirm the transaction.</p></div>}
+            </article>) : <div className="academic-empty relationship-missing"><strong>No curriculum is connected to {selectedProgram.code}</strong><p>The program exists under {selectedProgramDepartment?.name ?? "an unresolved department"}, but it has no curriculum version. Create a curriculum before opening a complete degree pathway.</p><button type="button" onClick={onAskNexus}>Ask Nexus to create {selectedProgram.code} curriculum</button></div>}
+              </> : <div className="academic-empty relationship-missing"><strong>No academic programs exist</strong><p>Create a department and program before adding curricula, subjects, or classes.</p></div>}
+            </div>
+          </div>
         </section>
       ) : null}
 
@@ -550,7 +651,7 @@ export function AcademicOperations({
                 <small>{student.email || "No email recorded"}</small>
               </span>
               <strong>{student.studentNumber}</strong>
-              <span>{student.program}</span>
+              <span>{student.programId ? <button type="button" className="academic-link-button" onClick={() => openProgram(student.programId!)}>{data.programs.find((item) => item.id === student.programId)?.code ?? student.program} → Open pathway</button> : <span className="status-warn">{student.program || "Program not linked"}</span>}</span>
               <span>{student.yearLevel}</span>
               <span className={student.profileId ? "status-ok" : "status-warn"}>
                 {student.recordStatus} · {student.profileId ? "Connected" : "SIS only"}
@@ -569,6 +670,13 @@ export function AcademicOperations({
             const department = data.departments.find(
               (item) => item.id === course.departmentId,
             );
+            const program = data.programs.find((item) => item.id === course.programId);
+            const curriculumPlacements = data.curricula.flatMap((plan) =>
+              plan.source.subjects
+                .filter((subject) => subject.code.toUpperCase() === course.code.toUpperCase())
+                .map((subject) => ({ plan, subject })),
+            );
+            const classCount = data.courses.filter((item) => item.courseId === course.id).length;
             return (
               <article key={course.id}>
                 <header>
@@ -578,24 +686,21 @@ export function AcademicOperations({
                 <h3>{course.title}</h3>
                 <p>{course.description || "No description provided."}</p>
                 <footer>
-                  <span>{department?.name || "Department"}</span>
-                  <small>{course.status}</small>
+                  <span>{department?.code || "No department"} → {program?.code || "Shared subject"}</span>
+                  <small>{curriculumPlacements.length ? curriculumPlacements.map(({plan,subject}) => `${plan.effectiveYear}: Y${subject.yearLevel} S${subject.semester}`).join(" · ") : "Not placed in a curriculum"} · {classCount} classes</small>
                 </footer>
-                {academicManagers.has(role) ? (
-                  <button
-                    type="button"
-                    onClick={() => openEdit("subject", course.id)}
-                  >
-                    Edit subject
-                  </button>
-                ) : null}
+                <div className="subject-connection-actions">
+                  {program ? <button type="button" onClick={() => openProgram(program.id)}>Open {program.code} pathway</button> : null}
+                  <button type="button" onClick={() => openClassForSubject(course.id)}>Open class</button>
+                  {academicManagers.has(role) ? <button type="button" onClick={() => openEdit("subject", course.id)}>Edit subject</button> : null}
+                </div>
               </article>
             );
           })}
           <button
             type="button"
             className="add-card"
-            onClick={() => setModal("subject")}
+            onClick={() => {setContextProgramId("");setModal("subject");}}
           >
             <span>+</span>
             <b>Add a subject</b>
@@ -606,8 +711,14 @@ export function AcademicOperations({
 
       {tab === "sections" ? (
         <section className="section-operations">
-          {data.courses.map((course) => (
-            <article key={course.sectionId}>
+          {data.courses.map((course) => {
+            const subject = data.catalogCourses.find((item) => item.id === course.courseId);
+            const program = data.programs.find((item) => item.id === subject?.programId);
+            const department = data.departments.find((item) => item.id === subject?.departmentId);
+            const moduleCount = data.modules.filter((item) => item.sectionId === course.sectionId).length;
+            const assessmentCount = data.assessments.filter((item) => item.sectionId === course.sectionId).length;
+            const scheduleCount = data.schedule.filter((item) => item.sectionId === course.sectionId).length;
+            return <article key={course.sectionId}>
               <header>
                 <span>
                   {course.code} · {course.sectionCode}
@@ -615,7 +726,7 @@ export function AcademicOperations({
                 <b className={course.status}>{course.status}</b>
               </header>
               <h3>{course.title}</h3>
-              <p>{course.term}</p>
+              <p>{department?.code ?? "No department"} → {program?.code ?? "Shared subject"} → {course.code} → {course.term}</p>
               <div>
                 <span>
                   <small>TEACHER</small>
@@ -635,14 +746,21 @@ export function AcademicOperations({
                     learners
                   </b>
                 </span>
+                <span><small>LEARNING</small><b>{moduleCount} modules · {assessmentCount} assessments</b></span>
+                <span><small>SCHEDULE</small><b>{scheduleCount} events</b></span>
               </div>
-              {academicManagers.has(role) ? (
-                <button type="button" onClick={() => openSection(course)}>
-                  Edit class →
-                </button>
-              ) : null}
-            </article>
-          ))}
+              <div className="section-connection-actions">
+                {program ? <button type="button" onClick={() => openProgram(program.id)}>Open {program.code}</button> : null}
+                <button type="button" onClick={() => {setSelectedSectionId(course.sectionId);setTab("enrollment");}}>Open roster</button>
+                <button type="button" onClick={() => onOpenSectionWorkspace("learning", course.sectionId)}>Open learning</button>
+                {scheduleManagers.has(role) ? <button type="button" onClick={() => onOpenSectionWorkspace("teaching", course.sectionId)}>Open teaching</button> : null}
+                <button type="button" onClick={() => onOpenSectionWorkspace("assessments", course.sectionId)}>Open assessments</button>
+                <button type="button" onClick={() => onOpenSectionWorkspace("grades", course.sectionId)}>Open grades</button>
+                <button type="button" onClick={() => onOpenSectionWorkspace("schedule", course.sectionId)}>Open schedule</button>
+                {academicManagers.has(role) ? <button type="button" onClick={() => openSection(course)}>Edit class</button> : null}
+              </div>
+            </article>;
+          })}
         </section>
       ) : null}
 
@@ -788,7 +906,8 @@ export function AcademicOperations({
                 fullName: String(form.get("fullName")),
                 preferredName: String(form.get("preferredName")),
                 studentNumber: String(form.get("studentNumber")),
-                program: String(form.get("program")),
+                programId: String(form.get("programId")),
+                program: data.programs.find((item) => item.id === String(form.get("programId")))?.code ?? "",
                 yearLevel: String(form.get("yearLevel")),
                 phone: String(form.get("phone")),
                 advisorId: String(form.get("advisorId")),
@@ -865,14 +984,14 @@ export function AcademicOperations({
             ) : null}
             <Field label="Program">
               <select
-                name="program"
+                name="programId"
                 required
-                defaultValue={editingStudent?.program ?? ""}
+                defaultValue={editingStudent?.programId ?? ""}
               >
                 <option value="">Select program…</option>
                 {data.programs.map((program) => (
-                  <option key={program.id} value={program.name}>
-                    {program.code} · {program.name}
+                  <option key={program.id} value={program.id}>
+                    {data.departments.find((item) => item.id === program.departmentId)?.code ?? "No department"} → {program.code} · {program.name}
                   </option>
                 ))}
               </select>
@@ -1203,7 +1322,7 @@ export function AcademicOperations({
         <Modal
           title={editingSubject ? "Edit subject" : "Add subject"}
           description="Creates a reusable catalog subject before class sections are opened."
-          onClose={() => setModal(null)}
+          onClose={closeModal}
         >
           <ActionForm
             submitLabel={editingSubject ? "Save subject" : "Create subject"}
@@ -1238,7 +1357,7 @@ export function AcademicOperations({
               <select
                 name="departmentId"
                 required
-                defaultValue={editingSubject?.departmentId ?? ""}
+                defaultValue={editingSubject?.departmentId ?? contextProgram?.departmentId ?? ""}
               >
                 <option value="">Select department…</option>
                 {data.departments.map((d) => (
@@ -1251,7 +1370,7 @@ export function AcademicOperations({
             <Field label="Program">
               <select
                 name="programId"
-                defaultValue={editingSubject?.programId ?? ""}
+                defaultValue={editingSubject?.programId ?? contextProgramId}
               >
                 <option value="">Shared / no program</option>
                 {data.programs.map((p) => (
@@ -1350,7 +1469,7 @@ export function AcademicOperations({
             {!editingSection ? (
               <>
                 <Field label="Subject">
-                  <select name="courseId" required>
+                  <select name="courseId" required defaultValue={contextSubjectId}>
                     <option value="">Select subject…</option>
                     {data.catalogCourses
                       .filter((c) => c.status === "active")

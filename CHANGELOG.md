@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- documented the complete production schema and the authoritative Department → Program → Curriculum → Subject → Class → Enrollment → Student relationship chain
+- added an authoritative `students.program_id` foreign key with compatibility backfill and synchronization, then deployed it to production Supabase
+- rebuilt Academic Office around program pathways with curriculum origin, relationship health, linked subjects/classes/staff/students, recovery actions, and class-aware navigation into teaching, learning, assessments, grades, and schedule
+- upgraded student provisioning/editing to store the program relationship by ID while retaining the legacy program label for compatibility
+
 - restored Nexus to the last-used valid conversation and its newest message, with near-bottom following that preserves intentional upward reading
 - added visible thinking, executing, refreshing, confirmation, completion, and stopped states; the closed floating control now exposes background activity without unmounting the run
 - replaced the misleading `step of 8` presentation with completed-action count and an explicit eight-action safety limit, plus named action outcomes

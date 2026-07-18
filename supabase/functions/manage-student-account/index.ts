@@ -92,6 +92,7 @@ Deno.serve(async (request) => {
   const preferredName = text(input, 'preferredName')
   const studentNumber = text(input, 'studentNumber').toUpperCase()
   const program = text(input, 'program')
+  const programId = text(input, 'programId')
   const yearLevel = text(input, 'yearLevel')
   const phone = text(input, 'phone')
   const advisorId = text(input, 'advisorId') || null
@@ -114,6 +115,17 @@ Deno.serve(async (request) => {
     return respond(request, 400, {
       error: 'A valid academic program is required.',
     })
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(programId))
+    return respond(request, 400, { error: 'A valid academic program selection is required.' })
+
+  const { data: academicProgram, error: academicProgramError } = await admin
+    .from('academic_programs')
+    .select('id, code')
+    .eq('id', programId)
+    .eq('status', 'active')
+    .maybeSingle()
+  if (academicProgramError || !academicProgram)
+    return respond(request, 400, { error: 'The selected academic program is not active or does not exist.' })
   if (yearLevel.length < 1 || yearLevel.length > 40)
     return respond(request, 400, { error: 'A valid year level is required.' })
   if (phone.length > 40 || preferredName.length > 120)
@@ -170,6 +182,7 @@ Deno.serve(async (request) => {
         role: 'student',
         is_platform_owner: false,
         job_title: 'Student',
+        program_id: academicProgram.id,
       },
       { onConflict: 'id' },
     )
@@ -180,7 +193,8 @@ Deno.serve(async (request) => {
       student_number: studentNumber,
       full_name: fullName,
       preferred_name: preferredName || null,
-      program,
+      program: academicProgram.code || program,
+      program_id: academicProgram.id,
       year_level: yearLevel,
       email,
       phone: phone || null,

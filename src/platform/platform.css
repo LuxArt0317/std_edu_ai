@@ -5014,7 +5014,44 @@ textarea {
 .curriculum-years li span { display: flex; gap: 7px; color: #355c53; font-size: .72rem; }
 .curriculum-years li span strong { color: #176a5a; }
 .curriculum-years li small { color: #718b85; font-size: .65rem; text-align: right; }
-@media (max-width: 760px) { .curriculum-library > header, .curriculum-plan-title { align-items: stretch; flex-direction: column; } .curriculum-years { grid-template-columns: 1fr; } .curriculum-years li { grid-template-columns: 1fr; } .curriculum-years li small { text-align: left; } }
+.program-relationship-layout { display: grid; grid-template-columns: minmax(230px,.75fr) minmax(0,2.25fr); gap: 16px; align-items: start; }
+.workspace-focus-banner { display: flex; justify-content: space-between; gap: 14px; align-items: center; margin: 0 0 18px; padding: 12px 16px; border: 1px solid #b9ddd5; border-radius: 14px; background: #effaf7; color: #174b42; }
+.workspace-focus-banner b { font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; }
+.workspace-focus-banner span { color: #52736d; text-align: right; }
+.program-relationship-list { display: grid; gap: 7px; padding: 14px; border: 1px solid #d5e4e0; border-radius: 15px; background: #f7fbfa; }
+.program-relationship-list > span { margin-bottom: 3px; color: #51746c; font-size: .65rem; font-weight: 850; letter-spacing: .13em; }
+.program-relationship-list button { display: grid; gap: 4px; width: 100%; padding: 11px; color: #315b52; text-align: left; border: 1px solid transparent; border-radius: 10px; background: #fff; cursor: pointer; }
+.program-relationship-list button.active { color: #fff; border-color: #177865; background: #177865; }
+.program-relationship-list button b { font-size: .72rem; }
+.program-relationship-list button small { opacity: .78; font-size: .63rem; line-height: 1.4; }
+.program-relationship-detail { display: grid; gap: 14px; min-width: 0; }
+.program-context-card { display: grid; gap: 14px; padding: 18px; border: 1px solid #bedbd4; border-radius: 16px; background: linear-gradient(145deg,#f4fbf9,#fff); }
+.program-context-card > div:first-child > span { color: #177967; font-size: .65rem; font-weight: 850; letter-spacing: .1em; }
+.program-context-card h3 { margin: 5px 0; color: #163f37; }
+.program-context-card p { margin: 0; color: #5f7c75; font-size: .75rem; }
+.program-context-metrics { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 8px; }
+.program-context-metrics > span { display: grid; gap: 2px; padding: 10px; border-radius: 10px; background: #fff; }
+.program-context-metrics b { color: #176c5c; font-size: 1rem; }
+.program-context-metrics small { color: #68827c; font-size: .61rem; }
+.program-context-actions,.subject-connection-actions,.section-connection-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.program-context-actions button,.subject-connection-actions button,.section-connection-actions button,.relationship-missing button,.academic-link-button { padding: 7px 9px; color: #176b5b; border: 1px solid #afd3ca; border-radius: 8px; background: #fff; font-size: .67rem; font-weight: 750; cursor: pointer; }
+.curriculum-plan-title small { display: block; margin-top: 4px; color: #6d8580; font-size: .62rem; }
+.relationship-missing { border: 1px dashed #d1a867; background: #fffaf0; }
+.subject-grid article footer { align-items: flex-start; flex-direction: column; gap: 4px; }
+.subject-grid article footer small { text-align: left; }
+.academic-link-button { text-align: left; }
+.academic-relationship-health { margin: 14px 0; }
+.academic-relationship-health > header p { max-width: 720px; }
+.academic-relationship-health > div { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 9px; padding: 0 16px 16px; }
+.academic-relationship-health > div > button { display: grid; gap: 3px; padding: 12px; color: #315d54; text-align: left; border: 1px solid #d4e3df; border-radius: 11px; background: #f8fbfa; cursor: pointer; }
+.academic-relationship-health > div > button.warning { border-color: #e3c88f; background: #fffaf0; }
+.academic-relationship-health > div > button.healthy { border-color: #b9ddcf; background: #f2faf6; }
+.academic-relationship-health button b { color: #176b5b; font-size: 1rem; }
+.academic-relationship-health button span { font-size: .68rem; font-weight: 800; }
+.academic-relationship-health button small { color: #6d8580; font-size: .61rem; }
+@media (max-width: 900px) { .program-relationship-layout { grid-template-columns: 1fr; } .program-relationship-list { grid-template-columns: repeat(2,minmax(0,1fr)); } .program-relationship-list > span { grid-column: 1/-1; } .program-context-metrics { grid-template-columns: repeat(3,minmax(0,1fr)); } }
+@media (max-width: 900px) { .academic-relationship-health > div { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 760px) { .curriculum-library > header, .curriculum-plan-title { align-items: stretch; flex-direction: column; } .curriculum-years { grid-template-columns: 1fr; } .curriculum-years li { grid-template-columns: 1fr; } .curriculum-years li small { text-align: left; } .program-relationship-list { grid-template-columns: 1fr; } .program-context-metrics,.academic-relationship-health > div { grid-template-columns: 1fr; } }
 .lms-image-input {
   display: none !important;
 }

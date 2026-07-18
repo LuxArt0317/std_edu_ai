@@ -67,6 +67,7 @@ export async function askSchoolAssistant(
         })),
         students: context.data.students.slice(0, 30).map((student) => ({
           id: student.id,
+          programId: student.programId,
           studentNumber: student.studentNumber,
           name: student.name,
         })),

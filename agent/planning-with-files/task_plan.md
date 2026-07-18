@@ -1,5 +1,14 @@
 # Task Plan
 
+## Phase 74: Connected platform relationships [Issue #74]
+
+- [x] derive and document the complete production schema and relationship diagram before implementation
+- [x] normalize the missing student-to-program relationship and backfill existing records safely
+- [x] build a program-centered Academic Office with curriculum, subject, class, staff, and student drill-down
+- [x] expose parent/origin and contextual next actions across curricula, subjects, classes, rosters, schedules, teaching, assessments, and grades
+- [x] add orphan/missing-link diagnostics and correct empty-state recovery actions
+- [ ] verify migrations, RLS, relationship integrity, UI contracts, live production data, review, and deployment
+
 ## Phase 72: Nexus conversation continuity and visible execution [Issue #72]
 
 - [x] restore the last-used valid thread and its newest message when Nexus opens

@@ -141,3 +141,10 @@
 - Added visible action names/results, live runtime phases, an accurate maximum-eight safety label, and closed-drawer status on the Nexus floating control.
 - Confirmed that closing the drawer hides but does not unmount the assistant, so in-flight requests continue. All 70 contracts, lint, TypeScript, Vite production build, and asset verification pass.
 - PR #73 passed CodeRabbit and Vercel, merged as `710d6df`, and deployed Ready as `dpl_4x6t7wRiLWaqpgwBoWAoSu8hmRZt`. The custom-domain CRM returns HTTP 200 and serves the last-thread, background-activity, and safety-limit markers.
+## 2026-07-18 — Connected academic relationships
+
+- Opened Issue #74 and created the complete production schema/relationship map before implementation.
+- Audited production data: five programs, one linked BSCE curriculum with 52 mapped subjects, four programs without curricula, and four students whose legacy labels lacked an authoritative program FK.
+- Deployed the student-to-program FK/backfill/synchronization migration and student-account Edge Function v3; verified all four students now resolve to academic programs.
+- Rebuilt Academic Office around program pathways and carried selected-class context into Learning, Teaching, Assessments, Grades, and Schedule.
+- Added relationship integrity contracts. All 73 tests, lint, TypeScript, Vite build, and asset verification pass.

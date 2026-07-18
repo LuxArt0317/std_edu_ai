@@ -262,6 +262,7 @@ function UnifiedPortal({
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantActivity, setAssistantActivity] = useState<NexusActivityState>("idle");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [focusedSectionId, setFocusedSectionId] = useState("");
 
   const refresh = useCallback(
     async (silent = false) => {
@@ -474,6 +475,11 @@ function UnifiedPortal({
                 currentUser={currentUser}
                 onChanged={() => void refresh(true)}
                 onToast={setToast}
+                onAskNexus={() => setAssistantOpen(true)}
+                onOpenSectionWorkspace={(destination, sectionId) => {
+                  setFocusedSectionId(sectionId);
+                  setView(destination);
+                }}
               />
             ) : null}
             {view === "learning" ? (
@@ -485,7 +491,7 @@ function UnifiedPortal({
                   onToast={setToast}
                 />
               ) : (
-                <LearningView data={data} role={effectiveRole} />
+                <LearningView data={data} role={effectiveRole} initialSectionId={focusedSectionId} />
               )
             ) : null}
             {view === "teaching" ? (
@@ -494,12 +500,14 @@ function UnifiedPortal({
                 currentUser={currentUser}
                 onChanged={() => void refresh(true)}
                 onToast={setToast}
+                initialSectionId={focusedSectionId}
               />
             ) : null}
             {view === "assessments" ? (
               <AssessmentsView
                 data={data}
                 role={effectiveRole}
+                initialSectionId={focusedSectionId}
                 onComplete={(message) => {
                   setToast(message);
                   void refresh(true);
@@ -510,6 +518,7 @@ function UnifiedPortal({
               <GradesView
                 data={data}
                 role={effectiveRole}
+                initialSectionId={focusedSectionId}
                 currentUser={currentUser}
                 onChanged={() => void refresh(true)}
                 onToast={setToast}
@@ -519,6 +528,7 @@ function UnifiedPortal({
               <ScheduleView
                 data={data}
                 currentUser={currentUser}
+                initialSectionId={focusedSectionId}
                 onChanged={() => void refresh(true)}
                 onToast={setToast}
               />
@@ -808,11 +818,15 @@ function AcademicsView({
   currentUser,
   onChanged,
   onToast,
+  onAskNexus,
+  onOpenSectionWorkspace,
 }: {
   data: PlatformData;
   currentUser: CrmUser;
   onChanged: () => void;
   onToast: (message: string) => void;
+  onAskNexus: () => void;
+  onOpenSectionWorkspace: (destination: "learning" | "teaching" | "assessments" | "grades" | "schedule", sectionId: string) => void;
 }) {
   return (
     <>
@@ -826,6 +840,8 @@ function AcademicsView({
         currentUser={currentUser}
         onChanged={onChanged}
         onToast={onToast}
+        onAskNexus={onAskNexus}
+        onOpenSectionWorkspace={onOpenSectionWorkspace}
       />
     </>
   );
@@ -863,11 +879,17 @@ function CourseTile({
 function LearningView({
   data,
   role,
+  initialSectionId,
 }: {
   data: PlatformData;
   role: PlatformRole;
+  initialSectionId: string;
 }) {
-  const [sectionId, setSectionId] = useState(data.courses[0]?.sectionId ?? "");
+  const [sectionId, setSectionId] = useState(
+    data.courses.some((item) => item.sectionId === initialSectionId)
+      ? initialSectionId
+      : data.courses[0]?.sectionId ?? "",
+  );
   const course =
     data.courses.find((item) => item.sectionId === sectionId) ??
     data.courses[0];
@@ -982,10 +1004,12 @@ function LearningView({
 function AssessmentsView({
   data,
   role,
+  initialSectionId,
   onComplete,
 }: {
   data: PlatformData;
   role: PlatformRole;
+  initialSectionId: string;
   onComplete: (message: string) => void;
 }) {
   const [active, setActive] = useState<SchoolAssessment | null>(null);
@@ -993,6 +1017,12 @@ function AssessmentsView({
   const [result, setResult] = useState<AssessmentAttemptResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const learnerMode = role === "student";
+  const assessments = useMemo(
+    () => [...data.assessments].sort((left, right) =>
+      Number(right.sectionId === initialSectionId) - Number(left.sectionId === initialSectionId)),
+    [data.assessments, initialSectionId],
+  );
+  const focusedCourse = data.courses.find((course) => course.sectionId === initialSectionId);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -1029,8 +1059,9 @@ function AssessmentsView({
             : "Preview and review assessments with protected answer keys and deterministic scoring."
         }
       />
+      {focusedCourse ? <div className="workspace-focus-banner"><b>Opened from Academic Office</b><span>{focusedCourse.code} · {focusedCourse.title} · {focusedCourse.sectionCode}</span></div> : null}
       <section className="assessment-list">
-        {data.assessments.map((assessment) => {
+        {assessments.map((assessment) => {
           const course = data.courses.find(
             (item) => item.sectionId === assessment.sectionId,
           );
@@ -1190,18 +1221,22 @@ function AssessmentsView({
 function GradesView({
   data,
   role,
+  initialSectionId,
   currentUser,
   onChanged,
   onToast,
 }: {
   data: PlatformData;
   role: PlatformRole;
+  initialSectionId: string;
   currentUser: CrmUser;
   onChanged: () => void;
   onToast: (message: string) => void;
 }) {
   const teacherMode = teachingRoles.has(role);
-  const [gradeItemId, setGradeItemId] = useState(data.gradeItems[0]?.id ?? "");
+  const [gradeItemId, setGradeItemId] = useState(
+    data.gradeItems.find((item) => item.sectionId === initialSectionId)?.id ?? data.gradeItems[0]?.id ?? "",
+  );
   const [scan, setScan] = useState<GradeScanResult | null>(null);
   const [scanJobId, setScanJobId] = useState("");
   const [scanning, setScanning] = useState(false);
@@ -1364,6 +1399,7 @@ function GradesView({
           </label>
         }
       />
+      {selectedCourse && initialSectionId ? <div className="workspace-focus-banner"><b>Opened from Academic Office</b><span>{selectedCourse.code} · {selectedCourse.title} · {selectedCourse.sectionCode}</span></div> : null}
       <div className="grade-controls">
         <label>
           <span>Grade item</span>
@@ -1636,17 +1672,21 @@ function GradesView({
 function ScheduleView({
   data,
   currentUser,
+  initialSectionId,
   onChanged,
   onToast,
 }: {
   data: PlatformData;
   currentUser: CrmUser;
+  initialSectionId: string;
   onChanged: () => void;
   onToast: (message: string) => void;
 }) {
   const grouped = useMemo(
     () =>
-      data.schedule.reduce<Record<string, typeof data.schedule>>(
+      [...data.schedule].sort((left, right) =>
+        Number(right.sectionId === initialSectionId) - Number(left.sectionId === initialSectionId))
+      .reduce<Record<string, typeof data.schedule>>(
         (result, event) => {
           const key = new Intl.DateTimeFormat("en", {
             weekday: "long",
@@ -1658,8 +1698,9 @@ function ScheduleView({
         },
         {},
       ),
-    [data.schedule],
+    [data.schedule, initialSectionId],
   );
+  const focusedCourse = data.courses.find((course) => course.sectionId === initialSectionId);
   return (
     <>
       <PageIntro
@@ -1667,6 +1708,7 @@ function ScheduleView({
         title="Schedule"
         description="Classes, exams, deadlines, meetings, and campus events—filtered automatically for your role."
       />
+      {focusedCourse ? <div className="workspace-focus-banner"><b>Showing {focusedCourse.code} first</b><span>{focusedCourse.title} · {focusedCourse.sectionCode}</span></div> : null}
       <ScheduleOperations
         data={data}
         currentUser={currentUser}

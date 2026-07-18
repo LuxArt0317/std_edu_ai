@@ -105,13 +105,19 @@ export function TeacherLmsStudio({
   data,
   onChanged,
   onToast,
+  initialSectionId,
 }: {
   data: PlatformData;
   currentUser: CrmUser;
   onChanged: () => void;
   onToast: Toast;
+  initialSectionId: string;
 }) {
-  const [sectionId, setSectionId] = useState(data.courses[0]?.sectionId ?? "");
+  const [sectionId, setSectionId] = useState(
+    data.courses.some((item) => item.sectionId === initialSectionId)
+      ? initialSectionId
+      : data.courses[0]?.sectionId ?? "",
+  );
   const [tab, setTab] = useState<TeacherTab>("content");
   const [modal, setModal] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
