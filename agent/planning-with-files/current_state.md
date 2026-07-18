@@ -154,6 +154,11 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - PR #45 passed CodeRabbit and Vercel, merged as `32ef675`, and deployed Ready as `dpl_Df6sucy57jq4Hr1kazB6LkixE3AX` to both custom domains.
 - `https://www.stu.best/crm` returns HTTP 200 and its released CRM bundle contains the assessment, student, profile, grade, prospect, interaction, signal, and multi-page material editor contracts.
 - Issue #44 is closed; no release work remains for this phase.
+# Active release: Issue #80 compact Nexus card sizing
+
+- The compact goal card and activity row now have explicit intrinsic sizing, zero minimum height, strict compact maximums, and single-line activity truncation. This directly fixes the oversized empty thinking panel shown in production.
+- Verification and release are in progress.
+
 # Active release: Issue #78 autonomous, resumable Nexus goals
 
 - Nexus now carries an explicit end-to-end plan, remaining work, and optional clarification through every API decision. It cannot report completion while remaining work exists.

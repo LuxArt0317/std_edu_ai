@@ -1,5 +1,11 @@
 # Task Plan
 
+## Phase 80: Compact Nexus card intrinsic sizing [Issue #80]
+
+- [x] reproduce the stretched activity panel from the production screenshot
+- [x] constrain compact card and activity rows to intrinsic content height
+- [ ] verify contracts/build, review, deploy, and confirm production markers
+
 ## Phase 78: Autonomous, resumable Nexus goals [Issue #78]
 
 - [x] audit the current decision schema, goal loop, context payload, terminal logic, and oversized goal UI

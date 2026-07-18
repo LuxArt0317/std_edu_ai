@@ -35,6 +35,8 @@ test("the compact goal card exposes live action state without dominating the con
   assert.match(styles, /animation: schoolPulse/);
   assert.match(styles, /\.chat-agent-run\.compact/);
   assert.match(styles, /flex: 0 0 auto/);
+  assert.match(styles, /\.chat-agent-run\.compact \{ height: auto !important; min-height: 0 !important; max-height: 150px/);
+  assert.match(styles, /\.chat-agent-run\.compact \.chat-agent-activity \{ height: auto !important; min-height: 0 !important; max-height: 42px; display: flex !important/);
 });
 
 test("closing the drawer hides it without unmounting the assistant state", () => {

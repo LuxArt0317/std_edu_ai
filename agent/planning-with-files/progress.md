@@ -163,3 +163,7 @@
 - Added a compact goal summary, expandable plan/action evidence, and a dedicated clarification card whose answer resumes the same run.
 - All 78 contracts, lint, TypeScript/Vite build, and asset verification pass. Live OpenAI returned department then program across successive observations and resumed an ambiguous program goal after a structured clarification.
 - PR #79 passed CodeRabbit and Vercel, merged as `064faa8`, and deployed Ready. `stu.best/crm` returns HTTP 200 and serves the compact goal, remaining-work, clarification, and same-run continuation markers.
+## 2026-07-18 — Compact Nexus card intrinsic sizing
+
+- Opened Issue #80 from the production screenshot and identified that the activity row could still stretch despite the compact state.
+- Added hard intrinsic-size constraints to the compact card and activity row while preserving expandable details.

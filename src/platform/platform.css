@@ -2252,8 +2252,11 @@ textarea {
   background: linear-gradient(145deg, #f4fbf9, #e8f5f1);
   box-shadow: 0 10px 28px rgb(13 73 61 / 8%);
 }
-.chat-agent-run.compact { padding: 10px 12px; }
-.chat-agent-run.compact .chat-agent-activity { margin: 7px 0 0; padding: 7px 9px; }
+.chat-agent-run.compact { height: auto !important; min-height: 0 !important; max-height: 150px; padding: 10px 12px; overflow: hidden; }
+.chat-agent-run.compact .chat-agent-summary { min-height: 0; }
+.chat-agent-run.compact .chat-agent-activity { height: auto !important; min-height: 0 !important; max-height: 42px; display: flex !important; align-items: center; margin: 7px 0; padding: 7px 9px; overflow: hidden; }
+.chat-agent-run.compact .chat-agent-activity > span { min-width: 0; }
+.chat-agent-run.compact .chat-agent-activity > span > small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat-agent-run.compact .chat-background-note { display: none; }
 .chat-agent-summary { position: relative; padding-right: 62px; }
 .chat-agent-summary > strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
