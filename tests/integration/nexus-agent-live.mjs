@@ -108,6 +108,8 @@ if (facultyAnswer.proposedAction?.type !== "create_module")
   throw new Error(
     "Faculty did not receive the requested confirmation-gated module action.",
   );
+if (facultyAnswer.agent?.status !== "working")
+  throw new Error("Faculty action did not start a bounded working goal.");
 
 const studentAnswer = await ask(
   student.session,
@@ -116,6 +118,8 @@ const studentAnswer = await ask(
 );
 if (studentAnswer.proposedAction)
   throw new Error("A student received an executable assessed-work action.");
+if (studentAnswer.agent?.status !== "impossible")
+  throw new Error("The forbidden student goal did not stop as impossible.");
 
 await faculty.supabase.auth.signOut();
 await student.supabase.auth.signOut();
@@ -123,6 +127,7 @@ console.log(
   JSON.stringify({
     facultyAction: facultyAnswer.proposedAction.type,
     confirmationRequired: true,
+    boundedGoalStatus: facultyAnswer.agent.status,
     studentAssessedWorkBlocked: true,
   }),
 );

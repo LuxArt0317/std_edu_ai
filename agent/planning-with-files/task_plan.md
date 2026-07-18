@@ -1,5 +1,25 @@
 # Task Plan
 
+## Phase 60: Goal-driven Nexus agent loop [Issue #60]
+
+### Runtime contract and safety
+
+- [x] remove the completed repository hooks and their obsolete documentation
+- [x] define a bounded goal/run state machine with plan, action, observation, reassessment, completion, impossible, cancellation, cycle, no-progress, time, and step-limit outcomes
+- [x] preserve trusted role allowlists, exact-ID validation, Supabase-session/RLS execution, explicit confirmation for every mutation, and the absolute student assessed-work prohibition
+
+### Agent experience and execution
+
+- [x] make Nexus continue through multiple authorized steps, automatically perform safe navigation, pause/resume around mutation confirmation, and explain real progress in the chat
+- [x] show the active goal, step count, status, completed observations, pending review, cancellation, and clear terminal outcome without blocking ordinary chat
+- [x] audit every attempted action and keep model context privacy-minimized
+
+### Verification and release
+
+- [x] cover server schema filtering plus client loop completion, impossible, confirmation, cancellation, cap, cycle, and student-denial behavior
+- [x] update product/operator/API documentation, changelog, progress, and current state
+- [ ] pass tests, lint, standard Node 24 build, live Nexus checks, reviewed PR, Vercel deployment, and custom-domain production diagnostics
+
 ## Phase 58: Stitch review for every CRM page [Issue #58]
 
 ### Complete design inventory

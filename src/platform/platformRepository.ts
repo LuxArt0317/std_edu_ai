@@ -1484,7 +1484,7 @@ export async function createLearningModule(input: {
 }) {
   const client = requireClient();
   const { data: user } = await client.auth.getUser();
-  const { error } = await client.from("learning_modules").insert({
+  const { data, error } = await client.from("learning_modules").insert({
     section_id: input.sectionId,
     title: clean(input.title, "Module title", 180),
     description: input.description.trim().slice(0, 4000),
@@ -1492,8 +1492,9 @@ export async function createLearningModule(input: {
     status: input.publish ? "published" : "draft",
     published_at: input.publish ? new Date().toISOString() : null,
     created_by: user.user?.id,
-  });
+  }).select("id").single();
   if (error) throw new Error(error.message);
+  return data.id;
 }
 
 export async function setLearningModuleStatus(

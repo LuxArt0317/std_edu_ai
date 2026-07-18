@@ -21,7 +21,8 @@ It demonstrates:
 - departments, programs, terms, courses, sections, rosters, topics, assessments, protected answer keys, attempts, transactional scoring, gradebooks, announcements, notifications, and calendars
 - visible pre-filled lifecycle editors for academic structure, students, teacher/staff profiles, schedules, rich multi-page materials, quizzes/exams/assignments/projects, attendance, announcements, CRM cases, prospects, campaigns, tasks, and knowledge
 - AI-assisted grade-sheet image extraction with confidence signals and mandatory teacher review before a draft grade can be saved or published
-- durable, authenticated, multi-turn school conversations grounded in the signed-in user's visible records, with confirmation-gated role actions for navigation, teaching content, assessments, announcements, attendance, schedules, and learner-owned progress
+- durable, authenticated, multi-turn school conversations grounded in the signed-in user's visible records, with a bounded goal loop that plans one role-valid step, observes the real result, reassesses, and continues to completion or a clear impossible outcome
+- automatic safe navigation, explicit confirmation before every mutation, visible step progress, cancellation, cycle detection, eight-step and five-minute safety limits, and ordinary Supabase-session/RLS execution
 - a defense-in-depth student AI boundary that permits guidance and progress tracking but never answers, completes, modifies, grades, or submits assessed work
 - the original Student 360, early-support, admissions, task, case, campaign, knowledge, and analytics CRM available inside the unified platform
 - deployed Supabase migrations with RLS on every exposed school table, trusted workflow functions, covering indexes, role audits, and safe production seed records

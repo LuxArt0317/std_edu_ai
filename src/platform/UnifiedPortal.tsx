@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import CRMApp from "../crm/CRMApp";
 import { clearCrmDataSnapshot } from "../crm/crmRepository";
@@ -8,6 +8,12 @@ import {
   recordSchoolAgentAction,
   scanGradeSheet,
 } from "./platformAi";
+import {
+  addAgentObservation,
+  runSafetyStop,
+  startSchoolAgentRun,
+  type SchoolAgentRun,
+} from "./schoolAgentLoop";
 import {
   appendChatMessage,
   assignPlatformRole,
@@ -2571,6 +2577,8 @@ function SchoolAssistant({
   const [pendingAction, setPendingAction] = useState<SchoolAiAction | null>(
     null,
   );
+  const [agentRun, setAgentRun] = useState<SchoolAgentRun | null>(null);
+  const activeRunId = useRef("");
 
   useEffect(() => {
     if (!threadId) {
@@ -2588,13 +2596,93 @@ function SchoolAssistant({
       );
   }, [threadId]);
 
+  function addAssistantMessage(activeThread: string, content: string, citations: string[]) {
+    const item: ChatMessage = {
+      id: `assistant-${Date.now()}-${Math.random()}`,
+      threadId: activeThread,
+      role: "assistant",
+      content,
+      citations,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((current) => [...current, item]);
+    void appendChatMessage(activeThread, "assistant", content, citations);
+  }
+
+  async function advanceAgent(run: SchoolAgentRun, activeThread: string) {
+    if (activeRunId.current !== run.id) return;
+    const stopReason = runSafetyStop(run);
+    if (stopReason) {
+      const stopped = { ...run, status: "impossible" as const, terminalReason: stopReason };
+      setAgentRun(stopped);
+      addAssistantMessage(activeThread, stopReason, ["Nexus safety limit"]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const answer = await askSchoolAssistant(run.goal, messages, { view, data }, {
+        runId: run.id,
+        goal: run.goal,
+        step: run.step,
+        maxSteps: run.maxSteps,
+        observations: run.observations,
+      });
+      if (activeRunId.current !== run.id) return;
+      addAssistantMessage(activeThread, answer.answer, answer.citations);
+      const decided: SchoolAgentRun = {
+        ...run,
+        status: answer.agent.status,
+        summary: answer.agent.stepSummary,
+        terminalReason: answer.agent.terminalReason,
+      };
+      if (answer.agent.status !== "working" || !answer.proposedAction) {
+        setAgentRun(decided);
+        setPendingAction(null);
+        return;
+      }
+      const action = answer.proposedAction;
+      if (action.type === "navigate") {
+        if (!action.destination || !navigationFor(role).includes(action.destination)) {
+          const blocked = addAgentObservation(decided, {
+            step: run.step + 1, actionType: action.type, outcome: "blocked",
+            summary: "The requested workspace is unavailable for this role.",
+          }, action);
+          await recordSchoolAgentAction(action.type, "blocked");
+          setAgentRun(blocked);
+          await advanceAgent(blocked, activeThread);
+          return;
+        }
+        onNavigate(action.destination);
+        await recordSchoolAgentAction(action.type, "success");
+        const progressed = addAgentObservation(decided, {
+          step: run.step + 1, actionType: action.type, outcome: "success",
+          summary: `Opened ${navMeta[action.destination].label}.`,
+        }, action);
+        setAgentRun(progressed);
+        addAssistantMessage(activeThread, `Step ${progressed.step} complete — opened ${navMeta[action.destination].label}.`, ["Observed portal action"]);
+        await advanceAgent(progressed, activeThread);
+        return;
+      }
+      setAgentRun({ ...decided, status: "awaiting_confirmation" });
+      setPendingAction(action);
+    } catch (reason) {
+      if (activeRunId.current !== run.id) return;
+      const detail = reason instanceof Error ? reason.message : "Nexus AI could not continue the goal.";
+      setAgentRun({ ...run, status: "impossible", terminalReason: detail });
+      setError(detail);
+    } finally {
+      if (activeRunId.current === run.id) setLoading(false);
+    }
+  }
+
   async function send(event: FormEvent) {
     event.preventDefault();
     const prompt = message.trim();
     if (!prompt || loading) return;
-    setLoading(true);
     setError("");
     setMessage("");
+    setPendingAction(null);
     try {
       let activeThread = threadId;
       if (!activeThread) {
@@ -2604,40 +2692,17 @@ function SchoolAssistant({
         onDataChanged();
       }
       const userMessage: ChatMessage = {
-        id: `local-${Date.now()}`,
-        threadId: activeThread,
-        role: "user",
-        content: prompt,
-        citations: [],
-        createdAt: new Date().toISOString(),
+        id: `local-${Date.now()}`, threadId: activeThread, role: "user",
+        content: prompt, citations: [], createdAt: new Date().toISOString(),
       };
-      const nextMessages = [...messages, userMessage];
-      setMessages(nextMessages);
+      setMessages((current) => [...current, userMessage]);
       await appendChatMessage(activeThread, "user", prompt);
-      const answer = await askSchoolAssistant(prompt, messages, { view, data });
-      setPendingAction(answer.proposedAction);
-      await appendChatMessage(
-        activeThread,
-        "assistant",
-        answer.answer,
-        answer.citations,
-      );
-      setMessages([
-        ...nextMessages,
-        {
-          id: `assistant-${Date.now()}`,
-          threadId: activeThread,
-          role: "assistant",
-          content: answer.answer,
-          citations: answer.citations,
-          createdAt: new Date().toISOString(),
-        },
-      ]);
+      const run = startSchoolAgentRun(prompt);
+      activeRunId.current = run.id;
+      setAgentRun(run);
+      await advanceAgent(run, activeThread);
     } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : "Nexus AI could not answer.",
-      );
-    } finally {
+      setError(reason instanceof Error ? reason.message : "Nexus AI could not start the goal.");
       setLoading(false);
     }
   }
@@ -2645,6 +2710,11 @@ function SchoolAssistant({
   async function confirmAction() {
     if (!pendingAction || loading) return;
     const action = pendingAction;
+    const stopAsImpossible = (reason: string) => {
+      setPendingAction(null);
+      setError(reason);
+      if (agentRun) setAgentRun({ ...agentRun, status: "impossible", terminalReason: reason });
+    };
     const allowed =
       role === "student"
         ? new Set(["navigate", "mark_learning_progress"])
@@ -2664,12 +2734,14 @@ function SchoolAssistant({
       void recordSchoolAgentAction(action.type, "blocked");
       setPendingAction(null);
       setError("That action is not available for your signed-in role.");
+      if (agentRun) setAgentRun({ ...agentRun, status: "impossible", terminalReason: "The signed-in role is not authorized for the proposed action." });
       return;
     }
     if (role === "student" && action.type.includes("assessment")) {
       void recordSchoolAgentAction(action.type, "blocked");
       setPendingAction(null);
       setError("Nexus cannot complete or change assessed work for students.");
+      if (agentRun) setAgentRun({ ...agentRun, status: "impossible", terminalReason: "Student assessed work is permanently outside Nexus action authority." });
       return;
     }
     if (action.type === "navigate") {
@@ -2710,12 +2782,12 @@ function SchoolAssistant({
     );
     if (action.type === "mark_learning_progress") {
       if (!material || !action.materialId) {
-        setError("That learning material is no longer available.");
+        stopAsImpossible("That learning material is no longer available.");
         return;
       }
     } else if (action.type === "create_material_page") {
       if (!material || !action.materialId) {
-        setError("That learning material is no longer available.");
+        stopAsImpossible("That learning material is no longer available.");
         return;
       }
     } else if (
@@ -2723,7 +2795,7 @@ function SchoolAssistant({
       action.type !== "create_schedule_event" &&
       !course
     ) {
-      setError(
+      stopAsImpossible(
         "That course is no longer available. Ask Nexus to prepare the change again.",
       );
       return;
@@ -2732,7 +2804,7 @@ function SchoolAssistant({
       action.type === "create_material" &&
       (!module || module.sectionId !== action.sectionId)
     ) {
-      setError(
+      stopAsImpossible(
         "That learning module is no longer available. Ask Nexus to prepare the change again.",
       );
       return;
@@ -2740,8 +2812,9 @@ function SchoolAssistant({
     setLoading(true);
     setError("");
     try {
+      let createdId = "";
       if (action.type === "create_module")
-        await createLearningModule({
+        createdId = await createLearningModule({
           sectionId: action.sectionId!,
           title: action.title,
           description: action.description,
@@ -2751,7 +2824,7 @@ function SchoolAssistant({
           publish: action.publish,
         });
       if (action.type === "create_material")
-        await createLearningMaterial({
+        createdId = await createLearningMaterial({
           moduleId: action.moduleId!,
           title: action.title,
           description: action.description,
@@ -2838,6 +2911,16 @@ function SchoolAssistant({
         ]);
       setPendingAction(null);
       onDataChanged();
+      if (agentRun && activeRunId.current === agentRun.id) {
+        const progressed = addAgentObservation(agentRun, {
+          step: agentRun.step + 1,
+          actionType: action.type,
+          outcome: "success",
+          summary: `The confirmed ${action.type.replaceAll("_", " ")} action was saved successfully${createdId ? ` with record ID ${createdId}` : ""}.`,
+        }, action);
+        setAgentRun(progressed);
+        await advanceAgent(progressed, threadId);
+      }
     } catch (reason) {
       void recordSchoolAgentAction(action.type, "error");
       setError(
@@ -2845,6 +2928,7 @@ function SchoolAssistant({
           ? reason.message
           : "The proposed change could not be saved.",
       );
+      if (agentRun) setAgentRun({ ...agentRun, status: "impossible", terminalReason: reason instanceof Error ? reason.message : "The confirmed action failed." });
     } finally {
       setLoading(false);
     }
@@ -2886,6 +2970,9 @@ function SchoolAssistant({
           <button
             type="button"
             onClick={() => {
+              activeRunId.current = "";
+              setAgentRun(null);
+              setPendingAction(null);
               setThreadId("");
               setMessages([]);
             }}
@@ -2893,6 +2980,29 @@ function SchoolAssistant({
             +
           </button>
         </div>
+        {agentRun ? (
+          <section className={`chat-agent-run ${agentRun.status}`} aria-live="polite">
+            <div>
+              <span>ACTIVE GOAL</span>
+              <strong>{agentRun.goal}</strong>
+              <small>Step {agentRun.step} of {agentRun.maxSteps} · {agentRun.status.replaceAll("_", " ")}</small>
+            </div>
+            <p>{agentRun.terminalReason || agentRun.summary}</p>
+            {agentRun.observations.length ? (
+              <ol>{agentRun.observations.map((observation) => (
+                <li key={`${observation.step}-${observation.actionType}`}><b>✓</b><span>{observation.summary}</span></li>
+              ))}</ol>
+            ) : null}
+            {(agentRun.status === "working" || agentRun.status === "awaiting_confirmation") ? (
+              <button type="button" onClick={() => {
+                activeRunId.current = "";
+                setPendingAction(null);
+                setAgentRun({ ...agentRun, status: "cancelled", terminalReason: "Cancelled by you." });
+                setLoading(false);
+              }}>Cancel goal</button>
+            ) : null}
+          </section>
+        ) : null}
         <div className="chat-messages">
           {messages.length ? (
             messages.map((item) => (
@@ -2956,8 +3066,12 @@ function SchoolAssistant({
               confirm to apply it with your account permissions.
             </p>
             <div>
-              <button type="button" onClick={() => setPendingAction(null)}>
-                Cancel
+              <button type="button" onClick={() => {
+                activeRunId.current = "";
+                setPendingAction(null);
+                if (agentRun) setAgentRun({ ...agentRun, status: "cancelled", terminalReason: "The proposed change and goal were cancelled by you." });
+              }}>
+                Cancel goal
               </button>
               <button
                 type="button"

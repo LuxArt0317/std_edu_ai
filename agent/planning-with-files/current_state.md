@@ -1,5 +1,13 @@
 # Current State
 
+# Active implementation: Issue #60
+
+- The completed Issue #58 repository hooks and hook documentation have been removed at the user's request.
+- Nexus now has a bounded goal state machine: up to eight steps and five minutes, one action per reasoning turn, real action observations, automatic authorized navigation, per-mutation confirmation, cancellation, repeated-action detection, and explicit complete/impossible terminal states.
+- The OpenAI endpoint returns a strict agent decision and fails closed when `working` has no role-permitted action. The browser never receives provider or service-role credentials; all writes still use the signed-in Supabase session and ordinary RLS-protected repository services.
+- Successful module/material creation returns its real record ID for dependent follow-up steps. The CRM shows goal, status, step count, observations, pending review, cancellation, and terminal reason.
+- 55 contracts, lint, the standard Node 24 production build, semantic asset verification, and the live faculty/student Nexus boundary test pass. Release review, deployment, and custom-domain validation remain.
+
 # Active implementation: Issue #48
 
 - All 401 actionable `needed.md` requirements are now mapped to visible UI, repository operations, trusted Supabase authorization/RLS, controlled evidence, and automated/live verification.
@@ -12,7 +20,6 @@
 
 - Controlled student withdrawal/merge, program archival, enrollment completion/status changes, and submission return/void are deployed in production Supabase and wired into Academic Office and Teacher Studio with reasoned immutable evidence.
 - Notifications and approved communications are now implemented in production Supabase and the portal: recipient-only notices, read state, student-to-authorized-staff requests, support/admin approval or rejection, delivery, and immutable action evidence.
-- `.codex/hooks.json` now loads the unfinished Phase 48 contract on session start/resume and runs a Stop guard before handoff. The guard currently reports four remaining completion gates and cannot be satisfied by prose alone; each plan checkbox still requires production evidence.
 - `needed.md` is the authoritative 14-role action, entity lifecycle, controlled-transition, and Nexus boundary contract.
 - The protected Owner now has a visible People & Roles account-provisioning form for every non-owner role, using the existing owner-only Edge Function and a locally generated 28-character temporary password that is never persisted.
 - Role assignment now requires an impact preview, a 12–500 character reason, explicit confirmation, session-refresh notice, and the existing immutable database audit workflow.

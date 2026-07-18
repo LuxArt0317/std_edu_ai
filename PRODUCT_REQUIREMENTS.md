@@ -169,6 +169,8 @@ Every mutation proposal must contain a typed action, target, validated payload, 
 
 The Nexus action catalog supports role-valid workspace navigation, module/material/page authoring, assessment authoring, announcements, attendance sessions, schedule events, and student-owned learning progress. Students never receive executable assessed-work tools: Nexus cannot answer, complete, modify, grade, or submit an assignment, quiz, exam, or project for them. This is enforced in the model instruction, authenticated server allowlist, client executor, record-target validation, Supabase RLS, and automated regression tests.
 
+Nexus operates each actionable request as a bounded goal. It selects one authorized next step, waits for the portal's real observation, and reassesses until the goal is complete or impossible. Safe navigation may continue automatically; every mutation pauses for an explicit user confirmation and resumes only after the ordinary repository call succeeds. The run stops on user cancellation, authorization denial, stale targets, execution failure, three repeated identical actions, eight total steps, or five minutes. The goal card must expose status, step count, successful observations, pending confirmation, and the terminal reason. The model never receives database credentials and cannot bypass the signed-in user's RLS policies.
+
 ## 10. Data and security requirements
 
 - Supabase Auth establishes identity; server-controlled application metadata establishes role.

@@ -4,6 +4,7 @@ import type {
   GradeScanResult,
   PlatformData,
   SchoolAiAction,
+  SchoolAgentRequestState,
   SchoolChatAnswer,
 } from "./types";
 
@@ -21,6 +22,7 @@ export async function askSchoolAssistant(
   message: string,
   history: ChatMessage[],
   context: { view: string; data: PlatformData },
+  agent?: SchoolAgentRequestState,
 ): Promise<SchoolChatAnswer> {
   const token = await accessToken();
   const response = await fetch("/api/school-assistant", {
@@ -71,6 +73,7 @@ export async function askSchoolAssistant(
           .slice(0, 12)
           .map((topic) => topic.title),
       },
+      agent,
     }),
   });
   const payload = (await response.json()) as Partial<SchoolChatAnswer> & {
@@ -88,6 +91,12 @@ export async function askSchoolAssistant(
     suggestedActions: payload.suggestedActions,
     citations: payload.citations,
     proposedAction: (payload.proposedAction ?? null) as SchoolAiAction | null,
+    agent: payload.agent ?? {
+      status: payload.proposedAction ? "working" : "complete",
+      goalSummary: message,
+      stepSummary: payload.answer,
+      terminalReason: "",
+    },
     source: "openai",
   };
 }

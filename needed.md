@@ -532,6 +532,8 @@ Nexus AI must never:
 - Change a grade
 - Pretend to be the student
 
+For every role, an actionable Nexus request must create a visible bounded goal, choose no more than one authorized next action at a time, observe the real portal result, and reassess until complete or impossible. Safe navigation may execute automatically. Every mutation requires its own explicit confirmation. The user can cancel, and the run must stop on authorization denial, stale or failed execution, repeated no-progress actions, eight steps, or five minutes. These loop mechanics never expand the role's underlying action catalog.
+
 ## Schedule and communication
 
 - View personal class schedule

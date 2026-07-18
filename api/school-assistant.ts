@@ -18,6 +18,21 @@ type SchoolRequest = {
   message: string;
   history: ChatMessage[];
   context: Record<string, unknown>;
+  agent: AgentState | null;
+};
+
+type AgentObservation = {
+  step: number;
+  actionType: string;
+  outcome: "success" | "blocked" | "error";
+  summary: string;
+};
+type AgentState = {
+  runId: string;
+  goal: string;
+  step: number;
+  maxSteps: number;
+  observations: AgentObservation[];
 };
 
 type SchoolAnswer = {
@@ -25,6 +40,12 @@ type SchoolAnswer = {
   suggestedActions: string[];
   citations: string[];
   proposedAction: Record<string, unknown> | null;
+  agent: {
+    status: "working" | "complete" | "impossible";
+    goalSummary: string;
+    stepSummary: string;
+    terminalReason: string;
+  };
 };
 
 const requestWindows = new Map<string, number[]>();
@@ -168,7 +189,30 @@ function parseBody(body: unknown): SchoolRequest | null {
         ];
       })
     : [];
-  return { message, history, context: sanitizeContext(value.context) };
+  let agent: AgentState | null = null;
+  if (value.agent && typeof value.agent === "object" && !Array.isArray(value.agent)) {
+    const raw = value.agent as Record<string, unknown>;
+    const runId = typeof raw.runId === "string" ? raw.runId.slice(0, 120) : "";
+    const goal = typeof raw.goal === "string" ? raw.goal.trim().slice(0, 2_500) : "";
+    const step = Number.isInteger(raw.step) ? Math.max(0, Math.min(8, Number(raw.step))) : 0;
+    const maxSteps = Number.isInteger(raw.maxSteps) ? Math.max(1, Math.min(8, Number(raw.maxSteps))) : 8;
+    const observations = Array.isArray(raw.observations)
+      ? raw.observations.slice(-8).flatMap((entry) => {
+          if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+          const item = entry as Record<string, unknown>;
+          if (!Number.isInteger(item.step) || typeof item.actionType !== "string" ||
+              !["success", "blocked", "error"].includes(String(item.outcome)) || typeof item.summary !== "string") return [];
+          return [{
+            step: Math.max(0, Math.min(8, Number(item.step))),
+            actionType: item.actionType.slice(0, 80),
+            outcome: item.outcome as AgentObservation["outcome"],
+            summary: item.summary.trim().slice(0, 600),
+          }];
+        })
+      : [];
+    if (runId && goal) agent = { runId, goal, step, maxSteps, observations };
+  }
+  return { message, history, context: sanitizeContext(value.context), agent };
 }
 
 function outputText(payload: unknown) {
@@ -194,7 +238,8 @@ function parseOutput(payload: unknown): SchoolAnswer | null {
     if (
       typeof candidate.answer !== "string" ||
       !Array.isArray(candidate.suggestedActions) ||
-      !Array.isArray(candidate.citations)
+      !Array.isArray(candidate.citations) ||
+      !candidate.agent || typeof candidate.agent !== "object" || Array.isArray(candidate.agent)
     )
       return null;
     if (
@@ -210,6 +255,10 @@ function parseOutput(payload: unknown): SchoolAnswer | null {
       actionTypes.has((rawAction as Record<string, unknown>).type as string)
         ? (rawAction as Record<string, unknown>)
         : null;
+    const rawAgent = candidate.agent as Record<string, unknown>;
+    if (!["working", "complete", "impossible"].includes(String(rawAgent.status)) ||
+        typeof rawAgent.goalSummary !== "string" || typeof rawAgent.stepSummary !== "string" ||
+        typeof rawAgent.terminalReason !== "string") return null;
     return {
       answer: candidate.answer.trim().slice(0, 7_500),
       suggestedActions: candidate.suggestedActions
@@ -219,6 +268,12 @@ function parseOutput(payload: unknown): SchoolAnswer | null {
         .slice(0, 8)
         .map((item) => item.slice(0, 300)),
       proposedAction,
+      agent: {
+        status: rawAgent.status as SchoolAnswer["agent"]["status"],
+        goalSummary: rawAgent.goalSummary.trim().slice(0, 500),
+        stepSummary: rawAgent.stepSummary.trim().slice(0, 1_000),
+        terminalReason: rawAgent.terminalReason.trim().slice(0, 1_000),
+      },
     };
   } catch {
     return null;
@@ -290,7 +345,7 @@ export default async function handler(
           "Use only the bounded platform context and conversation supplied. Never invent a university policy, date, grade, student fact, or authorization.",
           "Protect privacy. Do not request passwords, authentication tokens, diagnoses, or unnecessary sensitive personal data.",
           "When context is insufficient, say what is missing and give the safest useful next step.",
-          `The only executable actions for this role are: ${[...allowedActions(auth.user.role)].join(", ")}. Propose at most one action and only when explicitly requested. Use exact IDs from platform context. Never claim it already happened; the application requires confirmation and revalidates authorization.`,
+          `The only executable actions for this role are: ${[...allowedActions(auth.user.role)].join(", ")}. You are operating a bounded goal loop. Choose at most one next action per response, use exact IDs from platform context, and reassess the goal from the supplied real observations. Set agent.status to working only when a permitted next action is necessary. Set complete only when the requested goal is satisfied. Set impossible when required information, authority, capability, or a prior blocked/error observation makes completion unsafe or unavailable. Never repeat an already successful action. Never claim an action happened until its success observation is supplied.`,
           auth.user.role === "student"
             ? "Absolute student boundary: never answer, select answers for, complete, modify, grade, or submit an assignment, quiz, exam, project, or other assessed work. Never create an assessment action for a student. You may explain concepts, navigate, and mark a learning material in progress or completed only when the student explicitly asks."
             : "Never change roles, credentials, enrollments, student identity records, or publish/finalize grades through this assistant.",
@@ -305,6 +360,14 @@ export default async function handler(
             role: "user",
             content: JSON.stringify({
               question: input.message,
+              agent_goal: input.agent?.goal ?? input.message,
+              agent_state: input.agent ?? {
+                runId: "chat",
+                goal: input.message,
+                step: 0,
+                maxSteps: 8,
+                observations: [],
+              },
               trusted_role: auth.user.role,
               platform_context: input.context,
             }),
@@ -425,12 +488,24 @@ export default async function handler(
                     "publish",
                   ],
                 },
+                agent: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    status: { type: "string", enum: ["working", "complete", "impossible"] },
+                    goalSummary: { type: "string" },
+                    stepSummary: { type: "string" },
+                    terminalReason: { type: "string" },
+                  },
+                  required: ["status", "goalSummary", "stepSummary", "terminalReason"],
+                },
               },
               required: [
                 "answer",
                 "suggestedActions",
                 "citations",
                 "proposedAction",
+                "agent",
               ],
             },
           },
@@ -454,13 +529,17 @@ export default async function handler(
         .json({ error: "Nexus AI returned an invalid response." });
       return;
     }
+    const roleAllowedAction = result.proposedAction &&
+      allowedActions(auth.user.role).has(String(result.proposedAction.type))
+      ? result.proposedAction : null;
+    const agent = result.agent.status === "working" && !roleAllowedAction
+      ? { ...result.agent, status: "impossible" as const,
+          terminalReason: result.agent.terminalReason || "No permitted next action was available, so Nexus stopped safely." }
+      : result.agent;
     response.status(200).json({
       ...result,
-      proposedAction:
-        result.proposedAction &&
-        allowedActions(auth.user.role).has(String(result.proposedAction.type))
-          ? result.proposedAction
-          : null,
+      agent,
+      proposedAction: agent.status === "working" ? roleAllowedAction : null,
       source: "openai",
     });
   } catch (error) {

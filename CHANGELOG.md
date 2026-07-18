@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- removed the completed repository-scoped Stitch session/stop hooks and their obsolete hook documentation
+- upgraded Nexus AI from one-shot proposals to a bounded eight-step goal loop with real action observations, automatic safe navigation, mutation-by-mutation confirmation, cancellation, cycle detection, a five-minute limit, and explicit complete/impossible outcomes
+- added a visible goal/progress card, returned record IDs for dependent LMS steps, structured agent decisions, privacy-minimized observation context, and contract/live coverage while preserving Supabase RLS and the absolute student assessed-work boundary
+
 - generated and HTML-audited fresh Google Stitch designs for all 23 authenticated CRM surfaces, including separate student/teacher Learning, Assessment, and Grade variants plus every Learner Support page
 - applied a shared Stitch-derived authenticated workspace language with live role/page context, tonal page framing, consistent focus states, skip links, current-page semantics, responsive stacking, and reduced visual noise while leaving `/` unchanged
 - added real Supabase password-reset and recovery completion with show/hide password, converted Learner Support header shortcuts into working navigation, and replaced its toast-only Export with a dated section-scoped JSON download

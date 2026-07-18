@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 test("Stitch outputs are validated instead of accepted as complete",()=>{
   const evidence=readFileSync("STITCH_UI_EVIDENCE.md","utf8");
@@ -14,10 +14,9 @@ test("teacher and student lessons expose explicit workflow actions",()=>{
   for(const marker of ["Open lesson","Preview as student","Edit lesson","Course outline","aria-current","Next lesson"]) assert.match(source,new RegExp(marker));
 });
 
-test("the active all-page guard supersedes the completed Phase 56 and Issue 48 guards",()=>{
-  const hooks=readFileSync(".codex/hooks.json","utf8");
-  assert.match(hooks,/stitch_all_pages_guard/);
-  assert.doesNotMatch(hooks,/stitch_ui_completion_guard|needed_completion_guard/);
+test("completed repository hooks are removed",()=>{
+  assert.equal(existsSync(".codex/hooks.json"),false);
+  assert.equal(existsSync(".codex/hooks/stitch_all_pages_guard.mjs"),false);
 });
 
 test("the Stitch redesign is scoped away from the public landing page",()=>{

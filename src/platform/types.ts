@@ -456,7 +456,32 @@ export type SchoolChatAnswer = {
   suggestedActions: string[];
   citations: string[];
   proposedAction: SchoolAiAction | null;
+  agent: SchoolAgentDecision;
   source: "openai" | "continuity";
+};
+
+export type SchoolAgentStatus = "working" | "complete" | "impossible";
+
+export type SchoolAgentObservation = {
+  step: number;
+  actionType: SchoolAiAction["type"] | "reasoning";
+  outcome: "success" | "blocked" | "error";
+  summary: string;
+};
+
+export type SchoolAgentDecision = {
+  status: SchoolAgentStatus;
+  goalSummary: string;
+  stepSummary: string;
+  terminalReason: string;
+};
+
+export type SchoolAgentRequestState = {
+  runId: string;
+  goal: string;
+  step: number;
+  maxSteps: number;
+  observations: SchoolAgentObservation[];
 };
 
 export type SchoolAiAction = {

@@ -2235,6 +2235,27 @@ textarea {
   background: #ffe8e5;
   font-size: 9px;
 }
+
+.chat-agent-run {
+  margin: 0 16px 12px;
+  padding: 14px;
+  border: 1px solid #b9d8d0;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #f4fbf9, #e8f5f1);
+  box-shadow: 0 10px 28px rgb(13 73 61 / 8%);
+}
+
+.chat-agent-run > div { display: grid; gap: 3px; }
+.chat-agent-run > div > span { color: #167968; font-size: .64rem; font-weight: 850; letter-spacing: .14em; }
+.chat-agent-run > div > strong { color: #153f37; font-size: .86rem; line-height: 1.35; }
+.chat-agent-run > div > small { color: #65847d; text-transform: capitalize; }
+.chat-agent-run > p { margin: 9px 0; color: #496a63; font-size: .76rem; line-height: 1.45; }
+.chat-agent-run ol { display: grid; gap: 5px; max-height: 110px; margin: 8px 0; padding: 0; overflow-y: auto; list-style: none; }
+.chat-agent-run li { display: flex; gap: 7px; color: #345c53; font-size: .72rem; }
+.chat-agent-run li b { color: #168b73; }
+.chat-agent-run > button { padding: 6px 10px; color: #785048; border: 1px solid #d7bdb6; border-radius: 8px; background: #fff; font-size: .7rem; font-weight: 750; cursor: pointer; }
+.chat-agent-run.complete { border-color: #93d2bc; background: #effaf4; }
+.chat-agent-run.impossible, .chat-agent-run.cancelled { border-color: #dfc0b8; background: #fff7f4; }
 .school-ai-layer form {
   padding: 13px;
   border-top: 1px solid var(--school-line);

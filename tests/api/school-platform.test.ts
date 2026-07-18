@@ -85,6 +85,8 @@ test("school assistant uses the trusted Supabase role and returns structured out
                   answer: "Start with the published topic, then try the quiz.",
                   suggestedActions: ["Open IM101"],
                   citations: ["IM101"],
+                  proposedAction: { type: "none" },
+                  agent: { status: "complete", goalSummary: "Choose study work", stepSummary: "A study sequence was provided.", terminalReason: "" },
                 }),
               },
             ],
@@ -114,6 +116,7 @@ test("school assistant uses the trusted Supabase role and returns structured out
     suggestedActions: ["Open IM101"],
     citations: ["IM101"],
     proposedAction: null,
+    agent: { status: "complete", goalSummary: "Choose study work", stepSummary: "A study sequence was provided.", terminalReason: "" },
     source: "openai",
   });
 });
@@ -137,6 +140,7 @@ test("school assistant strips every assessed-work action proposed for a student"
                   suggestedActions: ["Review the lesson"],
                   citations: ["Platform context"],
                   proposedAction: { type: "create_assessment" },
+                  agent: { status: "working", goalSummary: "Complete assessed work", stepSummary: "Requested a forbidden action.", terminalReason: "" },
                 }),
               },
             ],
@@ -185,6 +189,7 @@ test("school assistant permits student-owned learning progress actions", async (
                     type: "mark_learning_progress",
                     materialId: "material-1",
                   },
+                  agent: { status: "working", goalSummary: "Update lesson progress", stepSummary: "Mark the selected lesson complete.", terminalReason: "" },
                 }),
               },
             ],
