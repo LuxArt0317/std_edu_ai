@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added a role-aware unified school calendar with month, week, and agenda views, filters, event details, and existing conflict-safe schedule CRUD.
+- Composed personal, class, assessment, attendance, learning-release, standalone-grade, institutional, enrollment, and academic-term dates without duplicating their authoritative records.
+- Documented and verified the calendar schema, Supabase RLS audience rules, and production data coverage.
+
 - Redesigned Nexus as a compact, non-blocking Messenger-style popup with no page overlay or blur.
 - Moved live goal progress into a collapsed assistant reply and preserved focused clarification questions.
 - Added proposal comments and same-goal retries, plus pre-review parameter validation and complete quiz/exam question payloads.

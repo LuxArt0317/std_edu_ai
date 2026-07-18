@@ -230,4 +230,10 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - Review supports confirm, cancel, or a correction comment that resumes the same goal. Invalid proposal parameters are rejected before review and automatically replanned.
 - Quiz/exam actions now carry complete question payloads through the structured API contract into the atomic LMS assessment RPC.
 - PR #83 merged as `2dabf9c`; Vercel production deployment `dpl_2P8MjjRVCcjK2AMW8fwYMuuzGtaA` is Ready. The custom-domain CRM returns HTTP 200 and serves the popup, correction, and validation markers.
+
+# Active work: Issue #84 unified role-aware calendar
+
+- The Schedule workspace now composes explicit schedule events, assessment deadlines, attendance sessions, module releases, standalone grade deadlines, assigned institutional work, enrollment windows, and term boundaries.
+- Month, week, and agenda modes include navigation, filters, today/importance summaries, compact event details, source/scope labels, and responsive behavior.
+- Production schema inspection confirmed personal (`owner_profile_id`), class (`section_id`), and role (`audience_roles`) targeting with separate SELECT/INSERT/UPDATE/DELETE RLS policies. No duplicate calendar table or new permissive view is needed.
 - All 70 contracts, lint, TypeScript, Vite production build, and asset verification pass. PR #73 merged as `710d6df`; deployment `dpl_4x6t7wRiLWaqpgwBoWAoSu8hmRZt` is Ready and the custom domain serves the last-thread, background-activity, and safety-limit markers.

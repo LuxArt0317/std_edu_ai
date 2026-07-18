@@ -177,3 +177,10 @@
 - Added pre-review payload validation and automatic replanning, including complete question requirements for quiz/exam creation.
 - All 80 contracts, lint, TypeScript, Vite build, and asset verification pass locally.
 - PR #83 passed CodeRabbit and Vercel, merged as `2dabf9c`, and deployed Ready as `dpl_2P8MjjRVCcjK2AMW8fwYMuuzGtaA`. Production `/crm` returns HTTP 200 and its recursive assets contain the popup, request-changes, and quiz-validation markers.
+
+## 2026-07-18 — Unified role-aware calendar
+
+- Opened Issue #84 and audited the event-bearing schema, audience relationships, conflict trigger, and production RLS through the Supabase MCP.
+- Confirmed live source coverage: two explicit events, one assessment deadline, one standalone grade deadline, and two academic terms; attendance, module-release, and initiative sources are ready when records exist.
+- Built a single calendar projection across seven authoritative domains with month/week/agenda modes, filters, details, importance, scope, and responsive behavior while preserving existing event CRUD.
+- Documented the schema decisions in `CALENDAR_SCHEMA.md`; all 83 contracts, lint, TypeScript/Vite build, and asset validation pass.
