@@ -102,6 +102,8 @@ For an actionable request, Nexus creates a visible goal and works through one au
 
 Authorized academic leaders can request a complete degree curriculum in ordinary language. Nexus prepares all years, semesters, subjects, units, prerequisite relationships, and yearly block sections, then shows the full plan for confirmation. One confirmed action saves the draft atomically; an invalid subject or prerequisite saves nothing. The plan appears in Academic Office → Curricula and remains subject to formal curriculum review and approval.
 
+The review card also identifies the owning active department. Nexus retains a valid department from context, selects it automatically when only one active department exists, or requires the user to choose from the active Academic Office directory before confirmation.
+
 ## Example student-support workflow
 
 1. Attendance or academic concerns are recorded as student signals.

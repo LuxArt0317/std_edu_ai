@@ -1,5 +1,12 @@
 # Task Plan
 
+## Phase 68: Reliable curriculum department resolution [Issue #68]
+
+- [x] separate curriculum-payload validation from department resolution
+- [x] preserve a valid generated department, infer the sole active department, or require an explicit confirmation-card selection
+- [x] verify missing/multiple/inactive department cases and the live atomic curriculum transaction
+- [ ] pass review, deployment, and custom-domain diagnostics
+
 ## Phase 66: Nexus Enter-to-send [Issue #66]
 
 - [x] submit non-composing Enter through the existing Nexus form while preserving Shift+Enter newlines

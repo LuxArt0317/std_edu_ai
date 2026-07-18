@@ -4950,6 +4950,8 @@ textarea {
 }
 .chat-curriculum-preview > b { color: #174f44; font-size: .82rem; }
 .chat-curriculum-preview > span { color: #617f78; font-size: .72rem; }
+.chat-curriculum-preview > label { display: grid; gap: 6px; color: #355f56; font-size: .68rem; font-weight: 800; }
+.chat-curriculum-preview > label select { width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid #bfd8d2; border-radius: 9px; color: #174f44; background: #fff; font: inherit; }
 .chat-curriculum-preview summary { color: #137764; font-size: .74rem; font-weight: 800; cursor: pointer; }
 .chat-curriculum-preview section { margin-top: 8px; }
 .chat-curriculum-preview section > strong { color: #234f46; font-size: .75rem; }

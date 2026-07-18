@@ -119,3 +119,9 @@
 - Preserved Shift+Enter multiline entry, IME composition, empty-message disabling, and loading/double-submit protection.
 - Added visible shortcut guidance and regression coverage. All 61 contracts, lint, and the standard production build pass.
 - PR #67 passed CodeRabbit/Vercel, merged as `aaf598a`, and deployed Ready as `dpl_5QuWofnyhqoPNNsdWrTvqZGiAAdQ`. Both custom domains pass recursive assets and the released Enter-to-send marker.
+
+## 2026-07-18 — Curriculum department resolution
+
+- Opened Issue #68 after a 55-subject curriculum preview failed confirmation because its structured model action omitted `departmentId`.
+- Decoupled curriculum validation from department resolution, added sole-active-department inference, stale-ID rejection, an explicit active-department selector, and guarded confirmation.
+- All 62 contracts, lint, build, and the live atomic curriculum create/rollback/idempotency/cleanup workflow pass.

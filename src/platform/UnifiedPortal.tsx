@@ -2579,6 +2579,7 @@ function SchoolAssistant({
   const [pendingAction, setPendingAction] = useState<SchoolAiAction | null>(
     null,
   );
+  const [curriculumDepartmentId, setCurriculumDepartmentId] = useState("");
   const [agentRun, setAgentRun] = useState<SchoolAgentRun | null>(null);
   const activeRunId = useRef("");
 
@@ -2665,6 +2666,18 @@ function SchoolAssistant({
         addAssistantMessage(activeThread, `Step ${progressed.step} complete — opened ${navMeta[action.destination].label}.`, ["Observed portal action"]);
         await advanceAgent(progressed, activeThread);
         return;
+      }
+      if (action.type === "create_curriculum") {
+        const activeDepartments = data.departments.filter(
+          (department) => department.status === "active",
+        );
+        const requestedDepartment = activeDepartments.find(
+          (department) => department.id === action.departmentId,
+        );
+        setCurriculumDepartmentId(
+          requestedDepartment?.id ??
+            (activeDepartments.length === 1 ? activeDepartments[0].id : ""),
+        );
       }
       setAgentRun({ ...decided, status: "awaiting_confirmation" });
       setPendingAction(action);
@@ -2828,11 +2841,16 @@ function SchoolAssistant({
       let createdId = "";
       let resultSummary = "";
       if (action.type === "create_curriculum") {
-        if (!action.departmentId || !action.curriculum)
-          throw new Error("The curriculum plan is missing its department or structured subject plan.");
-        if (!data.departments.some((department) => department.id === action.departmentId && department.status === "active"))
-          throw new Error("The selected department is no longer active or available.");
-        const result = await createAcademicCurriculum(action.departmentId, agentRun?.id ?? `curriculum-${Date.now()}`, action.curriculum);
+        if (!action.curriculum)
+          throw new Error("The curriculum plan is missing its structured subject plan.");
+        const selectedDepartment = data.departments.find(
+          (department) =>
+            department.id === curriculumDepartmentId &&
+            department.status === "active",
+        );
+        if (!selectedDepartment)
+          throw new Error("Select the active academic department that will own this curriculum.");
+        const result = await createAcademicCurriculum(selectedDepartment.id, agentRun?.id ?? `curriculum-${Date.now()}`, action.curriculum);
         createdId = result.planId;
         resultSummary = `${result.status === "reused" ? "Reused" : "Created"} curriculum with ${result.subjects} subjects, ${result.prerequisites} prerequisite links, and ${result.blocks} block templates.`;
       }
@@ -3093,6 +3111,25 @@ function SchoolAssistant({
               <div className="chat-curriculum-preview">
                 <b>{pendingAction.curriculum.programCode} · {pendingAction.curriculum.programName}</b>
                 <span>{pendingAction.curriculum.subjects.length} subjects · {pendingAction.curriculum.blocks.length} blocks · Effective {pendingAction.curriculum.effectiveYear}</span>
+                <label>
+                  <span>Owning academic department</span>
+                  <select
+                    value={curriculumDepartmentId}
+                    onChange={(event) => {
+                      setCurriculumDepartmentId(event.target.value);
+                      setError("");
+                    }}
+                  >
+                    <option value="">Select a department</option>
+                    {data.departments
+                      .filter((department) => department.status === "active")
+                      .map((department) => (
+                        <option key={department.id} value={department.id}>
+                          {department.code} · {department.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
                 <details>
                   <summary>Review the four-year subject plan</summary>
                   {[1, 2, 3, 4].map((year) => (
@@ -3116,7 +3153,11 @@ function SchoolAssistant({
               </button>
               <button
                 type="button"
-                disabled={loading}
+                disabled={
+                  loading ||
+                  (pendingAction.type === "create_curriculum" &&
+                    !curriculumDepartmentId)
+                }
                 onClick={() => void confirmAction()}
               >
                 Confirm change
