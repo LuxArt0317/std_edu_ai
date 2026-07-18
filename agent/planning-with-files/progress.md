@@ -111,3 +111,4 @@
 - Traced command-tab reloads to repeated same-user Supabase `SIGNED_IN`/`TOKEN_REFRESHED` events replacing React session state and activating the blocking identity loader.
 - Separated actor authorization from UI preview and added a session-event policy that ignores same-user refresh noise while preserving real authentication transitions.
 - Verified the protected owner's trusted claim and live 40-subject/eight-block curriculum action. All 60 contracts, lint, and the standard production build pass.
+- PR #65 passed CodeRabbit and Vercel, merged as `72639bc`, and deployed Ready as `dpl_3tzKLuQzpoqeWk9bTDDWShtdUNFU`. Both custom domains serve the released CRM bundle with stable-auth markers and pass recursive asset diagnostics.

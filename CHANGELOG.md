@@ -5,6 +5,7 @@
 - fixed protected-owner Nexus confirmations by authorizing client actions with the trusted signed-in role instead of the optional interface-preview role
 - stopped repeated same-user `SIGNED_IN` and `TOKEN_REFRESHED` events from remounting the authenticated portal or showing a blocking loader after command-tab/browser visibility changes, while preserving sign-out, recovery, user-update, and account-change handling
 - added stable-session and owner-role regression contracts plus live protected-owner curriculum generation coverage
+- released through PR #65 as `72639bc`; Vercel production deployment `dpl_3tzKLuQzpoqeWk9bTDDWShtdUNFU` is Ready and both custom domains serve the stable-session authentication policy
 
 - fixed Nexus goal startup on WebKit/Safari and made chat-history persistence non-blocking so a recoverable storage failure cannot mark an operational goal impossible
 - added a confirmation-gated `create_curriculum` action that generates and atomically saves a complete multi-year program, subject sequence, prerequisite graph, and yearly block templates through the signed-in user's Supabase authorization
