@@ -2634,6 +2634,33 @@ function PeopleView({
   );
 }
 
+function validateSchoolAiAction(action: SchoolAiAction, data: PlatformData): string {
+  if (!action.title.trim() && action.type !== "navigate") return "A title is required.";
+  if (action.type === "create_assessment") {
+    if (!action.sectionId || !data.courses.some((course) => course.sectionId === action.sectionId))
+      return "The selected class section does not exist.";
+    if ((action.assessmentType === "quiz" || action.assessmentType === "exam")) {
+      if (!action.questions?.length) return "A quiz or exam requires at least one complete question.";
+      const invalidQuestion = action.questions.find((question) =>
+        !question.prompt.trim() || question.points <= 0 || question.options.length < 2 ||
+        question.correctOption < 0 || question.correctOption >= question.options.length ||
+        question.options.some((option) => !option.trim()),
+      );
+      if (invalidQuestion) return "Every quiz or exam question needs a prompt, positive points, choices, and a valid answer.";
+    }
+  }
+  if (action.type === "create_material" &&
+      (!action.moduleId || !data.modules.some((module) => module.id === action.moduleId && module.sectionId === action.sectionId)))
+    return "The selected module does not belong to that class section.";
+  if (action.type === "create_program" &&
+      (!action.departmentId || !data.departments.some((department) => department.id === action.departmentId && department.status === "active")))
+    return "The selected active department does not exist.";
+  if (action.type === "create_section" &&
+      (!action.courseId || !data.catalogCourses.some((subject) => subject.id === action.courseId)))
+    return "The selected subject does not exist.";
+  return "";
+}
+
 function SchoolAssistant({
   open,
   onClose,
@@ -2681,6 +2708,8 @@ function SchoolAssistant({
   const [curriculumDepartmentId, setCurriculumDepartmentId] = useState("");
   const [agentRun, setAgentRun] = useState<SchoolAgentRun | null>(null);
   const [goalExpanded, setGoalExpanded] = useState(false);
+  const [actionFeedbackOpen, setActionFeedbackOpen] = useState(false);
+  const [actionFeedback, setActionFeedback] = useState("");
   const [activity, setActivity] = useState<{
     state: NexusActivityState;
     label: string;
@@ -2807,6 +2836,20 @@ function SchoolAssistant({
         return;
       }
       const action = answer.proposedAction;
+      const proposalProblem = validateSchoolAiAction(action, contextData);
+      if (proposalProblem) {
+        const corrected = addAgentObservation(decided, {
+          step: run.step,
+          actionType: action.type,
+          outcome: "blocked",
+          summary: `Proposed parameters were invalid and were not shown for review: ${proposalProblem}`,
+        });
+        await recordSchoolAgentAction(action.type, "blocked");
+        setAgentRun(corrected);
+        setActivity({ state: "thinking", label: "Nexus is correcting an invalid proposal…" });
+        await advanceAgent(corrected, activeThread, contextData);
+        return;
+      }
       if (action.type === "navigate") {
         if (!action.destination || !navigationFor(role).includes(action.destination)) {
           const blocked = addAgentObservation(decided, {
@@ -2895,6 +2938,7 @@ function SchoolAssistant({
         return;
       }
       const run = startSchoolAgentRun(prompt);
+      setGoalExpanded(false);
       activeRunId.current = run.id;
       setAgentRun(run);
       setActivity({ state: "thinking", label: "Nexus is starting the goal…" });
@@ -2916,6 +2960,39 @@ function SchoolAssistant({
     setAgentRun(resumed);
     setActivity({state:"thinking",label:"Answer received. Nexus is continuing the existing goal…"});
     await advanceAgent(resumed,threadId);
+  }
+
+  async function retryProposedAction() {
+    const feedback = actionFeedback.trim();
+    if (!pendingAction || !agentRun || !threadId || !feedback || loading) return;
+    const rejectedType = pendingAction.type;
+    const userMessage: ChatMessage = {
+      id: `proposal-feedback-${Date.now()}`,
+      threadId,
+      role: "user",
+      content: `Please revise the proposed ${rejectedType.replaceAll("_", " ")}: ${feedback}`,
+      citations: [],
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((current) => [...current, userMessage]);
+    try { await appendChatMessage(threadId, "user", userMessage.content); }
+    catch { setPersistenceWarning("Nexus is continuing, but this correction could not be added to conversation history."); }
+    const resumed = addAgentObservation(
+      { ...agentRun, status: "working" },
+      {
+        step: agentRun.step,
+        actionType: rejectedType,
+        outcome: "blocked",
+        summary: `User rejected this proposal and requested a revision: ${feedback.slice(0, 500)}`,
+      },
+      pendingAction,
+    );
+    setPendingAction(null);
+    setActionFeedback("");
+    setActionFeedbackOpen(false);
+    setAgentRun(resumed);
+    setActivity({ state: "thinking", label: "Nexus is revising the proposal from your comment…" });
+    await advanceAgent(resumed, threadId);
   }
 
   async function confirmAction() {
@@ -3236,6 +3313,7 @@ function SchoolAssistant({
           dueAt: action.dueAt ?? undefined,
           maxScore: Math.max(1, Math.min(1000, action.maxScore ?? 100)),
           publish: action.publish,
+          questions: action.questions ?? [],
         });
       if (action.type === "delete_assessment")
         await deleteCourseAssessment(action.targetId!);
@@ -3387,12 +3465,6 @@ function SchoolAssistant({
   if (!open) return null;
   return (
     <div className="school-ai-layer">
-      <button
-        className="school-ai-backdrop"
-        type="button"
-        aria-label="Close Nexus AI"
-        onClick={onClose}
-      />
       <aside>
         <header>
           <span>✦</span>
@@ -3430,40 +3502,6 @@ function SchoolAssistant({
             +
           </button>
         </div>
-        {agentRun ? (
-          <section className={`chat-agent-run ${agentRun.status} ${goalExpanded ? "expanded" : "compact"}`} aria-live="polite">
-            <div className="chat-agent-summary">
-              <span>ACTIVE GOAL</span>
-              <strong>{agentRun.goal}</strong>
-              <small>{agentRun.step} {agentRun.step === 1 ? "action" : "actions"} completed · {agentRun.remainingWork.length} remaining · {agentRun.status.replaceAll("_", " ")}</small>
-              <button type="button" className="chat-goal-toggle" onClick={()=>setGoalExpanded((value)=>!value)} aria-expanded={goalExpanded}>{goalExpanded?"Hide details":"Details"}</button>
-            </div>
-            <div className={`chat-agent-activity ${activity.state}`} aria-live="polite">
-              <i aria-hidden="true" />
-              <span><b>{activity.state === "thinking" ? "Thinking" : activity.state === "executing" ? "Executing" : activity.state === "refreshing" ? "Refreshing" : activity.state === "waiting" ? "Waiting" : activity.state === "complete" ? "Complete" : activity.state === "blocked" ? "Stopped" : "Ready"}</b><small>{activity.label}</small></span>
-            </div>
-            {goalExpanded ? <><p>{agentRun.terminalReason || agentRun.summary}</p>{agentRun.plan.length?<div className="chat-agent-plan"><b>Plan</b><ol>{agentRun.plan.map((item,index)=><li key={`${index}-${item}`} className={index<agentRun.step?"done":""}><span>{index<agentRun.step?"✓":index+1}</span>{item}</li>)}</ol></div>:null}</> : null}
-            {goalExpanded && agentRun.observations.length ? (
-              <ol>{agentRun.observations.map((observation) => (
-                <li key={`${observation.step}-${observation.actionType}`}>
-                  <b>{observation.outcome === "success" ? "✓" : "!"}</b>
-                  <span><strong>{observation.actionType.replaceAll("_", " ")}</strong><small>{observation.summary}</small></span>
-                </li>
-              ))}</ol>
-            ) : null}
-            {(agentRun.status === "working" || agentRun.status === "awaiting_confirmation") ? (
-              <button type="button" onClick={() => {
-                activeRunId.current = "";
-                setPendingAction(null);
-                setAgentRun({ ...agentRun, status: "cancelled", terminalReason: "Cancelled by you." });
-                setLoading(false);
-                setActivity({ state: "blocked", label: "Goal cancelled by you." });
-              }}>Cancel goal</button>
-            ) : null}
-            <small className="chat-background-note">You can close Nexus while it thinks or executes. This run remains active in the mounted portal.</small>
-          </section>
-        ) : null}
-        {agentRun?.status === "awaiting_input" && agentRun.clarification ? <section className="chat-agent-question" role="group" aria-label="Nexus clarification required"><span>ONE DECISION NEEDED</span><h3>{agentRun.clarification.question}</h3><p>{agentRun.clarification.reason}</p><div>{agentRun.clarification.options.map((option)=><button type="button" key={option} onClick={()=>void answerClarification(option)} disabled={loading}>{option}</button>)}</div><small>You can also type a different answer below. Nexus will resume this same goal.</small></section>:null}
         <div
           className="chat-messages"
           ref={messageViewportRef}
@@ -3514,6 +3552,22 @@ function SchoolAssistant({
               </div>
             </div>
           )}
+          {agentRun ? (
+            <article className="assistant agent-progress-reply" aria-live="polite">
+              <span>✦</span>
+              <details className={`chat-agent-run ${agentRun.status}`} open={goalExpanded} onToggle={(event)=>setGoalExpanded(event.currentTarget.open)}>
+                <summary>
+                  <b>{activity.state === "thinking" ? "Thinking" : activity.state === "executing" ? "Working" : activity.state === "waiting" ? "Waiting for you" : activity.state === "complete" ? "Goal complete" : activity.state === "blocked" ? "Stopped" : "Goal progress"}</b>
+                  <small>{agentRun.step} done · {agentRun.remainingWork.length} remaining</small>
+                </summary>
+                <div className={`chat-agent-activity ${activity.state}`}><i aria-hidden="true"/><span><b>{agentRun.goal}</b><small>{activity.label}</small></span></div>
+                {agentRun.plan.length ? <ol>{agentRun.plan.map((item,index)=><li key={`${index}-${item}`} className={index<agentRun.step?"done":""}><b>{index<agentRun.step?"✓":index+1}</b><span><small>{item}</small></span></li>)}</ol> : null}
+                {agentRun.observations.length ? <ol>{agentRun.observations.map((observation,index)=><li key={`${index}-${observation.step}-${observation.actionType}`}><b>{observation.outcome === "success" ? "✓" : "!"}</b><span><strong>{observation.actionType.replaceAll("_", " ")}</strong><small>{observation.summary}</small></span></li>)}</ol> : null}
+                {(agentRun.status === "working" || agentRun.status === "awaiting_confirmation") ? <button type="button" onClick={()=>{ activeRunId.current=""; setPendingAction(null); setAgentRun({...agentRun,status:"cancelled",terminalReason:"Cancelled by you."}); setLoading(false); setActivity({state:"blocked",label:"Goal cancelled by you."}); }}>Cancel goal</button> : null}
+              </details>
+            </article>
+          ) : null}
+          {agentRun?.status === "awaiting_input" && agentRun.clarification ? <article className="assistant agent-question-reply"><span>✦</span><section className="chat-agent-question" role="group" aria-label="Nexus clarification required"><b>One question</b><h3>{agentRun.clarification.question}</h3><div>{agentRun.clarification.options.map((option)=><button type="button" key={option} onClick={()=>void answerClarification(option)} disabled={loading}>{option}</button>)}</div><small>Or type your answer below.</small></section></article>:null}
           {loading ? (
             <article className="assistant thinking">
               <span>✦</span>
@@ -3571,13 +3625,23 @@ function SchoolAssistant({
                 </details>
               </div>
             ) : null}
+            {actionFeedbackOpen ? (
+              <div className="chat-action-feedback">
+                <label htmlFor="nexus-action-feedback">What should Nexus change?</label>
+                <textarea id="nexus-action-feedback" rows={2} value={actionFeedback} onChange={(event)=>setActionFeedback(event.target.value)} placeholder="For example: add five multiple-choice questions and make it 20 points." autoFocus />
+                <button type="button" disabled={!actionFeedback.trim() || loading} onClick={()=>void retryProposedAction()}>Revise proposal</button>
+              </div>
+            ) : null}
             <div>
               <button type="button" onClick={() => {
                 activeRunId.current = "";
                 setPendingAction(null);
                 if (agentRun) setAgentRun({ ...agentRun, status: "cancelled", terminalReason: "The proposed change and goal were cancelled by you." });
               }}>
-                Cancel goal
+                Cancel
+              </button>
+              <button type="button" onClick={()=>setActionFeedbackOpen((value)=>!value)} disabled={loading}>
+                {actionFeedbackOpen ? "Close comment" : "Request changes"}
               </button>
               <button
                 type="button"

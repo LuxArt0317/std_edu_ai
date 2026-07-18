@@ -601,6 +601,13 @@ export type SchoolAiAction = {
   minutes: number | null;
   required: boolean | null;
   assessmentType: "quiz" | "exam" | "assignment" | "project" | null;
+  questions?: Array<{
+    prompt: string;
+    points: number;
+    options: string[];
+    correctOption: number;
+    explanation: string;
+  }>;
   dueAt: string | null;
   maxScore: number | null;
   priority: "normal" | "important" | "urgent" | null;

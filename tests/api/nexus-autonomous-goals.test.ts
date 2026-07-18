@@ -28,7 +28,7 @@ test("a genuine clarification pauses and resumes the same run",()=>{
   assert.match(api,/"needs_input"/);
   assert.match(api,/provide one focused clarification object/);
   assert.match(portal,/agentRun\?\.status === "awaiting_input"/);
-  assert.match(portal,/ONE DECISION NEEDED/);
+  assert.match(portal,/One question/);
   assert.match(portal,/answerClarification/);
   assert.match(portal,/continuing the existing goal/);
   assert.match(portal,/User clarification:/);
