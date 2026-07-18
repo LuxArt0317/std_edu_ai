@@ -155,3 +155,4 @@
 - Implemented the missing curriculum editor, normalized atomic lifecycle RPC, version duplication, controlled audit export, and v2 regression coverage.
 - Deployed both curriculum migrations. The first live edit exposed an audit RLS rollback; added a narrowly constrained same-transaction insert policy and reran successfully.
 - Live verification passed atomic create/rollback/retry/edit, approval immutability, retirement, audit evidence, and cleanup. Advisors show no warning for the new function/policy; all 75 contracts, lint, and production build pass.
+- PR #77 passed CodeRabbit and Vercel, merged as `c0d8cae`, and deployed Ready. `stu.best/crm` returns HTTP 200 and its released bundle contains the curriculum edit/version/subject/block/reason and audit-export controls.

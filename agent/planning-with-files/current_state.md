@@ -159,7 +159,7 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - `neededv2.md` inventories all current production schema domains and required actions, role boundaries, immutable evidence, archive transitions, and cross-cutting usability requirements; no required item is left unchecked.
 - Academic Office exposes a structured curriculum editor and separate-version action. Draft content is atomic and editable; approved curricula are immutable except retirement.
 - Production Supabase has both lifecycle migrations. The reversible live workflow passed atomic create, rollback, retry, edit, approval, unsafe-edit rejection, retirement, audit evidence, and cleanup.
-- All 75 contracts, lint, TypeScript, Vite production build, and asset validation pass. GitHub/Vercel release remains in progress.
+- All 75 contracts, lint, TypeScript, Vite production build, and asset validation pass. PR #77 merged as `c0d8cae`; Vercel production is Ready and the custom-domain bundle serves every Issue #76 marker. Issue #76 is complete.
 
 # Active release: Issue #74 connected academic relationships
 

@@ -7,7 +7,7 @@
 - [x] implement missing curriculum create/edit/status/sequence/block/prerequisite workflows
 - [x] implement every other actionable gap discovered by the v2 audit and preserve immutable-record boundaries
 - [x] add executable coverage proving every v2 action has UI, service, authorization, and lifecycle evidence
-- [ ] verify production data/RLS, pass review, deploy, and verify the released workflows
+- [x] verify production data/RLS, pass review, deploy, and verify the released workflows
 
 ## Phase 74: Connected platform relationships [Issue #74]
 

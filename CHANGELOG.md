@@ -6,6 +6,7 @@
 - added a discoverable structured curriculum editor for draft metadata, subject creation/edit/removal/reordering, units/categories/placement, prerequisite links, block templates/capacities, approval, retirement, and immutable version duplication
 - deployed an atomic curriculum lifecycle RPC with RLS role checks, adopted-version immutability, normalized mapping rebuilds, and narrowly constrained controlled-action evidence
 - added authorized governance-audit CSV export and live create/edit/approve/immutability/retire/cleanup verification
+- released through PR #77 as `c0d8cae`; Vercel production is Ready and the custom-domain CRM serves the curriculum editor, versioning, subject/block management, reason, and audit-export controls
 
 - documented the complete production schema and the authoritative Department → Program → Curriculum → Subject → Class → Enrollment → Student relationship chain
 - added an authoritative `students.program_id` foreign key with compatibility backfill and synchronization, then deployed it to production Supabase
