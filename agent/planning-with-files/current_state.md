@@ -178,4 +178,4 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 # Active release: Issue #66 Nexus Enter-to-send
 
 - Nexus submits the existing form on non-composing Enter, retains Shift+Enter for new lines, and displays the shortcut beside the send control.
-- All 61 contracts, lint, TypeScript, Vite build, and asset verification pass. GitHub review and production release remain.
+- All 61 contracts, lint, TypeScript, Vite build, and asset verification pass. PR #67 merged as `aaf598a`; production deployment `dpl_5QuWofnyhqoPNNsdWrTvqZGiAAdQ` and both custom domains pass the released Enter-to-send marker. Issue #66 is complete.

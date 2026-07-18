@@ -3,6 +3,7 @@
 ## Unreleased
 
 - added Enter-to-send to the Nexus composer while preserving Shift+Enter multiline input, IME composition, existing loading protection, and form validation
+- released through PR #67 as `aaf598a`; Vercel deployment `dpl_5QuWofnyhqoPNNsdWrTvqZGiAAdQ` is Ready and both custom domains serve the Enter-to-send composer
 
 - fixed protected-owner Nexus confirmations by authorizing client actions with the trusted signed-in role instead of the optional interface-preview role
 - stopped repeated same-user `SIGNED_IN` and `TOKEN_REFRESHED` events from remounting the authenticated portal or showing a blocking loader after command-tab/browser visibility changes, while preserving sign-out, recovery, user-update, and account-change handling

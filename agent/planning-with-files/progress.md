@@ -118,3 +118,4 @@
 - Opened Issue #66 and connected non-composing Enter to the existing Nexus form submission path.
 - Preserved Shift+Enter multiline entry, IME composition, empty-message disabling, and loading/double-submit protection.
 - Added visible shortcut guidance and regression coverage. All 61 contracts, lint, and the standard production build pass.
+- PR #67 passed CodeRabbit/Vercel, merged as `aaf598a`, and deployed Ready as `dpl_5QuWofnyhqoPNNsdWrTvqZGiAAdQ`. Both custom domains pass recursive assets and the released Enter-to-send marker.

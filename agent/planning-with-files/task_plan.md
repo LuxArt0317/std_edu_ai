@@ -4,7 +4,7 @@
 
 - [x] submit non-composing Enter through the existing Nexus form while preserving Shift+Enter newlines
 - [x] add regression coverage and visible keyboard guidance
-- [ ] pass verification, review, deployment, and custom-domain diagnostics
+- [x] pass verification, review, deployment, and custom-domain diagnostics
 
 ## Phase 64: Owner Nexus authorization and stable background tabs [Issue #64]
 
