@@ -6,6 +6,7 @@
 - added mandatory first-login password replacement, complete Auth/profile identity editing, scoped department staff maintenance, accepted-applicant Registrar handoff, sensitive-case access evidence, and approved bulk campaign delivery
 - added governed institutional policy/initiative proposal, approval, assignment, escalation, rejection, and completion; Registrar CSV exports; and archive-only CRM retention
 - added teacher-controlled assessment availability, duration, attempts, score release, and explanation release with direct-column denial, masked held-result responses, governed result history, and live privacy verification
+- released the complete catalog through reviewed PR #55 as production commit `c454e4c`; Vercel deployment `dpl_G2kMBddcg4F2sRxRaUxpoAdo16c2` is Ready and both custom-domain routes pass recursive diagnostics
 
 - Added a release-blocking `needed.md` catalog verifier that maps every action to implementation evidence and names unresolved governed workflows precisely.
 

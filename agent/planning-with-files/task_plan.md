@@ -23,7 +23,7 @@
 
 ### Verification and release
 
-- [ ] add comprehensive source contracts and reversible production role tests, update documentation/state/changelog, pass advisors/build/review, deploy, and verify the custom domain
+- [x] add comprehensive source contracts and reversible production role tests, update documentation/state/changelog, pass advisors/build/review, deploy, and verify the custom domain
 
 ## Phase 46: Role-aware Nexus action agent [Issue #46]
 
