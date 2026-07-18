@@ -176,3 +176,4 @@
 - Added review comments that reject the current proposal and resume the same goal with the user's correction.
 - Added pre-review payload validation and automatic replanning, including complete question requirements for quiz/exam creation.
 - All 80 contracts, lint, TypeScript, Vite build, and asset verification pass locally.
+- PR #83 passed CodeRabbit and Vercel, merged as `2dabf9c`, and deployed Ready as `dpl_2P8MjjRVCcjK2AMW8fwYMuuzGtaA`. Production `/crm` returns HTTP 200 and its recursive assets contain the popup, request-changes, and quiz-validation markers.

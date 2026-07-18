@@ -229,4 +229,5 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - Goal and runtime activity render as a collapsed assistant reply inside the conversation. Clarification remains a focused assistant question with quick answers.
 - Review supports confirm, cancel, or a correction comment that resumes the same goal. Invalid proposal parameters are rejected before review and automatically replanned.
 - Quiz/exam actions now carry complete question payloads through the structured API contract into the atomic LMS assessment RPC.
+- PR #83 merged as `2dabf9c`; Vercel production deployment `dpl_2P8MjjRVCcjK2AMW8fwYMuuzGtaA` is Ready. The custom-domain CRM returns HTTP 200 and serves the popup, correction, and validation markers.
 - All 70 contracts, lint, TypeScript, Vite production build, and asset verification pass. PR #73 merged as `710d6df`; deployment `dpl_4x6t7wRiLWaqpgwBoWAoSu8hmRZt` is Ready and the custom domain serves the last-thread, background-activity, and safety-limit markers.

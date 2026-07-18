@@ -6,7 +6,7 @@
 - [x] render goal, thinking, progress, and clarification as compact assistant replies with details collapsed by default
 - [x] let users confirm, cancel, or comment on a proposal so Nexus replans the same goal
 - [x] validate all proposed parameters before review and require complete questions for quizzes/exams
-- [ ] verify contracts/build, review, deploy, and confirm production behavior
+- [x] verify contracts/build, review, deploy, and confirm production behavior
 
 ## Phase 80: Compact Nexus card intrinsic sizing [Issue #80]
 
