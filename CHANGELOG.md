@@ -6,6 +6,7 @@
 - applied a shared Stitch-derived authenticated workspace language with live role/page context, tonal page framing, consistent focus states, skip links, current-page semantics, responsive stacking, and reduced visual noise while leaving `/` unchanged
 - added real Supabase password-reset and recovery completion with show/hide password, converted Learner Support header shortcuts into working navigation, and replaced its toast-only Export with a dated section-scoped JSON download
 - replaced the completed Phase 56 hook with a strict Phase 58 guard that counts every page row and requires prompt, screen, HTML-control, implementation, test, review, deployment, and production evidence
+- released the 23-surface Stitch phase through reviewed PR #59 as `99acb34`; Vercel deployment `dpl_GGMBaMex7QxWRzmmEFn7SYPhuECr` is Ready and both custom-domain routes plus the six released Phase 58 markers pass recursive diagnostics
 
 - established the official Google Stitch MCP project and reusable prompt/evidence workflow for authenticated `/crm` UI/UX while explicitly protecting the public `/` landing design
 - validated generated Stitch HTML controls against real teacher, student, account, admissions, campaign, and case workflows; retained required production actions that Stitch omitted or rendered ambiguously
