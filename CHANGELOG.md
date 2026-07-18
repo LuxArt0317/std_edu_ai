@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- completed the full 401-action `needed.md` role catalog across all 14 production roles with visible operations, repository services, RLS/trusted workflows, controlled audit evidence, and live account-boundary verification
+- added mandatory first-login password replacement, complete Auth/profile identity editing, scoped department staff maintenance, accepted-applicant Registrar handoff, sensitive-case access evidence, and approved bulk campaign delivery
+- added governed institutional policy/initiative proposal, approval, assignment, escalation, rejection, and completion; Registrar CSV exports; and archive-only CRM retention
+- added teacher-controlled assessment availability, duration, attempts, score release, and explanation release with direct-column denial, masked held-result responses, governed result history, and live privacy verification
+
 - Added a release-blocking `needed.md` catalog verifier that maps every action to implementation evidence and names unresolved governed workflows precisely.
 
 - added controlled student withdrawal and record merging, program archival guards, reasoned enrollment transitions, and teacher return/void submission actions with immutable before/after evidence

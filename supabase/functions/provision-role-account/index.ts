@@ -97,15 +97,8 @@ Deno.serve(async (request) => {
   });
   const { data: identity, error: identityError } =
     await admin.auth.getUser(token);
-  if (
-    identityError ||
-    identity.user?.app_metadata.role !== "owner" ||
-    identity.user?.app_metadata.platform_owner !== true
-  ) {
-    return response(request, 403, {
-      error: "Only the protected platform owner can provision accounts.",
-    });
-  }
+  if (identityError || !identity.user)
+    return response(request, 401, { error: "The authenticated identity is invalid." });
 
   let input: Record<string, unknown>;
   try {
@@ -125,6 +118,45 @@ Deno.serve(async (request) => {
   const action = typeof input.action === "string" ? input.action : "provision";
   const targetId = typeof input.targetId === "string" ? input.targetId : "";
   const reason = typeof input.reason === "string" ? input.reason.trim() : "";
+
+  if (action === "complete_password_change") {
+    try {
+      const updated = await admin.auth.admin.updateUserById(identity.user.id, {
+        app_metadata: { ...identity.user.app_metadata, must_change_password: false },
+      });
+      if (updated.error) throw updated.error;
+      await admin.from("account_access_audit").insert({
+        target_profile_id: identity.user.id,
+        acted_by: identity.user.id,
+        action: "initial_password_changed",
+        reason: "Account holder replaced the owner-issued temporary password.",
+        details: { completed_at: new Date().toISOString() },
+      }).throwOnError();
+      return response(request, 200, { id: identity.user.id, must_change_password: false });
+    } catch (error) {
+      return response(request, 500, { error: error instanceof Error ? error.message : "Password-change completion failed." });
+    }
+  }
+
+  const isProtectedOwner = identity.user.app_metadata.role === "owner" && identity.user.app_metadata.platform_owner === true;
+  const isAccountAdministrator = identity.user.app_metadata.role === "admin" && identity.user.app_metadata.platform_owner !== true;
+  if (!isProtectedOwner && !isAccountAdministrator) return response(request, 403, { error: "Only the protected platform owner or an authorized administrator can provision accounts and perform account actions." });
+
+  if (action === "update_identity") {
+    const phone = typeof input.phone === "string" ? input.phone.trim() : "";
+    if (!/^[0-9a-f-]{36}$/i.test(targetId) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || phone.length > 40 || reason.length < 12 || reason.length > 500)
+      return response(request, 400, { error: "Target, valid email, phone up to 40 characters, and a 12–500 character reason are required." });
+    try {
+      const target = await admin.auth.admin.getUserById(targetId);
+      if (target.error || !target.data.user) throw target.error ?? new Error("Account not found.");
+      if (target.data.user.app_metadata.platform_owner === true) return response(request, 403, { error: "The protected owner identity cannot be changed here." });
+      const authUpdate = await admin.auth.admin.updateUserById(targetId, { email, email_confirm: true });
+      if (authUpdate.error) throw authUpdate.error;
+      await admin.from("profiles").update({ phone: phone || null }).eq("id", targetId).throwOnError();
+      await admin.from("account_access_audit").insert({ target_profile_id: targetId, acted_by: identity.user.id, action: "directory_identity_updated", reason, details: { previous_email: target.data.user.email ?? null, email, phone_present: Boolean(phone) } }).throwOnError();
+      return response(request, 200, { id: targetId, email, phone });
+    } catch (error) { return response(request, 500, { error: error instanceof Error ? error.message : "Identity update failed." }); }
+  }
 
   if (action === "directory") {
     try {
@@ -230,7 +262,7 @@ Deno.serve(async (request) => {
       if (await findUserByEmail(admin, email)) return response(request, 409, { error: "An account with this email already exists." });
       const invited = await admin.auth.admin.inviteUserByEmail(email, { data: { full_name: fullName }, redirectTo: "https://www.stu.best/crm" });
       if (invited.error || !invited.data.user) throw invited.error ?? new Error("Auth did not return the invited user.");
-      const updated = await admin.auth.admin.updateUserById(invited.data.user.id, { app_metadata: { role, platform_owner: false } });
+      const updated = await admin.auth.admin.updateUserById(invited.data.user.id, { app_metadata: { role, platform_owner: false, must_change_password: true } });
       if (updated.error) throw updated.error;
       await admin.from("account_access_audit").insert({ target_profile_id: invited.data.user.id, acted_by: identity.user.id, action: "invitation_sent", reason: "Protected owner invited a new institutional account.", details: { role, email } }).throwOnError();
       return response(request, 201, { id: invited.data.user.id, email, role, status: "invited" });
@@ -340,6 +372,7 @@ Deno.serve(async (request) => {
       ...(existing?.app_metadata ?? {}),
       role,
       platform_owner: false,
+      must_change_password: true,
     };
     const attributes = {
       email,

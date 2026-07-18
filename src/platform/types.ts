@@ -41,6 +41,7 @@ export type PlatformProfile = {
   departmentId: string | null;
   programId: string | null;
   jobTitle: string;
+  phone: string;
   isOwner: boolean;
   accountStatus: "active" | "suspended" | "archived";
   statusChangedAt: string | null;
@@ -223,6 +224,8 @@ export type SchoolAssessment = {
   durationMinutes: number | null;
   attemptLimit: number;
   maxScore: number;
+  releaseExplanations: boolean;
+  releaseScoresImmediately: boolean;
   questions: AssessmentQuestion[];
 };
 
@@ -296,6 +299,8 @@ export type CommunicationRequest = {
   createdAt: string;
 };
 
+export type InstitutionalInitiative = { id: string; type: "policy" | "initiative" | "teaching_plan" | "content_correction"; title: string; description: string; scope: string; priority: "normal" | "high" | "urgent"; status: "proposed" | "approved" | "in_progress" | "completed" | "rejected" | "escalated"; ownerId: string | null; createdBy: string; dueAt: string | null; createdAt: string };
+
 export type PlatformStudent = {
   id: string;
   profileId: string | null;
@@ -346,9 +351,18 @@ export type SectionEnrollment = {
 
 export type AssessmentAttemptResult = {
   attemptId: string;
-  score: number;
-  maxScore: number;
+  score: number | null;
+  maxScore: number | null;
   status: string;
+};
+
+export type AssessmentAttempt = AssessmentAttemptResult & {
+  assessmentId: string;
+  studentProfileId: string;
+  attemptNumber: number;
+  startedAt: string;
+  submittedAt: string | null;
+  gradedAt: string | null;
 };
 
 export type ChatThread = { id: string; title: string; updatedAt: string };
@@ -396,6 +410,7 @@ export type PlatformData = {
   attendanceSessions: AttendanceSession[];
   attendanceRecords: AttendanceRecord[];
   assessments: SchoolAssessment[];
+  assessmentAttempts: AssessmentAttempt[];
   gradeItems: GradeItem[];
   grades: GradeRecord[];
   schedule: ScheduleEvent[];
@@ -433,6 +448,7 @@ export type PlatformData = {
   controlledAudits: ControlledActionAudit[];
   notifications: PortalNotification[];
   communications: CommunicationRequest[];
+  initiatives: InstitutionalInitiative[];
 };
 
 export type SchoolChatAnswer = {

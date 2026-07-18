@@ -4,10 +4,10 @@ import { test } from 'node:test'
 
 const source = fs.readFileSync('supabase/functions/provision-role-account/index.ts', 'utf8')
 
-test('role provisioning is restricted to the protected owner', () => {
-  assert.match(source, /app_metadata\.role !== ["']owner["']/)
-  assert.match(source, /app_metadata\.platform_owner !== true/)
-  assert.match(source, /Only the protected platform owner can provision accounts/)
+test('role provisioning is restricted to the protected owner or authorized administrator', () => {
+  assert.match(source, /isProtectedOwner/)
+  assert.match(source, /isAccountAdministrator/)
+  assert.match(source, /Only the protected platform owner or an authorized administrator can provision accounts/)
 })
 
 test('role provisioning excludes a second owner and validates credentials', () => {

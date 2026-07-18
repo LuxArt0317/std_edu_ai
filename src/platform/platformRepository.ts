@@ -124,6 +124,8 @@ export async function loadPlatformData(): Promise<PlatformData> {
     controlledAuditsResult,
     notificationsResult,
     communicationsResult,
+    initiativesResult,
+    assessmentAttemptsResult,
   ] = await withTimeout(
     Promise.all([
       client
@@ -143,7 +145,7 @@ export async function loadPlatformData(): Promise<PlatformData> {
       client.from("section_enrollments").select("*"),
       client.from("course_topics").select("*").order("position"),
       client.from("assessments").select("*").order("due_at"),
-      client.from("assessment_questions").select("*").order("position"),
+      client.rpc("read_assessment_questions"),
       client.from("assessment_options").select("*").order("position"),
       client.from("assessment_answer_keys").select("*"),
       client.from("grade_items").select("*").order("due_at"),
@@ -194,6 +196,8 @@ export async function loadPlatformData(): Promise<PlatformData> {
       client.from("controlled_action_audit").select("*").order("created_at", { ascending: false }).limit(100),
       client.from("notifications").select("*").order("created_at", { ascending: false }).limit(100),
       client.from("communication_requests").select("*").order("created_at", { ascending: false }).limit(100),
+      client.from("institutional_initiatives").select("*").order("updated_at", { ascending: false }).limit(100),
+      client.rpc("read_assessment_attempts"),
     ]),
     20_000,
     "The school workspace took too long to load. Check the connection and try again.",
@@ -246,6 +250,8 @@ export async function loadPlatformData(): Promise<PlatformData> {
   const controlledAuditRows = rows(controlledAuditsResult, "Controlled action audit");
   const notificationRows = rows(notificationsResult, "Notifications");
   const communicationRows = rows(communicationsResult, "Communications");
+  const initiativeRows = rows(initiativesResult, "Institutional initiatives");
+  const assessmentAttemptRows = rows(assessmentAttemptsResult, "Assessment results");
 
   const profilesById = new Map(
     profileRows.map((profile) => [profile.id, profile]),
@@ -327,6 +333,8 @@ export async function loadPlatformData(): Promise<PlatformData> {
     durationMinutes: assessment.duration_minutes,
     attemptLimit: assessment.attempt_limit,
     maxScore: Number(assessment.max_score),
+    releaseExplanations: assessment.release_explanations,
+    releaseScoresImmediately: assessment.release_scores_immediately,
     questions: questions.filter(
       (question) => question.assessmentId === assessment.id,
     ),
@@ -349,6 +357,7 @@ export async function loadPlatformData(): Promise<PlatformData> {
       departmentId: profile.department_id ?? null,
       programId: profile.program_id ?? null,
       jobTitle: profile.job_title ?? "",
+      phone: profile.phone ?? "",
       isOwner: profile.is_platform_owner,
       accountStatus: (profile.account_status ??
         "active") as PlatformProfile["accountStatus"],
@@ -493,6 +502,18 @@ export async function loadPlatformData(): Promise<PlatformData> {
       notes: item.notes,
     })),
     assessments,
+    assessmentAttempts: assessmentAttemptRows.map((attempt) => ({
+      attemptId: attempt.id,
+      assessmentId: attempt.assessment_id,
+      studentProfileId: attempt.student_profile_id,
+      attemptNumber: attempt.attempt_number,
+      status: attempt.status,
+      score: attempt.score === null ? null : Number(attempt.score),
+      maxScore: attempt.max_score === null ? null : Number(attempt.max_score),
+      startedAt: attempt.started_at,
+      submittedAt: attempt.submitted_at,
+      gradedAt: attempt.graded_at,
+    })),
     gradeItems: gradeItemRows.map((item) => ({
       id: item.id,
       sectionId: item.section_id,
@@ -623,7 +644,17 @@ export async function loadPlatformData(): Promise<PlatformData> {
     })),
     notifications: notificationRows.map((item) => ({ id: item.id, title: item.title, body: item.body, kind: item.kind, actionUrl: item.action_url, readAt: item.read_at, createdAt: item.created_at })),
     communications: communicationRows.map((item) => ({ id: item.id, senderId: item.sender_id, recipientId: item.recipient_id, subject: item.subject, body: item.body, channel: item.channel, status: item.status, approvalReason: item.approval_reason ?? "", createdAt: item.created_at })),
+    initiatives: initiativeRows.map((item) => ({ id:item.id,type:item.initiative_type as "policy"|"initiative"|"teaching_plan"|"content_correction",title:item.title,description:item.description,scope:item.scope,priority:item.priority as "normal"|"high"|"urgent",status:item.status as "proposed"|"approved"|"in_progress"|"completed"|"rejected"|"escalated",ownerId:item.owner_id,createdBy:item.created_by,dueAt:item.due_at,createdAt:item.created_at })),
   };
+}
+
+export async function createInstitutionalInitiative(input:{type:"policy"|"initiative"|"teaching_plan"|"content_correction";title:string;description:string;scope:string;priority:"normal"|"high"|"urgent";dueAt:string|null}) {
+  const client=requireClient(); const user=await client.auth.getUser(); if(user.error||!user.data.user) throw new Error("Authentication is required.");
+  const {error}=await client.from("institutional_initiatives").insert({initiative_type:input.type,title:clean(input.title,"Title",180),description:clean(input.description,"Description",10000),scope:clean(input.scope,"Scope",180),priority:input.priority,due_at:input.dueAt,created_by:user.data.user.id,status:"proposed"}); if(error) throw new Error(error.message);
+}
+
+export async function transitionInstitutionalInitiative(input:{initiativeId:string;action:"approve"|"assign"|"complete"|"reject"|"escalate";ownerId:string|null;reason:string}) {
+  const {error}=await requireClient().rpc("transition_institutional_initiative",{p_initiative_id:input.initiativeId,p_action:input.action,p_owner_id:input.ownerId as string,p_reason:clean(input.reason,"Transition reason",1000)}); if(error) throw new Error(error.message);
 }
 
 export async function markNotificationRead(id: string, read: boolean) {
@@ -666,8 +697,8 @@ export async function submitAssessment(
   if (!result) throw new Error("The assessment did not return a result.");
   return {
     attemptId: result.attempt_id,
-    score: Number(result.score),
-    maxScore: Number(result.max_score),
+    score: result.score === null ? null : Number(result.score),
+    maxScore: result.max_score === null ? null : Number(result.max_score),
     status: result.status,
   };
 }
@@ -1039,6 +1070,21 @@ export async function resendRoleInvitation(email: string) {
   const data = await invokeAccountControl({ action: "resend_invitation", email });
   if (!data?.id || data.status !== "invitation_resent") throw new Error("The invitation resend was not confirmed by Auth.");
   return data as { id: string; email: string; status: "invitation_resent" };
+}
+
+export async function updateAccountIdentity(input: { targetId: string; email: string; phone: string; reason: string }) {
+  const data = await invokeAccountControl({ action: "update_identity", ...input });
+  if (!data?.id) throw new Error("The identity update was not confirmed by Auth.");
+  return data as { id: string; email: string; phone: string };
+}
+
+export async function removeProfileSectionAssignment(assignmentId: string, reason: string) {
+  const { error } = await requireClient().rpc("remove_profile_section_assignment", { p_assignment_id: assignmentId, p_reason: clean(reason, "Removal reason", 500) });
+  if (error) throw new Error(error.message);
+}
+
+export async function updateDepartmentStaffProfile(input:{profileId:string;fullName:string;department:string;jobTitle:string;reason:string}) {
+  const {error}=await requireClient().rpc("update_department_staff_profile",{p_profile_id:input.profileId,p_full_name:clean(input.fullName,"Full name",120),p_department:input.department.trim().slice(0,120),p_job_title:input.jobTitle.trim().slice(0,120),p_reason:clean(input.reason,"Update reason",500)}); if(error) throw new Error(error.message);
 }
 
 export async function createStudentSupportRequest(input: {
@@ -1433,6 +1479,8 @@ export async function createLearningModule(input: {
   description: string;
   position: number;
   publish: boolean;
+  releaseExplanations?: boolean;
+  releaseScoresImmediately?: boolean;
 }) {
   const client = requireClient();
   const { data: user } = await client.auth.getUser();
@@ -1695,8 +1743,13 @@ export async function createCourseAssessment(input: {
   instructions: string;
   type: "quiz" | "exam" | "assignment" | "project";
   dueAt?: string;
+  opensAt?: string;
+  durationMinutes?: number | null;
+  attemptLimit?: number;
   maxScore: number;
   publish: boolean;
+  releaseExplanations?: boolean;
+  releaseScoresImmediately?: boolean;
   questions?: Array<{
     prompt: string;
     points: number;
@@ -1706,7 +1759,7 @@ export async function createCourseAssessment(input: {
   }>;
 }) {
   const client = requireClient();
-  const { error } = await client.rpc("create_lms_assessment", {
+  const { data, error } = await client.rpc("create_lms_assessment", {
     p_section_id: input.sectionId,
     p_title: clean(input.title, "Assessment title", 180),
     p_instructions: input.instructions.trim().slice(0, 10000),
@@ -1717,6 +1770,8 @@ export async function createCourseAssessment(input: {
     p_questions: (input.questions ?? []) as unknown as Json,
   });
   if (error) throw new Error(error.message);
+  if (!data) throw new Error("The assessment identifier was not returned.");
+  const release=await client.from("assessments").update({opens_at:input.opensAt||null,duration_minutes:input.durationMinutes||null,attempt_limit:Math.max(1,Math.min(20,input.attemptLimit??1)),release_explanations:input.releaseExplanations===true,release_scores_immediately:input.releaseScoresImmediately!==false}).eq("id",data); if(release.error) throw new Error(release.error.message);
 }
 
 export async function updateCourseAssessment(
@@ -1726,8 +1781,13 @@ export async function updateCourseAssessment(
     instructions: string;
     type: "quiz" | "exam" | "assignment" | "project";
     dueAt?: string;
+    opensAt?: string;
+    durationMinutes?: number | null;
+    attemptLimit?: number;
     maxScore: number;
     publish: boolean;
+    releaseExplanations?: boolean;
+    releaseScoresImmediately?: boolean;
     questions?: Array<{
       prompt: string;
       points: number;
@@ -1749,6 +1809,7 @@ export async function updateCourseAssessment(
     p_questions: (input.questions ?? []) as unknown as Json,
   });
   if (error) throw new Error(error.message);
+  const release=await client.from("assessments").update({opens_at:input.opensAt||null,duration_minutes:input.durationMinutes||null,attempt_limit:Math.max(1,Math.min(20,input.attemptLimit??1)),release_explanations:input.releaseExplanations===true,release_scores_immediately:input.releaseScoresImmediately!==false}).eq("id",assessmentId); if(release.error) throw new Error(release.error.message);
 }
 
 export async function deleteCourseAssessment(assessmentId: string) {

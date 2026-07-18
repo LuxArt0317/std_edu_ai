@@ -88,7 +88,8 @@ function leadStage(value: string): LeadStage {
   return value === "engaged" ||
     value === "application" ||
     value === "review" ||
-    value === "admitted"
+    value === "admitted" ||
+    value === "closed"
     ? value
     : "inquiry";
 }
@@ -123,7 +124,7 @@ function campaignStatus(value: string): Campaign["status"] {
 }
 
 function knowledgeStatus(value: string): KnowledgeArticle["status"] {
-  if (value === "verified" || value === "review_due") return value;
+  if (value === "verified" || value === "review_due" || value === "archived") return value;
   return "draft";
 }
 
@@ -526,7 +527,7 @@ export async function updateKnowledgeArticle(
     summary: string;
     content: string;
     sourceUrl: string;
-    status: "verified" | "review_due" | "draft";
+    status: "verified" | "review_due" | "draft" | "archived";
   },
 ) {
   if (!supabase)
@@ -543,16 +544,6 @@ export async function updateKnowledgeArticle(
       verified_at:
         input.status === "verified" ? new Date().toISOString() : null,
     })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-}
-
-export async function deleteKnowledgeArticle(id: string) {
-  if (!supabase)
-    throw new Error("Supabase is required to delete institutional knowledge.");
-  const { error } = await supabase
-    .from("knowledge_articles")
-    .delete()
     .eq("id", id);
   if (error) throw new Error(error.message);
 }
@@ -660,12 +651,6 @@ export async function saveCrmCase(
   if (result.error) throw new Error(result.error.message);
 }
 
-export async function deleteCrmCase(id: string) {
-  const client = requireCrmClient();
-  const { error } = await client.from("cases").delete().eq("id", id);
-  if (error) throw new Error(error.message);
-}
-
 export async function saveAdmissionLead(
   id: string | null,
   input: {
@@ -699,12 +684,6 @@ export async function saveAdmissionLead(
   if (result.error) throw new Error(result.error.message);
 }
 
-export async function deleteAdmissionLead(id: string) {
-  const client = requireCrmClient();
-  const { error } = await client.from("admission_leads").delete().eq("id", id);
-  if (error) throw new Error(error.message);
-}
-
 export async function saveCrmTask(
   id: string | null,
   input: {
@@ -732,12 +711,6 @@ export async function saveCrmTask(
     ? await client.from("crm_tasks").update(values).eq("id", id)
     : await client.from("crm_tasks").insert(values);
   if (result.error) throw new Error(result.error.message);
-}
-
-export async function deleteCrmTask(id: string) {
-  const client = requireCrmClient();
-  const { error } = await client.from("crm_tasks").delete().eq("id", id);
-  if (error) throw new Error(error.message);
 }
 
 export async function saveCampaign(
@@ -818,9 +791,18 @@ export async function logStudentInteraction(input: {
   if (error) throw new Error(error.message);
 }
 
-export async function deleteCampaign(id: string) {
-  const client = requireCrmClient();
-  const { error } = await client.from("campaigns").delete().eq("id", id);
+export async function requestAdmissionHandoff(leadId: string, notes: string) {
+  const { error } = await requireCrmClient().rpc("request_admission_handoff", { p_lead_id: leadId, p_notes: notes.trim() });
+  if (error) throw new Error(error.message);
+}
+
+export async function approveAndSendCampaign(campaignId: string, reason: string) {
+  const { error } = await requireCrmClient().rpc("approve_and_send_campaign", { p_campaign_id: campaignId, p_reason: reason.trim() });
+  if (error) throw new Error(error.message);
+}
+
+export async function recordSensitiveCaseAccess(caseId: string, purpose: string) {
+  const { error } = await requireCrmClient().rpc("record_sensitive_case_access", { p_case_id: caseId, p_purpose: purpose.trim() });
   if (error) throw new Error(error.message);
 }
 

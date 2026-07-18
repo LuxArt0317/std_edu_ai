@@ -31,7 +31,7 @@ const rows = [];
 for (const [index, raw] of needed.split("\n").entries()) {
   if (/^# \d+\./.test(raw)) role = raw.replace(/^# /, "");
   else if (/^## /.test(raw)) section = raw.slice(3);
-  else if (/^- /.test(raw) && !/^\- \*\*/.test(raw)) {
+  else if (/^- /.test(raw) && !/^- \*\*/.test(raw)) {
     const action = raw.slice(2).trim();
     rows.push({ line: index + 1, role, section, action, domain: sectionDomain(section, action) });
   }
@@ -58,14 +58,14 @@ const requiredSpecificEvidence = {
   "Convert an accepted applicant into a student-account request": ["src/crm/CRMApp.tsx", "Convert to student request"],
   "Transfer accepted records to the Registrar": ["src/crm/CRMApp.tsx", "Registrar handoff"],
   "Sensitive-case access": ["supabase/migrations", "sensitive_case_access"],
-  "Bulk communication": ["src/crm/CRMApp.tsx", "Approve & send campaign"],
+  "Bulk communication": ["src/crm/CRMApp.tsx", "approveAndSendCampaign"],
   "Permanent data deletion": ["src/platform/UnifiedPortal.tsx", "Permanent deletion is disabled"],
 };
 
 for (const [action, [file, marker]] of Object.entries(requiredSpecificEvidence)) {
   if (!needed.includes(`- ${action}`)) failures.push(`needed.md is missing governed action: ${action}`);
   const candidates = file === "supabase/migrations"
-    ? ["supabase/migrations/20260717234309_complete_needed_controlled_workflows.sql", "supabase/migrations/20260718001256_controlled_student_program_submission_records.sql"]
+    ? ["supabase/migrations/20260717234309_complete_needed_controlled_workflows.sql", "supabase/migrations/20260718001256_controlled_student_program_submission_records.sql", "supabase/migrations/20260718002408_complete_identity_governance.sql"]
     : [file];
   if (!candidates.some((candidate) => readFileSync(new URL(candidate, root), "utf8").includes(marker))) {
     failures.push(`${action} lacks specific evidence marker ${JSON.stringify(marker)} in ${file}`);

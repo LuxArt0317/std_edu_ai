@@ -265,10 +265,18 @@ export function AcademicOperations({
     setEditingSection(null);
   }
 
+  function exportCsv(filename: string, rows: Array<Array<string | number>>) {
+    const csv=rows.map((row)=>row.map((value)=>`"${String(value).replaceAll('"','""')}"`).join(",")).join("\r\n");
+    const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"})); const link=document.createElement("a"); link.href=url; link.download=filename; link.click(); URL.revokeObjectURL(url); onToast(`${filename} exported from your authorized records.`);
+  }
+
   return (
     <>
       <section className="academic-command-bar">
         <div>
+          {registrarRoles.has(role) ? <button type="button" onClick={()=>exportCsv("stu-enrollment-report.csv",[["Student number","Name","Program","Year","Record status"],...data.students.map((student)=>[student.studentNumber,student.fullName,student.program,student.yearLevel,student.recordStatus])])}>Export enrollment report</button> : null}
+          {registrarRoles.has(role) && selectedSection ? <button type="button" onClick={()=>exportCsv(`${selectedSection.code}-${selectedSection.sectionCode}-class-list.csv`,[["Student number","Name","Enrollment status"],...roster.map(({student,enrollment})=>[student!.studentNumber,student!.fullName,enrollment.status])])}>Export class list</button> : null}
+          {registrarRoles.has(role) ? <button type="button" onClick={()=>exportCsv("stu-official-academic-record-index.csv",[["Student number","Name","Program","Year","Standing/record status"],...data.students.map((student)=>[student.studentNumber,student.fullName,student.program,student.yearLevel,student.recordStatus])])}>Export official record index</button> : null}
           <span>ACADEMIC CONTROL</span>
           <h2>Run the school from one workspace</h2>
           <p>
