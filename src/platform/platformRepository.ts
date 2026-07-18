@@ -122,6 +122,8 @@ export async function loadPlatformData(): Promise<PlatformData> {
     sectionAssignmentsResult,
     attendanceCorrectionsResult,
     controlledAuditsResult,
+    notificationsResult,
+    communicationsResult,
   ] = await withTimeout(
     Promise.all([
       client
@@ -190,6 +192,8 @@ export async function loadPlatformData(): Promise<PlatformData> {
       client.from("profile_section_assignments").select("*").order("created_at", { ascending: false }),
       client.from("attendance_correction_requests").select("*").order("created_at", { ascending: false }),
       client.from("controlled_action_audit").select("*").order("created_at", { ascending: false }).limit(100),
+      client.from("notifications").select("*").order("created_at", { ascending: false }).limit(100),
+      client.from("communication_requests").select("*").order("created_at", { ascending: false }).limit(100),
     ]),
     20_000,
     "The school workspace took too long to load. Check the connection and try again.",
@@ -240,6 +244,8 @@ export async function loadPlatformData(): Promise<PlatformData> {
   const sectionAssignmentRows = rows(sectionAssignmentsResult, "Class responsibilities");
   const attendanceCorrectionRows = rows(attendanceCorrectionsResult, "Attendance corrections");
   const controlledAuditRows = rows(controlledAuditsResult, "Controlled action audit");
+  const notificationRows = rows(notificationsResult, "Notifications");
+  const communicationRows = rows(communicationsResult, "Communications");
 
   const profilesById = new Map(
     profileRows.map((profile) => [profile.id, profile]),
@@ -612,7 +618,29 @@ export async function loadPlatformData(): Promise<PlatformData> {
       reason: item.reason,
       createdAt: item.created_at,
     })),
+    notifications: notificationRows.map((item) => ({ id: item.id, title: item.title, body: item.body, kind: item.kind, actionUrl: item.action_url, readAt: item.read_at, createdAt: item.created_at })),
+    communications: communicationRows.map((item) => ({ id: item.id, senderId: item.sender_id, recipientId: item.recipient_id, subject: item.subject, body: item.body, channel: item.channel, status: item.status, approvalReason: item.approval_reason ?? "", createdAt: item.created_at })),
   };
+}
+
+export async function markNotificationRead(id: string, read: boolean) {
+  const client = requireClient();
+  const { error } = await client.from("notifications").update({ read_at: read ? new Date().toISOString() : null }).eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function createCommunicationRequest(input: { recipientId: string; subject: string; body: string; channel: "portal" | "email" | "sms" }) {
+  const client = requireClient();
+  const { data: auth, error: authError } = await client.auth.getUser();
+  if (authError || !auth.user) throw new Error("An authenticated sender is required.");
+  const { error } = await client.from("communication_requests").insert({ sender_id: auth.user.id, recipient_id: input.recipientId, subject: clean(input.subject,"Subject",160), body: clean(input.body,"Message",10000), channel: input.channel, status: "pending" });
+  if (error) throw new Error(error.message);
+}
+
+export async function decideCommunicationRequest(input: { requestId: string; approve: boolean; reason: string }) {
+  const client = requireClient();
+  const { error } = await client.rpc("decide_communication_request", { p_request_id: input.requestId, p_approve: input.approve, p_reason: clean(input.reason,"Decision reason",1000) });
+  if (error) throw new Error(error.message);
 }
 
 export async function submitAssessment(

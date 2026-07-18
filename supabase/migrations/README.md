@@ -15,3 +15,5 @@ The integrated LMS migration set adds modules, materials, submissions, attendanc
 `20260717233540_optimize_account_and_support_policies.sql` covers every new audit foreign key and consolidates staff/student case creation into one role-aware insert policy.
 
 `20260717234309_complete_needed_controlled_workflows.sql` adds relational department/program/class responsibilities, student attendance-correction requests, and reasoned final-grade publication, published-grade correction, term closing, and attendance decisions with immutable before/after evidence. The two following migrations make pending correction uniqueness lifecycle-safe and cover all new policy foreign keys without duplicate permissive reads.
+
+`20260718000718_notifications_and_approved_communication.sql` replaces self-insertable notifications with recipient read/update and authorized delivery policies, adds participant-scoped communication requests, and exposes a support/admin approval RPC that atomically delivers portal notifications and writes controlled-action evidence.

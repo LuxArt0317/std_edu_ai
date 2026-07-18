@@ -1121,6 +1121,76 @@ export type Database = {
           },
         ]
       }
+      communication_requests: {
+        Row: {
+          approval_reason: string | null
+          approved_at: string | null
+          approved_by: string | null
+          body: string
+          channel: string
+          created_at: string
+          id: string
+          recipient_id: string
+          sender_id: string
+          sent_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          approval_reason?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          body: string
+          channel?: string
+          created_at?: string
+          id?: string
+          recipient_id: string
+          sender_id: string
+          sent_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          approval_reason?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          body?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          recipient_id?: string
+          sender_id?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_requests_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_requests_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       controlled_action_audit: {
         Row: {
           action: string
@@ -1999,6 +2069,7 @@ export type Database = {
           action_url: string | null
           body: string
           created_at: string
+          created_by: string | null
           id: string
           kind: string
           read_at: string | null
@@ -2009,6 +2080,7 @@ export type Database = {
           action_url?: string | null
           body: string
           created_at?: string
+          created_by?: string | null
           id?: string
           kind?: string
           read_at?: string | null
@@ -2019,6 +2091,7 @@ export type Database = {
           action_url?: string | null
           body?: string
           created_at?: string
+          created_by?: string | null
           id?: string
           kind?: string
           read_at?: string | null
@@ -2026,6 +2099,13 @@ export type Database = {
           title?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "notifications_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notifications_recipient_id_fkey"
             columns: ["recipient_id"]
@@ -2731,6 +2811,30 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "attendance_correction_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      decide_communication_request: {
+        Args: { p_approve: boolean; p_reason: string; p_request_id: string }
+        Returns: {
+          approval_reason: string | null
+          approved_at: string | null
+          approved_by: string | null
+          body: string
+          channel: string
+          created_at: string
+          id: string
+          recipient_id: string
+          sender_id: string
+          sent_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "communication_requests"
           isOneToOne: true
           isSetofReturn: false
         }

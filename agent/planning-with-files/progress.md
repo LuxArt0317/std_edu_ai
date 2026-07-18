@@ -43,3 +43,9 @@
 - Added project-scoped Codex `SessionStart` and `Stop` hooks backed by a dependency-free completion guard.
 - The guard reads only Phase 48 of the monolithic plan, injects every remaining gate on start/resume, and blocks completed handoff while any gate is unchecked.
 - Hook JSON, valid-catalog behavior, session context, and four-gate Stop denial were verified locally.
+
+## 2026-07-18 — Notifications and approved communication
+
+- Applied the production communication migration with participant RLS, staff approval, recipient-only notification delivery, and immutable controlled audit evidence.
+- Added the portal notification center, live unread count, read/unread actions, approved contact form, and support/admin decision queue.
+- Generated current production database types; TypeScript and Supabase advisor checks pass with no missing foreign-key indexes or duplicate permissive policies.

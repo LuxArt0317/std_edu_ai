@@ -29,6 +29,9 @@ import {
   loadPlatformDataCached,
   inviteRoleAccount,
   markLearningProgress,
+  markNotificationRead,
+  createCommunicationRequest,
+  decideCommunicationRequest,
   publishGrade,
   correctPublishedGrade,
   provisionRoleAccount,
@@ -217,6 +220,7 @@ function UnifiedPortal({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const refresh = useCallback(
     async (silent = false) => {
@@ -374,8 +378,9 @@ function UnifiedPortal({
                 type="button"
                 className="school-alert"
                 title="Notifications"
+                onClick={() => setNotificationsOpen(true)}
               >
-                ♢<b>{data.announcements.length}</b>
+                ♢<b>{data.notifications.filter((item) => !item.readAt).length}</b>
               </button>
               <button type="button" className="school-user" onClick={signOut}>
                 {currentUser.initials}
@@ -485,6 +490,7 @@ function UnifiedPortal({
           onNavigate={setView}
           onDataChanged={() => void refresh(true)}
         />
+        {notificationsOpen ? <NotificationCenter data={data} currentUser={currentUser} onClose={() => setNotificationsOpen(false)} onChanged={() => void refresh(true)} onToast={setToast} /> : null}
         {toast ? (
           <div className="school-toast">
             <span>✓</span>
@@ -1667,6 +1673,12 @@ function ScheduleView({
       </div>
     </>
   );
+}
+
+function NotificationCenter({ data, currentUser, onClose, onChanged, onToast }: { data: PlatformData; currentUser: CrmUser; onClose: () => void; onChanged: () => void; onToast: (message: string) => void }) {
+  const canApprove = currentUser.isOwner || ["admin", "support"].includes(currentUser.role);
+  const recipients = data.profiles.filter((profile) => profile.id !== currentUser.id && profile.accountStatus === "active" && (currentUser.role !== "student" || ["faculty", "advisor", "support", "admin"].includes(profile.role)));
+  return <div className="academic-modal-layer"><button type="button" className="academic-modal-backdrop" aria-label="Close notifications" onClick={onClose} /><section className="academic-modal notification-center" role="dialog" aria-modal="true" aria-label="Notifications and messages"><header><div><span>NOTIFICATIONS & APPROVED COMMUNICATION</span><h2>Your notification center</h2><p>Read portal notices and contact an authorized teacher, advisor, or support team through the governed message workflow.</p></div><button type="button" onClick={onClose}>×</button></header><div className="notification-center-body"><section><h3>Notifications</h3>{data.notifications.map((item) => <article key={item.id} className={item.readAt ? "read" : "unread"}><div><b>{item.title}</b><small>{new Date(item.createdAt).toLocaleString()}</small></div><p>{item.body}</p><button type="button" onClick={() => void markNotificationRead(item.id,!item.readAt).then(onChanged).catch((error: unknown) => onToast(error instanceof Error ? error.message : "Notification update failed."))}>{item.readAt ? "Mark unread" : "Mark read"}</button></article>)}{!data.notifications.length ? <p>No notifications yet.</p> : null}</section><section><h3>Contact school staff</h3><form className="academic-form" onSubmit={(event) => {event.preventDefault();const f=new FormData(event.currentTarget);void createCommunicationRequest({recipientId:String(f.get("recipientId")),subject:String(f.get("subject")),body:String(f.get("body")),channel:"portal"}).then(() => {onToast("Message submitted for approved delivery.");onChanged();event.currentTarget.reset();}).catch((error: unknown) => onToast(error instanceof Error ? error.message : "Message could not be submitted."));}}><label><span>Recipient</span><select name="recipientId" required><option value="">Choose a recipient</option>{recipients.map((item) => <option key={item.id} value={item.id}>{item.name} · {roleNames[item.role]}</option>)}</select></label><label><span>Subject</span><input name="subject" required minLength={2} maxLength={160} /></label><label><span>Message</span><textarea name="body" required minLength={2} maxLength={10000} rows={5} /></label><button>Submit message</button></form></section>{canApprove ? <section><h3>Pending communication approval</h3>{data.communications.filter((item) => item.status === "pending").map((item) => <article key={item.id}><b>{item.subject}</b><p>{item.body}</p><small>{data.profiles.find((profile) => profile.id === item.senderId)?.name ?? "Sender"} → {data.profiles.find((profile) => profile.id === item.recipientId)?.name ?? "Recipient"}</small><div><button type="button" onClick={() => {const reason=window.prompt("Approval reason (at least 12 characters)");if(reason) void decideCommunicationRequest({requestId:item.id,approve:true,reason}).then(() => {onToast("Communication approved and delivered.");onChanged();}).catch((error: unknown) => onToast(error instanceof Error ? error.message : "Approval failed."));}}>Approve & send</button><button type="button" onClick={() => {const reason=window.prompt("Rejection reason (at least 12 characters)");if(reason) void decideCommunicationRequest({requestId:item.id,approve:false,reason}).then(() => {onToast("Communication rejected.");onChanged();}).catch((error: unknown) => onToast(error instanceof Error ? error.message : "Rejection failed."));}}>Reject</button></div></article>)}{!data.communications.some((item) => item.status === "pending") ? <p>No messages are waiting.</p> : null}</section> : null}</div></section></div>;
 }
 
 function PeopleView({

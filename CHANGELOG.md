@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- added a live notification center with unread counts, read/unread controls, governed student-to-teacher/advisor/support messaging, staff approval or rejection, portal delivery, and immutable communication audit evidence
+
 - added trusted repository Codex SessionStart and Stop hooks that load Issue #48 continuity context and block a completed handoff while the authoritative Phase 48 catalog still has unchecked requirements
 
 - added institutional email invitation and resend controls, owner-managed role capability catalogs, and visible department, program, class, and advisee responsibility assignments

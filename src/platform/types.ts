@@ -274,6 +274,28 @@ export type Announcement = {
   publishedAt: string;
 };
 
+export type PortalNotification = {
+  id: string;
+  title: string;
+  body: string;
+  kind: string;
+  actionUrl: string | null;
+  readAt: string | null;
+  createdAt: string;
+};
+
+export type CommunicationRequest = {
+  id: string;
+  senderId: string;
+  recipientId: string;
+  subject: string;
+  body: string;
+  channel: string;
+  status: string;
+  approvalReason: string;
+  createdAt: string;
+};
+
 export type PlatformStudent = {
   id: string;
   profileId: string | null;
@@ -406,6 +428,8 @@ export type PlatformData = {
   sectionAssignments: ProfileSectionAssignment[];
   attendanceCorrections: AttendanceCorrectionRequest[];
   controlledAudits: ControlledActionAudit[];
+  notifications: PortalNotification[];
+  communications: CommunicationRequest[];
 };
 
 export type SchoolChatAnswer = {

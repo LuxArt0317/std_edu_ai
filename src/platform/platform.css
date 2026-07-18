@@ -4979,3 +4979,12 @@ textarea {
 .lms-page-document > footer button:disabled {
   opacity: 0.35;
 }
+.notification-center { width: min(1100px, calc(100vw - 32px)); }
+.notification-center-body { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; padding: 24px; max-height: 70vh; overflow: auto; }
+.notification-center-body > section { min-width: 0; }
+.notification-center-body h3 { margin: 0 0 14px; color: #173f36; }
+.notification-center-body article { padding: 14px; margin-bottom: 10px; border: 1px solid #dce9e5; border-radius: 12px; background: #fff; }
+.notification-center-body article.unread { border-color: #6dcbbb; background: #f1fbf8; }
+.notification-center-body article > div { display: flex; justify-content: space-between; gap: 10px; }
+.notification-center-body article p { color: #62746f; line-height: 1.5; }
+@media (max-width: 900px) { .notification-center-body { grid-template-columns: 1fr; } }
