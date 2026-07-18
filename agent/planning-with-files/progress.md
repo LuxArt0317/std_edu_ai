@@ -148,3 +148,4 @@
 - Deployed the student-to-program FK/backfill/synchronization migration and student-account Edge Function v3; verified all four students now resolve to academic programs.
 - Rebuilt Academic Office around program pathways and carried selected-class context into Learning, Teaching, Assessments, Grades, and Schedule.
 - Added relationship integrity contracts. All 73 tests, lint, TypeScript, Vite build, and asset verification pass.
+- PR #75 passed CodeRabbit and Vercel, merged as `7234ac0`, and deployed to production. The custom-domain CRM returns HTTP 200 and its released bundle contains the relationship-health, program-pathway, curriculum-placement, and focused-workspace markers.

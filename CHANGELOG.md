@@ -6,6 +6,7 @@
 - added an authoritative `students.program_id` foreign key with compatibility backfill and synchronization, then deployed it to production Supabase
 - rebuilt Academic Office around program pathways with curriculum origin, relationship health, linked subjects/classes/staff/students, recovery actions, and class-aware navigation into teaching, learning, assessments, grades, and schedule
 - upgraded student provisioning/editing to store the program relationship by ID while retaining the legacy program label for compatibility
+- released through PR #75 as `7234ac0`; the Vercel production deployment is Ready and `stu.best/crm` serves the connected-program and contextual-workspace markers
 
 - restored Nexus to the last-used valid conversation and its newest message, with near-bottom following that preserves intentional upward reading
 - added visible thinking, executing, refreshing, confirmation, completion, and stopped states; the closed floating control now exposes background activity without unmounting the run

@@ -159,7 +159,7 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - The complete production schema is mapped in `docs/PLATFORM_SCHEMA_MAP.md`; the authoritative academic chain is Department → Program → Curriculum → Curriculum Subject → Subject → Class → Enrollment → Student.
 - Production Supabase now has an indexed `students.program_id` foreign key. All four existing students were backfilled, no student remains unlinked, and student provisioning Edge Function version 3 is ACTIVE.
 - Academic Office is program-centered and exposes curriculum origin, related subjects/classes/staff/students, relationship-health diagnostics, contextual creation/editing, and class-aware transitions into all instructional workspaces.
-- All 73 contracts, lint, TypeScript, Vite production build, and built-asset verification pass. GitHub/Vercel release remains in progress.
+- All 73 contracts, lint, TypeScript, Vite production build, and built-asset verification pass. PR #75 merged as `7234ac0`; Vercel production is Ready and the custom-domain CRM serves the connected relationship markers. Issue #74 is complete.
 
 # Current release: Issue #48 controlled workflows
 

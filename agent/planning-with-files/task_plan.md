@@ -7,7 +7,7 @@
 - [x] build a program-centered Academic Office with curriculum, subject, class, staff, and student drill-down
 - [x] expose parent/origin and contextual next actions across curricula, subjects, classes, rosters, schedules, teaching, assessments, and grades
 - [x] add orphan/missing-link diagnostics and correct empty-state recovery actions
-- [ ] verify migrations, RLS, relationship integrity, UI contracts, live production data, review, and deployment
+- [x] verify migrations, RLS, relationship integrity, UI contracts, live production data, review, and deployment
 
 ## Phase 72: Nexus conversation continuity and visible execution [Issue #72]
 
