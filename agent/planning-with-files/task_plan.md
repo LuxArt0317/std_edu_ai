@@ -6,7 +6,7 @@
 - [x] follow newly rendered messages only when the reader is already near the bottom
 - [x] expose thinking, executing, refreshing, confirmation, and terminal activity in the goal card
 - [x] preserve active work when the drawer closes and clarify the eight-step safety ceiling
-- [ ] add regression coverage, pass review, deploy, and verify production
+- [x] add regression coverage, pass review, deploy, and verify production
 
 ## Phase 70: Governed Nexus platform tools [Issue #70]
 

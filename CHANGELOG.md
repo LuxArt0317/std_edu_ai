@@ -5,6 +5,7 @@
 - restored Nexus to the last-used valid conversation and its newest message, with near-bottom following that preserves intentional upward reading
 - added visible thinking, executing, refreshing, confirmation, completion, and stopped states; the closed floating control now exposes background activity without unmounting the run
 - replaced the misleading `step of 8` presentation with completed-action count and an explicit eight-action safety limit, plus named action outcomes
+- released through PR #73 as `710d6df`; deployment `dpl_4x6t7wRiLWaqpgwBoWAoSu8hmRZt` is Ready and production serves the conversation-continuity markers
 
 - expanded Nexus into a governed cross-platform tool catalog for academic setup, dependent curriculum goals, LMS authoring and maintenance, schedules, communications, support cases, attendance corrections, and institutional initiatives
 - added exact-ID platform context, double role authorization, repository/RLS execution, returned record observations, and refreshed-data continuation between confirmed goal steps

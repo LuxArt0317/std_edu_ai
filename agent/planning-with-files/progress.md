@@ -140,3 +140,4 @@
 - Added per-user last-thread continuity with recent-thread fallback, initial bottom restoration, and near-bottom-only message following.
 - Added visible action names/results, live runtime phases, an accurate maximum-eight safety label, and closed-drawer status on the Nexus floating control.
 - Confirmed that closing the drawer hides but does not unmount the assistant, so in-flight requests continue. All 70 contracts, lint, TypeScript, Vite production build, and asset verification pass.
+- PR #73 passed CodeRabbit and Vercel, merged as `710d6df`, and deployed Ready as `dpl_4x6t7wRiLWaqpgwBoWAoSu8hmRZt`. The custom-domain CRM returns HTTP 200 and serves the last-thread, background-activity, and safety-limit markers.

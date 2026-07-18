@@ -196,4 +196,4 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - Nexus restores the last-used valid thread, falls back to the most recently updated conversation, and opens at the newest rendered message without stealing the scroll position from someone reading older messages.
 - The goal card now shows named action outcomes and explicit thinking, execution, refresh, confirmation, completion, and stopped phases. The eight value is labelled as a safety limit rather than mandatory steps.
 - Closing the drawer leaves the assistant mounted and the run active; the floating Nexus control displays background, confirmation, complete, or attention status.
-- All 70 contracts, lint, TypeScript, Vite production build, and asset verification pass. Review and production deployment remain.
+- All 70 contracts, lint, TypeScript, Vite production build, and asset verification pass. PR #73 merged as `710d6df`; deployment `dpl_4x6t7wRiLWaqpgwBoWAoSu8hmRZt` is Ready and the custom domain serves the last-thread, background-activity, and safety-limit markers.
