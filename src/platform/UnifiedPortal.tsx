@@ -290,6 +290,9 @@ function UnifiedPortal({
   return (
     <>
       <div className="school-shell" hidden={showingCrm}>
+        <a className="school-skip-link" href="#school-workspace-content">
+          Skip to workspace content
+        </a>
         <aside className={`school-sidebar ${sidebarOpen ? "open" : ""}`}>
           <a className="school-brand" href="/">
             <span>樹</span>
@@ -313,6 +316,7 @@ function UnifiedPortal({
                 key={item}
                 type="button"
                 className={view === item ? "active" : ""}
+                aria-current={view === item ? "page" : undefined}
                 onClick={() => {
                   setView(item);
                   setSidebarOpen(false);
@@ -348,7 +352,7 @@ function UnifiedPortal({
           />
         ) : null}
 
-        <main className="school-main">
+        <main className="school-main" id="school-workspace-content">
           <header className="school-topbar">
             <button
               className="school-menu"
@@ -409,7 +413,12 @@ function UnifiedPortal({
             </div>
           ) : null}
 
-          <div className="school-content">
+          <div className="school-content" data-workspace={view}>
+            <section className="school-workspace-context" aria-label="Current workspace context">
+              <span><i /> Live role-scoped data</span>
+              <b>{navMeta[view].label}</b>
+              <small>{roleNames[effectiveRole]} access</small>
+            </section>
             {view === "home" ? (
               <HomeView
                 data={data}

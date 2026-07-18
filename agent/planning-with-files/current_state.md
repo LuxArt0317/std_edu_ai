@@ -94,6 +94,13 @@ No implementation or release work remains for issue #18. The platform is product
 - The authenticated `/crm` LMS and account-directory workflows now expose clear open/preview/edit/delete/manage actions, student next-lesson progression, accessible focus states, and 44px action targets. The public `/` landing page is unchanged.
 - All 48 contracts, lint, standard production build, 14-account verification, 14-role action/boundary matrix, faculty/student role checks, and reversible LMS workflow pass.
 - PR #57 passed Vercel Preview and CodeRabbit, merged as `8c7c130`, and deployed Ready as `dpl_8qKDB5r5j2NQYaC7miqeC51X9CFP`. Both custom-domain routes, recursive assets, and released workflow markers pass production diagnostics. Issue #56 is complete.
+
+# Active release: Issue #58 all-page Stitch UI/UX
+
+- The official private Stitch project/design system now contains a fresh generated screen for each of 23 CRM surfaces: authentication, shell, every School OS page/role variant, all eight Learner Support workspaces, Notifications, and Nexus AI.
+- Every generated HTML artifact returned HTTP 200 and its controls were extracted and audited. The implementation follows Stitch's stronger hierarchy while retaining required platform actions that Stitch omitted or rendered ambiguously.
+- Shared page context/framing, accessibility semantics, password recovery, working Learner Support shortcuts, and real section export are implemented without modifying `src/App.tsx` or the public `/` design.
+- All 52 contracts, lint, standard production build, 14-account verification, 14-role action boundaries, reversible LMS, and reversible academic operations pass. Review and production release remain.
 Issue #30 is complete. Academic Office supports student account/SIS creation, departments, programs, terms, subjects, sections, capacity-aware rosters, and conflict-safe schedule events. PR #31 merged as `f561155`; the production Supabase migration and JWT-protected Edge Function are active; Vercel production is Ready. All 22 contracts, all-role account checks, owner/faculty/student RLS tests, reversible enrollment, room-conflict rejection, lint, build, and released `/` and `/crm` diagnostics pass.
 Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. The integrated LMS schema/private Storage, teacher course studio, and student learning path are live. All 26 contracts, lint, guarded/standard builds, advisor review, released route diagnostics, and the reversible real-faculty/student LMS lifecycle pass.
 

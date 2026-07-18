@@ -114,6 +114,43 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
+function exportWorkspaceSnapshot(section: CrmSection, database: CrmDatabase) {
+  const records: Record<CrmSection, unknown> = {
+    command: {
+      students: database.students,
+      tasks: database.tasks,
+      cases: database.cases,
+    },
+    students: database.students,
+    success: database.students,
+    admissions: database.leads,
+    cases: database.cases,
+    campaigns: database.campaigns,
+    knowledge: database.knowledge,
+    analytics: {
+      students: database.students,
+      cases: database.cases,
+      campaigns: database.campaigns,
+      leads: database.leads,
+    },
+  };
+  const payload = JSON.stringify(
+    { section, exportedAt: new Date().toISOString(), records: records[section] },
+    null,
+    2,
+  );
+  const url = URL.createObjectURL(
+    new Blob([payload], { type: "application/json;charset=utf-8" }),
+  );
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `stu-nexus-${section}-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
 function MetricCard({
   label,
   value,
@@ -501,6 +538,9 @@ function CRMApp({
 
   return (
     <div className="nexus-shell">
+      <a className="nexus-skip-link" href="#learner-support-content">
+        Skip to Learner Support content
+      </a>
       <aside className={`nexus-sidebar ${mobileNavOpen ? "open" : ""}`}>
         <a className="nexus-brand" href="/">
           <span className="brand-emblem">樹</span>
@@ -516,6 +556,7 @@ function CRMApp({
               key={item.id}
               type="button"
               className={section === item.id ? "active" : ""}
+              aria-current={section === item.id ? "page" : undefined}
               onClick={() => {
                 setSection(item.id);
                 setMobileNavOpen(false);
@@ -572,7 +613,7 @@ function CRMApp({
         />
       ) : null}
 
-      <main className="nexus-main">
+      <main className="nexus-main" id="learner-support-content">
         <header className="nexus-topbar">
           <button
             className="mobile-nav-toggle"
@@ -592,17 +633,22 @@ function CRMApp({
             <kbd>⌘ K</kbd>
           </button>
           <div className="topbar-actions">
-            <button type="button" title="Updates">
+            <button type="button" title="Open today's action list" aria-label="Open today's action list" onClick={() => setSection("command")}>
               ◴<b>{database.tasks.filter((task) => !task.completed).length}</b>
             </button>
-            <button type="button" title="Notifications">
+            <button type="button" title="Open case notifications" aria-label="Open case notifications" onClick={() => setSection("cases")}>
               ♢<b>{openCases.length}</b>
             </button>
             <a href="/">University site ↗</a>
           </div>
         </header>
 
-        <div className="nexus-page">
+        <div className="nexus-page" data-section={section}>
+          <section className="nexus-workspace-context" aria-label="Current Learner Support context">
+            <span><i /> Live role-scoped data</span>
+            <b>{meta.title}</b>
+            <small>{currentUser?.role || "authorized"} access</small>
+          </section>
           <section className="nexus-page-heading">
             <div>
               <p>{headingEyebrow}</p>
@@ -613,9 +659,10 @@ function CRMApp({
               <button
                 type="button"
                 className="quiet-action"
-                onClick={() =>
-                  setToast("Report exported to your secure workspace")
-                }
+                onClick={() => {
+                  exportWorkspaceSnapshot(section, database);
+                  setToast(`${meta.title} data exported.`);
+                }}
               >
                 Export
               </button>

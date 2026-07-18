@@ -1,5 +1,5 @@
 {
-  "description": "Keep Issue #56 active until Stitch designs are validated, implemented, and production verified.",
+  "description": "Keep Issue #58 active until every CRM page has validated Stitch evidence and production verification.",
   "hooks": {
     "SessionStart": [
       {
@@ -7,8 +7,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/stitch_ui_completion_guard.mjs\" session",
-            "statusMessage": "Loading Stitch UI/UX completion contract",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/stitch_all_pages_guard.mjs\" session",
+            "statusMessage": "Loading all-page Stitch completion contract",
             "timeout": 10
           }
         ]
@@ -19,8 +19,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/stitch_ui_completion_guard.mjs\" stop",
-            "statusMessage": "Checking Stitch UI/UX completion evidence",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/stitch_all_pages_guard.mjs\" stop",
+            "statusMessage": "Checking all-page Stitch completion evidence",
             "timeout": 10
           }
         ]

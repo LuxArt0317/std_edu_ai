@@ -14,10 +14,10 @@ test("teacher and student lessons expose explicit workflow actions",()=>{
   for(const marker of ["Open lesson","Preview as student","Edit lesson","Course outline","aria-current","Next lesson"]) assert.match(source,new RegExp(marker));
 });
 
-test("the Phase 56 guard replaces the completed Issue 48 guard",()=>{
+test("the active all-page guard supersedes the completed Phase 56 and Issue 48 guards",()=>{
   const hooks=readFileSync(".codex/hooks.json","utf8");
-  assert.match(hooks,/stitch_ui_completion_guard/);
-  assert.doesNotMatch(hooks,/needed_completion_guard/);
+  assert.match(hooks,/stitch_all_pages_guard/);
+  assert.doesNotMatch(hooks,/stitch_ui_completion_guard|needed_completion_guard/);
 });
 
 test("the Stitch redesign is scoped away from the public landing page",()=>{

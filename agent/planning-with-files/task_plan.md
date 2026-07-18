@@ -1,5 +1,23 @@
 # Task Plan
 
+## Phase 58: Stitch review for every CRM page [Issue #58]
+
+### Complete design inventory
+
+- [x] inventory every `/crm` route state, platform workspace, nested Learner Support workspace, global overlay, role variant, real action, and empty/loading/error state while explicitly excluding `/`
+- [x] give Stitch the current functionality and control requirements for every inventoried surface without prescribing a replacement layout
+- [x] inspect every generated screen's HTML controls and record included, missing, ambiguous, unsafe, and accepted decisions
+
+### Validated implementation
+
+- [x] replace the completed Phase 56 guard with a Phase 58 page-matrix guard that cannot pass on partial screen coverage
+- [x] implement the accepted Stitch direction across every CRM page, preserving or improving every required action and all authorization boundaries
+- [x] verify responsive behavior, keyboard/focus semantics, clear primary/contextual actions, loading/empty/error states, and landing-page isolation
+
+### Verification and release
+
+- [ ] pass the complete action catalog, page matrix, tests, lint, standard build, all-role/live workflows, reviewed PR, Ready Vercel deployment, and recursive production diagnostics
+
 ## Phase 56: Stitch-driven workflow UI/UX [Issue #56]
 
 ### Stitch design contract

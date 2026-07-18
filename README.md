@@ -18,6 +18,7 @@ Primary references:
 - [`needed.md` implementation and production evidence](./NEEDED_IMPLEMENTATION_EVIDENCE.md)
 - [Stitch UI prompts](./STITCH_UI_PROMPTS.md)
 - [Stitch generated-control validation and implementation evidence](./STITCH_UI_EVIDENCE.md)
+- [All-page Stitch prompts](./STITCH_ALL_PAGES_PROMPTS.md) and [23-surface evidence](./STITCH_ALL_PAGES_EVIDENCE.md)
 - [UNDERSTANDING.md](./UNDERSTANDING.md)
 - [agent/planning-with-files/task_plan.md](./agent/planning-with-files/task_plan.md)
 - [SETUP.md](./SETUP.md)

@@ -1,4 +1,4 @@
-import type { Session } from '@supabase/supabase-js'
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { hasSupabaseConfig, supabase } from '../utils/supabase'
 import { withTimeout } from '../utils/async'
 import type { PlatformRole } from '../platform/types'
@@ -78,6 +78,16 @@ export async function completeRequiredPasswordChange(password: string) {
   return refreshed.data.session
 }
 
+export async function completeCrmPasswordRecovery(password: string) {
+  if (!supabase) throw new Error('Supabase is not configured.')
+  if (password.length < 16 || password.length > 128) throw new Error('Use a new password between 16 and 128 characters.')
+  const { error } = await supabase.auth.updateUser({ password })
+  if (error) throw new Error(error.message)
+  const refreshed = await supabase.auth.refreshSession()
+  if (refreshed.error || !refreshed.data.session) throw new Error(refreshed.error?.message || 'The refreshed session was not returned.')
+  return refreshed.data.session
+}
+
 export async function signInCrm(email: string, password: string) {
   if (!supabase) throw new Error('Supabase is not configured.')
   const { data, error } = await withTimeout(
@@ -88,6 +98,19 @@ export async function signInCrm(email: string, password: string) {
   if (error) throw new Error(error.message)
   if (!data.session) throw new Error('Supabase did not issue a session.')
   return data.session
+}
+
+export async function requestCrmPasswordReset(email: string) {
+  if (!supabase) throw new Error('Supabase is not configured.')
+  const normalizedEmail = email.trim().toLowerCase()
+  if (!normalizedEmail || !normalizedEmail.includes('@')) throw new Error('Enter your institutional email address first.')
+  const redirectTo = new URL('/crm', window.location.origin).toString()
+  const { error } = await withTimeout(
+    supabase.auth.resetPasswordForEmail(normalizedEmail, { redirectTo }),
+    authRequestTimeoutMs,
+    'Password-reset delivery took too long. Check the connection and try again.',
+  )
+  if (error) throw new Error(error.message)
 }
 
 export async function signOutCrm() {
@@ -104,9 +127,9 @@ export function canUseCrm(user: CrmUser) {
   return platformRoles.has(user.role)
 }
 
-export function subscribeToCrmAuth(callback: (session: Session | null) => void) {
+export function subscribeToCrmAuth(callback: (session: Session | null, event: AuthChangeEvent) => void) {
   if (!supabase) return () => undefined
-  const { data } = supabase.auth.onAuthStateChange((_event, session) => callback(session))
+  const { data } = supabase.auth.onAuthStateChange((event, session) => callback(session, event))
   return () => data.subscription.unsubscribe()
 }
 
