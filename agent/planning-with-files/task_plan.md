@@ -18,7 +18,7 @@
 
 - [x] cover server schema filtering plus client loop completion, impossible, confirmation, cancellation, cap, cycle, and student-denial behavior
 - [x] update product/operator/API documentation, changelog, progress, and current state
-- [ ] pass tests, lint, standard Node 24 build, live Nexus checks, reviewed PR, Vercel deployment, and custom-domain production diagnostics
+- [x] pass tests, lint, standard Node 24 build, live Nexus checks, reviewed PR, Vercel deployment, and custom-domain production diagnostics
 
 ## Phase 58: Stitch review for every CRM page [Issue #58]
 

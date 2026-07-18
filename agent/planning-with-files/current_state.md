@@ -6,7 +6,9 @@
 - Nexus now has a bounded goal state machine: up to eight steps and five minutes, one action per reasoning turn, real action observations, automatic authorized navigation, per-mutation confirmation, cancellation, repeated-action detection, and explicit complete/impossible terminal states.
 - The OpenAI endpoint returns a strict agent decision and fails closed when `working` has no role-permitted action. The browser never receives provider or service-role credentials; all writes still use the signed-in Supabase session and ordinary RLS-protected repository services.
 - Successful module/material creation returns its real record ID for dependent follow-up steps. The CRM shows goal, status, step count, observations, pending review, cancellation, and terminal reason.
-- 55 contracts, lint, the standard Node 24 production build, semantic asset verification, and the live faculty/student Nexus boundary test pass. Release review, deployment, and custom-domain validation remain.
+- 55 contracts, lint, the standard Node 24 production build, semantic asset verification, and the live faculty/student Nexus boundary test pass.
+- PR #61 passed CodeRabbit and Vercel with no review threads and merged as `efc8f37`. Production deployment `dpl_Eq1RARBXEkQi4KTpU9xQjMi4tyUb` is Ready and explicitly aliased to `stu.best` plus `www.stu.best`.
+- Recursive production diagnostics return HTTP 200 for `/` and `/crm`, verify six assets and the CRM authentication stylesheet, confirm onboarding remains disabled, and find the released `ACTIVE GOAL` and `Cancel goal` markers in `CRMRoot-CuE5RTVt.js`. Issue #60 is complete.
 
 # Active implementation: Issue #48
 

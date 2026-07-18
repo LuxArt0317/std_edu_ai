@@ -94,3 +94,5 @@
 - Removed the completed Issue #58 repository hooks and obsolete `.codex` documentation.
 - Implemented the bounded Nexus goal loop, strict server decision schema, client progress/cancel UI, automatic safe navigation, mutation confirmation/resume, real observations, cycle/step/runtime limits, and dependent record-ID evidence.
 - Added multi-step/safety contracts and updated former hook coverage; all 55 tests, lint, standard production build, asset verification, and live Nexus faculty/student boundary check pass.
+- PR #61 passed CodeRabbit/Vercel without review threads and merged as `efc8f37`; production deployment `dpl_Eq1RARBXEkQi4KTpU9xQjMi4tyUb` reached Ready.
+- Corrected both custom-domain aliases after diagnostics detected the prior artifact, then verified `/`, `/crm`, six recursive assets, CRM CSS, onboarding shutdown, and released goal/cancellation markers in production.
