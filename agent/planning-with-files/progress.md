@@ -167,3 +167,4 @@
 
 - Opened Issue #80 from the production screenshot and identified that the activity row could still stretch despite the compact state.
 - Added hard intrinsic-size constraints to the compact card and activity row while preserving expandable details.
+- PR #81 passed CodeRabbit/Vercel, merged as `1849406`, and deployed Ready. The custom-domain stylesheet serves the compact sizing constraints and `/crm` returns HTTP 200.

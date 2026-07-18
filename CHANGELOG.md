@@ -3,6 +3,7 @@
 ## Unreleased
 
 - constrained the compact Nexus goal card and activity row to intrinsic content height so the thinking state cannot stretch into a large empty panel
+- released through PR #81 as `1849406`; Vercel production is Ready and serves the 150px card and 42px activity-row constraints
 
 - made Nexus goals compact by default with optional plan/action details, accurate remaining-work counts, and a separate clarification card
 - expanded the agent's grounded platform context and required it to infer safe defaults and inspect existing records before asking the user

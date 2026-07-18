@@ -157,7 +157,7 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 # Active release: Issue #80 compact Nexus card sizing
 
 - The compact goal card and activity row now have explicit intrinsic sizing, zero minimum height, strict compact maximums, and single-line activity truncation. This directly fixes the oversized empty thinking panel shown in production.
-- Verification and release are in progress.
+- All 78 contracts, lint, build, and assets pass. PR #81 merged as `1849406`; Vercel production is Ready and the released stylesheet contains the 150px/42px constraints. Issue #80 is complete.
 
 # Active release: Issue #78 autonomous, resumable Nexus goals
 

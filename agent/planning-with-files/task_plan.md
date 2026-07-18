@@ -4,7 +4,7 @@
 
 - [x] reproduce the stretched activity panel from the production screenshot
 - [x] constrain compact card and activity rows to intrinsic content height
-- [ ] verify contracts/build, review, deploy, and confirm production markers
+- [x] verify contracts/build, review, deploy, and confirm production markers
 
 ## Phase 78: Autonomous, resumable Nexus goals [Issue #78]
 
