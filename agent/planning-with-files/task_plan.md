@@ -7,7 +7,7 @@
 - [x] expand authoritative read context and require safe inference before clarification
 - [x] add a dedicated clarification card that resumes the same persistent run
 - [x] compact the goal card with optional plan/action details and retain background execution
-- [ ] verify contracts, live multi-action reasoning, live clarification/resumption, build, review, deployment, and production
+- [x] verify contracts, live multi-action reasoning, live clarification/resumption, build, review, deployment, and production
 
 ## Phase 76: Schema-wide action completeness v2 [Issue #76]
 

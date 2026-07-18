@@ -162,3 +162,4 @@
 - Added plan, remaining-work, and clarification schema; expanded exact-ID context; strengthened autonomous inference and completion rules; and increased the bounded run to 32 actions/thirty minutes.
 - Added a compact goal summary, expandable plan/action evidence, and a dedicated clarification card whose answer resumes the same run.
 - All 78 contracts, lint, TypeScript/Vite build, and asset verification pass. Live OpenAI returned department then program across successive observations and resumed an ambiguous program goal after a structured clarification.
+- PR #79 passed CodeRabbit and Vercel, merged as `064faa8`, and deployed Ready. `stu.best/crm` returns HTTP 200 and serves the compact goal, remaining-work, clarification, and same-run continuation markers.

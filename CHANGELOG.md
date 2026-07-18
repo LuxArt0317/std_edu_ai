@@ -7,6 +7,7 @@
 - added explicit plan, remaining-work, and resumable clarification decision fields; successful actions now continue through the same run until the complete goal is proven
 - raised the bounded complex-goal allowance to 32 actions and thirty minutes while preserving repetition, role, confirmation, RLS, and student assessed-work safeguards
 - added live-model evidence for department → program multi-action continuation and ambiguous-program clarification → resumed program creation
+- released through PR #79 as `064faa8`; Vercel production is Ready and the custom-domain CRM serves compact details, remaining-work, clarification-card, and same-run continuation markers
 
 - added `neededv2.md`, a schema-wide role/action/lifecycle contract that treats visible UI, real services, authorization, audit behavior, automated coverage, and production evidence as one completion requirement
 - added a discoverable structured curriculum editor for draft metadata, subject creation/edit/removal/reordering, units/categories/placement, prerequisite links, block templates/capacities, approval, retirement, and immutable version duplication

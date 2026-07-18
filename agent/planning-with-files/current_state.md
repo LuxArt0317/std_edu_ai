@@ -159,7 +159,7 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - Nexus now carries an explicit end-to-end plan, remaining work, and optional clarification through every API decision. It cannot report completion while remaining work exists.
 - Broader authoritative context is supplied before questions. A genuine question appears as a compact option card; typed or selected answers resume the same run.
 - The goal card is compact by default, Details reveals plan/evidence, and closing the drawer continues to preserve active work.
-- Live OpenAI verification produced `create_department → create_program` across two decisions and `needs_input → create_program` after clarification. All 78 contracts, lint, TypeScript/Vite build, and assets pass. Release remains in progress.
+- Live OpenAI verification produced `create_department → create_program` across two decisions and `needs_input → create_program` after clarification. All 78 contracts, lint, TypeScript/Vite build, and assets pass. PR #79 merged as `064faa8`; Vercel production is Ready and custom-domain markers pass. Issue #78 is complete.
 
 # Active release: Issue #76 schema-wide action completeness v2
 
