@@ -1,5 +1,25 @@
 # Task Plan
 
+## Phase 62: Reliable bulk academic goals [Issue #62]
+
+### Incident diagnosis
+
+- [x] reproduce and eliminate the Safari/WebKit `The string did not match the expected pattern` failure with stage-specific client errors and regression coverage
+- [x] ensure conversation persistence failures cannot incorrectly mark an otherwise valid AI goal impossible
+
+### Curriculum action and transaction
+
+- [x] add a role-gated `create_curriculum` action with a complete preview of program, four-year subject sequence, units, prerequisites, and block templates
+- [x] add RLS-protected curriculum plan, subject-map, prerequisite, and block-template records with explicit Data API grants and indexed relationships
+- [x] execute the coherent bulk payload through one validated, idempotent, atomic `SECURITY INVOKER` transaction under the signed-in academic role
+- [x] return precise created/reused totals and refresh Academic Office so the generated curriculum is immediately inspectable/editable
+
+### Verification and release
+
+- [x] add API, schema, loop, role, malformed-payload, duplicate, rollback, and live production tests using the user's representative BSCS prompt
+- [x] update PRD, action catalog, API/operator documentation, changelog, progress, and current state
+- [ ] pass tests, lint, Node 24/Vercel builds, Supabase advisors, reviewed PR, deployment, and custom-domain diagnostics
+
 ## Phase 60: Goal-driven Nexus agent loop [Issue #60]
 
 ### Runtime contract and safety

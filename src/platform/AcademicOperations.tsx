@@ -32,7 +32,7 @@ import type {
 } from "./types";
 
 type AcademicTab =
-  "overview" | "students" | "subjects" | "sections" | "enrollment";
+  "overview" | "curricula" | "students" | "subjects" | "sections" | "enrollment";
 type ModalName =
   | "student"
   | "department"
@@ -310,6 +310,7 @@ export function AcademicOperations({
         {(
           [
             ["overview", "Overview"],
+            ["curricula", "Curricula"],
             ["students", "Students"],
             ["subjects", "Subjects"],
             ["sections", "Classes"],
@@ -498,6 +499,28 @@ export function AcademicOperations({
             </article>
           </section>
         </>
+      ) : null}
+
+      {tab === "curricula" ? (
+        <section className="curriculum-library">
+          <header>
+            <div><span>DEGREE MAPS</span><h3>Curriculum plans and block templates</h3><p>Drafts created by Nexus remain reviewable academic records. Programs and catalog subjects stay editable through their ordinary controls.</p></div>
+            <button type="button" onClick={() => setTab("subjects")}>Edit catalog subjects</button>
+          </header>
+          {data.curricula.length ? data.curricula.map((plan) => {
+            const program = data.programs.find((item) => item.id === plan.programId);
+            return <article key={plan.id} className="curriculum-plan-card">
+              <div className="curriculum-plan-title"><div><span>{plan.status.toUpperCase()} · EFFECTIVE {plan.effectiveYear}</span><h4>{program?.code ?? plan.source.programCode} · {program?.name ?? plan.source.programName}</h4></div><b>{plan.source.subjects.reduce((total, subject) => total + subject.units, 0)} total units</b></div>
+              <div className="curriculum-years">{Array.from({length: plan.source.durationYears}, (_, index) => index + 1).map((year) => <section key={year}>
+                <header><strong>Year {year}</strong><small>{plan.source.blocks.filter((block) => block.yearLevel === year).map((block) => `${block.blockCode} (${block.capacity})`).join(" · ")}</small></header>
+                {[1, 2, 3].map((semester) => {
+                  const subjects=plan.source.subjects.filter((subject) => subject.yearLevel===year && subject.semester===semester);
+                  return subjects.length ? <div key={semester}><b>Semester {semester}</b><ul>{subjects.map((subject) => <li key={subject.code}><span><strong>{subject.code}</strong>{subject.title}</span><small>{subject.units} units{subject.prerequisiteCodes.length ? ` · Prereq: ${subject.prerequisiteCodes.join(", ")}` : ""}</small></li>)}</ul></div> : null;
+                })}
+              </section>)}</div>
+            </article>;
+          }) : <div className="academic-empty"><strong>No curriculum plans yet</strong><p>Ask Nexus to prepare a complete curriculum, review its subject and block preview, then confirm the transaction.</p></div>}
+        </section>
       ) : null}
 
       {tab === "students" ? (

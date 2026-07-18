@@ -21,6 +21,7 @@ import {
   clearPlatformDataSnapshot,
   changeAccountLifecycle,
   createAttendanceSession,
+  createAcademicCurriculum,
   createChatThread,
   createCourseAnnouncement,
   createCourseAssessment,
@@ -2574,6 +2575,7 @@ function SchoolAssistant({
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [persistenceWarning, setPersistenceWarning] = useState("");
   const [pendingAction, setPendingAction] = useState<SchoolAiAction | null>(
     null,
   );
@@ -2681,6 +2683,7 @@ function SchoolAssistant({
     const prompt = message.trim();
     if (!prompt || loading) return;
     setError("");
+    setPersistenceWarning("");
     setMessage("");
     setPendingAction(null);
     try {
@@ -2696,7 +2699,11 @@ function SchoolAssistant({
         content: prompt, citations: [], createdAt: new Date().toISOString(),
       };
       setMessages((current) => [...current, userMessage]);
-      await appendChatMessage(activeThread, "user", prompt);
+      try {
+        await appendChatMessage(activeThread, "user", prompt);
+      } catch {
+        setPersistenceWarning("Nexus can continue, but this message could not be added to conversation history.");
+      }
       const run = startSchoolAgentRun(prompt);
       activeRunId.current = run.id;
       setAgentRun(run);
@@ -2728,8 +2735,13 @@ function SchoolAssistant({
               "create_announcement",
               "create_attendance",
               "create_schedule_event",
+              ...(role === "faculty" ? [] : ["create_curriculum"]),
             ])
-          : new Set(["navigate", "create_schedule_event"]);
+          : new Set([
+              "navigate",
+              "create_schedule_event",
+              ...(["owner", "admin", "dean", "registrar", "department_head"].includes(role) ? ["create_curriculum"] : []),
+            ]);
     if (!allowed.has(action.type)) {
       void recordSchoolAgentAction(action.type, "blocked");
       setPendingAction(null);
@@ -2793,6 +2805,7 @@ function SchoolAssistant({
     } else if (
       action.type !== "create_material" &&
       action.type !== "create_schedule_event" &&
+      action.type !== "create_curriculum" &&
       !course
     ) {
       stopAsImpossible(
@@ -2813,6 +2826,16 @@ function SchoolAssistant({
     setError("");
     try {
       let createdId = "";
+      let resultSummary = "";
+      if (action.type === "create_curriculum") {
+        if (!action.departmentId || !action.curriculum)
+          throw new Error("The curriculum plan is missing its department or structured subject plan.");
+        if (!data.departments.some((department) => department.id === action.departmentId && department.status === "active"))
+          throw new Error("The selected department is no longer active or available.");
+        const result = await createAcademicCurriculum(action.departmentId, agentRun?.id ?? `curriculum-${Date.now()}`, action.curriculum);
+        createdId = result.planId;
+        resultSummary = `${result.status === "reused" ? "Reused" : "Created"} curriculum with ${result.subjects} subjects, ${result.prerequisites} prerequisite links, and ${result.blocks} block templates.`;
+      }
       if (action.type === "create_module")
         createdId = await createLearningModule({
           sectionId: action.sectionId!,
@@ -2916,7 +2939,7 @@ function SchoolAssistant({
           step: agentRun.step + 1,
           actionType: action.type,
           outcome: "success",
-          summary: `The confirmed ${action.type.replaceAll("_", " ")} action was saved successfully${createdId ? ` with record ID ${createdId}` : ""}.`,
+          summary: resultSummary || `The confirmed ${action.type.replaceAll("_", " ")} action was saved successfully${createdId ? ` with record ID ${createdId}` : ""}.`,
         }, action);
         setAgentRun(progressed);
         await advanceAgent(progressed, threadId);
@@ -3057,6 +3080,7 @@ function SchoolAssistant({
           ) : null}
         </div>
         {error ? <div className="chat-error">{error}</div> : null}
+        {persistenceWarning ? <div className="chat-warning">{persistenceWarning}</div> : null}
         {pendingAction ? (
           <section className="chat-action-card">
             <span>READY FOR REVIEW</span>
@@ -3065,6 +3089,23 @@ function SchoolAssistant({
               Nexus prepared this change but has not saved it. Review and
               confirm to apply it with your account permissions.
             </p>
+            {pendingAction.type === "create_curriculum" && pendingAction.curriculum ? (
+              <div className="chat-curriculum-preview">
+                <b>{pendingAction.curriculum.programCode} · {pendingAction.curriculum.programName}</b>
+                <span>{pendingAction.curriculum.subjects.length} subjects · {pendingAction.curriculum.blocks.length} blocks · Effective {pendingAction.curriculum.effectiveYear}</span>
+                <details>
+                  <summary>Review the four-year subject plan</summary>
+                  {[1, 2, 3, 4].map((year) => (
+                    <section key={year}>
+                      <strong>Year {year}</strong>
+                      <ul>{pendingAction.curriculum!.subjects.filter((subject) => subject.yearLevel === year).map((subject) => (
+                        <li key={subject.code}>{subject.code} · {subject.title} · {subject.units} units · Sem {subject.semester}</li>
+                      ))}</ul>
+                    </section>
+                  ))}
+                </details>
+              </div>
+            ) : null}
             <div>
               <button type="button" onClick={() => {
                 activeRunId.current = "";

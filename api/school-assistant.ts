@@ -59,6 +59,7 @@ const allowedContextFields = [
   "schedule",
   "announcements",
   "knowledgeTitles",
+  "departments",
 ] as const;
 const actionTypes = new Set([
   "navigate",
@@ -69,6 +70,7 @@ const actionTypes = new Set([
   "create_announcement",
   "create_attendance",
   "create_schedule_event",
+  "create_curriculum",
   "mark_learning_progress",
 ]);
 const teachingActionRoles = new Set([
@@ -77,6 +79,9 @@ const teachingActionRoles = new Set([
   "dean",
   "department_head",
   "faculty",
+]);
+const curriculumActionRoles = new Set([
+  "owner", "admin", "dean", "registrar", "department_head",
 ]);
 const allowedActionsByRole: Record<string, Set<string>> = {
   student: new Set(["navigate", "mark_learning_progress"]),
@@ -97,9 +102,13 @@ const allowedActionsByRole: Record<string, Set<string>> = {
 };
 
 function allowedActions(role: string) {
-  if (allowedActionsByRole[role]) return allowedActionsByRole[role];
-  if (teachingActionRoles.has(role)) return allowedActionsByRole.faculty;
-  return new Set(["navigate", "create_schedule_event"]);
+  const base = allowedActionsByRole[role]
+    ? new Set(allowedActionsByRole[role])
+    : teachingActionRoles.has(role)
+      ? new Set(allowedActionsByRole.faculty)
+      : new Set(["navigate", "create_schedule_event"]);
+  if (curriculumActionRoles.has(role)) base.add("create_curriculum");
+  return base;
 }
 
 function setHeaders(response: ApiResponse) {
@@ -145,7 +154,7 @@ function sanitizeContext(value: unknown) {
           continue;
         const record = entry as Record<string, unknown>;
         const clean: Record<string, string> = {};
-        for (const field of ["id", "sectionId", "moduleId", "code", "title"]) {
+        for (const field of ["id", "sectionId", "moduleId", "code", "title", "name"]) {
           if (typeof record[field] === "string")
             clean[field] = record[field].slice(0, 180);
         }
@@ -322,7 +331,7 @@ export default async function handler(
     .digest("hex");
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 28_000);
+  const timeout = setTimeout(() => controller.abort(), 55_000);
   try {
     const roleInstruction =
       auth.user.role === "student"
@@ -346,6 +355,7 @@ export default async function handler(
           "Protect privacy. Do not request passwords, authentication tokens, diagnoses, or unnecessary sensitive personal data.",
           "When context is insufficient, say what is missing and give the safest useful next step.",
           `The only executable actions for this role are: ${[...allowedActions(auth.user.role)].join(", ")}. You are operating a bounded goal loop. Choose at most one next action per response, use exact IDs from platform context, and reassess the goal from the supplied real observations. Set agent.status to working only when a permitted next action is necessary. Set complete only when the requested goal is satisfied. Set impossible when required information, authority, capability, or a prior blocked/error observation makes completion unsafe or unavailable. Never repeat an already successful action. Never claim an action happened until its success observation is supplied.`,
+          "For an authorized request to create a complete degree curriculum, use one create_curriculum action rather than dozens of small actions. Produce a coherent, realistic draft with every subject placed by year and semester, unique institutional subject codes, units, ordered prerequisites that refer only to earlier subjects in the same payload, and at least one block template for every year. This is a draft requiring human academic and regulatory review; never claim accreditation approval.",
           auth.user.role === "student"
             ? "Absolute student boundary: never answer, select answers for, complete, modify, grade, or submit an assignment, quiz, exam, project, or other assessed work. Never create an assessment action for a student. You may explain concepts, navigate, and mark a learning material in progress or completed only when the student explicitly asks."
             : "Never change roles, credentials, enrollments, student identity records, or publish/finalize grades through this assistant.",
@@ -413,6 +423,7 @@ export default async function handler(
                         "create_announcement",
                         "create_attendance",
                         "create_schedule_event",
+                        "create_curriculum",
                         "mark_learning_progress",
                       ],
                     },
@@ -421,6 +432,7 @@ export default async function handler(
                     sectionId: { type: ["string", "null"] },
                     moduleId: { type: ["string", "null"] },
                     materialId: { type: ["string", "null"] },
+                    departmentId: { type: ["string", "null"] },
                     destination: {
                       type: ["string", "null"],
                       enum: [
@@ -461,6 +473,59 @@ export default async function handler(
                     location: { type: ["string", "null"] },
                     completed: { type: ["boolean", "null"] },
                     publish: { type: "boolean" },
+                    curriculum: {
+                      anyOf: [
+                        { type: "null" },
+                        {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            programCode: { type: "string" },
+                            programName: { type: "string" },
+                            description: { type: "string" },
+                            durationYears: { type: "integer", minimum: 1, maximum: 8 },
+                            effectiveYear: { type: "integer", minimum: 2000, maximum: 2200 },
+                            subjects: {
+                              type: "array",
+                              minItems: 8,
+                              maxItems: 120,
+                              items: {
+                                type: "object",
+                                additionalProperties: false,
+                                properties: {
+                                  code: { type: "string" },
+                                  title: { type: "string" },
+                                  description: { type: "string" },
+                                  units: { type: "number", exclusiveMinimum: 0, maximum: 12 },
+                                  yearLevel: { type: "integer", minimum: 1, maximum: 8 },
+                                  semester: { type: "integer", minimum: 1, maximum: 3 },
+                                  category: { type: "string", enum: ["general_education", "core", "professional", "elective", "capstone", "internship", "physical_education", "nstp"] },
+                                  sortOrder: { type: "integer", minimum: 1, maximum: 120 },
+                                  prerequisiteCodes: { type: "array", maxItems: 12, items: { type: "string" } },
+                                },
+                                required: ["code", "title", "description", "units", "yearLevel", "semester", "category", "sortOrder", "prerequisiteCodes"],
+                              },
+                            },
+                            blocks: {
+                              type: "array",
+                              minItems: 1,
+                              maxItems: 32,
+                              items: {
+                                type: "object",
+                                additionalProperties: false,
+                                properties: {
+                                  yearLevel: { type: "integer", minimum: 1, maximum: 8 },
+                                  blockCode: { type: "string" },
+                                  capacity: { type: "integer", minimum: 1, maximum: 500 },
+                                },
+                                required: ["yearLevel", "blockCode", "capacity"],
+                              },
+                            },
+                          },
+                          required: ["programCode", "programName", "description", "durationYears", "effectiveYear", "subjects", "blocks"],
+                        },
+                      ],
+                    },
                   },
                   required: [
                     "type",
@@ -469,6 +534,7 @@ export default async function handler(
                     "sectionId",
                     "moduleId",
                     "materialId",
+                    "departmentId",
                     "destination",
                     "title",
                     "description",
@@ -486,6 +552,7 @@ export default async function handler(
                     "location",
                     "completed",
                     "publish",
+                    "curriculum",
                   ],
                 },
                 agent: {
@@ -510,7 +577,7 @@ export default async function handler(
             },
           },
         },
-        max_output_tokens: 1_400,
+        max_output_tokens: 14_000,
         safety_identifier: safetyIdentifier,
         store: false,
       }),

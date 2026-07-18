@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- fixed Nexus goal startup on WebKit/Safari and made chat-history persistence non-blocking so a recoverable storage failure cannot mark an operational goal impossible
+- added a confirmation-gated `create_curriculum` action that generates and atomically saves a complete multi-year program, subject sequence, prerequisite graph, and yearly block templates through the signed-in user's Supabase authorization
+- added the Academic Office Curriculum Library plus strict generation, idempotency, rollback, RLS, role-boundary, live OpenAI, and live database acceptance coverage
+
 - removed the completed repository-scoped Stitch session/stop hooks and their obsolete hook documentation
 - upgraded Nexus AI from one-shot proposals to a bounded eight-step goal loop with real action observations, automatic safe navigation, mutation-by-mutation confirmation, cancellation, cycle detection, a five-minute limit, and explicit complete/impossible outcomes
 - added a visible goal/progress card, returned record IDs for dependent LMS steps, structured agent decisions, privacy-minimized observation context, and contract/live coverage while preserving Supabase RLS and the absolute student assessed-work boundary

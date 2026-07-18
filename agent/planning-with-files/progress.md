@@ -96,3 +96,10 @@
 - Added multi-step/safety contracts and updated former hook coverage; all 55 tests, lint, standard production build, asset verification, and live Nexus faculty/student boundary check pass.
 - PR #61 passed CodeRabbit/Vercel without review threads and merged as `efc8f37`; production deployment `dpl_Eq1RARBXEkQi4KTpU9xQjMi4tyUb` reached Ready.
 - Corrected both custom-domain aliases after diagnostics detected the prior artifact, then verified `/`, `/crm`, six recursive assets, CRM CSS, onboarding shutdown, and released goal/cancellation markers in production.
+
+## 2026-07-18 — Reliable bulk academic goals
+
+- Opened Issue #62 and traced the WebKit pattern exception to the new run-ID path; replaced it and isolated recoverable chat persistence from goal execution.
+- Deployed the curriculum plan, subject map, prerequisite, block template, RLS, and atomic security-invoker RPC schema to production Supabase.
+- Added strict model generation, full confirmation preview, repository execution, Curriculum Library visibility, and academic-role enforcement.
+- The representative BSCS prompt generated 50 subjects across all four years and eight blocks. Live Supabase acceptance proved atomic rollback, eight-subject creation, seven prerequisite edges, four blocks, idempotent retry, and cleanup. All 58 contracts, lint, and production build pass.

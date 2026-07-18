@@ -1565,6 +1565,173 @@ export type Database = {
           },
         ]
       }
+      curriculum_block_templates: {
+        Row: {
+          block_code: string
+          capacity: number
+          created_at: string
+          id: string
+          plan_id: string
+          year_level: number
+        }
+        Insert: {
+          block_code: string
+          capacity?: number
+          created_at?: string
+          id?: string
+          plan_id: string
+          year_level: number
+        }
+        Update: {
+          block_code?: string
+          capacity?: number
+          created_at?: string
+          id?: string
+          plan_id?: string
+          year_level?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_block_templates_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curriculum_course_prerequisites: {
+        Row: {
+          created_at: string
+          plan_course_id: string
+          prerequisite_course_id: string
+        }
+        Insert: {
+          created_at?: string
+          plan_course_id: string
+          prerequisite_course_id: string
+        }
+        Update: {
+          created_at?: string
+          plan_course_id?: string
+          prerequisite_course_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_course_prerequisites_plan_course_id_fkey"
+            columns: ["plan_course_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_plan_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_course_prerequisites_prerequisite_course_id_fkey"
+            columns: ["prerequisite_course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curriculum_plan_courses: {
+        Row: {
+          category: string
+          course_id: string
+          created_at: string
+          id: string
+          plan_id: string
+          semester: number
+          sort_order: number
+          year_level: number
+        }
+        Insert: {
+          category: string
+          course_id: string
+          created_at?: string
+          id?: string
+          plan_id: string
+          semester: number
+          sort_order: number
+          year_level: number
+        }
+        Update: {
+          category?: string
+          course_id?: string
+          created_at?: string
+          id?: string
+          plan_id?: string
+          semester?: number
+          sort_order?: number
+          year_level?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_plan_courses_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_plan_courses_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curriculum_plans: {
+        Row: {
+          created_at: string
+          created_by: string
+          effective_year: number
+          id: string
+          idempotency_key: string
+          program_id: string
+          source_payload: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          effective_year: number
+          id?: string
+          idempotency_key: string
+          program_id: string
+          source_payload: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          effective_year?: number
+          id?: string
+          idempotency_key?: string
+          program_id?: string
+          source_payload?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_plans_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_plans_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "academic_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           code: string
@@ -3055,6 +3222,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      create_academic_curriculum: {
+        Args: {
+          p_department_id: string
+          p_idempotency_key: string
+          p_payload: Json
+        }
+        Returns: Json
       }
       create_lms_assessment: {
         Args: {

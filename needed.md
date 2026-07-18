@@ -333,6 +333,7 @@ Teachers operate assigned classes and teach students.
 ## Nexus AI
 
 - Ask Nexus to create modules, lessons, pages, assessments, announcements, attendance sessions, and schedule events
+- Owner, admin, dean, registrar, and department head can ask Nexus to draft a complete multi-year curriculum with subjects, ordered prerequisites, and block sections; review the full plan and confirm one atomic save
 - Ask Nexus to draft lesson content and quiz questions
 - Review every AI-generated question and answer key
 - Confirm actions before saving

@@ -397,6 +397,14 @@ export type PlatformData = {
     durationYears: number;
     status: string;
   }>;
+  curricula: Array<{
+    id: string;
+    programId: string;
+    effectiveYear: number;
+    status: string;
+    createdAt: string;
+    source: AcademicCurriculumInput;
+  }>;
   terms: AcademicTerm[];
   catalogCourses: CatalogCourse[];
   courses: SchoolCourse[];
@@ -484,6 +492,37 @@ export type SchoolAgentRequestState = {
   observations: SchoolAgentObservation[];
 };
 
+export type CurriculumSubjectInput = {
+  code: string;
+  title: string;
+  description: string;
+  units: number;
+  yearLevel: number;
+  semester: number;
+  category: "general_education" | "core" | "professional" | "elective" | "capstone" | "internship" | "physical_education" | "nstp";
+  sortOrder: number;
+  prerequisiteCodes: string[];
+};
+
+export type AcademicCurriculumInput = {
+  programCode: string;
+  programName: string;
+  description: string;
+  durationYears: number;
+  effectiveYear: number;
+  subjects: CurriculumSubjectInput[];
+  blocks: Array<{ yearLevel: number; blockCode: string; capacity: number }>;
+};
+
+export type AcademicCurriculumResult = {
+  status: "created" | "reused";
+  planId: string;
+  programId: string;
+  subjects: number;
+  blocks: number;
+  prerequisites: number;
+};
+
 export type SchoolAiAction = {
   type:
     | "navigate"
@@ -494,12 +533,14 @@ export type SchoolAiAction = {
     | "create_announcement"
     | "create_attendance"
     | "create_schedule_event"
+    | "create_curriculum"
     | "mark_learning_progress";
   confirmation: string;
   targetId: string | null;
   sectionId: string | null;
   moduleId: string | null;
   materialId: string | null;
+  departmentId: string | null;
   destination: PortalSection | "crm" | null;
   title: string;
   description: string;
@@ -517,6 +558,7 @@ export type SchoolAiAction = {
   location: string | null;
   completed: boolean | null;
   publish: boolean;
+  curriculum: AcademicCurriculumInput | null;
 };
 
 export type GradeScanRow = {

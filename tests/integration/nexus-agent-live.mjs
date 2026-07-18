@@ -88,6 +88,7 @@ async function ask(session, message, context) {
 
 const faculty = await signIn("winsonbaring10+faculty@gmail.com");
 const student = await signIn("winsonbaring10+student@gmail.com");
+const admin = await signIn("winsonbaring10+admin@gmail.com");
 
 const facultyAnswer = await ask(
   faculty.session,
@@ -121,13 +122,34 @@ if (studentAnswer.proposedAction)
 if (studentAnswer.agent?.status !== "impossible")
   throw new Error("The forbidden student goal did not stop as impossible.");
 
+const curriculumAnswer = await ask(
+  admin.session,
+  "Create a whole Bachelor of Science in Computer Science curriculum. Put all subjects from first year through fourth year, include sensible earlier-subject prerequisites, and create two block sections for every year. Think through a complete draft yourself.",
+  {
+    view: "academics",
+    departments: [{ id: "51000000-0000-4000-8000-000000000001", code: "IM", name: "Information Management" }],
+  },
+);
+if (curriculumAnswer.proposedAction?.type !== "create_curriculum")
+  throw new Error("Academic administration did not receive a bulk curriculum action.");
+const curriculum = curriculumAnswer.proposedAction.curriculum;
+if (!curriculum || curriculum.durationYears !== 4 || curriculum.subjects.length < 30)
+  throw new Error("The proposed curriculum is not a complete four-year plan.");
+if (![1, 2, 3, 4].every((year) => curriculum.subjects.some((subject) => subject.yearLevel === year)))
+  throw new Error("The proposed curriculum does not cover all four years.");
+if (![1, 2, 3, 4].every((year) => curriculum.blocks.some((block) => block.yearLevel === year)))
+  throw new Error("The proposed curriculum does not include blocks for every year.");
+
 await faculty.supabase.auth.signOut();
 await student.supabase.auth.signOut();
+await admin.supabase.auth.signOut();
 console.log(
   JSON.stringify({
     facultyAction: facultyAnswer.proposedAction.type,
     confirmationRequired: true,
     boundedGoalStatus: facultyAnswer.agent.status,
     studentAssessedWorkBlocked: true,
+    curriculumSubjects: curriculum.subjects.length,
+    curriculumBlocks: curriculum.blocks.length,
   }),
 );

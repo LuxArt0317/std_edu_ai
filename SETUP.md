@@ -80,13 +80,14 @@ npm run test:live-roles
 npm run test:live-accounts
 npm run test:live-account-lifecycle
 npm run test:live-nexus-agent
+npm run test:live-curriculum
 npm run export:role-credentials
 npm run test:live-onboarding
 npm run test:live-shell
 npm run test:live-ai
 ```
 
-The `test:live-*` commands require the existing ignored local environment values and network access. They exercise reversible production workflows and clean up test assessment attempts. `test:live-accounts`, `test:live-account-lifecycle`, and `test:live-onboarding` additionally require the provisioner's macOS keychain and never print passwords. The account-lifecycle test temporarily suspends the dedicated student acceptance identity, proves login is blocked, restores it, and confirms login succeeds before exiting. The onboarding acceptance test prints a temporary journey key; remove those temporary progress rows with a trusted operator connection after the run (event rows cascade automatically).
+The `test:live-*` commands require the existing ignored local environment values and network access. They exercise reversible production workflows and clean up test assessment attempts. The curriculum check proves atomic rollback, complete creation, idempotent retry, and cleanup. `test:live-accounts`, `test:live-account-lifecycle`, and `test:live-onboarding` additionally require the provisioner's macOS keychain and never print passwords. The account-lifecycle test temporarily suspends the dedicated student acceptance identity, proves login is blocked, restores it, and confirms login succeeds before exiting. The onboarding acceptance test prints a temporary journey key; remove those temporary progress rows with a trusted operator connection after the run (event rows cascade automatically).
 
 Role onboarding is temporarily disabled. Authenticated portal loads do not mount
 the onboarding component, create or update readiness progress, append evidence,

@@ -13,6 +13,8 @@ import type {
   PlatformRole,
   AuthDirectoryAccount,
   SchoolAssessment,
+  AcademicCurriculumInput,
+  AcademicCurriculumResult,
 } from "./types";
 
 type CourseRow = Tables<"courses">;
@@ -94,6 +96,7 @@ export async function loadPlatformData(): Promise<PlatformData> {
     studentsResult,
     departmentsResult,
     programsResult,
+    curriculaResult,
     termsResult,
     coursesResult,
     sectionsResult,
@@ -136,6 +139,7 @@ export async function loadPlatformData(): Promise<PlatformData> {
       client.from("students").select("*").order("full_name"),
       client.from("departments").select("*").order("name"),
       client.from("academic_programs").select("*").order("name"),
+      client.from("curriculum_plans").select("*").order("effective_year", { ascending: false }),
       client
         .from("academic_terms")
         .select("*")
@@ -208,6 +212,7 @@ export async function loadPlatformData(): Promise<PlatformData> {
   const studentRows = rows(studentsResult, "Students");
   const departmentRows = rows(departmentsResult, "Departments");
   const programRows = rows(programsResult, "Programs");
+  const curriculumRows = rows(curriculaResult, "Curriculum plans");
   const termRows = rows(termsResult, "Terms");
   const courseRows = rows<CourseRow>(coursesResult, "Courses");
   const sectionRows = rows<SectionRow>(sectionsResult, "Course sections");
@@ -363,6 +368,14 @@ export async function loadPlatformData(): Promise<PlatformData> {
         "active") as PlatformProfile["accountStatus"],
       statusChangedAt: profile.status_changed_at ?? null,
       statusReason: profile.status_reason ?? "",
+    })),
+    curricula: curriculumRows.map((plan) => ({
+      id: plan.id,
+      programId: plan.program_id,
+      effectiveYear: plan.effective_year,
+      status: plan.status,
+      createdAt: plan.created_at,
+      source: plan.source_payload as unknown as AcademicCurriculumInput,
     })),
     students: studentRows.map((student) => ({
       id: student.id,
@@ -1187,6 +1200,29 @@ export async function createProgram(input: {
     .single();
   if (error) throw new Error(error.message);
   return data.id;
+}
+
+export async function createAcademicCurriculum(
+  departmentId: string,
+  idempotencyKey: string,
+  curriculum: AcademicCurriculumInput,
+): Promise<AcademicCurriculumResult> {
+  const client = requireClient();
+  const { data, error } = await client.rpc("create_academic_curriculum", {
+    p_department_id: clean(departmentId, "Department"),
+    p_idempotency_key: clean(idempotencyKey, "Curriculum request key", 160),
+    p_payload: curriculum as unknown as Json,
+  });
+  if (error) throw new Error(error.message);
+  if (!data || typeof data !== "object" || Array.isArray(data))
+    throw new Error("The curriculum transaction returned an invalid result.");
+  const result = data as Record<string, Json | undefined>;
+  if ((result.status !== "created" && result.status !== "reused") ||
+      typeof result.planId !== "string" || typeof result.programId !== "string" ||
+      typeof result.subjects !== "number" || typeof result.blocks !== "number" ||
+      typeof result.prerequisites !== "number")
+    throw new Error("The curriculum transaction was not confirmed.");
+  return result as unknown as AcademicCurriculumResult;
 }
 
 export async function updateProgram(

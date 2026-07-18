@@ -22,7 +22,10 @@ export type SchoolAgentRun = {
 
 export function startSchoolAgentRun(goal: string, now = Date.now()): SchoolAgentRun {
   return {
-    id: globalThis.crypto?.randomUUID?.() ?? `agent-${now}`,
+    // This identifier is telemetry/idempotency metadata, not a security token.
+    // Avoid WebKit's inconsistent randomUUID implementation, which can throw a
+    // generic DOM pattern SyntaxError in otherwise valid authenticated sessions.
+    id: `agent-${now}-${Math.random().toString(36).slice(2, 12)}`,
     goal: goal.trim().slice(0, 2_500),
     status: "working",
     step: 0,

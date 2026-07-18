@@ -10,6 +10,8 @@ Student actions are limited to authorized navigation and self-owned learning-pro
 
 Agent runs are capped at eight steps and five minutes. The portal detects three identical consecutive actions, supports cancellation, automatically performs safe navigation, and resumes a mutation goal only after the user confirms and the repository reports success. `working` responses without a permitted action fail closed as `impossible`.
 
+For authorized academic leaders, `create_curriculum` is deliberately one bulk action rather than dozens of fragile dependent steps. Its strict structured payload includes the whole program, subjects, prerequisites, and block templates; the client shows the complete plan before confirmation and the database commits it atomically.
+
 `tsconfig.json` supplies the strict Node.js compiler context used when Vercel builds each function independently. The runtime authentication helper and its TypeScript declaration live in `server/` so they are bundled as dependencies rather than exposed as another endpoint.
 
 Required runtime environment variables: `OPENAI_API_KEY`, `VITE_SUPABASE_URL`, and `VITE_SUPABASE_PUBLISHABLE_KEY`. Optional variables are `OPENAI_MODEL`, `OPENAI_VISION_MODEL`, and `SAFETY_HASH_SALT`.

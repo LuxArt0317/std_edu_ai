@@ -39,6 +39,11 @@ export async function askSchoolAssistant(
         .map((item) => ({ role: item.role, content: item.content })),
       context: {
         view: context.view,
+        departments: context.data.departments.map((department) => ({
+          id: department.id,
+          code: department.code,
+          name: department.name,
+        })),
         courses: context.data.courses.map((course) => ({
           sectionId: course.sectionId,
           code: course.code,

@@ -6,6 +6,8 @@ The integrated LMS adds publishable course modules and materials, student-owned 
 
 Rich content adds RLS-protected material pages and the constrained public `learning-media` bucket for non-sensitive instructional images. Only section managers can upload, replace, or delete media; students receive page rows only through published enrolled sections.
 
+Agentic curriculum planning uses `curriculum_plans`, plan subjects, prerequisite edges, and block templates. The `create_academic_curriculum` security-invoker RPC checks the caller's academic role, validates the complete graph, enforces an idempotency key, and commits or rolls back the entire draft as one transaction.
+
 The production project is `stu_edu_ai` (`zhcchldvgqrkfqoknewk`). Schema changes are applied through reviewed migrations and verified with Supabase security and performance advisors. Set staff authorization in each user's `app_metadata.role`; never use editable user metadata for authorization.
 
 The initial owner account has been provisioned and the one-time bootstrap RPC is locked. `winsonbaring10@gmail.com` is protected as the only owner by database triggers and trusted Auth metadata. The owner-only `provision-role-account` Edge Function creates or rotates confirmed non-owner staff identities through the Supabase Auth Admin API. The owner/admin/registrar `manage-student-account` function creates a confirmed student identity and links its profile and SIS record. Server-only service credentials never reach the application client. Role changes use the audited `assign_platform_role` function.
