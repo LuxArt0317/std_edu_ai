@@ -1226,6 +1226,24 @@ export async function createAcademicCurriculum(
   return result as unknown as AcademicCurriculumResult;
 }
 
+export async function updateAcademicCurriculum(input: {
+  planId: string;
+  status: "draft" | "approved" | "retired";
+  curriculum: AcademicCurriculumInput;
+  reason: string;
+}) {
+  const { data, error } = await requireClient().rpc("update_academic_curriculum", {
+    p_plan_id: clean(input.planId, "Curriculum plan"),
+    p_status: input.status,
+    p_payload: input.curriculum as unknown as Json,
+    p_reason: clean(input.reason, "Curriculum change reason", 1000),
+  });
+  if (error) throw new Error(error.message);
+  if (!data || typeof data !== "object" || Array.isArray(data))
+    throw new Error("The curriculum update returned an invalid result.");
+  return data;
+}
+
 export async function updateProgram(
   id: string,
   input: {

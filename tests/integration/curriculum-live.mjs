@@ -78,7 +78,22 @@ try {
     supabase.from("curriculum_block_templates").select("id", { count: "exact", head: true }).eq("plan_id", planId),
   ]);
   if (planCourses.error || planCourses.count !== 8 || blocks.error || blocks.count !== 4) throw new Error("Persisted curriculum counts do not match the transaction result.");
-  console.log(JSON.stringify({ atomicCreate: true, atomicRollback: true, idempotentRetry: true, subjects: 8, prerequisites: 7, blocks: 4 }));
+  const updatedPayload = structuredClone(payload);
+  updatedPayload.description = "Verified editable curriculum lifecycle.";
+  updatedPayload.subjects[0].title = "Updated Transaction Test Subject";
+  updatedPayload.blocks[0].capacity = 45;
+  const updated = await supabase.rpc("update_academic_curriculum", { p_plan_id: planId, p_status: "draft", p_payload: updatedPayload, p_reason: "Verify editable curriculum transaction" });
+  if (updated.error || updated.data.status !== "updated" || updated.data.subjects !== 8 || updated.data.blocks !== 4) throw updated.error || new Error("Curriculum update failed.");
+  const approved = await supabase.rpc("update_academic_curriculum", { p_plan_id: planId, p_status: "approved", p_payload: updatedPayload, p_reason: "Approve verified curriculum lifecycle" });
+  if (approved.error) throw approved.error;
+  const unsafePayload = structuredClone(updatedPayload); unsafePayload.description = "Unsafe adopted edit";
+  const unsafe = await supabase.rpc("update_academic_curriculum", { p_plan_id: planId, p_status: "approved", p_payload: unsafePayload, p_reason: "Attempt unsafe adopted curriculum edit" });
+  if (!unsafe.error || !/immutable|only be retired/i.test(unsafe.error.message)) throw new Error("Approved curriculum unexpectedly remained editable.");
+  const retired = await supabase.rpc("update_academic_curriculum", { p_plan_id: planId, p_status: "retired", p_payload: updatedPayload, p_reason: "Retire temporary curriculum after verification" });
+  if (retired.error) throw retired.error;
+  const audit = await supabase.from("controlled_action_audit").select("id", { count: "exact", head: true }).eq("entity_id", planId).eq("action", "update_academic_curriculum");
+  if (audit.error || (audit.count ?? 0) < 3) throw audit.error || new Error("Curriculum lifecycle audit evidence is incomplete.");
+  console.log(JSON.stringify({ atomicCreate: true, atomicRollback: true, idempotentRetry: true, atomicEdit: true, approvedImmutable: true, retired: true, audited: true, subjects: 8, prerequisites: 7, blocks: 4 }));
 } finally {
   if (planId) await supabase.from("curriculum_plans").delete().eq("id", planId);
   if (programId) {

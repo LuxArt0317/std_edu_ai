@@ -1,5 +1,14 @@
 # Task Plan
 
+## Phase 76: Schema-wide action completeness v2 [Issue #76]
+
+- [x] inventory `needed.md`, the complete schema map, repository mutations, and visible controls
+- [x] create `neededv2.md` as the authoritative entity/action/role/evidence contract
+- [x] implement missing curriculum create/edit/status/sequence/block/prerequisite workflows
+- [x] implement every other actionable gap discovered by the v2 audit and preserve immutable-record boundaries
+- [x] add executable coverage proving every v2 action has UI, service, authorization, and lifecycle evidence
+- [ ] verify production data/RLS, pass review, deploy, and verify the released workflows
+
 ## Phase 74: Connected platform relationships [Issue #74]
 
 - [x] derive and document the complete production schema and relationship diagram before implementation

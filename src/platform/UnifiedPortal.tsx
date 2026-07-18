@@ -1816,6 +1816,11 @@ function PeopleView({
   const [directoryError, setDirectoryError] = useState("");
   const [pendingSessionRevoke, setPendingSessionRevoke] = useState<string>("");
   const [rotatingProfileId, setRotatingProfileId] = useState("");
+  const exportGovernanceAudit = () => {
+    const rows = [["Timestamp","Target","Transition","Reason","Actor"],...[...data.accountAudits,...data.roleAudits,...data.accessAudits].sort((left,right)=>right.createdAt.localeCompare(left.createdAt)).map((entry)=>{const target=data.profiles.find((profile)=>profile.id===entry.targetProfileId);const actor=data.profiles.find((profile)=>profile.id===entry.changedBy);const transition="action" in entry?entry.action:"newStatus" in entry?`${entry.previousStatus} → ${entry.newStatus}`:`${entry.previousRole} → ${entry.newRole}`;return [entry.createdAt,target?.name??entry.targetProfileId,transition,entry.reason,actor?.name??entry.changedBy];})];
+    const csv=rows.map((row)=>row.map((value)=>`"${String(value).replaceAll('"','""')}"`).join(",")).join("\r\n");
+    const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));const link=document.createElement("a");link.href=url;link.download=`stu-governance-audit-${new Date().toISOString().slice(0,10)}.csv`;link.click();URL.revokeObjectURL(url);onToast("Authorized governance audit exported.");
+  };
   const [temporaryPassword, setTemporaryPassword] = useState(() =>
     generateTemporaryPassword(),
   );
@@ -2048,6 +2053,7 @@ function PeopleView({
               <span>IMMUTABLE GOVERNANCE EVIDENCE</span>
               <h3>Recent account and role activity</h3>
             </div>
+            <button type="button" onClick={exportGovernanceAudit}>Export audit CSV</button>
           </header>
           {[...data.accountAudits, ...data.roleAudits, ...data.accessAudits]
             .sort((left, right) =>

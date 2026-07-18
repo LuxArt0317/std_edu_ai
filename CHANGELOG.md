@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- added `neededv2.md`, a schema-wide role/action/lifecycle contract that treats visible UI, real services, authorization, audit behavior, automated coverage, and production evidence as one completion requirement
+- added a discoverable structured curriculum editor for draft metadata, subject creation/edit/removal/reordering, units/categories/placement, prerequisite links, block templates/capacities, approval, retirement, and immutable version duplication
+- deployed an atomic curriculum lifecycle RPC with RLS role checks, adopted-version immutability, normalized mapping rebuilds, and narrowly constrained controlled-action evidence
+- added authorized governance-audit CSV export and live create/edit/approve/immutability/retire/cleanup verification
+
 - documented the complete production schema and the authoritative Department → Program → Curriculum → Subject → Class → Enrollment → Student relationship chain
 - added an authoritative `students.program_id` foreign key with compatibility backfill and synchronization, then deployed it to production Supabase
 - rebuilt Academic Office around program pathways with curriculum origin, relationship health, linked subjects/classes/staff/students, recovery actions, and class-aware navigation into teaching, learning, assessments, grades, and schedule

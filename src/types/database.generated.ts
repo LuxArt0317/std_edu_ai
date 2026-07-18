@@ -3241,6 +3241,15 @@ export type Database = {
         }
         Returns: Json
       }
+      update_academic_curriculum: {
+        Args: {
+          p_payload: Json
+          p_plan_id: string
+          p_reason: string
+          p_status: string
+        }
+        Returns: Json
+      }
       create_lms_assessment: {
         Args: {
           p_due_at: string

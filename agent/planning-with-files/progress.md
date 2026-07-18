@@ -149,3 +149,9 @@
 - Rebuilt Academic Office around program pathways and carried selected-class context into Learning, Teaching, Assessments, Grades, and Schedule.
 - Added relationship integrity contracts. All 73 tests, lint, TypeScript, Vite build, and asset verification pass.
 - PR #75 passed CodeRabbit and Vercel, merged as `7234ac0`, and deployed to production. The custom-domain CRM returns HTTP 200 and its released bundle contains the relationship-health, program-pathway, curriculum-placement, and focused-workspace markers.
+## 2026-07-18 — Schema-wide action completeness v2
+
+- Opened Issue #76, audited `needed.md`, the current schema map, repository actions, role gates, and visible controls, then created `neededv2.md` as the executable completeness contract.
+- Implemented the missing curriculum editor, normalized atomic lifecycle RPC, version duplication, controlled audit export, and v2 regression coverage.
+- Deployed both curriculum migrations. The first live edit exposed an audit RLS rollback; added a narrowly constrained same-transaction insert policy and reran successfully.
+- Live verification passed atomic create/rollback/retry/edit, approval immutability, retirement, audit evidence, and cleanup. Advisors show no warning for the new function/policy; all 75 contracts, lint, and production build pass.

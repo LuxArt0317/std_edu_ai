@@ -3,6 +3,7 @@ import type { FormEvent, ReactNode } from "react";
 import type { CrmUser } from "../crm/authService";
 import {
   createAcademicTerm,
+  createAcademicCurriculum,
   createCatalogCourse,
   createCourseSection,
   createDepartment,
@@ -13,6 +14,7 @@ import {
   manageSectionEnrollment,
   updateCourseSection,
   updateAcademicTerm,
+  updateAcademicCurriculum,
   updateCatalogCourse,
   updateDepartment,
   updateProgram,
@@ -25,6 +27,7 @@ import {
   transitionEnrollment,
 } from "./platformRepository";
 import type {
+  AcademicCurriculumInput,
   PlatformData,
   PlatformRole,
   ScheduleEvent,
@@ -37,6 +40,7 @@ type ModalName =
   | "student"
   | "department"
   | "program"
+  | "curriculum"
   | "term"
   | "subject"
   | "section"
@@ -165,6 +169,35 @@ function ActionForm({
   );
 }
 
+const curriculumCategories = ["general_education","core","professional","elective","capstone","internship","physical_education","nstp"] as const;
+
+function CurriculumEditor({draft,status,originalStatus,busy,onDraft,onStatus,onSave}:{draft:AcademicCurriculumInput;status:"draft"|"approved"|"retired";originalStatus:"draft"|"approved"|"retired";busy:boolean;onDraft:(value:AcademicCurriculumInput)=>void;onStatus:(value:"draft"|"approved"|"retired")=>void;onSave:(reason:string)=>void}) {
+  const editable=originalStatus === "draft";
+  const updateSubject=(index:number,patch:Partial<AcademicCurriculumInput["subjects"][number]>)=>onDraft({...draft,subjects:draft.subjects.map((item,itemIndex)=>itemIndex===index?{...item,...patch}:item)});
+  const updateBlock=(index:number,patch:Partial<AcademicCurriculumInput["blocks"][number]>)=>onDraft({...draft,blocks:draft.blocks.map((item,itemIndex)=>itemIndex===index?{...item,...patch}:item)});
+  return <form className="curriculum-editor" onSubmit={(event)=>{event.preventDefault();const reason=String(new FormData(event.currentTarget).get("reason")??"");onSave(reason);}}>
+    <section className="curriculum-editor-meta">
+      <Field label="Effective year"><input type="number" min="2000" max="2200" value={draft.effectiveYear} disabled={!editable} onChange={(event)=>onDraft({...draft,effectiveYear:Number(event.target.value)})}/></Field>
+      <Field label="Lifecycle status"><select value={status} onChange={(event)=>onStatus(event.target.value as typeof status)} disabled={status==="retired"}><option value="draft">Draft</option>{status!=="approved"?<option value="approved">Approved</option>:null}{status==="approved"?<option value="retired">Retired</option>:null}</select></Field>
+      <Field label="Duration"><input type="number" min="1" max="8" value={draft.durationYears} disabled={!editable} onChange={(event)=>onDraft({...draft,durationYears:Number(event.target.value)})}/></Field>
+      <Field label="Program"><input value={`${draft.programCode} · ${draft.programName}`} disabled/></Field>
+      <Field label="Description" wide><textarea rows={3} value={draft.description} disabled={!editable} onChange={(event)=>onDraft({...draft,description:event.target.value})}/></Field>
+    </section>
+    <section className="curriculum-editor-section"><header><div><span>SUBJECT SEQUENCE</span><h3>{draft.subjects.length} curriculum subjects</h3></div>{editable?<button type="button" onClick={()=>onDraft({...draft,subjects:[...draft.subjects,{code:`NEW${draft.subjects.length+1}`,title:"New subject",description:"",units:3,yearLevel:1,semester:1,category:"professional",sortOrder:draft.subjects.length+1,prerequisiteCodes:[]}]})}>+ Add subject</button>:null}</header>
+      <div className="curriculum-subject-editor"><div className="curriculum-subject-head"><span>Order</span><span>Code and title</span><span>Placement</span><span>Units/category</span><span>Prerequisites</span><span>Actions</span></div>{draft.subjects.map((subject,index)=><article key={`${subject.code}-${index}`}>
+        <input aria-label={`Sort order for ${subject.code}`} type="number" min="1" value={subject.sortOrder} disabled={!editable} onChange={(event)=>updateSubject(index,{sortOrder:Number(event.target.value)})}/>
+        <span><input aria-label={`Code for subject ${index+1}`} value={subject.code} disabled={!editable} onChange={(event)=>updateSubject(index,{code:event.target.value.toUpperCase()})}/><input aria-label={`Title for ${subject.code}`} value={subject.title} disabled={!editable} onChange={(event)=>updateSubject(index,{title:event.target.value})}/><textarea aria-label={`Description for ${subject.code}`} value={subject.description} disabled={!editable} onChange={(event)=>updateSubject(index,{description:event.target.value})}/></span>
+        <span><label>Year<input type="number" min="1" max={draft.durationYears} value={subject.yearLevel} disabled={!editable} onChange={(event)=>updateSubject(index,{yearLevel:Number(event.target.value)})}/></label><label>Semester<select value={subject.semester} disabled={!editable} onChange={(event)=>updateSubject(index,{semester:Number(event.target.value)})}><option value="1">1</option><option value="2">2</option><option value="3">Summer</option></select></label></span>
+        <span><input aria-label={`Units for ${subject.code}`} type="number" min="0.5" max="12" step="0.5" value={subject.units} disabled={!editable} onChange={(event)=>updateSubject(index,{units:Number(event.target.value)})}/><select aria-label={`Category for ${subject.code}`} value={subject.category} disabled={!editable} onChange={(event)=>updateSubject(index,{category:event.target.value as typeof subject.category})}>{curriculumCategories.map((category)=><option key={category} value={category}>{category.replaceAll("_"," ")}</option>)}</select></span>
+        <input aria-label={`Prerequisites for ${subject.code}`} value={subject.prerequisiteCodes.join(", ")} disabled={!editable} placeholder="Comma-separated subject codes" onChange={(event)=>updateSubject(index,{prerequisiteCodes:event.target.value.split(",").map((value)=>value.trim().toUpperCase()).filter(Boolean)})}/>
+        <span>{editable?<><button type="button" disabled={index===0} onClick={()=>{const subjects=[...draft.subjects];[subjects[index-1],subjects[index]]=[subjects[index],subjects[index-1]];onDraft({...draft,subjects:subjects.map((item,position)=>({...item,sortOrder:position+1}))});}}>↑</button><button type="button" disabled={index===draft.subjects.length-1} onClick={()=>{const subjects=[...draft.subjects];[subjects[index],subjects[index+1]]=[subjects[index+1],subjects[index]];onDraft({...draft,subjects:subjects.map((item,position)=>({...item,sortOrder:position+1}))});}}>↓</button><button type="button" className="danger" onClick={()=>onDraft({...draft,subjects:draft.subjects.filter((_,itemIndex)=>itemIndex!==index)})}>Remove</button></>:<small>Locked</small>}</span>
+      </article>)}</div>
+    </section>
+    <section className="curriculum-editor-section"><header><div><span>BLOCK TEMPLATES</span><h3>Yearly sections and capacity</h3></div>{editable?<button type="button" onClick={()=>onDraft({...draft,blocks:[...draft.blocks,{yearLevel:1,blockCode:`BLOCK-${draft.blocks.length+1}`,capacity:40}]})}>+ Add block</button>:null}</header><div className="curriculum-block-editor">{draft.blocks.map((block,index)=><article key={`${block.blockCode}-${index}`}><label>Year<input type="number" min="1" max={draft.durationYears} value={block.yearLevel} disabled={!editable} onChange={(event)=>updateBlock(index,{yearLevel:Number(event.target.value)})}/></label><label>Block code<input value={block.blockCode} disabled={!editable} onChange={(event)=>updateBlock(index,{blockCode:event.target.value.toUpperCase()})}/></label><label>Capacity<input type="number" min="1" max="500" value={block.capacity} disabled={!editable} onChange={(event)=>updateBlock(index,{capacity:Number(event.target.value)})}/></label>{editable?<button type="button" className="danger" onClick={()=>onDraft({...draft,blocks:draft.blocks.filter((_,itemIndex)=>itemIndex!==index)})}>Remove</button>:null}</article>)}</div></section>
+    <footer><label><span>Required change reason</span><textarea name="reason" required minLength={12} maxLength={1000} placeholder="Explain why this curriculum change is academically required."/></label><button type="submit" disabled={busy||originalStatus==="retired"||(originalStatus==="approved"&&status!=="retired")}>{busy?"Saving curriculum…":originalStatus==="approved"?"Retire curriculum":"Save curriculum changes"}</button></footer>
+  </form>;
+}
+
 export function AcademicOperations({
   data,
   currentUser,
@@ -196,6 +229,9 @@ export function AcademicOperations({
   );
   const [contextProgramId, setContextProgramId] = useState("");
   const [contextSubjectId, setContextSubjectId] = useState("");
+  const [editingCurriculumId, setEditingCurriculumId] = useState("");
+  const [curriculumDraft, setCurriculumDraft] = useState<AcademicCurriculumInput | null>(null);
+  const [curriculumStatus, setCurriculumStatus] = useState<"draft" | "approved" | "retired">("draft");
 
   const faculty = data.profiles.filter((profile) =>
     ["faculty", "department_head", "dean"].includes(profile.role),
@@ -312,6 +348,13 @@ export function AcademicOperations({
     setModal("section");
   }
 
+  function openCurriculum(plan: PlatformData["curricula"][number]) {
+    setEditingCurriculumId(plan.id);
+    setCurriculumDraft(structuredClone(plan.source));
+    setCurriculumStatus(plan.status as "draft" | "approved" | "retired");
+    setModal("curriculum");
+  }
+
   function openEdit(
     name: Exclude<ModalName, "student" | "section" | "event" | null>,
     id: string,
@@ -326,6 +369,8 @@ export function AcademicOperations({
     setEditingSection(null);
     setContextProgramId("");
     setContextSubjectId("");
+    setEditingCurriculumId("");
+    setCurriculumDraft(null);
   }
 
   function exportCsv(filename: string, rows: Array<Array<string | number>>) {
@@ -609,7 +654,7 @@ export function AcademicOperations({
                   </div>
                 </section>
                 {selectedProgramCurricula.length ? selectedProgramCurricula.map((plan) => <article key={plan.id} className="curriculum-plan-card">
-              <div className="curriculum-plan-title"><div><span>{plan.status.toUpperCase()} · EFFECTIVE {plan.effectiveYear}</span><h4>{selectedProgramDepartment?.name ?? "Department not linked"} → {selectedProgram.code} → Curriculum {plan.effectiveYear}</h4><small>Source: {plan.source.programCode} curriculum transaction · Record {plan.id.slice(0, 8)}</small></div><b>{plan.source.subjects.reduce((total, subject) => total + subject.units, 0)} total units</b></div>
+              <div className="curriculum-plan-title"><div><span>{plan.status.toUpperCase()} · EFFECTIVE {plan.effectiveYear}</span><h4>{selectedProgramDepartment?.name ?? "Department not linked"} → {selectedProgram.code} → Curriculum {plan.effectiveYear}</h4><small>Source: {plan.source.programCode} curriculum transaction · Record {plan.id.slice(0, 8)}</small></div><div className="curriculum-card-actions"><b>{plan.source.subjects.reduce((total, subject) => total + subject.units, 0)} total units</b>{academicManagers.has(role) ? <><button type="button" onClick={() => openCurriculum(plan)}>{plan.status === "draft" ? "Edit curriculum" : "Manage lifecycle"}</button><button type="button" onClick={() => {const year=window.prompt("Effective year for the new curriculum version",String(Math.max(new Date().getFullYear(),plan.effectiveYear+1)));if(!year)return;const effectiveYear=Number(year);if(!Number.isInteger(effectiveYear))return onToast("Enter a valid effective year.");void perform(() => createAcademicCurriculum(selectedProgramDepartment!.id,`curriculum-version-${plan.id}-${effectiveYear}-${Date.now()}`,{...structuredClone(plan.source),effectiveYear}),`Curriculum ${effectiveYear} created as a separate draft version.`);}}>Duplicate as new version</button></> : null}</div></div>
               <div className="curriculum-years">{Array.from({length: plan.source.durationYears}, (_, index) => index + 1).map((year) => <section key={year}>
                 <header><strong>Year {year}</strong><small>{plan.source.blocks.filter((block) => block.yearLevel === year).map((block) => `${block.blockCode} (${block.capacity})`).join(" · ")}</small></header>
                 {[1, 2, 3].map((semester) => {
@@ -879,6 +924,24 @@ export function AcademicOperations({
             )}
           </div>
         </section>
+      ) : null}
+
+      {modal === "curriculum" && curriculumDraft ? (
+        <Modal
+          title={`Manage ${curriculumDraft.programCode} curriculum`}
+          description="Edit the complete draft subject sequence and block structure in one validated transaction. Approved curricula are immutable and can only be retired or duplicated as a new version."
+          onClose={closeModal}
+        >
+          <CurriculumEditor
+            draft={curriculumDraft}
+            status={curriculumStatus}
+            originalStatus={(data.curricula.find((item)=>item.id===editingCurriculumId)?.status ?? "draft") as "draft"|"approved"|"retired"}
+            busy={busy}
+            onDraft={setCurriculumDraft}
+            onStatus={setCurriculumStatus}
+            onSave={(reason)=>void perform(()=>updateAcademicCurriculum({planId:editingCurriculumId,status:curriculumStatus,curriculum:curriculumDraft,reason}),`Curriculum ${curriculumDraft.effectiveYear} saved with normalized mappings and audit evidence.`)}
+          />
+        </Modal>
       ) : null}
 
       {modal === "student" ? (

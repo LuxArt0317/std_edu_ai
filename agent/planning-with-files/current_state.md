@@ -154,6 +154,13 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - PR #45 passed CodeRabbit and Vercel, merged as `32ef675`, and deployed Ready as `dpl_Df6sucy57jq4Hr1kazB6LkixE3AX` to both custom domains.
 - `https://www.stu.best/crm` returns HTTP 200 and its released CRM bundle contains the assessment, student, profile, grade, prospect, interaction, signal, and multi-page material editor contracts.
 - Issue #44 is closed; no release work remains for this phase.
+# Active release: Issue #76 schema-wide action completeness v2
+
+- `neededv2.md` inventories all current production schema domains and required actions, role boundaries, immutable evidence, archive transitions, and cross-cutting usability requirements; no required item is left unchecked.
+- Academic Office exposes a structured curriculum editor and separate-version action. Draft content is atomic and editable; approved curricula are immutable except retirement.
+- Production Supabase has both lifecycle migrations. The reversible live workflow passed atomic create, rollback, retry, edit, approval, unsafe-edit rejection, retirement, audit evidence, and cleanup.
+- All 75 contracts, lint, TypeScript, Vite production build, and asset validation pass. GitHub/Vercel release remains in progress.
+
 # Active release: Issue #74 connected academic relationships
 
 - The complete production schema is mapped in `docs/PLATFORM_SCHEMA_MAP.md`; the authoritative academic chain is Department → Program → Curriculum → Curriculum Subject → Subject → Class → Enrollment → Student.
