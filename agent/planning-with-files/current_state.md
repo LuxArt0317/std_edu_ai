@@ -184,4 +184,4 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 
 - Curriculum confirmation independently validates the structured plan and resolves its owning department from active Academic Office data.
 - A valid generated department is retained, the sole active department is automatic, and multiple departments produce an explicit required selector instead of a terminal model-data error.
-- All 62 contracts, lint, TypeScript, production build, asset verification, and live atomic create/rollback/idempotency/cleanup pass. Review and deployment remain.
+- All 62 contracts, lint, TypeScript, production build, asset verification, and live atomic create/rollback/idempotency/cleanup pass. PR #69 merged as `ae5b874`; deployment `dpl_EVhJjgZUKGFQYAdu4yEJkCUCLpvi` and both custom domains pass the department-resolution markers. Issue #68 is complete.

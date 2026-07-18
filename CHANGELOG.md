@@ -3,6 +3,7 @@
 ## Unreleased
 
 - fixed curriculum confirmation when the model omits or returns a stale department ID by retaining valid selections, automatically choosing the sole active department, or requiring an explicit active-department choice in the review card
+- released through PR #69 as `ae5b874`; Vercel deployment `dpl_EVhJjgZUKGFQYAdu4yEJkCUCLpvi` is Ready and both custom domains serve the department-resolution controls
 
 - added Enter-to-send to the Nexus composer while preserving Shift+Enter multiline input, IME composition, existing loading protection, and form validation
 - released through PR #67 as `aaf598a`; Vercel deployment `dpl_5QuWofnyhqoPNNsdWrTvqZGiAAdQ` is Ready and both custom domains serve the Enter-to-send composer

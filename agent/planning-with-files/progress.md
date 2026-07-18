@@ -125,3 +125,4 @@
 - Opened Issue #68 after a 55-subject curriculum preview failed confirmation because its structured model action omitted `departmentId`.
 - Decoupled curriculum validation from department resolution, added sole-active-department inference, stale-ID rejection, an explicit active-department selector, and guarded confirmation.
 - All 62 contracts, lint, build, and the live atomic curriculum create/rollback/idempotency/cleanup workflow pass.
+- PR #69 passed CodeRabbit/Vercel, merged as `ae5b874`, and deployed Ready as `dpl_EVhJjgZUKGFQYAdu4yEJkCUCLpvi`. Both custom domains pass recursive assets and department-resolution markers.
