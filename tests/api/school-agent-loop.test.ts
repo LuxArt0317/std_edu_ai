@@ -29,7 +29,7 @@ test("agent runs stop on repeated no-progress actions", () => {
 });
 
 test("agent runs stop at the step and runtime bounds", () => {
-  const capped = { ...startSchoolAgentRun("Large goal", 1_000), step: 8 };
-  assert.match(runSafetyStop(capped, 2_000), /after 8 steps/i);
-  assert.match(runSafetyStop(startSchoolAgentRun("Slow goal", 1_000), 301_001), /five-minute/i);
+  const capped = { ...startSchoolAgentRun("Large goal", 1_000), step: 32 };
+  assert.match(runSafetyStop(capped, 2_000), /after 32 steps/i);
+  assert.match(runSafetyStop(startSchoolAgentRun("Slow goal", 1_000), 1_801_001), /thirty-minute/i);
 });

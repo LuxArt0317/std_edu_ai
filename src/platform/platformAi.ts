@@ -95,6 +95,19 @@ export async function askSchoolAssistant(
           status: initiative.status,
           operation: initiative.type,
         })),
+        curricula: context.data.curricula.map((plan) => ({
+          id: plan.id, programId: plan.programId, effectiveYear: plan.effectiveYear,
+          status: plan.status, subjectCount: plan.source.subjects.length,
+        })),
+        enrollments: context.data.enrollments.slice(0,100).map((item)=>({
+          id:item.id,sectionId:item.sectionId,studentId:item.studentId,profileId:item.profileId,status:item.status,
+        })),
+        materialPages: context.data.materialPages.slice(0,100).map((item)=>({id:item.id,materialId:item.materialId,title:item.title,position:item.position})),
+        gradeItems: context.data.gradeItems.slice(0,100).map((item)=>({id:item.id,sectionId:item.sectionId,title:item.title,maxScore:item.maxScore})),
+        grades: context.data.grades.slice(0,100).map((item)=>({id:item.id,gradeItemId:item.gradeItemId,studentId:item.studentId,status:item.status})),
+        attendanceSessions: context.data.attendanceSessions.slice(0,100).map((item)=>({id:item.id,sectionId:item.sectionId,title:item.title,status:item.status})),
+        communications: context.data.communications.slice(0,50).map((item)=>({id:item.id,senderId:item.senderId,recipientId:item.recipientId,status:item.status,subject:item.subject})),
+        supportRequests: context.data.supportRequests.slice(0,50).map((item)=>({id:item.id,studentId:item.studentId,status:item.status,title:item.title})),
         courses: context.data.courses.map((course) => ({
           sectionId: course.sectionId,
           code: course.code,
@@ -152,6 +165,9 @@ export async function askSchoolAssistant(
       goalSummary: message,
       stepSummary: payload.answer,
       terminalReason: "",
+      plan: [],
+      remainingWork: [],
+      clarification: null,
     },
     source: "openai",
   };

@@ -67,12 +67,12 @@ async function signIn(email) {
   return { supabase, session: data.session };
 }
 
-async function ask(session, message, context) {
+async function ask(session, message, context, agent = null) {
   const chat = capture();
   await schoolHandler(
     {
       method: "POST",
-      body: { message, history: [], context },
+      body: { message, history: [], context, agent },
       headers: {
         authorization: `Bearer ${session.access_token}`,
         "x-forwarded-for": "nexus-agent-live",
@@ -105,8 +105,25 @@ if (departmentAnswer.proposedAction?.type !== "create_department")
 if (!departmentAnswer.proposedAction.code || !departmentAnswer.proposedAction.title)
   throw new Error("The department creation tool omitted its structured code or name.");
 
+const multiGoal="Create a Data Science department with code DS, then create a four-year Bachelor of Science in Data Science program in it. Continue until both exist.";
+const multiRun={runId:`live-multi-${Date.now()}`,goal:multiGoal,step:0,maxSteps:32,observations:[]};
+const multiFirst=await ask(owner.session,multiGoal,{view:"academics",departments:[],programs:[]},multiRun);
+if(multiFirst.proposedAction?.type!=="create_department"||multiFirst.agent?.status!=="working"||!multiFirst.agent?.remainingWork?.length) throw new Error("Multi-action goal did not begin with a department and retain remaining work.");
+const departmentId="51000000-0000-4000-8000-000000000099";
+const multiSecond=await ask(owner.session,multiGoal,{view:"academics",departments:[{id:departmentId,code:"DS",name:"Data Science"}],programs:[]},{...multiRun,step:1,observations:[{step:1,actionType:"create_department",outcome:"success",summary:`Created DS with record ID ${departmentId}.`} ]});
+if(multiSecond.proposedAction?.type!=="create_program"||multiSecond.proposedAction.departmentId!==departmentId||multiSecond.agent?.status!=="working") throw new Error(`Multi-action goal did not continue to program creation (${multiSecond.proposedAction?.type??"none"}).`);
+
+const clarificationGoal="Create a new bachelor's program for the school.";
+const clarificationRun={runId:`live-question-${Date.now()}`,goal:clarificationGoal,step:0,maxSteps:32,observations:[]};
+const clarification=await ask(owner.session,clarificationGoal,{view:"academics",departments:[{id:"51000000-0000-4000-8000-000000000001",code:"IM",name:"Information Management"},{id:"51000000-0000-4000-8000-000000000002",code:"VCD",name:"Visual Communication Design"}],programs:[]},clarificationRun);
+if(clarification.agent?.status!=="needs_input"||!clarification.agent?.clarification?.question||clarification.proposedAction) throw new Error("A materially ambiguous goal did not return a resumable clarification.");
+const clarificationAnswer="Create BS Cybersecurity, code BSCY, under Information Management as a four-year program.";
+const clarificationResumed=await ask(owner.session,clarificationGoal,{view:"academics",departments:[{id:"51000000-0000-4000-8000-000000000001",code:"IM",name:"Information Management"}],programs:[]},{...clarificationRun,observations:[{step:0,actionType:"reasoning",outcome:"success",summary:`User clarification: ${clarificationAnswer}`}]});
+if(clarificationResumed.proposedAction?.type!=="create_program"||clarificationResumed.proposedAction.departmentId!=="51000000-0000-4000-8000-000000000001") throw new Error("Clarified goal did not resume with the requested program action.");
+
+const facultyActive = await signIn("winsonbaring10+faculty@gmail.com");
 const facultyAnswer = await ask(
-  faculty.session,
+  facultyActive.session,
   "Create a draft module called Agent validation in IM101 with a short description.",
   {
     view: "teaching",
@@ -127,8 +144,9 @@ if (facultyAnswer.proposedAction?.type !== "create_module")
 if (facultyAnswer.agent?.status !== "working")
   throw new Error("Faculty action did not start a bounded working goal.");
 
+const studentActive = await signIn("winsonbaring10+student@gmail.com");
 const studentAnswer = await ask(
-  student.session,
+  studentActive.session,
   "Complete and submit my next assignment for me.",
   { view: "assessments", assessments: [] },
 );
@@ -156,7 +174,9 @@ if (![1, 2, 3, 4].every((year) => curriculum.blocks.some((block) => block.yearLe
   throw new Error("The proposed curriculum does not include blocks for every year.");
 
 await faculty.supabase.auth.signOut();
+await facultyActive.supabase.auth.signOut();
 await student.supabase.auth.signOut();
+await studentActive.supabase.auth.signOut();
 await owner.supabase.auth.signOut();
 console.log(
   JSON.stringify({
@@ -168,5 +188,7 @@ console.log(
     curriculumBlocks: curriculum.blocks.length,
     curriculumActor: "owner",
     departmentAction: departmentAnswer.proposedAction.type,
+    multiActionSequence:[multiFirst.proposedAction.type,multiSecond.proposedAction.type],
+    clarificationResumed:clarificationResumed.proposedAction.type,
   }),
 );

@@ -469,7 +469,13 @@ export type SchoolChatAnswer = {
   source: "openai" | "continuity";
 };
 
-export type SchoolAgentStatus = "working" | "complete" | "impossible";
+export type SchoolAgentStatus = "working" | "needs_input" | "complete" | "impossible";
+
+export type SchoolAgentClarification = {
+  question: string;
+  reason: string;
+  options: string[];
+};
 
 export type SchoolAgentObservation = {
   step: number;
@@ -483,6 +489,9 @@ export type SchoolAgentDecision = {
   goalSummary: string;
   stepSummary: string;
   terminalReason: string;
+  plan: string[];
+  remainingWork: string[];
+  clarification: SchoolAgentClarification | null;
 };
 
 export type SchoolAgentRequestState = {

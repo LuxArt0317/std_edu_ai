@@ -2244,6 +2244,7 @@ textarea {
 .chat-warning { margin: 0 16px 10px; padding: 9px 11px; color: #755b24; border-radius: 9px; background: #fff5d8; font-size: .76rem; }
 
 .chat-agent-run {
+  flex: 0 0 auto;
   margin: 0 16px 12px;
   padding: 14px;
   border: 1px solid #b9d8d0;
@@ -2251,6 +2252,23 @@ textarea {
   background: linear-gradient(145deg, #f4fbf9, #e8f5f1);
   box-shadow: 0 10px 28px rgb(13 73 61 / 8%);
 }
+.chat-agent-run.compact { padding: 10px 12px; }
+.chat-agent-run.compact .chat-agent-activity { margin: 7px 0 0; padding: 7px 9px; }
+.chat-agent-run.compact .chat-background-note { display: none; }
+.chat-agent-summary { position: relative; padding-right: 62px; }
+.chat-agent-summary > strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-goal-toggle { position: absolute; top: 0; right: 0; padding: 4px 7px !important; color: #176f60 !important; border-color: #bad8d1 !important; font-size: .62rem !important; }
+.chat-agent-plan { margin: 8px 0; padding: 8px; border-radius: 9px; background: rgb(255 255 255 / 65%); }
+.chat-agent-plan > b { color: #176f60; font-size: .66rem; text-transform: uppercase; letter-spacing: .08em; }
+.chat-agent-plan ol { max-height: 150px; }
+.chat-agent-plan li.done { opacity: .7; }
+.chat-agent-question { flex: 0 0 auto; margin: 0 16px 12px; padding: 13px; border: 1px solid #e0be79; border-radius: 14px; background: #fff9e9; box-shadow: 0 8px 22px rgb(92 65 15 / 8%); }
+.chat-agent-question > span { color: #986715; font-size: .64rem; font-weight: 850; letter-spacing: .13em; }
+.chat-agent-question h3 { margin: 5px 0; color: #4c3a18; font-size: .9rem; line-height: 1.35; }
+.chat-agent-question p { margin: 0 0 9px; color: #715d34; font-size: .72rem; line-height: 1.4; }
+.chat-agent-question > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.chat-agent-question button { border: 1px solid #d7b66f; border-radius: 8px; background: #fff; color: #715019; padding: 7px 9px; font-size: .68rem; font-weight: 750; cursor: pointer; }
+.chat-agent-question > small { display: block; margin-top: 8px; color: #8a7448; font-size: .62rem; }
 
 .chat-agent-run > div { display: grid; gap: 3px; }
 .chat-agent-run > div > span { color: #167968; font-size: .64rem; font-weight: 850; letter-spacing: .14em; }

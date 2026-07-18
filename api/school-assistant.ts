@@ -41,10 +41,13 @@ type SchoolAnswer = {
   citations: string[];
   proposedAction: Record<string, unknown> | null;
   agent: {
-    status: "working" | "complete" | "impossible";
+    status: "working" | "needs_input" | "complete" | "impossible";
     goalSummary: string;
     stepSummary: string;
     terminalReason: string;
+    plan: string[];
+    remainingWork: string[];
+    clarification: { question: string; reason: string; options: string[] } | null;
   };
 };
 
@@ -68,6 +71,14 @@ const allowedContextFields = [
   "attendanceRecords",
   "attendanceCorrections",
   "initiatives",
+  "curricula",
+  "enrollments",
+  "materialPages",
+  "gradeItems",
+  "grades",
+  "attendanceSessions",
+  "communications",
+  "supportRequests",
 ] as const;
 const actionTypes = new Set([
   "navigate",
@@ -322,9 +333,19 @@ function parseOutput(payload: unknown): SchoolAnswer | null {
         ? (rawAction as Record<string, unknown>)
         : null;
     const rawAgent = candidate.agent as Record<string, unknown>;
-    if (!["working", "complete", "impossible"].includes(String(rawAgent.status)) ||
+    if (!["working", "needs_input", "complete", "impossible"].includes(String(rawAgent.status)) ||
         typeof rawAgent.goalSummary !== "string" || typeof rawAgent.stepSummary !== "string" ||
-        typeof rawAgent.terminalReason !== "string") return null;
+        typeof rawAgent.terminalReason !== "string" || !Array.isArray(rawAgent.plan) ||
+        !rawAgent.plan.every((item)=>typeof item === "string") || !Array.isArray(rawAgent.remainingWork) ||
+        !rawAgent.remainingWork.every((item)=>typeof item === "string")) return null;
+    const rawClarification=rawAgent.clarification;
+    const clarification=rawClarification && typeof rawClarification === "object" && !Array.isArray(rawClarification) &&
+      typeof (rawClarification as Record<string,unknown>).question === "string" &&
+      typeof (rawClarification as Record<string,unknown>).reason === "string" &&
+      Array.isArray((rawClarification as Record<string,unknown>).options) &&
+      ((rawClarification as Record<string,unknown>).options as unknown[]).every((item)=>typeof item === "string")
+      ? {question:String((rawClarification as Record<string,unknown>).question).slice(0,500),reason:String((rawClarification as Record<string,unknown>).reason).slice(0,500),options:((rawClarification as Record<string,unknown>).options as string[]).slice(0,4).map((item)=>item.slice(0,160))}
+      : null;
     return {
       answer: candidate.answer.trim().slice(0, 7_500),
       suggestedActions: candidate.suggestedActions
@@ -339,6 +360,9 @@ function parseOutput(payload: unknown): SchoolAnswer | null {
         goalSummary: rawAgent.goalSummary.trim().slice(0, 500),
         stepSummary: rawAgent.stepSummary.trim().slice(0, 1_000),
         terminalReason: rawAgent.terminalReason.trim().slice(0, 1_000),
+        plan: (rawAgent.plan as string[]).slice(0,12).map((item)=>item.slice(0,300)),
+        remainingWork: (rawAgent.remainingWork as string[]).slice(0,12).map((item)=>item.slice(0,300)),
+        clarification,
       },
     };
   } catch {
@@ -410,11 +434,12 @@ export default async function handler(
           roleInstruction,
           "Use only the bounded platform context and conversation supplied. Never invent a university policy, date, grade, student fact, or authorization.",
           "Protect privacy. Do not request passwords, authentication tokens, diagnoses, or unnecessary sensitive personal data.",
-          "When context is insufficient, say what is missing and give the safest useful next step.",
-          `The only executable actions for this role are: ${[...allowedActions(auth.user.role)].join(", ")}. You are operating a bounded goal loop. Choose at most one next action per response, use exact IDs from platform context, and reassess the goal from the supplied real observations. Set agent.status to working only when a permitted next action is necessary. Set complete only when the requested goal is satisfied. Set impossible when required information, authority, capability, or a prior blocked/error observation makes completion unsafe or unavailable. Never repeat an already successful action. Never claim an action happened until its success observation is supplied.`,
+          "Work autonomously from the supplied platform context. Before asking the user anything, inspect all relevant departments, programs, curricula, subjects, classes, people, enrollments, learning records, schedules, and prior observations; infer harmless defaults from institutional context and the user's stated goal. Never ask for information that is already present or can be safely inferred.",
+          `The only executable actions for this role are: ${[...allowedActions(auth.user.role)].join(", ")}. You are operating a persistent bounded goal loop. Maintain a concise end-to-end plan and remainingWork. Choose exactly one next executable action per response, use exact IDs from platform context, and reassess the whole goal after every real observation. A successful action is only one step: keep status working and propose the next action while remainingWork is non-empty. Set complete only when every requested outcome is proven satisfied and remainingWork is empty. Set impossible only for a genuine capability, authority, safety, or repeated-error boundary—not merely missing optional detail. Never repeat an already successful action and never claim an action happened until its success observation is supplied.`,
+          "If a required decision cannot be inferred safely and materially changes the result, set status needs_input, return no proposedAction, and provide one focused clarification object with a question, short reason, and two to four concrete options. Do not put ordinary questions in answer. Once the user's clarification appears in observations, continue the same plan and run rather than starting over.",
           `For an authorized request to create a complete degree curriculum, use one create_curriculum action rather than dozens of small actions. Always include every required curriculum field: programCode, programName, description, durationYears, effectiveYear as a four-digit integer, subjects, and blocks. If the user does not state an effective year, infer ${new Date().getUTCFullYear()} for the unpublished draft instead of stopping to ask. Produce a coherent, realistic draft with every subject placed by year and semester, unique institutional subject codes, units, ordered prerequisites that refer only to earlier subjects in the same payload, and at least one block template for every year. This is a draft requiring human academic and regulatory review; never claim accreditation approval.`,
           "When an authorized owner, administrator, dean, or registrar explicitly asks you to add a missing academic department, use create_department with a short unique uppercase code in code, the complete department name in title, and its purpose in description. After the confirmed success observation, continue the original goal using the newly returned record ID and refreshed platform context.",
-          "Academic setup tools: create_program uses departmentId, code, title, description, level, and durationYears; create_academic_term uses code, title, startsAt, endsAt, and status; create_subject uses departmentId, optional programId, code, title, description, and credits; create_section uses courseId, termId, code as the section code, optional facultyId, modality, room, capacity, and status; enroll_student uses sectionId, studentId, and status. Use exact IDs from refreshed context, propose only one confirmed step at a time, and continue after its real success observation.",
+          "Academic setup tools: create_program uses departmentId, code, title, description, level, and durationYears; create_academic_term uses code, title, startsAt, endsAt, and status; create_subject uses departmentId, optional programId, code, title, description, and credits; create_section uses courseId, termId, code as the section code, optional facultyId, modality, room, capacity, and status; enroll_student uses sectionId, studentId, and status. Use exact IDs from refreshed context, propose one confirmed mutation at a time, then continue automatically after its real success observation until the complete requested workflow is achieved.",
           "For update_* actions, include the exact existing target ID and the complete replacement values required by that record. For delete_* actions, include the exact target ID and clearly describe the irreversible effect in confirmation. Never delete an assessment with attempts; the repository enforces that boundary. Learning material pages use targetId; modules use moduleId; materials use materialId; announcements, attendance sessions, schedule events, and assessments use targetId.",
           "Service tools: create_support_request uses studentId, title, code as category, description, and priority; create_communication_request uses recipientId, title as subject, content as body; request_attendance_correction uses attendanceRecordId, status as the requested status, and reason; decide_attendance_correction uses requestId, approve, and reason; create_initiative uses operation as policy/initiative/teaching_plan/content_correction, title, description, content as scope, priority, and dueAt; transition_initiative uses initiativeId, operation as approve/assign/complete/reject/escalate, optional ownerId, and reason.",
           auth.user.role === "student"
@@ -436,7 +461,7 @@ export default async function handler(
                 runId: "chat",
                 goal: input.message,
                 step: 0,
-                maxSteps: 8,
+                maxSteps: 32,
                 observations: [],
               },
               trusted_role: auth.user.role,
@@ -692,12 +717,23 @@ export default async function handler(
                   type: "object",
                   additionalProperties: false,
                   properties: {
-                    status: { type: "string", enum: ["working", "complete", "impossible"] },
+                    status: { type: "string", enum: ["working", "needs_input", "complete", "impossible"] },
                     goalSummary: { type: "string" },
                     stepSummary: { type: "string" },
                     terminalReason: { type: "string" },
+                    plan: { type: "array", maxItems: 12, items: { type: "string" } },
+                    remainingWork: { type: "array", maxItems: 12, items: { type: "string" } },
+                    clarification: {
+                      anyOf: [
+                        { type: "null" },
+                        { type: "object", additionalProperties: false, properties: {
+                          question: { type: "string" }, reason: { type: "string" },
+                          options: { type: "array", minItems: 2, maxItems: 4, items: { type: "string" } },
+                        }, required: ["question","reason","options"] },
+                      ],
+                    },
                   },
-                  required: ["status", "goalSummary", "stepSummary", "terminalReason"],
+                  required: ["status", "goalSummary", "stepSummary", "terminalReason", "plan", "remainingWork", "clarification"],
                 },
               },
               required: [
@@ -732,10 +768,15 @@ export default async function handler(
     const roleAllowedAction = result.proposedAction &&
       allowedActions(auth.user.role).has(String(result.proposedAction.type))
       ? result.proposedAction : null;
-    const agent = result.agent.status === "working" && !roleAllowedAction
-      ? { ...result.agent, status: "impossible" as const,
-          terminalReason: result.agent.terminalReason || "No permitted next action was available, so Nexus stopped safely." }
-      : result.agent;
+    let agent = result.agent;
+    if (agent.status === "complete" && agent.remainingWork.length)
+      agent = { ...agent, status: "working", terminalReason: "" };
+    if (agent.status === "needs_input" && !agent.clarification)
+      agent = { ...agent, status: "impossible", terminalReason: "Nexus could not identify the exact decision required to continue." };
+    if (agent.status === "working" && !roleAllowedAction)
+      agent = agent.clarification
+        ? { ...agent, status: "needs_input", terminalReason: "" }
+        : { ...agent, status: "impossible", terminalReason: agent.terminalReason || "No permitted next action was available, so Nexus stopped safely." };
     response.status(200).json({
       ...result,
       agent,

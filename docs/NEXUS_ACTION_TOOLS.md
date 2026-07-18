@@ -20,11 +20,12 @@ When a requested operation is outside the safe tool catalog, Nexus must explain 
 
 ## Goal execution contract
 
-1. Nexus resolves exact IDs from the privacy-minimized current platform context.
+1. Nexus resolves exact IDs from the privacy-minimized current platform context and infers harmless defaults before asking the operator.
 2. It proposes one reviewable mutation and shows its effect.
 3. The user confirms or cancels.
 4. The repository executes under the current Supabase session.
-5. Nexus reloads the platform, records the real outcome and any returned ID, and continues only if another step remains.
-6. Repeated actions, elapsed-time limits, step limits, missing authority, and repository errors stop the run as impossible instead of looping or fabricating success.
+5. Nexus reloads the platform, records the real outcome and any returned ID, and continues automatically while its explicit remaining-work plan is non-empty.
+6. If a material decision cannot be inferred, Nexus pauses with one clarification card and two to four choices. The answer is recorded as an observation and the same run resumes.
+7. Repeated actions, the thirty-minute runtime limit, the 32-action safety limit, missing authority, and repository errors stop the run as impossible instead of looping or fabricating success.
 
-The goal card distinguishes completed actions from the maximum-eight safety ceiling and displays the current thinking, execution, refresh, confirmation, or terminal phase. Closing the Nexus drawer only hides it: the mounted portal retains the active request, and the floating Nexus control displays its background state. Reopening restores the last-used valid thread at its newest message; new content follows automatically only while the reader remains near the bottom.
+The goal card is compact by default and shows completed and remaining work plus the current thinking, execution, refresh, confirmation, clarification, or terminal phase. Its Details control reveals the full plan and action evidence. Closing the Nexus drawer only hides it: the mounted portal retains the active request, and the floating Nexus control displays its background state. Reopening restores the last-used valid thread at its newest message; new content follows automatically only while the reader remains near the bottom.

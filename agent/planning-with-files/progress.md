@@ -156,3 +156,9 @@
 - Deployed both curriculum migrations. The first live edit exposed an audit RLS rollback; added a narrowly constrained same-transaction insert policy and reran successfully.
 - Live verification passed atomic create/rollback/retry/edit, approval immutability, retirement, audit evidence, and cleanup. Advisors show no warning for the new function/policy; all 75 contracts, lint, and production build pass.
 - PR #77 passed CodeRabbit and Vercel, merged as `c0d8cae`, and deployed Ready. `stu.best/crm` returns HTTP 200 and its released bundle contains the curriculum edit/version/subject/block/reason and audit-export controls.
+## 2026-07-18 — Autonomous, resumable Nexus goals
+
+- Opened Issue #78 and traced the oversized goal UI plus the decision/confirmation/refresh loop.
+- Added plan, remaining-work, and clarification schema; expanded exact-ID context; strengthened autonomous inference and completion rules; and increased the bounded run to 32 actions/thirty minutes.
+- Added a compact goal summary, expandable plan/action evidence, and a dedicated clarification card whose answer resumes the same run.
+- All 78 contracts, lint, TypeScript/Vite build, and asset verification pass. Live OpenAI returned department then program across successive observations and resumed an ambiguous program goal after a structured clarification.

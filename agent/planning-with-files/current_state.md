@@ -154,6 +154,13 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - PR #45 passed CodeRabbit and Vercel, merged as `32ef675`, and deployed Ready as `dpl_Df6sucy57jq4Hr1kazB6LkixE3AX` to both custom domains.
 - `https://www.stu.best/crm` returns HTTP 200 and its released CRM bundle contains the assessment, student, profile, grade, prospect, interaction, signal, and multi-page material editor contracts.
 - Issue #44 is closed; no release work remains for this phase.
+# Active release: Issue #78 autonomous, resumable Nexus goals
+
+- Nexus now carries an explicit end-to-end plan, remaining work, and optional clarification through every API decision. It cannot report completion while remaining work exists.
+- Broader authoritative context is supplied before questions. A genuine question appears as a compact option card; typed or selected answers resume the same run.
+- The goal card is compact by default, Details reveals plan/evidence, and closing the drawer continues to preserve active work.
+- Live OpenAI verification produced `create_department → create_program` across two decisions and `needs_input → create_program` after clarification. All 78 contracts, lint, TypeScript/Vite build, and assets pass. Release remains in progress.
+
 # Active release: Issue #76 schema-wide action completeness v2
 
 - `neededv2.md` inventories all current production schema domains and required actions, role boundaries, immutable evidence, archive transitions, and cross-cutting usability requirements; no required item is left unchecked.

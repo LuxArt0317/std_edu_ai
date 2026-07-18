@@ -1,5 +1,14 @@
 # Task Plan
 
+## Phase 78: Autonomous, resumable Nexus goals [Issue #78]
+
+- [x] audit the current decision schema, goal loop, context payload, terminal logic, and oversized goal UI
+- [x] make the model maintain a plan and continue after every successful action while remaining work exists
+- [x] expand authoritative read context and require safe inference before clarification
+- [x] add a dedicated clarification card that resumes the same persistent run
+- [x] compact the goal card with optional plan/action details and retain background execution
+- [ ] verify contracts, live multi-action reasoning, live clarification/resumption, build, review, deployment, and production
+
 ## Phase 76: Schema-wide action completeness v2 [Issue #76]
 
 - [x] inventory `needed.md`, the complete schema map, repository mutations, and visible controls

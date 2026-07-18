@@ -2680,6 +2680,7 @@ function SchoolAssistant({
   );
   const [curriculumDepartmentId, setCurriculumDepartmentId] = useState("");
   const [agentRun, setAgentRun] = useState<SchoolAgentRun | null>(null);
+  const [goalExpanded, setGoalExpanded] = useState(false);
   const [activity, setActivity] = useState<{
     state: NexusActivityState;
     label: string;
@@ -2786,7 +2787,16 @@ function SchoolAssistant({
         status: answer.agent.status,
         summary: answer.agent.stepSummary,
         terminalReason: answer.agent.terminalReason,
+        plan: answer.agent.plan,
+        remainingWork: answer.agent.remainingWork,
+        clarification: answer.agent.clarification,
       };
+      if (answer.agent.status === "needs_input" && answer.agent.clarification) {
+        setAgentRun({...decided,status:"awaiting_input"});
+        setPendingAction(null);
+        setActivity({state:"waiting",label:"Nexus needs one decision to continue this same goal."});
+        return;
+      }
       if (answer.agent.status !== "working" || !answer.proposedAction) {
         setAgentRun(decided);
         setPendingAction(null);
@@ -2872,6 +2882,18 @@ function SchoolAssistant({
       } catch {
         setPersistenceWarning("Nexus can continue, but this message could not be added to conversation history.");
       }
+      if (agentRun?.status === "awaiting_input" && activeRunId.current === agentRun.id) {
+        const resumed = addAgentObservation({...agentRun,status:"working",clarification:null}, {
+          step: agentRun.step,
+          actionType: "reasoning",
+          outcome: "success",
+          summary: `User clarification: ${prompt.slice(0,500)}`,
+        });
+        setAgentRun(resumed);
+        setActivity({state:"thinking",label:"Clarification received. Nexus is continuing the existing goal…"});
+        await advanceAgent(resumed, activeThread);
+        return;
+      }
       const run = startSchoolAgentRun(prompt);
       activeRunId.current = run.id;
       setAgentRun(run);
@@ -2882,6 +2904,18 @@ function SchoolAssistant({
       setActivity({ state: "blocked", label: reason instanceof Error ? reason.message : "Nexus AI could not start the goal." });
       setLoading(false);
     }
+  }
+
+  async function answerClarification(answer: string) {
+    if (!agentRun || agentRun.status !== "awaiting_input" || !threadId || loading) return;
+    setError("");
+    const userMessage: ChatMessage={id:`clarification-${Date.now()}`,threadId,role:"user",content:answer,citations:[],createdAt:new Date().toISOString()};
+    setMessages((current)=>[...current,userMessage]);
+    try { await appendChatMessage(threadId,"user",answer); } catch { setPersistenceWarning("Nexus is continuing, but this answer could not be added to conversation history."); }
+    const resumed=addAgentObservation({...agentRun,status:"working",clarification:null},{step:agentRun.step,actionType:"reasoning",outcome:"success",summary:`User clarification: ${answer.slice(0,500)}`});
+    setAgentRun(resumed);
+    setActivity({state:"thinking",label:"Answer received. Nexus is continuing the existing goal…"});
+    await advanceAgent(resumed,threadId);
   }
 
   async function confirmAction() {
@@ -3397,18 +3431,19 @@ function SchoolAssistant({
           </button>
         </div>
         {agentRun ? (
-          <section className={`chat-agent-run ${agentRun.status}`} aria-live="polite">
-            <div>
+          <section className={`chat-agent-run ${agentRun.status} ${goalExpanded ? "expanded" : "compact"}`} aria-live="polite">
+            <div className="chat-agent-summary">
               <span>ACTIVE GOAL</span>
               <strong>{agentRun.goal}</strong>
-              <small>{agentRun.step} {agentRun.step === 1 ? "action" : "actions"} completed · safety limit {agentRun.maxSteps} · {agentRun.status.replaceAll("_", " ")}</small>
+              <small>{agentRun.step} {agentRun.step === 1 ? "action" : "actions"} completed · {agentRun.remainingWork.length} remaining · {agentRun.status.replaceAll("_", " ")}</small>
+              <button type="button" className="chat-goal-toggle" onClick={()=>setGoalExpanded((value)=>!value)} aria-expanded={goalExpanded}>{goalExpanded?"Hide details":"Details"}</button>
             </div>
-            <p>{agentRun.terminalReason || agentRun.summary}</p>
             <div className={`chat-agent-activity ${activity.state}`} aria-live="polite">
               <i aria-hidden="true" />
               <span><b>{activity.state === "thinking" ? "Thinking" : activity.state === "executing" ? "Executing" : activity.state === "refreshing" ? "Refreshing" : activity.state === "waiting" ? "Waiting" : activity.state === "complete" ? "Complete" : activity.state === "blocked" ? "Stopped" : "Ready"}</b><small>{activity.label}</small></span>
             </div>
-            {agentRun.observations.length ? (
+            {goalExpanded ? <><p>{agentRun.terminalReason || agentRun.summary}</p>{agentRun.plan.length?<div className="chat-agent-plan"><b>Plan</b><ol>{agentRun.plan.map((item,index)=><li key={`${index}-${item}`} className={index<agentRun.step?"done":""}><span>{index<agentRun.step?"✓":index+1}</span>{item}</li>)}</ol></div>:null}</> : null}
+            {goalExpanded && agentRun.observations.length ? (
               <ol>{agentRun.observations.map((observation) => (
                 <li key={`${observation.step}-${observation.actionType}`}>
                   <b>{observation.outcome === "success" ? "✓" : "!"}</b>
@@ -3428,6 +3463,7 @@ function SchoolAssistant({
             <small className="chat-background-note">You can close Nexus while it thinks or executes. This run remains active in the mounted portal.</small>
           </section>
         ) : null}
+        {agentRun?.status === "awaiting_input" && agentRun.clarification ? <section className="chat-agent-question" role="group" aria-label="Nexus clarification required"><span>ONE DECISION NEEDED</span><h3>{agentRun.clarification.question}</h3><p>{agentRun.clarification.reason}</p><div>{agentRun.clarification.options.map((option)=><button type="button" key={option} onClick={()=>void answerClarification(option)} disabled={loading}>{option}</button>)}</div><small>You can also type a different answer below. Nexus will resume this same goal.</small></section>:null}
         <div
           className="chat-messages"
           ref={messageViewportRef}

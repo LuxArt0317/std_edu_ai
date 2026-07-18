@@ -4,13 +4,13 @@ import type {
   SchoolAiAction,
 } from "./types.ts";
 
-export const SCHOOL_AGENT_MAX_STEPS = 8;
-export const SCHOOL_AGENT_MAX_RUNTIME_MS = 5 * 60_000;
+export const SCHOOL_AGENT_MAX_STEPS = 32;
+export const SCHOOL_AGENT_MAX_RUNTIME_MS = 30 * 60_000;
 
 export type SchoolAgentRun = {
   id: string;
   goal: string;
-  status: SchoolAgentStatus | "awaiting_confirmation" | "cancelled";
+  status: SchoolAgentStatus | "awaiting_confirmation" | "awaiting_input" | "cancelled";
   step: number;
   maxSteps: number;
   startedAt: number;
@@ -18,6 +18,9 @@ export type SchoolAgentRun = {
   actionFingerprints: string[];
   summary: string;
   terminalReason: string;
+  plan: string[];
+  remainingWork: string[];
+  clarification: { question: string; reason: string; options: string[] } | null;
 };
 
 export function startSchoolAgentRun(goal: string, now = Date.now()): SchoolAgentRun {
@@ -35,6 +38,9 @@ export function startSchoolAgentRun(goal: string, now = Date.now()): SchoolAgent
     actionFingerprints: [],
     summary: "Understanding the goal and choosing the safest next step.",
     terminalReason: "",
+    plan: [],
+    remainingWork: [],
+    clarification: null,
   };
 }
 
@@ -54,7 +60,7 @@ export function runSafetyStop(run: SchoolAgentRun, now = Date.now()) {
   if (run.step >= run.maxSteps)
     return `Stopped safely after ${run.maxSteps} steps. Split the goal into a smaller request to continue.`;
   if (now - run.startedAt > SCHOOL_AGENT_MAX_RUNTIME_MS)
-    return "Stopped safely because this goal exceeded the five-minute runtime limit.";
+    return "Stopped safely because this goal exceeded the thirty-minute runtime limit.";
   const recent = run.actionFingerprints.slice(-3);
   if (recent.length === 3 && new Set(recent).size === 1)
     return "Stopped safely because Nexus repeated the same action without making progress.";
@@ -75,5 +81,6 @@ export function addAgentObservation(
       ? [...run.actionFingerprints, actionFingerprint(action)].slice(-8)
       : run.actionFingerprints,
     summary: observation.summary,
+    clarification: null,
   };
 }

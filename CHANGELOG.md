@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- made Nexus goals compact by default with optional plan/action details, accurate remaining-work counts, and a separate clarification card
+- expanded the agent's grounded platform context and required it to infer safe defaults and inspect existing records before asking the user
+- added explicit plan, remaining-work, and resumable clarification decision fields; successful actions now continue through the same run until the complete goal is proven
+- raised the bounded complex-goal allowance to 32 actions and thirty minutes while preserving repetition, role, confirmation, RLS, and student assessed-work safeguards
+- added live-model evidence for department → program multi-action continuation and ambiguous-program clarification → resumed program creation
+
 - added `neededv2.md`, a schema-wide role/action/lifecycle contract that treats visible UI, real services, authorization, audit behavior, automated coverage, and production evidence as one completion requirement
 - added a discoverable structured curriculum editor for draft metadata, subject creation/edit/removal/reordering, units/categories/placement, prerequisite links, block templates/capacities, approval, retirement, and immutable version duplication
 - deployed an atomic curriculum lifecycle RPC with RLS role checks, adopted-version immutability, normalized mapping rebuilds, and narrowly constrained controlled-action evidence
