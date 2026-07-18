@@ -6,7 +6,7 @@
 - [x] define one role-aware calendar model for personal, class, assessment, attendance, institutional, and term events
 - [x] implement month, week, and agenda views with navigation, filters, event details, and useful source context
 - [x] preserve authorized event CRUD and add clear personal/class/role-wide targeting
-- [ ] verify data visibility, contracts/build, review, deploy, and confirm production behavior
+- [x] verify data visibility, contracts/build, review, deploy, and confirm production behavior
 
 ## Phase 82: Compact Nexus popup and correctable validated actions [Issue #82]
 

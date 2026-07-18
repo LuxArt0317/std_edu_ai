@@ -184,3 +184,4 @@
 - Confirmed live source coverage: two explicit events, one assessment deadline, one standalone grade deadline, and two academic terms; attendance, module-release, and initiative sources are ready when records exist.
 - Built a single calendar projection across seven authoritative domains with month/week/agenda modes, filters, details, importance, scope, and responsive behavior while preserving existing event CRUD.
 - Documented the schema decisions in `CALENDAR_SCHEMA.md`; all 83 contracts, lint, TypeScript/Vite build, and asset validation pass.
+- PR #85 passed Vercel preview, merged as `ecb9338`, and deployed Ready as `dpl_6X7sArLP8F7d2qWihderHyQRzzMY`. The custom-domain CRM returns HTTP 200 and its recursive assets include the calendar views, filters, and details.
