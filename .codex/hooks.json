@@ -1,0 +1,30 @@
+{
+  "description": "Keep Issue #48 active until every needed.md workflow has production evidence.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/needed_completion_guard.mjs\" session",
+            "statusMessage": "Loading needed.md completion contract",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/needed_completion_guard.mjs\" stop",
+            "statusMessage": "Checking needed.md completion evidence",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -5,6 +5,7 @@
 ### Authoritative contract
 
 - [x] publish `needed.md` as the root role/action catalog for all 14 canonical accounts, every domain entity, controlled transitions, AI boundaries, and definition of done
+- [x] add a repository Codex start/stop completion guard so partial Issue #48 releases cannot be represented as complete
 - [ ] map every catalog action to visible UI, repository operation, trusted authorization/RLS, audit evidence, and automated/live verification
 
 ### Identity and role operations

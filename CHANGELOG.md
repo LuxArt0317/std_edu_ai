@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- added trusted repository Codex SessionStart and Stop hooks that load Issue #48 continuity context and block a completed handoff while the authoritative Phase 48 catalog still has unchecked requirements
+
 - added institutional email invitation and resend controls, owner-managed role capability catalogs, and visible department, program, class, and advisee responsibility assignments
 - added governed final-grade publication and post-publication correction, academic-term closure, and student attendance-correction requests with authorized teacher decisions and immutable before/after audit evidence
 - added RLS-protected responsibility, attendance-correction, and controlled-action records with complete foreign-key indexes and production Edge Function version 5

@@ -2,6 +2,7 @@
 
 # Active implementation: Issue #48
 
+- `.codex/hooks.json` now loads the unfinished Phase 48 contract on session start/resume and runs a Stop guard before handoff. The guard currently reports four remaining completion gates and cannot be satisfied by prose alone; each plan checkbox still requires production evidence.
 - `needed.md` is the authoritative 14-role action, entity lifecycle, controlled-transition, and Nexus boundary contract.
 - The protected Owner now has a visible People & Roles account-provisioning form for every non-owner role, using the existing owner-only Edge Function and a locally generated 28-character temporary password that is never persisted.
 - Role assignment now requires an impact preview, a 12–500 character reason, explicit confirmation, session-refresh notice, and the existing immutable database audit workflow.
