@@ -16,7 +16,7 @@
 
 ### Verification and release
 
-- [ ] add Stitch evidence and UI action contracts, pass tests/lint/build/live role workflows, review and merge the PR, deploy, and verify the custom domain
+- [x] add Stitch evidence and UI action contracts, pass tests/lint/build/live role workflows, review and merge the PR, deploy, and verify the custom domain
 
 ## Phase 48: Complete role-action catalog [Issue #48]
 

@@ -6,6 +6,7 @@
 - validated generated Stitch HTML controls against real teacher, student, account, admissions, campaign, and case workflows; retained required production actions that Stitch omitted or rendered ambiguously
 - made LMS lessons explicitly openable with teacher preview/edit/delete actions, default student lesson selection and next-lesson navigation, plus clearer People & Roles account-management disclosure and 44px accessible action targets
 - replaced the completed Issue #48 stop hook with an Issue #56 completion guard that requires Stitch evidence, control contracts, implementation proof, review, deployment, and production diagnostics
+- released the Stitch workflow phase through reviewed PR #57 as `8c7c130`; Vercel deployment `dpl_8qKDB5r5j2NQYaC7miqeC51X9CFP` is Ready and both custom-domain routes plus released workflow markers pass recursive diagnostics
 
 - completed the full 401-action `needed.md` role catalog across all 14 production roles with visible operations, repository services, RLS/trusted workflows, controlled audit evidence, and live account-boundary verification
 - added mandatory first-login password replacement, complete Auth/profile identity editing, scoped department staff maintenance, accepted-applicant Registrar handoff, sensitive-case access evidence, and approved bulk campaign delivery

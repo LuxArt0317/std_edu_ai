@@ -81,3 +81,4 @@
 - Inspected generated HTML button/link labels and documented included, omitted, and ambiguous controls before translating the accepted hierarchy into `/crm`.
 - Added explicit lesson open/preview/edit/delete flows, first/next student lesson progression, account-management disclosure, accessible focus treatment, and consistent action targets without changing the public landing page.
 - Replaced the completed Issue #48 hook with the Phase 56 evidence guard. All 48 contracts, lint, build, all-account, all-role evidence, faculty/student boundary, and live LMS checks pass.
+- PR #57 passed Vercel Preview and CodeRabbit and merged as `8c7c130`. Production deployment `dpl_8qKDB5r5j2NQYaC7miqeC51X9CFP` is Ready; `/`, `/crm`, all emitted assets, and the released Stitch workflow markers pass diagnostics.

@@ -45,4 +45,8 @@ The generated HTML—not only the screenshots or Stitch summary—was inspected 
 
 ## Production evidence
 
-Pending reviewed deployment and custom-domain verification. This section may be replaced only after Vercel is Ready and `/` plus `/crm` pass recursive asset diagnostics.
+- PR #57 passed Vercel Preview and CodeRabbit checks and merged to `main` as `8c7c1305e56a162960a71a66efce599bdab619b5`.
+- Vercel production deployment `dpl_8qKDB5r5j2NQYaC7miqeC51X9CFP` is Ready on the standard Vite build and Node 24 runtime.
+- `https://www.stu.best/` and `https://www.stu.best/crm` return HTTP 200 and pass recursive entry, lazy CRM bundle, stylesheet, recovery-shell, auth-style, and onboarding-disabled diagnostics.
+- Released CRM asset `/assets/CRMRoot-Wdhucpup.js` returns HTTP 200 and contains `Open lesson`, `Preview as student`, `Next lesson:`, and `Manage account`.
+- The public landing route serves the same intentionally unchanged landing implementation; the Stitch-specific contract test confirms no authenticated workflow markers entered `src/App.tsx`.
