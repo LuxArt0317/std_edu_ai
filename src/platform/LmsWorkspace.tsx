@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type { CrmUser } from "../crm/authService";
 import {
@@ -331,23 +331,11 @@ export function TeacherLmsStudio({
                       {materials.length ? (
                         materials.map((material) => (
                           <div key={material.id}>
-                            <b>
-                              {material.type === "file"
-                                ? "⇩"
-                                : material.type === "video"
-                                  ? "▶"
-                                  : material.type === "link"
-                                    ? "↗"
-                                    : "☰"}
-                            </b>
-                            <span>
-                              <strong>{material.title}</strong>
-                              <small>
-                                {material.minutes} min ·{" "}
-                                {material.required ? "Required" : "Optional"} ·{" "}
-                                {material.status}
-                              </small>
-                            </span>
+                            <button type="button" className="lms-material-open" onClick={() => setModal(`preview-material:${material.id}`)} aria-label={`Open lesson ${material.title}`}>
+                              <b>{material.type === "file" ? "⇩" : material.type === "video" ? "▶" : material.type === "link" ? "↗" : "☰"}</b>
+                              <span><strong>{material.title}</strong><small>{material.minutes} min · {material.required ? "Required" : "Optional"} · {material.status}</small><em>Open lesson →</em></span>
+                            </button>
+                            <div className="lms-material-actions">
                             {material.externalUrl ? (
                               <a
                                 href={material.externalUrl}
@@ -375,7 +363,7 @@ export function TeacherLmsStudio({
                                 setModal(`edit-material:${material.id}`)
                               }
                             >
-                              Edit
+                              Edit lesson
                             </button>
                             <button
                               type="button"
@@ -390,8 +378,9 @@ export function TeacherLmsStudio({
                                 );
                               }}
                             >
-                              Delete
+                              Delete lesson
                             </button>
+                            </div>
                           </div>
                         ))
                       ) : (
@@ -738,6 +727,12 @@ export function TeacherLmsStudio({
           onSave={perform}
         />
       ) : null}
+      {modal?.startsWith("preview-material:") ? (() => {
+        const material=data.materials.find((item)=>item.id===modal.split(":")[1]);
+        if(!material) return null;
+        const pages=data.materialPages.filter((page)=>page.materialId===material.id).sort((a,b)=>a.position-b.position);
+        return <FormModal title={`Preview as student · ${material.title}`} onClose={()=>setModal(null)}><div className="lms-teacher-preview"><span>{material.type} · {material.status}</span><h2>{material.title}</h2><p>{material.description}</p>{pages.length ? pages.map((page)=><article key={page.id}><small>PAGE {page.position}</small><h3>{page.title}</h3><RichTextContent html={page.content} /></article>) : <RichTextContent html={material.content} />}<footer><button type="button" onClick={()=>setModal(`edit-material:${material.id}`)}>Edit lesson</button><button type="button" onClick={()=>setModal(null)}>Close preview</button></footer></div></FormModal>;
+      })() : null}
       {modal === "assessment" || modal?.startsWith("assessment:") ? (
         <AssessmentBuilder
           sectionId={course.sectionId}
@@ -1778,6 +1773,15 @@ export function StudentLmsLearning({
         .sort((a, b) => a.position - b.position)
     : [];
   const displayedPage = materialPages[activePage];
+  const activeMaterialIndex = materials.findIndex((item)=>item.id===activeMaterial?.id);
+  const nextMaterial = activeMaterialIndex >= 0 ? materials[activeMaterialIndex + 1] : materials[0];
+
+  useEffect(() => {
+    const visibleModules=data.modules.filter((item)=>item.sectionId===sectionId);
+    const first=data.materials.filter((item)=>visibleModules.some((module)=>module.id===item.moduleId)).sort((a,b)=>a.position-b.position)[0] ?? null;
+    setActiveMaterial(first);
+    setActivePage(0);
+  }, [sectionId, data.materials, data.modules]);
 
   if (!course)
     return (
@@ -1854,7 +1858,8 @@ export function StudentLmsLearning({
         {!attendance.length ? <Empty title="No attendance records" text="Your class attendance appears here after a teacher records a session." /> : null}
       </section>
       <div className="lms-learning-layout">
-        <aside>
+        <aside aria-label="Course outline">
+          <div className="lms-outline-heading"><span>COURSE OUTLINE</span><h2>Lessons and materials</h2><p>Select any lesson to open it.</p></div>
           {modules.map((module) => (
             <section key={module.id}>
               <header>
@@ -1887,6 +1892,7 @@ export function StudentLmsLearning({
                       className={
                         activeMaterial?.id === material.id ? "active" : ""
                       }
+                      aria-current={activeMaterial?.id === material.id ? "page" : undefined}
                       onClick={() => {
                         setActiveMaterial(material);
                         setActivePage(0);
@@ -2000,6 +2006,7 @@ export function StudentLmsLearning({
               >
                 ✓ Mark complete
               </button>
+              {nextMaterial ? <button type="button" className="lms-next-lesson" onClick={()=>{setActiveMaterial(nextMaterial);setActivePage(0);}}>Next lesson: {nextMaterial.title} →</button> : null}
             </article>
           ) : (
             <Empty

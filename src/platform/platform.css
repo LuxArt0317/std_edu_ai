@@ -1899,6 +1899,10 @@ textarea {
   gap: 12px;
   border-top: 1px solid #edf2f1;
 }
+.people-directory > div.selected {
+  background: #f3faf8;
+  box-shadow: inset 3px 0 0 var(--school-teal);
+}
 .people-directory > div > span {
   width: 34px;
   height: 34px;
@@ -1948,6 +1952,21 @@ textarea {
   font-size: 8px;
   font-weight: 800;
   cursor: pointer;
+}
+.people-manage-account {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #b9d5cf;
+  border-radius: 10px;
+  color: var(--school-teal-dark);
+  background: #eff8f6;
+  font-size: 9px;
+  font-weight: 850;
+  cursor: pointer;
+}
+.people-manage-account:hover {
+  border-color: var(--school-teal);
+  background: #e3f4f0;
 }
 .people-audit {
   margin-bottom: 18px;
@@ -4089,13 +4108,30 @@ textarea {
 }
 .lms-material-list > div {
   display: grid;
-  grid-template-columns: 34px 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 11px;
   padding: 13px 18px;
   border-top: 1px solid #ebf1f0;
 }
-.lms-material-list > div > b {
+.lms-material-open {
+  display: grid !important;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  min-height: 52px;
+  border-radius: 12px !important;
+  padding: 6px !important;
+  color: inherit !important;
+  text-align: left;
+}
+.lms-material-open:hover,
+.lms-material-open:focus-visible {
+  background: #e8f5f2;
+  outline: 3px solid rgba(20, 119, 108, 0.2);
+}
+.lms-material-open > b {
   display: grid;
   place-items: center;
   width: 29px;
@@ -4107,6 +4143,19 @@ textarea {
 .lms-material-list strong,
 .lms-material-list small {
   display: block;
+}
+.lms-material-open em {
+  display: inline-block;
+  margin-top: 6px;
+  color: #14786d;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 850;
+}
+.lms-material-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .lms-material-list small {
   margin-top: 3px;
@@ -4473,6 +4522,14 @@ textarea {
   background: #fff;
   overflow: hidden;
 }
+.lms-outline-heading {
+  padding: 18px;
+  background: #174b45;
+  color: #fff;
+}
+.lms-outline-heading span { color: #9fe2d7; font-size: 10px; font-weight: 900; letter-spacing: .12em; }
+.lms-outline-heading h2 { margin: 5px 0; font-size: 19px; }
+.lms-outline-heading p { margin: 0; color: #d4ebe7; font-size: 13px; }
 .lms-learning-layout > aside section {
   border-bottom: 1px solid #e6efed;
 }
@@ -4565,6 +4622,12 @@ textarea {
   background: #14766b;
   color: #fff;
 }
+.lms-reader > button.lms-next-lesson { background: #fff; }
+.lms-teacher-preview { padding: 24px; }
+.lms-teacher-preview > span { color: #14766b; font-size: 11px; font-weight: 900; text-transform: uppercase; }
+.lms-teacher-preview article { margin-top: 18px; padding: 22px; border: 1px solid #dbe8e5; border-radius: 15px; }
+.lms-teacher-preview footer { display: flex; gap: 10px; margin-top: 22px; }
+.lms-teacher-preview footer button { min-height: 44px; border: 0; border-radius: 11px; padding: 10px 15px; background: #14766b; color: #fff; font-weight: 850; cursor: pointer; }
 .lms-student-assignments {
   margin-top: 15px;
   border: 1px solid #dbe8e5;
@@ -4666,6 +4729,10 @@ textarea {
   .lms-module-list > article > header > div:last-child {
     grid-column: 1/-1;
   }
+  .lms-material-list > div { grid-template-columns: 1fr; }
+  .lms-material-actions { flex-wrap: wrap; padding-left: 6px; }
+  .lms-material-actions a,
+  .lms-material-actions button { min-height: 44px; padding: 10px; }
   .lms-assessment-grid {
     grid-template-columns: 1fr;
   }
@@ -4693,6 +4760,22 @@ textarea {
     align-items: flex-start;
     flex-direction: column;
   }
+}
+
+/* Stitch workflow validation: visible action hierarchy and keyboard-safe targets */
+.school-shell button:focus-visible,
+.school-shell a:focus-visible,
+.school-shell select:focus-visible,
+.school-shell input:focus-visible,
+.school-shell textarea:focus-visible {
+  outline: 3px solid rgba(211, 66, 178, 0.28);
+  outline-offset: 2px;
+}
+.people-provision-actions button,
+.people-account-controls button,
+.crm-inline-actions button,
+.lms-record-actions button {
+  min-height: 44px;
 }
 
 /* Rich learning documents and confirmed AI actions */

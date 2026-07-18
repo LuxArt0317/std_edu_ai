@@ -16,6 +16,8 @@ Primary references:
 - [Authoritative product requirements and CRUD matrix](./PRODUCT_REQUIREMENTS.md)
 - [Authoritative role/action catalog](./needed.md)
 - [`needed.md` implementation and production evidence](./NEEDED_IMPLEMENTATION_EVIDENCE.md)
+- [Stitch UI prompts](./STITCH_UI_PROMPTS.md)
+- [Stitch generated-control validation and implementation evidence](./STITCH_UI_EVIDENCE.md)
 - [UNDERSTANDING.md](./UNDERSTANDING.md)
 - [agent/planning-with-files/task_plan.md](./agent/planning-with-files/task_plan.md)
 - [SETUP.md](./SETUP.md)

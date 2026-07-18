@@ -1,5 +1,23 @@
 # Task Plan
 
+## Phase 56: Stitch-driven workflow UI/UX [Issue #56]
+
+### Stitch design contract
+
+- [x] confirm the official Stitch MCP connection, select the private STU project/design system, and generate workflow-first teacher, student, identity, admissions, campaign, and case screens
+- [x] inspect generated HTML controls and document which required actions Stitch included, omitted, or rendered ambiguously
+- [x] replace the completed Issue #48 hook with a Phase 56 guard that requires Stitch evidence, action coverage, implementation, regression checks, review, deployment, and production verification
+
+### Workflow-aligned implementation
+
+- [x] make modules, lessons, materials, assessments, account rows, applicants, campaigns, and cases visibly openable with contextual primary actions and explicit labels
+- [x] implement the accepted Stitch interaction hierarchy and responsive/accessibility improvements without copying incomplete or unsafe generated controls
+- [x] verify every existing `needed.md` action remains reachable and functional for all 14 roles
+
+### Verification and release
+
+- [ ] add Stitch evidence and UI action contracts, pass tests/lint/build/live role workflows, review and merge the PR, deploy, and verify the custom domain
+
 ## Phase 48: Complete role-action catalog [Issue #48]
 
 ### Authoritative contract

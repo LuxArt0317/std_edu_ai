@@ -1704,6 +1704,7 @@ function PeopleView({
   onToast: (message: string) => void;
 }) {
   const [changing, setChanging] = useState("");
+  const [managingProfileId, setManagingProfileId] = useState("");
   const [editingProfileId, setEditingProfileId] = useState("");
   const [pendingRoleChange, setPendingRoleChange] = useState<{
     profileId: string;
@@ -1832,7 +1833,7 @@ function PeopleView({
           </div>
         </header>
         {data.profiles.map((profile) => (
-          <div key={profile.id}>
+          <div key={profile.id} className={managingProfileId === profile.id ? "selected" : ""}>
             <span>
               {profile.name
                 .split(/\s+/)
@@ -1868,7 +1869,7 @@ function PeopleView({
             </p>
             {profile.isOwner ? (
               <Pill tone="owner">Protected owner</Pill>
-            ) : canManageAccounts ? (
+            ) : canManageAccounts && managingProfileId === profile.id ? (
               <div className="people-account-controls">
                 <Pill
                   tone={profile.accountStatus === "active" ? "green" : "amber"}
@@ -1934,13 +1935,14 @@ function PeopleView({
                   Revoke sessions
                 </button>
                 {(() => { const account=directory.find((item) => item.id === profile.id); return account?.invitedAt && !account.confirmedAt ? <button type="button" onClick={() => { setChanging(profile.id); void resendRoleInvitation(account.email).then(() => onToast("Institutional invitation resent.")).catch((error: unknown) => onToast(error instanceof Error ? error.message : "Invitation resend failed.")).finally(() => setChanging("")); }}>Resend invite</button> : null; })()}
+                <button type="button" onClick={() => setManagingProfileId("")}>Close actions</button>
               </div>
-            ) : <Pill tone="teal">{roleNames[profile.role]}</Pill>}
-            {canEditDirectoryProfile(profile) ? <button
+            ) : canManageAccounts ? <button type="button" className="people-manage-account" onClick={() => setManagingProfileId(profile.id)} aria-expanded={false}>Manage account →</button> : <Pill tone="teal">{roleNames[profile.role]}</Pill>}
+            {canEditDirectoryProfile(profile) && (!canManageAccounts || managingProfileId === profile.id) ? <button
               type="button"
               onClick={() => setEditingProfileId(profile.id)}
             >
-              Edit profile
+              Edit identity
             </button> : null}
           </div>
         ))}

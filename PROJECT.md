@@ -1,5 +1,7 @@
 # Project
 
+The current UI/UX workflow uses the private Google Stitch project and STU design system documented in [STITCH_UI_PROMPTS.md](./STITCH_UI_PROMPTS.md). Generated designs are never treated as complete until [STITCH_UI_EVIDENCE.md](./STITCH_UI_EVIDENCE.md) validates their actual controls against the role/action catalog.
+
 This project combines a responsive reconstruction of the current Shu-Te University homepage with STU Nexus, a production-shaped, all-in-one school operating platform built with Vite, React, TypeScript, Supabase, and the OpenAI Responses API.
 
 It demonstrates:

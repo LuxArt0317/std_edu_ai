@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- established the official Google Stitch MCP project and reusable prompt/evidence workflow for authenticated `/crm` UI/UX while explicitly protecting the public `/` landing design
+- validated generated Stitch HTML controls against real teacher, student, account, admissions, campaign, and case workflows; retained required production actions that Stitch omitted or rendered ambiguously
+- made LMS lessons explicitly openable with teacher preview/edit/delete actions, default student lesson selection and next-lesson navigation, plus clearer People & Roles account-management disclosure and 44px accessible action targets
+- replaced the completed Issue #48 stop hook with an Issue #56 completion guard that requires Stitch evidence, control contracts, implementation proof, review, deployment, and production diagnostics
+
 - completed the full 401-action `needed.md` role catalog across all 14 production roles with visible operations, repository services, RLS/trusted workflows, controlled audit evidence, and live account-boundary verification
 - added mandatory first-login password replacement, complete Auth/profile identity editing, scoped department staff maintenance, accepted-applicant Registrar handoff, sensitive-case access evidence, and approved bulk campaign delivery
 - added governed institutional policy/initiative proposal, approval, assignment, escalation, rejection, and completion; Registrar CSV exports; and archive-only CRM retention

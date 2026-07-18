@@ -86,6 +86,13 @@ Production services:
 - portal purpose, workspaces, AI boundaries, and safe seed-data status are documented in `src/crm/PORTAL_GUIDE.md`
 
 No implementation or release work remains for issue #18. The platform is production-ready for users to sign in at `/crm` and begin the role-specific journey.
+
+# Active release: Issue #56 Stitch workflow UI/UX
+
+- Official Stitch MCP is connected to the private `Shu-Te AI Smart Campus` project and its existing design system; 12 teacher, student, identity, admissions, campaign, and case screens were generated.
+- Generated HTML controls were audited against `needed.md`; Stitch remains an ideation layer while real repository services, role authorization, and RLS remain authoritative.
+- The authenticated `/crm` LMS and account-directory workflows now expose clear open/preview/edit/delete/manage actions, student next-lesson progression, accessible focus states, and 44px action targets. The public `/` landing page is unchanged.
+- All 48 contracts, lint, standard production build, 14-account verification, 14-role action/boundary matrix, faculty/student role checks, and reversible LMS workflow pass locally. GitHub review and production deployment remain.
 Issue #30 is complete. Academic Office supports student account/SIS creation, departments, programs, terms, subjects, sections, capacity-aware rosters, and conflict-safe schedule events. PR #31 merged as `f561155`; the production Supabase migration and JWT-protected Edge Function are active; Vercel production is Ready. All 22 contracts, all-role account checks, owner/faculty/student RLS tests, reversible enrollment, room-conflict rejection, lint, build, and released `/` and `/crm` diagnostics pass.
 Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. The integrated LMS schema/private Storage, teacher course studio, and student learning path are live. All 26 contracts, lint, guarded/standard builds, advisor review, released route diagnostics, and the reversible real-faculty/student LMS lifecycle pass.
 
