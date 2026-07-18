@@ -138,9 +138,7 @@ export async function askSchoolAssistant(
           sectionId: announcement.sectionId,
           title: announcement.title,
         })),
-        knowledgeTitles: context.data.topics
-          .slice(0, 12)
-          .map((topic) => topic.title),
+        knowledge: (context.data.knowledge ?? []).filter((item)=>item.status === "verified").slice(0,30).map((item)=>({id:item.id,title:item.title,category:item.category,summary:item.summary,content:item.content.slice(0,4000),sourceType:item.sourceType,sourceEventId:item.sourceEventId,audienceScope:item.audienceScope})),
       },
       agent,
     }),

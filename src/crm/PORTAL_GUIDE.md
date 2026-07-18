@@ -74,7 +74,7 @@ Supports organized outreach to applicants or students, such as admissions remind
 
 ### Knowledge Hub
 
-Stores policies, procedures, frequently asked questions, and internal guidance. It provides a grounded source for staff searches and AI-assisted answers.
+Stores policies, procedures, frequently asked questions, event outcomes, and internal guidance. Authorized staff can contribute rich knowledge from their own expertise or link it to a personal, class, or whole-campus calendar event. Each contribution has an audience and review state: contributors submit drafts for review, while platform owners, administrators, and librarians can verify and publish trusted guidance. Nexus uses only verified knowledge that the signed-in user is permitted to see.
 
 ### Analytics
 

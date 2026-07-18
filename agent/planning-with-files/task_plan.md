@@ -1,5 +1,13 @@
 # Task Plan
 
+## Phase 86: Governed knowledge contributions and reliable Nexus revisions [Issue #86]
+
+- [x] extend knowledge schema with contributor, event/class/campus source, audience, review, and publication context
+- [x] implement a rich contribution workflow that links visible calendar events and routes non-publishers through review
+- [x] give Nexus a consistent profile/avatar and top-aligned reply identity
+- [x] repair assessment answer indexing and reject unchanged proposals after Request changes
+- [ ] verify database policies, action retries, tests/build, review, deploy, and production behavior
+
 ## Phase 84: Unified role-aware school calendar [Issue #84]
 
 - [x] audit event-bearing schema, relationships, RLS, and existing schedule CRUD

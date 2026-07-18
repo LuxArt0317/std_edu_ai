@@ -29,6 +29,7 @@ import type {
   CrmSection,
   LeadStage,
   KnowledgeArticle,
+  KnowledgeSourceEvent,
   Student,
   StudentSignal,
 } from "./types";
@@ -190,10 +191,14 @@ function LoadingWorkspace() {
 
 function KnowledgeEditor({
   article,
+  sourceEvents,
+  canVerify,
   onClose,
   onSaved,
 }: {
   article: KnowledgeArticle | null;
+  sourceEvents: KnowledgeSourceEvent[];
+  canVerify: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -235,6 +240,12 @@ function KnowledgeEditor({
               status: String(form.get("status")) as
                 "verified" | "review_due" | "draft",
               content,
+              sourceType: String(form.get("sourceType")) as NonNullable<KnowledgeArticle["sourceType"]>,
+              sourceEventId: String(form.get("sourceEventId")),
+              audienceScope: String(form.get("audienceScope")) as NonNullable<KnowledgeArticle["audienceScope"]>,
+              audienceRoles: form.getAll("audienceRoles").map(String),
+              sectionId: sourceEvents.find((item) => item.id === String(form.get("sourceEventId")))?.sectionId ?? article?.sectionId ?? "",
+              reviewNotes: String(form.get("reviewNotes")),
             };
             setBusy(true);
             setError("");
@@ -285,12 +296,50 @@ function KnowledgeEditor({
               />
             </label>
             <label>
+              Knowledge origin
+              <select name="sourceType" defaultValue={article?.sourceType || "manual"}>
+                <option value="manual">Direct staff contribution</option>
+                <option value="personal_event">User or personal event</option>
+                <option value="class_event">Class event</option>
+                <option value="campus_event">Whole-campus event</option>
+                <option value="policy">Policy or official decision</option>
+                <option value="service">Student service experience</option>
+                <option value="learning">Teaching or learning practice</option>
+              </select>
+            </label>
+            <label className="wide">
+              Related calendar event
+              <select name="sourceEventId" defaultValue={article?.sourceEventId || ""}>
+                <option value="">No related event</option>
+                {sourceEvents.map((item) => <option key={item.id} value={item.id}>{item.title} · {new Date(item.startsAt).toLocaleDateString()} · {item.type}</option>)}
+              </select>
+            </label>
+            <label>
+              Audience
+              <select name="audienceScope" defaultValue={article?.audienceScope || "institution"}>
+                <option value="institution">Whole institution</option>
+                <option value="staff">All staff</option>
+                <option value="role">Selected roles</option>
+                <option value="class">Related class</option>
+              </select>
+            </label>
+            <label>
+              Audience roles
+              <select name="audienceRoles" multiple defaultValue={article?.audienceRoles || []}>
+                {["student","faculty","advisor","support","admissions","finance","librarian","registrar","department_head","dean","admin"].map((role)=><option key={role} value={role}>{role.replaceAll("_"," ")}</option>)}
+              </select>
+            </label>
+            <label>
               Status
               <select name="status" defaultValue={article?.status || "draft"}>
                 <option value="draft">Draft</option>
                 <option value="review_due">Review due</option>
-                <option value="verified">Verified</option>
+                {canVerify ? <option value="verified">Verified and published</option> : null}
               </select>
+            </label>
+            <label className="wide">
+              Review context
+              <textarea name="reviewNotes" rows={2} defaultValue={article?.reviewNotes} placeholder="Why this is trustworthy, what changed, and who should review it." />
             </label>
           </div>
           <label className="knowledge-rich-label">
@@ -1508,7 +1557,7 @@ function CRMApp({
                     type="button"
                     onClick={() => setKnowledgeEditor("new")}
                   >
-                    + Add source
+                    + Contribute knowledge
                   </button>
                 </div>
                 {database.knowledge.map((article) => (
@@ -1523,6 +1572,11 @@ function CRMApp({
                       </div>
                       <h4>{article.title}</h4>
                       <p>{article.summary}</p>
+                      <div className="knowledge-source-context">
+                        <span>{(article.sourceType ?? "manual").replaceAll("_", " ")}</span>
+                        <span>{(article.audienceScope ?? "institution").replaceAll("_", " ")}</span>
+                        {article.sourceEventId ? <span>Linked event</span> : null}
+                      </div>
                       <small>
                         Owner: {article.owner} · Updated {article.updatedAt} ·
                         Used {article.usageCount.toLocaleString()} times
@@ -1547,7 +1601,7 @@ function CRMApp({
                         onClick={() => {
                           if (!window.confirm(`Archive “${article.title}”?`))
                             return;
-                          void updateKnowledgeArticle(article.id,{title:article.title,category:article.category,summary:article.summary,content:article.content ?? "",sourceUrl:article.sourceUrl,status:"archived"})
+                          void updateKnowledgeArticle(article.id,{title:article.title,category:article.category,summary:article.summary,content:article.content ?? "",sourceUrl:article.sourceUrl,status:"archived",sourceType:article.sourceType ?? "manual",sourceEventId:article.sourceEventId ?? "",audienceScope:article.audienceScope ?? "institution",audienceRoles:article.audienceRoles ?? [],sectionId:article.sectionId ?? "",reviewNotes:article.reviewNotes ?? ""})
                             .then(() => loadCrmData(true))
                             .then(setDatabase)
                             .then(() => setToast("Knowledge source archived."))
@@ -1757,6 +1811,8 @@ function CRMApp({
       {knowledgeEditor ? (
         <KnowledgeEditor
           article={knowledgeEditor === "new" ? null : knowledgeEditor}
+          sourceEvents={database.knowledgeEvents ?? []}
+          canVerify={Boolean(currentUser?.isOwner || ["owner","admin","librarian"].includes(currentUser?.role || ""))}
           onClose={() => setKnowledgeEditor(null)}
           onSaved={() => {
             setKnowledgeEditor(null);

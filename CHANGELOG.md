@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added governed rich-text knowledge contributions sourced from staff expertise or linked personal, class, and whole-campus events, with institution/role/class/staff audiences and contributor/reviewer provenance.
+- Added RLS-enforced contributor submission and owner/administrator/librarian verification, production indexes, and verified-knowledge grounding for Nexus.
+- Added a consistent Nexus profile avatar and reply identity, corrected quiz answers to the database's one-based choice contract, and forced genuine parameter changes after rejected proposals.
+
 - Added a role-aware unified school calendar with month, week, and agenda views, filters, event details, and existing conflict-safe schedule CRUD.
 - Composed personal, class, assessment, attendance, learning-release, standalone-grade, institutional, enrollment, and academic-term dates without duplicating their authoritative records.
 - Documented and verified the calendar schema, Supabase RLS audience rules, and production data coverage.

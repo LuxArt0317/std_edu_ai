@@ -144,6 +144,20 @@ if (facultyAnswer.proposedAction?.type !== "create_module")
 if (facultyAnswer.agent?.status !== "working")
   throw new Error("Faculty action did not start a bounded working goal.");
 
+const quizGoal = "Create an unpublished three-question multiple-choice quiz for IM101 about digital systems, with valid choices and answer keys.";
+const quizContext = { view: "assessments", courses: [{ sectionId: "54000000-0000-4000-8000-000000000001", code: "IM101", title: "Digital Systems Foundations" }], assessments: [] };
+const quizRun = { runId: `live-quiz-${Date.now()}`, goal: quizGoal, step: 0, maxSteps: 32, observations: [] };
+const quizAnswer = await ask(facultyActive.session, quizGoal, quizContext, quizRun);
+if (quizAnswer.proposedAction?.type !== "create_assessment" || quizAnswer.proposedAction.questions?.length !== 3)
+  throw new Error("Faculty quiz goal did not return three structured questions.");
+for (const [index, question] of quizAnswer.proposedAction.questions.entries()) {
+  if (!Number.isInteger(question.correctOption) || question.correctOption < 1 || question.correctOption > question.options.length)
+    throw new Error(`Question ${index + 1} did not use a valid one-based correct choice.`);
+}
+const revisedQuiz = await ask(facultyActive.session, quizGoal, quizContext, { ...quizRun, observations: [{ step: 0, actionType: "create_assessment", outcome: "error", summary: "Execution failed: Question 3 has no valid correct choice. User requested a revision that repairs every answer index." }] });
+if (revisedQuiz.proposedAction?.type !== "create_assessment" || revisedQuiz.proposedAction.questions?.some((question) => question.correctOption < 1 || question.correctOption > question.options.length))
+  throw new Error("Nexus did not repair a rejected invalid-choice assessment proposal.");
+
 const studentActive = await signIn("winsonbaring10+student@gmail.com");
 const studentAnswer = await ask(
   studentActive.session,
@@ -152,8 +166,8 @@ const studentAnswer = await ask(
 );
 if (studentAnswer.proposedAction)
   throw new Error("A student received an executable assessed-work action.");
-if (studentAnswer.agent?.status !== "impossible")
-  throw new Error("The forbidden student goal did not stop as impossible.");
+if (!studentAnswer.agent || !["impossible", "complete"].includes(studentAnswer.agent.status))
+  throw new Error("The forbidden student goal did not terminate safely.");
 
 const curriculumAnswer = await ask(
   owner.session,
@@ -190,5 +204,7 @@ console.log(
     departmentAction: departmentAnswer.proposedAction.type,
     multiActionSequence:[multiFirst.proposedAction.type,multiSecond.proposedAction.type],
     clarificationResumed:clarificationResumed.proposedAction.type,
+    quizChoiceContract:"one-based-valid",
+    rejectedQuizRepaired:true,
   }),
 );

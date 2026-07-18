@@ -21,4 +21,20 @@ test("a user can comment on a proposal and retry the same goal", () => {
   assert.match(portal, /User rejected this proposal and requested a revision/);
   assert.match(portal, /await advanceAgent\(resumed, threadId\)/);
   assert.match(portal, /Revise proposal/);
+  assert.match(portal, /rejectedProposalRef/);
+  assert.match(portal, /actionFingerprint\(action\) === rejectedProposal\.fingerprint/);
+  assert.match(portal, /did not change the rejected parameters/);
+});
+
+test("assessment choices use the database's one-based answer contract", () => {
+  assert.match(api, /one-based correctOption between 1 and the number of options/);
+  assert.match(api, /correctOption: \{ type: "integer", minimum: 1, maximum: 12 \}/);
+  assert.match(portal, /question\.correctOption < 1 \|\| question\.correctOption > question\.options\.length/);
+  assert.match(portal, /Execution failed: \$\{failure\}/);
+});
+
+test("Nexus has a consistent top-aligned assistant identity", () => {
+  assert.match(portal, /function NexusAvatar/);
+  assert.match(portal, /chat-sender-name">Nexus/);
+  assert.match(portal, /nexus-assistant-avatar/);
 });

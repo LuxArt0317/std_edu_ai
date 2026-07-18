@@ -128,6 +128,7 @@ export async function loadPlatformData(): Promise<PlatformData> {
     notificationsResult,
     communicationsResult,
     initiativesResult,
+    knowledgeResult,
     assessmentAttemptsResult,
   ] = await withTimeout(
     Promise.all([
@@ -201,6 +202,7 @@ export async function loadPlatformData(): Promise<PlatformData> {
       client.from("notifications").select("*").order("created_at", { ascending: false }).limit(100),
       client.from("communication_requests").select("*").order("created_at", { ascending: false }).limit(100),
       client.from("institutional_initiatives").select("*").order("updated_at", { ascending: false }).limit(100),
+      client.from("knowledge_articles").select("id,title,category,summary,content,source_type,source_event_id,audience_scope,status").order("updated_at", { ascending: false }).limit(100),
       client.rpc("read_assessment_attempts"),
     ]),
     20_000,
@@ -256,6 +258,7 @@ export async function loadPlatformData(): Promise<PlatformData> {
   const notificationRows = rows(notificationsResult, "Notifications");
   const communicationRows = rows(communicationsResult, "Communications");
   const initiativeRows = rows(initiativesResult, "Institutional initiatives");
+  const knowledgeRows = rows(knowledgeResult, "Institutional knowledge");
   const assessmentAttemptRows = rows(assessmentAttemptsResult, "Assessment results");
 
   const profilesById = new Map(
@@ -659,6 +662,7 @@ export async function loadPlatformData(): Promise<PlatformData> {
     notifications: notificationRows.map((item) => ({ id: item.id, title: item.title, body: item.body, kind: item.kind, actionUrl: item.action_url, readAt: item.read_at, createdAt: item.created_at })),
     communications: communicationRows.map((item) => ({ id: item.id, senderId: item.sender_id, recipientId: item.recipient_id, subject: item.subject, body: item.body, channel: item.channel, status: item.status, approvalReason: item.approval_reason ?? "", createdAt: item.created_at })),
     initiatives: initiativeRows.map((item) => ({ id:item.id,type:item.initiative_type as "policy"|"initiative"|"teaching_plan"|"content_correction",title:item.title,description:item.description,scope:item.scope,priority:item.priority as "normal"|"high"|"urgent",status:item.status as "proposed"|"approved"|"in_progress"|"completed"|"rejected"|"escalated",ownerId:item.owner_id,createdBy:item.created_by,dueAt:item.due_at,createdAt:item.created_at })),
+    knowledge: knowledgeRows.map((item) => ({ id:item.id,title:item.title,category:item.category,summary:item.summary,content:item.content,sourceType:item.source_type,sourceEventId:item.source_event_id,audienceScope:item.audience_scope,status:item.status })),
   };
 }
 

@@ -108,6 +108,9 @@ export interface CrmTask {
   caseId?: string;
 }
 
+export type KnowledgeSourceType = "manual" | "personal_event" | "class_event" | "campus_event" | "policy" | "service" | "learning";
+export type KnowledgeAudienceScope = "institution" | "role" | "class" | "staff";
+
 export interface KnowledgeArticle {
   id: string;
   title: string;
@@ -119,6 +122,21 @@ export interface KnowledgeArticle {
   summary: string;
   content?: string;
   usageCount: number;
+  sourceType?: KnowledgeSourceType;
+  sourceEventId?: string;
+  audienceScope?: KnowledgeAudienceScope;
+  audienceRoles?: string[];
+  sectionId?: string;
+  reviewNotes?: string;
+}
+
+export interface KnowledgeSourceEvent {
+  id: string;
+  title: string;
+  type: string;
+  startsAt: string;
+  sectionId: string;
+  audienceRoles: string[];
 }
 
 export interface CrmDatabase {
@@ -128,6 +146,7 @@ export interface CrmDatabase {
   campaigns: Campaign[];
   tasks: CrmTask[];
   knowledge: KnowledgeArticle[];
+  knowledgeEvents?: KnowledgeSourceEvent[];
 }
 
 export interface AiCopilotResult {

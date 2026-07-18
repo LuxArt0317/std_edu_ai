@@ -10,6 +10,7 @@ import {
 } from "./platformAi";
 import {
   addAgentObservation,
+  actionFingerprint,
   runSafetyStop,
   startSchoolAgentRun,
   type SchoolAgentRun,
@@ -2602,7 +2603,7 @@ function validateSchoolAiAction(action: SchoolAiAction, data: PlatformData): str
       if (!action.questions?.length) return "A quiz or exam requires at least one complete question.";
       const invalidQuestion = action.questions.find((question) =>
         !question.prompt.trim() || question.points <= 0 || question.options.length < 2 ||
-        question.correctOption < 0 || question.correctOption >= question.options.length ||
+        !Number.isInteger(question.correctOption) || question.correctOption < 1 || question.correctOption > question.options.length ||
         question.options.some((option) => !option.trim()),
       );
       if (invalidQuestion) return "Every quiz or exam question needs a prompt, positive points, choices, and a valid answer.";
@@ -2618,6 +2619,10 @@ function validateSchoolAiAction(action: SchoolAiAction, data: PlatformData): str
       (!action.courseId || !data.catalogCourses.some((subject) => subject.id === action.courseId)))
     return "The selected subject does not exist.";
   return "";
+}
+
+function NexusAvatar({ label = true }: { label?: boolean }) {
+  return <span className="nexus-assistant-avatar" aria-label={label ? "Nexus AI assistant" : undefined}><b>N</b><i aria-hidden="true" /></span>;
 }
 
 function SchoolAssistant({
@@ -2674,6 +2679,7 @@ function SchoolAssistant({
     label: string;
   }>({ state: "idle", label: "Ready for your next goal." });
   const activeRunId = useRef("");
+  const rejectedProposalRef = useRef<{ fingerprint: string; feedback: string } | null>(null);
   const messageViewportRef = useRef<HTMLDivElement | null>(null);
   const nearLatestMessageRef = useRef(true);
   const restoredThreadRef = useRef("");
@@ -2795,6 +2801,20 @@ function SchoolAssistant({
         return;
       }
       const action = answer.proposedAction;
+      const rejectedProposal = rejectedProposalRef.current;
+      if (rejectedProposal && actionFingerprint(action) === rejectedProposal.fingerprint) {
+        const unchanged = addAgentObservation(decided, {
+          step: run.step,
+          actionType: action.type,
+          outcome: "blocked",
+          summary: `The revised proposal did not change the rejected parameters. Required correction: ${rejectedProposal.feedback}`,
+        }, action);
+        await recordSchoolAgentAction(action.type, "blocked");
+        setAgentRun(unchanged);
+        setActivity({ state: "thinking", label: "Nexus returned the same invalid parameters and is correcting them again…" });
+        await advanceAgent(unchanged, activeThread, contextData);
+        return;
+      }
       const proposalProblem = validateSchoolAiAction(action, contextData);
       if (proposalProblem) {
         const corrected = addAgentObservation(decided, {
@@ -2845,6 +2865,7 @@ function SchoolAssistant({
         );
       }
       setAgentRun({ ...decided, status: "awaiting_confirmation" });
+      rejectedProposalRef.current = null;
       setPendingAction(action);
       setActivity({ state: "waiting", label: `Waiting for confirmation: ${action.type.replaceAll("_", " ")}.` });
     } catch (reason) {
@@ -2897,6 +2918,7 @@ function SchoolAssistant({
         return;
       }
       const run = startSchoolAgentRun(prompt);
+      rejectedProposalRef.current = null;
       setGoalExpanded(false);
       activeRunId.current = run.id;
       setAgentRun(run);
@@ -2925,6 +2947,7 @@ function SchoolAssistant({
     const feedback = actionFeedback.trim();
     if (!pendingAction || !agentRun || !threadId || !feedback || loading) return;
     const rejectedType = pendingAction.type;
+    rejectedProposalRef.current = { fingerprint: actionFingerprint(pendingAction), feedback: feedback.slice(0, 500) };
     const userMessage: ChatMessage = {
       id: `proposal-feedback-${Date.now()}`,
       threadId,
@@ -3414,8 +3437,9 @@ function SchoolAssistant({
           ? reason.message
           : "The proposed change could not be saved.",
       );
-      if (agentRun) setAgentRun({ ...agentRun, status: "impossible", terminalReason: reason instanceof Error ? reason.message : "The confirmed action failed." });
-      setActivity({ state: "blocked", label: reason instanceof Error ? reason.message : "The confirmed action failed." });
+      const failure = reason instanceof Error ? reason.message : "The confirmed action failed.";
+      if (agentRun) setAgentRun(addAgentObservation({ ...agentRun, status: "working" }, { step: agentRun.step, actionType: action.type, outcome: "error", summary: `Execution failed: ${failure}. Revise the proposal parameters before retrying.` }, action));
+      setActivity({ state: "waiting", label: "The action failed. Confirm again only after correcting the proposal." });
     } finally {
       setLoading(false);
     }
@@ -3426,7 +3450,7 @@ function SchoolAssistant({
     <div className="school-ai-layer">
       <aside>
         <header>
-          <span>✦</span>
+          <NexusAvatar />
           <div>
             <small>STU NEXUS</small>
             <h2>School AI Assistant</h2>
@@ -3452,6 +3476,7 @@ function SchoolAssistant({
             type="button"
             onClick={() => {
               activeRunId.current = "";
+              rejectedProposalRef.current = null;
               setAgentRun(null);
               setPendingAction(null);
               setThreadId("");
@@ -3473,8 +3498,9 @@ function SchoolAssistant({
           {messages.length ? (
             messages.map((item) => (
               <article key={item.id} className={item.role}>
-                <span>{item.role === "assistant" ? "✦" : "YOU"}</span>
+                {item.role === "assistant" ? <NexusAvatar /> : <span className="chat-user-avatar">YOU</span>}
                 <div>
+                  {item.role === "assistant" ? <small className="chat-sender-name">Nexus</small> : null}
                   <p>{item.content}</p>
                   {item.citations.length ? (
                     <footer>
@@ -3488,7 +3514,7 @@ function SchoolAssistant({
             ))
           ) : (
             <div className="chat-welcome">
-              <span>✦</span>
+              <NexusAvatar />
               <h3>What can I help you accomplish?</h3>
               <p>
                 Ask about your courses, schedule, assessments, teaching work,
@@ -3513,7 +3539,7 @@ function SchoolAssistant({
           )}
           {agentRun ? (
             <article className="assistant agent-progress-reply" aria-live="polite">
-              <span>✦</span>
+              <NexusAvatar />
               <details className={`chat-agent-run ${agentRun.status}`} open={goalExpanded} onToggle={(event)=>setGoalExpanded(event.currentTarget.open)}>
                 <summary>
                   <b>{activity.state === "thinking" ? "Thinking" : activity.state === "executing" ? "Working" : activity.state === "waiting" ? "Waiting for you" : activity.state === "complete" ? "Goal complete" : activity.state === "blocked" ? "Stopped" : "Goal progress"}</b>
@@ -3526,10 +3552,10 @@ function SchoolAssistant({
               </details>
             </article>
           ) : null}
-          {agentRun?.status === "awaiting_input" && agentRun.clarification ? <article className="assistant agent-question-reply"><span>✦</span><section className="chat-agent-question" role="group" aria-label="Nexus clarification required"><b>One question</b><h3>{agentRun.clarification.question}</h3><div>{agentRun.clarification.options.map((option)=><button type="button" key={option} onClick={()=>void answerClarification(option)} disabled={loading}>{option}</button>)}</div><small>Or type your answer below.</small></section></article>:null}
+          {agentRun?.status === "awaiting_input" && agentRun.clarification ? <article className="assistant agent-question-reply"><NexusAvatar/><section className="chat-agent-question" role="group" aria-label="Nexus clarification required"><b>One question</b><h3>{agentRun.clarification.question}</h3><div>{agentRun.clarification.options.map((option)=><button type="button" key={option} onClick={()=>void answerClarification(option)} disabled={loading}>{option}</button>)}</div><small>Or type your answer below.</small></section></article>:null}
           {loading ? (
             <article className="assistant thinking">
-              <span>✦</span>
+              <NexusAvatar />
               <div>
                 <i />
                 <i />

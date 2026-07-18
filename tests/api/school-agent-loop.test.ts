@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   addAgentObservation,
+  actionFingerprint,
   runSafetyStop,
   startSchoolAgentRun,
 } from "../../src/platform/schoolAgentLoop.ts";
@@ -32,4 +33,10 @@ test("agent runs stop at the step and runtime bounds", () => {
   const capped = { ...startSchoolAgentRun("Large goal", 1_000), step: 32 };
   assert.match(runSafetyStop(capped, 2_000), /after 32 steps/i);
   assert.match(runSafetyStop(startSchoolAgentRun("Slow goal", 1_000), 1_801_001), /thirty-minute/i);
+});
+
+test("proposal fingerprints include semantic action parameters but not review copy", () => {
+  const first = { ...action, confirmation: "Review this", questions: [{ prompt: "Q", points: 1, options: ["A", "B"], correctOption: 1, explanation: "A" }] } as SchoolAiAction;
+  assert.equal(actionFingerprint(first), actionFingerprint({ ...first, confirmation: "Different wording" }));
+  assert.notEqual(actionFingerprint(first), actionFingerprint({ ...first, questions: [{ ...first.questions![0], correctOption: 2 }] }));
 });

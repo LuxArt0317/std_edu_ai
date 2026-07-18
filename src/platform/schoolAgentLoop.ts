@@ -45,15 +45,8 @@ export function startSchoolAgentRun(goal: string, now = Date.now()): SchoolAgent
 }
 
 export function actionFingerprint(action: SchoolAiAction) {
-  return JSON.stringify([
-    action.type,
-    action.targetId,
-    action.sectionId,
-    action.moduleId,
-    action.materialId,
-    action.destination,
-    action.title,
-  ]);
+  const { confirmation: _presentationOnly, ...parameters } = action;
+  return JSON.stringify(parameters);
 }
 
 export function runSafetyStop(run: SchoolAgentRun, now = Date.now()) {

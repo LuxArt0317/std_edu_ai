@@ -211,6 +211,10 @@
 - [x] Create, open, edit, publish/unpublish, and archive knowledge articles
 - [x] Author rich text and images where rendered content benefits from them
 - [x] Search/filter knowledge and retain revision ownership metadata
+- [x] Contribute institutional knowledge from direct staff expertise or a linked personal, class, or whole-campus calendar event
+- [x] Scope contributions to the institution, selected roles, a class section, or staff and preserve contributor/source/review metadata
+- [x] Route non-publisher contributions to review while owners, administrators, and librarians can verify and publish
+- [x] Ground Nexus answers only in verified, RLS-visible institutional knowledge
 
 # G. Communication, governance, notifications, and AI
 

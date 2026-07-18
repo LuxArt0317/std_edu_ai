@@ -68,3 +68,10 @@
 - the repository previously relied on Vercel framework inference and did not pin a supported runtime, deterministic install command, output directory, or SPA fallback
 - GitHub issue #1 tracks the Vercel recovery
 - Vercel's Node 22/npm 11 install fails when the npm lockfile omits optional transitive `@emnapi/core` and `@emnapi/runtime` entries, even though older local npm versions accept the same lockfile
+# Issue #86 findings
+
+- `create_lms_assessment` uses one-based `correctOption` values. The API and client previously documented and validated zero-based choices, which caused valid-looking proposals to fail at execution.
+- Proposal identity must include the complete semantic payload, including assessment questions and choices. Confirmation copy is presentation-only and must not affect retry identity.
+- Institutional knowledge needs explicit provenance, audience, and review state. Personal, class, and campus events are useful sources, but event linkage does not itself make a contribution verified.
+- Contributors can submit reviewable knowledge; platform owners, administrators, and librarians are the publication authorities. Nexus is grounded only in verified articles visible through RLS.
+- Supabase advisors found no new knowledge security finding. Two new foreign keys required covering indexes, which were added in a follow-up production migration.

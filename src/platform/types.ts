@@ -458,6 +458,17 @@ export type PlatformData = {
   notifications: PortalNotification[];
   communications: CommunicationRequest[];
   initiatives: InstitutionalInitiative[];
+  knowledge?: Array<{
+    id: string;
+    title: string;
+    category: string;
+    summary: string;
+    content: string;
+    sourceType: string;
+    sourceEventId: string | null;
+    audienceScope: string;
+    status: string;
+  }>;
 };
 
 export type SchoolChatAnswer = {

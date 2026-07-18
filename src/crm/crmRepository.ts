@@ -8,6 +8,8 @@ import type {
   CrmDatabase,
   CrmTask,
   KnowledgeArticle,
+  KnowledgeAudienceScope,
+  KnowledgeSourceType,
   LeadStage,
   RiskLevel,
   Student,
@@ -25,6 +27,7 @@ type CampaignRow = Tables<"campaigns">;
 type RecipientRow = Tables<"campaign_recipients">;
 type TaskRow = Tables<"crm_tasks">;
 type KnowledgeRow = Tables<"knowledge_articles">;
+type ScheduleRow = Tables<"schedule_events">;
 type ProfileRow = Tables<"profiles">;
 
 function cloneInitialData(): CrmDatabase {
@@ -152,6 +155,7 @@ async function loadRemoteData(): Promise<CrmDatabase> {
     recipientsResult,
     tasksResult,
     knowledgeResult,
+    scheduleResult,
     profilesResult,
   ] = await Promise.all([
     supabase
@@ -184,6 +188,7 @@ async function loadRemoteData(): Promise<CrmDatabase> {
       .from("knowledge_articles")
       .select("*")
       .order("updated_at", { ascending: false }),
+    supabase.from("schedule_events").select("*").order("starts_at", { ascending: false }).limit(250),
     supabase.from("profiles").select("*"),
   ]);
 
@@ -202,6 +207,7 @@ async function loadRemoteData(): Promise<CrmDatabase> {
   );
   const taskRows = requireRows<TaskRow>(tasksResult, "Tasks");
   const knowledgeRows = requireRows<KnowledgeRow>(knowledgeResult, "Knowledge");
+  const scheduleRows = requireRows<ScheduleRow>(scheduleResult, "Knowledge event sources");
   const profileRows = requireRows<ProfileRow>(profilesResult, "Profiles");
 
   const profiles = new Map(
@@ -377,9 +383,24 @@ async function loadRemoteData(): Promise<CrmDatabase> {
     summary: row.summary,
     content: row.content,
     usageCount: row.usage_count,
+    sourceType: row.source_type as KnowledgeArticle["sourceType"],
+    sourceEventId: row.source_event_id ?? "",
+    audienceScope: row.audience_scope as KnowledgeArticle["audienceScope"],
+    audienceRoles: row.audience_roles,
+    sectionId: row.section_id ?? "",
+    reviewNotes: row.review_notes,
   }));
 
-  return { students, cases, leads, campaigns, tasks, knowledge };
+  const knowledgeEvents = scheduleRows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    type: row.event_type,
+    startsAt: row.starts_at,
+    sectionId: row.section_id ?? "",
+    audienceRoles: row.audience_roles,
+  }));
+
+  return { students, cases, leads, campaigns, tasks, knowledge, knowledgeEvents };
 }
 
 export const crmDataSource: {
@@ -501,6 +522,12 @@ export async function createKnowledgeArticle(input: {
   content: string;
   sourceUrl: string;
   status: "verified" | "review_due" | "draft";
+  sourceType: KnowledgeSourceType;
+  sourceEventId: string;
+  audienceScope: KnowledgeAudienceScope;
+  audienceRoles: string[];
+  sectionId: string;
+  reviewNotes: string;
 }) {
   if (!supabase)
     throw new Error("Supabase is required to publish institutional knowledge.");
@@ -514,6 +541,14 @@ export async function createKnowledgeArticle(input: {
     source_url: input.sourceUrl.trim() || null,
     status: input.status,
     owner_id: user.user.id,
+    source_profile_id: user.user.id,
+    source_type: input.sourceType,
+    source_event_id: input.sourceEventId || null,
+    audience_scope: input.audienceScope,
+    audience_roles: input.audienceRoles,
+    section_id: input.sectionId || null,
+    review_notes: input.reviewNotes.trim().slice(0, 4000),
+    reviewed_by: input.status === "verified" ? user.user.id : null,
     verified_at: input.status === "verified" ? new Date().toISOString() : null,
   });
   if (error) throw new Error(error.message);
@@ -528,6 +563,12 @@ export async function updateKnowledgeArticle(
     content: string;
     sourceUrl: string;
     status: "verified" | "review_due" | "draft" | "archived";
+    sourceType: KnowledgeSourceType;
+    sourceEventId: string;
+    audienceScope: KnowledgeAudienceScope;
+    audienceRoles: string[];
+    sectionId: string;
+    reviewNotes: string;
   },
 ) {
   if (!supabase)
@@ -540,6 +581,13 @@ export async function updateKnowledgeArticle(
       summary: input.summary.trim().slice(0, 2000),
       content: input.content.trim().slice(0, 150000),
       source_url: input.sourceUrl.trim() || null,
+      source_type: input.sourceType,
+      source_event_id: input.sourceEventId || null,
+      audience_scope: input.audienceScope,
+      audience_roles: input.audienceRoles,
+      section_id: input.sectionId || null,
+      review_notes: input.reviewNotes.trim().slice(0, 4000),
+      reviewed_by: input.status === "verified" ? (await supabase.auth.getUser()).data.user?.id ?? null : null,
       status: input.status,
       verified_at:
         input.status === "verified" ? new Date().toISOString() : null,

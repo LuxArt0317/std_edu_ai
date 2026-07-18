@@ -2112,15 +2112,23 @@ export type Database = {
       }
       knowledge_articles: {
         Row: {
+          audience_roles: string[]
+          audience_scope: string
           category: string
           content: string
           created_at: string
           embedding: string | null
           id: string
           owner_id: string | null
+          review_notes: string
+          reviewed_by: string | null
           review_due_at: string | null
+          section_id: string | null
           search_document: unknown
           source_url: string | null
+          source_event_id: string | null
+          source_profile_id: string | null
+          source_type: string
           status: string
           summary: string
           title: string
@@ -2129,15 +2137,23 @@ export type Database = {
           verified_at: string | null
         }
         Insert: {
+          audience_roles?: string[]
+          audience_scope?: string
           category: string
           content: string
           created_at?: string
           embedding?: string | null
           id?: string
           owner_id?: string | null
+          review_notes?: string
+          reviewed_by?: string | null
           review_due_at?: string | null
+          section_id?: string | null
           search_document?: unknown
           source_url?: string | null
+          source_event_id?: string | null
+          source_profile_id?: string | null
+          source_type?: string
           status?: string
           summary: string
           title: string
@@ -2146,15 +2162,23 @@ export type Database = {
           verified_at?: string | null
         }
         Update: {
+          audience_roles?: string[]
+          audience_scope?: string
           category?: string
           content?: string
           created_at?: string
           embedding?: string | null
           id?: string
           owner_id?: string | null
+          review_notes?: string
+          reviewed_by?: string | null
           review_due_at?: string | null
+          section_id?: string | null
           search_document?: unknown
           source_url?: string | null
+          source_event_id?: string | null
+          source_profile_id?: string | null
+          source_type?: string
           status?: string
           summary?: string
           title?: string
@@ -2166,6 +2190,34 @@ export type Database = {
           {
             foreignKeyName: "knowledge_articles_owner_id_fkey"
             columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_articles_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_articles_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "course_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_articles_source_event_id_fkey"
+            columns: ["source_event_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_articles_source_profile_id_fkey"
+            columns: ["source_profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

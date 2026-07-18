@@ -238,3 +238,11 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - Production schema inspection confirmed personal (`owner_profile_id`), class (`section_id`), and role (`audience_roles`) targeting with separate SELECT/INSERT/UPDATE/DELETE RLS policies. No duplicate calendar table or new permissive view is needed.
 - PR #85 merged as `ecb9338`; production deployment `dpl_6X7sArLP8F7d2qWihderHyQRzzMY` is Ready. `stu.best/crm` returns HTTP 200 and serves the released month-grid, filter, and event-detail markers.
 - All 70 contracts, lint, TypeScript, Vite production build, and asset verification pass. PR #73 merged as `710d6df`; deployment `dpl_4x6t7wRiLWaqpgwBoWAoSu8hmRZt` is Ready and the custom domain serves the last-thread, background-activity, and safety-limit markers.
+
+# Active work: Issue #86 governed knowledge and reliable Nexus revisions
+
+- Knowledge contributions now preserve contributor, origin, linked event/class, audience, reviewer, and review context. Personal, class, and campus events are supported sources.
+- RLS permits authorized staff contributions, routes non-publishers through review, and reserves verification/publication for platform owners, administrators, and librarians. Nexus receives only verified RLS-visible knowledge.
+- Nexus quiz actions now use the database's one-based answer positions, corrections must change the semantic proposal, execution errors become retry observations, and replies use a consistent profile identity.
+- Both production Supabase migrations are applied. Security advisors report no knowledge-specific finding; covering indexes resolve the new foreign-key performance findings.
+- All 89 contracts, lint, TypeScript, Vite build, asset verification, and live Nexus quiz correction checks pass. GitHub review and production deployment remain.

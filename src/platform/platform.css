@@ -2127,6 +2127,11 @@ textarea {
   color: #8ce7d3;
   background: rgba(87, 208, 183, 0.15);
 }
+.nexus-assistant-avatar { position: relative; flex: 0 0 auto; align-self: flex-start; display: grid !important; place-items: center; overflow: visible !important; border-radius: 11px !important; color: #eafff9 !important; background: linear-gradient(145deg,#238f79,#124d43) !important; box-shadow: 0 5px 14px rgb(11 72 60 / 18%); }
+.nexus-assistant-avatar > b { font: 800 11px/1 ui-sans-serif,system-ui; letter-spacing: -.02em; }
+.nexus-assistant-avatar > i { position: absolute; right: -2px; bottom: -2px; width: 8px; height: 8px; border: 2px solid #fff; border-radius: 50%; background: #5bd4a8; }
+.school-ai-layer > aside > header .nexus-assistant-avatar { align-self: center; }
+.school-ai-layer > aside > header .nexus-assistant-avatar > b { font-size: 13px; }
 .school-ai-layer header div {
   flex: 1;
 }
@@ -2198,6 +2203,9 @@ textarea {
   font-size: 7px;
   font-weight: 900;
 }
+.chat-messages article > .nexus-assistant-avatar { margin-top: 1px; }
+.chat-messages article > div > .chat-sender-name { display: block; margin: 0 0 4px; color: #197565; font-size: 7px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.chat-user-avatar { align-self: flex-start; }
 .chat-messages article.user {
   flex-direction: row-reverse;
 }
@@ -2253,6 +2261,9 @@ textarea {
   background: var(--school-teal);
   font-size: 23px;
 }
+.chat-welcome > .nexus-assistant-avatar { align-self: center; }
+.chat-welcome > .nexus-assistant-avatar > b { font-size: 18px; }
+.chat-welcome > .nexus-assistant-avatar > i { right: 2px; bottom: 2px; width: 10px; height: 10px; }
 .chat-welcome h3 {
   margin: 17px 0 7px;
   font-family: Georgia, serif;
