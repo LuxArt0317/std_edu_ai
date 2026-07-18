@@ -1354,8 +1354,13 @@ function AssessmentBuilder({
             instructions,
             type,
             dueAt: String(f.get("dueAt")),
+            opensAt: String(f.get("opensAt")),
+            durationMinutes: Number(f.get("durationMinutes")) || null,
+            attemptLimit: Number(f.get("attemptLimit")) || 1,
             maxScore: Number(f.get("maxScore")),
             publish: f.get("publish") === "on",
+            releaseExplanations: f.get("releaseExplanations") === "on",
+            releaseScoresImmediately: f.get("releaseScoresImmediately") === "on",
             questions: objective
               ? questions.map((question) => ({
                   prompt: question.prompt,
@@ -1426,6 +1431,11 @@ function AssessmentBuilder({
           Instructions
           <RichTextEditor value={instructions} onChange={setInstructions} onImageUpload={(file) => uploadLearningImage(sectionId, file)} />
         </label>
+        <label>
+          Opens at
+          <input name="opensAt" type="datetime-local" defaultValue={assessment?.opensAt?.slice(0,16) ?? ""} />
+        </label>
+        <div className="split"><label>Duration in minutes<input name="durationMinutes" type="number" min="1" max="1440" defaultValue={assessment?.durationMinutes ?? ""} placeholder="Untimed" /></label><label>Attempt limit<input name="attemptLimit" type="number" min="1" max="20" defaultValue={assessment?.attemptLimit ?? 1} required /></label></div>
         <label>
           Due date
           <input
@@ -1544,7 +1554,7 @@ function AssessmentBuilder({
                     </div>
                   </div>
                   <label>
-                    Explanation shown after submission
+                    Explanation (released only when enabled below)
                     <textarea
                       value={question.explanation}
                       onChange={(event) =>
@@ -1568,6 +1578,7 @@ function AssessmentBuilder({
           />{" "}
           Published
         </label>
+        {objective ? <div className="split"><label className="check"><input name="releaseScoresImmediately" type="checkbox" defaultChecked={assessment?.releaseScoresImmediately ?? true} /> Release score immediately after submission</label><label className="check"><input name="releaseExplanations" type="checkbox" defaultChecked={assessment?.releaseExplanations ?? false} /> Release teacher-written explanations after submission</label></div> : null}
         <button disabled={busy}>
           {assessment ? "Save assessment changes" : `Create ${type}`}
         </button>

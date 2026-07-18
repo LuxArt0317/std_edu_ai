@@ -14,6 +14,8 @@ The deployment always renders a dependency-free branded boot shell before JavaSc
 Primary references:
 
 - [Authoritative product requirements and CRUD matrix](./PRODUCT_REQUIREMENTS.md)
+- [Authoritative role/action catalog](./needed.md)
+- [`needed.md` implementation and production evidence](./NEEDED_IMPLEMENTATION_EVIDENCE.md)
 - [UNDERSTANDING.md](./UNDERSTANDING.md)
 - [agent/planning-with-files/task_plan.md](./agent/planning-with-files/task_plan.md)
 - [SETUP.md](./SETUP.md)

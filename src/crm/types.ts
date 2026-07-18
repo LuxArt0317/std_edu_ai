@@ -11,7 +11,7 @@ export type CrmSection =
 export type RiskLevel = "critical" | "high" | "medium" | "low";
 export type CaseStatus = "open" | "in_progress" | "waiting" | "resolved";
 export type LeadStage =
-  "inquiry" | "engaged" | "application" | "review" | "admitted";
+  "inquiry" | "engaged" | "application" | "review" | "admitted" | "closed";
 
 export interface StudentSignal {
   id?: string;
@@ -113,7 +113,7 @@ export interface KnowledgeArticle {
   title: string;
   category: string;
   owner: string;
-  status: "verified" | "review_due" | "draft";
+  status: "verified" | "review_due" | "draft" | "archived";
   updatedAt: string;
   sourceUrl: string;
   summary: string;

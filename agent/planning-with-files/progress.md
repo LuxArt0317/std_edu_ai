@@ -55,3 +55,19 @@
 - Applied production commands for student withdrawal, student record merge lineage, guarded program archival, reasoned enrollment transitions, and submission return/void.
 - Added visible Registrar and Teacher controls for each transition and removed direct program deactivation from ordinary CRUD.
 - All commands require fresh role authorization and a reason and write immutable before/after controlled-action evidence.
+
+## 2026-07-18 — Catalog-wide completion gate
+
+- Added a dependency-free `needed.md` verifier to the normal test command. It parses every actionable catalog bullet and requires visible UI, repository, database/RLS, and audit anchors for its evidence domain.
+- Added explicit gates for the high-risk actions that cannot be accepted through broad domain evidence.
+- The first complete run mapped the catalog and correctly failed on seven remaining gaps: first-login password change, complete identity editing, accepted-applicant conversion, Registrar handoff, sensitive-case access audit, bulk campaign approval/send, and permanent-deletion denial.
+- Issue #48 remains open and the durable completion guard remains active; none of the four Phase 48 gates has been checked prematurely.
+
+## 2026-07-18 — Catalog-wide production completion
+
+- Implemented the seven explicit gaps found by the catalog gate plus institutional initiative lifecycle, Registrar exports, all-role RLS alignment, scoped department edits, assessment availability/release settings, and non-destructive CRM retention.
+- Deployed ten completion migrations, `provision-role-account` v8, and the additional governed assessment-result migration to production Supabase.
+- Added 44 source contracts and a live 14-role evidence matrix covering 65 required reads, 70 controlled authorization decisions, 14 Auth-directory boundaries, protected keys, governed explanations, and held-score privacy.
+- Verified all 14 production identities, faculty/student RLS and scoring, reversible academic operations, reversible LMS operations, atomic grade scans, lint, TypeScript, Vite production build, and the semantic asset gate.
+- Supabase advisors report only intentional trusted workflow warnings, the dashboard leaked-password-protection warning, and expected unused-index informational notices.
+- Issue #48 remains open until the branch is reviewed, merged, deployed, and the custom domains pass post-release diagnostics.

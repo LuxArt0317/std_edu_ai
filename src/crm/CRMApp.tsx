@@ -5,11 +5,6 @@ import { askCrmCopilot } from "./aiService";
 import {
   createKnowledgeArticle,
   crmDataSource,
-  deleteAdmissionLead,
-  deleteCampaign,
-  deleteCrmCase,
-  deleteKnowledgeArticle,
-  deleteCrmTask,
   getCrmDataSnapshot,
   loadCrmData,
   persistCaseStatus,
@@ -19,6 +14,10 @@ import {
   saveCrmData,
   updateKnowledgeArticle,
   uploadInstitutionalImage,
+  saveCampaign,
+  requestAdmissionHandoff,
+  approveAndSendCampaign,
+  recordSensitiveCaseAccess,
 } from "./crmRepository";
 import { RichTextEditor } from "../platform/RichTextEditor";
 import { CrmRecordEditor } from "./CrmRecordEditor";
@@ -778,15 +777,15 @@ function CRMApp({
                           type="button"
                           onClick={(event) => {
                             event.preventDefault();
-                            if (!window.confirm(`Delete task “${task.title}”?`))
+                            if (!window.confirm(`Complete and retain task “${task.title}”?`))
                               return;
-                            void deleteCrmTask(task.id)
+                            void persistTaskCompletion(task.id,true)
                               .then(() => loadCrmData(true))
                               .then(setDatabase)
-                              .then(() => setToast("Task deleted."));
+                              .then(() => setToast("Task completed and retained."));
                           }}
                         >
-                          Delete
+                          Complete
                         </button>
                       </label>
                     ))}
@@ -1171,6 +1170,7 @@ function CRMApp({
                               >
                                 Edit
                               </button>
+                              {lead.stage === "admitted" ? <button type="button" onClick={() => { const notes=window.prompt("Registrar handoff notes (at least 12 characters)","Accepted applicant verified for student-account conversion."); if (!notes) return; void requestAdmissionHandoff(lead.id,notes).then(() => setToast("Registrar handoff created. Convert to student request is now pending.")).catch((error: unknown) => setToast(error instanceof Error ? error.message : "Handoff failed.")); }}>Convert to student request · Registrar handoff</button> : null}
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1180,13 +1180,13 @@ function CRMApp({
                                     )
                                   )
                                     return;
-                                  void deleteAdmissionLead(lead.id)
+                                  void persistLeadStage(lead.id,"closed",0)
                                     .then(() => loadCrmData(true))
                                     .then(setDatabase)
-                                    .then(() => setToast("Prospect deleted."));
+                                    .then(() => setToast("Prospect archived as closed."));
                                 }}
                               >
-                                Delete
+                                Archive
                               </button>
                             </div>
                           </article>
@@ -1286,18 +1286,19 @@ function CRMApp({
                         >
                           Edit
                         </button>
+                        <button type="button" onClick={() => { const purpose=window.prompt("Purpose for opening sensitive case details (at least 12 characters)"); if (!purpose) return; void recordSensitiveCaseAccess(item.id,purpose).then(() => {setSelectedStudentId(item.studentId);setToast("Sensitive-case access recorded.");}).catch((error: unknown) => setToast(error instanceof Error ? error.message : "Sensitive access denied.")); }}>Open sensitive details</button>
                         <button
                           type="button"
                           onClick={() => {
                             if (!window.confirm(`Delete case “${item.title}”?`))
                               return;
-                            void deleteCrmCase(item.id)
+                            void persistCaseStatus(item.id,"resolved")
                               .then(() => loadCrmData(true))
                               .then(setDatabase)
-                              .then(() => setToast("Case deleted."));
+                              .then(() => setToast("Case retained and resolved."));
                           }}
                         >
-                          Delete
+                          Resolve &amp; retain
                         </button>
                       </div>
                     </article>
@@ -1375,6 +1376,7 @@ function CRMApp({
                       >
                         Edit →
                       </button>
+                      <button type="button" onClick={() => { const reason=window.prompt("Bulk communication approval reason (at least 12 characters)"); if (!reason) return; void approveAndSendCampaign(campaign.id,reason).then(() => loadCrmData(true)).then(setDatabase).then(() => setToast("Bulk campaign approved and sent through portal notifications.")).catch((error: unknown) => setToast(error instanceof Error ? error.message : "Campaign approval failed.")); }}>Approve &amp; send campaign</button>
                       <button
                         type="button"
                         onClick={() => {
@@ -1384,13 +1386,13 @@ function CRMApp({
                             )
                           )
                             return;
-                          void deleteCampaign(campaign.id)
+                          void saveCampaign(campaign.id,{name:campaign.name,audience:campaign.audience,channel:campaign.channel,status:"completed",scheduledFor:campaign.scheduledForIso ?? "",message:campaign.message ?? ""})
                             .then(() => loadCrmData(true))
                             .then(setDatabase)
-                            .then(() => setToast("Campaign deleted."));
+                            .then(() => setToast("Campaign archived as completed."));
                         }}
                       >
-                        Delete
+                        Archive
                       </button>
                     </footer>
                   </article>
@@ -1496,22 +1498,22 @@ function CRMApp({
                       <button
                         type="button"
                         onClick={() => {
-                          if (!window.confirm(`Delete “${article.title}”?`))
+                          if (!window.confirm(`Archive “${article.title}”?`))
                             return;
-                          void deleteKnowledgeArticle(article.id)
+                          void updateKnowledgeArticle(article.id,{title:article.title,category:article.category,summary:article.summary,content:article.content ?? "",sourceUrl:article.sourceUrl,status:"archived"})
                             .then(() => loadCrmData(true))
                             .then(setDatabase)
-                            .then(() => setToast("Knowledge source deleted."))
+                            .then(() => setToast("Knowledge source archived."))
                             .catch((reason: unknown) =>
                               setToast(
                                 reason instanceof Error
                                   ? reason.message
-                                  : "Knowledge source could not be deleted.",
+                                  : "Knowledge source could not be archived.",
                               ),
                             );
                         }}
                       >
-                        Delete
+                        Archive
                       </button>
                     </div>
                   </article>

@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import CRMApp from './CRMApp'
 import UnifiedPortal from '../platform/UnifiedPortal'
-import { canUseCrm, clearLocalCrmSession, getCrmSession, getCrmUser, hasSupabaseConfig, signInCrm, signOutCrm, subscribeToCrmAuth } from './authService'
+import { canUseCrm, clearLocalCrmSession, completeRequiredPasswordChange, getCrmSession, getCrmUser, hasSupabaseConfig, signInCrm, signOutCrm, subscribeToCrmAuth } from './authService'
 import type { CrmUser } from './authService'
 import './crm.css'
 
@@ -15,6 +15,8 @@ function CRMRoot() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
 
   function recoverLocalSession() {
     clearLocalCrmSession()
@@ -79,6 +81,8 @@ function CRMRoot() {
   if (!hasSupabaseConfig) return <CRMApp />
 
   if (loading) return <div className="nexus-auth-shell"><div className="nexus-auth-loading"><span>樹</span><strong>Securing STU Nexus</strong><p>Restoring your authenticated workspace…</p><button type="button" onClick={recoverLocalSession}>Start with a clean local session</button></div></div>
+
+  if (session && user?.mustChangePassword) return <div className="nexus-auth-shell"><section className="nexus-auth-card"><div className="nexus-auth-mark">樹</div><p className="nexus-auth-kicker">ACCOUNT SECURITY</p><h1>Replace your temporary password</h1><p>Your school account cannot open the portal until you choose a private password. The temporary password will stop working.</p><form onSubmit={(event) => { event.preventDefault(); if (newPassword !== confirmPassword) { setError('The two passwords do not match.'); return; } setSubmitting(true); setError(''); void completeRequiredPasswordChange(newPassword).then((current) => { setSession(current); setUser((value) => value ? { ...value, mustChangePassword: false } : value); setNewPassword(''); setConfirmPassword(''); }).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Password change failed.')).finally(() => setSubmitting(false)); }}><label><span>New password</span><input type="password" autoComplete="new-password" minLength={16} maxLength={128} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required /></label><label><span>Confirm new password</span><input type="password" autoComplete="new-password" minLength={16} maxLength={128} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required /></label>{error ? <div className="nexus-auth-error" role="alert">{error}</div> : null}<button disabled={submitting}>{submitting ? 'Securing account…' : 'Set password and continue →'}</button></form><button className="nexus-auth-recovery" type="button" onClick={() => void signOut()}>Sign out</button></section></div>
 
   if (session && user && canUseCrm(user)) return <UnifiedPortal currentUser={user} onSignOut={() => void signOut()} />
 

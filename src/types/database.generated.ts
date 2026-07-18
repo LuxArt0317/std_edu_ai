@@ -190,6 +190,74 @@ export type Database = {
           },
         ]
       }
+      admission_handoffs: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          lead_id: string
+          notes: string
+          requested_by: string
+          status: string
+          student_profile_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          lead_id: string
+          notes: string
+          requested_by: string
+          status?: string
+          student_profile_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          lead_id?: string
+          notes?: string
+          requested_by?: string
+          status?: string
+          student_profile_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admission_handoffs_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admission_handoffs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "admission_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admission_handoffs_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admission_handoffs_student_profile_id_fkey"
+            columns: ["student_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admission_leads: {
         Row: {
           created_at: string
@@ -594,6 +662,8 @@ export type Database = {
           instructions: string
           max_score: number
           opens_at: string | null
+          release_explanations: boolean
+          release_scores_immediately: boolean
           section_id: string
           status: string
           title: string
@@ -610,6 +680,8 @@ export type Database = {
           instructions?: string
           max_score?: number
           opens_at?: string | null
+          release_explanations?: boolean
+          release_scores_immediately?: boolean
           section_id: string
           status?: string
           title: string
@@ -626,6 +698,8 @@ export type Database = {
           instructions?: string
           max_score?: number
           opens_at?: string | null
+          release_explanations?: boolean
+          release_scores_immediately?: boolean
           section_id?: string
           status?: string
           title?: string
@@ -933,6 +1007,9 @@ export type Database = {
       }
       campaigns: {
         Row: {
+          approval_reason: string | null
+          approved_at: string | null
+          approved_by: string | null
           audience_definition: Json
           channel: string
           created_at: string
@@ -945,6 +1022,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approval_reason?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           audience_definition?: Json
           channel: string
           created_at?: string
@@ -957,6 +1037,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approval_reason?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           audience_definition?: Json
           channel?: string
           created_at?: string
@@ -969,6 +1052,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "campaigns_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "campaigns_created_by_fkey"
             columns: ["created_by"]
@@ -1725,6 +1815,79 @@ export type Database = {
           },
         ]
       }
+      institutional_initiatives: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string
+          description: string
+          due_at: string | null
+          id: string
+          initiative_type: string
+          owner_id: string | null
+          priority: string
+          scope: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by: string
+          description: string
+          due_at?: string | null
+          id?: string
+          initiative_type: string
+          owner_id?: string | null
+          priority?: string
+          scope?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string
+          due_at?: string | null
+          id?: string
+          initiative_type?: string
+          owner_id?: string | null
+          priority?: string
+          scope?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institutional_initiatives_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "institutional_initiatives_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "institutional_initiatives_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       interactions: {
         Row: {
           actor_id: string | null
@@ -2284,6 +2447,7 @@ export type Database = {
           id: string
           is_platform_owner: boolean
           job_title: string | null
+          phone: string | null
           program_id: string | null
           role: string
           status_changed_at: string | null
@@ -2301,6 +2465,7 @@ export type Database = {
           id: string
           is_platform_owner?: boolean
           job_title?: string | null
+          phone?: string | null
           program_id?: string | null
           role?: string
           status_changed_at?: string | null
@@ -2318,6 +2483,7 @@ export type Database = {
           id?: string
           is_platform_owner?: boolean
           job_title?: string | null
+          phone?: string | null
           program_id?: string | null
           role?: string
           status_changed_at?: string | null
@@ -2553,6 +2719,45 @@ export type Database = {
           },
         ]
       }
+      sensitive_case_access: {
+        Row: {
+          accessed_at: string
+          actor_id: string
+          case_id: string
+          id: string
+          purpose: string
+        }
+        Insert: {
+          accessed_at?: string
+          actor_id: string
+          case_id: string
+          id?: string
+          purpose: string
+        }
+        Update: {
+          accessed_at?: string
+          actor_id?: string
+          case_id?: string
+          id?: string
+          purpose?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sensitive_case_access_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sensitive_case_access_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_signals: {
         Row: {
           created_at: string
@@ -2742,6 +2947,30 @@ export type Database = {
       }
     }
     Functions: {
+      approve_and_send_campaign: {
+        Args: { p_campaign_id: string; p_reason: string }
+        Returns: {
+          approval_reason: string | null
+          approved_at: string | null
+          approved_by: string | null
+          audience_definition: Json
+          channel: string
+          created_at: string
+          created_by: string | null
+          id: string
+          message_template: string
+          name: string
+          scheduled_for: string | null
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "campaigns"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       approve_grade_scan: {
         Args: { p_job_id: string; p_rows: Json }
         Returns: {
@@ -2954,6 +3183,62 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      read_assessment_attempts: {
+        Args: never
+        Returns: {
+          assessment_id: string
+          attempt_number: number
+          graded_at: string
+          id: string
+          max_score: number
+          score: number
+          started_at: string
+          status: string
+          student_profile_id: string
+          submitted_at: string
+        }[]
+      }
+      read_assessment_questions: {
+        Args: never
+        Returns: {
+          assessment_id: string
+          explanation: string
+          id: string
+          points: number
+          position: number
+          prompt: string
+          question_type: string
+        }[]
+      }
+      record_sensitive_case_access: {
+        Args: { p_case_id: string; p_purpose: string }
+        Returns: undefined
+      }
+      remove_profile_section_assignment: {
+        Args: { p_assignment_id: string; p_reason: string }
+        Returns: undefined
+      }
+      request_admission_handoff: {
+        Args: { p_lead_id: string; p_notes: string }
+        Returns: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          lead_id: string
+          notes: string
+          requested_by: string
+          status: string
+          student_profile_id: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "admission_handoffs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       revoke_platform_sessions: {
         Args: {
           p_acted_by: string
@@ -3009,6 +3294,69 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "section_enrollments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      transition_institutional_initiative: {
+        Args: {
+          p_action: string
+          p_initiative_id: string
+          p_owner_id: string
+          p_reason: string
+        }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string
+          description: string
+          due_at: string | null
+          id: string
+          initiative_type: string
+          owner_id: string | null
+          priority: string
+          scope: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "institutional_initiatives"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      update_department_staff_profile: {
+        Args: {
+          p_department: string
+          p_full_name: string
+          p_job_title: string
+          p_profile_id: string
+          p_reason: string
+        }
+        Returns: {
+          account_status: string
+          created_at: string
+          department: string | null
+          department_id: string | null
+          employee_number: string | null
+          full_name: string
+          id: string
+          is_platform_owner: boolean
+          job_title: string | null
+          phone: string | null
+          program_id: string | null
+          role: string
+          status_changed_at: string | null
+          status_changed_by: string | null
+          status_reason: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
           isOneToOne: true
           isSetofReturn: false
         }

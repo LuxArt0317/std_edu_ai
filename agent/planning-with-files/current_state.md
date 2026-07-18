@@ -2,6 +2,12 @@
 
 # Active implementation: Issue #48
 
+- All 401 actionable `needed.md` requirements are now mapped to visible UI, repository operations, trusted Supabase authorization/RLS, controlled evidence, and automated/live verification.
+- The former seven explicit gaps are complete: first-login password replacement, account email/phone synchronization, accepted-applicant Registrar handoff, sensitive-case access evidence, bulk campaign approval/delivery, and explicit permanent-deletion denial.
+- Production also has scoped department staff editing, institutional initiative transitions, Registrar exports, all-role RLS alignment, assessment availability/attempt/release controls, governed explanation reads, and governed held-score history.
+- Verification passes: 44 contracts, lint, TypeScript/Vite build, semantic assets, all 14 production identities, 65 required role reads, 70 controlled authorization decisions, 14 account-boundary checks, faculty/student RLS and quiz scoring, academic operations, LMS, held-score privacy, and cleanup.
+- Issue #48 stays open only for the final reviewed PR, Vercel deployment, and custom-domain diagnostics.
+
 - Controlled student withdrawal/merge, program archival, enrollment completion/status changes, and submission return/void are deployed in production Supabase and wired into Academic Office and Teacher Studio with reasoned immutable evidence.
 - Notifications and approved communications are now implemented in production Supabase and the portal: recipient-only notices, read state, student-to-authorized-staff requests, support/admin approval or rejection, delivery, and immutable action evidence.
 - `.codex/hooks.json` now loads the unfinished Phase 48 contract on session start/resume and runs a Stop guard before handoff. The guard currently reports four remaining completion gates and cannot be satisfied by prose alone; each plan checkbox still requires production evidence.

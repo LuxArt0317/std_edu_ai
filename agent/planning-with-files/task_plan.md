@@ -6,7 +6,7 @@
 
 - [x] publish `needed.md` as the root role/action catalog for all 14 canonical accounts, every domain entity, controlled transitions, AI boundaries, and definition of done
 - [x] add a repository Codex start/stop completion guard so partial Issue #48 releases cannot be represented as complete
-- [ ] map every catalog action to visible UI, repository operation, trusted authorization/RLS, audit evidence, and automated/live verification
+- [x] map every catalog action to visible UI, repository operation, trusted authorization/RLS, audit evidence, and automated/live verification
 
 ### Identity and role operations
 
@@ -17,9 +17,9 @@
 
 ### Role-complete academic, LMS, CRM, and self-service actions
 
-- [ ] close every catalog gap across academic lifecycle, teaching and assessment, submissions/grades, attendance, schedule, CRM, knowledge, notifications, and controlled transitions (final-grade publication/correction, term closure, and attendance correction are complete)
+- [x] close every catalog gap across academic lifecycle, teaching and assessment, submissions/grades, attendance, schedule, CRM, knowledge, notifications, and controlled transitions (final-grade publication/correction, term closure, and attendance correction are complete)
 - [x] add student-owned support request creation and status tracking without exposing staff-only case triage
-- [ ] ensure every role sees its required action and no forbidden action, with student personal submission preserved and student AI completion prohibited
+- [x] ensure every role sees its required action and no forbidden action, with student personal submission preserved and student AI completion prohibited
 
 ### Verification and release
 

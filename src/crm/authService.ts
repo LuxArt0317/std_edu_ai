@@ -12,6 +12,7 @@ export type CrmUser = {
   isOwner: boolean
   jobTitle: string
   department: string
+  mustChangePassword: boolean
 }
 
 const platformRoles = new Set<PlatformRole>([
@@ -61,7 +62,20 @@ export async function getCrmUser(session: Session): Promise<CrmUser> {
     isOwner: trustedRole === 'owner' && identity.data.user.app_metadata.platform_owner === true && data.is_platform_owner,
     jobTitle: data.job_title || '',
     department: data.department || '',
+    mustChangePassword: identity.data.user.app_metadata.must_change_password === true,
   }
+}
+
+export async function completeRequiredPasswordChange(password: string) {
+  if (!supabase) throw new Error('Supabase is not configured.')
+  if (password.length < 16 || password.length > 128) throw new Error('Use a new password between 16 and 128 characters.')
+  const { error } = await supabase.auth.updateUser({ password })
+  if (error) throw new Error(error.message)
+  const completion = await supabase.functions.invoke('provision-role-account', { body: { action: 'complete_password_change' } })
+  if (completion.error || completion.data?.must_change_password !== false) throw new Error(completion.error?.message || 'The required password change was not confirmed.')
+  const refreshed = await supabase.auth.refreshSession()
+  if (refreshed.error || !refreshed.data.session) throw new Error(refreshed.error?.message || 'The refreshed session was not returned.')
+  return refreshed.data.session
 }
 
 export async function signInCrm(email: string, password: string) {
