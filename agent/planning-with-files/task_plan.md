@@ -1,5 +1,13 @@
 # Task Plan
 
+## Phase 72: Nexus conversation continuity and visible execution [Issue #72]
+
+- [x] restore the last-used valid thread and its newest message when Nexus opens
+- [x] follow newly rendered messages only when the reader is already near the bottom
+- [x] expose thinking, executing, refreshing, confirmation, and terminal activity in the goal card
+- [x] preserve active work when the drawer closes and clarify the eight-step safety ceiling
+- [ ] add regression coverage, pass review, deploy, and verify production
+
 ## Phase 70: Governed Nexus platform tools [Issue #70]
 
 - [x] inventory manual repository actions against the Nexus executable catalog and document governed exclusions

@@ -134,3 +134,9 @@
 - Preserved trusted-role server authorization, client confirmation checks, Supabase RLS/RPC enforcement, audit logging, safety limits, and the student assessed-work prohibition.
 - Added tool-catalog documentation and regression coverage. All 66 contracts, lint, TypeScript, Vite build, and asset verification pass.
 - Live OpenAI verification returned `create_department` for the owner, `create_module` for faculty, denied student assessed-work automation, and produced a 48-subject/eight-block curriculum. PR #71 passed CodeRabbit/Vercel and merged as `bedc88b`; deployment `dpl_FH7gZMMjm6UQ1W34KEkPBGG3hP8Y` is Ready and custom-domain markers pass.
+## 2026-07-18 — Nexus conversation continuity
+
+- Opened Issue #72 for last-thread restoration, newest-message positioning, visible action execution, and background drawer behavior.
+- Added per-user last-thread continuity with recent-thread fallback, initial bottom restoration, and near-bottom-only message following.
+- Added visible action names/results, live runtime phases, an accurate maximum-eight safety label, and closed-drawer status on the Nexus floating control.
+- Confirmed that closing the drawer hides but does not unmount the assistant, so in-flight requests continue. All 70 contracts, lint, TypeScript, Vite production build, and asset verification pass.

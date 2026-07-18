@@ -191,3 +191,9 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - Department creation returns its real ID; the assistant reloads platform data after each successful mutation so dependent goals such as department then curriculum can continue safely.
 - The API and client independently filter tools by the trusted signed-in role. Credentials, owner replacement, direct role changes, final-grade publication, binary uploads, and student assessed work remain deliberate human-only boundaries.
 - All 66 contracts, lint, TypeScript, Vite production build, asset verification, and the live owner/faculty/student model workflow pass. PR #71 merged as `bedc88b`; production deployment `dpl_FH7gZMMjm6UQ1W34KEkPBGG3hP8Y` is Ready and `https://www.stu.best/crm` serves the released tool markers.
+# Active release: Issue #72 Nexus conversation continuity
+
+- Nexus restores the last-used valid thread, falls back to the most recently updated conversation, and opens at the newest rendered message without stealing the scroll position from someone reading older messages.
+- The goal card now shows named action outcomes and explicit thinking, execution, refresh, confirmation, completion, and stopped phases. The eight value is labelled as a safety limit rather than mandatory steps.
+- Closing the drawer leaves the assistant mounted and the run active; the floating Nexus control displays background, confirmation, complete, or attention status.
+- All 70 contracts, lint, TypeScript, Vite production build, and asset verification pass. Review and production deployment remain.

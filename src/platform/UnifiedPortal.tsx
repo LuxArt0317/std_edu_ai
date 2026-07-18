@@ -101,6 +101,7 @@ import { RichTextContent, RichTextEditor } from "./RichTextEditor";
 import "./platform.css";
 
 type PortalView = PortalSection | "crm";
+type NexusActivityState = "idle" | "thinking" | "executing" | "refreshing" | "waiting" | "complete" | "blocked";
 
 const leadershipRoles = new Set<PlatformRole>([
   "owner",
@@ -259,6 +260,7 @@ function UnifiedPortal({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [assistantActivity, setAssistantActivity] = useState<NexusActivityState>("idle");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const refresh = useCallback(
@@ -541,6 +543,7 @@ function UnifiedPortal({
           actorId={currentUser.id}
           onNavigate={setView}
           onDataChanged={() => refresh(true)}
+          onActivityChange={setAssistantActivity}
         />
         {notificationsOpen ? <NotificationCenter data={data} currentUser={currentUser} onClose={() => setNotificationsOpen(false)} onChanged={() => void refresh(true)} onToast={setToast} /> : null}
         {toast ? (
@@ -550,11 +553,11 @@ function UnifiedPortal({
           </div>
         ) : null}
         <button
-          className="school-ai-fab"
+          className={`school-ai-fab ${assistantActivity}`}
           type="button"
           onClick={() => setAssistantOpen(true)}
         >
-          ✦<span>Ask Nexus</span>
+          ✦<span>{["thinking", "executing", "refreshing"].includes(assistantActivity) ? "Nexus working" : assistantActivity === "waiting" ? "Review action" : assistantActivity === "complete" ? "Goal complete" : assistantActivity === "blocked" ? "Needs attention" : "Ask Nexus"}</span>
         </button>
       </div>
       {crmRoles.has(effectiveRole) ? (
@@ -2592,6 +2595,7 @@ function SchoolAssistant({
   actorId,
   onNavigate,
   onDataChanged,
+  onActivityChange,
 }: {
   open: boolean;
   onClose: () => void;
@@ -2601,8 +2605,23 @@ function SchoolAssistant({
   actorId: string;
   onNavigate: (view: PortalView) => void;
   onDataChanged: () => Promise<PlatformData | null>;
+  onActivityChange: (state: NexusActivityState) => void;
 }) {
-  const [threadId, setThreadId] = useState(data.threads[0]?.id ?? "");
+  const lastThreadKey = `stu-nexus:last-thread:${actorId}`;
+  const mostRecentThreadId = useCallback(() =>
+    [...data.threads].sort(
+      (left, right) =>
+        new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
+    )[0]?.id ?? "", [data.threads]);
+  const [threadId, setThreadId] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem(lastThreadKey) ?? "";
+      if (data.threads.some((thread) => thread.id === saved)) return saved;
+    } catch {
+      // Storage continuity is optional; the authoritative thread list remains usable.
+    }
+    return mostRecentThreadId();
+  });
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -2613,7 +2632,50 @@ function SchoolAssistant({
   );
   const [curriculumDepartmentId, setCurriculumDepartmentId] = useState("");
   const [agentRun, setAgentRun] = useState<SchoolAgentRun | null>(null);
+  const [activity, setActivity] = useState<{
+    state: NexusActivityState;
+    label: string;
+  }>({ state: "idle", label: "Ready for your next goal." });
   const activeRunId = useRef("");
+  const messageViewportRef = useRef<HTMLDivElement | null>(null);
+  const nearLatestMessageRef = useRef(true);
+  const restoredThreadRef = useRef("");
+
+  useEffect(() => onActivityChange(activity.state), [activity.state, onActivityChange]);
+
+  useEffect(() => {
+    if (!threadId) return;
+    try {
+      window.localStorage.setItem(lastThreadKey, threadId);
+    } catch {
+      // Conversation history still persists remotely when browser storage is unavailable.
+    }
+  }, [lastThreadKey, threadId]);
+
+  useEffect(() => {
+    if (!threadId || data.threads.some((thread) => thread.id === threadId)) return;
+    setThreadId(mostRecentThreadId());
+  }, [data.threads, mostRecentThreadId, threadId]);
+
+  useEffect(() => {
+    if (!open) return;
+    nearLatestMessageRef.current = true;
+    restoredThreadRef.current = "";
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const viewport = messageViewportRef.current;
+    if (!viewport) return;
+    const isInitialRestore = restoredThreadRef.current !== threadId;
+    if (!isInitialRestore && !nearLatestMessageRef.current) return;
+    const frame = window.requestAnimationFrame(() => {
+      viewport.scrollTop = viewport.scrollHeight;
+      nearLatestMessageRef.current = true;
+      restoredThreadRef.current = threadId;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [open, threadId, messages.length, loading]);
 
   useEffect(() => {
     if (!threadId) {
@@ -2654,11 +2716,13 @@ function SchoolAssistant({
     if (stopReason) {
       const stopped = { ...run, status: "impossible" as const, terminalReason: stopReason };
       setAgentRun(stopped);
+      setActivity({ state: "blocked", label: stopReason });
       addAssistantMessage(activeThread, stopReason, ["Nexus safety limit"]);
       setLoading(false);
       return;
     }
     setLoading(true);
+    setActivity({ state: "thinking", label: "Nexus is reviewing the goal and choosing the next safe action…" });
     try {
       const answer = await askSchoolAssistant(run.goal, messages, { view, data: contextData }, {
         runId: run.id,
@@ -2678,6 +2742,10 @@ function SchoolAssistant({
       if (answer.agent.status !== "working" || !answer.proposedAction) {
         setAgentRun(decided);
         setPendingAction(null);
+        setActivity({
+          state: answer.agent.status === "complete" ? "complete" : "blocked",
+          label: answer.agent.status === "complete" ? "Goal complete." : answer.agent.terminalReason || "Nexus cannot safely continue this goal.",
+        });
         return;
       }
       const action = answer.proposedAction;
@@ -2693,6 +2761,7 @@ function SchoolAssistant({
           return;
         }
         onNavigate(action.destination);
+        setActivity({ state: "executing", label: `Opening ${navMeta[action.destination].label}…` });
         await recordSchoolAgentAction(action.type, "success");
         const progressed = addAgentObservation(decided, {
           step: run.step + 1, actionType: action.type, outcome: "success",
@@ -2717,10 +2786,12 @@ function SchoolAssistant({
       }
       setAgentRun({ ...decided, status: "awaiting_confirmation" });
       setPendingAction(action);
+      setActivity({ state: "waiting", label: `Waiting for confirmation: ${action.type.replaceAll("_", " ")}.` });
     } catch (reason) {
       if (activeRunId.current !== run.id) return;
       const detail = reason instanceof Error ? reason.message : "Nexus AI could not continue the goal.";
       setAgentRun({ ...run, status: "impossible", terminalReason: detail });
+      setActivity({ state: "blocked", label: detail });
       setError(detail);
     } finally {
       if (activeRunId.current === run.id) setLoading(false);
@@ -2756,9 +2827,11 @@ function SchoolAssistant({
       const run = startSchoolAgentRun(prompt);
       activeRunId.current = run.id;
       setAgentRun(run);
+      setActivity({ state: "thinking", label: "Nexus is starting the goal…" });
       await advanceAgent(run, activeThread);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Nexus AI could not start the goal.");
+      setActivity({ state: "blocked", label: reason instanceof Error ? reason.message : "Nexus AI could not start the goal." });
       setLoading(false);
     }
   }
@@ -2918,6 +2991,7 @@ function SchoolAssistant({
       return;
     }
     setLoading(true);
+    setActivity({ state: "executing", label: `Executing confirmed action: ${action.type.replaceAll("_", " ")}…` });
     setError("");
     try {
       let createdId = "";
@@ -3202,6 +3276,7 @@ function SchoolAssistant({
           "Confirmed platform action",
         ]);
       setPendingAction(null);
+      setActivity({ state: "refreshing", label: "Action saved. Refreshing authoritative platform records…" });
       const refreshedData = await onDataChanged();
       if (agentRun && activeRunId.current === agentRun.id) {
         const progressed = addAgentObservation(agentRun, {
@@ -3221,6 +3296,7 @@ function SchoolAssistant({
           : "The proposed change could not be saved.",
       );
       if (agentRun) setAgentRun({ ...agentRun, status: "impossible", terminalReason: reason instanceof Error ? reason.message : "The confirmed action failed." });
+      setActivity({ state: "blocked", label: reason instanceof Error ? reason.message : "The confirmed action failed." });
     } finally {
       setLoading(false);
     }
@@ -3277,12 +3353,19 @@ function SchoolAssistant({
             <div>
               <span>ACTIVE GOAL</span>
               <strong>{agentRun.goal}</strong>
-              <small>Step {agentRun.step} of {agentRun.maxSteps} · {agentRun.status.replaceAll("_", " ")}</small>
+              <small>{agentRun.step} {agentRun.step === 1 ? "action" : "actions"} completed · safety limit {agentRun.maxSteps} · {agentRun.status.replaceAll("_", " ")}</small>
             </div>
             <p>{agentRun.terminalReason || agentRun.summary}</p>
+            <div className={`chat-agent-activity ${activity.state}`} aria-live="polite">
+              <i aria-hidden="true" />
+              <span><b>{activity.state === "thinking" ? "Thinking" : activity.state === "executing" ? "Executing" : activity.state === "refreshing" ? "Refreshing" : activity.state === "waiting" ? "Waiting" : activity.state === "complete" ? "Complete" : activity.state === "blocked" ? "Stopped" : "Ready"}</b><small>{activity.label}</small></span>
+            </div>
             {agentRun.observations.length ? (
               <ol>{agentRun.observations.map((observation) => (
-                <li key={`${observation.step}-${observation.actionType}`}><b>✓</b><span>{observation.summary}</span></li>
+                <li key={`${observation.step}-${observation.actionType}`}>
+                  <b>{observation.outcome === "success" ? "✓" : "!"}</b>
+                  <span><strong>{observation.actionType.replaceAll("_", " ")}</strong><small>{observation.summary}</small></span>
+                </li>
               ))}</ol>
             ) : null}
             {(agentRun.status === "working" || agentRun.status === "awaiting_confirmation") ? (
@@ -3291,11 +3374,21 @@ function SchoolAssistant({
                 setPendingAction(null);
                 setAgentRun({ ...agentRun, status: "cancelled", terminalReason: "Cancelled by you." });
                 setLoading(false);
+                setActivity({ state: "blocked", label: "Goal cancelled by you." });
               }}>Cancel goal</button>
             ) : null}
+            <small className="chat-background-note">You can close Nexus while it thinks or executes. This run remains active in the mounted portal.</small>
           </section>
         ) : null}
-        <div className="chat-messages">
+        <div
+          className="chat-messages"
+          ref={messageViewportRef}
+          onScroll={(event) => {
+            const viewport = event.currentTarget;
+            nearLatestMessageRef.current =
+              viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 96;
+          }}
+        >
           {messages.length ? (
             messages.map((item) => (
               <article key={item.id} className={item.role}>

@@ -26,3 +26,5 @@ When a requested operation is outside the safe tool catalog, Nexus must explain 
 4. The repository executes under the current Supabase session.
 5. Nexus reloads the platform, records the real outcome and any returned ID, and continues only if another step remains.
 6. Repeated actions, elapsed-time limits, step limits, missing authority, and repository errors stop the run as impossible instead of looping or fabricating success.
+
+The goal card distinguishes completed actions from the maximum-eight safety ceiling and displays the current thinking, execution, refresh, confirmation, or terminal phase. Closing the Nexus drawer only hides it: the mounted portal retains the active request, and the floating Nexus control displays its background state. Reopening restores the last-used valid thread at its newest message; new content follows automatically only while the reader remains near the bottom.
