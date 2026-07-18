@@ -104,3 +104,10 @@
 - Added strict model generation, full confirmation preview, repository execution, Curriculum Library visibility, and academic-role enforcement.
 - The representative BSCS prompt generated 50 subjects across all four years and eight blocks. Live Supabase acceptance proved atomic rollback, eight-subject creation, seven prerequisite edges, four blocks, idempotent retry, and cleanup. All 58 contracts, lint, and production build pass.
 - PR #63 passed Vercel checks and merged as `b624417`. Production deployment `dpl_5C9Q6qABcbw6QuEybffVLRh632ns` is Ready; both custom aliases now point to it and the released curriculum action, confirmation preview, and library markers pass custom-domain diagnostics.
+
+## 2026-07-18 — Owner authorization and stable background tabs
+
+- Opened Issue #64 and traced the owner rejection to client authorization using the interface-preview role while the server used the trusted Auth role.
+- Traced command-tab reloads to repeated same-user Supabase `SIGNED_IN`/`TOKEN_REFRESHED` events replacing React session state and activating the blocking identity loader.
+- Separated actor authorization from UI preview and added a session-event policy that ignores same-user refresh noise while preserving real authentication transitions.
+- Verified the protected owner's trusted claim and live 40-subject/eight-block curriculum action. All 60 contracts, lint, and the standard production build pass.

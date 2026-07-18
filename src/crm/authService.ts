@@ -2,6 +2,7 @@ import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { hasSupabaseConfig, supabase } from '../utils/supabase'
 import { withTimeout } from '../utils/async'
 import type { PlatformRole } from '../platform/types'
+export { shouldApplyCrmAuthEvent } from './authSessionPolicy'
 
 export type CrmUser = {
   id: string

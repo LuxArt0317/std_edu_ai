@@ -1,5 +1,12 @@
 # Task Plan
 
+## Phase 64: Owner Nexus authorization and stable background tabs [Issue #64]
+
+- [x] separate trusted actor authorization from the owner's interface-preview role
+- [x] ignore repeated same-identity Auth events without blocking or remounting the authenticated portal
+- [x] cover genuine sign-out/account-change/recovery behavior and owner bulk actions with regression tests
+- [ ] verify owner production identity, tests, build, release, and custom-domain runtime markers
+
 ## Phase 62: Reliable bulk academic goals [Issue #62]
 
 ### Incident diagnosis

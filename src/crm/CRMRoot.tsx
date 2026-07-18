@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import CRMApp from './CRMApp'
 import UnifiedPortal from '../platform/UnifiedPortal'
-import { canUseCrm, clearLocalCrmSession, completeCrmPasswordRecovery, completeRequiredPasswordChange, getCrmSession, getCrmUser, hasSupabaseConfig, requestCrmPasswordReset, signInCrm, signOutCrm, subscribeToCrmAuth } from './authService'
+import { canUseCrm, clearLocalCrmSession, completeCrmPasswordRecovery, completeRequiredPasswordChange, getCrmSession, getCrmUser, hasSupabaseConfig, requestCrmPasswordReset, shouldApplyCrmAuthEvent, signInCrm, signOutCrm, subscribeToCrmAuth } from './authService'
 import type { CrmUser } from './authService'
 import './crm.css'
 
@@ -36,7 +36,7 @@ function CRMRoot() {
       .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : 'Unable to restore the CRM session.') })
       .finally(() => { if (active) setLoading(false) })
     const unsubscribe = subscribeToCrmAuth((current, event) => {
-      setSession(current)
+      setSession((existing) => shouldApplyCrmAuthEvent(existing, current, event) ? current : existing)
       if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true)
     })
     return () => { active = false; unsubscribe() }

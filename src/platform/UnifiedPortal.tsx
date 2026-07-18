@@ -508,7 +508,7 @@ function UnifiedPortal({
           onClose={() => setAssistantOpen(false)}
           data={data}
           view={view}
-          role={effectiveRole}
+          role={currentUser.role}
           onNavigate={setView}
           onDataChanged={() => void refresh(true)}
         />
