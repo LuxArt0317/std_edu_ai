@@ -90,6 +90,21 @@ const faculty = await signIn("winsonbaring10+faculty@gmail.com");
 const student = await signIn("winsonbaring10+student@gmail.com");
 const owner = await signIn("winsonbaring10@gmail.com");
 
+const departmentAnswer = await ask(
+  owner.session,
+  "Create a new Computer Science academic department with code CS so it can own the BSCS curriculum.",
+  {
+    view: "academics",
+    departments: [
+      { id: "51000000-0000-4000-8000-000000000001", code: "IM", name: "Information Management" },
+    ],
+  },
+);
+if (departmentAnswer.proposedAction?.type !== "create_department")
+  throw new Error("The protected owner did not receive the department creation tool.");
+if (!departmentAnswer.proposedAction.code || !departmentAnswer.proposedAction.title)
+  throw new Error("The department creation tool omitted its structured code or name.");
+
 const facultyAnswer = await ask(
   faculty.session,
   "Create a draft module called Agent validation in IM101 with a short description.",
@@ -152,5 +167,6 @@ console.log(
     curriculumSubjects: curriculum.subjects.length,
     curriculumBlocks: curriculum.blocks.length,
     curriculumActor: "owner",
+    departmentAction: departmentAnswer.proposedAction.type,
   }),
 );

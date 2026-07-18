@@ -1,5 +1,14 @@
 # Task Plan
 
+## Phase 70: Governed Nexus platform tools [Issue #70]
+
+- [x] inventory manual repository actions against the Nexus executable catalog and document governed exclusions
+- [x] add missing Academic Office tools, beginning with create department and dependent curriculum continuation
+- [x] refresh authoritative platform context between successful agent steps
+- [x] extend tools across LMS, assessment, schedule, communication, CRM support, and controlled workflows with role-specific authorization
+- [x] verify catalog parity, client/server enforcement, student boundaries, live owner workflows, and rollback behavior
+- [ ] pass review, deployment, and production diagnostics
+
 ## Phase 68: Reliable curriculum department resolution [Issue #68]
 
 - [x] separate curriculum-payload validation from department resolution

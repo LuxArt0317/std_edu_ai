@@ -126,3 +126,10 @@
 - Decoupled curriculum validation from department resolution, added sole-active-department inference, stale-ID rejection, an explicit active-department selector, and guarded confirmation.
 - All 62 contracts, lint, build, and the live atomic curriculum create/rollback/idempotency/cleanup workflow pass.
 - PR #69 passed CodeRabbit/Vercel, merged as `ae5b874`, and deployed Ready as `dpl_EVhJjgZUKGFQYAdu4yEJkCUCLpvi`. Both custom domains pass recursive assets and department-resolution markers.
+## 2026-07-18 — Nexus platform tool expansion
+
+- Opened Issue #70 and inventoried the narrow assistant catalog against implemented platform repositories.
+- Added exact create/update/delete tools for academic structure, LMS content, announcements, attendance sessions, and schedule events; added communication, support, attendance-correction, and governed institutional-initiative tools.
+- Added privacy-minimized exact-ID context for programs, terms, subjects, people, attendance requests, and initiatives; successful mutations now refresh context before the bounded agent selects its next step.
+- Preserved trusted-role server authorization, client confirmation checks, Supabase RLS/RPC enforcement, audit logging, safety limits, and the student assessed-work prohibition.
+- Added tool-catalog documentation and regression coverage. All 66 contracts, lint, TypeScript, Vite build, and asset verification pass.

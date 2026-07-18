@@ -533,14 +533,55 @@ export type SchoolAiAction = {
     | "create_announcement"
     | "create_attendance"
     | "create_schedule_event"
+    | "create_department"
+    | "create_program"
+    | "create_academic_term"
+    | "create_subject"
+    | "create_section"
+    | "enroll_student"
+    | "update_department"
+    | "update_program"
+    | "update_academic_term"
+    | "update_subject"
+    | "update_section"
+    | "update_module"
+    | "delete_module"
+    | "update_material"
+    | "delete_material"
+    | "update_material_page"
+    | "delete_material_page"
+    | "delete_assessment"
+    | "update_announcement"
+    | "delete_announcement"
+    | "update_attendance"
+    | "delete_attendance"
+    | "update_schedule_event"
+    | "delete_schedule_event"
+    | "create_support_request"
+    | "create_communication_request"
+    | "request_attendance_correction"
+    | "decide_attendance_correction"
+    | "create_initiative"
+    | "transition_initiative"
     | "create_curriculum"
     | "mark_learning_progress";
   confirmation: string;
+  code: string;
   targetId: string | null;
   sectionId: string | null;
   moduleId: string | null;
   materialId: string | null;
   departmentId: string | null;
+  programId: string | null;
+  termId: string | null;
+  courseId: string | null;
+  studentId: string | null;
+  facultyId: string | null;
+  recipientId: string | null;
+  requestId: string | null;
+  initiativeId: string | null;
+  ownerId: string | null;
+  attendanceRecordId: string | null;
   destination: PortalSection | "crm" | null;
   title: string;
   description: string;
@@ -557,6 +598,16 @@ export type SchoolAiAction = {
   endsAt: string | null;
   location: string | null;
   completed: boolean | null;
+  durationYears: number | null;
+  credits: number | null;
+  capacity: number | null;
+  level: string;
+  modality: string;
+  room: string;
+  status: string;
+  operation: string;
+  reason: string;
+  approve: boolean | null;
   publish: boolean;
   curriculum: AcademicCurriculumInput | null;
 };

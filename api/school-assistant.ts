@@ -60,6 +60,14 @@ const allowedContextFields = [
   "announcements",
   "knowledgeTitles",
   "departments",
+  "programs",
+  "terms",
+  "catalogCourses",
+  "students",
+  "profiles",
+  "attendanceRecords",
+  "attendanceCorrections",
+  "initiatives",
 ] as const;
 const actionTypes = new Set([
   "navigate",
@@ -70,6 +78,36 @@ const actionTypes = new Set([
   "create_announcement",
   "create_attendance",
   "create_schedule_event",
+  "create_department",
+  "create_program",
+  "create_academic_term",
+  "create_subject",
+  "create_section",
+  "enroll_student",
+  "update_department",
+  "update_program",
+  "update_academic_term",
+  "update_subject",
+  "update_section",
+  "update_module",
+  "delete_module",
+  "update_material",
+  "delete_material",
+  "update_material_page",
+  "delete_material_page",
+  "delete_assessment",
+  "update_announcement",
+  "delete_announcement",
+  "update_attendance",
+  "delete_attendance",
+  "update_schedule_event",
+  "delete_schedule_event",
+  "create_support_request",
+  "create_communication_request",
+  "request_attendance_correction",
+  "decide_attendance_correction",
+  "create_initiative",
+  "transition_initiative",
   "create_curriculum",
   "mark_learning_progress",
 ]);
@@ -83,6 +121,9 @@ const teachingActionRoles = new Set([
 const curriculumActionRoles = new Set([
   "owner", "admin", "dean", "registrar", "department_head",
 ]);
+const departmentActionRoles = new Set(["owner", "admin", "dean", "registrar"]);
+const academicSetupActionRoles = new Set(["owner", "admin", "dean", "registrar", "department_head"]);
+const leadershipActionRoles = new Set(["owner", "admin", "president", "vice_president", "dean", "registrar", "department_head"]);
 const allowedActionsByRole: Record<string, Set<string>> = {
   student: new Set(["navigate", "mark_learning_progress"]),
   faculty: new Set(
@@ -96,6 +137,10 @@ const allowedActionsByRole: Record<string, Set<string>> = {
           "create_announcement",
           "create_attendance",
           "create_schedule_event",
+          "update_module", "delete_module", "update_material", "delete_material",
+          "update_material_page", "delete_material_page", "delete_assessment",
+          "update_announcement", "delete_announcement", "update_attendance",
+          "delete_attendance", "update_schedule_event", "delete_schedule_event",
         ]
       : [],
   ),
@@ -106,8 +151,20 @@ function allowedActions(role: string) {
     ? new Set(allowedActionsByRole[role])
     : teachingActionRoles.has(role)
       ? new Set(allowedActionsByRole.faculty)
-      : new Set(["navigate", "create_schedule_event"]);
+      : new Set(["navigate", "create_schedule_event", "update_schedule_event", "delete_schedule_event"]);
   if (curriculumActionRoles.has(role)) base.add("create_curriculum");
+  if (departmentActionRoles.has(role)) base.add("create_department");
+  if (academicSetupActionRoles.has(role)) {
+    for (const action of ["create_program", "create_academic_term", "create_subject", "create_section", "enroll_student", "update_department", "update_program", "update_academic_term", "update_subject", "update_section"]) base.add(action);
+  }
+  base.add("create_communication_request");
+  if (["owner", "admin", "dean", "department_head", "faculty", "advisor", "support", "student"].includes(role)) base.add("create_support_request");
+  if (role === "student") base.add("request_attendance_correction");
+  if (["owner", "admin", "dean", "department_head", "faculty", "registrar"].includes(role)) base.add("decide_attendance_correction");
+  if (leadershipActionRoles.has(role)) {
+    base.add("create_initiative");
+    base.add("transition_initiative");
+  }
   return base;
 }
 
@@ -154,7 +211,7 @@ function sanitizeContext(value: unknown) {
           continue;
         const record = entry as Record<string, unknown>;
         const clean: Record<string, string> = {};
-        for (const field of ["id", "sectionId", "moduleId", "code", "title", "name"]) {
+        for (const field of ["id", "sectionId", "moduleId", "departmentId", "programId", "termId", "courseId", "studentId", "attendanceRecordId", "ownerId", "code", "title", "name", "studentNumber", "status", "role", "operation"]) {
           if (typeof record[field] === "string")
             clean[field] = record[field].slice(0, 180);
         }
@@ -355,10 +412,14 @@ export default async function handler(
           "Protect privacy. Do not request passwords, authentication tokens, diagnoses, or unnecessary sensitive personal data.",
           "When context is insufficient, say what is missing and give the safest useful next step.",
           `The only executable actions for this role are: ${[...allowedActions(auth.user.role)].join(", ")}. You are operating a bounded goal loop. Choose at most one next action per response, use exact IDs from platform context, and reassess the goal from the supplied real observations. Set agent.status to working only when a permitted next action is necessary. Set complete only when the requested goal is satisfied. Set impossible when required information, authority, capability, or a prior blocked/error observation makes completion unsafe or unavailable. Never repeat an already successful action. Never claim an action happened until its success observation is supplied.`,
-          "For an authorized request to create a complete degree curriculum, use one create_curriculum action rather than dozens of small actions. Produce a coherent, realistic draft with every subject placed by year and semester, unique institutional subject codes, units, ordered prerequisites that refer only to earlier subjects in the same payload, and at least one block template for every year. This is a draft requiring human academic and regulatory review; never claim accreditation approval.",
+          `For an authorized request to create a complete degree curriculum, use one create_curriculum action rather than dozens of small actions. Always include every required curriculum field: programCode, programName, description, durationYears, effectiveYear as a four-digit integer, subjects, and blocks. If the user does not state an effective year, infer ${new Date().getUTCFullYear()} for the unpublished draft instead of stopping to ask. Produce a coherent, realistic draft with every subject placed by year and semester, unique institutional subject codes, units, ordered prerequisites that refer only to earlier subjects in the same payload, and at least one block template for every year. This is a draft requiring human academic and regulatory review; never claim accreditation approval.`,
+          "When an authorized owner, administrator, dean, or registrar explicitly asks you to add a missing academic department, use create_department with a short unique uppercase code in code, the complete department name in title, and its purpose in description. After the confirmed success observation, continue the original goal using the newly returned record ID and refreshed platform context.",
+          "Academic setup tools: create_program uses departmentId, code, title, description, level, and durationYears; create_academic_term uses code, title, startsAt, endsAt, and status; create_subject uses departmentId, optional programId, code, title, description, and credits; create_section uses courseId, termId, code as the section code, optional facultyId, modality, room, capacity, and status; enroll_student uses sectionId, studentId, and status. Use exact IDs from refreshed context, propose only one confirmed step at a time, and continue after its real success observation.",
+          "For update_* actions, include the exact existing target ID and the complete replacement values required by that record. For delete_* actions, include the exact target ID and clearly describe the irreversible effect in confirmation. Never delete an assessment with attempts; the repository enforces that boundary. Learning material pages use targetId; modules use moduleId; materials use materialId; announcements, attendance sessions, schedule events, and assessments use targetId.",
+          "Service tools: create_support_request uses studentId, title, code as category, description, and priority; create_communication_request uses recipientId, title as subject, content as body; request_attendance_correction uses attendanceRecordId, status as the requested status, and reason; decide_attendance_correction uses requestId, approve, and reason; create_initiative uses operation as policy/initiative/teaching_plan/content_correction, title, description, content as scope, priority, and dueAt; transition_initiative uses initiativeId, operation as approve/assign/complete/reject/escalate, optional ownerId, and reason.",
           auth.user.role === "student"
             ? "Absolute student boundary: never answer, select answers for, complete, modify, grade, or submit an assignment, quiz, exam, project, or other assessed work. Never create an assessment action for a student. You may explain concepts, navigate, and mark a learning material in progress or completed only when the student explicitly asks."
-            : "Never change roles, credentials, enrollments, student identity records, or publish/finalize grades through this assistant.",
+            : "Never change roles, credentials, student identity records, or publish/finalize grades through this assistant. Enrollment changes are permitted only through the explicit enroll_student tool for an authorized academic operator.",
           "Return JSON exactly matching the schema. Citations must name a supplied course, schedule, knowledge item, or clearly state Platform context.",
         ].join(" "),
         input: [
@@ -423,16 +484,57 @@ export default async function handler(
                         "create_announcement",
                         "create_attendance",
                         "create_schedule_event",
+                        "create_department",
+                        "create_program",
+                        "create_academic_term",
+                        "create_subject",
+                        "create_section",
+                        "enroll_student",
+                        "update_department",
+                        "update_program",
+                        "update_academic_term",
+                        "update_subject",
+                        "update_section",
+                        "update_module",
+                        "delete_module",
+                        "update_material",
+                        "delete_material",
+                        "update_material_page",
+                        "delete_material_page",
+                        "delete_assessment",
+                        "update_announcement",
+                        "delete_announcement",
+                        "update_attendance",
+                        "delete_attendance",
+                        "update_schedule_event",
+                        "delete_schedule_event",
+                        "create_support_request",
+                        "create_communication_request",
+                        "request_attendance_correction",
+                        "decide_attendance_correction",
+                        "create_initiative",
+                        "transition_initiative",
                         "create_curriculum",
                         "mark_learning_progress",
                       ],
                     },
                     confirmation: { type: "string" },
+                    code: { type: "string" },
                     targetId: { type: ["string", "null"] },
                     sectionId: { type: ["string", "null"] },
                     moduleId: { type: ["string", "null"] },
                     materialId: { type: ["string", "null"] },
                     departmentId: { type: ["string", "null"] },
+                    programId: { type: ["string", "null"] },
+                    termId: { type: ["string", "null"] },
+                    courseId: { type: ["string", "null"] },
+                    studentId: { type: ["string", "null"] },
+                    facultyId: { type: ["string", "null"] },
+                    recipientId: { type: ["string", "null"] },
+                    requestId: { type: ["string", "null"] },
+                    initiativeId: { type: ["string", "null"] },
+                    ownerId: { type: ["string", "null"] },
+                    attendanceRecordId: { type: ["string", "null"] },
                     destination: {
                       type: ["string", "null"],
                       enum: [
@@ -472,6 +574,16 @@ export default async function handler(
                     endsAt: { type: ["string", "null"] },
                     location: { type: ["string", "null"] },
                     completed: { type: ["boolean", "null"] },
+                    durationYears: { type: ["number", "null"] },
+                    credits: { type: ["number", "null"] },
+                    capacity: { type: ["number", "null"] },
+                    level: { type: "string" },
+                    modality: { type: "string" },
+                    room: { type: "string" },
+                    status: { type: "string" },
+                    operation: { type: "string" },
+                    reason: { type: "string" },
+                    approve: { type: ["boolean", "null"] },
                     publish: { type: "boolean" },
                     curriculum: {
                       anyOf: [
@@ -530,11 +642,22 @@ export default async function handler(
                   required: [
                     "type",
                     "confirmation",
+                    "code",
                     "targetId",
                     "sectionId",
                     "moduleId",
                     "materialId",
                     "departmentId",
+                    "programId",
+                    "termId",
+                    "courseId",
+                    "studentId",
+                    "facultyId",
+                    "recipientId",
+                    "requestId",
+                    "initiativeId",
+                    "ownerId",
+                    "attendanceRecordId",
                     "destination",
                     "title",
                     "description",
@@ -551,6 +674,16 @@ export default async function handler(
                     "endsAt",
                     "location",
                     "completed",
+                    "durationYears",
+                    "credits",
+                    "capacity",
+                    "level",
+                    "modality",
+                    "room",
+                    "status",
+                    "operation",
+                    "reason",
+                    "approve",
                     "publish",
                     "curriculum",
                   ],

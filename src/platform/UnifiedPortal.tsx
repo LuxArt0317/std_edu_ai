@@ -22,6 +22,30 @@ import {
   changeAccountLifecycle,
   createAttendanceSession,
   createAcademicCurriculum,
+  createDepartment,
+  createProgram,
+  createAcademicTerm,
+  createCatalogCourse,
+  createCourseSection,
+  manageSectionEnrollment,
+  updateDepartment,
+  updateProgram,
+  updateAcademicTerm,
+  updateCatalogCourse,
+  updateCourseSection,
+  updateLearningModule,
+  deleteLearningModule,
+  updateLearningMaterial,
+  deleteLearningMaterial,
+  updateLearningMaterialPage,
+  deleteLearningMaterialPage,
+  deleteCourseAssessment,
+  updateCourseAnnouncement,
+  deleteCourseAnnouncement,
+  updateAttendanceSession,
+  deleteAttendanceSession,
+  updateScheduleEvent,
+  deleteScheduleEvent,
   createChatThread,
   createCourseAnnouncement,
   createCourseAssessment,
@@ -30,6 +54,8 @@ import {
   createLearningModule,
   createScheduleEvent,
   createStudentSupportRequest,
+  requestAttendanceCorrection,
+  decideAttendanceCorrection,
   getPlatformDataSnapshot,
   loadAccountDirectory,
   loadChatMessages,
@@ -238,8 +264,10 @@ function UnifiedPortal({
   const refresh = useCallback(
     async (silent = false) => {
       try {
-        setData(await loadPlatformDataCached(currentUser.id, true));
+        const nextData = await loadPlatformDataCached(currentUser.id, true);
+        setData(nextData);
         setLoadError("");
+        return nextData;
       } catch (error) {
         if (!silent && !getPlatformDataSnapshot(currentUser.id)) {
           setLoadError(
@@ -252,6 +280,7 @@ function UnifiedPortal({
             "Could not sync the latest updates. Showing your saved workspace.",
           );
         }
+        return getPlatformDataSnapshot(currentUser.id);
       }
     },
     [currentUser.id],
@@ -509,8 +538,9 @@ function UnifiedPortal({
           data={data}
           view={view}
           role={currentUser.role}
+          actorId={currentUser.id}
           onNavigate={setView}
-          onDataChanged={() => void refresh(true)}
+          onDataChanged={() => refresh(true)}
         />
         {notificationsOpen ? <NotificationCenter data={data} currentUser={currentUser} onClose={() => setNotificationsOpen(false)} onChanged={() => void refresh(true)} onToast={setToast} /> : null}
         {toast ? (
@@ -2559,6 +2589,7 @@ function SchoolAssistant({
   data,
   view,
   role,
+  actorId,
   onNavigate,
   onDataChanged,
 }: {
@@ -2567,8 +2598,9 @@ function SchoolAssistant({
   data: PlatformData;
   view: PortalView;
   role: PlatformRole;
+  actorId: string;
   onNavigate: (view: PortalView) => void;
-  onDataChanged: () => void;
+  onDataChanged: () => Promise<PlatformData | null>;
 }) {
   const [threadId, setThreadId] = useState(data.threads[0]?.id ?? "");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -2612,7 +2644,11 @@ function SchoolAssistant({
     void appendChatMessage(activeThread, "assistant", content, citations);
   }
 
-  async function advanceAgent(run: SchoolAgentRun, activeThread: string) {
+  async function advanceAgent(
+    run: SchoolAgentRun,
+    activeThread: string,
+    contextData: PlatformData = data,
+  ) {
     if (activeRunId.current !== run.id) return;
     const stopReason = runSafetyStop(run);
     if (stopReason) {
@@ -2624,7 +2660,7 @@ function SchoolAssistant({
     }
     setLoading(true);
     try {
-      const answer = await askSchoolAssistant(run.goal, messages, { view, data }, {
+      const answer = await askSchoolAssistant(run.goal, messages, { view, data: contextData }, {
         runId: run.id,
         goal: run.goal,
         step: run.step,
@@ -2653,7 +2689,7 @@ function SchoolAssistant({
           }, action);
           await recordSchoolAgentAction(action.type, "blocked");
           setAgentRun(blocked);
-          await advanceAgent(blocked, activeThread);
+          await advanceAgent(blocked, activeThread, contextData);
           return;
         }
         onNavigate(action.destination);
@@ -2664,11 +2700,11 @@ function SchoolAssistant({
         }, action);
         setAgentRun(progressed);
         addAssistantMessage(activeThread, `Step ${progressed.step} complete — opened ${navMeta[action.destination].label}.`, ["Observed portal action"]);
-        await advanceAgent(progressed, activeThread);
+        await advanceAgent(progressed, activeThread, contextData);
         return;
       }
       if (action.type === "create_curriculum") {
-        const activeDepartments = data.departments.filter(
+        const activeDepartments = contextData.departments.filter(
           (department) => department.status === "active",
         );
         const requestedDepartment = activeDepartments.find(
@@ -2737,7 +2773,7 @@ function SchoolAssistant({
     };
     const allowed =
       role === "student"
-        ? new Set(["navigate", "mark_learning_progress"])
+        ? new Set(["navigate", "mark_learning_progress", "create_communication_request", "create_support_request", "request_attendance_correction"])
         : teachingRoles.has(role)
           ? new Set([
               "navigate",
@@ -2748,11 +2784,28 @@ function SchoolAssistant({
               "create_announcement",
               "create_attendance",
               "create_schedule_event",
+              "update_module", "delete_module", "update_material", "delete_material",
+              "update_material_page", "delete_material_page", "delete_assessment",
+              "update_announcement", "delete_announcement", "update_attendance",
+              "delete_attendance", "update_schedule_event", "delete_schedule_event",
+              "create_communication_request", "create_support_request",
+              ...(["owner", "admin", "dean", "department_head", "faculty"].includes(role) ? ["decide_attendance_correction"] : []),
+              ...(["owner", "admin", "dean", "department_head"].includes(role) ? ["create_initiative", "transition_initiative"] : []),
+              ...(["owner", "admin", "dean", "registrar"].includes(role) ? ["create_department"] : []),
+              ...(["owner", "admin", "dean", "registrar", "department_head"].includes(role) ? ["create_program", "create_academic_term", "create_subject", "create_section", "enroll_student", "update_department", "update_program", "update_academic_term", "update_subject", "update_section"] : []),
               ...(role === "faculty" ? [] : ["create_curriculum"]),
             ])
           : new Set([
               "navigate",
               "create_schedule_event",
+              "update_schedule_event",
+              "delete_schedule_event",
+              "create_communication_request",
+              ...(["advisor", "support"].includes(role) ? ["create_support_request"] : []),
+              ...(role === "registrar" ? ["decide_attendance_correction"] : []),
+              ...(["owner", "admin", "president", "vice_president", "dean", "registrar", "department_head"].includes(role) ? ["create_initiative", "transition_initiative"] : []),
+              ...(["owner", "admin", "dean", "registrar"].includes(role) ? ["create_department"] : []),
+              ...(["owner", "admin", "dean", "registrar", "department_head"].includes(role) ? ["create_program", "create_academic_term", "create_subject", "create_section", "enroll_student", "update_department", "update_program", "update_academic_term", "update_subject", "update_section"] : []),
               ...(["owner", "admin", "dean", "registrar", "department_head"].includes(role) ? ["create_curriculum"] : []),
             ]);
     if (!allowed.has(action.type)) {
@@ -2818,6 +2871,35 @@ function SchoolAssistant({
     } else if (
       action.type !== "create_material" &&
       action.type !== "create_schedule_event" &&
+      action.type !== "create_department" &&
+      action.type !== "create_program" &&
+      action.type !== "create_academic_term" &&
+      action.type !== "create_subject" &&
+      action.type !== "create_section" &&
+      action.type !== "update_department" &&
+      action.type !== "update_program" &&
+      action.type !== "update_academic_term" &&
+      action.type !== "update_subject" &&
+      action.type !== "update_section" &&
+      action.type !== "update_module" &&
+      action.type !== "delete_module" &&
+      action.type !== "update_material" &&
+      action.type !== "delete_material" &&
+      action.type !== "update_material_page" &&
+      action.type !== "delete_material_page" &&
+      action.type !== "delete_assessment" &&
+      action.type !== "update_announcement" &&
+      action.type !== "delete_announcement" &&
+      action.type !== "update_attendance" &&
+      action.type !== "delete_attendance" &&
+      action.type !== "update_schedule_event" &&
+      action.type !== "delete_schedule_event" &&
+      action.type !== "create_support_request" &&
+      action.type !== "create_communication_request" &&
+      action.type !== "request_attendance_correction" &&
+      action.type !== "decide_attendance_correction" &&
+      action.type !== "create_initiative" &&
+      action.type !== "transition_initiative" &&
       action.type !== "create_curriculum" &&
       !course
     ) {
@@ -2840,6 +2922,84 @@ function SchoolAssistant({
     try {
       let createdId = "";
       let resultSummary = "";
+      if (action.type === "create_department") {
+        createdId = await createDepartment({
+          code: action.code,
+          name: action.title,
+          description: action.description,
+        });
+        resultSummary = `Created academic department ${action.code.toUpperCase()} · ${action.title} with record ID ${createdId}.`;
+      }
+      if (action.type === "create_program") {
+        createdId = await createProgram({
+          departmentId: action.departmentId!, code: action.code,
+          name: action.title, level: action.level || "bachelor",
+          durationYears: action.durationYears ?? 4,
+          description: action.description,
+        });
+      }
+      if (action.type === "create_academic_term") {
+        createdId = await createAcademicTerm({
+          code: action.code, name: action.title,
+          startsOn: action.startsAt!, endsOn: action.endsAt!,
+          status: action.status || "planning",
+        });
+      }
+      if (action.type === "create_subject") {
+        createdId = await createCatalogCourse({
+          departmentId: action.departmentId!,
+          programId: action.programId ?? undefined,
+          code: action.code, title: action.title,
+          description: action.description, credits: action.credits ?? 3,
+        });
+      }
+      if (action.type === "create_section") {
+        createdId = await createCourseSection({
+          courseId: action.courseId!, termId: action.termId!,
+          sectionCode: action.code,
+          facultyId: action.facultyId ?? undefined,
+          modality: action.modality || "in_person",
+          room: action.room || undefined,
+          capacity: action.capacity ?? 40,
+          status: action.status || "planned",
+        });
+      }
+      if (action.type === "enroll_student") {
+        const enrollment = await manageSectionEnrollment(
+          action.sectionId!, action.studentId!, action.status || "enrolled",
+        );
+        createdId = enrollment?.enrollment_id ?? "";
+      }
+      if (action.type === "update_department")
+        await updateDepartment(action.targetId!, {
+          code: action.code, name: action.title, description: action.description,
+          status: action.status || "active",
+        });
+      if (action.type === "update_program")
+        await updateProgram(action.targetId!, {
+          departmentId: action.departmentId!, code: action.code,
+          name: action.title, level: action.level || "bachelor",
+          durationYears: action.durationYears ?? 4,
+          description: action.description, status: action.status || "active",
+        });
+      if (action.type === "update_academic_term")
+        await updateAcademicTerm(action.targetId!, {
+          code: action.code, name: action.title,
+          startsOn: action.startsAt!, endsOn: action.endsAt!,
+          status: action.status || "planning",
+        });
+      if (action.type === "update_subject")
+        await updateCatalogCourse(action.targetId!, {
+          departmentId: action.departmentId!, programId: action.programId ?? undefined,
+          code: action.code, title: action.title, description: action.description,
+          credits: action.credits ?? 3, status: action.status || "active",
+        });
+      if (action.type === "update_section")
+        await updateCourseSection(action.sectionId!, {
+          facultyId: action.facultyId ?? undefined,
+          modality: action.modality || "in_person", room: action.room || undefined,
+          capacity: action.capacity ?? 40, status: action.status || "planned",
+        });
       if (action.type === "create_curriculum") {
         if (!action.curriculum)
           throw new Error("The curriculum plan is missing its structured subject plan.");
@@ -2864,6 +3024,12 @@ function SchoolAssistant({
               .length + 1,
           publish: action.publish,
         });
+      if (action.type === "update_module")
+        await updateLearningModule(action.moduleId!, {
+          title: action.title, description: action.description,
+        });
+      if (action.type === "delete_module")
+        await deleteLearningModule(action.moduleId!);
       if (action.type === "create_material")
         createdId = await createLearningMaterial({
           moduleId: action.moduleId!,
@@ -2879,6 +3045,16 @@ function SchoolAssistant({
           required: action.required ?? true,
           publish: action.publish,
         });
+      if (action.type === "update_material")
+        await updateLearningMaterial(action.materialId!, {
+          title: action.title, description: action.description,
+          type: action.materialType ?? "lesson", content: action.content,
+          externalUrl: action.externalUrl ?? undefined,
+          minutes: Math.max(1, Math.min(1440, action.minutes ?? 20)),
+          required: action.required ?? true, publish: action.publish,
+        });
+      if (action.type === "delete_material")
+        await deleteLearningMaterial(action.materialId!);
       if (action.type === "create_material_page")
         await createLearningMaterialPage({
           materialId: action.materialId!,
@@ -2889,6 +3065,12 @@ function SchoolAssistant({
               (item) => item.materialId === action.materialId,
             ).length + 1,
         });
+      if (action.type === "update_material_page")
+        await updateLearningMaterialPage(action.targetId!, {
+          title: action.title, content: action.content,
+        });
+      if (action.type === "delete_material_page")
+        await deleteLearningMaterialPage(action.targetId!);
       if (action.type === "create_assessment")
         await createCourseAssessment({
           sectionId: action.sectionId!,
@@ -2899,6 +3081,8 @@ function SchoolAssistant({
           maxScore: Math.max(1, Math.min(1000, action.maxScore ?? 100)),
           publish: action.publish,
         });
+      if (action.type === "delete_assessment")
+        await deleteCourseAssessment(action.targetId!);
       if (action.type === "create_announcement")
         await createCourseAnnouncement({
           sectionId: action.sectionId!,
@@ -2906,6 +3090,13 @@ function SchoolAssistant({
           body: action.content || action.description,
           priority: action.priority ?? "normal",
         });
+      if (action.type === "update_announcement")
+        await updateCourseAnnouncement(action.targetId!, {
+          title: action.title, body: action.content || action.description,
+          priority: action.priority ?? "normal",
+        });
+      if (action.type === "delete_announcement")
+        await deleteCourseAnnouncement(action.targetId!);
       if (action.type === "create_attendance")
         await createAttendanceSession({
           sectionId: action.sectionId!,
@@ -2915,6 +3106,13 @@ function SchoolAssistant({
             action.endsAt ??
             new Date(Date.now() + 60 * 60 * 1000).toISOString(),
         });
+      if (action.type === "update_attendance")
+        await updateAttendanceSession(action.targetId!, {
+          title: action.title, startsAt: action.startsAt!, endsAt: action.endsAt!,
+          status: action.status || "open",
+        });
+      if (action.type === "delete_attendance")
+        await deleteAttendanceSession(action.targetId!);
       if (action.type === "create_schedule_event")
         await createScheduleEvent({
           sectionId: action.sectionId ?? undefined,
@@ -2926,6 +3124,59 @@ function SchoolAssistant({
             action.endsAt ??
             new Date(Date.now() + 60 * 60 * 1000).toISOString(),
           location: action.location ?? undefined,
+        });
+      if (action.type === "update_schedule_event")
+        await updateScheduleEvent(action.targetId!, {
+          sectionId: action.sectionId ?? undefined,
+          title: action.title, description: action.description || action.content,
+          eventType: "school_event", startsAt: action.startsAt!, endsAt: action.endsAt!,
+          location: action.location ?? undefined,
+        });
+      if (action.type === "delete_schedule_event")
+        await deleteScheduleEvent(action.targetId!);
+      if (action.type === "create_support_request")
+        createdId = await createStudentSupportRequest({
+          studentId: action.studentId || actorId,
+          title: action.title,
+          category: action.code || "general",
+          description: action.description || action.content,
+          priority: action.priority === "urgent" ? "high" : action.priority === "important" ? "medium" : "low",
+        });
+      if (action.type === "create_communication_request")
+        await createCommunicationRequest({
+          recipientId: action.recipientId!,
+          subject: action.title,
+          body: action.content || action.description,
+          channel: "portal",
+        });
+      if (action.type === "request_attendance_correction")
+        await requestAttendanceCorrection({
+          attendanceRecordId: action.attendanceRecordId!,
+          studentProfileId: actorId,
+          requestedStatus: (action.status || "present") as "present" | "absent" | "late" | "excused",
+          reason: action.reason || action.description,
+        });
+      if (action.type === "decide_attendance_correction")
+        await decideAttendanceCorrection({
+          requestId: action.requestId!,
+          approve: action.approve ?? false,
+          reason: action.reason || action.description,
+        });
+      if (action.type === "create_initiative")
+        await createInstitutionalInitiative({
+          type: (action.operation || "initiative") as "policy" | "initiative" | "teaching_plan" | "content_correction",
+          title: action.title,
+          description: action.description || action.content,
+          scope: action.content || "Institution-wide",
+          priority: action.priority === "urgent" ? "urgent" : action.priority === "important" ? "high" : "normal",
+          dueAt: action.dueAt ?? null,
+        });
+      if (action.type === "transition_initiative")
+        await transitionInstitutionalInitiative({
+          initiativeId: action.initiativeId!,
+          action: (action.operation || "assign") as "approve" | "assign" | "complete" | "reject" | "escalate",
+          ownerId: action.ownerId ?? null,
+          reason: action.reason || action.description,
         });
       if (action.type === "mark_learning_progress")
         await markLearningProgress(
@@ -2951,7 +3202,7 @@ function SchoolAssistant({
           "Confirmed platform action",
         ]);
       setPendingAction(null);
-      onDataChanged();
+      const refreshedData = await onDataChanged();
       if (agentRun && activeRunId.current === agentRun.id) {
         const progressed = addAgentObservation(agentRun, {
           step: agentRun.step + 1,
@@ -2960,7 +3211,7 @@ function SchoolAssistant({
           summary: resultSummary || `The confirmed ${action.type.replaceAll("_", " ")} action was saved successfully${createdId ? ` with record ID ${createdId}` : ""}.`,
         }, action);
         setAgentRun(progressed);
-        await advanceAgent(progressed, threadId);
+        await advanceAgent(progressed, threadId, refreshedData ?? data);
       }
     } catch (reason) {
       void recordSchoolAgentAction(action.type, "error");

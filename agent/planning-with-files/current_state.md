@@ -185,3 +185,9 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - Curriculum confirmation independently validates the structured plan and resolves its owning department from active Academic Office data.
 - A valid generated department is retained, the sole active department is automatic, and multiple departments produce an explicit required selector instead of a terminal model-data error.
 - All 62 contracts, lint, TypeScript, production build, asset verification, and live atomic create/rollback/idempotency/cleanup pass. PR #69 merged as `ae5b874`; deployment `dpl_EVhJjgZUKGFQYAdu4yEJkCUCLpvi` and both custom domains pass the department-resolution markers. Issue #68 is complete.
+# Active release: Issue #70 Nexus platform tools
+
+- Nexus now exposes confirmation-gated academic setup, curriculum, LMS, assessment maintenance, schedule, communication, support, attendance-correction, and institutional-initiative tools through existing production repositories and Supabase authorization.
+- Department creation returns its real ID; the assistant reloads platform data after each successful mutation so dependent goals such as department then curriculum can continue safely.
+- The API and client independently filter tools by the trusted signed-in role. Credentials, owner replacement, direct role changes, final-grade publication, binary uploads, and student assessed work remain deliberate human-only boundaries.
+- All 66 contracts, lint, TypeScript, Vite production build, and asset verification pass. Release/production verification remains in progress.
