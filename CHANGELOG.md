@@ -5,6 +5,7 @@
 - expanded Nexus into a governed cross-platform tool catalog for academic setup, dependent curriculum goals, LMS authoring and maintenance, schedules, communications, support cases, attendance corrections, and institutional initiatives
 - added exact-ID platform context, double role authorization, repository/RLS execution, returned record observations, and refreshed-data continuation between confirmed goal steps
 - retained hard safety boundaries for credentials, owner replacement, direct role changes, final grade publication, binary uploads, and student assessed work
+- released through PR #71 as `bedc88b`; Vercel deployment `dpl_FH7gZMMjm6UQ1W34KEkPBGG3hP8Y` is Ready and the production CRM serves the department and service-tool markers
 
 - fixed curriculum confirmation when the model omits or returns a stale department ID by retaining valid selections, automatically choosing the sole active department, or requiring an explicit active-department choice in the review card
 - released through PR #69 as `ae5b874`; Vercel deployment `dpl_EVhJjgZUKGFQYAdu4yEJkCUCLpvi` is Ready and both custom domains serve the department-resolution controls

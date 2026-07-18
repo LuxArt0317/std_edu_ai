@@ -7,7 +7,7 @@
 - [x] refresh authoritative platform context between successful agent steps
 - [x] extend tools across LMS, assessment, schedule, communication, CRM support, and controlled workflows with role-specific authorization
 - [x] verify catalog parity, client/server enforcement, student boundaries, live owner workflows, and rollback behavior
-- [ ] pass review, deployment, and production diagnostics
+- [x] pass review, deployment, and production diagnostics
 
 ## Phase 68: Reliable curriculum department resolution [Issue #68]
 

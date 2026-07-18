@@ -133,3 +133,4 @@
 - Added privacy-minimized exact-ID context for programs, terms, subjects, people, attendance requests, and initiatives; successful mutations now refresh context before the bounded agent selects its next step.
 - Preserved trusted-role server authorization, client confirmation checks, Supabase RLS/RPC enforcement, audit logging, safety limits, and the student assessed-work prohibition.
 - Added tool-catalog documentation and regression coverage. All 66 contracts, lint, TypeScript, Vite build, and asset verification pass.
+- Live OpenAI verification returned `create_department` for the owner, `create_module` for faculty, denied student assessed-work automation, and produced a 48-subject/eight-block curriculum. PR #71 passed CodeRabbit/Vercel and merged as `bedc88b`; deployment `dpl_FH7gZMMjm6UQ1W34KEkPBGG3hP8Y` is Ready and custom-domain markers pass.
