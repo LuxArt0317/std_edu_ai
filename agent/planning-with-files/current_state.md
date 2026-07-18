@@ -166,4 +166,4 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - Nexus no longer depends on WebKit-sensitive `crypto.randomUUID()` during goal startup, and chat persistence failures are visible but non-blocking.
 - Authorized academic leaders receive a strict `create_curriculum` action with a full preview and one confirmed, security-invoker Supabase transaction.
 - Production schema, RLS, Academic Office Curriculum Library, and the user's representative BSCS prompt are implemented. The live model produced 50 subjects and eight blocks; atomic create, rollback, idempotent retry, cleanup, 58 contracts, lint, and build pass.
-- GitHub review, Vercel deployment, and custom-domain diagnostics remain before Issue #62 can close.
+- PR #63 passed Vercel checks, merged as `b624417`, and deployed Ready as `dpl_5C9Q6qABcbw6QuEybffVLRh632ns`. Both custom domains pass recursive asset and released curriculum-marker diagnostics. Issue #62 is complete.

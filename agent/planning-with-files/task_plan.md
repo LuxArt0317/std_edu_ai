@@ -18,7 +18,7 @@
 
 - [x] add API, schema, loop, role, malformed-payload, duplicate, rollback, and live production tests using the user's representative BSCS prompt
 - [x] update PRD, action catalog, API/operator documentation, changelog, progress, and current state
-- [ ] pass tests, lint, Node 24/Vercel builds, Supabase advisors, reviewed PR, deployment, and custom-domain diagnostics
+- [x] pass tests, lint, Node 24/Vercel builds, Supabase advisors, reviewed PR, deployment, and custom-domain diagnostics
 
 ## Phase 60: Goal-driven Nexus agent loop [Issue #60]
 

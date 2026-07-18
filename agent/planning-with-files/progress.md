@@ -103,3 +103,4 @@
 - Deployed the curriculum plan, subject map, prerequisite, block template, RLS, and atomic security-invoker RPC schema to production Supabase.
 - Added strict model generation, full confirmation preview, repository execution, Curriculum Library visibility, and academic-role enforcement.
 - The representative BSCS prompt generated 50 subjects across all four years and eight blocks. Live Supabase acceptance proved atomic rollback, eight-subject creation, seven prerequisite edges, four blocks, idempotent retry, and cleanup. All 58 contracts, lint, and production build pass.
+- PR #63 passed Vercel checks and merged as `b624417`. Production deployment `dpl_5C9Q6qABcbw6QuEybffVLRh632ns` is Ready; both custom aliases now point to it and the released curriculum action, confirmation preview, and library markers pass custom-domain diagnostics.

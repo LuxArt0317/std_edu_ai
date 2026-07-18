@@ -5,6 +5,7 @@
 - fixed Nexus goal startup on WebKit/Safari and made chat-history persistence non-blocking so a recoverable storage failure cannot mark an operational goal impossible
 - added a confirmation-gated `create_curriculum` action that generates and atomically saves a complete multi-year program, subject sequence, prerequisite graph, and yearly block templates through the signed-in user's Supabase authorization
 - added the Academic Office Curriculum Library plus strict generation, idempotency, rollback, RLS, role-boundary, live OpenAI, and live database acceptance coverage
+- released through PR #63 as `b624417`; Vercel production deployment `dpl_5C9Q6qABcbw6QuEybffVLRh632ns` is Ready and both custom domains serve the curriculum action, preview, and library markers
 
 - removed the completed repository-scoped Stitch session/stop hooks and their obsolete hook documentation
 - upgraded Nexus AI from one-shot proposals to a bounded eight-step goal loop with real action observations, automatic safe navigation, mutation-by-mutation confirmation, cancellation, cycle detection, a five-minute limit, and explicit complete/impossible outcomes
