@@ -117,11 +117,11 @@ const leadStageProbability: Record<Exclude<LeadStage, "closed">, number> = {
   admitted: 96,
 };
 
-type LeadRequirement = "owner" | "email" | "phone" | "nextStep";
+type LeadRequirement = "owner" | "contact" | "email" | "phone" | "nextStep";
 
 const leadStageRequirements: Record<Exclude<LeadStage, "closed">, LeadRequirement[]> = {
   inquiry: [],
-  engaged: ["owner", "nextStep"],
+  engaged: ["owner", "contact", "nextStep"],
   application: ["owner", "email", "phone", "nextStep"],
   review: ["owner", "email", "phone", "nextStep"],
   admitted: ["owner", "email", "phone", "nextStep"],
@@ -130,6 +130,8 @@ const leadStageRequirements: Record<Exclude<LeadStage, "closed">, LeadRequiremen
 function missingLeadRequirements(lead: AdmissionLead, stage: Exclude<LeadStage, "closed">) {
   return leadStageRequirements[stage].filter((field) => {
     if (field === "owner") return !lead.owner || lead.owner === "Unassigned";
+    if (field === "contact") return !lead.email?.trim() && !lead.phone?.trim();
+    if (field === "nextStep") return !lead.nextStep?.trim() || lead.nextStep === "Review applicant record";
     return !lead[field]?.trim();
   });
 }
@@ -150,6 +152,10 @@ function LeadTransitionDialog({
   onConfirm: (values: Pick<AdmissionLead, "email" | "phone" | "nextStep">) => void;
 }) {
   const missing = missingLeadRequirements(lead, targetStage);
+  const [validationError, setValidationError] = useState("");
+  const needsContact = missing.includes("contact");
+  const needsEmail = needsContact || missing.includes("email");
+  const needsPhone = needsContact || missing.includes("phone");
   const stageLabel = leadStages.find((item) => item.id === targetStage)?.label ?? targetStage;
   return (
     <div className="academic-modal-layer lead-transition-layer">
@@ -168,11 +174,17 @@ function LeadTransitionDialog({
           onSubmit={(event) => {
             event.preventDefault();
             const form = new FormData(event.currentTarget);
-            onConfirm({
+            const values = {
               email: String(form.get("email") ?? lead.email ?? "").trim(),
               phone: String(form.get("phone") ?? lead.phone ?? "").trim(),
               nextStep: String(form.get("nextStep") ?? lead.nextStep ?? "").trim(),
-            });
+            };
+            if (needsContact && !values.email && !values.phone) {
+              setValidationError("Add at least one reliable contact method before moving this prospect.");
+              return;
+            }
+            setValidationError("");
+            onConfirm(values);
           }}
         >
           <div className="lead-transition-summary">
@@ -186,10 +198,11 @@ function LeadTransitionDialog({
             </div>
           ) : null}
           <div className="academic-form-grid">
-            {missing.includes("email") ? <label><span>Email address</span><input name="email" type="email" required autoFocus defaultValue={lead.email} placeholder="applicant@example.com" /></label> : <input type="hidden" name="email" value={lead.email ?? ""} />}
-            {missing.includes("phone") ? <label><span>Phone number</span><input name="phone" type="tel" required autoFocus={!missing.includes("email")} defaultValue={lead.phone} placeholder="Applicant contact number" /></label> : <input type="hidden" name="phone" value={lead.phone ?? ""} />}
-            {missing.includes("nextStep") ? <label className="wide"><span>Next accountable step</span><textarea name="nextStep" required rows={3} autoFocus={!missing.includes("email") && !missing.includes("phone")} defaultValue={lead.nextStep === "Review applicant record" ? "" : lead.nextStep} placeholder="What happens next, who owns it, and when?" /></label> : <input type="hidden" name="nextStep" value={lead.nextStep} />}
+            {needsEmail ? <label><span>Email address{needsContact ? " (email or phone required)" : ""}</span><input name="email" type="email" required={!needsContact} autoFocus defaultValue={lead.email} placeholder="applicant@example.com" /></label> : <input type="hidden" name="email" value={lead.email ?? ""} />}
+            {needsPhone ? <label><span>Phone number{needsContact ? " (email or phone required)" : ""}</span><input name="phone" type="tel" required={!needsContact} autoFocus={!needsEmail} defaultValue={lead.phone} placeholder="Applicant contact number" /></label> : <input type="hidden" name="phone" value={lead.phone ?? ""} />}
+            {missing.includes("nextStep") ? <label className="wide"><span>Next accountable step</span><textarea name="nextStep" required rows={3} autoFocus={!needsEmail && !needsPhone} defaultValue={lead.nextStep === "Review applicant record" ? "" : lead.nextStep} placeholder="What happens next, who owns it, and when?" /></label> : <input type="hidden" name="nextStep" value={lead.nextStep} />}
           </div>
+          {validationError ? <p className="lead-transition-error" role="alert">{validationError}</p> : null}
           <footer>
             <button type="button" className="lead-transition-cancel" onClick={onCancel}>Keep in {lead.stage}</button>
             <button type="submit" className="lead-transition-confirm" disabled={busy}>{busy ? "Saving…" : `Complete & move to ${stageLabel}`}</button>

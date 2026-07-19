@@ -31,6 +31,7 @@ if (candidate.error) throw candidate.error;
 const original = candidate.data;
 const marker = `Pipeline verification ${Date.now()}`;
 let restored = false;
+let operationError;
 try {
   const move = await client.from("admission_leads").update({
     stage: "application",
@@ -44,6 +45,8 @@ try {
   if (move.error) throw move.error;
   if (move.data.stage !== "application" || move.data.probability !== 55 || move.data.next_step !== marker || move.data.owner_id !== session.data.user.id)
     throw new Error("Validated admissions transition did not persist its complete destination state.");
+} catch (error) {
+  operationError = error;
 } finally {
   const rollback = await client.from("admission_leads").update({
     stage: original.stage,
@@ -54,8 +57,10 @@ try {
     owner_id: original.owner_id,
     last_activity_at: original.last_activity_at,
   }).eq("id", original.id);
-  if (rollback.error) throw rollback.error;
-  restored = true;
+  if (rollback.error) operationError = operationError || rollback.error;
+  else restored = true;
 }
+
+if (operationError) throw operationError;
 
 console.log(JSON.stringify({ admissionsRole: true, stageMove: true, requiredFields: true, accountableOwner: true, rollback: restored }));

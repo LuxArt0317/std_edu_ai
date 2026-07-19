@@ -17,9 +17,11 @@ test("admissions cards drag between stages through one validated transition path
 
 test("stage completion collects contacts, next action, and accountable ownership", async () => {
   const app = await source("src/crm/CRMApp.tsx");
+  assert.match(app, /engaged: \["owner", "contact", "nextStep"\]/);
   assert.match(app, /application: \["owner", "email", "phone", "nextStep"\]/);
   assert.match(app, /admitted: \["owner", "email", "phone", "nextStep"\]/);
   assert.match(app, /Assign an accountable owner/);
+  assert.match(app, /Add at least one reliable contact method/);
   assert.match(app, /saveAdmissionLead\(id/);
   assert.match(app, /persistLeadStage\(id, stage, probability\)/);
   assert.match(app, /previous state was restored/);
