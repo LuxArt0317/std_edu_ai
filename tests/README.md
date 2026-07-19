@@ -28,3 +28,5 @@ Academic operations contracts cover student, subject, class, enrollment, and sch
 
 `api/research-foundation.test.ts` and `integration/research-foundation-live.mjs` protect the Issue #104 research system: governed provenance, retrieval privacy, campus graph relationships, pseudonymous study records, explicit Data API privileges, and reversible live production behavior.
 `npm run test:live-workload` runs the reversible Issue #120 production workflow: comparable-window constraints, explicit confirmed resolution, independent review, protected reads, small-cell suppression, descriptive-only reporting, and zero-residue cleanup.
+
+`npm run test:live-ingestion-telemetry` proves retry ceilings, permanent-failure isolation, dead-letter behavior, stale recovery, protected operational reads, exact summary measures, and zero-residue cleanup. `npm run test:live-ingestion-api` exercises the deployed authenticated ingestion endpoint, confirms complete terminal run/attempt telemetry, repeats the same payload to prove document/index idempotency, rejects raw-content telemetry, and removes every fixture.

@@ -1,6 +1,7 @@
 import {createClient} from "@supabase/supabase-js";
 import {canonicalizeHttpsUrl, chunkKnowledgeText, inferKnowledgeLanguage, normalizeKnowledgeText, sha256, type KnowledgeLanguage} from "../server/knowledgePipeline.js";
 import {verifySupabaseRequest} from "../server/apiAuth.js";
+import {classifyProviderFailure,estimatedEmbeddingCost,retryDelayMs,safeTelemetryCode} from "../server/ingestionTelemetry.js";
 
 type ApiRequest = {method?: string; body?: unknown; headers: Record<string, string | string[] | undefined>};
 type ApiResponse = {status: (code: number) => ApiResponse; json: (body: unknown) => void; setHeader: (name: string, value: string) => void};
@@ -16,6 +17,7 @@ const allowedRoles = new Set(["owner","admin","librarian"]);
 const domains = new Set<Domain>(["admissions","enrollment","graduation","academic_rules","programs","administrative_services","student_services","campus_places","faq","other"]);
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const config = {maxDuration: 60};
+const MAX_ATTEMPTS=3;
 
 function header(value: string|string[]|undefined) { return Array.isArray(value) ? value[0] : value; }
 function parse(body: unknown): IngestRequest|null {
@@ -72,12 +74,13 @@ export default async function handler(request: ApiRequest, response: ApiResponse
   let sourceUrl: string;
   try { sourceUrl = canonicalizeHttpsUrl(input.sourceUrl); }
   catch (error) { response.status(400).json({error: error instanceof Error ? error.message : "Invalid source URL."}); return; }
-  const normalizedContent = normalizeKnowledgeText(input.content);
+  const requestStarted=Date.now();const normalizedContent = normalizeKnowledgeText(input.content);
   const chunks = await chunkKnowledgeText(normalizedContent);
   if (!chunks.length) { response.status(400).json({error: "No indexable content remained after normalization."}); return; }
   const contentChecksum = await sha256(normalizedContent);
+  const normalizationFinished=Date.now();
   const client = createClient(supabaseUrl, publishableKey, {global: {headers: {Authorization: authorization}}, auth: {persistSession: false, autoRefreshToken: false}});
-  let runId = "";
+  let runId = "";let documentId="";
   try {
     const source = await client.from("knowledge_sources").select("id,active").eq("id", input.sourceId).single();
     if (source.error || !source.data) throw new Error(source.error?.message || "The governed source does not exist.");
@@ -85,11 +88,14 @@ export default async function handler(request: ApiRequest, response: ApiResponse
     if (existing.error) throw new Error(existing.error.message);
     if (existing.data) { response.status(200).json({status: "deduplicated", documentId: existing.data.id, version: existing.data.version, publicationStatus: existing.data.publication_status, checksum: contentChecksum}); return; }
 
+    const runStarted=Date.now();const model=process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small";
+    const inputTokens=chunks.reduce((sum,chunk)=>sum+chunk.tokenCount,0);const costRate=Math.max(0,Number(process.env.OPENAI_EMBEDDING_COST_PER_MILLION_TOKENS||0));
     const run = await client.from("knowledge_ingestion_runs").insert({
       source_id: input.sourceId, requested_by: auth.user.id, trigger_type: "manual", status: "normalized",
       input_checksum: contentChecksum, output_checksum: contentChecksum, parser_version: "stu-normalizer@1",
-      chunker_version: "stu-deterministic@1", embedding_model: process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small",
-      attempt_count: 1, discovered_count: 1,
+      chunker_version: "stu-deterministic@1", embedding_model: model,
+      attempt_count: 0, max_attempts: MAX_ATTEMPTS, discovered_count: 1, chunk_count: chunks.length, input_token_count: inputTokens,
+      cost_rate_usd_per_million: costRate, cost_estimation_status: costRate>0?"configured":"unconfigured",last_heartbeat_at:new Date().toISOString(),
     }).select("id").single();
     if (run.error || !run.data) throw new Error(run.error?.message || "Could not start ingestion."); runId = run.data.id;
 
@@ -107,22 +113,28 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       metadata: {ingestion_run_id: runId, parser_version: "stu-normalizer@1", chunker_version: "stu-deterministic@1"},
     }).select("id,version").single();
     if (document.error || !document.data) throw new Error(document.error?.message || "Could not create document version.");
+    documentId=document.data.id;
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 40_000);
-    let embeddingPayload: unknown;
-    try {
-      const embeddingResponse = await fetch("https://api.openai.com/v1/embeddings", {
-        method: "POST", headers: {Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json"},
-        body: JSON.stringify({model: process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small", dimensions: 1536, input: chunks.map((chunk) => chunk.content)}),
-        signal: controller.signal,
-      });
-      embeddingPayload = await embeddingResponse.json();
-      if (!embeddingResponse.ok) throw new Error("Embedding provider rejected the indexing request.");
-    } finally { clearTimeout(timeout); }
+    let embeddingPayload: unknown;let providerUsageTokens=inputTokens;let embeddingMs=0;
+    for(let attempt=1;attempt<=MAX_ATTEMPTS;attempt++){
+      const attemptStarted=Date.now();const attemptRow=await client.from("knowledge_ingestion_attempts").insert({run_id:runId,attempt_number:attempt,state:"running",model,chunk_count:chunks.length,input_token_count:inputTokens,normalize_ms:Math.max(0,normalizationFinished-requestStarted)}).select("id").single();
+      if(attemptRow.error||!attemptRow.data)throw new Error(attemptRow.error?.message||"Could not record ingestion attempt.");
+      const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),Math.max(5000,Math.floor(40000/MAX_ATTEMPTS)));let status:number|undefined;let providerRequestHash:string|null=null;
+      try{
+        const embeddingResponse=await fetch("https://api.openai.com/v1/embeddings",{method:"POST",headers:{Authorization:`Bearer ${apiKey}`,"Content-Type":"application/json"},body:JSON.stringify({model,dimensions: 1536,input:chunks.map((chunk)=>chunk.content)}),signal:controller.signal});status=embeddingResponse.status;
+        const requestId=embeddingResponse.headers.get("x-request-id");providerRequestHash=requestId?await sha256(requestId):null;embeddingPayload=await embeddingResponse.json();
+        if(!embeddingResponse.ok){const classified=classifyProviderFailure(status);throw Object.assign(new Error("Embedding provider rejected the indexing request."),classified);}
+        providerUsageTokens=Number((embeddingPayload as {usage?:{total_tokens?:number}}).usage?.total_tokens)||inputTokens;embeddingMs=Date.now()-attemptStarted;
+        const completed=await client.from("knowledge_ingestion_attempts").update({state:"succeeded",finished_at:new Date().toISOString(),embedding_ms:embeddingMs,input_token_count:providerUsageTokens,estimated_cost_usd:estimatedEmbeddingCost(providerUsageTokens,costRate),provider_request_id_hash:providerRequestHash}).eq("id",attemptRow.data.id);if(completed.error)throw completed.error;
+        await client.from("knowledge_ingestion_runs").update({attempt_count:attempt,input_token_count:providerUsageTokens,estimated_cost_usd:estimatedEmbeddingCost(providerUsageTokens,costRate),last_heartbeat_at:new Date().toISOString(),next_retry_at:null}).eq("id",runId);break;
+      }catch(error){const embedded=error as Error&{retryable?:boolean;failureClass?:string;failureCode?:string};const classified=embedded.failureClass?{retryable:Boolean(embedded.retryable),failureClass:embedded.failureClass,failureCode:embedded.failureCode||"PROVIDER_FAILURE"}:classifyProviderFailure(status,embedded);const final=!classified.retryable||attempt===MAX_ATTEMPTS;const delay=final?0:retryDelayMs(attempt);
+        await client.from("knowledge_ingestion_attempts").update({state:final?(classified.retryable?"dead_letter":"permanent_failure"):"transient_failure",failure_class:classified.failureClass,failure_code:safeTelemetryCode(classified.failureCode),finished_at:new Date().toISOString(),embedding_ms:Date.now()-attemptStarted,retry_delay_ms:delay,provider_request_id_hash:providerRequestHash}).eq("id",attemptRow.data.id);
+        await client.from("knowledge_ingestion_runs").update({attempt_count:attempt,last_heartbeat_at:new Date().toISOString(),next_retry_at:final?null:new Date(Date.now()+delay).toISOString(),dead_lettered_at:final&&classified.retryable?new Date().toISOString():null}).eq("id",runId);
+        if(final)throw new Error(classified.retryable?"Embedding service remained unavailable after bounded retries.":"Embedding request was permanently rejected.");await new Promise((resolve)=>setTimeout(resolve,delay));
+      }finally{clearTimeout(timeout);}
+    }
     const vectors = (embeddingPayload as {data?: Array<{index?: number; embedding?: number[]}>}).data;
     if (!Array.isArray(vectors) || vectors.length !== chunks.length) throw new Error("Embedding provider returned an incomplete index.");
-    const model = process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small";
     const chunkRows = chunks.map((chunk, index) => {
       const vector = vectors.find((item) => item.index === index)?.embedding;
       if (!Array.isArray(vector) || vector.length !== 1536) throw new Error("Embedding dimensionality does not match the index.");
@@ -132,10 +144,11 @@ export default async function handler(request: ApiRequest, response: ApiResponse
     if (inserted.error) throw new Error(inserted.error.message);
     const review = await client.from("knowledge_review_events").insert({document_id: document.data.id, actor_profile_id: auth.user.id, action: "submitted", reason: "Submitted through the governed deterministic ingestion pipeline.", before_state: {}, after_state: {review_status: "awaiting_review", publication_status: "draft", chunk_count: chunks.length}});
     if (review.error) throw new Error(review.error.message);
-    await client.from("knowledge_ingestion_runs").update({status: "awaiting_review", published_count: 0, finished_at: new Date().toISOString()}).eq("id", runId);
+    await client.from("knowledge_ingestion_runs").update({status:"awaiting_review",published_count:0,finished_at:new Date().toISOString(),duration_ms:Date.now()-runStarted,input_token_count:providerUsageTokens,estimated_cost_usd:estimatedEmbeddingCost(providerUsageTokens,costRate),chunk_count:chunks.length,next_retry_at:null}).eq("id",runId);
     response.status(201).json({status: "awaiting_review", documentId: document.data.id, version: document.data.version, chunks: chunks.length, checksum: contentChecksum, ingestionRunId: runId});
   } catch (error) {
-    if (runId) await client.from("knowledge_ingestion_runs").update({status: "failed_embedding", failed_count: 1, error_code: "INGESTION_FAILED", error_message: error instanceof Error ? error.message.slice(0, 1000) : "Unknown ingestion failure", finished_at: new Date().toISOString()}).eq("id", runId);
+    if(documentId){await client.from("knowledge_chunks").delete().eq("document_id",documentId);await client.from("knowledge_documents").delete().eq("id",documentId);}
+    if (runId) await client.from("knowledge_ingestion_runs").update({status:"failed_embedding",failed_count:1,error_code:"INGESTION_FAILED",error_message:"The governed ingestion attempt did not reach review. Inspect content-free attempt telemetry.",finished_at:new Date().toISOString(),duration_ms:Math.max(0,Date.now()-normalizationFinished)}).eq("id",runId);
     response.status(502).json({error: error instanceof Error ? error.message : "Knowledge ingestion failed."});
   }
 }

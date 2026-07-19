@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 import {canonicalizeHttpsUrl, chunkKnowledgeText, inferKnowledgeLanguage, normalizeKnowledgeText, sha256} from "../../server/knowledgePipeline.js";
+import {classifyProviderFailure,estimatedEmbeddingCost,retryDelayMs,safeTelemetryCode} from "../../server/ingestionTelemetry.js";
 
 const endpoint = fs.readFileSync("api/knowledge-ingest.ts", "utf8");
 const publication = fs.readFileSync("supabase/migrations/20260719070034_governed_knowledge_publication_rpc.sql", "utf8");
@@ -62,4 +63,13 @@ test("live cleanup is owner-only and structurally restricted to named ingestion 
   assert.match(cleanup, /canonical_url not like 'https:\/\/www\.stu\.edu\.tw\/ingestion\/%'/);
   assert.match(cleanup, /delete from public\.knowledge_review_events/);
   assert.match(cleanup, /revoke all on function public\.purge_knowledge_verification_fixture\(uuid\) from public, anon/);
+});
+
+test("ingestion retries are bounded, classified, content-free, and costed",()=>{
+  assert.deepEqual(classifyProviderFailure(429),{retryable:true,failureClass:"rate_limit",failureCode:"PROVIDER_RATE_LIMIT"});
+  assert.equal(classifyProviderFailure(400).retryable,false);assert.equal(classifyProviderFailure(503).failureClass,"provider_5xx");assert.equal(classifyProviderFailure(undefined,{name:"AbortError"}).failureClass,"timeout");
+  assert.equal(retryDelayMs(2,()=>.5),1000);assert.equal(estimatedEmbeddingCost(1000,0.02),0.00002);assert.equal(safeTelemetryCode("bad secret/message"),"BAD_SECRET_MESSAGE");
+  const telemetry=fs.readFileSync("supabase/migrations/20260719083702_knowledge_ingestion_operational_telemetry.sql","utf8");
+  for(const marker of ["knowledge_ingestion_attempts","Attempt exceeds the configured retry ceiling","Only a transient failure may be retried","dead_letter","durationP50Ms","durationP95Ms","oldestBacklogSeconds","contains no document content, prompts, credentials, or raw provider payloads"])assert.ok(telemetry.includes(marker),`missing telemetry ${marker}`);
+  for(const marker of ["MAX_ATTEMPTS=3","classifyProviderFailure","retryDelayMs","provider_request_id_hash","cost_estimation_status","Inspect content-free attempt telemetry"])assert.ok(endpoint.includes(marker),`endpoint missing telemetry ${marker}`);
 });

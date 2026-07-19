@@ -3592,11 +3592,21 @@ export type Database = {
           },
         ]
       }
+      knowledge_ingestion_attempts: {
+        Row: { attempt_number:number; chunk_count:number; created_at:string; embedding_ms:number; estimated_cost_usd:number; failure_class:string|null; failure_code:string|null; fetch_ms:number; finished_at:string|null; id:string; input_token_count:number; model:string; normalize_ms:number; persistence_ms:number; provider:string; provider_request_id_hash:string|null; retry_delay_ms:number; run_id:string; started_at:string; state:string }
+        Insert: { attempt_number:number; chunk_count?:number; created_at?:string; embedding_ms?:number; estimated_cost_usd?:number; failure_class?:string|null; failure_code?:string|null; fetch_ms?:number; finished_at?:string|null; id?:string; input_token_count?:number; model:string; normalize_ms?:number; persistence_ms?:number; provider?:string; provider_request_id_hash?:string|null; retry_delay_ms?:number; run_id:string; started_at?:string; state:string }
+        Update: { attempt_number?:number; chunk_count?:number; created_at?:string; embedding_ms?:number; estimated_cost_usd?:number; failure_class?:string|null; failure_code?:string|null; fetch_ms?:number; finished_at?:string|null; id?:string; input_token_count?:number; model?:string; normalize_ms?:number; persistence_ms?:number; provider?:string; provider_request_id_hash?:string|null; retry_delay_ms?:number; run_id?:string; started_at?:string; state?:string }
+        Relationships: [{ foreignKeyName:"knowledge_ingestion_attempts_run_id_fkey"; columns:["run_id"]; isOneToOne:false; referencedRelation:"knowledge_ingestion_runs"; referencedColumns:["id"] }]
+      }
       knowledge_ingestion_runs: {
         Row: {
           attempt_count: number
           chunker_version: string | null
+          chunk_count: number
+          cost_estimation_status: string
+          cost_rate_usd_per_million: number
           created_at: string
+          dead_lettered_at: string | null
           discovered_count: number
           duration_ms: number | null
           embedding_model: string | null
@@ -3607,9 +3617,14 @@ export type Database = {
           finished_at: string | null
           id: string
           input_checksum: string | null
+          input_token_count: number
+          last_heartbeat_at: string | null
+          max_attempts: number
+          next_retry_at: string | null
           output_checksum: string | null
           parser_version: string | null
           published_count: number
+          queued_at: string
           requested_by: string | null
           source_id: string
           started_at: string
@@ -3619,7 +3634,11 @@ export type Database = {
         Insert: {
           attempt_count?: number
           chunker_version?: string | null
+          chunk_count?: number
+          cost_estimation_status?: string
+          cost_rate_usd_per_million?: number
           created_at?: string
+          dead_lettered_at?: string | null
           discovered_count?: number
           duration_ms?: number | null
           embedding_model?: string | null
@@ -3630,9 +3649,14 @@ export type Database = {
           finished_at?: string | null
           id?: string
           input_checksum?: string | null
+          input_token_count?: number
+          last_heartbeat_at?: string | null
+          max_attempts?: number
+          next_retry_at?: string | null
           output_checksum?: string | null
           parser_version?: string | null
           published_count?: number
+          queued_at?: string
           requested_by?: string | null
           source_id: string
           started_at?: string
@@ -3642,7 +3666,11 @@ export type Database = {
         Update: {
           attempt_count?: number
           chunker_version?: string | null
+          chunk_count?: number
+          cost_estimation_status?: string
+          cost_rate_usd_per_million?: number
           created_at?: string
+          dead_lettered_at?: string | null
           discovered_count?: number
           duration_ms?: number | null
           embedding_model?: string | null
@@ -3653,9 +3681,14 @@ export type Database = {
           finished_at?: string | null
           id?: string
           input_checksum?: string | null
+          input_token_count?: number
+          last_heartbeat_at?: string | null
+          max_attempts?: number
+          next_retry_at?: string | null
           output_checksum?: string | null
           parser_version?: string | null
           published_count?: number
+          queued_at?: string
           requested_by?: string | null
           source_id?: string
           started_at?: string
@@ -5326,6 +5359,7 @@ export type Database = {
     }
     Functions: {
       administrative_workload_report: { Args: { p_office_code: string; p_study_id: string }; Returns: Json }
+      knowledge_ingestion_operational_summary: { Args: { p_since?: string }; Returns: Json }
       begin_research_participation: {
         Args: { p_consent: boolean; p_familiarity_level: string; p_population_role: string; p_study_code: string; p_study_version_id: string; p_user_agent_family?: string }
         Returns: Json
@@ -5334,6 +5368,7 @@ export type Database = {
       get_research_session: { Args: { p_language?: string; p_token: string }; Returns: Json }
       public_research_study: { Args: { p_language?: string; p_study_code: string }; Returns: Json }
       purge_administrative_workload_fixture: { Args: { p_study_id: string }; Returns: Json }
+      recover_stale_ingestion_runs: { Args: { p_stale_before?: string }; Returns: number }
       research_anonymized_export: { Args: { p_study_id: string }; Returns: Json }
       research_sus_score: { Args: { p_condition: string; p_session_id: string }; Returns: number }
       set_research_session_status: { Args: { p_status: string; p_token: string }; Returns: string }

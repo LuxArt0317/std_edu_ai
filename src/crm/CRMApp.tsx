@@ -3,6 +3,7 @@ import type { CSSProperties, DragEvent, FormEvent, ReactNode } from "react";
 import "./crm.css";
 import { askCrmCopilot } from "./aiService";
 import { WorkloadEvidencePanel } from "../research/WorkloadEvidencePanel";
+import { IngestionHealthPanel } from "../research/IngestionHealthPanel";
 import {
   createKnowledgeArticle,
   crmDataSource,
@@ -1746,6 +1747,7 @@ function CRMApp({
                   </span>
                 </div>
               </div>
+              <IngestionHealthPanel currentUser={currentUser} onMessage={setToast}/>
               <div className="knowledge-list">
                 <div className="list-heading">
                   <div>

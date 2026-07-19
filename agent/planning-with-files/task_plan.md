@@ -10,6 +10,7 @@
 - [x] deploy and validate the connected RLS schema foundation [#117]
 - [ ] freeze protocol/claims and complete approved governance dependencies [#105]
 - [ ] implement authoritative corpus ingestion, review, parsing, chunking, and indexing [#106–#107]
+  - [x] implement bounded retry/dead-letter telemetry, stale recovery, and protected operations evidence [#121]
 - [ ] implement hybrid RAG, citations, abstention, and gold-set evaluation [#108–#109]
 - [ ] implement verified accessible campus routing and the public assistant [#110–#111]
   - [x] implement the deterministic verified-graph router, public directory, and accessible text route [#118]

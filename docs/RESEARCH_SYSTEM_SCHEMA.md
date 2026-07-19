@@ -7,7 +7,9 @@ This is the implementation map for GitHub Issue #104. It connects the public uni
 ```mermaid
 flowchart LR
   Official[Official STU sources] --> Registry[knowledge_sources]
-  Registry --> Documents[knowledge_documents]
+  Registry --> Run[knowledge_ingestion_runs]
+  Run --> AttemptTelemetry[knowledge_ingestion_attempts]
+  Run --> Documents[knowledge_documents]
   Documents --> Chunks[knowledge_chunks]
   Chunks --> Retrieval[ai_retrieval_results]
   Query[ai_queries] --> Retrieval
@@ -52,7 +54,7 @@ flowchart LR
 
 | Domain | Tables | Production responsibility |
 | --- | --- | --- |
-| Source governance | `knowledge_sources`, `knowledge_documents`, `knowledge_review_events`, `knowledge_ingestion_runs` | Allow-listed origins, approval, versioning, freshness, checksum, robots review, ingestion audit |
+| Source governance | `knowledge_sources`, `knowledge_documents`, `knowledge_review_events`, `knowledge_ingestion_runs`, `knowledge_ingestion_attempts` | Allow-listed origins, approval, versioning, freshness, checksum, robots review, bounded retries, dead letters, content-free cost/latency telemetry, and stale-worker recovery |
 | Retrieval | `knowledge_chunks` | Stable citation anchors, language/audience scope, lexical vector and 1,536-dimensional semantic vector |
 | Answer evidence | `ai_queries`, `ai_answers`, `ai_retrieval_results`, `ai_answer_citations`, `ai_feedback` | Query-to-answer trace, ranked evidence, abstention, citations, user feedback |
 | Evaluation | `ai_eval_cases`, `ai_eval_runs`, `ai_eval_results` | Versioned gold cases and reproducible retrieval/answer scorecards |
@@ -82,6 +84,11 @@ flowchart LR
 8. A study cannot recruit through the participant boundary until its selected protocol version is frozen; balanced assignment is serialized per version, and analysis export emits irreversible study-scoped pseudonyms rather than database or production identities.
 9. Administrative workload windows for one office cannot overlap, baseline/pilot durations must match, category totals must reconcile to the governed source count, and a different authorized reviewer must verify the evidence.
 10. An AI answer is never a confirmed resolution. Aggregate observations require an explicit confirmation evidence type/count, remain append-only after entry, and report categories below the approved threshold only as a suppressed cell.
+11. An ingestion attempt cannot exceed its run's retry ceiling, and attempt two or later is valid only after the immediately preceding attempt ended as a transient failure. Permanent failures are never retried; abandoned workers are quarantined rather than silently reported as complete.
+
+## Ingestion operations boundary
+
+Each governed import records deterministic parser/chunker/model versions, terminal status, chunk and token totals, duration, configured-cost state, bounded attempts, privacy-safe failure classification, and a SHA-256 provider request identifier when available. Raw source text, prompts, credentials, provider response bodies, and request identifiers are prohibited from operational telemetry. Owner, administrator, and librarian roles may inspect the 30-day aggregate health summary and quarantine stale work; anonymous and ordinary student accounts cannot read attempt rows or invoke recovery.
 
 ## Administrative workload evidence boundary
 
