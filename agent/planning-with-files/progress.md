@@ -1,11 +1,22 @@
 # Progress
 
+## 2026-07-19 — Issue #101
+
+- Read the captured failed Topic 1 enrichment run. The agent completed two pages, then proposed a page for a stale/deleted material and stopped instead of re-resolving the target and continuing the remaining four materials.
+- Confirmed generated page content can contain raw Markdown in `content_html`, which the Tiptap/HTML lesson reader renders as literal syntax rather than structured headings and lists.
+- Opened Issue #101 for resilient rich-page continuation, approved media-source handling, conversation rename/delete, and compact attachment presentation.
+- Added stale-target validation and same-run refresh/replanning for material-page actions, and corrected the API boundary that had reduced the client run's 32-action allowance back to eight.
+- Added a strict rich-lesson content boundary: model instructions require semantic HTML, the client normalizes before review, and the repository normalizes again before storing. Flattened Markdown headings/lists are converted, unsafe nodes/attributes are removed, and only exact HTTPS image and supported video sources survive.
+- Added durable thread rename/delete controls, valid next-thread restoration, queue/message cascades, and deletion of private `nexus-attachments` objects.
+- Replaced verbose attachment filenames with compact accessible openable tiles and composer image/file previews with icon-only attachment selection.
+- All 109 contracts and the production build pass. The reversible live Issue #101 workflow proved semantic HTML, human instructional framing, authorized inline media, stale-ID recovery, page persistence, thread rename/delete cascade, and private attachment cleanup against production Supabase/OpenAI.
+
 ## 2026-07-19 — Issue #98
 
 - Opened Issue #98 for clearer prospect-card actions and validated drag-and-drop admissions transitions.
 - Confirmed the current board only increments stages through a fixed Advance button and does not validate destination-stage completeness before persisting to `admission_leads`.
 - Added desktop drag/drop across all five stages with visible drop targets and retained the accessible Advance action for keyboard and touch users.
-- Added stage-specific completeness gates for accountable ownership, email, phone, and next action. Missing data opens a focused form, assigns the signed-in operator, persists the full record, and rolls back optimistic UI on failure.
+- Added stage-specific completeness gates: Engaged requires accountable ownership, at least one reliable contact method, and a next action; Application, Review, and Admitted require ownership, email, phone, and next action. Missing data opens a focused form, assigns the signed-in operator, persists the full record, and rolls back optimistic UI on failure.
 - Recolored Advance, Edit, Registrar handoff, and Archive into distinct primary, informational, controlled-handoff, and destructive actions.
 - All 103 contracts, lint, TypeScript/Vite build, assets, and the reversible live admissions-role stage/required-fields/owner/rollback workflow pass.
 - PR #99 and contact-validation hardening PR #100 passed CodeRabbit/Vercel and merged as `39a4348` and `7bbd0ad`.

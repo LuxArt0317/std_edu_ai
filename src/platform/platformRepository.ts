@@ -1,5 +1,6 @@
 import { supabase } from "../utils/supabase";
 import { withTimeout } from "../utils/async";
+import { normalizeLessonHtml } from "./richLessonContent";
 import type { Json, Tables } from "../types/database.generated";
 import type {
   AssessmentAttemptResult,
@@ -790,6 +791,40 @@ export async function createChatThread(title: string): Promise<ChatThread> {
     .single();
   if (error) throw new Error(error.message);
   return { id: data.id, title: data.title, updatedAt: data.updated_at };
+}
+
+export async function renameChatThread(threadId: string, title: string): Promise<ChatThread> {
+  const client = requireClient();
+  const cleanTitle = clean(title, "Conversation name", 120);
+  const { data, error } = await client
+    .from("chat_threads")
+    .update({ title: cleanTitle, updated_at: new Date().toISOString() })
+    .eq("id", threadId)
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return { id: data.id, title: data.title, updatedAt: data.updated_at };
+}
+
+export async function deleteChatThread(threadId: string) {
+  const client = requireClient();
+  const [{ data: messages, error: messageError }, { data: queued, error: queueError }] = await Promise.all([
+    client.from("chat_messages").select("attachments").eq("thread_id", threadId),
+    client.from("nexus_prompt_queue").select("attachments").eq("thread_id", threadId),
+  ]);
+  if (messageError) throw new Error(messageError.message);
+  if (queueError) throw new Error(queueError.message);
+  const paths = [...(messages ?? []), ...(queued ?? [])]
+    .flatMap((row) => Array.isArray(row.attachments) ? row.attachments : [])
+    .flatMap((attachment) => attachment && typeof attachment === "object" && "storagePath" in attachment
+      ? [String(attachment.storagePath)]
+      : []);
+  if (paths.length) {
+    const { error } = await client.storage.from("nexus-attachments").remove([...new Set(paths)]);
+    if (error) throw new Error(`Conversation attachments could not be removed: ${error.message}`);
+  }
+  const { error } = await client.from("chat_threads").delete().eq("id", threadId);
+  if (error) throw new Error(error.message);
 }
 
 export async function loadChatMessages(
@@ -1845,7 +1880,7 @@ export async function createLearningMaterialPage(input: {
   const { error } = await client.from("learning_material_pages").insert({
     material_id: input.materialId,
     title: clean(input.title, "Page title", 180),
-    content_html: input.content.trim().slice(0, 150000),
+    content_html: normalizeLessonHtml(input.content).slice(0, 150000),
     position: input.position,
     created_by: user.user?.id,
   });
@@ -1861,7 +1896,7 @@ export async function updateLearningMaterialPage(
     .from("learning_material_pages")
     .update({
       title: clean(input.title, "Page title", 180),
-      content_html: input.content.trim().slice(0, 150000),
+      content_html: normalizeLessonHtml(input.content).slice(0, 150000),
       ...(input.position ? { position: input.position } : {}),
     })
     .eq("id", pageId);

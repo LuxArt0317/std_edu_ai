@@ -2180,6 +2180,12 @@ textarea {
   background: var(--school-teal-dark);
   cursor: pointer;
 }
+.chat-thread-bar button.chat-thread-action { color: #40665e; border: 1px solid #d6e5e1; background: #f4f9f8; }
+.chat-thread-bar button.chat-thread-action:hover { color: #0f705d; border-color: #a9d3c9; background: #eaf6f3; }
+.chat-thread-bar button.chat-thread-action.destructive:hover { color: #a13f35; border-color: #e8beb8; background: #fff2f0; }
+.chat-thread-bar button:disabled { opacity: .42; cursor: not-allowed; }
+.chat-thread-notice { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 14px; color: #246b5d; border-bottom: 1px solid #cde4de; background: #edf8f5; font-size: 8px; }
+.chat-thread-notice button { padding: 1px 4px; color: inherit; border: 0; background: transparent; cursor: pointer; }
 .nexus-mode-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 7px 14px; border-bottom: 1px solid var(--school-line); background: #f6faf9; }
 .nexus-mode-switch button { display: flex; align-items: baseline; justify-content: center; gap: 5px; padding: 7px; color: #52726b; border: 1px solid transparent; border-radius: 8px; background: transparent; cursor: pointer; }
 .nexus-mode-switch button b { font-size: 9px; }
@@ -2237,9 +2243,12 @@ textarea {
   font-size: 10px;
   line-height: 1.65;
 }
-.chat-message-attachments { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
-.chat-message-attachments span { max-width: 100%; overflow: hidden; padding: 4px 6px; color: #4f6f67; border-radius: 6px; background: #edf5f3; font-size: 7px; text-overflow: ellipsis; white-space: nowrap; }
-.chat-messages article.user .chat-message-attachments span { color: #e6fff8; background: rgb(255 255 255 / 14%); }
+.chat-message-attachments { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.chat-message-attachments button { display: grid; grid-template-rows: 1fr auto; width: 42px; height: 42px; place-items: center; padding: 4px; color: #35685d; border: 1px solid #cce1dc; border-radius: 9px; background: #edf6f4; cursor: pointer; transition: transform .15s ease, border-color .15s ease, background .15s ease; }
+.chat-message-attachments button:hover { border-color: #83bfb1; background: #e2f2ee; transform: translateY(-1px); }
+.chat-message-attachments button > span { font-size: 15px; line-height: 1; }
+.chat-message-attachments button > small { font-size: 5px; letter-spacing: .08em; }
+.chat-messages article.user .chat-message-attachments button { color: #e6fff8; border-color: rgb(255 255 255 / 28%); background: rgb(255 255 255 / 12%); }
 .chat-messages article footer {
   margin-top: 9px;
   display: flex;
@@ -2417,11 +2426,13 @@ textarea {
   border-top: 1px solid var(--school-line);
   background: #fff;
 }
-.nexus-composer-attachments { justify-content: flex-start !important; gap: 5px; margin: 0 0 8px !important; overflow-x: auto; }
-.nexus-composer-attachments > span { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; max-width: 230px; padding: 5px 7px; color: #315c53 !important; border: 1px solid #d2e2de; border-radius: 7px; background: #f3f8f7; font-size: 7px !important; }
-.nexus-composer-attachments > span b { color: #16806c; }
-.nexus-composer-attachments > span button { padding: 0 2px; color: #8f5148; background: transparent; }
-.school-ai-layer form .nexus-attach-button { padding: 4px 6px; margin-right: 5px; color: #176f5f; border: 1px solid #b9d8d1; background: #f4faf8; font-size: 7px; }
+.nexus-composer-attachments { justify-content: flex-start !important; gap: 7px; margin: 0 0 8px !important; overflow-x: auto; }
+.nexus-composer-attachments > span { position: relative; flex: 0 0 auto; display: grid; width: 48px; height: 48px; place-items: center; overflow: visible; color: #176f5f !important; border: 1px solid #c7ded8; border-radius: 10px; background: #edf7f4; font-size: 7px !important; }
+.nexus-composer-attachments > span img { width: 100%; height: 100%; border-radius: 9px; object-fit: cover; }
+.nexus-composer-attachments > span b { color: #16806c; font-size: 7px; letter-spacing: .06em; }
+.nexus-composer-attachments > span button { position: absolute; top: -6px; right: -6px; display: grid; width: 17px; height: 17px; place-items: center; padding: 0; color: #fff; border: 2px solid #fff; border-radius: 50%; background: #8e4f46; font-size: 9px; line-height: 1; }
+.school-ai-layer form .nexus-attach-button { display: inline-grid; width: 27px; height: 27px; place-items: center; padding: 0; margin-right: 6px; color: #176f5f; border: 1px solid #b9d8d1; background: #f4faf8; font-size: 13px; }
+.school-ai-layer form .nexus-attach-button svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .school-ai-layer textarea {
   width: 100%;
   padding: 11px;
@@ -2451,6 +2462,20 @@ textarea {
   font-weight: 800;
   cursor: pointer;
 }
+.nexus-thread-dialog-layer { position: absolute; z-index: 20; inset: 0; display: grid; place-items: center; padding: 18px; background: rgb(10 38 32 / 32%); backdrop-filter: blur(2px); }
+.nexus-thread-dialog { display: grid !important; grid-template-columns: 34px 1fr; gap: 12px; width: min(360px,100%); padding: 18px !important; border: 1px solid #c8ddd8 !important; border-radius: 14px; background: #fff; box-shadow: 0 18px 48px rgb(15 51 43 / 20%); }
+.nexus-thread-dialog > span { display: grid; width: 34px; height: 34px; place-items: center; color: #fff !important; border-radius: 9px; background: #177662; font-size: 15px !important; }
+.nexus-thread-dialog > div { min-width: 0; }
+.nexus-thread-dialog h3 { margin: 2px 0 8px; color: #173f36; font-size: 13px; }
+.nexus-thread-dialog p { margin: 0; color: #5d756f; font-size: 9px; line-height: 1.5; }
+.nexus-thread-dialog label { display: grid; gap: 5px; color: #4f6f67; font-size: 8px; font-weight: 750; }
+.nexus-thread-dialog label > span { color: inherit; font-size: inherit; }
+.nexus-thread-dialog input { width: 100%; padding: 9px 10px; color: #153d34; border: 1px solid #cbdeda; border-radius: 8px; outline: none; font-size: 9px; }
+.nexus-thread-dialog input:focus { border-color: #228d76; box-shadow: 0 0 0 3px rgb(34 141 118 / 12%); }
+.nexus-thread-dialog footer { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 7px; margin-top: 4px; padding-top: 12px; border-top: 1px solid #e0ebe8; }
+.nexus-thread-dialog footer button { min-width: 68px; padding: 7px 10px; color: #42665e; border: 1px solid #cbdeda; border-radius: 8px; background: #fff; font-size: 8px; font-weight: 800; }
+.nexus-thread-dialog footer button:last-child { color: #fff; border-color: #16705e; background: #16705e; }
+.nexus-thread-dialog footer button.destructive { border-color: #a64940; background: #a64940; }
 .chat-action-feedback { display: grid !important; gap: 6px; margin: 8px 0 !important; padding: 9px; border-radius: 9px; background: #eef7f4; }
 .chat-action-feedback label { color: #315c53; font-size: 8px; font-weight: 800; }
 .chat-action-feedback textarea { min-height: 58px; padding: 8px; border: 1px solid #c9ddd8; border-radius: 8px; resize: vertical; font-size: 9px; }

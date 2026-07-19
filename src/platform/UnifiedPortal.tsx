@@ -49,6 +49,8 @@ import {
   updateScheduleEvent,
   deleteScheduleEvent,
   createChatThread,
+  renameChatThread,
+  deleteChatThread,
   createCourseAnnouncement,
   createCourseAssessment,
   createLearningMaterialPage,
@@ -91,11 +93,13 @@ import {
   createInstitutionalInitiative,
   transitionInstitutionalInitiative,
 } from "./platformRepository";
+import { normalizeLessonHtml } from "./richLessonContent";
 import type {
   AssessmentAttemptResult,
   AssessmentReview,
   AuthDirectoryAccount,
   ChatMessage,
+  NexusAttachment,
   NexusPromptQueueItem,
   GradeScanResult,
   PlatformData,
@@ -2611,6 +2615,12 @@ function validateSchoolAiAction(action: SchoolAiAction, data: PlatformData): str
   if (action.type === "create_material" &&
       (!action.moduleId || !data.modules.some((module) => module.id === action.moduleId && module.sectionId === action.sectionId)))
     return "The selected module does not belong to that class section.";
+  if (action.type === "create_material_page" &&
+      (!action.materialId || !data.materials.some((material) => material.id === action.materialId)))
+    return "The proposed material ID is stale or unavailable. Re-resolve the exact material from the refreshed module and material context, then continue the same goal.";
+  if (action.type === "update_material_page" &&
+      (!action.targetId || !data.materialPages.some((page) => page.id === action.targetId)))
+    return "The proposed lesson-page ID is stale or unavailable. Re-resolve the exact page from refreshed context before continuing.";
   if (action.type === "create_program" &&
       (!action.departmentId || !data.departments.some((department) => department.id === action.departmentId && department.status === "active")))
     return "The selected active department does not exist.";
@@ -2670,6 +2680,13 @@ function SchoolAssistant({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [persistenceWarning, setPersistenceWarning] = useState("");
+  const [threadNotice, setThreadNotice] = useState("");
+  const [threadDialog, setThreadDialog] = useState<null | {
+    mode: "rename" | "delete";
+    threadId: string;
+    title: string;
+  }>(null);
+  const [threadActionBusy, setThreadActionBusy] = useState(false);
   const [pendingAction, setPendingAction] = useState<SchoolAiAction | null>(
     null,
   );
@@ -2761,6 +2778,78 @@ function SchoolAssistant({
     void appendChatMessage(activeThread, "assistant", content, citations);
   }
 
+  async function saveThreadRename(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!threadDialog || threadDialog.mode !== "rename" || threadActionBusy) return;
+    const title = threadDialog.title.trim();
+    if (!title) {
+      setError("Enter a conversation name.");
+      return;
+    }
+    setThreadActionBusy(true);
+    setError("");
+    try {
+      await renameChatThread(threadDialog.threadId, title);
+      await onDataChanged();
+      setThreadDialog(null);
+      setThreadNotice("Conversation renamed.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Conversation could not be renamed.");
+    } finally {
+      setThreadActionBusy(false);
+    }
+  }
+
+  async function removeThread() {
+    if (!threadDialog || threadDialog.mode !== "delete" || threadActionBusy) return;
+    setThreadActionBusy(true);
+    setError("");
+    try {
+      const removedId = threadDialog.threadId;
+      await deleteChatThread(removedId);
+      const nextId = [...data.threads]
+        .filter((thread) => thread.id !== removedId)
+        .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime())[0]?.id ?? "";
+      if (threadId === removedId) {
+        setThreadId(nextId);
+        setMessages([]);
+        try {
+          if (nextId) window.localStorage.setItem(lastThreadKey, nextId);
+          else window.localStorage.removeItem(lastThreadKey);
+        } catch {
+          // Remote conversation state remains authoritative.
+        }
+      }
+      setQueuedPrompts((current) => current.filter((item) => item.threadId !== removedId));
+      await onDataChanged();
+      setThreadDialog(null);
+      setThreadNotice("Conversation deleted.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Conversation could not be deleted.");
+    } finally {
+      setThreadActionBusy(false);
+    }
+  }
+
+  async function openMessageAttachment(attachment: NexusAttachment) {
+    setError("");
+    try {
+      const [file] = await downloadNexusAttachments([attachment]);
+      if (!file) throw new Error("The attachment is unavailable.");
+      const url = URL.createObjectURL(file);
+      const target = window.open(url, "_blank", "noopener,noreferrer");
+      if (!target) {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = file.name;
+        link.click();
+      }
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Attachment could not be opened.");
+    }
+  }
+
   async function advanceAgent(
     run: SchoolAgentRun,
     activeThread: string,
@@ -2812,7 +2901,10 @@ function SchoolAssistant({
         });
         return;
       }
-      const action = answer.proposedAction;
+      const proposed = answer.proposedAction;
+      const action: SchoolAiAction = proposed.type === "create_material_page" || proposed.type === "update_material_page"
+        ? { ...proposed, content: normalizeLessonHtml(proposed.content) }
+        : proposed;
       const rejectedProposal = rejectedProposalRef.current;
       if (rejectedProposal && actionFingerprint(action) === rejectedProposal.fingerprint) {
         const unchanged = addAgentObservation(decided, {
@@ -3154,7 +3246,25 @@ function SchoolAssistant({
       }
     } else if (action.type === "create_material_page") {
       if (!material || !action.materialId) {
-        stopAsImpossible("That learning material is no longer available.");
+        setPendingAction(null);
+        setActivity({ state: "refreshing", label: "The material reference changed. Refreshing and replanning the same goal…" });
+        const refreshedData = (await onDataChanged()) ?? data;
+        if (agentRun && threadId) {
+          const replanning = addAgentObservation(
+            { ...agentRun, status: "working" },
+            {
+              step: agentRun.step,
+              actionType: action.type,
+              outcome: "error",
+              summary: `The proposed material ID ${action.materialId || "(missing)"} is stale or deleted. Re-resolve the intended material by its module and title from refreshed context, preserve the remaining page plan, and continue without repeating successful pages.`,
+            },
+            action,
+          );
+          setAgentRun(replanning);
+          await advanceAgent(replanning, threadId, refreshedData);
+        } else {
+          setError("The lesson changed before this page was saved. Ask Nexus to retry against the refreshed material list.");
+        }
         return;
       }
     } else if (
@@ -3350,10 +3460,12 @@ function SchoolAssistant({
           materialId: action.materialId!,
           title: action.title,
           content: action.content,
-          position:
-            data.materialPages.filter(
-              (item) => item.materialId === action.materialId,
-            ).length + 1,
+          position: Math.max(
+            0,
+            ...data.materialPages
+              .filter((item) => item.materialId === action.materialId)
+              .map((item) => item.position),
+          ) + 1,
         });
       if (action.type === "update_material_page")
         await updateLearningMaterialPage(action.targetId!, {
@@ -3550,6 +3662,35 @@ function SchoolAssistant({
           </select>
           <button
             type="button"
+            className="chat-thread-action"
+            aria-label="Rename conversation"
+            title="Rename conversation"
+            disabled={!threadId || loading || Boolean(pendingAction)}
+            onClick={() => {
+              const thread = data.threads.find((item) => item.id === threadId);
+              if (thread) setThreadDialog({ mode: "rename", threadId, title: thread.title });
+            }}
+          >
+            <span aria-hidden="true">✎</span>
+          </button>
+          <button
+            type="button"
+            className="chat-thread-action destructive"
+            aria-label="Delete conversation"
+            title={loading || pendingAction ? "Finish or cancel the active work before deleting" : "Delete conversation"}
+            disabled={!threadId || loading || Boolean(pendingAction)}
+            onClick={() => {
+              const thread = data.threads.find((item) => item.id === threadId);
+              if (thread) setThreadDialog({ mode: "delete", threadId, title: thread.title });
+            }}
+          >
+            <span aria-hidden="true">⌫</span>
+          </button>
+          <button
+            type="button"
+            className="chat-thread-new"
+            aria-label="Start a new conversation"
+            title="New conversation"
             onClick={() => {
               activeRunId.current = "";
               rejectedProposalRef.current = null;
@@ -3562,6 +3703,7 @@ function SchoolAssistant({
             +
           </button>
         </div>
+        {threadNotice ? <div className="chat-thread-notice" role="status">{threadNotice}<button type="button" aria-label="Dismiss" onClick={() => setThreadNotice("")}>×</button></div> : null}
         <div className="nexus-mode-switch" role="group" aria-label="Nexus assistant mode">
           <button type="button" className={assistantMode==="qa"?"active":""} aria-pressed={assistantMode==="qa"} onClick={()=>setAssistantMode("qa")}><b>Ask</b><small>Answers only</small></button>
           <button type="button" className={assistantMode==="agentic"?"active":""} aria-pressed={assistantMode==="agentic"} onClick={()=>setAssistantMode("agentic")}><b>Agentic</b><small>Can prepare actions</small></button>
@@ -3582,7 +3724,7 @@ function SchoolAssistant({
                 <div>
                   {item.role === "assistant" ? <small className="chat-sender-name">Nexus</small> : null}
                   <p>{item.content}</p>
-                  {item.attachments.length?<div className="chat-message-attachments">{item.attachments.map((attachment)=><span key={attachment.storagePath}>{attachment.mimeType.startsWith("image/")?"▧":"▤"} {attachment.name}</span>)}</div>:null}
+                  {item.attachments.length?<div className="chat-message-attachments">{item.attachments.map((attachment)=><button type="button" key={attachment.storagePath} title={attachment.name} aria-label={`Open attachment ${attachment.name}`} className={attachment.mimeType.startsWith("image/")?"image":"file"} onClick={()=>void openMessageAttachment(attachment)}><span aria-hidden="true">{attachment.mimeType.startsWith("image/")?"▧":"▤"}</span><small>{attachment.name.split(".").pop()?.slice(0,4).toUpperCase() || "FILE"}</small></button>)}</div>:null}
                   {item.citations.length ? (
                     <footer>
                       {item.citations.map((citation) => (
@@ -3725,7 +3867,7 @@ function SchoolAssistant({
           </section>
         ) : null}
         <form onSubmit={send}>
-          {composerAttachments.length?<div className="nexus-composer-attachments">{composerAttachments.map(({file},index)=><span key={`${file.name}-${file.lastModified}`}><b>{file.type.startsWith("image/")?"Image":"File"}</b>{file.name}<button type="button" aria-label={`Remove ${file.name}`} onClick={()=>setComposerAttachments((current)=>current.filter((_,itemIndex)=>itemIndex!==index))}>×</button></span>)}</div>:null}
+          {composerAttachments.length?<div className="nexus-composer-attachments" aria-label="Selected attachments">{composerAttachments.map(({file,input},index)=><span key={`${file.name}-${file.lastModified}`} title={file.name}>{file.type.startsWith("image/")?<img src={input.dataUrl} alt=""/>:<b aria-hidden="true">{file.name.split(".").pop()?.slice(0,4).toUpperCase() || "FILE"}</b>}<button type="button" aria-label={`Remove ${file.name}`} title={`Remove ${file.name}`} onClick={()=>setComposerAttachments((current)=>current.filter((_,itemIndex)=>itemIndex!==index))}>×</button></span>)}</div>:null}
           <textarea
             rows={3}
             value={message}
@@ -3743,13 +3885,24 @@ function SchoolAssistant({
             placeholder="Message Nexus AI…"
           />
           <div>
-            <span><button type="button" className="nexus-attach-button" onClick={()=>attachmentInputRef.current?.click()} aria-label="Attach images or files">＋ Attach</button> Enter to send · Shift+Enter for a new line</span>
+            <span><button type="button" className="nexus-attach-button" onClick={()=>attachmentInputRef.current?.click()} aria-label="Attach images or files" title="Attach images or files"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 17.5 17 10a3.5 3.5 0 0 0-5-5l-8 8a5 5 0 0 0 7 7l8.5-8.5"/></svg></button> Enter to send · Shift+Enter for a new line</span>
             <input ref={attachmentInputRef} className="sr-only" type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,text/csv,application/json,text/markdown,.md" onChange={(event)=>void selectComposerAttachments(event)}/>
             <button type="submit" disabled={!message.trim()&&!composerAttachments.length}>
               {loading||pendingAction?"Queue →":"Send →"}
             </button>
           </div>
         </form>
+        {threadDialog ? <div className="nexus-thread-dialog-layer" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!threadActionBusy)setThreadDialog(null);}}><form className="nexus-thread-dialog" role="dialog" aria-modal="true" aria-labelledby="nexus-thread-dialog-title" onSubmit={saveThreadRename}>
+          <span aria-hidden="true">{threadDialog.mode === "rename" ? "✎" : "⌫"}</span>
+          <div>
+            <h3 id="nexus-thread-dialog-title">{threadDialog.mode === "rename" ? "Rename conversation" : "Delete conversation?"}</h3>
+            {threadDialog.mode === "rename" ? <label><span>Conversation name</span><input value={threadDialog.title} maxLength={120} autoFocus onChange={(event)=>setThreadDialog({...threadDialog,title:event.target.value})}/></label> : <p>“{threadDialog.title}” and its messages and attachments will be permanently deleted.</p>}
+          </div>
+          <footer>
+            <button type="button" disabled={threadActionBusy} onClick={()=>setThreadDialog(null)}>Cancel</button>
+            {threadDialog.mode === "rename" ? <button type="submit" disabled={threadActionBusy || !threadDialog.title.trim()}>{threadActionBusy ? "Saving…" : "Save"}</button> : <button type="button" className="destructive" disabled={threadActionBusy} onClick={()=>void removeThread()}>{threadActionBusy ? "Deleting…" : "Delete"}</button>}
+          </footer>
+        </form></div> : null}
       </aside>
     </div>
   );
