@@ -26,3 +26,9 @@ test("protected UI exposes SLO, incident ownership, and manual evidence boundary
   const ui=fs.readFileSync("src/research/ResearchOperationsPanel.tsx","utf8");
   for(const marker of ["Versioned service objectives","Measured 24-hour service evidence","Active alerts","Acknowledge","Resolve after verification","VoiceOver, NVDA, TalkBack"]){assert.ok(ui.includes(marker),marker);}
 });
+
+test("research analysis RPCs explicitly deny anonymous execution",()=>{
+  const migration=fs.readFileSync("supabase/migrations/20260719124500_research_rpc_least_privilege.sql","utf8");
+  for(const name of ["research_sus_score(uuid,text)","research_anonymized_export(uuid)"]) assert.match(migration,new RegExp(`revoke execute on function public\\.${name.replace(/[()]/g,"\\$&")} from public,anon`));
+  assert.match(migration,/grant execute[\s\S]*to authenticated,service_role/);
+});
