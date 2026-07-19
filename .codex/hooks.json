@@ -1,0 +1,30 @@
+{
+  "description": "Keep the Issue #104 research-completion epic active until every child issue and measurable evidence gate is verified.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/issue104_completion_guard.mjs\" session",
+            "statusMessage": "Loading Issue #104 completion evidence",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/issue104_completion_guard.mjs\" stop",
+            "statusMessage": "Validating Issue #104 completion evidence",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "parentIssue": 104,
+  "updatedAt": "2026-07-19T00:00:00Z",
+  "workPackages": [
+    {"key":"WP0","issue":105,"title":"Research scope and protocol","issueState":"open","measures":[
+      {"id":"claims-traceability","description":"Every research claim maps to evidence","metric":"mapped claims / total claims","target":"100%","status":"pending","evidence":[]},
+      {"id":"protocol-freeze","description":"Study protocol and analysis plan are versioned and frozen","metric":"approved frozen protocol versions","target":"1 or more","status":"pending","evidence":[]},
+      {"id":"ethics-review","description":"Advisor or institutional research requirements are confirmed","metric":"documented approval or required-action record","target":"complete","status":"external","externalOwner":"research advisor / institution","externalDependency":"Confirm ethics, consent, recruitment, and retention requirements","evidence":[]}
+    ]},
+    {"key":"WP1","issue":106,"title":"Authoritative corpus","issueState":"open","measures":[
+      {"id":"domain-coverage","description":"Required knowledge domains have owned official sources","metric":"covered domains / required domains","target":"100%","status":"pending","evidence":[]},
+      {"id":"publication-metadata","description":"Published items contain complete governance metadata","metric":"valid published items / all published items","target":"100%","status":"pending","evidence":[]},
+      {"id":"corpus-leakage","description":"Ineligible documents never enter public retrieval","metric":"draft/private/expired leakage cases","target":"0","status":"pending","evidence":[]}
+    ]},
+    {"key":"WP2","issue":107,"title":"Ingestion and indexing","issueState":"open","measures":[
+      {"id":"determinism","description":"Identical input creates identical chunks without duplicates","metric":"deterministic fixture pass rate","target":"100%","status":"pending","evidence":[]},
+      {"id":"atomic-index","description":"Index publication and rollback are atomic","metric":"partial or mixed public versions","target":"0","status":"pending","evidence":[]},
+      {"id":"pipeline-observability","description":"Pipeline versions, latency, cost, retries, and failures are recorded","metric":"required telemetry fields present","target":"100%","status":"pending","evidence":[]}
+    ]},
+    {"key":"WP3","issue":108,"title":"Hybrid RAG","issueState":"open","measures":[
+      {"id":"claim-citations","description":"Material answer claims resolve to eligible chunks","metric":"supported material claims / material claims","target":">= 98%","status":"pending","evidence":[]},
+      {"id":"safe-abstention","description":"Missing, conflicting, stale, and private evidence causes safe handling","metric":"correct abstention/escalation rate","target":">= 90%","status":"pending","evidence":[]},
+      {"id":"policy-separation","description":"Public and authenticated retrieval/action boundaries are isolated","metric":"unauthorized public reads or mutations","target":"0","status":"pending","evidence":[]}
+    ]},
+    {"key":"WP4","issue":109,"title":"RAG evaluation","issueState":"open","measures":[
+      {"id":"gold-set","description":"Independently reviewed bilingual gold cases cover every domain and failure class","metric":"approved cases","target":">= 150","status":"pending","evidence":[]},
+      {"id":"retrieval-quality","description":"Retrieval meets frozen ranking gates","metric":"Recall@5 overall / critical-domain minimum / MRR","target":">= .90 / >= .85 / >= .80","status":"pending","evidence":[]},
+      {"id":"answer-quality","description":"Answers meet correctness, citation, and unsupported-claim gates","metric":"correctness / citation precision / completeness / unsupported claims","target":">= .90 / >= .95 / >= .90 / <= .02","status":"pending","evidence":[]},
+      {"id":"zero-leakage","description":"Private and expired sources never appear","metric":"leakage cases","target":"0","status":"pending","evidence":[]}
+    ]},
+    {"key":"WP5","issue":110,"title":"Campus navigation","issueState":"open","measures":[
+      {"id":"place-coverage","description":"Campus inventory has provenance and verification metadata","metric":"verified required places / required places","target":"100%","status":"pending","evidence":[]},
+      {"id":"route-correctness","description":"Representative routes match verified on-campus paths","metric":"walkthrough-correct routes / sampled routes","target":"100%","status":"external","externalOwner":"STU campus validator","externalDependency":"Physically validate representative routes and accessibility constraints","evidence":[]},
+      {"id":"accessible-route-ui","description":"Every map route has an accessible text equivalent","metric":"route flows passing keyboard and screen-reader review","target":"100%","status":"pending","evidence":[]}
+    ]},
+    {"key":"WP6","issue":111,"title":"Public research assistant","issueState":"open","measures":[
+      {"id":"public-flow","description":"Bilingual public answer, citation, navigation, handoff, and feedback flows work","metric":"required production journeys passed","target":"100%","status":"pending","evidence":[]},
+      {"id":"mutation-boundary","description":"Public assistant cannot mutate protected records","metric":"successful unauthorized mutations","target":"0","status":"pending","evidence":[]},
+      {"id":"production-quality","description":"Accessibility, performance, responsive, and failure-state budgets pass","metric":"critical release gate failures","target":"0","status":"pending","evidence":[]}
+    ]},
+    {"key":"WP7","issue":112,"title":"Research study platform","issueState":"open","measures":[
+      {"id":"consent-separation","description":"Consent identity and response evidence are separated and governed","metric":"privacy/RLS failures","target":"0","status":"pending","evidence":[]},
+      {"id":"counterbalance","description":"Assignments are reproducible and balanced","metric":"assignment imbalance beyond protocol tolerance","target":"0","status":"pending","evidence":[]},
+      {"id":"study-e2e","description":"Synthetic participant completes consent, tasks, measures, withdrawal, and anonymous export","metric":"required E2E stages passed","target":"100%","status":"pending","evidence":[]}
+    ]},
+    {"key":"WP8","issue":113,"title":"Administrative workload","issueState":"open","measures":[
+      {"id":"confirmed-resolution","description":"Deflection requires explicit resolution evidence","metric":"unconfirmed interactions counted as deflected","target":"0","status":"pending","evidence":[]},
+      {"id":"workload-comparison","description":"Comparable baseline and pilot workload report exists","metric":"required metrics with uncertainty and caveats","target":"100%","status":"external","externalOwner":"STU administrative pilot owners","externalDependency":"Provide comparable baseline/pilot operational observations","evidence":[]},
+      {"id":"aggregate-privacy","description":"Workload analytics are privacy-minimized","metric":"PII or unsafe small-cell disclosures","target":"0","status":"pending","evidence":[]}
+    ]},
+    {"key":"WP9","issue":114,"title":"Production hardening","issueState":"open","measures":[
+      {"id":"wcag","description":"Complete public research flows meet WCAG 2.2 AA","metric":"critical AA or assistive-technology blockers","target":"0","status":"pending","evidence":[]},
+      {"id":"ai-security","description":"Adversarial source/query and RLS suite prevents leakage and injection impact","metric":"critical security failures","target":"0","status":"pending","evidence":[]},
+      {"id":"operations","description":"SLOs, monitoring, alerts, runbooks, rollback, and failure drills exist","metric":"required operational controls verified","target":"100%","status":"pending","evidence":[]}
+    ]},
+    {"key":"WP10","issue":115,"title":"Study execution and evidence","issueState":"open","measures":[
+      {"id":"primary-study","description":"Approved primary study is executed on frozen versions","metric":"completed approved study","target":"1","status":"external","externalOwner":"research team and participants","externalDependency":"Recruit participants and execute the approved study","evidence":[]},
+      {"id":"reproducible-analysis","description":"Locked anonymous export reproduces reported statistics and figures","metric":"reconciliation differences","target":"0","status":"pending","evidence":[]},
+      {"id":"research-claims","description":"Every final claim links measured evidence and limitations","metric":"unsupported achieved claims","target":"0","status":"pending","evidence":[]}
+    ]},
+    {"key":"CTRL","issue":116,"title":"Codex completion controller","issueState":"open","measures":[
+      {"id":"hook-config","description":"Trusted project SessionStart and Stop hooks invoke the guard","metric":"configured lifecycle events","target":"2","status":"in_progress","evidence":[]},
+      {"id":"fail-closed","description":"Missing, malformed, incomplete, and falsely closed evidence fails closed","metric":"guard fixture pass rate","target":"100%","status":"in_progress","evidence":[]},
+      {"id":"external-reporting","description":"External-only gates are reported without false completion or infinite local loop","metric":"external fixture pass rate","target":"100%","status":"in_progress","evidence":[]},
+      {"id":"real-ledger","description":"Real ledger includes every child issue and measurable gate","metric":"mapped child issues","target":"12 / 12","status":"in_progress","evidence":[]}
+    ]}
+  ]
+}
