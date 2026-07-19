@@ -1,3 +1,6 @@
 # Server utilities
 
-This folder contains server-only helpers shared by Vercel API functions. `apiAuth.js` is a directly traceable Node ESM runtime module; `apiAuth.d.ts` supplies its strict TypeScript contract. It validates bearer sessions against Supabase Auth and derives trusted roles from `app_metadata`; browser-supplied role claims are never trusted.
+This folder contains server-only Node ESM helpers shared by Vercel API functions. Runtime helpers use `.js` files so Vercel packages them with each function; matching `.d.ts` files provide strict TypeScript contracts.
+
+- `apiAuth.js` validates bearer sessions against Supabase Auth and derives trusted roles from `app_metadata`; browser-supplied role claims are never trusted.
+- `knowledgePipeline.js` normalizes, fingerprints, chunks, canonicalizes, and classifies governed corpus content deterministically.

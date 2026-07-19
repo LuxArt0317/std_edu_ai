@@ -1,5 +1,5 @@
 import {createHash} from "node:crypto";
-import {inferKnowledgeLanguage} from "../src/research/knowledgePipeline.ts";
+import {inferKnowledgeLanguage} from "../server/knowledgePipeline.js";
 
 type ApiRequest = {method?: string; body?: unknown; headers: Record<string,string|string[]|undefined>; socket?: {remoteAddress?: string}};
 type ApiResponse = {status: (code:number)=>ApiResponse; json:(body:unknown)=>void; setHeader:(name:string,value:string)=>void};

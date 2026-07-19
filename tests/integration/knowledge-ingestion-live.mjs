@@ -2,7 +2,7 @@ import {spawnSync} from "node:child_process";
 import fs from "node:fs";
 import {createClient} from "@supabase/supabase-js";
 import researchAssistant from "../../api/research-assistant.ts";
-import {chunkKnowledgeText, sha256} from "../../src/research/knowledgePipeline.ts";
+import {chunkKnowledgeText, sha256} from "../../server/knowledgePipeline.js";
 
 function env(path) {
   if (!fs.existsSync(path)) return {};
