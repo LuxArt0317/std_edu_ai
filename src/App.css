@@ -541,3 +541,5 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+.campus-route-result > header > div > span { color: #176b5c; }
