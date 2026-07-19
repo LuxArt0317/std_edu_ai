@@ -1,0 +1,36 @@
+export type RetrievalMetrics = { recallAtK: number; precisionAtK: number; reciprocalRank: number; ndcg: number };
+export type EvaluationObservation = {
+  expectedEvidenceCount: number;
+  recallAtK: number;
+  reciprocalRank: number;
+  ndcg: number;
+  citationPrecision: number;
+  citationCompleteness: number;
+  supportedCorrectness: number;
+  unsupportedClaims: number;
+  materialClaims: number;
+  abstentionCorrect: boolean;
+  leakage: boolean;
+  latencyMs: number;
+  costUsd: number;
+};
+export type EvaluationSummary = {
+  caseCount: number;
+  recallAt5: number | null;
+  mrr: number | null;
+  ndcg: number | null;
+  citationPrecision: number | null;
+  citationCompleteness: number | null;
+  supportedCorrectness: number | null;
+  unsupportedClaimRate: number;
+  abstentionAccuracy: number | null;
+  leakageCount: number;
+  p50LatencyMs: number;
+  p95LatencyMs: number;
+  estimatedCostUsd: number;
+};
+export function retrievalMetrics(input:{expected?:string[];retrieved?:string[];k?:number}):RetrievalMetrics;
+export function citationMetrics(input:{expected?:string[]; cited?:string[]}):{supported:number;total:number;precision:number;completeness:number};
+export function percentile(values:number[],p:number):number;
+export function summarizeEvaluation(results:EvaluationObservation[]):EvaluationSummary;
+export function passesResearchGates(metrics:EvaluationSummary):boolean;

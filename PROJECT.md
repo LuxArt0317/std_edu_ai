@@ -32,6 +32,7 @@ It demonstrates:
 - automated API contracts plus live owner-protection, cross-role RLS, onboarding evidence, quiz, grade-privacy, CRM, and OpenAI vision/chat validation
 - a research-grade governed corpus workspace with SSRF-safe official URL acquisition, server-safe bounded HTML/PDF/Markdown/text parsing, exact heading/page locators, deterministic embedded chunks, version review, publication, quarantine, and rollback
 - atomic privacy-safe public RAG traces, deterministic authoritative-source conflict handoff, opaque one-use answer feedback, and a protected content-free reviewer dashboard
+- versioned RAG evaluation datasets with two independent non-author approvals per case, >=150-case ordinary freeze, immutable evidence, deterministic scorecards, segmented regression reports, and protected JSON/CSV exports
 
 For setup and run instructions, see [SETUP.md](./SETUP.md). The authoritative scope and acceptance contract is [PRODUCT_REQUIREMENTS.md](./PRODUCT_REQUIREMENTS.md). For detailed capabilities and authorization, see [src/crm/PORTAL_GUIDE.md](./src/crm/PORTAL_GUIDE.md) and [src/platform/ROLE_MATRIX.md](./src/platform/ROLE_MATRIX.md).
 

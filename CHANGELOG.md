@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added Issue #124's production RAG evaluation control plane: checksummed dataset versions, two-reviewer author-independent case approval, immutable frozen evidence, deterministic retrieval/citation/answer/abstention/leakage/latency/cost scoring, protected segmented reports, regression exports, and a guarded synthetic lifecycle that cannot satisfy the real 150-case research gate.
 - Added Issue #123's atomic privacy-safe public RAG trace, retrieval, and citation persistence; deterministic same-policy authoritative conflict handoff; opaque expiring session-bound one-use feedback; compact public feedback controls; and protected content-free reviewer metrics.
 - Extended guarded verification cleanup to remove connected synthetic AI evidence before cited fixture chunks. The production workflow proved one connected answer trace, cross-session denial, replay denial, reviewer-only reporting, one trace purged, and zero residual AI traces.
 - Released the public AI evidence flow as production deployment `dpl_Aka1cszfGnpGZNZiBUA1XUy4Hcfk`; both application shells, eight recursively referenced assets, the deployed answer capability, and matching-session feedback submission pass on `www.stu.best`.

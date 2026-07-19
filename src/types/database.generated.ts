@@ -347,9 +347,27 @@ export type Database = {
           window_type?: string
         }
         Relationships: [
-          { foreignKeyName: "administrative_workload_windows_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
-          { foreignKeyName: "administrative_workload_windows_study_id_fkey"; columns: ["study_id"]; isOneToOne: false; referencedRelation: "research_studies"; referencedColumns: ["id"] },
-          { foreignKeyName: "administrative_workload_windows_verified_by_fkey"; columns: ["verified_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          {
+            foreignKeyName: "administrative_workload_windows_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "administrative_workload_windows_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "research_studies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "administrative_workload_windows_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       admission_handoffs: {
@@ -642,53 +660,237 @@ export type Database = {
           },
         ]
       }
+      ai_eval_case_reviews: {
+        Row: {
+          case_id: string
+          created_at: string
+          decision: string
+          evidence_accuracy: number
+          id: string
+          notes: string
+          reviewer_id: string
+          rubric_clarity: number
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          decision: string
+          evidence_accuracy: number
+          id?: string
+          notes: string
+          reviewer_id: string
+          rubric_clarity: number
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          decision?: string
+          evidence_accuracy?: number
+          id?: string
+          notes?: string
+          reviewer_id?: string
+          rubric_clarity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_eval_case_reviews_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "ai_eval_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_eval_case_reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_eval_cases: {
         Row: {
           active: boolean
+          author_id: string | null
+          case_checksum: string | null
           case_key: string
+          critical: boolean
+          dataset_version_id: string | null
           domain: string
           expect_abstention: boolean
           expected_chunk_ids: string[]
           expected_claims: Json
+          expected_terminal_state: string
+          failure_class: string
+          forbidden_chunk_ids: string[]
           id: string
           language: string
+          lifecycle_status: string
           query: string
-          reviewed_at: string
-          reviewed_by: string
+          reviewed_at: string | null
+          reviewed_by: string | null
           rubric: Json
+          updated_at: string
         }
         Insert: {
           active?: boolean
+          author_id?: string | null
+          case_checksum?: string | null
           case_key: string
+          critical?: boolean
+          dataset_version_id?: string | null
           domain: string
           expect_abstention?: boolean
           expected_chunk_ids?: string[]
           expected_claims?: Json
+          expected_terminal_state?: string
+          failure_class?: string
+          forbidden_chunk_ids?: string[]
           id?: string
           language: string
+          lifecycle_status?: string
           query: string
-          reviewed_at: string
-          reviewed_by: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           rubric?: Json
+          updated_at?: string
         }
         Update: {
           active?: boolean
+          author_id?: string | null
+          case_checksum?: string | null
           case_key?: string
+          critical?: boolean
+          dataset_version_id?: string | null
           domain?: string
           expect_abstention?: boolean
           expected_chunk_ids?: string[]
           expected_claims?: Json
+          expected_terminal_state?: string
+          failure_class?: string
+          forbidden_chunk_ids?: string[]
           id?: string
           language?: string
+          lifecycle_status?: string
           query?: string
-          reviewed_at?: string
-          reviewed_by?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           rubric?: Json
+          updated_at?: string
         }
         Relationships: [
           {
+            foreignKeyName: "ai_eval_cases_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_eval_cases_dataset_version_id_fkey"
+            columns: ["dataset_version_id"]
+            isOneToOne: false
+            referencedRelation: "ai_eval_dataset_versions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ai_eval_cases_reviewed_by_fkey"
             columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_eval_dataset_versions: {
+        Row: {
+          checksum: string | null
+          coverage: Json
+          created_at: string
+          dataset_id: string
+          frozen_at: string | null
+          frozen_by: string | null
+          id: string
+          required_case_count: number
+          status: string
+          version: number
+        }
+        Insert: {
+          checksum?: string | null
+          coverage?: Json
+          created_at?: string
+          dataset_id: string
+          frozen_at?: string | null
+          frozen_by?: string | null
+          id?: string
+          required_case_count?: number
+          status?: string
+          version: number
+        }
+        Update: {
+          checksum?: string | null
+          coverage?: Json
+          created_at?: string
+          dataset_id?: string
+          frozen_at?: string | null
+          frozen_by?: string | null
+          id?: string
+          required_case_count?: number
+          status?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_eval_dataset_versions_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "ai_eval_datasets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_eval_dataset_versions_frozen_by_fkey"
+            columns: ["frozen_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_eval_datasets: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          is_fixture: boolean
+          name: string
+          owner_profile_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          is_fixture?: boolean
+          name: string
+          owner_profile_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          is_fixture?: boolean
+          name?: string
+          owner_profile_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_eval_datasets_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -699,53 +901,92 @@ export type Database = {
         Row: {
           abstention_correct: boolean | null
           answer_id: string | null
+          bilingual_equivalence: number | null
           case_id: string
           citation_completeness: number | null
           citation_precision: number | null
+          citation_supported_count: number
+          citation_total_count: number
+          contradiction_correct: boolean | null
           correctness: number | null
           estimated_cost_usd: number | null
+          evaluator_version: string | null
+          expected_citation_count: number
           groundedness: number | null
           id: string
           latency_ms: number | null
+          material_claims: number
           ndcg: number
+          precision_at_k: number | null
+          private_or_expired_leakage: boolean
+          recall_at_k: number | null
           reciprocal_rank: number
           retrieved_chunk_ids: string[]
           reviewer_notes: string | null
           run_id: string
+          scored_at: string
+          supported_answer_correctness: number | null
+          unsupported_material_claims: number
         }
         Insert: {
           abstention_correct?: boolean | null
           answer_id?: string | null
+          bilingual_equivalence?: number | null
           case_id: string
           citation_completeness?: number | null
           citation_precision?: number | null
+          citation_supported_count?: number
+          citation_total_count?: number
+          contradiction_correct?: boolean | null
           correctness?: number | null
           estimated_cost_usd?: number | null
+          evaluator_version?: string | null
+          expected_citation_count?: number
           groundedness?: number | null
           id?: string
           latency_ms?: number | null
+          material_claims?: number
           ndcg?: number
+          precision_at_k?: number | null
+          private_or_expired_leakage?: boolean
+          recall_at_k?: number | null
           reciprocal_rank?: number
           retrieved_chunk_ids?: string[]
           reviewer_notes?: string | null
           run_id: string
+          scored_at?: string
+          supported_answer_correctness?: number | null
+          unsupported_material_claims?: number
         }
         Update: {
           abstention_correct?: boolean | null
           answer_id?: string | null
+          bilingual_equivalence?: number | null
           case_id?: string
           citation_completeness?: number | null
           citation_precision?: number | null
+          citation_supported_count?: number
+          citation_total_count?: number
+          contradiction_correct?: boolean | null
           correctness?: number | null
           estimated_cost_usd?: number | null
+          evaluator_version?: string | null
+          expected_citation_count?: number
           groundedness?: number | null
           id?: string
           latency_ms?: number | null
+          material_claims?: number
           ndcg?: number
+          precision_at_k?: number | null
+          private_or_expired_leakage?: boolean
+          recall_at_k?: number | null
           reciprocal_rank?: number
           retrieved_chunk_ids?: string[]
           reviewer_notes?: string | null
           run_id?: string
+          scored_at?: string
+          supported_answer_correctness?: number | null
+          unsupported_material_claims?: number
         }
         Relationships: [
           {
@@ -773,9 +1014,15 @@ export type Database = {
       }
       ai_eval_runs: {
         Row: {
+          baseline_run_id: string | null
+          configuration_checksum: string | null
           corpus_version: string
           created_at: string
+          dataset_version_id: string | null
+          evaluator_version: string | null
+          failure_message: string | null
           finished_at: string | null
+          gate_status: string
           id: string
           metrics: Json
           model: string
@@ -784,11 +1031,18 @@ export type Database = {
           retriever_version: string
           started_at: string | null
           status: string
+          top_k: number
         }
         Insert: {
+          baseline_run_id?: string | null
+          configuration_checksum?: string | null
           corpus_version: string
           created_at?: string
+          dataset_version_id?: string | null
+          evaluator_version?: string | null
+          failure_message?: string | null
           finished_at?: string | null
+          gate_status?: string
           id?: string
           metrics?: Json
           model: string
@@ -797,11 +1051,18 @@ export type Database = {
           retriever_version: string
           started_at?: string | null
           status?: string
+          top_k?: number
         }
         Update: {
+          baseline_run_id?: string | null
+          configuration_checksum?: string | null
           corpus_version?: string
           created_at?: string
+          dataset_version_id?: string | null
+          evaluator_version?: string | null
+          failure_message?: string | null
           finished_at?: string | null
+          gate_status?: string
           id?: string
           metrics?: Json
           model?: string
@@ -810,8 +1071,23 @@ export type Database = {
           retriever_version?: string
           started_at?: string | null
           status?: string
+          top_k?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "ai_eval_runs_baseline_run_id_fkey"
+            columns: ["baseline_run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_eval_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_eval_runs_dataset_version_id_fkey"
+            columns: ["dataset_version_id"]
+            isOneToOne: false
+            referencedRelation: "ai_eval_dataset_versions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ai_eval_runs_requested_by_fkey"
             columns: ["requested_by"]
@@ -3593,16 +3869,87 @@ export type Database = {
         ]
       }
       knowledge_ingestion_attempts: {
-        Row: { attempt_number:number; chunk_count:number; created_at:string; embedding_ms:number; estimated_cost_usd:number; failure_class:string|null; failure_code:string|null; fetch_ms:number; finished_at:string|null; id:string; input_token_count:number; model:string; normalize_ms:number; persistence_ms:number; provider:string; provider_request_id_hash:string|null; retry_delay_ms:number; run_id:string; started_at:string; state:string }
-        Insert: { attempt_number:number; chunk_count?:number; created_at?:string; embedding_ms?:number; estimated_cost_usd?:number; failure_class?:string|null; failure_code?:string|null; fetch_ms?:number; finished_at?:string|null; id?:string; input_token_count?:number; model:string; normalize_ms?:number; persistence_ms?:number; provider?:string; provider_request_id_hash?:string|null; retry_delay_ms?:number; run_id:string; started_at?:string; state:string }
-        Update: { attempt_number?:number; chunk_count?:number; created_at?:string; embedding_ms?:number; estimated_cost_usd?:number; failure_class?:string|null; failure_code?:string|null; fetch_ms?:number; finished_at?:string|null; id?:string; input_token_count?:number; model?:string; normalize_ms?:number; persistence_ms?:number; provider?:string; provider_request_id_hash?:string|null; retry_delay_ms?:number; run_id?:string; started_at?:string; state?:string }
-        Relationships: [{ foreignKeyName:"knowledge_ingestion_attempts_run_id_fkey"; columns:["run_id"]; isOneToOne:false; referencedRelation:"knowledge_ingestion_runs"; referencedColumns:["id"] }]
+        Row: {
+          attempt_number: number
+          chunk_count: number
+          created_at: string
+          embedding_ms: number
+          estimated_cost_usd: number
+          failure_class: string | null
+          failure_code: string | null
+          fetch_ms: number
+          finished_at: string | null
+          id: string
+          input_token_count: number
+          model: string
+          normalize_ms: number
+          persistence_ms: number
+          provider: string
+          provider_request_id_hash: string | null
+          retry_delay_ms: number
+          run_id: string
+          started_at: string
+          state: string
+        }
+        Insert: {
+          attempt_number: number
+          chunk_count?: number
+          created_at?: string
+          embedding_ms?: number
+          estimated_cost_usd?: number
+          failure_class?: string | null
+          failure_code?: string | null
+          fetch_ms?: number
+          finished_at?: string | null
+          id?: string
+          input_token_count?: number
+          model: string
+          normalize_ms?: number
+          persistence_ms?: number
+          provider?: string
+          provider_request_id_hash?: string | null
+          retry_delay_ms?: number
+          run_id: string
+          started_at?: string
+          state: string
+        }
+        Update: {
+          attempt_number?: number
+          chunk_count?: number
+          created_at?: string
+          embedding_ms?: number
+          estimated_cost_usd?: number
+          failure_class?: string | null
+          failure_code?: string | null
+          fetch_ms?: number
+          finished_at?: string | null
+          id?: string
+          input_token_count?: number
+          model?: string
+          normalize_ms?: number
+          persistence_ms?: number
+          provider?: string
+          provider_request_id_hash?: string | null
+          retry_delay_ms?: number
+          run_id?: string
+          started_at?: string
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_ingestion_attempts_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_ingestion_runs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       knowledge_ingestion_runs: {
         Row: {
           attempt_count: number
-          chunker_version: string | null
           chunk_count: number
+          chunker_version: string | null
           cost_estimation_status: string
           cost_rate_usd_per_million: number
           created_at: string
@@ -3633,8 +3980,8 @@ export type Database = {
         }
         Insert: {
           attempt_count?: number
-          chunker_version?: string | null
           chunk_count?: number
+          chunker_version?: string | null
           cost_estimation_status?: string
           cost_rate_usd_per_million?: number
           created_at?: string
@@ -3665,8 +4012,8 @@ export type Database = {
         }
         Update: {
           attempt_count?: number
-          chunker_version?: string | null
           chunk_count?: number
+          chunker_version?: string | null
           cost_estimation_status?: string
           cost_rate_usd_per_million?: number
           created_at?: string
@@ -5358,40 +5705,19 @@ export type Database = {
       }
     }
     Functions: {
-      administrative_workload_report: { Args: { p_office_code: string; p_study_id: string }; Returns: Json }
-      public_ai_trace_report: {
-        Args: { p_days?: number }
-        Returns: {
-          query_id: string
-          created_at: string
-          language: string
-          terminal_state: string
-          latency_ms: number
-          retrieval_count: number
-          citation_count: number
-          helpful: boolean | null
-          resolved_need: boolean | null
-          correction_category: string | null
-        }[]
-      }
-      knowledge_ingestion_operational_summary: { Args: { p_since?: string }; Returns: Json }
-      begin_research_participation: {
-        Args: { p_consent: boolean; p_familiarity_level: string; p_population_role: string; p_study_code: string; p_study_version_id: string; p_user_agent_family?: string }
+      administrative_workload_report: {
+        Args: { p_office_code: string; p_study_id: string }
         Returns: Json
       }
-      complete_research_session: { Args: { p_token: string }; Returns: boolean }
-      get_research_session: { Args: { p_language?: string; p_token: string }; Returns: Json }
-      public_research_study: { Args: { p_language?: string; p_study_code: string }; Returns: Json }
-      purge_administrative_workload_fixture: { Args: { p_study_id: string }; Returns: Json }
-      recover_stale_ingestion_runs: { Args: { p_stale_before?: string }; Returns: number }
-      review_knowledge_document: { Args: { p_decision: string; p_document_id: string; p_reason: string }; Returns: Json }
-      research_anonymized_export: { Args: { p_study_id: string }; Returns: Json }
-      research_sus_score: { Args: { p_condition: string; p_session_id: string }; Returns: number }
-      set_research_session_status: { Args: { p_status: string; p_token: string }; Returns: string }
-      submit_research_attempt: { Args: { p_condition: string; p_metrics: Json; p_task_id: string; p_token: string }; Returns: string }
-      submit_research_response: { Args: { p_condition: string; p_item_id: string; p_numeric_value?: number; p_text_value?: string; p_token: string }; Returns: string }
-      withdraw_research_participation: { Args: { p_delete_now?: boolean; p_token: string }; Returns: boolean }
-      verify_administrative_workload_window: { Args: { p_decision: string; p_window_id: string }; Returns: undefined }
+      ai_eval_report: {
+        Args: { p_run_id: string }
+        Returns: {
+          case_count: number
+          dimension: string
+          metrics: Json
+          section: string
+        }[]
+      }
       approve_and_send_campaign: {
         Args: { p_campaign_id: string; p_reason: string }
         Returns: {
@@ -5453,6 +5779,17 @@ export type Database = {
           role: string
         }[]
       }
+      begin_research_participation: {
+        Args: {
+          p_consent: boolean
+          p_familiarity_level: string
+          p_population_role: string
+          p_study_code: string
+          p_study_version_id: string
+          p_user_agent_family?: string
+        }
+        Returns: Json
+      }
       claim_initial_admin: { Args: never; Returns: boolean }
       close_academic_term: {
         Args: { p_reason: string; p_term_id: string }
@@ -5475,6 +5812,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      complete_research_session: { Args: { p_token: string }; Returns: boolean }
       correct_published_grade: {
         Args: {
           p_feedback: string
@@ -5584,6 +5922,19 @@ export type Database = {
         Args: { p_plan_id: string; p_reason: string }
         Returns: Json
       }
+      finalize_ai_eval_run: { Args: { p_run_id: string }; Returns: Json }
+      freeze_ai_eval_dataset: {
+        Args: { p_fixture_override?: boolean; p_version_id: string }
+        Returns: Json
+      }
+      get_research_session: {
+        Args: { p_language?: string; p_token: string }
+        Returns: Json
+      }
+      knowledge_ingestion_operational_summary: {
+        Args: { p_since?: string }
+        Returns: Json
+      }
       manage_section_enrollment: {
         Args: { p_section_id: string; p_status?: string; p_student_id: string }
         Returns: {
@@ -5630,6 +5981,25 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      public_ai_trace_report: {
+        Args: { p_days?: number }
+        Returns: {
+          citation_count: number
+          correction_category: string
+          created_at: string
+          helpful: boolean
+          language: string
+          latency_ms: number
+          query_id: string
+          resolved_need: boolean
+          retrieval_count: number
+          terminal_state: string
+        }[]
+      }
+      public_research_study: {
+        Args: { p_language?: string; p_study_code: string }
+        Returns: Json
+      }
       publish_final_grade: {
         Args: { p_grade_id: string; p_reason: string }
         Returns: {
@@ -5657,6 +6027,11 @@ export type Database = {
         Args: { p_document_id: string; p_reason: string }
         Returns: Json
       }
+      purge_administrative_workload_fixture: {
+        Args: { p_study_id: string }
+        Returns: Json
+      }
+      purge_ai_eval_fixture: { Args: { p_dataset_id: string }; Returns: Json }
       purge_knowledge_verification_fixture: {
         Args: { p_source_id: string }
         Returns: Json
@@ -5692,9 +6067,52 @@ export type Database = {
         Args: { p_assessment_id: string }
         Returns: Json
       }
+      record_ai_eval_result: {
+        Args: {
+          p_answer_id: string
+          p_bilingual_equivalence: number
+          p_case_id: string
+          p_cited_chunk_ids: string[]
+          p_contradiction_correct: boolean
+          p_estimated_cost_usd: number
+          p_latency_ms: number
+          p_material_claims: number
+          p_retrieved_chunk_ids: string[]
+          p_reviewer_notes?: string
+          p_run_id: string
+          p_supported_answer_correctness: number
+          p_unsupported_material_claims: number
+        }
+        Returns: string
+      }
+      record_public_ai_exchange: {
+        Args: {
+          p_answer_text: string
+          p_citations: Json
+          p_corpus_version: string
+          p_language: string
+          p_latency_ms: number
+          p_model: string
+          p_prompt_version: string
+          p_query_hash: string
+          p_retrieval: Json
+          p_retriever_version: string
+          p_session_hash: string
+          p_terminal_state: string
+        }
+        Returns: {
+          answer_id: string
+          feedback_expires_at: string
+          feedback_token: string
+        }[]
+      }
       record_sensitive_case_access: {
         Args: { p_case_id: string; p_purpose: string }
         Returns: undefined
+      }
+      recover_stale_ingestion_runs: {
+        Args: { p_stale_before?: string }
+        Returns: number
       }
       remove_profile_section_assignment: {
         Args: { p_assignment_id: string; p_reason: string }
@@ -5720,6 +6138,28 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      research_anonymized_export: {
+        Args: { p_study_id: string }
+        Returns: Json
+      }
+      research_sus_score: {
+        Args: { p_condition: string; p_session_id: string }
+        Returns: number
+      }
+      review_ai_eval_case: {
+        Args: {
+          p_case_id: string
+          p_decision: string
+          p_evidence_accuracy: number
+          p_notes: string
+          p_rubric_clarity: number
+        }
+        Returns: Json
+      }
+      review_knowledge_document: {
+        Args: { p_decision: string; p_document_id: string; p_reason: string }
+        Returns: Json
       }
       revoke_platform_sessions: {
         Args: {
@@ -5763,6 +6203,23 @@ export type Database = {
           vector_score: number
         }[]
       }
+      set_research_session_status: {
+        Args: { p_status: string; p_token: string }
+        Returns: string
+      }
+      start_ai_eval_run: {
+        Args: {
+          p_baseline_run_id?: string
+          p_corpus_version: string
+          p_dataset_version_id: string
+          p_evaluator_version: string
+          p_model: string
+          p_prompt_version: string
+          p_retriever_version: string
+          p_top_k?: number
+        }
+        Returns: string
+      }
       submit_assessment: {
         Args: { p_answers: Json; p_assessment_id: string }
         Returns: {
@@ -5771,6 +6228,36 @@ export type Database = {
           score: number
           status: string
         }[]
+      }
+      submit_public_ai_feedback: {
+        Args: {
+          p_comment?: string
+          p_correction_category?: string
+          p_feedback_token: string
+          p_helpful: boolean
+          p_resolved_need?: boolean
+          p_session_hash: string
+        }
+        Returns: string
+      }
+      submit_research_attempt: {
+        Args: {
+          p_condition: string
+          p_metrics: Json
+          p_task_id: string
+          p_token: string
+        }
+        Returns: string
+      }
+      submit_research_response: {
+        Args: {
+          p_condition: string
+          p_item_id: string
+          p_numeric_value?: number
+          p_text_value?: string
+          p_token: string
+        }
+        Returns: string
       }
       sync_campaign_recipients: {
         Args: { p_campaign_id: string; p_student_ids?: string[] }
@@ -5902,6 +6389,14 @@ export type Database = {
           p_type: string
         }
         Returns: string
+      }
+      verify_administrative_workload_window: {
+        Args: { p_decision: string; p_window_id: string }
+        Returns: undefined
+      }
+      withdraw_research_participation: {
+        Args: { p_delete_now?: boolean; p_token: string }
+        Returns: boolean
       }
       withdraw_student_record: {
         Args: { p_reason: string; p_student_id: string }

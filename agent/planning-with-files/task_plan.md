@@ -14,6 +14,8 @@
   - [x] implement governed HTTPS/HTML/PDF/file acquisition and the version review workspace [#122]
   - [x] implement atomic privacy-safe public traces, deterministic conflict handoff, one-use feedback, protected reviewer reporting, and reversible evidence cleanup [#123]
 - [ ] implement hybrid RAG, citations, abstention, and gold-set evaluation [#108–#109]
+  - [x] implement immutable dataset versions, independent case review, deterministic scoring, regression reports, and protected reviewer controls [#124]
+  - [ ] author and independently approve the real >=150-case bilingual/adversarial gold set [#109 external research evidence]
 - [ ] implement verified accessible campus routing and the public assistant [#110–#111]
   - [x] implement the deterministic verified-graph router, public directory, and accessible text route [#118]
   - [ ] populate and physically validate the official STU campus inventory [#110 external evidence]

@@ -8,5 +8,6 @@ This folder contains the participant-facing frozen study runner and the protecte
 - `IngestionHealthPanel.tsx` exposes reviewer-only, content-free pipeline health, bounded retry/dead-letter counts, latency/cost totals, and stale-run quarantine.
 - `GovernedKnowledgeWorkspace.tsx` and `knowledgeGovernanceService.ts` provide source registry CRUD, URL/file acquisition, source date preservation, version/chunk preview, metadata review, publication, change request, rejection, quarantine, lineage, rollback, and audit history for owner/admin/librarian operators.
 - `PublicAiEvidencePanel.tsx` provides owner/admin/librarian reviewers with 30-day content-free answer, citation, handoff, feedback, and latency evidence. It never displays raw questions, IP addresses, user agents, or provider payloads.
+- `RagEvaluationPanel.tsx` is the protected Issue #124 evaluation control plane for dataset/version creation, gold-case authoring, two-reviewer approval, freeze readiness, version-pinned runs, deterministic observation import, threshold reports, breakdowns, and reproducible JSON/CSV export. Its fixture workflow is explicitly synthetic and cannot satisfy the real >=150-case gate.
 
 Human outcomes remain external evidence. Synthetic tests prove platform behavior only.

@@ -57,7 +57,7 @@ flowchart LR
 | Source governance | `knowledge_sources`, `knowledge_documents`, `knowledge_review_events`, `knowledge_ingestion_runs`, `knowledge_ingestion_attempts` | Allow-listed origins, approval, versioning, freshness, checksum, robots review, bounded retries, dead letters, content-free cost/latency telemetry, and stale-worker recovery |
 | Retrieval | `knowledge_chunks` | Stable citation anchors, language/audience scope, lexical vector and 1,536-dimensional semantic vector |
 | Answer evidence | `ai_queries`, `ai_answers`, `ai_retrieval_results`, `ai_answer_citations`, `ai_feedback` | Query-to-answer trace, ranked evidence, abstention, citations, user feedback |
-| Evaluation | `ai_eval_cases`, `ai_eval_runs`, `ai_eval_results` | Versioned gold cases and reproducible retrieval/answer scorecards |
+| Evaluation | `ai_eval_datasets`, `ai_eval_dataset_versions`, `ai_eval_cases`, `ai_eval_case_reviews`, `ai_eval_runs`, `ai_eval_results` | Checksummed frozen datasets, independently approved gold cases, immutable version-pinned runs, deterministic scorecards, segmented reports, and regression gates |
 | Campus graph | `campus_sites`, `campus_buildings`, `campus_floors`, `campus_places`, `campus_place_aliases`, `campus_nodes`, `campus_edges`, `campus_service_hours` | Searchable destinations, multilingual aliases, accessible routing edges, service availability |
 | Human study | `research_studies`, `research_study_versions`, `research_participants`, `research_participant_tokens`, `research_consent_records`, `research_tasks`, `research_sessions`, `research_task_attempts`, `research_questionnaires`, `research_questionnaire_items`, `research_responses` | Frozen protocol, pseudonymous participation, hash-only revocable access, consent, counterbalanced task outcomes, questionnaires, SUS and anonymized export |
 | Workload | `administrative_workload_windows`, `administrative_inquiry_metrics` | Governed baseline/pilot windows, aggregate inquiry counts, explicit resolution evidence, handling-time totals, independent review, and privacy-safe reporting |
@@ -79,7 +79,7 @@ flowchart LR
 3. Campus edges join valid graph nodes and carry accessibility constraints, distance, operating windows, closure state, and reviewed forward/reverse directions. The public router excludes unverified records before deterministic path selection.
 4. An attempt joins one protocol-versioned session to one defined task.
 5. A questionnaire response joins a session, questionnaire, and item from the study model.
-6. Evaluation results belong to both a run and a versioned gold case.
+6. Evaluation results belong to both a version-pinned run and an eligible case in its frozen checksummed dataset. A case cannot become eligible without two distinct approvals from reviewers other than its author; frozen cases, reviews, terminal runs, and results are immutable.
 7. Protected research and retrieval data is not exposed to the anonymous Data API role.
 8. A study cannot recruit through the participant boundary until its selected protocol version is frozen; balanced assignment is serialized per version, and analysis export emits irreversible study-scoped pseudonyms rather than database or production identities.
 9. Administrative workload windows for one office cannot overlap, baseline/pilot durations must match, category totals must reconcile to the governed source count, and a different authorized reviewer must verify the evidence.

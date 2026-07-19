@@ -7,3 +7,5 @@ Node's built-in test runner validates server endpoints, recovery contracts, prov
 `integrated-lms.test.ts` protects the LMS tables, RLS, private files, enrollment/score integrity, and full teacher/student workflow surface.
 
 `research-assistant.test.ts` protects synchronous trace persistence, retrieval/citation identity, deterministic conflict handoff, abstention, and fabricated-citation failure. `research-feedback.test.ts` protects input bounds, session hashing, one-use database rejection, private capability storage, protected reporting, and trace-before-corpus fixture cleanup.
+
+`rag-evaluation.test.ts` reconciles perfect/displaced/duplicate/abstention retrieval vectors, citation precision/completeness, ranking-only MRR aggregation, threshold decisions, independent-review/freeze/immutability schema markers, and the complete protected reviewer UI lifecycle.
