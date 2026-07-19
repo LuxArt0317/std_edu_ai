@@ -2180,6 +2180,11 @@ textarea {
   background: var(--school-teal-dark);
   cursor: pointer;
 }
+.nexus-mode-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 7px 14px; border-bottom: 1px solid var(--school-line); background: #f6faf9; }
+.nexus-mode-switch button { display: flex; align-items: baseline; justify-content: center; gap: 5px; padding: 7px; color: #52726b; border: 1px solid transparent; border-radius: 8px; background: transparent; cursor: pointer; }
+.nexus-mode-switch button b { font-size: 9px; }
+.nexus-mode-switch button small { font-size: 7px; }
+.nexus-mode-switch button.active { color: #155e50; border-color: #a9d4ca; background: #fff; box-shadow: 0 3px 10px rgb(17 85 70 / 7%); }
 .chat-messages {
   flex: 1;
   overflow-y: auto;
@@ -2232,6 +2237,9 @@ textarea {
   font-size: 10px;
   line-height: 1.65;
 }
+.chat-message-attachments { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+.chat-message-attachments span { max-width: 100%; overflow: hidden; padding: 4px 6px; color: #4f6f67; border-radius: 6px; background: #edf5f3; font-size: 7px; text-overflow: ellipsis; white-space: nowrap; }
+.chat-messages article.user .chat-message-attachments span { color: #e6fff8; background: rgb(255 255 255 / 14%); }
 .chat-messages article footer {
   margin-top: 9px;
   display: flex;
@@ -2314,6 +2322,15 @@ textarea {
   font-size: 9px;
 }
 .chat-warning { margin: 0 16px 10px; padding: 9px 11px; color: #755b24; border-radius: 9px; background: #fff5d8; font-size: .76rem; }
+.nexus-queue { max-height: 112px; margin: 0 13px 8px; padding: 8px; overflow-y: auto; border: 1px solid #c9ddd8; border-radius: 10px; background: #fff; }
+.nexus-queue > header { display: flex; justify-content: space-between; color: #315f56; font-size: 8px; }
+.nexus-queue > header small { color: #78908b; }
+.nexus-queue article { display: grid; grid-template-columns: 18px minmax(0,1fr) auto; gap: 6px; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid #edf2f1; }
+.nexus-queue article > span { display: grid; place-items: center; width: 18px; height: 18px; color: #18715f; border-radius: 50%; background: #e4f4f0; font-size: 7px; font-weight: 800; }
+.nexus-queue article div { min-width: 0; display: grid; }
+.nexus-queue article b { overflow: hidden; color: #294f47; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.nexus-queue article small { color: #77908a; font-size: 7px; }
+.nexus-queue article button { border: 0; color: #8b5e57; background: transparent; cursor: pointer; }
 
 .chat-agent-run {
   width: 100%;
@@ -2400,6 +2417,11 @@ textarea {
   border-top: 1px solid var(--school-line);
   background: #fff;
 }
+.nexus-composer-attachments { justify-content: flex-start !important; gap: 5px; margin: 0 0 8px !important; overflow-x: auto; }
+.nexus-composer-attachments > span { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; max-width: 230px; padding: 5px 7px; color: #315c53 !important; border: 1px solid #d2e2de; border-radius: 7px; background: #f3f8f7; font-size: 7px !important; }
+.nexus-composer-attachments > span b { color: #16806c; }
+.nexus-composer-attachments > span button { padding: 0 2px; color: #8f5148; background: transparent; }
+.school-ai-layer form .nexus-attach-button { padding: 4px 6px; margin-right: 5px; color: #176f5f; border: 1px solid #b9d8d1; background: #f4faf8; font-size: 7px; }
 .school-ai-layer textarea {
   width: 100%;
   padding: 11px;
@@ -5110,6 +5132,8 @@ textarea {
 .curriculum-library > header h3 { margin: 4px 0; color: #173f37; }
 .curriculum-library > header p { max-width: 720px; margin: 0; color: #638078; font-size: .8rem; }
 .curriculum-library > header button { flex: none; padding: 9px 12px; color: #176b5b; border: 1px solid #a9d2c9; border-radius: 9px; background: #f6fbfa; font-weight: 750; cursor: pointer; }
+.curriculum-header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.curriculum-library button.primary,.program-context-actions button.primary,.relationship-missing button.primary { color: #fff; border-color: #147c6b; background: #147c6b; }
 .curriculum-plan-card { padding: 20px; border: 1px solid #cbded9; border-radius: 18px; background: #fff; box-shadow: 0 14px 35px rgb(19 72 62 / 7%); }
 .curriculum-plan-title { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; border-bottom: 1px solid #e0ebe8; }
 .curriculum-plan-title h4 { margin: 4px 0 0; color: #173f37; font-size: 1.05rem; }
@@ -5132,6 +5156,7 @@ textarea {
 .curriculum-card-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; align-items: center; }
 .curriculum-card-actions b { flex-basis: 100%; text-align: right; }
 .curriculum-card-actions button { border: 1px solid #b7d5cf; border-radius: 10px; background: #fff; color: #176c5e; padding: 8px 11px; font-weight: 750; cursor: pointer; }
+.curriculum-card-actions button.danger { color: #9a4035; border-color: #e2bdb7; background: #fff8f6; }
 .curriculum-editor { display: grid; gap: 20px; padding: 20px; max-height: min(76vh,900px); overflow: auto; }
 .curriculum-editor-meta { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
 .curriculum-editor-meta label { display: grid; gap: 6px; color: #58736e; font-weight: 700; }
@@ -5142,6 +5167,10 @@ textarea {
 .curriculum-editor-section > header { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 14px 16px; background: #f0f8f6; }
 .curriculum-editor-section > header span { color: #13806e; font-size: .72rem; letter-spacing: .12em; font-weight: 800; }
 .curriculum-editor-section > header h3 { margin: 3px 0 0; }
+.curriculum-editor-section > header p { max-width: 540px; margin: 4px 0 0; color: #648078; font-size: .68rem; }
+.curriculum-add-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: end; gap: 7px; }
+.curriculum-add-actions label { display: grid; gap: 3px; min-width: 250px; }
+.curriculum-add-actions label > span { letter-spacing: .02em; text-transform: none; }
 .curriculum-editor button { border: 0; border-radius: 9px; background: #147c6b; color: #fff; padding: 9px 12px; font-weight: 750; cursor: pointer; }
 .curriculum-editor button.danger { background: #fff0ed; color: #a43b2e; }
 .curriculum-editor button:disabled { opacity: .5; cursor: not-allowed; }
@@ -5175,6 +5204,7 @@ textarea {
 .program-context-actions button,.subject-connection-actions button,.section-connection-actions button,.relationship-missing button,.academic-link-button { padding: 7px 9px; color: #176b5b; border: 1px solid #afd3ca; border-radius: 8px; background: #fff; font-size: .67rem; font-weight: 750; cursor: pointer; }
 .curriculum-plan-title small { display: block; margin-top: 4px; color: #6d8580; font-size: .62rem; }
 .relationship-missing { border: 1px dashed #d1a867; background: #fffaf0; }
+.relationship-missing > div { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .subject-grid article footer { align-items: flex-start; flex-direction: column; gap: 4px; }
 .subject-grid article footer small { text-align: left; }
 .academic-link-button { text-align: left; }
@@ -5193,6 +5223,26 @@ textarea {
 .lms-image-input {
   display: none !important;
 }
+
+.role-capability-modal { width: min(720px,calc(100vw - 28px)); }
+.role-capability-form { gap: 0; }
+.role-capability-picker { display: grid; gap: 16px; padding: 22px; }
+.role-capability-picker > label { color: #355f56; font-weight: 800; }
+.capability-combobox { position: relative; }
+.capability-combobox > input { width: 100%; padding: 12px 14px; color: #173f37; border: 1px solid #bcd8d2; border-radius: 11px; background: #fff; }
+.capability-combobox [role="listbox"] { position: absolute; z-index: 3; top: calc(100% + 5px); left: 0; right: 0; max-height: 245px; padding: 6px; overflow-y: auto; border: 1px solid #c5dcd7; border-radius: 11px; background: #fff; box-shadow: 0 14px 35px rgb(12 65 54 / 17%); }
+.capability-combobox [role="option"] { width: 100%; display: flex; justify-content: space-between; padding: 9px 10px; color: #28554c; border: 0; border-radius: 7px; background: transparent; text-align: left; cursor: pointer; }
+.capability-combobox [role="option"]:hover,.capability-combobox [role="option"]:focus { background: #edf8f5; }
+.capability-combobox [role="option"] b { text-transform: capitalize; }
+.capability-combobox [role="option"] small,.capability-no-results { color: #75908a; }
+.capability-no-results { padding: 9px; font-size: .75rem; }
+.role-capability-picker > section { padding: 14px; border: 1px solid #d4e4e0; border-radius: 13px; background: #f7fbfa; }
+.role-capability-picker > section > header { display: flex; justify-content: space-between; margin-bottom: 10px; color: #315e55; }
+.role-capability-picker > section > div { display: flex; flex-wrap: wrap; gap: 7px; }
+.role-capability-picker > section button { padding: 7px 9px; color: #176b5b; border: 1px solid #afd3ca; border-radius: 99px; background: #fff; text-transform: capitalize; cursor: pointer; }
+.role-capability-picker > section button span:first-of-type { margin-left: 4px; color: #9a5146; }
+.role-capability-form > footer > div { display: flex; gap: 8px; }
+.role-capability-form button.secondary { color: #315e55; border: 1px solid #bdd7d1; background: #fff; }
 .lms-content-image {
   display: block;
   max-width: 100%;

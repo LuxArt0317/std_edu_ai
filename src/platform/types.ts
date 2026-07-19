@@ -398,12 +398,29 @@ export type AssessmentAttempt = AssessmentAttemptResult & {
 };
 
 export type ChatThread = { id: string; title: string; updatedAt: string };
+export type NexusAttachment = {
+  name: string;
+  mimeType: string;
+  size: number;
+  storagePath: string;
+};
 export type ChatMessage = {
   id: string;
   threadId: string;
   role: "user" | "assistant" | "system";
   content: string;
   citations: string[];
+  attachments: NexusAttachment[];
+  createdAt: string;
+};
+export type NexusPromptQueueItem = {
+  id: string;
+  threadId: string;
+  prompt: string;
+  mode: "qa" | "agentic";
+  attachments: NexusAttachment[];
+  status: "queued" | "processing" | "completed" | "cancelled" | "failed";
+  errorMessage: string | null;
   createdAt: string;
 };
 

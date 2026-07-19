@@ -44,6 +44,8 @@ The production schema has already been applied to `stu_edu_ai`. The migrations i
 
 Inline lesson images and videos use the `learning-media` Storage bucket. Section-manager policies restrict authoring uploads; supported lesson media are JPEG, PNG, WebP, GIF, MP4, WebM, and MOV, with a 250 MB video ceiling. Assessment integrity events are append-only and RLS-scoped to the student and authorized class managers.
 
+Nexus message attachments use the private `nexus-attachments` bucket. Files are limited to five per message and supported image, PDF, or bounded text formats; each object is stored under the signed-in user's folder and remains subject to Storage RLS. Pending prompts persist in `nexus_prompt_queue` and are visible only to their owner.
+
 Assign roles with the owner-only People & Roles workspace or the audited `assign_platform_role` RPC. Authorization uses trusted `app_metadata.role`; never use user-editable metadata. The complete role catalog is documented in [src/platform/ROLE_MATRIX.md](./src/platform/ROLE_MATRIX.md).
 
 The protected owner is `winsonbaring10@gmail.com`. A confirmed owner-controlled acceptance identity is provisioned for every canonical role; the complete sign-in directory is in [src/platform/ROLE_ACCOUNTS.md](./src/platform/ROLE_ACCOUNTS.md). Each unique generated credential is stored as a macOS internet password for service `www.stu.best` and the account email. No password is committed to Git.
@@ -83,6 +85,7 @@ npm run test:live-accounts
 npm run test:live-account-lifecycle
 npm run test:live-nexus-agent
 npm run test:live-curriculum
+npm run test:live-issue90
 npm run export:role-credentials
 npm run test:live-onboarding
 npm run test:live-shell

@@ -14,11 +14,14 @@ type ApiResponse = {
 };
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
+type NexusAttachment = { name: string; mimeType: string; size: number; dataUrl: string };
 type SchoolRequest = {
   message: string;
   history: ChatMessage[];
   context: Record<string, unknown>;
   agent: AgentState | null;
+  mode: "qa" | "agentic";
+  attachments: NexusAttachment[];
 };
 
 type AgentObservation = {
@@ -289,7 +292,29 @@ function parseBody(body: unknown): SchoolRequest | null {
       : [];
     if (runId && goal) agent = { runId, goal, step, maxSteps, observations };
   }
-  return { message, history, context: sanitizeContext(value.context), agent };
+  const mode=value.mode==="qa"?"qa":"agentic";
+  let attachmentBytes=0;
+  const attachments=Array.isArray(value.attachments)?value.attachments.slice(0,5).flatMap((entry)=>{
+    if(!entry||typeof entry!=="object"||Array.isArray(entry))return [];
+    const item=entry as Record<string,unknown>;
+    const name=typeof item.name==="string"?item.name.trim().slice(0,180):"";
+    const mimeType=typeof item.mimeType==="string"?item.mimeType.trim().toLowerCase():"";
+    const size=typeof item.size==="number"?item.size:0;
+    const dataUrl=typeof item.dataUrl==="string"?item.dataUrl:"";
+    if(!name||size<1||size>5*1024*1024||!dataUrl.startsWith(`data:${mimeType};base64,`))return [];
+    attachmentBytes+=size;
+    return [{name,mimeType,size,dataUrl}];
+  }):[];
+  if(attachmentBytes>6*1024*1024)return null;
+  return { message, history, context: sanitizeContext(value.context), agent, mode, attachments };
+}
+
+function attachmentInput(attachment:NexusAttachment):Record<string,unknown> {
+  if(attachment.mimeType.startsWith("image/"))return {type:"input_image",image_url:attachment.dataUrl,detail:"auto"};
+  if(attachment.mimeType==="application/pdf")return {type:"input_file",filename:attachment.name,file_data:attachment.dataUrl};
+  const encoded=attachment.dataUrl.split(",",2)[1]??"";
+  const text=Buffer.from(encoded,"base64").toString("utf8").slice(0,20_000);
+  return {type:"input_text",text:`Attached file ${attachment.name} (${attachment.mimeType}):\n${text}`};
 }
 
 function outputText(payload: unknown) {
@@ -420,6 +445,9 @@ export default async function handler(
         : auth.user.role === "faculty"
           ? "Support teaching, lesson preparation, assessment quality, feedback drafting, schedule planning, and evidence-based student support. Never publish or finalize a grade."
           : "Support authorized school operations, planning, policy-grounded answers, and responsible coordination. High-impact actions require human confirmation.";
+    const modeInstruction=input.mode==="qa"
+      ? "You are in QA mode. Answer the question and analyze supplied attachments, but never propose, simulate, or execute a platform action. Return proposedAction null, status complete, and no remaining work."
+      : "You are in Agentic mode. You may propose only the authorized, confirmation-gated platform actions needed to finish the user's goal.";
 
     const openAiResponse = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
@@ -432,10 +460,11 @@ export default async function handler(
         instructions: [
           "You are Nexus, the role-aware conversational assistant inside the Shu-Te University operating platform.",
           roleInstruction,
+          modeInstruction,
           "Use only the bounded platform context and conversation supplied. Never invent a university policy, date, grade, student fact, or authorization.",
           "Protect privacy. Do not request passwords, authentication tokens, diagnoses, or unnecessary sensitive personal data.",
           "Work autonomously from the supplied platform context. Before asking the user anything, inspect all relevant departments, programs, curricula, subjects, classes, people, enrollments, learning records, schedules, and prior observations; infer harmless defaults from institutional context and the user's stated goal. Never ask for information that is already present or can be safely inferred.",
-          `The only executable actions for this role are: ${[...allowedActions(auth.user.role)].join(", ")}. You are operating a persistent bounded goal loop. Maintain a concise end-to-end plan and remainingWork. Choose exactly one next executable action per response, use exact IDs from platform context, and reassess the whole goal after every real observation. A successful action is only one step: keep status working and propose the next action while remainingWork is non-empty. Set complete only when every requested outcome is proven satisfied and remainingWork is empty. Set impossible only for a genuine capability, authority, safety, or repeated-error boundary—not merely missing optional detail. Never repeat an already successful action and never claim an action happened until its success observation is supplied. For create_assessment with assessmentType quiz or exam, include at least one complete question with a prompt, positive points, at least two options, a one-based correctOption between 1 and the number of options, and an explanation. For assignments and projects, questions may be empty. Treat a user's correction or execution-error observation as authoritative: change the rejected parameter values, verify the complete payload against the observation, and never return an unchanged rejected proposal.`,
+          `The only executable actions for this role and mode are: ${input.mode==="agentic"?[...allowedActions(auth.user.role)].join(", "):"none"}. In Agentic mode, you are operating a persistent bounded goal loop. Maintain a concise end-to-end plan and remainingWork. Choose exactly one next executable action per response, use exact IDs from platform context, and reassess the whole goal after every real observation. A successful action is only one step: keep status working and propose the next action while remainingWork is non-empty. Set complete only when every requested outcome is proven satisfied and remainingWork is empty. Set impossible only for a genuine capability, authority, safety, or repeated-error boundary—not merely missing optional detail. Never repeat an already successful action and never claim an action happened until its success observation is supplied. For create_assessment with assessmentType quiz or exam, include at least one complete question with a prompt, positive points, at least two options, a one-based correctOption between 1 and the number of options, and an explanation. For assignments and projects, questions may be empty. Treat a user's correction or execution-error observation as authoritative: change the rejected parameter values, verify the complete payload against the observation, and never return an unchanged rejected proposal.`,
           "If a required decision cannot be inferred safely and materially changes the result, set status needs_input, return no proposedAction, and provide one focused clarification object with a question, short reason, and two to four concrete options. Do not put ordinary questions in answer. Once the user's clarification appears in observations, continue the same plan and run rather than starting over.",
           `For an authorized request to create a complete degree curriculum, use one create_curriculum action rather than dozens of small actions. Always include every required curriculum field: programCode, programName, description, durationYears, effectiveYear as a four-digit integer, subjects, and blocks. If the user does not state an effective year, infer ${new Date().getUTCFullYear()} for the unpublished draft instead of stopping to ask. Produce a coherent, realistic draft with every subject placed by year and semester, unique institutional subject codes, units, ordered prerequisites that refer only to earlier subjects in the same payload, and at least one block template for every year. This is a draft requiring human academic and regulatory review; never claim accreditation approval.`,
           "When an authorized owner, administrator, dean, or registrar explicitly asks you to add a missing academic department, use create_department with a short unique uppercase code in code, the complete department name in title, and its purpose in description. After the confirmed success observation, continue the original goal using the newly returned record ID and refreshed platform context.",
@@ -454,7 +483,7 @@ export default async function handler(
           })),
           {
             role: "user",
-            content: JSON.stringify({
+            content: [{type:"input_text",text:JSON.stringify({
               question: input.message,
               agent_goal: input.agent?.goal ?? input.message,
               agent_state: input.agent ?? {
@@ -466,7 +495,8 @@ export default async function handler(
               },
               trusted_role: auth.user.role,
               platform_context: input.context,
-            }),
+              attachment_names:input.attachments.map((item)=>item.name),
+            })},...input.attachments.map(attachmentInput)],
           },
         ],
         reasoning: { effort: "low" },
@@ -782,10 +812,10 @@ export default async function handler(
         .json({ error: "Nexus AI returned an invalid response." });
       return;
     }
-    const roleAllowedAction = result.proposedAction &&
+    const roleAllowedAction = input.mode === "agentic" && result.proposedAction &&
       allowedActions(auth.user.role).has(String(result.proposedAction.type))
       ? result.proposedAction : null;
-    let agent = result.agent;
+    let agent = input.mode === "qa" ? {...result.agent,status:"complete" as const,remainingWork:[],clarification:null,terminalReason:""} : result.agent;
     if (agent.status === "complete" && agent.remainingWork.length)
       agent = { ...agent, status: "working", terminalReason: "" };
     if (agent.status === "needs_input" && !agent.clarification)

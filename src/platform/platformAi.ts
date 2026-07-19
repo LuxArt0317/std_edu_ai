@@ -8,6 +8,8 @@ import type {
   SchoolChatAnswer,
 } from "./types";
 
+export type NexusInputAttachment={name:string;mimeType:string;size:number;dataUrl:string};
+
 async function accessToken() {
   if (!supabase) throw new Error("Supabase is not configured.");
   const { data, error } = await supabase.auth.getSession();
@@ -23,6 +25,8 @@ export async function askSchoolAssistant(
   history: ChatMessage[],
   context: { view: string; data: PlatformData },
   agent?: SchoolAgentRequestState,
+  mode: "qa"|"agentic" = "agentic",
+  attachments: NexusInputAttachment[] = [],
 ): Promise<SchoolChatAnswer> {
   const token = await accessToken();
   const response = await fetch("/api/school-assistant", {
@@ -141,6 +145,8 @@ export async function askSchoolAssistant(
         knowledge: (context.data.knowledge ?? []).filter((item)=>item.status === "verified").slice(0,30).map((item)=>({id:item.id,title:item.title,category:item.category,summary:item.summary,content:item.content.slice(0,4000),sourceType:item.sourceType,sourceEventId:item.sourceEventId,audienceScope:item.audienceScope})),
       },
       agent,
+      mode,
+      attachments:attachments.map((item)=>({name:item.name,mimeType:item.mimeType,size:item.size,dataUrl:item.dataUrl})),
     }),
   });
   const payload = (await response.json()) as Partial<SchoolChatAnswer> & {

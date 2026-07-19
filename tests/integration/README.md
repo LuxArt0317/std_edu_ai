@@ -11,3 +11,5 @@ These opt-in scripts exercise the configured production deployment and Supabase 
 `academic-operations-live.mjs` performs and restores a real enrollment update, proves overlapping room bookings are rejected, removes its temporary event, and confirms a student cannot invoke account provisioning.
 
 `lms-live.mjs` runs a reversible production course lifecycle as real faculty and student identities: publish content/private files, deny student authoring, track progress, submit and grade work, enforce the score ceiling, take attendance, verify student visibility, and clean up.
+
+`issue90-live.mjs` uses the protected owner session to reversibly verify one-subject manual curriculum creation, year/semester placement, audited draft deletion, private Nexus attachment persistence, queue transitions, and server-enforced non-mutating Ask mode.

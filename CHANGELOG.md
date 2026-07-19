@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added direct program-linked curriculum creation, effective-year versioning, visible year/semester subject placement, catalog-subject import, prerequisites, blocks, approval/retirement, duplication, and audited draft deletion.
+- Replaced raw newline role-capability editing with a searchable, accessible multi-select capability catalog.
+- Added private Nexus image/PDF/text attachments, database-backed prompt queuing, and explicit non-mutating Ask versus confirmation-gated Agentic modes.
+- Applied RLS-protected production migrations and passed reversible live verification for curriculum placement/deletion, private attachments, queue transitions, and Ask-mode action suppression.
+
 - Replaced constrained lesson-material dialogs with a wide course studio and added multi-image insertion plus uploaded/embedded inline video on every Tiptap lesson page.
 - Added an immersive student reading mode with page navigation and responsive image/video rendering inside the lesson flow.
 - Added teacher-controlled post-attempt review plus disclosed fullscreen, focus, extended-display, camera, multiple-camera, and clipboard checks with append-only RLS evidence and a teacher integrity log.

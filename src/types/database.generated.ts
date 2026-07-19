@@ -1204,6 +1204,7 @@ export type Database = {
       }
       chat_messages: {
         Row: {
+          attachments: Json
           author_role: string
           citations: string[]
           content: string
@@ -1212,6 +1213,7 @@ export type Database = {
           thread_id: string
         }
         Insert: {
+          attachments?: Json
           author_role: string
           citations?: string[]
           content: string
@@ -1220,6 +1222,7 @@ export type Database = {
           thread_id: string
         }
         Update: {
+          attachments?: Json
           author_role?: string
           citations?: string[]
           content?: string
@@ -1235,6 +1238,15 @@ export type Database = {
             referencedRelation: "chat_threads"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      nexus_prompt_queue: {
+        Row: { id: string; owner_id: string; thread_id: string; prompt: string; mode: string; attachments: Json; status: string; error_message: string | null; created_at: string; started_at: string | null; completed_at: string | null }
+        Insert: { id?: string; owner_id: string; thread_id: string; prompt: string; mode: string; attachments?: Json; status?: string; error_message?: string | null; created_at?: string; started_at?: string | null; completed_at?: string | null }
+        Update: { id?: string; owner_id?: string; thread_id?: string; prompt?: string; mode?: string; attachments?: Json; status?: string; error_message?: string | null; created_at?: string; started_at?: string | null; completed_at?: string | null }
+        Relationships: [
+          { foreignKeyName: "nexus_prompt_queue_owner_id_fkey"; columns: ["owner_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "nexus_prompt_queue_thread_id_fkey"; columns: ["thread_id"]; isOneToOne: false; referencedRelation: "chat_threads"; referencedColumns: ["id"] },
         ]
       }
       chat_threads: {
@@ -3355,6 +3367,19 @@ export type Database = {
           p_idempotency_key: string
           p_payload: Json
         }
+        Returns: Json
+      }
+      create_manual_academic_curriculum: {
+        Args: {
+          p_program_id: string
+          p_idempotency_key: string
+          p_payload: Json
+          p_reason: string
+        }
+        Returns: Json
+      }
+      delete_draft_academic_curriculum: {
+        Args: { p_plan_id: string; p_reason: string }
         Returns: Json
       }
       update_academic_curriculum: {

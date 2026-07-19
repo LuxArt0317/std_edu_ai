@@ -1,7 +1,7 @@
 # STU Nexus API
 
 - `crm-assistant.ts` is the student-success copilot boundary for the CRM.
-- `school-assistant.ts` provides authenticated, persistent-chat responses and structured goal decisions adapted to the trusted school role. The client submits only bounded observations from real actions, and the server chooses at most one authorized next step. Writes are revalidated, explicitly confirmed one at a time, executed through the ordinary repository under the user's Supabase session, and recorded with privacy-minimized outcome metadata.
+- `school-assistant.ts` provides authenticated, persistent-chat responses and structured goal decisions adapted to the trusted school role. Ask mode is forcibly non-mutating; Agentic mode may choose at most one authorized next step. Current-message images, PDFs, and bounded text attachments are sent as native multimodal input. Writes are revalidated, explicitly confirmed one at a time, executed through the ordinary repository under the user's Supabase session, and recorded with privacy-minimized outcome metadata.
 - `grade-scan.ts` accepts authenticated teacher/leadership image scans and returns structured grade candidates that require human review.
 
 The endpoints validate and rate-limit requests, accept only bounded context, enforce structured model output, and never return provider credentials. Authentication roles are derived from Supabase `app_metadata`, never from a browser-supplied role.

@@ -23,6 +23,8 @@ It demonstrates:
 - an immersive wide lesson studio with multi-image insertion, uploaded/embedded inline video, page-aware student reading, disclosed assessment-integrity controls/evidence, and branded configurable PNG timetable export
 - AI-assisted grade-sheet image extraction with confidence signals and mandatory teacher review before a draft grade can be saved or published
 - durable, authenticated, multi-turn school conversations grounded in the signed-in user's visible records, with a bounded goal loop that plans one role-valid step, observes the real result, reassesses, and continues to completion or a clear impossible outcome
+- explicit Nexus Ask/Agentic modes, private multimodal attachments, and durable queued prompts that continue after the popup closes
+- direct program-linked curriculum creation and complete draft CRUD with visible effective-year, year/semester, prerequisite, block, version, approval, retirement, and deletion workflows
 - automatic safe navigation, explicit confirmation before every mutation, visible step progress, cancellation, cycle detection, eight-step and five-minute safety limits, and ordinary Supabase-session/RLS execution
 - a defense-in-depth student AI boundary that permits guidance and progress tracking but never answers, completes, modifies, grades, or submits assessed work
 - the original Student 360, early-support, admissions, task, case, campaign, knowledge, and analytics CRM available inside the unified platform

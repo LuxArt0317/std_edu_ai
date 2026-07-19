@@ -9,6 +9,8 @@ import type {
   AssessmentQuestion,
   ChatMessage,
   ChatThread,
+  NexusAttachment,
+  NexusPromptQueueItem,
   GradeScanResult,
   PlatformData,
   PlatformProfile,
@@ -806,6 +808,7 @@ export async function loadChatMessages(
     role: message.author_role as ChatMessage["role"],
     content: message.content,
     citations: message.citations,
+    attachments: (Array.isArray(message.attachments) ? message.attachments : []) as unknown as NexusAttachment[],
     createdAt: message.created_at,
   }));
 }
@@ -815,16 +818,76 @@ export async function appendChatMessage(
   role: ChatMessage["role"],
   content: string,
   citations: string[] = [],
+  attachments: NexusAttachment[] = [],
 ) {
   const client = requireClient();
   const { error } = await client
     .from("chat_messages")
-    .insert({ thread_id: threadId, author_role: role, content, citations });
+    .insert({ thread_id: threadId, author_role: role, content, citations, attachments: attachments as unknown as Json });
   if (error) throw new Error(error.message);
   await client
     .from("chat_threads")
     .update({ updated_at: new Date().toISOString() })
     .eq("id", threadId);
+}
+
+const nexusAttachmentMimeTypes=new Set(["image/jpeg","image/png","image/webp","image/gif","application/pdf","text/plain","text/csv","application/json","text/markdown"]);
+
+export async function uploadNexusAttachments(threadId:string,files:File[]):Promise<NexusAttachment[]> {
+  const client=requireClient();
+  const {data:{user}}=await client.auth.getUser();
+  if(!user)throw new Error("Authentication is required.");
+  if(files.length>5)throw new Error("Attach no more than five files to one message.");
+  const uploaded:NexusAttachment[]=[];
+  try {
+    for(const file of files){
+      if(!nexusAttachmentMimeTypes.has(file.type))throw new Error(`${file.name} is not a supported image, PDF, or text file.`);
+      if(file.size>5*1024*1024)throw new Error(`${file.name} is larger than the 5 MB attachment limit.`);
+      const safeName=file.name.replace(/[^a-zA-Z0-9._-]+/g,"-").slice(-100)||"attachment";
+      const nonce=Array.from(crypto.getRandomValues(new Uint8Array(12)),(byte)=>byte.toString(16).padStart(2,"0")).join("");
+      const path=`${user.id}/${threadId}/${nonce}-${safeName}`;
+      const {error}=await client.storage.from("nexus-attachments").upload(path,file,{contentType:file.type,upsert:false});
+      if(error)throw new Error(error.message);
+      uploaded.push({name:file.name.slice(0,180),mimeType:file.type,size:file.size,storagePath:path});
+    }
+    return uploaded;
+  } catch(error) {
+    if(uploaded.length)await client.storage.from("nexus-attachments").remove(uploaded.map((item)=>item.storagePath));
+    throw error;
+  }
+}
+
+export async function downloadNexusAttachments(attachments:NexusAttachment[]):Promise<File[]> {
+  const client=requireClient();
+  const files:File[]=[];
+  for(const attachment of attachments){
+    const {data,error}=await client.storage.from("nexus-attachments").download(attachment.storagePath);
+    if(error)throw new Error(`Could not load ${attachment.name}: ${error.message}`);
+    files.push(new File([data],attachment.name,{type:attachment.mimeType}));
+  }
+  return files;
+}
+
+function queueRow(row:Tables<"nexus_prompt_queue">):NexusPromptQueueItem {
+  return {id:row.id,threadId:row.thread_id,prompt:row.prompt,mode:row.mode as NexusPromptQueueItem["mode"],attachments:(Array.isArray(row.attachments)?row.attachments:[]) as unknown as NexusAttachment[],status:row.status as NexusPromptQueueItem["status"],errorMessage:row.error_message,createdAt:row.created_at};
+}
+
+export async function loadNexusPromptQueue():Promise<NexusPromptQueueItem[]> {
+  const {data,error}=await requireClient().from("nexus_prompt_queue").select("*").in("status",["queued","processing"]).order("created_at");
+  if(error)throw new Error(error.message);
+  return (data??[]).map(queueRow);
+}
+
+export async function enqueueNexusPrompt(input:{threadId:string;prompt:string;mode:"qa"|"agentic";attachments:NexusAttachment[]}):Promise<NexusPromptQueueItem> {
+  const client=requireClient();const {data:{user}}=await client.auth.getUser();if(!user)throw new Error("Authentication is required.");
+  const {data,error}=await client.from("nexus_prompt_queue").insert({owner_id:user.id,thread_id:input.threadId,prompt:clean(input.prompt,"Queued prompt",10000),mode:input.mode,attachments:input.attachments as unknown as Json}).select("*").single();
+  if(error)throw new Error(error.message);return queueRow(data);
+}
+
+export async function updateNexusPromptQueue(id:string,status:NexusPromptQueueItem["status"],errorMessage?:string) {
+  const timestamps=status==="processing"?{started_at:new Date().toISOString()}:(["completed","cancelled","failed"].includes(status)?{completed_at:new Date().toISOString()}:{ });
+  const {error}=await requireClient().from("nexus_prompt_queue").update({status,error_message:errorMessage?.slice(0,1000)??null,...timestamps}).eq("id",id);
+  if(error)throw new Error(error.message);
 }
 
 export async function recordGradeScan(
@@ -1281,6 +1344,25 @@ export async function createAcademicCurriculum(
       typeof result.prerequisites !== "number")
     throw new Error("The curriculum transaction was not confirmed.");
   return result as unknown as AcademicCurriculumResult;
+}
+
+export async function createManualAcademicCurriculum(input:{programId:string;idempotencyKey:string;curriculum:AcademicCurriculumInput;reason:string}):Promise<AcademicCurriculumResult> {
+  const {data,error}=await requireClient().rpc("create_manual_academic_curriculum",{
+    p_program_id:clean(input.programId,"Academic program"),
+    p_idempotency_key:clean(input.idempotencyKey,"Curriculum request key",160),
+    p_payload:input.curriculum as unknown as Json,
+    p_reason:clean(input.reason,"Curriculum creation reason",1000),
+  });
+  if(error)throw new Error(error.message);
+  if(!data||typeof data!=="object")throw new Error("The curriculum creation returned an invalid result.");
+  return data as unknown as AcademicCurriculumResult;
+}
+
+export async function deleteDraftAcademicCurriculum(planId:string,reason:string) {
+  const {data,error}=await requireClient().rpc("delete_draft_academic_curriculum",{p_plan_id:clean(planId,"Curriculum plan"),p_reason:clean(reason,"Curriculum deletion reason",1000)});
+  if(error)throw new Error(error.message);
+  if(!data||typeof data!=="object")throw new Error("The curriculum deletion was not confirmed.");
+  return data;
 }
 
 export async function updateAcademicCurriculum(input: {

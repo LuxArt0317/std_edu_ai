@@ -7,6 +7,7 @@ import {
   askSchoolAssistant,
   recordSchoolAgentAction,
   scanGradeSheet,
+  type NexusInputAttachment,
 } from "./platformAi";
 import {
   addAgentObservation,
@@ -60,6 +61,11 @@ import {
   getPlatformDataSnapshot,
   loadAccountDirectory,
   loadChatMessages,
+  loadNexusPromptQueue,
+  enqueueNexusPrompt,
+  updateNexusPromptQueue,
+  uploadNexusAttachments,
+  downloadNexusAttachments,
   loadPlatformDataCached,
   inviteRoleAccount,
   markLearningProgress,
@@ -90,6 +96,7 @@ import type {
   AssessmentReview,
   AuthDirectoryAccount,
   ChatMessage,
+  NexusPromptQueueItem,
   GradeScanResult,
   PlatformData,
   PlatformProfile,
@@ -114,6 +121,15 @@ function browserUuid() {
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
   const value = [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
   return `${value.slice(0,8)}-${value.slice(8,12)}-${value.slice(12,16)}-${value.slice(16,20)}-${value.slice(20)}`;
+}
+
+function readNexusAttachment(file:File):Promise<NexusInputAttachment> {
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>typeof reader.result==="string"?resolve({name:file.name,mimeType:file.type,size:file.size,dataUrl:reader.result}):reject(new Error(`Could not read ${file.name}.`));
+    reader.onerror=()=>reject(new Error(`Could not read ${file.name}.`));
+    reader.readAsDataURL(file);
+  });
 }
 
 const leadershipRoles = new Set<PlatformRole>([
@@ -1864,6 +1880,26 @@ function NotificationCenter({ data, currentUser, onClose, onChanged, onToast }: 
   return <div className="academic-modal-layer"><button type="button" className="academic-modal-backdrop" aria-label="Close notifications" onClick={onClose} /><section className="academic-modal notification-center" role="dialog" aria-modal="true" aria-label="Notifications and messages"><header><div><span>NOTIFICATIONS & APPROVED COMMUNICATION</span><h2>Your notification center</h2><p>Read portal notices and contact an authorized teacher, advisor, or support team through the governed message workflow.</p></div><button type="button" onClick={onClose}>×</button></header><div className="notification-center-body"><section><h3>Notifications</h3>{data.notifications.map((item) => <article key={item.id} className={item.readAt ? "read" : "unread"}><div><b>{item.title}</b><small>{new Date(item.createdAt).toLocaleString()}</small></div><p>{item.body}</p><button type="button" onClick={() => void markNotificationRead(item.id,!item.readAt).then(onChanged).catch((error: unknown) => onToast(error instanceof Error ? error.message : "Notification update failed."))}>{item.readAt ? "Mark unread" : "Mark read"}</button></article>)}{!data.notifications.length ? <p>No notifications yet.</p> : null}</section><section><h3>Contact school staff</h3><form className="academic-form" onSubmit={(event) => {event.preventDefault();const f=new FormData(event.currentTarget);void createCommunicationRequest({recipientId:String(f.get("recipientId")),subject:String(f.get("subject")),body:String(f.get("body")),channel:"portal"}).then(() => {onToast("Message submitted for approved delivery.");onChanged();event.currentTarget.reset();}).catch((error: unknown) => onToast(error instanceof Error ? error.message : "Message could not be submitted."));}}><label><span>Recipient</span><select name="recipientId" required><option value="">Choose a recipient</option>{recipients.map((item) => <option key={item.id} value={item.id}>{item.name} · {roleNames[item.role]}</option>)}</select></label><label><span>Subject</span><input name="subject" required minLength={2} maxLength={160} /></label><label><span>Message</span><textarea name="body" required minLength={2} maxLength={10000} rows={5} /></label><button>Submit message</button></form></section>{canApprove ? <section><h3>Pending communication approval</h3>{data.communications.filter((item) => item.status === "pending").map((item) => <article key={item.id}><b>{item.subject}</b><p>{item.body}</p><small>{data.profiles.find((profile) => profile.id === item.senderId)?.name ?? "Sender"} → {data.profiles.find((profile) => profile.id === item.recipientId)?.name ?? "Recipient"}</small><div><button type="button" onClick={() => {const reason=window.prompt("Approval reason (at least 12 characters)");if(reason) void decideCommunicationRequest({requestId:item.id,approve:true,reason}).then(() => {onToast("Communication approved and delivered.");onChanged();}).catch((error: unknown) => onToast(error instanceof Error ? error.message : "Approval failed."));}}>Approve & send</button><button type="button" onClick={() => {const reason=window.prompt("Rejection reason (at least 12 characters)");if(reason) void decideCommunicationRequest({requestId:item.id,approve:false,reason}).then(() => {onToast("Communication rejected.");onChanged();}).catch((error: unknown) => onToast(error instanceof Error ? error.message : "Rejection failed."));}}>Reject</button></div></article>)}{!data.communications.some((item) => item.status === "pending") ? <p>No messages are waiting.</p> : null}</section> : null}</div></section></div>;
 }
 
+function RoleCapabilityPicker({roleCode,initialCapabilities,catalog,onCancel,onSaved,onToast}:{roleCode:Exclude<PlatformRole,"owner">;initialCapabilities:string[];catalog:string[];onCancel:()=>void;onSaved:()=>void;onToast:(message:string)=>void}) {
+  const [selected,setSelected]=useState(()=>new Set(initialCapabilities));
+  const [query,setQuery]=useState("");
+  const [saving,setSaving]=useState(false);
+  const normalizedQuery=query.trim().toLowerCase();
+  const options=catalog.filter((capability)=>!selected.has(capability)&&(!normalizedQuery||capability.replaceAll("_"," ").includes(normalizedQuery)));
+  const add=(capability:string)=>{setSelected((current)=>new Set([...current,capability]));setQuery("");};
+  return <form className="academic-form role-capability-form" onSubmit={(event)=>{event.preventDefault();setSaving(true);void updateRoleCapabilities(roleCode,[...selected]).then(()=>{onToast("Role capability policy updated.");onSaved();}).catch((error:unknown)=>onToast(error instanceof Error?error.message:"Permission update failed.")).finally(()=>setSaving(false));}}>
+    <div className="role-capability-picker">
+      <label htmlFor="role-capability-search"><span>Find and add a capability</span></label>
+      <div className="capability-combobox" role="combobox" aria-expanded={Boolean(options.length)} aria-controls="role-capability-options" aria-haspopup="listbox">
+        <input id="role-capability-search" value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="Search learning, grades, schedules…" autoComplete="off" />
+        {options.length?<div id="role-capability-options" role="listbox">{options.slice(0,12).map((capability)=><button type="button" role="option" aria-selected="false" key={capability} onClick={()=>add(capability)}><b>{capability.replaceAll("_"," ")}</b><small>Add capability</small></button>)}</div>:query?<div className="capability-no-results">No governed capability matches this search.</div>:null}
+      </div>
+      <section aria-label={`Selected capabilities for ${roleCode}`}><header><b>Selected capabilities</b><small>{selected.size} enabled</small></header><div>{[...selected].sort().map((capability)=><button type="button" key={capability} onClick={()=>setSelected((current)=>{const next=new Set(current);next.delete(capability);return next;})}>{capability.replaceAll("_"," ")} <span aria-hidden="true">×</span><span className="sr-only">Remove</span></button>)}</div>{!selected.size?<p>Select at least one capability from the searchable list.</p>:null}</section>
+    </div>
+    <footer><span>These labels guide governance and UI access. Database RLS remains the enforcement boundary.</span><div><button type="button" className="secondary" onClick={onCancel}>Cancel</button><button type="submit" disabled={saving||!selected.size}>{saving?"Saving…":"Save role policy"}</button></div></footer>
+  </form>;
+}
+
 function PeopleView({
   data,
   currentUser,
@@ -2213,7 +2249,7 @@ function PeopleView({
           ),
         )}
       </section>
-      {editingPermissionsRole ? (() => { const definition=data.roles.find((item) => item.code === editingPermissionsRole); if(!definition) return null; return <div className="academic-modal-layer"><button type="button" className="academic-modal-backdrop" aria-label="Close permission editor" onClick={() => setEditingPermissionsRole("")} /><section className="academic-modal" role="dialog" aria-modal="true" aria-label="Configure role permissions"><header><div><span>OWNER POLICY CONTROL</span><h2>Configure {definition.name}</h2><p>Maintain the named capability catalog used for governance review. Database RLS remains the trusted enforcement boundary.</p></div><button type="button" onClick={() => setEditingPermissionsRole("")}>×</button></header><form className="academic-form" onSubmit={(event) => {event.preventDefault(); const capabilities=String(new FormData(event.currentTarget).get("capabilities")).split(/[\n,]+/); void updateRoleCapabilities(editingPermissionsRole as Exclude<PlatformRole,"owner">,capabilities).then(() => {setEditingPermissionsRole("");onToast("Role capability policy updated.");onChanged();}).catch((error: unknown) => onToast(error instanceof Error ? error.message : "Permission update failed."));}}><label><span>Capabilities, one per line</span><textarea name="capabilities" rows={10} defaultValue={definition.capabilities.join("\n")} required /></label><footer><span>Owner protection and forbidden actions cannot be removed here.</span><button>Save role policy</button></footer></form></section></div>; })() : null}
+      {editingPermissionsRole ? (() => { const definition=data.roles.find((item) => item.code === editingPermissionsRole); if(!definition||definition.code==="owner") return null; const catalog=[...new Set(data.roles.flatMap((item)=>item.capabilities))].sort(); return <div className="academic-modal-layer"><button type="button" className="academic-modal-backdrop" aria-label="Close permission editor" onClick={() => setEditingPermissionsRole("")} /><section className="academic-modal role-capability-modal" role="dialog" aria-modal="true" aria-label="Configure role permissions"><header><div><span>OWNER POLICY CONTROL</span><h2>Configure {definition.name}</h2><p>Choose governed capabilities from the institutional catalog. No formatting or memorized policy codes required.</p></div><button type="button" onClick={() => setEditingPermissionsRole("")}>×</button></header><RoleCapabilityPicker key={definition.code} roleCode={definition.code} initialCapabilities={definition.capabilities} catalog={catalog} onCancel={()=>setEditingPermissionsRole("")} onSaved={()=>{setEditingPermissionsRole("");onChanged();}} onToast={onToast}/></section></div>; })() : null}
       {showProvisioner ? (
         <div className="academic-modal-layer">
           <button
@@ -2784,6 +2820,11 @@ function SchoolAssistant({
   });
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [message, setMessage] = useState("");
+  const modeKey=`stu-nexus:mode:${actorId}`;
+  const [assistantMode,setAssistantMode]=useState<"qa"|"agentic">(()=>{try{return window.localStorage.getItem(modeKey)==="qa"?"qa":"agentic";}catch{return "agentic";}});
+  const [composerAttachments,setComposerAttachments]=useState<Array<{file:File;input:NexusInputAttachment}>>([]);
+  const [queuedPrompts,setQueuedPrompts]=useState<NexusPromptQueueItem[]>([]);
+  const queueProcessingRef=useRef(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [persistenceWarning, setPersistenceWarning] = useState("");
@@ -2800,12 +2841,19 @@ function SchoolAssistant({
     label: string;
   }>({ state: "idle", label: "Ready for your next goal." });
   const activeRunId = useRef("");
+  const activeAttachmentsRef=useRef<NexusInputAttachment[]>([]);
+  const activeModeRef=useRef<"qa"|"agentic">(assistantMode);
   const rejectedProposalRef = useRef<{ fingerprint: string; feedback: string } | null>(null);
   const messageViewportRef = useRef<HTMLDivElement | null>(null);
+  const attachmentInputRef=useRef<HTMLInputElement|null>(null);
   const nearLatestMessageRef = useRef(true);
   const restoredThreadRef = useRef("");
 
   useEffect(() => onActivityChange(activity.state), [activity.state, onActivityChange]);
+
+  useEffect(()=>{try{window.localStorage.setItem(modeKey,assistantMode);}catch{/* Mode persistence is optional. */}},[assistantMode,modeKey]);
+
+  useEffect(()=>{void loadNexusPromptQueue().then(setQueuedPrompts).catch(()=>setPersistenceWarning("Queued prompts could not be restored."));},[]);
 
   useEffect(() => {
     if (!threadId) return;
@@ -2864,6 +2912,7 @@ function SchoolAssistant({
       role: "assistant",
       content,
       citations,
+      attachments:[],
       createdAt: new Date().toISOString(),
     };
     setMessages((current) => [...current, item]);
@@ -2894,7 +2943,7 @@ function SchoolAssistant({
         step: run.step,
         maxSteps: run.maxSteps,
         observations: run.observations,
-      });
+      },activeModeRef.current,activeAttachmentsRef.current);
       if (activeRunId.current !== run.id) return;
       addAssistantMessage(activeThread, answer.answer, answer.citations);
       const decided: SchoolAgentRun = {
@@ -3000,14 +3049,18 @@ function SchoolAssistant({
     }
   }
 
+  const advanceQueuedAgentRef=useRef(advanceAgent);
+  advanceQueuedAgentRef.current=advanceAgent;
+
   async function send(event: FormEvent) {
     event.preventDefault();
-    const prompt = message.trim();
-    if (!prompt || loading) return;
+    const prompt = message.trim() || (composerAttachments.length?"Review and explain the attached files.":"");
+    if (!prompt) return;
     setError("");
     setPersistenceWarning("");
     setMessage("");
-    setPendingAction(null);
+    const selectedAttachments=[...composerAttachments];
+    setComposerAttachments([]);
     try {
       let activeThread = threadId;
       if (!activeThread) {
@@ -3016,16 +3069,25 @@ function SchoolAssistant({
         setThreadId(created.id);
         onDataChanged();
       }
+      const persistedAttachments=selectedAttachments.length?await uploadNexusAttachments(activeThread,selectedAttachments.map((item)=>item.file)):[];
       const userMessage: ChatMessage = {
         id: `local-${Date.now()}`, threadId: activeThread, role: "user",
-        content: prompt, citations: [], createdAt: new Date().toISOString(),
+        content: prompt, citations: [], attachments:persistedAttachments, createdAt: new Date().toISOString(),
       };
       setMessages((current) => [...current, userMessage]);
       try {
-        await appendChatMessage(activeThread, "user", prompt);
+        await appendChatMessage(activeThread, "user", prompt,[],persistedAttachments);
       } catch {
         setPersistenceWarning("Nexus can continue, but this message could not be added to conversation history.");
       }
+      const mustQueue=loading||Boolean(pendingAction)||Boolean(agentRun&&["working","awaiting_confirmation"].includes(agentRun.status));
+      if(mustQueue){
+        const queued=await enqueueNexusPrompt({threadId:activeThread,prompt,mode:assistantMode,attachments:persistedAttachments});
+        setQueuedPrompts((current)=>[...current,queued]);
+        setActivity((current)=>({...current,label:`${current.label} ${queuedPrompts.length+1} message${queuedPrompts.length?"s are":" is"} queued.`}));
+        return;
+      }
+      setPendingAction(null);
       if (agentRun?.status === "awaiting_input" && activeRunId.current === agentRun.id) {
         const resumed = addAgentObservation({...agentRun,status:"working",clarification:null}, {
           step: agentRun.step,
@@ -3038,13 +3100,15 @@ function SchoolAssistant({
         await advanceAgent(resumed, activeThread);
         return;
       }
-      const run = startSchoolAgentRun(prompt);
-      rejectedProposalRef.current = null;
+      activeModeRef.current=assistantMode;
+      activeAttachmentsRef.current=selectedAttachments.map((item)=>item.input);
+      const run=startSchoolAgentRun(prompt);
+      rejectedProposalRef.current=null;
       setGoalExpanded(false);
-      activeRunId.current = run.id;
+      activeRunId.current=run.id;
       setAgentRun(run);
-      setActivity({ state: "thinking", label: "Nexus is starting the goal…" });
-      await advanceAgent(run, activeThread);
+      setActivity({state:"thinking",label:assistantMode==="qa"?"Nexus is reviewing your question and attachments…":"Nexus is starting the goal…"});
+      await advanceAgent(run,activeThread);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Nexus AI could not start the goal.");
       setActivity({ state: "blocked", label: reason instanceof Error ? reason.message : "Nexus AI could not start the goal." });
@@ -3052,16 +3116,62 @@ function SchoolAssistant({
     }
   }
 
+  useEffect(()=>{
+    if(queueProcessingRef.current||loading||pendingAction||!queuedPrompts.length)return;
+    if(agentRun&&["working","awaiting_confirmation","awaiting_input"].includes(agentRun.status))return;
+    const queued=queuedPrompts[0];
+    queueProcessingRef.current=true;
+    void (async()=>{
+      try{
+        await updateNexusPromptQueue(queued.id,"processing");
+        setThreadId(queued.threadId);
+        const files=queued.attachments.length?await downloadNexusAttachments(queued.attachments):[];
+        const inputs=await Promise.all(files.map(readNexusAttachment));
+        activeModeRef.current=queued.mode;
+        activeAttachmentsRef.current=inputs;
+        const run=startSchoolAgentRun(queued.prompt);
+        activeRunId.current=run.id;
+        setAgentRun(run);
+        setActivity({state:"thinking",label:queued.mode==="qa"?"Answering the next queued question…":"Starting the next queued goal…"});
+        await advanceQueuedAgentRef.current(run,queued.threadId);
+        await updateNexusPromptQueue(queued.id,"completed");
+        setQueuedPrompts((current)=>current.filter((item)=>item.id!==queued.id));
+      }catch(reason){
+        const detail=reason instanceof Error?reason.message:"The queued message could not be processed.";
+        await updateNexusPromptQueue(queued.id,"failed",detail).catch(()=>undefined);
+        setQueuedPrompts((current)=>current.filter((item)=>item.id!==queued.id));
+        setError(detail);
+      }finally{queueProcessingRef.current=false;}
+    })();
+  },[agentRun,loading,pendingAction,queuedPrompts]);
+
   async function answerClarification(answer: string) {
     if (!agentRun || agentRun.status !== "awaiting_input" || !threadId || loading) return;
     setError("");
-    const userMessage: ChatMessage={id:`clarification-${Date.now()}`,threadId,role:"user",content:answer,citations:[],createdAt:new Date().toISOString()};
+    const userMessage: ChatMessage={id:`clarification-${Date.now()}`,threadId,role:"user",content:answer,citations:[],attachments:[],createdAt:new Date().toISOString()};
     setMessages((current)=>[...current,userMessage]);
     try { await appendChatMessage(threadId,"user",answer); } catch { setPersistenceWarning("Nexus is continuing, but this answer could not be added to conversation history."); }
     const resumed=addAgentObservation({...agentRun,status:"working",clarification:null},{step:agentRun.step,actionType:"reasoning",outcome:"success",summary:`User clarification: ${answer.slice(0,500)}`});
     setAgentRun(resumed);
     setActivity({state:"thinking",label:"Answer received. Nexus is continuing the existing goal…"});
     await advanceAgent(resumed,threadId);
+  }
+
+  async function selectComposerAttachments(event:ChangeEvent<HTMLInputElement>){
+    const files=Array.from(event.target.files??[]).map((file)=>{
+      if(file.type)return file;
+      const extension=file.name.toLowerCase().split(".").pop();
+      const mime=extension==="md"?"text/markdown":extension==="txt"?"text/plain":extension==="csv"?"text/csv":extension==="json"?"application/json":"";
+      return mime?new File([file],file.name,{type:mime,lastModified:file.lastModified}):file;
+    });
+    event.target.value="";
+    if(composerAttachments.length+files.length>5){setError("Attach no more than five files to one message.");return;}
+    const allowed=new Set(["image/jpeg","image/png","image/webp","image/gif","application/pdf","text/plain","text/csv","application/json","text/markdown"]);
+    const invalid=files.find((file)=>!allowed.has(file.type)||file.size>5*1024*1024);
+    if(invalid){setError(`${invalid.name} is not a supported image, PDF, or text file under 5 MB.`);return;}
+    if([...composerAttachments.map((item)=>item.file),...files].reduce((total,file)=>total+file.size,0)>6*1024*1024){setError("Keep the combined attachment size under 6 MB.");return;}
+    try{const inputs=await Promise.all(files.map(readNexusAttachment));setComposerAttachments((current)=>[...current,...files.map((file,index)=>({file,input:inputs[index]}))]);setError("");}
+    catch(reason){setError(reason instanceof Error?reason.message:"The attachments could not be read.");}
   }
 
   async function retryProposedAction() {
@@ -3075,6 +3185,7 @@ function SchoolAssistant({
       role: "user",
       content: `Please revise the proposed ${rejectedType.replaceAll("_", " ")}: ${feedback}`,
       citations: [],
+      attachments: [],
       createdAt: new Date().toISOString(),
     };
     setMessages((current) => [...current, userMessage]);
@@ -3176,6 +3287,7 @@ function SchoolAssistant({
           role: "assistant",
           content: confirmation,
           citations: ["Confirmed portal action"],
+          attachments: [],
           createdAt: new Date().toISOString(),
         },
       ]);
@@ -3531,6 +3643,7 @@ function SchoolAssistant({
           role: "assistant",
           content: confirmation,
           citations: ["Confirmed platform action"],
+          attachments: [],
           createdAt: new Date().toISOString(),
         },
       ]);
@@ -3607,6 +3720,10 @@ function SchoolAssistant({
             +
           </button>
         </div>
+        <div className="nexus-mode-switch" role="group" aria-label="Nexus assistant mode">
+          <button type="button" className={assistantMode==="qa"?"active":""} aria-pressed={assistantMode==="qa"} onClick={()=>setAssistantMode("qa")}><b>Ask</b><small>Answers only</small></button>
+          <button type="button" className={assistantMode==="agentic"?"active":""} aria-pressed={assistantMode==="agentic"} onClick={()=>setAssistantMode("agentic")}><b>Agentic</b><small>Can prepare actions</small></button>
+        </div>
         <div
           className="chat-messages"
           ref={messageViewportRef}
@@ -3623,6 +3740,7 @@ function SchoolAssistant({
                 <div>
                   {item.role === "assistant" ? <small className="chat-sender-name">Nexus</small> : null}
                   <p>{item.content}</p>
+                  {item.attachments.length?<div className="chat-message-attachments">{item.attachments.map((attachment)=><span key={attachment.storagePath}>{attachment.mimeType.startsWith("image/")?"▧":"▤"} {attachment.name}</span>)}</div>:null}
                   {item.citations.length ? (
                     <footer>
                       {item.citations.map((citation) => (
@@ -3658,7 +3776,7 @@ function SchoolAssistant({
               </div>
             </div>
           )}
-          {agentRun ? (
+          {agentRun && activeModeRef.current==="agentic" ? (
             <article className="assistant agent-progress-reply" aria-live="polite">
               <NexusAvatar />
               <details className={`chat-agent-run ${agentRun.status}`} open={goalExpanded} onToggle={(event)=>setGoalExpanded(event.currentTarget.open)}>
@@ -3687,6 +3805,7 @@ function SchoolAssistant({
         </div>
         {error ? <div className="chat-error">{error}</div> : null}
         {persistenceWarning ? <div className="chat-warning">{persistenceWarning}</div> : null}
+        {queuedPrompts.length?<section className="nexus-queue" aria-label="Queued Nexus messages"><header><b>{queuedPrompts.length} queued</b><small>Nexus will continue automatically</small></header>{queuedPrompts.map((queued,index)=><article key={queued.id}><span>{index+1}</span><div><b>{queued.prompt}</b><small>{queued.mode==="qa"?"Ask mode":"Agentic mode"}{queued.attachments.length?` · ${queued.attachments.length} attachment${queued.attachments.length===1?"":"s"}`:""}</small></div><button type="button" aria-label={`Remove queued message ${index+1}`} onClick={()=>void updateNexusPromptQueue(queued.id,"cancelled").then(()=>setQueuedPrompts((current)=>current.filter((item)=>item.id!==queued.id))).catch((reason:unknown)=>setError(reason instanceof Error?reason.message:"Queue update failed."))}>×</button></article>)}</section>:null}
         {pendingAction ? (
           <section className="chat-action-card">
             <span>READY FOR REVIEW</span>
@@ -3764,6 +3883,7 @@ function SchoolAssistant({
           </section>
         ) : null}
         <form onSubmit={send}>
+          {composerAttachments.length?<div className="nexus-composer-attachments">{composerAttachments.map(({file},index)=><span key={`${file.name}-${file.lastModified}`}><b>{file.type.startsWith("image/")?"Image":"File"}</b>{file.name}<button type="button" aria-label={`Remove ${file.name}`} onClick={()=>setComposerAttachments((current)=>current.filter((_,itemIndex)=>itemIndex!==index))}>×</button></span>)}</div>:null}
           <textarea
             rows={3}
             value={message}
@@ -3781,9 +3901,10 @@ function SchoolAssistant({
             placeholder="Message Nexus AI…"
           />
           <div>
-            <span>Enter to send · Shift+Enter for a new line</span>
-            <button type="submit" disabled={loading || !message.trim()}>
-              Send →
+            <span><button type="button" className="nexus-attach-button" onClick={()=>attachmentInputRef.current?.click()} aria-label="Attach images or files">＋ Attach</button> Enter to send · Shift+Enter for a new line</span>
+            <input ref={attachmentInputRef} className="sr-only" type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,text/csv,application/json,text/markdown,.md" onChange={(event)=>void selectComposerAttachments(event)}/>
+            <button type="submit" disabled={!message.trim()&&!composerAttachments.length}>
+              {loading||pendingAction?"Queue →":"Send →"}
             </button>
           </div>
         </form>
