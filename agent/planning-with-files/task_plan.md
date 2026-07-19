@@ -1,5 +1,14 @@
 # Task Plan
 
+## Phase 101: Resilient rich-lesson goals and managed Nexus conversations [Issue #101]
+
+- [x] reproduce and fix stale material targets during multi-page/multi-material goal continuation
+- [x] constrain generated lesson pages to sanitized Tiptap-renderable rich HTML with human instructional voice
+- [x] support authorized reputable inline image/video sources without repeated clarification
+- [x] add durable conversation rename/delete with valid active-thread restoration and attachment cleanup
+- [x] replace verbose attachment text with compact accessible previews/chips and clear upload/remove states
+- [ ] verify automated/live behavior, documentation, review, deployment, and production
+
 ## Phase 98: Validated admissions pipeline drag and drop [Issue #98]
 
 - [x] establish destination-stage requirements and one governed transition path

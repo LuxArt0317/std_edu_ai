@@ -1,6 +1,14 @@
 # Current State
 
-# Active implementation: Issue #98
+# Active implementation: Issue #101
+
+- Nexus now re-resolves stale lesson-material targets from refreshed context and continues the same multi-action goal without duplicating completed pages. The API and client share a 32-action, thirty-minute bounded safety window.
+- AI lesson pages must use Tiptap-compatible semantic HTML with learner-focused examples, a non-fabricated instructor perspective, and reflection. Client review and repository persistence both normalize content; raw/flattened Markdown is converted and unsafe media is removed.
+- Authorized reputable-source preferences persist through the active goal. Only exact HTTPS image URLs and supported YouTube no-cookie, Vimeo, or direct video URLs are accepted.
+- Conversation rename/delete is owner-scoped through existing RLS. Deletion cleans private attachment objects and database cascades messages/queued prompts; the next valid recent thread is restored. Composer and message attachments now use compact accessible previews/tiles.
+- All 109 contracts, TypeScript/Vite build/assets, and the reversible production OpenAI/Supabase Issue #101 workflow pass. Review and production release remain in progress.
+
+# Completed implementation: Issue #98
 
 - Admissions prospects can be dragged between pipeline stages on desktop; the accessible Advance action provides the same validated transition for keyboard and touch users.
 - Engaged requires accountable ownership, a reliable contact method, and a next action; Application, Review, and Admitted require owner, email, phone, and next action. Missing fields open a focused completion dialog before the move is saved; persistence failures restore the original card.
