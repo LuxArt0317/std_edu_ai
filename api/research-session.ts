@@ -12,7 +12,7 @@ function secureCookie(token:string,maxAge:number){return `stu_research_token=${t
 function headers(response:ApiResponse){response.setHeader("Cache-Control","no-store, max-age=0");response.setHeader("Content-Type","application/json; charset=utf-8");response.setHeader("X-Content-Type-Options","nosniff");response.setHeader("Referrer-Policy","no-referrer");}
 export default async function handler(request:ApiRequest,response:ApiResponse){
   headers(response);const url=process.env.VITE_SUPABASE_URL||process.env.SUPABASE_URL;const key=process.env.VITE_SUPABASE_PUBLISHABLE_KEY||process.env.SUPABASE_PUBLISHABLE_KEY;if(!url||!key){response.status(503).json({error:"The research study service is not configured."});return;}
-  const fingerprint=createHash("sha256").update(`${process.env.SAFETY_HASH_SALT||"stu-research"}:${client(request)}`).digest("hex");if(limited(fingerprint)){response.status(429).json({error:"Too many research requests. Please wait and try again."});return;}
+  const fingerprint=createHash("sha256").update(`${process.env.SAFETY_HASH_SALT||"stu-research"}:${client(request)}`).digest("hex");if(limited(fingerprint,120)){response.status(429).json({error:"Too many research requests. Please wait and try again."});return;}
   try{
     if(request.method==="GET"){
       const study=value(request.query?.study);const language=value(request.query?.language)==="zh-Hant"?"zh-Hant":"en";
