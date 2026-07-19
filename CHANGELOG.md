@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Polished the admissions pipeline primary action with a high-contrast green treatment while retaining the released stage-colored actions, validated drag-and-drop, and destination completeness dialog.
+
 - Made long Nexus lesson-enrichment goals resilient to stale material IDs by refreshing authoritative LMS context and replanning the same run instead of terminating it; the API now preserves the full 32-action safety ceiling.
 - Constrained AI-authored lesson pages to sanitized Tiptap-compatible semantic HTML, with a Markdown-to-HTML compatibility boundary, human instructional framing, retained reputable-media authorization, and exact inline image/video nodes.
 - Added persisted Nexus conversation rename and deletion with current-thread recovery, queued-message cascade, private attachment cleanup, compact image/file tiles, accessible open/remove controls, and private attachment previews.

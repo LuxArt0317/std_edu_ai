@@ -1,5 +1,10 @@
 # Current State
 
+# Active release polish: Issue #98
+
+- Admissions drag/drop and destination requirements remain complete and live. A dedicated green primary style was added to Add prospect so all pipeline actions now have an intentional semantic color hierarchy.
+- Lint, build, commit, deployment, and production-asset verification are the remaining release steps for this small polish.
+
 # Active implementation: Issue #101
 
 - Nexus now re-resolves stale lesson-material targets from refreshed context and continues the same multi-action goal without duplicating completed pages. The API and client share a 32-action, thirty-minute bounded safety window.

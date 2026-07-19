@@ -86,3 +86,8 @@
 - Applied the production schema migration and follow-up foreign-key indexes; production RLS contributor/reviewer behavior passed transactional verification.
 - All 89 contracts, lint, TypeScript, Vite build, asset verification, and the live Nexus quiz repair workflow pass.
 - PR #87 passed CodeRabbit and Vercel, merged as `f887c10`, and deployed successfully. Both production routes return HTTP 200 with valid recursive asset graphs; the released knowledge, event-source, Nexus-avatar, and rejected-parameter markers are present.
+# 2026-07-19 — Issue #98 admissions polish
+
+- Reverified that current production assets contain the admissions drag/drop, stage-completeness dialog, rollback, and semantic action hierarchy.
+- Added a dedicated high-contrast primary style for Add prospect to eliminate the remaining inherited gray control.
+- Reopened Issue #98 for the cache-busting polish release and queued lint/build/deployment verification.

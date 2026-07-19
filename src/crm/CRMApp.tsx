@@ -1354,6 +1354,7 @@ function CRMApp({
                 </div>
                 <button
                   type="button"
+                  className="pipeline-add-prospect-action"
                   onClick={() =>
                     setRecordEditor({ kind: "lead", record: null })
                   }
