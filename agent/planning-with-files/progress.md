@@ -1,5 +1,14 @@
 # Progress
 
+## 2026-07-19 — Issue #98
+
+- Opened Issue #98 for clearer prospect-card actions and validated drag-and-drop admissions transitions.
+- Confirmed the current board only increments stages through a fixed Advance button and does not validate destination-stage completeness before persisting to `admission_leads`.
+- Added desktop drag/drop across all five stages with visible drop targets and retained the accessible Advance action for keyboard and touch users.
+- Added stage-specific completeness gates for accountable ownership, email, phone, and next action. Missing data opens a focused form, assigns the signed-in operator, persists the full record, and rolls back optimistic UI on failure.
+- Recolored Advance, Edit, Registrar handoff, and Archive into distinct primary, informational, controlled-handoff, and destructive actions.
+- All 103 contracts, lint, TypeScript/Vite build, assets, and the reversible live admissions-role stage/required-fields/owner/rollback workflow pass.
+
 ## 2026-07-19 — Issue #96
 
 - The screenshots prove two independent sources of confusion: staff navigation exposes both Teaching and Learning, while the newly created `My Favorites` material is a draft and therefore intentionally excluded by student RLS.

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties, FormEvent, ReactNode } from "react";
+import type { CSSProperties, DragEvent, FormEvent, ReactNode } from "react";
 import "./crm.css";
 import { askCrmCopilot } from "./aiService";
 import {
@@ -18,6 +18,7 @@ import {
   requestAdmissionHandoff,
   approveAndSendCampaign,
   recordSensitiveCaseAccess,
+  saveAdmissionLead,
 } from "./crmRepository";
 import { RichTextEditor } from "../platform/RichTextEditor";
 import { CrmRecordEditor } from "./CrmRecordEditor";
@@ -25,6 +26,7 @@ import type { EditableCrmRecord } from "./CrmRecordEditor";
 import type { CrmUser } from "./authService";
 import type {
   AiCopilotResult,
+  AdmissionLead,
   CrmDatabase,
   CrmSection,
   LeadStage,
@@ -106,6 +108,97 @@ const leadStages: Array<{ id: LeadStage; label: string }> = [
   { id: "review", label: "Review" },
   { id: "admitted", label: "Admitted" },
 ];
+
+const leadStageProbability: Record<Exclude<LeadStage, "closed">, number> = {
+  inquiry: 12,
+  engaged: 35,
+  application: 55,
+  review: 75,
+  admitted: 96,
+};
+
+type LeadRequirement = "owner" | "email" | "phone" | "nextStep";
+
+const leadStageRequirements: Record<Exclude<LeadStage, "closed">, LeadRequirement[]> = {
+  inquiry: [],
+  engaged: ["owner", "nextStep"],
+  application: ["owner", "email", "phone", "nextStep"],
+  review: ["owner", "email", "phone", "nextStep"],
+  admitted: ["owner", "email", "phone", "nextStep"],
+};
+
+function missingLeadRequirements(lead: AdmissionLead, stage: Exclude<LeadStage, "closed">) {
+  return leadStageRequirements[stage].filter((field) => {
+    if (field === "owner") return !lead.owner || lead.owner === "Unassigned";
+    return !lead[field]?.trim();
+  });
+}
+
+function LeadTransitionDialog({
+  lead,
+  targetStage,
+  currentUser,
+  busy,
+  onCancel,
+  onConfirm,
+}: {
+  lead: AdmissionLead;
+  targetStage: Exclude<LeadStage, "closed">;
+  currentUser?: CrmUser;
+  busy: boolean;
+  onCancel: () => void;
+  onConfirm: (values: Pick<AdmissionLead, "email" | "phone" | "nextStep">) => void;
+}) {
+  const missing = missingLeadRequirements(lead, targetStage);
+  const stageLabel = leadStages.find((item) => item.id === targetStage)?.label ?? targetStage;
+  return (
+    <div className="academic-modal-layer lead-transition-layer">
+      <button type="button" className="academic-modal-backdrop" aria-label="Cancel pipeline move" onClick={onCancel} />
+      <section className="academic-modal lead-transition-dialog" role="dialog" aria-modal="true" aria-labelledby="lead-transition-title">
+        <header>
+          <div>
+            <span>COMPLETE BEFORE MOVING</span>
+            <h2 id="lead-transition-title">Move {lead.name} to {stageLabel}</h2>
+            <p>Only information required for this pipeline stage is requested.</p>
+          </div>
+          <button type="button" aria-label="Close" onClick={onCancel}>×</button>
+        </header>
+        <form
+          className="lead-transition-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const form = new FormData(event.currentTarget);
+            onConfirm({
+              email: String(form.get("email") ?? lead.email ?? "").trim(),
+              phone: String(form.get("phone") ?? lead.phone ?? "").trim(),
+              nextStep: String(form.get("nextStep") ?? lead.nextStep ?? "").trim(),
+            });
+          }}
+        >
+          <div className="lead-transition-summary">
+            <span>{lead.stage} → <strong>{targetStage}</strong></span>
+            <small>{missing.length} required item{missing.length === 1 ? "" : "s"} to complete</small>
+          </div>
+          {missing.includes("owner") ? (
+            <div className="lead-owner-assignment">
+              <span aria-hidden="true">◎</span>
+              <div><strong>Assign an accountable owner</strong><small>This prospect will be assigned to {currentUser?.name || "the signed-in admissions officer"}.</small></div>
+            </div>
+          ) : null}
+          <div className="academic-form-grid">
+            {missing.includes("email") ? <label><span>Email address</span><input name="email" type="email" required autoFocus defaultValue={lead.email} placeholder="applicant@example.com" /></label> : <input type="hidden" name="email" value={lead.email ?? ""} />}
+            {missing.includes("phone") ? <label><span>Phone number</span><input name="phone" type="tel" required autoFocus={!missing.includes("email")} defaultValue={lead.phone} placeholder="Applicant contact number" /></label> : <input type="hidden" name="phone" value={lead.phone ?? ""} />}
+            {missing.includes("nextStep") ? <label className="wide"><span>Next accountable step</span><textarea name="nextStep" required rows={3} autoFocus={!missing.includes("email") && !missing.includes("phone")} defaultValue={lead.nextStep === "Review applicant record" ? "" : lead.nextStep} placeholder="What happens next, who owns it, and when?" /></label> : <input type="hidden" name="nextStep" value={lead.nextStep} />}
+          </div>
+          <footer>
+            <button type="button" className="lead-transition-cancel" onClick={onCancel}>Keep in {lead.stage}</button>
+            <button type="submit" className="lead-transition-confirm" disabled={busy}>{busy ? "Saving…" : `Complete & move to ${stageLabel}`}</button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  );
+}
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("zh-TW", {
@@ -397,6 +490,13 @@ function CRMApp({
   const [recordEditor, setRecordEditor] = useState<EditableCrmRecord | null>(
     null,
   );
+  const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
+  const [dragTargetStage, setDragTargetStage] = useState<Exclude<LeadStage, "closed"> | null>(null);
+  const [leadTransition, setLeadTransition] = useState<{
+    leadId: string;
+    targetStage: Exclude<LeadStage, "closed">;
+  } | null>(null);
+  const [leadTransitionBusy, setLeadTransitionBusy] = useState(false);
 
   useEffect(() => {
     void loadCrmData(Boolean(getCrmDataSnapshot())).then(setDatabase);
@@ -422,6 +522,9 @@ function CRMApp({
   const selectedStudent = database?.students.find(
     (student) => student.id === selectedStudentId,
   );
+  const transitioningLead = leadTransition
+    ? database?.leads.find((lead) => lead.id === leadTransition.leadId)
+    : undefined;
   const filteredStudents = useMemo(() => {
     if (!database) return [];
     const query = studentSearch.trim().toLowerCase();
@@ -477,33 +580,49 @@ function CRMApp({
     }
   }
 
-  async function advanceLead(id: string) {
+  async function moveLead(
+    id: string,
+    stage: Exclude<LeadStage, "closed">,
+    completion?: Pick<AdmissionLead, "email" | "phone" | "nextStep">,
+  ) {
     if (!database) return;
-    const order: LeadStage[] = [
-      "inquiry",
-      "engaged",
-      "application",
-      "review",
-      "admitted",
-    ];
     const original = database.leads.find((lead) => lead.id === id);
-    if (!original) return;
-    const index = order.indexOf(original.stage);
-    const stage = order[Math.min(index + 1, order.length - 1)];
-    const probability = Math.min(96, original.probability + 16);
+    if (!original || original.stage === stage) return;
+    const probability = leadStageProbability[stage];
+    const completedLead = {
+      ...original,
+      ...completion,
+      owner: completion && original.owner === "Unassigned"
+        ? currentUser?.name || "Assigned staff"
+        : original.owner,
+      stage,
+      probability,
+      lastActivity: "Just now",
+    };
     updateDatabase((current) => ({
       ...current,
-      leads: current.leads.map((lead) => {
-        if (lead.id !== id) return lead;
-        return { ...lead, stage, probability, lastActivity: "Just now" };
-      }),
+      leads: current.leads.map((lead) => lead.id === id ? completedLead : lead),
     }));
     try {
-      const live = await persistLeadStage(id, stage, probability);
+      let live = true;
+      if (completion) {
+        await saveAdmissionLead(id, {
+          name: completedLead.name,
+          email: completedLead.email ?? "",
+          phone: completedLead.phone ?? "",
+          program: completedLead.program,
+          source: completedLead.source,
+          stage,
+          probability,
+          nextStep: completedLead.nextStep,
+        });
+      } else {
+        live = await persistLeadStage(id, stage, probability);
+      }
       setToast(
         live
-          ? "Applicant stage saved to Supabase"
-          : "Applicant moved forward locally",
+          ? `${original.name} moved to ${leadStages.find((item) => item.id === stage)?.label}.`
+          : "Applicant stage updated in continuity mode.",
       );
     } catch {
       updateDatabase((current) => ({
@@ -513,7 +632,42 @@ function CRMApp({
       setToast(
         "Applicant stage could not be saved; the previous state was restored",
       );
+      throw new Error("Applicant stage could not be saved.");
     }
+  }
+
+  function requestLeadMove(id: string, targetStage: Exclude<LeadStage, "closed">) {
+    if (!database) return;
+    const lead = database.leads.find((item) => item.id === id);
+    if (!lead || lead.stage === targetStage) return;
+    if (missingLeadRequirements(lead, targetStage).length) {
+      setLeadTransition({ leadId: id, targetStage });
+      return;
+    }
+    void moveLead(id, targetStage);
+  }
+
+  function advanceLead(id: string) {
+    if (!database) return;
+    const lead = database.leads.find((item) => item.id === id);
+    if (!lead || lead.stage === "closed" || lead.stage === "admitted") return;
+    const index = leadStages.findIndex((item) => item.id === lead.stage);
+    const target = leadStages[index + 1]?.id;
+    if (target && target !== "closed") requestLeadMove(id, target);
+  }
+
+  function startLeadDrag(event: DragEvent<HTMLElement>, id: string) {
+    setDraggedLeadId(id);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", id);
+  }
+
+  function dropLead(event: DragEvent<HTMLElement>, stage: Exclude<LeadStage, "closed">) {
+    event.preventDefault();
+    const id = event.dataTransfer.getData("text/plain") || draggedLeadId;
+    setDraggedLeadId(null);
+    setDragTargetStage(null);
+    if (id) requestLeadMove(id, stage);
   }
 
   async function advanceCase(id: string) {
@@ -1219,20 +1373,45 @@ function CRMApp({
                   tone="amber"
                 />
               </div>
-              <div className="pipeline-board">
+              <p className="pipeline-drag-hint"><span aria-hidden="true">↔</span> Drag a prospect to another stage. If that stage needs more information, you’ll complete it before the move is saved.</p>
+              <div className={`pipeline-board${draggedLeadId ? " is-dragging" : ""}`}>
                 {leadStages.map((stage) => {
                   const leads = database.leads.filter(
                     (lead) => lead.stage === stage.id,
                   );
                   return (
-                    <section key={stage.id}>
+                    <section
+                      key={stage.id}
+                      data-stage={stage.id}
+                      className={dragTargetStage === stage.id ? "drag-target" : ""}
+                      onDragEnter={(event) => {
+                        event.preventDefault();
+                        if (draggedLeadId) setDragTargetStage(stage.id as Exclude<LeadStage, "closed">);
+                      }}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = "move";
+                      }}
+                      onDragLeave={(event) => {
+                        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragTargetStage(null);
+                      }}
+                      onDrop={(event) => dropLead(event, stage.id as Exclude<LeadStage, "closed">)}
+                    >
                       <header>
                         <h3>{stage.label}</h3>
                         <b>{leads.length}</b>
                       </header>
-                      <div>
+                      <div className="pipeline-stage-content">
                         {leads.map((lead) => (
-                          <article key={lead.id}>
+                          <article
+                            key={lead.id}
+                            draggable
+                            className={draggedLeadId === lead.id ? "is-dragged" : ""}
+                            onDragStart={(event) => startLeadDrag(event, lead.id)}
+                            onDragEnd={() => { setDraggedLeadId(null); setDragTargetStage(null); }}
+                            aria-label={`${lead.name}, currently in ${stage.label}. Drag to move pipeline stage.`}
+                          >
+                            <span className="pipeline-drag-handle" aria-hidden="true">⠿</span>
                             <span className="lead-source">{lead.source}</span>
                             <h4>{lead.name}</h4>
                             <p>{lead.program}</p>
@@ -1244,10 +1423,12 @@ function CRMApp({
                               <span>{lead.owner}</span>
                               <button
                                 type="button"
-                                onClick={() => void advanceLead(lead.id)}
+                                className="pipeline-advance-action"
+                                onClick={() => advanceLead(lead.id)}
+                                disabled={lead.stage === "admitted"}
                               >
                                 {lead.stage === "admitted"
-                                  ? "Enrolled"
+                                  ? "Ready for handoff"
                                   : "Advance →"}
                               </button>
                             </footer>
@@ -1257,6 +1438,7 @@ function CRMApp({
                             <div className="crm-inline-actions">
                               <button
                                 type="button"
+                                className="pipeline-edit-action"
                                 onClick={() =>
                                   setRecordEditor({
                                     kind: "lead",
@@ -1266,9 +1448,10 @@ function CRMApp({
                               >
                                 Edit
                               </button>
-                              {lead.stage === "admitted" ? <button type="button" onClick={() => { const notes=window.prompt("Registrar handoff notes (at least 12 characters)","Accepted applicant verified for student-account conversion."); if (!notes) return; void requestAdmissionHandoff(lead.id,notes).then(() => setToast("Registrar handoff created. Convert to student request is now pending.")).catch((error: unknown) => setToast(error instanceof Error ? error.message : "Handoff failed.")); }}>Convert to student request · Registrar handoff</button> : null}
+                              {lead.stage === "admitted" ? <button type="button" className="pipeline-handoff-action" onClick={() => { const notes=window.prompt("Registrar handoff notes (at least 12 characters)","Accepted applicant verified for student-account conversion."); if (!notes) return; void requestAdmissionHandoff(lead.id,notes).then(() => setToast("Registrar handoff created. Convert to student request is now pending.")).catch((error: unknown) => setToast(error instanceof Error ? error.message : "Handoff failed.")); }}>Registrar handoff</button> : null}
                               <button
                                 type="button"
+                                className="pipeline-archive-action"
                                 onClick={() => {
                                   if (
                                     !window.confirm(
@@ -1790,6 +1973,25 @@ function CRMApp({
               studentId: selectedStudent.id,
             })
           }
+        />
+      ) : null}
+
+      {leadTransition && transitioningLead ? (
+        <LeadTransitionDialog
+          lead={transitioningLead}
+          targetStage={leadTransition.targetStage}
+          currentUser={currentUser}
+          busy={leadTransitionBusy}
+          onCancel={() => {
+            if (!leadTransitionBusy) setLeadTransition(null);
+          }}
+          onConfirm={(completion) => {
+            setLeadTransitionBusy(true);
+            void moveLead(transitioningLead.id, leadTransition.targetStage, completion)
+              .then(() => setLeadTransition(null))
+              .catch(() => undefined)
+              .finally(() => setLeadTransitionBusy(false));
+          }}
         />
       ) : null}
 

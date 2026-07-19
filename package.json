@@ -15,6 +15,7 @@
     "verify:stitch-ui": "node scripts/verify-stitch-ui.mjs",
     "verify:stitch-all-pages": "node scripts/verify-stitch-all-pages.mjs",
     "test:live-crm": "node tests/integration/crm-live.mjs",
+    "test:live-admissions-pipeline": "node tests/integration/admissions-pipeline-live.mjs",
     "test:live-school": "node tests/integration/school-live.mjs",
     "test:live-academic-operations": "node tests/integration/academic-operations-live.mjs",
     "test:live-lms": "node tests/integration/lms-live.mjs",

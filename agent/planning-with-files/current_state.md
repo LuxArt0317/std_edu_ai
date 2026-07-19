@@ -1,5 +1,12 @@
 # Current State
 
+# Active implementation: Issue #98
+
+- Admissions prospects can be dragged between pipeline stages on desktop; the accessible Advance action provides the same validated transition for keyboard and touch users.
+- Application, review, and admission require accountable ownership, email, phone, and next action. Missing fields open a focused completion dialog before the move is saved; persistence failures restore the original card.
+- Card actions use a clear visual hierarchy: green stage progression, blue editing, purple Registrar handoff, and red archival.
+- All 103 contracts, lint, TypeScript/Vite build/assets, and the reversible production admissions-role transition/rollback workflow pass. Review and production release remain in progress on Issue #98.
+
 # Active implementation: Issue #96
 
 - Staff now see one Courses workspace instead of competing Teaching and Learning destinations. Teachers manage content and open an exact Student view over the same Supabase module/material/page graph; students receive the published learning experience and other authorized staff receive review access.
