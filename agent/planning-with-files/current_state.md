@@ -1,5 +1,11 @@
 # Current State
 
+# Active specification: Issue #104
+
+- Issue #104 is the implementation-ready research-completion epic. It reconciles the original non-mutating information-assistant study with the expanded authenticated School OS and defines authoritative-source ingestion, hybrid RAG, claim-linked citations, abstention, bilingual public assistance, campus spatial routing, controlled usability research, administrative-workload measurement, privacy, accessibility, and operational gates.
+- Repository evidence confirms the current public research corpus contains six static documents, four textual destinations, and four evaluation statements; production has a governed vector-capable knowledge foundation but not the complete ingestion, evaluation, navigation, or empirical-study lifecycle.
+- This turn is R&D/specification only. No Issue #104 product implementation has begun.
+
 # Completed implementation: Issue #103
 
 - `neededv3.md` defines the complete relationship-first input/action contract. Every implementation item is now present in UI/repository/schema; the static verifier and 113 automated contracts pass.

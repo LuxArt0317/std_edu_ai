@@ -1,5 +1,12 @@
 # Progress
 
+## 2026-07-19 — Issue #104 research completion specification
+
+- Audited `research.md`, `understanding.md`, all needed catalogs, current schema, public knowledge/navigation data, AI grounding, and evaluation evidence.
+- Confirmed the remaining gap is not the general CRM/LMS implementation: it is complete authoritative-source ingestion, measurable hybrid retrieval/citations, verified campus routing, and empirical evidence for usability, retrieval speed, satisfaction, and administrative workload.
+- Researched WCAG 2.2, NIST AI RMF/Generative AI guidance, OGC IndoorGML, OpenAI RAG retrieval metrics, the System Usability Scale, and Taiwan MOE human-centered AI direction.
+- Created GitHub Issue #104 with a two-surface product boundary, target architecture, required schemas, content inventory, RAG/citation/abstention contract, campus navigation UX, counterbalanced study protocol, objective/subjective metrics, thresholds, privacy/ethics rules, 11 work packages, test strategy, deliverables, risks, sequencing, and strict definition of done.
+
 ## 2026-07-19 — Issue #101
 
 - Read the captured failed Topic 1 enrichment run. The agent completed two pages, then proposed a page for a stale/deleted material and stopped instead of re-resolving the target and continuing the remaining four materials.

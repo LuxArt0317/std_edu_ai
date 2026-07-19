@@ -1,5 +1,14 @@
 # Task Plan
 
+## Phase 104: Research completion R&D and implementation epic [Issue #104]
+
+- [x] compare `research.md` and `understanding.md` with the current production implementation and schema
+- [x] identify the unproven research outcomes and distinguish the public research assistant from the authenticated operating platform
+- [x] research authoritative RAG evaluation, AI governance, accessibility, campus navigation, and usability methods
+- [x] specify the target architecture, schema, content inventory, study methodology, metrics, acceptance gates, risks, rollout, and definition of done
+- [x] create the detailed implementation-ready GitHub epic without beginning feature implementation
+- [ ] implement and verify Issue #104 in a future explicitly authorized build phase
+
 ## Phase 103: Relationship-first school workflows [Issue #103]
 
 - [x] audit `needed.md`, `neededv2.md`, schema relationships, and every relationship-bearing form
