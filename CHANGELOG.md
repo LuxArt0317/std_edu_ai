@@ -4,6 +4,7 @@
 
 - Added Issue #123's atomic privacy-safe public RAG trace, retrieval, and citation persistence; deterministic same-policy authoritative conflict handoff; opaque expiring session-bound one-use feedback; compact public feedback controls; and protected content-free reviewer metrics.
 - Extended guarded verification cleanup to remove connected synthetic AI evidence before cited fixture chunks. The production workflow proved one connected answer trace, cross-session denial, replay denial, reviewer-only reporting, one trace purged, and zero residual AI traces.
+- Released the public AI evidence flow as production deployment `dpl_Aka1cszfGnpGZNZiBUA1XUy4Hcfk`; both application shells, eight recursively referenced assets, the deployed answer capability, and matching-session feedback submission pass on `www.stu.best`.
 
 - Began Issue #104 implementation with child Issues #105–#116, a machine-verifiable Codex completion controller, and an evidence ledger that distinguishes implemented gates from external research dependencies.
 - Deployed the connected research foundation to production Supabase: governed/versioned knowledge and chunks, AI retrieval/citation/evaluation traces, accessible campus graph entities, pseudonymous protocol/consent/task/questionnaire records, and administrative workload metrics.

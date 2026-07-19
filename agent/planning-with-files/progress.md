@@ -38,3 +38,4 @@
 - Applied production migrations for atomic privacy-safe public AI traces/feedback and guarded trace-aware verification cleanup.
 - Added deterministic conflict handoff, compact answer feedback, protected content-free reviewer evidence, 14 focused API contracts, and a machine-verifiable Issue #123 gate.
 - Full 157-contract suite, lint, TypeScript/Vite production build, asset validation, and reversible production trace/feedback/report/cleanup workflow pass; deployment remains next.
+- Released Issue #123 as `dpl_Aka1cszfGnpGZNZiBUA1XUy4Hcfk`; `www.stu.best` serves the new feedback UI, both shells and all recursive assets pass, and the deployed assistant-to-feedback HTTP lifecycle succeeds.
