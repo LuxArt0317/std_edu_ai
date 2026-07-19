@@ -15,6 +15,8 @@
   - [x] implement the deterministic verified-graph router, public directory, and accessible text route [#118]
   - [ ] populate and physically validate the official STU campus inventory [#110 external evidence]
 - [ ] implement consented study and workload platforms [#112–#113]
+  - [x] implement the frozen-protocol pseudonymous study runner and anonymized export [#119]
+  - [ ] complete approved pilot/translation and real participant execution [#112/#115 external evidence]
 - [ ] complete security/accessibility/operations hardening [#114]
 - [ ] execute the approved study and publish reproducible measured results [#115]
 

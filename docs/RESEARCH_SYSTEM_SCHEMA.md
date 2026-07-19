@@ -34,6 +34,7 @@ flowchart LR
 
   Study[research_studies] --> Version[research_study_versions]
   Study --> Participant[research_participants]
+  Participant --> Token[research_participant_tokens hash only]
   Participant --> Consent[research_consent_records]
   Study --> Task[research_tasks]
   Participant --> Session[research_sessions]
@@ -56,7 +57,7 @@ flowchart LR
 | Answer evidence | `ai_queries`, `ai_answers`, `ai_retrieval_results`, `ai_answer_citations`, `ai_feedback` | Query-to-answer trace, ranked evidence, abstention, citations, user feedback |
 | Evaluation | `ai_eval_cases`, `ai_eval_runs`, `ai_eval_results` | Versioned gold cases and reproducible retrieval/answer scorecards |
 | Campus graph | `campus_sites`, `campus_buildings`, `campus_floors`, `campus_places`, `campus_place_aliases`, `campus_nodes`, `campus_edges`, `campus_service_hours` | Searchable destinations, multilingual aliases, accessible routing edges, service availability |
-| Human study | `research_studies`, `research_study_versions`, `research_participants`, `research_consent_records`, `research_tasks`, `research_sessions`, `research_task_attempts`, `research_questionnaires`, `research_questionnaire_items`, `research_responses` | Protocol version, pseudonymous participation, consent, task outcomes, questionnaires |
+| Human study | `research_studies`, `research_study_versions`, `research_participants`, `research_participant_tokens`, `research_consent_records`, `research_tasks`, `research_sessions`, `research_task_attempts`, `research_questionnaires`, `research_questionnaire_items`, `research_responses` | Frozen protocol, pseudonymous participation, hash-only revocable access, consent, counterbalanced task outcomes, questionnaires, SUS and anonymized export |
 | Workload | `administrative_inquiry_metrics` | Pre/post inquiry volume and handling-time evidence by office/category/period |
 
 ## Trust boundaries
@@ -66,6 +67,7 @@ flowchart LR
 - Public retrieval runs through a server boundary that applies freshness, audience, citation, logging, and abstention rules.
 - Authenticated corpus access is narrowed by role, audience, class enrollment, and source/document approval state.
 - Participant codes are pseudonymous. Optional contact material is separately encrypted; it is never part of answers, retrieval chunks, or research responses.
+- Anonymous participants have no direct study-table privileges. `/study/:code` uses an HttpOnly token; the database stores only its SHA-256 hash, validates active consent and exact protocol relationships on every write, and revokes it on withdrawal.
 - Every table has RLS enabled and explicit Data API privileges. Database policies remain the authorization authority.
 
 ## Relationship invariants
@@ -77,6 +79,7 @@ flowchart LR
 5. A questionnaire response joins a session, questionnaire, and item from the study model.
 6. Evaluation results belong to both a run and a versioned gold case.
 7. Protected research and retrieval data is not exposed to the anonymous Data API role.
+8. A study cannot recruit through the participant boundary until its selected protocol version is frozen; balanced assignment is serialized per version, and analysis export emits irreversible study-scoped pseudonyms rather than database or production identities.
 
 ## Campus validation boundary
 

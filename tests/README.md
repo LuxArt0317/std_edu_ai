@@ -22,6 +22,8 @@ Academic operations contracts cover student, subject, class, enrollment, and sch
 
 `integration/deployment-shell-live.mjs` verifies that deployed `/` and `/crm` contain useful pre-JavaScript recovery content instead of an empty root, recursively checks compiled entry/style/lazy-route assets, requires the live hashed asset graph to expose the CRM authentication stylesheet, and fails while onboarding is disabled if any onboarding UI marker appears in JavaScript.
 
+`integration/research-study-runner-live.mjs` creates a frozen synthetic protocol and proves public consent discovery, 1:1 counterbalancing, hash-only token isolation, two-condition task evidence, standard SUS scoring, completion, anonymized export, withdrawal, immediate deletion, and dependency-order cleanup without treating synthetic rows as participant outcomes.
+
 `integration/ai-live.mjs` invokes the real authenticated school chatbot and OpenAI vision grade extraction using the synthetic `fixtures/grade-sheet.svg` fixture converted to PNG. It verifies structured responses and the mandatory human-review flag without saving grades.
 
 `api/research-foundation.test.ts` and `integration/research-foundation-live.mjs` protect the Issue #104 research system: governed provenance, retrieval privacy, campus graph relationships, pseudonymous study records, explicit Data API privileges, and reversible live production behavior.

@@ -4324,6 +4324,41 @@ export type Database = {
           },
         ]
       }
+      research_participant_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          last_used_at: string | null
+          participant_id: string
+          revoked_at: string | null
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          last_used_at?: string | null
+          participant_id: string
+          revoked_at?: string | null
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          last_used_at?: string | null
+          participant_id?: string
+          revoked_at?: string | null
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_participant_tokens_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: true
+            referencedRelation: "research_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       research_participants: {
         Row: {
           contact_ciphertext: string | null
@@ -5197,6 +5232,19 @@ export type Database = {
       }
     }
     Functions: {
+      begin_research_participation: {
+        Args: { p_consent: boolean; p_familiarity_level: string; p_population_role: string; p_study_code: string; p_study_version_id: string; p_user_agent_family?: string }
+        Returns: Json
+      }
+      complete_research_session: { Args: { p_token: string }; Returns: boolean }
+      get_research_session: { Args: { p_language?: string; p_token: string }; Returns: Json }
+      public_research_study: { Args: { p_language?: string; p_study_code: string }; Returns: Json }
+      research_anonymized_export: { Args: { p_study_id: string }; Returns: Json }
+      research_sus_score: { Args: { p_condition: string; p_session_id: string }; Returns: number }
+      set_research_session_status: { Args: { p_status: string; p_token: string }; Returns: string }
+      submit_research_attempt: { Args: { p_condition: string; p_metrics: Json; p_task_id: string; p_token: string }; Returns: string }
+      submit_research_response: { Args: { p_condition: string; p_item_id: string; p_numeric_value?: number; p_text_value?: string; p_token: string }; Returns: string }
+      withdraw_research_participation: { Args: { p_delete_now?: boolean; p_token: string }; Returns: boolean }
       approve_and_send_campaign: {
         Args: { p_campaign_id: string; p_reason: string }
         Returns: {

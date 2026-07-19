@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "parentIssue": 104,
-  "updatedAt": "2026-07-19T07:42:00Z",
+  "updatedAt": "2026-07-19T08:32:00Z",
   "workPackages": [
     {"key":"WP0","issue":105,"title":"Research scope and protocol","issueState":"open","measures":[
       {"id":"claims-traceability","description":"Every research claim maps to evidence","metric":"mapped claims / total claims","target":"100%","status":"verified","verifiedAt":"2026-07-19T07:02:00Z","evidence":["docs/research/claims-evidence.json: 15 mapped claims","npm run verify:research-protocol"]},
@@ -40,9 +40,9 @@
       {"id":"production-quality","description":"Accessibility, performance, responsive, and failure-state budgets pass","metric":"critical release gate failures","target":"0","status":"pending","evidence":[]}
     ]},
     {"key":"WP7","issue":112,"title":"Research study platform","issueState":"open","measures":[
-      {"id":"consent-separation","description":"Consent identity and response evidence are separated and governed","metric":"privacy/RLS failures","target":"0","status":"pending","evidence":[]},
-      {"id":"counterbalance","description":"Assignments are reproducible and balanced","metric":"assignment imbalance beyond protocol tolerance","target":"0","status":"pending","evidence":[]},
-      {"id":"study-e2e","description":"Synthetic participant completes consent, tasks, measures, withdrawal, and anonymous export","metric":"required E2E stages passed","target":"100%","status":"pending","evidence":[]}
+      {"id":"consent-separation","description":"Consent identity and response evidence are separated and governed","metric":"privacy/RLS failures","target":"0","status":"verified","verifiedAt":"2026-07-19T08:32:00Z","evidence":["research_participant_tokens has no Data API table grants and stores SHA-256 hashes only","tests/integration/research-study-runner-live.mjs: tokenHashLeakage=0, forbiddenExportFields=0"]},
+      {"id":"counterbalance","description":"Assignments are reproducible and balanced","metric":"assignment imbalance beyond protocol tolerance","target":"0","status":"verified","verifiedAt":"2026-07-19T08:32:00Z","evidence":["begin_research_participation serializes allocation with advisory lock","synthetic production allocation AB=1, BA=1, difference=0"]},
+      {"id":"study-e2e","description":"Synthetic participant completes consent, tasks, measures, withdrawal, and anonymous export","metric":"required E2E stages passed","target":"100%","status":"verified","verifiedAt":"2026-07-19T08:32:00Z","evidence":["tests/integration/research-study-runner-live.mjs","standard SUS fixture=100; completion validated; withdrawal blocked writes; immediate deletion; remaining fixtures=0"]}
     ]},
     {"key":"WP8","issue":113,"title":"Administrative workload","issueState":"open","measures":[
       {"id":"confirmed-resolution","description":"Deflection requires explicit resolution evidence","metric":"unconfirmed interactions counted as deflected","target":"0","status":"pending","evidence":[]},
