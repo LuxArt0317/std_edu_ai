@@ -6,7 +6,7 @@
 - AI lesson pages must use Tiptap-compatible semantic HTML with learner-focused examples, a non-fabricated instructor perspective, and reflection. Client review and repository persistence both normalize content; raw/flattened Markdown is converted and unsafe media is removed.
 - Authorized reputable-source preferences persist through the active goal. Only exact HTTPS image URLs and supported YouTube no-cookie, Vimeo, or direct video URLs are accepted.
 - Conversation rename/delete is owner-scoped through existing RLS. Deletion cleans private attachment objects and database cascades messages/queued prompts; the next valid recent thread is restored. Composer and message attachments now use compact accessible previews/tiles.
-- All 109 contracts, TypeScript/Vite build/assets, and the reversible production OpenAI/Supabase Issue #101 workflow pass. Review and production release remain in progress.
+- All 109 contracts, lint, TypeScript/Vite build/assets, and the reversible production OpenAI/Supabase Issue #101 workflow pass. PR #102 passed CodeRabbit/Vercel and merged as `a88a9d6`; production deployment `dpl_5MuducvgXyBxhbezH3mKoQrZgaTc` is Ready on both custom domains. Recursive release markers and the deployed semantic-HTML/image/video/32-step API call pass. Issue #101 is complete.
 
 # Completed implementation: Issue #98
 

@@ -7,7 +7,7 @@
 - [x] support authorized reputable inline image/video sources without repeated clarification
 - [x] add durable conversation rename/delete with valid active-thread restoration and attachment cleanup
 - [x] replace verbose attachment text with compact accessible previews/chips and clear upload/remove states
-- [ ] verify automated/live behavior, documentation, review, deployment, and production
+- [x] verify automated/live behavior, documentation, review, deployment, and production
 
 ## Phase 98: Validated admissions pipeline drag and drop [Issue #98]
 

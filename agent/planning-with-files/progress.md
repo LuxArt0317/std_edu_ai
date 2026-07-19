@@ -10,6 +10,7 @@
 - Added durable thread rename/delete controls, valid next-thread restoration, queue/message cascades, and deletion of private `nexus-attachments` objects.
 - Replaced verbose attachment filenames with compact accessible openable tiles and composer image/file previews with icon-only attachment selection.
 - All 109 contracts and the production build pass. The reversible live Issue #101 workflow proved semantic HTML, human instructional framing, authorized inline media, stale-ID recovery, page persistence, thread rename/delete cascade, and private attachment cleanup against production Supabase/OpenAI.
+- PR #102 passed CodeRabbit and Vercel, merged as `a88a9d6`, and deployed Ready as `dpl_5MuducvgXyBxhbezH3mKoQrZgaTc` to `stu.best` and `www.stu.best`. Both custom domains passed recursive route/assets and release-marker checks. The deployed API returned HTTP 200 with an exact-material `create_material_page` action, semantic HTML, exact authorized image/video nodes, and a 32-step run contract.
 
 ## 2026-07-19 — Issue #98
 
