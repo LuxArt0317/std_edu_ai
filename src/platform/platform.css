@@ -5010,6 +5010,7 @@ textarea {
   opacity: 0.35;
   cursor: not-allowed;
 }
+.lms-paste-hint { margin-left:auto; align-self:center; padding:0 5px; color:#718782; font-size:10px; font-weight:750; white-space:nowrap; }
 .lms-rich-document {
   width: 100%;
   max-width: 100%;

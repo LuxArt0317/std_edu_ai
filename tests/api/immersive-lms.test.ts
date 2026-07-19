@@ -41,6 +41,22 @@ test("lesson authoring keeps resources inline and privileged learning uses the l
   assert.match(css, /\.lms-page-builder > header button[\s\S]*width: auto !important/);
 });
 
+test("lesson editor pastes macOS and Windows clipboard screenshots without consuming text paste", async () => {
+  const [editor, css, repository] = await Promise.all([
+    source("src/platform/RichTextEditor.tsx"), source("src/platform/platform.css"),
+    source("src/platform/platformRepository.ts"),
+  ]);
+  assert.match(editor, /onPaste=\{\(event\)/);
+  assert.match(editor, /event\.clipboardData\.items/);
+  assert.match(editor, /item\.kind === "file" && item\.type\.startsWith\("image\/"\)/);
+  assert.match(editor, /if \(!images\.length\) return;\s*event\.preventDefault\(\)/);
+  assert.match(editor, /insertContentAt\(insertionPoint/);
+  assert.match(editor, /Paste screenshots · ⌘V or Ctrl\+V/);
+  assert.match(css, /\.lms-paste-hint/);
+  assert.match(repository, /Choose a JPEG, PNG, WebP, or GIF image/);
+  assert.match(repository, /Images must be 8 MB or smaller/);
+});
+
 test("assessment integrity is teacher controlled, disclosed, and append-only", async () => {
   const [migration, lms, portal, repository] = await Promise.all([
     source("supabase/migrations/20260718234504_immersive_lms_integrity_controls.sql"),

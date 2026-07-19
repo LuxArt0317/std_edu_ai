@@ -1,5 +1,12 @@
 # Task Plan
 
+## Phase 94: Clipboard screenshot paste in lesson editor [Issue #94]
+
+- [x] accept macOS and Windows clipboard image files at the active editor position
+- [x] preserve normal text/HTML paste and existing multi-file image selection
+- [x] reuse authorized learning-media validation, progress, and error feedback
+- [ ] add regression/live coverage, documentation, review, deployment, and production verification
+
 ## Phase 92: Connected live Learning workspace and focused lesson authoring [Issue #92]
 
 - [x] remove misleading standalone lesson URL/upload controls and legacy learning-source prompts
