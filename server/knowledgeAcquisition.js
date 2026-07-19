@@ -51,6 +51,18 @@ function contentType(value) {
   return String(value || '').split(';')[0].trim().toLowerCase()
 }
 
+export function createPublicLookup(resolver = dnsLookup) {
+  return async (hostname, lookupOptions, callback) => {
+    try {
+      const values = await resolver(hostname, { all: true, verbatim: true })
+      if (!values.length || values.some((item) => !isPublicAddress(item.address))) return callback(new Error('Connection target is not a public address.'))
+      const selected = values[0]
+      if (lookupOptions?.all) callback(null, [selected])
+      else callback(null, selected.address, selected.family)
+    } catch (error) { callback(error) }
+  }
+}
+
 async function requestOnce(value, options = {}) {
   const { url } = await validatePublicHttpsUrl(value, options.resolver)
   const controller = new AbortController()
@@ -61,14 +73,7 @@ async function requestOnce(value, options = {}) {
         method: 'GET',
         headers: { Accept: 'text/html,application/pdf,text/plain,text/markdown;q=0.9', 'User-Agent': 'STU-Nexus-Knowledge-Ingestion/1.0' },
         signal: controller.signal,
-        lookup: async (hostname, lookupOptions, callback) => {
-          try {
-            const values = await (options.resolver || dnsLookup)(hostname, { all: true, verbatim: true })
-            if (!values.length || values.some((item) => !isPublicAddress(item.address))) return callback(new Error('Connection target is not a public address.'))
-            const selected = values[0]
-            callback(null, selected.address, selected.family)
-          } catch (error) { callback(error) }
-        },
+        lookup: createPublicLookup(options.resolver || dnsLookup),
       }, (response) => {
         const status = response.statusCode || 0
         if (status >= 300 && status < 400 && response.headers.location) {

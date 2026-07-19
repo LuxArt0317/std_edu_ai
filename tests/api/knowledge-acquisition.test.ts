@@ -3,6 +3,7 @@ import test from "node:test";
 import fs from "node:fs";
 import {
   chunkKnowledgeSections,
+  createPublicLookup,
   detectAndExtractSource,
   extractHtmlSections,
   extractTextSections,
@@ -79,6 +80,28 @@ test("public-address validation rejects every local and reserved network class",
     async () => [{ address: "8.8.8.8", family: 4 }],
   );
   assert.equal(safe.url.hostname, "source.example");
+});
+
+test("connection-time DNS validation supports both Node lookup callback signatures", async () => {
+  const resolver = async () => [{ address: "8.8.8.8", family: 4 }];
+  const lookup = createPublicLookup(resolver);
+  const all = await new Promise((resolve, reject) =>
+    lookup("source.example", { all: true }, (error: Error | null, addresses: unknown) =>
+      error ? reject(error) : resolve(addresses),
+    ),
+  );
+  assert.deepEqual(all, [{ address: "8.8.8.8", family: 4 }]);
+  const single = await new Promise((resolve, reject) =>
+    lookup("source.example", { all: false }, (error: Error | null, address: unknown, family: unknown) =>
+      error ? reject(error) : resolve({ address, family }),
+    ),
+  );
+  assert.deepEqual(single, { address: "8.8.8.8", family: 4 });
+  const blocked = createPublicLookup(async () => [{ address: "127.0.0.1", family: 4 }]);
+  await assert.rejects(
+    () => new Promise((resolve, reject) => blocked("source.example", { all: true }, (error: Error | null) => error ? reject(error) : resolve(null))),
+    /not a public address/,
+  );
 });
 
 test("HTML extraction preserves structure and links while excluding executable, hidden, and control content", async () => {
@@ -189,6 +212,8 @@ test("the deployed acquisition boundary revalidates DNS redirects and records st
   );
   for (const marker of [
     "lookup:",
+    "lookupOptions?.all",
+    "callback(null, [selected])",
     "MAX_REDIRECTS",
     "private, reserved, or unavailable",
     "response.headers.location",
