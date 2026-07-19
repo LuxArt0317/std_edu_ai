@@ -43,9 +43,46 @@ const VideoEmbed = Node.create({
   },
 });
 
+const FileAttachment = Node.create({
+  name: "fileAttachment",
+  group: "block",
+  atom: true,
+  draggable: true,
+  addAttributes() {
+    return {
+      path: { default: null },
+      name: { default: "Attached file" },
+      size: { default: null },
+    };
+  },
+  parseHTML() {
+    return [{
+      tag: "a[data-lms-file-path]",
+      getAttrs: (node) => ({
+        path: (node as HTMLElement).dataset.lmsFilePath,
+        name: (node as HTMLElement).dataset.lmsFileName ?? (node as HTMLElement).textContent,
+        size: (node as HTMLElement).dataset.lmsFileSize,
+      }),
+    }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    const name = String(HTMLAttributes.name || "Attached file");
+    const size = HTMLAttributes.size ? ` · ${HTMLAttributes.size}` : "";
+    return ["a", mergeAttributes({
+      href: "#",
+      class: "lms-file-attachment",
+      "data-lms-file-path": HTMLAttributes.path,
+      "data-lms-file-name": name,
+      "data-lms-file-size": HTMLAttributes.size,
+      title: `Open ${name}`,
+    }), ["span", { "aria-hidden": "true" }, "↧"], ["strong", {}, name], ["small", {}, `Attached file${size}`]];
+  },
+});
+
 const extensions = [
   StarterKit,
   VideoEmbed,
+  FileAttachment,
   Image.configure({
     allowBase64: false,
     HTMLAttributes: { class: "lms-content-image" },
@@ -67,14 +104,17 @@ export function RichTextEditor({
   onChange,
   onImageUpload,
   onVideoUpload,
+  onFileUpload,
 }: {
   value: string;
   onChange: (html: string) => void;
   onImageUpload?: (file: File) => Promise<string>;
   onVideoUpload?: (file: File) => Promise<string>;
+  onFileUpload?: (file: File) => Promise<{ path: string; name: string; size: string }>;
 }) {
   const imageInput = useRef<HTMLInputElement>(null);
   const videoInput = useRef<HTMLInputElement>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [mediaError, setMediaError] = useState("");
   const editor = useEditor({
@@ -222,6 +262,14 @@ export function RichTextEditor({
             void (async()=>{for(const file of files){const src=await onVideoUpload(file);editor.chain().focus().insertContent({type:"videoEmbed",attrs:{src,kind:"video",title:file.name}}).run();}})().catch((error: unknown)=>setMediaError(error instanceof Error?error.message:"Video upload failed.")).finally(()=>setUploading(false));
           }} />
         </> : null}
+        {onFileUpload ? <>
+          <button type="button" disabled={uploading} onClick={() => fileInput.current?.click()}>Attach files</button>
+          <input ref={fileInput} className="lms-image-input" type="file" multiple onChange={(event) => {
+            const files=[...(event.target.files??[])]; event.target.value=""; if(!files.length) return;
+            setUploading(true); setMediaError("");
+            void (async()=>{for(const file of files){const attachment=await onFileUpload(file);editor.chain().focus().insertContent({type:"fileAttachment",attrs:attachment}).run();}})().catch((error: unknown)=>setMediaError(error instanceof Error?error.message:"File upload failed.")).finally(()=>setUploading(false));
+          }} />
+        </> : null}
         <button
           type="button"
           onClick={() => editor.chain().focus().undo().run()}
@@ -243,7 +291,7 @@ export function RichTextEditor({
   );
 }
 
-export function RichTextContent({ html }: { html: string }) {
+export function RichTextContent({ html, onOpenFile }: { html: string; onOpenFile?: (path: string) => Promise<void> }) {
   const editor = useEditor({
     extensions,
     content: html,
@@ -256,5 +304,11 @@ export function RichTextContent({ html }: { html: string }) {
     if (editor && editor.getHTML() !== html)
       editor.commands.setContent(html || "<p></p>", { emitUpdate: false });
   }, [editor, html]);
-  return <EditorContent editor={editor} />;
+  return <div onClick={(event) => {
+    const link=(event.target as HTMLElement).closest<HTMLAnchorElement>("a[data-lms-file-path]");
+    if(!link) return;
+    event.preventDefault();
+    const path=link.dataset.lmsFilePath;
+    if(path && onOpenFile) void onOpenFile(path);
+  }}><EditorContent editor={editor} /></div>;
 }

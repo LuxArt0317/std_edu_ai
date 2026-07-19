@@ -59,6 +59,30 @@ function dateTime(value: string | null) {
     : "No deadline";
 }
 
+function fileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1_048_576) return `${Math.ceil(bytes / 1024)} KB`;
+  return `${(bytes / 1_048_576).toFixed(1)} MB`;
+}
+
+function attachedFileName(path: string) {
+  const stored = path.split("/").at(-1) ?? "attached-file";
+  return decodeURIComponent(stored.replace(/^[0-9a-f-]{36}-/i, ""));
+}
+
+async function openAttachedFile(path: string) {
+  try {
+    const url = await getLmsFileUrl(path);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.target = "_blank";
+    anchor.rel = "noopener noreferrer";
+    anchor.click();
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : "The attached file could not be opened.");
+  }
+}
+
 function FormModal({
   title,
   children,
@@ -743,7 +767,7 @@ export function TeacherLmsStudio({
         const material=data.materials.find((item)=>item.id===modal.split(":")[1]);
         if(!material) return null;
         const pages=data.materialPages.filter((page)=>page.materialId===material.id).sort((a,b)=>a.position-b.position);
-        return <FormModal immersive title={`Student lesson preview · ${material.title}`} onClose={()=>setModal(null)}><div className="lms-teacher-preview lms-immersive-preview"><span>{material.type} · {material.status}</span><h2>{material.title}</h2><p>{material.description}</p>{pages.length ? pages.map((page)=><article key={page.id}><small>PAGE {page.position}</small><h3>{page.title}</h3><RichTextContent html={page.content} /></article>) : <RichTextContent html={material.content} />}<footer><button type="button" onClick={()=>setModal(`edit-material:${material.id}`)}>Edit lesson</button><button type="button" onClick={()=>setModal(null)}>Return to course studio</button></footer></div></FormModal>;
+        return <FormModal immersive title={`Student lesson preview · ${material.title}`} onClose={()=>setModal(null)}><div className="lms-teacher-preview lms-immersive-preview"><span>{material.type} · {material.status}</span><h2>{material.title}</h2><p>{material.description}</p>{pages.length ? pages.map((page)=><article key={page.id}><small>PAGE {page.position}</small><h3>{page.title}</h3><RichTextContent html={page.content} onOpenFile={openAttachedFile} /></article>) : <RichTextContent html={material.content} onOpenFile={openAttachedFile} />}<footer><button type="button" onClick={()=>setModal(`edit-material:${material.id}`)}>Edit lesson</button><button type="button" onClick={()=>setModal(null)}>Return to course studio</button></footer></div></FormModal>;
       })() : null}
       {modal === "assessment" || modal?.startsWith("assessment:") ? (
         <AssessmentBuilder
@@ -1103,19 +1127,15 @@ function MaterialForm({
         onSubmit={(event) => {
           event.preventDefault();
           const f = new FormData(event.currentTarget);
-          const file = f.get("file") as File;
           void onSave(
             async () => {
-              const path = file?.size
-                ? await uploadLmsFile(sectionId, "materials", file)
-                : undefined;
               const values = {
                 title: String(f.get("title")),
                 description: String(f.get("description")),
                 type: String(f.get("type")),
                 content: pages[0]?.content ?? "",
-                externalUrl: String(f.get("url")),
-                storagePath: path,
+                externalUrl: material?.externalUrl ?? undefined,
+                storagePath: material?.storagePath ?? undefined,
                 minutes: Number(f.get("minutes")),
                 required: f.get("required") === "on",
                 publish: f.get("publish") === "on",
@@ -1162,10 +1182,9 @@ function MaterialForm({
             Material type
             <select name="type" defaultValue={material?.type ?? "lesson"}>
               <option value="lesson">Lesson</option>
-              <option value="file">File</option>
-              <option value="link">External link</option>
               <option value="video">Video</option>
               <option value="activity">Activity</option>
+              {material && !["lesson", "video", "activity"].includes(material.type) ? <option value={material.type}>Legacy {material.type}</option> : null}
             </select>
           </label>
           <label>
@@ -1206,7 +1225,7 @@ function MaterialForm({
                 ])
               }
             >
-              + Add page
+              Add page
             </button>
           </header>
           {pages.map((page, index) => (
@@ -1250,23 +1269,15 @@ function MaterialForm({
                 }
                 onImageUpload={(file) => uploadLearningImage(sectionId, file)}
                 onVideoUpload={(file) => uploadLearningVideo(sectionId, file)}
+                onFileUpload={async (file) => ({
+                  path: await uploadLmsFile(sectionId, "materials", file),
+                  name: file.name,
+                  size: fileSize(file.size),
+                })}
               />
             </article>
           ))}
         </section>
-        <label>
-          HTTPS link
-          <input
-            name="url"
-            type="url"
-            placeholder="https://…"
-            defaultValue={material?.externalUrl ?? ""}
-          />
-        </label>
-        <label>
-          Upload file
-          <input name="file" type="file" />
-        </label>
         <div className="split">
           <label className="check">
             <input
@@ -1765,13 +1776,24 @@ export function StudentLmsLearning({
   currentUser,
   onChanged,
   onToast,
+  mode = "student",
+  initialSectionId = "",
 }: {
   data: PlatformData;
   currentUser: CrmUser;
   onChanged: () => void;
   onToast: Toast;
+  mode?: "student" | "review";
+  initialSectionId?: string;
 }) {
-  const [sectionId, setSectionId] = useState(data.courses[0]?.sectionId ?? "");
+  const learnerMode = mode === "student";
+  const [sectionId, setSectionId] = useState(
+    data.courses.some((item) => item.sectionId === initialSectionId)
+      ? initialSectionId
+      : data.courses.find((course) => data.modules.some((module) => module.sectionId === course.sectionId))?.sectionId
+        ?? data.courses[0]?.sectionId
+        ?? "",
+  );
   const [activeMaterial, setActiveMaterial] = useState<LearningMaterial | null>(
     null,
   );
@@ -1829,15 +1851,15 @@ export function StudentLmsLearning({
   if (!course)
     return (
       <Empty
-        title="No enrolled courses"
-        text="Your learning modules will appear after enrollment is completed."
+        title={learnerMode ? "No enrolled courses" : "No visible courses"}
+        text={learnerMode ? "Your learning modules will appear after enrollment is completed." : "Live course sections will appear here when this role can access them."}
       />
     );
   return (
     <>
       <section className="lms-student-hero">
         <div>
-          <span>MY LEARNING</span>
+          <span>{learnerMode ? "MY LEARNING" : "LIVE LEARNING LIBRARY"}</span>
           <h1>{course.title}</h1>
           <p>
             {course.code} · {course.sectionCode} · {course.facultyName}
@@ -1853,16 +1875,16 @@ export function StudentLmsLearning({
             </option>
           ))}
         </select>
-        <div
+        {learnerMode ? <div
           className="lms-progress-ring"
           style={{ "--progress": `${percent * 3.6}deg` } as CSSProperties}
         >
           <b>{percent}%</b>
           <small>complete</small>
-        </div>
+        </div> : <div className="lms-progress-ring lms-library-count"><b>{materials.length}</b><small>materials</small></div>}
       </section>
       <section className="lms-student-stats">
-        <span>
+        {learnerMode ? <><span>
           <b>
             {completed}/{materials.length}
           </b>{" "}
@@ -1889,9 +1911,9 @@ export function StudentLmsLearning({
             {attendance.length}
           </b>{" "}
           sessions present
-        </span>
+        </span></> : <><span><b>{modules.length}</b> live modules</span><span><b>{materials.filter((item)=>item.status === "published").length}</b> published materials</span><span><b>{materials.filter((item)=>item.status !== "published").length}</b> drafts visible to this role</span></>}
       </section>
-      <section className="lms-workspace">
+      {learnerMode ? <section className="lms-workspace">
         <header><div><span>MY ATTENDANCE</span><h2>Attendance records and corrections</h2><p>Review each class record and request a documented correction when needed.</p></div></header>
         {attendance.map((record) => {
           const session=data.attendanceSessions.find((item) => item.id === record.sessionId);
@@ -1899,7 +1921,7 @@ export function StudentLmsLearning({
           return <article className="lms-attendance-card" key={record.id}><header><div><span>{record.status}</span><h3>{session?.title ?? "Class session"}</h3><p>{session ? dateTime(session.startsAt) : ""}{record.notes ? ` · ${record.notes}` : ""}</p></div>{pending ? <b>Correction pending: {pending.requestedStatus}</b> : <button type="button" onClick={() => { const requestedStatus=window.prompt("Requested status: present, absent, late, or excused",record.status); if (!requestedStatus || !["present","absent","late","excused"].includes(requestedStatus)) { if(requestedStatus) onToast("Choose present, absent, late, or excused."); return; } const reason=window.prompt("Explain the correction request (at least 12 characters)"); if (!reason) return; void requestAttendanceCorrection({attendanceRecordId:record.id,studentProfileId:currentUser.id,requestedStatus:requestedStatus as "present"|"absent"|"late"|"excused",reason}).then(() => {onToast("Attendance correction requested.");onChanged();}).catch((error: unknown) => onToast(error instanceof Error ? error.message : "Correction request failed.")); }}>Request correction</button>}</header></article>;
         })}
         {!attendance.length ? <Empty title="No attendance records" text="Your class attendance appears here after a teacher records a session." /> : null}
-      </section>
+      </section> : null}
       <div className={`lms-learning-layout${readerFocus ? " reader-focus" : ""}`}>
         <aside aria-label="Course outline">
           <div className="lms-outline-heading"><span>COURSE OUTLINE</span><h2>Lessons and materials</h2><p>Select any lesson to open it.</p></div>
@@ -1939,12 +1961,10 @@ export function StudentLmsLearning({
                       onClick={() => {
                         setActiveMaterial(material);
                         setActivePage(0);
-                        void markLearningProgress(material.id, done).then(
-                          onChanged,
-                        );
+                        if (learnerMode) void markLearningProgress(material.id, done).then(onChanged);
                       }}
                     >
-                      <span>{done ? "✓" : "○"}</span>
+                      <span>{learnerMode ? (done ? "✓" : "○") : (material.status === "published" ? "●" : "◐")}</span>
                       <div>
                         <b>{material.title}</b>
                         <small>
@@ -1987,7 +2007,7 @@ export function StudentLmsLearning({
                       PAGE {activePage + 1} OF {materialPages.length}
                     </small>
                     <h3>{displayedPage?.title}</h3>
-                    <RichTextContent html={displayedPage?.content ?? ""} />
+                    <RichTextContent html={displayedPage?.content ?? ""} onOpenFile={openAttachedFile} />
                     <footer>
                       <button
                         type="button"
@@ -2013,30 +2033,18 @@ export function StudentLmsLearning({
                   </div>
                 </>
               ) : (
-                <RichTextContent html={activeMaterial.content} />
+                <RichTextContent html={activeMaterial.content} onOpenFile={openAttachedFile} />
               )}
-              {activeMaterial.externalUrl ? (
-                <a
-                  href={activeMaterial.externalUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Open learning resource ↗
-                </a>
-              ) : null}
               {activeMaterial.storagePath ? (
                 <button
                   type="button"
-                  onClick={() =>
-                    void getLmsFileUrl(activeMaterial.storagePath!).then(
-                      (url) => window.open(url, "_blank"),
-                    )
-                  }
+                  className="lms-file-attachment lms-legacy-attachment"
+                  onClick={() => void openAttachedFile(activeMaterial.storagePath!)}
                 >
-                  Open attached file
+                  <span aria-hidden="true">↧</span><strong>{attachedFileName(activeMaterial.storagePath)}</strong><small>Attached file</small>
                 </button>
               ) : null}
-              <button
+              {learnerMode ? <button
                 type="button"
                 className="complete"
                 onClick={() =>
@@ -2049,16 +2057,16 @@ export function StudentLmsLearning({
                 }
               >
                 ✓ Mark complete
-              </button>
+              </button> : null}
               {nextMaterial ? <button type="button" className="lms-next-lesson" onClick={()=>{setActiveMaterial(nextMaterial);setActivePage(0);}}>Next lesson: {nextMaterial.title} →</button> : null}
             </article>
           ) : (
             <Empty
-              title="Choose a learning material"
-              text="Open a lesson from the course path to begin or continue learning."
+              title={modules.length ? "Choose a learning material" : "No learning content yet"}
+              text={modules.length ? "Open a lesson from the course path to begin or continue learning." : "This live course section does not have a visible module or lesson yet."}
             />
           )}
-          <section className="lms-student-assignments">
+          {learnerMode ? <section className="lms-student-assignments">
             <header>
               <h3>Assignments and projects</h3>
             </header>
@@ -2089,10 +2097,10 @@ export function StudentLmsLearning({
                 </article>
               );
             })}
-          </section>
+          </section> : null}
         </main>
       </div>
-      {assignmentId ? (
+      {learnerMode && assignmentId ? (
         <StudentSubmission
           assessment={assignments.find((item) => item.id === assignmentId)!}
           course={course}

@@ -106,6 +106,19 @@ try {
       new Blob(["Verified private learning file"], { type: "text/plain" }),
     );
   if (upload.error) throw upload.error;
+  const inlineAttachment = `<p>Lesson handout</p><a href="#" data-lms-file-path="${storagePath}" data-lms-file-name="lesson-handout.txt" data-lms-file-size="30 B">lesson-handout.txt</a>`;
+  const pageAttachment = await faculty
+    .from("learning_material_pages")
+    .update({ content_html: inlineAttachment })
+    .eq("id", page.data.id);
+  if (pageAttachment.error) throw pageAttachment.error;
+  const visibleAttachment = await student
+    .from("learning_material_pages")
+    .select("content_html")
+    .eq("id", page.data.id)
+    .single();
+  if (visibleAttachment.error || !visibleAttachment.data.content_html.includes(`data-lms-file-path="${storagePath}"`))
+    throw visibleAttachment.error || new Error("Inline private file link was not visible to the enrolled student.");
   const fileMaterial = await faculty
     .from("learning_materials")
     .insert({
@@ -308,6 +321,7 @@ console.log(
   JSON.stringify({
     teacherContent: true,
     privateFiles: true,
+    inlinePrivateFileLinks: true,
     richPagesAndImages: true,
     studentPublishedAccess: true,
     studentAuthoringDenied: true,
