@@ -4,6 +4,7 @@ import "./crm.css";
 import { askCrmCopilot } from "./aiService";
 import { WorkloadEvidencePanel } from "../research/WorkloadEvidencePanel";
 import { IngestionHealthPanel } from "../research/IngestionHealthPanel";
+import { GovernedKnowledgeWorkspace } from "../research/GovernedKnowledgeWorkspace";
 import {
   createKnowledgeArticle,
   crmDataSource,
@@ -1747,6 +1748,7 @@ function CRMApp({
                   </span>
                 </div>
               </div>
+              <GovernedKnowledgeWorkspace currentUser={currentUser} onMessage={setToast}/>
               <IngestionHealthPanel currentUser={currentUser} onMessage={setToast}/>
               <div className="knowledge-list">
                 <div className="list-heading">

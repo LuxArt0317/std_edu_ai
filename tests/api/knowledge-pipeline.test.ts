@@ -71,5 +71,6 @@ test("ingestion retries are bounded, classified, content-free, and costed",()=>{
   assert.equal(retryDelayMs(2,()=>.5),1000);assert.equal(estimatedEmbeddingCost(1000,0.02),0.00002);assert.equal(safeTelemetryCode("bad secret/message"),"BAD_SECRET_MESSAGE");
   const telemetry=fs.readFileSync("supabase/migrations/20260719083702_knowledge_ingestion_operational_telemetry.sql","utf8");
   for(const marker of ["knowledge_ingestion_attempts","Attempt exceeds the configured retry ceiling","Only a transient failure may be retried","dead_letter","durationP50Ms","durationP95Ms","oldestBacklogSeconds","contains no document content, prompts, credentials, or raw provider payloads"])assert.ok(telemetry.includes(marker),`missing telemetry ${marker}`);
-  for(const marker of ["MAX_ATTEMPTS=3","classifyProviderFailure","retryDelayMs","provider_request_id_hash","cost_estimation_status","Inspect content-free attempt telemetry"])assert.ok(endpoint.includes(marker),`endpoint missing telemetry ${marker}`);
+  assert.match(endpoint,/MAX_ATTEMPTS\s*=\s*3/,"endpoint retry ceiling is not fixed at three attempts");
+  for(const marker of ["classifyProviderFailure","retryDelayMs","provider_request_id_hash","cost_estimation_status","Inspect content-free operational telemetry"])assert.ok(endpoint.includes(marker),`endpoint missing telemetry ${marker}`);
 });

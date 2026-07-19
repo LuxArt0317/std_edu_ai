@@ -19,3 +19,5 @@ These opt-in scripts exercise the configured production deployment and Supabase 
 `research-foundation-live.mjs` reversibly validates the Issue #104 governed source/document/chunk chain, anonymous metadata boundary, direct chunk denial, accessible campus graph, and pseudonymous protocol-to-response study chain against production. All temporary records are removed in dependency order and the script fails if any relationship or RLS boundary is missing.
 
 `knowledge-ingestion-live.mjs` uses the protected owner and OpenAI credentials to create deterministic embedded versions, publish through the reviewer-only atomic RPC, supersede the prior index, prove expiry removes public visibility, restore the prior version, reject mixed active chunks, and clean every temporary record.
+
+`knowledge-acquisition-live.mjs` acquires the deployed structured HTML fixture through the real SSRF-safe HTTPS boundary, uploads a deterministic PDF, inspects exact HTML/PDF locators and parser versions, proves executable/hidden data exclusion, draft isolation, duplicate replay, publication, supersession, rollback, quarantine, student mutation denial, and zero-residue cleanup.

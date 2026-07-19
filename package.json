@@ -37,6 +37,7 @@
     "test:live-knowledge-ingestion": "node --experimental-strip-types tests/integration/knowledge-ingestion-live.mjs",
     "test:live-ingestion-telemetry": "node tests/integration/ingestion-telemetry-live.mjs",
     "test:live-ingestion-api": "node tests/integration/ingestion-api-live.mjs",
+    "test:live-knowledge-acquisition": "node tests/integration/knowledge-acquisition-live.mjs",
     "test:live-campus-routing": "node --experimental-strip-types tests/integration/campus-routing-live.mjs",
     "test:live-research-study": "node --experimental-strip-types tests/integration/research-study-runner-live.mjs",
     "test:live-workload": "node tests/integration/administrative-workload-live.mjs",
@@ -53,6 +54,9 @@
     "@tiptap/extension-placeholder": "^3.28.0",
     "@tiptap/react": "^3.28.0",
     "@tiptap/starter-kit": "^3.28.0",
+    "cheerio": "1.2.0",
+    "file-type": "22.0.1",
+    "pdfjs-dist": "6.1.200",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

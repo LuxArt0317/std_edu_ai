@@ -30,6 +30,7 @@ It demonstrates:
 - the original Student 360, early-support, admissions, task, case, campaign, knowledge, and analytics CRM available inside the unified platform
 - deployed Supabase migrations with RLS on every exposed school table, trusted workflow functions, covering indexes, role audits, and safe production seed records
 - automated API contracts plus live owner-protection, cross-role RLS, onboarding evidence, quiz, grade-privacy, CRM, and OpenAI vision/chat validation
+- a research-grade governed corpus workspace with SSRF-safe official URL acquisition, bounded HTML/PDF/Markdown/text parsing, exact heading/page locators, deterministic embedded chunks, version review, publication, quarantine, and rollback
 
 For setup and run instructions, see [SETUP.md](./SETUP.md). The authoritative scope and acceptance contract is [PRODUCT_REQUIREMENTS.md](./PRODUCT_REQUIREMENTS.md). For detailed capabilities and authorization, see [src/crm/PORTAL_GUIDE.md](./src/crm/PORTAL_GUIDE.md) and [src/platform/ROLE_MATRIX.md](./src/platform/ROLE_MATRIX.md).
 

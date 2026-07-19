@@ -90,6 +90,10 @@ flowchart LR
 
 Each governed import records deterministic parser/chunker/model versions, terminal status, chunk and token totals, duration, configured-cost state, bounded attempts, privacy-safe failure classification, and a SHA-256 provider request identifier when available. Raw source text, prompts, credentials, provider response bodies, and request identifiers are prohibited from operational telemetry. Owner, administrator, and librarian roles may inspect the 30-day aggregate health summary and quarantine stale work; anonymous and ordinary student accounts cannot read attempt rows or invoke recovery.
 
+URL acquisition permits only credential-free HTTPS on the standard port, rejects local/private/link-local/reserved addresses before and during connection, manually revalidates redirects, keeps the final host inside the governed source host, and bounds time and bytes. Pinned HTML and PDF parsers remove executable/hidden content and preserve heading, element, table/form, link, and page provenance in each stable chunk locator. Uploaded files additionally pass declared-MIME/signature checks and a serverless-safe 3 MB request limit; remote sources are capped at 4 MB.
+
+Every acquired version remains inactive and invisible to the public until metadata, exact chunks, source link, effective/review dates, and lineage are reviewed. The database records reasoned publish, change-request, rejection, quarantine, and rollback decisions atomically. Quarantined/rejected drafts never activate chunks, and ordinary students cannot edit sources, documents, chunks, or review decisions.
+
 ## Administrative workload evidence boundary
 
 The Analytics workspace no longer displays invented deflection, satisfaction, or intervention percentages. Authorized office and research roles can enter aggregate baseline/pilot observations linked to an approved study, while the browser calculates a SHA-256 checksum over the submitted aggregate payload. Names, emails, student numbers, message bodies, and respondent-level records are prohibited.

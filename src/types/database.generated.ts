@@ -5369,6 +5369,7 @@ export type Database = {
       public_research_study: { Args: { p_language?: string; p_study_code: string }; Returns: Json }
       purge_administrative_workload_fixture: { Args: { p_study_id: string }; Returns: Json }
       recover_stale_ingestion_runs: { Args: { p_stale_before?: string }; Returns: number }
+      review_knowledge_document: { Args: { p_decision: string; p_document_id: string; p_reason: string }; Returns: Json }
       research_anonymized_export: { Args: { p_study_id: string }; Returns: Json }
       research_sus_score: { Args: { p_condition: string; p_session_id: string }; Returns: number }
       set_research_session_status: { Args: { p_status: string; p_token: string }; Returns: string }
