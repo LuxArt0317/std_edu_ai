@@ -3,9 +3,9 @@
 # Active implementation: Issue #98
 
 - Admissions prospects can be dragged between pipeline stages on desktop; the accessible Advance action provides the same validated transition for keyboard and touch users.
-- Application, review, and admission require accountable ownership, email, phone, and next action. Missing fields open a focused completion dialog before the move is saved; persistence failures restore the original card.
+- Engaged requires accountable ownership, a reliable contact method, and a next action; Application, Review, and Admitted require owner, email, phone, and next action. Missing fields open a focused completion dialog before the move is saved; persistence failures restore the original card.
 - Card actions use a clear visual hierarchy: green stage progression, blue editing, purple Registrar handoff, and red archival.
-- All 103 contracts, lint, TypeScript/Vite build/assets, and the reversible production admissions-role transition/rollback workflow pass. Review and production release remain in progress on Issue #98.
+- All 103 contracts, lint, TypeScript/Vite build/assets, and the reversible production admissions-role transition/rollback workflow pass. PRs #99 and #100 passed CodeRabbit/Vercel, and production is Ready on both custom domains with all five drag/completion/action markers verified. Issue #98 is complete.
 
 # Active implementation: Issue #96
 

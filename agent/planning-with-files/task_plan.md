@@ -6,7 +6,7 @@
 - [x] add clear desktop drag states and retain keyboard/touch Advance actions
 - [x] collect only missing fields before a stage move and assign an accountable owner
 - [x] improve prospect action colors, hierarchy, destructive affordance, and responsive states
-- [ ] verify persistence, rollback, accessibility, tests, review, deployment, and production
+- [x] verify persistence, rollback, accessibility, tests, review, deployment, and production
 
 ## Phase 96: One publication-aware Courses workspace [Issue #96]
 

@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Added validated admissions pipeline drag-and-drop with destination-stage completeness prompts, accountable-owner assignment, calibrated probabilities, keyboard/touch Advance parity, persistence rollback, visible drop states, and a clearer blue/purple/red action hierarchy.
+- Released through PRs #99 and #100 as `39a4348` and `7bbd0ad`; Vercel production is Ready on both custom domains and serves the drag, contact-validation, accountable-owner, rollback, and semantic-action contracts.
 
 - Consolidated staff Teaching and Learning navigation into one Courses workspace with teacher authoring, an exact published Student view, student learning, and scoped staff review over the same Supabase LMS records.
 - Made module/material publication dependencies explicit, added direct publish/unpublish actions, defaulted new content to immediate publication, and preserved deliberate draft controls with clear hidden-state feedback.

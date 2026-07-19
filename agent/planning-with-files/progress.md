@@ -8,6 +8,8 @@
 - Added stage-specific completeness gates for accountable ownership, email, phone, and next action. Missing data opens a focused form, assigns the signed-in operator, persists the full record, and rolls back optimistic UI on failure.
 - Recolored Advance, Edit, Registrar handoff, and Archive into distinct primary, informational, controlled-handoff, and destructive actions.
 - All 103 contracts, lint, TypeScript/Vite build, assets, and the reversible live admissions-role stage/required-fields/owner/rollback workflow pass.
+- PR #99 and contact-validation hardening PR #100 passed CodeRabbit/Vercel and merged as `39a4348` and `7bbd0ad`.
+- Production `/` and `/crm` return HTTP 200 with six recursively verified assets. Both custom domains serve the focused completion prompt, reliable-contact validation, accountable-owner assignment, drag/drop controls, and semantic action colors.
 
 ## 2026-07-19 — Issue #96
 
