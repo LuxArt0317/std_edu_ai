@@ -27,7 +27,7 @@ async function installPublicFixtures(page){
   });
 }
 
-async function axeEvidence(page,name){
+async function axeEvidence(page,name,expectedStatusSelectors=[]){
   const result=await new AxeBuilder({page}).withTags(["wcag2a","wcag2aa","wcag21aa","wcag22aa"]).analyze();
   const blocking=result.violations.filter(item=>item.impact==="critical"||item.impact==="serious");
   const target=result.violations.filter(item=>item.id==="target-size");
@@ -35,12 +35,21 @@ async function axeEvidence(page,name){
   const focus=await page.evaluate(()=>{
     const dialog=document.querySelector('[role="dialog"][aria-modal="true"]');
     if(!dialog)return {empty:0,outside:0,obscured:0};
-    const controls=[...dialog.querySelectorAll('button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])')].filter(item=>{const style=getComputedStyle(item);return style.visibility!=="hidden"&&style.display!=="none";});
+    const panel=dialog.querySelector('section')||dialog;
+    const controls=[...panel.querySelectorAll('button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])')].filter(item=>{const style=getComputedStyle(item);return style.visibility!=="hidden"&&style.display!=="none";});
     let obscured=0;
     for(const item of controls){item.focus();const box=item.getBoundingClientRect();if(document.activeElement!==item||box.top<0||box.left<0||box.bottom>innerHeight||box.right>innerWidth)obscured++;}
     return {empty:controls.length?0:1,outside:document.activeElement&&dialog.contains(document.activeElement)?0:1,obscured};
   });
-  evidence.push({name,criticalSerious:blocking.reduce((n,item)=>n+item.nodes.length,0),violations:blocking.map(item=>({id:item.id,nodes:item.nodes.map(node=>({target:node.target,summary:node.failureSummary}))})),targetSize:target.reduce((n,item)=>n+item.nodes.length,0),unnamedControls:unnamed,focusTraps:focus.empty+focus.outside,obscuredFocus:focus.obscured});
+  let focusCycle=0;
+  const dialog=page.locator('[role="dialog"][aria-modal="true"]');
+  if(await dialog.count()){
+    const panel=dialog.locator('section').first();const scope=await panel.count()?panel:dialog;
+    const controls=scope.locator('button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])');const count=await controls.count();
+    if(count){const first=controls.first(),last=controls.last();await first.focus();await page.keyboard.press('Shift+Tab');if(!(await last.evaluate(item=>document.activeElement===item)))focusCycle++;await last.focus();await page.keyboard.press('Tab');if(!(await first.evaluate(item=>document.activeElement===item)))focusCycle++;}
+  }
+  let statusMessages=0;for(const selector of expectedStatusSelectors)if(!await page.locator(selector).count())statusMessages++;
+  evidence.push({name,criticalSerious:blocking.reduce((n,item)=>n+item.nodes.length,0),violations:blocking.map(item=>({id:item.id,nodes:item.nodes.map(node=>({target:node.target,summary:node.failureSummary}))})),targetSize:target.reduce((n,item)=>n+item.nodes.length,0),unnamedControls:unnamed,focusTraps:focus.empty+focus.outside+focusCycle,obscuredFocus:focus.obscured,statusMessageFailures:statusMessages});
 }
 
 async function fresh(page,path="/"){await page.goto(`${base}${path}`,{waitUntil:"networkidle"});}
@@ -54,20 +63,20 @@ try{
 
   await fresh(page);await axeEvidence(page,"public-home");
   await fresh(page);await page.getByRole("button",{name:"開啟 AI 校園助理"}).click();await page.getByRole("heading",{name:"STU AI 校園助理"}).waitFor();await axeEvidence(page,"assistant-open");
-  await page.getByPlaceholder("輸入校園相關問題...").fill("招生資訊在哪裡？");await page.getByRole("button",{name:"送出",exact:true}).click();await page.getByRole("list",{name:"Official sources"}).waitFor();await axeEvidence(page,"assistant-citation-feedback");
+  await page.getByPlaceholder("輸入校園相關問題...").fill("招生資訊在哪裡？");await page.getByRole("button",{name:"送出",exact:true}).click();await page.getByRole("list",{name:"Official sources"}).waitFor();await axeEvidence(page,"assistant-citation-feedback",['.assistant-messages[role="log"][aria-live="polite"]']);
   await page.getByRole("button",{name:"需要修正"}).click();await page.getByRole("button",{name:"送出意見"}).waitFor();await axeEvidence(page,"assistant-correction-expanded");
 
   await fresh(page);await page.getByRole("button",{name:/開啟校園導覽/}).click();await page.getByRole("heading",{name:"驗證地點與文字路線"}).waitFor();await axeEvidence(page,"campus-directory");
-  await page.getByLabel("起點").selectOption("LIB");await page.getByLabel("目的地").selectOption("ADMIN");await page.getByLabel(/只使用無障礙路線/).check();await page.getByRole("button",{name:"建立文字路線"}).click();await page.getByRole("heading",{name:"圖書館 → 行政大樓"}).waitFor();await axeEvidence(page,"campus-route-result");
+  await page.getByLabel("起點").selectOption("LIB");await page.getByLabel("目的地").selectOption("ADMIN");await page.getByLabel(/只使用無障礙路線/).check();await page.getByRole("button",{name:"建立文字路線"}).click();await page.getByRole("heading",{name:"圖書館 → 行政大樓"}).waitFor();await axeEvidence(page,"campus-route-result",['.campus-route-result[aria-live="polite"]']);
 
   await fresh(page,`/study/${study.code}`);await page.getByRole("heading",{name:study.title}).waitFor();await axeEvidence(page,"study-consent");
-  await page.getByLabel(/I have read the protocol information/).check();await page.getByRole("button",{name:"Consent and begin"}).click();await page.getByRole("heading",{name:"Questionnaires"}).waitFor();await axeEvidence(page,"study-tasks-surveys");
+  await page.getByLabel(/I have read the protocol information/).check();await page.getByRole("button",{name:"Consent and begin"}).click();await page.getByRole("heading",{name:"Questionnaires"}).waitFor();await axeEvidence(page,"study-tasks-surveys",['.study-progress[role="status"][aria-live="polite"]']);
   await page.getByRole("button",{name:"Privacy & withdrawal"}).click();await page.getByRole("heading",{name:"Withdraw from this study"}).waitFor();await axeEvidence(page,"study-withdrawal-dialog");
 
-  await page.setViewportSize({width:320,height:720});await fresh(page);const overflow=await page.evaluate(()=>Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-window.innerWidth);evidence.push({name:"reflow-320",criticalSerious:0,violations:[],targetSize:0,unnamedControls:0,focusTraps:0,obscuredFocus:0,overflowPixels:Math.max(0,overflow)});
+  await page.setViewportSize({width:320,height:720});await fresh(page);const overflow=await page.evaluate(()=>Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-window.innerWidth);evidence.push({name:"reflow-320",criticalSerious:0,violations:[],targetSize:0,unnamedControls:0,focusTraps:0,obscuredFocus:0,statusMessageFailures:0,overflowPixels:Math.max(0,overflow)});
   await browser.close();
 }finally{preview?.kill("SIGTERM");}
 
-const totals={criticalSerious:evidence.reduce((n,item)=>n+item.criticalSerious,0),targetSize:evidence.reduce((n,item)=>n+(item.targetSize||0),0),unnamedControls:evidence.reduce((n,item)=>n+item.unnamedControls,0),focusTraps:evidence.reduce((n,item)=>n+item.focusTraps,0),obscuredFocus:evidence.reduce((n,item)=>n+(item.obscuredFocus||0),0),overflowPixels:evidence.reduce((n,item)=>n+(item.overflowPixels||0),0)};
+const totals={criticalSerious:evidence.reduce((n,item)=>n+item.criticalSerious,0),targetSize:evidence.reduce((n,item)=>n+(item.targetSize||0),0),unnamedControls:evidence.reduce((n,item)=>n+item.unnamedControls,0),focusTraps:evidence.reduce((n,item)=>n+item.focusTraps,0),obscuredFocus:evidence.reduce((n,item)=>n+(item.obscuredFocus||0),0),statusMessageFailures:evidence.reduce((n,item)=>n+(item.statusMessageFailures||0),0),overflowPixels:evidence.reduce((n,item)=>n+(item.overflowPixels||0),0)};
 if(Object.values(totals).some(Boolean))throw new Error(`Automated accessibility gate failed: ${JSON.stringify({totals,evidence})}`);
 console.log(JSON.stringify({status:"ok",states:evidence.length,totals,evidence,manualAssistiveTechnologyStillExternal:true}));

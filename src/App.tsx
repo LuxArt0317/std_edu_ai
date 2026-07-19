@@ -395,9 +395,9 @@ function App() {
       {assistantOpen ? <button className="assistant-backdrop" type="button" aria-label="關閉 AI 校園助理" onClick={() => setAssistantOpen(false)} /> : null}
       <aside className={`assistant-drawer ${assistantOpen ? 'open' : ''}`} aria-hidden={!assistantOpen}>
         <header><div><span>AI-ENHANCED CAMPUS</span><h2>STU AI 校園助理</h2></div><button type="button" aria-label="關閉" onClick={() => setAssistantOpen(false)}><Icon name="close" /></button></header>
-        <div className="assistant-messages" ref={chatViewportRef}>
+        <div className="assistant-messages" ref={chatViewportRef} role="log" aria-live="polite" aria-relevant="additions">
           {messages.map((message) => <article className={message.role} key={message.id}><b>{message.role === 'assistant' ? 'STU AI' : 'YOU'}</b><p>{message.content}</p>{message.citations?.length ? <ul className="assistant-citations" aria-label="Official sources">{message.citations.map((citation) => <li key={`${message.id}-${citation.chunkId}`}><a href={citation.url} target="_blank" rel="noreferrer"><strong>{citation.title}</strong><span>{citation.sourceName}{citation.locator ? ` · ${citation.locator}` : ''}</span></a></li>)}</ul> : null}{message.role === 'assistant' && message.feedback ? <PublicAssistantFeedback capability={message.feedback} status={message.status} /> : null}</article>)}
-          {isLoading ? <article className="assistant"><b>STU AI</b><p>正在檢索校園資訊...</p></article> : null}
+          {isLoading ? <article className="assistant" role="status"><b>STU AI</b><p>正在檢索校園資訊...</p></article> : null}
         </div>
         <div className="assistant-suggestions">{aiSuggestions.map((item) => <button type="button" key={item} onClick={() => void submitQuestion(item)}>{item}</button>)}</div>
         {errorMessage ? <p className="assistant-error">{errorMessage}</p> : null}
