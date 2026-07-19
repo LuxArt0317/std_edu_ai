@@ -75,3 +75,9 @@
 - Institutional knowledge needs explicit provenance, audience, and review state. Personal, class, and campus events are useful sources, but event linkage does not itself make a contribution verified.
 - Contributors can submit reviewable knowledge; platform owners, administrators, and librarians are the publication authorities. Nexus is grounded only in verified articles visible through RLS.
 - Supabase advisors found no new knowledge security finding. Two new foreign keys required covering indexes, which were added in a follow-up production migration.
+# Research-goal achievement audit — 2026-07-19
+
+- The engineering objective in `research.md` is substantially achieved: the repository has a deployed public STU experience, a governed bilingual RAG assistant with citations/abstention, an authenticated School OS extension, campus graph routing, and production-backed research/evaluation instrumentation.
+- The research outcome is not yet achieved as a defensible empirical claim. No approved primary participant study has established improved retrieval time, task success, usability, accessibility, satisfaction, or reduced administrative workload.
+- Research completion also remains gated by the complete reviewed official corpus, the real independently reviewed >=150-case evaluation set, verified official campus inventory plus physical route walkthroughs, protocol/ethics/translation approval, manual assistive-technology review, and WP9 operational hardening.
+- Therefore the accurate status is: product/system goal achieved in substantial part; research validation goal partially achieved; final thesis conclusion not yet supported.
