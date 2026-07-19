@@ -1743,6 +1743,8 @@ export type Database = {
           from_node_id: string
           id: string
           instruction_en: string
+          instruction_reverse_en: string
+          instruction_reverse_zh: string
           instruction_zh: string
           opens_at: string | null
           status: string
@@ -1761,6 +1763,8 @@ export type Database = {
           from_node_id: string
           id?: string
           instruction_en: string
+          instruction_reverse_en: string
+          instruction_reverse_zh: string
           instruction_zh: string
           opens_at?: string | null
           status?: string
@@ -1779,6 +1783,8 @@ export type Database = {
           from_node_id?: string
           id?: string
           instruction_en?: string
+          instruction_reverse_en?: string
+          instruction_reverse_zh?: string
           instruction_zh?: string
           opens_at?: string | null
           status?: string

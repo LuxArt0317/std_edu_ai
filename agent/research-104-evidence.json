@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "parentIssue": 104,
-  "updatedAt": "2026-07-19T07:19:00Z",
+  "updatedAt": "2026-07-19T07:42:00Z",
   "workPackages": [
     {"key":"WP0","issue":105,"title":"Research scope and protocol","issueState":"open","measures":[
       {"id":"claims-traceability","description":"Every research claim maps to evidence","metric":"mapped claims / total claims","target":"100%","status":"verified","verifiedAt":"2026-07-19T07:02:00Z","evidence":["docs/research/claims-evidence.json: 15 mapped claims","npm run verify:research-protocol"]},
@@ -30,9 +30,9 @@
       {"id":"zero-leakage","description":"Private and expired sources never appear","metric":"leakage cases","target":"0","status":"pending","evidence":[]}
     ]},
     {"key":"WP5","issue":110,"title":"Campus navigation","issueState":"open","measures":[
-      {"id":"place-coverage","description":"Campus inventory has provenance and verification metadata","metric":"verified required places / required places","target":"100%","status":"pending","evidence":[]},
+      {"id":"place-coverage","description":"Campus inventory has provenance and verification metadata","metric":"verified required places / required places","target":"100%","status":"in_progress","evidence":["api/campus-route.ts excludes unverified/inactive entities","public directory exposes official source and verification date","official STU inventory population remains pending"]},
       {"id":"route-correctness","description":"Representative routes match verified on-campus paths","metric":"walkthrough-correct routes / sampled routes","target":"100%","status":"external","externalOwner":"STU campus validator","externalDependency":"Physically validate representative routes and accessibility constraints","evidence":[]},
-      {"id":"accessible-route-ui","description":"Every map route has an accessible text equivalent","metric":"route flows passing keyboard and screen-reader review","target":"100%","status":"pending","evidence":[]}
+      {"id":"accessible-route-ui","description":"Every map route has an accessible text equivalent","metric":"route flows passing keyboard and screen-reader review","target":"100%","status":"in_progress","evidence":["src/App.tsx ordered bilingual route instructions","tests/api/campus-routing.test.ts deterministic accessibility contracts","manual screen-reader review remains pending"]}
     ]},
     {"key":"WP6","issue":111,"title":"Public research assistant","issueState":"open","measures":[
       {"id":"public-flow","description":"Bilingual public answer, citation, navigation, handoff, and feedback flows work","metric":"required production journeys passed","target":"100%","status":"in_progress","evidence":["live public grounded answer and official citation passed","public drawer calls /api/research-assistant","navigation/handoff/feedback journeys pending"]},

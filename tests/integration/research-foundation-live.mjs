@@ -68,7 +68,7 @@ try {
     {site_id: siteId, building_id: buildingId, floor_id: floorId, node_type: "entrance"},
     {site_id: siteId, building_id: buildingId, floor_id: floorId, place_id: placeId, node_type: "destination"},
   ]).select("id"), "create graph nodes"); [nodeA, nodeB] = nodes.map((row) => row.id);
-  const edge = required(await owner.from("campus_edges").insert({from_node_id: nodeA, to_node_id: nodeB, distance_m: 12, estimated_seconds: 15, environment: "indoor", traversal_type: "walk", wheelchair_suitable: true, instruction_zh: "直行抵達", instruction_en: "Walk straight to the destination", verified_at: now}).select("id").single(), "create accessible edge"); edgeId = edge.id;
+  const edge = required(await owner.from("campus_edges").insert({from_node_id: nodeA, to_node_id: nodeB, distance_m: 12, estimated_seconds: 15, environment: "indoor", traversal_type: "walk", wheelchair_suitable: true, instruction_zh: "直行抵達", instruction_en: "Walk straight to the destination", instruction_reverse_zh: "反向直行抵達", instruction_reverse_en: "Walk straight in the reverse direction", verified_at: now}).select("id").single(), "create accessible edge"); edgeId = edge.id;
   const publicPlace = await anon.from("campus_places").select("id,campus_buildings!inner(id),campus_floors!inner(id)").eq("id", placeId).maybeSingle();
   if (publicPlace.error || publicPlace.data?.id !== placeId) throw publicPlace.error || new Error("Verified campus relationship is not publicly readable.");
 

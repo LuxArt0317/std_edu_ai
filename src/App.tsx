@@ -15,6 +15,7 @@ import {
   visionSlides,
 } from './data/knowledge'
 import { askCampusAssistant } from './services/researchAssistant'
+import { listCampusPlaces, requestCampusRoute, type CampusDirectoryPlace, type CampusRoute } from './services/campusNavigation'
 
 type ChatMessage = {
   id: string
@@ -115,6 +116,14 @@ function App() {
   const [query, setQuery] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [campusOpen, setCampusOpen] = useState(false)
+  const [campusPlaces, setCampusPlaces] = useState<CampusDirectoryPlace[]>([])
+  const [campusLoading, setCampusLoading] = useState(false)
+  const [campusError, setCampusError] = useState('')
+  const [campusOrigin, setCampusOrigin] = useState('')
+  const [campusDestination, setCampusDestination] = useState('')
+  const [accessibleRoute, setAccessibleRoute] = useState(false)
+  const [campusRoute, setCampusRoute] = useState<CampusRoute | null>(null)
   const chatViewportRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -160,6 +169,23 @@ function App() {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     void submitQuestion()
+  }
+
+  async function openCampusDirectory() {
+    setCampusOpen(true)
+    if (campusPlaces.length || campusLoading) return
+    setCampusLoading(true); setCampusError('')
+    try { setCampusPlaces(await listCampusPlaces()) }
+    catch (error) { setCampusError(error instanceof Error ? error.message : '校園導覽目前無法使用。') }
+    finally { setCampusLoading(false) }
+  }
+
+  async function buildCampusRoute(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); if (!campusOrigin || !campusDestination || campusLoading) return
+    setCampusLoading(true); setCampusError(''); setCampusRoute(null)
+    try { setCampusRoute(await requestCampusRoute(campusOrigin, campusDestination, accessibleRoute)) }
+    catch (error) { setCampusError(error instanceof Error ? error.message : '目前沒有符合條件的驗證路線。') }
+    finally { setCampusLoading(false) }
   }
 
   return (
@@ -255,6 +281,28 @@ function App() {
         <div className="title-lockup white-title"><h2>進一步了解樹德的生活</h2><img src="https://www.stu.edu.tw/wp-content/uploads/2026/01/bar.svg" alt="" /></div>
         <a href="http://about.stu.edu.tw"><img src="https://www.stu.edu.tw/wp-content/uploads/2025/12/aboutstu-1024x532.jpg" alt="樹德科技大學校園生活" /></a>
       </section>
+
+      <section className="campus-navigation-section" aria-labelledby="campus-navigation-title">
+        <div><span>VERIFIED CAMPUS DIRECTORY</span><h2 id="campus-navigation-title">校園導覽與無障礙路線</h2><p>搜尋經校方資料來源驗證的地點，取得樓層、服務資訊與逐步文字路線。實地步行驗證完成前，請以現場標示為準。</p></div>
+        <button type="button" onClick={() => void openCampusDirectory()}><Icon name="pin" />開啟校園導覽</button>
+      </section>
+
+      {campusOpen ? <div className="campus-directory-shell" role="dialog" aria-modal="true" aria-labelledby="campus-directory-title">
+        <button className="campus-directory-backdrop" type="button" aria-label="關閉校園導覽" onClick={() => setCampusOpen(false)} />
+        <section className="campus-directory-panel">
+          <header><div><span>STU CAMPUS NAVIGATION</span><h2 id="campus-directory-title">驗證地點與文字路線</h2></div><button type="button" aria-label="關閉校園導覽" onClick={() => setCampusOpen(false)}><Icon name="close" /></button></header>
+          <form onSubmit={(event) => void buildCampusRoute(event)}>
+            <label>起點<select value={campusOrigin} onChange={(event) => setCampusOrigin(event.target.value)} required><option value="">選擇起點</option>{campusPlaces.filter((place) => place.status === 'active').map((place) => <option key={`from-${place.id}`} value={place.code}>{place.name_zh} · {place.name_en}</option>)}</select></label>
+            <label>目的地<select value={campusDestination} onChange={(event) => setCampusDestination(event.target.value)} required><option value="">選擇目的地</option>{campusPlaces.filter((place) => place.status === 'active').map((place) => <option key={`to-${place.id}`} value={place.code}>{place.name_zh} · {place.name_en}</option>)}</select></label>
+            <label className="campus-accessible"><input type="checkbox" checked={accessibleRoute} onChange={(event) => setAccessibleRoute(event.target.checked)} />只使用無障礙路線（避開樓梯與不適用通道）</label>
+            <button type="submit" disabled={campusLoading || !campusOrigin || !campusDestination}>{campusLoading ? '正在驗證路線…' : '建立文字路線'}</button>
+          </form>
+          {campusError ? <p className="campus-directory-error" role="alert">{campusError}</p> : null}
+          {!campusLoading && !campusPlaces.length && !campusError ? <div className="campus-directory-empty"><strong>官方地點資料正在建置</strong><p>目前沒有已驗證且可公開的校園地點。系統不會以近似或模型產生的位置取代官方資料。</p></div> : null}
+          {campusRoute ? <article className="campus-route-result" aria-live="polite"><header><div><span>{campusRoute.wheelchair ? '無障礙路線' : '一般步行路線'}</span><h3>{campusRoute.origin.name_zh} → {campusRoute.destination.name_zh}</h3></div><strong>{campusRoute.distanceMeters} m · 約 {Math.max(1, Math.ceil(campusRoute.estimatedSeconds / 60))} 分鐘</strong></header>{campusRoute.steps.length ? <ol>{campusRoute.steps.map((step, index) => <li key={step.edgeId}><span>{index + 1}</span><div><strong>{step.instructionZh}</strong><small>{step.instructionEn} · {step.distanceMeters} m · {step.environment}/{step.traversalType}</small></div></li>)}</ol> : <p>您已在目的地。</p>}<p className="campus-route-disclaimer">{campusRoute.disclaimer}</p></article> : null}
+          {campusPlaces.length ? <div className="campus-place-directory"><h3>已驗證地點</h3>{campusPlaces.map((place) => <article key={place.id}><div><strong>{place.name_zh}</strong><span>{place.name_en} · {place.code}</span></div><p>{[place.building?.name_zh,place.floor?.label_zh,place.room].filter(Boolean).join(' · ') || place.place_type}</p><small className={place.status}>{place.status === 'temporarily_closed' ? `暫時關閉：${place.closure_reason}` : `驗證日期 ${new Date(place.verified_at).toLocaleDateString('zh-TW')}`}</small>{place.source?.canonical_url ? <a href={place.source.canonical_url} target="_blank" rel="noreferrer">官方來源</a> : null}</article>)}</div> : null}
+        </section>
+      </div> : null}
 
       <section className="admissions-section">
         <h2>招生專區</h2>

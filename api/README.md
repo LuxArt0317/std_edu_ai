@@ -5,6 +5,7 @@
 - `grade-scan.ts` accepts authenticated teacher/leadership image scans and returns structured grade candidates that require human review.
 - `knowledge-ingest.ts` accepts bounded owner/admin/librarian content imports, canonicalizes provenance, creates deterministic checksummed document versions/chunks, generates server-only OpenAI embeddings, and stops at the human review boundary. Duplicate content is idempotently returned instead of indexed twice.
 - `research-assistant.ts` is the rate-limited public, non-mutating bilingual boundary. It embeds a bounded question, calls the approved/effective/unexpired public hybrid-search RPC, rejects weak evidence, produces strict claim-to-chunk citations, fails closed on fabricated citation IDs, abstains when evidence is missing, and optionally records privacy-minimized traces when a server service credential is configured.
+- `campus-route.ts` lists only verified public campus entities and produces deterministic shortest routes from exact bilingual place/alias identities. It excludes inactive, closed, unverified, out-of-hours, and ineligible graph records before routing; accessible mode rejects stairs and unsuitable connectors. It explicitly reports ambiguous, unmapped, unreachable, and pending-physical-validation states.
 
 The endpoints validate and rate-limit requests, accept only bounded context, enforce structured model output, and never return provider credentials. Authentication roles are derived from Supabase `app_metadata`, never from a browser-supplied role.
 

@@ -28,6 +28,9 @@ flowchart LR
   Place --> Node[campus_nodes]
   Node --> Edge[campus_edges]
   Place --> Hours[campus_service_hours]
+  Edge --> Router[campus-route API]
+  Alias --> Router
+  Router --> TextRoute[ordered bilingual directions]
 
   Study[research_studies] --> Version[research_study_versions]
   Study --> Participant[research_participants]
@@ -69,8 +72,12 @@ flowchart LR
 
 1. A chunk cannot exist without a versioned document; a document cannot exist without a governed source.
 2. A citation points to the exact document and optional chunk used for the answer.
-3. Campus edges join valid graph nodes and carry accessibility constraints and distance.
+3. Campus edges join valid graph nodes and carry accessibility constraints, distance, operating windows, closure state, and reviewed forward/reverse directions. The public router excludes unverified records before deterministic path selection.
 4. An attempt joins one protocol-versioned session to one defined task.
 5. A questionnaire response joins a session, questionnaire, and item from the study model.
 6. Evaluation results belong to both a run and a versioned gold case.
 7. Protected research and retrieval data is not exposed to the anonymous Data API role.
+
+## Campus validation boundary
+
+The deployed router proves graph behavior; it does not prove the physical campus is represented correctly. Only source-owned, dated places and verified edges are eligible. Routes always include an ordered text alternative and an explicit notice that posted signs prevail until an authorized STU owner completes the recorded on-campus walkthrough. Issue #118 tracks implementation evidence; physical sign-off remains external on Issue #110.

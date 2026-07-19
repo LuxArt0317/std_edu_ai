@@ -307,6 +307,25 @@
 .campus-life-section > a { display: block; width: min(1180px, calc(100% - 40px)); margin: 28px auto 0; overflow: hidden; border-radius: 20px; }
 .campus-life-section > a img { display: block; width: 100%; max-height: 520px; object-fit: cover; transition: transform 220ms ease; }
 .campus-life-section > a:hover img { transform: scale(1.02); }
+.campus-navigation-section { display: flex; width: min(1180px, calc(100% - 40px)); align-items: center; justify-content: space-between; gap: 32px; margin: 52px auto; padding: 34px 38px; color: #16483c; border: 1px solid #b9d9d1; border-radius: 24px; background: linear-gradient(135deg,#f5fbf9,#e3f5f0); box-shadow: 0 16px 45px rgb(23 72 61 / 9%); }
+.campus-navigation-section span,.campus-directory-panel header span { color: #248875; font-size: .7rem; font-weight: 800; letter-spacing: .15em; }
+.campus-navigation-section h2 { margin: 7px 0 8px; font-size: clamp(1.7rem,3vw,2.6rem); }
+.campus-navigation-section p { max-width: 760px; margin: 0; color: #53756d; line-height: 1.6; }
+.campus-navigation-section > button { display: inline-flex; min-height: 52px; flex: none; align-items: center; gap: 9px; padding: 0 20px; color: #fff; border: 0; border-radius: 12px; background: #187b68; font-weight: 750; cursor: pointer; }
+.campus-navigation-section > button svg { width: 20px; }
+.campus-directory-shell { position: fixed; z-index: 90; inset: 0; display: grid; place-items: center; padding: 20px; }
+.campus-directory-backdrop { position: absolute; inset: 0; width: 100%; border: 0; background: rgb(7 31 25 / 60%); }
+.campus-directory-panel { position: relative; display: flex; width: min(980px,100%); max-height: min(860px,calc(100dvh - 40px)); flex-direction: column; overflow: auto; color: #183d34; border-radius: 24px; background: #f8fbfa; box-shadow: 0 30px 90px rgb(0 0 0 / 28%); }
+.campus-directory-panel > header { position: sticky; z-index: 2; top: 0; display: flex; align-items: center; justify-content: space-between; padding: 24px 28px; color: #fff; background: #17483d; }
+.campus-directory-panel > header span { color: #79d8c5; }.campus-directory-panel > header h2 { margin: 4px 0 0; }
+.campus-directory-panel > header button { display: grid; width: 40px; height: 40px; place-items: center; color: #fff; border: 1px solid rgb(255 255 255 / 30%); border-radius: 50%; background: transparent; cursor: pointer; }.campus-directory-panel > header svg { width: 20px; }
+.campus-directory-panel > form { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 24px 28px; border-bottom: 1px solid #d6e6e2; background: #fff; }
+.campus-directory-panel label { display: grid; gap: 7px; font-size: .78rem; font-weight: 750; }.campus-directory-panel select { min-height: 48px; padding: 0 12px; border: 1px solid #b8d2cb; border-radius: 10px; background: #fff; }
+.campus-accessible { grid-column: 1 / -1; display: flex !important; grid-template-columns: auto 1fr; align-items: center; }.campus-accessible input { width: 18px; height: 18px; accent-color: #187b68; }
+.campus-directory-panel form > button { min-height: 48px; grid-column: 1 / -1; color: #fff; border: 0; border-radius: 10px; background: #187b68; font-weight: 750; cursor: pointer; }.campus-directory-panel form > button:disabled { opacity: .5; cursor: not-allowed; }
+.campus-directory-error,.campus-directory-empty { margin: 20px 28px 0; padding: 16px; border-radius: 12px; background: #fff0ed; }.campus-directory-empty { background: #edf6f4; }.campus-directory-empty p { margin-bottom: 0; }
+.campus-route-result { margin: 24px 28px 0; padding: 20px; border: 1px solid #b6d9d0; border-radius: 16px; background: #fff; }.campus-route-result > header { display: flex; align-items: end; justify-content: space-between; gap: 20px; }.campus-route-result h3 { margin: 4px 0 0; }.campus-route-result ol { display: grid; gap: 12px; padding: 0; list-style: none; }.campus-route-result li { display: flex; gap: 12px; align-items: flex-start; }.campus-route-result li > span { display: grid; width: 30px; height: 30px; flex: none; place-items: center; color: #fff; border-radius: 50%; background: #187b68; font-weight: 800; }.campus-route-result li div { display: grid; gap: 3px; }.campus-route-result small,.campus-route-disclaimer { color: #607b74; }.campus-route-disclaimer { padding-top: 12px; border-top: 1px solid #dce9e6; font-size: .76rem; }
+.campus-place-directory { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; padding: 24px 28px 32px; }.campus-place-directory > h3 { grid-column: 1 / -1; }.campus-place-directory article { display: grid; gap: 7px; padding: 15px; border: 1px solid #d4e4e0; border-radius: 13px; background: #fff; }.campus-place-directory article > div { display: flex; justify-content: space-between; gap: 12px; }.campus-place-directory article span,.campus-place-directory article p,.campus-place-directory article small { margin: 0; color: #607b74; font-size: .76rem; }.campus-place-directory article a { color: #187b68; font-size: .75rem; font-weight: 750; }.campus-place-directory small.temporarily_closed { color: #a53b31; }
 
 .admissions-section { padding: 52px 0 76px; background: #fff; }
 .admissions-section > h2 { margin: 0 0 36px; color: #555; font-size: 42px; font-weight: 600; text-align: center; }
@@ -446,6 +465,8 @@
 }
 
 @media (max-width: 640px) {
+  .campus-navigation-section { align-items: flex-start; flex-direction: column; padding: 26px; }.campus-navigation-section > button { width: 100%; justify-content: center; }
+  .campus-directory-shell { padding: 0; }.campus-directory-panel { height: 100dvh; max-height: none; border-radius: 0; }.campus-directory-panel > form { grid-template-columns: 1fr; }.campus-accessible,.campus-directory-panel form > button { grid-column: 1; }.campus-place-directory { grid-template-columns: 1fr; }.campus-route-result > header { align-items: flex-start; flex-direction: column; }
   .site-search-tab { top: 115px; }
   .hero { height: 570px; min-height: 570px; }
   .hero-content { top: 53%; width: calc(100% - 76px); }

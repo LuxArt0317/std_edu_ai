@@ -12,6 +12,8 @@
 - [ ] implement authoritative corpus ingestion, review, parsing, chunking, and indexing [#106–#107]
 - [ ] implement hybrid RAG, citations, abstention, and gold-set evaluation [#108–#109]
 - [ ] implement verified accessible campus routing and the public assistant [#110–#111]
+  - [x] implement the deterministic verified-graph router, public directory, and accessible text route [#118]
+  - [ ] populate and physically validate the official STU campus inventory [#110 external evidence]
 - [ ] implement consented study and workload platforms [#112–#113]
 - [ ] complete security/accessibility/operations hardening [#114]
 - [ ] execute the approved study and publish reproducible measured results [#115]

@@ -35,6 +35,7 @@
     "test:live-relationships": "node tests/integration/issue103-live.mjs",
     "test:live-research-foundation": "node tests/integration/research-foundation-live.mjs",
     "test:live-knowledge-ingestion": "node --experimental-strip-types tests/integration/knowledge-ingestion-live.mjs",
+    "test:live-campus-routing": "node --experimental-strip-types tests/integration/campus-routing-live.mjs",
     "test:live-issue90": "node --experimental-strip-types tests/integration/issue90-live.mjs",
     "test:live-issue101": "node --experimental-strip-types tests/integration/issue101-live.mjs",
     "test:live-account-lifecycle": "node tests/integration/account-lifecycle-live.mjs",
