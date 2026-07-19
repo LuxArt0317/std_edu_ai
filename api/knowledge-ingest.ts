@@ -1,5 +1,5 @@
 import {createClient} from "@supabase/supabase-js";
-import {canonicalizeHttpsUrl, chunkKnowledgeText, inferKnowledgeLanguage, normalizeKnowledgeText, sha256, type KnowledgeLanguage} from "../src/research/knowledgePipeline.js";
+import {canonicalizeHttpsUrl, chunkKnowledgeText, inferKnowledgeLanguage, normalizeKnowledgeText, sha256, type KnowledgeLanguage} from "../src/research/knowledgePipeline.ts";
 import {verifySupabaseRequest} from "../server/apiAuth.js";
 
 type ApiRequest = {method?: string; body?: unknown; headers: Record<string, string | string[] | undefined>};

@@ -9,6 +9,7 @@
 - Corpus ingestion/retrieval/evaluation, navigation UI, public assistant, study/workload UX, hardening, and approved empirical execution remain open. No user-outcome claim is currently marked achieved.
 - WP0 now has draft protocol 0.1.0, analysis rules, 15/15 mapped claims, and explicit external governance decisions. The protocol remains deliberately unfrozen pending advisor/institutional review, pilot, power analysis, translations, and consent/retention approval.
 - WP1/WP2 now have deterministic governed ingestion, real OpenAI embeddings, review-only drafts, atomic publication/supersession/rollback, expiry isolation, and reversible live proof. The complete official corpus, PDF/file parsing, background retry/cost telemetry, review UI, and role-matrix evidence remain open.
+- WP3/WP6 now have a live public bilingual retrieval/generation boundary and public drawer: pre-rank eligibility filters, hybrid exact/keyword/vector retrieval, strict claim-to-chunk citations, official links, safe abstention, and fabricated-citation rejection. Complete corpus metrics, conflict handling, feedback/trace persistence, routes, accessibility, load/security evidence, and production deployment remain open.
 
 # Completed implementation: Issue #103
 

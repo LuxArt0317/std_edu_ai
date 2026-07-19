@@ -399,6 +399,11 @@
 .assistant-messages article.user { margin-left: auto; color: #fff; border-radius: 16px 0 16px 16px; background: var(--stu-teal); }
 .assistant-messages b { display: block; margin-bottom: 5px; font-size: .68rem; letter-spacing: .12em; }
 .assistant-messages p { margin: 0; font-size: .93rem; line-height: 1.55; }
+.assistant-citations { display: grid; gap: 7px; margin: 12px 0 0; padding: 10px 0 0; border-top: 1px solid rgb(23 72 61 / 14%); list-style: none; }
+.assistant-citations a { display: grid; gap: 2px; padding: 8px 10px; color: #17483d; border: 1px solid #c9ddd8; border-radius: 9px; background: rgb(255 255 255 / 72%); text-decoration: none; }
+.assistant-citations a:hover, .assistant-citations a:focus-visible { border-color: var(--stu-teal); outline: 2px solid transparent; box-shadow: 0 0 0 2px rgb(19 139 124 / 18%); }
+.assistant-citations strong { font-size: .78rem; }
+.assistant-citations span { color: #53756d; font-size: .68rem; line-height: 1.35; }
 .assistant-suggestions { display: flex; gap: 7px; padding: 0 18px 14px; overflow-x: auto; }
 .assistant-suggestions button { flex: none; padding: 7px 10px; color: #28685a; border: 1px solid #9fc9c0; border-radius: 999px; background: #fff; font-size: .72rem; cursor: pointer; }
 .assistant-error { margin: 0 18px 10px; color: #a42323; font-size: .8rem; }

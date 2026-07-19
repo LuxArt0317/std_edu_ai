@@ -5532,6 +5532,36 @@ export type Database = {
         Args: { p_document_id: string; p_reason: string }
         Returns: Json
       }
+      search_public_knowledge: {
+        Args: {
+          p_domain?: string
+          p_embedding: string
+          p_language?: string
+          p_limit?: number
+          p_query: string
+        }
+        Returns: {
+          authority_level: string
+          chunk_id: string
+          content: string
+          content_checksum: string
+          document_domain: string
+          document_id: string
+          document_language: string
+          document_title: string
+          document_version: number
+          effective_at: string
+          exact_score: number
+          fused_score: number
+          keyword_score: number
+          reviewed_at: string
+          source_id: string
+          source_locator: string
+          source_name: string
+          source_url: string
+          vector_score: number
+        }[]
+      }
       submit_assessment: {
         Args: { p_answers: Json; p_assessment_id: string }
         Returns: {

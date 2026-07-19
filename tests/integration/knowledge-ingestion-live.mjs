@@ -1,6 +1,7 @@
 import {spawnSync} from "node:child_process";
 import fs from "node:fs";
 import {createClient} from "@supabase/supabase-js";
+import researchAssistant from "../../api/research-assistant.ts";
 import {chunkKnowledgeText, sha256} from "../../src/research/knowledgePipeline.ts";
 
 function env(path) {
@@ -22,6 +23,13 @@ async function embed(contents) {
   const payload = await response.json();
   if (!response.ok || !Array.isArray(payload.data)) throw new Error("OpenAI embedding verification failed.");
   return payload.data.sort((a,b) => a.index-b.index).map((item) => item.embedding);
+}
+async function askPublic(question) {
+  const captured = {statusCode: 200, body: null};
+  const response = {status(code) { captured.statusCode = code; return response; }, json(body) { captured.body = body; }, setHeader() {}};
+  await researchAssistant({method: "POST", body: {question, consentedResearchUse: false}, headers: {"x-forwarded-for": `live-${Date.now()}`, "user-agent": "issue-104-live"}}, response);
+  if (captured.statusCode !== 200) throw new Error(`Public assistant failed: ${captured.body?.error || captured.statusCode}`);
+  return captured.body;
 }
 
 Object.assign(process.env, env(".env"), env(".env.local"));
@@ -72,6 +80,11 @@ try {
 
   firstId = await createVersion(1, `First verified guidance ${suffix}. 第一版官方指南。`);
   required(await owner.rpc("publish_knowledge_document", {p_document_id: firstId, p_reason: "Reversible production publication verification."}), "publish first version");
+  const firstQueryVector = (await embed([`First verified guidance ${suffix}`]))[0];
+  let search = required(await anon.rpc("search_public_knowledge", {p_query: `First verified guidance ${suffix}`, p_embedding: firstQueryVector, p_language: "en", p_domain: "academic_rules", p_limit: 5}), "search first version");
+  if (!search.some((item) => item.document_id === firstId)) throw new Error("Hybrid search did not return the eligible first version.");
+  const publicAnswer = await askPublic(`What does the First verified guidance ${suffix} say?`);
+  if (publicAnswer.status !== "answered" || !publicAnswer.citations?.length || publicAnswer.citations.some((citation) => citation.url !== `https://www.stu.edu.tw/ingestion/${suffix.toLowerCase()}`)) throw new Error("The public assistant did not return a grounded official citation.");
   let visible = await anon.from("knowledge_documents").select("id").eq("id", firstId).maybeSingle();
   if (visible.error || visible.data?.id !== firstId) throw visible.error || new Error("First version was not publicly visible.");
 
@@ -84,9 +97,14 @@ try {
 
   const expired = await owner.from("knowledge_documents").update({expires_at: new Date(Date.now() - 1_000).toISOString()}).eq("id", secondId);
   if (expired.error) throw expired.error;
+  const secondQueryVector = (await embed([`Updated verified guidance ${suffix}`]))[0];
+  search = required(await anon.rpc("search_public_knowledge", {p_query: `Updated verified guidance ${suffix}`, p_embedding: secondQueryVector, p_language: "en", p_domain: "academic_rules", p_limit: 5}), "search expired version");
+  if (search.some((item) => item.document_id === secondId)) throw new Error("Expired content leaked through hybrid search.");
   visible = await anon.from("knowledge_documents").select("id").eq("id", secondId).maybeSingle();
   if (visible.error || visible.data) throw visible.error || new Error("Expired content remained publicly visible.");
   required(await owner.rpc("rollback_knowledge_document", {p_document_id: firstId, p_reason: "Restore the prior reviewed version after expiry."}), "rollback prior version");
+  search = required(await anon.rpc("search_public_knowledge", {p_query: `First verified guidance ${suffix}`, p_embedding: firstQueryVector, p_language: "en", p_domain: "academic_rules", p_limit: 5}), "search restored version");
+  if (!search.some((item) => item.document_id === firstId) || search.some((item) => item.document_id === secondId)) throw new Error("Hybrid search did not atomically restore the prior version.");
   const activeAfterRollback = required(await owner.from("knowledge_chunks").select("document_id,active").in("document_id", [firstId, secondId]).eq("active", true), "load rollback chunks");
   if (!activeAfterRollback.length || activeAfterRollback.some((item) => item.document_id !== firstId)) throw new Error("Rollback left a mixed active index.");
 
@@ -100,4 +118,4 @@ try {
   await owner.auth.signOut();
 }
 if (workflowError) throw workflowError;
-console.log(JSON.stringify({openAiEmbeddingDimension: 1536, deterministicChunks: true, reviewedPublication: true, atomicSupersession: true, expiredPublicLeakage: 0, atomicRollback: true, mixedActiveVersions: 0, reversibleCleanup: true}));
+console.log(JSON.stringify({openAiEmbeddingDimension: 1536, deterministicChunks: true, hybridKeywordVectorExact: true, publicGroundedAnswer: true, fabricatedCitationIds: 0, reviewedPublication: true, atomicSupersession: true, expiredPublicLeakage: 0, hybridExpiredLeakage: 0, atomicRollback: true, mixedActiveVersions: 0, reversibleCleanup: true}));
