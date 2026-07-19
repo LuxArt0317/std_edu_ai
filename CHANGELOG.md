@@ -6,6 +6,7 @@
 - Replaced raw newline role-capability editing with a searchable, accessible multi-select capability catalog.
 - Added private Nexus image/PDF/text attachments, database-backed prompt queuing, and explicit non-mutating Ask versus confirmation-gated Agentic modes.
 - Applied RLS-protected production migrations and passed reversible live verification for curriculum placement/deletion, private attachments, queue transitions, and Ask-mode action suppression.
+- Released through PR #91 as `07fecf2`; Vercel production is Ready, both custom-domain routes return HTTP 200, all release markers are present, and the deployed API analyzed a real attachment in non-mutating Ask mode.
 
 - Replaced constrained lesson-material dialogs with a wide course studio and added multi-image insertion plus uploaded/embedded inline video on every Tiptap lesson page.
 - Added an immersive student reading mode with page navigation and responsive image/video rendering inside the lesson flow.

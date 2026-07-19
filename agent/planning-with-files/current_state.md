@@ -254,3 +254,10 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - Objective assessments now support teacher-selected post-attempt review and disclosed fullscreen, focus, extended-display, camera, multiple-camera, and clipboard checks. Preflight limitations are explicit; camera media is never stored; append-only signals are RLS-scoped and available in a teacher integrity log.
 - Students can configure and download a high-resolution STU-branded PNG timetable with theme, rooms, deadlines, and weekend options.
 - Both production Supabase migrations are applied. Schema, RLS insert/rollback, reviewed-answer disclosure, security advisors, FK indexes, 92 contracts, lint, build, and the live LMS workflow pass. PR #89 merged as `0640658`; Vercel production is Ready and the custom-domain recursive asset graph serves every lesson, assessment-integrity, and schedule-export marker.
+# Current release: Issue #90 curriculum workspace, role picker, and Nexus composer
+
+- Academic Office now exposes direct program-linked curriculum creation and complete draft CRUD. Existing catalog subjects are imported into the draft and visibly placed by effective year, curriculum year, semester, category, prerequisite chain, and block template.
+- People & Roles now uses a searchable accessible multi-select capability catalog instead of newline policy text.
+- Nexus now supports private image/PDF/text attachments, a durable owner-scoped prompt queue, and explicit non-mutating Ask versus confirmation-gated Agentic modes.
+- Production Supabase migrations `20260719003437` and `20260719005202` are applied. Live owner verification passed manual create/place/delete, private storage, queue transition, attachment analysis, and QA action suppression.
+- All 95 contracts, lint, TypeScript, Vite build, recursive production asset checks, and deployed API checks pass. PR #91 merged as `07fecf2`; Vercel production deployment `3p8xNSCepcekLBBTapdcWUmaHEPS` is Ready and Issue #90 is complete.

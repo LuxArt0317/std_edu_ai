@@ -1,5 +1,14 @@
 # Progress
 
+## 2026-07-19 — Issue #90
+
+- Traced the disconnected program-subject count to a missing manual curriculum creation entry point despite an existing lifecycle editor.
+- Added program-linked curriculum creation, catalog-subject import, visible year/semester placement, version duplication, approval/retirement, and audited draft deletion.
+- Replaced newline role capabilities with an accessible searchable multi-select catalog.
+- Added private Nexus attachments, durable owner-scoped queued prompts, and server-enforced Ask/Agentic modes.
+- Applied both production migrations and repaired the deletion-audit RLS edge case found by the first reversible live run.
+- Passed 95 contracts, lint, TypeScript, build, live curriculum/storage/queue/OpenAI checks, CodeRabbit, Vercel, recursive custom-domain asset validation, and deployed attachment analysis. PR #91 merged as `07fecf2`.
+
 ## 2026-07-19 — Issue #88
 
 - Audited lesson pages, Tiptap media, public learning-media storage, assessment release RPCs, student assessment flow, and unified calendar data.

@@ -2,12 +2,12 @@
 
 ## Phase 90: Complete curriculum workspace, role capability picker, and Nexus composer modes [Issue #90]
 
-- [ ] expose manual curriculum creation and version linking from every eligible program
-- [ ] render and edit the curriculum subject plan by year and semester with immediate persisted placement
-- [ ] replace newline role-policy editing with an accessible searchable multi-select capability catalog
-- [ ] add Nexus image/file attachments with governed persistence and model-safe context
-- [ ] add explicit non-mutating QA and action-capable Agentic modes plus durable queued prompts
-- [ ] verify schema/RLS/UI/API contracts, live Supabase behavior, review, deploy, and production markers
+- [x] expose manual curriculum creation and version linking from every eligible program
+- [x] render and edit the curriculum subject plan by year and semester with immediate persisted placement
+- [x] replace newline role-policy editing with an accessible searchable multi-select capability catalog
+- [x] add Nexus image/file attachments with governed persistence and model-safe context
+- [x] add explicit non-mutating QA and action-capable Agentic modes plus durable queued prompts
+- [x] verify schema/RLS/UI/API contracts, live Supabase behavior, review, deploy, and production markers
 
 ## Phase 88: Immersive multimedia LMS and assessment integrity [Issue #88]
 
