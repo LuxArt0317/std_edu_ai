@@ -7,6 +7,8 @@
 - Added image-only clipboard detection, cursor-position insertion, multiple-image sequencing, shared picker/paste upload handling, and a compact ⌘V/Ctrl+V discovery hint.
 - Normal clipboard content returns before `preventDefault`, preserving native Tiptap text and HTML paste behavior.
 - All 97 contracts, lint, TypeScript/Vite production build, asset verification, and the reversible live LMS/private-media workflow pass with cleanup.
+- PR #95 passed Vercel Preview and repository checks, merged as `1ef71bd`, and deployed Ready as `dpl_6aTPePRXRYsRYRTAQc8UsYqVXzNg`; both custom domains were explicitly assigned to the release.
+- Production `/` and `/crm` return HTTP 200 with six recursively verified assets. The released CRM bundle contains clipboard item filtering, image-only detection, cursor insertion, the normal-paste guard, and the ⌘V/Ctrl+V hint.
 
 ## 2026-07-19 — Issue #92
 

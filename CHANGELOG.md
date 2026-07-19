@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Added direct clipboard screenshot paste to Tiptap lesson pages for macOS and Windows, including multiple clipboard images, insertion at the active cursor, existing protected media validation, progress/error feedback, and untouched ordinary text/HTML paste.
+- Released through PR #95 as `1ef71bd`; Vercel production is Ready on both custom domains and recursive route/assets plus every clipboard-filter, cursor-insertion, normal-paste, and shortcut-hint marker pass.
 
 - Replaced the privileged-role legacy topic reader with the same live Supabase-backed LMS module, material, and multi-page lesson graph used by students, with role-appropriate read-only review states.
 - Removed misleading standalone HTTPS and file fields from lesson creation; teachers now insert named private file links, images, and videos directly into the lesson page where learners consume them.
