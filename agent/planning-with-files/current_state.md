@@ -1,10 +1,10 @@
 # Current State
 
-# Active implementation: Issue #103
+# Completed implementation: Issue #103
 
 - `neededv3.md` defines the complete relationship-first input/action contract. Every implementation item is now present in UI/repository/schema; the static verifier and 113 automated contracts pass.
 - Production Supabase contains admission program links, structured campaign scopes/recipients, role audiences, exact curriculum updates, and cross-table relationship triggers. The reversible owner-role live workflow passes and leaves no temporary academic or campaign records.
-- Remaining release work: final source audit, commit/push, Vercel deployment, custom-domain asset verification, and closing Issue #103 only after production evidence is complete.
+- Commit `7d0aa83` is on `main`; Vercel deployment `dpl_Buos2NzKBoCbcbjShy7udHRMwp22` is Ready and aliased to `https://www.stu.best`. Both `/` and `/crm` return HTTP 200 and all referenced production JavaScript/CSS assets return non-empty 200 responses.
 
 # Completed release polish: Issue #98
 

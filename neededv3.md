@@ -118,4 +118,4 @@ Supporting chains:
 - [x] A static verifier fails if a relationship-bearing field regresses to UUID/code/name free text or an unscoped selector.
 - [x] Live production-data tests prove curriculum catalog linking/prerequisites, database mismatch rejection, CRM ownership/task chaining, admissions program snapshots, and campaign recipient generation; static contracts cover the dependent selector, merge, initiative, and Nexus exact-ID UI paths.
 
-- [ ] The released production bundle and `https://www.stu.best/crm` custom-domain assets are verified after deployment.
+- [x] The released production bundle and `https://www.stu.best/crm` custom-domain assets are verified after deployment (`dpl_Buos2NzKBoCbcbjShy7udHRMwp22`).

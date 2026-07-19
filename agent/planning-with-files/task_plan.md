@@ -7,7 +7,7 @@
 - [x] replace guessed identifiers and free-text relationships with dependent authoritative selectors
 - [x] connect curricula, programs, courses, prerequisites, students, advisors, classes, ownership, campaigns, tasks, profiles, schedules, and initiatives through exact foreign keys
 - [x] add database invariants, recipient synchronization, schema documentation, static contracts, and reversible live production coverage
-- [ ] pass the full regression suite, deploy, verify the custom domain, and close Issue #103
+- [x] pass the full regression suite, deploy, verify the custom domain, and close Issue #103
 
 ## Phase 101: Resilient rich-lesson goals and managed Nexus conversations [Issue #101]
 
