@@ -5,6 +5,7 @@
 - Replaced the privileged-role legacy topic reader with the same live Supabase-backed LMS module, material, and multi-page lesson graph used by students, with role-appropriate read-only review states.
 - Removed misleading standalone HTTPS and file fields from lesson creation; teachers now insert named private file links, images, and videos directly into the lesson page where learners consume them.
 - Made Add Page compact, constrained the lesson canvas to the available width, and kept the editing toolbar above the document while the course studio scrolls.
+- Released through PR #93 as `f9b7df2`; Vercel production is Ready on both custom domains and recursive route/assets plus every live-library, inline-file, compact-page, and removed-legacy-action marker pass.
 
 - Added direct program-linked curriculum creation, effective-year versioning, visible year/semester subject placement, catalog-subject import, prerequisites, blocks, approval/retirement, duplication, and audited draft deletion.
 - Replaced raw newline role-capability editing with a searchable, accessible multi-select capability catalog.

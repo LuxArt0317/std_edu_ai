@@ -9,6 +9,8 @@
 - Removed the separate URL/file inputs and legacy external-resource call to action; retained old private attachments as clearly named file cards.
 - Replaced the legacy privileged-role topic UI with the live LMS reader while keeping student-only progress, attendance, assignment submission, and completion controls isolated.
 - All 96 contracts, lint, TypeScript, Vite production build, recursive asset verification, and the reversible live teacher/student LMS workflow pass; cleanup completed.
+- PR #93 passed Vercel Preview and repository checks, merged as `f9b7df2`, and deployed Ready as `dpl_jFZtVA42wugQNBFSvSYjaW4JHRye` to both custom domains.
+- Production `/` and `/crm` return HTTP 200 with six recursively verified assets. The released CRM bundle contains the live library, inline attachment, and private-path markers, excludes the misleading learning-resource action, and serves the compact-page/file-card CSS.
 
 ## 2026-07-19 — Issue #90
 

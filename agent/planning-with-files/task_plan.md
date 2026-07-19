@@ -7,7 +7,7 @@
 - [x] make page creation compact and keep the complete editor toolbar above the document while scrolling
 - [x] replace the privileged-role legacy topic reader with the live LMS module/material/page experience
 - [x] cover loading, empty, failure, authorization, authoring, and reader regressions
-- [ ] document, review, deploy, and verify the production release
+- [x] document, review, deploy, and verify the production release
 
 ## Phase 90: Complete curriculum workspace, role capability picker, and Nexus composer modes [Issue #90]
 

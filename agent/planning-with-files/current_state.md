@@ -6,7 +6,7 @@
 - Students retain enrolled progress, attendance corrections, assignment submission, completion, and next-lesson behavior. Non-student roles receive read-only material review with honest empty states and no learner mutation controls.
 - Lesson pages support multiple named private file attachments inline with text, images, and video. Files open through short-lived signed URLs; the misleading standalone HTTPS/upload fields and external-resource action are gone.
 - The Add Page action is compact, the page/editor layout is width-constrained, and the Tiptap toolbar remains above the document while the immersive studio scrolls.
-- All 96 contracts, lint, TypeScript/Vite build, asset verification, and the reversible production LMS/RLS workflow pass. Release, deployment, and custom-domain verification remain.
+- All 96 contracts, lint, TypeScript/Vite build, asset verification, and the reversible production LMS/RLS workflow pass. PR #93 merged as `f9b7df2`; production deployment `dpl_jFZtVA42wugQNBFSvSYjaW4JHRye` is Ready on `stu.best` and `www.stu.best`, and both routes plus every Issue #92 release marker pass. Issue #92 is complete.
 
 # Active implementation: Issue #60
 
