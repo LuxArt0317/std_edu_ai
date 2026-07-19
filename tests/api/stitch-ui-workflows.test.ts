@@ -14,9 +14,12 @@ test("teacher and student lessons expose explicit workflow actions",()=>{
   for(const marker of ["Open lesson","Student lesson preview","Edit lesson","Course outline","aria-current","Next lesson","Wide reading view"]) assert.match(source,new RegExp(marker));
 });
 
-test("completed repository hooks are removed",()=>{
-  assert.equal(existsSync(".codex/hooks.json"),false);
+test("completed Stitch hooks remain removed while the active research guard is scoped",()=>{
+  assert.equal(existsSync(".codex/hooks.json"),true);
   assert.equal(existsSync(".codex/hooks/stitch_all_pages_guard.mjs"),false);
+  const hooks=readFileSync(".codex/hooks.json","utf8");
+  assert.match(hooks,/Issue #104 research-completion epic/);
+  assert.doesNotMatch(hooks,/stitch_all_pages_guard/);
 });
 
 test("the Stitch redesign is scoped away from the public landing page",()=>{

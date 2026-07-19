@@ -190,6 +190,75 @@ export type Database = {
           },
         ]
       }
+      administrative_inquiry_metrics: {
+        Row: {
+          category: string
+          confirmed_resolved_count: number
+          created_at: string
+          duplicate_count: number
+          entered_by: string
+          escalated_count: number
+          id: string
+          inquiry_count: number
+          period_end: string
+          period_start: string
+          source_note: string
+          study_id: string
+          total_first_response_seconds: number
+          total_handling_seconds: number
+          window_type: string
+        }
+        Insert: {
+          category: string
+          confirmed_resolved_count: number
+          created_at?: string
+          duplicate_count: number
+          entered_by: string
+          escalated_count: number
+          id?: string
+          inquiry_count: number
+          period_end: string
+          period_start: string
+          source_note: string
+          study_id: string
+          total_first_response_seconds?: number
+          total_handling_seconds?: number
+          window_type: string
+        }
+        Update: {
+          category?: string
+          confirmed_resolved_count?: number
+          created_at?: string
+          duplicate_count?: number
+          entered_by?: string
+          escalated_count?: number
+          id?: string
+          inquiry_count?: number
+          period_end?: string
+          period_start?: string
+          source_note?: string
+          study_id?: string
+          total_first_response_seconds?: number
+          total_handling_seconds?: number
+          window_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "administrative_inquiry_metrics_entered_by_fkey"
+            columns: ["entered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "administrative_inquiry_metrics_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "research_studies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admission_handoffs: {
         Row: {
           created_at: string
@@ -324,6 +393,101 @@ export type Database = {
           },
         ]
       }
+      ai_answer_citations: {
+        Row: {
+          answer_id: string
+          chunk_id: string
+          claim_end: number | null
+          claim_start: number | null
+          claim_text: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          answer_id: string
+          chunk_id: string
+          claim_end?: number | null
+          claim_start?: number | null
+          claim_text: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          answer_id?: string
+          chunk_id?: string
+          claim_end?: number | null
+          claim_start?: number | null
+          claim_text?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_answer_citations_answer_id_fkey"
+            columns: ["answer_id"]
+            isOneToOne: false
+            referencedRelation: "ai_answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_answer_citations_chunk_id_fkey"
+            columns: ["chunk_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_chunks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_answers: {
+        Row: {
+          answer_text: string
+          corpus_version: string
+          created_at: string
+          estimated_cost_usd: number | null
+          id: string
+          latency_ms: number | null
+          model: string | null
+          prompt_version: string
+          query_id: string
+          retriever_version: string
+          terminal_state: string
+        }
+        Insert: {
+          answer_text?: string
+          corpus_version: string
+          created_at?: string
+          estimated_cost_usd?: number | null
+          id?: string
+          latency_ms?: number | null
+          model?: string | null
+          prompt_version: string
+          query_id: string
+          retriever_version: string
+          terminal_state: string
+        }
+        Update: {
+          answer_text?: string
+          corpus_version?: string
+          created_at?: string
+          estimated_cost_usd?: number | null
+          id?: string
+          latency_ms?: number | null
+          model?: string | null
+          prompt_version?: string
+          query_id?: string
+          retriever_version?: string
+          terminal_state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_answers_query_id_fkey"
+            columns: ["query_id"]
+            isOneToOne: false
+            referencedRelation: "ai_queries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_audit_logs: {
         Row: {
           context_fields: string[]
@@ -381,6 +545,334 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_eval_cases: {
+        Row: {
+          active: boolean
+          case_key: string
+          domain: string
+          expect_abstention: boolean
+          expected_chunk_ids: string[]
+          expected_claims: Json
+          id: string
+          language: string
+          query: string
+          reviewed_at: string
+          reviewed_by: string
+          rubric: Json
+        }
+        Insert: {
+          active?: boolean
+          case_key: string
+          domain: string
+          expect_abstention?: boolean
+          expected_chunk_ids?: string[]
+          expected_claims?: Json
+          id?: string
+          language: string
+          query: string
+          reviewed_at: string
+          reviewed_by: string
+          rubric?: Json
+        }
+        Update: {
+          active?: boolean
+          case_key?: string
+          domain?: string
+          expect_abstention?: boolean
+          expected_chunk_ids?: string[]
+          expected_claims?: Json
+          id?: string
+          language?: string
+          query?: string
+          reviewed_at?: string
+          reviewed_by?: string
+          rubric?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_eval_cases_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_eval_results: {
+        Row: {
+          abstention_correct: boolean | null
+          answer_id: string | null
+          case_id: string
+          citation_completeness: number | null
+          citation_precision: number | null
+          correctness: number | null
+          estimated_cost_usd: number | null
+          groundedness: number | null
+          id: string
+          latency_ms: number | null
+          ndcg: number
+          reciprocal_rank: number
+          retrieved_chunk_ids: string[]
+          reviewer_notes: string | null
+          run_id: string
+        }
+        Insert: {
+          abstention_correct?: boolean | null
+          answer_id?: string | null
+          case_id: string
+          citation_completeness?: number | null
+          citation_precision?: number | null
+          correctness?: number | null
+          estimated_cost_usd?: number | null
+          groundedness?: number | null
+          id?: string
+          latency_ms?: number | null
+          ndcg?: number
+          reciprocal_rank?: number
+          retrieved_chunk_ids?: string[]
+          reviewer_notes?: string | null
+          run_id: string
+        }
+        Update: {
+          abstention_correct?: boolean | null
+          answer_id?: string | null
+          case_id?: string
+          citation_completeness?: number | null
+          citation_precision?: number | null
+          correctness?: number | null
+          estimated_cost_usd?: number | null
+          groundedness?: number | null
+          id?: string
+          latency_ms?: number | null
+          ndcg?: number
+          reciprocal_rank?: number
+          retrieved_chunk_ids?: string[]
+          reviewer_notes?: string | null
+          run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_eval_results_answer_id_fkey"
+            columns: ["answer_id"]
+            isOneToOne: false
+            referencedRelation: "ai_answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_eval_results_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "ai_eval_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_eval_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_eval_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_eval_runs: {
+        Row: {
+          corpus_version: string
+          created_at: string
+          finished_at: string | null
+          id: string
+          metrics: Json
+          model: string
+          prompt_version: string
+          requested_by: string
+          retriever_version: string
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          corpus_version: string
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          metrics?: Json
+          model: string
+          prompt_version: string
+          requested_by: string
+          retriever_version: string
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          corpus_version?: string
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          metrics?: Json
+          model?: string
+          prompt_version?: string
+          requested_by?: string
+          retriever_version?: string
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_eval_runs_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_feedback: {
+        Row: {
+          anonymous_session_hash: string | null
+          answer_id: string
+          comment: string | null
+          correction_category: string | null
+          created_at: string
+          helpful: boolean | null
+          id: string
+          profile_id: string | null
+          resolved_need: boolean | null
+        }
+        Insert: {
+          anonymous_session_hash?: string | null
+          answer_id: string
+          comment?: string | null
+          correction_category?: string | null
+          created_at?: string
+          helpful?: boolean | null
+          id?: string
+          profile_id?: string | null
+          resolved_need?: boolean | null
+        }
+        Update: {
+          anonymous_session_hash?: string | null
+          answer_id?: string
+          comment?: string | null
+          correction_category?: string | null
+          created_at?: string
+          helpful?: boolean | null
+          id?: string
+          profile_id?: string | null
+          resolved_need?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_feedback_answer_id_fkey"
+            columns: ["answer_id"]
+            isOneToOne: false
+            referencedRelation: "ai_answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_feedback_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_queries: {
+        Row: {
+          anonymous_session_hash: string | null
+          consented_research_use: boolean
+          created_at: string
+          id: string
+          intent: string | null
+          language: string
+          profile_id: string | null
+          query_hash: string
+          query_text: string | null
+          surface: string
+        }
+        Insert: {
+          anonymous_session_hash?: string | null
+          consented_research_use?: boolean
+          created_at?: string
+          id?: string
+          intent?: string | null
+          language: string
+          profile_id?: string | null
+          query_hash: string
+          query_text?: string | null
+          surface: string
+        }
+        Update: {
+          anonymous_session_hash?: string | null
+          consented_research_use?: boolean
+          created_at?: string
+          id?: string
+          intent?: string | null
+          language?: string
+          profile_id?: string | null
+          query_hash?: string
+          query_text?: string | null
+          surface?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_queries_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_retrieval_results: {
+        Row: {
+          chunk_id: string
+          eligible: boolean
+          exclusion_reason: string | null
+          fused_score: number
+          id: string
+          keyword_score: number | null
+          query_id: string
+          rank: number
+          vector_score: number | null
+        }
+        Insert: {
+          chunk_id: string
+          eligible: boolean
+          exclusion_reason?: string | null
+          fused_score: number
+          id?: string
+          keyword_score?: number | null
+          query_id: string
+          rank: number
+          vector_score?: number | null
+        }
+        Update: {
+          chunk_id?: string
+          eligible?: boolean
+          exclusion_reason?: string | null
+          fused_score?: number
+          id?: string
+          keyword_score?: number | null
+          query_id?: string
+          rank?: number
+          vector_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_retrieval_results_chunk_id_fkey"
+            columns: ["chunk_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_chunks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_retrieval_results_query_id_fkey"
+            columns: ["query_id"]
+            isOneToOne: false
+            referencedRelation: "ai_queries"
             referencedColumns: ["id"]
           },
         ]
@@ -1179,6 +1671,456 @@ export type Database = {
             columns: ["section_id"]
             isOneToOne: false
             referencedRelation: "course_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campus_buildings: {
+        Row: {
+          active: boolean
+          code: string
+          geometry: Json
+          id: string
+          latitude: number | null
+          longitude: number | null
+          name_en: string
+          name_zh: string
+          official_source_id: string | null
+          site_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          geometry?: Json
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name_en: string
+          name_zh: string
+          official_source_id?: string | null
+          site_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          geometry?: Json
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name_en?: string
+          name_zh?: string
+          official_source_id?: string | null
+          site_id?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campus_buildings_official_source_id_fkey"
+            columns: ["official_source_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campus_buildings_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "campus_sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campus_edges: {
+        Row: {
+          bidirectional: boolean
+          closes_at: string | null
+          closure_reason: string | null
+          distance_m: number
+          environment: string
+          estimated_seconds: number
+          from_node_id: string
+          id: string
+          instruction_en: string
+          instruction_zh: string
+          opens_at: string | null
+          status: string
+          to_node_id: string
+          traversal_type: string
+          verified_at: string | null
+          wheelchair_suitable: boolean
+        }
+        Insert: {
+          bidirectional?: boolean
+          closes_at?: string | null
+          closure_reason?: string | null
+          distance_m: number
+          environment: string
+          estimated_seconds: number
+          from_node_id: string
+          id?: string
+          instruction_en: string
+          instruction_zh: string
+          opens_at?: string | null
+          status?: string
+          to_node_id: string
+          traversal_type: string
+          verified_at?: string | null
+          wheelchair_suitable?: boolean
+        }
+        Update: {
+          bidirectional?: boolean
+          closes_at?: string | null
+          closure_reason?: string | null
+          distance_m?: number
+          environment?: string
+          estimated_seconds?: number
+          from_node_id?: string
+          id?: string
+          instruction_en?: string
+          instruction_zh?: string
+          opens_at?: string | null
+          status?: string
+          to_node_id?: string
+          traversal_type?: string
+          verified_at?: string | null
+          wheelchair_suitable?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campus_edges_from_node_id_fkey"
+            columns: ["from_node_id"]
+            isOneToOne: false
+            referencedRelation: "campus_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campus_edges_to_node_id_fkey"
+            columns: ["to_node_id"]
+            isOneToOne: false
+            referencedRelation: "campus_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campus_floors: {
+        Row: {
+          building_id: string
+          geometry: Json
+          id: string
+          label_en: string
+          label_zh: string
+          level: number
+        }
+        Insert: {
+          building_id: string
+          geometry?: Json
+          id?: string
+          label_en: string
+          label_zh: string
+          level: number
+        }
+        Update: {
+          building_id?: string
+          geometry?: Json
+          id?: string
+          label_en?: string
+          label_zh?: string
+          level?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campus_floors_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "campus_buildings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campus_nodes: {
+        Row: {
+          active: boolean
+          building_id: string | null
+          floor_id: string | null
+          id: string
+          indoor_position: Json
+          latitude: number | null
+          longitude: number | null
+          node_type: string
+          place_id: string | null
+          site_id: string
+        }
+        Insert: {
+          active?: boolean
+          building_id?: string | null
+          floor_id?: string | null
+          id?: string
+          indoor_position?: Json
+          latitude?: number | null
+          longitude?: number | null
+          node_type: string
+          place_id?: string | null
+          site_id: string
+        }
+        Update: {
+          active?: boolean
+          building_id?: string | null
+          floor_id?: string | null
+          id?: string
+          indoor_position?: Json
+          latitude?: number | null
+          longitude?: number | null
+          node_type?: string
+          place_id?: string | null
+          site_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campus_nodes_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "campus_buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campus_nodes_floor_id_fkey"
+            columns: ["floor_id"]
+            isOneToOne: false
+            referencedRelation: "campus_floors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campus_nodes_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "campus_places"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campus_nodes_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "campus_sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campus_place_aliases: {
+        Row: {
+          alias: string
+          id: string
+          language: string
+          normalized_alias: string | null
+          place_id: string
+        }
+        Insert: {
+          alias: string
+          id?: string
+          language: string
+          normalized_alias?: string | null
+          place_id: string
+        }
+        Update: {
+          alias?: string
+          id?: string
+          language?: string
+          normalized_alias?: string | null
+          place_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campus_place_aliases_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "campus_places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campus_places: {
+        Row: {
+          building_id: string | null
+          closure_reason: string | null
+          code: string
+          contact_email: string | null
+          contact_phone: string | null
+          description_en: string
+          description_zh: string
+          floor_id: string | null
+          id: string
+          indoor_position: Json
+          latitude: number | null
+          longitude: number | null
+          name_en: string
+          name_zh: string
+          official_source_id: string
+          place_type: string
+          room: string | null
+          site_id: string
+          status: string
+          updated_at: string
+          verified_at: string
+          wheelchair_accessible: boolean | null
+        }
+        Insert: {
+          building_id?: string | null
+          closure_reason?: string | null
+          code: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          description_en?: string
+          description_zh?: string
+          floor_id?: string | null
+          id?: string
+          indoor_position?: Json
+          latitude?: number | null
+          longitude?: number | null
+          name_en: string
+          name_zh: string
+          official_source_id: string
+          place_type: string
+          room?: string | null
+          site_id: string
+          status?: string
+          updated_at?: string
+          verified_at: string
+          wheelchair_accessible?: boolean | null
+        }
+        Update: {
+          building_id?: string | null
+          closure_reason?: string | null
+          code?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          description_en?: string
+          description_zh?: string
+          floor_id?: string | null
+          id?: string
+          indoor_position?: Json
+          latitude?: number | null
+          longitude?: number | null
+          name_en?: string
+          name_zh?: string
+          official_source_id?: string
+          place_type?: string
+          room?: string | null
+          site_id?: string
+          status?: string
+          updated_at?: string
+          verified_at?: string
+          wheelchair_accessible?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campus_places_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "campus_buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campus_places_floor_id_fkey"
+            columns: ["floor_id"]
+            isOneToOne: false
+            referencedRelation: "campus_floors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campus_places_official_source_id_fkey"
+            columns: ["official_source_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campus_places_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "campus_sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campus_service_hours: {
+        Row: {
+          closed: boolean
+          closes_at: string | null
+          id: string
+          note: string | null
+          opens_at: string | null
+          place_id: string
+          weekday: number
+        }
+        Insert: {
+          closed?: boolean
+          closes_at?: string | null
+          id?: string
+          note?: string | null
+          opens_at?: string | null
+          place_id: string
+          weekday: number
+        }
+        Update: {
+          closed?: boolean
+          closes_at?: string | null
+          id?: string
+          note?: string | null
+          opens_at?: string | null
+          place_id?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campus_service_hours_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "campus_places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campus_sites: {
+        Row: {
+          active: boolean
+          center_latitude: number | null
+          center_longitude: number | null
+          code: string
+          id: string
+          name_en: string
+          name_zh: string
+          official_source_id: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          active?: boolean
+          center_latitude?: number | null
+          center_longitude?: number | null
+          code: string
+          id?: string
+          name_en: string
+          name_zh: string
+          official_source_id?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          active?: boolean
+          center_latitude?: number | null
+          center_longitude?: number | null
+          code?: string
+          id?: string
+          name_en?: string
+          name_zh?: string
+          official_source_id?: string | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campus_sites_official_source_id_fkey"
+            columns: ["official_source_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_sources"
             referencedColumns: ["id"]
           },
         ]
@@ -2342,6 +3284,425 @@ export type Database = {
           },
         ]
       }
+      knowledge_chunks: {
+        Row: {
+          active: boolean
+          chunk_key: string
+          content: string
+          content_checksum: string
+          created_at: string
+          document_id: string
+          effective_at: string | null
+          embedding: string | null
+          embedding_model: string | null
+          expires_at: string | null
+          heading_path: string[]
+          id: string
+          language: string
+          metadata: Json
+          ordinal: number
+          search_document: unknown
+          source_locator: string | null
+          token_count: number | null
+        }
+        Insert: {
+          active?: boolean
+          chunk_key: string
+          content: string
+          content_checksum: string
+          created_at?: string
+          document_id: string
+          effective_at?: string | null
+          embedding?: string | null
+          embedding_model?: string | null
+          expires_at?: string | null
+          heading_path?: string[]
+          id?: string
+          language: string
+          metadata?: Json
+          ordinal: number
+          search_document?: unknown
+          source_locator?: string | null
+          token_count?: number | null
+        }
+        Update: {
+          active?: boolean
+          chunk_key?: string
+          content?: string
+          content_checksum?: string
+          created_at?: string
+          document_id?: string
+          effective_at?: string | null
+          embedding?: string | null
+          embedding_model?: string | null
+          expires_at?: string | null
+          heading_path?: string[]
+          id?: string
+          language?: string
+          metadata?: Json
+          ordinal?: number
+          search_document?: unknown
+          source_locator?: string | null
+          token_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_documents: {
+        Row: {
+          audience_roles: string[]
+          audience_scope: string
+          content_checksum: string
+          created_at: string
+          document_type: string
+          domain: string
+          effective_at: string | null
+          expires_at: string | null
+          extraction_status: string
+          id: string
+          language: string
+          logical_key: string
+          metadata: Json
+          normalized_content: string
+          owner_profile_id: string
+          publication_status: string
+          published_at: string | null
+          review_due_at: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewer_profile_id: string | null
+          section_id: string | null
+          sensitivity: string
+          source_id: string
+          source_published_at: string | null
+          source_updated_at: string | null
+          source_url: string
+          supersedes_id: string | null
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          audience_roles?: string[]
+          audience_scope?: string
+          content_checksum: string
+          created_at?: string
+          document_type: string
+          domain: string
+          effective_at?: string | null
+          expires_at?: string | null
+          extraction_status?: string
+          id?: string
+          language: string
+          logical_key: string
+          metadata?: Json
+          normalized_content?: string
+          owner_profile_id: string
+          publication_status?: string
+          published_at?: string | null
+          review_due_at?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewer_profile_id?: string | null
+          section_id?: string | null
+          sensitivity?: string
+          source_id: string
+          source_published_at?: string | null
+          source_updated_at?: string | null
+          source_url: string
+          supersedes_id?: string | null
+          title: string
+          updated_at?: string
+          version: number
+        }
+        Update: {
+          audience_roles?: string[]
+          audience_scope?: string
+          content_checksum?: string
+          created_at?: string
+          document_type?: string
+          domain?: string
+          effective_at?: string | null
+          expires_at?: string | null
+          extraction_status?: string
+          id?: string
+          language?: string
+          logical_key?: string
+          metadata?: Json
+          normalized_content?: string
+          owner_profile_id?: string
+          publication_status?: string
+          published_at?: string | null
+          review_due_at?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewer_profile_id?: string | null
+          section_id?: string | null
+          sensitivity?: string
+          source_id?: string
+          source_published_at?: string | null
+          source_updated_at?: string | null
+          source_url?: string
+          supersedes_id?: string | null
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_documents_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_documents_reviewer_profile_id_fkey"
+            columns: ["reviewer_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_documents_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "course_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_documents_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_documents_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_ingestion_runs: {
+        Row: {
+          attempt_count: number
+          chunker_version: string | null
+          created_at: string
+          discovered_count: number
+          duration_ms: number | null
+          embedding_model: string | null
+          error_code: string | null
+          error_message: string | null
+          estimated_cost_usd: number | null
+          failed_count: number
+          finished_at: string | null
+          id: string
+          input_checksum: string | null
+          output_checksum: string | null
+          parser_version: string | null
+          published_count: number
+          requested_by: string | null
+          source_id: string
+          started_at: string
+          status: string
+          trigger_type: string
+        }
+        Insert: {
+          attempt_count?: number
+          chunker_version?: string | null
+          created_at?: string
+          discovered_count?: number
+          duration_ms?: number | null
+          embedding_model?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          estimated_cost_usd?: number | null
+          failed_count?: number
+          finished_at?: string | null
+          id?: string
+          input_checksum?: string | null
+          output_checksum?: string | null
+          parser_version?: string | null
+          published_count?: number
+          requested_by?: string | null
+          source_id: string
+          started_at?: string
+          status?: string
+          trigger_type: string
+        }
+        Update: {
+          attempt_count?: number
+          chunker_version?: string | null
+          created_at?: string
+          discovered_count?: number
+          duration_ms?: number | null
+          embedding_model?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          estimated_cost_usd?: number | null
+          failed_count?: number
+          finished_at?: string | null
+          id?: string
+          input_checksum?: string | null
+          output_checksum?: string | null
+          parser_version?: string | null
+          published_count?: number
+          requested_by?: string | null
+          source_id?: string
+          started_at?: string
+          status?: string
+          trigger_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_ingestion_runs_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_ingestion_runs_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_review_events: {
+        Row: {
+          action: string
+          actor_profile_id: string
+          after_state: Json
+          before_state: Json
+          created_at: string
+          document_id: string
+          id: string
+          reason: string
+        }
+        Insert: {
+          action: string
+          actor_profile_id: string
+          after_state?: Json
+          before_state?: Json
+          created_at?: string
+          document_id: string
+          id?: string
+          reason: string
+        }
+        Update: {
+          action?: string
+          actor_profile_id?: string
+          after_state?: Json
+          before_state?: Json
+          created_at?: string
+          document_id?: string
+          id?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_review_events_actor_profile_id_fkey"
+            columns: ["actor_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_review_events_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_sources: {
+        Row: {
+          active: boolean
+          authority_level: string
+          canonical_url: string
+          crawl_interval: string | null
+          crawl_policy: string
+          created_at: string
+          default_audience_scope: string
+          default_language: string
+          department_id: string | null
+          id: string
+          name: string
+          official_domain: boolean
+          owner_profile_id: string
+          robots_reviewed_at: string | null
+          source_type: string
+          terms_reviewed_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          authority_level: string
+          canonical_url: string
+          crawl_interval?: string | null
+          crawl_policy?: string
+          created_at?: string
+          default_audience_scope?: string
+          default_language?: string
+          department_id?: string | null
+          id?: string
+          name: string
+          official_domain?: boolean
+          owner_profile_id: string
+          robots_reviewed_at?: string | null
+          source_type: string
+          terms_reviewed_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          authority_level?: string
+          canonical_url?: string
+          crawl_interval?: string | null
+          crawl_policy?: string
+          created_at?: string
+          default_audience_scope?: string
+          default_language?: string
+          department_id?: string | null
+          id?: string
+          name?: string
+          official_domain?: boolean
+          owner_profile_id?: string
+          robots_reviewed_at?: string | null
+          source_type?: string
+          terms_reviewed_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_sources_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_sources_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       learning_material_pages: {
         Row: {
           content_html: string
@@ -2905,6 +4266,485 @@ export type Database = {
             columns: ["status_changed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_consent_records: {
+        Row: {
+          consented: boolean
+          consented_at: string
+          id: string
+          ip_hash: string | null
+          participant_id: string
+          study_version_id: string
+          user_agent_family: string | null
+          withdrawn_at: string | null
+        }
+        Insert: {
+          consented: boolean
+          consented_at: string
+          id?: string
+          ip_hash?: string | null
+          participant_id: string
+          study_version_id: string
+          user_agent_family?: string | null
+          withdrawn_at?: string | null
+        }
+        Update: {
+          consented?: boolean
+          consented_at?: string
+          id?: string
+          ip_hash?: string | null
+          participant_id?: string
+          study_version_id?: string
+          user_agent_family?: string | null
+          withdrawn_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_consent_records_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "research_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "research_consent_records_study_version_id_fkey"
+            columns: ["study_version_id"]
+            isOneToOne: false
+            referencedRelation: "research_study_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_participants: {
+        Row: {
+          contact_ciphertext: string | null
+          created_at: string
+          familiarity_level: string
+          id: string
+          participant_code: string
+          population_role: string
+          status: string
+          study_id: string
+        }
+        Insert: {
+          contact_ciphertext?: string | null
+          created_at?: string
+          familiarity_level: string
+          id?: string
+          participant_code: string
+          population_role: string
+          status?: string
+          study_id: string
+        }
+        Update: {
+          contact_ciphertext?: string | null
+          created_at?: string
+          familiarity_level?: string
+          id?: string
+          participant_code?: string
+          population_role?: string
+          status?: string
+          study_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_participants_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "research_studies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_questionnaire_items: {
+        Row: {
+          construct: string | null
+          id: string
+          item_key: string
+          ordinal: number
+          prompt: string
+          questionnaire_id: string
+          response_type: string
+          reverse_scored: boolean
+        }
+        Insert: {
+          construct?: string | null
+          id?: string
+          item_key: string
+          ordinal: number
+          prompt: string
+          questionnaire_id: string
+          response_type: string
+          reverse_scored?: boolean
+        }
+        Update: {
+          construct?: string | null
+          id?: string
+          item_key?: string
+          ordinal?: number
+          prompt?: string
+          questionnaire_id?: string
+          response_type?: string
+          reverse_scored?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_questionnaire_items_questionnaire_id_fkey"
+            columns: ["questionnaire_id"]
+            isOneToOne: false
+            referencedRelation: "research_questionnaires"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_questionnaires: {
+        Row: {
+          id: string
+          instrument: string
+          language: string
+          scoring_spec: Json
+          study_version_id: string
+          version: string
+        }
+        Insert: {
+          id?: string
+          instrument: string
+          language: string
+          scoring_spec?: Json
+          study_version_id: string
+          version: string
+        }
+        Update: {
+          id?: string
+          instrument?: string
+          language?: string
+          scoring_spec?: Json
+          study_version_id?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_questionnaires_study_version_id_fkey"
+            columns: ["study_version_id"]
+            isOneToOne: false
+            referencedRelation: "research_study_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_responses: {
+        Row: {
+          condition: string | null
+          created_at: string
+          id: string
+          item_id: string
+          numeric_value: number | null
+          questionnaire_id: string
+          session_id: string
+          text_value: string | null
+        }
+        Insert: {
+          condition?: string | null
+          created_at?: string
+          id?: string
+          item_id: string
+          numeric_value?: number | null
+          questionnaire_id: string
+          session_id: string
+          text_value?: string | null
+        }
+        Update: {
+          condition?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string
+          numeric_value?: number | null
+          questionnaire_id?: string
+          session_id?: string
+          text_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_responses_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "research_questionnaire_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "research_responses_questionnaire_id_fkey"
+            columns: ["questionnaire_id"]
+            isOneToOne: false
+            referencedRelation: "research_questionnaires"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "research_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "research_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_sessions: {
+        Row: {
+          completed_at: string | null
+          id: string
+          participant_id: string
+          sequence: string
+          started_at: string
+          status: string
+          study_version_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          participant_id: string
+          sequence: string
+          started_at?: string
+          status?: string
+          study_version_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          participant_id?: string
+          sequence?: string
+          started_at?: string
+          status?: string
+          study_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_sessions_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "research_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "research_sessions_study_version_id_fkey"
+            columns: ["study_version_id"]
+            isOneToOne: false
+            referencedRelation: "research_study_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_studies: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          owner_profile_id: string
+          purpose: string
+          retention_days: number
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          owner_profile_id: string
+          purpose: string
+          retention_days: number
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          owner_profile_id?: string
+          purpose?: string
+          retention_days?: number
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_studies_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_study_versions: {
+        Row: {
+          analysis_plan: Json
+          consent_text_en: string
+          consent_text_zh: string
+          created_at: string
+          frozen_at: string | null
+          frozen_by: string | null
+          id: string
+          protocol: Json
+          study_id: string
+          version: number
+        }
+        Insert: {
+          analysis_plan: Json
+          consent_text_en: string
+          consent_text_zh: string
+          created_at?: string
+          frozen_at?: string | null
+          frozen_by?: string | null
+          id?: string
+          protocol: Json
+          study_id: string
+          version: number
+        }
+        Update: {
+          analysis_plan?: Json
+          consent_text_en?: string
+          consent_text_zh?: string
+          created_at?: string
+          frozen_at?: string | null
+          frozen_by?: string | null
+          id?: string
+          protocol?: Json
+          study_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_study_versions_frozen_by_fkey"
+            columns: ["frozen_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "research_study_versions_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "research_studies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_task_attempts: {
+        Row: {
+          assistance_requests: number
+          backtracks: number
+          condition: string
+          created_at: string
+          duration_ms: number
+          id: string
+          navigation_steps: number
+          notes: string | null
+          reformulations: number
+          seq_score: number | null
+          session_id: string
+          source_identification_correct: boolean | null
+          success: string
+          task_id: string
+          variant: string
+          wrong_page_visits: number
+        }
+        Insert: {
+          assistance_requests?: number
+          backtracks?: number
+          condition: string
+          created_at?: string
+          duration_ms: number
+          id?: string
+          navigation_steps?: number
+          notes?: string | null
+          reformulations?: number
+          seq_score?: number | null
+          session_id: string
+          source_identification_correct?: boolean | null
+          success: string
+          task_id: string
+          variant: string
+          wrong_page_visits?: number
+        }
+        Update: {
+          assistance_requests?: number
+          backtracks?: number
+          condition?: string
+          created_at?: string
+          duration_ms?: number
+          id?: string
+          navigation_steps?: number
+          notes?: string | null
+          reformulations?: number
+          seq_score?: number | null
+          session_id?: string
+          source_identification_correct?: boolean | null
+          success?: string
+          task_id?: string
+          variant?: string
+          wrong_page_visits?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_task_attempts_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "research_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "research_task_attempts_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "research_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_tasks: {
+        Row: {
+          domain: string
+          gold_answer: Json
+          id: string
+          max_seconds: number
+          ordinal: number
+          study_version_id: string
+          task_key: string
+          variant_a: string
+          variant_b: string
+        }
+        Insert: {
+          domain: string
+          gold_answer: Json
+          id?: string
+          max_seconds: number
+          ordinal: number
+          study_version_id: string
+          task_key: string
+          variant_a: string
+          variant_b: string
+        }
+        Update: {
+          domain?: string
+          gold_answer?: Json
+          id?: string
+          max_seconds?: number
+          ordinal?: number
+          study_version_id?: string
+          task_key?: string
+          variant_a?: string
+          variant_b?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_tasks_study_version_id_fkey"
+            columns: ["study_version_id"]
+            isOneToOne: false
+            referencedRelation: "research_study_versions"
             referencedColumns: ["id"]
           },
         ]

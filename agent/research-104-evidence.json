@@ -59,11 +59,11 @@
       {"id":"reproducible-analysis","description":"Locked anonymous export reproduces reported statistics and figures","metric":"reconciliation differences","target":"0","status":"pending","evidence":[]},
       {"id":"research-claims","description":"Every final claim links measured evidence and limitations","metric":"unsupported achieved claims","target":"0","status":"pending","evidence":[]}
     ]},
-    {"key":"CTRL","issue":116,"title":"Codex completion controller","issueState":"open","measures":[
-      {"id":"hook-config","description":"Trusted project SessionStart and Stop hooks invoke the guard","metric":"configured lifecycle events","target":"2","status":"in_progress","evidence":[]},
-      {"id":"fail-closed","description":"Missing, malformed, incomplete, and falsely closed evidence fails closed","metric":"guard fixture pass rate","target":"100%","status":"in_progress","evidence":[]},
-      {"id":"external-reporting","description":"External-only gates are reported without false completion or infinite local loop","metric":"external fixture pass rate","target":"100%","status":"in_progress","evidence":[]},
-      {"id":"real-ledger","description":"Real ledger includes every child issue and measurable gate","metric":"mapped child issues","target":"12 / 12","status":"in_progress","evidence":[]}
+    {"key":"CTRL","issue":116,"title":"Codex completion controller","issueState":"closed","measures":[
+      {"id":"hook-config","description":"Trusted project SessionStart and Stop hooks invoke the guard","metric":"configured lifecycle events","target":"2","status":"verified","verifiedAt":"2026-07-19T06:30:00Z","evidence":[".codex/hooks.json","commit:b4c157c"]},
+      {"id":"fail-closed","description":"Missing, malformed, incomplete, and falsely closed evidence fails closed","metric":"guard fixture pass rate","target":"100%","status":"verified","verifiedAt":"2026-07-19T06:30:00Z","evidence":["scripts/verify-research-104.mjs","npm run verify:research-104: complete/malformed/incomplete fixtures passed"]},
+      {"id":"external-reporting","description":"External-only gates are reported without false completion or infinite local loop","metric":"external fixture pass rate","target":"100%","status":"verified","verifiedAt":"2026-07-19T06:30:00Z","evidence":["scripts/verify-research-104.mjs","external-only fixture passed"]},
+      {"id":"real-ledger","description":"Real ledger includes every child issue and measurable gate","metric":"mapped child issues","target":"12 / 12","status":"verified","verifiedAt":"2026-07-19T06:30:00Z","evidence":["agent/research-104-evidence.json","GitHub issues #105-#116","Issue #116 closed"]}
     ]}
   ]
 }

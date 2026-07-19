@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Began Issue #104 implementation with child Issues #105–#116, a machine-verifiable Codex completion controller, and an evidence ledger that distinguishes implemented gates from external research dependencies.
+- Deployed the connected research foundation to production Supabase: governed/versioned knowledge and chunks, AI retrieval/citation/evaluation traces, accessible campus graph entities, pseudonymous protocol/consent/task/questionnaire records, and administrative workload metrics.
+- Enabled RLS on all 31 new tables, added 56 foreign keys and 56 policies, explicitly revoked anonymous access to chunks/evaluation/participant data, refreshed generated TypeScript types, and documented the architecture in `docs/RESEARCH_SYSTEM_SCHEMA.md`.
+- Added static schema/privacy contracts and a reversible production workflow proving public metadata, protected chunks, accessible routes, connected study records, and complete cleanup. Closed schema dependency Issue #117; research outcome work remains open in #105–#115.
+
 - Added the `neededv3.md` relationship-first contract and replaced duplicate/free-text relationship inputs with authoritative, parent-scoped selectors across curricula, profiles, students, classes, CRM, admissions, campaigns, attendance, schedules, governance, and Nexus.
 - Curriculum rows now retain exact catalog `courseId` values, show immutable subject identity, select earlier prerequisite course IDs, recover legacy rows through explicit linking, and return newly created catalog subjects to the unfinished curriculum.
 - Added structured campaign audiences with generated recipient review, admissions program foreign keys, database relationship triggers, generated TypeScript contracts, static regression verification, and reversible owner-role production verification.

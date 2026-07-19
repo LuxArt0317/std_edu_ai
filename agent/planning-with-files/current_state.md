@@ -1,10 +1,12 @@
 # Current State
 
-# Active specification: Issue #104
+# Active implementation: Issue #104
 
 - Issue #104 is the implementation-ready research-completion epic. It reconciles the original non-mutating information-assistant study with the expanded authenticated School OS and defines authoritative-source ingestion, hybrid RAG, claim-linked citations, abstention, bilingual public assistance, campus spatial routing, controlled usability research, administrative-workload measurement, privacy, accessibility, and operational gates.
-- Repository evidence confirms the current public research corpus contains six static documents, four textual destinations, and four evaluation statements; production has a governed vector-capable knowledge foundation but not the complete ingestion, evaluation, navigation, or empirical-study lifecycle.
-- This turn is R&D/specification only. No Issue #104 product implementation has begun.
+- Issues #105–#115 track each remaining work package. The verified completion controller in closed Issue #116 prevents actionable evidence gates from being treated as complete; external approvals/results remain explicit dependencies rather than fabricated evidence.
+- Closed Issue #117 delivered 31 connected RLS-enabled production tables, 56 foreign keys, 56 policies, explicit anonymous privilege denial for protected data, refreshed generated types, and a schema/trust-boundary diagram.
+- Four schema contracts and the reversible production workflow pass. Public approved metadata is readable, chunks and participant records are denied to anonymous clients, campus routing joins correctly, study records form a protocol-to-response chain, and cleanup leaves zero temporary records.
+- Corpus ingestion/retrieval/evaluation, navigation UI, public assistant, study/workload UX, hardening, and approved empirical execution remain open. No user-outcome claim is currently marked achieved.
 
 # Completed implementation: Issue #103
 
