@@ -125,6 +125,8 @@ function App() {
   const [accessibleRoute, setAccessibleRoute] = useState(false)
   const [campusRoute, setCampusRoute] = useState<CampusRoute | null>(null)
   const chatViewportRef = useRef<HTMLDivElement | null>(null)
+  const campusLaunchRef = useRef<HTMLButtonElement | null>(null)
+  const campusCloseRef = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -137,6 +139,26 @@ function App() {
     const viewport = chatViewportRef.current
     if (viewport) viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' })
   }, [messages, isLoading])
+
+  useEffect(() => {
+    if (!campusOpen) return
+    const launchButton = campusLaunchRef.current
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    campusCloseRef.current?.focus()
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') { setCampusOpen(false); return }
+      if (event.key !== 'Tab') return
+      const panel = campusCloseRef.current?.closest('.campus-directory-panel')
+      const focusable = panel ? Array.from(panel.querySelectorAll<HTMLElement>('button:not(:disabled), select:not(:disabled), input:not(:disabled), a[href]')) : []
+      if (!focusable.length) return
+      const first = focusable[0]; const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => { document.body.style.overflow = previousOverflow; document.removeEventListener('keydown', onKeyDown); launchButton?.focus() }
+  }, [campusOpen])
 
   const visibleNews = newsTab === 'ALL'
     ? latestNews.slice(0, 8)
@@ -284,13 +306,13 @@ function App() {
 
       <section className="campus-navigation-section" aria-labelledby="campus-navigation-title">
         <div><span>VERIFIED CAMPUS DIRECTORY</span><h2 id="campus-navigation-title">校園導覽與無障礙路線</h2><p>搜尋經校方資料來源驗證的地點，取得樓層、服務資訊與逐步文字路線。實地步行驗證完成前，請以現場標示為準。</p></div>
-        <button type="button" onClick={() => void openCampusDirectory()}><Icon name="pin" />開啟校園導覽</button>
+        <button ref={campusLaunchRef} type="button" onClick={() => void openCampusDirectory()}><Icon name="pin" />開啟校園導覽</button>
       </section>
 
       {campusOpen ? <div className="campus-directory-shell" role="dialog" aria-modal="true" aria-labelledby="campus-directory-title">
         <button className="campus-directory-backdrop" type="button" aria-label="關閉校園導覽" onClick={() => setCampusOpen(false)} />
         <section className="campus-directory-panel">
-          <header><div><span>STU CAMPUS NAVIGATION</span><h2 id="campus-directory-title">驗證地點與文字路線</h2></div><button type="button" aria-label="關閉校園導覽" onClick={() => setCampusOpen(false)}><Icon name="close" /></button></header>
+          <header><div><span>STU CAMPUS NAVIGATION</span><h2 id="campus-directory-title">驗證地點與文字路線</h2></div><button ref={campusCloseRef} type="button" aria-label="關閉校園導覽" onClick={() => setCampusOpen(false)}><Icon name="close" /></button></header>
           <form onSubmit={(event) => void buildCampusRoute(event)}>
             <label>起點<select value={campusOrigin} onChange={(event) => setCampusOrigin(event.target.value)} required><option value="">選擇起點</option>{campusPlaces.filter((place) => place.status === 'active').map((place) => <option key={`from-${place.id}`} value={place.code}>{place.name_zh} · {place.name_en}</option>)}</select></label>
             <label>目的地<select value={campusDestination} onChange={(event) => setCampusDestination(event.target.value)} required><option value="">選擇目的地</option>{campusPlaces.filter((place) => place.status === 'active').map((place) => <option key={`to-${place.id}`} value={place.code}>{place.name_zh} · {place.name_en}</option>)}</select></label>

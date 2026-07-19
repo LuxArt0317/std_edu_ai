@@ -5,13 +5,13 @@ type ApiResponse={status:(code:number)=>ApiResponse;json:(body:unknown)=>void;se
 type PlaceRecord=CampusPlace&{description_zh:string;description_en:string;contact_phone:string|null;contact_email:string|null;closure_reason:string|null};
 
 export const config={maxDuration:30};
-function headers(response:ApiResponse){response.setHeader("Cache-Control","public, max-age=60, stale-while-revalidate=300");response.setHeader("Content-Type","application/json; charset=utf-8");response.setHeader("X-Content-Type-Options","nosniff");}
+function headers(request:ApiRequest,response:ApiResponse){response.setHeader("Cache-Control",request.method==="GET"?"public, max-age=60, stale-while-revalidate=300":"no-store, max-age=0");response.setHeader("Content-Type","application/json; charset=utf-8");response.setHeader("X-Content-Type-Options","nosniff");}
 async function rest(url:string,key:string,path:string){const result=await fetch(`${url.replace(/\/$/,"")}/rest/v1/${path}`,{headers:{apikey:key,Authorization:`Bearer ${key}`},signal:AbortSignal.timeout(10_000)});if(!result.ok)throw new Error(`Campus data unavailable (${result.status}).`);return result.json();}
 function parse(body:unknown){let value=body;if(typeof body==="string"){try{value=JSON.parse(body);}catch{return null;}}if(!value||typeof value!=="object"||Array.isArray(value))return null;const item=value as Record<string,unknown>;const origin=typeof item.origin==="string"?item.origin.trim():"";const destination=typeof item.destination==="string"?item.destination.trim():"";if(origin.length<1||origin.length>160||destination.length<1||destination.length>160)return null;return{origin,destination,wheelchair:item.wheelchair===true,language:item.language==="en"?"en":"zh-Hant" as "en"|"zh-Hant"};}
 function taipeiClock(){return new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Taipei",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date());}
 
 export default async function handler(request:ApiRequest,response:ApiResponse){
-  headers(response);
+  headers(request,response);
   if(!["GET","POST"].includes(request.method||"")){response.setHeader("Allow","GET, POST");response.status(405).json({error:"Method not allowed"});return;}
   const url=process.env.VITE_SUPABASE_URL||process.env.SUPABASE_URL;const key=process.env.VITE_SUPABASE_PUBLISHABLE_KEY||process.env.SUPABASE_PUBLISHABLE_KEY;
   if(!url||!key){response.status(503).json({error:"Campus navigation is not configured."});return;}
