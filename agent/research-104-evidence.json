@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "parentIssue": 104,
-  "updatedAt": "2026-07-19T08:57:00Z",
+  "updatedAt": "2026-07-19T09:42:32Z",
   "workPackages": [
     {"key":"WP0","issue":105,"title":"Research scope and protocol","issueState":"open","measures":[
       {"id":"claims-traceability","description":"Every research claim maps to evidence","metric":"mapped claims / total claims","target":"100%","status":"verified","verifiedAt":"2026-07-19T07:02:00Z","evidence":["docs/research/claims-evidence.json: 15 mapped claims","npm run verify:research-protocol"]},
@@ -10,12 +10,12 @@
     ]},
     {"key":"WP1","issue":106,"title":"Authoritative corpus","issueState":"open","measures":[
       {"id":"domain-coverage","description":"Required knowledge domains have owned official sources","metric":"covered domains / required domains","target":"100%","status":"pending","evidence":[]},
-      {"id":"publication-metadata","description":"Published items contain complete governance metadata","metric":"valid published items / all published items","target":"100%","status":"in_progress","evidence":["publish_knowledge_document requires effective/review dates, active source, reviewer, embeddings","complete official corpus not yet populated"]},
+      {"id":"publication-metadata","description":"Published items contain complete governance metadata","metric":"valid published items / all published items","target":"100%","status":"in_progress","evidence":["publish_knowledge_document requires effective/review dates, active source, reviewer, embeddings","deployment:dpl_3YSP6bB5NHVyFMAKN71pJRMxcU5b preserved source publication/update dates and review metadata through acquisition/publication/rollback","complete official corpus not yet populated"]},
       {"id":"corpus-leakage","description":"Ineligible documents never enter public retrieval","metric":"draft/private/expired leakage cases","target":"0","status":"verified","verifiedAt":"2026-07-19T07:11:00Z","evidence":["tests/api/research-foundation.test.ts","tests/integration/knowledge-ingestion-live.mjs: expiredPublicLeakage=0","anon direct chunks denied"]}
     ]},
     {"key":"WP2","issue":107,"title":"Ingestion and indexing","issueState":"open","measures":[
-      {"id":"determinism","description":"Identical input creates identical chunks without duplicates","metric":"deterministic fixture pass rate","target":"100%","status":"verified","verifiedAt":"2026-07-19T07:11:00Z","evidence":["tests/api/knowledge-pipeline.test.ts: deterministic content-addressed chunks","api/knowledge-ingest.ts: checksum deduplication"]},
-      {"id":"atomic-index","description":"Index publication and rollback are atomic","metric":"partial or mixed public versions","target":"0","status":"verified","verifiedAt":"2026-07-19T07:11:00Z","evidence":["publish_knowledge_document and rollback_knowledge_document RPCs","tests/integration/knowledge-ingestion-live.mjs: mixedActiveVersions=0"]},
+      {"id":"determinism","description":"Identical input creates identical chunks without duplicates","metric":"deterministic fixture pass rate","target":"100%","status":"verified","verifiedAt":"2026-07-19T07:11:00Z","evidence":["tests/api/knowledge-pipeline.test.ts: deterministic content-addressed chunks","api/knowledge-ingest.ts: checksum deduplication","tests/integration/knowledge-acquisition-live.mjs: exact replay produced 0 duplicate documents and 0 duplicate chunks"]},
+      {"id":"atomic-index","description":"Index publication and rollback are atomic","metric":"partial or mixed public versions","target":"0","status":"verified","verifiedAt":"2026-07-19T07:11:00Z","evidence":["publish_knowledge_document and rollback_knowledge_document RPCs","tests/integration/knowledge-ingestion-live.mjs: mixedActiveVersions=0","deployment:dpl_3YSP6bB5NHVyFMAKN71pJRMxcU5b URL-to-PDF supersession and HTML rollback passed"]},
       {"id":"pipeline-observability","description":"Pipeline versions, latency, cost, retries, and failures are recorded","metric":"required telemetry fields present","target":"100%","status":"verified","verifiedAt":"2026-07-19T08:57:00Z","evidence":["deployment:dpl_7zALqpPrJXGpkot1NCqx2av4uf6x","tests/integration/ingestion-api-live.mjs: terminal status, attempt/max, tokens, duration/cost state, deduplicated replay, zero content telemetry, zero residue","tests/integration/ingestion-telemetry-live.mjs: 5 runs, 8 attempts, 2 retries, 1 dead letter, 0 permanent retries, 0 over-limit attempts, 1 stale recovery, 0 unauthorized reads","production CRM asset exposes protected Pipeline operations and Quarantine stale runs controls"]}
     ]},
     {"key":"WP3","issue":108,"title":"Hybrid RAG","issueState":"open","measures":[
