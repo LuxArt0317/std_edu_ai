@@ -1,9 +1,9 @@
 # Current State
 
-# Active release polish: Issue #98
+# Completed release polish: Issue #98
 
 - Admissions drag/drop and destination requirements remain complete and live. A dedicated green primary style was added to Add prospect so all pipeline actions now have an intentional semantic color hierarchy.
-- Lint, build, commit, deployment, and production-asset verification are the remaining release steps for this small polish.
+- All 109 contracts, lint, TypeScript/Vite build/assets passed. Commit `0ffd637` is on `main`; production deployment `dpl_C4kER9tLbbnFkqnhtunZQKCc7vqG` is Ready. The custom route returns HTTP 200 and its lazy assets contain every expected action, drag, and completeness-dialog marker.
 
 # Active implementation: Issue #101
 
