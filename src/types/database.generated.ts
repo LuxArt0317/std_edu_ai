@@ -202,10 +202,14 @@ export type Database = {
           inquiry_count: number
           period_end: string
           period_start: string
+          resolution_evidence_count: number | null
+          resolution_evidence_type: string | null
           source_note: string
           study_id: string
+          supersedes_metric_id: string | null
           total_first_response_seconds: number
           total_handling_seconds: number
+          window_id: string | null
           window_type: string
         }
         Insert: {
@@ -219,10 +223,14 @@ export type Database = {
           inquiry_count: number
           period_end: string
           period_start: string
+          resolution_evidence_count?: number | null
+          resolution_evidence_type?: string | null
           source_note: string
           study_id: string
+          supersedes_metric_id?: string | null
           total_first_response_seconds?: number
           total_handling_seconds?: number
+          window_id?: string | null
           window_type: string
         }
         Update: {
@@ -236,10 +244,14 @@ export type Database = {
           inquiry_count?: number
           period_end?: string
           period_start?: string
+          resolution_evidence_count?: number | null
+          resolution_evidence_type?: string | null
           source_note?: string
           study_id?: string
+          supersedes_metric_id?: string | null
           total_first_response_seconds?: number
           total_handling_seconds?: number
+          window_id?: string | null
           window_type?: string
         }
         Relationships: [
@@ -257,6 +269,87 @@ export type Database = {
             referencedRelation: "research_studies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "administrative_inquiry_metrics_supersedes_metric_id_fkey"
+            columns: ["supersedes_metric_id"]
+            isOneToOne: false
+            referencedRelation: "administrative_inquiry_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "administrative_inquiry_metrics_window_id_fkey"
+            columns: ["window_id"]
+            isOneToOne: false
+            referencedRelation: "administrative_workload_windows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      administrative_workload_windows: {
+        Row: {
+          approval_reference: string
+          collection_method: string
+          created_at: string
+          created_by: string
+          id: string
+          office_code: string
+          office_name: string
+          period_end: string
+          period_start: string
+          source_extract_sha256: string
+          source_record_count: number
+          source_system: string
+          status: string
+          study_id: string
+          suppression_threshold: number
+          verified_at: string | null
+          verified_by: string | null
+          window_type: string
+        }
+        Insert: {
+          approval_reference: string
+          collection_method: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          office_code: string
+          office_name: string
+          period_end: string
+          period_start: string
+          source_extract_sha256: string
+          source_record_count: number
+          source_system: string
+          status?: string
+          study_id: string
+          suppression_threshold?: number
+          verified_at?: string | null
+          verified_by?: string | null
+          window_type: string
+        }
+        Update: {
+          approval_reference?: string
+          collection_method?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          office_code?: string
+          office_name?: string
+          period_end?: string
+          period_start?: string
+          source_extract_sha256?: string
+          source_record_count?: number
+          source_system?: string
+          status?: string
+          study_id?: string
+          suppression_threshold?: number
+          verified_at?: string | null
+          verified_by?: string | null
+          window_type?: string
+        }
+        Relationships: [
+          { foreignKeyName: "administrative_workload_windows_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "administrative_workload_windows_study_id_fkey"; columns: ["study_id"]; isOneToOne: false; referencedRelation: "research_studies"; referencedColumns: ["id"] },
+          { foreignKeyName: "administrative_workload_windows_verified_by_fkey"; columns: ["verified_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ]
       }
       admission_handoffs: {
@@ -5232,6 +5325,7 @@ export type Database = {
       }
     }
     Functions: {
+      administrative_workload_report: { Args: { p_office_code: string; p_study_id: string }; Returns: Json }
       begin_research_participation: {
         Args: { p_consent: boolean; p_familiarity_level: string; p_population_role: string; p_study_code: string; p_study_version_id: string; p_user_agent_family?: string }
         Returns: Json
@@ -5239,12 +5333,14 @@ export type Database = {
       complete_research_session: { Args: { p_token: string }; Returns: boolean }
       get_research_session: { Args: { p_language?: string; p_token: string }; Returns: Json }
       public_research_study: { Args: { p_language?: string; p_study_code: string }; Returns: Json }
+      purge_administrative_workload_fixture: { Args: { p_study_id: string }; Returns: Json }
       research_anonymized_export: { Args: { p_study_id: string }; Returns: Json }
       research_sus_score: { Args: { p_condition: string; p_session_id: string }; Returns: number }
       set_research_session_status: { Args: { p_status: string; p_token: string }; Returns: string }
       submit_research_attempt: { Args: { p_condition: string; p_metrics: Json; p_task_id: string; p_token: string }; Returns: string }
       submit_research_response: { Args: { p_condition: string; p_item_id: string; p_numeric_value?: number; p_text_value?: string; p_token: string }; Returns: string }
       withdraw_research_participation: { Args: { p_delete_now?: boolean; p_token: string }; Returns: boolean }
+      verify_administrative_workload_window: { Args: { p_decision: string; p_window_id: string }; Returns: undefined }
       approve_and_send_campaign: {
         Args: { p_campaign_id: string; p_reason: string }
         Returns: {

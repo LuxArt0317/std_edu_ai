@@ -58,7 +58,7 @@ flowchart LR
 | Evaluation | `ai_eval_cases`, `ai_eval_runs`, `ai_eval_results` | Versioned gold cases and reproducible retrieval/answer scorecards |
 | Campus graph | `campus_sites`, `campus_buildings`, `campus_floors`, `campus_places`, `campus_place_aliases`, `campus_nodes`, `campus_edges`, `campus_service_hours` | Searchable destinations, multilingual aliases, accessible routing edges, service availability |
 | Human study | `research_studies`, `research_study_versions`, `research_participants`, `research_participant_tokens`, `research_consent_records`, `research_tasks`, `research_sessions`, `research_task_attempts`, `research_questionnaires`, `research_questionnaire_items`, `research_responses` | Frozen protocol, pseudonymous participation, hash-only revocable access, consent, counterbalanced task outcomes, questionnaires, SUS and anonymized export |
-| Workload | `administrative_inquiry_metrics` | Pre/post inquiry volume and handling-time evidence by office/category/period |
+| Workload | `administrative_workload_windows`, `administrative_inquiry_metrics` | Governed baseline/pilot windows, aggregate inquiry counts, explicit resolution evidence, handling-time totals, independent review, and privacy-safe reporting |
 
 ## Trust boundaries
 
@@ -80,6 +80,14 @@ flowchart LR
 6. Evaluation results belong to both a run and a versioned gold case.
 7. Protected research and retrieval data is not exposed to the anonymous Data API role.
 8. A study cannot recruit through the participant boundary until its selected protocol version is frozen; balanced assignment is serialized per version, and analysis export emits irreversible study-scoped pseudonyms rather than database or production identities.
+9. Administrative workload windows for one office cannot overlap, baseline/pilot durations must match, category totals must reconcile to the governed source count, and a different authorized reviewer must verify the evidence.
+10. An AI answer is never a confirmed resolution. Aggregate observations require an explicit confirmation evidence type/count, remain append-only after entry, and report categories below the approved threshold only as a suppressed cell.
+
+## Administrative workload evidence boundary
+
+The Analytics workspace no longer displays invented deflection, satisfaction, or intervention percentages. Authorized office and research roles can enter aggregate baseline/pilot observations linked to an approved study, while the browser calculates a SHA-256 checksum over the submitted aggregate payload. Names, emails, student numbers, message bodies, and respondent-level records are prohibited.
+
+The database rejects overlapping or unequal-duration comparison windows, creator self-verification, unreconciled source totals, inferred resolution, observation mutation, and anonymous/student access. The report supplies denominators and descriptive counts, suppresses small cells, and always keeps `claimPermitted=false`. Only an approved STU pilot analysis with uncertainty and participating-office sign-off can support a workload-reduction claim.
 
 ## Campus validation boundary
 

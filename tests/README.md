@@ -27,3 +27,4 @@ Academic operations contracts cover student, subject, class, enrollment, and sch
 `integration/ai-live.mjs` invokes the real authenticated school chatbot and OpenAI vision grade extraction using the synthetic `fixtures/grade-sheet.svg` fixture converted to PNG. It verifies structured responses and the mandatory human-review flag without saving grades.
 
 `api/research-foundation.test.ts` and `integration/research-foundation-live.mjs` protect the Issue #104 research system: governed provenance, retrieval privacy, campus graph relationships, pseudonymous study records, explicit Data API privileges, and reversible live production behavior.
+`npm run test:live-workload` runs the reversible Issue #120 production workflow: comparable-window constraints, explicit confirmed resolution, independent review, protected reads, small-cell suppression, descriptive-only reporting, and zero-residue cleanup.

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, DragEvent, FormEvent, ReactNode } from "react";
 import "./crm.css";
 import { askCrmCopilot } from "./aiService";
+import { WorkloadEvidencePanel } from "../research/WorkloadEvidencePanel";
 import {
   createKnowledgeArticle,
   crmDataSource,
@@ -1824,120 +1825,7 @@ function CRMApp({
 
           {section === "analytics" ? (
             <section className="analytics-workspace">
-              <div className="analytics-metrics">
-                <MetricCard
-                  label="Student support SLA"
-                  value="92%"
-                  detail="Cases answered within target"
-                  tone="teal"
-                />
-                <MetricCard
-                  label="Information deflection"
-                  value="67%"
-                  detail="Questions resolved by verified AI"
-                  tone="blue"
-                />
-                <MetricCard
-                  label="Intervention response"
-                  value="74%"
-                  detail="Students engaging within 48 hours"
-                  tone="amber"
-                />
-                <MetricCard
-                  label="User satisfaction"
-                  value="4.7"
-                  detail="Average post-service rating"
-                  tone="coral"
-                />
-              </div>
-              <div className="analytics-grid">
-                <article className="nexus-panel trend-chart">
-                  <header>
-                    <div>
-                      <span>STUDENT MOMENTUM</span>
-                      <h3>Intervention outcomes</h3>
-                    </div>
-                    <select aria-label="Date range">
-                      <option>Last 8 weeks</option>
-                    </select>
-                  </header>
-                  <div className="chart-area">
-                    <div className="chart-y">
-                      <span>100%</span>
-                      <span>75%</span>
-                      <span>50%</span>
-                      <span>25%</span>
-                      <span>0</span>
-                    </div>
-                    <svg
-                      viewBox="0 0 700 240"
-                      preserveAspectRatio="none"
-                      aria-label="Intervention outcomes trend"
-                    >
-                      <defs>
-                        <linearGradient
-                          id="chartFill"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="0"
-                            stopColor="#3cb69e"
-                            stopOpacity=".32"
-                          />
-                          <stop
-                            offset="1"
-                            stopColor="#3cb69e"
-                            stopOpacity="0"
-                          />
-                        </linearGradient>
-                      </defs>
-                      <path
-                        className="fill"
-                        d="M0 195 C90 180 100 166 180 170 S285 132 350 142 S445 105 520 112 S625 73 700 62 L700 240 L0 240 Z"
-                      />
-                      <path
-                        className="line"
-                        d="M0 195 C90 180 100 166 180 170 S285 132 350 142 S445 105 520 112 S625 73 700 62"
-                      />
-                    </svg>
-                    <div className="chart-x">
-                      <span>May 25</span>
-                      <span>Jun 08</span>
-                      <span>Jun 22</span>
-                      <span>Jul 06</span>
-                      <span>Jul 16</span>
-                    </div>
-                  </div>
-                </article>
-                <article className="nexus-panel outcomes">
-                  <header>
-                    <div>
-                      <span>OUTCOME MIX</span>
-                      <h3>Cases by domain</h3>
-                    </div>
-                  </header>
-                  {[
-                    "Academic advising",
-                    "Financial aid",
-                    "Registrar",
-                    "Student care",
-                    "Department",
-                  ].map((label, index) => (
-                    <div key={label}>
-                      <span>{label}</span>
-                      <div>
-                        <i
-                          style={{ width: `${[82, 64, 55, 47, 34][index]}%` }}
-                        />
-                      </div>
-                      <b>{[82, 64, 55, 47, 34][index]}</b>
-                    </div>
-                  ))}
-                </article>
-              </div>
+              <WorkloadEvidencePanel currentUser={currentUser} onMessage={setToast}/>
             </section>
           ) : null}
         </div>
