@@ -7,7 +7,7 @@
 - [x] add an exact published student-view preview beside teacher authoring
 - [x] make module/material visibility dependencies explicit with direct publish/unpublish controls
 - [x] prove same-source publication, RLS visibility, refresh, route compatibility, and no legacy topic reader
-- [ ] document, review, merge, deploy, and verify production
+- [x] document, review, merge, deploy, and verify production
 
 ## Phase 94: Clipboard screenshot paste in lesson editor [Issue #94]
 

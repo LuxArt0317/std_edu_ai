@@ -8,6 +8,8 @@
 - Added explicit module/material visibility explanations, direct publish/unpublish actions, and immediate-publish defaults while retaining intentional drafts.
 - The first live student check exposed an ambiguous original RLS predicate: its unqualified material `status` resolved to the module row. Replaced the policy with independently qualified material/module publication, timestamp, unlock, enrollment, and manager predicates.
 - All 100 contracts, lint, TypeScript/Vite build, guarded assets, and the reversible production LMS workflow pass. The live workflow proves draft denial, immediate post-publish visibility, protected rich pages/files, student write denial, grading, quiz, attendance, and cleanup.
+- PR #97 passed CodeRabbit and Vercel, merged as `dad07d4`, and deployed Ready as `dpl_BHXMCebouW17VKBU9dckVsK6tBp6` to both custom domains.
+- Production `/` and `/crm` return HTTP 200 with six recursively verified assets. The released lazy CRM bundle contains the exact Student view, direct publication controls, hidden-draft state, and shared-record/no-synchronization markers.
 
 ## 2026-07-19 — Issue #94
 

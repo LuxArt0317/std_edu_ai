@@ -5,7 +5,7 @@
 - Staff now see one Courses workspace instead of competing Teaching and Learning destinations. Teachers manage content and open an exact Student view over the same Supabase module/material/page graph; students receive the published learning experience and other authorized staff receive review access.
 - Module and material publication dependencies are explicit. Teachers can publish or unpublish each material directly, newly created content defaults to published, and deliberate drafts remain clearly identified as hidden.
 - Production Supabase now independently enforces published material, published module, publication timestamps, module unlock time, section access, and manager draft access. The previous ambiguous policy that could expose a draft in a published module is replaced.
-- All 100 contracts, lint, TypeScript/Vite build, guarded assets, and the reversible live teacher/student LMS workflow pass. Release/production deployment remains in progress on Issue #96.
+- All 100 contracts, lint, TypeScript/Vite build, guarded assets, and the reversible live teacher/student LMS workflow pass. PR #97 passed CodeRabbit/Vercel, merged as `dad07d4`, and production deployment `dpl_BHXMCebouW17VKBU9dckVsK6tBp6` is Ready on `stu.best` and `www.stu.best`; both routes, recursive assets, and every Courses/publication marker pass. Issue #96 is complete.
 
 # Active implementation: Issue #94
 
