@@ -198,6 +198,10 @@ export function extractTextSections(text, mimeType = 'text/plain') {
 }
 
 export async function extractPdfSections(bytes) {
+  if (!globalThis.DOMMatrix) {
+    const { default: DOMMatrix } = await import('@thednp/dommatrix')
+    globalThis.DOMMatrix = DOMMatrix
+  }
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
   let document
   try { document = await pdfjs.getDocument({ data: new Uint8Array(bytes), isEvalSupported: false, useSystemFonts: true }).promise }

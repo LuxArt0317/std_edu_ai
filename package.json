@@ -48,6 +48,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.5",
+    "@thednp/dommatrix": "3.0.4",
     "@tiptap/core": "3.28.0",
     "@tiptap/extension-image": "^3.28.0",
     "@tiptap/extension-link": "^3.28.0",

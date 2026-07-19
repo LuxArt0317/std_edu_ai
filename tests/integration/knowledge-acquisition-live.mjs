@@ -158,8 +158,8 @@ try {
   if (
     htmlDocument.metadata.parser_version !== "cheerio-1.2.0@1" ||
     htmlDocument.publication_status !== "draft" ||
-    htmlDocument.source_published_at !== sourcePublishedAt ||
-    htmlDocument.source_updated_at !== sourceUpdatedAt
+    new Date(htmlDocument.source_published_at).getTime() !== new Date(sourcePublishedAt).getTime() ||
+    new Date(htmlDocument.source_updated_at).getTime() !== new Date(sourceUpdatedAt).getTime()
   )
     throw new Error("HTML parser metadata or review boundary failed.");
   const htmlChunks = required(

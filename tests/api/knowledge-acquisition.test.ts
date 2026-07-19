@@ -142,6 +142,7 @@ test("Markdown, PDF, and structured chunks retain deterministic exact locators",
     "https://www.stu.edu.tw/guide.pdf",
   );
   assert.equal(pdf.pageCount, 1);
+  assert.equal(typeof globalThis.DOMMatrix, "function");
   assert.equal(pdf.sections[0].sourceLocator, "pdf:page:1");
   assert.match(pdf.sections[0].content, /Official graduation requirements/);
   const first = await chunkKnowledgeSections(
@@ -218,6 +219,7 @@ test("the deployed acquisition boundary revalidates DNS redirects and records st
     "private, reserved, or unavailable",
     "response.headers.location",
     "MAX_ACQUISITION_BYTES",
+    "@thednp/dommatrix",
   ])
     assert.ok(
       acquisition.includes(marker),
