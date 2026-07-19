@@ -1,5 +1,13 @@
 # Current State
 
+# Active implementation: Issue #92
+
+- Learning now uses one live Supabase-backed module/material/page reader for students and authorized privileged reviewers; the legacy `course_topics` Learning surface has been removed.
+- Students retain enrolled progress, attendance corrections, assignment submission, completion, and next-lesson behavior. Non-student roles receive read-only material review with honest empty states and no learner mutation controls.
+- Lesson pages support multiple named private file attachments inline with text, images, and video. Files open through short-lived signed URLs; the misleading standalone HTTPS/upload fields and external-resource action are gone.
+- The Add Page action is compact, the page/editor layout is width-constrained, and the Tiptap toolbar remains above the document while the immersive studio scrolls.
+- All 96 contracts, lint, TypeScript/Vite build, asset verification, and the reversible production LMS/RLS workflow pass. Release, deployment, and custom-domain verification remain.
+
 # Active implementation: Issue #60
 
 - The completed Issue #58 repository hooks and hook documentation have been removed at the user's request.

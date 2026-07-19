@@ -23,6 +23,24 @@ test("lesson studio supports wide multi-page inline image and video authoring", 
   assert.match(migration, /video\/mp4/);
 });
 
+test("lesson authoring keeps resources inline and privileged learning uses the live LMS", async () => {
+  const [editor, lms, portal, css] = await Promise.all([
+    source("src/platform/RichTextEditor.tsx"), source("src/platform/LmsWorkspace.tsx"),
+    source("src/platform/UnifiedPortal.tsx"), source("src/platform/platform.css"),
+  ]);
+  assert.match(editor, /fileAttachment/);
+  assert.match(editor, /data-lms-file-path/);
+  assert.match(editor, /Attach files/);
+  assert.match(lms, /onFileUpload/);
+  assert.doesNotMatch(lms, />\s*HTTPS link\s*</);
+  assert.doesNotMatch(lms, />\s*Upload file\s*</);
+  assert.doesNotMatch(lms, /Open learning resource/);
+  assert.match(portal, /mode=\{effectiveRole === "student" \? "student" : "review"\}/);
+  assert.doesNotMatch(portal, /function LearningView/);
+  assert.match(css, /\.lms-file-attachment/);
+  assert.match(css, /\.lms-page-builder > header button[\s\S]*width: auto !important/);
+});
+
 test("assessment integrity is teacher controlled, disclosed, and append-only", async () => {
   const [migration, lms, portal, repository] = await Promise.all([
     source("supabase/migrations/20260718234504_immersive_lms_integrity_controls.sql"),

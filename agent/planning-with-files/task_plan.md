@@ -1,5 +1,14 @@
 # Task Plan
 
+## Phase 92: Connected live Learning workspace and focused lesson authoring [Issue #92]
+
+- [x] remove misleading standalone lesson URL/upload controls and legacy learning-source prompts
+- [x] add private inline file attachments that render as clearly named, usable links
+- [x] make page creation compact and keep the complete editor toolbar above the document while scrolling
+- [x] replace the privileged-role legacy topic reader with the live LMS module/material/page experience
+- [x] cover loading, empty, failure, authorization, authoring, and reader regressions
+- [ ] document, review, deploy, and verify the production release
+
 ## Phase 90: Complete curriculum workspace, role capability picker, and Nexus composer modes [Issue #90]
 
 - [x] expose manual curriculum creation and version linking from every eligible program

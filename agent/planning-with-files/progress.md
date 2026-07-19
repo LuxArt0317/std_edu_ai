@@ -1,5 +1,15 @@
 # Progress
 
+## 2026-07-19 — Issue #92
+
+- Confirmed the lesson form duplicates obsolete HTTPS/file controls outside the page document, the authoring canvas can compress into a side column, and the Add Page action inherits oversized form-button styling.
+- Traced the privileged Learning route to the legacy `course_topics` reader while students use the current module/material/page LMS, explaining the disconnected demo-like experience.
+- Opened GitHub Issue #92 and began replacing the split with one repository-backed, role-aware learning library.
+- Implemented inline private file nodes with named link cards, signed-URL opening, multiple-file upload, and enrolled-student visibility.
+- Removed the separate URL/file inputs and legacy external-resource call to action; retained old private attachments as clearly named file cards.
+- Replaced the legacy privileged-role topic UI with the live LMS reader while keeping student-only progress, attendance, assignment submission, and completion controls isolated.
+- All 96 contracts, lint, TypeScript, Vite production build, recursive asset verification, and the reversible live teacher/student LMS workflow pass; cleanup completed.
+
 ## 2026-07-19 — Issue #90
 
 - Traced the disconnected program-subject count to a missing manual curriculum creation entry point despite an existing lifecycle editor.

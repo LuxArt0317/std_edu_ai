@@ -104,7 +104,6 @@ import type {
   PortalSection,
   SchoolAiAction,
   SchoolAssessment,
-  SchoolCourse,
 } from "./types";
 import { AcademicOperations, ScheduleOperations } from "./AcademicOperations";
 import { buildUnifiedCalendar, type UnifiedCalendarEvent } from "./schoolCalendar";
@@ -512,16 +511,14 @@ function UnifiedPortal({
               />
             ) : null}
             {view === "learning" ? (
-              effectiveRole === "student" ? (
-                <StudentLmsLearning
-                  data={data}
-                  currentUser={currentUser}
-                  onChanged={() => void refresh(true)}
-                  onToast={setToast}
-                />
-              ) : (
-                <LearningView data={data} role={effectiveRole} initialSectionId={focusedSectionId} />
-              )
+              <StudentLmsLearning
+                data={data}
+                currentUser={currentUser}
+                onChanged={() => void refresh(true)}
+                onToast={setToast}
+                mode={effectiveRole === "student" ? "student" : "review"}
+                initialSectionId={focusedSectionId}
+              />
             ) : null}
             {view === "teaching" ? (
               <TeacherLmsStudio
@@ -872,160 +869,6 @@ function AcademicsView({
         onAskNexus={onAskNexus}
         onOpenSectionWorkspace={onOpenSectionWorkspace}
       />
-    </>
-  );
-}
-
-function CourseTile({
-  course,
-  onClick,
-  active,
-}: {
-  course: SchoolCourse;
-  onClick: () => void;
-  active?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      className={`course-tile ${active ? "active" : ""}`}
-      onClick={onClick}
-    >
-      <div>
-        <span>{course.code}</span>
-        <Pill tone="blue">{course.modality}</Pill>
-      </div>
-      <h3>{course.title}</h3>
-      <p>{course.description}</p>
-      <footer>
-        <span>{course.facultyName}</span>
-        <small>{course.room}</small>
-      </footer>
-    </button>
-  );
-}
-
-function LearningView({
-  data,
-  role,
-  initialSectionId,
-}: {
-  data: PlatformData;
-  role: PlatformRole;
-  initialSectionId: string;
-}) {
-  const [sectionId, setSectionId] = useState(
-    data.courses.some((item) => item.sectionId === initialSectionId)
-      ? initialSectionId
-      : data.courses[0]?.sectionId ?? "",
-  );
-  const course =
-    data.courses.find((item) => item.sectionId === sectionId) ??
-    data.courses[0];
-  const [topicId, setTopicId] = useState("");
-  const topics = data.topics.filter(
-    (topic) => topic.sectionId === course?.sectionId,
-  );
-  const topic = topics.find((item) => item.id === topicId) ?? topics[0];
-  return (
-    <>
-      <PageIntro
-        eyebrow={role === "student" ? "MY LEARNING" : "LEARNING EXPERIENCE"}
-        title="Courses and topics"
-        description={
-          role === "student"
-            ? "Everything you need to learn, practice, and prepare—organized by course."
-            : "Review the student learning experience and verified course content."
-        }
-      />
-      <div className="learning-layout">
-        <aside>
-          {data.courses.map((item) => (
-            <CourseTile
-              key={item.sectionId}
-              course={item}
-              active={item.sectionId === course?.sectionId}
-              onClick={() => {
-                setSectionId(item.sectionId);
-                setTopicId("");
-              }}
-            />
-          ))}
-        </aside>
-        <section>
-          {course ? (
-            <>
-              <div className="course-banner">
-                <div>
-                  <span>
-                    {course.code} · SECTION {course.sectionCode}
-                  </span>
-                  <h2>{course.title}</h2>
-                  <p>
-                    {course.term} · {course.facultyName}
-                  </p>
-                </div>
-                <b>
-                  {topics.length}
-                  <small>topics</small>
-                </b>
-              </div>
-              <div className="topic-workspace">
-                <nav>
-                  {topics.map((item) => (
-                    <button
-                      type="button"
-                      key={item.id}
-                      className={item.id === topic?.id ? "active" : ""}
-                      onClick={() => setTopicId(item.id)}
-                    >
-                      <i>{String(item.position).padStart(2, "0")}</i>
-                      <span>
-                        <b>{item.title}</b>
-                        <small>
-                          {item.minutes} min ·{" "}
-                          {item.published ? "Published" : "Draft"}
-                        </small>
-                      </span>
-                    </button>
-                  ))}
-                </nav>
-                {topic ? (
-                  <article className="topic-reader">
-                    <Pill tone="teal">Topic {topic.position}</Pill>
-                    <h2>{topic.title}</h2>
-                    <p className="topic-summary">{topic.summary}</p>
-                    {topic.content
-                      .split("\n")
-                      .filter(Boolean)
-                      .map((line, index) =>
-                        line.startsWith("#") ? (
-                          <h3 key={`${line}-${index}`}>
-                            {line.replace(/^#+\s*/, "")}
-                          </h3>
-                        ) : line.startsWith("- ") ? (
-                          <li key={`${line}-${index}`}>{line.slice(2)}</li>
-                        ) : (
-                          <p key={`${line}-${index}`}>
-                            {line.replaceAll("**", "")}
-                          </p>
-                        ),
-                      )}
-                  </article>
-                ) : (
-                  <div className="school-empty">
-                    No published topics are available.
-                  </div>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="school-empty">
-              No courses are visible for this role yet.
-            </div>
-          )}
-        </section>
-      </div>
     </>
   );
 }
