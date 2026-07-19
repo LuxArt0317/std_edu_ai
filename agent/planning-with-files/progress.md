@@ -10,3 +10,5 @@
 - Added four passing schema contracts and a passing reversible live production chain covering public metadata, protected chunks, accessible routing, pseudonymous protocol/consent/tasks/responses, and dependency-order cleanup.
 - Confirmed zero temporary source, campus, or study records remained. Supabase security advisors contain no notices matching the new research tables.
 - Commented implementation evidence on and closed #117. Issues #105–#115 remain open because feature and empirical evidence work is not yet complete.
+- Created the WP0 draft protocol 0.1.0, analysis plan, claims/evidence matrix, and external governance register. The executable verifier confirms all 15 research/objective/benefit claims have a metric, artifact, owner, and decision/report rule.
+- Marked only claims traceability verified. Protocol freeze remains in progress and ethics/advisor approval remains external; no participant or outcome claim was fabricated.

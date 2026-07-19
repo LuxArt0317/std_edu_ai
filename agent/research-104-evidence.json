@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "parentIssue": 104,
-  "updatedAt": "2026-07-19T00:00:00Z",
+  "updatedAt": "2026-07-19T07:02:00Z",
   "workPackages": [
     {"key":"WP0","issue":105,"title":"Research scope and protocol","issueState":"open","measures":[
-      {"id":"claims-traceability","description":"Every research claim maps to evidence","metric":"mapped claims / total claims","target":"100%","status":"pending","evidence":[]},
-      {"id":"protocol-freeze","description":"Study protocol and analysis plan are versioned and frozen","metric":"approved frozen protocol versions","target":"1 or more","status":"pending","evidence":[]},
+      {"id":"claims-traceability","description":"Every research claim maps to evidence","metric":"mapped claims / total claims","target":"100%","status":"verified","verifiedAt":"2026-07-19T07:02:00Z","evidence":["docs/research/claims-evidence.json: 15 mapped claims","npm run verify:research-protocol"]},
+      {"id":"protocol-freeze","description":"Study protocol and analysis plan are versioned and frozen","metric":"approved frozen protocol versions","target":"1 or more","status":"in_progress","evidence":["docs/research/PROTOCOL.md: draft 0.1.0","docs/research/ANALYSIS_PLAN.md","docs/research/GOVERNANCE_DEPENDENCIES.md: approval pending"]},
       {"id":"ethics-review","description":"Advisor or institutional research requirements are confirmed","metric":"documented approval or required-action record","target":"complete","status":"external","externalOwner":"research advisor / institution","externalDependency":"Confirm ethics, consent, recruitment, and retention requirements","evidence":[]}
     ]},
     {"key":"WP1","issue":106,"title":"Authoritative corpus","issueState":"open","measures":[
