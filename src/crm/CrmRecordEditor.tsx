@@ -46,6 +46,12 @@ type EditorRecord = Partial<Student> & {
   scheduledForIso?: string;
   caseId?: string;
   completed?: boolean;
+  ownerId?: string | null;
+  sectionId?: string | null;
+  recipientStudentIds?: string[];
+  audienceRoles?: string[];
+  recipients?: Campaign["recipients"];
+  assignedTo?: string;
   label?: string;
   detail?: string;
   severity?: string;
@@ -75,6 +81,12 @@ export function CrmRecordEditor({
           ? (value.record?.detail ?? "")
           : "";
   const [richText, setRichText] = useState(initialRich);
+  const initialStudentId=value.kind==="task"||value.kind==="case"?(value.record?.studentId??("studentId" in value?value.studentId:"")??""):"";
+  const [selectedStudentId,setSelectedStudentId]=useState(initialStudentId);
+  const [selectedCaseId,setSelectedCaseId]=useState(value.kind==="task"?value.record?.caseId??"":"");
+  const [audienceScope,setAudienceScope]=useState<NonNullable<Campaign["audienceScope"]>>(value.kind==="campaign"?value.record?.audienceScope??"institution":"institution");
+  const studentCases=database.cases.filter((item)=>item.studentId===selectedStudentId);
+  const staff=database.staff??[];
   const title =
     value.kind === "student"
       ? "Edit student"
@@ -89,6 +101,7 @@ export function CrmRecordEditor({
         await saveCrmStudent(value.record.id, {
           name: String(f.get("name")),
           studentNumber: String(f.get("studentNumber")),
+          programId: String(f.get("programId")),
           program: String(f.get("program")),
           yearLevel: String(f.get("yearLevel")),
           email: String(f.get("email")),
@@ -114,13 +127,15 @@ export function CrmRecordEditor({
           priority: String(f.get("priority")) as SupportCase["priority"],
           status: String(f.get("status")) as SupportCase["status"],
           dueAt: String(f.get("dueAt")),
+          ownerId: String(f.get("ownerId")),
         });
       if (value.kind === "lead")
         await saveAdmissionLead(value.record?.id ?? null, {
           name: String(f.get("name")),
           email: String(f.get("email")),
           phone: String(f.get("phone")),
-          program: String(f.get("program")),
+          programId: String(f.get("programId")),
+          ownerId: String(f.get("ownerId")),
           source: String(f.get("source")),
           stage: String(f.get("stage")) as AdmissionLead["stage"],
           probability: Number(f.get("probability")),
@@ -129,7 +144,12 @@ export function CrmRecordEditor({
       if (value.kind === "campaign")
         await saveCampaign(value.record?.id ?? null, {
           name: String(f.get("name")),
-          audience: String(f.get("audience")),
+          audienceScope,
+          programId:String(f.get("programId")),
+          sectionId:String(f.get("sectionId")),
+          studentIds:f.getAll("studentIds").map(String),
+          riskLevels:f.getAll("riskLevels").map(String),
+          roles:f.getAll("roles").map(String),
           channel: String(f.get("channel")) as Campaign["channel"],
           status: String(f.get("status")) as Campaign["status"],
           scheduledFor: String(f.get("scheduledFor")),
@@ -143,6 +163,7 @@ export function CrmRecordEditor({
           dueAt: String(f.get("dueAt")),
           priority: String(f.get("priority")) as CrmTask["priority"],
           completed: f.get("completed") === "on",
+          assignedTo:String(f.get("assignedTo")),
         });
       if (value.kind === "signal")
         await saveStudentSignal(value.record?.id ?? null, {
@@ -218,11 +239,8 @@ export function CrmRecordEditor({
                 </label>
                 <label>
                   <span>Program</span>
-                  <input
-                    name="program"
-                    required
-                    defaultValue={record.program}
-                  />
+                  <select name="programId" required defaultValue={record.programId??""}><option value="">Choose an academic program…</option>{(database.programs??[]).map((program)=><option key={program.id} value={program.id}>{program.code} · {program.name}</option>)}</select>
+                  <input type="hidden" name="program" value={(database.programs??[]).find((program)=>program.id===record.programId)?.code??record.program??""}/>
                 </label>
                 <label>
                   <span>Year level</span>
@@ -298,9 +316,10 @@ export function CrmRecordEditor({
                 <label>
                   <span>Risk level</span>
                   <select name="riskLevel" defaultValue={record.riskLevel}>
-                    <option>critical</option>
-                    <option>warning</option>
-                    <option>info</option>
+                    <option value="critical">Critical</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
                   </select>
                 </label>
                 <label className="wide">
@@ -327,7 +346,8 @@ export function CrmRecordEditor({
                   <select
                     name="studentId"
                     required
-                    defaultValue={record?.studentId ?? value.studentId ?? ""}
+                    value={selectedStudentId}
+                    onChange={(event)=>setSelectedStudentId(event.target.value)}
                   >
                     <option value="">Select student…</option>
                     {database.students.map((student) => (
@@ -337,6 +357,7 @@ export function CrmRecordEditor({
                     ))}
                   </select>
                 </label>
+                <label><span>Accountable owner</span><select name="ownerId" required defaultValue={record.ownerId??""}><option value="">Choose support staff…</option>{staff.filter((item)=>["owner","admin","advisor","support","registrar"].includes(item.role)).map((item)=><option key={item.id} value={item.id}>{item.name} · {item.role.replaceAll("_"," ")}</option>)}</select></label>
                 <label>
                   <span>Title</span>
                   <input name="title" required defaultValue={record?.title} />
@@ -396,12 +417,9 @@ export function CrmRecordEditor({
                 </label>
                 <label>
                   <span>Program interest</span>
-                  <input
-                    name="program"
-                    required
-                    defaultValue={record?.program}
-                  />
+                  <select name="programId" required defaultValue={record?.programId??""}><option value="">Choose an academic program…</option>{(database.programs??[]).map((program)=><option key={program.id} value={program.id}>{program.code} · {program.name}</option>)}</select>
                 </label>
+                <label><span>Admissions owner</span><select name="ownerId" required defaultValue={record.ownerId??""}><option value="">Choose accountable staff…</option>{staff.filter((item)=>["owner","admin","admissions","registrar"].includes(item.role)).map((item)=><option key={item.id} value={item.id}>{item.name} · {item.role.replaceAll("_"," ")}</option>)}</select></label>
                 <label>
                   <span>Email</span>
                   <input
@@ -458,13 +476,15 @@ export function CrmRecordEditor({
                   <input name="name" required defaultValue={record?.name} />
                 </label>
                 <label>
-                  <span>Audience segment</span>
-                  <input
-                    name="audience"
-                    required
-                    defaultValue={record?.audience}
-                  />
+                  <span>Audience scope</span>
+                  <select value={audienceScope} onChange={(event)=>setAudienceScope(event.target.value as typeof audienceScope)}><option value="institution">All active students</option><option value="program">Academic program</option><option value="class">Class roster</option><option value="role">Canonical role</option><option value="risk">Risk segment</option><option value="explicit">Selected students</option></select>
                 </label>
+                {audienceScope==="program"?<label><span>Academic program</span><select name="programId" required defaultValue={record.programId??""}><option value="">Choose a program…</option>{(database.programs??[]).map((program)=><option key={program.id} value={program.id}>{program.code} · {program.name}</option>)}</select></label>:null}
+                {audienceScope==="class"?<label><span>Class roster</span><select name="sectionId" required defaultValue={record.sectionId??""}><option value="">Choose a class…</option>{(database.sections??[]).map((section)=><option key={section.id} value={section.id}>{section.code} · {section.title}</option>)}</select></label>:null}
+                {audienceScope==="role"?<label><span>Learner role</span><select name="roles" required defaultValue={record.audienceRoles?.[0]??"student"}>{(database.roles??[]).filter((role)=>role.code==="student").map((role)=><option key={role.code} value={role.code}>{role.name}</option>)}</select><small>Campaign delivery currently targets enrolled learner identities.</small></label>:null}
+                {audienceScope==="risk"?<label><span>Risk levels</span><select name="riskLevels" multiple required defaultValue={["critical","high"]}><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></label>:null}
+                {audienceScope==="explicit"?<label className="wide"><span>Included students</span><select name="studentIds" multiple required defaultValue={record.recipientStudentIds??[]}>{database.students.map((student)=><option key={student.id} value={student.id}>{student.studentNumber} · {student.name} · {student.program}</option>)}</select></label>:null}
+                {record.recipients?.length?<div className="wide campaign-recipient-review"><strong>{record.recipients.length} included · {Math.max(0,database.students.length-record.recipients.length)} excluded</strong><p>Recipients are rebuilt from the selected authoritative audience while the campaign is editable.</p>{record.recipients.slice(0,20).map((recipient)=>{const student=database.students.find((item)=>item.id===recipient.studentId);return <span key={recipient.studentId}>{student?.studentNumber} · {student?.name} <b>{recipient.status}</b>{recipient.openedAt?" · opened":recipient.deliveredAt?" · delivered":""}</span>;})}</div>:null}
                 <label>
                   <span>Channel</span>
                   <select
@@ -517,7 +537,8 @@ export function CrmRecordEditor({
                   <span>Student</span>
                   <select
                     name="studentId"
-                    defaultValue={record?.studentId ?? ""}
+                    value={selectedStudentId}
+                    onChange={(event)=>{setSelectedStudentId(event.target.value);setSelectedCaseId("");}}
                   >
                     <option value="">No student</option>
                     {database.students.map((student) => (
@@ -529,15 +550,16 @@ export function CrmRecordEditor({
                 </label>
                 <label>
                   <span>Case</span>
-                  <select name="caseId" defaultValue={record?.caseId ?? ""}>
+                  <select name="caseId" value={selectedCaseId} onChange={(event)=>{const caseId=event.target.value;setSelectedCaseId(caseId);const selected=database.cases.find((item)=>item.id===caseId);if(selected)setSelectedStudentId(selected.studentId);}}>
                     <option value="">No case</option>
-                    {database.cases.map((item) => (
+                    {studentCases.map((item) => (
                       <option key={item.id} value={item.id}>
                         {item.title}
                       </option>
                     ))}
                   </select>
                 </label>
+                <label><span>Assigned staff</span><select name="assignedTo" required defaultValue={record.assignedTo??""}><option value="">Choose accountable staff…</option>{staff.map((item)=><option key={item.id} value={item.id}>{item.name} · {item.role.replaceAll("_"," ")}</option>)}</select></label>
                 <label>
                   <span>Due</span>
                   <input

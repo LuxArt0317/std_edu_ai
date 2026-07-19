@@ -269,6 +269,7 @@ export type Database = {
           owner_id: string | null
           phone: string | null
           probability: number
+          program_id: string | null
           program_interest: string
           source: string
           stage: string
@@ -284,6 +285,7 @@ export type Database = {
           owner_id?: string | null
           phone?: string | null
           probability?: number
+          program_id?: string | null
           program_interest: string
           source: string
           stage?: string
@@ -299,6 +301,7 @@ export type Database = {
           owner_id?: string | null
           phone?: string | null
           probability?: number
+          program_id?: string | null
           program_interest?: string
           source?: string
           stage?: string
@@ -310,6 +313,13 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admission_leads_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "academic_programs"
             referencedColumns: ["id"]
           },
         ]
@@ -583,6 +593,64 @@ export type Database = {
           },
         ]
       }
+      assessment_integrity_events: {
+        Row: {
+          assessment_id: string
+          attempt_id: string | null
+          details: Json
+          event_type: string
+          id: string
+          occurred_at: string
+          session_id: string
+          severity: string
+          student_profile_id: string
+        }
+        Insert: {
+          assessment_id: string
+          attempt_id?: string | null
+          details?: Json
+          event_type: string
+          id?: string
+          occurred_at?: string
+          session_id: string
+          severity?: string
+          student_profile_id: string
+        }
+        Update: {
+          assessment_id?: string
+          attempt_id?: string | null
+          details?: Json
+          event_type?: string
+          id?: string
+          occurred_at?: string
+          session_id?: string
+          severity?: string
+          student_profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_integrity_events_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_integrity_events_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_integrity_events_student_profile_id_fkey"
+            columns: ["student_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessment_options: {
         Row: {
           id: string
@@ -656,21 +724,21 @@ export type Database = {
           attempt_limit: number
           created_at: string
           created_by: string | null
-          due_at: string | null
-          duration_minutes: number | null
           detect_extended_display: boolean
           detect_multiple_cameras: boolean
+          due_at: string | null
+          duration_minutes: number | null
           id: string
-          integrity_instructions: string
           instructions: string
+          integrity_instructions: string
           max_score: number
-          opens_at: string | null
           monitor_focus: boolean
+          opens_at: string | null
           prevent_copy_paste: boolean
-          require_camera: boolean
-          require_fullscreen: boolean
           release_explanations: boolean
           release_scores_immediately: boolean
+          require_camera: boolean
+          require_fullscreen: boolean
           review_mode: string
           section_id: string
           status: string
@@ -682,21 +750,21 @@ export type Database = {
           attempt_limit?: number
           created_at?: string
           created_by?: string | null
-          due_at?: string | null
-          duration_minutes?: number | null
           detect_extended_display?: boolean
           detect_multiple_cameras?: boolean
+          due_at?: string | null
+          duration_minutes?: number | null
           id?: string
-          integrity_instructions?: string
           instructions?: string
+          integrity_instructions?: string
           max_score?: number
-          opens_at?: string | null
           monitor_focus?: boolean
+          opens_at?: string | null
           prevent_copy_paste?: boolean
-          require_camera?: boolean
-          require_fullscreen?: boolean
           release_explanations?: boolean
           release_scores_immediately?: boolean
+          require_camera?: boolean
+          require_fullscreen?: boolean
           review_mode?: string
           section_id: string
           status?: string
@@ -708,21 +776,21 @@ export type Database = {
           attempt_limit?: number
           created_at?: string
           created_by?: string | null
-          due_at?: string | null
-          duration_minutes?: number | null
           detect_extended_display?: boolean
           detect_multiple_cameras?: boolean
+          due_at?: string | null
+          duration_minutes?: number | null
           id?: string
-          integrity_instructions?: string
           instructions?: string
+          integrity_instructions?: string
           max_score?: number
-          opens_at?: string | null
           monitor_focus?: boolean
+          opens_at?: string | null
           prevent_copy_paste?: boolean
-          require_camera?: boolean
-          require_fullscreen?: boolean
           release_explanations?: boolean
           release_scores_immediately?: boolean
+          require_camera?: boolean
+          require_fullscreen?: boolean
           review_mode?: string
           section_id?: string
           status?: string
@@ -744,46 +812,6 @@ export type Database = {
             referencedRelation: "course_sections"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      assessment_integrity_events: {
-        Row: {
-          assessment_id: string
-          attempt_id: string | null
-          details: Json
-          event_type: string
-          id: string
-          occurred_at: string
-          session_id: string
-          severity: string
-          student_profile_id: string
-        }
-        Insert: {
-          assessment_id: string
-          attempt_id?: string | null
-          details?: Json
-          event_type: string
-          id?: string
-          occurred_at?: string
-          session_id: string
-          severity?: string
-          student_profile_id: string
-        }
-        Update: {
-          assessment_id?: string
-          attempt_id?: string | null
-          details?: Json
-          event_type?: string
-          id?: string
-          occurred_at?: string
-          session_id?: string
-          severity?: string
-          student_profile_id?: string
-        }
-        Relationships: [
-          { foreignKeyName: "assessment_integrity_events_assessment_id_fkey"; columns: ["assessment_id"]; isOneToOne: false; referencedRelation: "assessments"; referencedColumns: ["id"] },
-          { foreignKeyName: "assessment_integrity_events_attempt_id_fkey"; columns: ["attempt_id"]; isOneToOne: false; referencedRelation: "assessment_attempts"; referencedColumns: ["id"] },
-          { foreignKeyName: "assessment_integrity_events_student_profile_id_fkey"; columns: ["student_profile_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ]
       }
       assignment_submissions: {
@@ -1075,13 +1103,16 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           audience_definition: Json
+          audience_scope: string
           channel: string
           created_at: string
           created_by: string | null
           id: string
           message_template: string
           name: string
+          program_id: string | null
           scheduled_for: string | null
+          section_id: string | null
           status: string
           updated_at: string
         }
@@ -1090,13 +1121,16 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           audience_definition?: Json
+          audience_scope?: string
           channel: string
           created_at?: string
           created_by?: string | null
           id?: string
           message_template?: string
           name: string
+          program_id?: string | null
           scheduled_for?: string | null
+          section_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -1105,13 +1139,16 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           audience_definition?: Json
+          audience_scope?: string
           channel?: string
           created_at?: string
           created_by?: string | null
           id?: string
           message_template?: string
           name?: string
+          program_id?: string | null
           scheduled_for?: string | null
+          section_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -1128,6 +1165,20 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "academic_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "course_sections"
             referencedColumns: ["id"]
           },
         ]
@@ -1238,15 +1289,6 @@ export type Database = {
             referencedRelation: "chat_threads"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      nexus_prompt_queue: {
-        Row: { id: string; owner_id: string; thread_id: string; prompt: string; mode: string; attachments: Json; status: string; error_message: string | null; created_at: string; started_at: string | null; completed_at: string | null }
-        Insert: { id?: string; owner_id: string; thread_id: string; prompt: string; mode: string; attachments?: Json; status?: string; error_message?: string | null; created_at?: string; started_at?: string | null; completed_at?: string | null }
-        Update: { id?: string; owner_id?: string; thread_id?: string; prompt?: string; mode?: string; attachments?: Json; status?: string; error_message?: string | null; created_at?: string; started_at?: string | null; completed_at?: string | null }
-        Relationships: [
-          { foreignKeyName: "nexus_prompt_queue_owner_id_fkey"; columns: ["owner_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
-          { foreignKeyName: "nexus_prompt_queue_thread_id_fkey"; columns: ["thread_id"]; isOneToOne: false; referencedRelation: "chat_threads"; referencedColumns: ["id"] },
         ]
       }
       chat_threads: {
@@ -2196,15 +2238,15 @@ export type Database = {
           embedding: string | null
           id: string
           owner_id: string | null
+          review_due_at: string | null
           review_notes: string
           reviewed_by: string | null
-          review_due_at: string | null
-          section_id: string | null
           search_document: unknown
-          source_url: string | null
+          section_id: string | null
           source_event_id: string | null
           source_profile_id: string | null
           source_type: string
+          source_url: string | null
           status: string
           summary: string
           title: string
@@ -2221,15 +2263,15 @@ export type Database = {
           embedding?: string | null
           id?: string
           owner_id?: string | null
+          review_due_at?: string | null
           review_notes?: string
           reviewed_by?: string | null
-          review_due_at?: string | null
-          section_id?: string | null
           search_document?: unknown
-          source_url?: string | null
+          section_id?: string | null
           source_event_id?: string | null
           source_profile_id?: string | null
           source_type?: string
+          source_url?: string | null
           status?: string
           summary: string
           title: string
@@ -2246,15 +2288,15 @@ export type Database = {
           embedding?: string | null
           id?: string
           owner_id?: string | null
+          review_due_at?: string | null
           review_notes?: string
           reviewed_by?: string | null
-          review_due_at?: string | null
-          section_id?: string | null
           search_document?: unknown
-          source_url?: string | null
+          section_id?: string | null
           source_event_id?: string | null
           source_profile_id?: string | null
           source_type?: string
+          source_url?: string | null
           status?: string
           summary?: string
           title?: string
@@ -2518,6 +2560,63 @@ export type Database = {
             columns: ["student_profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nexus_prompt_queue: {
+        Row: {
+          attachments: Json
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          mode: string
+          owner_id: string
+          prompt: string
+          started_at: string | null
+          status: string
+          thread_id: string
+        }
+        Insert: {
+          attachments?: Json
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          mode: string
+          owner_id: string
+          prompt: string
+          started_at?: string | null
+          status?: string
+          thread_id: string
+        }
+        Update: {
+          attachments?: Json
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          mode?: string
+          owner_id?: string
+          prompt?: string
+          started_at?: string | null
+          status?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nexus_prompt_queue_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nexus_prompt_queue_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "chat_threads"
             referencedColumns: ["id"]
           },
         ]
@@ -3215,17 +3314,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "students_program_id_fkey"
-            columns: ["program_id"]
-            isOneToOne: false
-            referencedRelation: "academic_programs"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "students_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: true
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "students_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "academic_programs"
             referencedColumns: ["id"]
           },
         ]
@@ -3259,13 +3358,16 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           audience_definition: Json
+          audience_scope: string
           channel: string
           created_at: string
           created_by: string | null
           id: string
           message_template: string
           name: string
+          program_id: string | null
           scheduled_for: string | null
+          section_id: string | null
           status: string
           updated_at: string
         }
@@ -3369,28 +3471,6 @@ export type Database = {
         }
         Returns: Json
       }
-      create_manual_academic_curriculum: {
-        Args: {
-          p_program_id: string
-          p_idempotency_key: string
-          p_payload: Json
-          p_reason: string
-        }
-        Returns: Json
-      }
-      delete_draft_academic_curriculum: {
-        Args: { p_plan_id: string; p_reason: string }
-        Returns: Json
-      }
-      update_academic_curriculum: {
-        Args: {
-          p_payload: Json
-          p_plan_id: string
-          p_reason: string
-          p_status: string
-        }
-        Returns: Json
-      }
       create_lms_assessment: {
         Args: {
           p_due_at: string
@@ -3403,6 +3483,15 @@ export type Database = {
           p_type: string
         }
         Returns: string
+      }
+      create_manual_academic_curriculum: {
+        Args: {
+          p_idempotency_key: string
+          p_payload: Json
+          p_program_id: string
+          p_reason: string
+        }
+        Returns: Json
       }
       decide_attendance_correction: {
         Args: { p_approve: boolean; p_reason: string; p_request_id: string }
@@ -3450,6 +3539,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      delete_draft_academic_curriculum: {
+        Args: { p_plan_id: string; p_reason: string }
+        Returns: Json
+      }
       manage_section_enrollment: {
         Args: { p_section_id: string; p_status?: string; p_student_id: string }
         Returns: {
@@ -3478,6 +3571,7 @@ export type Database = {
           preferred_name: string | null
           profile_id: string | null
           program: string
+          program_id: string | null
           record_status: string
           risk_level: string
           risk_score: number
@@ -3533,10 +3627,6 @@ export type Database = {
           submitted_at: string
         }[]
       }
-      read_assessment_review: {
-        Args: { p_assessment_id: string }
-        Returns: Json
-      }
       read_assessment_questions: {
         Args: never
         Returns: {
@@ -3548,6 +3638,10 @@ export type Database = {
           prompt: string
           question_type: string
         }[]
+      }
+      read_assessment_review: {
+        Args: { p_assessment_id: string }
+        Returns: Json
       }
       record_sensitive_case_access: {
         Args: { p_case_id: string; p_purpose: string }
@@ -3594,6 +3688,10 @@ export type Database = {
           score: number
           status: string
         }[]
+      }
+      sync_campaign_recipients: {
+        Args: { p_campaign_id: string; p_student_ids?: string[] }
+        Returns: Json
       }
       transition_assignment_submission: {
         Args: { p_action: string; p_reason: string; p_submission_id: string }
@@ -3667,6 +3765,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      update_academic_curriculum: {
+        Args: {
+          p_payload: Json
+          p_plan_id: string
+          p_reason: string
+          p_status: string
+        }
+        Returns: Json
+      }
       update_department_staff_profile: {
         Args: {
           p_department: string
@@ -3732,6 +3839,7 @@ export type Database = {
           preferred_name: string | null
           profile_id: string | null
           program: string
+          program_id: string | null
           record_status: string
           risk_level: string
           risk_score: number

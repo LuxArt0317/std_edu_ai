@@ -102,6 +102,9 @@ export async function loadPlatformData(): Promise<PlatformData> {
     departmentsResult,
     programsResult,
     curriculaResult,
+    curriculumCoursesResult,
+    curriculumPrerequisitesResult,
+    curriculumBlocksResult,
     termsResult,
     coursesResult,
     sectionsResult,
@@ -147,6 +150,9 @@ export async function loadPlatformData(): Promise<PlatformData> {
       client.from("departments").select("*").order("name"),
       client.from("academic_programs").select("*").order("name"),
       client.from("curriculum_plans").select("*").order("effective_year", { ascending: false }),
+      client.from("curriculum_plan_courses").select("*").order("sort_order"),
+      client.from("curriculum_course_prerequisites").select("*"),
+      client.from("curriculum_block_templates").select("*").order("year_level"),
       client
         .from("academic_terms")
         .select("*")
@@ -222,6 +228,9 @@ export async function loadPlatformData(): Promise<PlatformData> {
   const departmentRows = rows(departmentsResult, "Departments");
   const programRows = rows(programsResult, "Programs");
   const curriculumRows = rows(curriculaResult, "Curriculum plans");
+  const curriculumCourseRows = rows(curriculumCoursesResult, "Curriculum subject mappings");
+  const curriculumPrerequisiteRows = rows(curriculumPrerequisitesResult, "Curriculum prerequisites");
+  const curriculumBlockRows = rows(curriculumBlocksResult, "Curriculum block templates");
   const termRows = rows(termsResult, "Terms");
   const courseRows = rows<CourseRow>(coursesResult, "Courses");
   const sectionRows = rows<SectionRow>(sectionsResult, "Course sections");
@@ -388,14 +397,40 @@ export async function loadPlatformData(): Promise<PlatformData> {
       statusChangedAt: profile.status_changed_at ?? null,
       statusReason: profile.status_reason ?? "",
     })),
-    curricula: curriculumRows.map((plan) => ({
-      id: plan.id,
-      programId: plan.program_id,
-      effectiveYear: plan.effective_year,
-      status: plan.status,
-      createdAt: plan.created_at,
-      source: plan.source_payload as unknown as AcademicCurriculumInput,
-    })),
+    curricula: curriculumRows.map((plan) => {
+      const stored = plan.source_payload as unknown as AcademicCurriculumInput;
+      const mappings = curriculumCourseRows.filter((mapping) => mapping.plan_id === plan.id);
+      const subjects = mappings.map((mapping) => {
+        const course = coursesById.get(mapping.course_id);
+        const prerequisiteCourseIds = curriculumPrerequisiteRows
+          .filter((item) => item.plan_course_id === mapping.id)
+          .map((item) => item.prerequisite_course_id);
+        return {
+          courseId: mapping.course_id,
+          code: course?.code ?? "Unavailable subject",
+          title: course?.title ?? "Unavailable catalog subject",
+          description: course?.description ?? "",
+          units: Number(course?.credits ?? 0),
+          yearLevel: mapping.year_level,
+          semester: mapping.semester,
+          category: mapping.category as AcademicCurriculumInput["subjects"][number]["category"],
+          sortOrder: mapping.sort_order,
+          prerequisiteCourseIds,
+          prerequisiteCodes: prerequisiteCourseIds.map((id) => coursesById.get(id)?.code).filter((code): code is string => Boolean(code)),
+        };
+      });
+      const blocks = curriculumBlockRows
+        .filter((block) => block.plan_id === plan.id)
+        .map((block) => ({yearLevel:block.year_level,blockCode:block.block_code,capacity:block.capacity}));
+      return {
+        id: plan.id,
+        programId: plan.program_id,
+        effectiveYear: plan.effective_year,
+        status: plan.status,
+        createdAt: plan.created_at,
+        source: {...stored,subjects:subjects.length?subjects:stored.subjects,blocks:blocks.length?blocks:stored.blocks},
+      };
+    }),
     students: studentRows.map((student) => ({
       id: student.id,
       profileId: student.profile_id,

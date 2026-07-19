@@ -1,5 +1,11 @@
 # STU Nexus platform schema map
 
+## Relationship-first application contract
+
+The active UI follows the stored foreign-key graph rather than asking users to reproduce related record names or identifiers. Department scopes Program; Program scopes Subject, Curriculum, Student, Advisor, Profile responsibility, and Class; Class scopes LMS, assessment, grades, attendance, and schedule records. Student scopes Cases and Tasks. Admissions leads store `program_id`, campaigns generate `campaign_recipients` from structured scopes, and governance ownership always selects a profile.
+
+`private.validate_relationship_invariants()` independently rejects mismatched department/program, advisor/student, case/owner, task/case/student, teacher/class, and profile/class combinations. Curriculum placement persists `course_id` and prerequisite course IDs through normalized mapping tables; human-readable labels are display context only.
+
 This map is derived from `src/types/database.generated.ts` and the production migration history. Solid arrows represent persisted foreign keys. Dashed conceptual paths are intentionally resolved through their intermediate records rather than duplicated columns.
 
 ```mermaid

@@ -608,6 +608,7 @@ function CRMApp({
       owner: completion && original.owner === "Unassigned"
         ? currentUser?.name || "Assigned staff"
         : original.owner,
+      ownerId: completion && !original.ownerId ? currentUser?.id ?? null : original.ownerId,
       stage,
       probability,
       lastActivity: "Just now",
@@ -623,7 +624,8 @@ function CRMApp({
           name: completedLead.name,
           email: completedLead.email ?? "",
           phone: completedLead.phone ?? "",
-          program: completedLead.program,
+          programId: completedLead.programId ?? "",
+          ownerId: completedLead.ownerId ?? currentUser?.id ?? "",
           source: completedLead.source,
           stage,
           probability,
@@ -1679,7 +1681,7 @@ function CRMApp({
                             )
                           )
                             return;
-                          void saveCampaign(campaign.id,{name:campaign.name,audience:campaign.audience,channel:campaign.channel,status:"completed",scheduledFor:campaign.scheduledForIso ?? "",message:campaign.message ?? ""})
+                          void saveCampaign(campaign.id,{name:campaign.name,audienceScope:campaign.audienceScope??"institution",programId:campaign.programId??undefined,sectionId:campaign.sectionId??undefined,studentIds:campaign.recipientStudentIds,channel:campaign.channel,status:"completed",scheduledFor:campaign.scheduledForIso ?? "",message:campaign.message ?? ""})
                             .then(() => loadCrmData(true))
                             .then(setDatabase)
                             .then(() => setToast("Campaign archived as completed."));

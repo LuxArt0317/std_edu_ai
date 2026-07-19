@@ -1,5 +1,11 @@
 # Current State
 
+# Active implementation: Issue #103
+
+- `neededv3.md` defines the complete relationship-first input/action contract. Every implementation item is now present in UI/repository/schema; the static verifier and 113 automated contracts pass.
+- Production Supabase contains admission program links, structured campaign scopes/recipients, role audiences, exact curriculum updates, and cross-table relationship triggers. The reversible owner-role live workflow passes and leaves no temporary academic or campaign records.
+- Remaining release work: final source audit, commit/push, Vercel deployment, custom-domain asset verification, and closing Issue #103 only after production evidence is complete.
+
 # Completed release polish: Issue #98
 
 - Admissions drag/drop and destination requirements remain complete and live. A dedicated green primary style was added to Add prospect so all pipeline actions now have an intentional semantic color hierarchy.

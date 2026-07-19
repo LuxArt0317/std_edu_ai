@@ -661,6 +661,7 @@ function HomeView({
   const [supportBusy, setSupportBusy] = useState(false);
   const [initiativeOpen, setInitiativeOpen] = useState(false);
   const [initiativeBusy, setInitiativeBusy] = useState(false);
+  const [assignInitiativeId,setAssignInitiativeId]=useState("");
   const greeting =
     role === "student"
       ? "Ready for your next learning step?"
@@ -806,8 +807,9 @@ function HomeView({
           )) : <div className="school-empty">You have no support requests.</div>}
         </section>
       ) : null}
-      {leadershipRoles.has(role) ? <section className="school-card institutional-initiatives"><header><div><span>POLICIES & STRATEGIC WORK</span><h3>Institutional initiatives</h3></div>{["owner","admin","president","vice_president","dean","department_head"].includes(role) ? <button type="button" onClick={() => setInitiativeOpen(true)}>+ Propose initiative</button> : null}</header>{data.initiatives.length ? data.initiatives.map((item) => <article key={item.id}><div><Pill tone={item.priority === "urgent" ? "coral" : item.priority === "high" ? "amber" : "teal"}>{item.status.replaceAll("_"," ")}</Pill><h4>{item.title}</h4><p>{item.description}</p><small>{item.type.replaceAll("_"," ")} · {item.scope} · Owner: {data.profiles.find((profile) => profile.id === item.ownerId)?.name ?? "Unassigned"}</small></div><div className="crm-inline-actions">{(["owner","admin","president","vice_president"].includes(role) || (role === "dean" && ["teaching_plan","content_correction"].includes(item.type))) && item.status === "proposed" ? <button type="button" onClick={() => {const reason=window.prompt("Approval reason (at least 12 characters)");if(reason) void transitionInstitutionalInitiative({initiativeId:item.id,action:"approve",ownerId:null,reason}).then(() => {onToast("Initiative approved with immutable evidence.");onChanged();}).catch((error:unknown)=>onToast(error instanceof Error?error.message:"Approval failed."));}}>Approve policy / initiative</button> : null}{["owner","admin","president","vice_president","dean","department_head"].includes(role) && item.status !== "completed" ? <button type="button" onClick={() => {const ownerId=window.prompt("Assign profile ID",item.ownerId ?? user.id);const reason=window.prompt("Assignment reason (at least 12 characters)");if(ownerId&&reason) void transitionInstitutionalInitiative({initiativeId:item.id,action:"assign",ownerId,reason}).then(() => {onToast("Strategic work assigned.");onChanged();}).catch((error:unknown)=>onToast(error instanceof Error?error.message:"Assignment failed."));}}>Assign owner</button> : null}{item.ownerId === user.id && item.status === "in_progress" ? <button type="button" onClick={() => {const reason=window.prompt("Completion outcome (at least 12 characters)");if(reason) void transitionInstitutionalInitiative({initiativeId:item.id,action:"complete",ownerId:null,reason}).then(() => {onToast("Initiative completed.");onChanged();}).catch((error:unknown)=>onToast(error instanceof Error?error.message:"Completion failed."));}}>Complete</button> : null}{role === "vice_president" ? <button type="button" onClick={() => {const reason=window.prompt("Escalation reason (at least 12 characters)");if(reason) void transitionInstitutionalInitiative({initiativeId:item.id,action:"escalate",ownerId:null,reason}).then(() => {onToast("Matter escalated to executive review.");onChanged();}).catch((error:unknown)=>onToast(error instanceof Error?error.message:"Escalation failed."));}}>Escalate</button> : null}</div></article>) : <div className="school-empty">No institutional initiatives are visible yet.</div>}</section> : null}
+      {leadershipRoles.has(role) ? <section className="school-card institutional-initiatives"><header><div><span>POLICIES & STRATEGIC WORK</span><h3>Institutional initiatives</h3></div>{["owner","admin","president","vice_president","dean","department_head"].includes(role) ? <button type="button" onClick={() => setInitiativeOpen(true)}>+ Propose initiative</button> : null}</header>{data.initiatives.length ? data.initiatives.map((item) => <article key={item.id}><div><Pill tone={item.priority === "urgent" ? "coral" : item.priority === "high" ? "amber" : "teal"}>{item.status.replaceAll("_"," ")}</Pill><h4>{item.title}</h4><p>{item.description}</p><small>{item.type.replaceAll("_"," ")} · {item.scope} · Owner: {data.profiles.find((profile) => profile.id === item.ownerId)?.name ?? "Unassigned"}</small></div><div className="crm-inline-actions">{(["owner","admin","president","vice_president"].includes(role) || (role === "dean" && ["teaching_plan","content_correction"].includes(item.type))) && item.status === "proposed" ? <button type="button" onClick={() => {const reason=window.prompt("Approval reason (at least 12 characters)");if(reason) void transitionInstitutionalInitiative({initiativeId:item.id,action:"approve",ownerId:null,reason}).then(() => {onToast("Initiative approved with immutable evidence.");onChanged();}).catch((error:unknown)=>onToast(error instanceof Error?error.message:"Approval failed."));}}>Approve policy / initiative</button> : null}{["owner","admin","president","vice_president","dean","department_head"].includes(role) && item.status !== "completed" ? <button type="button" onClick={() => setAssignInitiativeId(item.id)}>Assign owner</button> : null}{item.ownerId === user.id && item.status === "in_progress" ? <button type="button" onClick={() => {const reason=window.prompt("Completion outcome (at least 12 characters)");if(reason) void transitionInstitutionalInitiative({initiativeId:item.id,action:"complete",ownerId:null,reason}).then(() => {onToast("Initiative completed.");onChanged();}).catch((error:unknown)=>onToast(error instanceof Error?error.message:"Completion failed."));}}>Complete</button> : null}{role === "vice_president" ? <button type="button" onClick={() => {const reason=window.prompt("Escalation reason (at least 12 characters)");if(reason) void transitionInstitutionalInitiative({initiativeId:item.id,action:"escalate",ownerId:null,reason}).then(() => {onToast("Matter escalated to executive review.");onChanged();}).catch((error:unknown)=>onToast(error instanceof Error?error.message:"Escalation failed."));}}>Escalate</button> : null}</div></article>) : <div className="school-empty">No institutional initiatives are visible yet.</div>}</section> : null}
       {initiativeOpen ? <div className="academic-modal-layer"><button type="button" className="academic-modal-backdrop" aria-label="Close initiative form" onClick={() => setInitiativeOpen(false)} /><section className="academic-modal" role="dialog" aria-modal="true" aria-label="Propose institutional initiative"><header><div><span>GOVERNED STRATEGIC WORK</span><h2>Propose a policy or initiative</h2><p>Executive approval, assignment, escalation, and completion are reasoned audited transitions.</p></div><button type="button" onClick={() => setInitiativeOpen(false)}>×</button></header><form className="academic-form" onSubmit={(event)=>{event.preventDefault();const f=new FormData(event.currentTarget);setInitiativeBusy(true);void createInstitutionalInitiative({type:String(f.get("type")) as "policy"|"initiative"|"teaching_plan"|"content_correction",title:String(f.get("title")),description:String(f.get("description")),scope:String(f.get("scope")),priority:String(f.get("priority")) as "normal"|"high"|"urgent",dueAt:String(f.get("dueAt"))||null}).then(()=>{setInitiativeOpen(false);onToast("Initiative proposed for review.");onChanged();}).catch((error:unknown)=>onToast(error instanceof Error?error.message:"Proposal failed.")).finally(()=>setInitiativeBusy(false));}}><div className="academic-form-grid"><label><span>Type</span><select name="type"><option value="initiative">Institutional initiative</option><option value="policy">Policy</option><option value="teaching_plan">Teaching plan</option><option value="content_correction">Content correction</option></select></label><label><span>Priority</span><select name="priority"><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></label><label><span>Title</span><input name="title" minLength={3} maxLength={180} required /></label><label><span>Scope</span><input name="scope" defaultValue="Institution-wide" maxLength={180} required /></label><label className="wide"><span>Description and expected outcome</span><textarea name="description" minLength={12} maxLength={10000} rows={6} required /></label><label><span>Due date</span><input name="dueAt" type="datetime-local" /></label></div><footer><span>Submission creates a governed proposal, not automatic approval.</span><button disabled={initiativeBusy}>{initiativeBusy?"Saving…":"Submit proposal"}</button></footer></form></section></div> : null}
+      {assignInitiativeId?<div className="academic-modal-layer"><button type="button" className="academic-modal-backdrop" aria-label="Close owner assignment" onClick={()=>setAssignInitiativeId("")}/><section className="academic-modal" role="dialog" aria-modal="true" aria-label="Assign initiative owner"><header><div><span>ACCOUNTABLE OWNERSHIP</span><h2>Assign initiative owner</h2><p>Choose an active staff profile. The relationship and reason are written to the governed audit trail.</p></div><button type="button" onClick={()=>setAssignInitiativeId("")}>×</button></header><form className="academic-form" onSubmit={(event)=>{event.preventDefault();const form=new FormData(event.currentTarget);setInitiativeBusy(true);void transitionInstitutionalInitiative({initiativeId:assignInitiativeId,action:"assign",ownerId:String(form.get("ownerId")),reason:String(form.get("reason"))}).then(()=>{setAssignInitiativeId("");onToast("Strategic work assigned.");onChanged();}).catch((error:unknown)=>onToast(error instanceof Error?error.message:"Assignment failed.")).finally(()=>setInitiativeBusy(false));}}><div className="academic-form-grid"><label><span>Accountable owner</span><select name="ownerId" required defaultValue={data.initiatives.find((item)=>item.id===assignInitiativeId)?.ownerId??""}><option value="">Choose active staff…</option>{data.profiles.filter((profile)=>profile.accountStatus==="active"&&profile.role!=="student").map((profile)=><option key={profile.id} value={profile.id}>{profile.name} · {roleNames[profile.role]}</option>)}</select></label><label className="wide"><span>Assignment reason</span><textarea name="reason" required minLength={12} maxLength={1000} rows={4}/></label></div><footer><span>The selected person becomes accountable for this initiative.</span><button disabled={initiativeBusy}>{initiativeBusy?"Assigning…":"Assign owner"}</button></footer></form></section></div>:null}
       {supportOpen && student ? (
         <div className="academic-modal-layer">
           <button type="button" className="academic-modal-backdrop" aria-label="Close support request" onClick={() => setSupportOpen(false)} />
@@ -1760,6 +1762,8 @@ function PeopleView({
   const [changing, setChanging] = useState("");
   const [managingProfileId, setManagingProfileId] = useState("");
   const [editingProfileId, setEditingProfileId] = useState("");
+  const [profileDepartmentId,setProfileDepartmentId]=useState("");
+  const [profileProgramId,setProfileProgramId]=useState("");
   const [pendingRoleChange, setPendingRoleChange] = useState<{
     profileId: string;
     previousRole: PlatformRole;
@@ -1795,6 +1799,15 @@ function PeopleView({
     data.profiles.find((profile) => profile.id === editingProfileId) ?? null;
   const rotatingProfile =
     data.profiles.find((profile) => profile.id === rotatingProfileId) ?? null;
+  const profilePrograms=data.programs.filter((program)=>program.departmentId===profileDepartmentId);
+  const profileCourseIds=new Set(data.catalogCourses.filter((course)=>!profileProgramId?course.departmentId===profileDepartmentId:course.programId===profileProgramId||(!course.programId&&course.departmentId===profileDepartmentId)).map((course)=>course.id));
+  const profileSections=data.courses.filter((course)=>profileCourseIds.has(course.courseId));
+
+  function openProfileEditor(profile:PlatformProfile){
+    setEditingProfileId(profile.id);
+    setProfileDepartmentId(profile.departmentId??"");
+    setProfileProgramId(profile.programId??"");
+  }
 
   useEffect(() => {
     if (!canManageAccounts) return;
@@ -1999,7 +2012,7 @@ function PeopleView({
             ) : canManageAccounts ? <button type="button" className="people-manage-account" onClick={() => setManagingProfileId(profile.id)} aria-expanded={false}>Manage account →</button> : <Pill tone="teal">{roleNames[profile.role]}</Pill>}
             {canEditDirectoryProfile(profile) && (!canManageAccounts || managingProfileId === profile.id) ? <button
               type="button"
-              onClick={() => setEditingProfileId(profile.id)}
+              onClick={() => openProfileEditor(profile)}
             >
               Edit identity
             </button> : null}
@@ -2517,7 +2530,7 @@ function PeopleView({
                 const operations = canManageAccounts ? [
                   updatePlatformProfile(editingProfile.id, {
                     fullName: String(f.get("fullName")),
-                    department: String(f.get("department")),
+                    department: data.departments.find((item)=>item.id===profileDepartmentId)?.name??editingProfile.department,
                     jobTitle: String(f.get("jobTitle")),
                   }),
                   updateAccountIdentity({
@@ -2534,7 +2547,7 @@ function PeopleView({
                     responsibility: String(f.get("responsibility")) as "faculty" | "assistant" | "coordinator" | "observer",
                     reason: String(f.get("assignmentReason")),
                   }),
-                ] : [updateDepartmentStaffProfile({profileId:editingProfile.id,fullName:String(f.get("fullName")),department:String(f.get("department")),jobTitle:String(f.get("jobTitle")),reason:String(f.get("assignmentReason"))})];
+                ] : [updateDepartmentStaffProfile({profileId:editingProfile.id,fullName:String(f.get("fullName")),department:editingProfile.department,jobTitle:String(f.get("jobTitle")),reason:String(f.get("assignmentReason"))})];
                 void Promise.all(operations)
                   .then(() => {
                     onToast("Profile updated.");
@@ -2563,15 +2576,15 @@ function PeopleView({
                 <label>
                   <span>Department</span>
                   <input
-                    name="department"
-                    defaultValue={editingProfile.department}
+                    value={data.departments.find((item)=>item.id===profileDepartmentId)?.name??editingProfile.department??"No department assignment"}
+                    disabled
                   />
                 </label>
                 {canManageAccounts ? <><label><span>Account email</span><input name="email" type="email" required defaultValue={directory.find((item) => item.id === editingProfile.id)?.email ?? ""} /></label>
                 <label><span>Phone</span><input name="accountPhone" maxLength={40} defaultValue={editingProfile.phone} /></label>
-                <label><span>Assigned department</span><select name="departmentId" defaultValue={editingProfile.departmentId ?? ""}><option value="">No department assignment</option>{data.departments.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</select></label>
-                <label><span>Assigned program</span><select name="programId" defaultValue={editingProfile.programId ?? ""}><option value="">No program assignment</option>{data.programs.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</select></label>
-                <label><span>Class responsibility</span><select name="sectionId" defaultValue=""><option value="">No new class assignment</option>{data.courses.map((item) => <option key={item.sectionId} value={item.sectionId}>{item.code} · {item.sectionCode}</option>)}</select></label>
+                <label><span>Assigned department</span><select name="departmentId" value={profileDepartmentId} onChange={(event)=>{setProfileDepartmentId(event.target.value);setProfileProgramId("");}}><option value="">No department assignment</option>{data.departments.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</select></label>
+                <label><span>Assigned program</span><select name="programId" value={profileProgramId} disabled={!profileDepartmentId} onChange={(event)=>setProfileProgramId(event.target.value)}><option value="">No program assignment</option>{profilePrograms.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</select></label>
+                <label><span>Class responsibility</span><select name="sectionId" defaultValue="" disabled={!profileDepartmentId}><option value="">No new class assignment</option>{profileSections.map((item) => <option key={item.sectionId} value={item.sectionId}>{item.code} · {item.sectionCode} · {item.term}</option>)}</select></label>
                 <label><span>Class responsibility type</span><select name="responsibility" defaultValue="faculty"><option value="faculty">Faculty</option><option value="assistant">Teaching assistant</option><option value="coordinator">Coordinator</option><option value="observer">Observer</option></select></label></> : null}
                 <label className="academic-form-wide"><span>Assignment reason</span><textarea name="assignmentReason" minLength={12} maxLength={500} rows={3} required defaultValue="Authorized directory and responsibility update." /></label>
                 <label>

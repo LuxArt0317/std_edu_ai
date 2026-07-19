@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added the `neededv3.md` relationship-first contract and replaced duplicate/free-text relationship inputs with authoritative, parent-scoped selectors across curricula, profiles, students, classes, CRM, admissions, campaigns, attendance, schedules, governance, and Nexus.
+- Curriculum rows now retain exact catalog `courseId` values, show immutable subject identity, select earlier prerequisite course IDs, recover legacy rows through explicit linking, and return newly created catalog subjects to the unfinished curriculum.
+- Added structured campaign audiences with generated recipient review, admissions program foreign keys, database relationship triggers, generated TypeScript contracts, static regression verification, and reversible owner-role production verification.
+
 - Polished the admissions pipeline primary action with a high-contrast green treatment while retaining the released stage-colored actions, validated drag-and-drop, and destination completeness dialog.
 - Released as `0ffd637`; Vercel deployment `dpl_C4kER9tLbbnFkqnhtunZQKCc7vqG` is Ready, `/crm` returns HTTP 200, and the production lazy assets contain every add/advance/edit/handoff/archive, drag-target, and completeness-dialog marker.
 

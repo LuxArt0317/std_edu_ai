@@ -47,6 +47,8 @@ type ModalName =
   | "subject"
   | "section"
   | "event"
+  | "mergeStudent"
+  | "duplicateCurriculum"
   | null;
 
 const departmentManagers = new Set<PlatformRole>([
@@ -173,33 +175,33 @@ function ActionForm({
 
 const curriculumCategories = ["general_education","core","professional","elective","capstone","internship","physical_education","nstp"] as const;
 
-function CurriculumEditor({draft,status,originalStatus,busy,catalogSubjects,onDraft,onStatus,onSave}:{draft:AcademicCurriculumInput;status:"draft"|"approved"|"retired";originalStatus:"draft"|"approved"|"retired";busy:boolean;catalogSubjects:PlatformData["catalogCourses"];onDraft:(value:AcademicCurriculumInput)=>void;onStatus:(value:"draft"|"approved"|"retired")=>void;onSave:(reason:string)=>void}) {
+function CurriculumEditor({draft,status,originalStatus,busy,catalogSubjects,onDraft,onStatus,onSave,onCreateSubject}:{draft:AcademicCurriculumInput;status:"draft"|"approved"|"retired";originalStatus:"draft"|"approved"|"retired";busy:boolean;catalogSubjects:PlatformData["catalogCourses"];onDraft:(value:AcademicCurriculumInput)=>void;onStatus:(value:"draft"|"approved"|"retired")=>void;onSave:(reason:string)=>void;onCreateSubject:()=>void}) {
   const editable=originalStatus === "draft";
   const [catalogSubjectId,setCatalogSubjectId]=useState("");
   const updateSubject=(index:number,patch:Partial<AcademicCurriculumInput["subjects"][number]>)=>onDraft({...draft,subjects:draft.subjects.map((item,itemIndex)=>itemIndex===index?{...item,...patch}:item)});
   const updateBlock=(index:number,patch:Partial<AcademicCurriculumInput["blocks"][number]>)=>onDraft({...draft,blocks:draft.blocks.map((item,itemIndex)=>itemIndex===index?{...item,...patch}:item)});
-  const availableCatalogSubjects=catalogSubjects.filter((course)=>!draft.subjects.some((subject)=>subject.code.toUpperCase()===course.code.toUpperCase()));
+  const availableCatalogSubjects=catalogSubjects.filter((course)=>!draft.subjects.some((subject)=>subject.courseId===course.id));
   const addCatalogSubject=()=>{
     const course=catalogSubjects.find((item)=>item.id===catalogSubjectId);
     if(!course)return;
-    onDraft({...draft,subjects:[...draft.subjects,{code:course.code,title:course.title,description:course.description,units:course.credits,yearLevel:1,semester:1,category:"professional",sortOrder:draft.subjects.length+1,prerequisiteCodes:[]}]});
+    onDraft({...draft,subjects:[...draft.subjects,{courseId:course.id,code:course.code,title:course.title,description:course.description,units:course.credits,yearLevel:1,semester:1,category:"professional",sortOrder:draft.subjects.length+1,prerequisiteCodes:[],prerequisiteCourseIds:[]}]});
     setCatalogSubjectId("");
   };
   return <form className="curriculum-editor" onSubmit={(event)=>{event.preventDefault();const reason=String(new FormData(event.currentTarget).get("reason")??"");onSave(reason);}}>
     <section className="curriculum-editor-meta">
-      <Field label="Effective year"><input type="number" min="2000" max="2200" value={draft.effectiveYear} disabled={!editable} onChange={(event)=>onDraft({...draft,effectiveYear:Number(event.target.value)})}/></Field>
+      <Field label="Effective year"><select value={draft.effectiveYear} disabled={!editable} onChange={(event)=>onDraft({...draft,effectiveYear:Number(event.target.value)})}>{Array.from({length:10},(_,index)=>new Date().getFullYear()+index-1).map((year)=><option key={year} value={year}>{year}{year===new Date().getFullYear()?" · Current year":""}</option>)}</select></Field>
       <Field label="Lifecycle status"><select value={status} onChange={(event)=>onStatus(event.target.value as typeof status)} disabled={status==="retired"}><option value="draft">Draft</option>{status!=="approved"?<option value="approved">Approved</option>:null}{status==="approved"?<option value="retired">Retired</option>:null}</select></Field>
-      <Field label="Duration"><input type="number" min="1" max="8" value={draft.durationYears} disabled={!editable} onChange={(event)=>onDraft({...draft,durationYears:Number(event.target.value)})}/></Field>
+      <Field label="Duration"><select value={draft.durationYears} disabled={!editable} onChange={(event)=>onDraft({...draft,durationYears:Number(event.target.value)})}>{Array.from({length:8},(_,index)=>index+1).map((year)=><option key={year} value={year}>{year} academic year{year===1?"":"s"}</option>)}</select></Field>
       <Field label="Program"><input value={`${draft.programCode} · ${draft.programName}`} disabled/></Field>
       <Field label="Description" wide><textarea rows={3} value={draft.description} disabled={!editable} onChange={(event)=>onDraft({...draft,description:event.target.value})}/></Field>
     </section>
-    <section className="curriculum-editor-section"><header><div><span>SUBJECT SEQUENCE</span><h3>{draft.subjects.length} curriculum subjects</h3><p>Place each catalog subject in a year and semester. Changes are reflected in the program pathway after saving.</p></div>{editable?<div className="curriculum-add-actions"><label><span>Add existing catalog subject</span><select aria-label="Catalog subject to add" value={catalogSubjectId} onChange={(event)=>setCatalogSubjectId(event.target.value)}><option value="">Choose a subject…</option>{availableCatalogSubjects.map((course)=><option key={course.id} value={course.id}>{course.code} · {course.title}</option>)}</select></label><button type="button" disabled={!catalogSubjectId} onClick={addCatalogSubject}>Add selected</button><button type="button" onClick={()=>onDraft({...draft,subjects:[...draft.subjects,{code:`NEW${draft.subjects.length+1}`,title:"New subject",description:"",units:3,yearLevel:1,semester:1,category:"professional",sortOrder:draft.subjects.length+1,prerequisiteCodes:[]}]})}>+ Create subject</button></div>:null}</header>
+    <section className="curriculum-editor-section"><header><div><span>SUBJECT SEQUENCE</span><h3>{draft.subjects.length} curriculum subjects</h3><p>Choose authoritative catalog subjects, then place them in the pathway. Subject identity and credits remain managed in the Subject catalog.</p></div>{editable?<div className="curriculum-add-actions"><label><span>Add existing catalog subject</span><select aria-label="Catalog subject to add" value={catalogSubjectId} onChange={(event)=>setCatalogSubjectId(event.target.value)}><option value="">Choose an available subject…</option>{availableCatalogSubjects.map((course)=><option key={course.id} value={course.id}>{course.code} · {course.title} · {course.credits} units</option>)}</select></label><button type="button" disabled={!catalogSubjectId} onClick={addCatalogSubject}>Add selected</button><button type="button" onClick={onCreateSubject}>+ Create catalog subject</button></div>:null}</header>
       <div className="curriculum-subject-editor"><div className="curriculum-subject-head"><span>Order</span><span>Code and title</span><span>Placement</span><span>Units/category</span><span>Prerequisites</span><span>Actions</span></div>{draft.subjects.map((subject,index)=><article key={`${subject.code}-${index}`}>
         <input aria-label={`Sort order for ${subject.code}`} type="number" min="1" value={subject.sortOrder} disabled={!editable} onChange={(event)=>updateSubject(index,{sortOrder:Number(event.target.value)})}/>
-        <span><input aria-label={`Code for subject ${index+1}`} value={subject.code} disabled={!editable} onChange={(event)=>updateSubject(index,{code:event.target.value.toUpperCase()})}/><input aria-label={`Title for ${subject.code}`} value={subject.title} disabled={!editable} onChange={(event)=>updateSubject(index,{title:event.target.value})}/><textarea aria-label={`Description for ${subject.code}`} value={subject.description} disabled={!editable} onChange={(event)=>updateSubject(index,{description:event.target.value})}/></span>
-        <span><label>Year<input type="number" min="1" max={draft.durationYears} value={subject.yearLevel} disabled={!editable} onChange={(event)=>updateSubject(index,{yearLevel:Number(event.target.value)})}/></label><label>Semester<select value={subject.semester} disabled={!editable} onChange={(event)=>updateSubject(index,{semester:Number(event.target.value)})}><option value="1">1</option><option value="2">2</option><option value="3">Summer</option></select></label></span>
-        <span><input aria-label={`Units for ${subject.code}`} type="number" min="0.5" max="12" step="0.5" value={subject.units} disabled={!editable} onChange={(event)=>updateSubject(index,{units:Number(event.target.value)})}/><select aria-label={`Category for ${subject.code}`} value={subject.category} disabled={!editable} onChange={(event)=>updateSubject(index,{category:event.target.value as typeof subject.category})}>{curriculumCategories.map((category)=><option key={category} value={category}>{category.replaceAll("_"," ")}</option>)}</select></span>
-        <input aria-label={`Prerequisites for ${subject.code}`} value={subject.prerequisiteCodes.join(", ")} disabled={!editable} placeholder="Comma-separated subject codes" onChange={(event)=>updateSubject(index,{prerequisiteCodes:event.target.value.split(",").map((value)=>value.trim().toUpperCase()).filter(Boolean)})}/>
+        <span className="curriculum-catalog-identity"><strong>{subject.code} · {subject.title}</strong><small>{subject.description||"No catalog description"}</small>{!subject.courseId?<label><span>Link this legacy row</span><select aria-label={`Catalog subject for ${subject.code}`} disabled={!editable} defaultValue="" onChange={(event)=>{const course=catalogSubjects.find((item)=>item.id===event.target.value);if(course)updateSubject(index,{courseId:course.id,code:course.code,title:course.title,description:course.description,units:course.credits,prerequisiteCodes:[],prerequisiteCourseIds:[]});}}><option value="">Choose the authoritative subject…</option>{availableCatalogSubjects.map((course)=><option key={course.id} value={course.id}>{course.code} · {course.title}</option>)}</select></label>:null}</span>
+        <span><label>Year<select value={subject.yearLevel} disabled={!editable} onChange={(event)=>updateSubject(index,{yearLevel:Number(event.target.value)})}>{Array.from({length:draft.durationYears},(_,year)=>year+1).map((year)=><option key={year} value={year}>Year {year}</option>)}</select></label><label>Semester<select value={subject.semester} disabled={!editable} onChange={(event)=>updateSubject(index,{semester:Number(event.target.value)})}><option value="1">1st semester</option><option value="2">2nd semester</option><option value="3">Summer</option></select></label></span>
+        <span><output aria-label={`Units for ${subject.code}`}>{subject.units} units</output><select aria-label={`Category for ${subject.code}`} value={subject.category} disabled={!editable} onChange={(event)=>updateSubject(index,{category:event.target.value as typeof subject.category})}>{curriculumCategories.map((category)=><option key={category} value={category}>{category.replaceAll("_"," ")}</option>)}</select></span>
+        <select multiple aria-label={`Prerequisites for ${subject.code}`} value={subject.prerequisiteCourseIds??[]} disabled={!editable||!subject.courseId} onChange={(event)=>{const prerequisiteCourseIds=Array.from(event.currentTarget.selectedOptions,(option)=>option.value);updateSubject(index,{prerequisiteCourseIds,prerequisiteCodes:prerequisiteCourseIds.map((id)=>draft.subjects.find((item)=>item.courseId===id)?.code).filter((code):code is string=>Boolean(code))});}}>{draft.subjects.filter((candidate,candidateIndex)=>candidateIndex<index&&candidate.courseId).map((candidate)=><option key={candidate.courseId} value={candidate.courseId}>{candidate.code} · {candidate.title}</option>)}</select>
         <span>{editable?<><button type="button" disabled={index===0} onClick={()=>{const subjects=[...draft.subjects];[subjects[index-1],subjects[index]]=[subjects[index],subjects[index-1]];onDraft({...draft,subjects:subjects.map((item,position)=>({...item,sortOrder:position+1}))});}}>↑</button><button type="button" disabled={index===draft.subjects.length-1} onClick={()=>{const subjects=[...draft.subjects];[subjects[index],subjects[index+1]]=[subjects[index+1],subjects[index]];onDraft({...draft,subjects:subjects.map((item,position)=>({...item,sortOrder:position+1}))});}}>↓</button><button type="button" className="danger" onClick={()=>onDraft({...draft,subjects:draft.subjects.filter((_,itemIndex)=>itemIndex!==index)})}>Remove</button></>:<small>Locked</small>}</span>
       </article>)}</div>
     </section>
@@ -242,13 +244,22 @@ export function AcademicOperations({
   const [editingCurriculumId, setEditingCurriculumId] = useState("");
   const [curriculumDraft, setCurriculumDraft] = useState<AcademicCurriculumInput | null>(null);
   const [curriculumStatus, setCurriculumStatus] = useState<"draft" | "approved" | "retired">("draft");
+  const [subjectDepartmentId,setSubjectDepartmentId]=useState("");
+  const [subjectProgramId,setSubjectProgramId]=useState("");
+  const [returnToCurriculumAfterSubject,setReturnToCurriculumAfterSubject]=useState(false);
+  const [studentProgramId,setStudentProgramId]=useState("");
+  const [mergeSourceStudentId,setMergeSourceStudentId]=useState("");
+  const [sectionProgramId,setSectionProgramId]=useState("");
+  const [duplicateCurriculumId,setDuplicateCurriculumId]=useState("");
 
   const faculty = data.profiles.filter((profile) =>
     ["faculty", "department_head", "dean"].includes(profile.role),
   );
   const advisors = data.profiles.filter(
-    (profile) => profile.role === "advisor",
+    (profile) => ["advisor","faculty","department_head"].includes(profile.role),
   );
+  const studentProgram=data.programs.find((item)=>item.id===studentProgramId)??null;
+  const eligibleStudentAdvisors=advisors.filter((profile)=>!studentProgram||profile.programId===studentProgram.id||(!profile.programId&&profile.departmentId===studentProgram.departmentId));
   const selectedSection = data.courses.find(
     (course) => course.sectionId === selectedSectionId,
   );
@@ -292,7 +303,7 @@ export function AcademicOperations({
     : [];
   const selectedDraftCurriculum=selectedProgramCurricula.find((item)=>item.status==="draft")??null;
   const selectedProgramSubjects = selectedProgram
-    ? data.catalogCourses.filter((item) => item.programId === selectedProgram.id)
+    ? data.catalogCourses.filter((item) => item.status==="active"&&item.departmentId===selectedProgram.departmentId&&(item.programId === selectedProgram.id||item.programId===null))
     : [];
   const selectedProgramSubjectIds = new Set(selectedProgramSubjects.map((item) => item.id));
   const selectedProgramSections = data.courses.filter((item) =>
@@ -305,6 +316,9 @@ export function AcademicOperations({
     ? data.profiles.filter((item) => item.programId === selectedProgram.id)
     : [];
   const contextProgram = data.programs.find((item) => item.id === contextProgramId) ?? null;
+  const sectionProgram=data.programs.find((item)=>item.id===sectionProgramId)??null;
+  const sectionSubjects=data.catalogCourses.filter((course)=>course.status==="active"&&course.programId===sectionProgramId);
+  const sectionFaculty=faculty.filter((profile)=>!sectionProgram||profile.programId===sectionProgram.id||(!profile.programId&&profile.departmentId===sectionProgram.departmentId));
   const relationshipGaps = {
     programsWithoutCurricula: data.programs.filter(
       (program) => !data.curricula.some((plan) => plan.programId === program.id),
@@ -337,9 +351,18 @@ export function AcademicOperations({
   }
 
   function openSection(course?: SchoolCourse) {
+    const catalog=data.catalogCourses.find((item)=>item.id===course?.courseId);
     setEditingSection(course ?? null);
     setContextSubjectId(course?.courseId ?? "");
+    setSectionProgramId(catalog?.programId??"");
     setModal("section");
+  }
+
+  function openStudent(studentId=""){
+    const student=data.students.find((item)=>item.id===studentId);
+    setEditingId(studentId);
+    setStudentProgramId(student?.programId??"");
+    setModal("student");
   }
 
   function openProgram(programId: string) {
@@ -348,13 +371,19 @@ export function AcademicOperations({
   }
 
   function addSubjectForProgram(programId: string) {
+    const program=data.programs.find((item)=>item.id===programId);
     setContextProgramId(programId);
+    setSubjectDepartmentId(program?.departmentId??"");
+    setSubjectProgramId(programId);
+    setReturnToCurriculumAfterSubject(false);
     setEditingId("");
     setModal("subject");
   }
 
   function openClassForSubject(courseId: string) {
+    const subject=data.catalogCourses.find((item)=>item.id===courseId);
     setContextSubjectId(courseId);
+    setSectionProgramId(subject?.programId??"");
     setEditingSection(null);
     setModal("section");
   }
@@ -380,6 +409,7 @@ export function AcademicOperations({
       durationYears,
       effectiveYear:Math.max(new Date().getFullYear(),...data.curricula.filter((item)=>item.programId===program.id).map((item)=>item.effectiveYear+1)),
       subjects:programSubjects.map((course,index)=>({
+        courseId:course.id,
         code:course.code,
         title:course.title,
         description:course.description,
@@ -389,6 +419,7 @@ export function AcademicOperations({
         category:"professional",
         sortOrder:index+1,
         prerequisiteCodes:[],
+        prerequisiteCourseIds:[],
       })),
       blocks:Array.from({length:durationYears},(_,index)=>({yearLevel:index+1,blockCode:`${program.code}-${index+1}A`,capacity:40})),
     });
@@ -400,6 +431,12 @@ export function AcademicOperations({
     id: string,
   ) {
     setEditingId(id);
+    if(name==="subject"){
+      const subject=data.catalogCourses.find((item)=>item.id===id);
+      setSubjectDepartmentId(subject?.departmentId??"");
+      setSubjectProgramId(subject?.programId??"");
+      setReturnToCurriculumAfterSubject(false);
+    }
     setModal(name);
   }
 
@@ -411,6 +448,13 @@ export function AcademicOperations({
     setContextSubjectId("");
     setEditingCurriculumId("");
     setCurriculumDraft(null);
+    setSubjectDepartmentId("");
+    setSubjectProgramId("");
+    setReturnToCurriculumAfterSubject(false);
+    setStudentProgramId("");
+    setMergeSourceStudentId("");
+    setSectionProgramId("");
+    setDuplicateCurriculumId("");
   }
 
   function exportCsv(filename: string, rows: Array<Array<string | number>>) {
@@ -434,7 +478,7 @@ export function AcademicOperations({
         </div>
         <div>
           {registrarRoles.has(role) ? (
-            <button type="button" onClick={() => setModal("student")}>
+            <button type="button" onClick={() => openStudent()}>
               + Add student
             </button>
           ) : null}
@@ -575,7 +619,7 @@ export function AcademicOperations({
               </div>
               <div>
                 {registrarRoles.has(role) ? (
-                  <button type="button" onClick={() => setModal("student")}>
+                  <button type="button" onClick={() => openStudent()}>
                     Create student
                   </button>
                 ) : null}
@@ -695,7 +739,7 @@ export function AcademicOperations({
                   </div>
                 </section>
                 {selectedProgramCurricula.length ? selectedProgramCurricula.map((plan) => <article key={plan.id} className="curriculum-plan-card">
-              <div className="curriculum-plan-title"><div><span>{plan.status.toUpperCase()} · EFFECTIVE {plan.effectiveYear}</span><h4>{selectedProgramDepartment?.name ?? "Department not linked"} → {selectedProgram.code} → Curriculum {plan.effectiveYear}</h4><small>Source: {plan.source.programCode} curriculum transaction · Record {plan.id.slice(0, 8)}</small></div><div className="curriculum-card-actions"><b>{plan.source.subjects.reduce((total, subject) => total + subject.units, 0)} total units</b>{academicManagers.has(role) ? <><button type="button" onClick={() => openCurriculum(plan)}>{plan.status === "draft" ? "Edit curriculum" : "Manage lifecycle"}</button><button type="button" onClick={() => {const year=window.prompt("Effective year for the new curriculum version",String(Math.max(new Date().getFullYear(),plan.effectiveYear+1)));if(!year)return;const effectiveYear=Number(year);if(!Number.isInteger(effectiveYear))return onToast("Enter a valid effective year.");void perform(() => createAcademicCurriculum(selectedProgramDepartment!.id,`curriculum-version-${plan.id}-${effectiveYear}-${Date.now()}`,{...structuredClone(plan.source),effectiveYear}),`Curriculum ${effectiveYear} created as a separate draft version.`);}}>Duplicate as new version</button>{plan.status==="draft"?<button type="button" className="danger" onClick={()=>{const reason=window.prompt("Why should this draft curriculum be deleted? (at least 12 characters)");if(reason)void perform(()=>deleteDraftAcademicCurriculum(plan.id,reason),`Draft curriculum ${plan.effectiveYear} deleted; catalog subjects were preserved.`);}}>Delete draft</button>:null}</> : null}</div></div>
+              <div className="curriculum-plan-title"><div><span>{plan.status.toUpperCase()} · EFFECTIVE {plan.effectiveYear}</span><h4>{selectedProgramDepartment?.name ?? "Department not linked"} → {selectedProgram.code} → Curriculum {plan.effectiveYear}</h4><small>Source: {plan.source.programCode} curriculum transaction · Record {plan.id.slice(0, 8)}</small></div><div className="curriculum-card-actions"><b>{plan.source.subjects.reduce((total, subject) => total + subject.units, 0)} total units</b>{academicManagers.has(role) ? <><button type="button" onClick={() => openCurriculum(plan)}>{plan.status === "draft" ? "Edit curriculum" : "Manage lifecycle"}</button><button type="button" onClick={() => {setDuplicateCurriculumId(plan.id);setModal("duplicateCurriculum");}}>Duplicate as new version</button>{plan.status==="draft"?<button type="button" className="danger" onClick={()=>{const reason=window.prompt("Why should this draft curriculum be deleted? (at least 12 characters)");if(reason)void perform(()=>deleteDraftAcademicCurriculum(plan.id,reason),`Draft curriculum ${plan.effectiveYear} deleted; catalog subjects were preserved.`);}}>Delete draft</button>:null}</> : null}</div></div>
               <div className="curriculum-years">{Array.from({length: plan.source.durationYears}, (_, index) => index + 1).map((year) => <section key={year}>
                 <header><strong>Year {year}</strong><small>{plan.source.blocks.filter((block) => block.yearLevel === year).map((block) => `${block.blockCode} (${block.capacity})`).join(" · ")}</small></header>
                 {[1, 2, 3].map((semester) => {
@@ -718,7 +762,7 @@ export function AcademicOperations({
               <h3>{data.students.length} student records</h3>
             </div>
             {registrarRoles.has(role) ? (
-              <button type="button" onClick={() => setModal("student")}>
+              <button type="button" onClick={() => openStudent()}>
                 + Add student
               </button>
             ) : null}
@@ -743,7 +787,7 @@ export function AcademicOperations({
                 {student.recordStatus} · {student.profileId ? "Connected" : "SIS only"}
               </span>
               {registrarRoles.has(role) ? (
-                <span className="academic-row-actions"><button type="button" onClick={() => {setEditingId(student.id);setModal("student");}}>Edit</button>{student.recordStatus === "active" ? <button type="button" onClick={() => {const reason=window.prompt("Withdrawal reason (at least 12 characters)");if(reason) void perform(() => withdrawStudentRecord(student.id,reason),"Student withdrawn and active enrollments dropped.");}}>Withdraw</button> : null}{student.recordStatus === "active" ? <button type="button" onClick={() => {const targetNumber=window.prompt(`Target student number for merging ${student.studentNumber}`);if(!targetNumber)return;const target=data.students.find((item) => item.studentNumber.toLowerCase()===targetNumber.trim().toLowerCase());if(!target){onToast("No student matches that student number.");return;}const reason=window.prompt("Merge reason (at least 12 characters)");if(reason) void perform(() => mergeStudentRecords(student.id,target.id,reason),"Student records merged with history preserved.");}}>Merge</button> : null}</span>
+                <span className="academic-row-actions"><button type="button" onClick={() => openStudent(student.id)}>Edit</button>{student.recordStatus === "active" ? <button type="button" onClick={() => {const reason=window.prompt("Withdrawal reason (at least 12 characters)");if(reason) void perform(() => withdrawStudentRecord(student.id,reason),"Student withdrawn and active enrollments dropped.");}}>Withdraw</button> : null}{student.recordStatus === "active" ? <button type="button" onClick={() => {setMergeSourceStudentId(student.id);setModal("mergeStudent");}}>Merge</button> : null}</span>
               ) : null}
             </div>
           ))}
@@ -980,12 +1024,22 @@ export function AcademicOperations({
             catalogSubjects={selectedProgramSubjects}
             onDraft={setCurriculumDraft}
             onStatus={setCurriculumStatus}
+            onCreateSubject={()=>{
+              setContextProgramId(selectedProgram?.id??"");
+              setSubjectDepartmentId(selectedProgram?.departmentId??"");
+              setSubjectProgramId(selectedProgram?.id??"");
+              setEditingId("");
+              setReturnToCurriculumAfterSubject(true);
+              setModal("subject");
+            }}
             onSave={(reason)=>void perform(()=>editingCurriculumId
               ? updateAcademicCurriculum({planId:editingCurriculumId,status:curriculumStatus,curriculum:curriculumDraft,reason})
               : createManualAcademicCurriculum({programId:selectedProgram?.id??"",idempotencyKey:`manual-curriculum-${selectedProgram?.id}-${curriculumDraft.effectiveYear}`,curriculum:curriculumDraft,reason}),`Curriculum ${curriculumDraft.effectiveYear} saved with normalized mappings and audit evidence.`)}
           />
         </Modal>
       ) : null}
+
+      {modal==="duplicateCurriculum"&&duplicateCurriculumId?(()=>{const source=data.curricula.find((item)=>item.id===duplicateCurriculumId);const program=data.programs.find((item)=>item.id===source?.programId);if(!source||!program)return null;const department=data.departments.find((item)=>item.id===program.departmentId);const suggested=Math.max(new Date().getFullYear(),source.effectiveYear+1);return <Modal title={`New ${program.code} curriculum version`} description="Create a separate draft linked to the same program. The approved source version remains unchanged." onClose={closeModal}><ActionForm submitLabel="Create draft version" busy={busy} onSubmit={(event)=>{event.preventDefault();const year=Number(new FormData(event.currentTarget).get("effectiveYear"));void perform(()=>createAcademicCurriculum(department?.id??"",`curriculum-version-${source.id}-${year}`,{...structuredClone(source.source),effectiveYear:year}),`Curriculum ${year} created as a separate draft version.`);}}><Field label="Program"><input disabled value={`${program.code} · ${program.name}`}/></Field><Field label="Source curriculum"><input disabled value={`Effective ${source.effectiveYear} · ${source.status}`}/></Field><Field label="New effective year"><select name="effectiveYear" required defaultValue={suggested}>{Array.from({length:10},(_,index)=>suggested+index).filter((year)=>!data.curricula.some((item)=>item.programId===program.id&&item.effectiveYear===year)).map((year)=><option key={year} value={year}>{year}</option>)}</select></Field></ActionForm></Modal>;})():null}
 
       {modal === "student" ? (
         <Modal
@@ -1092,7 +1146,8 @@ export function AcademicOperations({
               <select
                 name="programId"
                 required
-                defaultValue={editingStudent?.programId ?? ""}
+                value={studentProgramId}
+                onChange={(event)=>setStudentProgramId(event.target.value)}
               >
                 <option value="">Select program…</option>
                 {data.programs.map((program) => (
@@ -1121,9 +1176,9 @@ export function AcademicOperations({
                 defaultValue={editingStudent?.advisorId ?? ""}
               >
                 <option value="">Unassigned</option>
-                {advisors.map((advisor) => (
+                {eligibleStudentAdvisors.map((advisor) => (
                   <option key={advisor.id} value={advisor.id}>
-                    {advisor.name}
+                    {advisor.name} · {data.programs.find((item)=>item.id===advisor.programId)?.code??data.departments.find((item)=>item.id===advisor.departmentId)?.code??"Institution"}
                   </option>
                 ))}
               </select>
@@ -1136,6 +1191,18 @@ export function AcademicOperations({
                 defaultValue={editingStudent?.phone}
               />
             </Field>
+          </ActionForm>
+        </Modal>
+      ) : null}
+
+      {modal === "mergeStudent" && mergeSourceStudentId ? (
+        <Modal title="Merge duplicate student record" description="Choose the authoritative student record that will remain. Enrollment and academic history are preserved with immutable audit evidence." onClose={closeModal}>
+          <ActionForm submitLabel="Merge into selected student" busy={busy} onSubmit={(event)=>{event.preventDefault();const form=new FormData(event.currentTarget);void perform(()=>mergeStudentRecords(mergeSourceStudentId,String(form.get("targetStudentId")),String(form.get("reason"))),"Student records merged with history preserved.");}}>
+            <Field label="Duplicate record"><input disabled value={(()=>{const student=data.students.find((item)=>item.id===mergeSourceStudentId);return student?`${student.studentNumber} · ${student.fullName} · ${student.program}`:"Unavailable student";})()}/></Field>
+            <Field label="Authoritative student record">
+              <select name="targetStudentId" required defaultValue=""><option value="">Search and choose a student…</option>{data.students.filter((student)=>student.id!==mergeSourceStudentId&&student.recordStatus!=="merged"&&student.recordStatus!=="archived").map((student)=><option key={student.id} value={student.id}>{student.studentNumber} · {student.fullName} · {data.programs.find((program)=>program.id===student.programId)?.code??student.program} · {student.recordStatus}</option>)}</select>
+            </Field>
+            <Field label="Merge reason" wide><textarea name="reason" required minLength={12} maxLength={500} rows={4} placeholder="Explain why these records represent the same learner."/></Field>
           </ActionForm>
         </Modal>
       ) : null}
@@ -1436,9 +1503,7 @@ export function AcademicOperations({
             onSubmit={(event) => {
               event.preventDefault();
               const f = new FormData(event.currentTarget);
-              void perform(
-                () => {
-                  const values = {
+              const values = {
                     departmentId: String(f.get("departmentId")),
                     programId: String(f.get("programId")),
                     code: String(f.get("code")),
@@ -1446,13 +1511,24 @@ export function AcademicOperations({
                     description: String(f.get("description")),
                     credits: Number(f.get("credits")),
                   };
-                  return editingSubject
+              if(returnToCurriculumAfterSubject&&!editingSubject){
+                setBusy(true);
+                void createCatalogCourse(values).then((courseId)=>{
+                  setCurriculumDraft((current)=>current?{...current,subjects:[...current.subjects,{courseId,code:values.code.trim().toUpperCase(),title:values.title.trim(),description:values.description.trim(),units:values.credits,yearLevel:1,semester:1,category:"professional",sortOrder:current.subjects.length+1,prerequisiteCodes:[],prerequisiteCourseIds:[]}]}:current);
+                  setReturnToCurriculumAfterSubject(false);
+                  setModal("curriculum");
+                  onChanged();
+                  onToast("Catalog subject created and returned to this curriculum for placement.");
+                }).catch((error:unknown)=>onToast(error instanceof Error?error.message:"The subject could not be created.")).finally(()=>setBusy(false));
+                return;
+              }
+              void perform(
+                () => editingSubject
                     ? updateCatalogCourse(editingSubject.id, {
                         ...values,
                         status: String(f.get("status")),
                       })
-                    : createCatalogCourse(values);
-                },
+                    : createCatalogCourse(values),
                 editingSubject
                   ? "Subject updated."
                   : "Subject added to the catalog.",
@@ -1463,7 +1539,8 @@ export function AcademicOperations({
               <select
                 name="departmentId"
                 required
-                defaultValue={editingSubject?.departmentId ?? contextProgram?.departmentId ?? ""}
+                value={subjectDepartmentId||editingSubject?.departmentId||contextProgram?.departmentId||""}
+                onChange={(event)=>{setSubjectDepartmentId(event.target.value);setSubjectProgramId("");}}
               >
                 <option value="">Select department…</option>
                 {data.departments.map((d) => (
@@ -1476,10 +1553,11 @@ export function AcademicOperations({
             <Field label="Program">
               <select
                 name="programId"
-                defaultValue={editingSubject?.programId ?? contextProgramId}
+                value={subjectProgramId}
+                onChange={(event)=>setSubjectProgramId(event.target.value)}
               >
                 <option value="">Shared / no program</option>
-                {data.programs.map((p) => (
+                {data.programs.filter((p)=>p.departmentId===subjectDepartmentId).map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.code} · {p.name}
                   </option>
@@ -1574,11 +1652,11 @@ export function AcademicOperations({
           >
             {!editingSection ? (
               <>
+                <Field label="Program"><select required value={sectionProgramId} onChange={(event)=>{setSectionProgramId(event.target.value);setContextSubjectId("");}}><option value="">Select program…</option>{data.programs.filter((program)=>program.status==="active").map((program)=><option key={program.id} value={program.id}>{data.departments.find((department)=>department.id===program.departmentId)?.code} → {program.code} · {program.name}</option>)}</select></Field>
                 <Field label="Subject">
-                  <select name="courseId" required defaultValue={contextSubjectId}>
-                    <option value="">Select subject…</option>
-                    {data.catalogCourses
-                      .filter((c) => c.status === "active")
+                  <select name="courseId" required value={contextSubjectId} disabled={!sectionProgramId} onChange={(event)=>setContextSubjectId(event.target.value)}>
+                    <option value="">Select subject in this program…</option>
+                    {sectionSubjects
                       .map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.code} · {c.title}
@@ -1614,7 +1692,7 @@ export function AcademicOperations({
                 defaultValue={editingSection?.facultyId ?? ""}
               >
                 <option value="">Assignment pending</option>
-                {faculty.map((p) => (
+                {sectionFaculty.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name} · {p.role.replaceAll("_", " ")}
                   </option>
@@ -1685,6 +1763,7 @@ export function ScheduleOperations({
   const [modal, setModal] = useState<ModalName>(null);
   const [busy, setBusy] = useState(false);
   const [editingEvent, setEditingEvent] = useState<ScheduleEvent | null>(null);
+  const [eventScope,setEventScope]=useState<"class"|"personal"|"role">("class");
   const canManage = scheduleManagers.has(currentUser.role);
   const manageableSectionIds = useMemo(
     () =>
@@ -1737,7 +1816,7 @@ export function ScheduleOperations({
               before saving.
             </p>
           </div>
-          <button type="button" onClick={() => setModal("event")}>
+          <button type="button" onClick={() => {setEventScope("class");setModal("event");}}>
             + Add schedule event
           </button>
         </section>
@@ -1775,6 +1854,7 @@ export function ScheduleOperations({
                   type="button"
                   onClick={() => {
                     setEditingEvent(event);
+                    setEventScope(event.sectionId?"class":event.audienceRoles.length?"role":"personal");
                     setModal("event");
                   }}
                   disabled={busy}
@@ -1808,13 +1888,13 @@ export function ScheduleOperations({
               event.preventDefault();
               const f = new FormData(event.currentTarget);
               const eventType = String(f.get("eventType"));
-              const sectionId = String(f.get("sectionId"));
-              const audience = String(f.get("audienceRole"));
+              const sectionId = eventScope==="class"?String(f.get("sectionId")):"";
+              const audience = eventScope==="role"?String(f.get("audienceRole")):"";
               void perform(
                 () => {
                   const values = {
                     sectionId,
-                    ownerProfileId: !sectionId ? currentUser.id : undefined,
+                    ownerProfileId: eventScope==="personal" ? currentUser.id : undefined,
                     title: String(f.get("title")),
                     description: String(f.get("description")),
                     eventType,
@@ -1833,6 +1913,7 @@ export function ScheduleOperations({
               );
             }}
           >
+            <Field label="Event scope"><select value={eventScope} onChange={(event)=>setEventScope(event.target.value as typeof eventScope)}><option value="class">Class roster</option><option value="personal">Only me</option><option value="role">Role-wide</option></select></Field>
             <Field label="Event type">
               <select
                 name="eventType"
@@ -1847,10 +1928,11 @@ export function ScheduleOperations({
                 <option value="personal">Personal</option>
               </select>
             </Field>
-            <Field label="Class section">
+            {eventScope==="class"?<Field label="Class section">
               <select
                 name="sectionId"
                 defaultValue={editingEvent?.sectionId ?? ""}
+                required
               >
                 <option value="">Personal / role event</option>
                 {data.courses
@@ -1863,7 +1945,7 @@ export function ScheduleOperations({
                     </option>
                   ))}
               </select>
-            </Field>
+            </Field>:null}
             <Field label="Title">
               <input
                 name="title"
@@ -1899,10 +1981,11 @@ export function ScheduleOperations({
                 }
               />
             </Field>
-            <Field label="Role audience">
+            {eventScope==="role"?<Field label="Role audience">
               <select
                 name="audienceRole"
                 defaultValue={editingEvent?.audienceRoles[0] ?? ""}
+                required
               >
                 <option value="">Section / personal only</option>
                 {data.roles.map((role) => (
@@ -1911,7 +1994,7 @@ export function ScheduleOperations({
                   </option>
                 ))}
               </select>
-            </Field>
+            </Field>:null}
             <Field label="Description" wide>
               <textarea
                 name="description"

@@ -157,6 +157,10 @@ async function loadRemoteData(): Promise<CrmDatabase> {
     knowledgeResult,
     scheduleResult,
     profilesResult,
+    programsResult,
+    coursesResult,
+    sectionsResult,
+    rolesResult,
   ] = await Promise.all([
     supabase
       .from("students")
@@ -190,6 +194,10 @@ async function loadRemoteData(): Promise<CrmDatabase> {
       .order("updated_at", { ascending: false }),
     supabase.from("schedule_events").select("*").order("starts_at", { ascending: false }).limit(250),
     supabase.from("profiles").select("*"),
+    supabase.from("academic_programs").select("*").eq("status","active").order("name"),
+    supabase.from("courses").select("id,program_id,code,title"),
+    supabase.from("course_sections").select("id,course_id,section_code"),
+    supabase.from("role_definitions").select("role_code,display_name").order("hierarchy_level",{ascending:false}),
   ]);
 
   const studentRows = requireRows<StudentRow>(studentsResult, "Students");
@@ -209,6 +217,10 @@ async function loadRemoteData(): Promise<CrmDatabase> {
   const knowledgeRows = requireRows<KnowledgeRow>(knowledgeResult, "Knowledge");
   const scheduleRows = requireRows<ScheduleRow>(scheduleResult, "Knowledge event sources");
   const profileRows = requireRows<ProfileRow>(profilesResult, "Profiles");
+  const programRows = requireRows(programsResult,"Academic programs");
+  const courseRows = requireRows(coursesResult,"Catalog subjects");
+  const sectionRows = requireRows(sectionsResult,"Class sections");
+  const roleRows = requireRows(rolesResult,"Canonical roles");
 
   const profiles = new Map(
     profileRows.map((profile) => [profile.id, profile.full_name]),
@@ -220,6 +232,7 @@ async function loadRemoteData(): Promise<CrmDatabase> {
     ]),
   );
   const caseNames = new Map(caseRows.map((item) => [item.id, item.title]));
+  const coursesById=new Map(courseRows.map((course)=>[course.id,course]));
 
   const students: Student[] = studentRows.map((row) => {
     const name = row.preferred_name || row.full_name;
@@ -261,6 +274,7 @@ async function loadRemoteData(): Promise<CrmDatabase> {
       name,
       initials: initials(name),
       program: row.program,
+      programId: row.program_id,
       yearLevel: row.year_level,
       email: row.email || "",
       phone: row.phone || "",
@@ -302,6 +316,7 @@ async function loadRemoteData(): Promise<CrmDatabase> {
     owner: row.owner_id
       ? profiles.get(row.owner_id) || "Assigned staff"
       : "Unassigned",
+    ownerId: row.owner_id,
     updatedAt: relativeTime(row.updated_at),
     dueAt: shortDate(row.due_at),
     dueAtIso: row.due_at ?? "",
@@ -312,12 +327,14 @@ async function loadRemoteData(): Promise<CrmDatabase> {
     id: row.id,
     name: row.full_name,
     program: row.program_interest,
+    programId: row.program_id,
     source: row.source,
     stage: leadStage(row.stage),
     probability: row.probability,
     owner: row.owner_id
       ? profiles.get(row.owner_id) || "Assigned staff"
       : "Unassigned",
+    ownerId: row.owner_id,
     lastActivity: relativeTime(row.last_activity_at),
     nextStep: row.next_step || "Review applicant record",
     email: row.email || "",
@@ -351,6 +368,12 @@ async function loadRemoteData(): Promise<CrmDatabase> {
       scheduledFor: shortDate(row.scheduled_for),
       scheduledForIso: row.scheduled_for ?? "",
       message: row.message_template,
+      audienceScope: row.audience_scope as Campaign["audienceScope"],
+      programId: row.program_id,
+      sectionId: row.section_id,
+      recipientStudentIds: recipients.map((recipient)=>recipient.student_id),
+      audienceRoles:row.audience_definition&&typeof row.audience_definition==="object"&&!Array.isArray(row.audience_definition)&&Array.isArray(row.audience_definition.roles)?row.audience_definition.roles.filter((role):role is string=>typeof role==="string"):[],
+      recipients:recipients.map((recipient)=>({studentId:recipient.student_id,status:recipient.delivery_status,deliveredAt:recipient.delivered_at,openedAt:recipient.opened_at})),
     };
   });
 
@@ -368,6 +391,7 @@ async function loadRemoteData(): Promise<CrmDatabase> {
     completed: Boolean(row.completed_at),
     studentId: row.student_id || "",
     caseId: row.case_id || "",
+    assignedTo: row.assigned_to,
   }));
 
   const knowledge: KnowledgeArticle[] = knowledgeRows.map((row) => ({
@@ -400,7 +424,13 @@ async function loadRemoteData(): Promise<CrmDatabase> {
     audienceRoles: row.audience_roles,
   }));
 
-  return { students, cases, leads, campaigns, tasks, knowledge, knowledgeEvents };
+  return {
+    students,cases,leads,campaigns,tasks,knowledge,knowledgeEvents,
+    programs:programRows.map((program)=>({id:program.id,code:program.code,name:program.name,departmentId:program.department_id})),
+    sections:sectionRows.map((section)=>{const course=coursesById.get(section.course_id);return{id:section.id,code:`${course?.code??"Subject"} · ${section.section_code}`,title:course?.title??"Class",programId:course?.program_id??null};}),
+    staff:profileRows.filter((profile)=>profile.account_status==="active"&&profile.role!=="student").map((profile)=>({id:profile.id,name:profile.full_name,role:profile.role,departmentId:profile.department_id,programId:profile.program_id})),
+    roles:roleRows.map((role)=>({code:role.role_code,name:role.display_name})),
+  };
 }
 
 export const crmDataSource: {
@@ -630,6 +660,7 @@ export async function saveCrmStudent(
   input: {
     name: string;
     studentNumber: string;
+    programId: string;
     program: string;
     yearLevel: string;
     email: string;
@@ -650,6 +681,7 @@ export async function saveCrmStudent(
     .update({
       full_name: input.name.trim().slice(0, 120),
       student_number: input.studentNumber.trim().slice(0, 32),
+      program_id: input.programId,
       program: input.program.trim().slice(0, 160),
       year_level: input.yearLevel.trim().slice(0, 40),
       email: input.email.trim().toLowerCase().slice(0, 254) || null,
@@ -677,6 +709,7 @@ export async function saveCrmCase(
     priority: SupportCase["priority"];
     status: CaseStatus;
     dueAt: string;
+    ownerId: string;
   },
 ) {
   const client = requireCrmClient();
@@ -690,7 +723,7 @@ export async function saveCrmCase(
     priority: input.priority,
     status: input.status,
     due_at: input.dueAt || null,
-    owner_id: user.user.id,
+    owner_id: input.ownerId,
     resolved_at: input.status === "resolved" ? new Date().toISOString() : null,
   };
   const result = id
@@ -705,7 +738,8 @@ export async function saveAdmissionLead(
     name: string;
     email: string;
     phone: string;
-    program: string;
+    programId: string;
+    ownerId: string;
     source: string;
     stage: LeadStage;
     probability: number;
@@ -713,17 +747,17 @@ export async function saveAdmissionLead(
   },
 ) {
   const client = requireCrmClient();
-  const { data: user } = await client.auth.getUser();
   const values = {
     full_name: input.name.trim().slice(0, 120),
     email: input.email.trim().toLowerCase().slice(0, 254) || null,
     phone: input.phone.trim().slice(0, 40) || null,
-    program_interest: input.program.trim().slice(0, 160),
+    program_id: input.programId,
+    program_interest: "",
     source: input.source.trim().slice(0, 80),
     stage: input.stage,
     probability: input.probability,
     next_step: input.nextStep.trim().slice(0, 1000),
-    owner_id: user.user?.id,
+    owner_id: input.ownerId,
     last_activity_at: new Date().toISOString(),
   };
   const result = id
@@ -741,6 +775,7 @@ export async function saveCrmTask(
     dueAt: string;
     priority: CrmTask["priority"];
     completed: boolean;
+    assignedTo: string;
   },
 ) {
   const client = requireCrmClient();
@@ -752,7 +787,7 @@ export async function saveCrmTask(
     case_id: input.caseId || null,
     due_at: input.dueAt || null,
     priority: input.priority,
-    assigned_to: user.user.id,
+    assigned_to: input.assignedTo,
     completed_at: input.completed ? new Date().toISOString() : null,
   };
   const result = id
@@ -765,7 +800,12 @@ export async function saveCampaign(
   id: string | null,
   input: {
     name: string;
-    audience: string;
+    audienceScope: NonNullable<Campaign["audienceScope"]>;
+    programId?: string;
+    sectionId?: string;
+    studentIds?: string[];
+    riskLevels?: string[];
+    roles?: string[];
     channel: Campaign["channel"];
     status: Campaign["status"];
     scheduledFor: string;
@@ -780,7 +820,10 @@ export async function saveCampaign(
       : input.channel.toLowerCase();
   const values = {
     name: input.name.trim().slice(0, 180),
-    audience_definition: { segment: input.audience },
+    audience_scope: input.audienceScope,
+    program_id: input.audienceScope==="program"?input.programId||null:null,
+    section_id: input.audienceScope==="class"?input.sectionId||null:null,
+    audience_definition: {riskLevels:input.riskLevels??[],roles:input.roles??[]},
     channel,
     status: input.status,
     scheduled_for: input.scheduledFor || null,
@@ -788,9 +831,13 @@ export async function saveCampaign(
     created_by: user.user?.id,
   };
   const result = id
-    ? await client.from("campaigns").update(values).eq("id", id)
-    : await client.from("campaigns").insert(values);
+    ? await client.from("campaigns").update(values).eq("id", id).select("id").single()
+    : await client.from("campaigns").insert(values).select("id").single();
   if (result.error) throw new Error(result.error.message);
+  if(input.status==="draft"||input.status==="scheduled"){
+    const {error:recipientError}=await client.rpc("sync_campaign_recipients",{p_campaign_id:result.data.id,p_student_ids:input.audienceScope==="explicit"?input.studentIds??[]:undefined});
+    if(recipientError)throw new Error(recipientError.message);
+  }
 }
 
 export async function saveStudentSignal(

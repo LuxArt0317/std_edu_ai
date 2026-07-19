@@ -46,7 +46,7 @@ test("Academic Office exposes connected program pathways and recovery actions", 
     "Ask Nexus to create", "Open roster", "Not placed in a curriculum",
   ]) assert.match(ui, new RegExp(marker), `connected workflow missing ${marker}`);
   assert.match(ui, /data\.curricula\.filter\(\(item\) => item\.programId === selectedProgram\.id\)/);
-  assert.match(ui, /data\.catalogCourses\.filter\(\(item\) => item\.programId === selectedProgram\.id\)/);
+  assert.match(ui, /item\.departmentId===selectedProgram\.departmentId&&\(item\.programId === selectedProgram\.id\|\|item\.programId===null\)/);
   assert.match(ui, /data\.students\.filter\(\(item\) => item\.programId === selectedProgram\.id\)/);
-  assert.match(ui, /defaultValue=\{editingStudent\?\.programId \?\? ""\}/);
+  assert.match(ui, /value=\{studentProgramId\}/);
 });

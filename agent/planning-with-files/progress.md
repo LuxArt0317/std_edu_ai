@@ -93,3 +93,9 @@
 - Reopened Issue #98 for the cache-busting polish release and queued lint/build/deployment verification.
 - All 109 contracts, lint, TypeScript/Vite build, and build-asset verification passed. Commit `0ffd637` was pushed and production deployment `dpl_C4kER9tLbbnFkqnhtunZQKCc7vqG` reached Ready.
 - Verified `https://www.stu.best/crm` returns HTTP 200 and the new production lazy CSS/JS assets contain the primary-action, semantic-action, drag-target, and destination-completeness markers.
+# 2026-07-19 — Issue #103 relationship-first platform
+
+- Audited `needed.md`, `neededv2.md`, the generated schema graph, and every relationship-bearing form; created `neededv3.md` as the authoritative usability contract.
+- Implemented exact curriculum catalog/prerequisite IDs, dependent academic/profile/student/class selectors, CRM ownership and task chaining, structured admissions/campaign relationships, attendance/schedule/governance selectors, and exact-record Nexus rules.
+- Applied four production Supabase migrations for admission/campaign relationships, role audiences, cross-table invariants, and the explicit-recipient alias repair discovered by live verification.
+- All 113 automated contracts, static neededv3 verifier, lint, TypeScript, production build/assets pass. Reversible owner-role verification proves exact curriculum/prerequisite IDs, mismatch rejection, task/case and case-owner constraints, campaign recipient generation, and admission snapshots; cleanup was confirmed.

@@ -37,6 +37,7 @@ export interface Student {
   name: string;
   initials: string;
   program: string;
+  programId?: string | null;
   yearLevel: string;
   email: string;
   phone: string;
@@ -62,6 +63,7 @@ export interface SupportCase {
   priority: "urgent" | "high" | "normal" | "low";
   status: CaseStatus;
   owner: string;
+  ownerId?: string | null;
   updatedAt: string;
   dueAt: string;
   dueAtIso?: string;
@@ -72,10 +74,12 @@ export interface AdmissionLead {
   id: string;
   name: string;
   program: string;
+  programId?: string | null;
   source: string;
   stage: LeadStage;
   probability: number;
   owner: string;
+  ownerId?: string | null;
   lastActivity: string;
   nextStep: string;
   email?: string;
@@ -93,6 +97,12 @@ export interface Campaign {
   scheduledFor: string;
   scheduledForIso?: string;
   message?: string;
+  audienceScope?: "institution" | "program" | "class" | "role" | "risk" | "explicit";
+  programId?: string | null;
+  sectionId?: string | null;
+  recipientStudentIds?: string[];
+  audienceRoles?: string[];
+  recipients?: Array<{studentId:string;status:string;deliveredAt:string|null;openedAt:string|null}>;
 }
 
 export interface CrmTask {
@@ -106,6 +116,7 @@ export interface CrmTask {
   completed: boolean;
   studentId?: string;
   caseId?: string;
+  assignedTo?: string;
 }
 
 export type KnowledgeSourceType = "manual" | "personal_event" | "class_event" | "campus_event" | "policy" | "service" | "learning";
@@ -147,6 +158,10 @@ export interface CrmDatabase {
   tasks: CrmTask[];
   knowledge: KnowledgeArticle[];
   knowledgeEvents?: KnowledgeSourceEvent[];
+  programs?: Array<{id:string;code:string;name:string;departmentId:string}>;
+  sections?: Array<{id:string;code:string;title:string;programId:string|null}>;
+  staff?: Array<{id:string;name:string;role:string;departmentId:string|null;programId:string|null}>;
+  roles?: Array<{code:string;name:string}>;
 }
 
 export interface AiCopilotResult {

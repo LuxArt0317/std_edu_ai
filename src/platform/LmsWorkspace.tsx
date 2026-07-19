@@ -1849,6 +1849,7 @@ export function StudentLmsLearning({
   const [activePage, setActivePage] = useState(0);
   const [readerFocus, setReaderFocus] = useState(false);
   const [assignmentId, setAssignmentId] = useState<string | null>(null);
+  const [attendanceCorrectionRecord,setAttendanceCorrectionRecord]=useState<PlatformData["attendanceRecords"][number]|null>(null);
   const course =
     data.courses.find((item) => item.sectionId === sectionId) ??
     data.courses[0];
@@ -1969,7 +1970,7 @@ export function StudentLmsLearning({
         {attendance.map((record) => {
           const session=data.attendanceSessions.find((item) => item.id === record.sessionId);
           const pending=data.attendanceCorrections.find((item) => item.attendanceRecordId === record.id && item.status === "pending");
-          return <article className="lms-attendance-card" key={record.id}><header><div><span>{record.status}</span><h3>{session?.title ?? "Class session"}</h3><p>{session ? dateTime(session.startsAt) : ""}{record.notes ? ` · ${record.notes}` : ""}</p></div>{pending ? <b>Correction pending: {pending.requestedStatus}</b> : <button type="button" onClick={() => { const requestedStatus=window.prompt("Requested status: present, absent, late, or excused",record.status); if (!requestedStatus || !["present","absent","late","excused"].includes(requestedStatus)) { if(requestedStatus) onToast("Choose present, absent, late, or excused."); return; } const reason=window.prompt("Explain the correction request (at least 12 characters)"); if (!reason) return; void requestAttendanceCorrection({attendanceRecordId:record.id,studentProfileId:currentUser.id,requestedStatus:requestedStatus as "present"|"absent"|"late"|"excused",reason}).then(() => {onToast("Attendance correction requested.");onChanged();}).catch((error: unknown) => onToast(error instanceof Error ? error.message : "Correction request failed.")); }}>Request correction</button>}</header></article>;
+          return <article className="lms-attendance-card" key={record.id}><header><div><span>{record.status}</span><h3>{session?.title ?? "Class session"}</h3><p>{session ? dateTime(session.startsAt) : ""}{record.notes ? ` · ${record.notes}` : ""}</p></div>{pending ? <b>Correction pending: {pending.requestedStatus}</b> : <button type="button" onClick={() => setAttendanceCorrectionRecord(record)}>Request correction</button>}</header></article>;
         })}
         {!attendance.length ? <Empty title="No attendance records" text="Your class attendance appears here after a teacher records a session." /> : null}
       </section> : null}
@@ -2171,6 +2172,7 @@ export function StudentLmsLearning({
           }}
         />
       ) : null}
+      {learnerMode&&attendanceCorrectionRecord?<FormModal title="Request attendance correction" onClose={()=>setAttendanceCorrectionRecord(null)}><form className="lms-form" onSubmit={(event)=>{event.preventDefault();const form=new FormData(event.currentTarget);void requestAttendanceCorrection({attendanceRecordId:attendanceCorrectionRecord.id,studentProfileId:currentUser.id,requestedStatus:String(form.get("requestedStatus")) as "present"|"absent"|"late"|"excused",reason:String(form.get("reason"))}).then(()=>{setAttendanceCorrectionRecord(null);onToast("Attendance correction requested.");onChanged();}).catch((error:unknown)=>onToast(error instanceof Error?error.message:"Correction request failed."));}}><label>Requested status<select name="requestedStatus" required defaultValue={attendanceCorrectionRecord.status}><option value="present">Present</option><option value="late">Late</option><option value="absent">Absent</option><option value="excused">Excused</option></select></label><label>Reason<textarea name="reason" required minLength={12} maxLength={1000} rows={5} placeholder="Explain the evidence for this correction."/></label><button>Submit correction request</button></form></FormModal>:null}
     </>
   );
 }

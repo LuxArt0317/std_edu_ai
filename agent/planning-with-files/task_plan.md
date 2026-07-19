@@ -1,5 +1,14 @@
 # Task Plan
 
+## Phase 103: Relationship-first school workflows [Issue #103]
+
+- [x] audit `needed.md`, `neededv2.md`, schema relationships, and every relationship-bearing form
+- [x] create `neededv3.md` as the authoritative relationship and evidence contract
+- [x] replace guessed identifiers and free-text relationships with dependent authoritative selectors
+- [x] connect curricula, programs, courses, prerequisites, students, advisors, classes, ownership, campaigns, tasks, profiles, schedules, and initiatives through exact foreign keys
+- [x] add database invariants, recipient synchronization, schema documentation, static contracts, and reversible live production coverage
+- [ ] pass the full regression suite, deploy, verify the custom domain, and close Issue #103
+
 ## Phase 101: Resilient rich-lesson goals and managed Nexus conversations [Issue #101]
 
 - [x] reproduce and fix stale material targets during multi-page/multi-material goal continuation

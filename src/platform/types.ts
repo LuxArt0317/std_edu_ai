@@ -563,6 +563,7 @@ export type SchoolAgentRequestState = {
 };
 
 export type CurriculumSubjectInput = {
+  courseId?: string;
   code: string;
   title: string;
   description: string;
@@ -572,6 +573,7 @@ export type CurriculumSubjectInput = {
   category: "general_education" | "core" | "professional" | "elective" | "capstone" | "internship" | "physical_education" | "nstp";
   sortOrder: number;
   prerequisiteCodes: string[];
+  prerequisiteCourseIds?: string[];
 };
 
 export type AcademicCurriculumInput = {

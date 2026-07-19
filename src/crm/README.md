@@ -12,6 +12,7 @@ For a plain-language explanation of the portal, its users, workspaces, AI capabi
 - `authService.ts` owns bounded session restoration, login, logout, trusted-role checks, and device-local session cleanup.
 - `crmRepository.ts` loads production Supabase data and owns the complete authorized student, task, admissions, case, campaign, and governed knowledge-contribution lifecycle through RLS. Knowledge may be linked to visible personal, class, or campus events and is review-gated before publication. Its local cache is continuity recovery, not the system of record.
 - The Admissions board supports desktop drag-and-drop plus the accessible Advance action. Every destination uses the same completeness gate: missing contact, next-step, or accountable-owner details are collected before the stage and calibrated probability are persisted, with optimistic rollback on failure.
+- CRM relationship forms use the academic system of record: students and prospects choose active programs, cases and tasks choose accountable staff, task cases are filtered by student, and campaigns generate reviewable recipients from institution/program/class/role/risk/explicit scopes.
 - `mockData.ts` contains realistic non-sensitive demonstration records.
 - `aiService.ts` calls the server-only OpenAI endpoint, records privacy-minimized audit metadata, and degrades to a grounded local response.
 - `types.ts` defines the shared CRM domain model.

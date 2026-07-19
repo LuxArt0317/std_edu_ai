@@ -28,3 +28,5 @@ Role onboarding is temporarily disabled for every role. `UnifiedPortal.tsx` does
 See [ROLE_MATRIX.md](./ROLE_MATRIX.md) for the complete role hierarchy, visibility rules, owner guarantees, and AI decision boundaries. See [ROLE_ACCOUNTS.md](./ROLE_ACCOUNTS.md) for the production sign-in emails and secure credential-storage model.
 
 The authoritative product scope and entity lifecycle requirements are defined in [`PRODUCT_REQUIREMENTS.md`](../../PRODUCT_REQUIREMENTS.md).
+
+Academic relationship workflows use exact records throughout. Curriculum placement chooses catalog subjects and earlier placed prerequisites by ID; profile, student, advisor, class, schedule, attendance-correction, and initiative forms use parent-scoped selectors. Nexus receives the same authoritative catalog and must refresh stale IDs rather than recreate an existing entity.
