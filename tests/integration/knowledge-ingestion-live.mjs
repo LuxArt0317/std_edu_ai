@@ -1,4 +1,5 @@
 import {spawnSync} from "node:child_process";
+import {createHash} from "node:crypto";
 import fs from "node:fs";
 import {createClient} from "@supabase/supabase-js";
 import researchAssistant from "../../api/research-assistant.ts";
@@ -27,7 +28,7 @@ async function embed(contents) {
 async function askPublic(question) {
   const captured = {statusCode: 200, body: null};
   const response = {status(code) { captured.statusCode = code; return response; }, json(body) { captured.body = body; }, setHeader() {}};
-  await researchAssistant({method: "POST", body: {question, consentedResearchUse: false}, headers: {"x-forwarded-for": `live-${Date.now()}`, "user-agent": "issue-104-live"}}, response);
+  await researchAssistant({method: "POST", body: {question, consentedResearchUse: false, sessionToken: "issue123".padEnd(64,"x")}, headers: {"x-forwarded-for": `live-${Date.now()}`, "user-agent": "issue-104-live"}}, response);
   if (captured.statusCode !== 200) throw new Error(`Public assistant failed: ${captured.body?.error || captured.statusCode}`);
   return captured.body;
 }
@@ -45,7 +46,7 @@ if (auth.error || !auth.data.user) throw auth.error || new Error("Owner sign-in 
 const suffix = Date.now().toString(36).toUpperCase();
 const now = new Date();
 const reviewDue = new Date(now.getTime() + 86_400_000).toISOString();
-let sourceId = "", firstId = "", secondId = "";
+let sourceId = "", firstId = "", secondId = "", traceQueryId = "", cleanupTraceCount = 0;
 let workflowError = null;
 try {
   const source = required(await owner.from("knowledge_sources").insert({
@@ -85,6 +86,19 @@ try {
   if (!search.some((item) => item.document_id === firstId)) throw new Error("Hybrid search did not return the eligible first version.");
   const publicAnswer = await askPublic(`What does the First verified guidance ${suffix} say?`);
   if (publicAnswer.status !== "answered" || !publicAnswer.citations?.length || publicAnswer.citations.some((citation) => citation.url !== `https://www.stu.edu.tw/ingestion/${suffix.toLowerCase()}`)) throw new Error("The public assistant did not return a grounded official citation.");
+  if (!/^[0-9a-f]{64}$/.test(publicAnswer.feedback?.token || "")) throw new Error("Public answer did not return an opaque feedback capability.");
+  const sessionHash = createHash("sha256").update(`${process.env.SAFETY_HASH_SALT || "stu-public"}:${"issue123".padEnd(64,"x")}`).digest("hex");
+  const wrongSession = await anon.rpc("submit_public_ai_feedback", {p_feedback_token: publicAnswer.feedback.token, p_session_hash: "0".repeat(64), p_helpful: true, p_resolved_need: true, p_correction_category: null, p_comment: null});
+  if (!wrongSession.error) throw new Error("A feedback capability was accepted from another anonymous session.");
+  required(await anon.rpc("submit_public_ai_feedback", {p_feedback_token: publicAnswer.feedback.token, p_session_hash: sessionHash, p_helpful: true, p_resolved_need: true, p_correction_category: null, p_comment: null}), "submit one-use feedback");
+  const replay = await anon.rpc("submit_public_ai_feedback", {p_feedback_token: publicAnswer.feedback.token, p_session_hash: sessionHash, p_helpful: true, p_resolved_need: true, p_correction_category: null, p_comment: null});
+  if (!replay.error) throw new Error("A one-use feedback capability was replayed.");
+  const report = required(await owner.rpc("public_ai_trace_report", {p_days: 1}), "protected trace report");
+  const trace = report.find((item) => item.created_at >= now.toISOString() && item.terminal_state === "answered" && item.helpful === true);
+  if (!trace || trace.retrieval_count < 1 || trace.citation_count < 1) throw new Error("The reviewer report did not expose the connected content-free trace.");
+  traceQueryId = trace.query_id;
+  const anonymousReport = await anon.rpc("public_ai_trace_report", {p_days: 1});
+  if (!anonymousReport.error) throw new Error("Anonymous trace report access succeeded.");
   let visible = await anon.from("knowledge_documents").select("id").eq("id", firstId).maybeSingle();
   if (visible.error || visible.data?.id !== firstId) throw visible.error || new Error("First version was not publicly visible.");
 
@@ -113,9 +127,14 @@ try {
 } finally {
   if (sourceId) {
     const cleanup = await owner.rpc("purge_knowledge_verification_fixture", {p_source_id: sourceId});
-    if ((cleanup.error || cleanup.data?.purged !== true) && !workflowError) workflowError = cleanup.error || new Error("Verification fixture cleanup failed.");
+    cleanupTraceCount = Number(cleanup.data?.public_ai_traces || 0);
+    if ((cleanup.error || cleanup.data?.purged !== true || cleanupTraceCount < 1) && !workflowError) workflowError = cleanup.error || new Error("Verification fixture trace cleanup failed.");
+    if (traceQueryId) {
+      const residue = await owner.from("ai_queries").select("id").eq("id",traceQueryId);
+      if ((residue.error || residue.data.length) && !workflowError) workflowError = residue.error || new Error("Public AI trace cleanup left residue.");
+    }
   }
   await owner.auth.signOut();
 }
 if (workflowError) throw workflowError;
-console.log(JSON.stringify({openAiEmbeddingDimension: 1536, deterministicChunks: true, hybridKeywordVectorExact: true, publicGroundedAnswer: true, fabricatedCitationIds: 0, reviewedPublication: true, atomicSupersession: true, expiredPublicLeakage: 0, hybridExpiredLeakage: 0, atomicRollback: true, mixedActiveVersions: 0, reversibleCleanup: true}));
+console.log(JSON.stringify({openAiEmbeddingDimension: 1536, deterministicChunks: true, hybridKeywordVectorExact: true, publicGroundedAnswer: true, atomicPrivacySafeTrace: true, feedbackCapability: "opaque-expiring-one-use-session-bound", feedbackReplay: 0, unauthorizedTraceReports: 0, connectedReviewerEvidence: true, fabricatedCitationIds: 0, reviewedPublication: true, atomicSupersession: true, expiredPublicLeakage: 0, hybridExpiredLeakage: 0, atomicRollback: true, mixedActiveVersions: 0, cleanedPublicAiTraces: cleanupTraceCount, residualAiTraces: 0, reversibleCleanup: true}));

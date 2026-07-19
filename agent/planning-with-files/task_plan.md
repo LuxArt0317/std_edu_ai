@@ -12,6 +12,7 @@
 - [ ] implement authoritative corpus ingestion, review, parsing, chunking, and indexing [#106–#107]
   - [x] implement bounded retry/dead-letter telemetry, stale recovery, and protected operations evidence [#121]
   - [x] implement governed HTTPS/HTML/PDF/file acquisition and the version review workspace [#122]
+  - [x] implement atomic privacy-safe public traces, deterministic conflict handoff, one-use feedback, protected reviewer reporting, and reversible evidence cleanup [#123]
 - [ ] implement hybrid RAG, citations, abstention, and gold-set evaluation [#108–#109]
 - [ ] implement verified accessible campus routing and the public assistant [#110–#111]
   - [x] implement the deterministic verified-graph router, public directory, and accessible text route [#118]

@@ -5359,6 +5359,21 @@ export type Database = {
     }
     Functions: {
       administrative_workload_report: { Args: { p_office_code: string; p_study_id: string }; Returns: Json }
+      public_ai_trace_report: {
+        Args: { p_days?: number }
+        Returns: {
+          query_id: string
+          created_at: string
+          language: string
+          terminal_state: string
+          latency_ms: number
+          retrieval_count: number
+          citation_count: number
+          helpful: boolean | null
+          resolved_need: boolean | null
+          correction_category: string | null
+        }[]
+      }
       knowledge_ingestion_operational_summary: { Args: { p_since?: string }; Returns: Json }
       begin_research_participation: {
         Args: { p_consent: boolean; p_familiarity_level: string; p_population_role: string; p_study_code: string; p_study_version_id: string; p_user_agent_family?: string }
