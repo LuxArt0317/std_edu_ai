@@ -59,7 +59,7 @@ export default async function handler(request: ApiRequest, response: ApiResponse
   setHeaders(response);
   if (request.method !== "POST") { response.setHeader("Allow", "POST"); response.status(405).json({error: "Method not allowed"}); return; }
   const auth = await verifySupabaseRequest(request);
-  if (!auth.ok) { response.status(auth.status).json({error: auth.message}); return; }
+  if (auth.ok === false) { response.status(auth.status).json({error: auth.message}); return; }
   if (!allowedRoles.has(auth.user.role)) { response.status(403).json({error: "Knowledge ingestion requires owner, administrator, or librarian review authority."}); return; }
   const input = parse(request.body);
   if (!input) { response.status(400).json({error: "A valid governed document payload is required."}); return; }
