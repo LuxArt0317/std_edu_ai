@@ -24,6 +24,8 @@
   - [x] implement evidence-safe administrative workload entry, independent verification, suppression, and descriptive reporting [#120]
   - [ ] complete approved pilot/translation and real participant execution [#112/#115 external evidence]
 - [ ] complete security/accessibility/operations hardening [#114]
+  - [ ] automate WCAG, adversarial security, sanitized observability, SLO/load, and recovery evidence [#125]
+  - [ ] complete named manual assistive-technology review and institutional accessibility sign-off [#114 external evidence]
 - [ ] execute the approved study and publish reproducible measured results [#115]
 
 ## Phase 103: Relationship-first school workflows [Issue #103]
