@@ -15,6 +15,8 @@ This folder contains the role-aware school operating experience layered over the
 
 The interface adapts to the authenticated role, but authorization is enforced by Supabase RLS and trusted database functions.
 
+The sidebar exposes one **Courses** destination per role. Faculty and authorized academic managers author content and open an exact published Student view in the same workspace; students receive the enrolled learning experience; other authorized staff receive read-only review. Teaching and Learning remain internal route identifiers only for backward-compatible links—there is no second content store or synchronization job. A lesson is student-visible only when both it and its parent module are published and any scheduled unlock time has passed.
+
 Nexus uses one-based quiz answer positions to match the database contract, validates actions before review, and will not repeat an unchanged proposal after the user requests corrections. Its composer supports private image/PDF/text attachments, database-backed queued prompts, a non-mutating Ask mode, and a confirmation-gated Agentic mode. Its assistant identity remains visually consistent in the header, progress replies, questions, and ordinary messages.
 
 Owners, administrators, and registrars can create linked student portal/SIS records and manage enrollment. Academic leaders can build the catalog and open classes. Authorized schedule managers can add events; the database rejects overlapping rooms, assigned teachers, and shared-student class/exam conflicts.

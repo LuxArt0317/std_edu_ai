@@ -1,5 +1,14 @@
 # Progress
 
+## 2026-07-19 — Issue #96
+
+- The screenshots prove two independent sources of confusion: staff navigation exposes both Teaching and Learning, while the newly created `My Favorites` material is a draft and therefore intentionally excluded by student RLS.
+- Opened Issue #96 to consolidate staff course work, preserve one student Learning destination, and make publication dependencies actionable in the authoring surface.
+- Consolidated each role to one Courses entry, retained route compatibility, and added an exact Student view inside teacher authoring over the same module/material/page records.
+- Added explicit module/material visibility explanations, direct publish/unpublish actions, and immediate-publish defaults while retaining intentional drafts.
+- The first live student check exposed an ambiguous original RLS predicate: its unqualified material `status` resolved to the module row. Replaced the policy with independently qualified material/module publication, timestamp, unlock, enrollment, and manager predicates.
+- All 100 contracts, lint, TypeScript/Vite build, guarded assets, and the reversible production LMS workflow pass. The live workflow proves draft denial, immediate post-publish visibility, protected rich pages/files, student write denial, grading, quiz, attendance, and cleanup.
+
 ## 2026-07-19 — Issue #94
 
 - Opened Issue #94 after confirming the shared Tiptap editor only accepted chosen image files and did not inspect clipboard image items.

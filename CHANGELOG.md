@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Consolidated staff Teaching and Learning navigation into one Courses workspace with teacher authoring, an exact published Student view, student learning, and scoped staff review over the same Supabase LMS records.
+- Made module/material publication dependencies explicit, added direct publish/unpublish actions, defaulted new content to immediate publication, and preserved deliberate draft controls with clear hidden-state feedback.
+- Corrected the production LMS read policy so draft materials cannot be exposed by a published parent module; learner reads now require independently published material/module records, publication timestamps, unlock eligibility, and section access.
+
 - Added direct clipboard screenshot paste to Tiptap lesson pages for macOS and Windows, including multiple clipboard images, insertion at the active cursor, existing protected media validation, progress/error feedback, and untouched ordinary text/HTML paste.
 - Released through PR #95 as `1ef71bd`; Vercel production is Ready on both custom domains and recursive route/assets plus every clipboard-filter, cursor-insertion, normal-paste, and shortcut-hint marker pass.
 

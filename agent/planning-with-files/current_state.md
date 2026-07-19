@@ -1,5 +1,12 @@
 # Current State
 
+# Active implementation: Issue #96
+
+- Staff now see one Courses workspace instead of competing Teaching and Learning destinations. Teachers manage content and open an exact Student view over the same Supabase module/material/page graph; students receive the published learning experience and other authorized staff receive review access.
+- Module and material publication dependencies are explicit. Teachers can publish or unpublish each material directly, newly created content defaults to published, and deliberate drafts remain clearly identified as hidden.
+- Production Supabase now independently enforces published material, published module, publication timestamps, module unlock time, section access, and manager draft access. The previous ambiguous policy that could expose a draft in a published module is replaced.
+- All 100 contracts, lint, TypeScript/Vite build, guarded assets, and the reversible live teacher/student LMS workflow pass. Release/production deployment remains in progress on Issue #96.
+
 # Active implementation: Issue #94
 
 - The shared Tiptap lesson editor detects image file items from macOS screenshot and Windows Snipping Tool clipboard pastes, uploads them through the existing section-authorized `learning-media` service, and inserts them at the captured cursor position.

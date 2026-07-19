@@ -46,7 +46,7 @@ import { RichTextContent, RichTextEditor } from "./RichTextEditor";
 
 type Toast = (message: string) => void;
 type TeacherTab =
-  "content" | "assessment" | "submissions" | "attendance" | "announcements";
+  "content" | "preview" | "assessment" | "submissions" | "attendance" | "announcements";
 
 function dateTime(value: string | null) {
   return value
@@ -130,6 +130,7 @@ function Empty({ title, text }: { title: string; text: string }) {
 
 export function TeacherLmsStudio({
   data,
+  currentUser,
   onChanged,
   onToast,
   initialSectionId,
@@ -256,6 +257,7 @@ export function TeacherLmsStudio({
         {(
           [
             ["content", "Content"],
+            ["preview", "Student view"],
             ["assessment", "Assessments"],
             ["submissions", "Submissions"],
             ["attendance", "Attendance"],
@@ -275,6 +277,27 @@ export function TeacherLmsStudio({
           </button>
         ))}
       </nav>
+
+      {tab === "preview" ? (
+        <section className="lms-student-preview-workspace">
+          <header>
+            <div>
+              <span>EXACT PUBLISHED VIEW</span>
+              <h2>What students can see now</h2>
+              <p>Only published modules and published materials appear below. There is no separate copy or synchronization step.</p>
+            </div>
+            <button type="button" onClick={() => setTab("content")}>Return to authoring</button>
+          </header>
+          <StudentLmsLearning
+            data={data}
+            currentUser={currentUser}
+            onChanged={onChanged}
+            onToast={onToast}
+            mode="preview"
+            initialSectionId={course.sectionId}
+          />
+        </section>
+      ) : null}
 
       {tab === "content" ? (
         <section className="lms-workspace">
@@ -307,7 +330,7 @@ export function TeacherLmsStudio({
                         >
                           Edit
                         </button>
-                        <span>{module.status}</span>
+                        <span className={module.status === "published" ? "lms-visible" : "lms-hidden"}>{module.status === "published" ? "Published module" : "Draft module · hidden from students"}</span>
                         <h3>{module.title}</h3>
                         <p>
                           {module.description || "No module description yet."}
@@ -362,11 +385,20 @@ export function TeacherLmsStudio({
                     </header>
                     <div className="lms-material-list">
                       {materials.length ? (
-                        materials.map((material) => (
-                          <div key={material.id}>
+                        materials.map((material) => {
+                          const unlocked = !module.unlocksAt || new Date(module.unlocksAt) <= new Date();
+                          const studentVisible = module.status === "published" && material.status === "published" && unlocked;
+                          const visibilityReason = material.status !== "published"
+                            ? "Draft material · hidden from students"
+                            : module.status !== "published"
+                              ? "Published material, but its module is still draft"
+                              : !unlocked
+                                ? `Scheduled for ${dateTime(module.unlocksAt)}`
+                                : "Visible to students now";
+                          return <div key={material.id}>
                             <button type="button" className="lms-material-open" onClick={() => setModal(`preview-material:${material.id}`)} aria-label={`Open lesson ${material.title}`}>
                               <b>{material.type === "file" ? "⇩" : material.type === "video" ? "▶" : material.type === "link" ? "↗" : "☰"}</b>
-                              <span><strong>{material.title}</strong><small>{material.minutes} min · {material.required ? "Required" : "Optional"} · {material.status}</small><em>Open lesson →</em></span>
+                              <span><strong>{material.title}</strong><small>{material.minutes} min · {material.required ? "Required" : "Optional"}</small><em className={studentVisible ? "lms-visible" : "lms-hidden"}>{visibilityReason}</em></span>
                             </button>
                             <div className="lms-material-actions">
                             {material.externalUrl ? (
@@ -398,6 +430,20 @@ export function TeacherLmsStudio({
                             >
                               Edit lesson
                             </button>
+                            <button type="button" onClick={() => void perform(
+                              () => updateLearningMaterial(material.id, {
+                                title: material.title,
+                                description: material.description,
+                                type: material.type,
+                                content: material.content,
+                                externalUrl: material.externalUrl ?? undefined,
+                                storagePath: material.storagePath ?? undefined,
+                                minutes: material.minutes,
+                                required: material.required,
+                                publish: material.status !== "published",
+                              }),
+                              material.status === "published" ? "Material unpublished and hidden from students." : module.status === "published" ? "Material published and visible to students." : "Material published. Publish its module to make it visible to students.",
+                            )}>{material.status === "published" ? "Unpublish" : "Publish for students"}</button>
                             <button
                               type="button"
                               onClick={() => {
@@ -414,8 +460,8 @@ export function TeacherLmsStudio({
                               Delete lesson
                             </button>
                             </div>
-                          </div>
-                        ))
+                          </div>;
+                        })
                       ) : (
                         <Empty
                           title="This module is empty"
@@ -873,6 +919,7 @@ function ModuleForm({
             title: String(f.get("title")),
             description: String(f.get("description")),
           };
+          const publish = f.get("publish") === "on";
           void onSave(
             () =>
               module
@@ -881,9 +928,9 @@ function ModuleForm({
                     sectionId,
                     ...values,
                     position,
-                    publish: f.get("publish") === "on",
+                    publish,
                   }),
-            module ? "Learning module updated." : "Learning module created.",
+            module ? "Learning module updated." : publish ? "Module published to students." : "Module saved as a draft and hidden from students.",
           );
         }}
       >
@@ -907,7 +954,7 @@ function ModuleForm({
         </label>
         {!module ? (
           <label className="check">
-            <input name="publish" type="checkbox" /> Publish immediately
+            <input name="publish" type="checkbox" defaultChecked /> Publish module to students immediately
           </label>
         ) : null}
         <button disabled={busy}>
@@ -1127,6 +1174,7 @@ function MaterialForm({
         onSubmit={(event) => {
           event.preventDefault();
           const f = new FormData(event.currentTarget);
+          const publish = f.get("publish") === "on";
           void onSave(
             async () => {
               const values = {
@@ -1138,7 +1186,7 @@ function MaterialForm({
                 storagePath: material?.storagePath ?? undefined,
                 minutes: Number(f.get("minutes")),
                 required: f.get("required") === "on",
-                publish: f.get("publish") === "on",
+                publish,
               };
               const materialId = material
                 ? (await updateLearningMaterial(material.id, values),
@@ -1172,8 +1220,8 @@ function MaterialForm({
               );
             },
             material
-              ? "Learning material updated."
-              : "Learning material added.",
+              ? publish ? "Learning material saved and published to students." : "Learning material saved as a draft and hidden from students."
+              : publish ? "Learning material published to students." : "Learning material saved as a draft and hidden from students.",
           );
         }}
       >
@@ -1291,9 +1339,9 @@ function MaterialForm({
             <input
               name="publish"
               type="checkbox"
-              defaultChecked={material?.status === "published"}
+              defaultChecked={material ? material.status === "published" : true}
             />{" "}
-            Published
+            {material ? "Published to students" : "Publish to students immediately"}
           </label>
         </div>
         <button disabled={busy}>
@@ -1783,10 +1831,11 @@ export function StudentLmsLearning({
   currentUser: CrmUser;
   onChanged: () => void;
   onToast: Toast;
-  mode?: "student" | "review";
+  mode?: "student" | "review" | "preview";
   initialSectionId?: string;
 }) {
   const learnerMode = mode === "student";
+  const publishedView = mode === "student" || mode === "preview";
   const [sectionId, setSectionId] = useState(
     data.courses.some((item) => item.sectionId === initialSectionId)
       ? initialSectionId
@@ -1804,10 +1853,12 @@ export function StudentLmsLearning({
     data.courses.find((item) => item.sectionId === sectionId) ??
     data.courses[0];
   const modules = data.modules.filter(
-    (item) => item.sectionId === course?.sectionId,
+    (item) => item.sectionId === course?.sectionId && (!publishedView || (
+      item.status === "published" && (!item.unlocksAt || new Date(item.unlocksAt) <= new Date())
+    )),
   );
   const materials = data.materials.filter((item) =>
-    modules.some((module) => module.id === item.moduleId),
+    modules.some((module) => module.id === item.moduleId) && (!publishedView || item.status === "published"),
   );
   const completed = data.progress.filter(
     (item) =>
@@ -1842,11 +1893,11 @@ export function StudentLmsLearning({
   const nextMaterial = activeMaterialIndex >= 0 ? materials[activeMaterialIndex + 1] : materials[0];
 
   useEffect(() => {
-    const visibleModules=data.modules.filter((item)=>item.sectionId===sectionId);
-    const first=data.materials.filter((item)=>visibleModules.some((module)=>module.id===item.moduleId)).sort((a,b)=>a.position-b.position)[0] ?? null;
+    const visibleModules=data.modules.filter((item)=>item.sectionId===sectionId && (!publishedView || (item.status === "published" && (!item.unlocksAt || new Date(item.unlocksAt) <= new Date()))));
+    const first=data.materials.filter((item)=>visibleModules.some((module)=>module.id===item.moduleId) && (!publishedView || item.status === "published")).sort((a,b)=>a.position-b.position)[0] ?? null;
     setActiveMaterial(first);
     setActivePage(0);
-  }, [sectionId, data.materials, data.modules]);
+  }, [sectionId, data.materials, data.modules, publishedView]);
 
   if (!course)
     return (
@@ -1859,7 +1910,7 @@ export function StudentLmsLearning({
     <>
       <section className="lms-student-hero">
         <div>
-          <span>{learnerMode ? "MY LEARNING" : "LIVE LEARNING LIBRARY"}</span>
+          <span>{learnerMode ? "MY LEARNING" : mode === "preview" ? "STUDENT VIEW PREVIEW" : "LIVE LEARNING LIBRARY"}</span>
           <h1>{course.title}</h1>
           <p>
             {course.code} · {course.sectionCode} · {course.facultyName}
@@ -1881,7 +1932,7 @@ export function StudentLmsLearning({
         >
           <b>{percent}%</b>
           <small>complete</small>
-        </div> : <div className="lms-progress-ring lms-library-count"><b>{materials.length}</b><small>materials</small></div>}
+        </div> : <div className="lms-progress-ring lms-library-count"><b>{materials.length}</b><small>{mode === "preview" ? "student-visible" : "materials"}</small></div>}
       </section>
       <section className="lms-student-stats">
         {learnerMode ? <><span>
@@ -1911,7 +1962,7 @@ export function StudentLmsLearning({
             {attendance.length}
           </b>{" "}
           sessions present
-        </span></> : <><span><b>{modules.length}</b> live modules</span><span><b>{materials.filter((item)=>item.status === "published").length}</b> published materials</span><span><b>{materials.filter((item)=>item.status !== "published").length}</b> drafts visible to this role</span></>}
+        </span></> : mode === "preview" ? <><span><b>{modules.length}</b> published modules</span><span><b>{materials.length}</b> student-visible materials</span><span><b>{data.materials.filter((item)=>data.modules.some((module)=>module.sectionId===course.sectionId&&module.id===item.moduleId)&&item.status!=="published").length}</b> drafts hidden</span></> : <><span><b>{modules.length}</b> live modules</span><span><b>{materials.filter((item)=>item.status === "published").length}</b> published materials</span><span><b>{materials.filter((item)=>item.status !== "published").length}</b> drafts visible to this role</span></>}
       </section>
       {learnerMode ? <section className="lms-workspace">
         <header><div><span>MY ATTENDANCE</span><h2>Attendance records and corrections</h2><p>Review each class record and request a documented correction when needed.</p></div></header>

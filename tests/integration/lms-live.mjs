@@ -87,6 +87,26 @@ try {
     .single();
   if (materialResult.error) throw materialResult.error;
   materialId = materialResult.data.id;
+  const draftMaterial = await faculty
+    .from("learning_materials")
+    .insert({
+      module_id: moduleId,
+      title: `${marker} publication check`,
+      material_type: "lesson",
+      content_markdown: "Publication visibility check",
+      position: 99,
+      status: "draft",
+      created_by: fa.user.id,
+    })
+    .select("id")
+    .single();
+  if (draftMaterial.error) throw draftMaterial.error;
+  const hiddenDraft = await student.from("learning_materials").select("id").eq("id", draftMaterial.data.id);
+  if (hiddenDraft.error || hiddenDraft.data.length) throw hiddenDraft.error || new Error("Student could see a draft material.");
+  const publishDraft = await faculty.from("learning_materials").update({ status: "published", published_at: new Date().toISOString() }).eq("id", draftMaterial.data.id);
+  if (publishDraft.error) throw publishDraft.error;
+  const publishedDraft = await student.from("learning_materials").select("id").eq("id", draftMaterial.data.id).single();
+  if (publishedDraft.error) throw publishedDraft.error;
   const page = await faculty.from("learning_material_pages").insert({ material_id: materialId, title: "Page 1", content_html: "<p>Verified rich page</p>", position: 1, created_by: fa.user.id }).select("id").single();
   if (page.error) throw page.error;
   const studentPage = await student.from("learning_material_pages").select("title,content_html").eq("id", page.data.id).single();
@@ -324,6 +344,7 @@ console.log(
     inlinePrivateFileLinks: true,
     richPagesAndImages: true,
     studentPublishedAccess: true,
+    publicationSync: true,
     studentAuthoringDenied: true,
     progress: true,
     assignmentGrading: true,

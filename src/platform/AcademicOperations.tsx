@@ -838,8 +838,7 @@ export function AcademicOperations({
               <div className="section-connection-actions">
                 {program ? <button type="button" onClick={() => openProgram(program.id)}>Open {program.code}</button> : null}
                 <button type="button" onClick={() => {setSelectedSectionId(course.sectionId);setTab("enrollment");}}>Open roster</button>
-                <button type="button" onClick={() => onOpenSectionWorkspace("learning", course.sectionId)}>Open learning</button>
-                {scheduleManagers.has(role) ? <button type="button" onClick={() => onOpenSectionWorkspace("teaching", course.sectionId)}>Open teaching</button> : null}
+                <button type="button" onClick={() => onOpenSectionWorkspace(scheduleManagers.has(role) ? "teaching" : "learning", course.sectionId)}>Open course</button>
                 <button type="button" onClick={() => onOpenSectionWorkspace("assessments", course.sectionId)}>Open assessments</button>
                 <button type="button" onClick={() => onOpenSectionWorkspace("grades", course.sectionId)}>Open grades</button>
                 <button type="button" onClick={() => onOpenSectionWorkspace("schedule", course.sectionId)}>Open schedule</button>

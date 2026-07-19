@@ -1,5 +1,14 @@
 # Task Plan
 
+## Phase 96: One publication-aware Courses workspace [Issue #96]
+
+- [x] remove duplicate Teaching/Learning navigation and class links for staff
+- [x] keep one role-aware Courses destination with teacher management, student learning, and staff review
+- [x] add an exact published student-view preview beside teacher authoring
+- [x] make module/material visibility dependencies explicit with direct publish/unpublish controls
+- [x] prove same-source publication, RLS visibility, refresh, route compatibility, and no legacy topic reader
+- [ ] document, review, merge, deploy, and verify production
+
 ## Phase 94: Clipboard screenshot paste in lesson editor [Issue #94]
 
 - [x] accept macOS and Windows clipboard image files at the active editor position

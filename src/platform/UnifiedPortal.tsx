@@ -183,8 +183,8 @@ const roleNames: Record<PlatformRole, string> = {
 const navMeta: Record<PortalView, { label: string; icon: string }> = {
   home: { label: "My Day", icon: "⌂" },
   academics: { label: "Academic Office", icon: "▦" },
-  learning: { label: "Learning", icon: "◫" },
-  teaching: { label: "Teaching", icon: "✎" },
+  learning: { label: "Courses", icon: "◫" },
+  teaching: { label: "Courses", icon: "✎" },
   assessments: { label: "Assessments", icon: "✓" },
   grades: { label: "Grades", icon: "▤" },
   schedule: { label: "Schedule", icon: "◷" },
@@ -206,7 +206,6 @@ function navigationFor(role: PlatformRole): PortalView[] {
     return [
       "home",
       "teaching",
-      "learning",
       "assessments",
       "grades",
       "schedule",
@@ -217,7 +216,6 @@ function navigationFor(role: PlatformRole): PortalView[] {
       "home",
       "academics",
       "teaching",
-      "learning",
       "assessments",
       "grades",
       "schedule",
@@ -336,8 +334,9 @@ function UnifiedPortal({
   const navigation = navigationFor(effectiveRole);
 
   useEffect(() => {
-    if (!navigation.includes(view)) setView("home");
-  }, [navigation, view]);
+    if (!navigation.includes(view))
+      setView(view === "learning" && teachingRoles.has(effectiveRole) ? "teaching" : "home");
+  }, [effectiveRole, navigation, view]);
 
   const showingCrm = view === "crm" && crmRoles.has(effectiveRole);
 
