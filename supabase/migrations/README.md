@@ -8,6 +8,8 @@ The onboarding migrations add per-user/per-role/per-version readiness and append
 
 The integrated LMS migration set adds modules, materials, submissions, attendance, progress, private Storage authorization, integrity triggers, advisor-driven policy/index optimization, and an atomic objective assessment builder with protected answer keys.
 
+`20260718234504_immersive_lms_integrity_controls.sql` adds teacher-controlled post-attempt review and disclosed fullscreen/focus/display/camera/clipboard policy, append-only student/teacher-scoped integrity evidence, safe reviewed-answer disclosure, and inline lesson video MIME/size support. `20260718235722_assessment_integrity_student_index.sql` covers the student evidence foreign key and read path.
+
 `20260717231612_account_lifecycle_controls.sql` adds the account status projection and an immutable, owner-readable lifecycle audit for Auth-enforced activation, suspension, archival, and restoration.
 
 `20260717232914_account_directory_and_session_revocation.sql` adds immutable access-operation history and the service-role-only session revocation command. `20260717233309_student_support_self_service.sql` lets a student open a case only against their own linked SIS record while leaving assignment and resolution with authorized staff.

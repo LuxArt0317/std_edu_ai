@@ -3,6 +3,8 @@ import { withTimeout } from "../utils/async";
 import type { Json, Tables } from "../types/database.generated";
 import type {
   AssessmentAttemptResult,
+  AssessmentIntegrityEventType,
+  AssessmentReview,
   AssessmentOption,
   AssessmentQuestion,
   ChatMessage,
@@ -130,6 +132,7 @@ export async function loadPlatformData(): Promise<PlatformData> {
     initiativesResult,
     knowledgeResult,
     assessmentAttemptsResult,
+    assessmentIntegrityResult,
   ] = await withTimeout(
     Promise.all([
       client
@@ -204,6 +207,7 @@ export async function loadPlatformData(): Promise<PlatformData> {
       client.from("institutional_initiatives").select("*").order("updated_at", { ascending: false }).limit(100),
       client.from("knowledge_articles").select("id,title,category,summary,content,source_type,source_event_id,audience_scope,status").order("updated_at", { ascending: false }).limit(100),
       client.rpc("read_assessment_attempts"),
+      client.from("assessment_integrity_events").select("*").order("occurred_at", { ascending: false }).limit(500),
     ]),
     20_000,
     "The school workspace took too long to load. Check the connection and try again.",
@@ -260,6 +264,7 @@ export async function loadPlatformData(): Promise<PlatformData> {
   const initiativeRows = rows(initiativesResult, "Institutional initiatives");
   const knowledgeRows = rows(knowledgeResult, "Institutional knowledge");
   const assessmentAttemptRows = rows(assessmentAttemptsResult, "Assessment results");
+  const assessmentIntegrityRows = rows(assessmentIntegrityResult, "Assessment integrity events");
 
   const profilesById = new Map(
     profileRows.map((profile) => [profile.id, profile]),
@@ -343,6 +348,14 @@ export async function loadPlatformData(): Promise<PlatformData> {
     maxScore: Number(assessment.max_score),
     releaseExplanations: assessment.release_explanations,
     releaseScoresImmediately: assessment.release_scores_immediately,
+    reviewMode: assessment.review_mode as SchoolAssessment["reviewMode"],
+    requireFullscreen: assessment.require_fullscreen,
+    monitorFocus: assessment.monitor_focus,
+    detectExtendedDisplay: assessment.detect_extended_display,
+    requireCamera: assessment.require_camera,
+    detectMultipleCameras: assessment.detect_multiple_cameras,
+    preventCopyPaste: assessment.prevent_copy_paste,
+    integrityInstructions: assessment.integrity_instructions,
     questions: questions.filter(
       (question) => question.assessmentId === assessment.id,
     ),
@@ -530,6 +543,17 @@ export async function loadPlatformData(): Promise<PlatformData> {
       startedAt: attempt.started_at,
       submittedAt: attempt.submitted_at,
       gradedAt: attempt.graded_at,
+    })),
+    assessmentIntegrityEvents: assessmentIntegrityRows.map((event) => ({
+      id: event.id,
+      assessmentId: event.assessment_id,
+      attemptId: event.attempt_id,
+      studentProfileId: event.student_profile_id,
+      sessionId: event.session_id,
+      eventType: event.event_type as import("./types").AssessmentIntegrityEventType,
+      severity: event.severity as "info" | "warning" | "critical",
+      details: event.details as Record<string, unknown>,
+      occurredAt: event.occurred_at,
     })),
     gradeItems: gradeItemRows.map((item) => ({
       id: item.id,
@@ -719,6 +743,35 @@ export async function submitAssessment(
     maxScore: result.max_score === null ? null : Number(result.max_score),
     status: result.status,
   };
+}
+
+export async function recordAssessmentIntegrityEvent(input: {
+  assessmentId: string;
+  attemptId?: string | null;
+  sessionId: string;
+  eventType: AssessmentIntegrityEventType;
+  severity?: "info" | "warning" | "critical";
+  details?: Record<string, Json>;
+}) {
+  const client = requireClient();
+  const { data: user } = await client.auth.getUser();
+  if (!user.user) throw new Error("Authentication is required.");
+  const { error } = await client.from("assessment_integrity_events").insert({
+    assessment_id: input.assessmentId,
+    attempt_id: input.attemptId ?? null,
+    student_profile_id: user.user.id,
+    session_id: input.sessionId,
+    event_type: input.eventType,
+    severity: input.severity ?? "info",
+    details: (input.details ?? {}) as Json,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function readAssessmentReview(assessmentId: string): Promise<AssessmentReview> {
+  const { data, error } = await requireClient().rpc("read_assessment_review", { p_assessment_id: assessmentId });
+  if (error) throw new Error(error.message);
+  return data as unknown as AssessmentReview;
 }
 
 export async function createChatThread(title: string): Promise<ChatThread> {
@@ -1538,8 +1591,6 @@ export async function createLearningModule(input: {
   description: string;
   position: number;
   publish: boolean;
-  releaseExplanations?: boolean;
-  releaseScoresImmediately?: boolean;
 }) {
   const client = requireClient();
   const { data: user } = await client.auth.getUser();
@@ -1766,6 +1817,23 @@ export async function uploadLearningImage(sectionId: string, file: File) {
     .publicUrl;
 }
 
+export async function uploadLearningVideo(sectionId: string, file: File) {
+  const client = requireClient();
+  if (!["video/mp4", "video/webm", "video/quicktime"].includes(file.type))
+    throw new Error("Choose an MP4, WebM, or MOV video.");
+  if (file.size > 262_144_000)
+    throw new Error("Lesson videos must be 250 MB or smaller.");
+  const extension = file.name.split(".").pop()?.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8) || "mp4";
+  const path = `${sectionId}/${crypto.randomUUID()}.${extension}`;
+  const { error } = await client.storage.from("learning-media").upload(path, file, {
+    contentType: file.type,
+    cacheControl: "31536000",
+    upsert: false,
+  });
+  if (error) throw new Error(error.message);
+  return client.storage.from("learning-media").getPublicUrl(path).data.publicUrl;
+}
+
 export async function getLmsFileUrl(path: string) {
   const client = requireClient();
   const { data, error } = await client.storage
@@ -1810,6 +1878,14 @@ export async function createCourseAssessment(input: {
   publish: boolean;
   releaseExplanations?: boolean;
   releaseScoresImmediately?: boolean;
+  reviewMode?: "closed" | "score_only" | "responses" | "full_review";
+  requireFullscreen?: boolean;
+  monitorFocus?: boolean;
+  detectExtendedDisplay?: boolean;
+  requireCamera?: boolean;
+  detectMultipleCameras?: boolean;
+  preventCopyPaste?: boolean;
+  integrityInstructions?: string;
   questions?: Array<{
     prompt: string;
     points: number;
@@ -1831,7 +1907,7 @@ export async function createCourseAssessment(input: {
   });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("The assessment identifier was not returned.");
-  const release=await client.from("assessments").update({opens_at:input.opensAt||null,duration_minutes:input.durationMinutes||null,attempt_limit:Math.max(1,Math.min(20,input.attemptLimit??1)),release_explanations:input.releaseExplanations===true,release_scores_immediately:input.releaseScoresImmediately!==false}).eq("id",data); if(release.error) throw new Error(release.error.message);
+  const release=await client.from("assessments").update({opens_at:input.opensAt||null,duration_minutes:input.durationMinutes||null,attempt_limit:Math.max(1,Math.min(20,input.attemptLimit??1)),release_explanations:input.releaseExplanations===true,release_scores_immediately:input.releaseScoresImmediately!==false,review_mode:input.reviewMode??"score_only",require_fullscreen:input.requireFullscreen===true,monitor_focus:input.monitorFocus===true,detect_extended_display:input.detectExtendedDisplay===true,require_camera:input.requireCamera===true,detect_multiple_cameras:input.detectMultipleCameras===true,prevent_copy_paste:input.preventCopyPaste===true,integrity_instructions:(input.integrityInstructions??"").trim().slice(0,2000)}).eq("id",data); if(release.error) throw new Error(release.error.message);
 }
 
 export async function updateCourseAssessment(
@@ -1848,6 +1924,14 @@ export async function updateCourseAssessment(
     publish: boolean;
     releaseExplanations?: boolean;
     releaseScoresImmediately?: boolean;
+    reviewMode?: "closed" | "score_only" | "responses" | "full_review";
+    requireFullscreen?: boolean;
+    monitorFocus?: boolean;
+    detectExtendedDisplay?: boolean;
+    requireCamera?: boolean;
+    detectMultipleCameras?: boolean;
+    preventCopyPaste?: boolean;
+    integrityInstructions?: string;
     questions?: Array<{
       prompt: string;
       points: number;
@@ -1869,7 +1953,7 @@ export async function updateCourseAssessment(
     p_questions: (input.questions ?? []) as unknown as Json,
   });
   if (error) throw new Error(error.message);
-  const release=await client.from("assessments").update({opens_at:input.opensAt||null,duration_minutes:input.durationMinutes||null,attempt_limit:Math.max(1,Math.min(20,input.attemptLimit??1)),release_explanations:input.releaseExplanations===true,release_scores_immediately:input.releaseScoresImmediately!==false}).eq("id",assessmentId); if(release.error) throw new Error(release.error.message);
+  const release=await client.from("assessments").update({opens_at:input.opensAt||null,duration_minutes:input.durationMinutes||null,attempt_limit:Math.max(1,Math.min(20,input.attemptLimit??1)),release_explanations:input.releaseExplanations===true,release_scores_immediately:input.releaseScoresImmediately!==false,review_mode:input.reviewMode??"score_only",require_fullscreen:input.requireFullscreen===true,monitor_focus:input.monitorFocus===true,detect_extended_display:input.detectExtendedDisplay===true,require_camera:input.requireCamera===true,detect_multiple_cameras:input.detectMultipleCameras===true,prevent_copy_paste:input.preventCopyPaste===true,integrity_instructions:(input.integrityInstructions??"").trim().slice(0,2000)}).eq("id",assessmentId); if(release.error) throw new Error(release.error.message);
 }
 
 export async function deleteCourseAssessment(assessmentId: string) {

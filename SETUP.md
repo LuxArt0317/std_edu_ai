@@ -42,6 +42,8 @@ npx supabase db push
 
 The production schema has already been applied to `stu_edu_ai`. The migrations in `supabase/migrations` enable RLS on every exposed table, explicit Data API grants, academic/CRM indexes, protected assessment answers, role-change audits, versioned onboarding progress, append-only onboarding evidence, full-text/vector knowledge retrieval, and privacy-minimized AI audit logs.
 
+Inline lesson images and videos use the `learning-media` Storage bucket. Section-manager policies restrict authoring uploads; supported lesson media are JPEG, PNG, WebP, GIF, MP4, WebM, and MOV, with a 250 MB video ceiling. Assessment integrity events are append-only and RLS-scoped to the student and authorized class managers.
+
 Assign roles with the owner-only People & Roles workspace or the audited `assign_platform_role` RPC. Authorization uses trusted `app_metadata.role`; never use user-editable metadata. The complete role catalog is documented in [src/platform/ROLE_MATRIX.md](./src/platform/ROLE_MATRIX.md).
 
 The protected owner is `winsonbaring10@gmail.com`. A confirmed owner-controlled acceptance identity is provisioned for every canonical role; the complete sign-in directory is in [src/platform/ROLE_ACCOUNTS.md](./src/platform/ROLE_ACCOUNTS.md). Each unique generated credential is stored as a macOS internet password for service `www.stu.best` and the account email. No password is committed to Git.

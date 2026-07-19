@@ -5263,6 +5263,83 @@ textarea {
   border-radius: 0;
   box-shadow: none;
 }
+
+/* Immersive lesson studio, inline media, assessment integrity, and schedule export */
+.lms-studio-layer { padding: 0; place-items: stretch; background: #eef5f3; }
+.lms-immersive-studio { width: 100%; max-height: 100vh; min-height: 100vh; border-radius: 0; box-shadow: none; }
+.lms-immersive-studio > header { position: sticky; top: 0; z-index: 4; padding: 22px max(28px,calc((100vw - 1320px)/2)); }
+.lms-immersive-studio > .lms-form,.lms-immersive-studio > .lms-teacher-preview { width: min(1280px,calc(100% - 48px)); margin: 0 auto; box-sizing: border-box; }
+.lms-immersive-studio .lms-page-builder { background: #f4f9f8; padding: 18px; }
+.lms-immersive-studio .lms-page-builder > article { background: #fff; box-shadow: 0 12px 35px rgba(15,68,61,.07); }
+.lms-immersive-studio .lms-rich-document { min-height: 380px; font-size: 16px; line-height: 1.75; }
+.lms-immersive-preview { max-width: 1060px !important; }
+.lms-immersive-preview article { padding: clamp(24px,5vw,72px); }
+.lms-rich-toolbar { position: sticky; top: 76px; z-index: 3; flex-wrap: wrap; }
+.lms-media-error { margin: 0; padding: 9px 12px; background: #fff0ee; color: #ac493d; font-weight: 750; }
+.lms-rich-document img.lms-content-image { display:block; width:auto; max-width:100%; max-height:760px; margin:28px auto; border-radius:16px; box-shadow:0 14px 35px rgba(12,57,51,.14); }
+.lms-content-video,.lms-content-video-embed { display:block; width:min(100%,960px); margin:30px auto; border:0; border-radius:18px; overflow:hidden; background:#0b1f1c; box-shadow:0 16px 42px rgba(6,36,31,.2); }
+video.lms-content-video { aspect-ratio:16/9; height:auto; }
+.lms-content-video-embed { position:relative; aspect-ratio:16/9; }
+.lms-content-video-embed iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
+.lms-learning-layout.reader-focus { grid-template-columns: 1fr; }
+.lms-learning-layout.reader-focus > aside { display:none; }
+.lms-learning-layout.reader-focus .lms-reader { max-width:1120px; margin:auto; padding:clamp(28px,6vw,80px); }
+.lms-reader-toolbar { display:flex; align-items:center; justify-content:space-between; gap:14px; margin:-8px 0 28px; padding-bottom:15px; border-bottom:1px solid #e2ecea; }
+.lms-reader-toolbar button { border:1px solid #bed8d3; border-radius:10px; background:#edf7f5; color:#146f65; padding:9px 12px; font-weight:850; cursor:pointer; }
+.lms-page-document { max-width:980px; margin:0 auto; padding:clamp(22px,4vw,55px); }
+
+.lms-assessment-policy { display:grid; gap:14px; padding:17px; border:1px solid #cfe2de; border-radius:15px; background:#f6faf9; }
+.lms-assessment-policy > header b,.lms-assessment-policy > header small { display:block; }
+.lms-assessment-policy > header b { color:#174b44; font-size:15px; }
+.lms-assessment-policy > header small { margin-top:4px; color:#6b817c; line-height:1.5; }
+.lms-assessment-policy.integrity { border-color:#e5d7b6; background:#fffaf0; }
+.lms-policy-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+.lms-policy-grid .check { min-height:46px; padding:10px 12px; border:1px solid #e2e9e6; border-radius:10px; background:#fff; }
+.lms-policy-truth { margin:0; padding:11px 13px; border-left:4px solid #d69654; background:#fff; color:#725842; font-size:12px; line-height:1.55; }
+.assessment-integrity-badges { margin-top:-7px !important; }
+.assessment-integrity-badges span { background:#fff4dc !important; color:#805c20 !important; font-weight:800; }
+.quiz-preflight { padding:32px 36px; }
+.quiz-preflight > span { color:#14796e; font-size:10px; font-weight:900; letter-spacing:.14em; }
+.quiz-preflight h2 { margin:7px 0; color:#174740; }
+.quiz-preflight > p { color:#657b76; line-height:1.6; }
+.quiz-preflight ul { display:grid; gap:8px; margin:22px 0; padding:0; list-style:none; }
+.quiz-preflight li { display:flex; justify-content:space-between; gap:20px; padding:12px 14px; border:1px solid #dbe8e5; border-radius:11px; background:#fff; color:#5d716d; }
+.quiz-preflight li b { color:#174b44; }
+.quiz-preflight aside { padding:14px 16px; border-radius:12px; background:#eaf6f3; color:#315b54; }
+.quiz-preflight aside p { margin:5px 0 0; line-height:1.55; }
+.quiz-preflight-results { margin:14px 0; padding:10px 14px; border:1px solid #ead7ad; border-radius:11px; background:#fff9eb; }
+.quiz-preflight-results p { margin:5px 0; }
+.quiz-preflight > button { width:100%; margin-top:18px; border:0; border-radius:12px; background:#14776c; color:#fff; padding:14px; font-weight:900; }
+.quiz-review-list .correct { color:#167267; font-weight:800; }
+.lms-integrity-log { display:grid; gap:10px; padding:20px; }
+.lms-integrity-log > p { margin:0 0 5px; padding:11px; border-radius:10px; background:#eef7f5; color:#456a63; }
+.lms-integrity-log article { padding:12px 14px; border:1px solid #dce8e5; border-left:5px solid #7fb5aa; border-radius:11px; }
+.lms-integrity-log article.warning { border-left-color:#d99a43; }
+.lms-integrity-log article.critical { border-left-color:#c55549; }
+.lms-integrity-log article > div { display:flex; justify-content:space-between; gap:12px; text-transform:capitalize; }
+.lms-integrity-log article p,.lms-integrity-log article small { display:block; margin:5px 0 0; color:#6d807c; overflow-wrap:anywhere; }
+
+.schedule-poster { display:grid; grid-template-columns:1fr 1.5fr auto; align-items:center; gap:24px; margin-bottom:16px; padding:22px 24px; border:1px solid #cce1dc; background:linear-gradient(135deg,#f9fcfb,#e9f5f2); }
+.schedule-poster span { color:#14796e; font-size:10px; font-weight:900; letter-spacing:.13em; }
+.schedule-poster h2 { margin:5px 0; }
+.schedule-poster p { margin:0; color:#667c77; line-height:1.5; }
+.schedule-poster-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+.schedule-poster-options label { display:grid; gap:4px; color:#526d67; font-size:11px; font-weight:800; }
+.schedule-poster-options input,.schedule-poster-options select { min-width:0; border:1px solid #c8dcd8; border-radius:9px; background:#fff; padding:9px; }
+.schedule-poster-options label.check { display:flex; align-items:center; gap:7px; }
+.schedule-poster-options label.check input { width:auto; }
+.schedule-poster > button { border:0; border-radius:12px; background:#14776c; color:#fff; padding:13px 16px; font-weight:900; white-space:nowrap; cursor:pointer; }
+
+@media (max-width: 980px) {
+  .schedule-poster { grid-template-columns:1fr; }
+  .lms-policy-grid { grid-template-columns:1fr; }
+  .lms-immersive-studio > .lms-form,.lms-immersive-studio > .lms-teacher-preview { width:calc(100% - 24px); }
+}
+@media (max-width: 620px) {
+  .schedule-poster-options { grid-template-columns:1fr; }
+  .quiz-preflight { padding:22px 18px; }
+  .quiz-preflight li { align-items:flex-start; flex-direction:column; gap:4px; }
+}
 .lms-page-nav {
   display: flex;
   gap: 7px;

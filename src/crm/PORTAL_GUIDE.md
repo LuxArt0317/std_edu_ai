@@ -24,11 +24,11 @@ Organizes departments, programs, courses, active sections, teachers, rooms, moda
 
 ### Learning Topics
 
-Delivers sequenced course material with summaries, full topic content, estimated study time, and publication state. Students see published content for enrolled sections.
+Delivers sequenced course material through a wide page-aware reader. Teachers compose each page in a full course studio and can place multiple uploaded images, uploaded videos, or safe YouTube/Vimeo/HTTPS videos between text blocks. Students see published content for enrolled sections, retain page/progress context, and can expand into an immersive reading view.
 
 ### Assessments
 
-Students answer a real seeded quiz and receive transactional scoring plus per-question explanations. Correct answers are stored separately and are invisible to students. Teachers and authorized leadership can review assessment structure and submitted attempts.
+Students answer real transactionally scored quizzes. Correct answers remain separate and protected until the teacher's post-attempt review mode permits them. Teachers configure score/question/answer review, fullscreen, tab/window focus, extended-display, camera-device, multiple-camera, and clipboard signals. Students receive a clear preflight disclosure; supported signals are append-only evidence for authorized human review, not automatic misconduct findings, and the camera preflight stores no media.
 
 ### Grades and AI Scan Review
 
@@ -36,7 +36,7 @@ Students see only their own published results. Teachers can review class gradebo
 
 ### One Calendar
 
-Combines personal and role-wide events, enrolled or taught classes, assessment and standalone grade deadlines, attendance sessions, learning releases, assigned institutional work, enrollment windows, and term milestones. Month, week, and agenda views share filters and compact event details. Policies derive visibility from enrollment, teaching assignment, personal ownership, intended role audience, and each source domain's RLS.
+Combines personal and role-wide events, enrolled or taught classes, assessment and standalone grade deadlines, attendance sessions, learning releases, assigned institutional work, enrollment windows, and term milestones. Month, week, and agenda views share filters and compact event details. Students can turn their authorized class view into a configurable high-resolution STU-branded PNG with rooms, deadlines, weekend selection, and color themes. Policies derive visibility from enrollment, teaching assignment, personal ownership, intended role audience, and each source domain's RLS.
 
 ### People and Roles
 

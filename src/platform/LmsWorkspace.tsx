@@ -21,6 +21,7 @@ import {
   submitAssignment,
   uploadLmsFile,
   uploadLearningImage,
+  uploadLearningVideo,
   updateLearningModule,
   updateAttendanceSession,
   updateCourseAnnouncement,
@@ -62,20 +63,22 @@ function FormModal({
   title,
   children,
   onClose,
+  immersive = false,
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
+  immersive?: boolean;
 }) {
   return (
-    <div className="lms-modal-layer">
-      <button
+    <div className={`lms-modal-layer${immersive ? " lms-studio-layer" : ""}`}>
+      {!immersive ? <button
         type="button"
         className="lms-modal-shade"
         aria-label="Close"
         onClick={onClose}
-      />
-      <section className="lms-modal">
+      /> : null}
+      <section className={`lms-modal${immersive ? " lms-immersive-studio" : ""}`}>
         <header>
           <div>
             <span>COURSE STUDIO</span>
@@ -463,6 +466,9 @@ export function TeacherLmsStudio({
                   >
                     Delete
                   </button>
+                  <button type="button" onClick={()=>setModal(`integrity:${item.id}`)}>
+                    Integrity log ({data.assessmentIntegrityEvents.filter((event)=>event.assessmentId===item.id).length})
+                  </button>
                 </footer>
               </article>
             ))}
@@ -737,7 +743,7 @@ export function TeacherLmsStudio({
         const material=data.materials.find((item)=>item.id===modal.split(":")[1]);
         if(!material) return null;
         const pages=data.materialPages.filter((page)=>page.materialId===material.id).sort((a,b)=>a.position-b.position);
-        return <FormModal title={`Preview as student · ${material.title}`} onClose={()=>setModal(null)}><div className="lms-teacher-preview"><span>{material.type} · {material.status}</span><h2>{material.title}</h2><p>{material.description}</p>{pages.length ? pages.map((page)=><article key={page.id}><small>PAGE {page.position}</small><h3>{page.title}</h3><RichTextContent html={page.content} /></article>) : <RichTextContent html={material.content} />}<footer><button type="button" onClick={()=>setModal(`edit-material:${material.id}`)}>Edit lesson</button><button type="button" onClick={()=>setModal(null)}>Close preview</button></footer></div></FormModal>;
+        return <FormModal immersive title={`Student lesson preview · ${material.title}`} onClose={()=>setModal(null)}><div className="lms-teacher-preview lms-immersive-preview"><span>{material.type} · {material.status}</span><h2>{material.title}</h2><p>{material.description}</p>{pages.length ? pages.map((page)=><article key={page.id}><small>PAGE {page.position}</small><h3>{page.title}</h3><RichTextContent html={page.content} /></article>) : <RichTextContent html={material.content} />}<footer><button type="button" onClick={()=>setModal(`edit-material:${material.id}`)}>Edit lesson</button><button type="button" onClick={()=>setModal(null)}>Return to course studio</button></footer></div></FormModal>;
       })() : null}
       {modal === "assessment" || modal?.startsWith("assessment:") ? (
         <AssessmentBuilder
@@ -753,6 +759,7 @@ export function TeacherLmsStudio({
           onSave={perform}
         />
       ) : null}
+      {modal?.startsWith("integrity:") ? (()=>{const assessmentId=modal.split(":")[1];const events=data.assessmentIntegrityEvents.filter((event)=>event.assessmentId===assessmentId);return <FormModal title="Assessment integrity evidence" onClose={()=>setModal(null)}><div className="lms-integrity-log"><p>Technical events support human review. They are not automatic misconduct findings.</p>{events.map((event)=>{const student=data.profiles.find((profile)=>profile.id===event.studentProfileId);return <article key={event.id} className={event.severity}><div><b>{event.eventType.replaceAll("_"," ")}</b><span>{event.severity}</span></div><p>{student?.name??"Student"} · {new Date(event.occurredAt).toLocaleString()}</p><small>{Object.keys(event.details).length?JSON.stringify(event.details):"No additional device detail"}</small></article>;})}{!events.length?<Empty title="No integrity events" text="Preflight and in-assessment signals will appear here after students begin."/>:null}</div></FormModal>;})() : null}
       {modal?.startsWith("grade:") ? (
         <GradeForm
           id={modal.split(":")[1]}
@@ -1087,8 +1094,9 @@ function MaterialForm({
   );
   return (
     <FormModal
-      title={material ? "Edit learning material" : "Add learning material"}
+      title={material ? `Edit lesson · ${material.title}` : "Create a learning experience"}
       onClose={onClose}
+      immersive
     >
       <form
         className="lms-form"
@@ -1241,6 +1249,7 @@ function MaterialForm({
                   )
                 }
                 onImageUpload={(file) => uploadLearningImage(sectionId, file)}
+                onVideoUpload={(file) => uploadLearningVideo(sectionId, file)}
               />
             </article>
           ))}
@@ -1362,6 +1371,14 @@ function AssessmentBuilder({
             publish: f.get("publish") === "on",
             releaseExplanations: f.get("releaseExplanations") === "on",
             releaseScoresImmediately: f.get("releaseScoresImmediately") === "on",
+            reviewMode: (objective ? String(f.get("reviewMode")) : "score_only") as SchoolAssessment["reviewMode"],
+            requireFullscreen: objective && f.get("requireFullscreen") === "on",
+            monitorFocus: objective && f.get("monitorFocus") === "on",
+            detectExtendedDisplay: objective && f.get("detectExtendedDisplay") === "on",
+            requireCamera: objective && f.get("requireCamera") === "on",
+            detectMultipleCameras: objective && f.get("detectMultipleCameras") === "on",
+            preventCopyPaste: objective && f.get("preventCopyPaste") === "on",
+            integrityInstructions: objective ? String(f.get("integrityInstructions")) : "",
             questions: objective
               ? questions.map((question) => ({
                   prompt: question.prompt,
@@ -1579,7 +1596,26 @@ function AssessmentBuilder({
           />{" "}
           Published
         </label>
-        {objective ? <div className="split"><label className="check"><input name="releaseScoresImmediately" type="checkbox" defaultChecked={assessment?.releaseScoresImmediately ?? true} /> Release score immediately after submission</label><label className="check"><input name="releaseExplanations" type="checkbox" defaultChecked={assessment?.releaseExplanations ?? false} /> Release teacher-written explanations after submission</label></div> : null}
+        {objective ? <>
+          <section className="lms-assessment-policy">
+            <header><div><b>After-submission experience</b><small>Choose exactly what students can revisit after finishing.</small></div></header>
+            <label>Student review access<select name="reviewMode" defaultValue={assessment?.reviewMode ?? "score_only"}><option value="closed">Close the assessment after submission</option><option value="score_only">Show released score only</option><option value="responses">Show questions and the student’s responses</option><option value="full_review">Show responses, correct answers, and released explanations</option></select></label>
+            <div className="split"><label className="check"><input name="releaseScoresImmediately" type="checkbox" defaultChecked={assessment?.releaseScoresImmediately ?? true} /> Release score immediately after submission</label><label className="check"><input name="releaseExplanations" type="checkbox" defaultChecked={assessment?.releaseExplanations ?? false} /> Release teacher-written explanations in full review</label></div>
+          </section>
+          <section className="lms-assessment-policy integrity">
+            <header><div><b>Assessment integrity</b><small>Students see every enabled check before they begin. Browser signals are recorded as review evidence—not silently treated as proof of misconduct.</small></div></header>
+            <div className="lms-policy-grid">
+              <label className="check"><input name="requireFullscreen" type="checkbox" defaultChecked={assessment?.requireFullscreen ?? false} /> Require browser fullscreen</label>
+              <label className="check"><input name="monitorFocus" type="checkbox" defaultChecked={assessment?.monitorFocus ?? false} /> Record tab/window focus changes</label>
+              <label className="check"><input name="detectExtendedDisplay" type="checkbox" defaultChecked={assessment?.detectExtendedDisplay ?? false} /> Check for an extended/multiple display</label>
+              <label className="check"><input name="requireCamera" type="checkbox" defaultChecked={assessment?.requireCamera ?? false} /> Verify camera permission and availability</label>
+              <label className="check"><input name="detectMultipleCameras" type="checkbox" defaultChecked={assessment?.detectMultipleCameras ?? false} /> Report multiple camera devices</label>
+              <label className="check"><input name="preventCopyPaste" type="checkbox" defaultChecked={assessment?.preventCopyPaste ?? false} /> Block copy, cut, paste, and context menu in the assessment</label>
+            </div>
+            <label>Message shown before starting<textarea name="integrityInstructions" rows={3} maxLength={2000} defaultValue={assessment?.integrityInstructions ?? "Use only the resources permitted by your teacher. Technical signals are reviewed in context and are not automatic misconduct findings."} /></label>
+            <p className="lms-policy-truth">Important: a web browser cannot completely prevent operating-system app switching or guarantee monitor/camera detection on every device. Nexus records supported signals, clearly reports unsupported checks, and leaves decisions to authorized teachers.</p>
+          </section>
+        </> : null}
         <button disabled={busy}>
           {assessment ? "Save assessment changes" : `Create ${type}`}
         </button>
@@ -1740,6 +1776,7 @@ export function StudentLmsLearning({
     null,
   );
   const [activePage, setActivePage] = useState(0);
+  const [readerFocus, setReaderFocus] = useState(false);
   const [assignmentId, setAssignmentId] = useState<string | null>(null);
   const course =
     data.courses.find((item) => item.sectionId === sectionId) ??
@@ -1863,7 +1900,7 @@ export function StudentLmsLearning({
         })}
         {!attendance.length ? <Empty title="No attendance records" text="Your class attendance appears here after a teacher records a session." /> : null}
       </section>
-      <div className="lms-learning-layout">
+      <div className={`lms-learning-layout${readerFocus ? " reader-focus" : ""}`}>
         <aside aria-label="Course outline">
           <div className="lms-outline-heading"><span>COURSE OUTLINE</span><h2>Lessons and materials</h2><p>Select any lesson to open it.</p></div>
           {modules.map((module) => (
@@ -1923,6 +1960,7 @@ export function StudentLmsLearning({
         <main>
           {activeMaterial ? (
             <article className="lms-reader">
+              <header className="lms-reader-toolbar"><span>IMMERSIVE LESSON</span><button type="button" onClick={()=>setReaderFocus((value)=>!value)}>{readerFocus ? "Show course outline" : "Wide reading view"}</button></header>
               <span>
                 {activeMaterial.type} ·{" "}
                 {activeMaterial.required ? "Required" : "Optional"}

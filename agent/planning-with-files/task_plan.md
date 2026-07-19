@@ -1,5 +1,15 @@
 # Task Plan
 
+## Phase 88: Immersive multimedia LMS and assessment integrity [Issue #88]
+
+- [x] replace constrained lesson-material dialogs with a wide course-studio authoring surface
+- [x] support multiple inline image uploads and safe inline video upload/embed on every rich lesson page
+- [x] render lessons as an immersive student reading workspace with page navigation and focus mode
+- [x] persist teacher-controlled assessment review/fullscreen/focus/display/camera policies and append-only integrity events under RLS
+- [x] add student assessment preflight, clear monitoring disclosure, best-effort browser controls, event evidence, and post-attempt review modes
+- [x] add configurable branded PNG schedule export for students
+- [ ] verify schema/security/UI, automated/live behavior, review, deploy, and production markers
+
 ## Phase 86: Governed knowledge contributions and reliable Nexus revisions [Issue #86]
 
 - [x] extend knowledge schema with contributor, event/class/campus source, audience, review, and publication context

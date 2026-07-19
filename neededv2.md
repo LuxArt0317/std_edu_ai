@@ -135,8 +135,11 @@
 - [x] Create, edit, publish, preview, and delete/archive materials
 - [x] Create, edit, reorder, and remove multiple rich-content pages
 - [x] Author formatted text, links, images, and protected files through Tiptap and managed Storage
+- [x] Upload multiple images and insert uploaded or HTTPS-embedded videos between text blocks on every lesson page
+- [x] Author and preview lessons in a wide course-studio surface rather than a constrained form dialog
 - [x] Restrict private files to authorized teachers and enrolled learners
 - [x] Open lessons, navigate pages, resume progress, and mark completion
+- [x] Expand a lesson into an immersive wide reading view without leaving the enrolled course path
 - [x] Preserve class context when entering teacher or learner workspaces
 
 ## Announcements
@@ -162,6 +165,10 @@
 - [x] Add, edit, reorder, and remove questions and choices
 - [x] Submit enrolled-student attempts and deterministically score objective answers
 - [x] Keep keys, unreleased scores, and explanations hidden by policy
+- [x] Let teachers choose closed, score-only, response, or full post-attempt review
+- [x] Let teachers disclose and configure fullscreen, focus, display, camera, multiple-camera, and clipboard checks
+- [x] Run a student preflight, explain browser/privacy limits, and preserve supported signals as append-only human-review evidence
+- [x] Let authorized teachers review integrity events without treating technical signals as automatic misconduct findings
 - [x] Show only the student’s own attempts and teacher-authorized results
 - [x] Preserve submitted attempts and answers as immutable academic evidence
 
@@ -183,6 +190,11 @@
 - [x] Let students request corrections only for their own attendance
 - [x] Approve/reject correction requests with reasoned audit evidence
 - [x] Preserve finalized attendance history
+
+## Student schedule artifacts
+
+- [x] Generate a configurable high-resolution PNG timetable from the student’s authorized class calendar
+- [x] Include STU identity, learner name, class times, optional rooms, optional deadlines, weekend choice, and color theme
 
 # F. CRM, learner support, admissions, and outreach
 

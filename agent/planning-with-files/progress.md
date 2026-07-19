@@ -1,5 +1,16 @@
 # Progress
 
+## 2026-07-19 — Issue #88
+
+- Audited lesson pages, Tiptap media, public learning-media storage, assessment release RPCs, student assessment flow, and unified calendar data.
+- Confirmed current lesson authoring is constrained by a modal and single-file image picker; video is not an inline document node.
+- Confirmed assessment policy currently covers timing/attempts/result release but not explicit focus/fullscreen/display/camera controls or append-only integrity events.
+- Implemented full-width lesson authoring/preview, inline multi-image/video Tiptap nodes, and an enrolled-student wide reader.
+- Implemented assessment review/integrity schema, RLS, preflight, browser-event evidence, protected review RPC, and teacher evidence viewer.
+- Implemented configurable STU-branded PNG timetable rendering from the role-filtered unified calendar.
+- Applied both production migrations. Student evidence insertion succeeded under simulated JWT/RLS and rolled back; reviewed answers returned the configured score-only shape; advisors show no new security or unindexed-FK issue.
+- All 92 contracts, lint, TypeScript, Vite build, recursive asset verification, and live faculty/student LMS checks pass.
+
 ## 2026-07-19 — Issue #86
 
 - Added governed knowledge provenance, audience, review, RLS, UI, repository, and Nexus-grounding support.

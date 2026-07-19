@@ -8,7 +8,7 @@ const requiredEvidence=["projects/16353832066758496067","assets/dfc4619bb6af4993
 const missing=requiredEvidence.filter((marker)=>!evidence.includes(marker));
 const sourceContracts={
   "teacher material open action":lms.includes("Open lesson"),
-  "teacher lesson preview":lms.includes("Preview as student"),
+  "teacher lesson preview":lms.includes("Student lesson preview"),
   "teacher lesson edit":lms.includes("Edit lesson"),
   "student course outline":lms.includes("Course outline"),
   "student active lesson":lms.includes("aria-current"),

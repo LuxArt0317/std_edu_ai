@@ -4,8 +4,8 @@ This folder contains the role-aware school operating experience layered over the
 
 - `UnifiedPortal.tsx` renders owner, administrator, teacher, specialist-staff, and student workspaces.
 - `AcademicOperations.tsx` provides create and pre-filled edit workflows for students, departments, programs, terms, subjects, classes, enrollment, and conflict-safe schedules.
-- `LmsWorkspace.tsx` turns every existing section into an integrated teacher course studio and enrolled-student learning path, including editable multi-page rich lessons, managed images, materials, private files, complete quiz/exam/assignment/project builders, submissions, feedback, attendance, announcements, and progress.
-- `RichTextEditor.tsx` is the shared Tiptap publishing surface used by lessons and institutional knowledge.
+- `LmsWorkspace.tsx` turns every existing section into an integrated teacher course studio and enrolled-student learning path, including immersive multi-page rich lessons, inline multi-image/video media, private files, complete quiz/exam/assignment/project builders, integrity evidence review, submissions, feedback, attendance, announcements, and progress.
+- `RichTextEditor.tsx` is the shared Tiptap publishing surface used by lessons and institutional knowledge, with safe inline image, uploaded-video, YouTube, Vimeo, and HTTPS video nodes.
 - `platformRepository.ts` loads RLS-filtered academic data and owns quiz, grade, and chat persistence.
 - `platformAi.ts` calls authenticated school-chat and grade-scan endpoints and grounds Nexus in the signed-in user's RLS-visible, verified institutional knowledge.
 - `onboarding.ts`, `RoleOnboarding.tsx`, and `onboardingRepository.ts` preserve the currently disabled role-onboarding implementation and RLS-backed history for a reviewed future re-enable.
@@ -18,6 +18,8 @@ The interface adapts to the authenticated role, but authorization is enforced by
 Nexus uses one-based quiz answer positions to match the database contract, validates actions before review, and will not repeat an unchanged proposal after the user requests corrections. Its assistant identity remains visually consistent in the header, progress replies, questions, and ordinary messages.
 
 Owners, administrators, and registrars can create linked student portal/SIS records and manage enrollment. Academic leaders can build the catalog and open classes. Authorized schedule managers can add events; the database rejects overlapping rooms, assigned teachers, and shared-student class/exam conflicts.
+
+Teachers choose post-attempt review access and can enable disclosed fullscreen, focus, extended-display, camera-device, multiple-camera, and clipboard signals. Browser capabilities are best-effort and never presented as infallible lockdown; the platform stores append-only technical evidence for human review and does not store camera media. Students can also generate a configurable high-resolution STU-branded class-schedule PNG from their authorized calendar.
 
 Role onboarding is temporarily disabled for every role. `UnifiedPortal.tsx` does not import or mount the onboarding component, emit onboarding action signals, or expose onboarding target attributes. As a result, sign-in cannot automatically load/create progress or display Readiness and tour UI. Historical progress remains protected by RLS and is not used for authorization.
 

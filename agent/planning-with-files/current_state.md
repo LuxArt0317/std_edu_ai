@@ -246,3 +246,11 @@ Issue #33 is complete. PR #34 merged as `87204bd`; Vercel production is Ready. T
 - Nexus quiz actions now use the database's one-based answer positions, corrections must change the semantic proposal, execution errors become retry observations, and replies use a consistent profile identity.
 - Both production Supabase migrations are applied. Security advisors report no knowledge-specific finding; covering indexes resolve the new foreign-key performance findings.
 - All 89 contracts, lint, TypeScript, Vite build, asset verification, and live Nexus quiz correction checks pass. PR #87 merged as `f887c10`; Vercel production is Ready and the custom-domain recursive asset graph serves every released knowledge, avatar, and correction marker.
+
+# Active work: Issue #88 immersive LMS, integrity controls, and schedule export
+
+- Lesson create/edit/preview now uses a full-width course studio. Every page supports repeated multi-image uploads plus uploaded MP4/WebM/MOV and safe YouTube/Vimeo/direct HTTPS video nodes inside the document flow.
+- Enrolled learners retain course/page/progress context and can expand the active lesson into an immersive wide reader.
+- Objective assessments now support teacher-selected post-attempt review and disclosed fullscreen, focus, extended-display, camera, multiple-camera, and clipboard checks. Preflight limitations are explicit; camera media is never stored; append-only signals are RLS-scoped and available in a teacher integrity log.
+- Students can configure and download a high-resolution STU-branded PNG timetable with theme, rooms, deadlines, and weekend options.
+- Both production Supabase migrations are applied. Schema, RLS insert/rollback, reviewed-answer disclosure, security advisors, FK indexes, 92 contracts, lint, build, and the live LMS workflow pass. GitHub review and production deployment remain.

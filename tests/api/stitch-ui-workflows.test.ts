@@ -11,7 +11,7 @@ test("Stitch outputs are validated instead of accepted as complete",()=>{
 
 test("teacher and student lessons expose explicit workflow actions",()=>{
   const source=readFileSync("src/platform/LmsWorkspace.tsx","utf8");
-  for(const marker of ["Open lesson","Preview as student","Edit lesson","Course outline","aria-current","Next lesson"]) assert.match(source,new RegExp(marker));
+  for(const marker of ["Open lesson","Student lesson preview","Edit lesson","Course outline","aria-current","Next lesson","Wide reading view"]) assert.match(source,new RegExp(marker));
 });
 
 test("completed repository hooks are removed",()=>{

@@ -112,7 +112,7 @@ Legend: **C/R/U/D** = create/read/update/archive-delete. **T** = controlled tran
 
 Tiptap is the standard editor for content intended to be read as a document, including learning pages, assessment instructions, feedback, announcements, knowledge, campaign messages, and substantial case notes.
 
-The editor must support headings, paragraphs, bold, italic, lists, block quotes, links, undo/redo, and managed image upload. Images require type and size validation, accessible alternative text support, safe generated paths, and role-protected Storage policies. Stored rich HTML is rendered through the same controlled Tiptap schema, not injected through uncontrolled HTML APIs.
+The editor must support headings, paragraphs, bold, italic, lists, block quotes, links, undo/redo, multiple managed image uploads, uploaded lesson video, and safe YouTube/Vimeo/HTTPS video embeds between text blocks. Media requires type and size validation, accessible titles/alternative text, safe generated paths, and role-protected Storage policies. Stored rich HTML is rendered through the same controlled Tiptap schema, not injected through uncontrolled HTML APIs.
 
 Long-form learning material and knowledge must support multiple named pages. Authors can add, rename, edit, remove, and reorder pages. Readers receive page tabs or a table of contents, previous/next navigation, progress context, responsive typography, and a clear completion action.
 
@@ -133,8 +133,10 @@ Long-form learning material and knowledge must support multiple named pages. Aut
 - Teachers see only sections they can manage according to database policy.
 - Module and material cards expose Edit, Publish/Unpublish, and Archive/Delete consistently.
 - Material Edit opens the same complete multi-page author used for creation, preloaded with metadata and every page.
+- Lesson authoring and preview use a wide document studio; enrolled learners can enter a wide reading mode without losing course/page/progress context.
 - Saving existing materials updates changed pages, creates new pages, deletes explicitly removed pages, and preserves deterministic page order.
 - Assessments support complete editing of metadata and objective questions before learner attempts exist. After attempts exist, answer-key changes require a versioned replacement or explicit administrative policy.
+- Teachers control post-attempt visibility and may enable clearly disclosed fullscreen, focus, display, camera-device, multiple-camera, and clipboard signals. Browser checks are best-effort, limitations are visible, camera media is not stored, and technical signals remain append-only evidence for authorized human review rather than automatic misconduct findings.
 - Assignment instructions, teacher feedback, and announcements use rich text.
 - Attendance sessions can be edited and closed; individual records can be corrected with notes.
 - Submission grading validates the score ceiling and preserves grader/time metadata.

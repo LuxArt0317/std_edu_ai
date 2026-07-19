@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Replaced constrained lesson-material dialogs with a wide course studio and added multi-image insertion plus uploaded/embedded inline video on every Tiptap lesson page.
+- Added an immersive student reading mode with page navigation and responsive image/video rendering inside the lesson flow.
+- Added teacher-controlled post-attempt review plus disclosed fullscreen, focus, extended-display, camera, multiple-camera, and clipboard checks with append-only RLS evidence and a teacher integrity log.
+- Added a configurable high-resolution student schedule PNG with STU identity, rooms, deadlines, weekend selection, and color themes.
+
 - Added governed rich-text knowledge contributions sourced from staff expertise or linked personal, class, and whole-campus events, with institution/role/class/staff audiences and contributor/reviewer provenance.
 - Added RLS-enforced contributor submission and owner/administrator/librarian verification, production indexes, and verified-knowledge grounding for Nexus.
 - Added a consistent Nexus profile avatar and reply identity, corrected quiz answers to the database's one-based choice contract, and forced genuine parameter changes after rejected proposals.

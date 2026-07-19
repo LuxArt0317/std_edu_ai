@@ -226,7 +226,38 @@ export type SchoolAssessment = {
   maxScore: number;
   releaseExplanations: boolean;
   releaseScoresImmediately: boolean;
+  reviewMode: "closed" | "score_only" | "responses" | "full_review";
+  requireFullscreen: boolean;
+  monitorFocus: boolean;
+  detectExtendedDisplay: boolean;
+  requireCamera: boolean;
+  detectMultipleCameras: boolean;
+  preventCopyPaste: boolean;
+  integrityInstructions: string;
   questions: AssessmentQuestion[];
+};
+
+export type AssessmentReview = {
+  mode: SchoolAssessment["reviewMode"];
+  questions: Array<{ questionId: string; correctOptionId: string | null; explanation: string }>;
+};
+
+export type AssessmentIntegrityEventType =
+  | "preflight_started" | "preflight_passed" | "preflight_failed"
+  | "focus_lost" | "focus_returned" | "fullscreen_entered" | "fullscreen_exited"
+  | "extended_display_detected" | "display_check_unavailable"
+  | "camera_verified" | "camera_missing" | "multiple_cameras_detected"
+  | "clipboard_blocked" | "assessment_submitted";
+export type AssessmentIntegrityEvent = {
+  id: string;
+  assessmentId: string;
+  attemptId: string | null;
+  studentProfileId: string;
+  sessionId: string;
+  eventType: AssessmentIntegrityEventType;
+  severity: "info" | "warning" | "critical";
+  details: Record<string, unknown>;
+  occurredAt: string;
 };
 
 export type GradeItem = {
@@ -420,6 +451,7 @@ export type PlatformData = {
   attendanceRecords: AttendanceRecord[];
   assessments: SchoolAssessment[];
   assessmentAttempts: AssessmentAttempt[];
+  assessmentIntegrityEvents: AssessmentIntegrityEvent[];
   gradeItems: GradeItem[];
   grades: GradeRecord[];
   schedule: ScheduleEvent[];

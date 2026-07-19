@@ -77,6 +77,8 @@ import {
   recordGradeScan,
   saveReviewedScan,
   submitAssessment,
+  recordAssessmentIntegrityEvent,
+  readAssessmentReview,
   updatePlatformProfile,
   updateGradeRecord,
   updateRoleCapabilities,
@@ -85,6 +87,7 @@ import {
 } from "./platformRepository";
 import type {
   AssessmentAttemptResult,
+  AssessmentReview,
   AuthDirectoryAccount,
   ChatMessage,
   GradeScanResult,
@@ -104,6 +107,14 @@ import "./platform.css";
 
 type PortalView = PortalSection | "crm";
 type NexusActivityState = "idle" | "thinking" | "executing" | "refreshing" | "waiting" | "complete" | "blocked";
+
+function browserUuid() {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const value = [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${value.slice(0,8)}-${value.slice(8,12)}-${value.slice(12,16)}-${value.slice(16,20)}-${value.slice(20)}`;
+}
 
 const leadershipRoles = new Set<PlatformRole>([
   "owner",
@@ -1018,6 +1029,11 @@ function AssessmentsView({
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [result, setResult] = useState<AssessmentAttemptResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [assessmentStarted, setAssessmentStarted] = useState(false);
+  const [preflightBusy, setPreflightBusy] = useState(false);
+  const [preflightMessages, setPreflightMessages] = useState<string[]>([]);
+  const [review, setReview] = useState<AssessmentReview | null>(null);
+  const integritySession = useRef(browserUuid());
   const learnerMode = role === "student";
   const assessments = useMemo(
     () => [...data.assessments].sort((left, right) =>
@@ -1025,6 +1041,62 @@ function AssessmentsView({
     [data.assessments, initialSectionId],
   );
   const focusedCourse = data.courses.find((course) => course.sectionId === initialSectionId);
+
+  const writeIntegrity = useCallback((eventType: Parameters<typeof recordAssessmentIntegrityEvent>[0]["eventType"], severity: "info"|"warning"|"critical"="info", details: Record<string, string|number|boolean|null>={}) => {
+    if (!active || !learnerMode) return;
+    void recordAssessmentIntegrityEvent({ assessmentId: active.id, sessionId: integritySession.current, eventType, severity, details }).catch(() => undefined);
+  }, [active, learnerMode]);
+
+  useEffect(() => {
+    if (!active || !assessmentStarted || !learnerMode) return;
+    const visibility = () => writeIntegrity(document.hidden ? "focus_lost" : "focus_returned", document.hidden ? "warning" : "info", { visibility: document.visibilityState });
+    const blur = () => { if (active.monitorFocus) writeIntegrity("focus_lost", "warning", { source: "window_blur" }); };
+    const fullscreen = () => writeIntegrity(document.fullscreenElement ? "fullscreen_entered" : "fullscreen_exited", document.fullscreenElement ? "info" : "warning");
+    const clipboard = (event: Event) => { if (!active.preventCopyPaste) return; event.preventDefault(); writeIntegrity("clipboard_blocked", "warning", { operation: event.type }); onComplete("Copy, cut, paste, and the context menu are disabled for this assessment."); };
+    if (active.monitorFocus) { document.addEventListener("visibilitychange", visibility); window.addEventListener("blur", blur); }
+    if (active.requireFullscreen) document.addEventListener("fullscreenchange", fullscreen);
+    for (const name of ["copy","cut","paste","contextmenu"]) document.addEventListener(name, clipboard);
+    return () => { document.removeEventListener("visibilitychange", visibility); window.removeEventListener("blur", blur); document.removeEventListener("fullscreenchange", fullscreen); for (const name of ["copy","cut","paste","contextmenu"]) document.removeEventListener(name, clipboard); };
+  }, [active, assessmentStarted, learnerMode, onComplete, writeIntegrity]);
+
+  async function beginAssessment() {
+    if (!active || preflightBusy) return;
+    setPreflightBusy(true); setPreflightMessages([]); integritySession.current=browserUuid();
+    await recordAssessmentIntegrityEvent({assessmentId:active.id,sessionId:integritySession.current,eventType:"preflight_started"}).catch(()=>undefined);
+    const messages: string[]=[];
+    try {
+      if (active.detectExtendedDisplay) {
+        const extended = (window.screen as Screen & { isExtended?: boolean }).isExtended;
+        if (extended === undefined) { messages.push("This browser cannot verify multiple displays; that limitation was recorded."); writeIntegrity("display_check_unavailable","warning"); }
+        else if (extended) { messages.push("An extended display was detected and recorded for teacher review."); writeIntegrity("extended_display_detected","warning"); }
+        else messages.push("Single-display check passed.");
+      }
+      if (active.requireCamera || active.detectMultipleCameras) {
+        if (!navigator.mediaDevices?.getUserMedia) throw new Error("This browser cannot perform the required camera preflight.");
+        const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+        const cameras=(await navigator.mediaDevices.enumerateDevices()).filter((device)=>device.kind==="videoinput");
+        stream.getTracks().forEach((track)=>track.stop());
+        if (!cameras.length) { writeIntegrity("camera_missing","critical"); throw new Error("No camera was available for this assessment."); }
+        writeIntegrity("camera_verified","info",{cameraCount:cameras.length}); messages.push("Camera availability verified. No image or video was stored.");
+        if (active.detectMultipleCameras && cameras.length > 1) { writeIntegrity("multiple_cameras_detected","warning",{cameraCount:cameras.length}); messages.push(`${cameras.length} camera devices were detected and recorded.`); }
+      }
+      if (active.requireFullscreen) {
+        if (!document.documentElement.requestFullscreen) throw new Error("This browser does not support the required fullscreen mode.");
+        await document.documentElement.requestFullscreen();
+        writeIntegrity("fullscreen_entered"); messages.push("Fullscreen mode enabled.");
+      }
+      await recordAssessmentIntegrityEvent({assessmentId:active.id,sessionId:integritySession.current,eventType:"preflight_passed",details:{checks:messages.length}});
+      setPreflightMessages(messages); setAssessmentStarted(true);
+    } catch (error) {
+      const message=error instanceof Error?error.message:"Assessment preflight failed.";
+      setPreflightMessages([...messages,message]);
+      await recordAssessmentIntegrityEvent({assessmentId:active.id,sessionId:integritySession.current,eventType:"preflight_failed",severity:"critical",details:{message}}).catch(()=>undefined);
+    } finally { setPreflightBusy(false); }
+  }
+  function closeAssessment() {
+    if (document.fullscreenElement) void document.exitFullscreen().catch(()=>undefined);
+    setActive(null); setAssessmentStarted(false); setPreflightMessages([]); setReview(null);
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -1038,6 +1110,8 @@ function AssessmentsView({
       );
       const response = await submitAssessment(active.id, submission);
       setResult(response);
+      writeIntegrity("assessment_submitted","info",{attemptId:response.attemptId});
+      if (active.reviewMode === "responses" || active.reviewMode === "full_review") setReview(await readAssessmentReview(active.id));
       onComplete(response.score === null ? "Assessment submitted. Your result is awaiting release." : `Assessment scored: ${response.score} / ${response.maxScore}`);
     } catch (error) {
       onComplete(
@@ -1089,6 +1163,7 @@ function AssessmentsView({
                 <span>↻ {assessment.attemptLimit} attempts</span>
                 <span>✓ {assessment.maxScore} points</span>
               </div>
+              {assessment.requireFullscreen || assessment.monitorFocus || assessment.requireCamera || assessment.detectExtendedDisplay ? <div className="assessment-integrity-badges" aria-label="Assessment integrity requirements">{assessment.requireFullscreen?<span>⛶ Fullscreen</span>:null}{assessment.monitorFocus?<span>◉ Focus events</span>:null}{assessment.detectExtendedDisplay?<span>▣ Display check</span>:null}{assessment.requireCamera?<span>● Camera check</span>:null}</div>:null}
               <footer>
                 <small>Due {formatDate(assessment.dueAt)}</small>
                 <button
@@ -1097,6 +1172,9 @@ function AssessmentsView({
                     setActive(assessment);
                     setAnswers({});
                     setResult(null);
+                    setReview(null);
+                    setAssessmentStarted(!learnerMode);
+                    setPreflightMessages([]);
                   }}
                 >
                   {learnerMode ? "Start assessment →" : "Preview assessment →"}
@@ -1112,7 +1190,7 @@ function AssessmentsView({
             className="quiz-backdrop"
             type="button"
             aria-label="Close assessment"
-            onClick={() => setActive(null)}
+            onClick={closeAssessment}
           />
           <section className="quiz-panel">
             <header>
@@ -1125,7 +1203,7 @@ function AssessmentsView({
                   <p>No instructions provided.</p>
                 )}
               </div>
-              <button type="button" onClick={() => setActive(null)}>
+              <button type="button" onClick={closeAssessment}>
                 ×
               </button>
             </header>
@@ -1140,19 +1218,31 @@ function AssessmentsView({
                     ? "Objective answers were scored. A teacher will review the remaining response."
                     : "Your answers were checked against the protected answer key."}
                 </p>
-                <div>
-                  {active.releaseExplanations ? active.questions.map((question) => (
-                    <article key={question.id}>
-                      <b>
-                        {question.position}. {question.prompt}
-                      </b>
-                      <p>{question.explanation}</p>
-                    </article>
-                  )) : <p>Answer explanations have not been released by the teacher.</p>}
-                </div>
-                <button type="button" onClick={() => setActive(null)}>
+                {active.reviewMode === "closed" ? <p>This assessment is closed after submission by your teacher.</p> : null}
+                {active.reviewMode === "responses" || active.reviewMode === "full_review" ? <div className="quiz-review-list">{active.questions.map((question) => {
+                  const selected=question.options.find((option)=>option.id===answers[question.id]);
+                  const reviewed=review?.questions.find((item)=>item.questionId===question.id);
+                  const correct=question.options.find((option)=>option.id===reviewed?.correctOptionId);
+                  return <article key={question.id}><b>{question.position}. {question.prompt}</b><p>Your response: {selected?.label ?? answers[question.id] ?? "No response"}</p>{active.reviewMode === "full_review" ? <><p className="correct">Correct answer: {correct?.label ?? "Teacher review pending"}</p>{reviewed?.explanation ? <small>{reviewed.explanation}</small> : null}</> : null}</article>;
+                })}</div> : null}
+                <button type="button" onClick={closeAssessment}>
                   Return to assessments
                 </button>
+              </div>
+            ) : learnerMode && !assessmentStarted ? (
+              <div className="quiz-preflight">
+                <span>BEFORE YOU BEGIN</span><h2>Assessment requirements</h2>
+                <p>{active.integrityInstructions || "Review the requirements below before starting."}</p>
+                <ul>
+                  <li><b>{active.requireFullscreen ? "Required" : "Not required"}</b> Browser fullscreen</li>
+                  <li><b>{active.monitorFocus ? "Recorded" : "Not recorded"}</b> Tab and window focus changes</li>
+                  <li><b>{active.detectExtendedDisplay ? "Checked when supported" : "Not checked"}</b> Extended/multiple display signal</li>
+                  <li><b>{active.requireCamera ? "Permission required" : active.detectMultipleCameras ? "Devices checked" : "Not used"}</b> Camera availability (no recording is stored)</li>
+                  <li><b>{active.preventCopyPaste ? "Disabled" : "Available"}</b> Copy, cut, paste, and context menu</li>
+                </ul>
+                <aside><b>Your privacy and fairness</b><p>Technical events are evidence for human review, not automatic findings. Browser limitations are recorded honestly. Camera preflight stops immediately after device verification.</p></aside>
+                {preflightMessages.length ? <div className="quiz-preflight-results">{preflightMessages.map((message)=><p key={message}>{message}</p>)}</div> : null}
+                <button type="button" disabled={preflightBusy} onClick={()=>void beginAssessment()}>{preflightBusy ? "Checking your device…" : "I understand · Run checks and begin"}</button>
               </div>
             ) : (
               <form onSubmit={submit}>
@@ -1671,6 +1761,36 @@ function GradesView({
   );
 }
 
+type SchedulePosterOptions = { title: string; theme: "heritage"|"ocean"|"sunrise"; includeWeekends: boolean; includeLocation: boolean; includeDeadlines: boolean };
+
+async function loadCanvasImage(src: string) {
+  return new Promise<HTMLImageElement|null>((resolve)=>{const image=new Image();let settled=false;const finish=(value:HTMLImageElement|null)=>{if(settled)return;settled=true;resolve(value);};const timer=window.setTimeout(()=>finish(null),5000);image.crossOrigin="anonymous";image.onload=()=>{window.clearTimeout(timer);finish(image);};image.onerror=()=>{window.clearTimeout(timer);finish(null);};image.src=src;});
+}
+
+async function downloadSchedulePng(events: UnifiedCalendarEvent[], user: CrmUser, options: SchedulePosterOptions) {
+  const canvas=document.createElement("canvas"); canvas.width=1800; canvas.height=1200; const context=canvas.getContext("2d"); if(!context) throw new Error("Your browser cannot create a schedule image.");
+  const palettes={heritage:{ink:"#103f39",accent:"#147b6f",soft:"#e7f4f1",paper:"#fbfdfc"},ocean:{ink:"#153f5b",accent:"#2478a7",soft:"#e8f4fb",paper:"#fbfdff"},sunrise:{ink:"#5f382c",accent:"#c96f42",soft:"#fff1e8",paper:"#fffdfb"}}; const color=palettes[options.theme];
+  context.fillStyle=color.paper;context.fillRect(0,0,canvas.width,canvas.height);context.fillStyle=color.ink;context.fillRect(0,0,canvas.width,210);
+  const logo=await loadCanvasImage("https://www.stu.edu.tw/wp-content/uploads/2026/01/stu-logo-2.png");
+  if(logo) context.drawImage(logo,72,46,300,92); else {context.fillStyle="#fff";context.beginPath();context.roundRect(72,46,84,84,20);context.fill();context.fillStyle=color.ink;context.font="700 44px serif";context.fillText("樹",92,104);context.fillStyle="#fff";context.font="700 27px sans-serif";context.fillText("SHU-TE UNIVERSITY",180,100);}
+  context.fillStyle="#fff";context.font="700 46px sans-serif";context.fillText(options.title||"My Class Schedule",700,82);context.font="25px sans-serif";context.fillStyle="#cce9e3";context.fillText(`${user.name} · Generated ${new Intl.DateTimeFormat("en",{dateStyle:"long"}).format(new Date())}`,700,132);
+  const days=options.includeWeekends?["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]:["Mon","Tue","Wed","Thu","Fri","Sat"];const dayIndex=(date:Date)=>options.includeWeekends?date.getDay():(date.getDay()===0?-1:date.getDay()-1);
+  const classEvents=[...new Map(events.filter((event)=>event.category==="class"&&dayIndex(new Date(event.startsAt))>=0).map((event)=>{const start=new Date(event.startsAt),end=new Date(event.endsAt);return [`${dayIndex(start)}:${start.getHours()}:${start.getMinutes()}:${end.getHours()}:${end.getMinutes()}:${event.title}:${event.location}`,event] as const;})).values()]; const startHour=Math.min(8,...classEvents.map((event)=>new Date(event.startsAt).getHours()));const endHour=Math.max(18,...classEvents.map((event)=>Math.ceil(new Date(event.endsAt).getHours()+new Date(event.endsAt).getMinutes()/60)));
+  const left=150,top=285,right=1740,bottom=1030,col=(right-left)/days.length,row=(bottom-top)/(endHour-startHour);
+  context.strokeStyle="#cbded9";context.lineWidth=2;context.font="700 22px sans-serif";context.textAlign="center";days.forEach((day,index)=>{context.fillStyle=color.soft;context.fillRect(left+index*col,230,col,55);context.fillStyle=color.ink;context.fillText(day,left+index*col+col/2,266);});
+  for(let hour=startHour;hour<=endHour;hour++){const y=top+(hour-startHour)*row;context.beginPath();context.moveTo(left,y);context.lineTo(right,y);context.stroke();context.textAlign="right";context.fillStyle="#647b76";context.font="20px sans-serif";context.fillText(new Intl.DateTimeFormat("en",{hour:"numeric"}).format(new Date(2020,1,1,hour)),left-18,y+7);}
+  for(let index=0;index<=days.length;index++){const x=left+index*col;context.beginPath();context.moveTo(x,top);context.lineTo(x,bottom);context.stroke();}
+  for(const event of classEvents){const start=new Date(event.startsAt),end=new Date(event.endsAt),index=dayIndex(start);const x=left+index*col+7,y=top+((start.getHours()+start.getMinutes()/60)-startHour)*row+5,h=Math.max(55,((end.getTime()-start.getTime())/3600000)*row-10);context.fillStyle=color.accent;context.beginPath();context.roundRect(x,y,col-14,h,14);context.fill();context.fillStyle="#fff";context.textAlign="left";context.font="700 21px sans-serif";const title=event.title.length>25?`${event.title.slice(0,24)}…`:event.title;context.fillText(title,x+14,y+28);context.font="17px sans-serif";context.fillText(new Intl.DateTimeFormat("en",{hour:"numeric",minute:"2-digit"}).format(start),x+14,y+52);if(options.includeLocation&&h>78)context.fillText(event.location||"Location TBA",x+14,y+75);}
+  context.textAlign="left";context.fillStyle=color.ink;context.font="700 21px sans-serif";context.fillText("STU Nexus · Official personal schedule export",72,1145);
+  if(options.includeDeadlines){const upcoming=events.filter((event)=>["assessment","deadline"].includes(event.category)&&new Date(event.startsAt)>=new Date()).slice(0,3);context.textAlign="right";context.font="18px sans-serif";context.fillStyle="#657d78";context.fillText(upcoming.length?`Upcoming: ${upcoming.map((event)=>event.title).join(" · ")}`:"No upcoming deadlines",1728,1145);}
+  const blob=await new Promise<Blob|null>((resolve)=>canvas.toBlob(resolve,"image/png",1));if(!blob)throw new Error("The schedule image could not be generated.");const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download=`stu-class-schedule-${new Date().toISOString().slice(0,10)}.png`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+function SchedulePngGenerator({events,user,onToast}:{events:UnifiedCalendarEvent[];user:CrmUser;onToast:(message:string)=>void}) {
+  const [options,setOptions]=useState<SchedulePosterOptions>({title:"My Class Schedule",theme:"heritage",includeWeekends:false,includeLocation:true,includeDeadlines:true});const [busy,setBusy]=useState(false);
+  return <section className="schedule-poster school-card"><div><span>STUDENT SCHEDULE STUDIO</span><h2>Make your class schedule</h2><p>Generate a high-resolution PNG with the school identity, your class times, rooms, and optional upcoming deadlines.</p></div><div className="schedule-poster-options"><label>Poster title<input value={options.title} maxLength={70} onChange={(event)=>setOptions({...options,title:event.target.value})}/></label><label>Color style<select value={options.theme} onChange={(event)=>setOptions({...options,theme:event.target.value as SchedulePosterOptions["theme"]})}><option value="heritage">STU heritage green</option><option value="ocean">Ocean blue</option><option value="sunrise">Sunrise</option></select></label><label className="check"><input type="checkbox" checked={options.includeLocation} onChange={(event)=>setOptions({...options,includeLocation:event.target.checked})}/> Include rooms</label><label className="check"><input type="checkbox" checked={options.includeDeadlines} onChange={(event)=>setOptions({...options,includeDeadlines:event.target.checked})}/> Include upcoming deadlines</label><label className="check"><input type="checkbox" checked={options.includeWeekends} onChange={(event)=>setOptions({...options,includeWeekends:event.target.checked})}/> Include Sunday</label></div><button type="button" disabled={busy} onClick={()=>{setBusy(true);void downloadSchedulePng(events,user,options).then(()=>onToast("Your branded schedule PNG is ready.")).catch((error:unknown)=>onToast(error instanceof Error?error.message:"Schedule export failed.")).finally(()=>setBusy(false));}}>{busy?"Designing PNG…":"Download schedule PNG"}</button></section>;
+}
+
 function ScheduleView({
   data,
   currentUser,
@@ -1717,6 +1837,7 @@ function ScheduleView({
         description="Classes, exams, deadlines, meetings, and campus events—filtered automatically for your role."
       />
       {focusedCourse ? <div className="workspace-focus-banner"><b>Showing {focusedCourse.code} first</b><span>{focusedCourse.title} · {focusedCourse.sectionCode}</span></div> : null}
+      {currentUser.role === "student" ? <SchedulePngGenerator events={allEvents} user={currentUser} onToast={onToast} /> : null}
       <section className="unified-calendar school-card">
         <header className="unified-calendar-head">
           <div><span>YOUR TIME, IN ONE PLACE</span><h2>{new Intl.DateTimeFormat("en", { month: "long", year: "numeric" }).format(anchorDate)}</h2><p>{todayEvents.length ? `${todayEvents.length} item${todayEvents.length === 1 ? "" : "s"} today` : "Nothing scheduled today"} · {upcomingImportant.length} important coming up</p></div>

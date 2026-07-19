@@ -658,12 +658,20 @@ export type Database = {
           created_by: string | null
           due_at: string | null
           duration_minutes: number | null
+          detect_extended_display: boolean
+          detect_multiple_cameras: boolean
           id: string
+          integrity_instructions: string
           instructions: string
           max_score: number
           opens_at: string | null
+          monitor_focus: boolean
+          prevent_copy_paste: boolean
+          require_camera: boolean
+          require_fullscreen: boolean
           release_explanations: boolean
           release_scores_immediately: boolean
+          review_mode: string
           section_id: string
           status: string
           title: string
@@ -676,12 +684,20 @@ export type Database = {
           created_by?: string | null
           due_at?: string | null
           duration_minutes?: number | null
+          detect_extended_display?: boolean
+          detect_multiple_cameras?: boolean
           id?: string
+          integrity_instructions?: string
           instructions?: string
           max_score?: number
           opens_at?: string | null
+          monitor_focus?: boolean
+          prevent_copy_paste?: boolean
+          require_camera?: boolean
+          require_fullscreen?: boolean
           release_explanations?: boolean
           release_scores_immediately?: boolean
+          review_mode?: string
           section_id: string
           status?: string
           title: string
@@ -694,12 +710,20 @@ export type Database = {
           created_by?: string | null
           due_at?: string | null
           duration_minutes?: number | null
+          detect_extended_display?: boolean
+          detect_multiple_cameras?: boolean
           id?: string
+          integrity_instructions?: string
           instructions?: string
           max_score?: number
           opens_at?: string | null
+          monitor_focus?: boolean
+          prevent_copy_paste?: boolean
+          require_camera?: boolean
+          require_fullscreen?: boolean
           release_explanations?: boolean
           release_scores_immediately?: boolean
+          review_mode?: string
           section_id?: string
           status?: string
           title?: string
@@ -720,6 +744,46 @@ export type Database = {
             referencedRelation: "course_sections"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      assessment_integrity_events: {
+        Row: {
+          assessment_id: string
+          attempt_id: string | null
+          details: Json
+          event_type: string
+          id: string
+          occurred_at: string
+          session_id: string
+          severity: string
+          student_profile_id: string
+        }
+        Insert: {
+          assessment_id: string
+          attempt_id?: string | null
+          details?: Json
+          event_type: string
+          id?: string
+          occurred_at?: string
+          session_id: string
+          severity?: string
+          student_profile_id: string
+        }
+        Update: {
+          assessment_id?: string
+          attempt_id?: string | null
+          details?: Json
+          event_type?: string
+          id?: string
+          occurred_at?: string
+          session_id?: string
+          severity?: string
+          student_profile_id?: string
+        }
+        Relationships: [
+          { foreignKeyName: "assessment_integrity_events_assessment_id_fkey"; columns: ["assessment_id"]; isOneToOne: false; referencedRelation: "assessments"; referencedColumns: ["id"] },
+          { foreignKeyName: "assessment_integrity_events_attempt_id_fkey"; columns: ["attempt_id"]; isOneToOne: false; referencedRelation: "assessment_attempts"; referencedColumns: ["id"] },
+          { foreignKeyName: "assessment_integrity_events_student_profile_id_fkey"; columns: ["student_profile_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ]
       }
       assignment_submissions: {
@@ -3443,6 +3507,10 @@ export type Database = {
           student_profile_id: string
           submitted_at: string
         }[]
+      }
+      read_assessment_review: {
+        Args: { p_assessment_id: string }
+        Returns: Json
       }
       read_assessment_questions: {
         Args: never
