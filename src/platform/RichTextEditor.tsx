@@ -133,6 +133,30 @@ export function RichTextEditor({
       editor.commands.setContent(value || "<p></p>", { emitUpdate: false });
   }, [editor, value]);
   if (!editor) return null;
+  const insertImages = async (files: File[], position = editor.state.selection.from) => {
+    if (!onImageUpload || !files.length) return;
+    setUploading(true);
+    setMediaError("");
+    try {
+      let insertionPoint = position;
+      for (const file of files) {
+        const url = await onImageUpload(file);
+        editor
+          .chain()
+          .insertContentAt(insertionPoint, {
+            type: "image",
+            attrs: { src: url, alt: file.name || "Pasted screenshot", title: file.name || "Pasted screenshot" },
+          })
+          .focus(insertionPoint + 1)
+          .run();
+        insertionPoint += 1;
+      }
+    } catch (error) {
+      setMediaError(error instanceof Error ? error.message : "Images could not be uploaded.");
+    } finally {
+      setUploading(false);
+    }
+  };
   const link = () => {
     const previous = editor.getAttributes("link").href as string | undefined;
     const href = window.prompt("HTTPS link", previous || "https://");
@@ -158,7 +182,16 @@ export function RichTextEditor({
     }
   };
   return (
-    <div className="lms-rich-editor">
+    <div className="lms-rich-editor" onPaste={(event) => {
+      if (!onImageUpload) return;
+      const images = [...event.clipboardData.items]
+        .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+        .map((item) => item.getAsFile())
+        .filter((file): file is File => Boolean(file));
+      if (!images.length) return;
+      event.preventDefault();
+      void insertImages(images);
+    }}>
       <div className="lms-rich-toolbar">
         <button
           type="button"
@@ -239,16 +272,7 @@ export function RichTextEditor({
                 const files = [...(event.target.files ?? [])];
                 event.target.value = "";
                 if (!files.length) return;
-                setUploading(true);
-                setMediaError("");
-                void (async () => {
-                  for (const file of files) {
-                    const url = await onImageUpload(file);
-                    editor.chain().focus().setImage({ src: url, alt: file.name, title: file.name }).run();
-                  }
-                })()
-                  .catch((error: unknown) => setMediaError(error instanceof Error ? error.message : "Images could not be uploaded."))
-                  .finally(() => setUploading(false));
+                void insertImages(files);
               }}
             />
           </>
@@ -284,6 +308,7 @@ export function RichTextEditor({
         >
           ↷
         </button>
+        {onImageUpload ? <small className="lms-paste-hint">Paste screenshots · ⌘V or Ctrl+V</small> : null}
       </div>
       {mediaError ? <p className="lms-media-error" role="alert">{mediaError}</p> : null}
       <EditorContent editor={editor} />

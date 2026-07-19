@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added direct clipboard screenshot paste to Tiptap lesson pages for macOS and Windows, including multiple clipboard images, insertion at the active cursor, existing protected media validation, progress/error feedback, and untouched ordinary text/HTML paste.
+
 - Replaced the privileged-role legacy topic reader with the same live Supabase-backed LMS module, material, and multi-page lesson graph used by students, with role-appropriate read-only review states.
 - Removed misleading standalone HTTPS and file fields from lesson creation; teachers now insert named private file links, images, and videos directly into the lesson page where learners consume them.
 - Made Add Page compact, constrained the lesson canvas to the available width, and kept the editing toolbar above the document while the course studio scrolls.

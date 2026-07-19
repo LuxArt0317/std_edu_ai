@@ -1,5 +1,13 @@
 # Progress
 
+## 2026-07-19 — Issue #94
+
+- Opened Issue #94 after confirming the shared Tiptap editor only accepted chosen image files and did not inspect clipboard image items.
+- Reusing the existing `uploadLearningImage` boundary so pasted screenshots inherit MIME, size, Storage, section authorization, and RLS enforcement.
+- Added image-only clipboard detection, cursor-position insertion, multiple-image sequencing, shared picker/paste upload handling, and a compact ⌘V/Ctrl+V discovery hint.
+- Normal clipboard content returns before `preventDefault`, preserving native Tiptap text and HTML paste behavior.
+- All 97 contracts, lint, TypeScript/Vite production build, asset verification, and the reversible live LMS/private-media workflow pass with cleanup.
+
 ## 2026-07-19 — Issue #92
 
 - Confirmed the lesson form duplicates obsolete HTTPS/file controls outside the page document, the authoring canvas can compress into a side column, and the Add Page action inherits oversized form-button styling.

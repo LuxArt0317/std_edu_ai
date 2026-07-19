@@ -1,5 +1,12 @@
 # Current State
 
+# Active implementation: Issue #94
+
+- The shared Tiptap lesson editor detects image file items from macOS screenshot and Windows Snipping Tool clipboard pastes, uploads them through the existing section-authorized `learning-media` service, and inserts them at the captured cursor position.
+- Multiple clipboard images are inserted in order. Picker uploads use the same implementation; normal text/HTML clipboard data is not intercepted.
+- The existing MIME/8 MB validation, upload progress, failure message, public instructional-media delivery, and Supabase Storage RLS remain authoritative.
+- All 97 contracts, lint, TypeScript/Vite build, recursive asset verification, and the reversible live LMS workflow pass. Review, merge, deployment, and production verification remain.
+
 # Active implementation: Issue #92
 
 - Learning now uses one live Supabase-backed module/material/page reader for students and authorized privileged reviewers; the legacy `course_topics` Learning surface has been removed.
