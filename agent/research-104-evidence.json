@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "parentIssue": 104,
-  "updatedAt": "2026-07-19T10:34:00Z",
+  "updatedAt": "2026-07-19T13:36:00Z",
   "workPackages": [
     {"key":"WP0","issue":105,"title":"Research scope and protocol","issueState":"open","measures":[
       {"id":"claims-traceability","description":"Every research claim maps to evidence","metric":"mapped claims / total claims","target":"100%","status":"verified","verifiedAt":"2026-07-19T07:02:00Z","evidence":["docs/research/claims-evidence.json: 15 mapped claims","npm run verify:research-protocol"]},
@@ -9,6 +9,7 @@
       {"id":"ethics-review","description":"Advisor or institutional research requirements are confirmed","metric":"documented approval or required-action record","target":"complete","status":"external","externalOwner":"research advisor / institution","externalDependency":"Confirm ethics, consent, recruitment, and retention requirements","evidence":[]}
     ]},
     {"key":"WP1","issue":106,"title":"Authoritative corpus","issueState":"open","measures":[
+      {"id":"official-source-discovery","description":"Versioned review-only candidates cover every required research domain using canonical official HTTPS hosts","metric":"covered domains / official hosts / duplicate identities / auto-publication","target":"10 of 10 / 100% / 0 / 0","status":"verified","verifiedAt":"2026-07-19T13:36:00Z","evidence":["GitHub Issue #127","docs/research/stu-source-inventory.v1.json: 20 candidates, 2 per domain","npm run verify:stu-source-inventory: 10/10 domains, 20/20 official HTTPS, 0 duplicate identities, 0 auto-published","tests/integration/stu-source-inventory-live.mjs: 0 unauthorized reads/mutations, inactive acceptance, 0 documents, 0 residue","production import: 20 reconciled review_needed candidates"]},
       {"id":"domain-coverage","description":"Required knowledge domains have owned official sources","metric":"covered domains / required domains","target":"100%","status":"pending","evidence":[]},
       {"id":"publication-metadata","description":"Published items contain complete governance metadata","metric":"valid published items / all published items","target":"100%","status":"in_progress","evidence":["publish_knowledge_document requires effective/review dates, active source, reviewer, embeddings","deployment:dpl_3YSP6bB5NHVyFMAKN71pJRMxcU5b preserved source publication/update dates and review metadata through acquisition/publication/rollback","complete official corpus not yet populated"]},
       {"id":"corpus-leakage","description":"Ineligible documents never enter public retrieval","metric":"draft/private/expired leakage cases","target":"0","status":"verified","verifiedAt":"2026-07-19T07:11:00Z","evidence":["tests/api/research-foundation.test.ts","tests/integration/knowledge-ingestion-live.mjs: expiredPublicLeakage=0","anon direct chunks denied"]}
@@ -51,9 +52,9 @@
       {"id":"aggregate-privacy","description":"Workload analytics are privacy-minimized","metric":"PII or unsafe small-cell disclosures","target":"0","status":"verified","verifiedAt":"2026-07-19T08:30:00Z","evidence":["administrative_workload_windows stores aggregate provenance/checksum only","administrative_workload_report suppresses cells below the governed threshold","deployment:dpl_96cHUYk72GzQoVHaLk4jcCyekqCG","tests/integration/administrative-workload-live.mjs: smallCellsSuppressed=1, unauthorizedReads=0, residualFixtures=0"]}
     ]},
     {"key":"WP9","issue":114,"title":"Production hardening","issueState":"open","measures":[
-      {"id":"wcag","description":"Complete public research flows meet WCAG 2.2 AA","metric":"critical AA or assistive-technology blockers","target":"0","status":"pending","evidence":[]},
-      {"id":"ai-security","description":"Adversarial source/query and RLS suite prevents leakage and injection impact","metric":"critical security failures","target":"0","status":"pending","evidence":[]},
-      {"id":"operations","description":"SLOs, monitoring, alerts, runbooks, rollback, and failure drills exist","metric":"required operational controls verified","target":"100%","status":"pending","evidence":[]}
+      {"id":"wcag","description":"Complete public research flows meet WCAG 2.2 AA","metric":"critical AA or assistive-technology blockers","target":"0","status":"in_progress","evidence":["Issues #125/#126 automated ten-state WCAG gate: zero serious/critical, target-size, focus, status, and reflow failures","Named VoiceOver/NVDA/TalkBack review remains external"]},
+      {"id":"ai-security","description":"Adversarial source/query and RLS suite prevents leakage and injection impact","metric":"critical security failures","target":"0","status":"verified","verifiedAt":"2026-07-19T12:58:00Z","evidence":["tests/integration/research-adversarial-live.mjs: three injection families quarantined, zero indexed documents, zero content telemetry, zero residue","tests/integration/research-rls-matrix-live.mjs: 28 protected tables, 9 protected RPCs, zero anonymous/student exposure or execution"]},
+      {"id":"operations","description":"SLOs, monitoring, alerts, runbooks, rollback, and failure drills exist","metric":"required operational controls verified","target":"100%","status":"verified","verifiedAt":"2026-07-19T12:58:00Z","evidence":["tests/integration/research-operations-live.mjs: 8/8 success and failure families, 8 owned alerts, immutable evidence, persisted recovery, zero residue","three consecutive 200-request production load runs passed after cache warm"]}
     ]},
     {"key":"WP10","issue":115,"title":"Study execution and evidence","issueState":"open","measures":[
       {"id":"primary-study","description":"Approved primary study is executed on frozen versions","metric":"completed approved study","target":"1","status":"external","externalOwner":"research team and participants","externalDependency":"Recruit participants and execute the approved study","evidence":[]},

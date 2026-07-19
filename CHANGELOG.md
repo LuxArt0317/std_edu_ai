@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added Issue #127's deterministic official STU source-discovery manifest: 20 candidates, exactly two across each of ten research domains, 20/20 canonical official HTTPS hosts, zero duplicate identities, and zero automatic publication.
+- Added protected candidate RLS, idempotent import, direct-transition guards, reviewer decisions, atomic acceptance into inactive governed sources, exact reports, and reversible owner cleanup. Production evidence proves zero anonymous/student reads or mutations, one inactive accepted source, zero generated documents, and zero fixture residue.
+- Added the owner/admin/librarian source-inventory workspace with domain/state filters, provenance inspection, official links, responsible-department selection, evidence-backed accept/reject/unreachable/duplicate decisions, and a direct path to the resulting inactive governed source.
+
 - Added Issues #125/#126 research hardening: eight versioned SLO families, content-free immutable operational events, owned alert/recovery workflows, protected service reporting, automatic ingestion/evaluation observers, strict telemetry redaction, and an owner/admin/librarian/support operations workspace.
 - Added pre-embedding prompt/document-injection quarantine, complete protected research-table RLS evidence, automated WCAG 2.2 public-state checks, 320 px reflow and focus/control gates, bounded production load measurement, recovery cleanup, and zero-high/critical dependency enforcement.
 - Corrected public-site contrast, tab semantics, and carousel target sizes after axe identified one critical ARIA violation, 49 serious contrast nodes, and three undersized targets in the prior release.

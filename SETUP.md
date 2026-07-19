@@ -94,9 +94,13 @@ npm run test:live-ai
 npm run test:accessibility-public
 npm run test:live-research-operations
 npm run test:live-research-rls
+npm run verify:stu-source-inventory
+npm run test:live-stu-source-inventory
 npm run test:load-research-public
 npm run verify:dependency-audit
 ```
+
+The versioned discovery manifest is validated without network mutation by `verify:stu-source-inventory`. Authorized operators can idempotently stage its 20 official-host candidates with `npm run import:stu-source-inventory`; every imported row remains `review_needed`, and the command fails if any source is automatically created. Owner/admin/librarian reviewers then use the protected CRM knowledge workspace to accept a candidate as an inactive source or record rejection, duplication, or reachability evidence.
 
 The automated accessibility runner uses `@axe-core/playwright`, `playwright-core`, and the installed Google Chrome executable at `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`. Override it with `CHROME_PATH` when Chrome is installed elsewhere. It exercises ten deterministic states covering the public page, assistant citations and correction feedback, campus directory and route result, research consent/tasks/questionnaires/withdrawal, and 320 px reflow. It fails on serious/critical WCAG findings, target-size failures, unnamed controls, broken modal focus cycling, obscured focus, missing required live-status semantics, or overflow. Automated checks are a release gate, not a substitute for the separately required named screen-reader review.
 

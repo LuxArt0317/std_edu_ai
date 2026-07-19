@@ -71,6 +71,38 @@ export type ReviewEvent = {
   after_state: Record<string, unknown>;
   created_at: string;
 };
+export type SourceCandidate = {
+  id: string;
+  canonical_url: string;
+  canonical_identity: string;
+  title: string;
+  inventory_domain: string;
+  language: string;
+  source_type: string;
+  official_host: string;
+  owning_unit: string;
+  discovery_method: string;
+  discovered_from: string;
+  http_status: number | null;
+  final_url: string | null;
+  status: "review_needed" | "accepted" | "rejected" | "unreachable" | "duplicate";
+  source_id: string | null;
+  discovered_by: string;
+  reviewed_by: string | null;
+  review_reason: string | null;
+  last_checked_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+export type SourceInventoryReport = {
+  inventory_domain: string;
+  total: number;
+  review_needed: number;
+  accepted: number;
+  rejected: number;
+  unreachable: number;
+  duplicates: number;
+};
 export type GovernanceDirectory = {
   profiles: Array<{ id: string; full_name: string; role: string }>;
   departments: Array<{ id: string; code: string; name: string }>;
@@ -87,7 +119,7 @@ function message(error: { message: string } | null) {
 
 export async function loadKnowledgeGovernance() {
   const db = client();
-  const [sources, documents, profiles, departments] = await Promise.all([
+  const [sources, documents, candidates, inventoryReport, profiles, departments] = await Promise.all([
     db
       .from("knowledge_sources")
       .select("*")
@@ -99,6 +131,13 @@ export async function loadKnowledgeGovernance() {
       )
       .order("created_at", { ascending: false }),
     db
+      .from("knowledge_source_candidates")
+      .select("id,canonical_url,canonical_identity,title,inventory_domain,language,source_type,official_host,owning_unit,discovery_method,discovered_from,http_status,final_url,status,source_id,discovered_by,reviewed_by,review_reason,last_checked_at,created_at,updated_at")
+      .is("fixture_marker", null)
+      .order("inventory_domain")
+      .order("title"),
+    db.rpc("stu_source_inventory_report"),
+    db
       .from("profiles")
       .select("id,full_name,role")
       .in("role", ["owner", "admin", "librarian"])
@@ -107,17 +146,37 @@ export async function loadKnowledgeGovernance() {
   ]);
   message(sources.error);
   message(documents.error);
+  message(candidates.error);
+  message(inventoryReport.error);
   message(profiles.error);
   message(departments.error);
   return {
     sources: (sources.data || []) as GovernedSource[],
     documents: (documents.data || []) as GovernedDocument[],
+    candidates: (candidates.data || []) as SourceCandidate[],
+    inventoryReport: (inventoryReport.data || []) as SourceInventoryReport[],
     directory: {
       profiles: (profiles.data || []) as GovernanceDirectory["profiles"],
       departments: (departments.data ||
         []) as GovernanceDirectory["departments"],
     },
   };
+}
+
+export async function reviewSourceCandidate(input: {
+  candidateId: string;
+  decision: "accepted" | "rejected" | "unreachable" | "duplicate";
+  reason: string;
+  departmentId?: string;
+}) {
+  const result = await client().rpc("review_stu_source_candidate", {
+    p_candidate_id: input.candidateId,
+    p_decision: input.decision,
+    p_reason: input.reason.trim(),
+    ...(input.departmentId ? { p_department_id: input.departmentId } : {}),
+  });
+  message(result.error);
+  return result.data as SourceCandidate;
 }
 
 export async function saveGovernedSource(

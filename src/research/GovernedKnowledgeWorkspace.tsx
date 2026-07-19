@@ -5,6 +5,7 @@ import {
   loadDocumentReview,
   loadKnowledgeGovernance,
   publishDocument,
+  reviewSourceCandidate,
   reviewDocument,
   rollbackDocument,
   saveGovernedSource,
@@ -14,6 +15,8 @@ import {
   type GovernedSource,
   type GovernanceDirectory,
   type ReviewEvent,
+  type SourceCandidate,
+  type SourceInventoryReport,
 } from "./knowledgeGovernanceService";
 
 const roles = new Set(["owner", "admin", "librarian"]);
@@ -55,12 +58,17 @@ export function GovernedKnowledgeWorkspace({
   const allowed = Boolean(currentUser && roles.has(currentUser.role));
   const [sources, setSources] = useState<GovernedSource[]>([]);
   const [documents, setDocuments] = useState<GovernedDocument[]>([]);
+  const [candidates, setCandidates] = useState<SourceCandidate[]>([]);
+  const [inventoryReport, setInventoryReport] = useState<SourceInventoryReport[]>([]);
   const [directory, setDirectory] = useState<GovernanceDirectory>({
     profiles: [],
     departments: [],
   });
   const [selectedSource, setSelectedSource] = useState("");
   const [selectedDocument, setSelectedDocument] = useState("");
+  const [selectedCandidate, setSelectedCandidate] = useState("");
+  const [candidateDomain, setCandidateDomain] = useState("all");
+  const [candidateStatus, setCandidateStatus] = useState("review_needed");
   const [sourceEdit, setSourceEdit] = useState<GovernedSource | null>(null);
   const [inputMode, setInputMode] = useState<"content" | "url" | "file">("url");
   const [chunks, setChunks] = useState<GovernedChunk[]>([]);
@@ -71,6 +79,8 @@ export function GovernedKnowledgeWorkspace({
     const data = await loadKnowledgeGovernance();
     setSources(data.sources);
     setDocuments(data.documents);
+    setCandidates(data.candidates);
+    setInventoryReport(data.inventoryReport);
     setDirectory(data.directory);
     setSelectedSource((value) =>
       value && data.sources.some((source) => source.id === value)
@@ -79,6 +89,11 @@ export function GovernedKnowledgeWorkspace({
     );
     setSelectedDocument((value) =>
       value && data.documents.some((document) => document.id === value)
+        ? value
+        : "",
+    );
+    setSelectedCandidate((value) =>
+      value && data.candidates.some((candidate) => candidate.id === value)
         ? value
         : "",
     );
@@ -120,6 +135,20 @@ export function GovernedKnowledgeWorkspace({
     () => documents.find((item) => item.id === selectedDocument),
     [documents, selectedDocument],
   );
+  const candidate = useMemo(
+    () => candidates.find((item) => item.id === selectedCandidate),
+    [candidates, selectedCandidate],
+  );
+  const visibleCandidates = useMemo(
+    () =>
+      candidates.filter(
+        (item) =>
+          (candidateDomain === "all" || item.inventory_domain === candidateDomain) &&
+          (candidateStatus === "all" || item.status === candidateStatus),
+      ),
+    [candidateDomain, candidateStatus, candidates],
+  );
+  const coveredDomains = inventoryReport.filter((item) => item.total > 0).length;
   const visibleDocuments = documents.filter(
     (item) => !selectedSource || item.source_id === selectedSource,
   );
@@ -202,6 +231,127 @@ export function GovernedKnowledgeWorkspace({
           <span>quarantined</span>
         </article>
       </div>
+      <section className="source-inventory" aria-labelledby="source-inventory-title">
+        <header>
+          <div>
+            <span>OFFICIAL-SOURCE DISCOVERY</span>
+            <h4 id="source-inventory-title">Review the STU source inventory</h4>
+            <p>
+              {coveredDomains}/10 research domains have discovery candidates. Accepting one
+              creates an inactive governed source—it does not acquire or publish content.
+            </p>
+          </div>
+          <div className="source-inventory-summary" aria-label="Source inventory status">
+            <strong>{candidates.length}</strong>
+            <span>candidates</span>
+            <strong>{candidates.filter((item) => item.status === "accepted").length}</strong>
+            <span>accepted</span>
+          </div>
+        </header>
+        <div className="source-inventory-filters">
+          <label>
+            Research domain
+            <select value={candidateDomain} onChange={(event) => setCandidateDomain(event.target.value)}>
+              <option value="all">All 10 domains</option>
+              {domains.filter((value) => value !== "other").concat("forms_policies").map((value) => (
+                <option key={value} value={value}>{value.replaceAll("_", " ")}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Review state
+            <select value={candidateStatus} onChange={(event) => setCandidateStatus(event.target.value)}>
+              <option value="all">All states</option>
+              <option value="review_needed">Needs review</option>
+              <option value="accepted">Accepted</option>
+              <option value="rejected">Rejected</option>
+              <option value="unreachable">Unreachable</option>
+              <option value="duplicate">Duplicate</option>
+            </select>
+          </label>
+          <p role="status">{visibleCandidates.length} matching candidates</p>
+        </div>
+        <div className="source-inventory-layout">
+          <div className="source-candidate-list">
+            {visibleCandidates.map((item) => (
+              <button
+                type="button"
+                key={item.id}
+                className={selectedCandidate === item.id ? "selected" : ""}
+                onClick={() => setSelectedCandidate(item.id)}
+              >
+                <span>{item.inventory_domain.replaceAll("_", " ")}</span>
+                <strong>{item.title}</strong>
+                <small>{item.official_host} · HTTP {item.http_status ?? "unchecked"}</small>
+                <i className={item.status}>{item.status.replaceAll("_", " ")}</i>
+              </button>
+            ))}
+            {!visibleCandidates.length ? <p className="governance-empty">No candidates match these filters.</p> : null}
+          </div>
+          {candidate ? (
+            <article className="source-candidate-review">
+              <header>
+                <div>
+                  <span>{candidate.inventory_domain.replaceAll("_", " ")}</span>
+                  <h5>{candidate.title}</h5>
+                </div>
+                <i className={candidate.status}>{candidate.status.replaceAll("_", " ")}</i>
+              </header>
+              <dl>
+                <div><dt>Official host</dt><dd>{candidate.official_host}</dd></div>
+                <div><dt>Named unit</dt><dd>{candidate.owning_unit}</dd></div>
+                <div><dt>Observed</dt><dd>HTTP {candidate.http_status ?? "unchecked"} · {candidate.last_checked_at ? new Date(candidate.last_checked_at).toLocaleString() : "not checked"}</dd></div>
+                <div><dt>Discovery</dt><dd>{candidate.discovery_method.replaceAll("_", " ")}</dd></div>
+              </dl>
+              <div className="source-candidate-links">
+                <a href={candidate.canonical_url} target="_blank" rel="noreferrer">Open candidate ↗</a>
+                <a href={candidate.discovered_from} target="_blank" rel="noreferrer">Open provenance ↗</a>
+              </div>
+              {candidate.status === "review_needed" ? (
+                <form onSubmit={(event) => {
+                  event.preventDefault();
+                  const form = new FormData(event.currentTarget);
+                  const decision = String(form.get("decision")) as "accepted" | "rejected" | "unreachable" | "duplicate";
+                  void operation(
+                    () => reviewSourceCandidate({candidateId: candidate.id, decision, reason: String(form.get("reason")), departmentId: String(form.get("department")) || undefined}),
+                    decision === "accepted" ? "Candidate accepted as an inactive governed source." : "Candidate review recorded.",
+                  );
+                }}>
+                  <label>
+                    Decision
+                    <select name="decision" defaultValue="accepted">
+                      <option value="accepted">Accept as inactive source</option>
+                      <option value="rejected">Reject</option>
+                      <option value="unreachable">Mark unreachable</option>
+                      <option value="duplicate">Mark duplicate</option>
+                    </select>
+                  </label>
+                  <label>
+                    Responsible department
+                    <select name="department" defaultValue="">
+                      <option value="">Institution-wide</option>
+                      {directory.departments.map((department) => <option key={department.id} value={department.id}>{department.code} · {department.name}</option>)}
+                    </select>
+                  </label>
+                  <label className="wide">
+                    Required evidence and reason
+                    <textarea name="reason" minLength={12} maxLength={2000} required rows={3} placeholder="Record why this official page is or is not authoritative for this domain." />
+                  </label>
+                  <button disabled={busy}>{busy ? "Saving…" : "Record review"}</button>
+                </form>
+              ) : (
+                <div className="source-review-outcome">
+                  <strong>Reviewed decision</strong>
+                  <p>{candidate.review_reason}</p>
+                  {candidate.source_id ? <button type="button" onClick={() => setSelectedSource(candidate.source_id || "")}>Open inactive governed source</button> : null}
+                </div>
+              )}
+            </article>
+          ) : (
+            <p className="governance-empty">Choose a candidate to inspect provenance and record a governed decision.</p>
+          )}
+        </div>
+      </section>
       <details className="governance-create">
         <summary>
           {sourceEdit ? "Edit governed source" : "+ Register governed source"}

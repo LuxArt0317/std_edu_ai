@@ -10,6 +10,7 @@
 - [x] deploy and validate the connected RLS schema foundation [#117]
 - [ ] freeze protocol/claims and complete approved governance dependencies [#105]
 - [ ] implement authoritative corpus ingestion, review, parsing, chunking, and indexing [#106–#107]
+  - [x] discover, reconcile, protect, and expose review controls for the official ten-domain source-candidate inventory [#127]
   - [x] implement bounded retry/dead-letter telemetry, stale recovery, and protected operations evidence [#121]
   - [x] implement governed HTTPS/HTML/PDF/file acquisition and the version review workspace [#122]
   - [x] implement atomic privacy-safe public traces, deterministic conflict handoff, one-use feedback, protected reviewer reporting, and reversible evidence cleanup [#123]
@@ -26,7 +27,7 @@
 - [ ] complete security/accessibility/operations hardening [#114]
   - [x] automate WCAG, adversarial security, sanitized observability, SLO/load, and recovery evidence [#125]
     - [x] implement versioned SLOs, immutable sanitized events, owned alerts, protected reporting, and reversible recovery evidence [#125]
-    - [x] deploy and prove automated public accessibility, injection quarantine, 27-table/6-RPC RLS, bounded load, and dependency gates [#126]
+    - [x] deploy and prove automated public accessibility, injection quarantine, 28-table/9-RPC RLS, bounded load, and dependency gates [#126/#127]
   - [ ] complete named manual assistive-technology review and institutional accessibility sign-off [#114 external evidence]
 - [ ] execute the approved study and publish reproducible measured results [#115]
 

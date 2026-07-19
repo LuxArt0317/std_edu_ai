@@ -2,7 +2,7 @@
 
 These opt-in scripts exercise the configured production deployment and Supabase project with protected local credentials. They never print passwords. Mutating workflows are reversible; the onboarding acceptance test emits its unique temporary journey key so a trusted operator can delete those test progress rows immediately, with event cleanup cascading through the foreign key.
 
-`build-assets.mjs` is the non-networked release gate invoked by every standard production build. It validates the generated route dependency graph, fails when the CRM JavaScript can render without the stylesheet containing the authentication-card contract, and currently rejects onboarding UI markers in the CRM runtime bundle.
+`build-assets.mjs` is the non-networked release gate invoked by every standard production build. It validates the generated route dependency graph, fails when the CRM JavaScript can render without the stylesheet containing the authentication-card contract, rejects onboarding UI markers, and requires the official-source review controls in the CRM runtime bundle.
 
 `deployment-shell-live.mjs` is the read-only production diagnostic. It recursively follows the deployed hashed asset graph for both public routes and reports whether the boot shell and CRM authentication styles are present while confirming onboarding remains disabled.
 
@@ -23,3 +23,5 @@ These opt-in scripts exercise the configured production deployment and Supabase 
 `knowledge-acquisition-live.mjs` acquires the deployed structured HTML fixture through the real SSRF-safe HTTPS boundary, uploads a deterministic PDF, inspects exact HTML/PDF locators and parser versions, proves executable/hidden data exclusion, draft isolation, duplicate replay, publication, supersession, rollback, quarantine, student mutation denial, and zero-residue cleanup.
 
 `rag-evaluation-live.mjs` uses four production role identities to prove the Issue #124 evaluation boundary: ordinary sub-150 freezing fails, author self-review and duplicate review fail, eight synthetic cases receive sixteen independent approvals, the frozen checksum and all metric breakdowns reconcile exactly, student/anonymous access fails, and guarded cleanup leaves zero records. These fixtures prove machinery only and never count as research cases.
+
+`stu-source-inventory-live.mjs` uses owner, librarian, student, and anonymous contexts to prove the Issue #127 boundary. It inserts one reversible candidate for each of ten domains, verifies exact idempotent replay, rejects external hosts and direct state mutation, accepts one candidate only as an inactive source with zero documents, records a librarian rejection, and removes ten candidates plus the inactive source with zero residue.

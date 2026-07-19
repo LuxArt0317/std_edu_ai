@@ -35,6 +35,17 @@ for (const onboardingMarker of ['ROLE READINESS CENTER', 'Click the highlighted 
     `Build verification failed: onboarding is disabled, but the CRM runtime bundle still contains ${JSON.stringify(onboardingMarker)}.`,
   )
 }
+for (const sourceInventoryMarker of [
+  'OFFICIAL-SOURCE DISCOVERY',
+  'Review the STU source inventory',
+  'Accept as inactive source',
+  'review_stu_source_candidate',
+]) {
+  assert.ok(
+    crmScriptBody.includes(sourceInventoryMarker),
+    `Build verification failed: the CRM runtime bundle is missing source-inventory marker ${JSON.stringify(sourceInventoryMarker)}.`,
+  )
+}
 
 const cssDependencies = [...dependencyPaths].filter((dependencyPath) => dependencyPath.endsWith('.css'))
 const crmStylesheet = cssDependencies.find((dependencyPath) => {
@@ -53,5 +64,6 @@ console.log(JSON.stringify({
   crmScript,
   crmStylesheet,
   onboardingDisabled: true,
+  sourceInventoryReview: true,
   dependencyCount: dependencyPaths.size,
 }))

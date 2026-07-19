@@ -81,3 +81,10 @@
 - The research outcome is not yet achieved as a defensible empirical claim. No approved primary participant study has established improved retrieval time, task success, usability, accessibility, satisfaction, or reduced administrative workload.
 - Research completion also remains gated by the complete reviewed official corpus, the real independently reviewed >=150-case evaluation set, verified official campus inventory plus physical route walkthroughs, protocol/ethics/translation approval, manual assistive-technology review, and WP9 operational hardening.
 - Therefore the accurate status is: product/system goal achieved in substantial part; research validation goal partially achieved; final thesis conclusion not yet supported.
+
+# Official-source discovery findings — Issue #127
+
+- The official homepage and role-entry links yield at least two candidate sources for each of the ten research domains, but discovery is not institutional approval. Graduation requirements and FAQ authority are especially weak and remain explicitly marked for owner review rather than silently treated as authoritative.
+- Twenty candidates reconcile to 20 distinct canonical official HTTPS identities. Several official subdomains return HTTP 202 to automated requests; that proves endpoint response only, not content correctness, so human inspection remains mandatory.
+- A candidate may become only an inactive governed source through an authorized recorded decision. Acquisition, document review, embedding, approval, and publication remain separate gates, preventing discovery from leaking unreviewed content into public RAG.
+- Production role evidence covers the candidate table and all three candidate RPCs: anonymous/student reads and executions are zero, direct governance transitions are rejected, librarian review is permitted, and reversible fixtures leave zero residue.

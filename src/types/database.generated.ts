@@ -4107,6 +4107,103 @@ export type Database = {
           },
         ]
       }
+      knowledge_source_candidates: {
+        Row: {
+          canonical_identity: string | null
+          canonical_url: string
+          created_at: string
+          discovered_by: string
+          discovered_from: string
+          discovery_method: string
+          final_url: string | null
+          fixture_marker: string | null
+          http_status: number | null
+          id: string
+          inventory_domain: string
+          language: string
+          last_checked_at: string | null
+          official_host: string
+          owning_unit: string
+          review_reason: string | null
+          reviewed_by: string | null
+          source_id: string | null
+          source_type: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          canonical_identity?: string | null
+          canonical_url: string
+          created_at?: string
+          discovered_by: string
+          discovered_from: string
+          discovery_method: string
+          final_url?: string | null
+          fixture_marker?: string | null
+          http_status?: number | null
+          id?: string
+          inventory_domain: string
+          language: string
+          last_checked_at?: string | null
+          official_host: string
+          owning_unit: string
+          review_reason?: string | null
+          reviewed_by?: string | null
+          source_id?: string | null
+          source_type: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          canonical_identity?: string | null
+          canonical_url?: string
+          created_at?: string
+          discovered_by?: string
+          discovered_from?: string
+          discovery_method?: string
+          final_url?: string | null
+          fixture_marker?: string | null
+          http_status?: number | null
+          id?: string
+          inventory_domain?: string
+          language?: string
+          last_checked_at?: string | null
+          official_host?: string
+          owning_unit?: string
+          review_reason?: string | null
+          reviewed_by?: string | null
+          source_id?: string | null
+          source_type?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_source_candidates_discovered_by_fkey"
+            columns: ["discovered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_source_candidates_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_source_candidates_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_sources: {
         Row: {
           active: boolean
@@ -6196,6 +6293,10 @@ export type Database = {
         Args: { p_fixture_marker: string }
         Returns: Json
       }
+      purge_issue127_fixture: {
+        Args: { p_fixture_marker: string }
+        Returns: Json
+      }
       purge_knowledge_verification_fixture: {
         Args: { p_source_id: string }
         Returns: Json
@@ -6358,6 +6459,44 @@ export type Database = {
         Args: { p_decision: string; p_document_id: string; p_reason: string }
         Returns: Json
       }
+      review_stu_source_candidate: {
+        Args: {
+          p_candidate_id: string
+          p_decision: string
+          p_department_id?: string
+          p_reason: string
+        }
+        Returns: {
+          canonical_identity: string | null
+          canonical_url: string
+          created_at: string
+          discovered_by: string
+          discovered_from: string
+          discovery_method: string
+          final_url: string | null
+          fixture_marker: string | null
+          http_status: number | null
+          id: string
+          inventory_domain: string
+          language: string
+          last_checked_at: string | null
+          official_host: string
+          owning_unit: string
+          review_reason: string | null
+          reviewed_by: string | null
+          source_id: string | null
+          source_type: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "knowledge_source_candidates"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       revoke_platform_sessions: {
         Args: {
           p_acted_by: string
@@ -6416,6 +6555,18 @@ export type Database = {
           p_top_k?: number
         }
         Returns: string
+      }
+      stu_source_inventory_report: {
+        Args: never
+        Returns: {
+          accepted: number
+          duplicates: number
+          inventory_domain: string
+          rejected: number
+          review_needed: number
+          total: number
+          unreachable: number
+        }[]
       }
       submit_assessment: {
         Args: { p_answers: Json; p_assessment_id: string }
@@ -6594,6 +6745,10 @@ export type Database = {
           p_type: string
         }
         Returns: string
+      }
+      upsert_stu_source_candidates: {
+        Args: { p_candidates: Json; p_fixture_marker?: string }
+        Returns: Json
       }
       verify_administrative_workload_window: {
         Args: { p_decision: string; p_window_id: string }
