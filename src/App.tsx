@@ -344,7 +344,7 @@ function App() {
       <section className="news-section" id="stunews">
         <div className="news-heading"><p>LATEST NEWS</p><h2>校園新聞</h2></div>
         <div className="news-tabs" role="tablist" aria-label="新聞分類">
-          {newsTabs.map((tab) => <button key={tab} type="button" className={tab === newsTab ? 'active' : ''} onClick={() => setNewsTab(tab)}>{tab}</button>)}
+          {newsTabs.map((tab) => <button key={tab} type="button" role="tab" aria-selected={tab === newsTab} className={tab === newsTab ? 'active' : ''} onClick={() => setNewsTab(tab)}>{tab}</button>)}
         </div>
         <div className="news-list">
           {visibleNews.map((item) => (
@@ -356,9 +356,9 @@ function App() {
 
       <section className="hot-links-section" id="hotlink">
         <h2>熱門連結</h2>
-        <div className="hot-tabs">
-          <button type="button" className={hotLinkTab === 'student' ? 'active' : ''} onClick={() => setHotLinkTab('student')}>學生專區</button>
-          <button type="button" className={hotLinkTab === 'teacher' ? 'active' : ''} onClick={() => setHotLinkTab('teacher')}>教師專區</button>
+        <div className="hot-tabs" role="tablist" aria-label="熱門連結分類">
+          <button type="button" role="tab" aria-selected={hotLinkTab === 'student'} className={hotLinkTab === 'student' ? 'active' : ''} onClick={() => setHotLinkTab('student')}>學生專區</button>
+          <button type="button" role="tab" aria-selected={hotLinkTab === 'teacher'} className={hotLinkTab === 'teacher' ? 'active' : ''} onClick={() => setHotLinkTab('teacher')}>教師專區</button>
         </div>
         <div className="hot-grid">
           {visibleHotLinks.map((item, index) => <a href={item.href} key={`${item.audience}-${item.title}-${index}`}>{item.title}</a>)}

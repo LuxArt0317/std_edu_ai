@@ -13,3 +13,4 @@ export function sha256(value: string): Promise<string>;
 export function chunkKnowledgeText(input: string, options?: {maxCharacters?: number; minCharacters?: number}): Promise<NormalizedChunk[]>;
 export function canonicalizeHttpsUrl(value: string): string;
 export function inferKnowledgeLanguage(value: string): KnowledgeLanguage;
+export function detectKnowledgeThreats(value: string): string[];

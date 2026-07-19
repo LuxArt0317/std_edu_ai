@@ -1,0 +1,35 @@
+import {spawnSync} from "node:child_process";
+import fs from "node:fs";
+import {createClient} from "@supabase/supabase-js";
+
+function env(path){if(!fs.existsSync(path))return{};return Object.fromEntries(fs.readFileSync(path,"utf8").split(/\r?\n/).filter((line)=>line&&!line.startsWith("#")&&line.includes("=")).map((line)=>{const at=line.indexOf("=");return[line.slice(0,at),line.slice(at+1)];}));}
+Object.assign(process.env,env(".env"),env(".env.local"));
+const options={auth:{persistSession:false,autoRefreshToken:false}},client=()=>createClient(process.env.VITE_SUPABASE_URL,process.env.VITE_SUPABASE_PUBLISHABLE_KEY,options);
+async function login(email){const secret=spawnSync("/usr/bin/security",["find-internet-password","-w","-s","www.stu.best","-a",email],{encoding:"utf8",stdio:["ignore","pipe","ignore"]});if(secret.status!==0||!secret.stdout.trim())throw new Error(`Missing protected credential for ${email}`);const db=client();const auth=await db.auth.signInWithPassword({email,password:secret.stdout.trim()});if(auth.error||!auth.data.user)throw auth.error||new Error("Authentication failed");return{db,user:auth.data.user};}
+function required(result,label){if(result.error)throw new Error(`${label}: ${result.error.message}`);if(result.data===null||result.data===undefined)throw new Error(`${label}: no data`);return result.data;}
+const [owner,support,student]=await Promise.all([login("winsonbaring10@gmail.com"),login("winsonbaring10+support@gmail.com"),login("winsonbaring10+student@gmail.com")]);
+const marker=`Issue125-${Date.now().toString(36).toUpperCase()}`,hash="a".repeat(64),components=["public_shell","retrieval","model","citation","campus_route","study","ingestion","evaluation"];
+let cleanup=null,workflowError=null;
+try{
+  for(let index=0;index<components.length;index++){
+    const component=components[index],outcome=index%3===0?"failure":index%3===1?"degraded":"success";
+    required(await owner.db.rpc("record_research_operational_event",{p_component:component,p_operation:component==="public_shell"?"load":component==="retrieval"?"search":component==="model"?"answer":component==="citation"?"persist":component==="campus_route"?"route":component==="study"?"action":component==="ingestion"?"process":"score",p_outcome:outcome,p_error_code:outcome==="success"?null:`${component.toUpperCase()}_FIXTURE_FAILURE`,p_http_status:outcome==="success"?200:503,p_latency_ms:index===7?7000:100+index,p_item_count:index,p_correlation_hash:hash,p_metadata:{result_count:index,fallback_used:outcome!=="success"},p_fixture_marker:marker}),`${component} event`);
+  }
+  const rawMetadata=await owner.db.rpc("record_research_operational_event",{p_component:"model",p_operation:"answer",p_outcome:"failure",p_error_code:"RAW_CONTENT_ATTEMPT",p_http_status:500,p_latency_ms:1,p_item_count:0,p_correlation_hash:hash,p_metadata:{question:"private raw question"},p_fixture_marker:marker});if(!rawMetadata.error)throw new Error("Arbitrary raw metadata was accepted.");
+  const invalidHash=await owner.db.rpc("record_research_operational_event",{p_component:"model",p_operation:"answer",p_outcome:"failure",p_error_code:"INVALID_HASH",p_http_status:500,p_latency_ms:1,p_item_count:0,p_correlation_hash:"raw",p_metadata:{},p_fixture_marker:marker});if(!invalidHash.error)throw new Error("Non-hash correlation identifier was accepted.");
+  const events=required(await owner.db.from("research_operational_events").select("id,component,outcome,metadata,correlation_hash").eq("fixture_marker",marker),"events");if(events.length!==8||new Set(events.map((row)=>row.component)).size!==8||events.some((row)=>row.correlation_hash!==hash||Object.keys(row.metadata).some((key)=>!["result_count","fallback_used"].includes(key))))throw new Error("Operational event coverage or redaction failed.");
+  const alerts=required(await owner.db.from("research_operational_alerts").select("id,event_id,status,owner_role").in("event_id",events.map((row)=>row.id)),"alerts");if(alerts.length!==6||alerts.some((row)=>!["owner","admin","librarian","support"].includes(row.owner_role)))throw new Error(`Alert ownership coverage failed: ${JSON.stringify(alerts)}`);
+  const report=required(await owner.db.rpc("research_operations_report",{p_since:new Date(Date.now()-3600000).toISOString()}),"report").filter((row)=>components.includes(row.component));if(new Set(report.map((row)=>row.component)).size!==8)throw new Error("All eight operational components are not reportable.");
+  const target=alerts[0],acknowledged=await support.db.rpc("transition_research_operational_alert",{p_alert_id:target.id,p_status:"acknowledged"});if(acknowledged.error)throw new Error(`acknowledge: ${acknowledged.error.message}`);const resolvedTransition=await support.db.rpc("transition_research_operational_alert",{p_alert_id:target.id,p_status:"resolved",p_resolution_code:"RECOVERY_DRILL_VERIFIED"});if(resolvedTransition.error)throw new Error(`resolve: ${resolvedTransition.error.message}`);
+  const resolved=required(await owner.db.from("research_operational_alerts").select("status,acknowledged_by,resolved_by,resolution_code").eq("id",target.id).single(),"resolved alert");if(resolved.status!=="resolved"||resolved.acknowledged_by!==support.user.id||resolved.resolved_by!==support.user.id||resolved.resolution_code!=="RECOVERY_DRILL_VERIFIED")throw new Error("Alert recovery evidence did not persist.");
+  const mutate=await owner.db.from("research_operational_events").update({latency_ms:0}).eq("id",events[0].id).select("id");if(!mutate.error&&mutate.data?.length)throw new Error("Append-only event mutation succeeded.");
+  const studentRead=await student.db.from("research_operational_events").select("id").eq("fixture_marker",marker);if(studentRead.error||studentRead.data.length)throw new Error("Student operational evidence boundary failed.");
+  const anon=client(),anonRead=await anon.from("research_operational_events").select("id");if(!anonRead.error)throw new Error("Anonymous operational evidence read succeeded.");
+}catch(error){workflowError=error;}finally{
+  const result=await owner.db.rpc("purge_issue125_fixture",{p_fixture_marker:marker});if(result.error&&!workflowError)workflowError=result.error;else cleanup=result.data;
+  const residue=await owner.db.from("research_operational_events").select("id").eq("fixture_marker",marker);if(residue.data?.length&&!workflowError)workflowError=new Error("Issue125 fixture residue remains.");
+  await Promise.all([owner.db.auth.signOut(),support.db.auth.signOut(),student.db.auth.signOut()]);
+}
+if(workflowError)throw workflowError;
+if(!cleanup?.purged||cleanup.events!==8||cleanup.alerts!==6)throw new Error(`Unexpected cleanup evidence: ${JSON.stringify(cleanup)}`);
+console.log(JSON.stringify({componentsCovered:8,rawMetadataAccepted:0,invalidCorrelationAccepted:0,unauthorizedReads:0,eventMutations:0,alertsOwned:6,recoveryTransitionPersisted:1,reportableComponents:8,cleanup,residualFixtures:0,syntheticOnly:true}));

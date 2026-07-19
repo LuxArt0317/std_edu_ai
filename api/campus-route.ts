@@ -1,4 +1,5 @@
 import {calculateCampusRoute, resolvePlace, type CampusAlias, type CampusEdge, type CampusNode, type CampusPlace} from "../server/campusRouting.js";
+import {operationalCorrelation,recordResearchOperation,safeOperationalCode} from "../server/researchOperations.js";
 
 type ApiRequest={method?:string;body?:unknown};
 type ApiResponse={status:(code:number)=>ApiResponse;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void};
@@ -15,6 +16,8 @@ export default async function handler(request:ApiRequest,response:ApiResponse){
   if(!["GET","POST"].includes(request.method||"")){response.setHeader("Allow","GET, POST");response.status(405).json({error:"Method not allowed"});return;}
   const url=process.env.VITE_SUPABASE_URL||process.env.SUPABASE_URL;const key=process.env.VITE_SUPABASE_PUBLISHABLE_KEY||process.env.SUPABASE_PUBLISHABLE_KEY;
   if(!url||!key){response.status(503).json({error:"Campus navigation is not configured."});return;}
+  const started=Date.now();let correlationHash=operationalCorrelation(request.method||"unknown");
+  const finish=async(status:number,payload:unknown,outcome:"success"|"failure"|"degraded"|"denied",errorCode:string|null,itemCount:number|null=null)=>{await recordResearchOperation({url,key,component:"campus_route",operation:"route",outcome,errorCode,httpStatus:status,latencyMs:Date.now()-started,itemCount,correlationHash,metadata:{result_count:itemCount,fallback_used:outcome!=="success"}});response.status(status).json(payload);};
   try{
     const [sites,buildings,floors,places,aliases,nodes,edges,sources]=await Promise.all([
       rest(url,key,"campus_sites?select=id,code,name_zh,name_en,verified_at&active=eq.true&verified_at=not.is.null"),
@@ -29,14 +32,15 @@ export default async function handler(request:ApiRequest,response:ApiResponse){
     const eligibleSites=new Set(sites.map((item)=>item.id));const eligibleBuildings=new Set(buildings.filter((item)=>eligibleSites.has(item.site_id)).map((item)=>item.id));
     const eligiblePlaces=places.filter((place)=>eligibleSites.has(place.site_id)&&(!place.building_id||eligibleBuildings.has(place.building_id)));
     const publicPlaces=eligiblePlaces.map((place)=>({...place,building:buildings.find((item)=>item.id===place.building_id)||null,floor:floors.find((item)=>item.id===place.floor_id)||null,source:sources.find((item)=>item.id===place.official_source_id)||null}));
-    if(request.method==="GET"){response.status(200).json({places:publicPlaces,verifiedOnly:true,physicalValidation:"pending_official_walkthrough"});return;}
-    const input=parse(request.body);if(!input){response.status(400).json({error:"Select a valid origin and destination."});return;}
+    if(request.method==="GET"){await finish(200,{places:publicPlaces,verifiedOnly:true,physicalValidation:"pending_official_walkthrough"},"success",null,publicPlaces.length);return;}
+    const input=parse(request.body);if(!input){await finish(400,{error:"Select a valid origin and destination."},"denied","INVALID_ROUTE_INPUT");return;}
+    correlationHash=operationalCorrelation(`${input.origin}:${input.destination}:${input.wheelchair}`);
     const origin=resolvePlace(input.origin,eligiblePlaces,aliases);const destination=resolvePlace(input.destination,eligiblePlaces,aliases);
-    if(origin.status!=="resolved"||destination.status!=="resolved"){response.status(409).json({status:"needs_selection",origin:{status:origin.status,matches:origin.matches.slice(0,8)},destination:{status:destination.status,matches:destination.matches.slice(0,8)}});return;}
-    if(origin.place!.status!=="active"||destination.place!.status!=="active"){response.status(409).json({status:"closed",error:"The selected place is temporarily closed.",origin:origin.place,destination:destination.place});return;}
+    if(origin.status!=="resolved"||destination.status!=="resolved"){await finish(409,{status:"needs_selection",origin:{status:origin.status,matches:origin.matches.slice(0,8)},destination:{status:destination.status,matches:destination.matches.slice(0,8)}},"degraded","ROUTE_NEEDS_SELECTION");return;}
+    if(origin.place!.status!=="active"||destination.place!.status!=="active"){await finish(409,{status:"closed",error:"The selected place is temporarily closed.",origin:origin.place,destination:destination.place},"degraded","ROUTE_PLACE_CLOSED");return;}
     const eligibleNodeIds=new Set(nodes.filter((node)=>eligibleSites.has(node.site_id)&&(!node.building_id||eligibleBuildings.has(node.building_id))).map((node)=>node.id));
     const route=calculateCampusRoute({originPlaceId:origin.place!.id,destinationPlaceId:destination.place!.id,nodes:nodes.filter((node)=>eligibleNodeIds.has(node.id)),edges:edges.filter((edge)=>eligibleNodeIds.has(edge.from_node_id)&&eligibleNodeIds.has(edge.to_node_id)),wheelchair:input.wheelchair,clock:taipeiClock()});
     const status=route.status==="routed"||route.status==="same_place"?200:409;
-    response.status(status).json({origin:publicPlaces.find((place)=>place.id===origin.place!.id),destination:publicPlaces.find((place)=>place.id===destination.place!.id),wheelchair:input.wheelchair,language:input.language,...route,disclaimer:"Routes use verified digital records. Follow posted signs and accessibility notices; physical walkthrough validation is pending."});
-  }catch(error){response.status(503).json({error:error instanceof Error?error.message:"Campus navigation is temporarily unavailable."});}
+    await finish(status,{origin:publicPlaces.find((place)=>place.id===origin.place!.id),destination:publicPlaces.find((place)=>place.id===destination.place!.id),wheelchair:input.wheelchair,language:input.language,...route,disclaimer:"Routes use verified digital records. Follow posted signs and accessibility notices; physical walkthrough validation is pending."},status===200?"success":"degraded",status===200?null:"ROUTE_UNAVAILABLE",route.steps?.length??0);
+  }catch(error){await finish(503,{error:error instanceof Error?error.message:"Campus navigation is temporarily unavailable."},"failure",safeOperationalCode(error instanceof Error?error.message:"CAMPUS_ROUTE_FAILURE"));}
 }

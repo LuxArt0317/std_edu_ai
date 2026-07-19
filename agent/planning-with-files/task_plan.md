@@ -25,6 +25,8 @@
   - [ ] complete approved pilot/translation and real participant execution [#112/#115 external evidence]
 - [ ] complete security/accessibility/operations hardening [#114]
   - [ ] automate WCAG, adversarial security, sanitized observability, SLO/load, and recovery evidence [#125]
+    - [x] implement versioned SLOs, immutable sanitized events, owned alerts, protected reporting, and reversible recovery evidence [#125]
+    - [ ] deploy and prove automated public accessibility, injection quarantine, 27-table RLS, bounded load, and dependency gates [#126]
   - [ ] complete named manual assistive-technology review and institutional accessibility sign-off [#114 external evidence]
 - [ ] execute the approved study and publish reproducible measured results [#115]
 

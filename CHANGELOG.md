@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added Issues #125/#126 research hardening: eight versioned SLO families, content-free immutable operational events, owned alert/recovery workflows, protected service reporting, automatic ingestion/evaluation observers, strict telemetry redaction, and an owner/admin/librarian/support operations workspace.
+- Added pre-embedding prompt/document-injection quarantine, complete protected research-table RLS evidence, automated WCAG 2.2 public-state checks, 320 px reflow and focus/control gates, bounded production load measurement, recovery cleanup, and zero-high/critical dependency enforcement.
+- Corrected public-site contrast, tab semantics, and carousel target sizes after axe identified one critical ARIA violation, 49 serious contrast nodes, and three undersized targets in the prior release.
+
 - Added Issue #124's production RAG evaluation control plane: checksummed dataset versions, two-reviewer author-independent case approval, immutable frozen evidence, deterministic retrieval/citation/answer/abstention/leakage/latency/cost scoring, protected segmented reports, regression exports, and a guarded synthetic lifecycle that cannot satisfy the real 150-case research gate.
 - Released Issue #124 as Vercel deployment `dpl_G5osn3MaBEk4ckY7yGkNsZWhRfTN`; both application shells, eight recursive assets, deployed reviewer-workspace markers, and the post-deploy zero-residue four-role evaluation lifecycle pass on `www.stu.best`.
 - Added Issue #123's atomic privacy-safe public RAG trace, retrieval, and citation persistence; deterministic same-policy authoritative conflict handoff; opaque expiring session-bound one-use feedback; compact public feedback controls; and protected content-free reviewer metrics.

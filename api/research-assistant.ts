@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { inferKnowledgeLanguage } from "../server/knowledgePipeline.js";
+import { recordResearchOperation, safeOperationalCode } from "../server/researchOperations.js";
 
 type ApiRequest = {
   method?: string;
@@ -357,6 +358,7 @@ export default async function handler(
           item.vector_score >= 0.42,
       )
       .slice(0, 8);
+    await recordResearchOperation({url:supabaseUrl,key:publishableKey,component:"retrieval",operation:"search",outcome:"success",httpStatus:200,latencyMs:Date.now()-started,itemCount:retrieved.length,correlationHash:queryHash,metadata:{result_count:retrieved.length}});
     if (retrieved.length) {
       const ids = [...new Set(retrieved.map((item) => item.document_id))];
       const metadataResponse = await rest(
@@ -529,6 +531,10 @@ export default async function handler(
       latencyMs: Date.now() - started,
       model,
     });
+    await Promise.all([
+      recordResearchOperation({url:supabaseUrl,key:publishableKey,component:"model",operation:"answer",outcome:answer.status==="answered"?"success":"degraded",errorCode:answer.status==="answered"?null:answer.status,httpStatus:200,latencyMs:Date.now()-started,itemCount:citations.length,correlationHash:queryHash,metadata:{retrieval_count:retrieved.length,citation_count:citations.length,fallback_used:answer.status!=="answered"}}),
+      recordResearchOperation({url:supabaseUrl,key:publishableKey,component:"citation",operation:"persist",outcome:"success",httpStatus:200,latencyMs:Date.now()-started,itemCount:citations.length,correlationHash:queryHash,metadata:{citation_count:citations.length}}),
+    ]);
     response.status(200).json({
       status: answer.status,
       answer: answer.answer,
@@ -542,6 +548,7 @@ export default async function handler(
       },
     });
   } catch (error) {
+    await recordResearchOperation({url:supabaseUrl,key:publishableKey,component:"model",operation:"answer",outcome:"failure",errorCode:safeOperationalCode(error instanceof Error?error.message:"MODEL_FAILURE"),httpStatus:502,latencyMs:Date.now()-started,correlationHash:queryHash,metadata:{fallback_used:true}});
     response.status(502).json({
       error:
         error instanceof Error

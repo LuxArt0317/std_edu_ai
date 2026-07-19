@@ -37,3 +37,6 @@ It demonstrates:
 For setup and run instructions, see [SETUP.md](./SETUP.md). The authoritative scope and acceptance contract is [PRODUCT_REQUIREMENTS.md](./PRODUCT_REQUIREMENTS.md). For detailed capabilities and authorization, see [src/crm/PORTAL_GUIDE.md](./src/crm/PORTAL_GUIDE.md) and [src/platform/ROLE_MATRIX.md](./src/platform/ROLE_MATRIX.md).
 
 The exhaustive account-by-account operational contract and implementation checklist is [needed.md](./needed.md).
+# Research quality toolchain
+
+Public-flow WCAG automation uses `@axe-core/playwright` with `playwright-core` and the locally installed Chrome binary; no bundled browser download or browser automation connector is required. Research operations are persisted as enumerated, content-free Supabase evidence against eight versioned SLO families. Instruction-bearing knowledge is quarantined before embedding, and protected research access is continuously checked across the production role matrix.

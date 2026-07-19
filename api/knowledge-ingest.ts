@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import {
   canonicalizeHttpsUrl,
+  detectKnowledgeThreats,
   inferKnowledgeLanguage,
   sha256,
   type KnowledgeLanguage,
@@ -386,6 +387,13 @@ export default async function handler(
       (sum, chunk) => sum + chunk.tokenCount,
       0,
     );
+    const sourceThreats=detectKnowledgeThreats(normalizedContent);
+    if(sourceThreats.length){
+      const quarantined=await client.from("knowledge_ingestion_runs").update({status:"quarantined",output_checksum:contentChecksum,parser_version:extracted.parserVersion,chunker_version:"stu-structured-deterministic@1",chunk_count:chunks.length,input_token_count:inputTokens,error_code:"PROMPT_INJECTION",error_message:"Potential instruction-bearing source requires security review.",finished_at:new Date().toISOString(),duration_ms:Date.now()-runStarted,last_heartbeat_at:new Date().toISOString()}).eq("id",runId);
+      if(quarantined.error)throw quarantined.error;
+      response.status(422).json({status:"quarantined",error:"This source contains instruction-like content and requires security review before ingestion.",errorCode:"PROMPT_INJECTION",threatClasses:sourceThreats,ingestionRunId:runId});
+      return;
+    }
     const normalizedRun = await client
       .from("knowledge_ingestion_runs")
       .update({

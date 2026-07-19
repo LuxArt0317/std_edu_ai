@@ -6,6 +6,7 @@ import { WorkloadEvidencePanel } from "../research/WorkloadEvidencePanel";
 import { IngestionHealthPanel } from "../research/IngestionHealthPanel";
 import { PublicAiEvidencePanel } from "../research/PublicAiEvidencePanel";
 import { RagEvaluationPanel } from "../research/RagEvaluationPanel";
+import { ResearchOperationsPanel } from "../research/ResearchOperationsPanel";
 import { GovernedKnowledgeWorkspace } from "../research/GovernedKnowledgeWorkspace";
 import {
   createKnowledgeArticle,
@@ -1754,6 +1755,7 @@ function CRMApp({
               <IngestionHealthPanel currentUser={currentUser} onMessage={setToast}/>
               <PublicAiEvidencePanel currentUser={currentUser} onMessage={setToast}/>
               <RagEvaluationPanel currentUser={currentUser} onMessage={setToast}/>
+              <ResearchOperationsPanel currentUser={currentUser} onMessage={setToast}/>
               <div className="knowledge-list">
                 <div className="list-heading">
                   <div>

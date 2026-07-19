@@ -92,3 +92,14 @@ export function inferKnowledgeLanguage(value) {
   if (cjk > 0 && latin > 0) return "mixed";
   return cjk > 0 ? "zh-Hant" : "en";
 }
+
+const knowledgeThreatPatterns = [
+  {code:"PROMPT_OVERRIDE",pattern:/\b(?:ignore|disregard|override|forget)\b.{0,80}\b(?:previous|prior|system|developer|assistant)\b.{0,40}\b(?:instruction|prompt|message|rule)s?\b/is},
+  {code:"SECRET_EXFILTRATION",pattern:/\b(?:reveal|expose|print|return|send|leak)\b.{0,80}\b(?:system prompt|api key|secret|credential|token|private data)\b/is},
+  {code:"TOOL_INJECTION",pattern:/\b(?:call|invoke|execute|run|use)\b.{0,60}\b(?:tool|function|command|shell|database action)\b/is},
+];
+
+export function detectKnowledgeThreats(value) {
+  const content=String(value||"");
+  return knowledgeThreatPatterns.filter((item)=>item.pattern.test(content)).map((item)=>item.code);
+}

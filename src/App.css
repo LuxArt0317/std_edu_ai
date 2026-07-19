@@ -1,5 +1,5 @@
 .stu-page {
-  --stu-teal: #3cb69e;
+  --stu-teal: #126856;
   --stu-mist: #d2e3e0;
   --stu-sky: #65c4f2;
   --stu-ink: #54595f;
@@ -163,7 +163,24 @@
   justify-content: center;
   gap: 9px;
 }
-.carousel-dots button,
+.carousel-dots button {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.carousel-dots button::after {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 42%);
+  content: "";
+  inset: 50% auto auto 50%;
+  transform: translate(-50%,-50%);
+}
 .small-dots span {
   width: 9px;
   height: 9px;
@@ -172,7 +189,7 @@
   border-radius: 50%;
   background: rgb(0 0 0 / 28%);
 }
-.carousel-dots button.active,
+.carousel-dots button.active::after,
 .small-dots span.active { background: #111; }
 
 .audience-section {
@@ -235,7 +252,7 @@
 .title-lockup { text-align: center; }
 .title-lockup h2 { margin: 0; font-size: 42px; font-weight: 600; }
 .title-lockup > img { display: block; width: min(50%, 630px); height: 28px; margin: 4px auto 0; object-fit: fill; }
-.teal-title p { margin: -2px 0 26px; color: #b6ddda; font-family: Georgia, serif; font-size: clamp(2.2rem, 4vw, 54px); font-weight: 700; letter-spacing: .07em; }
+.teal-title p { margin: -2px 0 26px; color: #527a74; font-family: Georgia, serif; font-size: clamp(2.2rem, 4vw, 54px); font-weight: 700; letter-spacing: .07em; }
 
 .vision-carousel {
   position: relative;
@@ -297,10 +314,10 @@
 .story.reverse .story-copy { order: 1; }
 .story-photo { display: block; width: 100%; height: 400px; border-radius: 20px; object-fit: cover; }
 .story:nth-child(2) .story-photo { object-position: center 24%; }
-.story-copy h2 { margin: 0; color: #72c6f4; font-size: clamp(2.2rem, 3.2vw, 46px); font-weight: 600; line-height: 1.15; }
+.story-copy h2 { margin: 0; color: #2678a9; font-size: clamp(2.2rem, 3.2vw, 46px); font-weight: 600; line-height: 1.15; }
 .story-copy > span { display: block; width: 170px; height: 6px; margin: 18px 0 22px; background: #d846c5; }
 .story-copy p { margin: 0; color: #656565; font-size: 1rem; line-height: 1.85; }
-.story-copy a { display: inline-block; margin-top: 16px; color: #4c8bc5; font-weight: 600; text-decoration: none; }
+.story-copy a { display: inline-block; margin-top: 16px; color: #25689a; font-weight: 600; text-decoration: none; }
 
 .campus-life-section { padding: 52px 0 48px; background: var(--stu-teal); }
 .white-title { color: #fff; }
@@ -341,7 +358,7 @@
 .news-heading p { margin: 0 0 2px; color: var(--stu-teal); font-family: Georgia, serif; font-size: 1.05rem; font-weight: 700; letter-spacing: .24em; }
 .news-heading h2 { margin: 0 0 28px; color: #555; font-size: 36px; font-weight: 600; }
 .news-tabs { display: flex; width: min(1080px, calc(100% - 36px)); justify-content: flex-start; margin: 0 auto; overflow-x: auto; }
-.news-tabs button { min-width: 130px; padding: 13px 18px; color: #fff; border: 0; border-right: 1px solid rgb(255 255 255 / 45%); border-radius: 20px 20px 0 0; background: #7c9792; font-weight: 600; cursor: pointer; }
+.news-tabs button { min-width: 130px; padding: 13px 18px; color: #fff; border: 0; border-right: 1px solid rgb(255 255 255 / 45%); border-radius: 20px 20px 0 0; background: #526b66; font-weight: 600; cursor: pointer; }
 .news-tabs button.active { background: var(--stu-teal); }
 .news-list { width: min(1080px, calc(100% - 36px)); margin: 0 auto; padding: 14px 28px; border-radius: 0 20px 20px 20px; background: var(--stu-teal); }
 .news-list a { display: grid; grid-template-columns: 90px 1fr 24px; align-items: center; gap: 12px; min-height: 52px; color: #fff; border-bottom: 1px solid rgb(255 255 255 / 24%); text-decoration: none; }
@@ -355,7 +372,7 @@
 .hot-links-section > h2,
 .public-links-section > h2 { margin: 0 0 26px; color: #555; font-size: 36px; font-weight: 600; text-align: center; }
 .hot-tabs { display: flex; width: min(1080px, calc(100% - 36px)); margin: 0 auto; }
-.hot-tabs button { flex: 0 1 200px; padding: 14px; color: #fff; border: 0; border-radius: 20px 20px 0 0; background: #7c9792; font-size: 1.1rem; font-weight: 600; cursor: pointer; }
+.hot-tabs button { flex: 0 1 200px; padding: 14px; color: #fff; border: 0; border-radius: 20px 20px 0 0; background: #526b66; font-size: 1.1rem; font-weight: 600; cursor: pointer; }
 .hot-tabs button.active { background: var(--stu-teal); }
 .hot-grid { display: grid; width: min(1080px, calc(100% - 36px)); grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 0 auto; padding: 30px; border-radius: 0 20px 20px 20px; background: var(--stu-teal); }
 .hot-grid a { display: grid; min-height: 76px; place-items: center; padding: 12px; color: #fff; border: 1px solid rgb(255 255 255 / 46%); border-radius: 10px; background: rgb(255 255 255 / 8%); font-size: 1.05rem; font-weight: 600; text-align: center; text-decoration: none; transition: background 180ms ease; }

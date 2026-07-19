@@ -1,5 +1,8 @@
 # Current State
 
+- Issue #125 now has a production operational control plane with eight versioned SLO families, immutable privacy-safe events, owned alerts, acknowledgement/resolution evidence, ingestion/evaluation observers, a protected CRM panel, and a reversible three-role production verifier. Its exact live measures are 8/8 component families, 0 arbitrary metadata accepted, 0 invalid correlations accepted, 0 unauthorized reads, 0 event mutations, 6 owned alerts, one persisted recovery transition, and 0 residual fixtures.
+- Child Issue #126 tracks the independently measurable accessibility/adversarial/RLS/load/recovery slice. Local evidence passes 167 contracts, 5 automated public accessibility states with 0 serious/critical violations or reflow/focus/control failures, 27 protected-table role checks with 0 anonymous/student exposure, 0 dependency vulnerabilities, and a 200-request production pilot with 0 failures (shell p95 252 ms; campus p95 1,803 ms). Deployment and post-deploy injection quarantine remain in progress.
+
 # Active implementation: Issue #104
 
 - Issue #104 is the implementation-ready research-completion epic. It reconciles the original non-mutating information-assistant study with the expanded authenticated School OS and defines authoritative-source ingestion, hybrid RAG, claim-linked citations, abstention, bilingual public assistance, campus spatial routing, controlled usability research, administrative-workload measurement, privacy, accessibility, and operational gates.

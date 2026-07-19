@@ -4797,6 +4797,115 @@ export type Database = {
           },
         ]
       }
+      research_operational_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          created_at: string
+          event_id: string
+          id: string
+          owner_role: string
+          resolution_code: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          owner_role: string
+          resolution_code?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity: string
+          status?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          owner_role?: string
+          resolution_code?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_operational_alerts_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "research_operational_alerts_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "research_operational_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "research_operational_alerts_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_operational_events: {
+        Row: {
+          component: string
+          correlation_hash: string
+          created_at: string
+          error_code: string | null
+          fixture_marker: string | null
+          http_status: number | null
+          id: string
+          item_count: number | null
+          latency_ms: number
+          metadata: Json
+          operation: string
+          outcome: string
+        }
+        Insert: {
+          component: string
+          correlation_hash: string
+          created_at?: string
+          error_code?: string | null
+          fixture_marker?: string | null
+          http_status?: number | null
+          id?: string
+          item_count?: number | null
+          latency_ms: number
+          metadata?: Json
+          operation: string
+          outcome: string
+        }
+        Update: {
+          component?: string
+          correlation_hash?: string
+          created_at?: string
+          error_code?: string | null
+          fixture_marker?: string | null
+          http_status?: number | null
+          id?: string
+          item_count?: number | null
+          latency_ms?: number
+          metadata?: Json
+          operation?: string
+          outcome?: string
+        }
+        Relationships: []
+      }
       research_participant_tokens: {
         Row: {
           created_at: string
@@ -5048,6 +5157,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      research_slo_definitions: {
+        Row: {
+          availability_target: number
+          component: string
+          created_at: string
+          effective_at: string
+          error_budget_percent: number
+          id: string
+          operation: string
+          p95_latency_ms: number
+          pilot_concurrency: number
+          pilot_requests: number
+          retired_at: string | null
+          rpo_minutes: number
+          rto_minutes: number
+          version: number
+        }
+        Insert: {
+          availability_target: number
+          component: string
+          created_at?: string
+          effective_at?: string
+          error_budget_percent: number
+          id?: string
+          operation: string
+          p95_latency_ms: number
+          pilot_concurrency: number
+          pilot_requests: number
+          retired_at?: string | null
+          rpo_minutes: number
+          rto_minutes: number
+          version: number
+        }
+        Update: {
+          availability_target?: number
+          component?: string
+          created_at?: string
+          effective_at?: string
+          error_budget_percent?: number
+          id?: string
+          operation?: string
+          p95_latency_ms?: number
+          pilot_concurrency?: number
+          pilot_requests?: number
+          retired_at?: string | null
+          rpo_minutes?: number
+          rto_minutes?: number
+          version?: number
+        }
+        Relationships: []
       }
       research_studies: {
         Row: {
@@ -6032,6 +6192,10 @@ export type Database = {
         Returns: Json
       }
       purge_ai_eval_fixture: { Args: { p_dataset_id: string }; Returns: Json }
+      purge_issue125_fixture: {
+        Args: { p_fixture_marker: string }
+        Returns: Json
+      }
       purge_knowledge_verification_fixture: {
         Args: { p_source_id: string }
         Returns: Json
@@ -6106,6 +6270,21 @@ export type Database = {
           feedback_token: string
         }[]
       }
+      record_research_operational_event: {
+        Args: {
+          p_component: string
+          p_correlation_hash: string
+          p_error_code: string
+          p_fixture_marker?: string
+          p_http_status: number
+          p_item_count: number
+          p_latency_ms: number
+          p_metadata?: Json
+          p_operation: string
+          p_outcome: string
+        }
+        Returns: string
+      }
       record_sensitive_case_access: {
         Args: { p_case_id: string; p_purpose: string }
         Returns: undefined
@@ -6142,6 +6321,24 @@ export type Database = {
       research_anonymized_export: {
         Args: { p_study_id: string }
         Returns: Json
+      }
+      research_operations_report: {
+        Args: { p_since?: string }
+        Returns: {
+          availability: number
+          component: string
+          degraded_count: number
+          denied_count: number
+          error_budget_consumed_percent: number
+          event_count: number
+          failure_count: number
+          open_alerts: number
+          operation: string
+          p50_latency_ms: number
+          p95_latency_ms: number
+          slo_latency_ms: number
+          success_count: number
+        }[]
       }
       research_sus_score: {
         Args: { p_condition: string; p_session_id: string }
@@ -6334,6 +6531,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      transition_research_operational_alert: {
+        Args: {
+          p_alert_id: string
+          p_resolution_code?: string
+          p_status: string
+        }
+        Returns: undefined
       }
       update_academic_curriculum: {
         Args: {
