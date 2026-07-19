@@ -202,10 +202,14 @@ export async function extractPdfSections(bytes) {
     const { default: DOMMatrix } = await import('@thednp/dommatrix')
     globalThis.DOMMatrix = DOMMatrix
   }
+  await import('pdfjs-dist/legacy/build/pdf.worker.mjs')
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
   let document
   try { document = await pdfjs.getDocument({ data: new Uint8Array(bytes), isEvalSupported: false, useSystemFonts: true }).promise }
-  catch { throw new Error('The PDF is malformed, encrypted, or unsupported.') }
+  catch (error) {
+    const detail = error instanceof Error ? error.message.replace(/[^\w .:/()'-]/g, '').slice(0, 180) : 'unknown parser failure'
+    throw new Error(`The PDF is malformed, encrypted, or unsupported. Parser detail: ${detail}`)
+  }
   const sections = []
   const metadata = await document.getMetadata().catch(() => null)
   for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {

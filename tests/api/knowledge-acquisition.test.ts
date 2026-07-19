@@ -220,6 +220,7 @@ test("the deployed acquisition boundary revalidates DNS redirects and records st
     "response.headers.location",
     "MAX_ACQUISITION_BYTES",
     "@thednp/dommatrix",
+    "pdfjs-dist/legacy/build/pdf.worker.mjs",
   ])
     assert.ok(
       acquisition.includes(marker),
