@@ -3,6 +3,7 @@
 - `crm-assistant.ts` is the student-success copilot boundary for the CRM.
 - `school-assistant.ts` provides authenticated, persistent-chat responses and structured goal decisions adapted to the trusted school role. Ask mode is forcibly non-mutating; Agentic mode may choose at most one authorized next step. Current-message images, PDFs, and bounded text attachments are sent as native multimodal input. Writes are revalidated, explicitly confirmed one at a time, executed through the ordinary repository under the user's Supabase session, and recorded with privacy-minimized outcome metadata.
 - `grade-scan.ts` accepts authenticated teacher/leadership image scans and returns structured grade candidates that require human review.
+- `knowledge-ingest.ts` accepts bounded owner/admin/librarian content imports, canonicalizes provenance, creates deterministic checksummed document versions/chunks, generates server-only OpenAI embeddings, and stops at the human review boundary. Duplicate content is idempotently returned instead of indexed twice.
 
 The endpoints validate and rate-limit requests, accept only bounded context, enforce structured model output, and never return provider credentials. Authentication roles are derived from Supabase `app_metadata`, never from a browser-supplied role.
 
@@ -14,4 +15,4 @@ For authorized academic leaders, `create_curriculum` is deliberately one bulk ac
 
 `tsconfig.json` supplies the strict Node.js compiler context used when Vercel builds each function independently. The runtime authentication helper and its TypeScript declaration live in `server/` so they are bundled as dependencies rather than exposed as another endpoint.
 
-Required runtime environment variables: `OPENAI_API_KEY`, `VITE_SUPABASE_URL`, and `VITE_SUPABASE_PUBLISHABLE_KEY`. Optional variables are `OPENAI_MODEL`, `OPENAI_VISION_MODEL`, and `SAFETY_HASH_SALT`.
+Required runtime environment variables: `OPENAI_API_KEY`, `VITE_SUPABASE_URL`, and `VITE_SUPABASE_PUBLISHABLE_KEY`. Optional variables are `OPENAI_MODEL`, `OPENAI_VISION_MODEL`, `OPENAI_EMBEDDING_MODEL`, and `SAFETY_HASH_SALT`.

@@ -10,11 +10,12 @@
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "strict": true,
+    "skipLibCheck": true,
     "noEmit": true,
     "composite": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["api", "server", "tests/api", "src/utils/async.ts", "src/platform/onboarding.ts", "src/platform/richLessonContent.ts", "src/platform/schoolAgentLoop.ts", "src/platform/types.ts"]
+  "include": ["api", "server", "tests/api", "src/research", "src/utils/async.ts", "src/platform/onboarding.ts", "src/platform/richLessonContent.ts", "src/platform/schoolAgentLoop.ts", "src/platform/types.ts"]
 }

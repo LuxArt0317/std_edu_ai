@@ -5452,6 +5452,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      publish_knowledge_document: {
+        Args: { p_document_id: string; p_reason: string }
+        Returns: Json
+      }
+      purge_knowledge_verification_fixture: {
+        Args: { p_source_id: string }
+        Returns: Json
+      }
       read_assessment_attempts: {
         Args: never
         Returns: {
@@ -5519,6 +5527,10 @@ export type Database = {
           p_target_profile_id: string
         }
         Returns: number
+      }
+      rollback_knowledge_document: {
+        Args: { p_document_id: string; p_reason: string }
+        Returns: Json
       }
       submit_assessment: {
         Args: { p_answers: Json; p_assessment_id: string }

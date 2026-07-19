@@ -12,3 +12,6 @@
 - Commented implementation evidence on and closed #117. Issues #105–#115 remain open because feature and empirical evidence work is not yet complete.
 - Created the WP0 draft protocol 0.1.0, analysis plan, claims/evidence matrix, and external governance register. The executable verifier confirms all 15 research/objective/benefit claims have a metric, artifact, owner, and decision/report rule.
 - Marked only claims traceability verified. Protocol freeze remains in progress and ethics/advisor approval remains external; no participant or outcome claim was fabricated.
+- Added a server-only governed ingestion endpoint with bounded role-gated imports, HTTPS canonicalization, deterministic normalization/chunking/checksums, OpenAI 1,536-dimensional embeddings, checksum deduplication, version creation, and mandatory human review.
+- Deployed reviewer-only atomic publication and rollback RPCs. The live owner/OpenAI workflow proved first publication, version supersession, zero mixed active chunks, expired public leakage = 0, prior-version rollback, and cleanup.
+- The first cleanup attempt exposed immutable review-event protection and left a fixture; removed it, added a narrowly owner/test-prefix restricted purge RPC, reran the workflow, and independently confirmed 0 sources/documents/review events remain.

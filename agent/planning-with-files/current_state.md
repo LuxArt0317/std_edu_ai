@@ -8,6 +8,7 @@
 - Four schema contracts and the reversible production workflow pass. Public approved metadata is readable, chunks and participant records are denied to anonymous clients, campus routing joins correctly, study records form a protocol-to-response chain, and cleanup leaves zero temporary records.
 - Corpus ingestion/retrieval/evaluation, navigation UI, public assistant, study/workload UX, hardening, and approved empirical execution remain open. No user-outcome claim is currently marked achieved.
 - WP0 now has draft protocol 0.1.0, analysis rules, 15/15 mapped claims, and explicit external governance decisions. The protocol remains deliberately unfrozen pending advisor/institutional review, pilot, power analysis, translations, and consent/retention approval.
+- WP1/WP2 now have deterministic governed ingestion, real OpenAI embeddings, review-only drafts, atomic publication/supersession/rollback, expiry isolation, and reversible live proof. The complete official corpus, PDF/file parsing, background retry/cost telemetry, review UI, and role-matrix evidence remain open.
 
 # Completed implementation: Issue #103
 

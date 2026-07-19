@@ -17,3 +17,5 @@ These opt-in scripts exercise the configured production deployment and Supabase 
 `issue103-live.mjs` uses the protected owner session to reversibly prove exact catalog-subject curriculum placement, prerequisite IDs, department/program mismatch rejection, CRM task/case and owner invariants, structured campaign recipient generation, and admission program snapshots. Existing campaign state is restored and temporary academic records are removed.
 
 `research-foundation-live.mjs` reversibly validates the Issue #104 governed source/document/chunk chain, anonymous metadata boundary, direct chunk denial, accessible campus graph, and pseudonymous protocol-to-response study chain against production. All temporary records are removed in dependency order and the script fails if any relationship or RLS boundary is missing.
+
+`knowledge-ingestion-live.mjs` uses the protected owner and OpenAI credentials to create deterministic embedded versions, publish through the reviewer-only atomic RPC, supersede the prior index, prove expiry removes public visibility, restore the prior version, reject mixed active chunks, and clean every temporary record.
