@@ -8,7 +8,7 @@
 - [x] persist teacher-controlled assessment review/fullscreen/focus/display/camera policies and append-only integrity events under RLS
 - [x] add student assessment preflight, clear monitoring disclosure, best-effort browser controls, event evidence, and post-attempt review modes
 - [x] add configurable branded PNG schedule export for students
-- [ ] verify schema/security/UI, automated/live behavior, review, deploy, and production markers
+- [x] verify schema/security/UI, automated/live behavior, review, deploy, and production markers
 
 ## Phase 86: Governed knowledge contributions and reliable Nexus revisions [Issue #86]
 

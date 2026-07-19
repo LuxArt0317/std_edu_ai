@@ -10,6 +10,7 @@
 - Implemented configurable STU-branded PNG timetable rendering from the role-filtered unified calendar.
 - Applied both production migrations. Student evidence insertion succeeded under simulated JWT/RLS and rolled back; reviewed answers returned the configured score-only shape; advisors show no new security or unindexed-FK issue.
 - All 92 contracts, lint, TypeScript, Vite build, recursive asset verification, and live faculty/student LMS checks pass.
+- PR #89 passed CodeRabbit and Vercel, merged as `0640658`, and deployed successfully. Both production routes return HTTP 200 with healthy recursive asset graphs and every released lesson-studio, inline-video, student-preflight, integrity-log, and schedule-poster marker.
 
 ## 2026-07-19 — Issue #86
 
