@@ -47,3 +47,10 @@ test("public campus UI and API expose verified directory, text directions, and h
   for(const marker of ["verified_at=not.is.null","status=eq.active","needs_selection","temporarily closed","physicalValidation","pending_official_walkthrough"]) assert.ok(api.includes(marker),`missing API marker ${marker}`);
   assert.match(migration,/instruction_reverse_zh[\s\S]*set not null/);
 });
+
+test("campus directory avoids graph overfetch and coalesces one-minute data reads",()=>{
+  const api=fs.readFileSync("api/campus-route.ts","utf8");
+  for(const marker of ["loadDirectory(url,key)","loadGraph(url,key)","expiresAt:now+60_000","request.method===\"GET\"?await loadDirectory(url,key):await loadGraph(url,key)"]) assert.ok(api.includes(marker),`missing performance boundary ${marker}`);
+  assert.match(api,/function loadDirectory[\s\S]*campus_places[\s\S]*knowledge_sources/);
+  assert.match(api,/function loadGraph[\s\S]*campus_place_aliases[\s\S]*campus_nodes[\s\S]*campus_edges/);
+});
