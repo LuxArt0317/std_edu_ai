@@ -3,6 +3,8 @@
 
 ### Alerts and remaining nested UI (Issue #75)
 
+- Published runtime ae1ed52; quality CI, all 48 production nested states, live Plan/OpenAI and client backend checks pass. All 43 browser scenarios are verified across runs; final affected regressions pass 9/9.
+
 - Replace the blocked custom AI panel with a shadcn sheet; separate Plan context from the student drawer, support nested Escape/focus restoration and cancel obsolete requests.
 - Replace remaining green hero/research headers with readable semantic surfaces; correct preview title, progress, risk-badge and grade-upload contrast in light/dark themes.
 - Restore compact responsive Alert rows, wrap populated task actions, and contain the keyboard-scrollable service table.
