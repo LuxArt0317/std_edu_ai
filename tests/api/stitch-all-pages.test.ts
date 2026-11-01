@@ -20,7 +20,7 @@ test("shared Stitch improvements cover platform and nested CRM pages",()=>{
 });
 
 test("Stitch auth findings are implemented through Supabase recovery",()=>{
-  const root=read("src/features/crm/CRMRoot.tsx");
+  const root=read("src/features/auth/SchoolAuth.tsx");
   const auth=read("src/features/crm/authService.ts");
   assert.match(root,/PASSWORD_RECOVERY/);
   assert.match(root,/Forgot password\?/);

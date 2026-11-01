@@ -370,7 +370,7 @@ test('assistant panel uses plain modes and returns focus without sending a reque
 
 test('school URLs protect direct links and preserve history and legacy navigation', async ({ page }) => {
   await page.goto('/app/cases')
-  await expect(page).toHaveURL(/\/login\?next=%2Fapp%2Fcases/)
+  await expect(page).toHaveURL(/\/signin\?next=%2Fapp%2Fcases/)
   await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).toBeVisible()
   await login(page, 'owner')
   const nav = page.getByRole('navigation', { name: 'School navigation' })
@@ -382,7 +382,7 @@ test('school URLs protect direct links and preserve history and legacy navigatio
   await expect(page).toHaveURL(/\/app\/cases$/)
   await page.reload()
   await expect(page.locator('.school-content')).toHaveAttribute('data-workspace', 'cases')
-  await page.goto('/login?next=%2Fapp%2Fcalendar')
+  await page.goto('/signin?next=%2Fapp%2Fcalendar')
   await expect(page).toHaveURL(/\/app\/calendar$/)
   await page.goto('/crm')
   await expect(page).toHaveURL(/\/app$/)
@@ -409,8 +409,138 @@ test('sign-in form returns to the requested page and sign-out protects browser h
   await expect(page).toHaveURL(/\/app\/students$/)
   await page.getByRole('button', { name: 'Account menu' }).click()
   await page.getByRole('menuitem', { name: 'Sign out', exact: true }).click()
-  await expect(page).toHaveURL(/\/login$/)
+  await expect(page).toHaveURL(/\/signin$/)
   await page.goBack()
   await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).toBeVisible()
   await expect(page.locator('.school-content')).toHaveCount(0)
+})
+
+
+test('legacy login alias and public student registration are separate routes', async ({ page }) => {
+  await page.goto('/login')
+  await expect(page).toHaveURL(/\/signin$/)
+  await page.getByRole('link', { name: 'Create an account', exact: true }).click()
+  await expect(page).toHaveURL(/\/signup$/)
+  await expect(page.getByRole('heading', { name: 'Create a student account' })).toBeVisible()
+  await page.getByLabel('Full name', { exact: true }).fill('Student Registration Check')
+  await page.getByLabel('Email address', { exact: true }).fill('student@example.com')
+  await page.getByLabel('Password', { exact: true }).fill('A-valid-long-password-123!')
+  await page.getByLabel('Confirm password', { exact: true }).fill('A-different-password-123!')
+  await page.getByRole('button', { name: 'Create account', exact: true }).click()
+  await expect(page.getByRole('alert')).toHaveText('The two passwords do not match.')
+  await page.getByRole('link', { name: 'Sign in', exact: true }).click()
+  await expect(page).toHaveURL(/\/signin$/)
+})
+
+test('nested school layouts keep selectors and class actions readable at desktop and mobile widths', async ({ page }) => {
+  test.setTimeout(120000)
+  await login(page, 'owner')
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 })
+    await page.goto('/app/academics')
+    for (const tab of ['Curriculum', 'Classes', 'Enrollment']) {
+      await page.getByRole('tab', { name: tab, exact: true }).click()
+      const clipped = await page.locator('.record-selector,.section-connection-actions button').evaluateAll(elements => elements.filter(el => (el as HTMLElement).offsetHeight && (el.scrollWidth > el.clientWidth + 2 || el.scrollHeight > el.clientHeight + 3)).map(el => el.textContent))
+      expect(clipped).toEqual([])
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+      const scan = await new AxeBuilder({ page }).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze()
+      expect(scan.violations.filter(item => ['serious','critical'].includes(item.impact!)).map(item => ({ id:item.id,targets:item.nodes.map(node=>node.target) }))).toEqual([])
+    }
+  }
+})
+
+test('assessment preview and course outline use readable semantic surfaces in both themes', async ({ page }) => {
+  test.setTimeout(120000)
+  await login(page, 'owner')
+  for (const theme of ['light','dark']) {
+    await page.addInitScript(theme => localStorage.setItem('theme', theme), theme)
+    await page.goto('/app/assessments')
+    await page.getByRole('button', { name: /Preview assessment/ }).first().click()
+    const quiz = page.getByRole('dialog')
+    await expect(quiz).toBeVisible()
+    await expect(quiz.getByRole('heading')).toBeVisible()
+    const quizScan = await new AxeBuilder({ page }).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze()
+    expect(quizScan.violations.filter(item => ['serious','critical'].includes(item.impact!)).map(item => ({ id:item.id,targets:item.nodes.map(node=>node.target) }))).toEqual([])
+    await quiz.getByRole('button', { name:'Close', exact:true }).click()
+    await expect(quiz).toHaveCount(0)
+    await page.goto('/app/courses')
+    await page.getByRole('tab', { name:'Student view', exact:true }).click()
+    await expect(page.getByRole('heading', { name:'Lessons and materials', exact:true })).toBeVisible()
+    const outlineScan = await new AxeBuilder({ page }).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze()
+    expect(outlineScan.violations.filter(item => ['serious','critical'].includes(item.impact!)).map(item => ({ id:item.id,targets:item.nodes.map(node=>node.target) }))).toEqual([])
+  }
+})
+
+test('verified public registration assigns student access and rejects forged staff metadata', async ({ page }) => {
+  const email = `luxart0317+${state.marker.toLowerCase()}-signup@gmail.com`
+  const password = 'Qa75!' + crypto.randomUUID()
+  let id: string | undefined
+  try {
+    const generated = await admin.auth.admin.generateLink({ type: 'signup', email, password, options: { data: { full_name: 'QA75 Public Student', role: 'owner', platform_owner: true } } })
+    expect(generated.error).toBeNull()
+    id = generated.data!.user.id
+    expect(generated.data!.user.app_metadata.role).toBe('student')
+    expect(generated.data!.user.app_metadata.platform_owner).not.toBe(true)
+    const { createClient } = await import('@supabase/supabase-js')
+    const { deploymentEnvironment } = await import('../../scripts/deployment-env.mjs')
+    const env = deploymentEnvironment()
+    const student = createClient(env.NEXT_PUBLIC_SUPABASE_URL || env.VITE_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY, { auth: { persistSession:false, autoRefreshToken:false } })
+    expect((await student.auth.signInWithPassword({ email, password })).error).toBeTruthy()
+    const confirmed = await student.auth.verifyOtp({ token_hash:generated.data!.properties.hashed_token, type:'signup' })
+    expect(confirmed.error).toBeNull()
+    expect(confirmed.data.user!.app_metadata.role).toBe('student')
+    expect((await student.auth.updateUser({ data:{ role:'admin', platform_owner:true } })).error).toBeNull()
+    const refreshed = await student.auth.refreshSession()
+    expect(refreshed.data.user!.app_metadata.role).toBe('student')
+    const escalation = await student.from('profiles').update({role:'admin'}).eq('id',id!).select('id')
+    expect(Boolean(escalation.error) || escalation.data?.length === 0).toBe(true)
+    expect((await admin.from('profiles').select('role').eq('id',id!).single()).data!.role).toBe('student')
+    await student.auth.signOut({ scope:'local' })
+    await page.goto('/signin')
+    await page.getByLabel('Email address', { exact:true }).fill(email)
+    await page.getByLabel('Password', { exact:true }).fill(password)
+    await page.getByRole('button', { name:'Sign in', exact:true }).click()
+    await expect(page).toHaveURL(/\/app$/)
+    await expect(page.locator('.school-content')).toBeVisible()
+    await expect(page.getByRole('navigation', { name:'School navigation' }).getByRole('button', { name:'Users', exact:true })).toHaveCount(0)
+    await page.goto('/app/users')
+    await expect(page).toHaveURL(/\/app$/)
+  } finally { if (id) { const removed = await admin.auth.admin.deleteUser(id); expect(removed.error).toBeNull() } }
+})
+
+
+test('registration confirmation screen supports resend and correcting the email', async ({ page }) => {
+  await page.route('**/auth/v1/signup**', async route => {
+    const body = route.request().postDataJSON()
+    expect(Object.keys(body.data)).toEqual(['full_name'])
+    await route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ id:crypto.randomUUID(), aud:'authenticated', role:'authenticated', email:body.email, user_metadata:body.data, app_metadata:{provider:'email',providers:['email'],role:'student'}, created_at:new Date().toISOString(), identities:[] }) })
+  })
+  let resent = false
+  await page.route('**/auth/v1/resend**', async route => { expect(route.request().postDataJSON().type).toBe('signup'); resent=true; await route.fulfill({status:200,contentType:'application/json',body:'{}'}) })
+  await page.goto('/signup')
+  await page.getByLabel('Full name', {exact:true}).fill('QA Student')
+  await page.getByLabel('Email address', {exact:true}).fill('student@example.com')
+  const password = 'Qa75!' + crypto.randomUUID()
+  await page.getByLabel('Password', {exact:true}).fill(password)
+  await page.getByLabel('Confirm password', {exact:true}).fill(password)
+  await page.getByRole('button', {name:'Create account',exact:true}).click()
+  await expect(page.getByRole('heading', {name:'Check your email',exact:true})).toBeVisible()
+  await page.getByRole('button', {name:'Resend confirmation email',exact:true}).click()
+  await expect(page.getByText('Confirmation requested. Check your inbox and spam folder.', {exact:true})).toBeVisible()
+  expect(resent).toBe(true)
+  await page.getByRole('button', {name:'Use another email',exact:true}).click()
+  await expect(page.getByLabel('Email address', {exact:true})).toBeVisible()
+})
+
+test('mobile Tasks signals wrap within the viewport in both themes', async ({ page }) => {
+  await page.setViewportSize({width:390,height:1000})
+  await login(page,'owner')
+  for (const theme of ['light','dark']) {
+    await page.addInitScript(theme => localStorage.setItem('theme',theme),theme)
+    await page.goto('/app/tasks')
+    await expect(page.locator('.nexus-page-heading')).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    const scan=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze()
+    expect(scan.violations.filter(item=>['serious','critical'].includes(item.impact!)).map(item=>item.id)).toEqual([])
+  }
 })

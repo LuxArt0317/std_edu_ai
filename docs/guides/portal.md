@@ -141,4 +141,4 @@ Open your name at the bottom of the sidebar to change Appearance (System, Light 
 
 ## Page links
 
-Sign in at `/login`. The dashboard is `/app`; sections have their own URLs, such as `/app/courses`, `/app/cases` and `/app/academics`. Links can be bookmarked and refreshed. Old `/crm` links continue to work. Sign-out returns to `/login` and protected pages require authentication.
+Sign in at `/signin`. The dashboard is `/app`; sections have their own URLs, such as `/app/courses`, `/app/cases` and `/app/academics`. Links can be bookmarked and refreshed. Old `/crm` links continue to work. Sign-out returns to `/signin` and protected pages require authentication.

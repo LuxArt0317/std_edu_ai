@@ -14,7 +14,7 @@ const explanations=read("supabase/migrations/20260718004847_protect_unreleased_a
 const retention=read("supabase/migrations/20260718005248_enforce_crm_retention_no_permanent_delete.sql");
 
 test("temporary credentials require a completed first-login password replacement",()=>{
-  assert.match(account,/must_change_password: true/); assert.match(account,/complete_password_change/); assert.match(portal,/PeopleView/); assert.match(read("src/features/crm/CRMRoot.tsx"),/Replace your temporary password/);
+  assert.match(account,/must_change_password: true/); assert.match(account,/complete_password_change/); assert.match(portal,/PeopleView/); assert.match(read("src/features/auth/SchoolAuth.tsx"),/Replace your temporary password/);
 });
 
 test("identity, responsibility, admissions, communication, and sensitive access are governed",()=>{

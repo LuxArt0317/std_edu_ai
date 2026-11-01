@@ -1,6 +1,15 @@
 # Changelog
 ## Unreleased
 
+### Readability and student registration (Issue #75)
+
+- Separate auth into its own feature with canonical `/signin` and public student `/signup`; preserve `/login` and `/crm` redirects.
+- Add email confirmation/resend states and trusted student-only signup metadata; preserve administrator provisioning and RLS.
+- Align new-password forms with the provider policy and exact callback allowlist.
+- Fix semantic surfaces in nested/portal panels, academic selector wrapping, class metrics/actions, roster labels and mobile task signals; migrate quiz preview to a shadcn sheet.
+- Verify 170 API/source checks, 13 units, 38 browser scenarios across full/focused runs and 100 unique visual/theme/viewport states. Client SMTP configuration remains pending.
+
+
 ### Client release and routes (Issue #74)
 
 - Published and verified on stdeduai.vercel.app; Vercel Ready for code 64ebf12. Independent quality CI and live owner/browser/API/database checks pass.

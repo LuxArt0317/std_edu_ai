@@ -9,12 +9,12 @@ import { createRoot } from 'react-dom/client'
 import { ApplicationErrorBoundary } from './ApplicationErrorBoundary'
 import './index.css'
 
-const isCrmRoute = ['/crm', '/login', '/app'].some(path => window.location.pathname === path || window.location.pathname.startsWith(path + '/'))
+const isSchoolRoute = ['/crm', '/login', '/signin', '/signup', '/app'].some(path => window.location.pathname === path || window.location.pathname.startsWith(path + '/'))
 const isStudyRoute = window.location.pathname.startsWith('/study/')
-const CrmApplication = lazy(() => import('./features/crm/CRMRoot.tsx'))
+const SchoolApplication = lazy(() => import('./features/auth/SchoolAuth.tsx'))
 const StudyApplication = lazy(() => import('./features/research/StudyApp.tsx'))
 const PublicApplication = lazy(() => import('./App.tsx'))
-export const RootApplication = isCrmRoute ? CrmApplication : isStudyRoute ? StudyApplication : PublicApplication
+export const RootApplication = isSchoolRoute ? SchoolApplication : isStudyRoute ? StudyApplication : PublicApplication
 
 function RouteLoading() {
   return <main className="route-loading" role="status" aria-live="polite"><section><span>樹</span><p>STU NEXUS</p><strong>Loading the latest workspace</strong><small>Your secure school portal is starting…</small><i aria-hidden="true" /></section></main>
@@ -25,7 +25,7 @@ if (!rootElement) throw new Error('The STU application root is unavailable.')
 
 createRoot(rootElement).render(
   <StrictMode>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem forcedTheme={isCrmRoute ? undefined : "light"} disableTransitionOnChange>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem forcedTheme={isSchoolRoute ? undefined : "light"} disableTransitionOnChange>
     <TooltipProvider>
     <InteractionProvider />
     <Toaster richColors />

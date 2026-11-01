@@ -6,7 +6,8 @@ STU Edu AI combines a public university website with STU Nexus, an authenticated
 
 | Path | Purpose |
 | --- | --- |
-| `src/features/` | School, CRM, curriculum, research, and public product modules |
+| `src/features/` | Auth, school, CRM, curriculum, research, and public product modules |
+| `src/features/auth/` | Sign-in, student signup, session guards and shared password policy |
 | `src/features/school/portal/` | Separate home, people, assessment, grade, calendar and assistant views |
 | `src/components/ui/` | Official shadcn/ui source primitives |
 | `src/components/`, `src/lib/`, `src/hooks/` | Shared form adapters, interactions, utilities and hooks |
@@ -48,4 +49,4 @@ The taste-led overhaul keeps the existing shadcn/Radix and Tailwind stack, adds 
 
 ## Browser routing
 
-React Router 8 owns authenticated navigation: `/login` is the sign-in and password screen, `/app` is the overview, and `/app/<section>` supports direct links and browser history. `/crm` remains a compatibility entry for old links and the existing Supabase recovery callback.
+React Router 8 owns authenticated navigation: `/signin` is the sign-in and password screen, `/app` is the overview, and `/app/<section>` supports direct links and browser history. `/crm` remains a compatibility entry for old links and old Supabase recovery links. New confirmation/recovery links use `/signin`.

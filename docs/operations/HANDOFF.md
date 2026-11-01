@@ -1,6 +1,17 @@
 # Client handoff
 
-## Current release — Issue #74
+## Current UI/auth fixes — Issue #75
+
+Canonical `/signin` and public student `/signup` are implemented in a separate auth feature. `/login` and `/crm` remain compatibility entries; `/app` is protected. Registration supports confirmation status, resend and correcting an email. Student-only trusted server metadata and email verification preserve staff/owner access boundaries. New-password UI/service checks match the provider length/character policy.
+
+Fixed reported dark-header text, academic selector overlap, class action/metric layout collisions, unnamed enrollment status controls and mobile task overflow. Quiz preview uses the shared shadcn sheet with an accessible title and focus handling. Readability verification covers 100 unique desktop/mobile/theme states across the original sweep, targeted regressions and auth screens.
+
+Local evidence: 170 API/source checks, 13 units, all 38 E2E scenarios across full/focused runs (36/36 full, five targeted checks, then the extended registration/confirmation/sign-out checks). Real public signup requires email verification; forged owner/admin user metadata and profile-role edits do not elevate access. Provider settings enforce strong 16-character minimum passwords; 72-byte maximum is handled without truncation. Database: 101 migrations / 101 public RLS tables. Exact `/signin` callbacks verified for production and the two local origins; legacy production `/crm` retained.
+
+Publication and final live verification are pending at this checkpoint. Custom SMTP remains an explicit external dependency: default provider mail accepted the QA request, but inbox delivery and production mail capacity are not claimed. User chose to keep Supabase Auth/default delivery after discussing Gmail. Public email delivery remains limited to approved team addresses and two emails/hour until a production sender is connected. Issue #75 remains open for that dependency.
+
+
+## Previous release — Issue #74
 
 User authorized production publication on 2026-11-01. The release contains the unified transactional school UI and separate `/login` and protected `/app` section routes. Old `/crm` links and the existing provider recovery callback remain compatible; server authorization and database permissions are unchanged.
 

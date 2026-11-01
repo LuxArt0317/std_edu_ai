@@ -37,3 +37,7 @@ The complete set of owner-controlled acceptance identities is documented in [ROL
 - Grade scanning is restricted to teaching/leadership roles and returns structured candidates, confidence, and warnings.
 - AI never decides the correct answer to an objective quiz, never assigns a role, and never directly publishes a grade.
 - A teacher must review scan output before saving draft grades and must publish each result explicitly.
+
+## Public student registration
+
+The user explicitly authorized public student signup in Issue #75. A private BEFORE INSERT Auth trigger assigns student app metadata when the request has no trusted administrator-supplied role. Display/user metadata never supplies authorization. Trusted owner/staff provisioning remains unchanged. Email confirmation is required before sign-in; profile-role edits cannot elevate access, and registered students cannot read staff rows. Signup creates a login and profile, not institutional enrollment or a fabricated student number.

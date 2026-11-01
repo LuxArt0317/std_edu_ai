@@ -3,7 +3,7 @@ import { readContractSource } from './contract-source.mjs';
 const evidence=readContractSource("docs/design/STITCH_ALL_PAGES_EVIDENCE.md","utf8");
 const portal=readContractSource("src/features/school/UnifiedPortal.tsx","utf8");
 const crm=readContractSource("src/features/crm/CRMApp.tsx","utf8");
-const auth=readContractSource("src/features/crm/CRMRoot.tsx","utf8");
+const auth=readContractSource("src/features/auth/SchoolAuth.tsx","utf8");
 const rows=evidence.split("\n").filter((line)=>/^\| (?!---|Surface)/.test(line));
 if(rows.length!==23) throw new Error(`Expected 23 Stitch page rows; found ${rows.length}.`);
 for(const row of rows){

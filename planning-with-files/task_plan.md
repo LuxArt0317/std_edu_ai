@@ -26,3 +26,12 @@ Historical phase checklists: [planning history](../docs/archive/PLANNING_HISTORY
 - [x] Separate `/login` and `/app`, add section URLs, preserve legacy recovery links and role guards.
 - [x] Verify route behavior, build, backend integration and regression checks.
 - [x] Push client main, verify the exact production deployment, and update handoff records.
+
+## Readability, layout and public student registration [Issue #75]
+
+- [x] Audit reported and related nested states; fix shared contrast, portal styling and overflow causes.
+- [x] Add canonical /signin and /signup with secure student-only registration and compatible legacy links.
+- [x] Verify backend registration/role boundaries, responsive light/dark visuals, unit/API/E2E and public regressions.
+- [ ] Update handoff/planning evidence, commit and publish the corrected client UI.
+
+- [ ] Connect and verify a production sender for public student email delivery; Supabase default delivery remains restricted (user chose to keep Supabase).

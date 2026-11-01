@@ -1,3 +1,4 @@
+import { assertNewPassword } from '../auth/passwordPolicy'
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { hasSupabaseConfig, supabase } from '../../utils/supabase'
 import { withTimeout } from '../../utils/async'
@@ -69,7 +70,7 @@ export async function getCrmUser(session: Session): Promise<CrmUser> {
 
 export async function completeRequiredPasswordChange(password: string) {
   if (!supabase) throw new Error('Supabase is not configured.')
-  if (password.length < 16 || password.length > 128) throw new Error('Use a new password between 16 and 128 characters.')
+  assertNewPassword(password)
   const { error } = await supabase.auth.updateUser({ password })
   if (error) throw new Error(error.message)
   const completion = await supabase.functions.invoke('provision-role-account', { body: { action: 'complete_password_change' } })
@@ -81,7 +82,7 @@ export async function completeRequiredPasswordChange(password: string) {
 
 export async function completeCrmPasswordRecovery(password: string) {
   if (!supabase) throw new Error('Supabase is not configured.')
-  if (password.length < 16 || password.length > 128) throw new Error('Use a new password between 16 and 128 characters.')
+  assertNewPassword(password)
   const { error } = await supabase.auth.updateUser({ password })
   if (error) throw new Error(error.message)
   const refreshed = await supabase.auth.refreshSession()
@@ -105,7 +106,7 @@ export async function requestCrmPasswordReset(email: string) {
   if (!supabase) throw new Error('Supabase is not configured.')
   const normalizedEmail = email.trim().toLowerCase()
   if (!normalizedEmail || !normalizedEmail.includes('@')) throw new Error('Enter your institutional email address first.')
-  const redirectTo = new URL('/crm', window.location.origin).toString()
+  const redirectTo = new URL('/signin', window.location.origin).toString()
   const { error } = await withTimeout(
     supabase.auth.resetPasswordForEmail(normalizedEmail, { redirectTo }),
     authRequestTimeoutMs,
@@ -144,3 +145,20 @@ export function clearLocalCrmSession() {
 }
 
 export { hasSupabaseConfig }
+
+/** Roles are assigned by the server trigger; user metadata contains display information only. */
+export async function signUpStudent(fullName: string, email: string, password: string) {
+  if (!supabase) throw new Error('Registration is unavailable. Please try again later.')
+  const name = fullName.trim()
+  if (name.length < 2 || name.length > 120) throw new Error('Enter your full name (2–120 characters).')
+  assertNewPassword(password)
+  const { data, error } = await withTimeout(supabase.auth.signUp({ email: email.trim().toLowerCase(), password, options: { data: { full_name: name }, emailRedirectTo: new URL('/signin', window.location.origin).toString() } }), authRequestTimeoutMs, 'Registration took too long. Please try again.')
+  if (error) throw new Error(error.message)
+  if (data.session) { await supabase.auth.signOut({ scope: 'local' }); throw new Error('Registration requires email confirmation. Contact the school administrator.') }
+}
+
+export async function resendStudentConfirmation(email: string) {
+  if (!supabase) throw new Error('Registration is unavailable. Please try again later.')
+  const { error } = await withTimeout(supabase.auth.resend({ type: 'signup', email: email.trim().toLowerCase(), options: { emailRedirectTo: new URL('/signin', window.location.origin).toString() } }), authRequestTimeoutMs, 'The confirmation request took too long. Please try again.')
+  if (error) throw new Error(error.message)
+}

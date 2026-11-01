@@ -33,7 +33,7 @@ function assetGraph(root) {
 }
 const dependencyPaths = assetGraph(normalizeAssetPath(entryPath))
 
-const crmScript = [...dependencyPaths].find((dependencyPath) => /^assets\/CRMRoot-[\w-]+\.js$/.test(dependencyPath))
+const crmScript = [...dependencyPaths].find((dependencyPath) => /^assets\/SchoolAuth-[\w-]+\.js$/.test(dependencyPath))
 assert.ok(crmScript, 'Build verification failed: the entry asset does not expose the CRM lazy-route JavaScript dependency.')
 const crmScriptBody = [...assetGraph(crmScript)].filter(file => file.endsWith('.js')).map(file => fs.readFileSync(path.join(outputDirectory, file), 'utf8')).join('\n')
 for (const onboardingMarker of ['ROLE READINESS CENTER', 'Click the highlighted control', 'stu-nexus-role-foundations']) {

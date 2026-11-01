@@ -1,3 +1,4 @@
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -354,18 +355,12 @@ export function AssessmentsView({
         })}
       </section>
       {active ? (
-        <div className="quiz-layer">
-          <Button
-            className="quiz-backdrop"
-            type="button"
-            aria-label="Close assessment"
-            onClick={closeAssessment}
-            variant="ghost"
-          />
-          <section className="quiz-panel">
+        <Sheet open onOpenChange={open => { if (!open) closeAssessment(); }}>
+          <SheetContent showCloseButton={false} className="quiz-panel gap-0 p-0 w-[min(760px,100vw)] sm:max-w-[760px]" aria-describedby="quiz-description">
+            <SheetDescription id="quiz-description" className="sr-only">Review the questions and submit your answers.</SheetDescription>
             <header>
               <div>
-                <h2>{active.title}</h2>
+                <SheetTitle asChild><h2>{active.title}</h2></SheetTitle>
                 {active.instructions ? (
                   <RichTextContent html={active.instructions} />
                 ) : (
@@ -566,8 +561,8 @@ export function AssessmentsView({
                 </footer>
               </form>
             )}
-          </section>
-        </div>
+          </SheetContent>
+        </Sheet>
       ) : null}
     </>
   );

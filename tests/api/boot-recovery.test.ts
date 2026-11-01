@@ -25,9 +25,9 @@ test('the React entry protects lazy routes with loading and error UI', () => {
 test('each route has a statically analyzable lazy boundary', () => {
   const entry = readContractSource('src/main.tsx', 'utf8')
   const crmStyles = readContractSource('src/features/crm/crm.css', 'utf8')
-  assert.match(entry, /lazy\(\(\) => import\('\.\/features\/crm\/CRMRoot\.tsx'\)\)/)
+  assert.match(entry, /lazy\(\(\) => import\('\.\/features\/auth\/SchoolAuth\.tsx'\)\)/)
   assert.match(entry, /lazy\(\(\) => import\('\.\/App\.tsx'\)\)/)
-  assert.doesNotMatch(entry, /lazy\(\(\) => isCrmRoute \?/)
+  assert.doesNotMatch(entry, /lazy\(\(\) => isSchoolRoute \?/)
   assert.match(crmStyles, /\.nexus-auth-shell, \.nexus-auth-shell \*/)
   assert.match(crmStyles, /box-sizing: border-box/)
   assert.match(crmStyles, /width: min\(460px, calc\(100vw - 56px\)\)/)
@@ -41,7 +41,7 @@ test('timeout helper resolves successful work and rejects stalled work', async (
 test('authentication and platform startup have finite recovery bounds', () => {
   const auth = readContractSource('src/features/crm/authService.ts', 'utf8')
   const portal = readContractSource('src/features/school/platformRepository.ts', 'utf8')
-  const root = readContractSource('src/features/crm/CRMRoot.tsx', 'utf8')
+  const root = readContractSource('src/features/auth/SchoolAuth.tsx', 'utf8')
   assert.match(auth, /withTimeout/)
   assert.match(auth, /clearLocalCrmSession/)
   assert.match(portal, /20_000/)

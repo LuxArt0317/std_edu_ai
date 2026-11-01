@@ -31,4 +31,4 @@ The read-only GitHub workflow in `.github/workflows/quality.yml` runs lint, sour
 
 ## Route verification
 
-React Router 8 provides protected `/app` section URLs and the separate `/login` screen. `npm run test:unit` covers safe return URLs and route mapping; `npm run test:e2e` verifies direct links, history, refresh, real sign-in/sign-out and role guards. `npm run test:live-shell` recursively checks production assets for the public, sign-in, dashboard, nested and legacy entry paths.
+React Router 8 provides protected `/app` section URLs and the separate `/signin` screen. `npm run test:unit` covers safe return URLs and route mapping; `npm run test:e2e` verifies direct links, history, refresh, real sign-in/sign-out and role guards. `npm run test:live-shell` recursively checks production assets for the public, sign-in, dashboard, nested and legacy entry paths.

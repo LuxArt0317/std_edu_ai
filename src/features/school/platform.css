@@ -3751,26 +3751,26 @@ textarea {
   background:var(--muted);
   color:var(--primary);
 }
-.section-operations article > div {
+.section-operations article > .section-metrics {
   display: grid;
   grid-template-columns: 1fr 1fr 0.7fr;
   gap: 10px;
   margin: 16px 0;
 }
-.section-operations article > div span {
+.section-operations article > .section-metrics span {
   padding: 10px;
   border-radius: 11px;
   background:var(--card);
 }
-.section-operations article > div small,
-.section-operations article > div b {
+.section-operations article > .section-metrics small,
+.section-operations article > .section-metrics b {
   display: block;
 }
-.section-operations article > div small {
+.section-operations article > .section-metrics small {
   font-size:12px;
   color:var(--muted-foreground);
 }
-.section-operations article > div b {
+.section-operations article > .section-metrics b {
   margin-top: 4px;
   font-size: 12px;
   color:var(--foreground);
@@ -4078,7 +4078,7 @@ textarea {
   .academic-table-row.student span:first-child {
     grid-column: 1/-1;
   }
-  .section-operations article > div {
+  .section-operations article > .section-metrics {
     grid-template-columns: 1fr;
   }
   .roster-row {

@@ -1,11 +1,13 @@
 # STU Edu AI
 
-Live portal: [Sign in](https://stdeduai.vercel.app/login) · [Dashboard](https://stdeduai.vercel.app/app).
+Live portal: [Sign in](https://stdeduai.vercel.app/signin) · [Dashboard](https://stdeduai.vercel.app/app).
 
 A bilingual university website and authenticated school platform built with React, TypeScript, Vite, Supabase, and Vercel.
 
 - `/` — public university homepage, campus information, and research assistant.
-- `/login` — sign in and password recovery.
+- `/signin` — sign in and password recovery.
+- `/signup` — public student registration with email verification.
+- `/login` and `/crm` — compatibility redirects.
 - `/app` — one School OS for academics, learning, student support, administration, and Nexus AI. See the [workspace guide](docs/guides/portal.md).
 
 ## Start here

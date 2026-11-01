@@ -210,11 +210,11 @@
   .preview-banner { min-height: 0; padding: 8px 28px; background: var(--accent); color: var(--foreground); border-bottom: 1px solid var(--border); }
   .preview-banner p { margin: 0; font-size: 12px; color: var(--foreground); }
   [data-slot="dialog-content"], [data-slot="sheet-content"] { font-family: var(--font-sans); color: var(--foreground); background: var(--popover); border-color: var(--border); border-radius: 8px; box-shadow: 0 12px 48px #0002; }
-  [data-slot="dialog-content"] header { padding: 0 0 16px; background: transparent; border-color: var(--border); }
-  [data-slot="dialog-content"] header h2 { margin: 0; font-size: 18px; font-family: var(--font-sans); color: var(--foreground); }
-  [data-slot="dialog-content"] header p { margin: 5px 0 0; max-width: 65ch; font-size: 13px; line-height: 1.5; color: var(--muted-foreground); }
-  [data-slot="dialog-content"] footer { background: transparent; border-color: var(--border); }
-  [data-slot="dialog-content"] footer > span { color: var(--muted-foreground); font-size: 12px; }
+  :is([data-slot="dialog-content"], [data-slot="sheet-content"]) header { padding: 0 0 16px; background: transparent; border-color: var(--border); }
+  :is([data-slot="dialog-content"], [data-slot="sheet-content"]) header h2 { margin: 0; font-size: 18px; font-family: var(--font-sans); color: var(--foreground); }
+  :is([data-slot="dialog-content"], [data-slot="sheet-content"]) header p { margin: 5px 0 0; max-width: 65ch; font-size: 13px; line-height: 1.5; color: var(--muted-foreground); }
+  :is([data-slot="dialog-content"], [data-slot="sheet-content"]) footer { background: transparent; border-color: var(--border); }
+  :is([data-slot="dialog-content"], [data-slot="sheet-content"]) footer > span { color: var(--muted-foreground); font-size: 12px; }
   [data-slot="dialog-content"] [data-slot="native-select-wrapper"] { width: 100%; }
   [data-slot="label"] { color: var(--foreground); }
   [data-slot="label"] > span { font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--foreground); }
@@ -247,8 +247,8 @@
   .route-loading section, .app-failure > section { padding: 28px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: none; }
   .route-loading strong, .app-failure h1 { font-family: var(--font-sans); color: var(--foreground); font-size: 22px; }
   .route-loading p, .route-loading small, .app-failure p { color: var(--muted-foreground); }
-  .school-shell .school-ai-layer > aside { color: var(--foreground); background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 12px 48px #0002; }
-  .school-shell .school-ai-layer > aside > header { min-height: 0; padding: 14px 16px; gap: 10px; color: var(--foreground); background: var(--card); border-bottom: 1px solid var(--border); }
+  .school-ai-layer > aside { color: var(--foreground); background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 12px 48px #0002; }
+  .school-ai-layer > aside > header { min-height: 0; padding: 14px 16px; gap: 10px; color: var(--foreground); background: var(--card); border-bottom: 1px solid var(--border); }
   .school-ai-layer > aside > header h2 { margin: 0; font-size: 15px; color: var(--foreground); }
   .school-ai-layer .chat-thread-bar, .school-ai-layer form { background: var(--card); border-color: var(--border); }
   .school-ai-layer .chat-welcome { padding: 24px 16px; min-height: 0; }
@@ -262,6 +262,49 @@
   .school-ai-layer .chat-messages article.user { background: var(--accent); color: var(--foreground); border-radius: 6px; }
   .school-shell :is(.assistant-shell,.nexus-thread-drawer,.copilot-panel) { background: var(--popover); color: var(--foreground); border-color: var(--border); box-shadow: 0 8px 32px #0002; }
   .school-shell :is(.assistant-shell,.copilot-panel) h2 { color: var(--foreground); }
+  .school-shell .command-grid { grid-template-columns: minmax(0,1.1fr) minmax(0,.9fr); }
+  .school-shell .command-grid > .nexus-panel { min-width: 0; }
+  .school-shell .command-grid > .nexus-panel > header { flex-wrap: wrap; gap: 8px; }
+  .school-shell .signal-stream button { display: grid; grid-template-columns: 35px minmax(0,1fr); min-width: 0; height: auto; min-height: 78px; white-space: normal; justify-content: normal; align-items: start; }
+  .school-shell .signal-stream button > div { min-width: 0; overflow-wrap: anywhere; }
+  .school-shell .today-tasks label { grid-template-columns: 23px minmax(0,1fr) auto; }
+  @media (max-width:1000px) { .school-shell .command-grid { grid-template-columns: minmax(0,1fr); } }
+  /* Semantic surfaces also cover Radix portals, which render outside the school shell. */
+  :is(.quiz-panel,.lms-modal,.academic-modal,.nexus-thread-drawer,.copilot-panel),
+  .school-shell :is(.course-banner,.schedule-layout aside,.academic-command-bar,.schedule-command,.lms-outline-heading,.program-context-card,.schedule-poster,.chat-action-card,.lms-page-document) {
+    color: var(--foreground); background: var(--card); background-image: none; border-color: var(--border);
+  }
+  :is(.quiz-panel,.lms-modal,.academic-modal,.school-ai-layer > aside) > header {
+    color: var(--foreground); background: var(--card); background-image: none; border-bottom: 1px solid var(--border);
+  }
+  :is(.quiz-panel,.lms-modal,.academic-modal,.school-ai-layer > aside) > header :is(h2,h3,strong,b) { color: var(--foreground); }
+  :is(.quiz-panel,.lms-modal,.academic-modal,.school-ai-layer > aside) > header :is(p,small),
+  .school-ai-layer > aside > header div > span { color: var(--muted-foreground); }
+  .school-shell .lms-outline-heading { border-bottom: 1px solid var(--border); }
+  .school-shell :is(.course-banner,.schedule-layout aside,.schedule-poster) :is(h2,h3,strong) { color: var(--foreground); }
+  .school-shell :is(.course-banner,.schedule-layout aside,.schedule-poster) :is(p,small) { color: var(--muted-foreground); }
+  .school-shell :is(.program-relationship-layout,.enrollment-operations) { grid-template-columns: minmax(0,280px) minmax(0,1fr); align-items: start; }
+  .school-shell :is(.program-relationship-list,.enrollment-operations > aside,.program-relationship-detail,.enrollment-operations > .school-card) { min-width: 0; }
+  .school-shell .record-selector { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; height: auto; min-height: 48px; min-width: 0; max-width: 100%; width: 100%; white-space: normal; text-align: left; }
+  .school-shell .record-selector :is(b,small) { display: block; max-width: 100%; min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 1.5; }
+  .school-shell .record-selector.active { background: var(--accent); color: var(--primary); border-color: var(--primary); }
+  .school-shell .record-selector small { opacity: 1; color: var(--muted-foreground); }
+  .school-shell :is(.subject-grid,.section-operations) { grid-template-columns: repeat(auto-fit,minmax(min(100%,24rem),1fr)); align-items: start; }
+  .school-shell .section-operations article { min-width: 0; gap: 12px; }
+  .school-shell .section-operations article > p { margin: 0; min-height: 0; }
+  .school-shell .section-metrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin: 0; }
+  .school-shell .section-metrics > span { min-width: 0; padding: 0; }
+  .school-shell .section-metrics :is(b,small) { overflow-wrap: anywhere; }
+  .school-shell .section-connection-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+  .school-shell :is(.program-context-actions,.section-connection-actions,.subject-connection-actions,.relationship-missing,.curriculum-header-actions) [data-slot="button"] { max-width: 100%; height: auto; min-height: 36px; white-space: normal; overflow-wrap: anywhere; text-align: left; }
+  .school-shell .enrollment-operations header { flex-wrap: wrap; gap: 12px; }
+  .school-shell .enrollment-operations header form { display: flex; flex-wrap: wrap; min-width: 0; max-width: 100%; gap: 8px; }
+  .school-shell .enrollment-operations header [data-slot="native-select-wrapper"] { min-width: 0; max-width: 100%; }
+  .school-shell .program-context-metrics { grid-template-columns: repeat(auto-fit,minmax(min(100%,100px),1fr)); }
+  @media (max-width:1000px) {
+    .school-shell :is(.program-relationship-layout,.enrollment-operations) { grid-template-columns: minmax(0,1fr); }
+    .school-shell :is(.program-relationship-list,.enrollment-operations > aside) { display: grid; grid-template-columns: minmax(0,1fr); }
+  }
   @media (max-width:767px) {
     .school-topbar { padding: 0 16px; }
     .school-content { padding: 20px 16px; }

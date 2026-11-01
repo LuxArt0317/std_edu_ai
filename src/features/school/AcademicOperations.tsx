@@ -577,7 +577,7 @@ export function AcademicOperations({
                 const department = data.departments.find((item) => item.id === program.departmentId);
                 const curriculumCount = data.curricula.filter((item) => item.programId === program.id).length;
                 const subjectCount = data.catalogCourses.filter((item) => item.programId === program.id).length;
-                return <Button variant="outline" type="button" key={program.id} className={selectedProgram?.id === program.id ? "active" : ""} onClick={() => setSelectedProgramId(program.id)}>
+                return <Button variant="outline" type="button" key={program.id} className={`record-selector ${selectedProgram?.id === program.id ? "active" : ""}`} onClick={() => setSelectedProgramId(program.id)}>
                   <b>{program.code} · {program.name}</b>
                   <small>{department?.code ?? "No department"} → {curriculumCount ? `${curriculumCount} curriculum ${curriculumCount === 1 ? "version" : "versions"}` : "Curriculum missing"} → {subjectCount} subjects</small>
                 </Button>;
@@ -720,7 +720,7 @@ export function AcademicOperations({
               </header>
               <h3>{course.title}</h3>
               <p>{department?.code ?? "No department"} → {program?.code ?? "Shared subject"} → {course.code} → {course.term}</p>
-              <div>
+              <div className="section-metrics">
                 <span>
                   <small>Teacher</small>
                   <b>{course.facultyName}</b>
@@ -739,8 +739,8 @@ export function AcademicOperations({
                     learners
                   </b>
                 </span>
-                <span><small>Learning</small><b>{moduleCount} modules · {assessmentCount} assessments</b></span>
-                <span><small>Schedule</small><b>{scheduleCount} events</b></span>
+                <span><small>Learning</small><b>{moduleCount} modules · {assessmentCount} {assessmentCount === 1 ? "assessment" : "assessments"}</b></span>
+                <span><small>Schedule</small><b>{scheduleCount} {scheduleCount === 1 ? "event" : "events"}</b></span>
               </div>
               <div className="section-connection-actions">
                 {program ? <Button variant="outline" type="button" onClick={() => openProgram(program.id)}>Open {program.code}</Button> : null}
@@ -764,9 +764,7 @@ export function AcademicOperations({
               <Button variant="outline"
                 type="button"
                 key={course.sectionId}
-                className={
-                  selectedSectionId === course.sectionId ? "active" : ""
-                }
+                className={`record-selector ${selectedSectionId === course.sectionId ? "active" : ""}`}
                 onClick={() => setSelectedSectionId(course.sectionId)}
               >
                 <b>
@@ -849,6 +847,7 @@ export function AcademicOperations({
                   </strong>
                   {registrarRoles.has(role) ? (
                     <NativeSelect
+                      aria-label={`Enrollment status for ${student?.name ?? "student"}`}
                       value={enrollment.status}
                       disabled={busy}
                       onChange={(event) =>

@@ -40,7 +40,7 @@ The public Supabase root certificate in `supabase/certs/` is downloaded from the
 
 ## Vercel
 
-Use team `v1-d286`, project `std_edu_ai`, branch `main`, root `./`, Vite framework, build `npm run build`, output `dist`, and Node.js 24. `vercel.json` explicitly sets the Vite preset, `npm ci`, `npm run build` and `dist`, overriding dashboard defaults for each release. The existing SPA rewrite supports `/login`, `/app`, nested section URLs and legacy `/crm`; Vercel serves `/api` routes as Functions. Marketplace environment changes and code changes require a new deployment.
+Use team `v1-d286`, project `std_edu_ai`, branch `main`, root `./`, Vite framework, build `npm run build`, output `dist`, and Node.js 24. `vercel.json` explicitly sets the Vite preset, `npm ci`, `npm run build` and `dist`, overriding dashboard defaults for each release. The existing SPA rewrite supports `/signin`, `/app`, nested section URLs and legacy `/crm`; Vercel serves `/api` routes as Functions. Marketplace environment changes and code changes require a new deployment.
 
 Use the existing client browser session for administration unless a CLI account is explicitly verified against that team. A globally signed-in Vercel CLI for another account is not client access. Secrets must not be copied into source code or documentation.
 
@@ -67,3 +67,9 @@ The client check uses `deployment.json` and client credentials; inherited live a
 The setup stores short-lived sessions only in mode-0600 ignored `artifacts/e2e/client-state.json`. Teardown removes exact fixture records and temporary accounts, and deletes that file. Screenshots, reports and traces stay in ignored `artifacts/`; traces may contain authenticated network data and must not be published. If an interrupted run needs cleanup, use `node --input-type=module -e "const {cleanupFixtures}=await import('./tests/e2e/client-fixtures.mjs');await cleanupFixtures()"`. The normal test command cleans up automatically, including after assertions fail.
 
 `test:live-lms` uses the same disposable client fixtures and shared live contract. Other inherited acceptance scripts may still require historical fixtures: use the current E2E suite for this client, and review any older script before running it.
+
+## Public student registration
+
+`/signup` creates an email-confirmed student login; academic enrollment remains a school-controlled step. Migration `20261101160000_public_student_registration.sql` assigns only the trusted student role when no administrator role is supplied; editable user metadata cannot grant staff/owner access. Confirm email stays enabled. Production Auth enforces at least 16 characters and lowercase/uppercase/digit/symbol requirements. The UI also respects the provider 72-byte maximum and never truncates passwords. New confirmation/recovery redirects are exact `/signin` URLs for production, localhost:5173 and 127.0.0.1:5173. Old production `/crm` remains allowlisted.
+
+Production mail readiness: custom SMTP is not configured. The default Supabase mailer accepted the QA confirmation request, but its restricted delivery/limits are not a production mail service. User chose to keep Supabase after discussing Gmail. Its built-in sender is restricted to approved project-team addresses and two emails/hour. A production sender must still be connected before ordinary public student inboxes can be supported. Keep email verification enabled; never bypass it to make signup appear complete. [Provider email delivery documentation](https://supabase.com/docs/guides/auth/auth-smtp).
