@@ -10,7 +10,7 @@ async function login(page: Page, role: string) {
   const session = role === 'owner' ? (await (await roleClient(role)).auth.getSession()).data.session : state.users[role].session
   if (!session) throw new Error('A verified browser session is required.')
   await page.addInitScript(session => localStorage.setItem('stu-nexus-auth', JSON.stringify(session)), session)
-  await page.goto('/crm')
+  await page.goto('/app')
   await expect(page.locator('.school-content')).toBeVisible({ timeout: 45000 })
 }
 async function roleClient(role: string) { return clientForRole(state, role) }
@@ -365,4 +365,52 @@ test('assistant panel uses plain modes and returns focus without sending a reque
   await panel.getByRole('button', { name: 'Close', exact: true }).click()
   await expect(panel).toHaveCount(0)
   await expect(launcher).toBeFocused()
+})
+
+
+test('school URLs protect direct links and preserve history and legacy navigation', async ({ page }) => {
+  await page.goto('/app/cases')
+  await expect(page).toHaveURL(/\/login\?next=%2Fapp%2Fcases/)
+  await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).toBeVisible()
+  await login(page, 'owner')
+  const nav = page.getByRole('navigation', { name: 'School navigation' })
+  await nav.getByRole('button', { name: 'Cases', exact: true }).click()
+  await expect(page).toHaveURL(/\/app\/cases$/)
+  await nav.getByRole('button', { name: 'Students', exact: true }).click()
+  await expect(page).toHaveURL(/\/app\/students$/)
+  await page.goBack()
+  await expect(page).toHaveURL(/\/app\/cases$/)
+  await page.reload()
+  await expect(page.locator('.school-content')).toHaveAttribute('data-workspace', 'cases')
+  await page.goto('/login?next=%2Fapp%2Fcalendar')
+  await expect(page).toHaveURL(/\/app\/calendar$/)
+  await page.goto('/crm')
+  await expect(page).toHaveURL(/\/app$/)
+  await page.goto('/app/missing')
+  await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible()
+})
+test('students cannot open staff URLs', async ({ page }) => {
+  await login(page, 'student')
+  await page.goto('/app/users')
+  await expect(page).toHaveURL(/\/app$/)
+  await expect(page.locator('.school-content')).toHaveAttribute('data-workspace', 'home')
+})
+
+
+test('sign-in form returns to the requested page and sign-out protects browser history', async ({ page }) => {
+  await page.goto('/app/cases')
+  await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).toBeVisible()
+  await page.getByLabel('Email address', { exact: true }).fill(state.users.admin.session.user.email)
+  await page.getByLabel('Password', { exact: true }).fill(state.users.admin.password)
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page).toHaveURL(/\/app\/cases$/)
+  await expect(page.locator('.school-content')).toHaveAttribute('data-workspace', 'cases')
+  await page.getByRole('navigation', { name: 'School navigation' }).getByRole('button', { name: 'Students', exact: true }).click()
+  await expect(page).toHaveURL(/\/app\/students$/)
+  await page.getByRole('button', { name: 'Account menu' }).click()
+  await page.getByRole('menuitem', { name: 'Sign out', exact: true }).click()
+  await expect(page).toHaveURL(/\/login$/)
+  await page.goBack()
+  await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).toBeVisible()
+  await expect(page.locator('.school-content')).toHaveCount(0)
 })

@@ -3,7 +3,8 @@
 A bilingual university website and authenticated school platform built with React, TypeScript, Vite, Supabase, and Vercel.
 
 - `/` — public university homepage, campus information, and research assistant.
-- `/crm` — one School OS for academics, learning, student support, administration, and Nexus AI. See the [workspace guide](docs/guides/portal.md).
+- `/login` — sign in and password recovery.
+- `/app` — one School OS for academics, learning, student support, administration, and Nexus AI. See the [workspace guide](docs/guides/portal.md).
 
 ## Start here
 

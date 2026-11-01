@@ -1,6 +1,6 @@
 const baseUrl = (process.env.STU_BASE_URL || 'https://stdeduai.vercel.app').replace(/\/$/, '')
 
-for (const route of ['/', '/crm']) {
+for (const route of ['/', '/login', '/app', '/app/cases', '/crm']) {
   const response = await fetch(`${baseUrl}${route}`, { headers: { 'Cache-Control': 'no-cache' } })
   const html = await response.text()
   if (!response.ok) throw new Error(`${route} returned HTTP ${response.status}.`)

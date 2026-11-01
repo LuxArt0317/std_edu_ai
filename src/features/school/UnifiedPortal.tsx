@@ -1,3 +1,5 @@
+import { useLocation, useNavigate } from 'react-router';
+import { pathForView, viewForPath } from './portal/routes';
 import { Bell, ChevronUp, LogOut, MessageSquare, SunMoon, Eye } from "lucide-react";
 import { useTheme } from "next-themes";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
@@ -132,7 +134,9 @@ function UnifiedPortal({
     getPlatformDataSnapshot(currentUser.id),
   );
   const [loadError, setLoadError] = useState("");
-  const [view, setView] = useState<PortalView>("home");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const setView = useCallback((next: PortalView) => navigate(pathForView(next)), [navigate]);
   const [previewRole, setPreviewRole] = useState<PlatformRole>(
     currentUser.role,
   );
@@ -188,21 +192,18 @@ function UnifiedPortal({
   }, [toast]);
 
   const effectiveRole = currentUser.isOwner ? previewRole : currentUser.role;
+  const routeView = viewForPath(location.pathname, teachingRoles.has(effectiveRole));
+  const view = routeView && navigationFor(effectiveRole).includes(routeView) ? routeView : "home";
   const navigation = navigationFor(effectiveRole).sort((left, right) => {
     const group = (item: PortalView) => ["academics", "people"].includes(item) ? 2 : supportViews.includes(item) ? 1 : 0;
     return group(left) - group(right);
   });
 
   useEffect(() => {
-    if (!navigation.includes(view))
-      setView(
-        view === "learning" && teachingRoles.has(effectiveRole)
-          ? "teaching"
-          : "home",
-      );
-  }, [effectiveRole, navigation, view]);
+    if (routeView && !navigation.includes(routeView)) navigate("/app", { replace: true });
+  }, [navigation, routeView, navigate]);
 
-  const showingCrm = supportViews.includes(view) && crmRoles.has(effectiveRole);
+  const showingCrm = routeView !== null && supportViews.includes(view) && crmRoles.has(effectiveRole);
 
   if (!data && !loadError) return <PortalLoading />;
   if (!data)
@@ -314,7 +315,8 @@ function UnifiedPortal({
                 activeSection={(view === "crm" ? "command" : view) as CrmSection}
                 onSectionChange={(section) => setView(section === "command" ? "crm" : section)}
               /> : null}
-              {view === "home" ? (
+              {!routeView ? <section className="p-6"><h1 className="text-xl font-semibold">Page not found</h1><p className="my-3">Choose a page from the menu.</p><Button onClick={() => setView("home")}>Go to overview</Button></section> : null}
+              {routeView === "home" ? (
                 <HomeView
                   data={data}
                   role={effectiveRole}

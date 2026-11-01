@@ -28,3 +28,7 @@ Run scripts from the repository root through `npm run` commands in `package.json
 ## Continuous integration
 
 The read-only GitHub workflow in `.github/workflows/quality.yml` runs lint, source/API contracts, component units, TypeScript/build/assets, documentation placement/links, dependency audit and public browser accessibility on application changes. Actions are pinned to verified upstream commit SHAs. It requires no client database, owner password or service key. Disposable live-client E2E tests remain an explicitly configured local operation; their authenticated traces are never uploaded by CI.
+
+## Route verification
+
+React Router 8 provides protected `/app` section URLs and the separate `/login` screen. `npm run test:unit` covers safe return URLs and route mapping; `npm run test:e2e` verifies direct links, history, refresh, real sign-in/sign-out and role guards. `npm run test:live-shell` recursively checks production assets for the public, sign-in, dashboard, nested and legacy entry paths.

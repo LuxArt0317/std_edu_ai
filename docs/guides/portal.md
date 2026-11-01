@@ -138,3 +138,7 @@ STU Nexus gives the whole school one permission-aware place to learn, teach, ass
 ## Account menu
 
 Open your name at the bottom of the sidebar to change Appearance (System, Light or Dark) or sign out. Owners can preview another role from this menu. A preview changes navigation only; actions still use the owner account permissions.
+
+## Page links
+
+Sign in at `/login`. The dashboard is `/app`; sections have their own URLs, such as `/app/courses`, `/app/cases` and `/app/academics`. Links can be bookmarked and refreshed. Old `/crm` links continue to work. Sign-out returns to `/login` and protected pages require authentication.

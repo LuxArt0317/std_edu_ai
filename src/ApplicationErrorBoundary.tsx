@@ -19,7 +19,7 @@ function resetLocalSession() {
   try {
     window.localStorage.removeItem('stu-nexus-auth')
   } finally {
-    const target = new URL('/crm', window.location.origin)
+    const target = new URL('/login', window.location.origin)
     target.searchParams.set('recovery', Date.now().toString())
     window.location.replace(target)
   }

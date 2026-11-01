@@ -4,11 +4,12 @@ import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 /* oxlint-disable react/only-export-components -- route constructors and the exported selector intentionally share the bootstrap boundary */
 import { lazy, StrictMode, Suspense } from 'react'
+import { BrowserRouter } from 'react-router'
 import { createRoot } from 'react-dom/client'
 import { ApplicationErrorBoundary } from './ApplicationErrorBoundary'
 import './index.css'
 
-const isCrmRoute = window.location.pathname === '/crm' || window.location.pathname.startsWith('/crm/')
+const isCrmRoute = ['/crm', '/login', '/app'].some(path => window.location.pathname === path || window.location.pathname.startsWith(path + '/'))
 const isStudyRoute = window.location.pathname.startsWith('/study/')
 const CrmApplication = lazy(() => import('./features/crm/CRMRoot.tsx'))
 const StudyApplication = lazy(() => import('./features/research/StudyApp.tsx'))
@@ -30,7 +31,7 @@ createRoot(rootElement).render(
     <Toaster richColors />
     <ApplicationErrorBoundary>
       <Suspense fallback={<RouteLoading />}>
-        <RootApplication />
+        <BrowserRouter><RootApplication /></BrowserRouter>
       </Suspense>
     </ApplicationErrorBoundary>
   </TooltipProvider>

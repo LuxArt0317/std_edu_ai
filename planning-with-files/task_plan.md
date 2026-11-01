@@ -20,3 +20,9 @@
 - [ ] Publish a client release and verify the deployed merged UI; current changes remain local for review.
 
 Historical phase checklists: [planning history](../docs/archive/PLANNING_HISTORY.md).
+
+## Client release and routing [Issue #74]
+
+- [x] Separate `/login` and `/app`, add section URLs, preserve legacy recovery links and role guards.
+- [x] Verify route behavior, build, backend integration and regression checks.
+- [ ] Push client main, verify the exact production deployment, and update handoff records.

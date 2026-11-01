@@ -45,3 +45,7 @@ One sidebar/header owns navigation for school and student-service features. See 
 ## Transactional UI
 
 The taste-led overhaul keeps the existing shadcn/Radix and Tailwind stack, adds the official shadcn dropdown menu, and uses the existing next-themes provider for system/light/dark appearance. The application uses compact page headers, grouped navigation, plain labels and record-focused screens. See the [frontend reference](docs/reference/FRONTEND.md).
+
+## Browser routing
+
+React Router 8 owns authenticated navigation: `/login` is the sign-in and password screen, `/app` is the overview, and `/app/<section>` supports direct links and browser history. `/crm` remains a compatibility entry for old links and the existing Supabase recovery callback.

@@ -38,7 +38,7 @@ export async function createFixtures() {
       const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
       const login = await client.auth.signInWithPassword({ email, password })
       if (login.error) throw new Error(`Fixture login ${role}: ${login.error.message}`)
-      state.users[role] = { id: login.data.user.id, session: login.data.session }
+      state.users[role] = { id: login.data.user.id, session: login.data.session, ...(role === 'admin' ? { password } : {}) }
       await save()
     }
     const sql = await database()

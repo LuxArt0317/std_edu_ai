@@ -1,5 +1,14 @@
 # Client handoff
 
+## Current release — Issue #74
+
+User authorized production publication on 2026-11-01. The release contains the unified transactional school UI and separate `/login` and protected `/app` section routes. Old `/crm` links and the existing provider recovery callback remain compatible; server authorization and database permissions are unchanged.
+
+Pre-release verification passed: 170 API/source checks, 11 units, all 32 browser scenarios across full/focused runs, ten public accessibility states, build/assets, documentation links and zero dependency vulnerabilities. Lint passes with inherited React warnings. Live client checks cover owner CRUD cleanup, RLS/private storage, both account functions and OpenAI-backed non-mutating QA. See the [workflow audit](../qa/WORKFLOW_AUDIT.md).
+
+Production push and exact deployment verification are pending at this checkpoint. Previous local-review notes below are historical. Credentials remain private and ignored. Email delivery, institutional approvals and manual assistive-technology acceptance are not claimed by these automated checks.
+
+
 ## Current local UI (Issue #74)
 
 The requested taste-led redesign replaces the merged workspace's promotional presentation with compact transactional screens. Shared shadcn controls and one green accent cover grouped navigation, compact page headers, real case/department tables, academic Add/Export menus, collapsed diagnostics and plain action labels. Account-menu options include System/Light/Dark appearance, owner role preview and sign-out. Permissions, routes, data and approval controls remain intact.

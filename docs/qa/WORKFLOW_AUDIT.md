@@ -71,3 +71,9 @@ Evidence on 2026-11-01:
 - Final fixture teardown removed 13 temporary identities and isolated records/session state. Independent SQL confirmed one real protected owner, no QA/test-named users and no orphaned Auth/profile identities. Schema remains 100 migrations and 101 RLS tables; no migration or permission change in this UI work.
 
 Screenshots, raw traces and reports remain ignored under artifacts/. The UI is local at http://localhost:5173/crm; it is not pushed or deployed. Manual assistive-technology and institutional/research acceptance remain external.
+
+## Client release and separate routes — 2026-11-01
+
+Added React Router 8 with `/login`, protected `/app` and section URLs, safe post-login return paths, role-aware courses, browser history/refresh and old `/crm` link compatibility. Existing Supabase recovery callbacks and all permissions remain unchanged. The auth browser test exposed an unstable password label and competing logout redirects; corrected both and verified the real sign-in, sign-out and browser-back flow.
+
+Release evidence: 170 API/source tests, 11 units, all 32 E2E scenarios verified across full/focused runs (31/32 initial full run, then two route regressions and the final corrected auth scenario). All 14 roles and actual curriculum/LMS/CRUD/support flows passed. Build/assets, lint (inherited warnings), documentation links and zero-vulnerability dependency audit pass. Ten public accessibility states and live client verification pass, including owner CRUD cleanup, RLS/storage, both account functions and authenticated non-mutating OpenAI requests. Production deployment is verified separately in the handoff record.

@@ -1,6 +1,12 @@
 # Changelog
 ## Unreleased
 
+### Client release and routes (Issue #74)
+
+- Separate sign-in (`/login`) from the protected dashboard (`/app`); add section URLs, safe return links, refresh/history support and compatible old `/crm` links.
+- Retain the existing Supabase recovery redirect and all server permissions.
+- Add React Router 8 with route unit and real browser authentication/navigation checks.
+
 ### Transactional UI overhaul (Issue #74)
 
 - Apply the requested taste-led redesign with compact shadcn controls, one green accent, a grouped sidebar and record-focused pages.
@@ -9,7 +15,7 @@
 - Replace case/department card grids with tables, consolidate academic Add/Export actions and put change requests in their own tab.
 - Improve assistant labels, keyboard scrolling, input names and focus restoration. Preserve role permissions, approval controls and institutional data.
 - Verify 170 API/source checks, eight units, all 29 E2E scenarios across full/focused runs, 30 light/dark page states and ten public accessibility states. Sign-in Lighthouse: performance 98, accessibility 100, LCP 0.7s, CLS 0.
-- Commit locally for review; no production UI push or deployment is included.
+- Release includes the reviewed transactional UI and unified school workspace.
 
 ### Unified School OS (Issue #74)
 

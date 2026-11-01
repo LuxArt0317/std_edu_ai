@@ -13,7 +13,7 @@ test("staff use one Courses workspace with an exact published student preview", 
   assert.match(portal, /teaching: \{ label: "Courses"/);
   assert.match(portal, /learning: \{ label: "Courses"/);
   assert.doesNotMatch(portal, /"teaching",\s*"learning"/);
-  assert.match(portal, /view === "learning" && teachingRoles\.has\(effectiveRole\)\s*\? "teaching"/);
+  assert.match(portal, /viewForPath\(location\.pathname, teachingRoles\.has\(effectiveRole\)\)/);
   assert.match(lms, /\["preview", "Student view"\]/);
   assert.match(lms, /mode="preview"/);
   assert.match(lms, /Student preview/);
