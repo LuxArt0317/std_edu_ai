@@ -181,11 +181,9 @@ export function GovernedKnowledgeWorkspace({
     <section className="governed-knowledge">
       <header>
         <div>
-          <h3>Sources, versions, and review</h3>
+          <h3>Sources</h3>
           <p>
-            Acquire official HTML, PDF, Markdown, or text into review-only
-            versions. Nothing becomes public until an authorized reviewer
-            publishes it.
+            Import documents for review. A reviewer must publish them before they become public.
           </p>
         </div>
         <Button variant="outline"

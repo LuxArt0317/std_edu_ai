@@ -199,6 +199,16 @@ export function SchoolAssistant({
   onDataChanged: () => Promise<PlatformData | null>;
   onActivityChange: (state: NexusActivityState) => void;
 }) {
+  useEffect(() => {
+    if (!open) return;
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented || document.querySelector('[role="dialog"][data-state="open"]')) return;
+      event.preventDefault();
+      onClose();
+    };
+    document.addEventListener("keydown", dismiss);
+    return () => document.removeEventListener("keydown", dismiss);
+  }, [open, onClose]);
   const lastThreadKey = `stu-nexus:last-thread:${actorId}`;
   const mostRecentThreadId = useCallback(
     () =>

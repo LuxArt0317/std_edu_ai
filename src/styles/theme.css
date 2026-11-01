@@ -267,8 +267,72 @@
   .school-shell .command-grid > .nexus-panel > header { flex-wrap: wrap; gap: 8px; }
   .school-shell .signal-stream button { display: grid; grid-template-columns: 35px minmax(0,1fr); min-width: 0; height: auto; min-height: 78px; white-space: normal; justify-content: normal; align-items: start; }
   .school-shell .signal-stream button > div { min-width: 0; overflow-wrap: anywhere; }
-  .school-shell .today-tasks label { grid-template-columns: 23px minmax(0,1fr) auto; }
+  .school-shell .intervention-row { display: grid; grid-template-columns: 24px 36px minmax(0,1fr) auto auto; align-items: center; gap: 12px; padding: 16px; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; box-shadow: none; }
+  .school-shell .intervention-row:last-child { border-bottom: 0; }
+  .school-shell .intervention-main { min-width: 0; overflow-wrap: anywhere; }
+  .school-shell .intervention-main > div:first-child { flex-wrap: wrap; }
+  .school-shell .success-layout :is(.risk-overview,.list-heading) h2 { margin: 0; font-size: 14px; }
+  .school-shell .intervention-main h3 { margin: 0; font-size: 13px; }
+  .school-shell .intervention-row .row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  @media (max-width:1100px) {
+    .school-shell .intervention-row { grid-template-columns: 36px minmax(0,1fr); align-items: start; }
+    .school-shell .intervention-row .rank { display: none; }
+    .school-shell .intervention-row .intervention-metrics { display: flex; flex-wrap: wrap; grid-column: 2; gap: 12px; }
+    .school-shell .intervention-row .row-actions { grid-column: 2; }
+  }
+  .school-shell .today-tasks .task-row { display: grid; grid-template-columns: 20px minmax(0,1fr) auto; align-items: start; gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .school-shell .today-tasks .task-row:last-child { border-bottom: 0; }
+  .school-shell .today-tasks .task-description { display: flex; flex-direction: column; align-items: start; gap: 2px; min-width: 0; min-height: 0; border: 0; overflow-wrap: anywhere; }
+  .school-shell .today-tasks .task-actions { display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px; grid-column: 2/-1; }
+  .school-shell .today-tasks .completed strong { color: var(--muted-foreground); text-decoration: line-through; }
   @media (max-width:1000px) { .school-shell .command-grid { grid-template-columns: minmax(0,1fr); } }
+  /* Internal headers use plain surfaces. Keep green on actions and selected states only. */
+  .school-shell .lms-student-hero { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 16px; margin-bottom: 16px; color: var(--foreground); background: var(--card); background-image: none; border: 1px solid var(--border); border-radius: 8px; box-shadow: none; }
+  .school-shell .lms-student-hero > div:first-child { flex: 1 1 240px; min-width: 0; }
+  .school-shell .lms-student-hero h1 { margin: 6px 0; color: var(--foreground); font: 600 24px/1.35 var(--font-sans); letter-spacing: -.02em; overflow-wrap: anywhere; }
+  .school-shell .lms-student-hero > div > span { color: var(--muted-foreground); font-size: 12px; letter-spacing: 0; }
+  .school-shell .lms-progress-ring { display: flex; flex-direction: column; justify-content: center; flex: 0 0 auto; gap: 4px; width: auto; height: auto; padding: 12px 16px; border: 1px solid var(--border); border-radius: 6px; color: var(--foreground); background: var(--muted); background-image: none; }
+  .school-shell .lms-progress-ring b { color: var(--primary); }
+  .school-shell .lms-progress-ring small { color: var(--muted-foreground); }
+  .school-shell :is(.workload-evidence,.governed-knowledge) > header,
+  .school-shell :is(.public-ai-evidence,.rag-evaluation,.research-operations,.source-inventory) { color: var(--foreground); background: var(--card); background-image: none; border-color: var(--border); border-radius: 8px; box-shadow: none; }
+  .school-shell :is(.workload-evidence,.governed-knowledge) > header { padding: 16px; border: 1px solid var(--border); flex-wrap: wrap; align-items: flex-start; }
+  .school-shell :is(.workload-evidence,.governed-knowledge,.research-operations,.source-inventory,.rag-evaluation,.public-ai-evidence) > header :is(h2,h3,label) { color: var(--foreground); }
+  .school-shell :is(.workload-evidence,.governed-knowledge,.research-operations,.source-inventory,.rag-evaluation,.public-ai-evidence) > header :is(span,p,small) { color: var(--muted-foreground); letter-spacing: 0; }
+  .school-shell .research-operations, .school-shell .research-operations > *, .research-operations-metrics > *, .research-slo-grid > * { min-width: 0; }
+  .school-shell .research-operations :is(p,span,strong,small) { overflow-wrap: anywhere; }
+  .school-shell .school-primary.upload-button { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 8px 12px; color: var(--primary-foreground); background: var(--primary); background-image: none; border-radius: 6px; box-shadow: none; cursor: pointer; }
+  .school-shell .school-primary.upload-button:focus-within { outline: 2px solid var(--ring); outline-offset: 3px; }
+  .copilot-panel[data-slot="sheet-content"] { color: var(--foreground); background: var(--card); border-color: var(--border); border-radius: 0; }
+  .copilot-panel > header { padding: 16px 20px; gap: 12px; color: var(--foreground); background: var(--card); background-image: none; border-bottom: 1px solid var(--border); }
+  .copilot-panel > header h2 { margin: 0; color: var(--foreground); font-size: 18px; }
+  .copilot-panel > header > button { color: var(--foreground); background: var(--card); }
+  .copilot-panel :is(header,.copilot-context,form) { flex-shrink: 0; }
+  .copilot-panel .copilot-mark { color: var(--primary); background: var(--accent); }
+  .copilot-panel .copilot-context { background: var(--card); border-color: var(--border); }
+  .copilot-panel :is(form,.copilot-context) small { color: var(--muted-foreground); }
+  .copilot-panel form > [data-slot="label"] { margin-bottom: 8px; }
+  .copilot-panel form button { color: var(--primary-foreground); background: var(--primary); }
+  .copilot-output { min-height: 0; overflow-wrap: anywhere; }
+  .copilot-output > p { white-space: pre-wrap; font-family: var(--font-sans); color: var(--foreground); }
+  .copilot-output:focus-visible { outline: 2px solid var(--ring); outline-offset: -3px; }
+  .copilot-empty { min-height: 180px; }
+  .student-drawer > header { color: var(--foreground); background: var(--card); background-image: none; border-bottom: 1px solid var(--border); }
+  .student-drawer > header :is(h2,p), .student-drawer > header > div > span { color: var(--foreground); }
+  .student-drawer .drawer-avatar { color: var(--primary); background: var(--accent); border: 1px solid var(--border); box-shadow: none; }
+  .student-drawer .drawer-actions { display: flex; flex-wrap: wrap; overflow: visible; gap: 8px; }
+  .quiz-panel > header { padding: 20px 24px; }
+  .quiz-panel form { padding: 20px 24px; }
+  .quiz-panel .quiz-options [data-slot="label"] { display: flex; align-items: flex-start; flex-direction: row; gap: 12px; min-height: 48px; padding: 12px; color: var(--foreground); border-color: var(--border); background: var(--card); font-weight: 400; }
+  .quiz-panel .quiz-options [data-slot="label"]:has(input:checked) { color: var(--foreground); border-color: var(--primary); background: var(--accent); }
+  .quiz-panel .quiz-options input[type="radio"] { width: 16px; height: 16px; min-height: 16px; padding: 0; margin: 2px 0 0; flex: 0 0 16px; box-shadow: none; accent-color: var(--primary); }
+  .notification-center-body { padding: 0; gap: 24px; grid-template-columns: repeat(2,minmax(0,1fr)); max-height: none; overflow: visible; }
+  .notification-center-body > section { min-width: 0; }
+  .notification-center-body > section:last-child { grid-column: 1/-1; }
+  .notification-center-body form { display: grid; gap: 12px; }
+  .notification-center-body h3 { font-size: 14px; font-weight: 600; }
+  @media (max-height:600px) { .copilot-panel[data-slot="sheet-content"] { overflow-y: auto; } .copilot-output { flex: none; min-height: 180px; overflow: visible; } }
+  @media (max-width:767px) { .notification-center-body { grid-template-columns: minmax(0,1fr); } .quiz-panel > header,.quiz-panel form { padding: 16px; } }
   /* Semantic surfaces also cover Radix portals, which render outside the school shell. */
   :is(.quiz-panel,.lms-modal,.academic-modal,.nexus-thread-drawer,.copilot-panel),
   .school-shell :is(.course-banner,.schedule-layout aside,.academic-command-bar,.schedule-command,.lms-outline-heading,.program-context-card,.schedule-poster,.chat-action-card,.lms-page-document) {

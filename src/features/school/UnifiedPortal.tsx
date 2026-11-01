@@ -246,8 +246,9 @@ function UnifiedPortal({
           <SidebarFooter className="border-t p-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="account-menu w-full justify-start" aria-label="Account menu">
-                  <span className="account-initials">{currentUser.initials}</span>
+                <Button variant="ghost" className="account-menu w-full justify-start">
+                  <span className="sr-only">Account menu</span>
+                  <span className="account-initials" aria-hidden="true">{currentUser.initials}</span>
                   <span className="min-w-0 flex-1 text-left"><strong className="block truncate text-sm font-medium">{currentUser.name}</strong><small className="block text-xs text-muted-foreground">{roleNames[currentUser.role]}</small></span>
                   <ChevronUp className="size-4" aria-hidden="true" />
                 </Button>

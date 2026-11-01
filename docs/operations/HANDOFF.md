@@ -1,5 +1,11 @@
 # Client handoff
 
+## Alerts and nested UI follow-up — Issue #75
+
+Plan opens a usable shadcn sheet with editable requests, independent student context, Escape/close/focus restoration and cancellation of obsolete responses. Nested student assistants dismiss one layer at a time. Remaining preview/research/workload headers and upload/badge text use readable semantic colors. Alert and populated task rows fit desktop/mobile; quiz options, notifications and grade-upload keyboard access are corrected. The service table stays within the viewport and scrolls with keyboard input.
+
+Local verification: all 43 browser scenarios across full/focused runs (41/42 then 7/7 after the task fix), 170 API/source checks, 13 units, 48 expanded nested visual/theme/viewport states and ten public accessibility states. No serious/critical accessibility failures, horizontal overflow or app errors in the expanded audit. Real authenticated CRM OpenAI plan and client backend checks pass. Fixture cleanup leaves one protected owner, no QA/orphan identities and unchanged 101 migrations/101 RLS tables. Production verification is pending the release below; earlier deployments do not prove these follow-up fixes.
+
 ## Current UI/auth fixes — Issue #75
 
 Canonical `/signin` and public student `/signup` are implemented in a separate auth feature. `/login` and `/crm` remain compatibility entries; `/app` is protected. Registration supports confirmation status, resend and correcting an email. Student-only trusted server metadata and email verification preserve staff/owner access boundaries. New-password UI/service checks match the provider length/character policy.

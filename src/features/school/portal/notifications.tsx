@@ -64,13 +64,12 @@ export function NotificationCenter({
         </DialogDescription>
         <header>
           <div>
-            <span>Notifications & approved communication</span>
+
             <DialogTitle asChild>
-              <h2>Your notification center</h2>
+              <h2>Notifications</h2>
             </DialogTitle>
             <p>
-              Read portal notices and contact an authorized teacher, advisor, or
-              support team through the governed message workflow.
+              Read updates or contact school staff.
             </p>
           </div>
           <Button variant="outline" aria-label="Close" type="button" onClick={onClose}>
@@ -108,7 +107,7 @@ export function NotificationCenter({
             {!data.notifications.length ? <p>No notifications yet.</p> : null}
           </section>
           <section>
-            <h3>Contact school staff</h3>
+            <h3>Contact staff</h3>
             <form
               className="academic-form"
               onSubmit={(event) => {
@@ -166,7 +165,7 @@ export function NotificationCenter({
           </section>
           {canApprove ? (
             <section>
-              <h3>Pending communication approval</h3>
+              <h3>Awaiting approval</h3>
               {data.communications
                 .filter((item) => item.status === "pending")
                 .map((item) => (

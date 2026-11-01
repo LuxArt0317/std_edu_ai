@@ -1,3 +1,4 @@
+import { ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -14,7 +15,7 @@ import {
 } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import type { ChangeEvent } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { CrmUser } from "../../crm/authService";
 import { scanGradeSheet } from "../platformAi";
 import {
@@ -49,6 +50,7 @@ export function GradesView({
       data.gradeItems[0]?.id ??
       "",
   );
+  const gradeFileInput = useRef<HTMLInputElement | null>(null);
   const [scan, setScan] = useState<GradeScanResult | null>(null);
   const [scanJobId, setScanJobId] = useState("");
   const [scanning, setScanning] = useState(false);
@@ -196,17 +198,10 @@ export function GradesView({
         title="Gradebook"
         description="Enter grades or import a grade sheet. Review before publishing."
         action={
-          <Label
-            className={`school-primary upload-button ${scanning ? "disabled" : ""}`}
-          >
-            {scanning ? "Scanning image…" : "▣ Scan grade sheet"}
-            <Input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              disabled={scanning}
-              onChange={(event) => void handleScan(event)}
-            />
-          </Label>
+          <>
+            <Button type="button" className="school-primary upload-button" disabled={scanning} onClick={() => gradeFileInput.current?.click()}><ScanLine className="size-4" aria-hidden="true" />{scanning ? "Scanning image…" : "Scan grade sheet"}</Button>
+            <Input ref={gradeFileInput} type="file" aria-label="Grade sheet image" accept="image/jpeg,image/png,image/webp" disabled={scanning} className="hidden" onChange={(event) => void handleScan(event)} />
+          </>
         }
       />
       {selectedCourse && initialSectionId ? (

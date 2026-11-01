@@ -38,9 +38,12 @@ async function recordAiAudit(mode: CopilotMode, result: AiCopilotResult, started
   }
 }
 
-export async function askCrmCopilot(message: string, mode: CopilotMode, student?: Student): Promise<AiCopilotResult> {
+export async function askCrmCopilot(message: string, mode: CopilotMode, student?: Student, signal?: AbortSignal): Promise<AiCopilotResult> {
   const startedAt = Date.now()
   const controller = new AbortController()
+  const abort = () => controller.abort();
+  if (signal?.aborted) controller.abort();
+  signal?.addEventListener("abort", abort, { once: true });
   const timeout = window.setTimeout(() => controller.abort(), 30_000)
 
   try {
@@ -87,11 +90,13 @@ export async function askCrmCopilot(message: string, mode: CopilotMode, student?
     const result = { ...data, source: 'openai' as const }
     await recordAiAudit(mode, result, startedAt, student)
     return result
-  } catch {
+  } catch (error) {
+    if (signal?.aborted) throw error;
     const fallback = fallbackResult(message, student)
     await recordAiAudit(mode, fallback, startedAt, student)
     return fallback
   } finally {
+    signal?.removeEventListener("abort", abort);
     window.clearTimeout(timeout)
   }
 }

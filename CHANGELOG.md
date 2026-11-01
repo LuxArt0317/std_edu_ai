@@ -1,6 +1,14 @@
 # Changelog
 ## Unreleased
 
+### Alerts and remaining nested UI (Issue #75)
+
+- Replace the blocked custom AI panel with a shadcn sheet; separate Plan context from the student drawer, support nested Escape/focus restoration and cancel obsolete requests.
+- Replace remaining green hero/research headers with readable semantic surfaces; correct preview title, progress, risk-badge and grade-upload contrast in light/dark themes.
+- Restore compact responsive Alert rows, wrap populated task actions, and contain the keyboard-scrollable service table.
+- Make grade upload keyboard-operable, align quiz radio rows, simplify notification copy/layout and hide empty contact links.
+- Correct Alerts heading hierarchy and include the visible account name/role in the account menu accessible name.
+
 ### Readability and student registration (Issue #75)
 
 - UI/auth release fa01a84 is deployed Ready; production browser, asset graph and backend checks pass. Public email delivery remains restricted by the selected built-in Supabase sender.

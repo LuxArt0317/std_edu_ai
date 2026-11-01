@@ -35,3 +35,9 @@ Historical phase checklists: [planning history](../docs/archive/PLANNING_HISTORY
 - [x] Update handoff/planning evidence, commit and publish the corrected client UI.
 
 - [ ] Connect and verify a production sender for public student email delivery; Supabase default delivery remains restricted (user chose to keep Supabase).
+
+## Alerts Plan and remaining nested UI [Issue #75]
+
+- [x] Separate assistant context from the student drawer; use a proper sheet with Escape, focus, scrolling and request state handling.
+- [x] Remove remaining dark green panel backgrounds and unreadable hero/upload/header text; improve quiz and notification spacing.
+- [ ] Verify real and mocked AI flows, nested sheets, keyboard interactions, contrast and overflow across themes/viewports; commit and publish.

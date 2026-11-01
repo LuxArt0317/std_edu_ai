@@ -8,6 +8,10 @@ Navigation groups learning, student services and administration. The account men
 
 Academics uses Add and Export menus plus separate tabs for curriculum, students, subjects, classes, enrollment and change requests. Technical service/AI diagnostics stay accessible under expandable sections. The assistant uses plain Ask and Draft changes labels; change preparation still requires review. Its message log supports keyboard scrolling, fields have accessible labels and closing restores launcher focus.
 
+Alerts → Plan opens one shadcn sheet with independent student context. The student-record assistant uses a nested sheet; Escape dismisses only the top sheet and restores focus to its launcher. Closing aborts an in-flight request, and reopening clears earlier output. The school assistant also closes with Escape. Guidance remains read-only until a staff member acts through the existing workflows.
+
+Internal preview, source-review and workload headers use semantic card surfaces, including Radix portals outside the app shell. Green is reserved for actions and selected states. Grade-sheet upload is a keyboard-operable button; quizzes use aligned radio rows. Mobile task actions wrap separately from their text, and the service-activity table is contained and keyboard-scrollable.
+
 Layout compatibility remains in feature CSS. Neutral paint and type use shared semantic variables from src/styles/theme.css; control variants are owned shadcn source, not recreated components. Institutional records, field names, routes, role policies and approval flows are preserved.
 
 

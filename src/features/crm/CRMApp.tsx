@@ -14,7 +14,7 @@ import { Card } from '@/components/ui/card'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { CheckboxField } from '@/components/form-controls'
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table'
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent, FormEvent, ReactNode } from "react";
 import "./crm.css";
 import { askCrmCopilot } from "./aiService";
@@ -492,6 +492,12 @@ function CRMApp({
   const [studentSearch, setStudentSearch] = useState("");
   const [toast, setToast] = useState("");
   const [copilotOpen, setCopilotOpen] = useState(false);
+  const [copilotStudentId, setCopilotStudentId] = useState<string | null>(null);
+  const [copilotIntent, setCopilotIntent] = useState<"plan" | "brief" | "answer">("answer");
+  const [copilotError, setCopilotError] = useState("");
+  const copilotRequest = useRef<AbortController | null>(null);
+  useEffect(() => () => copilotRequest.current?.abort(), []);
+
   const [copilotQuery, setCopilotQuery] = useState(
     "Create my action brief for today",
   );
@@ -537,6 +543,7 @@ function CRMApp({
   const selectedStudent = database?.students.find(
     (student) => student.id === selectedStudentId,
   );
+  const copilotStudent = database?.students.find(student => student.id === copilotStudentId);
   const transitioningLead = leadTransition
     ? database?.leads.find((lead) => lead.id === leadTransition.leadId)
     : undefined;
@@ -715,21 +722,40 @@ function CRMApp({
     }
   }
 
-  async function runCopilot(event?: FormEvent, queryOverride?: string) {
-    event?.preventDefault();
-    const query = queryOverride?.trim() || copilotQuery.trim();
-    if (!query || copilotLoading) return;
-    if (queryOverride) setCopilotQuery(queryOverride);
-    setCopilotOpen(true);
-    setCopilotLoading(true);
-    setCopilotResult(null);
-    const result = await askCrmCopilot(
-      query,
-      selectedStudent ? "brief" : "answer",
-      selectedStudent,
-    );
-    setCopilotResult(result);
+  function closeCopilot() {
+    copilotRequest.current?.abort();
+    copilotRequest.current = null;
     setCopilotLoading(false);
+    setCopilotOpen(false);
+  }
+  function openCopilot(query: string, studentId: string | null = null, intent: "plan" | "brief" | "answer" = "answer") {
+    copilotRequest.current?.abort();
+    copilotRequest.current = null;
+    setCopilotLoading(false);
+    setCopilotError("");
+    setCopilotResult(null);
+    setCopilotStudentId(studentId);
+    setCopilotIntent(intent);
+    setCopilotQuery(query);
+    setCopilotOpen(true);
+  }
+  async function runCopilot(event?: FormEvent) {
+    event?.preventDefault();
+    const query = copilotQuery.trim();
+    if (!query || copilotLoading) return;
+    const request = new AbortController();
+    copilotRequest.current = request;
+    setCopilotLoading(true);
+    setCopilotError("");
+    setCopilotResult(null);
+    try {
+      const result = await askCrmCopilot(query, copilotStudent ? "brief" : "answer", copilotStudent, request.signal);
+      if (!request.signal.aborted && copilotRequest.current === request) setCopilotResult(result);
+    } catch (error) {
+      if (!request.signal.aborted) setCopilotError(error instanceof Error ? error.message : "Unable to prepare a response. Please try again.");
+    } finally {
+      if (copilotRequest.current === request) { copilotRequest.current = null; setCopilotLoading(false); }
+    }
   }
 
   const meta = sectionMeta[section];
@@ -769,12 +795,7 @@ function CRMApp({
                 variant="outline"
                 className="primary-action"
                 onClick={() => {
-                  setCopilotQuery(
-                    section === "command"
-                      ? "Create my action brief for today"
-                      : `Help me prioritize the ${meta.title} workspace`,
-                  );
-                  setCopilotOpen(true);
+                  openCopilot(section === "command" ? "Create my action brief for today" : `Help me prioritize the ${meta.title} workspace`);
                 }}
               >
                 <Sparkles className="size-4" aria-hidden="true" />Summarize
@@ -840,25 +861,26 @@ function CRMApp({
                   </header>
                   <div>
                     {database.tasks.slice(0, 5).map((task) => (
-                      <Label
+                      <div
                         key={task.id}
-                        className={task.completed ? "completed" : ""}
+                        className={`task-row ${task.completed ? "completed" : ""}`}
                       >
                         <CheckboxField
+                          id={`task-${task.id}`}
                           type="checkbox"
                           checked={task.completed}
                           onChange={() => void toggleTask(task.id)}
                         />
-                        <span className={`task-check ${task.priority}`} />{" "}
-                        <div>
+                        <Label htmlFor={`task-${task.id}`} className="task-description">
                           <strong>{task.title}</strong>
                           <small>
                             {task.linkedTo} · {task.dueAt}
                           </small>
-                        </div>
+                        </Label>
                         <StatusPill tone={task.priority}>
                           {task.priority}
                         </StatusPill>
+                        <div className="task-actions">
                         <Button variant="outline"
                           type="button"
                           onClick={(event) => {
@@ -882,7 +904,8 @@ function CRMApp({
                         >
                           Complete
                         </Button>
-                      </Label>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </Card>
@@ -1011,7 +1034,7 @@ function CRMApp({
               <div className="risk-overview nexus-panel">
                 <header>
                   <div>
-                    <h3>Student momentum</h3>
+                    <h2>Student momentum</h2>
                   </div>
                   <strong>{database.students.length}</strong>
                 </header>
@@ -1055,7 +1078,7 @@ function CRMApp({
               <div className="intervention-list">
                 <div className="list-heading">
                   <div>
-                    <h3>Intervention queue</h3>
+                    <h2>Intervention queue</h2>
                   </div>
                   <Button
                     type="button"
@@ -1069,7 +1092,7 @@ function CRMApp({
                 {[...database.students]
                   .sort((a, b) => b.riskScore - a.riskScore)
                   .map((student, index) => (
-                    <Card key={student.id}>
+                    <Card key={student.id} className="intervention-row">
                       <div className="rank">
                         {String(index + 1).padStart(2, "0")}
                       </div>
@@ -1082,7 +1105,7 @@ function CRMApp({
                       </Button>
                       <div className="intervention-main">
                         <div>
-                          <h4>{student.name}</h4>
+                          <h3>{student.name}</h3>
                           <StatusPill tone={student.riskLevel}>
                             {student.riskLevel} risk · {student.riskScore}
                           </StatusPill>
@@ -1114,11 +1137,7 @@ function CRMApp({
                         <Button variant="outline"
                           type="button"
                           onClick={() => {
-                            setSelectedStudentId(student.id);
-                            setCopilotQuery(
-                              `Create a supportive intervention plan for ${student.initials}`,
-                            );
-                            setCopilotOpen(true);
+                            openCopilot(`Create a supportive intervention plan for ${student.initials}`, student.id, "plan");
                           }}
                         >
                           ✦ Plan
@@ -1351,10 +1370,7 @@ function CRMApp({
                 <Button variant="outline"
                   type="button"
                   onClick={() => {
-                    setCopilotQuery(
-                      "Draft a concise multi-channel registration readiness campaign with a supportive tone",
-                    );
-                    setCopilotOpen(true);
+                    openCopilot("Draft a concise multi-channel registration readiness campaign with a supportive tone");
                   }}
                 >
                   ✦ Draft with Nexus AI
@@ -1567,10 +1583,7 @@ function CRMApp({
           }
           onClose={() => setSelectedStudentId(null)}
           onAskAi={() => {
-            setCopilotQuery(
-              `Create a student success brief for ${selectedStudent.initials} with recommended next actions`,
-            );
-            setCopilotOpen(true);
+            openCopilot(`Create a student success brief for ${selectedStudent.initials} with recommended next actions`, selectedStudent.id, "brief");
           }}
           onEdit={() =>
             setRecordEditor({ kind: "student", record: selectedStudent })
@@ -1656,31 +1669,26 @@ function CRMApp({
         />
       ) : null}
       {copilotOpen ? (
-        <div className="copilot-layer">
-          <Button
-            className="copilot-backdrop"
-            type="button"
-            aria-label="Close AI"
-            onClick={() => setCopilotOpen(false)} variant="ghost"
-          />
-          <aside className="copilot-panel">
+        <Sheet open onOpenChange={open => { if (!open) closeCopilot(); }}>
+          <SheetContent showCloseButton={false} className="copilot-panel w-full gap-0 p-0 sm:max-w-[600px]">
+            <SheetDescription className="sr-only">Review the student context, edit your request, and prepare guidance. No school records are changed by this panel.</SheetDescription>
             <header>
               <div className="copilot-mark">✦</div>
               <div>
-                <h2>AI Student Success Copilot</h2>
+                <SheetTitle asChild><h2>{copilotIntent === "plan" ? "Support plan" : "Assistant"}</h2></SheetTitle>
               </div>
-              <Button variant="outline" type="button" onClick={() => setCopilotOpen(false)}>
+              <Button variant="outline" type="button" aria-label="Close assistant" onClick={closeCopilot}>
                 ×
               </Button>
             </header>
             <div className="copilot-context">
-              {selectedStudent ? (
+              {copilotStudent ? (
                 <>
-                  <span>{selectedStudent.initials}</span>
+                  <span>{copilotStudent.initials}</span>
                   <div>
-                    <b>Working with de-identified student context</b>
+                    <b>Student context</b>
                     <small>
-                      {selectedStudent.program} · {selectedStudent.riskLevel}{" "}
+                      {copilotStudent.program} · {copilotStudent.riskLevel}{" "}
                       risk
                     </small>
                   </div>
@@ -1696,20 +1704,23 @@ function CRMApp({
               )}
             </div>
             <form onSubmit={runCopilot}>
+              <Label htmlFor="support-request">Request</Label>
               <Textarea
+                id="support-request"
                 value={copilotQuery}
                 onChange={(event) => setCopilotQuery(event.target.value)}
                 rows={4}
                 placeholder="Ask a question or describe a task"
               />
               <div>
-                <span>Grounded in CRM signals and verified knowledge</span>
+                <span>Uses student signals and reviewed school information</span>
                 <Button type="submit" disabled={copilotLoading}>
-                  {copilotLoading ? "Thinking…" : "Run copilot →"}
+                  {copilotLoading ? "Preparing…" : copilotIntent === "plan" ? "Draft plan" : "Ask assistant"}
                 </Button>
               </div>
             </form>
-            <div className="copilot-output">
+            <div className="copilot-output" tabIndex={0} aria-label="Assistant response" aria-live="polite">
+              {copilotError ? <p role="alert">{copilotError}</p> : null}
               {copilotLoading ? (
                 <div className="thinking">
                   <i />
@@ -1760,7 +1771,7 @@ function CRMApp({
               ) : (
                 <div className="copilot-empty">
                   <div>✦</div>
-                  <h3>Turn signals into thoughtful action</h3>
+                  <h3>Ready to prepare guidance</h3>
                   <p>
                     Ask for a daily brief, intervention plan, case summary, or a
                     ready-to-review student message.
@@ -1768,8 +1779,8 @@ function CRMApp({
                 </div>
               )}
             </div>
-          </aside>
-        </div>
+          </SheetContent>
+        </Sheet>
       ) : null}
 
       {toast ? (
@@ -1837,7 +1848,7 @@ function StudentDrawer({
           <Button variant="outline" type="button" onClick={onAskAi}>
             ✦ AI success brief
           </Button>
-          <a href={`mailto:${student.email}`}>Send message</a>
+          {student.email ? <a href={`mailto:${student.email}`}>Send message</a> : <Button variant="outline" disabled>Email unavailable</Button>}
           <Button variant="outline" type="button" onClick={onEdit}>
             Edit student
           </Button>
@@ -1914,11 +1925,11 @@ function StudentDrawer({
         <section className="contact-details">
           <p>
             <span>Email</span>
-            <a href={`mailto:${student.email}`}>{student.email}</a>
+            {student.email ? <a href={`mailto:${student.email}`}>{student.email}</a> : <strong>Not provided</strong>}
           </p>
           <p>
             <span>Phone</span>
-            <a href={`tel:${student.phone}`}>{student.phone}</a>
+            {student.phone ? <a href={`tel:${student.phone}`}>{student.phone}</a> : <strong>Not provided</strong>}
           </p>
           <p>
             <span>Advisor</span>
