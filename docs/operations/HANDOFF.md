@@ -1,5 +1,9 @@
 # Client handoff
 
+## Local sidebar enhancement — Issue #76
+
+Added a desktop header toggle for full navigation or a 64px icon rail. Collapsed links retain accessible names/tooltips and the account menu; the existing seven-day cookie restores the preference. Mobile retains its full-label drawer and direct Escape/focus restoration. Pointer, keyboard, account access, navigation/reload persistence and mobile-to-desktop resizing passed twelve light/dark viewport states with zero serious/critical accessibility findings, overflow or app errors. 170 API/source checks, 13 units, build/assets/lint/docs pass. This follow-up is local and committed for review; it has not been pushed or deployed. The production release below remains current.
+
 ## Alerts and nested UI follow-up — Issue #75
 
 Plan opens a usable shadcn sheet with editable requests, independent student context, Escape/close/focus restoration and cancellation of obsolete responses. Nested student assistants dismiss one layer at a time. Remaining preview/research/workload headers and upload/badge text use readable semantic colors. Alert and populated task rows fit desktop/mobile; quiz options, notifications and grade-upload keyboard access are corrected. The service table stays within the viewport and scrolls with keyboard input.

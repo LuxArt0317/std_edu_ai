@@ -80,6 +80,17 @@ import {
   teachingRoles,
 } from "./portal/shared";
 import type { PlatformData, PlatformRole } from "./types";
+
+function SidebarToggle() {
+  const { isMobile, open, openMobile } = useSidebar();
+  const label = isMobile ? "Open navigation" : open ? "Collapse sidebar" : "Expand sidebar";
+  return <SidebarTrigger className="school-menu" aria-label={label} title={label} aria-expanded={isMobile ? openMobile : open} aria-controls={isMobile ? undefined : "school-navigation"} />;
+}
+
+function sidebarStartsOpen() {
+  return typeof document === "undefined" || !document.cookie.split(";").some(value => value.trim() === "sidebar_state=false");
+}
+
 function PortalNavigation({
   navigation,
   view,
@@ -91,16 +102,17 @@ function PortalNavigation({
   onNavigate: (view: PortalView) => void;
   assessmentCount: number;
 }) {
-  const { setOpenMobile } = useSidebar();
+  const { setOpenMobile, state, isMobile } = useSidebar();
   return (
-    <SidebarContent className="px-4">
-      <nav aria-label="School navigation">
+    <SidebarContent className="school-navigation-content px-4">
+      <nav id="school-navigation" aria-label="School navigation">
         <SidebarMenu>
           {navigation.map((item) => { const Icon = navMeta[item].icon; return (
             <SidebarMenuItem key={item}>
               {item === "crm" || item === "academics" ? <p className="nav-group-label">{item === "crm" ? "Student services" : "Administration"}</p> : null}
               <SidebarMenuButton
                 className="h-9"
+                tooltip={state === "collapsed" && !isMobile ? navMeta[item].label : undefined}
                 isActive={view === item}
                 aria-current={view === item ? "page" : undefined}
                 onClick={() => {
@@ -109,9 +121,9 @@ function PortalNavigation({
                 }}
               >
                 <Icon aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.75} />
-                <span>{navMeta[item].label}</span>
+                <span className="nav-item-label">{navMeta[item].label}</span>
                 {item === "assessments" && assessmentCount ? (
-                  <span className="ml-auto text-xs">{assessmentCount}</span>
+                  <span className="nav-item-count ml-auto text-xs">{assessmentCount}</span>
                 ) : null}
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -221,13 +233,14 @@ function UnifiedPortal({
   return (
     <>
       <SidebarProvider
+        defaultOpen={sidebarStartsOpen()}
         className="school-shell"
-        style={{ "--sidebar-width": "232px" } as CSSProperties}
+        style={{ "--sidebar-width": "232px", "--sidebar-width-icon": "64px" } as CSSProperties}
       >
         <a className="school-skip-link" href="#school-workspace-content">
           Skip to workspace content
         </a>
-        <Sidebar className="school-sidebar translate-x-0! p-0! shadow-none">
+        <Sidebar collapsible="icon" className="school-sidebar translate-x-0! p-0! shadow-none">
           <SidebarHeader className="p-4">
             <a className="school-brand" href="/">
               <span>樹</span>
@@ -249,7 +262,7 @@ function UnifiedPortal({
                 <Button variant="ghost" className="account-menu w-full justify-start">
                   <span className="sr-only">Account menu</span>
                   <span className="account-initials" aria-hidden="true">{currentUser.initials}</span>
-                  <span className="min-w-0 flex-1 text-left"><strong className="block truncate text-sm font-medium">{currentUser.name}</strong><small className="block text-xs text-muted-foreground">{roleNames[currentUser.role]}</small></span>
+                  <span className="account-details min-w-0 flex-1 text-left"><strong className="block truncate text-sm font-medium">{currentUser.name}</strong><small className="block text-xs text-muted-foreground">{roleNames[currentUser.role]}</small></span>
                   <ChevronUp className="size-4" aria-hidden="true" />
                 </Button>
               </DropdownMenuTrigger>
@@ -275,10 +288,7 @@ function UnifiedPortal({
           id="school-workspace-content"
         >
           <header className="school-topbar">
-            <SidebarTrigger
-              className="school-menu md:hidden"
-              aria-label="Open navigation"
-            />
+            <SidebarToggle />
             <div className="school-breadcrumb"><span>School</span></div>
             <div className="school-top-actions">
               <Button data-assistant-launcher type="button" variant="ghost" size="sm" onClick={() => setAssistantOpen(true)}><MessageSquare className="size-4" aria-hidden="true" />Assistant</Button>

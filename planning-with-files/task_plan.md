@@ -41,3 +41,9 @@ Historical phase checklists: [planning history](../docs/archive/PLANNING_HISTORY
 - [x] Separate assistant context from the student drawer; use a proper sheet with Escape, focus, scrolling and request state handling.
 - [x] Remove remaining dark green panel backgrounds and unreadable hero/upload/header text; improve quiz and notification spacing.
 - [x] Verify real and mocked AI flows, nested sheets, keyboard interactions, contrast and overflow across themes/viewports; commit and publish.
+
+## Collapsible school sidebar [Issue #76]
+
+- [x] Enable shadcn icon collapse, desktop control, discoverable labels and persisted preference; preserve mobile drawer.
+- [x] Verify pointer/keyboard, reload/navigation, account menu, both themes and mobile behavior.
+- [x] Update documentation/issue and commit the verified change locally.

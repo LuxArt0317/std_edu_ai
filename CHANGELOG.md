@@ -1,6 +1,12 @@
 # Changelog
 ## Unreleased
 
+### Collapsible school sidebar (Issue #76)
+
+- Add a visible desktop expand/collapse control and 64px icon rail using the existing shadcn sidebar.
+- Preserve accessible link/account labels, show collapsed navigation tooltips, and restore the preference from the existing seven-day cookie.
+- Retain the full-label mobile drawer, keyboard shortcut and role-filtered navigation.
+
 ### Alerts and remaining nested UI (Issue #75)
 
 - Published runtime ae1ed52; quality CI, all 48 production nested states, live Plan/OpenAI and client backend checks pass. All 43 browser scenarios are verified across runs; final affected regressions pass 9/9.

@@ -107,9 +107,18 @@
   .school-sidebar nav [data-slot="sidebar-menu-button"]:hover { background: var(--sidebar-accent); color: var(--foreground); }
   .nav-group-label { padding: 20px 10px 6px; margin: 0; color: var(--muted-foreground); font-size: 11px; font-weight: 500; letter-spacing: 0; }
   .account-menu { height: auto; min-height: 52px; padding: 8px; color: var(--foreground); background: transparent; border: 0; box-shadow: none; }
+  .school-shell [data-collapsible="icon"] :is(.school-brand > div,.nav-item-label,.nav-item-count,.account-details) { display: block !important; position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .school-shell [data-collapsible="icon"] [data-slot="sidebar-header"] { padding: 12px; }
+  .school-shell [data-collapsible="icon"] .school-brand { justify-content: center; padding: 0; min-height: 48px; }
+  .school-shell [data-collapsible="icon"] .school-navigation-content { padding-inline: 12px; }
+  .school-shell [data-collapsible="icon"] .nav-group-label { display: none; }
+  .school-shell [data-collapsible="icon"] nav [data-slot="sidebar-menu-button"] { justify-content: center; width: 40px !important; height: 40px !important; padding: 0 !important; }
+  .school-shell [data-collapsible="icon"] .account-menu { justify-content: center; min-height: 40px; padding: 4px; }
+  .school-shell [data-collapsible="icon"] .account-menu > svg { display: none; }
   .account-initials { display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--muted-foreground); font-size: 11px; }
   .school-main { background: var(--background); }
   .school-topbar { height: 56px; min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 28px; background: var(--card); border-bottom: 1px solid var(--border); box-shadow: none; }
+  .school-topbar .school-menu { display: inline-flex; width: 36px; height: 36px; flex-shrink: 0; }
   .school-breadcrumb > span { color: var(--muted-foreground); font-weight: 400; }
   .school-breadcrumb { flex: 1; min-width: 0; color: var(--muted-foreground); font-size: 13px; }
   .school-top-actions { margin: 0; display: flex; align-items: center; gap: 4px; }
