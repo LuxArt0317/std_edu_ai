@@ -133,15 +133,14 @@ export function CurriculumRequests({
           <CardTitle>
             {sectionId
               ? "Curriculum change requests"
-              : "Curriculum review queue"}
+              : "Change requests"}
           </CardTitle>
           <CardDescription>
-            Teachers propose changes for their assigned classes. Academic
-            managers review the proposal before editing an institutional plan.
+            Review proposed changes before updating a curriculum.
           </CardDescription>
         </div>
         <div className="flex gap-2">
-          <Button
+          <Button type="button"
             variant="outline"
             size="icon"
             aria-label="Refresh curriculum requests"
@@ -150,7 +149,7 @@ export function CurriculumRequests({
             <RefreshCw />
           </Button>
           {sectionId ? (
-            <Button onClick={() => setEditing(null)}>
+            <Button variant="outline" type="button" onClick={() => setEditing(null)}>
               <FilePenLine />
               Request curriculum change
             </Button>
@@ -161,7 +160,7 @@ export function CurriculumRequests({
         {error ? (
           <p role="alert" className="text-sm text-destructive">
             {error}
-            <Button variant="link" onClick={() => void load()}>
+            <Button type="button" variant="link" onClick={() => void load()}>
               Retry
             </Button>
           </p>
@@ -195,7 +194,7 @@ export function CurriculumRequests({
               {request.status === "submitted" &&
               request.requester_id === currentUser.id ? (
                 <>
-                  <Button
+                  <Button type="button"
                     variant="outline"
                     size="sm"
                     disabled={busy}
@@ -203,7 +202,7 @@ export function CurriculumRequests({
                   >
                     Edit request
                   </Button>
-                  <Button
+                  <Button type="button"
                     variant="outline"
                     size="sm"
                     disabled={busy}
@@ -227,7 +226,7 @@ export function CurriculumRequests({
               request.status === "submitted" &&
               request.requester_id !== currentUser.id ? (
                 <>
-                  <Button
+                  <Button variant="outline" type="button"
                     size="sm"
                     disabled={busy}
                     onClick={async () => {
@@ -245,7 +244,7 @@ export function CurriculumRequests({
                   >
                     Approve proposal
                   </Button>
-                  <Button
+                  <Button type="button"
                     size="sm"
                     variant="outline"
                     disabled={busy}
@@ -267,7 +266,7 @@ export function CurriculumRequests({
                 </>
               ) : null}
               {onOpenProgram ? (
-                <Button
+                <Button type="button"
                   variant="link"
                   size="sm"
                   onClick={() => onOpenProgram(request.program_id)}
@@ -278,7 +277,7 @@ export function CurriculumRequests({
             </div>
           </div>
         )) : null}
-        {total > 25 ? <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-muted-foreground">Page {page+1} of {Math.ceil(total/25)} · {total} requests</p><div className="flex gap-2"><Button variant="outline" size="sm" disabled={page === 0 || loading} onClick={() => setPage(value => value-1)}>Previous</Button><Button variant="outline" size="sm" disabled={(page+1)*25 >= total || loading} onClick={() => setPage(value => value+1)}>Next</Button></div></div> : null}
+        {total > 25 ? <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-muted-foreground">Page {page+1} of {Math.ceil(total/25)} · {total} requests</p><div className="flex gap-2"><Button type="button" variant="outline" size="sm" disabled={page === 0 || loading} onClick={() => setPage(value => value-1)}>Previous</Button><Button type="button" variant="outline" size="sm" disabled={(page+1)*25 >= total || loading} onClick={() => setPage(value => value+1)}>Next</Button></div></div> : null}
       </CardContent>
       {editing !== undefined ? (
         <WorkspaceDialog

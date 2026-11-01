@@ -1,16 +1,14 @@
 # Client handoff
 
-## Current overhaul review checkpoint — Issue #74
+## Current local UI (Issue #74)
 
-The shadcn/Tailwind, source/documentation cleanup and workflow changes are local in `std_edu_ai-luxart0317`, on `main` against client `origin/main` (base `bc6222e`). They have not been pushed or deployed. The original `std_edu_ai` checkout was not changed; its empty diff does not review this client work.
+The requested taste-led redesign replaces the merged workspace's promotional presentation with compact transactional screens. Shared shadcn controls and one green accent cover grouped navigation, compact page headers, real case/department tables, academic Add/Export menus, collapsed diagnostics and plain action labels. Account-menu options include System/Light/Dark appearance, owner role preview and sign-out. Permissions, routes, data and approval controls remain intact.
 
-The current follow-up merges student services into one School OS shell and separates real accounts from the advanced permission catalog. A live read-only inventory found exactly one real owner account and no orphaned or test-named identities. Existing server-side roles are preserved.
+Verified: 170 API/source checks; eight units; all 29 E2E scenarios across a full run and focused regressions (23/27 initially, then final 6/6 for revised checks/new interactions); 30 Light/Dark page accessibility states; ten public accessibility states; build/assets; docs/links; zero dependency vulnerabilities. All 14 roles and real curriculum/LMS/CRUD/support flows passed. Lighthouse sign-in desktop: performance 98, accessibility 100, LCP 0.7s, CLS 0. Lint passes with inherited React warnings. Full evidence: [workflow audit](../qa/WORKFLOW_AUDIT.md).
 
-Verified locally: 170 source/API tests, eight unit/component tests, recursive build/assets, dependency audit, docs/links and ten public accessibility states pass. All 26 E2E scenarios passed across a full run and focused regressions: 23/24 first, then 4/4 covering the repaired case path, directory, normal-priority task and student-to-staff handoff. All fourteen role navigation paths, owner module accessibility, mobile navigation, curriculum and LMS workflows passed. The final teardown removed thirteen QA accounts, isolated records and the private session state. Fresh SQL confirmed one protected-owner identity, no QA/test-named users and no orphans.
+Final fixture cleanup and independent SQL confirm one real owner, zero QA/test-named users and no orphaned identities. Database unchanged during this redesign: 100 migrations / 101 public RLS tables. Credentials and authenticated artifacts remain ignored/private.
 
-The priority enum mismatch and conflicting student-intake owner trigger are fixed. Four follow-up migrations are applied (100 total; 101 public RLS tables). Provider verification passed owner login/CRUD cleanup, RLS, storage, both Edge Functions and non-mutating live OpenAI QA. Lint exits successfully with inherited React warnings. Manual assistive-technology acceptance, institutional research approvals and email delivery remain external checks.
-
-This change is committed locally for review; it has not been pushed or deployed. The local development site is http://localhost:5173/crm. The prior production deployment remains separate from this merged interface.
+This UI is committed locally for review at http://localhost:5173/crm. It is not pushed or deployed; the previous production UI remains separate. Issue #74 stays open for release acceptance. Institutional approvals, email delivery and manual assistive-technology acceptance are not asserted by automated checks.
 
 ## Previous deployed handoff — Issue #73
 

@@ -1,3 +1,6 @@
+import { Bell, ChevronUp, LogOut, MessageSquare, SunMoon, Eye } from "lucide-react";
+import { useTheme } from "next-themes";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -12,11 +15,6 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
 import {
   useCallback,
   useEffect,
@@ -95,15 +93,12 @@ function PortalNavigation({
   return (
     <SidebarContent className="px-4">
       <nav aria-label="School navigation">
-        <p className="mb-3 px-3 text-xs font-medium tracking-wide text-sidebar-foreground/70">
-          YOUR WORKSPACE
-        </p>
         <SidebarMenu>
-          {navigation.map((item) => (
+          {navigation.map((item) => { const Icon = navMeta[item].icon; return (
             <SidebarMenuItem key={item}>
-              {item === "crm" ? <p className="mt-5 mb-2 px-3 text-xs font-medium text-sidebar-foreground/70">STUDENT SERVICES</p> : null}
+              {item === "crm" || item === "academics" ? <p className="nav-group-label">{item === "crm" ? "Student services" : "Administration"}</p> : null}
               <SidebarMenuButton
-                className="h-11"
+                className="h-9"
                 isActive={view === item}
                 aria-current={view === item ? "page" : undefined}
                 onClick={() => {
@@ -111,16 +106,14 @@ function PortalNavigation({
                   setOpenMobile(false);
                 }}
               >
-                <i aria-hidden="true" className="w-5 text-center not-italic">
-                  {navMeta[item].icon}
-                </i>
+                <Icon aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.75} />
                 <span>{navMeta[item].label}</span>
                 {item === "assessments" && assessmentCount ? (
                   <span className="ml-auto text-xs">{assessmentCount}</span>
                 ) : null}
               </SidebarMenuButton>
             </SidebarMenuItem>
-          ))}
+          ); })}
         </SidebarMenu>
       </nav>
     </SidebarContent>
@@ -134,6 +127,7 @@ function UnifiedPortal({
   currentUser: CrmUser;
   onSignOut: () => void;
 }) {
+  const { theme, setTheme } = useTheme();
   const [data, setData] = useState<PlatformData | null>(() =>
     getPlatformDataSnapshot(currentUser.id),
   );
@@ -144,7 +138,7 @@ function UnifiedPortal({
   );
   const [toast, setToast] = useState("");
   const [assistantOpen, setAssistantOpen] = useState(false);
-  const [assistantActivity, setAssistantActivity] =
+  const [, setAssistantActivity] =
     useState<NexusActivityState>("idle");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [focusedSectionId, setFocusedSectionId] = useState("");
@@ -178,6 +172,10 @@ function UnifiedPortal({
     void refresh(Boolean(getPlatformDataSnapshot(currentUser.id)));
   }, [currentUser.id, refresh]);
 
+  function closeAssistant() {
+    setAssistantOpen(false);
+    requestAnimationFrame(() => document.querySelector<HTMLButtonElement>("[data-assistant-launcher]")?.focus());
+  }
   function signOut() {
     clearPlatformDataSnapshot();
     clearCrmDataSnapshot();
@@ -190,7 +188,10 @@ function UnifiedPortal({
   }, [toast]);
 
   const effectiveRole = currentUser.isOwner ? previewRole : currentUser.role;
-  const navigation = navigationFor(effectiveRole);
+  const navigation = navigationFor(effectiveRole).sort((left, right) => {
+    const group = (item: PortalView) => ["academics", "people"].includes(item) ? 2 : supportViews.includes(item) ? 1 : 0;
+    return group(left) - group(right);
+  });
 
   useEffect(() => {
     if (!navigation.includes(view))
@@ -210,7 +211,7 @@ function UnifiedPortal({
         <span>!</span>
         <strong>Unable to load STU Nexus</strong>
         <p>{loadError}</p>
-        <Button type="button" onClick={() => void refresh()}>
+        <Button variant="outline" type="button" onClick={() => void refresh()}>
           Try again
         </Button>
       </div>
@@ -220,7 +221,7 @@ function UnifiedPortal({
     <>
       <SidebarProvider
         className="school-shell"
-        style={{ "--sidebar-width": "274px" } as CSSProperties}
+        style={{ "--sidebar-width": "232px" } as CSSProperties}
       >
         <a className="school-skip-link" href="#school-workspace-content">
           Skip to workspace content
@@ -231,17 +232,9 @@ function UnifiedPortal({
               <span>樹</span>
               <div>
                 <b>STU NEXUS</b>
-                <small>One School · One Platform</small>
+                <small>School portal</small>
               </div>
             </a>
-            <div className="school-role-card">
-              <span>{currentUser.initials}</span>
-              <div>
-                <b>{currentUser.name}</b>
-                <small>{roleNames[currentUser.role]}</small>
-              </div>
-              {currentUser.isOwner ? <i>OWNER</i> : null}
-            </div>
           </SidebarHeader>
           <PortalNavigation
             navigation={navigation}
@@ -249,19 +242,30 @@ function UnifiedPortal({
             onNavigate={setView}
             assessmentCount={data.assessments.length}
           />
-          <SidebarFooter>
-            <div className="school-sidebar-foot">
-              <Button type="button" onClick={() => setAssistantOpen(true)}>
-                ✦ <span>Ask Nexus AI</span>
-              </Button>
-              <div>
-                <span className="live-dot" />
-                <p>
-                  <b>Production connected</b>
-                  <small>Supabase RLS active</small>
-                </p>
-              </div>
-            </div>
+          <SidebarFooter className="border-t p-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="account-menu w-full justify-start" aria-label="Account menu">
+                  <span className="account-initials">{currentUser.initials}</span>
+                  <span className="min-w-0 flex-1 text-left"><strong className="block truncate text-sm font-medium">{currentUser.name}</strong><small className="block text-xs text-muted-foreground">{roleNames[currentUser.role]}</small></span>
+                  <ChevronUp className="size-4" aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="start" className="w-60">
+                <DropdownMenuLabel>{currentUser.email}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger><SunMoon className="size-4" />Appearance</DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent><DropdownMenuRadioGroup value={theme ?? "system"} onValueChange={setTheme}>{["light", "dark", "system"].map(mode => <DropdownMenuRadioItem key={mode} value={mode}>{mode[0].toUpperCase()+mode.slice(1)}</DropdownMenuRadioItem>)}</DropdownMenuRadioGroup></DropdownMenuSubContent>
+                </DropdownMenuSub>
+                {currentUser.isOwner ? <DropdownMenuSub>
+                  <DropdownMenuSubTrigger><Eye className="size-4" />Preview role</DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="max-h-96 overflow-y-auto"><DropdownMenuRadioGroup value={previewRole} onValueChange={value => setPreviewRole(value as PlatformRole)}>{data.roles.map(role => <DropdownMenuRadioItem key={role.code} value={role.code}>{roleNames[role.code]}</DropdownMenuRadioItem>)}</DropdownMenuRadioGroup></DropdownMenuSubContent>
+                </DropdownMenuSub> : null}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={signOut}><LogOut className="size-4" />Sign out</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarFooter>
         </Sidebar>
         <SidebarInset
@@ -273,57 +277,24 @@ function UnifiedPortal({
               className="school-menu md:hidden"
               aria-label="Open navigation"
             />
-            <div className="school-breadcrumb">
-              <span>STU Nexus</span>
-              <b>/</b>
-              <strong>{navMeta[view].label}</strong>
-            </div>
+            <div className="school-breadcrumb"><span>School</span></div>
             <div className="school-top-actions">
-              {currentUser.isOwner ? (
-                <Label className="role-preview flex items-center gap-3">
-                  <span>View as</span>
-                  <NativeSelect
-                    value={previewRole}
-                    onChange={(event) =>
-                      setPreviewRole(event.target.value as PlatformRole)
-                    }
-                  >
-                    {data.roles.map((role) => (
-                      <NativeSelectOption key={role.code} value={role.code}>
-                        {role.name}
-                      </NativeSelectOption>
-                    ))}
-                  </NativeSelect>
-                </Label>
-              ) : null}
-              <Button
-                type="button"
-                className="school-alert"
-                title="Notifications"
-                onClick={() => { setNotificationsOpen(true); void refresh(true); }}
-                variant="ghost"
-              >
-                ♢
-                <b>
-                  {data.notifications.filter((item) => !item.readAt).length}
-                </b>
-              </Button>
-              <Button type="button" className="school-user" onClick={signOut}>
-                {currentUser.initials}
-                <span>Sign out</span>
+              <Button data-assistant-launcher type="button" variant="ghost" size="sm" onClick={() => setAssistantOpen(true)}><MessageSquare className="size-4" aria-hidden="true" />Assistant</Button>
+              <Button type="button" variant="ghost" size="icon" aria-label="Notifications" className="relative" onClick={() => { setNotificationsOpen(true); void refresh(true); }}>
+                <Bell className="size-4" aria-hidden="true" />
+                {data.notifications.some(item => !item.readAt) ? <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-primary" /> : null}
               </Button>
             </div>
           </header>
 
           {currentUser.isOwner && effectiveRole !== "owner" ? (
             <div className="preview-banner">
-              <span>OWNER PREVIEW</span>
+
               <p>
-                You are safely previewing the{" "}
-                <strong>{roleNames[effectiveRole]}</strong> interface. Your
-                database permissions remain owner-level for auditing.
+                Previewing{" "}
+                <strong>{roleNames[effectiveRole]}</strong> view. Actions still use owner access.
               </p>
-              <Button type="button" onClick={() => setPreviewRole("owner")}>
+              <Button variant="outline" type="button" onClick={() => setPreviewRole("owner")}>
                 Exit preview
               </Button>
             </div>
@@ -337,16 +308,6 @@ function UnifiedPortal({
             }
           >
             <div className="school-content" data-workspace={view}>
-              <section
-                className="school-workspace-context"
-                aria-label="Current workspace context"
-              >
-                <span>
-                  <i /> Live role-scoped data
-                </span>
-                <b>{navMeta[view].label}</b>
-                <small>{roleNames[effectiveRole]} access</small>
-              </section>
               {showingCrm ? <CRMApp
                 key={`${currentUser.id}:${currentUser.role}`}
                 currentUser={currentUser}
@@ -440,7 +401,7 @@ function UnifiedPortal({
 
         <SchoolAssistant
           open={assistantOpen}
-          onClose={() => setAssistantOpen(false)}
+          onClose={closeAssistant}
           data={data}
           view={view}
           role={currentUser.role}
@@ -464,24 +425,7 @@ function UnifiedPortal({
             {toast}
           </div>
         ) : null}
-        <Button
-          className={`school-ai-fab ${assistantActivity}`}
-          type="button"
-          onClick={() => setAssistantOpen(true)}
-        >
-          ✦
-          <span>
-            {["thinking", "executing", "refreshing"].includes(assistantActivity)
-              ? "Nexus working"
-              : assistantActivity === "waiting"
-                ? "Review action"
-                : assistantActivity === "complete"
-                  ? "Goal complete"
-                  : assistantActivity === "blocked"
-                    ? "Needs attention"
-                    : "Ask Nexus"}
-          </span>
-        </Button>
+
       </SidebarProvider>
 
     </>

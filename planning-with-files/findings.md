@@ -110,3 +110,9 @@ The browser suite found a real rich-editor lifecycle crash under rapid lazy navi
 ## Unified School OS decision [Issue #74]
 
 User authorized merging the two workspace shells. Preserve the fourteen server-enforced role templates; they are job-specific access boundaries. Live client audit found exactly one Auth user and one active owner profile, zero test-named users and zero orphaned identities. Present actual accounts separately from advanced templates. Use one shadcn sidebar/header with direct support modules. No database role consolidation or user deletion is needed.
+
+## Taste-led transactional redesign [Issue #74]
+
+User explicitly requested a full visual and copy overhaul using the taste skill. Existing green accent #137562 and brand mark remain. Audit found duplicate page/role/context banners, permission-marketing hero sections, 3 competing assistant controls, oversized metric tiles, all-caps slogans and inherited gradients/shadows. Existing routes, forms, domain records and permissions must remain functional.
+
+Design read: daily school administration, shadcn/Radix + Tailwind, neutral surfaces and one green accent. DESIGN_VARIANCE=2 (predictable), MOTION_INTENSITY=1 (state feedback only), VISUAL_DENSITY=7 (compact, readable operations). The user explicitly authorizes simple labels and navigation changes; the taste skill's landing-page hero/imagery rules are not applicable to transactional records. Remove filler in source, not only via CSS. Keep validation, consent, audit reasons and security warnings. Test desktop/mobile, light/dark and actual workflows. The requested planning skill is not installed at the documented locations; existing single planning records remain the source of truth.

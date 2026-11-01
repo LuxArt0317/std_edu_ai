@@ -1,3 +1,6 @@
+import { MoreHorizontal } from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { ListTodo, Download, Sparkles } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { summarizeCrm } from './crmSummary'
 import { Badge } from '@/components/ui/badge'
@@ -12,7 +15,7 @@ import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { CheckboxField } from '@/components/form-controls'
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table'
 import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties, DragEvent, FormEvent, ReactNode } from "react";
+import type { DragEvent, FormEvent, ReactNode } from "react";
 import "./crm.css";
 import { askCrmCopilot } from "./aiService";
 import { WorkloadEvidencePanel } from "../research/WorkloadEvidencePanel";
@@ -62,51 +65,51 @@ const sectionMeta: Record<
 > = {
   command: {
     eyebrow: "TODAY",
-    title: "Your student-success command center",
+    title: "Tasks",
     description:
-      "Here is the pulse of student success across Shu-Te University.",
+      "Manage follow-ups and support cases.",
   },
   students: {
-    eyebrow: "RELATIONSHIP INTELLIGENCE",
-    title: "Student 360",
+    eyebrow: "Students",
+    title: "Students",
     description:
-      "One trusted view of every student, interaction, signal, and next step.",
+      "Student records and support history.",
   },
   success: {
-    eyebrow: "EARLY INTERVENTION",
-    title: "Success Radar",
+    eyebrow: "Alerts",
+    title: "Alerts",
     description:
-      "Prioritize meaningful support before small barriers become major ones.",
+      "Review students who may need help.",
   },
   admissions: {
-    eyebrow: "ENROLLMENT GROWTH",
+    eyebrow: "Admissions",
     title: "Admissions pipeline",
     description:
-      "Guide every prospective student from first interest to successful enrollment.",
+      "Track applications and enrollment.",
   },
   cases: {
-    eyebrow: "CONNECTED SERVICE",
-    title: "Case workspace",
+    eyebrow: "Cases",
+    title: "Cases",
     description:
-      "Coordinate academic, financial, wellbeing, and administrative support.",
+      "Create, assign and update cases.",
   },
   campaigns: {
-    eyebrow: "STUDENT ENGAGEMENT",
-    title: "Campaign studio",
+    eyebrow: "Messages",
+    title: "Messages",
     description:
-      "Deliver timely, relevant outreach across the channels students use.",
+      "Create messages and review delivery.",
   },
   knowledge: {
-    eyebrow: "VERIFIED UNIVERSITY TRUTH",
-    title: "Knowledge Hub",
+    eyebrow: "Knowledge",
+    title: "Knowledge",
     description:
-      "Keep AI and staff answers grounded in owned, reviewed institutional information.",
+      "Manage sources, documents and approvals.",
   },
   analytics: {
-    eyebrow: "OUTCOMES & IMPACT",
-    title: "Institutional analytics",
+    eyebrow: "Reports",
+    title: "Reports",
     description:
-      "Measure service quality, student momentum, and operational effectiveness.",
+      "View student and service reports.",
   },
 };
 
@@ -167,14 +170,14 @@ function LeadTransitionDialog({
   const needsPhone = needsContact || missing.includes("phone");
   const stageLabel = leadStages.find((item) => item.id === targetStage)?.label ?? targetStage;
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) (onCancel)(); }}><DialogContent showCloseButton={false} className="academic-modal lead-transition-dialog max-h-[90dvh] overflow-y-auto sm:max-w-4xl" role="dialog" aria-modal="true" aria-labelledby="lead-transition-title"><DialogDescription className="sr-only">Review the details and submit to save your changes.</DialogDescription>
+    <Dialog open onOpenChange={(open) => { if (!open) (onCancel)(); }}><DialogContent showCloseButton={false} className="academic-modal lead-transition-dialog max-h-[90dvh] overflow-y-auto sm:max-w-4xl" role="dialog" aria-modal="true" aria-labelledby="lead-transition-title"><DialogDescription className="sr-only">Update the fields and save.</DialogDescription>
         <header>
           <div>
-            <span>COMPLETE BEFORE MOVING</span>
+            <span>Complete before moving</span>
             <DialogTitle asChild><h2 id="lead-transition-title">Move {lead.name} to {stageLabel}</h2></DialogTitle>
             <p>Only information required for this pipeline stage is requested.</p>
           </div>
-          <Button type="button" aria-label="Close" onClick={onCancel}>×</Button>
+          <Button variant="outline" type="button" aria-label="Close" onClick={onCancel}>×</Button>
         </header>
         <form
           className="lead-transition-form"
@@ -211,7 +214,7 @@ function LeadTransitionDialog({
           </div>
           {validationError ? <p className="lead-transition-error" role="alert">{validationError}</p> : null}
           <footer>
-            <Button type="button" className="lead-transition-cancel" onClick={onCancel}>Keep in {lead.stage}</Button>
+            <Button variant="outline" type="button" className="lead-transition-cancel" onClick={onCancel}>Keep in {lead.stage}</Button>
             <Button type="submit" className="lead-transition-confirm" disabled={busy}>{busy ? "Saving…" : `Complete & move to ${stageLabel}`}</Button>
           </footer>
         </form>
@@ -268,8 +271,6 @@ function MetricCard({
   label,
   value,
   detail,
-  tone = "teal",
-  children,
 }: {
   label: string;
   value: string;
@@ -278,12 +279,9 @@ function MetricCard({
   children?: ReactNode;
 }) {
   return (
-    <Card className={`nexus-metric tone-${tone}`}>
-      <div className="metric-orb">{children ?? "↗"}</div>
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <p>{detail}</p>
-    </Card>
+    <div className="metric-summary-item">
+      <span>{label}</span><strong>{value}</strong><small>{detail}</small>
+    </div>
   );
 }
 
@@ -325,14 +323,14 @@ function KnowledgeEditor({
       <section>
         <header>
           <div>
-            <span>KNOWLEDGE PUBLISHER</span>
+            <span>Knowledge publisher</span>
             <DialogTitle asChild><h2>
               {article
                 ? "Edit institutional source"
                 : "Add institutional source"}
             </h2></DialogTitle>
           </div>
-          <Button type="button" onClick={onClose}>
+          <Button variant="outline" aria-label="Close" type="button" onClick={onClose}>
             ×
           </Button>
         </header>
@@ -554,7 +552,7 @@ function CRMApp({
     );
   }, [database, studentSearch]);
 
-  if (!database && loadError) return <Card className="m-6 p-6"><h2 className="text-xl font-semibold">Learner Support is unavailable</h2><p role="alert">{loadError}</p><Button onClick={() => { setLoadError(""); setLoadAttempt(attempt => attempt+1); }}>Retry connection</Button></Card>;
+  if (!database && loadError) return <Card className="m-6 p-6"><h2 className="text-xl font-semibold">Learner Support is unavailable</h2><p role="alert">{loadError}</p><Button variant="outline" type="button" onClick={() => { setLoadError(""); setLoadAttempt(attempt => attempt+1); }}>Retry connection</Button></Card>;
   if (!database) return <LoadingWorkspace />;
 
   const summary = summarizeCrm(database);
@@ -610,7 +608,7 @@ function CRMApp({
       ...original,
       ...completion,
       owner: completion && original.owner === "Unassigned"
-        ? currentUser?.name || "Assigned staff"
+        ? currentUser?.name || "Assigned to"
         : original.owner,
       ownerId: completion && !original.ownerId ? currentUser?.id ?? null : original.ownerId,
       stage,
@@ -735,20 +733,7 @@ function CRMApp({
   }
 
   const meta = sectionMeta[section];
-  const headingTitle =
-    section === "command"
-      ? `Welcome, ${currentUser?.name || "school leader"}`
-      : meta.title;
-  const headingEyebrow =
-    section === "command"
-      ? new Intl.DateTimeFormat("en", {
-          weekday: "long",
-          month: "long",
-          day: "numeric",
-        })
-          .format(new Date())
-          .toUpperCase()
-      : meta.eyebrow;
+  const headingTitle = meta.title;
   const knowledgeCoverage = database.knowledge.length
     ? Math.round(
         (database.knowledge.filter((item) => item.status === "verified")
@@ -762,30 +747,26 @@ function CRMApp({
     <div className="nexus-shell nexus-embedded min-w-0">
       <div className="nexus-main ml-0! min-w-0" id="learner-support-content">
         <div className="nexus-page" data-section={section}>
-          <section className="nexus-workspace-context" aria-label="Current Learner Support context">
-            <span><i /> Live role-scoped data</span>
-            <b>{meta.title}</b>
-            <small>{currentUser?.role || "authorized"} access</small>
-          </section>
           <section className="nexus-page-heading">
             <div>
-              <p>{headingEyebrow}</p>
               <h1>{headingTitle}</h1>
               <span>{meta.description}</span>
             </div>
             <div className="heading-actions">
               <Button
                 type="button"
+                variant="outline"
                 className="quiet-action"
                 onClick={() => {
                   exportWorkspaceSnapshot(section, database);
                   setToast(`${meta.title} data exported.`);
                 }}
               >
-                Export
+                <Download className="size-4" aria-hidden="true" />Export
               </Button>
               <Button
                 type="button"
+                variant="outline"
                 className="primary-action"
                 onClick={() => {
                   setCopilotQuery(
@@ -796,64 +777,14 @@ function CRMApp({
                   setCopilotOpen(true);
                 }}
               >
-                ✦ Ask Nexus AI
+                <Sparkles className="size-4" aria-hidden="true" />Summarize
               </Button>
             </div>
           </section>
 
           {section === "command" ? (
             <>
-              <section className="command-hero">
-                <div className="hero-copy">
-                  <span className="ai-kicker">✦ NEXUS INTELLIGENCE</span>
-                  <h2>Your day, already prioritized.</h2>
-                  <p>
-                    {criticalStudents.length} students have elevated support signals. Review their records and coordinate next steps with assigned staff.
-                  </p>
-                  <div className="hero-actions">
-                    <Button
-                      type="button"
-                      onClick={() =>
-                        void runCopilot(
-                          undefined,
-                          "Create a concise action brief for today using the highest priority student and case signals",
-                        )
-                      }
-                    >
-                      Generate my AI brief <span>→</span>
-                    </Button>
-                    <Button type="button" onClick={() => setSection("success")}>
-                      Open Success Radar
-                    </Button>
-                  </div>
-                </div>
-                <div className="hero-priority-list">
-                  <div className="priority-header">
-                    <span>PRIORITY QUEUE</span>
-                    <b>Updated now</b>
-                  </div>
-                  {criticalStudents.slice(0, 3).map((student, index) => (
-                    <Button
-                      key={student.id}
-                      variant="ghost"
-                      type="button"
-                      onClick={() => setSelectedStudentId(student.id)}
-                    >
-                      <i>{index + 1}</i>
-                      <span className="avatar">{student.initials}</span>
-                      <div>
-                        <strong>{student.name}</strong>
-                        <small>{student.nextAction}</small>
-                      </div>
-                      <StatusPill tone={student.riskLevel}>
-                        {student.riskScore}
-                      </StatusPill>
-                    </Button>
-                  ))}
-                </div>
-              </section>
-
-              <section className="metric-grid">
+              <section className="metric-grid compact-metrics">
                 <MetricCard
                   label="Active students"
                   value={database.students.length.toLocaleString()}
@@ -879,7 +810,7 @@ function CRMApp({
                   ▣
                 </MetricCard>
                 <MetricCard
-                  label="Admissions momentum"
+                  label="Admission rate"
                   value={`${summary.admissionRate}%`}
                   detail="Qualified leads admitted"
                   tone="blue"
@@ -892,13 +823,13 @@ function CRMApp({
                 <Card className="nexus-panel today-tasks">
                   <header>
                     <div>
-                      <span>TODAY</span>
-                      <h3>Your action list</h3>
+                      <ListTodo className="size-4 text-muted-foreground" aria-hidden="true" />
+                      <h3>Follow-ups</h3>
                     </div>
-                    <Button type="button" onClick={() => setSection("cases")}>
+                    <Button variant="outline" type="button" onClick={() => setSection("cases")}>
                       View all
                     </Button>
-                    <Button
+                    <Button variant="outline"
                       type="button"
                       onClick={() =>
                         setRecordEditor({ kind: "task", record: null })
@@ -928,7 +859,7 @@ function CRMApp({
                         <StatusPill tone={task.priority}>
                           {task.priority}
                         </StatusPill>
-                        <Button
+                        <Button variant="outline"
                           type="button"
                           onClick={(event) => {
                             event.preventDefault();
@@ -937,7 +868,7 @@ function CRMApp({
                         >
                           Edit
                         </Button>
-                        <Button
+                        <Button variant="outline"
                           type="button"
                           onClick={async (event) => {
                             event.preventDefault();
@@ -958,7 +889,6 @@ function CRMApp({
                 <Card className="nexus-panel signal-panel">
                   <header>
                     <div>
-                      <span>RECORDED SIGNALS</span>
                       <h3>Student signals</h3>
                     </div>
                     <i>◴</i>
@@ -985,14 +915,14 @@ function CRMApp({
                 </Label>
                 <div>
                   <Badge variant="secondary" className="filter-chip active">All students</Badge>
-                  <Button
+                  <Button variant="outline"
                     type="button"
                     className="filter-chip"
                     onClick={() => setStudentSearch("International")}
                   >
                     International
                   </Button>
-                  <Button
+                  <Button variant="outline"
                     type="button"
                     className="filter-chip"
                     onClick={() => setStudentSearch("Academic support")}
@@ -1007,10 +937,10 @@ function CRMApp({
                     <TableRow>
                       <TableHead>Student</TableHead>
                       <TableHead>Program</TableHead>
-                      <TableHead>Momentum</TableHead>
+                      <TableHead>Progress</TableHead>
                       <TableHead>Attendance</TableHead>
                       <TableHead>Risk</TableHead>
-                      <TableHead>Next best action</TableHead>
+                      <TableHead>Next action</TableHead>
                       <TableHead />
                     </TableRow>
                   </TableHeader>
@@ -1055,7 +985,7 @@ function CRMApp({
                           </p>
                         </TableCell>
                         <TableCell>
-                          <Button
+                          <Button variant="outline"
                             type="button"
                             onClick={(event) => {
                               event.stopPropagation();
@@ -1081,7 +1011,6 @@ function CRMApp({
               <div className="risk-overview nexus-panel">
                 <header>
                   <div>
-                    <span>RISK DISTRIBUTION</span>
                     <h3>Student momentum</h3>
                   </div>
                   <strong>{database.students.length}</strong>
@@ -1126,12 +1055,12 @@ function CRMApp({
               <div className="intervention-list">
                 <div className="list-heading">
                   <div>
-                    <span>PRIORITIZED BY NEXUS AI</span>
                     <h3>Intervention queue</h3>
                   </div>
                   <Button
                     type="button"
-                    className="quiet-action"
+                    variant="outline"
+                className="quiet-action"
                     onClick={() => setToast("Priority model refreshed")}
                   >
                     Refresh signals
@@ -1144,7 +1073,7 @@ function CRMApp({
                       <div className="rank">
                         {String(index + 1).padStart(2, "0")}
                       </div>
-                      <Button
+                      <Button variant="outline"
                         className="student-avatar"
                         type="button"
                         onClick={() => setSelectedStudentId(student.id)}
@@ -1169,11 +1098,11 @@ function CRMApp({
                       </div>
                       <div className="intervention-metrics">
                         <span>
-                          <small>ATTENDANCE</small>
+                          <small>Attendance</small>
                           <b>{student.attendance}%</b>
                         </span>
                         <span>
-                          <small>ENGAGEMENT</small>
+                          <small>Engagement</small>
                           <b>{student.engagement}%</b>
                         </span>
                         <span>
@@ -1182,7 +1111,7 @@ function CRMApp({
                         </span>
                       </div>
                       <div className="row-actions">
-                        <Button
+                        <Button variant="outline"
                           type="button"
                           onClick={() => {
                             setSelectedStudentId(student.id);
@@ -1194,7 +1123,7 @@ function CRMApp({
                         >
                           ✦ Plan
                         </Button>
-                        <Button
+                        <Button variant="outline"
                           type="button"
                           onClick={() => setSelectedStudentId(student.id)}
                         >
@@ -1211,10 +1140,9 @@ function CRMApp({
             <section className="admissions-workspace">
               <div className="crm-lifecycle-toolbar">
                 <div>
-                  <span>ADMISSIONS RECORDS</span>
                   <h3>Prospect pipeline</h3>
                 </div>
-                <Button
+                <Button variant="outline"
                   type="button"
                   className="pipeline-add-prospect-action"
                   onClick={() =>
@@ -1294,7 +1222,7 @@ function CRMApp({
                             </div>
                             <footer>
                               <span>{lead.owner}</span>
-                              <Button
+                              <Button variant="outline"
                                 type="button"
                                 className="pipeline-advance-action"
                                 onClick={() => advanceLead(lead.id)}
@@ -1309,7 +1237,7 @@ function CRMApp({
                               Next: {lead.nextStep}
                             </small>
                             <div className="crm-inline-actions">
-                              <Button
+                              <Button variant="outline"
                                 type="button"
                                 className="pipeline-edit-action"
                                 onClick={() =>
@@ -1321,8 +1249,8 @@ function CRMApp({
                               >
                                 Edit
                               </Button>
-                              {lead.stage === "admitted" ? <Button type="button" className="pipeline-handoff-action" onClick={async () => { const notes=(await requestText("Registrar handoff notes (at least 12 characters)","Accepted applicant verified for student-account conversion.")); if (!notes) return; void requestAdmissionHandoff(lead.id,notes).then(() => setToast("Registrar handoff created. Convert to student request is now pending.")).catch((error: unknown) => setToast(error instanceof Error ? error.message : "Handoff failed.")); }}>Registrar handoff</Button> : null}
-                              <Button
+                              {lead.stage === "admitted" ? <Button variant="outline" type="button" className="pipeline-handoff-action" onClick={async () => { const notes=(await requestText("Registrar handoff notes (at least 12 characters)","Accepted applicant verified for student-account conversion.")); if (!notes) return; void requestAdmissionHandoff(lead.id,notes).then(() => setToast("Registrar handoff created. Convert to student request is now pending.")).catch((error: unknown) => setToast(error instanceof Error ? error.message : "Handoff failed.")); }}>Registrar handoff</Button> : null}
+                              <Button variant="outline"
                                 type="button"
                                 className="pipeline-archive-action"
                                 onClick={async () => {
@@ -1355,10 +1283,9 @@ function CRMApp({
             <section className="cases-workspace">
               <div className="crm-lifecycle-toolbar">
                 <div>
-                  <span>SUPPORT LIFECYCLE</span>
-                  <h3>Cases</h3>
+                  <p>{database.cases.length} cases</p>
                 </div>
-                <Button
+                <Button variant="outline"
                   type="button"
                   onClick={() =>
                     setRecordEditor({ kind: "case", record: null })
@@ -1385,78 +1312,29 @@ function CRMApp({
                 )}
               </div>
               <div className="case-table">
-                <div className="case-table-head">
-                  <span>Case</span>
-                  <span>Student</span>
-                  <span>Owner</span>
-                  <span>Due</span>
-                  <span>Status</span>
-                  <span />
-                </div>
-                {database.cases.filter(item => caseFilter === "all" || item.status === caseFilter).map((item) => {
-                  const student = database.students.find(
-                    (entry) => entry.id === item.studentId,
-                  );
-                  return (
-                    <Card key={item.id}>
-                      <div>
-                        <StatusPill tone={item.priority}>
-                          {item.priority}
-                        </StatusPill>
-                        <strong>{item.title}</strong>
-                        <small>
-                          {item.id.toUpperCase()} · {item.category} · Updated{" "}
-                          {item.updatedAt}
-                        </small>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="case-student"
-                        onClick={() => setSelectedStudentId(item.studentId)}
-                      >
-                        <span>{student?.initials}</span>
-                        {student?.name}
-                      </Button>
-                      <span>{item.owner}</span>
-                      <span>{item.dueAt}</span>
-                      <StatusPill tone={item.status}>
-                        {item.status.replace("_", " ")}
-                      </StatusPill>
-                      <Button
-                        type="button"
-                        className="advance-case"
-                        onClick={() => void advanceCase(item.id)}
-                      >
-                        {item.status === "resolved" ? "✓" : "Advance"}
-                      </Button>
-                      <div className="crm-inline-actions">
-                        <Button
-                          type="button"
-                          onClick={() =>
-                            setRecordEditor({ kind: "case", record: item })
-                          }
-                        >
-                          Edit
-                        </Button>
-                        <Button type="button" onClick={async () => { const purpose=(await requestText("Purpose for opening sensitive case details (at least 12 characters)")); if (!purpose) return; void recordSensitiveCaseAccess(item.id,purpose).then(() => {setSelectedStudentId(item.studentId);setToast("Sensitive-case access recorded.");}).catch((error: unknown) => setToast(error instanceof Error ? error.message : "Sensitive access denied.")); }}>Open sensitive details</Button>
-                        <Button
-                          type="button"
-                          onClick={async () => {
-                            if (!(await confirmAction(`Resolve and retain case “${item.title}”?`)))
-                              return;
-                            void persistCaseStatus(item.id,"resolved")
-                              .then(() => loadCrmData(true))
-                              .then(setDatabase)
-                              .then(() => setToast("Case retained and resolved.")).catch(error => setToast(error instanceof Error ? error.message : "The case could not be resolved."));
-                          }}
-                        >
-                          Resolve &amp; retain
-                        </Button>
-                      </div>
-                    </Card>
-                  );
-                })}
+                <Table aria-label="Support cases">
+                  <TableHeader><TableRow><TableHead>Case</TableHead><TableHead>Student</TableHead><TableHead>Assigned to</TableHead><TableHead>Due</TableHead><TableHead>Status</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {database.cases.filter(item => caseFilter === "all" || item.status === caseFilter).map(item => {
+                      const student = database.students.find(entry => entry.id === item.studentId);
+                      return <TableRow key={item.id}>
+                        <TableCell className="min-w-56"><strong className="block text-sm font-medium">{item.title}</strong><div className="mt-1 flex items-center gap-2"><StatusPill tone={item.priority}>{item.priority}</StatusPill><span className="text-xs text-muted-foreground">{item.category}</span></div></TableCell>
+                        <TableCell><Button variant="link" className="h-auto p-0 text-left" onClick={() => setSelectedStudentId(item.studentId)}>{student?.name ?? "Student"}</Button></TableCell>
+                        <TableCell>{item.owner}</TableCell><TableCell className="whitespace-nowrap">{item.dueAt}</TableCell>
+                        <TableCell><StatusPill tone={item.status}>{item.status.replaceAll("_", " ")}</StatusPill></TableCell>
+                        <TableCell><div className="flex justify-end gap-1">
+                          <Button variant="outline" size="sm" onClick={() => setRecordEditor({kind:"case",record:item})}>Edit</Button>
+                          <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Actions for ${item.title}`}><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
+                            <DropdownMenuItem onSelect={() => void advanceCase(item.id)}>{({open:"Start case",in_progress:"Mark waiting",waiting:"Resolve case",resolved:"Reopen case"} as const)[item.status]}</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => { void requestText("Reason for accessing case details (at least 12 characters)").then(purpose => { if(purpose) return recordSensitiveCaseAccess(item.id,purpose).then(() => {setSelectedStudentId(item.studentId);setToast("Case access recorded.");}); }).catch(error => setToast(error instanceof Error ? error.message : "Access denied.")); }}>Access details</DropdownMenuItem>
+                            {item.status !== "resolved" ? <DropdownMenuItem onSelect={() => { void confirmAction(`Resolve case “${item.title}”?`).then(confirmed => { if(confirmed) return persistCaseStatus(item.id,"resolved").then(() => loadCrmData(true)).then(setDatabase).then(() => setToast("Case resolved.")); }).catch(error => setToast(error instanceof Error ? error.message : "The case could not be resolved.")); }}>Resolve case</DropdownMenuItem> : null}
+                          </DropdownMenuContent></DropdownMenu>
+                        </div></TableCell>
+                      </TableRow>;
+                    })}
+                    {!database.cases.some(item => caseFilter === "all" || item.status === caseFilter) ? <TableRow><TableCell colSpan={6} className="py-8 text-center text-muted-foreground">No cases match this filter.</TableCell></TableRow> : null}
+                  </TableBody>
+                </Table>
               </div>
             </section>
           ) : null}
@@ -1465,14 +1343,12 @@ function CRMApp({
             <section className="campaign-workspace">
               <div className="campaign-hero nexus-panel">
                 <div>
-                  <span>AI CAMPAIGN STUDIO</span>
-                  <h2>Reach the right students before they need to ask.</h2>
+                  <h2>Messages</h2>
                   <p>
-                    Turn CRM signals into timely, personalized outreach while
-                    keeping every message reviewable by staff.
+                    Write a message, select recipients and submit it for review.
                   </p>
                 </div>
-                <Button
+                <Button variant="outline"
                   type="button"
                   onClick={() => {
                     setCopilotQuery(
@@ -1483,7 +1359,7 @@ function CRMApp({
                 >
                   ✦ Draft with Nexus AI
                 </Button>
-                <Button
+                <Button variant="outline"
                   type="button"
                   onClick={() =>
                     setRecordEditor({ kind: "campaign", record: null })
@@ -1505,20 +1381,20 @@ function CRMApp({
                     <p>{campaign.audience}</p>
                     <div className="campaign-stats">
                       <span>
-                        <small>REACH</small>
+                        <small>Reach</small>
                         <strong>{campaign.reach.toLocaleString()}</strong>
                       </span>
                       <span>
-                        <small>ENGAGEMENT</small>
+                        <small>Engagement</small>
                         <strong>
-                          {campaign.engagement || "—"}
+                          {campaign.engagement || "-"}
                           {campaign.engagement ? "%" : ""}
                         </strong>
                       </span>
                     </div>
                     <footer>
                       <span>{campaign.scheduledFor}</span>
-                      <Button
+                      <Button variant="outline"
                         type="button"
                         onClick={() =>
                           setRecordEditor({
@@ -1529,8 +1405,8 @@ function CRMApp({
                       >
                         Edit →
                       </Button>
-                      <Button type="button" onClick={async () => { const reason=(await requestText("Bulk communication approval reason (at least 12 characters)")); if (!reason) return; void approveAndSendCampaign(campaign.id,reason).then(() => loadCrmData(true)).then(setDatabase).then(() => setToast("Bulk campaign approved and sent through portal notifications.")).catch((error: unknown) => setToast(error instanceof Error ? error.message : "Campaign approval failed.")); }}>Approve &amp; send campaign</Button>
-                      <Button
+                      <Button variant="outline" type="button" onClick={async () => { const reason=(await requestText("Bulk communication approval reason (at least 12 characters)")); if (!reason) return; void approveAndSendCampaign(campaign.id,reason).then(() => loadCrmData(true)).then(setDatabase).then(() => setToast("Bulk campaign approved and sent through portal notifications.")).catch((error: unknown) => setToast(error instanceof Error ? error.message : "Campaign approval failed.")); }}>Approve &amp; send campaign</Button>
+                      <Button variant="outline"
                         type="button"
                         onClick={async () => {
                           if (
@@ -1558,20 +1434,9 @@ function CRMApp({
             <section className="knowledge-workspace">
               <div className="knowledge-health">
                 <div>
-                  <span>KNOWLEDGE HEALTH</span>
+                  <span>Document review</span>
                   <strong>{knowledgeCoverage}%</strong>
-                  <p>of high-demand answers are verified and current</p>
-                </div>
-                <div
-                  className="knowledge-ring"
-                  style={
-                    { "--coverage": `${knowledgeCoverage}%` } as CSSProperties
-                  }
-                >
-                  <span>
-                    {knowledgeCoverage}
-                    <small>%</small>
-                  </span>
+                  <p>of documents verified</p>
                 </div>
                 <div className="health-actions">
                   <span>
@@ -1604,22 +1469,21 @@ function CRMApp({
                 </div>
               </div>
               <GovernedKnowledgeWorkspace currentUser={currentUser} onMessage={setToast}/>
-              <IngestionHealthPanel currentUser={currentUser} onMessage={setToast}/>
-              <PublicAiEvidencePanel currentUser={currentUser} onMessage={setToast}/>
-              <RagEvaluationPanel currentUser={currentUser} onMessage={setToast}/>
-              <ResearchOperationsPanel currentUser={currentUser} onMessage={setToast}/>
+              <details className="advanced-section"><summary>Import status</summary><IngestionHealthPanel currentUser={currentUser} onMessage={setToast}/></details>
+              <details className="advanced-section"><summary>Assistant usage</summary><PublicAiEvidencePanel currentUser={currentUser} onMessage={setToast}/></details>
+              <details className="advanced-section"><summary>Answer tests</summary><RagEvaluationPanel currentUser={currentUser} onMessage={setToast}/></details>
+              <details className="advanced-section"><summary>Service status</summary><ResearchOperationsPanel currentUser={currentUser} onMessage={setToast}/></details>
               <div className="knowledge-list">
                 <div className="list-heading">
                   <div>
-                    <span>INSTITUTIONAL SOURCES</span>
-                    <h3>Verified knowledge</h3>
+                    <h3>Articles</h3>
                   </div>
-                  <Button
+                  <Button variant="outline"
                     className="primary-action"
                     type="button"
                     onClick={() => setKnowledgeEditor("new")}
                   >
-                    + Contribute knowledge
+                    Add article
                   </Button>
                 </div>
                 {database.knowledge.map((article) => (
@@ -1645,7 +1509,7 @@ function CRMApp({
                       </small>
                     </div>
                     <div className="knowledge-row-actions">
-                      <Button
+                      <Button variant="outline"
                         type="button"
                         onClick={() => setKnowledgeEditor(article)}
                       >
@@ -1658,7 +1522,7 @@ function CRMApp({
                       >
                         Source ↗
                       </a>
-                      <Button
+                      <Button variant="outline"
                         type="button"
                         onClick={async () => {
                           if (!(await confirmAction(`Archive “${article.title}”?`)))
@@ -1687,7 +1551,7 @@ function CRMApp({
 
           {section === "analytics" ? (
             <section className="analytics-workspace">
-              <WorkloadEvidencePanel currentUser={currentUser} onMessage={setToast}/>
+              <details className="advanced-section"><summary>Workload</summary><WorkloadEvidencePanel currentUser={currentUser} onMessage={setToast}/></details>
             </section>
           ) : null}
         </div>
@@ -1803,10 +1667,9 @@ function CRMApp({
             <header>
               <div className="copilot-mark">✦</div>
               <div>
-                <span>NEXUS INTELLIGENCE</span>
                 <h2>AI Student Success Copilot</h2>
               </div>
-              <Button type="button" onClick={() => setCopilotOpen(false)}>
+              <Button variant="outline" type="button" onClick={() => setCopilotOpen(false)}>
                 ×
               </Button>
             </header>
@@ -1826,7 +1689,7 @@ function CRMApp({
                 <>
                   <span>STU</span>
                   <div>
-                    <b>Institutional workspace context</b>
+                    <b>Current page</b>
                     <small>No direct identifiers are sent to OpenAI</small>
                   </div>
                 </>
@@ -1837,7 +1700,7 @@ function CRMApp({
                 value={copilotQuery}
                 onChange={(event) => setCopilotQuery(event.target.value)}
                 rows={4}
-                placeholder="Ask Nexus to summarize, prioritize, or draft…"
+                placeholder="Ask a question or describe a task"
               />
               <div>
                 <span>Grounded in CRM signals and verified knowledge</span>
@@ -1871,7 +1734,7 @@ function CRMApp({
                   </div>
                   <h3>Recommended response</h3>
                   <p>{copilotResult.answer}</p>
-                  <h3>Next best actions</h3>
+                  <h3>Next actions</h3>
                   <ol>
                     {copilotResult.actions.map((action) => (
                       <li key={action}>{action}</li>
@@ -1883,7 +1746,7 @@ function CRMApp({
                       <span key={citation}>◫ {citation}</span>
                     ))}
                   </div>
-                  <Button
+                  <Button variant="outline"
                     className="copy-result"
                     type="button"
                     onClick={() => {
@@ -1916,7 +1779,7 @@ function CRMApp({
         </div>
       ) : null}
       {crmDataSource.mode !== "live" ? (
-        <Button
+        <Button variant="outline"
           className="demo-reset"
           type="button"
           title="Retry live connection"
@@ -1955,7 +1818,7 @@ function StudentDrawer({
   return (
     <Sheet open onOpenChange={open => { if (!open) onClose() }}><SheetContent showCloseButton={false} className="student-drawer w-full overflow-y-auto p-0 sm:max-w-[620px]"><SheetDescription className="sr-only">Student record, support signals, interactions and contact details.</SheetDescription>
         <header>
-          <Button type="button" aria-label="Close student profile" onClick={onClose}>
+          <Button variant="outline" type="button" aria-label="Close student profile" onClick={onClose}>
             ×
           </Button>
           <div className="drawer-avatar">{student.initials}</div>
@@ -1971,17 +1834,17 @@ function StudentDrawer({
           </StatusPill>
         </header>
         <div className="drawer-actions">
-          <Button type="button" onClick={onAskAi}>
+          <Button variant="outline" type="button" onClick={onAskAi}>
             ✦ AI success brief
           </Button>
           <a href={`mailto:${student.email}`}>Send message</a>
-          <Button type="button" onClick={onEdit}>
+          <Button variant="outline" type="button" onClick={onEdit}>
             Edit student
           </Button>
           <Button type="button" onClick={onCreateCase}>
             Create case
           </Button>
-          <Button type="button" onClick={onLogInteraction}>
+          <Button variant="outline" type="button" onClick={onLogInteraction}>
             Log interaction
           </Button>
           <Button type="button" onClick={onCreateSignal}>
@@ -2007,7 +1870,6 @@ function StudentDrawer({
           </div>
         </section>
         <section className="next-best-action">
-          <span>NEXT BEST ACTION</span>
           <h3>{student.nextAction}</h3>
           <p>Last meaningful contact: {student.lastContact}</p>
         </section>
@@ -2024,7 +1886,7 @@ function StudentDrawer({
                 <p>{signal.detail}</p>
               </div>
               {signal.id ? (
-                <Button type="button" onClick={() => onEditSignal(signal)}>
+                <Button variant="outline" type="button" onClick={() => onEditSignal(signal)}>
                   Edit
                 </Button>
               ) : null}

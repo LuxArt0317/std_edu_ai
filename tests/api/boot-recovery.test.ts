@@ -45,7 +45,7 @@ test('authentication and platform startup have finite recovery bounds', () => {
   assert.match(auth, /withTimeout/)
   assert.match(auth, /clearLocalCrmSession/)
   assert.match(portal, /20_000/)
-  assert.match(root, /Start with a clean local session/)
+  assert.match(root, /Reset saved login/)
 })
 
 test('workspace navigation embeds support modules inside one School OS shell', () => {

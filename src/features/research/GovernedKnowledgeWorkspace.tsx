@@ -111,7 +111,7 @@ export function GovernedKnowledgeWorkspace({
       setError(
         reason instanceof Error
           ? reason.message
-          : "Governed knowledge could not be loaded.",
+          : "Knowledge could not be loaded.",
       ),
     );
   }, [allowed, refresh]);
@@ -181,7 +181,6 @@ export function GovernedKnowledgeWorkspace({
     <section className="governed-knowledge">
       <header>
         <div>
-          <span>RESEARCH-GRADE CORPUS</span>
           <h3>Sources, versions, and review</h3>
           <p>
             Acquire official HTML, PDF, Markdown, or text into review-only
@@ -189,7 +188,7 @@ export function GovernedKnowledgeWorkspace({
             publishes it.
           </p>
         </div>
-        <Button
+        <Button variant="outline"
           type="button"
           disabled={busy}
           onClick={() => void operation(refresh, "Governed corpus refreshed.")}
@@ -241,11 +240,10 @@ export function GovernedKnowledgeWorkspace({
       <section className="source-inventory" aria-labelledby="source-inventory-title">
         <header>
           <div>
-            <span>OFFICIAL-SOURCE DISCOVERY</span>
-            <h4 id="source-inventory-title">Review the STU source inventory</h4>
+            <h4 id="source-inventory-title">Review sources</h4>
             <p>
               {coveredDomains}/10 research domains have discovery candidates. Accepting one
-              creates an inactive governed source—it does not acquire or publish content.
+              creates an inactive governed source-it does not acquire or publish content.
             </p>
           </div>
           <div className="source-inventory-summary" aria-label="Source inventory status">
@@ -281,7 +279,7 @@ export function GovernedKnowledgeWorkspace({
         <div className="source-inventory-layout">
           <div className="source-candidate-list">
             {visibleCandidates.map((item) => (
-              <Button
+              <Button variant="outline"
                 type="button"
                 key={item.id}
                 className={selectedCandidate === item.id ? "selected" : ""}
@@ -327,7 +325,7 @@ export function GovernedKnowledgeWorkspace({
                   <Label>
                     Decision
                     <NativeSelect name="decision" defaultValue="accepted">
-                      <NativeSelectOption value="accepted">Accept as inactive source</NativeSelectOption>
+                      <NativeSelectOption value="accepted">Accept source</NativeSelectOption>
                       <NativeSelectOption value="rejected">Reject</NativeSelectOption>
                       <NativeSelectOption value="unreachable">Mark unreachable</NativeSelectOption>
                       <NativeSelectOption value="duplicate">Mark duplicate</NativeSelectOption>
@@ -350,12 +348,12 @@ export function GovernedKnowledgeWorkspace({
                 <div className="source-review-outcome">
                   <strong>Reviewed decision</strong>
                   <p>{candidate.review_reason}</p>
-                  {candidate.source_id ? <Button type="button" onClick={() => setSelectedSource(candidate.source_id || "")}>Open inactive governed source</Button> : null}
+                  {candidate.source_id ? <Button variant="outline" type="button" onClick={() => setSelectedSource(candidate.source_id || "")}>Open inactive governed source</Button> : null}
                 </div>
               )}
             </Card>
           ) : (
-            <p className="governance-empty">Choose a candidate to inspect provenance and record a governed decision.</p>
+            <p className="governance-empty">Select a source to review.</p>
           )}
         </div>
       </section>
@@ -543,7 +541,7 @@ export function GovernedKnowledgeWorkspace({
           <footer>
             <Button disabled={busy}>Save source</Button>
             {sourceEdit ? (
-              <Button type="button" onClick={() => setSourceEdit(null)}>
+              <Button variant="outline" type="button" onClick={() => setSourceEdit(null)}>
                 Cancel edit
               </Button>
             ) : null}
@@ -588,7 +586,7 @@ export function GovernedKnowledgeWorkspace({
                 Robots {source.robots_reviewed_at ? "reviewed" : "not reviewed"}{" "}
                 · Terms {source.terms_reviewed_at ? "reviewed" : "not reviewed"}
               </small>
-              <Button type="button" onClick={() => setSourceEdit(source)}>
+              <Button variant="outline" type="button" onClick={() => setSourceEdit(source)}>
                 Edit source
               </Button>
             </Card>
@@ -795,13 +793,12 @@ export function GovernedKnowledgeWorkspace({
         <div className="governance-documents">
           <header>
             <div>
-              <span>VERSION QUEUE</span>
               <h4>{source?.name || "All governed documents"}</h4>
             </div>
           </header>
           {visibleDocuments.length ? (
             visibleDocuments.map((item) => (
-              <Button
+              <Button variant="outline"
                 type="button"
                 className={selectedDocument === item.id ? "selected" : ""}
                 key={item.id}
@@ -835,7 +832,6 @@ export function GovernedKnowledgeWorkspace({
         <section className="document-review">
           <header>
             <div>
-              <span>DOCUMENT REVIEW</span>
               <h4>
                 {document.title} · version {document.version}
               </h4>
@@ -846,7 +842,7 @@ export function GovernedKnowledgeWorkspace({
                 </a>
               </p>
             </div>
-            <Button type="button" onClick={() => setSelectedDocument("")}>
+            <Button variant="outline" type="button" onClick={() => setSelectedDocument("")}>
               Close
             </Button>
           </header>

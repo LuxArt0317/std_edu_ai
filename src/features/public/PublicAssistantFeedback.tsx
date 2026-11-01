@@ -71,7 +71,7 @@ export function PublicAssistantFeedback({
       ) : null}
       <span>這個回答有幫助嗎？</span>
       <div>
-        <Button
+        <Button variant="outline"
           type="button"
           disabled={state === "saving"}
           onClick={() => {
@@ -82,7 +82,7 @@ export function PublicAssistantFeedback({
         >
           有幫助
         </Button>
-        <Button
+        <Button variant="outline"
           type="button"
           disabled={state === "saving"}
           onClick={() => setChoice("no")}

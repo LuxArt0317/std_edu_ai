@@ -128,9 +128,8 @@ export function GradesView({
     return (
       <>
         <PageIntro
-          eyebrow="MY ACADEMIC RECORD"
-          title="Grades and feedback"
-          description="Only your own published grades appear here. Draft and teacher-review records remain private."
+          title="Grades"
+          description="Your published grades and feedback."
         />
         {currentUser.isOwner ? (
           <div className="student-preview-note">
@@ -194,9 +193,8 @@ export function GradesView({
   return (
     <>
       <PageIntro
-        eyebrow="TEACHER GRADEBOOK"
-        title="Grades and AI scan review"
-        description="Review the class record, scan handwritten or printed grade sheets, and publish only after human confirmation."
+        title="Gradebook"
+        description="Enter grades or import a grade sheet. Review before publishing."
         action={
           <Label
             className={`school-primary upload-button ${scanning ? "disabled" : ""}`}
@@ -213,7 +211,7 @@ export function GradesView({
       />
       {selectedCourse && initialSectionId ? (
         <div className="workspace-focus-banner">
-          <b>Opened from Academic Office</b>
+          <b>Opened from Academics</b>
           <span>
             {selectedCourse.code} · {selectedCourse.title} ·{" "}
             {selectedCourse.sectionCode}
@@ -243,7 +241,7 @@ export function GradesView({
           </NativeSelect>
         </Label>
         <div>
-          <span>HUMAN REVIEW</span>
+          <span>Human review</span>
           <b>AI never publishes grades</b>
         </div>
       </div>
@@ -275,7 +273,7 @@ export function GradesView({
                 <small>{student.studentNumber}</small>
               </span>
               <strong>
-                {grade ? `${grade.score} / ${selectedItem?.maxScore}` : "—"}
+                {grade ? `${grade.score} / ${selectedItem?.maxScore}` : "-"}
               </strong>
               <span>{grade?.letterGrade || "Pending"}</span>
               <Pill
@@ -291,7 +289,7 @@ export function GradesView({
               </Pill>
               {grade ? (
                 <div className="grade-row-actions">
-                  <Button
+                  <Button variant="outline"
                     type="button"
                     onClick={() => {
                       setEditingGradeId(grade.id);
@@ -301,7 +299,7 @@ export function GradesView({
                     Edit
                   </Button>
                   {grade.status !== "published" ? (
-                    <Button
+                    <Button variant="outline"
                       type="button"
                       onClick={() => setPublishingGradeId(grade.id)}
                     >
@@ -327,7 +325,7 @@ export function GradesView({
                 Low-confidence or unmatched rows will not be saved.
               </p>
             </div>
-            <Button type="button" onClick={() => void approveScan()}>
+            <Button variant="outline" type="button" onClick={() => void approveScan()}>
               Approve reviewed drafts →
             </Button>
           </header>
@@ -376,11 +374,11 @@ export function GradesView({
             aria-label="Publish final grade"
           >
             <DialogDescription className="sr-only">
-              Review the details and submit to save your changes.
+              Update the fields and save.
             </DialogDescription>
             <header>
               <div>
-                <span>CONTROLLED ACADEMIC RECORD</span>
+                <span>Controlled academic record</span>
                 <DialogTitle asChild>
                   <h2>Publish this final grade?</h2>
                 </DialogTitle>
@@ -389,7 +387,7 @@ export function GradesView({
                   audited correction workflow.
                 </p>
               </div>
-              <Button type="button" onClick={() => setPublishingGradeId("")}>
+              <Button variant="outline" type="button" onClick={() => setPublishingGradeId("")}>
                 ×
               </Button>
             </header>
@@ -404,7 +402,7 @@ export function GradesView({
                   .then(() => {
                     setPublishingGradeId("");
                     onToast(
-                      "Final grade published with immutable audit evidence.",
+                      "Grade published and recorded.",
                     );
                     onChanged();
                   })
@@ -463,11 +461,11 @@ export function GradesView({
                   aria-label="Edit grade"
                 >
                   <DialogDescription className="sr-only">
-                    Review the details and submit to save your changes.
+                    Update the fields and save.
                   </DialogDescription>
                   <header>
                     <div>
-                      <span>TEACHER GRADEBOOK</span>
+                      <span>Teacher gradebook</span>
                       <DialogTitle asChild>
                         <h2>Edit {grade.studentName}'s grade</h2>
                       </DialogTitle>
@@ -476,7 +474,7 @@ export function GradesView({
                         publication state.
                       </p>
                     </div>
-                    <Button type="button" onClick={() => setEditingGradeId("")}>
+                    <Button variant="outline" type="button" onClick={() => setEditingGradeId("")}>
                       ×
                     </Button>
                   </header>
@@ -582,7 +580,7 @@ export function GradesView({
                       </Label>
                     </div>
                     <footer>
-                      <Button
+                      <Button variant="outline"
                         type="button"
                         onClick={() => setEditingGradeId("")}
                       >

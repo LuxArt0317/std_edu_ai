@@ -1,3 +1,4 @@
+import { Home, BookOpen, ClipboardCheck, GraduationCap, CalendarDays, Users, ListTodo, UserRound, TriangleAlert, Inbox, Send, Library, ChartNoAxesCombined, Settings2, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { ReactNode } from "react";
 import type { CrmUser } from "../../crm/authService";
@@ -78,14 +79,14 @@ export const crmRoles = new Set<PlatformRole>([
 ]);
 
 export const roleNames: Record<PlatformRole, string> = {
-  owner: "Platform Owner",
+  owner: "Owner",
   admin: "Administrator",
   president: "President",
   vice_president: "Vice President",
   dean: "Dean",
   registrar: "Registrar",
   department_head: "Department Head",
-  faculty: "Teacher / Faculty",
+  faculty: "Teacher",
   advisor: "Academic Advisor",
   admissions: "Admissions Officer",
   finance: "Finance Officer",
@@ -94,23 +95,23 @@ export const roleNames: Record<PlatformRole, string> = {
   student: "Student",
 };
 
-export const navMeta: Record<PortalView, { label: string; icon: string }> = {
-  home: { label: "My Day", icon: "⌂" },
-  academics: { label: "Academic Office", icon: "▦" },
-  learning: { label: "Courses", icon: "◫" },
-  teaching: { label: "Courses", icon: "✎" },
-  assessments: { label: "Assessments", icon: "✓" },
-  grades: { label: "Grades", icon: "▤" },
-  schedule: { label: "Schedule", icon: "◷" },
-  people: { label: "People & Access", icon: "◎" },
-  crm: { label: "Support Overview", icon: "◇" },
-  students: { label: "Students", icon: "◎" },
-  success: { label: "Student Signals", icon: "◇" },
-  admissions: { label: "Admissions", icon: "↗" },
-  cases: { label: "Support Cases", icon: "▣" },
-  campaigns: { label: "Communications", icon: "◌" },
-  knowledge: { label: "Knowledge Hub", icon: "◫" },
-  analytics: { label: "Reports", icon: "▤" },
+export const navMeta: Record<PortalView, { label: string; icon: LucideIcon }> = {
+  home: { label: "Overview", icon: Home },
+  academics: { label: "Academics", icon: Settings2 },
+  learning: { label: "Courses", icon: BookOpen },
+  teaching: { label: "Courses", icon: BookOpen },
+  assessments: { label: "Assessments", icon: ClipboardCheck },
+  grades: { label: "Grades", icon: GraduationCap },
+  schedule: { label: "Calendar", icon: CalendarDays },
+  people: { label: "Users", icon: Users },
+  crm: { label: "Tasks", icon: ListTodo },
+  students: { label: "Students", icon: UserRound },
+  success: { label: "Alerts", icon: TriangleAlert },
+  admissions: { label: "Admissions", icon: Inbox },
+  cases: { label: "Cases", icon: Inbox },
+  campaigns: { label: "Messages", icon: Send },
+  knowledge: { label: "Knowledge", icon: Library },
+  analytics: { label: "Reports", icon: ChartNoAxesCombined },
 };
 
 export function generateTemporaryPassword() {
@@ -178,19 +179,17 @@ export function PortalLoading() {
   return (
     <div className="school-loading">
       <span>樹</span>
-      <strong>Building your school day</strong>
-      <p>Loading the work your role is allowed to see…</p>
+      <strong>Loading</strong>
+      <p>Loading your records…</p>
     </div>
   );
 }
 
 export function PageIntro({
-  eyebrow,
   title,
   description,
   action,
 }: {
-  eyebrow: string;
   title: string;
   description: string;
   action?: ReactNode;
@@ -198,9 +197,8 @@ export function PageIntro({
   return (
     <section className="school-page-intro">
       <div>
-        <span>{eyebrow}</span>
         <h1>{title}</h1>
-        <p>{description}</p>
+        {description ? <p>{description}</p> : null}
       </div>
       {action}
     </section>

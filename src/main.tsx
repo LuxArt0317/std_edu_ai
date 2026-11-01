@@ -1,3 +1,4 @@
+import { ThemeProvider } from "next-themes"
 import { InteractionProvider } from '@/components/interaction-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -23,14 +24,16 @@ if (!rootElement) throw new Error('The STU application root is unavailable.')
 
 createRoot(rootElement).render(
   <StrictMode>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem forcedTheme={isCrmRoute ? undefined : "light"} disableTransitionOnChange>
     <TooltipProvider>
     <InteractionProvider />
-    <Toaster theme="light" richColors />
+    <Toaster richColors />
     <ApplicationErrorBoundary>
       <Suspense fallback={<RouteLoading />}>
         <RootApplication />
       </Suspense>
     </ApplicationErrorBoundary>
   </TooltipProvider>
+    </ThemeProvider>
   </StrictMode>,
 )

@@ -1,192 +1,282 @@
 @custom-variant dark (&:is(.dark *));
-
 @theme inline {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--primary);
   --color-sidebar-primary-foreground: var(--primary-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-accent-foreground: var(--sidebar-foreground);
-  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-border: var(--border);
   --color-sidebar-ring: var(--ring);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
+  --color-card-foreground: var(--foreground);
   --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
+  --color-popover-foreground: var(--foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-foreground: var(--foreground);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
 }
-
 :root {
-  --sidebar: #102f2b;
-  --sidebar-foreground: #e9fffa;
-  --sidebar-accent: #1c4d43;
-  --sidebar-border: #31574e;
-  --background: #f3f7f6;
-  --foreground: #152d2a;
-  --card: #ffffff;
-  --card-foreground: #152d2a;
-  --popover: #ffffff;
-  --popover-foreground: #152d2a;
+  color-scheme: light;
+  --background: #f8faf9;
+  --foreground: #202925;
+  --card: #fff;
+  --popover: #fff;
   --primary: #137562;
-  --primary-foreground: #ffffff;
-  --secondary: #e6f2ee;
-  --secondary-foreground: #164d42;
-  --muted: #edf3f1;
-  --muted-foreground: #526e67;
-  --accent: #def2eb;
-  --accent-foreground: #0b5f4d;
-  --destructive: #b83c38;
-  --border: #d6e3de;
-  --input: #a8bfb6;
+  --primary-foreground: #fff;
+  --secondary: #f0f4f2;
+  --muted: #f0f4f2;
+  --muted-foreground: #5d6b64;
+  --accent: #e9f2ed;
+  --destructive: #b53634;
+  --border: #dfe6e1;
+  --input: #b5c1b9;
   --ring: #137562;
-  --radius: 0.625rem;
+  --sidebar: #f3f6f4;
+  --sidebar-foreground: #34443a;
+  --sidebar-accent: #e0ece4;
+  --card-foreground: var(--foreground);
+  --popover-foreground: var(--foreground);
+  --secondary-foreground: var(--foreground);
+  --accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --radius: 6px;
 }
-
+.dark {
+  color-scheme: dark;
+  --background: #151c18;
+  --foreground: #e3eae5;
+  --card: #1c2520;
+  --popover: #222d26;
+  --primary: #8cdbb5;
+  --primary-foreground: #102b1d;
+  --secondary: #27332b;
+  --muted: #27332b;
+  --muted-foreground: #a6b7ab;
+  --accent: #304337;
+  --destructive: #ff9c99;
+  --border: #38483d;
+  --input: #667b6c;
+  --ring: #8cdbb5;
+  --sidebar: #18211b;
+  --sidebar-foreground: #d2dfd5;
+  --sidebar-accent: #2a3f31;
+}
 @layer base {
   * { @apply border-border; }
-  body { @apply bg-background text-foreground antialiased; }
+  body { @apply m-0 bg-background font-sans text-foreground antialiased; }
   button, input, textarea, select { font: inherit; }
-  button, a, input, textarea, select { @apply focus-visible:outline-none; }
   [hidden] { display: none !important; }
 }
-
-@layer components {
-  .school-shell h1, .school-shell h2, .nexus-auth-card h1, .crm-shell h1, .crm-shell h2 {
-    @apply font-sans font-semibold tracking-tight;
+@layer utilities {
+  .campus-directory-panel > header > div > span { color: #137562; }
+  .school-shell, .nexus-shell, .nexus-auth-shell, .app-failure, .route-loading {
+    --school-bg: var(--background); --school-surface: var(--card); --school-ink: var(--foreground);
+    --school-muted: var(--muted-foreground); --school-line: var(--border); --school-border: var(--border);
+    --school-green: var(--primary); --school-teal: var(--primary); --school-teal-dark: var(--primary); --school-soft: var(--muted);
+    --nexus-bg: var(--background); --nexus-surface: var(--card); --nexus-ink: var(--foreground);
+    --nexus-muted: var(--muted-foreground); --nexus-line: var(--border); --nexus-teal: var(--primary);
+    --nexus-teal-dark: var(--primary); --nexus-mint: var(--secondary);
+    font-family: var(--font-sans); color: var(--foreground); background: var(--background);
+    background-image: none; font-size: 14px;
   }
-  .school-content { @apply mx-auto w-full max-w-[1600px] px-5 py-6 lg:px-8; }
-  .school-page-intro { @apply mb-6 rounded-none border-0 bg-none p-0 shadow-none; }
-  .school-page-intro h1 { @apply text-3xl leading-tight lg:text-4xl; }
-  .school-page-intro p { @apply max-w-3xl text-sm leading-6 text-muted-foreground; }
-  .school-workspace-context { @apply rounded-md border bg-card px-4 py-2 text-xs shadow-none; }
-  .school-topbar { @apply border-b bg-card shadow-none; }
-  .school-sidebar { @apply bg-[#102f2b] bg-none; }
-  .school-sidebar nav button { @apply w-full justify-start text-[#e9fffa] hover:bg-white/10 hover:text-white; }
-  .school-sidebar nav button.active { @apply bg-[#137562] text-white; }
-  .school-menu { @apply md:hidden; }
-  .school-role-card { @apply rounded-lg border-white/15 bg-white/5 shadow-none; }
-  .school-sidebar-foot button { @apply w-full border border-white/20 bg-white/5 text-white hover:bg-white/10; }
-  .school-owner-card { @apply border-border bg-card bg-none shadow-none; }
-  .school-shell [data-slot="card"] { @apply rounded-lg shadow-none; }
-  .school-shell [data-slot="button"] { @apply cursor-pointer; }
-  .school-shell .academic-tabs, .school-shell .lms-tabbar { @apply gap-1 rounded-lg border bg-card p-1; }
-  .school-shell .academic-tabs button, .school-shell .lms-tabbar button { @apply bg-transparent text-muted-foreground shadow-none hover:bg-muted; }
-  .school-shell .academic-tabs button.active, .school-shell .lms-tabbar button.active { @apply bg-primary text-primary-foreground; }
-  .school-shell [data-slot="input"][type="radio"], .school-shell [data-slot="input"][type="range"] { @apply size-4 accent-primary shadow-none; }
-  [data-slot="dialog-content"] [data-slot="native-select-wrapper"] { @apply w-full; }
-  [data-slot="dialog-content"] form { @apply min-w-0; }
-  .nexus-auth-shell { @apply bg-background bg-none; }
-  .nexus-auth-card { @apply rounded-xl border bg-card p-7 shadow-sm; }
-  .nexus-auth-card h1 { @apply text-3xl; }
-  .nexus-auth-card form { @apply grid gap-5; }
-  .nexus-auth-card form > [data-slot="button"] { @apply w-full; }
+  .school-sidebar { padding: 0; background: var(--sidebar); color: var(--sidebar-foreground); border-right: 1px solid var(--border); box-shadow: none; }
+  .school-brand { min-height: 62px; padding: 0 8px; gap: 10px; color: var(--foreground); border: 0; }
+  .school-brand > span { width: 30px; height: 30px; font: 18px var(--font-sans); border-radius: 6px; color: var(--primary); background: var(--accent); border: 1px solid var(--border); box-shadow: none; }
+  .school-brand b { font-size: 13px; letter-spacing: .02em; }
+  .school-brand small { color: var(--muted-foreground); font-size: 11px; letter-spacing: 0; }
+  .school-sidebar nav { padding: 0; }
+  .school-sidebar nav [data-slot="sidebar-menu-button"] { min-height: 36px; height: 36px; padding: 0 10px; gap: 9px; border: 0; border-radius: 6px; color: var(--sidebar-foreground); background: transparent; box-shadow: none; font-size: 13px; font-weight: 400; }
+  .school-sidebar nav [data-active="true"] { color: var(--primary); background: var(--sidebar-accent); font-weight: 600; }
+  .school-sidebar nav [data-slot="sidebar-menu-button"]:hover { background: var(--sidebar-accent); color: var(--foreground); }
+  .nav-group-label { padding: 20px 10px 6px; margin: 0; color: var(--muted-foreground); font-size: 11px; font-weight: 500; letter-spacing: 0; }
+  .account-menu { height: auto; min-height: 52px; padding: 8px; color: var(--foreground); background: transparent; border: 0; box-shadow: none; }
+  .account-initials { display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--muted-foreground); font-size: 11px; }
+  .school-main { background: var(--background); }
+  .school-topbar { height: 56px; min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 28px; background: var(--card); border-bottom: 1px solid var(--border); box-shadow: none; }
+  .school-breadcrumb > span { color: var(--muted-foreground); font-weight: 400; }
+  .school-breadcrumb { flex: 1; min-width: 0; color: var(--muted-foreground); font-size: 13px; }
+  .school-top-actions { margin: 0; display: flex; align-items: center; gap: 4px; }
+  .school-content { width: 100%; max-width: 1440px; margin: 0 auto; padding: 28px; }
+  .school-page-intro, .nexus-page-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 22px; padding: 0; border: 0; border-radius: 0; color: var(--foreground); background: transparent; box-shadow: none; }
+  .school-page-intro::before, .nexus-page-heading::before { content: none; }
+  .school-page-intro h1, .nexus-page-heading h1, .lms-hero h1 { margin: 0; color: var(--foreground); font: 600 24px/1.3 var(--font-sans); letter-spacing: -.025em; }
+  .school-page-intro p, .nexus-page-heading > div > span, .lms-hero p { display: block; margin: 5px 0 0; color: var(--muted-foreground); font-size: 13px; line-height: 1.5; max-width: 65ch; }
+  .school-shell h2, .school-shell h3, [data-slot="dialog-content"] h2 { font-family: var(--font-sans); color: var(--foreground); font-weight: 600; letter-spacing: -.01em; }
+  .school-shell h2 { font-size: 17px; line-height: 1.4; }
+  .school-shell h3 { font-size: 14px; line-height: 1.5; }
+  .school-shell :is(.school-card,.nexus-panel,.lms-course-card,.assessment-card,.lms-attendance-card,.lms-outline,.lms-reader,.unified-calendar,.unified-agenda,.curriculum-workspace),
+  .school-shell [data-slot="card"] { background: var(--card); background-image: none; color: var(--foreground); border: 1px solid var(--border); border-radius: 8px; box-shadow: none; }
+  .school-shell [data-slot="card"] { padding-block: 16px; gap: 16px; }
+  .school-shell :is(.school-card,.nexus-panel) > header { min-height: 0; padding: 16px 18px; background: transparent; border-color: var(--border); }
+  .school-shell :is(.school-card,.nexus-panel) > header h3 { margin: 0; }
+  .school-shell :is(p,small), .nexus-main p { line-height: 1.55; }
+  .school-shell small { font-size: 12px; color: var(--muted-foreground); }
+  .school-shell p { font-size: 13px; color: var(--muted-foreground); }
+  .school-shell button p, .school-shell button small { color: inherit; }
+  .overview-counts { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); margin-bottom: 24px; padding: 16px 0; border-block: 1px solid var(--border); gap: 16px; }
+  .overview-counts > :is(button,div) { display: flex; flex-direction: column; align-items: flex-start; height: auto; min-height: 0; padding: 0 12px; gap: 5px; color: var(--foreground); border: 0; background: transparent; box-shadow: none; }
+  .overview-counts strong { font-size: 24px; font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
+  .overview-counts span { color: var(--muted-foreground); font-size: 12px; font-weight: 400; }
+  .school-home-grid [data-slot="card"] { padding: 0; gap: 0; }
+  .school-home-grid time, .school-home-grid p > span { font-size: 12px; color: var(--muted-foreground); }
+  .school-home-grid { gap: 20px; margin: 0 0 20px; }
+  .school-home-grid .next-events > div, .school-home-grid .announcement-feed > div { padding: 14px 18px; border-color: var(--border); }
+  .school-home-grid :is(.event-icon,.announcement-orb) { display: none; }
+  .school-home-grid .next-events > div { grid-template-columns: 110px minmax(0,1fr); gap: 14px; }
+  .school-home-grid :is(b,strong) { font-size: 13px; font-weight: 500; color: var(--foreground); }
+  .school-empty, .governance-empty, .academic-empty { padding: 24px 16px; font-size: 13px; color: var(--muted-foreground); background: transparent; }
+  .school-shell .academic-tabs, .school-shell .lms-tabbar { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 0 10px; margin-bottom: 18px; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; }
+  .school-shell .academic-tabs button, .school-shell .lms-tabbar button { color: var(--muted-foreground); border: 0; background: transparent; box-shadow: none; font-weight: 500; }
+  .school-shell .academic-tabs button.active, .school-shell .lms-tabbar button.active, .school-shell [data-slot="tabs-trigger"][data-state="active"] { color: var(--primary); background: var(--accent); box-shadow: none; }
+  .school-shell :is(.academic-overview,.academic-relationship-health,.academic-setup-grid) { gap: 12px; margin-block: 16px; }
+  .school-shell :is(.academic-overview,.academic-relationship-health) :is(article,button) { min-height: 0; padding: 12px 16px; border-radius: 6px; color: var(--foreground); background: var(--card); border: 1px solid var(--border); box-shadow: none; }
+  .academic-overview strong { font-size: 22px; line-height: 1.3; }
+  .academic-overview span, .academic-relationship-health small { color: var(--muted-foreground); text-transform: none; letter-spacing: 0; font-size: 12px; }
+  .school-shell :is(.academic-setup-grid,.department-grid,.role-hierarchy,.lms-summary) p { color: var(--muted-foreground); }
+  .academic-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin: 0 0 16px; }
+  .department-grid { display: block; overflow-x: auto; margin-bottom: 20px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); }
+  .school-shell .academic-relationship-health { margin: 0 0 20px; padding: 14px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
+  .school-shell .academic-relationship-health > h3 { margin: 0 0 10px; }
+  .school-shell .academic-relationship-health > div { display: grid; grid-template-columns: minmax(0,1fr); gap: 6px; }
+  .school-shell .academic-relationship-health > div > button { display: flex; justify-content: flex-start; gap: 10px; padding: 8px 10px; min-height: 36px; white-space: normal; text-align: left; }
+  .school-shell .academic-relationship-health > div > button > span:last-child { margin-left: auto; }
+  .academic-header, .crm-lifecycle-toolbar, .workspace-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 12px 0; margin: 0 0 12px; color: var(--foreground); background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+  .school-shell :is(.academic-header,.crm-lifecycle-toolbar) h3 { margin: 0; }
+  .lms-hero::before, .lms-student-hero::before { content: none; }
+  .school-shell :is(.lms-content,.lms-content-panel,.lms-tab-content,.lms-section-panel) { border-radius: 8px; background: var(--card); border-color: var(--border); box-shadow: none; }
+  .lms-empty { padding: 28px 20px; min-height: 0; background: transparent; }
+  .lms-empty h3 { margin: 0 0 5px; font-size: 14px; }
+  .lms-empty p { margin: 0; font-size: 13px; }
+  .lms-hero { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 20px; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--foreground); box-shadow: none; }
+  .lms-hero [data-slot="native-select-wrapper"] { width: auto; min-width: 180px; }
+  .lms-course-head { padding: 16px 0; margin-bottom: 16px; background: transparent; border: 0; box-shadow: none; }
+  .lms-course-head h2 { margin: 0 0 5px; font-size: 18px; color: var(--foreground); }
+  .lms-course-head p { color: var(--muted-foreground); }
+  .lms-tab-content > header { padding: 0 0 12px; }
+  .lms-tab-content > header h2 { margin: 0; font-size: 16px; }
+  .lms-course-head > span, .lms-tab-content > header > span { color: var(--muted-foreground); }
+  .nexus-embedded { min-height: 0; background: transparent; }
+  .nexus-embedded .nexus-page { padding: 0; }
+  .heading-actions { gap: 8px; }
+  .compact-metrics { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 20px; padding: 16px 0; margin-bottom: 24px; border-block: 1px solid var(--border); }
+  .metric-summary-item { display: grid; gap: 5px; }
+  .metric-summary-item > span, .metric-summary-item small { font-size: 12px; color: var(--muted-foreground); }
+  .metric-summary-item strong { font-size: 24px; line-height: 1.3; font-weight: 600; color: var(--foreground); font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
+  .nexus-shell :is(.campaign-hero,.knowledge-health,.risk-overview,.pipeline-summary) { min-height: 0; padding: 16px; background: var(--card); background-image: none; color: var(--foreground); border: 1px solid var(--border); border-radius: 8px; box-shadow: none; }
+  .nexus-shell :is(.campaign-hero,.knowledge-health) h2 { font-size: 17px; }
+  .nexus-shell :is(.campaign-hero,.knowledge-health) p { color: var(--muted-foreground); }
+  .case-summary-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .case-summary { min-height: 34px; display: flex; flex-direction: row; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 6px; }
+  .case-summary strong { font-size: 14px; order: 1; color: inherit; }
+  .case-summary > span { font-size: 12px; color: inherit; }
+  .case-table, .student-table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
+  .case-table > article { padding: 14px 16px; gap: 12px; border: 0; border-top: 1px solid var(--border); border-radius: 0; box-shadow: none; }
+  .case-table-head { padding: 12px 16px; color: var(--muted-foreground); background: var(--muted); }
+  .school-shell [data-slot="table"] { font-size: 13px; color: var(--foreground); }
+  .school-shell [data-slot="table-head"] { height: 40px; padding: 10px 14px; color: var(--muted-foreground); font-size: 12px; font-weight: 500; text-transform: none; letter-spacing: 0; background: var(--muted); }
+  .school-shell [data-slot="table-cell"] { padding: 12px 14px; border-color: var(--border); }
+  .school-shell [data-slot="table-row"] { border-color: var(--border); }
+  .school-shell :is(.pipeline-board,.case-table,.student-table-wrap,.gradebook) { overflow-x: auto; }
+  .advanced-section { margin-top: 16px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); }
+  .advanced-section > summary { cursor: pointer; font-size: 13px; font-weight: 500; color: var(--foreground); }
+  .advanced-section[open] > summary { margin-bottom: 16px; }
+  .dark .school-shell :is(.grade-controls > div > b, footer > strong) { color: var(--foreground); }
+  .people-provision-callout { display: flex; justify-content: flex-end; padding: 0; margin: 0 0 16px; border: 0; background: transparent; box-shadow: none; }
+  .people-directory { padding: 0; }
+  .people-directory > div > span:first-child { color: var(--primary-foreground); }
+  .people-directory > div { border-color: var(--border); background: transparent; }
+  .people-directory header { padding: 16px; }
+  .people-directory :is(p,small), .role-hierarchy p { color: var(--muted-foreground); }
+  .role-hierarchy h3 { font-size: 14px; }
+  .role-hierarchy > div > header { color: var(--muted-foreground); text-transform: capitalize; letter-spacing: 0; font-size: 12px; }
+  .school-shell :is(.role-hierarchy,.academic-overview,.academic-setup-grid) small { color: var(--muted-foreground); }
+  .preview-banner { min-height: 0; padding: 8px 28px; background: var(--accent); color: var(--foreground); border-bottom: 1px solid var(--border); }
+  .preview-banner p { margin: 0; font-size: 12px; color: var(--foreground); }
+  [data-slot="dialog-content"], [data-slot="sheet-content"] { font-family: var(--font-sans); color: var(--foreground); background: var(--popover); border-color: var(--border); border-radius: 8px; box-shadow: 0 12px 48px #0002; }
+  [data-slot="dialog-content"] header { padding: 0 0 16px; background: transparent; border-color: var(--border); }
+  [data-slot="dialog-content"] header h2 { margin: 0; font-size: 18px; font-family: var(--font-sans); color: var(--foreground); }
+  [data-slot="dialog-content"] header p { margin: 5px 0 0; max-width: 65ch; font-size: 13px; line-height: 1.5; color: var(--muted-foreground); }
+  [data-slot="dialog-content"] footer { background: transparent; border-color: var(--border); }
+  [data-slot="dialog-content"] footer > span { color: var(--muted-foreground); font-size: 12px; }
+  [data-slot="dialog-content"] [data-slot="native-select-wrapper"] { width: 100%; }
+  [data-slot="label"] { color: var(--foreground); }
+  [data-slot="label"] > span { font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--foreground); }
+  [data-slot="input"], [data-slot="textarea"], [data-slot="native-select"] { color: var(--foreground); background-color: var(--card); border-color: var(--input); border-radius: 6px; box-shadow: none; font-size: 13px; }
+  .school-shell :is(.tiptap,.tiptap p), [data-slot="dialog-content"] .tiptap { color: var(--foreground); }
+  .school-shell :is(.rich-text-editor,.rich-editor-toolbar,.tiptap-toolbar), [data-slot="dialog-content"] :is(.rich-text-editor,.rich-editor-toolbar,.tiptap-toolbar) { background: var(--card); color: var(--foreground); border-color: var(--border); }
+  [data-slot="button"][data-variant="outline"] { color: var(--foreground); background: var(--card); border-color: var(--border); }
+  [data-slot="button"][data-variant="default"] { color: var(--primary-foreground); background: var(--primary); }
+  .school-shell :is(.gradebook-head,.grade-controls > div,.unified-weekdays,.unified-calendar footer,.risk-legend,.rank,.health-actions,.assessment-meta,.assessment-tags,.lms-course-head) > span,
+  .unified-weekdays b, .school-shell p > span { color: var(--muted-foreground); font-size: 12px; letter-spacing: 0; }
+  .school-shell .unified-month-grid .outside { background: var(--muted); opacity: 1; }
+  .school-shell .unified-month-grid .outside time { color: var(--muted-foreground); }
+  .school-shell .signal-chips .warning { color: #87500a; background: #fff3d5; }
+  .school-shell .signal-chips .negative { color: #a42e25; background: #ffebe7; }
+  .school-shell .lead-source { color: var(--primary); }
+  .school-shell [data-slot="input"][type="radio"], .school-shell [data-slot="input"][type="range"] { width: 16px; height: 16px; accent-color: var(--primary); }
+  .nexus-auth-shell { min-height: 100dvh; padding: 24px; }
+  .nexus-auth-card { width: min(400px,100%); padding: 28px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); box-shadow: none; }
+  .nexus-auth-card h1 { margin: 0 0 8px; color: var(--foreground); font: 600 24px/1.3 var(--font-sans); letter-spacing: -.025em; }
+  .nexus-auth-card p { color: var(--muted-foreground); font-size: 13px; }
+  .nexus-auth-card form { display: grid; gap: 18px; }
+  .nexus-auth-card form > [data-slot="button"] { width: 100%; }
+  .nexus-auth-card .nexus-auth-copy { margin-block: 28px 20px; }
+  .nexus-auth-card .nexus-auth-mark { background: var(--accent); color: var(--primary); box-shadow: none; }
+  .nexus-auth-brand { color: var(--foreground); }
+  .nexus-auth-brand small { color: var(--muted-foreground); }
+  .nexus-loading { min-height: 240px; background: transparent; color: var(--foreground); }
+  .nexus-loading > span { color: var(--muted-foreground); }
+  .school-loading { background: var(--background); color: var(--foreground); }
+  .route-loading section, .app-failure > section { padding: 28px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: none; }
+  .route-loading strong, .app-failure h1 { font-family: var(--font-sans); color: var(--foreground); font-size: 22px; }
+  .route-loading p, .route-loading small, .app-failure p { color: var(--muted-foreground); }
+  .school-shell .school-ai-layer > aside { color: var(--foreground); background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 12px 48px #0002; }
+  .school-shell .school-ai-layer > aside > header { min-height: 0; padding: 14px 16px; gap: 10px; color: var(--foreground); background: var(--card); border-bottom: 1px solid var(--border); }
+  .school-ai-layer > aside > header h2 { margin: 0; font-size: 15px; color: var(--foreground); }
+  .school-ai-layer .chat-thread-bar, .school-ai-layer form { background: var(--card); border-color: var(--border); }
+  .school-ai-layer .chat-welcome { padding: 24px 16px; min-height: 0; }
+  .school-ai-layer .chat-welcome h3 { margin: 0 0 8px; font-size: 16px; }
+  .school-ai-layer .chat-welcome p { margin: 0 0 16px; font-size: 13px; }
+  .school-ai-layer .nexus-mode-switch { background: var(--card); border-color: var(--border); }
+  .school-ai-layer .nexus-mode-switch button.active { color: var(--primary); background: var(--accent); border-color: var(--primary); }
+  .school-ai-layer .nexus-mode-switch small { color: inherit; }
+  .school-ai-layer .chat-messages { background: var(--background); }
+  .school-ai-layer .chat-messages article.assistant { background: var(--card); border-color: var(--border); color: var(--foreground); border-radius: 6px; }
+  .school-ai-layer .chat-messages article.user { background: var(--accent); color: var(--foreground); border-radius: 6px; }
+  .school-shell :is(.assistant-shell,.nexus-thread-drawer,.copilot-panel) { background: var(--popover); color: var(--foreground); border-color: var(--border); box-shadow: 0 8px 32px #0002; }
+  .school-shell :is(.assistant-shell,.copilot-panel) h2 { color: var(--foreground); }
+  @media (max-width:767px) {
+    .school-topbar { padding: 0 16px; }
+    .school-content { padding: 20px 16px; }
+    .school-page-intro, .nexus-page-heading { flex-wrap: wrap; align-items: flex-start; gap: 12px; }
+    .school-page-intro h1, .nexus-page-heading h1, .lms-hero h1 { font-size: 22px; }
+    .overview-counts, .compact-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+    .overview-counts > :is(button,div) { padding: 0; }
+    .school-home-grid [data-slot="card"] { padding: 0; gap: 0; }
+  .school-home-grid time, .school-home-grid p > span { font-size: 12px; color: var(--muted-foreground); }
+  .school-home-grid { grid-template-columns: minmax(0,1fr); }
+    .school-home-grid .next-events > div { grid-template-columns: 95px minmax(0,1fr); gap: 10px; }
+    .preview-banner { padding: 8px 16px; }
+    .heading-actions { width: auto; }
+  }
 }
-
-@layer utilities {
-  .school-hero { @apply min-h-0 rounded-lg border bg-card bg-none p-6 text-card-foreground shadow-none; }
-  .school-hero h2 { @apply my-3 text-2xl font-semibold tracking-tight lg:text-3xl; }
-  .school-hero p { @apply text-sm leading-6 text-muted-foreground; }
-  .school-hero-orbit { @apply hidden; }
-  .school-hero > div:first-child > div span { @apply border-border bg-muted text-muted-foreground; }
-  .owner-banner { @apply rounded-lg border-border bg-card bg-none shadow-none; }
-  .school-metric-card { @apply gap-3 rounded-lg border bg-card p-5 shadow-none; }
-}
-
-@layer utilities {
-  .school-shell { --school-muted: #526e67; }
-  .school-stat-grid > article > strong { @apply font-sans; }
-  .school-stat-grid > article > span, .school-stat-grid > article > p,
-  .academic-overview > article > span, .academic-overview > article > p,
-  .academic-setup-grid p, .department-grid p { @apply text-muted-foreground; }
-  .school-user > span { @apply text-white; }
-  .school-sidebar-foot p small, .school-role-card small, .school-brand small { @apply text-[#b4cdc5]; }
-  .school-role-card b { @apply truncate; }
-}
-
-@layer utilities {
-  .academic-relationship-health button { @apply border bg-card text-foreground shadow-none hover:bg-muted; }
-  .academic-relationship-health button small { @apply text-muted-foreground; }
-  .department-grid > article > span { @apply bg-secondary text-secondary-foreground; }
-}
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
-}
-@layer utilities {
-  [data-slot="dialog-content"] footer > span { @apply text-muted-foreground; }
-}
-
-@layer utilities {
-  .school-content p, .school-content small, .school-empty,
-  .grade-controls > div > span, .gradebook-head > span,
-  .lms-course-head > div > span, .school-content .tiptap,
-  .school-content .tiptap p, .unified-weekdays b,
-  .unified-month-grid .outside time, .unified-calendar footer span,
-  .role-hierarchy > div > header, .school-content p > span { @apply text-muted-foreground; }
-  .school-content button p, .school-content button small { color: inherit; }
-  .school-content p[role="alert"] { @apply text-destructive; }
-  .nexus-shell small, .nexus-shell kbd, .nexus-shell .metric-card > span,
-  .nexus-shell .metric-card > p { @apply text-muted-foreground; }
-  .nexus-shell .user-card small { @apply text-white; }
-  .nexus-shell .hero-priority-list button small { @apply text-[#d7f5ec]; }
-  .nexus-shell .nexus-pill.critical { @apply text-[#a52c25]; }
-  .nexus-shell .today-tasks header span, .nexus-shell .signal-panel header span { @apply text-primary; }
-}
-@layer utilities {
-  .assessment-card > div > span, .assessment-meta span, .assessment-tags span,
-  .grade-controls label > span { @apply text-muted-foreground; }
-  .unified-month-grid > section.outside { @apply bg-muted opacity-100; }
-  .nexus-shell .nexus-metric > span, .nexus-shell .nexus-metric > p,
-  .nexus-shell .signal-stream button p { @apply text-muted-foreground; }
-}
-@layer utilities {
-  .assessment-list > article > div span { @apply text-muted-foreground; }
-}
-
-@layer utilities {
-  .nexus-shell .risk-overview header span, .nexus-shell .list-heading > div > span,
-  .nexus-shell .crm-lifecycle-toolbar > div > span, .nexus-shell .lead-source,
-  .governance-documents > header > div > span { @apply text-primary; }
-  .nexus-shell .risk-legend > span, .nexus-shell .rank,
-  .nexus-shell .pipeline-stage-content article p,
-  .nexus-shell .pipeline-stage-content article footer > span,
-  .nexus-shell .case-table-head > span, .source-inventory-summary > span,
-  .governance-documents .governance-empty, .nexus-shell .knowledge-list article p,
-  .nexus-shell .knowledge-list article > div > div > span:not(.nexus-pill) { @apply text-muted-foreground; }
-  .nexus-shell .signal-chips .warning { @apply text-amber-900; }
-  .nexus-shell .signal-chips .negative { @apply text-red-800; }
-  .nexus-shell .case-summary > span { color: inherit; }
-  .nexus-shell .case-student > span { @apply bg-secondary text-secondary-foreground; }
-}
-@layer utilities {
-  .nexus-brand small, .data-source small { @apply text-[#b4cdc5]; }
-  .user-card small { @apply text-white; }
-  .nexus-shell .global-search p { @apply text-muted-foreground; }
-  .school-content p, .nexus-main p { @apply text-sm leading-6; }
-  .school-content small, .nexus-main small { @apply text-xs; }
-  .school-content [data-slot="label"] > span,
-  .nexus-main [data-slot="label"] > span { @apply text-sm; }
-}
-
-@layer components {
-  .nexus-loading > span { @apply text-muted-foreground; }
-  .school-shell .nexus-embedded { min-height: 0; background: transparent; }
-  .school-shell .nexus-embedded .nexus-page { padding: 0; }
-  .school-shell .nexus-embedded .nexus-workspace-context { display: none; }
+@media (prefers-reduced-motion:reduce) {
+  *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; scroll-behavior:auto !important; }
 }

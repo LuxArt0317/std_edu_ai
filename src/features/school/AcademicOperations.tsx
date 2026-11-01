@@ -1,4 +1,6 @@
-import { Badge } from '@/components/ui/badge'
+import { Plus, Download } from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { CurriculumRequests } from '@/features/curriculum/CurriculumWorkspace'
 import { requestText } from '@/lib/decisions'
@@ -48,7 +50,7 @@ import type {
 } from "./types";
 
 type AcademicTab =
-  "overview" | "curricula" | "students" | "subjects" | "sections" | "enrollment";
+  "overview" | "curricula" | "students" | "subjects" | "sections" | "enrollment" | "requests";
 type ModalName =
   | "student"
   | "department"
@@ -177,17 +179,17 @@ function CurriculumEditor({draft,status,originalStatus,busy,catalogSubjects,onDr
       <Field label="Program"><Input value={`${draft.programCode} · ${draft.programName}`} disabled/></Field>
       <Field label="Description" wide><Textarea rows={3} value={draft.description} disabled={!editable} onChange={(event)=>onDraft({...draft,description:event.target.value})}/></Field>
     </section>
-    <section className="curriculum-editor-section"><header><div><span>SUBJECT SEQUENCE</span><h3>{draft.subjects.length} curriculum subjects</h3><p>Choose authoritative catalog subjects, then place them in the pathway. Subject identity and credits remain managed in the Subject catalog.</p></div>{editable?<div className="curriculum-add-actions"><Label><span>Add existing catalog subject</span><NativeSelect aria-label="Catalog subject to add" value={catalogSubjectId} onChange={(event)=>setCatalogSubjectId(event.target.value)}><NativeSelectOption value="">Choose an available subject…</NativeSelectOption>{availableCatalogSubjects.map((course)=><NativeSelectOption key={course.id} value={course.id}>{course.code} · {course.title} · {course.credits} units</NativeSelectOption>)}</NativeSelect></Label><Button type="button" disabled={!catalogSubjectId} onClick={addCatalogSubject}>Add selected</Button><Button type="button" onClick={onCreateSubject}>+ Create catalog subject</Button></div>:null}</header>
+    <section className="curriculum-editor-section"><header><div><h3>{draft.subjects.length} curriculum subjects</h3><p>Choose authoritative catalog subjects, then place them in the pathway. Subject identity and credits remain managed in the Subject catalog.</p></div>{editable?<div className="curriculum-add-actions"><Label><span>Add existing catalog subject</span><NativeSelect aria-label="Catalog subject to add" value={catalogSubjectId} onChange={(event)=>setCatalogSubjectId(event.target.value)}><NativeSelectOption value="">Choose an available subject…</NativeSelectOption>{availableCatalogSubjects.map((course)=><NativeSelectOption key={course.id} value={course.id}>{course.code} · {course.title} · {course.credits} units</NativeSelectOption>)}</NativeSelect></Label><Button type="button" disabled={!catalogSubjectId} onClick={addCatalogSubject}>Add selected</Button><Button type="button" onClick={onCreateSubject}>+ Create catalog subject</Button></div>:null}</header>
       <div className="curriculum-subject-editor"><div className="curriculum-subject-head"><span>Order</span><span>Code and title</span><span>Placement</span><span>Units/category</span><span>Prerequisites</span><span>Actions</span></div>{draft.subjects.map((subject,index)=><Card key={`${subject.code}-${index}`}>
         <Input aria-label={`Sort order for ${subject.code}`} type="number" min="1" value={subject.sortOrder} disabled={!editable} onChange={(event)=>updateSubject(index,{sortOrder:Number(event.target.value)})}/>
         <span className="curriculum-catalog-identity"><strong>{subject.code} · {subject.title}</strong><small>{subject.description||"No catalog description"}</small>{!subject.courseId?<Label><span>Link this legacy row</span><NativeSelect aria-label={`Catalog subject for ${subject.code}`} disabled={!editable} defaultValue="" onChange={(event)=>{const course=catalogSubjects.find((item)=>item.id===event.target.value);if(course)updateSubject(index,{courseId:course.id,code:course.code,title:course.title,description:course.description,units:course.credits,prerequisiteCodes:[],prerequisiteCourseIds:[]});}}><NativeSelectOption value="">Choose the authoritative subject…</NativeSelectOption>{availableCatalogSubjects.map((course)=><NativeSelectOption key={course.id} value={course.id}>{course.code} · {course.title}</NativeSelectOption>)}</NativeSelect></Label>:null}</span>
         <span><Label>Year<NativeSelect value={subject.yearLevel} disabled={!editable} onChange={(event)=>updateSubject(index,{yearLevel:Number(event.target.value)})}>{Array.from({length:draft.durationYears},(_,year)=>year+1).map((year)=><NativeSelectOption key={year} value={year}>Year {year}</NativeSelectOption>)}</NativeSelect></Label><Label>Semester<NativeSelect value={subject.semester} disabled={!editable} onChange={(event)=>updateSubject(index,{semester:Number(event.target.value)})}><NativeSelectOption value="1">1st semester</NativeSelectOption><NativeSelectOption value="2">2nd semester</NativeSelectOption><NativeSelectOption value="3">Summer</NativeSelectOption></NativeSelect></Label></span>
         <span><output aria-label={`Units for ${subject.code}`}>{subject.units} units</output><NativeSelect aria-label={`Category for ${subject.code}`} value={subject.category} disabled={!editable} onChange={(event)=>updateSubject(index,{category:event.target.value as typeof subject.category})}>{curriculumCategories.map((category)=><NativeSelectOption key={category} value={category}>{category.replaceAll("_"," ")}</NativeSelectOption>)}</NativeSelect></span>
         <NativeSelect multiple aria-label={`Prerequisites for ${subject.code}`} value={subject.prerequisiteCourseIds??[]} disabled={!editable||!subject.courseId} onChange={(event)=>{const prerequisiteCourseIds=Array.from(event.currentTarget.selectedOptions,(option)=>option.value);updateSubject(index,{prerequisiteCourseIds,prerequisiteCodes:prerequisiteCourseIds.map((id)=>draft.subjects.find((item)=>item.courseId===id)?.code).filter((code):code is string=>Boolean(code))});}}>{draft.subjects.filter((candidate,candidateIndex)=>candidateIndex<index&&candidate.courseId).map((candidate)=><NativeSelectOption key={candidate.courseId} value={candidate.courseId}>{candidate.code} · {candidate.title}</NativeSelectOption>)}</NativeSelect>
-        <span>{editable?<><Button type="button" disabled={index===0} onClick={()=>{const subjects=[...draft.subjects];[subjects[index-1],subjects[index]]=[subjects[index],subjects[index-1]];onDraft({...draft,subjects:subjects.map((item,position)=>({...item,sortOrder:position+1}))});}}>↑</Button><Button type="button" disabled={index===draft.subjects.length-1} onClick={()=>{const subjects=[...draft.subjects];[subjects[index],subjects[index+1]]=[subjects[index+1],subjects[index]];onDraft({...draft,subjects:subjects.map((item,position)=>({...item,sortOrder:position+1}))});}}>↓</Button><Button type="button" className="danger" onClick={()=>onDraft({...draft,subjects:draft.subjects.filter((_,itemIndex)=>itemIndex!==index)})}>Remove</Button></>:<small>Locked</small>}</span>
+        <span>{editable?<><Button variant="outline" type="button" disabled={index===0} onClick={()=>{const subjects=[...draft.subjects];[subjects[index-1],subjects[index]]=[subjects[index],subjects[index-1]];onDraft({...draft,subjects:subjects.map((item,position)=>({...item,sortOrder:position+1}))});}}>↑</Button><Button variant="outline" type="button" disabled={index===draft.subjects.length-1} onClick={()=>{const subjects=[...draft.subjects];[subjects[index],subjects[index+1]]=[subjects[index+1],subjects[index]];onDraft({...draft,subjects:subjects.map((item,position)=>({...item,sortOrder:position+1}))});}}>↓</Button><Button variant="outline" type="button" className="danger" onClick={()=>onDraft({...draft,subjects:draft.subjects.filter((_,itemIndex)=>itemIndex!==index)})}>Remove</Button></>:<small>Locked</small>}</span>
       </Card>)}</div>
     </section>
-    <section className="curriculum-editor-section"><header><div><span>BLOCK TEMPLATES</span><h3>Yearly sections and capacity</h3></div>{editable?<Button type="button" onClick={()=>onDraft({...draft,blocks:[...draft.blocks,{yearLevel:1,blockCode:`BLOCK-${draft.blocks.length+1}`,capacity:40}]})}>+ Add block</Button>:null}</header><div className="curriculum-block-editor">{draft.blocks.map((block,index)=><Card key={`${block.blockCode}-${index}`}><Label>Year<Input type="number" min="1" max={draft.durationYears} value={block.yearLevel} disabled={!editable} onChange={(event)=>updateBlock(index,{yearLevel:Number(event.target.value)})}/></Label><Label>Block code<Input value={block.blockCode} disabled={!editable} onChange={(event)=>updateBlock(index,{blockCode:event.target.value.toUpperCase()})}/></Label><Label>Capacity<Input type="number" min="1" max="500" value={block.capacity} disabled={!editable} onChange={(event)=>updateBlock(index,{capacity:Number(event.target.value)})}/></Label>{editable?<Button type="button" className="danger" onClick={()=>onDraft({...draft,blocks:draft.blocks.filter((_,itemIndex)=>itemIndex!==index)})}>Remove</Button>:null}</Card>)}</div></section>
+    <section className="curriculum-editor-section"><header><div><h3>Yearly sections and capacity</h3></div>{editable?<Button variant="outline" type="button" onClick={()=>onDraft({...draft,blocks:[...draft.blocks,{yearLevel:1,blockCode:`BLOCK-${draft.blocks.length+1}`,capacity:40}]})}>+ Add block</Button>:null}</header><div className="curriculum-block-editor">{draft.blocks.map((block,index)=><Card key={`${block.blockCode}-${index}`}><Label>Year<Input type="number" min="1" max={draft.durationYears} value={block.yearLevel} disabled={!editable} onChange={(event)=>updateBlock(index,{yearLevel:Number(event.target.value)})}/></Label><Label>Block code<Input value={block.blockCode} disabled={!editable} onChange={(event)=>updateBlock(index,{blockCode:event.target.value.toUpperCase()})}/></Label><Label>Capacity<Input type="number" min="1" max="500" value={block.capacity} disabled={!editable} onChange={(event)=>updateBlock(index,{capacity:Number(event.target.value)})}/></Label>{editable?<Button variant="outline" type="button" className="danger" onClick={()=>onDraft({...draft,blocks:draft.blocks.filter((_,itemIndex)=>itemIndex!==index)})}>Remove</Button>:null}</Card>)}</div></section>
     <footer><Label><span>Required change reason</span><Textarea name="reason" required minLength={12} maxLength={1000} placeholder="Explain why this curriculum change is academically required."/></Label><Button type="submit" disabled={busy||!draft.subjects.length||originalStatus==="retired"||(originalStatus==="approved"&&status!=="retired")}>{busy?"Saving curriculum…":originalStatus==="approved"?"Retire curriculum":"Save curriculum"}</Button></footer>
   </form>;
 }
@@ -444,52 +446,42 @@ export function AcademicOperations({
     const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"})); const link=document.createElement("a"); link.href=url; link.download=filename; link.click(); URL.revokeObjectURL(url); onToast(`${filename} exported from your authorized records.`);
   }
 
+  function openFromMenu(action: () => void) {
+    requestAnimationFrame(() => {
+      document.getElementById("academic-add")?.focus();
+      action();
+    });
+  }
   return (
     <>
-      {academicManagers.has(role) ? <CurriculumRequests data={data} currentUser={currentUser} onOpenProgram={programId => { setSelectedProgramId(programId); setTab("curricula"); }} /> : null}
-      <section className="academic-command-bar">
-        <div>
-          {registrarRoles.has(role) ? <Button type="button" onClick={()=>exportCsv("stu-enrollment-report.csv",[["Student number","Name","Program","Year","Record status"],...data.students.map((student)=>[student.studentNumber,student.fullName,student.program,student.yearLevel,student.recordStatus])])}>Export enrollment report</Button> : null}
-          {registrarRoles.has(role) && selectedSection ? <Button type="button" onClick={()=>exportCsv(`${selectedSection.code}-${selectedSection.sectionCode}-class-list.csv`,[["Student number","Name","Enrollment status"],...roster.map(({student,enrollment})=>[student!.studentNumber,student!.fullName,enrollment.status])])}>Export class list</Button> : null}
-          {registrarRoles.has(role) ? <Button type="button" onClick={()=>exportCsv("stu-official-academic-record-index.csv",[["Student number","Name","Program","Year","Standing/record status"],...data.students.map((student)=>[student.studentNumber,student.fullName,student.program,student.yearLevel,student.recordStatus])])}>Export official record index</Button> : null}
-          <span>ACADEMIC CONTROL</span>
-          <h2>Run the school from one workspace</h2>
-          <p>
-            Create students and subjects, open sections, assign teachers, manage
-            rosters, and build conflict-safe schedules.
-          </p>
+      <div className="academic-toolbar">
+        <div />
+        <div className="flex flex-wrap gap-2">
+          {registrarRoles.has(role) ? <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline"><Download className="size-4" />Export</Button></DropdownMenuTrigger><DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => exportCsv("stu-enrollment-report.csv",[["Student number","Name","Program","Year","Record status"],...data.students.map(student => [student.studentNumber,student.fullName,student.program,student.yearLevel,student.recordStatus])])}>Enrollment report</DropdownMenuItem>
+            {selectedSection ? <DropdownMenuItem onSelect={() => exportCsv(`${selectedSection.code}-${selectedSection.sectionCode}-class-list.csv`,[["Student number","Name","Enrollment status"],...roster.map(({student,enrollment}) => [student!.studentNumber,student!.fullName,enrollment.status])])}>Class list</DropdownMenuItem> : null}
+            <DropdownMenuItem onSelect={() => exportCsv("stu-official-academic-record-index.csv",[["Student number","Name","Program","Year","Standing/record status"],...data.students.map(student => [student.studentNumber,student.fullName,student.program,student.yearLevel,student.recordStatus])])}>Academic records</DropdownMenuItem>
+          </DropdownMenuContent></DropdownMenu> : null}
+          {departmentManagers.has(role) || academicManagers.has(role) || registrarRoles.has(role) ? <DropdownMenu><DropdownMenuTrigger asChild><Button id="academic-add"><Plus className="size-4" />Add</Button></DropdownMenuTrigger><DropdownMenuContent align="end">
+            {departmentManagers.has(role) ? <DropdownMenuItem onSelect={() => openFromMenu(() => setModal("department"))}>Department</DropdownMenuItem> : null}
+            {academicManagers.has(role) ? <DropdownMenuItem onSelect={() => openFromMenu(() => setModal("program"))}>Program</DropdownMenuItem> : null}
+            {registrarRoles.has(role) ? <DropdownMenuItem onSelect={() => openFromMenu(() => setModal("term"))}>Term</DropdownMenuItem> : null}
+            {academicManagers.has(role) ? <DropdownMenuItem onSelect={() => openFromMenu(() => addSubjectForProgram(""))}>Subject</DropdownMenuItem> : null}
+            {academicManagers.has(role) ? <DropdownMenuItem onSelect={() => openFromMenu(() => openSection())}>Class</DropdownMenuItem> : null}
+            {registrarRoles.has(role) ? <DropdownMenuItem onSelect={() => openFromMenu(() => openStudent())}>Student</DropdownMenuItem> : null}
+          </DropdownMenuContent></DropdownMenu> : null}
         </div>
-        <div>
-          {registrarRoles.has(role) ? (
-            <Button type="button" onClick={() => openStudent()}>
-              + Add student
-            </Button>
-          ) : null}
-          {academicManagers.has(role) ? (
-            <Button type="button" onClick={() => addSubjectForProgram("")}>
-              + Add subject
-            </Button>
-          ) : null}
-          {academicManagers.has(role) ? (
-            <Button
-              type="button"
-              className="primary"
-              onClick={() => openSection()}
-            >
-              + Open class
-            </Button>
-          ) : null}
-        </div>
-      </section>
+      </div>
       <Tabs value={tab} onValueChange={value => setTab(value as typeof tab)}><TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-muted p-1" aria-label="Academic operations">
         {(
           [
             ["overview", "Overview"],
-            ["curricula", "Curricula"],
+            ["curricula", "Curriculum"],
             ["students", "Students"],
             ["subjects", "Subjects"],
             ["sections", "Classes"],
             ["enrollment", "Enrollment"],
+            ...(academicManagers.has(role) ? [["requests", "Change requests"] as const] : []),
           ] as const
         ).map(([value, label]) => (
           <TabsTrigger
@@ -501,147 +493,39 @@ export function AcademicOperations({
         ))}
       </TabsList><TabsContent value={tab} className="min-w-0">
 
+      {tab === "requests" && academicManagers.has(role) ? <CurriculumRequests data={data} currentUser={currentUser} onOpenProgram={programId => { setSelectedProgramId(programId); setTab("curricula"); }} /> : null}
       {tab === "overview" ? (
         <>
-          <section className="academic-overview">
-            <Card>
-              <span>DEPARTMENTS</span>
-              <strong>{data.departments.length}</strong>
-              <p>Active academic homes</p>
-            </Card>
-            <Card>
-              <span>PROGRAMS</span>
-              <strong>{data.programs.length}</strong>
-              <p>Credential pathways</p>
-            </Card>
-            <Card>
-              <span>SUBJECTS</span>
-              <strong>{data.catalogCourses.length}</strong>
-              <p>Catalog offerings</p>
-            </Card>
-            <Card>
-              <span>LIVE SECTIONS</span>
-              <strong>
-                {
-                  data.courses.filter((course) => course.status === "active")
-                    .length
-                }
-              </strong>
-              <p>Current teaching spaces</p>
-            </Card>
+          <section className="overview-counts" aria-label="Academic summary">
+            <div><strong>{data.departments.length}</strong><span>Departments</span></div>
+            <div><strong>{data.programs.length}</strong><span>Programs</span></div>
+            <div><strong>{data.catalogCourses.length}</strong><span>Subjects</span></div>
+            <div><strong>{data.courses.length}</strong><span>Classes</span></div>
           </section>
-          <section className="academic-relationship-health school-card">
-            <header><div><span>RELATIONSHIP HEALTH</span><h3>Academic records that still need a connection</h3><p>These are recoverable workflow gaps, not hidden records. Open the affected area to complete each relationship.</p></div></header>
+          {Object.values(relationshipGaps).some(items => items.length) ? <section className="academic-relationship-health">
+            <h3>Needs attention</h3>
             <div>
-              <Button type="button" className={relationshipGaps.programsWithoutCurricula.length ? "warning" : "healthy"} onClick={() => {const first=relationshipGaps.programsWithoutCurricula[0];if(first)openProgram(first.id);else setTab("curricula");}}><b>{relationshipGaps.programsWithoutCurricula.length}</b><span>Programs without curriculum</span><small>{relationshipGaps.programsWithoutCurricula.length ? "Open program pathway" : "All programs connected"}</small></Button>
-              <Button type="button" className={relationshipGaps.subjectsWithoutPrograms.length ? "warning" : "healthy"} onClick={() => setTab("subjects")}><b>{relationshipGaps.subjectsWithoutPrograms.length}</b><span>Shared/unassigned subjects</span><small>Review catalog ownership</small></Button>
-              <Button type="button" className={relationshipGaps.studentsWithoutPrograms.length ? "warning" : "healthy"} onClick={() => setTab("students")}><b>{relationshipGaps.studentsWithoutPrograms.length}</b><span>Students without program ID</span><small>Open student directory</small></Button>
-              <Button type="button" className={relationshipGaps.classesWithoutFaculty.length ? "warning" : "healthy"} onClick={() => setTab("sections")}><b>{relationshipGaps.classesWithoutFaculty.length}</b><span>Classes without teacher</span><small>Open class delivery</small></Button>
+              {relationshipGaps.programsWithoutCurricula.length ? <Button variant="outline" onClick={() => openProgram(relationshipGaps.programsWithoutCurricula[0].id)}><b>{relationshipGaps.programsWithoutCurricula.length}</b><span>Programs without curriculum</span><span aria-hidden="true">→</span></Button> : null}
+              {relationshipGaps.subjectsWithoutPrograms.length ? <Button variant="outline" onClick={() => setTab("subjects")}><b>{relationshipGaps.subjectsWithoutPrograms.length}</b><span>Shared/unassigned subjects</span><span aria-hidden="true">→</span></Button> : null}
+              {relationshipGaps.studentsWithoutPrograms.length ? <Button variant="outline" onClick={() => setTab("students")}><b>{relationshipGaps.studentsWithoutPrograms.length}</b><span>Students without program ID</span><span aria-hidden="true">→</span></Button> : null}
+              {relationshipGaps.classesWithoutFaculty.length ? <Button variant="outline" onClick={() => setTab("sections")}><b>{relationshipGaps.classesWithoutFaculty.length}</b><span>Classes without teacher</span><span aria-hidden="true">→</span></Button> : null}
             </div>
-          </section>
-          <section className="academic-setup-grid">
-            <Card>
-              <span>01</span>
-              <div>
-                <h3>Academic structure</h3>
-                <p>
-                  Departments, programs, and terms establish the catalog and
-                  delivery calendar.
-                </p>
-              </div>
-              <div>
-                {departmentManagers.has(role) ? (
-                  <Button type="button" onClick={() => setModal("department")}>
-                    Add department
-                  </Button>
-                ) : null}
-                {academicManagers.has(role) ? (
-                  <Button type="button" onClick={() => setModal("program")}>
-                    Add program
-                  </Button>
-                ) : null}
-                {registrarRoles.has(role) ? (
-                  <Button type="button" onClick={() => setModal("term")}>
-                    Add term
-                  </Button>
-                ) : null}
-              </div>
-            </Card>
-            <Card>
-              <span>02</span>
-              <div>
-                <h3>Course delivery</h3>
-                <p>
-                  Create the subject first, then open a class for a term with a
-                  teacher, room, capacity, and modality.
-                </p>
-              </div>
-              <div>
-                {academicManagers.has(role) ? (
-                  <Button type="button" onClick={() => addSubjectForProgram("")}>
-                    Add subject
-                  </Button>
-                ) : null}
-                {academicManagers.has(role) ? (
-                  <Button type="button" onClick={() => openSection()}>
-                    Open class
-                  </Button>
-                ) : null}
-              </div>
-            </Card>
-            <Card>
-              <span>03</span>
-              <div>
-                <h3>Student access</h3>
-                <p>
-                  Create the student's portal identity, connect the SIS record,
-                  and enroll the learner into active sections.
-                </p>
-              </div>
-              <div>
-                {registrarRoles.has(role) ? (
-                  <Button type="button" onClick={() => openStudent()}>
-                    Create student
-                  </Button>
-                ) : null}
-                <Button type="button" onClick={() => setTab("enrollment")}>
-                  Manage roster
-                </Button>
-              </div>
-            </Card>
-          </section>
+          </section> : null}
           <section className="department-grid">
-            {data.departments.map((department) => (
-              <Card key={department.id}>
-                <Badge variant="secondary">{department.code}</Badge>
-                <h3>{department.name}</h3>
-                <p>{department.description || "No description provided."}</p>
-                <div>
-                  {data.programs
-                    .filter((program) => program.departmentId === department.id)
-                    .map((program) => (
-                      <small key={program.id}>
-                        {program.code} · {program.name}
-                      </small>
-                    ))}
-                </div>
-                {departmentManagers.has(role) ? (
-                  <Button
-                    type="button"
-                    onClick={() => openEdit("department", department.id)}
-                  >
-                    Edit department
-                  </Button>
-                ) : null}
-              </Card>
-            ))}
+            <Table aria-label="Departments"><TableHeader><TableRow><TableHead>Code</TableHead><TableHead>Department</TableHead><TableHead>Programs</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader><TableBody>
+              {data.departments.map(department => <TableRow key={department.id}>
+                <TableCell className="font-medium">{department.code}</TableCell><TableCell>{department.name}</TableCell>
+                <TableCell>{data.programs.filter(program => program.departmentId === department.id).map(program => program.code).join(", ") || "None"}</TableCell>
+                <TableCell>{departmentManagers.has(role) ? <Button variant="outline" size="sm" onClick={() => openEdit("department",department.id)}>Edit department</Button> : null}</TableCell>
+              </TableRow>)}
+              {!data.departments.length ? <TableRow><TableCell colSpan={4} className="py-8 text-center text-muted-foreground">No departments yet. Use Add to create one.</TableCell></TableRow> : null}
+            </TableBody></Table>
           </section>
           <section className="academic-lifecycle-grid">
             <Card className="school-card">
               <header>
                 <div>
-                  <span>PROGRAMS</span>
-                  <h3>Credential pathways</h3>
+                  <h3>Programs</h3>
                 </div>
               </header>
               {data.programs.map((program) => (
@@ -652,15 +536,14 @@ export function AcademicOperations({
                       {data.departments.find((item) => item.id === program.departmentId)?.code ?? "Unlinked department"} → {program.name} · {data.curricula.filter((item) => item.programId === program.id).length || "No"} curriculum · {data.catalogCourses.filter((item) => item.programId === program.id).length} subjects
                     </small>
                   </span>
-                  <span className="academic-row-actions"><Button type="button" onClick={() => openProgram(program.id)}>Open pathway</Button>{academicManagers.has(role) ? <><Button type="button" onClick={() => openEdit("program", program.id)}>Edit</Button>{program.status !== "inactive" ? <Button type="button" onClick={async () => {const reason=(await requestText("Program archival reason (at least 12 characters)"));if(reason) void perform(() => archiveAcademicProgram(program.id,reason),"Program archived with immutable evidence.");}}>Archive</Button> : null}</> : null}</span>
+                  <span className="academic-row-actions"><Button variant="outline" type="button" onClick={() => openProgram(program.id)}>Open curriculum</Button>{academicManagers.has(role) ? <><Button variant="outline" type="button" onClick={() => openEdit("program", program.id)}>Edit</Button>{program.status !== "inactive" ? <Button variant="outline" type="button" onClick={async () => {const reason=(await requestText("Program archival reason (at least 12 characters)"));if(reason) void perform(() => archiveAcademicProgram(program.id,reason),"Program archived with immutable evidence.");}}>Archive</Button> : null}</> : null}</span>
                 </div>
               ))}
             </Card>
             <Card className="school-card">
               <header>
                 <div>
-                  <span>ACADEMIC TERMS</span>
-                  <h3>Delivery calendar</h3>
+                  <h3>Terms</h3>
                 </div>
               </header>
               {data.terms.map((term) => (
@@ -672,7 +555,7 @@ export function AcademicOperations({
                     </small>
                   </span>
                   {registrarRoles.has(role) ? (
-                    <span className="academic-row-actions"><Button type="button" onClick={() => openEdit("term", term.id)}>Edit</Button>{term.status !== "completed" ? <Button type="button" onClick={async () => { const reason=(await requestText("Term closure reason (at least 12 characters)")); if (!reason) return; void perform(() => closeAcademicTerm(term.id,reason),"Academic term closed and locked with audit evidence."); }}>Close term</Button> : null}</span>
+                    <span className="academic-row-actions"><Button variant="outline" type="button" onClick={() => openEdit("term", term.id)}>Edit</Button>{term.status !== "completed" ? <Button variant="outline" type="button" onClick={async () => { const reason=(await requestText("Term closure reason (at least 12 characters)")); if (!reason) return; void perform(() => closeAcademicTerm(term.id,reason),"Academic term closed and locked with audit evidence."); }}>Close term</Button> : null}</span>
                   ) : null}
                 </div>
               ))}
@@ -684,17 +567,17 @@ export function AcademicOperations({
       {tab === "curricula" ? (
         <section className="curriculum-library">
           <header>
-            <div><span>PROGRAM-CENTERED ACADEMIC MAP</span><h3>Programs, curricula, subjects, and delivery</h3><p>Select a program to see its department, curriculum versions, subject sequence, classes, staff, and students as one connected academic pathway.</p></div>
-            {academicManagers.has(role) && selectedProgram ? <div className="curriculum-header-actions">{selectedDraftCurriculum?<Button type="button" className="primary" onClick={()=>openCurriculum(selectedDraftCurriculum)}>Edit curriculum subjects</Button>:<Button type="button" className="primary" onClick={() => createCurriculumForProgram(selectedProgram.id)}>+ Create curriculum</Button>}<Button type="button" onClick={() => addSubjectForProgram(selectedProgram.id)}>+ Add catalog subject</Button></div> : null}
+            <div><h3>Programs</h3><p>Select a program to manage its curriculum and classes.</p></div>
+            {academicManagers.has(role) && selectedProgram ? <div className="curriculum-header-actions">{selectedDraftCurriculum?<Button variant="outline" type="button" className="primary" onClick={()=>openCurriculum(selectedDraftCurriculum)}>Edit curriculum subjects</Button>:<Button variant="outline" type="button" className="primary" onClick={() => createCurriculumForProgram(selectedProgram.id)}>+ Create curriculum</Button>}<Button variant="outline" type="button" onClick={() => addSubjectForProgram(selectedProgram.id)}>+ Add catalog subject</Button></div> : null}
           </header>
           <div className="program-relationship-layout">
             <aside className="program-relationship-list" aria-label="Academic programs">
-              <span>PROGRAMS</span>
+              <span>Programs</span>
               {data.programs.map((program) => {
                 const department = data.departments.find((item) => item.id === program.departmentId);
                 const curriculumCount = data.curricula.filter((item) => item.programId === program.id).length;
                 const subjectCount = data.catalogCourses.filter((item) => item.programId === program.id).length;
-                return <Button type="button" key={program.id} className={selectedProgram?.id === program.id ? "active" : ""} onClick={() => setSelectedProgramId(program.id)}>
+                return <Button variant="outline" type="button" key={program.id} className={selectedProgram?.id === program.id ? "active" : ""} onClick={() => setSelectedProgramId(program.id)}>
                   <b>{program.code} · {program.name}</b>
                   <small>{department?.code ?? "No department"} → {curriculumCount ? `${curriculumCount} curriculum ${curriculumCount === 1 ? "version" : "versions"}` : "Curriculum missing"} → {subjectCount} subjects</small>
                 </Button>;
@@ -709,18 +592,18 @@ export function AcademicOperations({
                     <span><b>{selectedProgramSubjects.length}</b><small>Subjects</small></span>
                     <span><b>{selectedProgramSections.length}</b><small>Classes</small></span>
                     <span><b>{selectedProgramStudents.length}</b><small>Students</small></span>
-                    <span><b>{selectedProgramStaff.length}</b><small>Assigned staff</small></span>
+                    <span><b>{selectedProgramStaff.length}</b><small>Assigned to</small></span>
                   </div>
                   <div className="program-context-actions">
-                    {academicManagers.has(role) ? <Button type="button" onClick={() => openEdit("program", selectedProgram.id)}>Edit program</Button> : null}
-                    {academicManagers.has(role) ? selectedDraftCurriculum?<Button type="button" className="primary" onClick={()=>openCurriculum(selectedDraftCurriculum)}>Edit curriculum subjects</Button>:<Button type="button" className="primary" onClick={() => createCurriculumForProgram(selectedProgram.id)}>Create curriculum</Button> : null}
-                    {academicManagers.has(role) ? <Button type="button" onClick={() => addSubjectForProgram(selectedProgram.id)}>Add catalog subject</Button> : null}
-                    <Button type="button" onClick={() => setTab("subjects")}>View subjects</Button>
-                    <Button type="button" onClick={() => setTab("sections")}>View classes</Button>
+                    {academicManagers.has(role) ? <Button variant="outline" type="button" onClick={() => openEdit("program", selectedProgram.id)}>Edit program</Button> : null}
+                    {academicManagers.has(role) ? selectedDraftCurriculum?<Button variant="outline" type="button" className="primary" onClick={()=>openCurriculum(selectedDraftCurriculum)}>Edit curriculum subjects</Button>:<Button variant="outline" type="button" className="primary" onClick={() => createCurriculumForProgram(selectedProgram.id)}>Create curriculum</Button> : null}
+                    {academicManagers.has(role) ? <Button variant="outline" type="button" onClick={() => addSubjectForProgram(selectedProgram.id)}>Add catalog subject</Button> : null}
+                    <Button variant="outline" type="button" onClick={() => setTab("subjects")}>View subjects</Button>
+                    <Button variant="outline" type="button" onClick={() => setTab("sections")}>View classes</Button>
                   </div>
                 </section>
                 {selectedProgramCurricula.length ? selectedProgramCurricula.map((plan) => <Card key={plan.id} className="curriculum-plan-card">
-              <div className="curriculum-plan-title"><div><span>{plan.status.toUpperCase()} · EFFECTIVE {plan.effectiveYear}</span><h4>{selectedProgramDepartment?.name ?? "Department not linked"} → {selectedProgram.code} → Curriculum {plan.effectiveYear}</h4><small>Source: {plan.source.programCode} curriculum transaction · Record {plan.id.slice(0, 8)}</small></div><div className="curriculum-card-actions"><b>{plan.source.subjects.reduce((total, subject) => total + subject.units, 0)} total units</b>{academicManagers.has(role) ? <><Button type="button" onClick={() => openCurriculum(plan)}>{plan.status === "draft" ? "Edit curriculum" : "Manage lifecycle"}</Button><Button type="button" onClick={() => {setDuplicateCurriculumId(plan.id);setModal("duplicateCurriculum");}}>Duplicate as new version</Button>{plan.status==="draft"?<Button type="button" className="danger" onClick={async ()=>{const reason=(await requestText("Why should this draft curriculum be deleted? (at least 12 characters)"));if(reason)void perform(()=>deleteDraftAcademicCurriculum(plan.id,reason),`Draft curriculum ${plan.effectiveYear} deleted; catalog subjects were preserved.`);}}>Delete draft</Button>:null}</> : null}</div></div>
+              <div className="curriculum-plan-title"><div><span>{plan.status.toUpperCase()} · EFFECTIVE {plan.effectiveYear}</span><h4>{selectedProgramDepartment?.name ?? "Department not linked"} → {selectedProgram.code} → Curriculum {plan.effectiveYear}</h4><small>Source: {plan.source.programCode} curriculum transaction · Record {plan.id.slice(0, 8)}</small></div><div className="curriculum-card-actions"><b>{plan.source.subjects.reduce((total, subject) => total + subject.units, 0)} total units</b>{academicManagers.has(role) ? <><Button variant="outline" type="button" onClick={() => openCurriculum(plan)}>{plan.status === "draft" ? "Edit curriculum" : "Manage lifecycle"}</Button><Button variant="outline" type="button" onClick={() => {setDuplicateCurriculumId(plan.id);setModal("duplicateCurriculum");}}>Duplicate as new version</Button>{plan.status==="draft"?<Button variant="outline" type="button" className="danger" onClick={async ()=>{const reason=(await requestText("Why should this draft curriculum be deleted? (at least 12 characters)"));if(reason)void perform(()=>deleteDraftAcademicCurriculum(plan.id,reason),`Draft curriculum ${plan.effectiveYear} deleted; catalog subjects were preserved.`);}}>Delete draft</Button>:null}</> : null}</div></div>
               <div className="curriculum-years">{Array.from({length: plan.source.durationYears}, (_, index) => index + 1).map((year) => <section key={year}>
                 <header><strong>Year {year}</strong><small>{plan.source.blocks.filter((block) => block.yearLevel === year).map((block) => `${block.blockCode} (${block.capacity})`).join(" · ")}</small></header>
                 {[1, 2, 3].map((semester) => {
@@ -728,7 +611,7 @@ export function AcademicOperations({
                   return subjects.length ? <div key={semester}><b>Semester {semester}</b><ul>{subjects.map((subject) => <li key={subject.code}><span><strong>{subject.code}</strong>{subject.title}</span><small>{subject.units} units{subject.prerequisiteCodes.length ? ` · Prereq: ${subject.prerequisiteCodes.join(", ")}` : ""}</small></li>)}</ul></div> : null;
                 })}
               </section>)}</div>
-            </Card>) : <div className="academic-empty relationship-missing"><strong>No curriculum is connected to {selectedProgram.code}</strong><p>The program exists under {selectedProgramDepartment?.name ?? "an unresolved department"}, but it has no curriculum version. Create a curriculum before opening a complete degree pathway.</p><div>{academicManagers.has(role)?<Button type="button" className="primary" onClick={()=>createCurriculumForProgram(selectedProgram.id)}>Create {selectedProgram.code} curriculum</Button>:null}<Button type="button" onClick={onAskNexus}>Ask Nexus to create a draft</Button></div></div>}
+            </Card>) : <div className="academic-empty relationship-missing"><strong>No curriculum is connected to {selectedProgram.code}</strong><p>The program exists under {selectedProgramDepartment?.name ?? "an unresolved department"}, but it has no curriculum version. Create a curriculum before opening a complete degree pathway.</p><div>{academicManagers.has(role)?<Button variant="outline" type="button" className="primary" onClick={()=>createCurriculumForProgram(selectedProgram.id)}>Create {selectedProgram.code} curriculum</Button>:null}<Button variant="outline" type="button" onClick={onAskNexus}>Draft curriculum a draft</Button></div></div>}
               </> : <div className="academic-empty relationship-missing"><strong>No academic programs exist</strong><p>Create a department and program before adding curricula, subjects, or classes.</p></div>}
             </div>
           </div>
@@ -739,11 +622,10 @@ export function AcademicOperations({
         <section className="academic-directory school-card">
           <header>
             <div>
-              <span>STUDENT DIRECTORY</span>
               <h3>{data.students.length} student records</h3>
             </div>
             {registrarRoles.has(role) ? (
-              <Button type="button" onClick={() => openStudent()}>
+              <Button variant="outline" type="button" onClick={() => openStudent()}>
                 + Add student
               </Button>
             ) : null}
@@ -762,13 +644,13 @@ export function AcademicOperations({
                 <small>{student.email || "No email recorded"}</small>
               </span>
               <strong>{student.studentNumber}</strong>
-              <span>{student.programId ? <Button type="button" className="academic-link-button" onClick={() => openProgram(student.programId!)}>{data.programs.find((item) => item.id === student.programId)?.code ?? student.program} → Open pathway</Button> : <span className="status-warn">{student.program || "Program not linked"}</span>}</span>
+              <span>{student.programId ? <Button variant="outline" type="button" className="academic-link-button" onClick={() => openProgram(student.programId!)}>{data.programs.find((item) => item.id === student.programId)?.code ?? student.program} → Open curriculum</Button> : <span className="status-warn">{student.program || "Program not linked"}</span>}</span>
               <span>{student.yearLevel}</span>
               <span className={student.profileId ? "status-ok" : "status-warn"}>
                 {student.recordStatus} · {student.profileId ? "Connected" : "SIS only"}
               </span>
               {registrarRoles.has(role) ? (
-                <span className="academic-row-actions"><Button type="button" onClick={() => openStudent(student.id)}>Edit</Button>{student.recordStatus === "active" ? <Button type="button" onClick={async () => {const reason=(await requestText("Withdrawal reason (at least 12 characters)"));if(reason) void perform(() => withdrawStudentRecord(student.id,reason),"Student withdrawn and active enrollments dropped.");}}>Withdraw</Button> : null}{student.recordStatus === "active" ? <Button type="button" onClick={() => {setMergeSourceStudentId(student.id);setModal("mergeStudent");}}>Merge</Button> : null}</span>
+                <span className="academic-row-actions"><Button variant="outline" type="button" onClick={() => openStudent(student.id)}>Edit</Button>{student.recordStatus === "active" ? <Button variant="outline" type="button" onClick={async () => {const reason=(await requestText("Withdrawal reason (at least 12 characters)"));if(reason) void perform(() => withdrawStudentRecord(student.id,reason),"Student withdrawn and active enrollments dropped.");}}>Withdraw</Button> : null}{student.recordStatus === "active" ? <Button variant="outline" type="button" onClick={() => {setMergeSourceStudentId(student.id);setModal("mergeStudent");}}>Merge</Button> : null}</span>
               ) : null}
             </div>
           ))}
@@ -801,14 +683,14 @@ export function AcademicOperations({
                   <small>{curriculumPlacements.length ? curriculumPlacements.map(({plan,subject}) => `${plan.effectiveYear}: Y${subject.yearLevel} S${subject.semester}`).join(" · ") : "Not placed in a curriculum"} · {classCount} classes</small>
                 </footer>
                 <div className="subject-connection-actions">
-                  {program ? <Button type="button" onClick={() => openProgram(program.id)}>Open {program.code} pathway</Button> : null}
-                  <Button type="button" onClick={() => openClassForSubject(course.id)}>Open class</Button>
-                  {academicManagers.has(role) ? <Button type="button" onClick={() => openEdit("subject", course.id)}>Edit subject</Button> : null}
+                  {program ? <Button variant="outline" type="button" onClick={() => openProgram(program.id)}>Open {program.code} pathway</Button> : null}
+                  <Button variant="outline" type="button" onClick={() => openClassForSubject(course.id)}>Open class</Button>
+                  {academicManagers.has(role) ? <Button variant="outline" type="button" onClick={() => openEdit("subject", course.id)}>Edit subject</Button> : null}
                 </div>
               </Card>
             );
           })}
-          <Button
+          <Button variant="outline"
             type="button"
             className="add-card"
             onClick={() => {setContextProgramId("");setModal("subject");}}
@@ -840,34 +722,34 @@ export function AcademicOperations({
               <p>{department?.code ?? "No department"} → {program?.code ?? "Shared subject"} → {course.code} → {course.term}</p>
               <div>
                 <span>
-                  <small>TEACHER</small>
+                  <small>Teacher</small>
                   <b>{course.facultyName}</b>
                 </span>
                 <span>
-                  <small>ROOM / MODE</small>
+                  <small>Room / mode</small>
                   <b>
                     {course.room} · {course.modality}
                   </b>
                 </span>
                 <span>
-                  <small>ROSTER</small>
+                  <small>Roster</small>
                   <b>
                     {course.enrolledStudentIds.length +
                       course.enrolledProfileIds.length}{" "}
                     learners
                   </b>
                 </span>
-                <span><small>LEARNING</small><b>{moduleCount} modules · {assessmentCount} assessments</b></span>
-                <span><small>SCHEDULE</small><b>{scheduleCount} events</b></span>
+                <span><small>Learning</small><b>{moduleCount} modules · {assessmentCount} assessments</b></span>
+                <span><small>Schedule</small><b>{scheduleCount} events</b></span>
               </div>
               <div className="section-connection-actions">
-                {program ? <Button type="button" onClick={() => openProgram(program.id)}>Open {program.code}</Button> : null}
-                <Button type="button" onClick={() => {setSelectedSectionId(course.sectionId);setTab("enrollment");}}>Open roster</Button>
-                <Button type="button" onClick={() => onOpenSectionWorkspace(scheduleManagers.has(role) ? "teaching" : "learning", course.sectionId)}>Open course</Button>
-                <Button type="button" onClick={() => onOpenSectionWorkspace("assessments", course.sectionId)}>Open assessments</Button>
-                <Button type="button" onClick={() => onOpenSectionWorkspace("grades", course.sectionId)}>Open grades</Button>
-                <Button type="button" onClick={() => onOpenSectionWorkspace("schedule", course.sectionId)}>Open schedule</Button>
-                {academicManagers.has(role) ? <Button type="button" onClick={() => openSection(course)}>Edit class</Button> : null}
+                {program ? <Button variant="outline" type="button" onClick={() => openProgram(program.id)}>Open {program.code}</Button> : null}
+                <Button variant="outline" type="button" onClick={() => {setSelectedSectionId(course.sectionId);setTab("enrollment");}}>Open roster</Button>
+                <Button variant="outline" type="button" onClick={() => onOpenSectionWorkspace(scheduleManagers.has(role) ? "teaching" : "learning", course.sectionId)}>Open course</Button>
+                <Button variant="outline" type="button" onClick={() => onOpenSectionWorkspace("assessments", course.sectionId)}>Open assessments</Button>
+                <Button variant="outline" type="button" onClick={() => onOpenSectionWorkspace("grades", course.sectionId)}>Open grades</Button>
+                <Button variant="outline" type="button" onClick={() => onOpenSectionWorkspace("schedule", course.sectionId)}>Open schedule</Button>
+                {academicManagers.has(role) ? <Button variant="outline" type="button" onClick={() => openSection(course)}>Edit class</Button> : null}
               </div>
             </Card>;
           })}
@@ -877,9 +759,9 @@ export function AcademicOperations({
       {tab === "enrollment" ? (
         <section className="enrollment-operations">
           <aside>
-            <span>SELECT CLASS</span>
+            <span>Select class</span>
             {data.courses.map((course) => (
-              <Button
+              <Button variant="outline"
                 type="button"
                 key={course.sectionId}
                 className={
@@ -899,7 +781,6 @@ export function AcademicOperations({
           <div className="school-card">
             <header>
               <div>
-                <span>CLASS ROSTER</span>
                 <h3>
                   {selectedSection
                     ? `${selectedSection.code} · ${selectedSection.sectionCode}`
@@ -1110,7 +991,7 @@ export function AcademicOperations({
                     maxLength={128}
                     defaultValue={generatedPassword()}
                   />
-                  <Button
+                  <Button variant="outline"
                     type="button"
                     onClick={(e) => {
                       const input = e.currentTarget
@@ -1791,14 +1672,13 @@ export function ScheduleOperations({
       {canManage ? (
         <section className="schedule-command">
           <div>
-            <span>CONFLICT-SAFE SCHEDULING</span>
             <h3>Manage the live timetable</h3>
             <p>
               Room, assigned-teacher, and enrolled-student overlaps are rejected
               before saving.
             </p>
           </div>
-          <Button type="button" onClick={() => {setEventScope("class");setModal("event");}}>
+          <Button variant="outline" type="button" onClick={() => {setEventScope("class");setModal("event");}}>
             + Add schedule event
           </Button>
         </section>
@@ -1807,7 +1687,6 @@ export function ScheduleOperations({
         <section className="schedule-manager school-card">
           <header>
             <div>
-              <span>MANAGE EVENTS</span>
               <h3>Editable schedule</h3>
             </div>
           </header>
@@ -1832,7 +1711,7 @@ export function ScheduleOperations({
                     {event.location} · {event.type}
                   </small>
                 </span>
-                <Button
+                <Button variant="outline"
                   type="button"
                   onClick={() => {
                     setEditingEvent(event);
@@ -1843,7 +1722,7 @@ export function ScheduleOperations({
                 >
                   Edit
                 </Button>
-                <Button
+                <Button variant="outline"
                   type="button"
                   onClick={() => void remove(event)}
                   disabled={busy}

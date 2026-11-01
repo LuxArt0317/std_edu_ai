@@ -116,7 +116,7 @@ export function RoleCapabilityPicker({
           {options.length ? (
             <div id="role-capability-options" role="listbox">
               {options.slice(0, 12).map((capability) => (
-                <Button
+                <Button variant="outline"
                   type="button"
                   role="option"
                   aria-selected="false"
@@ -130,7 +130,7 @@ export function RoleCapabilityPicker({
             </div>
           ) : query ? (
             <div className="capability-no-results">
-              No governed capability matches this search.
+              No permissions match this search.
             </div>
           ) : null}
         </div>
@@ -141,7 +141,7 @@ export function RoleCapabilityPicker({
           </header>
           <div>
             {[...selected].sort().map((capability) => (
-              <Button
+              <Button variant="outline"
                 type="button"
                 key={capability}
                 onClick={() =>
@@ -169,7 +169,7 @@ export function RoleCapabilityPicker({
           enforcement boundary.
         </span>
         <div>
-          <Button type="button" className="secondary" onClick={onCancel}>
+          <Button variant="outline" type="button" className="secondary" onClick={onCancel}>
             Cancel
           </Button>
           <Button type="submit" disabled={saving || !selected.size}>
@@ -271,7 +271,7 @@ export function PeopleView({
     PlatformRole | ""
   >("");
   const canManageAccounts = currentUser.isOwner || currentUser.role === "admin";
-  const ownerProfile = data.profiles.find(profile => profile.isOwner);
+
   const matchingProfiles = data.profiles.filter(profile =>
     (statusFilter === "all" || profile.accountStatus === statusFilter) &&
     (roleFilter === "all" || profile.role === roleFilter) &&
@@ -362,22 +362,13 @@ export function PeopleView({
   return (
     <>
       <PageIntro
-        eyebrow="ROLE HIERARCHY & GOVERNANCE"
-        title="People and permissions"
-        description="Every provisioned identity receives a clear school role. Supabase policies enforce access even if the interface is bypassed."
+        title="Users"
+        description="Manage accounts and access."
       />
       {canManageAccounts ? (
         <section className="people-provision-callout school-card">
-          <div>
-            <span>OWNER ACCOUNT CONTROL</span>
-            <h3>Add a school account</h3>
-            <p>
-              Create a confirmed non-owner identity and assign its trusted role.
-              The temporary password is shown here only and is never stored.
-            </p>
-          </div>
           <div className="people-provision-actions">
-            <Button
+            <Button variant="outline"
               type="button"
               onClick={() => {
                 setInviteMode(true);
@@ -386,40 +377,26 @@ export function PeopleView({
             >
               Invite by email
             </Button>
-            <Button type="button" onClick={() => setShowBulkProvisioner(true)}>
+            <Button variant="outline" type="button" onClick={() => setShowBulkProvisioner(true)}>
               Bulk import
             </Button>
-            <Button
+            <Button variant="outline"
               type="button"
               onClick={() => {
                 setInviteMode(false);
                 setShowProvisioner(true);
               }}
             >
-              + Add account
+              Add user
             </Button>
           </div>
         </section>
       ) : null}
-      {ownerProfile ? <section className="owner-protection">
-        <span>◎</span>
-        <div>
-          <Pill tone="owner">PROTECTED OWNER</Pill>
-          <h2>{ownerProfile.name}</h2>
-          <p>
-            The protected owner is the root steward. Ordinary
-            administrators cannot demote, replace, or create a second owner.
-          </p>
-        </div>
-        <b>
-          100<small>authority level</small>
-        </b>
-      </section> : null}
       <section className="people-directory school-card">
         <header>
           <div>
-            <span>{data.profiles.length} ACCOUNTS · {data.roles.length} AVAILABLE ROLES</span>
-            <h3>School accounts</h3>
+            <span>{data.profiles.length} users</span>
+            <h3>Accounts</h3>
           </div>
         </header>
         <div className="flex flex-wrap gap-3 p-4">
@@ -515,7 +492,7 @@ export function PeopleView({
                       </NativeSelectOption>
                     ))}
                 </NativeSelect>
-                <Button
+                <Button variant="outline"
                   type="button"
                   onClick={() =>
                     setPendingLifecycle({
@@ -536,7 +513,7 @@ export function PeopleView({
                       : "Activate"}
                 </Button>
                 {profile.accountStatus !== "archived" ? (
-                  <Button
+                  <Button variant="outline"
                     type="button"
                     onClick={() =>
                       setPendingLifecycle({
@@ -548,13 +525,13 @@ export function PeopleView({
                     Archive
                   </Button>
                 ) : null}
-                <Button
+                <Button variant="outline"
                   type="button"
                   onClick={() => setRotatingProfileId(profile.id)}
                 >
                   Reset password
                 </Button>
-                <Button
+                <Button variant="outline"
                   type="button"
                   onClick={() => setPendingSessionRevoke(profile.id)}
                 >
@@ -565,7 +542,7 @@ export function PeopleView({
                     (item) => item.id === profile.id,
                   );
                   return account?.invitedAt && !account.confirmedAt ? (
-                    <Button
+                    <Button variant="outline"
                       type="button"
                       onClick={() => {
                         setChanging(profile.id);
@@ -587,12 +564,12 @@ export function PeopleView({
                     </Button>
                   ) : null;
                 })()}
-                <Button type="button" onClick={() => setManagingProfileId("")}>
+                <Button variant="outline" type="button" onClick={() => setManagingProfileId("")}>
                   Close actions
                 </Button>
               </div>
             ) : canManageAccounts ? (
-              <Button
+              <Button variant="outline"
                 type="button"
                 className="people-manage-account"
                 onClick={() => setManagingProfileId(profile.id)}
@@ -605,7 +582,7 @@ export function PeopleView({
             )}
             {canEditDirectoryProfile(profile) &&
             (!canManageAccounts || managingProfileId === profile.id) ? (
-              <Button type="button" onClick={() => openProfileEditor(profile)}>
+              <Button variant="outline" type="button" onClick={() => openProfileEditor(profile)}>
                 Edit identity
               </Button>
             ) : null}
@@ -613,9 +590,9 @@ export function PeopleView({
         ))}
       </section>
       <div className="flex items-center gap-3 py-3" aria-label="Account pages">
-        <Button disabled={visiblePage === 1} onClick={() => setDirectoryPage(visiblePage - 1)}>Previous accounts</Button>
+        <Button variant="outline" type="button" disabled={visiblePage === 1} onClick={() => setDirectoryPage(visiblePage - 1)}>Previous accounts</Button>
         <span role="status">{matchingProfiles.length} matching accounts · Page {visiblePage} of {pageCount}</span>
-        <Button disabled={visiblePage === pageCount} onClick={() => setDirectoryPage(visiblePage + 1)}>Next accounts</Button>
+        <Button variant="outline" type="button" disabled={visiblePage === pageCount} onClick={() => setDirectoryPage(visiblePage + 1)}>Next accounts</Button>
       </div>
       {directoryError ? (
         <div className="school-inline-error" role="alert">
@@ -626,10 +603,9 @@ export function PeopleView({
         <section className="people-audit school-card">
           <header>
             <div>
-              <span>IMMUTABLE GOVERNANCE EVIDENCE</span>
               <h3>Recent account and role activity</h3>
             </div>
-            <Button type="button" onClick={exportGovernanceAudit}>
+            <Button variant="outline" type="button" onClick={exportGovernanceAudit}>
               Export audit CSV
             </Button>
           </header>
@@ -679,7 +655,6 @@ export function PeopleView({
       ) : null}
       {canManageAccounts ? (
         <section className="school-card governance-boundary">
-          <span>RETENTION SAFEGUARD</span>
           <h3>Permanent deletion is disabled</h3>
           <p>
             Institutional identities and records with academic, support,
@@ -690,8 +665,8 @@ export function PeopleView({
         </section>
       ) : null}
       <details className="school-card p-5">
-        <summary className="cursor-pointer font-semibold">Advanced role permissions ({data.roles.length} role templates)</summary>
-        <p className="py-3">These are permission templates, not additional user accounts. Existing access rules remain enforced by the database.</p>
+        <summary className="cursor-pointer font-semibold">Role settings ({data.roles.length} role templates)</summary>
+        <p className="py-3">Roles define what users can access.</p>
       <section className="role-hierarchy">
         {["ownership", "leadership", "academic", "operations", "learner"].map(
           (category) => (
@@ -720,11 +695,11 @@ export function PeopleView({
                       <small>assigned</small>
                     </b>
                     {currentUser.isOwner && role.code !== "owner" ? (
-                      <Button
+                      <Button variant="outline"
                         type="button"
                         onClick={() => setEditingPermissionsRole(role.code)}
                       >
-                        Configure permissions
+                        Edit permissions
                       </Button>
                     ) : null}
                   </Card>
@@ -758,21 +733,19 @@ export function PeopleView({
                   aria-label="Configure role permissions"
                 >
                   <DialogDescription className="sr-only">
-                    Review the details and submit to save your changes.
+                    Update the fields and save.
                   </DialogDescription>
                   <header>
                     <div>
-                      <span>OWNER POLICY CONTROL</span>
+                      <span>Owner policy control</span>
                       <DialogTitle asChild>
                         <h2>Configure {definition.name}</h2>
                       </DialogTitle>
                       <p>
-                        Choose governed capabilities from the institutional
-                        catalog. No formatting or memorized policy codes
-                        required.
+                        Choose the permissions for this role.
                       </p>
                     </div>
-                    <Button
+                    <Button variant="outline"
                       type="button"
                       onClick={() => setEditingPermissionsRole("")}
                     >
@@ -811,15 +784,15 @@ export function PeopleView({
             aria-label="Add school account"
           >
             <DialogDescription className="sr-only">
-              Review the details and submit to save your changes.
+              Update the fields and save.
             </DialogDescription>
             <header>
               <div>
-                <span>PEOPLE & PERMISSIONS</span>
+                <span>People & permissions</span>
                 <DialogTitle asChild>
                   <h2>
                     {inviteMode
-                      ? "Invite school account"
+                      ? "Invite user"
                       : "Add school account"}
                   </h2>
                 </DialogTitle>
@@ -829,7 +802,7 @@ export function PeopleView({
                     : "Create or securely rotate a confirmed non-owner identity."}
                 </p>
               </div>
-              <Button type="button" onClick={() => setShowProvisioner(false)}>
+              <Button variant="outline" type="button" onClick={() => setShowProvisioner(false)}>
                 ×
               </Button>
             </header>
@@ -902,7 +875,7 @@ export function PeopleView({
                   <span>Temporary password</span>
                   <div className="password-generator-field">
                     <Input value={temporaryPassword} readOnly />
-                    <Button
+                    <Button variant="outline"
                       type="button"
                       onClick={() =>
                         setTemporaryPassword(generateTemporaryPassword())
@@ -942,20 +915,20 @@ export function PeopleView({
             aria-label="Bulk import accounts"
           >
             <DialogDescription className="sr-only">
-              Review the details and submit to save your changes.
+              Update the fields and save.
             </DialogDescription>
             <header>
               <div>
-                <span>CONTROLLED BULK PROVISIONING</span>
+                <span>Controlled bulk provisioning</span>
                 <DialogTitle asChild>
-                  <h2>Bulk import school accounts</h2>
+                  <h2>Import users</h2>
                 </DialogTitle>
                 <p>
                   One account per line: full name, email, role, optional
                   temporary password. Maximum 100.
                 </p>
               </div>
-              <Button
+              <Button variant="outline"
                 type="button"
                 onClick={() => setShowBulkProvisioner(false)}
               >
@@ -1035,7 +1008,7 @@ export function PeopleView({
               </Label>
               {bulkResults ? (
                 <Label>
-                  <span>One-time credentials — copy before closing</span>
+                  <span>One-time credentials - copy before closing</span>
                   <Textarea rows={8} value={bulkResults} readOnly />
                 </Label>
               ) : null}
@@ -1067,17 +1040,17 @@ export function PeopleView({
             aria-label="Reset temporary password"
           >
             <DialogDescription className="sr-only">
-              Review the details and submit to save your changes.
+              Update the fields and save.
             </DialogDescription>
             <header>
               <div>
-                <span>CREDENTIAL ROTATION</span>
+                <span>Credential rotation</span>
                 <DialogTitle asChild>
                   <h2>Reset {rotatingProfile.name}’s password</h2>
                 </DialogTitle>
                 <p>The new temporary password is shown only in this dialog.</p>
               </div>
-              <Button type="button" onClick={() => setRotatingProfileId("")}>
+              <Button variant="outline" type="button" onClick={() => setRotatingProfileId("")}>
                 ×
               </Button>
             </header>
@@ -1119,7 +1092,7 @@ export function PeopleView({
                 <span>New temporary password</span>
                 <div className="password-generator-field">
                   <Input value={temporaryPassword} readOnly />
-                  <Button
+                  <Button variant="outline"
                     type="button"
                     onClick={() =>
                       setTemporaryPassword(generateTemporaryPassword())
@@ -1160,11 +1133,11 @@ export function PeopleView({
                   aria-label="Revoke account sessions"
                 >
                   <DialogDescription className="sr-only">
-                    Review the details and submit to save your changes.
+                    Update the fields and save.
                   </DialogDescription>
                   <header>
                     <div>
-                      <span>ACCESS CONTROL</span>
+                      <span>Access control</span>
                       <DialogTitle asChild>
                         <h2>Revoke {profile.name}’s sessions?</h2>
                       </DialogTitle>
@@ -1174,7 +1147,7 @@ export function PeopleView({
                         boundary.
                       </p>
                     </div>
-                    <Button
+                    <Button variant="outline"
                       type="button"
                       onClick={() => setPendingSessionRevoke("")}
                     >
@@ -1254,11 +1227,11 @@ export function PeopleView({
                   aria-label="Confirm role change"
                 >
                   <DialogDescription className="sr-only">
-                    Review the details and submit to save your changes.
+                    Update the fields and save.
                   </DialogDescription>
                   <header>
                     <div>
-                      <span>CONTROLLED ROLE TRANSITION</span>
+                      <span>Controlled role transition</span>
                       <DialogTitle asChild>
                         <h2>Change {profile.name}’s role?</h2>
                       </DialogTitle>
@@ -1269,7 +1242,7 @@ export function PeopleView({
                         effect.
                       </p>
                     </div>
-                    <Button
+                    <Button variant="outline"
                       type="button"
                       onClick={() => setPendingRoleChange(null)}
                     >
@@ -1301,7 +1274,7 @@ export function PeopleView({
                     </Label>
                     <footer>
                       <span>
-                        An immutable role-audit entry will be written.
+                        This role change will be recorded.
                       </span>
                       <Button disabled={changing === profile.id}>
                         {changing === profile.id
@@ -1336,11 +1309,11 @@ export function PeopleView({
                   aria-label="Confirm account lifecycle change"
                 >
                   <DialogDescription className="sr-only">
-                    Review the details and submit to save your changes.
+                    Update the fields and save.
                   </DialogDescription>
                   <header>
                     <div>
-                      <span>ACCOUNT LIFECYCLE</span>
+                      <span>Account lifecycle</span>
                       <DialogTitle asChild>
                         <h2>
                           {pendingLifecycle.action} {profile.name}’s account?
@@ -1352,7 +1325,7 @@ export function PeopleView({
                         configured JWT lifetime.
                       </p>
                     </div>
-                    <Button
+                    <Button variant="outline"
                       type="button"
                       onClick={() => setPendingLifecycle(null)}
                     >
@@ -1397,7 +1370,7 @@ export function PeopleView({
                     </Label>
                     <footer>
                       <span>
-                        This action writes immutable lifecycle evidence.
+                        This account change will be recorded.
                       </span>
                       <Button disabled={changing === profile.id}>
                         {changing === profile.id
@@ -1426,11 +1399,11 @@ export function PeopleView({
             aria-label="Edit profile"
           >
             <DialogDescription className="sr-only">
-              Review the details and submit to save your changes.
+              Update the fields and save.
             </DialogDescription>
             <header>
               <div>
-                <span>PEOPLE & PERMISSIONS</span>
+                <span>People & permissions</span>
                 <DialogTitle asChild>
                   <h2>Edit {editingProfile.name}</h2>
                 </DialogTitle>
@@ -1439,7 +1412,7 @@ export function PeopleView({
                   separate audited action.
                 </p>
               </div>
-              <Button type="button" onClick={() => setEditingProfileId("")}>
+              <Button variant="outline" type="button" onClick={() => setEditingProfileId("")}>
                 ×
               </Button>
             </header>
@@ -1662,7 +1635,7 @@ export function PeopleView({
                       )?.code ?? "Class"}{" "}
                       · {assignment.responsibility}
                     </span>
-                    <Button
+                    <Button variant="outline"
                       type="button"
                       onClick={async () => {
                         const reason = await requestText(
@@ -1675,7 +1648,7 @@ export function PeopleView({
                         )
                           .then(() => {
                             onToast(
-                              "Responsibility removed with immutable evidence.",
+                              "Responsibility removed.",
                             );
                             onChanged();
                           })

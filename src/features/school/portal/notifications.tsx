@@ -60,11 +60,11 @@ export function NotificationCenter({
         aria-label="Notifications and messages"
       >
         <DialogDescription className="sr-only">
-          Review the details and submit to save your changes.
+          Update the fields and save.
         </DialogDescription>
         <header>
           <div>
-            <span>NOTIFICATIONS & APPROVED COMMUNICATION</span>
+            <span>Notifications & approved communication</span>
             <DialogTitle asChild>
               <h2>Your notification center</h2>
             </DialogTitle>
@@ -73,7 +73,7 @@ export function NotificationCenter({
               support team through the governed message workflow.
             </p>
           </div>
-          <Button type="button" onClick={onClose}>
+          <Button variant="outline" aria-label="Close" type="button" onClick={onClose}>
             ×
           </Button>
         </header>
@@ -87,7 +87,7 @@ export function NotificationCenter({
                   <small>{new Date(item.createdAt).toLocaleString()}</small>
                 </div>
                 <p>{item.body}</p>
-                <Button
+                <Button variant="outline"
                   type="button"
                   onClick={() =>
                     void markNotificationRead(item.id, !item.readAt)
@@ -183,7 +183,7 @@ export function NotificationCenter({
                       )?.name ?? "Recipient"}
                     </small>
                     <div>
-                      <Button
+                      <Button variant="outline"
                         type="button"
                         onClick={async () => {
                           const reason = await requestText(
@@ -212,7 +212,7 @@ export function NotificationCenter({
                       >
                         Approve & send
                       </Button>
-                      <Button
+                      <Button variant="outline"
                         type="button"
                         onClick={async () => {
                           const reason = await requestText(

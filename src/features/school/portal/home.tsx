@@ -30,6 +30,7 @@ import type { PortalView } from "./shared";
 import {
   formatMoment,
   leadershipRoles,
+  teachingRoles,
   PageIntro,
   Pill,
   roleNames,
@@ -39,7 +40,6 @@ export function HomeView({
   role,
   user,
   onNavigate,
-  onAsk,
   onChanged,
   onToast,
 }: {
@@ -56,97 +56,30 @@ export function HomeView({
   const [initiativeOpen, setInitiativeOpen] = useState(false);
   const [initiativeBusy, setInitiativeBusy] = useState(false);
   const [assignInitiativeId, setAssignInitiativeId] = useState("");
-  const greeting =
-    role === "student"
-      ? "Ready for your next learning step?"
-      : role === "faculty"
-        ? "Your classes are organized and ready."
-        : "The whole university, in one clear view.";
   const now = useCurrentTime();
   const futureEvents = upcomingEvents(buildUnifiedCalendar(data, user), now);
   const upcoming = futureEvents.slice(0, 3);
-  const roleDefinition = data.roles.find((item) => item.code === role);
   const student = data.students.find((item) => item.profileId === user.id);
   const supportRequests = student
     ? data.supportRequests.filter((item) => item.studentId === student.id)
     : [];
   return (
     <>
-      <PageIntro
-        eyebrow={`${roleNames[role].toUpperCase()} WORKSPACE`}
-        title={`Hello, ${user.name.split(" ")[0]}`}
-        description={greeting}
-        action={
-          <Button className="school-primary" type="button" onClick={onAsk}>
-            ✦ Ask Nexus AI
-          </Button>
-        }
-      />
-      <section className="school-hero">
-        <div>
-          <Pill tone={role === "owner" ? "owner" : "teal"}>
-            {role === "owner" ? "Protected platform owner" : roleNames[role]}
-          </Pill>
-          <h2>
-            {role === "student"
-              ? "Learn, practice, and stay on track."
-              : role === "faculty"
-                ? "Teach with clarity. Grade with confidence."
-                : "Every role aligned around student success."}
-          </h2>
-          <p>
-            {roleDefinition?.description ||
-              "Your role-aware workspace brings together the information and actions you need."}
-          </p>
-          <div>
-            {roleDefinition?.capabilities.slice(0, 4).map((capability) => (
-              <span key={capability}>✓ {capability.replaceAll("_", " ")}</span>
-            ))}
-          </div>
-        </div>
-        <div className="school-hero-orbit">
-          <span>STU</span>
-          <i />
-          <i />
-          <i />
-          <b>ONE</b>
-        </div>
-      </section>
-      <section className="school-stat-grid">
-        <Card>
-          <span>COURSES</span>
-          <strong>{data.courses.length}</strong>
-          <p>
-            {role === "student"
-              ? "available to your learning view"
-              : "visible within your authority"}
-          </p>
-        </Card>
-        <Card>
-          <span>ASSESSMENTS</span>
-          <strong>{data.assessments.length}</strong>
-          <p>published or managed in your scope</p>
-        </Card>
-        <Card>
-          <span>UPCOMING</span>
-          <strong>{futureEvents.length}</strong>
-          <p>classes, deadlines, and campus events</p>
-        </Card>
-        <Card>
-          <span>ANNOUNCEMENTS</span>
-          <strong>{data.announcements.length}</strong>
-          <p>current messages for your role</p>
-        </Card>
+      <PageIntro title="Overview" description="" />
+      <section className="overview-counts" aria-label="School summary">
+        <Button type="button" variant="ghost" onClick={() => onNavigate(teachingRoles.has(role) ? "teaching" : "learning")}><strong>{data.courses.length}</strong><span>Courses</span></Button>
+        <div><strong>{data.assessments.length}</strong><span>Assessments</span></div>
+        <Button type="button" variant="ghost" onClick={() => onNavigate("schedule")}><strong>{futureEvents.length}</strong><span>Upcoming events</span></Button>
+        <div><strong>{data.announcements.length}</strong><span>Announcements</span></div>
       </section>
       <section className="school-home-grid">
         <Card className="school-card next-events">
           <header>
             <div>
-              <span>UP NEXT</span>
-              <h3>Your schedule</h3>
+              <h3>Upcoming</h3>
             </div>
-            <Button type="button" onClick={() => onNavigate("schedule")}>
-              Full calendar →
+            <Button variant="outline" type="button" onClick={() => onNavigate("schedule")}>
+              View calendar
             </Button>
           </header>
           {upcoming.length ? (
@@ -162,14 +95,13 @@ export function HomeView({
             ))
           ) : (
             <div className="school-empty">
-              No upcoming events are visible for this role.
+              No upcoming events.
             </div>
           )}
         </Card>
         <Card className="school-card announcement-feed">
           <header>
             <div>
-              <span>SCHOOL PULSE</span>
               <h3>Announcements</h3>
             </div>
           </header>
@@ -191,10 +123,9 @@ export function HomeView({
         <section className="school-card student-support-center">
           <header>
             <div>
-              <span>HELP & SERVICES</span>
               <h3>My support requests</h3>
             </div>
-            <Button type="button" onClick={() => setSupportOpen(true)}>
+            <Button variant="outline" type="button" onClick={() => setSupportOpen(true)}>
               + Request support
             </Button>
           </header>
@@ -221,8 +152,7 @@ export function HomeView({
         <section className="school-card institutional-initiatives">
           <header>
             <div>
-              <span>POLICIES & STRATEGIC WORK</span>
-              <h3>Institutional initiatives</h3>
+              <h3>School projects</h3>
             </div>
             {[
               "owner",
@@ -232,8 +162,8 @@ export function HomeView({
               "dean",
               "department_head",
             ].includes(role) ? (
-              <Button type="button" onClick={() => setInitiativeOpen(true)}>
-                + Propose initiative
+              <Button variant="outline" type="button" onClick={() => setInitiativeOpen(true)}>
+                Add project
               </Button>
             ) : null}
           </header>
@@ -270,7 +200,7 @@ export function HomeView({
                         item.type,
                       ))) &&
                   item.status === "proposed" ? (
-                    <Button
+                    <Button variant="outline"
                       type="button"
                       onClick={async () => {
                         const reason = await requestText(
@@ -285,7 +215,7 @@ export function HomeView({
                           })
                             .then(() => {
                               onToast(
-                                "Initiative approved with immutable evidence.",
+                                "Project approved.",
                               );
                               onChanged();
                             })
@@ -309,7 +239,7 @@ export function HomeView({
                     "dean",
                     "department_head",
                   ].includes(role) && item.status !== "completed" ? (
-                    <Button
+                    <Button variant="outline"
                       type="button"
                       onClick={() => setAssignInitiativeId(item.id)}
                     >
@@ -317,7 +247,7 @@ export function HomeView({
                     </Button>
                   ) : null}
                   {item.ownerId === user.id && item.status === "in_progress" ? (
-                    <Button
+                    <Button variant="outline"
                       type="button"
                       onClick={async () => {
                         const reason = await requestText(
@@ -347,7 +277,7 @@ export function HomeView({
                     </Button>
                   ) : null}
                   {role === "vice_president" ? (
-                    <Button
+                    <Button variant="outline"
                       type="button"
                       onClick={async () => {
                         const reason = await requestText(
@@ -381,7 +311,7 @@ export function HomeView({
             ))
           ) : (
             <div className="school-empty">
-              No institutional initiatives are visible yet.
+              No projects yet.
             </div>
           )}
         </section>
@@ -398,23 +328,22 @@ export function HomeView({
             className="academic-modal max-h-[90dvh] overflow-y-auto sm:max-w-4xl"
             role="dialog"
             aria-modal="true"
-            aria-label="Propose institutional initiative"
+            aria-label="Add project"
           >
             <DialogDescription className="sr-only">
-              Review the details and submit to save your changes.
+              Update the fields and save.
             </DialogDescription>
             <header>
               <div>
-                <span>GOVERNED STRATEGIC WORK</span>
+                <span>Governed strategic work</span>
                 <DialogTitle asChild>
-                  <h2>Propose a policy or initiative</h2>
+                  <h2>Add project</h2>
                 </DialogTitle>
                 <p>
-                  Executive approval, assignment, escalation, and completion are
-                  reasoned audited transitions.
+                  Projects require approval before work starts.
                 </p>
               </div>
-              <Button type="button" onClick={() => setInitiativeOpen(false)}>
+              <Button variant="outline" type="button" onClick={() => setInitiativeOpen(false)}>
                 ×
               </Button>
             </header>
@@ -538,11 +467,11 @@ export function HomeView({
             aria-label="Assign initiative owner"
           >
             <DialogDescription className="sr-only">
-              Review the details and submit to save your changes.
+              Update the fields and save.
             </DialogDescription>
             <header>
               <div>
-                <span>ACCOUNTABLE OWNERSHIP</span>
+                <span>Accountable ownership</span>
                 <DialogTitle asChild>
                   <h2>Assign initiative owner</h2>
                 </DialogTitle>
@@ -551,7 +480,7 @@ export function HomeView({
                   are written to the governed audit trail.
                 </p>
               </div>
-              <Button type="button" onClick={() => setAssignInitiativeId("")}>
+              <Button variant="outline" type="button" onClick={() => setAssignInitiativeId("")}>
                 ×
               </Button>
             </header>
@@ -584,7 +513,7 @@ export function HomeView({
             >
               <div className="academic-form-grid">
                 <Label>
-                  <span>Accountable owner</span>
+                  <span>Assigned to</span>
                   <NativeSelect
                     name="ownerId"
                     required
@@ -648,11 +577,11 @@ export function HomeView({
             aria-label="Request support"
           >
             <DialogDescription className="sr-only">
-              Review the details and submit to save your changes.
+              Update the fields and save.
             </DialogDescription>
             <header>
               <div>
-                <span>STUDENT SELF-SERVICE</span>
+                <span>Student self-service</span>
                 <DialogTitle asChild>
                   <h2>Request support</h2>
                 </DialogTitle>
@@ -661,7 +590,7 @@ export function HomeView({
                   routed to authorized staff.
                 </p>
               </div>
-              <Button type="button" onClick={() => setSupportOpen(false)}>
+              <Button variant="outline" type="button" onClick={() => setSupportOpen(false)}>
                 ×
               </Button>
             </header>

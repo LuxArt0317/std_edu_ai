@@ -25,9 +25,8 @@ export function AcademicsView({
   return (
     <>
       <PageIntro
-        eyebrow="ACADEMIC OPERATING SYSTEM"
-        title="Academic Office"
-        description="One catalog for departments, programs, terms, courses, sections, and institutional delivery."
+        title="Academics"
+        description="Manage departments, programs, classes and enrollment."
       />
       <AcademicOperations
         data={data}

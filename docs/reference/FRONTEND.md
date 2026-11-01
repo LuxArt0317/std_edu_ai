@@ -1,5 +1,16 @@
 # Frontend reference
 
+## Transactional UI
+
+The school app uses compact shadcn/Radix controls, neutral surfaces and the existing green accent. The taste-led overhaul removes promotional heroes, repeated role/context banners, decorative gradients and duplicate assistant launchers. Page headings identify the work; tables and compact summaries show the records. Core case and department lists use actual shadcn tables, with secondary row actions in dropdown menus.
+
+Navigation groups learning, student services and administration. The account menu contains appearance, role preview and sign-out. Appearance supports System, Light and Dark for the authenticated app; the public university website keeps its established light presentation. Role preview remains a presentation tool, with an explicit warning that actions still use the actual owner role.
+
+Academics uses Add and Export menus plus separate tabs for curriculum, students, subjects, classes, enrollment and change requests. Technical service/AI diagnostics stay accessible under expandable sections. The assistant uses plain Ask and Draft changes labels; change preparation still requires review. Its message log supports keyboard scrolling, fields have accessible labels and closing restores launcher focus.
+
+Layout compatibility remains in feature CSS. Neutral paint and type use shared semantic variables from src/styles/theme.css; control variants are owned shadcn source, not recreated components. Institutional records, field names, routes, role policies and approval flows are preserved.
+
+
 ## Shared public components
 
 `PublicAssistantFeedback.tsx` renders the compact answer-evaluation control for the public STU assistant. It redeems an opaque, session-bound, one-use capability and supports helpfulness, correction category, resolved-need status, and a bounded optional comment without exposing the stored trace identifier.

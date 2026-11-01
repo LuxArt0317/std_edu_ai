@@ -33,7 +33,7 @@ test("Nexus supports governed attachments, durable queues, and QA versus Agentic
   const [portal,client,api,migration]=await Promise.all([
     read("src/features/school/UnifiedPortal.tsx"),read("src/features/school/platformRepository.ts"),read("api/school-assistant.ts"),read("supabase/migrations/20260719003437_nexus_attachments_queue_and_manual_curricula.sql"),
   ]);
-  for(const marker of ["Answers only","Can prepare actions","Attach images or files","Queue →","queuedPrompts"])
+  for(const marker of ["Answers only","Review before applying","Attach images or files","Queue →","queuedPrompts"])
     assert.match(portal,new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
   for(const operation of ["uploadNexusAttachments","enqueueNexusPrompt","loadNexusPromptQueue","updateNexusPromptQueue"])
     assert.match(client,new RegExp(`export async function ${operation}`));

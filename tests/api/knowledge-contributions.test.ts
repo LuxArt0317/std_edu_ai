@@ -18,7 +18,7 @@ test("knowledge contributions retain source, audience, ownership, and review con
 });
 
 test("knowledge publisher links user, class, and campus events and routes review", () => {
-  for (const marker of ["Knowledge origin", "User or personal event", "Class event", "Whole-campus event", "Related calendar event", "Audience roles", "Review context", "Contribute knowledge"])
+  for (const marker of ["Knowledge origin", "User or personal event", "Class event", "Whole-campus event", "Related calendar event", "Audience roles", "Review context", "Add article"])
     assert.match(ui, new RegExp(marker));
   assert.match(repository, /from\("schedule_events"\)/);
   assert.match(repository, /source_profile_id: user\.user\.id/);

@@ -27,7 +27,7 @@ test("all-role policies include registrar, finance, librarian, leadership, and r
 
 test("policies and initiatives have proposal, approval, assignment, escalation, and audit evidence",()=>{
   for(const marker of ["institutional_initiatives","approve","assign","complete","reject","escalate","controlled_action_audit"]) assert.match(initiatives,new RegExp(marker));
-  assert.match(portal,/Approve policy \/ initiative/); assert.match(portal,/Propose a policy or initiative/);
+  assert.match(portal,/Approve policy \/ initiative/); assert.match(portal,/Add project/);
 });
 
 test("assessment availability, attempts, duration, score release, and explanations are teacher controlled",()=>{

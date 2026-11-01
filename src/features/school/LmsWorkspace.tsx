@@ -109,7 +109,6 @@ function FormModal({
 function Empty({ title, text }: { title: string; text: string }) {
   return (
     <div className="lms-empty">
-      <span>◇</span>
       <h3>{title}</h3>
       <p>{text}</p>
     </div>
@@ -199,11 +198,9 @@ export function TeacherLmsStudio({
     <>
       <section className="lms-hero">
         <div>
-          <span>INTEGRATED LEARNING MANAGEMENT</span>
-          <h1>Teach, assess, and support—from one class</h1>
+          <h1>Courses</h1>
           <p>
-            Build the learning path, publish materials, collect work, take
-            attendance, grade, and communicate without leaving STU Nexus.
+            Manage lessons, assignments, grades and attendance.
           </p>
         </div>
         <NativeSelect
@@ -272,11 +269,10 @@ export function TeacherLmsStudio({
         <section className="lms-student-preview-workspace">
           <header>
             <div>
-              <span>EXACT PUBLISHED VIEW</span>
-              <h2>What students can see now</h2>
-              <p>Only published modules and published materials appear below. There is no separate copy or synchronization step.</p>
+              <h2>Student preview</h2>
+              <p>Only published modules and published materials appear below. This shows the published lessons.</p>
             </div>
-            <Button type="button" onClick={() => setTab("content")}>Return to authoring</Button>
+            <Button variant="outline" type="button" onClick={() => setTab("content")}>Return to authoring</Button>
           </header>
           <StudentLmsLearning
             data={data}
@@ -293,13 +289,12 @@ export function TeacherLmsStudio({
         <section className="lms-workspace">
           <header>
             <div>
-              <span>CURRICULUM BUILDER</span>
-              <h2>Modules and learning materials</h2>
+              <h2>Lessons</h2>
               <p>
                 Students see only published modules and materials in this order.
               </p>
             </div>
-            <Button type="button" onClick={() => setModal("module")}>
+            <Button variant="outline" type="button" onClick={() => setModal("module")}>
               + New module
             </Button>
           </header>
@@ -314,7 +309,7 @@ export function TeacherLmsStudio({
                     <header>
                       <i>{String(module.position).padStart(2, "0")}</i>
                       <div>
-                        <Button
+                        <Button variant="outline"
                           type="button"
                           onClick={() => setModal(`module:${module.id}`)}
                         >
@@ -327,7 +322,7 @@ export function TeacherLmsStudio({
                         </p>
                       </div>
                       <div>
-                        <Button
+                        <Button variant="outline"
                           type="button"
                           onClick={() =>
                             void perform(
@@ -348,13 +343,13 @@ export function TeacherLmsStudio({
                             ? "Unpublish"
                             : "Publish"}
                         </Button>
-                        <Button
+                        <Button variant="outline"
                           type="button"
                           onClick={() => setModal(`material:${module.id}`)}
                         >
                           + Material
                         </Button>
-                        <Button
+                        <Button variant="outline"
                           type="button"
                           onClick={async () => {
                             if (
@@ -386,7 +381,7 @@ export function TeacherLmsStudio({
                                 ? `Scheduled for ${dateTime(module.unlocksAt)}`
                                 : "Visible to students now";
                           return <div key={material.id}>
-                            <Button type="button" className="lms-material-open" onClick={() => setModal(`preview-material:${material.id}`)} aria-label={`Open lesson ${material.title}`}>
+                            <Button variant="outline" type="button" className="lms-material-open" onClick={() => setModal(`preview-material:${material.id}`)} aria-label={`Open lesson ${material.title}`}>
                               <b>{material.type === "file" ? "⇩" : material.type === "video" ? "▶" : material.type === "link" ? "↗" : "☰"}</b>
                               <span><strong>{material.title}</strong><small>{material.minutes} min · {material.required ? "Required" : "Optional"}</small><em className={studentVisible ? "lms-visible" : "lms-hidden"}>{visibilityReason}</em></span>
                             </Button>
@@ -401,7 +396,7 @@ export function TeacherLmsStudio({
                               </a>
                             ) : null}
                             {material.storagePath ? (
-                              <Button
+                              <Button variant="outline"
                                 type="button"
                                 onClick={() =>
                                   void getLmsFileUrl(
@@ -412,7 +407,7 @@ export function TeacherLmsStudio({
                                 Open file
                               </Button>
                             ) : null}
-                            <Button
+                            <Button variant="outline"
                               type="button"
                               onClick={() =>
                                 setModal(`edit-material:${material.id}`)
@@ -420,7 +415,7 @@ export function TeacherLmsStudio({
                             >
                               Edit lesson
                             </Button>
-                            <Button type="button" onClick={() => void perform(
+                            <Button variant="outline" type="button" onClick={() => void perform(
                               () => updateLearningMaterial(material.id, {
                                 title: material.title,
                                 description: material.description,
@@ -434,7 +429,7 @@ export function TeacherLmsStudio({
                               }),
                               material.status === "published" ? "Material unpublished and hidden from students." : module.status === "published" ? "Material published and visible to students." : "Material published. Publish its module to make it visible to students.",
                             )}>{material.status === "published" ? "Unpublish" : "Publish for students"}</Button>
-                            <Button
+                            <Button variant="outline"
                               type="button"
                               onClick={async () => {
                                 if (
@@ -465,8 +460,8 @@ export function TeacherLmsStudio({
             </div>
           ) : (
             <Empty
-              title="Build the first module"
-              text="Organize your course into a clear sequence, then add learning materials inside each module."
+              title="No modules yet"
+              text="Add a module, then add its lessons."
             />
           )}
         </section>
@@ -476,14 +471,13 @@ export function TeacherLmsStudio({
         <section className="lms-workspace">
           <header>
             <div>
-              <span>ASSESSMENT DESIGN</span>
-              <h2>Quizzes, exams, assignments, and projects</h2>
+              <h2>Assessments</h2>
               <p>
                 Published work appears automatically in the enrolled student
                 experience.
               </p>
             </div>
-            <Button type="button" onClick={() => setModal("assessment")}>
+            <Button variant="outline" type="button" onClick={() => setModal("assessment")}>
               + New assessment
             </Button>
           </header>
@@ -503,13 +497,13 @@ export function TeacherLmsStudio({
                   <em>{item.status}</em>
                 </div>
                 <footer className="lms-record-actions">
-                  <Button
+                  <Button variant="outline"
                     type="button"
                     onClick={() => setModal(`assessment:${item.id}`)}
                   >
                     Edit assessment
                   </Button>
-                  <Button
+                  <Button variant="outline"
                     type="button"
                     onClick={async () => {
                       if (
@@ -526,7 +520,7 @@ export function TeacherLmsStudio({
                   >
                     Delete
                   </Button>
-                  <Button type="button" onClick={()=>setModal(`integrity:${item.id}`)}>
+                  <Button variant="outline" type="button" onClick={()=>setModal(`integrity:${item.id}`)}>
                     Integrity log ({data.assessmentIntegrityEvents.filter((event)=>event.assessmentId===item.id).length})
                   </Button>
                 </footer>
@@ -546,8 +540,7 @@ export function TeacherLmsStudio({
         <section className="lms-workspace">
           <header>
             <div>
-              <span>REVIEW QUEUE</span>
-              <h2>Student assignment submissions</h2>
+              <h2>Submissions</h2>
               <p>Open submitted work, return feedback, and record a score.</p>
             </div>
           </header>
@@ -571,7 +564,7 @@ export function TeacherLmsStudio({
                     </div>
                     <p>{submission.text || "File submission"}</p>
                     {submission.storagePath ? (
-                      <Button
+                      <Button variant="outline"
                         type="button"
                         onClick={() =>
                           void getLmsFileUrl(submission.storagePath!).then(
@@ -582,7 +575,7 @@ export function TeacherLmsStudio({
                         Open attachment
                       </Button>
                     ) : null}
-                    <Button
+                    <Button variant="outline"
                       type="button"
                       onClick={() => setModal(`grade:${submission.id}`)}
                     >
@@ -590,8 +583,8 @@ export function TeacherLmsStudio({
                         ? `${submission.score} pts · Edit`
                         : "Grade work"}
                     </Button>
-                    {submission.status !== "returned" && submission.status !== "voided" ? <Button type="button" onClick={async () => {const reason=(await requestText("Return-for-revision reason (at least 12 characters)"));if(reason) void perform(() => transitionAssignmentSubmission(submission.id,"return",reason),"Submission returned for revision with audit evidence.");}}>Return for revision</Button> : null}
-                    {submission.status !== "voided" ? <Button type="button" onClick={async () => {const reason=(await requestText("Void reason (at least 12 characters)"));if(reason) void perform(() => transitionAssignmentSubmission(submission.id,"void",reason),"Submission voided with audit evidence.");}}>Void submission</Button> : null}
+                    {submission.status !== "returned" && submission.status !== "voided" ? <Button variant="outline" type="button" onClick={async () => {const reason=(await requestText("Return-for-revision reason (at least 12 characters)"));if(reason) void perform(() => transitionAssignmentSubmission(submission.id,"return",reason),"Submission returned for revision with audit evidence.");}}>Return for revision</Button> : null}
+                    {submission.status !== "voided" ? <Button variant="outline" type="button" onClick={async () => {const reason=(await requestText("Void reason (at least 12 characters)"));if(reason) void perform(() => transitionAssignmentSubmission(submission.id,"void",reason),"Submission voided with audit evidence.");}}>Void submission</Button> : null}
                   </Card>
                 );
               })}
@@ -609,11 +602,10 @@ export function TeacherLmsStudio({
         <section className="lms-workspace">
           <header>
             <div>
-              <span>CLASS ATTENDANCE</span>
-              <h2>Sessions and learner status</h2>
+              <h2>Attendance</h2>
               <p>Create a class meeting, then mark every enrolled learner.</p>
             </div>
-            <Button type="button" onClick={() => setModal("attendance")}>
+            <Button variant="outline" type="button" onClick={() => setModal("attendance")}>
               + Take attendance
             </Button>
           </header>
@@ -627,19 +619,19 @@ export function TeacherLmsStudio({
                     {dateTime(session.startsAt)}–{dateTime(session.endsAt)}
                   </p>
                 </div>
-                <Button
+                <Button variant="outline"
                   type="button"
                   onClick={() => setModal(`roll:${session.id}`)}
                 >
                   Open roll
                 </Button>
-                <Button
+                <Button variant="outline"
                   type="button"
                   onClick={() => setModal(`attendance:${session.id}`)}
                 >
                   Edit
                 </Button>
-                <Button
+                <Button variant="outline"
                   type="button"
                   onClick={async () => {
                     if (
@@ -685,7 +677,7 @@ export function TeacherLmsStudio({
           ) : null}
           {data.attendanceCorrections.filter((item) => item.status === "pending" && data.attendanceRecords.some((record) => record.id === item.attendanceRecordId && sessions.some((session) => session.id === record.sessionId))).map((request) => {
             const learner=data.profiles.find((item) => item.id === request.studentProfileId);
-            return <Card className="lms-attendance-card" key={request.id}><header><div><span>CORRECTION REQUEST</span><h3>{learner?.name ?? "Learner"} requests “{request.requestedStatus}”</h3><p>{request.reason}</p></div><Button type="button" onClick={async () => { const reason=(await requestText("Approval reason (at least 12 characters)")); if (reason) void perform(() => decideAttendanceCorrection({requestId:request.id,approve:true,reason}),"Attendance corrected and audited."); }}>Approve</Button><Button type="button" onClick={async () => { const reason=(await requestText("Rejection reason (at least 12 characters)")); if (reason) void perform(() => decideAttendanceCorrection({requestId:request.id,approve:false,reason}),"Correction request rejected and audited."); }}>Reject</Button></header></Card>;
+            return <Card className="lms-attendance-card" key={request.id}><header><div><h3>{learner?.name ?? "Learner"} requests “{request.requestedStatus}”</h3><p>{request.reason}</p></div><Button variant="outline" type="button" onClick={async () => { const reason=(await requestText("Approval reason (at least 12 characters)")); if (reason) void perform(() => decideAttendanceCorrection({requestId:request.id,approve:true,reason}),"Attendance corrected and audited."); }}>Approve</Button><Button variant="outline" type="button" onClick={async () => { const reason=(await requestText("Rejection reason (at least 12 characters)")); if (reason) void perform(() => decideAttendanceCorrection({requestId:request.id,approve:false,reason}),"Correction request rejected and audited."); }}>Reject</Button></header></Card>;
           })}
         </section>
       ) : null}
@@ -694,11 +686,10 @@ export function TeacherLmsStudio({
         <section className="lms-workspace">
           <header>
             <div>
-              <span>CLASS COMMUNICATION</span>
               <h2>Announcements</h2>
               <p>Publish time-sensitive instructions to the enrolled class.</p>
             </div>
-            <Button type="button" onClick={() => setModal("announcement")}>
+            <Button variant="outline" type="button" onClick={() => setModal("announcement")}>
               + Announcement
             </Button>
           </header>
@@ -717,13 +708,13 @@ export function TeacherLmsStudio({
                     <small>{item.publishedAt}</small>
                   </div>
                   <div className="lms-record-actions">
-                    <Button
+                    <Button variant="outline"
                       type="button"
                       onClick={() => setModal(`announcement:${item.id}`)}
                     >
                       Edit
                     </Button>
-                    <Button
+                    <Button variant="outline"
                       type="button"
                       onClick={async () => {
                         if (
@@ -803,7 +794,7 @@ export function TeacherLmsStudio({
         const material=data.materials.find((item)=>item.id===modal.split(":")[1]);
         if(!material) return null;
         const pages=data.materialPages.filter((page)=>page.materialId===material.id).sort((a,b)=>a.position-b.position);
-        return <FormModal immersive title={`Student lesson preview · ${material.title}`} onClose={()=>setModal(null)}><div className="lms-teacher-preview lms-immersive-preview"><span>{material.type} · {material.status}</span><h2>{material.title}</h2><p>{material.description}</p>{pages.length ? pages.map((page)=><Card key={page.id}><small>PAGE {page.position}</small><h3>{page.title}</h3><RichTextContent html={page.content} onOpenFile={openAttachedFile} /></Card>) : <RichTextContent html={material.content} onOpenFile={openAttachedFile} />}<footer><Button type="button" onClick={()=>setModal(`edit-material:${material.id}`)}>Edit lesson</Button><Button type="button" onClick={()=>setModal(null)}>Return to course studio</Button></footer></div></FormModal>;
+        return <FormModal immersive title={`Student lesson preview · ${material.title}`} onClose={()=>setModal(null)}><div className="lms-teacher-preview lms-immersive-preview"><span>{material.type} · {material.status}</span><h2>{material.title}</h2><p>{material.description}</p>{pages.length ? pages.map((page)=><Card key={page.id}><small>Page {page.position}</small><h3>{page.title}</h3><RichTextContent html={page.content} onOpenFile={openAttachedFile} /></Card>) : <RichTextContent html={material.content} onOpenFile={openAttachedFile} />}<footer><Button variant="outline" type="button" onClick={()=>setModal(`edit-material:${material.id}`)}>Edit lesson</Button><Button variant="outline" type="button" onClick={()=>setModal(null)}>Back to course</Button></footer></div></FormModal>;
       })() : null}
       {modal === "assessment" || modal?.startsWith("assessment:") ? (
         <AssessmentBuilder
@@ -1255,7 +1246,7 @@ function MaterialForm({
               <b>Lesson pages</b>
               <small>Build a guided, image-rich reading experience.</small>
             </div>
-            <Button
+            <Button variant="outline"
               type="button"
               onClick={() =>
                 setPages((current) => [
@@ -1270,7 +1261,7 @@ function MaterialForm({
           {pages.map((page, index) => (
             <Card key={index}>
               <div>
-                <span>PAGE {index + 1}</span>
+                <span>Page {index + 1}</span>
                 <Input
                   value={page.title}
                   onChange={(event) =>
@@ -1285,7 +1276,7 @@ function MaterialForm({
                   required
                 />
                 {pages.length > 1 ? (
-                  <Button
+                  <Button variant="outline"
                     type="button"
                     onClick={() =>
                       setPages((current) =>
@@ -1519,7 +1510,7 @@ function AssessmentBuilder({
                 <b>Objective questions</b>
                 <small>Correct answers remain protected from students.</small>
               </div>
-              <Button
+              <Button variant="outline"
                 type="button"
                 onClick={() =>
                   setQuestions((current) => [
@@ -1546,7 +1537,7 @@ function AssessmentBuilder({
                   <header>
                     <b>Question {index + 1}</b>
                     {questions.length > 1 ? (
-                      <Button
+                      <Button variant="outline"
                         type="button"
                         onClick={() =>
                           setQuestions((current) =>
@@ -1653,7 +1644,7 @@ function AssessmentBuilder({
             <div className="split"><Label className="check"><CheckboxField name="releaseScoresImmediately" type="checkbox" defaultChecked={assessment?.releaseScoresImmediately ?? true} /> Release score immediately after submission</Label><Label className="check"><CheckboxField name="releaseExplanations" type="checkbox" defaultChecked={assessment?.releaseExplanations ?? false} /> Release teacher-written explanations in full review</Label></div>
           </section>
           <section className="lms-assessment-policy integrity">
-            <header><div><b>Assessment integrity</b><small>Students see every enabled check before they begin. Browser signals are recorded as review evidence—not silently treated as proof of misconduct.</small></div></header>
+            <header><div><b>Assessment integrity</b><small>Students see every enabled check before they begin. Browser signals are recorded as review evidence-not silently treated as proof of misconduct.</small></div></header>
             <div className="lms-policy-grid">
               <Label className="check"><CheckboxField name="requireFullscreen" type="checkbox" defaultChecked={assessment?.requireFullscreen ?? false} /> Require browser fullscreen</Label>
               <Label className="check"><CheckboxField name="monitorFocus" type="checkbox" defaultChecked={assessment?.monitorFocus ?? false} /> Record tab/window focus changes</Label>
@@ -1958,17 +1949,17 @@ export function StudentLmsLearning({
         </span></> : mode === "preview" ? <><span><b>{modules.length}</b> published modules</span><span><b>{materials.length}</b> student-visible materials</span><span><b>{data.materials.filter((item)=>data.modules.some((module)=>module.sectionId===course.sectionId&&module.id===item.moduleId)&&item.status!=="published").length}</b> drafts hidden</span></> : <><span><b>{modules.length}</b> live modules</span><span><b>{materials.filter((item)=>item.status === "published").length}</b> published materials</span><span><b>{materials.filter((item)=>item.status !== "published").length}</b> drafts visible to this role</span></>}
       </section>
       {learnerMode ? <section className="lms-workspace">
-        <header><div><span>MY ATTENDANCE</span><h2>Attendance records and corrections</h2><p>Review each class record and request a documented correction when needed.</p></div></header>
+        <header><div><h2>Attendance</h2><p>Review each class record and request a documented correction when needed.</p></div></header>
         {attendance.map((record) => {
           const session=data.attendanceSessions.find((item) => item.id === record.sessionId);
           const pending=data.attendanceCorrections.find((item) => item.attendanceRecordId === record.id && item.status === "pending");
-          return <Card className="lms-attendance-card" key={record.id}><header><div><span>{record.status}</span><h3>{session?.title ?? "Class session"}</h3><p>{session ? dateTime(session.startsAt) : ""}{record.notes ? ` · ${record.notes}` : ""}</p></div>{pending ? <b>Correction pending: {pending.requestedStatus}</b> : <Button type="button" onClick={() => setAttendanceCorrectionRecord(record)}>Request correction</Button>}</header></Card>;
+          return <Card className="lms-attendance-card" key={record.id}><header><div><span>{record.status}</span><h3>{session?.title ?? "Class session"}</h3><p>{session ? dateTime(session.startsAt) : ""}{record.notes ? ` · ${record.notes}` : ""}</p></div>{pending ? <b>Correction pending: {pending.requestedStatus}</b> : <Button variant="outline" type="button" onClick={() => setAttendanceCorrectionRecord(record)}>Request correction</Button>}</header></Card>;
         })}
         {!attendance.length ? <Empty title="No attendance records" text="Your class attendance appears here after a teacher records a session." /> : null}
       </section> : null}
       <div className={`lms-learning-layout${readerFocus ? " reader-focus" : ""}`}>
         <aside aria-label="Course outline">
-          <div className="lms-outline-heading"><span>COURSE OUTLINE</span><h2>Lessons and materials</h2><p>Select any lesson to open it.</p></div>
+          <div className="lms-outline-heading"><h2>Lessons and materials</h2><p>Select any lesson to open it.</p></div>
           {modules.map((module) => (
             <section key={module.id}>
               <header>
@@ -1995,7 +1986,7 @@ export function StudentLmsLearning({
                       item.status === "completed",
                   );
                   return (
-                    <Button
+                    <Button variant="outline"
                       type="button"
                       key={material.id}
                       className={
@@ -2024,7 +2015,7 @@ export function StudentLmsLearning({
         <main>
           {activeMaterial ? (
             <Card className="lms-reader">
-              <header className="lms-reader-toolbar"><span>IMMERSIVE LESSON</span><Button type="button" onClick={()=>setReaderFocus((value)=>!value)}>{readerFocus ? "Show course outline" : "Wide reading view"}</Button></header>
+              <header className="lms-reader-toolbar"><span>Immersive lesson</span><Button variant="outline" type="button" onClick={()=>setReaderFocus((value)=>!value)}>{readerFocus ? "Show course outline" : "Wide reading view"}</Button></header>
               <span>
                 {activeMaterial.type} ·{" "}
                 {activeMaterial.required ? "Required" : "Optional"}
@@ -2035,7 +2026,7 @@ export function StudentLmsLearning({
                 <>
                   <nav className="lms-page-nav" aria-label="Lesson pages">
                     {materialPages.map((page, index) => (
-                      <Button
+                      <Button variant="outline"
                         type="button"
                         key={page.id}
                         className={index === activePage ? "active" : ""}
@@ -2048,12 +2039,12 @@ export function StudentLmsLearning({
                   </nav>
                   <div className="lms-page-document">
                     <small>
-                      PAGE {activePage + 1} OF {materialPages.length}
+                      Page {activePage + 1} of {materialPages.length}
                     </small>
                     <h3>{displayedPage?.title}</h3>
                     <RichTextContent html={displayedPage?.content ?? ""} onOpenFile={openAttachedFile} />
                     <footer>
-                      <Button
+                      <Button variant="outline"
                         type="button"
                         disabled={activePage === 0}
                         onClick={() =>
@@ -2062,7 +2053,7 @@ export function StudentLmsLearning({
                       >
                         ← Previous
                       </Button>
-                      <Button
+                      <Button variant="outline"
                         type="button"
                         disabled={activePage === materialPages.length - 1}
                         onClick={() =>
@@ -2080,7 +2071,7 @@ export function StudentLmsLearning({
                 <RichTextContent html={activeMaterial.content} onOpenFile={openAttachedFile} />
               )}
               {activeMaterial.storagePath ? (
-                <Button
+                <Button variant="outline"
                   type="button"
                   className="lms-file-attachment lms-legacy-attachment"
                   onClick={() => void openAttachedFile(activeMaterial.storagePath!)}
@@ -2088,7 +2079,7 @@ export function StudentLmsLearning({
                   <span aria-hidden="true">↧</span><strong>{attachedFileName(activeMaterial.storagePath)}</strong><small>Attached file</small>
                 </Button>
               ) : null}
-              {learnerMode ? <Button
+              {learnerMode ? <Button variant="outline"
                 type="button"
                 className="complete"
                 onClick={() =>
@@ -2102,7 +2093,7 @@ export function StudentLmsLearning({
               >
                 ✓ Mark complete
               </Button> : null}
-              {nextMaterial ? <Button type="button" className="lms-next-lesson" onClick={()=>{setActiveMaterial(nextMaterial);setActivePage(0);}}>Next lesson: {nextMaterial.title} →</Button> : null}
+              {nextMaterial ? <Button variant="outline" type="button" className="lms-next-lesson" onClick={()=>{setActiveMaterial(nextMaterial);setActivePage(0);}}>Next lesson: {nextMaterial.title} →</Button> : null}
             </Card>
           ) : (
             <Empty
@@ -2132,7 +2123,7 @@ export function StudentLmsLearning({
                       <blockquote>{submission.feedback}</blockquote>
                     ) : null}
                   </div>
-                  <Button
+                  <Button variant="outline"
                     type="button"
                     onClick={() => setAssignmentId(item.id)}
                   >

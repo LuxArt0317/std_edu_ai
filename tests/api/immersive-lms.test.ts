@@ -80,7 +80,7 @@ test("assessment integrity is teacher controlled, disclosed, and append-only", a
 test("students can configure and export a branded class schedule PNG", async () => {
   const [portal, css] = await Promise.all([source("src/features/school/UnifiedPortal.tsx"), source("src/features/school/platform.css")]);
   assert.match(portal, /downloadSchedulePng/);
-  assert.match(portal, /STUDENT SCHEDULE STUDIO/);
+  assert.match(portal, /Make your class schedule/);
   assert.match(portal, /stu-logo-2\.png/);
   assert.match(portal, /canvas\.toBlob/);
   assert.match(portal, /Include rooms/);

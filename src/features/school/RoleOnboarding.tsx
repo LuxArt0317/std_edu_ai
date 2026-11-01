@@ -311,7 +311,7 @@ export default function RoleOnboarding({ userId, role, actionSignal, onRevealTar
   const currentCheck = currentStep?.question ? progress?.checkResults[currentStep.key] : null
 
   return <>
-    <Button
+    <Button variant="outline"
       type="button"
       className={`onboarding-trigger ${progress?.status === 'ready' ? 'ready' : ''}`}
       data-onboarding="onboarding-center"
@@ -325,18 +325,18 @@ export default function RoleOnboarding({ userId, role, actionSignal, onRevealTar
     {centerOpen ? <div className="onboarding-center-layer" role="dialog" aria-modal="true" aria-labelledby="readiness-title">
       <Button type="button" className="onboarding-center-backdrop" aria-label="Close readiness center" onClick={() => setCenterOpen(false)} variant="ghost" />
       <section className="onboarding-center-card">
-        <header><div><span>ROLE READINESS CENTER</span><h2 id="readiness-title">{journey.roleName} foundations</h2><p>{journey.promise}</p></div><Button type="button" onClick={() => setCenterOpen(false)}>×</Button></header>
+        <header><div><h2 id="readiness-title">{journey.roleName} foundations</h2><p>{journey.promise}</p></div><Button variant="outline" type="button" onClick={() => setCenterOpen(false)}>×</Button></header>
         <div className="onboarding-scoreboard">
           <div className={`onboarding-score ${progress?.status === 'ready' ? 'ready' : ''}`} style={{ '--readiness': `${readiness.score * 3.6}deg` } as CSSProperties}><span><b>{readiness.score}</b><small>/ 100</small></span></div>
           <div><span>{progress?.status === 'ready' ? 'ROLE FOUNDATIONS VERIFIED' : 'YOUR CURRENT READINESS'}</span><h3>{readinessLabel(progress?.status ?? 'not_started')}</h3><p>{readiness.verified} of {readiness.required} demonstrated actions and checks verified. Instructions alone do not increase this score.</p></div>
         </div>
-        {loadingError ? <div className="onboarding-sync-warning"><b>Progress is unavailable</b><span>{loadingError}</span><Button type="button" onClick={() => void loadProgress()}>Try again</Button></div> : null}
-        {syncError ? <div className="onboarding-sync-warning"><b>Changes are waiting to sync</b><span>{syncError}</span><Button type="button" onClick={retrySync}>Retry now</Button></div> : null}
+        {loadingError ? <div className="onboarding-sync-warning"><b>Progress is unavailable</b><span>{loadingError}</span><Button variant="outline" type="button" onClick={() => void loadProgress()}>Try again</Button></div> : null}
+        {syncError ? <div className="onboarding-sync-warning"><b>Changes are waiting to sync</b><span>{syncError}</span><Button variant="outline" type="button" onClick={retrySync}>Retry now</Button></div> : null}
         <div className="onboarding-step-list">{journey.steps.filter((step) => step.key !== 'complete').map((step, index) => {
           const complete = progress?.completedStepKeys.includes(step.key) || (step.actionKey ? progress?.verifiedActionKeys.includes(step.actionKey) : false) || (step.question ? progress?.checkResults[step.key]?.correct : false)
           return <div key={step.key} className={complete ? 'complete' : progress?.currentStepKey === step.key ? 'current' : ''}><span>{complete ? '✓' : index + 1}</span><p><b>{step.title}</b><small>{step.actionKey ? 'Real interface action' : step.question ? 'Understanding check' : 'Guided instruction'}</small></p><i>{complete ? 'Verified' : progress?.currentStepKey === step.key ? 'Current' : 'Ahead'}</i></div>
         })}</div>
-        <footer><div><span className={syncError ? 'syncing' : 'synced'}>{syncError ? '● Sync needed' : '● Saved to your account'}</span><small>Readiness guides use; Supabase RLS controls access.</small></div>{progress?.status === 'ready' ? <><Button type="button" className="onboarding-secondary" onClick={restartJourney}>Restart journey</Button><Button type="button" className="onboarding-primary" onClick={() => startTour('center')}>Review guide</Button></> : <Button type="button" className="onboarding-primary" disabled={!progress} onClick={() => startTour('center')}>{progress?.status === 'in_progress' ? 'Continue guided tour →' : 'Start guided tour →'}</Button>}</footer>
+        <footer><div><span className={syncError ? 'syncing' : 'synced'}>{syncError ? '● Sync needed' : '● Saved to your account'}</span><small>Readiness guides use; Supabase RLS controls access.</small></div>{progress?.status === 'ready' ? <><Button variant="outline" type="button" className="onboarding-secondary" onClick={restartJourney}>Restart journey</Button><Button variant="outline" type="button" className="onboarding-primary" onClick={() => startTour('center')}>Review guide</Button></> : <Button variant="outline" type="button" className="onboarding-primary" disabled={!progress} onClick={() => startTour('center')}>{progress?.status === 'in_progress' ? 'Continue guided tour →' : 'Start guided tour →'}</Button>}</footer>
       </section>
     </div> : null}
 
@@ -351,12 +351,12 @@ export default function RoleOnboarding({ userId, role, actionSignal, onRevealTar
       </> : <div className="onboarding-mask full" />}
       <section className="onboarding-callout" style={calloutStyle} role="dialog" aria-modal="true" aria-labelledby="onboarding-step-title">
         <div className="onboarding-callout-progress"><span style={{ width: `${((currentStepIndex + 1) / journey.steps.length) * 100}%` }} /></div>
-        <header><span>{currentStep.eyebrow}</span><Button type="button" onClick={() => setTourOpen(false)}>Pause</Button></header>
+        <header><span>{currentStep.eyebrow}</span><Button variant="outline" type="button" onClick={() => setTourOpen(false)}>Pause</Button></header>
         <h2 id="onboarding-step-title">{currentStep.title}</h2>
         <p>{currentStep.description}</p>
         {currentStep.actionKey && !actionAlreadyVerified ? <div className="onboarding-action-prompt"><span>↖</span><b>Click the highlighted control</b><small>The guide continues only after it detects that real action.</small></div> : null}
-        {currentStep.question ? <div className="onboarding-question"><h3>{currentStep.question.prompt}</h3>{currentStep.question.options.map((option, index) => <Button key={option} type="button" className={answerState?.selected === index ? answerState.correct ? 'correct' : 'incorrect' : ''} onClick={() => submitAnswer(index)} disabled={answerState?.correct}><span>{String.fromCharCode(65 + index)}</span>{option}</Button>)}{answerState ? <div className={answerState.correct ? 'answer-feedback correct' : 'answer-feedback incorrect'}><b>{answerState.correct ? '✓ Correct—well judged.' : 'Try again.'}</b><p>{currentStep.question.explanation}</p></div> : currentCheck?.correct ? <div className="answer-feedback correct"><b>✓ Previously verified</b><p>{currentStep.question.explanation}</p></div> : null}</div> : null}
-        <footer><small>Step {currentStepIndex + 1} of {journey.steps.length} · {journey.roleName}</small>{currentStep.key === 'complete' ? <Button type="button" onClick={finishTour}>Finish & view readiness →</Button> : currentStep.question ? <Button type="button" disabled={!(answerState?.correct || currentCheck?.correct)} onClick={() => completeCurrentStep()}>Continue →</Button> : currentStep.actionKey && !actionAlreadyVerified ? null : <Button type="button" onClick={() => completeCurrentStep()}>{actionAlreadyVerified ? 'Continue →' : 'Next →'}</Button>}</footer>
+        {currentStep.question ? <div className="onboarding-question"><h3>{currentStep.question.prompt}</h3>{currentStep.question.options.map((option, index) => <Button variant="outline" key={option} type="button" className={answerState?.selected === index ? answerState.correct ? 'correct' : 'incorrect' : ''} onClick={() => submitAnswer(index)} disabled={answerState?.correct}><span>{String.fromCharCode(65 + index)}</span>{option}</Button>)}{answerState ? <div className={answerState.correct ? 'answer-feedback correct' : 'answer-feedback incorrect'}><b>{answerState.correct ? '✓ Correct-well judged.' : 'Try again.'}</b><p>{currentStep.question.explanation}</p></div> : currentCheck?.correct ? <div className="answer-feedback correct"><b>✓ Previously verified</b><p>{currentStep.question.explanation}</p></div> : null}</div> : null}
+        <footer><small>Step {currentStepIndex + 1} of {journey.steps.length} · {journey.roleName}</small>{currentStep.key === 'complete' ? <Button variant="outline" type="button" onClick={finishTour}>Finish & view readiness →</Button> : currentStep.question ? <Button variant="outline" type="button" disabled={!(answerState?.correct || currentCheck?.correct)} onClick={() => completeCurrentStep()}>Continue →</Button> : currentStep.actionKey && !actionAlreadyVerified ? null : <Button variant="outline" type="button" onClick={() => completeCurrentStep()}>{actionAlreadyVerified ? 'Continue →' : 'Next →'}</Button>}</footer>
       </section>
     </div> : null}
   </>

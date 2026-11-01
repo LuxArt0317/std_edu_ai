@@ -210,17 +210,17 @@ export function CrmRecordEditor({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-      ><DialogDescription className="sr-only">Review the details and submit to save your changes.</DialogDescription>{formError ? <p role="alert" className="text-destructive">{formError}</p> : null}
+      ><DialogDescription className="sr-only">Update the fields and save.</DialogDescription>{formError ? <p role="alert" className="text-destructive">{formError}</p> : null}
         <header>
           <div>
-            <span>COMPLETE RECORD</span>
+            <span>Edit record</span>
             <DialogTitle asChild><h2>{title}</h2></DialogTitle>
             <p>
-              Every mutable field is available here; status shortcuts are
+              All fields is available here; status shortcuts are
               optional conveniences.
             </p>
           </div>
-          <Button type="button" onClick={onClose}>
+          <Button variant="outline" aria-label="Close" type="button" onClick={onClose}>
             ×
           </Button>
         </header>
@@ -326,7 +326,7 @@ export function CrmRecordEditor({
                   </NativeSelect>
                 </Label>
                 <Label className="wide">
-                  <span>Next best action</span>
+                  <span>Next action</span>
                   <Textarea
                     name="nextAction"
                     rows={3}
@@ -360,7 +360,7 @@ export function CrmRecordEditor({
                     ))}
                   </NativeSelect>
                 </Label>
-                <Label><span>Accountable owner</span><NativeSelect name="ownerId" required defaultValue={record.ownerId??""}><NativeSelectOption value="">Choose support staff…</NativeSelectOption>{staff.filter((item)=>["owner","admin","advisor","support","registrar"].includes(item.role)).map((item)=><NativeSelectOption key={item.id} value={item.id}>{item.name} · {item.role.replaceAll("_"," ")}</NativeSelectOption>)}</NativeSelect></Label>
+                <Label><span>Assigned to</span><NativeSelect name="ownerId" required defaultValue={record.ownerId??""}><NativeSelectOption value="">Choose support staff…</NativeSelectOption>{staff.filter((item)=>["owner","admin","advisor","support","registrar"].includes(item.role)).map((item)=><NativeSelectOption key={item.id} value={item.id}>{item.name} · {item.role.replaceAll("_"," ")}</NativeSelectOption>)}</NativeSelect></Label>
                 <Label>
                   <span>Title</span>
                   <Input name="title" required defaultValue={record?.title} />
@@ -496,7 +496,7 @@ export function CrmRecordEditor({
                   >
                     <NativeSelectOption>Email</NativeSelectOption>
                     <NativeSelectOption>SMS</NativeSelectOption>
-                    <NativeSelectOption>LINE</NativeSelectOption>
+                    <NativeSelectOption>Line</NativeSelectOption>
                     <NativeSelectOption>Multi-channel</NativeSelectOption>
                   </NativeSelect>
                 </Label>
@@ -562,7 +562,7 @@ export function CrmRecordEditor({
                     ))}
                   </NativeSelect>
                 </Label>
-                <Label><span>Assigned staff</span><NativeSelect name="assignedTo" required defaultValue={record.assignedTo??""}><NativeSelectOption value="">Choose accountable staff…</NativeSelectOption>{staff.map((item)=><NativeSelectOption key={item.id} value={item.id}>{item.name} · {item.role.replaceAll("_"," ")}</NativeSelectOption>)}</NativeSelect></Label>
+                <Label><span>Assigned to</span><NativeSelect name="assignedTo" required defaultValue={record.assignedTo??""}><NativeSelectOption value="">Choose accountable staff…</NativeSelectOption>{staff.map((item)=><NativeSelectOption key={item.id} value={item.id}>{item.name} · {item.role.replaceAll("_"," ")}</NativeSelectOption>)}</NativeSelect></Label>
                 <Label>
                   <span>Due</span>
                   <Input
@@ -674,7 +674,7 @@ export function CrmRecordEditor({
             ) : null}
           </div>
           <footer>
-            <Button type="button" onClick={onClose}>
+            <Button variant="outline" type="button" onClick={onClose}>
               Cancel
             </Button>
             <Button type="submit" disabled={busy}>

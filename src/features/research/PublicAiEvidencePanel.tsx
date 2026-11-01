@@ -83,14 +83,13 @@ export function PublicAiEvidencePanel({
     <section className="public-ai-evidence">
       <header>
         <div>
-          <span>PUBLIC RAG EVIDENCE</span>
-          <h3>Grounding, handoff, and feedback</h3>
+          <h3>Assistant responses</h3>
           <p>
             Privacy-safe 30-day traces. Questions, IP addresses, user agents,
             and provider payloads are never displayed or stored.
           </p>
         </div>
-        <Button
+        <Button variant="outline"
           type="button"
           disabled={busy}
           onClick={() =>
@@ -142,7 +141,7 @@ export function PublicAiEvidencePanel({
         </Card>
       </div>
       <details>
-        <summary>Recent content-free evidence</summary>
+        <summary>Recent activity</summary>
         {traces.length ? (
           <ul>
             {traces.slice(0, 20).map((trace) => (
@@ -163,7 +162,7 @@ export function PublicAiEvidencePanel({
             ))}
           </ul>
         ) : (
-          <p>No public assistant traces have been recorded in this window.</p>
+          <p>No assistant activity in this period.</p>
         )}
       </details>
     </section>

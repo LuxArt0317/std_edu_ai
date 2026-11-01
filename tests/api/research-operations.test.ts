@@ -24,7 +24,7 @@ test("required research APIs emit sanitized component observations",()=>{
 
 test("protected UI exposes SLO, incident ownership, and manual evidence boundary",()=>{
   const ui=fs.readFileSync("src/features/research/ResearchOperationsPanel.tsx","utf8");
-  for(const marker of ["Versioned service objectives","Measured 24-hour service evidence","Active alerts","Acknowledge","Resolve after verification","VoiceOver, NVDA, TalkBack"]){assert.ok(ui.includes(marker),marker);}
+  for(const marker of ["Service targets","Last 24 hours","Active alerts","Acknowledge","Resolve after verification","VoiceOver, NVDA, TalkBack"]){assert.ok(ui.includes(marker),marker);}
 });
 
 test("research analysis RPCs explicitly deny anonymous execution",()=>{

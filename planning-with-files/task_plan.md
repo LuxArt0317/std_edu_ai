@@ -1,6 +1,14 @@
 # Task Plan
 
-## Design-system and workflow overhaul [Issue #74]
+## Transactional UI overhaul [Issue #74]
+
+- [x] Audit current pages with the taste skill; preserve green brand, permissions and workflows.
+- [x] Replace promotional copy and repeated context banners with compact transactional screens.
+- [x] Rebuild navigation, dashboard, forms and record lists with consistent shadcn controls.
+- [x] Verify desktop/mobile, light/dark, accessibility and real role/CRUD workflows.
+- [x] Update handoff evidence and commit the UI overhaul locally.
+
+## Previous verified work [Issue #74]
 
 - [x] Inventory existing components, brand colors, source structure, and role navigation.
 - [x] Consolidate documentation and feature boundaries; preserve imports and contract references.

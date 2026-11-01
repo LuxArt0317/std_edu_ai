@@ -14,7 +14,7 @@ const sourceContracts={
   "student active lesson":lms.includes("aria-current"),
   "student lesson navigation":lms.includes("Next lesson"),
   "assessment creation":lms.includes("+ New assessment"),
-  "account provisioning":portal.includes("Add account"),
+  "account provisioning":portal.includes("Add user"),
   "Registrar handoff":crm.includes("Registrar handoff"),
   "campaign approval":crm.includes("approveAndSendCampaign") && crm.includes("Approve &amp; send campaign"),
 };

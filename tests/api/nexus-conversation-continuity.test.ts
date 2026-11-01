@@ -27,7 +27,7 @@ test("goal activity is a collapsed assistant reply inside the compact popup", ()
   assert.match(portal, /<details\s+className=\{`chat-agent-run/);
   assert.match(portal, /<Card\s+className="assistant agent-progress-reply"/);
   assert.match(portal, /\{agentRun\.step\} done ·[\s\S]{0,50}\{agentRun\.remainingWork\.length\}[\s\S]{0,30}remaining/);
-  assert.match(portal, /Nexus working/);
+  assert.doesNotMatch(portal, /className=\{`school-ai-fab/);
   assert.match(portal, /onActivityChange=\{setAssistantActivity\}/);
   assert.match(styles, /\.chat-agent-activity/);
   assert.match(styles, /\.school-ai-fab\.thinking/);

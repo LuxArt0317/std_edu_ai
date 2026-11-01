@@ -20,7 +20,7 @@ test("curriculum lifecycle is visible, atomic, authorized, versioned, and audite
     read("supabase/migrations/20260718055707_manage_academic_curriculum_lifecycle.sql"),
     read("supabase/migrations/20260718060555_authorize_curriculum_audit_evidence.sql"),
   ]);
-  for (const marker of ["Edit curriculum","Duplicate as new version","SUBJECT SEQUENCE","BLOCK TEMPLATES","Prerequisites","Required change reason"]) assert.match(ui, new RegExp(marker));
+  for (const marker of ["Edit curriculum","Duplicate as new version","curriculum-subject-editor","curriculum-block-editor","Prerequisites","Required change reason"]) assert.match(ui, new RegExp(marker));
   assert.match(repository, /export async function updateAcademicCurriculum/);
   assert.match(repository, /update_academic_curriculum/);
   assert.match(migration, /security invoker/i);

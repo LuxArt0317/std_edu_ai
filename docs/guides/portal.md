@@ -38,17 +38,17 @@ Students see only their own published results. Teachers can review class gradebo
 
 Combines personal and role-wide events, enrolled or taught classes, assessment and standalone grade deadlines, attendance sessions, learning releases, assigned institutional work, enrollment windows, and term milestones. Month, week, and agenda views share filters and compact event details. Students can turn their authorized class view into a configurable high-resolution STU-branded PNG with rooms, deadlines, weekend selection, and color themes. Policies derive visibility from enrollment, teaching assignment, personal ownership, intended role audience, and each source domain's RLS.
 
-### People & Access
+### Users
 
-The owner and authorized leadership see a searchable account directory with status/role filters and pagination. Active accounts are shown by default. The fourteen permission templates are separate from real accounts and appear under Advanced role permissions. Role changes use an audited server-side function that updates Auth metadata and the profile atomically. The protected owner cannot be demoted or deleted and a second owner cannot be assigned.
+The owner and authorized leadership see a searchable account directory with status/role filters and pagination. Active accounts are shown by default. The fourteen permission templates are separate from real accounts and appear under Role settings. Role changes use an audited server-side function that updates Auth metadata and the profile atomically. The protected owner cannot be demoted or deleted and a second owner cannot be assigned.
 
 ## Student services in the same School OS
 
-Open Students, Student Signals, Admissions, Support Cases, Communications, Knowledge Hub and Reports directly from the main sidebar. Support Overview contains staff tasks and the support brief. There is no workspace switch or separate login. Existing database policies still determine which records each person can access.
+Open Students, Alerts, Admissions, Cases, Messages, Knowledge and Reports from the sidebar. Tasks contains staff follow-ups. There is no workspace switch or separate login. Existing database policies still determine which records each person can access.
 
 ## Main workspaces
 
-### Command Center
+### Tasks
 
 Provides a daily operational overview of urgent cases, overdue tasks, student-risk alerts, admissions activity, and work requiring staff attention.
 
@@ -134,3 +134,7 @@ The records currently included are safe seed records created to demonstrate and 
 ## In one sentence
 
 STU Nexus gives the whole school one permission-aware place to learn, teach, assess, schedule, administer, support students, and use human-reviewed AI assistance.
+
+## Account menu
+
+Open your name at the bottom of the sidebar to change Appearance (System, Light or Dark) or sign out. Owners can preview another role from this menu. A preview changes navigation only; actions still use the owner account permissions.

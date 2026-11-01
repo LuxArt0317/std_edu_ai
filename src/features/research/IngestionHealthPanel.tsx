@@ -83,11 +83,10 @@ export function IngestionHealthPanel({
     <section className="ingestion-health">
       <header>
         <div>
-          <span>GOVERNED INGESTION</span>
-          <h3>Pipeline operations</h3>
-          <p>Content-free telemetry for the last 30 days. Source text, prompts, credentials, and provider payloads are never included.</p>
+          <h3>Imports</h3>
+          <p>Import activity over the last 30 days. Source content and credentials are excluded.</p>
         </div>
-        <Button type="button" disabled={busy} onClick={() => void refresh()}>{busy ? 'Refreshing…' : 'Refresh'}</Button>
+        <Button variant="outline" type="button" disabled={busy} onClick={() => void refresh()}>{busy ? 'Refreshing…' : 'Refresh'}</Button>
       </header>
       {data ? (
         <>
@@ -104,19 +103,19 @@ export function IngestionHealthPanel({
             ].map(([label, value]) => <Card key={label}><span>{label}</span><strong>{value}</strong></Card>)}
           </div>
           <details>
-            <summary>Failure classes and backlog</summary>
+            <summary>Errors and pending imports</summary>
             <p>Oldest unfinished run: {data.oldestBacklogSeconds}s</p>
             <ul>{Object.entries(data.failureClasses).map(([name, count]) => <li key={name}>{name.replaceAll('_', ' ')}: {count}</li>)}</ul>
             <small>{data.caveat}</small>
           </details>
           {data.oldestBacklogSeconds > 900 ? (
-            <Button type="button" disabled={busy} onClick={() => void recoverStaleRuns()}>Quarantine stale runs</Button>
+            <Button variant="outline" type="button" disabled={busy} onClick={() => void recoverStaleRuns()}>Quarantine stale runs</Button>
           ) : null}
         </>
       ) : (
         <div className="measurement-state">
           <strong>No telemetry yet</strong>
-          <p>The first governed import will populate measured pipeline health.</p>
+          <p>No imports yet.</p>
         </div>
       )}
     </section>

@@ -1,6 +1,16 @@
 # Changelog
 ## Unreleased
 
+### Transactional UI overhaul (Issue #74)
+
+- Apply the requested taste-led redesign with compact shadcn controls, one green accent, a grouped sidebar and record-focused pages.
+- Remove oversized heroes, repeated context/role banners and promotional copy; simplify page and action labels.
+- Move appearance, owner role preview and sign-out to the account menu; provide System, Light and Dark modes.
+- Replace case/department card grids with tables, consolidate academic Add/Export actions and put change requests in their own tab.
+- Improve assistant labels, keyboard scrolling, input names and focus restoration. Preserve role permissions, approval controls and institutional data.
+- Verify 170 API/source checks, eight units, all 29 E2E scenarios across full/focused runs, 30 light/dark page states and ten public accessibility states. Sign-in Lighthouse: performance 98, accessibility 100, LCP 0.7s, CLS 0.
+- Commit locally for review; no production UI push or deployment is included.
+
 ### Unified School OS (Issue #74)
 
 - Merge Learner Support modules into the School OS navigation and remove the duplicate workspace shell.

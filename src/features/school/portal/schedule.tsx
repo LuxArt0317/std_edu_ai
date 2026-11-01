@@ -38,7 +38,6 @@ export function SchedulePngGenerator({
   return (
     <section className="schedule-poster school-card">
       <div>
-        <span>STUDENT SCHEDULE STUDIO</span>
         <h2>Make your class schedule</h2>
         <p>
           Generate a high-resolution PNG with the school identity, your class
@@ -105,7 +104,7 @@ export function SchedulePngGenerator({
           Include Sunday
         </Label>
       </div>
-      <Button
+      <Button variant="outline"
         type="button"
         disabled={busy}
         onClick={() => {
@@ -235,7 +234,7 @@ export function ScheduleView({
     )
     .slice(0, 5);
   const renderEvent = (event: UnifiedCalendarEvent, compact = false) => (
-    <Button
+    <Button variant="outline"
       type="button"
       key={event.id}
       className={`unified-calendar-event ${event.category} ${event.importance}`}
@@ -255,9 +254,8 @@ export function ScheduleView({
   return (
     <>
       <PageIntro
-        eyebrow="ONE CALENDAR"
         title="Schedule"
-        description="Classes, exams, deadlines, meetings, and campus events—filtered automatically for your role."
+        description="Classes, deadlines and events."
       />
       {focusedCourse ? (
         <div className="workspace-focus-banner">
@@ -292,17 +290,17 @@ export function ScheduleView({
             </p>
           </div>
           <div className="unified-calendar-actions">
-            <Button
+            <Button variant="outline"
               type="button"
               onClick={() => move(-1)}
               aria-label="Previous period"
             >
               ‹
             </Button>
-            <Button type="button" onClick={() => setAnchorDate(new Date())}>
+            <Button variant="outline" type="button" onClick={() => setAnchorDate(new Date())}>
               Today
             </Button>
-            <Button
+            <Button variant="outline"
               type="button"
               onClick={() => move(1)}
               aria-label="Next period"
@@ -314,7 +312,7 @@ export function ScheduleView({
         <div className="unified-calendar-toolbar">
           <div>
             {(["month", "week", "agenda"] as const).map((mode) => (
-              <Button
+              <Button variant="outline"
                 type="button"
                 key={mode}
                 className={calendarMode === mode ? "active" : ""}
@@ -440,7 +438,7 @@ export function ScheduleView({
                     {event.scope} · {event.location}
                   </small>
                 </div>
-                <Button type="button" onClick={() => setSelectedEvent(event)}>
+                <Button variant="outline" type="button" onClick={() => setSelectedEvent(event)}>
                   Details
                 </Button>
               </Card>

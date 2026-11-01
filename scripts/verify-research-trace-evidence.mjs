@@ -38,7 +38,7 @@ for (const marker of [
 
 for (const marker of ["需要修正", "correctionCategory", "resolvedNeed"])
   assert.ok(publicUi.includes(marker), `feedback UI missing ${marker}`);
-for (const marker of ["PUBLIC RAG EVIDENCE", "groundedRate", "p95", "permittedRoles"])
+for (const marker of ["public-ai-evidence", "groundedRate", "p95", "permittedRoles"])
   assert.ok(reviewerUi.includes(marker), `reviewer UI missing ${marker}`);
 
 assert.ok(cleanup.indexOf("delete from public.ai_queries") < cleanup.indexOf("delete from public.knowledge_documents"));

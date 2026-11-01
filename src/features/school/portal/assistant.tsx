@@ -1,3 +1,4 @@
+import { MessageSquare, Paperclip } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -610,7 +611,7 @@ export function SchoolAssistant({
         setAgentRun(progressed);
         addAssistantMessage(
           activeThread,
-          `Step ${progressed.step} complete — opened ${navMeta[action.destination].label}.`,
+          `Step ${progressed.step} complete - opened ${navMeta[action.destination].label}.`,
           ["Observed portal action"],
         );
         await advanceAgent(progressed, activeThread, contextData);
@@ -1178,7 +1179,7 @@ export function SchoolAssistant({
       }
       onNavigate(action.destination);
       void recordSchoolAgentAction(action.type, "success");
-      const confirmation = `Done — I opened ${navMeta[action.destination].label}.`;
+      const confirmation = `Done - I opened ${navMeta[action.destination].label}.`;
       setMessages((current) => [
         ...current,
         {
@@ -1234,7 +1235,7 @@ export function SchoolAssistant({
           await advanceAgent(replanning, threadId, refreshedData);
         } else {
           setError(
-            "The lesson changed before this page was saved. Ask Nexus to retry against the refreshed material list.",
+            "The lesson changed before this page was saved. Refresh the material list and try again.",
           );
         }
         return;
@@ -1275,7 +1276,7 @@ export function SchoolAssistant({
       !course
     ) {
       stopAsImpossible(
-        "That course is no longer available. Ask Nexus to prepare the change again.",
+        "That course is no longer available. Refresh the course and try again.",
       );
       return;
     }
@@ -1284,7 +1285,7 @@ export function SchoolAssistant({
       (!module || module.sectionId !== action.sectionId)
     ) {
       stopAsImpossible(
-        "That learning module is no longer available. Ask Nexus to prepare the change again.",
+        "That learning module is no longer available. Refresh the course and try again.",
       );
       return;
     }
@@ -1618,7 +1619,7 @@ export function SchoolAssistant({
         );
       await recordSchoolAgentAction(action.type, "success");
       const confirmation =
-        "Done — the confirmed change is saved and your workspace is refreshing.";
+        "Done - the confirmed change is saved and your workspace is refreshing.";
       setMessages((current) => [
         ...current,
         {
@@ -1694,20 +1695,19 @@ export function SchoolAssistant({
   if (!open) return null;
   return (
     <div className="school-ai-layer">
-      <aside>
+      <aside aria-label="Assistant">
         <header>
-          <NexusAvatar />
+          <MessageSquare className="size-5" aria-hidden="true" />
           <div>
-            <small>STU NEXUS</small>
-            <h2>School AI Assistant</h2>
-            <p>Role-aware · grounded · persistent</p>
+            <h2>Assistant</h2>
           </div>
-          <Button type="button" onClick={onClose}>
+          <Button variant="outline" aria-label="Close" type="button" onClick={onClose}>
             ×
           </Button>
         </header>
         <div className="chat-thread-bar">
           <NativeSelect
+            aria-label="Conversation"
             value={threadId}
             onChange={(event) => setThreadId(event.target.value)}
           >
@@ -1760,7 +1760,7 @@ export function SchoolAssistant({
           >
             <span aria-hidden="true">⌫</span>
           </Button>
-          <Button
+          <Button variant="outline"
             type="button"
             className="chat-thread-new"
             aria-label="Start a new conversation"
@@ -1780,7 +1780,7 @@ export function SchoolAssistant({
         {threadNotice ? (
           <div className="chat-thread-notice" role="status">
             {threadNotice}
-            <Button
+            <Button variant="outline"
               type="button"
               aria-label="Dismiss"
               onClick={() => setThreadNotice("")}
@@ -1792,9 +1792,9 @@ export function SchoolAssistant({
         <div
           className="nexus-mode-switch"
           role="group"
-          aria-label="Nexus assistant mode"
+          aria-label="Assistant mode"
         >
-          <Button
+          <Button variant="outline"
             type="button"
             className={assistantMode === "qa" ? "active" : ""}
             aria-pressed={assistantMode === "qa"}
@@ -1803,18 +1803,22 @@ export function SchoolAssistant({
             <b>Ask</b>
             <small>Answers only</small>
           </Button>
-          <Button
+          <Button variant="outline"
             type="button"
             className={assistantMode === "agentic" ? "active" : ""}
             aria-pressed={assistantMode === "agentic"}
             onClick={() => setAssistantMode("agentic")}
           >
-            <b>Agentic</b>
-            <small>Can prepare actions</small>
+            <b>Draft changes</b>
+            <small>Review before applying</small>
           </Button>
         </div>
         <div
           className="chat-messages"
+          role="log"
+          aria-label="Conversation messages"
+          aria-live="polite"
+          tabIndex={0}
           ref={messageViewportRef}
           onScroll={(event) => {
             const viewport = event.currentTarget;
@@ -1841,7 +1845,7 @@ export function SchoolAssistant({
                   {item.attachments.length ? (
                     <div className="chat-message-attachments">
                       {item.attachments.map((attachment) => (
-                        <Button
+                        <Button variant="outline"
                           type="button"
                           key={attachment.storagePath}
                           title={attachment.name}
@@ -1881,11 +1885,9 @@ export function SchoolAssistant({
             ))
           ) : (
             <div className="chat-welcome">
-              <NexusAvatar />
-              <h3>What can I help you accomplish?</h3>
+              <h3>Ask a question</h3>
               <p>
-                Ask about your courses, schedule, assessments, teaching work,
-                student support, or verified school information.
+                Get help with courses, schedules, records and drafts.
               </p>
               <div>
                 {[
@@ -1893,7 +1895,7 @@ export function SchoolAssistant({
                   "Explain the next topic",
                   "Help plan this class",
                 ].map((prompt) => (
-                  <Button
+                  <Button variant="outline"
                     key={prompt}
                     type="button"
                     onClick={() => setMessage(prompt)}
@@ -1972,7 +1974,7 @@ export function SchoolAssistant({
                 ) : null}
                 {agentRun.status === "working" ||
                 agentRun.status === "awaiting_confirmation" ? (
-                  <Button
+                  <Button variant="outline"
                     type="button"
                     onClick={() => {
                       activeRunId.current = "";
@@ -2007,7 +2009,7 @@ export function SchoolAssistant({
                 <h3>{agentRun.clarification.question}</h3>
                 <div>
                   {agentRun.clarification.options.map((option) => (
-                    <Button
+                    <Button variant="outline"
                       type="button"
                       key={option}
                       onClick={() => void answerClarification(option)}
@@ -2048,13 +2050,13 @@ export function SchoolAssistant({
                 <div>
                   <b>{queued.prompt}</b>
                   <small>
-                    {queued.mode === "qa" ? "Ask mode" : "Agentic mode"}
+                    {queued.mode === "qa" ? "Question" : "Change request"}
                     {queued.attachments.length
                       ? ` · ${queued.attachments.length} attachment${queued.attachments.length === 1 ? "" : "s"}`
                       : ""}
                   </small>
                 </div>
-                <Button
+                <Button variant="outline"
                   type="button"
                   aria-label={`Remove queued message ${index + 1}`}
                   onClick={() =>
@@ -2081,7 +2083,7 @@ export function SchoolAssistant({
         ) : null}
         {pendingAction ? (
           <section className="chat-action-card">
-            <span>READY FOR REVIEW</span>
+            <span>Ready for review</span>
             <strong>{pendingAction.confirmation || pendingAction.title}</strong>
             <p>
               Nexus prepared this change but has not saved it. Review and
@@ -2158,7 +2160,7 @@ export function SchoolAssistant({
                   placeholder="For example: add five multiple-choice questions and make it 20 points."
                   autoFocus
                 />
-                <Button
+                <Button variant="outline"
                   type="button"
                   disabled={!actionFeedback.trim() || loading}
                   onClick={() => void retryProposedAction()}
@@ -2168,7 +2170,7 @@ export function SchoolAssistant({
               </div>
             ) : null}
             <div>
-              <Button
+              <Button variant="outline"
                 type="button"
                 onClick={() => {
                   activeRunId.current = "";
@@ -2184,14 +2186,14 @@ export function SchoolAssistant({
               >
                 Cancel
               </Button>
-              <Button
+              <Button variant="outline"
                 type="button"
                 onClick={() => setActionFeedbackOpen((value) => !value)}
                 disabled={loading}
               >
                 {actionFeedbackOpen ? "Close comment" : "Request changes"}
               </Button>
-              <Button
+              <Button variant="outline"
                 type="button"
                 disabled={
                   loading ||
@@ -2224,7 +2226,7 @@ export function SchoolAssistant({
                         "FILE"}
                     </b>
                   )}
-                  <Button
+                  <Button variant="outline"
                     type="button"
                     aria-label={`Remove ${file.name}`}
                     title={`Remove ${file.name}`}
@@ -2241,6 +2243,7 @@ export function SchoolAssistant({
             </div>
           ) : null}
           <Textarea
+            aria-label="Message"
             rows={3}
             value={message}
             onChange={(event) => setMessage(event.target.value)}
@@ -2254,25 +2257,24 @@ export function SchoolAssistant({
               event.preventDefault();
               event.currentTarget.form?.requestSubmit();
             }}
-            placeholder="Message Nexus AI…"
+            placeholder="Ask a question or describe a task"
           />
           <div>
             <span>
-              <Button
+              <Button variant="outline"
                 type="button"
                 className="nexus-attach-button"
                 onClick={() => attachmentInputRef.current?.click()}
                 aria-label="Attach images or files"
                 title="Attach images or files"
               >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M9.5 17.5 17 10a3.5 3.5 0 0 0-5-5l-8 8a5 5 0 0 0 7 7l8.5-8.5" />
-                </svg>
+                <Paperclip className="size-4" aria-hidden="true" />
               </Button>{" "}
               Enter to send · Shift+Enter for a new line
             </span>
             <Input
               ref={attachmentInputRef}
+              aria-label="Attachments"
               className="sr-only"
               type="file"
               multiple
@@ -2331,7 +2333,7 @@ export function SchoolAssistant({
                   )}
                 </div>
                 <footer>
-                  <Button
+                  <Button variant="outline"
                     type="button"
                     disabled={threadActionBusy}
                     onClick={() => setThreadDialog(null)}
@@ -2346,7 +2348,7 @@ export function SchoolAssistant({
                       {threadActionBusy ? "Saving…" : "Save"}
                     </Button>
                   ) : (
-                    <Button
+                    <Button variant="outline"
                       type="button"
                       className="destructive"
                       disabled={threadActionBusy}

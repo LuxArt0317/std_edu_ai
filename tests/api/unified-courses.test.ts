@@ -16,8 +16,8 @@ test("staff use one Courses workspace with an exact published student preview", 
   assert.match(portal, /view === "learning" && teachingRoles\.has\(effectiveRole\)\s*\? "teaching"/);
   assert.match(lms, /\["preview", "Student view"\]/);
   assert.match(lms, /mode="preview"/);
-  assert.match(lms, /EXACT PUBLISHED VIEW/);
-  assert.match(lms, /There is no separate copy or synchronization step/);
+  assert.match(lms, /Student preview/);
+  assert.match(lms, /This shows the published lessons/);
   assert.match(academics, />Open course</);
   assert.doesNotMatch(academics, />Open learning</);
   assert.doesNotMatch(academics, />Open teaching</);

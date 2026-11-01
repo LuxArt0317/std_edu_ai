@@ -38,7 +38,7 @@ export function WorkspaceDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
             {description ||
-              "Review the details below. Changes are saved only when you submit the form."}
+              "Update the fields, then save."}
           </DialogDescription>
         </DialogHeader>
         {children}

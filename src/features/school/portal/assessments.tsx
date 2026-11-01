@@ -254,7 +254,6 @@ export function AssessmentsView({
   return (
     <>
       <PageIntro
-        eyebrow={learnerMode ? "PRACTICE & CHECK" : "ASSESSMENT OPERATIONS"}
         title="Assessments"
         description={
           learnerMode
@@ -264,7 +263,7 @@ export function AssessmentsView({
       />
       {focusedCourse ? (
         <div className="workspace-focus-banner">
-          <b>Opened from Academic Office</b>
+          <b>Opened from Academics</b>
           <span>
             {focusedCourse.code} · {focusedCourse.title} ·{" "}
             {focusedCourse.sectionCode}
@@ -336,7 +335,7 @@ export function AssessmentsView({
               ) : null}
               <footer>
                 <small>Due {formatDate(assessment.dueAt)}</small>
-                <Button
+                <Button variant="outline"
                   type="button"
                   onClick={() => {
                     setActive(assessment);
@@ -366,7 +365,6 @@ export function AssessmentsView({
           <section className="quiz-panel">
             <header>
               <div>
-                <span>ASSESSMENT</span>
                 <h2>{active.title}</h2>
                 {active.instructions ? (
                   <RichTextContent html={active.instructions} />
@@ -374,7 +372,7 @@ export function AssessmentsView({
                   <p>No instructions provided.</p>
                 )}
               </div>
-              <Button type="button" onClick={closeAssessment}>
+              <Button variant="outline" aria-label="Close" type="button" onClick={closeAssessment}>
                 ×
               </Button>
             </header>
@@ -438,13 +436,12 @@ export function AssessmentsView({
                     })}
                   </div>
                 ) : null}
-                <Button type="button" onClick={closeAssessment}>
+                <Button variant="outline" type="button" onClick={closeAssessment}>
                   Return to assessments
                 </Button>
               </div>
             ) : learnerMode && !assessmentStarted ? (
               <div className="quiz-preflight">
-                <span>BEFORE YOU BEGIN</span>
                 <h2>Assessment requirements</h2>
                 <p>
                   {active.integrityInstructions ||
@@ -500,7 +497,7 @@ export function AssessmentsView({
                     ))}
                   </div>
                 ) : null}
-                <Button
+                <Button variant="outline"
                   type="button"
                   disabled={preflightBusy}
                   onClick={() => void beginAssessment()}

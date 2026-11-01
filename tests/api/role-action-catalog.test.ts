@@ -42,8 +42,8 @@ test("the authoritative action catalog covers every canonical role and domain", 
 });
 
 test("the protected owner has complete visible non-owner provisioning", () => {
-  assert.match(portal, /OWNER ACCOUNT CONTROL/);
-  assert.match(portal, /\+ Add account/);
+  assert.match(portal, /people-provision-actions/);
+  assert.match(portal, /Add user/);
   assert.match(portal, /provisionRoleAccount\(\{/);
   assert.match(portal, /filter\(\(item\) => item\.code !== "owner"\)/);
   assert.match(portal, /generateTemporaryPassword/);
@@ -52,11 +52,11 @@ test("the protected owner has complete visible non-owner provisioning", () => {
 });
 
 test("role assignment requires impact review, a reason, and confirmation", () => {
-  assert.match(portal, /CONTROLLED ROLE TRANSITION/);
+  assert.match(portal, /Confirm role change/);
   assert.match(portal, /Reason for this authorization change/);
   assert.match(portal, /minLength=\{12\}/);
   assert.match(portal, /Confirm role change/);
-  assert.match(portal, /immutable role-audit entry/);
+  assert.match(portal, /This role change will be recorded/);
 });
 
 test("account lifecycle actions are visible, Auth-enforced, audited, and owner-protected", () => {

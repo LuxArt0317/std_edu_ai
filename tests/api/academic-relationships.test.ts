@@ -41,9 +41,9 @@ test("students have an authoritative program foreign key with safe compatibility
 
 test("Academic Office exposes connected program pathways and recovery actions", () => {
   for (const marker of [
-    "PROGRAM-CENTERED ACADEMIC MAP", "Open pathway", "Curriculum versions", "View subjects",
+    "curriculum-library", "Open curriculum", "Curriculum versions", "View subjects",
     "View classes", "Programs without curriculum", "Students without program ID",
-    "Ask Nexus to create", "Open roster", "Not placed in a curriculum",
+    "Draft curriculum", "Open roster", "Not placed in a curriculum",
   ]) assert.match(ui, new RegExp(marker), `connected workflow missing ${marker}`);
   assert.match(ui, /data\.curricula\.filter\(\(item\) => item\.programId === selectedProgram\.id\)/);
   assert.match(ui, /item\.departmentId===selectedProgram\.departmentId&&\(item\.programId === selectedProgram\.id\|\|item\.programId===null\)/);

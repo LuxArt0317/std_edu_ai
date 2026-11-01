@@ -43,9 +43,9 @@ for (const onboardingMarker of ['ROLE READINESS CENTER', 'Click the highlighted 
   )
 }
 for (const sourceInventoryMarker of [
-  'OFFICIAL-SOURCE DISCOVERY',
-  'Review the STU source inventory',
-  'Accept as inactive source',
+  'source-candidate-review',
+  'Review sources',
+  'Accept source',
   'review_stu_source_candidate',
 ]) {
   assert.ok(

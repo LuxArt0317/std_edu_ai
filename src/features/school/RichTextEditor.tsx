@@ -197,21 +197,21 @@ export function RichTextEditor({
       void insertImages(images);
     }}>
       <div className="lms-rich-toolbar">
-        <Button
+        <Button variant="outline"
           type="button"
           className={editor.isActive("bold") ? "active" : ""}
           onClick={() => editor.chain().focus().toggleBold().run()}
         >
           <b>B</b>
         </Button>
-        <Button
+        <Button variant="outline"
           type="button"
           className={editor.isActive("italic") ? "active" : ""}
           onClick={() => editor.chain().focus().toggleItalic().run()}
         >
           <i>I</i>
         </Button>
-        <Button
+        <Button variant="outline"
           type="button"
           className={editor.isActive("heading", { level: 2 }) ? "active" : ""}
           onClick={() =>
@@ -220,7 +220,7 @@ export function RichTextEditor({
         >
           H2
         </Button>
-        <Button
+        <Button variant="outline"
           type="button"
           className={editor.isActive("heading", { level: 3 }) ? "active" : ""}
           onClick={() =>
@@ -229,28 +229,28 @@ export function RichTextEditor({
         >
           H3
         </Button>
-        <Button
+        <Button variant="outline"
           type="button"
           className={editor.isActive("bulletList") ? "active" : ""}
           onClick={() => editor.chain().focus().toggleBulletList().run()}
         >
           • List
         </Button>
-        <Button
+        <Button variant="outline"
           type="button"
           className={editor.isActive("orderedList") ? "active" : ""}
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
         >
           1. List
         </Button>
-        <Button
+        <Button variant="outline"
           type="button"
           className={editor.isActive("blockquote") ? "active" : ""}
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
         >
           Quote
         </Button>
-        <Button
+        <Button variant="outline"
           type="button"
           className={editor.isActive("link") ? "active" : ""}
           onClick={link}
@@ -259,7 +259,7 @@ export function RichTextEditor({
         </Button>
         {onImageUpload ? (
           <>
-            <Button
+            <Button variant="outline"
               type="button"
               disabled={uploading}
               onClick={() => imageInput.current?.click()}
@@ -281,9 +281,9 @@ export function RichTextEditor({
             />
           </>
         ) : null}
-        <Button type="button" disabled={uploading} onClick={insertVideo}>Embed video</Button>
+        <Button variant="outline" type="button" disabled={uploading} onClick={insertVideo}>Embed video</Button>
         {onVideoUpload ? <>
-          <Button type="button" disabled={uploading} onClick={() => videoInput.current?.click()}>Upload video</Button>
+          <Button variant="outline" type="button" disabled={uploading} onClick={() => videoInput.current?.click()}>Upload video</Button>
           <Input ref={videoInput} className="lms-image-input" type="file" multiple accept="video/mp4,video/webm,video/quicktime" onChange={(event) => {
             const files=[...(event.target.files??[])]; event.target.value=""; if(!files.length) return;
             setUploading(true); setMediaError("");
@@ -291,21 +291,21 @@ export function RichTextEditor({
           }} />
         </> : null}
         {onFileUpload ? <>
-          <Button type="button" disabled={uploading} onClick={() => fileInput.current?.click()}>Attach files</Button>
+          <Button variant="outline" type="button" disabled={uploading} onClick={() => fileInput.current?.click()}>Attach files</Button>
           <Input ref={fileInput} className="lms-image-input" type="file" multiple onChange={(event) => {
             const files=[...(event.target.files??[])]; event.target.value=""; if(!files.length) return;
             setUploading(true); setMediaError("");
             void (async()=>{for(const file of files){const attachment=await onFileUpload(file);editor.chain().focus().insertContent({type:"fileAttachment",attrs:attachment}).run();}})().catch((error: unknown)=>setMediaError(error instanceof Error?error.message:"File upload failed.")).finally(()=>setUploading(false));
           }} />
         </> : null}
-        <Button
+        <Button variant="outline"
           type="button"
           onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().undo()}
         >
           ↶
         </Button>
-        <Button
+        <Button variant="outline"
           type="button"
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().redo()}

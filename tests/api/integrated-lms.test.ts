@@ -44,7 +44,7 @@ test("teacher and student LMS surfaces cover the complete course lifecycle", asy
   const ui = await source("src/features/school/LmsWorkspace.tsx");
   for (const label of [
     "New module",
-    "Add learning material",
+    "Add material",
     "New assessment",
     "Grade work",
     "Take attendance",
@@ -80,5 +80,5 @@ test("rich content supports protected multi-page lessons and managed images", as
   assert.match(editor, /@tiptap\/extension-image/);
   assert.match(editor, /onImageUpload/);
   assert.match(lms, /Add page/);
-  assert.match(lms, /PAGE \{activePage \+ 1\} OF/);
+  assert.match(lms, /Page \{activePage \+ 1\} of/);
 });

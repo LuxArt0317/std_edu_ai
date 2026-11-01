@@ -41,3 +41,7 @@ The GitHub quality workflow runs the safe, non-mutating checks without client cr
 ## Unified School OS
 
 One sidebar/header owns navigation for school and student-service features. See the [frontend reference](docs/reference/FRONTEND.md) and [workspace guide](docs/guides/portal.md). Account records and advanced role templates are presented separately; server authorization remains unchanged.
+
+## Transactional UI
+
+The taste-led overhaul keeps the existing shadcn/Radix and Tailwind stack, adds the official shadcn dropdown menu, and uses the existing next-themes provider for system/light/dark appearance. The application uses compact page headers, grouped navigation, plain labels and record-focused screens. See the [frontend reference](docs/reference/FRONTEND.md).
