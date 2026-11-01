@@ -4,4 +4,4 @@ Issue #74: user authorized Vercel publication. The merged transactional School O
 
 Verified: 170 API/source checks, 11 units, all 32 E2E scenarios across full/focused runs, ten public accessibility states, build/assets/docs, zero dependency vulnerabilities and live client/backend checks. Auth regression found and fixed a password-label defect and logout redirect race. Inherited lint warnings remain.
 
-Preparing the authorized production push; exact Vercel Ready status and live browser verification still pending. Credentials and raw traces remain ignored/private. Database remains 100 migrations / 101 RLS tables.
+Pushed routing/UI commit 0def115; GitHub quality checks passed. Vercel built successfully but expected the wrong output folder (build). vercel.json now explicitly controls the Vite preset and dist output. Retrying deployment; exact Ready status and live browser verification still pending. Credentials and raw traces remain ignored/private. Database remains 100 migrations / 101 RLS tables.

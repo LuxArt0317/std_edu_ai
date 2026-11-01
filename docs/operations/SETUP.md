@@ -40,7 +40,7 @@ The public Supabase root certificate in `supabase/certs/` is downloaded from the
 
 ## Vercel
 
-Use team `v1-d286`, project `std_edu_ai`, branch `main`, root `./`, Vite framework, build `npm run build`, output `dist`, and Node.js 24. The existing SPA rewrite supports `/login`, `/app`, nested section URLs and legacy `/crm`; Vercel serves `/api` routes as Functions. Marketplace environment changes and code changes require a new deployment.
+Use team `v1-d286`, project `std_edu_ai`, branch `main`, root `./`, Vite framework, build `npm run build`, output `dist`, and Node.js 24. `vercel.json` explicitly sets the Vite preset, `npm ci`, `npm run build` and `dist`, overriding dashboard defaults for each release. The existing SPA rewrite supports `/login`, `/app`, nested section URLs and legacy `/crm`; Vercel serves `/api` routes as Functions. Marketplace environment changes and code changes require a new deployment.
 
 Use the existing client browser session for administration unless a CLI account is explicitly verified against that team. A globally signed-in Vercel CLI for another account is not client access. Secrets must not be copied into source code or documentation.
 

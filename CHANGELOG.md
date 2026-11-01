@@ -3,6 +3,8 @@
 
 ### Client release and routes (Issue #74)
 
+- Pin Vercel framework, install/build commands and `dist` output in versioned configuration to prevent dashboard output mismatches.
+
 - Separate sign-in (`/login`) from the protected dashboard (`/app`); add section URLs, safe return links, refresh/history support and compatible old `/crm` links.
 - Retain the existing Supabase recovery redirect and all server permissions.
 - Add React Router 8 with route unit and real browser authentication/navigation checks.
