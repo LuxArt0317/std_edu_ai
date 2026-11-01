@@ -3,6 +3,8 @@
 
 ### Readability and student registration (Issue #75)
 
+- UI/auth release fa01a84 is deployed Ready; production browser, asset graph and backend checks pass. Public email delivery remains restricted by the selected built-in Supabase sender.
+
 - Separate auth into its own feature with canonical `/signin` and public student `/signup`; preserve `/login` and `/crm` redirects.
 - Add email confirmation/resend states and trusted student-only signup metadata; preserve administrator provisioning and RLS.
 - Align new-password forms with the provider policy and exact callback allowlist.

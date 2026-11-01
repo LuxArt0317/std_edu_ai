@@ -32,6 +32,6 @@ Historical phase checklists: [planning history](../docs/archive/PLANNING_HISTORY
 - [x] Audit reported and related nested states; fix shared contrast, portal styling and overflow causes.
 - [x] Add canonical /signin and /signup with secure student-only registration and compatible legacy links.
 - [x] Verify backend registration/role boundaries, responsive light/dark visuals, unit/API/E2E and public regressions.
-- [ ] Update handoff/planning evidence, commit and publish the corrected client UI.
+- [x] Update handoff/planning evidence, commit and publish the corrected client UI.
 
 - [ ] Connect and verify a production sender for public student email delivery; Supabase default delivery remains restricted (user chose to keep Supabase).
