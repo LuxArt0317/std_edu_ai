@@ -133,3 +133,7 @@ The client database is `xiftudmvxphxcjtmfmib`, managed through the client Vercel
 Run `npm run db:plan` before `npm run db:deploy`; the runner refuses another project, an untracked pre-existing schema, and concurrent runs. It never resets a database. Client bootstrap creates only the confirmed owner; historical acceptance-account linkage is skipped when the old identities are absent.
 
 RLS, protected owner guarantees, role governance, assessment boundaries, private buckets, and audit trails remain enforced. [Operational setup](../operations/SETUP.md) and [verified handoff](../operations/HANDOFF.md) are the current source of deployment facts.
+
+## Case and task priority contract
+
+The student-service interface calls the middle priority `normal`; PostgreSQL stores it as `medium`. `src/lib/priorities.ts` performs the shared conversion for case/task writes and rejects unknown values. Saves select the written ID so a zero-row update cannot appear successful. Student self-service requests and staff triage share the canonical `cases` table and retain separate RLS permissions.

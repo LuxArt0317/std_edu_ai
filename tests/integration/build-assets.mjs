@@ -14,21 +14,28 @@ const normalizeAssetPath = (assetPath) => assetPath.replace(/^\.\//, 'assets/').
 const entryFile = path.join(outputDirectory, normalizeAssetPath(entryPath))
 assert.ok(fs.existsSync(entryFile), `Build verification failed: entry asset ${entryPath} does not exist.`)
 
-const entry = fs.readFileSync(entryFile, 'utf8')
-const dependencyPaths = new Set(
-  [...entry.matchAll(/assets\/[A-Za-z0-9_.-]+\.(?:js|css)/g)].map((match) => match[0]),
-)
-
-for (const dependencyPath of dependencyPaths) {
-  assert.ok(
-    fs.existsSync(path.join(outputDirectory, dependencyPath)),
-    `Build verification failed: generated dependency ${dependencyPath} does not exist.`,
-  )
+function assetGraph(root) {
+  const visited = new Set()
+  const pending = [root]
+  while (pending.length) {
+    const current = pending.pop()
+    if (visited.has(current)) continue
+    assert.ok(fs.existsSync(path.join(outputDirectory, current)), `Build verification failed: generated dependency ${current} does not exist.`)
+    visited.add(current)
+    if (!current.endsWith('.js')) continue
+    const body = fs.readFileSync(path.join(outputDirectory, current), 'utf8')
+    for (const match of body.matchAll(/["']((?:\.\/|assets\/)?[A-Za-z0-9_.-]+\.(?:js|css))["']/g)) {
+      const reference = match[1]
+      pending.push(reference.startsWith('assets/') ? reference : path.posix.join(path.posix.dirname(current), reference))
+    }
+  }
+  return visited
 }
+const dependencyPaths = assetGraph(normalizeAssetPath(entryPath))
 
 const crmScript = [...dependencyPaths].find((dependencyPath) => /^assets\/CRMRoot-[\w-]+\.js$/.test(dependencyPath))
 assert.ok(crmScript, 'Build verification failed: the entry asset does not expose the CRM lazy-route JavaScript dependency.')
-const crmScriptBody = fs.readFileSync(path.join(outputDirectory, crmScript), 'utf8')
+const crmScriptBody = [...assetGraph(crmScript)].filter(file => file.endsWith('.js')).map(file => fs.readFileSync(path.join(outputDirectory, file), 'utf8')).join('\n')
 for (const onboardingMarker of ['ROLE READINESS CENTER', 'Click the highlighted control', 'stu-nexus-role-foundations']) {
   assert.ok(
     !crmScriptBody.includes(onboardingMarker),

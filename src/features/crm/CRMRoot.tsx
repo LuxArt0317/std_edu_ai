@@ -4,7 +4,6 @@ import { Input } from '@/components/ui/input'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import CRMApp from './CRMApp'
 import UnifiedPortal from '../school/UnifiedPortal'
 import { canUseCrm, clearLocalCrmSession, completeCrmPasswordRecovery, completeRequiredPasswordChange, getCrmSession, getCrmUser, hasSupabaseConfig, requestCrmPasswordReset, shouldApplyCrmAuthEvent, signInCrm, signOutCrm, subscribeToCrmAuth } from './authService'
 import type { CrmUser } from './authService'
@@ -101,7 +100,7 @@ function CRMRoot() {
     }
   }
 
-  if (!hasSupabaseConfig) return <CRMApp />
+  if (!hasSupabaseConfig) return <div className="nexus-auth-shell"><section className="nexus-auth-card"><h1>School connection is not configured</h1><p role="alert">Contact the school administrator to configure the secure database connection.</p></section></div>
 
   if (loading) return <div className="nexus-auth-shell"><div className="nexus-auth-loading"><span>樹</span><strong>Securing STU Nexus</strong><p>Restoring your authenticated workspace…</p><Button type="button" onClick={recoverLocalSession}>Start with a clean local session</Button></div></div>
 

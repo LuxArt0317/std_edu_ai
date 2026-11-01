@@ -1,4 +1,3 @@
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar } from '@/components/ui/sidebar'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { summarizeCrm } from './crmSummary'
 import { Badge } from '@/components/ui/badge'
@@ -56,17 +55,6 @@ import type {
   Student,
   StudentSignal,
 } from "./types";
-
-const navigation: Array<{ id: CrmSection; label: string; icon: string }> = [
-  { id: "command", label: "Command Center", icon: "⌁" },
-  { id: "students", label: "Student 360", icon: "◎" },
-  { id: "success", label: "Success Radar", icon: "◇" },
-  { id: "admissions", label: "Admissions", icon: "↗" },
-  { id: "cases", label: "Cases", icon: "▣" },
-  { id: "campaigns", label: "Campaigns", icon: "◌" },
-  { id: "knowledge", label: "Knowledge Hub", icon: "◫" },
-  { id: "analytics", label: "Analytics", icon: "⌁" },
-];
 
 const sectionMeta: Record<
   CrmSection,
@@ -483,22 +471,20 @@ function KnowledgeEditor({
   );
 }
 
-function CrmNavigation({ section, onNavigate, openCases }: { section: CrmSection; onNavigate: (section: CrmSection) => void; openCases: number }) {
-  const { setOpenMobile } = useSidebar()
-  return <SidebarContent><nav aria-label="CRM navigation"><p>WORKSPACE</p><SidebarMenu>{navigation.map(item => <SidebarMenuItem key={item.id}><SidebarMenuButton className="h-11" isActive={section === item.id} aria-current={section === item.id ? 'page' : undefined} onClick={() => { onNavigate(item.id); setOpenMobile(false) }}><i aria-hidden="true" className="not-italic">{item.icon}</i><span>{item.label}</span>{item.id === 'cases' && openCases ? <b>{openCases}</b> : null}</SidebarMenuButton></SidebarMenuItem>)}</SidebarMenu></nav></SidebarContent>
-}
-
 function CRMApp({
   currentUser,
-  onSignOut,
+  activeSection,
+  onSectionChange,
 }: {
-  currentUser?: CrmUser;
-  onSignOut?: () => void;
+  currentUser: CrmUser;
+  activeSection: CrmSection;
+  onSectionChange: (section: CrmSection) => void;
 }) {
   const [caseFilter, setCaseFilter] = useState<CaseStatus | "all">("all");
   const [loadError, setLoadError] = useState("");
   const [loadAttempt, setLoadAttempt] = useState(0);
-  const [section, setSection] = useState<CrmSection>("command");
+  const section = activeSection;
+  const setSection = onSectionChange;
   const [database, setDatabase] = useState<CrmDatabase | null>(() =>
     getCrmDataSnapshot(currentUser?.id, currentUser?.role),
   );
@@ -515,9 +501,6 @@ function CRMApp({
     null,
   );
   const [copilotLoading, setCopilotLoading] = useState(false);
-  const [saveState, setSaveState] = useState<"saved" | "saving" | "error">(
-    "saved",
-  );
   const [knowledgeEditor, setKnowledgeEditor] = useState<
     KnowledgeArticle | "new" | null
   >(null);
@@ -540,11 +523,9 @@ function CRMApp({
 
   useEffect(() => {
     if (!database) return;
-    setSaveState("saving");
     const timer = window.setTimeout(() => {
       void saveCrmData(database)
-        .then(() => setSaveState("saved"))
-        .catch(() => setSaveState("error"));
+        .catch(() => setToast("Session cache could not be updated. Reload the workspace before continuing."));
     }, 250);
     return () => window.clearTimeout(timer);
   }, [database]);
@@ -778,79 +759,8 @@ function CRMApp({
     : 0;
 
   return (
-    <SidebarProvider className="nexus-shell" style={{ "--sidebar-width": "248px" } as React.CSSProperties}>
-      <a className="nexus-skip-link" href="#learner-support-content">
-        Skip to Learner Support content
-      </a>
-      <Sidebar className="nexus-sidebar translate-x-0! shadow-none"><SidebarHeader>
-        <a className="nexus-brand" href="/">
-          <span className="brand-emblem">樹</span>
-          <span>
-            <b>STU NEXUS</b>
-            <small>Student Relationship Cloud</small>
-          </span>
-        </a>
-        </SidebarHeader>
-        <CrmNavigation section={section} onNavigate={setSection} openCases={openCases.length} />
-        <SidebarFooter>
-        <div className="sidebar-bottom">
-          <div className="data-source">
-            <span className="status-light" />
-            <div>
-              <b>{crmDataSource.label}</b>
-              <small>
-                {saveState === "saving"
-                  ? "Saving changes…"
-                  : saveState === "error"
-                    ? "Save interrupted"
-                    : "All changes saved"}
-              </small>
-            </div>
-          </div>
-          <Button
-            className="user-card"
-            type="button"
-            onClick={onSignOut}
-            title={onSignOut ? "Sign out of STU Nexus" : undefined}
-          >
-            <span>{currentUser?.initials || "HB"}</span>
-            <div>
-              <b>{currentUser?.name || "Authorized user"}</b>
-              <small>
-                {currentUser
-                  ? `${currentUser.role} · Supabase`
-                  : "CRM Administrator"}
-              </small>
-            </div>
-            <i>{onSignOut ? "↪" : "•••"}</i>
-          </Button>
-        </div>
-        </SidebarFooter>
-      </Sidebar>
-      <SidebarInset className="nexus-main ml-0! min-w-0" id="learner-support-content">
-        <header className="nexus-topbar">
-          <SidebarTrigger className="mobile-nav-toggle md:hidden" aria-label="Open CRM navigation" />
-          <Button
-            className="global-search"
-            variant="outline"
-            type="button"
-            onClick={() => setSection("students")}
-          >
-            <span>⌕</span>
-            <p>Search students, cases, applicants…</p>
-            <kbd>⌘ K</kbd>
-          </Button>
-          <div className="topbar-actions">
-            <Button type="button" title="Open today's action list" aria-label="Open today's action list" onClick={() => setSection("command")}>
-              ◴<b>{database.tasks.filter((task) => !task.completed).length}</b>
-            </Button>
-            <Button type="button" title="Open case notifications" aria-label="Open case notifications" onClick={() => setSection("cases")}>
-              ♢<b>{openCases.length}</b>
-            </Button>
-            <a href="/">University site ↗</a>
-          </div>
-        </header>
-
+    <div className="nexus-shell nexus-embedded min-w-0">
+      <div className="nexus-main ml-0! min-w-0" id="learner-support-content">
         <div className="nexus-page" data-section={section}>
           <section className="nexus-workspace-context" aria-label="Current Learner Support context">
             <span><i /> Live role-scoped data</span>
@@ -898,9 +808,7 @@ function CRMApp({
                   <span className="ai-kicker">✦ NEXUS INTELLIGENCE</span>
                   <h2>Your day, already prioritized.</h2>
                   <p>
-                    Three students need timely human attention. Nexus connected
-                    academic, engagement, financial, and service signals into
-                    one actionable brief.
+                    {criticalStudents.length} students have elevated support signals. Review their records and coordinate next steps with assigned staff.
                   </p>
                   <div className="hero-actions">
                     <Button
@@ -1783,7 +1691,7 @@ function CRMApp({
             </section>
           ) : null}
         </div>
-      </SidebarInset>
+      </div>
 
       {selectedStudent ? (
         <StudentDrawer
@@ -1863,7 +1771,8 @@ function CRMApp({
             setRecordEditor(null);
             void loadCrmData(true)
               .then(setDatabase)
-              .then(() => setToast(message));
+              .then(() => setToast(message))
+              .catch(() => setToast("The record was saved, but the view could not refresh. Reopen this module to load it."));
           }}
         />
       ) : null}
@@ -2006,13 +1915,6 @@ function CRMApp({
           {toast}
         </div>
       ) : null}
-      <Button
-        className="floating-copilot"
-        type="button"
-        onClick={() => setCopilotOpen(true)}
-      >
-        ✦<span>Ask Nexus AI</span>
-      </Button>
       {crmDataSource.mode !== "live" ? (
         <Button
           className="demo-reset"
@@ -2025,7 +1927,7 @@ function CRMApp({
           ↻
         </Button>
       ) : null}
-    </SidebarProvider>
+    </div>
   );
 }
 

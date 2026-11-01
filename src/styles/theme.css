@@ -183,3 +183,10 @@
   .school-content [data-slot="label"] > span,
   .nexus-main [data-slot="label"] > span { @apply text-sm; }
 }
+
+@layer components {
+  .nexus-loading > span { @apply text-muted-foreground; }
+  .school-shell .nexus-embedded { min-height: 0; background: transparent; }
+  .school-shell .nexus-embedded .nexus-page { padding: 0; }
+  .school-shell .nexus-embedded .nexus-workspace-context { display: none; }
+}

@@ -110,3 +110,10 @@ test('CRM summaries use canonical records and handle an empty pipeline without i
   assert.equal(result.signals.length, 1)
   assert.equal(result.signals[0].studentId, 'real-1')
 })
+
+const { toDatabasePriority } = await import('../../src/lib/priorities')
+test('case and task priority labels serialize to values accepted by the database', () => {
+  assert.equal(toDatabasePriority('normal'), 'medium')
+  for (const priority of ['low', 'medium', 'high', 'urgent']) assert.equal(toDatabasePriority(priority), priority)
+  assert.throws(() => toDatabasePriority('unknown'), /valid priority/)
+})

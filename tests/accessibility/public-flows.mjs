@@ -52,7 +52,7 @@ async function axeEvidence(page,name,expectedStatusSelectors=[]){
   evidence.push({name,criticalSerious:blocking.reduce((n,item)=>n+item.nodes.length,0),violations:blocking.map(item=>({id:item.id,nodes:item.nodes.map(node=>({target:node.target,summary:node.failureSummary}))})),targetSize:target.reduce((n,item)=>n+item.nodes.length,0),unnamedControls:unnamed,focusTraps:focus.empty+focus.outside+focusCycle,obscuredFocus:focus.obscured,statusMessageFailures:statusMessages});
 }
 
-async function fresh(page,path="/"){await page.goto(`${base}${path}`,{waitUntil:"networkidle"});}
+async function fresh(page,path="/"){await page.goto(`${base}${path}`,{waitUntil:"domcontentloaded"});}
 
 try{
   await waitForServer();

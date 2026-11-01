@@ -1,3 +1,4 @@
+import { toDatabasePriority } from "@/lib/priorities";
 import { supabase } from "../../utils/supabase";
 import type { Tables } from "../../types/database.generated.ts";
 import { SessionCache } from "@/lib/session-cache";
@@ -690,15 +691,15 @@ export async function saveCrmCase(
     title: input.title.trim().slice(0, 180),
     description: input.description.trim().slice(0, 10000),
     category: input.category.trim().slice(0, 80),
-    priority: input.priority,
+    priority: toDatabasePriority(input.priority),
     status: input.status,
     due_at: input.dueAt || null,
     owner_id: input.ownerId,
     resolved_at: input.status === "resolved" ? new Date().toISOString() : null,
   };
   const result = id
-    ? await client.from("cases").update(values).eq("id", id)
-    : await client.from("cases").insert(values);
+    ? await client.from("cases").update(values).eq("id", id).select("id").single()
+    : await client.from("cases").insert(values).select("id").single();
   if (result.error) throw new Error(result.error.message);
 }
 
@@ -756,13 +757,13 @@ export async function saveCrmTask(
     student_id: input.studentId || null,
     case_id: input.caseId || null,
     due_at: input.dueAt || null,
-    priority: input.priority,
+    priority: toDatabasePriority(input.priority),
     assigned_to: input.assignedTo,
     completed_at: input.completed ? new Date().toISOString() : null,
   };
   const result = id
-    ? await client.from("crm_tasks").update(values).eq("id", id)
-    : await client.from("crm_tasks").insert(values);
+    ? await client.from("crm_tasks").update(values).eq("id", id).select("id").single()
+    : await client.from("crm_tasks").insert(values).select("id").single();
   if (result.error) throw new Error(result.error.message);
 }
 

@@ -5,7 +5,7 @@ import { type NexusInputAttachment } from "../platformAi";
 import { type UnifiedCalendarEvent } from "../schoolCalendar";
 import type { PlatformRole, PortalSection } from "../types";
 
-export type PortalView = PortalSection | "crm";
+export type PortalView = PortalSection | "crm" | "students" | "success" | "admissions" | "cases" | "campaigns" | "knowledge" | "analytics";
 
 export type NexusActivityState =
   | "idle"
@@ -102,8 +102,15 @@ export const navMeta: Record<PortalView, { label: string; icon: string }> = {
   assessments: { label: "Assessments", icon: "✓" },
   grades: { label: "Grades", icon: "▤" },
   schedule: { label: "Schedule", icon: "◷" },
-  people: { label: "People & Roles", icon: "◎" },
-  crm: { label: "Learner Support", icon: "◇" },
+  people: { label: "People & Access", icon: "◎" },
+  crm: { label: "Support Overview", icon: "◇" },
+  students: { label: "Students", icon: "◎" },
+  success: { label: "Student Signals", icon: "◇" },
+  admissions: { label: "Admissions", icon: "↗" },
+  cases: { label: "Support Cases", icon: "▣" },
+  campaigns: { label: "Communications", icon: "◌" },
+  knowledge: { label: "Knowledge Hub", icon: "◫" },
+  analytics: { label: "Reports", icon: "▤" },
 };
 
 export function generateTemporaryPassword() {
@@ -113,11 +120,13 @@ export function generateTemporaryPassword() {
   return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
 }
 
+export const supportViews: PortalView[] = ["crm", "students", "success", "admissions", "cases", "campaigns", "knowledge", "analytics"];
+
 export function navigationFor(role: PlatformRole): PortalView[] {
   if (role === "student")
     return ["home", "learning", "assessments", "grades", "schedule"];
   if (role === "faculty")
-    return ["home", "teaching", "assessments", "grades", "schedule", "crm"];
+    return ["home", "teaching", "assessments", "grades", "schedule", ...supportViews];
   if (leadershipRoles.has(role))
     return [
       "home",
@@ -127,13 +136,13 @@ export function navigationFor(role: PlatformRole): PortalView[] {
       "grades",
       "schedule",
       "people",
-      "crm",
+      ...supportViews,
     ];
   return [
     "home",
     "learning",
     "schedule",
-    ...(crmRoles.has(role) ? ["crm" as const] : []),
+    ...(crmRoles.has(role) ? supportViews : []),
   ];
 }
 

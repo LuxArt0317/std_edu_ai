@@ -25,7 +25,8 @@ import {
   Suspense,
   type CSSProperties,
 } from "react";
-import CRMApp from "../crm/CRMApp";
+const CRMApp = lazy(() => import("../crm/CRMApp"));
+import type { CrmSection } from "../crm/types";
 import type { CrmUser } from "../crm/authService";
 import { clearCrmDataSnapshot } from "../crm/crmRepository";
 const StudentLmsLearning = lazy(() =>
@@ -73,7 +74,7 @@ import {
   crmRoles,
   navigationFor,
   navMeta,
-  Pill,
+  supportViews,
   PortalLoading,
   roleNames,
   teachingRoles,
@@ -100,6 +101,7 @@ function PortalNavigation({
         <SidebarMenu>
           {navigation.map((item) => (
             <SidebarMenuItem key={item}>
+              {item === "crm" ? <p className="mt-5 mb-2 px-3 text-xs font-medium text-sidebar-foreground/70">STUDENT SERVICES</p> : null}
               <SidebarMenuButton
                 className="h-11"
                 isActive={view === item}
@@ -199,7 +201,7 @@ function UnifiedPortal({
       );
   }, [effectiveRole, navigation, view]);
 
-  const showingCrm = view === "crm" && crmRoles.has(effectiveRole);
+  const showingCrm = supportViews.includes(view) && crmRoles.has(effectiveRole);
 
   if (!data && !loadError) return <PortalLoading />;
   if (!data)
@@ -218,7 +220,6 @@ function UnifiedPortal({
     <>
       <SidebarProvider
         className="school-shell"
-        hidden={showingCrm}
         style={{ "--sidebar-width": "274px" } as CSSProperties}
       >
         <a className="school-skip-link" href="#school-workspace-content">
@@ -346,6 +347,12 @@ function UnifiedPortal({
                 <b>{navMeta[view].label}</b>
                 <small>{roleNames[effectiveRole]} access</small>
               </section>
+              {showingCrm ? <CRMApp
+                key={`${currentUser.id}:${currentUser.role}`}
+                currentUser={currentUser}
+                activeSection={(view === "crm" ? "command" : view) as CrmSection}
+                onSectionChange={(section) => setView(section === "command" ? "crm" : section)}
+              /> : null}
               {view === "home" ? (
                 <HomeView
                   data={data}
@@ -476,20 +483,7 @@ function UnifiedPortal({
           </span>
         </Button>
       </SidebarProvider>
-      {crmRoles.has(effectiveRole) ? (
-        <div className="crm-bridge" hidden={!showingCrm}>
-          <div className="crm-bridge-bar">
-            <Button type="button" onClick={() => setView("home")}>
-              ← Back to School OS
-            </Button>
-            <span>STU Nexus · Learner Support</span>
-            {currentUser.isOwner ? (
-              <Pill tone="owner">Owner workspace</Pill>
-            ) : null}
-          </div>
-          <CRMApp key={`${currentUser.id}:${currentUser.role}`} currentUser={currentUser} onSignOut={signOut} />
-        </div>
-      ) : null}
+
     </>
   );
 }

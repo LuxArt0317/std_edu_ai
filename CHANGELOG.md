@@ -1,6 +1,16 @@
 # Changelog
 ## Unreleased
 
+### Unified School OS (Issue #74)
+
+- Merge Learner Support modules into the School OS navigation and remove the duplicate workspace shell.
+- Separate actual accounts from role templates with search, filters, pagination and a collapsed advanced policy catalog.
+- Resolve the protected-owner banner from the owner profile and expose record-save errors within their editor.
+- Restore own-student support intake while keeping staff owner assignment and triage checks enforced.
+- Translate normal case/task priority to the database medium enum and verify the saved row, fixing rejected default-priority writes.
+- Verify lazy feature bundles recursively and remove network-idle dependence from public accessibility navigation.
+
+
 ### Design system and workflow overhaul — Issue #74 (review checkpoint)
 
 - Use official shadcn/ui primitives and Tailwind v4 brand tokens across workspaces, dialogs, navigation, form controls and tables.
@@ -8,7 +18,7 @@
 - Add assigned-teacher curriculum proposals, independent academic review, audit evidence, bounded pagination and participant notifications (three client migrations applied).
 - Replace shared browser CRM recovery/demo data with identity-scoped memory caching, explicit retry and verified writes; derive operational metrics/signals from records and activate case filters.
 - Add component units, disposable client E2E fixtures, expanded accessibility checks and a credential-free GitHub quality workflow.
-- Review checkpoint only: the last full E2E run passed 21/23; learner-support case editing and mobile CRM navigation still fail. Public accessibility had a later navigation timeout. No release of this overhaul is claimed.
+- The original checkpoint failures are resolved by the unified School OS follow-up: 170 API/source checks, eight units, ten public accessibility states and all 26 E2E scenarios verified across the full run and focused regressions. Changes remain local for review.
 
 
 ### Client handoff — Issue #73

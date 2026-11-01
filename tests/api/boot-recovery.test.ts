@@ -48,12 +48,15 @@ test('authentication and platform startup have finite recovery bounds', () => {
   assert.match(root, /Start with a clean local session/)
 })
 
-test('workspace navigation retains School OS and Learner Support without remount loading', () => {
+test('workspace navigation embeds support modules inside one School OS shell', () => {
   const portal = readContractSource('src/features/school/UnifiedPortal.tsx', 'utf8')
   const crm = readContractSource('src/features/crm/crmRepository.ts', 'utf8')
   const crmApp = readContractSource('src/features/crm/CRMApp.tsx', 'utf8')
-  assert.match(portal, /school-shell"\s+hidden=\{showingCrm\}/)
-  assert.match(portal, /crm-bridge" hidden=\{!showingCrm\}/)
+  assert.doesNotMatch(portal, /hidden=\{showingCrm\}/)
+  assert.match(portal, /activeSection=\{\(view === "crm"/)
+  assert.match(crmApp, /nexus-embedded/)
+  assert.doesNotMatch(crmApp, /SidebarProvider|Open CRM navigation/)
+  assert.doesNotMatch(portal, /crm-bridge/)
   assert.doesNotMatch(portal, /if \(view === "crm"[\s\S]{0,120}return/)
   assert.match(crm, /getCrmDataSnapshot/)
   assert.match(crm, /crmLoad/)

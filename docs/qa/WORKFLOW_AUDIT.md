@@ -36,4 +36,22 @@ Additional verified defects and fixes:
 
 ## Review checkpoint
 
-Latest full client E2E result: 21 passed, 2 failed. The unresolved cases are learner-support case editing (editor did not close) and mobile CRM navigation (trigger click timed out). Teardown removed 13 temporary accounts, exact fixture records and one remaining fixture file, then deleted the session state file. A later public accessibility run timed out at page navigation; its earlier 10-state run passed. This checkpoint is not a completed QA sign-off or production release.
+Earlier checkpoint (superseded by the verified follow-up below): 21 passed, 2 failed. The unresolved cases are learner-support case editing (editor did not close) and mobile CRM navigation (trigger click timed out). Teardown removed 13 temporary accounts, exact fixture records and one remaining fixture file, then deleted the session state file. A later public accessibility run timed out at page navigation; its earlier 10-state run passed. This checkpoint is not a completed QA sign-off or production release.
+
+## Unified School OS follow-up [Issue #74]
+
+The user requested a single workspace. Learner Support is now a controlled feature workspace in the School OS shell. Its second sidebar/header/sign-out and bridge navigation are removed; direct student-service links retain all existing feature screens. Institutional records and server-enforced roles remain unchanged.
+
+Live read-only account inventory on 2026-11-01: 1 Auth identity, 1 active protected-owner profile, 0 test-named identities, and 0 orphaned identities in either direction. The 14 entries are role templates, not extra user accounts. The People & Access directory defaults to active accounts and has search, role/status filters and 25-account pagination. Detailed role policies are collapsed under Advanced role permissions. The owner banner resolves the actual protected profile rather than labelling every viewer as owner.
+
+Source/API tests: 170 passing. Component tests: 8 passing. Public accessibility: 10 states passing, zero serious/critical, unnamed controls, focus, target-size or overflow failures. Final evidence is recorded below.
+
+The live case editor failure was traced to an existing enum mismatch: the UI sent normal while PostgreSQL accepts medium. Both case and task saves now use one validated conversion and confirm the written ID. Regression coverage includes normal-priority form submission, completed tasks and the student-to-staff shared-case handoff.
+
+The new student-to-staff handoff check exposed a conflicting relationship trigger that rejected unassigned student intake despite the self-service RLS policy. Migration 20261101150000 restores only own-student open intake without an owner. Staff creation and triage still require an active eligible owner; student update permissions remain unchanged. Applied to the exact client target after a dry run (100 migrations, 101 RLS tables).
+
+## Verified follow-up outcome
+
+All 26 E2E scenarios have passed across the full run and focused regressions. Full run: 23/24, followed by passing case CRUD, account filtering, task form and student form-to-staff triage (4/4) after the identified fixes. The owner module/accessibility sweep and all fourteen role navigation checks passed; both mobile navigation checks passed. Fresh owner sessions isolate independent QA checks from revoked shared tokens without weakening authentication. Eight unit tests and 170 API/source checks pass. Build/assets, handoff links, dependency audit and ten public accessibility states pass. Live client verification also passed owner CRUD cleanup, RLS/storage, both Edge Functions and authenticated non-mutating OpenAI QA.
+
+Final teardown: thirteen temporary Auth accounts and exact isolated records removed, session state deleted. Post-cleanup SQL: one real owner, zero test-named users, zero orphaned identities, 100 applied migrations and 101 RLS tables. UI changes remain local; no new Vercel release is claimed. Institutional/manual acceptance items remain outside automated evidence.

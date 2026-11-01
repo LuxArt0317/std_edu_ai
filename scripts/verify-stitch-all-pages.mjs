@@ -12,7 +12,7 @@ for(const row of rows){
 }
 for(const marker of ["All 23 generated HTML artifacts","Incomplete or ambiguous Stitch controls","never remove"]){if(!evidence.includes(marker))throw new Error(`Missing evidence marker: ${marker}`)}
 for(const marker of ["school-workspace-context","aria-current","school-workspace-content"]){if(!portal.includes(marker))throw new Error(`Missing platform marker: ${marker}`)}
-for(const marker of ["nexus-workspace-context","exportWorkspaceSnapshot","Open today's action list","Open case notifications"]){if(!crm.includes(marker))throw new Error(`Missing CRM marker: ${marker}`)}
+for(const marker of ["nexus-workspace-context","exportWorkspaceSnapshot","today-tasks","case-summary"]){if(!crm.includes(marker))throw new Error(`Missing CRM marker: ${marker}`)}
 for(const marker of ["showPassword","Forgot password?","passwordRecovery","requestCrmPasswordReset"]){if(!auth.includes(marker))throw new Error(`Missing auth marker: ${marker}`)}
 if(readContractSource("src/App.tsx","utf8").includes("school-workspace-context"))throw new Error("Authenticated Stitch styling leaked into the public landing component.");
 console.log("All-page Stitch evidence verified: 23/23 CRM surfaces.");

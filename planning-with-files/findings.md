@@ -106,3 +106,7 @@ Use official shadcn source primitives with Tailwind v4, preserve green/teal toke
 Teachers inspect their assigned program and propose curriculum changes. Independent academic managers review proposals; approving a request never silently publishes an institutional curriculum. Supabase remains the permission authority. Isolated QA accounts explicitly synchronize Auth roles and profiles, matching the production provisioning contract.
 
 The browser suite found a real rich-editor lifecycle crash under rapid lazy navigation; deferred initialization and destroyed/schema guards repair the stale editor access. The home upcoming summary now filters expired/invalid calendar entries and refreshes time every minute. Automated public accessibility passed 10 states; institutional manual sign-off is still external.
+
+## Unified School OS decision [Issue #74]
+
+User authorized merging the two workspace shells. Preserve the fourteen server-enforced role templates; they are job-specific access boundaries. Live client audit found exactly one Auth user and one active owner profile, zero test-named users and zero orphaned identities. Present actual accounts separately from advanced templates. Use one shadcn sidebar/header with direct support modules. No database role consolidation or user deletion is needed.

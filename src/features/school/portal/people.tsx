@@ -213,6 +213,10 @@ export function PeopleView({
   const [bulkAccounts, setBulkAccounts] = useState("");
   const [bulkResults, setBulkResults] = useState("");
   const [directory, setDirectory] = useState<AuthDirectoryAccount[]>([]);
+  const [accountSearch, setAccountSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("active");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [directoryPage, setDirectoryPage] = useState(1);
   const [directoryError, setDirectoryError] = useState("");
   const [pendingSessionRevoke, setPendingSessionRevoke] = useState<string>("");
   const [rotatingProfileId, setRotatingProfileId] = useState("");
@@ -267,6 +271,15 @@ export function PeopleView({
     PlatformRole | ""
   >("");
   const canManageAccounts = currentUser.isOwner || currentUser.role === "admin";
+  const ownerProfile = data.profiles.find(profile => profile.isOwner);
+  const matchingProfiles = data.profiles.filter(profile =>
+    (statusFilter === "all" || profile.accountStatus === statusFilter) &&
+    (roleFilter === "all" || profile.role === roleFilter) &&
+    (!accountSearch.trim() || [profile.name, profile.department, profile.jobTitle, roleNames[profile.role]]
+      .join(" ").toLowerCase().includes(accountSearch.trim().toLowerCase())));
+  const pageCount = Math.max(1, Math.ceil(matchingProfiles.length / 25));
+  const visiblePage = Math.min(directoryPage, pageCount);
+  const visibleProfiles = matchingProfiles.slice((visiblePage - 1) * 25, visiblePage * 25);
   const currentProfile = data.profiles.find(
     (item) => item.id === currentUser.id,
   );
@@ -388,28 +401,36 @@ export function PeopleView({
           </div>
         </section>
       ) : null}
-      <section className="owner-protection">
-        <span>{currentUser.initials}</span>
+      {ownerProfile ? <section className="owner-protection">
+        <span>◎</span>
         <div>
           <Pill tone="owner">PROTECTED OWNER</Pill>
-          <h2>{currentUser.name}</h2>
+          <h2>{ownerProfile.name}</h2>
           <p>
-            {currentUser.email} is the immutable root steward. Ordinary
+            The protected owner is the root steward. Ordinary
             administrators cannot demote, replace, or create a second owner.
           </p>
         </div>
         <b>
           100<small>authority level</small>
         </b>
-      </section>
+      </section> : null}
       <section className="people-directory school-card">
         <header>
           <div>
-            <span>ACTIVE IDENTITIES</span>
-            <h3>Role assignments</h3>
+            <span>{data.profiles.length} ACCOUNTS · {data.roles.length} AVAILABLE ROLES</span>
+            <h3>School accounts</h3>
           </div>
         </header>
-        {data.profiles.map((profile) => (
+        <div className="flex flex-wrap gap-3 p-4">
+          <Label className="flex-1 min-w-48">Search accounts<Input value={accountSearch} onChange={event => { setAccountSearch(event.target.value); setDirectoryPage(1); }} placeholder="Name, department or role" /></Label>
+          <Label>Status<NativeSelect value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setDirectoryPage(1); }}>
+            <NativeSelectOption value="active">Active</NativeSelectOption><NativeSelectOption value="suspended">Suspended</NativeSelectOption><NativeSelectOption value="archived">Archived</NativeSelectOption><NativeSelectOption value="all">All statuses</NativeSelectOption>
+          </NativeSelect></Label>
+          <Label>Role<NativeSelect value={roleFilter} onChange={event => { setRoleFilter(event.target.value); setDirectoryPage(1); }}><NativeSelectOption value="all">All roles</NativeSelectOption>{data.roles.map(role => <NativeSelectOption key={role.code} value={role.code}>{role.name}</NativeSelectOption>)}</NativeSelect></Label>
+        </div>
+        {visibleProfiles.length === 0 ? <p className="p-4" role="status">No accounts match these filters.</p> : null}
+        {visibleProfiles.map((profile) => (
           <div
             key={profile.id}
             className={managingProfileId === profile.id ? "selected" : ""}
@@ -591,6 +612,11 @@ export function PeopleView({
           </div>
         ))}
       </section>
+      <div className="flex items-center gap-3 py-3" aria-label="Account pages">
+        <Button disabled={visiblePage === 1} onClick={() => setDirectoryPage(visiblePage - 1)}>Previous accounts</Button>
+        <span role="status">{matchingProfiles.length} matching accounts · Page {visiblePage} of {pageCount}</span>
+        <Button disabled={visiblePage === pageCount} onClick={() => setDirectoryPage(visiblePage + 1)}>Next accounts</Button>
+      </div>
       {directoryError ? (
         <div className="school-inline-error" role="alert">
           {directoryError}
@@ -663,6 +689,9 @@ export function PeopleView({
           </p>
         </section>
       ) : null}
+      <details className="school-card p-5">
+        <summary className="cursor-pointer font-semibold">Advanced role permissions ({data.roles.length} role templates)</summary>
+        <p className="py-3">These are permission templates, not additional user accounts. Existing access rules remain enforced by the database.</p>
       <section className="role-hierarchy">
         {["ownership", "leadership", "academic", "operations", "learner"].map(
           (category) => (
@@ -704,6 +733,7 @@ export function PeopleView({
           ),
         )}
       </section>
+      </details>
       {editingPermissionsRole
         ? (() => {
             const definition = data.roles.find(

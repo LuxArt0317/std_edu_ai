@@ -37,3 +37,7 @@ Product requirements and historic research claims are indexed in [docs/README.md
 Uses the official shadcn/ui component sources, Tailwind v4 via @tailwindcss/vite, Radix primitives, and shared semantic brand tokens. Component/unit and browser E2E checks use Testing Library and Playwright. Documentation is centralized under docs/; runtime and test folders contain no Markdown. Legacy specialized layouts remain in feature CSS within a lower-priority cascade layer, while the shared controls, dialogs, navigation, tabs and theme use shadcn/ui and Tailwind.
 
 The GitHub quality workflow runs the safe, non-mutating checks without client credentials. Live E2E QA uses isolated client fixtures and keeps sessions/traces in ignored local artifacts. Playwright packages share the same version. The rich editor is loaded separately; no JavaScript chunk exceeds the default 500 kB build advisory threshold in the current build.
+
+## Unified School OS
+
+One sidebar/header owns navigation for school and student-service features. See the [frontend reference](docs/reference/FRONTEND.md) and [workspace guide](docs/guides/portal.md). Account records and advanced role templates are presented separately; server authorization remains unchanged.

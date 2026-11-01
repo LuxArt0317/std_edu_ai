@@ -99,9 +99,11 @@ export function CrmRecordEditor({
       ? "Edit student"
       : `${value.record ? "Edit" : "Create"} ${value.kind}`;
 
+  const [formError, setFormError] = useState("");
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
+    setFormError("");
     const f = new FormData(event.currentTarget);
     try {
       if (value.kind === "student")
@@ -190,6 +192,7 @@ export function CrmRecordEditor({
         });
       onSaved(`${value.kind[0].toUpperCase()}${value.kind.slice(1)} saved.`);
     } catch (error) {
+      setFormError(error instanceof Error ? error.message : "The record could not be saved.");
       onError(
         error instanceof Error
           ? error.message
@@ -207,7 +210,7 @@ export function CrmRecordEditor({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-      ><DialogDescription className="sr-only">Review the details and submit to save your changes.</DialogDescription>
+      ><DialogDescription className="sr-only">Review the details and submit to save your changes.</DialogDescription>{formError ? <p role="alert" className="text-destructive">{formError}</p> : null}
         <header>
           <div>
             <span>COMPLETE RECORD</span>

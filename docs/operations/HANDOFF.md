@@ -4,7 +4,13 @@
 
 The shadcn/Tailwind, source/documentation cleanup and workflow changes are local in `std_edu_ai-luxart0317`, on `main` against client `origin/main` (base `bc6222e`). They have not been pushed or deployed. The original `std_edu_ai` checkout was not changed; its empty diff does not review this client work.
 
-The last full E2E run passed 21/23, including every role, curriculum review/notifications, module publication, LMS integrity, academic CRUD and CRM retry. Case editing and mobile CRM navigation remain unresolved. A later public accessibility rerun hit a page navigation timeout; the earlier 10-state run passed. Three curriculum migrations are applied to the client database (99 migrations, 101 public RLS tables). Do not treat this checkpoint as a finished release.
+The current follow-up merges student services into one School OS shell and separates real accounts from the advanced permission catalog. A live read-only inventory found exactly one real owner account and no orphaned or test-named identities. Existing server-side roles are preserved.
+
+Verified locally: 170 source/API tests, eight unit/component tests, recursive build/assets, dependency audit, docs/links and ten public accessibility states pass. All 26 E2E scenarios passed across a full run and focused regressions: 23/24 first, then 4/4 covering the repaired case path, directory, normal-priority task and student-to-staff handoff. All fourteen role navigation paths, owner module accessibility, mobile navigation, curriculum and LMS workflows passed. The final teardown removed thirteen QA accounts, isolated records and the private session state. Fresh SQL confirmed one protected-owner identity, no QA/test-named users and no orphans.
+
+The priority enum mismatch and conflicting student-intake owner trigger are fixed. Four follow-up migrations are applied (100 total; 101 public RLS tables). Provider verification passed owner login/CRUD cleanup, RLS, storage, both Edge Functions and non-mutating live OpenAI QA. Lint exits successfully with inherited React warnings. Manual assistive-technology acceptance, institutional research approvals and email delivery remain external checks.
+
+This change is committed locally for review; it has not been pushed or deployed. The local development site is http://localhost:5173/crm. The prior production deployment remains separate from this merged interface.
 
 ## Previous deployed handoff — Issue #73
 
