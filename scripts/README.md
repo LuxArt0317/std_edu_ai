@@ -10,3 +10,5 @@ Run scripts from the repository root through `npm run` commands in `package.json
 - `import-stu-source-inventory.mjs` stages review-needed official source candidates only; it never silently publishes knowledge.
 
 `deployment-env.mjs` reads ignored local configuration and environment variables without logging values. Never print or commit its returned secrets. See [operational setup](../docs/operations/SETUP.md).
+
+`verify:client` also performs one small, non-mutating live AI request (requires the server key configured in Vercel), verifies `source: openai`, and checks unauthenticated rejection and public directory availability.

@@ -18,7 +18,7 @@ The complete set of owner-controlled acceptance identities is documented in [ROL
 
 ## Protected owner
 
-`winsonbaring10@gmail.com` is the single protected owner. Database triggers prevent owner demotion, deletion, or creation of a second owner. The People & Roles workspace never offers an owner role for other identities. Role preview changes only the visible interface; it does not reduce or alter the authenticated owner's database permissions.
+`luxart0317@gmail.com` is the single protected owner. Database triggers prevent owner demotion, deletion, or creation of a second owner. The People & Roles workspace never offers an owner role for other identities. Role preview changes only the visible interface; it does not reduce or alter the authenticated owner's database permissions.
 
 ## Academic data boundaries
 

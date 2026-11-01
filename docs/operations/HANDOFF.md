@@ -20,8 +20,10 @@ Tracked by [Issue #73](https://github.com/LuxArt0317/std_edu_ai/issues/73).
 - Edge Functions: both deployed; exact client CORS, unauthenticated denials, and owner account-directory call passed.
 - Auth URL: production site URL and exact /crm redirect configured in the dashboard.
 - Local checks: 170 tests pass, TypeScript/build/assets pass, documentation links pass, dependency audit reports zero vulnerabilities. Lint exits successfully with inherited React warnings; Vite reports a large-chunk advisory.
-- Client frontend deployment after this cleanup: pending release verification.
-- Live AI/provider call: waiting for the client OpenAI key to be saved in Vercel.
+- Client deployment: Vercel release `Aw8nC9DBjH5uW7pdi4F2oaLe2S5M` is Ready for commit `400a1f0`. Both `/` and `/crm` return HTTP 200 with the expected client Supabase hostname and all 8 recursively checked assets.
+- Browser acceptance: signed into the deployed owner portal and verified Academic Office loads real client database records.
+- Live API: campus directory returns HTTP 200; school AI rejects unauthenticated requests with HTTP 401 and returns HTTP 200 with `source: openai` for the authenticated owner in non-mutating QA mode.
+- Email delivery, real client data import, additional named users, institutional research review, and physical-campus validation were not claimed as verified.
 
 ## Client administration
 

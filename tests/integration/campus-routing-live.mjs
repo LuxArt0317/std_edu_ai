@@ -9,7 +9,7 @@ const email="winsonbaring10@gmail.com";const secret=spawnSync("/usr/bin/security
 if(secret.status!==0||!secret.stdout.trim())throw new Error("Missing protected owner credential.");
 if(!process.env.VITE_SUPABASE_URL||!process.env.VITE_SUPABASE_PUBLISHABLE_KEY)throw new Error("Missing public Supabase configuration.");
 const owner=createClient(process.env.VITE_SUPABASE_URL,process.env.VITE_SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});const auth=await owner.auth.signInWithPassword({email,password:secret.stdout.trim()});if(auth.error||!auth.data.user)throw auth.error||new Error("Owner sign-in failed.");
-const suffix=`ROUTE${Date.now().toString(36).toUpperCase()}`;const now=new Date().toISOString();const base=process.env.RESEARCH_BASE_URL||"https://www.stu.best";
+const suffix=`ROUTE${Date.now().toString(36).toUpperCase()}`;const now=new Date().toISOString();const base=process.env.RESEARCH_BASE_URL||"https://stdeduai.vercel.app";
 let sourceId="",siteId="",buildingId="",floorId="";let placeIds=[];let nodeIds=[];let edgeIds=[];
 try{
   sourceId=required(await owner.from("knowledge_sources").insert({name:`Route fixture ${suffix}`,source_type:"map",canonical_url:`https://www.stu.edu.tw/route-fixture/${suffix.toLowerCase()}`,official_domain:true,authority_level:"primary_official",owner_profile_id:auth.data.user.id,default_audience_scope:"public",default_language:"mixed",crawl_policy:"manual",robots_reviewed_at:now,terms_reviewed_at:now,active:true}).select("id").single(),"source").id;

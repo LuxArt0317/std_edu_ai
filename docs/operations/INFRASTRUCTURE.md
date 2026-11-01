@@ -22,3 +22,7 @@ GitHub CLI was verified as `LuxArt0317`. The client Vercel browser session and M
 Resource connection values live only in provider-managed environment settings and ignored owner-readable local environment files. A new agent must check its actual tools/session before claiming access. A repository document records access routes; it cannot confer provider permissions.
 
 The original Supabase project `zhcchldvgqrkfqoknewk` and the separate dashboard project `wubnovvoklsdsxjvsyxz` are not this client's connected database. This handoff never changes them.
+
+## Release verification
+
+The client Vercel Git integration automatically deployed the handoff release from main. Browser access and Marketplace database administration are verified. The server-only AI configuration is present and a live authenticated OpenAI-backed response was verified; no provider key was read or copied into the repository.

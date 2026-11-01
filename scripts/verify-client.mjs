@@ -68,6 +68,17 @@ try {
     const activity = await owner.functions.invoke('provision-role-account', { body: { action: 'directory' } })
     if (activity.error) throw new Error(`Owner account-management function failed: ${activity.error.message}`)
     console.log(JSON.stringify({ edgeFunctions: 2, corsAndAuthentication: true, ownerAccountDirectory: true }))
+    const publicApi = await fetch(`${config.vercel.productionUrl}/api/campus-route`, { signal: AbortSignal.timeout(30000) })
+    assert.equal(publicApi.status, 200, 'Public campus directory API unavailable')
+    const deniedAi = await fetch(`${config.vercel.productionUrl}/api/school-assistant`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'Authentication verification', history: [], context: {} }), signal: AbortSignal.timeout(30000) })
+    assert.equal(deniedAi.status, 401, 'AI endpoint must require authentication')
+    const ai = await fetch(`${config.vercel.productionUrl}/api/school-assistant`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${login.data.session.access_token}` }, body: JSON.stringify({ message: 'Reply briefly with the name of my signed-in role. Do not propose any changes.', history: [], context: { view: 'overview' }, mode: 'qa' }), signal: AbortSignal.timeout(50000) })
+    const answer = await ai.json()
+    assert.equal(ai.status, 200, 'Authenticated AI provider request failed')
+    assert.equal(answer.source, 'openai', 'A live provider response is required')
+    assert.ok(typeof answer.answer === 'string' && answer.answer.length > 0, 'AI response must contain an answer')
+    assert.equal(answer.proposedAction, null, 'QA verification must not propose a mutation')
+    console.log(JSON.stringify({ publicDirectoryApi: 200, unauthenticatedAiDenied: true, authenticatedAi: 200, provider: answer.source, nonMutatingQa: true }))
   }
 } catch (error) {
   console.error(`Client verification failed: ${error.message}`)

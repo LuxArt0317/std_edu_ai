@@ -1,4 +1,4 @@
-const baseUrl = (process.env.STU_BASE_URL || 'https://www.stu.best').replace(/\/$/, '')
+const baseUrl = (process.env.STU_BASE_URL || 'https://stdeduai.vercel.app').replace(/\/$/, '')
 
 for (const route of ['/', '/crm']) {
   const response = await fetch(`${baseUrl}${route}`, { headers: { 'Cache-Control': 'no-cache' } })

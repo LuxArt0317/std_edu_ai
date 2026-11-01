@@ -27,3 +27,5 @@ These opt-in scripts exercise the configured production deployment and Supabase 
 `stu-source-inventory-live.mjs` uses owner, librarian, student, and anonymous contexts to prove the Issue #127 boundary. It inserts one reversible candidate for each of ten domains, verifies exact idempotent replay, rejects external hosts and direct state mutation, accepts one candidate only as an inactive source with zero documents, records a librarian rejection, and removes ten candidates plus the inactive source with zero residue.
 
 For the client environment use `npm run verify:client`, which derives its target from deployment.json, verifies owner login/RLS/storage/CRUD cleanup and deployed assets, and checks Edge Function authorization. Historical acceptance scripts may require original fixtures and must not be run blindly against the client.
+
+Deployment/asset diagnostics default to https://stdeduai.vercel.app, so they never silently inspect the original production domain. Optional legacy fixture scripts still require explicit credential/fixture preparation.

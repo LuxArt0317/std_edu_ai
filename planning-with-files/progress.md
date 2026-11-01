@@ -74,3 +74,8 @@
 - Updated patched dependency versions (Tiptap 3.32.2, PDF.js 6.4.299); clean install has zero audit findings.
 - Static suite passes 170 tests; production build/assets pass. Existing React lint warnings and chunk-size advisory remain non-blocking.
 - User will add the client OpenAI key directly to Vercel; live AI verification remains pending confirmation.
+
+- Released commit 400a1f0 to client main; Vercel release Aw8nC9DBjH5uW7pdi4F2oaLe2S5M is Ready.
+- Verified deployed / and /crm, 8 assets, client Supabase host, owner browser login, and database-backed Academic Office.
+- Verified public campus API 200, unauthenticated school AI 401, and authenticated owner QA 200 with source=openai. Client key was not read or copied.
+- Client handoff setup is complete; real client data/email delivery and external research approvals remain explicitly outside verified scope.

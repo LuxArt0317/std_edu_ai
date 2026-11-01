@@ -9,6 +9,8 @@
 - Add certificate-verified, serialized migration deployment with client owner bootstrap and history tracking.
 - Make historical demo-identity synchronization optional on fresh client databases and correct a malformed SQL comment.
 - Align patched rich-text/PDF dependencies and add client verification commands.
+- Verify 96 applied migrations, 100 RLS tables, live owner/browser workflows, two deployed Edge Functions, client asset targets, and authenticated OpenAI QA.
+- Configure exact production Auth redirects and make diagnostics default to the client deployment.
 
 
 ## Historical unreleased

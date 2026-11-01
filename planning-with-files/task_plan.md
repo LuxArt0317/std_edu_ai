@@ -6,8 +6,8 @@
 - [x] Confirm protected client owner email.
 - [x] Organize documents and preserve working links and verification paths.
 - [x] Make configuration portable and provision the isolated client database.
-- [ ] Verify authentication, storage, authorization, APIs, and deployed assets.
-- [ ] Complete handoff documentation, issue evidence, and commit the reviewed changes.
+- [x] Verify authentication, storage, authorization, APIs, and deployed assets.
+- [x] Complete handoff documentation, issue evidence, and commit the reviewed changes.
 
 # Historical task plan
 

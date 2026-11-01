@@ -60,7 +60,7 @@ try {
     content: `${marker}. This official synthetic fixture validates the complete governed ingestion API, deterministic indexing, retry telemetry, and duplicate protection.`,
   }
   const call = async () => {
-    const response = await fetch(`${process.env.INGESTION_API_ORIGIN || 'https://www.stu.best'}/api/knowledge-ingest`, {
+    const response = await fetch(`${process.env.INGESTION_API_ORIGIN || 'https://stdeduai.vercel.app'}/api/knowledge-ingest`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${auth.data.session.access_token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

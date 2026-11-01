@@ -74,7 +74,7 @@ function pdfFixture(text) {
 }
 
 Object.assign(process.env, env(".env"), env(".env.local"));
-const base = process.env.KNOWLEDGE_ACQUISITION_ORIGIN || "https://www.stu.best";
+const base = process.env.KNOWLEDGE_ACQUISITION_ORIGIN || "https://stdeduai.vercel.app";
 const owner = await login("winsonbaring10@gmail.com"),
   student = await login("winsonbaring10+student@gmail.com"),
   support = await login("winsonbaring10+support@gmail.com");
