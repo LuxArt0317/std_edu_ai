@@ -25,3 +25,9 @@ dist-ssr
 *.sw?
 .vercel
 .env*
+
+# Client deployment credentials and local artifacts
+!.env.example
+.supabase/
+supabase/.temp/
+artifacts/

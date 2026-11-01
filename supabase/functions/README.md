@@ -6,3 +6,5 @@ This folder contains trusted server-side boundaries that require Supabase-manage
 - `manage-student-account/` lets the owner, administrator, or registrar create a confirmed student identity and its linked SIS record without exposing the Auth Admin API to the browser.
 
 Every deployed function must validate authentication and authorization inside its handler, keep secrets in Supabase-managed environment variables, avoid logging credentials or personal data, and be verified against the production denial path after deployment.
+
+Client CORS allows https://stdeduai.vercel.app plus explicit local development origins. Both functions are deployed into xiftudmvxphxcjtmfmib using the client Supabase dashboard; never deploy them through an unrelated globally signed-in account.

@@ -2260,7 +2260,7 @@ function PeopleView({
             >
               <label>
                 <span>Account rows</span>
-                <textarea rows={8} value={bulkAccounts} onChange={(event) => setBulkAccounts(event.target.value)} placeholder="Maria Santos,maria@stu.best,faculty" required />
+                <textarea rows={8} value={bulkAccounts} onChange={(event) => setBulkAccounts(event.target.value)} placeholder="Maria Santos,maria@example.edu,faculty" required />
               </label>
               {bulkResults ? (
                 <label>

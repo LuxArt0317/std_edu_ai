@@ -25,8 +25,10 @@ Teachers choose post-attempt review access and can enable disclosed fullscreen, 
 
 Role onboarding is temporarily disabled for every role. `UnifiedPortal.tsx` does not import or mount the onboarding component, emit onboarding action signals, or expose onboarding target attributes. As a result, sign-in cannot automatically load/create progress or display Readiness and tour UI. Historical progress remains protected by RLS and is not used for authorization.
 
-See [ROLE_MATRIX.md](./ROLE_MATRIX.md) for the complete role hierarchy, visibility rules, owner guarantees, and AI decision boundaries. See [ROLE_ACCOUNTS.md](./ROLE_ACCOUNTS.md) for the production sign-in emails and secure credential-storage model.
+See [ROLE_MATRIX.md](ROLE_MATRIX.md) for the complete role hierarchy, visibility rules, owner guarantees, and AI decision boundaries. See [ROLE_ACCOUNTS.md](ROLE_ACCOUNTS.md) for the production sign-in emails and secure credential-storage model.
 
-The authoritative product scope and entity lifecycle requirements are defined in [`PRODUCT_REQUIREMENTS.md`](../../PRODUCT_REQUIREMENTS.md).
+The authoritative product scope and entity lifecycle requirements are defined in [`PRODUCT_REQUIREMENTS.md`](../../docs/product/PRODUCT_REQUIREMENTS.md).
 
 Academic relationship workflows use exact records throughout. Curriculum placement chooses catalog subjects and earlier placed prerequisites by ID; profile, student, advisor, class, schedule, attendance-correction, and initiative forms use parent-scoped selectors. Nexus receives the same authoritative catalog and must refresh stale IDs rather than recreate an existing entity.
+
+Client handoff uses deployment.json and docs/operations/. Enhanced-study links stay on the current deployment; the old account directory is historical.

@@ -6,7 +6,7 @@ Every signed-in identity has one trusted role in Supabase Auth `app_metadata` an
 
 All roles use one visible **Courses** workspace. Teachers and academic managers author and preview the exact published student experience there; students see enrolled published modules/materials; scoped staff see a read-only live review. The legacy `teaching` and `learning` route IDs are retained only so existing deep links and agent actions resolve safely.
 
-The complete set of owner-controlled acceptance identities is documented in [ROLE_ACCOUNTS.md](./ROLE_ACCOUNTS.md).
+The complete set of owner-controlled acceptance identities is documented in [ROLE_ACCOUNTS.md](ROLE_ACCOUNTS.md).
 
 | Tier | Roles | Primary workspace and authority |
 | --- | --- | --- |

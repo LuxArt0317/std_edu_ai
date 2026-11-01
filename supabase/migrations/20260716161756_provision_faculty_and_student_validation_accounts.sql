@@ -10,7 +10,8 @@ begin
   select id into faculty_profile from auth.users where lower(email) = 'winsonbaring10+faculty@gmail.com';
   select id into student_profile from auth.users where lower(email) = 'winsonbaring10+student@gmail.com';
   if faculty_profile is null or student_profile is null then
-    raise exception 'Faculty and student validation Auth identities must exist before role linkage';
+    -- Historical validation identities are not client production prerequisites.
+    return;
   end if;
 
   update auth.users

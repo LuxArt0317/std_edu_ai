@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "protocolVersion": "0.1.0",
   "protocolStatus": "draft_pending_external_review",
-  "source": "research.md",
+  "source": "docs/research/research.md",
   "claims": [
     {"id":"OBJ-1","kind":"research_objective","statement":"Analyze the current official website's accessibility, usability, and user experience.","metric":"baseline completion, duration, steps, errors, and usability measures","artifact":"research_task_attempts and research_responses under the frozen protocol","owner":"research team","rule":"Report baseline estimates and uncertainty; do not imply improvement."},
     {"id":"OBJ-2","kind":"research_objective","statement":"Identify common search, findability, navigation, and interaction problems.","metric":"task failure/error taxonomy plus coded open feedback","artifact":"baseline task attempts, observations, and coded feedback export","owner":"research team","rule":"Report prevalence, denominator, and coding limits."},

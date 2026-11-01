@@ -20,3 +20,5 @@ For authorized academic leaders, `create_curriculum` is deliberately one bulk ac
 `tsconfig.json` supplies the strict Node.js compiler context used when Vercel builds each function independently. The runtime authentication helper and its TypeScript declaration live in `server/` so they are bundled as dependencies rather than exposed as another endpoint.
 
 Required runtime environment variables: `OPENAI_API_KEY`, `VITE_SUPABASE_URL`, and `VITE_SUPABASE_PUBLISHABLE_KEY`. Optional variables are `OPENAI_MODEL`, `OPENAI_PUBLIC_MODEL`, `OPENAI_VISION_MODEL`, `OPENAI_EMBEDDING_MODEL`, and `SAFETY_HASH_SALT`. Public evidence persistence uses a narrowly validated database capability and does not require a browser or server service-role key.
+
+Client Vercel Marketplace configuration may supply `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`; all relevant server endpoints accept these aliases without exposing service keys. See [client setup](../docs/operations/SETUP.md).

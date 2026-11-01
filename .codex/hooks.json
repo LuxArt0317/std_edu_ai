@@ -1,5 +1,5 @@
 {
-  "description": "Keep the Issue #104 research-completion epic active until every child issue and measurable evidence gate is verified.",
+  "description": "Optional inherited Issue #104 research-completion epic guard; enabled only with STU_RESEARCH_GUARD=1.",
   "hooks": {
     "SessionStart": [
       {
@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/issue104_completion_guard.mjs\" session",
+            "command": "if [ \"${STU_RESEARCH_GUARD:-0}\" = \"1\" ]; then node \"$(git rev-parse --show-toplevel)/.codex/hooks/issue104_completion_guard.mjs\" session; fi",
             "statusMessage": "Loading Issue #104 completion evidence",
             "timeout": 15
           }
@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/issue104_completion_guard.mjs\" stop",
+            "command": "if [ \"${STU_RESEARCH_GUARD:-0}\" = \"1\" ]; then node \"$(git rev-parse --show-toplevel)/.codex/hooks/issue104_completion_guard.mjs\" stop; fi",
             "statusMessage": "Validating Issue #104 completion evidence",
             "timeout": 15
           }

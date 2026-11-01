@@ -41,3 +41,7 @@ The Issue #123 evidence set (`20260719095500`–`20260719095730`) atomically wri
 The Issue #124 evaluation set (`20260719101837`–`20260719103841`) adds governed dataset versions, two-person independent case approval, checksummed freezing, immutable run evidence, deterministic retrieval/citation/answer/abstention/leakage/latency/cost scoring, aggregate and segmented reports, complete relationship indexes, and an owner-only reversible fixture boundary. Ordinary freezing always requires at least 150 eligible cases and complete domain/language/failure coverage.
 
 `20260719131000_stu_source_inventory_candidates.sql` adds the Issue #127 official-source discovery boundary: canonical official-host identities, ten research domains, protected review states, direct-transition guards, idempotent candidate import, role-gated reports, atomic acceptance into inactive governed sources, and exact owner-only fixture cleanup. Discovery and acceptance cannot create documents, chunks, embeddings, approvals, or public knowledge.
+
+## Fresh client deployment (Issue #73)
+
+The client runner applies this directory in timestamp order with one transaction and migration-history record per file. The curriculum foundation is named `20260718054000_agentic_curriculum_workflow.sql` so its tables precede lifecycle functions. The protected owner comes from the client bootstrap setting (default luxart0317@gmail.com). Two historical acceptance-identity synchronization migrations skip if their original identities are absent. No old role accounts are created by client setup.

@@ -2,7 +2,7 @@ import fs from "node:fs";
 
 const read=(path)=>fs.readFileSync(new URL(`../${path}`,import.meta.url),"utf8");
 const files={
-  contract:read("neededv3.md"),
+  contract:read("docs/product/neededv3.md"),
   academic:read("src/platform/AcademicOperations.tsx"),
   people:read("src/platform/UnifiedPortal.tsx"),
   lms:read("src/platform/LmsWorkspace.tsx"),

@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 const read=(path:string)=>readFileSync(path,"utf8");
 
 test("every CRM surface has independently generated and HTML-validated Stitch evidence",()=>{
-  const rows=read("STITCH_ALL_PAGES_EVIDENCE.md").split("\n").filter((line)=>/^\| (?!---|Surface)/.test(line));
+  const rows=read("docs/design/STITCH_ALL_PAGES_EVIDENCE.md").split("\n").filter((line)=>/^\| (?!---|Surface)/.test(line));
   assert.equal(rows.length,23);
   for(const row of rows){assert.match(row,/[a-f0-9]{32}/);assert.match(row,/\| \d+ controls \|/)}
 });

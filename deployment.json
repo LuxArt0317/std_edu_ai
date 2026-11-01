@@ -1,0 +1,15 @@
+{
+  "repository": "LuxArt0317/std_edu_ai",
+  "vercel": {
+    "teamSlug": "v1-d286",
+    "projectName": "std_edu_ai",
+    "productionUrl": "https://stdeduai.vercel.app",
+    "dashboardUrl": "https://vercel.com/v1-d286/std_edu_ai"
+  },
+  "supabase": {
+    "projectRef": "xiftudmvxphxcjtmfmib",
+    "ownerEmail": "luxart0317@gmail.com",
+    "accessMethod": "Vercel Marketplace SSO",
+    "dashboardUrl": "https://supabase.com/dashboard/project/xiftudmvxphxcjtmfmib"
+  }
+}

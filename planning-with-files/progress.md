@@ -58,3 +58,19 @@
 - Imported all 20 real candidates as `review_needed` with zero source creation. The reversible owner/librarian/student/anonymous workflow proved ten-domain insertion, exact replay, external-host rejection, zero unauthorized access or mutation, one inactive accepted source, zero documents, one librarian rejection, cleanup of ten candidates/one source, and zero residue.
 - Expanded the live research matrix to 28 protected tables and nine protected RPCs with zero anonymous/student exposure or execution and zero owner failures. Regenerated the production database types and added the complete source-review UI plus build marker.
 - All 169 contracts, lint, TypeScript, inventory verifier, standard Vercel build, build-asset review markers, live RLS matrix, live candidate lifecycle, and repeat real import reconciliation pass. Production UI deployment remains before Issue #127 closure.
+
+## 2026-11-01 — Issue #73 client handoff
+
+- Verified Vercel V1/std_edu_ai and stdeduai.vercel.app.
+- Verified connected Marketplace Supabase xiftudmvxphxcjtmfmib, healthy and no migrations.
+- User confirmed luxart0317@gmail.com as protected database owner.
+- Found tracked browser environment pointing at inherited deployment, malformed SQL comment, fixture-account migration prerequisites, and incompatible integration variable names.
+- Organized root product/design/research documents; moved planning directory to repository root; moved issue-migration exports outside deliverable.
+
+- Applied all 96 client migrations with per-file transactions and migration history; 100 public tables have RLS.
+- Verified owner login/profile, 4 storage buckets, anonymous protected-table denial, and reversible owner CRUD.
+- Deployed both account Edge Functions and verified client-origin CORS, unauthenticated denials, and owner directory access.
+- Fixed migration comment and curriculum ordering; TLS uses the dashboard public CA without disabling certificate verification.
+- Updated patched dependency versions (Tiptap 3.32.2, PDF.js 6.4.299); clean install has zero audit findings.
+- Static suite passes 170 tests; production build/assets pass. Existing React lint warnings and chunk-size advisory remain non-blocking.
+- User will add the client OpenAI key directly to Vercel; live AI verification remains pending confirmation.

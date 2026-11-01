@@ -86,7 +86,7 @@ test("academic identities and CRM records expose full edit forms", async () => {
 });
 
 test("the PRD defines the complete lifecycle and acceptance contract", async () => {
-  const prd = await read("PRODUCT_REQUIREMENTS.md");
+  const prd = await read("docs/product/PRODUCT_REQUIREMENTS.md");
   for (const heading of [
     "Universal record lifecycle contract",
     "Entity lifecycle and CRUD matrix",

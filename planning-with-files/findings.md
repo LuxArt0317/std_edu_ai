@@ -88,3 +88,7 @@
 - Twenty candidates reconcile to 20 distinct canonical official HTTPS identities. Several official subdomains return HTTP 202 to automated requests; that proves endpoint response only, not content correctness, so human inspection remains mandatory.
 - A candidate may become only an inactive governed source through an authorized recorded decision. Acquisition, document review, embedding, approval, and publication remain separate gates, preventing discovery from leaking unreviewed content into public RAG.
 - Production role evidence covers the candidate table and all three candidate RPCs: anonymous/student reads and executions are zero, direct governance transitions are rejected, librarian review is permitted, and reversible fixtures leave zero residue.
+
+## Client infrastructure audit — 2026-11-01
+
+Vercel UI verifies V1 (v1-d286), project std_edu_ai, production stdeduai.vercel.app, GitHub LuxArt0317/std_edu_ai. The connected database is Marketplace resource store_HQOW6JtYFaS7eKnK, project xiftudmvxphxcjtmfmib. The separate pre-existing Supabase tab wubnovvoklsdsxjvsyxz is not the connected resource. Vercel CLI currently belongs to wnnsnn and does not have this client team; browser access is verified. Never silently use that CLI identity. Standard Supabase migrations must retain migration-history rows. Integration injects NEXT_PUBLIC_SUPABASE_URL/PUBLISHABLE_KEY and server database secrets; only browser-safe aliases may be exposed to Vite.

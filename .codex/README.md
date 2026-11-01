@@ -1,21 +1,5 @@
-# Codex project completion controller
+# Optional research-completion controller
 
-This trusted project layer enforces the evidence contract for parent Issue #104 and child Issues #105–#116.
+This inherited controller tracks the historical Issue #104 research-completion epic. It is opt-in in the client checkout: set `STU_RESEARCH_GUARD=1` only when deliberately working on that research epic. Normal client operations use AGENTS.md, deployment.json, and planning-with-files/.
 
-- `SessionStart` injects the current unresolved evidence summary.
-- `Stop` prevents a successful completion handoff while locally actionable or malformed gates remain.
-- External-only gates are reported explicitly and are never treated as completed or fabricated.
-- `agent/research-104-evidence.json` is the machine-readable source of truth.
-- `.codex/hooks/issue104_completion_guard.mjs` has no third-party dependencies, performs no network access, and emits no secrets.
-
-Codex requires review and trust for project-local hooks. In Codex, open `/hooks`, review the two commands from `.codex/hooks.json`, and trust their current hashes. Project hooks are ignored when the repository is untrusted.
-
-Run directly:
-
-```bash
-printf '{"cwd":"%s"}' "$PWD" | node .codex/hooks/issue104_completion_guard.mjs session
-printf '{"cwd":"%s"}' "$PWD" | node .codex/hooks/issue104_completion_guard.mjs stop
-npm run verify:research-104
-```
-
-The controller is a continuity guard, not evidence by itself. A measure may be set to `verified` only with a timestamp and concrete artifact, automated test, live result, review, deployment, or production link. External approvals, participant recruitment, physical walkthroughs, and institutional sign-off remain `external` until the responsible person supplies evidence.
+The original guard implementation and evidence manifest are retained for traceability and automated contracts. It does not grant provider access or prove client readiness. Review and trust project hooks before enabling them.

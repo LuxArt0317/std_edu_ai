@@ -5,3 +5,5 @@ This folder contains server-only Node ESM helpers shared by Vercel API functions
 - `apiAuth.js` validates bearer sessions against Supabase Auth and derives trusted roles from `app_metadata`; browser-supplied role claims are never trusted.
 - `knowledgePipeline.js` normalizes, fingerprints, chunks, canonicalizes, and classifies governed corpus content deterministically.
 - `ragEvaluation.js` provides the dependency-free reference implementation for retrieval, citation, aggregate, latency, cost, and release-gate reconciliation used by Issue #124 contracts.
+
+Client authentication accepts the Marketplace publishable URL/key aliases in addition to Vite/Supabase names. Authorization still verifies the actual Auth user and trusted app metadata.

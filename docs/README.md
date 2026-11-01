@@ -1,12 +1,25 @@
-# Documentation artifacts
+# Documentation
 
-This folder contains polished stakeholder and operator deliverables generated from the implemented STU Edu AI platform documentation.
+## Client operations
 
-- `NEXUS_ACTION_TOOLS.md` defines the executable agent catalog, confirmation lifecycle, authorization model, and deliberate safety boundaries.
-- `PLATFORM_SCHEMA_MAP.md` maps every production data domain, the authoritative academic chain, discovered relationship gaps, and the connected target experience.
-- `neededv2.md` in the repository root is the executable schema-wide action, role, lifecycle, and implementation-completeness contract.
+- [Setup and deployment](operations/SETUP.md)
+- [Handoff checklist and current verification](operations/HANDOFF.md)
+- [Verified infrastructure and access routes](operations/INFRASTRUCTURE.md)
 
-- `STU_Nexus_Comprehensive_Platform_Manual.docx` is the detailed functional, role, user, technical, security, AI, deployment, and operations manual for the public website and authenticated STU Nexus platform.
-- `build_platform_manual.py` is the deterministic document builder. Run it through an isolated Python environment containing `python-docx`.
+## Product and architecture
 
-Rendered page images are temporary quality-assurance artifacts and are not committed.
+- [Product requirements](product/PRODUCT_REQUIREMENTS.md)
+- [Role/action catalog](product/needed.md), [lifecycle contract](product/neededv2.md), and [relationship contract](product/neededv3.md)
+- [Role permissions](../src/platform/ROLE_MATRIX.md)
+- [User guide](../src/crm/PORTAL_GUIDE.md)
+- [Platform schema](PLATFORM_SCHEMA_MAP.md), [research schema](RESEARCH_SYSTEM_SCHEMA.md), and [calendar schema](product/CALENDAR_SCHEMA.md)
+- [Nexus action tools](NEXUS_ACTION_TOOLS.md)
+
+## Design, research, and historical records
+
+- [Design references](design/README.md)
+- [Research protocols, inventories, and evidence](research/README.md)
+- [Historical deployment documentation](archive/README.md)
+- [Planning and execution records](../planning-with-files/README.md)
+
+`STU_Nexus_Comprehensive_Platform_Manual.docx` and `build_platform_manual.py` are inherited functional reference artifacts. The current operational guides above supersede their original deployment/account details. Rendered manual pages are temporary QA artifacts.

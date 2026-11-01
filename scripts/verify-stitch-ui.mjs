@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-const evidence=readFileSync("STITCH_UI_EVIDENCE.md","utf8");
+const evidence=readFileSync("docs/design/STITCH_UI_EVIDENCE.md","utf8");
 const lms=readFileSync("src/platform/LmsWorkspace.tsx","utf8");
 const portal=readFileSync("src/platform/UnifiedPortal.tsx","utf8");
 const crm=readFileSync("src/crm/CRMApp.tsx","utf8");

@@ -1,4 +1,4 @@
-- STU Nexus all-in-one school operating platform.
+-- STU Nexus all-in-one school operating platform.
 -- The platform owner is a protected identity. All other capabilities are
 -- enforced by trusted app metadata plus row-level security.
 
@@ -68,7 +68,7 @@ declare
 begin
   select id into owner_id
   from auth.users
-  where lower(email) = 'winsonbaring10@gmail.com'
+  where lower(email) = coalesce(nullif(current_setting('app.bootstrap_owner_email', true), ''), 'luxart0317@gmail.com')
   limit 1;
 
   if owner_id is null then

@@ -1,6 +1,17 @@
 # Changelog
-
 ## Unreleased
+
+### Client handoff — Issue #73
+
+- Organize product/design/research documentation and root planning records; provide client setup, infrastructure, and handoff guides.
+- Remove inherited tracked environment configuration and keep migration exports/credentials outside the deliverable.
+- Accept Marketplace Supabase aliases safely in Vite and server endpoints.
+- Add certificate-verified, serialized migration deployment with client owner bootstrap and history tracking.
+- Make historical demo-identity synchronization optional on fresh client databases and correct a malformed SQL comment.
+- Align patched rich-text/PDF dependencies and add client verification commands.
+
+
+## Historical unreleased
 
 - Added Issue #127's deterministic official STU source-discovery manifest: 20 candidates, exactly two across each of ten research domains, 20/20 canonical official HTTPS hosts, zero duplicate identities, and zero automatic publication.
 - Added protected candidate RLS, idempotent import, direct-transition guards, reviewer decisions, atomic acceptance into inactive governed sources, exact reports, and reversible owner cleanup. Production evidence proves zero anonymous/student reads or mutations, one inactive accepted source, zero generated documents, and zero fixture residue.

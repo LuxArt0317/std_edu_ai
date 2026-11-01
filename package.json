@@ -58,20 +58,24 @@
     "test:live-issue90": "node --experimental-strip-types tests/integration/issue90-live.mjs",
     "test:live-issue101": "node --experimental-strip-types tests/integration/issue101-live.mjs",
     "test:live-account-lifecycle": "node tests/integration/account-lifecycle-live.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "db:plan": "node scripts/deploy-database.mjs",
+    "db:deploy": "node scripts/deploy-database.mjs --apply",
+    "verify:client": "node scripts/verify-client.mjs",
+    "verify:handoff": "node scripts/verify-handoff.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.5",
     "@thednp/dommatrix": "3.0.4",
-    "@tiptap/core": "3.28.0",
-    "@tiptap/extension-image": "^3.28.0",
-    "@tiptap/extension-link": "^3.28.0",
-    "@tiptap/extension-placeholder": "^3.28.0",
-    "@tiptap/react": "^3.28.0",
-    "@tiptap/starter-kit": "^3.28.0",
+    "@tiptap/core": "3.32.2",
+    "@tiptap/extension-image": "3.32.2",
+    "@tiptap/extension-link": "3.32.2",
+    "@tiptap/extension-placeholder": "3.32.2",
+    "@tiptap/react": "3.32.2",
+    "@tiptap/starter-kit": "3.32.2",
     "cheerio": "1.2.0",
     "file-type": "22.0.1",
-    "pdfjs-dist": "6.1.200",
+    "pdfjs-dist": "6.4.299",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
@@ -83,6 +87,7 @@
     "@vitejs/plugin-react": "^6.0.3",
     "oxlint": "^1.71.0",
     "playwright-core": "^1.61.1",
+    "postgres": "^4.0.0",
     "typescript": "~6.0.2",
     "vite": "^8.1.1"
   }

@@ -25,6 +25,8 @@ for (const route of ['/', '/crm']) {
   const verifiedAssets = new Set([entryPath])
   let onboardingUiPresent = false
   let crmAuthStyles = false
+  const expectedSupabaseHost = process.env.STU_EXPECTED_SUPABASE_HOST
+  let expectedSupabaseFound = Boolean(expectedSupabaseHost && entry.includes(expectedSupabaseHost))
   const queue = [...dynamicAssets]
   while (queue.length) {
     const assetPath = queue.shift()
@@ -33,6 +35,7 @@ for (const route of ['/', '/crm']) {
     const body = await asset.text()
     if (!asset.ok) throw new Error(`${assetPath} returned HTTP ${asset.status}.`)
     verifiedAssets.add(assetPath)
+    if (expectedSupabaseHost && body.includes(expectedSupabaseHost)) expectedSupabaseFound = true
     if (assetPath.endsWith('.css') && body.includes('.nexus-auth-shell') && body.includes('.nexus-auth-card')) crmAuthStyles = true
     if (!assetPath.endsWith('.js')) continue
     if (body.includes('ROLE READINESS CENTER') || body.includes('Click the highlighted control') || body.includes('stu-nexus-role-foundations')) onboardingUiPresent = true
@@ -43,6 +46,8 @@ for (const route of ['/', '/crm']) {
   if (!crmAuthStyles) {
     throw new Error(`${route} did not expose a linked CRM stylesheet containing .nexus-auth-shell and .nexus-auth-card. The portal may return HTTP 200 while rendering an unstyled sign-in form.`)
   }
+
+  if (expectedSupabaseHost && !expectedSupabaseFound) throw new Error(`${route} does not reference the expected client database ${expectedSupabaseHost}.`)
 
   console.log(JSON.stringify({ route, status: response.status, bootShell: true, entry: entryPath, verifiedAssets: verifiedAssets.size, onboardingDisabled: true, crmAuthStyles }))
 }

@@ -27,7 +27,7 @@ function taipeiClock(){return new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Ta
 export default async function handler(request:ApiRequest,response:ApiResponse){
   headers(request,response);
   if(!["GET","POST"].includes(request.method||"")){response.setHeader("Allow","GET, POST");response.status(405).json({error:"Method not allowed"});return;}
-  const url=process.env.VITE_SUPABASE_URL||process.env.SUPABASE_URL;const key=process.env.VITE_SUPABASE_PUBLISHABLE_KEY||process.env.SUPABASE_PUBLISHABLE_KEY;
+  const url=process.env.VITE_SUPABASE_URL||process.env.NEXT_PUBLIC_SUPABASE_URL||process.env.SUPABASE_URL;const key=process.env.VITE_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.SUPABASE_PUBLISHABLE_KEY||process.env.SUPABASE_ANON_KEY;
   if(!url||!key){response.status(503).json({error:"Campus navigation is not configured."});return;}
   const started=Date.now();let correlationHash=operationalCorrelation(request.method||"unknown");
   const finish=async(status:number,payload:unknown,outcome:"success"|"failure"|"degraded"|"denied",errorCode:string|null,itemCount:number|null=null)=>{await recordResearchOperation({url,key,component:"campus_route",operation:"route",outcome,errorCode,httpStatus:status,latencyMs:Date.now()-started,itemCount,correlationHash,metadata:{result_count:itemCount,fallback_used:outcome!=="success"}});response.status(status).json(payload);};

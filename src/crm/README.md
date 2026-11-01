@@ -4,7 +4,7 @@ Authentication session-event policy lives in `authSessionPolicy.ts`. Repeated sa
 
 This folder contains the original school-wide relationship and student-success workspace, now available through the role-aware STU Nexus platform.
 
-For a plain-language explanation of the portal, its users, workspaces, AI capabilities, and example workflows, see [PORTAL_GUIDE.md](./PORTAL_GUIDE.md).
+For a plain-language explanation of the portal, its users, workspaces, AI capabilities, and example workflows, see [PORTAL_GUIDE.md](PORTAL_GUIDE.md).
 
 - `CRMApp.tsx` renders the operational dashboard and workflows.
 - `CrmRecordEditor.tsx` provides complete pre-filled create/edit forms for CRM students, support cases, admissions prospects, campaigns, and tasks; content-bearing fields use Tiptap.

@@ -31,7 +31,8 @@ begin
   where u.id is null;
 
   if missing_emails is not null then
-    raise exception 'Expected STU Nexus Auth identities are missing: %', missing_emails;
+    -- Do not create inherited acceptance identities in a fresh client database.
+    return;
   end if;
 
   update auth.users u

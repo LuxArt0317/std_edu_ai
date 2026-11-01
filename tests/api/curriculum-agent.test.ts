@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 test("bulk curriculum workflow is atomic, RLS-protected, and idempotent", () => {
-  const sql = readFileSync("supabase/migrations/20260718133000_agentic_curriculum_workflow.sql", "utf8");
+  const sql = readFileSync("supabase/migrations/20260718054000_agentic_curriculum_workflow.sql", "utf8");
   for (const table of ["curriculum_plans", "curriculum_plan_courses", "curriculum_course_prerequisites", "curriculum_block_templates"])
     assert.match(sql, new RegExp(`alter table public\\.${table} enable row level security`));
   assert.match(sql, /create_academic_curriculum[\s\S]*security invoker/i);

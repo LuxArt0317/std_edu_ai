@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 
 const root = new URL("../", import.meta.url);
-const needed = readFileSync(new URL("needed.md", root), "utf8");
+const needed = readFileSync(new URL("docs/product/needed.md", root), "utf8");
 
 const evidence = {
   accounts: ["src/platform/UnifiedPortal.tsx", "PeopleView", "src/platform/platformRepository.ts", "provisionRoleAccount", "supabase/functions/provision-role-account/index.ts", "account_lifecycle_audit"],
@@ -41,14 +41,14 @@ const failures = [];
 for (const row of rows) {
   const anchors = evidence[row.domain];
   if (!anchors) {
-    failures.push(`needed.md:${row.line} has no evidence domain: ${row.action}`);
+    failures.push(`docs/product/needed.md:${row.line} has no evidence domain: ${row.action}`);
     continue;
   }
   for (let index = 0; index < anchors.length; index += 2) {
     const file = anchors[index];
     const marker = anchors[index + 1];
     const source = readFileSync(new URL(file, root), "utf8");
-    if (!source.includes(marker)) failures.push(`${file} is missing ${JSON.stringify(marker)} for needed.md:${row.line}`);
+    if (!source.includes(marker)) failures.push(`${file} is missing ${JSON.stringify(marker)} for docs/product/needed.md:${row.line}`);
   }
 }
 
@@ -63,7 +63,7 @@ const requiredSpecificEvidence = {
 };
 
 for (const [action, [file, marker]] of Object.entries(requiredSpecificEvidence)) {
-  if (!needed.includes(`- ${action}`)) failures.push(`needed.md is missing governed action: ${action}`);
+  if (!needed.includes(`- ${action}`)) failures.push(`docs/product/needed.md is missing governed action: ${action}`);
   const candidates = file === "supabase/migrations"
     ? ["supabase/migrations/20260717234309_complete_needed_controlled_workflows.sql", "supabase/migrations/20260718001256_controlled_student_program_submission_records.sql", "supabase/migrations/20260718002408_complete_identity_governance.sql"]
     : [file];
@@ -75,8 +75,8 @@ for (const [action, [file, marker]] of Object.entries(requiredSpecificEvidence))
 if (rows.length < 200) failures.push(`Only ${rows.length} actionable requirements were parsed; expected at least 200.`);
 
 if (failures.length) {
-  console.error(`needed.md catalog verification failed (${failures.length}):\n- ${failures.join("\n- ")}`);
+  console.error(`docs/product/needed.md catalog verification failed (${failures.length}):\n- ${failures.join("\n- ")}`);
   process.exit(1);
 }
 
-console.log(`needed.md catalog verified: ${rows.length} actions mapped across ${Object.keys(evidence).length} evidence domains.`);
+console.log(`docs/product/needed.md catalog verified: ${rows.length} actions mapped across ${Object.keys(evidence).length} evidence domains.`);

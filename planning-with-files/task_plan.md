@@ -1,5 +1,16 @@
 # Task Plan
 
+## Client handoff [Issue #73]
+
+- [x] Audit client repository, live Vercel deployment, and exact database resource.
+- [x] Confirm protected client owner email.
+- [x] Organize documents and preserve working links and verification paths.
+- [x] Make configuration portable and provision the isolated client database.
+- [ ] Verify authentication, storage, authorization, APIs, and deployed assets.
+- [ ] Complete handoff documentation, issue evidence, and commit the reviewed changes.
+
+# Historical task plan
+
 ## Phase 104: Research completion R&D and implementation epic [Issues #104–#117]
 
 - [x] compare `research.md` and `understanding.md` with the current production implementation and schema

@@ -20,3 +20,5 @@ Human outcomes remain external evidence. Synthetic tests prove platform behavior
 - `npm run test:live-stu-source-inventory` reversibly proves ten-domain insertion, exact replay, official-host rejection, direct-transition denial, librarian review, inactive-source acceptance, zero document creation, and zero fixture residue.
 - `npm run test:load-research-public` executes the bounded public shell and campus-route pilot and fails when measured p95 or error rate exceeds the versioned SLO.
 - Instruction-bearing source content is quarantined before embeddings, publication, or retrieval. Retrieved evidence is still treated as untrusted data, and public research mode has no mutation tools.
+
+Client handoff uses deployment.json and docs/operations/. Enhanced-study links stay on the current deployment; the old account directory is historical.

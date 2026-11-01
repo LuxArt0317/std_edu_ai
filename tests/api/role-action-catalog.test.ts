@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 
-const catalog = fs.readFileSync("needed.md", "utf8");
+const catalog = fs.readFileSync("docs/product/needed.md", "utf8");
 const portal = fs.readFileSync("src/platform/UnifiedPortal.tsx", "utf8");
 const repository = fs.readFileSync(
   "src/platform/platformRepository.ts",

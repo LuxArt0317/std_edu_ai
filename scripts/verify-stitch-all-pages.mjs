@@ -1,6 +1,6 @@
 import fs from "node:fs";
 
-const evidence=fs.readFileSync("STITCH_ALL_PAGES_EVIDENCE.md","utf8");
+const evidence=fs.readFileSync("docs/design/STITCH_ALL_PAGES_EVIDENCE.md","utf8");
 const portal=fs.readFileSync("src/platform/UnifiedPortal.tsx","utf8");
 const crm=fs.readFileSync("src/crm/CRMApp.tsx","utf8");
 const auth=fs.readFileSync("src/crm/CRMRoot.tsx","utf8");

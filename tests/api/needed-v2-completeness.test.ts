@@ -6,9 +6,9 @@ const root = new URL("../../", import.meta.url);
 const read = (path: string) => readFile(new URL(path, root), "utf8");
 
 test("needed v2 covers every schema domain and has no unresolved required action", async () => {
-  const catalog = await read("neededv2.md");
+  const catalog = await read("docs/product/neededv2.md");
   for (const marker of ["Identity, roles, and accountability","Academic structure and curriculum","Student identity and academic record","Learning management and teaching","Assessments, grades, and attendance","CRM, learner support, admissions, and outreach","Communication, governance, notifications, and AI","Cross-cutting usability"]) assert.match(catalog, new RegExp(marker));
-  assert.doesNotMatch(catalog, /^- \[ \]/m, "neededv2.md contains an unresolved required action");
+  assert.doesNotMatch(catalog, /^- \[ \]/m, "docs/product/neededv2.md contains an unresolved required action");
   assert.match(catalog, /Immutable/);
   assert.match(catalog, /Archive\/transition/);
 });

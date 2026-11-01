@@ -1008,7 +1008,7 @@ def add_appendices(doc):
     doc.add_heading("Appendix C. Source basis", level=1)
     doc.add_paragraph("This manual was authored from the implemented repository and its maintained operating references, including:")
     add_bullets(doc, [
-        "README.md, PROJECT.md, SETUP.md, UNDERSTANDING.md, and research.md",
+        "README.md, PROJECT.md, SETUP.md, docs/research/UNDERSTANDING.md, and docs/research/research.md",
         "src/crm/PORTAL_GUIDE.md and the CRM implementation",
         "src/platform/ROLE_MATRIX.md, platform architecture, repository, role-aware navigation, and platform implementation",
         "Supabase migrations, trusted functions, Edge Function documentation, generated database contracts, and RLS acceptance tests",

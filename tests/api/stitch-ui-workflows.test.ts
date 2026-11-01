@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 test("Stitch outputs are validated instead of accepted as complete",()=>{
-  const evidence=readFileSync("STITCH_UI_EVIDENCE.md","utf8");
+  const evidence=readFileSync("docs/design/STITCH_UI_EVIDENCE.md","utf8");
   assert.match(evidence,/generated HTML—not only the screenshots/i);
   assert.match(evidence,/Missing or ambiguous in Stitch/);
   assert.match(evidence,/never remove controls to match Stitch/i);
@@ -23,7 +23,7 @@ test("completed Stitch hooks remain removed while the active research guard is s
 });
 
 test("the Stitch redesign is scoped away from the public landing page",()=>{
-  const evidence=readFileSync("STITCH_UI_EVIDENCE.md","utf8");
+  const evidence=readFileSync("docs/design/STITCH_UI_EVIDENCE.md","utf8");
   const publicLanding=readFileSync("src/App.tsx","utf8");
   assert.match(evidence,/public `\/` landing page.*excluded/i);
   assert.doesNotMatch(publicLanding,/stitch_ui|lms-material-open|people-manage-account/i);
