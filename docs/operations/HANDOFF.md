@@ -6,10 +6,10 @@ User authorized production publication on 2026-11-01. The release contains the u
 
 Pre-release verification passed: 170 API/source checks, 11 units, all 32 browser scenarios across full/focused runs, ten public accessibility states, build/assets, documentation links and zero dependency vulnerabilities. Lint passes with inherited React warnings. Live client checks cover owner CRUD cleanup, RLS/private storage, both account functions and OpenAI-backed non-mutating QA. See the [workflow audit](../qa/WORKFLOW_AUDIT.md).
 
-Production push and exact deployment verification are pending at this checkpoint. Previous local-review notes below are historical. Credentials remain private and ignored. Email delivery, institutional approvals and manual assistive-technology acceptance are not claimed by these automated checks.
+Production is Ready at [stdeduai.vercel.app](https://stdeduai.vercel.app): [deployment 8VJNpQEEaUR3gVMyFfQ5hj4DzqSD](https://vercel.com/v1-d286/std_edu_ai/8VJNpQEEaUR3gVMyFfQ5hj4DzqSD), code commit `64ebf127263e9335a4b5e370c7e6f19e5f90924e`. Independent GitHub quality workflow `41321537236` passed all stages. Live browser checks passed real owner sign-in/return navigation, protected sections, refresh/back, legacy redirect, missing-page and external-return rejection, dashboard and mobile-login accessibility with zero app errors. Production shell checks verified 27 recursive assets for each of five entry paths; live APIs, private storage/RLS, owner CRUD cleanup, both Edge Functions and authenticated OpenAI QA passed. Previous local-review notes below are historical. Credentials remain private and ignored. Email delivery, institutional approvals and manual assistive-technology acceptance are not claimed by these automated checks.
 
 
-## Current local UI (Issue #74)
+## Prior local UI checkpoint (Issue #74)
 
 The requested taste-led redesign replaces the merged workspace's promotional presentation with compact transactional screens. Shared shadcn controls and one green accent cover grouped navigation, compact page headers, real case/department tables, academic Add/Export menus, collapsed diagnostics and plain action labels. Account-menu options include System/Light/Dark appearance, owner role preview and sign-out. Permissions, routes, data and approval controls remain intact.
 
@@ -17,7 +17,7 @@ Verified: 170 API/source checks; eight units; all 29 E2E scenarios across a full
 
 Final fixture cleanup and independent SQL confirm one real owner, zero QA/test-named users and no orphaned identities. Database unchanged during this redesign: 100 migrations / 101 public RLS tables. Credentials and authenticated artifacts remain ignored/private.
 
-This UI is committed locally for review at http://localhost:5173/crm. It is not pushed or deployed; the previous production UI remains separate. Issue #74 stays open for release acceptance. Institutional approvals, email delivery and manual assistive-technology acceptance are not asserted by automated checks.
+At this earlier checkpoint the UI was local-only. The current release above supersedes that status. Institutional approvals, email delivery and manual assistive-technology acceptance are not asserted by automated checks.
 
 ## Previous deployed handoff — Issue #73
 

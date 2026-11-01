@@ -3,6 +3,8 @@
 
 ### Client release and routes (Issue #74)
 
+- Published and verified on stdeduai.vercel.app; Vercel Ready for code 64ebf12. Independent quality CI and live owner/browser/API/database checks pass.
+
 - Pin Vercel framework, install/build commands and `dist` output in versioned configuration to prevent dashboard output mismatches.
 
 - Separate sign-in (`/login`) from the protected dashboard (`/app`); add section URLs, safe return links, refresh/history support and compatible old `/crm` links.

@@ -17,7 +17,7 @@
 - [x] Audit CRUD and complete role workflows; fix verified gaps with preserved authorization.
 - [x] Run unit/component/API/E2E/accessibility checks with real client-backed flows and cleanup.
 - [x] Review responsive visuals, document verified evidence, and commit the merged workspace locally.
-- [ ] Publish a client release and verify the deployed merged UI; current changes remain local for review.
+- [x] Publish the client release and verify the deployed merged UI.
 
 Historical phase checklists: [planning history](../docs/archive/PLANNING_HISTORY.md).
 
@@ -25,4 +25,4 @@ Historical phase checklists: [planning history](../docs/archive/PLANNING_HISTORY
 
 - [x] Separate `/login` and `/app`, add section URLs, preserve legacy recovery links and role guards.
 - [x] Verify route behavior, build, backend integration and regression checks.
-- [ ] Push client main, verify the exact production deployment, and update handoff records.
+- [x] Push client main, verify the exact production deployment, and update handoff records.

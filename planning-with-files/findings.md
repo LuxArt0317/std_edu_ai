@@ -120,3 +120,5 @@ Design read: daily school administration, shadcn/Radix + Tailwind, neutral surfa
 ## Release routing — Issue #74
 
 React Router 8 separates `/login` from `/app` and gives every school section a stable URL. Existing provider `/crm` recovery allowlists remain intact through a compatibility entry. Safe return URLs accept only known local sections. Role guards hide unauthorized content before redirecting; backend RLS and trusted role checks remain authoritative. Browser QA exposed an implicit password label including Show/Hide text and delayed competing logout redirects; explicit labeling and sign-out intent now keep the auth flow stable. All 32 E2E scenarios verified across full/focused runs; 170 API/source and 11 units pass.
+
+Production release `64ebf12` is Ready as Vercel `8VJNpQEEaUR3gVMyFfQ5hj4DzqSD`. Initial app compilation succeeded but the provider expected build instead of dist; explicit versioned Vite/build/install/output settings resolved it. Independent quality CI and actual production owner/browser/backend checks passed. Existing original resources and login permissions were not changed.
