@@ -3,10 +3,10 @@ import fs from "node:fs";
 import test from "node:test";
 
 const migration = fs.readFileSync("supabase/migrations/20260718230958_knowledge_contribution_context.sql", "utf8");
-const ui = fs.readFileSync("src/crm/CRMApp.tsx", "utf8");
-const repository = fs.readFileSync("src/crm/crmRepository.ts", "utf8");
-const platformRepository = fs.readFileSync("src/platform/platformRepository.ts", "utf8");
-const platformAi = fs.readFileSync("src/platform/platformAi.ts", "utf8");
+const ui = fs.readFileSync("src/features/crm/CRMApp.tsx", "utf8");
+const repository = fs.readFileSync("src/features/crm/crmRepository.ts", "utf8");
+const platformRepository = fs.readFileSync("src/features/school/platformRepository.ts", "utf8");
+const platformAi = fs.readFileSync("src/features/school/platformAi.ts", "utf8");
 
 test("knowledge contributions retain source, audience, ownership, and review context", () => {
   for (const field of ["source_type", "source_event_id", "source_profile_id", "section_id", "audience_scope", "audience_roles", "reviewed_by", "review_notes"])

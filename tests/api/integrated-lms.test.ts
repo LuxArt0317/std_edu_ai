@@ -41,7 +41,7 @@ test("LMS hardening enforces enrollment and maximum scores", async () => {
 });
 
 test("teacher and student LMS surfaces cover the complete course lifecycle", async () => {
-  const ui = await source("src/platform/LmsWorkspace.tsx");
+  const ui = await source("src/features/school/LmsWorkspace.tsx");
   for (const label of [
     "New module",
     "Add learning material",
@@ -70,8 +70,8 @@ test("rich content supports protected multi-page lessons and managed images", as
   const sql = await source(
     "supabase/migrations/20260717155812_rich_content_pages_and_media.sql",
   );
-  const editor = await source("src/platform/RichTextEditor.tsx");
-  const lms = await source("src/platform/LmsWorkspace.tsx");
+  const editor = await source("src/features/school/RichTextEditor.tsx");
+  const lms = await source("src/features/school/LmsWorkspace.tsx");
   assert.match(sql, /create table public\.learning_material_pages/i);
   assert.match(sql, /learning_material_pages_read/i);
   assert.match(sql, /private\.can_manage_section/i);

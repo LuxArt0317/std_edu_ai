@@ -3,7 +3,7 @@ import fs from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 
 import schoolHandler from "../../api/school-assistant.ts";
-import { normalizeLessonHtml } from "../../src/platform/richLessonContent.ts";
+import { normalizeLessonHtml } from "../../src/features/school/richLessonContent.ts";
 
 function environment(path) {
   if (!fs.existsSync(path)) return {};

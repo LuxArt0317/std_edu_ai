@@ -5,7 +5,7 @@ import { test } from "node:test";
 const source = (path: string) => readFile(path, "utf8");
 
 test("admissions cards drag between stages through one validated transition path", async () => {
-  const app = await source("src/crm/CRMApp.tsx");
+  const app = await source("src/features/crm/CRMApp.tsx");
   assert.match(app, /draggable/);
   assert.match(app, /onDragStart=\{\(event\) => startLeadDrag/);
   assert.match(app, /onDrop=\{\(event\) => dropLead/);
@@ -16,7 +16,7 @@ test("admissions cards drag between stages through one validated transition path
 });
 
 test("stage completion collects contacts, next action, and accountable ownership", async () => {
-  const app = await source("src/crm/CRMApp.tsx");
+  const app = await source("src/features/crm/CRMApp.tsx");
   assert.match(app, /engaged: \["owner", "contact", "nextStep"\]/);
   assert.match(app, /application: \["owner", "email", "phone", "nextStep"\]/);
   assert.match(app, /admitted: \["owner", "email", "phone", "nextStep"\]/);
@@ -29,8 +29,8 @@ test("stage completion collects contacts, next action, and accountable ownership
 
 test("prospect actions have distinct semantic colors and accessible fallback controls", async () => {
   const [app, css] = await Promise.all([
-    source("src/crm/CRMApp.tsx"),
-    source("src/crm/crm.css"),
+    source("src/features/crm/CRMApp.tsx"),
+    source("src/features/crm/crm.css"),
   ]);
   assert.match(app, /pipeline-advance-action/);
   assert.match(app, /pipeline-edit-action/);

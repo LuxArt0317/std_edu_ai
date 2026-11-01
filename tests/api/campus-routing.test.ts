@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
-import {calculateCampusRoute, resolvePlace} from "../../server/campusRouting.js";
+import { calculateCampusRoute,resolvePlace } from "../../server/campusRouting.js";
 
 const places=[
   {id:"p-a",site_id:"site",building_id:"building",floor_id:"floor",code:"ENT",name_zh:"正門",name_en:"Main Entrance",place_type:"entrance",room:null,status:"active",wheelchair_accessible:true,verified_at:"2026-07-19",official_source_id:"source"},
@@ -43,7 +43,7 @@ test("accessible routing excludes stairs, unsuitable, closed, unverified, and ou
 
 test("public campus UI and API expose verified directory, text directions, and honest validation state",()=>{
   const app=fs.readFileSync("src/App.tsx","utf8"); const api=fs.readFileSync("api/campus-route.ts","utf8"); const migration=fs.readFileSync("supabase/migrations/20260719074200_accessible_campus_route_directions.sql","utf8");
-  for(const marker of ["校園導覽與無障礙路線","<ol>","campusRoute.steps","只使用無障礙路線","實地步行驗證完成前","官方來源","event.key === 'Escape'","event.key !== 'Tab'","campusCloseRef.current?.focus"] ) assert.ok(app.includes(marker),`missing UI marker ${marker}`);
+  for(const marker of ["校園導覽與無障礙路線","<ol>","campusRoute.steps","只使用無障礙路線","實地步行驗證完成前","官方來源","<Dialog open onOpenChange={setCampusOpen}>","<DialogContent","campusLaunchRef.current?.focus"] ) assert.ok(app.includes(marker),`missing UI marker ${marker}`);
   for(const marker of ["verified_at=not.is.null","status=eq.active","needs_selection","temporarily closed","physicalValidation","pending_official_walkthrough"]) assert.ok(api.includes(marker),`missing API marker ${marker}`);
   assert.match(migration,/instruction_reverse_zh[\s\S]*set not null/);
 });

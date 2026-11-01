@@ -1,7 +1,7 @@
-import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import {operationalCorrelation,safeOperationalCode,safeOperationalMetadata} from "../../server/researchOperations.js";
+import test from "node:test";
+import { operationalCorrelation,safeOperationalCode,safeOperationalMetadata } from "../../server/researchOperations.js";
 
 test("operational helpers only emit irreversible identifiers and enumerated metadata",()=>{
   assert.match(operationalCorrelation("a raw question that must not be stored"),/^[0-9a-f]{64}$/);
@@ -23,7 +23,7 @@ test("required research APIs emit sanitized component observations",()=>{
 });
 
 test("protected UI exposes SLO, incident ownership, and manual evidence boundary",()=>{
-  const ui=fs.readFileSync("src/research/ResearchOperationsPanel.tsx","utf8");
+  const ui=fs.readFileSync("src/features/research/ResearchOperationsPanel.tsx","utf8");
   for(const marker of ["Versioned service objectives","Measured 24-hour service evidence","Active alerts","Acknowledge","Resolve after verification","VoiceOver, NVDA, TalkBack"]){assert.ok(ui.includes(marker),marker);}
 });
 

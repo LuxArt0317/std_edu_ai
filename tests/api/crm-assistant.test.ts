@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { after, test } from 'node:test'
+import { after,test } from 'node:test'
 import handler from '../../api/crm-assistant.ts'
 
 type CapturedResponse = {

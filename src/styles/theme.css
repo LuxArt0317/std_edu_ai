@@ -1,0 +1,185 @@
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--primary);
+  --color-sidebar-primary-foreground: var(--primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--ring);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --sidebar: #102f2b;
+  --sidebar-foreground: #e9fffa;
+  --sidebar-accent: #1c4d43;
+  --sidebar-border: #31574e;
+  --background: #f3f7f6;
+  --foreground: #152d2a;
+  --card: #ffffff;
+  --card-foreground: #152d2a;
+  --popover: #ffffff;
+  --popover-foreground: #152d2a;
+  --primary: #137562;
+  --primary-foreground: #ffffff;
+  --secondary: #e6f2ee;
+  --secondary-foreground: #164d42;
+  --muted: #edf3f1;
+  --muted-foreground: #526e67;
+  --accent: #def2eb;
+  --accent-foreground: #0b5f4d;
+  --destructive: #b83c38;
+  --border: #d6e3de;
+  --input: #a8bfb6;
+  --ring: #137562;
+  --radius: 0.625rem;
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground antialiased; }
+  button, input, textarea, select { font: inherit; }
+  button, a, input, textarea, select { @apply focus-visible:outline-none; }
+  [hidden] { display: none !important; }
+}
+
+@layer components {
+  .school-shell h1, .school-shell h2, .nexus-auth-card h1, .crm-shell h1, .crm-shell h2 {
+    @apply font-sans font-semibold tracking-tight;
+  }
+  .school-content { @apply mx-auto w-full max-w-[1600px] px-5 py-6 lg:px-8; }
+  .school-page-intro { @apply mb-6 rounded-none border-0 bg-none p-0 shadow-none; }
+  .school-page-intro h1 { @apply text-3xl leading-tight lg:text-4xl; }
+  .school-page-intro p { @apply max-w-3xl text-sm leading-6 text-muted-foreground; }
+  .school-workspace-context { @apply rounded-md border bg-card px-4 py-2 text-xs shadow-none; }
+  .school-topbar { @apply border-b bg-card shadow-none; }
+  .school-sidebar { @apply bg-[#102f2b] bg-none; }
+  .school-sidebar nav button { @apply w-full justify-start text-[#e9fffa] hover:bg-white/10 hover:text-white; }
+  .school-sidebar nav button.active { @apply bg-[#137562] text-white; }
+  .school-menu { @apply md:hidden; }
+  .school-role-card { @apply rounded-lg border-white/15 bg-white/5 shadow-none; }
+  .school-sidebar-foot button { @apply w-full border border-white/20 bg-white/5 text-white hover:bg-white/10; }
+  .school-owner-card { @apply border-border bg-card bg-none shadow-none; }
+  .school-shell [data-slot="card"] { @apply rounded-lg shadow-none; }
+  .school-shell [data-slot="button"] { @apply cursor-pointer; }
+  .school-shell .academic-tabs, .school-shell .lms-tabbar { @apply gap-1 rounded-lg border bg-card p-1; }
+  .school-shell .academic-tabs button, .school-shell .lms-tabbar button { @apply bg-transparent text-muted-foreground shadow-none hover:bg-muted; }
+  .school-shell .academic-tabs button.active, .school-shell .lms-tabbar button.active { @apply bg-primary text-primary-foreground; }
+  .school-shell [data-slot="input"][type="radio"], .school-shell [data-slot="input"][type="range"] { @apply size-4 accent-primary shadow-none; }
+  [data-slot="dialog-content"] [data-slot="native-select-wrapper"] { @apply w-full; }
+  [data-slot="dialog-content"] form { @apply min-w-0; }
+  .nexus-auth-shell { @apply bg-background bg-none; }
+  .nexus-auth-card { @apply rounded-xl border bg-card p-7 shadow-sm; }
+  .nexus-auth-card h1 { @apply text-3xl; }
+  .nexus-auth-card form { @apply grid gap-5; }
+  .nexus-auth-card form > [data-slot="button"] { @apply w-full; }
+}
+
+@layer utilities {
+  .school-hero { @apply min-h-0 rounded-lg border bg-card bg-none p-6 text-card-foreground shadow-none; }
+  .school-hero h2 { @apply my-3 text-2xl font-semibold tracking-tight lg:text-3xl; }
+  .school-hero p { @apply text-sm leading-6 text-muted-foreground; }
+  .school-hero-orbit { @apply hidden; }
+  .school-hero > div:first-child > div span { @apply border-border bg-muted text-muted-foreground; }
+  .owner-banner { @apply rounded-lg border-border bg-card bg-none shadow-none; }
+  .school-metric-card { @apply gap-3 rounded-lg border bg-card p-5 shadow-none; }
+}
+
+@layer utilities {
+  .school-shell { --school-muted: #526e67; }
+  .school-stat-grid > article > strong { @apply font-sans; }
+  .school-stat-grid > article > span, .school-stat-grid > article > p,
+  .academic-overview > article > span, .academic-overview > article > p,
+  .academic-setup-grid p, .department-grid p { @apply text-muted-foreground; }
+  .school-user > span { @apply text-white; }
+  .school-sidebar-foot p small, .school-role-card small, .school-brand small { @apply text-[#b4cdc5]; }
+  .school-role-card b { @apply truncate; }
+}
+
+@layer utilities {
+  .academic-relationship-health button { @apply border bg-card text-foreground shadow-none hover:bg-muted; }
+  .academic-relationship-health button small { @apply text-muted-foreground; }
+  .department-grid > article > span { @apply bg-secondary text-secondary-foreground; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+@layer utilities {
+  [data-slot="dialog-content"] footer > span { @apply text-muted-foreground; }
+}
+
+@layer utilities {
+  .school-content p, .school-content small, .school-empty,
+  .grade-controls > div > span, .gradebook-head > span,
+  .lms-course-head > div > span, .school-content .tiptap,
+  .school-content .tiptap p, .unified-weekdays b,
+  .unified-month-grid .outside time, .unified-calendar footer span,
+  .role-hierarchy > div > header, .school-content p > span { @apply text-muted-foreground; }
+  .school-content button p, .school-content button small { color: inherit; }
+  .school-content p[role="alert"] { @apply text-destructive; }
+  .nexus-shell small, .nexus-shell kbd, .nexus-shell .metric-card > span,
+  .nexus-shell .metric-card > p { @apply text-muted-foreground; }
+  .nexus-shell .user-card small { @apply text-white; }
+  .nexus-shell .hero-priority-list button small { @apply text-[#d7f5ec]; }
+  .nexus-shell .nexus-pill.critical { @apply text-[#a52c25]; }
+  .nexus-shell .today-tasks header span, .nexus-shell .signal-panel header span { @apply text-primary; }
+}
+@layer utilities {
+  .assessment-card > div > span, .assessment-meta span, .assessment-tags span,
+  .grade-controls label > span { @apply text-muted-foreground; }
+  .unified-month-grid > section.outside { @apply bg-muted opacity-100; }
+  .nexus-shell .nexus-metric > span, .nexus-shell .nexus-metric > p,
+  .nexus-shell .signal-stream button p { @apply text-muted-foreground; }
+}
+@layer utilities {
+  .assessment-list > article > div span { @apply text-muted-foreground; }
+}
+
+@layer utilities {
+  .nexus-shell .risk-overview header span, .nexus-shell .list-heading > div > span,
+  .nexus-shell .crm-lifecycle-toolbar > div > span, .nexus-shell .lead-source,
+  .governance-documents > header > div > span { @apply text-primary; }
+  .nexus-shell .risk-legend > span, .nexus-shell .rank,
+  .nexus-shell .pipeline-stage-content article p,
+  .nexus-shell .pipeline-stage-content article footer > span,
+  .nexus-shell .case-table-head > span, .source-inventory-summary > span,
+  .governance-documents .governance-empty, .nexus-shell .knowledge-list article p,
+  .nexus-shell .knowledge-list article > div > div > span:not(.nexus-pill) { @apply text-muted-foreground; }
+  .nexus-shell .signal-chips .warning { @apply text-amber-900; }
+  .nexus-shell .signal-chips .negative { @apply text-red-800; }
+  .nexus-shell .case-summary > span { color: inherit; }
+  .nexus-shell .case-student > span { @apply bg-secondary text-secondary-foreground; }
+}
+@layer utilities {
+  .nexus-brand small, .data-source small { @apply text-[#b4cdc5]; }
+  .user-card small { @apply text-white; }
+  .nexus-shell .global-search p { @apply text-muted-foreground; }
+  .school-content p, .nexus-main p { @apply text-sm leading-6; }
+  .school-content small, .nexus-main small { @apply text-xs; }
+  .school-content [data-slot="label"] > span,
+  .nexus-main [data-slot="label"] > span { @apply text-sm; }
+}

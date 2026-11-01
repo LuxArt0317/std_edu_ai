@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
 import test from "node:test";
+import { readContractSource } from '../../scripts/contract-source.mjs';
 
-const portal = fs.readFileSync("src/platform/UnifiedPortal.tsx", "utf8");
-const styles = fs.readFileSync("src/platform/platform.css", "utf8");
+const portal = readContractSource("src/features/school/UnifiedPortal.tsx", "utf8");
+const styles = readContractSource("src/features/school/platform.css", "utf8");
 
 test("Nexus restores the last valid thread and opens at its newest message", () => {
   assert.match(portal, /stu-nexus:last-thread:/);
@@ -17,16 +17,16 @@ test("Nexus restores the last valid thread and opens at its newest message", () 
 test("Nexus follows new messages without stealing an intentional reading position", () => {
   assert.match(portal, /nearLatestMessageRef/);
   assert.match(portal, /if \(!isInitialRestore && !nearLatestMessageRef\.current\) return/);
-  assert.match(portal, /viewport\.scrollHeight - viewport\.scrollTop - viewport\.clientHeight < 96/);
+  assert.match(portal, /viewport\.scrollHeight\s*-\s*viewport\.scrollTop\s*-\s*viewport\.clientHeight\s*<\s*96/);
 });
 
 test("goal activity is a collapsed assistant reply inside the compact popup", () => {
-  assert.match(portal, /"idle" \| "thinking" \| "executing" \| "refreshing" \| "waiting" \| "complete" \| "blocked"/);
+  assert.match(portal, /"idle"[\s\S]*"thinking"[\s\S]*"executing"[\s\S]*"refreshing"[\s\S]*"waiting"[\s\S]*"complete"[\s\S]*"blocked"/);
   for (const label of ["Thinking", "Working", "Waiting for you", "Goal complete", "Stopped"])
     assert.match(portal, new RegExp(`"${label}"`));
-  assert.match(portal, /<details className=\{`chat-agent-run/);
-  assert.match(portal, /<article className="assistant agent-progress-reply"/);
-  assert.match(portal, /\{agentRun\.step\} done · \{agentRun\.remainingWork\.length\} remaining/);
+  assert.match(portal, /<details\s+className=\{`chat-agent-run/);
+  assert.match(portal, /<Card\s+className="assistant agent-progress-reply"/);
+  assert.match(portal, /\{agentRun\.step\} done ·[\s\S]{0,50}\{agentRun\.remainingWork\.length\}[\s\S]{0,30}remaining/);
   assert.match(portal, /Nexus working/);
   assert.match(portal, /onActivityChange=\{setAssistantActivity\}/);
   assert.match(styles, /\.chat-agent-activity/);

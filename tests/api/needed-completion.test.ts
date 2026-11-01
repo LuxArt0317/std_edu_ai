@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
 import { test } from "node:test";
+import { readContractSource } from '../../scripts/contract-source.mjs';
 
-const read=(path:string)=>fs.readFileSync(path,"utf8");
-const portal=read("src/platform/UnifiedPortal.tsx");
-const crm=read("src/crm/CRMApp.tsx");
-const lms=read("src/platform/LmsWorkspace.tsx");
+const read=(path:string)=>readContractSource(path,"utf8");
+const portal=read("src/features/school/UnifiedPortal.tsx");
+const crm=read("src/features/crm/CRMApp.tsx");
+const lms=read("src/features/school/LmsWorkspace.tsx");
 const account=read("supabase/functions/provision-role-account/index.ts");
 const identity=read("supabase/migrations/20260718002408_complete_identity_governance.sql");
 const roles=read("supabase/migrations/20260718003136_align_all_role_rls_catalog.sql");
@@ -14,7 +14,7 @@ const explanations=read("supabase/migrations/20260718004847_protect_unreleased_a
 const retention=read("supabase/migrations/20260718005248_enforce_crm_retention_no_permanent_delete.sql");
 
 test("temporary credentials require a completed first-login password replacement",()=>{
-  assert.match(account,/must_change_password: true/); assert.match(account,/complete_password_change/); assert.match(portal,/PeopleView/); assert.match(read("src/crm/CRMRoot.tsx"),/Replace your temporary password/);
+  assert.match(account,/must_change_password: true/); assert.match(account,/complete_password_change/); assert.match(portal,/PeopleView/); assert.match(read("src/features/crm/CRMRoot.tsx"),/Replace your temporary password/);
 });
 
 test("identity, responsibility, admissions, communication, and sensitive access are governed",()=>{

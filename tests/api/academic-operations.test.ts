@@ -44,7 +44,7 @@ test('all browser-invoked account functions allow Supabase client headers and pr
 })
 
 test('the Academic Office exposes complete setup and daily workflows', async () => {
-  const ui = await source('src/platform/AcademicOperations.tsx')
+  const ui = await source('src/features/school/AcademicOperations.tsx')
   for (const expected of [
     'Add student',
     'Add subject',

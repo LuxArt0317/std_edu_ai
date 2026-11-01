@@ -1,9 +1,9 @@
-import { readFileSync } from "node:fs";
+import { readContractSource } from './contract-source.mjs';
 
-const evidence=readFileSync("docs/design/STITCH_UI_EVIDENCE.md","utf8");
-const lms=readFileSync("src/platform/LmsWorkspace.tsx","utf8");
-const portal=readFileSync("src/platform/UnifiedPortal.tsx","utf8");
-const crm=readFileSync("src/crm/CRMApp.tsx","utf8");
+const evidence=readContractSource("docs/design/STITCH_UI_EVIDENCE.md","utf8");
+const lms=readContractSource("src/features/school/LmsWorkspace.tsx","utf8");
+const portal=readContractSource("src/features/school/UnifiedPortal.tsx","utf8");
+const crm=readContractSource("src/features/crm/CRMApp.tsx","utf8");
 const requiredEvidence=["projects/16353832066758496067","assets/dfc4619bb6af499394c5c7afed65bcda","## Generated screens","## Control validation","## Implementation evidence","## Production evidence"];
 const missing=requiredEvidence.filter((marker)=>!evidence.includes(marker));
 const sourceContracts={

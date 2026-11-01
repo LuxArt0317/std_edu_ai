@@ -4,7 +4,7 @@
 
 Use Node.js 24 and npm. Install locked dependencies with `npm ci`. Run all commands at repository root.
 
-Copy `.env.example` to `.env.local` and supply the client project's URL and publishable key. `npm run dev` starts Vite. `npm run build` validates TypeScript, builds `dist/`, and verifies lazy-route assets. Vite alone does not emulate Vercel's `/api` functions; use `vercel dev` only after signing into and linking the correct client team.
+Copy `.env.example` to `.env.local` and supply the client project's URL and publishable key. `npm run dev` starts Vite. `npm run build` validates TypeScript, builds `dist/`, and verifies lazy-route assets. Vite's development and preview servers proxy `/api` to the declared client production site so local UI verification can exercise the authorized backend. To test changed Function code locally, use `vercel dev` only after signing into and linking the correct client team. Supabase reads and writes always use the configured client project.
 
 ## Environment variables
 
@@ -49,10 +49,21 @@ Use the existing client browser session for administration unless a CLI account 
 ```sh
 npm run lint
 npm test
+npm run test:unit
 npm run build
+npm run test:accessibility-public
+npm run test:e2e
 npm run verify:handoff
 npm run verify:dependency-audit
 npm run verify:client
 ```
 
 The client check uses `deployment.json` and client credentials; inherited live acceptance scripts under `tests/integration/` may require historical fixtures and must not be run blindly against another deployment. [Handoff status](HANDOFF.md) records which live features were actually verified.
+
+## Client browser and workflow QA
+
+`test:e2e` requires ignored `.env.vercel.local` (client resource credentials) and `.env.owner.local` (`CRM_ADMIN_EMAIL`/`CRM_ADMIN_PASSWORD`). It verifies the project reference before provisioning disposable accounts, an isolated department/program/class and curriculum. All 14 roles sign in independently. Tests cover role navigation, curriculum request authorization and review, module publication, private learning files, quiz scoring/answer-key protection, assignment grading, attendance, owner academic CRUD, mobile navigation and accessible dialogs.
+
+The setup stores short-lived sessions only in mode-0600 ignored `artifacts/e2e/client-state.json`. Teardown removes exact fixture records and temporary accounts, and deletes that file. Screenshots, reports and traces stay in ignored `artifacts/`; traces may contain authenticated network data and must not be published. If an interrupted run needs cleanup, use `node --input-type=module -e "const {cleanupFixtures}=await import('./tests/e2e/client-fixtures.mjs');await cleanupFixtures()"`. The normal test command cleans up automatically, including after assertions fail.
+
+`test:live-lms` uses the same disposable client fixtures and shared live contract. Other inherited acceptance scripts may still require historical fixtures: use the current E2E suite for this client, and review any older script before running it.

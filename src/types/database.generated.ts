@@ -14,6 +14,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      curriculum_change_requests: {
+        Row: { id: string; section_id: string; program_id: string; plan_id: string | null; requester_id: string; summary: string; details: string; status: string; reviewed_by: string | null; review_reason: string | null; reviewed_at: string | null; created_at: string; updated_at: string }
+        Insert: { id?: string; section_id: string; program_id: string; plan_id?: string | null; requester_id: string; summary: string; details: string; status?: string; reviewed_by?: string | null; review_reason?: string | null; reviewed_at?: string | null; created_at?: string; updated_at?: string }
+        Update: { summary?: string; details?: string; status?: string; updated_at?: string }
+        Relationships: []
+      }
       academic_programs: {
         Row: {
           code: string
@@ -5962,6 +5968,10 @@ export type Database = {
       }
     }
     Functions: {
+      manage_curriculum_change_request: {
+        Args: { p_action: string; p_request_id?: string; p_section_id?: string; p_summary?: string; p_details?: string; p_decision?: string; p_reason?: string }
+        Returns: Json
+      }
       administrative_workload_report: {
         Args: { p_office_code: string; p_study_id: string }
         Returns: Json

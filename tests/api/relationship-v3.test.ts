@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
+import { readContractSource } from '../../scripts/contract-source.mjs';
 
-const read=(path:string)=>readFileSync(new URL(`../../${path}`,import.meta.url),"utf8");
+const read=(path:string)=>readContractSource(new URL(`../../${path}`,import.meta.url),"utf8");
 
 test("curriculum placement reuses catalog identities and earlier prerequisite identities",()=>{
-  const ui=read("src/platform/AcademicOperations.tsx");
+  const ui=read("src/features/school/AcademicOperations.tsx");
   const migration=read("supabase/migrations/20260719051051_relationship_first_workflows.sql");
   assert.match(ui,/courseId:course\.id/);
   assert.match(ui,/prerequisiteCourseIds/);
@@ -15,9 +15,9 @@ test("curriculum placement reuses catalog identities and earlier prerequisite id
 });
 
 test("dependent selectors cover academic identity, CRM ownership, campaigns, and schedules",()=>{
-  const academic=read("src/platform/AcademicOperations.tsx");
-  const people=read("src/platform/UnifiedPortal.tsx");
-  const crm=read("src/crm/CrmRecordEditor.tsx");
+  const academic=read("src/features/school/AcademicOperations.tsx");
+  const people=read("src/features/school/UnifiedPortal.tsx");
+  const crm=read("src/features/crm/CrmRecordEditor.tsx");
   assert.match(academic,/eligibleStudentAdvisors/);
   assert.match(academic,/sectionSubjects/);
   assert.match(academic,/Merge duplicate student record/);

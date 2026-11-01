@@ -1,3 +1,4 @@
+@layer legacy {
 .stu-page {
   --stu-teal: #126856;
   --stu-mist: #d2e3e0;
@@ -543,3 +544,5 @@
 }
 
 .campus-route-result > header > div > span { color: #176b5c; }
+
+}

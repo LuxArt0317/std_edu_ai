@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
 import test from "node:test";
+import { readContractSource } from '../../scripts/contract-source.mjs';
 
-const catalog = fs.readFileSync("docs/product/needed.md", "utf8");
-const portal = fs.readFileSync("src/platform/UnifiedPortal.tsx", "utf8");
-const repository = fs.readFileSync(
-  "src/platform/platformRepository.ts",
+const catalog = readContractSource("docs/product/needed.md", "utf8");
+const portal = readContractSource("src/features/school/UnifiedPortal.tsx", "utf8");
+const repository = readContractSource(
+  "src/features/school/platformRepository.ts",
   "utf8",
 );
 
@@ -60,11 +60,11 @@ test("role assignment requires impact review, a reason, and confirmation", () =>
 });
 
 test("account lifecycle actions are visible, Auth-enforced, audited, and owner-protected", () => {
-  const edge = fs.readFileSync(
+  const edge = readContractSource(
     "supabase/functions/provision-role-account/index.ts",
     "utf8",
   );
-  const migration = fs.readFileSync(
+  const migration = readContractSource(
     "supabase/migrations/20260717231612_account_lifecycle_controls.sql",
     "utf8",
   );

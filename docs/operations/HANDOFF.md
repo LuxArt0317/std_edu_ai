@@ -1,5 +1,13 @@
 # Client handoff
 
+## Current overhaul review checkpoint — Issue #74
+
+The shadcn/Tailwind, source/documentation cleanup and workflow changes are local in `std_edu_ai-luxart0317`, on `main` against client `origin/main` (base `bc6222e`). They have not been pushed or deployed. The original `std_edu_ai` checkout was not changed; its empty diff does not review this client work.
+
+The last full E2E run passed 21/23, including every role, curriculum review/notifications, module publication, LMS integrity, academic CRUD and CRM retry. Case editing and mobile CRM navigation remain unresolved. A later public accessibility rerun hit a page navigation timeout; the earlier 10-state run passed. Three curriculum migrations are applied to the client database (99 migrations, 101 public RLS tables). Do not treat this checkpoint as a finished release.
+
+## Previous deployed handoff — Issue #73
+
 Tracked by [Issue #73](https://github.com/LuxArt0317/std_edu_ai/issues/73).
 
 ## Verified setup

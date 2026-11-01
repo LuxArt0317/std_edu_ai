@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
 import test from "node:test";
+import { readContractSource } from '../../scripts/contract-source.mjs';
 
-const auth = fs.readFileSync("src/crm/authService.ts", "utf8");
-const policy = fs.readFileSync("src/crm/authSessionPolicy.ts", "utf8");
-const root = fs.readFileSync("src/crm/CRMRoot.tsx", "utf8");
-const portal = fs.readFileSync("src/platform/UnifiedPortal.tsx", "utf8");
+const auth = readContractSource("src/features/crm/authService.ts", "utf8");
+const policy = readContractSource("src/features/crm/authSessionPolicy.ts", "utf8");
+const root = readContractSource("src/features/crm/CRMRoot.tsx", "utf8");
+const portal = readContractSource("src/features/school/UnifiedPortal.tsx", "utf8");
 
 test("background token events do not replace the active same-user portal session", () => {
   assert.match(auth, /shouldApplyCrmAuthEvent/);
@@ -18,5 +18,5 @@ test("background token events do not replace the active same-user portal session
 test("Nexus authorizes actions with the trusted actor role, not owner UI preview", () => {
   assert.match(portal, /<SchoolAssistant[\s\S]{0,220}role=\{currentUser\.role\}/);
   assert.doesNotMatch(portal, /<SchoolAssistant[\s\S]{0,220}role=\{effectiveRole\}/);
-  assert.match(portal, /\["owner", "admin", "dean", "registrar", "department_head"\]/);
+  assert.match(portal, /\[\s*"owner",\s*"admin",\s*"dean",\s*"registrar",\s*"department_head",?\s*\]/);
 });

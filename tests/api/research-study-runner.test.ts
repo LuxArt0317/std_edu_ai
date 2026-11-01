@@ -4,7 +4,7 @@ import test from "node:test";
 import handler from "../../api/research-session.ts";
 const runner=fs.readFileSync("supabase/migrations/20260719080500_pseudonymous_research_runner.sql","utf8");
 const completion=fs.readFileSync("supabase/migrations/20260719082000_research_completion_and_export.sql","utf8");
-const ui=fs.readFileSync("src/research/StudyApp.tsx","utf8");
+const ui=fs.readFileSync("src/features/research/StudyApp.tsx","utf8");
 const api=fs.readFileSync("api/research-session.ts","utf8");
 
 test("participant tokens are opaque, hashed, revocable, expiring, and table-inaccessible",()=>{

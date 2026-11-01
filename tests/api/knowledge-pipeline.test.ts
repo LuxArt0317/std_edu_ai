@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
-import {canonicalizeHttpsUrl, chunkKnowledgeText, detectKnowledgeThreats, inferKnowledgeLanguage, normalizeKnowledgeText, sha256} from "../../server/knowledgePipeline.js";
-import {classifyProviderFailure,estimatedEmbeddingCost,retryDelayMs,safeTelemetryCode} from "../../server/ingestionTelemetry.js";
+import { classifyProviderFailure,estimatedEmbeddingCost,retryDelayMs,safeTelemetryCode } from "../../server/ingestionTelemetry.js";
+import { canonicalizeHttpsUrl,chunkKnowledgeText,detectKnowledgeThreats,inferKnowledgeLanguage,normalizeKnowledgeText,sha256 } from "../../server/knowledgePipeline.js";
 
 const endpoint = fs.readFileSync("api/knowledge-ingest.ts", "utf8");
 const publication = fs.readFileSync("supabase/migrations/20260719070034_governed_knowledge_publication_rpc.sql", "utf8");

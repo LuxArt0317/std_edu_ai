@@ -1,19 +1,19 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import { test } from "node:test";
+import { readContractSourceAsync } from '../../scripts/contract-source.mjs';
 
-const source = (path: string) => readFile(path, "utf8");
+const source = (path: string) => readContractSourceAsync(path, "utf8");
 
 test("staff use one Courses workspace with an exact published student preview", async () => {
   const [portal, lms, academics] = await Promise.all([
-    source("src/platform/UnifiedPortal.tsx"),
-    source("src/platform/LmsWorkspace.tsx"),
-    source("src/platform/AcademicOperations.tsx"),
+    source("src/features/school/UnifiedPortal.tsx"),
+    source("src/features/school/LmsWorkspace.tsx"),
+    source("src/features/school/AcademicOperations.tsx"),
   ]);
   assert.match(portal, /teaching: \{ label: "Courses"/);
   assert.match(portal, /learning: \{ label: "Courses"/);
   assert.doesNotMatch(portal, /"teaching",\s*"learning"/);
-  assert.match(portal, /view === "learning" && teachingRoles\.has\(effectiveRole\) \? "teaching"/);
+  assert.match(portal, /view === "learning" && teachingRoles\.has\(effectiveRole\)\s*\? "teaching"/);
   assert.match(lms, /\["preview", "Student view"\]/);
   assert.match(lms, /mode="preview"/);
   assert.match(lms, /EXACT PUBLISHED VIEW/);
@@ -24,7 +24,7 @@ test("staff use one Courses workspace with an exact published student preview", 
 });
 
 test("publication state is explicit, actionable, and filters the student preview", async () => {
-  const lms = await source("src/platform/LmsWorkspace.tsx");
+  const lms = await source("src/features/school/LmsWorkspace.tsx");
   assert.match(lms, /Draft material · hidden from students/);
   assert.match(lms, /Published material, but its module is still draft/);
   assert.match(lms, /Visible to students now/);

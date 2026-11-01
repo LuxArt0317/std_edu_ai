@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { readContractSourceAsync } from '../../scripts/contract-source.mjs';
 
-const read=(path:string)=>readFile(new URL(`../../${path}`,import.meta.url),"utf8");
+const read=(path:string)=>readContractSourceAsync(new URL(`../../${path}`,import.meta.url),"utf8");
 
 test("Academic Office exposes manual curriculum creation and visible placement CRUD",async()=>{
   const [operations,repository,migration]=await Promise.all([
-    read("src/platform/AcademicOperations.tsx"),
-    read("src/platform/platformRepository.ts"),
+    read("src/features/school/AcademicOperations.tsx"),
+    read("src/features/school/platformRepository.ts"),
     read("supabase/migrations/20260719003437_nexus_attachments_queue_and_manual_curricula.sql"),
   ]);
   for(const marker of ["+ Create curriculum","Create {selectedProgram.code} curriculum","Add existing catalog subject","Effective year","Year","Semester","Delete draft","Duplicate as new version"])
@@ -20,7 +20,7 @@ test("Academic Office exposes manual curriculum creation and visible placement C
 });
 
 test("role policy uses an accessible governed capability picker",async()=>{
-  const [portal,styles]=await Promise.all([read("src/platform/UnifiedPortal.tsx"),read("src/platform/platform.css")]);
+  const [portal,styles]=await Promise.all([read("src/features/school/UnifiedPortal.tsx"),read("src/features/school/platform.css")]);
   assert.match(portal,/function RoleCapabilityPicker/);
   assert.match(portal,/role="combobox"/);
   assert.match(portal,/role="listbox"/);
@@ -31,7 +31,7 @@ test("role policy uses an accessible governed capability picker",async()=>{
 
 test("Nexus supports governed attachments, durable queues, and QA versus Agentic modes",async()=>{
   const [portal,client,api,migration]=await Promise.all([
-    read("src/platform/UnifiedPortal.tsx"),read("src/platform/platformRepository.ts"),read("api/school-assistant.ts"),read("supabase/migrations/20260719003437_nexus_attachments_queue_and_manual_curricula.sql"),
+    read("src/features/school/UnifiedPortal.tsx"),read("src/features/school/platformRepository.ts"),read("api/school-assistant.ts"),read("supabase/migrations/20260719003437_nexus_attachments_queue_and_manual_curricula.sql"),
   ]);
   for(const marker of ["Answers only","Can prepare actions","Attach images or files","Queue →","queuedPrompts"])
     assert.match(portal,new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));

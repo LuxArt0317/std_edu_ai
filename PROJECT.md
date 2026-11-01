@@ -6,7 +6,11 @@ STU Edu AI combines a public university website with STU Nexus, an authenticated
 
 | Path | Purpose |
 | --- | --- |
-| `src/` | Browser application, platform workspaces, research UI, and database types |
+| `src/features/` | School, CRM, curriculum, research, and public product modules |
+| `src/features/school/portal/` | Separate home, people, assessment, grade, calendar and assistant views |
+| `src/components/ui/` | Official shadcn/ui source primitives |
+| `src/components/`, `src/lib/`, `src/hooks/` | Shared form adapters, interactions, utilities and hooks |
+| `src/styles/` | Tailwind v4 semantic brand tokens and shared component styling |
 | `api/` | Vercel server endpoints |
 | `server/` | Shared authentication, retrieval, evaluation, and operations services |
 | `supabase/` | Versioned database migrations, function sources, and database certificate |
@@ -20,10 +24,16 @@ STU Edu AI combines a public university website with STU Nexus, an authenticated
 
 ## Runtime boundaries
 
-Supabase RLS and trusted Auth app metadata enforce roles. Browser metadata never grants access. Owner protection, audited transitions, private storage, and confirmation-gated AI actions remain enforced in the database and server. [Permission matrix](src/platform/ROLE_MATRIX.md).
+Supabase RLS and trusted Auth app metadata enforce roles. Browser metadata never grants access. Owner protection, audited transitions, private storage, and confirmation-gated AI actions remain enforced in the database and server. [Permission matrix](docs/security/roles.md).
 
 The Marketplace integration names its publishable values `NEXT_PUBLIC_SUPABASE_*`; Vite maps only the URL and publishable key into browser configuration. Database credentials, service keys, and OpenAI keys are never mapped into the browser. [Environment and deployment](docs/operations/SETUP.md).
 
-The `postgres` development dependency powers certificate-verified, serialized database migration and verification commands. All Tiptap packages are pinned to a consistent patched version. PDF parsing uses a patched `pdfjs-dist`. [Scripts](scripts/README.md).
+The `postgres` development dependency powers certificate-verified, serialized database migration and verification commands. All Tiptap packages are pinned to a consistent patched version. PDF parsing uses a patched `pdfjs-dist`. [Scripts](docs/reference/TOOLING.md#scripts).
 
 Product requirements and historic research claims are indexed in [docs/README.md](docs/README.md). Historical projects/accounts and measured results are not client credentials or current release evidence.
+
+## Design system and verification — Issue #74
+
+Uses the official shadcn/ui component sources, Tailwind v4 via @tailwindcss/vite, Radix primitives, and shared semantic brand tokens. Component/unit and browser E2E checks use Testing Library and Playwright. Documentation is centralized under docs/; runtime and test folders contain no Markdown. Legacy specialized layouts remain in feature CSS within a lower-priority cascade layer, while the shared controls, dialogs, navigation, tabs and theme use shadcn/ui and Tailwind.
+
+The GitHub quality workflow runs the safe, non-mutating checks without client credentials. Live E2E QA uses isolated client fixtures and keeps sessions/traces in ignored local artifacts. Playwright packages share the same version. The rich editor is loaded separately; no JavaScript chunk exceeds the default 500 kB build advisory threshold in the current build.

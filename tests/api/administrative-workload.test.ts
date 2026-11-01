@@ -4,9 +4,9 @@ import test from "node:test";
 
 const schema=fs.readFileSync("supabase/migrations/20260719081744_administrative_workload_measurement.sql","utf8");
 const cleanup=fs.readFileSync("supabase/migrations/20260719082540_administrative_workload_fixture_cleanup.sql","utf8");
-const panel=fs.readFileSync("src/research/WorkloadEvidencePanel.tsx","utf8");
-const service=fs.readFileSync("src/research/workloadService.ts","utf8");
-const crm=fs.readFileSync("src/crm/CRMApp.tsx","utf8");
+const panel=fs.readFileSync("src/features/research/WorkloadEvidencePanel.tsx","utf8");
+const service=fs.readFileSync("src/features/research/workloadService.ts","utf8");
+const crm=fs.readFileSync("src/features/crm/CRMApp.tsx","utf8");
 
 test("workload evidence uses comparable governed windows and independent review",()=>{
   for(const marker of ["administrative_workload_windows","source_extract_sha256","suppression_threshold between 5 and 50","cannot overlap","must have equal duration","verified_by<>created_by","A different authorized reviewer must verify"])assert.ok(schema.includes(marker),`missing workload governance ${marker}`);

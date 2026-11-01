@@ -46,9 +46,9 @@ Inline lesson images and videos use the `learning-media` Storage bucket. Section
 
 Nexus message attachments use the private `nexus-attachments` bucket. Files are limited to five per message and supported image, PDF, or bounded text formats; each object is stored under the signed-in user's folder and remains subject to Storage RLS. Pending prompts persist in `nexus_prompt_queue` and are visible only to their owner.
 
-Assign roles with the owner-only People & Roles workspace or the audited `assign_platform_role` RPC. Authorization uses trusted `app_metadata.role`; never use user-editable metadata. The complete role catalog is documented in [src/platform/ROLE_MATRIX.md](src/platform/ROLE_MATRIX.md).
+Assign roles with the owner-only People & Roles workspace or the audited `assign_platform_role` RPC. Authorization uses trusted `app_metadata.role`; never use user-editable metadata. The complete role catalog is documented in [docs/security/roles.md](docs/security/roles.md).
 
-The protected owner is `winsonbaring10@gmail.com`. A confirmed owner-controlled acceptance identity is provisioned for every canonical role; the complete sign-in directory is in [src/platform/ROLE_ACCOUNTS.md](src/platform/ROLE_ACCOUNTS.md). Each unique generated credential is stored as a macOS internet password for service `www.stu.best` and the account email. No password is committed to Git.
+The protected owner is `winsonbaring10@gmail.com`. A confirmed owner-controlled acceptance identity is provisioned for every canonical role; the complete sign-in directory is in [docs/operations/accounts.md](docs/operations/accounts.md). Each unique generated credential is stored as a macOS internet password for service `www.stu.best` and the account email. No password is committed to Git.
 
 On the provisioner's Mac, run `npm run export:role-credentials` to verify every live account and atomically generate `PRODUCTION_ROLE_CREDENTIALS.local.md` in the repository root. This local-only POC file is explicitly Git-ignored and restricted to mode `0600`; never upload or paste its contents into GitHub, CI, tickets, or logs.
 

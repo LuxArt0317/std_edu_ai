@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { after, test } from "node:test";
+import { after,test } from "node:test";
 import handler from "../../api/research-feedback.ts";
 
 type Captured = {

@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
-import test from "node:test";
 import fs from "node:fs";
+import test from "node:test";
 import {
-  chunkKnowledgeSections,
-  createPublicLookup,
-  detectAndExtractSource,
-  extractHtmlSections,
-  extractTextSections,
-  isPublicAddress,
-  validatePublicHttpsUrl,
+chunkKnowledgeSections,
+createPublicLookup,
+detectAndExtractSource,
+extractHtmlSections,
+extractTextSections,
+isPublicAddress,
+validatePublicHttpsUrl,
 } from "../../server/knowledgeAcquisition.js";
 
 function pdfFixture(text: string) {

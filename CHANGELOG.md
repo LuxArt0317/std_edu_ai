@@ -1,6 +1,16 @@
 # Changelog
 ## Unreleased
 
+### Design system and workflow overhaul — Issue #74 (review checkpoint)
+
+- Use official shadcn/ui primitives and Tailwind v4 brand tokens across workspaces, dialogs, navigation, form controls and tables.
+- Consolidate runtime modules under src/features and documentation under docs; extract lazy portal views and the rich editor.
+- Add assigned-teacher curriculum proposals, independent academic review, audit evidence, bounded pagination and participant notifications (three client migrations applied).
+- Replace shared browser CRM recovery/demo data with identity-scoped memory caching, explicit retry and verified writes; derive operational metrics/signals from records and activate case filters.
+- Add component units, disposable client E2E fixtures, expanded accessibility checks and a credential-free GitHub quality workflow.
+- Review checkpoint only: the last full E2E run passed 21/23; learner-support case editing and mobile CRM navigation still fail. Public accessibility had a later navigation timeout. No release of this overhaul is claimed.
+
+
 ### Client handoff — Issue #73
 
 - Organize product/design/research documentation and root planning records; provide client setup, infrastructure, and handoff guides.

@@ -1,12 +1,12 @@
-import assert from 'node:assert/strict'
-import fs from 'node:fs'
-import { test } from 'node:test'
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { readContractSource } from '../../scripts/contract-source.mjs';
 import {
-  calculateOnboardingReadiness,
-  getOnboardingJourney,
-  onboardingJourneys,
-  platformRoles,
-} from '../../src/platform/onboarding.ts'
+calculateOnboardingReadiness,
+getOnboardingJourney,
+onboardingJourneys,
+platformRoles,
+} from '../../src/features/school/onboarding.ts';
 
 const expectedRoles = [
   'owner', 'admin', 'president', 'vice_president', 'dean', 'registrar',
@@ -52,9 +52,9 @@ test('readiness requires demonstrated actions and a correct understanding check'
 })
 
 test('onboarding is disconnected from runtime while durable data remains protected', () => {
-  const portal = fs.readFileSync('src/platform/UnifiedPortal.tsx', 'utf8')
-  const component = fs.readFileSync('src/platform/RoleOnboarding.tsx', 'utf8')
-  const migration = fs.readFileSync('supabase/migrations/20260717102132_role_onboarding_progress.sql', 'utf8')
+  const portal = readContractSource('src/features/school/UnifiedPortal.tsx', 'utf8')
+  const component = readContractSource('src/features/school/RoleOnboarding.tsx', 'utf8')
+  const migration = readContractSource('supabase/migrations/20260717102132_role_onboarding_progress.sql', 'utf8')
 
   assert.doesNotMatch(portal, /RoleOnboarding/)
   assert.doesNotMatch(portal, /OnboardingActionSignal/)

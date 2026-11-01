@@ -1,20 +1,20 @@
-import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import test from "node:test";
+import { readContractSourceAsync } from '../../scripts/contract-source.mjs';
 
-const source = (path: string) => readFile(path, "utf8");
+const source = (path: string) => readContractSourceAsync(path, "utf8");
 
 test("lesson studio supports wide multi-page inline image and video authoring", async () => {
   const [editor, lms, css, repository, migration] = await Promise.all([
-    source("src/platform/RichTextEditor.tsx"), source("src/platform/LmsWorkspace.tsx"),
-    source("src/platform/platform.css"), source("src/platform/platformRepository.ts"),
+    source("src/features/school/RichTextEditor.tsx"), source("src/features/school/LmsWorkspace.tsx"),
+    source("src/features/school/platform.css"), source("src/features/school/platformRepository.ts"),
     source("supabase/migrations/20260718234504_immersive_lms_integrity_controls.sql"),
   ]);
   assert.match(editor, /multiple/);
   assert.match(editor, /videoEmbed/);
   assert.match(editor, /youtube-nocookie\.com/);
   assert.match(editor, /Upload video/);
-  assert.match(lms, /lms-immersive-studio/);
+  assert.match(lms, /WorkspaceDialog[\s\S]*immersive/);
   assert.match(lms, /Wide reading view/);
   assert.match(lms, /onVideoUpload/);
   assert.match(css, /\.lms-content-video-embed/);
@@ -25,8 +25,8 @@ test("lesson studio supports wide multi-page inline image and video authoring", 
 
 test("lesson authoring keeps resources inline and privileged learning uses the live LMS", async () => {
   const [editor, lms, portal, css] = await Promise.all([
-    source("src/platform/RichTextEditor.tsx"), source("src/platform/LmsWorkspace.tsx"),
-    source("src/platform/UnifiedPortal.tsx"), source("src/platform/platform.css"),
+    source("src/features/school/RichTextEditor.tsx"), source("src/features/school/LmsWorkspace.tsx"),
+    source("src/features/school/UnifiedPortal.tsx"), source("src/features/school/platform.css"),
   ]);
   assert.match(editor, /fileAttachment/);
   assert.match(editor, /data-lms-file-path/);
@@ -43,8 +43,8 @@ test("lesson authoring keeps resources inline and privileged learning uses the l
 
 test("lesson editor pastes macOS and Windows clipboard screenshots without consuming text paste", async () => {
   const [editor, css, repository] = await Promise.all([
-    source("src/platform/RichTextEditor.tsx"), source("src/platform/platform.css"),
-    source("src/platform/platformRepository.ts"),
+    source("src/features/school/RichTextEditor.tsx"), source("src/features/school/platform.css"),
+    source("src/features/school/platformRepository.ts"),
   ]);
   assert.match(editor, /onPaste=\{\(event\)/);
   assert.match(editor, /event\.clipboardData\.items/);
@@ -60,8 +60,8 @@ test("lesson editor pastes macOS and Windows clipboard screenshots without consu
 test("assessment integrity is teacher controlled, disclosed, and append-only", async () => {
   const [migration, lms, portal, repository] = await Promise.all([
     source("supabase/migrations/20260718234504_immersive_lms_integrity_controls.sql"),
-    source("src/platform/LmsWorkspace.tsx"), source("src/platform/UnifiedPortal.tsx"),
-    source("src/platform/platformRepository.ts"),
+    source("src/features/school/LmsWorkspace.tsx"), source("src/features/school/UnifiedPortal.tsx"),
+    source("src/features/school/platformRepository.ts"),
   ]);
   for (const field of ["review_mode", "require_fullscreen", "monitor_focus", "detect_extended_display", "require_camera", "detect_multiple_cameras", "prevent_copy_paste"]) assert.match(migration, new RegExp(field));
   assert.match(migration, /assessment_integrity_student_insert/);
@@ -78,7 +78,7 @@ test("assessment integrity is teacher controlled, disclosed, and append-only", a
 });
 
 test("students can configure and export a branded class schedule PNG", async () => {
-  const [portal, css] = await Promise.all([source("src/platform/UnifiedPortal.tsx"), source("src/platform/platform.css")]);
+  const [portal, css] = await Promise.all([source("src/features/school/UnifiedPortal.tsx"), source("src/features/school/platform.css")]);
   assert.match(portal, /downloadSchedulePng/);
   assert.match(portal, /STUDENT SCHEDULE STUDIO/);
   assert.match(portal, /stu-logo-2\.png/);

@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
 import test from "node:test";
-const portal = fs.readFileSync("src/platform/UnifiedPortal.tsx", "utf8");
-const styles = fs.readFileSync("src/platform/platform.css", "utf8");
-const schema = fs.readFileSync("supabase/migrations/20260716154728_all_in_one_school_platform.sql", "utf8");
-const model = fs.readFileSync("src/platform/schoolCalendar.ts", "utf8");
+import { readContractSource } from '../../scripts/contract-source.mjs';
+const portal = readContractSource("src/features/school/UnifiedPortal.tsx", "utf8");
+const styles = readContractSource("src/features/school/platform.css", "utf8");
+const schema = readContractSource("supabase/migrations/20260716154728_all_in_one_school_platform.sql", "utf8");
+const model = readContractSource("src/features/school/schoolCalendar.ts", "utf8");
 
 test("calendar combines every important authoritative source", () => {
   for (const source of ["schedule", "assessment", "attendance", "learning", "grade", "initiative", "term"])

@@ -10,10 +10,18 @@
 
 - [Product requirements](product/PRODUCT_REQUIREMENTS.md)
 - [Role/action catalog](product/needed.md), [lifecycle contract](product/neededv2.md), and [relationship contract](product/neededv3.md)
-- [Role permissions](../src/platform/ROLE_MATRIX.md)
-- [User guide](../src/crm/PORTAL_GUIDE.md)
+- [Role permissions](security/roles.md)
+- [User guide](guides/portal.md)
 - [Platform schema](PLATFORM_SCHEMA_MAP.md), [research schema](RESEARCH_SYSTEM_SCHEMA.md), and [calendar schema](product/CALENDAR_SCHEMA.md)
 - [Nexus action tools](NEXUS_ACTION_TOOLS.md)
+
+## Engineering and QA
+
+- [Frontend architecture and components](reference/FRONTEND.md)
+- [API, database and Edge Functions](reference/BACKEND.md)
+- [Tooling and verification commands](reference/TOOLING.md)
+- [Test suites and fixture boundaries](reference/TESTING.md)
+- [Role and workflow audit](qa/WORKFLOW_AUDIT.md)
 
 ## Design, research, and historical records
 

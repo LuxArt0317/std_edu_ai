@@ -1,16 +1,16 @@
-import { readFileSync } from "node:fs";
+import { readContractSource } from './contract-source.mjs';
 
 const root = new URL("../", import.meta.url);
-const needed = readFileSync(new URL("docs/product/needed.md", root), "utf8");
+const needed = readContractSource(new URL("docs/product/needed.md", root), "utf8");
 
 const evidence = {
-  accounts: ["src/platform/UnifiedPortal.tsx", "PeopleView", "src/platform/platformRepository.ts", "provisionRoleAccount", "supabase/functions/provision-role-account/index.ts", "account_lifecycle_audit"],
-  academics: ["src/platform/AcademicOperations.tsx", "AcademicOperations", "src/platform/platformRepository.ts", "transitionEnrollment", "supabase/migrations/20260718001256_controlled_student_program_submission_records.sql", "controlled_action_audit"],
-  learning: ["src/platform/LmsWorkspace.tsx", "TeacherLmsStudio", "src/platform/platformRepository.ts", "createLearningMaterialPage", "supabase/migrations/20260716154728_all_in_one_school_platform.sql", "assessment_attempts"],
-  crm: ["src/crm/CRMApp.tsx", "CRMApp", "src/crm/crmRepository.ts", "saveCrmCase", "supabase/migrations/20260716142102_stu_nexus_crm.sql", "create table public.cases"],
-  communication: ["src/platform/UnifiedPortal.tsx", "NotificationCenter", "src/platform/platformRepository.ts", "decideCommunicationRequest", "supabase/migrations/20260718000718_notifications_and_approved_communication.sql", "controlled_action_audit"],
-  nexus: ["src/platform/UnifiedPortal.tsx", "Nexus AI", "api/school-assistant.ts", "Absolute student boundary", "supabase/migrations/20260717222758_nexus_agent_action_audit.sql", "ai_audit_logs"],
-  governance: ["src/platform/UnifiedPortal.tsx", "Recent account and role activity", "src/platform/platformRepository.ts", "correctPublishedGrade", "supabase/migrations/20260717234309_complete_needed_controlled_workflows.sql", "controlled_action_audit"],
+  accounts: ["src/features/school/UnifiedPortal.tsx", "PeopleView", "src/features/school/platformRepository.ts", "provisionRoleAccount", "supabase/functions/provision-role-account/index.ts", "account_lifecycle_audit"],
+  academics: ["src/features/school/AcademicOperations.tsx", "AcademicOperations", "src/features/school/platformRepository.ts", "transitionEnrollment", "supabase/migrations/20260718001256_controlled_student_program_submission_records.sql", "controlled_action_audit"],
+  learning: ["src/features/school/LmsWorkspace.tsx", "TeacherLmsStudio", "src/features/school/platformRepository.ts", "createLearningMaterialPage", "supabase/migrations/20260716154728_all_in_one_school_platform.sql", "assessment_attempts"],
+  crm: ["src/features/crm/CRMApp.tsx", "CRMApp", "src/features/crm/crmRepository.ts", "saveCrmCase", "supabase/migrations/20260716142102_stu_nexus_crm.sql", "create table public.cases"],
+  communication: ["src/features/school/UnifiedPortal.tsx", "NotificationCenter", "src/features/school/platformRepository.ts", "decideCommunicationRequest", "supabase/migrations/20260718000718_notifications_and_approved_communication.sql", "controlled_action_audit"],
+  nexus: ["src/features/school/UnifiedPortal.tsx", "Nexus AI", "api/school-assistant.ts", "Absolute student boundary", "supabase/migrations/20260717222758_nexus_agent_action_audit.sql", "ai_audit_logs"],
+  governance: ["src/features/school/UnifiedPortal.tsx", "Recent account and role activity", "src/features/school/platformRepository.ts", "correctPublishedGrade", "supabase/migrations/20260717234309_complete_needed_controlled_workflows.sql", "controlled_action_audit"],
 };
 
 const sectionDomain = (heading, action) => {
@@ -47,19 +47,19 @@ for (const row of rows) {
   for (let index = 0; index < anchors.length; index += 2) {
     const file = anchors[index];
     const marker = anchors[index + 1];
-    const source = readFileSync(new URL(file, root), "utf8");
+    const source = readContractSource(new URL(file, root), "utf8");
     if (!source.includes(marker)) failures.push(`${file} is missing ${JSON.stringify(marker)} for docs/product/needed.md:${row.line}`);
   }
 }
 
 const requiredSpecificEvidence = {
   "Require password change on first login": ["supabase/functions/provision-role-account/index.ts", "must_change_password"],
-  "Edit name, email, phone, department, and title": ["src/platform/UnifiedPortal.tsx", "accountPhone"],
-  "Convert an accepted applicant into a student-account request": ["src/crm/CRMApp.tsx", "Convert to student request"],
-  "Transfer accepted records to the Registrar": ["src/crm/CRMApp.tsx", "Registrar handoff"],
+  "Edit name, email, phone, department, and title": ["src/features/school/UnifiedPortal.tsx", "accountPhone"],
+  "Convert an accepted applicant into a student-account request": ["src/features/crm/CRMApp.tsx", "Convert to student request"],
+  "Transfer accepted records to the Registrar": ["src/features/crm/CRMApp.tsx", "Registrar handoff"],
   "Sensitive-case access": ["supabase/migrations", "sensitive_case_access"],
-  "Bulk communication": ["src/crm/CRMApp.tsx", "approveAndSendCampaign"],
-  "Permanent data deletion": ["src/platform/UnifiedPortal.tsx", "Permanent deletion is disabled"],
+  "Bulk communication": ["src/features/crm/CRMApp.tsx", "approveAndSendCampaign"],
+  "Permanent data deletion": ["src/features/school/UnifiedPortal.tsx", "Permanent deletion is disabled"],
 };
 
 for (const [action, [file, marker]] of Object.entries(requiredSpecificEvidence)) {
@@ -67,7 +67,7 @@ for (const [action, [file, marker]] of Object.entries(requiredSpecificEvidence))
   const candidates = file === "supabase/migrations"
     ? ["supabase/migrations/20260717234309_complete_needed_controlled_workflows.sql", "supabase/migrations/20260718001256_controlled_student_program_submission_records.sql", "supabase/migrations/20260718002408_complete_identity_governance.sql"]
     : [file];
-  if (!candidates.some((candidate) => readFileSync(new URL(candidate, root), "utf8").includes(marker))) {
+  if (!candidates.some((candidate) => readContractSource(new URL(candidate, root), "utf8").includes(marker))) {
     failures.push(`${action} lacks specific evidence marker ${JSON.stringify(marker)} in ${file}`);
   }
 }

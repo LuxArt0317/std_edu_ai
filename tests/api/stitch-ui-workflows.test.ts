@@ -1,6 +1,6 @@
-import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync,readFileSync } from "node:fs";
+import test from "node:test";
 
 test("Stitch outputs are validated instead of accepted as complete",()=>{
   const evidence=readFileSync("docs/design/STITCH_UI_EVIDENCE.md","utf8");
@@ -10,7 +10,7 @@ test("Stitch outputs are validated instead of accepted as complete",()=>{
 });
 
 test("teacher and student lessons expose explicit workflow actions",()=>{
-  const source=readFileSync("src/platform/LmsWorkspace.tsx","utf8");
+  const source=readFileSync("src/features/school/LmsWorkspace.tsx","utf8");
   for(const marker of ["Open lesson","Student lesson preview","Edit lesson","Course outline","aria-current","Next lesson","Wide reading view"]) assert.match(source,new RegExp(marker));
 });
 

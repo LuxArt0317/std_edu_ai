@@ -34,7 +34,7 @@ It demonstrates:
 - atomic privacy-safe public RAG traces, deterministic authoritative-source conflict handoff, opaque one-use answer feedback, and a protected content-free reviewer dashboard
 - versioned RAG evaluation datasets with two independent non-author approvals per case, >=150-case ordinary freeze, immutable evidence, deterministic scorecards, segmented regression reports, and protected JSON/CSV exports
 
-For setup and run instructions, see [SETUP.md](SETUP.md). The authoritative scope and acceptance contract is [PRODUCT_REQUIREMENTS.md](docs/product/PRODUCT_REQUIREMENTS.md). For detailed capabilities and authorization, see [src/crm/PORTAL_GUIDE.md](src/crm/PORTAL_GUIDE.md) and [src/platform/ROLE_MATRIX.md](src/platform/ROLE_MATRIX.md).
+For setup and run instructions, see [SETUP.md](SETUP.md). The authoritative scope and acceptance contract is [PRODUCT_REQUIREMENTS.md](docs/product/PRODUCT_REQUIREMENTS.md). For detailed capabilities and authorization, see [docs/guides/portal.md](docs/guides/portal.md) and [docs/security/roles.md](docs/security/roles.md).
 
 The exhaustive account-by-account operational contract and implementation checklist is [needed.md](docs/product/needed.md).
 # Research quality toolchain

@@ -1,8 +1,8 @@
-import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import test from "node:test";
+import { readContractSource } from '../../scripts/contract-source.mjs';
 
-const read=(path:string)=>readFileSync(path,"utf8");
+const read=(path:string)=>readContractSource(path,"utf8");
 
 test("every CRM surface has independently generated and HTML-validated Stitch evidence",()=>{
   const rows=read("docs/design/STITCH_ALL_PAGES_EVIDENCE.md").split("\n").filter((line)=>/^\| (?!---|Surface)/.test(line));
@@ -11,8 +11,8 @@ test("every CRM surface has independently generated and HTML-validated Stitch ev
 });
 
 test("shared Stitch improvements cover platform and nested CRM pages",()=>{
-  const portal=read("src/platform/UnifiedPortal.tsx");
-  const crm=read("src/crm/CRMApp.tsx");
+  const portal=read("src/features/school/UnifiedPortal.tsx");
+  const crm=read("src/features/crm/CRMApp.tsx");
   assert.match(portal,/data-workspace=\{view\}/);
   assert.match(portal,/aria-current=\{view === item/);
   assert.match(crm,/data-section=\{section\}/);
@@ -20,8 +20,8 @@ test("shared Stitch improvements cover platform and nested CRM pages",()=>{
 });
 
 test("Stitch auth findings are implemented through Supabase recovery",()=>{
-  const root=read("src/crm/CRMRoot.tsx");
-  const auth=read("src/crm/authService.ts");
+  const root=read("src/features/crm/CRMRoot.tsx");
+  const auth=read("src/features/crm/authService.ts");
   assert.match(root,/PASSWORD_RECOVERY/);
   assert.match(root,/Forgot password\?/);
   assert.match(auth,/resetPasswordForEmail/);

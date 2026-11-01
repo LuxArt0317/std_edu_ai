@@ -6,8 +6,8 @@ const migration = read("supabase/migrations/20260719095500_public_ai_trace_and_f
 const cleanup = read("supabase/migrations/20260719095730_extend_fixture_cleanup_for_public_ai_traces.sql");
 const assistant = read("api/research-assistant.ts");
 const feedback = read("api/research-feedback.ts");
-const publicUi = read("src/components/PublicAssistantFeedback.tsx");
-const reviewerUi = read("src/research/PublicAiEvidencePanel.tsx");
+const publicUi = read("src/features/public/PublicAssistantFeedback.tsx");
+const reviewerUi = read("src/features/research/PublicAiEvidencePanel.tsx");
 const live = read("tests/integration/knowledge-ingestion-live.mjs");
 
 for (const marker of [

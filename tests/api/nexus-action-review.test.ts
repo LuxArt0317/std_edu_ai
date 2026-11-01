@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
 import test from "node:test";
+import { readContractSource } from '../../scripts/contract-source.mjs';
 
-const portal = fs.readFileSync("src/platform/UnifiedPortal.tsx", "utf8");
-const api = fs.readFileSync("api/school-assistant.ts", "utf8");
+const portal = readContractSource("src/features/school/UnifiedPortal.tsx", "utf8");
+const api = readContractSource("api/school-assistant.ts", "utf8");
 
 test("invalid proposals are replanned before review", () => {
   assert.match(portal, /validateSchoolAiAction\(action, contextData\)/);
@@ -29,7 +29,7 @@ test("a user can comment on a proposal and retry the same goal", () => {
 test("assessment choices use the database's one-based answer contract", () => {
   assert.match(api, /one-based correctOption between 1 and the number of options/);
   assert.match(api, /correctOption: \{ type: "integer", minimum: 1, maximum: 12 \}/);
-  assert.match(portal, /question\.correctOption < 1 \|\| question\.correctOption > question\.options\.length/);
+  assert.match(portal, /question\.correctOption < 1\s*\|\|\s*question\.correctOption > question\.options\.length/);
   assert.match(portal, /Execution failed: \$\{failure\}/);
 });
 

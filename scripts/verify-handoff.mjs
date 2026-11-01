@@ -9,12 +9,21 @@ assert.equal(config.supabase.ownerEmail, 'luxart0317@gmail.com')
 assert.ok(!existsSync('github-issues-export'), 'Migration exports belong outside the client deliverable')
 assert.ok(existsSync('planning-with-files/task_plan.md'))
 assert.ok(!existsSync('agent/planning-with-files/task_plan.md'), 'Use a single root plan')
-const documents = ['README.md', 'PROJECT.md', 'SETUP.md', 'AGENTS.md', 'docs/README.md', ...readdirSync('docs/operations').filter(f => f.endsWith('.md')).map(f => `docs/operations/${f}`)]
+function walk(directory) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+    if (['node_modules', '.git', 'artifacts', 'dist', '.vercel'].includes(entry.name)) return []
+    const name = path.join(directory, entry.name)
+    return entry.isDirectory() ? walk(name) : [name]
+  })
+}
+const markdown = walk('.').filter(file => file.endsWith('.md'))
+for (const file of markdown) assert.ok(!file.includes(path.sep) || file.startsWith('docs/') || file.startsWith('planning-with-files/'), `${file}: move documentation out of runtime/provider/test folders`)
+const documents = markdown.filter(file => !file.startsWith('planning-with-files/archive/') && !file.startsWith('docs/archive/'))
 for (const file of documents) {
   const source = readFileSync(file, 'utf8')
   for (const match of source.matchAll(/\]\(([^)]+)\)/g)) {
     const target = match[1].split('#')[0]
-    if (!target || /^(?:https?:|mailto:|\/)/.test(target)) continue
+    if (!target || /^(?:https?:|mailto:|plugin:|app:|#|\/)/.test(target)) continue
     assert.ok(existsSync(path.resolve(path.dirname(file), target)), `${file}: broken link ${target}`)
   }
 }

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
 import test from "node:test";
+import { readContractSource } from '../../scripts/contract-source.mjs';
 
-const portal = fs.readFileSync("src/platform/UnifiedPortal.tsx", "utf8");
+const portal = readContractSource("src/features/school/UnifiedPortal.tsx", "utf8");
 
 test("curriculum confirmation resolves or requests an active department", () => {
   assert.match(portal, /requestedDepartment\?\.id[\s\S]*activeDepartments\.length === 1/);

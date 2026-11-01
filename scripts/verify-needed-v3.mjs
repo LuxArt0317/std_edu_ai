@@ -1,13 +1,13 @@
-import fs from "node:fs";
+import { readContractSource } from './contract-source.mjs';
 
-const read=(path)=>fs.readFileSync(new URL(`../${path}`,import.meta.url),"utf8");
+const read=(path)=>readContractSource(new URL(`../${path}`,import.meta.url),"utf8");
 const files={
   contract:read("docs/product/neededv3.md"),
-  academic:read("src/platform/AcademicOperations.tsx"),
-  people:read("src/platform/UnifiedPortal.tsx"),
-  lms:read("src/platform/LmsWorkspace.tsx"),
-  crm:read("src/crm/CrmRecordEditor.tsx"),
-  repository:read("src/crm/crmRepository.ts"),
+  academic:read("src/features/school/AcademicOperations.tsx"),
+  people:read("src/features/school/UnifiedPortal.tsx"),
+  lms:read("src/features/school/LmsWorkspace.tsx"),
+  crm:read("src/features/crm/CrmRecordEditor.tsx"),
+  repository:read("src/features/crm/crmRepository.ts"),
   agent:read("api/school-assistant.ts"),
   schema:read("supabase/migrations/20260719054235_enforce_relationship_invariants.sql"),
 };

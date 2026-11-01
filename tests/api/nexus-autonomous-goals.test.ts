@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
 import test from "node:test";
+import { readContractSource } from '../../scripts/contract-source.mjs';
 
-const api=fs.readFileSync("api/school-assistant.ts","utf8");
-const portal=fs.readFileSync("src/platform/UnifiedPortal.tsx","utf8");
-const client=fs.readFileSync("src/platform/platformAi.ts","utf8");
-const loop=fs.readFileSync("src/platform/schoolAgentLoop.ts","utf8");
+const api=readContractSource("api/school-assistant.ts","utf8");
+const portal=readContractSource("src/features/school/UnifiedPortal.tsx","utf8");
+const client=readContractSource("src/features/school/platformAi.ts","utf8");
+const loop=readContractSource("src/features/school/schoolAgentLoop.ts","utf8");
 
 test("Nexus plans and continues until remaining work is empty",()=>{
   assert.match(api,/Maintain a concise end-to-end plan and remainingWork/);

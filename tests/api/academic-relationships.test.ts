@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 
-const ui = fs.readFileSync("src/platform/AcademicOperations.tsx", "utf8");
-const repository = fs.readFileSync("src/platform/platformRepository.ts", "utf8");
+const ui = fs.readFileSync("src/features/school/AcademicOperations.tsx", "utf8");
+const repository = fs.readFileSync("src/features/school/platformRepository.ts", "utf8");
 const schemaMap = fs.readFileSync("docs/PLATFORM_SCHEMA_MAP.md", "utf8");
 const migration = fs.readFileSync(
   "supabase/migrations/20260718052529_connect_students_to_academic_programs.sql",

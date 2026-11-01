@@ -31,7 +31,7 @@ async function axeEvidence(page,name,expectedStatusSelectors=[]){
   const result=await new AxeBuilder({page}).withTags(["wcag2a","wcag2aa","wcag21aa","wcag22aa"]).analyze();
   const blocking=result.violations.filter(item=>item.impact==="critical"||item.impact==="serious");
   const target=result.violations.filter(item=>item.id==="target-size");
-  const unnamed=await page.locator("button:not([aria-label]),a:not([aria-label])").evaluateAll(items=>items.filter(item=>!(item.textContent||"").trim()&&!item.querySelector("img[alt]")).length);
+  const unnamed=await page.locator("button:not([aria-label]),a:not([aria-label])").evaluateAll(items=>items.filter(item=>!(item.textContent||"").trim()&&!item.querySelector("img[alt]")&&!item.labels?.length).length);
   const focus=await page.evaluate(()=>{
     const dialog=document.querySelector('[role="dialog"][aria-modal="true"]');
     if(!dialog)return {empty:0,outside:0,obscured:0};

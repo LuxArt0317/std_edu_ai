@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button'
 import { Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 
@@ -52,8 +53,8 @@ export class ApplicationErrorBoundary extends Component<Props, State> {
             ? 'Your data is safe. Reload the latest application files to continue.'
             : 'Your data is safe. Try the latest version first, or reset only this device’s saved session.'}</p>
           <div>
-            <button type="button" onClick={reloadLatest}>Reload latest version</button>
-            <button type="button" onClick={resetLocalSession}>Reset local session</button>
+            <Button type="button" onClick={reloadLatest}>Reload latest version</Button>
+            <Button type="button" onClick={resetLocalSession}>Reset local session</Button>
           </div>
           <a href="/">Return to university homepage</a>
         </section>

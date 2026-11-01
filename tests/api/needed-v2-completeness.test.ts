@@ -15,8 +15,8 @@ test("needed v2 covers every schema domain and has no unresolved required action
 
 test("curriculum lifecycle is visible, atomic, authorized, versioned, and audited", async () => {
   const [ui, repository, migration, auditPolicy] = await Promise.all([
-    read("src/platform/AcademicOperations.tsx"),
-    read("src/platform/platformRepository.ts"),
+    read("src/features/school/AcademicOperations.tsx"),
+    read("src/features/school/platformRepository.ts"),
     read("supabase/migrations/20260718055707_manage_academic_curriculum_lifecycle.sql"),
     read("supabase/migrations/20260718060555_authorize_curriculum_audit_evidence.sql"),
   ]);

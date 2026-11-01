@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { after, test } from "node:test";
-import schoolHandler from "../../api/school-assistant.ts";
+import { after,test } from "node:test";
 import gradeScanHandler from "../../api/grade-scan.ts";
+import schoolHandler from "../../api/school-assistant.ts";
 
 type Captured = {
   statusCode: number;

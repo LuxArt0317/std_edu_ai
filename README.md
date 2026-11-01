@@ -22,8 +22,12 @@ The client repository is `LuxArt0317/std_edu_ai`. Non-secret deployment identifi
 npm ci
 npm run lint
 npm test
+npm run test:unit
 npm run build
+npm run verify:handoff
 npm run verify:dependency-audit
 ```
+
+`npm run test:e2e` runs actual browser and database workflows against the exact client project with isolated disposable role accounts; it requires the protected local client configuration. `npm run test:accessibility-public` runs 10 public states with deterministic API fixtures.
 
 [Operational setup](docs/operations/SETUP.md) covers database migrations and live client checks. Historical research and acceptance evidence is retained under `docs/` and `planning-with-files/`; it is not evidence of completion in the client environment.

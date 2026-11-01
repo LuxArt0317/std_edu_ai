@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  addAgentObservation,
-  actionFingerprint,
-  runSafetyStop,
-  startSchoolAgentRun,
-} from "../../src/platform/schoolAgentLoop.ts";
-import type { SchoolAiAction } from "../../src/platform/types.ts";
+actionFingerprint,
+addAgentObservation,
+runSafetyStop,
+startSchoolAgentRun,
+} from "../../src/features/school/schoolAgentLoop.ts";
+import type { SchoolAiAction } from "../../src/features/school/types.ts";
 
 const action = {
   type: "create_module", title: "Week 1", targetId: null, sectionId: "section-1",

@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import {citationMetrics,passesResearchGates,retrievalMetrics,summarizeEvaluation} from "../server/ragEvaluation.js";
-const read=(path)=>fs.readFileSync(path,"utf8"),migration=read("supabase/migrations/20260719101837_rag_evaluation_control_plane.sql"),ui=read("src/research/RagEvaluationPanel.tsx"),live=read("tests/integration/rag-evaluation-live.mjs");
+const read=(path)=>fs.readFileSync(path,"utf8"),migration=read("supabase/migrations/20260719101837_rag_evaluation_control_plane.sql"),ui=read("src/features/research/RagEvaluationPanel.tsx"),live=read("tests/integration/rag-evaluation-live.mjs");
 const required=[[migration,"required_case_count integer not null default 150"],[migration,"Case authors cannot review their own cases"],[migration,"v_approvals>=2"],[migration,"Frozen evaluation versions are immutable"],[migration,"private_or_expired_leakage"],[migration,"Fixture override denied"],[ui,"Independent review queue"],[ui,"Start a reproducible evaluation run"],[ui,"Export CSV"],[live,"ordinaryFreezeBelow150:0"],[live,"metricReconciliationDifference:0"],[live,"residualFixtures:0"]];
 for(const item of required)if(!item[0].includes(item[1]))throw new Error("Issue #124 gate missing: "+item[1]);
 const rank=retrievalMetrics({expected:["official"],retrieved:["official"],k:5}),cite=citationMetrics({expected:["official"],cited:["official"]});

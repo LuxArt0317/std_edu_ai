@@ -18,7 +18,7 @@
 - Deployed the public hybrid retrieval RPC with exact, lexical, and 1,536-dimensional vector signals plus authority/language boosts. Governance, audience, publication, effective, expiry, source-active, and chunk-active filters execute before ranking.
 - Replaced the public drawer's static mock with the live bilingual research-assistant API. It rate-limits, rejects weak evidence, uses strict grounded OpenAI output, validates citation IDs against retrieved chunks, shows official source cards, and abstains safely.
 - Live production evidence now proves the real public endpoint answers from the temporary reviewed source with an exact official citation, excludes the expired version from hybrid retrieval, restores the prior version atomically, and cleans all fixtures.
-- The first public deployment exposed a Vercel serverless runtime import failure: API TypeScript was compiled independently and could not load `src/research/knowledgePipeline.ts` from `/var/task`. Moved the shared primitives to the established `server/*.js` plus `*.d.ts` runtime pattern, updated both API routes and verification imports, and passed API type-checking, 129 contracts, lint, and the production build before redeployment.
+- The first public deployment exposed a Vercel serverless runtime import failure: API TypeScript was compiled independently and could not load `src/features/research/knowledgePipeline.ts` from `/var/task`. Moved the shared primitives to the established `server/*.js` plus `*.d.ts` runtime pattern, updated both API routes and verification imports, and passed API type-checking, 129 contracts, lint, and the production build before redeployment.
 - Deployed the packaging correction as `dpl_7j48QsBUEADk5rz8Ds6jbx2P8cKg` and verified it through `www.stu.best`: the public assistant returned HTTP 200 with an evidence-safe abstention, ingestion returned the correct unauthenticated HTTP 401 JSON instead of a function crash, `/` and `/crm` returned HTTP 200, and all six recursively referenced assets passed.
 - Created Issue #118 under WP5 and implemented a public campus directory plus deterministic bilingual graph router. Exact aliases resolve stable place IDs; ambiguity, closure, missing mapping, and unreachable paths are explicit. One-way, hours, verification, closure, and wheelchair constraints are applied before Dijkstra routing, with reviewed forward/reverse instructions and an ordered text alternative. Physical walkthrough correctness remains an external Issue #110 gate.
 - The first reversible production routing workflow proved a two-step shortest walking route, a two-step accessible route with 0 stairs, deterministic repetition, one-way reverse rejection, visible closure state, and verified directory provenance. Independent SQL confirmed 0 temporary sources, sites, buildings, or places remained after cleanup. Supabase security review added no campus-specific finding; the public hybrid-search SECURITY DEFINER warning is intentional and separately retained for WP9 review.
@@ -79,3 +79,22 @@
 - Verified deployed / and /crm, 8 assets, client Supabase host, owner browser login, and database-backed Academic Office.
 - Verified public campus API 200, unauthenticated school AI 401, and authenticated owner QA 200 with source=openai. Client key was not read or copied.
 - Client handoff setup is complete; real client data/email delivery and external research approvals remain explicitly outside verified scope.
+
+## Issue #74 — 2026-11-01
+
+- User requested comprehensive shadcn/Tailwind migration preserving palette, real workflow QA/fixes, and consolidation of scattered documentation.
+- Created client Issue #74 and inventoried native controls, overlays, source monoliths, role navigation, and brand tokens.
+
+- Consolidated runtime modules under src/features and source/test/provider Markdown under docs.
+- Installed official shadcn components and Tailwind v4; migrated shared controls, cards, tables, modal forms and browser decisions.
+- Split portal shell from eight view modules; source contracts follow actual extracted files.
+- Initial client-backed owner browser test passed without page exceptions; Academic Office dialog opens and Escape closes.
+- Added teacher curriculum requests and manager review without widening institutional edit authority. Two versioned migrations are applied; live QA underway.
+- Provisioned 13 isolated QA identities plus the existing owner and a dedicated class/program/curriculum for actual role testing. Cleanup is scoped to generated fixture IDs.
+- Issue #74: installed official shadcn/Tailwind, migrated controls/dialogs/navigation/tabs and consolidated feature source/docs.
+- Added scoped curriculum request/review migrations on the exact client database; original project untouched.
+- Verified 170 source/API tests, 5 units, production build, dependency audit, documentation gate and 10 public accessibility states.
+- E2E exposed and repaired editor lifecycle crash during lazy navigation; all 14 actual roles now pass the workspace sweep. Remaining mutation and cleanup checks are running.
+
+- Review checkpoint: the requested original checkout had no diff; all overhaul changes are in the separate client copy. Record the actual scope before committing.
+- Latest E2E: 21/23 passed; case editing and mobile CRM navigation unresolved. Teardown removed 13 QA accounts, fixture records and remaining fixture file. No release claimed.

@@ -1009,8 +1009,8 @@ def add_appendices(doc):
     doc.add_paragraph("This manual was authored from the implemented repository and its maintained operating references, including:")
     add_bullets(doc, [
         "README.md, PROJECT.md, SETUP.md, docs/research/UNDERSTANDING.md, and docs/research/research.md",
-        "src/crm/PORTAL_GUIDE.md and the CRM implementation",
-        "src/platform/ROLE_MATRIX.md, platform architecture, repository, role-aware navigation, and platform implementation",
+        "docs/guides/portal.md and the CRM implementation",
+        "docs/security/roles.md, platform architecture, repository, role-aware navigation, and platform implementation",
         "Supabase migrations, trusted functions, Edge Function documentation, generated database contracts, and RLS acceptance tests",
         "API authentication, school-assistant, CRM-assistant, and grade-scan contracts",
         "Production build, live deployment, all-role account, role portal, school workflow, CRM, onboarding-shutdown, and AI verification scripts",

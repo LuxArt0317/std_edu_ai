@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { readContractSourceAsync } from '../../scripts/contract-source.mjs';
 
 const read = (path: string) =>
-  readFile(new URL(`../../${path}`, import.meta.url), "utf8");
+  readContractSourceAsync(new URL(`../../${path}`, import.meta.url), "utf8");
 
 test("the teacher studio exposes complete assessment and content editing", async () => {
   const [workspace, repository, migration] = await Promise.all([
-    read("src/platform/LmsWorkspace.tsx"),
-    read("src/platform/platformRepository.ts"),
+    read("src/features/school/LmsWorkspace.tsx"),
+    read("src/features/school/platformRepository.ts"),
     read("supabase/migrations/20260717161916_complete_lms_lifecycle.sql"),
   ]);
   for (const marker of [
@@ -38,11 +38,11 @@ test("the teacher studio exposes complete assessment and content editing", async
 
 test("academic identities and CRM records expose full edit forms", async () => {
   const [academic, portal, crm, editor, repository] = await Promise.all([
-    read("src/platform/AcademicOperations.tsx"),
-    read("src/platform/UnifiedPortal.tsx"),
-    read("src/crm/CRMApp.tsx"),
-    read("src/crm/CrmRecordEditor.tsx"),
-    read("src/crm/crmRepository.ts"),
+    read("src/features/school/AcademicOperations.tsx"),
+    read("src/features/school/UnifiedPortal.tsx"),
+    read("src/features/crm/CRMApp.tsx"),
+    read("src/features/crm/CrmRecordEditor.tsx"),
+    read("src/features/crm/crmRepository.ts"),
   ]);
   for (const marker of [
     "Edit student record",

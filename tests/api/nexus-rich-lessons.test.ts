@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { readContractSourceAsync } from '../../scripts/contract-source.mjs';
 
-import { lessonMarkdownToHtml, normalizeLessonHtml } from "../../src/platform/richLessonContent.ts";
+import { lessonMarkdownToHtml,normalizeLessonHtml } from "../../src/features/school/richLessonContent.ts";
 
-const source = (path: string) => readFile(path, "utf8");
+const source = (path: string) => readContractSourceAsync(path, "utf8");
 
 test("flattened model Markdown is converted into Tiptap-compatible blocks", () => {
   const markdown = "## System Safari: Map a Service ### Map the system 1. **People and purpose** — Who uses it? 2. **Inputs** — What enters? ### Reflect *What would you improve?*";
@@ -20,12 +20,12 @@ test("flattened model Markdown is converted into Tiptap-compatible blocks", () =
 
 test("lesson normalization is applied at proposal and repository boundaries", async () => {
   const [portal, repository, api] = await Promise.all([
-    source("src/platform/UnifiedPortal.tsx"),
-    source("src/platform/platformRepository.ts"),
+    source("src/features/school/UnifiedPortal.tsx"),
+    source("src/features/school/platformRepository.ts"),
     source("api/school-assistant.ts"),
   ]);
 
-  assert.match(portal, /create_material_page" \|\| proposed\.type === "update_material_page"[\s\S]*normalizeLessonHtml\(proposed\.content\)/);
+  assert.match(portal, /create_material_page"\s*\|\|\s*proposed\.type === "update_material_page"[\s\S]*normalizeLessonHtml\(proposed\.content\)/);
   assert.match(repository, /content_html: normalizeLessonHtml\(input\.content\)/g);
   assert.match(api, /content MUST be Tiptap-compatible semantic HTML, never Markdown/);
   assert.match(api, /Never invent a media URL or licensing claim/);
@@ -33,7 +33,7 @@ test("lesson normalization is applied at proposal and repository boundaries", as
 });
 
 test("a stale material target replans the same goal instead of terminating it", async () => {
-  const portal = await source("src/platform/UnifiedPortal.tsx");
+  const portal = await source("src/features/school/UnifiedPortal.tsx");
   const branch = portal.slice(
     portal.indexOf('} else if (action.type === "create_material_page")'),
     portal.indexOf('action.type !== "create_material"', portal.indexOf('} else if (action.type === "create_material_page")')),
@@ -48,7 +48,7 @@ test("a stale material target replans the same goal instead of terminating it", 
 
 test("long rich-lesson goals retain the 32-action client safety ceiling", async () => {
   const [loop, api] = await Promise.all([
-    source("src/platform/schoolAgentLoop.ts"),
+    source("src/features/school/schoolAgentLoop.ts"),
     source("api/school-assistant.ts"),
   ]);
   assert.match(loop, /SCHOOL_AGENT_MAX_STEPS = 32/);
@@ -57,15 +57,15 @@ test("long rich-lesson goals retain the 32-action client safety ceiling", async 
 
 test("conversation management and compact accessible attachments are present", async () => {
   const [portal, repository, styles] = await Promise.all([
-    source("src/platform/UnifiedPortal.tsx"),
-    source("src/platform/platformRepository.ts"),
-    source("src/platform/platform.css"),
+    source("src/features/school/UnifiedPortal.tsx"),
+    source("src/features/school/platformRepository.ts"),
+    source("src/features/school/platform.css"),
   ]);
 
   assert.match(portal, /aria-label="Rename conversation"/);
   assert.match(portal, /aria-label="Delete conversation"/);
   assert.match(portal, /aria-label={`Open attachment \$\{attachment\.name\}`}/);
-  assert.match(portal, /<img src={input\.dataUrl} alt=""\/>/);
+  assert.match(portal, /<img\s+src={input\.dataUrl}\s+alt=""\s*\/>/);
   assert.match(repository, /storage\.from\("nexus-attachments"\)\.remove/);
   assert.match(repository, /from\("chat_threads"\)\.delete\(\)/);
   assert.match(styles, /\.nexus-composer-attachments > span img/);

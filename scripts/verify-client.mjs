@@ -84,6 +84,6 @@ try {
   console.error(`Client verification failed: ${error.message}`)
   process.exitCode = 1
 } finally {
-  await owner.auth.signOut().catch(() => {})
+  await owner.auth.signOut({ scope: 'local' }).catch(() => {})
   await sql.end({ timeout: 5 })
 }

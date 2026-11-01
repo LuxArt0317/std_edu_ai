@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
 import test from "node:test";
+import { readContractSource } from '../../scripts/contract-source.mjs';
 
-const api = fs.readFileSync("api/school-assistant.ts", "utf8");
-const portal = fs.readFileSync("src/platform/UnifiedPortal.tsx", "utf8");
-const types = fs.readFileSync("src/platform/types.ts", "utf8");
+const api = readContractSource("api/school-assistant.ts", "utf8");
+const portal = readContractSource("src/features/school/UnifiedPortal.tsx", "utf8");
+const types = readContractSource("src/features/school/types.ts", "utf8");
 
 test("Nexus can create a department and continue with refreshed context", () => {
   for (const source of [api, portal, types]) assert.match(source, /create_department/);
