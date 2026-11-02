@@ -41,20 +41,7 @@ export async function askCampusAssistant(
       "Please enter a question before sending it to the assistant.",
     );
   }
-  const {supabase} = await import('../utils/supabase');
-  const session = supabase ? await supabase.auth.getSession() : null;
-  if (session?.error) throw new Error('Your session could not be verified. Please sign in again.');
-  const token = session?.data.session?.access_token;
   const conversation = history.filter(item=>['user','assistant'].includes(item.role)).slice(-6).map(item=>({role:item.role,content:item.content.slice(0,2000)}));
-  if (token) {
-    const privateResponse = await fetch('/api/school-assistant', {
-      signal,method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},
-      body:JSON.stringify({message:normalizedQuestion,history:conversation,mode:'qa',context:{view:'public-website'}}),
-    });
-    const result = await privateResponse.json().catch(()=>null) as {answer?:string;error?:string;knowledgeCitations?:AssistantResponse['citations']}|null;
-    if(!privateResponse.ok || !result?.answer) throw new Error(result?.error||'Your account assistant is unavailable.');
-    return {answer:result.answer,status:'answered',citations:result.knowledgeCitations||[],suggestedQuestions:[]};
-  }
   const response = await fetch("/api/research-assistant", {
     method: "POST",
     signal,
@@ -83,6 +70,18 @@ export async function askCampusAssistant(
     throw new Error("AI 助理收到無效的回應，請稍後再試。");
   }
   return payload as AssistantResponse;
+}
+
+/** Explicit knowledge-manager QA. Public chat must never borrow this session. */
+export async function askKnowledgeAnswer(question: string): Promise<AssistantResponse> {
+  const {supabase} = await import('../utils/supabase');
+  const session = supabase ? await supabase.auth.getSession() : null;
+  const token=session?.data.session?.access_token;
+  if(session?.error || !token) throw new Error('Sign in to the knowledge manager to test restricted sources.');
+  const response=await fetch('/api/school-assistant',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({message:question.trim(),mode:'qa',history:[],context:{view:'knowledge-manager'}})});
+  const result=await response.json().catch(()=>null) as {answer?:string;error?:string;knowledgeCitations?:AssistantResponse['citations']}|null;
+  if(!response.ok||!result?.answer)throw new Error(result?.error||'Knowledge answer testing is unavailable.');
+  return {answer:result.answer,status:'answered',citations:result.knowledgeCitations||[],suggestedQuestions:[]};
 }
 
 export async function submitAssistantFeedback(input: {

@@ -1,6 +1,15 @@
 # Changelog
 ## Unreleased
 
+### School Affairs identity and management separation (Issue #83)
+
+- Rebuild the logged-out School Affairs entry using observed public branding/background/campus photos; make demo access explicit and logout return to the entry.
+- Stop public chat from using Nexus account identity; clear demo access/conversation on exit and preserve unrelated management sessions.
+- Default Lux to a knowledge-manager presentation and route, with an explicit full-owner workspace option; preserve protected authorization.
+- Restrict internal Nexus guides to staff knowledge and publish a corrected public School Affairs/account-boundary guide.
+- Keep real School Affairs authentication/student data pending the user's integration choice; disabled preview controls never collect official credentials.
+
+
 ### Connected school Assistant (Issue #82)
 
 - Add shared, readable shadcn public chat across school pages, signed-in QA routing, follow-ups, safe Markdown, citations and account-change transcript clearing.

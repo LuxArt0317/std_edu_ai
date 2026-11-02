@@ -168,7 +168,7 @@ try {
       assert.ok(await toggle.evaluate((el) => el === document.activeElement));
     }
     await page
-      .getByRole("link", { name: "STU Nexus 登入", exact: true })
+      .getByRole("link", { name: "知識庫管理", exact: true })
       .click();
     await page.getByRole("heading", { name: "Sign in", exact: true }).waitFor();
     assert.equal(new URL(page.url()).pathname, "/signin");

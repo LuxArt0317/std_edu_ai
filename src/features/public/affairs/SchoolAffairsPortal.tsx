@@ -186,7 +186,7 @@ export default function SchoolAffairsPortal() {
     group === "menu" &&
     ["custom", "common", "course", "graduation"].includes(view);
   useEffect(() => {
-    document.title = `${index ? "校務系統入口" : validMenu ? selectedLabel : bookmarks ? "已收藏消息查詢" : notifications ? "通知訊息查詢" : "校務系統"} · 介面預覽 | STU Nexus`;
+    document.title = `${index ? "校務系統入口" : validMenu ? selectedLabel : bookmarks ? "已收藏消息查詢" : notifications ? "通知訊息查詢" : "校務系統"} · 校務系統介面預覽`;
   }, [
     pathname,
     group,

@@ -1,0 +1,204 @@
+/* Reference: public info.stu.edu.tw/ePortal/login.asp, observed November 3. */
+.affairs-login {
+  min-height: calc(100dvh - 32px);
+  padding: 24px 16px 36px;
+  background-color: #efefed;
+  color: #333;
+  font:
+    14px/1.5 Arial,
+    "Microsoft JhengHei",
+    sans-serif;
+}
+.affairs-login-wrap {
+  width: 700px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+.affairs-login h1 {
+  margin: 0;
+  padding: 0;
+  height: 37px;
+}
+.affairs-login h1 img {
+  display: block;
+  width: 220px;
+  height: 37px;
+}
+.affairs-login-card {
+  padding: 18px 36px 20px;
+  border: 1px solid #aaa;
+  background: #f7f7f7;
+  box-shadow: 0 0 3px #0004;
+}
+.affairs-login-photo {
+  position: relative;
+}
+.affairs-login-photo > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3/2;
+  object-fit: cover;
+}
+.affairs-login-photo > [data-slot="button"] {
+  position: absolute;
+  top: calc(50% - 22px);
+  left: 8px;
+  color: white;
+  background: #0005;
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+}
+.affairs-login-photo > [data-slot="button"]:last-child {
+  left: auto;
+  right: 8px;
+}
+.affairs-login-preview {
+  margin: 12px 0;
+  color: #565656;
+  font-size: 12px;
+}
+.affairs-login fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.affairs-login [data-slot="label"] {
+  display: block;
+  font: inherit;
+  margin: 22px 0 3px;
+}
+.affairs-login-field {
+  position: relative;
+}
+.affairs-login-field > [data-slot="input"] {
+  height: 36px;
+  border: 1px solid #ccc;
+  border-radius: 0;
+  background: white;
+  color: #555;
+  padding: 6px 32px 6px 8px;
+  font:
+    14px Arial,
+    sans-serif;
+  opacity: 1;
+  width: 100%;
+}
+.affairs-login-field > svg {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  width: 18px;
+  height: 18px;
+  color: #888;
+}
+.affairs-login-field input::placeholder {
+  color: #767676;
+  opacity: 1;
+}
+.affairs-captcha-preview {
+  width: 104px;
+  height: 28px;
+  margin-top: 4px;
+  color: #a92d65;
+  background: repeating-linear-gradient(13deg, #fceaf0 0 3px, #eee 3px 4px);
+  font: italic 21px/28px monospace;
+  letter-spacing: 7px;
+  text-align: center;
+}
+.affairs-login-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+.affairs-login-actions > [data-slot="button"] {
+  border-radius: 0;
+  border: 0;
+  font:
+    14px Arial,
+    sans-serif;
+  padding: 7px 10px;
+  min-height: 36px;
+  height: auto;
+  background: #c43171;
+  color: #fff;
+}
+.affairs-login-actions > [data-slot="button"]:last-child {
+  width: 35%;
+  background: #357bb5;
+  color: white;
+  opacity: 1;
+}
+.affairs-login-status {
+  font-size: 12px;
+  color: #565656;
+  margin-top: 14px;
+}
+.affairs-open-preview {
+  margin-top: 10px;
+  white-space: normal;
+  height: auto;
+  min-height: 36px;
+}
+.affairs-login-notes {
+  margin: 28px 0 0;
+  padding: 18px 0 0 18px;
+  border-top: 1px solid #dfe5e9;
+  list-style: decimal;
+}
+.affairs-login-notes span {
+  color: #a73737;
+}
+.affairs-login-help {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 22px;
+}
+.affairs-login-help > [data-slot="button"] {
+  color: #3f5b35;
+  padding: 6px;
+  min-height: 36px;
+}
+.affairs-login-information {
+  border-top: 1px solid #ddd;
+  padding-top: 12px;
+  margin-top: 12px;
+}
+.affairs-login-information h2 {
+  font-size: 16px;
+  margin: 0 0 8px;
+}
+.affairs-login-information a {
+  display: block;
+  text-decoration: underline;
+  color: #245d8d;
+  margin: 8px 0;
+}
+.affairs-login-wrap > footer {
+  text-align: center;
+  font-size: 12px;
+  margin-top: 16px;
+}
+@media (max-width: 520px) {
+  .affairs-login {
+    padding: 20px 12px;
+  }
+  .affairs-login-card {
+    padding: 16px 20px;
+  }
+  .affairs-login-actions {
+    align-items: stretch;
+  }
+  .affairs-login-actions > [data-slot="button"] {
+    font-size: 12px;
+  }
+  .affairs-login-actions > [data-slot="button"]:last-child {
+    width: auto;
+    min-width: 90px;
+  }
+}

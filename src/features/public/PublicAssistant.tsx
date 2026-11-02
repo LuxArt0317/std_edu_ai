@@ -33,47 +33,11 @@ export function PublicAssistant() {
     [messages, setMessages] = useState<Message[]>([]),
     [query, setQuery] = useState(""),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState(""),
-    [signedIn, setSignedIn] = useState(false);
+    [error, setError] = useState("");
   const viewport = useRef<HTMLDivElement>(null),
     pending = useRef<AbortController | null>(null),
     sequence = useRef(0);
-  useEffect(() => {
-    let disposed = false,
-      unsubscribe: (() => void) | undefined,
-      identity: string | undefined;
-    void import("../../utils/supabase")
-      .then(async ({ supabase }) => {
-        if (!supabase || disposed) return;
-        const listener = supabase.auth.onAuthStateChange((_event, session) => {
-          if (disposed) return;
-          const next = session?.user.id;
-          if (identity !== undefined && identity !== next) {
-            sequence.current++;
-            pending.current?.abort();
-            setMessages([]);
-            setError("");
-            setBusy(false);
-          }
-          identity = next || "";
-          setSignedIn(Boolean(next));
-        });
-        unsubscribe = () => listener.data.subscription.unsubscribe();
-        const { data } = await supabase.auth.getSession();
-        if (!disposed && identity === undefined) {
-          identity = data.session?.user.id || "";
-          setSignedIn(Boolean(data.session));
-        }
-      })
-      .catch(() => {
-        if (!disposed) setSignedIn(false);
-      });
-    return () => {
-      disposed = true;
-      unsubscribe?.();
-      pending.current?.abort();
-    };
-  }, []);
+  useEffect(() => () => {pending.current?.abort();}, []);
   useEffect(() => {
     viewport.current?.scrollTo({
       top: viewport.current.scrollHeight,
@@ -137,17 +101,15 @@ export function PublicAssistant() {
         <header className="border-b px-5 py-5 pr-12">
           <SheetTitle>校園助理 · Assistant</SheetTitle>
           <SheetDescription id="public-assistant-description" className="mt-2">
-            {signedIn
-              ? "Signed in. Answers use the records your account can access."
-              : "School information and services. Sign in for your courses and account."}
+            Public school information. Personal records require a connected School Affairs account.
           </SheetDescription>
         </header>
         <div className="flex items-center justify-between gap-3 border-b px-5 py-2 text-sm">
           <a
             className="underline underline-offset-4"
-            href={signedIn ? "/app" : "/signin"}
+            href="/school-affairs/login"
           >
-            {signedIn ? "Open workspace and actions" : "Sign in"}
+            School Affairs sign in
           </a>
           <Button
             size="sm"

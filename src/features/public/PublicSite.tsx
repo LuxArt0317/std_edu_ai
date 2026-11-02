@@ -13,7 +13,7 @@ const StudentSsoPreview = lazy(() =>
     default: module.StudentSsoPreview,
   })),
 );
-const SchoolAffairsPortal = lazy(() => import("./affairs/SchoolAffairsPortal"));
+const SchoolAffairsPortal = lazy(() => import("./affairs/SchoolAffairsEntry"));
 import "./site/reference.css";
 
 export default function PublicSite() {
@@ -26,7 +26,7 @@ export default function PublicSite() {
           ? "mySTU 登入介面預覽"
           : pathname === "/"
             ? "樹德科技大學網站介面預覽"
-            : "在校學生介面預覽") + " | STU Nexus";
+            : "在校學生介面預覽") + " | 校園網站預覽";
     let target: HTMLElement | null = null;
     try {
       target = hash
@@ -41,6 +41,7 @@ export default function PublicSite() {
       <PreviewNotice />
       <Routes>
         <Route path="/" element={<App />} />
+        <Route path="/ePortal/login.asp" element={<Navigate to="/school-affairs/login" replace />} />
         <Route path="/school-affairs/*" element={<SchoolAffairsPortal />} />
         <Route
           path="/ePortal/index.asp"
@@ -81,7 +82,7 @@ export default function PublicSite() {
           }
         />
       </Routes>
-      <PublicAssistant />
+      <PublicAssistant key={/\/school-affairs\/(signed-out|login)/.test(pathname) ? "affairs-logged-out" : "public"} />
     </div>
   );
 }

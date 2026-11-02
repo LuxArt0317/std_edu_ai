@@ -100,6 +100,8 @@ try {
       login.user.id,
       "Source belongs to a different owner",
     );
+    const audienceScope = item.audienceScope || "public";
+    assert.ok(["public", "staff"].includes(audienceScope), "Unsupported curated audience");
     const content = `${item.title}\n\n${item.content}\n\nEvidence scope: ${item.method}. Captured ${item.capturedOn}. Imported as a client-reviewed reference, not university approval. Source: ${item.url}`;
     const fingerprint = createHash("sha256").update(content).digest("hex");
     const previous = required(
@@ -219,8 +221,8 @@ try {
           effectiveAt: effective,
           expiresAt: expires,
           reviewDueAt: expires,
-          audienceScope: "public",
-          sensitivity: "public",
+          audienceScope,
+          sensitivity: audienceScope === "public" ? "public" : "institution",
         }),
         signal: AbortSignal.timeout(60000),
       },

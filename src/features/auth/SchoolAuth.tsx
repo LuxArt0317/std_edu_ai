@@ -262,7 +262,7 @@ function SchoolAuth() {
     !user.mustChangePassword &&
     !passwordRecovery
   )
-    return <Navigate to={returnPath} replace />;
+    return <Navigate to={user.isOwner && returnPath === "/app" ? "/app/knowledge" : returnPath} replace />;
 
   if (session && (user?.mustChangePassword || passwordRecovery))
     return (
@@ -539,9 +539,9 @@ function SchoolAuth() {
           </div>
         </a>
         <div className="nexus-auth-copy">
-          <p className="nexus-auth-kicker">Secure school workspace</p>
+          <p className="nexus-auth-kicker">Knowledge management</p>
           <h1>Sign in</h1>
-          <p>Use your school email and password.</p>
+          <p>Use your Nexus management account. School Affairs student sign-in is separate.</p>
         </div>
         <form onSubmit={submit}>
           <Label>
@@ -614,9 +614,9 @@ function SchoolAuth() {
           ) : null}
         </form>
         <p className="mt-5">
-          New student?{" "}
-          <a className="font-medium text-primary underline" href="/signup">
-            Create an account
+          Student access?{" "}
+          <a className="font-medium text-primary underline" href="/school-affairs/login">
+            Open School Affairs
           </a>
         </p>
       </section>

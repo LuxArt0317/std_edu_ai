@@ -109,43 +109,24 @@ test("public chat is usable across all public pages, follows up with sources, an
     }
 });
 
-test("signed-in public chat uses the authenticated QA endpoint and does not forward client data", async ({
-  page,
-}) => {
-  await page.addInitScript(
-    (session) =>
-      localStorage.setItem("stu-nexus-auth", JSON.stringify(session)),
-    state.users.student.session,
-  );
-  let authorized = false;
-  await page.route("**/api/research-assistant", () => {
-    throw Error("Signed-in chat must not downgrade to public");
-  });
-  await page.route("**/api/school-assistant", (route) => {
-    const body = route.request().postDataJSON();
-    expect(body.mode).toBe("qa");
-    expect(body.context).toEqual({ view: "public-website" });
-    expect(route.request().headers().authorization).toMatch(/^Bearer /);
-    authorized = true;
-    return route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        answer: "Your enrolled app subject is the fixture Teaching Course.",
-        knowledgeCitations: [],
-      }),
-    });
-  });
-  await openChat(page, "/在校學生/");
-  await expect(
-    page.getByText(
-      "Signed in. Answers use the records your account can access.",
-    ),
-  ).toBeVisible();
-  await page.getByLabel("Your question").fill("What are my current subjects?");
-  await page.getByRole("button", { name: "Send", exact: true }).click();
-  await expect(page.getByRole("log")).toContainText("enrolled app subject");
-  expect(authorized).toBe(true);
+test("Nexus sign-in cannot become a School Affairs identity or enable private public-chat answers", async ({page})=>{
+  await page.addInitScript(session=>localStorage.setItem('stu-nexus-auth',JSON.stringify(session)),state.users.owner.session);
+  let publicRequests=0;
+  await page.route('**/api/school-assistant',()=>{throw Error('Public chat must never borrow the knowledge-manager identity');});
+  await page.route('**/api/research-assistant',route=>{publicRequests++;expect(route.request().headers().authorization).toBeUndefined();return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'handoff',answer:'Your subjects require a connected School Affairs account.',citations:[],suggestedQuestions:[],feedback:{token:'f'.repeat(64),expiresAt:'2026-12-01T00:00:00Z'}})});});
+  await openChat(page,'/school-affairs');
+  await expect(page.getByText('Public school information. Personal records require a connected School Affairs account.')).toBeVisible();
+  await page.getByLabel('Your question').fill('What are my current subjects?');await page.getByRole('button',{name:'Send',exact:true}).click();
+  await expect(page.getByRole('log')).toContainText('connected School Affairs');expect(publicRequests).toBe(1);
+});
+
+test('Lux defaults to knowledge management and can explicitly open the full owner workspace',async({page})=>{
+  await page.addInitScript(session=>localStorage.setItem('stu-nexus-auth',JSON.stringify(session)),state.users.owner.session);
+  await page.goto('/signin');await expect(page).toHaveURL(/\/app\/knowledge$/);
+  await expect(page.getByRole('navigation',{name:'School navigation'}).getByRole('button')).toHaveCount(1);
+  await expect(page.getByText('Knowledge manager',{exact:true}).first()).toBeVisible();
+  await page.getByRole('button',{name:'Account menu'}).click();await page.getByRole('menuitem',{name:'Open full workspace',exact:true}).click();
+  await expect(page).toHaveURL(/\/app$/);await expect(page.getByRole('navigation',{name:'School navigation'}).getByRole('button',{name:'Academics',exact:true})).toBeVisible();
 });
 
 test("server context proves student ownership and staff assignments with live RLS", async () => {

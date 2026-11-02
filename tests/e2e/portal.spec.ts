@@ -11,6 +11,7 @@ async function login(page: Page, role: string) {
   if (!session) throw new Error('A verified browser session is required.')
   await page.addInitScript(session => localStorage.setItem('stu-nexus-auth', JSON.stringify(session)), session)
   await page.goto('/app')
+  if(role==='owner'){await page.getByRole('button',{name:'Account menu'}).click();await page.getByRole('menuitem',{name:'Open full workspace',exact:true}).click();await expect(page.getByRole('navigation',{name:'School navigation'}).getByRole('button',{name:'Academics',exact:true})).toBeVisible();}
   await expect(page.locator('.school-content')).toBeVisible({ timeout: 45000 })
 }
 async function roleClient(role: string) { return clientForRole(state, role) }

@@ -1,5 +1,14 @@
 # Client handoff
 
+## School Affairs identity correction — Issue #83
+
+The current code separates School Affairs student identity from Nexus knowledge management. The logged-out School Affairs entry mirrors the observed public source with local logo/background/campus assets, disabled real credential controls and an explicit expiring demo. Logout returns to that entry and clears demo access/conversation; Nexus management sessions are preserved. Lux defaults to a knowledge-manager presentation at /app/knowledge, with an explicit full-owner workspace option. This does not change protected owner authority or database roles. Public chat never reads the Nexus session; explicit management answer tests remain authenticated.
+
+Corpus: 19 public references/58 chunks and three staff-only Nexus guides/9 chunks. All 22 documents remain managed; historical versions are superseded. No schema or account-policy change. Local gates pass 179 API/source checks, 28 units, build/lint/docs/dependencies, three focused Assistant/manager E2E, owner academic CRUD/all owner workspaces, five login-width checks, 25 portal menu views/23 states, 15 public-page states and ten public accessibility states. Anonymous retrieval cannot return the three internal guides. Client backend/CRUD cleanup/Edge/OpenAI checks pass. Git deployment verification follows source publication.
+
+**Pending required choice:** school-approved login/API versus separate website student accounts. Real School Affairs authentication/student data remain unconnected; demo UI state cannot supply personal context or authorize actions. Issue #83 remains open for this decision. [Current scope and verification](../qa/CONNECTED_ASSISTANT.md).
+
+
 ## Connected Assistant — Issue #82
 
 The Assistant is published at [stu.best](https://stu.best). Runtime `4cea3b3c373a82a6abbbd2ecb84088fd52f4d7d7` is Ready as [Vercel 5bEfE7pE9P5V2RKovWUhYcuXG7Mj](https://vercel.com/v1-d286/std_edu_ai/5bEfE7pE9P5V2RKovWUhYcuXG7Mj); [quality 41496512787](https://github.com/LuxArt0317/std_edu_ai/actions/runs/41496512787) succeeded. The public stacking correction `eea68b269e8a030bdd9d46fcb2ae551572090ba3` is verified Ready as [Vercel Cp2urEZEfvo6J5wTQQBByrCC9K8S](https://vercel.com/v1-d286/std_edu_ai/Cp2urEZEfvo6J5wTQQBByrCC9K8S); quality `41497413489` succeeded. Seven routes resolve its `index-DoeLtlNN.js` entry/50 recursive assets. The final header inset follows in this handoff commit; API behavior is unchanged.

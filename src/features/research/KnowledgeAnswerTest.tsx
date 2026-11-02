@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  askCampusAssistant,
+  askKnowledgeAnswer,
   type AssistantResponse,
 } from "../../services/researchAssistant";
 import { AssistantMarkdown } from "../school/portal/AssistantMarkdown";
@@ -28,7 +28,7 @@ export function KnowledgeAnswerTest() {
           setError("");
           setResult(null);
           try {
-            setResult(await askCampusAssistant(question));
+            setResult(await askKnowledgeAnswer(question));
           } catch (reason) {
             setError(
               reason instanceof Error

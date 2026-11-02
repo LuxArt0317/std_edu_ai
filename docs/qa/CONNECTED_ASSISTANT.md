@@ -1,6 +1,18 @@
-# Connected Assistant — Issue #82
+# Connected Assistant — Issues #82 and #83
 
-## Product behavior
+## Current identity boundary — Issue #83 (supersedes the original public identity routing)
+
+School Affairs provides the future student authentication/data boundary. STU Nexus is the separate knowledge manager. Public chat never reads the Nexus Supabase session or sends its token; being signed into Nexus cannot enable private student answers. The manager's explicit answer-test control still uses authenticated knowledge permissions. The protected Lux owner starts at `/app/knowledge` with a single Knowledge navigation item and a Knowledge manager label; an explicit account-menu option opens the existing full owner workspace. This is a presentation/default-route change, not an owner-role downgrade.
+
+`/school-affairs`, `/school-affairs/login`, `/school-affairs/signed-out` and `/ePortal/login.asp` show the reconstructed logged-out entry unless the user explicitly opens the demo. It uses observed public logo/background/gym/campus assets and local manual photo controls. Real account/password/CAPTCHA inputs are disabled; a clearly labeled DEMO graphic is not a live challenge. The preview flag expires after thirty minutes, has no server authority, clears on exit, and leaves Nexus sessions untouched. Private deep links cannot bypass the entry after logout. Browser storage failure falls back to in-memory demo navigation.
+
+The initial corpus remains22 published documents/67 chunks, now19 public references/58 chunks and3 staff-only Nexus guides/9 chunks. The public navigation guide explicitly separates School Affairs from knowledge management. Revised versions were ingested/reviewed/published; earlier versions remain historical. No new schema or authentication-policy change was made.
+
+The real School Affairs account integration remains pending a user decision: school-approved login/API versus independent website student accounts. Neither official browser login nor a demo UI flag is silently converted to student authority. This required clarification does not block the corrected public UI and knowledge-manager default. Issue #83 remains open for that integration decision.
+
+Checks: `npm run test:school-affairs-entry` (five widths, source assets, disabled credential controls, menu/help/photo behavior, logout/deep-link guard and preserved Nexus state), `npm run test:school-affairs` (existing portal navigation/layout), and connected Assistant E2E (public chat remains public despite a real owner session; Lux manager landing/full-workspace escape). Existing #82 test evidence below is historical where it describes automatic public Nexus identity.
+
+## Original Issue #82 behavior (identity routing superseded above)
 
 The public Assistant is a shared shadcn sheet on the homepage, student directory, School Affairs preview and school SSO preview. It supports English/Traditional Chinese, conversation follow-ups, safe Markdown, source links, feedback, keyboard sending, Escape and focus restoration. It uses the same colors as the app. Signing in changes the request to authenticated QA; starting a new conversation or changing accounts clears the browser's transcript. The workspace Assistant retains its confirmation-gated action loop.
 

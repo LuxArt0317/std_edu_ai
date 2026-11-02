@@ -89,6 +89,10 @@ try {
   });
   await wire(context);
   const page = await context.newPage();
+  await page.goto(base + '/school-affairs');
+  await page.getByRole('heading',{name:'校務系統登入',exact:true}).waitFor();
+  assert.equal(await page.locator('#affairs-account').isDisabled(),true);
+  await page.getByRole('button',{name:'瀏覽示範校務介面'}).click();
   for (const [group, view, count] of views) {
     await page.goto(`${base}/school-affairs/menu/${group}/${view}`);
     await page.locator("#portal-program-search").waitFor();
@@ -237,7 +241,7 @@ try {
   await page.waitForURL("**/school-affairs/notifications");
   await page.goto(base + "/school-affairs/signed-out");
   await page
-    .getByRole("link", { name: "返回校務介面預覽", exact: true })
+    .getByRole("button", { name: "瀏覽示範校務介面", exact: true })
     .click();
   await page.waitForURL(base + "/school-affairs");
   for (const width of [1280, 1024, 768, 390, 320]) {
@@ -296,7 +300,7 @@ try {
   await page.goto(base + "/在校學生/");
   await page.getByRole("link", { name: "校務資訊系統", exact: true }).click();
   await page.waitForURL(base + "/school-affairs");
-  await page.getByRole("link", { name: "STU Nexus 登入", exact: true }).click();
+  await page.getByRole("link", { name: "知識庫管理", exact: true }).click();
   await page.getByRole("heading", { name: "Sign in", exact: true }).waitFor();
   await context.close();
   const blocked = await browser.newContext({
@@ -313,6 +317,7 @@ try {
   });
   const blockedPage = await blocked.newPage();
   await blockedPage.goto(base + "/school-affairs");
+  await blockedPage.getByRole('button',{name:'瀏覽示範校務介面'}).click();
   await blockedPage
     .getByRole("alert")
     .filter({ hasText: "瀏覽器無法儲存設定" })

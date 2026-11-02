@@ -63,3 +63,5 @@ Assistant replies use `react-markdown` with raw HTML and remote images disabled,
 ## Connected Assistant
 
 The shared public chat, server-loaded account context and governed public/internal retrieval are documented in [Connected Assistant](docs/qa/CONNECTED_ASSISTANT.md). The dated initial corpus is versioned under `docs/research/`; account records and provider credentials are never bundled into that corpus.
+
+School Affairs and knowledge management have separate identity boundaries. Public chat does not inherit a Nexus session; Lux defaults to the management workspace while protected owner permissions remain intact. [Current behavior and integration boundary](docs/qa/CONNECTED_ASSISTANT.md).

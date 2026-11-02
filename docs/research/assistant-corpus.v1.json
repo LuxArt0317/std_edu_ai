@@ -190,13 +190,13 @@
     },
     {
       "key": "app-navigation",
-      "title": "STU Nexus website and account guide",
+      "title": "School Affairs entry and knowledge-management separation",
       "domain": "faq",
       "url": "https://stu.best/",
       "capturedOn": "2026-11-03",
-      "method": "Client application routes and live configuration",
+      "method": "Client route and account-boundary implementation reviewed November 3",
       "validForDays": 30,
-      "content": "STU Nexus is the client website at https://stu.best. The copied school-facing pages are explicitly marked nonofficial UI previews. Public pages: / (homepage), /在校學生/ (student services directory), /school-affairs (demo School Affairs UI), /student-sso (disabled visual preview; does not accept school passwords). Actual STU Nexus account login is /signin and student registration is /signup. The school login and university systems remain separate and are not connected. The authenticated workspace is /app. Its pages include /app/courses (Courses), /app/assessments, /app/grades, /app/calendar (Calendar), /app/tasks, /app/students, /app/alerts, /app/admissions, /app/cases, /app/messages, /app/knowledge, /app/reports, /app/academics, /app/users and /app/help (video guides). Available pages depend on the signed-in role. Anonymous chat reads public knowledge only; signed-in answers can read only account-authorized app records."
+      "content": "School Affairs is at /school-affairs and its logged-out entry is /school-affairs/login. Account, password and CAPTCHA controls are a UI preview and do not authenticate real university students. The explicit demo portal uses sample records, not a verified student identity. Leaving the demo returns to the login entry and clears demo access. Public school answers require no sign-in. Personal subjects, grades and schedules require an independently verified School Affairs identity and an authorized student-data connection; that integration is not yet configured. STU Nexus at /signin and /app/knowledge is a separate knowledge-management workspace. Signing into the knowledge manager does not sign into School Affairs or provide a student identity. Official university services remain external links and require their own authorized school login."
     },
     {
       "key": "app-student-guide",
@@ -206,7 +206,8 @@
       "capturedOn": "2026-11-03",
       "method": "Verified client application behavior and permissions",
       "validForDays": 30,
-      "content": "Sign in to STU Nexus at /signin to ask about your app subjects, enrolled classes, learning materials, announcements, schedule, released grades, attendance and support requests. The school must enroll you in classes before they appear; public signup does not automatically create academic enrollment. The Assistant may help navigate, explain learning concepts, prepare a student-owned support or staff-message request, request an attendance correction and mark lesson progress after confirmation. It cannot complete or submit graded work, select exam answers, change roles or school identity, finalize grades, pay tuition, or access unconnected school systems. If no enrollment is visible it should say so, not treat the public subject catalog as your timetable. Public email confirmation still needs the client's production sender; an ordinary public inbox may not receive the default Supabase message."
+      "content": "Internal Nexus workspace documentation, unrelated to School Affairs student authentication. Sign in to STU Nexus at /signin to ask about your app subjects, enrolled classes, learning materials, announcements, schedule, released grades, attendance and support requests. The school must enroll you in classes before they appear; public signup does not automatically create academic enrollment. The Assistant may help navigate, explain learning concepts, prepare a student-owned support or staff-message request, request an attendance correction and mark lesson progress after confirmation. It cannot complete or submit graded work, select exam answers, change roles or school identity, finalize grades, pay tuition, or access unconnected school systems. If no enrollment is visible it should say so, not treat the public subject catalog as your timetable. Public email confirmation still needs the client's production sender; an ordinary public inbox may not receive the default Supabase message.",
+      "audienceScope": "staff"
     },
     {
       "key": "app-teacher-guide",
@@ -216,7 +217,8 @@
       "capturedOn": "2026-11-03",
       "method": "Verified client Assistant tools and authorization",
       "validForDays": 30,
-      "content": "Faculty can use their assigned class workspace to prepare modules, lessons and rich material pages, draft assessments and questions, post announcements, manage attendance and schedule events. Authorized academic operators can also manage programs, terms, subjects, sections, enrollments and draft curriculum plans through their permitted tools. Support/advisor roles can prepare support or communication requests. Leadership has role-allowed initiative workflows. Draft changes mode prepares one exact action at a time; the user reviews and confirms each mutation, then the bounded agent loop checks the real result before continuing. Ask mode makes no changes. Destructive actions require clear confirmation, and existing RLS/RPC rules still decide authorization. The Assistant never changes credentials/roles or finalizes grades, and it cannot operate external official school systems. For walkthroughs open /app/help."
+      "content": "Internal Nexus workspace documentation, unrelated to School Affairs student authentication. Faculty can use their assigned class workspace to prepare modules, lessons and rich material pages, draft assessments and questions, post announcements, manage attendance and schedule events. Authorized academic operators can also manage programs, terms, subjects, sections, enrollments and draft curriculum plans through their permitted tools. Support/advisor roles can prepare support or communication requests. Leadership has role-allowed initiative workflows. Draft changes mode prepares one exact action at a time; the user reviews and confirms each mutation, then the bounded agent loop checks the real result before continuing. Ask mode makes no changes. Destructive actions require clear confirmation, and existing RLS/RPC rules still decide authorization. The Assistant never changes credentials/roles or finalizes grades, and it cannot operate external official school systems. For walkthroughs open /app/help.",
+      "audienceScope": "staff"
     },
     {
       "key": "app-knowledge-guide",
@@ -226,7 +228,8 @@
       "capturedOn": "2026-11-03",
       "method": "Client knowledge lifecycle and role policy",
       "validForDays": 30,
-      "content": "Owner, administrator and librarian roles manage chatbot sources and documents at /app/knowledge. Add sources, import URL/text/Markdown/PDF content, set public/institution/role/class/staff audiences, review extracted chunks, publish an approved version, set effective/expiry/review dates, and roll back to a prior version. New imports are drafts until a reviewer publishes them. Public questions search only eligible public material; signed-in questions additionally search published sources their own account can access. Source refresh creates a new reviewable version rather than silently replacing published facts. Expired, future, superseded, quarantined, draft or role-ineligible evidence must not answer questions. A checked reference or indexed excerpt is not a university endorsement or institutional research approval."
+      "content": "Internal Nexus workspace documentation, unrelated to School Affairs student authentication. Owner, administrator and librarian roles manage chatbot sources and documents at /app/knowledge. Add sources, import URL/text/Markdown/PDF content, set public/institution/role/class/staff audiences, review extracted chunks, publish an approved version, set effective/expiry/review dates, and roll back to a prior version. New imports are drafts until a reviewer publishes them. Public questions search only eligible public material; signed-in questions additionally search published sources their own account can access. Source refresh creates a new reviewable version rather than silently replacing published facts. Expired, future, superseded, quarantined, draft or role-ineligible evidence must not answer questions. A checked reference or indexed excerpt is not a university endorsement or institutional research approval.",
+      "audienceScope": "staff"
     }
   ]
 }

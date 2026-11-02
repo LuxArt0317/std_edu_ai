@@ -1,5 +1,14 @@
 # Current client state
 
+## Issue #83: School Affairs identity correction
+
+Implemented and locally verified: source-shaped logged-out entry at /school-affairs/login and default /school-affairs, expiring explicit demo gate, logout/deep-link clearing, Nexus-independent public chat, and protected Lux owner default /app/knowledge with a single knowledge-management navigation item/full-workspace escape. Owner authority/auth settings are unchanged. The public corpus is now 19 public references/58 chunks; three Nexus guides/9 chunks are staff-only. All 22 remain managed. No new database migration.
+
+QA: 179 API/source checks, 28 units, build/lint/docs/dependency gates; three focused Assistant/manager E2E pass; owner academic CRUD and every owner workspace pass across focused runs (initial owner nav-count race corrected by awaiting full-workspace navigation). Five login widths, 25 portal menu views/23 states, 15 existing public states and ten public accessibility states pass. Real anonymous retrieval excludes all three staff guides. Client backend/CRUD cleanup/Edge/OpenAI verification passes. Changes await Git deployment verification.
+
+Required user choice remains pending: real school-approved authentication/API versus independent website student accounts. Official school login/data are not connected. The preview accepts no real school credentials and supplies no private student context. See planning-with-files/clarification_questions.md; keep #83 open for this integration decision.
+
+
 ## Connected Assistant — Issue #82
 
 The new Assistant API is published at https://stu.best. Runtime 4cea3b3c373a82a6abbbd2ecb84088fd52f4d7d7 is Ready as Vercel 5bEfE7pE9P5V2RKovWUhYcuXG7Mj; quality 41496512787 succeeded. Ten actual public/signed-in OpenAI acceptance checks pass: school contact/address/course/email references, anonymous personal handoff, student enrollment, teacher assignment, announcement body, unsaved teacher draft and forbidden student assessed-work action. Forged browser records are ignored. Client API/RLS/CRUD cleanup/Edge/OpenAI checks and seven paths/50 recursive assets pass.

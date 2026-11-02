@@ -113,3 +113,12 @@ Final source verification: d9ba36b / Vercel 43s3ZCUGEcHh53fY52iBGv5DYXCX Ready; 
 - [x] Document supported coverage and unavailable official/private data; update issue/state, commit and verify production.
 
 User requests a complete connected Assistant. Preserve existing account permissions, confirmation-gated mutations and school-login isolation; do not fabricate records, official approvals or perfect coverage.
+
+## School Affairs identity and knowledge management [Issue #83]
+
+- [x] Rebuild public logged-out School Affairs entry from observed official login UI/assets; correct logout and reload behavior.
+- [x] Separate public chatbot identity from Nexus and retain public RAG while real School Affairs authentication is clarified.
+- [x] Default Lux's protected-owner sign-in to a knowledge-manager workspace, preserving owner authority and full-workspace escape.
+- [ ] Verify source likeness, session isolation, manager routes, responsive/a11y/API/unit/build checks and publish verified changes.
+
+Required clarification pending: real school-approved login/API integration versus independent site student accounts. No official credentials are collected or demo identity trusted as authentication.

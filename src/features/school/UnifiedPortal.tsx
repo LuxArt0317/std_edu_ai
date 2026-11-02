@@ -153,6 +153,7 @@ function UnifiedPortal({
   const [previewRole, setPreviewRole] = useState<PlatformRole>(
     currentUser.role,
   );
+  const [knowledgeWorkspace, setKnowledgeWorkspace] = useState(() => currentUser.isOwner && ['/app','/app/knowledge'].includes(location.pathname));
   const [toast, setToast] = useState("");
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [, setAssistantActivity] =
@@ -207,14 +208,15 @@ function UnifiedPortal({
   const effectiveRole = currentUser.isOwner ? previewRole : currentUser.role;
   const routeView = viewForPath(location.pathname, teachingRoles.has(effectiveRole));
   const view = routeView && navigationFor(effectiveRole).includes(routeView) ? routeView : "home";
-  const navigation = navigationFor(effectiveRole).sort((left, right) => {
+  const navigation = (knowledgeWorkspace ? ["knowledge"] as PortalView[] : navigationFor(effectiveRole)).sort((left, right) => {
     const group = (item: PortalView) => item === "help" ? 3 : ["academics", "people"].includes(item) ? 2 : supportViews.includes(item) ? 1 : 0;
     return group(left) - group(right);
   });
 
   useEffect(() => {
+    if (knowledgeWorkspace && location.pathname === '/app') {navigate('/app/knowledge',{replace:true});return;}
     if (routeView && !navigation.includes(routeView)) navigate("/app", { replace: true });
-  }, [navigation, routeView, navigate]);
+  }, [navigation, routeView, navigate, knowledgeWorkspace, location.pathname]);
 
   const showingCrm = routeView !== null && supportViews.includes(view) && crmRoles.has(effectiveRole);
 
@@ -247,7 +249,7 @@ function UnifiedPortal({
               <span>樹</span>
               <div>
                 <b>STU NEXUS</b>
-                <small>School portal</small>
+                <small>{knowledgeWorkspace ? "Knowledge manager" : "School portal"}</small>
               </div>
             </a>
           </SidebarHeader>
@@ -263,7 +265,7 @@ function UnifiedPortal({
                 <Button variant="ghost" className="account-menu w-full justify-start">
                   <span className="sr-only">Account menu</span>
                   <span className="account-initials" aria-hidden="true">{currentUser.initials}</span>
-                  <span className="account-details min-w-0 flex-1 text-left"><strong className="block truncate text-sm font-medium">{currentUser.name}</strong><small className="block text-xs text-muted-foreground">{roleNames[currentUser.role]}</small></span>
+                  <span className="account-details min-w-0 flex-1 text-left"><strong className="block truncate text-sm font-medium">{currentUser.name}</strong><small className="block text-xs text-muted-foreground">{knowledgeWorkspace ? "Knowledge manager" : roleNames[currentUser.role]}</small></span>
                   <ChevronUp className="size-4" aria-hidden="true" />
                 </Button>
               </DropdownMenuTrigger>
@@ -274,7 +276,8 @@ function UnifiedPortal({
                   <DropdownMenuSubTrigger><SunMoon className="size-4" />Appearance</DropdownMenuSubTrigger>
                   <DropdownMenuSubContent><DropdownMenuRadioGroup value={theme ?? "system"} onValueChange={setTheme}>{["light", "dark", "system"].map(mode => <DropdownMenuRadioItem key={mode} value={mode}>{mode[0].toUpperCase()+mode.slice(1)}</DropdownMenuRadioItem>)}</DropdownMenuRadioGroup></DropdownMenuSubContent>
                 </DropdownMenuSub>
-                {currentUser.isOwner ? <DropdownMenuSub>
+                {currentUser.isOwner ? <DropdownMenuItem onSelect={()=>{setKnowledgeWorkspace(!knowledgeWorkspace);navigate(knowledgeWorkspace?'/app':'/app/knowledge');}}>{knowledgeWorkspace ? 'Open full workspace' : 'Open knowledge manager'}</DropdownMenuItem> : null}
+                {currentUser.isOwner && !knowledgeWorkspace ? <DropdownMenuSub>
                   <DropdownMenuSubTrigger><Eye className="size-4" />Preview role</DropdownMenuSubTrigger>
                   <DropdownMenuSubContent className="max-h-96 overflow-y-auto"><DropdownMenuRadioGroup value={previewRole} onValueChange={value => setPreviewRole(value as PlatformRole)}>{data.roles.map(role => <DropdownMenuRadioItem key={role.code} value={role.code}>{roleNames[role.code]}</DropdownMenuRadioItem>)}</DropdownMenuRadioGroup></DropdownMenuSubContent>
                 </DropdownMenuSub> : null}
@@ -290,7 +293,7 @@ function UnifiedPortal({
         >
           <header className="school-topbar">
             <SidebarToggle />
-            <div className="school-breadcrumb"><span>School</span></div>
+            <div className="school-breadcrumb"><span>{knowledgeWorkspace ? "Knowledge" : "School"}</span></div>
             <div className="school-top-actions">
               <Button data-assistant-launcher type="button" variant="ghost" size="sm" onClick={() => setAssistantOpen(true)}><MessageSquare className="size-4" aria-hidden="true" />Assistant</Button>
               <Button type="button" variant="ghost" size="icon" aria-label="Notifications" className="relative" onClick={() => { setNotificationsOpen(true); void refresh(true); }}>
