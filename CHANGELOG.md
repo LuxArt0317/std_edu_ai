@@ -1,6 +1,13 @@
 # Changelog
 ## Unreleased
 
+### Custom production domain (Issue #81)
+
+- Connect `stu.best` to the existing client Vercel project and permanently redirect `www.stu.best` to the apex, preserving Spaceship DNS authority and existing CNAMEs.
+- Align Supabase Auth Site URL/callbacks and both protected account-function CORS allowlists with the new apex; retain existing hosted/local origins and authorization.
+- Record the canonical domain and browser management routes, strengthen live origin checks, and publish the previously verified public/School Affairs UI source.
+
+
 ### School Affairs portal UI (Issue #80)
 
 - Reproduce the observed signed-in student portal at `/school-affairs`: blue header, account menu, sidebar/shortcuts, index widgets, 25 menu views and all-program search from 57 source rows/94 program links.

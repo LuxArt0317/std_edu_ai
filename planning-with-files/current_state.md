@@ -1,5 +1,10 @@
 # Current client state
 
+## Issue #81: custom domain connected; release verification in progress
+
+`stu.best` is verified Production on client Vercel; `www.stu.best` is verified as a 308 redirect to the apex. Spaceship nameservers and the two original CNAME records are preserved; temporary ownership challenges are removed. Supabase Site URL/exact apex callbacks and both account-function CORS origins are updated, with permissions preserved. Initial live database/RLS/CRUD/API/OpenAI checks pass. Publishing the verified #79/#80 source and checking the final deployed build is the remaining step. Management details: docs/operations/INFRASTRUCTURE.md.
+
+
 ## Issue #80: School Affairs portal ready for local review
 
 The visible student-facing School Affairs portal is rebuilt at http://127.0.0.1:5173/school-affairs in the separate LuxArt0317 checkout. It preserves the 45px source header/190px sidebar, seven groups/25 menu views, 57 catalog rows/94 program links and source-shaped Index/news widgets. Search, custom menus, bookmarks, settings/font/skin controls, sidebar/widget collapse and mobile/Escape/focus behavior work locally. The source student name, real fees, IP, account/session values and opaque query strings are excluded. Other school applications remain external; existing STU Nexus auth and school/backend permissions are unchanged.

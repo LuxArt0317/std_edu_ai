@@ -59,10 +59,15 @@ try {
     process.stdout.write(result.stdout)
     assert.equal(result.status, 0, result.stderr || 'Live shell verification failed')
     for (const name of ['provision-role-account', 'manage-student-account']) {
-      const preflight = await fetch(`${url}/functions/v1/${name}`, { method: 'OPTIONS', headers: { Origin: config.vercel.productionUrl, 'Access-Control-Request-Method': 'POST' }, signal: AbortSignal.timeout(20000) })
-      assert.equal(preflight.status, 204, `${name} preflight unavailable`)
-      assert.equal(preflight.headers.get('access-control-allow-origin'), config.vercel.productionUrl)
-      const denied = await fetch(`${url}/functions/v1/${name}`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: key }, body: '{}', signal: AbortSignal.timeout(20000) })
+      for (const origin of new Set([config.vercel.productionUrl, config.vercel.vercelUrl].filter(Boolean))) {
+        const preflight = await fetch(`${url}/functions/v1/${name}`, { method: 'OPTIONS', headers: { Origin: origin, 'Access-Control-Request-Method': 'POST' }, signal: AbortSignal.timeout(20000) })
+        assert.equal(preflight.status, 204, `${name} preflight unavailable for ${origin}`)
+        assert.equal(preflight.headers.get('access-control-allow-origin'), origin)
+      }
+      const rejectedOrigin = await fetch(`${url}/functions/v1/${name}`, { method: 'OPTIONS', headers: { Origin: 'https://untrusted.example', 'Access-Control-Request-Method': 'POST' }, signal: AbortSignal.timeout(20000) })
+      assert.equal(rejectedOrigin.status, 403, `${name} must reject untrusted origins`)
+      assert.equal(rejectedOrigin.headers.get('access-control-allow-origin'), null)
+      const denied = await fetch(`${url}/functions/v1/${name}`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: config.vercel.productionUrl, apikey: key }, body: '{}', signal: AbortSignal.timeout(20000) })
       assert.equal(denied.status, 401, `${name} must require authentication`)
     }
     const activity = await owner.functions.invoke('provision-role-account', { body: { action: 'directory' } })

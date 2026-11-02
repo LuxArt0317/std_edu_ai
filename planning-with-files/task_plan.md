@@ -91,3 +91,11 @@ User clarification for #79: the second target is the mySTU SSO reached from stud
 - [x] Verify source coverage, local/demo behavior, responsive/keyboard/accessibility states, privacy and regressions; update centralized docs and commit for local review.
 
 Scope: continue the UI-only reconstruction. Current signed-in source role is the available reference; use demo identity/records. No real school submissions, credential capture, account settings changes, push or deployment.
+
+## Connect stu.best to client Vercel [Issue #81]
+
+- [x] Verify Spaceship/Vercel ownership context, current DNS/HTTPS state and exact project requirements; preserve a non-secret record backup.
+- [x] Attach the apex domain and consistent www routing, update only required DNS records and verify certificates/HTTPS.
+- [ ] Align authentication URLs and app domain references as needed, verify the live release and key routes, update provider/project handoff and private registry, then commit.
+
+User authorized use of the existing stu.best domain for this Vercel website. Keep the apex hostname, existing Spaceship nameservers and unrelated records. The original registrar tab has an unsaved custom-nameserver draft; leave it untouched and use a separate management tab.

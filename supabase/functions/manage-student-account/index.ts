@@ -2,6 +2,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient, type User } from 'npm:@supabase/supabase-js@2.110.5'
 
 const allowedOrigins = new Set([
+  'https://stu.best',
   'https://stdeduai.vercel.app',
   'http://localhost:5173',
   'http://127.0.0.1:5173',

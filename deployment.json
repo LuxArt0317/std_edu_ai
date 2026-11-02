@@ -3,13 +3,26 @@
   "vercel": {
     "teamSlug": "v1-d286",
     "projectName": "std_edu_ai",
-    "productionUrl": "https://stdeduai.vercel.app",
-    "dashboardUrl": "https://vercel.com/v1-d286/std_edu_ai"
+    "productionUrl": "https://stu.best",
+    "dashboardUrl": "https://vercel.com/v1-d286/std_edu_ai",
+    "vercelUrl": "https://stdeduai.vercel.app"
   },
   "supabase": {
     "projectRef": "xiftudmvxphxcjtmfmib",
     "ownerEmail": "luxart0317@gmail.com",
     "accessMethod": "Vercel Marketplace SSO",
     "dashboardUrl": "https://supabase.com/dashboard/project/xiftudmvxphxcjtmfmib"
+  },
+  "domains": {
+    "primary": "stu.best",
+    "redirects": {
+      "www.stu.best": "https://stu.best"
+    },
+    "registrar": "Spaceship",
+    "dnsProvider": "Spaceship",
+    "nameservers": [
+      "launch1.spaceship.net",
+      "launch2.spaceship.net"
+    ]
   }
 }
