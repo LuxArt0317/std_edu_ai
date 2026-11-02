@@ -463,36 +463,12 @@ export function LocalPageIndex() {
   );
 }
 export default function SourceMirror() {
-  const location = useLocation(),
-    navigate = useNavigate(),
-    frame = useRef<HTMLIFrameElement>(null),
-    cleanup = useRef<(() => void) | null>(null),
-    [error, setError] = useState("");
-  const source = sourceForLocalPath(location.pathname, location.search),
-    entry = findPage(source),
-    file = files.find((a) => canonicalSchoolUrl(a.source) === source),
-    status = gaps.find((r) => r.source === source)?.status;
-  const pageFile = entry?.file,
-    pageTitle = entry?.title,
-    pageVersion = entry?.checksum;
-  useLayoutEffect(() => {
-    document.title = pageTitle
-      ? pageTitle + " · local copy"
-      : "Local page not copied yet";
-    const doc = frame.current?.contentDocument;
-    if (doc?.documentElement.dataset.mirrorReady === "true") {
-      cleanup.current?.();
-      cleanup.current = configureDocument(doc, (url) => navigate(url));
-    }
-    return () => {
-      cleanup.current?.();
-      cleanup.current = null;
-    };
-  }, [pageFile, pageTitle, pageVersion, navigate]);
-  useEffect(() => {
-    if (frame.current?.contentDocument)
-      scrollFragment(frame.current.contentDocument, location.hash);
-  }, [location.hash]);
+  const location = useLocation();
+  const source = sourceForLocalPath(location.pathname, location.search);
+  const entry = findPage(source);
+  const file = files.find((a) => canonicalSchoolUrl(a.source) === source);
+  const status = gaps.find((r) => r.source === source)?.status;
+  useEffect(() => { if (!entry) document.title = "Local page not copied yet"; }, [entry]);
   if (!entry)
     return (
       <main className="mirror-index">
@@ -529,11 +505,71 @@ export default function SourceMirror() {
         ) : null}
       </main>
     );
+  return <SourcePage key={entry.file + entry.checksum + location.pathname + location.search} entry={entry} />;
+}
+function SourcePage({ entry }: { entry: Entry }) {
+  const location = useLocation(), navigate = useNavigate(),
+    frame = useRef<HTMLIFrameElement>(null),
+    cleanup = useRef<(() => void) | null>(null),
+    [error, setError] = useState(""),
+    [readyPage, setReadyPage] = useState("");
+  const pageFile = entry?.file,
+    pageTitle = entry?.title,
+    pageVersion = entry?.checksum,
+    pageKey = (pageFile || "") + (pageVersion || "") + location.pathname + location.search;
+  useLayoutEffect(() => {
+    document.title = pageTitle
+      ? pageTitle + " · local copy"
+      : "Local page not copied yet";
+    const iframe = frame.current;
+    if (!iframe || !pageFile) return;
+    let disposed = false;
+    let bound: Document | null = null;
+    let timer: ReturnType<typeof setTimeout>;
+    const started = Date.now();
+    const bind = () => {
+      if (disposed) return false;
+      const doc = iframe.contentDocument;
+      if (!doc || doc.readyState === "loading" || new URL(doc.URL).pathname !== pageFile) return false;
+      if (bound !== doc) {
+        cleanup.current?.();
+        cleanup.current = configureDocument(doc, (url) => navigate(url));
+        bound = doc;
+        scrollFragment(doc, window.location.hash);
+      }
+      setReadyPage(pageKey);
+      setError("");
+      return true;
+    };
+    const poll = () => {
+      if (bind()) return;
+      if (Date.now() - started >= 30000) {
+        setError("The local page could not be loaded. Please retry.");
+        return;
+      }
+      timer = setTimeout(poll, 25);
+    };
+    // Bind as soon as the inert DOM is parsed; images/fonts must not gate links.
+    timer = setTimeout(poll, 0);
+    iframe.addEventListener("load", bind);
+    return () => {
+      disposed = true;
+      clearTimeout(timer);
+      iframe.removeEventListener("load", bind);
+      cleanup.current?.();
+      cleanup.current = null;
+    };
+  }, [pageFile, pageTitle, pageVersion, pageKey, navigate]);
+  useEffect(() => {
+    if (frame.current?.contentDocument)
+      scrollFragment(frame.current.contentDocument, location.hash);
+  }, [location.hash]);
   return (
     <section
       className="source-mirror"
       aria-label={entry.title}
-      key={entry.file + entry.checksum}
+      key={pageKey}
+      aria-busy={readyPage !== pageKey}
     >
       {error ? (
         <div role="alert" className="mirror-load-error">
@@ -545,24 +581,14 @@ export default function SourceMirror() {
           </Button>
         </div>
       ) : null}
+      {readyPage !== pageKey && !error ? <div className="mirror-loading" role="status">載入頁面…</div> : null}
       <iframe
         ref={frame}
         title={entry.title}
         src={entry.file + "?v=" + entry.checksum.slice(0, 12)}
         sandbox="allow-same-origin allow-downloads"
         onError={() => setError("The local page could not be loaded.")}
-        onLoad={() => {
-          cleanup.current?.();
-          const doc = frame.current?.contentDocument;
-          if (!doc) {
-            setError("The local page is unavailable.");
-            return;
-          }
-          setError("");
-          document.title = entry.title + " · local copy";
-          cleanup.current = configureDocument(doc, (url) => navigate(url));
-          scrollFragment(doc, location.hash);
-        }}
+
       />
     </section>
   );

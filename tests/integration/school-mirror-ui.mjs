@@ -273,6 +273,29 @@ try {
   await page.goto(base + "/local-pages?q=招生");
   await page.getByRole("heading", { name: /Local school pages/ }).waitFor();
   assert.ok((await page.locator(".mirror-index li").count()) > 0);
+  const delayed = await context.newPage();
+  let releaseMedia;
+  const mediaGate = new Promise(resolve => { releaseMedia = resolve; });
+  let blockedMedia = 0;
+  await delayed.route("**/school-assets/**", async route => {
+    if (["image", "font"].includes(route.request().resourceType())) {
+      blockedMedia++;
+      await mediaGate;
+    }
+    await route.continue().catch(() => {});
+  });
+  try {
+    await delayed.goto(base + "/在校學生/", { waitUntil: "domcontentloaded" });
+    await delayed.waitForFunction(() => document.querySelector("iframe")?.contentDocument?.documentElement.dataset.mirrorReady === "true");
+    assert.ok(blockedMedia > 0, "Slow source media must remain pending during this regression check");
+    await delayed.frameLocator("iframe").getByRole("link", { name: "學生Gmail", exact: true }).click();
+    await delayed.waitForURL("**/student-sso");
+    await delayed.locator(".source-mirror iframe").waitFor({ state: "detached" });
+    assert.equal(await delayed.locator(".source-mirror iframe").count(), 0, "School navigation must leave the source frame");
+  } finally {
+    releaseMedia();
+    await delayed.close();
+  }
   assert.deepEqual(errors, []);
   assert.deepEqual(foreign, []);
   const summary = {
@@ -288,6 +311,7 @@ try {
       admissionsDetailAndHistory: true,
       mobileEscape: true,
       search: true,
+      navigationBeforeMediaLoad: true,
     },
   };
   await writeFile(

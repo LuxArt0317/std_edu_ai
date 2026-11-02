@@ -1,4 +1,5 @@
 .source-mirror {
+  position: relative;
   height: 100dvh;
   min-height: 500px;
   background: #fff;
@@ -53,3 +54,6 @@
   background: var(--card);
   color: var(--foreground);
 }
+
+.source-mirror[aria-busy="true"] iframe { visibility: hidden; }
+.mirror-loading { position: absolute; inset: 0; display: grid; place-items: center; color: #334d45; background: white; font: 16px/1.5 system-ui, sans-serif; }

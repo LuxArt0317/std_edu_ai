@@ -4,6 +4,7 @@
 ### Local school-page copies (Issue #84)
 
 - Serve source-preserving homepage, audience entrances and linked public pages locally, with title/body search and an auditable URL/asset inventory.
+- Attach trusted navigation as soon as source DOM is parsed and keep controls hidden until ready, so slow images/fonts cannot trap a link inside the frame.
 - Keep source scripts and submissions inert; isolate source CSS and implement local menus, tabs, carousel navigation and Escape behavior.
 - Correct captured header widths, mobile legacy layouts, invisible menu labels, transient loading overlays and document-query collisions.
 - Bundle checksum-pinned public documents in bounded compressed parts for offline cloud builds; preserve existing student/Nexus identity and knowledge-publication boundaries.
