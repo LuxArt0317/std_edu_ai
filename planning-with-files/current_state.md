@@ -1,8 +1,12 @@
 # Current client state
 
-## Issue #84: verified local school-page checkpoint
+## Issue #84: published public school-page checkpoint
 
-Implemented local source-preserving homepage/ten audience entrances and 395 distinct public pages, with source scripts/forms disabled, local links/menus/tabs/carousels/search, explicit source/private gaps and pinned large-document preparation. The 304 first-hop school destinations comprise 274 copied page/redirect URLs, three copied file URLs, 25 protected destinations and two native School Affairs UI entries. The recursive graph has 2,269 observed URLs; deeper service/resource coverage remains incomplete. User excluded old news archives. Final checks pass 193 API/source checks, 28 units, 56 mirror states and interactions, five School Affairs isolation states, ten surrounding public accessibility states, build/lint/docs/dependencies. Source colors retain 24 reported contrast occurrences; no other serious/critical semantic failures in the mirror sample. Build index-C6ya21l1.js source34c2812 is pushed with explicit publication approval. First cloud attempts failed integration branching/source-document403, without replacing production. Offline bundle restoration passes all401 files and tamper/path rejection; Production branching is saved off, Preview and Required remain on. Corrected publication is in progress. Preview http://127.0.0.1:5174/. The >1.7 GB corpus needs hosted size/cold-build validation. Prior verified production below remains authoritative. Details: docs/qa/SCHOOL_MIRROR.md.
+Live at https://stu.best. Runtime83dc0b2f1f4c08f30f118302f4155a2672091109 is Ready as VercelEZ3FysTZ7iU6oHR4gmc7L9fCJ2JJ; quality41540190681 succeeded. Entryindex-DHcbVgDM.js /41 app dependencies. Verified395 HTML checksums /3545 unique assets /401 documents and local browser navigation/SSO isolation; owner/RLS/CRUD cleanup/Edge/OpenAI, anonymous cited registrar and personal-data handoff, www308 path/query all pass.
+
+193 API/source tests,28 units,56 mirror states plus delayed-media navigation,401-document offline restore/tamper/path checks and10 surrounding public accessibility states pass. Source contrast24 remains reported. All ten entrances /304 first-hop destinations have copied HTML/files, protected-system status or native previews. User excluded old archives. Deeper service/resource coverage and official private integration remain incomplete, so #84/#83 stay open.
+
+Replaced cloud403 document hydration with36 bounded checksum-pinned Git parts. Production Preview Branch action is saved off; Preview stays on and Required stays on. Stable client database106 migrations/RLS/Auth policies unchanged. Static output>1.7 GB is accepted by this Git deployment. Full evidence: docs/qa/SCHOOL_MIRROR.md.
 
 ## Issue #83: School Affairs identity correction
 

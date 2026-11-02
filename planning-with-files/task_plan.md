@@ -140,7 +140,7 @@ User clarified scope: include entrance and service/detail pages; skip old news a
 
 User explicitly authorized publication.
 - [x] Verify exact client identity/target, release gates and current production; preserve existing auth and domain settings.
-- [ ] Push the verified source to client main; follow its existing Vercel deployment and resolve build issues.
-- [ ] Verify the exact production assets, representative local page/file navigation and backend; update issue, handoff and private infrastructure records.
+- [x] Push the verified source to client main; follow its existing Vercel deployment and resolve build issues.
+- [x] Verify the exact production assets, representative local page/file navigation and backend; update issue, handoff and private infrastructure records.
 
 The remaining service/source-resource gaps and excluded old archives are unchanged by publication.

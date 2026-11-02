@@ -1,8 +1,12 @@
 # Client handoff
 
-## Local school-page copies — Issue #84
+## Published school-page copies — Issue #84
 
-Local review checkpoint: 395 distinct public pages, all ten audience entrances and all first-hop public HTML destinations are copied locally. Additional freshman/international/alumni service details are included; old news archives are excluded by user clarification. Verified 193 API/source checks, 28 units, 56 mirror viewport states and interactions, five School Affairs isolation states, ten surrounding public accessibility states, build/lint/docs/dependencies. Source contrast has 24 reported rule occurrences; deeper services, unavailable resources and private integrations remain incomplete. The >1.7 GB static corpus needs hosted size/cold-build verification before release. Local preview: http://127.0.0.1:5174/; build index-C6ya21l1.js. Publication is authorized and source34c2812 is pushed, but its first Vercel attempt failed Supabase branch provisioning and quality41535512443 failed source-document403 responses. A verified offline bundle replaces source downloads; the Production preview-branch action is disabled while Required remains on. The corrected release is being published. No database/account-policy change; the prior verified production release below remains authoritative until exact cloud/live checks pass. [Coverage, architecture and verification](../qa/SCHOOL_MIRROR.md).
+Published at [stu.best](https://stu.best): runtime `83dc0b2f1f4c08f30f118302f4155a2672091109`, [Vercel EZ3FysTZ7iU6oHR4gmc7L9fCJ2JJ](https://vercel.com/v1-d286/std_edu_ai/EZ3FysTZ7iU6oHR4gmc7L9fCJ2JJ) Ready, [quality41540190681](https://github.com/LuxArt0317/std_edu_ai/actions/runs/41540190681) successful, entry `index-DHcbVgDM.js`.
+
+395 distinct public pages; all ten entrances and first-hop public HTML destinations are local. Old news archives are excluded. Live395 HTML checksums /3545 asset deliveries /401 documents, source navigation and top-level SSO isolation, protected backend/CRUD cleanup/Edge/OpenAI, anonymous cited registrar answer/personal-data handoff, and www308 path/query all pass. Local193 API/source tests,28 units,56 mirror states plus delayed-media regression,401-document cold restore/tamper/path rejection,10 surrounding accessibility states and release gates pass. Source contrast24 remains reported; deeper service/resource/private-system gaps keep #84 open. [Coverage, architecture and verification](../qa/SCHOOL_MIRROR.md).
+
+Cloud release corrections: documents are now shipped as bounded checksum-pinned parts, removing original-server403 build failures. The Supabase Production Preview Branch action is disabled; Preview stays enabled and Require Active Resource stays required. Database/account policies, RLS, domain DNS and knowledge publication are unchanged. Hosted static output exceeds1.7 GB; future growth needs quota verification.
 
 ## School Affairs identity correction — Issue #83
 
@@ -133,6 +137,3 @@ Only the client owner is provisioned by default. Create additional staff/student
 
 AI requires the client's server-only OpenAI API key. Research protocols, official corpus review, physical campus validation, participant studies, and institutional sign-off remain external research deliverables; sample data and inherited reports do not establish their completion.
 
-## Issue #84 first hosted verification
-
-Source664fba5 is Ready as [Vercel AaFGEskY4Bz63XtV2mfwckbYjh5W](https://vercel.com/v1-d286/std_edu_ai/AaFGEskY4Bz63XtV2mfwckbYjh5W); [quality41538417839](https://github.com/LuxArt0317/std_edu_ai/actions/runs/41538417839) succeeded. Live395 page checksums /3545 asset deliveries /401 documents and protected client backend pass. A real-browser early-click race was identified and corrected locally; the follow-up is being published after56 states plus delayed-media navigation and ten surrounding a11y checks pass. Remaining corpus/integration/source-contrast gaps are unchanged.
