@@ -42,3 +42,6 @@ artifacts/
 /public/school-assets/*.pptx
 /public/school-assets/*.zip
 /public/school-assets/*.rar
+
+# Temporary public-document packaging workspace.
+/vendor/.school-documents-*

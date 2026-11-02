@@ -5,6 +5,7 @@
 public/stu-reference/*.svg -text whitespace=cr-at-eol
 public/school-pages/** -text linguist-generated=true
 public/school-assets/** -text linguist-vendored=true
+vendor/school-documents/** -text linguist-vendored=true
 src/features/public/mirror/pages.json linguist-generated=true
 src/features/public/mirror/assets.json linguist-generated=true
 src/features/public/mirror/files.json linguist-generated=true

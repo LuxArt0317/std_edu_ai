@@ -135,3 +135,12 @@ Required clarification pending: real school-approved login/API integration versu
 Initial observed graph:299 school URLs across43 hosts plus83 third-party URLs from eleven captured root pages (home plus ten entrances). Browser rendering works where plain requests return empty202; no CAPTCHA/security warning or authentication bypass. #83 real student-auth integration choice remains separately pending.
 
 User clarified scope: include entrance and service/detail pages; skip old news archives. Preserve existing dated snapshots, but do not spend further capture work on historical news, author listings or archive pagination. First-hop public HTML is copied; additional freshman, international-service and alumni-profile details are being added. Keep deeper service/resource gaps explicit until verified.
+
+## Publish local school-page checkpoint [Issue #84]
+
+User explicitly authorized publication.
+- [x] Verify exact client identity/target, release gates and current production; preserve existing auth and domain settings.
+- [ ] Push the verified source to client main; follow its existing Vercel deployment and resolve build issues.
+- [ ] Verify the exact production assets, representative local page/file navigation and backend; update issue, handoff and private infrastructure records.
+
+The remaining service/source-resource gaps and excluded old archives are unchanged by publication.

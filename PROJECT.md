@@ -69,4 +69,4 @@ School Affairs and knowledge management have separate identity boundaries. Publi
 
 ## Public page copies — Issue #84
 
-Public pages use isolated, source-preserving local HTML/CSS with trusted navigation controls. Large documents are prepared from a pinned public checksum manifest at build/dev startup; source styles, fonts and images remain versioned. The verified campus-directory API/UI remains available independently of the source iframe. No new runtime dependency was added. See [coverage, architecture, setup and QA](docs/qa/SCHOOL_MIRROR.md).
+Public pages use isolated, source-preserving local HTML/CSS with trusted navigation controls. Large documents are restored from the reviewed, checksum-pinned multipart bundle in `vendor/school-documents/` at build/dev startup; source styles, fonts and images remain versioned. Packing/restoring requires system `tar` with gzip (standard macOS/Linux build images); no source-server request or new npm dependency is required. The verified campus-directory API/UI remains available independently of the source iframe. No new runtime dependency was added. See [coverage, architecture, setup and QA](docs/qa/SCHOOL_MIRROR.md).

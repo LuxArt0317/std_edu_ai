@@ -6,7 +6,7 @@
 - Serve source-preserving homepage, audience entrances and linked public pages locally, with title/body search and an auditable URL/asset inventory.
 - Keep source scripts and submissions inert; isolate source CSS and implement local menus, tabs, carousel navigation and Escape behavior.
 - Correct captured header widths, mobile legacy layouts, invisible menu labels, transient loading overlays and document-query collisions.
-- Pin large public documents by checksum for build preparation instead of bloating Git history; preserve existing student/Nexus identity and knowledge-publication boundaries.
+- Bundle checksum-pinned public documents in bounded compressed parts for offline cloud builds; preserve existing student/Nexus identity and knowledge-publication boundaries.
 - Copy 395 distinct public pages, including all ten entrances and added freshman/international/alumni service details; skip further old-archive crawling as requested.
 - Retain explicit gaps for deeper services, private systems, unavailable media and inherited source contrast limitations. See [mirror coverage and QA](docs/qa/SCHOOL_MIRROR.md).
 
