@@ -13,7 +13,7 @@ const isSchoolRoute = ['/crm', '/login', '/signin', '/signup', '/app'].some(path
 const isStudyRoute = window.location.pathname.startsWith('/study/')
 const SchoolApplication = lazy(() => import('./features/auth/SchoolAuth.tsx'))
 const StudyApplication = lazy(() => import('./features/research/StudyApp.tsx'))
-const PublicApplication = lazy(() => import('./App.tsx'))
+const PublicApplication = lazy(() => import('./features/public/PublicSite.tsx'))
 export const RootApplication = isSchoolRoute ? SchoolApplication : isStudyRoute ? StudyApplication : PublicApplication
 
 function RouteLoading() {

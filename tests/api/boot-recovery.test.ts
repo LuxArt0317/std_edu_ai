@@ -26,7 +26,7 @@ test('each route has a statically analyzable lazy boundary', () => {
   const entry = readContractSource('src/main.tsx', 'utf8')
   const crmStyles = readContractSource('src/features/crm/crm.css', 'utf8')
   assert.match(entry, /lazy\(\(\) => import\('\.\/features\/auth\/SchoolAuth\.tsx'\)\)/)
-  assert.match(entry, /lazy\(\(\) => import\('\.\/App\.tsx'\)\)/)
+  assert.match(entry, /lazy\(\(\) => import\('\.\/features\/public\/PublicSite\.tsx'\)\)/)
   assert.doesNotMatch(entry, /lazy\(\(\) => isSchoolRoute \?/)
   assert.match(crmStyles, /\.nexus-auth-shell, \.nexus-auth-shell \*/)
   assert.match(crmStyles, /box-sizing: border-box/)

@@ -1,5 +1,11 @@
 # Client handoff
 
+## Public university UI — Issue #79 (local review)
+
+The current STU homepage, complete seven-section/72-entry student directory and student-Gmail mySTU entry are rebuilt locally. The user narrowed the copied destinations to the student directory and SSO entry; other university services retain their source links. The persistent nonofficial label and disabled SSO fields/button make the requested UI-only scope explicit. No school login, SAML request replay, provider setting or database change is involved. Existing app authentication and permissions remain independent.
+
+Verified 15 responsive/theme states, four-width navigation/refresh/back/keyboard flows, 28 local asset checksums, 170 API/source checks, 19 units, ten public AI/campus/study regression states and build/lint/docs/dependency gates. Lighthouse performance is 91 home / 100 directory / 100 SSO, accessibility 100 across all three. Source capture limits, exact commands and evidence: [Public-site reconstruction QA](../qa/PUBLIC_SITE_REBUILD.md). Local preview runs at http://127.0.0.1:5173. Source committed for local review; not pushed or deployed. Issue #79 stays open pending source delivery. Production remains the last published release below.
+
 ## In-app video help and Assistant — Issue #78
 
 Published runtime `cf5b50a1735bdc8f2a41afcab6b06890dd82cdaf` is Ready as [Vercel Un9aZmMEwtHAsth1ub9VXbgKJYzU](https://vercel.com/v1-d286/std_edu_ai/Un9aZmMEwtHAsth1ub9VXbgKJYzU); [quality workflow 41412423044](https://github.com/LuxArt0317/std_edu_ai/actions/runs/41412423044) succeeded. `/app/help` serves seven finished guides from private client storage, recommends chapters for the actual role, and includes captions, transcripts and downloads. Each of 21 published objects matches its source SHA-256; raw/editable captures and the ElevenLabs credential stay outside the app. Active profiles can mint hour-long links; anonymous/suspended profiles and client writes are denied.

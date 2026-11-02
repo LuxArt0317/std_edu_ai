@@ -23,6 +23,7 @@
 - [Test suites and fixture boundaries](reference/TESTING.md)
 - [Role and workflow audit](qa/WORKFLOW_AUDIT.md)
 - [Video guide production and QA](qa/VIDEO_GUIDES.md)
+- [Public website reconstruction and preview QA](qa/PUBLIC_SITE_REBUILD.md)
 - [Current client issue acceptance audit](qa/ISSUE_COMPLETION.md)
 
 ## Design, research, and historical records

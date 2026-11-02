@@ -7,6 +7,7 @@ STU Edu AI combines a public university website with STU Nexus, an authenticated
 | Path | Purpose |
 | --- | --- |
 | `src/features/` | Auth, school, CRM, curriculum, research, and public product modules |
+| `src/features/public/site/` | Source-faithful public homepage/student directory, static source catalogues and inert mySTU SSO preview |
 | `src/features/auth/` | Sign-in, student signup, session guards and shared password policy |
 | `src/features/school/portal/` | Separate home, people, assessment, grade, calendar and assistant views |
 | `src/components/ui/` | Official shadcn/ui source primitives |

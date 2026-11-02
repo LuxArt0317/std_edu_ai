@@ -1,6 +1,14 @@
 # Changelog
 ## Unreleased
 
+### Public university UI preview (Issue #79)
+
+- Refresh the STU homepage from current public references and serve its 28 captured image assets locally, with checksum provenance, an optimized hero image and native font fallbacks.
+- Rebuild `/在校學生/` with all seven sections/72 original entries, preserving external destinations and source non-link labels. Student Gmail opens the local `/student-sso` UI.
+- Match the publicly visible mySTU SSO layout as an explicitly labeled preview with disabled credentials and no authentication request. Preserve all existing app auth routes and permissions.
+- Add opt-in carousel playback and fix public tab keyboard controls, primitive visibility overrides, off-screen assistant focus and responsive layouts. Keep source snapshots, state/asset checks and UI QA in the established documentation structure.
+
+
 ### In-app guides and Assistant repair (Issues #78, #75)
 
 - Add private, role-recommended video help at `/app/help`, with six narrated chapters, a complete walkthrough, captions, transcripts and downloads. Verify immutable media checksums; keep editable assets and credentials outside the app.

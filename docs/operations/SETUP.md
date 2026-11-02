@@ -83,3 +83,9 @@ After producing media with the isolated tooling, run `npm run prepare:video-guid
 Run `npm run test:client-research` for the eleven client research suites. It serializes foundation, ingestion/API/acquisition, routing, study, evaluation, RLS, recovery and adversarial checks; creates disposable role accounts; and cleans them in `finally`. Optional `RESEARCH_SUITE=campus-routing-live,rag-evaluation-live` selects suites by exact filename stem. Never run this coordinator alongside E2E or another fixture-based suite. It refuses an existing active ledger. It uses the client owner and temporary accounts; original-project Keychain identities are not used. Reports remain private in `artifacts/research-client/`.
 
 See [current issue acceptance](../qa/ISSUE_COMPLETION.md) for the distinction between software verification and institutional/human evidence.
+
+## Public university UI preview
+
+Run `npm run dev -- --host 127.0.0.1 --port 5173` for local review. Public routes are `/`, `/在校學生/` and `/student-sso`. The student Gmail link opens the local SSO UI. Its controls are intentionally disabled and no real school password should be entered. Existing STU Nexus sign-in stays at `/signin`; authenticated school work stays under `/app`.
+
+With the local server running, use `npm run test:public-site`; for the production build use `npm run build`, serve Vite preview and set `PUBLIC_SITE_ORIGIN=http://127.0.0.1:5174`. This UI does not require a migration or a new secret. The source catalogues/assets and capture limits are documented in [public-site QA](../qa/PUBLIC_SITE_REBUILD.md).

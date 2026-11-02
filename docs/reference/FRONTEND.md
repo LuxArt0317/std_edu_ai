@@ -136,3 +136,7 @@ The React application lives in `App.tsx`, with global styling in `index.css` and
 ## Readability and layout safeguards
 
 Legacy dark header backgrounds are replaced with semantic card surfaces, including quiz sheets and LMS outlines. Portal styling does not rely on a .school-shell ancestor. Record selectors use content-sized heights, wrapping and min-width:0; class metrics have their own selector so action groups remain wrapping flex layouts. Mobile task signals wrap within zero-minimum grid tracks. Browser checks cover nested academic tabs, quiz/outline states and both themes at desktop/mobile sizes.
+
+## Public reference UI
+
+`features/public/PublicSite.tsx` routes the homepage, complete student directory and inert mySTU SSO preview. Source data/components/scoped styles live in `features/public/site/`; only the requested student and school-Gmail destinations become local URLs. Other official URLs are preserved. The public bootstrap is lazy and separate from `features/auth/SchoolAuth.tsx`, so SSO preview navigation never changes STU Nexus authentication or permissions. `/students` and the local SAML-shaped path are compatibility aliases; temporary query state is discarded. See [capture and QA](../qa/PUBLIC_SITE_REBUILD.md).

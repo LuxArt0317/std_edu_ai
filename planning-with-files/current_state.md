@@ -1,5 +1,15 @@
 # Current client state
 
+## Issue #79: public university UI ready for local review
+
+Rebuilt the current STU homepage, `/在校學生/` directory and `/student-sso` mySTU entry in the separate LuxArt0317 client checkout. User clarified these two destinations; School Affairs/TronClass/Moodle interfaces are excluded. All seven student categories/72 entries match independent browser source fingerprints; 28 observed local image assets retain source/delivery checksums. Homepage news is a dated 40-item snapshot. The initial banner is optimized from 1,526,239 to 158,010 bytes. Public carousel playback is opt-in; keyboard controls, responsive layouts and scoped shadcn colors are corrected.
+
+The persistent nonofficial preview label and disabled SSO controls make the UI-only boundary visible. There is no school form/action, SAML replay, credential capture, provider change or database migration. Existing `/signin`, `/signup`, `/app` and backend authorization remain independent. Other directory/service links retain their official destinations; unseen protected pages are not cloned.
+
+Local dev preview: http://127.0.0.1:5173 (verified). Changes are committed for local review only; not pushed or deployed. Production still runs the prior verified release below. QA evidence, source limits, commands and Lighthouse results: `docs/qa/PUBLIC_SITE_REBUILD.md`. GitHub #79 remains open until the source is delivered through Git.
+
+## Last published release
+
 Issue #78 is published: runtime cf5b50a1735bdc8f2a41afcab6b06890dd82cdaf, Vercel Un9aZmMEwtHAsth1ub9VXbgKJYzU Ready and quality run 41412423044 successful. `/app/help` offers seven private role guides with captions/transcripts/downloads; all 21 objects checksum-verified. Assistant message contrast, safe Markdown, responsive controls and first-message/history race corrected. 45/45 E2E plus focused 2/2, 170 API/source tests, 15 units, six production theme/viewport states, ten public accessibility states and eleven live research suites pass. Bounded load: 200 requests, zero failures. Post-release PDF acquisition records actual parser 6.4.299; client API/RLS/CRUD/Edge/OpenAI and seven paths/30 assets pass. Final SQL: one real owner/account, no QA/orphans/source fixtures, 103 migrations / 101 RLS tables, 21 media objects. No credentials/raw/editable media published.
 
 Seven original issues remain OPEN. User deferred institutional/human evidence and unavailable student-mail credentials; email verification is preserved. #63 also retains a scheduled source-refresh worker/acceptance software gap, explicitly documented rather than claimed complete. Migrated epic links now use current client issue numbers. See docs/qa/ISSUE_COMPLETION.md. The goal of closing all issues is therefore not achieved; only the new deliverable is eligible for closure.

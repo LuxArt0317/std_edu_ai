@@ -72,3 +72,14 @@ Historical phase checklists: [planning history](../docs/archive/PLANNING_HISTORY
 User scope clarification: skip institutional approvals, physical campus walkthroughs, human participant/manual assistive-technology evidence and unavailable student-mail credentials. Keep those acceptance dependencies explicitly pending; preserve email confirmation and existing permissions.
 
 Remaining acceptance: #75 production mail; #63 approved corpus/owners and scheduled source-refresh worker; #65 independent gold/metrics; #67 official physical/manual checks; #69 consented pilot; #71 manual operational acceptance; parent #61 remains open.
+
+## STU public website and student systems UI [Issue #79]
+
+- [x] Capture current homepage/student directory, observed SSO entry UI and assets; inventory source links.
+- [x] Rebuild source-faithful public pages and local navigation, preserving official destinations.
+- [x] Add labeled mySTU SSO UI preview without credential capture or backend/provider changes.
+- [x] Verify screenshots, routes, keyboard/responsive/accessibility and regression gates; update docs/status and commit for local review.
+
+Scope: UI only. Authenticated source screens remain unavailable until authorized access is provided. Preserve existing STU Nexus auth/app and database permissions; do not invent exact copies of unseen screens.
+
+User clarification for #79: the second target is the mySTU SSO reached from student Gmail (sso2.stu.edu.tw), not TronClass/Moodle or an authenticated School Affairs screen. Execution choice: prepare the preview locally for review; real school integration stays disconnected within the requested UI-only scope.

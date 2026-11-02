@@ -1,3 +1,4 @@
+import newsSnapshot from '../features/public/site/news-snapshot.json'
 export const primaryNavigation = [
   { label: '關於樹德', href: 'https://www.stu.edu.tw/%e9%97%9c%e6%96%bc%e6%a8%b9%e5%be%b7/' },
   { label: '招生訊息', href: 'https://reg.aca.stu.edu.tw/' },
@@ -13,27 +14,9 @@ export const primaryNavigation = [
 ]
 
 export const heroSlides = [
-  {
-    title: '新首頁上線',
-    subtitle: '請填寫回饋單留寶貴意見',
-    button: '填寫首頁使用回饋單',
-    href: 'https://forms.gle/UrfJY1VUGtfneSxZ8',
-    image: 'https://www.stu.edu.tw/wp-content/uploads/2026/03/11153131/YX6A9922-scaled.jpg',
-  },
-  {
-    title: '樹德科大帶你厚積實力',
-    subtitle: '樹德科大，你累積實力的最佳夥伴。',
-    button: '',
-    href: '',
-    image: 'https://www.stu.edu.tw/wp-content/uploads/2026/02/MG_6533.jpg',
-  },
-  {
-    title: '115年暑假彈性上班時間',
-    subtitle: '暑假期間行政服務時間調整公告',
-    button: '了解更多',
-    href: 'https://infosys.stu.edu.tw/StuNews/',
-    image: 'https://www.stu.edu.tw/wp-content/uploads/2026/06/29133619/115%E5%B9%B4%E6%9A%91%E5%81%87%E5%BD%88%E6%80%A7%E4%B8%8A%E7%8F%AD%E6%99%82%E9%96%932.png',
-  },
+  { title: '樹下駐足 聽聽權益', subtitle: '', button: '', href: 'https://reurl.cc/7Yv8zb', image: 'https://www.stu.edu.tw/wp-content/uploads/2026/10/21133225/%E6%AC%8A%E7%9B%8A%E6%A9%AB%E5%B9%85_0.png', artwork: true },
+  { title: '樹德科大帶你後來居上', subtitle: '樹德科大，你累積實力的最佳夥伴。我們有頂尖師資、完善設備，紮實課程讓你學以致用。不只拿文憑，更是帶走一身真本事。來樹德，厚植實力，迎向挑戰！', button: '', href: '', image: 'https://www.stu.edu.tw/wp-content/uploads/2026/03/11153131/YX6A9922-scaled.jpg', artwork: false },
+  { title: '樹德科大帶你厚積實力', subtitle: '樹德科大，你累積實力的最佳夥伴。我們有頂尖師資、完善設備，紮實課程讓你學以致用。不只拿文憑，更是帶走一身真本事。來樹德，厚植實力，迎向挑戰！', button: '', href: '', image: 'https://www.stu.edu.tw/wp-content/uploads/2026/02/MG_6533.jpg', artwork: false },
 ]
 
 export const audienceEntries = [
@@ -50,6 +33,7 @@ export const audienceEntries = [
 ]
 
 export const visionSlides = [
+  { title: '樹德科技大學校園', image: 'https://www.stu.edu.tw/wp-content/uploads/2026/03/11153131/YX6A9922-scaled.jpg' },
   {
     title: '看見樹德校園生活',
     image: 'https://www.stu.edu.tw/wp-content/uploads/2025/11/img358-scaled.jpg',
@@ -68,28 +52,7 @@ export const performanceStats = [
 ]
 
 export const storySections = [
-  {
-    title: '快樂與希望 in 樹德科大',
-    image:
-      'https://www.stu.edu.tw/wp-content/uploads/2025/11/%E5%9C%96%E8%AA%AA%E4%B8%80-%E5%B1%95%E6%BC%94%E8%A8%88%E7%95%AB%E6%BC%94%E5%87%BA%E5%8A%87%E7%85%A7%E3%80%82.jpg',
-    description:
-      '樹德科技大學秉持「快樂、希望」的校訓，營造充滿活力與機遇的校園。學校擁有活躍多元的學生社團與完善的獎助學金制度，支持學生安心就學並發展多元潛能。為拓展國際視野，本校積極推動「學海飛颺」等海外交流計畫，與美、韓等多國姊妹校合作，提供豐富的交換與短期研修機會。在這裡，每位學生都能找到屬於自己的舞台，在快樂中學習，在希望中展翅高飛。',
-    href: 'https://about.stu.edu.tw/#menu1',
-  },
-  {
-    title: '學術 in 樹德科大',
-    image: 'https://www.stu.edu.tw/wp-content/uploads/2025/10/Focus-1-333x500-1.png',
-    description:
-      '本校以「學術、知性」為本，定位為實務應用導向的科技大學。我們擁有亞洲首創的「人類性學研究所」及全台頂尖的設計、電競與電腦娛樂等特色科系，展現卓越的教學研發能量。透過緊密的產學鏈結與業師協同教學，我們落實「做中學」的精神，培育具備解決問題能力與跨領域創新的專業人才，讓學生的專業實力與職場無縫接軌，成為企業首選的即戰力。',
-    href: 'https://about.stu.edu.tw/#menu5',
-  },
-  {
-    title: '設施 in 樹德科大',
-    image: 'https://www.stu.edu.tw/wp-content/uploads/2025/10/MG_6533-1024x683.jpg',
-    description:
-      '樹德科大致力打造現代化的智慧永續校園。校內建置先進的圖資大樓與綠色資訊機房，大型階梯教室更全面升級為LED電視牆，提供優質教學環境。為落實安居樂學，學校設有五棟宿舍，提供超過三千個床位，並配備完善的體育館與「橫山創意基地」。此外，校園廣泛設置太陽能光電系統與中水回收設施，是一所設施完善且兼具環保示範功能的綠色大學。',
-    href: 'https://about.stu.edu.tw/#menu6',
-  },
+  { title: '最佳大學榜揭曉 樹德科大產學績效大躍進', image: 'https://www.stu.edu.tw/wp-content/uploads/2026/08/18145404/%E9%81%A0%E8%A6%8B%E5%9C%96%E4%B8%80.jpg', description: '面對少子化浪潮挑戰，樹德科技大學憑藉扎實的辦學實力與創新轉型，再次展現卓越成效！《遠見雜誌》公佈「2026台灣最佳大學排行榜」中，樹德科大表現搶眼，各項指標全面推進：總榜排名較去年提升4名；技專校院排名躍升5名，榮登全國第24名；社會聲望進步8名；國際化程度提升9名；產學績效更是大幅躍進25名，強勢躋身全台前30名，展現出強勁的辦學韌性與競爭力。', href: 'https://www.stu.edu.tw/最佳大學榜揭曉-樹德科大產學績效大躍進/' },
 ]
 
 export const admissions = [
@@ -106,10 +69,10 @@ export const admissions = [
 export const featuredLinks = [
   { image: 'https://www.stu.edu.tw/wp-content/uploads/2025/11/q_pubinfo.png', href: 'http://public.stu.edu.tw/', label: '校務及財務資訊公開專區' },
   { image: 'https://www.stu.edu.tw/wp-content/uploads/2025/11/LINKO1.png', href: 'http://udb.moe.edu.tw/', label: '大專校院校務資訊公開平台' },
-  { image: 'https://www.stu.edu.tw/wp-content/uploads/2025/11/LINK1-e1763545799234.jpg', href: 'https://wpc.stu.edu.tw/', label: '校園環境安全政策' },
+  { image: 'https://www.stu.edu.tw/wp-content/uploads/2025/11/LINK1-e1763545799234.jpg', href: 'https://wpc.stu.edu.tw/wp-content/uploads/sites/103/2024/10/1110807_%E6%A0%A1%E5%9C%92%E7%92%B0%E5%A2%83%E5%AE%89%E5%85%A8%E6%94%BF%E7%AD%96%EF%BC%88%E7%8E%8B%E6%98%AD%E9%9B%84%EF%BC%89_%E6%9C%89%E6%97%A5%E6%9C%9F.pdf', label: '校園環境安全政策' },
   { image: 'https://www.stu.edu.tw/wp-content/uploads/2025/11/LINKo5.png', href: 'https://sites.google.com/stu.edu.tw/isms', label: '資訊安全政策' },
   { image: 'https://www.stu.edu.tw/wp-content/uploads/2025/11/LINK13.png', href: 'http://copyright.sao.stu.edu.tw/', label: '保護智慧財產權' },
-  { image: 'https://www.stu.edu.tw/wp-content/uploads/2025/11/LINKo3.png', href: 'https://www.acc.stu.edu.tw/', label: '整體發展獎勵補助經費' },
+  { image: 'https://www.stu.edu.tw/wp-content/uploads/2025/11/LINKo3.png', href: 'https://www.acc.stu.edu.tw/補助經費與財務報表/整體發展補助經費/', label: '整體發展獎勵補助經費' },
 ]
 
 export const contactItems = [
@@ -118,30 +81,21 @@ export const contactItems = [
   { title: '電子郵件', detail: '連結', icon: 'mail' as const, href: 'https://sites.google.com/stu.edu.tw/stu-contacts/' },
 ]
 
-export const latestNews = [
-  { category: '行政公告', title: '【道路管制_修正內容】115年7月20日行政大樓地下停車場出入口平面道路施工管制', href: 'https://www.stu.edu.tw/latestnews-single/?id=223398' },
-  { category: '行政公告', title: '【公車訊息】7/17~7/26共十天，配合營繕組於行政大樓公車亭前道路進行鋪面改善工程', href: 'https://www.stu.edu.tw/latestnews-single/?id=223405' },
-  { category: '行政公告', title: '【交通安全宣導】珍惜生命，遠離毒駕與道路風險', href: 'https://www.stu.edu.tw/latestnews-single/?id=223400' },
-  { category: '行政公告', title: '【交通安全宣導】橫山路增設交通科技執法，別讓荷包減少了。', href: 'https://www.stu.edu.tw/latestnews-single/?id=223399' },
-  { category: '單位訊息', title: '115學年度第一學期大學社會責任(USR)課程經費補助申請，即日起至115/8/10', href: 'https://www.stu.edu.tw/latestnews-single/?id=223390' },
-  { category: '單位訊息', title: '115學年度第1學期【就學貸款】申請公告', href: 'https://www.stu.edu.tw/latestnews-single/?id=223383' },
-  { category: '焦點新聞', title: '樹科大115級畢典登場　六位性學博士誕生、臺印雙語主持展現國際力', href: 'https://www.stu.edu.tw/latestnews-single/?id=213127' },
-  { category: '焦點新聞', title: '雨神攪局澆不熄創業魂！學生變身一日老闆　創意市集展現校園創業力', href: 'https://www.stu.edu.tw/latestnews-single/?id=213104' },
-  { category: '就業情報', title: '【就業情報】台積電技術員-強力徵才，立即行動!', href: 'https://www.stu.edu.tw/latestnews-single/?id=213093' },
-  { category: '其他事項', title: '【賀】本校115年度獲教育部教學實踐研究計畫通過名單', href: 'https://www.stu.edu.tw/latestnews-single/?id=213277' },
-]
+// Captured UI snapshot, not a live news feed. The original source links remain intact.
+const capturedNews = Object.entries(newsSnapshot.categories).flatMap(([category, rows]) => rows.map(([id, title]) => ({category, title: String(title), href: `https://www.stu.edu.tw/latestnews-single/?id=${id}`, id: Number(id)})));
+export const latestNews = [...newsSnapshot.allOrder.map(id => capturedNews.find(row=>row.id===id)!).filter(Boolean), ...capturedNews.filter(row=>!newsSnapshot.allOrder.includes(row.id))];
 
 export const hotLinks = [
-  { title: '校務資訊系統', href: 'https://info.stu.edu.tw', audience: 'student' },
+  { title: '校務資訊系統', href: 'https://info.stu.edu.tw/', audience: 'student' },
   { title: '學雜費資訊', href: 'https://www.acc.stu.edu.tw/學費計算/學雜費專區/', audience: 'student' },
   { title: '新生服務網', href: 'https://freshman.stu.edu.tw/', audience: 'student' },
   { title: '企業徵才就業資訊', href: 'https://career.sao.stu.edu.tw/', audience: 'student' },
-  { title: '高教勵學金', href: 'https://www.sao.stu.edu.tw/', audience: 'student' },
-  { title: '獎助學金', href: 'https://www.sao.stu.edu.tw/', audience: 'student' },
+  { title: '高教勵學金', href: 'https://www.sao.stu.edu.tw/高教勵學金-2/最新消息/', audience: 'student' },
+  { title: '奬助學金', href: null, audience: 'student' },
   { title: '宿舍網路系統', href: 'https://dorm.stu.edu.tw/', audience: 'student' },
   { title: '註冊繳費專區', href: 'https://cashier.swd.stu.edu.tw/registration-fee-area/', audience: 'student' },
   { title: '服務品質信箱', href: 'https://sites.google.com/stu.edu.tw/stu-contacts/', audience: 'student' },
-  { title: '校務資訊系統', href: 'https://info.stu.edu.tw', audience: 'teacher' },
+  { title: '校務資訊系統', href: 'https://info.stu.edu.tw/', audience: 'teacher' },
   { title: '電子公文', href: 'https://edi3.stu.edu.tw/Account/LogOn?ReturnUrl=%2F', audience: 'teacher' },
   { title: 'VPN服務', href: 'https://vpn2.stu.edu.tw/global-protect/login.esp', audience: 'teacher' },
   { title: '會議管理系統', href: 'https://infosys.stu.edu.tw/StuMeeting/Login/Signin', audience: 'teacher' },

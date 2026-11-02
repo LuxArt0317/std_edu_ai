@@ -67,7 +67,8 @@
     "test:e2e": "playwright test",
     "test:client-research": "node tests/integration/client-research-suite.mjs",
     "prepare:video-guides": "node scripts/publish-video-guides.mjs --prepare",
-    "publish:video-guides": "node scripts/publish-video-guides.mjs --apply"
+    "publish:video-guides": "node scripts/publish-video-guides.mjs --apply",
+    "test:public-site": "node tests/integration/public-site-ui.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.5",
