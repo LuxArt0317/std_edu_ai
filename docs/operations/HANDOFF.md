@@ -1,5 +1,13 @@
 # Client handoff
 
+## Readable achievement cards — Issue #85
+
+Published at [stu.best](https://stu.best): runtime `bb19d2a0dc098c85a97c9b247c6d7f8a9b3acad0`, [Vercel DumUWcTKnzRo29SSM9Rx9wiQ4Jas](https://vercel.com/v1-d286/std_edu_ai/DumUWcTKnzRo29SSM9Rx9wiQ4Jas) Ready, [quality41544180053](https://github.com/LuxArt0317/std_edu_ai/actions/runs/41544180053) successful, entry `index-F_JesFLe.js`.
+
+All four source figures (4,601+/128,475+/33,056+/54+) now render immediately with white labels/icons on dark-green cards. Local and live checks pass24 cards across6 widths (2048–320px), including hover, minimum contrast9.5709:1, decoded icons, no overflow or page errors. Production browser proof is saved locally under ignored artifacts/site-mirror/statistics/production-cards.jpg.193 API/source tests,28 units and build/lint/docs/dependency gates pass; focused mirror navigation passes desktop/mobile and eight interactions. A null-safe iframe test wait prevents a transient harness race.
+
+No source figures, scripts, account/database policies, provider settings or DNS changed. Broader #84 coverage/source contrast and #83 private integration remain open. [Verification details](../qa/SCHOOL_MIRROR.md).
+
 ## Published school-page copies — Issue #84
 
 Published at [stu.best](https://stu.best): runtime `83dc0b2f1f4c08f30f118302f4155a2672091109`, [Vercel EZ3FysTZ7iU6oHR4gmc7L9fCJ2JJ](https://vercel.com/v1-d286/std_edu_ai/EZ3FysTZ7iU6oHR4gmc7L9fCJ2JJ) Ready, [quality41540190681](https://github.com/LuxArt0317/std_edu_ai/actions/runs/41540190681) successful, entry `index-DHcbVgDM.js`.

@@ -55,7 +55,7 @@ try {
     await page.waitForFunction(
       () =>
         document.querySelector("iframe")?.contentDocument?.documentElement
-          .dataset.mirrorReady === "true",
+          ?.dataset.mirrorReady === "true",
     );
     return page.frameLocator(".source-mirror iframe");
   }
@@ -286,7 +286,7 @@ try {
   });
   try {
     await delayed.goto(base + "/在校學生/", { waitUntil: "domcontentloaded" });
-    await delayed.waitForFunction(() => document.querySelector("iframe")?.contentDocument?.documentElement.dataset.mirrorReady === "true");
+    await delayed.waitForFunction(() => document.querySelector("iframe")?.contentDocument?.documentElement?.dataset.mirrorReady === "true");
     assert.ok(blockedMedia > 0, "Slow source media must remain pending during this regression check");
     await delayed.frameLocator("iframe").getByRole("link", { name: "學生Gmail", exact: true }).click();
     await delayed.waitForURL("**/student-sso");

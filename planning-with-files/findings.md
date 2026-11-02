@@ -149,3 +149,5 @@ Six grouped chapters provide teacher/student depth without a single long onboard
 ## Achievement statistics — Issue #85
 
 The live iframe has four white counters over a low-contrast surface and leaves their text at0 because source animation scripts are disabled. The source data-to-value attributes contain4601,128475,33056,54. Only the homepage has this widget across395 snapshots. Trusted DOM setup must render those source totals and scope a contrasting green card surface to this counter grid; source scripts remain disabled.
+
+Live #85 acceptance repeats24 cards/six widths at9.5709:1 minimum; source totals/icons preserved. Runtime bb19d2a is Ready (DumUWcTKnzRo29SSM9Rx9wiQ4Jas), CI41544180053 successful. Focused source navigation passes after a null-safe test readiness guard. Broader source contrast and service coverage remain tracked under #84.

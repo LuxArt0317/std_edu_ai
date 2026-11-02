@@ -149,6 +149,6 @@ The remaining service/source-resource gaps and excluded old archives are unchang
 
 - [x] Inspect the reported homepage cards and inventory related source counters.
 - [x] Restore source final totals and readable card/label/icon contrast; verify responsive widths and counter values.
-- [ ] Run release checks, publish to the existing client target and verify live figures/contrast; update handoff and infrastructure records.
+- [x] Run release checks, publish to the existing client target and verify live figures/contrast; update handoff and infrastructure records.
 
 Scope: only four source counters exist across the395 captured pages. Preserve source totals and public/school identity boundaries.
