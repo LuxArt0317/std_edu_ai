@@ -3,6 +3,8 @@
 
 ### Collapsible school sidebar (Issue #76)
 
+- Published 10fa59c to Vercel; quality CI, twelve production sidebar states and complete client backend checks pass.
+
 - Add a visible desktop expand/collapse control and 64px icon rail using the existing shadcn sidebar.
 - Preserve accessible link/account labels, show collapsed navigation tooltips, and restore the preference from the existing seven-day cookie.
 - Retain the full-label mobile drawer, keyboard shortcut and role-filtered navigation.

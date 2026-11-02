@@ -47,3 +47,8 @@ Historical phase checklists: [planning history](../docs/archive/PLANNING_HISTORY
 - [x] Enable shadcn icon collapse, desktop control, discoverable labels and persisted preference; preserve mobile drawer.
 - [x] Verify pointer/keyboard, reload/navigation, account menu, both themes and mobile behavior.
 - [x] Update documentation/issue and commit the verified change locally.
+
+## Publish sidebar enhancement [Issue #76]
+
+- [x] Push the verified sidebar commit through the client Git integration and confirm the exact Vercel deployment.
+- [x] Verify live collapse/persistence/navigation/mobile behavior, backend checks and quality CI; update release records.

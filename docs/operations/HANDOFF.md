@@ -1,8 +1,8 @@
 # Client handoff
 
-## Local sidebar enhancement — Issue #76
+## Published sidebar enhancement — Issue #76
 
-Added a desktop header toggle for full navigation or a 64px icon rail. Collapsed links retain accessible names/tooltips and the account menu; the existing seven-day cookie restores the preference. Mobile retains its full-label drawer and direct Escape/focus restoration. Pointer, keyboard, account access, navigation/reload persistence and mobile-to-desktop resizing passed twelve light/dark viewport states with zero serious/critical accessibility findings, overflow or app errors. 170 API/source checks, 13 units, build/assets/lint/docs pass. This follow-up is local and committed for review; it has not been pushed or deployed. The production release below remains current.
+Added a desktop header toggle for full navigation or a 64px icon rail. Collapsed links retain accessible names/tooltips and the account menu; the existing seven-day cookie restores the preference. Mobile retains its full-label drawer and direct Escape/focus restoration. Pointer, keyboard, account access, navigation/reload persistence and mobile-to-desktop resizing passed twelve light/dark viewport states with zero serious/critical accessibility findings, overflow or app errors. 170 API/source checks, 13 units, build/assets/lint/docs pass. Published runtime `10fa59c62a41b357395e8ff9843001a5b2f97c2a` is Ready as [Vercel AuwicGEzgDcBVXdLH2ccTsenC1DT](https://vercel.com/v1-d286/std_edu_ai/AuwicGEzgDcBVXdLH2ccTsenC1DT). Independent quality workflow `41367511024` succeeded. Twelve production states passed across the full desktop and focused mobile runs, including navigation/reload persistence and mobile-to-desktop resize. Seven production entry paths/26 recursive assets and full live client backend verification pass. A transient initial backend timeout passed on retry. Issue #76 is closed; no schema, account-policy or provider configuration changes.
 
 ## Alerts and nested UI follow-up — Issue #75
 
