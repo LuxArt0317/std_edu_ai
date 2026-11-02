@@ -142,6 +142,7 @@ test("Markdown, PDF, and structured chunks retain deterministic exact locators",
     "https://www.stu.edu.tw/guide.pdf",
   );
   assert.equal(pdf.pageCount, 1);
+  assert.equal(pdf.parserVersion, `pdfjs-${JSON.parse(fs.readFileSync("node_modules/pdfjs-dist/package.json", "utf8")).version}@1`);
   assert.equal(typeof globalThis.DOMMatrix, "function");
   assert.equal(pdf.sections[0].sourceLocator, "pdf:page:1");
   assert.match(pdf.sections[0].content, /Official graduation requirements/);

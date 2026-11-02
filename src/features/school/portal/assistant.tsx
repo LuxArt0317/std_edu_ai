@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { AssistantMarkdown } from "./AssistantMarkdown";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -229,6 +230,8 @@ export function SchoolAssistant({
     return mostRecentThreadId();
   });
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const creatingThreadRef = useRef("");
+  const skipHistoryLoadRef = useRef("");
   const [message, setMessage] = useState("");
   const modeKey = `stu-nexus:mode:${actorId}`;
   const [assistantMode, setAssistantMode] = useState<"qa" | "agentic">(() => {
@@ -310,8 +313,13 @@ export function SchoolAssistant({
   }, [lastThreadKey, threadId]);
 
   useEffect(() => {
-    if (!threadId || data.threads.some((thread) => thread.id === threadId))
+    if (!threadId) return;
+    if (data.threads.some((thread) => thread.id === threadId)) {
+      if (creatingThreadRef.current === threadId) creatingThreadRef.current = "";
       return;
+    }
+    // A newly persisted conversation may precede its refreshed directory row.
+    if (creatingThreadRef.current === threadId) return;
     setThreadId(mostRecentThreadId());
   }, [data.threads, mostRecentThreadId, threadId]);
 
@@ -336,19 +344,15 @@ export function SchoolAssistant({
   }, [open, threadId, messages.length, loading]);
 
   useEffect(() => {
-    if (!threadId) {
-      setMessages([]);
-      return;
-    }
+    if (!threadId) { setMessages([]); return; }
+    // New threads are empty: loading their history can race the first send and
+    // replace the optimistic message with an earlier empty response.
+    if (skipHistoryLoadRef.current === threadId) { skipHistoryLoadRef.current = ""; return; }
+    let current = true;
     void loadChatMessages(threadId)
-      .then(setMessages)
-      .catch((reason: unknown) =>
-        setError(
-          reason instanceof Error
-            ? reason.message
-            : "Conversation history is unavailable.",
-        ),
-      );
+      .then(items => { if (current) setMessages(items); })
+      .catch((reason: unknown) => { if (current) setError(reason instanceof Error ? reason.message : "Conversation history is unavailable."); });
+    return () => { current = false; };
   }, [threadId]);
 
   function addAssistantMessage(
@@ -681,6 +685,8 @@ export function SchoolAssistant({
       if (!activeThread) {
         const created = await createChatThread(prompt.slice(0, 70));
         activeThread = created.id;
+        creatingThreadRef.current = created.id;
+        skipHistoryLoadRef.current = created.id;
         setThreadId(created.id);
         onDataChanged();
       }
@@ -1841,17 +1847,17 @@ export function SchoolAssistant({
         >
           {messages.length ? (
             messages.map((item) => (
-              <Card key={item.id} className={item.role}>
+              <Card key={item.id} className={`nexus-chat-message ${item.role} flex-row items-start gap-3 rounded-none border-0 bg-transparent p-0 shadow-none`}>
                 {item.role === "assistant" ? (
                   <NexusAvatar />
                 ) : (
                   <span className="chat-user-avatar">YOU</span>
                 )}
-                <div>
+                <div className="nexus-chat-bubble">
                   {item.role === "assistant" ? (
                     <small className="chat-sender-name">Nexus</small>
                   ) : null}
-                  <p>{item.content}</p>
+                  {item.role === "assistant" ? <AssistantMarkdown>{item.content}</AssistantMarkdown> : <p>{item.content}</p>}
                   {item.attachments.length ? (
                     <div className="chat-message-attachments">
                       {item.attachments.map((attachment) => (
@@ -2285,7 +2291,7 @@ export function SchoolAssistant({
             <Input
               ref={attachmentInputRef}
               aria-label="Attachments"
-              className="sr-only"
+              className="hidden"
               type="file"
               multiple
               accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,text/csv,application/json,text/markdown,.md"

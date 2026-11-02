@@ -88,3 +88,11 @@ Academic operations contracts cover student, subject, class, enrollment, and sch
 `npm run test:live-ingestion-telemetry` proves retry ceilings, permanent-failure isolation, dead-letter behavior, stale recovery, protected operational reads, exact summary measures, and zero-residue cleanup. `npm run test:live-ingestion-api` exercises the deployed authenticated ingestion endpoint, confirms complete terminal run/attempt telemetry, repeats the same payload to prove document/index idempotency, rejects raw-content telemetry, and removes every fixture.
 
 `api/knowledge-acquisition.test.ts` covers reserved/private address rejection, credentialed URL denial, deterministic HTML/Markdown/PDF extraction, exact locators, hostile/hidden content exclusion, malformed/disguised/unsupported/empty/oversized files, redirect/DNS guards, reviewed decisions, and split mutation policies. Run `npm run test:live-knowledge-acquisition` after deployment for the complete reversible URL/file review lifecycle.
+
+## Client research isolation and video help
+
+Use `npm run test:client-research` for the eleven migrated research suites. `tests/helpers/client-research-session.mjs` validates the exact client host/API origin, verifies trusted Auth roles and uses only the coordinator's disposable role ledger. Owner sign-ins use the ignored client owner credential; temporary identities receive isolated sessions without sending email. Local-scope sign-out avoids revoking unrelated browser sessions. The coordinator records per-suite outcomes and always removes fixtures. Do not run it concurrently with browser E2E.
+
+The browser suite adds first-conversation persistence/reload and safe Markdown regressions, plus real private video playback/caption loading, all-guide browsing, anonymous denial, suspended-account link denial and authenticated write denial. Assistant rendering unit tests reject raw HTML, remote model images and unsafe link protocols. The role navigation matrix includes Help for all fourteen roles.
+
+Research fixtures test software mechanics only. They do not prove human usability, institutional approval, real corpus coverage, pilot effect size or measured workload reduction. Historical scripts outside the coordinator still require explicit target/fixture review before execution.

@@ -1,6 +1,15 @@
 # Changelog
 ## Unreleased
 
+### In-app guides and Assistant repair (Issues #78, #75)
+
+- Add private, role-recommended video help at `/app/help`, with six narrated chapters, a complete walkthrough, captions, transcripts and downloads. Verify immutable media checksums; keep editable assets and credentials outside the app.
+- Fix Assistant message contrast, responsive controls and hidden-upload overflow. Render safe Markdown and preserve the first message while a new conversation directory refreshes; cancel stale history loads.
+- Move eleven research acceptance suites onto disposable client identities with strict target guards and serialized cleanup, preserving original historical evidence. Document unmet institutional, pilot, source-refresh and student-mail dependencies without inventing completion.
+- Record the actual installed PDF parser version in acquisition provenance instead of an outdated hardcoded value.
+- Require active profiles for guide-link access and allow the exact client acquisition fixture through the protected reversible cleanup routine.
+
+
 ### Narrated role video guides (Issue #77)
 
 - Add six English-narrated chapters and a 12m43s combined walkthrough using actual demo-role navigation, Remotion graphics and 251 aligned captions. Teacher/student workflows receive the most detail; all fourteen roles are covered.

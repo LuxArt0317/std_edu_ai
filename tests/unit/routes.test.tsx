@@ -17,3 +17,9 @@ test('legacy links preserve curriculum references and recovery callbacks', () =>
   assert.equal(legacyAppPath('?curriculum_request=123', ''), '/app/academics?curriculum_request=123')
   assert.equal(legacyAppPath('', '#type=recovery'), '/app#type=recovery')
 })
+
+test('video help is a recognized safe school route', () => {
+  assert.equal(pathForView('help'), '/app/help')
+  assert.equal(viewForPath('/app/help', false), 'help')
+  assert.equal(safeReturnPath('/app/help'), '/app/help')
+})

@@ -31,3 +31,9 @@ Browser delivery QA loads all seven MP4s and VTT tracks, verifies both archive l
 ## Acceptance boundary
 
 Automated speech matching, full media decode and inspected frames support the technical/editorial checks listed above. They do not prove an uninterrupted human watch and subjective listening acceptance. That final viewer pass remains **not fully verifiable** in this run; the gallery makes it straightforward for the client to review. Public student confirmation-mail capacity remains the separate open Issue #75 dependency and is not represented as resolved by these videos.
+
+## Web app integration — Issue #78
+
+The existing seven finished exports are published as 21 immutable MP4/VTT/SRT objects in the client database's private `tutorial-guides` bucket. Each downloaded object matches its local SHA-256 hash. The authenticated `/app/help` page recommends role chapters, supports all guides, native playback/captions, readable transcripts, downloads and expiring-link refresh/retry. Only active authenticated school profiles can mint links; clients cannot write. Editable-source/raw captures and the narration credential are excluded from this delivery.
+
+Light/dark checks at 1440, 1024 and 390 pixels verify video metadata, controls, no horizontal overflow, no page errors and zero serious/critical automated accessibility findings. The main Assistant uses semantic message colours (measured user-text contrast 5.60:1 light, 9.32:1 dark), safe Markdown and wrapping mode controls. Technical checks do not replace the human listening acceptance described above.

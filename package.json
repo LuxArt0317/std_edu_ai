@@ -64,7 +64,10 @@
     "verify:client": "node scripts/verify-client.mjs",
     "verify:handoff": "node scripts/verify-handoff.mjs",
     "test:unit": "tsx --tsconfig tsconfig.unit.json --test tests/unit/*.test.tsx",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:client-research": "node tests/integration/client-research-suite.mjs",
+    "prepare:video-guides": "node scripts/publish-video-guides.mjs --prepare",
+    "publish:video-guides": "node scripts/publish-video-guides.mjs --apply"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.5",
@@ -86,6 +89,7 @@
     "radix-ui": "^1.8.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "react-markdown": "^10.1.0",
     "react-router": "^8.5.1",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0",

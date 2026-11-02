@@ -1,49 +1,16 @@
-import { spawnSync } from "node:child_process";
-import fs from "node:fs";
+import { readFile } from 'node:fs/promises';
+import {
+  clientResearchEnvironment,
+  researchSession,
+} from "../helpers/client-research-session.mjs";
 import { createClient } from "@supabase/supabase-js";
 
-function env(path) {
-  if (!fs.existsSync(path)) return {};
-  return Object.fromEntries(
-    fs
-      .readFileSync(path, "utf8")
-      .split(/\r?\n/)
-      .filter((line) => line && !line.startsWith("#") && line.includes("="))
-      .map((line) => {
-        const at = line.indexOf("=");
-        return [line.slice(0, at), line.slice(at + 1)];
-      }),
-  );
-}
 function required(result, label) {
   if (result.error) throw new Error(`${label}: ${result.error.message}`);
   if (!result.data) throw new Error(`${label}: no data`);
   return result.data;
 }
-function password(email) {
-  const found = spawnSync(
-    "/usr/bin/security",
-    ["find-internet-password", "-w", "-s", "www.stu.best", "-a", email],
-    { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
-  );
-  if (found.status !== 0 || !found.stdout.trim())
-    throw new Error(`Missing protected credential for ${email}`);
-  return found.stdout.trim();
-}
-async function login(email) {
-  const db = createClient(
-    process.env.VITE_SUPABASE_URL,
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
-  const auth = await db.auth.signInWithPassword({
-    email,
-    password: password(email),
-  });
-  if (auth.error || !auth.data.session || !auth.data.user)
-    throw auth.error || new Error("Sign-in failed");
-  return { db, session: auth.data.session, user: auth.data.user };
-}
+
 function pdfFixture(text) {
   const escaped = text
     .replaceAll("\\", "\\\\")
@@ -73,11 +40,15 @@ function pdfFixture(text) {
   return Buffer.from(output);
 }
 
-Object.assign(process.env, env(".env"), env(".env.local"));
-const base = process.env.KNOWLEDGE_ACQUISITION_ORIGIN || "https://stdeduai.vercel.app";
-const owner = await login("winsonbaring10@gmail.com"),
-  student = await login("winsonbaring10+student@gmail.com"),
-  support = await login("winsonbaring10+support@gmail.com");
+async function login(role) {
+  return researchSession(role);
+}
+Object.assign(process.env, await clientResearchEnvironment());
+const base =
+  process.env.KNOWLEDGE_ACQUISITION_ORIGIN || "https://stdeduai.vercel.app";
+const owner = await login("owner"),
+  student = await login("student"),
+  support = await login("support");
 const anon = createClient(
   process.env.VITE_SUPABASE_URL,
   process.env.VITE_SUPABASE_PUBLISHABLE_KEY,
@@ -85,6 +56,7 @@ const anon = createClient(
 );
 const suffix = Date.now().toString(36).toUpperCase();
 const sourceUrl = `${base}/research-fixtures/issue122-source.html`;
+const pdfParserVersion = `pdfjs-${JSON.parse(await readFile("node_modules/pdfjs-dist/package.json", "utf8")).version}@1`;
 const sourcePublishedAt = "2026-07-01T00:00:00.000Z";
 const sourceUpdatedAt = "2026-07-18T00:00:00.000Z";
 let sourceId = "";
@@ -150,7 +122,9 @@ try {
   const htmlDocument = required(
     await owner.db
       .from("knowledge_documents")
-      .select("metadata,review_status,publication_status,source_published_at,source_updated_at")
+      .select(
+        "metadata,review_status,publication_status,source_published_at,source_updated_at",
+      )
       .eq("id", htmlId)
       .single(),
     "HTML document",
@@ -158,8 +132,10 @@ try {
   if (
     htmlDocument.metadata.parser_version !== "cheerio-1.2.0@1" ||
     htmlDocument.publication_status !== "draft" ||
-    new Date(htmlDocument.source_published_at).getTime() !== new Date(sourcePublishedAt).getTime() ||
-    new Date(htmlDocument.source_updated_at).getTime() !== new Date(sourceUpdatedAt).getTime()
+    new Date(htmlDocument.source_published_at).getTime() !==
+      new Date(sourcePublishedAt).getTime() ||
+    new Date(htmlDocument.source_updated_at).getTime() !==
+      new Date(sourceUpdatedAt).getTime()
   )
     throw new Error("HTML parser metadata or review boundary failed.");
   const htmlChunks = required(
@@ -232,7 +208,7 @@ try {
     "PDF chunks",
   );
   if (
-    pdfDocument.metadata.parser_version !== "pdfjs-6.1.200@1" ||
+    pdfDocument.metadata.parser_version !== pdfParserVersion ||
     pdfDocument.metadata.page_count !== 1 ||
     pdfChunks.length !== 1 ||
     pdfChunks[0].source_locator !== "pdf:page:1"
@@ -318,7 +294,9 @@ try {
     body: JSON.stringify({ sourceId }),
   });
   if (supportResponse.status !== 403)
-    throw new Error(`Support ingestion returned HTTP ${supportResponse.status}.`);
+    throw new Error(
+      `Support ingestion returned HTTP ${supportResponse.status}.`,
+    );
   const supportEdit = await support.db
     .from("knowledge_documents")
     .update({ title: "Unauthorized support mutation" })
@@ -371,7 +349,7 @@ try {
       htmlChunks: htmlChunks.length,
       executableOrHiddenLeakage: 0,
       draftPublicLeakage: 0,
-      pdfParser: "pdfjs-6.1.200@1",
+      pdfParser: pdfParserVersion,
       pdfPages: 1,
       exactPdfLocator: true,
       sourceDatesPreserved: true,
@@ -396,9 +374,9 @@ try {
       p_source_id: sourceId,
     });
   await Promise.all([
-    owner.db.auth.signOut(),
-    student.db.auth.signOut(),
-    support.db.auth.signOut(),
+    owner.db.auth.signOut({ scope: "local" }),
+    student.db.auth.signOut({ scope: "local" }),
+    support.db.auth.signOut({ scope: "local" }),
   ]);
 }
 if (workflowError) throw workflowError;

@@ -60,3 +60,13 @@ Historical phase checklists: [planning history](../docs/archive/PLANNING_HISTORY
 - [x] Capture actual live role navigation/actions using isolated synthetic records, generate narration/captions and build explanatory Remotion graphics.
 - [x] Render individual chapters and a combined master; inspect audio, captions, transitions, privacy, technical output and role coverage; remove temporary accounts/records.
 - [x] Update handoff, scripts, setup/QA records, issue status and commit reproducible source without credentials or generated media.
+
+## Complete actionable open issues and publish video help [Issue #78, #75, #61, #63, #65, #67, #69, #71]
+
+- [x] Audit every current issue against code, client data and existing tests; map migrated issue references and record acceptance gaps.
+- [x] Add authenticated /app/help with role-recommended guides, accessible playback/captions, stable client storage and downloads.
+- [x] Fix Assistant message contrast, Card/legacy structure, responsive sizing/mode controls, and related output states.
+- [x] Exercise research/API/RLS/study/ingestion/operations flows, correct implementable defects and rerun meaningful tests.
+- [ ] Publish verified changes through the client Git/Vercel integration and check production; update/close only satisfied issues.
+
+User scope clarification: skip institutional approvals, physical campus walkthroughs, human participant/manual assistive-technology evidence and unavailable student-mail credentials. Keep those acceptance dependencies explicitly pending; preserve email confirmation and existing permissions.

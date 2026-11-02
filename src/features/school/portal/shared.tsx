@@ -1,4 +1,4 @@
-import { Home, BookOpen, ClipboardCheck, GraduationCap, CalendarDays, Users, ListTodo, UserRound, TriangleAlert, Inbox, Send, Library, ChartNoAxesCombined, Settings2, type LucideIcon } from "lucide-react";
+import { CircleHelp, Home, BookOpen, ClipboardCheck, GraduationCap, CalendarDays, Users, ListTodo, UserRound, TriangleAlert, Inbox, Send, Library, ChartNoAxesCombined, Settings2, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { ReactNode } from "react";
 import type { CrmUser } from "../../crm/authService";
@@ -6,7 +6,7 @@ import { type NexusInputAttachment } from "../platformAi";
 import { type UnifiedCalendarEvent } from "../schoolCalendar";
 import type { PlatformRole, PortalSection } from "../types";
 
-export type PortalView = PortalSection | "crm" | "students" | "success" | "admissions" | "cases" | "campaigns" | "knowledge" | "analytics";
+export type PortalView = PortalSection | "help" | "crm" | "students" | "success" | "admissions" | "cases" | "campaigns" | "knowledge" | "analytics";
 
 export type NexusActivityState =
   | "idle"
@@ -97,6 +97,7 @@ export const roleNames: Record<PlatformRole, string> = {
 
 export const navMeta: Record<PortalView, { label: string; icon: LucideIcon }> = {
   home: { label: "Overview", icon: Home },
+  help: { label: "Help", icon: CircleHelp },
   academics: { label: "Academics", icon: Settings2 },
   learning: { label: "Courses", icon: BookOpen },
   teaching: { label: "Courses", icon: BookOpen },
@@ -125,9 +126,9 @@ export const supportViews: PortalView[] = ["crm", "students", "success", "admiss
 
 export function navigationFor(role: PlatformRole): PortalView[] {
   if (role === "student")
-    return ["home", "learning", "assessments", "grades", "schedule"];
+    return ["home", "learning", "assessments", "grades", "schedule", "help"];
   if (role === "faculty")
-    return ["home", "teaching", "assessments", "grades", "schedule", ...supportViews];
+    return ["home", "teaching", "assessments", "grades", "schedule", ...supportViews, "help"];
   if (leadershipRoles.has(role))
     return [
       "home",
@@ -138,12 +139,14 @@ export function navigationFor(role: PlatformRole): PortalView[] {
       "schedule",
       "people",
       ...supportViews,
+      "help",
     ];
   return [
     "home",
     "learning",
     "schedule",
     ...(crmRoles.has(role) ? supportViews : []),
+    "help",
   ];
 }
 

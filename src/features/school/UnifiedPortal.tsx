@@ -25,6 +25,7 @@ import {
   Suspense,
   type CSSProperties,
 } from "react";
+const VideoGuidesView = lazy(() => import("./portal/VideoGuidesView").then(module => ({default:module.VideoGuidesView})));
 const CRMApp = lazy(() => import("../crm/CRMApp"));
 import type { CrmSection } from "../crm/types";
 import type { CrmUser } from "../crm/authService";
@@ -207,7 +208,7 @@ function UnifiedPortal({
   const routeView = viewForPath(location.pathname, teachingRoles.has(effectiveRole));
   const view = routeView && navigationFor(effectiveRole).includes(routeView) ? routeView : "home";
   const navigation = navigationFor(effectiveRole).sort((left, right) => {
-    const group = (item: PortalView) => ["academics", "people"].includes(item) ? 2 : supportViews.includes(item) ? 1 : 0;
+    const group = (item: PortalView) => item === "help" ? 3 : ["academics", "people"].includes(item) ? 2 : supportViews.includes(item) ? 1 : 0;
     return group(left) - group(right);
   });
 
@@ -400,6 +401,7 @@ function UnifiedPortal({
                   onToast={setToast}
                 />
               ) : null}
+              {view === "help" ? <VideoGuidesView key={effectiveRole} role={effectiveRole} /> : null}
               {view === "people" ? (
                 <PeopleView
                   data={data}

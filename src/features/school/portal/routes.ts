@@ -1,7 +1,7 @@
 import type { PortalView } from './shared'
 
 const paths: Record<PortalView, string> = {
-  home: '/app', academics: '/app/academics', learning: '/app/courses', teaching: '/app/courses',
+  help: '/app/help', home: '/app', academics: '/app/academics', learning: '/app/courses', teaching: '/app/courses',
   assessments: '/app/assessments', grades: '/app/grades', schedule: '/app/calendar', people: '/app/users',
   crm: '/app/tasks', students: '/app/students', success: '/app/alerts', admissions: '/app/admissions',
   cases: '/app/cases', campaigns: '/app/messages', knowledge: '/app/knowledge', analytics: '/app/reports',

@@ -1,0 +1,574 @@
+{
+  "bucket": "tutorial-guides",
+  "version": "2026-11-02",
+  "guides": [
+    {
+      "id": "complete",
+      "title": "Complete walkthrough",
+      "audience": "All roles",
+      "roles": [
+        "all"
+      ],
+      "duration": 763.1333333333333,
+      "assets": {
+        "mp4": {
+          "filename": "00-complete-walkthrough.mp4",
+          "path": "v1/67e9646a49cd848a/00-complete-walkthrough.mp4",
+          "sha256": "67e9646a49cd848a35a914aa62860eb4c9fceb3fa081cf253a06a2a77100256a",
+          "bytes": 34891917,
+          "mime": "video/mp4"
+        },
+        "vtt": {
+          "filename": "00-complete-walkthrough.vtt",
+          "path": "v1/78418641e0972de4/00-complete-walkthrough.vtt",
+          "sha256": "78418641e0972de4029730c45283f8f588819005b28085a26933d7db4685b222",
+          "bytes": 19121,
+          "mime": "text/vtt"
+        },
+        "srt": {
+          "filename": "00-complete-walkthrough.srt",
+          "path": "v1/9ac39b8d07777578/00-complete-walkthrough.srt",
+          "sha256": "9ac39b8d077775782b534327a35becdc99789daa716987e6b0416ec2ce599a70",
+          "bytes": 20009,
+          "mime": "application/x-subrip"
+        }
+      },
+      "transcript": [
+        {
+          "title": "Less switching. More progress.",
+          "text": "Teaching, learning, and student support should feel connected. S T U Nexus brings the work into one school portal, with clear next steps and AI assistance where it is useful. This tour uses demonstration accounts and records, so you can see real workflows without exposing student information."
+        },
+        {
+          "title": "Find the next action",
+          "text": "Start with the overview, then open the workspace you need. Courses, assessments, grades, and the calendar stay together. Collapse the sidebar when you want more room; the icons still have labels on hover, and the portal remembers your choice."
+        },
+        {
+          "title": "Useful AI, with review",
+          "text": "The assistant can answer questions about the current workspace, summarize available context, and prepare supported changes. Ask for an explanation first, or switch to Draft changes. Changes need a review and confirmation. AI assistance supports the person doing the work; it does not remove responsibility."
+        },
+        {
+          "title": "A connected teacher-to-student handoff",
+          "text": "A teacher prepares a lesson, checks the student view, and publishes it. The enrolled student then reads the published material, completes an assessment, and sees the feedback the teacher has released. The next chapter shows that handoff step by step."
+        },
+        {
+          "title": "A guide for every role",
+          "text": "Start with the teacher and student chapters. Then use the academic operations, student services, and leadership chapters for your own role. Each chapter is separate for quick training, and the complete walkthrough brings them together in the same order."
+        },
+        {
+          "title": "Plan → teach → assess → review",
+          "text": "Here is the teacher workflow: open your assigned class, prepare the learning material, check the student experience, and publish. Then review submissions, enter or import grades, and organize the next class. We are using a temporary demonstration class throughout this chapter."
+        },
+        {
+          "title": "Open your assigned class",
+          "text": "Choose Courses from the sidebar and select your class. The course header gives you the section and teaching context. The tabs keep content, curriculum, assessments, submissions, attendance, and announcements in one place. You can move between them without losing the class you are working on."
+        },
+        {
+          "title": "Build a clear learning sequence",
+          "text": "In Content, organize a module and its lessons in teaching order. Open a lesson to edit its pages, text, links, and supporting material. Give the lesson a clear title and save the draft. A draft lets you prepare the class before the student can see it."
+        },
+        {
+          "title": "Preview before you publish",
+          "text": "Use Student view to check the published learning experience. It shows what the enrolled learner can open, rather than every unfinished item in the authoring workspace. Return to Content to publish the lesson and its module when both are ready. Publication is an explicit teacher action."
+        },
+        {
+          "title": "Prepare and review an assessment",
+          "text": "Open Assessments to preview the quiz, instructions, and questions. The course assessment tools let you configure the activity and its review settings. Check the questions before publishing. Objective quizzes are scored by the platform rules; the AI assistant does not decide the correct answer."
+        },
+        {
+          "title": "Give feedback the learner can use",
+          "text": "In the course Submissions tab, open the learner’s written work and review it against the task. Enter a score and specific feedback, then save. The submission keeps its review state. Use the separate grade publication workflow when a final grade is ready for the student."
+        },
+        {
+          "title": "Import is a starting point, not a final grade",
+          "text": "In Grades, choose the grade item, then scan a grade-sheet image if you want help with data entry. AI extracts candidate values with warnings and confidence. Match the rows and check the numbers before saving drafts. Publishing the result remains a separate teacher decision."
+        },
+        {
+          "title": "Keep attendance and dates together",
+          "text": "Return to the course to manage attendance and review submissions. Use Calendar for classes, deadlines, and upcoming events, with month, week, or agenda views. This keeps the learning activity and its dates visible in the same portal, instead of a separate tracking sheet."
+        },
+        {
+          "title": "Share a clear class update",
+          "text": "Open Announcements inside the selected class to publish a short update for the enrolled group. Use a clear title, explain the next action, and check the priority before publishing. The update then sits beside the course work, so students can find the instruction in context."
+        },
+        {
+          "title": "Ask for help in context",
+          "text": "Open Assistant and ask a focused question, such as what is next for this class. Read the response and any supporting sources. If you request a supported change, inspect the draft and confirmation card before allowing it. Keep the final teaching and grading decisions with the teacher."
+        },
+        {
+          "title": "Your class, your next step",
+          "text": "As a student, start with your own school account. Registration creates a login; it does not automatically enroll you in a class. Your school connects the enrollment, and your portal shows the courses and learning work you are allowed to access."
+        },
+        {
+          "title": "Read the published lesson",
+          "text": "Open Courses, choose your enrolled class, and select a published lesson. Follow the pages and use the linked materials. The lesson view keeps the reading sequence clear, and you can mark completed work so your progress reflects what you have finished."
+        },
+        {
+          "title": "Answer, submit, and review",
+          "text": "Open Assessments and choose the available quiz. Read the instructions and any required checks before starting. Select your answers, then submit once you are ready. The result and review screen follow the teacher settings, so some feedback may appear immediately and some may wait for release."
+        },
+        {
+          "title": "Submit your own written work",
+          "text": "Back in Courses, open the assignment and read the task. Write your response and attach a file when the activity needs one. Submit when you are ready. Return to the course to check the submission state and any feedback, rather than assuming that opening the task means it is complete."
+        },
+        {
+          "title": "Understand your feedback",
+          "text": "In Grades, review your published scores and the feedback attached to them. Your account shows your own results, rather than another student’s gradebook. If something is unclear, use the feedback and course context to prepare a specific question for your teacher."
+        },
+        {
+          "title": "See the dates that matter",
+          "text": "Open Calendar to see the classes, assessment deadlines, and events relevant to your account. Switch to an agenda when you want a simple list. Use the available filters to focus the view, and open an event to read its time, place, and details."
+        },
+        {
+          "title": "Ask a question without leaving the portal",
+          "text": "Open Assistant when you need help understanding the next lesson or finding relevant school information. Ask a specific question and read the response carefully. The assistant uses the context and information available to your role. It is guidance, not a guarantee that a school request has been approved."
+        },
+        {
+          "title": "Stay connected to school staff",
+          "text": "Use the notification bell for updates and the contact options available to your account. Choose the authorized recipient and write a clear subject and message. A submitted message may need approval before delivery. For a decision about a grade, deadline, or support request, follow the school’s confirmed response."
+        },
+        {
+          "title": "From program to enrolled class",
+          "text": "Academic teams connect the structure behind the learning experience. Registrars, department heads, and deans use the academic tools permitted by their role. The core path is department, program, curriculum, subject, class, and enrollment. Teaching and student views then use those relationships."
+        },
+        {
+          "title": "Make the program pathway clear",
+          "text": "Open Academics and select Curriculum. Choose the program to inspect its versions and subjects. Keep the curriculum version, units, and prerequisite relationships consistent before review. A generated draft can help prepare the structure, but formal approval and publication remain academic decisions."
+        },
+        {
+          "title": "Connect subjects, teachers, and rosters",
+          "text": "Use Classes and Enrollment to connect the subject offering, term, teacher, room, and enrolled students. Review the selected class before changing a roster. These relationships determine which course work the teacher manages and which published material the student can open."
+        },
+        {
+          "title": "Keep change requests visible",
+          "text": "Use Change requests to review proposed academic changes and their status. The workflow separates a proposal from its approval, and keeps the responsible reviewers in the process. Teachers can raise requests for their assigned context; authorized reviewers handle the decision rather than silently changing the curriculum."
+        },
+        {
+          "title": "Check the wider academic schedule",
+          "text": "Use Calendar to inspect the academic dates and class events within your scope. Open the details before adjusting a schedule. The platform checks supported room, teacher, and enrolled-student overlaps when saving timetable changes, helping the academic team keep one consistent schedule."
+        },
+        {
+          "title": "Help should have a clear next step",
+          "text": "Student services share the same portal. Advisors review student context, admissions teams manage the applicant pipeline, and finance or support staff organize the cases within their responsibilities. The useful pattern is to understand the situation, record the next action, and follow it through."
+        },
+        {
+          "title": "Read the context before acting",
+          "text": "Open Students or Alerts, then open the student record. Review the available academic and support signals, interactions, and existing cases. A risk signal is a reason for a human check-in, not an automatic judgment about the student or a diagnosis."
+        },
+        {
+          "title": "Draft a support plan with AI",
+          "text": "In Alerts, choose Plan. Edit the request so it describes the support you need, then draft the guidance. Review the suggested next steps and evidence before using them. The panel does not automatically change the student record, and Escape closes it without losing your place."
+        },
+        {
+          "title": "Give the follow-up an owner",
+          "text": "Open Cases to create or update the support record. Give it a clear title, category, priority, owner, and next step. Use Tasks for the follow-up work and record completion when it is done. Finance staff can follow the financial support case without turning an AI suggestion into a payment decision."
+        },
+        {
+          "title": "Keep applicants moving",
+          "text": "Admissions shows the applicant pipeline and the current stage of each record. Open the applicant context, check the requirements and next action, then use the supported stage transition. Keep outreach specific and helpful, and confirm the recorded result before treating the handoff as complete."
+        },
+        {
+          "title": "Prepare messages and track the work",
+          "text": "Use Messages for the communications and approval workflow available to your team. Draft the content, check the audience, and follow the review state. Reports can then help authorized staff inspect workload and outcomes. A drafted message or an AI reply is not proof of delivery or resolution."
+        },
+        {
+          "title": "A shared platform, distinct responsibilities",
+          "text": "Leadership sees the information its role permits. The president and vice president can inspect institutional context and reports; deans focus on academic oversight. Administrators and the protected owner govern access and operations. Librarians help keep the knowledge used by staff and AI accurate and reviewed."
+        },
+        {
+          "title": "Read evidence with its limits",
+          "text": "Open Reports to inspect the available operational summaries. Treat demonstration numbers as demonstration data. Advanced workload evidence stays separate: an AI answer alone does not establish a resolved request or a measured improvement. Use confirmed outcomes and an approved measurement process when evaluating results."
+        },
+        {
+          "title": "Keep the knowledge behind AI trustworthy",
+          "text": "Open Knowledge to manage the guidance available to the portal. Contributions and acquired documents move through review states. Check the source, audience, and version before publishing. A librarian or authorized reviewer helps ensure the assistant uses reviewed information within the signed-in user’s access."
+        },
+        {
+          "title": "Manage real accounts separately from roles",
+          "text": "In Users, search the actual accounts and review their status and assigned role. Role settings describe permission templates; they are not extra people. Use the authorized account workflow for changes. The platform protects the owner account and does not let another user become a second owner."
+        },
+        {
+          "title": "Use role preview responsibly",
+          "text": "The owner can preview a role from the account menu to inspect its interface. Preview changes the presentation, not the authority of the signed-in owner. For real verification, use a genuinely assigned account, as the teacher and student demonstrations in this series do."
+        },
+        {
+          "title": "Start with one real workflow",
+          "text": "Choose the chapter for your role and follow one complete task: prepare a lesson, finish an assessment, review an academic change, or close a support follow-up. S T U Nexus connects the work, while AI helps explain and prepare. People review the important decisions and keep the process accountable."
+        }
+      ]
+    },
+    {
+      "id": "Overview",
+      "title": "One school. One clear workflow.",
+      "audience": "Project overview",
+      "roles": [
+        "all"
+      ],
+      "duration": 92,
+      "assets": {
+        "mp4": {
+          "filename": "01-project-pitch.mp4",
+          "path": "v1/45d3959ec27f55b6/01-project-pitch.mp4",
+          "sha256": "45d3959ec27f55b64544946e5111182767bc6128c5c267d6ba191f4297b66864",
+          "bytes": 3932127,
+          "mime": "video/mp4"
+        },
+        "vtt": {
+          "filename": "01-project-pitch.vtt",
+          "path": "v1/664e58fbc264d603/01-project-pitch.vtt",
+          "sha256": "664e58fbc264d6031c290a826fce5ee91f62da727f48ebeff5b6f48aabf8305e",
+          "bytes": 2286,
+          "mime": "text/vtt"
+        },
+        "srt": {
+          "filename": "01-project-pitch.srt",
+          "path": "v1/00938742c455b309/01-project-pitch.srt",
+          "sha256": "00938742c455b30933d4f2b83ca36effe7853ba449e67d0278c926fdb398a6f8",
+          "bytes": 2359,
+          "mime": "application/x-subrip"
+        }
+      },
+      "transcript": [
+        {
+          "title": "Less switching. More progress.",
+          "text": "Teaching, learning, and student support should feel connected. S T U Nexus brings the work into one school portal, with clear next steps and AI assistance where it is useful. This tour uses demonstration accounts and records, so you can see real workflows without exposing student information."
+        },
+        {
+          "title": "Find the next action",
+          "text": "Start with the overview, then open the workspace you need. Courses, assessments, grades, and the calendar stay together. Collapse the sidebar when you want more room; the icons still have labels on hover, and the portal remembers your choice."
+        },
+        {
+          "title": "Useful AI, with review",
+          "text": "The assistant can answer questions about the current workspace, summarize available context, and prepare supported changes. Ask for an explanation first, or switch to Draft changes. Changes need a review and confirmation. AI assistance supports the person doing the work; it does not remove responsibility."
+        },
+        {
+          "title": "A connected teacher-to-student handoff",
+          "text": "A teacher prepares a lesson, checks the student view, and publishes it. The enrolled student then reads the published material, completes an assessment, and sees the feedback the teacher has released. The next chapter shows that handoff step by step."
+        },
+        {
+          "title": "A guide for every role",
+          "text": "Start with the teacher and student chapters. Then use the academic operations, student services, and leadership chapters for your own role. Each chapter is separate for quick training, and the complete walkthrough brings them together in the same order."
+        }
+      ]
+    },
+    {
+      "id": "Teacher",
+      "title": "Teach from one workspace",
+      "audience": "Teacher / faculty",
+      "roles": [
+        "faculty"
+      ],
+      "duration": 189.2,
+      "assets": {
+        "mp4": {
+          "filename": "02-teacher-workflow.mp4",
+          "path": "v1/4feed980d4d273a2/02-teacher-workflow.mp4",
+          "sha256": "4feed980d4d273a284cd1f7821abc1dd42a19f63445b38b4e3480ac18047ae72",
+          "bytes": 9687881,
+          "mime": "video/mp4"
+        },
+        "vtt": {
+          "filename": "02-teacher-workflow.vtt",
+          "path": "v1/ebc847c255112673/02-teacher-workflow.vtt",
+          "sha256": "ebc847c25511267319a470f85882b9fabecd8a9fde84225eac0469bbf4d8757d",
+          "bytes": 4712,
+          "mime": "text/vtt"
+        },
+        "srt": {
+          "filename": "02-teacher-workflow.srt",
+          "path": "v1/275378bdefe06d03/02-teacher-workflow.srt",
+          "sha256": "275378bdefe06d03fb20b5110b63db74d6f8453ab0eff815a8c46af4231873dd",
+          "bytes": 4881,
+          "mime": "application/x-subrip"
+        }
+      },
+      "transcript": [
+        {
+          "title": "Plan → teach → assess → review",
+          "text": "Here is the teacher workflow: open your assigned class, prepare the learning material, check the student experience, and publish. Then review submissions, enter or import grades, and organize the next class. We are using a temporary demonstration class throughout this chapter."
+        },
+        {
+          "title": "Open your assigned class",
+          "text": "Choose Courses from the sidebar and select your class. The course header gives you the section and teaching context. The tabs keep content, curriculum, assessments, submissions, attendance, and announcements in one place. You can move between them without losing the class you are working on."
+        },
+        {
+          "title": "Build a clear learning sequence",
+          "text": "In Content, organize a module and its lessons in teaching order. Open a lesson to edit its pages, text, links, and supporting material. Give the lesson a clear title and save the draft. A draft lets you prepare the class before the student can see it."
+        },
+        {
+          "title": "Preview before you publish",
+          "text": "Use Student view to check the published learning experience. It shows what the enrolled learner can open, rather than every unfinished item in the authoring workspace. Return to Content to publish the lesson and its module when both are ready. Publication is an explicit teacher action."
+        },
+        {
+          "title": "Prepare and review an assessment",
+          "text": "Open Assessments to preview the quiz, instructions, and questions. The course assessment tools let you configure the activity and its review settings. Check the questions before publishing. Objective quizzes are scored by the platform rules; the AI assistant does not decide the correct answer."
+        },
+        {
+          "title": "Give feedback the learner can use",
+          "text": "In the course Submissions tab, open the learner’s written work and review it against the task. Enter a score and specific feedback, then save. The submission keeps its review state. Use the separate grade publication workflow when a final grade is ready for the student."
+        },
+        {
+          "title": "Import is a starting point, not a final grade",
+          "text": "In Grades, choose the grade item, then scan a grade-sheet image if you want help with data entry. AI extracts candidate values with warnings and confidence. Match the rows and check the numbers before saving drafts. Publishing the result remains a separate teacher decision."
+        },
+        {
+          "title": "Keep attendance and dates together",
+          "text": "Return to the course to manage attendance and review submissions. Use Calendar for classes, deadlines, and upcoming events, with month, week, or agenda views. This keeps the learning activity and its dates visible in the same portal, instead of a separate tracking sheet."
+        },
+        {
+          "title": "Share a clear class update",
+          "text": "Open Announcements inside the selected class to publish a short update for the enrolled group. Use a clear title, explain the next action, and check the priority before publishing. The update then sits beside the course work, so students can find the instruction in context."
+        },
+        {
+          "title": "Ask for help in context",
+          "text": "Open Assistant and ask a focused question, such as what is next for this class. Read the response and any supporting sources. If you request a supported change, inspect the draft and confirmation card before allowing it. Keep the final teaching and grading decisions with the teacher."
+        }
+      ]
+    },
+    {
+      "id": "Student",
+      "title": "Know what to do next",
+      "audience": "Student",
+      "roles": [
+        "student"
+      ],
+      "duration": 142.7,
+      "assets": {
+        "mp4": {
+          "filename": "03-student-workflow.mp4",
+          "path": "v1/936338c5d2d0ea72/03-student-workflow.mp4",
+          "sha256": "936338c5d2d0ea7288215d46233dd2ea5a6da9845ca91b2874a19064b3fd1b01",
+          "bytes": 6492264,
+          "mime": "video/mp4"
+        },
+        "vtt": {
+          "filename": "03-student-workflow.vtt",
+          "path": "v1/4cd7ac63a14f32f4/03-student-workflow.vtt",
+          "sha256": "4cd7ac63a14f32f4e6de96e450682bae957ff539f026668f35ced4a233940bc6",
+          "bytes": 3788,
+          "mime": "text/vtt"
+        },
+        "srt": {
+          "filename": "03-student-workflow.srt",
+          "path": "v1/4a7791fc36a7c705/03-student-workflow.srt",
+          "sha256": "4a7791fc36a7c7052c777c3fe563bcacb8f2fc6925ebf894ed92af86854189c3",
+          "bytes": 3924,
+          "mime": "application/x-subrip"
+        }
+      },
+      "transcript": [
+        {
+          "title": "Your class, your next step",
+          "text": "As a student, start with your own school account. Registration creates a login; it does not automatically enroll you in a class. Your school connects the enrollment, and your portal shows the courses and learning work you are allowed to access."
+        },
+        {
+          "title": "Read the published lesson",
+          "text": "Open Courses, choose your enrolled class, and select a published lesson. Follow the pages and use the linked materials. The lesson view keeps the reading sequence clear, and you can mark completed work so your progress reflects what you have finished."
+        },
+        {
+          "title": "Answer, submit, and review",
+          "text": "Open Assessments and choose the available quiz. Read the instructions and any required checks before starting. Select your answers, then submit once you are ready. The result and review screen follow the teacher settings, so some feedback may appear immediately and some may wait for release."
+        },
+        {
+          "title": "Submit your own written work",
+          "text": "Back in Courses, open the assignment and read the task. Write your response and attach a file when the activity needs one. Submit when you are ready. Return to the course to check the submission state and any feedback, rather than assuming that opening the task means it is complete."
+        },
+        {
+          "title": "Understand your feedback",
+          "text": "In Grades, review your published scores and the feedback attached to them. Your account shows your own results, rather than another student’s gradebook. If something is unclear, use the feedback and course context to prepare a specific question for your teacher."
+        },
+        {
+          "title": "See the dates that matter",
+          "text": "Open Calendar to see the classes, assessment deadlines, and events relevant to your account. Switch to an agenda when you want a simple list. Use the available filters to focus the view, and open an event to read its time, place, and details."
+        },
+        {
+          "title": "Ask a question without leaving the portal",
+          "text": "Open Assistant when you need help understanding the next lesson or finding relevant school information. Ask a specific question and read the response carefully. The assistant uses the context and information available to your role. It is guidance, not a guarantee that a school request has been approved."
+        },
+        {
+          "title": "Stay connected to school staff",
+          "text": "Use the notification bell for updates and the contact options available to your account. Choose the authorized recipient and write a clear subject and message. A submitted message may need approval before delivery. For a decision about a grade, deadline, or support request, follow the school’s confirmed response."
+        }
+      ]
+    },
+    {
+      "id": "Academics",
+      "title": "Keep academic work connected",
+      "audience": "Registrar · Department head · Dean",
+      "roles": [
+        "registrar",
+        "department_head",
+        "dean"
+      ],
+      "duration": 98.6,
+      "assets": {
+        "mp4": {
+          "filename": "04-academic-operations.mp4",
+          "path": "v1/bd1631a6b836f45a/04-academic-operations.mp4",
+          "sha256": "bd1631a6b836f45a72ec1e73a06126f417e9c26857a8059866e5bc88caa80bc0",
+          "bytes": 4267724,
+          "mime": "video/mp4"
+        },
+        "vtt": {
+          "filename": "04-academic-operations.vtt",
+          "path": "v1/0d31fc1008218dc2/04-academic-operations.vtt",
+          "sha256": "0d31fc1008218dc224e5b5f4d6620294f2709e4cf6c7873ab0c4ddb105157cf2",
+          "bytes": 2418,
+          "mime": "text/vtt"
+        },
+        "srt": {
+          "filename": "04-academic-operations.srt",
+          "path": "v1/38a65b0895ff3739/04-academic-operations.srt",
+          "sha256": "38a65b0895ff37392cad627d36ce00eed14240e50543e21bee79bbd00d04156c",
+          "bytes": 2491,
+          "mime": "application/x-subrip"
+        }
+      },
+      "transcript": [
+        {
+          "title": "From program to enrolled class",
+          "text": "Academic teams connect the structure behind the learning experience. Registrars, department heads, and deans use the academic tools permitted by their role. The core path is department, program, curriculum, subject, class, and enrollment. Teaching and student views then use those relationships."
+        },
+        {
+          "title": "Make the program pathway clear",
+          "text": "Open Academics and select Curriculum. Choose the program to inspect its versions and subjects. Keep the curriculum version, units, and prerequisite relationships consistent before review. A generated draft can help prepare the structure, but formal approval and publication remain academic decisions."
+        },
+        {
+          "title": "Connect subjects, teachers, and rosters",
+          "text": "Use Classes and Enrollment to connect the subject offering, term, teacher, room, and enrolled students. Review the selected class before changing a roster. These relationships determine which course work the teacher manages and which published material the student can open."
+        },
+        {
+          "title": "Keep change requests visible",
+          "text": "Use Change requests to review proposed academic changes and their status. The workflow separates a proposal from its approval, and keeps the responsible reviewers in the process. Teachers can raise requests for their assigned context; authorized reviewers handle the decision rather than silently changing the curriculum."
+        },
+        {
+          "title": "Check the wider academic schedule",
+          "text": "Use Calendar to inspect the academic dates and class events within your scope. Open the details before adjusting a schedule. The platform checks supported room, teacher, and enrolled-student overlaps when saving timetable changes, helping the academic team keep one consistent schedule."
+        }
+      ]
+    },
+    {
+      "id": "Services",
+      "title": "Turn a signal into a next action",
+      "audience": "Advisor · Admissions · Finance · Support",
+      "roles": [
+        "advisor",
+        "admissions",
+        "finance",
+        "support"
+      ],
+      "duration": 118.3,
+      "assets": {
+        "mp4": {
+          "filename": "05-student-services.mp4",
+          "path": "v1/c40a8b8da8bea651/05-student-services.mp4",
+          "sha256": "c40a8b8da8bea651205482d3e51476f247024e3ecce3047887930c510087bbaa",
+          "bytes": 5215954,
+          "mime": "video/mp4"
+        },
+        "vtt": {
+          "filename": "05-student-services.vtt",
+          "path": "v1/229329f2c6f409a2/05-student-services.vtt",
+          "sha256": "229329f2c6f409a286a96617463c9e01fc6df842d2fc39339bc926dd2009e44e",
+          "bytes": 2956,
+          "mime": "text/vtt"
+        },
+        "srt": {
+          "filename": "05-student-services.srt",
+          "path": "v1/18cb94be907ec4fe/05-student-services.srt",
+          "sha256": "18cb94be907ec4feaf967689730eeaeb8242dddb363e7bc0741d177a296fc8d1",
+          "bytes": 3059,
+          "mime": "application/x-subrip"
+        }
+      },
+      "transcript": [
+        {
+          "title": "Help should have a clear next step",
+          "text": "Student services share the same portal. Advisors review student context, admissions teams manage the applicant pipeline, and finance or support staff organize the cases within their responsibilities. The useful pattern is to understand the situation, record the next action, and follow it through."
+        },
+        {
+          "title": "Read the context before acting",
+          "text": "Open Students or Alerts, then open the student record. Review the available academic and support signals, interactions, and existing cases. A risk signal is a reason for a human check-in, not an automatic judgment about the student or a diagnosis."
+        },
+        {
+          "title": "Draft a support plan with AI",
+          "text": "In Alerts, choose Plan. Edit the request so it describes the support you need, then draft the guidance. Review the suggested next steps and evidence before using them. The panel does not automatically change the student record, and Escape closes it without losing your place."
+        },
+        {
+          "title": "Give the follow-up an owner",
+          "text": "Open Cases to create or update the support record. Give it a clear title, category, priority, owner, and next step. Use Tasks for the follow-up work and record completion when it is done. Finance staff can follow the financial support case without turning an AI suggestion into a payment decision."
+        },
+        {
+          "title": "Keep applicants moving",
+          "text": "Admissions shows the applicant pipeline and the current stage of each record. Open the applicant context, check the requirements and next action, then use the supported stage transition. Keep outreach specific and helpful, and confirm the recorded result before treating the handoff as complete."
+        },
+        {
+          "title": "Prepare messages and track the work",
+          "text": "Use Messages for the communications and approval workflow available to your team. Draft the content, check the audience, and follow the review state. Reports can then help authorized staff inspect workload and outcomes. A drafted message or an AI reply is not proof of delivery or resolution."
+        }
+      ]
+    },
+    {
+      "id": "Leadership",
+      "title": "Guide the school with reviewed information",
+      "audience": "Owner · Admin · President · VP · Dean · Librarian",
+      "roles": [
+        "owner",
+        "admin",
+        "president",
+        "vice_president",
+        "dean",
+        "librarian"
+      ],
+      "duration": 122.33333333333333,
+      "assets": {
+        "mp4": {
+          "filename": "06-leadership-knowledge-and-access.mp4",
+          "path": "v1/e59bd8762cb5630b/06-leadership-knowledge-and-access.mp4",
+          "sha256": "e59bd8762cb5630be52eb0316cf1800194575b33c785f4e55607a85a0377c2b6",
+          "bytes": 5293143,
+          "mime": "video/mp4"
+        },
+        "vtt": {
+          "filename": "06-leadership-knowledge-and-access.vtt",
+          "path": "v1/a5e5b3609b72daeb/06-leadership-knowledge-and-access.vtt",
+          "sha256": "a5e5b3609b72daebc33b7268815d7fe317bae3491c8fcb4015ffdd32edfd27af",
+          "bytes": 2996,
+          "mime": "text/vtt"
+        },
+        "srt": {
+          "filename": "06-leadership-knowledge-and-access.srt",
+          "path": "v1/ccbaadf38099f693/06-leadership-knowledge-and-access.srt",
+          "sha256": "ccbaadf38099f6936c1a47059bf4280de83fc136c6b67bffe637376c17f901d5",
+          "bytes": 3093,
+          "mime": "application/x-subrip"
+        }
+      },
+      "transcript": [
+        {
+          "title": "A shared platform, distinct responsibilities",
+          "text": "Leadership sees the information its role permits. The president and vice president can inspect institutional context and reports; deans focus on academic oversight. Administrators and the protected owner govern access and operations. Librarians help keep the knowledge used by staff and AI accurate and reviewed."
+        },
+        {
+          "title": "Read evidence with its limits",
+          "text": "Open Reports to inspect the available operational summaries. Treat demonstration numbers as demonstration data. Advanced workload evidence stays separate: an AI answer alone does not establish a resolved request or a measured improvement. Use confirmed outcomes and an approved measurement process when evaluating results."
+        },
+        {
+          "title": "Keep the knowledge behind AI trustworthy",
+          "text": "Open Knowledge to manage the guidance available to the portal. Contributions and acquired documents move through review states. Check the source, audience, and version before publishing. A librarian or authorized reviewer helps ensure the assistant uses reviewed information within the signed-in user’s access."
+        },
+        {
+          "title": "Manage real accounts separately from roles",
+          "text": "In Users, search the actual accounts and review their status and assigned role. Role settings describe permission templates; they are not extra people. Use the authorized account workflow for changes. The platform protects the owner account and does not let another user become a second owner."
+        },
+        {
+          "title": "Use role preview responsibly",
+          "text": "The owner can preview a role from the account menu to inspect its interface. Preview changes the presentation, not the authority of the signed-in owner. For real verification, use a genuinely assigned account, as the teacher and student demonstrations in this series do."
+        },
+        {
+          "title": "Start with one real workflow",
+          "text": "Choose the chapter for your role and follow one complete task: prepare a lesson, finish an assessment, review an academic change, or close a support follow-up. S T U Nexus connects the work, while AI helps explain and prepare. People review the important decisions and keep the process accountable."
+        }
+      ]
+    }
+  ]
+}

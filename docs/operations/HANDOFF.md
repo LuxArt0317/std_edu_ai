@@ -1,5 +1,13 @@
 # Client handoff
 
+## In-app video help and Assistant — Issue #78
+
+Implementation is complete locally and awaiting final release verification. `/app/help` serves seven finished guides from private client storage, recommends chapters for the actual role, and includes captions, transcripts and downloads. Each of 21 published objects matches its source SHA-256; raw/editable captures and the ElevenLabs credential stay outside the app. Active profiles can mint hour-long links; anonymous/suspended profiles and client writes are denied.
+
+Assistant messages now use readable semantic colors, safe Markdown, responsive mode controls and a hidden upload field that cannot cause horizontal overflow. A real first-message persistence race and stale-history loads are corrected. Six light/dark/viewport states pass automated accessibility, wrapping, Escape/focus and page-error checks; text contrast is 5.60/9.32. All 45 E2E scenarios pass, plus 170 API/source tests, 15 units, build/assets, docs/dependency gates, ten public accessibility states and client backend/OpenAI verification. Eleven live research suites pass across serialized runs; bounded 200-request load probe has zero failures (shell p95 310 ms, campus 1582 ms). PDF provenance now records the installed parser version; the affected live acquisition check will be repeated after release.
+
+Database: 103 migrations / 101 RLS-enabled public tables. Two new migrations add private guide storage and narrow its link policy to active profiles, and extend protected fixture cleanup only to the exact client QA URL. Disposable fixtures are removed after each suite. [Current issue acceptance](../qa/ISSUE_COMPLETION.md) records unresolved gates: institutional owners/approved corpus, independent gold labels/consented human results, official physical/screen-reader route acceptance, operational signoff, scheduled source-refresh worker, and a production student-mail service. The user deferred unavailable human evidence and mail credentials. These issues remain open; no empirical result is inferred.
+
 ## Narrated video guides — Issue #77
 
 Six chapters and a combined 12m43s walkthrough are delivered locally under ignored `artifacts/tutorials/exports/`, with English ElevenLabs narration, live role demonstrations, graphics, SRT/VTT captions and a viewing gallery. Teacher and student chapters are prioritized; all fourteen roles are represented. The complete delivery ZIP includes an editable source/assets archive. Source is versioned in [media/tutorials](../../media/tutorials/README.md); [production/QA evidence](../qa/VIDEO_GUIDES.md) records actual checks and the remaining uninterrupted human playback acceptance limit.

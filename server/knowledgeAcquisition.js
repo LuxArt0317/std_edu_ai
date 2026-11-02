@@ -219,7 +219,7 @@ export async function extractPdfSections(bytes) {
     if (text) sections.push({ headingPath: [`Page ${pageNumber}`], content: text, sourceLocator: `pdf:page:${pageNumber}` })
   }
   if (!sections.length) throw new Error('The PDF has no extractable text and requires reviewed OCR before ingestion.')
-  return { title: cleanText(metadata?.info?.Title), sections, pageCount: document.numPages }
+  return { title: cleanText(metadata?.info?.Title), sections, pageCount: document.numPages, parserVersion: `pdfjs-${pdfjs.version}@1` }
 }
 
 export async function detectAndExtractSource(bytes, declaredMimeType, sourceUrl = '') {
@@ -230,7 +230,7 @@ export async function detectAndExtractSource(bytes, declaredMimeType, sourceUrl 
   const mimeType = detected?.mime || declared
   if (!acceptedMimeTypes.has(mimeType)) throw new Error(`Unsupported source type: ${mimeType || 'unknown'}.`)
   if (detected && declared && declared !== 'application/octet-stream' && detected.mime !== declared) throw new Error('The file signature does not match its declared media type.')
-  if (mimeType === 'application/pdf') return { ...(await extractPdfSections(bytes)), mimeType, parserVersion: 'pdfjs-6.1.200@1' }
+  if (mimeType === 'application/pdf') return { ...(await extractPdfSections(bytes)), mimeType }
   const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes)
   if (mimeType === 'text/html') return { ...extractHtmlSections(text, sourceUrl), mimeType, parserVersion: 'cheerio-1.2.0@1' }
   return { ...extractTextSections(text, mimeType), mimeType, parserVersion: 'stu-text-structure@1' }
