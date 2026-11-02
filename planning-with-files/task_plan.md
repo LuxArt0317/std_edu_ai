@@ -101,3 +101,5 @@ Scope: continue the UI-only reconstruction. Current signed-in source role is the
 User authorized use of the existing stu.best domain for this Vercel website. Keep the apex hostname, existing Spaceship nameservers and unrelated records. The original registrar tab has an unsaved custom-nameserver draft; leave it untouched and use a separate management tab.
 
 #81 verified release: runtime ae66d9c, Vercel 3cV4TGGQMokAyqeogtXCKVfwJkA7 Ready, quality 41482095220 successful. Canonical URL, HTTPS/redirect, public/portal navigation, asset graph/checksums, protected client backend and new/legacy/untrusted origin checks pass. #79/#80 source is published; both issues CLOSED. Seven prior acceptance issues stay open.
+
+Final source verification: d9ba36b / Vercel 43s3ZCUGEcHh53fY52iBGv5DYXCX Ready; quality 41482854168 successful; #81 CLOSED.
