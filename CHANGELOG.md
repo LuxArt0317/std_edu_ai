@@ -1,6 +1,12 @@
 # Changelog
 ## Unreleased
 
+### Narrated role video guides (Issue #77)
+
+- Add six English-narrated chapters and a 12m43s combined walkthrough using actual demo-role navigation, Remotion graphics and 251 aligned captions. Teacher/student workflows receive the most detail; all fourteen roles are covered.
+- Deliver MP4/SRT/VTT files, a responsive viewing gallery, and ready-to-watch/editable-asset archives. Keep ElevenLabs credentials private and tooling isolated from the application.
+- Verify full decode/playback, every narration clip against the master, zero black frames and desktop/mobile delivery accessibility; remove disposable records/accounts. Human uninterrupted playback acceptance remains a documented client review step.
+
 ### Collapsible school sidebar (Issue #76)
 
 - Published 10fa59c to Vercel; quality CI, twelve production sidebar states and complete client backend checks pass.

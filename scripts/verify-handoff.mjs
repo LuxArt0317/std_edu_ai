@@ -17,7 +17,7 @@ function walk(directory) {
   })
 }
 const markdown = walk('.').filter(file => file.endsWith('.md'))
-for (const file of markdown) assert.ok(!file.includes(path.sep) || file.startsWith('docs/') || file.startsWith('planning-with-files/'), `${file}: move documentation out of runtime/provider/test folders`)
+for (const file of markdown) assert.ok(!file.includes(path.sep) || file.startsWith('docs/') || file.startsWith('planning-with-files/') || /^media\/tutorials\/(README|SETUP|PROJECT)\.md$/.test(file), `${file}: move documentation out of runtime/provider/test folders`)
 const documents = markdown.filter(file => !file.startsWith('planning-with-files/archive/') && !file.startsWith('docs/archive/'))
 for (const file of documents) {
   const source = readFileSync(file, 'utf8')

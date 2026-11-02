@@ -18,6 +18,7 @@ A bilingual university website and authenticated school platform built with Reac
 - [Infrastructure identifiers and access](docs/operations/INFRASTRUCTURE.md)
 - [Documentation index](docs/README.md)
 - [Release history](CHANGELOG.md)
+- [Narrated teacher, student and all-role video guides](media/tutorials/README.md)
 
 The client repository is `LuxArt0317/std_edu_ai`. Non-secret deployment identifiers live in [deployment.json](deployment.json). Environment values, passwords, and provider credentials are supplied outside Git.
 

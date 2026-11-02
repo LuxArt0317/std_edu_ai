@@ -18,6 +18,7 @@ STU Edu AI combines a public university website with STU Nexus, an authenticated
 | `scripts/` | Build, documentation, migration, and evidence verification tools |
 | `tests/` | API contracts, integration, accessibility, and performance checks |
 | `public/` | Static assets |
+| `media/tutorials/` | Isolated Remotion/ElevenLabs video-guide tooling; excluded from app runtime |
 | `docs/` | Operations, product, architecture, design, and research documentation |
 | `planning-with-files/` | Single issue-linked work plan, findings, progress, and state |
 | `agent/` and `.codex/` | Historical research-evidence manifest and its optional completion hooks |
@@ -50,3 +51,7 @@ The taste-led overhaul keeps the existing shadcn/Radix and Tailwind stack, adds 
 ## Browser routing
 
 React Router 8 owns authenticated navigation: `/signin` is the sign-in and password screen, `/app` is the overview, and `/app/<section>` supports direct links and browser history. `/crm` remains a compatibility entry for old links and old Supabase recovery links. New confirmation/recovery links use `/signin`.
+
+## Narrated video guides
+
+The isolated [media package](media/tutorials/PROJECT.md) adds Remotion 4.0.539 rendering and narration/caption tooling without changing application dependencies. [Video setup](media/tutorials/SETUP.md) covers private credential storage, synthetic role recordings, rendering and cleanup.

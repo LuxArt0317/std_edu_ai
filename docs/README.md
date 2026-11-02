@@ -22,6 +22,7 @@
 - [Tooling and verification commands](reference/TOOLING.md)
 - [Test suites and fixture boundaries](reference/TESTING.md)
 - [Role and workflow audit](qa/WORKFLOW_AUDIT.md)
+- [Video guide production and QA](qa/VIDEO_GUIDES.md)
 
 ## Design, research, and historical records
 

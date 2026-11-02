@@ -1,0 +1,43 @@
+{
+  "name": "stu-nexus-tutorials",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.tsx --public-dir ../../artifacts/tutorials/assets --props ../../artifacts/tutorials/assets/manifest.json",
+    "narrate": "node scripts/run.mjs narrate",
+    "render": "node scripts/run.mjs render",
+    "verify": "node scripts/run.mjs verify",
+    "capture": "node scripts/run.mjs capture",
+    "finalize": "node scripts/run.mjs finalize",
+    "cleanup": "node scripts/run.mjs cleanup",
+    "typecheck": "tsc --noEmit",
+    "setup:demo": "node scripts/run.mjs setup-demo",
+    "gallery": "node scripts/run.mjs gallery",
+    "qc:speech": "node scripts/run.mjs scribe-qc",
+    "verify:roles": "node scripts/run.mjs verify-roles",
+    "package": "node scripts/run.mjs package",
+    "verify:audio": "node scripts/run.mjs verify-audio",
+    "prepare:assets": "node scripts/run.mjs prepare",
+    "verify:gallery": "node scripts/run.mjs verify-gallery"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.539",
+    "@remotion/cli": "4.0.539",
+    "@remotion/renderer": "4.0.539",
+    "remotion": "4.0.539",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.3",
+    "@types/react-dom": "19.2.3",
+    "typescript": "~6.0.2"
+  },
+  "overrides": {
+    "zod": "4.6.6"
+  },
+  "engines": {
+    "node": "24.x"
+  }
+}

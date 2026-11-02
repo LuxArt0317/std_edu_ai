@@ -52,3 +52,11 @@ Historical phase checklists: [planning history](../docs/archive/PLANNING_HISTORY
 
 - [x] Push the verified sidebar commit through the client Git integration and confirm the exact Vercel deployment.
 - [x] Verify live collapse/persistence/navigation/mobile behavior, backend checks and quality CI; update release records.
+
+## Narrated pitch and role tutorials [Issue #77]
+
+- [x] Find/validate the local ElevenLabs key and save it privately in an ignored owner-readable project env file.
+- [x] Map six chaptered videos to every role/process; prioritize teacher and student depth and verify claims against actual app behavior.
+- [x] Capture actual live role navigation/actions using isolated synthetic records, generate narration/captions and build explanatory Remotion graphics.
+- [x] Render individual chapters and a combined master; inspect audio, captions, transitions, privacy, technical output and role coverage; remove temporary accounts/records.
+- [x] Update handoff, scripts, setup/QA records, issue status and commit reproducible source without credentials or generated media.

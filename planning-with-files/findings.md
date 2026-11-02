@@ -133,3 +133,7 @@ The Alerts Plan action set selectedStudentId (opening a modal StudentDrawer) and
 
 - Sidebar #76: existing shadcn supports icon collapse, but the desktop trigger was hidden and the mobile-only legacy school-menu rule also needed overriding. Read the existing seven-day sidebar cookie at portal mount; its provider already writes the preference.
 - Radix tooltips must mount only for the collapsed desktop icon rail. Mounting visually hidden tooltips on mobile let the first Escape dismiss an invisible tooltip instead of the navigation sheet. Conditional mounting preserves direct mobile Escape/focus restoration.
+
+## Narrated video guides — Issue #77
+
+Six grouped chapters provide teacher/student depth without a single long onboarding dependency. Live recordings use actual trusted role accounts and synthetic records. Narration is cached by text/voice/settings; frame-based captions follow provider alignment. Long render instability was resolved with independent short-scene renders. Final packet-copy AAC concatenation caused accumulating drift; normalized PCM concatenation and one AAC master encode eliminated it (all 40 source matches within 0.31 ms). Delivery explicitly converts to limited-range yuv420p. The final gallery and archives exclude credentials and authenticated artifacts; source and safe assets remain editable. Human uninterrupted playback acceptance is a documented review limit.
