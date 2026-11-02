@@ -6,7 +6,7 @@ School Affairs provides the future student authentication/data boundary. STU Nex
 
 `/school-affairs`, `/school-affairs/login`, `/school-affairs/signed-out` and `/ePortal/login.asp` show the reconstructed logged-out entry unless the user explicitly opens the demo. It uses observed public logo/background/gym/campus assets and local manual photo controls. Real account/password/CAPTCHA inputs are disabled; a clearly labeled DEMO graphic is not a live challenge. The preview flag expires after thirty minutes, has no server authority, clears on exit, and leaves Nexus sessions untouched. Private deep links cannot bypass the entry after logout. Browser storage failure falls back to in-memory demo navigation.
 
-The initial corpus remains22 published documents/67 chunks, now19 public references/58 chunks and3 staff-only Nexus guides/9 chunks. The public navigation guide explicitly separates School Affairs from knowledge management. Revised versions were ingested/reviewed/published; earlier versions remain historical. No new schema or authentication-policy change was made.
+The initial corpus remains 22 published documents/67 chunks, now 19 public references/58 chunks and 3 staff-only Nexus guides/9 chunks. The public navigation guide explicitly separates School Affairs from knowledge management. Revised versions were ingested/reviewed/published; earlier versions remain historical. No new schema or authentication-policy change was made.
 
 The real School Affairs account integration remains pending a user decision: school-approved login/API versus independent website student accounts. Neither official browser login nor a demo UI flag is silently converted to student authority. This required clarification does not block the corrected public UI and knowledge-manager default. Issue #83 remains open for that integration decision.
 
@@ -62,3 +62,5 @@ Deployed-model acceptance at `https://stu.best` passes ten checks: four public s
 The strengthened twelve-state public hit-test/follow-up/Escape check passes after waiting for the normal Sheet opening animation; all ten public accessibility states pass again. The UI follow-up changes stacking only; deployed-model/API behavior is unchanged.
 
 Final header inset/composer sizing also passes the twelve-state public regression. The latest live SQL cleanup audit reports one real owner, zero QA profiles and zero orphan auth identities. Deployment/CI identifiers and the final source commit are recorded on Issue #82; earlier runtime IDs above describe the corresponding verified checkpoint.
+
+Issue #83 release verification: runtime 560b9fd / Vercel 6FijU2pyfjGRGLSVnfZiArEJk5gt Ready; quality 41501070723 passed. Seven production routes/50 assets, real public School Affairs handoff/registrar answer, browser demo entry/logout and anonymous exclusion of all three internal guide IDs pass. The private student-auth integration remains pending the unanswered user choice.
