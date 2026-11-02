@@ -285,7 +285,7 @@ export default async function handler(
   try {
     const source = await client
       .from("knowledge_sources")
-      .select("id,active,canonical_url")
+      .select("id,active,canonical_url,crawl_policy")
       .eq("id", input.sourceId)
       .single();
     if (source.error || !source.data)
@@ -296,6 +296,8 @@ export default async function handler(
       throw new Error(
         "The governed source is inactive and cannot be ingested.",
       );
+    if (input.inputMode === "url" && source.data.crawl_policy === "prohibited")
+      throw new Error("Automatic URL acquisition is disabled for this source. Import reviewed content or change its approved crawl policy.");
     const sourceHost = new URL(
       source.data.canonical_url,
     ).hostname.toLowerCase();

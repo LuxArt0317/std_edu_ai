@@ -21,6 +21,7 @@
 - [API, database and Edge Functions](reference/BACKEND.md)
 - [Tooling and verification commands](reference/TOOLING.md)
 - [Test suites and fixture boundaries](reference/TESTING.md)
+- [Connected Assistant architecture, corpus and QA](qa/CONNECTED_ASSISTANT.md)
 - [Role and workflow audit](qa/WORKFLOW_AUDIT.md)
 - [Video guide production and QA](qa/VIDEO_GUIDES.md)
 - [Public website reconstruction and preview QA](qa/PUBLIC_SITE_REBUILD.md)

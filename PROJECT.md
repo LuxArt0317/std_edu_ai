@@ -59,3 +59,7 @@ React Router 8 owns authenticated navigation: `/signin` is the sign-in and passw
 The isolated [media package](media/tutorials/PROJECT.md) adds Remotion 4.0.539 rendering and narration/caption tooling without changing application dependencies. [Video setup](media/tutorials/SETUP.md) covers private credential storage, synthetic role recordings, rendering and cleanup.
 
 Assistant replies use `react-markdown` with raw HTML and remote images disabled, safe links, and semantic text/list formatting. Video guides load signed delivery assets from the private client tutorial bucket; rendering and provider credentials remain outside the application bundle.
+
+## Connected Assistant
+
+The shared public chat, server-loaded account context and governed public/internal retrieval are documented in [Connected Assistant](docs/qa/CONNECTED_ASSISTANT.md). The dated initial corpus is versioned under `docs/research/`; account records and provider credentials are never bundled into that corpus.

@@ -1,6 +1,7 @@
 import { lazy, useEffect } from "react";
 import { Link, Navigate, Route, Routes, useLocation } from "react-router";
 const App = lazy(() => import("../../App"));
+import { PublicAssistant } from "./PublicAssistant";
 import { PreviewNotice } from "./site/PreviewNotice";
 const StudentDirectory = lazy(() =>
   import("./site/StudentDirectory").then((module) => ({
@@ -80,6 +81,7 @@ export default function PublicSite() {
           }
         />
       </Routes>
+      <PublicAssistant />
     </div>
   );
 }

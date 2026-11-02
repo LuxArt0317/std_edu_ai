@@ -625,7 +625,11 @@ test('grade upload opens from the keyboard and notification/quiz dialogs dismiss
   const bell=page.getByRole('button',{name:'Notifications',exact:true});await bell.click()
   await expect(page.getByRole('dialog',{name:'Notifications',exact:true})).toBeVisible()
   await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0);await expect(bell).toBeFocused()
-  await page.goto('/app/assessments');const preview=page.getByRole('button',{name:/Preview assessment/}).first();await preview.click()
+  const faculty=await roleClient('faculty');
+  const quizTitle=state.marker+' keyboard quiz';
+  const created=await faculty.rpc('create_lms_assessment',{p_section_id:state.ids.section,p_title:quizTitle,p_instructions:'Choose an option.',p_type:'quiz',p_due_at:null,p_max_score:1,p_publish:true,p_questions:[{prompt:'Which is correct?',points:1,options:['A','B'],correctOption:1,explanation:'A is correct.'}]});
+  expect(created.error).toBeNull();
+  await page.goto('/app/assessments');const preview=page.locator('article').filter({has:page.getByRole('heading',{name:quizTitle,exact:true})}).getByRole('button',{name:/Preview assessment/});await preview.click()
   const quiz=page.getByRole('dialog');await expect(quiz).toBeVisible()
   const label=quiz.locator('.quiz-options label').first()
   expect(await label.evaluate(el=>getComputedStyle(el).display)).toBe('flex')

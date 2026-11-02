@@ -103,3 +103,13 @@ User authorized use of the existing stu.best domain for this Vercel website. Kee
 #81 verified release: runtime ae66d9c, Vercel 3cV4TGGQMokAyqeogtXCKVfwJkA7 Ready, quality 41482095220 successful. Canonical URL, HTTPS/redirect, public/portal navigation, asset graph/checksums, protected client backend and new/legacy/untrusted origin checks pass. #79/#80 source is published; both issues CLOSED. Seven prior acceptance issues stay open.
 
 Final source verification: d9ba36b / Vercel 43s3ZCUGEcHh53fY52iBGv5DYXCX Ready; quality 41482854168 successful; #81 CLOSED.
+
+## Connected school Assistant [Issue #82; related #63, #65, #71]
+
+- [x] Audit public/internal retrieval, current corpus, role context, actions, source governance and end-to-end coverage.
+- [x] Load trusted signed-in context server-side with existing RLS, shared eligible retrieval/citations, and robust public/signed-in chat behavior.
+- [x] Populate and verify a broad dated official school/site corpus, with /app/knowledge management, source refresh and honest data-access boundaries.
+- [x] Verify account isolation, public/private/stale/injection cases, meaningful questions and confirmed actions; run unit/API/E2E/release gates.
+- [ ] Document supported coverage and unavailable official/private data; update issue/state, commit and verify production.
+
+User requests a complete connected Assistant. Preserve existing account permissions, confirmation-gated mutations and school-login isolation; do not fabricate records, official approvals or perfect coverage.

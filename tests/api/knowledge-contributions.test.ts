@@ -6,7 +6,7 @@ const migration = fs.readFileSync("supabase/migrations/20260718230958_knowledge_
 const ui = fs.readFileSync("src/features/crm/CRMApp.tsx", "utf8");
 const repository = fs.readFileSync("src/features/crm/crmRepository.ts", "utf8");
 const platformRepository = fs.readFileSync("src/features/school/platformRepository.ts", "utf8");
-const platformAi = fs.readFileSync("src/features/school/platformAi.ts", "utf8");
+const platformAi = fs.readFileSync("server/assistantContext.js", "utf8");
 
 test("knowledge contributions retain source, audience, ownership, and review context", () => {
   for (const field of ["source_type", "source_event_id", "source_profile_id", "section_id", "audience_scope", "audience_roles", "reviewed_by", "review_notes"])
@@ -27,7 +27,7 @@ test("knowledge publisher links user, class, and campus events and routes review
 
 test("verified governed knowledge grounds Nexus", () => {
   assert.match(platformRepository, /from\("knowledge_articles"\)/);
-  assert.match(platformAi, /context\.data\.knowledge/);
-  assert.match(platformAi, /item\.status === "verified"/);
-  assert.match(platformAi, /content:item\.content\.slice\(0,4000\)/);
+  assert.match(platformAi, /knowledge:\s*\[\s*"knowledge_articles"/);
+  assert.match(platformAi, /status=eq\.verified/);
+  assert.match(platformAi, /slice\(0,\s*4000\)/);
 });

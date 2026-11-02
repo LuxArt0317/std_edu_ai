@@ -41,6 +41,7 @@ export type GovernedDocument = {
   sensitivity: string;
   audience_scope: string;
   audience_roles: string[];
+  section_id: string | null;
   reviewer_profile_id: string | null;
   reviewed_at: string | null;
   published_at: string | null;
@@ -104,6 +105,7 @@ export type SourceInventoryReport = {
   duplicates: number;
 };
 export type GovernanceDirectory = {
+  sections: Array<{id:string;label:string}>;
   profiles: Array<{ id: string; full_name: string; role: string }>;
   departments: Array<{ id: string; code: string; name: string }>;
 };
@@ -119,7 +121,7 @@ function message(error: { message: string } | null) {
 
 export async function loadKnowledgeGovernance() {
   const db = client();
-  const [sources, documents, candidates, inventoryReport, profiles, departments] = await Promise.all([
+  const [sources, documents, candidates, inventoryReport, profiles, departments, sections] = await Promise.all([
     db
       .from("knowledge_sources")
       .select("*")
@@ -127,7 +129,7 @@ export async function loadKnowledgeGovernance() {
     db
       .from("knowledge_documents")
       .select(
-        "id,source_id,logical_key,title,domain,document_type,language,source_url,content_checksum,source_published_at,source_updated_at,effective_at,expires_at,version,supersedes_id,extraction_status,review_status,publication_status,sensitivity,audience_scope,audience_roles,reviewer_profile_id,reviewed_at,published_at,review_due_at,metadata,created_at,updated_at",
+        "id,source_id,logical_key,title,domain,document_type,language,source_url,content_checksum,source_published_at,source_updated_at,effective_at,expires_at,version,supersedes_id,extraction_status,review_status,publication_status,sensitivity,audience_scope,audience_roles,section_id,reviewer_profile_id,reviewed_at,published_at,review_due_at,metadata,created_at,updated_at",
       )
       .order("created_at", { ascending: false }),
     db
@@ -143,6 +145,7 @@ export async function loadKnowledgeGovernance() {
       .in("role", ["owner", "admin", "librarian"])
       .order("full_name"),
     db.from("departments").select("id,code,name").order("code"),
+    db.from("course_sections").select("id,section_code,courses(code,title)").order("section_code"),
   ]);
   message(sources.error);
   message(documents.error);
@@ -150,12 +153,14 @@ export async function loadKnowledgeGovernance() {
   message(inventoryReport.error);
   message(profiles.error);
   message(departments.error);
+  message(sections.error);
   return {
     sources: (sources.data || []) as GovernedSource[],
     documents: (documents.data || []) as GovernedDocument[],
     candidates: (candidates.data || []) as SourceCandidate[],
     inventoryReport: (inventoryReport.data || []) as SourceInventoryReport[],
     directory: {
+      sections:(sections.data||[]).map((section: {id:string;section_code:string;courses?:{code?:string;title?:string}|null})=>({id:section.id,label:`${section.courses?.code||section.courses?.title||"Class"} · ${section.section_code}`})),
       profiles: (profiles.data || []) as GovernanceDirectory["profiles"],
       departments: (departments.data ||
         []) as GovernanceDirectory["departments"],
@@ -260,6 +265,8 @@ export async function ingestGovernedDocument(input: {
   expiresAt?: string;
   reviewDueAt: string;
   audienceScope: string;
+  audienceRoles?:string[];
+  sectionId?:string;
   sensitivity: string;
 }) {
   const db = client();
@@ -285,6 +292,8 @@ export async function ingestGovernedDocument(input: {
     expiresAt: input.expiresAt ? new Date(input.expiresAt).toISOString() : null,
     reviewDueAt: new Date(input.reviewDueAt).toISOString(),
     audienceScope: input.audienceScope,
+    audienceRoles: input.audienceScope==='role'?input.audienceRoles||[]:[],
+    sectionId: input.audienceScope==='class'?input.sectionId||null:null,
     sensitivity: input.sensitivity,
   };
   if (input.inputMode === "content") payload.content = input.content || "";
@@ -354,8 +363,12 @@ export async function updateDocumentGovernance(
     reviewDueAt: string;
     sensitivity: string;
     audienceScope: string;
+    audienceRoles?:string[];
+    sectionId?:string;
   },
 ) {
+  if(input.audienceScope==='role'&&!input.audienceRoles?.length)throw new Error('Choose at least one allowed role.');
+  if(input.audienceScope==='class'&&!input.sectionId)throw new Error('Choose the class that can read this document.');
   const result = await client()
     .from("knowledge_documents")
     .update({
@@ -374,6 +387,8 @@ export async function updateDocumentGovernance(
       review_due_at: new Date(input.reviewDueAt).toISOString(),
       sensitivity: input.sensitivity,
       audience_scope: input.audienceScope,
+      audience_roles:input.audienceScope==='role'?input.audienceRoles||[]:[],
+      section_id:input.audienceScope==='class'?input.sectionId:null,
     })
     .eq("id", id)
     .eq("publication_status", "draft");
@@ -407,4 +422,8 @@ export async function rollbackDocument(id: string, reason: string) {
   });
   message(result.error);
   return result.data;
+}
+
+export async function refreshGovernedDocument(document:GovernedDocument){
+  return ingestGovernedDocument({sourceId:document.source_id,title:document.title,logicalKey:document.logical_key,sourceUrl:document.source_url,domain:document.domain,documentType:document.document_type,language:document.language,inputMode:'url',effectiveAt:document.effective_at||new Date().toISOString(),expiresAt:document.expires_at||undefined,reviewDueAt:new Date(Date.now()+30*86400000).toISOString(),audienceScope:document.audience_scope,audienceRoles:document.audience_roles,sectionId:document.section_id||undefined,sensitivity:document.sensitivity});
 }

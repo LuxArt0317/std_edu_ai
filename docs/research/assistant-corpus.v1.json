@@ -1,0 +1,232 @@
+{
+  "version": 1,
+  "preparedOn": "2026-11-03",
+  "scope": "Curated public references and client app guidance; no school login or private student data",
+  "limitations": [
+    "Live official pages currently fail DNS/403; existing browser captures and explicitly dated official index extracts are used.",
+    "Headlines are snapshots, not full notices or an ongoing live feed.",
+    "No claim of complete school policy coverage or institutional approval."
+  ],
+  "documents": [
+    {
+      "key": "school-contact",
+      "title": "樹德科技大學聯絡方式 · Shu-Te University contact",
+      "domain": "administrative_services",
+      "url": "https://www.stu.edu.tw/",
+      "capturedOn": "2026-11-02",
+      "method": "Official public page visible in existing browser capture",
+      "validForDays": 30,
+      "content": "樹德科技大學 Shu-Te University (STU) is located at 高雄市燕巢區橫山路59號, No.59 Hengshan Road, Yanchao District, Kaohsiung, Taiwan. The school's main telephone is (+886) 7-615-8000 (local 07-6158000). For the correct office use the official administrative directory https://www.stu.edu.tw/行政單位/ or the official contact channel https://sites.google.com/stu.edu.tw/stu-contacts/. This is Shu-Te University in Kaohsiung, not Southern Taiwan University of Science and Technology (stust.edu.tw)."
+    },
+    {
+      "key": "student-services-0",
+      "title": "資訊系統 · Information systems, student email, TronClass, Moodle and Wi-Fi",
+      "domain": "student_services",
+      "url": "https://www.stu.edu.tw/在校學生/",
+      "capturedOn": "2026-11-02",
+      "method": "Official public page visible in existing browser capture",
+      "validForDays": 30,
+      "content": "Official student directory section: 資訊系統. Information systems, student email, TronClass, Moodle and Wi-Fi.\n校務資訊系統: https://info.stu.edu.tw/ePortal/login.asp\n學生Gmail: https://mail.google.com/a/stu.edu.tw\nTronClass創課(遠距教學): https://tc.stu.edu.tw/\nMoodle數位教材網: https://dtm.stu.edu.tw/login/index.php\nGO！服務: https://go.stu.edu.tw/\n宿網報修: https://www.ecc.stu.edu.tw/%e5%ad%b8%e7%94%9f%e5%ae%bf%e8%88%8d%e7%b6%b2%e8%b7%af%e5%a0%b1%e4%bf%ae/\n無線網路: https://help.ecc.stu.edu.tw/wireless-setting/\n宿網管理系統: https://dorm.stu.edu.tw/\n教學文件網站: http://help.ecc.stu.edu.tw/\n密碼遺忘: https://www.ecc.stu.edu.tw/forget-password-student/\n兩步驟驗證重置: https://www.ecc.stu.edu.tw/stu2fchange/\n密碼變更: https://sso.stu.edu.tw/chpswd/\nThese are official service destinations; this app cannot retrieve personal records from those systems or submit school transactions. Access may require the school-issued account. Follow the linked service for current requirements, deadlines or availability."
+    },
+    {
+      "key": "student-services-1",
+      "title": "課程學習 · Courses, grades, course maps, registration and academic calendar",
+      "domain": "academic_rules",
+      "url": "https://www.stu.edu.tw/在校學生/",
+      "capturedOn": "2026-11-02",
+      "method": "Official public page visible in existing browser capture",
+      "validForDays": 30,
+      "content": "Official student directory section: 課程學習. Courses, grades, course maps, registration and academic calendar.\n當學期課程查詢: https://info.stu.edu.tw/ACA/student/QueryAGECourse/index.asp\n歷年課程查詢: https://info.stu.edu.tw/ACA/teacher/QryCoursedept/qrydeptCourse.asp?lt=1\n必修科目查詢: https://info.stu.edu.tw/ACA/teacher/QryCoursedept/qrydeptCourse.asp?lt=1\n課程地圖: https://info.stu.edu.tw/ACA/student/CM/cm.asp\n歷程檔案系統: http://infosys.stu.edu.tw/infosys.stu.edu.tw/StuSEP/Home/IndexTutorStuSEP/Home/IndexTutor\n課程查詢系統: https://info.stu.edu.tw/ACA/student/QueryAGECourse/index.asp\n歷年課程規劃: https://info.stu.edu.tw/ACA/teacher/QryCoursedept/qrydeptCourse.asp?lt=1\n學分學程查詢: https://info.stu.edu.tw/ACA/teacher/QryIntraCourse/qryIntraCourse.asp?lt=1\n課程地圖查詢: https://info.stu.edu.tw/ACA/student/CM/cm.asp\n替代科目查詢: https://info.stu.edu.tw/ACA/student/qryCOURSEKD/qryCourseKindAdmit.asp\n選課查詢: https://www.aca.stu.edu.tw/%E9%81%B8%E8%AA%B2%E8%B3%87%E8%A8%8A/\n成績查詢: https://www.aca.stu.edu.tw/2024/02/01/%e5%ad%b8%e6%9c%9f%e6%88%90%e7%b8%be%e9%96%8b%e6%94%be%e6%9f%a5%e8%a9%a2%e5%8f%8a%e7%94%b3%e8%ab%8b%e5%88%97%e5%8d%b0/\n課程大綱查詢: https://info.stu.edu.tw/ACA/teacher/Syllabus/MainCoursequery.asp\n暑修資訊: https://www.aca.stu.edu.tw/%e6%9a%91%e6%9c%9f%e9%96%8b%e8%aa%b2/\n在學證明: The official page shows this label without a link; no destination is verified.\n行事曆(學生): https://www.aca.stu.edu.tw/%e8%a1%8c%e4%ba%8b%e6%9b%86%ef%bd%9ccalendar/\n教學意見調查系統: https://www.aca.stu.edu.tw/2019/06/13/%e6%95%99%e5%ad%b8%e6%84%8f%e8%a6%8b%e5%8f%8d%e6%87%89%e7%ae%a1%e9%81%93%e5%ae%a3%e5%b0%8e/\n學生選課系統: https://www.aca.stu.edu.tw/%E9%81%B8%E8%AA%B2%E8%B3%87%E8%A8%8A/\nMoodle數位教材網: https://dtm.stu.edu.tw/login/index.php\nTronClass創課（遠距教學）: https://tc.stu.edu.tw/\n一般安全衛生教育: https://elearning.stu.edu.tw/course/index.php?categoryid=25\nThese are official service destinations; this app cannot retrieve personal records from those systems or submit school transactions. Access may require the school-issued account. Follow the linked service for current requirements, deadlines or availability."
+    },
+    {
+      "key": "student-services-2",
+      "title": "生活資訊 · Student life, leave, dormitories, transport, health and safety",
+      "domain": "student_services",
+      "url": "https://www.stu.edu.tw/在校學生/",
+      "capturedOn": "2026-11-02",
+      "method": "Official public page visible in existing browser capture",
+      "validForDays": 30,
+      "content": "Official student directory section: 生活資訊. Student life, leave, dormitories, transport, health and safety.\n校園公車: https://things.stu.edu.tw/%e4%ba%a4%e9%80%9a%e8%bb%8a%e8%b3%87%e8%a8%8a/\n停車證申辦: https://things.stu.edu.tw/%e5%81%9c%e8%bb%8a%e8%ad%89%e7%94%b3%e8%be%a6%e6%b5%81%e7%a8%8b/\n場地借用: https://info.stu.edu.tw/swd/placeBorrow/qryClassroom.asp\n學生餐廳: https://about.stu.edu.tw/#menu2\n宿舍申請: https://omh.sao.stu.edu.tw/%e7%94%b3%e8%ab%8b-%e6%9b%b4%e6%8f%9b-%e9%80%80%e5%ae%bf/\n學生請假: https://life.sao.stu.edu.tw/%e8%ab%8b%e5%81%87%e6%b5%81%e7%a8%8b%e8%aa%aa%e6%98%8e/\n學生兵役: https://life.sao.stu.edu.tw/%e5%ad%b8%e7%94%9f%e5%85%b5%e5%bd%b9/\n校外賃居: https://life.sao.stu.edu.tw/%e6%a0%a1%e5%a4%96%e8%b3%83%e5%b1%85/\n線上報修: https://infosys.stu.edu.tw/WebRpg/Login/AspLogin/1\n校園安全: https://www.ssc.stu.edu.tw/\n校園友善地圖: The official page shows this label without a link; no destination is verified.\n社團介紹: https://activity.sao.stu.edu.tw/%e6%b4%bb%e5%8a%9b%e7%a4%be%e5%9c%98%e4%bb%8b%e7%b4%b9/\n學生團體保險: https://health.sao.stu.edu.tw/%e5%ad%b8%e7%94%9f%e5%9c%98%e9%ab%94%e4%bf%9d%e9%9a%aa/\n學生健康檢查: https://health.sao.stu.edu.tw/%e5%81%a5%e5%ba%b7%e6%aa%a2%e6%9f%a5/\n線上預約諮商: https://share.google/1XnqrRTKQrXy7DPCM\n全校分機表: https://www.stu.edu.tw/%E5%88%86%E6%A9%9F%E8%A1%A8/\nThese are official service destinations; this app cannot retrieve personal records from those systems or submit school transactions. Access may require the school-issued account. Follow the linked service for current requirements, deadlines or availability."
+    },
+    {
+      "key": "student-services-3",
+      "title": "獎助學金資源 · Scholarships, tuition reductions, aid and student loans",
+      "domain": "student_services",
+      "url": "https://www.stu.edu.tw/在校學生/",
+      "capturedOn": "2026-11-02",
+      "method": "Official public page visible in existing browser capture",
+      "validForDays": 30,
+      "content": "Official student directory section: 獎助學金資源. Scholarships, tuition reductions, aid and student loans.\n獎助學金資訊: https://life.sao.stu.edu.tw/%e7%8d%8e%e5%8a%a9%e5%ad%b8%e9%87%91/\n教育部學雜費減免: https://life.sao.stu.edu.tw/%e6%95%99%e8%82%b2%e9%83%a8%e5%ad%b8%e9%9b%9c%e8%b2%bb%e6%b8%9b%e5%85%8d/\n急難慰助金: https://life.sao.stu.edu.tw/%e6%80%a5%e9%9b%a3%e6%95%91%e5%8a%a9/\n弱勢助學: https://life.sao.stu.edu.tw/%e5%bc%b1%e5%8b%a2%e5%8a%a9%e5%ad%b8/\n就學貸款: https://life.sao.stu.edu.tw/%e5%b0%b1%e5%ad%b8%e8%b2%b8%e6%ac%be/\n完善就學勵學金專區: https://www.sao.stu.edu.tw/%e9%ab%98%e6%95%99%e5%8b%b5%e5%ad%b8%e9%87%91-\n行政院減免學雜費拉近方案: https://life.sao.stu.edu.tw/%e8%a1%8c%e6%94%bf%e9%99%a2%e6%b8%9b%e5%85%8d%e5%ad%b8%e9%9b%9c%e8%b2%bb%e6%8b%89%e8%bf%91%e6%96%b9%e6%a1%88/\nThese are official service destinations; this app cannot retrieve personal records from those systems or submit school transactions. Access may require the school-issued account. Follow the linked service for current requirements, deadlines or availability."
+    },
+    {
+      "key": "student-services-4",
+      "title": "註冊及繳費 · Registration, tuition payment, payment slips and accommodation fees",
+      "domain": "enrollment",
+      "url": "https://www.stu.edu.tw/在校學生/",
+      "capturedOn": "2026-11-02",
+      "method": "Official public page visible in existing browser capture",
+      "validForDays": 30,
+      "content": "Official student directory section: 註冊及繳費. Registration, tuition payment, payment slips and accommodation fees.\n網路註冊: https://www.aca.stu.edu.tw/%e8%a8%bb%e5%86%8a%e7%b9%b3%e8%b2%bb%e8%b3%87%e8%a8%8a/\n註冊繳費專區資訊: https://cash.stu.edu.tw/%e6%9c%8d%e5%8b%99%e9%a0%85%e7%9b%ae/\n繳費列印及查詢: https://cash.stu.edu.tw/%e6%9c%8d%e5%8b%99%e9%a0%85%e7%9b%ae/\n學雜費標準: https://www.acc.stu.edu.tw/%e5%ad%b8%e8%b2%bb%e8%a8%88%e7%ae%97/%e5%ad%b8%e9%9b%9c%e8%b2%bb%e5%b0%88%e5%8d%80/\n住宿收費標準: https://omh.sao.stu.edu.tw/%e6%88%bf%e5%9e%8b-%e5%83%b9%e7%9b%ae%e4%b8%80%e8%a6%bd/\nThese are official service destinations; this app cannot retrieve personal records from those systems or submit school transactions. Access may require the school-issued account. Follow the linked service for current requirements, deadlines or availability."
+    },
+    {
+      "key": "student-services-5",
+      "title": "畢業資訊 · Graduation checks and leaving-school procedures",
+      "domain": "graduation",
+      "url": "https://www.stu.edu.tw/在校學生/",
+      "capturedOn": "2026-11-02",
+      "method": "Official public page visible in existing browser capture",
+      "validForDays": 30,
+      "content": "Official student directory section: 畢業資訊. Graduation checks and leaving-school procedures.\n學士班畢業檢核: https://www.aca.stu.edu.tw/2025/09/07/%e8%ab%8b%e5%90%8c%e5%ad%b8%e4%b8%8a%e7%b6%b2%e6%9f%a5%e7%9c%8b%e7%95%a2%e6%a5%ad%e5%ad%b8%e5%88%86%e6%aa%a2%e6%a0%b8%e8%a1%a8/\n畢業生離校: https://www.aca.stu.edu.tw/%E7%95%A2%E6%A5%AD%E9%9B%A2%E6%A0%A1-leaving/\n學士班成績優異提前畢業: https://www.aca.stu.edu.tw/%e6%8f%90%e5%89%8d%e7%95%a2%e6%a5%ad-graduate-in-advance/\n畢業典禮: https://activity.sao.stu.edu.tw/%e6%a8%b9%e5%be%b7%e7%a7%91%e6%8a%80%e5%a4%a7%e5%ad%b8%e7%95%a2%e6%a5%ad%e5%85%b8%e7%a6%ae%e5%ae%98%e7%b6%b2/\nThese are official service destinations; this app cannot retrieve personal records from those systems or submit school transactions. Access may require the school-issued account. Follow the linked service for current requirements, deadlines or availability."
+    },
+    {
+      "key": "student-services-6",
+      "title": "學術資源 · Library, research databases, thesis and academic integrity",
+      "domain": "student_services",
+      "url": "https://www.stu.edu.tw/在校學生/",
+      "capturedOn": "2026-11-02",
+      "method": "Official public page visible in existing browser capture",
+      "validForDays": 30,
+      "content": "Official student directory section: 學術資源. Library, research databases, thesis and academic integrity.\n圖書館服務時間: https://lis.stu.edu.tw/115-08-26-9/\n圖書館館藏目錄: https://webpac.stu.edu.tw/webopac/\n電子資源資料庫: https://stars.stu.edu.tw/stuhyint/index.jsp\n論文原創性比對系統: https://lis.stu.edu.tw/115-08-26-3/\n研究生學術倫理教育專區: https://ethics.moe.edu.tw/\n博碩士論文查詢: https://ndltd.ncl.edu.tw/cgi-bin/gs32/gsweb.cgi/login?o=dnclcdr&extralimit=asc=%22%E6%A8%B9%E5%BE%B7%E7%A7%91%E6%8A%80%E5%A4%A7%E5%AD%B8%22&extralimitunit=%E6%A8%B9%E5%BE%B7%E7%A7%91%E6%8A%80%E5%A4%A7%E5%AD%B8&searchmode=basic\n電子資源整合查詢系統: https://stars.stu.edu.tw/stuhyint/index.jsp\nThese are official service destinations; this app cannot retrieve personal records from those systems or submit school transactions. Access may require the school-issued account. Follow the linked service for current requirements, deadlines or availability."
+    },
+    {
+      "key": "school-admissions",
+      "title": "招生管道 · Admissions pathways",
+      "domain": "admissions",
+      "url": "https://www.stu.edu.tw/",
+      "capturedOn": "2026-11-02",
+      "method": "Official public page visible in existing browser capture",
+      "validForDays": 30,
+      "content": "The public homepage links eight admissions pathways under https://reg.aca.stu.edu.tw/: graduate_school (doctoral, master and in-service master), daytime_bd_program (daytime bachelor), continuing_es (continuing education), school_transfer (summer/winter transfer), industry_ac (industry collaboration), camp_st (campus/camp programs), school_other (other admissions categories), overseas_admissions (international, overseas Chinese, Hong Kong and Macao students). New students use https://freshman.stu.edu.tw/. Admission dates, fees, requirements, acceptance and eligibility are not supplied by this directory; read the current official program announcement."
+    },
+    {
+      "key": "registrar-contact",
+      "title": "註冊課務組電話與服務 · Registrar contact and academic records",
+      "domain": "administrative_services",
+      "url": "https://www.aca.stu.edu.tw/常見問題｜qa/",
+      "capturedOn": "2026-11-03",
+      "method": "Official search-index excerpt; full page currently unreachable",
+      "validForDays": 14,
+      "content": "教務處註冊課務組 Registration and Curriculum Division (registrar) can be reached through 07-6158000 / +886 7 6158000, extensions 2007, 2009, 2010, 2012, 2014 or 2016. The academic service mailbox is course@stu.edu.tw. The indexed official FAQ lists registration, enrollment status, leave/resumption/withdrawal, student cards, enrollment certificates, transcripts, course grades, absences, minors/double majors, credit programs, credit transfer, degree exams, closures and teaching management as academic-services subjects. Admissions and Selection Division extensions are 2004, 2005, 2006, 2015, 2017 and 2021. Extensions depend on the issue; do not invent a single assigned contact. Official-page indexed extract observed 2026-11-03; the search index reports a crawl about two months earlier, and direct retrieval is currently unavailable. Confirm current staffing or changed extensions with the main operator."
+    },
+    {
+      "key": "registrar-status",
+      "title": "休學復學退學聯絡 · Leave, resumption and withdrawal contact",
+      "domain": "academic_rules",
+      "url": "https://www.aca.stu.edu.tw/學生休學、復學及退學/",
+      "capturedOn": "2026-11-03",
+      "method": "Official search-index excerpt; full page currently unreachable",
+      "validForDays": 14,
+      "content": "For questions about student leave, resumption and withdrawal contact the Registration and Curriculum Division at (07)615-8000 extensions 2009, 2010, 2012 or 2016 during office hours. A status change or refund must be handled through the official process; the chatbot cannot approve a school status change or calculate an official refund from incomplete information. This indexed contact excerpt was observed 2026-11-03, with the index last crawling the page about two months earlier. Confirm the current procedure with the office."
+    },
+    {
+      "key": "fees-offices",
+      "title": "繳費減免住宿聯絡 · Fees, aid and housing offices",
+      "domain": "administrative_services",
+      "url": "https://cash.stu.edu.tw/服務項目/",
+      "capturedOn": "2026-11-03",
+      "method": "Official search-index excerpt; full page currently unreachable",
+      "validForDays": 14,
+      "content": "The official Cashier service page's indexed contact list uses school phone (07)615-8000. Registration payment: Cashier 總務處出納組 extension 2208. Tuition reductions: Student Affairs 生輔組 extension 2140. Disadvantaged-student aid: 生輔組 extension 2126. Student loan: 生輔組 extension 2124. Two-year junior college reductions/loans: Continuing Education extension 2511. Accommodation: housing service 住服組 extension 2136. For payment slips use the official registration/payment page; this app does not receive payments or know the student's actual university balance. This extract was observed 2026-11-03 with a source-index crawl about two months earlier; confirm current extensions and amounts before paying."
+    },
+    {
+      "key": "academic-faq",
+      "title": "教務常見問題 · Academic service FAQ",
+      "domain": "faq",
+      "url": "https://www.aca.stu.edu.tw/常見問題｜qa/",
+      "capturedOn": "2026-11-03",
+      "method": "Official search-index excerpt; full page currently unreachable",
+      "validForDays": 14,
+      "content": "The indexed official academic FAQ says cross-department courses may be taken in principle, but whether another department opens a course and whether it counts toward graduation depends on the relevant department's graduation rules. Transcripts are requested at the automatic transcript machine outside the Academic Affairs office on the first floor of the Administration Building; the extract describes immediate collection for Chinese transcripts and at most four working days for English transcripts. These are reference descriptions, not a guarantee of current hours or processing time. Ask course@stu.edu.tw or the registrar to confirm current procedure. The FAQ extract was observed 2026-11-03; full-page access is unavailable and the index reports a crawl about two months earlier."
+    },
+    {
+      "key": "news-行政公告",
+      "title": "校園新聞快照 · 行政公告",
+      "domain": "other",
+      "url": "https://www.stu.edu.tw/",
+      "capturedOn": "2026-11-02",
+      "method": "Existing official homepage category capture",
+      "validForDays": 7,
+      "content": "Dated public school news snapshot from 2026-11-02; this is not a live news feed and may omit later announcements. This list contains headlines and official links only, not the full notices, attachments, deadlines or personal mail lists.\n行政公告: 115.11.02 學生掛號郵件清單 (請務必自行點閱附加清單)\nhttps://www.stu.edu.tw/latestnews-single/?id=234471\n行政公告: 115.11.2教職員掛號郵件清單\nhttps://www.stu.edu.tw/latestnews-single/?id=212034\n行政公告: 115.10.30 學生掛號郵件清單 (請務必自行點閱附加清單)\nhttps://www.stu.edu.tw/latestnews-single/?id=234455\n行政公告: 115.10.30教職員掛號郵件清單\nhttps://www.stu.edu.tw/latestnews-single/?id=234452\n行政公告: 【通識中心】115-1 通識英文期中考應考注意事項 ? ??\nhttps://www.stu.edu.tw/latestnews-single/?id=234450\n行政公告: 【總務處公告】因颱風延期北校區汽機車停車場將於115年10月31日、11月01日兩天，將進\nhttps://www.stu.edu.tw/latestnews-single/?id=198566\n行政公告: 【開會通知】115年11月18日(三)下午13：30召開115學年度第1學期「原住民族發展\nhttps://www.stu.edu.tw/latestnews-single/?id=234448\n行政公告: 115.10.29 學生掛號郵件清單 (請務必自行點閱附加清單)\nhttps://www.stu.edu.tw/latestnews-single/?id=234447\nOpen the linked official notice to verify current details. Do not infer unpublished deadlines, eligibility, recipients or that a past event is upcoming."
+    },
+    {
+      "key": "news-單位訊息",
+      "title": "校園新聞快照 · 單位訊息",
+      "domain": "other",
+      "url": "https://www.stu.edu.tw/",
+      "capturedOn": "2026-11-02",
+      "method": "Existing official homepage category capture",
+      "validForDays": 7,
+      "content": "Dated public school news snapshot from 2026-11-02; this is not a live news feed and may omit later announcements. This list contains headlines and official links only, not the full notices, attachments, deadlines or personal mail lists.\n單位訊息: 【?志工培訓】轉知～中華非營利組織發展協會舉辦「志願服務基礎訓練及志願服務特殊訓練-社會福\nhttps://www.stu.edu.tw/latestnews-single/?id=234475\n單位訊息: ? 你的聲音，讓校園更好！ 日間部學生會｜115學年度第一學期校園生活滿意度調查｜\nhttps://www.stu.edu.tw/latestnews-single/?id=234474\n單位訊息: ? 好禮「樹」於你｜日間部學生會會員小禮物開領啦！\nhttps://www.stu.edu.tw/latestnews-single/?id=234473\n單位訊息: 【?物資補助計畫】轉知～財團法人金車文教基金會舉辦「2027金車曙光寒假物資贊助計劃」，歡\nhttps://www.stu.edu.tw/latestnews-single/?id=234469\n單位訊息: 歡迎報名參加~外語日活動–感恩節「語」你同樂！\nhttps://www.stu.edu.tw/latestnews-single/?id=234462\n單位訊息: 【開會通知】115.11.10(二)14:00召開本校「115學年度第1學期膳食委員會會議\nhttps://www.stu.edu.tw/latestnews-single/?id=234460\n單位訊息: 【For 導師】115-1 導師輔導知能研習-芳療與心靈的對話-紓壓增能工作坊\nhttps://www.stu.edu.tw/latestnews-single/?id=234451\n單位訊息: 【FOR教職員-收件至今日10/30】「(第8次公告)115-1學期樹德科大暨樹德教育事業\nhttps://www.stu.edu.tw/latestnews-single/?id=223418\nOpen the linked official notice to verify current details. Do not infer unpublished deadlines, eligibility, recipients or that a past event is upcoming."
+    },
+    {
+      "key": "news-焦點新聞",
+      "title": "校園新聞快照 · 焦點新聞",
+      "domain": "other",
+      "url": "https://www.stu.edu.tw/",
+      "capturedOn": "2026-11-02",
+      "method": "Existing official homepage category capture",
+      "validForDays": 7,
+      "content": "Dated public school news snapshot from 2026-11-02; this is not a live news feed and may omit later announcements. This list contains headlines and official links only, not the full notices, attachments, deadlines or personal mail lists.\n焦點新聞: 樹德科大電競系三名新秀獲選全國賽事主播賽評　展現專業實力  1151030\nhttps://www.stu.edu.tw/latestnews-single/?id=234459\n焦點新聞: 樹德科大世界餐飲藝術挑戰賽勇奪2金3銀2銅　金牌調酒融入臺南在地風味 1151028\nhttps://www.stu.edu.tw/latestnews-single/?id=234430\n焦點新聞: 樹德科大攜手馬來西亞大同韓新學院　深化臺馬性學教育合作、籌辦第八屆境外碩士在職專班 115\nhttps://www.stu.edu.tw/latestnews-single/?id=234368\n焦點新聞: 樹德科大產學合作再傳捷報！獲選智慧雨林計畫　打造AI智慧旅宿 1151021\nhttps://www.stu.edu.tw/latestnews-single/?id=234367\n焦點新聞: 運動部全民運動署計畫挹注！樹德科大美濃湖推SUP體驗　四天八場吸引500人次參與  115\nhttps://www.stu.edu.tw/latestnews-single/?id=234359\n焦點新聞: 樹德科大歡慶29週年校慶「樹耀二九」　7項AI計畫獲補助逾2,000萬元　產學績效躍升全國\nhttps://www.stu.edu.tw/latestnews-single/?id=234326\n焦點新聞: 樹德科大偕菲律賓第七區城市教育交流代表團拜會高雄市教育局　深化臺菲教育合作與國際交流 11\nhttps://www.stu.edu.tw/latestnews-single/?id=234322\n焦點新聞: 樹德科大田安克攜手藝人倡議公益　帶領學生跨域實踐USR  1151015\nhttps://www.stu.edu.tw/latestnews-single/?id=234301\nOpen the linked official notice to verify current details. Do not infer unpublished deadlines, eligibility, recipients or that a past event is upcoming."
+    },
+    {
+      "key": "news-就業情報",
+      "title": "校園新聞快照 · 就業情報",
+      "domain": "other",
+      "url": "https://www.stu.edu.tw/",
+      "capturedOn": "2026-11-02",
+      "method": "Existing official homepage category capture",
+      "validForDays": 7,
+      "content": "Dated public school news snapshot from 2026-11-02; this is not a live news feed and may omit later announcements. This list contains headlines and official links only, not the full notices, attachments, deadlines or personal mail lists.\n就業情報: ?【就業情報】康達盛通生活事業股份有限公司\nhttps://www.stu.edu.tw/latestnews-single/?id=234442\n就業情報: 【活動公告｜Event Announcement】 統一企業就業面試暨說明會 Uni-Pr\nhttps://www.stu.edu.tw/latestnews-single/?id=234236\n就業情報: ?【就業情報】蒸荐康國際餐飲股份有限公司\nhttps://www.stu.edu.tw/latestnews-single/?id=234063\n就業情報: ?【就業情報】就業訊息10則\nhttps://www.stu.edu.tw/latestnews-single/?id=234062\n就業情報: ?【就業情報】就業訊息2則_義大醫院杏一商場\nhttps://www.stu.edu.tw/latestnews-single/?id=234061\n就業情報: ?【就業情報】勞工局9/19舉辦徵才活動，提供逾1000個工作機會！\nhttps://www.stu.edu.tw/latestnews-single/?id=233772\n就業情報: ?【就業情報】燕巢家園徵才中\nhttps://www.stu.edu.tw/latestnews-single/?id=223501\n就業情報: ?【就業情報】就業訊息4則，歡迎有需要的同學參考\nhttps://www.stu.edu.tw/latestnews-single/?id=213096\nOpen the linked official notice to verify current details. Do not infer unpublished deadlines, eligibility, recipients or that a past event is upcoming."
+    },
+    {
+      "key": "news-其他事項",
+      "title": "校園新聞快照 · 其他事項",
+      "domain": "other",
+      "url": "https://www.stu.edu.tw/",
+      "capturedOn": "2026-11-02",
+      "method": "Existing official homepage category capture",
+      "validForDays": 7,
+      "content": "Dated public school news snapshot from 2026-11-02; this is not a live news feed and may omit later announcements. This list contains headlines and official links only, not the full notices, attachments, deadlines or personal mail lists.\n其他事項: 總統科學獎委員會「2027年總統科學獎」即日起受理提名～~\nhttps://www.stu.edu.tw/latestnews-single/?id=234463\n其他事項: 【轉知】中山大學舉辦「2026南區地方創 生成果展─南方創生診聊室：療出地方生活處方箋」活\nhttps://www.stu.edu.tw/latestnews-single/?id=234416\n其他事項: 轉教育部函~函轉農業部修正發布「動物科學應用機構監督及管理執行要點」\nhttps://www.stu.edu.tw/latestnews-single/?id=234353\n其他事項: [轉知]高教深耕計畫活動訊息~歡迎踴躍參加\nhttps://www.stu.edu.tw/latestnews-single/?id=234297\n其他事項: 【轉知】「116年度教育部教學實踐研究計畫徵件說明會(線上)」~歡迎有興趣之教師踴躍參與\nhttps://www.stu.edu.tw/latestnews-single/?id=234086\n其他事項: 【轉知】國家實驗研究院「臺灣─史丹佛人文社會科學領域人才培育計畫」徵求具備人文社會領域背景\nhttps://www.stu.edu.tw/latestnews-single/?id=234030\n其他事項: 【轉知】輔英科技大學辦理「115學年度第1學期全國自主學習(SDL)成果簡報競賽」活動相關\nhttps://www.stu.edu.tw/latestnews-single/?id=234021\n其他事項: 115年下半年(7月-12月)僑生學習扶助金開始受理申請\nhttps://www.stu.edu.tw/latestnews-single/?id=233756\nOpen the linked official notice to verify current details. Do not infer unpublished deadlines, eligibility, recipients or that a past event is upcoming."
+    },
+    {
+      "key": "app-navigation",
+      "title": "STU Nexus website and account guide",
+      "domain": "faq",
+      "url": "https://stu.best/",
+      "capturedOn": "2026-11-03",
+      "method": "Client application routes and live configuration",
+      "validForDays": 30,
+      "content": "STU Nexus is the client website at https://stu.best. The copied school-facing pages are explicitly marked nonofficial UI previews. Public pages: / (homepage), /在校學生/ (student services directory), /school-affairs (demo School Affairs UI), /student-sso (disabled visual preview; does not accept school passwords). Actual STU Nexus account login is /signin and student registration is /signup. The school login and university systems remain separate and are not connected. The authenticated workspace is /app. Its pages include /app/courses (Courses), /app/assessments, /app/grades, /app/calendar (Calendar), /app/tasks, /app/students, /app/alerts, /app/admissions, /app/cases, /app/messages, /app/knowledge, /app/reports, /app/academics, /app/users and /app/help (video guides). Available pages depend on the signed-in role. Anonymous chat reads public knowledge only; signed-in answers can read only account-authorized app records."
+    },
+    {
+      "key": "app-student-guide",
+      "title": "Student account, subjects and learning guide",
+      "domain": "faq",
+      "url": "https://stu.best/signin",
+      "capturedOn": "2026-11-03",
+      "method": "Verified client application behavior and permissions",
+      "validForDays": 30,
+      "content": "Sign in to STU Nexus at /signin to ask about your app subjects, enrolled classes, learning materials, announcements, schedule, released grades, attendance and support requests. The school must enroll you in classes before they appear; public signup does not automatically create academic enrollment. The Assistant may help navigate, explain learning concepts, prepare a student-owned support or staff-message request, request an attendance correction and mark lesson progress after confirmation. It cannot complete or submit graded work, select exam answers, change roles or school identity, finalize grades, pay tuition, or access unconnected school systems. If no enrollment is visible it should say so, not treat the public subject catalog as your timetable. Public email confirmation still needs the client's production sender; an ordinary public inbox may not receive the default Supabase message."
+    },
+    {
+      "key": "app-teacher-guide",
+      "title": "Teacher and staff Assistant actions",
+      "domain": "faq",
+      "url": "https://stu.best/app",
+      "capturedOn": "2026-11-03",
+      "method": "Verified client Assistant tools and authorization",
+      "validForDays": 30,
+      "content": "Faculty can use their assigned class workspace to prepare modules, lessons and rich material pages, draft assessments and questions, post announcements, manage attendance and schedule events. Authorized academic operators can also manage programs, terms, subjects, sections, enrollments and draft curriculum plans through their permitted tools. Support/advisor roles can prepare support or communication requests. Leadership has role-allowed initiative workflows. Draft changes mode prepares one exact action at a time; the user reviews and confirms each mutation, then the bounded agent loop checks the real result before continuing. Ask mode makes no changes. Destructive actions require clear confirmation, and existing RLS/RPC rules still decide authorization. The Assistant never changes credentials/roles or finalizes grades, and it cannot operate external official school systems. For walkthroughs open /app/help."
+    },
+    {
+      "key": "app-knowledge-guide",
+      "title": "Manage the chatbot knowledge base",
+      "domain": "faq",
+      "url": "https://stu.best/app/knowledge",
+      "capturedOn": "2026-11-03",
+      "method": "Client knowledge lifecycle and role policy",
+      "validForDays": 30,
+      "content": "Owner, administrator and librarian roles manage chatbot sources and documents at /app/knowledge. Add sources, import URL/text/Markdown/PDF content, set public/institution/role/class/staff audiences, review extracted chunks, publish an approved version, set effective/expiry/review dates, and roll back to a prior version. New imports are drafts until a reviewer publishes them. Public questions search only eligible public material; signed-in questions additionally search published sources their own account can access. Source refresh creates a new reviewable version rather than silently replacing published facts. Expired, future, superseded, quarantined, draft or role-ineligible evidence must not answer questions. A checked reference or indexed excerpt is not a university endorsement or institutional research approval."
+    }
+  ]
+}

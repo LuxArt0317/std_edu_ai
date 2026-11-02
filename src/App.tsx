@@ -6,7 +6,6 @@ import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { CheckboxField } from '@/components/form-controls'
-import { Textarea } from '@/components/ui/textarea'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
 import './App.css'
@@ -23,18 +22,7 @@ import {
   storySections,
   visionSlides,
 } from './data/knowledge'
-import { askCampusAssistant, type AssistantFeedbackCapability } from './services/researchAssistant'
-import { PublicAssistantFeedback } from './features/public/PublicAssistantFeedback'
 import { listCampusPlaces, requestCampusRoute, type CampusDirectoryPlace, type CampusRoute } from './services/campusNavigation'
-
-type ChatMessage = {
-  id: string
-  role: 'assistant' | 'user'
-  content: string
-  status?: 'answered' | 'clarification' | 'abstained' | 'handoff'
-  feedback?: AssistantFeedbackCapability
-  citations?: Array<{ chunkId: string; title: string; sourceName: string; url: string; locator: string | null; reviewedAt: string | null }>
-}
 
 type IconName =
   | 'search'
@@ -57,16 +45,6 @@ type IconName =
 
 const newsTabs = ['ALL', '行政公告', '單位訊息', '焦點新聞', '就業情報', '其他事項']
 
-const initialMessages: ChatMessage[] = [
-  {
-    id: 'welcome',
-    role: 'assistant',
-    content: '您好，我是 STU AI 校園助理。可以詢問招生、行政單位、畢業規定、校園設施或常用系統。',
-  },
-]
-
-const aiSuggestions = ['如何查詢招生訊息？', '行政單位在哪裡？', '畢業規定怎麼查？']
-
 function Icon({ name, className }: { name: IconName; className?: string }) {
   const icons = { search: Search, menu: Menu, close: X, 'arrow-left': ChevronLeft, 'arrow-right': ChevronRight, list: List, building: Building2, badge: BadgeCheck, teacher: Presentation, lamp: Lightbulb, cap: GraduationCap, pin: MapPin, globe: Globe, phone: Phone, mail: Mail, bus: Bus, spark: Sparkles };
   const Component = icons[name];
@@ -87,11 +65,6 @@ function App() {
   const [newsTab, setNewsTab] = useState('ALL')
   const [hotLinkTab, setHotLinkTab] = useState<'student' | 'teacher'>('student')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [assistantOpen, setAssistantOpen] = useState(false)
-  const [messages, setMessages] = useState(initialMessages)
-  const [query, setQuery] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [errorMessage, setErrorMessage] = useState('')
   const [campusOpen, setCampusOpen] = useState(false)
   const [campusPlaces, setCampusPlaces] = useState<CampusDirectoryPlace[]>([])
   const [campusLoading, setCampusLoading] = useState(false)
@@ -100,7 +73,6 @@ function App() {
   const [campusDestination, setCampusDestination] = useState('')
   const [accessibleRoute, setAccessibleRoute] = useState(false)
   const [campusRoute, setCampusRoute] = useState<CampusRoute | null>(null)
-  const chatViewportRef = useRef<HTMLDivElement | null>(null)
   const campusLaunchRef = useRef<HTMLButtonElement | null>(null)
   const campusCloseRef = useRef<HTMLButtonElement | null>(null)
 
@@ -112,11 +84,6 @@ function App() {
     return () => window.clearInterval(timer)
   }, [heroPaused])
 
-  useEffect(() => {
-    const viewport = chatViewportRef.current
-    if (viewport) viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' })
-  }, [messages, isLoading])
-
   const visibleNews = newsTab === 'ALL'
     ? latestNews.slice(0, 8)
     : latestNews.filter((item) => item.category === newsTab).slice(0, 8)
@@ -126,28 +93,6 @@ function App() {
 
   function moveHero(direction: number) {
     setHeroIndex((current) => (current + direction + heroSlides.length) % heroSlides.length)
-  }
-
-  async function submitQuestion(nextQuestion?: string) {
-    const trimmed = (nextQuestion ?? query).trim()
-    if (!trimmed || isLoading) return
-    setMessages((current) => [...current, { id: `user-${Date.now()}`, role: 'user', content: trimmed }])
-    setQuery('')
-    setErrorMessage('')
-    setIsLoading(true)
-    try {
-      const response = await askCampusAssistant(trimmed)
-      setMessages((current) => [...current, { id: `assistant-${Date.now()}`, role: 'assistant', content: response.answer, status: response.status, citations: response.citations, feedback: response.feedback }])
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'AI 助理目前暫時無法回應。')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    void submitQuestion()
   }
 
   async function openCampusDirectory() {
@@ -348,18 +293,6 @@ function App() {
         <div className="copyright-row"><span>Copyright 2025. All Rights Reserved.</span><a href="https://www.stu.edu.tw/%e7%b6%b2%e7%ab%99%e5%9c%b0%e5%9c%96/">網站地圖</a></div>
       </footer>
 
-      <Button className="ai-launcher" type="button" aria-label="開啟 AI 校園助理" aria-expanded={assistantOpen} onClick={() => setAssistantOpen(true)}><Icon name="spark" /><span>AI 校園助理</span></Button>
-      {assistantOpen ? <Button className="assistant-backdrop" type="button" aria-label="關閉 AI 校園助理" onClick={() => setAssistantOpen(false)} variant="ghost" /> : null}
-      <aside className={`assistant-drawer ${assistantOpen ? 'open' : ''}`} aria-hidden={!assistantOpen} inert={!assistantOpen}>
-        <header><div><span>AI-ENHANCED CAMPUS</span><h2>STU AI 校園助理</h2></div><Button type="button" aria-label="關閉" onClick={() => setAssistantOpen(false)}><Icon name="close" /></Button></header>
-        <div className="assistant-messages" ref={chatViewportRef} role="log" aria-live="polite" aria-relevant="additions">
-          {messages.map((message) => <Card className={message.role} key={message.id}><b>{message.role === 'assistant' ? 'STU AI' : 'YOU'}</b><p>{message.content}</p>{message.citations?.length ? <ul className="assistant-citations" aria-label="Official sources">{message.citations.map((citation) => <li key={`${message.id}-${citation.chunkId}`}><a href={citation.url} target="_blank" rel="noreferrer"><strong>{citation.title}</strong><span>{citation.sourceName}{citation.locator ? ` · ${citation.locator}` : ''}</span></a></li>)}</ul> : null}{message.role === 'assistant' && message.feedback ? <PublicAssistantFeedback capability={message.feedback} status={message.status} /> : null}</Card>)}
-          {isLoading ? <Card className="assistant" role="status"><b>STU AI</b><p>正在檢索校園資訊...</p></Card> : null}
-        </div>
-        <div className="assistant-suggestions">{aiSuggestions.map((item) => <Button type="button" key={item} onClick={() => void submitQuestion(item)}>{item}</Button>)}</div>
-        {errorMessage ? <p className="assistant-error">{errorMessage}</p> : null}
-        <form onSubmit={handleSubmit}><Textarea rows={2} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="輸入校園相關問題..." /><Button type="submit" disabled={isLoading}>送出</Button></form>
-      </aside>
     </main>
   )
 }

@@ -4,7 +4,7 @@ import { readContractSource } from '../../scripts/contract-source.mjs';
 
 const api=readContractSource("api/school-assistant.ts","utf8");
 const portal=readContractSource("src/features/school/UnifiedPortal.tsx","utf8");
-const client=readContractSource("src/features/school/platformAi.ts","utf8");
+const client=readContractSource("server/assistantContext.js","utf8");
 const loop=readContractSource("src/features/school/schoolAgentLoop.ts","utf8");
 
 test("Nexus plans and continues until remaining work is empty",()=>{
@@ -18,8 +18,8 @@ test("Nexus plans and continues until remaining work is empty",()=>{
 
 test("Nexus uses broad platform context before asking a user",()=>{
   for(const field of ["curricula","enrollments","materialPages","gradeItems","grades","attendanceSessions","communications","supportRequests"]){
-    assert.match(api,new RegExp(`"${field}"`));
-    assert.match(client,new RegExp(`${field}: context\\.data\\.${field}`));
+    assert.match(api,/loadAssistantContext/);
+    assert.match(client,new RegExp(`${field}:\\s*\\[` ));
   }
   assert.match(api,/Never ask for information that is already present or can be safely inferred/);
 });

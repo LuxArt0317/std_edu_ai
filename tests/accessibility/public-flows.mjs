@@ -62,8 +62,8 @@ try{
   await installPublicFixtures(page);
 
   await fresh(page);await axeEvidence(page,"public-home");
-  await fresh(page);await page.getByRole("button",{name:"開啟 AI 校園助理"}).click();await page.getByRole("heading",{name:"STU AI 校園助理"}).waitFor();await axeEvidence(page,"assistant-open");
-  await page.getByPlaceholder("輸入校園相關問題...").fill("招生資訊在哪裡？");await page.getByRole("button",{name:"送出",exact:true}).click();await page.getByRole("list",{name:"Official sources"}).waitFor();await axeEvidence(page,"assistant-citation-feedback",['.assistant-messages[role="log"][aria-live="polite"]']);
+  await fresh(page);await page.getByRole("button",{name:"開啟 AI 校園助理"}).click();await page.getByRole("heading",{name:"校園助理 · Assistant"}).waitFor();await axeEvidence(page,"assistant-open");
+  await page.getByPlaceholder("Ask a school question…").fill("招生資訊在哪裡？");await page.getByRole("button",{name:"Send",exact:true}).click();await page.getByRole("list",{name:"Sources"}).waitFor();await axeEvidence(page,"assistant-citation-feedback",['[role="log"][aria-live="polite"]']);
   await page.getByRole("button",{name:"需要修正"}).click();await page.getByRole("button",{name:"送出意見"}).waitFor();await axeEvidence(page,"assistant-correction-expanded");
 
   await fresh(page);await page.getByRole("button",{name:/開啟校園導覽/}).click();await page.getByRole("heading",{name:"驗證地點與文字路線"}).waitFor();await axeEvidence(page,"campus-directory");

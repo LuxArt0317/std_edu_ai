@@ -90,13 +90,13 @@ function metadata(
 
 test("public drawer uses the live grounded endpoint and renders official citations", () => {
   const service = fs.readFileSync("src/services/researchAssistant.ts", "utf8");
-  const app = fs.readFileSync("src/App.tsx", "utf8");
+  const app = fs.readFileSync("src/features/public/PublicAssistant.tsx", "utf8");
   assert.match(service, /fetch\(["']\/api\/research-assistant["']/);
   assert.doesNotMatch(
     service,
     /knowledgeBase|setTimeout|prototype currently focuses/,
   );
-  assert.match(app, /assistant-citations/);
+  assert.match(app, /Sources/);
   assert.match(app, /PublicAssistantFeedback/);
   assert.match(app, /citation\.url/);
   assert.match(app, /rel="noreferrer"/);
@@ -378,6 +378,7 @@ test("fabricated model citation IDs fail closed", async () => {
                         chunkId: "99999999-9999-4999-8999-999999999999",
                         claim: "Fabricated",
                       },
+                      { chunkId:result.chunk_id,claim:"One valid citation cannot excuse the fabricated one." },
                     ],
                     suggestedQuestions: [],
                   }),
@@ -478,4 +479,16 @@ test("equally ranked conflicting official sources hand off without model guessin
   assert.equal(body.status, "handoff");
   assert.equal(body.citations.length, 2);
   assert.equal(modelCalled, false);
+});
+
+test('anonymous personal-course questions request sign-in without reading account data or contacting the model', async()=>{
+ configured();
+ globalThis.fetch=async input=>{
+  const url=String(input);
+  assert.doesNotMatch(url,/embeddings|responses|profiles|enrollments|search_assistant_knowledge/);
+  if(url.includes('record_public_ai_exchange'))return trace();
+  return Response.json(null);
+ };
+ const response=await invoke({question:'What are my current subjects?'},'personal-handoff');
+ assert.equal(response.statusCode,200);const result=response.body as {status:string;answer:string;citations:unknown[]};assert.equal(result.status,'handoff');assert.match(result.answer,/sign in/i);assert.deepEqual(result.citations,[]);
 });

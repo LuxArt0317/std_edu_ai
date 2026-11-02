@@ -69,7 +69,9 @@
     "prepare:video-guides": "node scripts/publish-video-guides.mjs --prepare",
     "publish:video-guides": "node scripts/publish-video-guides.mjs --apply",
     "test:public-site": "node tests/integration/public-site-ui.mjs",
-    "test:school-affairs": "node tests/integration/school-affairs-ui.mjs"
+    "test:school-affairs": "node tests/integration/school-affairs-ui.mjs",
+    "test:live-connected-assistant": "node tests/integration/connected-assistant-live.mjs",
+    "import:assistant-corpus": "node scripts/import-assistant-corpus.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.5",

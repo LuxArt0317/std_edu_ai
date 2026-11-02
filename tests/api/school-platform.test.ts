@@ -46,6 +46,14 @@ function configure() {
   process.env.VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_test";
 }
 
+function accountData(input: string | URL | Request) {
+  const url=String(input);
+  if(url.includes('/rest/v1/profiles?')) return new Response(JSON.stringify([{id:'student-1',full_name:'Test learner',role:'student',account_status:'active'}]));
+  if(url.includes('/rest/v1/')) return new Response('[]');
+  if(url.endsWith('/embeddings')) return new Response(JSON.stringify({data:[{embedding:Array(1536).fill(0)}]}));
+  return null;
+}
+
 test("school assistant rejects unauthenticated requests", async () => {
   configure();
   const { captured, response } = responseCapture();
@@ -64,6 +72,7 @@ test("school assistant rejects unauthenticated requests", async () => {
 test("school assistant uses the trusted Supabase role and returns structured output", async () => {
   configure();
   globalThis.fetch = async (input, init) => {
+    const accountReply=accountData(input); if(accountReply) return accountReply;
     if (String(input).includes("/auth/v1/user"))
       return new Response(
         JSON.stringify({
@@ -118,12 +127,15 @@ test("school assistant uses the trusted Supabase role and returns structured out
     proposedAction: null,
     agent: { status: "complete", goalSummary: "Choose study work", stepSummary: "A study sequence was provided.", terminalReason: "", plan: ["Choose study work"], remainingWork: [], clarification: null },
     source: "openai",
+    knowledgeCitations: [],
+    grounding: {accountContext:'server-rls',asOf:(captured.body as {grounding:{asOf:string}}).grounding.asOf,unavailable:[],truncated:[],knowledgeRetrieved:0,knowledgeDegraded:false},
   });
 });
 
 test("school assistant strips every assessed-work action proposed for a student", async () => {
   configure();
   globalThis.fetch = async (input) => {
+    const accountReply=accountData(input); if(accountReply) return accountReply;
     if (String(input).includes("/auth/v1/user"))
       return new Response(
         JSON.stringify({ id: "student-1", app_metadata: { role: "student" } }),
@@ -170,6 +182,7 @@ test("school assistant strips every assessed-work action proposed for a student"
 test("school assistant permits student-owned learning progress actions", async () => {
   configure();
   globalThis.fetch = async (input) => {
+    const accountReply=accountData(input); if(accountReply) return accountReply;
     if (String(input).includes("/auth/v1/user"))
       return new Response(
         JSON.stringify({ id: "student-1", app_metadata: { role: "student" } }),

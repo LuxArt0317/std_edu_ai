@@ -29,3 +29,7 @@ When a requested operation is outside the safe tool catalog, Nexus must explain 
 7. Repeated actions, the thirty-minute runtime limit, the 32-action safety limit, missing authority, and repository errors stop the run as impossible instead of looping or fabricating success.
 
 The goal card is compact by default and shows completed and remaining work plus the current thinking, execution, refresh, confirmation, clarification, or terminal phase. Its Details control reveals the full plan and action evidence. Closing the Nexus drawer only hides it: the mounted portal retains the active request, and the floating Nexus control displays its background state. Reopening restores the last-used valid thread at its newest message; new content follows automatically only while the reader remains near the bottom.
+
+## Authoritative context and knowledge
+
+Account facts now load server-side with the caller JWT, independent of browser-supplied records. Current identity and personal course/schedule/task/announcement lists are separated from the broader role-visible catalog. The same published/current governed corpus supports public and authenticated questions, with internal evidence filtered through caller RLS. Read failures and collection limits are explicit. [Architecture, coverage and QA](qa/CONNECTED_ASSISTANT.md).

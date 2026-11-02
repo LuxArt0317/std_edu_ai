@@ -1892,7 +1892,7 @@ export function SchoolAssistant({
                   {item.citations.length ? (
                     <footer>
                       {item.citations.map((citation) => (
-                        <small key={citation}>◫ {citation}</small>
+                        /^https:\/\//.test(citation.split(' — ').at(-1)||'') ? <a key={citation} href={citation.split(' — ').at(-1)} target="_blank" rel="noreferrer" className="text-xs underline underline-offset-4">{citation.split(' — ')[0]}</a> : <small key={citation}>◫ {citation}</small>
                       ))}
                     </footer>
                   ) : null}

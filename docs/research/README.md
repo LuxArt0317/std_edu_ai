@@ -19,3 +19,7 @@ Validate locally with:
 npm run verify:research-protocol
 npm run verify:stu-source-inventory
 ```
+
+## Client Assistant references
+
+[assistant-corpus.v1.json](assistant-corpus.v1.json) is the dated, client-reviewed public reference manifest. It does not constitute university endorsement, current full-news coverage or an independent gold dataset. Its import, audience boundaries and verification are described in [Connected Assistant](../qa/CONNECTED_ASSISTANT.md).

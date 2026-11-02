@@ -13,24 +13,27 @@ export type AssistantResponse = {
     reviewedAt: string | null;
   }>;
   suggestedQuestions: string[];
-  feedback: AssistantFeedbackCapability;
+  feedback?: AssistantFeedbackCapability;
 };
 
 const sessionStorageKey = "stu-public-research-session";
 function researchSessionToken() {
-  const existing = window.sessionStorage.getItem(sessionStorageKey);
+  let existing: string|null=null;
+  try {existing=window.sessionStorage.getItem(sessionStorageKey)} catch { /* A blocked store must not disable anonymous chat. */ }
   if (existing && /^[A-Za-z0-9_-]{32,128}$/.test(existing)) return existing;
   const bytes = new Uint8Array(32);
   window.crypto.getRandomValues(bytes);
   const token = Array.from(bytes, (value) =>
     value.toString(16).padStart(2, "0"),
   ).join("");
-  window.sessionStorage.setItem(sessionStorageKey, token);
+  try {window.sessionStorage.setItem(sessionStorageKey, token)} catch { /* This exchange can use its in-memory token. */ }
   return token;
 }
 
 export async function askCampusAssistant(
   question: string,
+  history: Array<{role:string;content:string}> = [],
+  signal?: AbortSignal,
 ): Promise<AssistantResponse> {
   const normalizedQuestion = question.trim();
   if (!normalizedQuestion) {
@@ -38,11 +41,27 @@ export async function askCampusAssistant(
       "Please enter a question before sending it to the assistant.",
     );
   }
+  const {supabase} = await import('../utils/supabase');
+  const session = supabase ? await supabase.auth.getSession() : null;
+  if (session?.error) throw new Error('Your session could not be verified. Please sign in again.');
+  const token = session?.data.session?.access_token;
+  const conversation = history.filter(item=>['user','assistant'].includes(item.role)).slice(-6).map(item=>({role:item.role,content:item.content.slice(0,2000)}));
+  if (token) {
+    const privateResponse = await fetch('/api/school-assistant', {
+      signal,method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},
+      body:JSON.stringify({message:normalizedQuestion,history:conversation,mode:'qa',context:{view:'public-website'}}),
+    });
+    const result = await privateResponse.json().catch(()=>null) as {answer?:string;error?:string;knowledgeCitations?:AssistantResponse['citations']}|null;
+    if(!privateResponse.ok || !result?.answer) throw new Error(result?.error||'Your account assistant is unavailable.');
+    return {answer:result.answer,status:'answered',citations:result.knowledgeCitations||[],suggestedQuestions:[]};
+  }
   const response = await fetch("/api/research-assistant", {
     method: "POST",
+    signal,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       question: normalizedQuestion,
+      history: conversation,
       consentedResearchUse: false,
       sessionToken: researchSessionToken(),
     }),

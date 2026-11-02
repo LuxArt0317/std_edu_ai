@@ -1,3 +1,5 @@
+import { KnowledgeAudienceFields } from './KnowledgeAudienceFields';
+import { KnowledgeAnswerTest } from './KnowledgeAnswerTest';
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -9,6 +11,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CrmUser } from "../crm/authService";
 import {
   ingestGovernedDocument,
+  refreshGovernedDocument,
   loadDocumentReview,
   loadKnowledgeGovernance,
   publishDocument,
@@ -69,6 +72,7 @@ export function GovernedKnowledgeWorkspace({
   const [inventoryReport, setInventoryReport] = useState<SourceInventoryReport[]>([]);
   const [directory, setDirectory] = useState<GovernanceDirectory>({
     profiles: [],
+    sections: [],
     departments: [],
   });
   const [selectedSource, setSelectedSource] = useState("");
@@ -199,6 +203,7 @@ export function GovernedKnowledgeWorkspace({
           {error}
         </p>
       ) : null}
+      <KnowledgeAnswerTest />
       <div className="governance-metrics">
         <Card>
           <strong>{sources.length}</strong>
@@ -625,6 +630,8 @@ export function GovernedKnowledgeWorkspace({
                       expiresAt: String(form.get("expiresAt")),
                       reviewDueAt: String(form.get("reviewDueAt")),
                       audienceScope: String(form.get("audienceScope")),
+                      audienceRoles:form.getAll("audienceRoles").map(String),
+                      sectionId:String(form.get("sectionId")||""),
                       sensitivity: String(form.get("sensitivity")),
                     }),
                   "Document acquired into the review queue.",
@@ -763,17 +770,7 @@ export function GovernedKnowledgeWorkspace({
                 Expires at
                 <Input name="expiresAt" type="datetime-local" />
               </Label>
-              <Label>
-                Audience
-                <NativeSelect
-                  name="audienceScope"
-                  defaultValue={source?.default_audience_scope || "public"}
-                >
-                  <NativeSelectOption>public</NativeSelectOption>
-                  <NativeSelectOption>institution</NativeSelectOption>
-                  <NativeSelectOption>staff</NativeSelectOption>
-                </NativeSelect>
-              </Label>
+              <KnowledgeAudienceFields key={selectedSource} initialScope={source?.default_audience_scope || "public"} sections={directory.sections}/>
               <Label>
                 Sensitivity
                 <NativeSelect name="sensitivity" defaultValue="public">
@@ -840,10 +837,9 @@ export function GovernedKnowledgeWorkspace({
                 </a>
               </p>
             </div>
-            <Button variant="outline" type="button" onClick={() => setSelectedDocument("")}>
-              Close
-            </Button>
+            <div className="flex flex-wrap gap-2"><Button variant="outline" disabled={busy||sources.find(item=>item.id===document.source_id)?.crawl_policy==='prohibited'} onClick={()=>void operation(()=>refreshGovernedDocument(document),'Source checked. Changed content stays in draft until reviewed.')}>Refresh from source</Button><Button variant="outline" type="button" onClick={() => setSelectedDocument("")}>Close</Button></div>
           </header>
+          {document.metadata?.captured_on ? <p className="text-sm text-muted-foreground">Captured {String(document.metadata.captured_on)} · {String(document.metadata.capture_method || 'Source capture')}. Client-reviewed reference; not university approval.</p> : null}
           <div className="document-review-state">
             <span>
               Extraction <strong>{document.extraction_status}</strong>
@@ -878,6 +874,8 @@ export function GovernedKnowledgeWorkspace({
                       reviewDueAt: String(form.get("reviewDueAt")),
                       sensitivity: String(form.get("sensitivity")),
                       audienceScope: String(form.get("audienceScope")),
+                      audienceRoles:form.getAll("audienceRoles").map(String),
+                      sectionId:String(form.get("sectionId")||""),
                     }),
                   "Document governance updated.",
                 );
@@ -937,17 +935,7 @@ export function GovernedKnowledgeWorkspace({
                   defaultValue={dateValue(document.expires_at)}
                 />
               </Label>
-              <Label>
-                Audience
-                <NativeSelect
-                  name="audienceScope"
-                  defaultValue={document.audience_scope}
-                >
-                  <NativeSelectOption>public</NativeSelectOption>
-                  <NativeSelectOption>institution</NativeSelectOption>
-                  <NativeSelectOption>staff</NativeSelectOption>
-                </NativeSelect>
-              </Label>
+              <KnowledgeAudienceFields key={document.id} initialScope={document.audience_scope} initialRoles={document.audience_roles} initialSection={document.section_id||""} sections={directory.sections}/>
               <Label>
                 Sensitivity
                 <NativeSelect name="sensitivity" defaultValue={document.sensitivity}>

@@ -95,3 +95,9 @@ For the School Affairs replica, open `/school-affairs`; its directory/homepage e
 ## Production domain
 
 The canonical public URL is [https://stu.best](https://stu.best). `www.stu.best` permanently redirects to the apex; the original Vercel alias remains available. Domain/DNS ownership, management routes and callback details are recorded in [infrastructure](INFRASTRUCTURE.md). `deployment.json` supplies the live verification target and local API proxy. `npm run verify:client` checks both hosted origins, rejects untrusted CORS origins and verifies client database/API/AI access using ignored local credentials. Keep Supabase confirmation enabled; moving the domain does not resolve the outstanding production-mail dependency.
+
+## Assistant knowledge
+
+Manage sources, imports, audience, review, publication, rollback, refresh and answer tests at `/app/knowledge` as owner/admin/librarian. The public Assistant appears on all public pages; a signed-in session uses authorized account QA and `/app` offers confirmed actions. Details and limits: [Connected Assistant](../qa/CONNECTED_ASSISTANT.md).
+
+Validate the reference manifest with `node scripts/import-assistant-corpus.mjs`. An authorized `--apply` uses the ignored client environment/owner login and the live ingestion API; credentials stay out of logs and source. Captured references expire and require review; the command does not crawl inaccessible school systems or silently renew old source facts. Verify the client target in `deployment.json` before applying.

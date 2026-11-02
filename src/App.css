@@ -441,17 +441,7 @@
 .assistant-citations a:hover, .assistant-citations a:focus-visible { border-color: var(--stu-teal); outline: 2px solid transparent; box-shadow: 0 0 0 2px rgb(19 139 124 / 18%); }
 .assistant-citations strong { font-size: .78rem; }
 .assistant-citations span { color: #53756d; font-size: .68rem; line-height: 1.35; }
-.assistant-feedback { display: grid; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgb(23 72 61 / 14%); }
-.assistant-feedback > span { color: #41685f; font-size: .72rem; font-weight: 700; }
-.assistant-feedback > div { display: flex; gap: 7px; }
-.assistant-feedback button, .assistant-feedback > a { min-height: 36px; padding: 7px 10px; color: #17483d; border: 1px solid #a9cec5; border-radius: 9px; background: #fff; font: inherit; font-size: .72rem; font-weight: 700; text-decoration: none; }
-.assistant-feedback button:hover, .assistant-feedback button:focus-visible, .assistant-feedback > a:focus-visible { border-color: var(--stu-teal); outline: 2px solid rgb(19 139 124 / 24%); }
-.assistant-feedback form { display: grid; gap: 8px; padding: 10px; border-radius: 10px; background: rgb(255 255 255 / 70%); }
-.assistant-feedback label { display: grid; gap: 4px; color: #41685f; font-size: .7rem; font-weight: 700; }
-.assistant-feedback select, .assistant-feedback textarea { width: 100%; padding: 7px; border: 1px solid #bdd7d1; border-radius: 7px; background: #fff; font: inherit; }
-.assistant-feedback .assistant-feedback-resolved { grid-template-columns: auto 1fr; align-items: center; }
-.assistant-feedback-saved { margin-top: 10px !important; color: #176f5e; font-size: .72rem !important; font-weight: 700; }
-.assistant-feedback-error { color: #a42323; font-size: .7rem !important; }
+
 .assistant-suggestions { display: flex; gap: 7px; padding: 0 18px 14px; overflow-x: auto; }
 .assistant-suggestions button { flex: none; padding: 7px 10px; color: #28685a; border: 1px solid #9fc9c0; border-radius: 999px; background: #fff; font-size: .72rem; cursor: pointer; }
 .assistant-error { margin: 0 18px 10px; color: #a42323; font-size: .8rem; }

@@ -1,6 +1,15 @@
 # Changelog
 ## Unreleased
 
+### Connected school Assistant (Issue #82)
+
+- Add shared, readable shadcn public chat across school pages, signed-in QA routing, follow-ups, safe Markdown, citations and account-change transcript clearing.
+- Load authoritative signed-in context with the caller JWT and RLS, including actual subject relationships, announcements, schedules, grades, learning and service records. Ignore posted account facts and reject inactive/mismatched roles.
+- Connect published internal/public retrieval with freshness/audience filters, meaningful rank fusion, bilingual aliases, document diversity and keyword degradation without privileged fallback.
+- Populate 22 dated client-reviewed school/site references and retain explicit snapshot/index-source limits. Add knowledge answer testing, role/class authoring and refresh-to-draft controls.
+- Verify real data isolation and confirmed teacher actions; correct a test that selected an arbitrary assessment rather than its own quiz fixture.
+
+
 ### Custom production domain (Issue #81)
 
 - Connect `stu.best` to the existing client Vercel project and permanently redirect `www.stu.best` to the apex, preserving Spaceship DNS authority and existing CNAMEs.

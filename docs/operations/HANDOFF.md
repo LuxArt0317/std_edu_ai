@@ -1,5 +1,11 @@
 # Client handoff
 
+## Connected Assistant — Issue #82 (release verification pending)
+
+Public pages now share an auth-aware Assistant. Anonymous questions use eligible public evidence; authenticated context is loaded on the server with the caller JWT/RLS and separates current enrollment/teaching assignments from the visible catalog. Existing agent actions require review/confirmation and execute through normal app permissions. `/app/knowledge` adds role/class audiences, answer testing and reviewable source refresh. The initial corpus contains 22 dated references; no private official university systems are connected. [Behavior, supported coverage and source limits](../qa/CONNECTED_ASSISTANT.md).
+
+Local gates: 179 API/source tests, 26 units, build/assets, lint (inherited warnings), docs and zero dependency vulnerabilities pass. Existing E2E passed 44/45 initially; a dedicated quiz fixture corrected the test selector and all five new scenarios plus that regression passed together (6/6). Ten public accessibility states pass. Three additive migrations are applied (106 total, 101 RLS tables). Live new API/model acceptance and final release identifiers are pending publication; prior production below remains the last verified runtime.
+
 ## Current production domain — Issue #81
 
 The current public/School Affairs UI is published at [stu.best](https://stu.best), with `www.stu.best` permanently redirecting to the apex and preserving paths/query strings. Runtime `d9ba36b1ecf3e8a1e3e0572f3860230779661ed8` is verified Ready as [Vercel 43s3ZCUGEcHh53fY52iBGv5DYXCX](https://vercel.com/v1-d286/std_edu_ai/43s3ZCUGEcHh53fY52iBGv5DYXCX); independent quality run `41482854168` passed. The canonical account email callbacks are also deployed to the protected provisioning Edge Function.

@@ -1,5 +1,10 @@
 # Current client state
 
+## Issue #82 in progress: connected Assistant
+
+Client #82 implementation is ready for release from the separate client checkout. Server-authoritative caller-JWT context, shared public/internal eligible retrieval, auth-aware public chat, /app/knowledge answer tests, role/class audiences and reviewable URL refresh are implemented. Three migrations applied (106 total); 22 dated client-reviewed references are published. 179 API/source checks, 26 units, build/lint/docs/dependency gates pass. Existing E2E: 44/45 initial; dedicated quiz-fixture correction and all five new scenarios pass in a focused 6/6 rerun. Ten public accessibility states pass. Registrar/course live public answers now return grounded citations after zero-match ranking and Taipei capture-date corrections. Official source DNS/403 failures limit the corpus to labeled captured/indexed references. No official private school integration, perfect coverage, institutional endorsement, continuous crawler or public student-mail delivery is asserted. Production still has #81 frontend until this release is verified.
+
+
 ## Issue #81: stu.best is the verified production domain
 
 Client Vercel serves https://stu.best; www.stu.best is a verified 308 redirect preserving paths/query strings. Existing Spaceship nameservers and both CNAME records are unchanged; temporary ownership TXT records removed. Supabase Site URL/exact apex callbacks and both account-function CORS origins are updated. Staff invitation/resend links now use https://stu.best/signin. Account roles/RLS/password/email-confirmation settings are preserved.
