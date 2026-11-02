@@ -4,7 +4,7 @@ Scope authorized on 2026-11-02: implement and verify feasible code/UI work, inte
 
 | Client issue | Engineering work to verify | Remaining acceptance evidence |
 | --- | --- | --- |
-| #78 · Video help and Assistant | Private role guide storage, authenticated Help route, playback/captions/downloads; readable safe Markdown, message layout and responsive controls | 45/45 browser scenarios pass locally, including all fourteen roles; production release verification in progress |
+| #78 · Video help and Assistant | Private role guide storage, authenticated Help route, playback/captions/downloads; readable safe Markdown, message layout and responsive controls | Published and verified: 45/45 E2E plus focused 2/2, six production theme/viewport states, checksum-verified playback/captions and access denial |
 | #75 · UI and signup | Shared theme/layout, secure public student signup and role boundaries | Production student confirmation-mail provider deferred by user |
 | #63 · Authoritative corpus | Source/ingestion/review/rollback/refresh UI, metadata and full role matrix | Named institutional owners and complete approved official corpus; production scheduled source-refresh worker/acceptance remains unimplemented. Manual change ingestion and atomic review/rollback are verified. User deferred unavailable approval evidence |
 | #65 · Hybrid RAG | Claim citations, eligibility, freshness/conflict/abstention, public/action separation and failure behavior | Independently reviewed >=150-case bilingual gold set and frozen pilot latency/quality metrics |
@@ -23,6 +23,8 @@ The client load probe completed 200 requests at concurrency 10 without failures 
 
 `knowledge_sources.crawl_policy` and its interval are existing metadata. No background refresh worker is installed by this handoff. Operators can acquire source changes through the reviewed ingestion UI; interval metadata alone must not be described as automatic scheduled acquisition. This remains tracked in #63 rather than silently claimed complete.
 
-Source fixtures, generated evaluation vectors and synthetic participant paths verify software mechanics. They are not approved corpus contents, independent gold judgments, consenting human participants or a measured workload benefit. The seven original open issues therefore remain open unless their remaining acceptance gates are met. #78 is separately eligible for closure after live release verification.
+Source fixtures, generated evaluation vectors and synthetic participant paths verify software mechanics. They are not approved corpus contents, independent gold judgments, consenting human participants or a measured workload benefit. The seven original open issues therefore remain open unless their remaining acceptance gates are met. #78 is resolved by the verified production release; the seven earlier issues remain open.
 
 Release gates currently pass: lint (inherited React warnings), 170 API/source checks, 15 units, production build/assets, documentation links, zero dependency vulnerabilities, full client database/RLS/CRUD/storage/Edge Function and real OpenAI QA verification. Full browser run: 45/45, including real first-message history reload and private student playback/captions. Final affected regressions and post-release evidence are recorded in the handoff.
+
+Production runtime `cf5b50a1735bdc8f2a41afcab6b06890dd82cdaf` / Vercel `Un9aZmMEwtHAsth1ub9VXbgKJYzU` is Ready, quality run `41412423044` succeeded, all six production Help/Assistant states pass, and the final live acquisition rerun reports `pdfjs-6.4.299@1` with zero residual fixtures. Client API/backend/OpenAI checks pass against the deployed asset graph.

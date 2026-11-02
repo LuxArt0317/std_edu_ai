@@ -67,6 +67,8 @@ Historical phase checklists: [planning history](../docs/archive/PLANNING_HISTORY
 - [x] Add authenticated /app/help with role-recommended guides, accessible playback/captions, stable client storage and downloads.
 - [x] Fix Assistant message contrast, Card/legacy structure, responsive sizing/mode controls, and related output states.
 - [x] Exercise research/API/RLS/study/ingestion/operations flows, correct implementable defects and rerun meaningful tests.
-- [ ] Publish verified changes through the client Git/Vercel integration and check production; update/close only satisfied issues.
+- [x] Publish verified changes through the client Git/Vercel integration and check production; update/close only satisfied issues.
 
 User scope clarification: skip institutional approvals, physical campus walkthroughs, human participant/manual assistive-technology evidence and unavailable student-mail credentials. Keep those acceptance dependencies explicitly pending; preserve email confirmation and existing permissions.
+
+Remaining acceptance: #75 production mail; #63 approved corpus/owners and scheduled source-refresh worker; #65 independent gold/metrics; #67 official physical/manual checks; #69 consented pilot; #71 manual operational acceptance; parent #61 remains open.
