@@ -145,3 +145,7 @@ The Alerts Plan action set selectedStudentId (opening a modal StudentDrawer) and
 ## Narrated video guides — Issue #77
 
 Six grouped chapters provide teacher/student depth without a single long onboarding dependency. Live recordings use actual trusted role accounts and synthetic records. Narration is cached by text/voice/settings; frame-based captions follow provider alignment. Long render instability was resolved with independent short-scene renders. Final packet-copy AAC concatenation caused accumulating drift; normalized PCM concatenation and one AAC master encode eliminated it (all 40 source matches within 0.31 ms). Delivery explicitly converts to limited-range yuv420p. The final gallery and archives exclude credentials and authenticated artifacts; source and safe assets remain editable. Human uninterrupted playback acceptance is a documented review limit.
+
+## Achievement statistics — Issue #85
+
+The live iframe has four white counters over a low-contrast surface and leaves their text at0 because source animation scripts are disabled. The source data-to-value attributes contain4601,128475,33056,54. Only the homepage has this widget across395 snapshots. Trusted DOM setup must render those source totals and scope a contrasting green card surface to this counter grid; source scripts remain disabled.

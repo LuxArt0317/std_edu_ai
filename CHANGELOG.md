@@ -1,6 +1,12 @@
 # Changelog
 ## Unreleased
 
+### Readable achievement totals (Issue #85)
+
+- Render the source-provided final totals without source animation scripts: 4,601+, 128,475+, 33,056+ and 54+.
+- Give all four statistic cards a dark green surface with readable white labels, numbers and icons; adapt the grid across desktop/tablet/phone widths.
+- Add focused computed-contrast, source-value, hover, image-loading and overflow checks for six viewport sizes.
+
 ### Local school-page copies (Issue #84)
 
 - Serve source-preserving homepage, audience entrances and linked public pages locally, with title/body search and an auditable URL/asset inventory.

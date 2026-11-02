@@ -75,3 +75,9 @@ A real browser then exposed an early-click race while iframe media was still loa
 ### Remaining coverage
 
 All ten entrances and first-hop public HTML destinations are local. The 304 first-hop school URLs comprise 274 copied HTML/redirect URLs, three copied file URLs, 25 protected systems and two native previews. The broader 2,269-URL inventory includes untriaged deeper service/department links and excluded historical archives. There are 59 pending document destinations and 123 unique unavailable asset URLs; these are gaps, not copies. Source alumni-profile repetition, unavailable resources, inherited colors and private integration remain explicit. [Issue #84](https://github.com/LuxArt0317/std_edu_ai/issues/84) stays open; old archives are excluded by user choice. Official School Affairs login/data remain unconnected under #83.
+
+## Achievement counter readability — Issue #85
+
+The four homepage source counters were white and remained at0 because source animations are inert. Trusted setup now formats their existing data-to-value totals (4601,128475,33056,54), preserves the plus suffixes and applies a scoped dark-green surface/white foreground to the counter cards. The grid uses four/two/one columns at desktop/tablet/phone sizes. All395 snapshots were inventoried; only the homepage has this counter widget. No source figures, source scripts, credentials or database policies are changed.
+
+`npm run test:school-statistics` verifies source values, labels, icons loading, hover contrast and horizontal fit at2048/1440/1280/768/390/320px. Local24 card checks pass with minimum contrast9.5709:1. Use `STU_BASE_URL=https://stu.best npm run test:school-statistics` for the live release. Other inherited source contrast gaps remain separate; this is a scoped correction, not whole-site accessibility acceptance.

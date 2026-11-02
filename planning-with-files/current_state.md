@@ -1,5 +1,9 @@
 # Current client state
 
+## Issue #85: readable achievement cards prepared for publication
+
+Scoped fix renders source totals4,601+/128,475+/33,056+/54+ on contrasting green cards, including labels/icons. Local24 card checks across6 widths and hover pass (minimum9.5709:1);193 API/source tests,28 units, build/lint/dependencies and protected client verification pass. User authorized publication; final live evidence will be recorded after release. Existing #84 source/coverage limitations and account/database policies are unchanged.
+
 ## Issue #84: published public school-page checkpoint
 
 Live at https://stu.best. Runtime83dc0b2f1f4c08f30f118302f4155a2672091109 is Ready as VercelEZ3FysTZ7iU6oHR4gmc7L9fCJ2JJ; quality41540190681 succeeded. Entryindex-DHcbVgDM.js /41 app dependencies. Verified395 HTML checksums /3545 unique assets /401 documents and local browser navigation/SSO isolation; owner/RLS/CRUD cleanup/Edge/OpenAI, anonymous cited registrar and personal-data handoff, www308 path/query all pass.

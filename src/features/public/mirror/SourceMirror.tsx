@@ -44,6 +44,37 @@ function scrollFragment(doc: Document, hash: string) {
 /** Trusted local controls for inert source HTML. Source scripts and submissions never run. */
 function configureDocument(doc: Document, navigate: (url: string) => void) {
   const cleanups: Array<() => void> = [];
+  // Source animations are inert: render their supplied final values directly.
+  const counters = doc.querySelectorAll<HTMLElement>(".elementor-counter-number[data-to-value]");
+  counters.forEach((counter) => {
+    const raw = counter.dataset.toValue || "";
+    if (!/^-?\d+(?:\.\d+)?$/.test(raw) || !Number.isFinite(Number(raw))) return;
+    const separator = counter.dataset.delimiter ?? ",";
+    counter.textContent = new Intl.NumberFormat("en-US", {
+      useGrouping: separator !== "",
+      maximumFractionDigits: Math.min(20, raw.split(".")[1]?.length || 0),
+    }).format(Number(raw)).replaceAll(",", separator);
+    const card = counter.closest<HTMLElement>(".e-con.e-child");
+    if (card?.parentElement?.classList.contains("e-grid")) {
+      card.classList.add("mirror-stat-card");
+      card.parentElement.classList.add("mirror-statistics");
+    }
+  });
+  if (counters.length) {
+    const style = doc.createElement("style");
+    style.dataset.mirrorStatistics = "true";
+    style.textContent = `
+      .mirror-statistics { grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:16px!important }
+      .mirror-stat-card { box-sizing:border-box;min-width:0;padding:24px 20px!important;border:1px solid #b8d9ce;border-radius:12px;background:#124e42!important;color:#fff!important }
+      .mirror-stat-card .elementor-heading-title,.mirror-stat-card .elementor-counter-number-wrapper,.mirror-stat-card .elementor-counter-number,.mirror-stat-card .elementor-counter-number-prefix,.mirror-stat-card .elementor-counter-number-suffix { color:#fff!important }
+      .mirror-stat-card .elementor-counter-number-wrapper { justify-content:center;font-size:clamp(30px,3.3vw,64px)!important;line-height:1.2;white-space:nowrap }
+      .mirror-stat-card img { max-width:100%;height:auto }
+      @media(max-width:980px) { .mirror-statistics { grid-template-columns:repeat(2,minmax(0,1fr))!important } }
+      @media(max-width:480px) { .mirror-statistics { grid-template-columns:minmax(0,1fr)!important } }
+    `;
+    doc.head.append(style);
+    cleanups.push(() => style.remove());
+  }
   const selectTab = (tab: HTMLElement) => {
     const group = tab.closest("[role=tablist]") || tab.parentElement;
     if (!group) return;
