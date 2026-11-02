@@ -1,9 +1,12 @@
 # Current client state
 
-## Issue #81: custom domain connected; release verification in progress
+## Issue #81: stu.best is the verified production domain
 
-`stu.best` is verified Production on client Vercel; `www.stu.best` is verified as a 308 redirect to the apex. Spaceship nameservers and the two original CNAME records are preserved; temporary ownership challenges are removed. Supabase Site URL/exact apex callbacks and both account-function CORS origins are updated, with permissions preserved. Initial live database/RLS/CRUD/API/OpenAI checks pass. Publishing the verified #79/#80 source and checking the final deployed build is the remaining step. Management details: docs/operations/INFRASTRUCTURE.md.
+Client Vercel serves https://stu.best; www.stu.best is a verified 308 redirect preserving paths/query strings. Existing Spaceship nameservers and both CNAME records are unchanged; temporary ownership TXT records removed. Supabase Site URL/exact apex callbacks and both account-function CORS origins are updated. Staff invitation/resend links now use https://stu.best/signin. Account roles/RLS/password/email-confirmation settings are preserved.
 
+The previously local #79/#80 UI is published via main; both issues are verified CLOSED. Runtime ae66d9c88cee0c22f86bbe14888a9d4b39dcd9d3 is Ready as Vercel 3cV4TGGQMokAyqeogtXCKVfwJkA7; quality run 41482095220 passed. Production checks pass seven entry paths/49 recursive assets, 30 public asset checksums, browser directory/portal/refresh/disabled-SSO/signin navigation, live database/RLS/CRUD/Edge/OpenAI and trusted/untrusted origin checks. 170 tests/24 units/build/lint/docs/dependency gates pass. Domain evidence is ignored under artifacts/domain-stu-best; management routes are in docs/operations/INFRASTRUCTURE.md. No new permanent API credential; browser sessions/Marketplace SSO provide current management access.
+
+The following local-review states are historical and superseded by the release above. The seven older institutional/research/mail acceptance issues remain unresolved.
 
 ## Issue #80: School Affairs portal ready for local review
 

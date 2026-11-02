@@ -96,6 +96,8 @@ Scope: continue the UI-only reconstruction. Current signed-in source role is the
 
 - [x] Verify Spaceship/Vercel ownership context, current DNS/HTTPS state and exact project requirements; preserve a non-secret record backup.
 - [x] Attach the apex domain and consistent www routing, update only required DNS records and verify certificates/HTTPS.
-- [ ] Align authentication URLs and app domain references as needed, verify the live release and key routes, update provider/project handoff and private registry, then commit.
+- [x] Align authentication URLs and app domain references as needed, verify the live release and key routes, update provider/project handoff and private registry, then commit.
 
 User authorized use of the existing stu.best domain for this Vercel website. Keep the apex hostname, existing Spaceship nameservers and unrelated records. The original registrar tab has an unsaved custom-nameserver draft; leave it untouched and use a separate management tab.
+
+#81 verified release: runtime ae66d9c, Vercel 3cV4TGGQMokAyqeogtXCKVfwJkA7 Ready, quality 41482095220 successful. Canonical URL, HTTPS/redirect, public/portal navigation, asset graph/checksums, protected client backend and new/legacy/untrusted origin checks pass. #79/#80 source is published; both issues CLOSED. Seven prior acceptance issues stay open.

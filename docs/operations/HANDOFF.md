@@ -1,5 +1,14 @@
 # Client handoff
 
+## Current production domain — Issue #81
+
+The current public/School Affairs UI is published at [stu.best](https://stu.best), with `www.stu.best` permanently redirecting to the apex and preserving paths/query strings. Runtime `ae66d9c88cee0c22f86bbe14888a9d4b39dcd9d3` is verified Ready as [Vercel 3cV4TGGQMokAyqeogtXCKVfwJkA7](https://vercel.com/v1-d286/std_edu_ai/3cV4TGGQMokAyqeogtXCKVfwJkA7); independent quality run `41482095220` passed. The canonical account email callbacks are also deployed to the protected provisioning Edge Function.
+
+Verified: valid HTTPS on both names; all three project domains show Valid Configuration; original Spaceship nameservers/two CNAMEs retained; temporary verification TXT records removed. Seven live entry paths resolve the exact new `index-Dzh-ZYUf.js` build and all 49 recursive assets; all 30 public branding assets match local checksums. Browser navigation verifies home → student directory (7 categories/72 entries) → School Affairs menu/refresh, the disabled school SSO preview and separate `/signin`/`signup`. Backend verification passes owner login/profile, 103 migrations, RLS/anonymous denial, temporary CRUD cleanup, both Edge Function origins/authentication, account directory and an authenticated OpenAI QA response. New and original hosted origins work; an untrusted origin is rejected. No student emails were sent by these checks.
+
+170 API/source checks, 24 units, lint (existing warnings), build/docs and zero dependency vulnerabilities pass. Public and School Affairs scope remains a nonofficial UI preview; real school services/authentication are not connected. Existing protected app roles and the outstanding public-email/research/manual acceptance dependencies remain unchanged. [Management and DNS details](INFRASTRUCTURE.md). Browser access is verified; permanent API administration access was not created. The local-only statuses below are historical checkpoints superseded by this release.
+
+
 ## School Affairs portal — Issue #80 (local review)
 
 The signed-in student-facing School Affairs portal has been reconstructed locally at `/school-affairs`, with its blue header, collapsible sidebar, Index widgets, seven groups/25 menu views, search and a source-verified 57-row/94-link catalog. The student directory and homepage School Affairs entry now open this local portal. Custom menus, announcement bookmarks, display preferences, font controls, widget collapse and mobile/keyboard interaction work locally. All school identity, actual fee/IP/account information and opaque session URLs are excluded; visible identity/fees are demo data. Program applications beyond the copied portal remain marked external services requiring official access. No school authentication, database, provider or app-permission change is involved.

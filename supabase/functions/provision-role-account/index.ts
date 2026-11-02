@@ -244,7 +244,7 @@ Deno.serve(async (request) => {
       if (!existing) return response(request, 404, { error: "Account not found." });
       if (existing.confirmed_at)
         return response(request, 409, { error: "This account is already confirmed. Use password reset instead." });
-      const { error } = await admin.auth.resend({ type: "signup", email, options: { emailRedirectTo: "https://stdeduai.vercel.app/crm" } });
+      const { error } = await admin.auth.resend({ type: "signup", email, options: { emailRedirectTo: "https://stu.best/signin" } });
       if (error) throw error;
       await admin.from("account_access_audit").insert({ target_profile_id: existing.id, acted_by: identity.user.id, action: "invitation_resent", reason: "Protected owner resent the pending institutional invitation.", details: { email } }).throwOnError();
       return response(request, 200, { id: existing.id, email, status: "invitation_resent" });
@@ -260,7 +260,7 @@ Deno.serve(async (request) => {
     if (fullName.length < 2 || fullName.length > 120) return response(request, 400, { error: "A full name between 2 and 120 characters is required." });
     try {
       if (await findUserByEmail(admin, email)) return response(request, 409, { error: "An account with this email already exists." });
-      const invited = await admin.auth.admin.inviteUserByEmail(email, { data: { full_name: fullName }, redirectTo: "https://stdeduai.vercel.app/crm" });
+      const invited = await admin.auth.admin.inviteUserByEmail(email, { data: { full_name: fullName }, redirectTo: "https://stu.best/signin" });
       if (invited.error || !invited.data.user) throw invited.error ?? new Error("Auth did not return the invited user.");
       const updated = await admin.auth.admin.updateUserById(invited.data.user.id, { app_metadata: { role, platform_owner: false, must_change_password: true } });
       if (updated.error) throw updated.error;
