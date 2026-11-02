@@ -31,3 +31,14 @@ dist-ssr
 .supabase/
 supabase/.temp/
 artifacts/
+
+# Large public documents are materialized from the pinned manifest at build time.
+/public/school-assets/*.pdf
+/public/school-assets/*.doc
+/public/school-assets/*.docx
+/public/school-assets/*.xls
+/public/school-assets/*.xlsx
+/public/school-assets/*.ppt
+/public/school-assets/*.pptx
+/public/school-assets/*.zip
+/public/school-assets/*.rar

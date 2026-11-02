@@ -1,5 +1,9 @@
 # Client handoff
 
+## Local school-page copies — Issue #84
+
+Local review checkpoint: 395 distinct public pages, all ten audience entrances and all first-hop public HTML destinations are copied locally. Additional freshman/international/alumni service details are included; old news archives are excluded by user clarification. Verified 193 API/source checks, 28 units, 56 mirror viewport states and interactions, five School Affairs isolation states, ten surrounding public accessibility states, build/lint/docs/dependencies. Source contrast has 24 reported rule occurrences; deeper services, unavailable resources and private integrations remain incomplete. The >1.7 GB static corpus needs hosted size/cold-build verification before release. Local preview: http://127.0.0.1:5174/; build index-C6ya21l1.js. This checkpoint is committed locally only, with no push/deployment or database/account-policy change. The prior verified production release below remains authoritative. [Coverage, architecture and verification](../qa/SCHOOL_MIRROR.md).
+
 ## School Affairs identity correction — Issue #83
 
 The current code separates School Affairs student identity from Nexus knowledge management. The logged-out School Affairs entry mirrors the observed public source with local logo/background/campus assets, disabled real credential controls and an explicit expiring demo. Logout returns to that entry and clears demo access/conversation; Nexus management sessions are preserved. Lux defaults to a knowledge-manager presentation at /app/knowledge, with an explicit full-owner workspace option. This does not change protected owner authority or database roles. Public chat never reads the Nexus session; explicit management answer tests remain authenticated.

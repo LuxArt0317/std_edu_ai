@@ -1,10 +1,11 @@
 import assets from "./assets.json";
+import { localSchoolHref } from "../mirror/paths";
 
 export function referenceAsset(url: string): string {
   return (assets as Record<string, string>)[url] ?? url;
 }
 
-/** Only the requested copied entry destinations are mapped locally. Other original links are retained. */
+/** School links use local routes; third-party destinations remain explicitly external. */
 export function referenceHref(href: string): string {
   try {
     const url = new URL(href, "https://www.stu.edu.tw");
@@ -26,7 +27,7 @@ export function referenceHref(href: string): string {
       url.hostname === "sso2.stu.edu.tw"
     )
       return "/student-sso";
-    return href;
+    return localSchoolHref(href) || href;
   } catch {
     return href;
   }

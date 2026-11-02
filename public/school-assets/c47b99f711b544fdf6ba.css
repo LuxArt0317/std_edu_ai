@@ -1,0 +1,12 @@
+.home1_section_area .servicebox,
+.home2_section_area .center, 
+.home3_section_area .featuresbox, 
+.home4_section_area .center, 
+.home5_section_area .cols4,
+.home6_section_area .featuresbox,
+.home7_section_area .center,
+.home8_section_area .post_block_style4,
+.home9_section_area .center,
+.home10_section_area .center{visibility:hidden;}
+
+section{overflow:hidden;}

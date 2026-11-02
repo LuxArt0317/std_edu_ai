@@ -1,5 +1,13 @@
-# Auto detect text files and perform LF normalization
+# Auto detect project text files and perform LF normalization.
 * text=auto
 
-# Captured reference SVGs have checksum provenance; preserve their original bytes.
+# Captured sources have byte-level checksum provenance.
 public/stu-reference/*.svg -text whitespace=cr-at-eol
+public/school-pages/** -text linguist-generated=true
+public/school-assets/** -text linguist-vendored=true
+src/features/public/mirror/pages.json linguist-generated=true
+src/features/public/mirror/assets.json linguist-generated=true
+src/features/public/mirror/files.json linguist-generated=true
+src/features/public/mirror/gaps.json linguist-generated=true
+src/features/public/mirror/coverage.json linguist-generated=true
+src/features/public/mirror/import-warnings.json linguist-generated=true

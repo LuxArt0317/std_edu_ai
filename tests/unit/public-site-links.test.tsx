@@ -39,7 +39,7 @@ test("all 72 student entries match the browser-observed seven-category source in
     2,
   );
 });
-test("only the requested student/SSO/School Affairs destinations become local, retaining all other source links", () => {
+test("school destinations become local while third-party links retain their source", () => {
   assert.equal(
     referenceHref(
       "https://www.stu.edu.tw/%E5%9C%A8%E6%A0%A1%E5%AD%B8%E7%94%9F/",
@@ -64,7 +64,13 @@ test("only the requested student/SSO/School Affairs destinations become local, r
         !x.href.includes("mail.google.com") &&
         !x.href.includes("info.stu.edu.tw/ePortal/login.asp"),
     )) {
-    assert.equal(referenceHref(item.href!), item.href);
+    const source = new URL(item.href!);
+    if (
+      source.hostname === "stu.edu.tw" ||
+      source.hostname.endsWith(".stu.edu.tw")
+    )
+      assert.ok(referenceHref(item.href!).startsWith("/"), item.href!);
+    else assert.equal(referenceHref(item.href!), item.href);
   }
   assert.equal(
     referenceHref("https://other.example/?next=https://sso2.stu.edu.tw"),

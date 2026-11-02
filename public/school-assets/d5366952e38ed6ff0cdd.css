@@ -1,0 +1,18 @@
+@font-face {
+  font-family: 'Noto Sans TC';
+  font-style: normal;
+  font-weight: 400;
+  src: url("/school-assets/619662a0583f38311e92.ttf") format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans TC';
+  font-style: normal;
+  font-weight: 500;
+  src: url("/school-assets/1d683cc46dc921e8e9d5.ttf") format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans TC';
+  font-style: normal;
+  font-weight: 700;
+  src: url("/school-assets/33e8464f3432fd9eba5f.ttf") format('truetype');
+}

@@ -1,0 +1,390 @@
+[
+  {
+    "source": "https://infosys.stu.edu.tw/Enrollment/FreshMan/Signin",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/ACA/teacher/QryCoursedept/qrydeptCourse.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/ePortal/login.asp",
+    "status": "local-ui-preview"
+  },
+  {
+    "source": "https://sso.stu.edu.tw/chpswd/",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/",
+    "status": "local-ui-preview"
+  },
+  {
+    "source": "https://dorm.stu.edu.tw/",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://edi3.stu.edu.tw/Account/LogOn?ReturnUrl=%2F",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://vpn2.stu.edu.tw/global-protect/login.esp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuMeeting/Login/Signin",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://dtm.stu.edu.tw/login/index.php",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://tc.stu.edu.tw/",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://go.stu.edu.tw/",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://elearning.stu.edu.tw/",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://dtm.stu.edu.tw/",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://edi3.stu.edu.tw/",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://elearning.stu.edu.tw/login/index.php",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/HRO/HR/hrindex.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/ACA/student/QueryAGECourse/index.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/ACA/teacher/QryCoursedept/qrydeptCourse.asp?lt=1",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/ACA/student/CM/cm.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/infosys.stu.edu.tw/StuSEP/Home/IndexTutorStuSEP/Home/IndexTutor",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/ACA/teacher/QryIntraCourse/qryIntraCourse.asp?lt=1",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/ACA/student/qryCOURSEKD/qryCourseKindAdmit.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/ACA/teacher/Syllabus/MainCoursequery.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://elearning.stu.edu.tw/course/index.php?categoryid=25",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/swd/placeBorrow/qryClassroom.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/WebRpg/Login/AspLogin/1",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/newirs/",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/NEWIRS/B4app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/newirs/B7app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/NEWIRS/C5app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/newirs/E6app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/NEWIRS/B1app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/NEWIRS/D1app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/NEWIRS/B6app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/NEWIRS/E7app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/NEWIRS/E8app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/NEWIRS/E9app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/newirs/E7app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/newirs/E8app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/newirs/E9app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/Enrollment/Helper/UploadHandler.ashx?item=D639F3BFD40721FC1D2868C45E05229F2AE333A43417262E2454448DDBB4129BFF58032FFB447F87560E0F6F398565C8C31AB448770CDF12F3A49ED90AF0C02E8393BDFD35C05309&f=D639F3BFD40721FC1D2868C45E05229F2AE333A43417262E2454448DDBB4129BFF58032FFB447F87D1CA847D25D92F3B3CDC731D24B4AD11A345A66405FD11F5",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuMeeting/",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://vpn2.stu.edu.tw/",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://my.stu.edu.tw/",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://office365.stu.edu.tw/",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/ACA/student/StuDataInput/NewStuLogin.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://dorm.stu.edu.tw/net_reg_flow.php?lang=zh-tw",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/NEWIRS/B3app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/NEWIRS/A1app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/newirs/A1app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/Enrollment/Helper/UploadHandler.ashx?item=89070DF6C2C5E1D61419C62936CD775326DDC7AC03F350B834DFC09D1A3A4CD3481AD021A42FEAFF28871A125BF4E5187C7C108A7C0C40510FE9EF88D20B33FC900A5C9BCB3F2262&f=89070DF6C2C5E1D61419C62936CD775326DDC7AC03F350B834DFC09D1A3A4CD3481AD021A42FEAFF4BCFAD2299D5D0CB6E0D115E32D69AF50878CE5DA4098111",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/NEWIRS/A4app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/newirs/A5app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/newirs/A4app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/NEWIRS/B2app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/NEWIRS/A3app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/SAO/DMT/newStudent/mtnApplyRoom.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/student/studatainput/newstulogin.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=5C3E38EF3C4994B79569CD05CC8A68B07EE7C18F8FB7C8E61F92F27008DA75E638A131AAE7191322324F629C7B76287400BC3ABC537FDCD8DBA5FEC0AD8ECF3427B74A494B804B85FACF83A8B2A7C359FD3F21B5B558333CC6399EE4C986EDF6&f=5C3E38EF3C4994B79569CD05CC8A68B07EE7C18F8FB7C8E61F92F27008DA75E638A131AAE71913223D2C60C1E927CE01149F87A77BFF8659035CB1272BAD0AD2D202A87DCC8135946515163475B8687497653ACF8719569869C89E97254C90CA",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=184C5A2735E36C351A44E624FCBDD1532DF13AD08F8CA55839E5BCAADE1E2A7D10BDBA4068FE0C44FADFF851AF62B9E535410D214CAAB1134B87D6410DD1E4D5DAC969769A1837DC88940E7DC9F808C08612C1BBB1C3EE23A9C111A586CCC8FB&f=184C5A2735E36C351A44E624FCBDD1532DF13AD08F8CA55839E5BCAADE1E2A7D10BDBA4068FE0C4413639C51CE2257C207374D1FF735D8F6D444282C4115C4F3CDE52BD7A560F1E8DEEA72B5FFA0875B40741CDAF82CD9849CCFD1C6EE4AB43249DF82DF708FBEEF16A70DFDDAFA4443",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=B0199BCA04354E44D0317D4625B15D6C3035078C20C2B6D2AEDC61D0A7FD0F5B5C439990F9DA2F735AEAB657BC81B28BC10BDB47FCE50CA261131A140BB16DBBA7034C2BE44F038F5C422A17680D77675BAC849B3165526DC8FB7162AA5EC001&f=B0199BCA04354E44D0317D4625B15D6C3035078C20C2B6D2AEDC61D0A7FD0F5B5C439990F9DA2F733BAF7DFFAD3C41B51900CA6AEBD816709C457BF0218D55B150A6E40A63B2104DD0C7A4C7B8358408",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=B0199BCA04354E44D0317D4625B15D6C3035078C20C2B6D2AEDC61D0A7FD0F5B5C439990F9DA2F735AEAB657BC81B28BC10BDB47FCE50CA261131A140BB16DBBA7034C2BE44F038F5C422A17680D77675BAC849B3165526DC8FB7162AA5EC001&f=B0199BCA04354E44D0317D4625B15D6C3035078C20C2B6D2AEDC61D0A7FD0F5B5C439990F9DA2F7399B8B7E1A05B819937425F8395F42D08C75C40F7217F909B161A4302CDAAFBE55112AB11D7B48D72766D598F00D8EC0B",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=B0199BCA04354E44D0317D4625B15D6C3035078C20C2B6D2AEDC61D0A7FD0F5B5C439990F9DA2F735AEAB657BC81B28BC10BDB47FCE50CA261131A140BB16DBBA7034C2BE44F038F5C422A17680D77675BAC849B3165526D54423F3D95AD7B296637E7C4AC90DE31&f=B0199BCA04354E44D0317D4625B15D6C3035078C20C2B6D2AEDC61D0A7FD0F5B5C439990F9DA2F733BAF7DFFAD3C41B51900CA6AEBD816709C457BF0218D55B150A6E40A63B2104DC605437C663502D6",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=F6EA0FFC8287A1D9D36EDDC8D8CA6DC10E3532D677B0F018939F82BE30E706B368BFF57612E62438BEB7E59FC88C503CA4F7C73B6AC5F4FC3BF525FD784458D0E6F8BDE038F8C04ADF34055BCB692669DAD240DCEB0C088CA9E6ABABF3570975&f=F6EA0FFC8287A1D9D36EDDC8D8CA6DC10E3532D677B0F018939F82BE30E706B368BFF57612E624387B20145DEB1402BA70239C911151D7DAA8182114B42C1F08C5AEDF72EE485D3ED0771A2A04255FA680686D8BDF209B3323D7E02F6EFB9CD2",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=F6EA0FFC8287A1D9D36EDDC8D8CA6DC10E3532D677B0F018939F82BE30E706B368BFF57612E62438BEB7E59FC88C503CA4F7C73B6AC5F4FC3BF525FD784458D0E6F8BDE038F8C04ADF34055BCB692669DAD240DCEB0C088CA9E6ABABF3570975&f=F6EA0FFC8287A1D9D36EDDC8D8CA6DC10E3532D677B0F018939F82BE30E706B368BFF57612E624387B20145DEB1402BA70239C911151D7DAA8182114B42C1F08C5AEDF72EE485D3E48EDFF66E51190BB0F7ABF406ED78EBB23654B80BB1A0429",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=DCCE8C27BB458F7C4E1CC8CD028A62A4288D63B5A28DE63A83F9DAD02EEDC26A1C465EEE0882D8B64D4D9CEA0DDD0F1F2ADD21B9E42BC834C678445E56682A6A367286DA997941FB1D6890B17B45B0E546A4C8D0597F97111474D7773DDD7DE8&f=DCCE8C27BB458F7C4E1CC8CD028A62A4288D63B5A28DE63A83F9DAD02EEDC26A1C465EEE0882D8B6802E09742FE144EED0D9AFF4B4C38A20B5FBE626667F0CF2A8F68074268F52AAB17E2CE26E1125A90E6ABCA69F5AD6530388C1419589EC3B8408EE3274E1DD85172F5C1A89A57A6C",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=F6EA0FFC8287A1D9D36EDDC8D8CA6DC10E3532D677B0F018939F82BE30E706B368BFF57612E62438BEB7E59FC88C503CA4F7C73B6AC5F4FC3BF525FD784458D0E6F8BDE038F8C04ADF34055BCB692669DAD240DCEB0C088CC19D8D6F7A16A9EA&f=7C765000093B02FB479B266C19C97715D7838FB601CBE1DE1D39AEE64C69126557DC61F87AB2FC7D785B1E5E596725E05E4CE5E70DFC3043CD08AA2AF721D97B1E0989C696D91E8977C603115E40EA8F01F6250C5C6FAF48F288CC9E099325A37C2060932FDF610F86C49C4850D2630C",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=DCCE8C27BB458F7C4E1CC8CD028A62A4288D63B5A28DE63A83F9DAD02EEDC26A1C465EEE0882D8B64D4D9CEA0DDD0F1F2ADD21B9E42BC834C678445E56682A6A367286DA997941FB1D6890B17B45B0E546A4C8D0597F97112E11D98E4DFD7C3E&f=DCCE8C27BB458F7C4E1CC8CD028A62A4288D63B5A28DE63A83F9DAD02EEDC26A1C465EEE0882D8B6DD475D8CF853B378217D4F78CDBFC4AF3F8FE82B86141E28EC78DE556BF64F9FA90AFFF6E5703C78B8182628EB137768C0BB0EC1746D2FA22906E43CDE50ABC8A494D8EAA98D43D5D6B87C153A37E8F0",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=184C5A2735E36C351A44E624FCBDD1532DF13AD08F8CA55839E5BCAADE1E2A7D10BDBA4068FE0C44FADFF851AF62B9E535410D214CAAB1134B87D6410DD1E4D5DAC969769A1837DC88940E7DC9F808C08612C1BBB1C3EE2385E0DA4E19C621D5&f=184C5A2735E36C351A44E624FCBDD1532DF13AD08F8CA55839E5BCAADE1E2A7D10BDBA4068FE0C44362C0508DD6D69B899D8CA2CE310472F4B41708186C9873C1ECFCA2F91DDAC33C81C32E8F43378B6FB9EF411DADBEE96",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=5C3E38EF3C4994B79569CD05CC8A68B07EE7C18F8FB7C8E61F92F27008DA75E638A131AAE7191322324F629C7B76287400BC3ABC537FDCD8DBA5FEC0AD8ECF3427B74A494B804B85FACF83A8B2A7C359CC232170A09E3A3D8D08C42A58BD93E1&f=5C3E38EF3C4994B79569CD05CC8A68B07EE7C18F8FB7C8E61F92F27008DA75E638A131AAE719132299C1C31C424E8F9AE60EC93B570DF1CB810460E662AA335A12D259CB3B03BBA9C718C61A7760753A13DC2213C7A0D16F4FBDFEF19E41C3940354DF94ABCDBD2C4AC5763451A5978A5EEF23A8158D77BDC391C90090572122DB0E75A2D2ACECCB079CDC1166B1FAC2D81BCEE7998F0878",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=5C3E38EF3C4994B79569CD05CC8A68B07EE7C18F8FB7C8E61F92F27008DA75E638A131AAE7191322324F629C7B76287400BC3ABC537FDCD8DBA5FEC0AD8ECF3427B74A494B804B85FACF83A8B2A7C359CC232170A09E3A3D8D08C42A58BD93E1&f=5C3E38EF3C4994B79569CD05CC8A68B07EE7C18F8FB7C8E61F92F27008DA75E638A131AAE71913223DCF8B97C59AFDCA7E1CC256371C6A63DFBADCC8C64374C1E3DFF55BCF57034DA3F6014BBD2E9CB1043A6BE417DD5F485AA49A1DFD035A79243F757E36B47DD951A2BCEC9E9090E00847CDB1E80F0AF118A838A0986D0836",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=FFED3B7B871D132A7F5DCC8E7E1BA71E8CC7FF75A88B8C206771FD91398811F6A25B146F2DEC041C811923A1F9502E7F204EA928F3076E5AFE2F5C814AF22C105E918206CA9DAC53BE8447AE0B4B68D163E646753C3FC3E4BA3759C95397FCFE&f=FFED3B7B871D132A7F5DCC8E7E1BA71E8CC7FF75A88B8C206771FD91398811F6A25B146F2DEC041CD6D1E459F4FAC107C954289330D0166594F6EBC0E2B3F3E9DB6F5D0FBBE67E9581C51E67716BD283B736185B8E4CB4896E8FD1644DEA331972D923D8D7CBF6AD",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=FFED3B7B871D132A7F5DCC8E7E1BA71E8CC7FF75A88B8C206771FD91398811F6A25B146F2DEC041C811923A1F9502E7F204EA928F3076E5AFE2F5C814AF22C105E918206CA9DAC53BE8447AE0B4B68D163E646753C3FC3E4BA3759C95397FCFE&f=FFED3B7B871D132A7F5DCC8E7E1BA71E8CC7FF75A88B8C206771FD91398811F6A25B146F2DEC041C3B604D95C1FD2BD9E560DA23B788902632E1D01A1DA9BEB0A8AA11DAAC8389659F9B02397B23387B",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=623BF9321DD72F41F305BFCE76BF0CBF2FCF16E90B826E18C8C149E0E544AE84F43446FC859467CD123847B0EB5D125FB223BB90E1E5D090E592CE89D878358D9A48582F7342B40BCA985145290CDA887EE81F1C97C28E15FF97731D84A00A80&f=623BF9321DD72F41F305BFCE76BF0CBF2FCF16E90B826E18C8C149E0E544AE84F43446FC859467CD9BA6DF53AA512940D6D9E9750D3D69E7E993ECF4472CD7D9",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=623BF9321DD72F41F305BFCE76BF0CBF2FCF16E90B826E18C8C149E0E544AE84F43446FC859467CD123847B0EB5D125FB223BB90E1E5D090E592CE89D878358D9A48582F7342B40BCA985145290CDA887EE81F1C97C28E15FF97731D84A00A80&f=623BF9321DD72F41F305BFCE76BF0CBF2FCF16E90B826E18C8C149E0E544AE84F43446FC859467CD329A6780867EF87EC2386CC964371E382CF114442DC33851",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=37190EA19EC19D66319891623DA8B4761070BBF9AB55A21AE68DBB657D91531247818D24585211B6B33BDA4DAEFC96CD32822C225F7B7C6C98679FF8A30AD1C58CBFFE1076DB62382F86E5C21123F2E955AFA4FDED5F67CC131195F982003C23&f=37190EA19EC19D66319891623DA8B4761070BBF9AB55A21AE68DBB657D91531247818D24585211B68442C4D627E4BD1FC9DDFA152CC22B95",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/CampusAction/Action/GetActionDetail/64ED926C4036E122F3E5CD92615B380AEF6D7A0C677BE121",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/CampusAction/Action/GetActionDetail/F102619D50900B20E900CF69365D35410E08895716676C38",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=F10B7760FFAFF1BFBAE43A4E2A81B276B199EA344693911A8AB26349D30219532ADA03755E675DFFFF4B5DC0DB19FA526877F510DF6AE1C605BB88F3AC2E9EAB13F7878D29C25E9E03F638A48B7A9F9B1FC2E5798F8472A15AF1347D7A0D9E74&f=37476AB9D0A8C110CBAC7FEB4D959336E6318B72B05E0569D443B292A72363AB79B6544B1F8CEB8177B2F54FE0AA17FB402B922BA37D8F91C66712339975F901",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=F10B7760FFAFF1BFBAE43A4E2A81B276B199EA344693911A8AB26349D30219532ADA03755E675DFFFF4B5DC0DB19FA526877F510DF6AE1C605BB88F3AC2E9EAB13F7878D29C25E9E03F638A48B7A9F9B1FC2E5798F8472A15AF1347D7A0D9E74&f=37476AB9D0A8C110CBAC7FEB4D959336E6318B72B05E0569D443B292A72363AB79B6544B1F8CEB8177B2F54FE0AA17FB22994D68C87190C65418C49CD1ED3225",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=37476AB9D0A8C110CBAC7FEB4D959336E6318B72B05E0569D443B292A72363AB79B6544B1F8CEB81213584BDA68DC76C11ACF844B914957E61BE8EB934294CE6A5BF2F6D852E7EF7A793D9C3DA5EA3058FA0A35B8BAF65A75A2BACF0A19CD25F7DDEE935D2BB6897&f=37476AB9D0A8C110CBAC7FEB4D959336E6318B72B05E0569D443B292A72363AB79B6544B1F8CEB813B128C5BB30C21150505FA802550EC8062D2FA285C308B9D9F86BA847157F96EBECFA016FD6BC205539ECAB0F6A71422173B8026FF8DD209DE8A2394E93BB5C202219A8AF9FD2B30",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=37476AB9D0A8C110CBAC7FEB4D959336E6318B72B05E0569D443B292A72363AB79B6544B1F8CEB81213584BDA68DC76C11ACF844B914957E61BE8EB934294CE6A5BF2F6D852E7EF7A793D9C3DA5EA3058FA0A35B8BAF65A75A2BACF0A19CD25F7DDEE935D2BB6897&f=37476AB9D0A8C110CBAC7FEB4D959336E6318B72B05E0569D443B292A72363AB79B6544B1F8CEB81E3CFC9D06ACF8E85242B94BB0A5FD90B99CC457103A70F2C7585569C8DE053892A90C2C60A41943C1F70C738AC2DED15FB65B6BEA7A4A0B4FF5656B873516D4B",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=FFED3B7B871D132A7F5DCC8E7E1BA71E8CC7FF75A88B8C206771FD91398811F6A25B146F2DEC041C811923A1F9502E7F204EA928F3076E5AFE2F5C814AF22C105E918206CA9DAC53BE8447AE0B4B68D163E646753C3FC3E496609A48545D9373&f=FFED3B7B871D132A7F5DCC8E7E1BA71E8CC7FF75A88B8C206771FD91398811F6A25B146F2DEC041C3C86AB860136423A28CA429FE9E9691507A302BF523C237168B673CFC48BA96082B7EF7A346BCEB5ABA2F8224D2A61D127CCE9ED0E4F70B5AC68EB1BF0F16CB43F21438013FDC56E",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=75B0156A31E053A264121777EC5DC855669D943F4BF6AE3723DEC99CA245FC670F7DD3415D3E4E4399903637B938FC694C3C25097A00905EAE9220170711E07C509AC22A39282209D476D513E511ED3843EE5505CAE280DA38EF127753837BDC&f=75B0156A31E053A264121777EC5DC855669D943F4BF6AE3723DEC99CA245FC670F7DD3415D3E4E4344F303B3FE40858E85A25CFD83F24A85947BEE59B7DE15FC8F7E88D6A95D1EE67A4A76F3A34D3583983D1783721B4243",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=FFED3B7B871D132A7F5DCC8E7E1BA71E8CC7FF75A88B8C206771FD91398811F6A25B146F2DEC041C811923A1F9502E7F204EA928F3076E5AFE2F5C814AF22C105E918206CA9DAC53BE8447AE0B4B68D163E646753C3FC3E4F7750047A9C754FB&f=FFED3B7B871D132A7F5DCC8E7E1BA71E8CC7FF75A88B8C206771FD91398811F6A25B146F2DEC041C8340CD6A0BFD388DAEB0EAB9907F9002EAB248F431881A25F5DAE189BEBC881F6F0AEABB10B11336D1CBA60BB5E01685",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/WebStuNews/ExtService/GetNewsDetail/27C351068F532A63FBB16C1D5F56779275656ECFD02441B0E7F290AF8345BFB9FBAC8437681E183D0461D9CEDC04C7DF8E02FFAD84A31073",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/WebStuNews/ExtService/GetNewsDetail/D4E8845AFFAD4AD9F4CEAD871FDC20B9C3DDA182ACD1F1AE57A53A5D392433A75AFD4344E8BB850AEC36BA126C64F5F809774497DAF3A66C",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/ExtService/GetNewsDetail/71DF5838980312D431EA93FA4802F49CD688CF7CCE89A59F819F1E49BEF32279838EF71A06F2F35E51D073BDD8A43941E418C930829C6BDF73A1157FA7E97B94CEA5C5231590EAA9085BB9792F6FA68776A872D2353A275DD8A008610303C51A",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://info.stu.edu.tw/ACA/teacher/FORCOURSE_Edit/index.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/GOVSUBSIDY/",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://www.ssc.stu.edu.tw/wp-login.php",
+    "status": "excluded-action"
+  },
+  {
+    "source": "https://dorm.stu.edu.tw/dorm_note.php",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/CampusAction/Action/GetActionDetail/485EA2ECDD064CA48AD13293FC1607A533467619E920D587",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://supplier.stu.edu.tw/Account/LogOff",
+    "status": "excluded-action"
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/NEWIRS/E1app.asp",
+    "status": "requires-auth-integration"
+  },
+  {
+    "source": "https://www.rd.stu.edu.tw/wp-login.php",
+    "status": "excluded-action"
+  }
+]

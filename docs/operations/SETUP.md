@@ -105,3 +105,7 @@ Validate the reference manifest with `node scripts/import-assistant-corpus.mjs`.
 ### Separate School Affairs and knowledge management
 
 Open `/school-affairs/login` for the public school-login interface preview; the demo button enables only browser-local navigation. No real university credentials are accepted. Nexus `/signin` is for management; the protected owner defaults to `/app/knowledge` and can choose **Open full workspace** from the account menu. `npm run test:school-affairs-entry` verifies login/logout/responsive/session isolation locally. Real student login/data require a school-approved integration or separate site-account implementation after the user's pending decision.
+
+## Local school-page mirror
+
+See [the mirror guide](../qa/SCHOOL_MIRROR.md) for source capture, local routes, document preparation/cache, offline checks and responsive verification. `npm run dev` and `npm run build` prepare pinned public documents automatically; the first preparation downloads more than 1 GB. No school account or provider secret is used for this step. Private school systems remain separately unconnected.

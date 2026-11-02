@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 16.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd" [
+	<!ENTITY ns_flows "http://ns.adobe.com/Flows/1.0/">
+	<!ENTITY ns_extend "http://ns.adobe.com/Extensibility/1.0/">
+	<!ENTITY ns_ai "http://ns.adobe.com/AdobeIllustrator/10.0/">
+	<!ENTITY ns_graphs "http://ns.adobe.com/Graphs/1.0/">
+	<!ENTITY ns_vars "http://ns.adobe.com/Variables/1.0/">
+	<!ENTITY ns_imrep "http://ns.adobe.com/ImageReplacement/1.0/">
+	<!ENTITY ns_sfw "http://ns.adobe.com/SaveForWeb/1.0/">
+	<!ENTITY ns_custom "http://ns.adobe.com/GenericCustomNamespace/1.0/">
+	<!ENTITY ns_adobe_xpath "http://ns.adobe.com/XPath/1.0/">
+]>
+<svg version="1.1" xmlns:x="&ns_extend;" xmlns:i="&ns_ai;" xmlns:graph="&ns_graphs;"
+	 xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/"
+	 x="0px" y="0px" width="18.006px" height="22.91px" viewBox="0 0 18.006 22.91" enable-background="new 0 0 18.006 22.91"
+	 xml:space="preserve">
+<metadata>
+	<sfw  xmlns="&ns_sfw;">
+		<slices>
+			
+				<slice  type="1" name="_1" width="1920" height="1766" groupID="6" y="-203" x="0" background="none" target="" url="" message="" altTag="" horzAlign="0" cellTextIsHTML="false" sliceID="1" vertAlign="0">
+				<cellText>
+					<![CDATA[]]>
+				</cellText>
+			</slice>
+			
+				<slice  type="1" name="_2" width="1920" height="1012" groupID="6" y="1563" x="0" background="none" target="" url="" message="" altTag="" horzAlign="0" cellTextIsHTML="false" sliceID="2" vertAlign="0">
+				<cellText>
+					<![CDATA[]]>
+				</cellText>
+			</slice>
+		</slices>
+		<sliceSourceBounds  width="6166" height="10320.143" y="-7427.066" x="-2082" bottomLeftOrigin="true"></sliceSourceBounds>
+		<optimizationSettings>
+			<targetSettings  fileFormat="JPEGFormat" targetSettingsID="0">
+				
+					<JPEGFormat  progressive="false" blurAmount="0" embedICCProfile="true" optimized="true" quality="100" matteColor="#FFFFFF" noMatteColor="false">
+					</JPEGFormat>
+			</targetSettings>
+		</optimizationSettings>
+	</sfw>
+</metadata>
+<g id="圖層_1">
+	<g>
+		<path fill="#29A5DC" d="M7.361,0.004c-0.219,0-0.412,0.076-0.576,0.238C6.623,0.408,6.547,0.594,6.547,0.818v5.322
+			c0,0.221-0.084,0.408-0.246,0.572c-0.158,0.166-0.352,0.24-0.574,0.24s-0.416-0.074-0.574-0.24
+			C4.988,6.549,4.906,6.361,4.906,6.141V0.818c0-0.225-0.082-0.41-0.238-0.576C4.502,0.08,4.311,0.004,4.086,0.004
+			c-0.221,0-0.404,0.076-0.57,0.238C3.352,0.408,3.273,0.594,3.273,0.818v5.322c0,0.221-0.084,0.408-0.244,0.572
+			c-0.162,0.166-0.355,0.24-0.578,0.24c-0.221,0-0.41-0.074-0.574-0.24C1.713,6.549,1.635,6.361,1.635,6.141V0.818
+			c0-0.225-0.082-0.41-0.238-0.576C1.23,0.08,1.043,0.004,0.818,0.004c-0.223,0-0.416,0.076-0.578,0.238
+			C0.076,0.408,0,0.594,0,0.818v8.184c0,0.518,0.148,0.99,0.453,1.414c0.299,0.428,0.695,0.73,1.182,0.895v9.961
+			c0,0.443,0.166,0.828,0.482,1.154c0.328,0.32,0.713,0.484,1.156,0.484h1.633c0.445,0,0.832-0.166,1.15-0.484
+			c0.324-0.326,0.49-0.711,0.49-1.154v-9.961c0.484-0.164,0.873-0.467,1.178-0.895C8.027,9.992,8.179,9.52,8.179,9.002V0.818
+			c0-0.225-0.077-0.41-0.241-0.576C7.771,0.08,7.584,0.004,7.361,0.004z"/>
+		<path fill="#29A5DC" d="M17.76,0.242C17.603,0.078,17.404,0,17.188,0h-3.278c-1.124,0-2.084,0.402-2.891,1.201
+			c-0.802,0.801-1.203,1.768-1.203,2.893V14.32c0,0.109,0.04,0.205,0.124,0.285c0.079,0.08,0.177,0.127,0.288,0.127h2.869v6.539
+			c0,0.443,0.164,0.828,0.482,1.154c0.322,0.32,0.713,0.484,1.153,0.484h1.632c0.446,0,0.836-0.164,1.155-0.484
+			c0.321-0.326,0.486-0.711,0.486-1.154V0.818C18.006,0.594,17.922,0.408,17.76,0.242z"/>
+	</g>
+</g>
+<g id="popup" display="none">
+</g>
+</svg>

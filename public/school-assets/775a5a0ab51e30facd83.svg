@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 16.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd" [
+	<!ENTITY ns_flows "http://ns.adobe.com/Flows/1.0/">
+	<!ENTITY ns_extend "http://ns.adobe.com/Extensibility/1.0/">
+	<!ENTITY ns_ai "http://ns.adobe.com/AdobeIllustrator/10.0/">
+	<!ENTITY ns_graphs "http://ns.adobe.com/Graphs/1.0/">
+	<!ENTITY ns_vars "http://ns.adobe.com/Variables/1.0/">
+	<!ENTITY ns_imrep "http://ns.adobe.com/ImageReplacement/1.0/">
+	<!ENTITY ns_sfw "http://ns.adobe.com/SaveForWeb/1.0/">
+	<!ENTITY ns_custom "http://ns.adobe.com/GenericCustomNamespace/1.0/">
+	<!ENTITY ns_adobe_xpath "http://ns.adobe.com/XPath/1.0/">
+]>
+<svg version="1.1" xmlns:x="&ns_extend;" xmlns:i="&ns_ai;" xmlns:graph="&ns_graphs;"
+	 xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/"
+	 x="0px" y="0px" width="70px" height="69.999px" viewBox="0 0 70 69.999" enable-background="new 0 0 70 69.999"
+	 xml:space="preserve">
+<metadata>
+	<sfw  xmlns="&ns_sfw;">
+		<slices>
+			
+				<slice  type="1" name="_1" width="1920" height="1766" x="0" y="-203" background="none" target="" url="" altTag="" message="" groupID="6" sliceID="1" horzAlign="0" cellTextIsHTML="false" vertAlign="0">
+				<cellText>
+					<![CDATA[]]>
+				</cellText>
+			</slice>
+			
+				<slice  type="1" name="_2" width="1920" height="1012" x="0" y="1563" background="none" target="" url="" altTag="" message="" groupID="6" sliceID="2" horzAlign="0" cellTextIsHTML="false" vertAlign="0">
+				<cellText>
+					<![CDATA[]]>
+				</cellText>
+			</slice>
+		</slices>
+		<sliceSourceBounds  width="7813.377" height="10173.518" x="-3729.377" y="-7280.442" bottomLeftOrigin="true">
+			</sliceSourceBounds>
+		<optimizationSettings>
+			<targetSettings  fileFormat="JPEGFormat" targetSettingsID="0">
+				
+					<JPEGFormat  noMatteColor="false" matteColor="#FFFFFF" quality="100" optimized="true" embedICCProfile="true" blurAmount="0" progressive="false">
+					</JPEGFormat>
+			</targetSettings>
+		</optimizationSettings>
+	</sfw>
+</metadata>
+<g id="圖層_1">
+	<g>
+		<polygon fill="#FFFFFF" points="36.41,30.386 36.41,29.549 36.41,20.509 33.322,20.509 33.322,29.549 33.322,30.386 
+			32.986,31.244 26.953,41.099 43.047,41.099 36.88,31.244 		"/>
+		<path fill="#FFFFFF" d="M35,0C15.67,0,0,15.671,0,35.001c0,19.328,15.67,34.998,35,34.998c19.328,0,35-15.67,35-34.998
+			C70,15.671,54.328,0,35,0z M51.197,50.957c-0.52,0.956-1.58,1.467-3.178,1.467H21.978c-1.597,0-2.653-0.511-3.173-1.467
+			c-0.52-0.958-0.059-2.123,0.787-3.461l11.672-17.942v-9.044h-2.051c-0.393,0-0.734-0.13-1.02-0.417
+			c-0.287-0.287-0.428-0.619-0.428-1.012c0-0.394,0.141-0.835,0.428-1.122c0.285-0.285,0.627-0.538,1.02-0.538h11.572
+			c0.393,0,0.732,0.254,1.018,0.541s0.43,0.676,0.43,1.07c0,0.392-0.145,0.744-0.43,1.034c-0.285,0.287-0.625,0.444-1.018,0.444
+			H39.5v9.044l11.291,17.942C51.635,48.834,51.715,49.999,51.197,50.957z"/>
+	</g>
+</g>
+<g id="popup" display="none">
+</g>
+</svg>

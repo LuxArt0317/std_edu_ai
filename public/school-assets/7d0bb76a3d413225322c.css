@@ -1,0 +1,38 @@
+.elementor-7032 .elementor-element.elementor-element-5d0114d{--display:flex;}.elementor-widget-nested-tabs.elementor-widget-n-tabs > .e-n-tabs[data-touch-mode='false'] > .e-n-tabs-heading > .e-n-tab-title[aria-selected="false"]:hover{background:var( --e-global-color-accent );}.elementor-widget-nested-tabs.elementor-widget-n-tabs > .e-n-tabs > .e-n-tabs-heading > .e-n-tab-title[aria-selected="true"], .elementor-widget-nested-tabs.elementor-widget-n-tabs > .e-n-tabs[data-touch-mode='true'] > .e-n-tabs-heading > .e-n-tab-title[aria-selected="false"]:hover{background:var( --e-global-color-accent );}.elementor-widget-nested-tabs.elementor-widget-n-tabs > .e-n-tabs > .e-n-tabs-heading > :is( .e-n-tab-title > .e-n-tab-title-text, .e-n-tab-title ){font-family:var( --e-global-typography-accent-font-family ), Sans-serif;font-weight:var( --e-global-typography-accent-font-weight );}.elementor-7032 .elementor-element.elementor-element-fb549a8{--display:flex;}.elementor-7032 .elementor-element.elementor-element-53df2c9{--display:flex;}.elementor-7032 .elementor-element.elementor-element-0b23839{--display:flex;}.elementor-7032 .elementor-element.elementor-element-655fec3{--display:flex;}.elementor-7032 .elementor-element.elementor-element-a8891fe{--display:flex;}.elementor-7032 .elementor-element.elementor-element-4aa8c15{--display:flex;}.elementor-7032 .elementor-element.elementor-element-d4ecba7{--display:flex;}.elementor-7032 .elementor-element.elementor-element-7bf4644{--n-tabs-heading-wrap:wrap;--n-tabs-heading-overflow-x:initial;--n-tabs-title-white-space:initial;}.elementor-7032 .elementor-element.elementor-element-c4a4324{--display:flex;}.elementor-7032 .elementor-element.elementor-element-d93b03a{--display:flex;}.elementor-7032 .elementor-element.elementor-element-482761c{--n-tabs-heading-wrap:wrap;--n-tabs-heading-overflow-x:initial;--n-tabs-title-white-space:initial;}.elementor-7032 .elementor-element.elementor-element-0444c24{--display:flex;}/* Start custom CSS for nested-tabs, class: .elementor-element-482761c *//* Elementor 新版巢狀分頁：預設隱藏所有內容 */
+.elementor-widget-n-tabs .e-n-tabs-content &gt; .e-con {
+    display: none !important;
+}
+
+/* 只顯示目前被選取的分頁 */
+.elementor-widget-n-tabs .e-n-tabs-content &gt; .e-con.e-active {
+    display: flex !important;
+}
+
+/* Elementor 舊版分頁：預設隱藏所有內容 */
+.elementor-widget-tabs .elementor-tabs-content-wrapper &gt; .elementor-tab-content {
+    display: none !important;
+}
+
+/* 只顯示目前被選取的分頁 */
+.elementor-widget-tabs .elementor-tabs-content-wrapper &gt; .elementor-tab-content.elementor-active {
+    display: block !important;
+}/* End custom CSS */
+/* Start custom CSS for container, class: .elementor-element-5d0114d *//* Elementor 新版巢狀分頁：預設隱藏所有內容 */
+.elementor-widget-n-tabs .e-n-tabs-content &gt; .e-con {
+    display: none !important;
+}
+
+/* 只顯示目前被選取的分頁 */
+.elementor-widget-n-tabs .e-n-tabs-content &gt; .e-con.e-active {
+    display: flex !important;
+}
+
+/* Elementor 舊版分頁：預設隱藏所有內容 */
+.elementor-widget-tabs .elementor-tabs-content-wrapper &gt; .elementor-tab-content {
+    display: none !important;
+}
+
+/* 只顯示目前被選取的分頁 */
+.elementor-widget-tabs .elementor-tabs-content-wrapper &gt; .elementor-tab-content.elementor-active {
+    display: block !important;
+}/* End custom CSS */

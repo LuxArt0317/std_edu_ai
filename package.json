@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && npm run verify:build",
+    "build": "npm run prepare:school-assets && tsc -b && vite build && npm run verify:build",
     "lint": "oxlint",
     "test": "node scripts/verify-needed-catalog.mjs && node scripts/verify-needed-v3.mjs && node scripts/verify-research-protocol.mjs && node scripts/verify-research-104.mjs && node scripts/verify-research-trace-evidence.mjs && node scripts/verify-research-evaluation.mjs && node scripts/verify-research-operations.mjs && node scripts/verify-research-hardening.mjs && node scripts/verify-stu-source-inventory.mjs && node scripts/verify-stitch-ui.mjs && node scripts/verify-stitch-all-pages.mjs && node --experimental-strip-types --test tests/api/*.test.ts",
     "verify:needed": "node scripts/verify-needed-catalog.mjs",
@@ -72,7 +72,12 @@
     "test:school-affairs": "node tests/integration/school-affairs-ui.mjs",
     "test:live-connected-assistant": "node tests/integration/connected-assistant-live.mjs",
     "import:assistant-corpus": "node scripts/import-assistant-corpus.mjs",
-    "test:school-affairs-entry": "node tests/integration/school-affairs-entry-ui.mjs"
+    "test:school-affairs-entry": "node tests/integration/school-affairs-entry-ui.mjs",
+    "prepare:school-assets": "node scripts/prepare-school-assets.mjs",
+    "predev": "npm run prepare:school-assets",
+    "mirror:queue": "node scripts/school-mirror-queue.mjs",
+    "mirror:import": "node scripts/build-school-mirror.mjs",
+    "test:school-mirror": "node tests/integration/school-mirror-ui.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.5",

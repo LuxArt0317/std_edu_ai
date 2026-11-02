@@ -122,3 +122,16 @@ User requests a complete connected Assistant. Preserve existing account permissi
 - [x] Verify source likeness, session isolation, manager routes, responsive/a11y/API/unit/build checks and publish verified changes.
 
 Required clarification pending: real school-approved login/API integration versus independent site student accounts. No official credentials are collected or demo identity trusted as authentication.
+
+## Complete public destination copies and source fidelity [Issue #84]
+
+- [x] Inventory the ten audience entrances and observed linked destinations; read source browser captures/assets rather than treat empty202 responses as copied pages.
+- [x] Build deterministic local source-page/asset imports and internal school-link routing; preserve explicit protected/third-party boundaries.
+- [x] Copy first-hop public HTML and additional freshman/international/alumni service details; record exact file/private coverage.
+- [ ] Resolve remaining deeper service links and unavailable source resources; old news archives are excluded by the user's clarification.
+- [x] Match homepage/source layouts, icons and responsive behavior; implement local menus/search/carousel interactions without source backend submissions.
+- [x] Verify the local checkpoint with responsive visual/a11y and app regression gates; retain unresolved coverage honestly. Production publication is separate and has not happened.
+
+Initial observed graph:299 school URLs across43 hosts plus83 third-party URLs from eleven captured root pages (home plus ten entrances). Browser rendering works where plain requests return empty202; no CAPTCHA/security warning or authentication bypass. #83 real student-auth integration choice remains separately pending.
+
+User clarified scope: include entrance and service/detail pages; skip old news archives. Preserve existing dated snapshots, but do not spend further capture work on historical news, author listings or archive pagination. First-hop public HTML is copied; additional freshman, international-service and alumni-profile details are being added. Keep deeper service/resource gaps explicit until verified.

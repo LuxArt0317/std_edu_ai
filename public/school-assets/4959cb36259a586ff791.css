@@ -1,0 +1,532 @@
+/* Custom Styles 
+-----------------------------------------------------------*/
+/*因為Bootstrap CSS的.hidden & .hide 都不能用jquery 的show()顯示，所以另外建這個hideMe*/
+.hideMe {
+	display: none;
+}
+
+.table thead th {
+	text-align: center;
+}
+
+table.tablesorter thead tr .header {
+	background-image: url("data:,");
+	background-repeat: no-repeat;
+	background-position: center right;
+	cursor: pointer;
+}
+
+table.tablesorter thead tr .headerSortUp {
+	background-image: url("data:image/gif;base64,R0lGODlhFQAEAIABAPHx8f///yH5BAEAAAEALAAAAAAVAAQAAAINjB+gC+jP2ptn0WskLQA7");
+}
+
+table.tablesorter thead tr .headerSortDown {
+	background-image: url("data:image/gif;base64,R0lGODlhFQAEAIABAPHx8f///yH5BAEAAAEALAAAAAAVAAQAAAINjI8Bya2wnINUMopZAQA7");
+}
+
+.nobreakline {
+	white-space: nowrap;
+}
+
+.pagination-container {
+	text-align: right;
+	width: 99%;
+}
+
+	.pagination-container .pagination {
+		margin: 0 0;
+	}
+
+.readonlyWhiteBackgound {
+	background: white none repeat scroll 0 0 !important;
+	background-color: white !important;
+}
+
+input[type=number] {
+	-moz-appearance: textfield;
+}
+
+.input-digital {
+	width: 80px !important;
+}
+
+.form-control, select {
+	color: #000;
+}
+
+.fontColor-Blue {
+	color: #0300ff !important;
+}
+
+.fontColor-Red {
+	color: #ff0000 !important;
+}
+
+.unRead {
+	font-weight: bold !important;
+}
+
+
+.selectTR {
+	background-color: #f8b5b3 !important;
+}
+
+.hoverPointer > tbody > tr {
+	cursor: pointer;
+}
+
+.twoSideNopadding {
+	padding-left: 0 !important;
+	padding-right: 0 !important;
+}
+
+.rightNopadding {
+	padding-right: 0 !important;
+}
+
+.leftNopadding {
+	padding-left: 0 !important;
+}
+
+.paddingLeft-15 {
+	padding-left: 15px;
+}
+
+.paddingLeft-30 {
+	padding-left: 30px;
+}
+
+.fullHeight {
+	height: 100%;
+}
+
+.ace-settings-btn.btn {
+	width: 20px !important;
+	padding-bottom: 3px !important;
+	padding-top: 4px !important;
+	padding-left: 2px !important;
+}
+
+.flowInfo {
+	margin: 0 auto;
+	width: calc(100% - 24px);
+}
+
+.flowInfo-primary {
+	border-left: 10px solid rgba(138, 109, 59, 0.80);
+}
+
+.hideInComment {
+	display: none;
+}
+
+.detailDiv {
+	margin: 0 auto;
+	width: calc(100% - 24px);
+}
+
+.detailTableCaption {
+	min-height: 38px;
+	background-color: #edf3f4;
+	color: #336199;
+	border: 1px solid #DDD;
+	padding-left: 12px;
+	font-weight: bold;
+}
+
+.height50px {
+	height: 50px !important;
+}
+
+.height100px {
+	height: 100px !important;
+}
+
+.height200px {
+	height: 200px !important;
+}
+
+.height300px {
+	height: 300px !important;
+}
+
+.height350px {
+	height: 350px !important;
+}
+
+.height400px {
+	height: 400px !important;
+}
+
+.height450px {
+	height: 450px !important;
+}
+
+.height500px {
+	height: 500px !important;
+}
+
+.height600px {
+	height: 600px !important;
+}
+
+.height700px {
+	height: 700px !important;
+}
+
+
+/*讓autocomplete在Modal也可以正常顯示*/
+.ui-autocomplete {
+	z-index: 5000;
+}
+
+/* Styles for validation helpers
+-----------------------------------------------------------*/
+.field-validation-error {
+	color: #d16e6c;
+}
+
+.field-validation-valid {
+	display: none;
+}
+
+.input-validation-error {
+	border: 1px solid #d16e6c !important;
+	background-color: #ffeeee;
+}
+
+/*only for jquery select2 plug-in*/
+.select2-validation-error {
+	border: 1px solid #d16e6c !important;
+	background-color: #ffeeee !important;
+}
+
+.validation-summary-errors {
+	font-weight: bold;
+	color: #d16e6c;
+}
+
+.validation-summary-valid {
+	display: none;
+}
+
+/*jsTree View*/
+.olive {
+	color: olive !important;
+}
+
+.jstree-default > .jstree-container-ul > .jstree-node {
+	padding-top: 15px;
+}
+
+.jstree-default .jstree-last {
+	padding-top: 0 !important;
+}
+
+/*公文用*/
+.comment {
+	height: 150px !important;
+}
+
+.btn-file {
+	position: relative;
+	overflow: hidden;
+}
+
+	.btn-file input[type=file] {
+		position: absolute;
+		top: 0;
+		right: 0;
+		min-width: 100%;
+		min-height: 100%;
+		font-size: 100px;
+		text-align: right;
+		filter: alpha(opacity=0);
+		opacity: 0;
+		outline: none;
+		background: white;
+		cursor: inherit;
+		display: block;
+	}
+
+/*右上角logout drowdown區塊在IE中，會躲在後面，所以加上這段*/
+.navbar-header ul.ace-nav li.light-blue {
+	position: relative;
+	z-index: 10000;
+}
+
+/* TODO: 滑鼠反藍會凸出去可以順便修正 */
+/* 重設autocomplete css, modal才能正常顯示 */
+.modal > .ui-autocomplete-input {
+	border: none;
+	font-size: 14px;
+	width: 300px;
+	height: 24px;
+	margin-bottom: 5px;
+	padding-top: 2px;
+	border: 1px solid #DDD !important;
+	padding-top: 0px !important;
+	z-index: 1511;
+	position: relative;
+}
+
+.modal > .ui-autocomplete {
+	position: fixed;
+	top: 100%;
+	left: 0;
+	z-index: 1051 !important;
+	float: left;
+	display: none;
+	min-width: 160px;
+	width: 160px;
+	padding: 4px 0;
+	margin: 2px 0 0 0;
+	list-style: none;
+	background-color: #ffffff;
+	border-color: #ccc;
+	border-color: rgba(0, 0, 0, 0.2);
+	border-style: solid;
+	border-width: 1px;
+	-webkit-border-radius: 2px;
+	-moz-border-radius: 2px;
+	border-radius: 2px;
+	-webkit-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+	-moz-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+	box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+	-webkit-background-clip: padding-box;
+	-moz-background-clip: padding;
+	background-clip: padding-box;
+	*border-right-width: 2px;
+	*border-bottom-width: 2px;
+}
+
+.modal > .ui-menu-item > a.ui-corner-all {
+	display: block;
+	clear: both;
+	font-weight: normal;
+	line-height: 18px;
+	white-space: pre-wrap;
+	text-decoration: none;
+}
+
+.modal > .ui-state-hover, .ui-state-active {
+	color: #ffffff;
+	text-decoration: none;
+	background-color: #0088cc;
+	border-radius: 0px;
+	-webkit-border-radius: 0px;
+	-moz-border-radius: 0px;
+	background-image: none;
+}
+
+.datepicker {
+	z-index: 1151 !important;
+}
+
+/*變更table邊線顏色*/
+.widget-main.no-scroll .profile-user-info-striped .profile-info-name {
+	border-right: 1px solid #438eb9;
+	border-top: 1px solid #438eb9;
+}
+/*變更table邊線顏色*/
+.widget-main.no-scroll .profile-user-info-striped .profile-info-value {
+	border-top: 1px solid #438eb9;
+}
+
+/*變更table邊線顏色*/
+.widget-main.no-scroll .table-bordered > thead > tr > th,
+.widget-main.no-scroll .table-bordered > tbody > tr > th,
+.widget-main.no-scroll .table-bordered > tfoot > tr > th,
+.widget-main.no-scroll .table-bordered > thead > tr > td,
+.widget-main.no-scroll .table-bordered > tbody > tr > td,
+.widget-main.no-scroll .table-bordered > tfoot > tr > td,
+.widget-main.no-scroll .profile-user-info-striped {
+	border: 1px solid #438eb9 !important;
+}
+
+@media only screen and (max-width: 991px) {
+	.navbar-toggle {
+		display: block !important;
+	}
+}
+
+/*Fields readonly or disabled*/
+select[disabled] {
+	color: #939192;
+	background-color: #f5f5f5;
+}
+
+textarea[readonly] {
+	color: #939192;
+	background: #f5f5f5 !important;
+	cursor: default;
+}
+
+	textarea[readonly]:hover {
+		border-color: #c3c3c3;
+	}
+
+	textarea[readonly]:focus {
+		-webkit-box-shadow: none;
+		box-shadow: none;
+		border-color: #aaaaaa;
+		background-color: #f9f9f9;
+	}
+
+input, textarea:focus {
+	color: black !important;
+}
+
+.bztravel-table td {
+	padding: 2px;
+}
+
+.bztravel-table thead th {
+	padding: 2px;
+	text-align: center;
+}
+
+.bztravel-table tbody th {
+	padding: 2px;
+	text-align: right;
+}
+
+.w50p {
+	width: 50% !important;
+	margin: 0 auto;
+}
+
+.w60p {
+	width: 60% !important;
+	margin: 0 auto;
+}
+
+.w70p {
+	width: 70% !important;
+	margin: 0 auto;
+}
+
+.w80p {
+	width: 80% !important;
+	margin: 0 auto;
+}
+
+.w90p {
+	width: 90% !important;
+	margin: 0 auto;
+}
+
+.w95p {
+	width: 95% !important;
+	margin: 0 auto;
+}
+
+.w100p {
+	width: 98% !important;
+	margin: 0 auto;
+}
+/* 98% 保留一些給 margin /padding ,避免太近邊界,左右不對側,不好看*/
+
+table th.w3p, table td.w3p {
+	width: 3% !important;
+}
+
+table th.w4p, table td.w4p {
+	width: 4% !important;
+}
+
+table th.w5p, table td.w5p {
+	width: 5% !important;
+}
+
+table th.w6p, table td.w6p {
+	width: 6% !important;
+}
+
+table th.w7p, table td.w7p {
+	width: 7% !important;
+}
+
+table th.w8p, table td.w8p {
+	width: 8% !important;
+}
+
+table th.w9p, table td.w9p {
+	width: 9% !important;
+}
+
+table th.w10p, table td.w10p {
+	width: 10% !important;
+}
+
+table th.w11p, table td.w11p {
+	width: 11% !important;
+}
+
+table th.w12p, table td.w12p {
+	width: 12% !important;
+}
+
+table th.w13p, table td.w13p {
+	width: 13% !important;
+}
+
+table th.w14p, table td.w14p {
+	width: 14% !important;
+}
+
+table th.w15p, table td.w15p {
+	width: 15% !important;
+}
+
+table th.w16p, table td.w16p {
+	width: 16% !important;
+}
+
+table th.w17p, table td.w17p {
+	width: 17% !important;
+}
+
+table th.w18p, table td.w18p {
+	width: 18% !important;
+}
+
+table th.w19p, table td.w19p {
+	width: 19% !important;
+}
+
+table th.w20p, table td.w20p {
+	width: 20% !important;
+}
+
+table th.w21p, table td.w21p {
+	width: 21% !important;
+}
+
+table th.w22p, table td.w22p {
+	width: 22% !important;
+}
+
+table th.w23p, table td.w23p {
+	width: 23% !important;
+}
+
+table th.w24p, table td.w24p {
+	width: 24% !important;
+}
+
+table th.w25p, table td.w25p {
+	width: 25% !important;
+}
+
+table th.w27p, table td.w27p {
+	width: 27% !important;
+}
+
+table th.w30p, table td.w30p {
+	width: 30% !important;
+}
+
+table th.w35p, table td.w35p {
+	width: 35% !important;
+}

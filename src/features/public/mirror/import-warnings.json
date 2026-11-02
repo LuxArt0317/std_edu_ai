@@ -1,0 +1,657 @@
+[
+  {
+    "source": "https://fonts.gstatic.com/l/font?kit=ieVb2ZhZI2eCN5jzbjEETS9weq8-_d6T_POl0fRJeyXsopJCzY2ZtGeM0rsOz9kBhYTg11HahA&skey=9986ecffddb755ab&v=v31",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://fonts.gstatic.com/s/anonymouspro/v22/rP2cp2a15UIB7Un-bOeISG3pFuAT4C7c7YGx0Ks.woff2",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://www.stu.edu.tw/wp-content/plugins/stu-latest-news_v14/fonts/fa-solid-900.woff2",
+    "page": null,
+    "reason": "not_found"
+  },
+  {
+    "source": "https://www.stu.edu.tw/wp-content/plugins/stu-latest-news_v14/fonts/fa-solid-900.woff",
+    "page": null,
+    "reason": "not_found"
+  },
+  {
+    "source": "https://www.stu.edu.tw/wp-content/plugins/stu-latest-news_v14/fonts/fa-solid-900.ttf",
+    "page": null,
+    "reason": "not_found"
+  },
+  {
+    "source": "https://www.stu.edu.tw/favicon.ico",
+    "page": null,
+    "reason": "not_found"
+  },
+  {
+    "source": "https://activity.sao.stu.edu.tw/favicon.ico",
+    "page": null,
+    "reason": "forbidden"
+  },
+  {
+    "source": "https://supplier.stu.edu.tw/fonts/fontawesome-webfont.woff2?v=4.7.0",
+    "page": null,
+    "reason": "not_found"
+  },
+  {
+    "source": "https://life.sao.stu.edu.tw/opt/wordpress/wp-content//fonts/montserrat/JTUSjIg1_i6t8kCHKm459Wlhyw.woff2",
+    "page": null,
+    "reason": "forbidden"
+  },
+  {
+    "source": "https://fonts.gstatic.com/s/anonymouspro/v22/rP2Bp2a15UIB7Un-bOeISG3pHls29QP-4Ks.woff2",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://life.sao.stu.edu.tw/opt/wordpress/wp-content//fonts/roboto/KFOmCnqEu92Fr1Mu4mxK.woff2",
+    "page": null,
+    "reason": "forbidden"
+  },
+  {
+    "source": "https://life.sao.stu.edu.tw/opt/wordpress/wp-content//fonts/roboto/KFOlCnqEu92Fr1MmWUlfBBc4.woff2",
+    "page": null,
+    "reason": "forbidden"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/105/2024/10/cropped-%E6%A0%A1%E5%9C%92%E5%9C%96-scaled-1-32x32.jpg",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://fonts.gstatic.com/s/nunitosans/v19/pe0TMImSLYBIv1o4X1M8ce2xCx3yop4tQpF_MeTm0lfGWVpNn64CL7U8upHZIbMV51Q42ptCp7t1R-tQKr51.woff2",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://fonts.gstatic.com/s/nunito/v32/XRXV3I6Li01BKofINeaBTMnFcQ.woff2",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://freshman.stu.edu.tw/favicon.ico",
+    "page": null,
+    "reason": "forbidden"
+  },
+  {
+    "source": "https://fonts.googleapis.com/css?family=ABeeZee%3Aital%400%3B1%7CAbril%20Fatfac%7CAcme%7CAllura%7CAmatic%20SC%3Awght%40400%3B700%7CAnton%7CArchitects%20Daughter%7CArchivo%3Aital%2Cwght%400%2C100%3B0%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C100%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CArimo%3Aital%2Cwght%400%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%7CArsenal%3Aital%2Cwght%400%2C400%3B0%2C700%3B1%2C400%3B1%2C700%7CArvo%3Aital%2Cwght%400%2C400%3B0%2C700%3B1%2C400%3B1%2C700%7CAlegreya%3Aital%2Cwght%400%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CAsap%3Aital%2Cwght%400%2C100%3B0%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C100%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CAssistant%3Awght%40200%3B300%3B400%3B500%3B600%3B700%3B800%7CAlfa%20Slab%20One%7CAveria%20Serif%20Libre%3Aital%2Cwght%400%2C300%3B0%2C400%3B0%2C700%3B1%2C300%3B1%2C400%3B1%2C700%7CBangers%7CBoogaloo%7CBad%20Script%7CBarlow%3Aital%2Cwght%400%2C100%3B0%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C100%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CBarlow%20Condensed%3Aital%2Cwght%400%2C100%3B0%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C100%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CBerkshire%20Swash%7CBitter%3Aital%2Cwght%400%2C100%3B0%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C100%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CBree%20Serif%7CBenchNine%3Awght%40300%3B400%3B700%7CCabin%3Aital%2Cwght%400%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%7CCardo%3Aital%2Cwght%400%2C400%3B0%2C700%3B1%2C400%7CCourgette%7CCaveat%3Awght%40400%3B500%3B600%3B700%7CCaveat%20Brush%7CCherry%20Swash%3Awght%40400%3B700%7CCormorant%20Garamond%3Aital%2Cwght%400%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%7CCrimson%20Text%3Aital%2Cwght%400%2C400%3B0%2C600%3B0%2C700%3B1%2C400%3B1%2C600%3B1%2C700%7CCuprum%3Aital%2Cwght%400%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%7CCookie%7CComing%20Soon%7CCharm%3Awght%40400%3B700%7CChewy%7CDays%20One%7CDM%20Serif%20Display%3Aital%400%3B1%7CDosis%3Awght%40200%3B300%3B400%3B500%3B600%3B700%3B800%7CEB%20Garamond%3Aital%2Cwght%400%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%7CEconomica%3Aital%2Cwght%400%2C400%3B0%2C700%3B1%2C400%3B1%2C700%7CEpilogue%3Aital%2Cwght%400%2C100%3B0%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C100%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CExo%202%3Aital%2Cwght%400%2C100%3B0%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C100%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CFamiljen%20Grotesk%3Aital%2Cwght%400%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%7CFira%20Sans%3Aital%2Cwght%400%2C100%3B0%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C100%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CFredoka%20One%7CFjalla%20One%7CFrancois%20One%7CFrank%20Ruhl%20Libre%3Awght%40300%3B400%3B500%3B700%3B900%7CGabriela%7CGloria%20Hallelujah%7CGreat%20Vibes%7CHandlee%7CHammersmith%20One%7CHeebo%3Awght%40100%3B200%3B300%3B400%3B500%3B600%3B700%3B800%3B900%7CHind%3Awght%40300%3B400%3B500%3B600%3B700%7CInconsolata%3Awght%40200%3B300%3B400%3B500%3B600%3B700%3B800%3B900%7CIndie%20Flower%7CIM%20Fell%20English%20SC%7CJulius%20Sans%20One%7CJomhuria%7CJosefin%20Slab%3Aital%2Cwght%400%2C100%3B0%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B1%2C100%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%7CJosefin%20Sans%3Aital%2Cwght%400%2C100%3B0%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B1%2C100%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%7CJost%3Aital%2Cwght%400%2C100%3B0%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C100%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CKaisei%20HarunoUmi%3Awght%40400%3B500%3B700%7CKanit%3Aital%2Cwght%400%2C100%3B0%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C100%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CKaushan%20Script%7CKrub%3Aital%2Cwght%400%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%7CLato%3Aital%2Cwght%400%2C100%3B0%2C300%3B0%2C400%3B0%2C700%3B0%2C900%3B1%2C100%3B1%2C300%3B1%2C400%3B1%2C700%3B1%2C900%7CLora%3Aital%2Cwght%400%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%7CLibre%20Baskerville%3Aital%2Cwght%400%2C400%3B0%2C700%3B1%2C400%7CLobster%7CLobster%20Two%3Aital%2Cwght%400%2C400%3B0%2C700%3B1%2C400%3B1%2C700%7CMerriweather%3Aital%2Cwght%400%2C300%3B0%2C400%3B0%2C700%3B0%2C900%3B1%2C300%3B1%2C400%3B1%2C700%3B1%2C900%7CMonda%3Awght%40400%3B700%7CMontserrat%3Aital%2Cwght%400%2C100%3B0%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C100%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CMulish%3Aital%2Cwght%400%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CMarck%20Script%7CMarcellus%7CMerienda%20One%7CMonda%3Awght%40400%3B700%7CNoto%20Serif%3Aital%2Cwght%400%2C400%3B0%2C700%3B1%2C400%3B1%2C700%7CNunito%20Sans%3Aital%2Cwght%400%2C200%3B0%2C300%3B0%2C400%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7COpen%20Sans%3Aital%2Cwght%400%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%7COverpass%3Aital%2Cwght%400%2C100%3B0%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C100%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7COverpass%20Mono%3Awght%40300%3B400%3B500%3B600%3B700%7COxygen%3Awght%40300%3B400%3B700%7COswald%3Awght%40200%3B300%3B400%3B500%3B600%3B700%7COrbitron%3Awght%40400%3B500%3B600%3B700%3B800%3B900%7CPatua%20One%7CPacifico%7CPadauk%3Awght%40400%3B700%7CPlayball%7CPlayfair%20Display%3Aital%2Cwght%400%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CPrompt%3Aital%2Cwght%400%2C100%3B0%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C100%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CPT%20Sans%3Aital%2Cwght%400%2C400%3B0%2C700%3B1%2C400%3B1%2C700%7CPT%20Serif%3Aital%2Cwght%400%2C400%3B0%2C700%3B1%2C400%3B1%2C700%7CPhilosopher%3Aital%2Cwght%400%2C400%3B0%2C700%3B1%2C400%3B1%2C700%7CPermanent%20Marker%7CPoiret%20One%7CPoppins%3Aital%2Cwght%400%2C100%3B0%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C100%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CPrata%7CQuicksand%3Awght%40300%3B400%3B500%3B600%3B700%7CQuattrocento%20Sans%3Aital%2Cwght%400%2C400%3B0%2C700%3B1%2C400%3B1%2C700%7CRaleway%3Aital%2Cwght%400%2C100%3B0%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C100%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CRubik%3Aital%2Cwght%400%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CRoboto%20Condensed%3Aital%2Cwght%400%2C300%3B0%2C400%3B0%2C700%3B1%2C300%3B1%2C400%3B1%2C700%7CRokkitt%3Awght%40100%3B200%3B300%3B400%3B500%3B600%3B700%3B800%3B900%7CRopa%20Sans%3Aital%400%3B1%7CRusso%20One%7CRighteous%7CSaira%3Aital%2Cwght%400%2C100%3B0%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C100%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CSatisfy%7CSen%3Awght%40400%3B700%3B800%7CSlabo%2013px%7CSlabo%2027px%7CSource%20Sans%20Pro%3Aital%2Cwght%400%2C200%3B0%2C300%3B0%2C400%3B0%2C600%3B0%2C700%3B0%2C900%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C600%3B1%2C700%3B1%2C900%7CShadows%20Into%20Light%20Two%7CShadows%20Into%20Light%7CSacramento%7CSail%7CShrikhand%7CLeague%20Spartan%3Awght%40100%3B200%3B300%3B400%3B500%3B600%3B700%3B800%3B900%7CStaatliches%7CStylish%7CTangerine%3Awght%40400%3B700%7CTitillium%20Web%3Aital%2Cwght%400%2C200%3B0%2C300%3B0%2C400%3B0%2C600%3B0%2C700%3B0%2C900%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C600%3B1%2C700%7CTrirong%3Aital%2Cwght%400%2C100%3B0%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C100%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CUbuntu%3Aital%2Cwght%400%2C300%3B0%2C400%3B0%2C500%3B0%2C700%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C700%7CUnica%20One%7CVT323%7CVarela%20Round%7CVampiro%20One%7CVollkorn%3Aital%2Cwght%400%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CVolkhov%3Aital%2Cwght%400%2C400%3B0%2C700%3B1%2C400%3B1%2C700%7CWork%20Sans%3Aital%2Cwght%400%2C100%3B0%2C200%3B0%2C300%3B0%2C400%3B0%2C500%3B0%2C600%3B0%2C700%3B0%2C800%3B0%2C900%3B1%2C100%3B1%2C200%3B1%2C300%3B1%2C400%3B1%2C500%3B1%2C600%3B1%2C700%3B1%2C800%3B1%2C900%7CYanone%20Kaffeesatz%3Awght%40200%3B300%3B400%3B500%3B600%3B700%7CZCOOL%20XiaoWei&ver=7.1.4",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/7/2020/01/cropped-stulogo-32x32.png",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://fonts.gstatic.com/s/andadapro/v26/HhyRU5Qi9-SuOEhPe4LtAIlqSJsL9_A.woff2",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/102/2024/10/cropped-%E6%A0%A1%E5%9C%92%E5%9C%96-scaled-1-32x32.jpg",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=20E455130BF41FE98C7249D97C690F13ECD3742054857CABCB320333E1A10A40ECB3CD14692619D0A47F43A9678078F737B1722B8878CDA13BEC0B097DCDC54E6CEAACCBF7D2182F8000DA64B00BD0BEE54A75A6C99042796F2F300E285F4F86EAF7F6DA0D3FA71F&f=E08DD69A6F19D14F73DF419D75BDC32B4E1C8DD840DD8B71411BFD4B94A285EDA9EA964C9B3CA738A615BFE5C59A8E1723C3E420667EC75FDE35E31553494555C15A6D60F250BD2C59F0C19F1AD8E0262EB6E7AD814379A12B8C3D130715A93DB2CA39BEDE7C85BFF90618D3F09DAA95",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://www.ssc.stu.edu.tw/wp-content/themes/campus_security/images/aboutssc.bmp",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://fonts.gstatic.com/s/anonymouspro/v22/rP2ap2a15UIB7Un-bOeISG3pHl4OTCzs74u28qmR9A.woff2",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/20/2020/10/cropped-stulogo-32x32.png",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://omh.sao.stu.edu.tw/favicon.ico",
+    "page": null,
+    "reason": "forbidden"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/12/2020/02/cropped-stulogo-32x32.png",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://fonts.gstatic.com/s/righteous/v18/1cXxaUPXBpj2rGoU7C9WiHGFq8Kk1Q.woff2",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://fonts.gstatic.com/s/redhattext/v19/RrQXbohi_ic6B3yVSzGBrMxQaKctMc-JPQ.woff2",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/21/2020/10/cropped-stulogo-32x32.png",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://photo.stu.edu.tw/favicon.ico",
+    "page": null,
+    "reason": "forbidden"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/11/2020/01/cropped-stulogo-32x32.png",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://fonts.gstatic.com/s/lato/v25/S6u9w4BMUTPHh50XSwiPGQ3q5d0.woff2",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/38/2020/10/cropped-stulogo-32x32.png",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=F9160AF6C7863CC189C00A40445471DFA9F4CD5F17A0B32A553A1999AA67BEC4D3DE518B49B58910C14EEDC1255D91F93322D38EF4B474CFA037054C65B7603ADA101D9D38378B00DDFF56026A89B272B9AA3DAE3BBADD6AD8F6104A0A171980CA3031CFED51E80F&f=F48A7BC3A954DFC65988F40EC04DFD44AB11B12DA5620B129DCD7E15526E73B54A06588C0BAA70A8EF179BD8CBA53FF7E7D5006EAAC037575CDCE66FFE77E5D5",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=AF8C73DDFABE4ACEC6FB9E16E84B4D507E7DB35E055C650FFD025F83D277F444121630F7738915804F92E97C50674290F3D420D83897260C96EDBA1F27DE5A7F10A12E70C6B89B44BD4F4C188462DA45014576C18CEE53E7D9FD8CD44235C18E15F0DB8FC8991FBE&f=097FE40C356324A276B50054EF72B39BF24879B20EF52D4AE959800F71F249B6646E863EE3BF543B52B34FC7B43F05CC2BA032C0FA2E2DE8DC2B98164BA5A20A7DAE2C4B0A5212B0",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/9/2020/01/cropped-stulogo-32x32.png",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2021/05/cropped-%E8%99%95%E5%BE%BD-32x32.jpg",
+    "page": null,
+    "reason": "source_unavailable"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=DB110A715AE4970777C50B7D027216857BF7D247B7C9D5DE8F4FCE3E3F93D78ED013E970521F64081B34573285627B74357B335A630A66A6F0BF74B043DC2ABA2A7E2DD000DFA3288C15F1B4ED25A9330EDCA037303F6E50DF42E13FB6466DD7DE1A607B14E526F2&f=A17BA3D387EF8694B17F078DF46721C67607652AEC47280812DCE1FD9773D6F72F68C03E695D781A7111584F496F4635669477F4F3957DC8",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234368",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=DB110A715AE4970777C50B7D027216857BF7D247B7C9D5DE8F4FCE3E3F93D78ED013E970521F64081B34573285627B74357B335A630A66A6F0BF74B043DC2ABA2A7E2DD000DFA3288C15F1B4ED25A9330EDCA037303F6E50DF42E13FB6466DD7DE1A607B14E526F2&f=C6E03418A139F96C7DFF786D2F9DA32803A681A8C4A43A75540B1A1C16E795383EA5E4962A290EE2DB811C794E7B39413BBD9512253404BA",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234368",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/07/1574612756512.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E4%BA%A4%E6%B5%81%E8%A8%88%E7%95%AB/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/11/01-1024x768.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E4%BA%A4%E6%B5%81%E8%A8%88%E7%95%AB/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/11/04-1024x683.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E4%BA%A4%E6%B5%81%E8%A8%88%E7%95%AB/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/11/10-1024x683.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E4%BA%A4%E6%B5%81%E8%A8%88%E7%95%AB/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/11/07-2-1024x683.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E4%BA%A4%E6%B5%81%E8%A8%88%E7%95%AB/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/10/%E5%9C%8B%E9%9A%9B%E5%A7%8A%E5%A6%B9%E6%A0%A1%E5%9C%96%E7%A4%BA109.10.13%E4%BF%AE%E8%A8%82.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E5%9C%8B%E9%9A%9B%E5%90%88%E4%BD%9C%E5%AD%B8%E6%A0%A1/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=3F02183662D8D4144675E8C472A870E2659615A7C9445F841ACA98834F6E1A4EC000D1ED2E88F940E1156A280ACC3A8694FB10924CD7DC866BFD16B1EAB64DEA1711C5E2BD389D7A96599061CF4ECA9F561A82DFFE4B4427582C7DA1FC924820FE14FCE69D9461E9&f=5C680BB84167136112E48583D89BCD9D95913C2C62DECAB0C8D4EA845176D8644BED379F8CC4641AA43305FA51F1ACC896DB585A861D9A54",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234367",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=3F02183662D8D4144675E8C472A870E2659615A7C9445F841ACA98834F6E1A4EC000D1ED2E88F940E1156A280ACC3A8694FB10924CD7DC866BFD16B1EAB64DEA1711C5E2BD389D7A96599061CF4ECA9F561A82DFFE4B4427582C7DA1FC924820FE14FCE69D9461E9&f=BCFAEFB33BA220B55B07D8F26415E2BAB915A153F9A0D2FB7BE22965BDBF3A7F7C6EBC2DDA4D31F9DE13007008ED3C55690A611D0131380A4815C7997BD22CF0565F099FFC320AC2E2E01E8F8F470F38726BB6E63D7CEACCC13E14654F54F961E5E1EC01FDF6BE6760CDBA969DAF55070DEE0370B26DAD4E2121C1BCCCC4219367A9157B9B07AA2C396CE9997AAAC47F",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234367",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=3F02183662D8D4144675E8C472A870E2659615A7C9445F841ACA98834F6E1A4EC000D1ED2E88F940E1156A280ACC3A8694FB10924CD7DC866BFD16B1EAB64DEA1711C5E2BD389D7A96599061CF4ECA9F561A82DFFE4B4427582C7DA1FC924820FE14FCE69D9461E9&f=C540291921A6BAC1FB9895CF2D38DA22059AD23C011A273A268F465FCAEB05FEE7A9F474DF01CD712C150AB021698CB948709CED46D22F1AFDBDB01B63C77639603A89D48F68B7A069C43DBDABB476BAC6149D9F08392E4D862B1A1C1C27B59FEFA67A49240A513115B82B22626E8E14714E9A25E3BD604D4E1FD566EFD0B4971B749C4F4F2D9D73",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234367",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=84CBED759D2136D1E822729E513845D98A8EA9EA4C2035C28F2C96E362D1FDA453D01EE2CFB62A082578930753AB539F3A8ABD3CCC4F855376C217FFEE165F55FF725FF5E03DEB090206409F7B3004125D1FF345593B68AC95E45C4FF381134B259F9C1970BA5434&f=043D4E70A5D4C0B974BDB7C1AD568C5C966B345F26CB02A4C8EA9F4C12D5B2785DBB62BF204934B74BE567D15A5591E5CBC0434FA017E003",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234430",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=84CBED759D2136D1E822729E513845D98A8EA9EA4C2035C28F2C96E362D1FDA453D01EE2CFB62A082578930753AB539F3A8ABD3CCC4F855376C217FFEE165F55FF725FF5E03DEB090206409F7B3004125D1FF345593B68AC95E45C4FF381134B259F9C1970BA5434&f=1086588CD26B0B5C9995C155B754A3AA17B09BB5DF93FE6208DCC0D4FD4F6FBB584129D15FBB13D013AB85D131DDB3264207D2978A56EF6D",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234430",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=84CBED759D2136D1E822729E513845D98A8EA9EA4C2035C28F2C96E362D1FDA453D01EE2CFB62A082578930753AB539F3A8ABD3CCC4F855376C217FFEE165F55FF725FF5E03DEB090206409F7B3004125D1FF345593B68AC95E45C4FF381134B259F9C1970BA5434&f=E36FEC6071153B62D844808464FD5DA3819A22C5CFBBFAC8DE5EDA8919D0B8A2A2945F12AB971AC29A3D3E31BD1E8798B3F2A97BEF2A57E8",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234430",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=84197B8761CD140E43B5FCA0DF749A143222F32D631C4AF2498586F2C5F1D2CCF71350CA1293656F26852BE1DDF499579C46E6E6A3CD3BC1C130B2FFFF1D5C160F20B4E21D02591DCDC16A952B23F7B8E8F9D552A52D502AF9E7A58DFD67FC4CA5B9D0F33572AB83&f=9804CCE129B4088A0A38A52366E7A0C558AC62675E99055CC59EA9A9D3785A2053E2DCD8ECC56F64353F3F60BD097EDD4DDA0F2C304CAA73A830ABCB7DEF0B93A291F81A817037BE20DEE570B22CF85321D552D7A820BF91C414E2BA77F3B6F3",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234236",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2021/03/%E9%8C%A2%E8%99%95%E9%95%B7%E8%88%87%E6%B5%81%E8%A8%AD%E7%B3%BB%E5%B8%AB%E7%94%9F%E5%90%88%E5%BD%B1-1024x576.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E5%B8%AB%E8%B3%87%E5%9F%B9%E8%A8%93/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/06/IMG_0303-1-1024x768.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E5%B8%AB%E8%B3%87%E5%9F%B9%E8%A8%93/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/06/IMG_0014-1024x768.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E5%B8%AB%E8%B3%87%E5%9F%B9%E8%A8%93/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/06/CIMG8104-1024x768.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E5%B8%AB%E8%B3%87%E5%9F%B9%E8%A8%93/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/06/DSC_0147-1-scaled.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E5%B8%AB%E8%B3%87%E5%9F%B9%E8%A8%93/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/06/IMG_0064-1-1024x768.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E5%B8%AB%E8%B3%87%E5%9F%B9%E8%A8%93/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/06/IMG_0104-1024x768.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E5%B8%AB%E8%B3%87%E5%9F%B9%E8%A8%93/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/06/CIMG8288-1024x768.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E5%B8%AB%E8%B3%87%E5%9F%B9%E8%A8%93/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/06/IMG_2488-1024x768.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E5%B8%AB%E8%B3%87%E5%9F%B9%E8%A8%93/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/06/IMG_0024-1024x768.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E5%B8%AB%E8%B3%87%E5%9F%B9%E8%A8%93/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/06/main_10.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E5%A4%A7%E9%99%B8%E4%BA%A4%E6%8F%9B%E7%94%9F/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=B0C1FD0952B93A2EB8294BF91EE6C07612E8DACF1A0EA28D8852F2BDBB60F10D6E065FE5C45B75E088AB7F33EDB29ACBF588ACBAE4D8CEB8C6A5B8835DB542E76CB1080BE0DF35F1BD4F18D3B8C45C5876B42BA1E1BAC0239C1F3E52BB09AE27D78914E8443483BE&f=C061307D217946587941391338D7E1E8609F7F66F6531108F74794D08C59D2D21DCFBCE7283C74ADD0DDD74FE8A991CA",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=198566",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=B0C1FD0952B93A2EB8294BF91EE6C07612E8DACF1A0EA28D8852F2BDBB60F10D6E065FE5C45B75E088AB7F33EDB29ACBF588ACBAE4D8CEB8C6A5B8835DB542E76CB1080BE0DF35F1BD4F18D3B8C45C5876B42BA1E1BAC0239C1F3E52BB09AE27D78914E8443483BE&f=D4A8D75D55936675BF969D01E773E10268E1129A17FAA70AC7EB69C3D59137DE04A58A5CA8687EEC5D3EFC6A20CA6FB5",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=198566",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=B0C1FD0952B93A2EB8294BF91EE6C07612E8DACF1A0EA28D8852F2BDBB60F10D6E065FE5C45B75E088AB7F33EDB29ACBF588ACBAE4D8CEB8C6A5B8835DB542E76CB1080BE0DF35F1BD4F18D3B8C45C5876B42BA1E1BAC0239C1F3E52BB09AE27D78914E8443483BE&f=94CEF04DC8BFD9066BF5242790E715A2ECBA2FCB503DDF4C8475E06672E8F220244A0D4749F44466ADB9971C9A5BFA8A",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=198566",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2026/10/%E4%B8%AD%E6%96%87116%E7%89%880924%E6%AD%A3%E9%9D%A2-724x1024.png",
+    "page": "https://www.oica.stu.edu.tw/%E6%B5%B7%E5%A4%96%E9%9D%92%E5%B9%B4%E6%8A%80%E8%A1%93%E8%A8%93%E7%B7%B4%E7%8F%AD/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2026/10/%E4%B8%AD%E6%96%87116%E7%89%880924%E8%83%8C%E9%9D%A2-724x1024.png",
+    "page": "https://www.oica.stu.edu.tw/%E6%B5%B7%E5%A4%96%E9%9D%92%E5%B9%B4%E6%8A%80%E8%A1%93%E8%A8%93%E7%B7%B4%E7%8F%AD/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/06/DSC_2368-scaled.jpg",
+    "page": "https://www.oica.stu.edu.tw/34%E5%83%91%E7%94%9F%E6%8A%80%E8%A1%93%E5%B0%88%E7%8F%AD/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://alumnus.sao.stu.edu.tw/sponsor/sponsorPlan/rectangle-88@2x.png",
+    "page": "https://alumnus.sao.stu.edu.tw/sponsor/plan",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/06/DSC_2368-scaled.jpg",
+    "page": "https://www.oica.stu.edu.tw/en/34-vocational-education-program-for-overseas-compatriot-students/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/06/%E5%83%91%E7%94%9F%E5%B0%88%E7%8F%AD_191107_0017-1536x864.jpg",
+    "page": "https://www.oica.stu.edu.tw/en/34-vocational-education-program-for-overseas-compatriot-students/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2022/05/deadline-1024x1024.png",
+    "page": "https://www.oica.stu.edu.tw/en/ipiac_en/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2022/06/Blue-and-Gray-Modern-Evolution-of-Phones-Technology-Presentation-1.png",
+    "page": "https://www.oica.stu.edu.tw/en/ipiac_en/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2022/05/Blue-and-Gray-Modern-Evolution-of-Phones-Technology-Presentation.png",
+    "page": "https://www.oica.stu.edu.tw/en/ipiac_en/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2025/02/pexels-photo-1454360-1454360-768x512.jpg",
+    "page": "https://www.oica.stu.edu.tw/en/ipiac_en/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=B786C3A7B5FA0F1F7A777EE06961F5EEF7304044A43ACDDE6510E95F5E0B6004F46688827E9B04E8B350E8F1058C3639A69205EB6220244DB445DF3792C58B1C7879DE09D15DD673717A6E10031318168FDC6A9989B8B4E53D53528E8B73FFCB63A90676A5B0F3DB&f=D4D0ED96E229CBB0D223F98C84ECA0A29FBBD0CA1024A6E959109BF83B06448DA929FCEF21B6749908B10D9BA0E236ADE1FF4761B87C8736",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234326",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=B786C3A7B5FA0F1F7A777EE06961F5EEF7304044A43ACDDE6510E95F5E0B6004F46688827E9B04E8B350E8F1058C3639A69205EB6220244DB445DF3792C58B1C7879DE09D15DD673717A6E10031318168FDC6A9989B8B4E53D53528E8B73FFCB63A90676A5B0F3DB&f=4CEB66C9E208756D66A1CD2241B80D2FD747A9B5289129BDBE2EBB7D7F7775877E225F24697D4408BC09A4679E3CB7EA98E49F4953129193",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234326",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=B786C3A7B5FA0F1F7A777EE06961F5EEF7304044A43ACDDE6510E95F5E0B6004F46688827E9B04E8B350E8F1058C3639A69205EB6220244DB445DF3792C58B1C7879DE09D15DD673717A6E10031318168FDC6A9989B8B4E53D53528E8B73FFCB63A90676A5B0F3DB&f=1D7513C28CC2281A0E97B06B3DE6167E375CC9F05DE6BCFBB2814795250903C146F4DF487A86ACBF1B9FC55E29AE6A23F12A3FB206784786",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234326",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=B786C3A7B5FA0F1F7A777EE06961F5EEF7304044A43ACDDE6510E95F5E0B6004F46688827E9B04E8B350E8F1058C3639A69205EB6220244DB445DF3792C58B1C7879DE09D15DD673717A6E10031318168FDC6A9989B8B4E53D53528E8B73FFCB63A90676A5B0F3DB&f=30AED6633BDA8FD031B4F33CEB391188A2B3CB25EEC475FDE0E5679C00AE48720CD4F5A800E7EBCC25CCEBEFFC3A18F1F951D2511F4B911B",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234326",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=B786C3A7B5FA0F1F7A777EE06961F5EEF7304044A43ACDDE6510E95F5E0B6004F46688827E9B04E8B350E8F1058C3639A69205EB6220244DB445DF3792C58B1C7879DE09D15DD673717A6E10031318168FDC6A9989B8B4E53D53528E8B73FFCB63A90676A5B0F3DB&f=B70E402C42F673CC3F11BD4090B1809E47EA4B390D40A6C88CF90C837731082B7825B32798801521EDCC95FEB7E7ACCEB4BC48F0D1191671484D80EF8CFADBED",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234326",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=B786C3A7B5FA0F1F7A777EE06961F5EEF7304044A43ACDDE6510E95F5E0B6004F46688827E9B04E8B350E8F1058C3639A69205EB6220244DB445DF3792C58B1C7879DE09D15DD673717A6E10031318168FDC6A9989B8B4E53D53528E8B73FFCB63A90676A5B0F3DB&f=5A0856D9D9D09200075BAFD9ADFABF005417E081147DBE9F45564ED2D11AE8DB64698B5B42910127502E5332F2E1617FD5FBFA05ECB2BFA769F8BB43CB8BC44D",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234326",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=B786C3A7B5FA0F1F7A777EE06961F5EEF7304044A43ACDDE6510E95F5E0B6004F46688827E9B04E8B350E8F1058C3639A69205EB6220244DB445DF3792C58B1C7879DE09D15DD673717A6E10031318168FDC6A9989B8B4E53D53528E8B73FFCB63A90676A5B0F3DB&f=0CA846C5347A12C1AF33F8F7A037580B0C6D192872104A7E55344FC593B2BAE7C997311E5A19B8791662A5E4936AF84753F7F2F1934F3C2963A9F926126EF322",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234326",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=83A76303C16116ACA9DF090F0C16D625E1676747842C63F816DF89430F2DD4D233629E1589551FCCE0EF675F96B28D45512D25E9DB38B80709CFD2AA0042286E87F6DC726C78755820423FE27B5047CC7DF7C679044192063C88E793A9C55C47C613640DE5C433ED&f=9ED79C3AE5391F2DD1328BA8871C9736734A272BD878A58DF7135FE26A4BBC4290AB132AFC4B65385CBF95F389345F3D01D91650B08973E0A5F0E6216E2017BB",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234030",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=2F2E2814DB03106C8C3E7B2D2D195165A31F5681A8DBE98A7B6658401C69008218AE092A3E9ABC8C1892489274A2CBA728CD2A520BC572E17AEEA5FB54BAB55918CFAC35ED828DEB344348CDEA9272840F2F9E25AA69B1532E051BB5C0E7CC483470815DB4E72F6C&f=835F75955C5C137D9657BF4F95D7161CCFD6B697D1AD6E75AC3D910C1C7B50A2F11B77EEFF307F97C0153EE3ABF7B730B3DE18EE8D80C9ADE2BBDA468CBFF31A8CFE05160796C1608E3C8FEBC8FC3B3DFC42F7585EAB5F5D",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234474",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=2637EC0AA6096D5A7F4DBB4CF311D5FEA55452C9099E138DD0EFF5B1669D9A7F717A9A8481F62F8D722A767FC5FA2DBC0A3E1542D3922D4345A535E83F1BEA1E133F2A54A87056AEF1E96AEDA8019086309FF3D6A4E163B444933F39B3325C3B890B7E0FB1DC0CBE&f=7D91A621D836FB846A176F23766895E65BC934846576D452148A4BC27A43049E4F527DABDF0C4439041B0119163ABC6AF35426084B49E860A47E3F156B27AE6E",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234301",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=2637EC0AA6096D5A7F4DBB4CF311D5FEA55452C9099E138DD0EFF5B1669D9A7F717A9A8481F62F8D722A767FC5FA2DBC0A3E1542D3922D4345A535E83F1BEA1E133F2A54A87056AEF1E96AEDA8019086309FF3D6A4E163B444933F39B3325C3B890B7E0FB1DC0CBE&f=5F7E51028BC15F611DBDB9CBD9FFECC4B18D3E848CA455B661773600A06BCA5CE176B50C900AC2418E74225229C65ED932202D3E62A4A7FBA7D15B20A9D45837",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234301",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=2637EC0AA6096D5A7F4DBB4CF311D5FEA55452C9099E138DD0EFF5B1669D9A7F717A9A8481F62F8D722A767FC5FA2DBC0A3E1542D3922D4345A535E83F1BEA1E133F2A54A87056AEF1E96AEDA8019086309FF3D6A4E163B444933F39B3325C3B890B7E0FB1DC0CBE&f=63F9035D837A4B5DE01F8CC6B67140070A64D22A35CC4A6A6096D614CC778DC46F0037D485D7399A14EC8C60C3E39354001994206CE230EFAF31F7AAD30E23DC",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234301",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2024/02/%E9%9B%AF%E9%9B%85-732x1024.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E6%A5%AD%E5%8B%99%E8%81%B7%E6%8E%8C/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2025/10/%E6%B5%B7%E6%B4%8B%E5%A4%A9%E4%BD%BF.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E6%A5%AD%E5%8B%99%E8%81%B7%E6%8E%8C/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2026/09/200666.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E6%A5%AD%E5%8B%99%E8%81%B7%E6%8E%8C/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2026/09/S__49504272-1-768x998.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E6%A5%AD%E5%8B%99%E8%81%B7%E6%8E%8C/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2025/10/%E6%B1%9F%E6%80%9D%E8%91%B6-768x1024.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E6%A5%AD%E5%8B%99%E8%81%B7%E6%8E%8C/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2022/05/deadline-1024x1024.png",
+    "page": "https://www.oica.stu.edu.tw/ipiac_zh/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2022/05/Blue-and-Gray-Modern-Evolution-of-Phones-Technology-Presentation.png",
+    "page": "https://www.oica.stu.edu.tw/ipiac_zh/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2025/02/pexels-photo-1454360-1454360-768x512.jpg",
+    "page": "https://www.oica.stu.edu.tw/ipiac_zh/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=C9671CF17A22CFDA51C9DA31DF29F65F9550877774A7007B75D6051B874F7C3F2167080776B38E06C686FFFB63A602B0E15BA83545C611474AF5542F0E7EC5FC0FE01B330A71E2B713A34584B6375439AA0453DA3E82A8962873D97E63628D41F4F759DCD9B02D8C&f=29CDB88925BE9694A290A3A4A45FBAAB8C2E490D1A75ABADB36019F1F0018CF5D3DCD1659A30992571887ADE2ABB093F628C95B3EDDAF32B63FCEEEC26CE20F16A339B91BEBB0AD50431C02605EE665490085CD088E4A966",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234416",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=20E455130BF41FE98C7249D97C690F13ECD3742054857CABCB320333E1A10A40ECB3CD14692619D0A47F43A9678078F737B1722B8878CDA13BEC0B097DCDC54E6CEAACCBF7D2182F8000DA64B00BD0BEE54A75A6C99042796F2F300E285F4F86EAF7F6DA0D3FA71F&f=E08DD69A6F19D14F73DF419D75BDC32B4E1C8DD840DD8B71411BFD4B94A285EDA9EA964C9B3CA738A615BFE5C59A8E1723C3E420667EC75FDE35E31553494555C15A6D60F250BD2C59F0C19F1AD8E0262EB6E7AD814379A12B8C3D130715A93DB2CA39BEDE7C85BFF90618D3F09DAA95",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234475",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2025/05/TEEP-1-724x1024.jpg",
+    "page": "https://www.oica.stu.edu.tw/en/teep-2/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2025/05/TEEP-2-724x1024.jpg",
+    "page": "https://www.oica.stu.edu.tw/en/teep-2/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://www.stu.edu.tw/images/icon-plus.svg",
+    "page": "https://www.stu.edu.tw/latestnews",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/11/%E8%83%A1%E5%BF%97%E6%98%8E%E5%B8%82%E5%B8%AB%E7%AF%84%E5%A4%A7%E5%AD%B8.png",
+    "page": "https://www.oica.stu.edu.tw/%E5%9C%8B%E9%9A%9B%E4%BA%A4%E6%8F%9B%E7%94%9F/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/06/map1_%E5%AD%B8%E6%A0%A1%E5%9C%B0%E5%9C%96-768x840.png",
+    "page": "https://www.oica.stu.edu.tw/en/school-map/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=E647EFE03119E75A0C2674575AEA4DE83CAF046FA816825BEBA109B1E22AE0710DCB63678205C7D10AC14DF9263757980C5BADF6870075B871D31302B6B0F37B5C558C78DB81C5A31C9EE51FE2CC290E1C6A3BD369D83779A26240A84147C6D8B3F7A66891C2F5A2&f=4AA3DBD37B585E16C1B8B13D4DE31144B0681CF6A1E46CAD307B0BB30DB95BCC888E5BDDE2E71A49613D55762B77B792E494B3ED9D12E2345F5B6774409291F158B580D28182E144F21D51F1F1B159EB",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234462",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=81C68A92372D90C74AEA9A66877C7B7744ACCF86A1AF6755E8189287418B319D905847B2223E237E86B76D1F63575A72ECB574C8E86FA6D67ED17F9BC01D63BB2E7B39A2CEE1F97390FE800F097E308BF8E7065C05410269C12F9D1A7AF6456022124096A534B140&f=44555FB2718E62370F96D45353550ABAC0EFF5478A49625E40C16F686C0682278EA30E7B64CCF847951A95650EED0324",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234459",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=81C68A92372D90C74AEA9A66877C7B7744ACCF86A1AF6755E8189287418B319D905847B2223E237E86B76D1F63575A72ECB574C8E86FA6D67ED17F9BC01D63BB2E7B39A2CEE1F97390FE800F097E308BF8E7065C05410269C12F9D1A7AF6456022124096A534B140&f=1C8CDC354C3086F4346CE27B018B71BEF9FE56AEE4AC43F0CE8DF577B00C1973238E148EEB44FE0714E1E3C8A1D60356A33E62FBF3B75417",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234459",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=C893982F49C3224E209F14C006E72EC6F6696C021BF815AFC5423707418E864E5190CB72E3988AE15A070AE481F4BA61D4BF0F53BD4CB78CDBEE7395942F3EC82AD9F107C6955549730EEA11CCE99FDCE673574CF858BA4CC22A7CAEB77E4EB04E0C00DED37E7CBF&f=3664BE307E388EABE42345D207C3C6030E655F14410A577779037B453333021BD5FF98AB83F5A047B5F58D37D3837385BAD6BD019D206635B5B0936DF5ED46C0AF1D007DF9EEEDA8",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234451",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/52/2024/12/305048.jpg",
+    "page": "https://www.rd.stu.edu.tw/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/52/2024/12/IMG_4032.jpeg",
+    "page": "https://www.rd.stu.edu.tw/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/52/2024/12/LINE_ALBUM_1131127113%E5%B9%B4%E5%BA%A6USR%E5%A4%A7%E5%AD%B8%E7%A4%BE%E6%9C%83%E8%B2%AC%E4%BB%BB%E6%9A%A8%E5%89%B5%E6%96%B0%E7%A0%94%E7%99%BC%E8%88%87%E5%89%B5%E6%A5%AD%E8%82%B2%E6%88%90%E6%88%90%E6%9E%9C%E7%99%BC%E8%A1%A8%E6%9C%83_241206_33.jpg",
+    "page": "https://www.rd.stu.edu.tw/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/52/2024/12/LINE_ALBUM_%E5%B1%95%E6%94%A4%E6%9C%89%E6%B4%BD%E8%AB%87%E6%83%85%E6%B3%81_240828_14.jpg",
+    "page": "https://www.rd.stu.edu.tw/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=6980D00EF25A84D844823663B1515ECA14AE3EC617E156C1DF98DBB3D2FACC70AA5F3B32DDDAFE4FE81E89246E7357FBB3DB322FA66F27E459031E82837EF639C4B4DD43A266B9593B147ADB414D4E18EDABCEF02CC59AD62E03224FC00BEE1231453EB99E6963E9&f=8233739544C0E49A43F85FF3D42589451204C8631AB85AD489D267959EEB5BB7E2C2533DD4B2D3B64022EA5C127A4B4DA56F2C38409685CBB4BBEE4B30CAFBC02AE7407A58826FD9C6845AACC5F27125",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=233772",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=6980D00EF25A84D844823663B1515ECA14AE3EC617E156C1DF98DBB3D2FACC70AA5F3B32DDDAFE4FE81E89246E7357FBB3DB322FA66F27E459031E82837EF639C4B4DD43A266B9593B147ADB414D4E18EDABCEF02CC59AD62E03224FC00BEE1231453EB99E6963E9&f=2C1C3152479D819BD6E081F8D0A0861184296CEB49763EBC99D6C2F7E82C5798B686AA2BA239EE05A0008F15F4B7FACF6E3111B47DBC67643F69D32A8E6D505E8967FE72BA382CD8",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=233772",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=F710EA690C0D384955E1713747B6E803465E5FBB77AF28404AC5EA67D93269DB0A9F29AC156FF62D278AA0E71EFF0FE1FBDDE7884C8D5A451CF896F6DA02154159E393BB7523A205F128171263E064BE698227DDE3AE007BE67FB4C2724665C5521226E72A9EC898&f=7BEEFF74BEB4DD76FBE2D5610FD86E642688A04A29E351FFD4C809325FBE30897CD42925413C6FFC0E71448306D5FE4305B389C53FE88941",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234322",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=F710EA690C0D384955E1713747B6E803465E5FBB77AF28404AC5EA67D93269DB0A9F29AC156FF62D278AA0E71EFF0FE1FBDDE7884C8D5A451CF896F6DA02154159E393BB7523A205F128171263E064BE698227DDE3AE007BE67FB4C2724665C5521226E72A9EC898&f=4460B462452016026C5ECE49D8BD45CB4AD1181BCD0C33EDEBE6F2C15F6CD473487C32176657FBE8C879151394D848338E4D4C929769F943",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234322",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=F710EA690C0D384955E1713747B6E803465E5FBB77AF28404AC5EA67D93269DB0A9F29AC156FF62D278AA0E71EFF0FE1FBDDE7884C8D5A451CF896F6DA02154159E393BB7523A205F128171263E064BE698227DDE3AE007BE67FB4C2724665C5521226E72A9EC898&f=ADAA386EB00B3F77C1F931F8495628A853C5DE020AF261ABE9B9108285AEF578CFBCAE15DAAEFAC3B9D31D8B6CCF1DD2551F3AA2D8CE4D59",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234322",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=F710EA690C0D384955E1713747B6E803465E5FBB77AF28404AC5EA67D93269DB0A9F29AC156FF62D278AA0E71EFF0FE1FBDDE7884C8D5A451CF896F6DA02154159E393BB7523A205F128171263E064BE698227DDE3AE007BE67FB4C2724665C5521226E72A9EC898&f=0D42B670FD4625A89A498087EB4A68FFF8E608B31ABF08D1FA692537D409B270EAF74129A7596800DA157413FB0AF2CAF631B763E1DFD5DE",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234322",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=B96EFD83BCCFFA3D78E5A4C1BCEA15D67F8E1167255FAC822B0AFBBA9D5118891587B1EF1DC9A6CDF6B341CB2C0AD6A792D2EED92D86CF63FD4102B90F5903F3E87BBA5B86CA4849C78F9EBCD6FF3F5440D2AA02C0A30B99A1A3D0B2890F768B85ECD970AE5E6861&f=F77C867B623EA1EBBB65DB66AEF3B7E4A7430A1375899F367D73515A83CDCE7A2D733EA7B5A03D8A4A6C578EA8AD523396B20C325D3489E09B7B79D400C210D25A96E077D74A7D3F813240945D028785",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234473",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/38/2026/02/%E9%AB%98%E6%95%99%E6%B7%B1%E8%80%95%E5%8B%B5%E5%AD%B8%E9%87%91%E8%AA%AA%E6%98%8E1150205.mp4",
+    "page": "https://www.sao.stu.edu.tw/%E9%AB%98%E6%95%99%E5%8B%B5%E5%AD%B8%E9%87%91-2/%E6%9C%80%E6%96%B0%E6%B6%88%E6%81%AF/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=DF5A03FE94FD6E9BF91957B27CF9F7A70E55096C3D08E52DCC1DB80E142A76C8823FC4AAAD7D053003FF0C3EFBAF5332FBB254E96276489DF071789F5FEE397DFFA25703EFFD57997630BDEC1314E75257B6AE9CD7D0DB3A3DA6F1F6B703C6C29B71A3628BBA7A6A&f=82D96AEFD7C279D738737D475BAA1C8A29FA716826A17FBAF1C90329C28619B25BAA9BC27DB994D05292AA7CF1425C994503CD2301E3279C",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234359",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=DF5A03FE94FD6E9BF91957B27CF9F7A70E55096C3D08E52DCC1DB80E142A76C8823FC4AAAD7D053003FF0C3EFBAF5332FBB254E96276489DF071789F5FEE397DFFA25703EFFD57997630BDEC1314E75257B6AE9CD7D0DB3A3DA6F1F6B703C6C29B71A3628BBA7A6A&f=4C96F19790A681C7C0EF45D4C047C7B37C63090A98483C749E736E60D556B343DF5874C20CEF0BCC139BFE1125B5314784867A96DEEE28A3",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234359",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=DF5A03FE94FD6E9BF91957B27CF9F7A70E55096C3D08E52DCC1DB80E142A76C8823FC4AAAD7D053003FF0C3EFBAF5332FBB254E96276489DF071789F5FEE397DFFA25703EFFD57997630BDEC1314E75257B6AE9CD7D0DB3A3DA6F1F6B703C6C29B71A3628BBA7A6A&f=2985AFBA364F115D56C58433DC4EFF431B68E6AFCDD789CEE4085E64919E8271A0C91251A90D416521D3C3CAB18D6301448A41C978FEBB03",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234359",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=DF5A03FE94FD6E9BF91957B27CF9F7A70E55096C3D08E52DCC1DB80E142A76C8823FC4AAAD7D053003FF0C3EFBAF5332FBB254E96276489DF071789F5FEE397DFFA25703EFFD57997630BDEC1314E75257B6AE9CD7D0DB3A3DA6F1F6B703C6C29B71A3628BBA7A6A&f=A83966C054DEF90FB4FF33482B80146813294465BB503EFE5116B085A4767F0105A72159DE1B070F855A3930F2E335D68F512D0DAF7FF16A",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234359",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=DF5A03FE94FD6E9BF91957B27CF9F7A70E55096C3D08E52DCC1DB80E142A76C8823FC4AAAD7D053003FF0C3EFBAF5332FBB254E96276489DF071789F5FEE397DFFA25703EFFD57997630BDEC1314E75257B6AE9CD7D0DB3A3DA6F1F6B703C6C29B71A3628BBA7A6A&f=78C6D0024CE89AC3CE2B767ECBB297BBF52902832FE769D8490844DE111DB1073EE23AF77A465BD2E3FDE7628109F8EDB4DD23EF1549FAE0",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234359",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=F9160AF6C7863CC189C00A40445471DFA9F4CD5F17A0B32A553A1999AA67BEC4D3DE518B49B58910C14EEDC1255D91F93322D38EF4B474CFA037054C65B7603ADA101D9D38378B00DDFF56026A89B272B9AA3DAE3BBADD6AD8F6104A0A171980CA3031CFED51E80F&f=F48A7BC3A954DFC65988F40EC04DFD44AB11B12DA5620B129DCD7E15526E73B54A06588C0BAA70A8EF179BD8CBA53FF7E7D5006EAAC037575CDCE66FFE77E5D5",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234086",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://infosys.stu.edu.tw/StuNews/Helper/UploadHandler.ashx?item=AF8C73DDFABE4ACEC6FB9E16E84B4D507E7DB35E055C650FFD025F83D277F444121630F7738915804F92E97C50674290F3D420D83897260C96EDBA1F27DE5A7F10A12E70C6B89B44BD4F4C188462DA45014576C18CEE53E7D9FD8CD44235C18E15F0DB8FC8991FBE&f=097FE40C356324A276B50054EF72B39BF24879B20EF52D4AE959800F71F249B6646E863EE3BF543B52B34FC7B43F05CC2BA032C0FA2E2DE8DC2B98164BA5A20A7DAE2C4B0A5212B0",
+    "page": "https://www.stu.edu.tw/latestnews-single/?id=234469",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/08/%E5%BB%A3%E5%B7%9E%E4%B8%80%E7%B3%BB%E5%88%97%E7%B4%80%E9%8C%84%E7%85%A7_170608_0037.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E6%A0%A1%E9%9A%9B%E4%BA%92%E8%A8%AA/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/07/%E6%A8%B9%E7%A7%91%E5%A4%A7%E6%BC%94%E8%97%9D%E7%B3%BB%E6%8C%91%E6%88%B0%E6%A5%B5%E9%99%90-%E5%89%8D%E5%BE%80%E5%B0%91%E6%9E%97%E5%AF%BA%E7%B7%B4%E5%8A%9F108.9.10-%E5%B0%91%E6%9E%97%E6%AD%A6%E5%8A%9F%E8%93%8B%E5%A4%A9%E4%B8%8B%EF%BC%8C%E4%B9%9F%E5%90%B8%E5%BC%95%E6%A8%B9%E5%BE%B7%E7%A7%91%E5%A4%A7%E8%A8%AD%E8%A8%88%E5%AD%B8%E9%99%A2%E8%A1%A8%E6%BC%94%E8%97%9D%E8%A1%93%E7%B3%BB%E6%AF%8F%E5%B9%B4%E9%81%B4%E9%81%B8%E5%AD%B8%E7%94%9F%E5%89%8D%E5%BE%80%E4%B8%AD%E5%9C%8B%E5%B5%A9%E5%B1%B1%E5%B0%91%E6%9E%97%E5%AF%BA%E5%AD%B8%E7%BF%92%E5%8A%9F%E5%A4%AB%E3%80%82%E4%B9%9F%E8%97%89%E6%A9%9F%E8%AA%8D%E8%AD%98%E5%85%A9%E5%B2%B8%E7%9A%84%E6%96%87%E5%8C%96%E5%B7%AE%E7%95%B0%EF%BC%8C%E9%96%8B%E5%B1%95.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E6%A0%A1%E9%9A%9B%E4%BA%92%E8%A8%AA/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/07/%E5%8C%97%E4%BA%AC%E5%AF%A7%E5%A4%8F%E5%85%A9%E5%B2%B8%E4%BA%A4%E6%B5%812017.11.13.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E6%A0%A1%E9%9A%9B%E4%BA%92%E8%A8%AA/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/08/2019%E9%9D%92%E5%B3%B6%E7%90%86%E5%B7%A5%E5%A4%A7%E5%AD%B8%E7%90%B4%E5%B3%B6%E5%AD%B8%E9%99%A2%E8%92%9E%E6%A0%A1%E5%8F%83%E8%A8%AA.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E6%A0%A1%E9%9A%9B%E4%BA%92%E8%A8%AA/",
+    "reason": "media_missing"
+  },
+  {
+    "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/27/2020/06/IMG_0064-1-1024x768.jpg",
+    "page": "https://www.oica.stu.edu.tw/%E6%A0%A1%E9%9A%9B%E4%BA%92%E8%A8%AA/",
+    "reason": "media_missing"
+  }
+]

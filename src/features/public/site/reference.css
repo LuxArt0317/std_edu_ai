@@ -224,3 +224,6 @@
 /* The shared dialog header reset must not remove this full-bleed Sheet inset. */
 .public-assistant-surface > header {padding:20px 48px 20px 20px;flex-shrink:0}
 .public-assistant-surface > form {flex-shrink:0}
+
+.public-site-shell .reference-preview-notice.is-compact {position:fixed;top:auto;bottom:8px;left:8px;right:auto;max-width:calc(100% - 150px);border-radius:4px;padding:4px 8px;min-height:0;font-size:10px;z-index:80;box-shadow:0 1px 6px #0002;}
+.reference-preview-notice.is-compact span:nth-child(2) {display:none;}

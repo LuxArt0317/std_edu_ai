@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 16.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd" [
+	<!ENTITY ns_flows "http://ns.adobe.com/Flows/1.0/">
+	<!ENTITY ns_extend "http://ns.adobe.com/Extensibility/1.0/">
+	<!ENTITY ns_ai "http://ns.adobe.com/AdobeIllustrator/10.0/">
+	<!ENTITY ns_graphs "http://ns.adobe.com/Graphs/1.0/">
+	<!ENTITY ns_vars "http://ns.adobe.com/Variables/1.0/">
+	<!ENTITY ns_imrep "http://ns.adobe.com/ImageReplacement/1.0/">
+	<!ENTITY ns_sfw "http://ns.adobe.com/SaveForWeb/1.0/">
+	<!ENTITY ns_custom "http://ns.adobe.com/GenericCustomNamespace/1.0/">
+	<!ENTITY ns_adobe_xpath "http://ns.adobe.com/XPath/1.0/">
+]>
+<svg version="1.1" xmlns:x="&ns_extend;" xmlns:i="&ns_ai;" xmlns:graph="&ns_graphs;"
+	 xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/"
+	 x="0px" y="0px" width="86.094px" height="119px" viewBox="0 0 86.094 119" enable-background="new 0 0 86.094 119"
+	 xml:space="preserve">
+<metadata>
+	<sfw  xmlns="&ns_sfw;">
+		<slices>
+			
+				<slice  type="1" name="_1" width="1920" height="1766" y="-203" x="0" background="none" message="" horzAlign="0" sliceID="1" vertAlign="0" target="" url="" cellTextIsHTML="false" altTag="" groupID="6">
+				<cellText>
+					<![CDATA[]]>
+				</cellText>
+			</slice>
+			
+				<slice  type="1" name="_2" width="1920" height="1012" y="1563" x="0" background="none" message="" horzAlign="0" sliceID="2" vertAlign="0" target="" url="" cellTextIsHTML="false" altTag="" groupID="6">
+				<cellText>
+					<![CDATA[]]>
+				</cellText>
+			</slice>
+		</slices>
+		<sliceSourceBounds  width="7813.377" height="10173.518" y="-7280.442" x="-3729.377" bottomLeftOrigin="true">
+			</sliceSourceBounds>
+		<optimizationSettings>
+			<targetSettings  fileFormat="JPEGFormat" targetSettingsID="0">
+				
+					<JPEGFormat  progressive="false" blurAmount="0" embedICCProfile="true" optimized="true" quality="100" matteColor="#FFFFFF" noMatteColor="false">
+					</JPEGFormat>
+			</targetSettings>
+		</optimizationSettings>
+	</sfw>
+</metadata>
+<g id="圖層_1">
+	<g>
+		<g>
+			<path fill="#0072D8" d="M14.858,2.486v44.114c0,3.317,2.691,6.007,6.01,6.007h11.756V2.486H14.858z"/>
+			<path fill="#FF4D4D" d="M50.387,2.486v50.121h11.756c3.315,0,6.007-2.689,6.007-6.007V2.486H50.387z"/>
+			<path fill="#FFD24D" d="M69.067,91.443c0-15.219-12.345-27.557-27.563-27.557c-15.219,0-27.56,12.338-27.56,27.557
+				c0,15.221,12.341,27.557,27.56,27.557C56.723,119,69.067,106.664,69.067,91.443z"/>
+			<g>
+				<path fill="#F1B949" d="M41.505,114.951c-12.961,0-23.508-10.545-23.508-23.508c0-12.962,10.547-23.506,23.508-23.506
+					c12.959,0,23.511,10.544,23.511,23.506C65.016,104.406,54.464,114.951,41.505,114.951z M41.505,69.761
+					c-11.956,0-21.686,9.726-21.686,21.683s9.729,21.685,21.686,21.685c11.955,0,21.683-9.728,21.683-21.685
+					S53.46,69.761,41.505,69.761z"/>
+			</g>
+			<g>
+				<rect x="29.233" y="84.455" fill="#F1B949" width="24.539" height="1.822"/>
+			</g>
+			<g>
+				<rect x="29.233" y="90.533" fill="#F1B949" width="24.539" height="1.821"/>
+			</g>
+			<g>
+				<rect x="29.233" y="96.61" fill="#F1B949" width="24.539" height="1.822"/>
+			</g>
+			<path fill="#F1B949" d="M5.567,36.105c0,1.287-1.047,2.328-2.331,2.328c-1.283,0-2.329-1.041-2.329-2.328
+				c0-1.286,1.046-2.328,2.329-2.328C4.521,33.777,5.567,34.819,5.567,36.105z"/>
+			<circle fill="#FFD24D" cx="9.866" cy="44.812" r="3.139"/>
+			<path fill="#FFD24D" d="M86.094,25.297c0,1.242-1.006,2.249-2.25,2.249c-1.238,0-2.246-1.007-2.246-2.249
+				c0-1.243,1.008-2.25,2.246-2.25C85.088,23.047,86.094,24.054,86.094,25.297z"/>
+			<circle fill="#FFD24D" cx="9.312" cy="97.959" r="2.431"/>
+			<circle fill="#FFD24D" cx="11.438" cy="105.755" r="1.721"/>
+			<polygon fill="#FFD24D" points="5.108,60.16 5.108,56.871 3.288,56.871 3.288,60.16 0,60.16 0,61.982 3.288,61.982 3.288,65.271 
+				5.108,65.271 5.108,61.982 8.399,61.982 8.399,60.16 			"/>
+			<polygon fill="#F1B949" points="80.424,30.834 77.139,30.834 77.139,27.546 75.314,27.546 75.314,30.834 72.024,30.834 
+				72.024,32.656 75.314,32.656 75.314,35.944 77.139,35.944 77.139,32.656 80.424,32.656 			"/>
+			<circle fill="#F1B949" cx="71.887" cy="70.762" r="2.819"/>
+			<rect x="32.624" y="2.486" fill="#FFFFFF" width="17.763" height="50.121"/>
+			<path fill="#F1B949" d="M37.388,64.194c-0.154-0.438-0.237-0.909-0.237-1.399c0-2.4,1.954-4.354,4.354-4.354
+				c2.402,0,4.356,1.953,4.356,4.354c0,0.49-0.086,0.961-0.24,1.399c1.016,0.151,2.012,0.362,2.988,0.621
+				c0.185-0.644,0.281-1.319,0.281-2.021c0-4.076-3.308-7.391-7.386-7.391c-4.074,0-7.393,3.314-7.393,7.391
+				c0,0.701,0.105,1.377,0.29,2.021C35.374,64.557,36.372,64.346,37.388,64.194z"/>
+			<path fill="#FFD24D" d="M41.505,49.773c-1.706,0-3.088,1.381-3.088,3.086v5.634c0,1.705,1.382,3.086,3.088,3.086
+				c1.703,0,3.087-1.381,3.087-3.086v-5.634C44.592,51.154,43.208,49.773,41.505,49.773z"/>
+		</g>
+		<path fill="#FFD24D" d="M74.438,2.485c0,1.374-1.113,2.485-2.483,2.485H10.579c-1.371,0-2.486-1.111-2.486-2.485l0,0
+			C8.093,1.113,9.208,0,10.579,0h61.375C73.324,0,74.438,1.113,74.438,2.485L74.438,2.485z"/>
+	</g>
+</g>
+<g id="popup" display="none">
+</g>
+</svg>

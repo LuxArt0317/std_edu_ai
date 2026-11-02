@@ -1,13 +1,12 @@
 import { lazy, useEffect } from "react";
-import { Link, Navigate, Route, Routes, useLocation } from "react-router";
-const App = lazy(() => import("../../App"));
+import { Navigate, Route, Routes, useLocation } from "react-router";
+const LocalPageIndex = lazy(() =>
+  import("./mirror/SourceMirror").then((m) => ({ default: m.LocalPageIndex })),
+);
+const SourceMirror = lazy(() => import("./mirror/SourceMirror"));
+import { PublicCampusDirectory } from "./PublicCampusDirectory";
 import { PublicAssistant } from "./PublicAssistant";
 import { PreviewNotice } from "./site/PreviewNotice";
-const StudentDirectory = lazy(() =>
-  import("./site/StudentDirectory").then((module) => ({
-    default: module.StudentDirectory,
-  })),
-);
 const StudentSsoPreview = lazy(() =>
   import("./site/StudentSsoPreview").then((module) => ({
     default: module.StudentSsoPreview,
@@ -20,13 +19,10 @@ export default function PublicSite() {
   const { pathname, hash, search } = useLocation();
   useEffect(() => {
     document.documentElement.lang = "zh-Hant";
-    if (!pathname.startsWith("/school-affairs"))
-      document.title =
-        (pathname.includes("student-sso")
-          ? "mySTU 登入介面預覽"
-          : pathname === "/"
-            ? "樹德科技大學網站介面預覽"
-            : "在校學生介面預覽") + " | 校園網站預覽";
+    if (pathname === "/student-sso")
+      document.title = "mySTU 登入介面預覽 | 校園網站預覽";
+    if (pathname === "/local-pages")
+      document.title = "本地校園網站 · Local school pages";
     let target: HTMLElement | null = null;
     try {
       target = hash
@@ -38,10 +34,19 @@ export default function PublicSite() {
   }, [pathname, hash]);
   return (
     <div className="public-site-shell">
-      <PreviewNotice />
+      <PreviewNotice
+        compact={
+          !pathname.startsWith("/school-affairs") &&
+          !pathname.includes("student-sso")
+        }
+      />
       <Routes>
-        <Route path="/" element={<App />} />
-        <Route path="/ePortal/login.asp" element={<Navigate to="/school-affairs/login" replace />} />
+        <Route path="/" element={<SourceMirror />} />
+        <Route path="/local-pages" element={<LocalPageIndex key={search} />} />
+        <Route
+          path="/ePortal/login.asp"
+          element={<Navigate to="/school-affairs/login" replace />}
+        />
         <Route path="/school-affairs/*" element={<SchoolAffairsPortal />} />
         <Route
           path="/ePortal/index.asp"
@@ -51,7 +56,7 @@ export default function PublicSite() {
           path="/ePortal/apMenu.asp"
           element={<Navigate to="/school-affairs/search" replace />}
         />
-        <Route path="/在校學生" element={<StudentDirectory />} />
+        <Route path="/在校學生" element={<SourceMirror />} />
         <Route
           path="/students"
           element={<Navigate to="/在校學生/" replace />}
@@ -70,19 +75,16 @@ export default function PublicSite() {
           path="/auth/realms/stuarm/protocol/saml"
           element={<Navigate to="/student-sso" replace />}
         />
-        <Route
-          path="*"
-          element={
-            <main className="reference-not-found">
-              <h1>找不到頁面</h1>
-              <p>請從首頁或在校學生目錄選擇服務。</p>
-              <Link to="/">回到首頁</Link>
-              <Link to="/在校學生/">在校學生</Link>
-            </main>
-          }
-        />
+        <Route path="*" element={<SourceMirror />} />
       </Routes>
-      <PublicAssistant key={/\/school-affairs\/(signed-out|login)/.test(pathname) ? "affairs-logged-out" : "public"} />
+      {pathname === "/" ? <PublicCampusDirectory /> : null}
+      <PublicAssistant
+        key={
+          /\/school-affairs\/(signed-out|login)/.test(pathname)
+            ? "affairs-logged-out"
+            : "public"
+        }
+      />
     </div>
   );
 }

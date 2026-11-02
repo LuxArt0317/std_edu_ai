@@ -1,0 +1,569 @@
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLocation, useNavigate, Link } from "react-router";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import entries from "./pages.json";
+import gaps from "./gaps.json";
+import files from "./files.json";
+import {
+  canonicalSchoolUrl,
+  sourceForLocalPath,
+  findSchoolPage,
+} from "./paths";
+import "./mirror.css";
+
+type Entry = {
+  source: string;
+  title: string;
+  route: string;
+  file: string;
+  aliases: string[];
+  links: number;
+  capturedOn: string;
+  checksum: string;
+};
+const pages = entries as Entry[];
+const displayUrl = (value: string) => {
+  try {
+    return decodeURI(value);
+  } catch {
+    return value;
+  }
+};
+function findPage(source: string | null) {
+  return findSchoolPage(pages, source);
+}
+function scrollFragment(doc: Document, hash: string) {
+  if (!hash) return;
+  try {
+    doc.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView();
+  } catch {
+    /* Invalid fragments are inert. */
+  }
+}
+/** Trusted local controls for inert source HTML. Source scripts and submissions never run. */
+function configureDocument(doc: Document, navigate: (url: string) => void) {
+  const cleanups: Array<() => void> = [];
+  const selectTab = (tab: HTMLElement) => {
+    const group = tab.closest("[role=tablist]") || tab.parentElement;
+    if (!group) return;
+    const tabs = [...group.querySelectorAll<HTMLElement>("[role=tab]")];
+    tabs.forEach((t) => {
+      const active = t === tab;
+      t.setAttribute("aria-selected", String(active));
+      t.tabIndex = active ? 0 : -1;
+      t.classList.toggle("active", active);
+    });
+    const trigger = tab.dataset.trigger;
+    if (trigger)
+      doc
+        .querySelectorAll<HTMLElement>(".newsword")
+        .forEach((p) =>
+          p.classList.toggle(
+            "hide",
+            !p.classList.contains("newsword--" + trigger),
+          ),
+        );
+    else
+      tabs.forEach((t) => {
+        const panel = doc.getElementById(t.getAttribute("aria-controls") || "");
+        if (panel) {
+          const active = t === tab;
+          panel.classList.toggle("e-active", active);
+          panel.hidden = !active;
+          panel.setAttribute("aria-hidden", String(!active));
+        }
+      });
+  };
+  const click = (event: MouseEvent) => {
+    const target =
+      event.target && (event.target as Element).nodeType === 1
+        ? (event.target as Element)
+        : null;
+    const sidr = target?.closest<HTMLElement>("#simple-menu");
+    if (sidr) {
+      event.preventDefault();
+      const menu =
+        doc.getElementById("sidr-main") ||
+        doc.getElementById("sidr") ||
+        doc.querySelector<HTMLElement>(".sidr");
+      if (menu) {
+        const open = sidr.getAttribute("aria-expanded") !== "true";
+        sidr.setAttribute("aria-expanded", String(open));
+        sidr.setAttribute("aria-label", "Menu");
+        menu.style.display = open ? "block" : "none";
+        menu.style.position = "fixed";
+        menu.style.top = "0";
+        menu.style.bottom = "0";
+        menu.style.left = "auto";
+        menu.style.right = open ? "0" : "-300px";
+        menu.style.maxWidth = "85vw";
+        menu.style.zIndex = "99999";
+        menu.style.overflow = "auto";
+      }
+      return;
+    }
+    const popup = target?.closest<HTMLElement>(
+      "[aria-haspopup=menu][aria-controls],.dropdown-toggle[data-toggle=dropdown]",
+    );
+    if (popup) {
+      event.preventDefault();
+      const panel =
+        doc.getElementById(popup.getAttribute("aria-controls") || "") ||
+        popup.parentElement?.querySelector<HTMLElement>(".dropdown-menu");
+      if (panel) {
+        const open = popup.getAttribute("aria-expanded") !== "true";
+        doc
+          .querySelectorAll<HTMLElement>(
+            "[aria-haspopup=menu][aria-expanded=true]",
+          )
+          .forEach((other) => {
+            if (other !== popup) {
+              other.setAttribute("aria-expanded", "false");
+              const old = doc.getElementById(
+                other.getAttribute("aria-controls") || "",
+              );
+              if (old) {
+                old.style.display = "none";
+                old.setAttribute("aria-hidden", "true");
+              }
+            }
+          });
+        popup.setAttribute("aria-expanded", String(open));
+        panel.style.display = open ? "block" : "none";
+        panel.setAttribute("aria-hidden", String(!open));
+        if (open && panel.classList.contains("el-popper")) {
+          const rect = popup.getBoundingClientRect();
+          panel.style.position = "fixed";
+          panel.style.inset = "auto";
+          panel.style.top = rect.bottom + "px";
+          panel.style.left =
+            Math.max(
+              8,
+              Math.min(
+                rect.left,
+                (doc.defaultView?.innerWidth || 1280) - panel.offsetWidth - 8,
+              ),
+            ) + "px";
+        }
+      }
+      return;
+    }
+    const subArrow = target?.closest<HTMLElement>(".sub-arrow");
+    if (subArrow) {
+      event.preventDefault();
+      const anchor = subArrow.closest("a"),
+        menu = anchor?.parentElement?.querySelector<HTMLElement>(".sub-menu");
+      if (menu) {
+        const open = anchor?.getAttribute("aria-expanded") !== "true";
+        anchor?.setAttribute("aria-expanded", String(open));
+        menu.style.display = open ? "block" : "none";
+      }
+      return;
+    }
+    const tab = target?.closest<HTMLElement>("[role=tab]");
+    if (tab) {
+      event.preventDefault();
+      selectTab(tab);
+      return;
+    }
+    const toggle = target?.closest<HTMLElement>(
+      '.elementor-menu-toggle,.menu-toggle,.navbar-toggle,[data-toggle="collapse"],.elementskit-menu-hamburger',
+    );
+    if (toggle) {
+      event.preventDefault();
+      const root =
+        toggle.closest(".elementor-widget-nav-menu,.navbar,.ekit-wid-con") ||
+        toggle.parentElement;
+      const id = (
+        toggle.getAttribute("data-target") ||
+        toggle.getAttribute("aria-controls") ||
+        ""
+      ).replace(/^#/, "");
+      const menu =
+        (id ? doc.getElementById(id) : null) ||
+        root?.querySelector<HTMLElement>(
+          ".elementor-nav-menu--dropdown,.navbar-collapse,.elementskit-menu-container,.nav-menu,.menu",
+        );
+      if (menu) {
+        const open = toggle.getAttribute("aria-expanded") !== "true";
+        toggle.setAttribute("aria-expanded", String(open));
+        toggle.classList.toggle("elementor-active", open);
+        menu.classList.toggle("in", open);
+        menu.classList.toggle("elementskit-menu-offcanvas-elements", open);
+        menu.style.display = open ? "block" : "none";
+        menu.style.maxHeight = open ? "80vh" : "0";
+        menu.style.overflow = "auto";
+      }
+      return;
+    }
+    const accordion = target?.closest<HTMLElement>(
+      ".elementor-tab-title[aria-controls]",
+    );
+    if (accordion) {
+      event.preventDefault();
+      const panel = doc.getElementById(
+        accordion.getAttribute("aria-controls") || "",
+      );
+      const open = accordion.getAttribute("aria-expanded") !== "true";
+      accordion.setAttribute("aria-expanded", String(open));
+      accordion.classList.toggle("elementor-active", open);
+      if (panel) {
+        panel.style.display = open ? "block" : "none";
+        panel.hidden = !open;
+      }
+      return;
+    }
+    const anchor = target?.closest<HTMLAnchorElement>("a[href],area[href]");
+    if (anchor?.dataset.mirrorInert) {
+      event.preventDefault();
+      return;
+    }
+    const card = target?.closest<HTMLElement>("[data-mirror-link]");
+    const raw = anchor?.getAttribute("href") || card?.dataset.mirrorLink;
+    if (raw?.startsWith("#")) {
+      event.preventDefault();
+      navigate(window.location.pathname + window.location.search + raw);
+      scrollFragment(doc, raw);
+      return;
+    }
+    if (raw?.startsWith("/school-assets/")) {
+      event.preventDefault();
+      window.open(raw, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (raw?.startsWith("/") && !raw.startsWith("//")) {
+      event.preventDefault();
+      navigate(raw);
+      return;
+    }
+    if (anchor?.dataset.thirdParty === "true") {
+      event.preventDefault();
+      window.open(anchor.href, "_blank", "noopener,noreferrer");
+    }
+  };
+  doc.addEventListener("click", click);
+  cleanups.push(() => doc.removeEventListener("click", click));
+  const key = (event: KeyboardEvent) => {
+    if (event.defaultPrevented) return;
+    const el =
+      event.target && (event.target as HTMLElement).nodeType === 1
+        ? (event.target as HTMLElement)
+        : null;
+    if (event.key === "Enter" && el?.dataset.mirrorLink) {
+      event.preventDefault();
+      navigate(el.dataset.mirrorLink);
+    }
+    if (
+      el?.getAttribute("role") === "tab" &&
+      ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
+    ) {
+      const group = el.closest("[role=tablist]") || el.parentElement,
+        tabs = [...(group?.querySelectorAll<HTMLElement>("[role=tab]") || [])],
+        index = tabs.indexOf(el);
+      const next =
+        tabs[
+          event.key === "Home"
+            ? 0
+            : event.key === "End"
+              ? tabs.length - 1
+              : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) %
+                tabs.length
+        ];
+      if (next) {
+        event.preventDefault();
+        selectTab(next);
+        next.focus();
+      }
+    }
+    if (
+      ["Enter", " "].includes(event.key) &&
+      el?.matches("[role=button]:not(button),.elementor-menu-toggle")
+    ) {
+      event.preventDefault();
+      el.click();
+    }
+    if (event.key === "Escape")
+      doc
+        .querySelectorAll<HTMLElement>(
+          ".elementor-menu-toggle[aria-expanded=true],.navbar-toggle[aria-expanded=true],#simple-menu[aria-expanded=true],[aria-haspopup=menu][aria-expanded=true]",
+        )
+        .forEach((e) => {
+          e.click();
+          e.focus();
+        });
+  };
+  doc.addEventListener("keydown", key);
+  cleanups.push(() => doc.removeEventListener("keydown", key));
+  const submit = (event: SubmitEvent) => {
+    event.preventDefault();
+    const form = event.target as HTMLFormElement;
+    if (form.dataset.mirrorForm === "search") {
+      const q = form.querySelector<HTMLInputElement>(
+        "input[type=search],input[name=s],input[name=search]",
+      )?.value;
+      if (q?.trim())
+        navigate(
+          "/local-pages?q=" + encodeURIComponent(q.trim().slice(0, 200)),
+        );
+    }
+  };
+  doc.addEventListener("submit", submit);
+  cleanups.push(() => doc.removeEventListener("submit", submit));
+  doc
+    .querySelectorAll<HTMLElement>(".swiper,.swiper-container")
+    .forEach((slider) => {
+      const wrapper = slider.querySelector<HTMLElement>(".swiper-wrapper");
+      if (!wrapper) return;
+      wrapper
+        .querySelectorAll(":scope>.swiper-slide-duplicate")
+        .forEach((e) => e.remove());
+      const slides = [...wrapper.children].filter((e) =>
+        e.classList.contains("swiper-slide"),
+      ) as HTMLElement[];
+      if (!slides.length) return;
+      const widget = slider.closest<HTMLElement>("[data-mirror-settings]");
+      let settings: Record<string, number> = {};
+      try {
+        settings = JSON.parse(widget?.dataset.mirrorSettings || "{}");
+      } catch {
+        /* Single slide default. */
+      }
+      const region = slider.parentElement || slider,
+        bullets = [
+          ...region.querySelectorAll<HTMLElement>(".swiper-pagination-bullet"),
+        ];
+      let current = 0;
+      const render = () => {
+        const width = doc.defaultView?.innerWidth || 1280,
+          view = Math.min(
+            slides.length,
+            Number(
+              width < 768
+                ? settings.slides_to_show_mobile
+                : width < 1024
+                  ? settings.slides_to_show_tablet
+                  : settings.slides_to_show,
+            ) || 1,
+          );
+        current = Math.min(current, Math.max(0, slides.length - view));
+        slides.forEach((slide, i) => {
+          slide.style.width = `${100 / view}%`;
+          slide.style.flex = `0 0 ${100 / view}%`;
+          slide.style.display =
+            i >= current && i < current + view ? "block" : "none";
+          slide.style.opacity = "1";
+          slide.setAttribute(
+            "aria-hidden",
+            String(i < current || i >= current + view),
+          );
+        });
+        wrapper.style.transform = "none";
+        wrapper.style.width = "100%";
+        wrapper.style.display = "flex";
+        wrapper.style.transition = "none";
+        bullets.forEach((b, i) => {
+          b.classList.toggle("swiper-pagination-bullet-active", i === current);
+          b.setAttribute("aria-current", String(i === current));
+        });
+      };
+      render();
+      const bind = (control: HTMLElement, change: () => void) => {
+        control.setAttribute("role", "button");
+        control.tabIndex = 0;
+        control.addEventListener("click", change);
+        const press = (e: KeyboardEvent) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            change();
+          }
+        };
+        control.addEventListener("keydown", press);
+        cleanups.push(() => {
+          control.removeEventListener("click", change);
+          control.removeEventListener("keydown", press);
+        });
+      };
+      for (const [selector, direction] of [
+        [".elementor-swiper-button-next,.swiper-button-next", 1],
+        [".elementor-swiper-button-prev,.swiper-button-prev", -1],
+      ] as const) {
+        const control = region.querySelector<HTMLElement>(selector);
+        if (control)
+          bind(control, () => {
+            current = (current + direction + slides.length) % slides.length;
+            render();
+          });
+      }
+      bullets.forEach((b, i) =>
+        bind(b, () => {
+          current = i;
+          render();
+        }),
+      );
+      doc.defaultView?.addEventListener("resize", render);
+      cleanups.push(() =>
+        doc.defaultView?.removeEventListener("resize", render),
+      );
+    });
+  doc.documentElement.dataset.mirrorReady = "true";
+  return () => cleanups.forEach((fn) => fn());
+}
+export function LocalPageIndex() {
+  const location = useLocation(),
+    [query, setQuery] = useState(
+      new URLSearchParams(location.search).get("q") || "",
+    ),
+    [texts, setTexts] = useState<Array<{ route: string; text: string }>>([]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/school-pages/search.json", { signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setTexts)
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
+  const needle = query.toLocaleLowerCase(),
+    results = pages.filter((p) =>
+      (
+        p.title +
+        " " +
+        displayUrl(p.source) +
+        " " +
+        (texts.find((t) => t.route === p.route)?.text || "")
+      )
+        .toLocaleLowerCase()
+        .includes(needle),
+    );
+  return (
+    <main className="mirror-index">
+      <h1>本地校園網站 · Local school pages</h1>
+      <p>
+        {pages.length} public pages copied. Private school systems require their
+        own authorized integration.
+      </p>
+      <Input
+        aria-label="Search copied pages"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="搜尋頁面 · Search pages"
+      />
+      <p>{results.length} results</p>
+      <ul>
+        {results.map((p) => (
+          <li key={p.source}>
+            <Link to={p.route}>{p.title}</Link>
+            <small>
+              {new URL(p.source).hostname} · captured {p.capturedOn}
+            </small>
+          </li>
+        ))}
+      </ul>
+    </main>
+  );
+}
+export default function SourceMirror() {
+  const location = useLocation(),
+    navigate = useNavigate(),
+    frame = useRef<HTMLIFrameElement>(null),
+    cleanup = useRef<(() => void) | null>(null),
+    [error, setError] = useState("");
+  const source = sourceForLocalPath(location.pathname, location.search),
+    entry = findPage(source),
+    file = files.find((a) => canonicalSchoolUrl(a.source) === source),
+    status = gaps.find((r) => r.source === source)?.status;
+  const pageFile = entry?.file,
+    pageTitle = entry?.title,
+    pageVersion = entry?.checksum;
+  useLayoutEffect(() => {
+    document.title = pageTitle
+      ? pageTitle + " · local copy"
+      : "Local page not copied yet";
+    const doc = frame.current?.contentDocument;
+    if (doc?.documentElement.dataset.mirrorReady === "true") {
+      cleanup.current?.();
+      cleanup.current = configureDocument(doc, (url) => navigate(url));
+    }
+    return () => {
+      cleanup.current?.();
+      cleanup.current = null;
+    };
+  }, [pageFile, pageTitle, pageVersion, navigate]);
+  useEffect(() => {
+    if (frame.current?.contentDocument)
+      scrollFragment(frame.current.contentDocument, location.hash);
+  }, [location.hash]);
+  if (!entry)
+    return (
+      <main className="mirror-index">
+        <h1>
+          {file
+            ? "本地文件 · Local document"
+            : "此頁面尚未完成複製 · Page not copied yet"}
+        </h1>
+        {file ? (
+          <a href={file.file} target="_blank" rel="noreferrer">
+            Open copied document
+          </a>
+        ) : (
+          <>
+            <p>
+              This destination{" "}
+              {status === "requires-auth-integration" ||
+              status === "local-ui-preview"
+                ? "requires a separate school integration"
+                : status === "source-unavailable"
+                  ? "could not be retrieved from the source"
+                  : "has not been imported yet"}
+              . It is not counted as a completed copy.
+            </p>
+            {source ? <p>{displayUrl(source)}</p> : null}
+          </>
+        )}
+        <Link to="/local-pages">Browse copied pages</Link>
+        <Link to="/">Return home</Link>
+        {source && !file ? (
+          <a href={source} target="_blank" rel="noreferrer">
+            Original source (external)
+          </a>
+        ) : null}
+      </main>
+    );
+  return (
+    <section
+      className="source-mirror"
+      aria-label={entry.title}
+      key={entry.file + entry.checksum}
+    >
+      {error ? (
+        <div role="alert" className="mirror-load-error">
+          {error}
+          <Button
+            onClick={() => frame.current?.contentWindow?.location.reload()}
+          >
+            Retry
+          </Button>
+        </div>
+      ) : null}
+      <iframe
+        ref={frame}
+        title={entry.title}
+        src={entry.file + "?v=" + entry.checksum.slice(0, 12)}
+        sandbox="allow-same-origin allow-downloads"
+        onError={() => setError("The local page could not be loaded.")}
+        onLoad={() => {
+          cleanup.current?.();
+          const doc = frame.current?.contentDocument;
+          if (!doc) {
+            setError("The local page is unavailable.");
+            return;
+          }
+          setError("");
+          document.title = entry.title + " · local copy";
+          cleanup.current = configureDocument(doc, (url) => navigate(url));
+          scrollFragment(doc, location.hash);
+        }}
+      />
+    </section>
+  );
+}

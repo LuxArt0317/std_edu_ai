@@ -101,7 +101,7 @@ test("blocked browser storage degrades to usable in-memory defaults", () => {
     else Reflect.deleteProperty(globalThis, "localStorage");
   }
 });
-test("only the copied School Affairs entry becomes local; protected program destinations remain official", () => {
+test("School Affairs entries use the native preview and other protected destinations use local routes", () => {
   for (const href of [
     "https://info.stu.edu.tw/",
     "https://info.stu.edu.tw/ePortal/login.asp",
@@ -110,6 +110,6 @@ test("only the copied School Affairs entry becomes local; protected program dest
     assert.equal(referenceHref(href), "/school-affairs");
   assert.equal(
     referenceHref("https://info.stu.edu.tw/ACA/student/CM/cm.asp"),
-    "https://info.stu.edu.tw/ACA/student/CM/cm.asp",
+    "/school-sites/info.stu.edu.tw/ACA/student/CM/cm.asp",
   );
 });

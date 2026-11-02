@@ -17,5 +17,16 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["api", "server", "tests/api", "src/utils/async.ts", "src/features/school/onboarding.ts", "src/features/school/richLessonContent.ts", "src/features/school/schoolAgentLoop.ts", "src/features/school/types.ts"]
+  "include": [
+    "api",
+    "server",
+    "tests/api",
+    "src/utils/async.ts",
+    "src/features/school/onboarding.ts",
+    "src/features/school/richLessonContent.ts",
+    "src/features/school/schoolAgentLoop.ts",
+    "src/features/school/types.ts",
+    "src/features/public/mirror/paths.ts",
+    "scripts/lib/download-school-asset.d.mts"
+  ]
 }

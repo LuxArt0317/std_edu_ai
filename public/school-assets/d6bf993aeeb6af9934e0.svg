@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 16.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 width="15.166px" height="15.169px" viewBox="0 0 15.166 15.169" enable-background="new 0 0 15.166 15.169" xml:space="preserve">
+<g>
+	<radialGradient id="SVGID_1_" cx="4.8223" cy="2.3662" r="7.7694" gradientUnits="userSpaceOnUse">
+		<stop  offset="0" style="stop-color:#FFFFFF"/>
+		<stop  offset="0.9719" style="stop-color:#409F86"/>
+	</radialGradient>
+	<path fill="url(#SVGID_1_)" d="M7.582,14.169C3.953,14.169,1,11.215,1,7.583C1,3.953,3.953,1,7.582,1
+		c3.631,0,6.584,2.953,6.584,6.583C14.166,11.215,11.213,14.169,7.582,14.169z"/>
+	<path fill="#FFFFFF" d="M7.582,2c3.082,0,5.584,2.5,5.584,5.583c0,3.085-2.502,5.586-5.584,5.586S2,10.668,2,7.583
+		C2,4.5,4.5,2,7.582,2 M7.582,0C3.401,0,0,3.402,0,7.583c0,4.183,3.401,7.586,7.582,7.586c4.182,0,7.584-3.403,7.584-7.586
+		C15.166,3.402,11.764,0,7.582,0L7.582,0z"/>
+</g>
+</svg>

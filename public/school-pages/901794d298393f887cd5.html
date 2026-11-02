@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="zh-TW" class="js js flexbox flexboxlegacy canvas canvastext webgl no-touch geolocation postmessage no-websqldatabase indexeddb hashchange history draganddrop websockets rgba hsla multiplebgs backgroundsize borderimage borderradius boxshadow textshadow opacity cssanimations csscolumns cssgradients cssreflections csstransforms csstransforms3d csstransitions fontface generatedcontent video audio localstorage sessionstorage webworkers no-applicationcache svg inlinesvg smil svgclippaths" style=""><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
+  <meta charset="UTF-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  
+
+        <style id="wfc-base-style" type="text/css">
+             .wfc-reset-menu-item-first-letter .navbar .nav>li>a:first-letter {font-size: inherit;}.format-icon:before {color: #5A5A5A;}article .format-icon.tc-hide-icon:before, .safari article.format-video .format-icon.tc-hide-icon:before, .chrome article.format-video .format-icon.tc-hide-icon:before, .safari article.format-image .format-icon.tc-hide-icon:before, .chrome article.format-image .format-icon.tc-hide-icon:before, .safari article.format-gallery .format-icon.tc-hide-icon:before, .safari article.attachment .format-icon.tc-hide-icon:before, .chrome article.format-gallery .format-icon.tc-hide-icon:before, .chrome article.attachment .format-icon.tc-hide-icon:before {content: none!important;}h2#tc-comment-title.tc-hide-icon:before {content: none!important;}.archive .archive-header h1.format-icon.tc-hide-icon:before {content: none!important;}.tc-sidebar h3.widget-title.tc-hide-icon:before {content: none!important;}.footer-widgets h3.widget-title.tc-hide-icon:before {content: none!important;}.tc-hide-icon i, i.tc-hide-icon {display: none !important;}.carousel-control {font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;}.social-block a {font-size: 18px;}footer#footer .colophon .social-block a {font-size: 16px;}.social-block.widget_social a {font-size: 14px;}
+        </style>
+        <title>無線網路設定教學 - Shu-Te 教學文件網站</title>
+
+		<!-- All in One SEO 5.0.2.1 - aioseo.com -->
+	<meta name="description" content="樹德科技大學提供涵蓋校園90%以上的無線網路環境,多數環境都可以透過電腦/行動裝置來上網! 上網也有許多方式,除了最基本的網頁認證外,更有一次性的802.1x認證,讓使用者可以快速方便的使用無線網路!">
+	<meta name="robots" content="max-image-preview:large">
+	
+	<meta name="generator" content="All in One SEO (AIOSEO) 5.0.2.1">
+		<meta property="og:locale" content="zh_TW">
+		<meta property="og:site_name" content="Shu-Te 教學文件網站 -">
+		<meta property="og:type" content="article">
+		<meta property="og:title" content="無線網路設定教學 - Shu-Te 教學文件網站">
+		<meta property="og:description" content="樹德科技大學提供涵蓋校園90%以上的無線網路環境,多數環境都可以透過電腦/行動裝置來上網! 上網也有許多方式,除了最基本的網頁認證外,更有一次性的802.1x認證,讓使用者可以快速方便的使用無線網路!">
+		<meta property="og:url" content="https://help.ecc.stu.edu.tw/wireless-setting/">
+		<meta property="og:image" content="https://wpc.stu.edu.tw/wp-content/uploads/sites/47/2021/06/cropped-1001f77943bb40ccb9ddbcc50ebf8ddc.png">
+		<meta property="og:image:secure_url" content="https://wpc.stu.edu.tw/wp-content/uploads/sites/47/2021/06/cropped-1001f77943bb40ccb9ddbcc50ebf8ddc.png">
+		<meta property="article:published_time" content="2021-07-08T06:48:32+00:00">
+		<meta property="article:modified_time" content="2022-07-27T03:31:21+00:00">
+		<meta name="twitter:card" content="summary">
+		<meta name="twitter:title" content="無線網路設定教學 - Shu-Te 教學文件網站">
+		<meta name="twitter:description" content="樹德科技大學提供涵蓋校園90%以上的無線網路環境,多數環境都可以透過電腦/行動裝置來上網! 上網也有許多方式,除了最基本的網頁認證外,更有一次性的802.1x認證,讓使用者可以快速方便的使用無線網路!">
+		<meta name="twitter:image" content="https://wpc.stu.edu.tw/wp-content/uploads/sites/47/2021/06/cropped-1001f77943bb40ccb9ddbcc50ebf8ddc.png">
+		
+		<!-- All in One SEO -->
+
+
+
+
+
+		<!-- This site uses the Google Analytics by MonsterInsights plugin v11.3.0 - Using Analytics tracking - https://www.monsterinsights.com/ -->
+							
+			
+							<!-- / Google Analytics by MonsterInsights -->
+		<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<style id="wp-emoji-styles-inline-css">
+
+	img.wp-smiley, img.emoji {
+		display: inline !important;
+		border: none !important;
+		box-shadow: none !important;
+		height: 1em !important;
+		width: 1em !important;
+		margin: 0 0.07em !important;
+		vertical-align: -0.1em !important;
+		background: none !important;
+		padding: 0 !important;
+	}
+/*# sourceURL=wp-emoji-styles-inline-css */
+</style>
+<style id="classic-theme-styles-inline-css">
+/*! This file is auto-generated */
+.wp-block-button__link{color:#fff;background-color:#32373c;border-radius:9999px;box-shadow:none;text-decoration:none;padding:calc(.667em + 2px) calc(1.333em + 2px);font-size:1.125em}.wp-block-file__button{background:#32373c;color:#fff;text-decoration:none}
+/*# sourceURL=/wp-includes/css/classic-themes.min.css */
+</style>
+<link rel="stylesheet" id="aioseo/css/src/vue/standalone/blocks/table-of-contents/global.scss-css" href="/school-assets/0124a0467427d91d818b.css" media="all">
+<style id="global-styles-inline-css">
+:root{--wp--preset--aspect-ratio--square: 1;--wp--preset--aspect-ratio--4-3: 4/3;--wp--preset--aspect-ratio--3-4: 3/4;--wp--preset--aspect-ratio--3-2: 3/2;--wp--preset--aspect-ratio--2-3: 2/3;--wp--preset--aspect-ratio--16-9: 16/9;--wp--preset--aspect-ratio--9-16: 9/16;--wp--preset--color--black: #000000;--wp--preset--color--cyan-bluish-gray: #abb8c3;--wp--preset--color--white: #ffffff;--wp--preset--color--pale-pink: #f78da7;--wp--preset--color--vivid-red: #cf2e2e;--wp--preset--color--luminous-vivid-orange: #ff6900;--wp--preset--color--luminous-vivid-amber: #fcb900;--wp--preset--color--light-green-cyan: #7bdcb5;--wp--preset--color--vivid-green-cyan: #00d084;--wp--preset--color--pale-cyan-blue: #8ed1fc;--wp--preset--color--vivid-cyan-blue: #0693e3;--wp--preset--color--vivid-purple: #9b51e0;--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple: linear-gradient(135deg,rgb(6,147,227) 0%,rgb(155,81,224) 100%);--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan: linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%);--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange: linear-gradient(135deg,rgb(252,185,0) 0%,rgb(255,105,0) 100%);--wp--preset--gradient--luminous-vivid-orange-to-vivid-red: linear-gradient(135deg,rgb(255,105,0) 0%,rgb(207,46,46) 100%);--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray: linear-gradient(135deg,rgb(238,238,238) 0%,rgb(169,184,195) 100%);--wp--preset--gradient--cool-to-warm-spectrum: linear-gradient(135deg,rgb(74,234,220) 0%,rgb(151,120,209) 20%,rgb(207,42,186) 40%,rgb(238,44,130) 60%,rgb(251,105,98) 80%,rgb(254,248,76) 100%);--wp--preset--gradient--blush-light-purple: linear-gradient(135deg,rgb(255,206,236) 0%,rgb(152,150,240) 100%);--wp--preset--gradient--blush-bordeaux: linear-gradient(135deg,rgb(254,205,165) 0%,rgb(254,45,45) 50%,rgb(107,0,62) 100%);--wp--preset--gradient--luminous-dusk: linear-gradient(135deg,rgb(255,203,112) 0%,rgb(199,81,192) 50%,rgb(65,88,208) 100%);--wp--preset--gradient--pale-ocean: linear-gradient(135deg,rgb(255,245,203) 0%,rgb(182,227,212) 50%,rgb(51,167,181) 100%);--wp--preset--gradient--electric-grass: linear-gradient(135deg,rgb(202,248,128) 0%,rgb(113,206,126) 100%);--wp--preset--gradient--midnight: linear-gradient(135deg,rgb(2,3,129) 0%,rgb(40,116,252) 100%);--wp--preset--font-size--small: 13px;--wp--preset--font-size--medium: 20px;--wp--preset--font-size--large: 36px;--wp--preset--font-size--x-large: 42px;--wp--preset--spacing--20: 0.44rem;--wp--preset--spacing--30: 0.67rem;--wp--preset--spacing--40: 1rem;--wp--preset--spacing--50: 1.5rem;--wp--preset--spacing--60: 2.25rem;--wp--preset--spacing--70: 3.38rem;--wp--preset--spacing--80: 5.06rem;--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);--wp--preset--shadow--deep: 12px 12px 50px rgba(0, 0, 0, 0.4);--wp--preset--shadow--sharp: 6px 6px 0px rgba(0, 0, 0, 0.2);--wp--preset--shadow--outlined: 6px 6px 0px -3px rgb(255, 255, 255), 6px 6px rgb(0, 0, 0);--wp--preset--shadow--crisp: 6px 6px 0px rgb(0, 0, 0);}.wp-block-button{--wp--preset--dimension--25: 25%;--wp--preset--dimension--50: 50%;--wp--preset--dimension--75: 75%;--wp--preset--dimension--100: 100%;}:where(body) { margin: 0; }:where(.is-layout-flex){gap: 0.5em;}:where(.is-layout-grid){gap: 0.5em;}body .is-layout-flex{display: flex;}.is-layout-flex{flex-wrap: wrap;align-items: center;}.is-layout-flex > :is(*, div){margin: 0;}body .is-layout-grid{display: grid;}.is-layout-grid > :is(*, div){margin: 0;}body{padding-top: 0px;padding-right: 0px;padding-bottom: 0px;padding-left: 0px;}:root :where(.wp-element-button, .wp-block-button__link){background-color: #32373c;border-width: 0;color: #fff;font-family: inherit;font-size: inherit;font-style: inherit;font-weight: inherit;letter-spacing: inherit;line-height: inherit;padding-top: calc(0.667em + 2px);padding-right: calc(1.333em + 2px);padding-bottom: calc(0.667em + 2px);padding-left: calc(1.333em + 2px);text-decoration: none;text-transform: inherit;}.has-black-color{color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-color{color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-color{color: var(--wp--preset--color--white) !important;}.has-pale-pink-color{color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-color{color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-color{color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-color{color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-color{color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-color{color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-color{color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-color{color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-color{color: var(--wp--preset--color--vivid-purple) !important;}.has-black-background-color{background-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-background-color{background-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-background-color{background-color: var(--wp--preset--color--white) !important;}.has-pale-pink-background-color{background-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-background-color{background-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-background-color{background-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-background-color{background-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-background-color{background-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-background-color{background-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-background-color{background-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-background-color{background-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-background-color{background-color: var(--wp--preset--color--vivid-purple) !important;}.has-black-border-color{border-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-border-color{border-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-border-color{border-color: var(--wp--preset--color--white) !important;}.has-pale-pink-border-color{border-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-border-color{border-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-border-color{border-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-border-color{border-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-border-color{border-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-border-color{border-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-border-color{border-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-border-color{border-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-border-color{border-color: var(--wp--preset--color--vivid-purple) !important;}.has-vivid-cyan-blue-to-vivid-purple-gradient-background{background: var(--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple) !important;}.has-light-green-cyan-to-vivid-green-cyan-gradient-background{background: var(--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan) !important;}.has-luminous-vivid-amber-to-luminous-vivid-orange-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange) !important;}.has-luminous-vivid-orange-to-vivid-red-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-orange-to-vivid-red) !important;}.has-very-light-gray-to-cyan-bluish-gray-gradient-background{background: var(--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray) !important;}.has-cool-to-warm-spectrum-gradient-background{background: var(--wp--preset--gradient--cool-to-warm-spectrum) !important;}.has-blush-light-purple-gradient-background{background: var(--wp--preset--gradient--blush-light-purple) !important;}.has-blush-bordeaux-gradient-background{background: var(--wp--preset--gradient--blush-bordeaux) !important;}.has-luminous-dusk-gradient-background{background: var(--wp--preset--gradient--luminous-dusk) !important;}.has-pale-ocean-gradient-background{background: var(--wp--preset--gradient--pale-ocean) !important;}.has-electric-grass-gradient-background{background: var(--wp--preset--gradient--electric-grass) !important;}.has-midnight-gradient-background{background: var(--wp--preset--gradient--midnight) !important;}.has-small-font-size{font-size: var(--wp--preset--font-size--small) !important;}.has-medium-font-size{font-size: var(--wp--preset--font-size--medium) !important;}.has-large-font-size{font-size: var(--wp--preset--font-size--large) !important;}.has-x-large-font-size{font-size: var(--wp--preset--font-size--x-large) !important;}
+:root :where(.wp-block-icon svg){width: 24px;}
+:where(.wp-block-gallery.is-layout-flex){gap: var( --wp--style--gallery-gap-default, var( --gallery-block--gutter-size, var( --wp--style--block-gap, 0.5em ) ) );}:where(.wp-block-gallery.is-layout-grid){gap: var( --wp--style--gallery-gap-default, var( --gallery-block--gutter-size, var( --wp--style--block-gap, 0.5em ) ) );}
+:where(.wp-block-latest-posts.is-layout-flex){gap: 1.25em;}:where(.wp-block-latest-posts.is-layout-grid){gap: 1.25em;}
+:where(.wp-block-post-template.is-layout-flex){gap: 1.25em;}:where(.wp-block-post-template.is-layout-grid){gap: 1.25em;}
+:where(.wp-block-term-template.is-layout-flex){gap: 1.25em;}:where(.wp-block-term-template.is-layout-grid){gap: 1.25em;}
+:where(.wp-block-columns.is-layout-flex){gap: 2em;}:where(.wp-block-columns.is-layout-grid){gap: 2em;}
+:root :where(.wp-block-pullquote){font-size: 1.5em;line-height: 1.6;}
+/*# sourceURL=global-styles-inline-css */
+</style>
+<link rel="stylesheet" id="wp-pagenavi-css" href="/school-assets/fe8140ce54a569629a0d.css" media="all">
+<link rel="stylesheet" id="customizr-main-css" href="/school-assets/2b01c20504a2a65cfa4f.css" media="all">
+<style id="customizr-main-inline-css">
+
+#czr-push-footer { display: none; visibility: hidden; }
+        .czr-sticky-footer #czr-push-footer.sticky-footer-enabled { display: block; }
+        
+/*# sourceURL=customizr-main-inline-css */
+</style>
+<link rel="stylesheet" id="elementor-frontend-css" href="/school-assets/187e25986f0c51a8fcec.css" media="all">
+<link rel="stylesheet" id="elementor-post-4435-css" href="/school-assets/661e8784e909c5904c4d.css" media="all">
+<link rel="stylesheet" id="widget-menu-anchor-css" href="/school-assets/4e2ef7e68f53e406bac3.css" media="all">
+<link rel="stylesheet" id="ekit-widget-common-css" href="/school-assets/4f7b060c4e46bb3e5309.css" media="all">
+<link rel="stylesheet" id="ekit-heading-css" href="/school-assets/24f9b7cc564e2a0bc867.css" media="all">
+<link rel="stylesheet" id="ekit-button-css" href="/school-assets/4163a45a678c311221f9.css" media="all">
+<link rel="stylesheet" id="ekit-image-accordion-css" href="/school-assets/cd3b4fd0f50656529b6a.css" media="all">
+<link rel="stylesheet" id="elementor-icons-css" href="/school-assets/7f7c8c23cd72609db324.css" media="all">
+<link rel="stylesheet" id="elementor-post-1-css" href="/school-assets/2dd624dc48ed0b1af016.css" media="all">
+<link rel="stylesheet" id="font-awesome-5-all-css" href="/school-assets/7d24d68859b43580fa44.css" media="all">
+<link rel="stylesheet" id="font-awesome-4-shim-css" href="/school-assets/edf1b99c071e154a7df0.css" media="all">
+<link rel="stylesheet" id="e-animation-fadeIn-css" href="/school-assets/3523e7772bc5f49ba423.css" media="all">
+<link rel="stylesheet" id="ekit-nav-menu-css" href="/school-assets/aa4c2833e87db148d73b.css" media="all">
+<link rel="stylesheet" id="ekit-header-search-css" href="/school-assets/9ae96aed08d09d4393b3.css" media="all">
+<link rel="stylesheet" id="ekit-header-offcanvas-css" href="/school-assets/c6baa1f9f740c034fafd.css" media="all">
+<link rel="stylesheet" id="ekit-header-info-css" href="/school-assets/7e4bd4020c8a14568f2d.css" media="all">
+<link rel="stylesheet" id="elementor-gf-roboto-css" href="/school-assets/4e5dea717dd25770b2e3.css" media="all">
+<link rel="stylesheet" id="elementor-gf-robotoslab-css" href="/school-assets/b2bbadf57abd6c6be629.css" media="all">
+<link rel="stylesheet" id="elementor-gf-opensanshebrew-css" href="/school-assets/0fbc7e800782091059d5.css" media="all">
+<link rel="stylesheet" id="elementor-icons-ekiticons-css" href="/school-assets/17695d4fa14354d83613.css" media="all">
+<link rel="stylesheet" id="elementor-icons-shared-0-css" href="/school-assets/74121f413c771b56e298.css" media="all">
+<link rel="stylesheet" id="elementor-icons-fa-solid-css" href="/school-assets/5a41946c2283b584aadf.css" media="all">
+<link rel="stylesheet" id="elementor-icons-fa-brands-css" href="/school-assets/e475363a894dbc65ae87.css" media="all">
+
+
+
+
+
+
+
+
+
+
+<meta name="generator" content="WordPress 7.1.4">
+
+              <link rel="preload" as="font" type="font/woff2" href="/school-assets/d16e7188d633449ef384.woff2">
+            <meta name="generator" content="Elementor 4.2.3; features: additional_custom_breakpoints; settings: css_print_method-external, google_font-enabled, font_display-auto">
+			<style>
+				.e-con.e-parent:nth-of-type(n+4):not(.e-lazyloaded):not(.e-no-lazyload),
+				.e-con.e-parent:nth-of-type(n+4):not(.e-lazyloaded):not(.e-no-lazyload) * {
+					background-image: none !important;
+				}
+				@media screen and (max-height: 1024px) {
+					.e-con.e-parent:nth-of-type(n+3):not(.e-lazyloaded):not(.e-no-lazyload),
+					.e-con.e-parent:nth-of-type(n+3):not(.e-lazyloaded):not(.e-no-lazyload) * {
+						background-image: none !important;
+					}
+				}
+				@media screen and (max-height: 640px) {
+					.e-con.e-parent:nth-of-type(n+2):not(.e-lazyloaded):not(.e-no-lazyload),
+					.e-con.e-parent:nth-of-type(n+2):not(.e-lazyloaded):not(.e-no-lazyload) * {
+						background-image: none !important;
+					}
+				}
+			</style>
+			
+
+
+<meta name="msapplication-TileImage" content="https://wpc.stu.edu.tw/wp-content/uploads/sites/47/2021/06/cropped-c4f4bea6a62f4297b9334e97a05f7e03-1-270x270.png">
+<style></style><link href="/school-assets/2e8a32585965e6a03dbb.css" rel="stylesheet" id="czr-gfonts-css-preloaded" as="style"><style>.head_inner{box-sizing:border-box;max-width:100%}@media(max-width:980px){body.wp-theme-noob *{box-sizing:border-box}body.wp-theme-noob #branding #title{width:calc(100% - 24px);max-width:100%;left:12px;right:12px;background-size:contain;background-repeat:no-repeat;background-position:center}body.wp-theme-noob #branding img{width:100%!important;max-width:100%!important;height:auto!important}body.wp-theme-noob #branding h1{margin:0;padding:12px 8px}body.wp-theme-noob #site-title span{display:block;font-size:clamp(20px,6vw,30px);white-space:normal}body.wp-theme-noob .site-info{width:100%;max-width:100%}body.wp-theme-noob #access .menu-header,body.wp-theme-noob #access ul{margin:0;padding-left:0}body.wp-theme-noob #wrapper,body.wp-theme-noob #header,body.wp-theme-noob #masthead,body.wp-theme-noob #main,body.wp-theme-noob #access,body.wp-theme-noob #branding,body.wp-theme-noob #footer,body.wp-theme-noob #colophon{box-sizing:border-box;width:100%;max-width:100%}body.wp-theme-noob #site-title{width:100%;float:none;margin-left:0;margin-right:0}body.wp-theme-noob #site-description{width:auto;float:none;margin:0 12px}body.wp-theme-noob #access .menu-header{width:100%}body.wp-theme-noob #access ul{display:flex;flex-wrap:wrap}body.wp-theme-noob #access .sub-menu{display:none}body.wp-theme-noob #access li:hover>.sub-menu{display:block}}@media(max-width:767px){body{overflow-wrap:anywhere}.head_inner{box-sizing:border-box;max-width:100%}.elementor-button{max-width:100%;white-space:normal}.elementor-button-content-wrapper,.elementor-button-text{min-width:0;white-space:normal;overflow-wrap:anywhere}.wp-theme-noob #branding h1,.wp-theme-noob #branding span{max-width:100%}}.site-header[style]{width:100%!important}.elementor-section-stretched{width:100%!important;left:0!important}.mirror-form-note{font:12px/1.5 system-ui,sans-serif;padding:8px;border:1px solid #a9c8c1;background:#f5faf8;color:#244d43}.mirror-embedded-service{display:grid;place-items:center;min-height:180px;max-width:100%;background:#17211f;color:white;font:14px/1.5 system-ui;padding:20px}.menu-item-has-children:hover>.sub-menu,.menu-item-has-children:focus-within>.sub-menu{display:block!important}.mirror-selected-slide{display:block!important}.mirror-hidden-slide{display:none!important}</style></head><body class="wp-singular page-template-default page page-id-4435 wp-custom-logo wp-embed-responsive wp-theme-customizr-pro czr-link-hover-underline header-skin-dark footer-skin-dark czr-no-sidebar tc-center-images czr-full-layout customizr-pro-2-4-16 czr-sticky-footer elementor-default elementor-kit-1 elementor-page elementor-page-4435 chrome e--ua-blink e--ua-chrome e--ua-mac e--ua-webkit" style="">
+          <a class="screen-reader-text skip-link" href="#content">Skip to content</a>
+    
+    
+    <div id="tc-page-wrap" class="">
+
+      <header class="tpnav-header__header tc-header sl-logo_left sticky-brand-shrink-on sticky-transparent czr-submenu-fade czr-submenu-move" style="height: 75.75px;">
+        <div class="primary-navbar__wrapper d-none d-lg-block has-branding-aside desktop-sticky">
+  <div class="container-fluid">
+    <div class="row align-items-center flex-row primary-navbar__row">
+      <div class="branding__container col col-auto">
+  <div class="branding align-items-center flex-column ">
+    <div class="branding-row d-flex flex-row align-items-center align-self-start">
+      <div class="navbar-brand col-auto ">
+  <a class="navbar-brand-sitelogo" href="/school-sites/help.ecc.stu.edu.tw/" aria-label="Shu-Te 教學文件網站 | " data-school-local="true">
+    <img src="/school-assets/c80b34c6eaa561553156.png" alt="Back Home" class="" width="200" height="43" style="max-width:250px;max-height:100px" data-no-retina="">  </a>
+</div>
+          <div class="branding-aside col-auto flex-column d-flex">
+          <span class="navbar-brand col-auto ">
+    <a class="navbar-brand-sitename  czr-underline" href="/school-sites/help.ecc.stu.edu.tw/" data-school-local="true">
+    <span>Shu-Te 教學文件網站</span>
+  </a>
+</span>
+          </div>
+                </div>
+      </div>
+</div>
+      <div class="primary-nav__container justify-content-lg-around col col-lg-auto flex-lg-column">
+  <div class="primary-nav__wrapper flex-lg-row align-items-center justify-content-end">
+     <div class="primary-nav__utils nav__utils col-auto">
+    <ul class="nav utils flex-row flex-nowrap regular-nav">
+      <li class="nav__search ">
+  <a href="#" class="search-toggle_btn icn-search czr-overlay-toggle_btn" aria-expanded="false"><span class="sr-only">Search</span></a>
+        <div class="czr-search-expand">
+      <div class="czr-search-expand-inner"><div class="search-form__container ">
+  <form class="czr-form search-form" data-mirror-form="search">
+    <div class="form-group czr-focus">
+            <label for="s-6ae8e321f3ecc" id="lsearch-6ae8e321f3ecc">
+        <span class="screen-reader-text">Search</span>
+        <input id="s-6ae8e321f3ecc" class="form-control czr-search-field" name="s" type="search" aria-describedby="lsearch-6ae8e321f3ecc" placeholder="Search …">
+      </label>
+      <button type="submit" class="button"><i class="icn-search"></i><span class="screen-reader-text">Search …</span></button>
+    </div>
+  </form>
+</div></div>
+    </div>
+    </li>
+    </ul>
+</div>  </div>
+</div>
+    </div>
+  </div>
+</div>    <div class="mobile-navbar__wrapper d-lg-none mobile-sticky">
+    <div class="branding__container justify-content-between align-items-center container-fluid">
+  <div class="branding flex-column">
+    <div class="branding-row d-flex align-self-start flex-row align-items-center">
+      <div class="navbar-brand col-auto ">
+  <a class="navbar-brand-sitelogo" href="/school-sites/help.ecc.stu.edu.tw/" aria-label="Shu-Te 教學文件網站 | " data-school-local="true">
+    <img src="/school-assets/c80b34c6eaa561553156.png" alt="Back Home" class="" width="200" height="43" style="max-width:250px;max-height:100px" data-no-retina="">  </a>
+</div>
+            <div class="branding-aside col-auto">
+              <span class="navbar-brand col-auto ">
+    <a class="navbar-brand-sitename  czr-underline" href="/school-sites/help.ecc.stu.edu.tw/" data-school-local="true">
+    <span>Shu-Te 教學文件網站</span>
+  </a>
+</span>
+            </div>
+            </div>
+      </div>
+  <div class="mobile-utils__wrapper nav__utils regular-nav">
+    <ul class="nav utils row flex-row flex-nowrap">
+      <li class="nav__search ">
+  <a href="#" class="search-toggle_btn icn-search czr-dropdown" data-aria-haspopup="true" aria-expanded="false"><span class="sr-only">Search</span></a>
+        <div class="czr-search-expand">
+      <div class="czr-search-expand-inner"><div class="search-form__container ">
+  <form class="czr-form search-form" data-mirror-form="search">
+    <div class="form-group czr-focus">
+            <label for="s-6ae8e321f40e2" id="lsearch-6ae8e321f40e2">
+        <span class="screen-reader-text">Search</span>
+        <input id="s-6ae8e321f40e2" class="form-control czr-search-field" name="s" type="search" aria-describedby="lsearch-6ae8e321f40e2" placeholder="Search …">
+      </label>
+      <button type="submit" class="button"><i class="icn-search"></i><span class="screen-reader-text">Search …</span></button>
+    </div>
+  </form>
+</div></div>
+    </div>
+        <ul class="dropdown-menu czr-dropdown-menu">
+      <li class="header-search__container container-fluid">
+  <div class="search-form__container ">
+  <form class="czr-form search-form" data-mirror-form="search">
+    <div class="form-group czr-focus">
+            <label for="s-6ae8e321f419c" id="lsearch-6ae8e321f419c">
+        <span class="screen-reader-text">Search</span>
+        <input id="s-6ae8e321f419c" class="form-control czr-search-field" name="s" type="search" aria-describedby="lsearch-6ae8e321f419c" placeholder="Search …">
+      </label>
+      <button type="submit" class="button"><i class="icn-search"></i><span class="screen-reader-text">Search …</span></button>
+    </div>
+  </form>
+</div></li>    </ul>
+  </li>
+<li class="hamburger-toggler__container ">
+  <button class="ham-toggler-menu czr-collapsed" data-toggle="czr-collapse" data-target="#mobile-nav"><span class="ham__toggler-span-wrapper"><span class="line line-1"></span><span class="line line-2"></span><span class="line line-3"></span></span><span class="screen-reader-text">Menu</span></button>
+</li>
+    </ul>
+  </div>
+</div>
+<div class="mobile-nav__container ">
+   <nav class="mobile-nav__nav flex-column czr-collapse" id="mobile-nav">
+      <div class="mobile-nav__inner container-fluid">
+      <div class="nav__menu-wrapper mobile-nav__menu-wrapper czr-open-on-click">
+</div>      </div>
+  </nav>
+</div></div></header>
+
+
+  
+    <div id="main-wrapper" class="section">
+
+                      
+
+          <div class="czr-hot-crumble container page-breadcrumbs" role="navigation">
+  <div class="row">
+        <nav class="breadcrumbs col-12"><span class="trail-begin"><a href="/school-sites/help.ecc.stu.edu.tw/" title="Shu-Te 教學文件網站" rel="home" class="trail-begin" data-school-local="true">首頁</a></span> <span class="sep">»</span> <span class="trail-end">無線網路設定教學</span></nav>  </div>
+</div>
+          <div class="container" role="main">
+
+            
+            <div class="flex-row row column-content-wrapper">
+
+                
+                <div id="content" class="col-12 article-container">
+
+                  <article id="page-4435" class="post-4435 page type-page status-publish has-post-thumbnail czr-hentry">
+    <header class="entry-header ">
+  <div class="entry-header-inner">
+        <h1 class="entry-title">無線網路設定教學</h1>
+      </div>
+</header>  <div class="post-entry tc-content-inner">
+    <section class="post-content entry-content ">
+      <div class="czr-wp-the-content">
+        		<div data-elementor-type="wp-page" data-elementor-id="4435" class="elementor elementor-4435" data-elementor-post-type="page">
+						<section class="elementor-section elementor-top-section elementor-element elementor-element-0582c9e elementor-section-boxed elementor-section-height-default elementor-section-height-default" data-id="0582c9e" data-element_type="section" data-e-type="section">
+						<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-c0b2fd4" data-id="c0b2fd4" data-element_type="column" data-e-type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-ea8e50f elementor-widget elementor-widget-menu-anchor" data-id="ea8e50f" data-element_type="widget" data-e-type="widget" data-widget_type="menu-anchor.default">
+				<div class="elementor-widget-container">
+							<div class="elementor-menu-anchor" id="device"></div>
+						</div>
+				</div>
+				<div class="elementor-element elementor-element-b77556e elementor-widget elementor-widget-elementskit-heading" data-id="b77556e" data-element_type="widget" data-e-type="widget" data-widget_type="elementskit-heading.default">
+				<div class="elementor-widget-container">
+					<div class="ekit-wid-con"><div class="ekit-heading elementskit-section-title-wraper text_center   ekit_heading_tablet-   ekit_heading_mobile-">				<span class="ekit-heading__shadow-text">
+					Device				</span>
+			<h2 class="ekit-heading--title elementskit-section-title ">請選擇裝置</h2><div class="ekit_heading_separetor_wraper ekit_heading_elementskit-border-divider ekit-dotted"><div class="elementskit-border-divider ekit-dotted"></div></div></div></div>				</div>
+				</div>
+					</div>
+		</div>
+					</div>
+		</section>
+				<section class="elementor-section elementor-top-section elementor-element elementor-element-a3cedb9 elementor-section-boxed elementor-section-height-default elementor-section-height-default" data-id="a3cedb9" data-element_type="section" data-e-type="section">
+						<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-ae74071" data-id="ae74071" data-element_type="column" data-e-type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-bbc1994 ekit-image-accordion-hover ekit-image-accordion-horizontal elementor-widget elementor-widget-elementskit-image-accordion" data-id="bbc1994" data-element_type="widget" data-e-type="widget" data-widget_type="elementskit-image-accordion.default">
+				<div class="elementor-widget-container">
+					<div class="ekit-wid-con">		<div class="ekit-image-accordion elementskit-image-accordion-wraper" role="radiogroup" aria-label="Image accordion">
+			                <input type="radio" name="ekit_ia_bbc1994" id="ekit_ia_bbc1994_0" class="elementskit-single-image-accordion--input" aria-label="電腦">
+                <label for="ekit_ia_bbc1994_0" class="elementskit-single-image-accordion ekit-image-accordion-item" style="background-image: url(&quot;/school-assets/4bb78dec3edc33b2ce5c.jpg&quot;)">
+                    <span class="elementskit-accordion-content">
+													<span class="elementskit-accordion-title-wraper">
+								<span class="elementskit-accordion-title icon-title">
+																											<!-- same-1 -->
+										<i aria-hidden="true" class="icon icon-Computer"></i>																	
+								電腦
+																																	</span>
+							</span>
+														<span class="elementskit-btn-wraper">
+								<a class="ekit-image-accordion--btn elementskit-btn whitespace--normal" href="#computeros">
+									Click Here								</a>
+							</span>
+						                    </span>
+                </label>
+                            <input type="radio" name="ekit_ia_bbc1994" id="ekit_ia_bbc1994_1" class="elementskit-single-image-accordion--input" aria-label="手機">
+                <label for="ekit_ia_bbc1994_1" class="elementskit-single-image-accordion ekit-image-accordion-item" style="background-image: url(&quot;/school-assets/ad9433a7de5d4ca717e7.jpg&quot;)">
+                    <span class="elementskit-accordion-content">
+													<span class="elementskit-accordion-title-wraper">
+								<span class="elementskit-accordion-title icon-title">
+																											<!-- same-1 -->
+										<i aria-hidden="true" class="fas fa-mobile-alt"></i>																	
+								手機
+																																	</span>
+							</span>
+														<span class="elementskit-btn-wraper">
+								<a class="ekit-image-accordion--btn elementskit-btn whitespace--normal" href="#mobileos">
+									Click Here								</a>
+							</span>
+						                    </span>
+                </label>
+                    </div>
+    </div>				</div>
+				</div>
+					</div>
+		</div>
+					</div>
+		</section>
+				<section class="elementor-section elementor-top-section elementor-element elementor-element-ea9c9a2 elementor-section-boxed elementor-section-height-default elementor-section-height-default" data-id="ea9c9a2" data-element_type="section" data-e-type="section">
+						<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-ee53f16" data-id="ee53f16" data-element_type="column" data-e-type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-ab26bf9 elementor-widget elementor-widget-menu-anchor" data-id="ab26bf9" data-element_type="widget" data-e-type="widget" data-widget_type="menu-anchor.default">
+				<div class="elementor-widget-container">
+							<div class="elementor-menu-anchor" id="computeros"></div>
+						</div>
+				</div>
+				<div class="elementor-element elementor-element-f31981e elementor-widget elementor-widget-elementskit-heading" data-id="f31981e" data-element_type="widget" data-e-type="widget" data-widget_type="elementskit-heading.default">
+				<div class="elementor-widget-container">
+					<div class="ekit-wid-con"><div class="ekit-heading elementskit-section-title-wraper text_center   ekit_heading_tablet-   ekit_heading_mobile-">				<span class="ekit-heading__shadow-text">
+					OS				</span>
+			<h2 class="ekit-heading--title elementskit-section-title ">電腦-請選擇作業系統</h2><div class="ekit_heading_separetor_wraper ekit_heading_elementskit-border-divider ekit-dotted"><div class="elementskit-border-divider ekit-dotted"></div></div></div></div>				</div>
+				</div>
+					</div>
+		</div>
+					</div>
+		</section>
+				<section class="elementor-section elementor-top-section elementor-element elementor-element-0707cad elementor-section-boxed elementor-section-height-default elementor-section-height-default" data-id="0707cad" data-element_type="section" data-e-type="section">
+						<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-ed8feda" data-id="ed8feda" data-element_type="column" data-e-type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<section class="elementor-section elementor-inner-section elementor-element elementor-element-fa910da elementor-section-boxed elementor-section-height-default elementor-section-height-default" data-id="fa910da" data-element_type="section" data-e-type="section">
+						<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-100 elementor-inner-column elementor-element elementor-element-92ed3d5" data-id="92ed3d5" data-element_type="column" data-e-type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-a9e5ebc ekit-image-accordion-hover ekit-image-accordion-horizontal elementor-widget elementor-widget-elementskit-image-accordion" data-id="a9e5ebc" data-element_type="widget" data-e-type="widget" data-widget_type="elementskit-image-accordion.default" data-mirror-settings="{}">
+				<div class="elementor-widget-container">
+					<div class="ekit-wid-con">		<div class="ekit-image-accordion elementskit-image-accordion-wraper" role="radiogroup" aria-label="Image accordion">
+			                <input type="radio" name="ekit_ia_a9e5ebc" id="ekit_ia_a9e5ebc_0" class="elementskit-single-image-accordion--input" aria-label="Windows作業系統">
+                <label for="ekit_ia_a9e5ebc_0" class="elementskit-single-image-accordion ekit-image-accordion-item" style="background-image: url(&quot;/school-assets/a6f46c831227254fa910.jpg&quot;)">
+                    <span class="elementskit-accordion-content">
+													<span class="elementskit-accordion-title-wraper">
+								<span class="elementskit-accordion-title icon-title">
+																											<!-- same-1 -->
+										<i aria-hidden="true" class="fab fa-microsoft"></i>																	
+								Windows作業系統
+																																	</span>
+							</span>
+														<span class="elementskit-btn-wraper">
+								<a class="ekit-image-accordion--btn elementskit-btn whitespace--normal" href="#computer_net_windows">
+									Click Here								</a>
+							</span>
+						                    </span>
+                </label>
+                            <input type="radio" name="ekit_ia_a9e5ebc" id="ekit_ia_a9e5ebc_1" class="elementskit-single-image-accordion--input" aria-label="MacOS作業系統">
+                <label for="ekit_ia_a9e5ebc_1" class="elementskit-single-image-accordion ekit-image-accordion-item" style="background-image: url(&quot;/school-assets/0579a57521c78256b82c.jpg&quot;)">
+                    <span class="elementskit-accordion-content">
+													<span class="elementskit-accordion-title-wraper">
+								<span class="elementskit-accordion-title icon-title">
+																											<!-- same-1 -->
+										<i aria-hidden="true" class="fab fa-apple"></i>																	
+								MacOS作業系統
+																																	</span>
+							</span>
+														<span class="elementskit-btn-wraper">
+								<a class="ekit-image-accordion--btn elementskit-btn whitespace--normal" href="#computer_net_macos">
+									Click Here								</a>
+							</span>
+						                    </span>
+                </label>
+                    </div>
+    </div>				</div>
+				</div>
+				<div class="elementor-element elementor-element-9ce7902 elementor-align-center elementor-widget elementor-widget-button" data-id="9ce7902" data-element_type="widget" data-e-type="widget" data-widget_type="button.default">
+				<div class="elementor-widget-container">
+									<div class="elementor-button-wrapper">
+					<a class="elementor-button elementor-button-link elementor-size-sm" href="#device">
+						<span class="elementor-button-content-wrapper">
+									<span class="elementor-button-text">回上一層</span>
+					</span>
+					</a>
+				</div>
+								</div>
+				</div>
+					</div>
+		</div>
+					</div>
+		</section>
+					</div>
+		</div>
+					</div>
+		</section>
+				<section class="elementor-section elementor-top-section elementor-element elementor-element-a0772e4 elementor-section-boxed elementor-section-height-default elementor-section-height-default" data-id="a0772e4" data-element_type="section" data-e-type="section">
+						<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-d153d19" data-id="d153d19" data-element_type="column" data-e-type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-b966059 elementor-widget elementor-widget-menu-anchor" data-id="b966059" data-element_type="widget" data-e-type="widget" data-widget_type="menu-anchor.default">
+				<div class="elementor-widget-container">
+							<div class="elementor-menu-anchor" id="computer_net_windows"></div>
+						</div>
+				</div>
+				<div class="elementor-element elementor-element-173130f elementor-widget elementor-widget-elementskit-heading" data-id="173130f" data-element_type="widget" data-e-type="widget" data-widget_type="elementskit-heading.default">
+				<div class="elementor-widget-container">
+					<div class="ekit-wid-con"><div class="ekit-heading elementskit-section-title-wraper text_center   ekit_heading_tablet-   ekit_heading_mobile-">				<span class="ekit-heading__shadow-text">
+					Where				</span>
+			<h2 class="ekit-heading--title elementskit-section-title ">電腦-你想在哪裡上網(Windows使用者)</h2><div class="ekit_heading_separetor_wraper ekit_heading_elementskit-border-divider ekit-dotted"><div class="elementskit-border-divider ekit-dotted"></div></div></div></div>				</div>
+				</div>
+					</div>
+		</div>
+					</div>
+		</section>
+				<section class="elementor-section elementor-top-section elementor-element elementor-element-95d66ac elementor-section-boxed elementor-section-height-default elementor-section-height-default" data-id="95d66ac" data-element_type="section" data-e-type="section">
+						<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-db395bd" data-id="db395bd" data-element_type="column" data-e-type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<section class="elementor-section elementor-inner-section elementor-element elementor-element-5bbcbe2 elementor-section-boxed elementor-section-height-default elementor-section-height-default" data-id="5bbcbe2" data-element_type="section" data-e-type="section">
+						<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-100 elementor-inner-column elementor-element elementor-element-6a240bd" data-id="6a240bd" data-element_type="column" data-e-type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-3a12a01 ekit-image-accordion-hover ekit-image-accordion-horizontal elementor-widget elementor-widget-elementskit-image-accordion" data-id="3a12a01" data-element_type="widget" data-e-type="widget" data-widget_type="elementskit-image-accordion.default" data-mirror-settings="{}">
+				<div class="elementor-widget-container">
+					<div class="ekit-wid-con">		<div class="ekit-image-accordion elementskit-image-accordion-wraper" role="radiogroup" aria-label="Image accordion">
+			                <input type="radio" name="ekit_ia_3a12a01" id="ekit_ia_3a12a01_0" class="elementskit-single-image-accordion--input" aria-label="校園">
+                <label for="ekit_ia_3a12a01_0" class="elementskit-single-image-accordion ekit-image-accordion-item" style="background-image: url(&quot;data:,&quot;)">
+                    <span class="elementskit-accordion-content">
+													<span class="elementskit-accordion-title-wraper">
+								<span class="elementskit-accordion-title icon-title">
+																											<!-- same-1 -->
+										<i aria-hidden="true" class="fas fa-school"></i>																	
+								校園
+																																	</span>
+							</span>
+														<span class="elementskit-btn-wraper">
+								<a class="ekit-image-accordion--btn elementskit-btn whitespace--normal" href="/school-sites/help.ecc.stu.edu.tw/computer-net-windows/" data-school-local="true">
+									Click Here								</a>
+							</span>
+						                    </span>
+                </label>
+                            <input type="radio" name="ekit_ia_3a12a01" id="ekit_ia_3a12a01_1" class="elementskit-single-image-accordion--input" aria-label="宿舍">
+                <label for="ekit_ia_3a12a01_1" class="elementskit-single-image-accordion ekit-image-accordion-item" style="background-image: url(&quot;data:,&quot;)">
+                    <span class="elementskit-accordion-content">
+													<span class="elementskit-accordion-title-wraper">
+								<span class="elementskit-accordion-title icon-title">
+																											<!-- same-1 -->
+										<i aria-hidden="true" class="fas fa-house-user"></i>																	
+								宿舍
+																																	</span>
+							</span>
+														<span class="elementskit-btn-wraper">
+								<a class="ekit-image-accordion--btn elementskit-btn whitespace--normal" href="#cellphoneos">
+									Click Here								</a>
+							</span>
+						                    </span>
+                </label>
+                    </div>
+    </div>				</div>
+				</div>
+				<div class="elementor-element elementor-element-e9b7c17 elementor-align-center elementor-widget elementor-widget-button" data-id="e9b7c17" data-element_type="widget" data-e-type="widget" data-widget_type="button.default">
+				<div class="elementor-widget-container">
+									<div class="elementor-button-wrapper">
+					<a class="elementor-button elementor-button-link elementor-size-sm" href="#computeros">
+						<span class="elementor-button-content-wrapper">
+									<span class="elementor-button-text">回上一層</span>
+					</span>
+					</a>
+				</div>
+								</div>
+				</div>
+					</div>
+		</div>
+					</div>
+		</section>
+					</div>
+		</div>
+					</div>
+		</section>
+				<section class="elementor-section elementor-top-section elementor-element elementor-element-99df68f elementor-section-boxed elementor-section-height-default elementor-section-height-default" data-id="99df68f" data-element_type="section" data-e-type="section">
+						<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-3bc096c" data-id="3bc096c" data-element_type="column" data-e-type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-4219c5c elementor-widget elementor-widget-menu-anchor" data-id="4219c5c" data-element_type="widget" data-e-type="widget" data-widget_type="menu-anchor.default">
+				<div class="elementor-widget-container">
+							<div class="elementor-menu-anchor" id="computer_net_macos"></div>
+						</div>
+				</div>
+				<div class="elementor-element elementor-element-e7b0713 elementor-widget elementor-widget-elementskit-heading" data-id="e7b0713" data-element_type="widget" data-e-type="widget" data-widget_type="elementskit-heading.default">
+				<div class="elementor-widget-container">
+					<div class="ekit-wid-con"><div class="ekit-heading elementskit-section-title-wraper text_center   ekit_heading_tablet-   ekit_heading_mobile-">				<span class="ekit-heading__shadow-text">
+					Where				</span>
+			<h2 class="ekit-heading--title elementskit-section-title ">電腦-你想在哪裡上網(MacOS使用者)</h2><div class="ekit_heading_separetor_wraper ekit_heading_elementskit-border-divider ekit-dotted"><div class="elementskit-border-divider ekit-dotted"></div></div></div></div>				</div>
+				</div>
+					</div>
+		</div>
+					</div>
+		</section>
+				<section class="elementor-section elementor-top-section elementor-element elementor-element-b7803ca elementor-section-boxed elementor-section-height-default elementor-section-height-default" data-id="b7803ca" data-element_type="section" data-e-type="section">
+						<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-e3c9825" data-id="e3c9825" data-element_type="column" data-e-type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<section class="elementor-section elementor-inner-section elementor-element elementor-element-9b84d39 elementor-section-boxed elementor-section-height-default elementor-section-height-default" data-id="9b84d39" data-element_type="section" data-e-type="section">
+						<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-100 elementor-inner-column elementor-element elementor-element-784a0a0" data-id="784a0a0" data-element_type="column" data-e-type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-f0ae502 ekit-image-accordion-hover ekit-image-accordion-horizontal elementor-widget elementor-widget-elementskit-image-accordion" data-id="f0ae502" data-element_type="widget" data-e-type="widget" data-widget_type="elementskit-image-accordion.default" data-mirror-settings="{}">
+				<div class="elementor-widget-container">
+					<div class="ekit-wid-con">		<div class="ekit-image-accordion elementskit-image-accordion-wraper" role="radiogroup" aria-label="Image accordion">
+			                <input type="radio" name="ekit_ia_f0ae502" id="ekit_ia_f0ae502_0" class="elementskit-single-image-accordion--input" aria-label="校園">
+                <label for="ekit_ia_f0ae502_0" class="elementskit-single-image-accordion ekit-image-accordion-item" style="background-image: url(&quot;/school-assets/35daef3dd7e33e71b0c4.jpg&quot;)">
+                    <span class="elementskit-accordion-content">
+													<span class="elementskit-accordion-title-wraper">
+								<span class="elementskit-accordion-title icon-title">
+																											<!-- same-1 -->
+										<i aria-hidden="true" class="fas fa-school"></i>																	
+								校園
+																																	</span>
+							</span>
+														<span class="elementskit-btn-wraper">
+								<a class="ekit-image-accordion--btn elementskit-btn whitespace--normal">
+									Click Here								</a>
+							</span>
+						                    </span>
+                </label>
+                            <input type="radio" name="ekit_ia_f0ae502" id="ekit_ia_f0ae502_1" class="elementskit-single-image-accordion--input" aria-label="宿舍">
+                <label for="ekit_ia_f0ae502_1" class="elementskit-single-image-accordion ekit-image-accordion-item" style="background-image: url(&quot;data:,&quot;)">
+                    <span class="elementskit-accordion-content">
+													<span class="elementskit-accordion-title-wraper">
+								<span class="elementskit-accordion-title icon-title">
+																											<!-- same-1 -->
+										<i aria-hidden="true" class="fas fa-house-user"></i>																	
+								宿舍
+																																	</span>
+							</span>
+														<span class="elementskit-btn-wraper">
+								<a class="ekit-image-accordion--btn elementskit-btn whitespace--normal" href="#cellphoneos">
+									Click Here								</a>
+							</span>
+						                    </span>
+                </label>
+                    </div>
+    </div>				</div>
+				</div>
+				<div class="elementor-element elementor-element-62c351d elementor-align-center elementor-widget elementor-widget-button" data-id="62c351d" data-element_type="widget" data-e-type="widget" data-widget_type="button.default">
+				<div class="elementor-widget-container">
+									<div class="elementor-button-wrapper">
+					<a class="elementor-button elementor-button-link elementor-size-sm" href="#computeros">
+						<span class="elementor-button-content-wrapper">
+									<span class="elementor-button-text">回上一層</span>
+					</span>
+					</a>
+				</div>
+								</div>
+				</div>
+					</div>
+		</div>
+					</div>
+		</section>
+					</div>
+		</div>
+					</div>
+		</section>
+				<section class="elementor-section elementor-top-section elementor-element elementor-element-12261ef elementor-section-boxed elementor-section-height-default elementor-section-height-default" data-id="12261ef" data-element_type="section" data-e-type="section">
+						<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-ab0ab23" data-id="ab0ab23" data-element_type="column" data-e-type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-14f776a elementor-widget elementor-widget-menu-anchor" data-id="14f776a" data-element_type="widget" data-e-type="widget" data-widget_type="menu-anchor.default">
+				<div class="elementor-widget-container">
+							<div class="elementor-menu-anchor" id="mobileos"></div>
+						</div>
+				</div>
+				<div class="elementor-element elementor-element-ea026ea elementor-widget elementor-widget-elementskit-heading" data-id="ea026ea" data-element_type="widget" data-e-type="widget" data-widget_type="elementskit-heading.default">
+				<div class="elementor-widget-container">
+					<div class="ekit-wid-con"><div class="ekit-heading elementskit-section-title-wraper text_center   ekit_heading_tablet-   ekit_heading_mobile-">				<span class="ekit-heading__shadow-text">
+					OS				</span>
+			<h2 class="ekit-heading--title elementskit-section-title ">手機-請選擇作業系統</h2><div class="ekit_heading_separetor_wraper ekit_heading_elementskit-border-divider ekit-dotted"><div class="elementskit-border-divider ekit-dotted"></div></div></div></div>				</div>
+				</div>
+					</div>
+		</div>
+					</div>
+		</section>
+				<section class="elementor-section elementor-top-section elementor-element elementor-element-534458e elementor-section-boxed elementor-section-height-default elementor-section-height-default" data-id="534458e" data-element_type="section" data-e-type="section">
+						<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-824ea8e" data-id="824ea8e" data-element_type="column" data-e-type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<section class="elementor-section elementor-inner-section elementor-element elementor-element-7626654 elementor-section-boxed elementor-section-height-default elementor-section-height-default" data-id="7626654" data-element_type="section" data-e-type="section">
+						<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-100 elementor-inner-column elementor-element elementor-element-5289474" data-id="5289474" data-element_type="column" data-e-type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-f49d85a ekit-image-accordion-hover ekit-image-accordion-horizontal elementor-widget elementor-widget-elementskit-image-accordion" data-id="f49d85a" data-element_type="widget" data-e-type="widget" data-widget_type="elementskit-image-accordion.default" data-mirror-settings="{}">
+				<div class="elementor-widget-container">
+					<div class="ekit-wid-con">		<div class="ekit-image-accordion elementskit-image-accordion-wraper" role="radiogroup" aria-label="Image accordion">
+			                <input type="radio" name="ekit_ia_f49d85a" id="ekit_ia_f49d85a_0" class="elementskit-single-image-accordion--input" aria-label="Android">
+                <label for="ekit_ia_f49d85a_0" class="elementskit-single-image-accordion ekit-image-accordion-item" style="background-image: url(&quot;data:,&quot;)">
+                    <span class="elementskit-accordion-content">
+													<span class="elementskit-accordion-title-wraper">
+								<span class="elementskit-accordion-title icon-title">
+																											<!-- same-1 -->
+										<i aria-hidden="true" class="fab fa-android"></i>																	
+								Android
+																																	</span>
+							</span>
+														<span class="elementskit-btn-wraper">
+								<a class="ekit-image-accordion--btn elementskit-btn whitespace--normal" href="/school-sites/help.ecc.stu.edu.tw/%E5%9C%A8%E6%A8%B9%E5%BE%B7%E6%A0%A1%E5%9C%92%E4%BD%BF%E7%94%A8android%E6%89%8B%E6%A9%9F%E9%80%A3%E6%8E%A5%E7%84%A1%E7%B7%9A%E7%B6%B2%E8%B7%AF%E6%95%99%E5%AD%B8/" data-school-local="true">
+									Click Here								</a>
+							</span>
+						                    </span>
+                </label>
+                            <input type="radio" name="ekit_ia_f49d85a" id="ekit_ia_f49d85a_1" class="elementskit-single-image-accordion--input" aria-label="Apple iOS">
+                <label for="ekit_ia_f49d85a_1" class="elementskit-single-image-accordion ekit-image-accordion-item" style="background-image: url(&quot;data:,&quot;)">
+                    <span class="elementskit-accordion-content">
+													<span class="elementskit-accordion-title-wraper">
+								<span class="elementskit-accordion-title icon-title">
+																											<!-- same-1 -->
+										<i aria-hidden="true" class="fab fa-apple"></i>																	
+								Apple iOS
+																																	</span>
+							</span>
+														<span class="elementskit-btn-wraper">
+								<a class="ekit-image-accordion--btn elementskit-btn whitespace--normal" href="/school-sites/help.ecc.stu.edu.tw/%E5%9C%A8%E6%A8%B9%E5%BE%B7%E6%A0%A1%E5%9C%92%E4%BD%BF%E7%94%A8%E6%89%8B%E6%A9%9F%E9%80%A3%E6%8E%A5%E7%84%A1%E7%B7%9A%E7%B6%B2%E8%B7%AF%E6%95%99%E5%AD%B8-apple-ios/" data-school-local="true">
+									Click Here								</a>
+							</span>
+						                    </span>
+                </label>
+                    </div>
+    </div>				</div>
+				</div>
+				<div class="elementor-element elementor-element-dd1312f elementor-align-center elementor-widget elementor-widget-button" data-id="dd1312f" data-element_type="widget" data-e-type="widget" data-widget_type="button.default">
+				<div class="elementor-widget-container">
+									<div class="elementor-button-wrapper">
+					<a class="elementor-button elementor-button-link elementor-size-sm" href="#device">
+						<span class="elementor-button-content-wrapper">
+									<span class="elementor-button-text">回上一層</span>
+					</span>
+					</a>
+				</div>
+								</div>
+				</div>
+					</div>
+		</div>
+					</div>
+		</section>
+					</div>
+		</div>
+					</div>
+		</section>
+				<section class="elementor-section elementor-top-section elementor-element elementor-element-36e41c2 elementor-section-boxed elementor-section-height-default elementor-section-height-default" data-id="36e41c2" data-element_type="section" data-e-type="section">
+						<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-4d57435" data-id="4d57435" data-element_type="column" data-e-type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-3d4f96a elementor-widget elementor-widget-menu-anchor" data-id="3d4f96a" data-element_type="widget" data-e-type="widget" data-widget_type="menu-anchor.default">
+				<div class="elementor-widget-container">
+							<div class="elementor-menu-anchor" id="computer_net"></div>
+						</div>
+				</div>
+				<div class="elementor-element elementor-element-29b1beb elementor-widget elementor-widget-elementskit-heading" data-id="29b1beb" data-element_type="widget" data-e-type="widget" data-widget_type="elementskit-heading.default">
+				<div class="elementor-widget-container">
+					<div class="ekit-wid-con"><div class="ekit-heading elementskit-section-title-wraper text_center   ekit_heading_tablet-   ekit_heading_mobile-">				<span class="ekit-heading__shadow-text">
+					Where				</span>
+			<h2 class="ekit-heading--title elementskit-section-title ">手機-你想在哪裡上網</h2><div class="ekit_heading_separetor_wraper ekit_heading_elementskit-border-divider ekit-dotted"><div class="elementskit-border-divider ekit-dotted"></div></div></div></div>				</div>
+				</div>
+					</div>
+		</div>
+					</div>
+		</section>
+				<section class="elementor-section elementor-top-section elementor-element elementor-element-ecbedf0 elementor-section-boxed elementor-section-height-default elementor-section-height-default" data-id="ecbedf0" data-element_type="section" data-e-type="section">
+						<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-51e3a3c" data-id="51e3a3c" data-element_type="column" data-e-type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<section class="elementor-section elementor-inner-section elementor-element elementor-element-63ed3db elementor-section-boxed elementor-section-height-default elementor-section-height-default" data-id="63ed3db" data-element_type="section" data-e-type="section">
+						<div class="elementor-container elementor-column-gap-default">
+					<div class="elementor-column elementor-col-100 elementor-inner-column elementor-element elementor-element-5894b0d" data-id="5894b0d" data-element_type="column" data-e-type="column">
+			<div class="elementor-widget-wrap elementor-element-populated">
+						<div class="elementor-element elementor-element-39cc5e0 ekit-image-accordion-hover ekit-image-accordion-horizontal elementor-widget elementor-widget-elementskit-image-accordion" data-id="39cc5e0" data-element_type="widget" data-e-type="widget" data-widget_type="elementskit-image-accordion.default" data-mirror-settings="{}">
+				<div class="elementor-widget-container">
+					<div class="ekit-wid-con">		<div class="ekit-image-accordion elementskit-image-accordion-wraper" role="radiogroup" aria-label="Image accordion">
+			                <input type="radio" name="ekit_ia_39cc5e0" id="ekit_ia_39cc5e0_0" class="elementskit-single-image-accordion--input" aria-label="校園">
+                <label for="ekit_ia_39cc5e0_0" class="elementskit-single-image-accordion ekit-image-accordion-item" style="background-image: url(&quot;data:,&quot;)">
+                    <span class="elementskit-accordion-content">
+													<span class="elementskit-accordion-title-wraper">
+								<span class="elementskit-accordion-title icon-title">
+																											<!-- same-1 -->
+										<i aria-hidden="true" class="fab fa-android"></i>																	
+								校園
+																																	</span>
+							</span>
+														<span class="elementskit-btn-wraper">
+								<a class="ekit-image-accordion--btn elementskit-btn whitespace--normal">
+									Click Here								</a>
+							</span>
+						                    </span>
+                </label>
+                            <input type="radio" name="ekit_ia_39cc5e0" id="ekit_ia_39cc5e0_1" class="elementskit-single-image-accordion--input" aria-label="宿舍">
+                <label for="ekit_ia_39cc5e0_1" class="elementskit-single-image-accordion ekit-image-accordion-item" style="background-image: url(&quot;data:,&quot;)">
+                    <span class="elementskit-accordion-content">
+													<span class="elementskit-accordion-title-wraper">
+								<span class="elementskit-accordion-title icon-title">
+																											<!-- same-1 -->
+										<i aria-hidden="true" class="fab fa-apple"></i>																	
+								宿舍
+																																	</span>
+							</span>
+														<span class="elementskit-btn-wraper">
+								<a class="ekit-image-accordion--btn elementskit-btn whitespace--normal" href="#cellphoneos">
+									Click Here								</a>
+							</span>
+						                    </span>
+                </label>
+                    </div>
+    </div>				</div>
+				</div>
+				<div class="elementor-element elementor-element-49bdb05 elementor-align-center elementor-widget elementor-widget-button" data-id="49bdb05" data-element_type="widget" data-e-type="widget" data-widget_type="button.default">
+				<div class="elementor-widget-container">
+									<div class="elementor-button-wrapper">
+					<a class="elementor-button elementor-button-link elementor-size-sm" href="#computeros">
+						<span class="elementor-button-content-wrapper">
+									<span class="elementor-button-text">回上一層</span>
+					</span>
+					</a>
+				</div>
+								</div>
+				</div>
+					</div>
+		</div>
+					</div>
+		</section>
+					</div>
+		</div>
+					</div>
+		</section>
+				</div>
+		      </div>
+      <footer class="post-footer clearfix">
+                      </footer>
+    </section><!-- .entry-content -->
+  </div><!-- .post-entry -->
+  </article>                </div>
+
+                
+            </div><!-- .column-content-wrapper -->
+
+            
+
+          </div><!-- .container -->
+
+          <div id="czr-push-footer"></div>
+    </div><!-- #main-wrapper -->
+
+    
+    
+<footer id="footer" class="footer__wrapper">
+  <div id="colophon" class="colophon ">
+  <div class="container">
+    <div class="colophon__row row flex-row justify-content-between">
+      <div class="col-12 col-sm-auto">
+        <div id="footer__credits" class="footer__credits credits">
+  <p class="czr-copyright">
+    <span class="fc-copyright">
+      <span class="fc-copyright-text">© 2026</span>
+      <span class="fc-copyright-link"><a href="/school-sites/help.ecc.stu.edu.tw/" title="Shu-Te 教學文件網站" rel="noopener noreferrer" data-school-local="true">Shu-Te 教學文件網站</a></span>          <span class="fc-separator ">–</span>
+      <span class="fc-copyright-after-text">All rights reserved</span>
+        </span>
+  </p>
+    <p class="czr-credits">
+      <span class="fc-designer ">
+      <span class="fc-credits-text">Designed with</span>
+      <span class="fc-credits-link"><a href="https://presscustomizr.com/customizr-pro" title="Customizr Pro (external service)" rel="noopener noreferrer" target="_blank" data-third-party="true" aria-label="Customizr Pro (external service)">Customizr Pro</a></span>    </span>
+
+    </p>
+  </div>
+      </div>
+            <div class="col-12 col-sm-auto">
+        <div class="social-links">
+          <ul class="socials ">
+  <li><a rel="nofollow noopener noreferrer" class="social-icon icon-feed" title="訂閱我的 RSS" aria-label="訂閱我的 RSS" href="/school-sites/help.wpc.stu.edu.tw/feed/rss/" data-school-local="true"><i class="fas fa-rss"></i></a></li></ul>
+        </div>
+      </div>
+          </div>
+  </div>
+</div>
+</footer>
+    </div><!-- end #tc-page-wrap -->
+
+    <button class="btn czr-btt czr-btta right"><i class="icn-up-small"></i></button>
+
+          
+        			
+			
+
+
+
+
+<span id="elementor-device-mode" class="elementor-screen-only"></span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<svg style="display: none;" class="e-font-icon-svg-symbols"></svg>
+
+
+  
+  
+
+
+</body></html>

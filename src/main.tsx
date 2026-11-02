@@ -17,7 +17,7 @@ const PublicApplication = lazy(() => import('./features/public/PublicSite.tsx'))
 export const RootApplication = isSchoolRoute ? SchoolApplication : isStudyRoute ? StudyApplication : PublicApplication
 
 function RouteLoading() {
-  return <main className="route-loading" role="status" aria-live="polite"><section><span>樹</span><p>STU NEXUS</p><strong>Loading the latest workspace</strong><small>Your secure school portal is starting…</small><i aria-hidden="true" /></section></main>
+  return <main className="route-loading" role="status" aria-live="polite"><section><span>樹</span><p>{isSchoolRoute ? "STU NEXUS" : "SHU-TE UNIVERSITY"}</p><strong>{isSchoolRoute ? "Loading…" : "載入校園網站…"}</strong><small>{isSchoolRoute ? "Please wait." : "請稍候。"}</small><i aria-hidden="true" /></section></main>
 }
 
 const rootElement = document.getElementById('root')

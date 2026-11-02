@@ -8,7 +8,8 @@ STU Edu AI combines a public university website with STU Nexus, an authenticated
 | --- | --- |
 | `src/features/` | Auth, school, CRM, curriculum, research, and public product modules |
 | `src/features/public/affairs/` | Source-preserving School Affairs portal, 57-row/94-link student program catalog and local preview preferences |
-| `src/features/public/site/` | Source-faithful public homepage/student directory, static source catalogues and inert mySTU SSO preview |
+| `src/features/public/site/` | Public reference catalogues, preview disclosure and inert mySTU SSO preview |
+| `src/features/public/mirror/` | Inert source-page renderer, local routing policy and versioned page/asset/coverage manifests |
 | `src/features/auth/` | Sign-in, student signup, session guards and shared password policy |
 | `src/features/school/portal/` | Separate home, people, assessment, grade, calendar and assistant views |
 | `src/components/ui/` | Official shadcn/ui source primitives |
@@ -65,3 +66,7 @@ Assistant replies use `react-markdown` with raw HTML and remote images disabled,
 The shared public chat, server-loaded account context and governed public/internal retrieval are documented in [Connected Assistant](docs/qa/CONNECTED_ASSISTANT.md). The dated initial corpus is versioned under `docs/research/`; account records and provider credentials are never bundled into that corpus.
 
 School Affairs and knowledge management have separate identity boundaries. Public chat does not inherit a Nexus session; Lux defaults to the management workspace while protected owner permissions remain intact. [Current behavior and integration boundary](docs/qa/CONNECTED_ASSISTANT.md).
+
+## Public page copies — Issue #84
+
+Public pages use isolated, source-preserving local HTML/CSS with trusted navigation controls. Large documents are prepared from a pinned public checksum manifest at build/dev startup; source styles, fonts and images remain versioned. The verified campus-directory API/UI remains available independently of the source iframe. No new runtime dependency was added. See [coverage, architecture, setup and QA](docs/qa/SCHOOL_MIRROR.md).

@@ -1,5 +1,13 @@
 # Findings
 
+## Local public-page copy — Issue #84
+
+- User scope: entrance pages and service/detail pages; skip old news archives. Public third-party services stay explicit external links. Protected school applications remain separate integration work under #83; no source credentials or private student context are collected.
+- Source-faithful static HTML/CSS/assets run in a same-origin, script/form-disabled iframe. Trusted local controllers implement menus, tabs, carousels, search and routing. Existing Assistant, campus-directory and Nexus boundaries remain intact.
+- Preserve source doctype and responsive source CSS. Minified CSS imports without whitespace, captured fixed header widths, transient alumni loaders and source tab semantics required corrections. Exact canonical pages must win over redirect aliases; query-selected documents and reserved app paths must not collide.
+- All first-hop public HTML destinations are captured. Additional service details include freshman steps/housing, international forms/visa/insurance/emergency information and alumni profiles. The recursive inventory includes deeper department/service pages and intentionally deferred archives; never count an inventoried URL as an implemented page.
+- Large documents are manifest-pinned and hash-verified during preparation, excluded from Git. A local build does not prove a fresh hosted deployment can accommodate this corpus; hosting size/cold-build transfer must be verified before release. Source resource failures and inherited contrast remain reported limitations.
+
 - hiding only the Readiness button would not fully disable onboarding because mounting `RoleOnboarding` automatically loads or creates progress and can persist evidence; the shutdown boundary must remove the component mount itself
 - removing `RoleOnboarding` from `UnifiedPortal` prevents every onboarding repository effect while preserving database history and implementation files for a deliberate future re-enable
 - a build assertion against the three stable onboarding UI markers ensures tree-shaking actually excludes the runtime feature rather than merely hiding its visible trigger

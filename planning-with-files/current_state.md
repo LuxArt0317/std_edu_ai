@@ -1,5 +1,9 @@
 # Current client state
 
+## Issue #84: verified local school-page checkpoint
+
+Implemented local source-preserving homepage/ten audience entrances and 395 distinct public pages, with source scripts/forms disabled, local links/menus/tabs/carousels/search, explicit source/private gaps and pinned large-document preparation. The 304 first-hop school destinations comprise 274 copied page/redirect URLs, three copied file URLs, 25 protected destinations and two native School Affairs UI entries. The recursive graph has 2,269 observed URLs; deeper service/resource coverage remains incomplete. User excluded old news archives. Final checks pass 193 API/source checks, 28 units, 56 mirror states and interactions, five School Affairs isolation states, ten surrounding public accessibility states, build/lint/docs/dependencies. Source colors retain 24 reported contrast occurrences; no other serious/critical semantic failures in the mirror sample. Build index-C6ya21l1.js is committed locally only; not pushed/deployed. Preview http://127.0.0.1:5174/. The >1.7 GB corpus needs hosted size/cold-build validation. Prior verified production below remains authoritative. Details: docs/qa/SCHOOL_MIRROR.md.
+
 ## Issue #83: School Affairs identity correction
 
 Implemented and locally verified: source-shaped logged-out entry at /school-affairs/login and default /school-affairs, expiring explicit demo gate, logout/deep-link clearing, Nexus-independent public chat, and protected Lux owner default /app/knowledge with a single knowledge-management navigation item/full-workspace escape. Owner authority/auth settings are unchanged. The public corpus is now 19 public references/58 chunks; three Nexus guides/9 chunks are staff-only. All 22 remain managed. No new database migration.

@@ -1,0 +1,137 @@
+.elementor-51 .elementor-element.elementor-element-d0881cb{--display:flex;}.elementor-widget-tabs .elementor-tab-title, .elementor-widget-tabs .elementor-tab-title a{color:var( --e-global-color-primary );}.elementor-widget-tabs .elementor-tab-title.elementor-active,
+					 .elementor-widget-tabs .elementor-tab-title.elementor-active a{color:var( --e-global-color-accent );}.elementor-widget-tabs .elementor-tab-title{font-family:var( --e-global-typography-primary-font-family ), Sans-serif;font-weight:var( --e-global-typography-primary-font-weight );}.elementor-widget-tabs .elementor-tab-content{color:var( --e-global-color-text );font-family:var( --e-global-typography-text-font-family ), Sans-serif;font-weight:var( --e-global-typography-text-font-weight );}.elementor-51 .elementor-element.elementor-element-5a4f1f2 .elementor-tab-title, .elementor-51 .elementor-element.elementor-element-5a4f1f2 .elementor-tab-title:before, .elementor-51 .elementor-element.elementor-element-5a4f1f2 .elementor-tab-title:after, .elementor-51 .elementor-element.elementor-element-5a4f1f2 .elementor-tab-content, .elementor-51 .elementor-element.elementor-element-5a4f1f2 .elementor-tabs-content-wrapper{border-width:1px;}.elementor-51 .elementor-element.elementor-element-5a4f1f2 .elementor-tab-title, .elementor-51 .elementor-element.elementor-element-5a4f1f2 .elementor-tab-title a{color:#3EC400;}.elementor-51 .elementor-element.elementor-element-5a4f1f2 .elementor-tab-title.elementor-active,
+					 .elementor-51 .elementor-element.elementor-element-5a4f1f2 .elementor-tab-title.elementor-active a{color:#00695C;}.elementor-51 .elementor-element.elementor-element-5a4f1f2 .elementor-tab-content{color:#000000;}.elementor-51 .elementor-element.elementor-element-65c0929{--display:flex;}.elementor-widget-text-editor{font-family:var( --e-global-typography-text-font-family ), Sans-serif;font-weight:var( --e-global-typography-text-font-weight );color:var( --e-global-color-text );}.elementor-widget-text-editor.elementor-drop-cap-view-stacked .elementor-drop-cap{background-color:var( --e-global-color-primary );}.elementor-widget-text-editor.elementor-drop-cap-view-framed .elementor-drop-cap, .elementor-widget-text-editor.elementor-drop-cap-view-default .elementor-drop-cap{color:var( --e-global-color-primary );border-color:var( --e-global-color-primary );}/* Start custom CSS for tabs, class: .elementor-element-5a4f1f2 *//* 標籤導航 */
+.tab-nav {
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 30px;
+    padding: 0;
+}
+
+.tab-nav a {
+    display: inline-block;
+    padding: 10px 20px;
+    text-decoration: none;
+    color: #666;
+    border: 1px solid transparent;
+    margin-bottom: -1px;
+}
+
+.tab-nav a:hover,
+.tab-nav a.active {
+    color: #00695C;
+    border: 1px solid #ddd;
+    border-bottom-color: white;
+    background: white;
+}
+
+/* 卡片樣式 */
+.info-card {
+    background: white;
+    padding: 20px;
+    border-radius: 4px;
+    margin-bottom: 30px;
+    border-left: 4px solid #00695C;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* 標題樣式 */
+.info-title {
+    color: #00695C;
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+/* 路徑導航 */
+.breadcrumb {
+    color: #666;
+    font-size: 0.9em;
+    margin-bottom: 20px;
+}
+
+.breadcrumb a {
+    color: #00695C;
+    text-decoration: none;
+}
+
+/* 連結樣式 */
+.link {
+    display: block;
+    color: #00695C;
+    text-decoration: none;
+    padding: 10px;
+    margin: 5px 0;
+}
+
+.link:hover {
+    background: #f5f5f5;
+}
+
+/* 列表樣式 */
+.notice-list {
+    list-style-type: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.notice-list li {
+    margin-bottom: 15px;
+    line-height: 1.6;
+    padding-left: 20px;
+    position: relative;
+}
+/* 次級列表 */
+.doc-list {
+    list-style-type: none;
+    padding-left: 20px;
+    margin: 10px 0;
+}
+
+.doc-list li {
+    margin-bottom: 10px;
+    padding-left: 15px;
+    position: relative;
+}
+
+.doc-list li:before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #00695C;
+}
+
+/* 強調文字 */
+.highlight-text {
+    background: #f5f5f5;
+    padding: 15px;
+    border-radius: 4px;
+    margin-top: 15px;
+    border-left: 4px solid #00695C;
+}
+
+/* 操作步驟列表 */
+.step-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 15px 0;
+}
+
+.step-list li {
+    padding: 10px 15px;
+    margin-bottom: 5px;
+    background: #f9f9f9;
+    border-radius: 4px;
+}
+
+.step-list li:hover {
+    background: #f5f5f5;
+}
+
+.entry-title{
+    color: #00695C;
+}
+#footer-widget-area{
+    display: none;
+}/* End custom CSS */
