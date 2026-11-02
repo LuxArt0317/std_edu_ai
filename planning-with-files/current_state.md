@@ -1,5 +1,11 @@
 # Current client state
 
+## Issue #80: School Affairs portal ready for local review
+
+The visible student-facing School Affairs portal is rebuilt at http://127.0.0.1:5173/school-affairs in the separate LuxArt0317 checkout. It preserves the 45px source header/190px sidebar, seven groups/25 menu views, 57 catalog rows/94 program links and source-shaped Index/news widgets. Search, custom menus, bookmarks, settings/font/skin controls, sidebar/widget collapse and mobile/Escape/focus behavior work locally. The source student name, real fees, IP, account/session values and opaque query strings are excluded. Other school applications remain external; existing STU Nexus auth and school/backend permissions are unchanged.
+
+Final checks: 25 menu views; 23 portal states; 15 existing reference-page states; ten public AI/campus/study states; 170 API/source checks; 24 units; build/assets/lint/docs/dependencies. No new lint warnings, serious/critical automated accessibility findings, overflow, page errors, external requests or credential forms in successful checks. Source table columns are verified at desktop/mobile widths. Lighthouse mobile performance 96/accessibility 100, LCP 2.71s, CLS 0. Source/handoff are committed for local review; #80 and #79 await Git delivery. No push/deployment or school/account/provider/database mutation. Full source limits and commands: docs/qa/PUBLIC_SITE_REBUILD.md.
+
 ## Issue #79: public university UI ready for local review
 
 Rebuilt the current STU homepage, `/在校學生/` directory and `/student-sso` mySTU entry in the separate LuxArt0317 client checkout. User clarified these two destinations; School Affairs/TronClass/Moodle interfaces are excluded. All seven student categories/72 entries match independent browser source fingerprints; 28 observed local image assets retain source/delivery checksums. Homepage news is a dated 40-item snapshot. The initial banner is optimized from 1,526,239 to 158,010 bytes. Public carousel playback is opt-in; keyboard controls, responsive layouts and scoped shadcn colors are corrected.

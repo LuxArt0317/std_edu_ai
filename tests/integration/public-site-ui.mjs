@@ -235,7 +235,7 @@ console.log(
     status: "ok",
     states: rows.length,
     localNavigationWidths: 4,
-    referenceAssets: 28,
+    referenceAssets: 30,
     credentialSubmissionEnabled: false,
   }),
 );

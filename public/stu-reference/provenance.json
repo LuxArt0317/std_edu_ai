@@ -172,6 +172,18 @@
       "local": "/stu-reference/fca2167ed40e9680.png",
       "sha256": "fca2167ed40e9680678d7bdd6438f82986c0e36eccea0f3da3128d8630e351a9",
       "bytes": 1186
+    },
+    {
+      "source": "https://info.stu.edu.tw/ePortal/assets/img/stu/stuBanner.svg",
+      "local": "/stu-reference/ee1f2bb8f7f5a9dd.svg",
+      "sha256": "ee1f2bb8f7f5a9dd563598ec5674e25f150ffa75b82a615544481cbab3facfbe",
+      "bytes": 1422
+    },
+    {
+      "source": "https://info.stu.edu.tw/ePortal/assets/images/stuUser.png",
+      "local": "/stu-reference/28ec5c3cdf33ed43.png",
+      "sha256": "28ec5c3cdf33ed43b6c53598a639b3f92ce1595a2c6591f2118dc5dbe05d18ba",
+      "bytes": 3792
     }
   ]
 }

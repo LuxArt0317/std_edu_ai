@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Captured reference SVGs have checksum provenance; preserve their original bytes.
+public/stu-reference/*.svg -text whitespace=cr-at-eol

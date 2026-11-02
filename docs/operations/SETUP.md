@@ -86,6 +86,8 @@ See [current issue acceptance](../qa/ISSUE_COMPLETION.md) for the distinction be
 
 ## Public university UI preview
 
-Run `npm run dev -- --host 127.0.0.1 --port 5173` for local review. Public routes are `/`, `/在校學生/` and `/student-sso`. The student Gmail link opens the local SSO UI. Its controls are intentionally disabled and no real school password should be entered. Existing STU Nexus sign-in stays at `/signin`; authenticated school work stays under `/app`.
+Run `npm run dev -- --host 127.0.0.1 --port 5173` for local review. Public routes are `/`, `/在校學生/`, `/student-sso` and `/school-affairs`. The student Gmail link opens the local SSO UI. Its controls are intentionally disabled and no real school password should be entered. Existing STU Nexus sign-in stays at `/signin`; authenticated school work stays under `/app`.
 
 With the local server running, use `npm run test:public-site`; for the production build use `npm run build`, serve Vite preview and set `PUBLIC_SITE_ORIGIN=http://127.0.0.1:5174`. This UI does not require a migration or a new secret. The source catalogues/assets and capture limits are documented in [public-site QA](../qa/PUBLIC_SITE_REBUILD.md).
+
+For the School Affairs replica, open `/school-affairs`; its directory/homepage entries map locally. `npm run test:school-affairs` verifies the 25 menu views, source-link catalog, settings, responsive/keyboard/accessibility behavior, preferences/bookmarks and absence of external requests. `PUBLIC_SITE_ORIGIN=http://127.0.0.1:5174 npm run test:school-affairs` targets a running local production preview. The portal uses a clearly identified demo student and example fee, with no school account required. External school applications need their own authorized school login and are not supplied by this preview.

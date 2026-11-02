@@ -1,0 +1,550 @@
+[
+  ["personal", "input", "密碼變更", [["密碼變更", "sso.stu.edu.tw/chpswd/"]]],
+  [
+    "personal",
+    "input",
+    "設定",
+    [["校園公告MAIL接收設定", "info.stu.edu.tw/ePortal/pg/setNewsToMail.asp"]]
+  ],
+  [
+    "personal",
+    "query",
+    "作業",
+    [
+      ["通知訊息查詢", "info.stu.edu.tw/ePortal/pg/qryUserAlerts.asp"],
+      ["已收藏消息查詢", "info.stu.edu.tw/ePortal/pg/qryBookmarkStuNews.asp"]
+    ]
+  ],
+  [
+    "sysmenu",
+    "external",
+    "選單",
+    [
+      ["mySTU", "my.stu.edu.tw/"],
+      ["Moodle數位學園", "elearning.stu.edu.tw/"],
+      ["CU數位平台", "cu.stu.edu.tw/"],
+      [
+        "行事曆",
+        "www.aca.stu.edu.tw/%e8%a1%8c%e4%ba%8b%e6%9b%86%ef%bd%9ccalendar/"
+      ],
+      ["學校首頁", "www.stu.edu.tw/"]
+    ]
+  ],
+  [
+    "sysDoc",
+    "stu",
+    "校務系統",
+    [["校務系統入口操作說明", "info.stu.edu.tw/ePortal/pg/ePortalDoc.asp"]]
+  ],
+  [
+    "aca",
+    "input",
+    "學生選課",
+    [
+      ["初選", "info.stu.edu.tw/aca/student/SelectCourse/SelNote.asp"],
+      [
+        "加退選",
+        "info.stu.edu.tw/aca/student/SelectCourse/StuSecondCourse/selnote.asp"
+      ],
+      ["補加選", "info.stu.edu.tw/aca/student/SelectCourse/AddCourseLogin.asp"],
+      ["棄選", "infosys.stu.edu.tw/WebSelectCourse/Login/AspLogin/QuitCourse"],
+      [
+        "暑期選課",
+        "info.stu.edu.tw/aca/student/SelectCourse/StuSummerCourse/SummerCourseLogin.asp"
+      ],
+      [
+        "選課確認",
+        "infosys.stu.edu.tw/WebSelectCourse/Login/AspLogin/StuSelConfirm"
+      ]
+    ]
+  ],
+  [
+    "aca",
+    "input",
+    "申請與反應",
+    [
+      [
+        "超減修學分申請",
+        "infosys.stu.edu.tw/WebSelectCourse/Login/AspLogin/AppOverCredit"
+      ],
+      [
+        "抵免學分申請",
+        "infosys.stu.edu.tw/WebSelectCourse/Login/AspLogin/StuCcredit"
+      ],
+      [
+        "跨院系學分學程登記系統",
+        "info.stu.edu.tw/ACA/student/AppIntraCourse/index.asp"
+      ],
+      ["提前畢業申請", "info.stu.edu.tw/ACA/student/preGrdApp/index.asp"],
+      [
+        "教學意見問卷調查",
+        "info.stu.edu.tw/aca/student/CoStuAns/LoginMain.asp"
+      ],
+      [
+        "即時反應教學意見",
+        "infosys.stu.edu.tw/WebSelectCourse/Login/AspLogin/OnlinePull"
+      ]
+    ]
+  ],
+  [
+    "aca",
+    "input",
+    "學生學籍",
+    [["學生基本資料確認", "info.stu.edu.tw/aca/student/NEWSTU/mtnStuData.asp"]]
+  ],
+  [
+    "aca",
+    "input",
+    "境外學生",
+    [
+      [
+        "境外學生獎助學金申請",
+        "info.stu.edu.tw/FRN/Scholarship/myApplication.asp"
+      ]
+    ]
+  ],
+  [
+    "aca",
+    "input",
+    "畢業離校",
+    [["畢業離校申請系統", "infosys.stu.edu.tw/GradClearance/Login/AspStuLogin"]]
+  ],
+  [
+    "aca",
+    "query",
+    "學生選課",
+    [
+      [
+        "選課紀錄查詢",
+        "infosys.stu.edu.tw/WebSelectCourse/Login/AspLogin/SelectCourse"
+      ],
+      [
+        "我的功課表",
+        "infosys.stu.edu.tw/WebSelectCourse/Login/AspLogin/QryMyCourse"
+      ],
+      [
+        "歷年超減修申請紀錄查詢",
+        "infosys.stu.edu.tw/WebSelectCourse/Login/AspLogin/AppCreditHistory"
+      ]
+    ]
+  ],
+  [
+    "aca",
+    "query",
+    "課程資訊",
+    [
+      [
+        "教師課表查詢",
+        "infosys.stu.edu.tw/WebStuCourse/Login/AspLogin/TeacherWeeklyCourse"
+      ],
+      ["永久課程簡介查詢", "infosys.stu.edu.tw/WebStuCourse/Login/AspLogin/0"],
+      [
+        "課程大綱查詢",
+        "info.stu.edu.tw/ACA/teacher/Syllabus/MainCoursequery.asp"
+      ],
+      ["當期課程查詢", "info.stu.edu.tw/ACA/student/QueryAGECourse/index.asp"],
+      [
+        "歷年課程規劃查詢",
+        "info.stu.edu.tw/ACA/teacher/QryCoursedept/qrydeptCourse.asp"
+      ],
+      [
+        "學分學程查詢",
+        "info.stu.edu.tw/ACA/teacher/QryIntraCourse/qryIntraCourse.asp"
+      ],
+      ["課程地圖查詢", "info.stu.edu.tw/ACA/student/CM/cm.asp"],
+      [
+        "替代科目查詢",
+        "info.stu.edu.tw/ACA/student/qryCOURSEKD/qryCourseKindAdmit.asp"
+      ]
+    ]
+  ],
+  [
+    "aca",
+    "query",
+    "成績",
+    [["成績查詢", "infosys.stu.edu.tw/AcademicServices/login/AspLoginGrade"]]
+  ],
+  [
+    "aca",
+    "query",
+    "缺曠課",
+    [["缺曠課紀錄查詢", "infosys.stu.edu.tw/StuOffclass/Login/AspLogin/2"]]
+  ],
+  [
+    "aca",
+    "query",
+    "畢業學分",
+    [
+      [
+        "畢業學分檢核表查詢(NEW)",
+        "infosys.stu.edu.tw/AcademicServices/Login/AspLoginGradReview"
+      ],
+      ["畢業學分檢核表查詢", "info.stu.edu.tw/aca/grdcheckreport/index.asp"]
+    ]
+  ],
+  [
+    "aca",
+    "query",
+    "畢業離校",
+    [["離校申請狀態查詢", "info.stu.edu.tw/aca/gl/student/listapplystatus.asp"]]
+  ],
+  [
+    "aca",
+    "query",
+    "學籍",
+    [["在學證明", "infosys.stu.edu.tw/StuInfo/Login/AspLoginAC"]]
+  ],
+  [
+    "aca",
+    "portal",
+    "專業學程",
+    [["專業學程資料", "infosys.stu.edu.tw/Indicator/Login/AspLogin"]]
+  ],
+  [
+    "aca",
+    "portal",
+    "英檢考試",
+    [["英檢考試系統", "infosys.stu.edu.tw/StuEngpt/Login/AspLogin"]]
+  ],
+  [
+    "sao",
+    "input",
+    "學生請假",
+    [["請假填單", "infosys.stu.edu.tw/StuLeave/Login/AspLoginStu"]]
+  ],
+  [
+    "sao",
+    "input",
+    "經費申請",
+    [
+      ["就學貸款申請", "infosys.stu.edu.tw/StudyLoan/Login/AspLogin"],
+      ["學產助學金申請", "info.stu.edu.tw/sao/edufundli/student/index.asp"],
+      ["學雜費減免申請", "info.stu.edu.tw/sao/Student/Remit/loginaction.asp"]
+    ]
+  ],
+  [
+    "sao",
+    "input",
+    "不利處境學生助學計畫",
+    [["不利處境學生助學申請", "infosys.stu.edu.tw/ApplyWeak/Login/AspLogin"]]
+  ],
+  [
+    "sao",
+    "input",
+    "國際交流暨校外研討",
+    [["國際交流暨校外研討助學金申請", "info.stu.edu.tw/sao/sca/index.asp"]]
+  ],
+  [
+    "sao",
+    "input",
+    "行政院減免學雜費",
+    [
+      [
+        "行政院減免學雜費(拉近方案)調查表單",
+        "infosys.stu.edu.tw/GOVSUBSIDY/Login/AspLoginStu"
+      ]
+    ]
+  ],
+  [
+    "sao",
+    "input",
+    "教學助教",
+    [
+      ["教學助理報告輸入", "info.stu.edu.tw/sao/TA/indexStudent.asp"],
+      ["教學助理自我評表", "info.stu.edu.tw/sao/TA/indexStudent.asp"]
+    ]
+  ],
+  [
+    "sao",
+    "input",
+    "學生宿舍",
+    [["學生住宿申請", "info.stu.edu.tw/sao/sfzroom/ROOM/main.asp"]]
+  ],
+  [
+    "sao",
+    "input",
+    "完善就學獎勵學習輔導",
+    [
+      [
+        "完善就學獎勵學習輔導申請",
+        "infosys.stu.edu.tw/WeakReward/Login/AspLoginStu"
+      ]
+    ]
+  ],
+  [
+    "sao",
+    "input",
+    "導師評量",
+    [
+      [
+        "導師評量問卷",
+        "info.stu.edu.tw/sao/COC_Student/TeacherReview/teacher_comm.asp"
+      ]
+    ]
+  ],
+  [
+    "sao",
+    "input",
+    "學生諮商預約",
+    [["心理諮商/測驗申請", "info.stu.edu.tw/sao/Interview/index.asp"]]
+  ],
+  [
+    "sao",
+    "input",
+    "學生緊急傷病暨團保",
+    [
+      [
+        "緊急傷病填單",
+        "infosys.stu.edu.tw/StuHealth/Login/AspLoginHealthInsuranceStu"
+      ],
+      [
+        "物品借用輸入",
+        "infosys.stu.edu.tw/StuHealth/Login/AspLoginHealthInsuranceStu"
+      ]
+    ]
+  ],
+  [
+    "sao",
+    "input",
+    "境外學生工作證暨租屋管理",
+    [
+      ["境外學生工作紀錄", "infosys.stu.edu.tw/OverseaWork/Login/AspLoginStu"],
+      ["境外學生租屋紀錄", "infosys.stu.edu.tw/OverseaWork/Login/AspLoginStu"]
+    ]
+  ],
+  [
+    "sao",
+    "input",
+    "境外學生愛校服務",
+    [["境外生愛校服務管理", "infosys.stu.edu.tw/ISW/Login/AspLogin"]]
+  ],
+  [
+    "sao",
+    "query",
+    "學生請假",
+    [["學生請假紀錄查詢", "infosys.stu.edu.tw/StuLeave/Login/AspLoginStu"]]
+  ],
+  [
+    "sao",
+    "query",
+    "學生宿舍",
+    [
+      ["住宿床位查詢", "info.stu.edu.tw/SAO/DMT/student/qryMyBed.asp"],
+      ["宿舍獎懲查詢", "info.stu.edu.tw/sao/DMT_PUNISH/index.asp"]
+    ]
+  ],
+  [
+    "sao",
+    "query",
+    "學生緊急傷病暨團保",
+    [
+      [
+        "學生團體保險查詢",
+        "infosys.stu.edu.tw/StuHealth/Login/AspLoginHealthInsuranceStu"
+      ]
+    ]
+  ],
+  [
+    "sao",
+    "query",
+    "學生健診",
+    [
+      [
+        "學生健檢紀錄查詢",
+        "info.stu.edu.tw/SAO/PEC/trnFiles/rptStuReportByStu.asp"
+      ]
+    ]
+  ],
+  [
+    "sao",
+    "query",
+    "學生兼任助理",
+    [
+      [
+        "獎助金薪資查詢",
+        "info.stu.edu.tw/SAO/PAYMENT/trnFiles/qryPaymentByStu.asp"
+      ]
+    ]
+  ],
+  [
+    "sao",
+    "query",
+    "學生獎懲",
+    [
+      [
+        "學生個人獎懲紀錄表",
+        "info.stu.edu.tw/SAO/conduct/trnFiles/rptMeritsByStu.asp"
+      ]
+    ]
+  ],
+  [
+    "sao",
+    "query",
+    "待繳費用查詢",
+    [
+      [
+        "待繳費用查詢",
+        "infosys.stu.edu.tw/StuFees/Login/AspLoginStudentArrears"
+      ]
+    ]
+  ],
+  [
+    "sao",
+    "portal",
+    "社團活動",
+    [["社團活動", "infosys.stu.edu.tw/StuCorp/Login/AspLogin"]]
+  ],
+  [
+    "sao",
+    "portal",
+    "學習量表",
+    [["學習量表", "infosys.stu.edu.tw/WebExtServices/Login/asplogin/2"]]
+  ],
+  [
+    "sao",
+    "portal",
+    "服務領導教育",
+    [["服務領導教育", "info.stu.edu.tw/sao/lsd/student/index.asp"]]
+  ],
+  [
+    "sao",
+    "portal",
+    "三合一投票系統",
+    [["三合一投票系統", "infosys.stu.edu.tw/StuVote/Login/AspLogin/2"]]
+  ],
+  [
+    "swd",
+    "input",
+    "場地借用",
+    [
+      [
+        "場地借用申請及查詢(教職員請至電子公文系統申請)",
+        "info.stu.edu.tw/swd/placeBorrow/mtnBorrowPlace.asp"
+      ]
+    ]
+  ],
+  [
+    "swd",
+    "input",
+    "報修系統",
+    [["線上報修", "infosys.stu.edu.tw/WebRpg/Login/AspLogin/1"]]
+  ],
+  ["swd", "input", "停車證", [["汽機車證申請", "infosys-car.stu.edu.tw/"]]],
+  [
+    "swd",
+    "query",
+    "場地借用",
+    [["場地使用狀況查詢", "info.stu.edu.tw/swd/placeBorrow/qryClassroom.asp"]]
+  ],
+  [
+    "swd",
+    "query",
+    "繳費清單",
+    [
+      [
+        "暑修選課繳費查詢",
+        "infosys.stu.edu.tw/StuTuition/Login/AspLogin/Summer"
+      ],
+      [
+        "延修選課繳費查詢",
+        "infosys.stu.edu.tw/StuTuition/Login/AspLogin/Extend"
+      ],
+      [
+        "學分學雜費結算繳費查詢",
+        "infosys.stu.edu.tw/StuTuition/Login/AspLogin/NightCredit"
+      ]
+    ]
+  ],
+  [
+    "swd",
+    "query",
+    "學分學雜費結算差額",
+    [
+      [
+        "學分學雜費結算差額查詢",
+        "infosys.stu.edu.tw/StuTuition/Login/AspLogin/2"
+      ]
+    ]
+  ],
+  [
+    "swd",
+    "query",
+    "電匯付款",
+    [
+      ["使用者電匯付款查詢", "infosys.stu.edu.tw/TeleTransfer/Login/AspLogin"],
+      [
+        "學生帳戶繳交狀態查詢",
+        "infosys.stu.edu.tw/StuBank/Login/AspLogin/ViewAccountStatus"
+      ]
+    ]
+  ],
+  [
+    "swd",
+    "query",
+    "個人所得",
+    [
+      [
+        "各類所得扣繳暨免扣繳憑單",
+        "infosys.stu.edu.tw/GeneralAffairsServices/Login/AspLoginEtax"
+      ]
+    ]
+  ],
+  [
+    "rdd",
+    "input",
+    "學生證照",
+    [["證照獎補助金申請", "info.stu.edu.tw/sao/certificate/index.asp"]]
+  ],
+  [
+    "rdd",
+    "input",
+    "校外實習",
+    [["實習紀錄輸入", "infosys.stu.edu.tw/stupractice/login/AspLoginStu"]]
+  ],
+  [
+    "rdd",
+    "input",
+    "應屆生資訊維護",
+    [
+      [
+        "畢業前學生基本資訊維護",
+        "infosys.stu.edu.tw/StuAlumni/login/AspLoginStu"
+      ]
+    ]
+  ],
+  [
+    "rdd",
+    "query",
+    "校外實習",
+    [["實習機構查詢", "infosys.stu.edu.tw/PracticeUnit/Login/AspLoginStu"]]
+  ],
+  [
+    "rdd",
+    "portal",
+    "學習歷程",
+    [["學習歷程", "infosys.stu.edu.tw/StuSEP/Login/AspLoginStu"]]
+  ],
+  [
+    "infoSystem",
+    "portal",
+    "輸入",
+    [
+      [
+        "電影票選系統",
+        "infosys.stu.edu.tw/LibraryApps/AspLogin/GetVoteList/Movie"
+      ],
+      [
+        "電子書有獎徵答",
+        "infosys.stu.edu.tw/LibraryApps/AspLogin/Ebook/ParticipationAwards"
+      ],
+      [
+        "找知識大考驗有獎徵答",
+        "infosys.stu.edu.tw/LibraryApps/AspLogin/FindKnowledge/ParticipationAwards"
+      ],
+      [
+        "智慧財產權有獎徵答",
+        "infosys.stu.edu.tw/LibraryApps/AspLogin/Ip/ParticipationAwards"
+      ]
+    ]
+  ]
+]

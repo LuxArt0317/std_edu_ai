@@ -1,5 +1,11 @@
 # Client handoff
 
+## School Affairs portal — Issue #80 (local review)
+
+The signed-in student-facing School Affairs portal has been reconstructed locally at `/school-affairs`, with its blue header, collapsible sidebar, Index widgets, seven groups/25 menu views, search and a source-verified 57-row/94-link catalog. The student directory and homepage School Affairs entry now open this local portal. Custom menus, announcement bookmarks, display preferences, font controls, widget collapse and mobile/keyboard interaction work locally. All school identity, actual fee/IP/account information and opaque session URLs are excluded; visible identity/fees are demo data. Program applications beyond the copied portal remain marked external services requiring official access. No school authentication, database, provider or app-permission change is involved.
+
+Verified 25 menu views and 23 responsive/skin/dialog states, plus 15 existing reference-page states and ten public AI/campus/study regressions. 170 API/source checks, 24 units, build/assets, lint (inherited warnings only), docs and clean dependency audit pass. Column geometry, direct URLs/back/refresh, browser-local persistence, Escape/focus, blocked storage and zero external requests/credential forms are checked. Local mobile Lighthouse: performance 96, accessibility 100, LCP 2.71s, CLS 0. [Detailed scope/evidence](../qa/PUBLIC_SITE_REBUILD.md). Local preview is running at http://127.0.0.1:5173/school-affairs. Source committed locally for review; no push/deployment. #79 and #80 remain open pending source delivery. Last published release is unchanged below.
+
 ## Public university UI — Issue #79 (local review)
 
 The current STU homepage, complete seven-section/72-entry student directory and student-Gmail mySTU entry are rebuilt locally. The user narrowed the copied destinations to the student directory and SSO entry; other university services retain their source links. The persistent nonofficial label and disabled SSO fields/button make the requested UI-only scope explicit. No school login, SAML request replay, provider setting or database change is involved. Existing app authentication and permissions remain independent.

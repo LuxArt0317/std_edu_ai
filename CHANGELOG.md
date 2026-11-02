@@ -1,6 +1,13 @@
 # Changelog
 ## Unreleased
 
+### School Affairs portal UI (Issue #80)
+
+- Reproduce the observed signed-in student portal at `/school-affairs`: blue header, account menu, sidebar/shortcuts, index widgets, 25 menu views and all-program search from 57 source rows/94 program links.
+- Add browser-local custom menus, saved display settings/font controls, announcement reading/bookmarks, widget collapse, keyboard focus restoration and responsive mobile navigation using shadcn primitives, including a shared Popover.
+- Link the School Affairs entry from the copied directory/homepage. Preserve clearly marked external program paths without opaque session queries; use demo identity/fees and local public branding assets. Keep school auth and all existing app permissions separate.
+- Correct mixed-control settings semantics, accessible names, popup layering, source-color contrast and route titles; add catalog fingerprints, storage-failure and full local UI checks.
+
 ### Public university UI preview (Issue #79)
 
 - Refresh the STU homepage from current public references and serve its 28 captured image assets locally, with checksum provenance, an optimized hero image and native font fallbacks.

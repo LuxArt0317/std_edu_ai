@@ -83,3 +83,11 @@ Remaining acceptance: #75 production mail; #63 approved corpus/owners and schedu
 Scope: UI only. Authenticated source screens remain unavailable until authorized access is provided. Preserve existing STU Nexus auth/app and database permissions; do not invent exact copies of unseen screens.
 
 User clarification for #79: the second target is the mySTU SSO reached from student Gmail (sso2.stu.edu.tw), not TronClass/Moodle or an authenticated School Affairs screen. Execution choice: prepare the preview locally for review; real school integration stays disconnected within the requested UI-only scope.
+
+## School Affairs portal UI [Issue #80]
+
+- [x] Audit the signed-in portal shell, seven menu groups, program catalog, utilities and accessible read-only screens; sanitize all personal/session data.
+- [x] Rebuild local portal routing, index, menu tables/search, preferences and observed views; connect School Affairs entries without changing app authentication.
+- [x] Verify source coverage, local/demo behavior, responsive/keyboard/accessibility states, privacy and regressions; update centralized docs and commit for local review.
+
+Scope: continue the UI-only reconstruction. Current signed-in source role is the available reference; use demo identity/records. No real school submissions, credential capture, account settings changes, push or deployment.

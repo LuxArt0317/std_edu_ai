@@ -12,18 +12,20 @@ const StudentSsoPreview = lazy(() =>
     default: module.StudentSsoPreview,
   })),
 );
+const SchoolAffairsPortal = lazy(() => import("./affairs/SchoolAffairsPortal"));
 import "./site/reference.css";
 
 export default function PublicSite() {
   const { pathname, hash, search } = useLocation();
   useEffect(() => {
     document.documentElement.lang = "zh-Hant";
-    document.title =
-      (pathname.includes("student-sso")
-        ? "mySTU 登入介面預覽"
-        : pathname === "/"
-          ? "樹德科技大學網站介面預覽"
-          : "在校學生介面預覽") + " | STU Nexus";
+    if (!pathname.startsWith("/school-affairs"))
+      document.title =
+        (pathname.includes("student-sso")
+          ? "mySTU 登入介面預覽"
+          : pathname === "/"
+            ? "樹德科技大學網站介面預覽"
+            : "在校學生介面預覽") + " | STU Nexus";
     let target: HTMLElement | null = null;
     try {
       target = hash
@@ -38,6 +40,15 @@ export default function PublicSite() {
       <PreviewNotice />
       <Routes>
         <Route path="/" element={<App />} />
+        <Route path="/school-affairs/*" element={<SchoolAffairsPortal />} />
+        <Route
+          path="/ePortal/index.asp"
+          element={<Navigate to="/school-affairs" replace />}
+        />
+        <Route
+          path="/ePortal/apMenu.asp"
+          element={<Navigate to="/school-affairs/search" replace />}
+        />
         <Route path="/在校學生" element={<StudentDirectory />} />
         <Route
           path="/students"

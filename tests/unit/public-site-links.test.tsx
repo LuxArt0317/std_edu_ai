@@ -39,7 +39,7 @@ test("all 72 student entries match the browser-observed seven-category source in
     2,
   );
 });
-test("only the requested student/SSO destinations become local, retaining all other source links", () => {
+test("only the requested student/SSO/School Affairs destinations become local, retaining all other source links", () => {
   assert.equal(
     referenceHref(
       "https://www.stu.edu.tw/%E5%9C%A8%E6%A0%A1%E5%AD%B8%E7%94%9F/",
@@ -58,7 +58,12 @@ test("only the requested student/SSO destinations become local, retaining all ot
   );
   for (const item of studentCategories
     .flatMap((x) => x.items)
-    .filter((x) => x.href && !x.href.includes("mail.google.com"))) {
+    .filter(
+      (x) =>
+        x.href &&
+        !x.href.includes("mail.google.com") &&
+        !x.href.includes("info.stu.edu.tw/ePortal/login.asp"),
+    )) {
     assert.equal(referenceHref(item.href!), item.href);
   }
   assert.equal(
@@ -70,7 +75,7 @@ test("all delivered reference assets match their checksums and retain source pro
   const manifest = JSON.parse(
     readFileSync("public/stu-reference/provenance.json", "utf8"),
   );
-  assert.equal(manifest.assets.length, 28);
+  assert.equal(manifest.assets.length, 30);
   for (const asset of manifest.assets) {
     assert.equal(
       createHash("sha256")
