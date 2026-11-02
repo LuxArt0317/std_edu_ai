@@ -7,6 +7,7 @@
 - Load authoritative signed-in context with the caller JWT and RLS, including actual subject relationships, announcements, schedules, grades, learning and service records. Ignore posted account facts and reject inactive/mismatched roles.
 - Connect published internal/public retrieval with freshness/audience filters, meaningful rank fusion, bilingual aliases, document diversity and keyword degradation without privileged fallback.
 - Populate 22 dated client-reviewed school/site references and retain explicit snapshot/index-source limits. Add knowledge answer testing, role/class authoring and refresh-to-draft controls.
+- Keep the public preview banner below portaled dialogs and verify that Assistant headers/close controls remain unobstructed across all public pages.
 - Verify real data isolation and confirmed teacher actions; correct a test that selected an arbitrary assessment rather than its own quiz fixture.
 
 

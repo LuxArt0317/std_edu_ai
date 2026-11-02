@@ -1,5 +1,5 @@
 @layer components {
- .public-site-shell { min-width:320px; min-height:100dvh; background:#fff; color:#4b4f54; font-family:"Microsoft JhengHei",Arial,Helvetica,sans-serif; }
+ .public-site-shell { isolation:isolate; min-width:320px; min-height:100dvh; background:#fff; color:#4b4f54; font-family:"Microsoft JhengHei",Arial,Helvetica,sans-serif; }
  .reference-preview-notice { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:4px 16px; position:relative; z-index:80; min-height:32px; padding:6px 16px; color:#f6fffc; background:#204e43; font:12px/1.5 system-ui,sans-serif; }
  .reference-preview-notice a { color:inherit; text-decoration:underline; text-underline-offset:3px; }
  .reference-preview-notice a:focus-visible,.student-site a:focus-visible,.student-sso-preview a:focus-visible { outline:3px solid #174f86; outline-offset:4px; }

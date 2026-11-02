@@ -54,6 +54,23 @@ test("public chat is usable across all public pages, follows up with sources, an
     for (const path of ["/", "/在校學生/", "/school-affairs", "/student-sso"]) {
       await page.setViewportSize({ width, height: 900 });
       await openChat(page, path);
+      for (const control of [
+        page.getByRole("heading", { name: "校園助理 · Assistant" }),
+        page.getByRole("button", { name: "Close", exact: true }),
+      ]) {
+        await expect
+          .poll(() =>
+            control.evaluate((element) => {
+              const box = element.getBoundingClientRect();
+              const hit = document.elementFromPoint(
+                box.x + box.width / 2,
+                box.y + box.height / 2,
+              );
+              return hit === element || element.contains(hit);
+            }),
+          )
+          .toBe(true);
+      }
       await page
         .getByLabel("Your question")
         .fill("What is the registrar phone number?");

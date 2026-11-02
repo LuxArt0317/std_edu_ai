@@ -44,3 +44,7 @@ Live acceptance must verify the actual deployed API, signed-in student subjects/
 Three additive retrieval migrations are applied (106 total; 101 RLS tables). These checks are local/pre-release evidence; deployed API/model acceptance is recorded separately in the handoff after publication.
 
 Additional live database verification passes student/teacher/owner context and the complete audience matrix after all three migrations, including SIS-only roster linkage. Pre-release client verification passes owner login/profile, 106 migrations, RLS, CRUD cleanup, Edge Functions and deployed baseline OpenAI QA.
+
+Deployed-model acceptance at `https://stu.best` passes ten checks: four public sourced questions, anonymous personal-data handoff, student enrolled subject, faculty teaching assignment, student class-announcement body, unsaved teacher draft proposal and forbidden student assessed-work action. Real model responses use server-RLS grounding and ignore forged browser records. The corpus contains 22 published references / 67 searchable chunks. A production visual review also found the preview banner overlapping the Assistant header; the public page now establishes its own stacking context, with twelve-state hit-testing of the title/close control added.
+
+The strengthened twelve-state public hit-test/follow-up/Escape check passes after waiting for the normal Sheet opening animation; all ten public accessibility states pass again. The UI follow-up changes stacking only; deployed-model/API behavior is unchanged.
