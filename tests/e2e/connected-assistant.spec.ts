@@ -54,6 +54,7 @@ test("public chat is usable across all public pages, follows up with sources, an
     for (const path of ["/", "/在校學生/", "/school-affairs", "/student-sso"]) {
       await page.setViewportSize({ width, height: 900 });
       await openChat(page, path);
+      expect(await page.locator('.public-assistant-surface > header').evaluate(el=>parseFloat(getComputedStyle(el).paddingLeft))).toBeGreaterThanOrEqual(20);
       for (const control of [
         page.getByRole("heading", { name: "校園助理 · Assistant" }),
         page.getByRole("button", { name: "Close", exact: true }),

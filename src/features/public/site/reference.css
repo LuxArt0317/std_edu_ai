@@ -220,3 +220,7 @@
 .assistant-feedback .assistant-feedback-resolved { grid-template-columns: auto 1fr; align-items: center; }
 .assistant-feedback-saved { margin-top: 10px !important; color: #176f5e; font-size: .72rem !important; font-weight: 700; }
 .assistant-feedback-error { color: #a42323; font-size: .7rem !important; }
+
+/* The shared dialog header reset must not remove this full-bleed Sheet inset. */
+.public-assistant-surface > header {padding:20px 48px 20px 20px;flex-shrink:0}
+.public-assistant-surface > form {flex-shrink:0}

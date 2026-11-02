@@ -110,6 +110,6 @@ Final source verification: d9ba36b / Vercel 43s3ZCUGEcHh53fY52iBGv5DYXCX Ready; 
 - [x] Load trusted signed-in context server-side with existing RLS, shared eligible retrieval/citations, and robust public/signed-in chat behavior.
 - [x] Populate and verify a broad dated official school/site corpus, with /app/knowledge management, source refresh and honest data-access boundaries.
 - [x] Verify account isolation, public/private/stale/injection cases, meaningful questions and confirmed actions; run unit/API/E2E/release gates.
-- [ ] Document supported coverage and unavailable official/private data; update issue/state, commit and verify production.
+- [x] Document supported coverage and unavailable official/private data; update issue/state, commit and verify production.
 
 User requests a complete connected Assistant. Preserve existing account permissions, confirmation-gated mutations and school-login isolation; do not fabricate records, official approvals or perfect coverage.

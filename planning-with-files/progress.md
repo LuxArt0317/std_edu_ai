@@ -76,3 +76,5 @@
 - 2026-11-03 [#82]: Local release gates pass: 179 API/source, 26 units, build/assets/lint/docs/dependencies. Existing browser suite 44/45 initial; dedicated quiz fixture and all new Assistant cases pass in focused 6/6. Ten public accessibility states pass. Running final SIS-linked roster/RPC checks and preparing actual deployed-model acceptance.
 
 - 2026-11-03 [#82]: Runtime 4cea3b3 deployed Ready as Vercel 5bEfE7pE9P5V2RKovWUhYcuXG7Mj; quality 41496512787 succeeded. Ten actual public/signed-in OpenAI acceptance checks pass; 22 corpus documents/67 chunks. Production screenshot revealed preview-banner overlap; isolated public stacking context and added twelve-state header/close hit tests. Final UI patch verification/release ongoing.
+
+- 2026-11-03 [#82]: Deployed OpenAI acceptance 10/10 and post-release backend verification pass; live fixture cleanup complete. UI stacking release eea68b2 Ready as Cp2urEZEfvo6J5wTQQBByrCC9K8S, quality 41497413489 success, seven routes/50 assets. Final SQL: 22 docs/67 chunks, one owner, zero QA or orphan identities. Final header inset preserves spacing against the shared dialog reset.
