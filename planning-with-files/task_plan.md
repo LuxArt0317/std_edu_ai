@@ -5,7 +5,7 @@
 - [x] Route School Affairs Google sessions to a dedicated read-only assistant; exclude all Nexus account/course/term context.
 - [x] Answer service and menu questions from the complete captured portal catalog, with dated source links; retain managed public knowledge and verified web fallback for other STU questions.
 - [x] Support submitted screenshots/images and show actual lookup activity and sources without exposing private model reasoning.
-- [ ] Verify auth isolation, account-specific record limits, portal/vision answers, responsive UI and release gates; document and publish the verified change.
+- [x] Verify auth isolation, account-specific record limits, portal/vision answers, responsive UI and release gates; document and publish the verified change.
 
 
 ## Transactional UI overhaul [Issue #74]

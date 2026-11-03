@@ -1,8 +1,10 @@
 # Client handoff
 
-## Pending release — Issue #87
+## Current release — Issue #87
 
-The School Affairs chatbot source-boundary correction is implemented locally and is awaiting the exact client deployment and live model check. Signed-in chat no longer uses the Nexus assistant/context; it verifies the stu.best account only. The captured 94-link directory supplies service answers, while public knowledge and verified STU web search support broader questions. The drawer supports validated image attachments and shows actual source/research activity, without private model reasoning. Official university personal records and the Google real callback remain unconnected/unverified. [Scope and local checks](../qa/SCHOOL_AFFAIRS_ASSISTANT.md).
+Published at [stu.best](https://stu.best): runtime `205c83831916082e64820b9af6c48dd4d2a5fecd`, [Vercel 4Yiv71X8uSTkET8oRPz3EmLgeH9F](https://vercel.com/v1-d286/std_edu_ai/4Yiv71X8uSTkET8oRPz3EmLgeH9F) Ready, [quality 41608483620](https://github.com/LuxArt0317/std_edu_ai/actions/runs/41608483620) successful, entry `index-DRfidKVb.js` live. The School Affairs chatbot verifies its own stu.best session and does not use Nexus course, student, term or schedule context. Live signed-in chat listed the three General Affairs services from the 94-link directory, answered a public registrar contact question with a reviewed source, and directed a personal subjects question to the official service without claiming enrollment. Live public image analysis returned a grounded answer and visible image activity. The first deployment exposed a Vercel function import failure; a second exposed protected deployment-URL routing. Both were corrected and retested in the final release. [Scope and checks](../qa/SCHOOL_AFFAIRS_ASSISTANT.md).
+
+Official university personal records are still not connected. The Lux Google account's own passkey callback remains unverified under #83; a separate existing signed-in browser session was used for the final chat check. The deeper source archive remains open under #84.
 
 ## Current release — Issues #83 and #86
 

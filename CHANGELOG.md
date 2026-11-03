@@ -6,6 +6,7 @@
 - Give School Affairs Google sessions an independent, read-only chat route that verifies the stu.best identity and never reads Nexus course, student, term or schedule data.
 - Answer captured School Affairs service/menu questions from all 94 catalog links with official destinations and dated snapshot limits; retain governed public knowledge and verified web search for broader school facts.
 - Add validated image attachments and a visible source/activity panel. Images are processed only for the submitted answer, and private model reasoning is not displayed.
+- Release the isolated assistant at stu.best after correcting Vercel's cross-function import and protected deployment-URL routing; verify directory, cited public contact, private subject boundary and image answers live.
 
 ### Helpful STU Assistant (Issue #86)
 
