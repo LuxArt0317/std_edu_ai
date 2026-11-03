@@ -28,8 +28,18 @@ test('official web search uses hosted tool metadata and returns visible clickabl
  globalThis.fetch=async(_input,init)=>{body=JSON.parse(String(init?.body));return Response.json(payload());};
  const result=await searchSchoolWeb('How do I contact the STU registrar?');
  assert.equal(result.result?.origin,'web');assert.match(result.result!.answer,/\[1\]\(https:\/\/reg.aca.stu.edu.tw\/contact\/\)/);
- assert.deepEqual(body.tools[0].filters.allowed_domains,['stu.edu.tw']);assert.equal(body.store,false);assert.deepEqual(body.include,['web_search_call.action.sources']);
+ assert.deepEqual(body.tools[0].filters.allowed_domains,['stu.edu.tw']);assert.equal(body.tool_choice,'required');assert.equal(body.store,false);assert.deepEqual(body.include,['web_search_call.action.sources']);
  assert.equal(result.result?.citations[0].reviewedAt,null);assert.match(result.result!.citations[0].sourceName,/Live web/);
+});
+test('live search keeps a sourced partial answer when the exact detail is unavailable',async()=>{
+ const partial=payload(url,url,'The official page identifies the registrar, but it does not publish the requested opening time. Check the page for updates.');
+ const message=partial.output[1] as {content:Array<{text:string}>};
+ message.content[0].text=JSON.stringify({status:'not_found',answer:'The official page identifies the registrar, but it does not publish the requested opening time. Check the page for updates.',source_urls:[url]});
+ globalThis.fetch=async()=>Response.json(partial);
+ const result=await searchSchoolWeb('What are the current STU registrar opening hours?');
+ assert.equal(result.result?.origin,'web');
+ assert.match(result.result!.answer,/does not publish the requested opening time/);
+ assert.match(result.result!.answer,/\[1\]\(https:\/\/reg.aca.stu.edu.tw\/contact\/\)/);
 });
 test('missing official results broaden to other STU sources without relabeling them official',async()=>{
  let calls=0;globalThis.fetch=async(_input,init)=>{calls++;const body=JSON.parse(String(init?.body));if(calls===1){assert.ok(body.tools[0].filters);return Response.json({output:[]});}assert.equal(body.tools[0].filters,undefined);return Response.json(payload('https://www.moe.gov.tw/stu/'));};

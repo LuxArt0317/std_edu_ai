@@ -52,7 +52,10 @@ function parseWebAnswer(payload, officialOnly) {
     // The local scope gate decides unrelated requests. A model's out_of_scope
     // label cannot veto a relevant school question before the broader search.
     if (result.status === 'out_of_scope') return null;
-    if (result.status !== 'answered' || typeof result.answer !== 'string' || !result.answer.trim() || !Array.isArray(result.source_urls) || !result.source_urls.length || result.source_urls.length > 8) return null;
+    // A live search may verify the correct official page while its current
+    // contents do not establish the requested detail. Preserve that useful,
+    // sourced partial answer instead of falling back to an older KB snapshot.
+    if (!['answered','not_found'].includes(result.status) || typeof result.answer !== 'string' || !result.answer.trim() || !Array.isArray(result.source_urls) || !result.source_urls.length || result.source_urls.length > 8) return null;
     const sources = toolSources(payload,officialOnly);
     const urls = [...new Set(result.source_urls.map(safeWebSource))];
     if (urls.some(url=>!url || !sources.has(url))) return null;
