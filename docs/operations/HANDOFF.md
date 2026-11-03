@@ -1,5 +1,9 @@
 # Client handoff
 
+## Current release — Issue #84 landing-page alignment
+
+The public homepage alignment fix is published at [stu.best](https://stu.best): runtime `55a1d9d8071ba46863b545f78d278c3b890a816d`, [Vercel GR9rJB9McWTbbPnP9TKnjrHvdvWt](https://vercel.com/v1-d286/std_edu_ai/GR9rJB9McWTbbPnP9TKnjrHvdvWt) complete, and [GitHub quality 41618337969](https://github.com/LuxArt0317/std_edu_ai/actions/runs/41618337969) successful. The live mirror script contains the scoped animation/grid correction. Twelve production widths pass 120 entrance-card containment checks with no page errors or sideways scroll; six widths pass 24 existing achievement contrast/number checks. Local 56-state mirror navigation, 214 API/source, 30 unit, build/lint/handoff/dependency and protected client checks pass. Source documents, accounts, roles, DNS and database are unchanged. Broader copied-service/resource coverage and inherited source contrast findings keep #84 open. [Details](../qa/SCHOOL_MIRROR.md#landing-page-alignment-regression).
+
 ## Current release — Issue #88
 
 The official university browser crest is published at [stu.best](https://stu.best): runtime `ab69cadc0c26d0174c357998742145a09deb58a9`, [Vercel A3Aa6aSPqRMraDUEhftpeW1ftCmA](https://vercel.com/v1-d286/std_edu_ai/A3Aa6aSPqRMraDUEhftpeW1ftCmA) Ready, [GitHub quality 41612096996](https://github.com/LuxArt0317/std_edu_ai/actions/runs/41612096996) successful. Live home, School Affairs and sign-in HTML each references `/favicon.png` and `/apple-touch-icon.png` with no inherited Vercel SVG link. The deployed PNG files return HTTP 200 `image/png` and match the official-source files bundled locally by SHA-256. Local API/source, unit, build, lint, handoff, dependency and protected client checks passed. No database, authentication or provider setting changed.

@@ -1,6 +1,7 @@
 # Progress
 
 - 2026-11-03 [#84]: Reproduced the live homepage entrance-label overlap in the captured source frame. Cleared three retained scale transforms, made the ten entrance cards responsive and added a twelve-width regression. Local 120 entrance-card checks, 24 statistics checks, 56 mirror states, 214 API/source, 30 unit, build, lint, handoff, dependency audit and protected client verification pass. Publication is next; source documents/auth/database remain unchanged.
+- 2026-11-03 [#84]: Pushed runtime55a1d9d to client main; Vercel GR9rJB9McWTbbPnP9TKnjrHvdvWt completed and quality41618337969 succeeded. Live SourceMirror-BEkGcBxb.js contains the fix. Production120 entrance checks/12 widths and24 statistics checks/6 widths pass with zero page errors or horizontal overflow. Broader coverage remains open.
 
 - 2026-11-03 [#88]: Compared official www.stu.edu.tw browser icon metadata with stu.best. Official homepage advertises STU crest PNGs; client Vite HTML still references purple Vercel favicon.svg. Located checksum-verified official 150px crest and 500px source already bundled in public assets. Issue #88 opened; implementation and deployment pending.
 - 2026-11-03 [#88]: Replaced the Vercel favicon with byte-identical official STU crest and matching 500px touch icon. Local dist retains both exact hashes and no old SVG. 214 API/source, 30 unit, build, lint, handoff, zero-vulnerability audit and protected client/backend checks passed. Live release pending.

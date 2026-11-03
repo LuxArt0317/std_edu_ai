@@ -1,5 +1,9 @@
 # Current client state
 
+## Issue #84: homepage entrance alignment (published and verified)
+
+The copied homepage retained an in-progress scale animation on entrance cards, painting labels across neighbors. The renderer now clears that captured state and reflows the ten links at narrow widths. Runtime `55a1d9d8071ba46863b545f78d278c3b890a816d` is Ready as Vercel `GR9rJB9McWTbbPnP9TKnjrHvdvWt`; quality `41618337969` succeeded. Production serves `SourceMirror-BEkGcBxb.js` with the fix. Local/live twelve-width suites pass 120 card checks each with no page errors or sideways scrolling; live statistics pass 24 card checks/minimum 9.57:1 contrast. Local 56 mirror states, 214 API/source, 30 unit, build, lint, handoff, dependency and client verification pass. The source documents/links and app auth/database are unchanged. Issue #84 remains open for broader service/resource gaps and inherited source contrast.
+
 ## Issue #89: School Affairs login photo rotation (published and verified)
 
 The official public login uses 16 photos, a varying first photo and Bootstrap timed carousel. All 16 public JPEGs are captured locally with source URLs and verified SHA-256 hashes (two source URLs have identical bytes). The stu.best login implementation now rotates every five seconds, retains previous/next controls, adds pause/play, and starts paused for reduced-motion users. Focused four-width UI/accessibility/auth checks, 214 API/source and 30 unit tests, build, lint, handoff, zero-vulnerability dependency audit and protected client verification pass. Runtime `71902c58ebb64c01787b0dde7f34c7231823411b` is Ready as Vercel `9ZtkfCQFkNH1tAdSt5U99r9njKeA`; quality run `41614222124` passed. Live browser confirmed automatic/manual rotation with no page errors, and all 16 deployed JPEGs return HTTP 200 with exact captured SHA-256 hashes. Google sign-in permissions are unchanged.
