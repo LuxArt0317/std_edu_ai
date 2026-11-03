@@ -35,9 +35,9 @@ export default async function handler(request:ApiRequest,response:ApiResponse) {
   if(!personal(question)) {
     // Vercel deploys each API file as a separate function. Call the public
     // endpoint over HTTP without forwarding the account token or private chat.
-    const deploymentHost=process.env.VERCEL_URL;
-    const publicOrigin=deploymentHost && /^[a-z0-9-]+(?:\.[a-z0-9-]+)*\.vercel\.app$/i.test(deploymentHost)
-      ? `https://${deploymentHost}` : 'https://stu.best';
+    // Deployment-specific Vercel URLs require Vercel Authentication. The
+    // canonical public origin is the service's intentionally open endpoint.
+    const publicOrigin='https://stu.best';
     try {
       const research=await fetch(`${publicOrigin}/api/research-assistant`,{
         method:'POST',signal:AbortSignal.timeout(55_000),
@@ -45,7 +45,7 @@ export default async function handler(request:ApiRequest,response:ApiResponse) {
         body:JSON.stringify({question,history:[],images:input?.images,route:input?.route,consentedResearchUse:false}),
       });
       const result=await research.json().catch(()=>null);
-      if(!result || typeof result!=='object') {response.status(502).json({error:'School research returned an invalid response.'});return;}
+      if(!result || typeof result!=='object' || (!research.ok && typeof result.error!=='string')) {response.status(502).json({error:'School research returned an invalid response.'});return;}
       response.status(research.status).json(result);
     } catch {response.status(503).json({error:'School research is temporarily unavailable. Please try again.'});}
     return;

@@ -25,7 +25,7 @@ test('signed School Affairs directory question never loads Nexus context or tran
  const result=await invoke(affairsHandler,{question:'What is on this page?',route:'/school-affairs/menu/swd/input',history:[{role:'assistant',content:'IM101 Digital Systems Foundations'}]},token);
  assert.equal(result.status,200);assert.equal(result.body.grounding.source,'directory');assert.equal(result.body.citations.length,3);
  assert.doesNotMatch(result.body.answer,/IM101|IM203|Fall Semester 2026|Nexus/);
- assert.equal(calls.length,2);assert.equal(calls[0],'https://example.supabase.co/auth/v1/user');assert.ok(calls[1].endsWith('/api/research-assistant'));
+ assert.deepEqual(calls,['https://example.supabase.co/auth/v1/user','https://stu.best/api/research-assistant']);
 });
 
 test('personal School Affairs question verifies only the Google session and admits missing official enrollment',async()=>{
