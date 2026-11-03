@@ -21,11 +21,11 @@ test('captured directory includes all 94 services and the current General Affair
 
 test('signed School Affairs directory question never loads Nexus context or transmits account to research',async()=>{
  configured();const calls:string[]=[];
- globalThis.fetch=async(input,init)=>{const url=String(input);calls.push(url);if(url.endsWith('/auth/v1/user')){assert.ok(init);assert.equal((init.headers as Record<string,string>).Authorization,token);return new Response(JSON.stringify({id:'00000000-0000-4000-8000-000000000001',email:'student@example.com'}),{status:200});}throw Error(`Unexpected external call: ${url}`);};
+ globalThis.fetch=async(input,init)=>{const url=String(input);calls.push(url);if(url.endsWith('/auth/v1/user')){assert.ok(init);assert.equal((init.headers as Record<string,string>).Authorization,token);return new Response(JSON.stringify({id:'00000000-0000-4000-8000-000000000001',email:'student@example.com'}),{status:200});}if(url.endsWith('/api/research-assistant')){assert.ok(init);assert.equal((init.headers as Record<string,string>).Authorization,undefined);const forwarded=JSON.parse(String(init.body));assert.deepEqual(forwarded.history,[]);assert.equal(forwarded.question,'What is on this page?');const answer=answerDirectoryQuestion(forwarded.question,forwarded.route)!;return new Response(JSON.stringify({...answer,grounding:{source:'directory'}}),{status:200});}throw Error(`Unexpected external call: ${url}`);};
  const result=await invoke(affairsHandler,{question:'What is on this page?',route:'/school-affairs/menu/swd/input',history:[{role:'assistant',content:'IM101 Digital Systems Foundations'}]},token);
  assert.equal(result.status,200);assert.equal(result.body.grounding.source,'directory');assert.equal(result.body.citations.length,3);
  assert.doesNotMatch(result.body.answer,/IM101|IM203|Fall Semester 2026|Nexus/);
- assert.deepEqual(calls,['https://example.supabase.co/auth/v1/user']);
+ assert.equal(calls.length,2);assert.equal(calls[0],'https://example.supabase.co/auth/v1/user');assert.ok(calls[1].endsWith('/api/research-assistant'));
 });
 
 test('personal School Affairs question verifies only the Google session and admits missing official enrollment',async()=>{

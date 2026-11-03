@@ -1,4 +1,3 @@
-import publicAssistant from './research-assistant.ts';
 import { questionKind } from '../server/schoolWebSearch.js';
 import { answerDirectoryQuestion } from '../server/schoolAffairsDirectory.js';
 
@@ -34,8 +33,21 @@ export default async function handler(request:ApiRequest,response:ApiResponse) {
   active.push(now);requestWindows.set(account.id,active);
   if(active.length>24){response.status(429).json({error:'Too many questions. Please wait a moment.'});return;}
   if(!personal(question)) {
-    // Public research receives no JWT, account ID, email or Nexus context.
-    await publicAssistant({...request,headers:{...request.headers,authorization:undefined},body:{question,history:[],images:input?.images,route:input?.route,consentedResearchUse:false}},response);
+    // Vercel deploys each API file as a separate function. Call the public
+    // endpoint over HTTP without forwarding the account token or private chat.
+    const deploymentHost=process.env.VERCEL_URL;
+    const publicOrigin=deploymentHost && /^[a-z0-9-]+(?:\.[a-z0-9-]+)*\.vercel\.app$/i.test(deploymentHost)
+      ? `https://${deploymentHost}` : 'https://stu.best';
+    try {
+      const research=await fetch(`${publicOrigin}/api/research-assistant`,{
+        method:'POST',signal:AbortSignal.timeout(55_000),
+        headers:{'Content-Type':'application/json',...(value(request.headers['x-forwarded-for'])?{'X-Forwarded-For':value(request.headers['x-forwarded-for'])!}:{})},
+        body:JSON.stringify({question,history:[],images:input?.images,route:input?.route,consentedResearchUse:false}),
+      });
+      const result=await research.json().catch(()=>null);
+      if(!result || typeof result!=='object') {response.status(502).json({error:'School research returned an invalid response.'});return;}
+      response.status(research.status).json(result);
+    } catch {response.status(503).json({error:'School research is temporarily unavailable. Please try again.'});}
     return;
   }
   if(Array.isArray(input?.images) && input.images.length) {response.status(400).json({error:'For private account questions, remove the image and ask using text. Images are not stored as account records.'});return;}
