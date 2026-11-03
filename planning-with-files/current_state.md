@@ -1,8 +1,8 @@
 # Current client state
 
-## Issue #89: School Affairs login photo rotation (local verification)
+## Issue #89: School Affairs login photo rotation (published and verified)
 
-The official public login uses 16 photos, a varying first photo and Bootstrap timed carousel. All 16 public JPEGs are captured locally with source URLs and verified SHA-256 hashes (two source URLs have identical bytes). The stu.best login implementation now rotates every five seconds, retains previous/next controls, adds pause/play, and starts paused for reduced-motion users. Focused four-width UI/accessibility/auth checks, 214 API/source and 30 unit tests, build, lint, handoff, zero-vulnerability dependency audit and protected client verification pass locally. Publication and live verification are pending; Google sign-in permissions are unchanged.
+The official public login uses 16 photos, a varying first photo and Bootstrap timed carousel. All 16 public JPEGs are captured locally with source URLs and verified SHA-256 hashes (two source URLs have identical bytes). The stu.best login implementation now rotates every five seconds, retains previous/next controls, adds pause/play, and starts paused for reduced-motion users. Focused four-width UI/accessibility/auth checks, 214 API/source and 30 unit tests, build, lint, handoff, zero-vulnerability dependency audit and protected client verification pass. Runtime `71902c58ebb64c01787b0dde7f34c7231823411b` is Ready as Vercel `9ZtkfCQFkNH1tAdSt5U99r9njKeA`; quality run `41614222124` passed. Live browser confirmed automatic/manual rotation with no page errors, and all 16 deployed JPEGs return HTTP 200 with exact captured SHA-256 hashes. Google sign-in permissions are unchanged.
 
 ## Issue #88: official STU browser icon (published and verified)
 
