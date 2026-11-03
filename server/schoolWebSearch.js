@@ -57,9 +57,13 @@ function parseWebAnswer(payload, officialOnly) {
     // sourced partial answer instead of falling back to an older KB snapshot.
     if (!['answered','not_found'].includes(result.status) || typeof result.answer !== 'string' || !result.answer.trim() || !Array.isArray(result.source_urls) || !result.source_urls.length || result.source_urls.length > 8) return null;
     const sources = toolSources(payload,officialOnly);
-    const urls = [...new Set(result.source_urls.map(safeWebSource))];
-    if (urls.some(url=>!url || !sources.has(url))) return null;
     let answer = result.answer.replace(/\uE200cite\uE202[^\uE201]*\uE201/g,'').slice(0,6500).trim();
+    const answerUrls = [...answer.matchAll(/https?:\/\/[^\s<>"\])]+/g)].map(match => safeWebSource(match[0].replace(/[.,;!?]+$/,'')));
+    // The provider can place a genuine retrieved URL in the answer while
+    // omitting it from source_urls. Include that URL when the actual tool
+    // metadata corroborates it; reject any invented or unsafe destination.
+    const urls = [...new Set([...result.source_urls.map(safeWebSource), ...answerUrls])];
+    if (urls.length > 8 || urls.some(url=>!url || !sources.has(url))) return null;
     // A model cannot smuggle an invented or unsafe clickable link beside valid citations.
     for (const link of answer.matchAll(/\[[^\]]*\]\(([^\s)]+)\)/g)) if (!urls.includes(safeWebSource(link[1]))) return null;
     const citations = urls.map(url => ({
@@ -69,7 +73,6 @@ function parseWebAnswer(payload, officialOnly) {
       url,locator:null,effectiveAt:null,reviewedAt:null,origin:'web',
     }));
     // Render provider source metadata as actual clickable Markdown rather than opaque tokens.
-    for (const link of answer.matchAll(/https?:\/\/[^\s<>"\])]+/g)) if (!urls.includes(safeWebSource(link[0].replace(/[.,;!?]+$/,'')))) return null;
     const links = citations.map((item,index)=>`[${index+1}](${item.url})`).join(' · ');
     answer += `\n\n${/[\u3400-\u9fff]/.test(answer)?'網路來源':'Web sources'}: ${links}`;
     return {answer,citations,origin:'web',checkedAt:new Date().toISOString(),officialOnly};
@@ -123,6 +126,7 @@ export async function searchSchoolWeb(question, options = {}) {
       let parsed = null;
       try { parsed = JSON.parse(outputText); } catch { /* Only report structure, never model text. */ }
       const sources = toolSources(payload,officialOnly);
+      const answerUrls = typeof parsed?.answer === 'string' ? [...parsed.answer.matchAll(/https?:\/\/[^\s<>"\])]+/g)].map(match => safeWebSource(match[0].replace(/[.,;!?]+$/,''))) : [];
       console.warn('school web search returned no verifiable answer', {
         officialOnly,
         responseStatus: payload?.status || null,
@@ -134,6 +138,8 @@ export async function searchSchoolWeb(question, options = {}) {
         answerLength: typeof parsed?.answer === 'string' ? parsed.answer.length : 0,
         citedCount: Array.isArray(parsed?.source_urls) ? parsed.source_urls.length : 0,
         citedSourceMatches: Array.isArray(parsed?.source_urls) ? parsed.source_urls.filter(url => sources.has(safeWebSource(url))).length : 0,
+        answerUrlCount: answerUrls.length,
+        answerUrlSourceMatches: answerUrls.filter(url => sources.has(url)).length,
       });
     } catch (error) {
       console.warn('school web search request failed', {

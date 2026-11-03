@@ -41,6 +41,16 @@ test('live search keeps a sourced partial answer when the exact detail is unavai
  assert.match(result.result!.answer,/does not publish the requested opening time/);
  assert.match(result.result!.answer,/\[1\]\(https:\/\/reg.aca.stu.edu.tw\/contact\/\)/);
 });
+test('a retrieved URL in answer text is cited even if the model omits it from source_urls',async()=>{
+ const hours='https://www.lib.stu.edu.tw/service/faq/';
+ const answer=`The official library FAQ is available at ${hours}`;
+ const candidate=payload(url,url,answer);
+ (candidate.output[0] as {action:{sources:Array<{url:string,title:string}>}}).action.sources.push({url:hours,title:'Library FAQ'});
+ globalThis.fetch=async()=>Response.json(candidate);
+ const result=await searchSchoolWeb('Where is the STU library FAQ?');
+ assert.equal(result.result?.origin,'web');
+ assert.deepEqual(result.result!.citations.map(c=>c.url),[url,hours]);
+});
 test('missing official results broaden to other STU sources without relabeling them official',async()=>{
  let calls=0;globalThis.fetch=async(_input,init)=>{calls++;const body=JSON.parse(String(init?.body));if(calls===1){assert.ok(body.tools[0].filters);return Response.json({output:[]});}assert.equal(body.tools[0].filters,undefined);return Response.json(payload('https://www.moe.gov.tw/stu/'));};
  const result=await searchSchoolWeb('STU study opportunities');assert.equal(calls,2);assert.equal(result.result?.officialOnly,false);assert.match(result.result!.citations[0].sourceName,/External source/);
