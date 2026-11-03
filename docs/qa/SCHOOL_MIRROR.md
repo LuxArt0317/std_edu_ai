@@ -1,5 +1,11 @@
 # Local school-page mirror — Issue #84
 
+## Landing-page alignment regression
+
+The copied homepage contained an in-progress Elementor scale transform on entrance widgets. Source scripts are deliberately disabled in the mirror, so the enlarged labels painted across neighboring cards. The trusted renderer now clears only those captured transforms on the homepage and applies a responsive 10/5/2/1-column entrance grid. The original page documents, link destinations and source checksums are unchanged.
+
+`npm run test:school-home-layout` checks every entrance title and description at twelve widths (1984–320px), including the 1400/1399 and 768/767 column transitions. Local verification passed all 120 card states, with no sideways page scroll or page errors. The existing statistics check passed 24 cards at six widths and kept its 9.57:1 minimum contrast. The 56-state mirror suite passed source navigation and controls; its 24 inherited source color-contrast findings remain documented. Build, 214 API/source tests, 30 units, lint, handoff, dependency audit and protected client checks passed before release. Visual comparison used the user's official STU screenshots because direct source browsing was unavailable in this session; this establishes the corrected dimensions and overflow behavior, not pixel-perfect equivalence.
+
 This website copy uses dated, public, browser-observed source HTML and self-hosted styles, fonts and images. It does not proxy the university at runtime. The homepage and all ten audience entrances use the source layouts; existing School Affairs/mySTU previews and Nexus account boundaries stay separate.
 
 ## Coverage and limits

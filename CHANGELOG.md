@@ -1,6 +1,10 @@
 # Changelog
 ## Unreleased
 
+### University landing-page alignment (Issue #84)
+
+- Restore the source-sized entrance labels after inert captured animations, and reflow the ten audience links for narrower screens so titles stay inside their cards.
+
 ### School Affairs login photos (Issue #89)
 
 - Restore all 16 source-verified ePortal campus photos, a varying first photo, timed rotation, previous/next controls and an accessible pause control. Reduced-motion visitors start paused.

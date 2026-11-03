@@ -80,7 +80,8 @@
     "test:school-mirror": "node tests/integration/school-mirror-ui.mjs",
     "pack:school-documents": "node scripts/pack-school-documents.mjs",
     "test:school-documents": "node tests/integration/school-document-bundle.mjs",
-    "test:school-statistics": "node tests/integration/school-statistics-ui.mjs"
+    "test:school-statistics": "node tests/integration/school-statistics-ui.mjs",
+    "test:school-home-layout": "node tests/integration/school-home-layout-ui.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.5",

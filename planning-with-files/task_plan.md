@@ -1,5 +1,12 @@
 # Task Plan
 
+## Landing-page alignment regression [Issue #84]
+
+- [x] Reproduce the crowded entrance labels on stu.best and compare with the user's official STU screenshots.
+- [x] Remove the captured animation scale and restore ten/five/two/one-column entrance spacing without changing source documents or links.
+- [x] Verify all entrance labels and page width across desktop/tablet/phone widths, then run existing mirror/statistics and release gates.
+- [ ] Publish the verified client release and confirm the live layout; update the issue and handoff.
+
 ## School Affairs login photo rotation [Issue #89]
 
 - [x] Capture and verify all 16 public photos used by the official ePortal login.

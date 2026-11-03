@@ -75,6 +75,31 @@ function configureDocument(doc: Document, navigate: (url: string) => void) {
     doc.head.append(style);
     cleanups.push(() => style.remove());
   }
+  // The captured home page retains Elementor's in-progress scale animation.
+  // With scripts disabled, that transform never settles and the ten entrance
+  // labels paint over adjacent cards. Restore the final layout in the mirror.
+  const homeEntrances = doc.querySelector(".elementor-element-93788b9");
+  if (homeEntrances) {
+    const style = doc.createElement("style");
+    style.dataset.mirrorHomeLayout = "true";
+    style.textContent = `
+      .elementor-element-93788b9 { width:min(1920px,92%)!important; margin-inline:auto!important; grid-auto-flow:row!important; grid-template-columns:repeat(10,minmax(0,1fr))!important; --e-con-grid-template-columns:repeat(10,minmax(0,1fr))!important }
+      .elementor-element-93788b9 > .e-con { min-width:0!important; overflow:hidden }
+      .elementor-element-93788b9 .elementor-widget-container { transition:none!important }
+      .elementor-element-93788b9 .elementor-image-box-title { font-size:clamp(15px,1.42vw,28px)!important; line-height:1.2!important; white-space:nowrap!important }
+      .elementor-element-93788b9 .elementor-image-box-description { font-size:clamp(11px,.9vw,14px)!important; line-height:1.4!important; overflow-wrap:anywhere }
+      @media(max-width:1399px) { .elementor-element-93788b9 { grid-template-columns:repeat(5,minmax(0,1fr))!important; --e-con-grid-template-columns:repeat(5,minmax(0,1fr))!important } }
+      @media(max-width:767px) { .elementor-element-93788b9 { grid-template-columns:repeat(2,minmax(0,1fr))!important; --e-con-grid-template-columns:repeat(2,minmax(0,1fr))!important } }
+      @media(max-width:479px) { .elementor-element-93788b9 { grid-template-columns:minmax(0,1fr)!important; --e-con-grid-template-columns:minmax(0,1fr)!important } .elementor-element-93788b9 .elementor-image-box-title { font-size:28px!important } }
+    `;
+    doc.head.append(style);
+    homeEntrances.querySelectorAll<HTMLElement>(".elementor-widget-container[style*='scale']").forEach((widget) => {
+      widget.style.removeProperty("transform");
+      widget.style.removeProperty("will-change");
+      widget.getAnimations?.().forEach((animation) => animation.cancel());
+    });
+    cleanups.push(() => style.remove());
+  }
   const selectTab = (tab: HTMLElement) => {
     const group = tab.closest("[role=tablist]") || tab.parentElement;
     if (!group) return;
