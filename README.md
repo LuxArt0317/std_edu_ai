@@ -1,10 +1,11 @@
 # STU Edu AI
 
-Live portal: [Sign in](https://stdeduai.vercel.app/signin) · [Dashboard](https://stdeduai.vercel.app/app).
+Live portal: [School Affairs](https://stu.best/school-affairs) · [Nexus sign in](https://stu.best/signin) · [Dashboard](https://stu.best/app).
 
 A bilingual university website and authenticated school platform built with React, TypeScript, Vite, Supabase, and Vercel.
 
 - `/` — public university homepage, campus information, and research assistant.
+- `/school-affairs` — independent school service directory, Google site sign-in and campus assistant; [assistant scope](docs/qa/SCHOOL_AFFAIRS_ASSISTANT.md).
 - `/signin` — sign in and password recovery.
 - `/signup` — public student registration with email verification.
 - `/login` and `/crm` — compatibility redirects.

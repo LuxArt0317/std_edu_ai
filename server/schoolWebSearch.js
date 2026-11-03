@@ -25,7 +25,7 @@ export function safeWebSource(value) {
   try {
     const url = new URL(value);
     const host = url.hostname.toLowerCase();
-    if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443') || isIP(host.replace(/^\[|\]$/g,'')) || !host.includes('.') || /(?:^|\.)(?:localhost|local|internal|test|invalid)$/.test(host)) return null;
+    if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443') || isIP(host.replace(/^\[|\]$/g,'')) || !host.includes('.') || /(?:^|\.)(?:localhost|local|internal|test|invalid)$/.test(host) || ['stu.best','www.stu.best','stdeduai.vercel.app'].includes(host)) return null;
     for (const key of url.searchParams.keys()) if (/token|password|secret|saml|session|ticket|authorization|api.?key|^code$/i.test(key)) return null;
     for (const key of [...url.searchParams.keys()]) if (/^utm_|^(?:gclid|fbclid|mc_cid|mc_eid)$/i.test(key)) url.searchParams.delete(key);
     url.hash=''; return url.href;
@@ -59,6 +59,7 @@ function parseWebAnswer(payload, officialOnly, chineseQuestion) {
     if (!['answered','not_found'].includes(result.status) || typeof result.answer !== 'string' || !result.answer.trim() || !Array.isArray(result.source_urls) || !result.source_urls.length || result.source_urls.length > 8) return null;
     const sources = toolSources(payload,officialOnly);
     let answer = result.answer.replace(/\uE200cite\uE202[^\uE201]*\uE201/g,'').slice(0,6500).trim();
+    if (/(?:STU Nexus|IM101|IM203|Fall Semester 2026)/i.test(answer)) return null;
     answer = answer.replace(/https?:\/\/[^\s<>"\])]+/g, raw => {
       const withoutPunctuation = raw.replace(/[.,;!?]+$/,'');
       const canonical = safeWebSource(withoutPunctuation);
@@ -105,6 +106,7 @@ export async function searchSchoolWeb(question, options = {}) {
           tool_choice:'required',include:['web_search_call.action.sources'],reasoning:{effort:'low'},store:false,max_output_tokens:1600,
           instructions:[
             'You help visitors and students of Shu-Te University (樹德科技大學), Kaohsiung, Taiwan. STU here means Shu-Te, not another university.',
+            'School Affairs is independent of the STU Nexus app. Never use the Nexus demo catalog, classes, terms, account context or stu.best pages as evidence for university facts.',
             'Be proactive and helpful for all school information, campus life, offices, contacts, admissions, services, courses, announcements, transport and practical website help. A vague school question defaults to Shu-Te. Use the public question to search before giving up; try Chinese/English school and office names. Answer the parts supported by evidence even if another detail cannot be verified. Do not refuse just because the answer is absent from a managed knowledge base.',
             officialOnly?'Search the official STU website and its subdomains first.':'Official search was insufficient. Search reliable sources about Shu-Te more broadly; prefer official university and government sources. Clearly identify third-party information and dates; never present a third-party account as official policy.',
             'Use the web_search tool for factual school answers. If the task is completely unrelated (such as writing/debugging arbitrary software), return out_of_scope. Simple website/login/course-code navigation questions are in scope, not programming requests.',

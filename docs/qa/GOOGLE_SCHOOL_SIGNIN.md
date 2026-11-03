@@ -8,7 +8,7 @@ Auth restores are verified with Supabase `getUser`; local JWT contents alone can
 
 New users retain the existing trusted student-default database trigger. Existing protected owner roles are preserved. Google verifies identity; it does not establish university enrollment. The portal queries an active student record only by the verified user's `profile_id`, with caller RLS. Missing records show an explicit empty state, not a sample student or fee. Preferences are partitioned by user ID.
 
-Public AI stays anonymous when School Affairs is signed out. Signed-in chat explicitly uses only the School Affairs JWT, read-only QA mode and the existing server-loaded/RLS-authorized context. It never borrows Nexus storage. Conversations are reset and pending requests cancelled when the School Affairs identity changes. University services in the reference catalog still require their own authorized official access.
+Public AI stays anonymous when School Affairs is signed out. Signed-in chat verifies only the School Affairs JWT and uses the separate School Affairs endpoint; it does not load the Nexus operating context, courses, terms or students. Public questions discard account identity and prior private turns before retrieval. Conversations are reset and pending requests cancelled when the School Affairs identity changes. University services in the reference catalog still require their own authorized official access. [Assistant behavior and verification](SCHOOL_AFFAIRS_ASSISTANT.md).
 
 The sign-in button uses the unmodified [Google G branding asset](https://developers.google.com/identity/branding-guidelines) on a light button.
 

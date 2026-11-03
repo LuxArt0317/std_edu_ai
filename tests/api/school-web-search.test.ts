@@ -20,7 +20,7 @@ test('school scope supports bilingual campus information but excludes private re
  assert.equal(publicSchoolQuestion('What are their grades?'),null);
 });
 test('source validation rejects unsafe/protected destinations and literal IPs',()=>{
- for(const value of ['javascript:alert(1)','http://example.com','https://127.0.0.1','https://[::1]/','https://user:pass@example.com','https://example.com:8443','https://example.com/?access_token=secret','https://example.com/?SAMLRequest=secret'])assert.equal(safeWebSource(value),null,value);
+ for(const value of ['javascript:alert(1)','http://example.com','https://127.0.0.1','https://[::1]/','https://user:pass@example.com','https://example.com:8443','https://example.com/?access_token=secret','https://example.com/?SAMLRequest=secret','https://stu.best/app','https://stdeduai.vercel.app/app'])assert.equal(safeWebSource(value),null,value);
  assert.equal(safeWebSource(url+'#office'),url);
  assert.equal(safeWebSource(url+'?utm_source=openai&fbclid=abc'),url);
 });
@@ -74,6 +74,11 @@ test('model-invented citations, missing completed search and hostile links never
  for(const candidate of [payload(url,'https://invented.example.org/'),payload(url,url,'Click [help](javascript:alert(1))'),payload(url,url,'Open <https://evil.example.org>'),{output:[{type:'message',content:[{text:JSON.stringify({status:'answered',answer:'Invented fact',source_urls:[url]})}]}]}]){
   globalThis.fetch=async()=>Response.json(candidate);assert.equal((await searchSchoolWeb('STU contacts')).result,null);
  }
+});
+test('School Affairs web answers cannot use Nexus demo catalog facts',async()=>{
+ process.env.OPENAI_API_KEY='test-openai';
+ globalThis.fetch=async()=>Response.json(payload(url,url,'STU Nexus lists IM101 for Fall Semester 2026.'));
+ assert.equal((await searchSchoolWeb('What courses are at Shu-Te University?')).result,null);
 });
 test('private questions and exhausted deadline perform no web requests',async()=>{
  let calls=0;globalThis.fetch=async()=>{calls++;throw Error('must not request');};

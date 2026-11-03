@@ -1,6 +1,7 @@
 export type AssistantFeedbackCapability = { token: string; expiresAt: string };
 export type AssistantResponse = {
   grounding?: {source?:string;webSearched?:boolean;checkedAt?:string;degraded?:boolean};
+  activity?: Array<{kind:string;label:string;detail:string;status:'complete'|'unavailable'}>;
   answer: string;
   status: "answered" | "clarification" | "abstained" | "handoff";
   citations: Array<{
@@ -35,6 +36,8 @@ export async function askCampusAssistant(
   question: string,
   history: Array<{role:string;content:string}> = [],
   signal?: AbortSignal,
+  images: Array<{name:string;dataUrl:string}> = [],
+  route = '',
 ): Promise<AssistantResponse> {
   const normalizedQuestion = question.trim();
   if (!normalizedQuestion) {
@@ -52,6 +55,8 @@ export async function askCampusAssistant(
       history: conversation,
       consentedResearchUse: false,
       sessionToken: researchSessionToken(),
+      images,
+      route,
     }),
   });
   const payload = (await response.json().catch(() => null)) as

@@ -1,6 +1,12 @@
 # Changelog
 ## Unreleased
 
+### School Affairs assistant isolation (Issue #87)
+
+- Give School Affairs Google sessions an independent, read-only chat route that verifies the stu.best identity and never reads Nexus course, student, term or schedule data.
+- Answer captured School Affairs service/menu questions from all 94 catalog links with official destinations and dated snapshot limits; retain governed public knowledge and verified web search for broader school facts.
+- Add validated image attachments and a visible source/activity panel. Images are processed only for the submitted answer, and private model reasoning is not displayed.
+
 ### Helpful STU Assistant (Issue #86)
 
 - Search managed knowledge first, then live official STU pages and broader school-related sources when current or missing public details need verification. Show only source URLs returned by the web tool and label external sources separately.

@@ -48,15 +48,26 @@ try {
  assert.equal(calls.filter(c=>c.pathname==='/auth/v1/token').length,1,'StrictMode exchanges one-use code once');
  assert.ok(calls.some(c=>c.pathname==='/rest/v1/students'&&c.search.includes('profile_id=eq.'+affairsTestUser.id)));
  assert.equal(await page.getByText('12,000',{exact:true}).count(),0);
- await page.route('**/api/school-assistant',async route=>{
+ await page.route('**/api/affairs-assistant',async route=>{
   const authorization=route.request().headers().authorization;assert.ok(authorization?.startsWith('Bearer '));
   const payload=JSON.parse(Buffer.from(authorization.split('.')[1],'base64url').toString());assert.equal(payload.sub,affairsTestUser.id);
-  const body=route.request().postDataJSON();assert.equal(body.mode,'qa');assert.equal(body.context.view,'school-affairs');
-  await route.fulfill({json:{answer:'No linked subjects are available for this account.',knowledgeCitations:[]}});
+  const body=route.request().postDataJSON();assert.ok(['What are my current subjects?','What is in this screenshot?'].includes(body.question));assert.equal(body.route,'/school-affairs');
+  await route.fulfill({json:body.images?.length?{answer:'The image shows a School Affairs service menu.',citations:[],activity:[{kind:'image',label:'Read the attached image',detail:'1 image analyzed',status:'complete'}]}:{answer:'No linked subjects are available for this account.',citations:[],activity:[{kind:'account',label:'Verified the stu.best account session',detail:'No university or Nexus records were accessed',status:'complete'}]}});
  });
  await page.getByRole('button',{name:'開啟 AI 校園助理',exact:true}).click();
  await page.getByRole('button',{name:'What are my current subjects?',exact:true}).click();
  await page.getByText('No linked subjects are available for this account.',{exact:true}).waitFor();
+ await page.getByText('How I checked',{exact:true}).click();
+ await page.getByText('Verified the stu.best account session',{exact:true}).waitFor();
+ const image=Buffer.concat([Buffer.from('89504e470d0a1a0a','hex'),Buffer.alloc(40)]);
+ await page.locator('.public-assistant-surface input[type=file]').setInputFiles({name:'school-menu.png',mimeType:'image/png',buffer:image});
+ await page.getByRole('list',{name:'Attached images'}).getByText('school-menu.png').waitFor();
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'image composer must fit phone width');
+ await page.getByLabel('Your question').fill('What is in this screenshot?');
+ await page.getByRole('button',{name:'Send',exact:true}).click();
+ await page.getByText('The image shows a School Affairs service menu.',{exact:true}).waitFor();
+ await page.getByText('How I checked',{exact:true}).last().click();
+ await page.getByText('Read the attached image',{exact:true}).waitFor();
  await page.keyboard.press('Escape');
  await page.route('**/rest/v1/students?**',route=>route.fulfill({json:[{student_number:'LOCAL-QA-001',full_name:'Linked Student',program:'Information Management',year_level:'1'}]}));
  await page.reload();await page.locator('.portal-content').waitFor();

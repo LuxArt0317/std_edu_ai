@@ -1,5 +1,9 @@
 # Client handoff
 
+## Pending release — Issue #87
+
+The School Affairs chatbot source-boundary correction is implemented locally and is awaiting the exact client deployment and live model check. Signed-in chat no longer uses the Nexus assistant/context; it verifies the stu.best account only. The captured 94-link directory supplies service answers, while public knowledge and verified STU web search support broader questions. The drawer supports validated image attachments and shows actual source/research activity, without private model reasoning. Official university personal records and the Google real callback remain unconnected/unverified. [Scope and local checks](../qa/SCHOOL_AFFAIRS_ASSISTANT.md).
+
 ## Current release — Issues #83 and #86
 
 Published at [stu.best](https://stu.best): runtime `26166bb1f0fac36eba5437e575e403cd91b18150`, [Vercel CNYWCeXWMycuUeXpGfchmE2mcTCU](https://vercel.com/v1-d286/std_edu_ai/CNYWCeXWMycuUeXpGfchmE2mcTCU) Ready, [quality 41567024916](https://github.com/LuxArt0317/std_edu_ai/actions/runs/41567024916) successful. The existing entry `index-qftySYaF.js` remains; the changes are server behavior and the previously bundled Google UI. Local 209 API/source tests, 30 units, 11 public accessibility states, four-width synthetic Google security/session flow, 25 portal views/23 states, TypeScript/build/lint/docs/dependencies and protected client verification pass.

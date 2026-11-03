@@ -39,10 +39,10 @@ test("School Affairs account preferences cannot bleed across identities or inher
  }finally{if(previous)Object.defineProperty(globalThis,"localStorage",previous);else delete (globalThis as any).localStorage;}
 });
 
-test("School Affairs assistant uses its own JWT and read-only mode, never Nexus storage",()=>{
+test("School Affairs assistant uses its own JWT and endpoint, never Nexus storage",()=>{
  const service=readFileSync("src/services/schoolAffairsAssistant.ts","utf8");
- assert.match(service,/affairsClient.auth.getSession/);assert.match(service,/mode:'qa'/);
- assert.doesNotMatch(service,/utils\/supabase|stu-nexus-auth/);
+ assert.match(service,/affairsClient.auth.getSession/);assert.match(service,/\/api\/affairs-assistant/);
+ assert.doesNotMatch(service,/\/api\/school-assistant|utils\/supabase|stu-nexus-auth/);
  const shell=readFileSync("src/features/public/PublicSite.tsx","utf8");assert.match(shell,/key=\{user\?\.id \|\| "anonymous"\}/);
 });
 

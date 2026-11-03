@@ -7,7 +7,7 @@ STU Edu AI combines a public university website with STU Nexus, an authenticated
 | Path | Purpose |
 | --- | --- |
 | `src/features/` | Auth, school, CRM, curriculum, research, and public product modules |
-| `src/features/public/affairs/` | Source-preserving School Affairs portal, isolated Google PKCE accounts, linked student records and account-specific preferences |
+| `src/features/public/affairs/` | Source-preserving School Affairs portal, isolated Google PKCE accounts, captured 94-service directory and account-specific preferences |
 | `src/features/public/site/` | Public reference catalogues, preview disclosure and inert mySTU SSO preview |
 | `src/features/public/mirror/` | Inert source-page renderer, local routing policy and versioned page/asset/coverage manifests |
 | `src/features/auth/` | Sign-in, student signup, session guards and shared password policy |
@@ -15,8 +15,8 @@ STU Edu AI combines a public university website with STU Nexus, an authenticated
 | `src/components/ui/` | Official shadcn/ui source primitives |
 | `src/components/`, `src/lib/`, `src/hooks/` | Shared form adapters, interactions, utilities and hooks |
 | `src/styles/` | Tailwind v4 semantic brand tokens and shared component styling |
-| `api/` | Vercel server endpoints |
-| `server/` | Shared authentication, retrieval, evaluation, and operations services |
+| `api/` | Vercel server endpoints; [public, School Affairs and Nexus boundaries](api/README.md) |
+| `server/` | Shared authentication, retrieval, evaluation, and [School Affairs directory services](server/README.md) |
 | `supabase/` | Versioned database migrations, function sources, and database certificate |
 | `scripts/` | Build, documentation, migration, and evidence verification tools |
 | `tests/` | API contracts, integration, accessibility, and performance checks |
@@ -39,7 +39,7 @@ Product requirements and historic research claims are indexed in [docs/README.md
 
 ## Design system and verification — Issue #74
 
-Uses the official shadcn/ui component sources, Tailwind v4 via @tailwindcss/vite, Radix primitives, and shared semantic brand tokens. Component/unit and browser E2E checks use Testing Library and Playwright. Documentation is centralized under docs/; runtime and test folders contain no Markdown. Legacy specialized layouts remain in feature CSS within a lower-priority cascade layer, while the shared controls, dialogs, navigation, tabs and theme use shadcn/ui and Tailwind.
+Uses the official shadcn/ui component sources, Tailwind v4 via @tailwindcss/vite, Radix primitives, and shared semantic brand tokens. Component/unit and browser E2E checks use Testing Library and Playwright. Detailed documentation is centralized under docs/; touched runtime and test folders have short purpose READMEs. Legacy specialized layouts remain in feature CSS within a lower-priority cascade layer, while the shared controls, dialogs, navigation, tabs and theme use shadcn/ui and Tailwind.
 
 The GitHub quality workflow runs the safe, non-mutating checks without client credentials. Live E2E QA uses isolated client fixtures and keeps sessions/traces in ignored local artifacts. Playwright packages share the same version. The rich editor is loaded separately; no JavaScript chunk exceeds the default 500 kB build advisory threshold in the current build.
 

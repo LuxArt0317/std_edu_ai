@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, Send, RotateCcw } from "lucide-react";
+import { MessageCircle, Send, RotateCcw, Paperclip, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -23,6 +23,7 @@ type Message = {
   role: "user" | "assistant";
   content: string;
   result?: AssistantResponse;
+  images?: Array<{name:string;dataUrl:string}>;
 };
 const questions = [
   "註冊課務組的聯絡電話？",
@@ -35,9 +36,11 @@ export function PublicAssistant() {
   const [open, setOpen] = useState(false),
     [messages, setMessages] = useState<Message[]>([]),
     [query, setQuery] = useState(""),
+    [images, setImages] = useState<Array<{name:string;dataUrl:string}>>([]),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const viewport = useRef<HTMLDivElement>(null),
+    fileInput = useRef<HTMLInputElement>(null),
     pending = useRef<AbortController | null>(null),
     sequence = useRef(0);
   useEffect(() => () => {pending.current?.abort();}, []);
@@ -48,16 +51,18 @@ export function PublicAssistant() {
     });
   }, [messages, busy]);
   async function send(text = query) {
-    const question = text.trim();
+    const attached = images;
+    const question = text.trim() || (attached.length ? "Please explain the attached image." : "");
     if (!question || busy) return;
     const request = ++sequence.current,
       controller = new AbortController();
     pending.current = controller;
     setMessages((old) => [
       ...old,
-      { id: `u-${request}`, role: "user", content: question },
+      { id: `u-${request}`, role: "user", content: question, images:attached },
     ]);
     setQuery("");
+    setImages([]);
     setError("");
     setBusy(true);
     try {
@@ -65,6 +70,8 @@ export function PublicAssistant() {
         question,
         messages,
         controller.signal,
+        attached,
+        window.location.pathname,
       );
       if (request === sequence.current)
         setMessages((old) => [
@@ -85,6 +92,23 @@ export function PublicAssistant() {
       if (request === sequence.current) setBusy(false);
     }
   }
+  async function addImages(files: FileList | null) {
+    if (!files?.length) return;
+    setError("");
+    const next = [...images];
+    for (const file of Array.from(files)) {
+      if (next.length >= 2) { setError("Attach up to two images per message."); break; }
+      if (!["image/png","image/jpeg","image/webp"].includes(file.type) || file.size > 1_500_000 || file.size < 32) {
+        setError("Use PNG, JPEG or WebP images under 1.5 MB each."); continue;
+      }
+      try {
+        const dataUrl = await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error("Image could not be read"));reader.readAsDataURL(file);});
+        next.push({name:file.name.slice(0,120),dataUrl});
+      } catch { setError("That image could not be read. Please try another file."); }
+    }
+    setImages(next);
+    if (fileInput.current) fileInput.current.value = "";
+  }
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
@@ -104,7 +128,7 @@ export function PublicAssistant() {
         <header className="border-b px-5 py-5 pr-12">
           <SheetTitle>校園助理 · Assistant</SheetTitle>
           <SheetDescription id="public-assistant-description" className="mt-2">
-            {user ? "Signed in with School Affairs. Answers use only records your account is authorized to view; Google sign-in does not import university records." : "Public school information. Sign in to School Affairs for your linked account records."}
+            {user ? "Signed in to stu.best. I can explain the school service directory and public school information; official personal courses and grades are not connected." : "Ask about School Affairs services and public school information. Personal university records need separate official access."}
           </SheetDescription>
         </header>
         <div className="flex items-center justify-between gap-3 border-b px-5 py-2 text-sm">
@@ -117,11 +141,12 @@ export function PublicAssistant() {
           <Button
             size="sm"
             variant="ghost"
-            disabled={busy || !messages.length}
+            disabled={busy || (!messages.length && !images.length)}
             onClick={() => {
               sequence.current++;
               pending.current?.abort();
               setMessages([]);
+              setImages([]);
               setError("");
             }}
           >
@@ -166,13 +191,12 @@ export function PublicAssistant() {
                 {message.role === "user" ? "You" : "Assistant"}
               </p>
               {message.role === "user" ? (
-                <p className="whitespace-pre-wrap text-sm [overflow-wrap:anywhere]">
-                  {message.content}
-                </p>
+                <><p className="whitespace-pre-wrap text-sm [overflow-wrap:anywhere]">{message.content}</p>{message.images?.map(image=><img key={image.name} src={image.dataUrl} alt={`Attached ${image.name}`} className="mt-2 max-h-40 max-w-full rounded-md object-contain" />)}</>
               ) : (
                 <AssistantMarkdown>{message.content}</AssistantMarkdown>
               )}
               {message.result?.grounding?.source === "web" && <p className="text-xs text-muted-foreground">Found online · See sources below.</p>}
+              {message.result && <details className="rounded-md border px-3 py-2 text-xs"><summary className="cursor-pointer font-medium">How I checked</summary><ol className="mt-2 space-y-2 text-muted-foreground">{(message.result.activity?.length ? message.result.activity : message.result.grounding?.source === 'web' ? [{kind:'web',label:'Searched public web sources',detail:'Open the linked sources below to verify the answer.',status:'complete' as const}] : message.result.grounding?.source === 'knowledge' ? [{kind:'knowledge',label:'Checked managed school knowledge',detail:'See reviewed sources below.',status:'complete' as const}] : [{kind:'answer',label:'Answered from available context',detail:'No external search was used for this response.',status:'complete' as const}]).map((step,index)=><li key={`${step.kind}-${index}`}><strong className="text-foreground">{step.label}</strong><span className="block">{step.detail}</span></li>)}</ol><p className="mt-2 text-muted-foreground">This shows source checks and tool activity, not private model reasoning.</p></details>}
               {message.result?.citations.length ? (
                 <ul
                   className="space-y-2 border-t pt-3 text-xs"
@@ -225,6 +249,7 @@ export function PublicAssistant() {
               {error}
             </p>
           ) : null}
+          {images.length ? <ul className="flex flex-wrap gap-2" aria-label="Attached images">{images.map((image,index)=><li key={`${image.name}-${index}`} className="flex items-center gap-2 rounded-md border bg-muted px-2 py-1 text-xs"><img src={image.dataUrl} alt="" className="h-9 w-9 rounded object-cover"/><span className="max-w-28 truncate">{image.name}</span><Button type="button" size="icon" variant="ghost" className="h-7 w-7" aria-label={`Remove ${image.name}`} onClick={()=>setImages(old=>old.filter((_,i)=>i!==index))}><X size={14}/></Button></li>)}</ul>:null}
           <label htmlFor="public-assistant-question" className="sr-only">
             Your question
           </label>
@@ -247,10 +272,8 @@ export function PublicAssistant() {
             }}
           />
           <div className="flex items-center justify-between gap-3">
-            <span className="text-xs text-muted-foreground">
-              Enter to send · Shift+Enter for a new line
-            </span>
-            <Button type="submit" disabled={busy || !query.trim()}>
+            <div className="flex items-center gap-2"><input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" multiple className="sr-only" aria-label="Attach images" onChange={event=>void addImages(event.target.files)}/><Button type="button" variant="outline" size="icon" aria-label="Attach images" disabled={busy} onClick={()=>fileInput.current?.click()}><Paperclip size={16}/></Button><span className="text-xs text-muted-foreground">Enter to send · Shift+Enter for a new line</span></div>
+            <Button type="submit" disabled={busy || (!query.trim() && !images.length)}>
               <Send size={16} /> Send
             </Button>
           </div>
