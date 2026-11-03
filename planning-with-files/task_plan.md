@@ -159,11 +159,12 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Replace demo entry with isolated Google PKCE sign-in, callback, validated session and local logout.
 - [x] Show actual account identity and truthful linked/unlinked records; preserve Nexus roles and identity boundary.
 - [x] Configure client Google OAuth and exact callback URLs; approved Google policies accepted, basic scopes saved, provider enabled and External audience published to Production.
-- [ ] Verify security/session/error/responsive flows, release gates, and real Google sign-in before claiming completion.
+- [x] Verify synthetic security/session/error/responsive flows, release gates and production Google entry/provider configuration.
+- [ ] Verify an actual Google callback, account identity/linked-record behavior and logout isolation after the account holder completes Google's passkey/phone/Authenticator challenge.
 
 ## Helpful STU chatbot and live web search [Issue #86]
 
 - [x] Audit hard abstention/provider/source failures and current official web-search API guidance.
 - [x] Add managed-knowledge-first, privacy-safe official/broader STU web fallback, useful partial answers and clear scope/source UI.
 - [x] Verify local API/security/failure/English-Chinese/follow-up/browser scenarios and release gates; deployed model/tool acceptance remains a release check.
-- [ ] Commit, publish the approved Google and chatbot changes together and verify live behavior; retain the unpublished archive draft separately.
+- [x] Commit and publish the approved Google and chatbot changes, verify live official-source answers and protected boundaries; retain the unpublished archive draft separately. Issue #86 CLOSED; #83 remains open for real Google callback acceptance.

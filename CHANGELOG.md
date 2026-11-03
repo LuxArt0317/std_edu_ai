@@ -6,6 +6,7 @@
 - Search managed knowledge first, then live official STU pages and broader school-related sources when current or missing public details need verification. Show only source URLs returned by the web tool and label external sources separately.
 - Give supported partial answers, specific follow-up guidance and a clear campus-only scope; preserve private account boundaries and read-only/confirmation-gated actions.
 - Prevent prior private conversation turns from entering retrieval or web-search requests; handle knowledge outages and provider failures without invented answers.
+- Require a real web-search tool call, preserve sourced partial answers when an exact detail is unavailable, cite corroborated links from answer text, remove tracking parameters and deduplicate citations. Production English/Chinese official-source acceptance passed on `stu.best`; Issue #86 closed.
 
 ### School Affairs Google sign-in (Issue #83, real callback acceptance pending)
 
@@ -14,6 +15,7 @@
 - Scope preferences and Assistant conversations to the School Affairs account; use its own JWT for read-only authorized answers while keeping public chat anonymous and Nexus permissions separate.
 - Add sign-in privacy information, provider/setup documentation, meaningful account/session browser checks and a manifest-only public build that excludes unreleased archive captures.
 - Configure the approved Google Web OAuth client and basic identity scopes; enable the Supabase provider, add exact callbacks and publish the External audience to Production. Real callback acceptance still needs the account-holder's Google verification.
+- Publish the Google entry at `/school-affairs/login`; the actual Google callback remains pending account-holder passkey/phone/Authenticator verification, so Issue #83 stays open.
 
 
 ### Readable achievement totals (Issue #85)

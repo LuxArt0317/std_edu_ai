@@ -22,6 +22,8 @@ The Google secret is saved only in the client Supabase Google provider configura
 
 The user approved Google Cloud terms, the Google API Services User Data Policy and basic Google sign-in setup. Those agreements were accepted, the OAuth client was created, and Supabase provider/callback settings were saved and verified. The local real sign-in reached Google's account chooser with the exact client/callback. Google then required account-holder passkey/phone/Authenticator verification, so completed real-user callback and linked-record acceptance remain **unverified** until the account holder finishes that step. No test-only flow is counted as real OAuth acceptance.
 
+The Google entry code is now published on `stu.best` in source `26166bb` ([Vercel release](https://vercel.com/v1-d286/std_edu_ai/CNYWCeXWMycuUeXpGfchmE2mcTCU), Ready; [quality run](https://github.com/LuxArt0317/std_edu_ai/actions/runs/41567024916), successful). The public `/school-affairs/login` route returns HTTP 200. This proves deployment and provider setup, **not** completed account-holder OAuth sign-in. Issue #83 remains open for a real callback, identity/linked-record and logout/isolation check after Google verification.
+
 ## Verification
 
 - `npm run test:school-affairs-entry`: synthetic provider/browser regression for four widths, PKCE/one-use callback, invalid/cancelled sessions, old-demo rejection, own-record filtering, read-only School Affairs chat, conversation clearing, local logout and Nexus preservation. Synthetic provider fixtures do not prove real Google sign-in.
