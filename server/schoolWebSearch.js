@@ -116,11 +116,21 @@ export async function searchSchoolWeb(question, options = {}) {
       const payload = await response.json();
       const result = parseWebAnswer(payload,officialOnly);
       if (result) return {result,attempted};
+      const outputText = textOf(payload);
+      let parsed = null;
+      try { parsed = JSON.parse(outputText); } catch { /* Only report structure, never model text. */ }
+      const sources = toolSources(payload,officialOnly);
       console.warn('school web search returned no verifiable answer', {
         officialOnly,
         responseStatus: payload?.status || null,
         outputTypes: Array.isArray(payload?.output) ? payload.output.map(item => `${item.type}:${item.status || 'none'}`).slice(0, 5) : [],
-        sourceCount: toolSources(payload,officialOnly).size,
+        sourceCount: sources.size,
+        messageCount: Array.isArray(payload?.output) ? payload.output.filter(item => item.type === 'message').length : 0,
+        outputTextLength: outputText.length,
+        answerStatus: parsed?.status || null,
+        answerLength: typeof parsed?.answer === 'string' ? parsed.answer.length : 0,
+        citedCount: Array.isArray(parsed?.source_urls) ? parsed.source_urls.length : 0,
+        citedSourceMatches: Array.isArray(parsed?.source_urls) ? parsed.source_urls.filter(url => sources.has(safeWebSource(url))).length : 0,
       });
     } catch (error) {
       console.warn('school web search request failed', {
