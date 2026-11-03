@@ -1,5 +1,11 @@
 # Task Plan
 
+## Official STU browser icon [Issue #88]
+
+- [x] Compare the live official and client favicon metadata; identify the source-verified university crest.
+- [x] Replace the inherited Vercel icon with the official crest for browser tabs and touch bookmarks.
+- [ ] Run release gates, publish to the client Vercel project, and verify the live favicon bytes and page metadata.
+
 ## School Affairs assistant source isolation and capabilities [Issue #87]
 
 - [x] Route School Affairs Google sessions to a dedicated read-only assistant; exclude all Nexus account/course/term context.

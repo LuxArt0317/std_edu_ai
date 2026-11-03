@@ -1,5 +1,9 @@
 # Current client state
 
+## Issue #88: official STU browser icon (in progress)
+
+The official www.stu.edu.tw homepage uses the green university crest from its 150px and 300px PNG favicon links. stu.best still references inherited purple Vercel `public/favicon.svg`. The repo already contains a checksum-verified local copy of the official 150px icon and its 500px source. Replace the browser icon metadata and verify the deployed bytes; do not change app login or the non-official preview disclosure.
+
 ## Issue #87: School Affairs assistant source boundary (published and verified)
 
 School Affairs Google chat now calls a dedicated read-only endpoint. Only the stu.best Google identity is verified for account questions; the endpoint does not read Nexus classes, courses, students, terms or schedules. Public questions discard the JWT and private history before using public managed knowledge, the separate 94-link captured School Affairs catalog or verified STU web research. Personal university records remain unconnected and are directed to the appropriate official service. The public drawer accepts up to two validated images and shows completed lookup activity and source links without private model reasoning. Local focused API/browser and full 214 API/source, 30 unit, build, 11 public accessibility states, 56 public mirror states, handoff, lint and zero-high/critical dependency checks pass. Existing source-mirror contrast findings remain documented. Client database/owner/RLS and protected AI checks pass without a schema change. Runtime `205c838` is Ready as Vercel `4Yiv71X8uSTkET8oRPz3EmLgeH9F`; quality `41608483620` succeeded. Live signed chat answered directory, cited registrar and private-subject boundary questions; live public image analysis passed. #83 Lux Google callback/official records and #84 deeper archive remain separately open. See docs/qa/SCHOOL_AFFAIRS_ASSISTANT.md.

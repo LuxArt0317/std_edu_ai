@@ -1,6 +1,10 @@
 # Changelog
 ## Unreleased
 
+### Official university browser icon (Issue #88)
+
+- Replace the inherited Vercel favicon with the source-verified STU crest and provide a matching touch bookmark icon.
+
 ### School Affairs assistant isolation (Issue #87)
 
 - Give School Affairs Google sessions an independent, read-only chat route that verifies the stu.best identity and never reads Nexus course, student, term or schedule data.
