@@ -39,7 +39,7 @@ test('official web search uses hosted tool metadata and returns visible clickabl
  globalThis.fetch=async(_input,init)=>{body=JSON.parse(String(init?.body));return Response.json(payload());};
  const result=await searchSchoolWeb('How do I contact the STU registrar?');
  assert.equal(result.result?.origin,'web');assert.match(result.result!.answer,/\[1\]\(https:\/\/reg.aca.stu.edu.tw\/contact\/\)/);
- assert.deepEqual(body.tools[0].filters.allowed_domains,['stu.edu.tw']);assert.equal(body.tool_choice,'required');assert.equal(body.store,false);assert.deepEqual(body.include,['web_search_call.action.sources']);
+ assert.deepEqual(body.tools[0].filters.allowed_domains,['stu.edu.tw']);assert.equal(body.tool_choice,'required');assert.equal(body.store,false);assert.deepEqual(body.include,['web_search_call.action.sources']);assert.equal(JSON.parse(body.input).responseLanguage,'English');
  assert.equal(result.result?.citations[0].reviewedAt,null);assert.match(result.result!.citations[0].sourceName,/Live web/);
 });
 test('live search keeps a sourced partial answer when the exact detail is unavailable',async()=>{
