@@ -89,7 +89,7 @@ export async function searchSchoolWeb(question, options = {}) {
         body:JSON.stringify({
           model:process.env.OPENAI_SEARCH_MODEL || process.env.OPENAI_PUBLIC_MODEL || process.env.OPENAI_MODEL || 'gpt-5.6-terra',
           tools:[{type:'web_search',search_context_size:'medium',...(officialOnly?{filters:{allowed_domains:['stu.edu.tw']}}:{})}],
-          tool_choice:'auto',include:['web_search_call.action.sources'],reasoning:{effort:'low'},store:false,max_output_tokens:1600,
+          tool_choice:'required',include:['web_search_call.action.sources'],reasoning:{effort:'low'},store:false,max_output_tokens:1600,
           instructions:[
             'You help visitors and students of Shu-Te University (樹德科技大學), Kaohsiung, Taiwan. STU here means Shu-Te, not another university.',
             'Be proactive and helpful for all school information, campus life, offices, contacts, admissions, services, courses, announcements, transport and practical website help. A vague school question defaults to Shu-Te. Use the public question to search before giving up; try Chinese/English school and office names. Answer the parts supported by evidence even if another detail cannot be verified. Do not refuse just because the answer is absent from a managed knowledge base.',
@@ -103,10 +103,31 @@ export async function searchSchoolWeb(question, options = {}) {
           text:{format:{type:'json_schema',name:'stu_web_answer',strict:true,schema:{type:'object',additionalProperties:false,properties:{status:{type:'string',enum:['answered','not_found','out_of_scope']},answer:{type:'string'},source_urls:{type:'array',maxItems:8,items:{type:'string'}}},required:['status','answer','source_urls']}}},
         }),
       });
-      if (!response.ok) continue;
-      const result = parseWebAnswer(await response.json(),officialOnly);
+      if (!response.ok) {
+        const failure = await response.json().catch(() => null);
+        console.warn('school web search provider rejected request', {
+          officialOnly,
+          status: response.status,
+          errorType: failure?.error?.type || null,
+          errorCode: failure?.error?.code || null,
+        });
+        continue;
+      }
+      const payload = await response.json();
+      const result = parseWebAnswer(payload,officialOnly);
       if (result) return {result,attempted};
-    } catch { /* A bounded broader-source attempt can still answer after an official-search failure. */ }
+      console.warn('school web search returned no verifiable answer', {
+        officialOnly,
+        responseStatus: payload?.status || null,
+        outputTypes: Array.isArray(payload?.output) ? payload.output.map(item => `${item.type}:${item.status || 'none'}`).slice(0, 5) : [],
+        sourceCount: toolSources(payload,officialOnly).size,
+      });
+    } catch (error) {
+      console.warn('school web search request failed', {
+        officialOnly,
+        errorName: error instanceof Error ? error.name : 'UnknownError',
+      });
+    }
   }
   return {result:null,attempted};
 }
