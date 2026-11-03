@@ -13,6 +13,8 @@ import {
   askCampusAssistant,
   type AssistantResponse,
 } from "../../services/researchAssistant";
+import { useAffairsAuth } from "./affairs/authContext";
+import { askSchoolAffairsAssistant } from "../../services/schoolAffairsAssistant";
 import { PublicAssistantFeedback } from "./PublicAssistantFeedback";
 import { AssistantMarkdown } from "../school/portal/AssistantMarkdown";
 
@@ -29,6 +31,7 @@ const questions = [
   "What are my current subjects?",
 ];
 export function PublicAssistant() {
+  const {user} = useAffairsAuth();
   const [open, setOpen] = useState(false),
     [messages, setMessages] = useState<Message[]>([]),
     [query, setQuery] = useState(""),
@@ -58,7 +61,7 @@ export function PublicAssistant() {
     setError("");
     setBusy(true);
     try {
-      const result = await askCampusAssistant(
+      const result = await (user ? askSchoolAffairsAssistant : askCampusAssistant)(
         question,
         messages,
         controller.signal,
@@ -101,7 +104,7 @@ export function PublicAssistant() {
         <header className="border-b px-5 py-5 pr-12">
           <SheetTitle>校園助理 · Assistant</SheetTitle>
           <SheetDescription id="public-assistant-description" className="mt-2">
-            Public school information. Personal records require a connected School Affairs account.
+            {user ? "Signed in with School Affairs. Answers use only records your account is authorized to view; Google sign-in does not import university records." : "Public school information. Sign in to School Affairs for your linked account records."}
           </SheetDescription>
         </header>
         <div className="flex items-center justify-between gap-3 border-b px-5 py-2 text-sm">
@@ -109,7 +112,7 @@ export function PublicAssistant() {
             className="underline underline-offset-4"
             href="/school-affairs/login"
           >
-            School Affairs sign in
+            {user ? "School Affairs account" : "School Affairs sign in"}
           </a>
           <Button
             size="sm"

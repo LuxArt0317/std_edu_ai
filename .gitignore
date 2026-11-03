@@ -45,3 +45,8 @@ artifacts/
 
 # Temporary public-document packaging workspace.
 /vendor/.school-documents-*
+
+# Unpublished captured media remain local until explicitly manifest-owned.
+/public/school-assets/*.mp4
+/public/school-assets/*.mp3
+/public/school-assets/*.odt

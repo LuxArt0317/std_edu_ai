@@ -121,7 +121,7 @@ User requests a complete connected Assistant. Preserve existing account permissi
 - [x] Default Lux's protected-owner sign-in to a knowledge-manager workspace, preserving owner authority and full-workspace escape.
 - [x] Verify source likeness, session isolation, manager routes, responsive/a11y/API/unit/build checks and publish verified changes.
 
-Required clarification pending: real school-approved login/API integration versus independent site student accounts. No official credentials are collected or demo identity trusted as authentication.
+User chose real Google/Gmail authentication for independent stu.best accounts on November 3. No official school credentials are collected and no demo identity is trusted as authentication.
 
 ## Complete public destination copies and source fidelity [Issue #84]
 
@@ -152,3 +152,11 @@ The remaining service/source-resource gaps and excluded old archives are unchang
 - [x] Run release checks, publish to the existing client target and verify live figures/contrast; update handoff and infrastructure records.
 
 Scope: only four source counters exist across the395 captured pages. Preserve source totals and public/school identity boundaries.
+
+## Real Google School Affairs sign-in [Issue #83]
+
+- [x] Verify client/provider state and isolate work from the unpublished archive draft (codex/full-school-archive, 9f15a95).
+- [x] Replace demo entry with isolated Google PKCE sign-in, callback, validated session and local logout.
+- [x] Show actual account identity and truthful linked/unlinked records; preserve Nexus roles and identity boundary.
+- [ ] Configure client Google OAuth and exact callback URLs; Cloud terms accepted and dedicated project created; Google API data-policy/OAuth credential approval is pending.
+- [ ] Verify security/session/error/responsive flows, release gates, and real Google sign-in before claiming completion.

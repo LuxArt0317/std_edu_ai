@@ -1,53 +1,7 @@
-import { test } from "node:test";
+import {test} from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import {
-  openAffairsPreview,
-  closeAffairsPreview,
-  hasAffairsPreview,
-} from "../../src/features/public/affairs/previewSession.ts";
-test("preview access expires, clears on logout, survives reload and handles blocked storage without becoming authentication", () => {
-  const values = new Map();
-  const previous = Object.getOwnPropertyDescriptor(
-    globalThis,
-    "sessionStorage",
-  );
-  try {
-    Object.defineProperty(globalThis, "sessionStorage", {
-      configurable: true,
-      value: {
-        getItem: (k: string) => values.get(k) || null,
-        setItem: (k: string, v: string) => values.set(k, v),
-        removeItem: (k: string) => values.delete(k),
-      },
-    });
-    closeAffairsPreview();
-    assert.equal(hasAffairsPreview(), false);
-    openAffairsPreview();
-    assert.equal(hasAffairsPreview(), true);
-    values.set("stu-affairs-preview-v1", String(Date.now() - 1));
-    assert.equal(hasAffairsPreview(), false);
-    values.set("stu-affairs-preview-v1", String(Date.now() + 86400000));
-    assert.equal(hasAffairsPreview(), false);
-    openAffairsPreview();
-    closeAffairsPreview();
-    assert.equal(hasAffairsPreview(), false);
-    assert.equal(values.size, 0);
-    Object.defineProperty(globalThis, "sessionStorage", {
-      configurable: true,
-      get() {
-        throw Error("blocked");
-      },
-    });
-    openAffairsPreview();
-    assert.equal(hasAffairsPreview(), true);
-    closeAffairsPreview();
-    assert.equal(hasAffairsPreview(), false);
-  } finally {
-    if (previous) Object.defineProperty(globalThis, "sessionStorage", previous);
-    else delete (globalThis as any).sessionStorage;
-  }
-});
+import {readFileSync} from "node:fs";
+import {loadPreferences,savePreferences,defaultPreferences} from "../../src/features/public/affairs/preferences";
 test("public chat cannot import Nexus auth while knowledge QA explicitly requires it", () => {
   const service = readFileSync("src/services/researchAssistant.ts", "utf8");
   const publicPart = service.slice(
@@ -70,4 +24,30 @@ test("public chat cannot import Nexus auth while knowledge QA explicitly require
   );
   assert.doesNotMatch(publicUi, /onAuthStateChange|utils\/supabase/);
   assert.match(publicUi, /school-affairs\/login/);
+});
+
+test("School Affairs account preferences cannot bleed across identities or inherit demo settings",()=>{
+ const values = new Map<string,string>();
+ const previous=Object.getOwnPropertyDescriptor(globalThis,"localStorage");
+ Object.defineProperty(globalThis,"localStorage",{configurable:true,value:{getItem:(key:string)=>values.get(key)||null,setItem:(key:string,value:string)=>values.set(key,value)}});
+ try {
+   savePreferences({...defaultPreferences,theme:"pink"});
+   savePreferences({...defaultPreferences,theme:"dark"},"account-a");
+   assert.equal(loadPreferences("account-a").value.theme,"dark");
+   assert.equal(loadPreferences("account-b").value.theme,"blue");
+   assert.equal(loadPreferences().value.theme,"pink");
+ }finally{if(previous)Object.defineProperty(globalThis,"localStorage",previous);else delete (globalThis as any).localStorage;}
+});
+
+test("School Affairs assistant uses its own JWT and read-only mode, never Nexus storage",()=>{
+ const service=readFileSync("src/services/schoolAffairsAssistant.ts","utf8");
+ assert.match(service,/affairsClient.auth.getSession/);assert.match(service,/mode:'qa'/);
+ assert.doesNotMatch(service,/utils\/supabase|stu-nexus-auth/);
+ const shell=readFileSync("src/features/public/PublicSite.tsx","utf8");assert.match(shell,/key=\{user\?\.id \|\| "anonymous"\}/);
+});
+
+test("normal Nexus sign-out also leaves independently authenticated School Affairs sessions active",()=>{
+ const source=readFileSync("src/features/crm/authService.ts","utf8");
+ const logout=source.slice(source.indexOf("export async function signOutCrm"),source.indexOf("export function canUseCrm"));
+ assert.match(logout,/signOut\(\{ scope: 'local' \}\)/);
 });

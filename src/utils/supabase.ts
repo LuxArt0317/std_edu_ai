@@ -11,7 +11,7 @@ export const supabase = hasSupabaseConfig
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: true,
+        detectSessionInUrl: typeof window === 'undefined' || window.location.pathname !== '/school-affairs/auth/callback',
         storageKey: 'stu-nexus-auth',
       },
     })

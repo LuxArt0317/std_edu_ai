@@ -118,7 +118,7 @@ export async function requestCrmPasswordReset(email: string) {
 export async function signOutCrm() {
   if (!supabase) return
   const { error } = await withTimeout(
-    supabase.auth.signOut(),
+    supabase.auth.signOut({ scope: 'local' }),
     authRequestTimeoutMs,
     'Sign-out took too long. Reset the local session to continue.',
   )

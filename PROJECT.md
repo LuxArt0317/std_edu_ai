@@ -7,7 +7,7 @@ STU Edu AI combines a public university website with STU Nexus, an authenticated
 | Path | Purpose |
 | --- | --- |
 | `src/features/` | Auth, school, CRM, curriculum, research, and public product modules |
-| `src/features/public/affairs/` | Source-preserving School Affairs portal, 57-row/94-link student program catalog and local preview preferences |
+| `src/features/public/affairs/` | Source-preserving School Affairs portal, isolated Google PKCE accounts, linked student records and account-specific preferences |
 | `src/features/public/site/` | Public reference catalogues, preview disclosure and inert mySTU SSO preview |
 | `src/features/public/mirror/` | Inert source-page renderer, local routing policy and versioned page/asset/coverage manifests |
 | `src/features/auth/` | Sign-in, student signup, session guards and shared password policy |
@@ -70,3 +70,5 @@ School Affairs and knowledge management have separate identity boundaries. Publi
 ## Public page copies — Issue #84
 
 Public pages use isolated, source-preserving local HTML/CSS with trusted navigation controls. Large documents are restored from the reviewed, checksum-pinned multipart bundle in `vendor/school-documents/` at build/dev startup; source styles, fonts and images remain versioned. Packing/restoring requires system `tar` with gzip (standard macOS/Linux build images); no source-server request or new npm dependency is required. The verified campus-directory API/UI remains available independently of the source iframe. No new runtime dependency was added. See [coverage, architecture, setup and QA](docs/qa/SCHOOL_MIRROR.md).
+
+School Affairs Google authentication and its release/provider acceptance are documented in [Google School Affairs sign-in](docs/qa/GOOGLE_SCHOOL_SIGNIN.md). It uses a separate session from Nexus and the existing server/RLS authorization; Google credentials remain in Supabase provider settings. No new npm dependency is required.

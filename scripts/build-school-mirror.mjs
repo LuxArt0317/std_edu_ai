@@ -22,7 +22,13 @@ async function writeChanged(file, data) {
     const old = await fs.readFile(file);
     if (old.equals(next)) return;
   } catch {}
-  await fs.writeFile(file, next);
+  const temporary = `${file}.${process.pid}.tmp`;
+  try {
+    await fs.writeFile(temporary, next);
+    await fs.rename(temporary, file);
+  } finally {
+    await fs.rm(temporary, { force: true });
+  }
 }
 const hash = (value) => createHash("sha256").update(value).digest("hex"),
   assets = new Map(),

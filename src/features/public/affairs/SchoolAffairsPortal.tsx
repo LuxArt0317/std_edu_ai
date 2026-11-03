@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import type { User } from "@supabase/supabase-js";
+import { SchoolAccountRecords } from "./SchoolAccountRecords";
 import type { CSSProperties, ReactNode } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
 import {
@@ -64,7 +66,6 @@ import {
   menuPath,
   portalGroups,
   portalNews,
-  programByTitle,
 } from "./model";
 import type { PortalProgram } from "./model";
 import { loadPreferences, savePreferences } from "./preferences";
@@ -116,10 +117,11 @@ function PortalWidget({
   );
 }
 
-export default function SchoolAffairsPortal() {
+export default function SchoolAffairsPortal({user}: {user: User}) {
+  const displayName = user.email || "Google account";
   const { pathname } = useLocation();
   const [params, setParams] = useSearchParams();
-  const [snapshot, setSnapshot] = useState(loadPreferences);
+  const [snapshot, setSnapshot] = useState(() => loadPreferences(user.id));
   const preferences = snapshot.value;
   const storageError = !snapshot.storageAvailable;
   const [routeState, setRouteState] = useState({
@@ -163,7 +165,7 @@ export default function SchoolAffairsPortal() {
     change: (current: PortalPreferences) => PortalPreferences,
   ) {
     const value = change(preferences);
-    setSnapshot({ value, storageAvailable: savePreferences(value) });
+    setSnapshot({ value, storageAvailable: savePreferences(value, user.id) });
   }
   const validMenu =
     route[0] === "search" ||
@@ -186,7 +188,7 @@ export default function SchoolAffairsPortal() {
     group === "menu" &&
     ["custom", "common", "course", "graduation"].includes(view);
   useEffect(() => {
-    document.title = `${index ? "校務系統入口" : validMenu ? selectedLabel : bookmarks ? "已收藏消息查詢" : notifications ? "通知訊息查詢" : "校務系統"} · 校務系統介面預覽`;
+    document.title = `${index ? "校務系統入口" : validMenu ? selectedLabel : bookmarks ? "已收藏消息查詢" : notifications ? "通知訊息查詢" : "校務系統"} · stu.best School Affairs`;
   }, [
     pathname,
     group,
@@ -367,8 +369,8 @@ export default function SchoolAffairsPortal() {
             <Link
               className="portal-logout"
               to="/school-affairs/signed-out"
-              aria-label="Logout：離開校務介面預覽"
-              title="離開校務介面預覽"
+              aria-label="Logout：登出校務系統"
+              title="登出校務系統"
             >
               <LogOut aria-hidden="true" />
               <span>Logout</span>
@@ -477,7 +479,7 @@ export default function SchoolAffairsPortal() {
             <Button
               variant="ghost"
               className="portal-user"
-              aria-label="Welcome, 示範學生 帳號選單"
+              aria-label={`Welcome, ${displayName} 帳號選單`}
             >
               <img
                 src={referenceAsset(
@@ -489,13 +491,13 @@ export default function SchoolAffairsPortal() {
               />
               <span>
                 <small lang="en">Welcome,</small>
-                <span>示範學生</span>
+                <span>{displayName}</span>
               </span>
               <ChevronDown aria-hidden="true" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="affairs-account-menu">
-            <DropdownMenuLabel>本地預覽帳號</DropdownMenuLabel>
+            <DropdownMenuLabel>stu.best · Google account</DropdownMenuLabel>
             <DropdownMenuItem asChild>
               <Link to="/school-affairs/notifications">個人使用者通知查詢</Link>
             </DropdownMenuItem>
@@ -503,27 +505,10 @@ export default function SchoolAffairsPortal() {
               <Link to="/school-affairs/bookmarks">使用者收藏校園公告查詢</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <a
-                href="https://info.stu.edu.tw/ePortal/pg/setNewsToMail.asp"
-                target="_blank"
-                rel="noreferrer"
-              >
-                校園公告MAIL接收設定 ↗
-              </a>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <a
-                href="https://sso.stu.edu.tw/chpswd/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                密碼變更 ↗
-              </a>
-            </DropdownMenuItem>
+            <DropdownMenuItem asChild><Link to="/school-affairs/privacy">Privacy &amp; account information</Link></DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link to="/school-affairs/signed-out">Logout（離開預覽）</Link>
+              <Link to="/school-affairs/signed-out">Logout（登出）</Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -637,7 +622,7 @@ export default function SchoolAffairsPortal() {
           </div>
           <main id="portal-content" tabIndex={-1} className="portal-content">
             <p className="portal-demo-note">
-              校務系統介面預覽 · 使用示範資料。↗ 會開啟校方服務，需另外登入。
+              已登入 stu.best。校方服務目錄與公告為擷取快照；↗ 會開啟校方服務，需另行登入。
             </p>
             {storageError && (
               <p className="portal-storage-error" role="alert">
@@ -647,42 +632,7 @@ export default function SchoolAffairsPortal() {
             {index && (
               <div className="portal-index">
                 <h1 className="sr-only">校務系統入口</h1>
-                <PortalWidget title="系統作業通知" count={4}>
-                  <ul className="portal-lined-list">
-                    <li>
-                      <a
-                        href={externalHref(programByTitle("待繳費用查詢")!)}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        待繳費用{" "}
-                        <strong className="portal-demo-amount">12,000</strong>{" "}
-                        元須繳清，可按連結查詢明細{" "}
-                        <span className="portal-demo-tag">示範資料 ↗</span>
-                      </a>
-                    </li>
-                    <li>
-                      <a
-                        href="https://info.stu.edu.tw/ePortal/files/ePortal.pdf"
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        校務系統入口2018版
-                        <span className="portal-red">操作說明</span>連結 ↗
-                      </a>
-                    </li>
-                    <li>
-                      學校每日<span className="portal-red">12:00及17:00</span>
-                      ，製作最新校園公告彙總清單並使用
-                      E-MAIL寄至各位同學信箱，提供同學快速取得當日最新校園公告
-                    </li>
-                    <li>
-                      登入校務系統後，使用者如果使用 VPN 將造成{" "}
-                      <span className="portal-red">IP</span>{" "}
-                      變動，為確保個人資料安全，須重新登入系統。
-                    </li>
-                  </ul>
-                </PortalWidget>
+                <SchoolAccountRecords userId={user.id} />
                 <PortalWidget title="最新消息" count={10}>
                   {renderNewsRows("news")}
                 </PortalWidget>
@@ -866,7 +816,7 @@ export default function SchoolAffairsPortal() {
                   {bookmarks ? "已收藏消息查詢" : "通知訊息查詢"}
                 </h1>
                 <p className="portal-local-note">
-                  本地預覽紀錄；不讀取或修改校方帳號。
+                  此瀏覽器中此帳號的收藏；不讀取或修改校方帳號。
                 </p>
                 {bookmarks ? (
                   <ul className="portal-lined-list">
@@ -916,7 +866,7 @@ export default function SchoolAffairsPortal() {
             )}
           </main>
           <footer className="portal-footer">
-            Copyright © 2026 樹德科技大學電算中心 <span>· 非官方介面預覽</span>
+            stu.best School Affairs <span>· Independent campus website</span>
           </footer>
         </div>
       </div>

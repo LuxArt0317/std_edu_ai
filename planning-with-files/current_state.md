@@ -1,5 +1,12 @@
 # Current client state
 
+## Issue #83: real Google School Affairs sign-in (local)
+
+User chose independent Google/Gmail site accounts. Implemented isolated PKCE/session/callback/logout, actual email, own-linked-record/empty state, per-account preferences, read-only authenticated chat and anonymous public chat. Callback verification/redirect race fixed. Nexus owner/roles/RLS remain unchanged; normal sign-out uses local session scope in both workspaces. Google Cloud terms accepted after explicit approval; dedicated client project stu-best-school-affairs created. Google API data-policy and persistent OAuth-client approval remains pending; no credentials created, provider disabled, code not pushed/deployed. See docs/qa/GOOGLE_SCHOOL_SIGNIN.md.
+
+Unpublished archive draft 9f15a95 remains preserved on codex/full-school-archive. Current branch codex/school-google-signin starts from production main and does not include that draft. Its build publishes only manifest-pinned mirror files, excluding raw unreleased captures.
+
+
 ## Issue #85: achievement cards published and verified
 
 Live at https://stu.best: runtime bb19d2a0dc098c85a97c9b247c6d7f8a9b3acad0 is Ready as Vercel DumUWcTKnzRo29SSM9Rx9wiQ4Jas; quality41544180053 succeeded. Source totals4,601+/128,475+/33,056+/54+ and labels/icons are readable on dark-green cards. Local and production24 card checks across6 widths/hover pass (minimum9.5709:1), with no page errors or horizontal overflow. Production browser screenshot confirms all four figures.193 API/source tests,28 units, build/lint/docs/dependencies and protected client verification pass. A null-safe iframe test wait fixes a transient harness race; focused desktop/mobile navigation and all eight interactions pass. Existing #84 source/coverage limitations and account/database policies are unchanged.

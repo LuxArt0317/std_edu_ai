@@ -1,5 +1,12 @@
 # Client handoff
 
+## Real Google School Affairs sign-in — Issue #83 (local, provider approval pending)
+
+Prepared on `codex/school-google-signin` from production main. The user selected independent Google/Gmail site accounts. Google Cloud first-use terms are accepted under explicit approval and client-owned project `stu-best-school-affairs` is created. The separate Google API User Data Policy and OAuth credential/access approval is pending; no OAuth client or secret has been created and Supabase Google remains disabled. Code is not deployed. Local verification: 194 API/source checks, 30 units, four-width synthetic Google security/session flow, 25 portal views/23 accessibility states, TypeScript/build/lint/docs/dependencies and live protected client verification pass. [Security, setup and QA](../qa/GOOGLE_SCHOOL_SIGNIN.md).
+
+The existing production and blocked archive draft remain unchanged. The archive draft is preserved at `9f15a95` on `codex/full-school-archive`, with incomplete packaging/coverage; do not publish it as part of auth.
+
+
 ## Readable achievement cards — Issue #85
 
 Published at [stu.best](https://stu.best): runtime `bb19d2a0dc098c85a97c9b247c6d7f8a9b3acad0`, [Vercel DumUWcTKnzRo29SSM9Rx9wiQ4Jas](https://vercel.com/v1-d286/std_edu_ai/DumUWcTKnzRo29SSM9Rx9wiQ4Jas) Ready, [quality41544180053](https://github.com/LuxArt0317/std_edu_ai/actions/runs/41544180053) successful, entry `index-F_JesFLe.js`.

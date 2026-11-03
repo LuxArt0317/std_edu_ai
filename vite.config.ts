@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
+import { copyPublicAssets } from "./scripts/lib/copy-public-assets.mjs";
 const deployment = JSON.parse(
   readFileSync(new URL("./deployment.json", import.meta.url), "utf8"),
 );
@@ -46,7 +47,11 @@ export default defineConfig(({ mode }) => {
   // The Marketplace integration uses Next.js names. Expose only these two
   // browser-safe values; database passwords and service keys stay server-only.
   return {
-    plugins: [react(), tailwindcss(), mirrorSecurity],
+    plugins: [react(), tailwindcss(), mirrorSecurity, {
+      name: "pinned-public-assets",
+      writeBundle(output) { copyPublicAssets(process.cwd(), output.dir || "dist"); },
+    }],
+    build: { copyPublicDir: false },
     server: {
       watch: {
         ignored: ["**/public/school-assets/**", "**/public/school-pages/**"],

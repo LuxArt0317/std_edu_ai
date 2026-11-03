@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright-core";
 import AxeBuilder from "@axe-core/playwright";
+import { mockAffairsAuth } from "./helpers/affairs-auth.mjs";
 const base = process.env.PUBLIC_SITE_ORIGIN || "http://127.0.0.1:5173";
 if (!["127.0.0.1", "localhost"].includes(new URL(base).hostname))
   throw Error("This portal preview suite is local-only.");
@@ -89,10 +90,7 @@ try {
   });
   await wire(context);
   const page = await context.newPage();
-  await page.goto(base + '/school-affairs');
-  await page.getByRole('heading',{name:'校務系統登入',exact:true}).waitFor();
-  assert.equal(await page.locator('#affairs-account').isDisabled(),true);
-  await page.getByRole('button',{name:'瀏覽示範校務介面'}).click();
+  await mockAffairsAuth(context);
   for (const [group, view, count] of views) {
     await page.goto(`${base}/school-affairs/menu/${group}/${view}`);
     await page.locator("#portal-program-search").waitFor();
@@ -233,17 +231,12 @@ try {
     "--portal-font-size: 15px;",
   );
   await page
-    .getByRole("button", { name: "Welcome, 示範學生 帳號選單", exact: true })
+    .getByRole("button", { name: "Welcome, student.qa@gmail.com 帳號選單", exact: true })
     .click();
   await page
     .getByRole("menuitem", { name: "個人使用者通知查詢", exact: true })
     .click();
   await page.waitForURL("**/school-affairs/notifications");
-  await page.goto(base + "/school-affairs/signed-out");
-  await page
-    .getByRole("button", { name: "瀏覽示範校務介面", exact: true })
-    .click();
-  await page.waitForURL(base + "/school-affairs");
   for (const width of [1280, 1024, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
     for (const [path, label] of [
@@ -297,9 +290,8 @@ try {
   await page.waitForURL(base + "/school-affairs/search");
   await page.goto(base + "/ePortal/index.asp");
   await page.waitForURL(base + "/school-affairs");
-  await page.goto(base + "/在校學生/");
-  await page.getByRole("link", { name: "校務資訊系統", exact: true }).click();
-  await page.waitForURL(base + "/school-affairs");
+  await page.goto(base + "/school-affairs");
+  await page.locator(".portal-content").waitFor();
   await page.getByRole("link", { name: "知識庫管理", exact: true }).click();
   await page.getByRole("heading", { name: "Sign in", exact: true }).waitFor();
   await context.close();
@@ -308,16 +300,15 @@ try {
     reducedMotion: "reduce",
   });
   await wire(blocked);
+  await mockAffairsAuth(blocked);
   await blocked.addInitScript(() => {
-    Object.defineProperty(window, "localStorage", {
-      get() {
-        throw new Error("Storage disabled");
-      },
-    });
+    const getItem=Storage.prototype.getItem;
+    const setItem=Storage.prototype.setItem;
+    Storage.prototype.getItem=function(key) { if(key.startsWith('stu.affairs.preview.'))throw Error('Preference storage disabled');return getItem.call(this,key); };
+    Storage.prototype.setItem=function(key,value) { if(key.startsWith('stu.affairs.preview.'))throw Error('Preference storage disabled');return setItem.call(this,key,value); };
   });
   const blockedPage = await blocked.newPage();
   await blockedPage.goto(base + "/school-affairs");
-  await blockedPage.getByRole('button',{name:'瀏覽示範校務介面'}).click();
   await blockedPage
     .getByRole("alert")
     .filter({ hasText: "瀏覽器無法儲存設定" })

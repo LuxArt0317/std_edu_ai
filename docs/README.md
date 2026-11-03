@@ -3,6 +3,7 @@
 ## Client operations
 
 - [Setup and deployment](operations/SETUP.md)
+- [School Affairs Google sign-in](qa/GOOGLE_SCHOOL_SIGNIN.md)
 - [Handoff checklist and current verification](operations/HANDOFF.md)
 - [Verified infrastructure and access routes](operations/INFRASTRUCTURE.md)
 

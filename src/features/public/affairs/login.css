@@ -202,3 +202,11 @@
     min-width: 90px;
   }
 }
+.affairs-google-entry { padding: 22px 0; }
+.affairs-google-entry h2 { font-size: 22px; font-weight: 600; margin-bottom: 12px; color: #252e2b; }
+.affairs-google-entry p { margin: 12px 0; line-height: 1.65; }
+.affairs-google-entry a { color: #225b87; text-decoration: underline; }
+.affairs-google-entry .affairs-google-button { width: 100%; min-height: 48px; margin: 12px 0; background: #fff; color: #1f1f1f; border: 1px solid #747775; font-weight: 500; }
+.affairs-google-entry [role="alert"] { padding: 12px; color: #922626; background: #fff1f1; border: 1px solid #ddaaaa; border-radius: 6px; }
+
+.affairs-google-entry .affairs-google-button img { width: 20px; height: auto; flex: none; }

@@ -72,12 +72,12 @@ export function sanitizePreferences(value: unknown): PortalPreferences {
     : [];
   return result;
 }
-export function loadPreferences(): {
+export function loadPreferences(accountId?: string): {
   value: PortalPreferences;
   storageAvailable: boolean;
 } {
   try {
-    const raw = localStorage.getItem(preferenceKey);
+    const raw = localStorage.getItem(accountId ? `${preferenceKey}:${accountId}` : preferenceKey);
     let value: unknown = null;
     try {
       value = JSON.parse(raw || "null");
@@ -92,10 +92,10 @@ export function loadPreferences(): {
 export function readPreferences(): PortalPreferences {
   return loadPreferences().value;
 }
-export function savePreferences(value: PortalPreferences): boolean {
+export function savePreferences(value: PortalPreferences, accountId?: string): boolean {
   try {
     localStorage.setItem(
-      preferenceKey,
+      accountId ? `${preferenceKey}:${accountId}` : preferenceKey,
       JSON.stringify(sanitizePreferences(value)),
     );
     return true;

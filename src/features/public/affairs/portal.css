@@ -948,3 +948,12 @@
     }
   }
 }
+.affairs-portal .portal-account-records { background: #fff; color: #283a43; border: 1px solid #c6d5df; padding: 20px; margin-bottom: 20px; border-radius: 4px; }
+.affairs-portal .portal-account-records h2 { font-size: 18px; font-weight: 600; margin-bottom: 12px; }
+.affairs-portal .portal-account-records p { margin: 8px 0; line-height: 1.6; }
+.affairs-portal .portal-account-records dl { display: grid; grid-template-columns: minmax(120px,1fr) 2fr; gap: 10px; }
+.affairs-portal .portal-account-records dd { margin: 0; overflow-wrap: anywhere; }
+.affairs-portal .portal-user { max-width: min(360px,55vw); }
+.affairs-portal .portal-user > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.affairs-portal .portal-user > span > span { display: block; overflow: hidden; text-overflow: ellipsis; }
+@media(max-width:520px) { .affairs-portal .portal-account-records dl {grid-template-columns: 1fr;} }

@@ -1,6 +1,14 @@
 # Changelog
 ## Unreleased
 
+### School Affairs Google sign-in (Issue #83, provider acceptance pending)
+
+- Replace the expiring demo gate with an isolated Google PKCE client, validated restore/callback, cancellation/error handling and session-local logout.
+- Show the actual Google email and linked student record or an honest empty state; remove disabled school-password fields and sample fee data.
+- Scope preferences and Assistant conversations to the School Affairs account; use its own JWT for read-only authorized answers while keeping public chat anonymous and Nexus permissions separate.
+- Add sign-in privacy information, provider/setup documentation, meaningful account/session browser checks and a manifest-only public build that excludes unreleased archive captures.
+
+
 ### Readable achievement totals (Issue #85)
 
 - Render the source-provided final totals without source animation scripts: 4,601+, 128,475+, 33,056+ and 54+.

@@ -14,6 +14,13 @@ const StudentSsoPreview = lazy(() =>
 );
 const SchoolAffairsPortal = lazy(() => import("./affairs/SchoolAffairsEntry"));
 import "./site/reference.css";
+import { AffairsAuthProvider } from "./affairs/AffairsAuth";
+import { useAffairsAuth } from "./affairs/authContext";
+
+function SchoolAccountAssistant() {
+  const {user} = useAffairsAuth();
+  return <PublicAssistant key={user?.id || "anonymous"} />;
+}
 
 export default function PublicSite() {
   const { pathname, hash, search } = useLocation();
@@ -33,7 +40,7 @@ export default function PublicSite() {
     else window.scrollTo({ top: 0, behavior: "instant" });
   }, [pathname, hash]);
   return (
-    <div className="public-site-shell">
+    <AffairsAuthProvider><div className="public-site-shell">
       <PreviewNotice
         compact={
           !pathname.startsWith("/school-affairs") &&
@@ -78,13 +85,7 @@ export default function PublicSite() {
         <Route path="*" element={<SourceMirror />} />
       </Routes>
       {pathname === "/" ? <PublicCampusDirectory /> : null}
-      <PublicAssistant
-        key={
-          /\/school-affairs\/(signed-out|login)/.test(pathname)
-            ? "affairs-logged-out"
-            : "public"
-        }
-      />
-    </div>
+      <SchoolAccountAssistant />
+    </div></AffairsAuthProvider>
   );
 }
