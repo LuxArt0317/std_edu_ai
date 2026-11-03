@@ -27,6 +27,29 @@ try {
   await page.screenshot({path:`${directory}/login-${width}.png`,fullPage:false});
   evidence.push({width,login:true,demoCannotAuthenticate:true,seriousCritical:0});
  }
+ const photo=page.locator('.affairs-login-photo > img');
+ const first=await photo.getAttribute('src');
+ assert.match(first,/^\/stu-reference\/[a-f0-9]{16}\.jpg$/);
+ await page.getByRole('button',{name:'Next campus photo'}).click();
+ assert.notEqual(await photo.getAttribute('src'),first);
+ await page.getByRole('button',{name:'Previous campus photo'}).click();
+ assert.equal(await photo.getAttribute('src'),first);
+ assert.equal(await page.getByRole('button',{name:'Play campus photos'}).count(),1,'reduced motion pauses automatic rotation');
+ const rotating=await browser.newContext({reducedMotion:'no-preference'});
+ await mockAffairsAuth(rotating,{signedIn:false});
+ const rotationPage=await rotating.newPage();
+ await rotationPage.goto(base+'/school-affairs/login');
+ await rotationPage.getByRole('button',{name:'Pause campus photos'}).waitFor();
+ const before=await rotationPage.locator('.affairs-login-photo > img').getAttribute('src');
+ await rotationPage.waitForTimeout(5300);
+ const after=await rotationPage.locator('.affairs-login-photo > img').getAttribute('src');
+ assert.notEqual(after,before,'campus photo rotates automatically');
+ await rotationPage.getByRole('button',{name:'Pause campus photos'}).click();
+ const paused=await rotationPage.locator('.affairs-login-photo > img').getAttribute('src');
+ await rotationPage.waitForTimeout(5300);
+ assert.equal(await rotationPage.locator('.affairs-login-photo > img').getAttribute('src'),paused,'pause keeps current photo');
+ await rotating.close();
+ evidence.push({campusPhotos:16,randomStart:true,automaticRotation:true,manualControls:true,reducedMotion:true,pause:true});
  // Provider unavailable: inline recoverable error, no broken navigation or demo fallback.
  await page.route('**/auth/v1/settings',route=>route.fulfill({json:{external:{google:false}}}));
  await page.getByRole('button',{name:'Continue with Google',exact:true}).click();

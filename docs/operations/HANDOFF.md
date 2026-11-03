@@ -166,3 +166,7 @@ Only the client owner is provisioned by default. Create additional staff/student
 
 AI requires the client's server-only OpenAI API key. Research protocols, official corpus review, physical campus validation, participant studies, and institutional sign-off remain external research deliverables; sample data and inherited reports do not establish their completion.
 
+## School Affairs login carousel — Issue #89
+
+The public ePortal login lists 16 campus JPEGs, randomizes the first visible photo and cycles automatically. stu.best now stores the source-verified 16-photo sequence locally and rotates it every five seconds. Previous/next and pause/play remain available; reduced-motion visitors start paused. Focused four-width UI/accessibility/auth checks, 214 API/source and 30 unit tests, build, lint, handoff, zero-vulnerability dependency audit and protected client verification pass locally. Live release verification is pending. No Google OAuth scope, school credential, account permission or database change is involved.
+

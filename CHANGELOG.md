@@ -1,6 +1,10 @@
 # Changelog
 ## Unreleased
 
+### School Affairs login photos (Issue #89)
+
+- Restore all 16 source-verified ePortal campus photos, a varying first photo, timed rotation, previous/next controls and an accessible pause control. Reduced-motion visitors start paused.
+
 ### Official university browser icon (Issue #88)
 
 - Replace the inherited Vercel favicon with the source-verified STU crest and provide a matching touch bookmark icon.

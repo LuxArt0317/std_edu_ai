@@ -1,5 +1,9 @@
 # Current client state
 
+## Issue #89: School Affairs login photo rotation (local verification)
+
+The official public login uses 16 photos, a varying first photo and Bootstrap timed carousel. All 16 public JPEGs are captured locally with source URLs and verified SHA-256 hashes (two source URLs have identical bytes). The stu.best login implementation now rotates every five seconds, retains previous/next controls, adds pause/play, and starts paused for reduced-motion users. Focused four-width UI/accessibility/auth checks, 214 API/source and 30 unit tests, build, lint, handoff, zero-vulnerability dependency audit and protected client verification pass locally. Publication and live verification are pending; Google sign-in permissions are unchanged.
+
 ## Issue #88: official STU browser icon (published and verified)
 
 The official www.stu.edu.tw homepage uses the green university crest from its PNG favicon links. Runtime `ab69cadc0c26d0174c357998742145a09deb58a9` is Ready as Vercel `A3Aa6aSPqRMraDUEhftpeW1ftCmA`; GitHub quality run `41612096996` succeeded. Live `/`, `/school-affairs` and `/signin` serve the new icon metadata with HTTP 200; `/favicon.png` and `/apple-touch-icon.png` both return image/png and exactly match the source-verified university files by SHA-256. The inherited purple Vercel SVG was removed. Local 214 API/source tests, 30 units, build, lint, handoff, zero-vulnerability dependency audit and protected client checks pass. App login and the non-official preview disclosure were unchanged.

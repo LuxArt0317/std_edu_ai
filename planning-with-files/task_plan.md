@@ -1,5 +1,11 @@
 # Task Plan
 
+## School Affairs login photo rotation [Issue #89]
+
+- [x] Capture and verify all 16 public photos used by the official ePortal login.
+- [x] Match the changing initial image, automatic rotation and previous/next controls with accessible behavior.
+- [ ] Run focused UI and release checks, publish to stu.best, and verify the live rotation.
+
 ## Official STU browser icon [Issue #88]
 
 - [x] Compare the live official and client favicon metadata; identify the source-verified university crest.

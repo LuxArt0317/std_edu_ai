@@ -1,5 +1,5 @@
 {
-  "capturedOn": "2026-11-02",
+  "capturedOn": "2026-11-03",
   "scope": "Observed public reference assets for the requested STU interface reconstruction",
   "assets": [
     {
@@ -184,6 +184,102 @@
       "local": "/stu-reference/28ec5c3cdf33ed43.png",
       "sha256": "28ec5c3cdf33ed43b6c53598a639b3f92ce1595a2c6591f2118dc5dbe05d18ba",
       "bytes": 3792
+    },
+    {
+      "source": "https://info.stu.edu.tw/ePortal/assets/images/stu0.jpg",
+      "local": "/stu-reference/b8e61bc3fccc7636.jpg",
+      "sha256": "b8e61bc3fccc763678ab1b3eeb842ebc68bffbb584fe100b1448a4b3172a8b33",
+      "bytes": 497397
+    },
+    {
+      "source": "https://info.stu.edu.tw/ePortal/assets/images/stu1.jpg",
+      "local": "/stu-reference/4cc08129a017900f.jpg",
+      "sha256": "4cc08129a017900f5b8b0aad5e421505ff5fc6fdd3cfc28891e49c9225706766",
+      "bytes": 118174
+    },
+    {
+      "source": "https://info.stu.edu.tw/ePortal/assets/images/stu2.jpg",
+      "local": "/stu-reference/a630400149275b43.jpg",
+      "sha256": "a630400149275b435ec41602f8f169a01c9cbb60027f71c99deb36843c19d82b",
+      "bytes": 116350
+    },
+    {
+      "source": "https://info.stu.edu.tw/ePortal/assets/images/stu3.jpg",
+      "local": "/stu-reference/540de83492af0efb.jpg",
+      "sha256": "540de83492af0efb3e6f9d5af98aec6eb4d2927b8015b18261902156cce2b301",
+      "bytes": 106809
+    },
+    {
+      "source": "https://info.stu.edu.tw/ePortal/assets/images/stu4.jpg",
+      "local": "/stu-reference/9836d7e43b887a5d.jpg",
+      "sha256": "9836d7e43b887a5de28aca682d2c0146bc57c9f8dfda63a3f9dc6716c4440d18",
+      "bytes": 86663
+    },
+    {
+      "source": "https://info.stu.edu.tw/ePortal/assets/images/stu5.jpg",
+      "local": "/stu-reference/8a52b6099361fd00.jpg",
+      "sha256": "8a52b6099361fd0042c3de0f6d8b53d6e6a44ed7edf924c4ee36fa5ea97582f4",
+      "bytes": 111979
+    },
+    {
+      "source": "https://info.stu.edu.tw/ePortal/assets/images/stu6.jpg",
+      "local": "/stu-reference/c041e2334881bd05.jpg",
+      "sha256": "c041e2334881bd05076f91332f2de6a03ecf1053384ac1b6c42d4750fb69ca36",
+      "bytes": 78351
+    },
+    {
+      "source": "https://info.stu.edu.tw/ePortal/assets/images/stu7.jpg",
+      "local": "/stu-reference/be1091bf23a1766c.jpg",
+      "sha256": "be1091bf23a1766c12c6775b4d3ef7475239ac33b8e4097dbdb812ff43db7781",
+      "bytes": 84595
+    },
+    {
+      "source": "https://info.stu.edu.tw/ePortal/assets/images/stu8.jpg",
+      "local": "/stu-reference/9836d7e43b887a5d.jpg",
+      "sha256": "9836d7e43b887a5de28aca682d2c0146bc57c9f8dfda63a3f9dc6716c4440d18",
+      "bytes": 86663
+    },
+    {
+      "source": "https://info.stu.edu.tw/ePortal/assets/images/stu9.jpg",
+      "local": "/stu-reference/57413854afd8a701.jpg",
+      "sha256": "57413854afd8a701c1673df705bb8307d8b3d586c602e1b4aa6996e95fb852ec",
+      "bytes": 103751
+    },
+    {
+      "source": "https://info.stu.edu.tw/ePortal/assets/images/stu10.jpg",
+      "local": "/stu-reference/83dc83f16aff3594.jpg",
+      "sha256": "83dc83f16aff3594eb86631efa9492e722e038312fd1a171b587d936750ed24d",
+      "bytes": 110059
+    },
+    {
+      "source": "https://info.stu.edu.tw/ePortal/assets/images/stu11.jpg",
+      "local": "/stu-reference/40addff4354df404.jpg",
+      "sha256": "40addff4354df404ea2c1f31fd5898d2fe69ee4343126eea994a832d283c0d1c",
+      "bytes": 165115
+    },
+    {
+      "source": "https://info.stu.edu.tw/ePortal/assets/images/stu12.jpg",
+      "local": "/stu-reference/5823623ee7804b53.jpg",
+      "sha256": "5823623ee7804b53b3daf46510565166bdce90df3492a626235d60a6ab789a64",
+      "bytes": 91409
+    },
+    {
+      "source": "https://info.stu.edu.tw/ePortal/assets/images/stu13.jpg",
+      "local": "/stu-reference/f2f1c1f40a1efcfd.jpg",
+      "sha256": "f2f1c1f40a1efcfd54b2892b6af43cfbed9e099b7675a964f709f616538f0fcb",
+      "bytes": 98924
+    },
+    {
+      "source": "https://info.stu.edu.tw/ePortal/assets/images/stu14.jpg",
+      "local": "/stu-reference/d200245cfcf8d639.jpg",
+      "sha256": "d200245cfcf8d6399686b65f12ef533cba7412b45fffe07b1c0a351b05038e47",
+      "bytes": 95287
+    },
+    {
+      "source": "https://info.stu.edu.tw/ePortal/assets/images/stu15.jpg",
+      "local": "/stu-reference/fae1863b26480d2e.jpg",
+      "sha256": "fae1863b26480d2ef4fa36078d5ee763df42ec47f71634779de8e1221182fa87",
+      "bytes": 550672
     }
   ]
 }

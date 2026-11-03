@@ -9,6 +9,35 @@ import { affairsCallbackPath, completeGoogleSignIn, startGoogleSignIn, signOutAf
 import './login.css';
 import { SchoolAffairsPrivacy } from './SchoolAccountRecords';
 const base = 'https://info.stu.edu.tw/ePortal/';
+const campusPhotos = Array.from({ length: 16 }, (_, index) =>
+  referenceAsset(`${base}assets/images/stu${index}.jpg`),
+);
+
+function CampusPhotoCarousel() {
+  // The source page randomizes the first of 15 starting photos, then cycles all 16.
+  const [photo, setPhoto] = useState(() => Math.floor(Math.random() * 15));
+  const [playing, setPlaying] = useState(() =>
+    typeof window !== 'undefined' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
+
+  useEffect(() => {
+    const next = new Image();
+    next.src = campusPhotos[(photo + 1) % campusPhotos.length];
+  }, [photo]);
+
+  useEffect(() => {
+    if (!playing) return;
+    const timer = window.setInterval(() => setPhoto(current => (current + 1) % campusPhotos.length), 5000);
+    return () => window.clearInterval(timer);
+  }, [playing]);
+
+  return <div className="affairs-login-photo" aria-roledescription="carousel" aria-label="樹德科技大學校園照片">
+    <img src={campusPhotos[photo]} alt={`樹德科技大學校園照片 ${photo + 1} / ${campusPhotos.length}`} width="900" height="600" />
+    <Button variant="ghost" type="button" aria-label="Previous campus photo" onClick={() => setPhoto(current => (current - 1 + campusPhotos.length) % campusPhotos.length)}><ChevronLeft/></Button>
+    <Button variant="ghost" type="button" aria-label="Next campus photo" onClick={() => setPhoto(current => (current + 1) % campusPhotos.length)}><ChevronRight/></Button>
+    <Button variant="ghost" type="button" className="affairs-login-photo-play" aria-label={playing ? 'Pause campus photos' : 'Play campus photos'} onClick={() => setPlaying(value => !value)}>{playing ? 'Pause' : 'Play'}</Button>
+  </div>;
+}
 function GoogleCallback() {
   const { search } = useLocation();
   const navigate = useNavigate();
@@ -48,7 +77,7 @@ function SchoolSignOut() {
 export default function SchoolAffairsEntry() {
   const { pathname } = useLocation();
   const { user, loading, error: sessionError } = useAffairsAuth();
-  const [panel, setPanel] = useState(false), [photo, setPhoto] = useState(0);
+  const [panel, setPanel] = useState(false);
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
   useEffect(() => { document.title = '校務系統 · stu.best'; }, []);
   if (pathname === '/school-affairs/privacy') return <SchoolAffairsPrivacy />;
@@ -62,11 +91,7 @@ export default function SchoolAffairsEntry() {
     <div className="affairs-login-wrap">
       <h1 aria-label="校務系統登入"><img src={referenceAsset(base+'assets/img/stu/stuLogo.svg')} alt="樹德科技大學 SHU-TE UNIVERSITY" width="220" height="37"/><span className="sr-only">校務系統登入</span></h1>
       <section className="affairs-login-card" aria-label="School Affairs sign in">
-        <div className="affairs-login-photo">
-          <img src={referenceAsset(base+(photo===0?'assets/images/stu9.jpg':'assets/images/stu0.jpg'))} alt={photo===0?'校園健身中心':'校園建築'} width="900" height="600"/>
-          <Button variant="ghost" aria-label="Previous campus photo" onClick={()=>setPhoto(photo===0?1:0)}><ChevronLeft/></Button>
-          <Button variant="ghost" aria-label="Next campus photo" onClick={()=>setPhoto(photo===0?1:0)}><ChevronRight/></Button>
-        </div>
+        <CampusPhotoCarousel />
         <div className="affairs-google-entry">
           <h2>登入 School Affairs</h2>
           <p>使用您的 Google 帳號登入 stu.best。<br/>Sign in to stu.best with your Google account.</p>

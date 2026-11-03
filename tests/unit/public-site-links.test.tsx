@@ -81,7 +81,11 @@ test("all delivered reference assets match their checksums and retain source pro
   const manifest = JSON.parse(
     readFileSync("public/stu-reference/provenance.json", "utf8"),
   );
-  assert.equal(manifest.assets.length, 30);
+  assert.ok(manifest.assets.length >= 30);
+  for (let index = 0; index < 16; index++) {
+    const source = `https://info.stu.edu.tw/ePortal/assets/images/stu${index}.jpg`;
+    assert.ok(manifest.assets.some((asset: { source: string }) => asset.source === source), source);
+  }
   for (const asset of manifest.assets) {
     assert.equal(
       createHash("sha256")
