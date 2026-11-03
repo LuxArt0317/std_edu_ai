@@ -1,5 +1,9 @@
 # Client handoff
 
+## Current release — Issue #88
+
+The official university browser crest is published at [stu.best](https://stu.best): runtime `ab69cadc0c26d0174c357998742145a09deb58a9`, [Vercel A3Aa6aSPqRMraDUEhftpeW1ftCmA](https://vercel.com/v1-d286/std_edu_ai/A3Aa6aSPqRMraDUEhftpeW1ftCmA) Ready, [GitHub quality 41612096996](https://github.com/LuxArt0317/std_edu_ai/actions/runs/41612096996) successful. Live home, School Affairs and sign-in HTML each references `/favicon.png` and `/apple-touch-icon.png` with no inherited Vercel SVG link. The deployed PNG files return HTTP 200 `image/png` and match the official-source files bundled locally by SHA-256. Local API/source, unit, build, lint, handoff, dependency and protected client checks passed. No database, authentication or provider setting changed.
+
 ## Current release — Issue #87
 
 Published at [stu.best](https://stu.best): runtime `205c83831916082e64820b9af6c48dd4d2a5fecd`, [Vercel 4Yiv71X8uSTkET8oRPz3EmLgeH9F](https://vercel.com/v1-d286/std_edu_ai/4Yiv71X8uSTkET8oRPz3EmLgeH9F) Ready, [quality 41608483620](https://github.com/LuxArt0317/std_edu_ai/actions/runs/41608483620) successful, entry `index-DRfidKVb.js` live. The School Affairs chatbot verifies its own stu.best session and does not use Nexus course, student, term or schedule context. Live signed-in chat listed the three General Affairs services from the 94-link directory, answered a public registrar contact question with a reviewed source, and directed a personal subjects question to the official service without claiming enrollment. Live public image analysis returned a grounded answer and visible image activity. The first deployment exposed a Vercel function import failure; a second exposed protected deployment-URL routing. Both were corrected and retested in the final release. [Scope and checks](../qa/SCHOOL_AFFAIRS_ASSISTANT.md).

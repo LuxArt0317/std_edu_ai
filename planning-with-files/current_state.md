@@ -1,8 +1,8 @@
 # Current client state
 
-## Issue #88: official STU browser icon (in progress)
+## Issue #88: official STU browser icon (published and verified)
 
-The official www.stu.edu.tw homepage uses the green university crest from its 150px and 300px PNG favicon links. stu.best still references inherited purple Vercel `public/favicon.svg`. The repo already contains a checksum-verified local copy of the official 150px icon and its 500px source. Replace the browser icon metadata and verify the deployed bytes; do not change app login or the non-official preview disclosure.
+The official www.stu.edu.tw homepage uses the green university crest from its PNG favicon links. Runtime `ab69cadc0c26d0174c357998742145a09deb58a9` is Ready as Vercel `A3Aa6aSPqRMraDUEhftpeW1ftCmA`; GitHub quality run `41612096996` succeeded. Live `/`, `/school-affairs` and `/signin` serve the new icon metadata with HTTP 200; `/favicon.png` and `/apple-touch-icon.png` both return image/png and exactly match the source-verified university files by SHA-256. The inherited purple Vercel SVG was removed. Local 214 API/source tests, 30 units, build, lint, handoff, zero-vulnerability dependency audit and protected client checks pass. App login and the non-official preview disclosure were unchanged.
 
 ## Issue #87: School Affairs assistant source boundary (published and verified)
 

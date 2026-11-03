@@ -2,6 +2,7 @@
 
 - 2026-11-03 [#88]: Compared official www.stu.edu.tw browser icon metadata with stu.best. Official homepage advertises STU crest PNGs; client Vite HTML still references purple Vercel favicon.svg. Located checksum-verified official 150px crest and 500px source already bundled in public assets. Issue #88 opened; implementation and deployment pending.
 - 2026-11-03 [#88]: Replaced the Vercel favicon with byte-identical official STU crest and matching 500px touch icon. Local dist retains both exact hashes and no old SVG. 214 API/source, 30 unit, build, lint, handoff, zero-vulnerability audit and protected client/backend checks passed. Live release pending.
+- 2026-11-03 [#88]: Runtime ab69cad/A3Aa6aSPqRMraDUEhftpeW1ftCmA Ready at stu.best; GitHub quality41612096996 succeeded. Live home, School Affairs and sign-in HTML each references PNG favicon/touch icon and no old SVG; both PNGs return HTTP200 image/png and source-identical SHA-256. No auth/database/provider change.
 
 
 Prior log archived in archive/progress_2026-11-03-statistics.md; key results retained in findings.md and current_state.md.
