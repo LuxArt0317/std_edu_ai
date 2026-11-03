@@ -1,12 +1,19 @@
 # Changelog
 ## Unreleased
 
-### School Affairs Google sign-in (Issue #83, provider acceptance pending)
+### Helpful STU Assistant (Issue #86)
+
+- Search managed knowledge first, then live official STU pages and broader school-related sources when current or missing public details need verification. Show only source URLs returned by the web tool and label external sources separately.
+- Give supported partial answers, specific follow-up guidance and a clear campus-only scope; preserve private account boundaries and read-only/confirmation-gated actions.
+- Prevent prior private conversation turns from entering retrieval or web-search requests; handle knowledge outages and provider failures without invented answers.
+
+### School Affairs Google sign-in (Issue #83, real callback acceptance pending)
 
 - Replace the expiring demo gate with an isolated Google PKCE client, validated restore/callback, cancellation/error handling and session-local logout.
 - Show the actual Google email and linked student record or an honest empty state; remove disabled school-password fields and sample fee data.
 - Scope preferences and Assistant conversations to the School Affairs account; use its own JWT for read-only authorized answers while keeping public chat anonymous and Nexus permissions separate.
 - Add sign-in privacy information, provider/setup documentation, meaningful account/session browser checks and a manifest-only public build that excludes unreleased archive captures.
+- Configure the approved Google Web OAuth client and basic identity scopes; enable the Supabase provider, add exact callbacks and publish the External audience to Production. Real callback acceptance still needs the account-holder's Google verification.
 
 
 ### Readable achievement totals (Issue #85)

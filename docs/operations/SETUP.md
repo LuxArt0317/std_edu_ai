@@ -15,7 +15,7 @@ Copy `.env.example` to `.env.local` and supply the client project's URL and publ
 | `NEXT_PUBLIC_SUPABASE_URL` | Browser-safe | Marketplace integration alias, accepted automatically |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Browser-safe | Marketplace integration alias, accepted automatically |
 | `OPENAI_API_KEY` | Server-only | Live AI and embeddings |
-| `OPENAI_MODEL`, `OPENAI_PUBLIC_MODEL`, `OPENAI_VISION_MODEL`, `OPENAI_EMBEDDING_MODEL` | Server configuration | Optional model overrides supported by the endpoints |
+| `OPENAI_MODEL`, `OPENAI_PUBLIC_MODEL`, `OPENAI_SEARCH_MODEL`, `OPENAI_VISION_MODEL`, `OPENAI_EMBEDDING_MODEL` | Server configuration | Optional model overrides supported by the endpoints; search uses the public/model setting when unset |
 | `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_SECRET_KEY` | Server-only | Isolated setup and Auth administration; never browser-exposed |
 | `POSTGRES_URL_NON_POOLING` / `POSTGRES_URL` | Server-only | Migration connection from the connected Marketplace resource |
 | `SAFETY_HASH_SALT` | Server-only | Stable privacy-safe identifiers |
@@ -90,13 +90,15 @@ Run `npm run dev -- --host 127.0.0.1 --port 5173` for local review. Public route
 
 With the local server running, use `npm run test:public-site`; for the production build use `npm run build`, serve Vite preview and set `PUBLIC_SITE_ORIGIN=http://127.0.0.1:5174`. This UI does not require a migration or a new secret. The source catalogues/assets and capture limits are documented in [public-site QA](../qa/PUBLIC_SITE_REBUILD.md).
 
-For the School Affairs replica, open `/school-affairs`; its directory/homepage entries map locally. `npm run test:school-affairs` verifies the 25 menu views, source-link catalog, settings, responsive/keyboard/accessibility behavior, preferences/bookmarks and absence of external requests. `PUBLIC_SITE_ORIGIN=http://127.0.0.1:5174 npm run test:school-affairs` targets a running local production preview. The portal uses a clearly identified demo student and example fee, with no school account required. External school applications need their own authorized school login and are not supplied by this preview.
+For the School Affairs replica, open `/school-affairs`; its directory/homepage entries map locally. `/school-affairs/login` uses a separate Google account via Supabase PKCE, with verified callback at `/school-affairs/auth/callback`; it does not accept an official university password or imply official school enrollment. `npm run test:school-affairs` verifies the 25 menu views, source-link catalog, settings, responsive/keyboard/accessibility behavior, preferences/bookmarks and absence of external requests. `PUBLIC_SITE_ORIGIN=http://127.0.0.1:5174 npm run test:school-affairs` targets a running local production preview. Missing linked student records display an explicit empty state. External school applications need their own authorized school login and are not supplied by this site. [Google setup and acceptance status](../qa/GOOGLE_SCHOOL_SIGNIN.md).
 
 ## Production domain
 
 The canonical public URL is [https://stu.best](https://stu.best). `www.stu.best` permanently redirects to the apex; the original Vercel alias remains available. Domain/DNS ownership, management routes and callback details are recorded in [infrastructure](INFRASTRUCTURE.md). `deployment.json` supplies the live verification target and local API proxy. `npm run verify:client` checks both hosted origins, rejects untrusted CORS origins and verifies client database/API/AI access using ignored local credentials. Keep Supabase confirmation enabled; moving the domain does not resolve the outstanding production-mail dependency.
 
 ## Assistant knowledge
+
+The public Assistant uses eligible managed knowledge first, then bounded live school web search for missing or current information. The existing server-only `OPENAI_API_KEY` is required; `OPENAI_SEARCH_MODEL` is optional. Web answers are visibly marked and linked to actual returned sources, without being represented as approved corpus evidence. [Search behavior and QA](../qa/SCHOOL_ASSISTANT_SEARCH.md).
 
 Manage sources, imports, audience, review, publication, rollback, refresh and answer tests at `/app/knowledge` as owner/admin/librarian. The public Assistant appears on all public pages; a signed-in session uses authorized account QA and `/app` offers confirmed actions. Details and limits: [Connected Assistant](../qa/CONNECTED_ASSISTANT.md).
 

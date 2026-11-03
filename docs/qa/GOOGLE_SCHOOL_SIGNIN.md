@@ -14,13 +14,13 @@ The sign-in button uses the unmodified [Google G branding asset](https://develop
 
 ## Provider setup
 
-Use the client Google account and dedicated project `stu-best-school-affairs`. Configure an External Google Auth application named `stu.best School Affairs`, with only basic identity scopes. Its Web OAuth client must allow the exact callback:
+The client Google project `stu-best-school-affairs` now has an External Google Auth application named `stu.best School Affairs` and a Web OAuth client with only `openid`, email and profile scopes. The authorized JavaScript origin is `https://stu.best`; the exact Google callback is:
 
 `https://xiftudmvxphxcjtmfmib.supabase.co/auth/v1/callback`
 
-The Google secret belongs only in the client Supabase Google provider configuration, never Vite, Git, screenshots or the shared infrastructure registry. Keep nonce checks enabled and email required. Add exact Supabase redirect allowlist entries for `/school-affairs/auth/callback` on the approved production and development origins; preserve existing Nexus redirects. Publish Google's audience to Production for ordinary Google accounts, rather than claiming test-user-only access works for everyone. No Gmail API, SMTP change, billing activation or broad Google data scope is needed.
+The Google secret is saved only in the client Supabase Google provider configuration, never Vite, Git, screenshots or the shared infrastructure registry. Google provider is enabled with nonce checks and email requirement preserved. Supabase has exact `/school-affairs/auth/callback` allowlist entries for `stu.best`, `stdeduai.vercel.app`, `localhost:5173`, `127.0.0.1:5173` and `127.0.0.1:5175`; the six existing Nexus entries remain. Google's External audience is **In production**, allowing ordinary Google accounts. No Gmail API, SMTP change, billing activation or broad Google data scope was added.
 
-The provider approval/configuration and actual live OAuth acceptance remain pending. Google Cloud first-use terms were approved and accepted; the dedicated project is created. A separate Google API Services User Data Policy and persistent OAuth-client approval was requested. No OAuth client/secret has been created and the Supabase Google provider remains disabled at this checkpoint.
+The user approved Google Cloud terms, the Google API Services User Data Policy and basic Google sign-in setup. Those agreements were accepted, the OAuth client was created, and Supabase provider/callback settings were saved and verified. The local real sign-in reached Google's account chooser with the exact client/callback. Google then required account-holder passkey/phone/Authenticator verification, so completed real-user callback and linked-record acceptance remain **unverified** until the account holder finishes that step. No test-only flow is counted as real OAuth acceptance.
 
 ## Verification
 
@@ -28,7 +28,7 @@ The provider approval/configuration and actual live OAuth acceptance remain pend
 - `npm run test:school-affairs`: 25 menu views, search, customization, account-specific preferences, announcement dialogs, keyboard/focus, mobile navigation, skins and blocked preference storage. The fixture bypasses no real provider authentication.
 - `npm test`, `npm run test:unit`, `npm run lint`, `npm run build`, `npm run verify:handoff`, `npm run verify:dependency-audit` and `npm run verify:client` cover contracts, build assets, protected backend and regression checks.
 
-Local evidence is ignored under `artifacts/google-signin/` and `artifacts/stu-reference/affairs-qa/`. Live Google acceptance and release identifiers must be recorded only after real provider configuration and production verification.
+Local evidence is ignored under `artifacts/google-signin/` and `artifacts/stu-reference/affairs-qa/`. Record live callback and release identifiers only after direct verification.
 
 ## Release asset isolation
 

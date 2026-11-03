@@ -12,5 +12,5 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
   });
   const result = await response.json().catch(()=>null);
   if (!response.ok || typeof result?.answer !== 'string') throw new Error('Your account answer could not be loaded. Please try again or sign in again.');
-  return {answer:result.answer,status:'answered',citations:result.knowledgeCitations||[],suggestedQuestions:[]};
+  return {answer:result.answer,status:'answered',citations:result.knowledgeCitations||[],suggestedQuestions:[],grounding:result.grounding};
 }

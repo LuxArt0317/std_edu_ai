@@ -1,10 +1,12 @@
 # Current client state
 
-## Issue #83: real Google School Affairs sign-in (local)
+## Issues #83 and #86: Google sign-in and helpful school Assistant (local)
 
-User chose independent Google/Gmail site accounts. Implemented isolated PKCE/session/callback/logout, actual email, own-linked-record/empty state, per-account preferences, read-only authenticated chat and anonymous public chat. Callback verification/redirect race fixed. Nexus owner/roles/RLS remain unchanged; normal sign-out uses local session scope in both workspaces. Google Cloud terms accepted after explicit approval; dedicated client project stu-best-school-affairs created. Google API data-policy and persistent OAuth-client approval remains pending; no credentials created, provider disabled, code not pushed/deployed. See docs/qa/GOOGLE_SCHOOL_SIGNIN.md.
+User chose independent Google/Gmail site accounts. Implemented isolated PKCE/session/callback/logout, actual email, own-linked-record/empty state, per-account preferences, read-only authenticated chat and anonymous public chat. Callback verification/redirect race fixed. Nexus owner/roles/RLS remain unchanged; normal sign-out uses local session scope in both workspaces. Approved Google policies were accepted; dedicated client project stu-best-school-affairs, exact OAuth client/callback, three basic scopes, Supabase Google provider and URL allowlist are saved. External audience is In production. Real local sign-in reached the account chooser; Google requires the account holder's passkey/phone/Authenticator verification before callback acceptance can be checked. Code not yet pushed/deployed. See docs/qa/GOOGLE_SCHOOL_SIGNIN.md.
 
-Unpublished archive draft 9f15a95 remains preserved on codex/full-school-archive. Current branch codex/school-google-signin starts from production main and does not include that draft. Its build publishes only manifest-pinned mirror files, excluding raw unreleased captures.
+#86 implementation adds managed knowledge first, official stu.edu.tw web search then broader verified STU sources for missing/current public information. Only actual web-tool source URLs become citations; no private account context is sent to search. Unsupported answers produce specific navigation help. Local API tests pass; live model/tool acceptance awaits deployment. No new database schema, OAuth scope or app role change.
+
+Unpublished archive draft 9f15a95 remains preserved on codex/full-school-archive. Current branch codex/helpful-school-search starts from production main, includes the approved Google checkpoint and excludes that draft. Its build publishes only manifest-pinned mirror files, excluding raw unreleased captures.
 
 
 ## Issue #85: achievement cards published and verified

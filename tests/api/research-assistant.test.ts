@@ -145,7 +145,7 @@ test("public assistant safely abstains when no eligible evidence passes retrieva
     throw new Error(`Unexpected fetch ${url}`);
   };
   const response = await invoke(
-    { question: "Unknown private decision?" },
+    { question: "Unknown STU campus service?" },
     "abstain",
   );
   assert.equal(response.statusCode, 200);
@@ -306,7 +306,7 @@ test("public traces are synchronous, atomic, and contain no raw query or client 
   );
 });
 
-test("a trace persistence failure prevents an untraceable successful answer", async () => {
+test("a trace persistence failure returns practical help without claiming an untraceable success", async () => {
   configured();
   globalThis.fetch = async (input) => {
     const url = String(input);
@@ -327,7 +327,10 @@ test("a trace persistence failure prevents an untraceable successful answer", as
     { question: "Unknown request", sessionToken: "t".repeat(64) },
     "trace-failure",
   );
-  assert.equal(response.statusCode, 502);
+  assert.equal(response.statusCode, 200);
+  assert.equal((response.body as {status:string}).status,"handoff");
+  assert.deepEqual((response.body as {citations:unknown[]}).citations,[]);
+  assert.equal((response.body as {feedback?:unknown}).feedback,undefined);
 });
 
 test("fabricated model citation IDs fail closed", async () => {
@@ -395,7 +398,10 @@ test("fabricated model citation IDs fail closed", async () => {
     { question: "Admissions information" },
     "bad-citation",
   );
-  assert.equal(response.statusCode, 502);
+  assert.equal(response.statusCode, 200);
+  assert.equal((response.body as {status:string}).status,"handoff");
+  assert.deepEqual((response.body as {citations:unknown[]}).citations,[]);
+  assert.equal((response.body as {feedback?:unknown}).feedback,undefined);
 });
 
 test("equally ranked conflicting official sources hand off without model guessing", async () => {
@@ -435,7 +441,7 @@ test("equally ranked conflicting official sources hand off without model guessin
     content_checksum: "b".repeat(64),
   };
   let modelCalled = false;
-  globalThis.fetch = async (input) => {
+  globalThis.fetch = async (input,init) => {
     const url = String(input);
     if (url.includes("/v1/embeddings"))
       return new Response(
@@ -461,8 +467,10 @@ test("equally ranked conflicting official sources hand off without model guessin
         { status: 200 },
       );
     if (url.includes("/v1/responses")) {
-      modelCalled = true;
-      throw new Error("model must not decide conflicts");
+      if (!JSON.parse(String(init?.body)).tools?.some((tool:{type:string})=>tool.type==='web_search')) modelCalled = true;
+      // A real official-source lookup may resolve a conflict, but unsupported
+      // model guessing must not replace the two conflicting source citations.
+      throw new Error("no verified web source available");
     }
     if (url.includes("/rpc/record_public_ai_exchange")) return trace();
     throw new Error(`Unexpected fetch ${url}`);
@@ -491,4 +499,60 @@ test('anonymous personal-course questions request sign-in without reading accoun
  };
  const response=await invoke({question:'What are my current subjects?'},'personal-handoff');
  assert.equal(response.statusCode,200);const result=response.body as {status:string;answer:string;citations:unknown[]};assert.equal(result.status,'handoff');assert.match(result.answer,/sign in/i);assert.deepEqual(result.citations,[]);
+});
+
+test('an empty knowledge base is answered from real web-tool sources, without faking curated research citations',async()=>{
+ configured();let searchCalls=0, traceCalls=0;
+ const source='https://www.stu.edu.tw/office/';
+ globalThis.fetch=async(input,init)=>{
+  const url=String(input);
+  if(url.includes('/embeddings'))return Response.json({data:[{embedding:embedding()}]});
+  if(url.includes('/rpc/search_public_knowledge'))return Response.json([]);
+  if(url.includes('/v1/responses')){
+   const request=JSON.parse(String(init?.body));assert.equal(request.tools[0].type,'web_search');searchCalls++;
+   return Response.json({output:[{type:'web_search_call',status:'completed',action:{sources:[{url:source,title:'STU office'}]}},{type:'message',content:[{text:JSON.stringify({status:'answered',answer:'You can find office information on the STU office page.',source_urls:[source]})}]}]});
+  }
+  if(url.includes('record_public_ai_exchange')){traceCalls++;return trace();}
+  return Response.json(null);
+ };
+ const result=await invoke({question:'Where can I find STU office information?'},'web-fallback');
+ const body=result.body as {status:string;answer:string;feedback?:unknown;citations:Array<{url:string;reviewedAt:unknown}>;grounding:{source:string;webSearched:boolean}};
+ assert.equal(result.statusCode,200);assert.equal(body.status,'answered');assert.equal(body.grounding.source,'web');assert.equal(body.grounding.webSearched,true);assert.equal(body.citations[0].url,source);assert.equal(body.citations[0].reviewedAt,null);assert.match(body.answer,/\[1\]\(/);assert.equal(body.feedback,undefined);assert.equal(traceCalls,0);assert.equal(searchCalls,1);
+});
+
+test('a managed-retrieval outage still tries the independent school web search',async()=>{
+ configured();let searched=false;
+ globalThis.fetch=async(input)=>{
+  const url=String(input);
+  if(url.includes('/embeddings'))return Response.json({data:[{embedding:embedding()}]});
+  if(url.includes('search_public_knowledge'))throw Error('backend unavailable');
+  if(url.includes('/responses')){searched=true;return Response.json({output:[]});}
+  if(url.includes('record_public_ai_exchange'))return trace();
+  return Response.json(null);
+ };
+ const result=await invoke({question:'STU library opening hours?'},'retrieval-outage');
+ assert.equal(result.statusCode,200);assert.equal(searched,true);assert.match((result.body as {answer:string}).answer,/student services|office|program/i);
+});
+
+test('private conversation history never enters public retrieval or live web search',async()=>{
+ configured(); const sent:string[]=[];
+ globalThis.fetch=async(input,init)=>{
+  const url=String(input), body=String(init?.body||'');
+  if(url.includes('/embeddings')){sent.push(body);return Response.json({data:[{embedding:embedding()}]});}
+  if(url.includes('search_public_knowledge')){sent.push(body);return Response.json([]);}
+  if(url.includes('/responses')){sent.push(body);return Response.json({output:[]});}
+  if(url.includes('record_public_ai_exchange'))return trace();
+  return Response.json(null);
+ };
+ const result=await invoke({question:'And the registrar phone number?',history:[{role:'user',content:'My private grade is 72'},{role:'assistant',content:'Private student record 12345'},{role:'user',content:'Where is the STU registrar?'}]},'private-history');
+ assert.equal(result.statusCode,200);assert.ok(sent.length>=2);
+ for(const body of sent)assert.doesNotMatch(body,/private grade|Private student|12345|72/);
+ assert.match(sent.join(' '),/STU registrar/);
+});
+
+test('unrelated code generation and greetings are handled without spending search calls',async()=>{
+ configured();globalThis.fetch=async()=>{throw Error('no providers expected');};
+ const coding=await invoke({question:'Write a Python script to build a trading bot'},'coding-scope');
+ assert.equal(coding.statusCode,200);assert.equal((coding.body as {status:string}).status,'handoff');assert.match((coding.body as {answer:string}).answer,/Shu-Te/);
+ const hello=await invoke({question:'你好'},'school-greeting');assert.equal(hello.statusCode,200);assert.match((hello.body as {answer:string}).answer,/樹德/);
 });

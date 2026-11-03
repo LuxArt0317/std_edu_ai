@@ -1,5 +1,7 @@
 # Connected Assistant — Issues #82 and #83
 
+For the current live-web fallback and privacy limits, see [Issue #86 search and QA](SCHOOL_ASSISTANT_SEARCH.md). The Google account decision below was superseded by the approved independent Google sign-in implementation; its provider state and real-acceptance status are recorded in [Google School Affairs sign-in](GOOGLE_SCHOOL_SIGNIN.md).
+
 ## Current identity boundary — Issue #83 (supersedes the original public identity routing)
 
 School Affairs provides the future student authentication/data boundary. STU Nexus is the separate knowledge manager. Public chat never reads the Nexus Supabase session or sends its token; being signed into Nexus cannot enable private student answers. The manager's explicit answer-test control still uses authenticated knowledge permissions. The protected Lux owner starts at `/app/knowledge` with a single Knowledge navigation item and a Knowledge manager label; an explicit account-menu option opens the existing full owner workspace. This is a presentation/default-route change, not an owner-role downgrade.

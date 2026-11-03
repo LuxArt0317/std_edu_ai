@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { questionKind, publicSchoolQuestion, searchSchoolWeb } from "../server/schoolWebSearch.js";
 import { searchAssistantKnowledge } from "../server/assistantKnowledge.js";
 import { inferKnowledgeLanguage } from "../server/knowledgePipeline.js";
 import { recordResearchOperation, safeOperationalCode } from "../server/researchOperations.js";
@@ -287,6 +288,14 @@ export default async function handler(
     });
     return;
   }
+  const kind = questionKind(input.question);
+  const chinese = /[\u3400-\u9fff]/.test(input.question);
+  if (kind.greeting || kind.capabilities || kind.irrelevant) {
+    response.status(200).json({status:kind.irrelevant ? "handoff" : "answered",answer:kind.irrelevant
+      ? (chinese ? "我可以協助樹德科技大學的資訊與校園服務，但不代寫一般程式。您可以問招生、住宿、交通、公告或辦公室聯絡方式。" : "I help with Shu-Te University information and campus services, rather than writing unrelated software. Ask about admissions, courses, accommodation, transport, announcements or office contacts.")
+      : (chinese ? "您好！我可以幫您查詢樹德科技大學的聯絡方式、招生、課程、住宿、交通與公告。我會先查知識庫，資料不足時再查官方網站與相關網路來源。您想了解什麼？" : "Hello! I can help with Shu-Te University contacts, admissions, courses, accommodation, transport and announcements. I check managed knowledge first, then official school pages and related web sources when needed. What would you like to know?"),citations:[],suggestedQuestions:[],grounding:{source:"assistant-help",webSearched:false}});
+    return;
+  }
   const openAiKey = process.env.OPENAI_API_KEY;
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const publishableKey =
@@ -314,12 +323,27 @@ export default async function handler(
   const queryHash = createHash("sha256")
     .update(input.question.normalize("NFKC").toLowerCase())
     .digest("hex");
+  let webAttempted = false;
+  const publicQuestion = publicSchoolQuestion(input.question,input.history);
+  async function tryWebAnswer() {
+    if (webAttempted || !publicQuestion || kind.personal) return false;
+    const web = await searchSchoolWeb(publicQuestion,{deadline:started+50000});
+    webAttempted = web.attempted;
+    if (!web.result) {
+      await recordResearchOperation({url:supabaseUrl,key:publishableKey,component:"retrieval",operation:"web_search",outcome:"degraded",errorCode:"WEB_SEARCH_UNVERIFIED",httpStatus:200,latencyMs:Date.now()-started,itemCount:0,correlationHash:queryHash,metadata:{fallback_used:true}});
+      return false;
+    }
+    await recordResearchOperation({url:supabaseUrl,key:publishableKey,component:"retrieval",operation:"web_search",outcome:"success",httpStatus:200,latencyMs:Date.now()-started,itemCount:web.result.citations.length,correlationHash:queryHash,metadata:{citation_count:web.result.citations.length,fallback_used:true}});
+    // Web references are not approved corpus chunk IDs or research-evaluation evidence.
+    response.status(200).json({status:"answered",answer:web.result.answer,citations:web.result.citations,suggestedQuestions:[],grounding:{source:"web",webSearched:true,checkedAt:web.result.checkedAt,officialOnly:web.result.officialOnly,retrieverVersion:"school-web@1",responseMs:Date.now()-started}});
+    return true;
+  }
   try {
-    const searchQuestion = input.history.length && input.question.length < 80
-      ? `${input.history.filter(item=>item.role==='user').at(-1)?.content || ''}\n${input.question}`.trim().slice(-2000)
-      : input.question;
-    const personalQuestion = /\bmy (?:current )?(?:subjects?|courses?|classes|grades?|schedule|timetable|attendance|assignments?|enrollments?)\b|我的.{0,8}(?:課程|科目|成績|出席|作業|課表)/i.test(input.question);
-    const search = personalQuestion ? {evidence:[],degraded:false} : await searchAssistantKnowledge(searchQuestion);
+    const personalQuestion = kind.personal || /\bmy (?:current )?(?:subjects?|courses?|classes|grades?|schedule|timetable|attendance|assignments?|enrollments?)\b|我的.{0,8}(?:課程|科目|成績|出席|作業|課表)/i.test(input.question);
+    // A public follow-up may use only a previous public school question. Never
+    // send a prior private message, assistant answer or attachment to retrieval.
+    const searchQuestion = publicQuestion || input.question;
+    const search = personalQuestion ? {evidence:[],degraded:false} : await searchAssistantKnowledge(searchQuestion).catch(() => ({evidence:[],degraded:true}));
     let retrieved = search.evidence as SearchResult[];
     await recordResearchOperation({url:supabaseUrl,key:publishableKey,component:"retrieval",operation:"search",outcome:"success",httpStatus:200,latencyMs:Date.now()-started,itemCount:retrieved.length,correlationHash:queryHash,metadata:{result_count:retrieved.length}});
     if (retrieved.length) {
@@ -346,6 +370,7 @@ export default async function handler(
     }
     let answer: ModelAnswer;
     const conflict = detectEvidenceConflict(retrieved);
+    if (!personalQuestion && (!retrieved.length || kind.fresh || conflict) && await tryWebAnswer()) return;
     if (personalQuestion) {
       answer = {status:"handoff",answer:language==='zh-Hant'||language==='mixed' ? '個人課程、課表與成績需要在 /school-affairs/login 使用 Google 登入，再查詢已授權連結至您帳號的資料。Google 登入不會自動連接校方正式學籍；知識庫管理登入與學生身分分開。我可以先協助查詢公開資訊。' : 'Sign in with Google at /school-affairs/login to ask about authorized records linked to your School Affairs account. Google sign-in does not automatically connect official university courses, grades or schedules. Knowledge-manager sign-in is separate. I can help with public school information meanwhile.',citations:[],suggestedQuestions:[]};
     } else if (conflict) {
@@ -367,8 +392,8 @@ export default async function handler(
         status: "abstained",
         answer:
           language === "zh-Hant"
-            ? "目前沒有足夠且有效的官方資料可以可靠回答這個問題。請改寫問題，或使用學校官網的官方聯絡管道確認。"
-            : "I do not have enough current, eligible official evidence to answer reliably. Please rephrase the question or confirm through the official university contact channel.",
+            ? "我查過目前可用的知識庫，也嘗試了網路查詢，但還無法確認這個細節。您可以先查看[在校學生服務目錄](/在校學生/)或[學校官網](https://www.stu.edu.tw/)。告訴我要找的辦公室、科系或公告主題，我可以幫您縮小範圍。"
+            : "I checked the available knowledge and tried a web lookup, but could not verify that detail. You can browse [student services](/在校學生/) or the [school website](https://www.stu.edu.tw/). Tell me the office, program or announcement topic and I can narrow the search.",
         citations: [],
         suggestedQuestions: [],
       };
@@ -387,7 +412,7 @@ export default async function handler(
             "You are anonymous/public only. Never answer a personal enrollment, grade, timetable, message or account question from public information. Personal records require a separately verified School Affairs session, not a Nexus knowledge-management account. School Affairs uses a separate Google sign-in session and can access only authorized site records linked to that account. Google sign-in does not import official university records; explain that boundary without directing students to Nexus. Never imply access to the official school portal or claim a service action happened. When evidence is an indexed excerpt or dated snapshot, briefly state that limitation in the answer. Distinguish a dated announcement snapshot from live school news, do not invent registrar contact extensions, and offer only supplied contact facts.",
             "Do not invent a policy, date, office, route, exception, decision, or private fact.",
             "Every material factual claim in an answered response must cite one or more supplied chunk IDs.",
-            "If sources are insufficient, conflicting, ambiguous, or require an official decision, clarify, abstain, or hand off.",
+            "Be helpful: answer every supported part first and explain only the specific missing detail. Resolve short follow-ups from the conversation. Do not refuse a school question merely because a source is incomplete. The server can perform live web search when managed knowledge cannot answer. Never guess an official decision or unsupported fact.",
             "Use the user's language, preserve official Traditional Chinese names, be concise, and link only supplied official URLs.",
             "Return strict JSON matching the schema.",
           ].join(" "),
@@ -455,7 +480,7 @@ export default async function handler(
           max_output_tokens: 1400,
           safety_identifier: sessionHash,
         }),
-        signal: AbortSignal.timeout(Math.min(30_000, Math.max(1_000, 42_000 - (Date.now() - started)))),
+        signal: AbortSignal.timeout(Math.min(18_000, Math.max(1_000, 35_000 - (Date.now() - started)))),
       });
       const providerPayload = await provider.json();
       const parsed = provider.ok
@@ -473,6 +498,7 @@ export default async function handler(
       if (!parsed)
         throw new Error("The assistant could not produce a grounded response.");
       answer = parsed;
+      if (answer.status !== "answered" && await tryWebAnswer()) return;
     }
     const citations = answer.citations.map((citation) => {
       const source = retrieved.find(
@@ -511,6 +537,8 @@ export default async function handler(
       suggestedQuestions: answer.suggestedQuestions,
       feedback,
       grounding: {
+        source: "knowledge",
+        webSearched: webAttempted,
         retrieved: retrieved.length,
         retrieverVersion: "hybrid-rrf@1",
         responseMs: Date.now() - started,
@@ -519,11 +547,9 @@ export default async function handler(
     });
   } catch (error) {
     await recordResearchOperation({url:supabaseUrl,key:publishableKey,component:"model",operation:"answer",outcome:"failure",errorCode:safeOperationalCode(error instanceof Error?error.message:"MODEL_FAILURE"),httpStatus:502,latencyMs:Date.now()-started,correlationHash:queryHash,metadata:{fallback_used:true}});
-    response.status(502).json({
-      error:
-        error instanceof Error
-          ? error.message
-          : "The research assistant is temporarily unavailable.",
-    });
+    if (await tryWebAnswer()) return;
+    response.status(200).json({status:"handoff",answer:chinese
+      ? "這次查詢未能驗證答案，我不會猜測。您仍可查看[在校學生服務目錄](/在校學生/)或[學校官網](https://www.stu.edu.tw/)。告訴我要找的單位或具體服務，我可以再協助查找。"
+      : "I could not verify this answer during the lookup, so I will not guess. You can still browse [student services](/在校學生/) or the [official school website](https://www.stu.edu.tw/). Tell me the office or specific service and I can help narrow it down.",citations:[],suggestedQuestions:[],grounding:{source:"helpful-fallback",webSearched:webAttempted,degraded:true}});
   }
 }

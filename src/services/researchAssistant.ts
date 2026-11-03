@@ -1,5 +1,6 @@
 export type AssistantFeedbackCapability = { token: string; expiresAt: string };
 export type AssistantResponse = {
+  grounding?: {source?:string;webSearched?:boolean;checkedAt?:string;degraded?:boolean};
   answer: string;
   status: "answered" | "clarification" | "abstained" | "handoff";
   citations: Array<{
@@ -64,8 +65,8 @@ export async function askCampusAssistant(
       String(payload.status),
     ) ||
     !Array.isArray(payload.citations) ||
-    typeof payload.feedback?.token !== "string" ||
-    typeof payload.feedback?.expiresAt !== "string"
+    (payload.feedback !== undefined && (typeof payload.feedback?.token !== "string" ||
+    typeof payload.feedback?.expiresAt !== "string"))
   ) {
     throw new Error("AI 助理收到無效的回應，請稍後再試。");
   }

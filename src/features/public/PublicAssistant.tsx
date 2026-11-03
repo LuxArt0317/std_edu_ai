@@ -172,6 +172,7 @@ export function PublicAssistant() {
               ) : (
                 <AssistantMarkdown>{message.content}</AssistantMarkdown>
               )}
+              {message.result?.grounding?.source === "web" && <p className="text-xs text-muted-foreground">Found online · See sources below.</p>}
               {message.result?.citations.length ? (
                 <ul
                   className="space-y-2 border-t pt-3 text-xs"
@@ -197,6 +198,7 @@ export function PublicAssistant() {
                   ))}
                 </ul>
               ) : null}
+              {message.role === "assistant" && message.result?.suggestedQuestions?.length ? <div className="flex flex-wrap gap-2">{message.result.suggestedQuestions.slice(0,3).map(question=><Button key={question} variant="outline" size="sm" disabled={busy} className="h-auto whitespace-normal text-left" onClick={()=>void send(question)}>{question}</Button>)}</div> : null}
               {message.result?.feedback ? (
                 <PublicAssistantFeedback
                   capability={message.result.feedback}
@@ -207,7 +209,7 @@ export function PublicAssistant() {
           ))}
           {busy ? (
             <p role="status" className="text-sm text-muted-foreground">
-              Checking sources and records…
+              Checking school knowledge and web sources…
             </p>
           ) : null}
         </div>

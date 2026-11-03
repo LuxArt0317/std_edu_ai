@@ -158,5 +158,12 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Verify client/provider state and isolate work from the unpublished archive draft (codex/full-school-archive, 9f15a95).
 - [x] Replace demo entry with isolated Google PKCE sign-in, callback, validated session and local logout.
 - [x] Show actual account identity and truthful linked/unlinked records; preserve Nexus roles and identity boundary.
-- [ ] Configure client Google OAuth and exact callback URLs; Cloud terms accepted and dedicated project created; Google API data-policy/OAuth credential approval is pending.
+- [x] Configure client Google OAuth and exact callback URLs; approved Google policies accepted, basic scopes saved, provider enabled and External audience published to Production.
 - [ ] Verify security/session/error/responsive flows, release gates, and real Google sign-in before claiming completion.
+
+## Helpful STU chatbot and live web search [Issue #86]
+
+- [x] Audit hard abstention/provider/source failures and current official web-search API guidance.
+- [x] Add managed-knowledge-first, privacy-safe official/broader STU web fallback, useful partial answers and clear scope/source UI.
+- [x] Verify local API/security/failure/English-Chinese/follow-up/browser scenarios and release gates; deployed model/tool acceptance remains a release check.
+- [ ] Commit, publish the approved Google and chatbot changes together and verify live behavior; retain the unpublished archive draft separately.
