@@ -22,6 +22,17 @@ test('school scope supports bilingual campus information but excludes private re
 test('source validation rejects unsafe/protected destinations and literal IPs',()=>{
  for(const value of ['javascript:alert(1)','http://example.com','https://127.0.0.1','https://[::1]/','https://user:pass@example.com','https://example.com:8443','https://example.com/?access_token=secret','https://example.com/?SAMLRequest=secret'])assert.equal(safeWebSource(value),null,value);
  assert.equal(safeWebSource(url+'#office'),url);
+ assert.equal(safeWebSource(url+'?utm_source=openai&fbclid=abc'),url);
+});
+test('tracking variants resolve to one source and use the question language for the source label',async()=>{
+ process.env.OPENAI_API_KEY='test-openai';
+ const tracked=url+'?utm_source=openai';
+ const candidate=payload(url,tracked,`The official page is [here](${tracked}).`);
+ globalThis.fetch=async()=>Response.json(candidate);
+ const result=await searchSchoolWeb('What are the STU registrar contacts?');
+ assert.equal(result.result?.citations.length,1);
+ assert.match(result.result!.answer,/Web sources: \[1\]/);
+ assert.doesNotMatch(result.result!.answer,/utm_source/);
 });
 test('official web search uses hosted tool metadata and returns visible clickable citations',async()=>{
  process.env.OPENAI_API_KEY='test-openai';let body:any;

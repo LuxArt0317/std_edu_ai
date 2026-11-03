@@ -27,6 +27,7 @@ export function safeWebSource(value) {
     const host = url.hostname.toLowerCase();
     if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443') || isIP(host.replace(/^\[|\]$/g,'')) || !host.includes('.') || /(?:^|\.)(?:localhost|local|internal|test|invalid)$/.test(host)) return null;
     for (const key of url.searchParams.keys()) if (/token|password|secret|saml|session|ticket|authorization|api.?key|^code$/i.test(key)) return null;
+    for (const key of [...url.searchParams.keys()]) if (/^utm_|^(?:gclid|fbclid|mc_cid|mc_eid)$/i.test(key)) url.searchParams.delete(key);
     url.hash=''; return url.href;
   } catch { return null; }
 }
@@ -46,7 +47,7 @@ function toolSources(payload, officialOnly) {
   return sources;
 }
 const textOf = payload => (payload?.output || []).flatMap(item => item.type === 'message' ? item.content || [] : []).map(part=>part.text||'').join('').trim();
-function parseWebAnswer(payload, officialOnly) {
+function parseWebAnswer(payload, officialOnly, chineseQuestion) {
   try {
     const result = JSON.parse(textOf(payload));
     // The local scope gate decides unrelated requests. A model's out_of_scope
@@ -58,6 +59,11 @@ function parseWebAnswer(payload, officialOnly) {
     if (!['answered','not_found'].includes(result.status) || typeof result.answer !== 'string' || !result.answer.trim() || !Array.isArray(result.source_urls) || !result.source_urls.length || result.source_urls.length > 8) return null;
     const sources = toolSources(payload,officialOnly);
     let answer = result.answer.replace(/\uE200cite\uE202[^\uE201]*\uE201/g,'').slice(0,6500).trim();
+    answer = answer.replace(/https?:\/\/[^\s<>"\])]+/g, raw => {
+      const withoutPunctuation = raw.replace(/[.,;!?]+$/,'');
+      const canonical = safeWebSource(withoutPunctuation);
+      return canonical ? canonical + raw.slice(withoutPunctuation.length) : raw;
+    });
     const answerUrls = [...answer.matchAll(/https?:\/\/[^\s<>"\])]+/g)].map(match => safeWebSource(match[0].replace(/[.,;!?]+$/,'')));
     // The provider can place a genuine retrieved URL in the answer while
     // omitting it from source_urls. Include that URL when the actual tool
@@ -74,7 +80,7 @@ function parseWebAnswer(payload, officialOnly) {
     }));
     // Render provider source metadata as actual clickable Markdown rather than opaque tokens.
     const links = citations.map((item,index)=>`[${index+1}](${item.url})`).join(' · ');
-    answer += `\n\n${/[\u3400-\u9fff]/.test(answer)?'網路來源':'Web sources'}: ${links}`;
+    answer += `\n\n${chineseQuestion?'網路來源':'Web sources'}: ${links}`;
     return {answer,citations,origin:'web',checkedAt:new Date().toISOString(),officialOnly};
   } catch { return null; }
 }
@@ -82,6 +88,7 @@ function parseWebAnswer(payload, officialOnly) {
 export async function searchSchoolWeb(question, options = {}) {
   const query = publicSchoolQuestion(question);
   if (!query || !process.env.OPENAI_API_KEY) return {result:null,attempted:false};
+  const chineseQuestion = /[\u3400-\u9fff]/.test(question);
   const deadline = options.deadline || Date.now()+35000;
   let attempted = false;
   for (const officialOnly of [true,false]) {
@@ -120,7 +127,7 @@ export async function searchSchoolWeb(question, options = {}) {
         continue;
       }
       const payload = await response.json();
-      const result = parseWebAnswer(payload,officialOnly);
+      const result = parseWebAnswer(payload,officialOnly,chineseQuestion);
       if (result) return {result,attempted};
       const outputText = textOf(payload);
       let parsed = null;
