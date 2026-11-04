@@ -36,6 +36,8 @@ Mirrored content is not automatically published to the Assistant knowledge base.
 
 For the November 2026 navigation regression, the copied HTML and links were present but the viewer kept its frame hidden while a late stylesheet kept `document.readyState` at `loading`. A production browser trace observed the frame still hidden after 25 seconds. The renderer now waits for meaningful body content, binds controls immediately, and repeats full binding when parsing finishes. A response containing the app boot shell is treated as a failed capture, with retry and home controls. The regression test holds a stylesheet open and verifies navigation before that request finishes; it also simulates the fallback HTML response. All 395 manifest HTML files matched their deployed byte lengths in a live range-request inventory before this change, so the observed delay is not evidence of a missing manifest file.
 
+Published runtime `2733ef9` is Ready as [Vercel D5t3o85DqN3fqTz6XXRdyRUQtCYR](https://vercel.com/v1-d286/std_edu_ai/D5t3o85DqN3fqTz6XXRdyRUQtCYR); [quality run 41827869155](https://github.com/LuxArt0317/std_edu_ai/actions/runs/41827869155) succeeded. Live browser navigation checked all ten homepage audience cards and four direct mobile routes, with no boot shell, page error or mirror load error. The deployed entry is `index-DH6-Ck_A.js` and copied-page chunk is `SourceMirror-CTXia41W.js`.
+
 From the client checkout with Node 24:
 
 ```sh

@@ -5,7 +5,7 @@
 - [x] Reproduce the hidden mirrored page while a production stylesheet keeps the iframe in `loading` state.
 - [x] Bind visible copied content and links before nonessential assets finish; detect the SPA shell when a capture is unavailable.
 - [x] Complete local mirror, API, unit, build, lint, handoff, dependency and client checks.
-- [ ] Publish to the client Vercel project and verify live cross-page navigation and the deployed build.
+- [x] Publish to the client Vercel project and verify live cross-page navigation and the deployed build.
 
 ## Landing-page alignment regression [Issue #84]
 

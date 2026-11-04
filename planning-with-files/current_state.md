@@ -1,8 +1,8 @@
 # Current client state
 
-## Issue #84: public-page navigation recovery (local checks passed; release pending)
+## Issue #84: public-page navigation recovery (published and verified)
 
-The live iframe showed parsed page content while a pending stylesheet kept `document.readyState` at `loading`; the renderer hid that content for up to 30 seconds. The viewer now reveals meaningful body content and binds links early, then reconfigures after parsing. It also detects an app-shell rewrite for an unavailable capture and shows retry/home controls. A live range audit matched all 395 published HTML files to their manifest byte sizes; missing manifest files were not the observed cause. Local 56-state mirror plus delayed-stylesheet/fallback regression, 214 API/source tests, 30 units, build, lint, handoff, dependency audit and protected client verification pass. Inherited source contrast and deeper coverage remain open under #84. Publication and live acceptance are next.
+The live iframe showed parsed page content while a pending stylesheet kept `document.readyState` at `loading`; the renderer hid that content for up to 30 seconds. The viewer now reveals meaningful body content and binds links early, then reconfigures after parsing. It also detects an app-shell rewrite for an unavailable capture and shows retry/home controls. Runtime `2733ef9078145912f5e778f86a996bb7652b1b06` is Ready as Vercel `D5t3o85DqN3fqTz6XXRdyRUQtCYR`, with quality run `41827869155` successful. Live all ten homepage audience links reach local routes without a boot shell or page error; four previously race-checked routes also pass direct mobile loads. The production HTML serves the new entry and mirror chunk. A live range audit matched all 395 published HTML files to their manifest byte sizes. Local 56-state mirror plus delayed-stylesheet/fallback regression, 214 API/source tests, 30 units, build, lint, handoff, dependency audit and protected client verification pass. Inherited source contrast and deeper coverage remain open under #84.
 
 ## Issue #84: homepage entrance alignment (published and verified)
 
