@@ -34,6 +34,8 @@ Mirrored content is not automatically published to the Assistant knowledge base.
 
 ## Reproduce and verify
 
+For the November 2026 navigation regression, the copied HTML and links were present but the viewer kept its frame hidden while a late stylesheet kept `document.readyState` at `loading`. A production browser trace observed the frame still hidden after 25 seconds. The renderer now waits for meaningful body content, binds controls immediately, and repeats full binding when parsing finishes. A response containing the app boot shell is treated as a failed capture, with retry and home controls. The regression test holds a stylesheet open and verifies navigation before that request finishes; it also simulates the fallback HTML response. All 395 manifest HTML files matched their deployed byte lengths in a live range-request inventory before this change, so the observed delay is not evidence of a missing manifest file.
+
 From the client checkout with Node 24:
 
 ```sh

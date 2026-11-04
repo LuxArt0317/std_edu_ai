@@ -1,6 +1,12 @@
 # Changelog
 ## Unreleased
 
+### Public school-page navigation (Issue #84)
+
+- Show a copied page as soon as its body content is usable, without waiting for every image, font or stylesheet to finish; keep its local links active during slow loads.
+- Detect a missing static capture rewritten to the application shell and show a retry/home error instead of a misleading loading screen.
+- Add a browser regression for delayed stylesheets, student-page navigation and missing captured pages.
+
 ### University landing-page alignment (Issue #84)
 
 - Restore the source-sized entrance labels after inert captured animations, and reflow the ten audience links for narrower screens so titles stay inside their cards.

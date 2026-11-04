@@ -1,5 +1,9 @@
 # Current client state
 
+## Issue #84: public-page navigation recovery (local checks passed; release pending)
+
+The live iframe showed parsed page content while a pending stylesheet kept `document.readyState` at `loading`; the renderer hid that content for up to 30 seconds. The viewer now reveals meaningful body content and binds links early, then reconfigures after parsing. It also detects an app-shell rewrite for an unavailable capture and shows retry/home controls. A live range audit matched all 395 published HTML files to their manifest byte sizes; missing manifest files were not the observed cause. Local 56-state mirror plus delayed-stylesheet/fallback regression, 214 API/source tests, 30 units, build, lint, handoff, dependency audit and protected client verification pass. Inherited source contrast and deeper coverage remain open under #84. Publication and live acceptance are next.
+
 ## Issue #84: homepage entrance alignment (published and verified)
 
 The copied homepage retained an in-progress scale animation on entrance cards, painting labels across neighbors. The renderer now clears that captured state and reflows the ten links at narrow widths. Runtime `55a1d9d8071ba46863b545f78d278c3b890a816d` is Ready as Vercel `GR9rJB9McWTbbPnP9TKnjrHvdvWt`; quality `41618337969` succeeded. Production serves `SourceMirror-BEkGcBxb.js` with the fix. Local/live twelve-width suites pass 120 card checks each with no page errors or sideways scrolling; live statistics pass 24 card checks/minimum 9.57:1 contrast. Local 56 mirror states, 214 API/source, 30 unit, build, lint, handoff, dependency and client verification pass. The source documents/links and app auth/database are unchanged. Issue #84 remains open for broader service/resource gaps and inherited source contrast.
