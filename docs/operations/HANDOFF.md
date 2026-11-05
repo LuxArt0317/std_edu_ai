@@ -1,8 +1,8 @@
 # Client handoff
 
-## Pending release — Issue #84 public loading recovery
+## Current release — Issue #84 public loading recovery
 
-The user reported the old “Opening your workspace” screen on public navigation after the previous release. A fresh `stu.best/school-affairs/login` browser session works, while public Vercel currently rewrites missing old JS and copied static files to the app HTML with HTTP 200. The pending fix excludes static paths from the SPA rewrite, marks page HTML no-store, refreshes once if a browser holds an outdated entry, and replaces the Nexus-specific fallback copy. Local browser/API/unit/build/lint/dependency checks passed; live routing, protected client verification and publication are still pending. [Evidence](../qa/SCHOOL_MIRROR.md#public-boot-shell-recovery--november-5-2026).
+The reported old “Opening your workspace” screen was traced to public Vercel rewriting missing old JS and copied static files to the app HTML with HTTP 200. Runtime `b6cfef22f720ff463a17b29b96ebe5a59796667f` is [Vercel E1NeguP12JuKJyNp7nch4isjTFr3](https://vercel.com/v1-d286/std_edu_ai/E1NeguP12JuKJyNp7nch4isjTFr3) Ready, and [quality 41992819142](https://github.com/LuxArt0317/std_edu_ai/actions/runs/41992819142) passed. Missing `/assets`, `/school-pages` and `/school-assets` URLs now return 404; live public page HTML has `Cache-Control: no-store` and the current entry serves JavaScript. A simulated old entry auto-recovered on live `stu.best`. Browser checks rendered the root, student page, School Affairs login and ePortal alias without the old shell or page errors. Local browser/API/unit/build/lint/dependency and live protected client/backend checks passed. [Evidence](../qa/SCHOOL_MIRROR.md#public-boot-shell-recovery--november-5-2026). Issue #84 remains open for broader mirror coverage and inherited source contrast.
 
 ## Current release — Issue #84 navigation recovery
 

@@ -5,7 +5,7 @@
 - [x] Compare the user's fallback screenshot with live public routes and missing asset responses.
 - [x] Exclude missing static assets from the SPA rewrite, keep HTML fresh, and recover one stale entry automatically.
 - [x] Add browser and source regression checks for stale bundles, no-JavaScript fallback, and missing asset status.
-- [ ] Complete the release gates, publish to the client Vercel project, and verify public route, asset, and header behavior.
+- [x] Complete the release gates, publish to the client Vercel project, and verify public route, asset, and header behavior.
 
 ## Public-page navigation loading regression [Issue #84]
 
