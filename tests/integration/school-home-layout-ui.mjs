@@ -21,7 +21,7 @@ try {
   for (const width of widths) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(base + "/", { waitUntil: "domcontentloaded" });
-    assert.equal(await page.locator("iframe").count(), 0);
+    assert.equal(await page.locator("iframe.stu-assistant-frame").count(), 1);
     const frame = page;
     const state = await frame.locator(".elementor-element-93788b9").evaluate((grid) => {
       const doc = grid.ownerDocument;

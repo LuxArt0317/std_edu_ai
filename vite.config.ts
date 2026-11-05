@@ -35,7 +35,7 @@ const mirrorMiddleware = (preview: boolean) => (
     if (direct) {
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.setHeader("Cache-Control", "no-store");
-      res.setHeader("Content-Security-Policy", "default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'");
+      res.setHeader("Content-Security-Policy", "default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; base-uri 'none'; form-action 'none'; frame-src 'self'");
       if (req.method === "HEAD") { res.end(); return; }
       try { res.end(renderDirectSchoolPage(process.cwd(), direct)); }
       catch { res.statusCode = 500; res.end("Copied page unavailable"); }

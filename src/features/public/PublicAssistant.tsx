@@ -31,7 +31,7 @@ const questions = [
   "有哪些最新公告？",
   "What are my current subjects?",
 ];
-export function PublicAssistant({ initialOpen = false }: { initialOpen?: boolean }) {
+export function PublicAssistant({ initialOpen = false, embedded = false }: { initialOpen?: boolean; embedded?: boolean }) {
   const {user} = useAffairsAuth();
   const [open, setOpen] = useState(initialOpen),
     [messages, setMessages] = useState<Message[]>([]),
@@ -44,6 +44,14 @@ export function PublicAssistant({ initialOpen = false }: { initialOpen?: boolean
     pending = useRef<AbortController | null>(null),
     sequence = useRef(0);
   useEffect(() => () => {pending.current?.abort();}, []);
+  useEffect(() => {
+    if (!embedded) return;
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") window.parent.postMessage({ type: "stu-campus-assistant:close" }, window.location.origin);
+    };
+    window.addEventListener("keydown", onEscape, true);
+    return () => window.removeEventListener("keydown", onEscape, true);
+  }, [embedded]);
   useEffect(() => {
     viewport.current?.scrollTo({
       top: viewport.current.scrollHeight,
@@ -110,7 +118,10 @@ export function PublicAssistant({ initialOpen = false }: { initialOpen?: boolean
     if (fileInput.current) fileInput.current.value = "";
   }
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={(next) => {
+      if (embedded && !next) window.parent.postMessage({ type: "stu-campus-assistant:close" }, window.location.origin);
+      else setOpen(next);
+    }}>
       <SheetTrigger asChild>
         <Button
           type="button"
@@ -124,6 +135,7 @@ export function PublicAssistant({ initialOpen = false }: { initialOpen?: boolean
       <SheetContent
         className="w-full gap-0 p-0 sm:max-w-lg public-assistant-surface"
         aria-describedby="public-assistant-description"
+        showCloseButton={!embedded}
       >
         <header className="border-b px-5 py-5 pr-12">
           <SheetTitle>校園助理 · Assistant</SheetTitle>

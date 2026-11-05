@@ -1,5 +1,12 @@
 # Task Plan
 
+## Restore chatbot on direct public pages [Issue #84]
+
+- [x] Confirm the direct-page release removed the React assistant mount and identify the shared assistant route.
+- [x] Add a visible, accessible chat control to every captured page without restoring the page-loading iframe.
+- [x] Verify open, answer, close, Escape, desktop/mobile layout, and direct-page navigation locally.
+- [ ] Run release checks, publish, verify the live pages and app, and update the issue and handoff.
+
 ## Direct public school pages [Issue #84]
 
 - [x] Reproduce the local and public loading paths, and identify the iframe boundary and existing captured pages.

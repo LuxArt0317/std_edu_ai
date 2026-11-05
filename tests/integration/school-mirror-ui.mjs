@@ -11,7 +11,10 @@ for (const item of pages) {
   assert.equal(response.status, 200, `${item.route}: HTTP ${response.status}`);
   assert.match(response.headers.get('content-type') || '', /text\/html/);
   assert.match(html, /校園網站介面預覽（非官方）/, item.route);
-  assert.doesNotMatch(html, /data-stu-boot|<iframe\b/i, item.route);
+  assert.doesNotMatch(html, /data-stu-boot|class="source-mirror"/i, item.route);
+  assert.match(html, /class="stu-assistant-toggle"/, item.route);
+  assert.match(html, /class="stu-assistant-frame"[^>]+src="\/campus-assistant\?embed=1"/, item.route);
+  assert.equal([...html.matchAll(/<script\b/gi)].length, 1, `${item.route}: only the local assistant bridge may execute`);
   assert.ok(html.length > 500, item.route);
 }
 const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' });
@@ -22,7 +25,8 @@ try {
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(origin, { waitUntil: 'domcontentloaded' });
-    assert.equal(await page.locator('iframe').count(), 0);
+    assert.equal(await page.locator('iframe.stu-assistant-frame').count(), 1);
+    assert.equal(await page.locator('.source-mirror iframe').count(), 0);
     assert.equal(await page.locator('[data-stu-boot]').count(), 0);
     assert.ok((await page.locator('body').innerText()).length > 100);
     assert.deepEqual(await page.locator('.elementor-counter-number').allTextContents(), ['4,601', '128,475', '33,056', '54']);
@@ -32,7 +36,8 @@ try {
       await link.click();
       await page.waitForLoadState('domcontentloaded');
       assert.ok((await page.locator('body').innerText()).length > 100, href);
-      assert.equal(await page.locator('iframe').count(), 0, href);
+      assert.equal(await page.locator('iframe.stu-assistant-frame').count(), 1, href);
+      assert.equal(await page.locator('.source-mirror iframe').count(), 0, href);
       assert.equal(await page.locator('[data-stu-boot]').count(), 0, href);
       await page.goto(origin, { waitUntil: 'domcontentloaded' });
     }

@@ -6,6 +6,10 @@ The 395 captured public documents now serve directly at their local `stu.best` p
 
 `npm run test:school-mirror` checks all 395 routes, ten homepage audience links at desktop and mobile widths, browser navigation without waiting for slow stylesheets, JavaScript-disabled rendering and SPA sign-in recovery. The homepage layout and statistics checks now use the direct document. Public accessibility checks enter the React assistant and directory through their dedicated routes; copied source markup is assessed separately.
 
+## On-page campus assistant — November 5, 2026
+
+The direct copied pages originally lost their floating chatbot because the old React wrapper was removed. A static-page button now opens the existing assistant in a same-origin popover; the source page stays directly rendered and the chat frame is isolated from captured CSS. The only added page script validates the message origin and frame before closing the popover. Source scripts/forms remain disabled. Local tests verified all 395 pages include the button, and a browser sent a question and saw an answer on root, student and query-selected news routes at 1440px and 390px. Escape, close, reopen and direct-page navigation passed. Publication is pending.
+
 ## Landing-page alignment regression
 
 The copied homepage contained an in-progress Elementor scale transform on entrance widgets. Source scripts are deliberately disabled in the mirror, so the enlarged labels painted across neighboring cards. The trusted renderer now clears only those captured transforms on the homepage and applies a responsive 10/5/2/1-column entrance grid. The original page documents, link destinations and source checksums are unchanged.

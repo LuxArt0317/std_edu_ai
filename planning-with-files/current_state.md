@@ -1,5 +1,9 @@
 # Current client state
 
+## Issue #84: assistant on direct public pages (local release candidate)
+
+The direct-page release omitted the public chat button. All 395 captured documents now include a floating assistant button and native popover that embeds the existing same-origin assistant route. Source documents remain direct HTML with inert source scripts/forms; only the small audited bridge executes. Local build, all-route and representative browser chat-answer/close/Escape checks at desktop/mobile widths, 215 API/source tests, 30 units, lint, handoff and dependency audit pass. Publication and live verification are pending.
+
 ## Issue #84: direct public school pages (published and verified)
 
 The user reported persistent loading and asked for simple direct pages. The 395 existing copied public documents now serve as standalone HTML; the iframe readiness gate is removed from the public path. The React app remains for `/app`, sign-in, School Affairs and assistant/directory routes. Runtime `68282b5908a3344d9990e44c832034fdc8e74981` is Ready as Vercel `62qj5dX765ATeVx2etQX7KoDYTJ3`; quality run `42001294587` succeeded. Live stu.best passed all ten entrance links at 1440px and 390px, direct root/student/news HTML checks, separate app sign-in and assistant routes, and protected client/backend verification. Local development and compiled preview pass all 395 route checks, no-JavaScript rendering, twelve layout widths, six statistics widths, 215 API/source tests, 30 units, ten public accessibility states and build. Captured source widgets requiring JavaScript remain inactive by policy; Issue #84 stays open for broader source coverage and interactive controls.

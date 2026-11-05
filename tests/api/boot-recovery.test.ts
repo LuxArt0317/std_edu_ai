@@ -27,6 +27,15 @@ test('the public SPA rewrite excludes static assets and keeps page HTML fresh', 
     rule.source.includes('(?!assets/') && rule.headers.some(header => header.key === 'Cache-Control' && header.value === 'no-store')))
 })
 
+test('direct copied pages can host only the same-origin assistant while raw captures stay inert', () => {
+  const config = JSON.parse(readContractSource('vercel.json', 'utf8'))
+  const policy = (source: string) => config.headers.find((rule: {source: string}) => rule.source === source)?.headers.find((header: {key: string}) => header.key === 'Content-Security-Policy')?.value as string
+  assert.match(policy('/'), /script-src 'self'/)
+  assert.match(policy('/site-pages/(.*)'), /frame-src 'self'/)
+  assert.match(policy('/school-pages/(.*)'), /script-src 'none'/)
+  assert.match(policy('/site-pages/(.*)'), /form-action 'none'/)
+})
+
 test('the React entry protects lazy routes with loading and error UI', () => {
   const entry = readContractSource('src/main.tsx', 'utf8')
   const boundary = readContractSource('src/ApplicationErrorBoundary.tsx', 'utf8')

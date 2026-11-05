@@ -2,13 +2,13 @@ const baseUrl = (process.env.STU_BASE_URL || 'https://stdeduai.vercel.app').repl
 
 const home = await fetch(`${baseUrl}/`, { headers: { 'Cache-Control': 'no-cache' } })
 const homeHtml = await home.text()
-if (!home.ok || !homeHtml.includes('校園網站介面預覽（非官方）') || homeHtml.includes('data-stu-boot') || homeHtml.includes('<iframe')) {
+if (!home.ok || !homeHtml.includes('校園網站介面預覽（非官方）') || homeHtml.includes('data-stu-boot') || !homeHtml.includes('class="stu-assistant-frame"')) {
   throw new Error('The public homepage must render a direct copied document without the SPA loader.')
 }
 for (const route of ['/在校學生/', '/admissions', '/freshman', '/教職員工/', '/進修人士/', '/畢業校友/', '/alumni-association', '/校外訪客/', '/國際學生/', '/international']) {
   const response = await fetch(`${baseUrl}${route}`, { headers: { 'Cache-Control': 'no-cache' } })
   const html = await response.text()
-  if (!response.ok || !html.includes('校園網站介面預覽（非官方）') || html.includes('data-stu-boot') || html.includes('<iframe')) {
+  if (!response.ok || !html.includes('校園網站介面預覽（非官方）') || html.includes('data-stu-boot') || !html.includes('class="stu-assistant-frame"')) {
     throw new Error(`${route} must render a direct copied document without the SPA loader.`)
   }
 }

@@ -17,14 +17,20 @@ import "./site/reference.css";
 import { AffairsAuthProvider } from "./affairs/AffairsAuth";
 import { useAffairsAuth } from "./affairs/authContext";
 
-function SchoolAccountAssistant() {
+function SchoolAccountAssistant({ embedded = false }: { embedded?: boolean }) {
   const {user} = useAffairsAuth();
   const {pathname} = useLocation();
-  return <PublicAssistant key={user?.id || "anonymous"} initialOpen={pathname === "/campus-assistant"} />;
+  return <PublicAssistant key={user?.id || "anonymous"} initialOpen={pathname === "/campus-assistant"} embedded={embedded} />;
 }
 
 export default function PublicSite() {
   const { pathname, hash, search } = useLocation();
+  const embeddedAssistant = pathname === "/campus-assistant" && new URLSearchParams(search).get("embed") === "1" && window.parent !== window;
+  useEffect(() => {
+    if (!embeddedAssistant) return;
+    document.documentElement.classList.add("stu-assistant-embed");
+    return () => document.documentElement.classList.remove("stu-assistant-embed");
+  }, [embeddedAssistant]);
   useEffect(() => {
     document.documentElement.lang = "zh-Hant";
     if (pathname === "/student-sso")
@@ -40,6 +46,7 @@ export default function PublicSite() {
     if (target) target.scrollIntoView({ behavior: "instant", block: "start" });
     else window.scrollTo({ top: 0, behavior: "instant" });
   }, [pathname, hash]);
+  if (embeddedAssistant) return <AffairsAuthProvider><SchoolAccountAssistant embedded /></AffairsAuthProvider>;
   return (
     <AffairsAuthProvider><div className="public-site-shell">
       <PreviewNotice

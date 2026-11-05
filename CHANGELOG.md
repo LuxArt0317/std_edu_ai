@@ -1,6 +1,12 @@
 # Changelog
 ## Unreleased
 
+### Public chatbot on copied pages (Issue #84)
+
+- Restore the floating campus assistant on all 395 standalone public pages, with a same-origin panel that keeps the page in view.
+- Reuse the existing anonymous/School Affairs assistant, image upload, source citations and chat API without loading Nexus data.
+- Keep copied source scripts and forms disabled, and verify answers, Escape/close, responsive layout and direct navigation.
+
 ### Direct public school pages (Issue #84)
 
 - Serve 395 copied public school pages as standalone same-origin HTML, removing the iframe loading gate from homepage and entrance navigation.

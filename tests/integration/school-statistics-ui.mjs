@@ -16,7 +16,7 @@ try {
   for (const width of [2048, 1440, 1280, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 1000 });
     await page.goto(base + '/', { waitUntil: 'domcontentloaded' });
-    assert.equal(await page.locator('iframe').count(), 0);
+    assert.equal(await page.locator('iframe.stu-assistant-frame').count(), 1);
     assert.deepEqual(await page.locator('.elementor-counter-number').allTextContents(), expected);
     const cards = page.locator('.elementor-element-1cd83d3 > .e-con');
     assert.equal(await cards.count(), 4);

@@ -20,7 +20,14 @@ rewrites.push({ source: '/:path((?!assets/|site-pages/|school-assets/|school-pag
 config.rewrites = rewrites;
 const policy = config.headers.find(rule => rule.source === '/school-pages/(.*)');
 if (!policy) throw new Error('School page CSP is missing');
+const directHeaders = policy.headers.map(header => header.key === 'Content-Security-Policy'
+  ? { ...header, value: header.value.replace("script-src 'none'", "script-src 'self'").replace("frame-src 'none'", "frame-src 'self'") }
+  : header);
 config.headers = config.headers.filter(rule => rule.source !== '/site-pages/(.*)');
-config.headers.push({ source: '/site-pages/(.*)', headers: policy.headers });
+config.headers.push({ source: '/site-pages/(.*)', headers: directHeaders });
+const rootHeaders = config.headers.find(rule => rule.source === '/');
+if (!rootHeaders) throw new Error('Homepage headers are missing');
+rootHeaders.headers = rootHeaders.headers.filter(header => header.key !== 'Content-Security-Policy');
+rootHeaders.headers.push(...directHeaders.filter(header => header.key === 'Content-Security-Policy'));
 fs.writeFileSync(file, JSON.stringify(config, null, 2) + '\n');
 console.log(JSON.stringify({ copiedRoutes: captures.length, rewriteRules: rewrites.length }));

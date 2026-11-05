@@ -8,6 +8,9 @@ assert.ok(fs.existsSync(htmlPath), `Build verification failed: ${htmlPath} does 
 const publicHome = fs.readFileSync(path.join(outputDirectory, 'index.html'), 'utf8')
 assert.match(publicHome, /校園網站介面預覽（非官方）/, 'The public homepage must be a direct school document.')
 assert.doesNotMatch(publicHome, /data-stu-boot/, 'The public homepage must not depend on the SPA boot shell.')
+assert.match(publicHome, /class="stu-assistant-toggle"/, 'The public homepage must expose the campus assistant.')
+assert.match(publicHome, /class="stu-assistant-frame"/, 'The campus assistant must share the copied page without wrapping it.')
+assert.ok(fs.existsSync(path.join(outputDirectory, 'direct-school-assistant.js')), 'The assistant bridge must ship with the copied pages.')
 
 const html = fs.readFileSync(htmlPath, 'utf8')
 const entryPath = html.match(/<script[^>]+src="([^"]+\.js)"/)?.[1]

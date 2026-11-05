@@ -78,7 +78,7 @@
     "mirror:queue": "node scripts/school-mirror-queue.mjs",
     "mirror:import": "node scripts/build-school-mirror.mjs",
     "sync:school-routes": "node scripts/sync-school-routes.mjs",
-    "test:school-mirror": "node tests/integration/school-mirror-ui.mjs && node tests/integration/school-mirror-navigation.mjs && node tests/integration/boot-recovery-ui.mjs",
+    "test:school-mirror": "node tests/integration/school-mirror-ui.mjs && node tests/integration/school-mirror-navigation.mjs && node tests/integration/boot-recovery-ui.mjs && node tests/integration/direct-school-assistant-ui.mjs",
     "test:school-mirror-navigation": "node tests/integration/school-mirror-navigation.mjs",
     "test:boot-recovery": "node tests/integration/boot-recovery-ui.mjs",
     "pack:school-documents": "node scripts/pack-school-documents.mjs",
