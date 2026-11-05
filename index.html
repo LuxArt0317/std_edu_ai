@@ -6,38 +6,73 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#3cb69e" />
-    <meta name="description" content="STU Nexus 校園平台與網站介面預覽；非校方登入服務。" />
+    <meta name="description" content="stu.best 校園網站介面預覽；非校方登入服務。" />
     <style>
       .stu-boot{min-height:100vh;display:grid;place-items:center;padding:28px;color:#173f35;background:radial-gradient(circle at 14% 14%,rgba(78,190,165,.2),transparent 30%),radial-gradient(circle at 88% 84%,rgba(30,107,89,.17),transparent 31%),linear-gradient(135deg,#eef7f4,#f8fbfa 55%,#e7f2ef);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.stu-boot-card{width:min(460px,100%);padding:38px;border:1px solid rgba(45,126,107,.18);border-radius:24px;background:rgba(255,255,255,.94);box-shadow:0 28px 80px rgba(18,72,59,.16);text-align:center}.stu-boot-mark{width:68px;height:68px;display:grid;place-items:center;margin:0 auto 20px;border-radius:20px;color:#fff;background:linear-gradient(135deg,#174b3f,#2e9f87);font:32px Georgia,serif;box-shadow:0 15px 40px rgba(25,89,74,.2);animation:stu-boot-pulse 1.5s infinite ease-in-out}.stu-boot-kicker{margin:0 0 9px;color:#249078;font-size:10px;font-weight:850;letter-spacing:.16em}.stu-boot h1{margin:0;font:500 clamp(30px,7vw,42px)/1.05 Georgia,serif;letter-spacing:-.035em}.stu-boot-status{min-height:44px;margin:13px auto 22px;color:#71857f;font-size:13px;line-height:1.65}.stu-boot-progress{height:4px;overflow:hidden;border-radius:99px;background:#e0ece9}.stu-boot-progress i{display:block;width:42%;height:100%;border-radius:inherit;background:linear-gradient(90deg,#2ca98d,#7bdec9);animation:stu-boot-slide 1.4s infinite ease-in-out}.stu-boot-actions{display:flex;justify-content:center;gap:9px;margin-top:22px}.stu-boot-actions a{padding:10px 14px;border:1px solid #cfe0dc;border-radius:10px;color:#315b50;background:#fff;font-size:11px;font-weight:750;text-decoration:none}.stu-boot-actions a:first-child{color:#fff;border-color:#1d745f;background:#1d745f}.stu-boot.stalled .stu-boot-progress i{width:100%;animation:none;background:#e09b5f}@keyframes stu-boot-pulse{50%{transform:translateY(-5px);box-shadow:0 21px 45px rgba(25,89,74,.15)}}@keyframes stu-boot-slide{0%{transform:translateX(-110%)}100%{transform:translateX(350%)}}@media(max-width:520px){.stu-boot{padding:16px}.stu-boot-card{padding:30px 22px}.stu-boot-actions{flex-direction:column}.stu-boot-actions a{display:block}}
     </style>
     <meta name="robots" content="noindex,nofollow" />
-    <title>STU Nexus | 校園網站介面預覽</title>
+    <title>stu.best | 校園網站介面預覽</title>
   </head>
   <body>
     <div id="root">
       <main class="stu-boot" data-stu-boot role="status" aria-live="polite">
         <section class="stu-boot-card">
           <div class="stu-boot-mark" aria-hidden="true">樹</div>
-          <p class="stu-boot-kicker">STU NEXUS · SECURE SCHOOL WORKSPACE</p>
-          <h1>Opening your workspace</h1>
-          <p class="stu-boot-status" data-stu-boot-status>Loading the latest school portal and restoring your secure session…</p>
+          <p class="stu-boot-kicker">STU.BEST · CAMPUS WEBSITE</p>
+          <h1>Loading the page</h1>
+          <p class="stu-boot-status" data-stu-boot-status>Loading the latest campus website…</p>
           <div class="stu-boot-progress" aria-hidden="true"><i></i></div>
           <div class="stu-boot-actions">
-            <a href="/app">Reload the portal</a>
+            <a href="">Reload this page</a>
             <a href="/">Open university homepage</a>
           </div>
-          <noscript><p class="stu-boot-status">JavaScript is required to use STU Nexus. Enable it, then reload this page.</p></noscript>
+          <noscript><p class="stu-boot-status">JavaScript is required to use this website. Enable it, then reload this page.</p></noscript>
         </section>
       </main>
     </div>
     <script>
-      window.setTimeout(function () {
-        var boot = document.querySelector('[data-stu-boot]')
-        var status = document.querySelector('[data-stu-boot-status]')
-        if (!boot || !status) return
-        boot.classList.add('stalled')
-        status.textContent = 'The portal is taking longer than expected. Reload to fetch the latest version, or open the university homepage.'
-      }, 10000)
+      (function () {
+        var marker = '__stu_boot_recovery'
+        var current = new URL(window.location.href)
+        if (current.searchParams.has(marker)) {
+          current.searchParams.delete(marker)
+          window.history.replaceState(Object.assign({}, window.history.state, { stuBootRecovered: true }), '', current.pathname + current.search + current.hash)
+        }
+        var checking = false
+        function showFailure() {
+          var boot = document.querySelector('[data-stu-boot]')
+          var status = document.querySelector('[data-stu-boot-status]')
+          if (!boot || !status) return
+          boot.classList.add('stalled')
+          status.textContent = 'This page did not start. Reload it to get the latest version, or open the university homepage.'
+        }
+        async function checkLatestEntry() {
+          if (checking || !document.querySelector('[data-stu-boot]')) return
+          checking = true
+          try {
+            var probe = new URL(window.location.href)
+            probe.searchParams.set('__stu_boot_probe', String(Date.now()))
+            var response = await fetch(probe.href, { cache: 'no-store', headers: { Accept: 'text/html' } })
+            if (!response.ok) throw new Error('Latest page unavailable')
+            var latest = new DOMParser().parseFromString(await response.text(), 'text/html').querySelector('script[type="module"][src]')?.getAttribute('src')
+            var loaded = document.querySelector('script[type="module"][src]')?.getAttribute('src')
+            if (!document.querySelector('[data-stu-boot]')) return
+            if (latest && loaded && latest !== loaded && !window.history.state?.stuBootRecovered) {
+              var reload = new URL(window.location.href)
+              reload.searchParams.set(marker, String(Date.now()))
+              window.location.replace(reload.href)
+              return
+            }
+          } catch (_) {
+            // A failed probe still leaves the manual reload action available.
+          }
+          showFailure()
+        }
+        window.addEventListener('error', function (event) {
+          if (event.target?.tagName === 'SCRIPT') checkLatestEntry()
+        }, true)
+        window.setTimeout(checkLatestEntry, 10000)
+      })()
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/:path((?!assets/|school-assets/|school-pages/).*)",
       "destination": "/index.html"
     }
   ],
@@ -11,6 +11,18 @@
   "installCommand": "npm ci",
   "outputDirectory": "dist",
   "headers": [
+    {
+      "source": "/",
+      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+    },
+    {
+      "source": "/:path((?!assets/|school-assets/|school-pages/|api/).*)",
+      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }]
+    },
     {
       "source": "/school-pages/(.*)",
       "headers": [

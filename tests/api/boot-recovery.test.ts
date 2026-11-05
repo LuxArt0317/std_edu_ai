@@ -6,10 +6,22 @@ import { withTimeout } from '../../src/utils/async.ts';
 test('the HTML entry renders useful content before JavaScript starts', () => {
   const html = readContractSource('index.html', 'utf8')
   assert.match(html, /data-stu-boot/)
-  assert.match(html, /Opening your workspace/)
-  assert.match(html, /Reload the portal/)
+  assert.match(html, /Loading the page/)
+  assert.match(html, /Reload this page/)
   assert.match(html, /JavaScript is required/)
+  assert.match(html, /__stu_boot_recovery/)
+  assert.match(html, /cache: 'no-store'/)
   assert.doesNotMatch(html, /<div id="root"><\/div>/)
+})
+
+test('the public SPA rewrite excludes static assets and keeps page HTML fresh', () => {
+  const config = JSON.parse(readContractSource('vercel.json', 'utf8'))
+  const source = config.rewrites[0].source as string
+  assert.match(source, /assets\//)
+  assert.match(source, /school-assets\//)
+  assert.match(source, /school-pages\//)
+  assert.ok(config.headers.some((rule: { source: string; headers: Array<{ key: string; value: string }> }) =>
+    rule.source.includes('(?!assets/') && rule.headers.some(header => header.key === 'Cache-Control' && header.value === 'no-store')))
 })
 
 test('the React entry protects lazy routes with loading and error UI', () => {

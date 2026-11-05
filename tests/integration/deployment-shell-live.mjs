@@ -4,7 +4,7 @@ for (const route of ['/', '/signin', '/signup', '/login', '/app', '/app/cases', 
   const response = await fetch(`${baseUrl}${route}`, { headers: { 'Cache-Control': 'no-cache' } })
   const html = await response.text()
   if (!response.ok) throw new Error(`${route} returned HTTP ${response.status}.`)
-  if (!html.includes('data-stu-boot') || !html.includes('Opening your workspace')) {
+  if (!html.includes('data-stu-boot') || !html.includes('Loading the page')) {
     throw new Error(`${route} does not contain the dependency-free recovery shell.`)
   }
   if (/<div id="root"><\/div>/.test(html)) throw new Error(`${route} still ships an empty application root.`)
@@ -50,4 +50,9 @@ for (const route of ['/', '/signin', '/signup', '/login', '/app', '/app/cases', 
   if (expectedSupabaseHost && !expectedSupabaseFound) throw new Error(`${route} does not reference the expected client database ${expectedSupabaseHost}.`)
 
   console.log(JSON.stringify({ route, status: response.status, bootShell: true, entry: entryPath, verifiedAssets: verifiedAssets.size, onboardingDisabled: true, crmAuthStyles }))
+}
+
+for (const path of ['/assets/missing-boot-recovery.js', '/school-pages/missing-boot-recovery.html', '/school-assets/missing-boot-recovery.css']) {
+  const response = await fetch(`${baseUrl}${path}`, { headers: { 'Cache-Control': 'no-cache' } })
+  if (response.status !== 404) throw new Error(`${path} returned ${response.status} instead of 404; a missing asset must not serve the app boot shell.`)
 }

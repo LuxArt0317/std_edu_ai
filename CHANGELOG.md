@@ -1,6 +1,12 @@
 # Changelog
 ## Unreleased
 
+### Public loading recovery (Issue #84)
+
+- Exclude missing JavaScript, CSS and copied school assets from the SPA rewrite so they return 404 instead of the app's HTML loading shell.
+- Keep page HTML uncached and automatically refresh once when an older entry refers to a removed JavaScript bundle.
+- Use a neutral campus-site loading message on public pages and verify recovery in a browser.
+
 ### Public school-page navigation (Issue #84)
 
 - Show a copied page as soon as its body content is usable, without waiting for every image, font or stylesheet to finish; keep its local links active during slow loads.
