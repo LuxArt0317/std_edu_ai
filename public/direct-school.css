@@ -16,6 +16,15 @@
 .stu-direct-notice a { color: #fff; text-decoration: underline; }
 .stu-direct-notice a:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 
+/* The captured slider's animation class starts transparent when source scripts are disabled. */
+.swiper-slide-contents.animated {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+.swiper-slide:not(.swiper-slide-active) .swiper-slide-contents { visibility: hidden !important; }
+.swiper-slide-active .elementor-slide-description { max-width: min(900px, 90vw); margin-inline: auto; line-height: 1.5; }
+
 .elementor-element-93788b9 {
   width: min(1920px, 92%) !important;
   margin-inline: auto !important;
