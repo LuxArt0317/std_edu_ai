@@ -21,8 +21,8 @@ try {
   for (const width of widths) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(base + "/", { waitUntil: "domcontentloaded" });
-    await page.waitForFunction(() => document.querySelector("iframe")?.contentDocument?.documentElement?.dataset.mirrorReady === "true");
-    const frame = page.frameLocator(".source-mirror iframe");
+    assert.equal(await page.locator("iframe").count(), 0);
+    const frame = page;
     const state = await frame.locator(".elementor-element-93788b9").evaluate((grid) => {
       const doc = grid.ownerDocument;
       const cards = [...grid.children];

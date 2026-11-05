@@ -19,8 +19,12 @@ test('public release includes pinned assets only, rejects traversal and preserve
   fs.writeFileSync(path.join(root,'public/favicon.svg'),'<svg/>');
   const manifest=path.join(root,'src/features/public/mirror/assets.json');
   fs.writeFileSync(manifest,JSON.stringify([{file:owned}]));
-  fs.writeFileSync(path.join(root,'src/features/public/mirror/pages.json'),'[]');
-  const output=path.join(root,'dist');assert.equal(copyPublicAssets(root,output),2);
+  const home='/school-pages/aaaaaaaaaaaaaaaaaaaa.html';
+  fs.writeFileSync(path.join(root,'public',home.slice(1)),'<!doctype html><html><head></head><body>School</body></html>');
+  fs.writeFileSync(path.join(root,'src/features/public/mirror/pages.json'),JSON.stringify([{route:'/',file:home}]));
+  const output=path.join(root,'dist');fs.mkdirSync(output);fs.writeFileSync(path.join(output,'index.html'),'<html>App shell</html>');assert.equal(copyPublicAssets(root,output),3);
+  assert.match(fs.readFileSync(path.join(output,'index.html'),'utf8'),/校園網站介面預覽/);
+  assert.match(fs.readFileSync(path.join(output,'app-shell.html'),'utf8'),/App shell/);
   assert.equal(fs.existsSync(path.join(output,'school-assets/unreleased.mp4')),false);
   assert.equal(fs.readFileSync(path.join(output,'favicon.svg'),'utf8'),'<svg/>');
   assert.equal(fs.statSync(source).ino,fs.statSync(path.join(output,owned.slice(1))).ino);

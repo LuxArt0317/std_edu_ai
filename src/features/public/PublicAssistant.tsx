@@ -31,9 +31,9 @@ const questions = [
   "有哪些最新公告？",
   "What are my current subjects?",
 ];
-export function PublicAssistant() {
+export function PublicAssistant({ initialOpen = false }: { initialOpen?: boolean }) {
   const {user} = useAffairsAuth();
-  const [open, setOpen] = useState(false),
+  const [open, setOpen] = useState(initialOpen),
     [messages, setMessages] = useState<Message[]>([]),
     [query, setQuery] = useState(""),
     [images, setImages] = useState<Array<{name:string;dataUrl:string}>>([]),

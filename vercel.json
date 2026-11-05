@@ -2,8 +2,2458 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
-      "source": "/:path((?!assets/|school-assets/|school-pages/).*)",
-      "destination": "/index.html"
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "198566"
+        }
+      ],
+      "destination": "/site-pages/1b4c7ee679612951eb85.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "212034"
+        }
+      ],
+      "destination": "/site-pages/04f007990cfc90c59f72.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "213096"
+        }
+      ],
+      "destination": "/site-pages/0f9b6f42bc37c41c31e5.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "223418"
+        }
+      ],
+      "destination": "/site-pages/4c91d385f73cfb81a133.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "223501"
+        }
+      ],
+      "destination": "/site-pages/8197aeb68b86f62eb66b.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "233756"
+        }
+      ],
+      "destination": "/site-pages/7b978892fd62eb313eab.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "233772"
+        }
+      ],
+      "destination": "/site-pages/d74d763ecd4f0a8de1c2.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234021"
+        }
+      ],
+      "destination": "/site-pages/3167c69fad360defe008.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234030"
+        }
+      ],
+      "destination": "/site-pages/42ad8e6901f6bab88065.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234061"
+        }
+      ],
+      "destination": "/site-pages/255e2f8e397cdcb68947.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234062"
+        }
+      ],
+      "destination": "/site-pages/63917c48361a9390a547.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234063"
+        }
+      ],
+      "destination": "/site-pages/c08d24fc721537b3db2f.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234086"
+        }
+      ],
+      "destination": "/site-pages/ecd0cd87fd1db4e4f184.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234236"
+        }
+      ],
+      "destination": "/site-pages/13b6f402ce5eda467ebf.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234297"
+        }
+      ],
+      "destination": "/site-pages/8c980cee7ae851f4fa40.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234301"
+        }
+      ],
+      "destination": "/site-pages/4cb653c966c971da0d35.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234322"
+        }
+      ],
+      "destination": "/site-pages/d8d7e454c2d9413b6ded.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234326"
+        }
+      ],
+      "destination": "/site-pages/3bba0cd61cd828f125a3.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234353"
+        }
+      ],
+      "destination": "/site-pages/b5fc624e13edfcb826c0.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234359"
+        }
+      ],
+      "destination": "/site-pages/e0c065018ebf62f3a341.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234367"
+        }
+      ],
+      "destination": "/site-pages/11046bc8e1d34a422fb2.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234368"
+        }
+      ],
+      "destination": "/site-pages/05665c5afefa76491d36.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234416"
+        }
+      ],
+      "destination": "/site-pages/746e6d041428d318a1bd.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234430"
+        }
+      ],
+      "destination": "/site-pages/135e8ccfe7dd20cfe780.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234442"
+        }
+      ],
+      "destination": "/site-pages/3d84091da16f59479f04.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234447"
+        }
+      ],
+      "destination": "/site-pages/108d3ad9433cbf099c02.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234448"
+        }
+      ],
+      "destination": "/site-pages/496c8cd07cefa2aec007.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234450"
+        }
+      ],
+      "destination": "/site-pages/b854b93dcc078e7a192f.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234451"
+        }
+      ],
+      "destination": "/site-pages/b1c07b21415ce739b7fb.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234452"
+        }
+      ],
+      "destination": "/site-pages/44b01e6752200b376750.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234455"
+        }
+      ],
+      "destination": "/site-pages/3878bf67fe60604ac5e7.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234459"
+        }
+      ],
+      "destination": "/site-pages/a6fc59273955ac8709c3.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234460"
+        }
+      ],
+      "destination": "/site-pages/ab5f186940ba97232b0a.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234462"
+        }
+      ],
+      "destination": "/site-pages/9b6829dce3f9d7f58f69.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234463"
+        }
+      ],
+      "destination": "/site-pages/5ceffcb1e1027a3912b1.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234469"
+        }
+      ],
+      "destination": "/site-pages/f0809c7283fe9fa7c6d4.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234471"
+        }
+      ],
+      "destination": "/site-pages/d2550e91b14d71dcb335.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234473"
+        }
+      ],
+      "destination": "/site-pages/d9ac598c1ff36764a9a1.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234474"
+        }
+      ],
+      "destination": "/site-pages/48147450052b4993e5ea.html"
+    },
+    {
+      "source": "/latestnews-single/",
+      "has": [
+        {
+          "type": "query",
+          "key": "id",
+          "value": "234475"
+        }
+      ],
+      "destination": "/site-pages/7702c165231406c7c476.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/",
+      "has": [
+        {
+          "type": "query",
+          "key": "p",
+          "value": "1737"
+        }
+      ],
+      "destination": "/site-pages/da146e84639ffa3eb9ae.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/",
+      "has": [
+        {
+          "type": "query",
+          "key": "p",
+          "value": "3244"
+        }
+      ],
+      "destination": "/site-pages/5e7837a1df935f16c0fd.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/",
+      "has": [
+        {
+          "type": "query",
+          "key": "p",
+          "value": "607"
+        }
+      ],
+      "destination": "/site-pages/2ad281b4d959983966bc.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/",
+      "has": [
+        {
+          "type": "query",
+          "key": "p",
+          "value": "615"
+        }
+      ],
+      "destination": "/site-pages/2f9c9e7323afe69867ae.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/",
+      "has": [
+        {
+          "type": "query",
+          "key": "p",
+          "value": "617"
+        }
+      ],
+      "destination": "/site-pages/957a91e54e39a96a9248.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/",
+      "has": [
+        {
+          "type": "query",
+          "key": "p",
+          "value": "619"
+        }
+      ],
+      "destination": "/site-pages/591178fbb21f894a2bd0.html"
+    },
+    {
+      "source": "/全站搜尋/",
+      "destination": "/site-pages/301b091ccb457f3aaa0b.html"
+    },
+    {
+      "source": "/%E5%85%A8%E7%AB%99%E6%90%9C%E5%B0%8B/",
+      "destination": "/site-pages/301b091ccb457f3aaa0b.html"
+    },
+    {
+      "source": "/分機表/",
+      "destination": "/site-pages/9761497add4190bb15ed.html"
+    },
+    {
+      "source": "/%E5%88%86%E6%A9%9F%E8%A1%A8/",
+      "destination": "/site-pages/9761497add4190bb15ed.html"
+    },
+    {
+      "source": "/國際學生/",
+      "destination": "/site-pages/7411f797e94cd57fdd67.html"
+    },
+    {
+      "source": "/%E5%9C%8B%E9%9A%9B%E5%AD%B8%E7%94%9F/",
+      "destination": "/site-pages/7411f797e94cd57fdd67.html"
+    },
+    {
+      "source": "/在校學生/",
+      "destination": "/site-pages/5d6829073ddd38c7749f.html"
+    },
+    {
+      "source": "/%E5%9C%A8%E6%A0%A1%E5%AD%B8%E7%94%9F/",
+      "destination": "/site-pages/5d6829073ddd38c7749f.html"
+    },
+    {
+      "source": "/學術單位/",
+      "destination": "/site-pages/d8c0816df0bd9d34124c.html"
+    },
+    {
+      "source": "/%E5%AD%B8%E8%A1%93%E5%96%AE%E4%BD%8D/",
+      "destination": "/site-pages/d8c0816df0bd9d34124c.html"
+    },
+    {
+      "source": "/教職員工/",
+      "destination": "/site-pages/c84ff482250f1836e2b8.html"
+    },
+    {
+      "source": "/%E6%95%99%E8%81%B7%E5%93%A1%E5%B7%A5/",
+      "destination": "/site-pages/c84ff482250f1836e2b8.html"
+    },
+    {
+      "source": "/最佳大學榜揭曉-樹德科大產學績效大躍進/",
+      "destination": "/site-pages/8b2fdaa23a96f2fb2d1f.html"
+    },
+    {
+      "source": "/%E6%9C%80%E4%BD%B3%E5%A4%A7%E5%AD%B8%E6%A6%9C%E6%8F%AD%E6%9B%89-%E6%A8%B9%E5%BE%B7%E7%A7%91%E5%A4%A7%E7%94%A2%E5%AD%B8%E7%B8%BE%E6%95%88%E5%A4%A7%E8%BA%8D%E9%80%B2/",
+      "destination": "/site-pages/8b2fdaa23a96f2fb2d1f.html"
+    },
+    {
+      "source": "/校外訪客/",
+      "destination": "/site-pages/266796fb08124be50d0a.html"
+    },
+    {
+      "source": "/%E6%A0%A1%E5%A4%96%E8%A8%AA%E5%AE%A2/",
+      "destination": "/site-pages/266796fb08124be50d0a.html"
+    },
+    {
+      "source": "/畢業校友/",
+      "destination": "/site-pages/bb98625f8394270a4baa.html"
+    },
+    {
+      "source": "/%E7%95%A2%E6%A5%AD%E6%A0%A1%E5%8F%8B/",
+      "destination": "/site-pages/bb98625f8394270a4baa.html"
+    },
+    {
+      "source": "/網站地圖/",
+      "destination": "/site-pages/3be909d05cb9582ed6ae.html"
+    },
+    {
+      "source": "/%E7%B6%B2%E7%AB%99%E5%9C%B0%E5%9C%96/",
+      "destination": "/site-pages/3be909d05cb9582ed6ae.html"
+    },
+    {
+      "source": "/行政單位/",
+      "destination": "/site-pages/936d8b1b1377fd62f196.html"
+    },
+    {
+      "source": "/%E8%A1%8C%E6%94%BF%E5%96%AE%E4%BD%8D/",
+      "destination": "/site-pages/936d8b1b1377fd62f196.html"
+    },
+    {
+      "source": "/進修人士/",
+      "destination": "/site-pages/3e1967d5a155b33e44f3.html"
+    },
+    {
+      "source": "/%E9%80%B2%E4%BF%AE%E4%BA%BA%E5%A3%AB/",
+      "destination": "/site-pages/3e1967d5a155b33e44f3.html"
+    },
+    {
+      "source": "/關於樹德/",
+      "destination": "/site-pages/0c1069db555be258e541.html"
+    },
+    {
+      "source": "/%E9%97%9C%E6%96%BC%E6%A8%B9%E5%BE%B7/",
+      "destination": "/site-pages/0c1069db555be258e541.html"
+    },
+    {
+      "source": "/admissions",
+      "destination": "/site-pages/3f84ef7474e4002202fe.html"
+    },
+    {
+      "source": "/alumni-association",
+      "destination": "/site-pages/391108a9bc2c0b3ae9e8.html"
+    },
+    {
+      "source": "/elementor-2360/",
+      "destination": "/site-pages/ccbcadd0f23027fd4dd7.html"
+    },
+    {
+      "source": "/freshman",
+      "destination": "/site-pages/17a991d5e2f29d1975c0.html"
+    },
+    {
+      "source": "/international",
+      "destination": "/site-pages/c5b25dd3b29441296f2b.html"
+    },
+    {
+      "source": "/latestnews",
+      "destination": "/site-pages/78cc50d68a7a6deb073b.html"
+    },
+    {
+      "source": "/school-sites/about.stu.edu.tw/",
+      "destination": "/site-pages/a88f9ebc7623c23be27a.html"
+    },
+    {
+      "source": "/school-sites/activity.sao.stu.edu.tw/樹德科技大學畢業典禮官網/",
+      "destination": "/site-pages/49fef5c7d9579d9494be.html"
+    },
+    {
+      "source": "/school-sites/activity.sao.stu.edu.tw/%E6%A8%B9%E5%BE%B7%E7%A7%91%E6%8A%80%E5%A4%A7%E5%AD%B8%E7%95%A2%E6%A5%AD%E5%85%B8%E7%A6%AE%E5%AE%98%E7%B6%B2/",
+      "destination": "/site-pages/49fef5c7d9579d9494be.html"
+    },
+    {
+      "source": "/school-sites/activity.sao.stu.edu.tw/活力社團介紹/",
+      "destination": "/site-pages/0a9553e1612556095e36.html"
+    },
+    {
+      "source": "/school-sites/activity.sao.stu.edu.tw/%E6%B4%BB%E5%8A%9B%E7%A4%BE%E5%9C%98%E4%BB%8B%E7%B4%B9/",
+      "destination": "/site-pages/0a9553e1612556095e36.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/about/bylaws",
+      "destination": "/site-pages/e5cbec9cf3b8fa36db87.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/about/director",
+      "destination": "/site-pages/8c43c545860739f4c6bb.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/about/evolve",
+      "destination": "/site-pages/3ddbfc496ca76caab444.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/about/structure",
+      "destination": "/site-pages/8e2ca68277a0f60ddbdc.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/event",
+      "destination": "/site-pages/beb285300d8256946501.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/member/join",
+      "destination": "/site-pages/5637823cb0dd6cc63c9f.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/member/membership",
+      "destination": "/site-pages/db88166cd1b52586e614.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/member/stores",
+      "destination": "/site-pages/61c5201b752f33547259.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/news",
+      "destination": "/site-pages/469d122731586b8b0278.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/sponsor/donors",
+      "destination": "/site-pages/47595918871503b4be41.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/sponsor/plan",
+      "destination": "/site-pages/2a45a34d7301b5e0da8c.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/star",
+      "destination": "/site-pages/cced6ad3bd2dc033c76b.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/star/detail/1",
+      "destination": "/site-pages/230dce2bb4848fb4796f.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/star/detail/10",
+      "destination": "/site-pages/6029fd81f551bf36406a.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/star/detail/11",
+      "destination": "/site-pages/70f03672ce365221c7e9.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/star/detail/12",
+      "destination": "/site-pages/2c0a511b4c913f6ac626.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/star/detail/2",
+      "destination": "/site-pages/5054de24f6451db41b4d.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/star/detail/3",
+      "destination": "/site-pages/4faf8e4123f5ffea14f3.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/star/detail/4",
+      "destination": "/site-pages/6aae1b5f4c2e052c7e9b.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/star/detail/5",
+      "destination": "/site-pages/3651ca903d25151bed99.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/star/detail/6",
+      "destination": "/site-pages/73e2033edfbc6bf11da8.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/star/detail/7",
+      "destination": "/site-pages/dee4d37a0fc906ac6cd2.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/star/detail/8",
+      "destination": "/site-pages/058a1442c1f931edba5b.html"
+    },
+    {
+      "source": "/school-sites/alumnus.sao.stu.edu.tw/star/detail/9",
+      "destination": "/site-pages/fb0f7e3eac070fab63c1.html"
+    },
+    {
+      "source": "/school-sites/bulletin.sec.stu.edu.tw/",
+      "destination": "/site-pages/dc7fa09aff39ca671a40.html"
+    },
+    {
+      "source": "/school-sites/career.sao.stu.edu.tw/",
+      "destination": "/site-pages/190777d0ae04c9a631cb.html"
+    },
+    {
+      "source": "/school-sites/cash.stu.edu.tw/服務項目/",
+      "destination": "/site-pages/222f7b435e7223013c50.html"
+    },
+    {
+      "source": "/school-sites/cash.stu.edu.tw/%E6%9C%8D%E5%8B%99%E9%A0%85%E7%9B%AE/",
+      "destination": "/site-pages/222f7b435e7223013c50.html"
+    },
+    {
+      "source": "/school-sites/cashier.swd.stu.edu.tw/registration-fee-area/",
+      "destination": "/site-pages/83cc3ffaeec847bc7f37.html"
+    },
+    {
+      "source": "/school-sites/copyright.sao.stu.edu.tw/",
+      "destination": "/site-pages/90437442e4aeec40c11e.html"
+    },
+    {
+      "source": "/school-sites/donation.stu.edu.tw/",
+      "destination": "/site-pages/61a32121d31d336ea411.html"
+    },
+    {
+      "source": "/school-sites/en.stu.edu.tw/",
+      "destination": "/site-pages/9dcfbc7f81959cecc1d3.html"
+    },
+    {
+      "source": "/school-sites/en.stu.edu.tw/academics/",
+      "destination": "/site-pages/ba99452143f5fdd35899.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/校長的一封信/",
+      "destination": "/site-pages/5035def3117366716387.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/%E6%A0%A1%E9%95%B7%E7%9A%84%E4%B8%80%E5%B0%81%E4%BF%A1/",
+      "destination": "/site-pages/5035def3117366716387.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2013/05/26/新生入學說明會/",
+      "destination": "/site-pages/436d989b695b74dee200.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2013/05/26/%E6%96%B0%E7%94%9F%E5%85%A5%E5%AD%B8%E8%AA%AA%E6%98%8E%E6%9C%83/",
+      "destination": "/site-pages/436d989b695b74dee200.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2014/08/29/相關表單/",
+      "destination": "/site-pages/b39f5a8c236f3bae2a5d.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2014/08/29/%E7%9B%B8%E9%97%9C%E8%A1%A8%E5%96%AE/",
+      "destination": "/site-pages/b39f5a8c236f3bae2a5d.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2016/08/22/115學年度進修部新生始業輔導/",
+      "destination": "/site-pages/5adb3c2e01ed036cb97d.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2016/08/22/115%E5%AD%B8%E5%B9%B4%E5%BA%A6%E9%80%B2%E4%BF%AE%E9%83%A8%E6%96%B0%E7%94%9F%E5%A7%8B%E6%A5%AD%E8%BC%94%E5%B0%8E/",
+      "destination": "/site-pages/5adb3c2e01ed036cb97d.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2017/05/09/宿舍新生相關活動/",
+      "destination": "/site-pages/2fb26ab5de259a1445f5.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2017/05/09/%E5%AE%BF%E8%88%8D%E6%96%B0%E7%94%9F%E7%9B%B8%E9%97%9C%E6%B4%BB%E5%8B%95/",
+      "destination": "/site-pages/2fb26ab5de259a1445f5.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2017/05/17/暑假服務時間/",
+      "destination": "/site-pages/389615b9c45a9761fdb5.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2017/05/17/%E6%9A%91%E5%81%87%E6%9C%8D%E5%8B%99%E6%99%82%E9%96%93/",
+      "destination": "/site-pages/389615b9c45a9761fdb5.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2017/05/17/身心障礙新生服務/",
+      "destination": "/site-pages/35991129c71c5dd2ebed.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2017/05/17/%E8%BA%AB%E5%BF%83%E9%9A%9C%E7%A4%99%E6%96%B0%E7%94%9F%E6%9C%8D%E5%8B%99/",
+      "destination": "/site-pages/35991129c71c5dd2ebed.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/13/交通服務/",
+      "destination": "/site-pages/3703ab2a2bb09cb1a987.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/13/%E4%BA%A4%E9%80%9A%E6%9C%8D%E5%8B%99/",
+      "destination": "/site-pages/3703ab2a2bb09cb1a987.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/13/住宿申請/",
+      "destination": "/site-pages/d9c4f71a82f02d858784.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/13/%E4%BD%8F%E5%AE%BF%E7%94%B3%E8%AB%8B/",
+      "destination": "/site-pages/d9c4f71a82f02d858784.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/13/兵役緩徵及儘後召集/",
+      "destination": "/site-pages/ec1a325fb56acdcd24c9.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/13/%E5%85%B5%E5%BD%B9%E7%B7%A9%E5%BE%B5%E5%8F%8A%E5%84%98%E5%BE%8C%E5%8F%AC%E9%9B%86/",
+      "destination": "/site-pages/ec1a325fb56acdcd24c9.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/13/學生證/",
+      "destination": "/site-pages/4aca91d867ce1fe5410a.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/13/%E5%AD%B8%E7%94%9F%E8%AD%89/",
+      "destination": "/site-pages/4aca91d867ce1fe5410a.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/13/宿舍網路/",
+      "destination": "/site-pages/453792c4652f9ce73130.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/13/%E5%AE%BF%E8%88%8D%E7%B6%B2%E8%B7%AF/",
+      "destination": "/site-pages/453792c4652f9ce73130.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/13/新生基本資料輸入/",
+      "destination": "/site-pages/e18599b5a2c9a0677c88.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/13/%E6%96%B0%E7%94%9F%E5%9F%BA%E6%9C%AC%E8%B3%87%E6%96%99%E8%BC%B8%E5%85%A5/",
+      "destination": "/site-pages/e18599b5a2c9a0677c88.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/13/英文能力分級考試/",
+      "destination": "/site-pages/9a1717a81d89963d26f1.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/13/%E8%8B%B1%E6%96%87%E8%83%BD%E5%8A%9B%E5%88%86%E7%B4%9A%E8%80%83%E8%A9%A6/",
+      "destination": "/site-pages/9a1717a81d89963d26f1.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/13/選課說明會/",
+      "destination": "/site-pages/67a4bc06b773ac7f1266.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/13/%E9%81%B8%E8%AA%B2%E8%AA%AA%E6%98%8E%E6%9C%83/",
+      "destination": "/site-pages/67a4bc06b773ac7f1266.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/13/醫療服務/",
+      "destination": "/site-pages/ee692133de1ae6fde230.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/13/%E9%86%AB%E7%99%82%E6%9C%8D%E5%8B%99/",
+      "destination": "/site-pages/ee692133de1ae6fde230.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/13/重要日程/",
+      "destination": "/site-pages/1a66568d260d3ddbcdc3.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/13/%E9%87%8D%E8%A6%81%E6%97%A5%E7%A8%8B/",
+      "destination": "/site-pages/1a66568d260d3ddbcdc3.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/14/學雜費繳費/",
+      "destination": "/site-pages/8822789659a5c4cc3411.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/14/%E5%AD%B8%E9%9B%9C%E8%B2%BB%E7%B9%B3%E8%B2%BB/",
+      "destination": "/site-pages/8822789659a5c4cc3411.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/14/就學貸款/",
+      "destination": "/site-pages/f324c4eeb1456a0df6c1.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/14/%E5%B0%B1%E5%AD%B8%E8%B2%B8%E6%AC%BE/",
+      "destination": "/site-pages/f324c4eeb1456a0df6c1.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/21/宿舍報到相關事項/",
+      "destination": "/site-pages/407854f53b4618d39c25.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/21/%E5%AE%BF%E8%88%8D%E5%A0%B1%E5%88%B0%E7%9B%B8%E9%97%9C%E4%BA%8B%E9%A0%85/",
+      "destination": "/site-pages/407854f53b4618d39c25.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/26/南部新生說明會/",
+      "destination": "/site-pages/a3bf1965b11054743e88.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/05/26/%E5%8D%97%E9%83%A8%E6%96%B0%E7%94%9F%E8%AA%AA%E6%98%8E%E6%9C%83/",
+      "destination": "/site-pages/a3bf1965b11054743e88.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/06/04/新生領航營/",
+      "destination": "/site-pages/5022915d848fc0fbb862.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/06/04/%E6%96%B0%E7%94%9F%E9%A0%98%E8%88%AA%E7%87%9F/",
+      "destination": "/site-pages/5022915d848fc0fbb862.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/06/05/gmail服務/",
+      "destination": "/site-pages/3f472564b5c9dc328f86.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/06/05/gmail%E6%9C%8D%E5%8B%99/",
+      "destination": "/site-pages/3f472564b5c9dc328f86.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/12/22/學雜費減免/",
+      "destination": "/site-pages/27cab7a02dd345e1b570.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2020/12/22/%E5%AD%B8%E9%9B%9C%E8%B2%BB%E6%B8%9B%E5%85%8D/",
+      "destination": "/site-pages/27cab7a02dd345e1b570.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2021/05/19/郵件收發服務專區/",
+      "destination": "/site-pages/49c2ed0a05a230ff7588.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2021/05/19/%E9%83%B5%E4%BB%B6%E6%94%B6%E7%99%BC%E6%9C%8D%E5%8B%99%E5%B0%88%E5%8D%80/",
+      "destination": "/site-pages/49c2ed0a05a230ff7588.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2022/05/19/新生聯合服務暨各系說明會/",
+      "destination": "/site-pages/2a99d2d5e696755d8115.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2022/05/19/%E6%96%B0%E7%94%9F%E8%81%AF%E5%90%88%E6%9C%8D%E5%8B%99%E6%9A%A8%E5%90%84%E7%B3%BB%E8%AA%AA%E6%98%8E%E6%9C%83/",
+      "destination": "/site-pages/2a99d2d5e696755d8115.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2023/05/22/新生健康檢查/",
+      "destination": "/site-pages/d4a30166ddb13a8f0700.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2023/05/22/%E6%96%B0%E7%94%9F%E5%81%A5%E5%BA%B7%E6%AA%A2%E6%9F%A5/",
+      "destination": "/site-pages/d4a30166ddb13a8f0700.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2023/08/01/交通服務-2/",
+      "destination": "/site-pages/60f79ad91e1b29d2464b.html"
+    },
+    {
+      "source": "/school-sites/freshman.stu.edu.tw/2023/08/01/%E4%BA%A4%E9%80%9A%E6%9C%8D%E5%8B%99-2/",
+      "destination": "/site-pages/60f79ad91e1b29d2464b.html"
+    },
+    {
+      "source": "/school-sites/health.sao.stu.edu.tw/健康檢查/",
+      "destination": "/site-pages/790eeacdea387e0a42dd.html"
+    },
+    {
+      "source": "/school-sites/health.sao.stu.edu.tw/%E5%81%A5%E5%BA%B7%E6%AA%A2%E6%9F%A5/",
+      "destination": "/site-pages/790eeacdea387e0a42dd.html"
+    },
+    {
+      "source": "/school-sites/health.sao.stu.edu.tw/學生團體保險/",
+      "destination": "/site-pages/ef76366298a1db54cd55.html"
+    },
+    {
+      "source": "/school-sites/health.sao.stu.edu.tw/%E5%AD%B8%E7%94%9F%E5%9C%98%E9%AB%94%E4%BF%9D%E9%9A%AA/",
+      "destination": "/site-pages/ef76366298a1db54cd55.html"
+    },
+    {
+      "source": "/school-sites/help.ecc.stu.edu.tw/",
+      "destination": "/site-pages/127689667b0399fb1fd3.html"
+    },
+    {
+      "source": "/school-sites/help.ecc.stu.edu.tw/wireless-setting/",
+      "destination": "/site-pages/901794d298393f887cd5.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/不利處境學生助學/辦理須知-2/",
+      "destination": "/site-pages/193e5893df95cea702e6.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/%E4%B8%8D%E5%88%A9%E8%99%95%E5%A2%83%E5%AD%B8%E7%94%9F%E5%8A%A9%E5%AD%B8/%E8%BE%A6%E7%90%86%E9%A0%88%E7%9F%A5-2/",
+      "destination": "/site-pages/193e5893df95cea702e6.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/學生兵役/",
+      "destination": "/site-pages/d92dd6fdb5e93f937e47.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/%E5%AD%B8%E7%94%9F%E5%85%B5%E5%BD%B9/",
+      "destination": "/site-pages/d92dd6fdb5e93f937e47.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/就學貸款/",
+      "destination": "/site-pages/8c7921f4c13c61aaf0bf.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/%E5%B0%B1%E5%AD%B8%E8%B2%B8%E6%AC%BE/",
+      "destination": "/site-pages/8c7921f4c13c61aaf0bf.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/弱勢助學/",
+      "destination": "/site-pages/ac324c0b75a557602863.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/%E5%BC%B1%E5%8B%A2%E5%8A%A9%E5%AD%B8/",
+      "destination": "/site-pages/ac324c0b75a557602863.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/急難救助/",
+      "destination": "/site-pages/b59eced92a2194ff13e1.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/%E6%80%A5%E9%9B%A3%E6%95%91%E5%8A%A9/",
+      "destination": "/site-pages/b59eced92a2194ff13e1.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/教育部學雜費減免/",
+      "destination": "/site-pages/1bfe2837cec317da3281.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/%E6%95%99%E8%82%B2%E9%83%A8%E5%AD%B8%E9%9B%9C%E8%B2%BB%E6%B8%9B%E5%85%8D/",
+      "destination": "/site-pages/1bfe2837cec317da3281.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/校外賃居/",
+      "destination": "/site-pages/2070f74f6f893d64f31a.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/%E6%A0%A1%E5%A4%96%E8%B3%83%E5%B1%85/",
+      "destination": "/site-pages/2070f74f6f893d64f31a.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/獎助學金/",
+      "destination": "/site-pages/59ec48093cbd18f31c15.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/%E7%8D%8E%E5%8A%A9%E5%AD%B8%E9%87%91/",
+      "destination": "/site-pages/59ec48093cbd18f31c15.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/行政院減免學雜費拉近方案/",
+      "destination": "/site-pages/4014b317a03ba9eae06d.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/%E8%A1%8C%E6%94%BF%E9%99%A2%E6%B8%9B%E5%85%8D%E5%AD%B8%E9%9B%9C%E8%B2%BB%E6%8B%89%E8%BF%91%E6%96%B9%E6%A1%88/",
+      "destination": "/site-pages/4014b317a03ba9eae06d.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/行政院減免學雜費拉近方案/減免對象及原則/",
+      "destination": "/site-pages/60b62c9ed21c6a7d18fc.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/%E8%A1%8C%E6%94%BF%E9%99%A2%E6%B8%9B%E5%85%8D%E5%AD%B8%E9%9B%9C%E8%B2%BB%E6%8B%89%E8%BF%91%E6%96%B9%E6%A1%88/%E6%B8%9B%E5%85%8D%E5%B0%8D%E8%B1%A1%E5%8F%8A%E5%8E%9F%E5%89%87/",
+      "destination": "/site-pages/60b62c9ed21c6a7d18fc.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/請假流程說明/",
+      "destination": "/site-pages/c5badc7aeee96cf8de77.html"
+    },
+    {
+      "source": "/school-sites/life.sao.stu.edu.tw/%E8%AB%8B%E5%81%87%E6%B5%81%E7%A8%8B%E8%AA%AA%E6%98%8E/",
+      "destination": "/site-pages/c5badc7aeee96cf8de77.html"
+    },
+    {
+      "source": "/school-sites/lis.stu.edu.tw/115-08-26-3/",
+      "destination": "/site-pages/4bc31b988517dc763ef8.html"
+    },
+    {
+      "source": "/school-sites/lis.stu.edu.tw/115-08-26-9/",
+      "destination": "/site-pages/302bc419719c9772ed6b.html"
+    },
+    {
+      "source": "/school-sites/omh.sao.stu.edu.tw/",
+      "destination": "/site-pages/1a9c52e5195a79f0fb1a.html"
+    },
+    {
+      "source": "/school-sites/omh.sao.stu.edu.tw/房型-價目一覽/",
+      "destination": "/site-pages/ac74e07057d9cf1a34c3.html"
+    },
+    {
+      "source": "/school-sites/omh.sao.stu.edu.tw/%E6%88%BF%E5%9E%8B-%E5%83%B9%E7%9B%AE%E4%B8%80%E8%A6%BD/",
+      "destination": "/site-pages/ac74e07057d9cf1a34c3.html"
+    },
+    {
+      "source": "/school-sites/omh.sao.stu.edu.tw/申請-更換-退宿/",
+      "destination": "/site-pages/55cf3b74dd23af1fe71e.html"
+    },
+    {
+      "source": "/school-sites/omh.sao.stu.edu.tw/%E7%94%B3%E8%AB%8B-%E6%9B%B4%E6%8F%9B-%E9%80%80%E5%AE%BF/",
+      "destination": "/site-pages/55cf3b74dd23af1fe71e.html"
+    },
+    {
+      "source": "/school-sites/photo.stu.edu.tw/",
+      "destination": "/site-pages/d6332b62dd8219172005.html"
+    },
+    {
+      "source": "/school-sites/public.stu.edu.tw/",
+      "destination": "/site-pages/39bef227e471ba0904db.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/【116學年度】招生系所與名額",
+      "destination": "/site-pages/e9890284ad9f0afdd9bd.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/%E3%80%90116%E5%AD%B8%E5%B9%B4%E5%BA%A6%E3%80%91%E6%8B%9B%E7%94%9F%E7%B3%BB%E6%89%80%E8%88%87%E5%90%8D%E9%A1%8D",
+      "destination": "/site-pages/e9890284ad9f0afdd9bd.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/招生考試報名系統",
+      "destination": "/site-pages/33aa5f7ebf69407db69c.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/%E6%8B%9B%E7%94%9F%E8%80%83%E8%A9%A6%E5%A0%B1%E5%90%8D%E7%B3%BB%E7%B5%B1",
+      "destination": "/site-pages/33aa5f7ebf69407db69c.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/新生入學專區",
+      "destination": "/site-pages/e48430bac83d9ffd6c4e.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/%E6%96%B0%E7%94%9F%E5%85%A5%E5%AD%B8%E5%B0%88%E5%8D%80",
+      "destination": "/site-pages/e48430bac83d9ffd6c4e.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/行事曆",
+      "destination": "/site-pages/bd5dc5c064a02140d601.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/%E8%A1%8C%E4%BA%8B%E6%9B%86",
+      "destination": "/site-pages/bd5dc5c064a02140d601.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/1_transfer_test-2",
+      "destination": "/site-pages/4a9650221919a5610f8a.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/2_transfer_test-2",
+      "destination": "/site-pages/8a9f0157e66bb43ed11e.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/2j_individual_enrollment",
+      "destination": "/site-pages/524c02f4ff4d7138c435.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/2n_individual_enrollment",
+      "destination": "/site-pages/b0b34d183b0b13671bd7.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/30plus",
+      "destination": "/site-pages/6f3ec1ddaf2087255105.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/4d_application_admission",
+      "destination": "/site-pages/f04f24c5af7cca50207c.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/4d_disabilities",
+      "destination": "/site-pages/fc27b531524ec9c351ac.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/4d_disabilities_indiv",
+      "destination": "/site-pages/39daae28c709ed8e8247.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/4d_distribution_adimission",
+      "destination": "/site-pages/a9b27baeed90b7edee5a.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/4d_selection_admission",
+      "destination": "/site-pages/df4e9bc62ced90c351e5.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/4d_skill_excellent",
+      "destination": "/site-pages/2a26787c9c7ff5f2b0b8.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/4d_special_admissions",
+      "destination": "/site-pages/d0d0cf7c5b54c26f4b02.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/4d_star_admissions",
+      "destination": "/site-pages/04e2c9162a158b0e04c8.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/4n_individual_enrollment",
+      "destination": "/site-pages/8e3b7a496236ebbcfeed.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/4n_industry_university",
+      "destination": "/site-pages/97bb795b0482f6486d4b.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/admissions-systemselection",
+      "destination": "/site-pages/0e332a02b361cb195441.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/22482",
+      "destination": "/site-pages/d62188268fad8decddf4.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/48204",
+      "destination": "/site-pages/15bd49a4bfa671d9fb88.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/49676",
+      "destination": "/site-pages/7d7ff980862eb8b2d4f0.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/49697",
+      "destination": "/site-pages/83510a00fd618fe9cfb2.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/49752",
+      "destination": "/site-pages/62e5af89bf8ad12f011f.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/49779",
+      "destination": "/site-pages/aae91b9e6b23f4a80c3c.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/49791",
+      "destination": "/site-pages/d0c8e1111fd9a14f19c7.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/50247",
+      "destination": "/site-pages/1ba352fb696f969c97ff.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/50357",
+      "destination": "/site-pages/a66fbf256b188edd1390.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/50505",
+      "destination": "/site-pages/a791c2d01d2691b79ec3.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/50537",
+      "destination": "/site-pages/07c949a2f0b0ccf7996b.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/50600",
+      "destination": "/site-pages/108680c7c71a917737c3.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/50648",
+      "destination": "/site-pages/c40e582d2fc06b57662d.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/50662",
+      "destination": "/site-pages/ba44e5188c721a73bd00.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/50683",
+      "destination": "/site-pages/c30f3b19254dd81e9647.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/50800",
+      "destination": "/site-pages/7c8e1c4e7751f2283f2b.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/50909",
+      "destination": "/site-pages/4c97ffd8642ef4d295c9.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/50956",
+      "destination": "/site-pages/8cc37232ddbafb5297e8.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/51112",
+      "destination": "/site-pages/ef74c51add7bd70b799b.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/51115",
+      "destination": "/site-pages/4189510f9f558d2abad4.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/51251",
+      "destination": "/site-pages/4bedd313fb2477761b73.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/51348",
+      "destination": "/site-pages/5ae3b5d8b837eaea3655.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/51462",
+      "destination": "/site-pages/889468377357c92d9dcd.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/51514",
+      "destination": "/site-pages/df7fd0dcd2e6fde6d87d.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/51535",
+      "destination": "/site-pages/178d3cb818bd2a92ec70.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/51571",
+      "destination": "/site-pages/ab6095481aabdeb53f9a.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/51753",
+      "destination": "/site-pages/e715f7d5ec1831f34106.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/51807",
+      "destination": "/site-pages/39fdeea38f06642de61c.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/51851",
+      "destination": "/site-pages/c6cb45b6e02d1a750d49.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/51958",
+      "destination": "/site-pages/cd56191ffe5290810f02.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/51989",
+      "destination": "/site-pages/9cdebe5108a8c322d8a0.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/52019",
+      "destination": "/site-pages/be720c6e268c5daa4fcb.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/52056",
+      "destination": "/site-pages/8ea6edc1eeb7cced4c1a.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/52081",
+      "destination": "/site-pages/7761fcb987c1ef12c167.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/52096",
+      "destination": "/site-pages/9be4b4da222cf4f137e3.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/52115",
+      "destination": "/site-pages/41316860d5bc489534b1.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/52139",
+      "destination": "/site-pages/5105f1b6080c60cb5a4c.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/52162",
+      "destination": "/site-pages/4fe0ff1f5dac9dc78cf7.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/52209",
+      "destination": "/site-pages/d6aad54239556b337206.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/52257",
+      "destination": "/site-pages/6329f6f428aa128b48f1.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/52275",
+      "destination": "/site-pages/2f887684280a1061331e.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/9597",
+      "destination": "/site-pages/4138976e7e71fe7acd7d.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/author/htime",
+      "destination": "/site-pages/2d0f3bfa295c6183ec9b.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/category/單獨招收身心障礙學生招生",
+      "destination": "/site-pages/31979e7a547a3f7c969f.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/category/%E5%96%AE%E7%8D%A8%E6%8B%9B%E6%94%B6%E8%BA%AB%E5%BF%83%E9%9A%9C%E7%A4%99%E5%AD%B8%E7%94%9F%E6%8B%9B%E7%94%9F",
+      "destination": "/site-pages/31979e7a547a3f7c969f.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/category/放榜公告",
+      "destination": "/site-pages/ba141e16d78f2d3f6614.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/category/%E6%94%BE%E6%A6%9C%E5%85%AC%E5%91%8A",
+      "destination": "/site-pages/ba141e16d78f2d3f6614.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/category/筆面試公告",
+      "destination": "/site-pages/053c8c4519013f9e55fe.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/category/%E7%AD%86%E9%9D%A2%E8%A9%A6%E5%85%AC%E5%91%8A",
+      "destination": "/site-pages/053c8c4519013f9e55fe.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/category/2_transfer_test",
+      "destination": "/site-pages/9080f437aa43418adef2.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/category/2n_individual_enrollment",
+      "destination": "/site-pages/6662c13f64bad5259377.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/category/4d_application_admission",
+      "destination": "/site-pages/cca94cb3f121b40003cf.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/category/4d_disabilities",
+      "destination": "/site-pages/03d936ef8933c08d62c0.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/category/affiliated_junior_college",
+      "destination": "/site-pages/f17de8f4854f976fcd01.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/category/home",
+      "destination": "/site-pages/823be2572e56b8f6fe30.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/archives/category/newres",
+      "destination": "/site-pages/0600f71878947e5ba566.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/camp_st",
+      "destination": "/site-pages/f7511e9ef2e6489c42e8.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/continuing_es",
+      "destination": "/site-pages/9cf69ff46ed55ec77aff.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/daytime_bd_program",
+      "destination": "/site-pages/450710939ec1ab61a971.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/doctor",
+      "destination": "/site-pages/c90ebb426491ef60c8bd.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/force_area",
+      "destination": "/site-pages/2c7f569f782ddbc52b45.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/force_area_01",
+      "destination": "/site-pages/5a37e2c93de2c6961529.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/force_area_02",
+      "destination": "/site-pages/7f25e049c2638b27c9a5.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/gji4g410-5p-g4",
+      "destination": "/site-pages/6c66bfeb1d3daa27f710.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/graduate_school",
+      "destination": "/site-pages/4a2d0b545ff89f13d2d9.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/industry_ac",
+      "destination": "/site-pages/77feed6dbbf21893fdcf.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/line",
+      "destination": "/site-pages/637c60b263b0cc6b20b4.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/master_entrance_examination",
+      "destination": "/site-pages/9bee956e1eb36887efb3.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/overseas_admissions",
+      "destination": "/site-pages/a83863fe9538d6b83f98.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/performing_arts",
+      "destination": "/site-pages/4bc8e956e6873b19e7b0.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/school_other",
+      "destination": "/site-pages/ba947ccbbdfe5396048e.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/school_transfer",
+      "destination": "/site-pages/13b920eb29f3ef0198a1.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/sports",
+      "destination": "/site-pages/c289b929c35e4e690db4.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/technical-and-vocational-rankings",
+      "destination": "/site-pages/e13d4b2b310125433c37.html"
+    },
+    {
+      "source": "/school-sites/reg.aca.stu.edu.tw/tuition_scholarships",
+      "destination": "/site-pages/5cbea89d500f9bb73780.html"
+    },
+    {
+      "source": "/school-sites/stars.stu.edu.tw/stuhyint/index.jsp",
+      "destination": "/site-pages/ea48de6e4ddcfd0bfea5.html"
+    },
+    {
+      "source": "/school-sites/supplier.stu.edu.tw/",
+      "destination": "/site-pages/13488de3537a69f47e9d.html"
+    },
+    {
+      "source": "/school-sites/things.stu.edu.tw/交通車資訊/",
+      "destination": "/site-pages/538daf0bb126293d6924.html"
+    },
+    {
+      "source": "/school-sites/things.stu.edu.tw/%E4%BA%A4%E9%80%9A%E8%BB%8A%E8%B3%87%E8%A8%8A/",
+      "destination": "/site-pages/538daf0bb126293d6924.html"
+    },
+    {
+      "source": "/school-sites/things.stu.edu.tw/停車證申辦流程/",
+      "destination": "/site-pages/bb0e6fce05ca73165032.html"
+    },
+    {
+      "source": "/school-sites/things.stu.edu.tw/%E5%81%9C%E8%BB%8A%E8%AD%89%E7%94%B3%E8%BE%A6%E6%B5%81%E7%A8%8B/",
+      "destination": "/site-pages/bb0e6fce05ca73165032.html"
+    },
+    {
+      "source": "/school-sites/webpac.stu.edu.tw/webopac/",
+      "destination": "/site-pages/61b66e2143149d5f2762.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/大一新生先修課程/",
+      "destination": "/site-pages/c628f6a1bf5c6b7a3016.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/%E5%A4%A7%E4%B8%80%E6%96%B0%E7%94%9F%E5%85%88%E4%BF%AE%E8%AA%B2%E7%A8%8B/",
+      "destination": "/site-pages/c628f6a1bf5c6b7a3016.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/提前畢業-graduate-in-advance/",
+      "destination": "/site-pages/187b52330778ff479886.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/%E6%8F%90%E5%89%8D%E7%95%A2%E6%A5%AD-graduate-in-advance/",
+      "destination": "/site-pages/187b52330778ff479886.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/教務法規/",
+      "destination": "/site-pages/a8d7ece4fe5ff776afae.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/%E6%95%99%E5%8B%99%E6%B3%95%E8%A6%8F/",
+      "destination": "/site-pages/a8d7ece4fe5ff776afae.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/暑期開課/",
+      "destination": "/site-pages/10ccab9123a2d8994b3e.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/%E6%9A%91%E6%9C%9F%E9%96%8B%E8%AA%B2/",
+      "destination": "/site-pages/10ccab9123a2d8994b3e.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/畢業離校-leaving/",
+      "destination": "/site-pages/115df4cba350229058e2.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/%E7%95%A2%E6%A5%AD%E9%9B%A2%E6%A0%A1-leaving/",
+      "destination": "/site-pages/115df4cba350229058e2.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/行事曆｜calendar/",
+      "destination": "/site-pages/a5539012b87a256d5b6a.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/%E8%A1%8C%E4%BA%8B%E6%9B%86%EF%BD%9Ccalendar/",
+      "destination": "/site-pages/a5539012b87a256d5b6a.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/註冊繳費資訊/",
+      "destination": "/site-pages/fa0f58d099dc1f18987f.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/%E8%A8%BB%E5%86%8A%E7%B9%B3%E8%B2%BB%E8%B3%87%E8%A8%8A/",
+      "destination": "/site-pages/fa0f58d099dc1f18987f.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/選課資訊/",
+      "destination": "/site-pages/9708d4685b1d5025244a.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/%E9%81%B8%E8%AA%B2%E8%B3%87%E8%A8%8A/",
+      "destination": "/site-pages/9708d4685b1d5025244a.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/2019/06/13/教學意見反應管道宣導/",
+      "destination": "/site-pages/3d6b6ee6b69b7eef87d2.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/2019/06/13/%E6%95%99%E5%AD%B8%E6%84%8F%E8%A6%8B%E5%8F%8D%E6%87%89%E7%AE%A1%E9%81%93%E5%AE%A3%E5%B0%8E/",
+      "destination": "/site-pages/3d6b6ee6b69b7eef87d2.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/2024/02/01/學期成績開放查詢及申請列印/",
+      "destination": "/site-pages/93e914d92ace74d27ca4.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/2024/02/01/%E5%AD%B8%E6%9C%9F%E6%88%90%E7%B8%BE%E9%96%8B%E6%94%BE%E6%9F%A5%E8%A9%A2%E5%8F%8A%E7%94%B3%E8%AB%8B%E5%88%97%E5%8D%B0/",
+      "destination": "/site-pages/93e914d92ace74d27ca4.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/2025/09/07/請同學上網查看畢業學分檢核表/",
+      "destination": "/site-pages/e1828d1fcb96070faae6.html"
+    },
+    {
+      "source": "/school-sites/www.aca.stu.edu.tw/2025/09/07/%E8%AB%8B%E5%90%8C%E5%AD%B8%E4%B8%8A%E7%B6%B2%E6%9F%A5%E7%9C%8B%E7%95%A2%E6%A5%AD%E5%AD%B8%E5%88%86%E6%AA%A2%E6%A0%B8%E8%A1%A8/",
+      "destination": "/site-pages/e1828d1fcb96070faae6.html"
+    },
+    {
+      "source": "/school-sites/www.acc.stu.edu.tw/學費計算/學雜費專區/",
+      "destination": "/site-pages/e56ddafd2a7ed07afba7.html"
+    },
+    {
+      "source": "/school-sites/www.acc.stu.edu.tw/%E5%AD%B8%E8%B2%BB%E8%A8%88%E7%AE%97/%E5%AD%B8%E9%9B%9C%E8%B2%BB%E5%B0%88%E5%8D%80/",
+      "destination": "/site-pages/e56ddafd2a7ed07afba7.html"
+    },
+    {
+      "source": "/school-sites/www.acc.stu.edu.tw/補助經費與財務報表/整體發展補助經費/",
+      "destination": "/site-pages/ca09f749ee2f890b299c.html"
+    },
+    {
+      "source": "/school-sites/www.acc.stu.edu.tw/%E8%A3%9C%E5%8A%A9%E7%B6%93%E8%B2%BB%E8%88%87%E8%B2%A1%E5%8B%99%E5%A0%B1%E8%A1%A8/%E6%95%B4%E9%AB%94%E7%99%BC%E5%B1%95%E8%A3%9C%E5%8A%A9%E7%B6%93%E8%B2%BB/",
+      "destination": "/site-pages/ca09f749ee2f890b299c.html"
+    },
+    {
+      "source": "/school-sites/www.ecc.stu.edu.tw/學生宿舍網路報修/",
+      "destination": "/site-pages/b9fe61eedf2e11b68586.html"
+    },
+    {
+      "source": "/school-sites/www.ecc.stu.edu.tw/%E5%AD%B8%E7%94%9F%E5%AE%BF%E8%88%8D%E7%B6%B2%E8%B7%AF%E5%A0%B1%E4%BF%AE/",
+      "destination": "/site-pages/b9fe61eedf2e11b68586.html"
+    },
+    {
+      "source": "/school-sites/www.ecc.stu.edu.tw/forget-password-student/",
+      "destination": "/site-pages/cc5e0a467883f4f4a6fb.html"
+    },
+    {
+      "source": "/school-sites/www.ecc.stu.edu.tw/stu2fchange/",
+      "destination": "/site-pages/0b9ef379e8148cb12e39.html"
+    },
+    {
+      "source": "/school-sites/www.ecc.stu.edu.tw/wireless/",
+      "destination": "/site-pages/9d626a8d6f897d975316.html"
+    },
+    {
+      "source": "/school-sites/www.lib.stu.edu.tw/",
+      "destination": "/site-pages/b83f4f638ff0eac18aa9.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/交流活動花絮/",
+      "destination": "/site-pages/aae5c72ebbc9c9ab38dc.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E4%BA%A4%E6%B5%81%E6%B4%BB%E5%8B%95%E8%8A%B1%E7%B5%AE/",
+      "destination": "/site-pages/aae5c72ebbc9c9ab38dc.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/交流計畫/",
+      "destination": "/site-pages/07b39be5eea085a5f30e.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E4%BA%A4%E6%B5%81%E8%A8%88%E7%95%AB/",
+      "destination": "/site-pages/07b39be5eea085a5f30e.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/來台交流/",
+      "destination": "/site-pages/a71c24ef7735b9e66310.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E4%BE%86%E5%8F%B0%E4%BA%A4%E6%B5%81/",
+      "destination": "/site-pages/a71c24ef7735b9e66310.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/入學資訊/",
+      "destination": "/site-pages/766c2755f9e50f3a5265.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E5%85%A5%E5%AD%B8%E8%B3%87%E8%A8%8A/",
+      "destination": "/site-pages/766c2755f9e50f3a5265.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/出國交流/",
+      "destination": "/site-pages/938e3ebf875058b33b7c.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E5%87%BA%E5%9C%8B%E4%BA%A4%E6%B5%81/",
+      "destination": "/site-pages/938e3ebf875058b33b7c.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/出國交流計畫/",
+      "destination": "/site-pages/148cad2642ab6613e72e.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E5%87%BA%E5%9C%8B%E4%BA%A4%E6%B5%81%E8%A8%88%E7%95%AB/",
+      "destination": "/site-pages/148cad2642ab6613e72e.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/國際交換生/",
+      "destination": "/site-pages/7c25e6443e5af93b8ce6.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E5%9C%8B%E9%9A%9B%E4%BA%A4%E6%8F%9B%E7%94%9F/",
+      "destination": "/site-pages/7c25e6443e5af93b8ce6.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/國際合作學校/",
+      "destination": "/site-pages/0f14692aeca3f79adaec.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E5%9C%8B%E9%9A%9B%E5%90%88%E4%BD%9C%E5%AD%B8%E6%A0%A1/",
+      "destination": "/site-pages/0f14692aeca3f79adaec.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/國際學校合作地圖/",
+      "destination": "/site-pages/ef1912b777d478e66f41.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E5%9C%8B%E9%9A%9B%E5%AD%B8%E6%A0%A1%E5%90%88%E4%BD%9C%E5%9C%B0%E5%9C%96/",
+      "destination": "/site-pages/ef1912b777d478e66f41.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/國際專修部/",
+      "destination": "/site-pages/8eb33b767988e575a70e.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E5%9C%8B%E9%9A%9B%E5%B0%88%E4%BF%AE%E9%83%A8/",
+      "destination": "/site-pages/8eb33b767988e575a70e.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/報名專區/",
+      "destination": "/site-pages/fc53a666093a5e0a6180.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E5%A0%B1%E5%90%8D%E5%B0%88%E5%8D%80/",
+      "destination": "/site-pages/fc53a666093a5e0a6180.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/境外生找工作/",
+      "destination": "/site-pages/08393cf391597fab26c6.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E5%A2%83%E5%A4%96%E7%94%9F%E6%89%BE%E5%B7%A5%E4%BD%9C/",
+      "destination": "/site-pages/08393cf391597fab26c6.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/境外生畢業留台/",
+      "destination": "/site-pages/406d7ea7c38374e4138c.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E5%A2%83%E5%A4%96%E7%94%9F%E7%95%A2%E6%A5%AD%E7%95%99%E5%8F%B0/",
+      "destination": "/site-pages/406d7ea7c38374e4138c.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/境外碩士在職專班/",
+      "destination": "/site-pages/2029f31b887266bab1ad.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E5%A2%83%E5%A4%96%E7%A2%A9%E5%A3%AB%E5%9C%A8%E8%81%B7%E5%B0%88%E7%8F%AD/",
+      "destination": "/site-pages/2029f31b887266bab1ad.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/外籍生/",
+      "destination": "/site-pages/255d0d545da2f4ce7d75.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E5%A4%96%E7%B1%8D%E7%94%9F/",
+      "destination": "/site-pages/255d0d545da2f4ce7d75.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/大陸交換生/",
+      "destination": "/site-pages/1aa0341cf00f02f2ec12.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E5%A4%A7%E9%99%B8%E4%BA%A4%E6%8F%9B%E7%94%9F/",
+      "destination": "/site-pages/1aa0341cf00f02f2ec12.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/大陸研習生/",
+      "destination": "/site-pages/45dd7334fcb78931b4cf.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E5%A4%A7%E9%99%B8%E7%A0%94%E7%BF%92%E7%94%9F/",
+      "destination": "/site-pages/45dd7334fcb78931b4cf.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/學位生招生/",
+      "destination": "/site-pages/1fb3db5b0d90c181a557.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E5%AD%B8%E4%BD%8D%E7%94%9F%E6%8B%9B%E7%94%9F/",
+      "destination": "/site-pages/1fb3db5b0d90c181a557.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/實用資訊/",
+      "destination": "/site-pages/8caa34fc5ea125e083ca.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E5%AF%A6%E7%94%A8%E8%B3%87%E8%A8%8A/",
+      "destination": "/site-pages/8caa34fc5ea125e083ca.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/巴瑪安/",
+      "destination": "/site-pages/37280a1f7ef605fc0821.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E5%B7%B4%E7%91%AA%E5%AE%89/",
+      "destination": "/site-pages/37280a1f7ef605fc0821.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/師資培訓/",
+      "destination": "/site-pages/17609a9f5f1f038f3914.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E5%B8%AB%E8%B3%87%E5%9F%B9%E8%A8%93/",
+      "destination": "/site-pages/17609a9f5f1f038f3914.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/本處簡介/",
+      "destination": "/site-pages/b2169fc32b7de33291f8.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E6%9C%AC%E8%99%95%E7%B0%A1%E4%BB%8B/",
+      "destination": "/site-pages/b2169fc32b7de33291f8.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/林齊恩/",
+      "destination": "/site-pages/47eb5a7b559d59a62046.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E6%9E%97%E9%BD%8A%E6%81%A9/",
+      "destination": "/site-pages/47eb5a7b559d59a62046.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/校內法規/",
+      "destination": "/site-pages/aed0335284fc2009cdaa.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E6%A0%A1%E5%85%A7%E6%B3%95%E8%A6%8F/",
+      "destination": "/site-pages/aed0335284fc2009cdaa.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/校內獎助學金/",
+      "destination": "/site-pages/87e7e4a31807aed9c0c7.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E6%A0%A1%E5%85%A7%E7%8D%8E%E5%8A%A9%E5%AD%B8%E9%87%91/",
+      "destination": "/site-pages/87e7e4a31807aed9c0c7.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/校外法規/",
+      "destination": "/site-pages/b45a4581518c353a2024.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E6%A0%A1%E5%A4%96%E6%B3%95%E8%A6%8F/",
+      "destination": "/site-pages/b45a4581518c353a2024.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/校外獎助學金/",
+      "destination": "/site-pages/4429296f9d5081b83477.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E6%A0%A1%E5%A4%96%E7%8D%8E%E5%8A%A9%E5%AD%B8%E9%87%91/",
+      "destination": "/site-pages/4429296f9d5081b83477.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/校際互訪/",
+      "destination": "/site-pages/f8cc1bbcca904c90e073.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E6%A0%A1%E9%9A%9B%E4%BA%92%E8%A8%AA/",
+      "destination": "/site-pages/f8cc1bbcca904c90e073.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/楊昀浩/",
+      "destination": "/site-pages/bc5f568ff7fbe4423fe9.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E6%A5%8A%E6%98%80%E6%B5%A9/",
+      "destination": "/site-pages/bc5f568ff7fbe4423fe9.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/業務職掌/",
+      "destination": "/site-pages/53d98a6acd7291740684.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E6%A5%AD%E5%8B%99%E8%81%B7%E6%8E%8C/",
+      "destination": "/site-pages/53d98a6acd7291740684.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/樹德優勢/",
+      "destination": "/site-pages/dede16af1429c3417ee6.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E6%A8%B9%E5%BE%B7%E5%84%AA%E5%8B%A2/",
+      "destination": "/site-pages/dede16af1429c3417ee6.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/海外青年技術訓練班/",
+      "destination": "/site-pages/1bd8a48439195f188080.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E6%B5%B7%E5%A4%96%E9%9D%92%E5%B9%B4%E6%8A%80%E8%A1%93%E8%A8%93%E7%B7%B4%E7%8F%AD/",
+      "destination": "/site-pages/1bd8a48439195f188080.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/港澳生/",
+      "destination": "/site-pages/a62928571590053be53a.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E6%B8%AF%E6%BE%B3%E7%94%9F/",
+      "destination": "/site-pages/a62928571590053be53a.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/溝口新平/",
+      "destination": "/site-pages/089b45fef711c84e473d.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E6%BA%9D%E5%8F%A3%E6%96%B0%E5%B9%B3/",
+      "destination": "/site-pages/089b45fef711c84e473d.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/營隊活動/",
+      "destination": "/site-pages/dbbcb7000a8fa598a23c.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E7%87%9F%E9%9A%8A%E6%B4%BB%E5%8B%95/",
+      "destination": "/site-pages/dbbcb7000a8fa598a23c.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/獎助學金/",
+      "destination": "/site-pages/14ad6c9248d8fcb016d8.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E7%8D%8E%E5%8A%A9%E5%AD%B8%E9%87%91/",
+      "destination": "/site-pages/14ad6c9248d8fcb016d8.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/申請流程/",
+      "destination": "/site-pages/5ca68a2dcecbaaee7a16.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E7%94%B3%E8%AB%8B%E6%B5%81%E7%A8%8B/",
+      "destination": "/site-pages/5ca68a2dcecbaaee7a16.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/留台基地/",
+      "destination": "/site-pages/b321b05e8c674e4c4017.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E7%95%99%E5%8F%B0%E5%9F%BA%E5%9C%B0/",
+      "destination": "/site-pages/b321b05e8c674e4c4017.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/聯絡資訊/",
+      "destination": "/site-pages/c9abaefc689375e06805.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E8%81%AF%E7%B5%A1%E8%B3%87%E8%A8%8A/",
+      "destination": "/site-pages/c9abaefc689375e06805.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/華裔僑生/",
+      "destination": "/site-pages/df728a47e1831fe77cb0.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E8%8F%AF%E8%A3%94%E5%83%91%E7%94%9F/",
+      "destination": "/site-pages/df728a47e1831fe77cb0.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/表單下載/",
+      "destination": "/site-pages/b5658a976250cb09857e.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E8%A1%A8%E5%96%AE%E4%B8%8B%E8%BC%89/",
+      "destination": "/site-pages/b5658a976250cb09857e.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/身分比較/",
+      "destination": "/site-pages/824b4f0c167b20f455ea.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E8%BA%AB%E5%88%86%E6%AF%94%E8%BC%83/",
+      "destination": "/site-pages/824b4f0c167b20f455ea.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/鍾佳穎/",
+      "destination": "/site-pages/cefa801ff6e565529759.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E9%8D%BE%E4%BD%B3%E7%A9%8E/",
+      "destination": "/site-pages/cefa801ff6e565529759.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/陸生/",
+      "destination": "/site-pages/7da8e69f27289f3cbdf6.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E9%99%B8%E7%94%9F/",
+      "destination": "/site-pages/7da8e69f27289f3cbdf6.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/非學位生招生/",
+      "destination": "/site-pages/3bf0d244c5b87c3cf394.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E9%9D%9E%E5%AD%B8%E4%BD%8D%E7%94%9F%E6%8B%9B%E7%94%9F/",
+      "destination": "/site-pages/3bf0d244c5b87c3cf394.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/高橋優季/",
+      "destination": "/site-pages/48a53f69403cfda70114.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E9%AB%98%E6%A9%8B%E5%84%AA%E5%AD%A3/",
+      "destination": "/site-pages/48a53f69403cfda70114.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/黎氏紅珠/",
+      "destination": "/site-pages/5e9b861bd22ad97b8e33.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/%E9%BB%8E%E6%B0%8F%E7%B4%85%E7%8F%A0/",
+      "destination": "/site-pages/5e9b861bd22ad97b8e33.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/2937-2/",
+      "destination": "/site-pages/df1f0244821a0936d1bc.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/34僑生技術專班/",
+      "destination": "/site-pages/24e31d73a9d6b2a64b01.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/34%E5%83%91%E7%94%9F%E6%8A%80%E8%A1%93%E5%B0%88%E7%8F%AD/",
+      "destination": "/site-pages/24e31d73a9d6b2a64b01.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/所在位置/",
+      "destination": "/site-pages/b33bf29c2868753305b7.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/%E6%89%80%E5%9C%A8%E4%BD%8D%E7%BD%AE/",
+      "destination": "/site-pages/b33bf29c2868753305b7.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/2021-freshman-entry-policy/",
+      "destination": "/site-pages/be6e23391ca7c90c30e8.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/2024/05/20/collaborative-teaching-with-foreign-students-from-5-universities-helps-primary-and-secondary-schools-in-29-countries-promote-bilingualism/",
+      "destination": "/site-pages/a5f14eaf03845527e809.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/2024/07/22/selection-of-international-exchange-translator-ambassadors-※oh-study-2024-autumn-overseas-study-and-education-exhibition※/",
+      "destination": "/site-pages/7c03b38ff4b01ee379dc.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/2024/07/22/selection-of-international-exchange-translator-ambassadors-%E2%80%BBoh-study-2024-autumn-overseas-study-and-education-exhibition%E2%80%BB/",
+      "destination": "/site-pages/7c03b38ff4b01ee379dc.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/2024/09/13/113-1-announcement-of-scholarships-and-bursaries-for-overseas-students/",
+      "destination": "/site-pages/53d5357e1a5e9746b332.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/2025/10/23/本校與境外之友好中學姊妹校、合作夥伴，除宣傳-2/",
+      "destination": "/site-pages/a7bb551d8b40f9188d4c.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/2025/10/23/%E6%9C%AC%E6%A0%A1%E8%88%87%E5%A2%83%E5%A4%96%E4%B9%8B%E5%8F%8B%E5%A5%BD%E4%B8%AD%E5%AD%B8%E5%A7%8A%E5%A6%B9%E6%A0%A1%E3%80%81%E5%90%88%E4%BD%9C%E5%A4%A5%E4%BC%B4%EF%BC%8C%E9%99%A4%E5%AE%A3%E5%82%B3-2/",
+      "destination": "/site-pages/a7bb551d8b40f9188d4c.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/2025/10/23/our-university-sister-schools-and-collaborative-partners-abroad-except-for-necessary-procedures-such-as-promotion-publicity-and-assistance-in-handling-student-visas-have-not-been-commissioned-to/",
+      "destination": "/site-pages/7041bf739b84702dd48d.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/2025/11/24/counseling-services-for-international-students-the-ministry-of-education-cares-about-you/",
+      "destination": "/site-pages/958fcc7ef8db58f2aad6.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/2896-2/",
+      "destination": "/site-pages/fe3b3c06814a72bbf3e8.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/34-vocational-education-program-for-overseas-compatriot-students/",
+      "destination": "/site-pages/2bc831303025463645fe.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/admission-information-2/",
+      "destination": "/site-pages/343c56ac320308cce032.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/admissions-for-non-degree-programs/",
+      "destination": "/site-pages/e4e02f1168559460968e.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/admissions-for-non-degree-students/",
+      "destination": "/site-pages/c3c5a83c141f4a6a984f.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/application-process/",
+      "destination": "/site-pages/032f026f448655977e8c.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/camp-activities-international-exchange/",
+      "destination": "/site-pages/d70212219ec674a2dde0.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/campus-activities-2/",
+      "destination": "/site-pages/60287647f428b4a6d934.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/come-to-taiwan-to-communicate/",
+      "destination": "/site-pages/d5b30e904d3a5331513e.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/content_us/",
+      "destination": "/site-pages/60726336d1a11c31b8f9.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/degree_programs/",
+      "destination": "/site-pages/b628ee87e24411d5ecc0.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/department-of-international-studies/",
+      "destination": "/site-pages/ceda0fb52b892d4e87a6.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/download/",
+      "destination": "/site-pages/1619e693b24086650584.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/emergency-call/",
+      "destination": "/site-pages/2f4b709f095ecbfc6828.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/exchange-plan/",
+      "destination": "/site-pages/140e14fb8108033ebdd4.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/foreign-students/",
+      "destination": "/site-pages/b05aa2da612583baa0b5.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/form-download/",
+      "destination": "/site-pages/62b1b0c665f6994c04fa.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/freshman-entry-information/",
+      "destination": "/site-pages/f629179f2690c421837f.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/freshmen-registration-information/",
+      "destination": "/site-pages/b3dbda4b1e23436d6167.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/freshmen-report/",
+      "destination": "/site-pages/a68de0cb4ff4dcb5f873.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/health-examination/",
+      "destination": "/site-pages/67598374beaa0e80799f.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/health-promotional-center/",
+      "destination": "/site-pages/b7e44b2edb26bf0080bf.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/hong-kong-macau-students/",
+      "destination": "/site-pages/157faba0a1bdb52667d9.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/hospital-and-clinic-information/",
+      "destination": "/site-pages/45d53c9092d5c30d2912.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/identity-comparison/",
+      "destination": "/site-pages/27d27b34d2e0b842778c.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/insurance-in-taiwan/",
+      "destination": "/site-pages/4298d843ceea9fda6a9f.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/international-cooperation-school/",
+      "destination": "/site-pages/f783ab9fbe220729cdf5.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/international-exchange-student/",
+      "destination": "/site-pages/6f896e68389409b057c4.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/international-exchange-teacher-training/",
+      "destination": "/site-pages/2f9e0f6b25dd9ecc2dee.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/ipiac_en/",
+      "destination": "/site-pages/37184898b1424b0f80d8.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/job-in-taiwin/",
+      "destination": "/site-pages/b5fac5f08917b34bae3e.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/know-about-admission/",
+      "destination": "/site-pages/a0d4bfc7332a4e0d2740.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/library-regulations/",
+      "destination": "/site-pages/d33919220fa210fa97a3.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/mainland-students/",
+      "destination": "/site-pages/23517a8af3c2e1f5aeb2.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/off-campus-lease/",
+      "destination": "/site-pages/401749930ecfee6c94df.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/off-campus-regulations/",
+      "destination": "/site-pages/3b9b1f09454328439baf.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/off-campus-scholarship/",
+      "destination": "/site-pages/222bb63e853957c1138b.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/overseas-chinese-students/",
+      "destination": "/site-pages/17d3ac9f22f4fe42e081.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/overseas-exchange-plan/",
+      "destination": "/site-pages/164442d302217dba714f.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/overseas-exchanges/",
+      "destination": "/site-pages/b32f8999cd4369131ad4.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/overseas-youth-v…g-degree-program/",
+      "destination": "/site-pages/13111312a07d2bc3c414.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/overseas-youth-v%E2%80%A6g-degree-program/",
+      "destination": "/site-pages/13111312a07d2bc3c414.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/overseas-youth-vocational-training-degree-program/",
+      "destination": "/site-pages/df8f08f84139a9b4800f.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/overseas-youth-vocational-training-workshop/",
+      "destination": "/site-pages/a749de6ad9f62b86da48.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/page/10/",
+      "destination": "/site-pages/192568c1c8cfb039b875.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/page/2/",
+      "destination": "/site-pages/be5f91d7d135a7d0f144.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/page/3/",
+      "destination": "/site-pages/3b3458ebc7de6df0c864.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/page/4/",
+      "destination": "/site-pages/d0a03f5a2bd56c93b401.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/page/5/",
+      "destination": "/site-pages/0b9b93e43c895c5737d8.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/page/9/",
+      "destination": "/site-pages/028964bbf581241370a6.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/registration-area/",
+      "destination": "/site-pages/be5d82fe1df62b3362c2.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/residence-health-check/",
+      "destination": "/site-pages/973d3f3d6cd5c464440d.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/scholarship/",
+      "destination": "/site-pages/50dffdaf5b7ade52daf9.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/school-map/",
+      "destination": "/site-pages/86b0835076786bac222e.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/school-regulations/",
+      "destination": "/site-pages/9a29ac6bc2c09b08f6b3.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/shu-te-university/",
+      "destination": "/site-pages/e1fee3ef6e06c1b45b09.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/social-activity/",
+      "destination": "/site-pages/304eb2b6655097ee70c4.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/staff/",
+      "destination": "/site-pages/4fafb675bf94b00a2d59.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/stu-scholarship/",
+      "destination": "/site-pages/726f7d1def67aaeba9f7.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/teep-2/",
+      "destination": "/site-pages/782447a406f06e2cd6db.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/traffic-information-2/",
+      "destination": "/site-pages/b27ea3629ed121d39906.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/useful-information-2/",
+      "destination": "/site-pages/d194836a3b7b71addd88.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/visa-information/",
+      "destination": "/site-pages/3aa7a44dbc8e3d60dbee.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/en/work-permit-application/",
+      "destination": "/site-pages/bdfa763a74927c8a7382.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/freshman_entry_information_zh/",
+      "destination": "/site-pages/d751a03b3935fd7f7ecc.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/freshman_registration_zh/",
+      "destination": "/site-pages/dfb8df0d68e3a478f8de.html"
+    },
+    {
+      "source": "/school-sites/www.oica.stu.edu.tw/ipiac_zh/",
+      "destination": "/site-pages/727651a17e1e5a1b95ce.html"
+    },
+    {
+      "source": "/school-sites/www.rd.stu.edu.tw/",
+      "destination": "/site-pages/be9b27cdecbd4544c5ec.html"
+    },
+    {
+      "source": "/school-sites/www.sao.stu.edu.tw/法規彙編/",
+      "destination": "/site-pages/e931126985fa6a9bef73.html"
+    },
+    {
+      "source": "/school-sites/www.sao.stu.edu.tw/%E6%B3%95%E8%A6%8F%E5%BD%99%E7%B7%A8/",
+      "destination": "/site-pages/e931126985fa6a9bef73.html"
+    },
+    {
+      "source": "/school-sites/www.sao.stu.edu.tw/高教勵學金-2/",
+      "destination": "/site-pages/3bd31dd39caaa4506054.html"
+    },
+    {
+      "source": "/school-sites/www.sao.stu.edu.tw/%E9%AB%98%E6%95%99%E5%8B%B5%E5%AD%B8%E9%87%91-2/",
+      "destination": "/site-pages/3bd31dd39caaa4506054.html"
+    },
+    {
+      "source": "/school-sites/www.sao.stu.edu.tw/高教勵學金-2/最新消息/",
+      "destination": "/site-pages/df32726bb6b8a72a0a42.html"
+    },
+    {
+      "source": "/school-sites/www.sao.stu.edu.tw/%E9%AB%98%E6%95%99%E5%8B%B5%E5%AD%B8%E9%87%91-2/%E6%9C%80%E6%96%B0%E6%B6%88%E6%81%AF/",
+      "destination": "/site-pages/df32726bb6b8a72a0a42.html"
+    },
+    {
+      "source": "/school-sites/www.ssc.stu.edu.tw/",
+      "destination": "/site-pages/7f3537e1490cce096e7e.html"
+    },
+    {
+      "source": "/school-sites/www.zzd.stu.edu.tw/樂齡大學/",
+      "destination": "/site-pages/a8f6d2508b5b69fcc682.html"
+    },
+    {
+      "source": "/school-sites/www.zzd.stu.edu.tw/%E6%A8%82%E9%BD%A1%E5%A4%A7%E5%AD%B8/",
+      "destination": "/site-pages/a8f6d2508b5b69fcc682.html"
+    },
+    {
+      "source": "/:path((?!assets/|site-pages/|school-assets/|school-pages/).*)",
+      "destination": "/app-shell.html"
     }
   ],
   "framework": "vite",
@@ -13,15 +2463,30 @@
   "headers": [
     {
       "source": "/",
-      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
     },
     {
       "source": "/:path((?!assets/|school-assets/|school-pages/|api/).*)",
-      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
     },
     {
       "source": "/assets/(.*)",
-      "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }]
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
     },
     {
       "source": "/school-pages/(.*)",
@@ -42,6 +2507,19 @@
         {
           "key": "Content-Security-Policy",
           "value": "default-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; script-src 'none'; sandbox"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
+    },
+    {
+      "source": "/site-pages/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; frame-ancestors 'self'"
         },
         {
           "key": "X-Content-Type-Options",

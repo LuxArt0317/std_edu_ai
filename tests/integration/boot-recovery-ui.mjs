@@ -22,15 +22,11 @@ try {
   page.on("framenavigated", (frame) => {
     if (frame === page.mainFrame()) navigations.push(frame.url());
   });
-  await page.route(origin + "/", (route) =>
+  await page.route(origin + "/signin", (route) =>
     route.fulfill({ status: 200, contentType: "text/html", body: stale }),
   );
-  await page.goto(origin, { waitUntil: "domcontentloaded" });
-  await page.waitForFunction(
-    () => document.querySelector("iframe")?.contentDocument?.documentElement?.dataset.mirrorReady === "true",
-    null,
-    { timeout: 30000 },
-  );
+  await page.goto(origin + "/signin", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: /sign in/i }).first().waitFor({ timeout: 30000 });
   assert.ok(navigations.some((url) => url.includes("__stu_boot_recovery=")));
   assert.equal(new URL(page.url()).searchParams.has("__stu_boot_recovery"), false);
   assert.equal(await page.locator("[data-stu-boot]").count(), 0);

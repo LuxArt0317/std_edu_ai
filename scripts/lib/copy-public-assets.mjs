@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { copyDirectSchoolPages } from './direct-school-pages.mjs';
 
 // Archive captures may be present locally without belonging to this release.
 // Publish only manifest-owned mirror files, never everything in the raw asset directory.
@@ -25,5 +26,6 @@ export function copyPublicAssets(root, output) {
       fs.copyFileSync(source, destination);
     }
   }
+  copyDirectSchoolPages(root, output);
   return files.size;
 }

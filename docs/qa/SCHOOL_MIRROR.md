@@ -1,5 +1,11 @@
 # Local school-page mirror — Issue #84
 
+## Current direct-page delivery — November 5, 2026
+
+The 395 captured public documents now serve directly at their local `stu.best` paths, with an explicit nonofficial notice. This removes the iframe readiness gate and the React boot screen from public school navigation. `/app`, `/signin`, School Affairs, the campus assistant and campus directory still use the React application. Vite development/preview and Vercel use the same page manifest; `npm run sync:school-routes` regenerates the production rewrite map when captures change. The release retains static source documents and assets, with scripts and forms disabled. Source-only interactive widgets therefore need separate trusted implementations. The existing deeper-coverage and private-integration limits below still apply.
+
+`npm run test:school-mirror` checks all 395 routes, ten homepage audience links at desktop and mobile widths, browser navigation without waiting for slow stylesheets, JavaScript-disabled rendering and SPA sign-in recovery. The homepage layout and statistics checks now use the direct document.
+
 ## Landing-page alignment regression
 
 The copied homepage contained an in-progress Elementor scale transform on entrance widgets. Source scripts are deliberately disabled in the mirror, so the enlarged labels painted across neighboring cards. The trusted renderer now clears only those captured transforms on the homepage and applies a responsive 10/5/2/1-column entrance grid. The original page documents, link destinations and source checksums are unchanged.

@@ -1,5 +1,12 @@
 # Task Plan
 
+## Direct public school pages [Issue #84]
+
+- [x] Reproduce the local and public loading paths, and identify the iframe boundary and existing captured pages.
+- [x] Serve copied public pages directly at their stu.best routes, preserving application/auth routes and the existing source assets.
+- [x] Remove unnecessary public-page loading gates and verify homepage-to-destination navigation, refreshes, missing pages, and app sign-in.
+- [ ] Run release checks, publish the client site, verify the public routes, and record the handoff.
+
 ## Public loading recovery after deployment [Issue #84]
 
 - [x] Compare the user's fallback screenshot with live public routes and missing asset responses.

@@ -16,10 +16,13 @@ test('the HTML entry renders useful content before JavaScript starts', () => {
 
 test('the public SPA rewrite excludes static assets and keeps page HTML fresh', () => {
   const config = JSON.parse(readContractSource('vercel.json', 'utf8'))
-  const source = config.rewrites[0].source as string
+  const source = config.rewrites.at(-1).source as string
   assert.match(source, /assets\//)
   assert.match(source, /school-assets\//)
   assert.match(source, /school-pages\//)
+  assert.match(source, /site-pages\//)
+  assert.equal(config.rewrites.at(-1).destination, '/app-shell.html')
+  assert.ok(config.rewrites.some((rule: {source: string; destination: string}) => rule.source === '/在校學生/' && rule.destination.startsWith('/site-pages/')))
   assert.ok(config.headers.some((rule: { source: string; headers: Array<{ key: string; value: string }> }) =>
     rule.source.includes('(?!assets/') && rule.headers.some(header => header.key === 'Cache-Control' && header.value === 'no-store')))
 })

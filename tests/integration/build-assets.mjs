@@ -3,12 +3,15 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const outputDirectory = path.resolve(process.env.STU_BUILD_DIRECTORY || 'dist')
-const htmlPath = path.join(outputDirectory, 'index.html')
+const htmlPath = path.join(outputDirectory, 'app-shell.html')
 assert.ok(fs.existsSync(htmlPath), `Build verification failed: ${htmlPath} does not exist.`)
+const publicHome = fs.readFileSync(path.join(outputDirectory, 'index.html'), 'utf8')
+assert.match(publicHome, /校園網站介面預覽（非官方）/, 'The public homepage must be a direct school document.')
+assert.doesNotMatch(publicHome, /data-stu-boot/, 'The public homepage must not depend on the SPA boot shell.')
 
 const html = fs.readFileSync(htmlPath, 'utf8')
 const entryPath = html.match(/<script[^>]+src="([^"]+\.js)"/)?.[1]
-assert.ok(entryPath, 'Build verification failed: index.html has no JavaScript entry asset.')
+assert.ok(entryPath, 'Build verification failed: app-shell.html has no JavaScript entry asset.')
 
 const normalizeAssetPath = (assetPath) => assetPath.replace(/^\.\//, 'assets/').replace(/^\//, '')
 const entryFile = path.join(outputDirectory, normalizeAssetPath(entryPath))

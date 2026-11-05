@@ -19,7 +19,8 @@ import { useAffairsAuth } from "./affairs/authContext";
 
 function SchoolAccountAssistant() {
   const {user} = useAffairsAuth();
-  return <PublicAssistant key={user?.id || "anonymous"} />;
+  const {pathname} = useLocation();
+  return <PublicAssistant key={user?.id || "anonymous"} initialOpen={pathname === "/campus-assistant"} />;
 }
 
 export default function PublicSite() {
@@ -49,6 +50,8 @@ export default function PublicSite() {
       />
       <Routes>
         <Route path="/" element={<SourceMirror />} />
+        <Route path="/campus-assistant" element={<main className="mirror-index"><h1>校園助理</h1><p>Ask about the university, services and announcements. Open the assistant below to start a conversation.</p><a href="/">Return to the university homepage</a></main>} />
+        <Route path="/campus-directory" element={<main className="mirror-index"><h1>校園導覽</h1><p>Browse campus services and copied school pages.</p><a href="/local-pages">Browse copied pages</a><br /><a href="/">Return to the university homepage</a></main>} />
         <Route path="/local-pages" element={<LocalPageIndex key={search} />} />
         <Route
           path="/ePortal/login.asp"
@@ -84,7 +87,7 @@ export default function PublicSite() {
         />
         <Route path="*" element={<SourceMirror />} />
       </Routes>
-      {pathname === "/" ? <PublicCampusDirectory /> : null}
+      {pathname === "/" || pathname === "/campus-directory" ? <PublicCampusDirectory /> : null}
       <SchoolAccountAssistant />
     </div></AffairsAuthProvider>
   );
