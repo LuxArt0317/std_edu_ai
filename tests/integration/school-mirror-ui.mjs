@@ -29,6 +29,34 @@ try {
     assert.equal(await page.locator('.source-mirror iframe').count(), 0);
     assert.equal(await page.locator('[data-stu-boot]').count(), 0);
     assert.ok((await page.locator('body').innerText()).length > 100);
+    for (const viewportWidth of (width === 1440 ? [3020, 2048, 1440, 768] : [390, 320])) {
+      await page.setViewportSize({ width: viewportWidth, height: 900 });
+      const hero = await page.evaluate(() => {
+        const carousel = document.querySelector('.elementor-element-4b004d9 .elementor-slides-wrapper');
+        const active = carousel?.querySelector('.swiper-slide-active');
+        const slides = [...(carousel?.querySelectorAll('.swiper-slide') || [])];
+        const rect = active?.getBoundingClientRect();
+        const header = document.querySelector('.elementor-element-dd1b967')?.getBoundingClientRect();
+        const navigation = document.querySelector('.elementor-element-5268723')?.getBoundingClientRect();
+        return {
+          pageWidth: document.documentElement.scrollWidth,
+          carouselWidth: carousel?.getBoundingClientRect().width,
+          activeX: rect?.x,
+          activeWidth: rect?.width,
+          headerX: header?.x,
+          headerWidth: header?.width,
+          navigationCenter: navigation && navigation.x + navigation.width / 2,
+          visibleSlides: slides.filter(slide => getComputedStyle(slide).display !== 'none').length,
+        };
+      });
+      assert.ok(hero.pageWidth <= viewportWidth + 1, `${viewportWidth}: no horizontal page overflow`);
+      assert.ok(Math.abs(hero.headerX) <= 1 && Math.abs(hero.headerWidth - viewportWidth) <= 1, `${viewportWidth}: header fills viewport`);
+      assert.ok(Math.abs(hero.navigationCenter - viewportWidth / 2) <= 1, `${viewportWidth}: navigation centered`);
+      assert.ok(Math.abs(hero.activeX) <= 1, `${viewportWidth}: hero begins at viewport edge`);
+      assert.ok(Math.abs(hero.activeWidth - hero.carouselWidth) <= 1, `${viewportWidth}: hero fills carousel`);
+      assert.equal(hero.visibleSlides, 1, `${viewportWidth}: only one hero slide visible`);
+    }
+    await page.setViewportSize({ width, height: 900 });
     assert.deepEqual(await page.locator('.elementor-counter-number').allTextContents(), ['4,601', '128,475', '33,056', '54']);
     for (const href of ['/%E5%9C%A8%E6%A0%A1%E5%AD%B8%E7%94%9F/', '/admissions', '/freshman', '/%E6%95%99%E8%81%B7%E5%93%A1%E5%B7%A5/', '/%E9%80%B2%E4%BF%AE%E4%BA%BA%E5%A3%AB/', '/%E7%95%A2%E6%A5%AD%E6%A0%A1%E5%8F%8B/', '/alumni-association', '/%E6%A0%A1%E5%A4%96%E8%A8%AA%E5%AE%A2/', '/%E5%9C%8B%E9%9A%9B%E5%AD%B8%E7%94%9F/', '/international']) {
       const link = page.locator(`a[href="${href}"]:visible`).last();

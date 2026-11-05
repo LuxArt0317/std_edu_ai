@@ -1,5 +1,9 @@
 # Client handoff
 
+## In progress — Issue #84 homepage responsiveness
+
+The client's copied homepage now locally fills the viewport with one hero slide and centers the sticky university header. The source capture had frozen both at 1280px, exposing another slide and leaving navigation left of center on wide screens. Local browser checks pass at six widths, including the reported 3020px desktop size, and the 395-page entrance suite passes. Release checks and publication are pending; see [QA](../qa/SCHOOL_MIRROR.md#homepage-responsive-repair--november-5-2026).
+
 ## Current release — Issue #84 floating public assistant
 
 All 395 direct copied school pages now show the existing campus assistant in a same-origin popover while keeping the pages directly rendered. Runtime `c062abefa559b311af157b5cf3cf5ca9faec06ef` is [Vercel GaqTSvMuCnPMiBYDzHA9mapfvowF](https://vercel.com/v1-d286/std_edu_ai/GaqTSvMuCnPMiBYDzHA9mapfvowF) Ready, and [quality 42005099096](https://github.com/LuxArt0317/std_edu_ai/actions/runs/42005099096) passed. Live root, student and query-selected news routes answered and closed at desktop/mobile widths; Escape and reopen worked, and a real student-page question returned HTTP 200 with a cited answer. Protected client/backend verification passed. Captured source scripts/forms stay disabled; this does not connect protected school records.

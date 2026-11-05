@@ -1,5 +1,9 @@
 # Local school-page mirror — Issue #84
 
+## Homepage responsive repair — November 5, 2026
+
+The live copied homepage retained Swiper's captured 1280px slide width and -5120px offset, plus a 1280px sticky header. At a 3020px browser width, part of the next slide appeared and the university navigation remained left of center. `public/direct-school.css` now gives the active slide and header the viewport width and keeps only the active slide visible. `school-mirror-ui.mjs` measures the hero/header/navigation at 3020, 2048, 1440, 768, 390 and 320px and checks for no horizontal scroll. The captured source HTML and links remain unchanged.
+
 ## Current direct-page delivery — November 5, 2026
 
 The 395 captured public documents now serve directly at their local `stu.best` paths, with an explicit nonofficial notice. This removes the iframe readiness gate and the React boot screen from public school navigation. `/app`, `/signin`, School Affairs, the campus assistant and campus directory still use the React application. Vite development/preview and Vercel use the same page manifest; `npm run sync:school-routes` regenerates the production rewrite map when captures change. The release retains static source documents and assets, with scripts and forms disabled. Source-only interactive widgets therefore need separate trusted implementations. The existing deeper-coverage and private-integration limits below still apply. Runtime `68282b5` is Ready as Vercel `62qj5dX765ATeVx2etQX7KoDYTJ3`; quality run `42001294587` passed. Live all ten entrance links were clicked at 1440px and 390px with no iframe, boot shell or page error. Live root, student and query-selected news are direct HTML; `/app` still leads unsigned users to `/signin`. The protected client/backend check passed.

@@ -1,5 +1,12 @@
 # Task Plan
 
+## Homepage hero and header responsiveness [Issue #84]
+
+- [x] Reproduce the reported wide-screen offset against the live page and captured HTML.
+- [x] Replace frozen Swiper slide/offset and sticky-header width with viewport-relative layout.
+- [x] Verify 3020/2048/1440/768/390/320px hero width, centered navigation, and no horizontal overflow locally.
+- [ ] Run release gates, publish to stu.best, verify the live layout, and update the issue/handoff.
+
 ## Restore chatbot on direct public pages [Issue #84]
 
 - [x] Confirm the direct-page release removed the React assistant mount and identify the shared assistant route.

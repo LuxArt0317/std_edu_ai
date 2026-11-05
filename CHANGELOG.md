@@ -1,6 +1,11 @@
 # Changelog
 ## Unreleased
 
+### Responsive university homepage (Issue #84)
+
+- Make the captured hero slide fill the viewport at desktop and phone widths instead of exposing a neighboring slide, and center the sticky university header.
+- Check the homepage hero, navigation and page width at six viewport sizes.
+
 ### Public chatbot on copied pages (Issue #84)
 
 - Restore the floating campus assistant on all 395 standalone public pages, with a same-origin panel that keeps the page in view.

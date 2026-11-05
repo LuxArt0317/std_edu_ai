@@ -86,6 +86,36 @@
 .swiper-slide:not(.swiper-slide-active) .swiper-slide-contents { visibility: hidden !important; }
 .swiper-slide-active .elementor-slide-description { max-width: min(900px, 90vw); margin-inline: auto; line-height: 1.5; }
 
+/* Elementor also froze the sticky header at the source browser's 1280px width. */
+.elementor-element-dd1b967.elementor-sticky {
+  width: 100% !important;
+  left: 0 !important;
+  right: 0 !important;
+}
+
+/* The source snapshot saved Swiper's 1280px slide widths and -5120px offset.
+   With its source script disabled, those inline values leave the next slide
+   exposed on wider screens. Keep the captured active slide fluid instead. */
+.elementor-element-4b004d9 .swiper-wrapper {
+  display: block !important;
+  transform: none !important;
+}
+.elementor-element-4b004d9 .swiper-slide {
+  display: none !important;
+  width: 100% !important;
+  height: clamp(480px, 52vw, 800px) !important;
+}
+.elementor-element-4b004d9 .swiper-slide.swiper-slide-active { display: block !important; }
+.elementor-element-4b004d9 .elementor-slide-heading {
+  font-size: clamp(30px, 4vw, 60px) !important;
+  line-height: 1.2 !important;
+}
+.elementor-element-4b004d9 .elementor-slide-description {
+  box-sizing: border-box;
+  max-width: min(900px, calc(100vw - 48px));
+  padding-inline: 8px;
+}
+
 .elementor-element-93788b9 {
   width: min(1920px, 92%) !important;
   margin-inline: auto !important;

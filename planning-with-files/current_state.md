@@ -1,5 +1,9 @@
 # Current client state
 
+## Issue #84: homepage hero and header responsiveness (local verification)
+
+The source capture froze the carousel at 1280px slides with a -5120px offset and froze the sticky header at 1280px. On wider screens, the next slide showed to the right while the logo/navigation stayed left. The client CSS now gives the active slide and header the viewport width and centers navigation. Local browser checks at 3020/2048/1440/768/390/320px pass with one visible slide and no horizontal overflow; all 395 direct pages and ten entrance links pass the focused suite. Release gates and production publication remain pending.
+
 ## Issue #84: assistant on direct public pages (published and verified)
 
 The direct-page release omitted the public chat button. All 395 captured documents now include a floating assistant button and native popover that embeds the existing same-origin assistant route. Source documents remain direct HTML with inert source scripts/forms; only the small audited bridge executes. Runtime `c062abefa559b311af157b5cf3cf5ca9faec06ef` is Ready as Vercel `GaqTSvMuCnPMiBYDzHA9mapfvowF`; quality run `42005099096` succeeded. Live root, student and query-selected news routes answered and closed correctly at 1440px and 390px; Escape closes and reopening preserves the chat while the page remains direct. A real live student-page question returned HTTP 200 with a cited school phone answer. Protected client/backend verification passed. Local all-route, 216 API/source, 30 unit, ten accessibility, build, lint, handoff and dependency checks passed.
