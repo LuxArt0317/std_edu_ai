@@ -1,8 +1,8 @@
 # Client handoff
 
-## Pending release — Issue #84 floating public assistant
+## Current release — Issue #84 floating public assistant
 
-All 395 direct copied school pages now show the existing campus assistant in a same-origin popover while keeping the pages directly rendered. Local answer, Escape/close/reopen, desktop/mobile, all-route, API/source, unit, build, handoff and dependency checks passed. Production publication and live acceptance are pending. Captured source scripts/forms stay disabled; this does not connect protected school records.
+All 395 direct copied school pages now show the existing campus assistant in a same-origin popover while keeping the pages directly rendered. Runtime `c062abefa559b311af157b5cf3cf5ca9faec06ef` is [Vercel GaqTSvMuCnPMiBYDzHA9mapfvowF](https://vercel.com/v1-d286/std_edu_ai/GaqTSvMuCnPMiBYDzHA9mapfvowF) Ready, and [quality 42005099096](https://github.com/LuxArt0317/std_edu_ai/actions/runs/42005099096) passed. Live root, student and query-selected news routes answered and closed at desktop/mobile widths; Escape and reopen worked, and a real student-page question returned HTTP 200 with a cited answer. Protected client/backend verification passed. Captured source scripts/forms stay disabled; this does not connect protected school records.
 
 ## Current release — Issue #84 public loading recovery
 

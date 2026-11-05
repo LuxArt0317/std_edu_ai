@@ -1,8 +1,8 @@
 # Current client state
 
-## Issue #84: assistant on direct public pages (local release candidate)
+## Issue #84: assistant on direct public pages (published and verified)
 
-The direct-page release omitted the public chat button. All 395 captured documents now include a floating assistant button and native popover that embeds the existing same-origin assistant route. Source documents remain direct HTML with inert source scripts/forms; only the small audited bridge executes. Local build, all-route and representative browser chat-answer/close/Escape checks at desktop/mobile widths, 215 API/source tests, 30 units, lint, handoff and dependency audit pass. Publication and live verification are pending.
+The direct-page release omitted the public chat button. All 395 captured documents now include a floating assistant button and native popover that embeds the existing same-origin assistant route. Source documents remain direct HTML with inert source scripts/forms; only the small audited bridge executes. Runtime `c062abefa559b311af157b5cf3cf5ca9faec06ef` is Ready as Vercel `GaqTSvMuCnPMiBYDzHA9mapfvowF`; quality run `42005099096` succeeded. Live root, student and query-selected news routes answered and closed correctly at 1440px and 390px; Escape closes and reopening preserves the chat while the page remains direct. A real live student-page question returned HTTP 200 with a cited school phone answer. Protected client/backend verification passed. Local all-route, 216 API/source, 30 unit, ten accessibility, build, lint, handoff and dependency checks passed.
 
 ## Issue #84: direct public school pages (published and verified)
 
