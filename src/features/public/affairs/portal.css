@@ -948,12 +948,36 @@
     }
   }
 }
-.affairs-portal .portal-account-records { background: #fff; color: #283a43; border: 1px solid #c6d5df; padding: 20px; margin-bottom: 20px; border-radius: 4px; }
-.affairs-portal .portal-account-records h2 { font-size: 18px; font-weight: 600; margin-bottom: 12px; }
-.affairs-portal .portal-account-records p { margin: 8px 0; line-height: 1.6; }
-.affairs-portal .portal-account-records dl { display: grid; grid-template-columns: minmax(120px,1fr) 2fr; gap: 10px; }
-.affairs-portal .portal-account-records dd { margin: 0; overflow-wrap: anywhere; }
+.affairs-portal .portal-account-records { background: #fff; color: #24353a; border: 1px solid #c6d5df; padding: clamp(16px,2vw,24px); margin-bottom: 20px; border-radius: 8px; }
+.affairs-portal .portal-account-records h2 { font-size: 22px; font-weight: 700; margin: 0; }
+.affairs-portal .portal-account-records h3 { font-size: 17px; font-weight: 700; margin: 0 0 12px; }
+.affairs-portal .portal-account-records p { margin: 8px 0; line-height: 1.5; }
+.affairs-records-header { display:flex; justify-content:space-between; align-items:start; gap:16px; }
+.affairs-sample-tag { flex:none; border-radius:5px; background:#fff0c9; color:#734900; padding:5px 9px; font-size:12px; font-weight:800; letter-spacing:.04em; }
+.affairs-portal .affairs-sample-note { border-left:4px solid #bd842a; background:#fff8e8; color:#553b12; padding:9px 12px; }
+.affairs-portal .affairs-record-identity { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:16px 0; }
+.affairs-record-identity > div { min-width:0; border:1px solid #d8e2e6; border-radius:6px; padding:10px 12px; }
+.affairs-record-identity dt { color:#536770; font-size:12px; }
+.affairs-record-identity dd { margin:3px 0 0; overflow-wrap:anywhere; font-weight:600; }
+.affairs-record-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.affairs-record-grid > section { min-width:0; border:1px solid #d8e2e6; border-radius:7px; padding:16px; }
+.affairs-record-grid ul { list-style:none; padding:0; margin:0; }
+.affairs-record-grid li { display:flex; flex-direction:column; align-items:flex-start; gap:3px; border-top:1px solid #e1e8ea; padding:10px 0; overflow-wrap:anywhere; }
+.affairs-record-grid li:first-child { border-top:0; padding-top:0; }
+.affairs-record-grid li span,.affairs-record-grid li small { color:#51636d; }
+.affairs-record-grid li button { margin-top:6px; }
+.affairs-record-form { display:grid; gap:8px; margin-top:14px; }
+.affairs-record-form > div { display:flex; gap:8px; }
+.affairs-record-form input,.affairs-record-form textarea { min-width:0; }
+.affairs-record-form select { width:100%; min-height:40px; border:1px solid #aebdc3; border-radius:5px; background:#fff; color:#24353a; padding:7px 10px; }
+.affairs-record-form button { justify-self:start; }
+.affairs-admin { margin-top:18px; }
+.affairs-admin > .affairs-record-grid { margin-top:14px; }
+.affairs-portal .affairs-record-error { color:#9b2525; font-weight:600; }
+.affairs-portal .affairs-record-success { color:#0b6b52; font-weight:600; }
+.affairs-portal .affairs-record-updated { color:#526670; font-size:12px; }
 .affairs-portal .portal-user { max-width: min(360px,55vw); }
 .affairs-portal .portal-user > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .affairs-portal .portal-user > span > span { display: block; overflow: hidden; text-overflow: ellipsis; }
-@media(max-width:520px) { .affairs-portal .portal-account-records dl {grid-template-columns: 1fr;} }
+@media(max-width:850px) { .affairs-portal .affairs-record-identity {grid-template-columns:repeat(2,minmax(0,1fr));} .affairs-record-grid {grid-template-columns:1fr;} }
+@media(max-width:520px) { .affairs-portal .affairs-record-identity {grid-template-columns:1fr;} .affairs-records-header {flex-wrap:wrap;} }

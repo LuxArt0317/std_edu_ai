@@ -12,5 +12,5 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
   });
   const result = await response.json().catch(()=>null);
   if (!response.ok || typeof result?.answer !== 'string') throw new Error(typeof result?.error === 'string' ? result.error : 'Your account answer could not be loaded. Please try again or sign in again.');
-  return {answer:result.answer,status:result.status||'answered',citations:result.citations||[],suggestedQuestions:result.suggestedQuestions||[],grounding:result.grounding,activity:result.activity,feedback:result.feedback};
+  return {answer:result.answer,status:result.status||'answered',citations:result.citations||[],suggestedQuestions:result.suggestedQuestions||[],grounding:result.grounding,activity:result.activity,feedback:result.feedback,proposedAction:result.proposedAction};
 }

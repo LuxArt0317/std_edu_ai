@@ -14,6 +14,16 @@ try {
  const nexus=affairsTestSession({...affairsTestUser,id:'a149fc19-57de-4f5d-a753-5bc0c0460606',email:'manager.qa@gmail.com'});
  await context.addInitScript(nexus=>{if(!localStorage.getItem('qa-nexus-seeded')){localStorage.setItem('stu-nexus-auth',JSON.stringify(nexus));localStorage.setItem('qa-nexus-seeded','1');}},nexus);
  const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const accountTasks=[];const accountActions=[];
+ await page.route('**/api/affairs-data*',route=>{
+  const authorization=route.request().headers().authorization;assert.ok(authorization?.startsWith('Bearer '));
+  return route.fulfill({json:{checkedAt:'2026-11-05T00:00:00Z',officialUniversityData:false,profile:{userId:affairsTestUser.id,email:affairsTestUser.email,displayName:'QA Student',role:'student'},student:{id:'sample-student',studentNumber:'SAMPLE-QA-001',fullName:'QA Student',yearLevel:1,status:'active',sourceMode:'sample',program:'Sample General Studies'},courses:[{enrollmentId:'sample-enrollment',status:'enrolled',sourceMode:'sample',code:'SAMP101',title:'Campus Orientation',credits:2,term:'Sample Fall 2026',instructor:'Sample instructor',weekday:1,startsAt:'09:00:00',endsAt:'10:30:00',room:'Sample Room 101',grades:[{label:'Sample practice quiz',score:8,maximum:10,sourceMode:'sample'}],attendance:[]}],charges:[],announcements:[],tasks:accountTasks,requests:[]}});
+ });
+ await page.route('**/api/affairs-action',route=>{
+  const input=route.request().postDataJSON();accountActions.push(input);
+  if(input.kind==='create_task') accountTasks.push({id:'site-task',title:input.payload.title,dueAt:null,completedAt:null,sourceMode:'site'});
+  return route.fulfill({json:{id:'site-task',kind:input.kind,summary:'Created task: '+input.payload.title}});
+ });
  for(const width of [1440,768,390,320]){
   await page.setViewportSize({width,height:1000});await page.goto(base+'/school-affairs');
   await page.getByRole('button',{name:'Continue with Google',exact:true}).waitFor();
@@ -66,22 +76,31 @@ try {
  assert.doesNotMatch(authorize.href,/gmail\.read|mail\.google|drive|calendar/);
  await page.goto(base+'/school-affairs/auth/callback?code=one-use-qa-code');
  await page.locator('.portal-content').waitFor();
- await page.getByText('No student record is linked to this account.',{exact:true}).waitFor();
+ await page.getByText('SAMPLE-QA-001',{exact:true}).waitFor();
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'account dashboard must fit phone width');
+ await page.screenshot({path:`${directory}/account-320.png`,fullPage:false});
  assert.ok(calls.some(c=>c.pathname==='/auth/v1/token'&&c.search.includes('grant_type=pkce')&&c.body.includes('one-use-qa-code')));
  assert.equal(calls.filter(c=>c.pathname==='/auth/v1/token').length,1,'StrictMode exchanges one-use code once');
- assert.ok(calls.some(c=>c.pathname==='/rest/v1/students'&&c.search.includes('profile_id=eq.'+affairsTestUser.id)));
+ assert.equal(await page.getByText('SAMP101 · Campus Orientation',{exact:true}).count(),1);
  assert.equal(await page.getByText('12,000',{exact:true}).count(),0);
  await page.route('**/api/affairs-assistant',async route=>{
   const authorization=route.request().headers().authorization;assert.ok(authorization?.startsWith('Bearer '));
   const payload=JSON.parse(Buffer.from(authorization.split('.')[1],'base64url').toString());assert.equal(payload.sub,affairsTestUser.id);
-  const body=route.request().postDataJSON();assert.ok(['What are my current subjects?','What is in this screenshot?'].includes(body.question));assert.equal(body.route,'/school-affairs');
-  await route.fulfill({json:body.images?.length?{answer:'The image shows a School Affairs service menu.',citations:[],activity:[{kind:'image',label:'Read the attached image',detail:'1 image analyzed',status:'complete'}]}:{answer:'No linked subjects are available for this account.',citations:[],activity:[{kind:'account',label:'Verified the stu.best account session',detail:'No university or Nexus records were accessed',status:'complete'}]}});
+  const body=route.request().postDataJSON();assert.ok(['What are my current subjects?','What is in this screenshot?','Remind me to review my sample courses'].includes(body.question));assert.equal(body.route,'/school-affairs');
+  await route.fulfill({json:body.question.startsWith('Remind me')?{answer:'I can create a stu.best task after you confirm.',citations:[],proposedAction:{kind:'create_task',label:'Create task: Review my sample courses',payload:{title:'Review my sample courses'}}}:body.images?.length?{answer:'The image shows a School Affairs service menu.',citations:[],activity:[{kind:'image',label:'Read the attached image',detail:'1 image analyzed',status:'complete'}]}:{answer:'Your sample subject is SAMP101 Campus Orientation.',citations:[],activity:[{kind:'account',label:'Read your School Affairs records',detail:'Only this account was queried',status:'complete'}]}});
  });
  await page.getByRole('button',{name:'開啟 AI 校園助理',exact:true}).click();
  await page.getByRole('button',{name:'What are my current subjects?',exact:true}).click();
- await page.getByText('No linked subjects are available for this account.',{exact:true}).waitFor();
+ await page.getByText('Your sample subject is SAMP101 Campus Orientation.',{exact:true}).waitFor();
  await page.getByText('How I checked',{exact:true}).click();
- await page.getByText('Verified the stu.best account session',{exact:true}).waitFor();
+ await page.getByText('Read your School Affairs records',{exact:true}).waitFor();
+ await page.getByLabel('Your question').fill('Remind me to review my sample courses');
+ await page.getByRole('button',{name:'Send',exact:true}).click();
+ await page.getByRole('button',{name:'Confirm action',exact:true}).waitFor();
+ assert.equal(accountActions.length,0,'proposal must not mutate before confirmation');
+ await page.getByRole('button',{name:'Confirm action',exact:true}).click();
+ await page.getByText('Review my sample courses',{exact:true}).first().waitFor();
+ assert.equal(accountActions.length,1);
  const image=Buffer.concat([Buffer.from('89504e470d0a1a0a','hex'),Buffer.alloc(40)]);
  await page.locator('.public-assistant-surface input[type=file]').setInputFiles({name:'school-menu.png',mimeType:'image/png',buffer:image});
  await page.getByRole('list',{name:'Attached images'}).getByText('school-menu.png').waitFor();
@@ -92,17 +111,15 @@ try {
  await page.getByText('How I checked',{exact:true}).last().click();
  await page.getByText('Read the attached image',{exact:true}).waitFor();
  await page.keyboard.press('Escape');
- await page.route('**/rest/v1/students?**',route=>route.fulfill({json:[{student_number:'LOCAL-QA-001',full_name:'Linked Student',program:'Information Management',year_level:'1'}]}));
  await page.reload();await page.locator('.portal-content').waitFor();
- await page.getByText('LOCAL-QA-001',{exact:true}).waitFor();
- assert.equal(await page.getByText('No student record is linked to this account.',{exact:true}).count(),0);
+ await page.getByText('SAMPLE-QA-001',{exact:true}).waitFor();
  const preserved=await page.evaluate(()=>JSON.parse(localStorage.getItem('stu-nexus-auth'))?.user?.id);assert.equal(preserved,nexus.user.id);
  await page.setViewportSize({width:1440,height:1000});
  await page.locator('.portal-logout').click();await page.getByRole('button',{name:'Continue with Google',exact:true}).waitFor();
  assert.ok(calls.some(c=>c.pathname==='/auth/v1/logout'&&c.search==='?scope=local'));
  assert.equal(await page.evaluate(()=>localStorage.getItem('stu-school-affairs-auth')),null);
  await page.getByRole('button',{name:'開啟 AI 校園助理',exact:true}).click();
- assert.equal(await page.getByText('No linked subjects are available for this account.',{exact:true}).count(),0);
+ assert.equal(await page.getByText('Your sample subject is SAMP101 Campus Orientation.',{exact:true}).count(),0);
  await page.keyboard.press('Escape');
  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('stu-nexus-auth'))?.user?.id),nexus.user.id);
  await page.goBack();await page.getByRole('button',{name:'Continue with Google',exact:true}).waitFor();

@@ -73,6 +73,7 @@
     "test:live-connected-assistant": "node tests/integration/connected-assistant-live.mjs",
     "import:assistant-corpus": "node scripts/import-assistant-corpus.mjs",
     "test:school-affairs-entry": "node tests/integration/school-affairs-entry-ui.mjs",
+    "test:live-affairs-workspace-rls": "node tests/integration/affairs-workspace-rls-live.mjs",
     "prepare:school-assets": "node scripts/prepare-school-assets.mjs",
     "predev": "npm run prepare:school-assets",
     "mirror:queue": "node scripts/school-mirror-queue.mjs",

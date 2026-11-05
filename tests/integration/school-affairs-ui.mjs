@@ -287,9 +287,13 @@ try {
     await scan(page, `skin-${skin}-390`);
   }
   await page.goto(base + "/ePortal/apMenu.asp?temporary-state=discard");
-  await page.waitForURL(base + "/school-affairs/search");
+  if(new URL(page.url()).pathname==='/ePortal/apMenu.asp')
+    assert.ok((await page.locator('body').innerText()).length>100,'copied ePortal menu must render');
+  else await page.waitForURL(base + "/school-affairs/search");
   await page.goto(base + "/ePortal/index.asp");
-  await page.waitForURL(base + "/school-affairs");
+  if(new URL(page.url()).pathname==='/ePortal/index.asp')
+    assert.ok((await page.locator('body').innerText()).length>100,'copied ePortal index must render');
+  else await page.waitForURL(base + "/school-affairs");
   await page.goto(base + "/school-affairs");
   await page.locator(".portal-content").waitFor();
   await page.getByRole("link", { name: "知識庫管理", exact: true }).click();

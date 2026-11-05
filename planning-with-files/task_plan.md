@@ -1,5 +1,13 @@
 # Task Plan
 
+## Private School Affairs workspace and assistant [Issue #90]
+
+- [x] Confirm the independent Google sign-in, current personal-data gap, client Supabase target, and data-source limits.
+- [x] Add a dedicated School Affairs schema with sample provenance, owner/admin authorization, RLS and an audited action path.
+- [x] Show account-specific records and an admin workspace in School Affairs, with clear sample labels.
+- [x] Ground private assistant answers in the signed-in person's records and offer reviewable actions.
+- [ ] Run database plan/deploy, security/API/UI checks, release gates, live verification and handoff updates.
+
 ## Homepage hero and header responsiveness [Issue #84]
 
 - [x] Reproduce the reported wide-screen offset against the live page and captured HTML.

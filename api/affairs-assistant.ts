@@ -1,13 +1,15 @@
 import { questionKind } from '../server/schoolWebSearch.js';
-import { answerDirectoryQuestion } from '../server/schoolAffairsDirectory.js';
+import { answerPrivateAffairsQuestion } from '../server/affairsAnswer.js';
+import { AffairsWorkspaceError, loadAffairsSnapshot, verifyAffairsToken } from '../server/affairsWorkspace.js';
 
-type ApiRequest = {method?:string;body?:unknown;headers:Record<string,string|string[]|undefined>;socket?:{remoteAddress?:string}};
+type ApiRequest = {method?:string;body?:unknown;headers:Record<string,string|string[]|undefined>};
 type ApiResponse = {status:(code:number)=>ApiResponse;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void};
 export const config = {maxDuration:60};
 const requestWindows = new Map<string,number[]>();
-const env = () => ({url:process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL,key:process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY});
 function value(input:string|string[]|undefined) {return Array.isArray(input)?input[0]:input;}
-function personal(question:string) {return questionKind(question).personal || /\b(?:my|mine|me)\b.{0,45}\b(?:subjects?|courses?|classes?|grades?|schedule|timetable|attendance|fees?|announcements?|account|email|student record|program|major|department)\b|\b(?:who am i|signed in as)\b|我的.{0,15}(?:課程|科目|成績|課表|出席|學號|帳號|公告|科系|系所)/i.test(question);}
+function personal(question:string) {
+  return questionKind(question).personal || /\b(?:my|mine|me|i|our)\b.{0,75}\b(?:subjects?|courses?|classes?|grades?|schedule|timetable|attendance|fees?|payments?|balance|announcements?|notices?|account|email|student|program|major|department|tasks?|requests?|record|profile)\b|\b(?:who am i|signed in as|add (?:a )?task|create (?:a )?task|remind me|complete (?:my |the )?task|submit (?:a )?request|publish (?:an? )?announcement)\b|我的.{0,20}(?:課程|科目|成績|課表|出席|學號|帳號|公告|科系|系所|任務|待辦|申請|費用)|(?:新增|建立|完成|提交|發布).{0,25}(?:任務|待辦|申請|公告)/i.test(question);
+}
 
 export default async function handler(request:ApiRequest,response:ApiResponse) {
   response.setHeader('Cache-Control','no-store, max-age=0');
@@ -17,29 +19,20 @@ export default async function handler(request:ApiRequest,response:ApiResponse) {
   const input=body && typeof body==='object' && !Array.isArray(body) ? body as Record<string,unknown> : null;
   const question=typeof input?.question==='string'?input.question.trim():'';
   if(question.length<2||question.length>2000) {response.status(400).json({error:'Provide a question between 2 and 2,000 characters.'});return;}
-  const {url,key}=env();
-  if(!url||!key) {response.status(503).json({error:'School Affairs sign-in is not configured.'});return;}
-  const authorization=value(request.headers.authorization);
-  if(!authorization?.startsWith('Bearer ')||authorization.length<32) {response.status(401).json({error:'Sign in to School Affairs again.'});return;}
-  let account:{id:string;email?:string};
+  let account;
   try {
-    const verified=await fetch(`${url.replace(/\/$/,'')}/auth/v1/user`,{headers:{apikey:key,Authorization:authorization},signal:AbortSignal.timeout(8000)});
-    if(!verified.ok) {response.status(401).json({error:'Your School Affairs session expired. Please sign in again.'});return;}
-    const user=await verified.json();
-    if(typeof user.id!=='string'||!user.id) {response.status(401).json({error:'Your School Affairs session is invalid.'});return;}
-    account={id:user.id,email:typeof user.email==='string'?user.email:undefined};
-  } catch {response.status(503).json({error:'School Affairs sign-in could not be checked.'});return;}
-  const now=Date.now(),active=(requestWindows.get(account.id)||[]).filter(time=>time>now-60_000);
-  active.push(now);requestWindows.set(account.id,active);
+    const authorization=value(request.headers.authorization);
+    account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
+  } catch(error) {
+    response.status(error instanceof AffairsWorkspaceError?error.status:503).json({error:error instanceof AffairsWorkspaceError?error.message:'School Affairs sign-in could not be checked.'});return;
+  }
+  const now=Date.now(),active=(requestWindows.get(account.user.id)||[]).filter(time=>time>now-60_000);
+  active.push(now);requestWindows.set(account.user.id,active);
   if(active.length>24){response.status(429).json({error:'Too many questions. Please wait a moment.'});return;}
   if(!personal(question)) {
-    // Vercel deploys each API file as a separate function. Call the public
-    // endpoint over HTTP without forwarding the account token or private chat.
-    // Deployment-specific Vercel URLs require Vercel Authentication. The
-    // canonical public origin is the service's intentionally open endpoint.
-    const publicOrigin='https://stu.best';
+    // Separate deployment function; only public input is forwarded, never the account token.
     try {
-      const research=await fetch(`${publicOrigin}/api/research-assistant`,{
+      const research=await fetch('https://stu.best/api/research-assistant',{
         method:'POST',signal:AbortSignal.timeout(55_000),
         headers:{'Content-Type':'application/json',...(value(request.headers['x-forwarded-for'])?{'X-Forwarded-For':value(request.headers['x-forwarded-for'])!}:{})},
         body:JSON.stringify({question,history:[],images:input?.images,route:input?.route,consentedResearchUse:false}),
@@ -51,11 +44,16 @@ export default async function handler(request:ApiRequest,response:ApiResponse) {
     return;
   }
   if(Array.isArray(input?.images) && input.images.length) {response.status(400).json({error:'For private account questions, remove the image and ask using text. Images are not stored as account records.'});return;}
-  const chinese=/[\u3400-\u9fff]/.test(question);
-  const accountOnly=/\b(?:my (?:google |school affairs )?(?:account|email)|who am i)\b|我的(?:帳號|電子郵件)/i.test(question);
-  const service=answerDirectoryQuestion('我的功課表')!;
-  const answer=accountOnly
-    ? (chinese?`您目前的 stu.best 帳號是 ${account.email || '已登入的 Google 帳號'}。此登入不會匯入正式校務資料。`:`Your stu.best account is ${account.email || 'the signed-in Google account'}. This sign-in does not import official university records.`)
-    : (chinese?`stu.best 沒有連接校方的正式選課、成績、課表或個人公告，因此無法確認您的個人資料。您可以從[我的功課表](/school-affairs/menu/aca/query)前往[校方服務](${service.citations[0].url})，另行登入後查詢。`:`stu.best is not connected to official university enrollments, grades, schedules or personal announcements, so I cannot verify those here. Open [My course schedule](/school-affairs/menu/aca/query) or the [official service](${service.citations[0].url}) and sign in there separately.`);
-  response.status(200).json({status:'answered',answer,citations:accountOnly?[]:service.citations,suggestedQuestions:[],grounding:{source:'account',webSearched:false,checkedAt:new Date().toISOString()},activity:[{kind:'account',label:'Verified the stu.best account session',detail:'No university or Nexus records were accessed',status:'complete'}]});
+  const history=Array.isArray(input?.history)?input.history.slice(-4).flatMap(item=>{
+    if(!item||typeof item!=='object')return [];
+    const entry=item as Record<string,unknown>;
+    return ['user','assistant'].includes(String(entry.role))&&typeof entry.content==='string'?[{role:String(entry.role),content:entry.content.slice(0,1000)}]:[];
+  }):[];
+  try {
+    const snapshot=await loadAffairsSnapshot(account);
+    const answer=await answerPrivateAffairsQuestion(question,snapshot,history);
+    response.status(200).json(answer);
+  } catch(error) {
+    response.status(error instanceof AffairsWorkspaceError?error.status:503).json({error:error instanceof AffairsWorkspaceError?error.message:'Your School Affairs records could not be checked.'});
+  }
 }

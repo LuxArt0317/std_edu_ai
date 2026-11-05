@@ -1,5 +1,6 @@
 export type AssistantFeedbackCapability = { token: string; expiresAt: string };
 export type AssistantResponse = {
+  proposedAction?: {kind:'create_task'|'complete_task'|'create_service_request'|'publish_announcement';label:string;payload:Record<string,string>};
   grounding?: {source?:string;webSearched?:boolean;checkedAt?:string;degraded?:boolean};
   activity?: Array<{kind:string;label:string;detail:string;status:'complete'|'unavailable'}>;
   answer: string;

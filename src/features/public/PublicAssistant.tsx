@@ -15,6 +15,7 @@ import {
 } from "../../services/researchAssistant";
 import { useAffairsAuth } from "./affairs/authContext";
 import { askSchoolAffairsAssistant } from "../../services/schoolAffairsAssistant";
+import { performSchoolAffairsAction } from "../../services/schoolAffairsWorkspace";
 import { PublicAssistantFeedback } from "./PublicAssistantFeedback";
 import { AssistantMarkdown } from "../school/portal/AssistantMarkdown";
 
@@ -38,12 +39,21 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
     [query, setQuery] = useState(""),
     [images, setImages] = useState<Array<{name:string;dataUrl:string}>>([]),
     [busy, setBusy] = useState(false),
+    [actionBusy, setActionBusy] = useState<string | null>(null),
     [error, setError] = useState("");
   const viewport = useRef<HTMLDivElement>(null),
     fileInput = useRef<HTMLInputElement>(null),
     pending = useRef<AbortController | null>(null),
     sequence = useRef(0);
   useEffect(() => () => {pending.current?.abort();}, []);
+  useEffect(() => {
+    sequence.current++;
+    pending.current?.abort();
+    setMessages([]);
+    setImages([]);
+    setQuery("");
+    setError("");
+  }, [user?.id]);
   useEffect(() => {
     if (!embedded) return;
     const onEscape = (event: KeyboardEvent) => {
@@ -117,6 +127,23 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
     setImages(next);
     if (fileInput.current) fileInput.current.value = "";
   }
+  async function applyAction(message:Message) {
+    const action=message.result?.proposedAction;
+    if (!action || actionBusy || !user) return;
+    setActionBusy(message.id);
+    setError("");
+    try {
+      const result=await performSchoolAffairsAction(action);
+      setMessages(old=>old.map(item=>item.id===message.id?{
+        ...item,
+        content:`${item.content}\n\n✓ ${result.summary}. You can view the updated record in School Affairs.`,
+        result:item.result?{...item.result,proposedAction:undefined}:undefined,
+      }:item));
+      window.dispatchEvent(new Event('school-affairs:updated'));
+    } catch(reason) {
+      setError(reason instanceof Error?reason.message:'The action could not be completed. Please try again.');
+    } finally {setActionBusy(null);}
+  }
   return (
     <Sheet open={open} onOpenChange={(next) => {
       if (embedded && !next) window.parent.postMessage({ type: "stu-campus-assistant:close" }, window.location.origin);
@@ -140,7 +167,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
         <header className="border-b px-5 py-5 pr-12">
           <SheetTitle>校園助理 · Assistant</SheetTitle>
           <SheetDescription id="public-assistant-description" className="mt-2">
-            {user ? "Signed in to stu.best. I can explain the school service directory and public school information; official personal courses and grades are not connected." : "Ask about School Affairs services and public school information. Personal university records need separate official access."}
+            {user ? "Ask about your stu.best School Affairs records, or request an action. Sample courses and grades are clearly labeled; actions need your review." : "Ask about School Affairs services and public school information. Sign in to ask about your stu.best records."}
           </SheetDescription>
         </header>
         <div className="flex items-center justify-between gap-3 border-b px-5 py-2 text-sm">
@@ -208,6 +235,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
                 <AssistantMarkdown>{message.content}</AssistantMarkdown>
               )}
               {message.result?.grounding?.source === "web" && <p className="text-xs text-muted-foreground">Found online · See sources below.</p>}
+              {message.result?.proposedAction && user ? <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm"><p className="font-semibold">Review action</p><p className="my-2 break-words">{message.result.proposedAction.label}</p><p className="mb-3 text-xs text-muted-foreground">This changes stu.best records only. No university system is contacted.</p><Button size="sm" disabled={!!actionBusy} onClick={()=>void applyAction(message)}>{actionBusy===message.id?'Applying…':'Confirm action'}</Button></div> : null}
               {message.result && <details className="rounded-md border px-3 py-2 text-xs"><summary className="cursor-pointer font-medium">How I checked</summary><ol className="mt-2 space-y-2 text-muted-foreground">{(message.result.activity?.length ? message.result.activity : message.result.grounding?.source === 'web' ? [{kind:'web',label:'Searched public web sources',detail:'Open the linked sources below to verify the answer.',status:'complete' as const}] : message.result.grounding?.source === 'knowledge' ? [{kind:'knowledge',label:'Checked managed school knowledge',detail:'See reviewed sources below.',status:'complete' as const}] : [{kind:'answer',label:'Answered from available context',detail:'No external search was used for this response.',status:'complete' as const}]).map((step,index)=><li key={`${step.kind}-${index}`}><strong className="text-foreground">{step.label}</strong><span className="block">{step.detail}</span></li>)}</ol><p className="mt-2 text-muted-foreground">This shows source checks and tool activity, not private model reasoning.</p></details>}
               {message.result?.citations.length ? (
                 <ul
@@ -245,7 +273,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
           ))}
           {busy ? (
             <p role="status" className="text-sm text-muted-foreground">
-              Checking school knowledge and web sources…
+              {user?'Checking your School Affairs records…':'Checking school knowledge and web sources…'}
             </p>
           ) : null}
         </div>

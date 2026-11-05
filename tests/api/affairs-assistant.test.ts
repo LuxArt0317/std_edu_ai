@@ -7,7 +7,7 @@ import {answerDirectoryQuestion,directoryEntries} from '../../server/schoolAffai
 const originalFetch=globalThis.fetch;
 const saved={url:process.env.VITE_SUPABASE_URL,key:process.env.VITE_SUPABASE_PUBLISHABLE_KEY,openai:process.env.OPENAI_API_KEY};
 after(()=>{globalThis.fetch=originalFetch;for(const [key,value] of [['VITE_SUPABASE_URL',saved.url],['VITE_SUPABASE_PUBLISHABLE_KEY',saved.key],['OPENAI_API_KEY',saved.openai]] as const){if(value===undefined)delete process.env[key];else process.env[key]=value;}});
-function configured(){process.env.VITE_SUPABASE_URL='https://example.supabase.co';process.env.VITE_SUPABASE_PUBLISHABLE_KEY='sb_publishable_test';process.env.OPENAI_API_KEY='test-key';}
+function configured(){process.env.VITE_SUPABASE_URL='https://xiftudmvxphxcjtmfmib.supabase.co';process.env.VITE_SUPABASE_PUBLISHABLE_KEY='sb_publishable_test';process.env.OPENAI_API_KEY='test-key';}
 async function invoke(handler:typeof affairsHandler|typeof publicHandler,body:unknown,authorization?:string){const result:{status:number;body:any}={status:200,body:null};const response={status(code:number){result.status=code;return response;},json(value:unknown){result.body=value;},setHeader(){}};await handler({method:'POST',body,headers:{'x-forwarded-for':`qa-${Math.random()}`,...(authorization?{authorization}:{})}},response);return result;}
 const token=`Bearer ${'x'.repeat(40)}`;
 
@@ -21,20 +21,43 @@ test('captured directory includes all 94 services and the current General Affair
 
 test('signed School Affairs directory question never loads Nexus context or transmits account to research',async()=>{
  configured();const calls:string[]=[];
- globalThis.fetch=async(input,init)=>{const url=String(input);calls.push(url);if(url.endsWith('/auth/v1/user')){assert.ok(init);assert.equal((init.headers as Record<string,string>).Authorization,token);return new Response(JSON.stringify({id:'00000000-0000-4000-8000-000000000001',email:'student@example.com'}),{status:200});}if(url.endsWith('/api/research-assistant')){assert.ok(init);assert.equal((init.headers as Record<string,string>).Authorization,undefined);const forwarded=JSON.parse(String(init.body));assert.deepEqual(forwarded.history,[]);assert.equal(forwarded.question,'What is on this page?');const answer=answerDirectoryQuestion(forwarded.question,forwarded.route)!;return new Response(JSON.stringify({...answer,grounding:{source:'directory'}}),{status:200});}throw Error(`Unexpected external call: ${url}`);};
+ globalThis.fetch=async(input,init)=>{const url=String(input);calls.push(url);if(url.endsWith('/auth/v1/user')){assert.ok(init);assert.equal((init.headers as Record<string,string>).Authorization,token);return new Response(JSON.stringify({id:'00000000-0000-4000-8000-000000000001',email:'student@example.com',identities:[{provider:'google'}]}),{status:200});}if(url.endsWith('/api/research-assistant')){assert.ok(init);assert.equal((init.headers as Record<string,string>).Authorization,undefined);const forwarded=JSON.parse(String(init.body));assert.deepEqual(forwarded.history,[]);assert.equal(forwarded.question,'What is on this page?');const answer=answerDirectoryQuestion(forwarded.question,forwarded.route)!;return new Response(JSON.stringify({...answer,grounding:{source:'directory'}}),{status:200});}throw Error(`Unexpected external call: ${url}`);};
  const result=await invoke(affairsHandler,{question:'What is on this page?',route:'/school-affairs/menu/swd/input',history:[{role:'assistant',content:'IM101 Digital Systems Foundations'}]},token);
  assert.equal(result.status,200);assert.equal(result.body.grounding.source,'directory');assert.equal(result.body.citations.length,3);
  assert.doesNotMatch(result.body.answer,/IM101|IM203|Fall Semester 2026|Nexus/);
- assert.deepEqual(calls,['https://example.supabase.co/auth/v1/user','https://stu.best/api/research-assistant']);
+ assert.deepEqual(calls,['https://xiftudmvxphxcjtmfmib.supabase.co/auth/v1/user','https://stu.best/api/research-assistant']);
 });
 
-test('personal School Affairs question verifies only the Google session and admits missing official enrollment',async()=>{
- configured();const calls:string[]=[];
- globalThis.fetch=async(input)=>{const url=String(input);calls.push(url);if(url.endsWith('/auth/v1/user'))return new Response(JSON.stringify({id:'00000000-0000-4000-8000-000000000002',email:'student@example.com'}),{status:200});throw Error(`Unexpected external call: ${url}`);};
+test('personal School Affairs question reads only the caller site records, never Nexus',async()=>{
+ configured();delete process.env.OPENAI_API_KEY;const calls:string[]=[];
+ const userId='00000000-0000-4000-8000-000000000002';
+ globalThis.fetch=async(input,init)=>{
+  const url=String(input);calls.push(url);const path=new URL(url).pathname;
+  if(path==='/auth/v1/user')return new Response(JSON.stringify({id:userId,email:'student@example.com',identities:[{provider:'google'}]}),{status:200});
+  assert.equal((init?.headers as Record<string,string>)?.Authorization,token);
+  const tables:Record<string,unknown>={
+   '/rest/v1/rpc/affairs_initialize_account':{user_id:userId},
+   '/rest/v1/affairs_profiles':[{user_id:userId,email:'student@example.com',display_name:'Student',role:'student'}],
+   '/rest/v1/affairs_students':[{id:'student-id',user_id:userId,student_number:'SAMPLE-123',full_name:'Student',program_id:'program-id',year_level:1,status:'active',source_mode:'sample'}],
+   '/rest/v1/affairs_programs':[{id:'program-id',name:'Sample General Studies'}],
+   '/rest/v1/affairs_terms':[{id:'term-id',label:'Sample Fall 2026'}],
+   '/rest/v1/affairs_courses':[{id:'course-id',code:'SAMP101',title:'Campus Orientation',credits:2}],
+   '/rest/v1/affairs_sections':[{id:'section-id',course_id:'course-id',term_id:'term-id',instructor:'Sample instructor',weekday:1,starts_at:'09:00',ends_at:'10:30',room:'Sample Room'}],
+   '/rest/v1/affairs_enrollments':[{id:'enrollment-id',section_id:'section-id',status:'enrolled',source_mode:'sample'}],
+   '/rest/v1/affairs_grade_items':[],
+   '/rest/v1/affairs_attendance':[],
+   '/rest/v1/affairs_charges':[],
+   '/rest/v1/affairs_announcements':[],
+   '/rest/v1/affairs_tasks':[],
+   '/rest/v1/affairs_service_requests':[],
+  };
+  if(path in tables)return new Response(JSON.stringify(tables[path]),{status:200});
+  throw Error(`Unexpected external call: ${url}`);
+ };
  const result=await invoke(affairsHandler,{question:'What are my current subjects?',route:'/school-affairs/menu/aca/query'},token);
- assert.equal(result.status,200);assert.match(result.body.answer,/stu.best is not connected to official university enrollments/);
+ assert.equal(result.status,200);assert.match(result.body.answer,/SAMP101 Campus Orientation/);assert.match(result.body.answer,/sample/i);
  assert.doesNotMatch(result.body.answer,/IM101|IM203|Fall Semester 2026|Nexus/);
- assert.deepEqual(calls,['https://example.supabase.co/auth/v1/user']);
+ assert.ok(calls.every(url=>url.startsWith('https://xiftudmvxphxcjtmfmib.supabase.co/')));
 });
 
 test('public image question accepts validated PNG and reports actual image analysis',async()=>{

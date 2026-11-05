@@ -1,6 +1,12 @@
 # Changelog
 ## Unreleased
 
+### Private School Affairs workspace (Issue #90)
+
+- Add 14 client Supabase School Affairs tables with Google-only account initialization, account-scoped row-level security, sample courses/grades/notices, a protected Lux site admin, and audited task/request/notice actions.
+- Show signed-in account records and site administration in School Affairs. The personal assistant reads only the account's stu.best records, clearly labels sample data, and proposes changes for explicit confirmation.
+- Keep official university systems and Nexus account data outside the School Affairs assistant; add focused authentication, browser and live database isolation checks.
+
 ### Responsive university homepage (Issue #84)
 
 - Make the captured hero slide fill the viewport at desktop and phone widths instead of exposing a neighboring slide, and center the sticky university header.
