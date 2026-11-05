@@ -1,8 +1,8 @@
 # Current client state
 
-## Issue #84: homepage hero and header responsiveness (local verification)
+## Issue #84: homepage hero and header responsiveness (published and verified)
 
-The source capture froze the carousel at 1280px slides with a -5120px offset and froze the sticky header at 1280px. On wider screens, the next slide showed to the right while the logo/navigation stayed left. The client CSS now gives the active slide and header the viewport width and centers navigation. Local browser checks at 3020/2048/1440/768/390/320px pass with one visible slide and no horizontal overflow; all 395 direct pages and ten entrance links pass the focused suite. Release gates and production publication remain pending.
+The source capture froze the carousel at 1280px slides with a -5120px offset and froze the sticky header at 1280px. On wider screens, the next slide showed to the right while the logo/navigation stayed left. The client CSS now gives the active slide and header the viewport width and centers navigation. Runtime `09533964074e0350d971f6bb9defe81fc21b89f3` is Ready as Vercel `D8BVVRePVJ1dsFW776dWeXfKF5KT`; quality run `42022473591` succeeded. Live browser measurements at 3020px and 390px show the hero/header exactly viewport-wide, navigation centered, one slide visible and no horizontal scroll; the assistant remains present. Production entrance-card checks passed 120/120 at 12 widths and statistics passed 24/24 at six widths. Protected client/backend verification passed. The compiled preview passed 395 direct pages, ten entrances, the full mirror/assistant/recovery suite, 216 API/source tests, 30 units, build, lint, handoff and dependency audit.
 
 ## Issue #84: assistant on direct public pages (published and verified)
 

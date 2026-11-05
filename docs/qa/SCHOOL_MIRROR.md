@@ -2,7 +2,7 @@
 
 ## Homepage responsive repair — November 5, 2026
 
-The live copied homepage retained Swiper's captured 1280px slide width and -5120px offset, plus a 1280px sticky header. At a 3020px browser width, part of the next slide appeared and the university navigation remained left of center. `public/direct-school.css` now gives the active slide and header the viewport width and keeps only the active slide visible. `school-mirror-ui.mjs` measures the hero/header/navigation at 3020, 2048, 1440, 768, 390 and 320px and checks for no horizontal scroll. The captured source HTML and links remain unchanged.
+The live copied homepage retained Swiper's captured 1280px slide width and -5120px offset, plus a 1280px sticky header. At a 3020px browser width, part of the next slide appeared and the university navigation remained left of center. `public/direct-school.css` now gives the active slide and header the viewport width and keeps only the active slide visible. `school-mirror-ui.mjs` measures the hero/header/navigation at 3020, 2048, 1440, 768, 390 and 320px and checks for no horizontal scroll. The captured source HTML and links remain unchanged. The compiled preview passed all six widths, 395 direct routes and ten entrance links. On production, 3020px and 390px browser measurements show exact viewport-width hero/header, navigation centered within one pixel, one visible slide, assistant present and zero page errors. Live 120 entrance-card checks over 12 widths and 24 school-number checks over six widths pass. Runtime `09533964074e0350d971f6bb9defe81fc21b89f3` is Vercel `D8BVVRePVJ1dsFW776dWeXfKF5KT` Ready; quality `42022473591` succeeded. Protected client/backend checks passed.
 
 ## Current direct-page delivery — November 5, 2026
 
