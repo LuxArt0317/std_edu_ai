@@ -6,7 +6,7 @@
 - [x] Add account-scoped DTM sample schema and read API without using Nexus or official school credentials.
 - [x] Build local DTM login/home/course views with shared Google sign-in and public landing account status.
 - [x] Let the assistant answer from School Affairs and DTM only for a verified signed-in account.
-- [ ] Run database plan/deploy, privacy/API/UI checks, release gates, publish and verify production.
+- [x] Run database plan/deploy, privacy/API/UI checks, release gates, publish and verify production.
 
 ## Private School Affairs workspace and assistant [Issue #90]
 

@@ -1,8 +1,8 @@
 # Client handoff
 
-## Pending release — Issue #91 DTM preview
+## Current release — Issue #91 DTM preview
 
-The local DTM copy now has Google login, a sample dashboard and course-material view. It reuses the independent School Affairs Google session; Nexus remains separate. The client database has 108 migrations and 118 public tables after adding three RLS-protected sample DTM tables. Local two-account RLS and browser checks pass. The homepage indicates verified Google sign-in, and the private assistant can answer from both site-owned sample workspaces. Official university Moodle records and a real Lux Google callback have not been verified or imported. Production publication remains pending. [Scope and verification](../../src/features/public/dtm/README.md).
+The DTM copy at [stu.best/dtm](https://stu.best/dtm) has Google login, a sample dashboard and course-material view. It reuses the independent School Affairs Google session; Nexus remains separate. The client database has 108 migrations and 118 public tables after adding three RLS-protected sample DTM tables. Local two-account RLS and browser checks pass. The homepage indicates verified Google sign-in, and the private assistant can answer from both site-owned sample workspaces. Runtime `209b70a550235dbd0e5f5c61541523d02ab04069` is [Vercel 6MZCqmSCTvSoxikwUqtHcAKPqRmf](https://vercel.com/v1-d286/std_edu_ai/6MZCqmSCTvSoxikwUqtHcAKPqRmf) Ready; [quality run 42045260389](https://github.com/LuxArt0317/std_edu_ai/actions/runs/42045260389) succeeded. Live guest DTM/home/old-alias routes and the homepage account widget render without page errors or phone/desktop overflow; unsigned personal API responds 401. Official university Moodle records have not been imported, and a real Lux Google callback has not been tested. [Scope and verification](../../src/features/public/dtm/README.md).
 
 ## Current release — Issue #84 homepage responsiveness
 

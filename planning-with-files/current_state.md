@@ -1,8 +1,8 @@
 # Current client state
 
-## Issue #91: DTM preview and account context (release in progress)
+## Issue #91: DTM preview and account context (published)
 
-Client Supabase migration `20261105020000` is applied to `xiftudmvxphxcjtmfmib` (108 migrations, 118 public tables). DTM's three tables hold sample-only courses, materials and notices. A rolled-back two-Google test verified per-account course/material isolation, idempotent seeding and no anonymous DTM policies. Local browser checks pass guest redirect, Google-session reuse, course materials, landing status, old-link alias, desktop/tablet/phone layout and serious/critical accessibility. The assistant now receives DTM plus School Affairs account records after verified Google sign-in; Nexus and official Moodle data remain unconnected. Production publication and real Google callback acceptance are pending.
+Client Supabase migration `20261105020000` is applied to `xiftudmvxphxcjtmfmib` (108 migrations, 118 public tables). DTM's three tables hold sample-only courses, materials and notices. A rolled-back two-Google test verified per-account course/material isolation, idempotent seeding and no anonymous DTM policies. Local browser checks pass guest redirect, Google-session reuse, course materials, landing status, old-link alias, desktop/tablet/phone layout and serious/critical accessibility. The assistant now receives DTM plus School Affairs account records after verified Google sign-in; Nexus and official Moodle data remain unconnected. Runtime `209b70a550235dbd0e5f5c61541523d02ab04069` is Ready as [Vercel 6MZCqmSCTvSoxikwUqtHcAKPqRmf](https://vercel.com/v1-d286/std_edu_ai/6MZCqmSCTvSoxikwUqtHcAKPqRmf), and [quality run 42045260389](https://github.com/LuxArt0317/std_edu_ai/actions/runs/42045260389) succeeded. Live DTM login/home/old alias respond 200, anonymous personal-data API responds 401, and browser guest/login/landing account-status checks pass at phone/desktop widths without overflow or page errors. Real Lux Google callback acceptance remains untested; no official Moodle data is connected.
 
 ## Issue #84: homepage hero and header responsiveness (published and verified)
 
