@@ -5,7 +5,7 @@
 - [x] Reproduce the reported embedded login and identify why OAuth leaves the button busy.
 - [x] Open School Affairs sign-in in the top-level page and recover older assistant frames.
 - [x] Bound Google start time; preserve the PKCE callback and account separation.
-- [ ] Run focused and release checks, publish, verify the live route, and update the handoff.
+- [x] Run focused and release checks, publish, verify the live route, and update the handoff.
 
 ## Live assistant research progress [Issue #92]
 
