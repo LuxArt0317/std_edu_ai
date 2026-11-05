@@ -1,8 +1,8 @@
 # Current client state
 
-## Issue #92: live assistant activity (release in progress)
+## Issue #92: live assistant activity (published and verified)
 
-The public and Google-signed-in School Affairs assistants now support server-sent progress for actual directory, managed-knowledge, school-web, image and account lookups. The chat shows those events while waiting, then displays the validated answer, source links and existing confirmation-gated actions. JSON clients remain supported; signed-in progress begins only after bearer-token verification. Focused API tests cover public/private event order and split/incomplete frames, and a two-width browser fixture confirms live activity plus final answer without page errors or overflow. No model reasoning or Nexus records are emitted. Production publication is pending.
+The public and Google-signed-in School Affairs assistants now support server-sent progress for actual directory, managed-knowledge, school-web, image and account lookups. The chat shows those events while waiting, then displays the validated answer, source links and existing confirmation-gated actions. JSON clients remain supported; signed-in progress begins only after bearer-token verification. Source `aa4e6edd23629d3d9f603ea11d9b8c45bd669584` is Ready as [Vercel FNnHHpYFy7DspxXkQ9Ee2taSrwNd](https://vercel.com/v1-d286/std_edu_ai/FNnHHpYFy7DspxXkQ9Ee2taSrwNd), and [quality run 42050840663](https://github.com/LuxArt0317/std_edu_ai/actions/runs/42050840663) passed. Live public API emitted two progress events then a result; unsigned private API returned JSON 401. Live desktop/phone browser answers rendered without page errors or overflow. Local 223 API/source tests, 30 unit tests, ten public accessibility states, focused public/School Affairs browser flows, build, lint, dependency, handoff and protected client checks passed. No model reasoning or Nexus records are emitted.
 
 ## Issue #91: DTM preview and account context (published)
 

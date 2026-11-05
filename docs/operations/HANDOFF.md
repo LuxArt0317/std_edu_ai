@@ -1,8 +1,8 @@
 # Client handoff
 
-## Pending release — Issue #92 live assistant activity
+## Current release — Issue #92 live assistant activity
 
-The campus assistant now reports actual server lookup activity while a question runs, including public source and verified Google-account checks. The final answer still waits for citation validation; action confirmation and public/private separation are unchanged. Focused API/SSE and desktop/phone browser tests pass locally. Production publication and live acceptance are pending.
+The campus assistant now reports actual server lookup activity while a question runs, including public source and verified Google-account checks. The final answer still waits for citation validation; action confirmation and public/private separation are unchanged. Source `aa4e6edd23629d3d9f603ea11d9b8c45bd669584` is [Vercel FNnHHpYFy7DspxXkQ9Ee2taSrwNd](https://vercel.com/v1-d286/std_edu_ai/FNnHHpYFy7DspxXkQ9Ee2taSrwNd) Ready, and [quality run 42050840663](https://github.com/LuxArt0317/std_edu_ai/actions/runs/42050840663) succeeded. Live public SSE returns observed directory steps and a final answer; unsigned private API returns 401. Live desktop/phone answers have no page errors or overflow. Local 223 API/source tests, 30 units, ten public accessibility states, focused browser checks, build/lint/handoff/dependency and protected client checks passed. Real Lux Google callback acceptance remains outside this release and is tracked in #83.
 
 ## Current release — Issue #91 DTM preview
 
