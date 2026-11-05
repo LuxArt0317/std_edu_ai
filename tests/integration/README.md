@@ -10,4 +10,6 @@ The School Affairs entry check also verifies the local campus carousel at four v
 
 `school-mirror-navigation.mjs` holds a captured stylesheet open to verify that direct copied content and links work without waiting for that stylesheet. `direct-school-assistant-ui.mjs` opens the same-origin assistant on the homepage, student page and a query-selected news page at desktop/mobile widths; it verifies a chat answer, Escape, close and reopen. Run it with `npm run test:school-mirror-navigation`; the full `test:school-mirror` command includes it.
 
+`assistant-progress-ui.mjs` checks live SSE activity and the final answer in the campus assistant at desktop and phone widths; run it with a local Vite server using `PUBLIC_SITE_ORIGIN=http://127.0.0.1:5173 node tests/integration/assistant-progress-ui.mjs`.
+
 `boot-recovery-ui.mjs` simulates an old HTML entry pointing to a removed JavaScript bundle. It requires a single automatic refresh to the current entry and checks the no-JavaScript fallback text. Run it with `npm run test:boot-recovery`; the full mirror command includes it. To exercise the compiled production HTML, set `BOOT_HTML_PATH=dist/app-shell.html` and `PUBLIC_SITE_ORIGIN` to a running `vite preview` URL.

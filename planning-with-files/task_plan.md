@@ -1,5 +1,12 @@
 # Task Plan
 
+## Live assistant research progress [Issue #92]
+
+- [x] Inspect the public and signed-in assistant paths, identify actual lookup stages, and verify current OpenAI tool guidance.
+- [x] Stream truthful server activity for knowledge, web, image and account lookups without exposing private model reasoning.
+- [x] Show live progress in the chat UI, with final sources and confirmation-gated actions preserved.
+- [ ] Verify public/private API and browser behavior, run release gates, publish and verify stu.best.
+
 ## DTM copy, shared sign-in and account context [Issue #91]
 
 - [x] Verify the client checkout, current School Affairs session boundary, DTM source screenshots and missing local routes.

@@ -1,6 +1,10 @@
 # Changelog
 ## Unreleased
 
+### Live assistant activity (Issue #92)
+
+- Stream actual directory, managed-knowledge, school-web, image and verified-account lookup stages into the chat while it works. Keep the final sourced answer and action confirmation after validation; retain JSON compatibility and private-model-reasoning boundaries.
+
 ### DTM preview and shared Google account (Issue #91)
 
 - Recreate local DTM login, dashboard and course-material pages with the existing School Affairs Google session, replacing the source's large red SSO entry with Google sign-in.

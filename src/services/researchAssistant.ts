@@ -1,8 +1,10 @@
+import {readAssistantReply} from './assistantStreamReader.js';
+
 export type AssistantFeedbackCapability = { token: string; expiresAt: string };
 export type AssistantResponse = {
   proposedAction?: {kind:'create_task'|'complete_task'|'create_service_request'|'publish_announcement';label:string;payload:Record<string,string>};
   grounding?: {source?:string;webSearched?:boolean;checkedAt?:string;degraded?:boolean};
-  activity?: Array<{kind:string;label:string;detail:string;status:'complete'|'unavailable'}>;
+  activity?: Array<{kind:string;label:string;detail:string;status:'running'|'complete'|'unavailable'}>;
   answer: string;
   status: "answered" | "clarification" | "abstained" | "handoff";
   citations: Array<{
@@ -18,6 +20,7 @@ export type AssistantResponse = {
   suggestedQuestions: string[];
   feedback?: AssistantFeedbackCapability;
 };
+export type AssistantProgress = NonNullable<AssistantResponse['activity']>[number];
 
 const sessionStorageKey = "stu-public-research-session";
 function researchSessionToken() {
@@ -39,6 +42,7 @@ export async function askCampusAssistant(
   signal?: AbortSignal,
   images: Array<{name:string;dataUrl:string}> = [],
   route = '',
+  onProgress?: (step:AssistantProgress)=>void,
 ): Promise<AssistantResponse> {
   const normalizedQuestion = question.trim();
   if (!normalizedQuestion) {
@@ -58,9 +62,10 @@ export async function askCampusAssistant(
       sessionToken: researchSessionToken(),
       images,
       route,
+      stream:Boolean(onProgress),
     }),
   });
-  const payload = (await response.json().catch(() => null)) as
+  const payload = (await readAssistantReply(response,onProgress)) as
     (Partial<AssistantResponse> & { error?: string }) | null;
   if (!response.ok)
     throw new Error(payload?.error || "AI 助理目前暫時無法回應。");

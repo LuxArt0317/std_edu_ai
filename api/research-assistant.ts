@@ -4,6 +4,7 @@ import { searchAssistantKnowledge } from "../server/assistantKnowledge.js";
 import { inferKnowledgeLanguage } from "../server/knowledgePipeline.js";
 import { recordResearchOperation, safeOperationalCode } from "../server/researchOperations.js";
 import { answerDirectoryQuestion, directoryEntries } from "../server/schoolAffairsDirectory.js";
+import { createAssistantStream } from "../server/assistantStream.js";
 
 type ApiRequest = {
   method?: string;
@@ -15,6 +16,9 @@ type ApiResponse = {
   status: (code: number) => ApiResponse;
   json: (body: unknown) => void;
   setHeader: (name: string, value: string) => void;
+  write?: (chunk:string) => void;
+  end?: () => void;
+  flushHeaders?: () => void;
 };
 type SearchResult = {
   chunk_id: string;
@@ -143,7 +147,7 @@ function parse(body: unknown) {
     images.push({name:item.name,dataUrl:item.dataUrl});
   }
   if (totalBytes > 3_000_000) return null;
-  return { question, consentedResearchUse, sessionToken, history, route, images };
+  return { question, consentedResearchUse, sessionToken, history, route, images, stream:source.stream === true };
 }
 function outputText(payload: unknown) {
   const response = payload as {
@@ -309,10 +313,11 @@ export default async function handler(
     });
     return;
   }
+  const stream = createAssistantStream(input.stream,response);
   const kind = questionKind(input.question);
   const chinese = /[\u3400-\u9fff]/.test(input.question);
   if (!input.images.length && (kind.greeting || kind.capabilities || kind.irrelevant)) {
-    response.status(200).json({status:kind.irrelevant ? "handoff" : "answered",answer:kind.irrelevant
+    stream.send(200,{status:kind.irrelevant ? "handoff" : "answered",answer:kind.irrelevant
       ? (chinese ? "我可以協助樹德科技大學的資訊與校園服務，但不代寫一般程式。您可以問招生、住宿、交通、公告或辦公室聯絡方式。" : "I help with Shu-Te University information and campus services, rather than writing unrelated software. Ask about admissions, courses, accommodation, transport, announcements or office contacts.")
       : (chinese ? "您好！我可以幫您查詢樹德科技大學的聯絡方式、招生、課程、住宿、交通與公告。我會先查知識庫，資料不足時再查官方網站與相關網路來源。您想了解什麼？" : "Hello! I can help with Shu-Te University contacts, admissions, courses, accommodation, transport and announcements. I check managed knowledge first, then official school pages and related web sources when needed. What would you like to know?"),citations:[],suggestedQuestions:[],grounding:{source:"assistant-help",webSearched:false}});
     return;
@@ -325,9 +330,7 @@ export default async function handler(
     process.env.SUPABASE_ANON_KEY ||
     process.env.SUPABASE_PUBLISHABLE_KEY;
   if (!openAiKey || !supabaseUrl || !publishableKey) {
-    response
-      .status(503)
-      .json({ error: "The research assistant is not configured." });
+    stream.send(503,{ error: "The research assistant is not configured." });
     return;
   }
   const started = Date.now();
@@ -339,10 +342,13 @@ export default async function handler(
   // The captured School Affairs catalog is a separate public source. It has no
   // Nexus classes, terms or users, and its official links still require school sign-in.
   if (!input.images.length && !kind.personal && !kind.irrelevant) {
+    stream.progress('directory','Checking school services','Looking for a matching service in the captured directory.');
     const directory = answerDirectoryQuestion(input.question,input.route);
-    if (directory) { response.status(200).json(directory); return; }
+    if (directory) { stream.progress('directory','Checked school services','Found a matching directory entry.','complete'); stream.send(200,directory); return; }
+    stream.progress('directory','Checked school services','No direct directory answer matched.','complete');
   }
   if (input.images.length) {
+    stream.progress('image','Reading your image',`Analyzing ${input.images.length} attached image${input.images.length===1?'':'s'}.`);
     try {
       const catalog = directoryEntries.map(({title,section,localUrl}) => ({title,section,localUrl}));
       const vision = await fetch('https://api.openai.com/v1/responses', {
@@ -358,10 +364,12 @@ export default async function handler(
       if (typeof parsed.answer !== 'string' || !parsed.answer.trim() || !Array.isArray(parsed.source_titles)) throw new Error('Invalid image response');
       if (/(?:STU Nexus|IM101|IM203|Fall Semester 2026)/i.test(parsed.answer)) throw new Error('Cross-context image response');
       const selected = parsed.source_titles.filter((title):title is string => typeof title === 'string').slice(0,5).flatMap(title => {const entry=directoryEntries.find(item=>item.title===title);return entry?[{chunkId:`directory:${entry.group}:${entry.title}`,claim:'Captured service directory entry',title:entry.title,sourceName:'School Affairs service directory',url:entry.officialUrl,locator:entry.localUrl,effectiveAt:null,reviewedAt:null}]:[];});
-      response.status(200).json({status:'answered',answer:parsed.answer.trim().slice(0,6500),citations:selected,suggestedQuestions:[],grounding:{source:'image',webSearched:false,checkedAt:new Date().toISOString()},activity:[{kind:'image',label:'Read the attached image',detail:`${input.images.length} image${input.images.length===1?'':'s'} analyzed`,status:'complete'},...(selected.length?[{kind:'directory',label:'Matched School Affairs services',detail:`${selected.length} directory entries`,status:'complete'}]:[])]});
+      stream.progress('image','Read your image',`${input.images.length} image${input.images.length===1?'':'s'} analyzed.`,'complete');
+      stream.send(200,{status:'answered',answer:parsed.answer.trim().slice(0,6500),citations:selected,suggestedQuestions:[],grounding:{source:'image',webSearched:false,checkedAt:new Date().toISOString()},activity:[{kind:'image',label:'Read the attached image',detail:`${input.images.length} image${input.images.length===1?'':'s'} analyzed`,status:'complete'},...(selected.length?[{kind:'directory',label:'Matched School Affairs services',detail:`${selected.length} directory entries`,status:'complete'}]:[])]});
       return;
     } catch {
-      response.status(502).json({error:'I could not analyze that image. Please try a smaller or clearer PNG, JPEG or WebP image.'}); return;
+      stream.progress('image','Image lookup unavailable','The image could not be analyzed.','unavailable');
+      stream.send(502,{error:'I could not analyze that image. Please try a smaller or clearer PNG, JPEG or WebP image.'}); return;
     }
   }
   const sessionHash = createHash("sha256")
@@ -376,15 +384,23 @@ export default async function handler(
   const publicQuestion = publicSchoolQuestion(input.question,input.history);
   async function tryWebAnswer() {
     if (webAttempted || !publicQuestion || kind.personal) return false;
-    const web = await searchSchoolWeb(publicQuestion,{deadline:started+50000});
+    stream.progress('web','Searching school sources','Checking official school pages and related public sources.');
+    const web = await searchSchoolWeb(publicQuestion,{deadline:started+50000}).catch(() => null);
+    if (!web) {
+      webAttempted = true;
+      stream.progress('web','Search unavailable','The school web lookup could not be completed.','unavailable');
+      return false;
+    }
     webAttempted = web.attempted;
     if (!web.result) {
+      stream.progress('web','Search found no verified answer','The checked pages did not establish an answer.','unavailable');
       await recordResearchOperation({url:supabaseUrl,key:publishableKey,component:"retrieval",operation:"web_search",outcome:"degraded",errorCode:"WEB_SEARCH_UNVERIFIED",httpStatus:200,latencyMs:Date.now()-started,itemCount:0,correlationHash:queryHash,metadata:{fallback_used:true}});
       return false;
     }
     await recordResearchOperation({url:supabaseUrl,key:publishableKey,component:"retrieval",operation:"web_search",outcome:"success",httpStatus:200,latencyMs:Date.now()-started,itemCount:web.result.citations.length,correlationHash:queryHash,metadata:{citation_count:web.result.citations.length,fallback_used:true}});
     // Web references are not approved corpus chunk IDs or research-evaluation evidence.
-    response.status(200).json({status:"answered",answer:web.result.answer,citations:web.result.citations,suggestedQuestions:[],grounding:{source:"web",webSearched:true,checkedAt:web.result.checkedAt,officialOnly:web.result.officialOnly,retrieverVersion:"school-web@1",responseMs:Date.now()-started},activity:[{kind:'knowledge',label:'Checked managed school knowledge',detail:'No sufficient current answer found',status:'complete'},{kind:'web',label:'Searched public school sources',detail:`${web.result.citations.length} verified source links`,status:'complete'}]});
+    stream.progress('web','Checked school sources',`${web.result.citations.length} source link${web.result.citations.length===1?'':'s'} verified.`,'complete');
+    stream.send(200,{status:"answered",answer:web.result.answer,citations:web.result.citations,suggestedQuestions:[],grounding:{source:"web",webSearched:true,checkedAt:web.result.checkedAt,officialOnly:web.result.officialOnly,retrieverVersion:"school-web@1",responseMs:Date.now()-started},activity:[{kind:'knowledge',label:'Checked managed school knowledge',detail:'No sufficient current answer found',status:'complete'},{kind:'web',label:'Searched public school sources',detail:`${web.result.citations.length} verified source links`,status:'complete'}]});
     return true;
   }
   try {
@@ -392,10 +408,12 @@ export default async function handler(
     // A public follow-up may use only a previous public school question. Never
     // send a prior private message, assistant answer or attachment to retrieval.
     const searchQuestion = publicQuestion || input.question;
+    if (!personalQuestion) stream.progress('knowledge','Searching managed knowledge','Checking reviewed school information.');
     const search = personalQuestion ? {evidence:[],degraded:false} : await searchAssistantKnowledge(searchQuestion).catch(() => ({evidence:[],degraded:true}));
     // School Affairs research must never inherit Nexus demo/course documents,
     // even if a corpus item is accidentally marked public in governance.
     let retrieved = (search.evidence as SearchResult[]).filter(item=>!/(?:STU Nexus|IM101|IM203|Fall Semester 2026)/i.test(`${item.document_title} ${item.source_name} ${item.content}`));
+    if (!personalQuestion) stream.progress('knowledge','Checked managed knowledge',`${retrieved.length} relevant excerpt${retrieved.length===1?'':'s'} found.`,search.degraded?'unavailable':'complete');
     await recordResearchOperation({url:supabaseUrl,key:publishableKey,component:"retrieval",operation:"search",outcome:"success",httpStatus:200,latencyMs:Date.now()-started,itemCount:retrieved.length,correlationHash:queryHash,metadata:{result_count:retrieved.length}});
     if (retrieved.length) {
       const ids = [...new Set(retrieved.map((item) => item.document_id))];
@@ -449,6 +467,7 @@ export default async function handler(
         suggestedQuestions: [],
       };
     } else {
+      stream.progress('answer','Checking the evidence','Preparing an answer from the retrieved sources.');
       const provider = await fetch("https://api.openai.com/v1/responses", {
         method: "POST",
         headers: {
@@ -582,7 +601,8 @@ export default async function handler(
       recordResearchOperation({url:supabaseUrl,key:publishableKey,component:"model",operation:"answer",outcome:answer.status==="answered"?"success":"degraded",errorCode:answer.status==="answered"?null:answer.status,httpStatus:200,latencyMs:Date.now()-started,itemCount:citations.length,correlationHash:queryHash,metadata:{retrieval_count:retrieved.length,citation_count:citations.length,fallback_used:answer.status!=="answered"}}),
       recordResearchOperation({url:supabaseUrl,key:publishableKey,component:"citation",operation:"persist",outcome:"success",httpStatus:200,latencyMs:Date.now()-started,itemCount:citations.length,correlationHash:queryHash,metadata:{citation_count:citations.length}}),
     ]);
-    response.status(200).json({
+    stream.progress('answer','Answer ready','Checked the answer and its citations.','complete');
+    stream.send(200,{
       status: answer.status,
       answer: answer.answer,
       citations,
@@ -601,7 +621,7 @@ export default async function handler(
   } catch (error) {
     await recordResearchOperation({url:supabaseUrl,key:publishableKey,component:"model",operation:"answer",outcome:"failure",errorCode:safeOperationalCode(error instanceof Error?error.message:"MODEL_FAILURE"),httpStatus:502,latencyMs:Date.now()-started,correlationHash:queryHash,metadata:{fallback_used:true}});
     if (await tryWebAnswer()) return;
-    response.status(200).json({status:"handoff",answer:chinese
+    stream.send(200,{status:"handoff",answer:chinese
       ? "這次查詢未能驗證答案，我不會猜測。您仍可查看[在校學生服務目錄](/在校學生/)或[學校官網](https://www.stu.edu.tw/)。告訴我要找的單位或具體服務，我可以再協助查找。"
       : "I could not verify this answer during the lookup, so I will not guess. You can still browse [student services](/在校學生/) or the [official school website](https://www.stu.edu.tw/). Tell me the office or specific service and I can help narrow it down.",citations:[],suggestedQuestions:[],grounding:{source:"helpful-fallback",webSearched:webAttempted,degraded:true},activity:[{kind:'knowledge',label:'Checked managed school knowledge',detail:'No answer could be verified',status:'unavailable'},...(webAttempted?[{kind:'web',label:'Tried public school web search',detail:'No verified source answer was available',status:'unavailable'}]:[])]});
   }

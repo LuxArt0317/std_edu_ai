@@ -10,6 +10,7 @@ const saved={url:process.env.VITE_SUPABASE_URL,key:process.env.VITE_SUPABASE_PUB
 after(()=>{globalThis.fetch=originalFetch;for(const [key,value] of [['VITE_SUPABASE_URL',saved.url],['VITE_SUPABASE_PUBLISHABLE_KEY',saved.key],['OPENAI_API_KEY',saved.openai]] as const){if(value===undefined)delete process.env[key];else process.env[key]=value;}});
 function configured(){process.env.VITE_SUPABASE_URL='https://xiftudmvxphxcjtmfmib.supabase.co';process.env.VITE_SUPABASE_PUBLISHABLE_KEY='sb_publishable_test';process.env.OPENAI_API_KEY='test-key';}
 async function invoke(handler:typeof affairsHandler|typeof publicHandler,body:unknown,authorization?:string){const result:{status:number;body:any}={status:200,body:null};const response={status(code:number){result.status=code;return response;},json(value:unknown){result.body=value;},setHeader(){}};await handler({method:'POST',body,headers:{'x-forwarded-for':`qa-${Math.random()}`,...(authorization?{authorization}:{})}},response);return result;}
+async function invokeStream(body:Record<string,unknown>,authorization:string){const chunks:string[]=[];let ended=false;const response={status(_code:number){return response},json(_value:unknown){throw Error('Expected SSE')},setHeader(_name:string,_value:string){},write(chunk:string){chunks.push(chunk)},end(){ended=true}};await affairsHandler({method:'POST',body:{...body,stream:true},headers:{'x-forwarded-for':`qa-${Math.random()}`,authorization}},response);assert.equal(ended,true);return chunks.join('').trim().split('\n\n').map(frame=>({type:frame.match(/^event: (.+)$/m)?.[1],data:JSON.parse(frame.match(/^data: (.+)$/m)?.[1]||'null')}));}
 const token=`Bearer ${'x'.repeat(40)}`;
 
 test('anonymous DTM and account questions require sign-in while public DTM questions remain public',()=>{
@@ -29,11 +30,14 @@ test('captured directory includes all 94 services and the current General Affair
 
 test('signed School Affairs directory question never loads Nexus context or transmits account to research',async()=>{
  configured();const calls:string[]=[];
- globalThis.fetch=async(input,init)=>{const url=String(input);calls.push(url);if(url.endsWith('/auth/v1/user')){assert.ok(init);assert.equal((init.headers as Record<string,string>).Authorization,token);return new Response(JSON.stringify({id:'00000000-0000-4000-8000-000000000001',email:'student@example.com',identities:[{provider:'google'}]}),{status:200});}if(url.endsWith('/api/research-assistant')){assert.ok(init);assert.equal((init.headers as Record<string,string>).Authorization,undefined);const forwarded=JSON.parse(String(init.body));assert.deepEqual(forwarded.history,[]);assert.equal(forwarded.question,'What is on this page?');const answer=answerDirectoryQuestion(forwarded.question,forwarded.route)!;return new Response(JSON.stringify({...answer,grounding:{source:'directory'}}),{status:200});}throw Error(`Unexpected external call: ${url}`);};
+ globalThis.fetch=async(input,init)=>{const url=String(input);calls.push(url);if(url.endsWith('/auth/v1/user')){assert.ok(init);assert.equal((init.headers as Record<string,string>).Authorization,token);return new Response(JSON.stringify({id:'00000000-0000-4000-8000-000000000001',email:'student@example.com',identities:[{provider:'google'}]}),{status:200});}if(url.endsWith('/api/research-assistant')){assert.ok(init);assert.equal((init.headers as Record<string,string>).Authorization,undefined);const forwarded=JSON.parse(String(init.body));assert.deepEqual(forwarded.history,[]);assert.equal(forwarded.question,'What is on this page?');const answer=answerDirectoryQuestion(forwarded.question,forwarded.route)!;if(forwarded.stream)return new Response(`event: progress\ndata: {"kind":"directory","label":"Checked services","detail":"Three links","status":"complete"}\n\nevent: result\ndata: ${JSON.stringify({...answer,grounding:{source:'directory'}})}\n\n`,{status:200,headers:{'content-type':'text/event-stream'}});return new Response(JSON.stringify({...answer,grounding:{source:'directory'}}),{status:200});}throw Error(`Unexpected external call: ${url}`);};
  const result=await invoke(affairsHandler,{question:'What is on this page?',route:'/school-affairs/menu/swd/input',history:[{role:'assistant',content:'IM101 Digital Systems Foundations'}]},token);
  assert.equal(result.status,200);assert.equal(result.body.grounding.source,'directory');assert.equal(result.body.citations.length,3);
  assert.doesNotMatch(result.body.answer,/IM101|IM203|Fall Semester 2026|Nexus/);
  assert.deepEqual(calls,['https://xiftudmvxphxcjtmfmib.supabase.co/auth/v1/user','https://stu.best/api/research-assistant']);
+ const streamed=await invokeStream({question:'What is on this page?',route:'/school-affairs/menu/swd/input'},token);
+ assert.deepEqual(streamed.map(event=>event.type),['progress','progress','progress','result']);
+ assert.deepEqual(streamed.filter(event=>event.type==='progress').map(event=>event.data.kind),['public','directory','public']);
 });
 
 test('personal School Affairs question reads only the caller site records, never Nexus',async()=>{
@@ -72,6 +76,10 @@ test('personal School Affairs question reads only the caller site records, never
  assert.ok(calls.every(url=>url.startsWith('https://xiftudmvxphxcjtmfmib.supabase.co/')));
  const dtm=await invoke(affairsHandler,{question:'What DTM materials do I have?',route:'/dtm'},token);
  assert.equal(dtm.status,200);assert.match(dtm.body.answer,/Getting started guide/);assert.match(dtm.body.answer,/sample/i);
+ const events=await invokeStream({question:'What DTM materials do I have?',route:'/dtm'},token);
+ assert.deepEqual(events.map(event=>event.type),['progress','progress','progress','progress','result']);
+ assert.deepEqual(events.filter(event=>event.type==='progress').map(event=>event.data.kind),['account','account','answer','answer']);
+ assert.match(events.at(-1)!.data.answer,/Getting started guide/);
 });
 
 test('public image question accepts validated PNG and reports actual image analysis',async()=>{

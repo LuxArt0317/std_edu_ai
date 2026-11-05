@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, Send, RotateCcw, Paperclip, X } from "lucide-react";
+import { MessageCircle, Send, RotateCcw, Paperclip, X, Check, LoaderCircle, CircleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -12,6 +12,7 @@ import {
 import {
   askCampusAssistant,
   type AssistantResponse,
+  type AssistantProgress,
 } from "../../services/researchAssistant";
 import { useAffairsAuth } from "./affairs/authContext";
 import { askSchoolAffairsAssistant } from "../../services/schoolAffairsAssistant";
@@ -40,6 +41,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
     [query, setQuery] = useState(""),
     [images, setImages] = useState<Array<{name:string;dataUrl:string}>>([]),
     [busy, setBusy] = useState(false),
+    [progress, setProgress] = useState<AssistantProgress[]>([]),
     [actionBusy, setActionBusy] = useState<string | null>(null),
     [error, setError] = useState("");
   const viewport = useRef<HTMLDivElement>(null),
@@ -54,6 +56,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
     setImages([]);
     setQuery("");
     setError("");
+    setProgress([]);
   }, [user?.id]);
   useEffect(() => {
     if (!embedded) return;
@@ -68,7 +71,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
       top: viewport.current.scrollHeight,
       behavior: "smooth",
     });
-  }, [messages, busy]);
+  }, [messages, busy, progress]);
   async function send(text = query) {
     const attached = images;
     const question = text.trim() || (attached.length ? "Please explain the attached image." : "");
@@ -83,6 +86,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
     setQuery("");
     setImages([]);
     setError("");
+    setProgress([]);
     setBusy(true);
     try {
       const result = await (user ? askSchoolAffairsAssistant : askCampusAssistant)(
@@ -91,6 +95,14 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
         controller.signal,
         attached,
         window.location.pathname,
+        (step) => {
+          if (request !== sequence.current || controller.signal.aborted) return;
+          setProgress(old => {
+            const index=old.findIndex(item=>item.kind===step.kind);
+            if (index<0) return [...old,step];
+            return old.map((item,i)=>i===index?step:item);
+          });
+        },
       );
       if (request === sequence.current)
         setMessages((old) => [
@@ -188,6 +200,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
               setMessages([]);
               setImages([]);
               setError("");
+              setProgress([]);
             }}
           >
             <RotateCcw size={14} /> New chat
@@ -273,9 +286,13 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
             </article>
           ))}
           {busy ? (
-            <p role="status" className="text-sm text-muted-foreground">
-              {user?'Checking your School Affairs records…':'Checking school knowledge and web sources…'}
-            </p>
+            <section role="status" aria-label="Assistant activity" className="rounded-xl border bg-muted/40 p-4 text-sm">
+              <p className="font-semibold text-foreground">Working on your question</p>
+              {progress.length ? <ol className="mt-3 space-y-2">{progress.map(step=><li key={step.kind} className="flex items-start gap-2 text-muted-foreground">
+                {step.status==='running'?<LoaderCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0 animate-spin text-primary"/>:step.status==='complete'?<Check aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary"/>:<CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0"/>}
+                <span><strong className="block font-medium text-foreground">{step.label}</strong><span className="block text-xs">{step.detail}</span></span>
+              </li>)}</ol>:<p className="mt-2 text-muted-foreground">Connecting to the assistant…</p>}
+            </section>
           ) : null}
         </div>
         <form

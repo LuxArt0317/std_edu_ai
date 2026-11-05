@@ -4,7 +4,7 @@ Live portal: [School Affairs](https://stu.best/school-affairs) · [Digital Teach
 
 A bilingual university website and authenticated school platform built with React, TypeScript, Vite, Supabase, and Vercel.
 
-- `/` — public university homepage, campus information, and research assistant.
+- `/` — public university homepage, campus information, and research assistant with live source-check activity.
 - `/school-affairs` — independent school service directory, Google site sign-in and campus assistant; [assistant scope](docs/qa/SCHOOL_AFFAIRS_ASSISTANT.md).
 - `/dtm` — local Digital Teaching Materials preview using the same Google session and account-scoped sample courses; [DTM scope](src/features/public/dtm/README.md).
 - `/signin` — sign in and password recovery.
