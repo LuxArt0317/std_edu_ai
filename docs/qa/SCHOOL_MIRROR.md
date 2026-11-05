@@ -4,7 +4,7 @@
 
 The 395 captured public documents now serve directly at their local `stu.best` paths, with an explicit nonofficial notice. This removes the iframe readiness gate and the React boot screen from public school navigation. `/app`, `/signin`, School Affairs, the campus assistant and campus directory still use the React application. Vite development/preview and Vercel use the same page manifest; `npm run sync:school-routes` regenerates the production rewrite map when captures change. The release retains static source documents and assets, with scripts and forms disabled. Source-only interactive widgets therefore need separate trusted implementations. The existing deeper-coverage and private-integration limits below still apply.
 
-`npm run test:school-mirror` checks all 395 routes, ten homepage audience links at desktop and mobile widths, browser navigation without waiting for slow stylesheets, JavaScript-disabled rendering and SPA sign-in recovery. The homepage layout and statistics checks now use the direct document.
+`npm run test:school-mirror` checks all 395 routes, ten homepage audience links at desktop and mobile widths, browser navigation without waiting for slow stylesheets, JavaScript-disabled rendering and SPA sign-in recovery. The homepage layout and statistics checks now use the direct document. Public accessibility checks enter the React assistant and directory through their dedicated routes; copied source markup is assessed separately.
 
 ## Landing-page alignment regression
 

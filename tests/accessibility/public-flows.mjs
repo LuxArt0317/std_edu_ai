@@ -1,4 +1,4 @@
-// Source iframe DOM/CSS is audited separately by test:school-mirror; this suite covers the surrounding application features.
+// Copied source documents are audited separately by test:school-mirror; this suite covers the React public features.
 import {spawn} from "node:child_process";
 import {setTimeout as delay} from "node:timers/promises";
 import AxeBuilder from "@axe-core/playwright";
@@ -64,8 +64,7 @@ try{
   const page=await context.newPage();
   await installPublicFixtures(page);
 
-  await fresh(page);await axeEvidence(page,"public-home");
-  await fresh(page);await page.getByRole("button",{name:"開啟 AI 校園助理"}).click();await page.getByRole("heading",{name:"校園助理 · Assistant"}).waitFor();await axeEvidence(page,"assistant-open");
+  await fresh(page,"/campus-assistant");await page.getByRole("heading",{name:"校園助理 · Assistant"}).waitFor();await axeEvidence(page,"assistant-open");
   await page.getByPlaceholder("Ask a school question…").fill("招生資訊在哪裡？");await page.getByRole("button",{name:"Send",exact:true}).click();await page.getByRole("list",{name:"Sources"}).waitFor();await axeEvidence(page,"assistant-citation-feedback",['[role="log"][aria-live="polite"]']);
   await page.getByRole("button",{name:"需要修正"}).click();await page.getByRole("button",{name:"送出意見"}).waitFor();await axeEvidence(page,"assistant-correction-expanded");
   await page.getByPlaceholder("Ask a school question…").fill("Where is the STU registrar?");await page.getByRole("button",{name:"Send",exact:true}).click();await page.getByText("Found online · See sources below.").waitFor();
@@ -73,14 +72,14 @@ try{
   if(!await webAnswer.getByRole("link",{name:"Registrar office"}).count() || await webAnswer.getByRole("button",{name:"需要修正"}).count() || !await webAnswer.getByRole("button",{name:"How do I contact admissions?"}).count())throw Error('Web answer source/feedback/follow-up UI failed');
   await axeEvidence(page,"assistant-web-citation-no-feedback");
 
-  await fresh(page);await page.getByRole("button",{name:/開啟校園導覽/}).click();await page.getByRole("heading",{name:"驗證地點與文字路線"}).waitFor();await axeEvidence(page,"campus-directory");
+  await fresh(page,"/campus-directory");await page.getByRole("button",{name:/開啟校園導覽/}).click();await page.getByRole("heading",{name:"驗證地點與文字路線"}).waitFor();await axeEvidence(page,"campus-directory");
   await page.getByLabel("起點").selectOption("LIB");await page.getByLabel("目的地").selectOption("ADMIN");await page.getByLabel(/只使用無障礙路線/).check();await page.getByRole("button",{name:"建立文字路線"}).click();await page.getByRole("heading",{name:"圖書館 → 行政大樓"}).waitFor();await axeEvidence(page,"campus-route-result",['.campus-route-result[aria-live="polite"]']);
 
   await fresh(page,`/study/${study.code}`);await page.getByRole("heading",{name:study.title}).waitFor();await axeEvidence(page,"study-consent");
   await page.getByLabel(/I have read the protocol information/).check();await page.getByRole("button",{name:"Consent and begin"}).click();await page.getByRole("heading",{name:"Questionnaires"}).waitFor();await axeEvidence(page,"study-tasks-surveys",['.study-progress[role="status"][aria-live="polite"]']);
   await page.getByRole("button",{name:"Privacy & withdrawal"}).click();await page.getByRole("heading",{name:"Withdraw from this study"}).waitFor();await axeEvidence(page,"study-withdrawal-dialog");
 
-  await page.setViewportSize({width:320,height:720});await fresh(page);const overflow=await page.evaluate(()=>Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-window.innerWidth);evidence.push({name:"reflow-320",criticalSerious:0,violations:[],targetSize:0,unnamedControls:0,focusTraps:0,obscuredFocus:0,statusMessageFailures:0,overflowPixels:Math.max(0,overflow)});
+  await page.setViewportSize({width:320,height:720});await fresh(page,"/campus-assistant");const overflow=await page.evaluate(()=>Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-window.innerWidth);evidence.push({name:"reflow-320",criticalSerious:0,violations:[],targetSize:0,unnamedControls:0,focusTraps:0,obscuredFocus:0,statusMessageFailures:0,overflowPixels:Math.max(0,overflow)});
   await browser.close();
 }finally{preview?.kill("SIGTERM");}
 

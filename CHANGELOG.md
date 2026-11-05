@@ -5,7 +5,7 @@
 
 - Serve 395 copied public school pages as standalone same-origin HTML, removing the iframe loading gate from homepage and entrance navigation.
 - Keep the Nexus and School Affairs app routes on their separate application shell, and expose campus assistant and directory routes from the copied pages.
-- Validate the manifest and rewrite map, and check every copied route, ten entrances, responsive layout, statistics and no-JavaScript rendering.
+- Validate the manifest and rewrite map, and check every copied route, ten entrances, responsive layout, statistics and no-JavaScript rendering. Update public accessibility flows to use the dedicated assistant and directory routes.
 
 ### Public loading recovery (Issue #84)
 
