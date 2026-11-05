@@ -1,8 +1,8 @@
 # Current client state
 
-## Issue #84: direct public school pages (local release candidate)
+## Issue #84: direct public school pages (published and verified)
 
-The user reported persistent loading and asked for simple direct pages. The 395 existing copied public documents now serve as standalone HTML; the iframe readiness gate is removed from the public path. The React app remains for `/app`, sign-in, School Affairs and assistant/directory routes. Local development and compiled preview pass all 395 route checks, all ten entrance links at desktop/mobile widths, no-JavaScript rendering, twelve layout widths, six statistics widths, 215 API/source tests, 30 units and build. Publication and public verification are pending. Captured source widgets requiring JavaScript remain inactive by policy; Issue #84 stays open for broader source coverage and interactive controls.
+The user reported persistent loading and asked for simple direct pages. The 395 existing copied public documents now serve as standalone HTML; the iframe readiness gate is removed from the public path. The React app remains for `/app`, sign-in, School Affairs and assistant/directory routes. Runtime `68282b5908a3344d9990e44c832034fdc8e74981` is Ready as Vercel `62qj5dX765ATeVx2etQX7KoDYTJ3`; quality run `42001294587` succeeded. Live stu.best passed all ten entrance links at 1440px and 390px, direct root/student/news HTML checks, separate app sign-in and assistant routes, and protected client/backend verification. Local development and compiled preview pass all 395 route checks, no-JavaScript rendering, twelve layout widths, six statistics widths, 215 API/source tests, 30 units, ten public accessibility states and build. Captured source widgets requiring JavaScript remain inactive by policy; Issue #84 stays open for broader source coverage and interactive controls.
 
 ## Issue #84: public boot-shell recovery (published and verified)
 
