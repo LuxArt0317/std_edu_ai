@@ -8,7 +8,7 @@ The School Affairs entry check also verifies the local campus carousel at four v
 
 `school-home-layout-ui.mjs` checks all ten homepage entrance cards at twelve desktop, tablet and phone widths. It fails when a title or description crosses its card, the page scrolls sideways, or the expected responsive grid does not render. Set `STU_BASE_URL` to a running local preview or `https://stu.best`; screenshots and JSON results are ignored under `artifacts/site-mirror/home-layout/`.
 
-`school-mirror-navigation.mjs` holds a captured stylesheet open to verify that direct copied content and links work without waiting for that stylesheet. `direct-school-assistant-ui.mjs` opens the same-origin assistant on the homepage, student page and a query-selected news page at desktop/mobile widths; it verifies a chat answer, Escape, close and reopen. Run it with `npm run test:school-mirror-navigation`; the full `test:school-mirror` command includes it.
+`school-mirror-navigation.mjs` holds a captured stylesheet open to verify that direct copied content and links work without waiting for that stylesheet. `direct-school-assistant-ui.mjs` opens the same-origin assistant on the homepage, student page and a query-selected news page at desktop/mobile widths; it verifies a chat answer, Escape, close, reopen and top-level School Affairs sign-in. Run it with `npm run test:school-mirror-navigation`; the full `test:school-mirror` command includes it.
 
 `assistant-progress-ui.mjs` checks live SSE activity and the final answer in the campus assistant at desktop and phone widths; run it with a local Vite server using `PUBLIC_SITE_ORIGIN=http://127.0.0.1:5173 node tests/integration/assistant-progress-ui.mjs`.
 

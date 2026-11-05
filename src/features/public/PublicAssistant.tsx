@@ -187,6 +187,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
           <a
             className="underline underline-offset-4"
             href="/school-affairs/login"
+            target={embedded ? "_top" : undefined}
           >
             {user ? "School Affairs account" : "School Affairs sign in"}
           </a>

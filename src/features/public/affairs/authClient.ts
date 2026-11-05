@@ -27,13 +27,28 @@ export async function startGoogleSignIn(returnPath: '/dtm' | '/school-affairs' =
   if (!response.ok || !settings?.external?.google)
     throw new Error('Google sign-in is awaiting site administrator setup. Please try again later.');
   sessionStorage.setItem(returnKey, returnPath);
-  const { error } = await affairsClient.auth.signInWithOAuth({
-    provider: 'google', options: {
-      redirectTo: new URL(affairsCallbackPath, window.location.origin).href,
-      scopes: 'openid email profile', queryParams: { prompt: 'select_account' },
-    },
-  });
-  if (error) throw new Error('Google sign-in could not start. Please try again.');
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const { data, error } = await Promise.race([
+      affairsClient.auth.signInWithOAuth({
+        provider: 'google', options: {
+          redirectTo: new URL(affairsCallbackPath, window.location.origin).href,
+          scopes: 'openid email profile', queryParams: { prompt: 'select_account' },
+          skipBrowserRedirect: true,
+        },
+      }),
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error('Google sign-in timed out. Please try again.')), 15000);
+      }),
+    ]);
+    if (error || !data?.url) throw new Error('Google sign-in could not start. Please try again.');
+    const destination = new URL(data.url);
+    if (destination.origin !== new URL(url).origin || destination.pathname !== '/auth/v1/authorize')
+      throw new Error('Google sign-in returned an invalid destination.');
+    window.location.assign(destination.href);
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 // StrictMode and rerenders must not consume the same one-use authorization code twice.

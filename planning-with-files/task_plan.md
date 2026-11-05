@@ -1,5 +1,12 @@
 # Task Plan
 
+## School Affairs Google sign-in from public assistant [Issue #83]
+
+- [x] Reproduce the reported embedded login and identify why OAuth leaves the button busy.
+- [x] Open School Affairs sign-in in the top-level page and recover older assistant frames.
+- [x] Bound Google start time; preserve the PKCE callback and account separation.
+- [ ] Run focused and release checks, publish, verify the live route, and update the handoff.
+
 ## Live assistant research progress [Issue #92]
 
 - [x] Inspect the public and signed-in assistant paths, identify actual lookup stages, and verify current OpenAI tool guidance.

@@ -1,6 +1,11 @@
 # Changelog
 ## Unreleased
 
+### School Affairs sign-in from public assistant (Issue #83)
+
+- Open School Affairs sign-in outside the embedded campus assistant so Google OAuth starts in the full page.
+- Recover login pages already opened in the assistant frame; bound the Google start step and show a retryable error if it stalls.
+
 ### Live assistant activity (Issue #92)
 
 - Stream actual directory, managed-knowledge, school-web, image and verified-account lookup stages into the chat while it works. Keep the final sourced answer and action confirmation after validation; retain JSON compatibility and private-model-reasoning boundaries.

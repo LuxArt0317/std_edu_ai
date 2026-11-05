@@ -96,6 +96,12 @@ export default function SchoolAffairsEntry() {
           <h2>登入 School Affairs</h2>
           <p>使用您的 Google 帳號登入 stu.best。<br/>Sign in to stu.best with your Google account.</p>
           <Button className="affairs-google-button" disabled={busy} onClick={()=>{
+            // OAuth must start in the top-level document. A copied page may have
+            // opened this route inside the assistant's same-origin iframe.
+            if (window.top !== window) {
+              window.top?.location.assign('/school-affairs/login');
+              return;
+            }
             setBusy(true);setError('');
             void startGoogleSignIn().catch(()=>{setError('Google sign-in is not available yet. Please try again later or contact the site administrator.');setBusy(false);});
           }}><img src="/auth/google-g.png" alt="" width="20" height="20"/>{busy?'Connecting to Google…':'Continue with Google'}</Button>

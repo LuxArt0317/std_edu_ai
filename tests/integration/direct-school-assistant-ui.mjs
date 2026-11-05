@@ -33,8 +33,27 @@ try {
       await page.getByRole('button', { name: '關閉校園助理' }).click();
       await panel.waitFor({ state: 'hidden' });
     }
+    // Signing in from the embedded assistant must replace the top-level page.
+    // An OAuth flow inside its iframe leaves Google blocked and the button busy.
+    await page.getByRole('button', { name: '開啟 AI 校園助理' }).click();
+    await page.frameLocator('iframe.stu-assistant-frame').getByRole('link', { name: 'School Affairs sign in' }).click();
+    await page.waitForURL('**/school-affairs/login');
+    assert.equal(page.url(), origin + '/school-affairs/login');
+    await page.getByRole('button', { name: 'Continue with Google' }).waitFor();
+    assert.equal(await page.locator('iframe.stu-assistant-frame').count(), 0, 'sign-in must leave the assistant frame');
+    if (width === 1440) {
+      // Existing tabs may already have the login page trapped in the old frame.
+      await page.goto(origin + '/');
+      await page.getByRole('button', { name: '開啟 AI 校園助理' }).click();
+      await page.frameLocator('iframe.stu-assistant-frame').getByRole('heading', { name: '校園助理 · Assistant' }).waitFor();
+      await page.locator('iframe.stu-assistant-frame').evaluate(frame => { frame.src = '/school-affairs/login'; });
+      await page.frameLocator('iframe.stu-assistant-frame').getByRole('button', { name: 'Continue with Google' }).click();
+      await page.waitForURL('**/school-affairs/login');
+      await page.getByRole('button', { name: 'Continue with Google' }).waitFor();
+      assert.equal(await page.locator('iframe.stu-assistant-frame').count(), 0, 'old framed login must recover into the full page');
+    }
     assert.deepEqual(errors, []);
     await context.close();
   }
-  console.log(JSON.stringify({ status: 'ok', routes: routes.length, viewports: [1440, 390], chatAnswered: true, escapeCloses: true, pageRemainsDirect: true }));
+  console.log(JSON.stringify({ status: 'ok', routes: routes.length, viewports: [1440, 390], chatAnswered: true, escapeCloses: true, signInLeavesFrame: true, framedLoginRecovers: true, pageRemainsDirect: true }));
 } finally { await browser.close(); }
