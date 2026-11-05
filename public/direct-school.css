@@ -15,6 +15,7 @@
 
 .stu-direct-notice a { color: #fff; text-decoration: underline; }
 .stu-direct-notice a:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.stu-account-status { display:block; width:240px; max-width:100%; height:48px; margin-top:6px; border:0; background:transparent; }
 
 .stu-assistant-toggle {
   all: unset;

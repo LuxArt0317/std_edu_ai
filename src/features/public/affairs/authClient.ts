@@ -5,6 +5,12 @@ const url = import.meta.env.VITE_SUPABASE_URL?.trim();
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
 export const affairsStorageKey = 'stu-school-affairs-auth';
 export const affairsCallbackPath = '/school-affairs/auth/callback';
+const returnKey = 'stu-school-affairs-return';
+export function consumeGoogleReturnPath() {
+  const value = sessionStorage.getItem(returnKey);
+  sessionStorage.removeItem(returnKey);
+  return value === '/dtm' ? value : '/school-affairs';
+}
 // Never borrow the Nexus session or its PKCE verifier.
 export const affairsClient = url && key ? createClient<Database>(url, key, {
   global: { fetch: (input, init) => fetch(input, { ...init, signal: init?.signal ? AbortSignal.any([init.signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000) }) },
@@ -12,7 +18,7 @@ export const affairsClient = url && key ? createClient<Database>(url, key, {
     autoRefreshToken: true, detectSessionInUrl: false },
 }) : null;
 
-export async function startGoogleSignIn() {
+export async function startGoogleSignIn(returnPath: '/dtm' | '/school-affairs' = '/school-affairs') {
   if (!affairsClient || !url || !key) throw new Error('Google sign-in is not configured. Please contact the site administrator.');
   const response = await fetch(`${url}/auth/v1/settings`, {
     headers: { apikey: key }, signal: AbortSignal.timeout(10000),
@@ -20,6 +26,7 @@ export async function startGoogleSignIn() {
   const settings = await response.json().catch(() => null);
   if (!response.ok || !settings?.external?.google)
     throw new Error('Google sign-in is awaiting site administrator setup. Please try again later.');
+  sessionStorage.setItem(returnKey, returnPath);
   const { error } = await affairsClient.auth.signInWithOAuth({
     provider: 'google', options: {
       redirectTo: new URL(affairsCallbackPath, window.location.origin).href,

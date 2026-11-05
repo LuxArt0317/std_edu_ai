@@ -1,5 +1,13 @@
 # Task Plan
 
+## DTM copy, shared sign-in and account context [Issue #91]
+
+- [x] Verify the client checkout, current School Affairs session boundary, DTM source screenshots and missing local routes.
+- [x] Add account-scoped DTM sample schema and read API without using Nexus or official school credentials.
+- [x] Build local DTM login/home/course views with shared Google sign-in and public landing account status.
+- [x] Let the assistant answer from School Affairs and DTM only for a verified signed-in account.
+- [ ] Run database plan/deploy, privacy/API/UI checks, release gates, publish and verify production.
+
 ## Private School Affairs workspace and assistant [Issue #90]
 
 - [x] Confirm the independent Google sign-in, current personal-data gap, client Supabase target, and data-source limits.

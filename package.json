@@ -74,6 +74,8 @@
     "import:assistant-corpus": "node scripts/import-assistant-corpus.mjs",
     "test:school-affairs-entry": "node tests/integration/school-affairs-entry-ui.mjs",
     "test:live-affairs-workspace-rls": "node tests/integration/affairs-workspace-rls-live.mjs",
+    "test:live-dtm-rls": "node tests/integration/dtm-workspace-rls-live.mjs",
+    "test:dtm-ui": "node tests/integration/dtm-ui.mjs",
     "prepare:school-assets": "node scripts/prepare-school-assets.mjs",
     "predev": "npm run prepare:school-assets",
     "mirror:queue": "node scripts/school-mirror-queue.mjs",

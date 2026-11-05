@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { referenceAsset } from '../site/reference';
 import SchoolAffairsPortal from './SchoolAffairsPortal';
 import { useAffairsAuth } from './authContext';
-import { affairsCallbackPath, completeGoogleSignIn, startGoogleSignIn, signOutAffairs } from './authClient';
+import { affairsCallbackPath, completeGoogleSignIn, consumeGoogleReturnPath, startGoogleSignIn, signOutAffairs } from './authClient';
 import './login.css';
 import { SchoolAffairsPrivacy } from './SchoolAccountRecords';
 const base = 'https://info.stu.edu.tw/ePortal/';
@@ -44,7 +44,7 @@ function GoogleCallback() {
   const [error, setError] = useState(''), [complete, setComplete] = useState(false);
   const {user,error:identityError} = useAffairsAuth();
   useEffect(() => {
-    if (complete && user) navigate('/school-affairs', {replace:true});
+    if (complete && user) navigate(consumeGoogleReturnPath(), {replace:true});
   }, [complete,user,navigate]);
   useEffect(() => {
     let active = true;

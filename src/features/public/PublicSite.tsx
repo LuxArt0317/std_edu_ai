@@ -13,6 +13,7 @@ const StudentSsoPreview = lazy(() =>
   })),
 );
 const SchoolAffairsPortal = lazy(() => import("./affairs/SchoolAffairsEntry"));
+const DigitalMaterials = lazy(() => import("./dtm/DigitalMaterials"));
 import "./site/reference.css";
 import { AffairsAuthProvider } from "./affairs/AffairsAuth";
 import { useAffairsAuth } from "./affairs/authContext";
@@ -22,10 +23,22 @@ function SchoolAccountAssistant({ embedded = false }: { embedded?: boolean }) {
   const {pathname} = useLocation();
   return <PublicAssistant key={user?.id || "anonymous"} initialOpen={pathname === "/campus-assistant"} embedded={embedded} />;
 }
+function PublicAccountStatus() {
+  const { user, loading } = useAffairsAuth();
+  return <div style={{font:'13px/1.45 system-ui,sans-serif',color:'#fff',padding:'0 2px'}} aria-live="polite">
+    {loading ? 'Checking account…' : user ? <>Signed in: {user.email}<br/><a style={{color:'#fff',textDecoration:'underline'}} href="/school-affairs" target="_top">School Affairs</a> · <a style={{color:'#fff',textDecoration:'underline'}} href="/dtm" target="_top">DTM</a></> : <a style={{color:'#fff',textDecoration:'underline'}} href="/school-affairs/login" target="_top">Sign in with Google</a>}
+  </div>;
+}
 
 export default function PublicSite() {
   const { pathname, hash, search } = useLocation();
   const embeddedAssistant = pathname === "/campus-assistant" && new URLSearchParams(search).get("embed") === "1" && window.parent !== window;
+  const embeddedAccount = pathname === "/account-status" && window.parent !== window;
+  useEffect(() => {
+    if (!embeddedAccount) return;
+    document.documentElement.classList.add('stu-account-embed');
+    return () => document.documentElement.classList.remove('stu-account-embed');
+  }, [embeddedAccount]);
   useEffect(() => {
     if (!embeddedAssistant) return;
     document.documentElement.classList.add("stu-assistant-embed");
@@ -47,6 +60,7 @@ export default function PublicSite() {
     else window.scrollTo({ top: 0, behavior: "instant" });
   }, [pathname, hash]);
   if (embeddedAssistant) return <AffairsAuthProvider><SchoolAccountAssistant embedded /></AffairsAuthProvider>;
+  if (embeddedAccount) return <AffairsAuthProvider><PublicAccountStatus /></AffairsAuthProvider>;
   return (
     <AffairsAuthProvider><div className="public-site-shell">
       <PreviewNotice
@@ -65,6 +79,9 @@ export default function PublicSite() {
           element={<Navigate to="/school-affairs/login" replace />}
         />
         <Route path="/school-affairs/*" element={<SchoolAffairsPortal />} />
+        <Route path="/dtm/*" element={<DigitalMaterials />} />
+        <Route path="/dtm/course/:id" element={<DigitalMaterials />} />
+        <Route path="/school-sites/dtm.stu.edu.tw/*" element={<DigitalMaterials />} />
         <Route
           path="/ePortal/index.asp"
           element={<Navigate to="/school-affairs" replace />}

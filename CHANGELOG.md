@@ -1,6 +1,12 @@
 # Changelog
 ## Unreleased
 
+### DTM preview and shared Google account (Issue #91)
+
+- Recreate local DTM login, dashboard and course-material pages with the existing School Affairs Google session, replacing the source's large red SSO entry with Google sign-in.
+- Store per-account sample DTM courses/materials and sample notices in three RLS-protected client tables; expose them to the private assistant only after verified Google sign-in.
+- Show signed-in Google status on the copied landing page and route old DTM links to the local preview. Keep official university and Nexus records separate.
+
 ### Private School Affairs workspace (Issue #90)
 
 - Add 14 client Supabase School Affairs tables with Google-only account initialization, account-scoped row-level security, sample courses/grades/notices, a protected Lux site admin, and audited task/request/notice actions.

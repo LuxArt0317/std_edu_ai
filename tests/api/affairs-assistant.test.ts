@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import affairsHandler from '../../api/affairs-assistant.ts';
 import publicHandler from '../../api/research-assistant.ts';
 import {answerDirectoryQuestion,directoryEntries} from '../../server/schoolAffairsDirectory.js';
+import {questionKind} from '../../server/schoolWebSearch.js';
 
 const originalFetch=globalThis.fetch;
 const saved={url:process.env.VITE_SUPABASE_URL,key:process.env.VITE_SUPABASE_PUBLISHABLE_KEY,openai:process.env.OPENAI_API_KEY};
@@ -10,6 +11,13 @@ after(()=>{globalThis.fetch=originalFetch;for(const [key,value] of [['VITE_SUPAB
 function configured(){process.env.VITE_SUPABASE_URL='https://xiftudmvxphxcjtmfmib.supabase.co';process.env.VITE_SUPABASE_PUBLISHABLE_KEY='sb_publishable_test';process.env.OPENAI_API_KEY='test-key';}
 async function invoke(handler:typeof affairsHandler|typeof publicHandler,body:unknown,authorization?:string){const result:{status:number;body:any}={status:200,body:null};const response={status(code:number){result.status=code;return response;},json(value:unknown){result.body=value;},setHeader(){}};await handler({method:'POST',body,headers:{'x-forwarded-for':`qa-${Math.random()}`,...(authorization?{authorization}:{})}},response);return result;}
 const token=`Bearer ${'x'.repeat(40)}`;
+
+test('anonymous DTM and account questions require sign-in while public DTM questions remain public',()=>{
+ assert.equal(questionKind('What DTM materials do I have?').personal,true);
+ assert.equal(questionKind('Who am I?').personal,true);
+ assert.equal(questionKind('What is my email?').personal,true);
+ assert.equal(questionKind('What is Digital Teaching Materials?').personal,false);
+});
 
 test('captured directory includes all 94 services and the current General Affairs page',()=>{
  assert.equal(directoryEntries.length,94);
@@ -37,6 +45,7 @@ test('personal School Affairs question reads only the caller site records, never
   assert.equal((init?.headers as Record<string,string>)?.Authorization,token);
   const tables:Record<string,unknown>={
    '/rest/v1/rpc/affairs_initialize_account':{user_id:userId},
+   '/rest/v1/rpc/dtm_initialize_account':null,
    '/rest/v1/affairs_profiles':[{user_id:userId,email:'student@example.com',display_name:'Student',role:'student'}],
    '/rest/v1/affairs_students':[{id:'student-id',user_id:userId,student_number:'SAMPLE-123',full_name:'Student',program_id:'program-id',year_level:1,status:'active',source_mode:'sample'}],
    '/rest/v1/affairs_programs':[{id:'program-id',name:'Sample General Studies'}],
@@ -50,14 +59,19 @@ test('personal School Affairs question reads only the caller site records, never
    '/rest/v1/affairs_announcements':[],
    '/rest/v1/affairs_tasks':[],
    '/rest/v1/affairs_service_requests':[],
+   '/rest/v1/dtm_courses':[{id:'dtm-course-id',user_id:userId,code:'DTM-SAMPLE-101',title:'Digital Learning Orientation',term:'115學年度第1學期',role:'student',source_mode:'sample'}],
+   '/rest/v1/dtm_materials':[{id:'dtm-material-id',course_id:'dtm-course-id',title:'Getting started guide',kind:'file',summary:'Sample guide',position:1,source_mode:'sample'}],
+   '/rest/v1/dtm_notices':[{id:'dtm-notice-id',title:'Welcome to DTM',body:'Sample notice',published_at:'2026-11-05T00:00:00Z',source_mode:'sample'}],
   };
   if(path in tables)return new Response(JSON.stringify(tables[path]),{status:200});
   throw Error(`Unexpected external call: ${url}`);
  };
  const result=await invoke(affairsHandler,{question:'What are my current subjects?',route:'/school-affairs/menu/aca/query'},token);
- assert.equal(result.status,200);assert.match(result.body.answer,/SAMP101 Campus Orientation/);assert.match(result.body.answer,/sample/i);
+ assert.equal(result.status,200,JSON.stringify({body:result.body,calls}));assert.match(result.body.answer,/SAMP101 Campus Orientation/);assert.match(result.body.answer,/sample/i);
  assert.doesNotMatch(result.body.answer,/IM101|IM203|Fall Semester 2026|Nexus/);
  assert.ok(calls.every(url=>url.startsWith('https://xiftudmvxphxcjtmfmib.supabase.co/')));
+ const dtm=await invoke(affairsHandler,{question:'What DTM materials do I have?',route:'/dtm'},token);
+ assert.equal(dtm.status,200);assert.match(dtm.body.answer,/Getting started guide/);assert.match(dtm.body.answer,/sample/i);
 });
 
 test('public image question accepts validated PNG and reports actual image analysis',async()=>{

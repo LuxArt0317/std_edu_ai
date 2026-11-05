@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { isIP } from 'node:net';
 
-const personal = /\b(?:my|our|their|his|her)\b.{0,45}\b(?:subjects?|courses?|classes?|grades?|schedule|timetable|attendance|assignments?|enrollments?|fees?|balance|gpa|announcements?|messages?|student (?:id|number)|password|account details)\b|\b(?:student\s+(?:[A-Z]\b|\d{5,}|(?:id|number)\b)).{0,60}\b(?:grades?|schedule|attendance|fees?|balance|gpa|records?)\b|\b(?:private (?:records?|data|decision|messages?)|password\s*[:=]|access_token|refresh_token)\b|我的.{0,16}(?:課程|科目|成績|出席|作業|課表|學號|帳號|密碼|繳費|公告|訊息)|(?:[\w.+-]+@(?:gmail|yahoo|outlook|hotmail)\.[a-z.]+)|\bs\d{6,}@stu\.edu\.tw\b/i;
+const personal = /\b(?:my|our|their|his|her)\b.{0,45}\b(?:subjects?|courses?|classes?|grades?|schedule|timetable|attendance|assignments?|enrollments?|fees?|balance|gpa|announcements?|messages?|materials?|moodle|dtm|email|profile|name|student (?:id|number)|password|account details)\b|\b(?:dtm|moodle|materials?)\b.{0,60}\b(?:i|my|mine)\b|\b(?:who am i|signed in as)\b|\b(?:student\s+(?:[A-Z]\b|\d{5,}|(?:id|number)\b)).{0,60}\b(?:grades?|schedule|attendance|fees?|balance|gpa|records?)\b|\b(?:private (?:records?|data|decision|messages?)|password\s*[:=]|access_token|refresh_token)\b|我的.{0,16}(?:課程|科目|成績|出席|作業|課表|學號|帳號|密碼|繳費|公告|訊息|教材|姓名|電子郵件)|我.{0,20}教材|(?:[\w.+-]+@(?:gmail|yahoo|outlook|hotmail)\.[a-z.]+)|\bs\d{6,}@stu\.edu\.tw\b/i;
 export function questionKind(question) {
   const text = String(question).trim();
   return {

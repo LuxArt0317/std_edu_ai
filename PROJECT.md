@@ -8,6 +8,7 @@ STU Edu AI combines a public university website with STU Nexus, an authenticated
 | --- | --- |
 | `src/features/` | Auth, school, CRM, curriculum, research, and public product modules |
 | `src/features/public/affairs/` | Source-preserving School Affairs portal, isolated Google PKCE accounts, captured 94-service directory and account-specific preferences |
+| `src/features/public/dtm/` | Digital Teaching Materials login and sample course preview using the School Affairs Google session |
 | `src/features/public/site/` | Public reference catalogues, preview disclosure and inert mySTU SSO preview |
 | `src/features/public/mirror/` | Inert source-page renderer, local routing policy and versioned page/asset/coverage manifests |
 | `src/features/auth/` | Sign-in, student signup, session guards and shared password policy |
@@ -72,3 +73,5 @@ School Affairs and knowledge management have separate identity boundaries. Publi
 Public pages use isolated, source-preserving local HTML/CSS with trusted navigation controls. Large documents are restored from the reviewed, checksum-pinned multipart bundle in `vendor/school-documents/` at build/dev startup; source styles, fonts and images remain versioned. Packing/restoring requires system `tar` with gzip (standard macOS/Linux build images); no source-server request or new npm dependency is required. The verified campus-directory API/UI remains available independently of the source iframe. No new runtime dependency was added. See [coverage, architecture, setup and QA](docs/qa/SCHOOL_MIRROR.md).
 
 School Affairs Google authentication and its release/provider acceptance are documented in [Google School Affairs sign-in](docs/qa/GOOGLE_SCHOOL_SIGNIN.md). It uses a separate session from Nexus and the existing server/RLS authorization; Google credentials remain in Supabase provider settings. No new npm dependency is required.
+
+The DTM preview reuses that Google session. A dedicated three-table `dtm_*` schema stores account-scoped sample courses and materials under RLS; public copied pages show a verified sign-in indicator through a same-origin account-status frame. The private assistant may read the signed-in account's School Affairs and DTM preview records, but no official university Moodle records are connected. [DTM details](src/features/public/dtm/README.md).

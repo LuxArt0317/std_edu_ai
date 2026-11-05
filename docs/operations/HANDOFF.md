@@ -1,5 +1,9 @@
 # Client handoff
 
+## Pending release — Issue #91 DTM preview
+
+The local DTM copy now has Google login, a sample dashboard and course-material view. It reuses the independent School Affairs Google session; Nexus remains separate. The client database has 108 migrations and 118 public tables after adding three RLS-protected sample DTM tables. Local two-account RLS and browser checks pass. The homepage indicates verified Google sign-in, and the private assistant can answer from both site-owned sample workspaces. Official university Moodle records and a real Lux Google callback have not been verified or imported. Production publication remains pending. [Scope and verification](../../src/features/public/dtm/README.md).
+
 ## Current release — Issue #84 homepage responsiveness
 
 The client's copied homepage fills the viewport with one hero slide and centers the sticky university header. The source capture had frozen both at 1280px, exposing another slide and leaving navigation left of center on wide screens. Runtime `09533964074e0350d971f6bb9defe81fc21b89f3` is [Vercel D8BVVRePVJ1dsFW776dWeXfKF5KT](https://vercel.com/v1-d286/std_edu_ai/D8BVVRePVJ1dsFW776dWeXfKF5KT) Ready, and [quality 42022473591](https://github.com/LuxArt0317/std_edu_ai/actions/runs/42022473591) succeeded. Live 3020px/390px browser measurements show centered navigation, viewport-wide hero/header, one slide and no horizontal scroll; the public assistant remains visible. Production 12-width entrance cards and six-width school statistics pass with no page errors. Protected client/backend checks pass. Compiled preview passes all 395 copied routes, ten entrances, full mirror/assistant/recovery suite, 216 API/source tests, 30 units, build, lint, handoff and dependency audit. [QA details](../qa/SCHOOL_MIRROR.md#homepage-responsive-repair--november-5-2026). Issue #84 remains open for broader source coverage.

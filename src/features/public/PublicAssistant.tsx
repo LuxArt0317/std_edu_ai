@@ -31,6 +31,7 @@ const questions = [
   "如何查詢課程？",
   "有哪些最新公告？",
   "What are my current subjects?",
+  "What DTM materials do I have?",
 ];
 export function PublicAssistant({ initialOpen = false, embedded = false }: { initialOpen?: boolean; embedded?: boolean }) {
   const {user} = useAffairsAuth();

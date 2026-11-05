@@ -42,15 +42,19 @@ async function request(account, table, options = {}) {
     if (response.status===400) throw new AffairsWorkspaceError('The School Affairs request was invalid. Check the fields and try again.',400);
     throw new AffairsWorkspaceError('School Affairs records could not be loaded. Please try again.');
   }
-  return response.json().catch(()=>{throw new AffairsWorkspaceError('School Affairs returned an invalid record.');});
+  const raw=await response.text().catch(()=>{throw new AffairsWorkspaceError('School Affairs returned an unreadable record.');});
+  if (!raw && rpc) return null; // PostgREST void RPCs may return 204 without JSON.
+  try { return JSON.parse(raw); }
+  catch { throw new AffairsWorkspaceError('School Affairs returned an invalid record.'); }
 }
 
 const own=(userId,limit=50)=>({select:'*',user_id:`eq.${userId}`,limit});
 const byIds=(ids)=>ids.length?`in.(${ids.join(',')})`:'eq.00000000-0000-0000-0000-000000000000';
 export async function loadAffairsSnapshot(account, includeAdmin = false) {
   await request(account,'affairs_initialize_account',{rpc:true});
+  await request(account,'dtm_initialize_account',{rpc:true});
   const userId=account.user.id;
-  const [profiles,students,terms,programs,courses,sections,announcements,tasks,requests,adminProfiles,adminRequests]=await Promise.all([
+  const [profiles,students,terms,programs,courses,sections,announcements,tasks,requests,adminProfiles,adminRequests,dtmCourses,dtmNotices]=await Promise.all([
     request(account,'affairs_profiles',{query:own(userId,1)}),
     request(account,'affairs_students',{query:own(userId,1)}),
     request(account,'affairs_terms',{query:{select:'*',limit:30}}),
@@ -62,16 +66,19 @@ export async function loadAffairsSnapshot(account, includeAdmin = false) {
     request(account,'affairs_service_requests',{query:{...own(userId),order:'created_at.desc'}}),
     includeAdmin?request(account,'affairs_profiles',{query:{select:'user_id,email,display_name,role,created_at',order:'created_at.desc',limit:100}}):Promise.resolve([]),
     includeAdmin?request(account,'affairs_service_requests',{query:{select:'id,user_id,request_type,title,status,created_at',order:'created_at.desc',limit:100}}):Promise.resolve([]),
+    request(account,'dtm_courses',{query:{...own(userId),order:'created_at.desc'}}),
+    request(account,'dtm_notices',{query:{select:'*',order:'published_at.desc',limit:30}}),
   ]);
   const profile=profiles[0];
   if (!profile || (includeAdmin && profile.role!=='admin')) throw new AffairsWorkspaceError('Administrator access is required.',403);
   const student=students[0]||null;
   const enrollments=student?await request(account,'affairs_enrollments',{query:{select:'*',student_id:`eq.${student.id}`,limit:100}}):[];
   const enrollmentIds=enrollments.map(item=>item.id);
-  const [grades,attendance,charges]=await Promise.all([
+  const [grades,attendance,charges,dtmMaterials]=await Promise.all([
     request(account,'affairs_grade_items',{query:{select:'*',enrollment_id:byIds(enrollmentIds),limit:200}}),
     request(account,'affairs_attendance',{query:{select:'*',enrollment_id:byIds(enrollmentIds),limit:200}}),
     student?request(account,'affairs_charges',{query:{select:'*',student_id:`eq.${student.id}`,limit:100}}):Promise.resolve([]),
+    request(account,'dtm_materials',{query:{select:'*',course_id:byIds(dtmCourses.map(row=>row.id)),order:'position.asc',limit:200}}),
   ]);
   const courseById=new Map(courses.map(row=>[row.id,row]));
   const termById=new Map(terms.map(row=>[row.id,row]));
@@ -93,6 +100,7 @@ export async function loadAffairsSnapshot(account, includeAdmin = false) {
     announcements:announcements.map(row=>({id:row.id,title:row.title,body:row.body,publishedAt:row.published_at,sourceMode:row.source_mode})),
     tasks:tasks.map(row=>({id:row.id,title:row.title,dueAt:row.due_at,completedAt:row.completed_at,sourceMode:row.source_mode})),
     requests:requests.map(row=>({id:row.id,type:row.request_type,title:row.title,details:row.details,status:row.status,createdAt:row.created_at})),
+    dtm:{sourceMode:'sample',courses:dtmCourses.map(row=>({id:row.id,code:row.code,title:row.title,term:row.term,role:row.role,sourceMode:row.source_mode,materials:dtmMaterials.filter(item=>item.course_id===row.id).map(item=>({id:item.id,title:item.title,kind:item.kind,summary:item.summary,position:item.position,sourceMode:item.source_mode}))})),notices:dtmNotices.map(row=>({id:row.id,title:row.title,body:row.body,publishedAt:row.published_at,sourceMode:row.source_mode}))},
     ...(includeAdmin?{admin:{profiles:adminProfiles,requests:adminRequests}}:{}),
   };
 }

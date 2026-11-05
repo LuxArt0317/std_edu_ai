@@ -1,0 +1,45 @@
+.dtm { --dtm-ink:#34485b; --dtm-muted:#65737d; min-height:100vh; background:#edf1f2; color:var(--dtm-ink); font:16px/1.5 Arial, 'Noto Sans TC', sans-serif; }
+.dtm * { box-sizing:border-box; }
+.dtm a { color:#36566f; text-decoration:none; }
+.dtm a:hover { text-decoration:underline; }
+.dtm-top { display:flex; align-items:center; gap:2rem; min-height:72px; padding:12px max(20px,3vw); background:#fff; border-bottom:1px solid #d9e0e1; }
+.dtm-brand { font-size:clamp(17px,1.5vw,26px); color:#526169 !important; white-space:normal; }
+.dtm-language { display:flex; align-items:center; gap:5px; white-space:nowrap; }
+.dtm-top-account { margin-left:auto; display:flex; align-items:center; gap:12px; white-space:nowrap; }
+.dtm-top-account span { overflow:hidden; text-overflow:ellipsis; max-width:220px; }
+.dtm-main { min-height:calc(100vh - 165px); max-width:1800px; margin:auto; padding:26px max(20px,3vw) 70px; }
+.dtm-main > h1 { font-size:clamp(22px,2vw,32px); font-weight:500; color:#495960; margin:0 0 26px; }
+.dtm-main > h1 span { color:#495960; }
+.dtm-breadcrumb { display:flex; align-items:center; gap:8px; margin-bottom:36px; }
+.dtm-login { max-width:840px; min-height:430px; margin:4vh auto 0; text-align:center; padding:24px; }
+.dtm-login h2 { font-size:clamp(25px,3vw,40px); color:#283b45; }
+.dtm-login > p { margin:20px auto; }
+.dtm-login button { min-width:min(100%,340px); min-height:55px; margin:16px auto; background:#19775f; color:#fff; font-size:17px; }
+.dtm-google-g { display:inline-grid; place-items:center; width:25px; height:25px; background:#fff; border-radius:50%; color:#4285f4; font-weight:700; margin-right:8px; }
+.dtm-note { color:#66757a; font-size:14px; }
+.dtm-error { padding:12px; color:#a12323; background:#fff2f2; border:1px solid #f2cccc; }
+.dtm-sample { padding:12px 16px; border:1px solid #b5d8d0; background:#e9f6f2; color:#214d45; margin-bottom:20px; }
+.dtm-columns { display:grid; grid-template-columns:minmax(220px, .9fr) minmax(0, 2fr) minmax(220px, .9fr); gap:24px; align-items:start; }
+.dtm-card { background:#fff; border:1px solid #dfe6e8; box-shadow:0 2px 5px #1836420a; padding:16px 18px; margin-bottom:18px; }
+.dtm-card h2 { margin:-16px -18px 12px; background:#f8fafb; border-bottom:1px solid #e5e9eb; padding:14px 18px; font-size:20px; font-weight:500; }
+.dtm-card p { margin:8px 0; }
+.dtm-left .dtm-card a,.dtm-right .dtm-card a { display:block; margin:9px 0; }
+.dtm-tree { width:100%; display:flex; justify-content:space-between; align-items:center; padding:9px 0; border:0; background:transparent; color:var(--dtm-ink); font:inherit; text-align:left; cursor:pointer; }
+.dtm-left ul { padding-left:20px; margin:4px 0; }
+.dtm-left li { margin:7px 0; }
+.dtm-center { min-width:0; }
+.dtm-center h2 { font-size:clamp(27px,2.4vw,38px); font-weight:500; margin:10px 0 18px; color:#364650; }
+.dtm-center h3 { font-size:24px; font-weight:500; }
+.dtm-notices { list-style:none; padding:0; margin:0 0 30px; }
+.dtm-notices li,.dtm-materials article { display:flex; align-items:flex-start; gap:12px; padding:12px 4px; }
+.dtm-notices li svg,.dtm-materials svg { flex:none; color:#4c8ab3; }
+.dtm-notices span,.dtm-materials span { display:block; color:#5d6d76; font-size:14px; }
+.dtm-course-meta { color:var(--dtm-muted); }
+.dtm-center details { border:1px solid #dbe3e5; background:#fff; }
+.dtm-center summary { padding:15px; cursor:pointer; font-size:23px; }
+.dtm-course-link { display:flex; justify-content:space-between; padding:13px 20px; border-top:1px solid #e2e8ea; }
+.dtm-materials article { padding:18px; }
+.dtm-footer { display:flex; justify-content:space-between; gap:20px; padding:24px max(20px,3vw); background:#d2dfe0; color:#354b51; font-size:14px; }
+.dtm-loading { display:grid; min-height:60vh; place-items:center; background:#edf1f2; }
+@media(max-width:1100px) { .dtm-columns { grid-template-columns: minmax(220px,1fr) minmax(0,2fr); } .dtm-right { grid-column:1 / -1; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; } }
+@media(max-width:740px) { .dtm-top { flex-wrap:wrap; gap:8px 16px; } .dtm-top-account { width:100%; margin-left:0; } .dtm-language { margin-left:auto; } .dtm-columns,.dtm-right { display:block; } .dtm-main { padding-inline:16px; } .dtm-footer { flex-direction:column; } }

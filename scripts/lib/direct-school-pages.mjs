@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const reserved = /^\/(?:app|api|assets|site-pages|school-assets|school-pages|school-affairs|signin|signup|login|crm|student-sso|local-pages|campus-assistant|campus-directory|study)(?:\/|$)/;
+const reserved = /^\/(?:app|api|assets|site-pages|school-assets|school-pages|school-affairs|dtm|account-status|signin|signup|login|crm|student-sso|local-pages|campus-assistant|campus-directory|study)(?:\/|$)/;
 
 /** Exact local routes for the already captured public HTML; no runtime fetch. */
 export function directSchoolPages(root) {
@@ -24,7 +24,7 @@ export function directSchoolPages(root) {
 export function renderDirectSchoolPage(root, page) {
   const source = path.join(root, 'public', page.file.slice(1));
   const html = fs.readFileSync(source, 'utf8');
-  const notice = '<div class="stu-direct-notice" role="note">校園網站介面預覽（非官方）<br>不接收校務密碼 · <a href="/campus-directory">校園導覽</a></div>';
+  const notice = '<div class="stu-direct-notice" role="note">校園網站介面預覽（非官方）<br>不接收校務密碼 · <a href="/campus-directory">校園導覽</a>' + (page.route === '/' ? '<iframe class="stu-account-status" title="Google account sign-in status" src="/account-status"></iframe>' : '') + '</div>';
   const assistant = '<button type="button" class="stu-assistant-toggle" popovertarget="stu-assistant-panel" aria-label="開啟 AI 校園助理"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z"/></svg><span>校園助理</span></button><div id="stu-assistant-panel" class="stu-assistant-panel" popover="auto" role="dialog" aria-label="校園助理"><button type="button" class="stu-assistant-close" popovertarget="stu-assistant-panel" popovertargetaction="hide" aria-label="關閉校園助理">×</button><iframe class="stu-assistant-frame" title="校園助理對話" loading="lazy" src="/campus-assistant?embed=1"></iframe></div>';
   if (!/<body\b[^>]*>/i.test(html)) throw new Error(`Capture has no body: ${page.file}`);
   let output = html.replace(/<body\b[^>]*>/i, match => match + notice + assistant);

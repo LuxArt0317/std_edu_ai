@@ -1,5 +1,9 @@
 # Current client state
 
+## Issue #91: DTM preview and account context (release in progress)
+
+Client Supabase migration `20261105020000` is applied to `xiftudmvxphxcjtmfmib` (108 migrations, 118 public tables). DTM's three tables hold sample-only courses, materials and notices. A rolled-back two-Google test verified per-account course/material isolation, idempotent seeding and no anonymous DTM policies. Local browser checks pass guest redirect, Google-session reuse, course materials, landing status, old-link alias, desktop/tablet/phone layout and serious/critical accessibility. The assistant now receives DTM plus School Affairs account records after verified Google sign-in; Nexus and official Moodle data remain unconnected. Production publication and real Google callback acceptance are pending.
+
 ## Issue #84: homepage hero and header responsiveness (published and verified)
 
 The source capture froze the carousel at 1280px slides with a -5120px offset and froze the sticky header at 1280px. On wider screens, the next slide showed to the right while the logo/navigation stayed left. The client CSS now gives the active slide and header the viewport width and centers navigation. Runtime `09533964074e0350d971f6bb9defe81fc21b89f3` is Ready as Vercel `D8BVVRePVJ1dsFW776dWeXfKF5KT`; quality run `42022473591` succeeded. Live browser measurements at 3020px and 390px show the hero/header exactly viewport-wide, navigation centered, one slide visible and no horizontal scroll; the assistant remains present. Production entrance-card checks passed 120/120 at 12 widths and statistics passed 24/24 at six widths. Protected client/backend verification passed. The compiled preview passed 395 direct pages, ten entrances, the full mirror/assistant/recovery suite, 216 API/source tests, 30 units, build, lint, handoff and dependency audit.

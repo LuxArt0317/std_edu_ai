@@ -10,6 +10,7 @@ export type AffairsSnapshot = {
   announcements:Array<{id:string;title:string;body:string;publishedAt:string;sourceMode:string}>;
   tasks:Array<{id:string;title:string;dueAt:string|null;completedAt:string|null;sourceMode:string}>;
   requests:Array<{id:string;type:string;title:string;details:string;status:string;createdAt:string}>;
+  dtm:{sourceMode:'sample';courses:Array<{id:string;code:string;title:string;term:string;role:string;sourceMode:string;materials:Array<{id:string;title:string;kind:string;summary:string;position:number;sourceMode:string}>}>;notices:Array<{id:string;title:string;body:string;publishedAt:string;sourceMode:string}>};
   admin?:{profiles:Array<{user_id:string;email:string;display_name:string;role:string;created_at:string}>;requests:Array<{id:string;user_id:string;request_type:string;title:string;status:string;created_at:string}>};
 };
 

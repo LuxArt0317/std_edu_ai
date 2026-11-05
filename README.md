@@ -1,11 +1,12 @@
 # STU Edu AI
 
-Live portal: [School Affairs](https://stu.best/school-affairs) · [Nexus sign in](https://stu.best/signin) · [Dashboard](https://stu.best/app).
+Live portal: [School Affairs](https://stu.best/school-affairs) · [Digital Teaching Materials](https://stu.best/dtm) · [Nexus sign in](https://stu.best/signin) · [Dashboard](https://stu.best/app).
 
 A bilingual university website and authenticated school platform built with React, TypeScript, Vite, Supabase, and Vercel.
 
 - `/` — public university homepage, campus information, and research assistant.
 - `/school-affairs` — independent school service directory, Google site sign-in and campus assistant; [assistant scope](docs/qa/SCHOOL_AFFAIRS_ASSISTANT.md).
+- `/dtm` — local Digital Teaching Materials preview using the same Google session and account-scoped sample courses; [DTM scope](src/features/public/dtm/README.md).
 - `/signin` — sign in and password recovery.
 - `/signup` — public student registration with email verification.
 - `/login` and `/crm` — compatibility redirects.

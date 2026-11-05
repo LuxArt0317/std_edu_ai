@@ -72,6 +72,8 @@ export function localSchoolHref(
         : "/school-affairs") + hash
     );
   if (url.hostname === "sso2.stu.edu.tw") return "/student-sso";
+  if (url.hostname === "dtm.stu.edu.tw" && (path === "/" || path.toLowerCase() === "/login/index.php"))
+    return (path === "/" ? "/dtm" : "/dtm/login") + hash;
   if (url.hostname === "www.stu.edu.tw") {
     const reserved =
       /^\/(?:app|crm|login|signin|signup|auth|study|api|assets|school-assets|school-pages|students|student-sso|school-affairs|admissions|freshman|international|alumni-association|local-pages|school-sites)(?:\/|$)/i.test(
