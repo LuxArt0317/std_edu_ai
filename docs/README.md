@@ -18,6 +18,7 @@
 
 ## Engineering and QA
 
+- [Latest cross-system client QA](qa/CLIENT_QA_2026-11-06.md)
 - [Frontend architecture and components](reference/FRONTEND.md)
 - [API, database and Edge Functions](reference/BACKEND.md)
 - [Tooling and verification commands](reference/TOOLING.md)

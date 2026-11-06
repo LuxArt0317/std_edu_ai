@@ -1,5 +1,13 @@
 # Findings
 
+## Issue #96 — whole-client QA audit
+
+Audit the client copy and production separately from the original repository. Treat existing test successes as a starting point, then check live routes, complete workflows, account boundaries and cleanup. Distinguish a reproduced defect from an unavailable institutional integration or unrun human acceptance. Use retried browser assertions for asynchronous behavior; W3C WCAG 2.2 reflow, contrast and keyboard criteria guide the accessibility pass. Rank fixes by user impact and verify the final deployed bundle.
+
+The browser audit exposed four actionable client defects: owner menu focus masking navigation, mobile Knowledge row overlap, missing signup discovery, and an Assistant conversation race. The history race is caused by an earlier `loadChatMessages` result replacing an optimistic message after send; wait for the selected thread's history and keep rendered rows scoped to that thread. CI also lacked the direct copied-page browser suite. A later support test failure came from the machine running out of space while Playwright saved its trace; its workflow assertions and isolated rerun passed, so classify that failure as an environment limit rather than an app defect.
+
+The connected live assistant caught a fifth defect: the personal-question regex accepted plural “classes” but not singular “class”. “My app class” therefore triggered a public search instead of a verified account-context answer and missed a seeded private announcement. Match both forms at the shared scope gate and verify the exact question before and after deployment.
+
 ## Issue #95 — assistant conversation activity
 
 The public chat currently keeps streamed progress in a standalone `busy` panel. It disappears when the answer arrives, and the answer's own activity can omit steps seen in the stream. Messages are component state and reset on navigation or refresh. Keep observable source/tool stages with the corresponding answer, restore a bounded transcript only within the same browser tab and identity, and clear it on sign-out or New chat. Do not display private model chain of thought; show actual lookup stages and linked sources. Do not persist attached image bytes, feedback capabilities, authentication tokens or unconfirmed actions.

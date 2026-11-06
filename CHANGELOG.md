@@ -1,6 +1,15 @@
 # Changelog
 ## Unreleased
 
+### Client quality audit and repairs (Issue #96)
+
+- Close the owner account menu before switching between knowledge management and the full workspace so modal focus does not hide navigation.
+- Keep Knowledge document titles and status badges readable within phone-width screens, and expose student signup from Nexus sign-in.
+- Prevent a slow conversation-history response from erasing a newly sent Assistant message; wait for the selected thread before sending and keep other threads' messages out of view.
+- Route personal questions about a single class to verified account records instead of public web search; cover the reported class-announcement phrasing in the source tests.
+- Update browser regressions for embedded public chat and current routes, assert owner-menu dismissal and mobile document separation, and run copied school-page checks in CI against the production build.
+- Record cross-system QA results and the external school, mail, account-holder and human acceptance gates separately.
+
 ### Persistent assistant activity (Issue #95)
 
 - Keep streamed account, knowledge, web and image checks with the answer they produced, including failed or interrupted turns; show an expandable timeline and source links in the chat.

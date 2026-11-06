@@ -229,7 +229,10 @@ export function SchoolAssistant({
     }
     return mostRecentThreadId();
   });
+  const [loadedThreadId, setLoadedThreadId] = useState("");
+  const historyReady = !threadId || loadedThreadId === threadId;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const messageVersionRef = useRef(0);
   const creatingThreadRef = useRef("");
   const skipHistoryLoadRef = useRef("");
   const [message, setMessage] = useState("");
@@ -347,11 +350,20 @@ export function SchoolAssistant({
     if (!threadId) { setMessages([]); return; }
     // New threads are empty: loading their history can race the first send and
     // replace the optimistic message with an earlier empty response.
-    if (skipHistoryLoadRef.current === threadId) { skipHistoryLoadRef.current = ""; return; }
+    if (skipHistoryLoadRef.current === threadId) { skipHistoryLoadRef.current = ""; setLoadedThreadId(threadId); return; }
     let current = true;
+    const version = messageVersionRef.current;
     void loadChatMessages(threadId)
-      .then(items => { if (current) setMessages(items); })
-      .catch((reason: unknown) => { if (current) setError(reason instanceof Error ? reason.message : "Conversation history is unavailable."); });
+      .then(items => {
+        if (!current) return;
+        setMessages(previous => messageVersionRef.current === version ? items : previous.filter(item => item.threadId === threadId));
+        setLoadedThreadId(threadId);
+      })
+      .catch((reason: unknown) => {
+        if (!current) return;
+        setError(reason instanceof Error ? reason.message : "Conversation history is unavailable.");
+        setLoadedThreadId(threadId);
+      });
     return () => { current = false; };
   }, [threadId]);
 
@@ -369,6 +381,7 @@ export function SchoolAssistant({
       attachments: [],
       createdAt: new Date().toISOString(),
     };
+    messageVersionRef.current += 1;
     setMessages((current) => [...current, item]);
     void appendChatMessage(activeThread, "assistant", content, citations);
   }
@@ -669,6 +682,7 @@ export function SchoolAssistant({
 
   async function send(event: FormEvent) {
     event.preventDefault();
+    if (!historyReady) return;
     const prompt =
       message.trim() ||
       (composerAttachments.length
@@ -687,6 +701,7 @@ export function SchoolAssistant({
         activeThread = created.id;
         creatingThreadRef.current = created.id;
         skipHistoryLoadRef.current = created.id;
+        setLoadedThreadId(created.id);
         setThreadId(created.id);
         onDataChanged();
       }
@@ -705,6 +720,7 @@ export function SchoolAssistant({
         attachments: persistedAttachments,
         createdAt: new Date().toISOString(),
       };
+      messageVersionRef.current += 1;
       setMessages((current) => [...current, userMessage]);
       try {
         await appendChatMessage(
@@ -875,6 +891,7 @@ export function SchoolAssistant({
       attachments: [],
       createdAt: new Date().toISOString(),
     };
+    messageVersionRef.current += 1;
     setMessages((current) => [...current, userMessage]);
     try {
       await appendChatMessage(threadId, "user", answer);
@@ -992,6 +1009,7 @@ export function SchoolAssistant({
       attachments: [],
       createdAt: new Date().toISOString(),
     };
+    messageVersionRef.current += 1;
     setMessages((current) => [...current, userMessage]);
     try {
       await appendChatMessage(threadId, "user", userMessage.content);
@@ -1196,6 +1214,7 @@ export function SchoolAssistant({
       onNavigate(action.destination);
       void recordSchoolAgentAction(action.type, "success");
       const confirmation = `Done - I opened ${navMeta[action.destination].label}.`;
+      messageVersionRef.current += 1;
       setMessages((current) => [
         ...current,
         {
@@ -1636,6 +1655,7 @@ export function SchoolAssistant({
       await recordSchoolAgentAction(action.type, "success");
       const confirmation =
         "Done - the confirmed change is saved and your workspace is refreshing.";
+      messageVersionRef.current += 1;
       setMessages((current) => [
         ...current,
         {
@@ -1845,8 +1865,10 @@ export function SchoolAssistant({
               96;
           }}
         >
-          {messages.length ? (
-            messages.map((item) => (
+          {!historyReady ? (
+            <p className="chat-welcome" role="status">Loading conversation…</p>
+          ) : messages.some(item => item.threadId === threadId) ? (
+            messages.filter(item => item.threadId === threadId).map((item) => (
               <Card key={item.id} className={`nexus-chat-message ${item.role} flex-row items-start gap-3 rounded-none border-0 bg-transparent p-0 shadow-none`}>
                 {item.role === "assistant" ? (
                   <NexusAvatar />
@@ -2299,7 +2321,7 @@ export function SchoolAssistant({
             />
             <Button
               type="submit"
-              disabled={!message.trim() && !composerAttachments.length}
+              disabled={!historyReady || (!message.trim() && !composerAttachments.length)}
             >
               {loading || pendingAction ? "Queue →" : "Send →"}
             </Button>

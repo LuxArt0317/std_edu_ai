@@ -151,6 +151,10 @@
   .school-home-grid .next-events > div { grid-template-columns: 110px minmax(0,1fr); gap: 14px; }
   .school-home-grid :is(b,strong) { font-size: 13px; font-weight: 500; color: var(--foreground); }
   .school-empty, .governance-empty, .academic-empty { padding: 24px 16px; font-size: 13px; color: var(--muted-foreground); background: transparent; }
+  .governance-layout, .governance-documents { min-width: 0; }
+  .governance-documents > button { width: 100%; min-width: 0; height: auto; align-items: flex-start; white-space: normal; }
+  .governance-documents > button > div { min-width: 0; max-width: 100%; }
+  .governance-documents > button :is(strong,span,small,i) { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
   .school-shell .academic-tabs, .school-shell .lms-tabbar { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 0 10px; margin-bottom: 18px; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; }
   .school-shell .academic-tabs button, .school-shell .lms-tabbar button { color: var(--muted-foreground); border: 0; background: transparent; box-shadow: none; font-weight: 500; }
   .school-shell .academic-tabs button.active, .school-shell .lms-tabbar button.active, .school-shell [data-slot="tabs-trigger"][data-state="active"] { color: var(--primary); background: var(--accent); box-shadow: none; }

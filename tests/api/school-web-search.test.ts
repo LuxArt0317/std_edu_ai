@@ -8,13 +8,14 @@ function payload(source=url, cited=source, answer='The registrar contact page pr
  return {output:[{type:'web_search_call',status:'completed',action:{type:'search',sources:[{url:source,title:'Registrar contacts'}]}},{type:'message',content:[{type:'output_text',text:JSON.stringify({status:'answered',answer,source_urls:[cited]}),annotations:[{type:'url_citation',url:source,title:'Registrar contacts'}]}]}]};
 }
 test('school scope supports bilingual campus information but excludes private records and unrelated code',()=>{
- for(const q of ['What are my current subjects?','What is my IM101 class grade?','Tell me Student A grades','What is their attendance?','我的期中成績？','What is my GPA?','My announcements','Password: abc123','Please find student.qa@gmail.com'])assert.equal(questionKind(q).personal,true,q);
+ for(const q of ['What are my current subjects?','What is my IM101 class grade?','What does the latest announcement for my app class tell me to bring and where?','What is my class announcement?','Tell me Student A grades','What is their attendance?','我的期中成績？','What is my GPA?','My announcements','Password: abc123','Please find student.qa@gmail.com'])assert.equal(questionKind(q).personal,true,q);
  assert.equal(questionKind('Write a Python script to scrape a shop').irrelevant,true);
  assert.equal(questionKind('Does STU offer Python programming courses?').irrelevant,false);
  assert.equal(questionKind('What is the course code?').irrelevant,false);
  assert.equal(questionKind('有哪些最新公告？').fresh,true);
  assert.equal(questionKind('你好').greeting,true);
  assert.equal(publicSchoolQuestion('My grades?'),null);
+ assert.equal(publicSchoolQuestion('What does the latest announcement for my app class tell me to bring and where?'),null);
  const follow=publicSchoolQuestion('And the phone number?',[{role:'user',content:'My grades are 72'},{role:'assistant',content:'Private profile record 12345'},{role:'user',content:'Where is the registrar at STU?'}]);
  assert.match(follow!,/registrar/);assert.doesNotMatch(follow!,/72|12345|Private/);
  assert.equal(publicSchoolQuestion('What are their grades?'),null);

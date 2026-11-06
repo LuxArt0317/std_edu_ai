@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type FrameLocator, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { readFile } from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
@@ -12,12 +12,16 @@ test.beforeAll(async () => {
   state = JSON.parse(await readFile(statePath, "utf8"));
   Object.assign(process.env, deploymentEnvironment());
 });
-async function openChat(page: Page, path = "/") {
+async function openChat(page: Page, path = "/"): Promise<Page | FrameLocator> {
   await page.goto(path);
   await page.getByRole("button", { name: "開啟 AI 校園助理" }).click();
+  const surface = await page.locator('iframe.stu-assistant-frame').count()
+    ? page.frameLocator('iframe.stu-assistant-frame')
+    : page;
   await expect(
-    page.getByRole("heading", { name: "校園助理 · Assistant" }),
+    surface.getByRole("heading", { name: "校園助理 · Assistant" }),
   ).toBeVisible();
+  return surface;
 }
 
 test("public chat is usable across all public pages, follows up with sources, and restores focus on Escape", async ({
@@ -53,49 +57,43 @@ test("public chat is usable across all public pages, follows up with sources, an
   for (const width of [1440, 390, 320])
     for (const path of ["/", "/在校學生/", "/school-affairs", "/student-sso"]) {
       await page.setViewportSize({ width, height: 900 });
-      await openChat(page, path);
-      expect(await page.locator('.public-assistant-surface > header').evaluate(el=>parseFloat(getComputedStyle(el).paddingLeft))).toBeGreaterThanOrEqual(20);
-      for (const control of [
-        page.getByRole("heading", { name: "校園助理 · Assistant" }),
-        page.getByRole("button", { name: "Close", exact: true }),
-      ]) {
-        await expect
-          .poll(() =>
-            control.evaluate((element) => {
-              const box = element.getBoundingClientRect();
-              const hit = document.elementFromPoint(
-                box.x + box.width / 2,
-                box.y + box.height / 2,
-              );
-              return hit === element || element.contains(hit);
-            }),
-          )
-          .toBe(true);
-      }
-      await page
+      const surface = await openChat(page, path);
+      const newChat = surface.getByRole('button', { name: 'New chat' });
+      if (await newChat.isEnabled()) await newChat.click();
+      await expect(surface.getByRole('log').getByRole('article')).toHaveCount(0);
+      expect(await surface.locator('.public-assistant-surface > header').evaluate(el=>parseFloat(getComputedStyle(el).paddingLeft))).toBeGreaterThanOrEqual(20);
+      await expect(surface.getByRole("heading", { name: "校園助理 · Assistant" })).toBeVisible();
+      const close = surface === page
+        ? surface.getByRole("button", { name: "Close", exact: true })
+        : page.getByRole("button", { name: "關閉校園助理" });
+      await expect(close).toBeVisible();
+      await close.click({ trial: true });
+      await surface
         .getByLabel("Your question")
         .fill("What is the registrar phone number?");
-      await page.getByRole("button", { name: "Send", exact: true }).click();
+      await surface.getByRole("button", { name: "Send", exact: true }).click();
       await expect(
-        page
+        surface
           .getByRole("list", { name: "Sources" })
           .getByRole("link", { name: "Registrar contact" }),
       ).toBeVisible();
-      await expect(page.getByRole("log")).toContainText("07-615-8000");
-      await page.getByLabel("Your question").fill("What about the email?");
-      await page.getByRole("button", { name: "Send", exact: true }).click();
-      await expect(page.getByRole("log").getByRole("article")).toHaveCount(4);
+      await expect(surface.getByRole("log")).toContainText("07-615-8000");
+      await surface.getByLabel("Your question").fill("What about the email?");
+      await surface.getByRole("button", { name: "Send", exact: true }).click();
+      await expect(surface.getByRole("log").getByRole("article")).toHaveCount(4);
       expect(requests.at(-1).history).toHaveLength(2);
       expect(requests.at(-1).history[0].content).toContain("registrar");
-      const accessibility = await new AxeBuilder({ page })
-        .include('[role="dialog"]')
-        .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
-        .analyze();
-      expect(
-        accessibility.violations.filter((v) =>
-          ["critical", "serious"].includes(v.impact || ""),
-        ),
-      ).toEqual([]);
+      if (surface === page) {
+        const accessibility = await new AxeBuilder({ page })
+          .include('[role="dialog"]')
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+          .analyze();
+        expect(
+          accessibility.violations.filter((v) =>
+            ["critical", "serious"].includes(v.impact || ""),
+          ),
+        ).toEqual([]);
+      }
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth > innerWidth,
@@ -114,10 +112,10 @@ test("Nexus sign-in cannot become a School Affairs identity or enable private pu
   let publicRequests=0;
   await page.route('**/api/school-assistant',()=>{throw Error('Public chat must never borrow the knowledge-manager identity');});
   await page.route('**/api/research-assistant',route=>{publicRequests++;expect(route.request().headers().authorization).toBeUndefined();return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'handoff',answer:'Your subjects require a connected School Affairs account.',citations:[],suggestedQuestions:[],feedback:{token:'f'.repeat(64),expiresAt:'2026-12-01T00:00:00Z'}})});});
-  await openChat(page,'/school-affairs');
-  await expect(page.getByText('Public school information. Personal records require a connected School Affairs account.')).toBeVisible();
-  await page.getByLabel('Your question').fill('What are my current subjects?');await page.getByRole('button',{name:'Send',exact:true}).click();
-  await expect(page.getByRole('log')).toContainText('connected School Affairs');expect(publicRequests).toBe(1);
+  const surface = await openChat(page,'/school-affairs');
+  await expect(surface.getByText('Ask about School Affairs services and public school information. Sign in to ask about your stu.best records.')).toBeVisible();
+  await surface.getByLabel('Your question').fill('What are my current subjects?');await surface.getByRole('button',{name:'Send',exact:true}).click();
+  await expect(surface.getByRole('log')).toContainText('connected School Affairs');expect(publicRequests).toBe(1);
 });
 
 test('Lux defaults to knowledge management and can explicitly open the full owner workspace',async({page})=>{

@@ -11,7 +11,13 @@ async function login(page: Page, role: string) {
   if (!session) throw new Error('A verified browser session is required.')
   await page.addInitScript(session => localStorage.setItem('stu-nexus-auth', JSON.stringify(session)), session)
   await page.goto('/app')
-  if(role==='owner'){await page.getByRole('button',{name:'Account menu'}).click();await page.getByRole('menuitem',{name:'Open full workspace',exact:true}).click();await expect(page.getByRole('navigation',{name:'School navigation'}).getByRole('button',{name:'Academics',exact:true})).toBeVisible();}
+  if(role==='owner'){
+    if ((page.viewportSize()?.width ?? 1440) < 768) await page.getByRole('button',{name:'Open navigation'}).click()
+    await page.getByRole('button',{name:'Account menu'}).click()
+    await page.getByRole('menuitem',{name:'Open full workspace',exact:true}).click()
+    await expect(page).toHaveURL(/\/app$/)
+    await expect(page.getByRole('menu')).toHaveCount(0)
+  }
   await expect(page.locator('.school-content')).toBeVisible({ timeout: 45000 })
 }
 async function roleClient(role: string) { return clientForRole(state, role) }
@@ -386,7 +392,7 @@ test('school URLs protect direct links and preserve history and legacy navigatio
   await page.goto('/signin?next=%2Fapp%2Fcalendar')
   await expect(page).toHaveURL(/\/app\/calendar$/)
   await page.goto('/crm')
-  await expect(page).toHaveURL(/\/app$/)
+  await expect(page).toHaveURL(/\/app\/knowledge$/)
   await page.goto('/app/missing')
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible()
 })
@@ -645,6 +651,12 @@ test('mobile service activity stays contained and scrolls from the keyboard', as
   const table=page.getByRole('table',{name:'Service activity for the last 24 hours'})
   await expect(table).toBeVisible()
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+  const documentOverlap = await page.locator('.governance-documents > button').evaluateAll(rows => rows.filter(row => {
+    const title = row.querySelector('strong')?.getBoundingClientRect()
+    const status = row.querySelector('i')?.getBoundingClientRect()
+    return title && status && title.bottom > status.top + 1
+  }).map(row => row.textContent?.trim()))
+  expect(documentOverlap).toEqual([])
   await table.focus()
   await page.keyboard.press('ArrowRight')
   await expect.poll(()=>table.locator('..').evaluate(el=>el.scrollLeft)).toBeGreaterThan(0)
@@ -654,23 +666,49 @@ test('mobile service activity stays contained and scrolls from the keyboard', as
 
 test('first Assistant message persists and formatted history returns after reload', async ({ page }) => {
   await page.route('**/api/school-assistant', route => route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ answer:'## Next steps\n\n- **Read** the lesson.\n- Ask your teacher.', suggestedActions:[], citations:[], proposedAction:null, source:'openai' }) }))
+  const faculty = await roleClient('faculty')
+  const seeded = await faculty.from('chat_threads').insert({ owner_id: state.users.faculty.id, title: state.marker + ' history race' }).select('id').single()
+  expect(seeded.error).toBeNull()
+  const earlier = 'Earlier conversation message'
+  expect((await faculty.from('chat_messages').insert({ thread_id: seeded.data.id, author_role: 'user', content: earlier, citations: [], attachments: [] })).error).toBeNull()
+  await page.addInitScript(([userId, selectedThread]: [string, string]) => localStorage.setItem('stu-nexus:last-thread:' + userId, selectedThread), [state.users.faculty.id, seeded.data.id])
+  let historyRequested = false
+  let releaseHistory!: () => void
+  const historyHold = new Promise<void>(resolve => { releaseHistory = resolve })
+  await page.route('**/rest/v1/chat_messages?*', async route => {
+    if (route.request().method() === 'GET' && !historyRequested) {
+      historyRequested = true
+      await historyHold
+    }
+    await route.continue()
+  })
   await login(page, 'faculty')
   await page.locator('[data-assistant-launcher]').click()
   const panel = page.getByRole('complementary', {name:'Assistant',exact:true})
+  try {
+  await expect.poll(() => historyRequested).toBe(true)
   await panel.getByRole('button',{name:/^Ask/}).click()
   const question = `${state.marker} first conversation question`
   await panel.getByRole('textbox',{name:'Message',exact:true}).fill(question)
-  await panel.getByRole('button',{name:/^Send/}).click()
+  const send = panel.getByRole('button',{name:/^Send/})
+  await expect(send).toBeDisabled()
+  releaseHistory()
+  await expect(send).toBeEnabled()
+  await expect(panel.locator('.nexus-chat-message.user p')).toContainText([earlier])
+  await send.click()
   await expect(panel.locator('.nexus-message-markdown strong')).toHaveText('Read')
   await expect(panel.locator('.nexus-message-markdown li')).toHaveCount(2)
-  await expect(panel.locator('.nexus-chat-message.user p')).toHaveText(question)
+  await expect(panel.locator('.nexus-chat-message.user p').last()).toHaveText(question)
   await expect(panel.locator('.chat-thread-bar select')).not.toHaveValue('')
   await page.reload()
   await expect(page.locator('.school-content')).toBeVisible()
   await page.locator('[data-assistant-launcher]').click()
-  await expect(panel.locator('.nexus-chat-message.user p')).toHaveText(question)
+  await expect(panel.locator('.nexus-chat-message.user p').last()).toHaveText(question)
   await expect(panel.locator('.nexus-message-markdown strong')).toHaveText('Read')
   await expect(panel.locator('.nexus-message-markdown li')).toHaveCount(2)
+  } finally {
+    releaseHistory()
+  }
 })
 
 test('private role guides play with captions and deny anonymous, suspended and write access', async ({page}) => {

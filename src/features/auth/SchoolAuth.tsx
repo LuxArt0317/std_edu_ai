@@ -619,6 +619,12 @@ function SchoolAuth() {
             Open School Affairs
           </a>
         </p>
+        <p className="mt-2 text-sm">
+          Need a Nexus student account?{" "}
+          <a className="font-medium text-primary underline" href="/signup">
+            Create an account
+          </a>
+        </p>
       </section>
     </main>
   );

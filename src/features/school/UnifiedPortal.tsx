@@ -154,6 +154,7 @@ function UnifiedPortal({
     currentUser.role,
   );
   const [knowledgeWorkspace, setKnowledgeWorkspace] = useState(() => currentUser.isOwner && ['/app','/app/knowledge'].includes(location.pathname));
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [, setAssistantActivity] =
@@ -260,7 +261,7 @@ function UnifiedPortal({
             assessmentCount={data.assessments.length}
           />
           <SidebarFooter className="border-t p-2">
-            <DropdownMenu>
+            <DropdownMenu open={accountMenuOpen} onOpenChange={setAccountMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="account-menu w-full justify-start">
                   <span className="sr-only">Account menu</span>
@@ -276,7 +277,7 @@ function UnifiedPortal({
                   <DropdownMenuSubTrigger><SunMoon className="size-4" />Appearance</DropdownMenuSubTrigger>
                   <DropdownMenuSubContent><DropdownMenuRadioGroup value={theme ?? "system"} onValueChange={setTheme}>{["light", "dark", "system"].map(mode => <DropdownMenuRadioItem key={mode} value={mode}>{mode[0].toUpperCase()+mode.slice(1)}</DropdownMenuRadioItem>)}</DropdownMenuRadioGroup></DropdownMenuSubContent>
                 </DropdownMenuSub>
-                {currentUser.isOwner ? <DropdownMenuItem onSelect={()=>{setKnowledgeWorkspace(!knowledgeWorkspace);navigate(knowledgeWorkspace?'/app':'/app/knowledge');}}>{knowledgeWorkspace ? 'Open full workspace' : 'Open knowledge manager'}</DropdownMenuItem> : null}
+                {currentUser.isOwner ? <DropdownMenuItem onSelect={()=>{setAccountMenuOpen(false);setKnowledgeWorkspace(!knowledgeWorkspace);navigate(knowledgeWorkspace?'/app':'/app/knowledge');}}>{knowledgeWorkspace ? 'Open full workspace' : 'Open knowledge manager'}</DropdownMenuItem> : null}
                 {currentUser.isOwner && !knowledgeWorkspace ? <DropdownMenuSub>
                   <DropdownMenuSubTrigger><Eye className="size-4" />Preview role</DropdownMenuSubTrigger>
                   <DropdownMenuSubContent className="max-h-96 overflow-y-auto"><DropdownMenuRadioGroup value={previewRole} onValueChange={value => setPreviewRole(value as PlatformRole)}>{data.roles.map(role => <DropdownMenuRadioItem key={role.code} value={role.code}>{roleNames[role.code]}</DropdownMenuRadioItem>)}</DropdownMenuRadioGroup></DropdownMenuSubContent>
