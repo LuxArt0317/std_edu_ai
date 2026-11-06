@@ -1,5 +1,7 @@
 # Progress
 
+- 2026-11-06 [Issue #93]: Inspected the official signed-in DTM homepage read-only and compared its sections with stu.best. Reproduced the assistant's account/capability routing failure. Added private-path fixes, dated DTM reference catalog, three-column UI, QA matrix and docs. Local 223 API/source, 30 unit, focused account API, DTM UI at 1440/768/390 with zero serious accessibility findings, build, lint, handoff, zero-vulnerability audit and protected client checks pass. Official personal Moodle data remains unconnected; release verification follows.
+
 - 2026-11-05 [#92]: Read the user's agent-chat example and current OpenAI tool guidance, then traced the client assistant's actual retrieval flow. Added bounded SSE progress/result events for public and verified-account lookups, a browser stream reader and live chat timeline. Focused API tests pass for directory/account events and split/incomplete frames; desktop/phone browser fixture shows progress then answer without overflow or page errors. Release gates and publication remain pending.
 - 2026-11-05 [#92]: Published source `aa4e6ed` to client main; Vercel FNnHHpYFy7DspxXkQ9Ee2taSrwNd Ready and quality42050840663 passed. Live public SSE produced two progress events and a result; unsigned account stream returned401. Live desktop/phone answers rendered without page errors or overflow. Local 223 API/source, 30 units, ten public accessibility states, public/School Affairs browser flows, build, lint, handoff, dependency audit and protected client checks passed.
 

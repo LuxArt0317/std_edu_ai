@@ -10,7 +10,9 @@ export const config = {maxDuration:60};
 const requestWindows = new Map<string,number[]>();
 function value(input:string|string[]|undefined) {return Array.isArray(input)?input[0]:input;}
 function personal(question:string) {
-  return questionKind(question).personal || /\b(?:my|mine|me|i|our)\b.{0,75}\b(?:subjects?|courses?|classes?|grades?|schedule|timetable|attendance|fees?|payments?|balance|announcements?|notices?|account|email|student|program|major|department|tasks?|requests?|record|profile|materials?|moodle|dtm)\b|\b(?:dtm|moodle|materials?)\b.{0,60}\b(?:i|my|mine)\b|\b(?:who am i|signed in as|add (?:a )?task|create (?:a )?task|remind me|complete (?:my |the )?task|submit (?:a )?request|publish (?:an? )?announcement)\b|我的.{0,20}(?:課程|科目|成績|課表|出席|學號|帳號|公告|科系|系所|任務|待辦|申請|費用|教材)|我.{0,20}教材|(?:新增|建立|完成|提交|發布).{0,25}(?:任務|待辦|申請|公告)/i.test(question);
+  // A signed-in question mentioning the caller or this assistant's account tools
+  // must never be downgraded to public search just because the noun is novel.
+  return questionKind(question).personal || /\b(?:my|mine|me|i|our)\b|\b(?:what (?:details|information|data|records?) do you (?:know|have) about me|what (?:tools|actions|account (?:tools|actions)) (?:do you have|can you (?:use|do)))\b|\b(?:signed in as|add (?:a )?task|create (?:a )?task|remind me|complete (?:my |the )?task|submit (?:a )?request|publish (?:an? )?announcement)\b|我(?:的|是|能)|關於我|(?:新增|建立|完成|提交|發布).{0,25}(?:任務|待辦|申請|公告)/i.test(question);
 }
 
 export default async function handler(request:ApiRequest,response:ApiResponse) {

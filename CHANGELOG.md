@@ -1,6 +1,13 @@
 # Changelog
 ## Unreleased
 
+### School Affairs assistant and DTM homepage fidelity (Issue #93)
+
+- Keep signed-in account and assistant-capability questions on the private, token-verified School Affairs path; answer reported profile and capability prompts from account-scoped records instead of sending them to public search.
+- State clearly that official Moodle assignments, submissions, grades and notifications are not connected to stu.best.
+- Rebuild the DTM overview with the official page's three-column structure, dated public announcement/category references, navigation, quick links and contacts while preserving account-scoped sample courses.
+- Add an AI behavior acceptance matrix and DTM content, search, responsive and accessibility checks.
+
 ### School Affairs sign-in from public assistant (Issue #83)
 
 - Open School Affairs sign-in outside the embedded campus assistant so Google OAuth starts in the full page.

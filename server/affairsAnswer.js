@@ -11,6 +11,16 @@ export function fallbackPrivateAnswer(question,snapshot) {
   const courses=snapshot.courses;
   const dtm=snapshot.dtm || {courses:[],notices:[]};
   const prefix='These are stu.best sample records, not verified university data. ';
+  if (/\b(?:moodle|dtm|digital teaching)\b.{0,55}\b(?:assignments?|submissions?|grades?|notifications?)\b|\b(?:assignments?|submissions?|grades?|notifications?)\b.{0,55}\b(?:moodle|dtm)\b|(?:數位教材|教材網).{0,15}(?:作業|提交|成績|通知)/i.test(q))
+    return prefix+'Official Moodle assignments, submissions, grades and account notifications are not connected to stu.best. I can read your DTM preview courses and materials, but cannot verify those official details. Open the official DTM account to check them.';
+  if (/\b(?:what (?:tools|actions|capabilities) (?:do you have|can you (?:use|do))|what can you do)\b|你(?:可以|能)(?:做什麼|幫什麼)|你有什麼功能/i.test(q))
+    return prefix+'I can answer questions about your School Affairs profile, subjects, timetable, released practice grades, attendance, charges, notices, tasks and requests, plus your DTM preview courses and materials. I can also research public university information. In stu.best I can prepare a task or service request for your confirmation; authorized admins can prepare an announcement. I cannot access or change official university records or your Google inbox.';
+  if (/\b(?:what (?:are )?(?:all )?(?:my |the )?(?:school |account |personal )?details|what (?:details|information|data|records?) do you (?:know|have) about me|what do you know about me|tell me about my (?:school|account|profile))\b|我的.{0,12}(?:資料|資訊|詳情)|關於我/i.test(q)) {
+    const studentLine=student?`Sample student number ${student.studentNumber}; program ${student.program||'not recorded'}; year ${student.yearLevel}.`:'No sample student record is linked.';
+    const courseLine=courses.length?`School Affairs subjects: ${courses.map(row=>`${row.code} ${row.title}`).join(', ')}.`:'No School Affairs subjects are linked.';
+    const dtmLine=dtm.courses.length?`DTM preview courses: ${dtm.courses.map(row=>`${row.code} ${row.title}`).join(', ')}.`:'No DTM preview courses are linked.';
+    return `${prefix}Signed in as ${snapshot.profile.displayName} (${snapshot.profile.email}); stu.best role: ${snapshot.profile.role}. ${studentLine} ${courseLine} ${dtmLine} Your workspace also contains ${snapshot.charges.length} charge item(s), ${snapshot.tasks.length} task(s), and ${snapshot.requests.length} request(s). Ask for a specific item to see its details.`;
+  }
   if (/dtm|digital teaching|moodle|數位教材|教材網|教材|教學資料/i.test(q)) {
     if (/公告|announcement|notice/i.test(q)) return prefix+(dtm.notices.length?`DTM preview notices: ${dtm.notices.map(row=>row.title).join('; ')}.`:'No DTM notices are available.');
     return prefix+(dtm.courses.length?`Your DTM preview courses are ${dtm.courses.map(row=>`${row.code} ${row.title} (${row.term}); materials: ${row.materials.map(item=>item.title).join(', ')}`).join('; ')}.`:'No DTM preview courses are linked to this account.');
@@ -67,8 +77,9 @@ function fallbackProposal(question,snapshot) {
 
 export async function answerPrivateAffairsQuestion(question,snapshot,history=[]) {
   let answer=fallbackPrivateAnswer(question,snapshot),proposedAction=fallbackProposal(question,snapshot),modelUsed=false;
+  const deterministic=/\b(?:what (?:tools|actions|capabilities) (?:do you have|can you (?:use|do))|what can you do|what (?:are )?(?:all )?(?:my |the )?(?:school |account |personal )?details|what (?:details|information|data|records?) do you (?:know|have) about me|what do you know about me|tell me about my (?:school|account|profile))\b|你(?:可以|能)(?:做什麼|幫什麼)|你有什麼功能|我的.{0,12}(?:資料|資訊|詳情)|關於我|\b(?:moodle|dtm|digital teaching)\b.{0,55}\b(?:assignments?|submissions?|grades?|notifications?)\b|\b(?:assignments?|submissions?|grades?|notifications?)\b.{0,55}\b(?:moodle|dtm)\b|(?:數位教材|教材網).{0,15}(?:作業|提交|成績|通知)/i.test(question);
   const apiKey=process.env.OPENAI_API_KEY;
-  if (apiKey) {
+  if (apiKey && !deterministic) {
     try {
       const response=await fetch('https://api.openai.com/v1/responses',{
         method:'POST',signal:AbortSignal.timeout(32000),

@@ -1,5 +1,9 @@
 # Client handoff
 
+## Issue #93 — DTM and account assistant update (local verification)
+
+The official DTM homepage was inspected in an authenticated browser on 2026-11-06 for layout and public-facing navigation only. The local `/dtm` overview now reflects the three-column Moodle structure and includes dated announcement titles, category counts, quick links and contacts. School Affairs and DTM sample records remain account-scoped to the stu.best Google session. Signed-in questions about account details and available tools no longer fall through to anonymous public search; official Moodle assignments, submissions, grades and notifications are explicitly unavailable without an authorized integration. See [acceptance criteria](../qa/DTM_ASSISTANT_ACCEPTANCE.md) and the [DTM guide](../../src/features/public/dtm/README.md). No database schema or provider settings changed. Live release status is recorded in the plan/state after deployment.
+
 ## Current release — Issue #92 live assistant activity
 
 The campus assistant now reports actual server lookup activity while a question runs, including public source and verified Google-account checks. The final answer still waits for citation validation; action confirmation and public/private separation are unchanged. Source `aa4e6edd23629d3d9f603ea11d9b8c45bd669584` is [Vercel FNnHHpYFy7DspxXkQ9Ee2taSrwNd](https://vercel.com/v1-d286/std_edu_ai/FNnHHpYFy7DspxXkQ9Ee2taSrwNd) Ready, and [quality run 42050840663](https://github.com/LuxArt0317/std_edu_ai/actions/runs/42050840663) succeeded. Live public SSE returns observed directory steps and a final answer; unsigned private API returns 401. Live desktop/phone answers have no page errors or overflow. Local 223 API/source tests, 30 units, ten public accessibility states, focused browser checks, build/lint/handoff/dependency and protected client checks passed. Real Lux Google callback acceptance remains outside this release and is tracked in #83.

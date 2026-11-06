@@ -76,6 +76,16 @@ test('personal School Affairs question reads only the caller site records, never
  assert.ok(calls.every(url=>url.startsWith('https://xiftudmvxphxcjtmfmib.supabase.co/')));
  const dtm=await invoke(affairsHandler,{question:'What DTM materials do I have?',route:'/dtm'},token);
  assert.equal(dtm.status,200);assert.match(dtm.body.answer,/Getting started guide/);assert.match(dtm.body.answer,/sample/i);
+ const account=await invoke(affairsHandler,{question:'what are all my school details',route:'/dtm'},token);
+ assert.equal(account.status,200);assert.match(account.body.answer,/student@example.com/);assert.match(account.body.answer,/SAMP101/);assert.match(account.body.answer,/DTM-SAMPLE-101/);
+ const known=await invoke(affairsHandler,{question:'what details do you know about me',route:'/school-affairs'},token);
+ assert.equal(known.status,200);assert.match(known.body.answer,/SAMPLE-123/);assert.match(known.body.answer,/sample/i);
+ const tools=await invoke(affairsHandler,{question:'what tools do you have?',route:'/dtm'},token);
+ assert.equal(tools.status,200);assert.match(tools.body.answer,/prepare a task or service request/);assert.match(tools.body.answer,/cannot access or change official university records/i);
+ const assignments=await invoke(affairsHandler,{question:'What are my Moodle assignments?',route:'/dtm'},token);
+ assert.equal(assignments.status,200);assert.match(assignments.body.answer,/not connected to stu.best/i);assert.doesNotMatch(assignments.body.answer,/Getting started guide/);
+ const modelCalls=calls.filter(url=>url.includes('api.openai.com')||url.includes('/api/research-assistant'));
+ assert.deepEqual(modelCalls,[],'signed-in account and capability questions must stay on the private path');
  const events=await invokeStream({question:'What DTM materials do I have?',route:'/dtm'},token);
  assert.deepEqual(events.map(event=>event.type),['progress','progress','progress','progress','result']);
  assert.deepEqual(events.filter(event=>event.type==='progress').map(event=>event.data.kind),['account','account','answer','answer']);

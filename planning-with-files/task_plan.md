@@ -1,5 +1,13 @@
 # Task Plan
 
+## Signed-in School Affairs answers and DTM fidelity [Issue #93]
+
+- [x] Compare the official signed-in DTM page with the current stu.best preview and reproduce the assistant's contradictory account answers.
+- [x] Route signed-in account and capability questions to verified private records; add deterministic answers for the reported failures.
+- [x] Rebuild the DTM overview with its three-column navigation, system announcements, course categories, quick links and contact blocks; keep official reference labels separate from sample account data.
+- [ ] Run the AI behavior matrix, local UI/accessibility and full release checks; publish only the verified result.
+- [ ] Verify stu.best after deployment, update docs and handoff, and record the official Moodle integration gap.
+
 ## School Affairs Google sign-in from public assistant [Issue #83]
 
 - [x] Reproduce the reported embedded login and identify why OAuth leaves the button busy.

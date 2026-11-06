@@ -50,11 +50,20 @@ try {
     await page.goto(base+'/dtm/login');
     await page.getByText('Digital Learning Orientation',{exact:true}).first().waitFor();
     assert.equal(new URL(page.url()).pathname,'/dtm');
+    assert.equal(await page.getByRole('heading',{name:'系統公告'}).count(),1);
+    assert.equal(await page.locator('.dtm-notices a[href^="https://dtm.stu.edu.tw/"]').count(),14);
+    assert.equal(await page.locator('.dtm-categories details').count(),11);
+    assert.ok((await page.locator('.dtm-reference-note').innerText()).includes('2026-11-06'));
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`DTM overflow at ${width}`);
     if (width === 1440 || width === 390) await page.screenshot({path:`artifacts/dtm/dashboard-${width}.png`,fullPage:true});
     const axe = await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
     assert.deepEqual(axe.violations.filter(item=>['critical','serious'].includes(item.impact)).map(item=>({id:item.id,nodes:item.nodes.map(node=>({target:node.target,summary:node.failureSummary}))})),[]);
   }
+  await page.locator('.dtm-categories details').first().locator('summary').click();
+  await page.locator('.dtm-categories details').first().getByRole('link',{name:'Digital Learning Orientation'}).waitFor();
+  await page.getByRole('searchbox',{name:'搜尋我的課程'}).fill('no matching course');
+  await page.getByText('No stu.best sample courses match.').waitFor();
+  await page.getByRole('searchbox',{name:'搜尋我的課程'}).fill('Digital');
   await page.getByRole('link',{name:'Digital Learning Orientation'}).first().click();
   await page.getByText('Getting started guide',{exact:true}).waitFor();
   assert.equal(new URL(page.url()).pathname,'/dtm/course/course-qa');
