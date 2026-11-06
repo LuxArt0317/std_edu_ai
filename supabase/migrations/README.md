@@ -1,0 +1,3 @@
+# Database migrations
+
+Files run in timestamp order through the root `db:plan` and `db:deploy` commands. Each pending migration is applied in a transaction and recorded in `supabase_migrations.schema_migrations`. Do not edit an applied migration or reset the client database. `20261106010000_affairs_academic_records.sql` adds site-owned sample school records and an audited, owner-only manager RPC. `20261106020000_affairs_manager_hardening.sql` keeps that manager within sample students, sections and enrollments if verified records are imported later. Neither migration imports university SIS or Moodle data.

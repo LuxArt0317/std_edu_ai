@@ -28,7 +28,7 @@ test('School Affairs token verification requires a Google identity',async()=>{
   assert.equal(account.url,'https://xiftudmvxphxcjtmfmib.supabase.co');
 });
 
-const snapshot={checkedAt:'2026-11-05T00:00:00Z',profile:{userId:'user-one',email:'one@example.com',displayName:'One',role:'student'},student:{studentNumber:'SAMPLE-123',program:'Sample General Studies',yearLevel:1},courses:[{code:'SAMP101',title:'Campus Orientation',term:'Sample Fall 2026',weekday:1,startsAt:'09:00',endsAt:'10:30',room:'Sample Room',grades:[],attendance:[]}],charges:[],announcements:[],tasks:[],requests:[]};
+const snapshot={checkedAt:'2026-11-05T00:00:00Z',profile:{userId:'user-one',email:'one@example.com',displayName:'One',role:'student'},student:{studentNumber:'SAMPLE-123',program:'Sample General Studies',yearLevel:1},courses:[{code:'SAMP101',title:'Campus Orientation',term:'Sample Fall 2026',termStartsOn:'2026-09-07',termEndsOn:'2027-01-15',status:'enrolled',weekday:1,startsAt:'09:00',endsAt:'10:30',room:'Sample Room',grades:[],attendance:[]}],charges:[],announcements:[],tasks:[],requests:[]};
 test('personal answer uses only the account snapshot and names sample data',async()=>{
   assert.match(fallbackPrivateAnswer('What are my current subjects?',snapshot),/SAMP101 Campus Orientation/);
   const result=await answerPrivateAffairsQuestion('What are my current subjects?',snapshot);
@@ -55,7 +55,7 @@ test('model receives only the account snapshot and its action remains a proposal
     assert.equal(JSON.parse(body.input[0].content).accountSnapshot.profile.userId,'user-one');
     return new Response(JSON.stringify({output:[{content:[{type:'output_text',text:JSON.stringify({answer:'I can add that to your sample stu.best task list after you confirm.',action_kind:'create_task',action_title:'Review orientation',action_details:'',action_id:'',request_type:''})}]}]}),{status:200});
   };
-  const result=await answerPrivateAffairsQuestion('Create a task to review orientation',snapshot);
+  const result=await answerPrivateAffairsQuestion('Please help me remember to review orientation',snapshot);
   assert.equal(calls,1);
   assert.equal(result.proposedAction?.kind,'create_task');
   assert.equal(result.proposedAction?.payload.title,'Review orientation');

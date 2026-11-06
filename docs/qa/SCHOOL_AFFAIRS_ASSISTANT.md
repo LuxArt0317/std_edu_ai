@@ -1,4 +1,12 @@
-# School Affairs assistant and account data — Issue #90
+# School Affairs assistant and account data — Issues #90 and #94
+
+## Account record expansion — Issue #94
+
+The client database now has account-scoped sample assignments plus past, current and future subject enrollments and a sample tuition charge. An existing sample Google account was backfilled without importing any official school data. The assignment and charge numbers are illustrative: they must never be shown as an actual university bill or Moodle submission. The verified Lux School Affairs Google identity may manage sample enrollments, assignment details and tuition charges through a separate audited RPC and admin UI. Ordinary signed-in accounts have read-only academic and fee records; two-account RLS verification checks isolation.
+
+Private assistant answers for subjects today, next scheduled class, prior and future subjects, DTM assignments and tuition totals are computed from the caller's database snapshot. Time calculations use Asia/Taipei and the stored term dates. Elliptical follow-ups such as “how about assignments?” and “and tomorrow?” remain on the private path when the preceding user question was personal. Public lookup receives neither the bearer token nor private history. The known record questions use deterministic calculations so model wording cannot replace the ledger or invent a class. The assistant can still prepare tasks, service requests and authorized notices for user confirmation; it cannot post payments, submit official coursework or modify official enrollment.
+
+Verification: `npm run db:plan`, `npm run test:live-affairs-workspace-rls`, `node --experimental-strip-types --test tests/api/affairs-record-answers.test.ts tests/api/affairs-assistant.test.ts`, `node tests/integration/affairs-record-manager-ui.mjs`, `node tests/integration/school-affairs-entry-ui.mjs`, `npm run test:dtm-ui`, and root release checks. The browser admin test uses a synthetic Google identity; the actual Lux School Affairs Google identity has not yet signed in, so a live owner-manager action remains unverified.
 
 The copied public pages open their campus assistant in an iframe. For Issue #83, the School Affairs account link now leaves that iframe before Google sign-in; an older frame already showing login recovers on Google-button click. Local and live root/student/news tests pass at desktop and phone sizes. The live Google start reaches the client Supabase PKCE authorization URL from a full page. The real account-holder callback remains unverified.
 

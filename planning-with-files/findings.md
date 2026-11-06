@@ -1,5 +1,9 @@
 # Findings
 
+## Issue #94 — account-grounded school demo
+
+The pasted signed-in chat exposed two faults: no fee/assignment rows existed for the sample account, and the short follow-up “how about assignments?” fell through to public research with empty history. A verified Google session alone cannot reveal official university SIS or Moodle records, so the release uses clearly labeled stu.best-owned sample rows with per-account RLS. The existing client schema already covered terms, courses, sections, enrollments, grades, attendance, charges and site tasks/requests; the additive work supplies sample academic history, a future term, assignment records, an illustrative tuition charge and audited Lux admin management. Asia/Taipei term dates and weekly meetings determine today/next class. Only a genuine Lux School Affairs Google sign-in can validate the live admin flow; no such identity existed in the client auth database during this work.
+
 ## Local public-page copy — Issue #84
 
 - User scope: entrance pages and service/detail pages; skip old news archives. Public third-party services stay explicit external links. Protected school applications remain separate integration work under #83; no source credentials or private student context are collected.

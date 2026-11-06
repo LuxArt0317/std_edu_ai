@@ -34,6 +34,8 @@ npm run db:plan
 
 The deployment command verifies the Supabase project and TLS certificate, acquires a database advisory lock, refuses an untracked pre-existing schema, and applies each migration atomically with a `supabase_migrations.schema_migrations` record. It never resets the database. A fresh database gets only the confirmed client owner Auth identity, and its random initial credential is written to the ignored `.env.owner.local` file (mode `0600`). Existing identities are never password-reset by this command.
 
+The School Affairs sample-record migration adds account-scoped assignments, historical/current/future sample enrollments, and an illustrative fee charge. Existing sample Google accounts are backfilled once. The verified `luxart0317@gmail.com` Google identity must sign in to School Affairs before the site admin record manager is available. Neither the migration nor that admin role connects to the university SIS or Moodle.
+
 Historical demo-account synchronization migrations skip when their acceptance identities do not exist. They do not create inherited accounts. Existing sample academic/CRM seed records are fictional reference data; do not present them as client records or research results.
 
 The public Supabase root certificate in `supabase/certs/` is downloaded from the dashboard's certificate link. TLS peer and hostname verification remain enabled.

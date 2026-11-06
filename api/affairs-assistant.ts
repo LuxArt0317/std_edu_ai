@@ -9,10 +9,15 @@ type ApiResponse = {status:(code:number)=>ApiResponse;json:(body:unknown)=>void;
 export const config = {maxDuration:60};
 const requestWindows = new Map<string,number[]>();
 function value(input:string|string[]|undefined) {return Array.isArray(input)?input[0]:input;}
-function personal(question:string) {
+function personal(question:string,history:Array<{role:string;content:string}>=[]):boolean {
   // A signed-in question mentioning the caller or this assistant's account tools
   // must never be downgraded to public search just because the noun is novel.
-  return questionKind(question).personal || /\b(?:my|mine|me|i|our)\b|\b(?:what (?:details|information|data|records?) do you (?:know|have) about me|what (?:tools|actions|account (?:tools|actions)) (?:do you have|can you (?:use|do)))\b|\b(?:signed in as|add (?:a )?task|create (?:a )?task|remind me|complete (?:my |the )?task|submit (?:a )?request|publish (?:an? )?announcement)\b|我(?:的|是|能)|關於我|(?:新增|建立|完成|提交|發布).{0,25}(?:任務|待辦|申請|公告)/i.test(question);
+  const direct=questionKind(question).personal || /\b(?:my|mine|me|i|our)\b|\b(?:what (?:details|information|data|records?) do you (?:know|have) about me|what (?:tools|actions|account (?:tools|actions)) (?:do you have|can you (?:use|do)))\b|\b(?:signed in as|add (?:a )?task|create (?:a )?task|remind me|complete (?:my |the )?task|submit (?:a )?request|publish (?:an? )?announcement)\b|我(?:的|是|能)|關於我|(?:新增|建立|完成|提交|發布).{0,25}(?:任務|待辦|申請|公告)/i.test(question)
+    || /\b(?:next class|classes today|subjects today|current subjects|upcoming subjects|past subjects|historical subjects|tuition|school fees|fee balance|assignments?|homework|coursework)\b|下堂課|下一門課|今天.{0,8}(?:課|科目)|學費|繳費|費用餘額|作業|功課/i.test(question);
+  if(direct)return true;
+  const previous=[...history].reverse().find(item=>item.role==='user')?.content;
+  return Boolean(previous && /^(?:and\b|how about\b|what about\b|also\b|tomorrow\b|next semester\b|next term\b|那|還有|明天)/i.test(question)
+    && personal(previous));
 }
 
 export default async function handler(request:ApiRequest,response:ApiResponse) {
@@ -33,8 +38,13 @@ export default async function handler(request:ApiRequest,response:ApiResponse) {
   const now=Date.now(),active=(requestWindows.get(account.user.id)||[]).filter(time=>time>now-60_000);
   active.push(now);requestWindows.set(account.user.id,active);
   if(active.length>24){response.status(429).json({error:'Too many questions. Please wait a moment.'});return;}
+  const history=Array.isArray(input?.history)?input.history.slice(-6).flatMap(item=>{
+    if(!item||typeof item!=='object')return [];
+    const entry=item as Record<string,unknown>;
+    return ['user','assistant'].includes(String(entry.role))&&typeof entry.content==='string'?[{role:String(entry.role),content:entry.content.slice(0,1000)}]:[];
+  }):[];
   const stream=createAssistantStream(input?.stream===true,response);
-  if(!personal(question)) {
+  if(!personal(question,history)) {
     // Separate deployment function; only public input is forwarded, never the account token.
     stream.progress('public','Checking public school information','This question does not need your account records.');
     try {
@@ -51,11 +61,6 @@ export default async function handler(request:ApiRequest,response:ApiResponse) {
     return;
   }
   if(Array.isArray(input?.images) && input.images.length) {stream.send(400,{error:'For private account questions, remove the image and ask using text. Images are not stored as account records.'});return;}
-  const history=Array.isArray(input?.history)?input.history.slice(-4).flatMap(item=>{
-    if(!item||typeof item!=='object')return [];
-    const entry=item as Record<string,unknown>;
-    return ['user','assistant'].includes(String(entry.role))&&typeof entry.content==='string'?[{role:String(entry.role),content:entry.content.slice(0,1000)}]:[];
-  }):[];
   try {
     stream.progress('account','Loading your account records','Checking School Affairs and DTM records for this signed-in Google account.');
     const snapshot=await loadAffairsSnapshot(account);

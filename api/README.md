@@ -4,4 +4,6 @@ Vercel serverless endpoints live here. `research-assistant.ts` answers public sc
 
 `affairs-data.ts` and `affairs-assistant.ts` also return DTM preview records for the same verified Google identity. DTM content is sample-only; anonymous callers receive HTTP 401 for the private account endpoints.
 
+`affairs-manage.ts` accepts audited, admin-only sample enrollment, charge and assignment updates. Database authorization checks the verified Lux Google identity and each linked student's record. The private assistant routes school-record follow-ups to account data and does not send that data to the public research endpoint.
+
 Assistant POST requests may set `stream: true` to receive server-sent `progress` events followed by one `result` or `error` event. Older JSON clients keep the same response contract. Private progress starts only after the Google bearer token is verified; public lookups never receive that token.

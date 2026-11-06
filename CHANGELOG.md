@@ -1,6 +1,13 @@
 # Changelog
 ## Unreleased
 
+### Account-scoped school records and assistant answers (Issue #94)
+
+- Add RLS-protected sample assignments, past/current/future subjects, a Friday timetable entry and a sample tuition ledger for verified School Affairs Google accounts. Backfill existing sample accounts without changing official systems.
+- Add audited Lux admin management for sample enrollments, charges and assignments. Show assignments and balances in School Affairs and DTM.
+- Keep signed-in school follow-ups on the private account path and answer timetable, subject history, assignments and tuition from the caller's database records in Taipei time.
+- Add account-bound answer, manager UI and two-user database isolation checks.
+
 ### School Affairs assistant and DTM homepage fidelity (Issue #93)
 
 - Keep signed-in account and assistant-capability questions on the private, token-verified School Affairs path; answer reported profile and capability prompts from account-scoped records instead of sending them to public search.

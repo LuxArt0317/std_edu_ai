@@ -8,7 +8,7 @@ const base = process.env.PUBLIC_SITE_ORIGIN || 'http://127.0.0.1:5173';
 if (!['localhost','127.0.0.1'].includes(new URL(base).hostname)) throw Error('Local fixture only');
 const browser = await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
 await mkdir('artifacts/dtm', {recursive:true});
-const sample = {checkedAt:'2026-11-05T00:00:00Z',officialUniversityData:false,profile:{userId:affairsTestUser.id,email:affairsTestUser.email,displayName:'QA Student',role:'student'},student:null,courses:[],charges:[],announcements:[],tasks:[],requests:[],dtm:{sourceMode:'sample',courses:[{id:'course-qa',code:'DTM-SAMPLE-101',title:'Digital Learning Orientation',term:'115學年度第1學期',role:'student',sourceMode:'sample',materials:[{id:'material-qa',title:'Getting started guide',kind:'file',summary:'Sample guide.',position:1,sourceMode:'sample'}]}],notices:[{id:'notice-qa',title:'Welcome to DTM',body:'Sample notice.',publishedAt:'2026-11-05T00:00:00Z',sourceMode:'sample'}]}};
+const sample = {checkedAt:'2026-11-05T00:00:00Z',officialUniversityData:false,profile:{userId:affairsTestUser.id,email:affairsTestUser.email,displayName:'QA Student',role:'student'},student:null,courses:[],charges:[],assignments:[{id:'assignment-qa',title:'Practice reflection',details:'Sample work',dueAt:'2026-11-18T15:59:00Z',status:'open',submittedAt:null,sourceMode:'sample',enrollmentId:null,dtmCourseId:'course-qa',course:'DTM-SAMPLE-101'}],announcements:[],tasks:[],requests:[],dtm:{sourceMode:'sample',courses:[{id:'course-qa',code:'DTM-SAMPLE-101',title:'Digital Learning Orientation',term:'115學年度第1學期',role:'student',sourceMode:'sample',materials:[{id:'material-qa',title:'Getting started guide',kind:'file',summary:'Sample guide.',position:1,sourceMode:'sample'}]}],notices:[{id:'notice-qa',title:'Welcome to DTM',body:'Sample notice.',publishedAt:'2026-11-05T00:00:00Z',sourceMode:'sample'}]}};
 try {
   const guest = await browser.newContext();
   await mockAffairsAuth(guest,{signedIn:false});
@@ -66,6 +66,7 @@ try {
   await page.getByRole('searchbox',{name:'搜尋我的課程'}).fill('Digital');
   await page.getByRole('link',{name:'Digital Learning Orientation'}).first().click();
   await page.getByText('Getting started guide',{exact:true}).waitFor();
+  await page.getByText('Practice reflection',{exact:true}).waitFor();
   assert.equal(new URL(page.url()).pathname,'/dtm/course/course-qa');
   await page.goto(base+'/');
   await page.frameLocator('iframe.stu-account-status').getByText('Signed in: student.qa@gmail.com').waitFor();

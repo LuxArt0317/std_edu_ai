@@ -53,13 +53,14 @@ test('personal School Affairs question reads only the caller site records, never
    '/rest/v1/affairs_profiles':[{user_id:userId,email:'student@example.com',display_name:'Student',role:'student'}],
    '/rest/v1/affairs_students':[{id:'student-id',user_id:userId,student_number:'SAMPLE-123',full_name:'Student',program_id:'program-id',year_level:1,status:'active',source_mode:'sample'}],
    '/rest/v1/affairs_programs':[{id:'program-id',name:'Sample General Studies'}],
-   '/rest/v1/affairs_terms':[{id:'term-id',label:'Sample Fall 2026'}],
+   '/rest/v1/affairs_terms':[{id:'term-id',label:'Sample Fall 2026',starts_on:'2026-09-07',ends_on:'2027-01-15'}],
    '/rest/v1/affairs_courses':[{id:'course-id',code:'SAMP101',title:'Campus Orientation',credits:2}],
    '/rest/v1/affairs_sections':[{id:'section-id',course_id:'course-id',term_id:'term-id',instructor:'Sample instructor',weekday:1,starts_at:'09:00',ends_at:'10:30',room:'Sample Room'}],
    '/rest/v1/affairs_enrollments':[{id:'enrollment-id',section_id:'section-id',status:'enrolled',source_mode:'sample'}],
    '/rest/v1/affairs_grade_items':[],
    '/rest/v1/affairs_attendance':[],
-   '/rest/v1/affairs_charges':[],
+   '/rest/v1/affairs_charges':[{id:'charge-id',student_id:'student-id',label:'Sample Fall 2026 tuition',amount_due:28000,amount_paid:5000,currency:'TWD',due_on:'2026-12-15',source_mode:'sample'}],
+   '/rest/v1/affairs_assignments':[{id:'assignment-id',student_id:'student-id',dtm_course_id:'dtm-course-id',enrollment_id:null,title:'Practice reflection',details:'Sample practice',due_at:'2026-11-18T15:59:00Z',status:'open',submitted_at:null,source_mode:'sample'}],
    '/rest/v1/affairs_announcements':[],
    '/rest/v1/affairs_tasks':[],
    '/rest/v1/affairs_service_requests':[],
@@ -83,7 +84,13 @@ test('personal School Affairs question reads only the caller site records, never
  const tools=await invoke(affairsHandler,{question:'what tools do you have?',route:'/dtm'},token);
  assert.equal(tools.status,200);assert.match(tools.body.answer,/prepare a task or service request/);assert.match(tools.body.answer,/cannot access or change official university records/i);
  const assignments=await invoke(affairsHandler,{question:'What are my Moodle assignments?',route:'/dtm'},token);
- assert.equal(assignments.status,200);assert.match(assignments.body.answer,/not connected to stu.best/i);assert.doesNotMatch(assignments.body.answer,/Getting started guide/);
+ assert.equal(assignments.status,200);assert.match(assignments.body.answer,/Practice reflection/);assert.match(assignments.body.answer,/sample/i);
+ const followup=await invoke(affairsHandler,{question:'how about assignments?',route:'/dtm',history:[{role:'user',content:'What are my current subjects?'}]},token);
+ assert.equal(followup.status,200);assert.match(followup.body.answer,/Practice reflection/);assert.equal(followup.body.grounding.source,'account');
+ const tomorrow=await invoke(affairsHandler,{question:'and tomorrow?',route:'/school-affairs',history:[{role:'user',content:'What subjects do I have today?'}]},token);
+ assert.equal(tomorrow.status,200);assert.match(tomorrow.body.answer,/tomorrow/i);assert.equal(tomorrow.body.grounding.source,'account');
+ const fees=await invoke(affairsHandler,{question:'how much is tuition?',route:'/school-affairs'},token);
+ assert.equal(fees.status,200);assert.match(fees.body.answer,/NT\$23,000/);assert.equal(fees.body.grounding.source,'account');
  const modelCalls=calls.filter(url=>url.includes('api.openai.com')||url.includes('/api/research-assistant'));
  assert.deepEqual(modelCalls,[],'signed-in account and capability questions must stay on the private path');
  const events=await invokeStream({question:'What DTM materials do I have?',route:'/dtm'},token);

@@ -1,5 +1,14 @@
 # Task Plan
 
+## Account-scoped school records and grounded assistant [Issue #94]
+
+- [x] Reproduce the signed-in follow-up routing failure and identify missing personal records.
+- [x] Add sample-provenance tuition, historical/upcoming courses, timetable and assignments to the client database with RLS.
+- [x] Add administrator record management and show the records in School Affairs/DTM.
+- [x] Answer current, today, next, past, future, assignment and fee questions from the caller's records, including follow-ups.
+- [ ] Run database, API, UI, security and release checks; publish and verify the live client site.
+
+
 ## Signed-in School Affairs answers and DTM fidelity [Issue #93]
 
 - [x] Compare the official signed-in DTM page with the current stu.best preview and reproduce the assistant's contradictory account answers.

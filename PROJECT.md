@@ -7,8 +7,8 @@ STU Edu AI combines a public university website with STU Nexus, an authenticated
 | Path | Purpose |
 | --- | --- |
 | `src/features/` | Auth, school, CRM, curriculum, research, and public product modules |
-| `src/features/public/affairs/` | Source-preserving School Affairs portal, isolated Google PKCE accounts, captured 94-service directory and account-specific preferences |
-| `src/features/public/dtm/` | Digital Teaching Materials login and sample course preview using the School Affairs Google session |
+| `src/features/public/affairs/` | Source-preserving School Affairs portal, isolated Google PKCE accounts, captured 94-service directory, sample account records and owner record management |
+| `src/features/public/dtm/` | Digital Teaching Materials login, sample course and assignment preview using the School Affairs Google session |
 | `src/features/public/site/` | Public reference catalogues, preview disclosure and inert mySTU SSO preview |
 | `src/features/public/mirror/` | Inert source-page renderer, local routing policy and versioned page/asset/coverage manifests |
 | `src/features/auth/` | Sign-in, student signup, session guards and shared password policy |

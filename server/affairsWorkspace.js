@@ -40,6 +40,7 @@ async function request(account, table, options = {}) {
   if (!response.ok) {
     if (response.status===401 || response.status===403) throw new AffairsWorkspaceError('This School Affairs action is not allowed for your account.',403);
     if (response.status===400) throw new AffairsWorkspaceError('The School Affairs request was invalid. Check the fields and try again.',400);
+    if (response.status===409) throw new AffairsWorkspaceError('A matching School Affairs record already exists.',409);
     throw new AffairsWorkspaceError('School Affairs records could not be loaded. Please try again.');
   }
   const raw=await response.text().catch(()=>{throw new AffairsWorkspaceError('School Affairs returned an unreadable record.');});
@@ -54,7 +55,7 @@ export async function loadAffairsSnapshot(account, includeAdmin = false) {
   await request(account,'affairs_initialize_account',{rpc:true});
   await request(account,'dtm_initialize_account',{rpc:true});
   const userId=account.user.id;
-  const [profiles,students,terms,programs,courses,sections,announcements,tasks,requests,adminProfiles,adminRequests,dtmCourses,dtmNotices]=await Promise.all([
+  const [profiles,students,terms,programs,courses,sections,announcements,tasks,requests,adminProfiles,adminStudents,adminEnrollments,adminDtmCourses,adminRequests,dtmCourses,dtmNotices]=await Promise.all([
     request(account,'affairs_profiles',{query:own(userId,1)}),
     request(account,'affairs_students',{query:own(userId,1)}),
     request(account,'affairs_terms',{query:{select:'*',limit:30}}),
@@ -65,6 +66,9 @@ export async function loadAffairsSnapshot(account, includeAdmin = false) {
     request(account,'affairs_tasks',{query:{...own(userId),order:'created_at.desc'}}),
     request(account,'affairs_service_requests',{query:{...own(userId),order:'created_at.desc'}}),
     includeAdmin?request(account,'affairs_profiles',{query:{select:'user_id,email,display_name,role,created_at',order:'created_at.desc',limit:100}}):Promise.resolve([]),
+    includeAdmin?request(account,'affairs_students',{query:{select:'id,user_id,student_number,full_name',limit:100}}):Promise.resolve([]),
+    includeAdmin?request(account,'affairs_enrollments',{query:{select:'id,student_id,section_id,status',limit:500}}):Promise.resolve([]),
+    includeAdmin?request(account,'dtm_courses',{query:{select:'id,user_id,code,title,term',limit:500}}):Promise.resolve([]),
     includeAdmin?request(account,'affairs_service_requests',{query:{select:'id,user_id,request_type,title,status,created_at',order:'created_at.desc',limit:100}}):Promise.resolve([]),
     request(account,'dtm_courses',{query:{...own(userId),order:'created_at.desc'}}),
     request(account,'dtm_notices',{query:{select:'*',order:'published_at.desc',limit:30}}),
@@ -74,11 +78,14 @@ export async function loadAffairsSnapshot(account, includeAdmin = false) {
   const student=students[0]||null;
   const enrollments=student?await request(account,'affairs_enrollments',{query:{select:'*',student_id:`eq.${student.id}`,limit:100}}):[];
   const enrollmentIds=enrollments.map(item=>item.id);
-  const [grades,attendance,charges,dtmMaterials]=await Promise.all([
+  const [grades,attendance,charges,assignments,dtmMaterials,adminCharges,adminAssignments]=await Promise.all([
     request(account,'affairs_grade_items',{query:{select:'*',enrollment_id:byIds(enrollmentIds),limit:200}}),
     request(account,'affairs_attendance',{query:{select:'*',enrollment_id:byIds(enrollmentIds),limit:200}}),
     student?request(account,'affairs_charges',{query:{select:'*',student_id:`eq.${student.id}`,limit:100}}):Promise.resolve([]),
+    student?request(account,'affairs_assignments',{query:{select:'*',student_id:`eq.${student.id}`,order:'due_at.asc',limit:200}}):Promise.resolve([]),
     request(account,'dtm_materials',{query:{select:'*',course_id:byIds(dtmCourses.map(row=>row.id)),order:'position.asc',limit:200}}),
+    includeAdmin?request(account,'affairs_charges',{query:{select:'*',limit:500}}):Promise.resolve([]),
+    includeAdmin?request(account,'affairs_assignments',{query:{select:'*',limit:500}}):Promise.resolve([]),
   ]);
   const courseById=new Map(courses.map(row=>[row.id,row]));
   const termById=new Map(terms.map(row=>[row.id,row]));
@@ -91,17 +98,23 @@ export async function loadAffairsSnapshot(account, includeAdmin = false) {
       const section=sectionById.get(enrollment.section_id);const course=courseById.get(section?.course_id);const term=termById.get(section?.term_id);
       return {enrollmentId:enrollment.id,status:enrollment.status,sourceMode:enrollment.source_mode,
         code:course?.code||'',title:course?.title||'',credits:course?.credits||0,
-        term:term?.label||'',instructor:section?.instructor||'',weekday:section?.weekday||null,
+        term:term?.label||'',termStartsOn:term?.starts_on||'',termEndsOn:term?.ends_on||'',instructor:section?.instructor||'',weekday:section?.weekday||null,
         startsAt:section?.starts_at||'',endsAt:section?.ends_at||'',room:section?.room||'',
         grades:grades.filter(row=>row.enrollment_id===enrollment.id && row.released_at).map(row=>({label:row.label,score:row.score,maximum:row.maximum,sourceMode:row.source_mode})),
         attendance:attendance.filter(row=>row.enrollment_id===enrollment.id).map(row=>({date:row.meeting_on,status:row.status,sourceMode:row.source_mode}))};
     }),
-    charges:charges.map(row=>({label:row.label,amountDue:row.amount_due,amountPaid:row.amount_paid,currency:row.currency,dueOn:row.due_on,sourceMode:row.source_mode})),
+    charges:charges.map(row=>({id:row.id,label:row.label,amountDue:Number(row.amount_due),amountPaid:Number(row.amount_paid),currency:row.currency,dueOn:row.due_on,sourceMode:row.source_mode})),
+    assignments:assignments.map(row=>({id:row.id,title:row.title,details:row.details,dueAt:row.due_at,status:row.status,submittedAt:row.submitted_at,sourceMode:row.source_mode,
+      enrollmentId:row.enrollment_id,dtmCourseId:row.dtm_course_id,
+      course:row.enrollment_id
+        ? courseById.get(sectionById.get(enrollments.find(item=>item.id===row.enrollment_id)?.section_id)?.course_id)?.code||'School Affairs'
+        : dtmCourses.find(item=>item.id===row.dtm_course_id)?.code||'DTM',
+    })),
     announcements:announcements.map(row=>({id:row.id,title:row.title,body:row.body,publishedAt:row.published_at,sourceMode:row.source_mode})),
     tasks:tasks.map(row=>({id:row.id,title:row.title,dueAt:row.due_at,completedAt:row.completed_at,sourceMode:row.source_mode})),
     requests:requests.map(row=>({id:row.id,type:row.request_type,title:row.title,details:row.details,status:row.status,createdAt:row.created_at})),
     dtm:{sourceMode:'sample',courses:dtmCourses.map(row=>({id:row.id,code:row.code,title:row.title,term:row.term,role:row.role,sourceMode:row.source_mode,materials:dtmMaterials.filter(item=>item.course_id===row.id).map(item=>({id:item.id,title:item.title,kind:item.kind,summary:item.summary,position:item.position,sourceMode:item.source_mode}))})),notices:dtmNotices.map(row=>({id:row.id,title:row.title,body:row.body,publishedAt:row.published_at,sourceMode:row.source_mode}))},
-    ...(includeAdmin?{admin:{profiles:adminProfiles,requests:adminRequests}}:{}),
+    ...(includeAdmin?{admin:{profiles:adminProfiles,students:adminStudents,sections:sections.map(row=>({id:row.id,code:courseById.get(row.course_id)?.code||'',term:termById.get(row.term_id)?.label||''})),enrollments:adminEnrollments.map(row=>({id:row.id,studentId:row.student_id,status:row.status,code:courseById.get(sectionById.get(row.section_id)?.course_id)?.code||''})),dtmCourses:adminDtmCourses,charges:adminCharges,assignments:adminAssignments,requests:adminRequests}}:{}),
   };
 }
 
@@ -110,4 +123,11 @@ export async function executeAffairsAction(account,kind,payload) {
     || !payload || typeof payload!=='object' || Array.isArray(payload))
     throw new AffairsWorkspaceError('Unsupported School Affairs action.',400);
   return request(account,'affairs_execute_action',{rpc:true,body:{p_kind:kind,p_payload:payload}});
+}
+
+export async function manageAffairsRecord(account,kind,payload) {
+  if (!['save_enrollment','save_charge','delete_charge','save_assignment','delete_assignment'].includes(kind)
+    || !payload || typeof payload!=='object' || Array.isArray(payload))
+    throw new AffairsWorkspaceError('Unsupported manager action.',400);
+  return request(account,'affairs_manage_record',{rpc:true,body:{p_kind:kind,p_payload:payload}});
 }

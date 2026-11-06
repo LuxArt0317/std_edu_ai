@@ -3,3 +3,4 @@ export type AffairsAccount = {user:{id:string;email?:string};token:string;url:st
 export function verifyAffairsToken(token:string):Promise<AffairsAccount>;
 export function loadAffairsSnapshot(account:AffairsAccount,includeAdmin?:boolean):Promise<Record<string,unknown>>;
 export function executeAffairsAction(account:AffairsAccount,kind:string,payload:unknown):Promise<Record<string,unknown>>;
+export function manageAffairsRecord(account:AffairsAccount,kind:string,payload:unknown):Promise<Record<string,unknown>>;

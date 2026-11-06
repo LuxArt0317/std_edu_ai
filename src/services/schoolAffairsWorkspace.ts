@@ -1,17 +1,19 @@
 import { affairsClient } from '@/features/public/affairs/authClient';
 
 export type AffairsAction = {kind:'create_task'|'complete_task'|'create_service_request'|'publish_announcement'|'resolve_service_request';payload:Record<string,string>};
+export type AffairsManagerAction = {kind:'save_enrollment'|'save_charge'|'delete_charge'|'save_assignment'|'delete_assignment';payload:Record<string,string>};
 export type AffairsSnapshot = {
   checkedAt:string;officialUniversityData:false;
   profile:{userId:string;email:string;displayName:string;role:'student'|'admin'};
   student:{id:string;studentNumber:string;fullName:string;yearLevel:number;status:string;sourceMode:string;program:string|null}|null;
-  courses:Array<{enrollmentId:string;status:string;sourceMode:string;code:string;title:string;credits:number;term:string;instructor:string;weekday:number|null;startsAt:string;endsAt:string;room:string;grades:Array<{label:string;score:number;maximum:number;sourceMode:string}>;attendance:Array<{date:string;status:string;sourceMode:string}>}>;
-  charges:Array<{label:string;amountDue:number;amountPaid:number;currency:string;dueOn:string|null;sourceMode:string}>;
+  courses:Array<{enrollmentId:string;status:string;sourceMode:string;code:string;title:string;credits:number;term:string;termStartsOn:string;termEndsOn:string;instructor:string;weekday:number|null;startsAt:string;endsAt:string;room:string;grades:Array<{label:string;score:number;maximum:number;sourceMode:string}>;attendance:Array<{date:string;status:string;sourceMode:string}>}>;
+  charges:Array<{id:string;label:string;amountDue:number;amountPaid:number;currency:string;dueOn:string|null;sourceMode:string}>;
+  assignments:Array<{id:string;title:string;details:string;dueAt:string|null;status:'open'|'submitted'|'graded';submittedAt:string|null;sourceMode:string;enrollmentId:string|null;dtmCourseId:string|null;course:string}>;
   announcements:Array<{id:string;title:string;body:string;publishedAt:string;sourceMode:string}>;
   tasks:Array<{id:string;title:string;dueAt:string|null;completedAt:string|null;sourceMode:string}>;
   requests:Array<{id:string;type:string;title:string;details:string;status:string;createdAt:string}>;
   dtm:{sourceMode:'sample';courses:Array<{id:string;code:string;title:string;term:string;role:string;sourceMode:string;materials:Array<{id:string;title:string;kind:string;summary:string;position:number;sourceMode:string}>}>;notices:Array<{id:string;title:string;body:string;publishedAt:string;sourceMode:string}>};
-  admin?:{profiles:Array<{user_id:string;email:string;display_name:string;role:string;created_at:string}>;requests:Array<{id:string;user_id:string;request_type:string;title:string;status:string;created_at:string}>};
+  admin?:{profiles:Array<{user_id:string;email:string;display_name:string;role:string;created_at:string}>;students:Array<{id:string;user_id:string;student_number:string;full_name:string}>;sections:Array<{id:string;code:string;term:string}>;enrollments:Array<{id:string;studentId:string;status:string;code:string}>;dtmCourses:Array<{id:string;user_id:string;code:string;title:string;term:string}>;charges:Array<{id:string;student_id:string;label:string;amount_due:number;amount_paid:number;due_on:string|null}>;assignments:Array<{id:string;student_id:string;enrollment_id:string|null;dtm_course_id:string|null;title:string;details:string;due_at:string|null;status:string}>;requests:Array<{id:string;user_id:string;request_type:string;title:string;status:string;created_at:string}>};
 };
 
 async function token() {
@@ -30,4 +32,7 @@ async function call<T>(path:string,init?:RequestInit):Promise<T> {
 export function loadSchoolAffairsData(admin=false) { return call<AffairsSnapshot>(`/api/affairs-data${admin?'?scope=admin':''}`); }
 export function performSchoolAffairsAction(action:AffairsAction) {
   return call<{id:string;kind:string;summary:string}>('/api/affairs-action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(action)});
+}
+export function manageSchoolAffairsRecord(action:AffairsManagerAction) {
+  return call<{id:string;kind:string;summary:string}>('/api/affairs-manage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(action)});
 }
