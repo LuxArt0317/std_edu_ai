@@ -1,10 +1,10 @@
 # Client handoff
 
-## Issue #94 — account-scoped school demo records (release in progress)
+## Issue #94 — account-scoped school demo records (published; owner acceptance pending)
 
 The exact client Supabase project `xiftudmvxphxcjtmfmib` now has 110 applied migrations and 119 public tables. Two additive migrations created sample assignments and seeded one existing Google account with five past/current/future enrollments, a tuition charge and two assignments; the follow-up migration restricts admin management to sample academic records. The private assistant answers today/next class, subject history, DTM assignments and tuition from those account records. School Affairs and DTM show the data, and the Lux School Affairs admin has audited sample enrollment, charge and assignment forms.
 
-Local acceptance: 225 API/source tests, 30 unit tests, TypeScript/Vite build, lint, four-width Google portal fixture, three-width DTM fixture, phone-width admin forms with zero serious accessibility findings, handoff/dependency checks and a rolled-back two-Google RLS/isolation check. The real Lux Google identity has not signed in to School Affairs, so a live owner-manager action cannot yet be accepted. No official university SIS/Moodle data or payments are connected. Production source, GitHub quality and Vercel status remain to verify after the release commit.
+Local acceptance: 225 API/source tests, 30 unit tests, TypeScript/Vite build, lint, four-width Google portal fixture, three-width DTM fixture, phone-width admin forms with zero serious accessibility findings, handoff/dependency checks and a rolled-back two-Google RLS/isolation check. Source `5b37ef0cb374e5df74e43a46b35650c511cef1af` is Ready as [Vercel FYsdysRqUXyr9cNws28ZKEotZNVa](https://vercel.com/v1-d286/std_edu_ai/FYsdysRqUXyr9cNws28ZKEotZNVa), and [GitHub quality 42159835039](https://github.com/LuxArt0317/std_edu_ai/actions/runs/42159835039) passed. Post-release client verification passed against entry `index-DfYtk_qy.js`; `/school-affairs` and `/dtm` return 200; unsigned assistant, account and manager POSTs return 401; and manager GET returns JSON 405. The real Lux Google identity has not signed in to School Affairs, so a live owner-manager action cannot yet be accepted. No official university SIS/Moodle data or payments are connected. Issue #94 remains open for that acceptance.
 
 ## Issue #93 — DTM and account assistant update (published)
 
