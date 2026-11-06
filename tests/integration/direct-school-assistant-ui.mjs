@@ -24,7 +24,7 @@ try {
       await assistant.getByRole('heading', { name: '校園助理 · Assistant' }).waitFor();
       await assistant.getByPlaceholder('Ask a school question…').fill('Registrar contact?');
       await assistant.getByRole('button', { name: 'Send', exact: true }).click();
-      await assistant.getByText('The registrar contact is in the school directory.').last().waitFor();
+      await assistant.getByText('The registrar contact is in the school directory.').nth(index).waitFor();
       assert.equal(await assistant.getByText('The registrar contact is in the school directory.').count(),index+1,'the tab conversation survives direct-page navigation');
       await assistant.getByPlaceholder('Ask a school question…').focus();
       await page.keyboard.press('Escape');
