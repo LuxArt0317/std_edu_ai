@@ -1,5 +1,12 @@
 # Task Plan
 
+## Keep assistant work visible with each answer [Issue #95]
+
+- [x] Trace the streamed progress, final answer activity, and conversation lifetime.
+- [x] Attach every observed lookup stage to its assistant turn, including failures and JSON fallbacks.
+- [x] Add a compact, expandable activity timeline and preserve conversation state across navigation/refresh in the current tab without storing image bytes or action capabilities.
+- [ ] Verify public and signed-in desktop/phone flows, stream interruption, account isolation, build and client release gates; publish and check stu.best.
+
 ## Account-scoped school records and grounded assistant [Issue #94]
 
 - [x] Reproduce the signed-in follow-up routing failure and identify missing personal records.

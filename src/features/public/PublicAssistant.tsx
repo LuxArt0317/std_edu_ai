@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, Send, RotateCcw, Paperclip, X, Check, LoaderCircle, CircleAlert } from "lucide-react";
+import { MessageCircle, Send, RotateCcw, Paperclip, X, Check, LoaderCircle, CircleAlert, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/sheet";
 import {
   askCampusAssistant,
-  type AssistantResponse,
   type AssistantProgress,
 } from "../../services/researchAssistant";
 import { useAffairsAuth } from "./affairs/authContext";
@@ -19,14 +18,34 @@ import { askSchoolAffairsAssistant } from "../../services/schoolAffairsAssistant
 import { performSchoolAffairsAction } from "../../services/schoolAffairsWorkspace";
 import { PublicAssistantFeedback } from "./PublicAssistantFeedback";
 import { AssistantMarkdown } from "../school/portal/AssistantMarkdown";
+import { clearAssistantConversation, finishAssistantActivity, MAX_CONVERSATION_MESSAGES, mergeAssistantActivity, readAssistantConversation, saveAssistantConversation, type AssistantMessage } from "../../services/assistantConversation";
 
-type Message = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  result?: AssistantResponse;
-  images?: Array<{name:string;dataUrl:string}>;
-};
+type Message = AssistantMessage;
+const EMPTY_MESSAGES: Message[] = [];
+function ActivityTimeline({message}:{message:Message}) {
+  const fallback: AssistantProgress[] = message.result?.grounding?.source === 'web'
+    ? [{kind:'web',label:'Used public web sources',detail:'Open the linked sources below to check the answer.',status:'complete'}]
+    : message.result?.grounding?.source === 'knowledge'
+      ? [{kind:'knowledge',label:'Used managed school knowledge',detail:'Reviewed sources are linked below when available.',status:'complete'}]
+      : [];
+  const steps = message.activity?.length ? message.activity : message.result?.activity?.length ? message.result.activity : fallback;
+  if (!steps.length && message.phase !== 'working' && !message.result) return null;
+  const working = message.phase === 'working';
+  const sources = message.result?.citations?.length || 0;
+  return <details key={`${message.id}-${message.phase}`} open={working} role={working?'status':undefined} aria-label={working?'Assistant activity':undefined} className="group rounded-lg border border-border/80 bg-muted/35 text-xs">
+    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-3 py-2.5 font-medium text-foreground marker:hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+      <span className="flex min-w-0 items-center gap-2"><span className="rounded bg-background px-2 py-0.5 font-semibold">Activity</span><span className="truncate text-muted-foreground">{working ? 'Working on your question' : message.phase === 'error' ? 'Stopped before completion' : `${steps.length} ${steps.length===1?'step':'steps'}${sources?` · ${sources} ${sources===1?'source':'sources'}`:''}`}</span></span>
+      <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+    </summary>
+    <div className="border-t px-3 pb-3 pt-2">
+      {steps.length ? <ol className="space-y-0" aria-label="Observed assistant steps">{steps.map((step,index)=><li key={`${step.kind}-${index}`} className="relative flex min-w-0 gap-2.5 pb-3 last:pb-0">
+        <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-background text-primary" aria-hidden="true">{step.status==='running'?<LoaderCircle className="size-3.5 animate-spin"/>:step.status==='complete'?<Check className="size-3.5"/>:<CircleAlert className="size-3.5 text-muted-foreground"/>}</span>
+        <span className="min-w-0"><span className="sr-only">{step.status === 'complete' ? 'Completed' : step.status === 'running' ? 'In progress' : 'Unavailable'}: </span><strong className="block font-medium text-foreground">{step.label}</strong><span className="block break-words leading-relaxed text-muted-foreground">{step.detail}</span></span>
+      </li>)}</ol>:<p className="text-muted-foreground">{working ? 'Connecting to the assistant…' : 'No checks or tools were reported for this answer.'}</p>}
+      <p className="mt-2 border-t pt-2 leading-relaxed text-muted-foreground">This lists observed checks and tools. It does not expose private model reasoning.</p>
+    </div>
+  </details>;
+}
 const questions = [
   "註冊課務組的聯絡電話？",
   "如何查詢課程？",
@@ -35,15 +54,23 @@ const questions = [
   "What DTM materials do I have?",
 ];
 export function PublicAssistant({ initialOpen = false, embedded = false }: { initialOpen?: boolean; embedded?: boolean }) {
-  const {user} = useAffairsAuth();
+  const {user,loading} = useAffairsAuth();
+  const scope = loading ? null : user ? `account:${user.id}` : 'public';
   const [open, setOpen] = useState(initialOpen),
-    [messages, setMessages] = useState<Message[]>([]),
+    [conversation, setConversation] = useState<{scope:string|null;messages:Message[]}>({scope:null,messages:[]}),
     [query, setQuery] = useState(""),
     [images, setImages] = useState<Array<{name:string;dataUrl:string}>>([]),
     [busy, setBusy] = useState(false),
-    [progress, setProgress] = useState<AssistantProgress[]>([]),
     [actionBusy, setActionBusy] = useState<string | null>(null),
     [error, setError] = useState("");
+  const messages = conversation.scope === scope ? conversation.messages : EMPTY_MESSAGES;
+  function setMessages(update: Message[] | ((previous:Message[])=>Message[])) {
+    setConversation(previous => {
+      const current = previous.scope === scope ? previous.messages : [];
+      const next = typeof update === 'function' ? update(current) : update;
+      return {scope,messages:next.slice(-MAX_CONVERSATION_MESSAGES)};
+    });
+  }
   const viewport = useRef<HTMLDivElement>(null),
     fileInput = useRef<HTMLInputElement>(null),
     pending = useRef<AbortController | null>(null),
@@ -52,12 +79,15 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
   useEffect(() => {
     sequence.current++;
     pending.current?.abort();
-    setMessages([]);
+    setConversation({scope,messages:scope?readAssistantConversation(scope):[]});
     setImages([]);
     setQuery("");
     setError("");
-    setProgress([]);
-  }, [user?.id]);
+    setBusy(false);
+  }, [scope]);
+  useEffect(() => {
+    if (scope && conversation.scope === scope) saveAssistantConversation(scope,conversation.messages);
+  }, [scope,conversation]);
   useEffect(() => {
     if (!embedded) return;
     const onEscape = (event: KeyboardEvent) => {
@@ -71,22 +101,23 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
       top: viewport.current.scrollHeight,
       behavior: "smooth",
     });
-  }, [messages, busy, progress]);
+  }, [messages, busy]);
   async function send(text = query) {
     const attached = images;
     const question = text.trim() || (attached.length ? "Please explain the attached image." : "");
-    if (!question || busy) return;
+    if (!question || busy || !scope) return;
     const request = ++sequence.current,
       controller = new AbortController();
+    const turnId = window.crypto.randomUUID(), answerId = `a-${turnId}`;
     pending.current = controller;
     setMessages((old) => [
       ...old,
-      { id: `u-${request}`, role: "user", content: question, images:attached },
+      { id: `u-${turnId}`, role: "user", content: question, images:attached },
+      { id: answerId, role: "assistant", content: "", phase:'working', activity:[] },
     ]);
     setQuery("");
     setImages([]);
     setError("");
-    setProgress([]);
     setBusy(true);
     try {
       const result = await (user ? askSchoolAffairsAssistant : askCampusAssistant)(
@@ -97,28 +128,14 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
         window.location.pathname,
         (step) => {
           if (request !== sequence.current || controller.signal.aborted) return;
-          setProgress(old => {
-            const index=old.findIndex(item=>item.kind===step.kind);
-            if (index<0) return [...old,step];
-            return old.map((item,i)=>i===index?step:item);
-          });
+          setMessages(old=>old.map(item=>item.id===answerId?{...item,activity:mergeAssistantActivity(item.activity,[step])}:item));
         },
       );
       if (request === sequence.current)
-        setMessages((old) => [
-          ...old,
-          {
-            id: `a-${request}`,
-            role: "assistant",
-            content: result.answer,
-            result,
-          },
-        ]);
+        setMessages(old=>old.map(item=>item.id===answerId?{...item,phase:'complete',content:result.answer,result,activity:finishAssistantActivity(mergeAssistantActivity(item.activity,result.activity))}:item));
     } catch (reason) {
       if (request === sequence.current && !controller.signal.aborted)
-        setError(
-          reason instanceof Error ? reason.message : "Please try again.",
-        );
+        setMessages(old=>old.map(item=>item.id===answerId?{...item,phase:'error',content:reason instanceof Error?reason.message:'Please try again.',activity:finishAssistantActivity(item.activity||[],true)}:item));
     } finally {
       if (request === sequence.current) setBusy(false);
     }
@@ -151,6 +168,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
         ...item,
         content:`${item.content}\n\n✓ ${result.summary}. You can view the updated record in School Affairs.`,
         result:item.result?{...item.result,proposedAction:undefined}:undefined,
+        activity:mergeAssistantActivity(item.activity,[{kind:'action',label:'Updated your stu.best record',detail:result.summary,status:'complete'}]),
       }:item));
       window.dispatchEvent(new Event('school-affairs:updated'));
     } catch(reason) {
@@ -198,10 +216,10 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
             onClick={() => {
               sequence.current++;
               pending.current?.abort();
+              clearAssistantConversation();
               setMessages([]);
               setImages([]);
               setError("");
-              setProgress([]);
             }}
           >
             <RotateCcw size={14} /> New chat
@@ -225,6 +243,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
                   variant="outline"
                   className="h-auto w-full justify-start whitespace-normal text-left"
                   key={question}
+                  disabled={!scope}
                   onClick={() => void send(question)}
                 >
                   {question}
@@ -245,13 +264,14 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
                 {message.role === "user" ? "You" : "Assistant"}
               </p>
               {message.role === "user" ? (
-                <><p className="whitespace-pre-wrap text-sm [overflow-wrap:anywhere]">{message.content}</p>{message.images?.map(image=><img key={image.name} src={image.dataUrl} alt={`Attached ${image.name}`} className="mt-2 max-h-40 max-w-full rounded-md object-contain" />)}</>
-              ) : (
+                <><p className="whitespace-pre-wrap text-sm [overflow-wrap:anywhere]">{message.content}</p>{message.images?.map(image=>image.dataUrl?<img key={image.name} src={image.dataUrl} alt={`Attached ${image.name}`} className="mt-2 max-h-40 max-w-full rounded-md object-contain" />:<p key={image.name} className="mt-2 text-xs">Attached image · {image.name}</p>)}</>
+              ) : message.phase === 'working' && !message.content ? <p className="text-sm text-muted-foreground">Preparing your answer…</p> : message.phase === 'error' ? <p role="alert" className="text-sm text-destructive">{message.content}</p> : (
                 <AssistantMarkdown>{message.content}</AssistantMarkdown>
               )}
               {message.result?.grounding?.source === "web" && <p className="text-xs text-muted-foreground">Found online · See sources below.</p>}
               {message.result?.proposedAction && user ? <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm"><p className="font-semibold">Review action</p><p className="my-2 break-words">{message.result.proposedAction.label}</p><p className="mb-3 text-xs text-muted-foreground">This changes stu.best records only. No university system is contacted.</p><Button size="sm" disabled={!!actionBusy} onClick={()=>void applyAction(message)}>{actionBusy===message.id?'Applying…':'Confirm action'}</Button></div> : null}
-              {message.result && <details className="rounded-md border px-3 py-2 text-xs"><summary className="cursor-pointer font-medium">How I checked</summary><ol className="mt-2 space-y-2 text-muted-foreground">{(message.result.activity?.length ? message.result.activity : message.result.grounding?.source === 'web' ? [{kind:'web',label:'Searched public web sources',detail:'Open the linked sources below to verify the answer.',status:'complete' as const}] : message.result.grounding?.source === 'knowledge' ? [{kind:'knowledge',label:'Checked managed school knowledge',detail:'See reviewed sources below.',status:'complete' as const}] : [{kind:'answer',label:'Answered from available context',detail:'No external search was used for this response.',status:'complete' as const}]).map((step,index)=><li key={`${step.kind}-${index}`}><strong className="text-foreground">{step.label}</strong><span className="block">{step.detail}</span></li>)}</ol><p className="mt-2 text-muted-foreground">This shows source checks and tool activity, not private model reasoning.</p></details>}
+              {message.actionExpired && !message.result?.proposedAction ? <p className="rounded-md border bg-muted/50 p-2 text-xs text-muted-foreground">The earlier action review expired when this chat was restored. Ask again if you still want to do it.</p> : null}
+              {message.role === 'assistant' ? <ActivityTimeline message={message} /> : null}
               {message.result?.citations.length ? (
                 <ul
                   className="space-y-2 border-t pt-3 text-xs"
@@ -286,15 +306,6 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
               ) : null}
             </article>
           ))}
-          {busy ? (
-            <section role="status" aria-label="Assistant activity" className="rounded-xl border bg-muted/40 p-4 text-sm">
-              <p className="font-semibold text-foreground">Working on your question</p>
-              {progress.length ? <ol className="mt-3 space-y-2">{progress.map(step=><li key={step.kind} className="flex items-start gap-2 text-muted-foreground">
-                {step.status==='running'?<LoaderCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0 animate-spin text-primary"/>:step.status==='complete'?<Check aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary"/>:<CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0"/>}
-                <span><strong className="block font-medium text-foreground">{step.label}</strong><span className="block text-xs">{step.detail}</span></span>
-              </li>)}</ol>:<p className="mt-2 text-muted-foreground">Connecting to the assistant…</p>}
-            </section>
-          ) : null}
         </div>
         <form
           className="space-y-3 border-t p-4"
@@ -332,7 +343,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
           />
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2"><input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" multiple className="sr-only" aria-label="Attach images" onChange={event=>void addImages(event.target.files)}/><Button type="button" variant="outline" size="icon" aria-label="Attach images" disabled={busy} onClick={()=>fileInput.current?.click()}><Paperclip size={16}/></Button><span className="text-xs text-muted-foreground">Enter to send · Shift+Enter for a new line</span></div>
-            <Button type="submit" disabled={busy || (!query.trim() && !images.length)}>
+            <Button type="submit" disabled={!scope || busy || (!query.trim() && !images.length)}>
               <Send size={16} /> Send
             </Button>
           </div>

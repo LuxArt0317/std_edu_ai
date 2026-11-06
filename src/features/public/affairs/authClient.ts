@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.generated';
+import { clearAssistantConversation } from '@/services/assistantConversation';
 
 const url = import.meta.env.VITE_SUPABASE_URL?.trim();
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
@@ -76,6 +77,7 @@ export function signOutAffairs() {
     // Revoke only this session; do not sign out a separately authenticated Nexus session.
     const { error } = await client.auth.signOut({ scope: 'local' });
     if (error) throw new Error('Sign out failed. Check your connection and try again.');
+    clearAssistantConversation();
   })().finally(() => { signOutTask = null; });
   return signOutTask;
 }

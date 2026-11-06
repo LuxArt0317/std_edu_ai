@@ -1,5 +1,10 @@
 # Findings
 
+## Issue #95 — assistant conversation activity
+
+The public chat currently keeps streamed progress in a standalone `busy` panel. It disappears when the answer arrives, and the answer's own activity can omit steps seen in the stream. Messages are component state and reset on navigation or refresh. Keep observable source/tool stages with the corresponding answer, restore a bounded transcript only within the same browser tab and identity, and clear it on sign-out or New chat. Do not display private model chain of thought; show actual lookup stages and linked sources. Do not persist attached image bytes, feedback capabilities, authentication tokens or unconfirmed actions.
+
+
 ## Issue #94 — account-grounded school demo
 
 The pasted signed-in chat exposed two faults: no fee/assignment rows existed for the sample account, and the short follow-up “how about assignments?” fell through to public research with empty history. A verified Google session alone cannot reveal official university SIS or Moodle records, so the release uses clearly labeled stu.best-owned sample rows with per-account RLS. The existing client schema already covered terms, courses, sections, enrollments, grades, attendance, charges and site tasks/requests; the additive work supplies sample academic history, a future term, assignment records, an illustrative tuition charge and audited Lux admin management. Asia/Taipei term dates and weekly meetings determine today/next class. Only a genuine Lux School Affairs Google sign-in can validate the live admin flow; no such identity existed in the client auth database during this work.

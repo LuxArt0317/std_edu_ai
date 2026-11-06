@@ -1,6 +1,11 @@
 # Changelog
 ## Unreleased
 
+### Persistent assistant activity (Issue #95)
+
+- Keep streamed account, knowledge, web and image checks with the answer they produced, including failed or interrupted turns; show an expandable timeline and source links in the chat.
+- Retain a bounded, identity-scoped conversation across navigation and refresh in the current tab. Clear private history on sign-out and New chat; exclude image bytes, tokens, feedback capabilities and unconfirmed action payloads from storage.
+
 ### Account-scoped school records and assistant answers (Issue #94)
 
 - Add RLS-protected sample assignments, past/current/future subjects, a Friday timetable entry and a sample tuition ledger for verified School Affairs Google accounts. Backfill existing sample accounts without changing official systems.

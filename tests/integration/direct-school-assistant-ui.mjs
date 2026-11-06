@@ -12,7 +12,7 @@ try {
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.route('**/api/research-assistant', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ answer: 'The registrar contact is in the school directory.', status: 'answered', citations: [], suggestedQuestions: [] }) }));
-    for (const route of routes) {
+    for (const [index,route] of routes.entries()) {
       await page.goto(origin + route, { waitUntil: 'domcontentloaded' });
       assert.equal(await page.locator('[data-stu-boot], .source-mirror').count(), 0, route);
       await page.getByRole('button', { name: '開啟 AI 校園助理' }).click();
@@ -24,12 +24,13 @@ try {
       await assistant.getByRole('heading', { name: '校園助理 · Assistant' }).waitFor();
       await assistant.getByPlaceholder('Ask a school question…').fill('Registrar contact?');
       await assistant.getByRole('button', { name: 'Send', exact: true }).click();
-      await assistant.getByText('The registrar contact is in the school directory.').waitFor();
+      await assistant.getByText('The registrar contact is in the school directory.').last().waitFor();
+      assert.equal(await assistant.getByText('The registrar contact is in the school directory.').count(),index+1,'the tab conversation survives direct-page navigation');
       await assistant.getByPlaceholder('Ask a school question…').focus();
       await page.keyboard.press('Escape');
       await panel.waitFor({ state: 'hidden' });
       await page.getByRole('button', { name: '開啟 AI 校園助理' }).click();
-      await assistant.getByText('The registrar contact is in the school directory.').waitFor();
+      await assistant.getByText('The registrar contact is in the school directory.').last().waitFor();
       await page.getByRole('button', { name: '關閉校園助理' }).click();
       await panel.waitFor({ state: 'hidden' });
     }

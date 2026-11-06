@@ -1,5 +1,9 @@
 # Client handoff
 
+## Issue #95 — assistant activity stays with the conversation (release pending)
+
+The public and School Affairs assistant now attach observed checks to each answer in an expandable timeline. The current tab retains a bounded, identity-scoped transcript across navigation/refresh; sign-out and New chat clear it, and stored entries exclude image bytes, tokens, feedback capabilities and unconfirmed action payloads. Failed and interrupted responses keep their observed steps without claiming a completed answer or displaying private model reasoning. Local streamed public browser checks pass at 1440/390px with zero serious accessibility findings; synthetic Google account JSON/refresh/sign-out checks pass. Root 225 API/source, 30 unit, TypeScript/Vite build and lint pass. Production publication and real Lux Google callback acceptance remain to verify.
+
 ## Issue #94 — account-scoped school demo records (published; owner acceptance pending)
 
 The exact client Supabase project `xiftudmvxphxcjtmfmib` now has 110 applied migrations and 119 public tables. Two additive migrations created sample assignments and seeded one existing Google account with five past/current/future enrollments, a tuition charge and two assignments; the follow-up migration restricts admin management to sample academic records. The private assistant answers today/next class, subject history, DTM assignments and tuition from those account records. School Affairs and DTM show the data, and the Lux School Affairs admin has audited sample enrollment, charge and assignment forms.
