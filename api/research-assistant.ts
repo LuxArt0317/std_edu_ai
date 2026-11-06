@@ -132,7 +132,7 @@ function parse(body: unknown) {
   if (rawImages !== undefined && (!Array.isArray(rawImages) || rawImages.length > 2)) return null;
   const images: Array<{name:string;dataUrl:string}> = [];
   let totalBytes = 0;
-  for (const image of (rawImages || [])) {
+  for (const image of (Array.isArray(rawImages) ? rawImages : [])) {
     if (!image || typeof image !== 'object' || Array.isArray(image)) return null;
     const item = image as Record<string,unknown>;
     if (typeof item.name !== 'string' || typeof item.dataUrl !== 'string' || item.name.length > 120 || item.dataUrl.length > 2_100_000) return null;

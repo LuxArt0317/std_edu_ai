@@ -7,6 +7,7 @@
 - State clearly that official Moodle assignments, submissions, grades and notifications are not connected to stu.best.
 - Rebuild the DTM overview with the official page's three-column structure, dated public announcement/category references, navigation, quick links and contacts while preserving account-scoped sample courses.
 - Add an AI behavior acceptance matrix and DTM content, search, responsive and accessibility checks.
+- Narrow validated image input to an array before iteration so Vercel's server-side TypeScript compilation succeeds.
 
 ### School Affairs sign-in from public assistant (Issue #83)
 
