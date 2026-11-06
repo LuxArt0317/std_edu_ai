@@ -1,8 +1,8 @@
 # Current client state
 
-## Issue #93: DTM overview and signed-in assistant correction (verification in progress)
+## Issue #93: DTM overview and signed-in assistant correction (published)
 
-The official signed-in DTM homepage was inspected read-only on 2026-11-06. The stu.best preview now follows its three-column announcement, category, navigation, quick-link and contact structure, while labeling account-specific courses as samples and public reference labels as dated. The School Affairs assistant now keeps the reported signed-in account and capability questions on the token-verified private path. Local API acceptance, DTM desktop/tablet/phone, accessibility, build, lint, handoff and dependency checks pass. Official Moodle account records remain unconnected; no real-user Moodle import, migration, credential or provider change was made. Full client verification and publication are pending.
+The official signed-in DTM homepage was inspected read-only on 2026-11-06. The stu.best preview now follows its three-column announcement, category, navigation, quick-link and contact structure, while labeling account-specific courses as samples and public reference labels as dated. The School Affairs assistant now keeps the reported signed-in account and capability questions on the token-verified private path. Client source `eeb0577e0799244e3c15b23c9c4118f6ca63cfa3` is Ready as Vercel `HiH9CpPPUQ36bWV5q4M7KETuRcSu`; GitHub quality `42138015134` succeeded. Live `/dtm` redirects an anonymous visitor to the working Google login, the built DTM asset returns 200, and the unsigned private assistant returns 401. Local 223 API/source, 30 unit, focused assistant acceptance, DTM desktop/tablet/phone with zero serious accessibility findings, build, lint, handoff, dependency and protected client checks pass. Official Moodle account records remain unconnected and real Lux callback acceptance remains unverified; no real-user Moodle import, migration, credential or provider change was made. Issue #93 remains open for an authorized official data integration.
 
 ## Issue #83: embedded School Affairs Google sign-in fix (published and verified)
 
