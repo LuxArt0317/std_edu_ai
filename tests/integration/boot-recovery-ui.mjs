@@ -26,7 +26,10 @@ try {
     route.fulfill({ status: 200, contentType: "text/html", body: stale }),
   );
   await page.goto(origin + "/signin", { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: /sign in/i }).first().waitFor({ timeout: 30000 });
+  // CI builds intentionally have no Supabase credentials, so a recovered
+  // sign-in route shows its configuration message instead of the form.
+  await page.locator("[data-stu-boot]").waitFor({ state: "detached", timeout: 30000 });
+  await page.getByRole("heading", { name: /^(?:Sign in|School connection is not configured)$/ }).waitFor();
   assert.ok(navigations.some((url) => url.includes("__stu_boot_recovery=")));
   assert.equal(new URL(page.url()).searchParams.has("__stu_boot_recovery"), false);
   assert.equal(await page.locator("[data-stu-boot]").count(), 0);

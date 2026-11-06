@@ -8,6 +8,7 @@
 - Prevent a slow conversation-history response from erasing a newly sent Assistant message; wait for the selected thread before sending and keep other threads' messages out of view.
 - Route personal questions about a single class to verified account records instead of public web search; cover the reported class-announcement phrasing in the source tests.
 - Update browser regressions for embedded public chat and current routes, assert owner-menu dismissal and mobile document separation, and run copied school-page checks in CI against the production build.
+- Accept the explicit missing-configuration sign-in state when the stale-bundle recovery test runs in credential-free CI, while still requiring successful app boot and a single refresh.
 - Record cross-system QA results and the external school, mail, account-holder and human acceptance gates separately.
 
 ### Persistent assistant activity (Issue #95)
