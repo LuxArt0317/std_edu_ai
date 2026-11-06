@@ -5,7 +5,7 @@
 - [x] Establish a baseline for CI, API/unit/browser flows, live public routes and protected client checks; record reproducible failures.
 - [x] Critique public, School Affairs/DTM and Nexus workflows, accessibility, authorization, data correctness, security and operations; rank concrete defects and map external gates to existing issues.
 - [x] Fix the verified defects within the client repository and add focused regression checks for the affected behavior.
-- [ ] Run the full release gates, publish any verified fixes, test the deployed client routes, and record remaining limits honestly.
+- [x] Run the full release gates, publish any verified fixes, test the deployed client routes, and record remaining limits honestly.
 
 ## Keep assistant work visible with each answer [Issue #95]
 
