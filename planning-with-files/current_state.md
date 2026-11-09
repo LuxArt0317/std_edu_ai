@@ -1,8 +1,8 @@
 # Current client state
 
-## Issue #97: temporary Supabase activity check (implementation in progress)
+## Issue #97: temporary Supabase activity check (published and active)
 
-The exact client project `xiftudmvxphxcjtmfmib` answered a live anonymous, read-only `knowledge_sources` query on November 9, 2026. A GitHub Actions workflow and script now target only that project, with a fixed December 9, 2026 12:44:38 UTC cutoff, no query after that instant and self-disable on the next scheduled run. The workflow is not live until its repository secret, committed source and a successful GitHub-hosted run are verified. No Supabase schema, app access policy or Vercel setting is changed. Free-plan pause prevention is best effort, not guaranteed.
+The exact client project `xiftudmvxphxcjtmfmib` answered a live anonymous, read-only `knowledge_sources` query on November 9, 2026. Client main `8de41edd0deffd3cb97bd7a7516acfd699390643` added the GitHub Actions workflow and script, with a fixed December 9, 2026 12:44:38 UTC cutoff, no query after that instant and self-disable on the next scheduled run. The publishable key is in a client repository Actions secret, not source. [Normal run 42620736451](https://github.com/LuxArt0317/std_edu_ai/actions/runs/42620736451) queried one row, [manual stop 42620915162](https://github.com/LuxArt0317/std_edu_ai/actions/runs/42620915162) made no query and disabled the workflow, and [re-enabled run 42621330266](https://github.com/LuxArt0317/std_edu_ai/actions/runs/42621330266) queried one row with the workflow active. [Quality 42620665171](https://github.com/LuxArt0317/std_edu_ai/actions/runs/42620665171) passed; Vercel status for the source commit succeeded. Local 228 API/source and 30 unit tests, build/lint/handoff/dependency and protected client checks passed. No Supabase schema, app access policy or Vercel setting changed. Free-plan pause prevention is best effort, not guaranteed.
 
 ## Issue #96: full client QA audit (published and verified)
 

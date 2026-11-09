@@ -1,5 +1,9 @@
 # Client handoff
 
+## Issue #97 — one-month client database activity (active)
+
+The client repository has an active, three-times-daily GitHub Actions check against only Supabase project `xiftudmvxphxcjtmfmib`. It reads one public RLS-protected knowledge source through the Data API with a publishable key stored as an Actions secret. The fixed cutoff is **December 9, 2026 at 12:44:38 UTC** (20:44:38 Manila); the script makes no database requests after that time and the next scheduled run disables its own workflow. A manual stop and subsequent explicit re-enable were verified. [Normal run 42620736451](https://github.com/LuxArt0317/std_edu_ai/actions/runs/42620736451) and [final active run 42621330266](https://github.com/LuxArt0317/std_edu_ai/actions/runs/42621330266) each queried one row; [stop run 42620915162](https://github.com/LuxArt0317/std_edu_ai/actions/runs/42620915162) queried none and confirmed the disabled state. [Quality 42620665171](https://github.com/LuxArt0317/std_edu_ai/actions/runs/42620665171) and Vercel status for source `8de41edd0deffd3cb97bd7a7516acfd699390643` succeeded. No database migration or app permission changed. Supabase's Free Plan activity threshold and GitHub schedule are not uptime guarantees. See [the operating and re-enable steps](INFRASTRUCTURE.md#temporary-supabase-activity-check--issue-97).
+
 ## Issue #96 — full client QA and repairs (published)
 
 The independent LuxArt0317 client copy has five verified fixes: owner-menu focus after workspace switching, phone-width Knowledge row overlap, missing sign-up navigation, lost Assistant messages during slow history loading, and private single-class questions leaking into public lookup instead of using authorized records. The copied public pages now run in GitHub quality on every code change. The exact findings, regressions and remaining external dependencies are in [the QA report](../qa/CLIENT_QA_2026-11-06.md).
