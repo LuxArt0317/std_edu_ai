@@ -1,5 +1,12 @@
 # Task Plan
 
+## Temporary client Supabase activity check [Issue #97]
+
+- [x] Match the exact LuxArt0317 client project and verify an anonymous read against a public, RLS-protected table.
+- [ ] Add an external scheduled read with a fixed one-month cutoff and automatic workflow retirement.
+- [ ] Test successful, expired, manual-stop and failed-query paths without production writes.
+- [ ] Set the repository secret, publish to client main, verify a manual run, and record the operational limits and final state.
+
 ## Full client QA and verified repairs [Issue #96]
 
 - [x] Establish a baseline for CI, API/unit/browser flows, live public routes and protected client checks; record reproducible failures.

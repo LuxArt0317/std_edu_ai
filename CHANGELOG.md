@@ -1,6 +1,12 @@
 # Changelog
 ## Unreleased
 
+### Temporary client database activity (Issue #97)
+
+- Schedule an external read-only query to the exact client Supabase project three times daily for one month, using a repository-managed publishable-key secret.
+- Stop all database queries at the fixed December 9, 2026 UTC cutoff and disable the GitHub workflow on its next scheduled run; support an earlier manual stop.
+- Verify the expiry, target, successful response and failure paths without a database migration or application authorization change.
+
 ### Client quality audit and repairs (Issue #96)
 
 - Close the owner account menu before switching between knowledge management and the full workspace so modal focus does not hide navigation.

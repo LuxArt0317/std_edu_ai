@@ -1,0 +1,51 @@
+name: Temporary Supabase activity
+on:
+  schedule:
+    - cron: '17 0,8,16 * * *'
+  workflow_dispatch:
+    inputs:
+      stop_now:
+        description: Stop this activity check immediately
+        type: boolean
+        required: false
+        default: false
+permissions: {}
+concurrency:
+  group: temporary-supabase-activity
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    outputs:
+      expired: ${{ steps.query.outputs.expired }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24'
+      - name: Read one public source record or mark the window expired
+        id: query
+        env:
+          SUPABASE_ACTIVITY_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ACTIVITY_PUBLISHABLE_KEY }}
+          STOP_NOW: ${{ inputs.stop_now || 'false' }}
+        run: node scripts/supabase-activity.mjs
+  retire:
+    needs: check
+    if: needs.check.outputs.expired == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      actions: write
+    steps:
+      - name: Disable this workflow until explicitly re-enabled
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method PUT "repos/${GITHUB_REPOSITORY}/actions/workflows/supabase-activity.yml/disable"
+          state=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/supabase-activity.yml" --jq .state)
+          test "$state" = disabled_manually

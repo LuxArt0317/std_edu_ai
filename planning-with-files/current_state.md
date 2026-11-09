@@ -1,5 +1,9 @@
 # Current client state
 
+## Issue #97: temporary Supabase activity check (implementation in progress)
+
+The exact client project `xiftudmvxphxcjtmfmib` answered a live anonymous, read-only `knowledge_sources` query on November 9, 2026. A GitHub Actions workflow and script now target only that project, with a fixed December 9, 2026 12:44:38 UTC cutoff, no query after that instant and self-disable on the next scheduled run. The workflow is not live until its repository secret, committed source and a successful GitHub-hosted run are verified. No Supabase schema, app access policy or Vercel setting is changed. Free-plan pause prevention is best effort, not guaranteed.
+
 ## Issue #96: full client QA audit (published and verified)
 
 Audited the exact LuxArt0317 client copy based on `1edb88b686edb92d29507e03b20ac9f4def47551`. Repaired owner-menu focus, mobile Knowledge overflow, signup discovery, the Assistant history race, and the singular-class private routing miss. Added copied public-page CI coverage and exact regressions. Verified runtime source `46dc3e232e9014ee7845db75313568f26bb0f346` is live as Vercel `99TyzSrMuRCSstdU4HY1B1PXdL8Q`; quality `42222537568` passed. Local checks: 225 API/source, 30 unit, 51 E2E, 395 copied routes with ten audience cards, ten public accessibility states, production build, zero-vulnerability dependency audit and lint exit 0 with 71 inherited warnings. Live checks: seven routes, desktop/phone signup, ten connected-assistant cases including the corrected private class notice, post-release client RLS/CRUD/Edge/OpenAI and two-account School Affairs/DTM isolation. Official school integrations, real Lux Google callback, public email delivery and consented human research remain separately tracked external dependencies.
