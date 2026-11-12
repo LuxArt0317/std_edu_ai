@@ -294,6 +294,13 @@
       "sha256": "9ec0b3674feed90fab05656e6083f046da9bf1ed4a60674eb2883ddfbc03b79b",
       "bytes": 610,
       "capturedOn": "2026-11-12"
+    },
+    {
+      "source": "https://infosys.stu.edu.tw/StuFees/Content/stu/images/stuBanner.svg",
+      "local": "/stu-reference/pending-fees-banner.svg",
+      "sha256": "ee1f2bb8f7f5a9dd563598ec5674e25f150ffa75b82a615544481cbab3facfbe",
+      "bytes": 1422,
+      "capturedOn": "2026-11-12"
     }
   ]
 }

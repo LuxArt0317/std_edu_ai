@@ -82,3 +82,9 @@ Prior log archived in archive/progress_2026-11-03-statistics.md; key results ret
 - 2026-11-12: Runtime f87b1f6 is live as Vercel7gkCMZKbhH5cgYBcgacvcah8t4Aj, entry index-OSVBqA0t.js. Production native service browser/API checks passed with cleanup, as did protected client RLS/owner/Edge/OpenAI checks. Remaining service39-1 fee fields/layout/pagination captured as the next source-specific family.
 
 - 2026-11-12: GitHub quality43233474963 completed successfully for f87b1f6. Preparing final release evidence; Issues93/98 remain open for remaining source families and institutional scope.
+
+- Pending fees continuation: source table/shell/status measured without copying private values. Native39-1, nullable metadata, admin field lifecycle, full stable pagination and local fee/contact answers implemented; seven focused API checks passed. Source credit-load history six-column layout captured; application acknowledgement not accepted and unseen7-1 form is deferred. Native11-3 history is in implementation.
+
+- 2026-11-12: Applied0800/0900 after rollback checks; exact client119 migrations/130 public tables. Full276 API/source and41 unit checks pass; production protected client verification passed. Final native geometry/live browser tests precede publication.
+
+- 2026-11-12: Native39-1/11-3 live two-account checks passed with exact cleanup. Final source geometry/color/typography and admin/error/retry suites pass;276 API/source,41 units,build/lint/handoff/dependency/client verification pass. Prepared client-main release; source contrast exceptions remain, no whole-catalog completion claim.

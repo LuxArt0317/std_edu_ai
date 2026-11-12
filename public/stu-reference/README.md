@@ -5,3 +5,5 @@ These images and SVGs support the dated university interface copy. `provenance.j
 These are local, fixed copies. The site does not request images from the official service at runtime or claim to be the university's official login.
 
 On November12,2026, `course-catalog-heading.jpg` was captured from the observed public course-query heading and `housing-logo.png` from the observed room-history logo. Their exact source URLs, hashes and lengths are recorded per asset in `provenance.json`. No private account screenshot or personal record is bundled.
+
+`pending-fees-banner.svg` is the observed public Student Fees logo, captured on November12,2026; its original URL, checksum and length are in the provenance manifest. No authenticated student rows are published in this directory.

@@ -67,6 +67,8 @@ import { useAffairsRecords } from "./useAffairsRecords";
 import { StudentAidWorkspace } from "./studentAidWorkspace";
 import CourseCatalog from "./CourseCatalog";
 import { HousingWorkspace } from "./HousingWorkspace";
+import { PendingFees } from "./PendingFees";
+import { CreditLoadHistory } from "./CreditLoadHistory";
 import "./portal.css";
 
 // The university portal uses Font Awesome 4 for its navigation.
@@ -421,6 +423,12 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   }
   if (servicePage && route[1] === "22-1") {
     return <StudentAidWorkspace key={pathname} userId={user.id} />;
+  }
+  if (servicePage && route[1] === "11-3") {
+    return <CreditLoadHistory key={pathname} userId={user.id} />;
+  }
+  if (servicePage && route[1] === "39-1") {
+    return <PendingFees key={pathname} userId={user.id} />;
   }
   if (servicePage && route[1] === "12-4") {
     return <CourseCatalog userId={user.id} />;

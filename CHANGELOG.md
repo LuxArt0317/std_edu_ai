@@ -1,6 +1,12 @@
 # Changelog
 ## Unreleased
 
+### Pending fees and credit-load history (Issue #98)
+
+- Replace the shared fee view and generic credit-history tracker with source-measured native tables.
+- Store separate occurrence dates, category/contact/payment metadata, and account-owned credit history with audited admin management.
+- Load all charge pages for complete balances and keep contextual fee/credit questions on private local records.
+
 ### Native aid, housing and course catalog (Issue #98)
 
 - Replace four generic service destinations with measured student-aid, housing application/history and course-search layouts, backed by private records and administrator management.

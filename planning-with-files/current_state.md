@@ -1,5 +1,13 @@
 # Current client state
 
+## Pending fees and credit-load history (Issue #98, release verification)
+
+The client database now has119 applied migrations and130 public tables after0800/0900. Native39-1 shows eight pending-fee columns with distinct occurrence/due dates and nullable contact/payment metadata. Native11-3 shows the observed six-column credit-load history, source menus and notes. Student views are read-only; local admin writes enforce ownership, versions, strict input validation and audited receipts. The assistant answers fee/contact/date and credit-history questions from the signed-in account with local links. Catalog charges paginate stably beyond500 rows.
+
+276 API/source checks and41 units pass. Database rollback preflights, live protected client checks, lint and dependency audit passed. The actual-database two-account browser/API suite passed save/reload, metadata clear, settled fee filtering, credit-history retries/version conflicts, private assistant citations and320/390px layouts. Exact fixture cleanup passed. Source typography, menu widths, table position/height and footer geometry pass the final1280px comparison. TypeScript/build and handoff gates pass. Focused review caught and fixed ambiguous “balance my class schedule” routing; its regression passes. Production deployment verification remains; this runtime is not published yet. No official student rows were copied into local sample accounts. No university submission/payment was made. Source-inherited contrast exceptions remain documented; exact whole-site pixel parity is not claimed.
+
+Coverage is94 catalog destinations:9 dedicated native,72 generic trackers,8 partial and5 portal/public-preview, with53 generic/partial source families remaining. DTM is separate. External credit-transfer history and7-1 credit application remain distinct unfinished destinations; do not alias or invent eligibility rules.
+
 ## Native aid, housing and course catalog batch (Issue #98)
 
 The client database has117 applied migrations and129 public tables after migrations0400–0700. New native pages provide student-aid record queries, housing applications/receipts and eight-column bed history, searchable course offerings and structured syllabi. Account-owned records are RLS-isolated; admin writes use audited versioned RPCs. Personal aid/housing answers use deterministic private queries, and housing contact/health details are excluded from model context. Catalog offerings do not imply personal enrollment. Standalone service pages retain the assistant launcher.

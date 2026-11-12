@@ -10,12 +10,18 @@ The preceding turn made verified progress; this continuation has live source acc
 
 ## Next native family: pending fees [Issue #98]
 
-- [ ] Inspect the exact source status vocabulary/actions and settled-row behavior for39-1.
-- [ ] Give39-1 its own measured layout and add nullable occurrence date, category, contact unit/extension and payment unit to account-owned charges. Never substitute due date for occurrence date.
-- [ ] Add stable pagination instead of silent100-record truncation; extend admin metadata and private assistant answers.
+- [x] Inspect source39-1: eight columns, read-only rows, pending status; settled-row behavior unobserved.
+- [x] Give39-1 its own measured layout and add nullable occurrence date, category, contact unit/extension and payment unit to account-owned charges. Never substitute due date for occurrence date.
+- [x] Add stable pagination instead of silent100-record truncation; extend admin metadata and private assistant answers.
 - [ ] Verify privacy, totals, phone layout and source geometry, then publish.
 
 Keep tuition queries48-1/48-2/48-3, settlement49-1 and transfers50-1 separate; their source workflows are different.
+
+## Credit-load history [Issue #98]
+
+- [x] Inspect original11-3 history, source menu links and empty six-column layout. Keep7-1 application rules separate.
+- [x] Implement private history, strict versioned admin writes and persistent replay receipts; ground account answers in those records.
+- [ ] Complete source typography/geometry, two-account browser/API checks, release and production verification.
 
 ## Protected course and scholarship destinations [Issues #93 and #98]
 

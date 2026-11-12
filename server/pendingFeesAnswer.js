@@ -1,0 +1,43 @@
+const feesPath='/school-affairs/services/39-1';
+const feeTopic=/\b(?:tuition|fees?|charges?|balance|payments?|unpaid|arrears)\b|學費|費用|繳費|待繳|欠費/i;
+const followup=/\b(?:where|contact|extension|unit|how much|amount|when|date|deadline|due)\b|哪|誰|聯絡|連絡|分機|單位|金額|多少|日期|期限/i;
+const anotherTopic=/\b(?:courses?|subjects?|class(?:es)?|schedules?|timetables?|assignments?|grades?|scholarships?|housing|dormitory|leave|attendance)\b|課程|科目|課表|作業|成績|獎學金|宿舍申請|住宿申請|請假|出席/i;
+const cents=value=>Math.round(Number(value)*100);
+const balance=row=>Math.max(0,cents(row.amountDue)-cents(row.amountPaid));
+
+/** Local account data only. Never infer a due date, payment confirmation, or bank details. */
+export function isPendingFeeQuestion(question,route='',history=[]) {
+  // "Balance my class schedule" is not a monetary balance inquiry.
+  if(/\bbalance\b/i.test(question) && anotherTopic.test(question) && !feeTopic.test(question.replace(/\bbalance\b/gi,'')))return false;
+  return feeTopic.test(question)||(followup.test(question)&&!anotherTopic.test(question)&&(route===feesPath||feeTopic.test(history.filter(item=>item.role==='user').at(-1)?.content||'')));
+}
+export function answerPendingFees(question,snapshot,route='',history=[]) {
+  if(!isPendingFeeQuestion(question,route,history))return null;
+  const contextual=!feeTopic.test(question);
+  const chinese=/[\u3400-\u9fff]/.test(question);
+  const missing=chinese?'未記錄':'not recorded';
+  const pending=/\b(?:unpaid|pending|outstanding|arrears|remaining|owe)\b|待繳|未繳|欠費|餘額/i.test(question)||contextual;
+  const rows=(snapshot.charges||[]).filter(row=>Number.isFinite(Number(row.amountDue))&&Number.isFinite(Number(row.amountPaid)));
+  const selected=pending?rows.filter(row=>balance(row)>0):rows;
+  const sums=new Map();
+  for(const row of selected){const currency=row.currency||'TWD';sums.set(currency,(sums.get(currency)||0)+balance(row));}
+  const money=(value,currency='TWD')=>`${currency==='TWD'?'NT$':currency+' '}${(value/100).toLocaleString(chinese?'zh-TW':'en-US',{maximumFractionDigits:2})}`;
+  const contact=/contact|extension|where|unit|pay|聯絡|連絡|分機|哪|單位|繳/i.test(question);
+  const date=/date|when|deadline|due|日期|何時|期限|哪天/i.test(question);
+  const lines=selected.slice(0,20).map(row=>{
+    const amount=money(balance(row),row.currency);
+    const parts=[chinese?`${row.label}：待繳 ${amount}（應繳 ${money(cents(row.amountDue),row.currency)}；已繳 ${money(cents(row.amountPaid),row.currency)}）`:
+      `${row.label}: remaining ${amount} (charged ${money(cents(row.amountDue),row.currency)}; paid ${money(cents(row.amountPaid),row.currency)})`];
+    if(contact)parts.push(chinese?`連絡單位 ${row.contactUnit||missing}；分機 ${row.contactExtension||missing}；繳費單位 ${row.paymentUnit||missing}`:
+      `contact unit ${row.contactUnit||missing}; extension ${row.contactExtension||missing}; payment unit ${row.paymentUnit||missing}`);
+    if(date)parts.push(chinese?`發生日期 ${row.occurrenceOn||missing}；繳費期限 ${row.dueOn||missing}`:
+      `occurrence date ${row.occurrenceOn||missing}; due date ${row.dueOn||missing}`);
+    return parts.join(' · ');
+  });
+  const prefix=chinese?'您的 stu.best 費用紀錄（站內示範）：':'Your stu.best fee records (local demonstration):';
+  const empty=chinese?(pending?'目前沒有待繳項目。':'尚無費用紀錄。'):(pending?'There are no pending payments.':'No fee records are saved.');
+  const total=chinese?'待繳合計：':'Total remaining: ';
+  const more=selected.length>20?(chinese?`\n顯示前 20 / ${selected.length} 筆；合計包含全部項目。完整紀錄見下方連結。`:`\nShowing 20 of ${selected.length} records; totals include every item. Open the linked page for the full list.`):'';
+  return {answer:prefix+'\n'+(lines.length?lines.join('\n')+'\n'+total+[...sums].map(([currency,amount])=>money(amount,currency)).join('; '):empty)+more,
+    title:chinese?'我的待繳費用':'My pending payments',url:feesPath};
+}

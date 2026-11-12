@@ -68,6 +68,7 @@ test('personal School Affairs question reads only the caller site records, never
    '/rest/v1/affairs_scholarship_periods':[],
    '/rest/v1/affairs_scholarship_applications':[],
    '/rest/v1/affairs_student_aid_records':[],
+   '/rest/v1/affairs_credit_load_history':[],
    '/rest/v1/affairs_housing_periods':[],
    '/rest/v1/affairs_housing_applications':[],
    '/rest/v1/affairs_housing_assignments':[],
@@ -100,6 +101,10 @@ test('personal School Affairs question reads only the caller site records, never
  assert.equal(tomorrow.status,200);assert.match(tomorrow.body.answer,/tomorrow/i);assert.equal(tomorrow.body.grounding.source,'account');
  const fees=await invoke(affairsHandler,{question:'how much is tuition?',route:'/school-affairs'},token);
  assert.equal(fees.status,200);assert.match(fees.body.answer,/NT\$23,000/);assert.equal(fees.body.grounding.source,'account');
+ const feeContact=await invoke(affairsHandler,{question:'Which contact unit?',route:'/school-affairs/services/39-1'},token);
+ assert.equal(feeContact.status,200);assert.match(feeContact.body.answer,/contact unit not recorded/);assert.equal(feeContact.body.grounding.source,'account');
+ const creditHistory=await invoke(affairsHandler,{question:'What is my credit-load history?',route:'/school-affairs/services/11-3'},token);
+ assert.equal(creditHistory.status,200);assert.match(creditHistory.body.answer,/No credit-load history records/);assert.equal(creditHistory.body.grounding.source,'account');
  const modelCalls=calls.filter(url=>url.includes('api.openai.com')||url.includes('/api/research-assistant'));
  assert.deepEqual(modelCalls,[],'signed-in account and capability questions must stay on the private path');
  const events=await invokeStream({question:'What DTM materials do I have?',route:'/dtm'},token);

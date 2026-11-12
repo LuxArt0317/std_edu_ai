@@ -4,6 +4,7 @@ import {
 } from '../src/features/public/affairs/studentServices.js';
 
 import {studentAidNavigation} from './studentAidRecords.js';
+import {creditLoadHistoryNavigation} from './creditLoadHistory.js';
 
 const groups = { personal:'選單資訊', sysmenu:'選單資訊', sysDoc:'選單資訊', aca:'教務系統', sao:'學務資訊', swd:'總務資訊', rdd:'研發系統', infoSystem:'資訊系統' };
 const aliases = [
@@ -35,6 +36,7 @@ export const directoryEntries = schoolServiceEntries;
 
 const navigation = [
   studentAidNavigation,
+  creditLoadHistoryNavigation,
   {id:'course-catalog',match:/\bcourse (?:catalog(?:ue)?|offerings?|search)\b|\bcourses?(?:\s+are)?\s+(?:offered|available)\b|\b(?:offered|available)\s+courses?\b|當期課程查詢|開課(?:查詢|清單|資料)|(?:有|開設)哪些課程/i,title:['當期課程查詢','Course search'],officialUrl:'https://info.stu.edu.tw/ACA/student/QueryAGECourse/index.asp',localUrl:'/school-affairs/services/12-4',description:['在 stu.best 依學期、科系、教師與上課時段查詢站內範例開課資料；開課目錄獨立於您已選的課程。','Search local sample course offerings on stu.best by term, department, instructor and meeting time. The offering catalog is separate from your enrolled courses.']},
   {
     id:'wifi', match:/\b(?:wi[ -]?fi|eduroam|wireless (?:network|internet))\b|無線網路/i,

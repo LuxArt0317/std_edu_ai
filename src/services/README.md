@@ -11,3 +11,5 @@ Browser clients call the public, School Affairs and protected Nexus endpoints. `
 `scholarship.ts` defines local scholarship periods and application records, Taipei date/window helpers, and unambiguous applicant labels. The existing School Affairs action/manager clients submit versioned requests with stable retry IDs to the dedicated scholarship RPC.
 
 `studentAid.ts` defines masked, account-owned aid records and safe amount/date display. `housing.ts` defines published housing windows, consented applications, receipts and bed history. Their writes use the existing School Affairs action/manager clients with database authorization and stable retry identities. Catalog offers and syllabus data remain independent of personal enrollment.
+
+`pendingFees.ts` preserves nullable metadata and computes positive balances in cents; occurrence dates never inherit payment deadlines. `creditLoadHistory.ts` defines administrator-authored local history, display labels and timestamps without inventing school eligibility rules.

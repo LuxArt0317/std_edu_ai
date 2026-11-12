@@ -174,3 +174,7 @@ Six grouped chapters provide teacher/student depth without a single long onboard
 The live iframe has four white counters over a low-contrast surface and leaves their text at0 because source animation scripts are disabled. The source data-to-value attributes contain4601,128475,33056,54. Only the homepage has this widget across395 snapshots. Trusted DOM setup must render those source totals and scope a contrasting green card surface to this counter grid; source scripts remain disabled.
 
 Live #85 acceptance repeats24 cards/six widths at9.5709:1 minimum; source totals/icons preserved. Runtime bb19d2a is Ready (DumUWcTKnzRo29SSM9Rx9wiQ4Jas), CI41544180053 successful. Focused source navigation passes after a null-safe test readiness guard. Broader source contrast and service coverage remain tracked under #84.
+
+## Pending fees and credit-load history — November12,2026
+
+The original39-1 is an eight-column read-only pending-charge table. Occurrence date is not the due date; missing unit/extension/category values stay unknown. Native11-3 is a six-column history query with no application controls. Its7-1 link leads to a separate acknowledgement page; its unlisted credit-transfer query remains an external source link. Main table geometry is source-measured, not inferred from another service family. Two additive migrations retain caller-owned rows and strict audited admin writes; no institutional eligibility decision is inferred. Updated coverage:9 native/72 generic/8 partial/5 other across94 catalog destinations,53 remaining families.

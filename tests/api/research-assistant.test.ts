@@ -546,7 +546,15 @@ test('private conversation history never enters public retrieval or live web sea
  };
  const result=await invoke({question:'And the weekday opening hours?',history:[{role:'user',content:'My private grade is 72'},{role:'assistant',content:'Private student record 12345'},{role:'user',content:'Where is the STU library?'}]},'private-history');
  assert.equal(result.statusCode,200);assert.ok(sent.length>=2);
- for(const body of sent)assert.doesNotMatch(body,/private grade|Private student|12345|72/);
+ for(const body of sent){
+  const payload=JSON.parse(body);
+  // The numeric grade must not leak in message data; a timestamp's milliseconds
+  // can coincidentally contain 72 and are unrelated to the private history.
+  if(typeof payload.input==='string' && payload.input.startsWith('{')){
+   const input=JSON.parse(payload.input);delete input.asOf;payload.input=input;
+  }
+  assert.doesNotMatch(JSON.stringify(payload),/private grade|Private student|12345|72/);
+ }
  assert.match(sent.join(' '),/STU library/);
 });
 
