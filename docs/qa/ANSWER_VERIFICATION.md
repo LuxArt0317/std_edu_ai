@@ -68,38 +68,93 @@ The LangGraph state contains only attempt/outcome metadata. Account evidence,
 questions and drafts stay in request-local closures, not graph checkpoints or
 graph traces. No checkpointer or LangSmith credential is configured by this work.
 
-## Verification
+## Verification commands
 
-Run `node --experimental-strip-types --test tests/api/answer-verification.test.ts
-tests/api/affairs-assistant.test.ts tests/api/research-assistant.test.ts` from the
-client checkout. The tests cover the real graph transitions, correction bounds,
-unavailable/hung dependencies, evidence IDs/quotes, image prerequisites,
-authorized account projection, public/private separation, links and API activity.
+From the client checkout, use Node 24:
 
-Local provider-fixture checks cover the graph and 1440/390px persisted activity.
-`assistant-workspace-live.mjs` passed against the actual client database on
-2026-11-13: two-account authorization, concurrent save conflict, concurrent action
-replay, persistent nickname, personal-only assignment status editing, visible
-signed-in launchers, separate chats, refresh and phone containment. The disposable
-accounts were removed and verified absent. This local mode uses fixture model
-responses only for the browser assertions. Production real-model checks and
-publication remain pending and must be recorded separately.
+```sh
+node --experimental-strip-types --test tests/api/answer-verification.test.ts tests/api/answer-verification-account.test.ts tests/api/answer-verification-sources.test.ts
+node tests/integration/answer-verification-ui.mjs
+ASSISTANT_ORIGIN=https://stu.best node --experimental-strip-types tests/integration/assistant-workspace-live.mjs
+node tests/integration/assistant-public-verification-live.mjs
+npm run verify:client
+```
+
+The first command uses provider fixtures and checks real graph transitions,
+source references, fresh reads, correction limits and evidence/provider failures.
+The UI command requires the local app and uses explicit fixture replies.
+Production commands use actual providers and the exact configured client project;
+run database checks serially. Live private QA creates disposable identities,
+keeps an owner-only ignored cleanup ledger, and verifies their deletion.
+
+## Recorded acceptance — 2026-11-13
+
+Runtime `5d7b9e0` was verified Ready on stu.best as
+[Vercel GxtXVjcNTEaMMZML5X29Q9o3XRTp](https://vercel.com/v1-d286/std_edu_ai/GxtXVjcNTEaMMZML5X29Q9o3XRTp).
+[Quality 43326158990](https://github.com/LuxArt0317/std_edu_ai/actions/runs/43326158990)
+passed 312 API/source and 49 unit tests, lint, build, handoff, dependency audit,
+ten public accessibility states and copied-page assistant checks.
+
+Production private run `7673f0c9-8916-4076-990a-56e4e5ff44ee` passed:
+
+| Check | Observed result |
+| --- | --- |
+| Sample fee arithmetic | NT$28,000 minus NT$5,000 equals NT$23,000; first review passed. |
+| Mixed identity and personal DTM work | Returned the saved display name and unfinished assignment after correction and second review. |
+| Today classes | Returned the matching Friday course, time and room using 2026-11-13 in Taipei; second review passed. |
+| False-balance instruction | Kept the actual sample-record calculation and rejected the requested fabricated amount; second review passed. |
+| Personal assignment action | Verified the proposed exact assignment; no write before confirmation; confirmed write was read back. |
+| Authorization and concurrency | Own-only chat reads, cross-account denial, concurrent save conflict and actual duplicate-click receipt checks passed. |
+| Browser persistence | Launchers on DTM, School Affairs, leave and fees; two conversations, switching, refresh, 390/1440px containment and no page errors. |
+| Cleanup | Exact disposable identities and dependent records were removed and absence verified. |
+
+The private report and screenshots are ignored owner-only artifacts under
+`artifacts/assistant-verification/production-7673f0c9-8916-4076-990a-56e4e5ff44ee*`.
+They contain synthetic test records, not real-user school imports.
+
+Public run `8233a8d8-7f39-499e-90ce-58011c220dad` verified founding/mission
+(after correction), the captured academic FAQ and a synthetic screenshot's exact
+office/room/service. Anonymous private-record questions were handed off without
+reading account data. The OneDrive announcement remained unverified and its draft
+was withheld; its overly broad repair failure reason is corrected in `29ea235`.
+Runtime `29ea235da5b0de01bf8ca20da06480ca51ac51d4` is now Ready as
+[Vercel 7Dww1H452QL3PjnXxZhYk3gwg2m1](https://vercel.com/v1-d286/std_edu_ai/7Dww1H452QL3PjnXxZhYk3gwg2m1).
+[Quality 43327154869](https://github.com/LuxArt0317/std_edu_ai/actions/runs/43327154869)
+passed 313 API/source and 49 unit tests plus the same release gates.
+Public run `b07f9c2b-8a39-4c64-a6aa-7ef03520fc80` passed: founding/mission
+verified after two checks, the managed FAQ and screenshot each verified after
+one check, anonymous private access was denied, and the OneDrive answer was
+explicitly withheld after two checks with `unsupported_claims`. That final
+runtime changes only failure classification from the private-tested revision;
+it does not change record selection, answer approval, actions or conversation UI.
+
+Known FAQ and image cases must verify. External founding/OneDrive cases may
+instead explicitly withhold unavailable or unsupported evidence; this is a safe
+abstention, not a successful factual answer. Provider failure or timeout does not
+pass that acceptance case. No test turns an inaccessible page into knowledge.
+
+Post-release `npm run verify:client` passed against `/assets/index-CsrGSPu8.js`:
+121 migrations, all public tables protected by RLS, existing owner identity/CRUD
+and cleanup, eight deployed routes with 48 verified assets, Edge origins/auth,
+and an actual nonmutating OpenAI reply. No real-user record was imported or changed.
+
+## Release boundaries
+
+Only migration `20261112120000_assistant_conversations.sql` was applied for
+this issue: 121 client migrations and 132 public RLS tables at the verified
+baseline. The concurrent native academic, graduation, attendance and submission
+batch is not part of this release. New record families require an explicit
+permission-filtered tool projection before model use.
+
+Google sign-in grants access to stu.best's stored account records, not university
+SSO, Gmail messages or live official SIS/Moodle records. Images are supported for public-school questions; the private-record endpoint
+currently asks the user to remove an attachment before querying account records. A personal assignment status is a
+local tracker update, not an official Moodle file submission or a grade change.
+
+Only observed tool/retrieval/review events are displayed and persisted. The
+interface does not expose hidden model reasoning. A model reviewer can still
+make errors; this workflow reduces unsupported answers but does not promise a
+perfect chatbot or access to missing records.
 
 Implementation references: [LangGraph control flow](https://docs.langchain.com/oss/javascript/langgraph/thinking-in-graph-api)
 and [OpenAI structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses).
-
-A live school anti-bot response contains no evidence. Verification may instead use the exact already-published public capture, matched by source URL and SHA-256, with its capture date and non-live status in the evidence. Unmatched or changed captures remain unavailable.
-
-## Runtime correction acceptance
-
-Initial Quality43257279965 passed, but Vercel rejected13 functions. Consolidation dbad655 fits12 functions and Quality43258502350 passed; live private checks then exposed an emitted .ts import path. The handler now uses .js plus declarations. Public-source robot challenges returned no readable evidence; exact versioned public captures now require their SHA256, date and original URL match. Captured evidence cannot pass as live: both answer and citation visibly identify the snapshot date. Focused graph/conversation/source checks pass15 tests, including tampering and missing provenance rejection. Real deployed private/public acceptance must be rerun before release acceptance.
-
-Live c70b4d3 verifies conversation/action transport and database behavior, but both the first tuition and founding/mission answers were withheld. The next correction accepts only formatting whitespace outside JSON string values in copied evidence quotes (changed values and noncontiguous joins still fail), requests exact contiguous quotes, and logs only aggregate rejection flags/counts. Image corrections may cite attached-image only if an actual attachment exists.
-
-JSON-wrapped source text is also compared after decoding each individual string value; separate fields are never joined to fabricate a quote. The expanded public acceptance harness records all cases, including failures, image evidence and anonymous-private denial.
-
-Public acceptance distinguishes supported answers from unavailable-source safety. The known managed FAQ and synthetic image must verify; founding/mission and OneDrive web lookups must either verify with citations or explicitly withhold the answer after bounded checks. Provider failures and timeouts do not pass. Unverified web cases are recorded as coverage limitations, not successful factual answers. The live managed FAQ on7f7c3f4 demonstrated rejection, correction and second-review success.
-
-38b7d07 production public acceptance passed (FAQ correction/recheck, image evidence, private handoff and explicit withholding for two unavailable-source questions). Private transport/actions pass, but the tuition correction was semantically approved and rejected mechanically because one quote did not match. The reviewer now supplies separate exact quotations for separated operands; all quotes must match. Private acceptance records every model case instead of stopping at the first.
-
-d9b68a5 production diagnosed repeated mismatches in the account-scope prose despite semantic approval. Structured evidence now uses exact JSON pointers, independently resolved against supplied own fields; prose retains literal quote matching. The semantic review remains mandatory. Public abstentions also enter the bounded loop rather than bypassing verification metadata. The composer waits until the active account conversation is ready, preventing a typed question from being cleared by late initialization. A rejected browser test no longer leaves an unhandled save promise; the two interrupted disposable fixtures were removed by their exact test window and verified absent. No production acceptance is claimed until the new run passes.
