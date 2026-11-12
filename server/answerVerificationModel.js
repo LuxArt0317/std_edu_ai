@@ -68,7 +68,17 @@ function quoteOccurs(content, quote) {
   try {
     const parsed = JSON.parse(content);
     if (!parsed || typeof parsed !== 'object') return false;
-    return compactJsonFragment(content).includes(compactJsonFragment(quote));
+    if (compactJsonFragment(content).includes(compactJsonFragment(quote))) return true;
+    // Public excerpts are themselves strings inside a JSON provenance wrapper.
+    // Compare their decoded text too, so \n and escaped quotes do not become
+    // invented mismatches. Never concatenate separate fields or array entries.
+    const pending = [parsed];
+    while (pending.length) {
+      const value = pending.pop();
+      if (typeof value === 'string' && normalize(value).includes(normalize(quote))) return true;
+      if (value && typeof value === 'object') pending.push(...Object.values(value));
+    }
+    return false;
   } catch { return false; }
 }
 
