@@ -1,5 +1,20 @@
 import {studyCalendar} from './affairsSchedule.js';
 import {answerDtmRecords,answerStudentServiceRecords} from './dtmAnswer.js';
+import {accountQueryByService} from '../src/features/public/affairs/studentServices.js';
+
+const recordLinkTopics = [
+  [/\b(?:tuition|fees?|charges?|balance|payments?)\b|學費|費用|繳費/i,'fees'],
+  [/\b(?:grades?|scores?)\b|成績/i,'grades'],
+  [/\b(?:attendance|absence)\b|出席|缺席|缺曠/i,'attendance'],
+  [/\b(?:timetable|schedule|next class|classes today)\b|課表|下一堂|下堂課|今天.{0,6}課/i,'timetable'],
+  [/\b(?:subjects?|courses?|enrollments?)\b|科目|課程|選課/i,'enrollments'],
+];
+
+function privateRecordPath(question) {
+  const kind = recordLinkTopics.find(([pattern])=>pattern.test(question))?.[1];
+  const service = Object.keys(accountQueryByService).find(id=>accountQueryByService[id]===kind);
+  return service ? '/school-affairs/services/'+service : '/school-affairs/records';
+}
 
 const format={type:'json_schema',name:'school_affairs_personal_answer',strict:true,schema:{
   type:'object',additionalProperties:false,
@@ -148,5 +163,5 @@ export async function answerPrivateAffairsQuestion(question,snapshot,history=[],
   }
   if (!modelUsed && proposedAction) answer=`I can ${proposedAction.label.toLowerCase()} in your stu.best workspace after you confirm. This does not change an official university record.`;
   if (!/sample|範例|示範|模擬/i.test(answer)) answer=`Sample stu.best workspace (not official university data): ${answer}`;
-  return {status:'answered',answer,citations:[{chunkId:'affairs-account',claim:'Account-scoped stu.best School Affairs and DTM preview records',title:'My stu.best records',sourceName:'stu.best account',url:'/school-affairs',locator:null,effectiveAt:null,reviewedAt:snapshot.checkedAt}],suggestedQuestions:['What subjects do I have today?','When is my next class?','What assignments are due?','How much is my tuition balance?'],grounding:{source:'account',webSearched:false,checkedAt:snapshot.checkedAt,degraded:!modelUsed&&!deterministic},activity:[{kind:'account',label:'Read your stu.best account records',detail:'Only this Google account\'s School Affairs and DTM sample records were queried; official university and Nexus systems were not accessed.',status:'complete'}],...(proposedAction?{proposedAction}:{})};
+  return {status:'answered',answer,citations:[{chunkId:'affairs-account',claim:'Account-scoped stu.best School Affairs and DTM preview records',title:'My stu.best records',sourceName:'stu.best account',url:proposedAction ? '/school-affairs/records' : privateRecordPath(question),locator:null,effectiveAt:null,reviewedAt:snapshot.checkedAt}],suggestedQuestions:['What subjects do I have today?','When is my next class?','What assignments are due?','How much is my tuition balance?'],grounding:{source:'account',webSearched:false,checkedAt:snapshot.checkedAt,degraded:!modelUsed&&!deterministic},activity:[{kind:'account',label:'Read your stu.best account records',detail:'Only this Google account\'s School Affairs and DTM sample records were queried; official university and Nexus systems were not accessed.',status:'complete'}],...(proposedAction?{proposedAction}:{})};
 }

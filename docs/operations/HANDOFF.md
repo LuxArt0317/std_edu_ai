@@ -1,5 +1,11 @@
 # Client handoff
 
+## Issues #93 and #98 — signed-in layout and service navigation
+
+The School Affairs shell, Student Leave form and list, internship index, and DTM overview/dashboard follow the observed university layouts. The leave entry opens the local form directly and saves to private history. Eight catalog destinations display account-scoped records. Other services retain their local destinations and university links. The campus assistant and records open from the account or index menu. [School Affairs](../../src/features/public/affairs/README.md), [DTM](../../src/features/public/dtm/README.md).
+
+The authenticated browser suite followed all 94 catalog links from their rendered anchors and passed 26 responsive and accessibility checks. The DTM columns were checked against the source at 1533 CSS pixels. A rolled-back migration preflight confirmed the new leave fields, compatibility with existing internship records, authenticated RPC grants and RLS. Remaining service-specific work includes private university screens protected by their own sign-in, official attachments and institutional submission. [Issue #98](https://github.com/LuxArt0317/std_edu_ai/issues/98).
+
 ## Issue #98 — Student Affairs and DTM records (published)
 
 The 94 catalog links open local pages. The dedicated leave and internship workspaces save private student records and can send a short summary to the stu.best admin queue after confirmation. The rebuilt DTM follows the university layout, offers Traditional Chinese and English, and saves courses by term, materials, meetings, attendance, assignments, and grades. Students can import selected Moodle calendar deadlines. The assistant gives verified service links and answers account questions with deep links to saved records. [School Affairs](../../src/features/public/affairs/README.md), [DTM](../../src/features/public/dtm/README.md).

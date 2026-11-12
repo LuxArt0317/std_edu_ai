@@ -1,6 +1,18 @@
 /* Source-preserving Ace-style presentation, implemented with the existing shadcn primitives.
    Utility-layer scope is needed because the shared application theme also styles primitive slots here. */
+@font-face {
+  font-family: "Portal Font Awesome";
+  src: url("/school-assets/2adefcbc041e7d18fcf2.woff2") format("woff2");
+  font-display: block;
+}
+
 @layer utilities {
+  .portal-icon {
+    display: inline-block;
+    flex: none;
+    font: 18px/1 "Portal Font Awesome";
+    text-align: center;
+  }
   .affairs-portal {
     --portal-blue: #438eb9;
     --portal-accent: #2e6b91;
@@ -8,7 +20,7 @@
     --portal-sidebar: #f2f2f2;
     color: #393939;
     background: #fff;
-    min-height: calc(100dvh - 32px);
+    min-height: 100dvh;
     font:
       var(--portal-font-size)/1.5 "Microsoft JhengHei",
       "微軟正黑體",
@@ -96,15 +108,17 @@
   }
   .portal-navbar.is-fixed {
     position: sticky;
-    top: 32px;
+    top: 0;
   }
   .affairs-portal .portal-brand {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 0 26px;
+    height: 45px;
+    padding: 0 15px;
+    margin-left: 10px;
     color: white;
-    font-size: 20px;
+    font-size: 20.4px;
     line-height: 1.1;
     font-weight: 700;
   }
@@ -143,7 +157,7 @@
   .portal-shell {
     display: grid;
     grid-template-columns: 190px minmax(0, 1fr);
-    min-height: calc(100dvh - 77px);
+    min-height: calc(100dvh - 45px);
   }
   .portal-shell.is-collapsed {
     grid-template-columns: 43px minmax(0, 1fr);
@@ -155,8 +169,8 @@
   }
   .portal-sidebar.is-fixed > .portal-navigation {
     position: sticky;
-    top: 77px;
-    max-height: calc(100dvh - 77px);
+    top: 45px;
+    max-height: calc(100dvh - 45px);
     overflow: auto;
   }
   .portal-shortcuts {
@@ -201,11 +215,12 @@
   .affairs-portal .portal-logout {
     display: flex;
     width: 100%;
-    min-height: 40px;
+    min-height: 39px;
     align-items: center;
     justify-content: flex-start;
-    padding: 8px 11px;
-    gap: 12px;
+    padding: 10px 15px 10px 7px;
+    gap: 6px;
+    line-height: 18px;
     color: #585858;
     background: #f8f8f8;
     font-size: var(--portal-font-size);
@@ -213,6 +228,9 @@
   }
   .portal-group-toggle span {
     flex: 1;
+  }
+  .portal-navigation > ul > li > :is(a, button) > .portal-icon {
+    width: 30px;
   }
   .portal-group-toggle .portal-group-chevron {
     width: 13px;
@@ -256,7 +274,7 @@
     border-right-color: #a85a20;
     color: #714417;
   }
-  .portal-logout svg {
+  .portal-logout .portal-icon {
     color: #a74e38;
   }
   .affairs-portal .portal-collapse {
@@ -268,13 +286,14 @@
     border-block: 1px solid #ddd;
     color: #68777d;
   }
-  .portal-collapse svg {
+  .portal-collapse .portal-icon {
     background: #fff;
     border: 1px solid #ccd6da;
     border-radius: 50%;
-    width: 21px;
-    height: 21px;
-    padding: 2px;
+    width: 15px;
+    height: 15px;
+    font-size: 12px;
+    line-height: 13px;
   }
   .is-collapsed .portal-shortcuts {
     flex-wrap: wrap;
@@ -298,6 +317,9 @@
   .is-collapsed .portal-logout {
     padding: 10px 11px;
   }
+  .is-collapsed .portal-navigation > ul > li > :is(a, button) > .portal-icon {
+    width: 18px;
+  }
   .portal-workspace {
     display: flex;
     flex-direction: column;
@@ -312,15 +334,15 @@
     padding: 8px 18px;
     border-bottom: 1px solid #e5e5e5;
     background: #f5f5f5;
-    font-size: 13px;
+    font-size: 14px;
     z-index: 25;
   }
-  .portal-breadcrumbs > svg {
+  .portal-breadcrumbs > .portal-icon {
     color: #555;
   }
   .portal-breadcrumbs.is-fixed {
     position: sticky;
-    top: 77px;
+    top: 45px;
   }
   .affairs-portal .portal-settings-trigger {
     position: absolute;
@@ -332,20 +354,10 @@
     color: #5b461f;
     border-radius: 5px 0 0 5px;
   }
-  .portal-settings-trigger svg {
-    width: 21px;
-    height: 21px;
-  }
   .portal-content {
-    padding: 16px 20px 36px;
+    padding: 8px 20px 24px;
     flex: 1;
     outline: none;
-  }
-  .portal-demo-note {
-    font-size: 11px;
-    color: #526169;
-    line-height: 1.6;
-    margin: 0 0 12px;
   }
   .portal-storage-error {
     color: #8a351c;
@@ -353,23 +365,26 @@
     border: 1px solid #c28847;
     padding: 10px;
   }
+  .portal-index {
+    padding-top: 3px;
+  }
   .portal-widget {
-    width: 83.333%;
-    margin: 0 0 26px;
+    width: calc(83.333% - 5px);
+    margin: 0 0 15px;
   }
   .portal-widget header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    min-height: 32px;
+    min-height: 39px;
     border-bottom: 1px solid #ddd;
   }
   .portal-widget h2 {
     display: flex;
     gap: 7px;
     align-items: center;
-    margin: 0;
-    font-size: 16px;
+    margin: 0 0 0 3px;
+    font-size: 15px;
     line-height: 24px;
     font-weight: 400;
     color: var(--portal-accent);
@@ -439,15 +454,6 @@
   }
   .portal-lined-list > li:has(> button):hover {
     background: #f5f9fc;
-  }
-  .portal-demo-amount,
-  .portal-red {
-    color: #ab342b;
-    font-weight: 400;
-  }
-  .portal-demo-tag {
-    color: #526169;
-    font-size: 11px;
   }
   .portal-common-widget {
     width: 62%;
@@ -813,6 +819,7 @@
       padding: 0;
       gap: 6px;
       font-size: 18px;
+      margin-left: 0;
       margin-right: auto;
     }
     .portal-brand img {
@@ -826,9 +833,16 @@
       margin-right: 0;
       padding: 0 6px;
       gap: 4px;
+      max-width: 53%;
     }
     .portal-user > span {
       font-size: 12px;
+      min-width: 0;
+    }
+    .portal-user > span > span {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
     .portal-user small {
       font-size: 10px;

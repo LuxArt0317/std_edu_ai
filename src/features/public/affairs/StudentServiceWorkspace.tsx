@@ -1,25 +1,76 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router';
-import { ArrowLeft, CalendarDays, ClipboardList, ExternalLink, Plus } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ClipboardList, ExternalLink, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { savePersonalSchoolRecord, type ServiceRecord } from '@/services/schoolAffairsWorkspace';
-import { internshipPath, leavePath, studentServiceByKey } from './studentServices.js';
+import { campusAssistantOpenEvent } from '../PublicAssistant';
+import { referenceAsset } from '../site/reference';
+import { StudentRecordQuery } from './StudentRecordQuery';
+import { accountQueryByService, internshipPath, officialInternshipUrl, studentServiceByKey } from './studentServices.js';
 import { useAffairsRecords } from './useAffairsRecords';
 import './student-services.css';
 
 const statuses = {draft:'草稿 · Draft',filed:'自行標記已送出 · Marked filed',withdrawn:'已取消追蹤 · Withdrawn'};
 const reviewStatuses = {open:'站內待審 · Awaiting site review',in_review:'站內審核中 · In site review',resolved:'站內已處理 · Site review resolved'};
-const leaveKinds = {personal:'事假 · Personal',sick:'病假 · Sick',official:'公假 · Official duty',bereavement:'喪假 · Bereavement',other:'其他 · Other'};
 const internshipViews = [
-  ['contract','實習契約 · Contracts'],
-  ['self_assessment','自我評量 · Self-assessments'],
-  ['company','企業申請 · Company applications'],
-  ['directory','我的企業清單 · Saved companies'],
+  ['contract','Internship contract'],
+  ['self_assessment',"Self-assessment form for students’ off-campus internship"],
+  ['company','Company list application (cooperation with the business contractor for follow-up review)'],
+  ['directory','List of enterprises'],
 ] as const;
-type InternshipView = typeof internshipViews[number][0];
+const internshipTitle = 'Student off-campus internship management system';
+
+function InternshipFrame({view,children}:{view:string;children?:ReactNode}) {
+  const selected = internshipViews.find(([key])=>key===view);
+  return <div className="student-internship" lang="en">
+    <header className="internship-brand">
+      <Link to={internshipPath}>
+        <img src={referenceAsset('https://info.stu.edu.tw/ePortal/assets/img/stu/stuBanner.svg')} width="25" height="29" alt=""/>
+        {internshipTitle}
+      </Link>
+      <span>Shu-Te University</span>
+    </header>
+    <nav className="internship-menu" aria-label="Internship navigation">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild><Button variant="ghost">Student Zone <ChevronDown size={14} aria-hidden="true"/></Button></DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {internshipViews.map(([key,label])=><DropdownMenuItem key={key} asChild><Link to={internshipPath+'/'+key}>{label}</Link></DropdownMenuItem>)}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild><Button variant="ghost" data-campus-assistant-menu>Index <ChevronDown size={14} aria-hidden="true"/></Button></DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild><Link to={internshipPath}>Internship index</Link></DropdownMenuItem>
+          <DropdownMenuItem asChild><Link to="/school-affairs/menu/rdd/all">School Affairs</Link></DropdownMenuItem>
+          <DropdownMenuItem onSelect={()=>window.dispatchEvent(new Event(campusAssistantOpenEvent))}>Campus assistant</DropdownMenuItem>
+          <DropdownMenuItem asChild><a href={officialInternshipUrl} target="_blank" rel="noopener noreferrer">Official service</a></DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </nav>
+    <nav className="internship-breadcrumb" aria-label="Breadcrumb">
+      <i className="portal-icon" aria-hidden="true">{"\uf015"}</i><Link to={internshipPath}>index</Link>
+      <span aria-hidden="true">›</span><span>{selected?.[1] ?? 'Report'}</span>
+    </nav>
+    <main className="internship-content">
+      <h1><i className="portal-icon" aria-hidden="true">{"\uf19c"}</i>
+        {selected?.[1] ?? <>Index <small>» Student Out-of-school Internship Management System Index</small></>}
+      </h1>
+      {selected ? children : <>
+        <h2>Description of system functions…</h2>
+        <section className="internship-block">
+          <h3>Student Zone</h3>
+          <ul>{internshipViews.map(([key,label])=><li key={key}><Link to={internshipPath+'/'+key}>{label}</Link></li>)}</ul>
+        </section>
+        <section className="internship-block"><h3>Remarks</h3></section>
+      </>}
+    </main>
+    <footer>stu.best · Independent campus website</footer>
+  </div>;
+}
 
 function ServiceForm({serviceKey,recordType,record,close,saved}:{
   serviceKey:string;recordType:ServiceRecord['recordType'];record?:ServiceRecord;close:()=>void;saved:()=>void;
@@ -27,7 +78,6 @@ function ServiceForm({serviceKey,recordType,record,close,saved}:{
   const [id] = useState(()=>record?.id || crypto.randomUUID());
   const [busy,setBusy] = useState(false);
   const [error,setError] = useState('');
-  const isLeave = recordType==='leave';
   const isContract = recordType==='contract';
   const submit = async (event:FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -49,18 +99,14 @@ function ServiceForm({serviceKey,recordType,record,close,saved}:{
     }
   };
   return <form className="student-service-form" onSubmit={submit}>
-    <label>{isLeave?'假單名稱 · Leave title':recordType==='company'?'企業名稱 · Company name':isContract?'實習機構 · Placement organization':'標題 · Title'}
+    <label>{recordType==='company'?'企業名稱 · Company name':isContract?'實習機構 · Placement organization':'標題 · Title'}
       <Input name="title" defaultValue={record?.title ?? ''} required maxLength={160} />
     </label>
-    {(isLeave||isContract) && <div className="student-service-fields">
-      <label>開始日期 · Start date<Input type="date" name="starts_on" defaultValue={record?.startsOn ?? ''} required={isLeave} min="2000-01-01" max="2100-12-31"/></label>
-      <label>結束日期 · End date<Input type="date" name="ends_on" defaultValue={record?.endsOn ?? ''} required={isLeave} min="2000-01-01" max="2100-12-31"/></label>
+    {isContract && <div className="student-service-fields">
+      <label>開始日期 · Start date<Input type="date" name="starts_on" defaultValue={record?.startsOn ?? ''} min="2000-01-01" max="2100-12-31"/></label>
+      <label>結束日期 · End date<Input type="date" name="ends_on" defaultValue={record?.endsOn ?? ''} min="2000-01-01" max="2100-12-31"/></label>
     </div>}
-    {isLeave && <div className="student-service-fields">
-      <label>假別 · Leave category<select name="leave_category" defaultValue={record?.leaveCategory ?? 'personal'}>{Object.entries(leaveKinds).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
-      <label>請假節次 · Class periods<Input name="periods" placeholder="2, 3" defaultValue={record?.periods ?? ''} required maxLength={80}/></label>
-    </div>}
-    <label>{isLeave?'請假事由（選填） · Reason (optional)':recordType==='self_assessment'?'學習成果與反思 · Reflection':'備註 · Notes'}
+    <label>{recordType==='self_assessment'?'學習成果與反思 · Reflection':'備註 · Notes'}
       <Textarea name="notes" defaultValue={record?.notes ?? ''} maxLength={2000} rows={4}/>
     </label>
     <label>紀錄狀態 · Tracking status<select name="status" defaultValue={record?.status ?? 'draft'}>
@@ -77,20 +123,20 @@ function ServiceForm({serviceKey,recordType,record,close,saved}:{
 
 export function StudentServiceWorkspace({serviceKey,view,userId}:{serviceKey:string;view:string;userId:string}) {
   const service = studentServiceByKey(serviceKey);
-  const {snapshot,error,loading,refresh} = useAffairsRecords(userId);
-  const isLeave = serviceKey==='leave';
   const isInternship = serviceKey==='internship';
-  const history = isLeave && view==='history';
-  const [internshipView,setInternshipView] = useState<InternshipView>('contract');
+  const accountQuery = accountQueryByService[serviceKey];
+  const internshipView = isInternship ? internshipViews.find(([key])=>key===view)?.[0] : undefined;
+  const {snapshot,error,loading,refresh} = useAffairsRecords(isInternship && !internshipView ? undefined : userId);
   const [editor,setEditor] = useState<ServiceRecord|'new'|null>(null);
   const [confirmation,setConfirmation] = useState<{kind:'review'|'delete';record:ServiceRecord}|null>(null);
   const [busy,setBusy] = useState(false);
   const [actionError,setActionError] = useState('');
   const [status,setStatus] = useState('');
-  const recordType = isLeave?'leave':isInternship?(internshipView==='directory'?'company':internshipView):'note';
+  const recordType = internshipView==='directory'?'company':internshipView ?? 'note';
   const records = (snapshot?.serviceRecords ?? []).filter(row=>row.serviceKey===serviceKey && row.recordType===recordType);
-  if (!service || (view && !history)) return <section className="student-service"><h1>找不到服務 · Service not found</h1><Link to="/school-affairs/menu/sao/all">返回學務資訊 · Student Affairs</Link></section>;
-  const title = isLeave?'學生請假 · Student Leave':isInternship?'校外實習管理 · Off-campus Internship':service.title;
+  if (!service || (view && !internshipView)) return <section className="student-service"><h1>找不到服務 · Service not found</h1><Link to="/school-affairs/menu/sao/all">返回學務資訊 · Student Affairs</Link></section>;
+  if (isInternship && !view) return <InternshipFrame view={view}/>;
+  const title = service.title;
   const saved = () => {
     setEditor(null);
     setStatus('已儲存於 stu.best。 Saved to stu.best.');
@@ -117,50 +163,43 @@ export function StudentServiceWorkspace({serviceKey,view,userId}:{serviceKey:str
     }
   };
   const back = service.group==='sysmenu' ? 'menu/external' : service.group==='sysDoc' ? 'menu/help' : service.group+'/all';
-  return <section className="student-service" aria-label={title}>
+  const content = <section className="student-service" aria-label={title}>
+    {!isInternship && <>
     <Link className="student-service-back" to={'/school-affairs/menu/'+back}><ArrowLeft size={16}/> 服務選單 · Service menu</Link>
     <header className="student-service-title">
-      {isLeave?<CalendarDays aria-hidden="true"/>:<ClipboardList aria-hidden="true"/>}
+      <ClipboardList aria-hidden="true"/>
       <div><span>{service.section}</span><h1>{title}</h1></div>
     </header>
     <div className="student-service-bar">
-      {isLeave && <nav aria-label="Leave views">
-        <Link to={leavePath} aria-current={!history?'page':undefined}>請假填單 · Prepare leave</Link>
-        <Link to={leavePath+'/history'} aria-current={history?'page':undefined}>請假紀錄 · Leave records</Link>
-      </nav>}
-      {isInternship && <nav aria-label="Student Zone">
-        {internshipViews.map(([key,label])=><Button key={key} variant="ghost" aria-pressed={internshipView===key} onClick={()=>{setInternshipView(key);setEditor(null);}}>{label}</Button>)}
-      </nav>}
       <a className="student-service-official" href={service.officialUrl} target="_blank" rel="noopener noreferrer">
         開啟校方服務 · Official service <ExternalLink size={15} aria-hidden="true"/>
       </a>
     </div>
+    </>}
     <div className="student-service-body">
-      {isLeave && <p>在此準備並管理您的私人假單。學校的申請與審核請使用校方請假系統。<br/>Prepare and track leave here. Use the university’s Student Leave system for filing and approval.</p>}
-      {isInternship && <p>在學生專區整理契約、自我評量與企業申請。<br/>Keep your own internship records and open the official service to file forms.</p>}
-      {!isLeave && !isInternship && <p>在此記錄辦理進度。請在校方網站查詢正式資料或提交申請。<br/>Track your next steps here. Use the official service to view school records or submit an application.</p>}
+      {!isInternship && !accountQuery && <p>在此記錄辦理進度。請在校方網站查詢正式資料或提交申請。<br/>Track your next steps here. Use the official service to view school records or submit an application.</p>}
       {loading && !snapshot && <p role="status">載入紀錄中… · Loading records…</p>}
       {error && <p className="student-service-error" role="alert">{error} <Button size="sm" variant="outline" onClick={refresh}>重試 · Retry</Button></p>}
       {status && <p role="status" className="student-service-status">{status}</p>}
-      {snapshot && <>
+      {accountQuery && snapshot && <StudentRecordQuery kind={accountQuery} snapshot={snapshot} title={title}/>}
+      {snapshot && (!accountQuery || records.length>0) && <>
         <div className="student-service-section">
-          <h2>{isLeave?'學生請假紀錄 · Leave records':isInternship?internshipViews.find(([key])=>key===internshipView)?.[1]:'我的紀錄 · My records'}</h2>
-          {(!isInternship || internshipView!=='directory') &&
-            <Button type="button" variant="outline" onClick={()=>{setEditor('new');setStatus('');}}><Plus size={16}/>{isLeave?'新增假單 · New leave record':'新增紀錄 · New record'}</Button>}
+          <h2>{isInternship?'Saved records':'我的紀錄 · My records'}</h2>
+          {!editor && (!isInternship || internshipView!=='directory') &&
+            <Button type="button" variant="outline" onClick={()=>{setEditor('new');setStatus('');}}><Plus size={16}/>新增紀錄 · New record</Button>}
         </div>
         {editor && <ServiceForm key={editor==='new'?recordType:editor.id} serviceKey={serviceKey} recordType={recordType}
           record={editor==='new'?undefined:editor} close={()=>setEditor(null)} saved={saved}/>}
         {records.length ? <div className="student-service-table-scroll" role="region" aria-label="Saved service records" tabIndex={0}>
           <table className="student-service-table">
-            <thead><tr><th scope="col">名稱 · Title</th>{(isLeave||recordType==='contract')&&<th scope="col">起訖日期 · Dates</th>}{isLeave&&<th scope="col">節次 · Periods</th>}<th scope="col">狀態 · Status</th><th scope="col">操作 · Actions</th></tr></thead>
+            <thead><tr><th scope="col">名稱 · Title</th>{recordType==='contract'&&<th scope="col">起訖日期 · Dates</th>}<th scope="col">狀態 · Status</th><th scope="col">操作 · Actions</th></tr></thead>
             <tbody>{records.map(record=><tr key={record.id}>
-              <th scope="row"><strong>{record.title}</strong>{record.leaveCategory&&<small>{leaveKinds[record.leaveCategory as keyof typeof leaveKinds]}</small>}</th>
-              {(isLeave||recordType==='contract')&&<td>{record.startsOn?record.startsOn+' → '+record.endsOn:'未設定'}</td>}
-              {isLeave&&<td>{record.periods}</td>}
+              <th scope="row"><strong>{record.title}</strong></th>
+              {recordType==='contract'&&<td>{record.startsOn?record.startsOn+' → '+record.endsOn:'未設定'}</td>}
               <td>{statuses[record.status]}{record.reviewStatus&&<small>{reviewStatuses[record.reviewStatus]}</small>}</td>
               <td><div className="student-service-actions">
                 <Button size="sm" variant="outline" onClick={()=>{setEditor(record);setStatus('');}}>編輯 · Edit</Button>
-                {(isLeave||isInternship) && !record.reviewStatus && record.status!=='withdrawn' &&
+                {isInternship && !record.reviewStatus && record.status!=='withdrawn' &&
                   <Button size="sm" variant="outline" onClick={()=>confirm('review',record)}>送站內審核 · Request site review</Button>}
                 <Button size="sm" variant="ghost" onClick={()=>confirm('delete',record)}>刪除 · Delete</Button>
               </div></td>
@@ -187,12 +226,5 @@ export function StudentServiceWorkspace({serviceKey,view,userId}:{serviceKey:str
       </DialogContent>
     </Dialog>
   </section>;
-}
-
-export function StudentServiceLinks() {
-  return <nav className="student-service-shortcuts" aria-label="Student workspace">
-    <Link to={leavePath}>學生請假 · Student Leave</Link>
-    <Link to={internshipPath}>校外實習 · Internship</Link>
-    <Link to="/dtm/dashboard">數位教材網 · DTM</Link>
-  </nav>;
+  return isInternship ? <InternshipFrame view={view}>{content}</InternshipFrame> : content;
 }

@@ -18,10 +18,23 @@ import "./site/reference.css";
 import { AffairsAuthProvider } from "./affairs/AffairsAuth";
 import { useAffairsAuth } from "./affairs/authContext";
 
+function useSignedInSchoolWorkspace() {
+  const { user } = useAffairsAuth();
+  const { pathname } = useLocation();
+  return Boolean(user && /^\/(?:school-affairs|dtm|school-sites\/dtm\.stu\.edu\.tw)(?:\/|$)/.test(pathname)
+    && !/^\/school-affairs\/(?:login|auth|signed-out|privacy)(?:\/|$)/.test(pathname));
+}
+
+function SchoolPreviewNotice({ compact }: { compact: boolean }) {
+  const workspace = useSignedInSchoolWorkspace();
+  return workspace ? null : <PreviewNotice compact={compact} />;
+}
+
 function SchoolAccountAssistant({ embedded = false }: { embedded?: boolean }) {
   const {user} = useAffairsAuth();
   const {pathname} = useLocation();
-  return <PublicAssistant key={user?.id || "anonymous"} initialOpen={pathname === "/campus-assistant"} embedded={embedded} />;
+  const workspace = useSignedInSchoolWorkspace();
+  return <PublicAssistant key={user?.id || "anonymous"} initialOpen={pathname === "/campus-assistant"} embedded={embedded} showLauncher={!workspace} />;
 }
 function PublicAccountStatus() {
   const { user, loading } = useAffairsAuth();
@@ -64,7 +77,7 @@ export default function PublicSite() {
   if (embeddedAccount) return <AffairsAuthProvider><PublicAccountStatus /></AffairsAuthProvider>;
   return (
     <AffairsAuthProvider><div className="public-site-shell">
-      <PreviewNotice
+      <SchoolPreviewNotice
         compact={
           !pathname.startsWith("/school-affairs") &&
           !pathname.includes("student-sso")

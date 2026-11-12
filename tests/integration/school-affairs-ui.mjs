@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright-core";
 import AxeBuilder from "@axe-core/playwright";
-import { mockAffairsAuth } from "./helpers/affairs-auth.mjs";
+import { affairsTestUser, mockAffairsAuth } from "./helpers/affairs-auth.mjs";
 const base = process.env.PUBLIC_SITE_ORIGIN || "http://127.0.0.1:5173";
 if (!["127.0.0.1", "localhost"].includes(new URL(base).hostname))
   throw Error("This portal preview suite is local-only.");
@@ -91,6 +91,19 @@ try {
   await wire(context);
   const page = await context.newPage();
   await mockAffairsAuth(context);
+  await context.route("**/api/affairs-data*", (route) => route.fulfill({ json: {
+    profile: { userId: affairsTestUser.id, role: "student", displayName: "QA Student" },
+    courses: [{
+      enrollmentId: "course-qa", code: "SAMPLE-101", title: "Campus Orientation", term: "QA semester",
+      status: "enrolled", credits: 2, weekday: 2, startsAt: "09:00:00", endsAt: "10:30:00",
+      grades: [{ label: "Sample quiz", score: 8, maximum: 10 }],
+      attendance: [{ date: "2026-11-10", status: "absent" }],
+    }],
+    charges: [{ id: "charge-qa", label: "Sample tuition", amountDue: 12000, amountPaid: 3000, currency: "TWD" }],
+    announcements: [],
+    requests: [],
+    serviceRecords: [],
+  } }));
   for (const [group, view, count] of views) {
     await page.goto(`${base}/school-affairs/menu/${group}/${view}`);
     await page.locator("#portal-program-search").waitFor();
@@ -146,6 +159,11 @@ try {
   await page.goto(base + "/school-affairs");
   await page.waitForFunction(() => document.title.startsWith("校務系統入口"));
   assert.equal(await page.locator("form,input[type=password]").count(), 0);
+  assert.deepEqual(await page.locator(".portal-widget h2").evaluateAll(
+    (nodes) => nodes.map((heading) => heading.childNodes[1].textContent.trim()),
+  ), ["系統作業通知", "最新通知", "最新消息", "常用選單", "疫情資訊"]);
+  assert.equal(await page.locator(".reference-preview-notice, .portal-account-records").count(), 0);
+  assert.equal(await page.locator(".portal-navbar").evaluate((el) => el.getBoundingClientRect().height), 45);
   await page.getByRole("button", { name: "收合最新消息", exact: true }).click();
   assert.equal(
     await page.getByRole("button", { name: /^溝坪社區/ }).count(),
@@ -291,8 +309,54 @@ try {
   await page.goto(base + "/ePortal/index.asp");
   await page.waitForURL(base + "/school-affairs");
   await page.locator(".portal-content").waitFor();
-  await page.getByRole("link", { name: "知識庫管理", exact: true }).click();
+  await page.locator(".portal-user").click();
+  await page.getByRole("menuitem", { name: "知識庫管理", exact: true }).click();
   await page.getByRole("heading", { name: "Sign in", exact: true }).waitFor();
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(base + "/school-affairs/menu/sao/all");
+  await page.getByRole("link", { name: "請假填單", exact: true }).click();
+  await page.waitForURL("**/school-affairs/services/leave");
+  await page.getByLabel("開始請假日期", { exact: true }).waitFor();
+  await page.getByRole("radio", { name: "心理假", exact: true }).check();
+  assert.equal(await page.getByRole("radio", { name: "上午(08-13時)", exact: true }).isEnabled(), true);
+  await page.getByRole("radio", { name: "事假", exact: true }).check();
+  assert.equal(await page.getByRole("radio", { name: "上午(08-13時)", exact: true }).isEnabled(), false);
+  await scan(page, "leave-form-1280", true);
+  await page.getByRole("link", { name: "回列表", exact: true }).click();
+  await page.waitForURL("**/school-affairs/services/leave/history");
+  await page.getByRole("columnheader", { name: "請假單號", exact: true }).waitFor();
+  await page.goto(base + "/school-affairs/menu/aca/query");
+  await page.getByRole("link", { name: "成績查詢", exact: true }).click();
+  await page.waitForURL("**/school-affairs/services/13-1");
+  await page.getByRole("cell", { name: "Sample quiz", exact: true }).waitFor();
+  await page.goto(base + "/school-affairs/menu/sao/query");
+  await page.getByRole("link", { name: "待繳費用查詢", exact: true }).click();
+  await page.waitForURL("**/school-affairs/services/39-1");
+  await page.getByRole("cell", { name: /9,000/ }).waitFor();
+  await page.goto(base + "/school-affairs/menu/rdd/input");
+  await page.getByRole("link", { name: "實習紀錄輸入", exact: true }).click();
+  await page.getByRole("heading", { name: "Student Zone", exact: true }).waitFor();
+  await scan(page, "internship-index-1280", true);
+  await page.getByRole("link", { name: "Internship contract", exact: true }).click();
+  await page.getByRole("button", { name: /New record/ }).waitFor();
+  await page.setViewportSize({ width: 390, height: 850 });
+  await scan(page, "internship-contract-390", true);
+  await page.goto(base + "/school-affairs/search");
+  await page.locator("#portal-program-search").waitFor();
+  const destinations = await page.locator(".portal-content a[data-program-id]").evaluateAll(links =>
+    links.map(link => ({ id: link.dataset.programId, url: new URL(link.href).pathname })),
+  );
+  assert.equal(destinations.length, 94);
+  for (const destination of destinations) {
+    await page.locator(`.portal-content a[data-program-id="${destination.id}"]`).click();
+    await page.waitForURL(url => url.pathname === destination.url);
+    if (/^\/school-affairs\/services\//.test(destination.url)) {
+      await page.locator(".student-service, .student-internship, .student-leave").first().waitFor();
+      assert.equal(await page.getByRole("heading", { name: /Service not found/ }).count(), 0);
+    }
+    await page.goBack();
+    await page.locator("#portal-program-search").waitFor();
+  }
   await context.close();
   const blocked = await browser.newContext({
     viewport: { width: 390, height: 900 },
@@ -324,6 +388,7 @@ try {
       status: "ok",
       menuViews: 25,
       programLinks: 94,
+      checkedDestinations: destinations.length,
       states: evidence.length,
       externalRequests: 0,
       credentialForms: 0,

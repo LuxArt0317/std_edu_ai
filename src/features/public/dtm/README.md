@@ -1,5 +1,7 @@
 # Digital Teaching Materials
 
+The signed-in home uses the university's three-column layout, notice icons, course-category tree and Open Sans. The dashboard and private record views use the two-column workspace. The account menu opens assignments, grades and the campus assistant.
+
 `/dtm/login` uses Google sign-in. `/dtm` follows the official three-column layout with navigation, announcements, course categories and contact details checked on 2026-11-12. `/dtm/dashboard` groups your saved courses by academic term. The English and Traditional Chinese choices update the interface and the page language metadata used by browsers.
 
 DTM and School Affairs use the same Google session. Sign-in returns to the requested DTM page. The homepage account indicator and assistant use the same verified identity. Old `/school-sites/dtm.stu.edu.tw/` links open the local DTM.

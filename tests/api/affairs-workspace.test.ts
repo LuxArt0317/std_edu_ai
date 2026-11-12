@@ -36,6 +36,9 @@ test('personal answer uses only the account snapshot and names sample data',asyn
   assert.match(result.answer,/SAMP101/);
   assert.doesNotMatch(result.answer,/IM101|IM203|Nexus/);
   assert.equal(result.grounding.source,'account');
+  const [citation] = result.citations;
+  assert.ok(citation && typeof citation==='object' && 'url' in citation);
+  assert.equal(citation.url,'/school-affairs/services/11-1');
   assert.equal(result.proposedAction,undefined);
 });
 test('a task request is proposed without writing any data',async()=>{

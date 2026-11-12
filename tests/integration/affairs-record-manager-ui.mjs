@@ -17,6 +17,8 @@ try{
  await context.route('**/api/affairs-manage',route=>{actions.push(route.request().postDataJSON());return route.fulfill({json:{id:'saved',kind:actions.at(-1).kind,summary:'Saved sample record'}});});
  const page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto(base+'/school-affairs');
+ await page.locator('.portal-user').click();
+ await page.getByRole('menuitem',{name:'個人資料',exact:true}).click();
  await page.getByRole('button',{name:'Open site admin'}).click();
  await page.getByRole('heading',{name:'Manage sample school records'}).waitFor();
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));

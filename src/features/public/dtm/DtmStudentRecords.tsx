@@ -171,12 +171,10 @@ export function DtmStudentRecords({snapshot,course,view,mode,t,refresh}:{
   const newKind={materials:'material',meetings:'meeting',assignments:'assignment',grades:'grade'}[activeView] as Exclude<DtmRecordKind,'course'>;
 
   return <>
-    {mode==='dashboard'&&<>
-      <div className="dtm-section-heading"><h2>{t('儀表板','Dashboard')}</h2>
+    {mode==='dashboard'&&
+      <div className="dtm-section-heading"><h2>{t('我的課程','My courses')}</h2>
         <Button onClick={()=>edit({kind:'course'})}><Plus size={16}/>{t('新增課程','Add course')}</Button>
-      </div>
-      <p className="dtm-note">{t('按學期整理您的課程與作業。','Organize your courses and assignments by term.')}</p>
-    </>}
+      </div>}
     {course&&<>
       <div className="dtm-section-heading"><h2>{course.title}</h2>
         {own&&<RowActions t={t} edit={()=>edit({kind:'course',record:course})} remove={()=>askDelete({kind:'course',id:course.id,name:course.title})}/>}

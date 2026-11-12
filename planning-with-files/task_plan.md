@@ -308,3 +308,16 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Add managed-knowledge-first, privacy-safe official/broader STU web fallback, useful partial answers and clear scope/source UI.
 - [x] Verify local API/security/failure/English-Chinese/follow-up/browser scenarios and release gates; deployed model/tool acceptance remains a release check.
 - [x] Commit and publish the approved Google and chatbot changes, verify live official-source answers and protected boundaries; retain the unpublished archive draft separately. Issue #86 CLOSED; #83 remains open for real Google callback acceptance.
+
+## Signed-in School Affairs and Moodle layout [Issue #93]
+
+- [x] Capture the authenticated university and deployed stu.best layouts and measure the header, sidebar, notices and course columns.
+- [x] Align authenticated pages to those references. Keep account records and assistant access in the account menu.
+- [x] Compare the local build at reference sizes and on mobile. Verify all 94 catalog destinations and native leave, internship, grades and fees flows.
+- [ ] Publish and verify the updated build with both fixture and live account tests.
+
+## Protected service destinations [Issue #98]
+
+- [x] Verify actual catalog click-through, expose the leave form at its own URL, and separate application, history, and internship views.
+- [x] Connect native enrollment, timetable, grade, attendance, credit, student and fee queries to account-scoped database records and assistant links.
+- [ ] Inspect the remaining private university forms and views after the source sign-in challenge is completed. Check their layout and workflow individually.

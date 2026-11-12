@@ -135,6 +135,7 @@ export async function loadAffairsSnapshot(account, includeAdmin = false) {
       id:row.id, serviceKey:row.service_key, recordType:row.record_type, title:row.title, notes:row.notes,
       status:row.status, startsOn:row.starts_on, endsOn:row.ends_on, leaveCategory:row.leave_category,
       periods:row.periods, updatedAt:row.updated_at, reviewStatus:row.affairs_service_requests?.status ?? null,
+      contactPhone:row.contact_phone ?? null, leaveTimePeriod:row.leave_time_period ?? null,
     })),
     dtm:{
       sourceMode:dtmCourses.some(row=>row.source_mode==='personal')?'personal':'sample',

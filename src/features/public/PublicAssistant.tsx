@@ -53,7 +53,13 @@ const questions = [
   "What are my current subjects?",
   "What DTM materials do I have?",
 ];
-export function PublicAssistant({ initialOpen = false, embedded = false }: { initialOpen?: boolean; embedded?: boolean }) {
+export const campusAssistantOpenEvent = "stu-campus-assistant:open";
+
+export function PublicAssistant({ initialOpen = false, embedded = false, showLauncher = true }: {
+  initialOpen?: boolean;
+  embedded?: boolean;
+  showLauncher?: boolean;
+}) {
   const {user,loading} = useAffairsAuth();
   const scope = loading ? null : user ? `account:${user.id}` : 'public';
   const [open, setOpen] = useState(initialOpen),
@@ -76,6 +82,12 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
     pending = useRef<AbortController | null>(null),
     sequence = useRef(0);
   useEffect(() => () => {pending.current?.abort();}, []);
+  useEffect(() => {
+    if (showLauncher) return;
+    const openFromAccount = () => setOpen(true);
+    window.addEventListener(campusAssistantOpenEvent, openFromAccount);
+    return () => window.removeEventListener(campusAssistantOpenEvent, openFromAccount);
+  }, [showLauncher]);
   useEffect(() => {
     sequence.current++;
     pending.current?.abort();
@@ -166,7 +178,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
       const result=await performSchoolAffairsAction(action);
       setMessages(old=>old.map(item=>item.id===message.id?{
         ...item,
-        content:`${item.content}\n\n✓ ${result.summary}. You can view the updated record in School Affairs.`,
+        content:`${item.content}\n\n✓ ${result.summary}. [View your School Affairs records](/school-affairs/records).`,
         result:item.result?{...item.result,proposedAction:undefined}:undefined,
         activity:mergeAssistantActivity(item.activity,[{kind:'action',label:'Updated your stu.best record',detail:result.summary,status:'complete'}]),
       }:item));
@@ -180,7 +192,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
       if (embedded && !next) window.parent.postMessage({ type: "stu-campus-assistant:close" }, window.location.origin);
       else setOpen(next);
     }}>
-      <SheetTrigger asChild>
+      {showLauncher && <SheetTrigger asChild>
         <Button
           type="button"
           className="fixed right-4 bottom-4 z-40 gap-2 shadow-md"
@@ -189,11 +201,18 @@ export function PublicAssistant({ initialOpen = false, embedded = false }: { ini
           <MessageCircle aria-hidden="true" size={20} />
           <span>校園助理</span>
         </Button>
-      </SheetTrigger>
+      </SheetTrigger>}
       <SheetContent
         className="w-full gap-0 p-0 sm:max-w-lg public-assistant-surface"
         aria-describedby="public-assistant-description"
         showCloseButton={!embedded}
+        onCloseAutoFocus={(event) => {
+          if (showLauncher) return;
+          const trigger = document.querySelector<HTMLButtonElement>("[data-campus-assistant-menu]");
+          if (!trigger) return;
+          event.preventDefault();
+          trigger.focus();
+        }}
       >
         <header className="border-b px-5 py-5 pr-12">
           <SheetTitle>校園助理 · Assistant</SheetTitle>

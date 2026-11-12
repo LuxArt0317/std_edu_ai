@@ -76,6 +76,14 @@ try {
  assert.doesNotMatch(authorize.href,/gmail\.read|mail\.google|drive|calendar/);
  await page.goto(base+'/school-affairs/auth/callback?code=one-use-qa-code');
  await page.locator('.portal-content').waitFor();
+ const accountMenu = () => page.locator('.portal-user').click();
+ const openAssistant = async () => {
+  await accountMenu();
+  await page.getByRole('menuitem',{name:'校園助理',exact:true}).click();
+ };
+ await accountMenu();
+ await page.getByRole('menuitem',{name:'個人資料',exact:true}).click();
+ await page.waitForURL('**/school-affairs/records');
  await page.getByText('SAMPLE-QA-001',{exact:true}).waitFor();
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'account dashboard must fit phone width');
  await page.screenshot({path:`${directory}/account-320.png`,fullPage:false});
@@ -83,13 +91,15 @@ try {
  assert.equal(calls.filter(c=>c.pathname==='/auth/v1/token').length,1,'StrictMode exchanges one-use code once');
  assert.equal(await page.getByText('SAMP101 · Campus Orientation',{exact:true}).count(),1);
  assert.equal(await page.getByText('12,000',{exact:true}).count(),0);
+ await page.locator('.portal-brand').click();
+ await page.waitForURL('**/school-affairs');
  await page.route('**/api/affairs-assistant',async route=>{
   const authorization=route.request().headers().authorization;assert.ok(authorization?.startsWith('Bearer '));
   const payload=JSON.parse(Buffer.from(authorization.split('.')[1],'base64url').toString());assert.equal(payload.sub,affairsTestUser.id);
   const body=route.request().postDataJSON();assert.ok(['What are my current subjects?','What is in this screenshot?','Remind me to review my sample courses'].includes(body.question));assert.equal(body.route,'/school-affairs');
   await route.fulfill({json:body.question.startsWith('Remind me')?{answer:'I can create a stu.best task after you confirm.',citations:[],proposedAction:{kind:'create_task',label:'Create task: Review my sample courses',payload:{title:'Review my sample courses'}}}:body.images?.length?{answer:'The image shows a School Affairs service menu.',citations:[],activity:[{kind:'image',label:'Read the attached image',detail:'1 image analyzed',status:'complete'}]}:{answer:'Your sample subject is SAMP101 Campus Orientation.',citations:[],activity:[{kind:'account',label:'Read your School Affairs records',detail:'Only this account was queried',status:'complete'}]}});
  });
- await page.getByRole('button',{name:'開啟 AI 校園助理',exact:true}).click();
+ await openAssistant();
  await page.getByRole('button',{name:'What are my current subjects?',exact:true}).click();
  await page.getByText('Your sample subject is SAMP101 Campus Orientation.',{exact:true}).waitFor();
  await page.locator('article').last().locator('details').locator('summary').click();
@@ -100,15 +110,16 @@ try {
  assert.equal(accountActions.length,0,'proposal must not mutate before confirmation');
  assert.ok(!String(await page.evaluate(()=>sessionStorage.getItem('stu-campus-assistant-conversation-v1'))).includes('proposedAction'),'unconfirmed action cannot be replayed from session storage');
  await page.keyboard.press('Escape');
+ await page.waitForFunction(()=>document.activeElement?.matches('.portal-user'));
  await page.reload();await page.locator('.portal-content').waitFor();
- await page.getByRole('button',{name:'開啟 AI 校園助理',exact:true}).click();
+ await openAssistant();
  await page.getByText('The earlier action review expired when this chat was restored.').waitFor();
  assert.equal(await page.getByRole('button',{name:'Confirm action',exact:true}).count(),0,'restored proposal must not be executable');
  await page.getByLabel('Your question').fill('Remind me to review my sample courses');
  await page.getByRole('button',{name:'Send',exact:true}).click();
  await page.getByRole('button',{name:'Confirm action',exact:true}).waitFor();
  await page.getByRole('button',{name:'Confirm action',exact:true}).click();
- await page.getByText('Review my sample courses',{exact:true}).first().waitFor();
+ await page.getByText(/Created task: Review my sample courses/).first().waitFor();
  assert.equal(accountActions.length,1);
  const image=Buffer.concat([Buffer.from('89504e470d0a1a0a','hex'),Buffer.alloc(40)]);
  await page.locator('.public-assistant-surface input[type=file]').setInputFiles({name:'school-menu.png',mimeType:'image/png',buffer:image});
@@ -124,8 +135,7 @@ try {
  assert.ok(!storedChat.includes('data:image/') && !storedChat.includes('proposedAction') && !storedChat.includes('feedbackToken'),'tab transcript excludes image bytes and action capabilities');
  await page.keyboard.press('Escape');
  await page.reload();await page.locator('.portal-content').waitFor();
- await page.getByText('SAMPLE-QA-001',{exact:true}).waitFor();
- await page.getByRole('button',{name:'開啟 AI 校園助理',exact:true}).click();
+ await openAssistant();
  await page.getByText('Your sample subject is SAMP101 Campus Orientation.',{exact:true}).waitFor();
  await page.getByText('The image shows a School Affairs service menu.',{exact:true}).waitFor();
  await page.locator('article').last().locator('details').locator('summary').click();

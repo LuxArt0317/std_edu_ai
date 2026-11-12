@@ -6,6 +6,7 @@ export type ServiceRecord = {
   id:string;serviceKey:string;recordType:'leave'|'contract'|'self_assessment'|'company'|'note';
   title:string;notes:string;status:'draft'|'filed'|'withdrawn';startsOn:string|null;endsOn:string|null;
   leaveCategory:string|null;periods:string|null;updatedAt:string;reviewStatus:'open'|'in_review'|'resolved'|null;
+  contactPhone?:string|null;leaveTimePeriod?:string|null;
 };
 export type DtmMeeting = {id:string;date:string;startsAt:string;title:string;attendance:'unknown'|'present'|'late'|'absent'|'excused';notes:string};
 export type DtmGrade = {id:string;label:string;score:number;maximum:number;date:string|null;feedback:string};

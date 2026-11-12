@@ -1,6 +1,12 @@
 # Changelog
 ## Unreleased
 
+### Signed-in School Affairs and Moodle layout (Issues #93 and #98)
+
+- Restore the source portal header, icons and notice panels and match the Moodle desktop column geometry. Keep the student record tools, assistant and knowledge settings in the existing account menus.
+- Open the Student Affairs leave form directly from the catalog and use the source application, history and period layouts. Store the leave category, date range, class periods, contact number and mental health leave time in the signed-in account. Rebuild the internship index and Student Zone navigation.
+- Show account-scoped enrollment, timetable, grades, attendance, completed credits, student details and charges on their respective catalog pages. Link private assistant answers to the corresponding record view.
+
 ### Student Affairs and DTM workspaces (Issue #98)
 
 - Open all 94 captured catalog entries through local routes. Give leave and internship dedicated forms, private history, optional stu.best admin review, and links to official university services.

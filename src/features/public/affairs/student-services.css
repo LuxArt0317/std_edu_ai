@@ -31,8 +31,105 @@
 .student-service-empty { margin-top: .8rem !important; }
 .student-service-error { color: #922626 !important; }
 .student-service-status { color: #155c45 !important; }
-.student-service-shortcuts { display: flex; flex-wrap: wrap; gap: .5rem 1rem; padding: .65rem .85rem; margin: 0 0 1rem; border: 1px solid #d8e0e4; background: #f4f7f8; }
-.student-service-shortcuts a { min-height: 28px; display: inline-flex; align-items: center; }
+.student-record-query > label { display: inline-flex; align-items: center; gap: 10px; }
+.student-record-query select { border: 1px solid #a0aab0; background: #fff; padding: 5px 8px; max-width: min(65vw, 320px); }
+.student-record-source { color: #53636b; font-size: 12px; margin: 8px 0 0; }
+.student-record-timetable .student-service-table { table-layout: fixed; min-width: 620px; }
+.student-record-timetable .student-service-table td { white-space: pre-line; }
+.student-record-timetable .student-service-table th:nth-child(2) { width: 105px; }
+.student-record-timetable .student-service-table th:first-child { width: 58px; }
+
+.student-internship {
+  background: #eee;
+  min-height: 100dvh;
+  padding: 12px 5px 28px;
+  font: 14px/1.43 Arial, sans-serif;
+  color: #333;
+}
+.student-internship a { color: #276f9a; }
+.student-internship a:hover { text-decoration: underline; }
+.internship-brand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 14px;
+  min-height: 36px;
+  padding: 4px 14px 4px 20px;
+  background: #757575;
+  color: #fff;
+  font-size: 16px;
+}
+.internship-brand a { display: inline-flex; gap: 10px; align-items: center; color: inherit; }
+.internship-brand img { flex: none; }
+.internship-menu {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 28px 0 12px;
+  background: #3f7897;
+  min-height: 53px;
+}
+.internship-menu button {
+  height: auto;
+  min-height: 48px;
+  border-radius: 0;
+  border-inline-start: 1px solid #346982;
+  padding: 8px 18px;
+  color: #fff;
+  font-size: 16px;
+}
+.internship-menu button:hover, .internship-menu button[data-state="open"] { background: #326583; color: #fff; }
+.internship-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 6px 20px;
+  background: #f5f5f5;
+  border-bottom: 1px solid #ddd;
+  font-size: 15px;
+}
+.internship-content {
+  background: #fff;
+  padding: 20px 24px 30px;
+}
+.internship-content h1 {
+  margin: 0 0 36px;
+  padding-bottom: 14px;
+  border-bottom: 1px dotted #ddd;
+  font-size: 21px;
+  font-weight: 400;
+}
+.internship-content h1 .portal-icon { color: #b74937; margin-right: 4px; font-size: 22px; }
+.internship-content h1 small { color: #666; font-size: 16px; }
+.internship-content > h2 {
+  width: 92%;
+  margin: 0 0 18px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #edc7be;
+  font-size: 22px;
+  font-weight: 700;
+  color: #ad4433;
+}
+.internship-block {
+  width: 92%;
+  margin-bottom: 24px;
+  padding: 25px 28px;
+  border: 1px solid #ddd;
+  background: #f5f5f5;
+  box-shadow: inset 0 1px 2px #0001;
+  font-size: 17px;
+}
+.internship-block h3 { margin: 0; font-size: 18px; font-weight: 700; }
+.internship-block ul { margin: 10px 0 0; padding-left: 28px; list-style: disc; }
+.internship-block:last-child { color: #992d26; min-height: 86px; }
+.student-internship .student-service { max-width: none; margin: 0; }
+.student-internship > footer { padding: 12px 24px; color: #566168; font-size: 13px; }
+@media(max-width: 767px) {
+  .internship-content { padding-inline: 14px; }
+  .internship-block, .internship-content > h2 { width: 100%; }
+  .internship-block { padding: 16px; font-size: 15px; }
+}
 @media(max-width: 540px) {
   .student-service-fields { grid-template-columns: minmax(0,1fr); }
   .student-service-table { min-width: 34rem; }

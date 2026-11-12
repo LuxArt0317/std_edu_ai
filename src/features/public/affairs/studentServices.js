@@ -7,6 +7,16 @@ export const officialInternshipUrl = 'https://infosys.stu.edu.tw/StuPractice/Log
 export const officialWifiUrl = 'https://help.ecc.stu.edu.tw/wireless-setting/';
 export const wifiGuidePath = '/school-sites/help.ecc.stu.edu.tw/wireless-setting/';
 export const officialRegistrarUrl = 'https://www.aca.stu.edu.tw/%E6%9C%8D%E5%8B%99%E5%B0%8D%E8%B1%A1-services/';
+export const accountQueryByService = Object.freeze({
+  '11-1':'enrollments',
+  '11-2':'timetable',
+  '13-1':'grades',
+  '14-1':'attendance',
+  '15-1':'credits',
+  '15-2':'credits',
+  '17-1':'student',
+  '39-1':'fees',
+});
 
 export function officialServiceUrl(sourcePath) {
   return /^https?:\/\//i.test(sourcePath) ? sourcePath : 'https://' + sourcePath;

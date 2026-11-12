@@ -4,22 +4,11 @@ import { SchoolAccountRecords } from "./SchoolAccountRecords";
 import type { CSSProperties, ReactNode } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
 import {
-  CalendarDays,
   List,
   Menu,
-  Search,
-  Landmark,
-  ClipboardList,
-  Building,
-  Boxes,
-  Calculator,
-  Layers,
-  LogOut,
+  Mail,
   ChevronDown,
   ChevronUp,
-  ChevronsLeft,
-  ChevronsRight,
-  Home,
   Settings,
   Star,
   Bookmark,
@@ -57,6 +46,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { referenceAsset } from "../site/reference";
+import { campusAssistantOpenEvent } from "../PublicAssistant";
 import {
   commonPrograms,
   filterPrograms,
@@ -70,25 +60,26 @@ import type { PortalProgram } from "./model";
 import { loadPreferences, savePreferences } from "./preferences";
 import type { PortalPreferences } from "./preferences";
 import { serviceDestination } from "./studentServices.js";
-import { StudentServiceLinks, StudentServiceWorkspace } from "./StudentServiceWorkspace";
+import { StudentServiceWorkspace } from "./StudentServiceWorkspace";
+import StudentLeaveWorkspace from "./StudentLeaveWorkspace";
+import { useAffairsRecords } from "./useAffairsRecords";
 import "./portal.css";
 
-const groupIcons = [
-  Menu,
-  Landmark,
-  ClipboardList,
-  Building,
-  Boxes,
-  Calculator,
-  Layers,
-];
+// The university portal uses Font Awesome 4 for its navigation.
+const groupIcons = ["\uf0c9", "\uf19c", "\uf022", "\uf1ad", "\uf1b3", "\uf12b", "\uf16c"];
+
+function PortalIcon({ glyph }: { glyph: string }) {
+  return <i className="portal-icon" aria-hidden="true">{glyph}</i>;
+}
 function PortalWidget({
   title,
+  icon: Icon = List,
   count,
   children,
   common = false,
 }: {
   title: string;
+  icon?: typeof List;
   count?: number;
   children: ReactNode;
   common?: boolean;
@@ -100,7 +91,7 @@ function PortalWidget({
     >
       <header>
         <h2>
-          <List aria-hidden="true" />
+          <Icon aria-hidden="true" />
           {title}
           {count !== undefined && <span className="portal-count">{count}</span>}
         </h2>
@@ -176,7 +167,10 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   const index = route.length === 0;
   const bookmarks = route[0] === "bookmarks";
   const notifications = route[0] === "notifications";
+  const records = route[0] === "records" && route.length === 1;
   const servicePage = route[0] === "services";
+  const { snapshot: account, loading: accountLoading, error: accountError, refresh: refreshAccount } =
+    useAffairsRecords(index || notifications ? user.id : undefined);
   const ended = route[0] === "signed-out";
   const article = portalNews.find((news) => news.id === params.get("news"));
   const programs = filterPrograms(
@@ -190,7 +184,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
     group === "menu" &&
     ["custom", "common", "course", "graduation"].includes(view);
   useEffect(() => {
-    document.title = `${index ? "校務系統入口" : validMenu ? selectedLabel : bookmarks ? "已收藏消息查詢" : notifications ? "通知訊息查詢" : "校務系統"} · stu.best School Affairs`;
+    document.title = `${index ? "校務系統入口" : validMenu ? selectedLabel : bookmarks ? "已收藏消息查詢" : notifications ? "通知訊息查詢" : records ? "個人資料" : "校務系統"} · stu.best School Affairs`;
   }, [
     pathname,
     group,
@@ -199,6 +193,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
     selectedLabel,
     bookmarks,
     notifications,
+    records,
   ]);
   const update = <K extends keyof PortalPreferences>(
     key: K,
@@ -253,7 +248,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
             title="校園活動系統（校方服務）"
             aria-label="校園活動系統（校方服務）"
           >
-            <CalendarDays />
+            <PortalIcon glyph={"\uf073"} />
           </a>
           <a
             href="https://www.stu.edu.tw/latestnews/"
@@ -262,26 +257,25 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
             title="校園公告系統（校方服務）"
             aria-label="校園公告系統（校方服務）"
           >
-            <List />
+            <PortalIcon glyph={"\uf03a"} />
           </a>
           <Link
             to={menuPath("menu", "custom")}
             title="自訂選單"
             aria-label="自訂選單"
           >
-            <Menu />
+            <PortalIcon glyph={"\uf0c9"} />
           </Link>
           <Link
             to="/school-affairs/search"
             title="系統搜尋"
             aria-label="系統搜尋"
           >
-            <Search />
+            <PortalIcon glyph={"\uf002"} />
           </Link>
         </div>
         <ul>
           {portalGroups.map((item, idx) => {
-            const Icon = groupIcons[idx];
             const isOpen =
               expanded === item.id && (!preferences.collapsed || mobile);
             return (
@@ -306,7 +300,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
                     setExpanded(isOpen ? "" : item.id);
                   }}
                 >
-                  <Icon aria-hidden="true" />
+                  <PortalIcon glyph={groupIcons[idx]} />
                   <span>{item.label}</span>
                   <ChevronDown
                     className="portal-group-chevron"
@@ -340,7 +334,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
               aria-label="Logout：登出校務系統"
               title="登出校務系統"
             >
-              <LogOut aria-hidden="true" />
+              <PortalIcon glyph={"\uf08b"} />
               <span>Logout</span>
             </Link>
           </li>
@@ -352,7 +346,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
             aria-label={preferences.collapsed ? "展開側邊欄" : "收合側邊欄"}
             onClick={() => update("collapsed", !preferences.collapsed)}
           >
-            {preferences.collapsed ? <ChevronsRight /> : <ChevronsLeft />}
+            <PortalIcon glyph={preferences.collapsed ? "\uf101" : "\uf100"} />
           </Button>
         )}
       </nav>
@@ -383,6 +377,20 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
         ))}
     </ul>
   );
+  const renderNotifications = () => (
+    <ul className="portal-lined-list">
+      {accountLoading && !account && <li role="status">載入中…</li>}
+      {accountError && <li role="alert">
+        {accountError} <Button variant="outline" onClick={refreshAccount}>重試</Button>
+      </li>}
+      {account?.requests.map(request => (
+        <li key={request.id}>
+          <Link to="/school-affairs/records">{request.title}</Link>
+        </li>
+      ))}
+      {account?.requests.length === 0 && <li>目前沒有通知。</li>}
+    </ul>
+  );
   const programRows = programs.reduce<
     Array<{ kind: string; section: string; programs: PortalProgram[] }>
   >((rows, program) => {
@@ -397,6 +405,12 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   const styles = {
     "--portal-font-size": `${preferences.fontSize}px`,
   } as CSSProperties;
+  if (servicePage && route[1] === "leave") {
+    return <StudentLeaveWorkspace key={pathname} userId={user.id} view={route.slice(2).join("/")} />;
+  }
+  if (servicePage && route[1] === "internship") {
+    return <StudentServiceWorkspace key={pathname} userId={user.id} serviceKey="internship" view={route.slice(2).join("/")} />;
+  }
   return (
     <div
       className={`affairs-portal ${preferences.contained ? "is-contained" : ""} ${preferences.alternateActive ? "alt-active" : ""}`}
@@ -447,6 +461,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
             <Button
               variant="ghost"
               className="portal-user"
+              data-campus-assistant-menu
               aria-label={`Welcome, ${displayName} 帳號選單`}
             >
               <img
@@ -472,7 +487,16 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
             <DropdownMenuItem asChild>
               <Link to="/school-affairs/bookmarks">使用者收藏校園公告查詢</Link>
             </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/school-affairs/records">個人資料</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => window.dispatchEvent(new Event(campusAssistantOpenEvent))}>
+              校園助理
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <a href="/signin?next=%2Fapp%2Fknowledge">知識庫管理</a>
+            </DropdownMenuItem>
             <DropdownMenuItem asChild><Link to="/school-affairs/privacy">Privacy &amp; account information</Link></DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
@@ -493,7 +517,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
           <div
             className={`portal-breadcrumbs ${preferences.fixedBreadcrumbs ? "is-fixed" : ""}`}
           >
-            <Home aria-hidden="true" />
+            <PortalIcon glyph={"\uf015"} />
             <Link to="/school-affairs">Index</Link>
             {!index && (
               <>
@@ -507,7 +531,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
                       ? "已收藏消息查詢"
                       : notifications
                         ? "通知訊息查詢"
-                        : "預覽"}
+                        : records ? "個人資料" : "預覽"}
                 </span>
               </>
             )}
@@ -518,7 +542,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
                   className="portal-settings-trigger"
                   aria-label="介面設定"
                 >
-                  <Settings />
+                  <PortalIcon glyph={"\uf013"} />
                 </Button>
               </PopoverTrigger>
               <PopoverContent
@@ -591,9 +615,6 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
             </Popover>
           </div>
           <main id="portal-content" tabIndex={-1} className="portal-content">
-            <p className="portal-demo-note">
-              已登入 stu.best。您可在此管理私人紀錄。正式申請及校方紀錄請使用各服務的校方連結。
-            </p>
             {storageError && (
               <p className="portal-storage-error" role="alert">
                 瀏覽器無法儲存設定；本次操作仍可使用，重新整理後可能重設。
@@ -602,12 +623,22 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
             {index && (
               <div className="portal-index">
                 <h1 className="sr-only">校務系統入口</h1>
-                <StudentServiceLinks />
-                <SchoolAccountRecords userId={user.id} />
-                <PortalWidget title="最新消息" count={10}>
+                <PortalWidget title="系統作業通知" icon={Settings} count={account?.announcements.length}>
+                  <ul className="portal-lined-list">
+                    {accountLoading && !account && <li role="status">載入中…</li>}
+                    {account?.announcements.map(notice => (
+                      <li key={notice.id}><Link to="/school-affairs/records">{notice.title}</Link></li>
+                    ))}
+                    {account?.announcements.length === 0 && <li>目前沒有系統作業通知。</li>}
+                  </ul>
+                </PortalWidget>
+                <PortalWidget title="最新通知" icon={Mail} count={account?.requests.length}>
+                  {renderNotifications()}
+                </PortalWidget>
+                <PortalWidget title="最新消息" count={portalNews.filter(news => news.category === "news").length}>
                   {renderNewsRows("news")}
                 </PortalWidget>
-                <PortalWidget title="常用選單" count={6} common>
+                <PortalWidget title="常用選單" icon={Menu} count={6} common>
                   <ul className="portal-lined-list">
                     {commonPrograms.slice(0, 6).map((program, index) => (
                       <li key={index}>{renderProgramLink(program)}</li>
@@ -619,12 +650,12 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
                 </PortalWidget>
               </div>
             )}
+            {records && <SchoolAccountRecords userId={user.id} />}
             {validMenu && (
               <>
                 <h1 className="sr-only">
                   {selectedGroup?.label || "校務系統"} · {selectedLabel}
                 </h1>
-                {group === "sao" && <StudentServiceLinks />}
                 <div className="portal-search">
                   <label className="sr-only" htmlFor="portal-program-search">
                     系統名稱關鍵字
@@ -787,9 +818,9 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
                 <h1 className="portal-page-title">
                   {bookmarks ? "已收藏消息查詢" : "通知訊息查詢"}
                 </h1>
-                <p className="portal-local-note">
+                {bookmarks && <p className="portal-local-note">
                   此瀏覽器中此帳號的收藏；不讀取或修改校方帳號。
-                </p>
+                </p>}
                 {bookmarks ? (
                   <ul className="portal-lined-list">
                     {portalNews
@@ -810,16 +841,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
                       <li>尚未收藏消息。可在公告視窗按下收藏圖示。</li>
                     )}
                   </ul>
-                ) : (
-                  <ul className="portal-lined-list">
-                    <li>歡迎使用校務系統介面預覽。</li>
-                    <li>範例費用、帳號與收藏皆不是校方紀錄。</li>
-                    <li>原始系統連結會另開分頁；請使用校方提供的帳號登入。</li>
-                    <li>
-                      <Link to="/school-affairs">返回 Index</Link>
-                    </li>
-                  </ul>
-                )}
+                ) : renderNotifications()}
               </>
             )}
             {ended && (
@@ -831,7 +853,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
               </section>
             )}
             {servicePage && <StudentServiceWorkspace key={pathname} userId={user.id} serviceKey={route[1] || ""} view={route.slice(2).join("/")} />}
-            {!index && !validMenu && !bookmarks && !notifications && !ended && !servicePage && (
+            {!index && !validMenu && !bookmarks && !notifications && !records && !ended && !servicePage && (
               <section className="portal-ended">
                 <h1>找不到選單</h1>
                 <Link to="/school-affairs">返回 Index</Link>

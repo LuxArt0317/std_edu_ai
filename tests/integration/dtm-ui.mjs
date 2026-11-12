@@ -45,7 +45,7 @@ try {
   });
   const page = await signed.newPage();
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
-  for (const width of [1440,768,390]) {
+  for (const width of [1533,1440,768,390,320]) {
     await page.setViewportSize({width,height:900});
     await page.goto(base+'/dtm/login');
     await page.getByRole('heading',{name:'系統公告'}).waitFor();
@@ -54,6 +54,12 @@ try {
     assert.equal(await page.locator('.dtm-notices a[href^="https://dtm.stu.edu.tw/"]').count(),14);
     assert.equal(await page.locator('.dtm-categories details').count(),20);
     assert.ok((await page.locator('.dtm-reference-note').innerText()).includes('2026-11-12'));
+    if (width===1533) {
+      for (const [selector,expected] of [['.dtm-left',[20,120,351]],['.dtm-center',[400,120,731]],['.dtm-right',[1169,120,345]]]) {
+        const box=await page.locator(selector).boundingBox();
+        assert.ok([box.x,box.y,box.width].every((value,index)=>Math.abs(value-expected[index])<=1),selector+' reference geometry');
+      }
+    }
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`DTM overflow at ${width}`);
     if (width === 1440 || width === 390) await page.screenshot({path:`artifacts/dtm/dashboard-${width}.png`,fullPage:true});
     const axe = await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
@@ -69,6 +75,11 @@ try {
   await page.getByRole('link',{name:'作業',exact:true}).click();
   await page.getByText('Practice reflection',{exact:true}).waitFor();
   assert.equal(new URL(page.url()).pathname,'/dtm/course/course-qa/assignments');
+  await page.locator('.dtm-user').click();
+  await page.getByRole('menuitem',{name:'校園助理',exact:true}).click();
+  await page.getByRole('dialog',{name:/Assistant/}).waitFor();
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(()=>document.activeElement?.matches('.dtm-user'));
   await page.goto(base+'/');
   await page.frameLocator('iframe.stu-account-status').getByText('Signed in: student.qa@gmail.com').waitFor();
   await page.screenshot({path:'artifacts/dtm/landing-status.png',fullPage:false});
@@ -76,5 +87,5 @@ try {
   await page.getByRole('heading',{name:'系統公告'}).waitFor();
   assert.deepEqual(errors,[]);
   await signed.close();
-  console.log(JSON.stringify({status:'ok',guestRedirect:true,sharedGoogleSession:true,courseMaterials:true,landingStatus:true,alias:true,viewports:[1440,768,390],seriousCriticalAccessibility:0}));
+  console.log(JSON.stringify({status:'ok',guestRedirect:true,sharedGoogleSession:true,courseMaterials:true,landingStatus:true,alias:true,viewports:[1533,1440,768,390,320],seriousCriticalAccessibility:0}));
 } finally {await browser.close();}
