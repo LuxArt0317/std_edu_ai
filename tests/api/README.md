@@ -22,3 +22,5 @@ Pending-fee suites verify complete pagination, caller/admin separation, strict A
 `answer-verification-sources.test.ts` checks exact public-capture matching, dated provenance and checksum rejection when a source cannot be read.
 
 Verification quote checks also cover pretty-printed JSON excerpts, altered values, invented joins and image-source presence during correction.
+
+Structured evidence checks resolve exact JSON pointers, automatically include linked DTM assignments, and verify Taipei calendar evidence across UTC midnight. Missing correction evidence and unsupported links are distinguished from actual provider failures; all withhold the draft and action proposal.

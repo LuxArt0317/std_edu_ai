@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Distinguish unavailable evidence and unsupported correction references from model-provider outages while withholding all unverified answers/actions. [#99]
+
 - Retrieve Moodle courses and their separately stored assignments together; provide calculated Taipei timetable evidence for today/next-class verification. Retain exact cleanup ledgers for interrupted live QA. [#99]
 
 - Resolve structured evidence by exact JSON fields, verify public abstentions, and wait for the active conversation before enabling the chat composer. [#99]

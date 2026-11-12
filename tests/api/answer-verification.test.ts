@@ -1,11 +1,21 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {runAnswerVerification} from '../../server/answerVerification.js';
-import {reviewMatchesEvidence,answerLinksSupported,validEvidence,verifyEvidenceAnswer} from '../../server/answerVerificationModel.js';
+import {reviewMatchesEvidence,answerLinksSupported,validEvidence,verifyEvidenceAnswer,repairEvidenceAnswer} from '../../server/answerVerificationModel.js';
 import {accountEvidence,planAccountLookup,publicTopics} from '../../server/answerVerificationAccount.js';
 
 const draft={status:'answered',answer:'The unpaid balance is NT$900.',citations:[],proposedAction:{kind:'create_task',label:'Review fees',payload:{title:'Review fees'}}};
 const evidence=[{id:'fees',content:'Tuition 1000, paid 400, balance 600.',url:'/school-affairs/records'}];
+
+test('missing correction evidence is distinguished from a provider failure without approving a draft',async()=>{
+ const result=await runAnswerVerification({question:'What is the policy?',initialAnswer:draft,loadEvidence:async()=>[],verify:verifyEvidenceAnswer,repair:repairEvidenceAnswer});
+ assert.equal(result.verification.reason,'evidence_unavailable');assert.equal(result.verification.attempts,2);
+ assert.equal(result.status,'abstained');assert.deepEqual(result.citations,[]);assert.equal(result.proposedAction,undefined);
+ const rejected=await runAnswerVerification({question:'What is the policy?',initialAnswer:draft,loadEvidence:async()=>evidence,verify:async()=>({ok:false}),repair:async()=>{throw Object.assign(new Error('Invented correction link'),{code:'CORRECTION_UNSUPPORTED'});}});
+ assert.equal(rejected.verification.reason,'unsupported_claims');assert.equal(rejected.status,'abstained');
+ const outage=await runAnswerVerification({question:'What is the policy?',initialAnswer:draft,loadEvidence:async()=>evidence,verify:async()=>({ok:false}),repair:async()=>{throw new Error('Provider unavailable');}});
+ assert.equal(outage.verification.reason,'repair_unavailable');assert.equal(outage.status,'abstained');
+});
 
 test('LangGraph rejects a wrong draft, reloads records, corrects, and verifies a second time',async()=>{
   const order:string[]=[],steps:any[]=[];

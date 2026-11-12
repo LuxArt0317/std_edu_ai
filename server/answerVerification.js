@@ -58,8 +58,12 @@ export async function runAnswerVerification({
       try {
         candidate = await bounded(()=>repair({ question, candidate, evidence, deadline, feedback }));
         return {};
-      } catch {
-        return { verdict: { ok: false, reason: 'repair_unavailable' } };
+      } catch (error) {
+        // Missing sources or invented correction links are evidence failures,
+        // distinct from a provider timeout/outage. All still withhold the draft.
+        const reason=error?.code==='EVIDENCE_UNAVAILABLE'?'evidence_unavailable'
+          :error?.code==='CORRECTION_UNSUPPORTED'?'unsupported_claims':'repair_unavailable';
+        return { verdict: { ok: false, reason } };
       }
     })
     .addNode('verify', async state => {

@@ -4,7 +4,7 @@
 
 `node tests/integration/answer-verification-ui.mjs` checks activity/verification persistence at desktop and phone widths with an explicit local provider fixture.
 
-`node --experimental-strip-types tests/integration/assistant-workspace-live.mjs` exercises the real configured client database through local handlers and two disposable Google-linked synthetic accounts: chat isolation/conflicts, actual replay races, persistent profile nickname, personal DTM tracker permissions, visible launchers and multiple chat sessions. It removes its exact fixture accounts in `finally` and verifies their absence. Local browser AI replies are explicit UI fixtures.
+`node --experimental-strip-types tests/integration/assistant-workspace-live.mjs` exercises the real configured client database through local handlers and two disposable Google-linked synthetic accounts: chat isolation/conflicts, actual replay races, persistent profile nickname, personal DTM tracker permissions, visible launchers and multiple chat sessions. It removes its exact fixture accounts in `finally` and verifies their absence. An owner-only ignored `active-fixtures-<runId>.json` ledger remains until cleanup is verified, allowing exact recovery after an interrupted process. Local browser AI replies are explicit UI fixtures.
 
 `ASSISTANT_ORIGIN=https://stu.best node --experimental-strip-types tests/integration/assistant-workspace-live.mjs` uses deployed endpoints and actual configured model calls for tuition arithmetic, mixed profile/DTM questions, date-specific classes, injection resistance, a verified proposed action and confirmed database readback. Reports are private ignored artifacts; no token or password is logged. Never run against a different project. Apply only migration120000 after inspecting `npm run db:plan -- --only=20261112120000`.
 
@@ -47,4 +47,4 @@ The School Affairs entry check also verifies the local campus carousel at four v
 
 `assistant-public-verification-live.mjs` checks deployed real-model public knowledge/source answers, a synthetic screenshot with known fields, and anonymous personal-record denial. It saves private QA artifacts and uses no account token. Run only against the authorized stu.best production deployment after it is Ready.
 
-`assistant-public-verification-live.mjs` runs all public evidence cases and records each failure separately, including the managed academic FAQ, web sources, a synthetic screenshot and anonymous private-record denial. Reports are private ignored artifacts.
+Known FAQ and image answers must verify. External founding/OneDrive lookups may instead explicitly withhold unsupported content; this is a safety outcome, not a verified factual answer. Provider failures and timeouts do not pass that acceptance check. All cases run and retain their separate results.
