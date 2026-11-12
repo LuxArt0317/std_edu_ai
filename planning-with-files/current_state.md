@@ -2,7 +2,7 @@
 
 ## Signed-in layout and protected service navigation (Issues #93 and #98)
 
-The School Affairs and DTM layouts were measured against their signed-in university references. After the user renewed the official session, the leave index, records list and form were inspected. The new independent leave form preserves the observed fields and saves to account-owned history. Eight catalog links query saved account records. Local Playwright followed all 94 links with 26 accessibility states. Remaining private program forms require individual verification and implementation.
+The School Affairs and DTM layouts were measured against their signed-in university references. After the user renewed the official session, the leave index, records list and form were inspected. The new independent leave form saves to account-owned history and uses the local timetable for period choices. Eight catalog links query saved account records. Local Playwright followed all 94 links with 27 accessibility states. Migration 20261112020000 was applied and the live two-account save/reopen/review/privacy suite passed. Remaining private program forms require individual verification and implementation.
 
 ## Issue #98: Student Affairs and DTM workspaces (published)
 

@@ -4,7 +4,9 @@
 
 The School Affairs shell, Student Leave form and list, internship index, and DTM overview/dashboard follow the observed university layouts. The leave entry opens the local form directly and saves to private history. Eight catalog destinations display account-scoped records. Other services retain their local destinations and university links. The campus assistant and records open from the account or index menu. [School Affairs](../../src/features/public/affairs/README.md), [DTM](../../src/features/public/dtm/README.md).
 
-The authenticated browser suite followed all 94 catalog links from their rendered anchors and passed 26 responsive and accessibility checks. The DTM columns were checked against the source at 1533 CSS pixels. A rolled-back migration preflight confirmed the new leave fields, compatibility with existing internship records, authenticated RPC grants and RLS. Remaining service-specific work includes private university screens protected by their own sign-in, official attachments and institutional submission. [Issue #98](https://github.com/LuxArt0317/std_edu_ai/issues/98).
+The authenticated browser suite followed all 94 catalog links from their rendered anchors and passed 27 responsive and accessibility checks. The DTM columns were checked against the source at 1533 CSS pixels. Migration `20261112020000_leave_application_fields.sql` passed rolled-back preflight and was applied to the client database. The [initial layout release](https://vercel.com/v1-d286/std_edu_ai/9FNuPpGd73mbhT46EkTMvrD18rsw) passed two-account live checks for leave saves, reopen, review and access isolation. The site answer exposed the student's authorized status while keeping the phone and reason private. The final layout pass also adds timetable-derived leave period selection.
+
+The 79 catalog destinations that still provide tracking require service-by-service implementation. Several official service screens have their own sign-in. Official attachments and institutional submission remain open. [Issue #98](https://github.com/LuxArt0317/std_edu_ai/issues/98).
 
 ## Issue #98 — Student Affairs and DTM records (published)
 

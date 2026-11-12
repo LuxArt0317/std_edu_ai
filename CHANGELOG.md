@@ -5,6 +5,7 @@
 
 - Restore the source portal header, icons and notice panels and match the Moodle desktop column geometry. Keep the student record tools, assistant and knowledge settings in the existing account menus.
 - Open the Student Affairs leave form directly from the catalog and use the source application, history and period layouts. Store the leave category, date range, class periods, contact number and mental health leave time in the signed-in account. Rebuild the internship index and Student Zone navigation.
+- Populate leave period choices from the signed-in account's timetable. Show the time-of-day controls when the selected leave category needs them.
 - Show account-scoped enrollment, timetable, grades, attendance, completed credits, student details and charges on their respective catalog pages. Link private assistant answers to the corresponding record view.
 
 ### Student Affairs and DTM workspaces (Issue #98)

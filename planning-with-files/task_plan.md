@@ -314,10 +314,11 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Capture the authenticated university and deployed stu.best layouts and measure the header, sidebar, notices and course columns.
 - [x] Align authenticated pages to those references. Keep account records and assistant access in the account menu.
 - [x] Compare the local build at reference sizes and on mobile. Verify all 94 catalog destinations and native leave, internship, grades and fees flows.
-- [ ] Publish and verify the updated build with both fixture and live account tests.
+- [x] Publish the initial updated build and verify the private record workflows with a disposable two-account live test.
 
 ## Protected service destinations [Issue #98]
 
 - [x] Verify actual catalog click-through, expose the leave form at its own URL, and separate application, history, and internship views.
 - [x] Connect native enrollment, timetable, grade, attendance, credit, student and fee queries to account-scoped database records and assistant links.
+- [x] Match the observed leave form controls and period picker and check phone/desktop accessibility.
 - [ ] Inspect the remaining private university forms and views after the source sign-in challenge is completed. Check their layout and workflow individually.

@@ -320,8 +320,16 @@ try {
   await page.getByRole("radio", { name: "心理假", exact: true }).check();
   assert.equal(await page.getByRole("radio", { name: "上午(08-13時)", exact: true }).isEnabled(), true);
   await page.getByRole("radio", { name: "事假", exact: true }).check();
-  assert.equal(await page.getByRole("radio", { name: "上午(08-13時)", exact: true }).isEnabled(), false);
+  await page.getByRole("radio", { name: "上午(08-13時)", exact: true }).waitFor({ state: "detached" });
+  await page.getByLabel("開始請假日期", { exact: true }).fill("2026-11-10");
+  await page.getByLabel("結束請假日期", { exact: true }).fill("2026-11-10");
+  assert.equal(await page.getByLabel("請假節次", { exact: true }).inputValue(), "週二09:00");
+  await page.getByRole("button", { name: "全選", exact: true }).click();
+  assert.ok(await page.getByRole("checkbox", { name: /Campus Orientation/ }).isChecked());
   await scan(page, "leave-form-1280", true);
+  await page.setViewportSize({ width: 390, height: 850 });
+  await scan(page, "leave-form-390", true);
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page.getByRole("link", { name: "回列表", exact: true }).click();
   await page.waitForURL("**/school-affairs/services/leave/history");
   await page.getByRole("columnheader", { name: "請假單號", exact: true }).waitFor();

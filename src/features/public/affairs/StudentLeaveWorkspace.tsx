@@ -22,6 +22,22 @@ const statuses = {draft:'草稿',filed:'自行標記已送出',withdrawn:'已取
 const reviews = {open:'站內待審',in_review:'站內審核中',resolved:'站內已處理'};
 const historyPath = leavePath+'/history';
 const processUrl = 'https://info.stu.edu.tw/SAO/SLA/readme/111請假流程說明.pdf';
+const weekdays = ['','一','二','三','四','五','六','日'];
+
+function schedulePeriods(courses:AffairsSnapshot['courses'],start:string,end:string) {
+  if (!start || !end || start>end) return [];
+  const options = new Map<string,string>();
+  for (const course of courses) {
+    if (!course.weekday || !course.startsAt || course.status!=='enrolled') continue;
+    const first = new Date((course.termStartsOn && course.termStartsOn>start ? course.termStartsOn : start)+'T00:00:00Z');
+    const last = new Date((course.termEndsOn && course.termEndsOn<end ? course.termEndsOn : end)+'T00:00:00Z');
+    const offset = (course.weekday+7-first.getUTCDay())%7;
+    if (first.getTime()+offset*86_400_000>last.getTime()) continue;
+    const value = '週'+weekdays[course.weekday]+course.startsAt.slice(0,5);
+    options.set(value,[options.get(value),course.title].filter(Boolean).join('、'));
+  }
+  return [...options.entries()];
+}
 
 function LeaveFrame({page,children}:{page:string;children:ReactNode}) {
   return <div className="student-leave" lang="zh-Hant">
@@ -71,11 +87,31 @@ function LeaveTitle({children}:{children:ReactNode}) {
 
 function LeaveForm({snapshot,record,saved}:{snapshot:AffairsSnapshot;record?:ServiceRecord;saved:()=>void}) {
   const [id] = useState(()=>record?.id ?? crypto.randomUUID());
-  const initialCategory = record?.leaveCategory ?? 'personal';
+  const initialCategory = record?.leaveCategory ?? '';
   const [category,setCategory] = useState(initialCategory);
+  const [startsOn,setStartsOn] = useState(record?.startsOn ?? '');
+  const [endsOn,setEndsOn] = useState(record?.endsOn ?? '');
+  const [periods,setPeriods] = useState(record?.periods ?? '');
   const [busy,setBusy] = useState(false);
   const [error,setError] = useState('');
   const {student,profile} = snapshot;
+  const slots = schedulePeriods(snapshot.courses,startsOn,endsOn);
+  const chosen = new Set(periods.split(/[,、]\s*/).filter(Boolean));
+  function updateDates(start:string,end:string,kind=category) {
+    setStartsOn(start);
+    setEndsOn(end);
+    const scheduled = schedulePeriods(snapshot.courses,start,end).map(([value])=>value).join('、');
+    setPeriods(kind && kind!=='official' && scheduled.length<=80 ? scheduled : '');
+  }
+  function choosePeriods(values:string[]) {
+    const next = values.join('、');
+    if (next.length>80) {
+      setError('請縮小日期範圍或在請假節次欄手動填寫。');
+      return;
+    }
+    setError('');
+    setPeriods(next);
+  }
   async function submit(event:FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) return;
@@ -112,7 +148,13 @@ function LeaveForm({snapshot,record,saved}:{snapshot:AffairsSnapshot;record?:Ser
   return <>
     <p className="leave-form-note">假單會儲存在您的 stu.best 帳號。正式請假請使用校方請假系統。</p>
     <LeaveTitle>填寫假單作業 <a href={processUrl} target="_blank" rel="noopener noreferrer">請假流程說明</a></LeaveTitle>
-    <form className="leave-form" onSubmit={submit} onReset={()=>{setCategory(initialCategory);setError('');}}>
+    <form className="leave-form" onSubmit={submit} onReset={()=>{
+      setCategory(initialCategory);
+      setStartsOn(record?.startsOn ?? '');
+      setEndsOn(record?.endsOn ?? '');
+      setPeriods(record?.periods ?? '');
+      setError('');
+    }}>
       <div className="leave-row">
         <label htmlFor="leave-tutor">導師/系主任</label>
         <div className="leave-identity"><input id="leave-tutor" value="—" readOnly/><input aria-label="系主任" value="—" readOnly/></div>
@@ -131,31 +173,52 @@ function LeaveForm({snapshot,record,saved}:{snapshot:AffairsSnapshot;record?:Ser
       </div>
       <div className="leave-row">
         <label htmlFor="leave-start">開始請假日期</label>
-        <input id="leave-start" name="starts_on" type="date" min="2000-01-01" max="2100-12-31" defaultValue={record?.startsOn ?? ''} required/>
+        <input id="leave-start" name="starts_on" type="date" min="2000-01-01" max="2100-12-31"
+          value={startsOn} onChange={event=>updateDates(event.target.value,endsOn)} required/>
       </div>
       <div className="leave-row">
         <label htmlFor="leave-end">結束請假日期</label>
-        <input id="leave-end" name="ends_on" type="date" min="2000-01-01" max="2100-12-31" defaultValue={record?.endsOn ?? ''} required/>
+        <input id="leave-end" name="ends_on" type="date" min="2000-01-01" max="2100-12-31"
+          value={endsOn} onChange={event=>updateDates(startsOn,event.target.value)} required/>
       </div>
       <div className="leave-row leave-radio-row">
         <span id="leave-category-label">請假類別</span>
         <div role="radiogroup" aria-labelledby="leave-category-label" className="leave-categories">
-          {categories.map(([key,label])=><label key={key}><input type="radio" name="leave_category" value={key} checked={category===key} onChange={()=>setCategory(key)}/>{label}</label>)}
+          {categories.map(([key,label])=><label key={key}><input type="radio" name="leave_category" value={key} checked={category===key}
+            required onChange={()=>{setCategory(key);if(!periods)updateDates(startsOn,endsOn,key);}}/>{label}</label>)}
           {initialCategory==='other'&&<label><input type="radio" name="leave_category" value="other" checked={category==='other'} onChange={()=>setCategory('other')}/>其他</label>}
+          <span className="leave-category-note">請假類別請參閱請假流程說明</span>
         </div>
       </div>
-      <div className="leave-row leave-radio-row">
+      {category==='mental_health'&&<div className="leave-row leave-radio-row">
         <span id="leave-time-label">心理假時段</span>
         <div role="radiogroup" aria-labelledby="leave-time-label" className="leave-times">
           {leaveTimes.map(([value,label])=><label key={value}>
-            <input type="radio" name="leave_time_period" value={value} defaultChecked={record?.leaveTimePeriod===value}
-              required={category==='mental_health'} disabled={category!=='mental_health'}/>{label}
+            <input type="radio" name="leave_time_period" value={value} defaultChecked={record?.leaveTimePeriod===value} required/>{label}
           </label>)}
+        </div>
+      </div>}
+      <div className="leave-row leave-period-row">
+        <span id="leave-slot-label">節次</span>
+        <div aria-labelledby="leave-slot-label" role="group" className="leave-period-picker">
+          <div className="leave-period-buttons">
+            <Button type="button" variant="outline" disabled={!slots.length} onClick={()=>choosePeriods(slots.map(([value])=>value))}>全選</Button>
+            <Button type="button" variant="outline" disabled={!periods} onClick={()=>choosePeriods([])}>取消</Button>
+          </div>
+          {slots.length>0&&<div className="leave-slot-list">{slots.map(([value,title])=><label key={value}>
+            <input type="checkbox" checked={chosen.has(value)} onChange={event=>{
+              if (event.target.checked) chosen.add(value);
+              else chosen.delete(value);
+              choosePeriods([...chosen]);
+            }}/>{value} · {title}
+          </label>)}</div>}
+          <p>一般假別會選取課表上的節次。公假請依實際需求勾選。</p>
         </div>
       </div>
       <div className="leave-row">
         <label htmlFor="leave-periods">請假節次</label>
-        <input id="leave-periods" className="leave-period-input" name="periods" maxLength={80} defaultValue={record?.periods ?? ''} required/>
+        <input id="leave-periods" className="leave-period-input" name="periods" maxLength={80}
+          value={periods} onChange={event=>setPeriods(event.target.value)} required/>
       </div>
       <div className="leave-row">
         <label htmlFor="leave-reason">請假事由</label>
@@ -163,9 +226,9 @@ function LeaveForm({snapshot,record,saved}:{snapshot:AffairsSnapshot;record?:Ser
       </div>
       <div className="leave-actions">
         {error&&<p className="student-service-error" role="alert">{error}</p>}
-        <Button className="leave-primary" type="submit" disabled={busy}>{busy?'儲存中…':'送出'}</Button>
-        <Button variant="outline" type="reset" disabled={busy}>取消</Button>
-        <Link className="leave-button" to={historyPath}>回列表</Link>
+        <Button className="leave-primary" type="submit" disabled={busy}><i className="portal-icon" aria-hidden="true">{"\uf00c"}</i>{busy?'儲存中…':'送出'}</Button>
+        <Button className="leave-reset" variant="outline" type="reset" disabled={busy}><i className="portal-icon" aria-hidden="true">{"\uf0e2"}</i>取消</Button>
+        <Link className="leave-button leave-return" to={historyPath}><i className="portal-icon" aria-hidden="true">{"\uf104"}</i>回列表</Link>
       </div>
     </form>
   </>;

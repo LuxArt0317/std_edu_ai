@@ -36,7 +36,7 @@ async function post(endpoint, body, token) {
 }
 const answer = (endpoint, question, token, route='/dtm') => post(endpoint,{question,route},token);
 
-try {
+async function createFixture() {
   const email = 'stu-workspace-qa-'+randomUUID()+'@example.invalid';
   const password = randomBytes(32).toString('base64url')+'Aa1!';
   const created = await admin.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{full_name:'Student Workspace QA'}});
@@ -51,7 +51,11 @@ try {
   assert.equal(signed.error,null);
   const session = signed.data.session;
   assert.ok(session.user.identities.some(identity=>identity.provider==='google'));
+  return session;
+}
 
+try {
+  const session = await createFixture();
   browser = await chromium.launch({
     headless:true,executablePath:env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   });
@@ -155,6 +159,8 @@ try {
   await button('送出').click();
   await page.waitForURL('**/school-affairs/services/leave/history');
   await page.getByRole('cell',{name:'心理假',exact:true}).waitFor();
+  const editPath = await page.getByRole('link',{name:'編輯',exact:true}).getAttribute('href');
+  const leaveId = editPath.split('/').at(-1);
   await page.getByRole('link',{name:'編輯',exact:true}).click();
   await page.getByLabel('電話',{exact:true}).waitFor();
   assert.equal(await page.getByLabel('電話',{exact:true}).inputValue(),'020000000');
@@ -169,6 +175,13 @@ try {
   assert.match(leave.answer,/Mental health leave.*awaiting stu.best review/);
   assert.doesNotMatch(leave.answer,/Private QA note/);
   assert.doesNotMatch(leave.answer,/020000000/);
+  const secondSession = await createFixture();
+  const secondStudent = createClient(url,key,{auth:{...auth},global:{headers:{Authorization:'Bearer '+secondSession.access_token}}});
+  const outsideRead = await secondStudent.from('affairs_service_records').select('contact_phone,leave_time_period').eq('id',leaveId);
+  assert.equal(outsideRead.error,null);
+  assert.deepEqual(outsideRead.data,[]);
+  const outsideDelete = await secondStudent.rpc('affairs_manage_service_record',{p_kind:'delete_service_record',p_payload:{id:leaveId}});
+  assert.equal(outsideDelete.error?.code,'42501');
   await button('Index').click();
   assert.equal(await page.getByRole('menuitem',{name:'校方請假系統',exact:true}).getAttribute('href'),
     'https://infosys.stu.edu.tw/StuLeave/Login/AspLoginStu');
@@ -193,6 +206,7 @@ try {
   assert.doesNotMatch(anonymous.answer,/Index design worksheet/);
   for (const [question,source] of [
     ['Where can I find the campus Wi-Fi guide?','https://help.ecc.stu.edu.tw/wireless-setting/'],
+    ['Where is the registrar?','https://www.aca.stu.edu.tw/%E6%9C%8D%E5%8B%99%E5%B0%8D%E8%B1%A1-services/'],
     ['Where can I file student leave?','https://infosys.stu.edu.tw/StuLeave/Login/AspLoginStu'],
   ]) {
     const publicAnswer = await answer('/api/research-assistant',question);
