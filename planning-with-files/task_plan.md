@@ -28,7 +28,16 @@ Keep tuition queries48-1/48-2/48-3, settlement49-1 and transfers50-1 separate; t
 - [x] Inspect original11-1 and11-2 filters, seven-column records and14-period weekly grid.
 - [x] Implement separate account-owned phase snapshots and multiple meeting slots; preserve observed remarks without inferring enrollment or eligibility.
 - [x] Recreate source filters/layout and admin maintenance; ground private subject/timetable queries in explicit records.
-- [ ] Verify privacy, persistence, source geometry and release.
+- [x] Verify privacy, persistence, source geometry and release.
+
+## Native academic results [Issue #98]
+
+- [x] Open source13-1 and inspect its menu, transcript, warning grades, ranking and unavailable/empty query states.
+- [ ] Capture remaining source geometry and reconstruct independent academic-result views without substituting DTM assessment scores.
+- [ ] Add account-owned semester results, summaries and administrative maintenance with scoped assistant access.
+- [ ] Verify source parity, private records and complete link behavior, then release.
+
+The source current-term grade query is outside its published opening period. Transfer and cycle-grade queries show no-record notices. Do not invent unseen source fields, infer graduation eligibility, or seed actual university student records into demonstration accounts.
 
 ## Protected course and scholarship destinations [Issues #93 and #98]
 

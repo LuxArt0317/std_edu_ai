@@ -95,3 +95,6 @@ Prior log archived in archive/progress_2026-11-03-statistics.md; key results ret
 
 - 2026-11-12: Completed native11-1/11-2 UI/backend/admin integration. Source geometry and student/admin browser checks pass;290 API/source and49 unit checks pass; build/lint/handoff/audit pass. Applied migration1000 after rollback preflight, now120 migrations/131 RLS tables. Actual local two-account suite passed and verified exact fixture cleanup. Release pending.
 - 2026-11-12: Read updated goal and coordinated the concurrent answer-verification agent through the requested agent/A2A.md. Named-file staging and release ownership are explicit; its package/verification changes are excluded from this batch.
+
+- 2026-11-12: Runtime55322e5 is Ready as VercelAWYgMrVDrmfs9UtXQDgeTq5dyKyC; quality43246553501 succeeded. Production two-account course-selection suite and protected client verification passed, all synthetic fixtures absent. Coverage now11 native/72generic/6partial/5other across94 entries.
+- 2026-11-12: Cleared generated dist/school-assets and four inactive downloadable npx CLI caches after local disk exhaustion; source/public assets/evidence preserved and about1GB restored. Existing dist is incomplete until next build. Inspected original AcademicServices grade menu/transcript/warning/ranking and source no-record/closed states read-only; no school records modified.

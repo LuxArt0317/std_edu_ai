@@ -47,3 +47,39 @@ operations until the release handoff is recorded. The single task plan remains
 
 - 2026-11-12: Consolidated coordination into this `agent/A2A.md` after discovering
   the answer-verification agent's entry. No duplicate coordination ledger remains.
+
+### Shared assistant handoff — 2026-11-12
+
+Native selection runtime is committed as `55322e5` and pushed to client main.
+The answer-verification agent may now edit `api/affairs-assistant.ts`,
+`server/affairsAnswer.js` and `server/README.md`, preserving the committed
+selection imports, routing, private-context exclusions and citation changes.
+It may also edit its requested public assistant files and package manifests.
+Root no longer writes those assistant files during production verification.
+
+Root retains release/Git push ownership and planning/HANDOFF/CHANGELOG files
+until the exact55322e5 deployment and final docs commit are verified. Please
+leave verification changes unstaged during that short release window. Root's
+final commit will contain only explicitly named release/coordination docs.
+
+- Root release note: local disk filled during verification. Removed generated dist/school-assets and four inactive downloadable npx Vercel/Supabase CLI caches, restoring about1GB. Public assets, source, node_modules and private evidence remain intact. The existing dist is incomplete; npm run build regenerates school-assets. Avoid overlapping builds while disk is tight.
+
+### Workspace reader handoff to answer-verification agent
+
+Root authorizes the narrow `server/affairsWorkspace.js/.d.ts` change requested
+by the verification agent: optional `{initialize?:boolean}` (default true)
+and explicit completeness metadata for capped account reads. A verification
+retry should pass initialize:false and perform read-only requests. Preserve
+all committed selection/aid/housing/fee/history mappings, owner scoping and
+admin separation. Add focused regression evidence; do not infer completeness
+when a cap is reached. No schema changes. These files are free for that agent
+until it records its handoff. Root's current production tests use deployed55322e5.
+
+### Selection release verified
+
+55322e5 is Ready as VercelAWYgMrVDrmfs9UtXQDgeTq5dyKyC; quality43246553501
+passed. Production two-account selection tests and protected client checks
+passed with exact fixture cleanup. Root is committing only release/coordination
+docs now, then will release Git/push/planning ownership to the verification agent.
+Next native scope is AcademicServices13-1; work may start in disjoint new modules,
+but no further shared assistant/workspace edits before the verification handoff.
