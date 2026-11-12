@@ -1,6 +1,6 @@
 # Project
 
-STU Edu AI combines a public university website with STU Nexus, an authenticated school operations and learning platform. It uses React 19, TypeScript 6, Vite 8, Supabase Auth/Postgres/Storage/Edge Functions, and Vercel Functions. Node.js 24 is required.
+STU Edu AI combines a public university website with STU Nexus, an authenticated school operations and learning platform. It uses React 19, TypeScript 6, Vite 8, Supabase Auth/Postgres/Storage/Edge Functions, and Vercel Functions. Node.js 24 is required. The campus answer-verification workflow uses `@langchain/langgraph` and `@langchain/core` in the Node backend.
 
 ## Repository structure
 

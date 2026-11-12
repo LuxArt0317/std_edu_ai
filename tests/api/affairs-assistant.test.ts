@@ -4,6 +4,7 @@ import affairsHandler from '../../api/affairs-assistant.ts';
 import publicHandler from '../../api/research-assistant.ts';
 import {answerDirectoryQuestion,directoryEntries} from '../../server/schoolAffairsDirectory.js';
 import {questionKind} from '../../server/schoolWebSearch.js';
+import {accountTools} from '../../server/answerVerificationAccount.js';
 
 const originalFetch=globalThis.fetch;
 const saved={url:process.env.VITE_SUPABASE_URL,key:process.env.VITE_SUPABASE_PUBLISHABLE_KEY,openai:process.env.OPENAI_API_KEY};
@@ -41,10 +42,22 @@ test('signed School Affairs directory question never loads Nexus context or tran
 });
 
 test('personal School Affairs question reads only the caller site records, never Nexus',async()=>{
- configured();delete process.env.OPENAI_API_KEY;const calls:string[]=[];
+ configured();const calls:string[]=[];
  const userId='00000000-0000-4000-8000-000000000002';
  globalThis.fetch=async(input,init)=>{
   const url=String(input);calls.push(url);const path=new URL(url).pathname;
+  if(url==='https://api.openai.com/v1/responses') {
+    assert.equal((init?.headers as Record<string,string>)?.Authorization,'Bearer test-key');
+    const body=JSON.parse(String(init?.body));
+    const name=body.text.format.name;
+    assert.ok(['account_lookup_plan','answer_evidence_review'].includes(name));
+    assert.doesNotMatch(String(init?.body),/access_token|refresh_token|Bearer x{20}/);
+    const payload=JSON.parse(body.input[0].content[0].text);
+    const value=name==='account_lookup_plan'?{tools:Object.keys(accountTools),publicTopics:[]}:
+      {supported:true,answersQuestion:true,claims:[{claim:'The data is local account evidence',supported:true,evidenceId:'account-scope',quote:'stu.best account records'}]};
+    if(name==='answer_evidence_review')assert.ok(payload.evidence.every((row:any)=>row.id.startsWith('account')||row.id==='service-directory'));
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}]});
+  }
   if(path==='/auth/v1/user')return new Response(JSON.stringify({id:userId,email:'student@example.com',identities:[{provider:'google'}]}),{status:200});
   assert.equal((init?.headers as Record<string,string>)?.Authorization,token);
   const tables:Record<string,unknown>={
@@ -85,7 +98,8 @@ test('personal School Affairs question reads only the caller site records, never
  const result=await invoke(affairsHandler,{question:'What are my current subjects?',route:'/school-affairs/menu/aca/query'},token);
  assert.equal(result.status,200,JSON.stringify({body:result.body,calls}));assert.match(result.body.answer,/SAMP101 Campus Orientation/);assert.match(result.body.answer,/sample/i);
  assert.doesNotMatch(result.body.answer,/IM101|IM203|Fall Semester 2026|Nexus/);
- assert.ok(calls.every(url=>url.startsWith('https://xiftudmvxphxcjtmfmib.supabase.co/')));
+ assert.equal(result.body.verification.status,'verified');
+ assert.ok(calls.every(url=>url.startsWith('https://xiftudmvxphxcjtmfmib.supabase.co/')||url==='https://api.openai.com/v1/responses'));
  const dtm=await invoke(affairsHandler,{question:'What DTM materials do I have?',route:'/dtm'},token);
  assert.equal(dtm.status,200);assert.match(dtm.body.answer,/Getting started guide/);assert.match(dtm.body.answer,/sample/i);
  const account=await invoke(affairsHandler,{question:'what are all my school details',route:'/dtm'},token);
@@ -110,17 +124,16 @@ test('personal School Affairs question reads only the caller site records, never
  assert.equal(selectionHistory.status,200);assert.match(selectionHistory.body.answer,/No course-selection records/);assert.equal(selectionHistory.body.grounding.source,'account');
  const phaseFollowup=await invoke(affairsHandler,{question:'semester 1',route:'/school-affairs/services/11-2'},token);
  assert.equal(phaseFollowup.status,200);assert.match(phaseFollowup.body.answer,/No timetable records/);assert.equal(phaseFollowup.body.grounding.source,'account');
- const modelCalls=calls.filter(url=>url.includes('api.openai.com')||url.includes('/api/research-assistant'));
- assert.deepEqual(modelCalls,[],'signed-in account and capability questions must stay on the private path');
+ assert.ok(!calls.some(url=>url.includes('/api/research-assistant')),'private questions must not be sent to public research');
  const events=await invokeStream({question:'What DTM materials do I have?',route:'/dtm'},token);
- assert.deepEqual(events.map(event=>event.type),['progress','progress','progress','progress','result']);
- assert.deepEqual(events.filter(event=>event.type==='progress').map(event=>event.data.kind),['account','account','answer','answer']);
+ assert.equal(events.at(-1)?.type,'result');
+ assert.ok(events.some(event=>event.type==='progress' && event.data.kind==='verification-1' && event.data.status==='complete'));
  assert.match(events.at(-1)!.data.answer,/Getting started guide/);
 });
 
 test('public image question accepts validated PNG and reports actual image analysis',async()=>{
  configured();const bytes=Buffer.concat([Buffer.from('89504e470d0a1a0a','hex'),Buffer.alloc(40)]);const dataUrl=`data:image/png;base64,${bytes.toString('base64')}`;
- globalThis.fetch=async(input,init)=>{assert.equal(String(input),'https://api.openai.com/v1/responses');const request=JSON.parse(String(init?.body));assert.equal(request.input[0].content[1].type,'input_image');assert.equal(request.store,false);return new Response(JSON.stringify({output:[{type:'message',content:[{text:JSON.stringify({answer:'The screenshot shows a School Affairs menu.',source_titles:['線上報修']})}]}]}),{status:200});};
+ globalThis.fetch=async(input,init)=>{assert.equal(String(input),'https://api.openai.com/v1/responses');const request=JSON.parse(String(init?.body));assert.equal(request.input[0].content[1].type,'input_image');assert.equal(request.store,false);const value=request.text.format.name==='answer_evidence_review'?{supported:true,answersQuestion:true,claims:[{claim:'The image shows a menu',supported:true,evidenceId:'attached-image',quote:''}]}:{answer:'The screenshot shows a School Affairs menu.',source_titles:['線上報修']};return new Response(JSON.stringify({output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(value)}]}]}),{status:200});};
  const result=await invoke(publicHandler,{question:'Please explain this screenshot',images:[{name:'menu.png',dataUrl}],route:'/school-affairs/menu/swd/input'});
  assert.equal(result.status,200);assert.equal(result.body.grounding.source,'image');assert.equal(result.body.citations[0].title,'線上報修');assert.equal(result.body.activity[0].kind,'image');
  const rejected=await invoke(publicHandler,{question:'Explain this',images:[{name:'fake.png',dataUrl:'data:image/png;base64,'+Buffer.alloc(40).toString('base64')} ]});

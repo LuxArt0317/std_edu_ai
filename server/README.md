@@ -1,5 +1,12 @@
 # Server helpers
 
+## Verified account assistant (Issue #99)
+
+`answerVerification.js` runs the LangGraph retrieve → draft → verify → (one correction → fresh retrieval → verify) flow. Account records and drafts stay in request-local closures rather than graph traces/checkpoints. `answerVerificationModel` requires independently quoted evidence and approved links; `answerVerificationSources` reads actual web pages through the acquisition safeguards. The endpoint has a shared 55-second deadline and withholds unverified drafts/actions. A verifier is fallible; this is not proof of perfect factual accuracy.
+
+`answerVerificationAccount` selects named account lookups and fixed public research topics without sending private records to web search. `accountAssistantActions` prepares only reviewed, owned-record actions. `accountRecordViews` produces bounded tables directly from the snapshot. `assistantConversationData` strips action payloads, image bytes and provider fields before persistence. See [QA criteria](../docs/qa/ANSWER_VERIFICATION.md).
+
+
 Shared server-only retrieval, authorization and validation helpers for `api/`. `schoolAffairsDirectory.js` reads the captured School Affairs catalog; `schoolWebSearch.js` verifies public STU web sources. These modules do not grant access to official school systems.
 
 `schoolWebSearch.js` classifies both singular and plural personal class questions before public search. Nexus answers those questions from the caller's verified account context; anonymous research hands them to School Affairs sign-in.

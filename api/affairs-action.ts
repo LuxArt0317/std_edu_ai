@@ -17,7 +17,7 @@ export default async function handler(request:Request,response:Response) {
   try {
     const authorization=first(request.headers.authorization);
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
-    const result=await executeAffairsAction(account,input.kind,input.payload);
+    const result=await executeAffairsAction(account,input.kind,input.payload,input.requestId as string|undefined);
     response.status(200).json(result);
   } catch(error) {
     response.status(error instanceof AffairsWorkspaceError?error.status:503).json({error:error instanceof AffairsWorkspaceError?error.message:'School Affairs action could not be completed.'});

@@ -130,7 +130,7 @@ function fallbackProposal(question,snapshot) {
   return null;
 }
 
-export async function answerPrivateAffairsQuestion(question,snapshot,history=[],route='') {
+export async function answerPrivateAffairsQuestion(question,snapshot,history=[],route='',options={}) {
   // The shared offering catalog must never be answered from a student's enrollments.
   const catalogNavigation=answerCampusNavigation(question);
   if(catalogNavigation?.citations?.[0]?.chunkId==='campus-navigation:course-catalog') return catalogNavigation;
@@ -146,7 +146,7 @@ export async function answerPrivateAffairsQuestion(question,snapshot,history=[],
   let answer=fallbackPrivateAnswer(question,snapshot),proposedAction=fallbackProposal(question,snapshot),modelUsed=false;
   const deterministic=/\b(?:subjects?|classes|courses|lessons|timetable|schedule|assignments?|homework|submissions?|coursework|tuition|fees?|charges?|balance|payments?|grades?|attendance|notices?|announcements?|tasks?|requests?|moodle|dtm|digital teaching|tomorrow|next semester|next term|what can you do|what do you know about me|what details do you know about me)\b|課程|科目|課表|下堂課|下一門課|明天|下學期|作業|功課|繳交|學費|費用|繳費|成績|出席|公告|任務|待辦|申請|數位教材|教材網|我的.{0,12}(?:資料|資訊|詳情)|關於我/i.test(question);
   const apiKey=process.env.OPENAI_API_KEY;
-  if (apiKey && !deterministic) {
+  if (apiKey && !deterministic && !options.draftOnly) {
     // Personal DTM and student-service records are handled locally above.
     const {serviceRecords: _privateServiceRecords, requests: _privateRequests, scholarship: _privateScholarship, studentAid: _privateStudentAid, housing: _privateHousing, admin: _admin, charges: _privateCharges, creditLoadHistory: _privateCreditLoadHistory, courseSelection: _privateCourseSelection, ...modelSnapshot} = snapshot;
     modelSnapshot.dtm = {...snapshot.dtm,courses:snapshot.dtm?.courses?.filter(course=>course.sourceMode!=='personal') || []};

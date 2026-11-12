@@ -1,6 +1,13 @@
 # Changelog
 ## Unreleased
 
+### Verified account assistant and private conversations (Issue #99)
+
+- Add a bounded LangGraph evidence-review/correction loop for account, public knowledge, web and image answers; withhold unsupported drafts.
+- Keep the chatbot visible on signed-in school pages, retain separate private conversations and expandable record/verification views.
+- Add confirmed, replay-safe task/request/announcement, nickname and personal DTM tracker actions with database ownership and stale-write checks.
+
+
 ### Course-selection history and weekly timetable (Issue #98)
 
 - Recreate the observed academic-year, semester and selection-phase queries, seven-column history and fourteen-period weekly grid.

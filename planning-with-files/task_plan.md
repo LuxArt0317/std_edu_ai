@@ -1,5 +1,16 @@
 # Task Plan
 
+## Account assistant, verification graph and conversations [Issue #99]
+
+- [x] Coordinate shared ownership in `agent/A2A.md`; preserve the other agent's native-service work.
+- [x] Integrate the LangGraph evidence-check/correction loop into private, public knowledge, web and image answers. Fail closed and retain observable activity.
+- [ ] Verify account permissions, source contents, dates/amounts, correction limits and unavailable-provider behavior with adversarial and live-model checks.
+- [x] Expand authorized read/action tools across School Affairs and Moodle, using existing business validations and confirmation for writes; keep Nexus and official-school identities separate.
+- [x] Make the assistant available throughout signed-in stu.best pages, add useful record views and separate account-owned conversations.
+- [ ] Verify backend/UI/isolation, run release gates, publish through the client project and inspect production before closing the issue.
+
+The latest user goal includes multiple conversations and permitted student-record edits/actions. An MCP deployment is an optional transport, not a requirement for these capabilities. Current implementation first completes verification before expanding write capabilities. No guarantee of perfect answers or access to records absent from the authorized database.
+
 ## Native aid, housing and course catalog destinations [Issue #98]
 
 - [x] Revalidate signed-in source services and record actual application availability and query layouts.

@@ -1,5 +1,8 @@
 # Database migrations
 
+`20261112120000_assistant_conversations.sql` adds owner-only chats with optimistic versions and a 100-chat quota, private reviewed-action replay receipts, and an optional preferred display name. Existing task/request/admin-announcement business functions remain authoritative. New profile/DTM-tracker actions enforce ownership, expected previous values and personal-only assignment scope. The independent migration does not require concurrent academic110000/graduation130000 drafts.
+
+
 Files run in timestamp order through the root `db:plan` and `db:deploy` commands. Each pending migration is applied in a transaction and recorded in `supabase_migrations.schema_migrations`. Do not edit an applied migration or reset the client database. `20261106010000_affairs_academic_records.sql` adds site-owned sample school records and an audited, owner-only manager RPC. `20261106020000_affairs_manager_hardening.sql` keeps that manager within sample students, sections and enrollments if verified records are imported later. Neither migration imports university SIS or Moodle data.
 
 Migration `20261112010000_student_workspace.sql` adds account-owned meetings, grades and service records, with RLS, same-course assignment links and audited writes. A shared request summary is created only when the owner asks for stu.best review.

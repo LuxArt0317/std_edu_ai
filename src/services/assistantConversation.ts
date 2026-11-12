@@ -46,6 +46,7 @@ function cleanResult(value: unknown): AssistantResponse | undefined {
   const result = value as Record<string,unknown>;
   if (typeof result.answer !== 'string' || !answerStatuses.has(String(result.status))) return undefined;
   const grounding = result.grounding && typeof result.grounding === 'object' ? result.grounding as Record<string,unknown> : null;
+  const verification = result.verification && typeof result.verification === 'object' ? result.verification as Record<string,unknown> : null;
   const citations = Array.isArray(result.citations) ? result.citations.slice(0,12).flatMap(value => {
     if (!value || typeof value !== 'object') return [];
     const citation = value as Record<string,unknown>;
@@ -54,8 +55,16 @@ function cleanResult(value: unknown): AssistantResponse | undefined {
   }) : [];
   return {
     answer:result.answer.slice(0,7000),status:result.status as AssistantResponse['status'],citations,
+    ...(Array.isArray(result.views)?{views:result.views.slice(0,3).flatMap(raw=>{
+      if(!raw||typeof raw!=='object')return [];
+      const view=raw as Record<string,unknown>;
+      if(typeof view.url!=='string'||!/^\/(?!\/)/.test(view.url)||!Array.isArray(view.columns)||!Array.isArray(view.rows))return [];
+      return [{id:String(view.id).slice(0,60),title:String(view.title).slice(0,100),url:view.url.slice(0,500),columns:view.columns.slice(0,5).map(item=>String(item).slice(0,100)),rows:view.rows.slice(0,12).filter(Array.isArray).map(row=>row.slice(0,5).map(item=>String(item).slice(0,200))),total:Math.max(0,Number(view.total)||0),checkedAt:String(view.checkedAt).slice(0,60),note:String(view.note).slice(0,400)}];
+    })}:{}),
     suggestedQuestions:Array.isArray(result.suggestedQuestions)?result.suggestedQuestions.filter((item):item is string=>typeof item==='string').slice(0,3).map(item=>item.slice(0,180)):[],
     activity:mergeAssistantActivity([],Array.isArray(result.activity)?result.activity:[]),
+    ...(verification && ['verified','unverified'].includes(String(verification.status)) && Number.isInteger(verification.attempts) && Number(verification.attempts)>=0 && Number(verification.attempts)<=2
+      ? {verification:{status:verification.status as 'verified'|'unverified',attempts:Number(verification.attempts)}} : {}),
     ...(grounding?{grounding:{source:typeof grounding.source==='string'?grounding.source.slice(0,80):undefined,webSearched:grounding.webSearched===true,checkedAt:typeof grounding.checkedAt==='string'?grounding.checkedAt.slice(0,50):undefined,degraded:grounding.degraded===true}}:{}),
   };
 }
@@ -74,6 +83,11 @@ function cleanMessage(value: unknown, interrupted = false): AssistantMessage | n
     ...(role==='assistant'?{phase,activity,result:cleanResult(message.result),actionExpired:message.actionExpired===true || Boolean(message.result && typeof message.result==='object' && (message.result as Record<string,unknown>).proposedAction)}:{}),
     ...(role==='user' && Array.isArray(message.images)?{images:message.images.slice(0,2).flatMap(value=>value&&typeof value==='object'&&typeof (value as {name?:unknown}).name==='string'?[{name:(value as {name:string}).name.slice(0,120)}]:[])}:{}),
   };
+}
+
+/** Persistence excludes image bytes, provider tokens and executable actions. */
+export function sanitizeAssistantMessages(value: unknown, interrupted = false): AssistantMessage[] {
+  return Array.isArray(value)?value.slice(-MAX_CONVERSATION_MESSAGES).map(item=>cleanMessage(item,interrupted)).filter((item):item is AssistantMessage=>Boolean(item)):[];
 }
 
 export function readAssistantConversation(scope: string): AssistantMessage[] {

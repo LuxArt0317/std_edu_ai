@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { after,test } from "node:test";
-import handler from "../../api/research-assistant.ts";
+import handler, {createResearchAssistantHandler} from "../../api/research-assistant.ts";
 
 type Captured = {
   statusCode: number;
@@ -33,7 +33,7 @@ function configured() {
   process.env.VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_test";
   delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 }
-async function invoke(body: unknown, address: string) {
+async function invoke(body: unknown, address: string, run=handler) {
   const captured: Captured = { statusCode: 200, body: null, headers: {} };
   const response = {
     status(code: number) {
@@ -47,7 +47,7 @@ async function invoke(body: unknown, address: string) {
       captured.headers[name] = value;
     },
   };
-  await handler(
+  await run(
     {
       method: "POST",
       body,
@@ -176,8 +176,10 @@ test("answered public responses can cite only retrieved eligible chunk IDs", asy
     document_version: 1,
     content_checksum: "a".repeat(64),
   };
-  globalThis.fetch = async (input) => {
+  globalThis.fetch = async (input,init) => {
     const url = String(input);
+    if(url.includes('/v1/responses') && JSON.parse(String(init?.body)).text?.format?.name==='answer_evidence_review')
+      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({supported:true,answersQuestion:true,claims:[{claim:'Admissions instructions',supported:true,evidenceId:result.chunk_id,quote:result.content}]})}]}]});
     if (url.includes("/v1/embeddings"))
       return new Response(
         JSON.stringify({ data: [{ embedding: embedding() }] }),
@@ -501,7 +503,7 @@ test('anonymous personal-course questions request sign-in without reading accoun
  assert.equal(response.statusCode,200);const result=response.body as {status:string;answer:string;citations:unknown[]};assert.equal(result.status,'handoff');assert.match(result.answer,/sign in/i);assert.deepEqual(result.citations,[]);
 });
 
-test('an empty knowledge base is answered from real web-tool sources, without faking curated research citations',async()=>{
+test('web answers require both retrieved page contents and an independent review without curated trace IDs',async()=>{
  configured();let searchCalls=0, traceCalls=0;
  const source='https://www.stu.edu.tw/office/';
  globalThis.fetch=async(input,init)=>{
@@ -509,13 +511,20 @@ test('an empty knowledge base is answered from real web-tool sources, without fa
   if(url.includes('/embeddings'))return Response.json({data:[{embedding:embedding()}]});
   if(url.includes('/rpc/search_public_knowledge'))return Response.json([]);
   if(url.includes('/v1/responses')){
-   const request=JSON.parse(String(init?.body));assert.equal(request.tools[0].type,'web_search');searchCalls++;
+   const request=JSON.parse(String(init?.body));
+   if(request.text?.format?.name==='answer_evidence_review') {
+    const data=JSON.parse(request.input[0].content[0].text);
+    assert.equal(data.evidence[0].content,'Office information is available on this STU office page.');
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({supported:true,answersQuestion:true,claims:[{claim:'Office page',supported:true,evidenceId:data.evidence[0].id,quote:'Office information is available on this STU office page.'}]})}]}]});
+   }
+   assert.equal(request.tools[0].type,'web_search');searchCalls++;
    return Response.json({output:[{type:'web_search_call',status:'completed',action:{sources:[{url:source,title:'STU office'}]}},{type:'message',content:[{text:JSON.stringify({status:'answered',answer:'You can find office information on the STU office page.',source_urls:[source]})}]}]});
   }
   if(url.includes('record_public_ai_exchange')){traceCalls++;return trace();}
   return Response.json(null);
  };
- const result=await invoke({question:'Where can I find STU office information?'},'web-fallback');
+ const run=createResearchAssistantHandler({readSources:async(citations)=>citations.map(citation=>({id:citation.chunkId,url:citation.url,title:citation.title,content:'Office information is available on this STU office page.'}))});
+ const result=await invoke({question:'Where can I find STU office information?'},'web-fallback',run);
  const body=result.body as {status:string;answer:string;feedback?:unknown;citations:Array<{url:string;reviewedAt:unknown}>;grounding:{source:string;webSearched:boolean}};
  assert.equal(result.statusCode,200);assert.equal(body.status,'answered');assert.equal(body.grounding.source,'web');assert.equal(body.grounding.webSearched,true);assert.equal(body.citations[0].url,source);assert.equal(body.citations[0].reviewedAt,null);assert.match(body.answer,/\[1\]\(/);assert.equal(body.feedback,undefined);assert.equal(traceCalls,0);assert.equal(searchCalls,1);
 });

@@ -7,6 +7,8 @@ import { deploymentEnvironment } from './deployment-env.mjs'
 const env = deploymentEnvironment()
 const configuration = JSON.parse(await readFile('deployment.json', 'utf8'))
 const apply = process.argv.includes('--apply')
+const only = process.argv.find(value => value.startsWith('--only='))?.slice(7)
+if (only && !/^\d{14}$/.test(only)) throw new Error('--only must be an exact migration version.')
 const url = env.NEXT_PUBLIC_SUPABASE_URL || env.VITE_SUPABASE_URL || env.SUPABASE_URL
 const key = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SECRET_KEY
 const connection = env.POSTGRES_URL_NON_POOLING || env.POSTGRES_URL || env.DATABASE_URL
@@ -37,14 +39,16 @@ try {
   const applied = history[0].existing ? await sql`select version from supabase_migrations.schema_migrations` : []
   const files = (await readdir('supabase/migrations')).filter(x => /^\d+_.+\.sql$/.test(x)).sort()
   const pending = files.filter(name => !applied.some(row => row.version === name.split('_')[0]))
+  if (only && !files.some(name=>name.startsWith(only+'_'))) throw new Error('Requested migration is not present.')
+  const selected = only ? pending.filter(name=>name.startsWith(only+'_')) : pending
   const [schema] = await sql`select count(*)::int as count from information_schema.tables where table_schema='public' and table_type='BASE TABLE'`
   if (!applied.length && schema.count) throw new Error('Existing public tables have no migration history. Reconcile the schema before applying; this command never resets databases.')
-  console.log(JSON.stringify({ project: configuration.supabase.projectRef, mode: apply ? 'apply' : 'dry-run', applied: applied.length, pending: pending.length }))
+  console.log(JSON.stringify({ project: configuration.supabase.projectRef, mode: apply ? 'apply' : 'dry-run', applied: applied.length, pending: pending.length, selected, deferred:pending.filter(name=>!selected.includes(name)) }))
   if (apply) {
     await sql.unsafe('create schema if not exists supabase_migrations; create table if not exists supabase_migrations.schema_migrations(version text primary key, statements text[], name text)')
     await sql`select set_config('app.bootstrap_owner_email', ${configuration.supabase.ownerEmail}, false)`
     if (applied.some(row => row.version === '20260716142102')) await ensureOwner()
-    for (const name of pending) {
+    for (const name of selected) {
       const source = await readFile(`supabase/migrations/${name}`, 'utf8')
       await sql.begin(async tx => {
         await tx.unsafe(source)
@@ -55,7 +59,7 @@ try {
     }
   }
   const tables = await sql`select count(*)::int as count from information_schema.tables where table_schema='public' and table_type='BASE TABLE'`
-  console.log(JSON.stringify({ publicTables: tables[0].count, complete: pending.length === 0 || apply }))
+  console.log(JSON.stringify({ publicTables: tables[0].count, complete: pending.length === 0 || (apply && selected.length===pending.length), selectedComplete:selected.length===0||apply }))
 } catch (error) {
   console.error(`Database deployment failed: ${error.message}`)
   process.exitCode = 1

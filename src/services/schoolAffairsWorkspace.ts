@@ -6,7 +6,7 @@ import type { PendingFeeMetadata } from './pendingFees';
 import type { CreditLoadHistoryRecords } from './creditLoadHistory';
 import type { CourseSelectionRecords } from './courseSelection';
 
-export type AffairsAction = {kind:'create_task'|'complete_task'|'create_service_request'|'publish_announcement'|'resolve_service_request';payload:Record<string,string>};
+export type AffairsAction = {kind:'create_task'|'complete_task'|'create_service_request'|'publish_announcement'|'resolve_service_request'|'update_display_name'|'set_assignment_status';payload:Record<string,string>;requestId?:string};
 export type AffairsManagerAction = {kind:'save_enrollment'|'save_charge'|'delete_charge'|'save_assignment'|'delete_assignment'|'save_scholarship_period'|'review_scholarship_application'|'save_student_aid_record'|'save_housing_period'|'save_housing_assignment'|'save_credit_load_history'|'save_course_selection';payload:Record<string,unknown>};
 export type ServiceRecord = {
   id:string;serviceKey:string;recordType:'leave'|'contract'|'self_assessment'|'company'|'note';

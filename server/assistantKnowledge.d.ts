@@ -21,7 +21,7 @@ export type KnowledgeEvidence = {
 };
 export function searchAssistantKnowledge(
   question: string,
-  options?: { authorization?: string },
+  options?: { authorization?: string; deadline?: number },
 ): Promise<{ evidence: KnowledgeEvidence[]; degraded: boolean }>;
 export function knowledgeCitations(
   evidence: KnowledgeEvidence[],

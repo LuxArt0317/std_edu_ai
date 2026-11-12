@@ -17,7 +17,7 @@ export function safeOperationalMetadata(value={}) {
 }
 export async function recordResearchOperation(input) {
   const url=input.url?.replace(/\/$/,"");
-  if(!url||!input.key||!components.has(input.component)||!outcomes.has(input.outcome))return false;
+  if(!url||!input.key||!components.has(input.component)||!outcomes.has(input.outcome)||input.deadline!==undefined&&Date.now()>=input.deadline)return false;
   try {
     const response=await fetch(`${url}/rest/v1/rpc/record_research_operational_event`,{
       method:"POST",
@@ -28,7 +28,7 @@ export async function recordResearchOperation(input) {
         p_http_status:input.httpStatus??null,p_latency_ms:Math.max(0,Math.min(120000,Math.round(input.latencyMs||0))),
         p_item_count:input.itemCount??null,p_correlation_hash:input.correlationHash,
         p_metadata:safeOperationalMetadata(input.metadata),p_fixture_marker:null,
-      }),signal:AbortSignal.timeout(5000),
+      }),signal:AbortSignal.timeout(Math.max(1,Math.min(5000,(input.deadline??Date.now()+5000)-Date.now()))),
     });
     return response.ok;
   } catch { return false; }

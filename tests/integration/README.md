@@ -1,5 +1,14 @@
 # Integration checks
 
+## Verified assistant and persistent chats (Issue #99)
+
+`node tests/integration/answer-verification-ui.mjs` checks activity/verification persistence at desktop and phone widths with an explicit local provider fixture.
+
+`node --experimental-strip-types tests/integration/assistant-workspace-live.mjs` exercises the real configured client database through local handlers and two disposable Google-linked synthetic accounts: chat isolation/conflicts, actual replay races, persistent profile nickname, personal DTM tracker permissions, visible launchers and multiple chat sessions. It removes its exact fixture accounts in `finally` and verifies their absence. Local browser AI replies are explicit UI fixtures.
+
+`ASSISTANT_ORIGIN=https://stu.best node --experimental-strip-types tests/integration/assistant-workspace-live.mjs` uses deployed endpoints and actual configured model calls for tuition arithmetic, mixed profile/DTM questions, date-specific classes, injection resistance, a verified proposed action and confirmed database readback. Reports are private ignored artifacts; no token or password is logged. Never run against a different project. Apply only migration120000 after inspecting `npm run db:plan -- --only=20261112120000`.
+
+
 Run focused integration scripts through the `test:*` commands in the root `package.json`. `school-affairs-entry-ui.mjs` exercises the isolated Google session and assistant drawer with synthetic provider fixtures; it does not establish a real Google callback.
 
 `dtm-course-ui.mjs` checks course/grade geometry against the observed 1533px Moodle layout, record details, menu-based assignment creation/edit/deletion, grade editing, phone overflow and accessibility with a synthetic private account. Run with `PUBLIC_SITE_ORIGIN=http://127.0.0.1:5173 node tests/integration/dtm-course-ui.mjs`; ignored screenshots go to `artifacts/dtm/`. `dtm-ui.mjs` checks the home, guest/login, responsive navigation and assistant entry. `student-workspace-live.mjs` follows the same course menu against deployed APIs and the client database with a disposable identity, then removes it.

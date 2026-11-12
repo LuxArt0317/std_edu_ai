@@ -40,7 +40,9 @@ async function request(account, table, options = {}) {
   for (const [name,value] of Object.entries(query)) if (value !== undefined) target.searchParams.set(name,String(value));
   let response;
   try {
-    response=await fetch(target,{method:rpc?'POST':'GET',headers:headers(account.token,account.key,rpc),...(rpc?{body:JSON.stringify(body||{})}:{}),signal:AbortSignal.timeout(12000)});
+    const remaining=account.requestDeadline===undefined?12000:account.requestDeadline-Date.now();
+    if(remaining<=0)throw new Error('Record lookup budget exhausted');
+    response=await fetch(target,{method:rpc?'POST':'GET',headers:headers(account.token,account.key,rpc),...(rpc?{body:JSON.stringify(body||{})}:{}),signal:AbortSignal.timeout(Math.min(12000,remaining))});
   } catch { throw new AffairsWorkspaceError('The School Affairs database did not respond. Please try again.'); }
   if (!response.ok) {
     if (response.status===401 || response.status===403) throw new AffairsWorkspaceError('This School Affairs action is not allowed for your account.',403);
@@ -69,9 +71,12 @@ async function readAccountRows(account, table, query) {
     if (page.length < pageSize) return rows;
   }
 }
-export async function loadAffairsSnapshot(account, includeAdmin = false) {
-  await request(account,'affairs_initialize_account',{rpc:true});
-  await request(account,'dtm_initialize_account',{rpc:true});
+export async function loadAffairsSnapshot(account, includeAdmin = false, options = {}) {
+  account={...account,...(Number.isFinite(options.deadline)?{requestDeadline:options.deadline}:{})};
+  if(options.initialize!==false) {
+    await request(account,'affairs_initialize_account',{rpc:true});
+    await request(account,'dtm_initialize_account',{rpc:true});
+  }
   const userId=account.user.id;
   const [profiles,students,terms,programs,courses,sections,announcements,tasks,requests,adminProfiles,adminStudents,adminEnrollments,adminDtmCourses,adminRequests,dtmCourses,dtmNotices,serviceRecords]=await Promise.all([
     request(account,'affairs_profiles',{query:own(userId,1)}),
@@ -144,12 +149,17 @@ export async function loadAffairsSnapshot(account, includeAdmin = false) {
   const sectionById=new Map(sections.map(row=>[row.id,row]));
   return {
     checkedAt:new Date().toISOString(),source:'stu.best School Affairs',officialUniversityData:false,
+    completeness:Object.fromEntries([
+      ['terms',terms,30],['programs',programs,100],['catalog',courses,200],['sections',sections,300],
+      ['enrollments',enrollments,100],['grades',grades,200],['attendance',attendance,200],
+      ['announcements',announcements,30],['dtmNotices',dtmNotices,30],['tasks',tasks,50],['requests',requests,50],
+    ].map(([key,rows,cap])=>[key,{returned:rows.length,complete:rows.length<cap,cap}])),
     scholarship:mapScholarshipRecords(scholarshipPeriods.filter(row=>row.published),scholarshipApplications),
     studentAid:mapStudentAidRecords(studentAidRows),
     creditLoadHistory:mapCreditLoadHistory(creditLoadRows),
     courseSelection:mapCourseSelection(selectionRows),
     housing:mapHousingRecords(housingPeriods.filter(row=>row.published || housingApplications.some(item=>item.period_id===row.id) || housingAssignments.some(item=>item.period_id===row.id)),housingApplications,housingAssignments),
-    profile:{userId:profile.user_id,email:profile.email,displayName:profile.display_name,role:profile.role},
+    profile:{userId:profile.user_id,email:profile.email,displayName:profile.preferred_name || profile.display_name,role:profile.role},
     student:student?{id:student.id,studentNumber:student.student_number,fullName:student.full_name,yearLevel:student.year_level,status:student.status,sourceMode:student.source_mode,program:programs.find(row=>row.id===student.program_id)?.name||null}:null,
     courses:enrollments.map(enrollment=>{
       const section=sectionById.get(enrollment.section_id);const course=courseById.get(section?.course_id);const term=termById.get(section?.term_id);
@@ -198,10 +208,15 @@ export async function loadAffairsSnapshot(account, includeAdmin = false) {
   };
 }
 
-export async function executeAffairsAction(account,kind,payload) {
+export async function executeAffairsAction(account,kind,payload,requestId) {
   if (!payload || typeof payload!=='object' || Array.isArray(payload))
     throw new AffairsWorkspaceError('Unsupported School Affairs action.',400);
   const body={p_kind:kind,p_payload:payload};
+  if (requestId !== undefined) {
+    if (typeof requestId!=='string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId))
+      throw new AffairsWorkspaceError('Invalid action request identifier.',400);
+    return request(account,'affairs_reviewed_action',{rpc:true,body:{...body,p_request_id:requestId}});
+  }
   if (kind==='submit_housing_application') return request(account,'affairs_housing_action',{rpc:true,body});
   if (['apply_scholarship','cancel_scholarship'].includes(kind))
     return request(account,'affairs_scholarship_action',{rpc:true,body});

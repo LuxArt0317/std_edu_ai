@@ -33,9 +33,7 @@ function SchoolPreviewNotice({ compact }: { compact: boolean }) {
 function SchoolAccountAssistant({ embedded = false }: { embedded?: boolean }) {
   const {user} = useAffairsAuth();
   const {pathname} = useLocation();
-  const workspace = useSignedInSchoolWorkspace();
-  const standaloneService = /^\/school-affairs\/services\/(?:leave|internship|9-1|22-1|12-4|26-1|34-1|39-1|11-1|11-2|11-3)(?:\/|$)/.test(pathname);
-  return <PublicAssistant key={user?.id || "anonymous"} initialOpen={pathname === "/campus-assistant"} embedded={embedded} showLauncher={!workspace || standaloneService} />;
+  return <PublicAssistant key={user?.id || "anonymous"} initialOpen={pathname === "/campus-assistant"} embedded={embedded} />;
 }
 function PublicAccountStatus() {
   const { user, loading } = useAffairsAuth();

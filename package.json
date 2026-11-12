@@ -90,6 +90,8 @@
     "test:school-home-layout": "node tests/integration/school-home-layout-ui.mjs"
   },
   "dependencies": {
+    "@langchain/core": "1.4.0",
+    "@langchain/langgraph": "1.7.3",
     "@supabase/supabase-js": "^2.110.5",
     "@tailwindcss/vite": "^4.3.3",
     "@thednp/dommatrix": "3.0.4",

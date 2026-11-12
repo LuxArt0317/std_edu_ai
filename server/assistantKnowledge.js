@@ -14,6 +14,7 @@ export function expandKnowledgeQuery(question) {
   return [question, ...aliases].join(" ").slice(0, 2000);
 }
 export async function searchAssistantKnowledge(question, options = {}) {
+  const remaining = cap => Math.min(cap, Math.max(1, (options.deadline ?? Date.now() + cap) - Date.now()));
   const query = String(question).trim().slice(0, 2000);
   let embedding = null;
   let degraded = false;
@@ -29,7 +30,7 @@ export async function searchAssistantKnowledge(question, options = {}) {
         dimensions: 1536,
         input: query,
       }),
-      signal: AbortSignal.timeout(12_000),
+      signal: AbortSignal.timeout(remaining(12_000)),
     });
     const value = await result.json();
     if (
@@ -54,7 +55,7 @@ export async function searchAssistantKnowledge(question, options = {}) {
         p_domain: null,
         p_limit: 8,
       }),
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(remaining(10_000)),
     },
   );
   if (!Array.isArray(rows)) throw new Error("Knowledge results are invalid.");

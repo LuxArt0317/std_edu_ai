@@ -1,5 +1,14 @@
 # Client handoff
 
+## Verified assistant and persistent conversations (Issue #99, release checks)
+
+The School Affairs assistant now selects named account reads, uses a bounded LangGraph evidence-review/correction loop, and retains observed verification activity. Independent claim checks use quoted record/source contents, authorized source links, explicit completeness and a shared deadline. Generated public knowledge, web and image answers use the same verification flow. A rejected correction returns an explicit inability to verify, with no guessed answer or actionable proposal. No write occurs inside the graph.
+
+The visible launcher coexists with every signed-in School Affairs/DTM/native-service route. Separate conversations, versioned owner-only storage, expandable record tables and reviewed task/request/nickname/personal-DTM-tracker actions are implemented. Durable action receipts prevent duplicate execution; restored conversation history contains no executable action or image bytes. Google sign-in remains independent from Nexus and the official university; sample records remain samples.
+
+Migration20261112120000 passed a rollback-only syntax preflight and was applied alone to client xiftudmvxphxcjtmfmib:121 migrations/132 public RLS tables. Other-agent academic110000 and graduation130000 remain independent drafts/unapplied. Local API/source and unit suites, lint/build/handoff and zero-vulnerability audit pass. Real database tests passed own/other-account isolation, actual concurrent chat conflicts, concurrent action replay, persistent nickname and personal-only assignment editing. Local signed-in browser checks also pass (four launcher routes, two saved conversations, switching/refresh, phone containment and no page errors). Protected client checks pass. Real-model production checks and publication remain pending. See docs/qa/ANSWER_VERIFICATION.md and agent/A2A.md.
+
+
 ## Native selection history and timetable (Issue #98, published)
 
 Source11-1/11-2 now have independent native layouts: observed year/semester/phase filters, seven history columns, fourteen timetable periods, overlapping meetings and unscheduled courses. The account-owned phase records deliberately remain distinct from general current enrollments; remarks are preserved without inferring eligibility or timetable inclusion. Admin writes enforce immutable ownership, strict validation, version conflicts and durable retry receipts. Private assistant answers use local destinations; current/next-class calculations retain dated enrollment context. The assistant remains available beside the native pages.

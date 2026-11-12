@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, Send, RotateCcw, Paperclip, X, Check, LoaderCircle, CircleAlert, ChevronDown } from "lucide-react";
+import { MessageCircle, Send, RotateCcw, Paperclip, X, Check, LoaderCircle, CircleAlert, ChevronDown, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -18,10 +18,10 @@ import { askSchoolAffairsAssistant } from "../../services/schoolAffairsAssistant
 import { performSchoolAffairsAction } from "../../services/schoolAffairsWorkspace";
 import { PublicAssistantFeedback } from "./PublicAssistantFeedback";
 import { AssistantMarkdown } from "../school/portal/AssistantMarkdown";
-import { clearAssistantConversation, finishAssistantActivity, MAX_CONVERSATION_MESSAGES, mergeAssistantActivity, readAssistantConversation, saveAssistantConversation, type AssistantMessage } from "../../services/assistantConversation";
+import { finishAssistantActivity, mergeAssistantActivity, type AssistantMessage } from "../../services/assistantConversation";
+import {useAssistantSessions} from './useAssistantSessions';
 
 type Message = AssistantMessage;
-const EMPTY_MESSAGES: Message[] = [];
 function ActivityTimeline({message}:{message:Message}) {
   const fallback: AssistantProgress[] = message.result?.grounding?.source === 'web'
     ? [{kind:'web',label:'Used public web sources',detail:'Open the linked sources below to check the answer.',status:'complete'}]
@@ -62,44 +62,32 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
 }) {
   const {user,loading} = useAffairsAuth();
   const scope = loading ? null : user ? `account:${user.id}` : 'public';
+  const sessions=useAssistantSessions(scope);
   const [open, setOpen] = useState(initialOpen),
-    [conversation, setConversation] = useState<{scope:string|null;messages:Message[]}>({scope:null,messages:[]}),
     [query, setQuery] = useState(""),
     [images, setImages] = useState<Array<{name:string;dataUrl:string}>>([]),
     [busy, setBusy] = useState(false),
     [actionBusy, setActionBusy] = useState<string | null>(null),
     [error, setError] = useState("");
-  const messages = conversation.scope === scope ? conversation.messages : EMPTY_MESSAGES;
-  function setMessages(update: Message[] | ((previous:Message[])=>Message[])) {
-    setConversation(previous => {
-      const current = previous.scope === scope ? previous.messages : [];
-      const next = typeof update === 'function' ? update(current) : update;
-      return {scope,messages:next.slice(-MAX_CONVERSATION_MESSAGES)};
-    });
-  }
+  const {messages,setMessages}=sessions;
   const viewport = useRef<HTMLDivElement>(null),
     fileInput = useRef<HTMLInputElement>(null),
     pending = useRef<AbortController | null>(null),
     sequence = useRef(0);
   useEffect(() => () => {pending.current?.abort();}, []);
   useEffect(() => {
-    if (showLauncher) return;
     const openFromAccount = () => setOpen(true);
     window.addEventListener(campusAssistantOpenEvent, openFromAccount);
     return () => window.removeEventListener(campusAssistantOpenEvent, openFromAccount);
-  }, [showLauncher]);
+  }, []);
   useEffect(() => {
     sequence.current++;
     pending.current?.abort();
-    setConversation({scope,messages:scope?readAssistantConversation(scope):[]});
     setImages([]);
     setQuery("");
     setError("");
     setBusy(false);
-  }, [scope]);
-  useEffect(() => {
-    if (scope && conversation.scope === scope) saveAssistantConversation(scope,conversation.messages);
-  }, [scope,conversation]);
+  }, [scope,sessions.active?.id]);
   useEffect(() => {
     if (!embedded) return;
     const onEscape = (event: KeyboardEvent) => {
@@ -178,7 +166,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
       const result=await performSchoolAffairsAction(action);
       setMessages(old=>old.map(item=>item.id===message.id?{
         ...item,
-        content:`${item.content}\n\n✓ ${result.summary}. [View your School Affairs records](/school-affairs/records).`,
+        content:`${item.content}\n\n✓ ${result.summary}. [View updated records](${action.url||'/school-affairs/records'}).`,
         result:item.result?{...item.result,proposedAction:undefined}:undefined,
         activity:mergeAssistantActivity(item.activity,[{kind:'action',label:'Updated your stu.best record',detail:result.summary,status:'complete'}]),
       }:item));
@@ -231,18 +219,28 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
           <Button
             size="sm"
             variant="ghost"
-            disabled={busy || (!messages.length && !images.length)}
+            disabled={busy || !!actionBusy || sessions.loadingChat || !scope || (!messages.length && !images.length)}
             onClick={() => {
               sequence.current++;
               pending.current?.abort();
-              clearAssistantConversation();
-              setMessages([]);
+              sessions.newChat();
               setImages([]);
               setError("");
             }}
           >
             <RotateCcw size={14} /> New chat
           </Button>
+        </div>
+        <div className="space-y-1.5 border-b px-5 py-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <label htmlFor="assistant-conversation-picker" className="sr-only">Conversations</label>
+            <select id="assistant-conversation-picker" aria-label="Conversations" className="min-w-0 flex-1 rounded-md border bg-background px-2 py-2 text-sm" value={sessions.active?.id||''} disabled={busy||!!actionBusy||sessions.loadingChat||sessions.syncing} onChange={event=>void sessions.chooseChat(event.target.value)}>
+              {sessions.conversations.map(chat=><option key={chat.id} value={chat.id}>{chat.title}</option>)}
+            </select>
+            <Button variant="ghost" size="icon" aria-label="Delete this conversation" disabled={busy||!!actionBusy||sessions.syncing||sessions.loadingChat||!messages.length} onClick={()=>void sessions.deleteChat()}><Trash2 className="size-4"/></Button>
+          </div>
+          <p className="text-xs text-muted-foreground" role="status">{sessions.loadingChat?'Loading conversation…':sessions.syncing?'Saving conversation…':sessions.syncError?'Saved in this tab; account sync needs attention.':user?'Conversations are private to your account.':'Conversations are saved in this browser tab.'}</p>
+          {sessions.syncError?<div className="text-xs text-destructive"><p>{sessions.syncError}</p><button className="mr-3 underline" onClick={sessions.retrySync}>Retry save</button>{sessions.active?.version?<button className="underline" onClick={()=>void sessions.chooseChat(sessions.active!.id,true)}>Reload saved chat (discards unsaved edits)</button>:null}</div>:null}
         </div>
         <div
           ref={viewport}
@@ -288,6 +286,8 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
                 <AssistantMarkdown>{message.content}</AssistantMarkdown>
               )}
               {message.result?.grounding?.source === "web" && <p className="text-xs text-muted-foreground">Found online · See sources below.</p>}
+              {message.result?.verification?<p className="text-xs text-muted-foreground">{message.result.verification.status==='verified'?'Checked against retrieved evidence':'Could not verify this answer'} · {message.result.verification.attempts} {message.result.verification.attempts===1?'check':'checks'}</p>:null}
+              {message.result?.views?.map(view=><details key={view.id} className="min-w-0 rounded-md border bg-muted/20 p-2 text-xs"><summary className="cursor-pointer font-semibold">{view.title} · {view.total} retrieved</summary><div className="mt-2 max-w-full overflow-x-auto" role="region" aria-label={view.title} tabIndex={0}><table className="w-full border-collapse text-left"><thead><tr>{view.columns.map(column=><th key={column} className="border-b p-2 whitespace-nowrap">{column}</th>)}</tr></thead><tbody>{view.rows.map((row,index)=><tr key={index}>{row.map((cell,column)=><td key={column} className="border-b p-2 align-top">{cell}</td>)}</tr>)}</tbody></table></div><p className="mt-2 text-muted-foreground">{view.rows.length<view.total?`Showing ${view.rows.length} of ${view.total} retrieved records. `:''}{view.note}</p><a className="mt-2 inline-block underline" href={view.url} target={embedded?'_top':undefined}>Open records</a></details>)}
               {message.result?.proposedAction && user ? <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm"><p className="font-semibold">Review action</p><p className="my-2 break-words">{message.result.proposedAction.label}</p><p className="mb-3 text-xs text-muted-foreground">This changes stu.best records only. No university system is contacted.</p><Button size="sm" disabled={!!actionBusy} onClick={()=>void applyAction(message)}>{actionBusy===message.id?'Applying…':'Confirm action'}</Button></div> : null}
               {message.actionExpired && !message.result?.proposedAction ? <p className="rounded-md border bg-muted/50 p-2 text-xs text-muted-foreground">The earlier action review expired when this chat was restored. Ask again if you still want to do it.</p> : null}
               {message.role === 'assistant' ? <ActivityTimeline message={message} /> : null}
