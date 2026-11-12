@@ -4,9 +4,18 @@
 
 - [x] Revalidate signed-in source services and record actual application availability and query layouts.
 - [x] Implement source-backed native destinations with persistent records and scoped assistant queries.
-- [ ] Verify permissions, lifecycle behavior and desktop/mobile parity; publish the tested batch.
+- [x] Verify permissions, lifecycle behavior and desktop/mobile parity; publish the tested batch.
 
 The preceding turn made verified progress; this continuation has live source access. Parking sign-in currently does not open after the original button click. Housing shows its closed-season timetable and a published application walkthrough. Student aid shows records without a current application action. Do not infer unseen form controls or use historical deadlines as current defaults.
+
+## Next native family: pending fees [Issue #98]
+
+- [ ] Inspect the exact source status vocabulary/actions and settled-row behavior for39-1.
+- [ ] Give39-1 its own measured layout and add nullable occurrence date, category, contact unit/extension and payment unit to account-owned charges. Never substitute due date for occurrence date.
+- [ ] Add stable pagination instead of silent100-record truncation; extend admin metadata and private assistant answers.
+- [ ] Verify privacy, totals, phone layout and source geometry, then publish.
+
+Keep tuition queries48-1/48-2/48-3, settlement49-1 and transfers50-1 separate; their source workflows are different.
 
 ## Protected course and scholarship destinations [Issues #93 and #98]
 

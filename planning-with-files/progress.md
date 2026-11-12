@@ -78,3 +78,7 @@ Prior log archived in archive/progress_2026-11-03-statistics.md; key results ret
 - 2026-11-12: Applied four additive client migrations after successful rollback preflights:117 migrations/129 public tables.260 API/source and36 unit tests pass; local real-database/browser suite passed aid/housing persistence, consent/receipts, catalog/syllabus and two-account assistant isolation. Fixture cleanup verified. Shared integration review found no additional defects. Final catalog mobile QA and production release remain pending.
 
 - 2026-11-12: Final catalog/mobile manager suite passed after count contrast and long-select width fixes. Local actual-DB suite passed all workflows and removed fixtures. Preparing the tested native-service batch for client main/Vercel; full protected-site goal remains active.
+
+- 2026-11-12: Runtime f87b1f6 is live as Vercel7gkCMZKbhH5cgYBcgacvcah8t4Aj, entry index-OSVBqA0t.js. Production native service browser/API checks passed with cleanup, as did protected client RLS/owner/Edge/OpenAI checks. Remaining service39-1 fee fields/layout/pagination captured as the next source-specific family.
+
+- 2026-11-12: GitHub quality43233474963 completed successfully for f87b1f6. Preparing final release evidence; Issues93/98 remain open for remaining source families and institutional scope.
