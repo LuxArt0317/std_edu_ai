@@ -90,3 +90,8 @@ Prior log archived in archive/progress_2026-11-03-statistics.md; key results ret
 - 2026-11-12: Native39-1/11-3 live two-account checks passed with exact cleanup. Final source geometry/color/typography and admin/error/retry suites pass;276 API/source,41 units,build/lint/handoff/dependency/client verification pass. Prepared client-main release; source contrast exceptions remain, no whole-catalog completion claim.
 
 - 2026-11-12: Runtime4b33844 Ready as Vercel34gub7Nvz3ULJeH7zLAwQ1w9pem3, entryindex-BrnTa9ey.js; quality43241054848 passed. Production eight-group fee/history browser/API suite passed; exact fixture cleanup verified. Coverage9native/72generic/8partial/5other across94entries;53remainingfamilies. Next11-1/11-2 source captures and schema discovery complete.
+
+- Continued Issue #98 with native11-1 selection history and11-2 weekly timetable. Revalidated expanded source filters and sanitized geometry, kept selection phases separate, and delegated private schema, source-faithful UI and admin/live verification. Prior fee/credit runtime and final3aa0526 handoff are both Ready; private infrastructure registry committed locally.
+
+- 2026-11-12: Completed native11-1/11-2 UI/backend/admin integration. Source geometry and student/admin browser checks pass;290 API/source and49 unit checks pass; build/lint/handoff/audit pass. Applied migration1000 after rollback preflight, now120 migrations/131 RLS tables. Actual local two-account suite passed and verified exact fixture cleanup. Release pending.
+- 2026-11-12: Read updated goal and coordinated the concurrent answer-verification agent through the requested agent/A2A.md. Named-file staging and release ownership are explicit; its package/verification changes are excluded from this batch.

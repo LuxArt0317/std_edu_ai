@@ -26,8 +26,8 @@ Keep tuition queries48-1/48-2/48-3, settlement49-1 and transfers50-1 separate; t
 ## Native selection history and weekly timetable [Issue #98]
 
 - [x] Inspect original11-1 and11-2 filters, seven-column records and14-period weekly grid.
-- [ ] Implement separate account-owned phase snapshots and multiple meeting slots; preserve observed remarks without inferring enrollment or eligibility.
-- [ ] Recreate source filters/layout and admin maintenance; ground private subject/timetable queries in explicit records.
+- [x] Implement separate account-owned phase snapshots and multiple meeting slots; preserve observed remarks without inferring enrollment or eligibility.
+- [x] Recreate source filters/layout and admin maintenance; ground private subject/timetable queries in explicit records.
 - [ ] Verify privacy, persistence, source geometry and release.
 
 ## Protected course and scholarship destinations [Issues #93 and #98]

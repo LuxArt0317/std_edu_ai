@@ -87,7 +87,7 @@ test('fee snapshots page beyond 500 rows, preserve null metadata, and keep admin
   const otherCharge={...charge,id:'other-fee',student_id:'other-student',contact_unit:'Other account unit'};
   const emptyTables=new Set(['affairs_terms','affairs_programs','affairs_courses','affairs_sections','affairs_announcements','affairs_tasks',
     'affairs_service_requests','dtm_courses','dtm_notices','affairs_service_records','affairs_scholarship_periods','affairs_scholarship_applications',
-    'affairs_student_aid_records','affairs_credit_load_history','affairs_housing_periods','affairs_housing_applications','affairs_housing_assignments','affairs_enrollments',
+    'affairs_student_aid_records','affairs_credit_load_history','affairs_course_selection_records','affairs_housing_periods','affairs_housing_applications','affairs_housing_assignments','affairs_enrollments',
     'affairs_grade_items','affairs_attendance','affairs_assignments']);
   const requestedOffsets:number[]=[];
   globalThis.fetch=async(input)=>{

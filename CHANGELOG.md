@@ -1,6 +1,12 @@
 # Changelog
 ## Unreleased
 
+### Course-selection history and weekly timetable (Issue #98)
+
+- Recreate the observed academic-year, semester and selection-phase queries, seven-column history and fourteen-period weekly grid.
+- Store private phase records, multiple meetings and unscheduled subjects with versioned audited admin maintenance.
+- Keep phase-specific assistant answers separate from dated enrollment calculations and retain account isolation.
+
 ### Pending fees and credit-load history (Issue #98)
 
 - Replace the shared fee view and generic credit-history tracker with source-measured native tables.

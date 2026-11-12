@@ -5,6 +5,7 @@ import {
 
 import {studentAidNavigation} from './studentAidRecords.js';
 import {creditLoadHistoryNavigation} from './creditLoadHistory.js';
+import {courseSelectionNavigation} from './courseSelection.js';
 
 const groups = { personal:'選單資訊', sysmenu:'選單資訊', sysDoc:'選單資訊', aca:'教務系統', sao:'學務資訊', swd:'總務資訊', rdd:'研發系統', infoSystem:'資訊系統' };
 const aliases = [
@@ -35,6 +36,7 @@ const groupAliases = [
 export const directoryEntries = schoolServiceEntries;
 
 const navigation = [
+  ...courseSelectionNavigation,
   studentAidNavigation,
   creditLoadHistoryNavigation,
   {id:'course-catalog',match:/\bcourse (?:catalog(?:ue)?|offerings?|search)\b|\bcourses?(?:\s+are)?\s+(?:offered|available)\b|\b(?:offered|available)\s+courses?\b|當期課程查詢|開課(?:查詢|清單|資料)|(?:有|開設)哪些課程/i,title:['當期課程查詢','Course search'],officialUrl:'https://info.stu.edu.tw/ACA/student/QueryAGECourse/index.asp',localUrl:'/school-affairs/services/12-4',description:['在 stu.best 依學期、科系、教師與上課時段查詢站內範例開課資料；開課目錄獨立於您已選的課程。','Search local sample course offerings on stu.best by term, department, instructor and meeting time. The offering catalog is separate from your enrolled courses.']},
@@ -61,15 +63,23 @@ const navigation = [
 ];
 const registrarFaq = 'https://www.aca.stu.edu.tw/%E5%B8%B8%E8%A6%8B%E5%95%8F%E9%A1%8C%EF%BD%9Cqa/';
 
+function isRecordPageNavigation(question) {
+  // A class location/time question needs private records, even when it mentions
+  // the timetable. Only explicit page-opening requests belong in this directory.
+  return /\b(?:open|navigate to|take me to|(?:link|url|website)(?:\s+(?:to|for))?|where (?:can|do) i (?:find|open|access|view)|how (?:can|do) i (?:find|open|access|view))\b/i.test(question)
+    || /\bwhere (?:is|are) (?:the |my |our )?(?:weekly )?(?:timetables?|(?:class|course) schedule|course[ -]selection(?: history)?|selection history|registration history)\b/i.test(question)
+    || /(?:開啟|打開|前往|連結|網址)|(?:哪裡|哪裏|何處).{0,6}(?:查看|查詢|開啟)|(?:課表|功課表|選課(?:紀錄|記錄|歷史)?)(?:的?(?:頁面|功能|連結|網址))?\s*(?:在哪|在哪裡|在哪裏)/.test(question);
+}
+
 export function answerCampusNavigation(question) {
   if (/\b(?:password\s*[:=]|access_token|refresh_token|sesskey)\b|密碼[：:]/i.test(question)) return null;
   const navigational = /\b(?:where|how (?:can|do|to)|link|url|website|contact|phone|help (?:me )?find)\b|哪裡|哪裏|在哪|怎麼|如何|連結|電話|聯絡/i.test(question);
   const privateStatus = /\b(?:status|approved|rejected|pending|my (?:leave|internship) (?:record|history|draft))\b|請假紀錄|審核|核准|我的實習紀錄/i.test(question);
   if (privateStatus) return null;
   const ownEnrollment = /\b(?:my|our)\b.{0,35}\b(?:enrollments?|enrolled|selected|registered|completed|withdrawn|timetable)\b|\b(?:i am|i'm|we are|i have|i've|we have|am i|are we)\b.{0,35}\b(?:enrolled|taking|registered|completed|selected)\b|我.{0,12}(?:已選|已修|選修紀錄|選課紀錄|修過|正在修|課表)/i.test(question);
-  const entry = navigation.find(item => item.match.test(question) && (item.id!=='course-catalog' || !ownEnrollment) && (navigational ||
+  const entry = navigation.find(item => item.match.test(question) && (item.id!=='course-catalog' || !ownEnrollment) && (['course-selection-history','weekly-timetable'].includes(item.id) ? isRecordPageNavigation(question) : (navigational ||
     item.id==='course-catalog' && !ownEnrollment ||
-    item.id==='wifi' && /\b(?:connect|setup|settings?)\b|連線|設定/i.test(question)));
+    item.id==='wifi' && /\b(?:connect|setup|settings?)\b|連線|設定/i.test(question))));
   if (!entry) return null;
   const zh = /[\u3400-\u9fff]/.test(question), i = zh ? 0 : 1;
   const wantsRegistrarContact = entry.id==='registrar' && /\b(?:contact|phone|telephone|email|e-mail|call|number|address|hours)\b|電話|聯絡|分機|地址|時間|信箱/i.test(question);
@@ -77,13 +87,14 @@ export function answerCampusNavigation(question) {
     ? (zh?'註冊課務組在行政大樓 1 樓。電話 07-615-8000，分機 2007、2009、2010、2012、2014、2016。電子郵件 course@stu.edu.tw。'
       :'The Registration and Curriculum Division is on the first floor of the Administration Building. Call +886 7 615 8000, ext. 2007, 2009, 2010, 2012, 2014 or 2016, or email course@stu.edu.tw.')
     : entry.description[i];
-  const source = wantsRegistrarContact?registrarFaq:entry.officialUrl;
-  const links = [markdownLink(zh ? '校方網站' : 'Official university page',source)];
-  if (entry.localUrl) links.push(markdownLink(zh ? '在 stu.best 開啟' : 'Open on stu.best',entry.localUrl));
+  const localRecordDestination = ['course-selection-history','weekly-timetable'].includes(entry.id);
+  const source = localRecordDestination ? entry.localUrl : wantsRegistrarContact?registrarFaq:entry.officialUrl;
+  const links = [markdownLink(localRecordDestination ? (zh ? '在 stu.best 開啟' : 'Open on stu.best') : (zh ? '校方網站' : 'Official university page'),source)];
+  if (entry.localUrl && !localRecordDestination) links.push(markdownLink(zh ? '在 stu.best 開啟' : 'Open on stu.best',entry.localUrl));
   return {
     status:'answered',answer:description + '\n\n' + links.join(' · '),
     citations:[{chunkId:'campus-navigation:'+entry.id,claim:description,title:entry.title[i],
-      sourceName:'Shu-Te University',url:source,locator:entry.localUrl ?? null,effectiveAt:null,reviewedAt:null}],
+      sourceName:localRecordDestination ? 'stu.best School Affairs' : 'Shu-Te University',url:source,locator:entry.localUrl ?? null,effectiveAt:null,reviewedAt:null}],
     suggestedQuestions:[],grounding:{source:'directory',webSearched:false,checkedAt:new Date().toISOString()},
     activity:[{kind:'directory',label:'Checked the campus service directory',detail:entry.title[i],status:'complete'}],
   };

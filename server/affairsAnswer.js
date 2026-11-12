@@ -6,6 +6,7 @@ import {answerStudentAidRecords} from './studentAidRecords.js';
 import {answerHousingRecords} from './housingRecords.js';
 import {answerPendingFees} from './pendingFeesAnswer.js';
 import {answerCreditLoadHistory} from './creditLoadHistory.js';
+import {answerCourseSelection} from './courseSelection.js';
 import {answerCampusNavigation} from './schoolAffairsDirectory.js';
 
 const recordLinkTopics = [
@@ -18,6 +19,9 @@ const recordLinkTopics = [
 
 function privateRecordPath(question) {
   const kind = recordLinkTopics.find(([pattern])=>pattern.test(question))?.[1];
+  // Native11-1/11-2 contain independent phase snapshots, not the enrollment
+  // records used by current/today/next-class answers below. Link their actual view.
+  if (kind === 'enrollments' || kind === 'timetable') return '/school-affairs/records';
   const service = Object.keys(accountQueryByService).find(id=>accountQueryByService[id]===kind);
   return service ? '/school-affairs/services/'+service : '/school-affairs/records';
 }
@@ -130,7 +134,7 @@ export async function answerPrivateAffairsQuestion(question,snapshot,history=[],
   // The shared offering catalog must never be answered from a student's enrollments.
   const catalogNavigation=answerCampusNavigation(question);
   if(catalogNavigation?.citations?.[0]?.chunkId==='campus-navigation:course-catalog') return catalogNavigation;
-  const records = answerCreditLoadHistory(question,snapshot,route,history) || answerHousingRecords(question,snapshot,route,history) || answerStudentAidRecords(question,snapshot,route,history) || answerScholarshipRecords(question,snapshot,route,history) || answerPendingFees(question,snapshot,route,history) || answerStudentServiceRecords(question,snapshot) || answerDtmRecords(question,snapshot,route,history);
+  const records = answerCourseSelection(question,snapshot,route,history) || answerCreditLoadHistory(question,snapshot,route,history) || answerHousingRecords(question,snapshot,route,history) || answerStudentAidRecords(question,snapshot,route,history) || answerScholarshipRecords(question,snapshot,route,history) || answerPendingFees(question,snapshot,route,history) || answerStudentServiceRecords(question,snapshot) || answerDtmRecords(question,snapshot,route,history);
   if (records) return {
     status:'answered',answer:records.answer,
     citations:[{chunkId:'student-workspace',claim:'Records saved to this Google account on stu.best.',
@@ -144,7 +148,7 @@ export async function answerPrivateAffairsQuestion(question,snapshot,history=[],
   const apiKey=process.env.OPENAI_API_KEY;
   if (apiKey && !deterministic) {
     // Personal DTM and student-service records are handled locally above.
-    const {serviceRecords: _privateServiceRecords, requests: _privateRequests, scholarship: _privateScholarship, studentAid: _privateStudentAid, housing: _privateHousing, admin: _admin, charges: _privateCharges, creditLoadHistory: _privateCreditLoadHistory, ...modelSnapshot} = snapshot;
+    const {serviceRecords: _privateServiceRecords, requests: _privateRequests, scholarship: _privateScholarship, studentAid: _privateStudentAid, housing: _privateHousing, admin: _admin, charges: _privateCharges, creditLoadHistory: _privateCreditLoadHistory, courseSelection: _privateCourseSelection, ...modelSnapshot} = snapshot;
     modelSnapshot.dtm = {...snapshot.dtm,courses:snapshot.dtm?.courses?.filter(course=>course.sourceMode!=='personal') || []};
     modelSnapshot.assignments = snapshot.assignments?.filter(item=>item.sourceMode!=='personal') || [];
     try {

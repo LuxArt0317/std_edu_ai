@@ -57,7 +57,7 @@ export function SchoolAccountRecords({ userId }: { userId: string }) {
       {data.profile.role==='admin'&&<div className="affairs-admin">
         <Button variant="outline" aria-expanded={adminOpen} onClick={()=>setAdminOpen(value=>!value)}>{adminOpen?'Hide admin':'Open site admin'}</Button>
         {adminOpen&&data.admin&&<>
-          <SchoolRecordManager admin={data.admin} busy={busy} onManage={manage}/>
+          <SchoolRecordManager admin={data.admin} busy={busy || loading} onManage={manage} onRefresh={refresh}/>
           <div className="affairs-record-grid">
             <section><h3>Accounts ({data.admin.profiles.length})</h3><ul>{data.admin.profiles.map(item=>
               <li key={item.user_id}><strong>{item.display_name}</strong><span>{item.email} · {item.role}</span></li>

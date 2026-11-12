@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { SchoolAccountRecords } from "./SchoolAccountRecords";
 import type { CSSProperties, ReactNode } from "react";
-import { Link, useLocation, useSearchParams } from "react-router";
+import { Link, useLocation, useSearchParams, useNavigate } from "react-router";
 import {
   List,
   Menu,
@@ -69,6 +69,7 @@ import CourseCatalog from "./CourseCatalog";
 import { HousingWorkspace } from "./HousingWorkspace";
 import { PendingFees } from "./PendingFees";
 import { CreditLoadHistory } from "./CreditLoadHistory";
+import { CourseSelection } from "./CourseSelection";
 import "./portal.css";
 
 // The university portal uses Font Awesome 4 for its navigation.
@@ -118,6 +119,7 @@ function PortalWidget({
 export default function SchoolAffairsPortal({user}: {user: User}) {
   const displayName = user.email || "Google account";
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [snapshot, setSnapshot] = useState(() => loadPreferences(user.id));
   const preferences = snapshot.value;
@@ -176,7 +178,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   const records = route[0] === "records" && route.length === 1;
   const servicePage = route[0] === "services";
   const { snapshot: account, loading: accountLoading, error: accountError, refresh: refreshAccount } =
-    useAffairsRecords(index || notifications ? user.id : undefined);
+    useAffairsRecords(index || notifications || (servicePage && ["11-1", "11-2"].includes(route[1])) ? user.id : undefined);
   const ended = route[0] === "signed-out";
   const article = portalNews.find((news) => news.id === params.get("news"));
   const programs = filterPrograms(
@@ -423,6 +425,9 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   }
   if (servicePage && route[1] === "22-1") {
     return <StudentAidWorkspace key={pathname} userId={user.id} />;
+  }
+  if (servicePage && ["11-1", "11-2"].includes(route[1])) {
+    return <CourseSelection key={pathname} snapshot={account ?? null} busy={accountLoading} error={accountError} onReload={refreshAccount} onLogout={()=>navigate("/school-affairs/signed-out")} view={route[1] === "11-1" ? "history" : "timetable"}/>;
   }
   if (servicePage && route[1] === "11-3") {
     return <CreditLoadHistory key={pathname} userId={user.id} />;

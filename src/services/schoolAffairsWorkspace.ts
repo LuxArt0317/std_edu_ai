@@ -4,9 +4,10 @@ import type { StudentAidRecords } from './studentAid';
 import type { HousingRecords } from './housing';
 import type { PendingFeeMetadata } from './pendingFees';
 import type { CreditLoadHistoryRecords } from './creditLoadHistory';
+import type { CourseSelectionRecords } from './courseSelection';
 
 export type AffairsAction = {kind:'create_task'|'complete_task'|'create_service_request'|'publish_announcement'|'resolve_service_request';payload:Record<string,string>};
-export type AffairsManagerAction = {kind:'save_enrollment'|'save_charge'|'delete_charge'|'save_assignment'|'delete_assignment'|'save_scholarship_period'|'review_scholarship_application'|'save_student_aid_record'|'save_housing_period'|'save_housing_assignment'|'save_credit_load_history';payload:Record<string,string>};
+export type AffairsManagerAction = {kind:'save_enrollment'|'save_charge'|'delete_charge'|'save_assignment'|'delete_assignment'|'save_scholarship_period'|'review_scholarship_application'|'save_student_aid_record'|'save_housing_period'|'save_housing_assignment'|'save_credit_load_history'|'save_course_selection';payload:Record<string,unknown>};
 export type ServiceRecord = {
   id:string;serviceKey:string;recordType:'leave'|'contract'|'self_assessment'|'company'|'note';
   title:string;notes:string;status:'draft'|'filed'|'withdrawn';startsOn:string|null;endsOn:string|null;
@@ -46,8 +47,9 @@ export type AffairsSnapshot = {
   studentAid?:StudentAidRecords;
   housing?:HousingRecords;
   creditLoadHistory?:CreditLoadHistoryRecords;
+  courseSelection?:CourseSelectionRecords;
   dtm:{sourceMode:'sample'|'personal';courses:DtmCourse[];notices:Array<{id:string;title:string;body:string;publishedAt:string;sourceMode:string}>};
-  admin?:{creditLoadHistory?:CreditLoadHistoryRecords;scholarship?:ScholarshipRecords;studentAid?:StudentAidRecords;housing?:HousingRecords;profiles:Array<{user_id:string;email:string;display_name:string;role:string;created_at:string}>;students:Array<{id:string;user_id:string;student_number:string;full_name:string}>;sections:Array<{id:string;code:string;term:string}>;enrollments:Array<{id:string;studentId:string;status:string;code:string}>;dtmCourses:Array<{id:string;user_id:string;code:string;title:string;term:string}>;charges:Array<{id:string;student_id:string;label:string;amount_due:number;amount_paid:number;due_on:string|null;occurrence_on?:string|null;category?:string|null;contact_unit?:string|null;contact_extension?:string|null;payment_unit?:string|null}>;assignments:Array<{id:string;student_id:string;enrollment_id:string|null;dtm_course_id:string|null;title:string;details:string;due_at:string|null;status:string}>;requests:Array<{id:string;user_id:string;request_type:string;title:string;details:string;status:string;created_at:string}>};
+  admin?:{courseSelection?:CourseSelectionRecords;creditLoadHistory?:CreditLoadHistoryRecords;scholarship?:ScholarshipRecords;studentAid?:StudentAidRecords;housing?:HousingRecords;profiles:Array<{user_id:string;email:string;display_name:string;role:string;created_at:string}>;students:Array<{id:string;user_id:string;student_number:string;full_name:string}>;sections:Array<{id:string;code:string;term:string}>;enrollments:Array<{id:string;studentId:string;status:string;code:string}>;dtmCourses:Array<{id:string;user_id:string;code:string;title:string;term:string}>;charges:Array<{id:string;student_id:string;label:string;amount_due:number;amount_paid:number;due_on:string|null;occurrence_on?:string|null;category?:string|null;contact_unit?:string|null;contact_extension?:string|null;payment_unit?:string|null}>;assignments:Array<{id:string;student_id:string;enrollment_id:string|null;dtm_course_id:string|null;title:string;details:string;due_at:string|null;status:string}>;requests:Array<{id:string;user_id:string;request_type:string;title:string;details:string;status:string;created_at:string}>};
 };
 
 async function token() {

@@ -1,5 +1,13 @@
 # Client handoff
 
+## Native selection history and timetable (Issue #98, release in progress)
+
+Source11-1/11-2 now have independent native layouts: observed year/semester/phase filters, seven history columns, fourteen timetable periods, overlapping meetings and unscheduled courses. The account-owned phase records deliberately remain distinct from general current enrollments; remarks are preserved without inferring eligibility or timetable inclusion. Admin writes enforce immutable ownership, strict validation, version conflicts and durable retry receipts. Private assistant answers use local destinations; current/next-class calculations retain dated enrollment context. The assistant remains available beside the native pages.
+
+Migration20261112100000 is applied to the exact client database:120 migrations and131 public RLS tables. Local290 API/source checks,49 unit checks, build/lint/handoff and zero-vulnerability audit passed. Source geometry, student/admin desktop/mobile flows and actual-database two-account persistence/assistant/privacy tests passed; temporary fixtures, receipts and audits were removed and verified absent. Source-inherited contrast limitations are documented. Production release/verification remains pending at this checkpoint.
+
+Concurrent-agent ownership is recorded in agent/A2A.md. The answer-verification agent owns new verification modules and package manifests; this batch stages only named selection files. The full protected-site clone remains unfinished and Issue98 stays open.
+
 ## Pending fees and credit-load history (Issue #98, published)
 
 Runtime `4b3384400517c156765ef93cc4f214c647dd4425` is Ready as [Vercel34gub7Nvz3ULJeH7zLAwQ1w9pem3](https://vercel.com/v1-d286/std_edu_ai/34gub7Nvz3ULJeH7zLAwQ1w9pem3); stu.best serves `/assets/index-BrnTa9ey.js`. [Quality43241054848](https://github.com/LuxArt0317/std_edu_ai/actions/runs/43241054848) passed. Client database has119 applied migrations and130 RLS-protected public tables after0800/0900.
