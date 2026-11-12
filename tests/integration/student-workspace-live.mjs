@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile } from 'node:fs/promises';
 import { createClient } from '@supabase/supabase-js';
 import { chromium } from 'playwright-core';
 import AxeBuilder from '@axe-core/playwright';
@@ -148,6 +148,14 @@ try {
   await page.getByRole('cell',{name:'80.00%',exact:true}).waitFor();
   const grades = await answer('/api/affairs-assistant','Show my grades',session.access_token,'/');
   assert.match(grades.answer,/Practice exam.*80\.0%/);
+  const evidence = 'artifacts/visual-parity/live-student';
+  await mkdir(evidence,{recursive:true,mode:0o700});
+  await page.screenshot({path:evidence+'/grade-report.png',fullPage:true});
+  await chmod(evidence+'/grade-report.png',0o600);
+  await page.goto(origin+coursePath);
+  await page.getByRole('heading',{name:'Assignments',exact:true}).waitFor();
+  await page.screenshot({path:evidence+'/course-outline.png',fullPage:true});
+  await chmod(evidence+'/course-outline.png',0o600);
 
   await page.goto(origin+'/school-affairs/menu/sao/all');
   await page.getByRole('link',{name:'請假填單',exact:true}).click();
