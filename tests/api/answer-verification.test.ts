@@ -72,6 +72,17 @@ test('image-derived approval needs an actual attached image; links require an ex
   assert.equal(answerLinksSupported('Visit https://evil.test/pay',evidence),false);
 });
 
+test('JSON evidence accepts formatting-only spaces but rejects changed field values or invented joins',()=>{
+ const sources=[{id:'fees',content:JSON.stringify({amountDue:28000,amountPaid:5000,label:'Sample tuition',currency:'TWD'})}];
+ const review=(quote:string)=>({supported:true,answersQuestion:true,claims:[{claim:'23000 remains',supported:true,evidenceId:'fees',quote}]});
+ assert.equal(reviewMatchesEvidence(review('"amountDue": 28000, "amountPaid": 5000'),sources),true);
+ assert.equal(reviewMatchesEvidence(review('Sample tuition'),sources),true);
+ assert.equal(reviewMatchesEvidence(review('"amountDue": 999999, "amountPaid": 5000'),sources),false);
+ assert.equal(reviewMatchesEvidence(review('"amountDue": 28000, "currency": "TWD"'),sources),false);
+ assert.equal(reviewMatchesEvidence(review('"label": "Sampletuition"'),sources),false);
+ assert.equal(reviewMatchesEvidence(review('"amountDue":28000..."amountPaid":5000'),sources),false);
+});
+
 test('private projection excludes admin records, health, contact and another user even when a snapshot includes them',()=>{
   const snapshot={checkedAt:'2026-11-12T01:00:00Z',profile:{userId:'mine',role:'student',email:'mine@example.test'},
     admin:{secret:'not-for-this-tool'},studentAid:{records:[{userId:'mine',subsidyAmount:500,phone:'private-phone',maskedIdentityNumber:'private-id'},{userId:'someone-else',subsidyAmount:999}]},

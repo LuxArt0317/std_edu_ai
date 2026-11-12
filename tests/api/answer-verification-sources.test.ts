@@ -35,3 +35,15 @@ test('captured evidence cannot pass as live; correction visibly dates both answe
   assert.equal(snapshotProvenanceSupported({...candidate,citations:[]},evidence,['source-one']),false,'A reviewer-established source also requires visible provenance');
  } finally {globalThis.fetch=savedFetch;if(savedKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=savedKey;}
 });
+
+test('an image correction may cite the actual attachment but never invent an attachment source',async()=>{
+ const savedFetch=globalThis.fetch,savedKey=process.env.OPENAI_API_KEY;
+ process.env.OPENAI_API_KEY='test';
+ globalThis.fetch=async()=>Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({status:'answered',answer:'The counter is Room A201.',sourceIds:['attached-image']})}]}]});
+ const context={question:'What room is visible?',candidate:{answer:'Room A301.',status:'answered',citations:[]},evidence:[],deadline:Date.now()+10000};
+ try {
+  const result=await repairEvidenceAnswer(context,[{dataUrl:'data:image/png;base64,dGVzdA=='}]);
+  assert.equal(result.answer,'The counter is Room A201.');assert.deepEqual(result.citations,[]);
+  await assert.rejects(()=>repairEvidenceAnswer({...context,evidence:[{id:'text-only',content:'No image is attached.'}]}),/Invalid correction/);
+ } finally {globalThis.fetch=savedFetch;if(savedKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=savedKey;}
+});
