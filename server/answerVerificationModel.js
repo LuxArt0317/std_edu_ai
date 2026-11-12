@@ -35,8 +35,8 @@ const reviewSchema = {
     supported: { type: 'boolean' }, answersQuestion: { type: 'boolean' },
     claims: { type: 'array', maxItems: 30, items: {
       type: 'object', additionalProperties: false,
-      properties: { claim: { type: 'string' }, supported: { type: 'boolean' }, evidenceId: { type: 'string' }, quote: { type: 'string' } },
-      required: ['claim', 'supported', 'evidenceId', 'quote'],
+      properties: { claim: { type: 'string' }, supported: { type: 'boolean' }, evidenceId: { type: 'string' }, quotes: {type:'array',items:{type:'string'},minItems:1,maxItems:4} },
+      required: ['claim', 'supported', 'evidenceId', 'quotes'],
     } },
   }, required: ['supported', 'answersQuestion', 'claims'],
 };
@@ -81,6 +81,11 @@ function quoteOccurs(content, quote) {
     return false;
   } catch { return false; }
 }
+const claimQuotes = claim => Array.isArray(claim.quotes) ? claim.quotes : [claim.quote];
+const quotesOccur = (content, claim) => {
+  const quotes = claimQuotes(claim);
+  return quotes.length > 0 && quotes.length <= 4 && quotes.every(quote => quoteOccurs(content, quote));
+};
 
 export function validEvidence(evidence) {
   return Array.isArray(evidence) && evidence.length > 0 && evidence.every(item =>
@@ -94,7 +99,7 @@ export function reviewMatchesEvidence(review, evidence, hasImages = false) {
   const sources = new Map(evidence.map(item => [item.id, item.content]));
   return review.claims.every(claim => claim.supported === true && typeof claim.claim === 'string' && claim.claim.trim()
     && (hasImages && claim.evidenceId === 'attached-image'
-      || quoteOccurs(sources.get(claim.evidenceId), claim.quote)));
+      || quotesOccur(sources.get(claim.evidenceId), claim)));
 }
 
 export function answerLinksSupported(answer, evidence) {
@@ -130,7 +135,7 @@ export async function verifyEvidenceAnswer({ question, candidate, evidence, dead
       'Check every material claim, numbers and arithmetic, dates/time zone, identity, status, missing records, source provenance, and whether the answer actually addresses ALL parts of the question.',
       'A valid citation URL alone proves nothing about its claim. A stored course is not necessarily enrolled, current, next or completed. An empty selected collection cannot establish absence from a different collection. Use checkedAt and Asia/Taipei for today/next comparisons.',
       'Reject contradictions, unsupported conclusions, claims that a proposed action has already happened, stale evidence presented as current, and unsupported claims hidden behind a disclaimer. A useful partial answer is allowed only if it explicitly identifies the unanswered parts.',
-      'Enumerate all material claims. For each give its evidenceId and a short contiguous verbatim supporting quote from that evidence content. Copy the quote exactly; do not join separated fields, translate, paraphrase, insert ellipses or invent a prose summary. For calculations, cite a contiguous record excerpt with the operands and check the arithmetic yourself. Use attached-image as evidenceId only for a claim visibly established by the provided image.',
+      'Enumerate all material claims. For each give its evidenceId and one to four short contiguous verbatim supporting quotes from that evidence content. Copy each quote exactly; do not join separated fields, translate, paraphrase, insert ellipses or invent a prose summary. For calculations, quote the operands separately in the quotes array and check the arithmetic yourself. For time comparisons, quote the record time and checkedAt separately. Use attached-image as evidenceId only for a claim visibly established by the provided image; use [""] for its quotes.',
       'Set supported true only if ALL material claims are supported. Set answersQuestion true only if the response answers the request or specifically identifies the missing evidence. Do not use world knowledge or previous assistant text as evidence.',
     ].join(' '),
     { question, answer: candidate.answer, proposedAction: candidate.proposedAction || null, evidence }, deadline, images);
@@ -140,7 +145,8 @@ export async function verifyEvidenceAnswer({ question, candidate, evidence, dead
   if (!matches) console.warn('Answer evidence review rejected', {supported:review.supported===true,answersQuestion:review.answersQuestion===true,
     claims:Array.isArray(review.claims)?review.claims.length:0,
     unsupportedClaims:Array.isArray(review.claims)?review.claims.filter(claim=>claim.supported!==true).length:0,
-    unmatchedQuotes:Array.isArray(review.claims)?review.claims.filter(claim=>!(images.length && claim.evidenceId==='attached-image')&&!quoteOccurs(evidence.find(source=>source.id===claim.evidenceId)?.content,claim.quote)).length:0});
+    unmatchedQuotes:Array.isArray(review.claims)?review.claims.filter(claim=>!(images.length && claim.evidenceId==='attached-image')&&!quotesOccur(evidence.find(source=>source.id===claim.evidenceId)?.content,claim)).length:0,
+    unmatchedAccountCollections:Array.isArray(review.claims)?[...new Set(review.claims.filter(claim=>!quotesOccur(evidence.find(source=>source.id===claim.evidenceId)?.content,claim)).map(claim=>/^account(?:-scope|:(?:profile|courses|assignments|dtm|charges|tasks|requests|serviceRecords|announcements|scholarship|studentAid|housing|creditLoadHistory|courseSelection))$/.test(claim.evidenceId)?claim.evidenceId:'other'))]:[]});
   return { ok: matches, reason: 'unsupported_claims',
     feedback: Array.isArray(review.claims) ? review.claims.filter(claim => claim.supported !== true).slice(0, 12)
       .map(claim => String(claim.claim || '').slice(0, 400)) : [] };

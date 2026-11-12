@@ -85,6 +85,10 @@ test('JSON evidence accepts formatting-only spaces but rejects changed field val
  assert.equal(reviewMatchesEvidence(review('Whether they count depends on "graduation rules".'),wrapped),true);
  assert.equal(reviewMatchesEvidence(review('taken.\nWhether they count'),wrapped),true);
  assert.equal(reviewMatchesEvidence(review('graduation rules. Another paragraph.'),wrapped),false);
+ const multiple={supported:true,answersQuestion:true,claims:[{claim:'23000 remains',supported:true,evidenceId:'fees',quotes:['"amountDue":28000','"amountPaid":5000']}]};
+ assert.equal(reviewMatchesEvidence(multiple,sources),true);
+ assert.equal(reviewMatchesEvidence({...multiple,claims:[{...multiple.claims[0],quotes:['"amountDue":999999','"amountPaid":5000']}]},sources),false);
+ assert.equal(reviewMatchesEvidence({...multiple,claims:[{...multiple.claims[0],quotes:[]}]},sources),false);
 });
 
 test('private projection excludes admin records, health, contact and another user even when a snapshot includes them',()=>{
