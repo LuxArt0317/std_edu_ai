@@ -1,5 +1,14 @@
 # Client handoff
 
+## Native aid, housing and course catalog batch (Issue #98)
+
+The client database has117 applied migrations and129 public tables after migrations0400–0700. New native pages provide student-aid record queries, housing applications/receipts and eight-column bed history, searchable course offerings and structured syllabi. Account-owned records are RLS-isolated; admin writes use audited versioned RPCs. Personal aid/housing answers use deterministic private queries, and housing contact/health details are excluded from model context. Catalog offerings do not imply personal enrollment. Standalone service pages retain the assistant launcher.
+
+Local260 API/source tests and36 units pass, as do TypeScript/build, lint, handoff and the zero-vulnerability dependency audit. Source geometry, synthetic admin/error/retry/mobile flows, four rollback SQL checks, and actual-database two-account browser save/reload/receipt/assistant/isolation checks pass; temporary live fixtures were removed and verified absent. Housing has no serious/critical accessibility findings; student aid preserves documented source contrast exceptions. Catalog mobile/admin checks also pass after fixing count contrast and a long course selector. Production publication is pending at this checkpoint.
+
+The complete inventory is94 service entries:7 dedicated native destinations,73 generic trackers,9 partial pages and5 portal/public-preview routes. DTM is separate from this count. The entire protected-site copy is not finished. No university submission, payment or private-record sync was performed. Continue the remaining source-specific families under #98 and keep #93 open for Moodle/institutional scope.
+
+
 ## Protected course and scholarship release (Issues #93 and #98)
 
 The course outline and grade report match the measured signed-in Moodle geometry. The native scholarship application has persistent periods, private applications, reviewed award/service-hour history and admin controls. The calendar entry opens the copied page and six local PDFs. The client database has 113 applied migrations and 124 RLS-protected public tables after migration `20261112030000`.

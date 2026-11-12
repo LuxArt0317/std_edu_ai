@@ -3,6 +3,8 @@ import {
   schoolServiceEntries, studentServiceByKey, wifiGuidePath,
 } from '../src/features/public/affairs/studentServices.js';
 
+import {studentAidNavigation} from './studentAidRecords.js';
+
 const groups = { personal:'選單資訊', sysmenu:'選單資訊', sysDoc:'選單資訊', aca:'教務系統', sao:'學務資訊', swd:'總務資訊', rdd:'研發系統', infoSystem:'資訊系統' };
 const aliases = [
   [/repair|maintenance|fix (?:a |the )?(?:room|facility)|報修/i, '報修'],
@@ -32,6 +34,8 @@ const groupAliases = [
 export const directoryEntries = schoolServiceEntries;
 
 const navigation = [
+  studentAidNavigation,
+  {id:'course-catalog',match:/\bcourse (?:catalog(?:ue)?|offerings?|search)\b|\bcourses?(?:\s+are)?\s+(?:offered|available)\b|\b(?:offered|available)\s+courses?\b|當期課程查詢|開課(?:查詢|清單|資料)|(?:有|開設)哪些課程/i,title:['當期課程查詢','Course search'],officialUrl:'https://info.stu.edu.tw/ACA/student/QueryAGECourse/index.asp',localUrl:'/school-affairs/services/12-4',description:['在 stu.best 依學期、科系、教師與上課時段查詢站內範例開課資料；開課目錄獨立於您已選的課程。','Search local sample course offerings on stu.best by term, department, instructor and meeting time. The offering catalog is separate from your enrolled courses.']},
   {
     id:'wifi', match:/\b(?:wi[ -]?fi|eduroam|wireless (?:network|internet))\b|無線網路/i,
     title:['校園無線網路設定','Campus Wi-Fi setup'], officialUrl:officialWifiUrl, localUrl:wifiGuidePath,
@@ -60,7 +64,9 @@ export function answerCampusNavigation(question) {
   const navigational = /\b(?:where|how (?:can|do|to)|link|url|website|contact|phone|help (?:me )?find)\b|哪裡|哪裏|在哪|怎麼|如何|連結|電話|聯絡/i.test(question);
   const privateStatus = /\b(?:status|approved|rejected|pending|my (?:leave|internship) (?:record|history|draft))\b|請假紀錄|審核|核准|我的實習紀錄/i.test(question);
   if (privateStatus) return null;
-  const entry = navigation.find(item => item.match.test(question) && (navigational ||
+  const ownEnrollment = /\b(?:my|our)\b.{0,35}\b(?:enrollments?|enrolled|selected|registered|completed|withdrawn|timetable)\b|\b(?:i am|i'm|we are|i have|i've|we have|am i|are we)\b.{0,35}\b(?:enrolled|taking|registered|completed|selected)\b|我.{0,12}(?:已選|已修|選修紀錄|選課紀錄|修過|正在修|課表)/i.test(question);
+  const entry = navigation.find(item => item.match.test(question) && (item.id!=='course-catalog' || !ownEnrollment) && (navigational ||
+    item.id==='course-catalog' && !ownEnrollment ||
     item.id==='wifi' && /\b(?:connect|setup|settings?)\b|連線|設定/i.test(question)));
   if (!entry) return null;
   const zh = /[\u3400-\u9fff]/.test(question), i = zh ? 0 : 1;

@@ -1,0 +1,23 @@
+import type {CourseSyllabus} from './courseSyllabusModel.js';
+export type CourseMeeting = {weekday:number;periods:string[]};
+export type CourseOffering = {
+  id:string;version:number;source_mode:'sample';published:boolean;
+  term_code:string;term_label:string;department_code:string;department_name:string;classification_code:string;classification_name:string;admission_code:string;admission_name:string;
+  course_code:string;course_name:string;english_name:string;module:string;instructor:string;instructor2:string;room1:string;room2:string;grade:string;open_grades:string;prerequisite:string;course_nature:string;reserved_departments:string;description:string;
+  credits:number;capacity:number;enrolled_count:number;selected_count:number;audit_capacity:number;audit_count:number;lecture_hours:number;practice_hours:number;summer_weeks:number;
+  shared_teaching:boolean;open_other_departments:boolean;cross_admission:boolean;required:boolean;e_course:boolean;english_taught:boolean;foreign_language:boolean;immersion:boolean;graduating_course:boolean;
+  meetings:CourseMeeting[];program_codes:string[];syllabus?:CourseSyllabus;
+};
+export type CatalogFilters = {yr:string;dep:string;ref1:string;admissionType:string;credit:string;grd:string;prog:string;required:string;e_course:string;english_taught:string;foreign_language:string;immersion:string;keyword:string;instructor:string;weekdays:string[];periods:string[]};
+export type CatalogResult = {rows:CourseOffering[];total:number;can_manage:boolean;page:number;page_size:number;terms:{value:string;label:string}[]};
+export const courseCatalogPath:string;
+export const courseCatalogColumns:[string,string][];
+export const catalogTextFields:Record<string,[string,number]>;
+export const catalogNumberFields:Record<string,string>;
+export const catalogBooleanFields:Record<string,string>;
+export const catalogPeriods:string[];
+export const catalogWeekdays:string[];
+export const defaultCatalogFilters:CatalogFilters;
+export function newCourseOffering():CourseOffering;
+export function catalogSchedule(meeting?:CourseMeeting):string;
+export function catalogCell(record:CourseOffering,key:string,index?:number):string|number;

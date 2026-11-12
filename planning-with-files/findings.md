@@ -1,5 +1,11 @@
 # Findings
 
+## Native protected-service expansion — Issue #98
+
+Live source inspection distinguishes a historical guide from the current page: housing history now has eight columns including subsidy, while the older walkthrough shows seven. Student aid currently exposes a records query without an Apply button. Preserve those observed controls and keep management in the admin workspace. Catalog offerings and syllabi are separate from enrollment, so the assistant must not treat a catalog match as the caller taking that course. Housing consent snapshots, immutable ownership and versioned writes prevent applying under stale instructions; a retry must recover an existing receipt or ask for renewed consent after a period change.
+
+The fresh inventory covers94 catalog entries:7 dedicated native destinations,73 generic trackers,9 partial pages and5 portal/public-preview destinations. This count excludes DTM. Remaining generic/partial entries span54 source families and need source-by-source implementation; a working route is not equivalent to a complete service.
+
 ## Issue #96 — whole-client QA audit
 
 Audit the client copy and production separately from the original repository. Treat existing test successes as a starting point, then check live routes, complete workflows, account boundaries and cleanup. Distinguish a reproduced defect from an unavailable institutional integration or unrun human acceptance. Use retried browser assertions for asynchronous behavior; W3C WCAG 2.2 reflow, contrast and keyboard criteria guide the accessibility pass. Rank fixes by user impact and verify the final deployed bundle.

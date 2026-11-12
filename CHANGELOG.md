@@ -1,6 +1,13 @@
 # Changelog
 ## Unreleased
 
+### Native aid, housing and course catalog (Issue #98)
+
+- Replace four generic service destinations with measured student-aid, housing application/history and course-search layouts, backed by private records and administrator management.
+- Preserve consent and application receipts, enforce periods and account isolation, reject full identity numbers, and keep personal form details out of generative-model input.
+- Link account answers to their native record pages and distinguish the course catalog from personal enrollment.
+- Restore the assistant launcher on standalone signed-in services that have no portal account menu.
+
 ### Protected course pages and scholarship applications (Issues #93 and #98)
 
 - Match the signed-in Moodle course outline, activity details, sidebar and eight-column grade report to measured source layouts. Keep course editing in the course menu and make the grade report horizontally scrollable on phones.

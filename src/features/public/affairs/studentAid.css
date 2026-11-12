@@ -1,0 +1,53 @@
+.student-aid { min-height:100vh; display:flex; flex-direction:column; color:#393939; background:#eee; font:13px/1.4285714 'Microsoft JhengHei','微軟正黑體',Arial,sans-serif; }
+.student-aid * { box-sizing:border-box; }
+.student-aid-frame { width:1120px; max-width:100%; margin:0 auto; background:white; }
+.student-aid-brand { height:34px; border-top:4px solid #f5f5f5; background:#808080; color:white; padding:0 10px 0 17px; display:flex; align-items:center; justify-content:space-between; gap:16px; font-weight:600; }
+.student-aid-brand>a { display:flex; align-items:center; gap:8px; color:inherit; text-decoration:none; min-width:0; }
+.student-aid-brand img { flex-shrink:0; }
+.student-aid-brand>span { white-space:nowrap; }
+.student-aid-nav { height:45px; display:flex; justify-content:flex-end; padding-right:24px; background:#4580a2; }
+.student-aid-nav>button { color:white; border-radius:0; height:45px; padding:0 15px; border-left:1px solid #39738f; box-shadow:none; font:inherit; gap:6px; }
+.student-aid-nav>button>svg { width:9px; height:9px; }
+.student-aid-nav>button:last-child { border-right:1px solid #39738f; }
+.student-aid-nav>button:hover { background:#39738f; color:white; }
+.student-aid-breadcrumb { height:31px; display:flex; align-items:center; gap:8px; padding:0 20px; color:#648eaa; background:#f5f5f5; border-bottom:1px solid #e5e5e5; font-weight:600; }
+.student-aid-breadcrumb>a { color:inherit; text-decoration:none; }
+.student-aid-breadcrumb>.portal-icon { color:#666; font-size:18px; }
+.student-aid-breadcrumb>span:nth-last-child(2) { color:#aaa; }
+.student-aid-main { padding:8px 20px 24px; }
+.student-aid-heading { border-bottom:1px dotted #e2e2e2; padding-bottom:12px; margin-bottom:15px; }
+.student-aid-heading h1 { display:flex; align-items:center; gap:7px; font-size:18px; font-weight:400; line-height:27px; margin:8px 0 0; }
+.student-aid-heading h1>.portal-icon { color:#dd8063; flex-shrink:0; font-size:19px; }
+.student-aid-heading small { font-size:13px; color:#999; }
+.student-aid-query { min-height:22px; }
+.student-aid-query summary { display:flex; align-items:center; justify-content:flex-end; gap:1px; color:#4384a8; font-size:11px; text-decoration:underline; cursor:pointer; list-style:none; }
+.student-aid-query summary::-webkit-details-marker { display:none; }
+.student-aid-query summary>.portal-icon { font-size:11px; }
+.student-aid-query summary::after { content:'⌃'; color:#b77baa; }
+.student-aid-query[open] summary::after { content:'⌄'; }
+.student-aid-query>div { padding:10px 0; }
+.student-aid-query h2 { margin:0; font-size:13px; font-weight:400; }
+.student-aid-query-hint { display:flex; align-items:center; gap:3px; color:#888; margin:12px 0 19px; font-size:14px; }
+.student-aid-query-hint>.portal-icon { color:#6b9bb8; font-size:12px; }
+.student-aid-query-rule { border-top:1px solid #eee; margin-bottom:30px; }
+.student-aid-table-wrap { width:100%; overflow:auto; }
+.student-aid-table-wrap table { width:calc(100% - 1px); min-width:1079px; table-layout:fixed; border-collapse:collapse; font-size:13px; }
+.student-aid-table-wrap th { background:#166f8c; color:#fff; border:1px solid #16637e; text-align:left; font-weight:700; padding:8px; vertical-align:top; overflow-wrap:anywhere; line-height:18.5714px; }
+.student-aid-table-wrap td { padding:8px; vertical-align:top; border-bottom:1px solid #ddd; overflow-wrap:anywhere; }
+.student-aid-table-wrap tr:nth-child(odd) { background:#f9f9f9; }
+.student-aid-datetime { margin:4px 0 22px; color:#666; text-align:right; font-size:12px; }
+.student-aid-eligibility h2 { display:flex; align-items:center; gap:6px; font-size:16px; font-weight:400; color:#80a6bb; margin:0; padding:0 0 7px; border-bottom:1px solid #e5e5e5; }
+.student-aid-eligibility h2>.portal-icon { font-size:13px; }
+.student-aid-eligibility ol { padding-left:22px; margin:17px 0 10px; color:#111; list-style:decimal; }
+.student-aid-footer { width:1120px; max-width:100%; margin:auto auto 0; padding:24px 12px 16px; text-align:center; color:#648eaa; }
+.student-aid-error { color:#a32020; overflow-wrap:anywhere; }
+.student-aid-sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+.student-aid-manager { margin-top:24px; }
+.student-aid-manager-list { padding:0; list-style:none; display:grid; gap:12px; }
+.student-aid-manager-list li { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.student-aid-manager-list span { min-width:0; overflow-wrap:anywhere; }
+.student-aid-manager .student-aid-manager-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.student-aid-manager label { display:grid; gap:5px; }
+.student-aid-manager label,.student-aid-manager select,.student-aid-manager input { min-width:0; max-width:100%; }
+.student-aid-manager [role='status'] { color:#276b34; }
+@media(max-width:767px) { .student-aid-brand>span { display:none; } .student-aid-brand { padding-left:12px; font-size:11px; } .student-aid-main { padding:8px 12px 24px; } .student-aid-breadcrumb { padding:0 12px; } .student-aid-heading h1 { flex-wrap:wrap; font-size:17px; gap:5px; } .student-aid-manager .student-aid-manager-grid { grid-template-columns:1fr; } }

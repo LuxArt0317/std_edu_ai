@@ -1,5 +1,12 @@
 # School Affairs assistant and account data — Issues #90, #94 and #95
 
+## Native aid, housing and catalog checks — November12,2026
+
+Aid and housing replies read only the caller's account rows and provide local service links. They do not use public search, expose admin arrays, send health/contact details to the model or turn a catalog match into an enrollment. The actual-database native service suite verifies these boundaries with two disposable accounts, including a distinctive private form note that must never appear in the housing answer.
+
+Source measurements and browser snapshots cover student-aid table geometry, the current eight-column housing history, consent/application/receipt pages, catalog filters/details and a13-table syllabus with18 weeks and17 SDGs. Synthetic UI checks cover stale consent, closed periods, lost-response retry, null versus zero, manager writes, errors and mobile layouts. Published source UI is not evidence of an official institution backend connection.
+
+
 ## Persistent conversation activity — Issue #95
 
 Each answer now retains every observed streamed stage on its own expandable activity timeline, merging the server's final activity without dropping earlier checks. A failed stream keeps the steps completed before the error; navigation or refresh during a response marks it interrupted rather than implying an answer was produced. JSON fallback answers use their returned activity. Citations remain linked below the answer. The timeline describes observable directory, knowledge, web, image, account and confirmed site-action work; it does not show private model reasoning or invented tool calls.

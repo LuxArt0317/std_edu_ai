@@ -64,6 +64,9 @@ import { StudentServiceWorkspace } from "./StudentServiceWorkspace";
 import StudentLeaveWorkspace from "./StudentLeaveWorkspace";
 import { StudentScholarshipWorkspace } from "./StudentScholarshipWorkspace";
 import { useAffairsRecords } from "./useAffairsRecords";
+import { StudentAidWorkspace } from "./studentAidWorkspace";
+import CourseCatalog from "./CourseCatalog";
+import { HousingWorkspace } from "./HousingWorkspace";
 import "./portal.css";
 
 // The university portal uses Font Awesome 4 for its navigation.
@@ -415,6 +418,15 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   }
   if (servicePage && route[1] === "9-1") {
     return <StudentScholarshipWorkspace key={pathname} userId={user.id} />;
+  }
+  if (servicePage && route[1] === "22-1") {
+    return <StudentAidWorkspace key={pathname} userId={user.id} />;
+  }
+  if (servicePage && route[1] === "12-4") {
+    return <CourseCatalog userId={user.id} />;
+  }
+  if (servicePage && ["26-1", "34-1"].includes(route[1])) {
+    return <HousingWorkspace key={pathname} userId={user.id} mode={route[1]==="34-1"?"history":"application"} />;
   }
   return (
     <div

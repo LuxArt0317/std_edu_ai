@@ -22,6 +22,7 @@
     "server",
     "tests/api",
     "src/utils/async.ts",
+    "src/services/housing.ts",
     "src/features/school/onboarding.ts",
     "src/features/school/richLessonContent.ts",
     "src/features/school/schoolAgentLoop.ts",

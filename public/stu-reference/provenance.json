@@ -280,6 +280,20 @@
       "local": "/stu-reference/fae1863b26480d2e.jpg",
       "sha256": "fae1863b26480d2ef4fa36078d5ee763df42ec47f71634779de8e1221182fa87",
       "bytes": 550672
+    },
+    {
+      "source": "https://info.stu.edu.tw/ACA/student/QueryAGECourse/heading_background.jpg",
+      "local": "/stu-reference/course-catalog-heading.jpg",
+      "sha256": "7cac40f6642774c27f2154cfa2f03aaa177ab893afe5e046f6655b6d03324f8b",
+      "bytes": 53615,
+      "capturedOn": "2026-11-12"
+    },
+    {
+      "source": "https://info.stu.edu.tw/SAO/DMT/images/Tlogo.png",
+      "local": "/stu-reference/housing-logo.png",
+      "sha256": "9ec0b3674feed90fab05656e6083f046da9bf1ed4a60674eb2883ddfbc03b79b",
+      "bytes": 610,
+      "capturedOn": "2026-11-12"
     }
   ]
 }

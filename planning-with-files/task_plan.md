@@ -1,5 +1,13 @@
 # Task Plan
 
+## Native aid, housing and course catalog destinations [Issue #98]
+
+- [x] Revalidate signed-in source services and record actual application availability and query layouts.
+- [x] Implement source-backed native destinations with persistent records and scoped assistant queries.
+- [ ] Verify permissions, lifecycle behavior and desktop/mobile parity; publish the tested batch.
+
+The preceding turn made verified progress; this continuation has live source access. Parking sign-in currently does not open after the original button click. Housing shows its closed-season timetable and a published application walkthrough. Student aid shows records without a current application action. Do not infer unseen form controls or use historical deadlines as current defaults.
+
 ## Protected course and scholarship destinations [Issues #93 and #98]
 
 - [x] Revalidate the official sessions and inspect actual Moodle course/grade and international-scholarship screens.

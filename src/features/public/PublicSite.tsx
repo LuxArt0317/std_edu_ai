@@ -34,7 +34,8 @@ function SchoolAccountAssistant({ embedded = false }: { embedded?: boolean }) {
   const {user} = useAffairsAuth();
   const {pathname} = useLocation();
   const workspace = useSignedInSchoolWorkspace();
-  return <PublicAssistant key={user?.id || "anonymous"} initialOpen={pathname === "/campus-assistant"} embedded={embedded} showLauncher={!workspace} />;
+  const standaloneService = /^\/school-affairs\/services\/(?:leave|internship|9-1|22-1|12-4|26-1|34-1)(?:\/|$)/.test(pathname);
+  return <PublicAssistant key={user?.id || "anonymous"} initialOpen={pathname === "/campus-assistant"} embedded={embedded} showLauncher={!workspace || standaloneService} />;
 }
 function PublicAccountStatus() {
   const { user, loading } = useAffairsAuth();

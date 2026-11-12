@@ -1,0 +1,108 @@
+.housing-workspace { min-height:100vh; background:#fff; color:#000; font:16px/1.35 "Times New Roman",PMingLiU,serif; }
+.housing-workspace *, .housing-history *, .housing-manager * { box-sizing:border-box; }
+.housing-banner { width:1024px; max-width:100%; height:128px; padding:22px 8px 0; text-align:center; color:#9933ff; }
+.housing-columns { display:grid; grid-template-columns:166px minmax(0,1fr); }
+.housing-navigation { display:flex; flex-direction:column; align-items:flex-start; gap:12px; padding:8px; }
+.housing-workspace a, .housing-navigation button { color:#0000ee; text-decoration:underline; }
+.housing-navigation button { padding:0; border:0; background:none; font:inherit; cursor:pointer; text-align:left; }
+.housing-navigation button:first-child { text-decoration:none; margin-bottom:14px; }
+.housing-main { min-width:0; padding:0 8px 32px 6px; }
+.housing-workspace h1, .housing-workspace h2 { font:inherit; margin:8px 0 16px; }
+.housing-board-title { color:#0000ee; text-align:center; }
+.housing-source-rule { height:42px; border-bottom:6px solid #efa5f0; background:#6600cc; margin-bottom:18px; }
+.housing-local-note { font-size:13px; margin:16px 0; color:#555; }
+.housing-period { margin-bottom:24px; }
+.housing-period h2 { text-align:center; color:#a22; margin-bottom:4px; }
+.housing-schedule { width:88%; border-collapse:collapse; }
+.housing-schedule th, .housing-schedule td { padding:3px; border:0; font-weight:400; text-align:left; }
+.housing-schedule tr:first-child { background:#d4ffff; }
+.housing-schedule tr:nth-child(2) { background:#ffffcf; }
+.housing-schedule th[rowspan] { color:#0000ee; width:26%; vertical-align:top; }
+.housing-workspace button:not(.housing-navigation button) { border:1px solid #999; border-radius:0; background:#eee; color:#000; padding:2px 8px; font:14px Arial,sans-serif; cursor:pointer; }
+.housing-workspace button:disabled { cursor:default; opacity:.55; }
+.housing-workspace :is(a,button,input,textarea,select,summary):focus-visible { outline:2px solid #245c97; outline-offset:2px; }
+.housing-form-buttons { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin:12px 0; }
+.housing-agreement, .housing-guide { max-width:960px; margin:0 auto; }
+.housing-agreement h1, .housing-agreement h2 { text-align:center; }
+.housing-preserve-text { white-space:pre-wrap; overflow-wrap:anywhere; }
+.housing-application-form, .housing-review, .housing-receipt { max-width:900px; margin:0 auto; }
+.housing-details { width:100%; border-collapse:collapse; table-layout:fixed; font:14px/1.3 Arial,PMingLiU,serif; }
+.housing-details th, .housing-details td { padding:2px 3px; border:1px solid #555; text-align:left; font-weight:400; overflow-wrap:anywhere; }
+.housing-details th:nth-child(odd):not([colspan]) { width:20%; }
+.housing-details td:nth-child(even) { width:30%; }
+.housing-details th[colspan] { font-weight:700; }
+.housing-details input:not([type=radio]) { display:block; width:100%; min-width:0; border:1px solid #aaa; border-radius:0; padding:1px 3px; background:#fff; color:#000; font:inherit; }
+.housing-gender { display:flex; gap:8px; }
+.housing-gender label { display:flex; align-items:center; gap:3px; }
+.housing-gender input, .housing-category input { margin:0 4px 0 0; }
+.housing-birth { display:flex; gap:2px; }
+.housing-birth select { min-width:0; width:33%; border:1px solid #aaa; background:#fff; color:#000; font:inherit; padding:0; }
+.housing-category { border:1px solid #555; padding:3px; margin:0; font:14px/1.3 Arial,PMingLiU,serif; }
+.housing-category legend { padding:0; }
+.housing-category label { display:flex; align-items:center; }
+.housing-health { display:block; padding:3px; border:1px solid #555; font:14px/1.3 Arial,PMingLiU,serif; }
+.housing-health textarea { display:block; width:100%; max-width:680px; min-height:64px; resize:vertical; border:1px solid #aaa; border-radius:0; margin-top:4px; padding:3px; font:inherit; background:#fff; color:#000; }
+.housing-error { color:#a12121; overflow-wrap:anywhere; }
+.housing-receipt-number { color:#a12121; overflow-wrap:anywhere; }
+.housing-consent-record { margin-top:12px; }
+.housing-consent-record summary { cursor:pointer; }
+.housing-history { min-height:100vh; padding:8px 0; background:#eee; color:#333; font:13.008px/1.5 Arial,"Microsoft JhengHei",sans-serif; }
+.housing-history-shell { position:relative; width:962px; max-width:calc(100% - 16px); min-height:722px; margin:auto; background:#fff; }
+.housing-history-strip { display:flex; justify-content:space-between; gap:10px; height:20px; padding:0 16px; background:#56585c; color:#fff; font-size:13px; line-height:20px; }
+.housing-history header { display:flex; align-items:flex-start; gap:3px; height:58px; padding:10px 0 5px; margin:0 16px; border-bottom:1px solid #ddd; }
+.housing-history header img { flex:none; width:42px; height:42px; }
+.housing-history h1 { padding-top:17px; font-size:20px; line-height:24.62px; font-weight:700; margin:0; }
+.housing-history main { padding:23px 25px 0; }
+.housing-history-up { position:absolute; top:83px; right:29px; color:#13a7c7; font:20px/1 Arial,sans-serif; text-decoration:none; }
+.housing-history-table-wrap { width:92.4%; margin:auto; overflow-x:auto; border:1px solid #ddd; padding:20px 10px 25px; }
+.housing-history-table { width:98%; min-width:760px; margin:auto; border-collapse:collapse; table-layout:fixed; text-align:center; }
+.housing-history-table col { width:14.64%; }
+.housing-history-table col.housing-deposit-column { width:9.84%; }
+.housing-history-table col.housing-subsidy-column { width:2.32%; }
+.housing-history-table th { background:#555; color:#fff; font-weight:400; }
+.housing-history-table th, .housing-history-table td { padding:2px; border:1px solid #ddd; white-space:nowrap; font-size:13.008px; line-height:29.918px; }
+.housing-history-table th { border-color:#444; }
+.housing-history-table th:last-child { white-space:normal; word-break:break-all; }
+.housing-history-table td { overflow-wrap:anywhere; white-space:normal; }
+.housing-history-table tbody tr:nth-child(even) { background:#fafafa; }
+.housing-history-top { margin-top:14px; padding:0 0 10px; border-bottom:1px solid #ddd; text-align:right; }
+.housing-history-top a { color:#767676; text-decoration:none; }
+.housing-history-footer { width:962px; max-width:calc(100% - 16px); margin:16px auto 0; padding:0 10px; }
+.housing-history-footer .housing-local-note { margin:0 0 6px; }
+.housing-history-links { display:flex; flex-wrap:wrap; gap:16px; }
+.housing-history-links a { color:#225d98; text-decoration:underline; }
+.housing-history :is(a,button,[tabindex]):focus-visible { outline:2px solid #245c97; outline-offset:2px; }
+.housing-manager { margin:24px 0; }
+.housing-manager-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
+.housing-manager-list { list-style:none; padding:0; display:grid; gap:10px; }
+.housing-manager-list li { display:flex; flex-wrap:wrap; align-items:center; gap:8px; overflow-wrap:anywhere; }
+.housing-manager label { display:grid; gap:4px; }
+.housing-manager label:has(input[type=checkbox]) { display:flex; align-items:center; }
+.housing-manager select { min-width:0; width:100%; }
+.housing-manager-receipts summary { cursor:pointer; overflow-wrap:anywhere; }
+.housing-manager-receipts .housing-details { margin-top:8px; }
+@media(max-width:767px) {
+  .housing-banner { height:82px; }
+  .housing-columns { grid-template-columns:minmax(0,1fr); }
+  .housing-navigation { flex-direction:row; flex-wrap:wrap; gap:8px 16px; }
+  .housing-navigation button:first-child { margin:0; }
+  .housing-main { padding:8px 8px 24px; }
+  .housing-schedule { width:100%; }
+  .housing-details { font-size:12px; }
+  .housing-birth { flex-wrap:wrap; }
+  .housing-birth select { width:100%; }
+  .housing-gender { gap:3px; flex-wrap:wrap; }
+  .housing-history h1 { font-size:17px; }
+  .housing-history main { padding:12px; }
+  .housing-history header { margin-inline:12px; }
+  .housing-history-table-wrap { width:100%; padding:8px; }
+  .housing-manager-grid { grid-template-columns:minmax(0,1fr); }
+}
+@media print {
+  .housing-banner, .housing-navigation, .housing-no-print, .housing-main>[role], .housing-main>footer { display:none!important; }
+  .housing-columns { display:block; }
+  .housing-main { padding:0; }
+  .housing-receipt { max-width:none; }
+  .housing-receipt .housing-consent-record { display:none; }
+  .housing-receipt:after { content:"stu.best 站內紀錄；非校方住宿申請或床位保留。"; display:block; margin-top:12px; font-size:12px; }
+}

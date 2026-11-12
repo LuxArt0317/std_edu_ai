@@ -1,8 +1,10 @@
 import { affairsClient } from '@/features/public/affairs/authClient';
 import type { ScholarshipRecords } from './scholarship';
+import type { StudentAidRecords } from './studentAid';
+import type { HousingRecords } from './housing';
 
 export type AffairsAction = {kind:'create_task'|'complete_task'|'create_service_request'|'publish_announcement'|'resolve_service_request';payload:Record<string,string>};
-export type AffairsManagerAction = {kind:'save_enrollment'|'save_charge'|'delete_charge'|'save_assignment'|'delete_assignment'|'save_scholarship_period'|'review_scholarship_application';payload:Record<string,string>};
+export type AffairsManagerAction = {kind:'save_enrollment'|'save_charge'|'delete_charge'|'save_assignment'|'delete_assignment'|'save_scholarship_period'|'review_scholarship_application'|'save_student_aid_record'|'save_housing_period'|'save_housing_assignment';payload:Record<string,string>};
 export type ServiceRecord = {
   id:string;serviceKey:string;recordType:'leave'|'contract'|'self_assessment'|'company'|'note';
   title:string;notes:string;status:'draft'|'filed'|'withdrawn';startsOn:string|null;endsOn:string|null;
@@ -24,7 +26,7 @@ export type DtmAssignment = {
 export type DtmRecordKind = 'course'|'meeting'|'grade'|'material'|'assignment';
 export type DeadlineImport = {title:string;due_at:string;import_key:string};
 type PersonalAction =
-  | {kind:'apply_scholarship'|'cancel_scholarship';payload:Record<string,string>}
+  | {kind:'apply_scholarship'|'cancel_scholarship'|'submit_housing_application';payload:Record<string,string>}
   | {kind:'save_service_record'|'delete_service_record'|'submit_service_record_for_review'|`save_dtm_${DtmRecordKind}`|`delete_dtm_${DtmRecordKind}`;payload:Record<string,string>}
   | {kind:'import_dtm_deadlines';payload:{course_id:string;events:DeadlineImport[]}};
 export type AffairsSnapshot = {
@@ -39,8 +41,10 @@ export type AffairsSnapshot = {
   requests:Array<{id:string;type:string;title:string;details:string;status:string;createdAt:string}>;
   serviceRecords?:ServiceRecord[];
   scholarship?:ScholarshipRecords;
+  studentAid?:StudentAidRecords;
+  housing?:HousingRecords;
   dtm:{sourceMode:'sample'|'personal';courses:DtmCourse[];notices:Array<{id:string;title:string;body:string;publishedAt:string;sourceMode:string}>};
-  admin?:{scholarship?:ScholarshipRecords;profiles:Array<{user_id:string;email:string;display_name:string;role:string;created_at:string}>;students:Array<{id:string;user_id:string;student_number:string;full_name:string}>;sections:Array<{id:string;code:string;term:string}>;enrollments:Array<{id:string;studentId:string;status:string;code:string}>;dtmCourses:Array<{id:string;user_id:string;code:string;title:string;term:string}>;charges:Array<{id:string;student_id:string;label:string;amount_due:number;amount_paid:number;due_on:string|null}>;assignments:Array<{id:string;student_id:string;enrollment_id:string|null;dtm_course_id:string|null;title:string;details:string;due_at:string|null;status:string}>;requests:Array<{id:string;user_id:string;request_type:string;title:string;details:string;status:string;created_at:string}>};
+  admin?:{scholarship?:ScholarshipRecords;studentAid?:StudentAidRecords;housing?:HousingRecords;profiles:Array<{user_id:string;email:string;display_name:string;role:string;created_at:string}>;students:Array<{id:string;user_id:string;student_number:string;full_name:string}>;sections:Array<{id:string;code:string;term:string}>;enrollments:Array<{id:string;studentId:string;status:string;code:string}>;dtmCourses:Array<{id:string;user_id:string;code:string;title:string;term:string}>;charges:Array<{id:string;student_id:string;label:string;amount_due:number;amount_paid:number;due_on:string|null}>;assignments:Array<{id:string;student_id:string;enrollment_id:string|null;dtm_course_id:string|null;title:string;details:string;due_at:string|null;status:string}>;requests:Array<{id:string;user_id:string;request_type:string;title:string;details:string;status:string;created_at:string}>};
 };
 
 async function token() {
