@@ -25,15 +25,16 @@ const sql = postgres(connection,{max:1,ssl:{rejectUnauthorized:true,ca:await rea
 const fixtures = [];
 let browser;
 
-async function answer(endpoint, question, token, route='/dtm') {
+async function post(endpoint, body, token) {
   const result = await fetch(origin+endpoint,{
     method:'POST',signal:AbortSignal.timeout(30000),
     headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},
-    body:JSON.stringify({question,route}),
+    body:JSON.stringify(body),
   });
   assert.equal(result.status,200,endpoint+' returned '+result.status);
   return result.json();
 }
+const answer = (endpoint, question, token, route='/dtm') => post(endpoint,{question,route},token);
 
 try {
   const email = 'stu-workspace-qa-'+randomUUID()+'@example.invalid';
@@ -44,8 +45,8 @@ try {
   fixtures.push(id);
   // Synthetic linked provider identity for exercising real RLS and API paths.
   // No real Google account or university record is used by this suite.
-  await sql`insert into auth.identities (provider_id,user_id,identity_data,provider)
-    values (${id},${id},${sql.json({sub:id,email,email_verified:true})},'google')`;
+  await sql`insert into auth.identities (provider_id,user_id,identity_data,provider,created_at,updated_at,last_sign_in_at)
+    values (${id},${id},${sql.json({sub:id,email,email_verified:true})},'google',now(),now(),now())`;
   const signed = await student.auth.signInWithPassword({email,password});
   assert.equal(signed.error,null);
   const session = signed.data.session;
@@ -82,14 +83,14 @@ try {
   await page.getByLabel('Meeting topic',{exact:true}).fill('Database indexes');
   await page.getByLabel('Meeting date',{exact:true}).fill('2026-10-29');
   await page.getByLabel('Start time (Taipei)',{exact:true}).fill('09:00');
-  await page.getByLabel('Attendance',{exact:true}).selectOption('absent');
+  await page.getByRole('combobox',{name:/^Attendance/}).selectOption('absent');
   await save();
   await page.getByText('Database indexes',{exact:true}).waitFor();
 
   await courseTab('Assignments').click();
   await button('Add assignment').click();
   await page.getByLabel('Assignment name',{exact:true}).fill('Index design worksheet');
-  await page.getByLabel('Meeting where assigned',{exact:true}).selectOption({label:'2026-10-29 · Database indexes'});
+  await page.getByRole('combobox',{name:/^Meeting where assigned/}).selectOption({label:'2026-10-29 · Database indexes'});
   await save();
   await page.getByText('Index design worksheet',{exact:true}).waitFor();
   await page.reload();
@@ -103,9 +104,32 @@ try {
   assert.equal(missed.grounding.webSearched,false);
   await page.goto(origin+assignmentLink);
   await page.locator(':target').getByText('Index design worksheet',{exact:true}).waitFor();
+  await button('開啟 AI 校園助理').click();
+  const chat = page.getByRole('dialog',{name:/Assistant/});
+  await chat.getByRole('textbox',{name:'Your question'}).fill('What assignments did I miss last class?');
+  await chat.getByRole('button',{name:'Send',exact:true}).click();
+  const chatLink = chat.getByRole('link',{name:'Index design worksheet',exact:true});
+  assert.equal(await chatLink.getAttribute('href'),assignmentLink);
+  await page.keyboard.press('Escape');
   const pending = await answer('/api/affairs-assistant','What assignments are not yet finished?',session.access_token);
   assert.match(pending.answer,/Unfinished assignments \(1\)/);
   assert.doesNotMatch(pending.answer,/Practice reflection/);
+  await button('Import Moodle calendar').click();
+  await page.getByLabel('Moodle calendar file',{exact:true}).setInputFiles({
+    name:'moodle.ics',mimeType:'text/calendar',
+    buffer:Buffer.from(['BEGIN:VCALENDAR','BEGIN:VEVENT','UID:qa-import','DTSTART;TZID=Asia/Taipei:20261201T150000',
+      'SUMMARY:Imported deadline','END:VEVENT','END:VCALENDAR'].join('\r\n')),
+  });
+  await page.getByRole('checkbox',{name:/Imported deadline/}).check();
+  await button('Import selected deadlines').click();
+  await page.getByText('Imported deadline',{exact:true}).waitFor();
+  const nextDay = new Date(Date.now()+2*86_400_000).toISOString().slice(0,10);
+  await post('/api/affairs-action',{kind:'save_dtm_meeting',payload:{
+    id:randomUUID(),course_id:coursePath.split('/').at(-1),meeting_on:nextDay,starts_at:'10:30',title:'Network design workshop',attendance:'unknown',
+  }},session.access_token);
+  const upcoming = await answer('/api/affairs-assistant','What is my next class?',session.access_token,'/');
+  assert.ok(upcoming.answer.includes(nextDay+' 10:30 Taipei'));
+  assert.match(upcoming.answer,/Network design workshop/);
 
   await courseTab('Grades').click();
   await button('Add grade').click();
@@ -114,7 +138,7 @@ try {
   await page.getByLabel('Maximum points',{exact:true}).fill('40');
   await save();
   await page.getByRole('cell',{name:'80.0%',exact:true}).waitFor();
-  const grades = await answer('/api/affairs-assistant','Show my Moodle grades',session.access_token);
+  const grades = await answer('/api/affairs-assistant','Show my grades',session.access_token,'/');
   assert.match(grades.answer,/Practice exam.*80\.0%/);
 
   await page.goto(origin+'/school-affairs/services/leave');
@@ -140,15 +164,33 @@ try {
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   const axe = await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
   assert.deepEqual(axe.violations.filter(item=>['serious','critical'].includes(item.impact)).map(item=>item.id),[]);
+  await page.goto(origin+'/school-affairs/services/internship');
+  await button('自我評量 · Self-assessments').click();
+  await button('新增紀錄 · New record').click();
+  await page.getByLabel(/標題 · Title/).fill('Internship reflection QA');
+  await page.getByLabel(/Reflection/).fill('Placement learning notes.');
+  await button('儲存紀錄 · Save record').click();
+  await page.getByRole('rowheader',{name:'Internship reflection QA',exact:true}).waitFor();
+  const internship = await answer('/api/affairs-assistant','Show my internship records',session.access_token,'/school-affairs');
+  assert.match(internship.answer,/Internship reflection QA.*draft/);
+  assert.doesNotMatch(internship.answer,/Placement learning notes/);
   assert.deepEqual(pageErrors,[]);
   const anonymous = await answer('/api/research-assistant','Which assignments are not yet finished?');
   assert.equal(anonymous.status,'handoff');
   assert.doesNotMatch(anonymous.answer,/Index design worksheet/);
-  console.log('Live student browser passed: shared account, persisted DTM and leave forms, missed-work links, grades, site review, privacy and mobile accessibility.');
+  for (const [question,source] of [
+    ['Where can I find the campus Wi-Fi guide?','https://help.ecc.stu.edu.tw/wireless-setting/'],
+    ['Where can I file student leave?','https://infosys.stu.edu.tw/StuLeave/Login/AspLoginStu'],
+  ]) {
+    const publicAnswer = await answer('/api/research-assistant',question);
+    assert.equal(publicAnswer.citations[0].url,source);
+  }
+  console.log('Live student browser passed: shared account, saved DTM and leave forms, calendar import, chat links, grades, site review, privacy and mobile accessibility.');
 } finally {
   await browser?.close();
   try {
     for (const id of fixtures) {
+      await sql`delete from auth.identities where user_id=${id} and provider_id=${id} and provider='google'`;
       const deleted = await admin.auth.admin.deleteUser(id);
       assert.equal(deleted.error,null,'Student workspace QA fixture cleanup failed.');
       const [check] = await sql`select exists(select 1 from auth.users where id=${id}) as present`;

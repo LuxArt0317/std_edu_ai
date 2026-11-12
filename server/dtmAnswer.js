@@ -4,9 +4,11 @@ import {internshipPath, leavePath} from '../src/features/public/affairs/studentS
 const dtmWords = /\b(?:dtm|moodle|digital teaching materials)\b|數位教材|教材網/i;
 const assignmentWords = /\b(?:assignments?|homework|coursework|submissions?)\b|作業|功課|繳交/i;
 const gradeWords = /\b(?:grades?|scores?|gradebook|marks)\b|成績|分數/i;
-const courseWords = /\b(?:subjects?|courses?|academic (?:year|term)|semesters?)\b|科目|課程|學年度|學期/i;
+const courseWords = /\b(?:subjects?|courses?|class(?:es)?|lessons?|academic (?:year|term)|semesters?)\b|科目|課程|學年度|學期/i;
 const materialWords = /\b(?:materials?|resources?|slides|lecture notes)\b|教材|講義/i;
-const attendanceWords = /\b(?:attendance|absences?|meetings?|sessions?|classes|lessons|next class)\b|出席|缺課|缺席|上課紀錄|下堂課|今天上課/i;
+const attendanceWords = /\b(?:attendance|absences?|meetings?|sessions?)\b|出席|缺課|缺席|上課紀錄|下堂課|今天上課|明天上課/i;
+const classWords = /\b(?:class(?:es)?|lessons?)\b|課堂|上課|什麼課|有哪些課/i;
+const scheduleWords = /\b(?:next|today|tomorrow|miss(?:ed)?|schedule|timetable)\b|下一節|今天|明天/i;
 const missedWords = /\b(?:miss(?:ed)?|absent|last (?:meeting|class|lesson|session))\b|缺席|缺課|上次上課/i;
 const pendingWords = /\b(?:unfinished|incomplete|outstanding|pending|not (?:yet )?(?:finish(?:ed)?|done|submit(?:ted)?)|still (?:need|left)|overdue)\b|未完成|未繳|尚未交|待繳|逾期/i;
 const followUp = /^(?:and\b|how about\b|what about\b|also\b|那|還有)/i;
@@ -37,7 +39,11 @@ function selectCourses(courses, question, route, previous) {
   const namedTerms = courses.filter(course=>course.term && q.includes(course.term.normalize('NFKC').toLowerCase()));
   if (namedTerms.length) return namedTerms;
   const year = /\b(1[0-9]{2})\b\s*(?:學年|academic year|school year)|(?:academic year|school year)\s*(1[0-9]{2})\b/i.exec(q);
-  if (year) return courses.filter(course=>course.term.startsWith((year[1]||year[2])+'學年度'));
+  if (year) {
+    const semester = /\b(?:semester|term)\s*([1-3])\b|第([1-3])學期/i.exec(q);
+    const termPrefix = (year[1]||year[2])+'學年度'+(semester?'第'+(semester[1]||semester[2])+'學期':'');
+    return courses.filter(course=>course.term.startsWith(termPrefix));
+  }
   if (!/\b(?:all|every) (?:my )?courses\b|全部課程|所有課程/i.test(question)) {
     const routeId = /\/dtm\/course\/([a-z0-9-]+)/i.exec(route)?.[1];
     const fromRoute = courses.find(course=>course.id===routeId);
@@ -65,8 +71,13 @@ export function answerDtmRecords(question,snapshot,route='',history=[]) {
   const courses = snapshot.dtm?.courses || [];
   const personal = courses.some(course=>course.sourceMode==='personal');
   const wantsAssignments = assignmentWords.test(question);
-  if (!isDtmRecordQuestion(question,route,history) &&
-      !(personal && wantsAssignments && !/\bschool affairs\b|校務系統/i.test(question))) return null;
+  const wantsMeetings = attendanceWords.test(question) || classWords.test(question) && scheduleWords.test(question);
+  const hasPersonalMeetings = courses.some(course=>course.sourceMode==='personal' && course.meetings?.length);
+  const schoolAffairs = /\bschool affairs\b|校務系統/i.test(question);
+  if (schoolAffairs && !dtmWords.test(question)) return null;
+  const personalTopic = personal && (wantsAssignments || gradeWords.test(question) || materialWords.test(question)
+    || wantsMeetings && hasPersonalMeetings);
+  if (!isDtmRecordQuestion(question,route,history) && !personalTopic) return null;
   const zh = localized(question), t = (chinese, english) => zh ? chinese : english;
   const selected = selectCourses(courses,question,route,previousQuestion(history));
   const ids = new Set(selected.map(course=>course.id));
@@ -77,7 +88,9 @@ export function answerDtmRecords(question,snapshot,route='',history=[]) {
     : t('以下依您儲存在 stu.best 的 DTM 紀錄。','Based on your saved stu.best DTM records.');
   const result = (body,url,title) => ({answer:prefix + '\n\n' + body,url,title});
   if (!selected.length) return result(
-    t('目前沒有已儲存的課程。請先新增課程，再匯入 Moodle 行事曆或手動輸入紀錄。','You have no saved DTM courses yet. Add a course to enter records or import Moodle calendar deadlines.')
+    (courses.length
+      ? t('找不到符合的課程。','No saved DTM courses match this term.')
+      : t('目前沒有已儲存的課程。請先新增課程，再匯入 Moodle 行事曆或手動輸入紀錄。','You have no saved DTM courses yet. Add a course to enter records or import Moodle calendar deadlines.'))
     + '\n\n' + link(t('開啟儀表板','Open dashboard'),'/dtm/dashboard'),
     '/dtm/dashboard',t('DTM 儀表板','DTM dashboard'),
   );
@@ -138,13 +151,16 @@ export function answerDtmRecords(question,snapshot,route='',history=[]) {
     return result((rows.length?rows.slice(0,12).join('\n'):t('這些課程沒有已儲存的成績。','No grades are saved for these courses.'))
       +'\n\n'+link(t('查看成績','Open grade report'),url),url,t('DTM 成績','DTM grade report'));
   }
-  if (attendanceWords.test(question)) {
+  if (wantsMeetings) {
     const next = /\bnext (?:class|meeting|lesson)\b|下堂課|下一節/i.test(question);
-    const today = /\btoday\b|今天/i.test(question);
+    const relativeDay = /\btomorrow\b|明天/i.test(question) ? 1 : /\btoday\b|今天/i.test(question) ? 0 : null;
+    const day = relativeDay===null ? null : studyCalendar([],new Date(now+relativeDay*86_400_000).toISOString()).day;
     const selectedMeetings = next ? meetings.filter(item=>startTime(item)>now).sort((a,b)=>startTime(a)-startTime(b)).slice(0,1)
-      : today ? meetings.filter(item=>item.date===studyCalendar([],snapshot.checkedAt).day) : meetings;
+      : day ? meetings.filter(item=>item.date===day).sort((a,b)=>startTime(a)-startTime(b))
+        : missedWords.test(question) ? meetings.filter(item=>['absent','excused'].includes(item.attendance)) : meetings;
     const rows = selectedMeetings.slice(0,12).map(meeting=>'- '+link(meeting.course.code+' · '+meeting.title,coursePath(meeting.course)+'/meetings#meeting-'+encodeURIComponent(meeting.id))
-      +' · '+meeting.date+' · '+(attendanceStatus[meeting.attendance]?.[zh?0:1] || escape(meeting.attendance)));
+      +' · '+meeting.date+(meeting.startsAt && !meeting.startsAt.startsWith('00:00')?' '+meeting.startsAt.slice(0,5)+t('（臺灣時間）',' Taipei'):'')
+      +' · '+(attendanceStatus[meeting.attendance]?.[zh?0:1] || escape(meeting.attendance)));
     return result(rows.length?rows.join('\n'):t('找不到符合的已儲存上課或出席紀錄。','No matching class meetings or attendance entries are saved.'),
       selected.length===1?selectedPath+'/meetings':'/dtm/dashboard',t('上課紀錄','Class meetings'));
   }
