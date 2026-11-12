@@ -23,7 +23,6 @@ import {
   Settings,
   Star,
   Bookmark,
-  ExternalLink,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -70,6 +69,8 @@ import {
 import type { PortalProgram } from "./model";
 import { loadPreferences, savePreferences } from "./preferences";
 import type { PortalPreferences } from "./preferences";
+import { serviceDestination } from "./studentServices.js";
+import { StudentServiceLinks, StudentServiceWorkspace } from "./StudentServiceWorkspace";
 import "./portal.css";
 
 const groupIcons = [
@@ -175,6 +176,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   const index = route.length === 0;
   const bookmarks = route[0] === "bookmarks";
   const notifications = route[0] === "notifications";
+  const servicePage = route[0] === "services";
   const ended = route[0] === "signed-out";
   const article = portalNews.find((news) => news.id === params.get("news"));
   const programs = filterPrograms(
@@ -227,45 +229,11 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
       return next;
     });
   };
-  const externalHref = (program: PortalProgram) =>
-    `https://${program.sourcePath}`;
   function renderProgramLink(program: PortalProgram) {
-    if (program.title === "學校首頁")
-      return (
-        <Link data-program-id={program.id} to="/">
-          {program.title}
-        </Link>
-      );
-    if (program.title === "mySTU")
-      return (
-        <Link data-program-id={program.id} to="/student-sso">
-          {program.title}
-        </Link>
-      );
-    if (program.title === "已收藏消息查詢")
-      return (
-        <Link data-program-id={program.id} to="/school-affairs/bookmarks">
-          {program.title}
-        </Link>
-      );
-    if (program.title === "通知訊息查詢")
-      return (
-        <Link data-program-id={program.id} to="/school-affairs/notifications">
-          {program.title}
-        </Link>
-      );
     return (
-      <a
-        data-program-id={program.id}
-        href={externalHref(program)}
-        target="_blank"
-        rel="noreferrer"
-        title={`${program.title} · 開啟校方服務（需要校方登入）`}
-      >
+      <Link data-program-id={program.id} to={serviceDestination(program)}>
         {program.title}
-        <ExternalLink className="portal-external-mark" aria-hidden="true" />
-        <span className="sr-only">（校方服務，另開分頁）</span>
-      </a>
+      </Link>
     );
   }
   function renderNavigation(mobile = false) {
@@ -533,6 +501,8 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
                 <span>
                   {validMenu
                     ? "Menu"
+                    : servicePage
+                      ? "服務 · Service"
                     : bookmarks
                       ? "已收藏消息查詢"
                       : notifications
@@ -622,7 +592,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
           </div>
           <main id="portal-content" tabIndex={-1} className="portal-content">
             <p className="portal-demo-note">
-              已登入 stu.best。校方服務目錄與公告為擷取快照；↗ 會開啟校方服務，需另行登入。
+              已登入 stu.best。您可在此管理私人紀錄。正式申請及校方紀錄請使用各服務的校方連結。
             </p>
             {storageError && (
               <p className="portal-storage-error" role="alert">
@@ -632,6 +602,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
             {index && (
               <div className="portal-index">
                 <h1 className="sr-only">校務系統入口</h1>
+                <StudentServiceLinks />
                 <SchoolAccountRecords userId={user.id} />
                 <PortalWidget title="最新消息" count={10}>
                   {renderNewsRows("news")}
@@ -653,6 +624,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
                 <h1 className="sr-only">
                   {selectedGroup?.label || "校務系統"} · {selectedLabel}
                 </h1>
+                {group === "sao" && <StudentServiceLinks />}
                 <div className="portal-search">
                   <label className="sr-only" htmlFor="portal-program-search">
                     系統名稱關鍵字
@@ -858,7 +830,8 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
                 <Link to="/在校學生/">返回在校學生</Link>
               </section>
             )}
-            {!index && !validMenu && !bookmarks && !notifications && !ended && (
+            {servicePage && <StudentServiceWorkspace key={pathname} userId={user.id} serviceKey={route[1] || ""} view={route.slice(2).join("/")} />}
+            {!index && !validMenu && !bookmarks && !notifications && !ended && !servicePage && (
               <section className="portal-ended">
                 <h1>找不到選單</h1>
                 <Link to="/school-affairs">返回 Index</Link>

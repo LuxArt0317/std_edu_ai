@@ -7,10 +7,15 @@ const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
 export const affairsStorageKey = 'stu-school-affairs-auth';
 export const affairsCallbackPath = '/school-affairs/auth/callback';
 const returnKey = 'stu-school-affairs-return';
+export function safeSchoolReturnPath(value:string|null,fallback='/school-affairs') {
+  if (!value || value.length>240 || !/^\/(?:school-affairs|dtm)(?:\/[a-z0-9_-]+)*(?:#[a-z0-9_-]+)?$/i.test(value)) return fallback;
+  if (/\/(?:login|auth|signed-out)(?:\/|#|$)/i.test(value)) return fallback;
+  return value;
+}
 export function consumeGoogleReturnPath() {
   const value = sessionStorage.getItem(returnKey);
   sessionStorage.removeItem(returnKey);
-  return value === '/dtm' ? value : '/school-affairs';
+  return safeSchoolReturnPath(value);
 }
 // Never borrow the Nexus session or its PKCE verifier.
 export const affairsClient = url && key ? createClient<Database>(url, key, {
@@ -19,7 +24,7 @@ export const affairsClient = url && key ? createClient<Database>(url, key, {
     autoRefreshToken: true, detectSessionInUrl: false },
 }) : null;
 
-export async function startGoogleSignIn(returnPath: '/dtm' | '/school-affairs' = '/school-affairs') {
+export async function startGoogleSignIn(returnPath = '/school-affairs') {
   if (!affairsClient || !url || !key) throw new Error('Google sign-in is not configured. Please contact the site administrator.');
   const response = await fetch(`${url}/auth/v1/settings`, {
     headers: { apikey: key }, signal: AbortSignal.timeout(10000),
@@ -27,7 +32,7 @@ export async function startGoogleSignIn(returnPath: '/dtm' | '/school-affairs' =
   const settings = await response.json().catch(() => null);
   if (!response.ok || !settings?.external?.google)
     throw new Error('Google sign-in is awaiting site administrator setup. Please try again later.');
-  sessionStorage.setItem(returnKey, returnPath);
+  sessionStorage.setItem(returnKey, safeSchoolReturnPath(returnPath));
   let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
     const { data, error } = await Promise.race([

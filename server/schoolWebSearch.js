@@ -5,7 +5,8 @@ const personal = /\b(?:my|our|their|his|her)\b.{0,45}\b(?:subjects?|courses?|cla
 export function questionKind(question) {
   const text = String(question).trim();
   return {
-    personal: personal.test(text) || /password\s*[:=]|(?:sk-proj-|sb_secret_|eyJ)[A-Za-z0-9_.-]{12,}/i.test(text),
+    personal: personal.test(text) || /password\s*[:=]|(?:sk-proj-|sb_secret_|eyJ)[A-Za-z0-9_.-]{12,}/i.test(text)
+      || /\b(?:my (?:leave (?:status|history|records?|draft)|internship (?:status|history|records?))|(?:i|we) (?:was |were )?(?:absent|missed)|(?:unfinished|incomplete|overdue|outstanding) (?:assignments?|homework)|(?:assignments?|homework).{0,26}(?:not (?:yet )?(?:finish(?:ed)?|done|submit(?:ted)?)|overdue|unfinished))\b|我的.{0,10}(?:假單|請假紀錄|實習紀錄)|上次.{0,10}(?:缺課|缺席)|未(?:完成|繳交).{0,6}作業/i.test(text),
     irrelevant: /\b(?:write|generate|debug|implement|build|fix)\b.{0,55}\b(?:python|javascript|typescript|code|sql query|shell script|react app)\b|(?:幫我|請).{0,8}(?:寫|除錯).{0,12}(?:程式碼|python|javascript)/i.test(text) && !/\b(?:login|course code|subject code)\b|登入|課號/i.test(text),
     greeting: /^(?:hi|hello|hey|thanks|thank you|你好|您好|謝謝|嗨)[!.。！\s]*$/i.test(text),
     capabilities: /^(?:what (?:can|do) you (?:do|help(?: with)?)\??|你(?:可以|能)(?:做什麼|幫什麼)|你有什麼功能)[？?。\s]*$/i.test(text),

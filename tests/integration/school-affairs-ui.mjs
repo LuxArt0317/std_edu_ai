@@ -111,15 +111,14 @@ try {
     await page.locator(".portal-content [data-program-id]").count(),
     94,
   );
-  for (const a of await page
-    .locator('.portal-content a[target="_blank"]')
-    .all()) {
-    const url = new URL(await a.getAttribute("href"));
-    assert.ok(url.hostname.endsWith(".stu.edu.tw"));
-    assert.equal(url.search, "");
-    assert.equal(url.hash, "");
-    assert.equal(await a.getAttribute("rel"), "noreferrer");
-  }
+  const catalogPaths = await page.locator(".portal-content [data-program-id]").evaluateAll(
+    links => links.map(link => link.getAttribute("href")),
+  );
+  assert.ok(catalogPaths.every(path => path?.startsWith("/") && !path.startsWith("//")));
+  await page.goto(base + "/school-affairs/menu/sao/all");
+  assert.equal(await page.getByRole("link", {name:"請假填單", exact:true}).getAttribute("href"), "/school-affairs/services/leave");
+  assert.equal(await page.getByRole("link", {name:"學生請假紀錄查詢", exact:true}).getAttribute("href"), "/school-affairs/services/leave/history");
+  await page.goto(base + "/school-affairs/search");
   await page.getByLabel("系統名稱關鍵字", { exact: true }).fill("課程大綱");
   assert.equal(
     await page.locator(".portal-content [data-program-id]").count(),
@@ -287,14 +286,10 @@ try {
     await scan(page, `skin-${skin}-390`);
   }
   await page.goto(base + "/ePortal/apMenu.asp?temporary-state=discard");
-  if(new URL(page.url()).pathname==='/ePortal/apMenu.asp')
-    assert.ok((await page.locator('body').innerText()).length>100,'copied ePortal menu must render');
-  else await page.waitForURL(base + "/school-affairs/search");
+  await page.waitForURL(base + "/school-affairs/search");
+  await page.locator("#portal-program-search").waitFor();
   await page.goto(base + "/ePortal/index.asp");
-  if(new URL(page.url()).pathname==='/ePortal/index.asp')
-    assert.ok((await page.locator('body').innerText()).length>100,'copied ePortal index must render');
-  else await page.waitForURL(base + "/school-affairs");
-  await page.goto(base + "/school-affairs");
+  await page.waitForURL(base + "/school-affairs");
   await page.locator(".portal-content").waitFor();
   await page.getByRole("link", { name: "知識庫管理", exact: true }).click();
   await page.getByRole("heading", { name: "Sign in", exact: true }).waitFor();

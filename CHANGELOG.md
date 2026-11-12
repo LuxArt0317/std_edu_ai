@@ -1,6 +1,13 @@
 # Changelog
 ## Unreleased
 
+### Student Affairs and DTM workspaces (Issue #98)
+
+- Open all 94 captured catalog entries through local routes. Give leave and internship dedicated forms, private history, optional stu.best admin review, and links to official university services.
+- Add private DTM courses by term, materials, meetings, attendance, assignments and grades. Import selected deadlines from a Moodle calendar file and deduplicate repeated imports.
+- Rebuild the DTM views around the university layout and add English and Traditional Chinese navigation.
+- Answer signed-in questions from saved records and link directly to the relevant meeting, assignment or grade. Provide verified Wi-Fi, registrar, leave and internship links.
+
 ### Temporary client database activity (Issue #97)
 
 - Schedule an external read-only query to the exact client Supabase project three times daily for one month, using a repository-managed publishable-key secret.

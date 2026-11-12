@@ -544,10 +544,10 @@ test('private conversation history never enters public retrieval or live web sea
   if(url.includes('record_public_ai_exchange'))return trace();
   return Response.json(null);
  };
- const result=await invoke({question:'And the registrar phone number?',history:[{role:'user',content:'My private grade is 72'},{role:'assistant',content:'Private student record 12345'},{role:'user',content:'Where is the STU registrar?'}]},'private-history');
+ const result=await invoke({question:'And the weekday opening hours?',history:[{role:'user',content:'My private grade is 72'},{role:'assistant',content:'Private student record 12345'},{role:'user',content:'Where is the STU library?'}]},'private-history');
  assert.equal(result.statusCode,200);assert.ok(sent.length>=2);
  for(const body of sent)assert.doesNotMatch(body,/private grade|Private student|12345|72/);
- assert.match(sent.join(' '),/STU registrar/);
+ assert.match(sent.join(' '),/STU library/);
 });
 
 test('unrelated code generation and greetings are handled without spending search calls',async()=>{

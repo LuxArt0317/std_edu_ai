@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { referenceAsset } from '../site/reference';
 import SchoolAffairsPortal from './SchoolAffairsPortal';
 import { useAffairsAuth } from './authContext';
-import { affairsCallbackPath, completeGoogleSignIn, consumeGoogleReturnPath, startGoogleSignIn, signOutAffairs } from './authClient';
+import { affairsCallbackPath, completeGoogleSignIn, consumeGoogleReturnPath, safeSchoolReturnPath, startGoogleSignIn, signOutAffairs } from './authClient';
 import './login.css';
 import { SchoolAffairsPrivacy } from './SchoolAccountRecords';
 const base = 'https://info.stu.edu.tw/ePortal/';
@@ -75,7 +75,7 @@ function SchoolSignOut() {
   </section></main>;
 }
 export default function SchoolAffairsEntry() {
-  const { pathname } = useLocation();
+  const { pathname, search, hash } = useLocation();
   const { user, loading, error: sessionError } = useAffairsAuth();
   const [panel, setPanel] = useState(false);
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
@@ -84,9 +84,13 @@ export default function SchoolAffairsEntry() {
   if (pathname === affairsCallbackPath) return <GoogleCallback />;
   if (/\/signed-out\/?$/.test(pathname)) return <SchoolSignOut />;
   if (loading) return <main className="affairs-login"><p role="status">Checking your School Affairs session…</p></main>;
-  if (user && pathname === '/school-affairs/login') return <Navigate to="/school-affairs" replace />;
+  const next = safeSchoolReturnPath(new URLSearchParams(search).get('next'));
+  if (user && pathname === '/school-affairs/login') return <Navigate to={next} replace />;
   if (user) return <SchoolAffairsPortal key={user.id} user={user} />;
-  if (pathname !== '/school-affairs/login') return <Navigate to="/school-affairs/login" replace />;
+  if (pathname !== '/school-affairs/login') {
+    const target = safeSchoolReturnPath(pathname + hash);
+    return <Navigate to={target==='/school-affairs'?'/school-affairs/login':'/school-affairs/login?next='+encodeURIComponent(target)} replace />;
+  }
   return <main className="affairs-login" style={{backgroundImage:`url("${referenceAsset(base+'assets/css/images/pattern.jpg')}")`}}>
     <div className="affairs-login-wrap">
       <h1 aria-label="校務系統登入"><img src={referenceAsset(base+'assets/img/stu/stuLogo.svg')} alt="樹德科技大學 SHU-TE UNIVERSITY" width="220" height="37"/><span className="sr-only">校務系統登入</span></h1>
@@ -99,11 +103,11 @@ export default function SchoolAffairsEntry() {
             // OAuth must start in the top-level document. A copied page may have
             // opened this route inside the assistant's same-origin iframe.
             if (window.top !== window) {
-              window.top?.location.assign('/school-affairs/login');
+              window.top?.location.assign('/school-affairs/login'+(next==='/school-affairs'?'':'?next='+encodeURIComponent(next)));
               return;
             }
             setBusy(true);setError('');
-            void startGoogleSignIn().catch(()=>{setError('Google sign-in is not available yet. Please try again later or contact the site administrator.');setBusy(false);});
+            void startGoogleSignIn(next).catch(()=>{setError('Google sign-in is not available yet. Please try again later or contact the site administrator.');setBusy(false);});
           }}><img src="/auth/google-g.png" alt="" width="20" height="20"/>{busy?'Connecting to Google…':'Continue with Google'}</Button>
           {(error || sessionError) && <p role="alert">{error || sessionError}</p>}
           <p className="affairs-login-status">Google handles your password. We receive your name, email and profile picture, not your Gmail messages.</p>

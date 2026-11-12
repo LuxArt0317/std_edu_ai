@@ -32,7 +32,7 @@ try {
   await guestPage.goto(base+'/dtm/login');
   assert.equal(await guestPage.evaluate(()=>sessionStorage.getItem('stu-school-affairs-return')),'/dtm');
   await guestPage.goto(base+'/school-affairs/auth/callback?code=dtm-qa-code');
-  await guestPage.getByText('Digital Learning Orientation',{exact:true}).first().waitFor();
+  await guestPage.getByRole('heading',{name:'系統公告'}).waitFor();
   assert.equal(new URL(guestPage.url()).pathname,'/dtm');
   assert.deepEqual(guestErrors,[]);
   await guest.close();
@@ -48,12 +48,12 @@ try {
   for (const width of [1440,768,390]) {
     await page.setViewportSize({width,height:900});
     await page.goto(base+'/dtm/login');
-    await page.getByText('Digital Learning Orientation',{exact:true}).first().waitFor();
+    await page.getByRole('heading',{name:'系統公告'}).waitFor();
     assert.equal(new URL(page.url()).pathname,'/dtm');
     assert.equal(await page.getByRole('heading',{name:'系統公告'}).count(),1);
     assert.equal(await page.locator('.dtm-notices a[href^="https://dtm.stu.edu.tw/"]').count(),14);
-    assert.equal(await page.locator('.dtm-categories details').count(),11);
-    assert.ok((await page.locator('.dtm-reference-note').innerText()).includes('2026-11-06'));
+    assert.equal(await page.locator('.dtm-categories details').count(),20);
+    assert.ok((await page.locator('.dtm-reference-note').innerText()).includes('2026-11-12'));
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`DTM overflow at ${width}`);
     if (width === 1440 || width === 390) await page.screenshot({path:`artifacts/dtm/dashboard-${width}.png`,fullPage:true});
     const axe = await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
@@ -62,17 +62,18 @@ try {
   await page.locator('.dtm-categories details').first().locator('summary').click();
   await page.locator('.dtm-categories details').first().getByRole('link',{name:'Digital Learning Orientation'}).waitFor();
   await page.getByRole('searchbox',{name:'搜尋我的課程'}).fill('no matching course');
-  await page.getByText('No stu.best sample courses match.').waitFor();
+  await page.getByText('沒有符合的課程。').waitFor();
   await page.getByRole('searchbox',{name:'搜尋我的課程'}).fill('Digital');
-  await page.getByRole('link',{name:'Digital Learning Orientation'}).first().click();
+  await page.getByRole('link',{name:'DTM-SAMPLE-101 · Digital Learning Orientation',exact:true}).click();
   await page.getByText('Getting started guide',{exact:true}).waitFor();
+  await page.getByRole('link',{name:'作業',exact:true}).click();
   await page.getByText('Practice reflection',{exact:true}).waitFor();
-  assert.equal(new URL(page.url()).pathname,'/dtm/course/course-qa');
+  assert.equal(new URL(page.url()).pathname,'/dtm/course/course-qa/assignments');
   await page.goto(base+'/');
   await page.frameLocator('iframe.stu-account-status').getByText('Signed in: student.qa@gmail.com').waitFor();
   await page.screenshot({path:'artifacts/dtm/landing-status.png',fullPage:false});
   await page.goto(base+'/school-sites/dtm.stu.edu.tw/');
-  await page.getByText('Digital Learning Orientation',{exact:true}).first().waitFor();
+  await page.getByRole('heading',{name:'系統公告'}).waitFor();
   assert.deepEqual(errors,[]);
   await signed.close();
   console.log(JSON.stringify({status:'ok',guestRedirect:true,sharedGoogleSession:true,courseMaterials:true,landingStatus:true,alias:true,viewports:[1440,768,390],seriousCriticalAccessibility:0}));

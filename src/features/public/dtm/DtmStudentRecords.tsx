@@ -1,0 +1,275 @@
+import { useState, type FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router';
+import { CalendarDays, ChevronRight, Download, ExternalLink, FileText, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  savePersonalSchoolRecord, type AffairsSnapshot, type DtmAssignment, type DtmCourse, type DtmGrade,
+  type DtmMaterial, type DtmMeeting, type DtmRecordKind,
+} from '@/services/schoolAffairsWorkspace';
+import { CalendarDeadlineImport } from './CalendarDeadlineImport';
+import { coursesByTerm, dtmViews, type DtmView } from './catalog';
+import { deadlineLabel, taipeiDateTimeInput, termLabel, type DtmTranslate } from './locale';
+
+type EditRecord =
+  | {kind:'course';record?:DtmCourse}
+  | {kind:'meeting';course:DtmCourse;record?:DtmMeeting}
+  | {kind:'grade';course:DtmCourse;record?:DtmGrade}
+  | {kind:'assignment';course:DtmCourse;record?:DtmAssignment}
+  | {kind:'material';course:DtmCourse;record?:DtmMaterial};
+type DeleteRecord = {kind:DtmRecordKind;id:string;name:string;courseId?:string};
+
+const names = {
+  course:['課程','course'], meeting:['上課紀錄','class meeting'], grade:['成績','grade'],
+  assignment:['作業','assignment'], material:['教材','material'],
+} as const;
+const viewNames = {materials:['教材','Materials'],meetings:['上課紀錄','Class meetings'],assignments:['作業','Assignments'],grades:['成績','Grades']} as const;
+const assignmentStatuses = {open:['未完成','Open'],submitted:['已標記繳交','Marked submitted'],graded:['已記錄評分','Marked graded']} as const;
+const attendanceStatuses = {unknown:['未記錄','Unrecorded'],present:['出席','Present'],late:['遲到','Late'],absent:['缺席','Absent'],excused:['請假','Excused']} as const;
+const pathFor = (course:DtmCourse) => '/dtm/course/'+encodeURIComponent(course.id);
+const translated = (t:DtmTranslate,labels:readonly [string,string]) => t(labels[0],labels[1]);
+
+function RecordEditor({edit,t,saved,close}:{edit:EditRecord;t:DtmTranslate;saved:(id:string)=>void;close:()=>void}) {
+  const [id] = useState(()=>edit.record?.id || crypto.randomUUID());
+  const [busy,setBusy] = useState(false);
+  const [error,setError] = useState('');
+  const {kind} = edit;
+  const isEdit = Boolean(edit.record);
+  const submit = async (event:FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (busy) return;
+    const values = Object.fromEntries(new FormData(event.currentTarget).entries()) as Record<string,string>;
+    if (kind==='grade' && Number(values.score)>Number(values.maximum)) {
+      setError(t('分數不可大於滿分。','The score cannot exceed the maximum.'));
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      const result = await savePersonalSchoolRecord({kind:'save_dtm_'+kind as `save_dtm_${DtmRecordKind}`,payload:{
+        ...values,id,...(kind==='course'?{}:{course_id:edit.course.id}),
+        ...(kind==='assignment'?{due_at:values.due_at?new Date(values.due_at+'+08:00').toISOString():''}:{}),
+      }});
+      saved(result.id);
+    } catch (reason) {
+      setError(reason instanceof Error?reason.message:t('無法儲存紀錄。','Could not save this record.'));
+    } finally {setBusy(false);}
+  };
+  return <form className="dtm-record-form" onSubmit={submit}>
+    <h3>{t((isEdit?'編輯':'新增')+names[kind][0],(isEdit?'Edit ':'Add ')+names[kind][1])}</h3>
+    {edit.kind==='course' && <>
+      <div className="dtm-form-grid">
+        <label>{t('課程代碼','Course code')}<Input name="code" maxLength={32} required defaultValue={edit.record?.code}/></label>
+        <label>{t('學年度與學期','Academic year and semester')}<Input name="term" maxLength={80} required placeholder="115學年度第1學期" defaultValue={edit.record?.term}/></label>
+      </div>
+      <label>{t('課程名稱','Course name')}<Input name="title" maxLength={160} required defaultValue={edit.record?.title}/></label>
+    </>}
+    {edit.kind==='meeting' && <>
+      <label>{t('課堂主題','Meeting topic')}<Input name="title" maxLength={160} required defaultValue={edit.record?.title}/></label>
+      <div className="dtm-form-grid">
+        <label>{t('上課日期','Meeting date')}<Input type="date" name="meeting_on" required min="2000-01-01" max="2100-12-31" defaultValue={edit.record?.date}/></label>
+        <label>{t('開始時間（臺灣）','Start time (Taipei)')}<Input type="time" name="starts_at" defaultValue={edit.record?.startsAt?.slice(0,5)}/></label>
+      </div>
+      <label>{t('出席狀態','Attendance')}<select name="attendance" defaultValue={edit.record?.attendance ?? 'unknown'}>
+        {Object.entries(attendanceStatuses).map(([value,labels])=><option key={value} value={value}>{translated(t,labels)}</option>)}
+      </select></label>
+      <label>{t('課堂筆記','Meeting notes')}<Textarea name="notes" maxLength={2000} rows={3} defaultValue={edit.record?.notes}/></label>
+    </>}
+    {edit.kind==='assignment' && <>
+      <label>{t('作業名稱','Assignment name')}<Input name="title" minLength={3} maxLength={160} required defaultValue={edit.record?.title}/></label>
+      <div className="dtm-form-grid">
+        <label>{t('截止日期（臺灣）','Deadline (Taipei)')}<Input type="datetime-local" name="due_at" min="2000-01-01T00:00" max="2100-12-31T23:59" defaultValue={taipeiDateTimeInput(edit.record?.dueAt ?? null)}/></label>
+        <label>{t('作業狀態','Assignment status')}<select name="status" defaultValue={edit.record?.status ?? 'open'}>
+          {Object.entries(assignmentStatuses).map(([value,labels])=><option key={value} value={value}>{translated(t,labels)}</option>)}
+        </select></label>
+      </div>
+      <label>{t('指派作業的課堂','Meeting where assigned')}<select name="meeting_id" defaultValue={edit.record?.meetingId ?? ''}>
+        <option value="">{t('未連結','No meeting linked')}</option>
+        {(edit.course.meetings||[]).map(meeting=><option key={meeting.id} value={meeting.id}>{meeting.date} · {meeting.title}</option>)}
+      </select></label>
+      <label>{t('作業說明','Assignment notes')}<Textarea name="details" maxLength={2000} rows={3} defaultValue={edit.record?.details}/></label>
+    </>}
+    {edit.kind==='grade' && <>
+      <label>{t('成績項目','Grade item')}<Input name="label" required maxLength={160} defaultValue={edit.record?.label}/></label>
+      <div className="dtm-form-grid">
+        <label>{t('分數','Score')}<Input name="score" type="number" min={0} max={1000000} step=".01" required defaultValue={edit.record?.score}/></label>
+        <label>{t('滿分','Maximum points')}<Input name="maximum" type="number" min={.01} max={1000000} step=".01" required defaultValue={edit.record?.maximum ?? 100}/></label>
+      </div>
+      <label>{t('評分日期','Graded date')}<Input type="date" name="graded_on" min="2000-01-01" max="2100-12-31" defaultValue={edit.record?.date ?? ''}/></label>
+      <label>{t('回饋','Feedback')}<Textarea name="feedback" maxLength={2000} rows={3} defaultValue={edit.record?.feedback}/></label>
+    </>}
+    {edit.kind==='material' && <>
+      <label>{t('教材名稱','Material name')}<Input name="title" required maxLength={160} defaultValue={edit.record?.title}/></label>
+      <label>{t('類型','Type')}<select name="kind" defaultValue={edit.record?.kind ?? 'page'}><option value="page">{t('頁面','Page')}</option><option value="file">{t('檔案','File')}</option></select></label>
+      <label>{t('Moodle 教材連結（選填）','Moodle material link (optional)')}<Input type="url" name="source_url"
+        pattern={String.raw`https://dtm\.stu\.edu\.tw/(course|mod/[a-z_]+)/view\.php\?id=[0-9]{1,12}`} maxLength={150} defaultValue={edit.record?.sourceUrl ?? ''}/></label>
+      <label>{t('教材摘要','Material summary')}<Textarea name="summary" maxLength={2000} rows={3} defaultValue={edit.record?.summary}/></label>
+    </>}
+    {error && <p className="dtm-error" role="alert">{error}</p>}
+    <div className="dtm-form-actions">
+      <Button type="submit" disabled={busy}>{busy?t('儲存中…','Saving…'):t('儲存紀錄','Save record')}</Button>
+      <Button type="button" variant="outline" disabled={busy} onClick={close}>{t('取消','Cancel')}</Button>
+    </div>
+  </form>;
+}
+
+function RowActions({t,edit,remove}:{t:DtmTranslate;edit:()=>void;remove:()=>void}) {
+  return <div className="dtm-row-actions">
+    <Button size="sm" variant="outline" type="button" onClick={edit}>{t('編輯','Edit')}</Button>
+    <Button size="sm" variant="ghost" type="button" onClick={remove}>{t('刪除','Delete')}</Button>
+  </div>;
+}
+
+export function DtmStudentRecords({snapshot,course,view,mode,t,refresh}:{
+  snapshot:AffairsSnapshot;course?:DtmCourse;view?:DtmView;mode:'dashboard'|'course'|'assignments'|'grades';
+  t:DtmTranslate;refresh:()=>void;
+}) {
+  const [editor,setEditor] = useState<EditRecord|null>(null);
+  const [importOpen,setImportOpen] = useState(false);
+  const [deleting,setDeleting] = useState<DeleteRecord|null>(null);
+  const [error,setError] = useState('');
+  const [status,setStatus] = useState('');
+  const [busy,setBusy] = useState(false);
+  const [assignmentFilter,setAssignmentFilter] = useState('all');
+  const navigate=useNavigate();
+  const courses=snapshot.dtm.courses;
+  const personal=courses.filter(row=>row.sourceMode==='personal');
+  const visible=personal.length?personal:courses;
+  const selected=course?[course]:visible;
+  const selectedById=new Map(selected.map(row=>[row.id,row]));
+  const assignments=snapshot.assignments.filter(row=>row.dtmCourseId && selectedById.has(row.dtmCourseId));
+  const own=course?.sourceMode==='personal';
+  const activeView=view||'materials';
+  const assignmentList=assignments.filter(row=>assignmentFilter==='all'||(assignmentFilter==='open'?row.status==='open':row.status!=='open'));
+  const grades=selected.flatMap(row=>(row.grades||[]).map(grade=>({course:row,grade})));
+  function edit(record:EditRecord) {setStatus('');setImportOpen(false);setEditor(record);}
+  function saved(id:string) {
+    const newCourse=editor?.kind==='course' && !editor.record;
+    setEditor(null);
+    setStatus(t('已儲存紀錄。','Record saved.'));
+    refresh();
+    if(newCourse) navigate('/dtm/course/'+id);
+  }
+  async function deleteRecord() {
+    if(!deleting||busy)return;
+    setBusy(true);
+    setError('');
+    try {
+      await savePersonalSchoolRecord({kind:'delete_dtm_'+deleting.kind as `delete_dtm_${DtmRecordKind}`,
+        payload:{id:deleting.id,...(deleting.courseId?{course_id:deleting.courseId}:{})}});
+      setDeleting(null);
+      setEditor(null);
+      setStatus(t('已刪除紀錄。','Record deleted.'));
+      refresh();
+      if(deleting.kind==='course')navigate('/dtm/dashboard');
+    }catch(reason){setError(reason instanceof Error?reason.message:t('無法刪除紀錄。','Could not delete the record.'));}
+    finally{setBusy(false);}
+  }
+  function askDelete(record:DeleteRecord){setError('');setDeleting(record);}
+  const newKind={materials:'material',meetings:'meeting',assignments:'assignment',grades:'grade'}[activeView] as Exclude<DtmRecordKind,'course'>;
+
+  return <>
+    {mode==='dashboard'&&<>
+      <div className="dtm-section-heading"><h2>{t('儀表板','Dashboard')}</h2>
+        <Button onClick={()=>edit({kind:'course'})}><Plus size={16}/>{t('新增課程','Add course')}</Button>
+      </div>
+      <p className="dtm-note">{t('按學期整理您的課程與作業。','Organize your courses and assignments by term.')}</p>
+    </>}
+    {course&&<>
+      <div className="dtm-section-heading"><h2>{course.title}</h2>
+        {own&&<RowActions t={t} edit={()=>edit({kind:'course',record:course})} remove={()=>askDelete({kind:'course',id:course.id,name:course.title})}/>}
+      </div>
+      <p className="dtm-course-meta">{course.code} · {termLabel(course.term,t)} · {own?t('個人紀錄','Personal records'):t('範例課程','Sample course')}</p>
+      <nav className="dtm-course-tabs" aria-label={t('課程檢視','Course views')}>
+        {dtmViews.map(tab=><Link key={tab} to={pathFor(course)+(tab==='materials'?'':'/'+tab)} aria-current={activeView===tab?'page':undefined}>{translated(t,viewNames[tab])}</Link>)}
+      </nav>
+      <div className="dtm-section-heading">
+        <h3>{translated(t,viewNames[activeView])}</h3>
+        {own&&<div className="dtm-form-actions">
+          <Button size="sm" onClick={()=>edit({kind:newKind,course})}><Plus size={16}/>{t('新增'+names[newKind][0],'Add '+names[newKind][1])}</Button>
+          {activeView==='assignments'&&<Button size="sm" variant="outline" aria-expanded={importOpen} onClick={()=>{setEditor(null);setImportOpen(open=>!open);}}>
+            <Download size={15}/>{t('匯入 Moodle 行事曆','Import Moodle calendar')}
+          </Button>}
+        </div>}
+      </div>
+    </>}
+    {mode==='assignments'&&!course&&<h2>{t('我的作業','My assignments')}</h2>}
+    {mode==='grades'&&!course&&<h2>{t('我的成績','My grades')}</h2>}
+    {status&&<p role="status" className="dtm-saved">{status}</p>}
+    {editor&&<RecordEditor key={editor.kind+':'+(editor.record?.id||'new')} edit={editor} t={t} saved={saved} close={()=>setEditor(null)}/>}
+    {importOpen&&course&&<CalendarDeadlineImport courseId={course.id} t={t} onImported={count=>{
+      setImportOpen(false);
+      setStatus(count?t('已匯入 '+count+' 筆截止日期。','Imported '+count+' deadline(s).'):t('所選日期已存在。','The selected deadlines are already saved.'));
+      refresh();
+    }}/>}
+    {mode==='dashboard'&&<div className="dtm-term-list">
+      {!courses.length&&<p>{t('尚無課程。請新增一門課程開始。','Add a course to start tracking your records.')}</p>}
+      {coursesByTerm(courses).map(([term,rows])=><section className="dtm-card" key={term}>
+        <h2>{termLabel(term,t)}</h2>
+        <ul className="dtm-record-list">{rows.map(row=><li key={row.id}><Link to={pathFor(row)}>{row.code} · {row.title}<ChevronRight size={15}/></Link>
+          {row.sourceMode==='sample'&&<small>{t('範例','Sample')}</small>}</li>)}</ul>
+      </section>)}
+    </div>}
+    {(mode==='assignments'||(course&&activeView==='assignments'))&&<>
+      <label className="dtm-filter">{t('篩選作業','Filter assignments')}
+        <select value={assignmentFilter} onChange={event=>setAssignmentFilter(event.target.value)}>
+          <option value="all">{t('全部','All')}</option><option value="open">{t('未完成','Unfinished')}</option><option value="done">{t('已繳交或評分','Submitted or graded')}</option>
+        </select>
+      </label>
+      {assignmentList.length?<ul className="dtm-record-list">{assignmentList.map(row=>{
+        const rowCourse=selectedById.get(row.dtmCourseId || '');
+        const meeting=rowCourse?.meetings?.find(item=>item.id===row.meetingId);
+        return <li key={row.id} id={'assignment-'+row.id}><div>
+          {!course&&rowCourse?<Link to={pathFor(rowCourse)+'/assignments#assignment-'+row.id}>{rowCourse.code} · {row.title}</Link>:<strong>{row.title}</strong>}
+          <small>{translated(t,assignmentStatuses[row.status])} · {deadlineLabel(row.dueAt,t)}{row.origin==='moodle_calendar'?' · '+t('Moodle 行事曆','Moodle calendar'):row.sourceMode==='sample'?' · '+t('範例','Sample'):''}</small>
+          {meeting&&rowCourse&&<Link className="dtm-record-context" to={pathFor(rowCourse)+'/meetings#meeting-'+meeting.id}>{meeting.date} · {meeting.title}</Link>}
+          {row.details&&<p>{row.details}</p>}
+        </div>{own&&course&&row.sourceMode==='personal'&&<RowActions t={t}
+          edit={()=>edit({kind:'assignment',course,record:row})} remove={()=>askDelete({kind:'assignment',id:row.id,courseId:course.id,name:row.title})}/>}</li>;
+      })}</ul>:<p className="dtm-empty">{t('沒有符合的作業。','No matching assignments.')}</p>}
+    </>}
+    {course&&activeView==='materials'&&((course.materials||[]).length?<ul className="dtm-record-list">
+      {course.materials.map(row=><li key={row.id}><FileText size={18} aria-hidden="true"/>
+        <div><strong>{row.title}</strong>{row.summary&&<p>{row.summary}</p>}
+          {row.sourceUrl&&<a href={row.sourceUrl} target="_blank" rel="noreferrer">{t('在校方 Moodle 開啟','Open in university Moodle')} <ExternalLink size={13}/></a>}
+        </div>
+        {own&&<RowActions t={t} edit={()=>edit({kind:'material',course,record:row})} remove={()=>askDelete({kind:'material',id:row.id,courseId:course.id,name:row.title})}/>}
+      </li>)}
+    </ul>:<p className="dtm-empty">{t('尚無教材。','No course materials saved.')}</p>)}
+    {course&&activeView==='meetings'&&((course.meetings||[]).length?<ul className="dtm-record-list">
+      {(course.meetings||[]).map(row=><li key={row.id} id={'meeting-'+row.id}><CalendarDays size={18} aria-hidden="true"/>
+        <div><strong>{row.title}</strong><small>{row.date} {row.startsAt?.slice(0,5)!=='00:00'?row.startsAt?.slice(0,5):''} · {translated(t,attendanceStatuses[row.attendance])}</small>
+          {row.notes&&<p>{row.notes}</p>}
+          {assignments.filter(item=>item.meetingId===row.id).map(item=>
+            <Link className="dtm-record-context" key={item.id} to={pathFor(course)+'/assignments#assignment-'+item.id}>{item.title}</Link>)}
+        </div>
+        {own&&<RowActions t={t} edit={()=>edit({kind:'meeting',course,record:row})} remove={()=>askDelete({kind:'meeting',id:row.id,courseId:course.id,name:row.title})}/>}
+      </li>)}
+    </ul>:<p className="dtm-empty">{t('尚無上課或出席紀錄。','No class meetings or attendance recorded.')}</p>)}
+    {(mode==='grades'||(course&&activeView==='grades'))&&(grades.length?<div className="dtm-grade-scroll" role="region" aria-label={t('成績報告','Grade report')} tabIndex={0}>
+      <table className="dtm-grade-table"><thead><tr>
+        <th scope="col">{t('成績項目','Grade item')}</th><th scope="col">{t('分數','Score')}</th><th scope="col">{t('百分比','Percentage')}</th>
+        <th scope="col">{t('回饋','Feedback')}</th>{own&&<th scope="col">{t('操作','Actions')}</th>}
+      </tr></thead><tbody>{grades.map(({course:rowCourse,grade})=><tr key={grade.id} id={'grade-'+grade.id}>
+        <th scope="row">{course?grade.label:<Link to={pathFor(rowCourse)+'/grades#grade-'+grade.id}>{rowCourse.code} · {grade.label}</Link>}
+          {grade.date&&<small>{grade.date}</small>}</th>
+        <td>{grade.score} / {grade.maximum}</td><td>{((grade.score/grade.maximum)*100).toFixed(1)}%</td><td>{grade.feedback||'–'}</td>
+        {own&&<td><RowActions t={t} edit={()=>edit({kind:'grade',course:rowCourse,record:grade})} remove={()=>askDelete({kind:'grade',id:grade.id,courseId:rowCourse.id,name:grade.label})}/></td>}
+      </tr>)}</tbody></table>
+    </div>:<p className="dtm-empty">{t('尚無成績。','No saved grades.')}</p>)}
+    <Dialog open={Boolean(deleting)} onOpenChange={open=>{if(!open&&!busy)setDeleting(null);}}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>{t('刪除紀錄','Delete record')}</DialogTitle>
+          <DialogDescription>{deleting?.kind==='course'
+            ?t('將刪除此課程及相關教材、上課紀錄、作業和成績。','This deletes the course and its materials, meetings, assignments, and grades.')
+            :deleting?.name}</DialogDescription>
+        </DialogHeader>
+        {error&&<p className="dtm-error" role="alert">{error}</p>}
+        <DialogFooter><Button variant="outline" disabled={busy} onClick={()=>setDeleting(null)}>{t('取消','Cancel')}</Button>
+          <Button variant="destructive" disabled={busy} onClick={()=>void deleteRecord()}>{t('刪除','Delete')}</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </>;
+}

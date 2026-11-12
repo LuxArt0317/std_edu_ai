@@ -45,7 +45,8 @@ export default function PublicSite() {
     return () => document.documentElement.classList.remove("stu-assistant-embed");
   }, [embeddedAssistant]);
   useEffect(() => {
-    document.documentElement.lang = "zh-Hant";
+    if (!/^\/(?:dtm(?:\/|$)|school-sites\/dtm\.stu\.edu\.tw(?:\/|$))/.test(pathname))
+      document.documentElement.lang = "zh-Hant";
     if (pathname === "/student-sso")
       document.title = "mySTU 登入介面預覽 | 校園網站預覽";
     if (pathname === "/local-pages")

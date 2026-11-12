@@ -1,0 +1,39 @@
+.student-service { max-width: 1440px; min-width: 0; margin: 0 auto 2rem; }
+.student-service-back, .student-service-official { display: inline-flex; align-items: center; gap: .45rem; }
+.student-service-back { margin: .35rem 0 .9rem; }
+.student-service-title { display: flex; align-items: center; gap: .85rem; background: #52616a; color: #fff; padding: .85rem 1rem; }
+.student-service-title svg { width: 26px; height: 26px; flex: none; }
+.student-service-title h1 { color: inherit; font-size: clamp(1.05rem, 2.2vw, 1.5rem); font-weight: 600; line-height: 1.35; margin: .1rem 0 0; }
+.student-service-title span { color: #ecf1f3; font-size: .82rem; }
+.student-service-bar { background: #2e617d; color: #fff; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; padding: .3rem .85rem; }
+.student-service-bar nav { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem; }
+.student-service-bar a, .student-service-bar button { color: #fff; min-height: 40px; padding: .5rem .55rem; }
+.student-service-bar a { display: inline-flex; align-items: center; }
+.student-service-bar button { white-space: normal; height: auto; text-align: left; }
+.student-service-bar a[aria-current], .student-service-bar button[aria-pressed="true"], .student-service-bar a:hover, .student-service-bar button:hover { background: #20495f; color: #fff; }
+.student-service-official svg { flex: none; }
+.student-service-body { background: #fff; border: 1px solid #d8dfe3; padding: clamp(.8rem, 2vw, 1.5rem); }
+.student-service-body > p, .student-service-note { margin: 0 0 1rem; color: #475766; }
+.student-service-section { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; justify-content: space-between; border-bottom: 1px solid #e0e6e9; padding: .5rem 0 .8rem; }
+.student-service-section h2 { color: #263d4c; font-size: 1.13rem; font-weight: 600; margin: 0; }
+.student-service-form { max-width: 48rem; background: #f5f8fa; border: 1px solid #d8e0e4; padding: 1rem; display: grid; gap: .85rem; margin: 1rem 0; }
+.student-service-form label { display: grid; gap: .35rem; min-width: 0; color: #304453; font-weight: 500; }
+.student-service-form input, .student-service-form textarea, .student-service-form select { width: 100%; min-width: 0; background: #fff; }
+.student-service-form select { min-height: 2.25rem; border: 1px solid #9caeb8; border-radius: .25rem; padding: .35rem .5rem; }
+.student-service-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .8rem; }
+.student-service-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; }
+.student-service-actions button { min-height: 32px; }
+.student-service-table-scroll { overflow-x: auto; margin-top: .8rem; }
+.student-service-table { width: 100%; border-collapse: collapse; text-align: start; }
+.student-service-table th, .student-service-table td { border-bottom: 1px solid #dce4e8; padding: .6rem .7rem; text-align: left; overflow-wrap: anywhere; }
+.student-service-table thead { background: #eef3f6; }
+.student-service-table small { display: block; color: #566571; }
+.student-service-empty { margin-top: .8rem !important; }
+.student-service-error { color: #922626 !important; }
+.student-service-status { color: #155c45 !important; }
+.student-service-shortcuts { display: flex; flex-wrap: wrap; gap: .5rem 1rem; padding: .65rem .85rem; margin: 0 0 1rem; border: 1px solid #d8e0e4; background: #f4f7f8; }
+.student-service-shortcuts a { min-height: 28px; display: inline-flex; align-items: center; }
+@media(max-width: 540px) {
+  .student-service-fields { grid-template-columns: minmax(0,1fr); }
+  .student-service-table { min-width: 34rem; }
+}

@@ -1,4 +1,5 @@
 import {studyCalendar} from './affairsSchedule.js';
+import {answerDtmRecords,answerStudentServiceRecords} from './dtmAnswer.js';
 
 const format={type:'json_schema',name:'school_affairs_personal_answer',strict:true,schema:{
   type:'object',additionalProperties:false,
@@ -104,11 +105,24 @@ function fallbackProposal(question,snapshot) {
   return null;
 }
 
-export async function answerPrivateAffairsQuestion(question,snapshot,history=[]) {
+export async function answerPrivateAffairsQuestion(question,snapshot,history=[],route='') {
+  const records = answerStudentServiceRecords(question,snapshot) || answerDtmRecords(question,snapshot,route,history);
+  if (records) return {
+    status:'answered',answer:records.answer,
+    citations:[{chunkId:'student-workspace',claim:'Records saved to this Google account on stu.best.',
+      title:records.title,sourceName:'My stu.best records',url:records.url,locator:null,effectiveAt:null,reviewedAt:snapshot.checkedAt}],
+    suggestedQuestions:['Which assignments are unfinished?','What assignments were given in the class I missed?','Show my DTM grades'],
+    grounding:{source:'account',webSearched:false,checkedAt:snapshot.checkedAt,degraded:false},
+    activity:[{kind:'account',label:'Checked your saved records',detail:records.title,status:'complete'}],
+  };
   let answer=fallbackPrivateAnswer(question,snapshot),proposedAction=fallbackProposal(question,snapshot),modelUsed=false;
   const deterministic=/\b(?:subjects?|classes|courses|lessons|timetable|schedule|assignments?|homework|submissions?|coursework|tuition|fees?|charges?|balance|payments?|grades?|attendance|notices?|announcements?|tasks?|requests?|moodle|dtm|digital teaching|tomorrow|next semester|next term|what can you do|what do you know about me|what details do you know about me)\b|課程|科目|課表|下堂課|下一門課|明天|下學期|作業|功課|繳交|學費|費用|繳費|成績|出席|公告|任務|待辦|申請|數位教材|教材網|我的.{0,12}(?:資料|資訊|詳情)|關於我/i.test(question);
   const apiKey=process.env.OPENAI_API_KEY;
   if (apiKey && !deterministic) {
+    // Personal DTM and student-service records are handled locally above.
+    const {serviceRecords: _privateServiceRecords, requests: _privateRequests, ...modelSnapshot} = snapshot;
+    modelSnapshot.dtm = {...snapshot.dtm,courses:snapshot.dtm?.courses?.filter(course=>course.sourceMode!=='personal') || []};
+    modelSnapshot.assignments = snapshot.assignments?.filter(item=>item.sourceMode!=='personal') || [];
     try {
       const response=await fetch('https://api.openai.com/v1/responses',{
         method:'POST',signal:AbortSignal.timeout(32000),
@@ -120,7 +134,7 @@ export async function answerPrivateAffairsQuestion(question,snapshot,history=[])
             'For an action request, describe a proposed action and fill only one permitted action. Do not claim it happened. It executes only after the user confirms in the UI. You can create a task, complete an existing open task by exact ID, create a stu.best service request, or, for an admin, publish a stu.best announcement. Never propose a grade, enrollment, fee, identity or role change.',
             'When the snapshot lacks the answer, say what is missing. Keep answers concise and useful. Do not output another person\'s records.'
           ].join(' '),
-          input:[{role:'user',content:JSON.stringify({question,history:history.slice(-4),accountSnapshot:snapshot})}],
+          input:[{role:'user',content:JSON.stringify({question,history:history.filter(item=>item.role==='user').slice(-4),accountSnapshot:modelSnapshot})}],
           text:{format},
         }),
       });

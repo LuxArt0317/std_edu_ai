@@ -1,5 +1,13 @@
 # Task Plan
 
+## Student Affairs and DTM records [Issue #98]
+
+- [x] Observe the official signed-in service menu, leave form, Moodle term tree, course and grades views. Verify the client project and migration baseline.
+- [x] Give the catalog local service routes and implement account-scoped leave, internship and service records, plus explicit site review.
+- [x] Implement personal DTM courses, sessions, attendance, materials, assignments and grades, including selected calendar deadline imports.
+- [x] Add bilingual navigation and source-backed assistant links and personal record answers.
+- [ ] Verify database isolation, persistent UI flows, assistant behavior, build and client release. Document the institutional integration boundary.
+
 ## Temporary client Supabase activity check [Issue #97]
 
 - [x] Match the exact LuxArt0317 client project and verify an anonymous read against a public, RLS-protected table.

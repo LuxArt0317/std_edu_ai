@@ -3,7 +3,7 @@ import { questionKind, publicSchoolQuestion, searchSchoolWeb } from "../server/s
 import { searchAssistantKnowledge } from "../server/assistantKnowledge.js";
 import { inferKnowledgeLanguage } from "../server/knowledgePipeline.js";
 import { recordResearchOperation, safeOperationalCode } from "../server/researchOperations.js";
-import { answerDirectoryQuestion, directoryEntries } from "../server/schoolAffairsDirectory.js";
+import { answerCampusNavigation, answerDirectoryQuestion, directoryEntries } from "../server/schoolAffairsDirectory.js";
 import { createAssistantStream } from "../server/assistantStream.js";
 
 type ApiRequest = {
@@ -316,6 +316,12 @@ export default async function handler(
   const stream = createAssistantStream(input.stream,response);
   const kind = questionKind(input.question);
   const chinese = /[\u3400-\u9fff]/.test(input.question);
+  const navigation = !input.images.length && !kind.irrelevant ? answerCampusNavigation(input.question) : null;
+  if (navigation) {
+    stream.progress('directory','Checked campus services','Found a verified service link.','complete');
+    stream.send(200,navigation);
+    return;
+  }
   if (!input.images.length && (kind.greeting || kind.capabilities || kind.irrelevant)) {
     stream.send(200,{status:kind.irrelevant ? "handoff" : "answered",answer:kind.irrelevant
       ? (chinese ? "我可以協助樹德科技大學的資訊與校園服務，但不代寫一般程式。您可以問招生、住宿、交通、公告或辦公室聯絡方式。" : "I help with Shu-Te University information and campus services, rather than writing unrelated software. Ask about admissions, courses, accommodation, transport, announcements or office contacts.")

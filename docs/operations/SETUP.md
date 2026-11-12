@@ -36,6 +36,8 @@ The deployment command verifies the Supabase project and TLS certificate, acquir
 
 The School Affairs sample-record migration adds account-scoped assignments, historical/current/future sample enrollments, and an illustrative fee charge. Existing sample Google accounts are backfilled once. The verified `luxart0317@gmail.com` Google identity must sign in to School Affairs before the site admin record manager is available. Neither the migration nor that admin role connects to the university SIS or Moodle.
 
+Apply the student-workspace migration with `npm run db:plan` and `npm run db:deploy`. It adds private student service and DTM records on the same client database. Run `node tests/integration/student-workspace-rls-live.mjs` to verify owner access and `node tests/integration/student-workspace-live.mjs` after release for the deployed flows. [Student Affairs](../../src/features/public/affairs/README.md), [DTM](../../src/features/public/dtm/README.md).
+
 Historical demo-account synchronization migrations skip when their acceptance identities do not exist. They do not create inherited accounts. Existing sample academic/CRM seed records are fictional reference data; do not present them as client records or research results.
 
 The public Supabase root certificate in `supabase/certs/` is downloaded from the dashboard's certificate link. TLS peer and hostname verification remain enabled.

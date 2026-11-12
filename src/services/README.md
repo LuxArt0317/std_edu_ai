@@ -6,4 +6,4 @@ Browser clients call the public, School Affairs and protected Nexus endpoints. `
 
 `assistantConversation.ts` merges streamed and final activity, retains up to 24 messages in current-tab session storage, and strips images, tokens and transient action capabilities before writing. It discards transcripts when the verified identity changes and marks an interrupted in-flight response clearly on restore.
 
-`schoolAffairsWorkspace.ts` exposes account-scoped subjects, assignments and tuition to the School Affairs and DTM views. Its manager call uses the verified Google session and is separately authorized by the database.
+`schoolAffairsWorkspace.ts` reads account-scoped School Affairs and DTM data and sends student record edits to the audited RPCs. Its manager call uses the verified Google session and is separately authorized by the database.

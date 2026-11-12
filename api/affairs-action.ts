@@ -10,7 +10,10 @@ export default async function handler(request:Request,response:Response) {
   let body:unknown=request.body;
   if(typeof body==='string'){try{body=JSON.parse(body);}catch{body=null;}}
   const input=body&&typeof body==='object'&&!Array.isArray(body)?body as Record<string,unknown>:null;
-  if(!input || typeof input.kind!=='string' || !input.payload || typeof input.payload!=='object' || JSON.stringify(input).length>4000){response.status(400).json({error:'Invalid action request.'});return;}
+  if(!input || typeof input.kind!=='string' || !input.payload || typeof input.payload!=='object'
+    || Array.isArray(input.payload) || JSON.stringify(input).length>(input.kind==='import_dtm_deadlines'?50000:4000)){
+    response.status(400).json({error:'Invalid action request.'});return;
+  }
   try {
     const authorization=first(request.headers.authorization);
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');

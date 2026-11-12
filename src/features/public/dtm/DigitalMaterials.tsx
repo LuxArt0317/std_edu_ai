@@ -1,72 +1,240 @@
-import { useEffect, useState } from 'react';
-import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
-import { Bell, ChevronDown, ChevronRight, ExternalLink, FileText, LogOut, MessageSquare, Search, UserRound } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router';
+import { Bell, ChevronRight, ExternalLink, FileText, Globe, LogOut, MessageSquare, Search, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import type { DtmCourse } from '@/services/schoolAffairsWorkspace';
 import { useAffairsAuth } from '../affairs/authContext';
-import { signOutAffairs, startGoogleSignIn } from '../affairs/authClient';
-import { loadSchoolAffairsData, type AffairsSnapshot } from '@/services/schoolAffairsWorkspace';
-import { announcements, categories, observedAt, quickLinks } from './catalog';
+import { safeSchoolReturnPath, signOutAffairs, startGoogleSignIn } from '../affairs/authClient';
+import { useAffairsRecords } from '../affairs/useAffairsRecords';
+import { officialRegistrarUrl, wifiGuidePath } from '../affairs/studentServices.js';
+import { announcements, categories, coursesByTerm, dtmViews, observedAt, otherCategories, quickLinks, type DtmView } from './catalog';
+import { DtmStudentRecords } from './DtmStudentRecords';
+import { termLabel, useDtmLocale, type DtmLocale, type DtmTranslate } from './locale';
 import './digital-materials.css';
 
-const title = '數位教材網 Digital Teaching Materials (教材上網平台)';
+const brand = '數位教材網 Digital Teaching Materials (教材上網平台)';
+const official = 'https://dtm.stu.edu.tw/';
+const courseHref = (id:string) => '/dtm/course/'+encodeURIComponent(id);
+
+type DtmRoute = {mode:'home'|'login'|'dashboard'|'assignments'|'grades'|'course'|'missing';id?:string;view?:DtmView};
+function dtmRoute(pathname:string):DtmRoute {
+  const path = pathname.replace(/^\/school-sites\/dtm\.stu\.edu\.tw/,'/dtm').replace(/\/$/,'');
+  if (path==='/dtm/login'||path==='/dtm/login/index.php') return {mode:'login'};
+  if (path==='/dtm') return {mode:'home'};
+  if (path==='/dtm/dashboard'||path==='/dtm/my') return {mode:'dashboard'};
+  if (path==='/dtm/assignments') return {mode:'assignments'};
+  if (path==='/dtm/grades') return {mode:'grades'};
+  const course = /^\/dtm\/course\/([a-zA-Z0-9-]+)(?:\/([a-z]+))?$/.exec(path);
+  if (course && (!course[2] || dtmViews.includes(course[2] as DtmView)))
+    return {mode:'course',id:course[1],view:(course[2]||'materials') as DtmView};
+  return {mode:'missing'};
+}
+
+function OfficialLink({href,children}:{href:string;children:ReactNode}) {
+  return <a href={href} target="_blank" rel="noopener noreferrer">{children} <ExternalLink size={13} aria-hidden="true"/></a>;
+}
+
+function Navigation({courses,t}:{courses:DtmCourse[];t:DtmTranslate}) {
+  return <aside className="dtm-left" aria-label={t('數位教材網導覽','DTM navigation')}>
+    <section className="dtm-card">
+      <h2>{t('重要消息','Important information')}</h2>
+      <p><strong>{t('遠距教學課程','Online classes')}</strong> <OfficialLink href="https://tc.stu.edu.tw/">{t('請使用 TronClass 創課','Use TronClass')}</OfficialLink></p>
+      <p>{t('校方數位教材網主要存放實體課程教材。','The university DTM site primarily hosts materials for in-person classes.')}</p>
+    </section>
+    <nav className="dtm-card dtm-navigation" aria-label={t('我的課程選單','My courses navigation')}>
+      <h2>{t('導覽','Navigation')}</h2>
+      <Link to="/dtm">{t('首頁','Home')}</Link>
+      <Link to="/dtm/dashboard">{t('儀表板','Dashboard')}</Link>
+      <Link to="/dtm/assignments">{t('我的作業','My assignments')}</Link>
+      <Link to="/dtm/grades">{t('我的成績','My grades')}</Link>
+      <details className="dtm-tree" open>
+        <summary>{t('我的課程','My courses')}</summary>
+        {coursesByTerm(courses).map(([term,rows])=><details key={term} open={rows.some(course=>course.sourceMode==='personal')}>
+          <summary>{termLabel(term,t)}</summary>
+          <ul>{rows.map(course=><li key={course.id}><Link to={courseHref(course.id)}>{course.title}</Link></li>)}</ul>
+        </details>)}
+      </details>
+    </nav>
+    <section className="dtm-card">
+      <h2>{t('教學專區－教師','Teaching guides for instructors')}</h2>
+      <OfficialLink href={official+'mod/url/view.php?id=611329'}>{t('教材上傳教學','Upload materials')}</OfficialLink>
+      <OfficialLink href={official+'mod/url/view.php?id=34355'}>{t('Moodle 使用教學','Moodle guide')}</OfficialLink>
+    </section>
+    <section className="dtm-card">
+      <h2>{t('教學專區－學生','Teaching guides for students')}</h2>
+      <OfficialLink href={official+'mod/url/view.php?id=34355'}>{t('Moodle 使用教學','Moodle guide')}</OfficialLink>
+      <OfficialLink href="https://tc.stu.edu.tw/">{t('TronClass 平台','TronClass')}</OfficialLink>
+    </section>
+  </aside>;
+}
+
+function Resources({t}:{t:DtmTranslate}) {
+  return <aside className="dtm-right" aria-label={t('教材網資源','DTM resources')}>
+    <section className="dtm-card">
+      <h2>{t('快速連結','Quick links')}</h2>
+      {quickLinks.map(([zh,url,en])=>url.startsWith('/')?<Link key={url} to={url}>{t(zh,en)}</Link>:<OfficialLink key={url} href={url}>{t(zh,en)}</OfficialLink>)}
+      <Link to={wifiGuidePath}>{t('校園無線網路設定','Campus Wi-Fi setup')}</Link>
+      <OfficialLink href={official}>{t('校方數位教材網','University Moodle')}</OfficialLink>
+    </section>
+    <section className="dtm-card">
+      <h2>{t('聯絡方式','Contacts')}</h2>
+      <p><strong>{t('註冊與選課','Registration and course enrollment')}</strong><br/>07-6158000 #2012</p>
+      <p><strong>{t('教材上網','Course materials')}</strong><br/>07-6158000 #2010</p>
+      <p><strong>{t('系統問題','Technical support')}</strong><br/>07-6158000 #2440<br/><a href="mailto:service@stu.edu.tw">service@stu.edu.tw</a></p>
+      <OfficialLink href={officialRegistrarUrl}>{t('教務處註冊課務組','Registration and Curriculum Division')}</OfficialLink>
+    </section>
+    <section className="dtm-card">
+      <h2>{t('電腦軟硬體規格需求','System requirements')}</h2>
+      <p>{t('使用目前版本的瀏覽器與網路即可開啟教材。','Use a current web browser with an internet connection to open materials.')}</p>
+    </section>
+  </aside>;
+}
+
+function DtmHome({courses,t}:{courses:DtmCourse[];t:DtmTranslate}) {
+  const [search,setSearch] = useState('');
+  const [expanded,setExpanded] = useState<number[]>([1]);
+  const matching = courses.filter(course=>[course.code,course.title,course.term,termLabel(course.term,t)].join(' ').toLowerCase().includes(search.trim().toLowerCase()));
+  return <>
+    <h2 id="dtm-announcements">{t('系統公告','System announcements')}</h2>
+    <p className="dtm-reference-note">{t('校方公告標題，查閱於 '+observedAt+'。','University notice titles checked '+observedAt+'.')}</p>
+    <ul className="dtm-notices">
+      {announcements.map(([zh,url,en],index)=><li key={url} className={index<2?'dtm-important':undefined}>
+        {url.includes('/mod/url/')?<Globe size={18} aria-hidden="true"/>:<FileText size={18} aria-hidden="true"/>}
+        <OfficialLink href={url}>{t(zh,en)}</OfficialLink>
+      </li>)}
+    </ul>
+    <div className="dtm-section-heading">
+      <h2>{t('課程類別','Course categories')}</h2>
+      <Button size="sm" variant="ghost" onClick={()=>setExpanded(expanded.length?[]:categories.map(([, , id])=>id))}>
+        {expanded.length?t('全部縮合','Collapse all'):t('全部展開','Expand all')}
+      </Button>
+    </div>
+    <div className="dtm-categories">
+      {categories.map(([label,count,id])=><details key={id} open={expanded.includes(id)} onToggle={event=>{
+        const open=event.currentTarget.open;
+        setExpanded(current=>current.includes(id)===open?current:open?[...current,id]:current.filter(item=>item!==id));
+      }}>
+        <summary>{id===1?t('其他','Other courses'):termLabel(label,t)}{count>0&&<small> ({count.toLocaleString()})</small>}</summary>
+        <div className="dtm-category-body">
+          {id===1&&<ul className="dtm-other-categories">{otherCategories.map(([zh,en,categoryId,total])=>
+            <li key={categoryId}><OfficialLink href={official+'course/index.php?categoryid='+categoryId}>{t(zh,en)}{total>0?' ('+total+')':''}</OfficialLink></li>)}</ul>}
+          {matching.filter(course=>course.term===label).map(course=><Link className="dtm-course-link" to={courseHref(course.id)} key={course.id}>{course.title}<ChevronRight size={16}/></Link>)}
+          <OfficialLink href={official+'course/index.php?categoryid='+id}>{t('開啟校方課程類別','Open university category')}</OfficialLink>
+        </div>
+      </details>)}
+    </div>
+    <OfficialLink href={official+'course/index.php?browse=categories&page=1&categoryid=0'}>{t('查看所有校方課程類別','See all university course categories')}</OfficialLink>
+    <label className="dtm-search"><Search size={18} aria-hidden="true"/>{t('搜尋我的課程','Search my courses')}
+      <input type="search" value={search} onChange={event=>setSearch(event.target.value)} placeholder={t('代碼或課程名稱','Code or course name')}/>
+    </label>
+    {search.trim()&&<div className="dtm-search-results">{matching.length
+      ? matching.map(course=><Link className="dtm-course-link" to={courseHref(course.id)} key={course.id}>{course.code} · {course.title}</Link>)
+      : <p>{t('沒有符合的課程。','No matching saved courses.')}</p>}</div>}
+  </>;
+}
+
+function SignedInWorkspace({userId,route,t,hash}:{userId:string;route:DtmRoute;t:DtmTranslate;hash:string}) {
+  const {snapshot,error,loading,refresh}=useAffairsRecords(userId);
+  const selected=snapshot?.dtm.courses.find(course=>course.id===route.id);
+  useEffect(()=>{
+    if (!snapshot || !/^#[a-z0-9_-]+$/i.test(hash)) return;
+    const frame=requestAnimationFrame(()=>document.getElementById(hash.slice(1))?.scrollIntoView({block:'nearest'}));
+    return ()=>cancelAnimationFrame(frame);
+  },[snapshot,hash,route.mode,route.view]);
+  return <>
+    {error&&<div role="alert" className="dtm-error">{error} <Button size="sm" variant="outline" onClick={refresh}>{t('重試','Retry')}</Button></div>}
+    {loading&&!snapshot&&<p role="status">{t('載入課程紀錄中…','Loading course records…')}</p>}
+    {snapshot&&<div className={'dtm-columns'+(route.mode==='home'?'':' dtm-columns-course')}>
+      <Navigation courses={snapshot.dtm.courses} t={t}/>
+      <section className="dtm-center" aria-label={t('教材網內容','Digital teaching materials content')}>
+        {route.mode==='home'?<DtmHome courses={snapshot.dtm.courses} t={t}/>
+          :route.mode==='missing'||(route.mode==='course'&&!selected)
+            ?loading?<p role="status">{t('載入課程中…','Loading course…')}</p>:<div className="dtm-card"><h2>{t('找不到課程或頁面','Course or page unavailable')}</h2>
+              <p>{t('請從您的儀表板選擇一門課。','Choose a course from your dashboard.')}</p><Link to="/dtm/dashboard">{t('前往儀表板','Open dashboard')}</Link></div>
+            :route.mode!=='login'&&<DtmStudentRecords key={route.mode+':'+(route.id||'')+':'+(route.view||'')} snapshot={snapshot}
+              course={selected} view={route.view} mode={route.mode} t={t} refresh={refresh}/>}
+      </section>
+      {route.mode==='home'&&<Resources t={t}/>}
+    </div>}
+  </>;
+}
 
 export default function DigitalMaterials() {
-  const { pathname } = useLocation();
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const { user, loading } = useAffairsAuth();
-  const [storedSnapshot, setSnapshot] = useState<AffairsSnapshot | null>(null);
-  const snapshot = storedSnapshot?.profile.userId === user?.id ? storedSnapshot : null;
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [expanded, setExpanded] = useState(true);
-  const [courseSearch, setCourseSearch] = useState('');
-  const loginPath = pathname === '/dtm/login' || pathname.endsWith('/login/index.php');
-  useEffect(() => { document.title = `${title} · stu.best`; }, []);
-  useEffect(() => {
-    if (!user) return;
-    let active = true;
-    void loadSchoolAffairsData().then(data => { if (active) { setError(''); setSnapshot(data); } })
-      .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Could not load digital materials.'); });
-    return () => { active = false; };
-  }, [user]);
-  if (loading) return <main className="dtm-loading" role="status">Checking your Google session…</main>;
-  if (user && loginPath) return <Navigate to="/dtm" replace />;
-  if (!user && !loginPath) return <Navigate to="/dtm/login" replace />;
+  const {pathname,search,hash}=useLocation();
+  const route=dtmRoute(pathname);
+  const navigate=useNavigate();
+  const {user,loading}=useAffairsAuth();
+  const {locale,changeLocale,t}=useDtmLocale();
+  const [error,setError]=useState('');
+  const [busy,setBusy]=useState(false);
+  const next=safeSchoolReturnPath(new URLSearchParams(search).get('next'),'/dtm');
+  const returnTo=next.startsWith('/dtm')?next:'/dtm';
+
+  useEffect(()=>{document.title=brand+' · stu.best';},[]);
+  if (loading) return <main className="dtm-loading" role="status">{t('正在確認 Google 登入…','Checking your Google session…')}</main>;
+  if (user&&route.mode==='login') return <Navigate to={returnTo} replace/>;
+  if (!user&&route.mode!=='login') {
+    const target=safeSchoolReturnPath(pathname+hash,'/dtm');
+    return <Navigate to={target==='/dtm'?'/dtm/login':'/dtm/login?next='+encodeURIComponent(target)} replace/>;
+  }
   async function signIn() {
-    setBusy(true); setError('');
-    try { await startGoogleSignIn('/dtm'); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : 'Google sign-in could not start.'); setBusy(false); }
+    setBusy(true);
+    setError('');
+    try {await startGoogleSignIn(returnTo);}
+    catch (reason) {setError(reason instanceof Error?reason.message:t('無法開啟 Google 登入。','Could not start Google sign-in.'));setBusy(false);}
   }
   async function signOut() {
-    setBusy(true); setError('');
-    try { await signOutAffairs(); navigate('/dtm/login', {replace:true}); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : 'Sign out failed.'); setBusy(false); }
+    setBusy(true);
+    setError('');
+    try {await signOutAffairs();navigate('/dtm/login',{replace:true});}
+    catch (reason) {setError(reason instanceof Error?reason.message:t('登出失敗。','Sign out failed.'));}
+    finally {setBusy(false);}
   }
-  const selected = snapshot?.dtm.courses.find(course => course.id === id);
-  const matchingCourses = snapshot?.dtm.courses.filter(course => `${course.code} ${course.title} ${course.term}`.toLocaleLowerCase().includes(courseSearch.trim().toLocaleLowerCase())) || [];
-  return <div className="dtm">
-    <header className="dtm-top"><Link to="/dtm" className="dtm-brand">{title}</Link><span className="dtm-language">正體中文 (zh_tw) <ChevronDown size={16}/></span><div className="dtm-top-account">{user ? <><Bell size={18} aria-label="Notifications"/><MessageSquare size={18} aria-label="Messages"/><UserRound size={20}/><span>{snapshot?.profile.displayName || user.email}</span><Button variant="ghost" size="sm" disabled={busy} onClick={signOut}><LogOut size={16}/> 登出</Button></> : 'You are not logged in.'}</div></header>
-    <main className="dtm-main"><h1>數位教材網 <span>DIGITAL TEACHING MATERIALS (教材上網平台)</span></h1>
-      <nav className="dtm-breadcrumb" aria-label="Breadcrumb"><Link to="/dtm">Home</Link>{loginPath ? <><ChevronRight size={16}/>Log in to the site</> : selected ? <><ChevronRight size={16}/><Link to="/dtm">My courses</Link><ChevronRight size={16}/>{selected.title}</> : null}</nav>
-      {!user ? <div className="dtm-login"><h2>樹德科大老師與學生請使用 Google 登入</h2><p>Sign in with the same Google account used for the stu.best School Affairs preview.</p><Button size="lg" onClick={signIn} disabled={busy}><span className="dtm-google-g">G</span>{busy ? 'Opening Google…' : 'Continue with Google'}</Button><p className="dtm-note">stu.best 是獨立介面預覽。此登入不連接校方 Moodle 帳號；登入後顯示範例課程。</p><p><Link to="/school-affairs/login">School Affairs</Link> · <Link to="/">School homepage</Link></p>{error && <p role="alert" className="dtm-error">{error}</p>}</div>
-      : <><div className="dtm-sample" role="note">範例資料 · Sample stu.best records only. No official university courses, submissions or Moodle account are connected.</div>
-      {error && <div role="alert" className="dtm-error">{error} <Button variant="outline" onClick={() => window.location.reload()}>Retry</Button></div>}
-      {!snapshot && !error ? <p role="status">Loading your sample courses…</p> : snapshot ? <div className="dtm-columns">
-        <aside className="dtm-left" aria-label="DTM navigation">
-          <section className="dtm-card"><h2>重要消息</h2><p><strong>遠距教學課程</strong>請到 <a href="https://tc.stu.edu.tw/" target="_blank" rel="noreferrer">TronClass 創課 <ExternalLink size={13}/></a></p><p>官方數位教材網主要存放實體課程。</p></section>
-          <section className="dtm-card dtm-navigation"><h2>導覽</h2><Link to="/dtm">首頁</Link><Link to="/dtm">儀表板</Link><button type="button" className="dtm-tree" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>我的課程 <ChevronDown size={16}/></button>{expanded && <ul><li>{snapshot.dtm.courses[0]?.term || '115學年度第1學期'}<ul>{snapshot.dtm.courses.map(course => <li key={course.id}><Link to={`/dtm/course/${course.id}`}>{course.title}</Link></li>)}</ul></li></ul>}</section>
-          <section className="dtm-card"><h2>教學專區－教師</h2><a href="https://dtm.stu.edu.tw/" target="_blank" rel="noreferrer">教材上傳教學 <ExternalLink size={13}/></a><a href="https://dtm.stu.edu.tw/" target="_blank" rel="noreferrer">Moodle 使用教學 <ExternalLink size={13}/></a></section>
-          <section className="dtm-card"><h2>教學專區－學生</h2><a href="https://dtm.stu.edu.tw/" target="_blank" rel="noreferrer">Moodle 使用教學 <ExternalLink size={13}/></a><a href="https://tc.stu.edu.tw/" target="_blank" rel="noreferrer">TronClass 平台 <ExternalLink size={13}/></a></section>
-        </aside>
-        <section className="dtm-center" aria-label="Digital teaching materials content">{selected ? <><h2>{selected.title}</h2><p className="dtm-course-meta">{selected.code} · {selected.term} · {selected.role} · stu.best sample</p><h3>課程教材 · Course materials</h3><div className="dtm-materials">{selected.materials.map(item => <article className="dtm-card" key={item.id}><FileText size={20}/><div><strong>{item.title}</strong><span>{item.kind} · {item.summary}</span></div></article>)}</div><h3>My assignments</h3><ul className="dtm-notices">{snapshot.assignments.filter(item=>item.dtmCourseId===selected.id).map(item=><li key={item.id}><FileText size={18}/><div><strong>{item.title}</strong><span>{item.status} · {item.dueAt?`Due ${new Date(item.dueAt).toLocaleString('en-US',{timeZone:'Asia/Taipei'})} Taipei`:'No due date'} · Sample</span></div></li>)}</ul><p className="dtm-note">These materials and assignments are stu.best sample records, not university submissions.</p></> : <>
-          <h2>系統公告</h2><p className="dtm-reference-note">Official DTM notice titles observed {observedAt}. Open the source for the latest details; these notices are not account records.</p><ul className="dtm-notices">{announcements.map(([label,url],index) => <li key={url}><span className="dtm-document-icon" aria-hidden="true">{index%3===0?'🌐':'▤'}</span><a href={url} target="_blank" rel="noreferrer">{label} <ExternalLink size={13}/></a></li>)}</ul>
-          <h2>我的 stu.best 教材 <span className="dtm-small-count">({snapshot.dtm.courses.length})</span></h2><ul className="dtm-notices">{snapshot.dtm.notices.map(notice => <li key={notice.id}><FileText size={18}/><div><strong>{notice.title}</strong><span>{notice.body} · Sample</span></div></li>)}</ul><h3>My assignments</h3><ul className="dtm-notices">{snapshot.assignments.filter(item=>item.dtmCourseId).map(item=><li key={item.id}><FileText size={18}/><div><strong>{item.course} · {item.title}</strong><span>{item.status} · {item.dueAt?`Due ${new Date(item.dueAt).toLocaleString('en-US',{timeZone:'Asia/Taipei'})} Taipei`:'No due date'} · Sample</span></div></li>)}</ul>
-          <h2>課程類別</h2><div className="dtm-categories">{categories.map(([label,count,categoryId]) => <details key={categoryId}><summary>{label}{count>0 ? <small> ({count} at official DTM on {observedAt})</small> : null}</summary><div className="dtm-category-body">{matchingCourses.filter(course=>course.term===label).map(course=><Link className="dtm-course-link" to={`/dtm/course/${course.id}`} key={course.id}>{course.title}<ChevronRight size={16}/></Link>)}<a href={`https://dtm.stu.edu.tw/course/index.php?categoryid=${categoryId}`} target="_blank" rel="noreferrer">View official category <ExternalLink size={13}/></a></div></details>)}</div>
-          <label className="dtm-search"><Search size={18}/>搜尋我的課程<input type="search" value={courseSearch} onChange={event=>setCourseSearch(event.target.value)} placeholder="Code or course title"/></label>{courseSearch && <div className="dtm-search-results">{matchingCourses.length ? matchingCourses.map(course=><Link className="dtm-course-link" to={`/dtm/course/${course.id}`} key={course.id}>{course.code} · {course.title}</Link>) : <p>No stu.best sample courses match.</p>}</div>}
-        </>}</section>
-        <aside className="dtm-right" aria-label="DTM resources"><section className="dtm-card"><h2>快速連結</h2>{quickLinks.map(([label,url]) => url.startsWith('/') ? <Link key={url} to={url}>{label}</Link> : <a key={url} href={url} target="_blank" rel="noreferrer">{label} <ExternalLink size={13}/></a>)}</section><section className="dtm-card"><h2>聯絡方式</h2><p><strong>一般生、校際選課生</strong> 教務處註冊課務組<br/>07-6158000#2012</p><p><strong>教材上網</strong> 教務處註冊課務組<br/>07-6158000#2010</p><p><strong>學分班學員</strong> 推廣教育中心<br/>07-6158000#2505</p><p><strong>系統問題</strong> 電算中心<br/>07-6158000#2440<br/><a href="mailto:service@stu.edu.tw">service@stu.edu.tw</a></p><small>Contact details observed {observedAt}; verify with the university before relying on them.</small></section><section className="dtm-card"><h2>電腦軟硬體規格需求</h2><p>Moodle runs in a web browser with a network connection. Use a current browser for best results.</p></section><section className="dtm-card"><h2>我的 stu.best 帳號</h2><p>{snapshot.profile.displayName}<br/>{snapshot.profile.email}</p><p>Google session shared with School Affairs. Official Moodle sign-in is separate.</p></section></aside>
-      </div> : null}</>}
-    </main><footer className="dtm-footer"><span>{user ? `Signed in as ${user.email}` : 'You are not logged in.'}</span><span>stu.best · independent campus website preview</span></footer>
+  return <div className="dtm" lang={locale}>
+    <a className="dtm-skip" href="#dtm-content">{t('跳至主內容','Skip to main content')}</a>
+    <header className="dtm-top">
+      <Link to="/dtm" className="dtm-brand">{brand}</Link>
+      <label className="dtm-language"><span className="sr-only">Language / 語言</span>
+        <select value={locale} onChange={event=>changeLocale(event.target.value as DtmLocale)}>
+          <option value="zh-Hant" lang="zh-Hant">正體中文 (zh_tw)</option>
+          <option value="en" lang="en">English (en)</option>
+        </select>
+      </label>
+      <div className="dtm-top-account">{user?<>
+        <Link className="dtm-top-icon" to="/dtm#dtm-announcements" aria-label={t('系統公告','System announcements')}><Bell size={19}/></Link>
+        <a className="dtm-top-icon" href={official+'message/index.php'} target="_blank" rel="noopener noreferrer"
+          aria-label={t('在校方 Moodle 開啟訊息','Open university Moodle messages')}><MessageSquare size={19}/></a>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild><Button variant="ghost" className="dtm-user"><UserRound size={20}/><span>{user.user_metadata?.full_name||user.email||'Google'}</span></Button></DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild><Link to="/dtm/dashboard">{t('儀表板','Dashboard')}</Link></DropdownMenuItem>
+            <DropdownMenuItem asChild><Link to="/dtm/grades">{t('我的成績','My grades')}</Link></DropdownMenuItem>
+            <DropdownMenuItem onSelect={()=>void signOut()} disabled={busy}><LogOut size={16}/>{t('登出','Sign out')}</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </>:t('您尚未登入。','You are not logged in.')}</div>
+    </header>
+    <main className="dtm-main" id="dtm-content" tabIndex={-1}>
+      <h1>{t('數位教材網 DIGITAL TEACHING MATERIALS (教材上網平台)','Digital Teaching Materials')}</h1>
+      {route.mode!=='home'&&<nav className="dtm-breadcrumb" aria-label={t('頁面位置','Breadcrumb')}>
+        <Link to="/dtm">{t('首頁','Home')}</Link><ChevronRight size={16} aria-hidden="true"/>
+        {route.mode==='login'?t('登入網站','Log in to the site'):route.mode==='course'
+          ? <Link to="/dtm/dashboard">{t('我的課程','My courses')}</Link>
+          : t('我的教材網','My DTM workspace')}
+      </nav>}
+      {error&&<p role="alert" className="dtm-error">{error}</p>}
+      {!user?<section className="dtm-login">
+        <h2>{t('登入數位教材網','Sign in to Digital Teaching Materials')}</h2>
+        <p>{t('使用您的 Google 帳號開啟 stu.best 教材、作業與成績紀錄。','Use your Google account to open your materials, assignments and grade records on stu.best.')}</p>
+        <Button size="lg" onClick={()=>void signIn()} disabled={busy}><img src="/auth/google-g.png" alt="" width="20" height="20"/>{busy?t('連線中…','Opening Google…'):'Continue with Google'}</Button>
+        <p className="dtm-note">{t('校方教材與正式成績請使用校方數位教材網。','Use university Moodle for official materials and grades.')}</p>
+        <p><OfficialLink href={official}>{t('開啟校方 Moodle','Open university Moodle')}</OfficialLink> · <Link to="/school-affairs/login">{t('校務系統','School Affairs')}</Link></p>
+      </section>:<SignedInWorkspace key={user.id} userId={user.id} route={route} t={t} hash={hash}/>}
+    </main>
+    <footer className="dtm-footer">
+      <span>{t('數位教材網 · stu.best 獨立學生工作區','Digital Teaching Materials · Independent stu.best student workspace')}</span>
+      <Link to="/school-affairs/privacy">{t('帳號與隱私','Account and privacy')}</Link>
+    </footer>
   </div>;
 }

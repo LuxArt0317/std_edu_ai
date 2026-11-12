@@ -2,6 +2,8 @@
 
 Run focused integration scripts through the `test:*` commands in the root `package.json`. `school-affairs-entry-ui.mjs` exercises the isolated Google session and assistant drawer with synthetic provider fixtures; it does not establish a real Google callback.
 
+`student-workspace-rls-live.mjs` checks ownership, relational constraints, repeat imports, deletion and site review in a rolled-back transaction against the exact client database. Add `--preflight` to apply the pending migration inside that transaction. `student-workspace-live.mjs` uses a disposable identity to check the deployed forms, assistant links, persistence and responsive accessibility, then removes the fixture.
+
 `affairs-record-manager-ui.mjs` checks the Lux sample-record forms at phone width with a synthetic Google session and API responses. `affairs-workspace-rls-live.mjs` rolls back a two-account database transaction after checking fee and assignment seeding, cross-account isolation and nonadmin write denial.
 
 `school-mirror-ui.mjs` also checks the direct homepage at 3020, 2048, 1440, 768, 390 and 320 pixels: the sticky header spans the viewport, navigation stays centered, one hero slide fills the carousel, and the page has no sideways scroll.

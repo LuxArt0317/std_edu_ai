@@ -4,8 +4,8 @@ export class AffairsWorkspaceError extends Error {
 }
 
 function configuration() {
-  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY;
+  const url = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY;
   if (!url || !key || !/^https:\/\/xiftudmvxphxcjtmfmib\.supabase\.co\/?$/.test(url))
     throw new AffairsWorkspaceError('The client School Affairs database is unavailable.');
   return {url:url.replace(/\/$/,''),key};
@@ -51,11 +51,22 @@ async function request(account, table, options = {}) {
 
 const own=(userId,limit=50)=>({select:'*',user_id:`eq.${userId}`,limit});
 const byIds=(ids)=>ids.length?`in.(${ids.join(',')})`:'eq.00000000-0000-0000-0000-000000000000';
+// PostgREST caps each response. A student's past terms can span many pages.
+async function readAccountRows(account, table, query) {
+  const rows = [];
+  const pageSize = 500;
+  for (let offset = 0; ; offset += pageSize) {
+    const page = await request(account, table, {query:{...query,limit:pageSize,offset}});
+    if (!Array.isArray(page)) throw new AffairsWorkspaceError('School Affairs returned invalid records.');
+    rows.push(...page);
+    if (page.length < pageSize) return rows;
+  }
+}
 export async function loadAffairsSnapshot(account, includeAdmin = false) {
   await request(account,'affairs_initialize_account',{rpc:true});
   await request(account,'dtm_initialize_account',{rpc:true});
   const userId=account.user.id;
-  const [profiles,students,terms,programs,courses,sections,announcements,tasks,requests,adminProfiles,adminStudents,adminEnrollments,adminDtmCourses,adminRequests,dtmCourses,dtmNotices]=await Promise.all([
+  const [profiles,students,terms,programs,courses,sections,announcements,tasks,requests,adminProfiles,adminStudents,adminEnrollments,adminDtmCourses,adminRequests,dtmCourses,dtmNotices,serviceRecords]=await Promise.all([
     request(account,'affairs_profiles',{query:own(userId,1)}),
     request(account,'affairs_students',{query:own(userId,1)}),
     request(account,'affairs_terms',{query:{select:'*',limit:30}}),
@@ -68,24 +79,30 @@ export async function loadAffairsSnapshot(account, includeAdmin = false) {
     includeAdmin?request(account,'affairs_profiles',{query:{select:'user_id,email,display_name,role,created_at',order:'created_at.desc',limit:100}}):Promise.resolve([]),
     includeAdmin?request(account,'affairs_students',{query:{select:'id,user_id,student_number,full_name',limit:100}}):Promise.resolve([]),
     includeAdmin?request(account,'affairs_enrollments',{query:{select:'id,student_id,section_id,status',limit:500}}):Promise.resolve([]),
-    includeAdmin?request(account,'dtm_courses',{query:{select:'id,user_id,code,title,term',limit:500}}):Promise.resolve([]),
-    includeAdmin?request(account,'affairs_service_requests',{query:{select:'id,user_id,request_type,title,status,created_at',order:'created_at.desc',limit:100}}):Promise.resolve([]),
-    request(account,'dtm_courses',{query:{...own(userId),order:'created_at.desc'}}),
+    includeAdmin?request(account,'dtm_courses',{query:{select:'id,user_id,code,title,term',source_mode:'eq.sample',limit:500}}):Promise.resolve([]),
+    includeAdmin?request(account,'affairs_service_requests',{query:{select:'id,user_id,request_type,title,details,status,created_at',order:'created_at.desc',limit:100}}):Promise.resolve([]),
+    readAccountRows(account,'dtm_courses',{...own(userId),order:'created_at.desc,id.asc'}),
     request(account,'dtm_notices',{query:{select:'*',order:'published_at.desc',limit:30}}),
+    readAccountRows(account,'affairs_service_records',{...own(userId),select:'*,affairs_service_requests(status)',order:'updated_at.desc,id.asc'}),
   ]);
   const profile=profiles[0];
   if (!profile || (includeAdmin && profile.role!=='admin')) throw new AffairsWorkspaceError('Administrator access is required.',403);
   const student=students[0]||null;
   const enrollments=student?await request(account,'affairs_enrollments',{query:{select:'*',student_id:`eq.${student.id}`,limit:100}}):[];
   const enrollmentIds=enrollments.map(item=>item.id);
-  const [grades,attendance,charges,assignments,dtmMaterials,adminCharges,adminAssignments]=await Promise.all([
+  const dtmRows = (table, order) => dtmCourses.length ? readAccountRows(account, table, {
+    select:'*,dtm_courses!inner(user_id)', 'dtm_courses.user_id':`eq.${userId}`, order,
+  }) : Promise.resolve([]);
+  const [grades,attendance,charges,assignments,dtmMaterials,adminCharges,adminAssignments,dtmMeetings,dtmGrades]=await Promise.all([
     request(account,'affairs_grade_items',{query:{select:'*',enrollment_id:byIds(enrollmentIds),limit:200}}),
     request(account,'affairs_attendance',{query:{select:'*',enrollment_id:byIds(enrollmentIds),limit:200}}),
     student?request(account,'affairs_charges',{query:{select:'*',student_id:`eq.${student.id}`,limit:100}}):Promise.resolve([]),
-    student?request(account,'affairs_assignments',{query:{select:'*',student_id:`eq.${student.id}`,order:'due_at.asc',limit:200}}):Promise.resolve([]),
-    request(account,'dtm_materials',{query:{select:'*',course_id:byIds(dtmCourses.map(row=>row.id)),order:'position.asc',limit:200}}),
+    student?readAccountRows(account,'affairs_assignments',{select:'*',student_id:`eq.${student.id}`,order:'due_at.asc.nullslast,id.asc'}):Promise.resolve([]),
+    dtmRows('dtm_materials','position.asc,id.asc'),
     includeAdmin?request(account,'affairs_charges',{query:{select:'*',limit:500}}):Promise.resolve([]),
-    includeAdmin?request(account,'affairs_assignments',{query:{select:'*',limit:500}}):Promise.resolve([]),
+    includeAdmin?request(account,'affairs_assignments',{query:{select:'*',source_mode:'eq.sample',limit:500}}):Promise.resolve([]),
+    dtmRows('dtm_meetings','meeting_on.desc,starts_at.desc,id.asc'),
+    dtmRows('dtm_grade_items','graded_on.desc.nullslast,id.asc'),
   ]);
   const courseById=new Map(courses.map(row=>[row.id,row]));
   const termById=new Map(terms.map(row=>[row.id,row]));
@@ -105,7 +122,8 @@ export async function loadAffairsSnapshot(account, includeAdmin = false) {
     }),
     charges:charges.map(row=>({id:row.id,label:row.label,amountDue:Number(row.amount_due),amountPaid:Number(row.amount_paid),currency:row.currency,dueOn:row.due_on,sourceMode:row.source_mode})),
     assignments:assignments.map(row=>({id:row.id,title:row.title,details:row.details,dueAt:row.due_at,status:row.status,submittedAt:row.submitted_at,sourceMode:row.source_mode,
-      enrollmentId:row.enrollment_id,dtmCourseId:row.dtm_course_id,
+      enrollmentId:row.enrollment_id,dtmCourseId:row.dtm_course_id,meetingId:row.meeting_id ?? null,
+      origin:row.import_key?'moodle_calendar':row.source_mode==='personal'?'manual':'sample',
       course:row.enrollment_id
         ? courseById.get(sectionById.get(enrollments.find(item=>item.id===row.enrollment_id)?.section_id)?.course_id)?.code||'School Affairs'
         : dtmCourses.find(item=>item.id===row.dtm_course_id)?.code||'DTM',
@@ -113,16 +131,43 @@ export async function loadAffairsSnapshot(account, includeAdmin = false) {
     announcements:announcements.map(row=>({id:row.id,title:row.title,body:row.body,publishedAt:row.published_at,sourceMode:row.source_mode})),
     tasks:tasks.map(row=>({id:row.id,title:row.title,dueAt:row.due_at,completedAt:row.completed_at,sourceMode:row.source_mode})),
     requests:requests.map(row=>({id:row.id,type:row.request_type,title:row.title,details:row.details,status:row.status,createdAt:row.created_at})),
-    dtm:{sourceMode:'sample',courses:dtmCourses.map(row=>({id:row.id,code:row.code,title:row.title,term:row.term,role:row.role,sourceMode:row.source_mode,materials:dtmMaterials.filter(item=>item.course_id===row.id).map(item=>({id:item.id,title:item.title,kind:item.kind,summary:item.summary,position:item.position,sourceMode:item.source_mode}))})),notices:dtmNotices.map(row=>({id:row.id,title:row.title,body:row.body,publishedAt:row.published_at,sourceMode:row.source_mode}))},
+    serviceRecords:serviceRecords.map(row=>({
+      id:row.id, serviceKey:row.service_key, recordType:row.record_type, title:row.title, notes:row.notes,
+      status:row.status, startsOn:row.starts_on, endsOn:row.ends_on, leaveCategory:row.leave_category,
+      periods:row.periods, updatedAt:row.updated_at, reviewStatus:row.affairs_service_requests?.status ?? null,
+    })),
+    dtm:{
+      sourceMode:dtmCourses.some(row=>row.source_mode==='personal')?'personal':'sample',
+      courses:dtmCourses.map(row=>({
+        id:row.id,code:row.code,title:row.title,term:row.term,role:row.role,sourceMode:row.source_mode,
+        materials:dtmMaterials.filter(item=>item.course_id===row.id).map(item=>({
+          id:item.id,title:item.title,kind:item.kind,summary:item.summary,position:item.position,
+          sourceMode:item.source_mode,sourceUrl:item.source_url ?? null,
+        })),
+        meetings:dtmMeetings.filter(item=>item.course_id===row.id).map(item=>({
+          id:item.id,date:item.meeting_on,startsAt:item.starts_at,title:item.title,attendance:item.attendance,notes:item.notes,
+        })),
+        grades:dtmGrades.filter(item=>item.course_id===row.id).map(item=>({
+          id:item.id,label:item.label,score:Number(item.score),maximum:Number(item.maximum),date:item.graded_on,feedback:item.feedback,
+        })),
+      })),
+      notices:dtmNotices.map(row=>({id:row.id,title:row.title,body:row.body,publishedAt:row.published_at,sourceMode:row.source_mode})),
+    },
     ...(includeAdmin?{admin:{profiles:adminProfiles,students:adminStudents,sections:sections.map(row=>({id:row.id,code:courseById.get(row.course_id)?.code||'',term:termById.get(row.term_id)?.label||''})),enrollments:adminEnrollments.map(row=>({id:row.id,studentId:row.student_id,status:row.status,code:courseById.get(sectionById.get(row.section_id)?.course_id)?.code||''})),dtmCourses:adminDtmCourses,charges:adminCharges,assignments:adminAssignments,requests:adminRequests}}:{}),
   };
 }
 
 export async function executeAffairsAction(account,kind,payload) {
-  if (!['create_task','complete_task','create_service_request','publish_announcement','resolve_service_request'].includes(kind)
-    || !payload || typeof payload!=='object' || Array.isArray(payload))
+  if (!payload || typeof payload!=='object' || Array.isArray(payload))
     throw new AffairsWorkspaceError('Unsupported School Affairs action.',400);
-  return request(account,'affairs_execute_action',{rpc:true,body:{p_kind:kind,p_payload:payload}});
+  const body={p_kind:kind,p_payload:payload};
+  if (['save_service_record','delete_service_record','submit_service_record_for_review'].includes(kind))
+    return request(account,'affairs_manage_service_record',{rpc:true,body});
+  if (/^(?:save|delete)_dtm_(?:course|meeting|assignment|grade|material)$/.test(kind) || kind==='import_dtm_deadlines')
+    return request(account,'dtm_manage_record',{rpc:true,body});
+  if (['create_task','complete_task','create_service_request','publish_announcement','resolve_service_request'].includes(kind))
+    return request(account,'affairs_execute_action',{rpc:true,body});
+  throw new AffairsWorkspaceError('Unsupported School Affairs action.',400);
 }
 
 export async function manageAffairsRecord(account,kind,payload) {
