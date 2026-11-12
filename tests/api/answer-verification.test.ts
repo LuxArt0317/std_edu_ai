@@ -124,6 +124,19 @@ test('oversized collections explicitly report omitted rows and do not imply a co
   assert.ok(source.content.length<26000);
 });
 
+test('Moodle lookups include separately stored assignments and calendar evidence uses Taipei dates',()=>{
+ const snapshot={checkedAt:'2026-11-12T17:00:00Z',dtm:{courses:[{id:'personal',title:'Personal course'}]},assignments:[{id:'work',dtmCourseId:'personal',title:'Reflection',status:'open'}],courses:[
+  {id:'friday',code:'F1',title:'Friday class',status:'enrolled',weekday:5,startsAt:'08:00',endsAt:'09:00',termStartsOn:'2026-09-01',termEndsOn:'2027-01-01'},
+  {id:'thursday',code:'T1',title:'Thursday class',status:'enrolled',weekday:4,startsAt:'08:00',endsAt:'09:00',termStartsOn:'2026-09-01',termEndsOn:'2027-01-01'},
+ ]};
+ const dtm=accountEvidence(snapshot,['dtm']);assert.ok(dtm.some(item=>item.id==='account:assignments'&&item.content.includes('Reflection')));
+ assert.ok(accountEvidence(snapshot,['assignments']).some(item=>item.id==='account:dtm'));
+ const course=accountEvidence(snapshot,['courses']).find(item=>item.id==='account:courses')!;
+ const calendar=JSON.parse(course.content).calendar.records;
+ assert.equal(calendar.day,'2026-11-13');assert.equal(calendar.timeZone,'Asia/Taipei');
+ assert.deepEqual(calendar.today.map((row:any)=>row.id),['friday']);assert.equal(calendar.next.course.id,'friday');
+});
+
 test('missing provider configuration cannot silently mark a factual draft verified',async()=>{
   const old=process.env.OPENAI_API_KEY;delete process.env.OPENAI_API_KEY;
   try {await assert.rejects(()=>verifyEvidenceAnswer({question:'Fees?',candidate:draft,evidence,deadline:Date.now()+10000}));}

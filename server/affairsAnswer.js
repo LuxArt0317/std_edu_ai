@@ -148,7 +148,7 @@ export async function answerPrivateAffairsQuestion(question,snapshot,history=[],
   const apiKey=process.env.OPENAI_API_KEY;
   if (apiKey && !deterministic && !options.draftOnly) {
     // Personal DTM and student-service records are handled locally above.
-    const {serviceRecords: _privateServiceRecords, requests: _privateRequests, scholarship: _privateScholarship, studentAid: _privateStudentAid, housing: _privateHousing, admin: _admin, charges: _privateCharges, creditLoadHistory: _privateCreditLoadHistory, courseSelection: _privateCourseSelection, ...modelSnapshot} = snapshot;
+    const {serviceRecords: _privateServiceRecords, requests: _privateRequests, scholarship: _privateScholarship, studentAid: _privateStudentAid, housing: _privateHousing, admin: _admin, charges: _privateCharges, creditLoadHistory: _privateCreditLoadHistory, courseSelection: _privateCourseSelection, academicGrades: _privateAcademicGrades, graduationReview: _privateGraduationReview, academicAttendance: _privateAcademicAttendance, ...modelSnapshot} = snapshot;
     modelSnapshot.dtm = {...snapshot.dtm,courses:snapshot.dtm?.courses?.filter(course=>course.sourceMode!=='personal') || []};
     modelSnapshot.assignments = snapshot.assignments?.filter(item=>item.sourceMode!=='personal') || [];
     try {

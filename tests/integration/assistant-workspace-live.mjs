@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {randomBytes,randomUUID} from 'node:crypto';
-import {readFile,mkdir,writeFile} from 'node:fs/promises';
+import {readFile,mkdir,writeFile,rm} from 'node:fs/promises';
 import {createClient} from '@supabase/supabase-js';
 import postgres from 'postgres';
 import {chromium} from 'playwright-core';
@@ -19,11 +19,12 @@ assert.equal(new URL(url).hostname,config.supabase.projectRef+'.supabase.co');
 const connection=env.POSTGRES_URL_NON_POOLING||env.POSTGRES_URL||env.DATABASE_URL,target=new URL(connection);
 assert.ok(target.hostname===`db.${config.supabase.projectRef}.supabase.co`||target.hostname.endsWith('.pooler.supabase.com')&&target.username.endsWith('.'+config.supabase.projectRef));
 const auth={persistSession:false,autoRefreshToken:false},key=env.VITE_SUPABASE_PUBLISHABLE_KEY||env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||env.SUPABASE_ANON_KEY;
-const admin=createClient(url,env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_SECRET_KEY,{auth});
+const admin=createClient(url,env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_SECRET_KEY,{auth,global:{fetch:(input,init)=>fetch(input,{...init,signal:AbortSignal.timeout(15000)})}});
 const sql=postgres(connection,{max:2,ssl:{rejectUnauthorized:true,ca:await readFile('supabase/certs/prod-ca-2021.crt','utf8')},onnotice:()=>{}});
 const users=[],checks=[],answers=[],failures=[];
 const handlers={'/api/affairs-conversations':dataHandler,'/api/affairs-action':actionHandler,'/api/affairs-data':dataHandler};
 const runId=randomUUID(),chatId=randomUUID(),courseId=randomUUID(),assignmentId=randomUUID();
+const fixtureLedger=`artifacts/assistant-verification/active-fixtures-${runId}.json`;
 let browser,phase='setup';
 async function invoke(endpoint,{session,method='GET',body}={}){
   if(!local){const response=await fetch(origin+endpoint,{method,headers:{...(session?{Authorization:'Bearer '+session.access_token}:{}),...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(65000)});return {status:response.status,body:await response.json()};}
@@ -39,6 +40,8 @@ async function fixture(){
   const created=await admin.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{full_name:'Assistant QA'}});
   if(created.error||!created.data.user)throw new Error('Fixture creation failed');
   const id=created.data.user.id;users.push(id);
+  await mkdir('artifacts/assistant-verification',{recursive:true,mode:0o700});
+  await writeFile(fixtureLedger,JSON.stringify({runId,origin,fixtureUserIds:users}),{mode:0o600});
   await sql`insert into auth.identities(provider_id,user_id,identity_data,provider,created_at,updated_at) values(${id},${id},${sql.json({sub:id,email,email_verified:true})},'google',now(),now())`;
   const signed=await createClient(url,key,{auth}).auth.signInWithPassword({email,password});
   if(signed.error||!signed.data.session)throw new Error('Fixture sign-in failed');
@@ -84,7 +87,7 @@ try{
     phase='live model verification';
     const current=await snapshot(first),balance=current.charges.reduce((total,row)=>total+Number(row.amountDue)-Number(row.amountPaid),0);
     const ask=async question=>{const started=Date.now(),answer=await call('/api/affairs-assistant',{session:first,method:'POST',body:{question,route:'/dtm'}});answers.push({question,answer,ms:Date.now()-started});assert.equal(answer.verification?.status,'verified',JSON.stringify(answer));return answer;};
-    const modelCase=async(name,work)=>{try{await work();}catch(error){failures.push({name,error:error.message});console.error('Model case failed: '+name);}};
+    const modelCase=async(name,work)=>{try{await work();console.log('Model case passed: '+name);}catch(error){failures.push({name,error:error.message});console.error('Model case failed: '+name);}};
     await modelCase('tuition arithmetic',async()=>{
       const reply=await ask('How much tuition and fees remain unpaid in my stu.best records?');assert.ok(reply.answer.replace(/,/g,'').includes(String(balance)));
     });
@@ -133,18 +136,28 @@ try{
   await mkdir('artifacts/assistant-verification',{recursive:true,mode:0o700});
   for(const width of [390,1440]){
     await page.setViewportSize({width,height:900});
+    await page.waitForFunction(()=>{const box=document.querySelector('[role="dialog"]')?.getBoundingClientRect();return box&&box.width>=Math.min(300,innerWidth)&&box.left>=-1&&box.right<=innerWidth+1&&box.top>=-1&&box.bottom<=innerHeight+1;});
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
-    await page.screenshot({path:`artifacts/assistant-verification/${local?'local':'production'}-${runId}-${width}.png`});
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    await page.screenshot({animations:'disabled',path:`artifacts/assistant-verification/${local?'local':'production'}-${runId}-${width}.png`});
   }
   assert.deepEqual(errors,[]);
   await context.close();checks.push('visible assistant on DTM/School Affairs/leave/fees, two conversations, switching and refresh persistence, phone width and zero page errors');
 }catch(error){process.exitCode=1;console.error(`${phase}: ${error.message||error.name||'Error'}`);}
 finally{
   await browser?.close();
-  for(const id of users.reverse()){const result=await admin.auth.admin.deleteUser(id);if(result.error){process.exitCode=1;console.error('Fixture cleanup failed');}}
-  if(users.length)assert.equal((await sql`select id from auth.users where id in ${sql(users)}`).length,0);
+  let fixtureCleanup=false;
+  try{
+    for(const id of users.reverse()){
+      let error;
+      for(let attempt=0;attempt<3;attempt++){({error}=await admin.auth.admin.deleteUser(id));if(!error)break;}
+      if(error)throw new Error('Fixture cleanup failed; exact IDs retained in the private fixture ledger');
+    }
+    if(users.length)assert.equal((await sql`select id from auth.users where id in ${sql(users)}`).length,0);
+    fixtureCleanup=true;await rm(fixtureLedger,{force:true});
+  }catch(error){process.exitCode=1;console.error(error.message);}
   await sql.end();
-  const report={status:process.exitCode?'failed':'passed',origin,runId,phase,checks,liveModel:!local,answers,failures,fixtureCleanup:true};
+  const report={status:process.exitCode?'failed':'passed',origin,runId,phase,checks,liveModel:!local,answers,failures,fixtureCleanup};
   await mkdir('artifacts/assistant-verification',{recursive:true,mode:0o700});await writeFile(`artifacts/assistant-verification/${local?'local':'production'}-${runId}.json`,JSON.stringify(report,null,2),{mode:0o600});
   console.log(JSON.stringify({...report,failures:failures.map(item=>item.name),answers:answers.map(item=>({question:item.question,status:item.answer.status,verification:item.answer.verification,ms:item.ms}))}));
 }

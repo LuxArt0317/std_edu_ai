@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Retrieve Moodle courses and their separately stored assignments together; provide calculated Taipei timetable evidence for today/next-class verification. Retain exact cleanup ledgers for interrupted live QA. [#99]
+
 - Resolve structured evidence by exact JSON fields, verify public abstentions, and wait for the active conversation before enabling the chat composer. [#99]
 
 - Accept formatting-only JSON evidence excerpts without accepting altered records; retain real-image provenance during corrected answers. [#99]
