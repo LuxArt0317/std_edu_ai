@@ -1,6 +1,7 @@
 import {studyCalendar} from './affairsSchedule.js';
 import {answerDtmRecords,answerStudentServiceRecords} from './dtmAnswer.js';
 import {accountQueryByService} from '../src/features/public/affairs/studentServices.js';
+import {answerScholarshipRecords} from './scholarshipRecords.js';
 
 const recordLinkTopics = [
   [/\b(?:tuition|fees?|charges?|balance|payments?)\b|學費|費用|繳費/i,'fees'],
@@ -121,7 +122,7 @@ function fallbackProposal(question,snapshot) {
 }
 
 export async function answerPrivateAffairsQuestion(question,snapshot,history=[],route='') {
-  const records = answerStudentServiceRecords(question,snapshot) || answerDtmRecords(question,snapshot,route,history);
+  const records = answerScholarshipRecords(question,snapshot,route,history) || answerStudentServiceRecords(question,snapshot) || answerDtmRecords(question,snapshot,route,history);
   if (records) return {
     status:'answered',answer:records.answer,
     citations:[{chunkId:'student-workspace',claim:'Records saved to this Google account on stu.best.',
@@ -135,7 +136,7 @@ export async function answerPrivateAffairsQuestion(question,snapshot,history=[],
   const apiKey=process.env.OPENAI_API_KEY;
   if (apiKey && !deterministic) {
     // Personal DTM and student-service records are handled locally above.
-    const {serviceRecords: _privateServiceRecords, requests: _privateRequests, ...modelSnapshot} = snapshot;
+    const {serviceRecords: _privateServiceRecords, requests: _privateRequests, scholarship: _privateScholarship, admin: _admin, ...modelSnapshot} = snapshot;
     modelSnapshot.dtm = {...snapshot.dtm,courses:snapshot.dtm?.courses?.filter(course=>course.sourceMode!=='personal') || []};
     modelSnapshot.assignments = snapshot.assignments?.filter(item=>item.sourceMode!=='personal') || [];
     try {

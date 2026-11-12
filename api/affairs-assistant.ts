@@ -2,6 +2,7 @@ import { questionKind } from '../server/schoolWebSearch.js';
 import { answerPrivateAffairsQuestion } from '../server/affairsAnswer.js';
 import { answerCampusNavigation } from '../server/schoolAffairsDirectory.js';
 import { isDtmRecordQuestion } from '../server/dtmAnswer.js';
+import { isScholarshipRecordQuestion } from '../server/scholarshipRecords.js';
 import { AffairsWorkspaceError, loadAffairsSnapshot, verifyAffairsToken } from '../server/affairsWorkspace.js';
 import { createAssistantStream } from '../server/assistantStream.js';
 import { readAssistantReply } from '../src/services/assistantStreamReader.js';
@@ -54,7 +55,7 @@ export default async function handler(request:ApiRequest,response:ApiResponse) {
     stream.send(200,navigation);
     return;
   }
-  if(!personal(question,history) && !isDtmRecordQuestion(question,route,history)) {
+  if(!personal(question,history) && !isDtmRecordQuestion(question,route,history) && !isScholarshipRecordQuestion(question,route,history)) {
     // Separate deployment function; only public input is forwarded, never the account token.
     stream.progress('public','Checking public school information','This question does not need your account records.');
     try {

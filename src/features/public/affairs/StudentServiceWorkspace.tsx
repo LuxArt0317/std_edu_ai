@@ -1,5 +1,5 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
-import { Link } from 'react-router';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { Link, useLocation } from 'react-router';
 import { ArrowLeft, ChevronDown, ClipboardList, ExternalLink, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -10,7 +10,7 @@ import { savePersonalSchoolRecord, type ServiceRecord } from '@/services/schoolA
 import { campusAssistantOpenEvent } from '../PublicAssistant';
 import { referenceAsset } from '../site/reference';
 import { StudentRecordQuery } from './StudentRecordQuery';
-import { accountQueryByService, internshipPath, officialInternshipUrl, studentServiceByKey } from './studentServices.js';
+import { accountQueryByService, calendarPath, internshipPath, officialInternshipUrl, studentServiceByKey } from './studentServices.js';
 import { useAffairsRecords } from './useAffairsRecords';
 import './student-services.css';
 
@@ -23,6 +23,13 @@ const internshipViews = [
   ['directory','List of enterprises'],
 ] as const;
 const internshipTitle = 'Student off-campus internship management system';
+
+export function CalendarRedirect() {
+  const {search,hash} = useLocation();
+  const destination = calendarPath + search + hash;
+  useEffect(() => { window.location.replace(destination); }, [destination]);
+  return <p role="status">正在開啟行事曆… <a href={destination}>開啟行事曆 · Open calendar</a></p>;
+}
 
 function InternshipFrame({view,children}:{view:string;children?:ReactNode}) {
   const selected = internshipViews.find(([key])=>key===view);
@@ -126,7 +133,7 @@ export function StudentServiceWorkspace({serviceKey,view,userId}:{serviceKey:str
   const isInternship = serviceKey==='internship';
   const accountQuery = accountQueryByService[serviceKey];
   const internshipView = isInternship ? internshipViews.find(([key])=>key===view)?.[0] : undefined;
-  const {snapshot,error,loading,refresh} = useAffairsRecords(isInternship && !internshipView ? undefined : userId);
+  const {snapshot,error,loading,refresh} = useAffairsRecords(serviceKey==='4-4' || (isInternship && !internshipView) ? undefined : userId);
   const [editor,setEditor] = useState<ServiceRecord|'new'|null>(null);
   const [confirmation,setConfirmation] = useState<{kind:'review'|'delete';record:ServiceRecord}|null>(null);
   const [busy,setBusy] = useState(false);
@@ -134,6 +141,7 @@ export function StudentServiceWorkspace({serviceKey,view,userId}:{serviceKey:str
   const [status,setStatus] = useState('');
   const recordType = internshipView==='directory'?'company':internshipView ?? 'note';
   const records = (snapshot?.serviceRecords ?? []).filter(row=>row.serviceKey===serviceKey && row.recordType===recordType);
+  if (serviceKey==='4-4' && !view) return <CalendarRedirect/>;
   if (!service || (view && !internshipView)) return <section className="student-service"><h1>找不到服務 · Service not found</h1><Link to="/school-affairs/menu/sao/all">返回學務資訊 · Student Affairs</Link></section>;
   if (isInternship && !view) return <InternshipFrame view={view}/>;
   const title = service.title;

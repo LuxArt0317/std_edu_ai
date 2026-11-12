@@ -81,9 +81,12 @@ try {
   await page.waitForURL('**/dtm/course/*');
   const coursePath = new URL(page.url()).pathname;
   await page.getByRole('heading',{name:'QA Systems Design',exact:true}).waitFor();
-  const courseTab = name=>page.getByRole('navigation',{name:'Course views'}).getByRole('link',{name,exact:true});
-  await courseTab('Class meetings').click();
-  await button('Add class meeting').click();
+  const courseAction = async name=>{
+    await button('Course menu').click();
+    await page.getByRole('menuitem',{name,exact:true}).click();
+  };
+  await courseAction('Class meetings');
+  await courseAction('Add class meeting');
   await page.getByLabel('Meeting topic',{exact:true}).fill('Database indexes');
   await page.getByLabel('Meeting date',{exact:true}).fill('2026-10-29');
   await page.getByLabel('Start time (Taipei)',{exact:true}).fill('09:00');
@@ -91,8 +94,8 @@ try {
   await save();
   await page.getByText('Database indexes',{exact:true}).waitFor();
 
-  await courseTab('Assignments').click();
-  await button('Add assignment').click();
+  await courseAction('Assignments');
+  await courseAction('Add assignment');
   await page.getByLabel('Assignment name',{exact:true}).fill('Index design worksheet');
   await page.getByRole('combobox',{name:/^Meeting where assigned/}).selectOption({label:'2026-10-29 · Database indexes'});
   await save();
@@ -119,7 +122,7 @@ try {
   const pending = await answer('/api/affairs-assistant','What assignments are not yet finished?',session.access_token);
   assert.match(pending.answer,/Unfinished assignments \(1\)/);
   assert.doesNotMatch(pending.answer,/Practice reflection/);
-  await button('Import Moodle calendar').click();
+  await courseAction('Import Moodle calendar');
   await page.getByLabel('Moodle calendar file',{exact:true}).setInputFiles({
     name:'moodle.ics',mimeType:'text/calendar',
     buffer:Buffer.from(['BEGIN:VCALENDAR','BEGIN:VEVENT','UID:qa-import','DTSTART;TZID=Asia/Taipei:20261201T150000',
@@ -136,13 +139,13 @@ try {
   assert.ok(upcoming.answer.includes(nextDay+' 10:30 Taipei'));
   assert.match(upcoming.answer,/Network design workshop/);
 
-  await courseTab('Grades').click();
-  await button('Add grade').click();
+  await courseAction('Grades');
+  await courseAction('Add grade');
   await page.getByLabel('Grade item',{exact:true}).fill('Practice exam');
   await page.getByLabel('Score',{exact:true}).fill('32');
   await page.getByLabel('Maximum points',{exact:true}).fill('40');
   await save();
-  await page.getByRole('cell',{name:'80.0%',exact:true}).waitFor();
+  await page.getByRole('cell',{name:'80.00%',exact:true}).waitFor();
   const grades = await answer('/api/affairs-assistant','Show my grades',session.access_token,'/');
   assert.match(grades.answer,/Practice exam.*80\.0%/);
 

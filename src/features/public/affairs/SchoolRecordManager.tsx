@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import type { AffairsManagerAction, AffairsSnapshot } from '@/services/schoolAffairsWorkspace';
+import { ScholarshipManager } from './ScholarshipManager';
 
 type Admin = NonNullable<AffairsSnapshot['admin']>;
 const taipeiInput=(iso:string|null)=>iso?new Date(iso).toLocaleString('sv-SE',{timeZone:'Asia/Taipei'}).replace(' ','T').slice(0,16):'';
@@ -22,7 +23,7 @@ export function SchoolRecordManager({admin,busy,onManage}:{admin:Admin;busy:bool
   const [assignmentDetails,setAssignmentDetails]=useState('');
   const [assignmentDue,setAssignmentDue]=useState('');
   const selected=admin.students.find(item=>item.id===studentId)||admin.students[0];
-  if(!selected)return <p>No student accounts are available for record management.</p>;
+  if(!selected)return <><p>No student accounts are available for record management.</p><ScholarshipManager admin={admin} busy={busy} onManage={onManage}/></>;
   const studentEnrollments=admin.enrollments.filter(item=>item.studentId===selected.id);
   const studentDtm=admin.dtmCourses.filter(item=>item.user_id===selected.user_id);
   const studentCharges=admin.charges.filter(item=>item.student_id===selected.id);
@@ -48,5 +49,6 @@ export function SchoolRecordManager({admin,busy,onManage}:{admin:Admin;busy:bool
         <form onSubmit={saveAssignment} className="affairs-record-form"><label htmlFor="manager-assignment-course">{assignmentId?'Edit':'Add'} sample assignment</label><select id="manager-assignment-course" required value={relation} onChange={event=>setRelation(event.target.value)}><option value="">Choose a course</option>{studentEnrollments.map(item=><option key={item.id} value={`school:${item.id}`}>{item.code} · School Affairs</option>)}{studentDtm.map(item=><option key={item.id} value={`dtm:${item.id}`}>{item.code} · DTM</option>)}</select><Input aria-label="Assignment title" required minLength={3} maxLength={160} value={assignmentTitle} onChange={event=>setAssignmentTitle(event.target.value)} placeholder="Assignment title"/><Textarea aria-label="Assignment details" maxLength={2000} value={assignmentDetails} onChange={event=>setAssignmentDetails(event.target.value)} placeholder="Instructions"/><label>Due date and time · Taipei<Input type="datetime-local" value={assignmentDue} onChange={event=>setAssignmentDue(event.target.value)}/></label><div><Button disabled={busy} type="submit">Save assignment</Button>{assignmentId&&<Button type="button" variant="outline" onClick={clearAssignment}>Cancel</Button>}</div></form>
       </section>
     </div>
+    <ScholarshipManager admin={admin} busy={busy} onManage={onManage}/>
   </div>;
 }

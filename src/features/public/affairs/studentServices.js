@@ -7,6 +7,8 @@ export const officialInternshipUrl = 'https://infosys.stu.edu.tw/StuPractice/Log
 export const officialWifiUrl = 'https://help.ecc.stu.edu.tw/wireless-setting/';
 export const wifiGuidePath = '/school-sites/help.ecc.stu.edu.tw/wireless-setting/';
 export const officialRegistrarUrl = 'https://www.aca.stu.edu.tw/%E6%9C%8D%E5%8B%99%E5%B0%8D%E8%B1%A1-services/';
+export const officialCalendarUrl = 'https://www.aca.stu.edu.tw/%E8%A1%8C%E4%BA%8B%E6%9B%86%EF%BD%9Ccalendar/';
+export const calendarPath = '/school-sites/www.aca.stu.edu.tw/%E8%A1%8C%E4%BA%8B%E6%9B%86%EF%BD%9Ccalendar/';
 export const accountQueryByService = Object.freeze({
   '11-1':'enrollments',
   '11-2':'timetable',
@@ -30,10 +32,15 @@ export function serviceDestination(program) {
     case '通知訊息查詢': return '/school-affairs/notifications';
   }
   const source = officialServiceUrl(program.sourcePath);
+  const url = new URL(source);
+  const calendar = new URL(officialCalendarUrl);
+  if (url.hostname === calendar.hostname &&
+      url.pathname.replace(/\/$/, '').toLowerCase() === calendar.pathname.replace(/\/$/, '').toLowerCase())
+    return calendarPath + url.search + url.hash;
   if (source.toLowerCase() === officialLeaveUrl.toLowerCase())
     return program.kind === 'query' ? leavePath + '/history' : leavePath;
-  if (/\/stupractice\/login\//i.test(new URL(source).pathname)) return internshipPath;
-  if (new URL(source).hostname === 'dtm.stu.edu.tw') return '/dtm';
+  if (/\/stupractice\/login\//i.test(url.pathname)) return internshipPath;
+  if (url.hostname === 'dtm.stu.edu.tw') return '/dtm';
   return '/school-affairs/services/' + program.id;
 }
 

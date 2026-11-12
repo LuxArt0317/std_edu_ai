@@ -1,5 +1,14 @@
 # Current client state
 
+## Protected course and scholarship release (Issues #93 and #98)
+
+The course outline and grade report match the measured signed-in Moodle geometry. The native scholarship application has persistent periods, private applications, reviewed award/service-hour history and admin controls. The calendar entry opens the copied page and six local PDFs. The client database has 113 applied migrations and 124 RLS-protected public tables after migration `20261112030000`.
+
+Local checks pass: 242 API/source tests, 34 units, DTM course/grade and overview browser suites, scholarship lifecycle/admin browser checks, calendar links/PDFs, TypeScript/build, lint, handoff and zero dependency vulnerabilities. Rolled-back database tests and four genuinely concurrent write scenarios pass with fixture cleanup. Scholarship styling preserves two source-inherited contrast findings (brand and instructions); no new serious/critical findings or page overflow remain. Production publication and live browser acceptance are the next step.
+
+The catalog still contains 77 generic tracking destinations. These require individual source inspection and implementation; this batch does not complete the full protected-site copy or institutional integration.
+
+
 ## Signed-in layout and protected service navigation (Issues #93 and #98)
 
 The School Affairs and DTM layouts were measured against their signed-in university references. After the user renewed the official session, the leave index, records list and form were inspected. The new independent leave form saves to account-owned history and uses the local timetable for period choices. Eight catalog links query saved account records. Local Playwright followed all 94 links with 27 accessibility states. Migration 20261112020000 was applied and the live two-account save/reopen/review/privacy suite passed. Remaining private program forms require individual verification and implementation.

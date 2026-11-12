@@ -1,5 +1,15 @@
 # Task Plan
 
+## Protected course and scholarship destinations [Issues #93 and #98]
+
+- [x] Revalidate the official sessions and inspect actual Moodle course/grade and international-scholarship screens.
+- [x] Match the signed-in Moodle course outline and grade report using account-owned records.
+- [x] Replace scholarship tracking with a persistent application period, apply/cancel, review and history workflow.
+- [x] Route the academic-calendar entry directly to the existing copied calendar and local PDFs.
+- [ ] Verify browser behavior, database permissions and assistant answers; publish and record the remaining protected-service gaps.
+
+The preceding goal turn made verified progress through deployed layout fixes and live database isolation checks. The current official Moodle and scholarship pages are accessible, so broader session expiry is not a blocker for these destinations.
+
 ## Student Affairs and DTM records [Issue #98]
 
 - [x] Observe the official signed-in service menu, leave form, Moodle term tree, course and grades views. Verify the client project and migration baseline.

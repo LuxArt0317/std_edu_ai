@@ -62,7 +62,8 @@
 .dtm-dashboard-header { display: flex; align-items: flex-start; gap: 16px; margin: 0 0 16px; }
 .dtm-dashboard-header .dtm-avatar { width: 100px; height: 100px; }
 .dtm-dashboard-header h1 { margin: 0; font-size: 28px; font-weight: 400; line-height: 40px; overflow-wrap: anywhere; }
-.is-signed-in .dtm-breadcrumb { min-height: 36px; margin-bottom: 13px; background: #f7f8f8; padding: 6px 12px; }
+.is-signed-in .dtm-breadcrumb { min-height: 36px; margin-bottom: 10px; background: transparent; padding: 6px 12px; }
+.dtm-sample-label { color: var(--dtm-muted); font-size: 12px; }
 
 /* The source uses a nine-column outer group with a four/eight-column grid inside it. */
 .dtm-columns {
@@ -92,6 +93,12 @@
 .dtm-tree summary::marker, .dtm-categories summary::marker { color: #767c7e; }
 .dtm-tree ul { margin: 0 0 3px; padding-left: 20px; }
 .dtm-tree li { min-height: 24px; }
+.dtm-tree .dtm-tree-selected { margin-left: 0; }
+.dtm-tree-selected > summary { margin-left: -14px; font-weight: 700; }
+.dtm-tree-selected > ul { padding-left: 10px; list-style-type: square; }
+.dtm-tree a[aria-current] { font-weight: 700; }
+.dtm-tree-member { border: 0; padding: 0; background: none; color: var(--dtm-link); font: inherit; text-align: start; cursor: pointer; }
+.dtm-tree-member:hover { text-decoration: underline; }
 .dtm-tree .dtm-tree-empty { margin: 0 0 4px 12px; color: var(--dtm-muted); }
 .dtm-center h2 { font-size: 28px; font-weight: 400; margin: 10px 0; color: #333; line-height: 40px; overflow-wrap: anywhere; }
 .dtm-center h3 { color: #2c3c46; font-size: 18px; font-weight: 600; margin: .4rem 0; }
@@ -122,10 +129,25 @@
 .dtm-search { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin: 1rem 0; font-weight: 600; }
 .dtm-search input { width: min(100%,300px); min-height: 36px; padding: .35rem .5rem; border: 1px solid #a1b1b7; background: #fff; color: #283b45; }
 .dtm-search-results { background: #fff; border: 1px solid var(--dtm-border); padding: .4rem; }
-.dtm-course-meta { color: var(--dtm-muted); margin: .1rem 0 .65rem; }
-.dtm-course-tabs { display: flex; flex-wrap: wrap; gap: .3rem; border-bottom: 1px solid #aebec4; margin: 0 0 .8rem; }
-.dtm-course-tabs a { padding: .45rem .75rem; }
-.dtm-course-tabs a[aria-current] { background: #fff; box-shadow: inset 0 -3px #3d697e; color: #233d4c; font-weight: 600; }
+.dtm-columns-course .dtm-course-center { position: relative; padding: 8px 0; }
+.dtm-course-tools { position: absolute; z-index: 1; right: 10px; top: 10px; }
+.dtm-course-menu { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border: 0; border-radius: 3px; background: transparent; color: #626b6c; cursor: pointer; }
+.dtm-course-menu:hover { background: #f2f4f4; }
+.dtm-course-section { display: flow-root; }
+.dtm-course-section + .dtm-course-section { border-top: 1px solid #f2f2f2; }
+.dtm-course-section h3 { margin: 10px 20px 12px; padding-right: 25px; color: #333; font-size: 24px; font-weight: 400; line-height: 40px; }
+.dtm-course-activities { list-style: none; margin: 0 38px 10px; padding: 0; }
+.dtm-course-activity { padding: 4px 0; scroll-margin-top: 12px; }
+.dtm-activity-link { display: flex; align-items: center; gap: 6px; min-height: 26px; }
+.dtm-activity-link > img { flex: none; }
+.dtm-activity-link > button, .dtm-record-title { border: 0; padding: 0; background: none; color: var(--dtm-link); font: inherit; text-align: start; overflow-wrap: anywhere; cursor: pointer; }
+.dtm-activity-link > button:hover, .dtm-record-title:hover { text-decoration: underline; }
+.dtm-activity-description { margin: 16px 0 16px 30px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.dtm-activity-deadline { margin: 10px 0 0 30px; }
+.dtm-activity-empty { margin: 0 38px 16px; color: var(--dtm-muted); }
+.dtm-course-center > .dtm-record-form, .dtm-course-center > .dtm-saved, .dtm-course-center > .dtm-record-list, .dtm-course-center > .dtm-empty, .dtm-course-center > .dtm-assignment-view { margin-inline: 20px; }
+.dtm-detail-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.dtm-activity-dialog { overflow-wrap: anywhere; }
 .dtm-term-list { margin-top: .8rem; }
 .dtm-record-list { background: #fff; list-style: none; margin: .55rem 0 1rem; padding: 0; border: 1px solid var(--dtm-border); }
 .dtm-term-list .dtm-record-list { border: 0; margin: 0; }
@@ -149,10 +171,21 @@
 .dtm-import-events label { display: grid; grid-template-columns: auto 1fr; align-items: start; padding: .35rem 0; }
 .dtm-import-events input { width: 18px; height: 18px; margin-top: .17rem; }
 .dtm-import-events small { display: block; color: var(--dtm-muted); }
+.dtm-columns-course .dtm-grade-center { padding: 10px; }
+.dtm-center .dtm-report-title { margin: 0 30px 10px 0; font-size: 28px; line-height: 40px; }
+.dtm-report-tabs { display: flex; border-bottom: 1px solid #ddd; min-height: 38px; margin-bottom: 40px; padding-left: 0; }
+.dtm-report-tabs a { display: block; margin-bottom: -1px; padding: 8px 12px; border: 1px solid transparent; line-height: 20px; }
+.dtm-report-tabs a[aria-current] { background: #fff; border-color: #ddd #ddd #fff; border-radius: 4px 4px 0 0; color: #555; }
 .dtm-grade-scroll { overflow-x: auto; }
-.dtm-grade-table { width: 100%; background: #fff; border-collapse: collapse; }
-.dtm-grade-table th, .dtm-grade-table td { padding: .6rem .65rem; border: 1px solid var(--dtm-border); text-align: start; vertical-align: top; overflow-wrap: anywhere; }
-.dtm-grade-table thead { background: #f5f8f8; }
+.dtm-grade-table { width: 100%; min-width: 920px; background: #ecf0f1; border-collapse: collapse; }
+.dtm-grade-table th, .dtm-grade-table td { padding: 8px; border: 0; border-top: 1px solid #d7dddf; text-align: start; vertical-align: top; overflow-wrap: anywhere; }
+.dtm-grade-table thead { background: #ecf0f1; }
+.dtm-grade-table thead th { border-top: 0; }
+.dtm-grade-table thead th { font-weight: 700; }
+.dtm-grade-table td:not(:nth-child(7)) { white-space: nowrap; }
+.dtm-grade-group, .dtm-grade-total { background: #f9f9f9; }
+.dtm-grade-group img { display: inline-block; margin-right: 5px; vertical-align: -2px; }
+.dtm-grade-table th.dtm-grade-item { padding-left: 24px; font-weight: 400; }
 .dtm-record-list :target, .dtm-grade-table :target { outline: 2px solid #356881; outline-offset: -2px; background: #f2f8fb; }
 .dtm-empty { color: var(--dtm-muted); padding: .6rem 0; }
 .dtm-footer { display: flex; justify-content: space-between; align-items: center; gap: .55rem 1rem; flex-wrap: wrap; padding: .85rem 18px; background: #c7d4d6; color: #34484d; font-size: 13px; }
@@ -178,5 +211,4 @@
   .dtm-form-grid { grid-template-columns: minmax(0,1fr); }
   .dtm-record-list li { flex-wrap: wrap; }
   .dtm-record-list .dtm-row-actions { width: 100%; }
-  .dtm-grade-table { min-width: 31rem; }
 }

@@ -72,7 +72,8 @@ try {
   await page.getByRole('searchbox',{name:'搜尋我的課程'}).fill('Digital');
   await page.getByRole('link',{name:'DTM-SAMPLE-101 · Digital Learning Orientation',exact:true}).click();
   await page.getByText('Getting started guide',{exact:true}).waitFor();
-  await page.getByRole('link',{name:'作業',exact:true}).click();
+  await page.getByRole('button',{name:'課程選單',exact:true}).click();
+  await page.getByRole('menuitem',{name:'作業',exact:true}).click();
   await page.getByText('Practice reflection',{exact:true}).waitFor();
   assert.equal(new URL(page.url()).pathname,'/dtm/course/course-qa/assignments');
   await page.locator('.dtm-user').click();

@@ -7,6 +7,8 @@ export const officialInternshipUrl: string;
 export const officialWifiUrl: string;
 export const wifiGuidePath: string;
 export const officialRegistrarUrl: string;
+export const officialCalendarUrl: string;
+export const calendarPath: string;
 export type AccountQuery = 'enrollments'|'timetable'|'grades'|'attendance'|'credits'|'student'|'fees';
 export const accountQueryByService: Readonly<Partial<Record<string,AccountQuery>>>;
 export type SchoolServiceEntry = PortalProgram & {officialUrl:string;localUrl:string};

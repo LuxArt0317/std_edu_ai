@@ -59,9 +59,10 @@ import {
 import type { PortalProgram } from "./model";
 import { loadPreferences, savePreferences } from "./preferences";
 import type { PortalPreferences } from "./preferences";
-import { serviceDestination } from "./studentServices.js";
+import { calendarPath, serviceDestination } from "./studentServices.js";
 import { StudentServiceWorkspace } from "./StudentServiceWorkspace";
 import StudentLeaveWorkspace from "./StudentLeaveWorkspace";
+import { StudentScholarshipWorkspace } from "./StudentScholarshipWorkspace";
 import { useAffairsRecords } from "./useAffairsRecords";
 import "./portal.css";
 
@@ -225,8 +226,9 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
     });
   };
   function renderProgramLink(program: PortalProgram) {
+    const destination = serviceDestination(program);
     return (
-      <Link data-program-id={program.id} to={serviceDestination(program)}>
+      <Link data-program-id={program.id} to={destination} reloadDocument={destination.split(/[?#]/, 1)[0] === calendarPath}>
         {program.title}
       </Link>
     );
@@ -410,6 +412,9 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   }
   if (servicePage && route[1] === "internship") {
     return <StudentServiceWorkspace key={pathname} userId={user.id} serviceKey="internship" view={route.slice(2).join("/")} />;
+  }
+  if (servicePage && route[1] === "9-1") {
+    return <StudentScholarshipWorkspace key={pathname} userId={user.id} />;
   }
   return (
     <div

@@ -65,6 +65,8 @@ test('personal School Affairs question reads only the caller site records, never
    '/rest/v1/affairs_tasks':[],
    '/rest/v1/affairs_service_requests':[],
    '/rest/v1/affairs_service_records':[],
+   '/rest/v1/affairs_scholarship_periods':[],
+   '/rest/v1/affairs_scholarship_applications':[],
    '/rest/v1/dtm_meetings':[],
    '/rest/v1/dtm_grade_items':[],
    '/rest/v1/dtm_courses':[{id:'dtm-course-id',user_id:userId,code:'DTM-SAMPLE-101',title:'Digital Learning Orientation',term:'115學年度第1學期',role:'student',source_mode:'sample'}],

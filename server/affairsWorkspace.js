@@ -1,4 +1,5 @@
 /** Private, account-scoped School Affairs data access. Never imports Nexus data. */
+import {mapScholarshipRecords} from './scholarshipRecords.js';
 export class AffairsWorkspaceError extends Error {
   constructor(message, status = 503) { super(message); this.status = status; }
 }
@@ -40,7 +41,9 @@ async function request(account, table, options = {}) {
   if (!response.ok) {
     if (response.status===401 || response.status===403) throw new AffairsWorkspaceError('This School Affairs action is not allowed for your account.',403);
     if (response.status===400) throw new AffairsWorkspaceError('The School Affairs request was invalid. Check the fields and try again.',400);
-    if (response.status===409) throw new AffairsWorkspaceError('A matching School Affairs record already exists.',409);
+    if (response.status===409) throw new AffairsWorkspaceError(table==='affairs_scholarship_action'
+      ? 'This scholarship record or its application period changed. Refresh and try again.'
+      : 'A matching School Affairs record already exists.',409);
     throw new AffairsWorkspaceError('School Affairs records could not be loaded. Please try again.');
   }
   const raw=await response.text().catch(()=>{throw new AffairsWorkspaceError('School Affairs returned an unreadable record.');});
@@ -87,6 +90,23 @@ export async function loadAffairsSnapshot(account, includeAdmin = false) {
   ]);
   const profile=profiles[0];
   if (!profile || (includeAdmin && profile.role!=='admin')) throw new AffairsWorkspaceError('Administrator access is required.',403);
+  const [scholarshipPeriods,scholarshipApplications,adminScholarshipApplications]=await Promise.all([
+    readAccountRows(account,'affairs_scholarship_periods',{select:'*',...(includeAdmin?{}:{published:'eq.true'}),order:'opens_at.desc,id.asc'}),
+    readAccountRows(account,'affairs_scholarship_applications',{...own(userId),order:'submitted_at.desc,id.asc'}),
+    includeAdmin?readAccountRows(account,'affairs_scholarship_applications',{select:'*',order:'submitted_at.desc,id.asc'}):Promise.resolve([]),
+  ]);
+  // The generic manager lists its first 100 profiles. Scholarship history can contain
+  // older applicants, so resolve every missing applicant rather than rendering anonymous rows.
+  if (includeAdmin) {
+    const known=new Set(adminProfiles.map(row=>row.user_id));
+    const missing=[...new Set(adminScholarshipApplications.map(row=>row.user_id).filter(id=>!known.has(id)))];
+    for (let offset=0;offset<missing.length;offset+=100) {
+      const applicants=await readAccountRows(account,'affairs_profiles',{
+        select:'user_id,email,display_name,role,created_at',user_id:byIds(missing.slice(offset,offset+100)),order:'user_id.asc',
+      });
+      adminProfiles.push(...applicants);
+    }
+  }
   const student=students[0]||null;
   const enrollments=student?await request(account,'affairs_enrollments',{query:{select:'*',student_id:`eq.${student.id}`,limit:100}}):[];
   const enrollmentIds=enrollments.map(item=>item.id);
@@ -109,6 +129,7 @@ export async function loadAffairsSnapshot(account, includeAdmin = false) {
   const sectionById=new Map(sections.map(row=>[row.id,row]));
   return {
     checkedAt:new Date().toISOString(),source:'stu.best School Affairs',officialUniversityData:false,
+    scholarship:mapScholarshipRecords(scholarshipPeriods.filter(row=>row.published),scholarshipApplications),
     profile:{userId:profile.user_id,email:profile.email,displayName:profile.display_name,role:profile.role},
     student:student?{id:student.id,studentNumber:student.student_number,fullName:student.full_name,yearLevel:student.year_level,status:student.status,sourceMode:student.source_mode,program:programs.find(row=>row.id===student.program_id)?.name||null}:null,
     courses:enrollments.map(enrollment=>{
@@ -154,7 +175,7 @@ export async function loadAffairsSnapshot(account, includeAdmin = false) {
       })),
       notices:dtmNotices.map(row=>({id:row.id,title:row.title,body:row.body,publishedAt:row.published_at,sourceMode:row.source_mode})),
     },
-    ...(includeAdmin?{admin:{profiles:adminProfiles,students:adminStudents,sections:sections.map(row=>({id:row.id,code:courseById.get(row.course_id)?.code||'',term:termById.get(row.term_id)?.label||''})),enrollments:adminEnrollments.map(row=>({id:row.id,studentId:row.student_id,status:row.status,code:courseById.get(sectionById.get(row.section_id)?.course_id)?.code||''})),dtmCourses:adminDtmCourses,charges:adminCharges,assignments:adminAssignments,requests:adminRequests}}:{}),
+    ...(includeAdmin?{admin:{scholarship:mapScholarshipRecords(scholarshipPeriods,adminScholarshipApplications),profiles:adminProfiles,students:adminStudents,sections:sections.map(row=>({id:row.id,code:courseById.get(row.course_id)?.code||'',term:termById.get(row.term_id)?.label||''})),enrollments:adminEnrollments.map(row=>({id:row.id,studentId:row.student_id,status:row.status,code:courseById.get(sectionById.get(row.section_id)?.course_id)?.code||''})),dtmCourses:adminDtmCourses,charges:adminCharges,assignments:adminAssignments,requests:adminRequests}}:{}),
   };
 }
 
@@ -162,6 +183,8 @@ export async function executeAffairsAction(account,kind,payload) {
   if (!payload || typeof payload!=='object' || Array.isArray(payload))
     throw new AffairsWorkspaceError('Unsupported School Affairs action.',400);
   const body={p_kind:kind,p_payload:payload};
+  if (['apply_scholarship','cancel_scholarship'].includes(kind))
+    return request(account,'affairs_scholarship_action',{rpc:true,body});
   if (['save_service_record','delete_service_record','submit_service_record_for_review'].includes(kind))
     return request(account,'affairs_manage_service_record',{rpc:true,body});
   if (/^(?:save|delete)_dtm_(?:course|meeting|assignment|grade|material)$/.test(kind) || kind==='import_dtm_deadlines')
@@ -172,6 +195,9 @@ export async function executeAffairsAction(account,kind,payload) {
 }
 
 export async function manageAffairsRecord(account,kind,payload) {
+  if (['save_scholarship_period','review_scholarship_application'].includes(kind)
+    && payload && typeof payload==='object' && !Array.isArray(payload))
+    return request(account,'affairs_scholarship_action',{rpc:true,body:{p_kind:kind,p_payload:payload}});
   if (!['save_enrollment','save_charge','delete_charge','save_assignment','delete_assignment'].includes(kind)
     || !payload || typeof payload!=='object' || Array.isArray(payload))
     throw new AffairsWorkspaceError('Unsupported manager action.',400);

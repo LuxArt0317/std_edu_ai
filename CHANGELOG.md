@@ -1,6 +1,13 @@
 # Changelog
 ## Unreleased
 
+### Protected course pages and scholarship applications (Issues #93 and #98)
+
+- Match the signed-in Moodle course outline, activity details, sidebar and eight-column grade report to measured source layouts. Keep course editing in the course menu and make the grade report horizontally scrollable on phones.
+- Replace the international scholarship tracking page with application periods, apply/cancel actions, review history, awards and service hours, backed by account-scoped records and audited admin review. Guard concurrent updates and retries with versions, locks and persistent operation receipts.
+- Answer personal scholarship questions from the same saved records while preserving explicit questions about assignments, leave and other services.
+- Open the academic-calendar catalog entry and older saved links directly on the copied calendar with six local PDFs.
+
 ### Signed-in School Affairs and Moodle layout (Issues #93 and #98)
 
 - Restore the source portal header, icons and notice panels and match the Moodle desktop column geometry. Keep the student record tools, assistant and knowledge settings in the existing account menus.

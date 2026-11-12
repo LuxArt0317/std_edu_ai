@@ -1,5 +1,14 @@
 # Client handoff
 
+## Protected course and scholarship release (Issues #93 and #98)
+
+The course outline and grade report match the measured signed-in Moodle geometry. The native scholarship application has persistent periods, private applications, reviewed award/service-hour history and admin controls. The calendar entry opens the copied page and six local PDFs. The client database has 113 applied migrations and 124 RLS-protected public tables after migration `20261112030000`.
+
+Local checks pass: 242 API/source tests, 34 units, DTM course/grade and overview browser suites, scholarship lifecycle/admin browser checks, calendar links/PDFs, TypeScript/build, lint, handoff and zero dependency vulnerabilities. Rolled-back database tests and four genuinely concurrent write scenarios pass with fixture cleanup. Scholarship styling preserves two source-inherited contrast findings (brand and instructions); no new serious/critical findings or page overflow remain. Production publication and live browser acceptance are the next step.
+
+The catalog still contains 77 generic tracking destinations. These require individual source inspection and implementation; this batch does not complete the full protected-site copy or institutional integration.
+
+
 ## Issues #93 and #98 — signed-in layout and service navigation
 
 The School Affairs shell, Student Leave form and list, internship index, and DTM overview/dashboard follow the observed university layouts. The leave entry opens the local form directly and saves to private history. Eight catalog destinations display account-scoped records. Other services retain their local destinations and university links. The campus assistant and records open from the account or index menu. [School Affairs](../../src/features/public/affairs/README.md), [DTM](../../src/features/public/dtm/README.md).
