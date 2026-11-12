@@ -6,7 +6,9 @@
 - [x] Give the catalog local service routes and implement account-scoped leave, internship and service records, plus explicit site review.
 - [x] Implement personal DTM courses, sessions, attendance, materials, assignments and grades, including selected calendar deadline imports.
 - [x] Add bilingual navigation and source-backed assistant links and personal record answers.
-- [ ] Verify database isolation, persistent UI flows, assistant behavior, build and client release. Document the institutional integration boundary.
+- [x] Verify database isolation, persistent UI flows, assistant behavior, build and client release. Document the institutional integration boundary.
+
+Official SIS and Moodle sync, institutional submissions, and deeper university service workflows remain open in #98.
 
 ## Temporary client Supabase activity check [Issue #97]
 
