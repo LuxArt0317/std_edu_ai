@@ -611,7 +611,7 @@ return async function handler(
       };
     });
     let checked:VerificationCandidate|undefined;
-    if(answer.status==='answered') {
+    if(answer.status==='answered'||answer.status==='abstained') {
       checked=await runAnswerVerification({question:input.question,initialAnswer:{...answer,citations},deadline,onProgress:verificationProgress,
         loadEvidence:async({attempt})=>{
           if(attempt>1) {

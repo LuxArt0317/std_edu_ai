@@ -121,7 +121,7 @@ try{
   }
   await page.getByRole('button',{name:'開啟 AI 校園助理',exact:true}).click();
   const dialog=page.getByRole('dialog',{name:/Assistant/});
-  const send=async text=>{const saved=page.waitForResponse(response=>response.url().includes('/api/affairs-conversations')&&response.request().method()==='POST'&&response.ok(),{timeout:70000});await dialog.getByRole('textbox',{name:'Your question'}).fill(text);await dialog.getByRole('button',{name:'Send',exact:true}).click();await dialog.getByText(/Checked against retrieved evidence/).last().waitFor({timeout:65000});await saved;await page.waitForFunction(()=>document.querySelector('[role="dialog"]')?.textContent.includes('Conversations are private to your account.'));};
+  const send=async text=>{const saved=page.waitForResponse(response=>response.url().includes('/api/affairs-conversations')&&response.request().method()==='POST'&&response.ok(),{timeout:70000}).then(()=>null,error=>error);await dialog.getByRole('textbox',{name:'Your question'}).fill(text);await dialog.getByRole('button',{name:'Send',exact:true}).click();await dialog.getByText(/Checked against retrieved evidence/).last().waitFor({timeout:65000});const saveError=await saved;if(saveError)throw saveError;await page.waitForFunction(()=>document.querySelector('[role="dialog"]')?.textContent.includes('Conversations are private to your account.'));};
   phase='browser first conversation';await send('What is my display name?');
   const oldId=await dialog.getByLabel('Conversations',{exact:true}).inputValue();
   phase='browser second conversation';await dialog.getByRole('button',{name:'New chat',exact:true}).click();await send('How much is my unpaid tuition?');

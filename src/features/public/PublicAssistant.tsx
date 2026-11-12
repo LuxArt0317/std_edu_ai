@@ -105,7 +105,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
   async function send(text = query) {
     const attached = images;
     const question = text.trim() || (attached.length ? "Please explain the attached image." : "");
-    if (!question || busy || !scope) return;
+    if (!question || busy || !scope || !sessions.active || sessions.loadingChat) return;
     const request = ++sequence.current,
       controller = new AbortController();
     const turnId = window.crypto.randomUUID(), answerId = `a-${turnId}`;
@@ -347,6 +347,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
             value={query}
             maxLength={2000}
             rows={3}
+            disabled={!sessions.active || sessions.loadingChat}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Ask a school question…"
             onKeyDown={(event) => {
@@ -362,7 +363,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
           />
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2"><input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" multiple className="sr-only" aria-label="Attach images" onChange={event=>void addImages(event.target.files)}/><Button type="button" variant="outline" size="icon" aria-label="Attach images" disabled={busy} onClick={()=>fileInput.current?.click()}><Paperclip size={16}/></Button><span className="text-xs text-muted-foreground">Enter to send · Shift+Enter for a new line</span></div>
-            <Button type="submit" disabled={!scope || busy || (!query.trim() && !images.length)}>
+            <Button type="submit" disabled={!scope || !sessions.active || sessions.loadingChat || busy || (!query.trim() && !images.length)}>
               <Send size={16} /> Send
             </Button>
           </div>

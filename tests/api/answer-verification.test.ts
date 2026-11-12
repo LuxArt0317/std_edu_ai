@@ -91,6 +91,19 @@ test('JSON evidence accepts formatting-only spaces but rejects changed field val
  assert.equal(reviewMatchesEvidence({...multiple,claims:[{...multiple.claims[0],quotes:[]}]},sources),false);
 });
 
+test('structured evidence pointers resolve only existing own fields and still require independent approval',()=>{
+ const sources=[{id:'fees',content:JSON.stringify({records:[{amountDue:28000,amountPaid:5000}],empty:[],nullable:null,'with/slash':{'~key':'exact'}})}];
+ const claim={claim:'23000 remains',supported:true,evidenceId:'fees',quotes:[],jsonPaths:['/records/0/amountDue','/records/0/amountPaid']};
+ const review=(change:Record<string,unknown>={})=>({supported:true,answersQuestion:true,claims:[{...claim,...change}]});
+ assert.equal(reviewMatchesEvidence(review(),sources),true);
+ for(const jsonPaths of [[],[''],['/records/1/amountDue'],['/records/00/amountDue'],['/records/length'],['/constructor'],['/records/0/toString'],['/with~2slash'],Array(9).fill('/empty')])assert.equal(reviewMatchesEvidence(review({jsonPaths}),sources),false,JSON.stringify(jsonPaths));
+ assert.equal(reviewMatchesEvidence(review({jsonPaths:['/empty','/nullable','/with~1slash/~0key']}),sources),true);
+ assert.equal(reviewMatchesEvidence(review({supported:false}),sources),false);
+ assert.equal(reviewMatchesEvidence(review({evidenceId:'another-account'}),sources),false);
+ assert.equal(reviewMatchesEvidence(review({quotes:['amountDue:999999']}),sources),false);
+ assert.equal(reviewMatchesEvidence(review(),[{id:'fees',content:'Plain text without structured records'}]),false);
+});
+
 test('private projection excludes admin records, health, contact and another user even when a snapshot includes them',()=>{
   const snapshot={checkedAt:'2026-11-12T01:00:00Z',profile:{userId:'mine',role:'student',email:'mine@example.test'},
     admin:{secret:'not-for-this-tool'},studentAid:{records:[{userId:'mine',subsidyAmount:500,phone:'private-phone',maskedIdentityNumber:'private-id'},{userId:'someone-else',subsidyAmount:999}]},

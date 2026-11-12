@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Resolve structured evidence by exact JSON fields, verify public abstentions, and wait for the active conversation before enabling the chat composer. [#99]
+
 - Accept formatting-only JSON evidence excerpts without accepting altered records; retain real-image provenance during corrected answers. [#99]
 
 - Fix deployed conversation-handler resolution and verify unavailable public sources against exact dated, checksum-verified captures; label snapshot answers and citations explicitly. [#99]
