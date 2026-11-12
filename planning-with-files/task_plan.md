@@ -13,7 +13,7 @@ The preceding turn made verified progress; this continuation has live source acc
 - [x] Inspect source39-1: eight columns, read-only rows, pending status; settled-row behavior unobserved.
 - [x] Give39-1 its own measured layout and add nullable occurrence date, category, contact unit/extension and payment unit to account-owned charges. Never substitute due date for occurrence date.
 - [x] Add stable pagination instead of silent100-record truncation; extend admin metadata and private assistant answers.
-- [ ] Verify privacy, totals, phone layout and source geometry, then publish.
+- [x] Verify privacy, totals, phone layout and source geometry, then publish.
 
 Keep tuition queries48-1/48-2/48-3, settlement49-1 and transfers50-1 separate; their source workflows are different.
 
@@ -21,7 +21,14 @@ Keep tuition queries48-1/48-2/48-3, settlement49-1 and transfers50-1 separate; t
 
 - [x] Inspect original11-3 history, source menu links and empty six-column layout. Keep7-1 application rules separate.
 - [x] Implement private history, strict versioned admin writes and persistent replay receipts; ground account answers in those records.
-- [ ] Complete source typography/geometry, two-account browser/API checks, release and production verification.
+- [x] Complete source typography/geometry, two-account browser/API checks, release and production verification.
+
+## Native selection history and weekly timetable [Issue #98]
+
+- [x] Inspect original11-1 and11-2 filters, seven-column records and14-period weekly grid.
+- [ ] Implement separate account-owned phase snapshots and multiple meeting slots; preserve observed remarks without inferring enrollment or eligibility.
+- [ ] Recreate source filters/layout and admin maintenance; ground private subject/timetable queries in explicit records.
+- [ ] Verify privacy, persistence, source geometry and release.
 
 ## Protected course and scholarship destinations [Issues #93 and #98]
 
