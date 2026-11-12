@@ -2,6 +2,8 @@
 
 ## Verified assistant and persistent conversations (Issue #99, release checks)
 
+Initial release4624812 passed Quality43257279965 but exceeded the Vercel Hobby function limit. Consolidated runtime dbad655 is Ready (8DM56vQFD1ozLiLn7uxuBMHtTD7F), and Quality43258502350 passed. Live acceptance then exposed an emitted .ts import failure in the conversation handler and blocked public source extraction. The pending correction uses a .js handler with declarations and a dated SHA256-verified public-capture fallback; unsupported answers remain withheld. Production acceptance is not complete.
+
 The School Affairs assistant now selects named account reads, uses a bounded LangGraph evidence-review/correction loop, and retains observed verification activity. Independent claim checks use quoted record/source contents, authorized source links, explicit completeness and a shared deadline. Generated public knowledge, web and image answers use the same verification flow. A rejected correction returns an explicit inability to verify, with no guessed answer or actionable proposal. No write occurs inside the graph.
 
 The visible launcher coexists with every signed-in School Affairs/DTM/native-service route. Separate conversations, versioned owner-only storage, expandable record tables and reviewed task/request/nickname/personal-DTM-tracker actions are implemented. Durable action receipts prevent duplicate execution; restored conversation history contains no executable action or image bytes. Google sign-in remains independent from Nexus and the official university; sample records remain samples.

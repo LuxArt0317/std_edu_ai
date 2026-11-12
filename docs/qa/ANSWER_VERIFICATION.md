@@ -47,7 +47,7 @@ citations and proposed actions are withheld.
 - `server/answerVerificationAccount.js`: account projection, completeness and
   explicit truncation metadata. Housing/aid health and identity/contact fields
   are intentionally omitted; those fields remain in their authorized record UI.
-- `server/assistantConversations.ts`, `useAssistantSessions` and
+- `server/assistantConversations.js`, `useAssistantSessions` and
   `assistantConversation.ts`: preserve separate owner-only transcripts, observed
   activity, verification metadata and record views. Guests use tab storage.
 - `accountAssistantActions`: create/complete a task, submit a site service request,
@@ -87,3 +87,9 @@ publication remain pending and must be recorded separately.
 
 Implementation references: [LangGraph control flow](https://docs.langchain.com/oss/javascript/langgraph/thinking-in-graph-api)
 and [OpenAI structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses).
+
+A live school anti-bot response contains no evidence. Verification may instead use the exact already-published public capture, matched by source URL and SHA-256, with its capture date and non-live status in the evidence. Unmatched or changed captures remain unavailable.
+
+## Runtime correction acceptance
+
+Initial Quality43257279965 passed, but Vercel rejected13 functions. Consolidation dbad655 fits12 functions and Quality43258502350 passed; live private checks then exposed an emitted .ts import path. The handler now uses .js plus declarations. Public-source robot challenges returned no readable evidence; exact versioned public captures now require their SHA256, date and original URL match. Captured evidence cannot pass as live: both answer and citation visibly identify the snapshot date. Focused graph/conversation/source checks pass15 tests, including tampering and missing provenance rejection. Real deployed private/public acceptance must be rerun before release acceptance.

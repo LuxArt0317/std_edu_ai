@@ -1,20 +1,18 @@
 import {AffairsWorkspaceError,verifyAffairsToken} from './affairsWorkspace.js';
 import {sanitizeStoredConversation} from './assistantConversationData.js';
-type Request={method?:string;headers:Record<string,string|string[]|undefined>;body?:unknown;query?:Record<string,string|string[]|undefined>};
-type Response={status:(code:number)=>Response;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void};
-const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
-const uuid=(value:unknown):value is string=>typeof value==='string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-export default async function handler(req:Request,res:Response){
+const first=(value)=>Array.isArray(value)?value[0]:value;
+const uuid=(value)=>typeof value==='string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+export default async function handler(req,res){
   res.setHeader('Cache-Control','no-store, max-age=0');res.setHeader('X-Content-Type-Options','nosniff');
   if(!['GET','POST','DELETE'].includes(req.method||'')){res.setHeader('Allow','GET, POST, DELETE');res.status(405).json({error:'Method not allowed'});return;}
   try{
     const account=await verifyAffairsToken(first(req.headers.authorization)?.replace(/^Bearer /,'')||'');
     let raw=req.body;if(typeof raw==='string'){try{raw=JSON.parse(raw);}catch{raw=null;}}
-    const body=raw && typeof raw==='object' && !Array.isArray(raw)?raw as Record<string,unknown>:{};
+    const body=raw && typeof raw==='object' && !Array.isArray(raw)?raw:{};
     const id=req.method==='POST'?body.id:first(req.query?.id);
     if(id!==undefined&&!uuid(id))throw new AffairsWorkspaceError('Invalid conversation identifier.',400);
     const headers={apikey:account.key,Authorization:`Bearer ${account.token}`,'Content-Type':'application/json'};
-    let path='affairs_conversations',content:string|undefined;
+    let path='affairs_conversations',content;
     const params=new URLSearchParams({user_id:`eq.${account.user.id}`});
     if(req.method==='POST'){
       if(!id || typeof body.title!=='string' || body.title.trim().length<1 || body.title.length>100 || !Number.isInteger(body.version) || Number(body.version)<0 || !Array.isArray(body.messages) || JSON.stringify(body).length>190000)

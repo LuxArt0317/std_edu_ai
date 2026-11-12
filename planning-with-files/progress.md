@@ -9,3 +9,7 @@ Earlier entries are retained in archive/progress_2026-11-13_verification.md.
 - Pushed #99 runtime4624812 to client main; VercelGLHk4Kv2xsLzJ419v5xLN9VJyiA7 and quality43257279965 are building. Named academic/graduation drafts remain excluded. Removed two confirmed-inactive regenerable npx Lighthouse caches to give QA enough disk; no account/profile data touched.
 
 - Deployment4624812 built but failed the Vercel Hobby 12-function limit. Consolidated conversation storage into affairs-data with a stable API alias; retained owner authorization and added a handoff budget gate. Existing GitHub sign-in restored the correct client Vercel session without new scopes.
+
+- Production dbad655 is Ready; acceptance caught a Vercel emitted-import mismatch for the moved TypeScript handler. Converting it to the established JS/declaration module convention. Public source verification abstained, so added secret-free provider/source diagnostics before further live validation; no success claim.
+
+- Runtime correction: the15 focused verification/conversation/source tests pass, including checksum tampering, exact source matching and mandatory snapshot provenance. dbad655 Quality43258502350 passed; publication acceptance remains pending the corrected production run.

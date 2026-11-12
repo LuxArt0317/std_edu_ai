@@ -1,5 +1,5 @@
 import { AffairsWorkspaceError, loadAffairsSnapshot, verifyAffairsToken } from '../server/affairsWorkspace.js';
-import conversations from '../server/assistantConversations.ts';
+import conversations from '../server/assistantConversations.js';
 import { loadCourseCatalog } from '../server/courseCatalog.js';
 
 type Request = {method?:string;headers:Record<string,string|string[]|undefined>;body?:unknown;query?:Record<string,string|string[]|undefined>};

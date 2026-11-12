@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Fix deployed conversation-handler resolution and verify unavailable public sources against exact dated, checksum-verified captures; label snapshot answers and citations explicitly. [#99]
+
 - Keep private conversation storage within the client Vercel function limit by sharing the account-data runtime; preserve the public chat API URL and enforce the hosting budget during handoff checks. [#99]
 
 ### Verified account assistant and private conversations (Issue #99)
