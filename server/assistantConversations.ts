@@ -1,5 +1,5 @@
-import {AffairsWorkspaceError,verifyAffairsToken} from '../server/affairsWorkspace.js';
-import {sanitizeStoredConversation} from '../server/assistantConversationData.js';
+import {AffairsWorkspaceError,verifyAffairsToken} from './affairsWorkspace.js';
+import {sanitizeStoredConversation} from './assistantConversationData.js';
 type Request={method?:string;headers:Record<string,string|string[]|undefined>;body?:unknown;query?:Record<string,string|string[]|undefined>};
 type Response={status:(code:number)=>Response;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void};
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;

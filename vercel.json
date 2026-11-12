@@ -2,6 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/api/affairs-conversations",
+      "destination": "/api/affairs-data?resource=conversations"
+    },
+    {
       "source": "/latestnews-single/",
       "has": [
         {

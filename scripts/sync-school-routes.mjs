@@ -8,7 +8,8 @@ const config = JSON.parse(fs.readFileSync(file, 'utf8'));
 const captures = [...directSchoolPages(root)]
   .filter(([route]) => route !== '/')
   .sort(([left], [right]) => Number(right.includes('?')) - Number(left.includes('?')) || left.localeCompare(right));
-const rewrites = [];
+// Preserve account API aliases when regenerating copied-page routes.
+const rewrites = [{source:'/api/affairs-conversations',destination:'/api/affairs-data?resource=conversations'}];
 for (const [route, page] of captures) {
   const url = new URL(route, 'https://stu.best');
   const has = [...url.searchParams].map(([key, value]) => ({ type: 'query', key, value }));

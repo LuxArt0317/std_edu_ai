@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';import {test} from 'node:test';
-import handler from '../../api/affairs-conversations.ts';
+import handler from '../../api/affairs-data.ts';
 test('conversation API derives owner from verified Google session and strips executable data',async()=>{
   const original=globalThis.fetch,saved={...process.env};
   process.env.VITE_SUPABASE_URL='https://xiftudmvxphxcjtmfmib.supabase.co';process.env.VITE_SUPABASE_PUBLISHABLE_KEY='fixture';
@@ -12,7 +12,7 @@ test('conversation API derives owner from verified Google session and strips exe
     if(url.pathname.endsWith('/rpc/affairs_save_conversation')){write=JSON.parse(String(init?.body));return Response.json({id,version:1});}
     read=url;return Response.json([]);
   };
-  const call=async(method:string,body?:unknown,query?:Record<string,string>)=>{let status=200,value:any;const response={status(code:number){status=code;return response;},json(result:unknown){value=result;},setHeader(){}};await handler({method,body,query,headers:{authorization:'Bearer '+'x'.repeat(40)}},response);return {status,value};};
+  const call=async(method:string,body?:unknown,query?:Record<string,string>)=>{let status=200,value:any;const response={status(code:number){status=code;return response;},json(result:unknown){value=result;},setHeader(){}};await handler({method,body,query:{...query,resource:'conversations'},headers:{authorization:'Bearer '+'x'.repeat(40)}},response);return {status,value};};
   try{
     assert.equal((await call('POST',{id,title:'Chat',version:0,messages:[{id:'message',role:'assistant',content:'Hello',result:{status:'answered',answer:'Hello',proposedAction:{kind:'create_task',payload:{title:'no replay'}},citations:[]}}],user_id:'attacker'})).status,200);
     assert.equal(write.p_messages[0].result.proposedAction,undefined);assert.equal(write.p_messages[0].actionExpired,true);assert.equal(write.p_user_id,undefined);

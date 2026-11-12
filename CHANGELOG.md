@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Keep private conversation storage within the client Vercel function limit by sharing the account-data runtime; preserve the public chat API URL and enforce the hosting budget during handoff checks. [#99]
+
 ### Verified account assistant and private conversations (Issue #99)
 
 - Add a bounded LangGraph evidence-review/correction loop for account, public knowledge, web and image answers; withhold unsupported drafts.

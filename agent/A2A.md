@@ -115,3 +115,5 @@ Root acknowledges verifier conversation migration20261112120000. Grade110000 rem
 ### Assistant migration applied — 2026-11-13
 
 Verifier applied only20261112120000 after db:plan --only, using the new exactversion selector. Client is121 migrations/132 publicRLS tables.110000/130000 remainunapplied. Two-account backend privacy/conflict/actionreplay tests pass; browser/model/release verification continues. Other agents retain disjoint drafts; shared assistant, PublicAssistant, manifests and release files remain verifier-owned.
+
+- #99 release correction: Vercel4624812 build succeeded but output exceeded Hobby12 functions. Verification agent additionally owns affairs-data.ts, vercel.json and sync-school-routes/verify-handoff for narrow API alias consolidation. New handlers should reuse existing functions; no plan upgrade or auth change.

@@ -47,7 +47,7 @@ citations and proposed actions are withheld.
 - `server/answerVerificationAccount.js`: account projection, completeness and
   explicit truncation metadata. Housing/aid health and identity/contact fields
   are intentionally omitted; those fields remain in their authorized record UI.
-- `api/affairs-conversations.ts`, `useAssistantSessions` and
+- `server/assistantConversations.ts`, `useAssistantSessions` and
   `assistantConversation.ts`: preserve separate owner-only transcripts, observed
   activity, verification metadata and record views. Guests use tab storage.
 - `accountAssistantActions`: create/complete a task, submit a site service request,

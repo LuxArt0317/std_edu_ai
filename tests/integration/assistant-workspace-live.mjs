@@ -5,7 +5,6 @@ import {createClient} from '@supabase/supabase-js';
 import postgres from 'postgres';
 import {chromium} from 'playwright-core';
 import {deploymentEnvironment} from '../../scripts/deployment-env.mjs';
-import chatHandler from '../../api/affairs-conversations.ts';
 import actionHandler from '../../api/affairs-action.ts';
 import dataHandler from '../../api/affairs-data.ts';
 import {studyCalendar} from '../../server/affairsSchedule.js';
@@ -23,14 +22,14 @@ const auth={persistSession:false,autoRefreshToken:false},key=env.VITE_SUPABASE_P
 const admin=createClient(url,env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_SECRET_KEY,{auth});
 const sql=postgres(connection,{max:2,ssl:{rejectUnauthorized:true,ca:await readFile('supabase/certs/prod-ca-2021.crt','utf8')},onnotice:()=>{}});
 const users=[],checks=[],answers=[];
-const handlers={'/api/affairs-conversations':chatHandler,'/api/affairs-action':actionHandler,'/api/affairs-data':dataHandler};
+const handlers={'/api/affairs-conversations':dataHandler,'/api/affairs-action':actionHandler,'/api/affairs-data':dataHandler};
 const runId=randomUUID(),chatId=randomUUID(),courseId=randomUUID(),assignmentId=randomUUID();
 let browser,phase='setup';
 async function invoke(endpoint,{session,method='GET',body}={}){
   if(!local){const response=await fetch(origin+endpoint,{method,headers:{...(session?{Authorization:'Bearer '+session.access_token}:{}),...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(65000)});return {status:response.status,body:await response.json()};}
   const path=new URL(endpoint,origin),handler=handlers[path.pathname];assert.ok(handler);
   const result={status:200,body:null},response={status(code){result.status=code;return response;},json(value){result.body=value;},setHeader(){}};
-  await handler({method,body,headers:session?{authorization:'Bearer '+session.access_token}:{},query:Object.fromEntries(path.searchParams)},response);return result;
+  await handler({method,body,headers:session?{authorization:'Bearer '+session.access_token}:{},query:{...Object.fromEntries(path.searchParams),...(path.pathname==='/api/affairs-conversations'?{resource:'conversations'}:{})}},response);return result;
 }
 async function call(endpoint,options={}){const result=await invoke(endpoint,options);assert.equal(result.status,options.status||200,`${phase} ${endpoint}: ${result.status} ${JSON.stringify(result.body)}`);return result.body;}
 const snapshot=session=>call('/api/affairs-data',{session});
@@ -117,7 +116,15 @@ try{
   const newId=await dialog.getByLabel('Conversations',{exact:true}).inputValue();assert.notEqual(oldId,newId);
   phase='browser switch conversation';await dialog.getByLabel('Conversations',{exact:true}).selectOption(oldId);assert.ok((await dialog.getByRole('log').innerText()).includes('display name'));
   await page.reload();await page.getByRole('button',{name:'開啟 AI 校園助理',exact:true}).click();await dialog.getByLabel('Conversations',{exact:true}).selectOption(newId);await dialog.getByRole('log').getByText(/unpaid tuition/, {exact:false}).first().waitFor();
-  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));assert.deepEqual(errors,[]);
+  const view=dialog.getByRole('log').locator('details').filter({hasText:'retrieved'}).first();
+  if(await view.count())await view.locator('summary').click();
+  await mkdir('artifacts/assistant-verification',{recursive:true,mode:0o700});
+  for(const width of [390,1440]){
+    await page.setViewportSize({width,height:900});
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+    await page.screenshot({path:`artifacts/assistant-verification/${local?'local':'production'}-${runId}-${width}.png`});
+  }
+  assert.deepEqual(errors,[]);
   await context.close();checks.push('visible assistant on DTM/School Affairs/leave/fees, two conversations, switching and refresh persistence, phone width and zero page errors');
 }catch(error){process.exitCode=1;console.error(`${phase}: ${error.message||error.name||'Error'}`);}
 finally{

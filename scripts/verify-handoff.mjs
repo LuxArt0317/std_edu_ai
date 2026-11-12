@@ -8,6 +8,10 @@ assert.equal(config.supabase.projectRef, 'xiftudmvxphxcjtmfmib')
 assert.equal(config.supabase.ownerEmail, 'luxart0317@gmail.com')
 assert.ok(!existsSync('github-issues-export'), 'Migration exports belong outside the client deliverable')
 assert.ok(existsSync('planning-with-files/task_plan.md'))
+const functionFiles=walk('api').filter(file=>/\.(?:ts|js|mjs)$/.test(file)&&!file.endsWith('.d.ts'))
+assert.ok(functionFiles.length<=12, 'Client Hobby deployment allows at most 12 functions; consolidate handlers before adding endpoints')
+const routing=JSON.parse(readFileSync('vercel.json','utf8'))
+assert.ok(routing.rewrites.some(rule=>rule.source==='/api/affairs-conversations'&&rule.destination==='/api/affairs-data?resource=conversations'), 'Private conversation API alias is missing')
 assert.ok(!existsSync('agent/planning-with-files/task_plan.md'), 'Use a single root plan')
 function walk(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
