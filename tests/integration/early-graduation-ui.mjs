@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {chromium} from 'playwright-core';
+import AxeBuilder from '@axe-core/playwright';
 import {affairsTestUser,mockAffairsAuth} from './helpers/affairs-auth.mjs';
 import {schoolServiceSnapshot,schoolServiceReadFixture} from './helpers/school-service-route-inventory.mjs';
 import {earlyGraduationPath,earlyGraduationScope,validEarlyGraduationAction} from '../../server/earlyGraduationContract.js';
@@ -71,9 +72,13 @@ try{
   assert.equal(await page.getByRole('columnheader').count(),9);
   assert.equal(await page.getByText('無申請紀錄',{exact:true}).isVisible(),true);
   assert.equal(Math.round((await page.locator('.early-graduation-frame').boundingBox()).width),1060);
-  for(const width of [768,390,320]){
+  for(const width of [1280,768,390,320]){
     await page.setViewportSize({width,height:800});
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Page overflow at '+width);
+    if(width===1280||width===390){
+      const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze();
+      assert.deepEqual(result.violations.filter(row=>['critical','serious'].includes(row.impact)).map(row=>row.id),[]);
+    }
   }
   await page.setViewportSize({width:1280,height:850});
   opened=true;
