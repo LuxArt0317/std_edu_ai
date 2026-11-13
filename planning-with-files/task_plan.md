@@ -1,5 +1,14 @@
 # Task Plan
 
+## DTM dashboard preferences [Issue #98]
+
+- [x] Revalidate source Customize mode and built-in block configuration without saving school changes.
+- [x] Persist owner-only Important, Navigation and Contacts visibility, region and weight with versioned reset/retry handling;230000 applied after rollback preflight.
+- [x] Match the observed configuration screen, preserve account-switch isolation, and verify local rendering and database behavior.
+- [ ] Independently review, run scoped/full release gates, publish and verify deployed behavior.
+
+HTML block creation, Administration block behavior and unobserved Move interaction remain separate source-inspection gaps. Issue100 remains user-paused; no AI candidate or model tests are included.
+
 ## Active native academic records and Moodle submissions [Issue #98]
 
 - [x] Inspect source transcript/ranking/warning, modern/legacy graduation, attendance and assignment detail/editor layouts without school mutations.

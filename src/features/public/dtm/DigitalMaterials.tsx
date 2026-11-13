@@ -12,6 +12,7 @@ import { campusAssistantOpenEvent } from '../PublicAssistant';
 import { announcements, categories, coursesByTerm, dtmViews, observedAt, otherCategories, quickLinks, type DtmView } from './catalog';
 import { DtmCourseCreateDialog, DtmStudentRecords } from './DtmStudentRecords';
 import { DtmSubmissionWorkspace } from './DtmSubmissionWorkspace';
+import { DtmDashboardLayout, type DtmDashboardConfiguration } from './DtmDashboardLayout';
 import { termLabel, useDtmLocale, type DtmLocale, type DtmTranslate } from './locale';
 import './digital-materials.css';
 
@@ -52,16 +53,17 @@ function DashboardBlockContent({enabled,noOverflow=false,children}:{enabled:bool
   return enabled?<div className="dtm-dashboard-block-content">{noOverflow?<div className="dtm-dashboard-no-overflow">{children}</div>:children}</div>:<>{children}</>;
 }
 
-function Navigation({courses,home,dashboard,selected,view,displayName,t}:{courses:DtmCourse[];home:boolean;dashboard:boolean;selected?:DtmCourse;view?:DtmView;displayName:string;t:DtmTranslate}) {
+function Navigation({courses,home,dashboard,selected,view,displayName,t,dashboardBlock,dashboardControls}:{courses:DtmCourse[];home:boolean;dashboard:boolean;selected?:DtmCourse;view?:DtmView;displayName:string;t:DtmTranslate;dashboardBlock?:'important'|'navigation'|'contacts';dashboardControls?:ReactNode}) {
   const [membersOpen,setMembersOpen]=useState(false);
   const ownTerms = new Map(coursesByTerm(courses));
   const terms = [...new Set<string>([...navigationTerms,...ownTerms.keys()])]
     .sort((a,b)=>b.localeCompare(a,undefined,{numeric:true}));
-  return <aside className="dtm-left" aria-label={t('數位教材網導覽','DTM navigation')}>
-    {(home||dashboard||selected) && <>
+  const content=<>
+    {(dashboardBlock?dashboardBlock==='important':home||dashboard||selected) && <>
     {dashboard&&<a className="dtm-dashboard-block-skip" href="#dtm-after-important">{t('略過重要消息','Skip Important information')}</a>}
     <section className="dtm-card dtm-important-information">
       <h2>{t('重要消息','Important information')}</h2>
+      {dashboardControls}
       <DashboardBlockContent enabled={dashboard} noOverflow>
       <p><strong>{t('遠距教學課程','Online classes')}</strong>{t('請到',' use ')} <OfficialLink href="https://tc.stu.edu.tw/">{t('>>TronClass創課<<','TronClass')}</OfficialLink></p>
       <p>{t('本平台只存放','This platform hosts ')}<strong>{t('實體課程','in-person courses')}</strong></p>
@@ -69,9 +71,11 @@ function Navigation({courses,home,dashboard,selected,view,displayName,t}:{course
     </section>
     {dashboard&&<span className="dtm-dashboard-skip-target" id="dtm-after-important" tabIndex={-1}/>}
     </>}
+    {(!dashboardBlock||dashboardBlock==='navigation')&&<>
     {dashboard&&<a className="dtm-dashboard-block-skip" href="#dtm-after-navigation">{t('略過導覽','Skip Navigation')}</a>}
     <nav className="dtm-card dtm-navigation" aria-label={t('我的課程選單','My courses navigation')}>
       <h2><i className="dtm-navigation-icon" aria-hidden="true">{'\uf0e8'}</i>{t('導覽','Navigation')}</h2>
+      {dashboardControls}
       <DashboardBlockContent enabled={dashboard}>
       <Link className="dtm-tree-home" to="/dtm" aria-current={home?'page':undefined}>{t('首頁','Home')}</Link>
       <Link className="dtm-tree-page" to="/dtm/dashboard" aria-current={dashboard?'page':undefined}>{t('儀表板','Dashboard')}</Link>
@@ -96,6 +100,7 @@ function Navigation({courses,home,dashboard,selected,view,displayName,t}:{course
       </DashboardBlockContent>
     </nav>
     {dashboard&&<span className="dtm-dashboard-skip-target" id="dtm-after-navigation" tabIndex={-1}/>}
+    </>}
     {home && <>
     <section className="dtm-card">
       <h2>{t('教學專區－教師','Teaching guides for instructors')}</h2>
@@ -114,15 +119,16 @@ function Navigation({courses,home,dashboard,selected,view,displayName,t}:{course
         <ul><li><Link to="/dtm/grades">{t('綜覽報告','Overview report')}</Link></li><li><Link to={courseHref(selected.id)+'/grades'} aria-current="page">{t('用戶報告','User report')}</Link></li></ul>
       </details>
     </section>}
-    {(dashboard||selected)&&<Contacts t={t} dashboard={dashboard}/>}
+    {(dashboardBlock?dashboardBlock==='contacts':dashboard||selected)&&<Contacts t={t} dashboard={dashboard} controls={dashboardControls}/>}
     <Dialog open={membersOpen} onOpenChange={setMembersOpen}><DialogContent>
       <DialogHeader><DialogTitle>{t('成員','Participants')}</DialogTitle><DialogDescription>{t('此課程的個人紀錄帳號。','The account associated with these personal course records.')}</DialogDescription></DialogHeader>
       <p>{displayName}</p>
     </DialogContent></Dialog>
-  </aside>;
+  </>;
+  return dashboardBlock?content:<aside className="dtm-left" aria-label={t('數位教材網導覽','DTM navigation')}>{content}</aside>;
 }
 
-function Contacts({t,dashboard=false}:{t:DtmTranslate;dashboard?:boolean}) {
+function Contacts({t,dashboard=false,controls}:{t:DtmTranslate;dashboard?:boolean;controls?:ReactNode}) {
   const department=(zh:string,en:string)=>dashboard
     ?<>{t('請洽','Contact ')}<strong className="dtm-contact-department">{t(zh,en)}</strong>: </>
     :t('請洽'+zh+': ',': ');
@@ -130,6 +136,7 @@ function Contacts({t,dashboard=false}:{t:DtmTranslate;dashboard?:boolean}) {
     {dashboard&&<a className="dtm-dashboard-block-skip" href="#dtm-after-contacts">{t('略過聯絡方式','Skip Contacts')}</a>}
     <section className="dtm-card dtm-contacts">
       <h2>{t('聯絡方式','Contacts')}</h2>
+      {controls}
       <DashboardBlockContent enabled={dashboard} noOverflow>
       <p><strong>{t('一般生、校際選課生','Registration and course enrollment')}</strong>{department('教務處註冊課務組','Registration and Curriculum Section')}07-6158000#2012</p>
       <p><strong>{t('教材上網','Course materials')}</strong>{t('請洽教務處註冊課務組: ',': ')}07-6158000#2010</p>
@@ -202,7 +209,7 @@ function DtmHome({courses,t}:{courses:DtmCourse[];t:DtmTranslate}) {
   </>;
 }
 
-function WorkspaceHeader({route,course,assignment,displayName,t}:{route:DtmRoute;course?:DtmCourse;assignment?:DtmAssignment;displayName:string;t:DtmTranslate}) {
+function WorkspaceHeader({route,course,assignment,displayName,t,dashboardConfiguration}:{route:DtmRoute;course?:DtmCourse;assignment?:DtmAssignment;displayName:string;t:DtmTranslate;dashboardConfiguration?:DtmDashboardConfiguration|null}) {
   return <>
     {route.mode==='dashboard'?<header className="dtm-dashboard-header">
       <span className="dtm-dashboard-avatar"><img className="dtm-avatar" src="/dtm-theme/user-large.png" alt="" width="100" height="100"/></span><h1>{displayName}</h1>
@@ -218,7 +225,10 @@ function WorkspaceHeader({route,course,assignment,displayName,t}:{route:DtmRoute
           <Link to={courseHref(course.id)+'/assignment/'+assignment.id} aria-current={route.submissionView==='detail'?'page':undefined}>{assignment.title}</Link>
           {route.submissionView==='edit'&&<><ChevronRight size={16} aria-hidden="true"/><span>{t('編輯繳交作業','Edit submission')}</span></>}</>}
         {course.sourceMode==='sample'&&<span className="dtm-sample-label">{t('範例','Sample')}</span>}
-      </>:route.mode==='dashboard'?t('儀表板','Dashboard'):route.mode==='assignments'?t('我的作業','My assignments'):route.mode==='grades'?t('我的成績','My grades'):t('我的教材網','My DTM workspace')}
+      </>:route.mode==='dashboard'?dashboardConfiguration?<>
+        <Link to="/dtm/dashboard" aria-disabled={!dashboardConfiguration.canCancel} onClick={event=>{event.preventDefault();if(dashboardConfiguration.canCancel)dashboardConfiguration.onCancel();}}>{t('儀表板','Dashboard')}</Link>
+        <ChevronRight size={16} aria-hidden="true"/><span>{dashboardConfiguration.title}</span><ChevronRight size={16} aria-hidden="true"/><span aria-current="page">{t('組態','Configuration')}</span>
+      </>:t('儀表板','Dashboard'):route.mode==='assignments'?t('我的作業','My assignments'):route.mode==='grades'?t('我的成績','My grades'):t('我的教材網','My DTM workspace')}
     </nav>}
   </>;
 }
@@ -237,14 +247,14 @@ function SignedInWorkspace({userId,route,t,hash,displayName,creatingCourse,onCre
     return ()=>cancelAnimationFrame(frame);
   },[snapshot,hash,route.mode,route.view]);
   return <>
-    <WorkspaceHeader route={route} course={selected} assignment={assignment} displayName={displayName} t={t}/>
+    {(route.mode!=='dashboard'||!snapshot)&&<WorkspaceHeader route={route} course={selected} assignment={assignment} displayName={displayName} t={t}/>}
     {error&&<div role="alert" className="dtm-error">{error} <Button size="sm" variant="outline" onClick={refresh}>{t('重試','Retry')}</Button></div>}
     {loading&&!snapshot&&<p role="status">{t('載入課程紀錄中…','Loading course records…')}</p>}
-    {snapshot&&<div className={'dtm-columns'+(route.mode==='home'?'':' dtm-columns-course')}>
-      <Navigation courses={snapshot.dtm.courses} home={route.mode==='home'} dashboard={route.mode==='dashboard'} selected={selected} view={route.view} displayName={snapshot.profile.displayName||displayName} t={t}/>
+    {snapshot&&route.mode==='dashboard'&&<DtmDashboardLayout userId={userId} t={t} renderHeader={configuration=><WorkspaceHeader route={route} displayName={displayName} t={t} dashboardConfiguration={configuration}/>} renderBlock={(id,controls)=><Navigation courses={snapshot.dtm.courses} home={false} dashboard displayName={snapshot.profile.displayName||displayName} t={t} dashboardBlock={id} dashboardControls={controls}/>}/>}
+    {snapshot&&route.mode!=='dashboard'&&<div className={'dtm-columns'+(route.mode==='home'?'':' dtm-columns-course')}>
+      <Navigation courses={snapshot.dtm.courses} home={route.mode==='home'} dashboard={false} selected={selected} view={route.view} displayName={snapshot.profile.displayName||displayName} t={t}/>
       <section className={'dtm-center'+(route.mode==='course'?' dtm-course-center':'')+((route.mode==='grades'||route.view==='grades')?' dtm-grade-center':'')+(route.assignmentId?' dtm-submission-center':'')} aria-label={t('教材網內容','Digital teaching materials content')}>
         {route.mode==='home'?<DtmHome courses={snapshot.dtm.courses} t={t}/>
-          :route.mode==='dashboard'?<span className="dtm-dashboard-empty" aria-hidden="true"/>
           :route.mode==='missing'||(route.mode==='course'&&!selected)||(route.assignmentId&&!assignment)
             ?loading?<p role="status">{t('載入課程中…','Loading course…')}</p>:<div className="dtm-card"><h2>{t('找不到課程或頁面','Course or page unavailable')}</h2>
               <p>{t('請從您的儀表板選擇一門課。','Choose a course from your dashboard.')}</p><Link to="/dtm/dashboard">{t('前往儀表板','Open dashboard')}</Link></div>

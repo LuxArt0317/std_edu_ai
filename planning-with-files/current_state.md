@@ -1,5 +1,9 @@
 # Current state
 
+## DTM block preferences in progress [Issue #98]
+
+Only230000 has now been applied after a five-group rollback-only preflight and exact client plan. A separate live read verified133 migrations/150 publicRLS,0layoutrows and0operationreceipts. The isolated candidate passed943API/source,380unit,build/assets,lint(existing warnings),handoff and dependency audit0. Final UI/client review passed33focused cases. Both dashboard aliases at1533/390/320 contain without overflow; measured desktop default/configuration rectangles match source with footer rounding below0.008CSSpx. Synthetic persistence/retry checks pass, and actual-JWT localee9374bf passed4groups/52HTTP/21browser/10writes with exact cleanup/owner preservation. First rawf8d2a7c5 failed due two harness defects; separate read-only recovery proved zero residue and preserved the failed record. Publication/deployed acceptance remain pending. Production still uses0b5 documentation over400 runtime. Source-matched contrast findings remain; no complete accessibility or pixel acceptance is claimed. No Issue100 runtime/model work is included.
+
 ## Verified production and coordination
 
 Operate only in the LuxArt0317 client checkout on `codex/helpful-school-search`. Verified runtime checkpoint `400abb07df6c2c2e0247a0634e4d338e70f5df0c` is Vercel Ready `EPE1q3rqFCSJbkcMF9swjiSBfUFX`; exact public manifest and Quality43388722996 success verified. Only220000 was added:132 migrations/149 public RLS tables. Database-only client verification and8route/50asset public checks passed. Later documentation-only commits do not change this accepted runtime.

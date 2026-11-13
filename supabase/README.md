@@ -5,3 +5,5 @@
 Migrations20261112080000 and20261112090000 add nullable fee metadata and owner-isolated local credit-load history. They preserve existing sample provenance, deny direct client writes, and use audited manager RPCs; history writes also require expected versions and stable request IDs. No source institution data is seeded.
 
 Private Moodle submissions and certificate assessments use migrations150000/160000. Their actual Storage and rollback acceptance, cleanup boundaries and current schema counts are recorded in [QA](../docs/qa/DTM_SUBMISSIONS.md).
+
+Draft `20261113230000_dtm_dashboard_layout.sql` adds owner-only layout preferences for the three observed DTM dashboard blocks and private durable command receipts/audit. It grants no direct client writes or administrator cross-account reads, performs no profile/identity initialization, and makes reset a versioned write. Its offline helper/handler checks do not establish SQL, concurrency or deployed persistence acceptance; application requires the separate migration plan and authorized preflight.

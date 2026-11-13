@@ -35,7 +35,9 @@ const style=dom.window.document.createElement('style');style.textContent=css;dom
 const originalFetch=globalThis.fetch;
 const unexpected:typeof fetch=async()=>{throw new Error('Unexpected network request in offline dashboard test.');};
 let respond:typeof fetch=unexpected;
-globalThis.fetch=(...args)=>respond(...args);
+globalThis.fetch=(...args)=>String(args[0])==='/api/affairs-data?scope=dtm-dashboard-layout'
+  ?Promise.resolve(Response.json({version:0,blocks:['important','navigation','contacts'].map((id,index)=>({id,visible:true,region:'side-pre',weight:index-1})),updatedAt:null}))
+  :respond(...args);
 const {render,cleanup,fireEvent,waitFor,act,within}=await import('@testing-library/react');
 const {default:DigitalMaterials}=await import('../../src/features/public/dtm/DigitalMaterials');
 const {AffairsContext}=await import('../../src/features/public/affairs/authContext');
@@ -86,11 +88,11 @@ for(const path of ['/dtm/my','/dtm/dashboard'])test(path+' keeps a source-shaped
   assert.ok(view.getByRole('menuitem',{name:'Delete course'}));
 });
 
-test('no courses uses the same empty block, without claiming absent official membership or adding customization controls',async()=>{
+test('no courses uses the same empty block, without claiming absent official membership, and exposes working layout customization',async()=>{
   const view=await loaded('/dtm/my',snapshot(owner,[]));
   assert.equal(view.container.querySelector('.dtm-center')?.textContent,'');
   assert.equal(view.queryByText('Add a course to start tracking your records.'),null);
-  assert.equal(view.queryByRole('button',{name:/customiz/i}),null);
+  assert.ok(view.getByRole('button',{name:'Customize this page'}));
   await openCreate(view);assert.ok(view.getByLabelText('Course code'));fireEvent.click(view.getByRole('button',{name:'Cancel'}));
   await waitFor(()=>assert.equal(view.queryByRole('dialog'),null));assert.equal(view.getByLabelText('Current route').textContent,'/dtm/my');
 });
@@ -259,6 +261,22 @@ test('the shared signed-in header uses measured desktop spacing while keeping th
   assert.match(css,/@media\(max-width: 990px\)[\s\S]*?margin-left: 0; padding: 6px 0 0; line-height: 24px;/);
   assert.match(css,/\.is-signed-in \.dtm-language select \{ width: auto; height: auto; min-height: 34px;/);
   assert.match(css,/@font-face\s*\{[\s\S]*?font-family: "DTM Open Sans";[\s\S]*?font-weight: 400;/);
+});
+
+test('source Chinese labels and configuration breadcrumb cancel locally without discarding an uncertain save',async()=>{
+  const view=await loaded('/dtm/my');fireEvent.change(view.getByRole('combobox',{name:'Language / 語言'}),{target:{value:'zh-Hant'}});
+  fireEvent.click(view.getByRole('button',{name:'自訂此頁'}));assert.ok(view.getByRole('button',{name:'將頁面重設為預設狀態'}));
+  function openContacts(){const details=view.container.querySelector<HTMLDetailsElement>('.dtm-contacts .dtm-dashboard-block-actions details')!;details.open=true;
+    assert.ok(view.getByRole('button',{name:'隱藏 聯絡方式 區塊'}));fireEvent.click(view.getByRole('button',{name:'設定 聯絡方式 區塊'}));}
+  openContacts();let breadcrumb=view.getByRole('navigation',{name:'頁面位置'});assert.equal(breadcrumb.textContent,'首頁儀表板聯絡方式組態');
+  assert.equal(within(breadcrumb).getByRole('link',{name:'儀表板'}).getAttribute('href'),'/dtm/dashboard');
+  fireEvent.click(within(breadcrumb).getByRole('link',{name:'儀表板'}));assert.ok(!view.queryByRole('heading',{name:'設定聯絡方式區塊'}));assert.equal(view.getByLabelText('Current route').textContent,'/dtm/my');
+  openContacts();let release:(response:Response)=>void=()=>{};let writes=0;
+  respond=async(input,init)=>{assert.equal(String(input),'/api/affairs-action');assert.equal(JSON.parse(String(init?.body)).kind,'save_dtm_dashboard_layout');writes++;return new Promise(resolve=>{release=resolve;});};
+  fireEvent.click(view.getByRole('button',{name:'儲存變更'}));await waitFor(()=>assert.equal(writes,1));breadcrumb=view.getByRole('navigation',{name:'頁面位置'});
+  assert.equal(within(breadcrumb).getByRole('link',{name:'儀表板'}).getAttribute('aria-disabled'),'true');fireEvent.click(within(breadcrumb).getByRole('link',{name:'儀表板'}));assert.ok(view.getByRole('heading',{name:'設定聯絡方式區塊'}));
+  await act(async()=>release(Response.json({error:'Uncertain synthetic response'},{status:503})));await waitFor(()=>assert.ok(view.getByRole('alert')));
+  fireEvent.click(within(breadcrumb).getByRole('link',{name:'儀表板'}));assert.ok(view.getByRole('heading',{name:'設定聯絡方式區塊'}));assert.equal(view.getByLabelText('Current route').textContent,'/dtm/my');assert.equal(writes,1);
 });
 
 test('loading and failed reads remain visible and retry restores the dashboard without implying course absence',async()=>{

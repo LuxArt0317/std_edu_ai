@@ -1,0 +1,49 @@
+.dtm-dashboard-layout { position: relative; }
+.dtm-dashboard-customize { position: absolute; top: -45px; right: 0; display: flex; gap: 5px; padding: 0 0 15px; }
+.dtm-dashboard-customize button, .dtm-block-form-actions button { background: #3288fa; color: #fff; border: 0; border-radius: 4px; padding: 10px 16px; font: inherit; font-size: 14px; line-height: 20px; }
+.dtm-dashboard-layout button:disabled, .dtm-dashboard-config button:disabled { cursor: not-allowed; opacity: .65; }
+.dtm-dashboard-block-actions { height: 27.9453125px; padding: 3px 15px; }
+.dtm-dashboard-block-actions details { float: right; position: relative; }
+.dtm-dashboard-block-actions summary { display: flex; gap: 5px; align-items: center; cursor: pointer; list-style: none; font-size: 14px; line-height: 19px; }
+.dtm-dashboard-block-actions summary::-webkit-details-marker { display: none; }
+.dtm-dashboard-block-actions i { font: 14px/19px "DTM Navigation Icons"; }
+.dtm-dashboard-block-menu { position: absolute; right: 0; top: 22px; z-index: 5; min-width: 190px; max-width: calc(100vw - 40px); padding: 5px 0; border: 1px solid #ddd; background: #fff; box-shadow: 0 3px 8px #0002; }
+.dtm-dashboard-block-menu button { display: block; width: 100%; border: 0; background: #fff; color: #333; padding: 5px 12px; text-align: left; font: inherit; }
+.dtm-dashboard-block-menu button:hover, .dtm-dashboard-block-menu button:focus-visible { background: #eee; }
+.dtm.is-dashboard .dtm-dashboard-regions.has-right { grid-template-columns: 23.076923076923% 48.717948717948% 23.076923076923%; }
+.dtm.is-dashboard .dtm-dashboard-regions.no-left { grid-template-columns: minmax(0,1fr); }
+.dtm.is-dashboard .dtm-dashboard-regions.no-left.has-right { grid-template-columns: 74.358974358974% 23.076923076923%; }
+.dtm.is-dashboard .dtm-dashboard-regions.no-left .dtm-center { grid-column: 1; }
+.dtm-dashboard-right { min-width: 0; }
+.dtm-dashboard-config { margin-top: -13px; padding-top: 1px; font-size: 14px; line-height: 20px; }
+.dtm-dashboard-config h2 { margin: 10px 0; font-size: 28px; line-height: 40px; font-weight: 400; }
+.dtm-block-expand { height: 20px; text-align: right; }
+.dtm-block-expand button { border: 0; padding: 0; background: transparent; color: #2c3e50; font: inherit; }
+.dtm-block-form-section h3 { height: 41px; margin: 0 0 20px; border-bottom: 1px solid #ddd; font-size: 21px; line-height: 40px; font-weight: 400; }
+.dtm-block-form-section h3 button { display: flex; align-items: center; gap: 6px; border: 0; padding: 0; color: inherit; background: transparent; font: inherit; text-align: left; }
+.dtm-block-field { display: flex; min-height: 52px; margin-bottom: 10px; padding-bottom: 10px; gap: 20px; }
+.dtm-block-label { flex: 0 0 245px; text-align: right; padding-top: 5px; font-size: 14px; font-weight: 700; line-height: 20px; }
+.dtm-block-value { min-width: 0; }
+.dtm-block-field.is-static { min-height: 35px; }
+.dtm-block-field.is-static .dtm-block-value { min-height: 25px; padding-top: 5px; color: #595959; }
+.dtm-dashboard-config input, .dtm-dashboard-config select { box-sizing: border-box; height: 42px; max-width: 100%; border: 1px solid #d9d9d9; border-radius: 0; padding: 4px 6px; font: 14px/20px "Helvetica Neue",Helvetica,Arial,sans-serif; }
+.dtm-dashboard-config input { width: 220px; background: #eee; color: #555; }
+.dtm-dashboard-config select { background: #fff; color: #5c5c5c; appearance: auto; }
+.dtm-dashboard-config .dtm-block-visible { width: 44.5px; }
+.dtm-dashboard-config .dtm-block-region { width: 77.5px; }
+.dtm-dashboard-config .dtm-block-weight { width: 108.5px; }
+.dtm[lang="en"] .dtm-dashboard-config select { width: auto; }
+.dtm-block-action-fieldset { display: flow-root; margin: 0; padding: 0; border: 0; min-width: 0; }
+.dtm-block-form-actions { margin: 20px 0; padding: 19px 20px 20px 0; }
+.dtm-block-action-buttons { margin-left: 265px; line-height: 20px; }
+.dtm-block-action-buttons button { margin: 0 0 10px 5px; vertical-align: top; font: 14px/20px "Helvetica Neue",Helvetica,Arial,sans-serif; }
+@media(max-width:767px) {
+  .dtm-dashboard-customize { position: static; flex-wrap: wrap; justify-content: flex-end; padding: 0 0 10px; }
+  .dtm.is-dashboard .dtm-dashboard-regions, .dtm.is-dashboard .dtm-dashboard-regions.has-right, .dtm.is-dashboard .dtm-dashboard-regions.no-left.has-right { grid-template-columns: minmax(0,1fr); gap: 20px; }
+  .dtm.is-dashboard .dtm-dashboard-regions .dtm-center { grid-column: 1; }
+  .dtm-dashboard-config { margin-top: 0; }
+  .dtm-block-field { flex-direction: column; gap: 5px; }
+  .dtm-block-label { flex-basis: auto; text-align: left; padding-top: 0; }
+  .dtm-block-form-section h3 { height: auto; min-height: 41px; }
+  .dtm-block-action-buttons { margin-left: 0; }
+}

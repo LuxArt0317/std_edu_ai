@@ -29,3 +29,5 @@ Migration200000 adds private local conduct snapshots with own-account RLS, audit
 Migration210000 adds private loan metadata, an active-account singleton, literal state/count/text validation, audited versioned RPCs and tombstones. It does not issue a loan, approval, payment or document. [Student Loan QA](../../docs/qa/STUDENT_LOAN.md).
 
 Migration220000 adds one active private dormitory-conduct metadata record per account, explicit unknown/empty states, own-account RLS and audited administrator operations with immutable ownership and terminal tombstones. It was applied after the exact client plan on November13 at132 migrations/149 public RLS tables. See [Dormitory Conduct QA](../../docs/qa/DORMITORY_CONDUCT.md).
+
+`20261113230000_dtm_dashboard_layout.sql` adds one owner-only built-in layout table and private command receipts. Only the three observed block IDs and their visibility, region and weight are accepted. RPC-only writes serialize by owner, compare versions and retain exact retries across resets. No administrator bypass, HTML content or course mutation is added. Applied alone after independent rollback preflight and the exact client migration plan.

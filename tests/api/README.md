@@ -37,3 +37,5 @@ The reference-catalog, empty-record and graduation-course-selection suites cover
 The `dormitory-conduct*` suites cover validation, bounded handler dispatch, ownership and offline lifecycle contracts. Rollback/HTTP live harnesses require separate exact-baseline execution. See [Dormitory Conduct QA](../../docs/qa/DORMITORY_CONDUCT.md).
 
 Supplemental correction regressions exercise actual reader/formatter chains for coordinated certificate identity and class/document privacy, literal tuition period labels and explicit document capability requests, and the exact local attendance-detail citation for unavailable subterm hours.
+
+`dtm-dashboard-layout*.test.ts` checks strict own-account layout DTOs, isolated handler dispatch, bounded transport and draft migration preflight contracts. Mock HTTP and rollback SQL are separate from real concurrent requests.

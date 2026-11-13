@@ -14,3 +14,5 @@ Assistant session hook/storage/isolation tests cover per-chat failures, saving a
 `student-loan*.test.ts(x)` covers source view states, transport/session boundaries, preserved drafts/retries, conflicts and mounted local routes. [Student Loan QA](../../docs/qa/STUDENT_LOAN.md).
 
 `dorm-conduct` and `dormitory-conduct*` tests cover the source notice, strict transports, identity cancellation, uncertain retries, conflict drafts and mounted personal/admin routes. See [Dormitory Conduct QA](../../docs/qa/DORMITORY_CONDUCT.md).
+
+`dtm-dashboard-layout.test.tsx` checks observed block configuration, owner-keyed state, save/reset/retry/conflict behavior and transport cancellation. Source geometry and live persistence require separate browser checks.

@@ -1,5 +1,17 @@
 # DTM dashboard layout — Issue #98
 
+## Built-in block preferences under verification
+
+The November 13 follow-up implements owner-only visibility, region and weight for Important information, Navigation and Contacts. Both dashboard aliases use the same saved layout. Configuration is a full-width page; source titles, CSS classes, navigation rules and default values stay read-only. Contacts was also rechecked: default Left, weight 1, Configure/Hide controls. The source forms were cancelled and normal mode restored without school changes.
+
+The layout has one version per account. Save and Reset use exact retry receipts; Reset writes canonical defaults with a new version, so older tabs cannot overwrite it. Failed reads do not invent a default layout. No course, profile, university record, HTML block or administrator access is added. Equal-weight tie ordering and hidden/right/content presentation are local behavior; they were not experimentally verified on the school site.
+
+Current evidence: the isolated candidate passed 943 API/source tests, 380 unit tests, TypeScript/build/assets, lint (existing repository warnings), handoff checks and dependency audit (0 findings). Independent review passed 33 focused dashboard/layout cases. Synthetic browser checks cover both aliases at 1533/390/320px, save/reload/reset, stale-conflict recovery, exact lost-acknowledgement replay and read failure, with no horizontal overflow, JavaScript errors or external requests. The final desktop configuration heading, form, fields, actions and footer position match the read-only source measurements; footer height differs by less than 0.008 CSS px from rounding. The default dashboard block geometry also remains unchanged. These measurements are specific to the captured viewport and do not establish complete pixel equivalence. Automated accessibility checks still flag the source-matched muted header/footer colors; accessibility acceptance is not claimed.
+
+Migration 230000 passed a five-group rollback preflight at 132 migrations/149 public RLS tables with exact schema/history/fixture/owner restoration and a closed connection, then was applied alone after the exact client plan. A separate live read verified 133 migrations/150 public RLS tables with zero layout rows and zero operation receipts. Actual-JWT local acceptance `ee9374bf` passed all four groups, 52 HTTP calls, 21 browser API calls and 10 unique writes, including save/save, save/reset and parallel duplicate retries; both aliases saved, reloaded, hid/reset blocks and contained at 390/320px. Exact fixture/dependent cleanup, protected-owner preservation and closed connections passed. No model, official-site or file calls occurred. Administrator cross-account denial was checked with read-only SQL role claims, not an owner browser. Production acceptance remains pending. The first run `f8d2a7c5` remains a raw failure: two harness defects (PostgreSQL Result prototype comparison and incorrectly qualified cleanup identifiers) were corrected with installed-driver regressions. A separate read-only recovery proved zero residue and unchanged owner, preserving the original failed result and ledger. Historical published-layout evidence follows and does not certify this new persistence.
+
+## Previously published layout
+
 Both `/dtm/my` and `/dtm/dashboard` use the same authenticated dashboard branch.
 The saved November 13 source measurements at 1533 × 1399 show a profile header,
 Important information → Navigation → Contacts sidebar, and an empty 23px white
@@ -51,9 +63,9 @@ configuration forms, and clicked Stop customizing. The normal Customize this
 page control was visible afterward, with zero editing controls. No Reset, Hide,
 Move, Add or Save action was performed.
 
-These controls remain unavailable locally until real owner-isolated block-layout
-and content persistence is implemented. This is a separate functional gap, not
-an Add course action; no imitation or inactive customization button is rendered.
+At the published400abb0 checkpoint these controls remained unavailable. The new
+follow-up above adds built-in layout persistence; arbitrary HTML content and
+uninspected Administration/Move controls remain separate gaps.
 The observations do not establish complete feature or pixel equivalence, nor do
 they imply that all university accounts have empty dashboards. The avatar frame
 is sized from the measurement; an unmeasured border color is not invented.

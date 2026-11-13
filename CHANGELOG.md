@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Add owner-only DTM dashboard visibility, placement and order for the three observed blocks, with source-shaped configuration, versioned reset and durable retry handling. Migration230000 passed rollback preflight and is applied; actual-JWT local API/browser persistence, concurrent saves and exact cleanup passed. Publication/deployed acceptance remain pending. [#98]
+
 - Match the authenticated DTM dashboard columns, sidebar, header and footer to measured source layouts while preserving local course access and guarding course creation during account changes. Add native Dormitory Conduct unknown/empty notices, private account metadata and audited administrator maintenance; only220000 is applied. Published400abb0; local and deployed actual-JWT acceptance each passed7groups with exact cleanup and protected-owner preservation. DTM customization and a dedicated Dorm assistant reader remain unimplemented. [#98]
 
 - Correct certificate identity versus class-number selection, explicit tuition-settlement routing and attendance detail citations. Harden independent literal-value, unavailable-read and payment-boundary grading, protected-owner cleanup checks and browser coverage bookkeeping. Passed isolated release checks; targeted real-model acceptance remains a separate gate. [#100]

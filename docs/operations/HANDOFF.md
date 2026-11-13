@@ -1,3 +1,7 @@
+## DTM dashboard preferences in progress — November13,2026
+
+Only230000 is applied after independent rollback preflight and an exact client plan:133 migrations/150 publicRLS. The isolated candidate passed943API/source,380unit,build/assets,lint,handoff and audit0; corrected harness39focused contracts pass. Actual-JWT localee9374bf passed4groups/52HTTP/21browser/10writes with exact cleanup/protected-owner preservation. Source/default/configuration geometry matches at the measured desktop viewport and both aliases contain320/390px; source-inherited contrast gaps remain. First rawf8d2a7c5 is retained failed after two harness defects; separate read-only recovery proved zero residue. Runtime publication and deployed acceptance remain pending. Root owns only the independent Issue98 lease; Issue100 stays user-paused.
+
 ## Accepted DTM and Dormitory runtime — November13,2026
 
 Runtime400abb07df6c2c2e0247a0634e4d338e70f5df0c is Vercel Ready EPE1q3rqFCSJbkcMF9swjiSBfUFX; public manifest and Quality43388722996 succeeded. Database132/149 and database-only client verification pass. Dorm local7a3ab8b7 and productiond145f4ce each passed7groups with exact cleanup and protected-owner preservation; production used53HTTP/32browser/6writes, no model/official/download calls. Public8route/50asset checks passed. Source-matched DTM dashboard is published; persistent block customization and deployed course-menu save/reload are not claimed.

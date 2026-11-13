@@ -514,3 +514,17 @@ Root ACKNOWLEDGES explicit sole DB/model lease return after catalog52b2f723 and 
 
 
 Root independent Issue98 runtime400abb07df6c2c2e0247a0634e4d338e70f5df0c is ReadyEPE1/Quality43388722996/exactmanifest. Only220000 applied132/149. Dorm local7a3ab8b7 and productiond145f4ce each7groupsPASS; production53HTTP/32browser/6writes,exactcleanup/protectedownerpreserved,0model/official/download. All rootliveclosed. Issue100 staysUSER-PAUSED; no lease handoff or resume is implied. All unfinished BatchB files preserved/unpublished, clean pinned e494 snapshot untouched. Root continues only independent Issue98 scope; EducationFundCAPTCHApending.
+
+
+Root continuing independent Issue98 after verified docs-only0b5 publication. New offline scope is source-proven DTM dashboard built-in preferences (Important/Navigation/Contacts, visibility/region/weight, versioned reset). Dedicated agents own layoutUI/client and migration/API respectively; no Issue100 files or model work. Root retains sole livelease; no live DB call is underway. EducationFundCAPTCHA remains pending. Root only inspects official configuration and cancels; no official saves.
+
+## Issue98 DTM layout rollback preflight
+Root reviewed frozen230000/helper/API and rollback harness772905b68e. Root now exclusively executes the rollback-only preflight at132/149; no other DB/model/release work may overlap. It must restore schema/history/fixtures and protected owner, then close the physical connection. Issue100 remains user-paused and its dirty paths are excluded.
+
+Root DTM layout rollbackpreflight finished PASS5groups at132/149 with exact cleanup, owner preservation and connectionclosed. Sole lease remains root for exact230000 plan/application and later independently reviewed actual-JWT harness; agents stay offline.
+
+Root independent review accepted the frozen DTM layout HTTP harness97efe68/fa217f3/aba0156;36offline contracts and zero-connection selftest passed. Root now executes local actual-JWT/browser acceptance only from the isolated0b5-based candidate under the sole physical DB/release lease. Source and Issue100 runtime/model work remain untouched; no competing live operations.
+
+Root localf8d2a7c5 raw failure retained. All3accounts were deleted; separate read-only133/150 recovery confirmed zero residue and full protected-owner preservation,0datawrites and closed connection. Two pure harness defects fixed/reviewed (Result prototype assertion and comma-qualified table identifier); root rerun now active with harness28aa764/contracts4dc65b9. Solelease remains root; no Issue100/model activity.
+
+Root corrected local layout acceptance ee9374bf PASSED4groups/52HTTP/21browser/10writes with exact cleanup, protected-owner/unrelated/history preservation and closed connection. Original failedf8d2a7c5 and recovery proof preserved. Publishing only32named independent Issue98paths after frozen gates; no Issue100runtime/evaluation or model calls.
