@@ -80,7 +80,9 @@ const jsonbText=value=>Array.isArray(value)?'['+value.map(jsonbText).join(', ')+
 async function invoke(endpoint,{token,method='GET',body}={}){
   if(!local){
     const response=await fetch(origin+endpoint,{method,redirect:'error',headers:{...(token?{Authorization:'Bearer '+token}:{}),...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(60000)});
-    return checkedAssistantResult(endpoint,{status:response.status,body:await response.json()});
+    const result={status:response.status,body:await response.json()};
+    if(endpoint==='/api/affairs-assistant')await writeFile(output+'/last-assistant.json',JSON.stringify({question:body.question,route:body.route,...result.body},null,2));
+    return checkedAssistantResult(endpoint,result);
   }
   const parsed=new URL(endpoint,origin),handler=handlers[parsed.pathname];assert.ok(handler);
   const result={status:200,body:undefined},response={status(code){result.status=code;return response;},json(value){result.body=value;},setHeader(){}};

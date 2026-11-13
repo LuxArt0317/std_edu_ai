@@ -226,8 +226,10 @@ export function accountEvidence(snapshot,tools=toolNames,context={}) {
       : key==='graduationReview'?[...Object.values(graduationReviewPaths),'/school-affairs/services/15-1']
       : key==='academicAttendance'?Object.values(academicAttendancePaths):[];
     const kind=key==='graduationReview'?query.selection.reportKind:undefined;
-    const url=key==='academicGrades'?academicGradesPaths.index:key==='graduationReview'?graduationReviewPaths[kind]
-      :key==='academicAttendance'?academicAttendancePaths.statistics:urls[key];
+    const view=query?.selection?.view;
+    const url=key==='academicGrades'?(academicGradesPaths[view]||(['english','gpa'].includes(view)?academicGradesPaths.transcript:academicGradesPaths.index))
+      :key==='graduationReview'?graduationReviewPaths[kind]
+      :key==='academicAttendance'?(view==='details'?academicAttendancePaths.detail:academicAttendancePaths.statistics):urls[key];
     evidence.push({id:'account:'+key,title:accountTools[key],url,
       urls:links,
       content:JSON.stringify({checkedAt:snapshot.checkedAt,collection:key,

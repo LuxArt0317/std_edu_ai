@@ -1,7 +1,9 @@
 # Changelog
 ## Unreleased
 
-### Native academic records (Issue #98, release pending)
+- Correct native transcript/ranking/attendance citation destinations and increase detailed evidence-review capacity without relaxing claim validation. Keep output-limit and timeout diagnostics free of record contents. [#98]
+
+### Native academic records (Issue #98, production verification in progress)
 
 - Add source-shaped transcript, warning, ranking, independent modern/legacy graduation, and attendance statistics/detail pages.
 - Add separate account-owned native records and audited administrator editors with literal values, explicit current-term metadata, version conflicts and durable retry receipts.

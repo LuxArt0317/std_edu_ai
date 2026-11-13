@@ -44,6 +44,7 @@ async function deterministicAssistant(request,response){
 }
 function checkedAssistantResult(endpoint,result){
   if(new URL(endpoint,origin).pathname==='/api/affairs-assistant'&&result.status===200){
+    if(result.body?.status!=='answered')console.log('Attendance verification diagnostic',JSON.stringify({verification:result.body?.verification,activity:result.body?.activity?.filter(step=>/^verification/.test(step.kind))}));
     assert.equal(result.body?.status,'answered',`${assistantMode}: expected a native account answer, not an abstention.`);
     if(assistantMode==='local_deterministic')assert.equal(result.body.verification,undefined,'Deterministic drafts must not claim model verification.');
     else assert.equal(result.body.verification?.status,'verified',`${assistantMode}: model answers must pass actual account-evidence verification.`);

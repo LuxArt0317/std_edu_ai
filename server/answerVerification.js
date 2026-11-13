@@ -76,8 +76,10 @@ export async function runAnswerVerification({
             : { ok: false, reason: 'timeout' };
           feedback = Array.isArray(review.feedback) ? review.feedback.slice(0, 12) : [];
           verdict = { ok: review.ok === true, reason: review.reason || 'unsupported_claims' };
-        } catch {
-          verdict = { ok: false, reason: 'verifier_unavailable' };
+        } catch (error) {
+          const reason = error?.code === 'VERIFICATION_OUTPUT_LIMIT' ? 'verification_output_limit'
+            : error?.code === 'VERIFICATION_TIMEOUT' ? 'verification_timeout' : 'verifier_unavailable';
+          verdict = { ok: false, reason };
         }
       }
       if (verdict?.ok !== true) verdict = { ok: false, reason: verdict?.reason || 'unsupported_claims' };

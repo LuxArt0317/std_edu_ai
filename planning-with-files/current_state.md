@@ -1,12 +1,15 @@
 # Current client state
 
-## Native academic batch (Issue #98, not released)
+## Native academic batch (Issue #98, production acceptance in progress)
 
-Native grades, independent modern/legacy graduation, and attendance now have account-owned records, administrator maintenance, scoped assistant tools and source-measured pages. Migrations110000/130000/140000 are applied. Local deterministic grades/attendance persistence and browser tests passed, with exact cleanup; these do not prove real model behavior. All three strengthened local suites now pass using the actual configured administrator JWT through the manager API, with exact fixture cleanup and owner integrity checks. Graduation's native navigation selector and immediate expanded bitmap transition were corrected.
+Native grades, independent modern/legacy graduation, and attendance are deployed in8c01fc05ca31e7f98c784113129bb236f96c417d (VercelEYBkXHbqejfVwzkiPZr5MBQa5uXq Ready; Quality43337735163 passed). All three actual-administrator-JWT local suites passed persistence, isolation, version/replay and exact cleanup. Production tests confirm authenticated manager writes and ownership but exposed a transcript citation destination error and graduation/attendance model-verification abstentions. These are not yet accepted as complete AI flows.
 
-DTM submission migration150000 passed rollback-only permission/validation preflight and was applied to the exact client project: **125 migrations / 142 public RLS tables**. Its first actual Storage acceptance reached byte upload/download and isolation checks but failed while preparing concurrent save/cancel fixtures. Duplicate synthetic course keys and an incorrect expectation of HTTP200 for a204 cleanup acknowledgement are harness defects under repair. All exact users, objects, cleanup-queue rows and owner-fixture rows were verified absent; owner hashes were unchanged. The unmounted upload/editor draft is not released.
+The corrective patch selects exact native report citations, increases detailed-review capacity separately from lookup planning, and retains safe output-limit/timeout diagnostics. Unsupported or incomplete answers remain withheld; the one-correction/two-review limit and overall deadline are unchanged. Focused34 verification checks pass. New production acceptance is required after deployment.
 
-Production remains120b2c1/runtime29ea235. The staged native release passes411API/source checks and79units; the broader working tree429/93 includes separate DTM drafts. Build/lint/handoff and dependency checks pass. Actual deployed-model acceptance remains a release gate. The enrollment-certificate source is now accessible through its portal SSO link and was inspected read-only. Its blocked state and geometry are captured privately; no official document was generated and no private school records were copied into fixtures. Root owns release/planning/database coordination in agent/A2A.md.
+Client Supabase has125 applied migrations and142 public RLS tables. DTM150000 actual Storage acceptance passed10 checks,11 uploads/298 bytes,14 downloads and three parallel Save/Cancel races; all exact users, objects, queue entries and owner fixtures were absent afterward and owner hashes unchanged. The submission UI/admin integration remains an unpublished draft, with browser/backend acceptance pending.
+
+The enrollment-certificate source was inspected read-only after the user completed sign-in. Its blocked state and geometry are captured privately; no school document was generated. An unmounted synthetic reconstruction passes desktop geometry within0.65px and390/320 containment. Certificate160000 remains unapplied. Broader protected service parity and#98 remain unfinished; work ownership is recorded in agent/A2A.md.
+
 
 ## Verified assistant and persistent conversations (Issue #99)
 

@@ -3,13 +3,18 @@ const readText = payload => (payload?.output || []).flatMap(item => item.content
 
 export async function verificationModelCall(name, schema, instructions, input, deadline, images = []) {
   if (!process.env.OPENAI_API_KEY || deadline - Date.now() < 750) throw new Error('Verification unavailable');
-  const response = await fetch('https://api.openai.com/v1/responses', {
+  // A review expands one answer into independently grounded claims. Its output
+  // budget also includes reasoning tokens; a planner-sized cap truncates audits
+  // of detailed academic reports before the JSON can be completed.
+  const review = name === 'answer_evidence_review';
+  let response;
+  try { response = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-    signal: AbortSignal.timeout(Math.min(15_000, Math.max(1, deadline - Date.now()))),
+    signal: AbortSignal.timeout(Math.min(review ? 25_000 : 15_000, Math.max(1, deadline - Date.now()))),
     body: JSON.stringify({
       model: process.env.OPENAI_VERIFICATION_MODEL || process.env.OPENAI_PUBLIC_MODEL || process.env.OPENAI_MODEL || 'gpt-5.6-terra',
-      store: false, reasoning: { effort: 'low' }, max_output_tokens: 2400,
+      store: false, reasoning: { effort: 'low' }, max_output_tokens: review ? 8192 : 2400,
       instructions,
       input: [{ role: 'user', content: [
         { type: 'input_text', text: JSON.stringify(input) },
@@ -17,7 +22,11 @@ export async function verificationModelCall(name, schema, instructions, input, d
       ] }],
       text: { format: { type: 'json_schema', name, strict: true, schema } },
     }),
-  });
+  }); } catch (error) {
+    const timeout = error?.name === 'TimeoutError' || error?.name === 'AbortError';
+    console.warn('Answer verification transport unavailable', {operation:name,reason:timeout?'timeout':'network'});
+    throw Object.assign(new Error('Verification provider unavailable'), {code:timeout?'VERIFICATION_TIMEOUT':'VERIFICATION_UNAVAILABLE'});
+  }
   if (!response.ok) {
     const failure=await response.json().catch(()=>null);
     const safe=value=>typeof value==='string'&&/^[A-Za-z0-9_.[\]-]{1,100}$/.test(value)?value:null;
@@ -25,7 +34,11 @@ export async function verificationModelCall(name, schema, instructions, input, d
     throw new Error('Verification provider unavailable');
   }
   const payload = await response.json();
-  if (payload.status && payload.status !== 'completed') throw new Error('Incomplete verification response');
+  if (payload.status && payload.status !== 'completed') {
+    const limited = payload.incomplete_details?.reason === 'max_output_tokens';
+    console.warn('Answer verification incomplete', {operation:name,reason:limited?'output_limit':'incomplete'});
+    throw Object.assign(new Error('Incomplete verification response'), {code:limited?'VERIFICATION_OUTPUT_LIMIT':'VERIFICATION_UNAVAILABLE'});
+  }
   return JSON.parse(readText(payload));
 }
 
@@ -33,7 +46,7 @@ const reviewSchema = {
   type: 'object', additionalProperties: false,
   properties: {
     supported: { type: 'boolean' }, answersQuestion: { type: 'boolean' },
-    claims: { type: 'array', maxItems: 30, items: {
+    claims: { type: 'array', maxItems: 80, items: {
       type: 'object', additionalProperties: false,
       properties: { claim: { type: 'string' }, supported: { type: 'boolean' }, evidenceId: { type: 'string' }, quotes: {type:'array',items:{type:'string'},maxItems:4}, jsonPaths:{type:'array',items:{type:'string'},maxItems:8} },
       required: ['claim', 'supported', 'evidenceId', 'quotes', 'jsonPaths'],

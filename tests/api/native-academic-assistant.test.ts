@@ -326,3 +326,19 @@ test('late named graduation courses retain exact parents before both single-tool
   }
   assert.equal(JSON.stringify(data),before);
 });
+
+
+test('verified native citations open the requested report rather than the service index',()=>{
+  const data=fixture();
+  for(const [question,expected] of [
+    ['Show my academic transcript','/school-affairs/services/13-1/transcript'],
+    ['Show my warning grades','/school-affairs/services/13-1/warning'],
+    ['Show my semester rankings','/school-affairs/services/13-1/ranking'],
+    ['Show my academic absence details','/school-affairs/services/14-1/detail'],
+    ['Show my academic attendance statistics','/school-affairs/services/14-1'],
+  ]){
+    const key=expected.includes('/14-1')?'academicAttendance':'academicGrades';
+    assert.equal(source(data,key,{question}).url,expected,question);
+  }
+  assert.equal(source(data,'academicAttendance',{question:'Show the details',route:'/school-affairs/services/14-1/detail'}).url,'/school-affairs/services/14-1/detail');
+});
