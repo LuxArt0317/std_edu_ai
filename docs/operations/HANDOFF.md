@@ -1,6 +1,6 @@
 ## Interdisciplinary registration (Issue #98)
 
-Service 7-3 opens the source-shaped registration table, with saved local registration and withdrawal, private progress and a dedicated assistant answer. See [registration QA](../qa/PROGRAM_REGISTRATION.md).
+Service 7-3 opens the source-shaped registration table, with saved local registration and withdrawal, private progress and a dedicated assistant answer. Runtime `76c117c` and migration `20261114070000` are live with pinned browser and actual-JWT verification. See [registration QA](../qa/PROGRAM_REGISTRATION.md).
 
 ## Interdisciplinary credit programs (Issue #98)
 

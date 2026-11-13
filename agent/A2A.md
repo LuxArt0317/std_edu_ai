@@ -1,6 +1,6 @@
 ## Interdisciplinary registration (Issue #98)
 
-Root owns service 7-3, migration 070000, the caller-bound record reader and the UI/assistant routes. The paused Issue #100 paths are excluded.
+Root owns service 7-3, migration 070000, the caller-bound record reader and the UI/assistant routes. Production `76c117c` passed pinned browser and 19 actual-JWT API checks with exact cleanup. The paused Issue #100 paths are excluded.
 
 ## Interdisciplinary credit programs (Issue #98)
 

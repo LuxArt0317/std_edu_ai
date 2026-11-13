@@ -1,7 +1,7 @@
 # Changelog
 ## Unreleased
 
-- Add private interdisciplinary program registration history, confirmation and withdrawal. The campus assistant reads the same account records. [#98]
+- Add private interdisciplinary program registration history, confirmation and withdrawal. The campus assistant reads the same account records. Published at `76c117c`. [#98]
 
 - Add the database-backed interdisciplinary credit program directory with 35 published entries, 30 local PDF previews and grounded campus assistant lookups. Published at `c09b698`. [#98]
 

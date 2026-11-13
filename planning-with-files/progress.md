@@ -51,3 +51,5 @@
 - Issue #98: Applied only the interdisciplinary directory migration. Published c09b698 and verified all 30 PDF hashes, sorting, mobile containment, assistant citations, persistent lookup activity and the public shell.
 
 - Issue #98: Observed the authenticated interdisciplinary registration history and course selection entry states. Built service 7-3 against Supabase and applied the scoped registration migration after exact rollback verification.
+
+- Issue #98: Published 76c117c and verified 19 actual-JWT requests, exact fixture cleanup and pinned browser registration/withdrawal. Verified source substitution requests by using the autocomplete department code; captured 16, three and zero original subjects across three cohorts.

@@ -583,5 +583,12 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 
 - [x] Inspect the authenticated university registration table.
 - [x] Connect local registrations and withdrawals to the existing program catalog and private database.
-- [ ] Verify actual account read/write isolation, assistant evidence and exact production deployment.
+- [x] Verify actual account read/write isolation, assistant evidence and exact production deployment.
 - [ ] Compare the official populated registration, selection and progress screens when available.
+
+## Course substitution [Issue #98]
+
+- [x] Verify the source search uses the department code selected by autocomplete.
+- [x] Capture populated, no-replacement and empty cases in the browser and independent HTTP client.
+- [ ] Build the full read-only selector and preserve old courses, alternative groups and provenance.
+- [ ] Verify result completeness, mobile layout, assistant lookup and deployed behavior.
