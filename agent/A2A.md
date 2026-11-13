@@ -1,3 +1,7 @@
+## Current removal release accepted —2026-11-13
+
+Published b14a672afdcbe642171ec1e8cd7d53609fc9a912; Vercel Ready GRtYdMvHk9LbGA6Uiy8D4DZJkQGE, exact /release.json and Quality43407165569 success verified. Deployed startup and8routes/50assets passed. Guarded production checks passed three copied-page assistant routes at1440/390, widget absence on home/student entrance/news detail, guest records-to-login and normal/signin. Responses were mocked; no real model/auth requests or database writes. The live homepage was also visually verified. The unrelated long-entry Escape-focus failure remains documented; no complete protected-system acceptance is claimed. All three subordinate tasks are complete; their browser/server work is closed. Root retains independent Issue98 coordination only. Issue100 stays user-paused; preserve its66fingerprinted files.
+
 ## Latest steering — floating public panel removal
 
 dtm_course_layout owns direct-school-pages generator, direct-school.css and required existing assertions. Keep chatbot/auth routes; no generated HTML edits. Root combines this with summary removal; scholarship owns eight admin-entry harnesses and protected owns the completed94-route inventory. Issue100 stays user-paused.

@@ -6,7 +6,7 @@
 - [x] Remove the non-source My School Affairs summary and student menu entry; preserve saved records and old-link compatibility.
 - [x] Retain existing account/record maintenance in a separately guarded admin route, with caller-bound writes.
 - [x] Repair copied-home navigation and update the 94-entry menu inventory without counting generic trackers as complete workflows.
-- [ ] Update affected synthetic admin/login acceptance, independently review, publish and verify the follow-up.
+- [x] Update affected synthetic admin/login acceptance, independently review, publish and verify the follow-up (b14a672; exact manifest, successful Quality and scoped production checks).
 
 
 ## Protected navigation and Education Fund [Issue #98]
