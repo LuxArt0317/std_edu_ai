@@ -2,6 +2,8 @@
 
 The previous goal turn made progress by publishing initial selection. Services 6-2 and 6-3 now open native eligibility and late-add notice views. Migration 100000 was applied alone after an exact rollback preflight. The schema has 144 migrations and 162 public RLS tables. A second rollback check verified manager-only writes, student and phase isolation, stale edits and safe retries on the applied schema. The compiled browser passed signed-in navigation, three decision states, retry, assistant routing, responsive widths and guest return. Eligible source forms remain unverified.
 
+Production `2f4a073` is live as Vercel `BBuZadph5pap68idWjCuohGMQanS`. Revision-pinned browser, eight actual-session HTTP checks with exact fixture cleanup, the eight-route shell and Quality 43486494908 passed. The 94-destination inventory has 46 generic and ten partial workflows. Course withdrawal requested a separate CAPTCHA. The user confirmed the remaining stateful workflows should persist their records in the database.
+
 ## Initial course selection (Issue #98)
 
 The native 6-1 schedule and fee notice use the same Supabase data as the bilingual assistant. Only migration 090000 was applied after exact rollback and role checks. The client has 143 migrations and 160 RLS-protected public tables. The compiled browser passed source geometry, four widths, portal return, retry, guest return and assistant activity. The 94-link audit passes with 48 generic pages and eight partial workflows. The open enrollment form and exact source alert wording are unverified.

@@ -11,9 +11,13 @@ The source notice includes legacy browser and credential instructions. The local
 
 ## Verification
 
+Production revision `2f4a073e38ede83e76b36a200965bba35441a0bf` passed the browser, eight real-account HTTP checks and the eight-route public shell. The HTTP test confirmed own-account and phase isolation and removed its disposable accounts and records. The browser exercised uncertain-save recovery with the same request and stale-edit recovery with a fresh read.
+
 ```sh
 node tests/integration/course-adjustment-db.mjs --deployed
-PUBLIC_SITE_ORIGIN=https://stu.best EXPECTED_RELEASE_REVISION="$(curl -fsS https://stu.best/release.json | node -p 'JSON.parse(require("node:fs").readFileSync(0,"utf8")).revision')" node tests/integration/course-adjustment-ui.mjs
+export EXPECTED_RELEASE_REVISION=2f4a073e38ede83e76b36a200965bba35441a0bf
+PUBLIC_SITE_ORIGIN=https://stu.best node tests/integration/course-adjustment-ui.mjs
+node --experimental-strip-types tests/integration/course-adjustment-http.mjs --verify-client
 ```
 
-The database check uses a rollback-only transaction against the exact client. It checks manager authorization, student isolation, scope, idempotent retries and stale writes. The browser uses synthetic accounts and real public notice and assistant endpoints. Set `CHROME_PATH` when using a Chromium executable other than the default macOS Chrome.
+The database check uses a rollback-only transaction against the exact client. It checks manager authorization, student isolation, scope, idempotent retries and stale writes. The browser uses synthetic accounts and real public notice and assistant endpoints. The HTTP check uses disposable Supabase sessions and removes its test data. Use the active production revision when repeating deployed checks. Set `CHROME_PATH` when using a Chromium executable other than the default macOS Chrome.

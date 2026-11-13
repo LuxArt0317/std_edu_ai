@@ -2,6 +2,8 @@
 
 Services 6-2 and 6-3 mount their own pages. Supabase holds public late-add rules and private decisions by student, phase and term. The existing School Affairs administrator can maintain decisions. The eligible registration forms remain unverified. See [course adjustment QA](../qa/COURSE_ADJUSTMENT.md).
 
+Runtime `2f4a073` passed deployed browser, actual-session HTTP and eight-route shell checks. Forty-six catalog entries still mount generic destinations and ten have partial workflows. Treat a stateful service as implemented only after its records and actions are persisted, authorized and verified end to end.
+
 ## Initial course selection (Issue #98)
 
 Service 6-1 opens the dated initial-selection schedule and a separate fee page. Supabase migration 090000 stores three windows and the bilingual fee notice. The campus assistant uses the same records. Runtime `3e4b51e` passed the revision-pinned browser, assistant and public shell. The university returned the observed session to the portal after an alert. The open-period workflow remains unverified. See [initial selection QA](../qa/FIRST_SELECTION.md).

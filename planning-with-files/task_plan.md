@@ -607,6 +607,8 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Verify the signed-in source entry and read-only eligibility notices.
 - [x] Implement the observed local pages, late-add notices and private eligibility decisions.
 - [x] Verify and apply the exact client migration.
-- [ ] Verify the release at stu.best.
+- [x] Verify the release at stu.best, including scoped HTTP reads and rendered manager retry and stale-edit recovery.
 - [ ] Capture the eligible student forms and their transaction behavior when available.
 - [ ] Implement and verify the eligible student's transaction workflow.
+
+For each remaining stateful School Affairs and DTM service, implement account-scoped records and real persistence for the observed transactions. Use labeled sample records where needed. An unverified or missing record must stay unknown in the assistant and UI.

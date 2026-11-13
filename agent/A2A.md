@@ -1,6 +1,6 @@
 ## Course adjustment (Issue #98)
 
-Root owns 6-2 and 6-3, migration 100000, the private decision reader and manager, and late-add assistant navigation. The exact migration is applied. Paused Issue #100 paths remain excluded.
+Root owns 6-2 and 6-3, migration 100000, the private decision reader and manager, and late-add assistant navigation. The exact migration is applied. Production `2f4a073` passed the pinned browser, eight actual-session checks and the public shell. Eligible forms and withdrawal remain open. Paused Issue #100 paths remain excluded.
 
 ## Initial course selection (Issue #98)
 
