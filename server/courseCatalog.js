@@ -60,9 +60,13 @@ export async function loadCourseCatalog(account,query={}) {
 
 export function normalizeCourseOffering(record) {
   if(!record||typeof record!=='object'||Array.isArray(record)) invalid('A course offering is required.');
-  const known=new Set([...Object.keys(catalogTextFields),...Object.keys(catalogNumberFields),...Object.keys(catalogBooleanFields),'meetings','program_codes','syllabus','id','version','source_mode','created_at','updated_at']);
+  const known=new Set([...Object.keys(catalogTextFields),...Object.keys(catalogNumberFields),...Object.keys(catalogBooleanFields),'meetings','program_codes','syllabus','id','version','source_mode','created_at','updated_at','syllabus_is_current','academic_year_text','semester_text']);
   if(Object.keys(record).some(key=>!known.has(key))) invalid('Unknown course field.');
   if(record.source_mode!==undefined && record.source_mode!=='sample') invalid('Catalog records must retain sample provenance.');
+  // New search metadata is read-only here; its separate versioned operation owns writes.
+  if(record.syllabus_is_current!==undefined&&record.syllabus_is_current!==null&&typeof record.syllabus_is_current!=='boolean') invalid('Invalid syllabus current-membership metadata.');
+  for(const key of ['academic_year_text','semester_text'])
+    if(record[key]!==undefined&&record[key]!==null&&(typeof record[key]!=='string'||[...record[key]].length>30||[...record[key]].some(char=>{const point=char.codePointAt(0);return point===0||point>=0xd800&&point<=0xdfff;}))) invalid('Invalid syllabus term metadata.');
   const output={};
   for(const [key,[,max]] of Object.entries(catalogTextFields)) {
     if(typeof record[key]!=='string'||record[key].length>max) invalid(`Invalid course field: ${key}.`);

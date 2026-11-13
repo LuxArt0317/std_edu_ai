@@ -4,6 +4,7 @@ import {affairsClient} from './authClient';
 import {catalogBooleanFields,catalogCell,catalogNumberFields,catalogPeriods,catalogTextFields,catalogWeekdays,courseCatalogColumns,courseCatalogPath,defaultCatalogFilters,newCourseOffering,type CatalogFilters,type CatalogResult,type CourseOffering} from './courseCatalogModel.js';
 import {courseCatalogOptions} from './courseCatalogOptions.js';
 import {CourseSyllabus,CourseSyllabusEditor} from './courseSyllabusViews';
+import {SyllabusSearchMetadataEditor} from './SyllabusSearchMetadataEditor';
 import './courseCatalog.css';
 
 async function catalogRequest<T>(path:string,signal?:AbortSignal,body?:unknown):Promise<T> {
@@ -31,6 +32,12 @@ function filterParams(filters:CatalogFilters) {
   return params;
 }
 const message=(error:unknown)=>error instanceof Error?error.message:'Course catalog could not be loaded.';
+const programCodes=(value:string)=>value.split(',').map(code=>code.trim()).filter(Boolean);
+function courseDraftFingerprint(record:CourseOffering,programText:string) {
+  // Search metadata and its shared revision are not edits to the legacy course form.
+  const fields=[...Object.keys(catalogTextFields),...Object.keys(catalogNumberFields),...Object.keys(catalogBooleanFields),'meetings','syllabus'];
+  return JSON.stringify({...Object.fromEntries(fields.map(key=>[key,record[key as keyof CourseOffering]])),program_codes:programCodes(programText)});
+}
 
 function OfferingDetail({record,back}:{record:CourseOffering;back:string}) {
   return <main className="catalog-detail">
@@ -47,37 +54,43 @@ function OfferingDetail({record,back}:{record:CourseOffering;back:string}) {
   </main>;
 }
 
-function CatalogManager({rows,onSaved}:{rows:CourseOffering[];onSaved:()=>void}) {
+function CatalogManager({userId,rows,onSaved,onReload}:{userId:string;rows:CourseOffering[];onSaved:()=>void;onReload:()=>void}) {
   const [record,setRecord]=useState<CourseOffering>(()=>({...newCourseOffering(),id:crypto.randomUUID()}));
+  const [baseline,setBaseline]=useState(record);
   const [programText,setProgramText]=useState('');
+  const [metadataDirty,setMetadataDirty]=useState(false);
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),[status,setStatus]=useState('');
   const retry=useRef<{fingerprint:string;requestId:string}|null>(null);
+  const courseDirty=courseDraftFingerprint(record,programText)!==courseDraftFingerprint(baseline,baseline.program_codes.join(','));
   function field(key:string,value:unknown) {setRecord(old=>({...old,[key]:value}));setStatus('');}
   function pick(id:string) {
+    if(busy||metadataDirty)return;
     const selected=rows.find(row=>row.id===id) ?? {...newCourseOffering(),id:crypto.randomUUID()};
-    setRecord(selected);setProgramText(selected.program_codes.join(','));setError('');setStatus('');retry.current=null;
+    setRecord(selected);setBaseline(selected);setProgramText(selected.program_codes.join(','));setMetadataDirty(false);setError('');setStatus('');retry.current=null;
   }
   async function save(kind:'save_course_offering'|'delete_course_offering') {
-    if(busy) return;
+    if(busy||metadataDirty) return;
     setBusy(true);setError('');setStatus('');
-    const edited={...record,program_codes:programText.split(',').map(value=>value.trim()).filter(Boolean)};
+    const edited={...record,program_codes:programCodes(programText)};
     const payload={id:record.id,expected_version:record.version,...(kind==='save_course_offering'?{record:edited}:{})};
     const fingerprint=JSON.stringify({kind,payload});
     if(retry.current?.fingerprint!==fingerprint) retry.current={fingerprint,requestId:crypto.randomUUID()};
     try {
       const result=await catalogRequest<{version:number}>('/api/affairs-manage',AbortSignal.timeout(20000),{kind,payload:{...payload,request_id:retry.current.requestId}});
-      setRecord(kind==='delete_course_offering'?{...newCourseOffering(),id:crypto.randomUUID()}:{...edited,version:result.version});
+      const saved=kind==='delete_course_offering'?{...newCourseOffering(),id:crypto.randomUUID()}:{...edited,version:result.version};
+      setRecord(saved);setBaseline(saved);
       if(kind==='delete_course_offering') setProgramText('');
       retry.current=null;setStatus(kind==='delete_course_offering'?'已刪除範例課程。':'已儲存範例課程。');onSaved();
     } catch(cause) {setError(message(cause));} finally {setBusy(false);}
   }
   return <details className="catalog-manager"><summary>管理本地範例課程</summary>
     <p>管理員可維護所有查詢欄位。課程資料獨立於學生選課，不會更改任何學生紀錄。</p>
-    <label>選擇本頁課程 <select value={rows.some(row=>row.id===record.id)?record.id:''} onChange={event=>pick(event.target.value)} disabled={busy}>
+    {metadataDirty&&<p role="status">請先儲存或取消課綱查詢設定的變更，再編輯課程。</p>}
+    <label>選擇本頁課程 <select value={rows.some(row=>row.id===record.id)?record.id:''} onChange={event=>pick(event.target.value)} disabled={busy||metadataDirty}>
       <option value="">新增課程</option>{rows.map(row=><option key={row.id} value={row.id}>{row.course_code} · {row.course_name}{row.published?'':'（未公開）'}</option>)}
     </select></label>
     <form onSubmit={event=>{event.preventDefault();void save('save_course_offering');}}>
-      <fieldset disabled={busy}><legend>課程與開課資料</legend><div className="catalog-editor-fields">
+      <fieldset disabled={busy||metadataDirty}><legend>課程與開課資料</legend><div className="catalog-editor-fields">
         {Object.entries(catalogTextFields).map(([key,[label,max]])=><label key={key}>{label}
           {key==='description'?<textarea maxLength={max} value={String(record[key as keyof CourseOffering])} onChange={event=>field(key,event.target.value)}/>
             :<input maxLength={max} required={['term_code','term_label','department_code','department_name','classification_code','admission_code','course_code','course_name','instructor'].includes(key)} value={String(record[key as keyof CourseOffering])} onChange={event=>field(key,event.target.value)}/>}</label>)}
@@ -95,9 +108,12 @@ function CatalogManager({rows,onSaved}:{rows:CourseOffering[];onSaved:()=>void})
       </fieldset>)}
       <CourseSyllabusEditor value={record.syllabus} onChange={value=>field('syllabus',value)}/>
       <button type="submit">{busy?'儲存中…':'儲存課程'}</button>
+      <button type="button" disabled={!courseDirty} onClick={()=>{setRecord(baseline);setProgramText(baseline.program_codes.join(','));setError('');setStatus('');}}>取消課程變更</button>
       {record.version>0 && <details className="catalog-delete"><summary>刪除此範例課程</summary><p>刪除後將不再出現在課程查詢。</p><button type="button" onClick={()=>void save('delete_course_offering')}>確認刪除 {record.course_code}</button></details>}
       </fieldset>
     </form>
+    {courseDirty&&<p role="status">請先儲存或取消課程變更，再編輯課綱查詢設定。</p>}
+    <SyllabusSearchMetadataEditor key={userId+':'+record.id} userId={userId} record={record} latest={rows.find(row=>row.id===record.id)} disabled={busy||courseDirty} onDirtyChange={setMetadataDirty} onBusyChange={setBusy} onReload={onReload} onSaved={(receipt,metadata)=>{setRecord(current=>({...current,...metadata,version:receipt.version}));setBaseline(current=>({...current,...metadata,version:receipt.version}));retry.current=null;onSaved();}}/>
     {error&&<p role="alert">{error}</p>}{status&&<p role="status">{status}</p>}
   </details>;
 }
@@ -170,7 +186,7 @@ export default function CourseCatalog({userId}:{userId:string}) {
     </tbody></table></div>
     {result&&result.total>result.page_size&&<nav className="catalog-pagination" aria-label="課程分頁"><button disabled={result.page===0} onClick={()=>{const next=new URLSearchParams(params);next.set('page',String(result.page-1));setParams(next);}}>上一頁</button><span>第 {result.page+1} / {Math.ceil(result.total/result.page_size)} 頁</span><button disabled={(result.page+1)*result.page_size>=result.total} onClick={()=>{const next=new URLSearchParams(params);next.set('page',String(result.page+1));setParams(next);}}>下一頁</button></nav>}
     {notice&&<p role="status">{notice}</p>}
-    {result?.can_manage&&<CatalogManager rows={result.rows} onSaved={()=>{setNotice('本地範例課程已更新。');setReload(value=>value+1);}}/>}
+    {result?.can_manage&&<CatalogManager key={userId} userId={userId} rows={result.rows} onReload={()=>setReload(value=>value+1)} onSaved={()=>{setNotice('本地範例課程已更新。');setReload(value=>value+1);}}/>}
     <footer><Link to="/school-affairs">校務系統</Link> · stu.best 本地範例課程 <a href="#catalog-top">回頁首</a></footer>
   </main>;
 }

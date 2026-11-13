@@ -14,3 +14,7 @@ Vercel serverless endpoints live here. `research-assistant.ts` answers public sc
 Native academic grades, modern/legacy graduation reports and attendance share these endpoints. Eight manager operations use versioned database RPCs; the graduation report alone has a 140KB HTTP envelope for its strictly validated nested content. Private assistant evidence preserves requested record types and terms, literal values and local links without treating Moodle scores as academic transcripts. See [native acceptance](../docs/qa/ACADEMIC_RESULTS.md).
 
 Assistant POST requests may set `stream: true` to receive server-sent `progress` events followed by one `result` or `error` event. Older JSON clients keep the same response contract. Private progress starts only after the Google bearer token is verified; public lookups never receive that token.
+
+The public research entrypoint is a thin wrapper around `server/researchAssistantHandler.js`, shared by the School Affairs assistant. Runtime cross-function imports must target deployable JavaScript helpers. `npm run test:live-shell` verifies both compiled endpoints start before exercising page assets; method-denied checks do not call a provider.
+
+Syllabus requests use the explicit `syllabus-search`, `syllabus-options` and `syllabus-detail` scopes. Metadata writes use the strict `syllabus-metadata` manager kind; unknown prefixed scopes and additional fields fail closed. Both routes share a17-second request deadline for these operations.

@@ -3,6 +3,9 @@
 
 - Fix production assistant startup by moving the shared handler to a deployable JavaScript module; verify compiled imports and live API method boundaries. [#100]
 
+- Add the native syllabus search with complete result pagination, current/historical filters, local course outlines and separately versioned administrator metadata. Database application and release acceptance remain pending. [#98]
+- Include TypeScript-only unit test files in the standard unit command.
+
 - Improve account evidence selection, bounded JSON references, verified page context and correction tool selection; validate rendered Markdown link destinations and omit private service contact fields from model evidence. Add an offline, explicit assistant evaluation suite. [#100]
 
 - Mount source-shaped Moodle assignment detail/editor with private versioned file submissions, administrator review and bounded discarded-file cleanup. Keep tracker status independent from real uploads. [#98]

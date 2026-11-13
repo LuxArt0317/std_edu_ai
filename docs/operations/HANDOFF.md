@@ -1,4 +1,22 @@
+# Latest handoff — syllabus candidate
+
+Only170000 is applied (127 migrations/144 public RLS tables). Exact source524API/198unit and required local gates pass. Local actual-JWT syllabus search acceptance passed5 groups,159 API/23 browser calls,103 synthetic offerings and3 disposable users with exact cleanup and owner preservation. Production verification is pending; runtime remains ecf5a5e. Root retains DB/release lease.180000/190000 drafts and separate assistant repairs are excluded. Do not claim full protected-system parity or native model acceptance.
+
+## Assistant startup hotfix verified — November 13, 2026
+
+Runtime `ecf5a5e9e2a665fa5f9d01ec735476db0bcd1004` is Ready as Vercel `48Y7KiJaForLt2vVozqa6rxC9cpw`; Quality43356230975 passed and the public manifest matches. Both deployed assistant endpoints pass JSON405 startup and malformed-POST JSON400 checks; live shell8routes49assets passed. Exact503API/158unit/264offline evaluation, TypeScript/lint/build/handoff/audit passed. This supersedes the48880 startup-failure status below. The native real-model suites remain pending under Issue100’s serialized DB/model lease. Syllabus170000, tuition180000 and conversation190000 drafts remain unapplied; client126migrations/144RLS tables. No official-school mutation or personal-record import.
+
 # Client handoff
+
+## Latest assistant release and syllabus preparation (Issues #98 and #100)
+
+**Active production defect:** the signed-in assistant fails at startup on48880e5. Authenticated Vercel logs confirm an import of an absent `.ts` API entry after deployment emits `.js`. Public research still responds. A minimal shared-handler packaging repair is in progress; database releases and native model suites are paused. The first grades suite cleaned all temporary fixtures.
+
+Runtime `48880e59a67201a5c62e1ea83c9855db8c5944e7` is live at https://stu.best. The public release manifest matches; Vercel `5iT1oVokCV3PAv3PBc27SkcsLHuN` is Production Ready and [Quality43353446653](https://github.com/LuxArt0317/std_edu_ai/actions/runs/43353446653) succeeded. Exact candidate gates passed502 API/source checks,158 unit checks,264 offline evaluation checks, forced TypeScript, lint, build, handoff and zero-vulnerability dependency audit. Native real-model acceptance is still pending and is serialized under Issue100's temporary database/model lease; these offline results do not establish answer accuracy.
+
+The client remains126 migrations/144 public RLS tables. Syllabus170000 rollback-only preflight passed8 groups with104 temporary offerings and3 users, verified exact rollback and unchanged protected owner, then closed connections. The migration is not applied. Native12-3 search/detail and a separate versioned administrator metadata editor are integrated locally:36 focused unit checks and8 mounted browser checks passed, including complete101-row collection, local syllabus/back filters, stable retries, current/historical distinctions and320/390px containment. Actual-JWT HTTP/browser acceptance is being prepared before application and publication.
+
+User-assisted tuition sign-in succeeded. Settlement49-1 showed no corresponding periods;48-1/48-3 exposed document instructions, and48-2 redirected to Index. Read-only source captures and an unmounted UI exist; document storage/issuance is not implemented and no school payment/application/print action was performed. The full protected-site copy remains unfinished; Issues98/100 remain open.
 
 ## Moodle submissions and certificate checkpoint (Issue #98)
 

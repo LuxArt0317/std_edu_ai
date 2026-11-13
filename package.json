@@ -63,7 +63,7 @@
     "db:deploy": "node scripts/deploy-database.mjs --apply",
     "verify:client": "node scripts/verify-client.mjs",
     "verify:handoff": "node scripts/verify-handoff.mjs",
-    "test:unit": "tsx --tsconfig tsconfig.unit.json --test tests/unit/*.test.tsx",
+    "test:unit": "tsx --tsconfig tsconfig.unit.json --test tests/unit/*.test.ts tests/unit/*.test.tsx",
     "test:e2e": "playwright test",
     "test:client-research": "node tests/integration/client-research-suite.mjs",
     "prepare:video-guides": "node scripts/publish-video-guides.mjs --prepare",

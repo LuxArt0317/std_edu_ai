@@ -106,3 +106,14 @@ test('syllabus validation rejects impossible dates, unsupported fields and inval
   const saved=normalizeCourseOffering({...record,syllabus});assert.deepEqual(saved.syllabus,syllabus);
   assert.throws(()=>normalizeCourseOffering({...record,syllabus:{...syllabus,private_note:'secret'}}),{status:400});
 });
+
+
+test('legacy catalog saves accept but never overwrite separately managed syllabus search metadata',()=>{
+  const metadata={syllabus_is_current:true,academic_year_text:'115',semester_text:'1'};
+  const normalized=normalizeCourseOffering({...record,...metadata});
+  assert.deepEqual(normalizeCourseOffering({...record,...metadata,academic_year_text:'😀'.repeat(30),semester_text:'𠀀'.repeat(30)}),normalizeCourseOffering(record));
+  for(const key of Object.keys(metadata))assert.equal(key in normalized,false);
+  assert.deepEqual(normalizeCourseOffering({...record,syllabus_is_current:null,academic_year_text:null,semester_text:null}),normalizeCourseOffering(record));
+  for(const value of [{syllabus_is_current:'true'},{academic_year_text:115},{semester_text:'x'.repeat(31)},{academic_year_text:'😀'.repeat(31)},{academic_year_text:'\u0000'},{semester_text:'\ud800'}])
+    assert.throws(()=>normalizeCourseOffering({...record,...value}),{status:400});
+});

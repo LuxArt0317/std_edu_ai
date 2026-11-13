@@ -66,6 +66,8 @@ import { StudentScholarshipWorkspace } from "./StudentScholarshipWorkspace";
 import { useAffairsRecords } from "./useAffairsRecords";
 import { StudentAidWorkspace } from "./studentAidWorkspace";
 import CourseCatalog from "./CourseCatalog";
+import { SyllabusSearchRoute } from "./SyllabusSearchWorkspace";
+import { syllabusSearchPath } from "@/services/syllabusSearchClient";
 import { HousingWorkspace } from "./HousingWorkspace";
 import { PendingFees } from "./PendingFees";
 import { CreditLoadHistory } from "./CreditLoadHistory";
@@ -464,6 +466,9 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   }
   if (servicePage && route[1] === "12-4") {
     return <CourseCatalog userId={user.id} />;
+  }
+  if (normalizedPath === syllabusSearchPath) {
+    return <SyllabusSearchRoute userId={user.id} />;
   }
   if (servicePage && ["26-1", "34-1"].includes(route[1])) {
     return <HousingWorkspace key={pathname} userId={user.id} mode={route[1]==="34-1"?"history":"application"} />;

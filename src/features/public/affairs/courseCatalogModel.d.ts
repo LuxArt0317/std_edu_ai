@@ -7,6 +7,7 @@ export type CourseOffering = {
   credits:number;capacity:number;enrolled_count:number;selected_count:number;audit_capacity:number;audit_count:number;lecture_hours:number;practice_hours:number;summer_weeks:number;
   shared_teaching:boolean;open_other_departments:boolean;cross_admission:boolean;required:boolean;e_course:boolean;english_taught:boolean;foreign_language:boolean;immersion:boolean;graduating_course:boolean;
   meetings:CourseMeeting[];program_codes:string[];syllabus?:CourseSyllabus;
+  syllabus_is_current?:boolean|null;academic_year_text?:string|null;semester_text?:string|null;
 };
 export type CatalogFilters = {yr:string;dep:string;ref1:string;admissionType:string;credit:string;grd:string;prog:string;required:string;e_course:string;english_taught:string;foreign_language:string;immersion:string;keyword:string;instructor:string;weekdays:string[];periods:string[]};
 export type CatalogResult = {rows:CourseOffering[];total:number;can_manage:boolean;page:number;page_size:number;terms:{value:string;label:string}[]};

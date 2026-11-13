@@ -48,3 +48,16 @@ Earlier entries are retained in archive/progress_2026-11-13_verification.md.
 - 2026-11-13 [#98]: runtime67a524d Ready/Quality43348267548; deployed DTM13a854db and certificatec5e473f4 passed with exact cleanup and owner preservation. Client verification passed126/144. Captured read-only tuition settlement empty state, summer/evening PDF landing pages; extended-study link returns index. No school print/payment action. Syllabus170000 and #100 assistant candidate remain separate unpublished work.
 
 - #100 exact candidate passed502API/source,158unit,264evaluation,forcedTS/lint/build/handoff/audit. Independent review verified both P2 fixes. Snapshot Git context and transient disk-full build faults resolved; production candidate is being published separately from unfinished syllabus/tuition/read-helper work.
+
+- 2026-11-13 [#100]: Published exact48880e5 assistant candidate; public release manifest, Vercel Ready5iT1oVokCV3PAv3PBc27SkcsLHuN and Quality43353446653 success verified. Exact502API/158unit/264offline checks passed. Real-model acceptance pending.
+- 2026-11-13 [#98]: Syllabus170000 rollback preflight passed8groups/104offerings/3users; owner unchanged and exact rollback verified. Migration unapplied. UI/client integration36focused units/8mounted browser checks passed. Root released serialized DB/model lease to Issue100 for native3 production suites before further migration work. Added .test.ts to unit discovery so the new client-contract tests run in CI.
+
+- 2026-11-13 [#100]: Confirmed production48880 startup failure via authenticated Vercel logs (missing TypeScript runtime import). Published minimal ecf5a5e shared-JavaScript-handler repair with compiled-source and public API startup regressions. Exact503API/158unit/264offline/forcedTS/lint/handoff/audit/build passed; production verification pending. No database migration or official record change.
+
+- Hotfixecf5a5e independently verified Ready48Y7KiJaF, Quality43356230975 and exact public manifest. Both assistant GET405/POST400 JSON gates and8routes49assets passed. Issue100 granted sole native3 DB/model lease. Private infrastructure registry verified and locally committed935d1cc; no schema/Auth/DNS change.
+
+- 2026-11-13 [#98/#100]: Native model checks exposed graduation/attendance answerability gaps; independent review confirmed reference guidance starvation and unsupported draft provenance. Syllabus staged524API/198unit/forcedTS/build/lint/docs/audit passed; only170000 applied after exact126/144 plan. Actual-JWT local acceptance running;180000/190000 deferred. Tuition source captured and draft offline27units/5browser groups passed, with a retry defect under repair.
+
+- 2026-11-13 [#98]: Only170000 applied; baseline127/144 confirmed. Actual-JWT local syllabus test df58ceef passed5groups/159API/23browser requests;103 offerings/3 callers cleaned exactly and owner unchanged. Preparing isolated syllabus release; tuition/activity/readers remain excluded.
+
+- Syllabus release preflight: full verify:client passed at127 migrations/all public tables RLS, owner CRUD cleanup,8 public routes49assets, Edge/origin checks and nonmutating OpenAI. Remote main is exactecf5a5e; publishing only37 staged syllabus/docs paths.

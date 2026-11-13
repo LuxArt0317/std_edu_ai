@@ -21,8 +21,9 @@
 
 - [x] Inspect source layout, complete sorting behavior, historical ALL including current, and ANY-theme matching.
 - [x] Build unmounted source-shaped search UI and pass8DOM/9browser checks.
-- [ ] Review170000 additive metadata/search RPC draft and prepare real own-account backend/manager integration; no schema applied yet.
-- [ ] Wire a bounded full-result collector and local syllabus detail navigation; verify persistence, permissions and source geometry before release.
+- [x] Independently review170000 and pass rollback-only SQL preflight with exact cleanup; no schema applied yet.
+- [x] Wire bounded complete-result collection, local syllabus/back navigation and separate metadata maintenance; pass focused UI/client/mock API checks.
+- [ ] Apply only170000 after the reviewed exact migration plan; run actual-JWT persistence/permissions/browser acceptance, then release and verify production.
 
 ## Phase Next: systemwide assistant evaluation [Issue #100]
 
