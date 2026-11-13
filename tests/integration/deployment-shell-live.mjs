@@ -1,5 +1,20 @@
 const baseUrl = (process.env.STU_BASE_URL || 'https://stdeduai.vercel.app').replace(/\/$/, '')
 
+// Exercise compiled server entrypoints without authentication, provider usage or writes.
+// An HTTP 200 shell/build alone cannot catch a missing runtime import.
+for (const endpoint of ['/api/affairs-assistant', '/api/research-assistant']) {
+  const response = await fetch(baseUrl + endpoint, { redirect: 'error', headers: { 'Cache-Control': 'no-cache' }, signal: AbortSignal.timeout(20000) })
+  if (response.status !== 405 || !response.headers.get('content-type')?.includes('application/json')) {
+    await response.body?.cancel().catch(() => {})
+    throw new Error(`${endpoint} startup check failed: expected JSON 405, received HTTP ${response.status}.`)
+  }
+  const body = await response.json()
+  if (!body || typeof body.error !== 'string' || response.headers.get('allow') !== 'POST') {
+    throw new Error(`${endpoint} did not expose its expected method/auth boundary.`)
+  }
+  console.log(JSON.stringify({ endpoint, compiledRuntimeStarted: true, methodDenied: 405, providerCalls: 0 }))
+}
+
 const home = await fetch(`${baseUrl}/`, { headers: { 'Cache-Control': 'no-cache' } })
 const homeHtml = await home.text()
 if (!home.ok || !homeHtml.includes('校園網站介面預覽（非官方）') || homeHtml.includes('data-stu-boot') || !homeHtml.includes('class="stu-assistant-frame"')) {

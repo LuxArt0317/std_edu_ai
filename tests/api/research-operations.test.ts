@@ -16,8 +16,8 @@ test("operations schema is privacy-minimized, immutable, role-protected, and rec
 });
 
 test("required research APIs emit sanitized component observations",()=>{
-  const assistant=fs.readFileSync("api/research-assistant.ts","utf8"),route=fs.readFileSync("api/campus-route.ts","utf8"),study=fs.readFileSync("api/research-session.ts","utf8");
-  for(const marker of ['component:"retrieval"','component:"model"','component:"citation"'])assert.ok(assistant.includes(marker),marker);
+  const assistant=fs.readFileSync("server/researchAssistantHandler.js","utf8"),route=fs.readFileSync("api/campus-route.ts","utf8"),study=fs.readFileSync("api/research-session.ts","utf8");
+  for(const component of ['retrieval','model','citation'])assert.match(assistant,new RegExp(`component\\s*:\\s*"${component}"`));
   assert.ok(route.includes('component:"campus_route"'));
   assert.ok(study.includes('component:"study"'));
 });
