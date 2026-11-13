@@ -1,25 +1,45 @@
 import { AffairsWorkspaceError, executeAffairsAction, verifyAffairsToken } from '../server/affairsWorkspace.js';
+import { DtmSubmissionError, dtmSubmissionStudentKinds, executeDtmSubmissionAction, cleanupDtmSubmissionUploads } from '../server/dtmSubmissions.js';
 
 type Request = {method?:string;headers:Record<string,string|string[]|undefined>;body?:unknown};
 type Response = {status:(code:number)=>Response;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void};
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
 export default async function handler(request:Request,response:Response) {
+  const submissionDeadline=Date.now()+17000;
   response.setHeader('Cache-Control','no-store, max-age=0');
   response.setHeader('X-Content-Type-Options','nosniff');
   if(request.method!=='POST'){response.setHeader('Allow','POST');response.status(405).json({error:'Method not allowed'});return;}
   let body:unknown=request.body;
   if(typeof body==='string'){try{body=JSON.parse(body);}catch{body=null;}}
   const input=body&&typeof body==='object'&&!Array.isArray(body)?body as Record<string,unknown>:null;
+  const submissionAction=typeof input?.kind==='string'&&dtmSubmissionStudentKinds.includes(input.kind);
+  const submissionCleanup=input?.kind==='cleanup_dtm_submission_uploads';
   if(!input || typeof input.kind!=='string' || !input.payload || typeof input.payload!=='object'
-    || Array.isArray(input.payload) || JSON.stringify(input).length>(input.kind==='import_dtm_deadlines'?50000:4000)){
+    || Array.isArray(input.payload) || (submissionAction?Buffer.byteLength(JSON.stringify(input),'utf8')>14000:JSON.stringify(input).length>(input.kind==='import_dtm_deadlines'?50000:4000))){
     response.status(400).json({error:'Invalid action request.'});return;
   }
   try {
     const authorization=first(request.headers.authorization);
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
-    const result=await executeAffairsAction(account,input.kind,input.payload,input.requestId as string|undefined);
+    const bounded={...account,requestDeadline:submissionDeadline};
+    if(submissionCleanup){
+      if(Object.keys(input.payload).length){response.status(400).json({error:'Cleanup takes no file paths or user identifiers.'});return;}
+      // The database limits students to their own queue; a verified manager
+      // can also remove discarded files belonging to deleted accounts.
+      response.status(200).json(await cleanupDtmSubmissionUploads(bounded));return;
+    }
+    const result=submissionAction?await executeDtmSubmissionAction(bounded,input.kind,input.payload)
+      :await executeAffairsAction(account,input.kind,input.payload,input.requestId as string|undefined);
+    if(submissionAction){
+      // A cleanup outage must never replace the durable successful receipt.
+      // The same request deadline bounds this pass; queued rows survive for
+      // the next mutation or an explicit maintenance retry.
+      try{const cleaned=await cleanupDtmSubmissionUploads(bounded);response.setHeader('X-DTM-Cleanup',cleaned.remaining?'deferred':'batch-complete');}
+      catch{response.setHeader('X-DTM-Cleanup','deferred');}
+    }
     response.status(200).json(result);
   } catch(error) {
-    response.status(error instanceof AffairsWorkspaceError?error.status:503).json({error:error instanceof AffairsWorkspaceError?error.message:'School Affairs action could not be completed.'});
+    const known=error instanceof AffairsWorkspaceError||error instanceof DtmSubmissionError;
+    response.status(known?error.status:503).json({error:known?error.message:'School Affairs action could not be completed.'});
   }
 }

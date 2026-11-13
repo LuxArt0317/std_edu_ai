@@ -1,0 +1,53 @@
+@font-face { font-family: "DTM Editor Open Sans"; src: url("/dtm-theme/open-sans-latin.woff2") format("woff2"); font-style: normal; font-weight: 400; font-display: swap; }
+.dtm-submission-editor { box-sizing: border-box; min-width: 0; margin: 0 0 20px; padding: 10px; border: 1px solid #e3e3e3; box-shadow: 2px 2px 2px 0 rgba(0,0,0,.05); background: #fff; color: #333; font: 14px/20px "DTM Editor Open Sans", "Helvetica Neue", Arial, sans-serif; }
+.dtm-submission-editor * { box-sizing: border-box; }
+.dtm-editor-content-start { display: block; height: 1px; margin: 0; padding: 0; }
+.dtm-submission-editor > h2 { margin: 10px 0; padding: 0; font-size: 28px; line-height: 40px; font-weight: 400; overflow-wrap: anywhere; }
+.dtm-editor-form { margin: 0; padding: 0; display: flex; flex-direction: column; }
+.dtm-editor-file-field { position: relative; margin: 0 0 10px; display: flow-root; }
+.dtm-editor-label { position: absolute; width: 245px; min-height: 30px; padding-top: 5px; text-align: right; }
+.dtm-editor-label label { font-weight: 700; }
+.dtm-editor-manager { min-width: 0; margin-left: 265px; font: 11px/20px "DTM Editor Open Sans", "Helvetica Neue", Arial, sans-serif; }
+.dtm-editor-restrictions { margin: 0; padding: 0; text-align: right; min-height: 20px; }
+.dtm-editor-file-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.dtm-editor-filebox { border: 1px solid #bbb; }
+.dtm-editor-navbar { margin: -1px -1px 0; border: 1px solid #bbb; border-bottom: 0; background: #f2f2f2; }
+.dtm-editor-toolbar { height: 40px; padding: 4px; display: flex; align-items: start; justify-content: space-between; gap: 8px; }
+.dtm-editor-tools,.dtm-editor-views { display: flex; }
+.dtm-editor-tools { gap: 4px; padding-right: 4px; }
+.dtm-editor-toolbar button { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; margin: 0; padding: 7px; border: 1px solid #bbb; border-radius: 4px; background: linear-gradient(#fff,#f0f0f0); color: #333; cursor: pointer; }
+.dtm-editor-toolbar img { display: inline-block; width: 16px; height: 16px; }
+.dtm-editor-views button { border-radius: 0; }
+.dtm-editor-views button+button { border-left: 0; }
+.dtm-editor-views button:first-child { border-radius: 4px 0 0 4px; }
+.dtm-editor-views button:last-child { border-radius: 0 4px 4px 0; }
+.dtm-editor-views button[aria-pressed="true"] { background: #eee; box-shadow: inset 0 1px 3px #ccc; }
+.dtm-editor-path { height: 27px; padding: 5px 8px 1px; border-top: 1px solid #bbb; display: flex; align-items: center; gap: 4px; }
+.dtm-editor-path > span:first-child { color: #888; }
+.dtm-editor-path img { width: 16px; height: 16px; }
+.dtm-editor-body { border-top: 1px solid #bbb; }
+.dtm-editor-content { height: 157px; overflow: auto; background: #fff; }
+.dtm-editor-tile { position: relative; height: 112px; width: 112px; margin: 10px 10px 35px; text-align: center; }
+.dtm-editor-thumbnail { height: 112px; width: 112px; border: 1px solid #fff; line-height: 110px; text-align: center; }
+.dtm-editor-pdf { display: inline-block; height: 80px; width: 80px; vertical-align: middle; }
+.dtm-editor-thumbnail .dtm-editor-pdf { box-sizing: content-box; padding: 3px; border: 1px solid #ddd; box-shadow: 1px 1px 2px 0 #ccc; }
+.dtm-editor-document { display: inline-block; height: 62px; width: 48px; border: 1px solid #888; border-radius: 1px; background: #f2f2f2; vertical-align: middle; }
+.dtm-editor-filename { display: block; color: #555; font: 11px/20px "DTM Editor Open Sans", "Helvetica Neue", Arial, sans-serif; overflow-wrap: anywhere; }
+.dtm-editor-tile > .dtm-editor-filename { box-sizing: content-box; width: 112px; padding: 5px 10px 12px 0; background: #fff; }
+.dtm-editor-remove { position: absolute; top: 0; right: 0; border: 1px solid #bbb; border-radius: 2px; width: 24px; height: 24px; padding: 0; background: #fff; color: #333; font: 18px/20px Arial,sans-serif; cursor: pointer; }
+.dtm-editor-file-list { list-style: none; margin: 0; padding: 8px; }
+.dtm-editor-file-list li { position: relative; display: flex; align-items: center; min-height: 32px; gap: 6px; padding-right: 28px; }
+.dtm-editor-file-list .dtm-editor-pdf { width: 24px; height: 24px; }
+.dtm-editor-file-list .dtm-editor-document { width: 18px; height: 24px; flex-shrink: 0; }
+.dtm-editor-file-list .dtm-editor-filename { min-width: 0; }
+.dtm-editor-tree-branch { flex-shrink: 0; color: #888; }
+.dtm-editor-error { color: #8b2020; font-size: 14px; margin: 10px 0 0; overflow-wrap: anywhere; }
+.dtm-editor-progress { margin: 10px 0 0; font-size: 14px; }
+.dtm-editor-progress progress { display: block; max-width: 100%; }
+.dtm-editor-actions { display: flow-root; margin: 20px 0; padding: 19px 20px 20px 0; }
+.dtm-editor-actions > div { margin-left: 265px; min-height: 50px; }
+.dtm-editor-actions button { display: inline-block; margin: 0 0 10px 5px; padding: 10px 16px; border: 0; border-radius: 3px; background: #3288fa; color: #fff; font: 14px/20px "Helvetica Neue",Helvetica,Arial,sans-serif; box-shadow: inset 0 1px 0 rgba(255,255,255,.2),0 1px 2px rgba(0,0,0,.05); cursor: pointer; }
+.dtm-submission-editor button:disabled { opacity: .65; cursor: default; }
+.dtm-submission-editor button:focus-visible,.dtm-editor-content:focus-visible { outline: 2px solid #356881; outline-offset: 2px; }
+.dtm-editor-file-input:focus-visible ~ .dtm-editor-filebox { outline: 2px solid #356881; outline-offset: 2px; }
+@media(max-width:767px) { .dtm-editor-label { position: static; width: auto; text-align: left; padding: 0 0 5px; } .dtm-editor-manager,.dtm-editor-actions > div { margin-left: 0; } .dtm-editor-actions { padding-right: 0; } .dtm-editor-restrictions { overflow-wrap: anywhere; } }

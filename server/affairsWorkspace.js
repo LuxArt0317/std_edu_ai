@@ -79,7 +79,7 @@ export async function loadAffairsSnapshot(account, includeAdmin = false, options
     await request(account,'dtm_initialize_account',{rpc:true});
   }
   const userId=account.user.id;
-  const [profiles,students,terms,programs,courses,sections,announcements,tasks,requests,adminProfiles,adminStudents,adminEnrollments,adminDtmCourses,adminRequests,dtmCourses,dtmNotices,serviceRecords]=await Promise.all([
+  const [profiles,students,terms,programs,courses,sections,announcements,tasks,requests,adminProfiles,adminStudents,adminEnrollments,adminRequests,dtmCourses,dtmNotices,serviceRecords]=await Promise.all([
     request(account,'affairs_profiles',{query:own(userId,1)}),
     request(account,'affairs_students',{query:own(userId,1)}),
     request(account,'affairs_terms',{query:{select:'*',limit:30}}),
@@ -92,7 +92,6 @@ export async function loadAffairsSnapshot(account, includeAdmin = false, options
     includeAdmin?request(account,'affairs_profiles',{query:{select:'user_id,email,display_name,role,created_at',order:'created_at.desc',limit:100}}):Promise.resolve([]),
     includeAdmin?request(account,'affairs_students',{query:{select:'id,user_id,student_number,full_name',limit:100}}):Promise.resolve([]),
     includeAdmin?request(account,'affairs_enrollments',{query:{select:'id,student_id,section_id,status',limit:500}}):Promise.resolve([]),
-    includeAdmin?request(account,'dtm_courses',{query:{select:'id,user_id,code,title,term',source_mode:'eq.sample',limit:500}}):Promise.resolve([]),
     includeAdmin?request(account,'affairs_service_requests',{query:{select:'id,user_id,request_type,title,details,status,created_at',order:'created_at.desc',limit:100}}):Promise.resolve([]),
     readAccountRows(account,'dtm_courses',{...own(userId),order:'created_at.desc,id.asc'}),
     request(account,'dtm_notices',{query:{select:'*',order:'published_at.desc',limit:30}}),
@@ -135,17 +134,31 @@ export async function loadAffairsSnapshot(account, includeAdmin = false, options
   const dtmRows = (table, order) => dtmCourses.length ? readAccountRows(account, table, {
     select:'*,dtm_courses!inner(user_id)', 'dtm_courses.user_id':`eq.${userId}`, order,
   }) : Promise.resolve([]);
-  const [grades,attendance,charges,assignments,dtmMaterials,adminCharges,adminAssignments,dtmMeetings,dtmGrades]=await Promise.all([
+  const [grades,attendance,charges,assignments,dtmMaterials,adminCharges,adminAssignments,adminDtmCourses,dtmMeetings,dtmGrades]=await Promise.all([
     request(account,'affairs_grade_items',{query:{select:'*',enrollment_id:byIds(enrollmentIds),limit:200}}),
     request(account,'affairs_attendance',{query:{select:'*',enrollment_id:byIds(enrollmentIds),limit:200}}),
     student?readAccountRows(account,'affairs_charges',{select:'*',student_id:`eq.${student.id}`,order:'occurrence_on.desc.nullslast,id.asc'}):Promise.resolve([]),
     student?readAccountRows(account,'affairs_assignments',{select:'*',student_id:`eq.${student.id}`,order:'due_at.asc.nullslast,id.asc'}):Promise.resolve([]),
     dtmRows('dtm_materials','position.asc,id.asc'),
     includeAdmin?readAccountRows(account,'affairs_charges',{select:'*',order:'occurrence_on.desc.nullslast,id.asc'}):Promise.resolve([]),
-    includeAdmin?request(account,'affairs_assignments',{query:{select:'*',source_mode:'eq.sample',limit:500}}):Promise.resolve([]),
+    includeAdmin?readAccountRows(account,'affairs_assignments',{select:'*',source_mode:'in.(sample,personal)',order:'student_id.asc,id.asc'}):Promise.resolve([]),
+    includeAdmin?readAccountRows(account,'dtm_courses',{select:'id,user_id,code,title,term,source_mode',source_mode:'in.(sample,personal)',order:'user_id.asc,id.asc'}):Promise.resolve([]),
     dtmRows('dtm_meetings','meeting_on.desc,starts_at.desc,id.asc'),
     dtmRows('dtm_grade_items','graded_on.desc.nullslast,id.asc'),
   ]);
+  if(includeAdmin){
+    // The selector's initial account page may omit older owners. Resolve every
+    // assignment's explicit student relation before exposing review choices.
+    const knownStudents=new Set(adminStudents.map(row=>row.id));
+    const missingStudents=[...new Set(adminAssignments.map(row=>row.student_id).filter(id=>id&&!knownStudents.has(id)))];
+    for(let offset=0;offset<missingStudents.length;offset+=100)adminStudents.push(...await readAccountRows(account,'affairs_students',{
+      select:'id,user_id,student_number,full_name',id:byIds(missingStudents.slice(offset,offset+100)),order:'id.asc',
+    }));
+    const studentsById=new Map(adminStudents.map(row=>[row.id,row])),coursesById=new Map(adminDtmCourses.map(row=>[row.id,row]));
+    if(adminAssignments.some(row=>typeof studentsById.get(row.student_id)?.user_id!=='string'||!studentsById.get(row.student_id)?.user_id||row.dtm_course_id&&
+      coursesById.get(row.dtm_course_id)?.user_id!==studentsById.get(row.student_id)?.user_id))
+      throw new AffairsWorkspaceError('Assignment account relations changed. Refresh the administrator records.');
+  }
   const courseById=new Map(courses.map(row=>[row.id,row]));
   const termById=new Map(terms.map(row=>[row.id,row]));
   const sectionById=new Map(sections.map(row=>[row.id,row]));

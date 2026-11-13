@@ -22,3 +22,5 @@ Browser clients call the public, School Affairs and protected Nexus endpoints. `
 `courseSelection.ts` defines the observed course-selection phases, fourteen timetable periods, owner-scoped record types and native display helpers. Manager writes carry typed meeting arrays, explicit timetable membership, expected versions and retry IDs through the existing authorized manager API.
 
 `academicGrades.ts`, `graduationReview.ts` and `academicAttendance.ts` validate and scope native result bundles and manager edits. The shared workspace client exposes separate grade, graduation and attendance collections; explicitly requested report kind/current term is never inferred from another collection or the latest historical row.
+
+`dtmSubmissions.ts` coordinates private upload reservations, durable Save/Cancel receipts and revision-specific downloads; detail/editor adapters preserve saved versus pending state. `dtmSubmissionMaintenance.ts` exposes bounded manager cleanup without caller-provided paths. Certificate transports validate dedicated own/admin response shapes, abort on identity changes, preserve retry IDs and never accept document capabilities.

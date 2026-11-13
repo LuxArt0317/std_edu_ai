@@ -19,3 +19,5 @@ Migration `20261112020000_leave_application_fields.sql` adds the remaining obser
 ## Native academic migrations
 
 Migrations `20261112110000`, `20261112130000` and `20261112140000` add eight account-owned academic tables with RLS, admin-only audited writes and durable retry receipts. They keep academic transcripts, graduation report kinds and attendance separate from personal Moodle tracker data. Exact client planning and rollback preflight evidence are recorded in [academic QA](../../docs/qa/ACADEMIC_RESULTS.md); never reset the database to apply them.
+
+`20261112150000` adds independent DTM file submissions/reviews and a private Storage bucket; `20261112160000` adds account-owned certificate assessments and inert document metadata. Both are applied to the verified client project. Versioned RPCs, retry receipts and RLS preserve ownership; do not substitute personal tracker status for file or document issuance.

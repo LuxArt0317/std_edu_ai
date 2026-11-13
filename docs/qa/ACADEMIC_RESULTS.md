@@ -1,7 +1,6 @@
 # Academic Services verification
 
-Issue [#98](https://github.com/LuxArt0317/std_edu_ai/issues/98). This batch is in
-development. The three native academic migrations are applied to the client database; application release and live acceptance remain pending. Isolated tests do not establish deployed UI parity.
+Issue [#98](https://github.com/LuxArt0317/std_edu_ai/issues/98). The native academic runtime is published; production model/reference acceptance remains incomplete. Current certificate and file-submission progress is documented below and in DTM_SUBMISSIONS.md. Dated checkpoints retain their original status; isolated tests do not establish deployed UI parity.
 
 ## Source and account boundaries
 

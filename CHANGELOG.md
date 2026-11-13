@@ -1,6 +1,10 @@
 # Changelog
 ## Unreleased
 
+- Mount source-shaped Moodle assignment detail/editor with private versioned file submissions, administrator review and bounded discarded-file cleanup. Keep tracker status independent from real uploads. [#98]
+- Add dedicated enrollment-certificate assessment views and administrator maintenance; metadata cannot activate or issue documents. [#98]
+- Generate a public build revision manifest from verified Vercel Git metadata for deployment acceptance.
+
 - Correct native transcript/ranking/attendance citation destinations and increase detailed evidence-review capacity without relaxing claim validation. Keep output-limit and timeout diagnostics free of record contents. [#98]
 
 ### Native academic records (Issue #98, production verification in progress)

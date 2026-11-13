@@ -8,3 +8,5 @@ These scripts prepare the build, verify repository contracts and check the clien
 `supabase-activity.mjs` performs the bounded, read-only Supabase query used by the temporary GitHub schedule. It stops before the fixed cutoff without needing a secret, and reports provider failures without logging the key. See [operations](../docs/operations/INFRASTRUCTURE.md#temporary-supabase-activity-check--issue-97).
 
 Route regeneration preserves the conversation API alias. Handoff verification checks the client 12-function deployment budget and required alias before release.
+
+`write-release-manifest.mjs` writes `dist/release.json` after the build. Only a valid `VERCEL_GIT_COMMIT_SHA` from a Vercel build sets the revision; local/manual builds without it remain explicitly unverified. The public metadata contains no environment credentials and is uncached, allowing deployed evaluation results to identify the actual release.

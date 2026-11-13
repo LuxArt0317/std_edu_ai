@@ -1,0 +1,27 @@
+@font-face { font-family: "DTM Assignment Open Sans"; src: url("/dtm-theme/open-sans-latin.woff2") format("woff2"); font-style: normal; font-weight: 400; font-display: swap; }
+.dtm-assignment-detail { box-sizing: border-box; min-width: 0; margin: 0 0 20px; padding: 10px; border: 1px solid #e3e3e3; box-shadow: 2px 2px 2px 0 rgba(0, 0, 0, .05); background: #fff; color: #333; font: 14px/20px "DTM Assignment Open Sans", "Helvetica Neue", Arial, sans-serif; }
+.dtm-assignment-detail * { box-sizing: border-box; }
+.dtm-assignment-content-start { display: block; height: 1px; margin: 0; padding: 0; }
+.dtm-assignment-detail > h2 { margin: 10px 0; padding: 0; font-size: 28px; line-height: 40px; font-weight: 400; overflow-wrap: anywhere; }
+.dtm-assignment-submission { margin: 0 0 70px; }
+.dtm-assignment-submission > h3 { margin: 10px 0 14px; padding: 0; font-size: 24px; line-height: 40px; font-weight: 400; }
+.dtm-assignment-table-wrap { max-width: 100%; overflow-x: auto; margin-bottom: 20px; }
+.dtm-assignment-status-table { width: 100%; border-collapse: collapse; border-spacing: 0; table-layout: fixed; margin: 0; font: inherit; text-align: left; }
+.dtm-assignment-status-table > tbody > tr > th,
+.dtm-assignment-status-table > tbody > tr > td { padding: 8px; border: 0; border-top: 1px solid #ddd; font: inherit; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.dtm-assignment-status-table > tbody > tr:nth-child(odd) > * { background: #f9f9f9; }
+.dtm-assignment-status-table > tbody > tr > .dtm-assignment-ungraded { background: #efefef; color: #000; }
+.dtm-assignment-status-table > tbody > tr > .dtm-assignment-late { background: #efcfcf; color: #000; }
+.dtm-assignment-files { margin: 0; padding: 0 0 0 18px; list-style: none; }
+.dtm-assignment-files li { min-height: 22px; line-height: 22px; }
+.dtm-assignment-files a, .dtm-assignment-inert-file, .dtm-assignment-file-download { display: inline; color: #2c3e50; font: 14px/20px "DTM Assignment Open Sans", "Helvetica Neue", Arial, sans-serif; text-decoration: none; overflow-wrap: anywhere; }
+.dtm-assignment-file-download { border: 0; border-radius: 0; padding: 0; margin: 0; background: transparent; text-align: left; cursor: pointer; }
+.dtm-assignment-files a:hover, .dtm-assignment-file-download:hover { text-decoration: underline; }
+.dtm-assignment-files img { box-sizing: content-box; display: inline; width: 16px; height: 16px; padding: 0 6px 0 0; margin: 0; vertical-align: text-bottom; }
+.dtm-assignment-action { min-height: 103px; text-align: center; }
+.dtm-assignment-action > button { margin: 0 0 10px 5px; padding: 10px 16px; border: 0; border-radius: 3px; background: #3288fa; color: #fff; font: 14px/20px "Helvetica Neue", Helvetica, Arial, sans-serif; cursor: pointer; }
+.dtm-assignment-action > button:disabled { opacity: .65; cursor: default; }
+.dtm-assignment-action > p { margin: 20px 0 0; font: inherit; }
+.dtm-assignment-detail-error { color: #8b2020; overflow-wrap: anywhere; }
+.dtm-assignment-detail button:focus-visible, .dtm-assignment-detail a:focus-visible, .dtm-assignment-table-wrap:focus-visible { outline: 2px solid #356881; outline-offset: 2px; }
+@media (max-width: 600px) { .dtm-assignment-status-table { min-width: 500px; } }

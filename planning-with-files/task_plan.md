@@ -6,16 +6,20 @@
 - [x] Implement eight native academic tables/readers, twelve routes and eight admin operations; pass isolated geometry, API and rollback-only SQL checks.
 - [x] Connect explicit own-account academic assistant tools, compact views, private routing and verification regressions.
 - [x] Apply only reviewed110000/130000/140000 after exact client migration plans (124 migrations / 140 public RLS tables).
-- [ ] Test native two-account live persistence, model answers and browser isolation before release.
-- [ ] Complete independent Moodle upload/review backend150000 and source-faithful detail/editor; verify real Storage/races/cleanup before mounting or release.
+- [x] Verify native two-account persistence/browser isolation and publish the native runtime.
+- [ ] Resolve remaining production native model/reference failures with Issue #100 and rerun all three suites.
+- [x] Apply independent Moodle upload/review backend150000; mount source-faithful detail/editor and pass real Storage plus browser checks.
+- [ ] Publish and verify Moodle student/admin submissions against deployed HTTP.
 - [ ] Register observed assets, update docs, pass release gates, commit/publish and verify production.
-- [ ] Continue remaining protected service sources; certificate query is now inspected read-only, its native reconstruction is next. Closed school application windows do not establish unseen forms.
+- [x] Inspect certificate17-1, apply160000 after preflight, mount dedicated personal/admin views and pass post-apply rollback checks.
+- [x] Complete certificate actual-JWT local API/browser acceptance with exact cleanup and protected-owner preservation.
+- [ ] Verify frozen candidate preview, publish and run deployed Moodle/certificate acceptance; continue49remaining source families. Closed school application windows do not establish unseen forms.
 
 
 ## Phase Next: systemwide assistant evaluation [Issue #100]
 
 - [ ] Verifier thread owns isolated tests/evaluation and docs/qa/ASSISTANT_SYSTEM_EVALUATION.md to derive question coverage from all current routes/services/records.
-- [ ] After the native release, coordinate shared assistant changes and a serialized DB/model lease through agent/A2A.md.
+- [x] Hand assistant runtime and serialized DB/model lease to Issue #100 after native release and certificate rollback cleanup.
 - [ ] Track supported, unsupported and unverified capabilities separately; new file submissions are not personal tracker changes.
 
 ## Account assistant, verification graph and conversations [Issue #99]

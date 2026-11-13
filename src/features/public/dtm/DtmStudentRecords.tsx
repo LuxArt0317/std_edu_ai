@@ -31,7 +31,7 @@ const assignmentStatuses = {open:['未完成','Open'],submitted:['已標記繳�
 const attendanceStatuses = {unknown:['未記錄','Unrecorded'],present:['出席','Present'],late:['遲到','Late'],absent:['缺席','Absent'],excused:['請假','Excused']} as const;
 const pathFor = (course:DtmCourse) => '/dtm/course/'+encodeURIComponent(course.id);
 const translated = (t:DtmTranslate,labels:readonly [string,string]) => t(labels[0],labels[1]);
-type ActivityDetail = {kind:'assignment';record:DtmAssignment}|{kind:'material';record:DtmMaterial}|{kind:'grade';record:DtmGrade};
+type ActivityDetail = {kind:'material';record:DtmMaterial}|{kind:'grade';record:DtmGrade};
 
 function CourseActivity({kind,title,details,deadline,open,id,t}:{
   kind:'assignment'|'material';title:string;details?:string;deadline?:string|null;open:()=>void;id:string;t:DtmTranslate;
@@ -233,7 +233,7 @@ export function DtmStudentRecords({snapshot,course,view,mode,t,refresh}:{
     </div>}
     {courseContents&&<div className="dtm-course-content">
       <section className="dtm-course-section"><h3>{t('作業區','Assignments')}</h3>
-        {assignments.length?<ul className="dtm-course-activities">{assignments.map(row=><CourseActivity key={row.id} id={row.id} kind="assignment" title={row.title} details={row.details} deadline={row.dueAt} open={()=>setDetail({kind:'assignment',record:row})} t={t}/>)}</ul>
+        {assignments.length?<ul className="dtm-course-activities">{assignments.map(row=><CourseActivity key={row.id} id={row.id} kind="assignment" title={row.title} details={row.details} deadline={row.dueAt} open={()=>navigate(pathFor(course)+'/assignment/'+row.id)} t={t}/>)}</ul>
           :<p className="dtm-activity-empty">{t('尚無作業。','No assignments saved.')}</p>}
       </section>
       <section className="dtm-course-section"><h3>{t('測驗區','Quizzes')}</h3><p className="dtm-activity-empty">{t('尚無測驗紀錄。','No quiz records saved.')}</p></section>
@@ -253,10 +253,13 @@ export function DtmStudentRecords({snapshot,course,view,mode,t,refresh}:{
         const rowCourse=selectedById.get(row.dtmCourseId || '');
         const meeting=rowCourse?.meetings?.find(item=>item.id===row.meetingId);
         return <li key={row.id} id={'assignment-'+row.id}><div>
-          {!course&&rowCourse?<Link to={pathFor(rowCourse)+'/assignments#assignment-'+row.id}>{rowCourse.code} · {row.title}</Link>:<button className="dtm-record-title" type="button" onClick={()=>setDetail({kind:'assignment',record:row})}>{row.title}</button>}
+          {rowCourse?<Link to={pathFor(rowCourse)+'/assignment/'+row.id}>{!course?rowCourse.code+' · ':''}{row.title}</Link>:<span>{row.title}</span>}
           <small>{translated(t,assignmentStatuses[row.status])} · {deadlineLabel(row.dueAt,t)}{row.origin==='moodle_calendar'?' · '+t('Moodle 行事曆','Moodle calendar'):row.sourceMode==='sample'?' · '+t('範例','Sample'):''}</small>
           {meeting&&rowCourse&&<Link className="dtm-record-context" to={pathFor(rowCourse)+'/meetings#meeting-'+meeting.id}>{meeting.date} · {meeting.title}</Link>}
           {row.details&&<p>{row.details}</p>}
+          {row.sourceMode==='personal'&&rowCourse&&<RowActions t={t}
+            edit={()=>edit({kind:'assignment',course:rowCourse,record:row})}
+            remove={()=>askDelete({kind:'assignment',id:row.id,courseId:rowCourse.id,name:row.title})}/>}
         </div></li>;
       })}</ul>:<p className="dtm-empty">{t('沒有符合的作業。','No matching assignments.')}</p>}
     </div>}
@@ -286,19 +289,13 @@ export function DtmStudentRecords({snapshot,course,view,mode,t,refresh}:{
     <Dialog open={Boolean(detail)} onOpenChange={open=>{if(!open)setDetail(null);}}>
       <DialogContent className="dtm-activity-dialog">
         <DialogHeader><DialogTitle>{detail?.kind==='grade'?detail.record.label:detail?.record.title}</DialogTitle><DialogDescription>{course?.title} · {course?.sourceMode==='sample'?t('範例課程','Sample course'):t('個人紀錄','Personal records')}</DialogDescription></DialogHeader>
-        {detail?.kind==='assignment'&&<>
-          <p>{translated(t,assignmentStatuses[detail.record.status])} · {deadlineLabel(detail.record.dueAt,t)}</p>
-          {detail.record.details&&<p className="dtm-detail-text">{detail.record.details}</p>}
-          {detail.record.meetingId&&course&&<Link to={pathFor(course)+'/meetings#meeting-'+detail.record.meetingId}>{t('查看指派作業的課堂','View the linked class meeting')}</Link>}
-        </>}
         {detail?.kind==='material'&&<>
           {detail.record.summary&&<p className="dtm-detail-text">{detail.record.summary}</p>}
           {detail.record.sourceUrl&&<a href={detail.record.sourceUrl} target="_blank" rel="noreferrer">{t('在校方 Moodle 開啟','Open in university Moodle')} <ExternalLink size={13}/></a>}
         </>}
         {detail?.kind==='grade'&&<><p>{detail.record.score} / {detail.record.maximum} · {((detail.record.score/detail.record.maximum)*100).toFixed(1)}%</p>{detail.record.date&&<p>{detail.record.date}</p>}{detail.record.feedback&&<p className="dtm-detail-text">{detail.record.feedback}</p>}</>}
-        {own&&course&&detail&&(detail.kind!=='assignment'||detail.record.sourceMode==='personal')&&<DialogFooter><RowActions t={t} edit={()=>{
-          if(detail.kind==='assignment')edit({kind:'assignment',course,record:detail.record});
-          else if(detail.kind==='material')edit({kind:'material',course,record:detail.record});
+        {own&&course&&detail&&<DialogFooter><RowActions t={t} edit={()=>{
+          if(detail.kind==='material')edit({kind:'material',course,record:detail.record});
           else edit({kind:'grade',course,record:detail.record});
         }} remove={()=>askDelete({kind:detail.kind,id:detail.record.id,courseId:course.id,name:detail.kind==='grade'?detail.record.label:detail.record.title})}/></DialogFooter>}
       </DialogContent>

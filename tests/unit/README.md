@@ -6,3 +6,5 @@ Course-selection checks cover own-account phase filtering, source year/semester 
 ## Native academic components
 
 Academic grades, attendance and modern/legacy graduation suites verify record filtering, literal null/zero values, manager validation, stable retry IDs and disclosure controls. Source geometry and real database/browser checks live in [integration tests](../integration/README.md).
+
+The DTM submission suites cover detail/editor state, pending versus saved files, revision reviews, manager mounts, maintenance and account switches. Certificate suites cover personal/admin transports, blocked/unknown display, retained conflict drafts and identity cancellation. Live database/browser acceptance is separate.

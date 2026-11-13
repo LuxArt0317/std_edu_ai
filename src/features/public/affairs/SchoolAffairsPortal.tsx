@@ -74,9 +74,11 @@ import { AcademicGrades } from "./AcademicGrades";
 import { GraduationReview } from "./GraduationReview";
 import { LegacyGraduationReview } from "./LegacyGraduationReview";
 import { AcademicAttendance } from "./AcademicAttendance";
+import { EnrollmentCertificateWorkspace } from "./EnrollmentCertificate";
 import { academicGradePaths, type AcademicGradesView } from "@/services/academicGrades";
 import { graduationReviewPaths } from "@/services/graduationReview";
 import { academicAttendancePaths } from "@/services/academicAttendance";
+import { enrollmentCertificatePath } from "@/services/enrollmentCertificate";
 import "./portal.css";
 
 // The university portal uses Font Awesome 4 for its navigation.
@@ -447,6 +449,9 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   }
   if (normalizedPath === academicAttendancePaths.statistics || normalizedPath === academicAttendancePaths.detail) {
     return <AcademicAttendance key={pathname} snapshot={account ?? null} busy={accountLoading} error={accountError} onReload={refreshAccount} onLogout={()=>navigate("/school-affairs/signed-out")} view={normalizedPath === academicAttendancePaths.detail ? "detail" : "statistics"}/>;
+  }
+  if (normalizedPath === enrollmentCertificatePath) {
+    return <EnrollmentCertificateWorkspace key={user.id} userId={user.id} onLogout={()=>navigate("/school-affairs/signed-out")}/>;
   }
   if (servicePage && ["11-1", "11-2"].includes(route[1])) {
     return <CourseSelection key={pathname} snapshot={account ?? null} busy={accountLoading} error={accountError} onReload={refreshAccount} onLogout={()=>navigate("/school-affairs/signed-out")} view={route[1] === "11-1" ? "history" : "timetable"}/>;

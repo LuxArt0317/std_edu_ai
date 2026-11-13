@@ -17,7 +17,7 @@ for (const [route, page] of captures) {
     rewrites.push({ source, ...(has.length ? { has } : {}), destination: '/site-pages/' + path.basename(page.file) });
   }
 }
-rewrites.push({ source: '/:path((?!assets/|site-pages/|school-assets/|school-pages/).*)', destination: '/app-shell.html' });
+rewrites.push({ source: '/:path((?!assets/|site-pages/|school-assets/|school-pages/|release[.]json$).*)', destination: '/app-shell.html' });
 config.rewrites = rewrites;
 const policy = config.headers.find(rule => rule.source === '/school-pages/(.*)');
 if (!policy) throw new Error('School page CSP is missing');
