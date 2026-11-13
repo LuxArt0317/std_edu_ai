@@ -66,3 +66,5 @@ DTM submission helpers and actual private Storage are checked by `dtm-submission
 Production saved-chat acceptance727423ae passed on772ec95:13HTTP/22browser requests,40 expandable observed steps,cache-empty restoration,autosave,sign-out and exact cleanup. The harness waits for verified account UI before opening the assistant; diagnostics contain only endpoint/method/status and synthetic failure views. This is storage/browser acceptance, not a model-quality result.
 
 `student-conduct-workspace-ui.mjs` checks source geometry and phone/desktop behavior with synthetic controlled data on dedicated port5185. `student-conduct-rls-live.mjs` covers rollback-only schema/auth/receipt contracts. `student-conduct-http-live.mjs --self-test` is offline; `--execute` requires the serialized lease and applied130/147 baseline. [Conduct QA](../../docs/qa/STUDENT_CONDUCT.md).
+
+`student-loan-workspace-ui.mjs` compares synthetic source geometry and popup/navigation behavior. The loan SQL and actual-JWT harnesses require a separate live lease and exact baseline; they are not part of an ordinary offline run. [Student Loan QA](../../docs/qa/STUDENT_LOAN.md).

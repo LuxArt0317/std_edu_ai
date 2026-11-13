@@ -45,7 +45,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { referenceAsset } from "../site/reference";
+import { referenceAsset, referenceHref } from "../site/reference";
 import { campusAssistantOpenEvent } from "../PublicAssistant";
 import {
   commonPrograms,
@@ -79,6 +79,8 @@ import { AcademicAttendance } from "./AcademicAttendance";
 import { EnrollmentCertificateWorkspace } from "./EnrollmentCertificate";
 import { TuitionDocumentsWorkspace } from "./TuitionDocumentsWorkspace";
 import { StudentConductWorkspace } from "./StudentConductWorkspace";
+import { StudentLoanWorkspace } from "./StudentLoanWorkspace";
+import { studentLoanPaths, type StudentLoanView } from "@/services/studentLoan";
 import { studentConductPath } from "@/services/studentConduct";
 import { tuitionDocumentPaths } from "../../../../server/tuitionDocuments.js";
 import type { TuitionView } from "./TuitionDocuments";
@@ -465,6 +467,13 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
       ? {userId:user.id,studentNumber:account.student.studentNumber,studentName:account.student.fullName} : null;
     return <StudentConductWorkspace key={user.id} userId={user.id} identity={identity}
       identityLoading={accountLoading} identityError={accountError} onReloadIdentity={refreshAccount}/>;
+  }
+  const loanView = (Object.keys(studentLoanPaths) as StudentLoanView[]).find(view => studentLoanPaths[view] === normalizedPath);
+  if (loanView) {
+    return <StudentLoanWorkspace key={user.id} userId={user.id} view={loanView}
+      onNavigate={(view,options)=>{if(options?.newTab)window.open(studentLoanPaths[view],"_blank","noopener,noreferrer");else navigate(studentLoanPaths[view]);}}
+      onLogout={()=>navigate("/school-affairs/signed-out")}
+      onInformation={()=>window.location.assign(referenceHref("https://life.sao.stu.edu.tw/就學貸款/"))}/>;
   }
   const tuitionView = (Object.keys(tuitionDocumentPaths) as TuitionView[]).find(view => tuitionDocumentPaths[view] === normalizedPath);
   if (tuitionView) {

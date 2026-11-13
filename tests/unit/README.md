@@ -10,3 +10,5 @@ Academic grades, attendance and modern/legacy graduation suites verify record fi
 The DTM submission suites cover detail/editor state, pending versus saved files, revision reviews, manager mounts, maintenance and account switches. Certificate suites cover personal/admin transports, blocked/unknown display, retained conflict drafts and identity cancellation. Live database/browser acceptance is separate.
 
 Assistant session hook/storage/isolation tests cover per-chat failures, saving after refresh, switching accounts during pending saves, retained observable activity and truthful unsaved UI. They do not establish provider/model acceptance.
+
+`student-loan*.test.ts(x)` covers source view states, transport/session boundaries, preserved drafts/retries, conflicts and mounted local routes. [Student Loan QA](../../docs/qa/STUDENT_LOAN.md).

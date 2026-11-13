@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Add source-shaped Student Loan index, progress/history notices and local document status, backed by one private literal account snapshot and versioned administrator maintenance. Migration210000 is applied; actual-JWT local acceptance passed seven groups with exact cleanup. Production verification remains separate. [#98]
+
 - Let the account assistant query separate published catalog, enrollment-certificate status, Moodle submission metadata and tuition records through caller-scoped tools. Preserve personal enrollment distinctions, bounded evidence/retries and private diagnostic redaction; expand offline evaluation coverage. Deployed real-model acceptance remains required. [#100]
 
 - Add the source-shaped student conduct report, private literal records and administrator maintenance; preserve drafts when the editor is collapsed. Local layout/security tests, rollback preflight and actual-JWT local acceptance pass;200000 is applied. Publishedfcac3c4; deployed six-group actual-JWT/browser acceptance passed with exact cleanup and protected-owner preservation. [#98]

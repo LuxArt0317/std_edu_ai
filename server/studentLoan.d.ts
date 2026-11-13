@@ -1,0 +1,22 @@
+import type {AffairsAccount} from './affairsWorkspace.js';
+import type {StudentLoanRecord} from '../src/services/studentLoan.ts';
+export type {StudentLoanRecord};
+export type StudentLoanAccount=AffairsAccount & {requestDeadline?:number};
+export type StudentLoanSnapshot={status:'loaded';record:StudentLoanRecord|null};
+export type StudentLoanKind='save_student_loan'|'delete_student_loan';
+export type StudentLoanReceipt={id:string;kind:StudentLoanKind;version:number;summary:string};
+export const studentLoanPath:'/school-affairs/services/21-1';
+export const studentLoanMaxPayloadBytes:32000;
+export const studentLoanHistoryCountMax:1000000;
+export const studentLoanKinds:readonly StudentLoanKind[];
+export const studentLoanApplicationStates:readonly StudentLoanRecord['currentApplicationState'][];
+export const studentLoanTextLimits:Readonly<Record<'current_term_label'|'current_application_text'|'progress_text'|'history_text',number>>;
+export const studentLoanFields:Readonly<Record<StudentLoanKind,readonly string[]>>;
+export const studentLoanReadSource:Readonly<{table:string;select:string;order:string}>;
+export class StudentLoanError extends Error{status:number;constructor(message:string,status?:number);}
+export function studentLoanPayloadBytes(value:unknown):number;
+export function validateStudentLoanPayload(kind:unknown,value:unknown):string|null;
+export function parseStudentLoanSnapshot(value:unknown,userId:string):StudentLoanSnapshot;
+export function loadStudentLoan(account:StudentLoanAccount):Promise<StudentLoanSnapshot>;
+export function loadStudentLoanAdmin(account:StudentLoanAccount,options:{userId:string}):Promise<StudentLoanSnapshot>;
+export function manageStudentLoanRecord(account:StudentLoanAccount,kind:StudentLoanKind,payload:unknown):Promise<StudentLoanReceipt>;

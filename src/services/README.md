@@ -28,3 +28,5 @@ Browser clients call the public, School Affairs and protected Nexus endpoints. `
 `assistantActivityBudget.js` applies shared byte/message/observable-activity limits and whole-codepoint clipping within existing UTF16 field limits. Conversation serialization/cache retain complete bounded turns and expose save failures instead of silently losing activity.
 
 `studentConduct.ts` defines literal own-account records. `studentConductClient.ts` validates complete bounded reads and sends caller-JWT personal/admin requests with deadlines, cancellation and exact receipt validation. See [conduct QA](../../docs/qa/STUDENT_CONDUCT.md).
+
+`studentLoan.ts` defines literal loan state and local routes; `studentLoanClient.ts` provides strict caller-scoped transport, selected-admin reads and validated durable receipts. See [Student Loan QA](../../docs/qa/STUDENT_LOAN.md).

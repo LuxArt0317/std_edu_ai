@@ -6,3 +6,5 @@
 This directory contains scoped verification records and explicit acceptance limits. The [latest client audit](CLIENT_QA_2026-11-06.md) records cross-system checks, repairs and remaining acceptance gates. [School Affairs assistant](SCHOOL_AFFAIRS_ASSISTANT.md) documents the current chat boundary, directory coverage, image handling and checks. Release status is in [the handoff](../operations/HANDOFF.md).
 
 - [Moodle submissions and certificate acceptance](DTM_SUBMISSIONS.md): private file storage, administrator reviews, certificate assessments, source geometry and live-test boundaries.
+
+[Student Loan](STUDENT_LOAN.md) records source scope, literal private metadata, administrator lifecycle and offline/live acceptance boundaries.
