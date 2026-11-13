@@ -6,6 +6,7 @@ import {createClient} from '@supabase/supabase-js';
 import {chromium} from 'playwright-core';
 import postgres from 'postgres';
 import {deploymentEnvironment} from '../../scripts/deployment-env.mjs';
+import {readNativeHttpResponse} from './helpers/native-http-response.mjs';
 
 // Only generated, disposable accounts and exact record IDs are mutated or removed.
 process.umask(0o077);
@@ -80,18 +81,32 @@ async function invoke(endpoint,{token,method='GET',body}={}){
   if(token&&token===ownerSession?.access_token)assert.ok(endpoint==='/api/affairs-manage'&&method==='POST','Owner JWT is restricted to fixture manager writes; no owner snapshot or initialization.');
   if(!local){
     const response=await fetch(origin+endpoint,{method,redirect:'error',headers:{...(token?{Authorization:'Bearer '+token}:{}),...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(60000)});
-    return checkedAssistantResult(endpoint,{status:response.status,body:await response.json()});
+    return await readNativeHttpResponse(response);
   }
   const parsed=new URL(endpoint,origin),handler=handlers[parsed.pathname];assert.ok(handler);
   const result={status:200,body:undefined},response={status(code){result.status=code;return response;},json(value){result.body=value;},setHeader(){}};
-  await handler({method,headers:token?{authorization:'Bearer '+token}:{},query:Object.fromEntries(parsed.searchParams),body},response);return checkedAssistantResult(endpoint,result);
+  await handler({method,headers:token?{authorization:'Bearer '+token}:{},query:Object.fromEntries(parsed.searchParams),body},response);return result;
 }
 async function request(endpoint,options={}){const result=await invoke(endpoint,options);assert.equal(result.status,options.status??200,`${phase}: ${endpoint} status ${result.status}`);return result.body;}
 const snapshot=session=>request('/api/affairs-data',{token:session.access_token});
+function assistantDiagnostic(question,route,result,session){
+  const redactions=[session.access_token,session.refresh_token,ownerSession?.access_token,ownerSession?.refresh_token,
+    ownerSession?.user?.id,deployment.supabase.ownerEmail,...Object.values(ownerSession?.user?.user_metadata??{})]
+    .filter(value=>typeof value==='string'&&value.length>3);
+  return JSON.stringify({assistantMode,question,route,status:result?.status,answer:result?.answer,
+    verification:result?.verification,activity:result?.activity,grounding:result?.grounding,citations:result?.citations},(key,value)=>{
+    if(/token|password|authorization|secret|email|user_?id|owner_?id/i.test(key))return undefined;
+    if(typeof value!=='string')return value;
+    let safe=value.replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g,'[redacted token]');
+    for(const privateValue of redactions)safe=safe.split(privateValue).join('[redacted]');
+    return safe;
+  },2);
+}
 const answer=async(session,question,view)=>{
   const result=await request('/api/affairs-assistant',{method:'POST',token:session.access_token,body:{question,route:root+(view?'/'+view:'')}});
   // Only disposable synthetic records; never persist a session or credential.
-  await writeFile(output+'/answer-'+String(checks.length)+'-'+(view||'index')+'-'+session.user.id.slice(0,8)+'.json',JSON.stringify({assistantMode,question,...result},null,2));
+  await writeFile(output+'/answer-'+String(checks.length)+'-'+(view||'index')+'-'+session.user.id.slice(0,8)+'.json',assistantDiagnostic(question,root+(view?'/'+view:''),result,session));
+  checkedAssistantResult('/api/affairs-assistant',{status:200,body:result});
   return result;
 };
 async function fixture(number){
@@ -176,7 +191,12 @@ try{
   assert.ok(!transcriptAnswer.answer.includes(otherTitle)&&!transcriptAnswer.answer.includes(warningTitle));assert.equal(transcriptAnswer.grounding.source,'account');assert.equal(transcriptAnswer.grounding.webSearched,false);assert.ok(transcriptAnswer.citations.some(item=>item.url===root+'/transcript'));
   const warningAnswer=await answer(first,'Show my warning grades for academic year 115 semester 1','warning');
   for(const value of[warningTitle,'QA-WARN','18','12','6'])assert.ok(warningAnswer.answer.includes(value));assert.ok(!warningAnswer.answer.includes(courseTitle));assert.equal(warningAnswer.proposedAction,undefined);
-  const rankingAnswer=await answer(first,'Show my semester rankings','ranking');assert.ok(rankingAnswer.answer.includes('2 / 40 (5%)'));assert.ok(rankingAnswer.citations.some(item=>item.url===root+'/ranking'));
+  const rankingAnswer=await answer(first,'Show my semester rankings','ranking');
+  // Traditional Chinese parentheses are presentation, not a different ranking.
+  const rankingText=rankingAnswer.answer.normalize('NFKC');
+  assert.match(rankingText,/(?:department ranking|系排名)[^\n]*?2\s*\/\s*40\s*\(5%\)/i);
+  assert.match(rankingText,/(?:class ranking|班排名)[^\n]*?1\s*\/\s*20\s*\(5%\)/i);
+  assert.ok(rankingAnswer.citations.some(item=>item.url===root+'/ranking'));
   assert.ok(!(await answer(second,'Show my academic transcript','transcript')).answer.includes(courseTitle));
   const ambiguous=await answer(first,'Show my grades','');assert.match(ambiguous.answer,/specify|which|選擇|指定/i);
   checks.push(assistantCheck+'; private transcript/warning/ranking answers, explicit summaries, local citations, no public search, no cross-account result and generic-grade ambiguity');

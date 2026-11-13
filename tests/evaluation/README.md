@@ -11,6 +11,8 @@ System-wide question bank, independent grading, discovered coverage and per-case
 
 `*.test.mjs` tests grade integrity and retrieval behavior. No evaluation imports private university captures or uses a real student's records. A model's own verification result is never sufficient for passing.
 
+Live fixture creation records each reserved identity's email and run marker in the ignored owner-only ledger before sending the Auth request. Cleanup reconciles both values before deleting a fixture. An ambiguous creation timeout with no matching row remains unresolved: its recovery ledger is retained and the run cannot pass cleanup. A pre-existing account or mismatched run marker is never adopted or deleted. No password or session token is written to that ledger.
+
 Some assistant gaps are integration gaps in existing native systems. The course catalog, certificate assessments and DTM submission editor are mounted and have dedicated backend APIs. Their data is not currently registered as an assistant read tool. A profile answer does not pass a certificate assessment question, and an assignment tracker status does not prove a committed file or graded revision. These remain uncovered capabilities even when the assistant correctly states its limitation.
 
 The smallest read-only integrations are:

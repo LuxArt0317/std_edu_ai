@@ -6,6 +6,7 @@ import {createClient} from '@supabase/supabase-js';
 import {chromium} from 'playwright-core';
 import postgres from 'postgres';
 import {deploymentEnvironment} from '../../scripts/deployment-env.mjs';
+import {readNativeHttpResponse} from './helpers/native-http-response.mjs';
 
 // Run only after the native route and reviewed migration are integrated.
 // Mutations and cleanup are restricted to exact, newly generated fixture IDs.
@@ -80,17 +81,34 @@ const jsonbText=value=>Array.isArray(value)?'['+value.map(jsonbText).join(', ')+
 async function invoke(endpoint,{token,method='GET',body}={}){
   if(!local){
     const response=await fetch(origin+endpoint,{method,redirect:'error',headers:{...(token?{Authorization:'Bearer '+token}:{}),...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(60000)});
-    const result={status:response.status,body:await response.json()};
-    if(endpoint==='/api/affairs-assistant')await writeFile(output+'/last-assistant.json',JSON.stringify({question:body.question,route:body.route,...result.body},null,2));
-    return checkedAssistantResult(endpoint,result);
+    const result=await readNativeHttpResponse(response);
+    return result;
   }
   const parsed=new URL(endpoint,origin),handler=handlers[parsed.pathname];assert.ok(handler);
   const result={status:200,body:undefined},response={status(code){result.status=code;return response;},json(value){result.body=value;},setHeader(){}};
-  await handler({method,headers:token?{authorization:'Bearer '+token}:{},query:Object.fromEntries(parsed.searchParams),body},response);return checkedAssistantResult(endpoint,result);
+  await handler({method,headers:token?{authorization:'Bearer '+token}:{},query:Object.fromEntries(parsed.searchParams),body},response);return result;
 }
 async function request(endpoint,options={}){const result=await invoke(endpoint,options);assert.equal(result.status,options.status??200,`${phase}: ${endpoint} status ${result.status}`);return result.body;}
 const snapshot=session=>request('/api/affairs-data',{token:session.access_token});
-const answer=(session,question)=>request('/api/affairs-assistant',{method:'POST',token:session.access_token,body:{question,route:path}});
+function assistantDiagnostic(question,route,result,session){
+  const redactions=[session.access_token,session.refresh_token,ownerSession?.access_token,ownerSession?.refresh_token,
+    ownerSession?.user?.id,deployment.supabase.ownerEmail,...Object.values(ownerSession?.user?.user_metadata??{})]
+    .filter(value=>typeof value==='string'&&value.length>3);
+  return JSON.stringify({assistantMode,question,route,status:result?.status,answer:result?.answer,
+    verification:result?.verification,activity:result?.activity,grounding:result?.grounding,citations:result?.citations},(key,value)=>{
+    if(/token|password|authorization|secret|email|user_?id|owner_?id/i.test(key))return undefined;
+    if(typeof value!=='string')return value;
+    let safe=value.replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g,'[redacted token]');
+    for(const privateValue of redactions)safe=safe.split(privateValue).join('[redacted]');
+    return safe;
+  },2);
+}
+const answer=async(session,question)=>{
+  const result=await request('/api/affairs-assistant',{method:'POST',token:session.access_token,body:{question,route:path}});
+  await writeFile(output+'/last-assistant.json',assistantDiagnostic(question,path,result,session));
+  checkedAssistantResult('/api/affairs-assistant',{status:200,body:result});
+  return result;
+};
 function assertReport(data,expected,id,userId,version,reportKind='academic_services'){
   assert.ok(data&&Array.isArray(data.reports),'Snapshot includes structured graduation reports.');
   assert.ok(data.reports.every(row=>row.userId===userId&&['academic_services','legacy'].includes(row.reportKind)),'Every report is owned and explicitly source-scoped.');

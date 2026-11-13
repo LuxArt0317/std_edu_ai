@@ -6,7 +6,7 @@
  */
 import assert from 'node:assert/strict';
 import {randomBytes,randomUUID,createHash} from 'node:crypto';
-import {readFile,mkdir,writeFile,rename,rm,chmod} from 'node:fs/promises';
+import {readFile,readdir,mkdir,open,rename,rm,chmod} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {resolve} from 'node:path';
 import {createClient} from '@supabase/supabase-js';
@@ -48,12 +48,37 @@ export function safeDatabaseDiagnostic(error){
 }
 const diagnostic=safeDatabaseDiagnostic;
 async function query(work,label){try{return await work();}catch(error){if(error instanceof LiveFixtureError)throw error;fail('fixture-database',label+diagnostic(error));}}
+async function assertNoPendingRecoveryLedgers(){
+  if(!state?.locked)fail('fixture-lease','The fixture lock must be held before inspecting recovery ledgers.');
+  let names;
+  try{names=await readdir(PRIVATE_DIR);}
+  catch{fail('fixture-ledger','Recovery ledgers could not be checked; no fixture account will be created.');}
+  if(names.some(name=>{
+    const match=/^active-fixtures-(.+)\.json(?:\.tmp)?$/.exec(name);
+    return match&&UUID.test(match[1]);
+  }))fail('fixture-ledger','An existing fixture recovery ledger requires explicit manual recovery before another fixture run; no ledger or account was changed.');
+}
+async function reserveLedger(){
+  const s=state;
+  if(!s?.ledger||s.ledgerOwned)fail('fixture-ledger','A fresh private cleanup ledger must be reserved once.');
+  let handle;
+  try{handle=await open(s.ledger,'wx',0o600);s.ledgerOwned=true;}
+  catch{fail('fixture-ledger','The cleanup ledger already exists or could not be reserved; existing recovery records will not be modified.');}
+  finally{await handle?.close();}
+}
 async function saveLedger(){
   const s=state;if(!s?.ledger)return;
+  if(!s.ledgerOwned||s.closed)fail('fixture-ledger','This lifecycle does not own an open cleanup ledger.');
   const tmp=s.ledger+'.tmp';
-  await writeFile(tmp,JSON.stringify({version:1,projectRef:PROJECT,runId:s.runId,origin:s.origin,createdAt:s.startedAt,
-    fixtureUserIds:s.users.map(user=>user.id),ownedRecordIds:[...s.recordIds].sort(),activeCaseId:s.current?.caseId??null},null,2),{mode:0o600});
-  await chmod(tmp,0o600);await rename(tmp,s.ledger);await chmod(s.ledger,0o600);
+  let handle;
+  try{
+    // A foreign stale temporary ledger is not ours to overwrite or remove.
+    handle=await open(tmp,s.ledgerTempOwned?'w':'wx',0o600);s.ledgerTempOwned=true;
+    await handle.writeFile(JSON.stringify({version:1,projectRef:PROJECT,runId:s.runId,origin:s.origin,createdAt:s.startedAt,
+      fixtureUserIds:s.users.map(user=>user.id),identityRequests:s.identityRequests,ownedRecordIds:[...s.recordIds].sort(),activeCaseId:s.current?.caseId??null},null,2));
+    await handle.sync();
+  }finally{await handle?.close();}
+  await rename(tmp,s.ledger);s.ledgerTempOwned=false;await chmod(s.ledger,0o600);
 }
 async function readSnapshot(user,{signal=state?.signal,cleanup=false}={}){
   const s=state;let response;
@@ -73,9 +98,23 @@ async function createFixtureUser(index){
   // A fixed .invalid address preserves independently authored golden email facts.
   // Creation fails if a previous run still owns it; no existing account is reused.
   const email=index===0?'evaluation.student@example.invalid':`evaluation.other.${s.runId}@example.invalid`;
+  const existing=await query(()=>s.sql`select id from auth.users where lower(email)=lower(${email}) limit 2`,'Could not check the reserved fixture identity.');
+  if(existing.length)fail('fixture-create','The reserved synthetic address already exists; existing accounts are never reused or deleted.');
+  const identityRequest={email,runId:s.runId,state:'pending'};
+  s.identityRequests.push(identityRequest);
+  // Record intent before the remote mutation. A timeout is not proof that Auth
+  // did not commit; cleanup must reconcile the exact email AND run marker.
+  await saveLedger();
   const password=randomBytes(32).toString('base64url')+'Aa1!';
-  let created;try{created=await s.admin.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{full_name:index===0?'Evaluation Student':'Evaluation Other',assistant_evaluation_run:s.runId}});}catch{fail('fixture-create','Disposable account creation did not complete.');}
-  if(created.error||!UUID.test(created.data?.user?.id||''))fail('fixture-create','Could not create a fresh synthetic account; existing accounts are never reused.');
+  let created;try{created=await s.admin.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{full_name:index===0?'Evaluation Student':'Evaluation Other',assistant_evaluation_run:s.runId}});}catch{identityRequest.state='uncertain';await saveLedger();fail('fixture-create','Disposable account creation did not complete; its pending identity requires cleanup reconciliation.');}
+  if(created.error||!UUID.test(created.data?.user?.id||'')||created.data.user.email?.toLowerCase()!==email.toLowerCase()){
+    // A network/5xx response can follow a committed write. Only a definite
+    // client rejection establishes a terminal non-create response.
+    const status=created.error?.status;
+    identityRequest.state=Number.isInteger(status)&&status>=400&&status<500&&![408,409,425,429].includes(status)?'rejected':'uncertain';
+    await saveLedger();fail('fixture-create','Could not create a fresh synthetic account; existing accounts are never reused.');
+  }
+  identityRequest.state='created';identityRequest.id=created.data.user.id;
   const user={id:created.data.user.id,token:null};s.users.push(user);
   // Durable cleanup identity is written immediately, before any additional write.
   await saveLedger();
@@ -110,7 +149,7 @@ export async function prepare({runId,cases,now,origin,signal}={}){
   const ignore=await readFile(resolve(ROOT,'.gitignore'),'utf8');if(!/^\/?artifacts\/$/m.test(ignore))fail('fixture-ledger','Private fixture ledger directory must be ignored by Git.');
   await mkdir(PRIVATE_DIR,{recursive:true,mode:0o700});await chmod(PRIVATE_DIR,0o700);
   const boundedFetch=(input,init={})=>fetch(input,{...init,signal:signals(init.signal,15000)});
-  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,startedAt:new Date().toISOString(),users:[],recordIds:new Set(),caseIds:new Set(cases.map(row=>row.id)),prepared:false,closing:false,current:null,
+  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),caseIds:new Set(cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,
     ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),admin:createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})};
   try{
     state.sql=postgres(connection,{max:1,connect_timeout:10,idle_timeout:10,max_lifetime:0,
@@ -120,6 +159,8 @@ export async function prepare({runId,cases,now,origin,signal}={}){
     state.db=state.sql;state.sql=await query(()=>state.db.reserve(),'Could not reserve the bounded fixture connection.');
     const locked=await query(()=>state.sql`select pg_try_advisory_lock(23101314,115100) as held`,'Could not acquire the fixture exclusivity lock.');
     if(locked[0]?.held!==true)fail('fixture-lease','Another evaluation fixture lifecycle owns the database lock.');state.locked=true;
+    await assertNoPendingRecoveryLedgers();
+    await reserveLedger();
     await saveLedger();
     await createFixtureUser(0);await createFixtureUser(1);
     const foreignId=randomUUID();state.recordIds.add(foreignId);await saveLedger();
@@ -129,8 +170,9 @@ export async function prepare({runId,cases,now,origin,signal}={}){
     state.prepared=true;
     return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:[...SUPPORTED_TOOLS]};
   }catch(error){
-    // The runner will call cleanup too; this first attempt limits orphan lifetime
-    // when prepare() itself fails, retaining the private ledger on any failure.
+    // Limit orphan lifetime when prepare itself fails. A failed cleanup closes
+    // the connection and retains its ledger; the runner's later cleanup call
+    // reports explicit recovery instead of attempting an invalid closed retry.
     try{await cleanup();}catch{/* The original error is safe; ledger remains. */}
     if(error instanceof LiveFixtureError)throw error;fail('fixture-prepare','Fixture preparation failed'+diagnostic(error)+'.');
   }
@@ -514,11 +556,41 @@ export async function afterCase(testCase,envelope,{signal}={}){
 }
 
 /** Removes only this lifecycle's fresh users and proves cascaded data is absent. */
+export function reconcileFixtureIdentity(request,rows){
+  if(!request||!UUID.test(request.runId||'')||typeof request.email!=='string'||
+    request.id!==undefined&&!UUID.test(request.id)||!['pending','uncertain','created','rejected'].includes(request.state)||!Array.isArray(rows)||rows.length>1)
+    fail('fixture-cleanup','Fixture identity reconciliation could not establish a unique owned account.');
+  if(!rows.length)return {userId:null,unresolved:['pending','uncertain'].includes(request.state)};
+  const row=rows[0];
+  if(!UUID.test(row?.id||'')||row.email?.toLowerCase()!==request.email.toLowerCase()||row.run_id!==request.runId||request.id&&request.id!==row.id)
+    fail('fixture-cleanup','Reserved identity ownership does not match this run; no existing account will be deleted.');
+  return {userId:row.id,unresolved:false};
+}
+
 export async function cleanup(){
   const s=state;if(!s)return {verified:true,createdUsers:0};
+  if(s.closed){
+    for(const user of s.users)user.token=null;
+    fail('fixture-cleanup','The previous cleanup could not be completed and its connection is closed; use the retained private ledger for explicit recovery before another fixture run.');
+  }
   s.closing=true;let verified=false,cleanupError;
   try{
-    for(const user of [...s.users].reverse()){
+    let unresolvedCreation=false;const deletable=new Set(),absent=new Set();
+    if((s.identityRequests.length||s.users.length)&&!s.ledgerOwned)fail('fixture-cleanup','Fixture identities have no owned cleanup ledger; no account will be deleted.');
+    for(const request of s.identityRequests){
+      if(request.runId!==s.runId||request.id!==undefined&&!UUID.test(request.id))fail('fixture-cleanup','The fixture recovery request does not belong to this lifecycle.');
+      // A changed email must not hide a known ID from ownership validation.
+      const rows=await query(()=>s.sql`select id,email,raw_user_meta_data->>'assistant_evaluation_run' as run_id from auth.users
+        where lower(email)=lower(${request.email}) or id=${request.id??null}::uuid limit 2`,'Could not reconcile the pending fixture identity.');
+      const resolved=reconcileFixtureIdentity(request,rows);
+      unresolvedCreation ||= resolved.unresolved;
+      if(resolved.userId&&!s.users.some(user=>user.id===resolved.userId))s.users.push({id:resolved.userId,token:null});
+      if(resolved.userId){request.id=resolved.userId;request.state='created';deletable.add(resolved.userId);}
+      else if(request.id)absent.add(request.id);
+    }
+    if(s.users.some(user=>!UUID.test(user.id)||!deletable.has(user.id)&&!absent.has(user.id)))fail('fixture-cleanup','A known fixture identity could not be reconciled; no account will be deleted.');
+    if(s.ledgerOwned)await saveLedger();
+    for(const user of [...s.users].reverse().filter(user=>deletable.has(user.id))){
       let deleted=false;
       for(let attempt=0;attempt<3;attempt++){
         try{const result=await s.admin.auth.admin.deleteUser(user.id);if(!result.error||result.error.status===404){deleted=true;break;}}catch{/* Retry a bounded Auth call, without tokens in diagnostics. */}
@@ -539,13 +611,23 @@ export async function cleanup(){
         if(native.length)fail('fixture-cleanup','Native fixture-owned rows remain; the private cleanup ledger is retained.');
       }
     }
+    // A timed-out create with no row yet may still commit later. Keep the
+    // exact private recovery intent and never turn an absent row into success.
+    if(unresolvedCreation)fail('fixture-cleanup','An Auth creation outcome is still uncertain; the exact pending identity is retained in the private recovery ledger.');
     verified=true;
-    if(s.ledger){await rm(s.ledger,{force:true});await rm(s.ledger+'.tmp',{force:true});}
   }catch(error){cleanupError=error;}
   finally{
     try{if(s.locked)await s.sql`select pg_advisory_unlock(23101314,115100)`;}catch{if(!cleanupError)cleanupError=new LiveFixtureError('fixture-cleanup','Could not release the fixture advisory lock.');}
-    try{await s.sql?.release?.();await s.db?.end({timeout:5});}catch{if(!cleanupError)cleanupError=new LiveFixtureError('fixture-cleanup','Could not close the fixture database connection.');}
-    if(verified&&!cleanupError)state=undefined;
+    try{await s.sql?.release?.();}catch{if(!cleanupError)cleanupError=new LiveFixtureError('fixture-cleanup','Could not release the reserved fixture database connection.');}
+    try{await s.db?.end({timeout:5});}catch{if(!cleanupError)cleanupError=new LiveFixtureError('fixture-cleanup','Could not close the fixture database connection.');}
+    for(const user of s.users)user.token=null;
+    s.closed=true;
+  }
+  if(verified&&!cleanupError){
+    try{
+      if(s.ledgerOwned){if(s.ledgerTempOwned)await rm(s.ledger+'.tmp',{force:true});await rm(s.ledger,{force:true});}
+      state=undefined;
+    }catch{cleanupError=new LiveFixtureError('fixture-cleanup','Fixture rows were removed, but the owned recovery ledger could not be cleared.');}
   }
   if(cleanupError){if(cleanupError instanceof LiveFixtureError)throw cleanupError;fail('fixture-cleanup','Cleanup could not be verified; the private ledger is retained.');}
   return {verified:true,createdUsers:s.users.length,projectRef:PROJECT};

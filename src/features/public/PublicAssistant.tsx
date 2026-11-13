@@ -18,7 +18,7 @@ import { askSchoolAffairsAssistant } from "../../services/schoolAffairsAssistant
 import { performSchoolAffairsAction } from "../../services/schoolAffairsWorkspace";
 import { PublicAssistantFeedback } from "./PublicAssistantFeedback";
 import { AssistantMarkdown } from "../school/portal/AssistantMarkdown";
-import { finishAssistantActivity, mergeAssistantActivity, type AssistantMessage } from "../../services/assistantConversation";
+import { finishAssistantActivity, mergeAssistantActivity, mergeFinalAssistantActivity, type AssistantMessage } from "../../services/assistantConversation";
 import {useAssistantSessions} from './useAssistantSessions';
 import {assistantPageRoute} from '../../services/assistantPageRoute.js';
 
@@ -133,7 +133,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
         },
       );
       if (request === sequence.current)
-        setMessages(old=>old.map(item=>item.id===answerId?{...item,phase:'complete',content:result.answer,result,activity:finishAssistantActivity(mergeAssistantActivity(item.activity,result.activity))}:item));
+        setMessages(old=>old.map(item=>item.id===answerId?{...item,phase:'complete',content:result.answer,result,activity:finishAssistantActivity(mergeFinalAssistantActivity(item.activity,result.activity))}:item));
     } catch (reason) {
       if (request === sequence.current && !controller.signal.aborted)
         setMessages(old=>old.map(item=>item.id===answerId?{...item,phase:'error',content:reason instanceof Error?reason.message:'Please try again.',activity:finishAssistantActivity(item.activity||[],true)}:item));
@@ -236,12 +236,12 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
           <div className="flex min-w-0 items-center gap-2">
             <label htmlFor="assistant-conversation-picker" className="sr-only">Conversations</label>
             <select id="assistant-conversation-picker" aria-label="Conversations" className="min-w-0 flex-1 rounded-md border bg-background px-2 py-2 text-sm" value={sessions.active?.id||''} disabled={busy||!!actionBusy||sessions.loadingChat||sessions.syncing} onChange={event=>void sessions.chooseChat(event.target.value)}>
-              {sessions.conversations.map(chat=><option key={chat.id} value={chat.id}>{chat.title}</option>)}
+              {sessions.conversations.map(chat=><option key={chat.id} value={chat.id}>{chat.title}{sessions.unsavedConversationIds.includes(chat.id)?' — Save needs attention':''}</option>)}
             </select>
             <Button variant="ghost" size="icon" aria-label="Delete this conversation" disabled={busy||!!actionBusy||sessions.syncing||sessions.loadingChat||!messages.length} onClick={()=>void sessions.deleteChat()}><Trash2 className="size-4"/></Button>
           </div>
-          <p className="text-xs text-muted-foreground" role="status">{sessions.loadingChat?'Loading conversation…':sessions.syncing?'Saving conversation…':sessions.syncError?'Saved in this tab; account sync needs attention.':user?'Conversations are private to your account.':'Conversations are saved in this browser tab.'}</p>
-          {sessions.syncError?<div className="text-xs text-destructive"><p>{sessions.syncError}</p><button className="mr-3 underline" onClick={sessions.retrySync}>Retry save</button>{sessions.active?.version?<button className="underline" onClick={()=>void sessions.chooseChat(sessions.active!.id,true)}>Reload saved chat (discards unsaved edits)</button>:null}</div>:null}
+          <p className="text-xs text-muted-foreground" role="status">{sessions.loadingChat?'Loading conversation…':sessions.persistenceStatus}</p>
+          {sessions.syncError?<div className="text-xs text-destructive" role="alert"><p>{sessions.syncError}</p><button className="mr-3 underline" onClick={sessions.retrySync}>Retry save</button>{sessions.active?.version?<button className="underline" onClick={()=>void sessions.chooseChat(sessions.active!.id,true)}>Reload saved chat (discards unsaved edits)</button>:null}</div>:null}
         </div>
         <div
           ref={viewport}

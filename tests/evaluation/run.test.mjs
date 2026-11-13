@@ -49,6 +49,22 @@ test('truncated, malformed and excessive streams fail closed',async()=>{
   await assert.rejects(readReply(new Response('x'.repeat(2_000_001))),/exceeds/);
 });
 
+test('response limits count UTF-8 bytes and cancel excessive streams before consuming their tail',async()=>{
+  await assert.rejects(readReply(new Response('課'.repeat(700_000))),/exceeds/);
+  let pulls=0,cancelled=false;
+  const body=new ReadableStream({pull(controller){pulls++;controller.enqueue(new Uint8Array(700_000));},cancel(){cancelled=true;}},{highWaterMark:0});
+  await assert.rejects(readReply(new Response(body)),/exceeds/);
+  assert.equal(pulls,3);assert.equal(cancelled,true);
+  await assert.rejects(readReply(new Response(new Uint8Array([0xff,0xfe]))),TypeError);
+});
+
+test('valid Unicode split across stream chunks retains exact factual text',async()=>{
+  const expected={...result,answer:'紀錄🙂'},bytes=new TextEncoder().encode(JSON.stringify(expected));
+  let index=0;
+  const body=new ReadableStream({pull(controller){if(index===bytes.length)controller.close();else controller.enqueue(bytes.slice(index,++index));}});
+  assert.deepEqual(await readReply(new Response(body)),{body:expected,events:[]});
+});
+
 test('fixture lifecycle validation happens without invoking adapter mutations',()=>{
   let touched=false;
   const prepare=async()=>{touched=true;},forCase=async()=>({token:'synthetic-not-a-secret'}),cleanup=async()=>({verified:true});

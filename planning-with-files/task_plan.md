@@ -31,8 +31,15 @@
 - [x] Implement separate RLS-owned settlements and document metadata, strict versioned administrator operations and source-shaped student views.
 - [x] Pass independent review, rollback-only preflight and exact staged gates (545 API/source,231 units, TypeScript/build/lint/handoff/audit).
 - [x] Apply only180000 after its exact migration plan; baseline128 migrations/146 RLS tables,190000 remains unapplied.
-- [ ] Complete actual-JWT local/deployed HTTP and browser acceptance with exact cleanup, then publish and verify the production revision.
+- [x] Complete actual-JWT local/deployed HTTP and browser acceptance with exact cleanup, then publish and verify the production revision.
 - [ ] Add tuition statement evidence to the assistant separately; payment ledger totals do not prove statement or PDF content.
+
+## Current assistant repair release [Issue #100]
+
+- [x] Independently review native evidence selection, saved-conversation handling, fixture recovery and diagnostics; pass isolated594 API/source,252 units,289 offline evaluation checks plus9 conversation-HTTP contracts.
+- [x] Pass TypeScript/build/lint/handoff/audit and repeat190000 rollback preflight at128/146; plan/apply only190000. Current client129 migrations/146 RLS tables;200000 deferred.
+- [ ] Publish the exact reviewed repair, verify production startup and actual-JWT saved-conversation/browser behavior.
+- [ ] Return the serialized model lease to the evaluator and rerun grades, graduation and attendance on that exact production revision.
 
 ## Phase Next: systemwide assistant evaluation [Issue #100]
 

@@ -1,7 +1,9 @@
 # Changelog
 ## Unreleased
 
-- Implement the next native tuition batch: separate summer/extended/evening instructions and settlement queries, caller-scoped reads, selected-student administrator maintenance, and four versioned save/delete operations. Preserve null versus blank statements and recover exact metadata-create retries after a lost response. All printing stays disabled; no issued PDFs, Storage capabilities or assistant-tool registration are added. Applied180000 and verified actual-JWT local API/browser acceptance with exact cleanup; production acceptance remains pending. [#98]
+- Improve academic answer verification with fair bounded field guidance and exact course lineage. Preserve long saved answers and observable tool activity, isolate per-chat save failures, and make unsaved state visible. Harden test-fixture recovery and bounded response diagnostics. Migration190000 is applied; deployed persistence and model acceptance remain pending. [#100]
+
+- Implement the next native tuition batch: separate summer/extended/evening instructions and settlement queries, caller-scoped reads, selected-student administrator maintenance, and four versioned save/delete operations. Preserve null versus blank statements and recover exact metadata-create retries after a lost response. All printing stays disabled; no issued PDFs, Storage capabilities or assistant-tool registration are added. Applied180000 and verified actual-JWT local and deployed API/browser acceptance with exact cleanup. [#98]
 
 - Fix production assistant startup by moving the shared handler to a deployable JavaScript module; verify compiled imports and live API method boundaries. [#100]
 

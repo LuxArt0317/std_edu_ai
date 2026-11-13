@@ -63,6 +63,28 @@ For an authorized live run, use `node tests/evaluation/run.mjs --mode live --onl
 
 Draft mode is a routing diagnostic, not the complete account graph. It does not run the model planner, verified correction or action receipt preparation, so missing tool/verifier/action checks in a draft report are not live-model outcomes. No recurring paid-model job is installed; the suite is available on demand and should be rerun after material data, tool, prompt or model changes.
 
+## November 13 acceptance findings
+
+The first deployed candidate failed before model execution because an emitted API entry imported a TypeScript source file absent from the Vercel function bundle. The subsequent `ecf5a5e9e2a665fa5f9d01ec735476db0bcd1004` hotfix moved the unchanged shared handler into an emitted JavaScript module. Both public assistant endpoints then returned their expected JSON method/validation errors, and compiled-import regression coverage was added.
+
+Three serial real-model native suites ran against that recovered deployment using disposable actual-JWT accounts. They did **not** establish acceptance:
+
+- Grades returned supported transcript, warning and ranking facts. The suite stopped on an overly literal ASCII-parenthesis ranking assertion despite correct Traditional Chinese punctuation. The assertion now normalizes Unicode and checks both semantic labels and literal rankings; the rest of the suite still requires a rerun.
+- Graduation withheld the answer after two failed evidence checks. Independent inspection found an exact-reference guide that exhausted its per-source allowance before required/matched/other course fields, plus unsupported administrator-maintenance attribution. The pending fix makes reference guidance fair within the existing global caps and removes that unsupported attribution. Strict claim/reference validation remains mandatory.
+- Empty attendance returned a generic unverified answer instead of the specific missing-current-term limitation. Pending correction guidance distinguishes an explicitly absent designation from a failed or incomplete read; a corrected answer still requires independent verification. The saved artifact contains the final failure reason, not the reason for each earlier attempt.
+
+All three runs removed their exact fixtures, preserved the existing owner, and were followed by an independent reserved-identity query reporting zero leftovers. These are failure/cleanup observations, not an aggregate model pass. Corrected runtime files must be deployed and the suites rerun before changing their acceptance status.
+
+The separate conversation-persistence migration `20261112190000` passed a rollback-only PostgreSQL preflight at 127 migrations and 144 public RLS tables. It tested 8,000-character answers, 40 observable activity steps, reopening, replay/stale edits, Unicode, exact 24-message/190,000-JSONB-byte limits, own/cross-account/administrator/anonymous/non-Google boundaries, and the 100-conversation quota. Function definition, ACL, baseline counts and protected-owner fingerprints were restored with no synthetic rows remaining. This establishes SQL/RLS behavior only; permanent migration application and actual HTTP/browser persistence acceptance remain separate release steps.
+
 ## Evaluation method
 
 The design follows task-specific datasets, explicit criteria, tool-selection checks and repeated evaluation described in [OpenAI's evaluation guidance](https://developers.openai.com/api/docs/guides/evaluation-best-practices). It runs in this repository instead of depending on a hosted evaluation product. Independent facts and executable checks are primary; optional semantic review cannot turn missing test execution or unsupported capabilities into a pass. Human relevance review remains useful for nuanced answers and must be recorded honestly when performed.
+
+## Reviewed November13 repair candidate
+
+Independent reviews passed native field-guide/course-selection repairs, per-conversation persistence and account isolation, fixture lifecycle recovery, bounded protocol diagnostics and the no-model deployed conversation harness. The exact isolated candidate passed594 API/source checks,252 unit checks and289 offline evaluations; the added HTTP harness passed9 offline contracts separately. TypeScript/build/lint/handoff/audit passed, with existing lint warnings. These counts are offline contracts, not successful model answers.
+
+Migration190000 passed repeated rollback preflight at128 migrations/146 RLS tables, restoring function/ACL/owner/baseline exactly. The reviewed migration plan then applied only190000; current client129/146,200000 deferred. The application preserves its existing8000 UTF16-unit text limit without splitting code points; PostgreSQL permits8000 code points. The synthetic8000-BMP fixture satisfies both.
+
+Production persistence verification uses `ASSISTANT_ORIGIN=https://stu.best EXPECTED_RELEASE_REVISION=<full-reviewed-sha> node tests/integration/assistant-conversation-http-live.mjs` under the root's serialized lease. It uses actual deployed HTTP/caller JWTs and browser reload/40-step expansion, labels synthetic answer provenance, and reports modelAcceptance:false. Exact runtime release, production persistence and all three native actual-model reruns remain pending.

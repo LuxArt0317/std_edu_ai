@@ -136,15 +136,62 @@ export function graduationReviewQuery(question,route='',history=[]) {
   const kinds=clauses.map(part=>legacyQuestion.test(part)?'legacy':'academic_services');
   return {reportKind:graduationReviewQueryKind(question,route,history),multipleScopes:new Set(kinds).size>1};
 }
-export function graduationReviewNamesCourse(question,title) {
-  if(typeof title!=='string'||title.trim().length<3)return false;
+function graduationCourseNameRanges(question,title) {
+  if(typeof title!=='string'||title.trim().length<3)return [];
   const text=question.toLocaleLowerCase(),name=title.trim().toLocaleLowerCase(),word=/[a-z0-9]/i;
+  const ranges=[];
   for(let index=text.indexOf(name);index!==-1;index=text.indexOf(name,index+1)){
     // Do not select "Course 9" when the user names "Course 99". Chinese
     // surrounding prose may adjoin a title without an English word boundary.
-    if((!word.test(name[0])||!word.test(text[index-1]||''))&&(!word.test(name.at(-1))||!word.test(text[index+name.length]||'')))return true;
+    if((!word.test(name[0])||!word.test(text[index-1]||''))&&(!word.test(name.at(-1))||!word.test(text[index+name.length]||'')))ranges.push([index,index+name.length]);
   }
-  return false;
+  return ranges;
+}
+export function graduationReviewNamesCourse(question,title) {
+  return graduationCourseNameRanges(question,title).length>0;
+}
+export function graduationReviewNamedCourseTitles(question,titles) {
+  const matches=[...new Set(titles)].filter(title=>typeof title==='string').map(title=>({title,ranges:graduationCourseNameRanges(question,title)})).filter(item=>item.ranges.length);
+  // "Database" inside the requested "Database Design" is not a second
+  // request. A separate mention of "requirement Database" still counts.
+  return new Set(matches.filter(item=>item.ranges.some(([start,end])=>!matches.some(other=>other!==item
+    &&other.ranges.some(([otherStart,otherEnd])=>otherStart<=start&&otherEnd>=end&&otherEnd-otherStart>end-start)))).map(item=>item.title));
+}
+// Both the draft and its evidence/cards use this selection. Inputs must already
+// be restricted to one owned report kind; IDs are joined with their full lineage.
+export function selectGraduationReviewCourses(question,collections) {
+  const keys=['requirements','matchedCourses','otherCourses'];
+  const rows=Object.fromEntries(keys.map(key=>[key,collections[key]||[]]));
+  const fullReportCourseRows=keys.reduce((total,key)=>total+rows[key].length,0);
+  const namedTitles=graduationReviewNamedCourseTitles(question,keys.flatMap(key=>rows[key].map(row=>row.title)));
+  const named=Object.fromEntries(keys.map(key=>[key,rows[key].filter(row=>namedTitles.has(row.title))]));
+  const parentOf=(parent,child)=>typeof parent.reportId==='string'&&typeof parent.categoryId==='string'&&typeof parent.id==='string'
+    &&parent.reportId===child.reportId&&parent.categoryId===child.categoryId&&parent.id===child.requirementId;
+  if(keys.some(key=>named[key].length)) {
+    const parents=rows.requirements.filter(row=>named.matchedCourses.some(child=>parentOf(row,child)));
+    // Only a directly named requirement expands to its saved matches. A
+    // requirement added as parent context must not pull in sibling courses.
+    const children=rows.matchedCourses.filter(child=>named.requirements.some(parent=>parentOf(parent,child)));
+    return {courseScope:'named_course_rows_and_parent_context',fullReportCourseRows,
+      namedCourseRows:Object.fromEntries(keys.map(key=>[key,named[key].length])),
+      linkedCourseRows:{requirements:parents.filter(row=>!named.requirements.includes(row)).length,
+        matchedCourses:children.filter(row=>!named.matchedCourses.includes(row)).length,otherCourses:0},
+      ...named,requirements:[...new Set([...named.requirements,...parents])],matchedCourses:[...new Set([...named.matchedCourses,...children])]};
+  }
+  const requested=/\b(?:courses?|details?|matched)\b|課程|明細|符合/i.test(question);
+  const required=/\b(?:required|requirement)\s+courses?\b|應修課程|必修課程/i.test(question);
+  const matched=/\bmatched\s+courses?\b|對應課程|符合課程/i.test(question);
+  const other=/\bother(?:\s+actual)?\s+courses?\b|其他(?:實修)?課程/i.test(question);
+  const explicit=required||matched||other;
+  const selected={requirements:requested&&(!explicit||required)?rows.requirements:[],
+    matchedCourses:requested&&(!explicit||required||matched)?rows.matchedCourses:[],
+    otherCourses:requested&&(!explicit||other)?rows.otherCourses:[]};
+  // Required rows are context for a matched-course request, not extra courses
+  // inferred from credits. Keep exact parent rows even when IDs repeat elsewhere.
+  if(matched&&!required)selected.requirements=rows.requirements.filter(row=>selected.matchedCourses.some(child=>parentOf(row,child)));
+  return {courseScope:!requested?'summary_only':!explicit?'all_course_rows':required&&!matched&&!other?'required_course_rows_and_matches'
+    :matched&&!required&&!other?'matched_course_rows_and_parent_context':other&&!required&&!matched?'other_course_rows':'requested_course_types',
+    fullReportCourseRows,...selected};
 }
 export function answerGraduationReview(question,snapshot,route='',history=[]) {
   if(!isGraduationReviewQuestion(question,route,history))return null;
@@ -155,13 +202,13 @@ export function answerGraduationReview(question,snapshot,route='',history=[]) {
   const matching=owned.filter(row=>row.reportKind===reportKind),report=matching.length===1?matching[0]:undefined;
   const label=zh?(reportKind==='legacy'?'舊版畢業檢核表（15-2）':'教務應用服務畢業檢核表（13-1）')
     :(reportKind==='legacy'?'Legacy graduation report (15-2)':'Academic Services graduation report (13-1)');
-  const provenance=zh?'站內示範參考報告，由管理員維護。文字與學分均為明列值，不計算或判定畢業資格。'
-    :'Local demonstration reference report maintained by the site administrator. Text and credits are explicitly recorded values, not a calculation or decision of graduation eligibility.';
+  const provenance=zh?'站內示範參考報告。文字與學分均為明列值，不計算或判定畢業資格。'
+    :'Local demonstration reference report. Text and credits are explicitly recorded values, not a calculation or decision of graduation eligibility.';
   const result=answer=>({answer:answer+'\n'+provenance,title:label,url:path});
   if(query.multipleScopes)return result(zh?'您同時指定了不同種類的畢業檢核報告。請一次選擇教務應用服務或舊版報告；本回覆尚未查選或合併紀錄。'
     :'You requested different graduation report kinds. Please choose Academic Services or legacy for one query; no records have been selected or merged for this reply.');
-  if(matching.length>1)return result(zh?`${label}有多筆站內紀錄，無法確定應顯示哪一份。請重新整理並由管理員檢查報告種類；本回覆未合併或選取其中一份。`
-    :`Multiple saved records match ${label}. Refresh and ask the administrator to check their report kinds; this answer has not merged or selected one.`);
+  if(matching.length>1)return result(zh?`${label}有多筆站內紀錄，無法確定應顯示哪一份；本回覆未合併或選取其中一份。`
+    :`Multiple saved records match ${label}; this answer has not merged or selected one.`);
   if(!report){
     const otherKind=reportKind==='legacy'?'academic_services':'legacy',otherAvailable=owned.some(row=>row.reportKind===otherKind);
     return result((zh?`您的帳號尚未儲存${label}。這不表示您的校方紀錄為空。`:`Your account has no saved ${label}. This does not establish that your university records are empty.`)
@@ -179,9 +226,13 @@ export function answerGraduationReview(question,snapshot,route='',history=[]) {
   if(report.graduationReview.note!==null)lines.push((zh?'報告備註：':'Report note: ')+report.graduationReview.note);
   if(/\b(?:credits?|requirements?|missing|gaps?|matched|completed|courses?|details?)\b|學分|要求|尚缺|符合|課程|明細/i.test(question)) {
     const details=report.categories.flatMap(category=>category.requirements.flatMap(row=>[
-      {kind:'required',row,categoryId:category.id},...row.matchedCourses.map(matched=>({kind:'matched',row:matched,parent:row.title,categoryId:category.id})),
-    ])).concat(report.otherCourses.map(row=>({kind:'other',row})));
-    const named=details.filter(item=>graduationReviewNamesCourse(question,item.row.title));
+      {kind:'required',row:{...row,reportId:report.id,categoryId:category.id},categoryId:category.id},
+      ...row.matchedCourses.map(matched=>({kind:'matched',row:{...matched,reportId:report.id,categoryId:category.id,requirementId:row.id},parent:row.title,categoryId:category.id})),
+    ])).concat(report.otherCourses.map(row=>({kind:'other',row:{...row,reportId:report.id}})));
+    const courseSelection=selectGraduationReviewCourses(question,{requirements:details.filter(item=>item.kind==='required').map(item=>item.row),
+      matchedCourses:details.filter(item=>item.kind==='matched').map(item=>item.row),otherCourses:details.filter(item=>item.kind==='other').map(item=>item.row)});
+    const namedTitles=graduationReviewNamedCourseTitles(question,details.map(item=>item.row.title));
+    const named=details.filter(item=>namedTitles.has(item.row.title));
     const parentCategories=report.categories.filter(category=>named.some(item=>item.categoryId===category.id));
     const categoryScope=named.length?parentCategories:report.categories;
     const languages=named.length?[]:report.languageRequirements.slice(0,10),categories=categoryScope.slice(0,10);
@@ -198,7 +249,11 @@ export function answerGraduationReview(question,snapshot,route='',history=[]) {
       ? (zh?`名稱符合課程的所屬類別：顯示 ${categories.length} / ${categoryScope.length} 列。`:`Parent category rows for named courses shown: ${categories.length} of ${categoryScope.length}.`)
       : (zh?`課程類別列：顯示 ${categories.length} / ${report.categories.length} 列。`:`Category rows shown: ${categories.length} of ${report.categories.length}.`));
     if(/\b(?:courses?|details?|matched)\b|課程|明細|符合/i.test(question)) {
-      const selected=named.length?named:details,shown=selected.slice(0,20);
+      const selectedRows=new Set([...courseSelection.requirements,...courseSelection.matchedCourses,...courseSelection.otherCourses]);
+      const selected=details.filter(item=>selectedRows.has(item.row)),shown=selected.slice(0,20);
+      if(courseSelection.courseScope==='required_course_rows_and_matches')lines.push(zh?'課程範圍：應修課程及其對應課程。':'Course scope: required courses and their matched courses.');
+      if(courseSelection.courseScope==='matched_course_rows_and_parent_context')lines.push(zh?'課程範圍：對應課程及其所屬應修課程。':'Course scope: matched courses and their parent requirements.');
+      if(courseSelection.courseScope==='other_course_rows')lines.push(zh?'課程範圍：其他實修課程。':'Course scope: other actual courses.');
       clipped ||= shown.length<selected.length || named.length>0 && named.length<details.length;
       for(const item of shown){
         const row=item.row;
@@ -208,10 +263,13 @@ export function answerGraduationReview(question,snapshot,route='',history=[]) {
           :`Matched course ${row.title}: credits ${display(row.credits)}; matched to ${item.parent}.`);
         else lines.push(zh?`其他實修課程 ${row.title}：學分 ${display(row.credits)}。`:`Other actual course ${row.title}: credits ${display(row.credits)}.`);
       }
+      const shownNamed=shown.filter(item=>named.includes(item)).length;
+      const shownParents=shown.filter(item=>item.kind==='required'&&!named.includes(item)).length;
+      const shownLinkedMatches=shown.filter(item=>item.kind==='matched'&&!named.includes(item)).length;
       lines.push(named.length
-        ? (zh?`名稱符合的課程列：顯示 ${shown.length} / ${named.length} 列；完整報告共有 ${details.length} 列課程明細。`
-          :`Named course rows shown: ${shown.length} of ${named.length} matches; the full report contains ${details.length} course-detail rows.`)
-        : (zh?`課程明細列：顯示 ${shown.length} / ${details.length} 列。`:`Course-detail rows shown: ${shown.length} of ${details.length}.`));
+        ? (zh?`名稱符合的課程列：顯示 ${shownNamed} / ${named.length} 列；另顯示 ${shownParents} 列所屬應修課程、${shownLinkedMatches} 列關聯對應課程；完整報告共有 ${details.length} 列課程明細。`
+          :`Named course rows shown: ${shownNamed} of ${named.length} matches; ${shownParents} parent requirement rows shown; ${shownLinkedMatches} linked matched-course rows shown; the full report contains ${details.length} course-detail rows.`)
+        : (zh?`課程明細列：顯示 ${shown.length} / ${selected.length} 列。`:`Course-detail rows shown: ${shown.length} of ${selected.length}.`));
     }
     if(clipped)lines.push(zh?`此回覆僅顯示部分報告列；完整資料保留於站內報告：${path}`
       :`This reply shows only part of the report; all saved rows remain available in the local report: ${path}`);

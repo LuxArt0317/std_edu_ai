@@ -12,3 +12,5 @@ The assistant attaches live source/account checks to the answer that used them. 
 The School Affairs account link leaves the embedded assistant frame and opens the full sign-in page. OAuth must start in that top-level page; an older frame that already contains the login page sends its Google button there before starting authorization.
 
 DTM and School Affairs share a verified Google session for private student records. The direct homepage embeds `/account-status` to show the signed-in account. [DTM](dtm/README.md), [School Affairs](affairs/README.md).
+
+`useAssistantSessions` isolates account and conversation saves, preserves unsaved work after failures, and prevents late responses from another account from restoring private content. `PublicAssistant` displays unsaved state; a failed old conversation does not block a new one.

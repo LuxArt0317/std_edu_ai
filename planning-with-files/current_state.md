@@ -1,22 +1,22 @@
 # Current state
 
-## Target and production
+## Target and verified production
 
-- Work only in the LuxArt0317 client checkout on `codex/helpful-school-search`; original repository/resources remain untouched.
-- Production/main is the verified syllabus runtime `a3074149c5a2283e79951fd1cede16062f3ad8c3`, VercelReady `6DiLkHczSmdgjqXP84FjbJbS9hos`, successful Quality43359162777. Local documentation35fd2f5 is not yet pushed.
-- The complete protected Moodle/School Affairs implementation remains unfinished; Issues98/100 remain open. Public email and institutional acceptance limitations remain documented in the handoff.
+Work only in the LuxArt0317 client checkout, branch `codex/helpful-school-search`. Production/main is tuition `f4e8108fe5dba30cad598228d514f1960bbb86b4`, Vercel Ready `8qUMixFuzEjjrG2mXKakLqC2Mw8D`, Quality43363071016 successful. Its production actual-JWT run3fbd70d6 passed six groups/47 API/20 browser requests,12 writes and all four routes/reload/390/320 layouts. Exact fixtures removed; protected owner unchanged. Issue98 comment6843625985 records the proof. Printing and tuition assistant integration remain unavailable.
 
-## Tuition release in progress [Issue #98]
+## Assistant repair release [Issue #100]
 
-Only180000 was applied after its reviewed plan:128 migrations/146 public RLS tables.190000 passed rollback-only preflight and remains unapplied. Root holds the sole DB/model/release lease through tuition publication and cleanup. Exact isolated tuition gates passed545 API/source,231 units, forced TypeScript/build, lint, handoff, dependency audit and harness self-test.
+Root owns the sole DB/model/release lease. Only190000 was planned/applied after a repeated five-group rollback preflight at128/146. Current database129 migrations/146 public RLS tables;200000 remains unapplied. Native10, durability17, fixture7, diagnostic6 and conversation-HTTP2 paths are independently reviewed and frozen. Isolated gates passed594 API/source,252 units,289 offline evaluation plus9 additional HTTP contracts, TypeScript/build/lint/handoff/audit. Lint retains existing warnings. The new runtime is not yet deployed; real-model native failures remain unresolved until exact production reruns.
 
-Actual-JWT local tuition run5d5dc909 passed six groups/67API/20browser requests,12 writes, all four routes and390/320 containment. Exact synthetic cleanup and protected owner preservation passed; connections closed. Blank-statement harness visibility was corrected; an intermediate mobile assertion was not reproduced by the diagnostic pass. Deployed repetition is required. Full client verification retry passed128/146, owner login/profile/CRUD cleanup, Edge CORS/authentication, directory and nonmutating OpenAI after one transient timeout.
-
-Tuition printing remains disabled: metadata is not an issued PDF or Storage capability. New tuition records are not registered with assistant tools. Publication, production actual-JWT/browser checks and final provider verification remain pending.
+After publication, run the reviewed no-model actual-JWT conversation HTTP/browser harness, verify cleanup and owner preservation, then return the serialized lease to Issue100 for grades/graduation/attendance model acceptance. Do not overlap DB/model calls or deploy during those runs. The chat sanitizer keeps its existing8000 UTF16-unit limit at whole Unicode-codepoint boundaries; SQL allows8000 codepoints. Observable tools/results are saved, not hidden reasoning, images or action capabilities.
 
 ## Parallel work and source access
 
-- Issue100 owns frozen native answerability/durability repairs and evaluation recovery work; root owns publication. Native overlapping-course-title repair independently passed26 checks.190000 is not applied. Supplemental readers/formatters and conversation HTTP harness are explicitly unmounted next-batch work. Coordinate through `agent/A2A.md`.
-- Student Conduct38-1 authenticated source capture is complete for readonly identity fields and empty12-column report. Root agents own unmounted UI/backend and reserved200000 migration; no private source identity is a fixture. Empty table did not establish sorting/details/certificate issuance.
-- Dorm conduct34-2 shows an authenticated no-records notice, not a nonempty report. StudentLoan21-1 still awaits the user's CAPTCHA in its existing tab; do not repeat the pending question.
-- Local5184 serves the isolated tuition release snapshot. Do not replace it during acceptance. Disk pressure was recovered by deleting only generated dist and restoring immutable-asset hardlinks; source archives/media/evidence preserved.
+- StudentConduct38-1 UI/helper and reserved200000 are unmounted; initial invalid-response defect fixed and independently rechecked. Backend12/UI9 offline checks passed. Hosts/manager and rollback-only harness are next offline work; no conduct migration/live acceptance yet.
+- Issue100 supplemental readers/formatters remain unmounted. Approved caller-context capture corrections and fourth tuition formatter are offline only; runtime integration requires coordinated handoff after the current release.
+- StudentLoan21-1 CAPTCHA remains pending in its existing tab. Tuition, student conduct and dorm-conduct source views were inspected read-only; no official payment/application/issuance. Private source identity/captures never become committed fixtures.
+- Local5184 serves the isolated release snapshot. Large immutable assets use hardlinks; do not run whole-tree checkout/copy under current disk pressure. Source archives, media and evidence remain intact.
+
+The complete protected Moodle/School Affairs goal remains unfinished; Issues98/100 stay open. Public email, actual official integrations, unseen forms and full pixel/accessibility acceptance are not claimed.
+
+Full client verification passed after190000 at129 migrations/146 RLS tables: owner login/profile/CRUD cleanup, all public shell/assets, Edge authorization/directory and nonmutating OpenAI.

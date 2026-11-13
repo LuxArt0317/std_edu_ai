@@ -141,8 +141,8 @@ export function answerAcademicAttendance(question,snapshot,route='',history=[]){
   const own=rows=>userId?(rows ?? []).filter(row=>row.userId===userId):[],data=snapshot.academicAttendance ?? {};
   const query=academicAttendanceQuery(question,own(data.metadata),route,history),detail=query.view==='details';
   const title=zh?(detail?'缺曠課明細':'缺曠課統計'):(detail?'Absence details':'Absence statistics'),url=detail?academicAttendancePaths.detail:academicAttendancePaths.statistics;
-  const provenance=zh?'站內示範紀錄，由管理員維護；統計值獨立儲存，不由明細或站內請假狀態推算。'
-    :'Local demonstration records maintained by the site administrator; statistics are stored explicitly, not derived from details or local leave status.';
+  const provenance=zh?'站內示範紀錄；統計值獨立儲存，不由明細或站內請假狀態推算。'
+    :'Local demonstration records; statistics are stored explicitly, not derived from details or local leave status.';
   const result=answer=>({answer:answer+'\n'+provenance,title,url});
   if(query.reason==='multiple_scopes')return result(zh?'您指定了不同的缺曠課查詢種類、學期或課號。請一次選擇一個查詢範圍；本回覆尚未查選或合併紀錄。'
     :'You requested different attendance views, terms or course codes. Please choose one scope at a time; no records have been selected or merged for this reply.');
@@ -156,8 +156,8 @@ export function answerAcademicAttendance(question,snapshot,route='',history=[]){
   if(query.reason==='invalid_term')return result(zh?'請指定有效學年與第一、第二或暑期學期。':'Specify a valid academic year and semester 1, 2 or summer.');
   if(query.reason==='relative_term')
     return result(zh?'請指定學年與學期；本查詢不推算相對學期。':'Specify the academic year and semester; this query does not infer relative terms.');
-  if(query.reason==='current_term_missing')return result(zh?'尚未明確指定您的當學期。請指定學年與學期，或由管理員維護當期設定；不會將最新歷史資料視為當期。'
-      :'Your current term has not been explicitly designated. Specify an academic year and semester, or have an administrator maintain that setting; the latest history is not assumed current.');
+  if(query.reason==='current_term_missing')return result(zh?'尚未明確指定您的當學期。請指定學年與學期；不會將最新歷史資料視為當期。'
+      :'Your current term has not been explicitly designated. Specify an academic year and semester; the latest history is not assumed current.');
   if(query.reason==='current_term_conflict')
       return result(zh?'指定的學年學期與明列當期設定不同，請確認查詢範圍。':'The specified term differs from the explicitly designated current term. Please clarify which term to query.');
   if(query.reason==='term_required')return result(zh?'請同時指定學年與學期。':'Specify both the academic year and semester.');

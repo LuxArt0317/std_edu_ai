@@ -1,5 +1,6 @@
 import {AffairsWorkspaceError,verifyAffairsToken} from './affairsWorkspace.js';
 import {sanitizeStoredConversation} from './assistantConversationData.js';
+import {boundedAssistantText} from '../src/services/assistantActivityBudget.js';
 const first=(value)=>Array.isArray(value)?value[0]:value;
 const uuid=(value)=>typeof value==='string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 export default async function handler(req,res){
@@ -15,10 +16,13 @@ export default async function handler(req,res){
     let path='affairs_conversations',content;
     const params=new URLSearchParams({user_id:`eq.${account.user.id}`});
     if(req.method==='POST'){
-      if(!id || typeof body.title!=='string' || body.title.trim().length<1 || body.title.length>100 || !Number.isInteger(body.version) || Number(body.version)<0 || !Array.isArray(body.messages) || JSON.stringify(body).length>190000)
+      if(!id || typeof body.title!=='string' || body.title.trim().length<1 || body.title.length>100 || !Number.isInteger(body.version) || Number(body.version)<0 || !Array.isArray(body.messages) || Buffer.byteLength(JSON.stringify(body),'utf8')>190000)
         throw new AffairsWorkspaceError('Invalid conversation.',400);
+      const title=boundedAssistantText(body.title,100);
+      if(!title.trim())throw new AffairsWorkspaceError('Invalid conversation.',400);
       path='rpc/affairs_save_conversation';
-      content=JSON.stringify({p_id:id,p_title:body.title,p_expected_version:body.version,p_messages:sanitizeStoredConversation(body.messages)});
+      try{content=JSON.stringify({p_id:id,p_title:title,p_expected_version:body.version,p_messages:sanitizeStoredConversation(body.messages)});}
+      catch(error){if(error instanceof RangeError)throw new AffairsWorkspaceError('This conversation turn is too large to save. Start a new conversation.',400);throw error;}
     }else{
       if(req.method==='DELETE'&&!id)throw new AffairsWorkspaceError('Choose a conversation to delete.',400);
       if(id)params.set('id',`eq.${id}`);

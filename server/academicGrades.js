@@ -94,8 +94,8 @@ export function answerAcademicGrades(question,snapshot,route='',history=[]) {
   const selected=academicGradesQuery(question,route,history),{view}=selected;
   const matches=row=>(selected.academicYear===undefined || row.academicYear===selected.academicYear) &&
     (selected.semester===undefined || row.semester===selected.semester);
-  const provenance=zh?'站內示範紀錄，由管理員維護；不計算及格、畢業資格或校方同步結果。'
-    :'Local demonstration records maintained by the site administrator; no pass status, graduation eligibility or university synchronization is inferred.';
+  const provenance=zh?'站內示範紀錄；不計算及格、畢業資格或校方同步結果。'
+    :'Local demonstration records; no pass status, graduation eligibility or university synchronization is inferred.';
   const title=zh?({transcript:'歷年成績',warning:'預警成績',ranking:'學期排名',english:'英文門檻顯示狀態'}[view] || '成績查詢')
     :({transcript:'Academic transcript',warning:'Warning grades',ranking:'Semester rankings',english:'English requirement display status'}[view] || 'Academic grades');
   const url=academicGradesPaths[view] || (['english','gpa'].includes(view)?academicGradesPaths.transcript:basePath);

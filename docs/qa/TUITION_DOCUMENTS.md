@@ -6,7 +6,7 @@ The authorized tuition session showed four separate entries: 48-1 summer payment
 
 ## Local implementation
 
-The implementation is wired and migration180000 is applied; actual-JWT local acceptance passed. Publication and deployed acceptance remain pending. Separate account-owned settlements preserve period labels and nullable literal statements. The migration defines `affairs_tuition_settlements` and `affairs_tuition_document_metadata` with row-level security, explicit administrator writes, expected versions, durable retry receipts, audited transitions and deletion tombstones. Document kind and owner are immutable; revocation is terminal. It derives no academic year, fee amount, payment status or eligibility from text.
+The implementation and migration180000 are deployed. Actual-JWT local and production acceptance passed for release `f4e8108fe5dba30cad598228d514f1960bbb86b4`. Separate account-owned settlements preserve period labels and nullable literal statements. The migration defines `affairs_tuition_settlements` and `affairs_tuition_document_metadata` with row-level security, explicit administrator writes, expected versions, durable retry receipts, audited transitions and deletion tombstones. Document kind and owner are immutable; revocation is terminal. It derives no academic year, fee amount, payment status or eligibility from text.
 
 `TuitionDocumentsWorkspace` mounts the following source-shaped views through the existing portal:
 
@@ -61,10 +61,10 @@ node tests/integration/tuition-documents-live.mjs --self-test
 
 The first two commands should report 38 and 52 passing tests. The third exercises only harness safety logic before environment, credential or connection loading; it is not actual-JWT acceptance.
 
-## Remaining acceptance
+## Production acceptance and remaining limitations
 
 Migration `180000` was planned and applied alone at the exact127/144 baseline. The client now has128 migrations/146 public RLS tables;190000 remains unapplied. Local actual-JWT run `5d5dc909-6a52-41b9-86b5-31d1458afc8b` passed all six groups, including all four routes, reload,390/320 containment, literal null/blank statements, revision conflicts, exact replay, terminal revocation, tombstones and cross-account isolation. All synthetic rows, receipts, audit events and identities were removed; protected owner unchanged and database/browser closed.
 
-The first local run exposed an incorrect harness visibility wait for a deliberately blank, zero-height statement. That assertion now requires attachment and exact empty text. An intermediate rerun failed an immediate mobile assertion without a precise location; the diagnostic rerun passed. The harness now records the exact mobile phase and source line, and deployed repetition remains required. This does not establish full source pixel equivalence or accessibility conformance.
+The first local run exposed an incorrect harness visibility wait for a deliberately blank, zero-height statement. That assertion now requires attachment and exact empty text. An intermediate rerun failed an immediate mobile assertion without a precise location; the diagnostic rerun passed. The harness now records the exact mobile phase and source line, and deployed repetition passed. This does not establish full source pixel equivalence or accessibility conformance.
 
-Live execution requires the root's serialized database lease and exact fixture cleanup. Deployed tuition acceptance is still pending. Positive administrator writes were verified through its real JWT/API, not administrator browser interaction. No issued document/PDF, official integration or tuition assistant-tool acceptance is claimed.
+Live execution requires the root's serialized database lease and exact fixture cleanup. Production run `3fbd70d6-0925-4198-9428-b262f550e7a1` passed six groups,47 API calls and20 browser requests with12 writes, exact cleanup and owner preservation. Vercel `8qUMixFuzEjjrG2mXKakLqC2Mw8D` is Ready; public release manifest matches and Quality43363071016 passed. Positive administrator writes were verified through its real JWT/API, not administrator browser interaction. No issued document/PDF, official integration or tuition assistant-tool acceptance is claimed.

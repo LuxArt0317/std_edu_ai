@@ -99,7 +99,7 @@ test('reference guidance is bounded and marked partial for large flattened sourc
   const catalog=evidenceReferenceCatalog(sources);
   assert.equal(catalog.partial,true);assert.ok(Buffer.byteLength(JSON.stringify(catalog),'utf8')<=24000);
   assert.ok(catalog.sources.reduce((n,row)=>n+row.jsonPaths.length,0)<=512);
-  assert.ok(catalog.sources.every(row=>row.jsonPaths.length<=180));
+  assert.equal(catalog.sources.length,sources.length,'A large early source must not remove later sources from the guide.');
   assert.ok(catalog.sources.every(row=>new Set(row.jsonPaths).size===row.jsonPaths.length));
   assert.equal(evidenceReferenceCatalog([{id:'text',content:'A plain text source.'}]).sources.length,0);
 });

@@ -47,8 +47,18 @@ async function saveReport(path,report){
   const temp=path+'.tmp';await writeFile(temp,JSON.stringify(report,null,2),{mode:0o600});await rename(temp,path);
 }
 export async function readReply(response){
-  const text=await response.text();
-  if(text.length>2_000_000)throw new Error('Assistant response exceeds the evaluation limit.');
+  const reader=response.body?.getReader();
+  if(!reader)throw new Error('Assistant response has no body.');
+  const chunks=[];let bytes=0;
+  try{
+    for(;;){
+      const {value,done}=await reader.read();if(done)break;
+      bytes+=value.byteLength;
+      if(bytes>2_000_000)throw new Error('Assistant response exceeds the evaluation limit.');
+      chunks.push(value);
+    }
+  }finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
+  const text=new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks));
   if(!response.headers.get('content-type')?.includes('text/event-stream'))return {body:JSON.parse(text),events:[]};
   const events=[];let body,terminal=false;
   for(const block of text.split(/\r?\n\r?\n/)){

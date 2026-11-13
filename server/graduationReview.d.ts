@@ -13,4 +13,8 @@ export function isGraduationReviewQuestion(question:string,route?:string,history
 export function graduationReviewQueryKind(question:string,route?:string,history?:Array<{role:string;content:string}>):GraduationReviewKind;
 export function graduationReviewQuery(question:string,route?:string,history?:Array<{role:string;content:string}>):{reportKind:GraduationReviewKind;multipleScopes:boolean};
 export function graduationReviewNamesCourse(question:string,title:unknown):boolean;
+export function graduationReviewNamedCourseTitles(question:string,titles:unknown[]):Set<string>;
+export function selectGraduationReviewCourses<T extends {title?:unknown;reportId?:unknown;categoryId?:unknown;id?:unknown;requirementId?:unknown}>(question:string,collections:{requirements?:T[];matchedCourses?:T[];otherCourses?:T[]}):{
+  courseScope:string;fullReportCourseRows:number;namedCourseRows?:Record<string,number>;linkedCourseRows?:Record<string,number>;requirements:T[];matchedCourses:T[];otherCourses:T[];
+};
 export function answerGraduationReview(question:string,snapshot:{profile?:{userId?:string};graduationReview?:GraduationReviewRecords},route?:string,history?:Array<{role:string;content:string}>):{answer:string;title:string;url:string}|null;

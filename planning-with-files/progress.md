@@ -69,3 +69,8 @@ Earlier entries are retained in archive/progress_2026-11-13_verification.md.
 - 2026-11-13: Actual-JWT local tuition5d5dc909 passed6groups/67API/20browser/12writes with exact cleanup and protected-owner preservation. Corrected blank-statement test visibility; an intermediate immediate mobile assertion passed on the diagnostic rerun, so deployed repetition is required. Client verification passed128 migrations/allRLS/ownerCRUDcleanup and8routes49assets then timed out before Edge completion; bounded retry underway. Captured authenticated conduct38-1 emptytable and dorm34-2 no-records notice readonly; unmounted conduct UI/backend reserved200000 delegated, no school writes.
 
 - Tuition full client verification retry passed128/146, owner CRUD cleanup, Edge and nonmutating OpenAI. Only the32-path tuition/documentation index is selected for publication; parallel assistant/conduct drafts remain unstaged.
+
+- Published tuitionf4e8108; VercelReady/publicmanifest/Quality43363071016 verified. Production3fbd70d6 passed6groups/47API/20browser/12writes, exactcleanup/ownerunchanged; Issue98comment6843625985. Shared registry commit7fdb35d.
+- Native/durability42path candidate independently reviewed; isolated594API/252units/289offline plus9HTTPcontracts and TypeScript/build/lint/handoff/audit pass. Repeated190000 rollback preflight128/146 passed, then exact plan/apply only190000:129/146. Model and deployed persistence acceptance remain pending.
+
+- Native repair pre-release full client verification passed129/146 with owner cleanup, public shell/assets, Edge and nonmutating AI. Publishing only the independently reviewed57-path candidate; conduct and supplemental readers remain excluded.

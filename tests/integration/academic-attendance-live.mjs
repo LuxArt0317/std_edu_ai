@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import {randomBytes,randomUUID} from 'node:crypto';
-import {readFile,stat} from 'node:fs/promises';
+import {mkdir,readFile,stat,writeFile} from 'node:fs/promises';
 import {parseEnv} from 'node:util';
 import {createClient} from '@supabase/supabase-js';
 import {chromium} from 'playwright-core';
 import postgres from 'postgres';
 import {deploymentEnvironment} from '../../scripts/deployment-env.mjs';
+import {readNativeHttpResponse} from './helpers/native-http-response.mjs';
 
 // Requires a serialized live-test lease, applied migration 140000 and integrated
 // native routes/API/evidence. No migration or real-account identity changes.
@@ -60,6 +61,8 @@ const base='/school-affairs/services/14-1',tables=['affairs_academic_attendance_
 const kinds=['save_academic_attendance_statistic','save_academic_attendance_detail','save_academic_attendance_metadata'];
 const runId=randomUUID(),ids=Array.from({length:8},()=>randomUUID()),users=[],requests=new Set(),checks=[];
 const ownTitle='Synthetic attendance '+runId.slice(0,8),otherTitle='Other-account attendance '+runId.slice(0,8);
+const output=`artifacts/academic-attendance/${local?'local':'production'}-${runId}`;
+let answerSequence=0;
 let browser,owner,ownerClient,ownerSession,schemaReady=false,phase='preconditions';
 const phaseOf=value=>{phase=value;console.log('Attendance live: '+value);};
 const fingerprint=async id=>(await sql`select u.id,md5((to_jsonb(u)-array['last_sign_in_at','updated_at'])::text) as auth_hash,md5(to_jsonb(p)::text) as profile_hash,
@@ -84,15 +87,31 @@ async function authenticateOwner(){
 async function invoke(endpoint,{token,method='GET',body}={}){
   if(token&&token===ownerSession?.access_token)assert.ok(endpoint==='/api/affairs-manage'&&method==='POST','Owner JWT is restricted to fixture manager writes; no owner snapshot or initialization.');
   if(!local){const response=await fetch(origin+endpoint,{method,redirect:'error',headers:{...(token?{Authorization:'Bearer '+token}:{}),...(body===undefined?{}:{'Content-Type':'application/json'})},
-    ...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(60000)});return checkedAssistantResult(endpoint,{status:response.status,body:await response.json()});}
+    ...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(60000)});return await readNativeHttpResponse(response);}
   const parsed=new URL(endpoint,origin),handler=handlers[parsed.pathname];assert.ok(handler,'Unknown local bridge endpoint.');
   const result={status:200,body:undefined},response={status(code){result.status=code;return response;},json(value){result.body=value;},setHeader(){}};
-  await handler({method,headers:token?{authorization:'Bearer '+token}:{},query:Object.fromEntries(parsed.searchParams),body},response);return checkedAssistantResult(endpoint,result);
+  await handler({method,headers:token?{authorization:'Bearer '+token}:{},query:Object.fromEntries(parsed.searchParams),body},response);return result;
 }
 async function request(endpoint,options={}){const result=await invoke(endpoint,options);assert.equal(result.status,options.status??200,`${phase}: unexpected API status for ${endpoint}`);return result.body;}
 const snapshot=session=>request('/api/affairs-data',{token:session.access_token});
+function assistantDiagnostic(question,route,result,session){
+  const redactions=[session.access_token,session.refresh_token,ownerSession?.access_token,ownerSession?.refresh_token,
+    ownerSession?.user?.id,deployment.supabase.ownerEmail,...Object.values(ownerSession?.user?.user_metadata??{})]
+    .filter(value=>typeof value==='string'&&value.length>3);
+  return JSON.stringify({assistantMode,question,route,status:result?.status,answer:result?.answer,
+    verification:result?.verification,activity:result?.activity,grounding:result?.grounding,citations:result?.citations},(key,value)=>{
+    if(/token|password|authorization|secret|email|user_?id|owner_?id/i.test(key))return undefined;
+    if(typeof value!=='string')return value;
+    let safe=value.replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g,'[redacted token]');
+    for(const privateValue of redactions)safe=safe.split(privateValue).join('[redacted]');
+    return safe;
+  },2);
+}
 async function answer(session,question,route=base){
   const response=await request('/api/affairs-assistant',{token:session.access_token,method:'POST',body:{question,route}});
+  await mkdir(output,{recursive:true,mode:0o700});
+  await writeFile(output+'/answer-'+String(++answerSequence)+'.json',assistantDiagnostic(question,route,response,session));
+  checkedAssistantResult('/api/affairs-assistant',{status:200,body:response});
   assert.equal(response.grounding?.source,'account');assert.equal(response.grounding?.webSearched,false);assert.equal(response.proposedAction,undefined);
   assert.ok(response.citations?.some(item=>item.url===base||item.url===base+'/detail'),'Answer must cite native attendance records.');
   return response;
@@ -241,5 +260,5 @@ finally{
   if(ownerSession)await clean('Owner local session logout failed',async()=>{const result=await ownerClient.auth.signOut({scope:'local'});assert.ok(!result.error);});
   if(owner)await clean('Owner identity verification failed',async()=>{assert.deepEqual(await fingerprint(owner.id),owner,'Existing owner must remain unchanged apart from normal sign-in timestamps.');});
   await clean('Database connection cleanup failed',()=>sql.end({timeout:5}));if(failures.length){process.exitCode=1;console.error(failures.join('; '));}
-  console.log(JSON.stringify({origin,assistantMode,passed:!process.exitCode,checks,cleanupFailures:failures,adminWrites:local?'actual owner JWT through local affairs-manage handler':'actual owner JWT through deployed affairs-manage HTTP API',artifacts:'none'}));
+  console.log(JSON.stringify({origin,assistantMode,passed:!process.exitCode,checks,cleanupFailures:failures,adminWrites:local?'actual owner JWT through local affairs-manage handler':'actual owner JWT through deployed affairs-manage HTTP API',artifacts:output}));
 }

@@ -1,6 +1,6 @@
 import {nativeAcademicCollection} from './nativeAcademicEvidence.js';
 import {academicGradesPaths,academicGradesQuery,isAcademicGradesQuestion} from './academicGrades.js';
-import {graduationReviewPaths,graduationReviewQuery,graduationReviewNamesCourse,isGraduationReviewQuestion} from './graduationReview.js';
+import {graduationReviewPaths,graduationReviewQuery,graduationReviewNamedCourseTitles,selectGraduationReviewCourses,isGraduationReviewQuestion} from './graduationReview.js';
 import {academicAttendancePaths,academicAttendanceQuery,academicAttendanceMatchingRows,isAcademicAttendanceQuestion} from './academicAttendance.js';
 import {selectAccountEvidence,selectServiceRecords,ownEvidenceRows} from './accountEvidenceSelection.js';
 import {selectedEvidenceLinks} from './accountEvidenceLinks.js';
@@ -25,14 +25,10 @@ export function nativeAccountQuery(snapshot,key,context={}){
     for(const name of Object.keys(matching))matching[name]=matching[name].filter(row=>!selection.multipleScopes&&row.reportKind===selection.reportKind);
     // A late named course must reach the verifier with its exact parents, not
     // disappear behind an excerpt of earlier unrelated requirements.
-    const named=Object.fromEntries(['requirements','matchedCourses','otherCourses'].map(name=>[name,matching[name].filter(row=>graduationReviewNamesCourse(question,row.title))]));
-    if(Object.values(named).some(rows=>rows.length)){
-      selection={...selection,courseScope:'named_course_rows_and_parent_context',namedCourseRows:Object.fromEntries(Object.entries(named).map(([name,rows])=>[name,rows.length])),
-        fullReportCourseRows:matching.requirements.length+matching.matchedCourses.length+matching.otherCourses.length};
-      const sameRequirement=(row,child)=>row.reportId===child.reportId&&row.categoryId===child.categoryId&&row.id===child.requirementId;
-      const parents=matching.requirements.filter(row=>named.matchedCourses.some(child=>sameRequirement(row,child)));
-      matching.requirements=[...new Set([...named.requirements,...parents])];
-      matching.matchedCourses=named.matchedCourses;matching.otherCourses=named.otherCourses;
+    const {requirements,matchedCourses,otherCourses,...courseSelection}=selectGraduationReviewCourses(question,matching);
+    selection={...selection,...courseSelection};
+    Object.assign(matching,{requirements,matchedCourses,otherCourses});
+    if(selection.courseScope==='named_course_rows_and_parent_context'){
       matching.categories=matching.categories.filter(row=>matching.requirements.some(child=>row.reportId===child.reportId&&row.id===child.categoryId));
       matching.languageRequirements=[];
     }
@@ -72,11 +68,13 @@ function nativeDefinitions(snapshot,context){
   const reportId=reports.length===1?reports[0].reportId:undefined;
   const selected=rows=>reportId===undefined?[]:rows.filter(row=>row.reportKind===kind&&row.reportId===reportId);
   const namedCourses=graduationQuery.selection.courseScope==='named_course_rows_and_parent_context';
-  const courseRows=namedCourses?[
+  const namedTitles=graduationReviewNamedCourseTitles(question,[...graduation.requirements,...graduation.matchedCourses,...graduation.otherCourses].map(row=>row.title));
+  const courseScope=graduationQuery.selection.courseScope;
+  const courseRows=courseScope!=='summary_only'?[
     ...selected(graduation.matchedCourses).map(row=>[kind,'Matched course',row.title,
       `Credits: ${display(row.credits)}; parent requirement: ${display(graduation.requirements.find(parent=>parent.reportId===row.reportId&&parent.categoryId===row.categoryId&&parent.id===row.requirementId)?.title)}`,row.sourceMode]),
     ...selected(graduation.otherCourses).map(row=>[kind,'Other actual course',row.title,`Credits: ${display(row.credits)}`,row.sourceMode]),
-    ...selected(graduation.requirements).map(row=>[kind,graduationReviewNamesCourse(question,row.title)?'Required course':'Parent requirement',row.title,`Credits: ${display(row.credits)}`,row.sourceMode]),
+    ...selected(graduation.requirements).map(row=>[kind,(namedCourses&&!namedTitles.has(row.title))||courseScope==='matched_course_rows_and_parent_context'?'Parent requirement':'Required course',row.title,`Credits: ${display(row.credits)}`,row.sourceMode]),
   ]:[];
   const graduationRows=[...courseRows,
     ...selected(graduation.statuses).map(row=>[kind,row.statusKey,row.text,row.indicator,row.sourceMode]),
@@ -98,7 +96,11 @@ function nativeDefinitions(snapshot,context){
       gradeQuery.selection?.multipleScopes?'Clarification required: choose one academic view/term; no records selected.':unavailable?'This view has no populated local grade model.':gradeQuery.selection?'Selected view/term only. GPA is not stored. Summaries are explicit, not recomputed.':'All loaded terms. GPA is not stored. Summaries are explicit, not recomputed.',gradeQuery.collection.coverage[0]],
     graduationReview:[kind==='legacy'?'Legacy graduation reference':'Academic Services graduation reference',selectedPath,
       ['Report kind','Status / category','Literal status','Indicator / credits','Data'],graduationRows,row=>row,
-      graduationQuery.selection.multipleScopes?'Clarification required: choose one graduation report kind; no records selected.':reports.length!==1?'No unique requested-kind report; no other kind is substituted.':namedCourses?'Named course rows and their parent context only; no eligibility decision.':`Only ${kind}; statuses/credits are reference values, not an eligibility decision.`,graduationQuery.collection.coverage[0]],
+      graduationQuery.selection.multipleScopes?'Clarification required: choose one graduation report kind; no records selected.':reports.length!==1?'No unique requested-kind report; no other kind is substituted.':namedCourses?'Named course rows and their parent context; named requirements also include linked matches. No eligibility decision.'
+        :courseScope==='required_course_rows_and_matches'?'Required courses and their matched rows; selected reference rows only, no eligibility decision.'
+        :courseScope==='matched_course_rows_and_parent_context'?'Matched courses and parent requirements; selected reference rows only, no eligibility decision.'
+        :courseScope==='other_course_rows'?'Other actual courses; selected reference rows only, no eligibility decision.'
+        :`Only ${kind}; statuses/credits are reference values, not an eligibility decision.`,graduationQuery.collection.coverage[0]],
     academicAttendance:[detail?'Native absence details':'Native absence statistics',attendancePath,
       detail?['Term / course','Course date','Type / periods','Roll-call timestamp','Data']:['Term','Course','Absence hours','Unexcused hours','Data'],attendanceRows,row=>row,
       attendanceQuery.selection?.reason==='multiple_scopes'?'Clarification required: choose one attendance view/term/course; no records selected.':`${attendanceQuery.selection?'Selected view/term only.':'All loaded terms.'} Explicit current term: ${current}. No hours inferred from details or leave.`,attendanceQuery.collection.coverage[0]],
