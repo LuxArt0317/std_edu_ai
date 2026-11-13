@@ -1,5 +1,7 @@
 import {courseSubstitutionQuestion} from '../features/public/affairs/courseSubstitution.js';
 import {firstSelectionQuestion} from '../features/public/affairs/firstSelection.js';
+import {adjustmentQuestion} from '../../server/courseAdjustmentContract.js';
+import {readCourseAdjustmentAnswer} from './courseAdjustment';
 import {isProgramRegistrationQuestion} from '../../server/programRegistrationContract.js';
 import {readProgramRegistrationAnswer} from './programRegistration';
 import {askCampusAssistant,type AssistantResponse,type AssistantProgress} from './researchAssistant';
@@ -17,7 +19,14 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
     if (typeof result?.answer !== 'string' || result.grounding?.source !== 'account') throw new Error('Program registrations could not be loaded.');
     return result;
   }
-  if (!images.length && (courseSubstitutionQuestion(question,route) || firstSelectionQuestion(question,route))) {
+  const adjustment = !images.length && adjustmentQuestion(question);
+  if (adjustment && adjustment !== 'rules') {
+    onProgress?.({kind:'course-adjustment',label:'Checking course adjustment',detail:'Reading your saved eligibility decision.',status:'running'});
+    const result:AssistantResponse = await readCourseAdjustmentAnswer(data.session.user.id,adjustment,question,signal);
+    if(typeof result?.answer!=='string'||result.grounding?.source!=='account')throw new Error('Eligibility could not be checked.');
+    return result;
+  }
+  if (!images.length && (adjustment === 'rules' || courseSubstitutionQuestion(question,route) || firstSelectionQuestion(question,route))) {
     return askCampusAssistant(question,[],signal,[],route,onProgress);
   }
   const response = await fetch('/api/affairs-assistant', {

@@ -29,6 +29,8 @@ Shared server-only retrieval, authorization and validation helpers for `api/`. `
 
 `firstSelectionNotice.js` reads the public schedule, audiences and fee notes from Supabase in one joined request. The assistant can cite the saved term in Chinese or English. Personal selection, eligibility and fees use their existing account scopes.
 
+`courseAdjustment.js` reads the public late-add notices and private student eligibility. The shared contract validates selectors and versioned manager requests. The personal scope binds the verified caller and resolves the term in Asia/Taipei. Saved decisions never create enrollment records.
+
 `assistantConversations.js` handles owner-only chat storage behind the existing account-data function. The public `/api/affairs-conversations` rewrite preserves the client URL without exceeding the verified 12-function Hobby deployment limit.
 
 Web verification uses independently fetched source text. If a source is unavailable, an exact URL match to the versioned public-capture manifest may supply checksum-verified, explicitly dated text from stu.best; it is never represented as a live page.

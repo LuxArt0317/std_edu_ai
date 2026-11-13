@@ -62,7 +62,7 @@ async function wire(context) {
     }
     if(url.pathname.startsWith('/api/')) {
       try {
-        if (url.pathname==='/api/affairs-data' && ['?scope=interdisciplinary-programs','?scope=first-selection-notice'].includes(url.search)) {
+        if (url.pathname==='/api/affairs-data' && ['?scope=interdisciplinary-programs','?scope=first-selection-notice','?scope=late-add-notice'].includes(url.search)) {
           assert.equal(request.headers().authorization,undefined,'Public reference reads should not send the caller token.');
         } else {
           assert.match(request.headers().authorization||'',/^Bearer /,'Account reads require the synthetic caller token.');

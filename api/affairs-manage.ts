@@ -1,4 +1,6 @@
 import { manageFeeRemission } from '../server/feeRemission.js';
+import { changeAdjustment } from '../server/courseAdjustment.js';
+import { adjustmentAction } from '../server/courseAdjustmentContract.js';
 import { feeRemissionKinds, feeRemissionMaxPayloadBytes } from '../server/feeRemissionContract.js';
 import { AffairsWorkspaceError, manageAffairsRecord, verifyAffairsToken } from '../server/affairsWorkspace.js';
 import { manageCourseCatalog } from '../server/courseCatalog.js';
@@ -32,6 +34,7 @@ export default async function handler(request:Request,response:Response) {
   const dormitoryKind=dormitoryConductKinds.find(kind=>kind===input?.kind);
   const gradeReportKind=dtmGradeReportKinds.find(kind=>kind===input?.kind);
   const feeRemissionKind = feeRemissionKinds.find(kind => kind === input?.kind);
+  const adjustment = input?.kind === adjustmentAction;
   const courseContentKind=dtmCourseContentKinds.find(kind=>kind===input?.kind);
   const certificateKind=input?.kind==='save_enrollment_certificate_assessment'?'save_enrollment_certificate_assessment'
     :input?.kind==='save_enrollment_certificate_document'?'save_enrollment_certificate_document':null;
@@ -42,6 +45,11 @@ export default async function handler(request:Request,response:Response) {
   try {
     const authorization=first(request.headers.authorization);
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
+    if(adjustment){
+      if(Object.keys(input).length!==2){response.status(400).json({error:'Invalid manager request.'});return;}
+      response.status(200).json(await changeAdjustment({...account,requestDeadline},input.payload));
+      return;
+    }
     const result=feeRemissionKind?await manageFeeRemission({...account,requestDeadline},feeRemissionKind,input.payload)
       :courseContentKind?await manageDtmCourseContent({...account,requestDeadline},courseContentKind,input.payload)
       :gradeReportKind?await manageDtmGradeReport({...account,requestDeadline},gradeReportKind,input.payload)

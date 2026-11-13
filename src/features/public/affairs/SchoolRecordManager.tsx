@@ -9,6 +9,7 @@ import { StudentAidManager } from './studentAidManager';
 import { HousingManager } from './HousingManager';
 import {CreditLoadHistoryManager} from './CreditLoadHistoryManager';
 import {CourseSelectionManager} from './CourseSelectionManager';
+import {CourseAdjustmentManager} from './CourseAdjustmentManager';
 import {AcademicGradesManager} from './AcademicGradesManager';
 import {GraduationReviewManager} from './GraduationReviewManager';
 import {AcademicAttendanceManager} from './AcademicAttendanceManager';
@@ -82,6 +83,7 @@ export function SchoolRecordManager({admin,busy,onManage,onRefresh}:{admin:Admin
   const selected=admin.students.find(item=>item.id===studentId)||admin.students[0];
   const nativeManagers=<>
     <CourseSelectionManager records={admin.courseSelection?.records ?? []} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/>
+    {managerId&&<CourseAdjustmentManager key={managerId} managerId={managerId} profiles={admin.profiles} busy={busy}/>}
     <AcademicGradesManager records={admin.academicGrades ?? {records:[],termSummaries:[],rankings:[],metadata:[]}} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/>
     <GraduationReviewManager records={admin.graduationReview ?? {reports:[]}} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/>
     <AcademicAttendanceManager records={admin.academicAttendance ?? {statistics:[],details:[],metadata:[]}} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/>

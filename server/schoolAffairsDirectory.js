@@ -1,5 +1,6 @@
 import {courseSubstitutionPath} from '../src/features/public/affairs/courseSubstitution.js';
 import {firstSelectionPath,firstSelectionSource} from '../src/features/public/affairs/firstSelection.js';
+import {adjustmentPaths} from './courseAdjustmentContract.js';
 import {programRegistrationPath} from './programRegistrationContract.js';
 import {curriculumMapPath} from '../src/features/public/affairs/curriculumMaps.js';
 import {curriculumPlansPath} from '../src/features/public/affairs/curriculumPlans.js';
@@ -73,6 +74,16 @@ const leadershipMatches = [
   /服務領導.{0,16}(?:作業|成績|反思)|service leadership.{0,22}(?:assignments?|reflection|grades?)/i,
 ];
 const localServiceNavigation = [
+  {
+    id:'course-add-drop',match:/\badd\s*[/–-]\s*drop\b|加退選/iu,
+    title:['加退選','Course add/drop'],localUrl:adjustmentPaths.add_drop,
+    description:['登入後查詢本學期的站內加退選資格。','Sign in to check your saved add/drop eligibility for this term.'],
+  },
+  {
+    id:'course-late-add',match:/\blate[ -]add\b|補加選/iu,
+    title:['補加選','Late add'],localUrl:adjustmentPaths.late_add,
+    description:['開啟補加選規則與站內資格查詢。','Open the late-add rules and eligibility lookup.'],
+  },
   {
     id:'first-selection',match:/\b(?:initial|first)[ -]+(?:course[ -]+)?(?:selection|registration)\b|初選/iu,
     title:['初選時程及注意事項','Initial course selection notice'],localUrl:firstSelectionPath,officialUrl:firstSelectionSource,

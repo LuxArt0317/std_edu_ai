@@ -32,6 +32,8 @@ The signed-in index follows the university's notice and menu layout. **請假填
 
 `/services/6-1` reads the dated initial-selection schedule and opens a separate `/fees` notice. The final control shows the observed return-to-portal behavior. The open enrollment form was unavailable. Previously saved notes remain at `/services/6-1/notes`. See [initial selection QA](../../../../docs/qa/FIRST_SELECTION.md).
 
+`/services/6-2` and `/services/6-3/entry` display account-owned decisions. `/services/6-3` links to selection and fee notices. The admin panel can maintain decisions per phase and term. Earlier notes remain at each service's `/notes` route. See [course adjustment QA](../../../../docs/qa/COURSE_ADJUSTMENT.md).
+
 `/services/13-1` has native transcript, warning, ranking, current, transfer and cycle destinations. `/services/15-1` opens the modern graduation report; `/services/15-2` renders its independent legacy report. `/services/14-1` and `/detail` show stored absence statistics and dated roll-call details, with an explicitly designated current term. Source dates and closed/empty query states are preserved without fabricating unseen forms.
 
 `AcademicGradesManager`, `GraduationReviewManager` and `AcademicAttendanceManager` maintain account-owned local demonstration records. Their expected versions and stable request IDs prevent silent stale edits and duplicate retries. Zero, missing values, literal result text and fractional-second timestamps remain distinct. Native views retain the floating assistant and source-derived layouts; measured parity limits are in [academic QA](../../../../docs/qa/ACADEMIC_RESULTS.md).

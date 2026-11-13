@@ -605,5 +605,8 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 ## Course add/drop and late add [Issue #98]
 
 - [x] Verify the signed-in source entry and read-only eligibility notices.
+- [x] Implement the observed local pages, late-add notices and private eligibility decisions.
+- [x] Verify and apply the exact client migration.
+- [ ] Verify the release at stu.best.
 - [ ] Capture the eligible student forms and their transaction behavior when available.
-- [ ] Implement the observed local pages, connect the available student workflows and verify database, assistant and production behavior.
+- [ ] Implement and verify the eligible student's transaction workflow.

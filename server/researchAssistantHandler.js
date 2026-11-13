@@ -1,5 +1,7 @@
 import { answerCourseSubstitution } from './courseSubstitution.js';
 import { answerFirstSelectionNotice } from './firstSelectionNotice.js';
+import { adjustmentAnswer,loadAdjustmentNotice } from './courseAdjustment.js';
+import { adjustmentPaths,adjustmentQuestion } from './courseAdjustmentContract.js';
 import { firstSelectionQuestion } from '../src/features/public/affairs/firstSelection.js';
 import { courseSubstitutionQuestion } from '../src/features/public/affairs/courseSubstitution.js';
 import { createHash } from "node:crypto";
@@ -246,6 +248,28 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const kind = questionKind(input.question);
+        const adjustment = !input.images.length && !kind.irrelevant && adjustmentQuestion(input.question);
+        if (adjustment) {
+            const zh = /[\u3400-\u9fff]/u.test(input.question);
+            if (adjustment !== 'rules') {
+                const next = '/school-affairs/login?next=' + encodeURIComponent(adjustmentPaths[adjustment] + (adjustment==='late_add'?'/entry':''));
+                stream.send(200,{status:'handoff',answer:zh?`[登入校務資訊系統](${next})以查詢個人資格。`:`[Sign in to School Affairs](${next}) to check your saved eligibility decision.`,
+                    citations:[],suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
+                return;
+            }
+            stream.progress('course-adjustment','Reading the late-add notice','Checking saved eligibility rules.');
+            try {
+                const answer=adjustmentAnswer('rules',zh?'zh':'en',{notice:await loadAdjustmentNotice()});
+                const step=answer.activity[0];
+                stream.progress(step.kind,step.label,step.detail,step.status);
+                stream.send(200,answer);
+            } catch {
+                stream.progress('course-adjustment','Late-add notice unavailable','The saved notice could not be loaded.','unavailable');
+                stream.send(200,{status:'handoff',answer:zh?'補加選公告暫時無法載入。':'The late-add notice is temporarily unavailable.',
+                    citations:[],suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
+            }
+            return;
+        }
         const personalQuestion = kind.personal || /\bmy (?:current )?(?:subjects?|courses?|classes|grades?|schedule|timetable|attendance|assignments?|enrollments?)\b|\b(?:my|our|their|his|her)\b.{0,45}\b(?:tuition|payments?|scholarships?|financial aid|records?)\b|我的.{0,16}(?:課程|科目|成績|出席|作業|課表|學費|費用|繳款|獎學金|紀錄|記錄)/i.test(input.question);
         const pageQuestion = !input.images.length && !personalQuestion && !kind.irrelevant && Boolean(normalizePublicPageRoute(input.route)) && isPublicPageQuestion(input.question);
         const chinese = /[\u3400-\u9fff]/.test(input.question);

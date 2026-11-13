@@ -1,5 +1,7 @@
 # Quality evidence
 
+[Course adjustment](COURSE_ADJUSTMENT.md) covers add/drop eligibility, late-add rules, administrator maintenance and verification boundaries.
+
 [Initial course selection](FIRST_SELECTION.md) records the dated schedule, fee notice, assistant checks and the remaining open-period workflow gap.
 
 [ANSWER_VERIFICATION.md](./ANSWER_VERIFICATION.md) defines the LangGraph acceptance criteria, evidence/permission boundaries, persistent conversation behavior, reviewed actions, and the distinction between provider-fixture tests and deployed real-model checks.

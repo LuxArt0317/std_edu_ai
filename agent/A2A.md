@@ -1,3 +1,7 @@
+## Course adjustment (Issue #98)
+
+Root owns 6-2 and 6-3, migration 100000, the private decision reader and manager, and late-add assistant navigation. The exact migration is applied. Paused Issue #100 paths remain excluded.
+
 ## Initial course selection (Issue #98)
 
 Root owns 6-1, migration 090000, the public notice reader and assistant route. Runtime `3e4b51e` is live with revision-pinned browser and assistant acceptance. Read-only evidence for the 6-2 and 6-3 entry states is saved under ignored `artifacts/visual-parity/selection-add-drop/`. Paused Issue #100 paths remain excluded. The open-period selection workflow remains unobserved.

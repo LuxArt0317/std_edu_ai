@@ -4,7 +4,7 @@ import {schoolServiceEntries} from '../../../src/features/public/affairs/student
 // Explicit review inventory, not inferred from the presence of a generic body.
 // A native mount says nothing about unobserved workflows or live backend acceptance.
 const service = id => '/school-affairs/services/'+id;
-const genericIds = '1-1 2-1 4-2 4-3 5-1 6-2 6-3 6-4 6-5 7-2 7-4 7-5 7-6 8-1 10-1 12-1 12-2 16-1 18-1 19-1 24-1 27-1 29-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 43-1 44-1 45-1 47-1 50-1 50-2 51-1 52-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
+const genericIds = '1-1 2-1 4-2 4-3 5-1 6-4 6-5 7-2 7-4 7-5 7-6 8-1 10-1 12-1 12-2 16-1 18-1 19-1 24-1 27-1 29-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 43-1 44-1 45-1 47-1 50-1 50-2 51-1 52-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
 const native = [
   ['7-3','.program-registration','program-registration-ui.mjs','Private interdisciplinary registration history and local registration controls.'],
   ['7-1','.credit-load-application','credit-load-application-ui.mjs','Observed instructions and closed-period acknowledgement only; open application and staff review forms remain unobserved.'],
@@ -47,6 +47,10 @@ const descriptors = [
     workflowSuite:'tests/integration/tutor-evaluation-ui.mjs',sourceBoundary:'Observed common index, no-questionnaire page and report notice return; populated TA forms remain unobserved.'})),
   {id:'6-1',kind:'partial',href:service('6-1'),finalUrl:service('6-1'),selector:'.first-selection',
     workflowSuite:'tests/integration/first-selection-ui.mjs',sourceBoundary:'Database-backed schedule and fee notice. The open-period selection interface remains unobserved.'},
+  {id:'6-2',kind:'partial',href:service('6-2'),finalUrl:service('6-2'),selector:'.course-adjustment-event',
+    workflowSuite:'tests/integration/course-adjustment-ui.mjs',sourceBoundary:'Observed event layout with an account-scoped eligibility decision. The eligible enrollment form remains unobserved.'},
+  {id:'6-3',kind:'partial',href:service('6-3'),finalUrl:service('6-3'),selector:'.course-adjustment-late',
+    workflowSuite:'tests/integration/course-adjustment-ui.mjs',sourceBoundary:'Late-add rules, notice and fee pages with a private eligibility lookup. The eligible enrollment form remains unobserved.'},
   {id:'12-7',kind:'partial',href:service('12-7'),finalUrl:service('12-7'),selector:'.curriculum-map',
     workflowSuite:'tests/integration/curriculum-maps-ui.mjs',sourceBoundary:'Public map and live course lookup. The career and competency details require university sign-in.'},
   {id:'46-1',kind:'partial',href:service('46-1'),finalUrl:service('46-1'),selector:'.parking-permits',
@@ -114,12 +118,17 @@ export function schoolServiceReadFixture(rawUrl,method,user,origin) {
   assert.equal(url.pathname,'/api/affairs-data','Unknown API path.');
   if(!url.search)return schoolServiceSnapshot(user);
   const scope=url.searchParams.get('scope');
+  if(scope==='course-adjustment'){
+    assert.deepEqual(Object.fromEntries(url.searchParams),{scope:'course-adjustment',phase:'add_drop'});
+    return {userId:user.id,term:{academicYear:115,semester:1},record:null};
+  }
   if(scope==='catalog') {
     assert.deepEqual(Object.fromEntries(url.searchParams),{yr:'1151',dep:'0',admissionType:'0',credit:'0',grd:'0',prog:'0',scope:'catalog'},'Menu opens the source-default catalog filters only.');
     return {rows:[],total:0,can_manage:false,page:0,page_size:100,terms:[]};
   }
   assert.deepEqual([...url.searchParams.keys()],['scope'],'Account filters and unknown selectors are forbidden.');
   switch(scope) {
+    case 'late-add-notice':return {observed_on:'2026-11-14',rules_zh:['測試公告'],rules_en:['Fixture rules'],selection_notes:['Fixture notes'],fee_notes:['Fixture fees']};
     case 'first-selection-notice':return {academicYear:115,semester:1,observedOn:'2026-11-14',
       notices:['Fixture instructions'],reminders:['Fixture reminders'],feeNotes:['Fixture fees'],feeNotesEn:['Fixture fees'],
       windows:[1,2,3].map(phase=>({phase,opensAt:'2026-06-08T02:00:00Z',closesAt:'2026-06-18T01:00:00Z',

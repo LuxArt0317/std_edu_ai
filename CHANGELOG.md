@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Add the add/drop eligibility page and late-add notices, with account-scoped decisions, administrator maintenance and campus assistant answers. [#98]
+
 - Open the initial course-selection schedule and fee notice as separate pages. Store the published dates and fee rules in Supabase for the page and campus assistant. [#98]
 
 - Add course substitution search with verified cohort, track and department filters, expandable alternative groups and exact assistant links. Published at `52ec598`. [#98]
