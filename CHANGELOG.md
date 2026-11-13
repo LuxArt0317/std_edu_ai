@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Persist Moodle activity section placement/order independently of activity type, retaining unplaced records and exact assignment links. Add guarded administrator maintenance and strict account-scoped reads. Release evidence: [course content QA](docs/qa/DTM_COURSE_CONTENT.md). [#98]
+
 - Type-check Vercel API entrypoints before building; narrow grade-report pagination parameters explicitly for the deployed compiler mode.
 
 - Add separate persisted Moodle grade reports and a two-column course overview. Preserve literal cells, explicit totals and null/blank/zero; add selected-student administrator maintenance with caller-bound access, versions and durable retries. Existing personal score entries and their links remain available. Verification and publication are tracked in [grade-report QA](docs/qa/DTM_GRADE_REPORTS.md). [#98]

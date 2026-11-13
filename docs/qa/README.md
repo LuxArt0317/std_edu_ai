@@ -13,3 +13,5 @@ This directory contains scoped verification records and explicit acceptance limi
 
 - [Education Fund](EDUCATION_FUND.md): captured closed-period instructions, local navigation and responsive geometry.
 - [Assistant presentation](ASSISTANT_PRESENTATION.md): shared right-side drawer on native and copied hosts; offline browser evidence only.
+
+- [Moodle course content placement](DTM_COURSE_CONTENT.md): saved section/order, exact assignment lookup, administrator maintenance and scoped verification.

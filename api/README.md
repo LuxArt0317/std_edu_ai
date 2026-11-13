@@ -36,3 +36,5 @@ Conduct38-1 uses `GET /api/affairs-data?scope=student-conduct` for the caller, o
 Grade reports use strict `affairs-data` scopes `dtm-grade-report`, `dtm-grade-report-overview`, `dtm-grade-report-admin` and `dtm-grade-report-courses-admin`. Personal scopes never accept another account selector. `affairs-manage` dispatches only exact save/delete report envelopes to caller-bound RPCs. See [grade-report QA](../docs/qa/DTM_GRADE_REPORTS.md).
 
 `npm run typecheck:api` checks all Function TypeScript entrypoints in standalone NodeNext mode and is required by `npm run build`; frontend-only TypeScript checks do not cover these files.
+
+`affairs-data` exposes strict `dtm-course-content`, administrator inventory/course-picker and exact-assignment scopes. `affairs-manage` dispatches versioned content save/delete operations. These scopes cannot fall through to conversation handling; see [course content QA](../docs/qa/DTM_COURSE_CONTENT.md).

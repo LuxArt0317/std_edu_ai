@@ -24,3 +24,5 @@ Assistant session hook/storage/isolation tests cover per-chat failures, saving a
 `credit-load-application.test.tsx` covers the captured closed-period entry and system-index local destinations without authentication, API or database calls.
 
 `dtm-grade-report*.test.ts[x]`, `dtm-course-grade-report.test.tsx` and `dtm-grade-overview.test.tsx` cover literal rendering, account-bound transport, admin drafts/retries, deferred anchors, pagination beyond 1,000 courses and account/permission changes. Fixtures are synthetic; these are not live persistence evidence.
+
+`dtm-course-assignment.test.tsx` checks exact assignment reads, immediate identity/route clearing, stale completion aborts, missing records and retry without depending on the generic workspace assignment page. Course content client/renderer/manager tests cover consistent paging and draft retention.

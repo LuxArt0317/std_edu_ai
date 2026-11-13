@@ -130,3 +130,5 @@ See [the mirror guide](../qa/SCHOOL_MIRROR.md) for source capture, local routes,
 Use the dedicated client Google Auth project and the exact callback/provider instructions in [Google School Affairs sign-in](../qa/GOOGLE_SCHOOL_SIGNIN.md). This flow is independent of Nexus email/password sign-in and the SMTP sender. OAuth client secrets belong only in Supabase provider settings; browser configuration remains limited to URL and publishable key. Use local-scope sign-out in administrative scripts so verification does not revoke unrelated user sessions.
 
 The verified Vercel Hobby project is limited to 12 functions. `/api/affairs-conversations` rewrites to `/api/affairs-data?resource=conversations`; its private handler lives in `server/assistantConversations.js`. Keep new route handlers behind existing functions unless the hosting capacity changes. `verify:handoff` checks this budget.
+
+For owned Moodle course section placement and administrator maintenance, follow [course content QA](../qa/DTM_COURSE_CONTENT.md). Apply only the reviewed additive migration after its exact-client rollback preflight; never infer activity data from the source capture.

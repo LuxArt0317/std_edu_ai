@@ -1,5 +1,14 @@
 # Task Plan
 
+## DTM course activity placement [Issue #98]
+
+- [x] Preserve the source course's section placement and explicit activity order, including assignments inside the examination section, without inventing a quiz workflow.
+- [x] Add account/course-scoped persistent references and guarded administrator maintenance, retaining existing assignment/submission/material routes and unplaced records.
+- [x] Independently verify strict ownership, concurrent saves, stale/deleted references, source-shaped rendering, account switches and desktop/mobile navigation.
+- [ ] Run exact-client rollback preflight and additive deployment plan, then isolated release gates and pinned production acceptance.
+
+The source screenshot confirms three sections and an assignment activity in the examination section. Current rendering incorrectly puts every assignment in the first section and always leaves examinations empty. Root owns API integration/source evidence/release; backend, UI and independent QA are delegated. Issue100 assistant work stays paused. No new live database operation is started.
+
 ## Literal Moodle grade report [Issue #98]
 
 - [x] Preserve source-displayed grades, weights, ranges, feedback and explicit totals in an additive owner/course-scoped report; leave personal numeric trackers intact.

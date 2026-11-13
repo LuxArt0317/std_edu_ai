@@ -12,6 +12,7 @@ import { campusAssistantOpenEvent } from '../PublicAssistant';
 import { announcements, categories, coursesByTerm, dtmViews, observedAt, otherCategories, quickLinks, type DtmView } from './catalog';
 import { DtmCourseCreateDialog, DtmStudentRecords } from './DtmStudentRecords';
 import { DtmSubmissionWorkspace } from './DtmSubmissionWorkspace';
+import {useDtmCourseAssignment} from './useDtmCourseAssignment';
 import { DtmDashboardLayout, type DtmDashboardConfiguration } from './DtmDashboardLayout';
 import { termLabel, useDtmLocale, type DtmLocale, type DtmTranslate } from './locale';
 import './digital-materials.css';
@@ -241,8 +242,9 @@ function SignedInWorkspace({userId,route,t,hash,displayName,creatingCourse,onCre
 }) {
   const {snapshot,error,loading,refresh}=useAffairsRecords(userId);
   const navigate=useNavigate();
-  const selected=snapshot?.dtm.courses.find(course=>course.id===route.id);
-  const assignment=snapshot?.profile.userId===userId?snapshot.assignments.find(row=>row.id===route.assignmentId&&row.dtmCourseId===selected?.id):undefined;
+  const selected=snapshot?.profile.userId===userId?snapshot.dtm.courses.find(course=>course.id===route.id):undefined;
+  const exactAssignment=useDtmCourseAssignment(userId,selected?.id,route.assignmentId,snapshot?.checkedAt);
+  const assignment=exactAssignment.assignment??undefined;
   useEffect(()=>{
     if (!snapshot || !/^#[a-z0-9_-]+$/i.test(hash)) return;
     const frame=requestAnimationFrame(()=>document.getElementById(hash.slice(1))?.scrollIntoView({block:'nearest'}));
@@ -257,6 +259,8 @@ function SignedInWorkspace({userId,route,t,hash,displayName,creatingCourse,onCre
       <Navigation courses={snapshot.dtm.courses} home={route.mode==='home'} dashboard={false} selected={selected} view={route.view} gradeReportView={route.gradeReportView} displayName={snapshot.profile.displayName||displayName} t={t}/>
       <section className={'dtm-center'+(route.mode==='course'?' dtm-course-center':'')+((route.mode==='grades'||route.view==='grades')?' dtm-grade-center':'')+(route.assignmentId?' dtm-submission-center':'')} aria-label={t('教材網內容','Digital teaching materials content')}>
         {route.mode==='home'?<DtmHome courses={snapshot.dtm.courses} t={t}/>
+          :route.assignmentId&&selected&&exactAssignment.loading?<p role="status">{t('載入作業中…','Loading assignment…')}</p>
+          :route.assignmentId&&selected&&exactAssignment.failed?<div role="alert" className="dtm-error">{t('無法載入作業。請重試。','Could not load this assignment. Please retry.')} <Button size="sm" variant="outline" onClick={exactAssignment.retry}>{t('重試','Retry')}</Button></div>
           :route.mode==='missing'||(route.mode==='course'&&!selected)||(route.assignmentId&&!assignment)
             ?loading?<p role="status">{t('載入課程中…','Loading course…')}</p>:<div className="dtm-card"><h2>{t('找不到課程或頁面','Course or page unavailable')}</h2>
               <p>{t('請從您的儀表板選擇一門課。','Choose a course from your dashboard.')}</p><Link to="/dtm/dashboard">{t('前往儀表板','Open dashboard')}</Link></div>

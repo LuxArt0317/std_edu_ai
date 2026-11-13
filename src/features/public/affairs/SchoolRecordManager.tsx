@@ -23,6 +23,7 @@ import {StudentConductManager} from './StudentConductManager';
 import {StudentLoanManager} from './StudentLoanManager';
 import {DormConductManager} from './DormConductManager';
 import {DtmGradeReportManager} from './DtmGradeReportManager';
+import {DtmCourseContentManager} from './DtmCourseContentManager';
 
 type Admin = NonNullable<AffairsSnapshot['admin']>;
 const taipeiInput=(iso:string|null)=>iso?new Date(iso).toLocaleString('sv-SE',{timeZone:'Asia/Taipei'}).replace(' ','T').slice(0,16):'';
@@ -71,6 +72,9 @@ export function SchoolRecordManager({admin,busy,onManage,onRefresh}:{admin:Admin
   const [dormConductOpen,setDormConductOpen]=useState(false);
   const [dormConductOpenedFor,setDormConductOpenedFor]=useState('');
   const [gradeReportOpenedFor,setGradeReportOpenedFor]=useState('');
+  const [courseContentOpen,setCourseContentOpen]=useState(false);
+  const [courseContentOpenedFor,setCourseContentOpenedFor]=useState('');
+  const [courseContentBusy,setCourseContentBusy]=useState(false);
   const selected=admin.students.find(item=>item.id===studentId)||admin.students[0];
   const nativeManagers=<>
     <CourseSelectionManager records={admin.courseSelection?.records ?? []} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/>
@@ -92,14 +96,14 @@ export function SchoolRecordManager({admin,busy,onManage,onRefresh}:{admin:Admin
   const reviewAssignment=reviewAssignments.find(item=>item.id===reviewAssignmentId);
   function clearCharge(){setChargeId('');setChargeLabel('');setAmountDue('');setAmountPaid('0');setChargeDue('');setFeeMetadata(pendingFeeDraft());}
   function clearAssignment(){setAssignmentId('');setRelation('');setAssignmentTitle('');setAssignmentDetails('');setAssignmentDue('');}
-  function changeStudent(value:string){setStudentId(value);setReviewAssignmentId('');clearCharge();clearAssignment();}
+  function changeStudent(value:string){if(courseContentBusy)return;setCourseContentOpen(false);setCourseContentOpenedFor('');setStudentId(value);setReviewAssignmentId('');clearCharge();clearAssignment();}
   function saveEnrollment(event:FormEvent){event.preventDefault();void onManage({kind:'save_enrollment',payload:{student_id:selected.id,section_id:sectionId,status:enrollmentStatus}});}
   function saveCharge(event:FormEvent){event.preventDefault();void onManage({kind:'save_charge',payload:{id:chargeId,student_id:selected.id,label:chargeLabel,amount_due:amountDue,amount_paid:amountPaid,due_on:chargeDue,...feeMetadata}}).then(saved=>{if(saved)clearCharge();});}
   function saveAssignment(event:FormEvent){event.preventDefault();const [kind,id]=relation.split(':');void onManage({kind:'save_assignment',payload:{id:assignmentId,student_id:selected.id,enrollment_id:kind==='school'?id:'',dtm_course_id:kind==='dtm'?id:'',title:assignmentTitle,details:assignmentDetails,due_at:assignmentDue?new Date(`${assignmentDue}:00+08:00`).toISOString():''}}).then(saved=>{if(saved)clearAssignment();});}
   return <div className="affairs-manager">
     <h3>Manage sample school records</h3>
     <p>These records power stu.best account answers. Changes are audited and remain separate from official university systems.</p>
-    <label className="affairs-manager-student">Student account<select value={selected.id} onChange={event=>changeStudent(event.target.value)}>{admin.students.map(item=><option key={item.id} value={item.id}>{item.full_name} · {item.student_number}</option>)}</select></label>
+    <label className="affairs-manager-student">Student account<select disabled={busy||courseContentBusy} value={selected.id} onChange={event=>changeStudent(event.target.value)}>{admin.students.map(item=><option key={item.id} value={item.id}>{item.full_name} · {item.student_number}</option>)}</select></label>
     <div className="affairs-record-grid">
       <section><h3>Subjects</h3><ul>{studentEnrollments.map(item=><li key={item.id}><strong>{item.code}</strong><span>{item.status}</span></li>)}</ul>
         <form onSubmit={saveEnrollment} className="affairs-record-form"><label htmlFor="manager-section">Add or update enrollment</label><select id="manager-section" required value={sectionId} onChange={event=>setSectionId(event.target.value)}><option value="">Choose a subject</option>{admin.sections.map(item=><option key={item.id} value={item.id}>{item.code} · {item.term}</option>)}</select><select aria-label="Enrollment status" value={enrollmentStatus} onChange={event=>setEnrollmentStatus(event.target.value)}><option value="enrolled">Enrolled</option><option value="completed">Completed</option><option value="withdrawn">Withdrawn</option></select><Button disabled={busy} type="submit">Save enrollment</Button></form>
@@ -125,6 +129,16 @@ export function SchoolRecordManager({admin,busy,onManage,onRefresh}:{admin:Admin
         {gradeReportOpenedFor===selected.user_id?'Hide DTM grade reports':'Manage DTM grade reports'}
       </Button>
       {gradeReportOpenedFor===selected.user_id&&<DtmGradeReportManager key={managerId+':'+selected.user_id} managerId={managerId} userId={selected.user_id} onSaved={onRefresh}/>}
+    </section>}
+    {managerId&&<section className="affairs-manager" aria-label="Selected student DTM course content maintenance">
+      <Button type="button" variant="outline" disabled={busy} aria-expanded={courseContentOpen}
+        onClick={()=>{setCourseContentOpenedFor(managerId+':'+selected.user_id);setCourseContentOpen(value=>!value);}}>
+        {courseContentOpen?'Hide DTM course content':'Manage DTM course content'}
+      </Button>
+      {(courseContentOpen||courseContentOpenedFor===managerId+':'+selected.user_id)&&<div hidden={!courseContentOpen}>
+        <DtmCourseContentManager key={managerId+':'+selected.user_id} managerId={managerId} userId={selected.user_id}
+          onBusyChange={setCourseContentBusy} onSaved={onRefresh}/>
+      </div>}
     </section>}
     {managerId&&<section className="affairs-manager" aria-label="Selected student certificate maintenance">
       <Button type="button" variant="outline" disabled={busy} aria-expanded={certificateOpen} onClick={()=>setCertificateOpen(value=>!value)}>{certificateOpen?'Hide certificate assessment':'Manage certificate assessment'}</Button>

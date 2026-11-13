@@ -86,3 +86,5 @@ The layout harness creates exactly two Google-shaped student accounts and one no
 `credit-load-application-ui.mjs` verifies the observed7-1 closed-period entry, selection index, local navigation and responsive geometry using synthetic authentication and blocked writes. Source prerequisites and limits are in [credit-load QA](../../docs/qa/CREDIT_LOAD_APPLICATION.md).
 
 `dtm-grade-report-rls-live.mjs` is a root-serialized rollback-only migration preflight; `--self-test` never connects. The dedicated grade-report browser/HTTP gates and exact execution prerequisites are maintained in [grade-report QA](../../docs/qa/DTM_GRADE_REPORTS.md).
+
+`dtm-course-content-ui.mjs` checks compiled course section order, exact activity navigation, account isolation, failed/inconsistent pagination and desktop/mobile layout with synthetic responses. Live content persistence is a separate serialized exact-client gate. See [course content QA](../../docs/qa/DTM_COURSE_CONTENT.md).

@@ -15,6 +15,7 @@ import { dtmViews, type DtmView } from './catalog';
 import { deadlineLabel, taipeiDateTimeInput, type DtmTranslate } from './locale';
 import {DtmCourseGradeReport} from './DtmCourseGradeReport';
 import {DtmGradeOverview} from './DtmGradeOverview';
+import {DtmCourseContent} from './DtmCourseContent';
 
 type EditRecord =
   | {kind:'course';record?:DtmCourse}
@@ -34,20 +35,6 @@ const attendanceStatuses = {unknown:['未記錄','Unrecorded'],present:['出席'
 const pathFor = (course:DtmCourse) => '/dtm/course/'+encodeURIComponent(course.id);
 const translated = (t:DtmTranslate,labels:readonly [string,string]) => t(labels[0],labels[1]);
 type ActivityDetail = {kind:'material';record:DtmMaterial}|{kind:'grade';record:DtmGrade};
-
-function CourseActivity({kind,title,details,deadline,open,id,t}:{
-  kind:'assignment'|'material';title:string;details?:string;deadline?:string|null;open:()=>void;id:string;t:DtmTranslate;
-}) {
-  const localDeadline=deadline?taipeiDateTimeInput(deadline):'';
-  const dateLabel=localDeadline?t(localDeadline.slice(0,4)+'年'+localDeadline.slice(5,7)+'月'+localDeadline.slice(8,10)+'日,'+localDeadline.slice(11),deadlineLabel(deadline||null,t)):'';
-  return <li id={kind+'-'+id} className="dtm-course-activity">
-    <div className="dtm-activity-link"><img src={'/dtm-theme/'+(kind==='assignment'?'assign':'url')+'.svg'} width="24" height="24" alt=""/>
-      <button type="button" onClick={open}>{title}</button>
-    </div>
-    {details&&<p className="dtm-activity-description">{details}</p>}
-    {deadline&&<p className="dtm-activity-deadline">{t('至','Due ')}<time dateTime={deadline} title={t('臺灣時間','Taipei time')}>{dateLabel}</time></p>}
-  </li>;
-}
 
 function RecordEditor({edit,t,saved,close,onBusyChange,expectedUserId}:{edit:EditRecord;t:DtmTranslate;saved:(id:string)=>void;close:()=>void;onBusyChange?:(busy:boolean)=>void;expectedUserId?:string}) {
   const [id] = useState(()=>edit.record?.id || crypto.randomUUID());
@@ -254,17 +241,9 @@ export function DtmStudentRecords({snapshot,course,view,gradeReportView,mode,t,r
       setStatus(count?t('已匯入 '+count+' 筆截止日期。','Imported '+count+' deadline(s).'):t('所選日期已存在。','The selected deadlines are already saved.'));
       refresh();
     }}/>}
-    {courseContents&&<div className="dtm-course-content">
-      <section className="dtm-course-section"><h3>{t('作業區','Assignments')}</h3>
-        {assignments.length?<ul className="dtm-course-activities">{assignments.map(row=><CourseActivity key={row.id} id={row.id} kind="assignment" title={row.title} details={row.details} deadline={row.dueAt} open={()=>navigate(pathFor(course)+'/assignment/'+row.id)} t={t}/>)}</ul>
-          :<p className="dtm-activity-empty">{t('尚無作業。','No assignments saved.')}</p>}
-      </section>
-      <section className="dtm-course-section"><h3>{t('測驗區','Quizzes')}</h3><p className="dtm-activity-empty">{t('尚無測驗紀錄。','No quiz records saved.')}</p></section>
-      <section className="dtm-course-section"><h3>{t('教材區','Course materials')}</h3>
-        {course.materials.length?<ul className="dtm-course-activities">{course.materials.map(row=><CourseActivity key={row.id} id={row.id} kind="material" title={row.title} open={()=>setDetail({kind:'material',record:row})} t={t}/>)}</ul>
-          :<p className="dtm-activity-empty">{t('尚無教材。','No course materials saved.')}</p>}
-      </section>
-    </div>}
+    {courseContents&&<DtmCourseContent key={snapshot.profile.userId+':'+course.id} userId={snapshot.profile.userId}
+      courseId={course.id} refreshKey={snapshot.checkedAt} t={t}
+      onOpenAssignment={id=>navigate(pathFor(course)+'/assignment/'+id)} onOpenMaterial={record=>setDetail({kind:'material',record})}/>}
     {(mode==='assignments'||(course&&activeView==='assignments'))&&<div className="dtm-assignment-view">
       {course&&<h3>{t('作業區','Assignments')}</h3>}
       <label className="dtm-filter">{t('篩選作業','Filter assignments')}

@@ -1,3 +1,15 @@
+## Root release checkpoint — November 13, 2026
+
+Local actual-JWT ed3d6e78 passed five groups / 59 requests / six writes with exact cleanup and closed connection. No DB run is active. Root owns the named-file commit and production release, then pinned production acceptance. 241000 is applied at135/152. All Issue100 files stay frozen; no model calls.
+
+## Current root lease — 2026-11-13 course content
+
+Only migration 20261114010000 is now applied after six successful rollback-only groups; the client is at 135 migrations / 152 public RLS tables. Stored migration source equality, zero initial layout/receipt rows and database-only client verification passed. Root owns the live lease for actual-JWT local acceptance at HEAD bae28c6. Do not change runtime, this HEAD or run competing DB/auth tests. Issue #100 and its 66 fingerprints remain paused. The requested floating panel removal is already live and freshly verified with the chatbot retained.
+
+## Active course activity placement batch
+
+Root owns api/affairs-data.ts, api/affairs-manage.ts, DtmStudentRecords/SchoolRecordManager mounts, planning and release. The agreed contract is in server/dtmCourseContent.d.ts. dtm_course_layout implements the scoped backend and rollback preflight; scholarship_workflow implements the separate service/renderer/admin editor; protected_service_audit owns independent compiled acceptance and reviews root mounts. No delegate live DB/auth/model/official calls, commits or publication. Preserve66pausedIssue100 paths and generic assistant snapshots. Published runtime0d085e1/ReadyBN1qr/Quality43419257202 remains accepted.
+
 ## Grade-report runtime and final CI accepted
 
 Runtime 0d085e1629e3c8618f80775a576e23f105999363 is Vercel Ready BN1qrWr7pLssoriH3oSw2fVsFay7; exact public manifest built2026-11-13T11:45:15.568Z and entry index-CVCsYhYc.js verified. The API compile correction has no TypeScript diagnostics in Vercel. Pinned production actual-JWT acceptance passed four groups/43HTTP requests/seven successful writes with exact fixture cleanup, protected-owner/legacy preservation and closed connection. Pinned UI acceptance passed eight groups/12screenshots at desktop/mobile sizes, maximum table geometry delta0.03125CSSpx, zero page errors/unexpected requests. Public startup and eight routes/50assets passed without model calls; fresh live-homepage screenshot confirms the floating panel is absent and chatbot remains. Quality43419257202 completed successfully. Issue100 remains user-paused; no new assistant-reader support or complete protected-system parity is claimed.

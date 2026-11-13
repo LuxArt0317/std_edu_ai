@@ -10,13 +10,14 @@ import { StudentLoanError, loadStudentLoan, loadStudentLoanAdmin } from '../serv
 import { DormitoryConductError, loadDormitoryConduct, loadDormitoryConductAdmin } from '../server/dormitoryConduct.js';
 import { DtmDashboardLayoutError, loadDtmDashboardLayout } from '../server/dtmDashboardLayout.js';
 import { DtmGradeReportError, loadDtmGradeReport, loadDtmGradeReportAdmin, loadDtmGradeReportCoursesAdmin, loadDtmGradeReportOverview } from '../server/dtmGradeReport.js';
+import { DtmCourseContentError, loadDtmCourseContent, loadDtmCourseContentAdmin, loadDtmCourseContentCoursesAdmin, loadDtmCourseContentAssignment } from '../server/dtmCourseContent.js';
 
 type Request = {method?:string;headers:Record<string,string|string[]|undefined>;body?:unknown;query?:Record<string,string|string[]|undefined>};
 type Response = {status:(code:number)=>Response;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void};
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
 export default async function handler(request:Request,response:Response) {
   const scopes=Array.isArray(request.query?.scope)?request.query.scope:[request.query?.scope];
-  const strictStudentScope=scopes.some(scope=>typeof scope==='string'&&(scope.startsWith('student-conduct')||scope.startsWith('student-loan')||scope.startsWith('dormitory-conduct')||scope.startsWith('dtm-dashboard-layout')||scope.startsWith('dtm-grade-report')));
+  const strictStudentScope=scopes.some(scope=>typeof scope==='string'&&(scope.startsWith('student-conduct')||scope.startsWith('student-loan')||scope.startsWith('dormitory-conduct')||scope.startsWith('dtm-dashboard-layout')||scope.startsWith('dtm-grade-report')||scope.startsWith('dtm-course-content')));
   if(first(request.query?.resource)==='conversations'&&!strictStudentScope)return conversations(request,response);
   const requestDeadline=Date.now()+17000;
   response.setHeader('Cache-Control','no-store, max-age=0');
@@ -27,6 +28,27 @@ export default async function handler(request:Request,response:Response) {
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
     const scope=request.query?.scope;
     if(Array.isArray(scope)){response.status(400).json({error:'Choose one records scope.'});return;}
+    if(typeof scope==='string'&&scope.startsWith('dtm-course-content')){
+      const userId=request.query?.user_id,courseId=request.query?.course_id,assignmentId=request.query?.assignment_id;
+      const afterKind=request.query?.after_kind,afterId=request.query?.after_id;
+      const keys=Object.keys(request.query||{}),bounded={...account,requestDeadline};
+      const validCursor=afterKind===undefined&&afterId===undefined
+        ||(afterKind==='assignment'||afterKind==='material')&&typeof afterId==='string';
+      const cursor:{afterKind?:'assignment'|'material';afterId?:string}=(afterKind==='assignment'||afterKind==='material')&&typeof afterId==='string'?{afterKind,afterId}:{};
+      if(scope==='dtm-course-content'&&typeof courseId==='string'&&validCursor&&keys.every(key=>['scope','course_id','after_kind','after_id'].includes(key))){
+        response.status(200).json(await loadDtmCourseContent(bounded,{courseId,...cursor}));return;
+      }
+      if(scope==='dtm-course-content-admin'&&typeof userId==='string'&&typeof courseId==='string'&&validCursor&&keys.every(key=>['scope','user_id','course_id','after_kind','after_id'].includes(key))){
+        response.status(200).json(await loadDtmCourseContentAdmin(bounded,{userId,courseId,...cursor}));return;
+      }
+      if(scope==='dtm-course-content-courses-admin'&&typeof userId==='string'&&(afterId===undefined||typeof afterId==='string')&&keys.every(key=>['scope','user_id','after_id'].includes(key))){
+        response.status(200).json(await loadDtmCourseContentCoursesAdmin(bounded,{userId,...(typeof afterId==='string'?{afterId}:{})}));return;
+      }
+      if(scope==='dtm-course-content-assignment'&&typeof courseId==='string'&&typeof assignmentId==='string'&&keys.every(key=>['scope','course_id','assignment_id'].includes(key))){
+        response.status(200).json(await loadDtmCourseContentAssignment(bounded,{courseId,assignmentId}));return;
+      }
+      response.status(400).json({error:'Choose one course content scope with only its required fields and a complete pagination cursor.'});return;
+    }
     if(typeof scope==='string'&&scope.startsWith('dtm-grade-report')){
       const userId=request.query?.user_id,courseId=request.query?.course_id,afterId=request.query?.after_id;
       const keys=Object.keys(request.query||{}),bounded={...account,requestDeadline};
@@ -141,7 +163,7 @@ export default async function handler(request:Request,response:Response) {
       : await loadAffairsSnapshot(account,first(request.query?.scope)==='admin');
     response.status(200).json(snapshot);
   } catch(error) {
-    const known=error instanceof AffairsWorkspaceError||error instanceof DtmSubmissionError||error instanceof EnrollmentCertificateError||error instanceof SyllabusSearchError||error instanceof TuitionDocumentsError||error instanceof StudentConductError||error instanceof StudentLoanError||error instanceof DormitoryConductError||error instanceof DtmDashboardLayoutError||error instanceof DtmGradeReportError;
+    const known=error instanceof AffairsWorkspaceError||error instanceof DtmSubmissionError||error instanceof EnrollmentCertificateError||error instanceof SyllabusSearchError||error instanceof TuitionDocumentsError||error instanceof StudentConductError||error instanceof StudentLoanError||error instanceof DormitoryConductError||error instanceof DtmDashboardLayoutError||error instanceof DtmGradeReportError||error instanceof DtmCourseContentError;
     response.status(known?error.status:503).json({error:known?error.message:'School Affairs records could not be loaded.'});
   }
 }
