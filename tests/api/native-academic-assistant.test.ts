@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {accountEvidence,accountTools,answerAccountWithVerification,planAccountLookup} from '../../server/answerVerificationAccount.js';
+import {accountEvidence,accountTools,supplementalAccountTools,answerAccountWithVerification,planAccountLookup} from '../../server/answerVerificationAccount.js';
 import {accountRecordViews} from '../../server/accountRecordViews.js';
 import {answerLinksSupported,reviewMatchesEvidence,validEvidence} from '../../server/answerVerificationModel.js';
 import handler from '../../api/affairs-assistant.ts';
@@ -32,24 +32,28 @@ test('planner retains exact topical native tools, normalizes routes, and uses th
   globalThis.fetch=async(input,init)=>{
     assert.equal(String(input),'https://api.openai.com/v1/responses');calls++;
     const body=JSON.parse(String(init?.body));assert.equal(body.text.format.name,'account_lookup_plan');
-    assert.equal(body.text.format.schema.properties.tools.maxItems,Object.keys(accountTools).length);
+    const availableTools=Object.keys({...accountTools,...supplementalAccountTools});
+    assert.equal(body.text.format.schema.properties.tools.maxItems,availableTools.length);
+    assert.deepEqual(body.text.format.schema.properties.tools.items.enum,availableTools);
     assert.ok(nativeKeys.every(key=>body.text.format.schema.properties.tools.items.enum.includes(key)));
-    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({tools:['courses'],publicTopics:[]})}]}]});
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({tools:['courses'],publicTopics:[],catalogQuery:null,action:null})}]}]});
   };
   try{
     for(const [question,route,key] of [['My transcript','','academicGrades'],['Show my records','/school-affairs/services/13-1/ranking/','academicGrades'],
       ['My status','/school-affairs/services/15-1/','graduationReview'],['Which dates?','/school-affairs/services/14-1/detail/','academicAttendance']]){
-      const plan=await planAccountLookup(question,[],route,Date.now()+10000);assert.equal(plan.tools[0],key);
+      const plan=await planAccountLookup(question,[],route,Date.now()+10000);assert.equal(plan.degraded,undefined);assert.equal(plan.tools[0],key);
     }
     const legacy=await planAccountLookup('My status',[{role:'user',content:'My legacy graduation report'}],'',Date.now()+10000);
     assert.equal(legacy.tools[0],'graduationReview');
     const mixed=await planAccountLookup('My transcript and my attendance',[],'',Date.now()+10000);
     assert.ok(mixed.tools.includes('academicGrades'));assert.ok(mixed.tools.includes('academicAttendance'));
     const dtm=await planAccountLookup('My DTM grades',[],'/dtm/grades',Date.now()+10000);
+    assert.equal(dtm.degraded,undefined);
     assert.ok(!dtm.tools.some(key=>nativeKeys.includes(key)));
     const explicit=await planAccountLookup('My academic transcript and my DTM grades',[],'/dtm/grades',Date.now()+10000);
     assert.ok(explicit.tools.includes('academicGrades'));
     const dtmFollowup=await planAccountLookup('My grades and attendance',[{role:'user',content:'My DTM courses'}],'',Date.now()+10000);
+    assert.equal(dtmFollowup.degraded,undefined);
     assert.ok(!dtmFollowup.tools.some(key=>nativeKeys.includes(key)));assert.equal(calls,9);
   }finally{globalThis.fetch=previousFetch;if(previousKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=previousKey;}
 });

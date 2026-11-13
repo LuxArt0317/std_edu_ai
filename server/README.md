@@ -2,7 +2,7 @@
 
 ## Verified account assistant (Issue #99)
 
-`answerVerification.js` runs the LangGraph retrieve → draft → verify → (one correction → fresh retrieval → verify) flow. Account records and drafts stay in request-local closures rather than graph traces/checkpoints. `answerVerificationModel` requires independently quoted evidence and approved links; `answerVerificationSources` reads actual web pages through the acquisition safeguards. The endpoint has a shared 55-second deadline and withholds unverified drafts/actions. A verifier is fallible; this is not proof of perfect factual accuracy.
+`answerVerification.js` runs the LangGraph retrieve → draft → verify → (fresh retrieval → one correction → verify) flow. Account records and drafts stay in request-local closures rather than graph traces/checkpoints. `answerVerificationModel` requires independently referenced evidence and approved links; `answerVerificationSources` reads actual web pages through the acquisition safeguards. The endpoint has a shared 55-second deadline and withholds unverified drafts/actions. A verifier is fallible; this is not proof of perfect factual accuracy.
 
 `answerVerificationAccount` selects named account lookups and fixed public research topics without sending private records to web search. `accountAssistantActions` prepares only reviewed, owned-record actions. `accountRecordViews` produces bounded tables directly from the snapshot. `assistantConversationData` strips action payloads, image bytes and provider fields before persistence. See [QA criteria](../docs/qa/ANSWER_VERIFICATION.md).
 
@@ -60,10 +60,18 @@ The verified account assistant explicitly selects `academicGrades`, `graduationR
 
 `20261112180000_tuition_documents.sql` defines `affairs_tuition_settlements` and `affairs_tuition_document_metadata` with own-account RLS, audited administrator RPCs, expected versions, durable request receipts and deletion tombstones. Owner and document kind are immutable; revocation is terminal. Settlement text preserves `null` as unknown and `""` as a literal blank. No academic year, amount, payment status or eligibility is inferred from a period label or statement.
 
-Document metadata has only `metadata_only` or `revoked` status and the local issuer `stu.best`. Both loader contracts return `documents: []`; no file bytes, URL, Storage capability, issuance or payment workflow exists. The new tuition tables are not registered with assistant tools and must not be described as available assistant evidence.
+Document metadata has only `metadata_only` or `revoked` status and the local issuer `stu.best`. Both loader contracts return `documents: []`; no file bytes, URL, Storage capability, issuance or payment workflow exists. The working-tree supplemental tuition reader exposes owned settlement statements; its deployed model acceptance is tracked separately.
 
 Rollback-only preflight passed five groups at the unchanged 127-migration/144-RLS-table baseline. The migration is now applied (128 migrations/146 RLS tables), and actual-JWT local API/browser acceptance passed with exact cleanup. Production acceptance remains pending. See [tuition acceptance](../docs/qa/TUITION_DOCUMENTS.md) for UI, handler and schema evidence.
 
 Assistant verification now distributes bounded exact-field guidance fairly across academic records, preserves parent/course lineage, and removes unsupported maintenance attribution. Conversation sanitization shares byte/activity budgets with the client; hidden reasoning, images and executable proposals are excluded.
+
+## Selected supplemental assistant reads (Issue #100)
+
+`accountSupplementalLookup.js` adds four capabilities to the existing 17: published `courseCatalog`, owned `enrollmentCertificate`, owned `dtmSubmissions` file/revision metadata, and owned `tuition` settlement statements. The API captures verified credentials in request-local callbacks. The model selects a fixed capability and validated catalog selector, never an account ID, credential, administrator endpoint or arbitrary URL. A retry refreshes only authorized selected sources, checks the unchanged caller, and preserves the proposed action.
+
+The four `account*Evidence` helpers validate complete source records before projecting model-safe fields. Their aggregate evidence fits 54KB within the 70KB private and 100KB total budgets. Failed or omitted reads remain unknown. `supplementalAccountAnswers.js` renders bounded literal answers and tables with local links, keeping catalog versus enrollment, gradebook/tracker versus saved files, assessment versus issuance, and settlements versus charge balances distinct. It cannot issue documents, upload files or execute payments.
+
+Verifier diagnostics may include fixed lexical topic categories and local claim indexes, alongside counts. They contain no claim text, record values, identities, pointers, prompts or private model reasoning; categories are diagnostic hints rather than the reviewer's rationale. See [system evaluation](../docs/qa/ASSISTANT_SYSTEM_EVALUATION.md) for independent fixtures, live acceptance and remaining gaps.
 
 `studentConduct.js` provides strict own/admin loaders and versioned administrator operations for migration200000. Complete bounded reads reject malformed/partial results; no document capabilities are returned. Migration is rollback-preflighted only. See [conduct QA](../docs/qa/STUDENT_CONDUCT.md).

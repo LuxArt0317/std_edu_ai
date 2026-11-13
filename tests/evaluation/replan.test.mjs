@@ -14,10 +14,10 @@ test('one verification retry can recover an omitted record reader without replac
     let result;
     if(request.text.format.name==='account_lookup_plan'){
       plans++;
-      if(plans===1)result={tools:['charges'],publicTopics:[],action:null};
+      if(plans===1)result={tools:['charges'],publicTopics:[],catalogQuery:null,action:null};
       else{
         assert.deepEqual(payload.retry.previousTools,['charges']);
-        result={tools:['dtm'],publicTopics:['library'],action:{kind:'publish_announcement',payload:{title:'Must never execute',body:'Do not apply'}}};
+        result={tools:['dtm'],publicTopics:['library'],catalogQuery:null,action:{kind:'publish_announcement',payload:{title:'Must never execute',body:'Do not apply'}}};
       }
     }else if(request.text.format.name==='answer_evidence_review'){
       reviews++;
@@ -49,5 +49,7 @@ test('one verification retry can recover an omitted record reader without replac
     assert.ok(events.some(row=>row.kind==='verification-1'&&row.status==='unavailable'));
     assert.ok(events.some(row=>row.kind==='verification-2'&&row.status==='complete'));
     assert.ok(answer.activity.some(row=>row.kind==='account-replan'));
+    assert.match(answer.answer,/Quiz 1 feedback is: Revise normalization examples\./);
+    assert.ok(!events.some(row=>row.kind.startsWith('account-read:dtmSubmissions:')),'Gradebook feedback must not force the separate saved-file reader.');
   }finally{globalThis.fetch=original;if(savedKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=savedKey;}
 });

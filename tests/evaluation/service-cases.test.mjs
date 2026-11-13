@@ -45,7 +45,10 @@ test('native lookup criteria include literal evidence and never treat catalog as
   }
   const catalog=buildServiceCases().find(row=>row.serviceId==='12-4'&&row.mode==='record');
   assert.equal(catalog.expected.behavior,'unavailable');
-  assert.ok(serviceCapabilityGaps().some(row=>row.serviceId==='12-4'&&/no catalog read tool/.test(row.limitation)));
+  assert.equal(catalog.fixtureRequirement,'published_catalog_binding');
+  assert.deepEqual(catalog.expected.requiredTools,['courseCatalog']);
+  assert.ok(serviceCapabilityGaps().some(row=>row.serviceId==='12-4'&&/independently bound existing published/.test(row.limitation)));
+  assert.doesNotMatch(serviceCapabilities['12-4'].limitation,/no catalog read tool|not registered/);
   const officialChanges=buildServiceCases().filter(row=>row.mode==='action-boundary');
   assert.ok(officialChanges.every(row=>row.expected.behavior==='unavailable'&&row.expected.forbiddenText.length));
 });
@@ -54,27 +57,33 @@ test('certificate coverage cannot pass using unrelated student identity fields',
   const certificate=buildServiceCases().filter(row=>row.serviceId==='17-1');
   const record=certificate.find(row=>row.mode==='record');
   assert.equal(record.domain,'enrollmentCertificate');
-  assert.equal(record.expected.behavior,'unavailable');
-  assert.deepEqual(record.expected.requiredTools,[]);
-  assert.equal(serviceNativeFactContract['17-1'],undefined);
+  assert.equal(record.expected.behavior,'answer');
+  assert.deepEqual(record.expected.requiredTools,['enrollmentCertificate']);
+  assert.equal(serviceNativeFactContract['17-1'].fixtureKey,'enrollmentCertificate');
+  assert.equal(certificate.find(row=>row.mode==='empty').fixtureKey,'empty:enrollmentCertificate');
+  assert.match(record.capability.limitation,/PDF downloads remain unsupported/);
   for(const row of certificate)assert.doesNotThrow(()=>fixtureForCase(row));
   const result=gradeCase(record,{statusCode:200,execution:'deterministic',fixtureKey:record.fixtureKey,
     body:{status:'answered',answer:'Your sample student number is EVAL-115-001. Your program is Information Studies. [Enrollment certificate](/school-affairs/services/17-1)',
       citations:[{chunkId:'account:profile',url:'/school-affairs/services/17-1'}],verification:{status:'verified',attempts:1}}});
   assert.equal(result.passed,false);
-  assert.ok(result.failures.some(row=>row.id==='answer.limitation'));
+  assert.ok(result.failures.some(row=>row.id.startsWith('fact.')));
 });
 
-test('mounted backends and missing assistant tools remain distinct capability facts',()=>{
+test('readable certificate assessment never removes official file or assistant upload capability gaps',()=>{
   const cases=buildAccountCases();
-  for(const id of ['enrollment-certificate-gap','certificate-assessment-gap','actual-file-submission-gap','action-upload-gap']){
+  for(const id of ['enrollment-certificate-gap','actual-file-submission-gap','action-upload-gap','tuition-summer-file-gap','tuition-extended-gap']){
     const row=cases.find(item=>item.id==='account:'+id);
     assert.ok(row,id);assert.equal(row.capability.gap,true);assert.equal(row.expected.behavior,'unavailable');
-    assert.match(row.capability.limitation,/mounted/i);
     assert.doesNotMatch(row.capability.limitation,/unmounted|no backend|UI .*pending/i);
   }
-  const assessment=cases.find(row=>row.id==='account:certificate-assessment-gap');
-  assert.deepEqual(assessment.expected.requiredTools,[]);
+  const assessment=cases.find(row=>row.id==='account:certificate-assessment-status');
+  assert.equal(assessment.expected.behavior,'answer');assert.equal(assessment.capability.gap,false);
+  assert.deepEqual(assessment.expected.requiredTools,['enrollmentCertificate']);
   assert.deepEqual(assessment.expected.requiredLinks,['/school-affairs/services/17-1']);
-  assert.match(serviceCapabilities['12-4'].limitation,/records exist.*no catalog read tool/);
+  assert.ok(assessment.expected.facts.some(fact=>fact.label==='status'&&fact.values.includes('blocked')));
+  assert.ok(assessment.expected.facts.some(fact=>fact.label==='pending'&&fact.values.includes('N')));
+  const official=cases.find(row=>row.id==='account:enrollment-certificate-gap');
+  assert.deepEqual(official.expected.requiredTools,['enrollmentCertificate']);
+  assert.match(official.capability.limitation,/official issuance.*downloads.*unsupported/i);
 });

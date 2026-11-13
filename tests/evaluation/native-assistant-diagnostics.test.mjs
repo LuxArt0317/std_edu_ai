@@ -54,3 +54,23 @@ for(const name of names)test(name+': persist sanitized synthetic diagnostics bef
     if(name==='graduation-review')assert.equal(writes[0].path,'synthetic-output/last-assistant.json');
   }
 });
+
+test('academic grades: accept grounded choose/which clarification with distinct supported views',async()=>{
+  const source=await readFile(new URL('../integration/academic-grades-live.mjs',import.meta.url),'utf8');
+  const helper=between(source,'function assertGradeViewClarification(', '\nfunction assistantDiagnostic(');
+  const validate=vm.runInNewContext(helper+'\nassertGradeViewClarification;',{assert});
+  assert.match(source,/const ambiguous=await answer\(first,'Show my grades',''\);assertGradeViewClarification\(ambiguous\)/,'The live case must use the reviewed clarification assertion after normal verified-answer checks.');
+  const result=answer=>({status:'answered',answer,verification:{status:'verified'},grounding:{source:'account',webSearched:false},citations:[{url:'/school-affairs/services/13-1'}]});
+  for(const answer of [
+    'I can show your saved Academic Services grades, but no grade view was selected in this request, so no rows were returned for display.\n\nPlease choose one: transcript, warning grades, term summaries, semester ranking, or English-requirement display. Current-term, transfer, and cycle grade views are unavailable in these records.',
+    'Which grade view would you like: transcript or warning grades?',
+    'Please specify the transcript, warning grades, semester ranking or current-term query; these are separate academic views.',
+    '請指定歷年成績、預警成績、學期排名或當期成績；這些查詢的資料範圍不同。',
+  ])assert.doesNotThrow(()=>validate(result(answer)));
+  for(const answer of ["I don't know.",'Please choose a view.','Please choose transcript or transcript.','Choose GPA, current-term grades, or transfer grades.','Transcript and warning grades are available.'])
+    assert.throws(()=>validate(result(answer)),error=>error instanceof assert.AssertionError);
+  for(const mutate of [row=>{row.status='abstained';},row=>{row.grounding.source='public';},row=>{row.grounding.webSearched=true;},row=>{row.citations=[{url:'https://www.stu.edu.tw/'}];},row=>{row.proposedAction={kind:'create_task'};}]){
+    const row=result('Please choose transcript or warning grades.');mutate(row);
+    assert.throws(()=>validate(row),error=>error instanceof assert.AssertionError);
+  }
+});

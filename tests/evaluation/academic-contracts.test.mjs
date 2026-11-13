@@ -1,18 +1,53 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {answerDtmRecords,answerStudentServiceRecords} from '../../server/dtmAnswer.js';
-import {accountEvidence,accountTools} from '../../server/answerVerificationAccount.js';
+import {accountEvidence,accountTools,supplementalAccountTools} from '../../server/answerVerificationAccount.js';
 import {studyCalendar} from '../../server/affairsSchedule.js';
 import {buildAccountFixture,fixtureForCase,EVAL_IDS,DEFAULT_EVAL_NOW,evaluationDates} from './fixtures.mjs';
 import {buildAccountCases} from './account-cases.mjs';
 
-test('evaluation fixtures are fresh, owned and cover every registered read capability separately from gaps',()=>{
+test('evaluation fixtures are fresh and preserve independent oracles and explicit backend gaps',()=>{
   const a=buildAccountFixture(),b=buildAccountFixture();a.profile.displayName='Modified fixture';assert.equal(b.profile.displayName,'Evaluation Student');
   const cases=buildAccountCases();assert.equal(new Set(cases.map(row=>row.id)).size,cases.length);
-  assert.deepEqual([...new Set(cases.flatMap(row=>row.expected.requiredTools))].sort(),Object.keys(accountTools).sort());
-  for(const item of cases.filter(row=>!Object.hasOwn(accountTools,row.domain)))assert.equal(item.capability.gap,true,'An unregistered backend capability must remain an explicit gap.');
+  const registered={...accountTools,...supplementalAccountTools};
+  for(const item of cases.filter(row=>!Object.hasOwn(registered,row.domain)))assert.equal(item.capability.gap,true,'An unregistered backend capability must remain an explicit gap.');
   for(const item of cases){assert.ok(fixtureForCase(item));if(item.mode==='record'&&item.expected.behavior==='answer')assert.ok(item.expected.facts.length||item.expected.exactLists?.length,item.id);}
   assert.throws(()=>fixtureForCase('unknown-domain'));assert.throws(()=>fixtureForCase('unavailable:unknown'));
+});
+test('the bank declares all twenty-one registered tools while actual DTM file fixtures remain unexecutable',()=>{
+  const base=Object.keys(accountTools),supplemental=Object.keys(supplementalAccountTools),registered=[...base,...supplemental];
+  assert.equal(base.length,17);
+  assert.deepEqual(supplemental.sort(),['courseCatalog','dtmSubmissions','enrollmentCertificate','tuition'].sort());
+  assert.equal(registered.length,21);assert.equal(new Set(registered).size,21,'Base and supplemental registrations must not shadow each other.');
+  const cases=buildAccountCases(),declared=[...new Set(cases.flatMap(row=>row.expected.requiredTools))];
+  assert.deepEqual(declared.sort(),registered.sort());
+  const actualFileCases=cases.filter(row=>row.expected.requiredTools.includes('dtmSubmissions'));
+  assert.equal(actualFileCases.length,1,'Declared actual-file intent is not evidence of executable fixtures or successful model coverage.');
+  const trackerBoundary=cases.find(row=>row.id==='account:actual-file-submission-gap');
+  assert.ok(trackerBoundary);assert.equal(trackerBoundary.capability.gap,true);
+  assert.equal(trackerBoundary.expected.behavior,'unavailable');assert.equal(trackerBoundary.fixtureKey,'submissions');
+  assert.deepEqual(actualFileCases,[trackerBoundary]);
+  assert.deepEqual(trackerBoundary.expected.requiredTools,['assignments','dtm','dtmSubmissions']);
+  assert.match(trackerBoundary.capability.limitation,/unsupported fixture setup failure/,
+    'This required reader remains an execution gap until independently committed-file and revision-review fixtures exist.');
+  const snapshot=fixtureForCase(trackerBoundary);
+  assert.equal(snapshot.assignments.find(row=>row.title==='Reading response')?.status,'submitted');
+  assert.equal(Object.hasOwn(snapshot,'dtmSubmissions'),false,'Tracker status must not fabricate actual committed files or reviews.');
+  assert.throws(()=>fixtureForCase('dtmSubmissions'),/Unknown evaluation fixture/);
+});
+test('declared supplemental tools do not erase unavailable workflows or unbound catalog fixtures',()=>{
+  const cases=buildAccountCases();
+  for(const id of ['fees-monthly-history-gap','academic-gpa-gap','academic-current-gap','academic-transfer-gap','academic-cycle-gap','attendance-weekly-gap','enrollment-certificate-gap','tuition-summer-file-gap','tuition-extended-gap','action-upload-gap']){
+    const item=cases.find(row=>row.id==='account:'+id);assert.ok(item,id);
+    assert.equal(item.capability.gap,true,id);assert.equal(item.expected.behavior,'unavailable',id);
+    assert.equal(item.expected.limitation,true,id);assert.ok(item.capability.limitation,id);
+  }
+  const pendingCatalog=cases.filter(row=>row.domain==='courseCatalog');assert.equal(pendingCatalog.length,5);
+  for(const item of pendingCatalog){
+    assert.equal(item.fixtureRequirement,'published_catalog_binding',item.id);
+    assert.equal(item.capability.gap,true,item.id);assert.equal(item.expected.behavior,'unavailable',item.id);
+    assert.deepEqual(item.expected.facts,[],item.id+' cannot claim published facts before independent binding.');
+  }
 });
 test('relative deadlines and meeting fixtures rebase to the chosen Taipei evaluation clock',()=>{
   const now='2027-01-31T17:00:00Z',s=buildAccountFixture({now}),dates=evaluationDates(now);

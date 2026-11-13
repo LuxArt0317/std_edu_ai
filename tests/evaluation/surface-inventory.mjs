@@ -2,7 +2,7 @@ import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import ts from 'typescript';
 import {schoolServiceEntries} from '../../src/features/public/affairs/studentServices.js';
-import {accountTools} from '../../server/answerVerificationAccount.js';
+import {accountTools,supplementalAccountTools} from '../../server/answerVerificationAccount.js';
 import {academicGradesPaths} from '../../server/academicGrades.js';
 import {graduationReviewPaths} from '../../server/graduationReview.js';
 import {academicAttendancePaths} from '../../server/academicAttendance.js';
@@ -67,7 +67,7 @@ export async function discoverSurfaces() {
     ...[...new Set(publicPages.map(row=>new URL(row.source).hostname))].sort().map(host=>publicFamily('public:'+host,publicPages.filter(row=>new URL(row.source).hostname===host).map(row=>row.route))),
   ];
   const value={version:2,services:schoolServiceEntries.map(({id,title,section,group,kind,localUrl})=>({id,title,section,group,kind,route:localUrl})),
-    tools:Object.entries(accountTools).map(([id,description])=>({id,description})),routeFamilies,publicPages,
+    tools:Object.entries({...accountTools,...supplementalAccountTools}).map(([id,description])=>({id,description})),routeFamilies,publicPages,
     coverageLimits:[
       'A route appearing in an API question or link is semantic/navigation coverage, not browser acceptance.',
       'Public capture title/date questions test page context only; source-content question coverage is separate.',

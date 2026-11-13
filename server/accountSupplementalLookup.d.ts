@@ -1,0 +1,13 @@
+import type {VerificationProgress} from './answerVerification.js';
+import type {CatalogEvidenceQuery} from './accountCatalogEvidence.js';
+import type {SupplementalEvidenceResult} from './supplementalAccountAnswers.js';
+export type SupplementalAccountTool='courseCatalog'|'enrollmentCertificate'|'dtmSubmissions'|'tuition';
+export type SupplementalAccountReadContext={question:string;route:string;history:Array<{role:string;content:string}>;snapshot:Record<string,any>;deadline:number;catalogQuery?:CatalogEvidenceQuery};
+export type SupplementalAccountReaders=Partial<Record<SupplementalAccountTool,(context:SupplementalAccountReadContext)=>Promise<SupplementalEvidenceResult>>>;
+export const supplementalAccountTools:Readonly<Record<SupplementalAccountTool,string>>;
+export const supplementalEvidenceBudget:54000;
+export const catalogReadPlanSchema:Record<string,unknown>;
+export function requiredSupplementalTools(question:string,route?:string,history?:Array<{role:string;content:string}>):SupplementalAccountTool[];
+export function validateCatalogReadPlan(value:unknown):CatalogEvidenceQuery|null;
+export function boundSupplementalResults(results:readonly SupplementalEvidenceResult[],budget?:number):SupplementalEvidenceResult[];
+export function readSupplementalLookups(options:{tools:string[];readers?:SupplementalAccountReaders;question:string;route?:string;history?:Array<{role:string;content:string}>;snapshot:Record<string,any>;deadline:number;attempt?:number;catalogQuery?:CatalogEvidenceQuery|null;onProgress?:(step:VerificationProgress)=>void}):Promise<SupplementalEvidenceResult[]>;

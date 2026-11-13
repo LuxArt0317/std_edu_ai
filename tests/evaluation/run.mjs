@@ -3,7 +3,9 @@ import {createReadStream} from 'node:fs';
 import {resolve,relative,dirname} from 'node:path';
 import {pathToFileURL,fileURLToPath} from 'node:url';
 import {createHash,randomUUID} from 'node:crypto';
+import {setTimeout as delay} from 'node:timers/promises';
 import {execFileSync} from 'node:child_process';
+import {isDeepStrictEqual} from 'node:util';
 import {discoverSurfaces} from './surface-inventory.mjs';
 import {buildPublicCases} from './public-cases.mjs';
 import {buildServiceCases} from './service-cases.mjs';
@@ -16,16 +18,40 @@ process.umask(0o077);
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const hash=value=>createHash('sha256').update(typeof value==='string'?value:JSON.stringify(value)).digest('hex');
 export function options(args){
-  const result={mode:'inventory',only:'',domain:'',now:new Date().toISOString(),origin:'https://stu.best',maxCases:Infinity};
+  const result={mode:'inventory',only:'',domain:'',now:new Date().toISOString(),origin:'https://stu.best',maxCases:Infinity,intervalMs:5500};
   for(let i=0;i<args.length;i++){
     const key=args[i];
-    if(!['--mode','--only','--domain','--now','--origin','--out','--fixture-module','--max-cases','--browser-acceptance'].includes(key)||!args[i+1]||args[i+1].startsWith('--'))throw new Error('Unknown or incomplete option: '+key);
-    const value=args[++i];result[{'--fixture-module':'fixtureModule','--max-cases':'maxCases','--browser-acceptance':'browserAcceptance'}[key]||key.slice(2)]=value;
+    if(!['--mode','--only','--domain','--now','--origin','--out','--fixture-module','--max-cases','--browser-acceptance','--interval-ms'].includes(key)||!args[i+1]||args[i+1].startsWith('--'))throw new Error('Unknown or incomplete option: '+key);
+    const value=args[++i];result[{'--fixture-module':'fixtureModule','--max-cases':'maxCases','--browser-acceptance':'browserAcceptance','--interval-ms':'intervalMs'}[key]||key.slice(2)]=value;
   }
   if(!['inventory','retrieval','draft','live'].includes(result.mode))throw new Error('Mode must be inventory, retrieval, draft or live.');
   if(!Number.isFinite(Date.parse(result.now)))throw new Error('Provide an ISO evaluation time.');
   if(result.maxCases!==Infinity){result.maxCases=Number(result.maxCases);if(!Number.isInteger(result.maxCases)||result.maxCases<1)throw new Error('max-cases must be a positive integer.');}
+  result.intervalMs=Number(result.intervalMs);
+  if(!Number.isSafeInteger(result.intervalMs)||result.intervalMs<5500||result.intervalMs>60000)throw new Error('interval-ms must be an integer from 5500 to 60000.');
   return result;
+}
+/** Serial request starts stay below the public handler's12/minute limit even
+ * when a private question delegates to it. No response is retried or erased. */
+export function createLiveRequestPacer(intervalMs=5500,{now=()=>performance.now(),sleep=(ms,signal)=>delay(ms,undefined,{signal})}={}){
+  if(!Number.isSafeInteger(intervalMs)||intervalMs<5500||intervalMs>60000)throw new Error('Invalid live pacing interval.');
+  let previous=null;
+  return async (start,signal)=>{
+    if(typeof start!=='function')throw new Error('Live pacing requires a request callback.');
+    signal?.throwIfAborted();const current=now();
+    if(!Number.isFinite(current)||previous!==null&&current<previous)throw new Error('Live pacing clock must be monotonic.');
+    const target=previous===null?current:previous+intervalMs;let observed=current,waited=0;
+    while(observed<target){
+      const remaining=Math.ceil(target-observed);await sleep(remaining,signal);waited+=remaining;
+      signal?.throwIfAborted();const resumed=now();
+      if(!Number.isFinite(resumed)||resumed<=observed)throw new Error('Live pacing did not reach its scheduled start.');
+      observed=resumed;
+    }
+    signal?.throwIfAborted();
+    // Invoke the actual request in this same continuation. A timestamp before
+    // returning to the caller could undercount delays before fetch starts.
+    try{return start(waited);}finally{previous=now();}
+  };
 }
 export async function sourceIdentity(){
   const sourceRevision=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
@@ -41,6 +67,85 @@ export async function evaluationSuite(now){
   const ids=new Set();
   for(const item of cases){if(!item.id||ids.has(item.id))throw new Error('Duplicate or missing case ID: '+item.id);ids.add(item.id);}
   return {inventory,cases,suiteHash:hash(cases)};
+}
+/** Bind fixed catalog templates before model evaluation. An adapter may only
+ * replace the requested catalog facts; all other case identities stay intact. */
+export function validateCatalogCaseBinding(templates,result){
+  const exact=(value,keys)=>value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).sort().join(',')===[...keys].sort().join(',');
+  const strings=value=>Array.isArray(value)&&value.every(item=>typeof item==='string'&&item.trim()&&item.length<=2000);
+  const matchers=value=>Array.isArray(value)&&value.length<=100&&value.every(item=>strings([item])||exact(item,['anyOf'])&&strings(item.anyOf)&&item.anyOf.length>0&&item.anyOf.length<=100);
+  if(!Array.isArray(templates)||new Set(templates.map(row=>row.id)).size!==templates.length)throw new Error('Invalid catalog templates.');
+  if(!exact(result,['cases','binding'])||!Array.isArray(result.cases)||result.cases.length!==templates.length)throw new Error('Invalid catalog case binding.');
+  const binding=result.binding;
+  if(!exact(binding,['version','digest','selected','unavailable'])||binding.version!==1||!/^[a-f0-9]{64}$/.test(binding.digest)||!Array.isArray(binding.selected)||!Array.isArray(binding.unavailable))throw new Error('Invalid catalog binding manifest.');
+  const targets=new Set(templates.filter(row=>row.fixtureRequirement==='published_catalog_binding').map(row=>row.id)),seen=new Set();
+  for(const row of binding.selected){
+    if(!exact(row,['caseId','offeringId','offeringVersion','syllabusVersion','syllabusDigest','publishedSearchRevision'])||!targets.has(row.caseId)||seen.has(row.caseId)
+      ||!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(row.offeringId)
+      ||!(row.offeringVersion===null||Number.isSafeInteger(row.offeringVersion)&&row.offeringVersion>0)||row.syllabusVersion!==null
+      ||!(row.syllabusDigest===null||/^[a-f0-9]{64}$/.test(row.syllabusDigest))||!/^[a-f0-9]{32}$/.test(row.publishedSearchRevision))throw new Error('Invalid selected published binding.');
+    seen.add(row.caseId);
+  }
+  for(const row of binding.unavailable){
+    if(!exact(row,['caseId','reason'])||!targets.has(row.caseId)||seen.has(row.caseId)||!/^[a-z][a-z0-9_]{0,60}$/.test(row.reason))throw new Error('Invalid unavailable catalog binding.');
+    seen.add(row.caseId);
+  }
+  if(seen.size!==targets.size||Buffer.byteLength(JSON.stringify(binding),'utf8')>64000)throw new Error('Incomplete or excessive catalog binding manifest.');
+  const changes=new Set(['question','route','expected','capability']);
+  const chosen=new Map(binding.selected.map(row=>[row.caseId,row]));
+  const mixedOracle=buildAccountCases().find(row=>row.id==='account:unfinished-assignments').expected;
+  for(let index=0;index<templates.length;index++){
+    const original=templates[index],bound=result.cases[index];
+    if(!bound||bound.id!==original.id||typeof bound.question!=='string'||!bound.question.trim()||bound.question.length>2000||typeof bound.route!=='string'||bound.route.length>3100)throw new Error('Catalog binding changed case identity.');
+    const unchanged=row=>Object.fromEntries(Object.entries(row).filter(([key])=>!changes.has(key)));
+    if(!isDeepStrictEqual(unchanged(original),unchanged(bound))||!targets.has(original.id)&&!isDeepStrictEqual(original,bound))throw new Error('Catalog binding changed an unrelated case.');
+    if(!targets.has(original.id))continue;
+    const selected=chosen.get(original.id);
+    if(!selected){if(!isDeepStrictEqual(original,bound))throw new Error('Unavailable catalog templates must remain unchanged.');continue;}
+    const empty=original.mode==='empty',mixed=original.expected.requiredTools?.includes('dtm'),expected=bound.expected;
+    const path='/school-affairs/services/12-4?'+(original.id==='account:catalog-null-weight'?'syllabus':'course')+'='+selected.offeringId;
+    if(original.domain!=='courseCatalog'||!['record','empty'].includes(original.mode)||original.fixtureKey==='anonymous'
+      ||bound.route!==path||!bound.question.toLowerCase().includes(selected.offeringId.toLowerCase())
+      ||!exact(bound.capability,['level','gap','limitation'])||bound.capability.level!=='native'||bound.capability.gap!==false||!strings([bound.capability.limitation])
+      ||!exact(expected,['behavior','requiredText','forbiddenText','requiredLinks','requiredTools','provenance','facts',...(empty?['limitation']:[]),...(mixed?['exactLists']:[])])
+      ||expected.behavior!==(empty?'unavailable':'answer')||expected.provenance!=='sample'
+      ||!isDeepStrictEqual(expected.requiredTools,original.expected.requiredTools)||!expected.requiredTools.includes('courseCatalog')
+      ||!isDeepStrictEqual(expected.requiredLinks,[path,...(mixed?['/dtm/assignments']:[])])
+      ||!strings(expected.requiredText)||!matchers(expected.forbiddenText)
+      ||!['Your enrollment is confirmed','You are officially enrolled'].every(text=>expected.forbiddenText.includes(text))
+      ||!Array.isArray(expected.facts)||expected.facts.length>20)throw new Error('Catalog binding weakened the source or answer contract.');
+    if(empty){
+      if(expected.limitation!==true||expected.facts.length||selected.offeringVersion!==null||selected.syllabusDigest!==null)throw new Error('Catalog absence must retain its independent empty-detail contract.');
+    }else{
+      if(selected.offeringVersion===null||selected.syllabusDigest===null||!expected.facts.length)throw new Error('Published catalog answers require versioned independent facts.');
+      for(const fact of expected.facts){
+        if(!fact||typeof fact!=='object'||Array.isArray(fact)||Object.keys(fact).some(key=>!['label','labels','kind','values'].includes(key))
+          ||!strings([fact.label])||!strings(fact.labels||[])||!['text','number','date'].includes(fact.kind)||!Array.isArray(fact.values)||!fact.values.length
+          ||fact.values.some(value=>!(typeof value==='number'&&Number.isFinite(value)||typeof value==='string'&&value.trim()||exact(value,['anyOf'])&&strings(value.anyOf)&&value.anyOf.length)))throw new Error('Invalid independent catalog fact.');
+      }
+      const hasFact=label=>expected.facts.some(fact=>fact.label===label&&fact.values.length);
+      if(!hasFact('code')||!expected.requiredText.length)throw new Error('Published catalog identity fact is required.');
+      if(['account:catalog-known-fields','account:catalog-mixed-dtm','service:12-4:record'].includes(original.id)&&(!hasFact('teacher')||!hasFact('credits')))throw new Error('Catalog teacher and credit facts cannot be dropped.');
+      if(original.id==='account:catalog-null-weight'&&!expected.facts.some(fact=>/^grading row [1-9]\d*$/.test(fact.label)&&fact.values.some(value=>exact(value,['anyOf'])&&value.anyOf.includes('not recorded'))))throw new Error('Catalog null-weight expectation cannot become a zero or generic fact.');
+      if(original.id==='account:catalog-enrollment-distinction'&&(!expected.facts.some(fact=>fact.label==='enrollment'&&fact.values.some(value=>exact(value,['anyOf'])&&value.anyOf.includes('does not prove')))
+        ||!expected.forbiddenText.some(value=>exact(value,['anyOf'])&&value.anyOf.includes('the listing confirms your enrollment'))))throw new Error('Published catalog facts cannot replace the explicit negative enrollment-inference oracle.');
+    }
+    if(mixed){
+      const lists=expected.exactLists;
+      if(!mixedOracle.requiredText.every(text=>expected.requiredText.includes(text))||!Array.isArray(lists)||lists.length!==1
+        ||!exact(lists[0],['label','expected','forbidden'])||!strings([lists[0].label])
+        ||!isDeepStrictEqual(lists[0].expected,mixedOracle.exactLists[0].expected)||!isDeepStrictEqual(lists[0].forbidden,mixedOracle.exactLists[0].forbidden))throw new Error('Mixed catalog binding dropped the independent Moodle oracle.');
+    }
+  }
+  return structuredClone(result);
+}
+/** Missing public fixtures remain setup failures, even if an adapter would
+ * otherwise return a token. Never spend a model request on an unbound oracle. */
+export function assertCatalogCaseBound(testCase,report){
+  if(testCase.fixtureRequirement!=='published_catalog_binding')return;
+  if(report.bindingPending!==false||report.catalogBinding?.unavailable?.some(row=>row.caseId===testCase.id)
+    ||!report.catalogBinding?.selected?.some(row=>row.caseId===testCase.id)
+    ||!report.boundCatalogCases?.some(row=>isDeepStrictEqual(row,testCase)))throw new Error('Published catalog binding is unavailable; this case remains an unexecuted setup failure.');
 }
 async function saveReport(path,report){
   await mkdir(dirname(path),{recursive:true,mode:0o700});
@@ -118,6 +223,7 @@ export function assessRun(report,{cases,inventory,requestedSuite,sourceRevision,
   if(report.sourceUnchanged!==true)integrity.push({id:'run.sourceChanged',detail:'Release inputs changed during evaluation.'});
   if(report.dirty!==false)integrity.push({id:'run.dirtySource',detail:'The evaluated source has uncommitted changes.'});
   if(report.mode==='live'&&(!report.deployment?.verified||report.deployment.sourceRevision!==sourceRevision))integrity.push({id:'run.deploymentMismatch',detail:'The target deployment could not be matched to the evaluated source revision.'});
+  if(report.bindingPending===true)integrity.push({id:'run.catalogBindingPending',detail:'Required published catalog expectations were not bound before model evaluation.'});
   assessment.integrity={passed:integrity.length===0,failures:integrity};
   assessment.failures.push(...integrity);
   if(integrity.length){assessment.releaseReady=false;assessment.passed=false;assessment.releaseBlockers.push(...integrity.map(row=>row.id));}
@@ -125,7 +231,7 @@ export function assessRun(report,{cases,inventory,requestedSuite,sourceRevision,
 }
 export async function main(args=process.argv.slice(2)){
   const opt=options(args),identity=await sourceIdentity(),suite=await evaluationSuite(opt.now),runId=randomUUID();
-  const selected=suite.cases.filter(row=>(!opt.only||row.id.startsWith(opt.only))&&(!opt.domain||row.domain===opt.domain)).slice(0,opt.maxCases);
+  let selected=suite.cases.filter(row=>(!opt.only||row.id.startsWith(opt.only))&&(!opt.domain||row.domain===opt.domain)).slice(0,opt.maxCases);
   if(!selected.length)throw new Error('No cases match.');
   const out=resolve(root,opt.out||`artifacts/assistant-evaluation/${opt.mode}-${runId}.json`);
   if(relative(resolve(root,'artifacts/assistant-evaluation'),out).startsWith('..')||!out.endsWith('.json'))throw new Error('Reports must be JSON under artifacts/assistant-evaluation.');
@@ -136,6 +242,7 @@ export async function main(args=process.argv.slice(2)){
     browserAcceptance=JSON.parse(contents);
   }
   const report={version:1,runId,mode:opt.mode,startedAt:new Date().toISOString(),evaluationTime:opt.now,...identity,suiteHash:suite.suiteHash,inventoryHash:suite.inventory.hash,
+    pacing:{minimumRequestStartIntervalMs:opt.intervalMs,automaticRequestRetries:0},
     browserEvidence:browserAcceptance?{sha256:hash(browserAcceptance),sourceRevision:browserAcceptance.sourceRevision}:null,
     selectedCases:selected.map(row=>row.id),totalCases:suite.cases.length,inventory:suite.inventory,results:[],cleanup:{required:opt.mode==='live',complete:opt.mode!=='live'}};
   if(opt.mode==='inventory'){
@@ -143,34 +250,48 @@ export async function main(args=process.argv.slice(2)){
     await saveReport(out,report);console.log(JSON.stringify({mode:opt.mode,cases:suite.cases.length,services:suite.inventory.services.length,tools:suite.inventory.tools.length,publicPages:suite.inventory.publicPages.length,report:relative(root,out),releaseReady:false}));return report;
   }
   const controller=new AbortController();const interrupt=()=>controller.abort();process.once('SIGINT',interrupt);process.once('SIGTERM',interrupt);
-  let adapter;
+  let adapter;const pace=createLiveRequestPacer(opt.intervalMs);
   try{
     if(opt.mode==='live'){
       const config=JSON.parse(await readFile(resolve(root,'deployment.json'),'utf8')),origin=new URL(opt.origin);
       if(origin.origin!==config.vercel.productionUrl&&!['127.0.0.1','localhost'].includes(origin.hostname))throw new Error('Live evaluation must target the exact configured client origin or loopback.');
       report.deployment=await deploymentIdentity(opt.origin,controller.signal);
+      report.bindingPending=selected.some(row=>row.fixtureRequirement==='published_catalog_binding');
+      if(report.bindingPending){report.templateSuiteHash=report.suiteHash;report.suiteHash=null;}
+      await saveReport(out,report);
       if(opt.fixtureModule){
         const modulePath=resolve(root,opt.fixtureModule);
         if(relative(resolve(root,'tests/evaluation'),modulePath).startsWith('..'))throw new Error('Fixture adapters must be repository evaluation modules.');
         adapter=await import(pathToFileURL(modulePath).href);
         validateFixtureAdapter(adapter);
         await adapter.prepare({runId,cases:selected,now:opt.now,origin:opt.origin,signal:controller.signal});
+        if(report.bindingPending&&typeof adapter.bindCatalogCases==='function'){
+          const bound=validateCatalogCaseBinding(selected,await adapter.bindCatalogCases(structuredClone(selected),{signal:controller.signal}));
+          selected=bound.cases;const replacements=new Map(selected.map(row=>[row.id,row]));
+          suite.cases=suite.cases.map(row=>replacements.get(row.id)||row);suite.suiteHash=hash(suite.cases);
+          report.suiteHash=suite.suiteHash;report.catalogBinding=bound.binding;report.bindingPending=false;
+          report.boundCatalogCases=structuredClone(selected.filter(row=>row.fixtureRequirement==='published_catalog_binding'));
+          // Concrete questions/oracles are fixed and persisted before any
+          // assistant call. Missing bindings retain their original case IDs.
+          await saveReport(out,report);
+        }
       }else if(selected.some(row=>row.fixtureKey!=='anonymous'))throw new Error('Signed-in live cases require an explicit disposable fixture adapter; no real account is inferred.');
     }
     const modules=opt.mode==='draft'||opt.mode==='retrieval'?await Promise.all([import('../../server/affairsAnswer.js'),import('../../server/answerVerificationAccount.js'),import('../../server/schoolAffairsDirectory.js')]):null;
     for(const testCase of selected){
       if(controller.signal.aborted)break;
-      const started=Date.now();let envelope,fixtureReady=false,executed=false,phase='setup';
+      const started=Date.now();let envelope,fixtureReady=false,executed=false,phase='setup',pacingWaitMs=0;
       try{
         if(opt.mode==='live'){
+          assertCatalogCaseBound(testCase,report);
           const context=testCase.fixtureKey==='anonymous'?{}:await adapter.forCase(testCase,{signal:controller.signal});
           fixtureReady=testCase.fixtureKey!=='anonymous';
           if(testCase.fixtureKey!=='anonymous'&&typeof context.token!=='string')throw new Error('Private live fixture did not supply its own session.');
           const endpoint=testCase.endpoint||(testCase.fixtureKey==='anonymous'?'/api/research-assistant':'/api/affairs-assistant');
           if(!['/api/research-assistant','/api/affairs-assistant'].includes(endpoint))throw new Error('Unsupported evaluation endpoint.');
-          phase='infrastructure';executed=true;
-          const response=await fetch(new URL(endpoint,opt.origin),{method:'POST',redirect:'error',headers:{'Content-Type':'application/json',...(context.token?{Authorization:'Bearer '+context.token}:{})},
-            body:JSON.stringify({question:testCase.question,history:testCase.history||[],route:testCase.route,stream:true,consentedResearchUse:false}),signal:AbortSignal.any([controller.signal,AbortSignal.timeout(65000)])});
+          phase='infrastructure';
+          const response=await pace(waited=>{pacingWaitMs=waited;executed=true;return fetch(new URL(endpoint,opt.origin),{method:'POST',redirect:'error',headers:{'Content-Type':'application/json',...(context.token?{Authorization:'Bearer '+context.token}:{})},
+            body:JSON.stringify({question:testCase.question,history:testCase.history||[],route:testCase.route,stream:true,consentedResearchUse:false}),signal:AbortSignal.any([controller.signal,AbortSignal.timeout(65000)])});},controller.signal);
           envelope={statusCode:response.status,...await readReply(response),execution:'live-model',fixtureKey:testCase.fixtureKey,sourceRevision:report.deployment.sourceRevision};
           const expectedStatus=testCase.expected.expectedStatusCode||testCase.expected.statusCode;
           if(response.status>=500||response.status===429||envelope.body?.error&&response.status!==expectedStatus)envelope.failureKind='infrastructure';
@@ -194,6 +315,7 @@ export async function main(args=process.argv.slice(2)){
         }
       }
       envelope.elapsedMs=Date.now()-started;
+      envelope.pacingWaitMs=pacingWaitMs;
       envelope.executed=executed;
       const result=gradeCase(testCase,envelope);report.results.push({...result,executed,failureKind:envelope.failureKind||(result.passed?null:'behavior'),response:envelope});
       console.log(JSON.stringify({case:testCase.id,passed:result.passed,failures:result.failures.map(row=>row.id),ms:envelope.elapsedMs}));

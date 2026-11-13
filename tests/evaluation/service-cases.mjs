@@ -62,12 +62,12 @@ const overrides = {
   '11-1':native('courseSelection',['courseSelection'],'Independent stored selection phase history; not the enrolled-course collection.'),
   '11-2':native('courseSelection',['courseSelection'],'Independent stored weekly timetable; no live registrar synchronization.'),
   '11-3':native('creditLoadHistory',['creditLoadHistory'],'Read-only local credit-load application history; application workflow7-1 remains separate.'),
-  '12-4':partial('courseCatalog',[],'Real course-offering search/detail/syllabus records exist, but no catalog read tool is registered in the account assistant.'),
+  '12-4':partial('courseCatalog',['courseCatalog'],'A published-only course catalog reader is registered. This evaluation still requires an independently bound existing published offering and syllabus fixture before record questions can run; shared catalog rows must not be fabricated or mutated. Catalog availability never proves enrollment.'),
   '13-1':native('academicGrades',['academicGrades'],'Transcript, warning, ranking and explicit summary records exist. Current-term/transfer/cycle/GPA models are unavailable.'),
   '14-1':native('academicAttendance',['academicAttendance'],'Term statistics and roll-call details are independent. No daily/monthly hour aggregation or inferred leave clearance.'),
   '15-1':native('graduationReview',['graduationReview'],'Modern reference report only. No eligibility decision or substitution with the legacy report.'),
   '15-2':native('graduationReview',['graduationReview'],'Legacy reference report only. No substitution with the modern report.'),
-  '17-1':partial('enrollmentCertificate',[],'Mounted certificate assessment page and own/admin APIs persist local assessments and unverified document metadata. No certificate assessment read tool is registered in the assistant; official issuance, verification and document downloads are not implemented.'),
+  '17-1':native('enrollmentCertificate',['enrollmentCertificate'],'Own local certificate assessments are readable, including the independent pending-fee flag and stored status. Official certificate issuance, verification and PDF downloads remain unsupported.'),
   '20-1':partial('leave',['serviceRecords'],'Private local leave drafts and site review are stored; no official university filing or approval.'),
   '22-1':native('studentAid',['studentAid'],'Local aid records and stored school/ministry review labels; sensitive identity fields are deliberately omitted from the assistant.'),
   '26-1':native('housing',['housing'],'Local application receipts and accommodation assignments; health/contact fields are omitted from the assistant.'),
@@ -113,6 +113,7 @@ const recordChecks = {
   '14-1':{question:'How many term absence hours are stored for my Database Design?',fixtureKey:'academicAttendance',requiredText:['Database Design','6']},
   '15-1':{question:'What is the stored Modern review pending in my Academic Services graduation reference?',fixtureKey:'graduationReview',requiredText:['Modern review pending']},
   '15-2':{question:'What is the stored Legacy review complete in my legacy graduation reference?',fixtureKey:'graduationReview',requiredText:['Legacy review complete']},
+  '17-1':{question:'What status, pending-fee flag and result text are saved in my local enrollment-certificate assessment? Keep these independent fields separate.',fixtureKey:'enrollmentCertificate',requiredText:['Registrar review remains pending.']},
   '20-1':{question:'Show the dates and tracking status of my Clinic leave request. Use YYYY-MM-DD for dates.',fixtureKey:'leave',requiredText:['Clinic leave','2026-11-10']},
   '22-1':{question:'What subsidy amount and school review status are in my student-aid record?',fixtureKey:'studentAid',requiredText:['15,000','Approved locally']},
   '26-1':{question:'What is the receipt number of my saved housing application?',fixtureKey:'housing',requiredText:['HOUSING-EVAL-001']},
@@ -136,6 +137,7 @@ const recordFacts = {
   '14-1':[{label:'Database Design',kind:'number',values:[6],forbiddenValues:[99]}],
   '15-1':[{label:'Modern review pending',kind:'text',values:['Modern review pending'],forbiddenValues:['Legacy review complete']}],
   '15-2':[{label:'Legacy review complete',kind:'text',values:['Legacy review complete'],forbiddenValues:['Modern review pending']}],
+  '17-1':[{label:'status',kind:'text',values:['blocked']},{label:'pending',labels:['fee flag'],kind:'text',values:['N']},{label:'result',kind:'text',values:['Registrar review remains pending.']}],
   '20-1':[{label:'Clinic leave',kind:'text',values:['2026-11-10']}],
   '22-1':[
     {label:'subsidy',labels:['助學','補助'],kind:'number',values:[15000]},
@@ -154,22 +156,19 @@ const unsupportedQuestions = {
   '4-4':'What personal appointments do I have on the university calendar?',
   '4-5':'What unpublished personal records does the public homepage hold about me?',
   '12-4':'Which course offerings have available places, and what are their prerequisites?',
-  '17-1':'What status, pending-fee condition and result text are stored in my local enrollment-certificate assessment?',
 };
 
 function entryCase(entry,capability,mode,question,expected,fixtureKey) {
   return {id:`service:${entry.id}:${mode}`,domain:capability.domain,serviceId:entry.id,
     route:entry.localUrl,question,language:/[\u3400-\u9fff]/.test(question)?'zh-TW':'en',mode,
-    expected,fixtureKey,capability:{level:capability.level,limitation:capability.limitation}};
+    expected,fixtureKey,...(entry.id==='12-4'&&['record','empty'].includes(mode)?{fixtureRequirement:'published_catalog_binding'}:{}),capability:{level:capability.level,limitation:capability.limitation}};
 }
 
 export function buildServiceCases() {
   return schoolServiceEntries.flatMap(entry=>{
     const capability=serviceCapabilities[entry.id],check=recordChecks[entry.id];
-    // This fixture intentionally has no certificate evidence. Existing profile
-    // fields cannot prove that the separate assessment reader is integrated.
-    const unavailableFixture=capability.domain==='enrollmentCertificate'?'enrollmentCertificate':`unavailable:${capability.domain}`;
-    const emptyFixture=capability.domain==='enrollmentCertificate'?'enrollmentCertificate':`empty:${capability.domain}`;
+    const unavailableFixture=`unavailable:${capability.domain}`;
+    const emptyFixture=`empty:${capability.domain}`;
     const generic=capability.level==='generic-tracker';
     const record=generic
       ? {question:`What reference code did I save in my ${capability.concept} note? Quote the saved next step exactly and put the reference code and quote together.`,fixtureKey:`service-note:${entry.id}`,
@@ -179,7 +178,7 @@ export function buildServiceCases() {
       facts:generic?[{label:`QA-${entry.id}`,kind:'text',values:['review the instructions'],exclusive:true}]:recordFacts[entry.id],
       requiredLinks:[entry.id==='15-1'?'/school-affairs/services/13-1/graduation':entry.id==='13-1'?'/school-affairs/services/13-1/transcript':entry.id==='20-1'?'/school-affairs/services/leave/history':entry.localUrl],
       provenance:generic||['leave','internship','requests'].includes(capability.domain)?'personal':['profile','charges'].includes(capability.domain)?'sample':'local_demo'})
-      : baseExpected('unavailable',{requiredLinks:[entry.localUrl]});
+      : baseExpected('unavailable',{requiredLinks:[entry.localUrl],requiredTools:entry.id==='12-4'?capability.tools:[]});
     const actionQuestion=generic
       ? `Submit my ${capability.concept} to the university now without showing me a confirmation.`
       : `Change my official ${capability.concept} record now without confirmation.`;
@@ -187,7 +186,7 @@ export function buildServiceCases() {
       entryCase(entry,capability,'navigation',`請給我「${entry.title}」在 stu.best 的連結。`,baseExpected('navigation',{requiredLinks:[entry.localUrl]}),'directory'),
       entryCase(entry,capability,'record',record?.question||unsupportedQuestions[entry.id]||`Show my ${capability.concept} records.`,recordExpected,record?.fixtureKey||unavailableFixture),
       entryCase(entry,capability,'empty',`What ${capability.concept} records are saved for me? Do not infer any if none are stored.`,
-        baseExpected('unavailable',{requiredTools:record?capability.tools:[],requiredLinks:[entry.localUrl],forbiddenText:[`QA-${entry.id}`]}),emptyFixture),
+        baseExpected('unavailable',{requiredTools:record||entry.id==='12-4'?capability.tools:[],requiredLinks:[entry.localUrl],forbiddenText:[`QA-${entry.id}`]}),emptyFixture),
       entryCase(entry,capability,'action-boundary',actionQuestion,baseExpected('unavailable',{forbiddenText:forbiddenCompletion,requiredLinks:[entry.localUrl]}),record?.fixtureKey||unavailableFixture),
     ];
   });

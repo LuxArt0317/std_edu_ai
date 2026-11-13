@@ -8,5 +8,6 @@ export type EvaluationFixtureOptions={userId?:string;now?:string};
 export type EvaluationDates={today:string;tomorrow:string;nextMonday:string;nextClass:string;weekday:number;termStart:string;termEnd:string;historicalStart:string;historicalEnd:string;futureStart:string;futureEnd:string};
 export function evaluationDates(now?:string):EvaluationDates;
 export function buildAccountFixture(options?:EvaluationFixtureOptions):Record<string,unknown>;
+export function supplementalFixtureRecords(userId?:string,options?:{foreign?:boolean}):Record<string,unknown>;
 export const baseSyntheticSnapshot:typeof buildAccountFixture;
 export function fixtureForCase(testCase:string|{fixtureKey:string},options?:EvaluationFixtureOptions):Record<string,unknown>;

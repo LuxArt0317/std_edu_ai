@@ -52,13 +52,9 @@ test('default signed-in public lookup runs the actual local directory handler wi
 });
 
 test('candidate dispatcher forwards only public fields and an allowlisted rate-limit address',async()=>{
-  let calls=0;
+  const requests:Array<Parameters<PublicHandler>[0]>=[];
   const handler=createAffairsAssistantHandler({publicResearch:async(request,response)=>{
-    calls++;
-    assert.equal(request.method,'POST');
-    assert.deepEqual(request.headers,{'content-type':'application/json','x-forwarded-for':'203.0.113.9'});
-    assert.deepEqual(request.body,{...generic,route:'',history:[],images:[{name:'campus.png',dataUrl:'data:image/png;base64,synthetic'}],consentedResearchUse:false,stream:false});
-    assert.doesNotMatch(JSON.stringify(request),/private-course|private-session|secret-cookie|attacker|Bearer|private-note/);
+    requests.push(structuredClone(request));
     response.setHeader('Cache-Control','public, max-age=86400');
     response.setHeader('Set-Cookie','ignored=1');
     response.status(200).json(answer);
@@ -66,7 +62,16 @@ test('candidate dispatcher forwards only public fields and an allowlisted rate-l
   const result=await invoke(handler,{...generic,history:[{role:'assistant',content:'private-course'}],account:{private:'private-note'},sessionToken:'private-session',consentedResearchUse:true,
     images:[{name:'campus.png',dataUrl:'data:image/png;base64,synthetic',privateNote:'private-note'}]},
     {headers:{'x-forwarded-for':'203.0.113.9',host:'attacker.invalid',origin:'https://attacker.invalid','x-forwarded-host':'attacker.invalid',cookie:'secret-cookie'}});
-  assert.equal(calls,1);assert.deepEqual(result.body,answer);
+  // Assert outside the bridge: a fixture assertion thrown inside the handler
+  // becomes its safe503 response and hides the actual public-contract mismatch.
+  assert.equal(requests.length,1);
+  const request=requests[0];
+  assert.equal(request.method,'POST');
+  assert.deepEqual(request.headers,{'content-type':'application/json','x-forwarded-for':'203.0.113.9'});
+  // The validated root route remains '/', retaining the public page context.
+  assert.deepEqual(request.body,{...generic,history:[],images:[{name:'campus.png',dataUrl:'data:image/png;base64,synthetic'}],consentedResearchUse:false,stream:false});
+  assert.doesNotMatch(JSON.stringify(request),/private-course|private-session|secret-cookie|attacker|Bearer|private-note/);
+  assert.deepEqual(result.body,answer);
   assert.equal(result.headers['cache-control'],'no-store, max-age=0');
   assert.equal(result.headers['set-cookie'],undefined);
 });

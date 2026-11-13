@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Let the account assistant query separate published catalog, enrollment-certificate status, Moodle submission metadata and tuition records through caller-scoped tools. Preserve personal enrollment distinctions, bounded evidence/retries and private diagnostic redaction; expand offline evaluation coverage. Deployed real-model acceptance remains required. [#100]
+
 - Add the source-shaped student conduct report, private literal records and administrator maintenance; preserve drafts when the editor is collapsed. Local layout/security tests, rollback preflight and actual-JWT local acceptance pass;200000 is applied. Publishedfcac3c4; deployed six-group actual-JWT/browser acceptance passed with exact cleanup and protected-owner preservation. [#98]
 
 - Improve academic answer verification with fair bounded field guidance and exact course lineage. Preserve long saved answers and observable tool activity, isolate per-chat save failures, and make unsaved state visible. Harden test-fixture recovery and bounded response diagnostics. Migration190000 and runtime772ec95 are deployed; actual-JWT persistence and browser acceptance passed with exact cleanup; native model acceptance remains pending. [#100]

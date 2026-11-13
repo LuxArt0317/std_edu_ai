@@ -1,0 +1,111 @@
+import {isCatalogEvidenceQuestion} from './accountCatalogEvidence.js';
+import {isCertificateEvidenceQuestion} from './accountCertificateEvidence.js';
+import {isSubmissionEvidenceQuestion} from './accountSubmissionEvidence.js';
+import {isTuitionEvidenceQuestion} from './accountTuitionEvidence.js';
+import {normalizeSyllabusSearchQuery} from './syllabusSearch.js';
+import {formatSupplementalAccountAnswers} from './supplementalAccountAnswers.js';
+
+export const supplementalAccountTools=Object.freeze({
+  courseCatalog:'Published local sample course offerings and syllabus plans, independent of enrollment. Supports exact offering IDs and validated keyword/term/department/theme search.',
+  enrollmentCertificate:'Own saved enrollment-certificate assessment, literal independent pending-fee flag/status and individually requested identity fields; no issuance/download capability.',
+  dtmSubmissions:'Own saved DTM assignment file metadata and revision-specific reviews; current files, retained older reviews and pending reservations are distinct. No file content or upload action.',
+  tuition:'Own literal saved tuition settlement statements/periods at49-1, plus explicit unavailable file capabilities at48-1/48-3 and extended-study records at48-2; not charges, balances or payment ledger.',
+});
+const predicates={courseCatalog:isCatalogEvidenceQuestion,enrollmentCertificate:isCertificateEvidenceQuestion,dtmSubmissions:isSubmissionEvidenceQuestion,tuition:isTuitionEvidenceQuestion};
+const keys=Object.keys(supplementalAccountTools),plain=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&[Object.prototype,null].includes(Object.getPrototypeOf(value));
+const bytes=value=>Buffer.byteLength(JSON.stringify(value),'utf8');
+const sourceLimits={courseCatalog:18000,enrollmentCertificate:12000,dtmSubmissions:24000,tuition:16000};
+export const supplementalEvidenceBudget=54000;
+export function requiredSupplementalTools(question,route='',history=[]){return keys.filter(key=>predicates[key](question,route,history));}
+const queryKeys=['id','search_scope','keyword','term','department','themes','page','page_size','sort','direction'];
+export const catalogReadPlanSchema={anyOf:[{type:'null'},{type:'object',additionalProperties:false,properties:Object.fromEntries(queryKeys.map(key=>[key,{type:['string','null'],...(key==='search_scope'?{enum:['current','historical',null]}:key==='direction'?{enum:['asc','desc',null]}:{})}])),required:queryKeys}]};
+/** Only named search fields, never a table/owner/URL. Reader independently
+ * validates the complete route and conflicts before any transport. */
+export function validateCatalogReadPlan(value){
+  if(value===null||value===undefined)return null;
+  if(!plain(value)||Object.keys(value).some(key=>!queryKeys.includes(key)||!(value[key]===null||typeof value[key]==='string')))throw new TypeError('Invalid catalog read selectors.');
+  const query=Object.fromEntries(Object.entries(value).filter(([,value])=>value!==null));
+  if(query.id!==undefined){if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(query.id)||Object.keys(query).length!==1)throw new TypeError('Invalid catalog read selectors.');return query;}
+  if(query.themes&&new Set(query.themes.split(',')).size!==query.themes.split(',').length)throw new TypeError('Invalid catalog read selectors.');
+  const args=normalizeSyllabusSearchQuery({search_scope:'historical',page_size:'20',...query});
+  if(args.p_page_size>50||args.p_page>1000)throw new TypeError('Invalid catalog read selectors.');
+  return query;
+}
+function catalogRouteContext(route,question){
+  const url=new URL(route||'/','https://stu.best');
+  if(url.origin!=='https://stu.best'||!/^\/school-affairs\/services\/(?:12-3|12-4)\/?$/.test(url.pathname))return false;
+  if([...url.searchParams].some(([key,value])=>['course','syllabus','keyword','term','department','themes','yr','dep','search_scope','searched'].includes(key)&&value))return true;
+  return /^(?:show|list|browse)\s+(?:me\s+)?(?:all\s+)?(?:the\s+)?(?:course\s+)?(?:catalog(?:ue)?|offerings?|available courses)\s*[.!?]?$/i.test(question.trim())||/\b(?:this page|this catalog|these offerings)\b|這個頁面|本頁|這些課程/.test(question);
+}
+function unavailable(key,reason){
+  const checkedAt=new Date().toISOString(),common={checkedAt,rules:'This selected lookup is unavailable. No record absence or successful account read can be inferred.'};
+  let payload,url;
+  if(key==='courseCatalog'){url='/school-affairs/services/12-4';payload={...common,collection:'courseCatalog',readState:'unavailable',reason,provenance:{sourceMode:'sample',officialUniversityData:false,enrollmentEvidence:false},rows:[],omittedFields:[],counts:{total:null,returnedRows:null,includedRows:null,complete:false}};}
+  else if(key==='enrollmentCertificate'){url='/school-affairs/services/17-1';payload={...common,collection:'enrollmentCertificate',sourceMode:'local_demo',readState:'unavailable',assessment:null};}
+  else if(key==='dtmSubmissions'){url='/dtm';payload={...common,officialUniversityData:false,selection:{scope:'unavailable',requiresClarification:false,choices:[]},counts:{available:null,selected:null,requested:null,loaded:null,included:null,omitted:null,unavailable:null},complete:false,records:[],unavailable:[]};}
+  else{url='/school-affairs/services/49-1';payload={...common,collection:'tuition',sourceMode:'local_demo',readState:'unavailable',coverageScope:'selected_settlement_records_and_periods_only',selection:{view:'settlement',requestedViews:['settlement'],scope:'unavailable',requiresClarification:false,choices:[]},serviceAvailability:[{view:'settlement',url,capability:'literal_settlement_records'}],counts:{available:null,matching:null,included:null,omitted:null},complete:false,excerpted:false,records:{periods:[],settlements:[]}};}
+  return {readState:'unavailable',reason,evidence:{id:'account:'+key,title:supplementalAccountTools[key],url,urls:[url],...(['tuition','enrollmentCertificate'].includes(key)?{provenance:'local_demo'}:{}),content:JSON.stringify(payload)}};
+}
+function trimOne(result){
+  const p=JSON.parse(result.evidence.content),key=result.evidence.id.slice(8);
+  if(key==='courseCatalog'&&p.rows.length>1){p.rows.pop();p.counts.includedRows--;p.counts.complete=false;p.readState='partial';p.reason='evidence_budget';result.readState='partial';result.reason='evidence_budget';}
+  else if(key==='dtmSubmissions'){
+    const old=[...p.records].reverse().find(row=>row.reviewedRetiredFiles.length);
+    if(old){old.reviewedRetiredFiles.pop();old.reviewHistory.included--;old.reviewHistory.omitted++;old.reviewHistory.completeRetainedHistory=false;}
+    else if(p.records.length>1){p.records.pop();p.counts.included--;p.counts.omitted++;}
+    else return false;
+    p.complete=false;result.readState='partial';result.reason='evidence_budget';
+  }else if(key==='tuition'&&p.records.periods.length>1){
+    p.records.periods.pop();if(p.records.settlements.length)p.records.settlements.pop();p.counts.included--;p.counts.omitted++;p.complete=false;p.excerpted=true;
+  }else return false;
+  result.evidence.content=JSON.stringify(p);return true;
+}
+/** Whole validated rows/lineage only. Keep one source record where possible;
+ * if even that cannot fit, mark that source unavailable, never empty. */
+export function boundSupplementalResults(input,budget=supplementalEvidenceBudget){
+  if(!Array.isArray(input)||input.length>4||!Number.isSafeInteger(budget)||budget<6000||budget>supplementalEvidenceBudget)throw new TypeError('Invalid supplemental budget.');
+  const results=structuredClone(input);
+  for(const result of results){if(bytes(result)>(sourceLimits[result?.evidence?.id?.slice(8)]||0))throw new TypeError('Invalid supplemental source budget.');formatSupplementalAccountAnswers([result]);}
+  if(new Set(results.map(result=>result.evidence.id)).size!==results.length)throw new TypeError('Duplicate supplemental sources.');
+  while(bytes(results)>budget){
+    const ranked=results.map((result,index)=>({result,index,size:bytes(result)})).sort((a,b)=>b.size-a.size);
+    if(ranked.some(({result})=>trimOne(result)))continue;
+    const candidate=ranked.find(({result})=>result.reason!=='aggregate_evidence_budget');
+    if(!candidate)throw new RangeError('Supplemental metadata exceeds aggregate budget.');
+    results[candidate.index]=unavailable(candidate.result.evidence.id.slice(8),'aggregate_evidence_budget');
+  }
+  return results;
+}
+/** API closures capture verified credentials; this context never carries them.
+ * Two concurrent read-only callbacks share the request's absolute deadline. */
+export async function readSupplementalLookups({tools,readers={},question,route='',history=[],snapshot,deadline,attempt=1,catalogQuery=null,onProgress=()=>{}}){
+  const selected=[...new Set(tools.filter(key=>keys.includes(key)))],results=new Array(selected.length);
+  readers={...readers};history=history.map(row=>({...row}));catalogQuery=catalogQuery===null?null:structuredClone(catalogQuery);
+  let next=0;
+  const emit=(key,status,detail)=>{try{onProgress({kind:`account-read:${key}:${attempt}`,label:(status==='running'?'Reading ':'Checked ')+supplementalAccountTools[key],detail,status});}catch{/* Disconnected progress cannot approve a read. */}};
+  const worker=async()=>{while(next<selected.length){
+    const index=next++,key=selected[index];let timer,result;
+    try{
+      if(!Number.isFinite(deadline)||Date.now()>=deadline)result=unavailable(key,'deadline_exceeded');
+      else if(typeof readers[key]!=='function')result=unavailable(key,'reader_unavailable');
+      else if(key==='courseCatalog'&&catalogQuery===null&&!catalogRouteContext(route,question))result=unavailable(key,'catalog_selection_unavailable');
+      else{
+        const query=key==='courseCatalog'?validateCatalogReadPlan(catalogQuery):null;
+        emit(key,'running','Starting the selected authorized reader. No action is executed.');
+        result=await Promise.race([Promise.resolve().then(()=>readers[key]({question,route,history:history.map(row=>({...row})),snapshot,deadline,...(query===null?{}:{catalogQuery:query})})),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('deadline')),Math.max(1,deadline-Date.now()));})]);
+        result=structuredClone(result);
+        if(result?.evidence?.id!=='account:'+key)throw new TypeError('Reader source mismatch.');
+        if(bytes(result)>sourceLimits[key])throw new TypeError('Reader source exceeds its fixed budget.');
+        formatSupplementalAccountAnswers([result],{question});
+      }
+    }catch{result=unavailable(key,Date.now()>=deadline?'deadline_exceeded':'read_failed');}
+    finally{if(timer!==undefined)clearTimeout(timer);}
+    results[index]=result;
+    const payload=JSON.parse(result.evidence.content),limited=result.readState==='partial'||payload.complete===false||payload.counts?.complete===false||payload.selection?.requiresClarification;
+    emit(key,result.readState==='unavailable'?'unavailable':'complete',result.readState==='unavailable'?'The selected lookup is unavailable. No absent record was inferred.':limited?'The lookup returned limited evidence or requires a choice; omitted records remain unknown.':result.readState==='empty'?'The authorized lookup completed with no matching saved records in its stated scope.':'The selected authorized lookup completed. Only its returned scope can support the answer.');
+  }};
+  await Promise.all(Array.from({length:Math.min(2,selected.length)},worker));
+  const bounded=boundSupplementalResults(results);
+  for(let i=0;i<bounded.length;i++)if(bounded[i].evidence.content!==results[i].evidence.content||bounded[i].readState!==results[i].readState)emit(selected[i],bounded[i].readState==='unavailable'?'unavailable':'complete','The aggregate evidence limit omitted complete records; missing values remain unknown.');
+  return bounded;
+}

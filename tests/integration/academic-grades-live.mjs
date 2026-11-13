@@ -89,6 +89,19 @@ async function invoke(endpoint,{token,method='GET',body}={}){
 }
 async function request(endpoint,options={}){const result=await invoke(endpoint,options);assert.equal(result.status,options.status??200,`${phase}: ${endpoint} status ${result.status}`);return result.body;}
 const snapshot=session=>request('/api/affairs-data',{token:session.access_token});
+function assertGradeViewClarification(result){
+  assert.equal(result?.status,'answered','Grade-view clarification must remain a grounded account answer.');
+  assert.equal(result.grounding?.source,'account');
+  assert.equal(result.grounding?.webSearched,false);
+  assert.equal(result.proposedAction,undefined,'Choosing a grade view must not propose a write.');
+  const text=typeof result.answer==='string'?result.answer:'';
+  assert.match(text,/\b(?:choose|select|specify|pick)\b|\bwhich\b[^\n.!?]{0,100}\?|請(?:先|您)?(?:選擇|指定|選取)|請(?:先|您)?(?:选择|指定|选取)/iu,'Ask the student to choose the grade-record scope.');
+  const supportedViews=[/\btranscripts?\b|歷年成績|历年成绩/iu,/\bwarning\s+grades?\b|預警成績|预警成绩/iu,
+    /\b(?:term|semester)\s+summar(?:y|ies)\b|學期(?:成績)?(?:彙總|總覽)|学期(?:成绩)?(?:汇总|总览)/iu,
+    /\b(?:semester\s+)?rankings?\b|學期排名|学期排名/iu,/\benglish[-\s]+requirement\b|英語(?:畢業)?門檻|英语(?:毕业)?门槛|英文(?:門檻|檢定)/iu];
+  assert.ok(supportedViews.filter(pattern=>pattern.test(text)).length>=2,'Offer at least two distinct supported Academic Services views, not a generic unknown answer.');
+  assert.ok(result.citations?.some(item=>/^\/school-affairs\/services\/13-1(?:\/(?:transcript|warning|ranking|english))?$/.test(item.url)),'Ground the choices in the local Academic Services source.');
+}
 function assistantDiagnostic(question,route,result,session){
   const redactions=[session.access_token,session.refresh_token,ownerSession?.access_token,ownerSession?.refresh_token,
     ownerSession?.user?.id,deployment.supabase.ownerEmail,...Object.values(ownerSession?.user?.user_metadata??{})]
@@ -198,7 +211,7 @@ try{
   assert.match(rankingText,/(?:class ranking|班排名)[^\n]*?1\s*\/\s*20\s*\(5%\)/i);
   assert.ok(rankingAnswer.citations.some(item=>item.url===root+'/ranking'));
   assert.ok(!(await answer(second,'Show my academic transcript','transcript')).answer.includes(courseTitle));
-  const ambiguous=await answer(first,'Show my grades','');assert.match(ambiguous.answer,/specify|which|選擇|指定/i);
+  const ambiguous=await answer(first,'Show my grades','');assertGradeViewClarification(ambiguous);
   checks.push(assistantCheck+'; private transcript/warning/ranking answers, explicit summaries, local citations, no public search, no cross-account result and generic-grade ambiguity');
 
   phase='student academic pages';browser=await chromium.launch({headless:true,executablePath:env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});

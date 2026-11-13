@@ -1,5 +1,9 @@
 import { questionKind } from '../server/schoolWebSearch.js';
-import { answerAccountWithVerification, requiredNativeTools } from '../server/answerVerificationAccount.js';
+import { answerAccountWithVerification, requiredNativeTools, requiredSupplementalTools, type SupplementalAccountReaders } from '../server/answerVerificationAccount.js';
+import { readCatalogEvidence } from '../server/accountCatalogEvidence.js';
+import { readCertificateEvidence } from '../server/accountCertificateEvidence.js';
+import { readSubmissionEvidence } from '../server/accountSubmissionEvidence.js';
+import { readTuitionEvidence } from '../server/accountTuitionEvidence.js';
 import { answerCampusNavigation } from '../server/schoolAffairsDirectory.js';
 import { isDtmRecordQuestion } from '../server/dtmAnswer.js';
 import { isScholarshipRecordQuestion } from '../server/scholarshipRecords.js';
@@ -20,6 +24,31 @@ type PublicProgress = Parameters<NonNullable<Parameters<typeof readAssistantRepl
 export const config = {maxDuration:60};
 const requestWindows = new Map<string,number[]>();
 function value(input:string|string[]|undefined) {return Array.isArray(input)?input[0]:input;}
+function hasRouteControls(text:string,spaces=false):boolean {
+  return Array.from(text).some(character=>{const point=character.codePointAt(0)!;return point<=(spaces?32:31)||point===127||(point>=0xd800&&point<=0xdfff);});
+}
+/** Preserve validated selectors for local readers; never silently crop a URL
+ * into a different lookup or accept a browser-supplied remote origin. */
+export function validateAffairsAssistantRoute(input:unknown):string {
+  if(input===undefined||input==='')return '';
+  if(typeof input!=='string'||input.length>3100||input!==input.trim()||hasRouteControls(input,true)||/[\\#]/u.test(input)||/%(?![0-9a-f]{2})/iu.test(input))throw new TypeError('Invalid local page route.');
+  const local=input.startsWith('/')&&!input.startsWith('//');
+  if(!local&&!input.startsWith('https://stu.best/'))throw new TypeError('Invalid local page route.');
+  let url:URL;
+  try{url=new URL(input,'https://stu.best');}catch{throw new TypeError('Invalid local page route.');}
+  if(url.origin!=='https://stu.best'||url.username||url.password||url.hash)throw new TypeError('Invalid local page route.');
+  const full=url.pathname+url.search;
+  if(full.length>3100)throw new TypeError('Invalid local page route.');
+  try{
+    // Reject encoded control characters, path separators and dot segments.
+    // Query values retain their exact encoding for the reader's field validator.
+    const rawPath=(local?input:input.slice('https://stu.best'.length)).split('?')[0];
+    const path=decodeURIComponent(rawPath);
+    if(hasRouteControls(path)||path.includes('\\')||/%(?:2f|5c)/i.test(url.pathname)||path.split('/').some(part=>part==='.'||part==='..'))throw new TypeError('Invalid local page route.');
+    if(hasRouteControls(decodeURIComponent(url.search)))throw new TypeError('Invalid local page route.');
+  }catch{throw new TypeError('Invalid local page route.');}
+  return (url.pathname.replace(/\/+$/u,'')||'/')+url.search;
+}
 function personal(question:string,history:Array<{role:string;content:string}>=[]):boolean {
   // A signed-in question mentioning the caller or this assistant's account tools
   // must never be downgraded to public search just because the noun is novel.
@@ -91,8 +120,17 @@ export async function dispatchPublicResearch(handler:PublicResearchHandler,reque
   }
 }
 
-export function createAffairsAssistantHandler(dependencies:{publicResearch?:PublicResearchHandler}={}) {
+export function createAffairsAssistantHandler(dependencies:{
+  publicResearch?:PublicResearchHandler;
+  verifyToken?:typeof verifyAffairsToken;
+  loadSnapshot?:typeof loadAffairsSnapshot;
+  answerAccount?:typeof answerAccountWithVerification;
+  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence};
+}={}) {
 const publicResearch=dependencies.publicResearch??researchHandler;
+const verifyToken=dependencies.verifyToken??verifyAffairsToken,loadSnapshot=dependencies.loadSnapshot??loadAffairsSnapshot,answerAccount=dependencies.answerAccount??answerAccountWithVerification;
+const readers={courseCatalog:dependencies.readers?.courseCatalog??readCatalogEvidence,enrollmentCertificate:dependencies.readers?.enrollmentCertificate??readCertificateEvidence,
+  dtmSubmissions:dependencies.readers?.dtmSubmissions??readSubmissionEvidence,tuition:dependencies.readers?.tuition??readTuitionEvidence};
 return async function handler(request:ApiRequest,response:ApiResponse) {
   const deadline=Date.now()+55_000;
   response.setHeader('Cache-Control','no-store, max-age=0');
@@ -102,10 +140,16 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const input=body && typeof body==='object' && !Array.isArray(body) ? body as Record<string,unknown> : null;
   const question=typeof input?.question==='string'?input.question.trim():'';
   if(question.length<2||question.length>2000) {response.status(400).json({error:'Provide a question between 2 and 2,000 characters.'});return;}
+  let route:string;
+  try{route=validateAffairsAssistantRoute(input?.route);}catch{response.status(400).json({error:'Provide a local page route of at most 3,100 characters, without a fragment.'});return;}
   let account;
   try {
     const authorization=value(request.headers.authorization);
-    account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
+    const verified=await verifyToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
+    // Only verified transport/identity scalars enter these private closures.
+    // Copy before any later await; neither graph state nor planner input gets
+    // credentials or a mutable reference to the verifier's account object.
+    account=Object.freeze({url:verified.url,key:verified.key,token:verified.token,user:Object.freeze({id:verified.user.id,...(verified.user.email?{email:verified.user.email}:{})})});
   } catch(error) {
     response.status(error instanceof AffairsWorkspaceError?error.status:503).json({error:error instanceof AffairsWorkspaceError?error.message:'School Affairs sign-in could not be checked.'});return;
   }
@@ -118,8 +162,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     return ['user','assistant'].includes(String(entry.role))&&typeof entry.content==='string'?[{role:String(entry.role),content:entry.content.slice(0,1000)}]:[];
   }):[];
   const stream=createAssistantStream(input?.stream===true,response);
-  const route=typeof input?.route==='string'?input.route.slice(0,250).replace(/\/+$/,''):'';
-  const needsRecords=personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0;
+  const needsRecords=personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
   const navigation=!needsRecords && !(Array.isArray(input?.images) && input.images.length) && !questionKind(question).irrelevant
     ? answerCampusNavigation(question) : null;
   if(navigation) {
@@ -150,11 +193,21 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   if(Array.isArray(input?.images) && input.images.length) {stream.send(400,{error:'For private account questions, remove the image and ask using text. Images are not stored as account records.'});return;}
   try {
     stream.progress('account','Loading your account records','Checking School Affairs and DTM records for this signed-in Google account.');
-    const snapshot=await loadAffairsSnapshot(account,false,{deadline});
+    const snapshot=await loadSnapshot(account,false,{deadline});
     stream.progress('account','Loaded your account records','Only records linked to this Google account were read.','complete');
     stream.progress('answer','Preparing your answer','Checking the account data and any requested stu.best action.');
-    const answer=await answerAccountWithVerification({question,snapshot,history,route,deadline,
-      loadSnapshot:()=>loadAffairsSnapshot(account,false,{initialize:false,deadline}),
+    const readDeadline=(selected:number)=>{
+      if(!Number.isFinite(selected))throw new TypeError('Invalid account reader deadline.');
+      return Math.min(deadline,selected);
+    };
+    const supplementalReaders:SupplementalAccountReaders={
+      courseCatalog:context=>readers.courseCatalog(account,{question,route,query:context.catalogQuery,deadline:readDeadline(context.deadline)}),
+      enrollmentCertificate:context=>readers.enrollmentCertificate(account,{question,route,history,deadline:readDeadline(context.deadline)}),
+      dtmSubmissions:context=>readers.dtmSubmissions(account,{question,route,history,snapshot:context.snapshot,deadline:readDeadline(context.deadline)}),
+      tuition:context=>readers.tuition(account,{question,route,history,deadline:readDeadline(context.deadline)}),
+    };
+    const answer=await answerAccount({question,snapshot,history,route,deadline,supplementalReaders,
+      loadSnapshot:()=>loadSnapshot(account,false,{initialize:false,deadline}),
       onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status),
     });
     stream.progress('answer',answer.verification?.status==='verified'?'Answer ready':'Verification incomplete',

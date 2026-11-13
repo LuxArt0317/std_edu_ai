@@ -239,6 +239,24 @@ function referenceFeedback(review,evidence,hasImages) {
   });
 }
 
+// Privacy-preserving lexical hints, not the reviewer's reasoning or a verdict.
+// Only fixed categories and locally generated indexes may reach diagnostics.
+const diagnosticTopics=Object.freeze([
+  ['provenance',/\b(?:source|provenance|sample|synthetic|demo|local[_ -]?demo|official|university|institutional|sync|synchronized|imported)\b|來源|樣本|示範|模擬|校方|官方|同步|站內/iu],
+  ['record_availability',/\b(?:records?|metadata|available|availability|missing|absent|empty|unknown|none|unavailable|history|dataset)\b|紀錄|記錄|資料|未指定|未記錄|沒有|無法查詢|缺少/iu],
+  ['term_selection',/\b(?:academic year|term|semester|current|latest|historical)\b|學年|學期|當期|最新/iu],
+  ['calculation',/\b(?:calculate|calculated|calculation|total|sum|average|balance|percent(?:age)?|difference|gpa|count|credits?|hours?)\b|計算|合計|總計|平均|餘額|百分比|學分|時數/iu],
+  ['action_status',/\b(?:action|submitted|submission|approved|rejected|saved|updated|deleted|created|issued|downloaded|uploaded|completed|pending|confirmed|executed|performed)\b|提交|核准|駁回|儲存|更新|刪除|建立|核發|下載|上傳|完成|待審|已執行/iu],
+]);
+function unsupportedClaimDiagnostics(review){
+  return (Array.isArray(review?.claims)?review.claims:[]).slice(0,80).flatMap((claim,index)=>{
+    if(claim?.supported===true)return [];
+    const text=typeof claim?.claim==='string'?claim.claim.slice(0,4096):'';
+    const categories=diagnosticTopics.filter(([,pattern])=>pattern.test(text)).map(([category])=>category);
+    return [{index:index+1,categories:categories.length?categories:['other']}];
+  });
+}
+
 export function validEvidence(evidence) {
   return Array.isArray(evidence) && evidence.length > 0 && evidence.every(item =>
     typeof item.id === 'string' && item.id.length > 0 && typeof item.content === 'string' && item.content.length > 0)
@@ -320,6 +338,7 @@ export async function verifyEvidenceAnswer({ question, candidate, evidence, dead
   if (!matches) console.warn('Answer evidence review rejected', {supported:review.supported===true,answersQuestion:review.answersQuestion===true,
     claims:Array.isArray(review.claims)?review.claims.length:0,
     unsupportedClaims:Array.isArray(review.claims)?review.claims.filter(claim=>claim.supported!==true).length:0,
+    unsupportedClaimDiagnostics:unsupportedClaimDiagnostics(review),
     unmatchedReferences:Array.isArray(review.claims)?review.claims.filter(claim=>!(images.length && claim.evidenceId==='attached-image')&&!referencesMatch(evidence.find(source=>source.id===claim.evidenceId)?.content,claim)).length:0,
     unmatchedAccountCollections:Array.isArray(review.claims)?[...new Set(review.claims.filter(claim=>!referencesMatch(evidence.find(source=>source.id===claim.evidenceId)?.content,claim)).map(claim=>/^account(?:-scope|:(?:profile|courses|assignments|dtm|charges|tasks|requests|serviceRecords|announcements|scholarship|studentAid|housing|creditLoadHistory|courseSelection|academicGrades|graduationReview|academicAttendance))$/.test(claim.evidenceId)?claim.evidenceId:'other'))]:[]});
   return { ok: matches, reason: 'unsupported_claims',

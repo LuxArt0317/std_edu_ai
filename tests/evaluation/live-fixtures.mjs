@@ -12,10 +12,14 @@ import {resolve} from 'node:path';
 import {createClient} from '@supabase/supabase-js';
 import postgres from 'postgres';
 import {deploymentEnvironment} from '../../scripts/deployment-env.mjs';
-import {fixtureForCase,evaluationDates,EVAL_OTHER_USER_ID} from './fixtures.mjs';
+import {fixtureForCase,evaluationDates,EVAL_OTHER_USER_ID,supplementalFixtureRecords} from './fixtures.mjs';
 import {loadNativeAcademicRecords} from '../../server/nativeAcademicWorkspace.js';
 import {mapScholarshipRecords} from '../../server/scholarshipRecords.js';
 import {mapHousingRecords} from '../../server/housingRecords.js';
+import {validateEnrollmentCertificatePayload} from '../../server/enrollmentCertificate.js';
+import {validateTuitionDocumentPayload} from '../../server/tuitionDocuments.js';
+import {catalogTextFields,catalogNumberFields,catalogBooleanFields,catalogPeriods} from '../../src/features/public/affairs/courseCatalogModel.js';
+import {normalizeCourseSyllabus} from '../../src/features/public/affairs/courseSyllabusModel.js';
 
 const ROOT=fileURLToPath(new URL('../../',import.meta.url));
 const PROJECT='xiftudmvxphxcjtmfmib';
@@ -23,8 +27,12 @@ const PRIVATE_DIR=resolve(ROOT,'artifacts/assistant-evaluation');
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const PRIVATE_NATIVE_DOMAINS=['studentAid','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance'];
 const CONDITIONAL_NATIVE_DOMAINS=['courses','scholarship','housing'];
-const SUPPORTED_TOOLS=new Set(['profile','charges','tasks','requests','serviceRecords','dtm','assignments',...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS]);
+const SUPPLEMENTAL_SCOPES=Object.freeze({enrollmentCertificate:'enrollment-certificate',tuition:'tuition-documents'});
+const SUPPLEMENTAL_TABLES=Object.freeze({enrollmentCertificate:'affairs_enrollment_certificate_assessments',tuition:'affairs_tuition_settlements'});
+const SUPPORTED_TOOLS=new Set(['profile','charges','tasks','requests','serviceRecords','dtm','assignments',...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS,...Object.keys(SUPPLEMENTAL_SCOPES)]);
 const FOREIGN_MARKER='FOREIGN PRIVATE SENTINEL';
+export const catalogFixtureSetupReasons=Object.freeze(['catalog_read_unavailable','published_payload_invalid','public_scope_mismatch','no_suitable_published_offering','no_null_weight_offering','absent_probe_not_empty']);
+const catalogKinds=Object.freeze({'account:catalog-known-fields':'known-fields','account:catalog-null-weight':'null-weight','account:catalog-unfound':'unfound','account:catalog-enrollment-distinction':'enrollment-distinction','account:catalog-mixed-dtm':'mixed-dtm','service:12-4:record':'known-fields','service:12-4:empty':'unfound'});
 let state;
 
 export class LiveFixtureError extends Error {
@@ -75,7 +83,7 @@ async function saveLedger(){
     // A foreign stale temporary ledger is not ours to overwrite or remove.
     handle=await open(tmp,s.ledgerTempOwned?'w':'wx',0o600);s.ledgerTempOwned=true;
     await handle.writeFile(JSON.stringify({version:1,projectRef:PROJECT,runId:s.runId,origin:s.origin,createdAt:s.startedAt,
-      fixtureUserIds:s.users.map(user=>user.id),identityRequests:s.identityRequests,ownedRecordIds:[...s.recordIds].sort(),activeCaseId:s.current?.caseId??null},null,2));
+      fixtureUserIds:s.users.map(user=>user.id),identityRequests:s.identityRequests,ownedRecordIds:[...s.recordIds].sort(),supplementalTables:[...(s.supplementalTables||[])].sort(),activeCaseId:s.current?.caseId??null},null,2));
     await handle.sync();
   }finally{await handle?.close();}
   await rename(tmp,s.ledger);s.ledgerTempOwned=false;await chmod(s.ledger,0o600);
@@ -149,7 +157,7 @@ export async function prepare({runId,cases,now,origin,signal}={}){
   const ignore=await readFile(resolve(ROOT,'.gitignore'),'utf8');if(!/^\/?artifacts\/$/m.test(ignore))fail('fixture-ledger','Private fixture ledger directory must be ignored by Git.');
   await mkdir(PRIVATE_DIR,{recursive:true,mode:0o700});await chmod(PRIVATE_DIR,0o700);
   const boundedFetch=(input,init={})=>fetch(input,{...init,signal:signals(init.signal,15000)});
-  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),caseIds:new Set(cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,
+  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,
     ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),admin:createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})};
   try{
     state.sql=postgres(connection,{max:1,connect_timeout:10,idle_timeout:10,max_lifetime:0,
@@ -184,7 +192,7 @@ function assertSupported(testCase,snapshot){
   if(key==='anonymous')fail('fixture-case','Anonymous requests must bypass the signed-in fixture adapter.');
   if(['mixed-currency','admin'].includes(key))fail('fixture-unsupported',`${key} needs an additional real schema adapter; it is not a model result.`);
   if(['empty:profile','empty:courses','empty:dtm','empty:tasks','empty:announcements'].includes(key))fail('fixture-unsupported',`${key} cannot be represented while the account initializer recreates those records or the records are globally shared.`);
-  if(tools.some(tool=>!SUPPORTED_TOOLS.has(tool))){
+  if(tools.some(tool=>!SUPPORTED_TOOLS.has(tool)&&!(tool==='courseCatalog'&&state.catalogBindings?.has(testCase.id)))){
     const onlyPermissionCheck=testCase.id==='account:action-announcement-denied';
     if(!onlyPermissionCheck)fail('fixture-unsupported',`No private live mapping for ${tools.filter(tool=>!SUPPORTED_TOOLS.has(tool)).join(', ')}; unsupported fixtures never count as passing.`);
   }
@@ -279,6 +287,202 @@ function uniqueRows(rows){
   for(const row of rows.affairs_housing_applications||[]){requireSchema(!receipts.has(row.receipt_number),'Duplicate housing receipt.');receipts.add(row.receipt_number);}
 }
 function stableRowId(value){const digest=hash(value);return digest.slice(0,8)+'-'+digest.slice(8,12)+'-4'+digest.slice(13,16)+'-a'+digest.slice(17,20)+'-'+digest.slice(20,32);}
+
+/** Only private assessment/statement rows. No catalog, document, role or Storage writes. */
+export function planSupplementalFixture(snapshot,{userId,otherUserId,domains=[]}={}){
+  requireSchema(UUID.test(userId)&&UUID.test(otherUserId)&&userId!==otherUserId&&snapshot?.profile?.userId===userId,'Supplemental fixtures need two distinct disposable owners.');
+  requireSchema(Array.isArray(domains)&&new Set(domains).size===domains.length&&domains.every(domain=>Object.hasOwn(SUPPLEMENTAL_SCOPES,domain)),'Unknown supplemental fixture domain.');
+  const rows={},expectedByOwner={[userId]:{},[otherUserId]:{}},foreign=supplementalFixtureRecords(otherUserId,{foreign:true});
+  const certificateFields=['academicYear','semester','hasPendingFees','status','resultText','assessedAt'],identityFields=['studentNumber','studentName','departmentName','yearText','classLabel'];
+  for(const domain of domains){
+    const table=SUPPLEMENTAL_TABLES[domain];rows[table]=[];
+    for(const [id,source] of [[userId,snapshot],[otherUserId,foreign]]){
+      const value=source[domain];requireSchema(value&&Array.isArray(value.documents)&&value.documents.length===0,'No supplemental fixture may fabricate a document capability.');
+      const collection=domain==='enrollmentCertificate'?'assessments':'settlements';
+      requireSchema(Array.isArray(value[collection])&&value[collection].length<100&&!(domain==='enrollmentCertificate'&&value[collection].length>1),'Invalid complete supplemental fixture collection.');
+      for(const item of value[collection]){
+        requireSchema(item.userId===id,'Supplemental fixture row owner differs from its disposable account.');
+        let row;
+        if(domain==='enrollmentCertificate'){
+          row={...requiredFields(item,[...COMMON,...certificateFields],table),...requiredFields(item.identity,identityFields,'certificate identity')};
+          const payload={id:row.id,user_id:row.user_id,request_id:row.id,expected_version:0,...Object.fromEntries([...certificateFields,...identityFields].map(key=>[snake(key),row[snake(key)]]))};
+          requireSchema(validateEnrollmentCertificatePayload('save_enrollment_certificate_assessment',payload)===null,'Certificate fixture violates its literal persisted field contract.');
+        }else{
+          row={...requiredFields(item,COMMON,table),period_label:item.periodLabel,statement_text:item.text,row_order:item.rowOrder,deleted_at:null};
+          requireSchema(item.periodId===item.id&&validateTuitionDocumentPayload('save_tuition_settlement',{id:row.id,user_id:row.user_id,request_id:row.id,expected_version:0,period_label:row.period_label,statement_text:row.statement_text,row_order:row.row_order})===null,'Tuition fixture violates its literal persisted field contract.');
+        }
+        requireSchema(validCommon(row),'Supplemental fixture has invalid owner, provenance, revision or timestamps.');rows[table].push(row);
+      }
+      if(domain==='tuition')assertFactEqual(value.periods,value.settlements.map(row=>({id:row.id,userId:id,label:row.periodLabel})),'complete supplemental period linkage');
+      expectedByOwner[id][domain]=structuredClone(value);
+    }
+  }
+  uniqueRows(rows);
+  return {domains:[...domains],rows,expectedByOwner,userIds:[userId,otherUserId]};
+}
+/** Full scoped JSON equality includes both identities, all fields and true emptiness. */
+export function verifySupplementalFixtureReadback(actual,plan,userId){
+  requireSchema(plan.userIds.includes(userId),'Unknown supplemental readback owner.');
+  for(const domain of plan.domains)assertFactEqual(actual[domain],plan.expectedByOwner[userId][domain],domain+' complete scoped records');
+  return true;
+}
+/** Real deployed user-JWT reads. Offline tests inject fetch only; never a mapper oracle. */
+export async function readSupplementalFixtureScopes(user,domains,{origin,signal,fetchImpl=fetch}={}){
+  requireSchema(UUID.test(user?.id)&&typeof user.token==='string'&&user.token.length>0&&Array.isArray(domains)&&new Set(domains).size===domains.length&&domains.every(domain=>Object.hasOwn(SUPPLEMENTAL_SCOPES,domain)),'Invalid scoped supplemental readback request.');
+  const result={};
+  await Promise.all(domains.map(async domain=>{
+    const url=new URL('/api/affairs-data',origin);url.searchParams.set('scope',SUPPLEMENTAL_SCOPES[domain]);
+    let response;
+    try{response=await fetchImpl(url,{redirect:'error',cache:'no-store',headers:{Authorization:'Bearer '+user.token},signal:signals(signal,45000)});}catch{fail('fixture-readback','Scoped supplemental API request did not complete.');}
+    if(response.status!==200||!response.headers.get('content-type')?.includes('application/json'))fail('fixture-readback',`Scoped supplemental API returned ${response.status}; no model request may run.`);
+    const reader=response.body?.getReader();if(!reader)fail('fixture-readback','Scoped supplemental API returned no body.');
+    const chunks=[];let bytes=0;
+    try{for(;;){const part=await reader.read();if(part.done)break;bytes+=part.value.byteLength;if(bytes>2_000_000){await reader.cancel();fail('fixture-readback','Scoped supplemental readback exceeded its bounded size.');}chunks.push(part.value);}
+      result[domain]=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    }catch(error){if(error instanceof LiveFixtureError)throw error;fail('fixture-readback','Scoped supplemental API body could not be verified.');}
+    finally{reader.releaseLock();}
+  }));
+  return result;
+}
+
+const catalogSearchQuery=Object.freeze({scope:'syllabus-search',search_scope:'historical',page:'0',page_size:'20',sort:'course_code',direction:'asc'});
+const plain=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&[Object.prototype,null].includes(Object.getPrototypeOf(value));
+const exactKeys=(value,keys)=>plain(value)&&Object.keys(value).length===keys.length&&keys.every(key=>Object.hasOwn(value,key));
+const catalogText=(value,max)=>typeof value==='string'&&[...value].length<=max&&!/[\u0000\ud800-\udfff]/u.test(value);
+function catalogSetupError(reason){const error=new Error('Published catalog fixture setup is unavailable.');error.catalogReason=reason;return error;}
+/** Independent payload validation; arbitrary responses cannot author golden facts. */
+export function validatePublishedCatalogFixture(query,value){
+  const reject=()=>{throw catalogSetupError('published_payload_invalid');};
+  if(query.scope==='syllabus-search'){
+    if(JSON.stringify(query)!==JSON.stringify(catalogSearchQuery)||!exactKeys(value,['scope','total','rows','page','pageSize','hasMore','sort','revision'])||value.scope!=='historical'||!integer(value.total,0,Number.MAX_SAFE_INTEGER)||value.page!==0||value.pageSize!==20||!exactKeys(value.sort,['key','direction'])||value.sort.key!=='course_code'||value.sort.direction!=='asc'||! /^[a-f0-9]{32}$/.test(value.revision)||!Array.isArray(value.rows)||value.rows.length!==Math.min(value.total,20)||value.hasMore!==(value.total>20))reject();
+    const ids=new Set(),sequences=new Set();
+    for(const row of value.rows){
+      if(!exactKeys(row,['id','sequence','course_code','course_name','admission_name','instructor','academicYearText','semesterText'])||!UUID.test(row.id)||ids.has(row.id)||!integer(row.sequence,1,value.total)||sequences.has(row.sequence))reject();
+      for(const [key,max]of [['course_code',40],['course_name',160],['admission_name',100],['instructor',100]])if(!catalogText(row[key],max))reject();
+      if(![row.academicYearText,row.semesterText].every(text=>text===null||catalogText(text,30)))reject();
+      ids.add(row.id);sequences.add(row.sequence);
+    }
+  }else if(query.scope==='syllabus-detail'){
+    if(!exactKeys(query,['scope','id'])||!UUID.test(query.id)||!exactKeys(value,['row']))reject();
+    if(value.row===null)return value;
+    const row=value.row,keys=[...Object.keys(catalogTextFields),...Object.keys(catalogNumberFields),...Object.keys(catalogBooleanFields),'id','version','source_mode','program_codes','meetings','syllabus'];
+    if(!exactKeys(row,keys)||row.id!==query.id||!integer(row.version,1,999999999)||row.source_mode!=='sample'||row.published!==true)reject();
+    for(const [key,[,max]]of Object.entries(catalogTextFields))if(!catalogText(row[key],max))reject();
+    for(const key of Object.keys(catalogNumberFields))if(typeof row[key]!=='number'||!Number.isFinite(row[key])||row[key]<0||row[key]>100000)reject();
+    for(const key of Object.keys(catalogBooleanFields))if(typeof row[key]!=='boolean')reject();
+    if(!Array.isArray(row.program_codes)||row.program_codes.length>30||row.program_codes.some(code=>typeof code!=='string'||! /^[A-Za-z0-9_-]{1,24}$/.test(code))||!Array.isArray(row.meetings)||row.meetings.length>2)reject();
+    for(const slot of row.meetings)if(!exactKeys(slot,['weekday','periods'])||!integer(slot.weekday,1,7)||!Array.isArray(slot.periods)||!slot.periods.length||slot.periods.length>15||slot.periods.some(period=>!catalogPeriods.includes(period)))reject();
+    try{normalizeCourseSyllabus(row.syllabus);}catch{reject();}
+  }else reject();
+  return value;
+}
+/** Exact deployed published API only; no service-role SQL or account filters. */
+export async function readPublishedCatalogFixture(user,query,{origin,signal,fetchImpl=fetch}={}){
+  if(!UUID.test(user?.id)||typeof user.token!=='string'||!user.token||!(exactKeys(query,['scope','id'])&&query.scope==='syllabus-detail'&&UUID.test(query.id)||JSON.stringify(query)===JSON.stringify(catalogSearchQuery)))throw catalogSetupError('published_payload_invalid');
+  const url=new URL('/api/affairs-data',origin);for(const [key,value]of Object.entries(query))url.searchParams.set(key,value);
+  let response;
+  try{response=await fetchImpl(url,{redirect:'error',cache:'no-store',headers:{Authorization:'Bearer '+user.token},signal:signals(signal,15000)});}catch{throw catalogSetupError('catalog_read_unavailable');}
+  if(response.status!==200||!response.headers.get('content-type')?.includes('application/json'))throw catalogSetupError('catalog_read_unavailable');
+  const reader=response.body?.getReader();if(!reader)throw catalogSetupError('catalog_read_unavailable');
+  const chunks=[];let bytes=0;
+  try{for(;;){const part=await reader.read();if(part.done)break;bytes+=part.value.byteLength;if(bytes>2_000_000){await reader.cancel();throw catalogSetupError('published_payload_invalid');}chunks.push(part.value);}
+    return validatePublishedCatalogFixture(query,JSON.parse(Buffer.concat(chunks).toString('utf8')));
+  }catch(error){throw catalogSetupError(catalogFixtureSetupReasons.includes(error?.catalogReason)?error.catalogReason:'published_payload_invalid');}
+  finally{reader.releaseLock();}
+}
+const immutable=value=>{if(value&&typeof value==='object'){for(const item of Object.values(value))immutable(item);Object.freeze(value);}return value;};
+const catalogDigest=value=>hash(canonical(value));
+function catalogQuestionCase(source,kind,row,absentId,nullIndex){
+  const id=row?.id||absentId,route='/school-affairs/services/12-4?'+(kind==='null-weight'?'syllabus':'course')+'='+id;
+  const facts=[],requiredText=[],forbiddenText=['Your enrollment is confirmed','You are officially enrolled'],base={behavior:'answer',requiredText,forbiddenText,requiredLinks:[route],requiredTools:['courseCatalog'],provenance:'sample',facts};
+  let question;
+  const fact=(label,values,kind='text',labels=[])=>({label,labels,kind,values:Array.isArray(values)?values:[values]});
+  if(kind==='unfound'){
+    question=`What published course offering is available at catalog ID ${id}? If none matches, do not substitute a different offering.`;
+    base.behavior='unavailable';base.limitation=true;
+  }else{
+    requiredText.push(row.course_code);facts.push(fact('code',row.course_code,'text',['offering','course']));
+    if(kind==='null-weight'){
+      question=`For published syllabus offering ID ${id}, state its course code and the weight recorded in grading row ${nullIndex+1}. State if the weight is not recorded; do not replace it with zero.`;
+      facts.push(fact('grading row '+(nullIndex+1),{anyOf:['not recorded','unknown','null']},'text',['grading weight','weight']));forbiddenText.push(`grading row ${nullIndex+1}: 0%`);
+    }else if(kind==='enrollment-distinction'){
+      question=`What course code is listed for published catalog offering ID ${id}, and does that published listing alone prove my personal enrollment?`;
+      // A correct course code does not answer the separate enrollment question.
+      // Require an explicit negative inference, allowing ordinary paraphrases,
+      // and reject an affirmative inference even beside a correct caveat.
+      facts.push(fact('enrollment',{anyOf:['does not prove','does not establish','does not confirm','does not demonstrate','does not verify','do not establish','cannot confirm','cannot establish','cannot infer','cannot be inferred','not evidence of','not proof of','not enrollment evidence','no enrollment evidence','no proof','not established','not confirmed','not verified','not an enrollment record','not student enrollment','doesn\u2019t prove',"doesn't prove",'不代表','不能證明','無法確認','不能確認','無法推定']},'text',['enrolment','enrolled','修課','選課']));
+      forbiddenText.push({anyOf:['this confirms that you are enrolled','this proves that you are enrolled','the listing confirms your enrollment','the listing proves your enrollment','the listing establishes your enrollment','your enrollment is established','your enrollment is verified','enrollment: confirmed','enrollment: yes','therefore you are enrolled','therefore, you are enrolled','thus you are enrolled','you are definitely enrolled','you are indeed enrolled','已確認您選課','已證明您選課']});
+    }
+    else{
+      question=`For published catalog offering ID ${id}, what course code, teacher and credits are recorded?`;
+      facts.push(fact('teacher',row.instructor,'text',['instructor']),fact('credits',row.credits,'number'));
+      if(kind==='mixed-dtm'){
+        question+=' Also list my unfinished Moodle assignments.';base.requiredTools.push('dtm','assignments');base.requiredLinks.push('/dtm/assignments');
+        requiredText.push('Index plan','Final portfolio');base.exactLists=[{label:'unfinished Moodle assignments',expected:['Index plan','Final portfolio'],forbidden:['Reading response']}];
+      }
+    }
+  }
+  return {...structuredClone(source),question,route,expected:base,capability:{level:'native',gap:false,limitation:kind==='unfound'?'Only this published detail lookup is empty; it establishes neither unpublished records nor personal enrollment.':'Published sample catalog facts only; no official enrollment or completed teaching is established.'}};
+}
+/** Bounded offline-testable binder. Every public read must agree for both callers. */
+export async function collectPublishedCatalogBinding(cases,{userIds,read,absentId}={}){
+  requireSchema(Array.isArray(cases)&&new Set(cases.map(row=>row.id)).size===cases.length&&Array.isArray(userIds)&&userIds.length===2&&userIds.every(id=>UUID.test(id))&&userIds[0]!==userIds[1]&&UUID.test(absentId)&&typeof read==='function','Invalid published fixture binding configuration.');
+  const callers=[...userIds],resultCases=structuredClone(cases),templates=resultCases.filter(row=>row.fixtureRequirement==='published_catalog_binding');
+  requireSchema(templates.every(row=>Object.hasOwn(catalogKinds,row.id)),'Unknown catalog template cannot rewrite evaluation expectations.');
+  const reads=[],bound=new Map(),selected=[],unavailable=[];
+  const both=async query=>{
+    const a=validatePublishedCatalogFixture(query,await read(callers[0],structuredClone(query))),b=validatePublishedCatalogFixture(query,await read(callers[1],structuredClone(query)));
+    if(catalogDigest(a)!==catalogDigest(b))throw catalogSetupError('public_scope_mismatch');
+    const record=immutable(structuredClone({query,value:a}));reads.push(record);return record;
+  };
+  let search,known,nullWeight,probe,setupFailure;
+  if(templates.length)try{
+    search=await both(catalogSearchQuery);
+    // Inspect at most ten details; lack of a suitable row is an explicit gap.
+    for(const summary of search.value.rows.slice(0,10)){
+      const detail=await both({scope:'syllabus-detail',id:summary.id}),row=detail.value.row;
+      if(!row||['course_code','course_name','instructor','admission_name'].some(key=>row[key]!==summary[key]))throw catalogSetupError('published_payload_invalid');
+      if(!row.course_code.trim()||!row.course_name.trim()||!row.instructor.trim())continue;
+      known ||= detail;
+      if(Array.isArray(row.syllabus.grading)&&row.syllabus.grading.some(item=>item.weight===null))nullWeight ||= detail;
+      if(known&&nullWeight)break;
+    }
+    if(known&&templates.some(row=>catalogKinds[row.id]==='unfound'))probe=await both({scope:'syllabus-detail',id:absentId});
+  }catch(error){setupFailure=catalogFixtureSetupReasons.includes(error?.catalogReason)?error.catalogReason:'catalog_read_unavailable';}
+  for(const template of templates){
+    const kind=catalogKinds[template.id],detail=kind==='null-weight'?nullWeight:kind==='unfound'?probe:known;
+    const reason=setupFailure||(!known?'no_suitable_published_offering':kind==='null-weight'&&!detail?'no_null_weight_offering':kind==='unfound'&&detail?.value.row!==null?'absent_probe_not_empty':null);
+    if(reason){unavailable.push({caseId:template.id,reason});continue;}
+    const row=detail.value.row,nullIndex=row?.syllabus.grading?.findIndex(item=>item.weight===null)??-1;
+    const testCase=catalogQuestionCase(template,kind,row,absentId,nullIndex);
+    resultCases[resultCases.findIndex(item=>item.id===template.id)]=testCase;
+    const evidenceReads=[search,detail,...(kind==='unfound'?[known]:[])];
+    const record=immutable({caseId:template.id,kind,caseDigest:catalogDigest(testCase),reads:structuredClone(evidenceReads)});bound.set(template.id,record);
+    selected.push({caseId:template.id,offeringId:row?.id||absentId,offeringVersion:row?.version??null,syllabusVersion:null,syllabusDigest:row?catalogDigest(row.syllabus):null,publishedSearchRevision:search.value.revision});
+  }
+  const binding=immutable({version:1,digest:catalogDigest({reads,selected,unavailable}),selected,unavailable});
+  return {cases:resultCases,binding,bound};
+}
+/** Explicit post-prepare, pre-fingerprint step. No golden facts change afterward. */
+export async function bindCatalogCases(cases,{signal}={}){
+  const s=ready();if(s.current||s.catalogBound)fail('fixture-state','Catalog cases can be bound once before any model case.');
+  if(!Array.isArray(cases)||cases.length!==s.caseIds.size||cases.some(row=>!s.caseIds.has(row.id)))fail('fixture-case','Catalog binding must preserve exactly the prepared case IDs.');
+  const bounded=signals(signal||s.signal,120000);
+  const result=await collectPublishedCatalogBinding(cases,{userIds:s.users.map(user=>user.id),absentId:randomUUID(),read:(userId,query)=>readPublishedCatalogFixture(s.users.find(user=>user.id===userId),query,{origin:s.origin,signal:bounded})});
+  s.catalogBound=true;s.catalogBindings=result.bound;s.catalogBindingFailures=new Map(result.binding.unavailable.map(row=>[row.caseId,row.reason]));s.catalogBindingDigest=result.binding.digest;
+  return {cases:result.cases,binding:result.binding};
+}
+/** Drift and changed case expectations fail before/after a model request. */
+export async function verifyPublishedCatalogBinding(testCase,binding,{userIds,read}={}){
+  if(!binding||binding.caseId!==testCase.id||binding.caseDigest!==catalogDigest(testCase))fail('fixture-catalog','The bound catalog case changed after fingerprinting.');
+  requireSchema(Array.isArray(userIds)&&userIds.length===2&&userIds.every(id=>UUID.test(id))&&userIds[0]!==userIds[1]&&typeof read==='function','Catalog rechecks require the two distinct disposable callers.');
+  const callers=[...userIds];
+  for(const saved of binding.reads)for(const userId of callers){
+    const actual=validatePublishedCatalogFixture(saved.query,await read(userId,structuredClone(saved.query)));
+    if(catalogDigest(actual)!==catalogDigest(saved.value))fail('fixture-catalog','Published catalog records or revisions changed after binding; rebuild the case bank before evaluation.');
+  }
+  return catalogDigest(binding.reads);
+}
 
 /**
  * Pure translation boundary. shared contains already-read public catalog rows
@@ -455,9 +659,10 @@ function recordsToInsert(snapshot,user){
   }
   return rows;
 }
-async function persistSnapshot(snapshot,rows,testCase,nativePlan){
+async function persistSnapshot(snapshot,rows,testCase,nativePlan,supplementalPlan){
   const s=state,user=s.users[0];
   for(const values of Object.values(rows))for(const row of values)s.recordIds.add(row.id);
+  for(const domain of supplementalPlan.domains)s.supplementalTables.add(SUPPLEMENTAL_TABLES[domain]);
   await saveLedger();
   await query(async()=>{
     const tx=s.sql;await tx.unsafe('begin');
@@ -473,7 +678,7 @@ async function persistSnapshot(snapshot,rows,testCase,nativePlan){
     // Both owners are newly created in this lifecycle. Foreign sentinel records
     // are written only to the second fixture account, never a real identity.
     const fixtureUsers=s.users.map(item=>item.id);
-    for(const table of [...ownTables,'affairs_scholarship_applications','affairs_housing_applications','affairs_housing_assignments']){
+    for(const table of [...ownTables,'affairs_scholarship_applications','affairs_housing_applications','affairs_housing_assignments',...s.supplementalTables]){
       await tx`delete from ${tx('public.'+table)} where user_id in ${tx(fixtureUsers)}`;
     }
     if(nativePlan.domains.includes('courses'))await tx`delete from public.affairs_enrollments where student_id=${user.studentId}`;
@@ -527,16 +732,29 @@ function ownState(snapshot){
 export async function forCase(testCase,{signal}={}){
   const s=ready();if(s.current)fail('fixture-state','afterCase() must complete before selecting another fixture.');
   if((signal||s.signal)?.aborted)fail('fixture-aborted','Evaluation was interrupted.');
+  const catalogBinding=s.catalogBindings?.get(testCase.id);
+  if(testCase.fixtureRequirement==='published_catalog_binding'&&!catalogBinding)fail('fixture-unsupported','Published catalog fixture binding is unavailable; this case remains in the denominator and no model request may run.');
+  const checkCatalog=()=>verifyPublishedCatalogBinding(testCase,catalogBinding,{userIds:s.users.map(user=>user.id),read:(userId,query)=>readPublishedCatalogFixture(s.users.find(user=>user.id===userId),query,{origin:s.origin,signal:signal||s.signal})});
+  const catalog=catalogBinding?await checkCatalog():null;
+  const catalogOnly=Boolean(catalogBinding&&(testCase.expected?.requiredTools||[]).every(key=>key==='courseCatalog'));
   const expected=fixtureForCase(testCase,{userId:s.users[0].id,now:s.now});
   assertSupported(testCase,expected);
-  const nativePlan=await readNativeBindings(expected,testCase);
-  const rows={...recordsToInsert(expected,s.users[0]),...nativePlan.rows};
-  await persistSnapshot(expected,rows,testCase,nativePlan);
+  const nativePlan=catalogOnly?null:await readNativeBindings(expected,testCase);
+  const supplementalPlan=planSupplementalFixture(expected,{userId:s.users[0].id,otherUserId:s.users[1].id,domains:(testCase.expected?.requiredTools||[]).filter(key=>Object.hasOwn(SUPPLEMENTAL_SCOPES,key))});
+  if(!catalogOnly){
+    const rows={...recordsToInsert(expected,s.users[0]),...nativePlan.rows,...supplementalPlan.rows};
+    await persistSnapshot(expected,rows,testCase,nativePlan,supplementalPlan);
+  }
   const actual=await readSnapshot(s.users[0],{signal:signal||s.signal});
-  verifyReadback(actual,expected,testCase);
-  verifyNativeFixtureReadback(actual,nativePlan);
-  const before=ownState(actual);
-  s.current={caseId:testCase.id,beforeHash:hash(before)};
+  if(!catalogOnly){verifyReadback(actual,expected,testCase);verifyNativeFixtureReadback(actual,nativePlan);}
+  const supplementalDomains=Object.keys(SUPPLEMENTAL_TABLES).filter(key=>s.supplementalTables.has(SUPPLEMENTAL_TABLES[key]));
+  const supplemental={};
+  for(const user of s.users){
+    supplemental[user.id]=await readSupplementalFixtureScopes(user,supplementalDomains,{origin:s.origin,signal:signal||s.signal});
+    verifySupplementalFixtureReadback(supplemental[user.id],supplementalPlan,user.id);
+  }
+  const before={snapshot:ownState(actual),supplemental,catalog};
+  s.current={caseId:testCase.id,beforeHash:hash(before),supplementalDomains,catalogBinding};
   await saveLedger();
   return {token:s.users[0].token};
 }
@@ -547,7 +765,10 @@ export async function afterCase(testCase,envelope,{signal}={}){
   const current=s.current;
   try{
     const actual=await readSnapshot(s.users[0],{signal:signal||s.signal});
-    const afterHash=hash(ownState(actual));
+    const supplemental={};
+    for(const user of s.users)supplemental[user.id]=await readSupplementalFixtureScopes(user,current.supplementalDomains,{origin:s.origin,signal:signal||s.signal});
+    const catalog=current.catalogBinding?await verifyPublishedCatalogBinding(testCase,current.catalogBinding,{userIds:s.users.map(user=>user.id),read:(userId,query)=>readPublishedCatalogFixture(s.users.find(user=>user.id===userId),query,{origin:s.origin,signal:signal||s.signal})}):null;
+    const afterHash=hash({snapshot:ownState(actual),supplemental,catalog});
     envelope.stateBefore={ownedRecordsDigest:current.beforeHash};
     envelope.stateAfterProposal={ownedRecordsDigest:afterHash};
     envelope.fixtureReadback={verified:true,projectRef:PROJECT,independentGolden:true};
@@ -606,7 +827,7 @@ export async function cleanup(){
         union all select 'dtm',id from public.dtm_courses where user_id in ${s.sql(ids)}
         union all select 'service',id from public.affairs_service_records where user_id in ${s.sql(ids)}`,'Could not verify disposable fixture cleanup.');
       if(remaining.length)fail('fixture-cleanup','Fixture-owned rows remain; the private cleanup ledger is retained.');
-      for(const table of [...ownTables,'affairs_scholarship_applications','affairs_housing_applications','affairs_housing_assignments']){
+      for(const table of [...ownTables,'affairs_scholarship_applications','affairs_housing_applications','affairs_housing_assignments',...(s.supplementalTables||[])]){
         const native=await query(()=>s.sql`select id from ${s.sql('public.'+table)} where user_id in ${s.sql(ids)} limit 1`,'Could not verify native fixture cleanup.');
         if(native.length)fail('fixture-cleanup','Native fixture-owned rows remain; the private cleanup ledger is retained.');
       }

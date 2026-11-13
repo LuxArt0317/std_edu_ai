@@ -14,6 +14,13 @@ export function evaluationDates(now=DEFAULT_EVAL_NOW){
 }
 const stamp='2026-11-01T02:00:00Z';
 const common=(id,userId)=>({id:evalId(id),userId,sourceMode:'local_demo',version:1,createdAt:stamp,updatedAt:stamp});
+/** Independent literals for the two scoped readers, not inferred from charges/profile. */
+export function supplementalFixtureRecords(userId=EVAL_USER_ID,{foreign=false}={}){
+  const assessment={...common(foreign?919:911,userId),academicYear:115,semester:1,hasPendingFees:'N',status:'blocked',resultText:foreign?'FOREIGN PRIVATE SENTINEL certificate':'Registrar review remains pending.',assessedAt:'2026-11-09T03:00:00Z',identity:{studentNumber:foreign?'FOREIGN-CERT-99':'CERT-EVAL-115',studentName:foreign?'FOREIGN PRIVATE SENTINEL':'Certificate Evaluation Name',departmentName:'Certificate Studies',yearText:'Third year',classLabel:'Certificate Class C'}};
+  const statements=foreign?[[929,'Foreign private period','FOREIGN PRIVATE SENTINEL tuition']]:[[921,'115 Fall reconciliation','Local statement: adjustment TWD 640; this is not a remaining balance.'],[922,'114 Spring reconciliation',null],[923,'114 Summer reconciliation',''],[924,'113 Fall reconciliation','0']];
+  const settlements=statements.map(([id,periodLabel,text],rowOrder)=>({...common(id,userId),periodId:evalId(id),periodLabel,text,rowOrder}));
+  return {enrollmentCertificate:{assessments:[assessment],documents:[]},tuition:{settlements,periods:settlements.map(row=>({id:row.id,userId,label:row.periodLabel})),documents:[]}};
+}
 function graduationReport(userId,kind){
   return {...common(kind==='legacy'?902:901,userId),reportKind:kind,reportedAt:stamp,
     identity:{studentNumber:'EVAL-115-001',studentName:'Evaluation Student',departmentName:'Information Studies',yearText:'3',enrollmentStatusText:'enrolled',curriculumCohortText:'113',doubleMajorText:null,minorText:null},
@@ -35,6 +42,7 @@ export function buildAccountFixture({userId=EVAL_USER_ID,now=DEFAULT_EVAL_NOW}={
       {id:EVAL_IDS.nextMeeting,date:dates.tomorrow,startsAt:'09:00:00',title:'Transaction lab',attendance:'unknown',notes:'Bring the saved laboratory worksheet.'}],
     grades:[{id:EVAL_IDS.grade,label:'Quiz 1',score:12,maximum:20,date:'2026-11-10',feedback:'Revise normalization examples.'}]};
   return {
+    ...supplementalFixtureRecords(userId),
     checkedAt:now,source:'stu.best School Affairs',officialUniversityData:false,
     completeness:Object.fromEntries(['terms','programs','catalog','sections','enrollments','grades','attendance','announcements','dtmNotices','tasks','requests'].map(key=>[key,{returned:0,complete:true,cap:1000}])),
     profile:{userId,email:'evaluation.student@example.invalid',displayName:'Evaluation Student',role:'student'},
@@ -87,6 +95,8 @@ const emptyDomain=(snapshot,domain)=>{
   else if(domain==='academicGrades')snapshot.academicGrades={records:[],termSummaries:[],rankings:[],metadata:[]};
   else if(domain==='academicAttendance')snapshot.academicAttendance={statistics:[],details:[],metadata:[]};
   else if(domain==='graduationReview')snapshot.graduationReview={reports:[]};
+  else if(domain==='enrollmentCertificate')snapshot.enrollmentCertificate={assessments:[],documents:[]};
+  else if(domain==='tuition')snapshot.tuition={settlements:[],periods:[],documents:[]};
   else if(['studentAid','creditLoadHistory','courseSelection'].includes(domain))snapshot[domain]={records:[]};
   else if(domain==='scholarship')snapshot.scholarship={periods:[],applications:[]};
   else if(domain==='housing')snapshot.housing={periods:[],applications:[],assignments:[]};
@@ -118,10 +128,16 @@ export function fixtureForCase(testCase,{userId=EVAL_USER_ID,now=DEFAULT_EVAL_NO
   else if(key==='null-zero'){
     snapshot.academicGrades.records[0].gradeText='0';snapshot.academicGrades.termSummaries[0].earnedCredits=null;
     snapshot.academicAttendance.statistics[0].absenceHours=0;snapshot.academicAttendance.statistics[0].unexcusedAbsenceHours=null;
-  }else if(key==='native-other-owner'){
+  }else if(/^catalog-template:(?:known-fields|null-weight|unfound|enrollment-distinction|mixed-dtm)$/.test(key)){
+    // Public records are bound separately; only owned mixed-case data is seeded.
+  }else if(key==='certificate-null'){
+    const row=snapshot.enrollmentCertificate.assessments[0];Object.assign(row,{academicYear:null,semester:null,hasPendingFees:null,status:'unknown',resultText:null,assessedAt:null});
+    row.identity=Object.fromEntries(Object.keys(row.identity).map(key=>[key,null]));
+  }else if(key==='certificate-blank')snapshot.enrollmentCertificate.assessments[0].resultText='';
+  else if(key==='native-other-owner'){
     snapshot.academicGrades.records.push({...snapshot.academicGrades.records[0],id:evalId(9991),userId:EVAL_OTHER_USER_ID,courseTitle:'FOREIGN PRIVATE SENTINEL',gradeText:'99'});
     snapshot.academicAttendance.statistics.push({...snapshot.academicAttendance.statistics[0],id:evalId(9992),userId:EVAL_OTHER_USER_ID,courseTitle:'FOREIGN PRIVATE SENTINEL'});
     snapshot.graduationReview.reports.push({...snapshot.graduationReview.reports[0],id:evalId(9993),userId:EVAL_OTHER_USER_ID,graduationReview:{...status('FOREIGN PRIVATE SENTINEL'),note:null}});
-  }else if(!['directory','all','profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','leave','internship','submissions','payment-history','enrollmentCertificate'].includes(key))throw new Error('Unknown evaluation fixture: '+key);
+  }else if(!['directory','all','profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','leave','internship','submissions','payment-history','enrollmentCertificate','tuition'].includes(key))throw new Error('Unknown evaluation fixture: '+key);
   return snapshot;
 }
