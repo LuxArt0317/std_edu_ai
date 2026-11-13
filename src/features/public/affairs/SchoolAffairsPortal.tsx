@@ -78,6 +78,8 @@ import { LegacyGraduationReview } from "./LegacyGraduationReview";
 import { AcademicAttendance } from "./AcademicAttendance";
 import { EnrollmentCertificateWorkspace } from "./EnrollmentCertificate";
 import { TuitionDocumentsWorkspace } from "./TuitionDocumentsWorkspace";
+import { StudentConductWorkspace } from "./StudentConductWorkspace";
+import { studentConductPath } from "@/services/studentConduct";
 import { tuitionDocumentPaths } from "../../../../server/tuitionDocuments.js";
 import type { TuitionView } from "./TuitionDocuments";
 import { academicGradePaths, type AcademicGradesView } from "@/services/academicGrades";
@@ -195,7 +197,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   const records = route[0] === "records" && route.length === 1;
   const servicePage = route[0] === "services";
   const { snapshot: account, loading: accountLoading, error: accountError, refresh: refreshAccount } =
-    useAffairsRecords(index || notifications || (servicePage && ["11-1", "11-2", "13-1", "14-1", "15-1", "15-2"].includes(route[1])) ? user.id : undefined);
+    useAffairsRecords(index || notifications || (servicePage && ["11-1", "11-2", "13-1", "14-1", "15-1", "15-2", "38-1"].includes(route[1])) ? user.id : undefined);
   const ended = route[0] === "signed-out";
   const article = portalNews.find((news) => news.id === params.get("news"));
   const programs = filterPrograms(
@@ -457,6 +459,12 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   }
   if (normalizedPath === enrollmentCertificatePath) {
     return <EnrollmentCertificateWorkspace key={user.id} userId={user.id} onLogout={()=>navigate("/school-affairs/signed-out")}/>;
+  }
+  if (normalizedPath === studentConductPath) {
+    const identity = !accountLoading && !accountError && account?.profile.userId === user.id && account.student
+      ? {userId:user.id,studentNumber:account.student.studentNumber,studentName:account.student.fullName} : null;
+    return <StudentConductWorkspace key={user.id} userId={user.id} identity={identity}
+      identityLoading={accountLoading} identityError={accountError} onReloadIdentity={refreshAccount}/>;
   }
   const tuitionView = (Object.keys(tuitionDocumentPaths) as TuitionView[]).find(view => tuitionDocumentPaths[view] === normalizedPath);
   if (tuitionView) {

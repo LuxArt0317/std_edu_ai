@@ -23,3 +23,5 @@ Migrations `20261112110000`, `20261112130000` and `20261112140000` add eight acc
 `20261112150000` adds independent DTM file submissions/reviews and a private Storage bucket; `20261112160000` adds account-owned certificate assessments and inert document metadata. Both are applied to the verified client project. Versioned RPCs, retry receipts and RLS preserve ownership; do not substitute personal tracker status for file or document issuance.
 
 Migration20261112190000 aligns the conversation SQL content ceiling with the application while preserving ownership, replay/stale checks, payload/quota limits and function grants. It was applied alone after rollback preflight and an exact deployment plan;200000 student conduct remains a separate unaccepted draft.
+
+Reserved200000 adds private local conduct snapshots with own-account RLS, audited administrator writes and durable retry receipts. Its rollback preflight passed at129/146; permanent application remains pending. [Conduct scope](../../docs/qa/STUDENT_CONDUCT.md).

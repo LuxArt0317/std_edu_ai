@@ -5,12 +5,15 @@ import { DtmSubmissionError, loadDtmSubmissionWorkspace, createDtmSubmissionDown
 import { EnrollmentCertificateError, loadEnrollmentCertificate, loadEnrollmentCertificateAdmin } from '../server/enrollmentCertificate.js';
 import { SyllabusSearchError, loadSyllabusSearch, loadSyllabusOptions, loadSyllabusDetail } from '../server/syllabusSearch.js';
 import { TuitionDocumentsError, loadTuitionDocuments, loadTuitionDocumentsAdmin } from '../server/tuitionDocuments.js';
+import { StudentConductError, loadStudentConduct, loadStudentConductAdmin } from '../server/studentConduct.js';
 
 type Request = {method?:string;headers:Record<string,string|string[]|undefined>;body?:unknown;query?:Record<string,string|string[]|undefined>};
 type Response = {status:(code:number)=>Response;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void};
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
 export default async function handler(request:Request,response:Response) {
-  if(first(request.query?.resource)==='conversations')return conversations(request,response);
+  const scopes=Array.isArray(request.query?.scope)?request.query.scope:[request.query?.scope];
+  const conductScope=scopes.some(scope=>typeof scope==='string'&&scope.startsWith('student-conduct'));
+  if(first(request.query?.resource)==='conversations'&&!conductScope)return conversations(request,response);
   const requestDeadline=Date.now()+17000;
   response.setHeader('Cache-Control','no-store, max-age=0');
   response.setHeader('X-Content-Type-Options','nosniff');
@@ -20,6 +23,18 @@ export default async function handler(request:Request,response:Response) {
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
     const scope=request.query?.scope;
     if(Array.isArray(scope)){response.status(400).json({error:'Choose one records scope.'});return;}
+    if(typeof scope==='string'&&scope.startsWith('student-conduct')){
+      const userId=request.query?.user_id;
+      if(scope==='student-conduct'){
+        if(Object.keys(request.query||{}).some(key=>key!=='scope')){response.status(400).json({error:'Personal conduct records do not accept account filters.'});return;}
+        response.status(200).json(await loadStudentConduct({...account,requestDeadline}));return;
+      }
+      if(scope==='student-conduct-admin'){
+        if(typeof userId!=='string'||Object.keys(request.query||{}).some(key=>key!=='scope'&&key!=='user_id')){response.status(400).json({error:'Choose one student account for conduct maintenance.'});return;}
+        response.status(200).json(await loadStudentConductAdmin({...account,requestDeadline},{userId}));return;
+      }
+      response.status(400).json({error:'Choose a supported conduct scope.'});return;
+    }
     if(typeof scope==='string'&&scope.startsWith('tuition-')){
       const userId=request.query?.user_id;
       if(scope==='tuition-documents'){
@@ -75,7 +90,7 @@ export default async function handler(request:Request,response:Response) {
       : await loadAffairsSnapshot(account,first(request.query?.scope)==='admin');
     response.status(200).json(snapshot);
   } catch(error) {
-    const known=error instanceof AffairsWorkspaceError||error instanceof DtmSubmissionError||error instanceof EnrollmentCertificateError||error instanceof SyllabusSearchError||error instanceof TuitionDocumentsError;
+    const known=error instanceof AffairsWorkspaceError||error instanceof DtmSubmissionError||error instanceof EnrollmentCertificateError||error instanceof SyllabusSearchError||error instanceof TuitionDocumentsError||error instanceof StudentConductError;
     response.status(known?error.status:503).json({error:known?error.message:'School Affairs records could not be loaded.'});
   }
 }

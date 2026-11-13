@@ -1,0 +1,21 @@
+import type {AffairsAccount} from './affairsWorkspace.js';
+export type StudentConductAccount=AffairsAccount & {requestDeadline?:number};
+export type StudentConductKind='save_student_conduct'|'delete_student_conduct';
+export type StudentConductRecord={id:string;userId:string;sourceMode:'local_demo';version:number;createdAt:string;updatedAt:string;
+  occurredOnText:string|null;studentNumber:string|null;studentName:string|null;academicYearText:string|null;semesterText:string|null;yearLevelText:string|null;
+  reasonText:string|null;conductCode:string|null;conductName:string|null;quantityText:string|null;voidStatusText:string|null;rowOrder:number};
+export type StudentConductRecords={records:StudentConductRecord[]};
+export type StudentConductReceipt={id:string;kind:StudentConductKind;version:number;summary:string};
+export const studentConductPath:'/school-affairs/services/38-1';
+export const studentConductMaxPayloadBytes:16000;
+export const studentConductMaxRecords:1000;
+export const studentConductKinds:readonly StudentConductKind[];
+export const studentConductTextLimits:Readonly<Record<'occurred_on_text'|'student_number'|'student_name'|'academic_year_text'|'semester_text'|'year_level_text'|'reason_text'|'conduct_code'|'conduct_name'|'quantity_text'|'void_status_text',number>>;
+export const studentConductFields:Record<StudentConductKind,readonly string[]>;
+export const studentConductReadSource:{table:string;select:string;order:string};
+export class StudentConductError extends Error{status:number;constructor(message:string,status?:number);}
+export function studentConductPayloadBytes(value:unknown):number;
+export function validateStudentConductPayload(kind:unknown,value:unknown):string|null;
+export function loadStudentConduct(account:StudentConductAccount):Promise<StudentConductRecords>;
+export function loadStudentConductAdmin(account:StudentConductAccount,options:{userId:string}):Promise<StudentConductRecords>;
+export function manageStudentConductRecord(account:StudentConductAccount,kind:StudentConductKind,payload:unknown):Promise<StudentConductReceipt>;

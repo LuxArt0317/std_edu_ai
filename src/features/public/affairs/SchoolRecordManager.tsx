@@ -19,6 +19,7 @@ import {DtmSubmissionReview} from '../dtm/DtmSubmissionReview';
 import {cleanupDtmSubmissionBatch,type DtmSubmissionCleanupResult} from '@/services/dtmSubmissionMaintenance';
 import {CertificateRecordEditor} from './CertificateRecordEditor';
 import {TuitionDocumentsManager} from './TuitionDocumentsManager';
+import {StudentConductManager} from './StudentConductManager';
 
 type Admin = NonNullable<AffairsSnapshot['admin']>;
 const taipeiInput=(iso:string|null)=>iso?new Date(iso).toLocaleString('sv-SE',{timeZone:'Asia/Taipei'}).replace(' ','T').slice(0,16):'';
@@ -60,6 +61,8 @@ export function SchoolRecordManager({admin,busy,onManage,onRefresh}:{admin:Admin
   const [reviewAssignmentId,setReviewAssignmentId]=useState('');
   const [certificateOpen,setCertificateOpen]=useState(false);
   const [tuitionOpen,setTuitionOpen]=useState(false);
+  const [conductOpen,setConductOpen]=useState(false);
+  const [conductOpenedFor,setConductOpenedFor]=useState('');
   const selected=admin.students.find(item=>item.id===studentId)||admin.students[0];
   const nativeManagers=<>
     <CourseSelectionManager records={admin.courseSelection?.records ?? []} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/>
@@ -115,6 +118,10 @@ export function SchoolRecordManager({admin,busy,onManage,onRefresh}:{admin:Admin
     {managerId&&<section className="affairs-manager" aria-label="Selected student tuition maintenance">
       <Button type="button" variant="outline" disabled={busy} aria-expanded={tuitionOpen} onClick={()=>setTuitionOpen(value=>!value)}>{tuitionOpen?'Hide tuition statements':'Manage tuition statements'}</Button>
       {tuitionOpen&&<TuitionDocumentsManager managerId={managerId} userId={selected.user_id} onSaved={onRefresh}/>}
+    </section>}
+    {managerId&&<section className="affairs-manager" aria-label="Selected student conduct maintenance">
+      <Button type="button" variant="outline" disabled={busy} aria-expanded={conductOpen} onClick={()=>{setConductOpenedFor(managerId+':'+selected.user_id);setConductOpen(value=>!value);}}>{conductOpen?'Hide conduct records':'Manage conduct records'}</Button>
+      {(conductOpen||conductOpenedFor===managerId+':'+selected.user_id)&&<div hidden={!conductOpen}><StudentConductManager key={managerId+':'+selected.user_id} managerId={managerId} userId={selected.user_id} onSaved={onRefresh}/></div>}
     </section>}
     {nativeManagers}
   </div>;

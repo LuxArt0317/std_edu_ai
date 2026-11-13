@@ -1,0 +1,35 @@
+{
+  "assets": [
+    {
+      "source": "https://info.stu.edu.tw/SAO/conduct/images/Tlogo.png",
+      "file": "/stu-reference/conduct-logo.png",
+      "checksum": "9ec0b3674feed90fab05656e6083f046da9bf1ed4a60674eb2883ddfbc03b79b",
+      "sourceChecksum": "9ec0b3674feed90fab05656e6083f046da9bf1ed4a60674eb2883ddfbc03b79b",
+      "bytes": 610
+    },
+    {
+      "source": "https://info.stu.edu.tw/SAO/conduct/images/arrowup.png",
+      "file": "/stu-reference/conduct-arrowup.png",
+      "checksum": "00a9f19266d1cfeaf88de01d4881aff14835b90f0e72a8e7d078c147e8930d06",
+      "sourceChecksum": "00a9f19266d1cfeaf88de01d4881aff14835b90f0e72a8e7d078c147e8930d06",
+      "bytes": 846
+    },
+    {
+      "source": "https://info.stu.edu.tw/SAO/conduct/images/find.png",
+      "file": "/stu-reference/conduct-find.png",
+      "checksum": "475a6335fb52c21b5fa732518e89408f4277779bf5b015391358b047602b8aff",
+      "sourceChecksum": "475a6335fb52c21b5fa732518e89408f4277779bf5b015391358b047602b8aff",
+      "bytes": 615
+    },
+    {
+      "source": "https://info.stu.edu.tw/SAO/conduct/images/arrowTopRed.jpg",
+      "file": "/stu-reference/conduct-arrow-top.jpg",
+      "checksum": "cb60e09a34502a84e4ad3bc6e53a380279ed57148959ec6d921d3bd2c53c44c8",
+      "sourceChecksum": "cb60e09a34502a84e4ad3bc6e53a380279ed57148959ec6d921d3bd2c53c44c8",
+      "bytes": 695
+    }
+  ],
+  "limitations": [
+    "Source tablesorter bg.gif was observed in computed CSS but not present in the captured asset bundle. The component uses an inert CSS approximation; nonempty sorting behavior is unverified."
+  ]
+}
