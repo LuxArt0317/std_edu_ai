@@ -3,6 +3,7 @@ import { manageCourseCatalog } from '../server/courseCatalog.js';
 import { DtmSubmissionError, manageDtmSubmissionReview } from '../server/dtmSubmissions.js';
 import { EnrollmentCertificateError, manageEnrollmentCertificateRecord } from '../server/enrollmentCertificate.js';
 import { SyllabusSearchError, manageSyllabusMetadata } from '../server/syllabusSearch.js';
+import { TuitionDocumentsError, tuitionDocumentKinds, tuitionDocumentMaxPayloadBytes, manageTuitionDocumentRecord } from '../server/tuitionDocuments.js';
 
 type Request = {method?:string;headers:Record<string,string|string[]|undefined>;body?:unknown};
 type Response = {status:(code:number)=>Response;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void};
@@ -18,22 +19,24 @@ export default async function handler(request:Request,response:Response) {
   const catalogAction=input?.kind==='save_course_offering'||input?.kind==='delete_course_offering';
   const submissionReview=input?.kind==='save_dtm_submission_review';
   const syllabusMetadata=input?.kind==='syllabus-metadata';
+  const tuitionKind=tuitionDocumentKinds.find(kind=>kind===input?.kind);
   const certificateKind=input?.kind==='save_enrollment_certificate_assessment'?'save_enrollment_certificate_assessment'
     :input?.kind==='save_enrollment_certificate_document'?'save_enrollment_certificate_document':null;
-  const maxBodyBytes=syllabusMetadata?2000:certificateKind?10000:input?.kind==='save_graduation_review'?140000:input?.kind==='save_housing_period'?26000:catalogAction?48000:submissionReview?14000:12000;
+  const maxBodyBytes=tuitionKind?tuitionDocumentMaxPayloadBytes+1024:syllabusMetadata?2000:certificateKind?10000:input?.kind==='save_graduation_review'?140000:input?.kind==='save_housing_period'?26000:catalogAction?48000:submissionReview?14000:12000;
   if(!input || typeof input.kind!=='string' || !input.payload || typeof input.payload!=='object'
     || Array.isArray(input.payload) || Buffer.byteLength(JSON.stringify(input),'utf8')>maxBodyBytes
-    || (certificateKind||syllabusMetadata)&&(Object.keys(input).length!==2||!Object.hasOwn(input,'kind')||!Object.hasOwn(input,'payload'))){response.status(400).json({error:'Invalid manager request.'});return;}
+    || (certificateKind||syllabusMetadata||tuitionKind)&&(Object.keys(input).length!==2||!Object.hasOwn(input,'kind')||!Object.hasOwn(input,'payload'))){response.status(400).json({error:'Invalid manager request.'});return;}
   try {
     const authorization=first(request.headers.authorization);
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
-    const result=syllabusMetadata?await manageSyllabusMetadata({...account,requestDeadline},input.payload)
+    const result=tuitionKind?await manageTuitionDocumentRecord({...account,requestDeadline},tuitionKind,input.payload)
+      :syllabusMetadata?await manageSyllabusMetadata({...account,requestDeadline},input.payload)
       :certificateKind?await manageEnrollmentCertificateRecord({...account,requestDeadline},certificateKind,input.payload)
       :submissionReview?await manageDtmSubmissionReview(account,input.kind,input.payload)
       :catalogAction?await manageCourseCatalog(account,input.kind,input.payload):await manageAffairsRecord(account,input.kind,input.payload);
     response.status(200).json(result);
   } catch(error) {
-    const known=error instanceof AffairsWorkspaceError||error instanceof DtmSubmissionError||error instanceof EnrollmentCertificateError||error instanceof SyllabusSearchError;
+    const known=error instanceof AffairsWorkspaceError||error instanceof DtmSubmissionError||error instanceof EnrollmentCertificateError||error instanceof SyllabusSearchError||error instanceof TuitionDocumentsError;
     response.status(known?error.status:503).json({error:known?error.message:'School Affairs record could not be saved.'});
   }
 }

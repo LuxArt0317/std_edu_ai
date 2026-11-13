@@ -1,0 +1,21 @@
+import type {AffairsAccount} from './affairsWorkspace.js';
+export type TuitionDocumentsAccount=AffairsAccount & {requestDeadline?:number};
+export type TuitionDocumentKind='save_tuition_settlement'|'delete_tuition_settlement'|'save_tuition_document_metadata'|'delete_tuition_document_metadata';
+export type TuitionRecordEnvelope={id:string;userId:string;sourceMode:'local_demo';version:number;createdAt:string;updatedAt:string};
+export type TuitionSettlement=TuitionRecordEnvelope & {periodId:string;periodLabel:string;text:string|null;rowOrder:number};
+export type TuitionPeriod={id:string;userId:string;label:string};
+export type TuitionDocumentMetadata=TuitionRecordEnvelope & {kind:'summer'|'evening';periodLabel:string|null;noteText:string|null;status:'metadata_only'|'revoked';issuer:'stu.best'};
+export type TuitionDocumentsRecords={periods:TuitionPeriod[];settlements:TuitionSettlement[];documents:never[]};
+export type TuitionDocumentsAdminRecords=TuitionDocumentsRecords & {documentMetadata:TuitionDocumentMetadata[]};
+export type TuitionDocumentReceipt={id:string;kind:TuitionDocumentKind;version:number;summary:string};
+export const tuitionDocumentPaths:{summer:string;extended:string;evening:string;settlement:string};
+export const tuitionDocumentMaxPayloadBytes:26000;
+export const tuitionDocumentKinds:readonly TuitionDocumentKind[];
+export const tuitionDocumentFields:Record<TuitionDocumentKind,readonly string[]>;
+export const tuitionDocumentReadSources:readonly {key:'settlements'|'documentMetadata';table:string;select:string;order:string}[];
+export class TuitionDocumentsError extends Error{status:number;constructor(message:string,status?:number);}
+export function tuitionDocumentPayloadBytes(value:unknown):number;
+export function validateTuitionDocumentPayload(kind:unknown,value:unknown):string|null;
+export function loadTuitionDocuments(account:TuitionDocumentsAccount):Promise<TuitionDocumentsRecords>;
+export function loadTuitionDocumentsAdmin(account:TuitionDocumentsAccount,options?:{userId?:string}):Promise<TuitionDocumentsAdminRecords>;
+export function manageTuitionDocumentRecord(account:TuitionDocumentsAccount,kind:TuitionDocumentKind,payload:unknown):Promise<TuitionDocumentReceipt>;

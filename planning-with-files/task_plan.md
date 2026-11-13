@@ -25,6 +25,15 @@
 - [x] Wire bounded complete-result collection, local syllabus/back navigation and separate metadata maintenance; pass focused UI/client/mock API checks.
 - [x] Apply only170000 after the reviewed exact migration plan; run actual-JWT persistence/permissions/browser acceptance, then release and verify production.
 
+## Next protected service: tuition queries [Issue #98]
+
+- [x] Inspect authenticated summer/evening payment instructions, extended-study Index redirect and empty settlement query without printing or paying.
+- [x] Implement separate RLS-owned settlements and document metadata, strict versioned administrator operations and source-shaped student views.
+- [x] Pass independent review, rollback-only preflight and exact staged gates (545 API/source,231 units, TypeScript/build/lint/handoff/audit).
+- [x] Apply only180000 after its exact migration plan; baseline128 migrations/146 RLS tables,190000 remains unapplied.
+- [ ] Complete actual-JWT local/deployed HTTP and browser acceptance with exact cleanup, then publish and verify the production revision.
+- [ ] Add tuition statement evidence to the assistant separately; payment ledger totals do not prove statement or PDF content.
+
 ## Phase Next: systemwide assistant evaluation [Issue #100]
 
 - [ ] Verifier thread owns isolated tests/evaluation and docs/qa/ASSISTANT_SYSTEM_EVALUATION.md to derive question coverage from all current routes/services/records.

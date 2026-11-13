@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Implement the next native tuition batch: separate summer/extended/evening instructions and settlement queries, caller-scoped reads, selected-student administrator maintenance, and four versioned save/delete operations. Preserve null versus blank statements and recover exact metadata-create retries after a lost response. All printing stays disabled; no issued PDFs, Storage capabilities or assistant-tool registration are added. Applied180000 and verified actual-JWT local API/browser acceptance with exact cleanup; production acceptance remains pending. [#98]
+
 - Fix production assistant startup by moving the shared handler to a deployable JavaScript module; verify compiled imports and live API method boundaries. [#100]
 
 - Add the native syllabus search with complete result pagination, current/historical filters, local course outlines and separately versioned administrator metadata. Published with real-account API/browser acceptance and exact test cleanup. [#98]

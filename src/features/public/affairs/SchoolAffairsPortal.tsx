@@ -77,6 +77,9 @@ import { GraduationReview } from "./GraduationReview";
 import { LegacyGraduationReview } from "./LegacyGraduationReview";
 import { AcademicAttendance } from "./AcademicAttendance";
 import { EnrollmentCertificateWorkspace } from "./EnrollmentCertificate";
+import { TuitionDocumentsWorkspace } from "./TuitionDocumentsWorkspace";
+import { tuitionDocumentPaths } from "../../../../server/tuitionDocuments.js";
+import type { TuitionView } from "./TuitionDocuments";
 import { academicGradePaths, type AcademicGradesView } from "@/services/academicGrades";
 import { graduationReviewPaths } from "@/services/graduationReview";
 import { academicAttendancePaths } from "@/services/academicAttendance";
@@ -454,6 +457,10 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   }
   if (normalizedPath === enrollmentCertificatePath) {
     return <EnrollmentCertificateWorkspace key={user.id} userId={user.id} onLogout={()=>navigate("/school-affairs/signed-out")}/>;
+  }
+  const tuitionView = (Object.keys(tuitionDocumentPaths) as TuitionView[]).find(view => tuitionDocumentPaths[view] === normalizedPath);
+  if (tuitionView) {
+    return <TuitionDocumentsWorkspace key={pathname} userId={user.id} view={tuitionView} onLogout={()=>navigate("/school-affairs/signed-out")}/>;
   }
   if (servicePage && ["11-1", "11-2"].includes(route[1])) {
     return <CourseSelection key={pathname} snapshot={account ?? null} busy={accountLoading} error={accountError} onReload={refreshAccount} onLogout={()=>navigate("/school-affairs/signed-out")} view={route[1] === "11-1" ? "history" : "timetable"}/>;

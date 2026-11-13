@@ -18,3 +18,15 @@ Assistant POST requests may set `stream: true` to receive server-sent `progress`
 The public research entrypoint is a thin wrapper around `server/researchAssistantHandler.js`, shared by the School Affairs assistant. Runtime cross-function imports must target deployable JavaScript helpers. `npm run test:live-shell` verifies both compiled endpoints start before exercising page assets; method-denied checks do not call a provider.
 
 Syllabus requests use the explicit `syllabus-search`, `syllabus-options` and `syllabus-detail` scopes. Metadata writes use the strict `syllabus-metadata` manager kind; unknown prefixed scopes and additional fields fail closed. Both routes share a17-second request deadline for these operations.
+
+## Tuition statements and document metadata
+
+The next tuition batch uses the existing endpoints, without adding a serverless function:
+
+- `GET /api/affairs-data?scope=tuition-documents` returns the verified caller's complete settlement periods and literal statements. It accepts no account filter and excludes administrative document metadata.
+- `GET /api/affairs-data?scope=tuition-documents-admin&user_id=<selected-account-uuid>` requires live administrator authorization and one selected account. Missing, repeated or additional query fields are rejected; unknown `tuition-` scopes fail closed.
+- `POST /api/affairs-manage` accepts the exact `{kind,payload}` envelope for `save_tuition_settlement`, `delete_tuition_settlement`, `save_tuition_document_metadata` and `delete_tuition_document_metadata`. Payloads require the selected `user_id`, immutable record `id`, stable `request_id` and `expected_version`; the helper validates each kind's exact fields and 26,000-byte JSONB limit.
+
+Reads and writes retain the caller JWT and share a 17-second API deadline. Conflicts return HTTP 409; authorization and provider failures retain safe status/error responses. Both read scopes return `documents: []`: metadata cannot issue a PDF, enable Print or supply a Storage/download capability. These new tables are not registered with assistant tools.
+
+Offline integration checks and the rollback-only migration preflight passed. Migration `20261112180000_tuition_documents.sql` is applied and actual-JWT local acceptance passed; production release acceptance is pending. See [tuition acceptance](../docs/qa/TUITION_DOCUMENTS.md) for the precise verification boundary.

@@ -1,3 +1,9 @@
+# Latest checkpoint — tuition release preparation
+
+Only180000 is now applied:128 migrations/146 RLS tables;190000 remains unapplied. Exact isolated tuition gates passed545 API/source checks,231 units, forced TypeScript/build/lint/handoff/audit. Actual-JWT local acceptance passed six groups/67API/20browser requests and12 audited administrator writes with exact cleanup and owner preservation. All four routes and390/320 containment passed; production repetition remains pending. Printing is disabled and new tuition records are not assistant evidence yet. Root holds publication/DB coordination. Production remains the accepted syllabus a307414 runtime below. See [tuition acceptance](../qa/TUITION_DOCUMENTS.md) and [current state](../../planning-with-files/current_state.md) for current limits.
+
+The following checkpoints are historical; their earlier migration counts and pending states are superseded by the latest checkpoint above.
+
 # Verified production — syllabus search
 
 Runtime a3074149c5a2283e79951fd1cede16062f3ad8c3 is Vercel Ready6DiLkHczSmdgjqXP84FjbJbS9hos; Quality43359162777 success. Exact production manifest,8routes49assets and deployed actual-JWT syllabus acceptance passed (5groups/140API/23browser requests). All103 synthetic offerings/3 users and their receipts/audits were cleaned; protected owner unchanged. Database127 migrations/144 RLS tables. DB/model lease returned to Issue100 for reviewed rollback-only190000 preflight;180000/190000 remain unapplied. Tuition and assistant repair drafts are uncommitted; full protected-site parity remains unfinished.

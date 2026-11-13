@@ -53,3 +53,13 @@ The verified account assistant explicitly selects `academicGrades`, `graduationR
 `researchAssistantHandler.js` owns the shared public research implementation. Both TypeScript API entrypoints import this deployable JavaScript module; do not import an API `.ts` source from another emitted function. The compiled-entrypoint regression runs without TypeScript loading, and the live deployment smoke checks JSON405 method boundaries without model or database writes.
 
 `syllabusSearch.js` implements published course search/options/detail and a separate audited metadata write. It uses caller-JWT reads, stable complete pagination, nullable explicit current/term fields and no inferred enrollment. [Syllabus acceptance](../docs/qa/SYLLABUS_SEARCH.md) records verified local and deployed account acceptance.
+
+## Tuition statements and document metadata (next batch)
+
+`tuitionDocuments.js` and its type contract provide strict personal reads, selected-account administrator reads and four save/delete operations for literal settlements and summer/evening document metadata. Personal reads stay caller-owned even when the caller is an administrator. Stable 200-row cursor pages are fully validated; reads over 1,000 rows per source fail instead of returning a truncated result. One helper deadline bounds authorization, pagination and response reads within the API's remaining request budget.
+
+`20261112180000_tuition_documents.sql` defines `affairs_tuition_settlements` and `affairs_tuition_document_metadata` with own-account RLS, audited administrator RPCs, expected versions, durable request receipts and deletion tombstones. Owner and document kind are immutable; revocation is terminal. Settlement text preserves `null` as unknown and `""` as a literal blank. No academic year, amount, payment status or eligibility is inferred from a period label or statement.
+
+Document metadata has only `metadata_only` or `revoked` status and the local issuer `stu.best`. Both loader contracts return `documents: []`; no file bytes, URL, Storage capability, issuance or payment workflow exists. The new tuition tables are not registered with assistant tools and must not be described as available assistant evidence.
+
+Rollback-only preflight passed five groups at the unchanged 127-migration/144-RLS-table baseline. The migration is now applied (128 migrations/146 RLS tables), and actual-JWT local API/browser acceptance passed with exact cleanup. Production acceptance remains pending. See [tuition acceptance](../docs/qa/TUITION_DOCUMENTS.md) for UI, handler and schema evidence.
