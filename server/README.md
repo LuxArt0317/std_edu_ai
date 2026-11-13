@@ -103,3 +103,5 @@ The service directory links parking-permit navigation and instructions to their 
 The curriculum plan viewer reads a public PDF from the fixed university endpoint using a captured, allowlisted plan code. It forwards no caller credentials and bounds response size and time. The separate private account scopes retain their existing verification.
 
 The curriculum map lookup sends validated year and track selectors to the fixed university query page. It bounds time and response size and checks the returned year and track before extracting text. Source HTML and account credentials stay outside the response.
+
+`interdisciplinaryPrograms.js` reads the public interdisciplinary catalog for both the directory API and campus assistant. Program citations link to the local viewer when the directory has a verified PDF.

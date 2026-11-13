@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Add the database-backed interdisciplinary credit program directory with 35 published entries, 30 local PDF previews and grounded campus assistant lookups. [#98]
+
 - Add curriculum-map navigation for 42 departments and live year and track course lookups. Keep career and competency links available through the university’s sign-in. Published at `a549676`. [#98]
 
 - Add historical curriculum tables for all 12 program types and their archives, with local previews of university plan PDFs and assistant navigation. Published at `fbf9680`. [#98]

@@ -45,3 +45,5 @@
 
 - 12-7: Published `a549676`. Exact manifest, live browser, four widths, three production lookup results, two assistant links and the public shell passed. The repeat local unit run failed one existing assistant-session assertion. The next full run passed 541.
 - 12-6/12-8: Captured the 35-row interdisciplinary table and 30 document links. Verified the alternative-course year/program selectors and department autocomplete; the source returned HTTP 451 on the first results POST. Source captures are under the ignored curriculum-maps artifact.
+
+- Issue #98: Captured 35 public interdisciplinary program rows and 30 PDFs, built a Supabase-backed directory and shared assistant reader, and verified that the main university portal and Internship use separate sessions.

@@ -43,3 +43,5 @@ Migration220000 adds one active private dormitory-conduct metadata record per ac
 `20261114040000_exchange_grant_drafts.sql` adds caller-owned conference drafts and reflections, verified Google identity checks, per-account write serialization, compare-and-set versions and private idempotency receipts.
 
 `20261114050000_tutor_evaluations.sql` stores one immutable response per Google account and questionnaire version. It enforces ten numeric ratings, an exact request envelope, account RLS, and idempotent submission receipts.
+
+`20261114060000_interdisciplinary_programs.sql` stores the public interdisciplinary credit program directory. RLS grants anonymous and authenticated visitors read access. Application roles have no write grants. Every available public document is identified by the verified SHA-256 digest.

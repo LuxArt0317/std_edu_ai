@@ -1,0 +1,107 @@
+.interdisciplinary-programs {
+  min-height: 100vh;
+  padding: 12px 12px 20px;
+  background: #eee;
+  color: #111;
+  font: 12px/1.3 "微軟正黑體", "Microsoft JhengHei", Verdana, Helvetica, Arial, sans-serif;
+}
+
+.interdisciplinary-programs > main {
+  max-width: 962px;
+  margin: auto;
+  padding-bottom: 34px;
+  border: 1px solid #c9cacb;
+  background: #fff;
+}
+
+.interdisciplinary-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  min-height: 20px;
+  margin: -5px -1px 0;
+  padding: 2px 20px 2px 17px;
+  background: #464646;
+  color: white;
+  text-shadow: 1px 1px 3px #aaa;
+}
+
+.interdisciplinary-programs h1 {
+  display: flex;
+  align-items: center;
+  min-height: 61px;
+  margin: 10px 15px 0;
+  border-bottom: 1px solid #bfc0c1;
+  color: #3f3f3f;
+  font-size: 20px;
+  text-shadow: 1px 1px 1px #999;
+}
+
+.interdisciplinary-programs h1 img { flex: none; }
+
+.interdisciplinary-content { padding: 17px 24px 0; }
+
+.interdisciplinary-content h2 {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #d3e4e1;
+  color: #006459;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.interdisciplinary-content h2::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 1em;
+  margin-right: 5px;
+  background: #0066cc;
+  vertical-align: top;
+}
+
+.interdisciplinary-table { overflow: auto; margin-inline: 1%; }
+.interdisciplinary-table table {
+  width: 100%;
+  min-width: 665px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  text-align: center;
+  font-size: 13px;
+}
+
+.interdisciplinary-table th,
+.interdisciplinary-table td { border: 1px solid #ddd; }
+.interdisciplinary-table thead th { background: #555; color: #fff; font-size: 14px; }
+.interdisciplinary-table button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 36px;
+  padding: 2px 4px;
+  color: inherit;
+  font: inherit;
+}
+.interdisciplinary-table button span { color: #e4e9e8; }
+.interdisciplinary-table button:focus-visible { outline: 2px solid white; outline-offset: -3px; }
+.interdisciplinary-table tbody :is(th, td) { padding: 2px 6px; line-height: 2.2; font-weight: normal; }
+.interdisciplinary-table tbody td:nth-child(2) { text-align: start; }
+.interdisciplinary-table tbody tr:nth-child(even) { background: #fafafa; }
+.interdisciplinary-table tbody tr:focus-within,
+.interdisciplinary-table tbody tr:hover { background: #cfc; }
+.interdisciplinary-table a:hover { color: #a00065; text-decoration: underline; }
+.interdisciplinary-links { margin: 14px 0; }
+.interdisciplinary-links a,
+.interdisciplinary-content [role="alert"] button { color: #006459; text-decoration: underline; }
+.interdisciplinary-content h3 { font-size: 17px; }
+.interdisciplinary-content iframe { width: 100%; height: min(750px, 75vh); border: 1px solid #ddd; }
+
+@media (max-width: 640px) {
+  .interdisciplinary-content { padding-inline: 12px; }
+  .interdisciplinary-content h2 { line-height: 1.35; }
+  .interdisciplinary-table { margin-inline: 0; }
+}

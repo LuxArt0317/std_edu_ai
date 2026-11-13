@@ -1,7 +1,7 @@
 import {curriculumMapPath} from '../src/features/public/affairs/curriculumMaps.js';
 import {curriculumPlansPath} from '../src/features/public/affairs/curriculumPlans.js';
 import {
-  internshipPath, leavePath, officialInternshipUrl, officialLeaveUrl, officialRegistrarUrl, officialWifiUrl,
+  interdisciplinaryProgramsPath, internshipPath, leavePath, officialInternshipUrl, officialLeaveUrl, officialRegistrarUrl, officialWifiUrl,
   schoolServiceEntries, studentServiceByKey, teachingAssistantPath, tutorEvaluationPath, wifiGuidePath,
 } from '../src/features/public/affairs/studentServices.js';
 
@@ -70,6 +70,11 @@ const leadershipMatches = [
   /服務領導.{0,16}(?:作業|成績|反思)|service leadership.{0,22}(?:assignments?|reflection|grades?)/i,
 ];
 const localServiceNavigation = [
+  {
+    id:'interdisciplinary-programs',match:/\b(?:interdisciplinary|interdepartmental|intramural) (?:credit )?programs?\b|跨院系學分學程|學分學程查詢/i,
+    title:['跨院系學分學程查詢','Interdisciplinary credit programs'],localUrl:interdisciplinaryProgramsPath,
+    description:['在跨院系學分學程查詢中查看開設單位、成立年度、學分及已公布的文件。','Browse the interdisciplinary program directory for participating departments, founding years, credit requirements, and published documents.'],
+  },
   {
     id:'curriculum-map',match:/\b(?:curriculum|course) maps?\b|課程地圖/i,
     title:['課程地圖','Curriculum maps'],localUrl:curriculumMapPath,

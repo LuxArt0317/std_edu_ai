@@ -1,3 +1,7 @@
+## Interdisciplinary credit programs (Issue #98)
+
+The 12-6 catalog route reads 35 published programs from Supabase, with 30 local documents and assistant access to the same directory. See [program directory QA](../qa/INTERDISCIPLINARY_PROGRAMS.md).
+
 ## Curriculum maps (Issue #98)
 
 The Academic Affairs 12-7 entry opens a source-shaped four-college directory and 42 local department pages. The year and track filters return live public course maps. The career and competency entry pages link to the university’s authenticated details. Production `a549676` passed pinned browser, live lookup, assistant and public shell checks. See [curriculum map QA](../qa/CURRICULUM_MAPS.md).

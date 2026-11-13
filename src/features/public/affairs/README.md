@@ -77,3 +77,5 @@ General Affairs parking (46-1) opens the dedicated permit entry and `/school-aff
 Historical curriculum plans (12-5) has a table for each program and archive, a local PDF preview, and existing notes at `/school-affairs/services/12-5/notes`. The tables describe published program curricula. Personal enrollment stays in the account’s subject and timetable views.
 
 Curriculum maps (12-7) has a four-college directory, department overview pages and an interactive year/track course lookup. Career and competency pages hand off to university sign-in. Existing private notes remain at `/school-affairs/services/12-7/notes`.
+
+`/services/12-6` reads the published interdisciplinary program catalog from Supabase. It keeps the six observed sortable columns and opens each available PDF on a dedicated local route. Existing private notes are available at `/services/12-6/notes`.

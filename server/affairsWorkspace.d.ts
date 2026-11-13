@@ -1,5 +1,6 @@
 export class AffairsWorkspaceError extends Error { status:number; constructor(message:string,status?:number); }
 export type AffairsAccount = {user:{id:string;email?:string};token:string;url:string;key:string};
+export function schoolAffairsDatabaseConfiguration(): {url:string;key:string};
 export function verifyAffairsToken(token:string):Promise<AffairsAccount>;
 export function loadAffairsSnapshot(account:AffairsAccount,includeAdmin?:boolean,options?:{initialize?:boolean;deadline?:number}):Promise<Record<string,unknown>>;
 export function executeAffairsAction(account:AffairsAccount,kind:string,payload:unknown,requestId?:string):Promise<Record<string,unknown>>;

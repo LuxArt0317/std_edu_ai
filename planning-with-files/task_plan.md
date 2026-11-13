@@ -571,3 +571,10 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Implement the public map flow and verify real year/track results.
 - [x] Verify the exact production revision and assistant links.
 - [ ] Evaluate and implement the protected career and competency detail pages when the school session is available.
+
+## Interdisciplinary credit programs [Issue #98]
+
+- [x] Capture the official 35-row directory and verify the 30 linked PDFs.
+- [x] Implement the database-backed local table, document routes and assistant lookups.
+- [ ] Verify migration isolation, routes, assets, assistant evidence and production deployment.
+- [ ] Verify course substitution search results and authenticated internship details when the university provides access.
