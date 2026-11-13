@@ -1,3 +1,9 @@
+## Latest panel-removal verification
+
+The latest screenshot request is already resolved in published b14a672 and retained by53c9304. Root re-opened the live homepage and visually confirmed the floating preview/account panel is absent and the campus assistant remains. Read-only generator review covers395captures; the focused public-release regression passed. No new runtime or deployment change is needed.
+
+The next literal-grade-report batch has five unmounted, unverified drafts only: server/dtmGradeReport.js, server/dtmGradeReport.d.ts, src/services/dtmGradeReport.ts, src/features/public/dtm/DtmGradeReport.tsx and src/features/public/dtm/dtmGradeReport.css. Delegates are stopped at their saved boundary while this user correction is reported. No migration, manager, shared mounting, API integration or publication exists. Do not stage these drafts as completed work. Issue100 remains user-paused; its files are separate and protected.
+
 ## Credit-load production acceptance
 
 Published53c930447de174b97e8e1c2eafeefd6a582ab5de. Vercel Ready HJ937VNZjMjvXUVSTqhXvP2AV5y9 and exact public manifest (built2026-11-13T10:40:54.643Z; entry index-Uiw70r3I.js) verified. Revision-pinned production acceptance repeated41source measurements (max0.0390625CSSpx),6dialog/focus cases,9Index links,3review aliases,5guest gates and desktop/390/320 layouts with0unexpected requests/page errors or realAPI/auth/model/DB calls. Public startup and8routes/50assets passed. Live homepage confirms removed panel and retained assistant. Production artifacts are artifacts/credit-load-production/53c9304-2026-11-13T10-42-16.586Z/result.json and artifacts/credit-load-production/homepage-panel-removed.png. Quality43410656358 completed successfully, including public accessibility and copied-route/assistant checks.
