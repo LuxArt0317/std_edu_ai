@@ -13,3 +13,9 @@ PUBLIC_SITE_ORIGIN=https://stu.best EXPECTED_RELEASE_REVISION="$(curl -fsS https
 ```
 
 The browser uses synthetic authentication and real notice and assistant endpoints. It verifies all three dates, menu navigation, fee text, retry, guest return and narrow screens. It requires Node 24 and Chromium. The default on macOS is installed Google Chrome. Set `CHROME_PATH` for a different binary.
+
+## Production evidence
+
+Revision `3e4b51e85ce15efd25abac0cdd005b6406a65843` is live as [Vercel CH5VgUnyf1ApMMqD7X5Z8bEfE2re](https://vercel.com/v1-d286/std_edu_ai/CH5VgUnyf1ApMMqD7X5Z8bEfE2re). The exact revision passed the browser and public assistant checks. The schedule table matched source x, y and width at 1280px. Its height differs by 1px and the schedule button by 3px vertically. The fee button's measured x, y and width matched. Narrow widths 768, 390 and 320 contained the page. The four source image hashes matched production. The public shell passed eight routes and 50 assets per route.
+
+The local isolated checks passed 1,024 API/source tests, 541 unit tests and 380 assistant evaluations. [GitHub Quality](https://github.com/LuxArt0317/std_edu_ai/actions/runs/43482023226) passed. The 94-entry browser audit checked navigation and classified 48 generic pages and eight partial workflows. The signed-in source returned 6-2 to an ineligibility event screen. The 6-3 notice exposed late-add rules and an alert before a student-identity entry shell. Neither eligible student form was observed.

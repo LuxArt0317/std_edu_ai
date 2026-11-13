@@ -600,4 +600,10 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Verify the exact client migration, rendered notice geometry and assistant lookup before release.
 - [ ] Capture the exact availability message and open-period selection requirements when observable.
 - [ ] Implement and verify the open-period enrollment workflow with caller-owned records.
-- [ ] Verify the dated notice release on production.
+- [x] Verify the dated notice release on production at 3e4b51e.
+
+## Course add/drop and late add [Issue #98]
+
+- [x] Verify the signed-in source entry and read-only eligibility notices.
+- [ ] Capture the eligible student forms and their transaction behavior when available.
+- [ ] Implement the observed local pages, connect the available student workflows and verify database, assistant and production behavior.

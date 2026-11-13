@@ -1,6 +1,6 @@
 ## Initial course selection (Issue #98)
 
-Service 6-1 opens the dated initial-selection schedule and a separate fee page. Supabase migration 090000 stores three windows and the bilingual fee notice. The campus assistant uses the same records. The university returned the observed session to the portal after an alert. The open-period workflow remains unverified. See [initial selection QA](../qa/FIRST_SELECTION.md).
+Service 6-1 opens the dated initial-selection schedule and a separate fee page. Supabase migration 090000 stores three windows and the bilingual fee notice. The campus assistant uses the same records. Runtime `3e4b51e` passed the revision-pinned browser, assistant and public shell. The university returned the observed session to the portal after an alert. The open-period workflow remains unverified. See [initial selection QA](../qa/FIRST_SELECTION.md).
 
 ## Course substitutions (Issue #98)
 

@@ -2,6 +2,8 @@
 
 The native 6-1 schedule and fee notice use the same Supabase data as the bilingual assistant. Only migration 090000 was applied after exact rollback and role checks. The client has 143 migrations and 160 RLS-protected public tables. The compiled browser passed source geometry, four widths, portal return, retry, guest return and assistant activity. The 94-link audit passes with 48 generic pages and eight partial workflows. The open enrollment form and exact source alert wording are unverified.
 
+Runtime `3e4b51e` is live as Vercel `CH5VgUnyf1ApMMqD7X5Z8bEfE2re`. The deployed browser, notice and assistant reads, four asset hashes and eight-route shell passed. Quality 43482023226 passed. The previous goal turn made progress by releasing the course substitution and assistant deadline correction. Source 6-2 returned an ineligibility event. Source 6-3 displayed late-add rules, then an alert and identity-check shell. The next eligible-student workflows remain open under Issue #98.
+
 ## Course substitutions (Issue #98)
 
 The native search reproduces the source fields, original course table and nested alternatives. It uses the public department selector and exact cohort and track. Live results for cohorts 110, 113 and 115 returned 16, three and zero old courses. Migration 080000 stores the verified snapshots with read-only public RLS.
