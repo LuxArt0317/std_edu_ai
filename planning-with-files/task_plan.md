@@ -9,12 +9,20 @@
 - [x] Verify native two-account persistence/browser isolation and publish the native runtime.
 - [ ] Resolve remaining production native model/reference failures with Issue #100 and rerun all three suites.
 - [x] Apply independent Moodle upload/review backend150000; mount source-faithful detail/editor and pass real Storage plus browser checks.
-- [ ] Publish and verify Moodle student/admin submissions against deployed HTTP.
-- [ ] Register observed assets, update docs, pass release gates, commit/publish and verify production.
+- [x] Publish and verify Moodle student/admin submissions against deployed HTTP; positive admin browser interaction remains a separate gap.
+- [x] Register observed assets, update docs, pass release gates, commit/publish and verify production.
 - [x] Inspect certificate17-1, apply160000 after preflight, mount dedicated personal/admin views and pass post-apply rollback checks.
 - [x] Complete certificate actual-JWT local API/browser acceptance with exact cleanup and protected-owner preservation.
-- [ ] Verify frozen candidate preview, publish and run deployed Moodle/certificate acceptance; continue49remaining source families. Closed school application windows do not establish unseen forms.
+- [x] Verify authenticated preview, publish and pass deployed Moodle/certificate acceptance with exact cleanup. Unattended preview remains SSO-protected.
+- [ ] Continue49remaining source families. Closed school application windows do not establish unseen forms.
 
+
+## Next protected service: syllabus search12-3 [Issue #98]
+
+- [x] Inspect source layout, complete sorting behavior, historical ALL including current, and ANY-theme matching.
+- [x] Build unmounted source-shaped search UI and pass8DOM/9browser checks.
+- [ ] Review170000 additive metadata/search RPC draft and prepare real own-account backend/manager integration; no schema applied yet.
+- [ ] Wire a bounded full-result collector and local syllabus detail navigation; verify persistence, permissions and source geometry before release.
 
 ## Phase Next: systemwide assistant evaluation [Issue #100]
 

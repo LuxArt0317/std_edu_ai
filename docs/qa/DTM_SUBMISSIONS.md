@@ -22,7 +22,7 @@ Synthetic certificate browser checks exercise the actual catalog link, dedicated
 
 Actual certificate JWT/browser run `9f84eef3-b96f-4b63-bbd9-505ef149f67d` passed: administrator writes/replay, caller/cross-account reads,401/403/400/409 paths, immutable ownership, catalog17-1 navigation, blocked/unknown/null/blank states and390/320px containment. Three exact audits/receipts and all synthetic fixtures were removed; the owner fingerprint was preserved. No document or model operations occurred.
 
-The exact staged candidate passed476API/source tests,158unit tests, forced TypeScript, lint, production build, handoff and a zero-vulnerability dependency audit. Preview/production HTTP acceptance remains separate.
+The exact staged candidate passed476API/source tests,158unit tests, forced TypeScript, lint, production build, handoff and a zero-vulnerability dependency audit. The deployed acceptance below is separate from these local checks.
 
 ## Running the checks
 
@@ -40,10 +40,16 @@ Real Storage tests create temporary client fixtures. Serialize them with the liv
 node_modules/.bin/tsx tests/integration/dtm-submissions-storage-live.mjs --execute --expected-migrations=126 --expected-rls=144 --browser-origin=http://127.0.0.1:5184
 ```
 
-Expected output reports passed checks, zero fixture leftovers and unchanged owner records. Do not treat a passing local handler run as deployed-model or production-UI acceptance. Production browser mode and actual-JWT certificate acceptance are the remaining release checks for this batch.
+Expected output reports passed checks, zero fixture leftovers and unchanged owner records. Do not treat a passing local handler run as deployed-model or production-UI acceptance. Production browser and actual-JWT certificate checks have passed as recorded below; positive administrator review browser interaction is still untested.
 
 ## Isolated preview boundary
 
 Preview67a524d was Ready as4zqZNfamPgrQFYgnabCARMXAufRZ. The authenticated Vercel browser verified the exact release manifest and rendered Moodle login without console errors. Unauthenticated release requests redirect to Vercel SSO, so unattended preview API/model acceptance is not claimed. Existing protection remains enabled. Future accessible previews require explicit `PREVIEW_ORIGIN` and `EXPECTED_RELEASE_REVISION`; the harness checks the manifest before credentials/fixtures.
 
 Deployed DTM acceptance now uses actual HTTP for four administrator-review cases (student denial, save, replay and stale revision denial), while underlying Storage byte/RPC tests remain explicitly described as working-tree helpers using real caller JWTs. Seven preview-gate tests and thirteen offline Storage self-checks pass. Positive administrator review browser UI remains untested.
+
+## Deployed acceptance — November13
+
+Runtime67a524de25f23ec4b1c6c425bf9824ec3072a078 is verified by public release.json; Vercel7VwuhZdD6z7PkuY6sXQaDeAKx3dU Ready and Quality43348267548 passed. Production DTM13a854db passed10Storage/helper checks (11uploads/298bytes,14downloads,67helper calls,3parallel cancel wins),8actual deployed student browser flows (35APIrequests,3uploads/81bytes,3downloads,0errors), and4actual-JWT deployed administrator review HTTP cases. Exact users/objects/queue/owner fixtures remaining:0; existing owner unchanged.
+
+Production certificatec5e473f4 passed actual-JWT own/cross reads and administrator create/replay/stale/immutable-owner validation, source17-1 navigation, four columns, reload, blocked/unknown/null/blank states, revision2 and390/320px containment. Three audits/receipts and all exact synthetic fixtures were removed. No model or document requests/writes occurred. Private artifacts remain ignored under artifacts/enrollment-certificate/production-c5e473f4-1268-40a3-8063-d89aaa384729/. Both live connections and browsers closed.

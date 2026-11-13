@@ -11,6 +11,7 @@ import {answerCampusNavigation} from './schoolAffairsDirectory.js';
 import {answerAcademicGrades} from './academicGrades.js';
 import {answerGraduationReview} from './graduationReview.js';
 import {answerAcademicAttendance} from './academicAttendance.js';
+import {answerSavedServiceRecords} from './savedServiceAnswers.js';
 
 const recordLinkTopics = [
   [/\b(?:tuition|fees?|charges?|balance|payments?)\b|學費|費用|繳費/i,'fees'],
@@ -58,8 +59,12 @@ export function fallbackPrivateAnswer(question,snapshot) {
     const dtmLine=dtm.courses.length?`DTM preview courses: ${dtm.courses.map(row=>`${row.code} ${row.title}`).join(', ')}.`:'No DTM preview courses are linked.';
     return `${prefix}Signed in as ${snapshot.profile.displayName} (${snapshot.profile.email}); stu.best role: ${snapshot.profile.role}. ${studentLine} ${courseLine} ${dtmLine} Your workspace also contains ${snapshot.charges.length} charge item(s), ${assignments.length} assignment(s), ${snapshot.tasks.length} task(s), and ${snapshot.requests.length} request(s). Ask for a specific item to see its details.`;
   }
-  if (/\bnext\s+(?:class|lesson|subject|lecture)\b|下(?:一|堂)(?:節)?課|下一門課/i.test(q))
+  if (/\bnext\s+(?:(?:known|school affairs)\s+)?(?:class|lesson|subject|lecture)\b|下(?:一|堂)(?:節)?課|下一門課/i.test(q))
     return prefix+(calendar.next?`Your next scheduled class is ${subject(calendar.next.course)} on ${calendar.next.day} (Taipei time).`:'No upcoming class meeting is scheduled in your current sample term.');
+  if (/\b(?:who teaches|teacher|instructor|room|classroom)\b|授課老師|任課教師|教室/i.test(q)) {
+    const named=courses.filter(row=>[row.code,row.title].some(value=>typeof value==='string'&&value.length>=3&&q.includes(value.toLowerCase())));
+    if(named.length)return prefix+named.map(row=>`${row.code} ${row.title}; instructor: ${row.instructor||'not recorded'}; room: ${row.room||'not recorded'}.`).join('\n');
+  }
   if (/\btomorrow\b|明天/i.test(q)) {
     const following=studyCalendar(courses,new Date(new Date(snapshot.checkedAt).getTime()+86_400_000).toISOString());
     return prefix+(following.today.length?`Tomorrow (${following.day}, Taipei): ${following.today.map(subject).join('; ')}.`:`No classes are scheduled tomorrow (${following.day}, Taipei).`);
@@ -96,9 +101,13 @@ export function fallbackPrivateAnswer(question,snapshot) {
     return prefix+(charges.length?`Tuition and fees: ${charges.map(row=>`${row.label} ${money(row.amountDue)} (paid ${money(row.amountPaid)}${row.dueOn?`, due ${row.dueOn}`:''})`).join('; ')}. Total ${money(dueTotal)}, paid ${money(paidTotal)}, remaining ${money(dueTotal-paidTotal)}.`:'No fee items are linked to this account.');
   }
   if (/公告|announcement|notice/i.test(q))
-    return prefix+(snapshot.announcements.length?`Recent notices: ${snapshot.announcements.map(row=>row.title).join('; ')}.`:'No notices are available.');
-  if (/任務|待辦|task|todo|remind/i.test(q))
-    return prefix+(snapshot.tasks.length?`Your tasks: ${snapshot.tasks.map(row=>`${row.title} (${row.completedAt?'done':'open'})`).join('; ')}.`:'You have no tasks.');
+    return prefix+(snapshot.announcements.length?`Recent notices:\n${snapshot.announcements.map(row=>`${row.title}${row.body?' — '+row.body:''}`).join('\n')}`:'No notices are available.');
+  if (/任務|待辦|task|todo|remind/i.test(q)) {
+    const unfinished=/\b(?:open|unfinished|pending|incomplete|not (?:done|completed))\b|未完成|待完成/i.test(q);
+    const completed=!unfinished&&/\b(?:done|completed|finished)\b|已完成/i.test(q);
+    const tasks=snapshot.tasks.filter(row=>unfinished?!row.completedAt:completed?Boolean(row.completedAt):true);
+    return prefix+(tasks.length?`Your ${unfinished?'unfinished ':completed?'completed ':''}tasks: ${tasks.map(row=>`${row.title} (${row.completedAt?'done':'open'})${row.dueAt?', due '+due(row.dueAt):''}`).join('; ')}.`:'No matching tasks are saved.');
+  }
   if (/申請|請求|request|application/i.test(q))
     return prefix+(snapshot.requests.length?`Your stu.best requests: ${snapshot.requests.map(row=>`${row.title} (${row.status})`).join('; ')}.`:'You have no stu.best service requests.');
   return prefix+`You are signed in as ${snapshot.profile.displayName} (${snapshot.profile.email}). ${student?`Your sample student number is ${student.studentNumber}; program: ${student.program}; year ${student.yearLevel}.`:'No student record is linked.'} You can ask about courses, timetable, practice grades, fees, notices, tasks, or requests.`;
@@ -140,7 +149,7 @@ export async function answerPrivateAffairsQuestion(question,snapshot,history=[],
   if(catalogNavigation?.citations?.[0]?.chunkId==='campus-navigation:course-catalog') return catalogNavigation;
   // Native query pages have independent stored records. Even an empty result
   // must stay authoritative instead of falling through to sample enrollments.
-  const records = answerGraduationReview(question,snapshot,route,history) || answerAcademicGrades(question,snapshot,route,history) || answerAcademicAttendance(question,snapshot,route,history) || answerCourseSelection(question,snapshot,route,history) || answerCreditLoadHistory(question,snapshot,route,history) || answerHousingRecords(question,snapshot,route,history) || answerStudentAidRecords(question,snapshot,route,history) || answerScholarshipRecords(question,snapshot,route,history) || answerPendingFees(question,snapshot,route,history) || answerStudentServiceRecords(question,snapshot) || answerDtmRecords(question,snapshot,route,history);
+  const records = answerGraduationReview(question,snapshot,route,history) || answerAcademicGrades(question,snapshot,route,history) || answerAcademicAttendance(question,snapshot,route,history) || answerCourseSelection(question,snapshot,route,history) || answerCreditLoadHistory(question,snapshot,route,history) || answerHousingRecords(question,snapshot,route,history) || answerStudentAidRecords(question,snapshot,route,history) || answerScholarshipRecords(question,snapshot,route,history) || answerPendingFees(question,snapshot,route,history) || answerStudentServiceRecords(question,snapshot,route,history) || answerDtmRecords(question,snapshot,route,history);
   if (records) return {
     status:'answered',answer:records.answer,
     citations:[{chunkId:'student-workspace',claim:'Records saved to this Google account on stu.best.',
@@ -149,6 +158,9 @@ export async function answerPrivateAffairsQuestion(question,snapshot,history=[],
     grounding:{source:'account',webSearched:false,checkedAt:snapshot.checkedAt,degraded:false},
     activity:[{kind:'account',label:'Checked your saved records',detail:records.title,status:'complete'}],
   };
+  const savedNotes=answerSavedServiceRecords(question,snapshot,route,history);
+  if(savedNotes)return {...savedNotes,grounding:{...savedNotes.grounding,degraded:false},
+    activity:[{kind:'account',label:'Checked your saved service notes',detail:'Only selected account-owned local notes and tracking statuses were read; no official submission or approval is implied.',status:'complete'}]};
   let answer=fallbackPrivateAnswer(question,snapshot),proposedAction=fallbackProposal(question,snapshot),modelUsed=false;
   const deterministic=/\b(?:subjects?|classes|courses|lessons|timetable|schedule|assignments?|homework|submissions?|coursework|tuition|fees?|charges?|balance|payments?|grades?|attendance|notices?|announcements?|tasks?|requests?|moodle|dtm|digital teaching|tomorrow|next semester|next term|what can you do|what do you know about me|what details do you know about me)\b|課程|科目|課表|下堂課|下一門課|明天|下學期|作業|功課|繳交|學費|費用|繳費|成績|出席|公告|任務|待辦|申請|數位教材|教材網|我的.{0,12}(?:資料|資訊|詳情)|關於我/i.test(question);
   const apiKey=process.env.OPENAI_API_KEY;

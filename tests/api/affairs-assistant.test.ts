@@ -93,14 +93,14 @@ test('captured directory includes all 94 services and the current General Affair
 
 test('signed School Affairs directory question never loads Nexus context or transmits account to research',async()=>{
  configured();const calls:string[]=[];
- globalThis.fetch=async(input,init)=>{const url=String(input);calls.push(url);if(url.endsWith('/auth/v1/user')){assert.ok(init);assert.equal((init.headers as Record<string,string>).Authorization,token);return new Response(JSON.stringify({id:'00000000-0000-4000-8000-000000000001',email:'student@example.com',identities:[{provider:'google'}]}),{status:200});}if(url.endsWith('/api/research-assistant')){assert.ok(init);assert.equal((init.headers as Record<string,string>).Authorization,undefined);const forwarded=JSON.parse(String(init.body));assert.deepEqual(forwarded.history,[]);assert.equal(forwarded.question,'What is on this page?');const answer=answerDirectoryQuestion(forwarded.question,forwarded.route)!;if(forwarded.stream)return new Response(`event: progress\ndata: {"kind":"directory","label":"Checked services","detail":"Three links","status":"complete"}\n\nevent: result\ndata: ${JSON.stringify({...answer,grounding:{source:'directory'}})}\n\n`,{status:200,headers:{'content-type':'text/event-stream'}});return new Response(JSON.stringify({...answer,grounding:{source:'directory'}}),{status:200});}throw Error(`Unexpected external call: ${url}`);};
+ globalThis.fetch=async(input,init)=>{const url=String(input);calls.push(url);assert.equal(url,'https://xiftudmvxphxcjtmfmib.supabase.co/auth/v1/user','Public research runs in this deployment, not through a production HTTP hop.');assert.ok(init);assert.equal((init.headers as Record<string,string>).Authorization,token);return Response.json({id:'00000000-0000-4000-8000-000000000001',email:'student@example.com',identities:[{provider:'google'}]});};
  const result=await invoke(affairsHandler,{question:'What is on this page?',route:'/school-affairs/menu/swd/input',history:[{role:'assistant',content:'IM101 Digital Systems Foundations'}]},token);
  assert.equal(result.status,200);assert.equal(result.body.grounding.source,'directory');assert.equal(result.body.citations.length,3);
  assert.doesNotMatch(result.body.answer,/IM101|IM203|Fall Semester 2026|Nexus/);
- assert.deepEqual(calls,['https://xiftudmvxphxcjtmfmib.supabase.co/auth/v1/user','https://stu.best/api/research-assistant']);
+ assert.deepEqual(calls,['https://xiftudmvxphxcjtmfmib.supabase.co/auth/v1/user']);
  const streamed=await invokeStream({question:'What is on this page?',route:'/school-affairs/menu/swd/input'},token);
- assert.deepEqual(streamed.map(event=>event.type),['progress','progress','progress','result']);
- assert.deepEqual(streamed.filter(event=>event.type==='progress').map(event=>event.data.kind),['public','directory','public']);
+ assert.deepEqual(streamed.map(event=>event.type),['progress','progress','progress','progress','result']);
+ assert.deepEqual(streamed.filter(event=>event.type==='progress').map(event=>event.data.kind),['public','directory','directory','public']);
 });
 
 test('personal School Affairs question reads only the caller site records, never Nexus',async()=>{

@@ -46,7 +46,7 @@ export async function runAnswerVerification({
     .addNode('retrieve', async state => {
       if (!withinBudget()) return { verdict: { ok: false, reason: 'timeout' } };
       try {
-        evidence = await bounded(()=>loadEvidence({ attempt: state.attempt, deadline }));
+        evidence = await bounded(()=>loadEvidence({ attempt: state.attempt, deadline, feedback }));
         return { verdict: null };
       } catch {
         evidence = [];

@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Improve account evidence selection, bounded JSON references, verified page context and correction tool selection; validate rendered Markdown link destinations and omit private service contact fields from model evidence. Add an offline, explicit assistant evaluation suite. [#100]
+
 - Mount source-shaped Moodle assignment detail/editor with private versioned file submissions, administrator review and bounded discarded-file cleanup. Keep tracker status independent from real uploads. [#98]
 - Add dedicated enrollment-certificate assessment views and administrator maintenance; metadata cannot activate or issue documents. [#98]
 - Generate a public build revision manifest from verified Vercel Git metadata for deployment acceptance.

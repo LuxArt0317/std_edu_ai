@@ -8,6 +8,7 @@ import { createAssistantStream } from "../server/assistantStream.js";
 import { runAnswerVerification, type VerificationCandidate } from "../server/answerVerification.js";
 import { verifyEvidenceAnswer, repairEvidenceAnswer } from "../server/answerVerificationModel.js";
 import { readVerificationSources } from "../server/answerVerificationSources.js";
+import { isPublicPageQuestion, loadPublicPageContext, normalizePublicPageRoute, publicPageCandidate } from "../server/publicPageContext.js";
 
 type ApiRequest = {
   method?: string;
@@ -130,7 +131,7 @@ function parse(body: unknown) {
     const item=entry as Record<string,unknown>;
     return ['user','assistant'].includes(String(item.role)) && typeof item.content==='string' ? [{role:String(item.role),content:item.content.slice(0,2000)}] : [];
   }) : [];
-  const route = typeof source.route === 'string' && /^\/school-affairs(?:\/menu\/[a-zA-Z]+\/[a-z]+)?$/.test(source.route) ? source.route : '';
+  const route = typeof source.route === 'string' && /^\/school-affairs(?:\/menu\/[a-zA-Z]+\/[a-z]+)?$/.test(source.route) ? source.route : normalizePublicPageRoute(source.route);
   const rawImages = source.images;
   if (rawImages !== undefined && (!Array.isArray(rawImages) || rawImages.length > 2)) return null;
   const images: Array<{name:string;dataUrl:string}> = [];
@@ -294,8 +295,9 @@ async function recordTrace(args: {
   };
 }
 
-export function createResearchAssistantHandler(dependencies:{readSources?:typeof readVerificationSources}={}) {
+export function createResearchAssistantHandler(dependencies:{readSources?:typeof readVerificationSources;loadPublicPage?:typeof loadPublicPageContext}={}) {
 const readSources=dependencies.readSources || readVerificationSources;
+const loadPublicPage=dependencies.loadPublicPage || loadPublicPageContext;
 return async function handler(
   request: ApiRequest,
   response: ApiResponse,
@@ -322,8 +324,10 @@ return async function handler(
   }
   const stream = createAssistantStream(input.stream,response);
   const kind = questionKind(input.question);
+  const personalQuestion = kind.personal || /\bmy (?:current )?(?:subjects?|courses?|classes|grades?|schedule|timetable|attendance|assignments?|enrollments?)\b|\b(?:my|our|their|his|her)\b.{0,45}\b(?:tuition|payments?|scholarships?|financial aid|records?)\b|我的.{0,16}(?:課程|科目|成績|出席|作業|課表|學費|費用|繳款|獎學金|紀錄|記錄)/i.test(input.question);
+  const pageQuestion = !input.images.length && !personalQuestion && !kind.irrelevant && Boolean(normalizePublicPageRoute(input.route)) && isPublicPageQuestion(input.question);
   const chinese = /[\u3400-\u9fff]/.test(input.question);
-  const navigation = !input.images.length && !kind.irrelevant ? answerCampusNavigation(input.question) : null;
+  const navigation = !input.images.length && !kind.irrelevant && !pageQuestion ? answerCampusNavigation(input.question) : null;
   if (navigation) {
     stream.progress('directory','Checked campus services','Found a verified service link.','complete');
     stream.send(200,navigation);
@@ -355,6 +359,17 @@ return async function handler(
     process.env.OPENAI_PUBLIC_MODEL ||
     process.env.OPENAI_MODEL ||
     "gpt-5.6-terra";
+  if (pageQuestion) {
+    stream.progress('page-context','Reading the current public page','Checking the saved page and its capture date.');
+    const context=await loadPublicPage(input.route,deadline).catch(()=>null);
+    if (context) {
+      const checked=await runAnswerVerification({question:verificationQuestion,initialAnswer:publicPageCandidate(context,input.question),deadline,onProgress:verificationProgress,
+        loadEvidence:async()=>[context.evidence],verify:verifyEvidenceAnswer,repair:repairEvidenceAnswer});
+      stream.send(200,checked);
+      return;
+    }
+    stream.progress('page-context','Page context unavailable','No approved public page context was available.','unavailable');
+  }
   // The captured School Affairs catalog is a separate public source. It has no
   // Nexus classes, terms or users, and its official links still require school sign-in.
   if (!input.images.length && !kind.personal && !kind.irrelevant) {
@@ -404,7 +419,7 @@ return async function handler(
   let webAttempted = false;
   const publicQuestion = publicSchoolQuestion(input.question,input.history);
   async function tryWebAnswer() {
-    if (webAttempted || !publicQuestion || kind.personal) return false;
+    if (webAttempted || !publicQuestion || personalQuestion) return false;
     stream.progress('web','Searching school sources','Checking official school pages and related public sources.');
     const web = await searchSchoolWeb(publicQuestion,{deadline:Math.min(deadline-19000,Date.now()+22000)}).catch(() => null);
     if (!web) {
@@ -428,7 +443,6 @@ return async function handler(
     return true;
   }
   try {
-    const personalQuestion = kind.personal || /\bmy (?:current )?(?:subjects?|courses?|classes|grades?|schedule|timetable|attendance|assignments?|enrollments?)\b|我的.{0,8}(?:課程|科目|成績|出席|作業|課表)/i.test(input.question);
     // A public follow-up may use only a previous public school question. Never
     // send a prior private message, assistant answer or attachment to retrieval.
     const searchQuestion = publicQuestion || input.question;

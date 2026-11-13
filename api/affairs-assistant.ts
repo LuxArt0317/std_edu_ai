@@ -11,9 +11,12 @@ import { isCourseSelectionQuestion } from '../server/courseSelection.js';
 import { AffairsWorkspaceError, loadAffairsSnapshot, verifyAffairsToken } from '../server/affairsWorkspace.js';
 import { createAssistantStream } from '../server/assistantStream.js';
 import { readAssistantReply } from '../src/services/assistantStreamReader.js';
+import researchHandler from './research-assistant.ts';
 
 type ApiRequest = {method?:string;body?:unknown;headers:Record<string,string|string[]|undefined>};
 type ApiResponse = {status:(code:number)=>ApiResponse;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void;write?:(chunk:string)=>void;end?:()=>void;flushHeaders?:()=>void};
+type PublicResearchHandler = (request:ApiRequest,response:ApiResponse)=>Promise<void>;
+type PublicProgress = Parameters<NonNullable<Parameters<typeof readAssistantReply>[1]>>[0];
 export const config = {maxDuration:60};
 const requestWindows = new Map<string,number[]>();
 function value(input:string|string[]|undefined) {return Array.isArray(input)?input[0]:input;}
@@ -28,7 +31,69 @@ function personal(question:string,history:Array<{role:string;content:string}>=[]
     && personal(previous));
 }
 
-export default async function handler(request:ApiRequest,response:ApiResponse) {
+/** Adapt the same deployment's handler to the existing bounded JSON/SSE reader.
+ * Child headers never overwrite the outer response, and late writes after the
+ * request deadline are discarded. No browser-supplied origin becomes a URL.
+ */
+export async function dispatchPublicResearch(handler:PublicResearchHandler,request:ApiRequest,deadline:number,onProgress:(step:PublicProgress)=>void) {
+  if(deadline<=Date.now())throw new Error('School research deadline exceeded.');
+  let status=200,bytes=0,started=false,ended=false,active=true;
+  const headers=new Headers();
+  let controller!:ReadableStreamDefaultController<Uint8Array>;
+  const body=new ReadableStream<Uint8Array>({start(value){controller=value;}});
+  let resolveResponse!:(response:Response)=>void,rejectResponse!:(error:unknown)=>void;
+  const pendingResponse=new Promise<Response>((resolve,reject)=>{resolveResponse=resolve;rejectResponse=reject;});
+  const encoder=new TextEncoder();
+  function bounded(text:string) {
+    const chunk=encoder.encode(text);bytes+=chunk.byteLength;
+    if(bytes>300_000)throw new Error('School research response was too large.');
+    return chunk;
+  }
+  function start() {
+    if(started)return;
+    resolveResponse(new Response(body,{status,headers}));started=true;
+  }
+  const response:ApiResponse={
+    status(code){if(active&&!started)status=code;return response;},
+    setHeader(name,value){if(active&&!started)headers.set(name,value);},
+    flushHeaders(){if(active&&!ended)start();},
+    json(payload){
+      if(!active||ended)return;
+      if(started)throw new Error('School research mixed JSON and streaming responses.');
+      const text=JSON.stringify(payload);
+      if(typeof text!=='string')throw new Error('School research returned an invalid response.');
+      bounded(text);headers.set('Content-Type','application/json');
+      resolveResponse(new Response(text,{status,headers}));started=true;ended=true;
+    },
+    write(chunk){if(active&&!ended){const encoded=bounded(chunk);start();controller.enqueue(encoded);}},
+    end(){if(active&&!ended){start();controller.close();ended=true;}},
+  };
+  function fail(error:unknown) {
+    if(!active||ended)return;
+    ended=true;rejectResponse(error);controller.error(error);
+  }
+  // Observe rejection even if the deadline expires before the child finishes.
+  void Promise.resolve().then(()=>handler(request,response)).then(()=>{
+    if(!ended)fail(new Error('School research ended without a response.'));
+  },fail);
+  let timer:ReturnType<typeof setTimeout>|undefined;
+  try {
+    return await Promise.race([
+      (async()=>{
+        const result=await pendingResponse;
+        return {status:result.status,ok:result.ok,result:await readAssistantReply(result,step=>{if(active)onProgress(step);})};
+      })(),
+      new Promise<never>((_resolve,reject)=>{timer=setTimeout(()=>reject(new Error('School research deadline exceeded.')),Math.max(1,deadline-Date.now()));}),
+    ]);
+  } finally {
+    active=false;if(timer!==undefined)clearTimeout(timer);
+    if(!ended){ended=true;const error=new Error('School research response closed.');rejectResponse(error);controller.error(error);}
+  }
+}
+
+export function createAffairsAssistantHandler(dependencies:{publicResearch?:PublicResearchHandler}={}) {
+const publicResearch=dependencies.publicResearch??researchHandler;
+return async function handler(request:ApiRequest,response:ApiResponse) {
   const deadline=Date.now()+55_000;
   response.setHeader('Cache-Control','no-store, max-age=0');
   response.setHeader('X-Content-Type-Options','nosniff');
@@ -63,16 +128,20 @@ export default async function handler(request:ApiRequest,response:ApiResponse) {
     return;
   }
   if(!needsRecords) {
-    // Separate deployment function; only public input is forwarded, never the account token.
+    // Reuse this deployment's public handler; never send account state into it.
     stream.progress('public','Checking public school information','This question does not need your account records.');
     try {
-      const research=await fetch('https://stu.best/api/research-assistant',{
-        method:'POST',signal:AbortSignal.timeout(Math.max(1,deadline-Date.now())),
-        headers:{'Content-Type':'application/json',...(value(request.headers['x-forwarded-for'])?{'X-Forwarded-For':value(request.headers['x-forwarded-for'])!}:{})},
-        body:JSON.stringify({question,history:[],images:input?.images,route,consentedResearchUse:false,stream:stream.enabled}),
-      });
-      const result=await readAssistantReply(research,step=>stream.progress(step.kind,step.label,step.detail,step.status)) as Record<string,unknown>|null;
-      if(!result || typeof result!=='object' || (!research.ok && typeof result.error!=='string')) {stream.send(502,{error:'School research returned an invalid response.'});return;}
+      const research=await dispatchPublicResearch(publicResearch,{
+        method:'POST',
+        headers:{'content-type':'application/json',...(value(request.headers['x-forwarded-for'])?{'x-forwarded-for':value(request.headers['x-forwarded-for'])!}:{})},
+        body:{question,history:[],images:Array.isArray(input?.images)?input.images.map(image=>{
+          if(!image||typeof image!=='object'||Array.isArray(image))return image;
+          const attachment=image as Record<string,unknown>;
+          return {name:attachment.name,dataUrl:attachment.dataUrl};
+        }):input?.images,route,consentedResearchUse:false,stream:stream.enabled},
+      },deadline,step=>stream.progress(step.kind,step.label,step.detail,step.status));
+      const result=research.result as Record<string,unknown>|null;
+      if(!result || typeof result!=='object' || Array.isArray(result) || (!research.ok && typeof result.error!=='string')) {stream.send(502,{error:'School research returned an invalid response.'});return;}
       stream.progress('public','Checked public information','The public school lookup finished.','complete');
       stream.send(research.status,result);
     } catch {stream.send(503,{error:'School research is temporarily unavailable. Please try again.'});}
@@ -95,4 +164,7 @@ export default async function handler(request:ApiRequest,response:ApiResponse) {
   } catch(error) {
     stream.send(error instanceof AffairsWorkspaceError?error.status:503,{error:error instanceof AffairsWorkspaceError?error.message:'Your School Affairs records could not be checked.'});
   }
+};
 }
+
+export default createAffairsAssistantHandler();

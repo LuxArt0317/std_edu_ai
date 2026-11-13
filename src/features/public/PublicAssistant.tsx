@@ -20,6 +20,7 @@ import { PublicAssistantFeedback } from "./PublicAssistantFeedback";
 import { AssistantMarkdown } from "../school/portal/AssistantMarkdown";
 import { finishAssistantActivity, mergeAssistantActivity, type AssistantMessage } from "../../services/assistantConversation";
 import {useAssistantSessions} from './useAssistantSessions';
+import {assistantPageRoute} from '../../services/assistantPageRoute.js';
 
 type Message = AssistantMessage;
 function ActivityTimeline({message}:{message:Message}) {
@@ -125,7 +126,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
         messages,
         controller.signal,
         attached,
-        window.location.pathname,
+        assistantPageRoute(embedded),
         (step) => {
           if (request !== sequence.current || controller.signal.aborted) return;
           setMessages(old=>old.map(item=>item.id===answerId?{...item,activity:mergeAssistantActivity(item.activity,[step])}:item));

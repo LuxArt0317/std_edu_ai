@@ -2,9 +2,12 @@ import {nativeAcademicCollection} from './nativeAcademicEvidence.js';
 import {academicGradesPaths,academicGradesQuery,isAcademicGradesQuestion} from './academicGrades.js';
 import {graduationReviewPaths,graduationReviewQuery,graduationReviewNamesCourse,isGraduationReviewQuestion} from './graduationReview.js';
 import {academicAttendancePaths,academicAttendanceQuery,academicAttendanceMatchingRows,isAcademicAttendanceQuestion} from './academicAttendance.js';
+import {selectAccountEvidence,selectServiceRecords,ownEvidenceRows} from './accountEvidenceSelection.js';
+import {selectedEvidenceLinks} from './accountEvidenceLinks.js';
+import {schoolServiceEntries,studentServiceByKey} from '../src/features/public/affairs/studentServices.js';
 const clean=value=>String(value??'—').slice(0,200);
 const nativeClean=value=>{const text=String(value??'—');return text.length<=200?text:text.slice(0,199).replace(/[\ud800-\udbff]$/,'')+'…';};
-const date=value=>value?new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Taipei'}).format(new Date(value)):'Not set';
+const date=value=>!value?'Not set':Number.isFinite(new Date(value).getTime())?new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Taipei'}).format(new Date(value)):'Invalid saved date';
 const money=(value,currency='TWD')=>new Intl.NumberFormat('en-US',{style:'currency',currency,maximumFractionDigits:2}).format(Number(value));
 const nativePredicates={academicGrades:isAcademicGradesQuestion,graduationReview:isGraduationReviewQuestion,academicAttendance:isAcademicAttendanceQuestion};
 const term=row=>`${row.academicYear} / ${row.semester}`;
@@ -102,14 +105,32 @@ function nativeDefinitions(snapshot,context){
   };
 }
 export function accountRecordViews(snapshot,tools,context={}){
+  const userId=snapshot.profile?.userId;
+  const selectedRows=key=>{
+    const value=selectAccountEvidence(snapshot,key,context)?.records;
+    return Array.isArray(value)?value:ownEvidenceRows(snapshot[key],userId);
+  };
+  const dtmSelection=selectAccountEvidence(snapshot,'dtm',context),dtm=dtmSelection?.records||{courses:[]};
+  const assignments=selectedRows('assignments'),serviceSelection=selectServiceRecords(snapshot,context);
+  const courseUrl=id=>{
+    if(typeof id!=='string')return null;
+    return selectedEvidenceLinks('dtm',{courses:[{id}]}).find(path=>path.startsWith('/dtm/course/'))||null;
+  };
+  const dtmUrl=dtm.courses.length===1?courseUrl(dtm.courses[0].id)||'/dtm':'/dtm';
+  const assignmentCourses=[...new Set(assignments.map(row=>row.dtmCourseId).filter(Boolean))];
+  const assignmentCourse=assignmentCourses.length===1?courseUrl(assignmentCourses[0]):assignments.length===0&&dtm.courses.length===1?courseUrl(dtm.courses[0].id):null;
+  const serviceTitle=key=>studentServiceByKey(key)?.title||schoolServiceEntries.find(row=>row.id===key)?.title||'Unknown service';
+  const serviceScope=serviceSelection.selection.requestedReference&&serviceSelection.selection.matchedReference===false
+    ?'No saved note matched the requested reference; unrelated records were not substituted.'
+    :'Only selected owned local tracking records are shown; notes/statuses do not establish university approval, payment or official submission.';
   const definitions={
-    courses:['Subjects','/school-affairs/records',['Subject','Term','Status','Room','Data'],snapshot.courses||[],row=>[`${row.code} ${row.title}`,row.term,row.status,row.room,row.sourceMode]],
-    charges:['Tuition and fees','/school-affairs/services/39-1',['Item','Due','Paid','Remaining','Data'],snapshot.charges||[],row=>[row.label,money(row.amountDue,row.currency),money(row.amountPaid,row.currency),money(Number(row.amountDue)-Number(row.amountPaid),row.currency),row.sourceMode]],
-    assignments:['Assignment tracker','/dtm/assignments',['Assignment','Course','Due (Taipei)','Status','Data'],snapshot.assignments||[],row=>[row.title,row.course,date(row.dueAt),row.status,row.sourceMode]],
-    tasks:['Your tasks','/school-affairs/records',['Task','Due (Taipei)','Status'],snapshot.tasks||[],row=>[row.title,date(row.dueAt),row.completedAt?'Complete':'Open']],
-    requests:['Your service requests','/school-affairs/records',['Request','Type','Status'],snapshot.requests||[],row=>[row.title,row.type,row.status]],
-    dtm:['DTM courses','/dtm',['Course','Term','Materials','Data'],snapshot.dtm?.courses||[],row=>[`${row.code} ${row.title}`,row.term,String(row.materials?.length||0),row.sourceMode]],
-    serviceRecords:['Your service records','/school-affairs/services/leave',['Record','Type','Status','Starts'],snapshot.serviceRecords||[],row=>[row.title,row.recordType,row.reviewStatus||row.status,row.startsOn]],
+    courses:['Subjects','/school-affairs/records',['Subject','Term','Status','Room','Data'],selectedRows('courses'),row=>[`${row.code} ${row.title}`,row.term,row.status,row.room,row.sourceMode]],
+    charges:['Tuition and fees','/school-affairs/services/39-1',['Item','Due','Paid','Remaining','Data'],selectedRows('charges'),row=>[row.label,money(row.amountDue,row.currency),money(row.amountPaid,row.currency),money(Number(row.amountDue)-Number(row.amountPaid),row.currency),row.sourceMode]],
+    assignments:['Assignment tracker',assignmentCourse?assignmentCourse+'/assignments':'/dtm/assignments',['Assignment','Course','Due (Taipei)','Status','Data'],assignments,row=>[row.title,row.course,date(row.dueAt),row.status,row.sourceMode],'Selected owned assignments only; other courses are not evidence for this selection.'],
+    tasks:['Your tasks','/school-affairs/records',['Task','Due (Taipei)','Status'],selectedRows('tasks'),row=>[row.title,date(row.dueAt),row.completedAt?'Complete':'Open']],
+    requests:['Your service requests','/school-affairs/records',['Request','Type','Status'],selectedRows('requests'),row=>[row.title,row.type,row.status]],
+    dtm:['DTM courses',dtmUrl,['Course','Term','Materials','Data'],dtm.courses,row=>[`${row.code} ${row.title}`,row.term,String(row.materials?.length||0),row.sourceMode],'Selected owned courses and materials only; omitted courses are not counted.'],
+    serviceRecords:['Your service records',serviceSelection.url,['Service','Record','Type','Status','Starts'],serviceSelection.records,row=>[serviceTitle(row.serviceKey),row.title,row.recordType,row.reviewStatus||row.status,row.startsOn],serviceScope],
     ...nativeDefinitions(snapshot,context),
   };
   const route=typeof context.route==='string'?context.route.split(/[?#]/)[0].replace(/\/+$/,''):'';
@@ -118,6 +139,6 @@ export function accountRecordViews(snapshot,tools,context={}){
     const [title,url,columns,records,values,scope,coverage]=definitions[key],native=Object.hasOwn(nativePredicates,key);
     return {id:key,title,url,columns,rows:records.slice(0,12).map(row=>values(row).map(native?nativeClean:clean)),total:records.length,checkedAt:snapshot.checkedAt,
       note:native?`Own loaded snapshot: ${Math.min(12,records.length)}/${records.length} rows shown. local_demo; no university sync; history completeness unknown. ${scope} Compact fields; long cells abbreviated.${coverage.projectionPartial?' Some source values were suppressed.':''}`
-        :'Retrieved stu.best records. “sample” means demonstration data. This is not a live university sync. Collections may be limited as described in the answer.'};
+        :`Retrieved stu.best records. “sample” means demonstration data. This is not a live university sync. Showing ${Math.min(12,records.length)} of ${records.length} selected rows. ${scope||'Collections may be limited as described in the answer.'}`};
   });
 }

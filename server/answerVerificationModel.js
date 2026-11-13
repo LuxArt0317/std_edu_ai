@@ -1,3 +1,5 @@
+import Markdown from 'react-markdown';
+
 const readText = payload => (payload?.output || []).flatMap(item => item.content || [])
   .filter(item => item.type === 'output_text').map(item => item.text || '').join('').trim();
 
@@ -115,16 +117,66 @@ function jsonPathExists(value, path) {
   }
   return true;
 }
-function referencesMatch(content,claim){
+function referenceFailure(content,claim){
+  if(typeof content!=='string')return 'unknown_evidence_source';
   const paths=claim.jsonPaths;
-  if(!Array.isArray(paths)||!paths.length)return quotesOccur(content,claim);
-  if(paths.length>8||typeof content!=='string')return false;
+  if(!Array.isArray(paths)||!paths.length)return quotesOccur(content,claim)?null:'quote_mismatch';
+  if(paths.length>8)return 'too_many_json_paths';
   try{
     const parsed=JSON.parse(content);
-    if(!paths.every(path=>jsonPathExists(parsed,path)))return false;
+    if(!paths.every(path=>jsonPathExists(parsed,path)))return 'invalid_json_pointer';
     const quotes=claimQuotes(claim);
-    return !quotes.length||quotesOccur(content,claim);
-  }catch{return false;}
+    return !quotes.length||quotesOccur(content,claim)?null:'quote_mismatch';
+  }catch{return 'source_not_structured';}
+}
+const referencesMatch=(content,claim)=>referenceFailure(content,claim)===null;
+
+/** Exact addresses are guidance only. Every returned model reference is still
+ * resolved against its own evidence source; no aliases or fuzzy paths exist.
+ * Keep this small even when a report contains thousands of flattened rows. */
+export function evidenceReferenceCatalog(evidence) {
+  const catalog={format:'RFC6901',sources:[],partial:false};
+  const encoder=new TextEncoder(),withinBudget=()=>encoder.encode(JSON.stringify(catalog)).byteLength<=24000;
+  const encode=value=>String(value).replace(/~/g,'~0').replace(/\//g,'~1');
+  let paths=0,nodes=0;
+  for(const source of evidence){
+    if(typeof source?.id!=='string'||typeof source.content!=='string')continue;
+    let parsed;try{parsed=JSON.parse(source.content);}catch{continue;}
+    if(!parsed||typeof parsed!=='object')continue;
+    const row={evidenceId:source.id,jsonPaths:[],partial:false};
+    catalog.sources.push(row);
+    if(!withinBudget()){catalog.sources.pop();catalog.partial=true;break;}
+    const queue=[{value:parsed,path:'',depth:0}];let index=0;
+    while(index<queue.length&&nodes<4096&&paths<512&&row.jsonPaths.length<180){
+      const item=queue[index++];nodes++;
+      const entries=item.value&&typeof item.value==='object'?Object.entries(item.value):[];
+      if(item.path&&(!entries.length||!item.value||typeof item.value!=='object')){
+        row.jsonPaths.push(item.path);paths++;
+        if(!withinBudget()){row.jsonPaths.pop();paths--;row.partial=true;break;}
+      }
+      if(item.depth>=24){if(entries.length)row.partial=true;continue;}
+      for(const [key,value] of entries){
+        const path=item.path+'/'+encode(key);
+        if(path.length>512||queue.length>=4096){row.partial=true;continue;}
+        queue.push({value,path,depth:item.depth+1});
+      }
+    }
+    if(index<queue.length)row.partial=true;
+    catalog.partial ||= row.partial;
+    if(nodes>=4096||paths>=512){catalog.partial=true;break;}
+  }
+  return catalog;
+}
+
+function referenceFeedback(review,evidence,hasImages) {
+  const sources=new Map(evidence.map(source=>[source.id,source.content]));
+  return (Array.isArray(review?.claims)?review.claims:[]).flatMap((claim,index)=>{
+    if(hasImages&&claim.evidenceId==='attached-image')return [];
+    const reason=referenceFailure(sources.get(claim.evidenceId),claim);
+    if(!reason)return [];
+    const source=typeof claim.evidenceId==='string'?claim.evidenceId.slice(0,100):'unknown';
+    return [`Reference integrity failed for claim ${index+1} (${source}; ${reason}): ${String(claim.claim||'').slice(0,300)}. Read the actual source values and use its exact RFC 6901 field addresses; an invalid reference does not establish support.`];
+  });
 }
 
 export function validEvidence(evidence) {
@@ -144,11 +196,30 @@ export function reviewMatchesEvidence(review, evidence, hasImages = false) {
 
 export function answerLinksSupported(answer, evidence) {
   const allowed = new Set(evidence.flatMap(source => [source.url, ...(source.urls || [])]).filter(Boolean));
-  // Only links in the actual source set may be emitted. This also blocks new
-  // credential-bearing URLs invented in an otherwise plausible correction.
-  const links = [...answer.matchAll(/\]\(([^\s)]+)(?:\s+[^)]*)?\)|https?:\/\/[^\s<>\])]+/g)]
-    .map(match => match[1] || match[0].replace(/[.,;]+$/, ''));
-  return links.every(url => allowed.has(url));
+  if (typeof answer !== 'string' || answer.length > 100000) return false;
+  // Use the same CommonMark parser as AssistantMarkdown. Regex alone misses
+  // reference/shortcut links, email autolinks, escaped URLs and entity decoding.
+  // Inspect destinations before the renderer's URL sanitization, failing closed
+  // even if an unsafe protocol would subsequently become an inert element.
+  const links = [];
+  try {
+    Markdown({children:answer, skipHtml:true, rehypePlugins:[() => tree => {
+      const pending = [{node:tree,inert:false,insideLink:false}];
+      while (pending.length) {
+        const {node,inert,insideLink} = pending.pop();
+        const isInert = inert || node.tagName === 'code' || node.tagName === 'pre';
+        const isLink = node.type === 'element' && node.tagName === 'a';
+        if (isLink) links.push(node.properties?.href);
+        // Plain HTTP text remains a claimed destination even though this
+        // renderer does not auto-link it. Code and escaped HTML are only text.
+        if (node.type === 'text' && !isInert && !insideLink) {
+          for (const match of node.value.matchAll(/https?:\/\/[^\s<>\])]+/g)) links.push(match[0].replace(/[.,;]+$/, ''));
+        }
+        for (const child of node.children || []) pending.push({node:child,inert:isInert,insideLink:insideLink || isLink});
+      }
+    }]});
+    return links.every(url => typeof url === 'string' && allowed.has(url));
+  } catch { return false; }
 }
 
 export function snapshotProvenanceSupported(candidate, evidence, sourceIds) {
@@ -178,9 +249,10 @@ export async function verifyEvidenceAnswer({ question, candidate, evidence, dead
       'Native account:academicGrades, account:graduationReview and account:academicAttendance have separate rules and coverage/counts. Do not substitute DTM/enrollment grades or attendance, infer GPA/earned credits, calculate graduation eligibility, merge academic_services and legacy reportKind, or convert attendance detail counts/periods into hours. Follow requestedReportKind; no matching kind is not permission to use another kind. Native historyCompleteness is unknown even after complete database pagination. Excerpted or suppressed values do not establish absence. Reference literal status, credit, date and timestamp fields; null is not zero.',
       'Reject contradictions, unsupported conclusions, claims that a proposed action has already happened, stale evidence presented as current, and unsupported claims hidden behind a disclaimer. A useful partial answer is allowed only if it explicitly identifies the unanswered parts.',
       'Enumerate all material claims separately, including provenance. For each give its evidenceId. When that evidence content is JSON, use jsonPaths with exact RFC 6901 field pointers (for example /records/0/amountDue and /records/0/amountPaid), and an empty quotes array. Resolve and read those values before deciding support. Use /rules for a claim supported by the account-scope rules. An existing pointer alone proves nothing about the meaning or truth of a claim; check the actual values. Do not use the root pointer. For plain text evidence, use one to four short contiguous verbatim quotes and an empty jsonPaths array. Copy each quote exactly; do not join separated fields, translate, paraphrase, insert ellipses or invent a prose summary. For calculations, reference each operand and verify the arithmetic. For time comparisons, reference the record time and checkedAt. Use attached-image only when the provided image visibly supports the claim, with both arrays empty.',
+      'referenceCatalog lists exact field addresses from the supplied JSON, grouped by evidenceId. Prefer those addresses, but read their actual values in the source before approving a claim. The catalog may be partial and contains no additional facts. Native graduation evidence is flattened: statuses, categories, requirements and matchedCourses are separate arrays under /records, joined by reportId/categoryId/requirementId. Do not invent nested /reports/... addresses or reuse a row index from a different collection. Null and zero are distinct values.',
       'Set supported true only if ALL material claims are supported. Set answersQuestion true only if the response answers the request or specifically identifies the missing evidence. Do not use world knowledge or previous assistant text as evidence.',
     ].join(' '),
-    { question, answer: candidate.answer, proposedAction: candidate.proposedAction || null, evidence }, deadline, images);
+    { question, answer: candidate.answer, proposedAction: candidate.proposedAction || null, evidence,referenceCatalog:evidenceReferenceCatalog(evidence) }, deadline, images);
   if (!snapshotProvenanceSupported(candidate, evidence, review.claims?.map(claim => claim.evidenceId)))
     return { ok: false, reason: 'snapshot_provenance_missing', feedback: snapshotFeedback };
   const matches = reviewMatchesEvidence(review, evidence, images.length > 0);
@@ -190,8 +262,8 @@ export async function verifyEvidenceAnswer({ question, candidate, evidence, dead
     unmatchedReferences:Array.isArray(review.claims)?review.claims.filter(claim=>!(images.length && claim.evidenceId==='attached-image')&&!referencesMatch(evidence.find(source=>source.id===claim.evidenceId)?.content,claim)).length:0,
     unmatchedAccountCollections:Array.isArray(review.claims)?[...new Set(review.claims.filter(claim=>!referencesMatch(evidence.find(source=>source.id===claim.evidenceId)?.content,claim)).map(claim=>/^account(?:-scope|:(?:profile|courses|assignments|dtm|charges|tasks|requests|serviceRecords|announcements|scholarship|studentAid|housing|creditLoadHistory|courseSelection|academicGrades|graduationReview|academicAttendance))$/.test(claim.evidenceId)?claim.evidenceId:'other'))]:[]});
   return { ok: matches, reason: 'unsupported_claims',
-    feedback: Array.isArray(review.claims) ? review.claims.filter(claim => claim.supported !== true).slice(0, 12)
-      .map(claim => String(claim.claim || '').slice(0, 400)) : [] };
+    feedback: Array.isArray(review.claims) ? [...review.claims.filter(claim => claim.supported !== true)
+      .map(claim => String(claim.claim || '').slice(0, 400)),...referenceFeedback(review,evidence,images.length>0)].slice(0,12) : [] };
 }
 
 export async function repairEvidenceAnswer({ question, candidate, evidence, deadline, feedback = [] }, images = []) {
