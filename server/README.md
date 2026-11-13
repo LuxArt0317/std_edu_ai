@@ -87,3 +87,5 @@ The supplemental-answer correction separates coordinated student identity reques
 `dtmGradeReport` provides owner/course-bound literal reports, paginated own-course totals and a narrow selected-student administrator course index. Numeric metadata never determines displayed report cells. Exact payloads, shared deadlines, bounded responses, versions and durable receipts apply; private report data remains outside generic assistant snapshots while Issue #100 is paused. See [grade-report QA](../docs/qa/DTM_GRADE_REPORTS.md).
 
 `dtmCourseContent.js` validates bounded section references and canonical account/course-scoped responses, forwards caller JWTs to dedicated RPCs and validates durable save receipts. Course-wide revision checks support consistent inventory pagination. See [course content QA](../docs/qa/DTM_COURSE_CONTENT.md).
+
+`dtmCourseResource.js` reads one caller-owned course/material through RLS and validates literal destinations without fetching them. Source provenance remains separate. See [resource QA](../docs/qa/DTM_COURSE_RESOURCE.md).

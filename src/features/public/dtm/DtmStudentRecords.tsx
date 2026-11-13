@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { CalendarDays, ExternalLink, Settings } from 'lucide-react';
+import { CalendarDays, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -16,6 +16,7 @@ import { deadlineLabel, taipeiDateTimeInput, type DtmTranslate } from './locale'
 import {DtmCourseGradeReport} from './DtmCourseGradeReport';
 import {DtmGradeOverview} from './DtmGradeOverview';
 import {DtmCourseContent} from './DtmCourseContent';
+import {dtmMaterialTargetUrlMaxLength,validateDtmMaterialTargetUrl} from '@/services/dtmCourseResource';
 
 type EditRecord =
   | {kind:'course';record?:DtmCourse}
@@ -34,7 +35,7 @@ const assignmentStatuses = {open:['未完成','Open'],submitted:['已標記繳�
 const attendanceStatuses = {unknown:['未記錄','Unrecorded'],present:['出席','Present'],late:['遲到','Late'],absent:['缺席','Absent'],excused:['請假','Excused']} as const;
 const pathFor = (course:DtmCourse) => '/dtm/course/'+encodeURIComponent(course.id);
 const translated = (t:DtmTranslate,labels:readonly [string,string]) => t(labels[0],labels[1]);
-type ActivityDetail = {kind:'material';record:DtmMaterial}|{kind:'grade';record:DtmGrade};
+type ActivityDetail = {kind:'grade';record:DtmGrade};
 
 function RecordEditor({edit,t,saved,close,onBusyChange,expectedUserId}:{edit:EditRecord;t:DtmTranslate;saved:(id:string)=>void;close:()=>void;onBusyChange?:(busy:boolean)=>void;expectedUserId?:string}) {
   const [id] = useState(()=>edit.record?.id || crypto.randomUUID());
@@ -46,26 +47,32 @@ function RecordEditor({edit,t,saved,close,onBusyChange,expectedUserId}:{edit:Edi
   const isEdit = Boolean(edit.record);
   const submit = async (event:FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (busy) return;
+    if (pending.current) return;
     const values = Object.fromEntries(new FormData(event.currentTarget).entries()) as Record<string,string>;
     if (kind==='grade' && Number(values.score)>Number(values.maximum)) {
       setError(t('分數不可大於滿分。','The score cannot exceed the maximum.'));
       return;
     }
+    if(kind==='material'){
+      const invalid=validateDtmMaterialTargetUrl(values.target_url);
+      if(invalid){setError(t('請輸入有效的公開 HTTPS 資源網址，或留空。','Enter a valid public HTTPS resource URL, or leave it blank.'));return;}
+      // Older snapshots may omit this field. An untouched blank must not erase a stored destination.
+      if(edit.kind==='material'&&edit.record&&edit.record.targetUrl===undefined&&values.target_url==='')delete values.target_url;
+    }
     setBusy(true);
     onBusyChange?.(true);
     setError('');
-    const controller=expectedUserId===undefined?undefined:new AbortController();
-    pending.current=controller??null;
+    const controller=new AbortController();
+    pending.current=controller;
     try {
       const result = await savePersonalSchoolRecord({kind:'save_dtm_'+kind as `save_dtm_${DtmRecordKind}`,payload:{
         ...values,id,...(kind==='course'?{}:{course_id:edit.course.id}),
         ...(kind==='assignment'?{due_at:values.due_at?new Date(values.due_at+'+08:00').toISOString():''}:{}),
-      }},expectedUserId===undefined?undefined:{expectedUserId,signal:controller?.signal});
-      saved(result.id);
+      }},expectedUserId===undefined?undefined:{expectedUserId,signal:controller.signal});
+      if(!controller.signal.aborted)saved(result.id);
     } catch (reason) {
-      setError(reason instanceof Error?reason.message:t('無法儲存紀錄。','Could not save this record.'));
-    } finally {pending.current=null;setBusy(false);onBusyChange?.(false);}
+      if(!controller.signal.aborted)setError(reason instanceof Error?reason.message:t('無法儲存紀錄。','Could not save this record.'));
+    } finally {if(pending.current===controller)pending.current=null;if(!controller.signal.aborted){setBusy(false);onBusyChange?.(false);}}
   };
   return <form className="dtm-record-form" onSubmit={submit}>
     <h3>{t((isEdit?'編輯':'新增')+names[kind][0],(isEdit?'Edit ':'Add ')+names[kind][1])}</h3>
@@ -115,6 +122,8 @@ function RecordEditor({edit,t,saved,close,onBusyChange,expectedUserId}:{edit:Edi
       <label>{t('類型','Type')}<select name="kind" defaultValue={edit.record?.kind ?? 'page'}><option value="page">{t('頁面','Page')}</option><option value="file">{t('檔案','File')}</option></select></label>
       <label>{t('Moodle 教材連結（選填）','Moodle material link (optional)')}<Input type="url" name="source_url"
         pattern={String.raw`https://dtm\.stu\.edu\.tw/(course|mod/[a-z_]+)/view\.php\?id=[0-9]{1,12}`} maxLength={150} defaultValue={edit.record?.sourceUrl ?? ''}/></label>
+      <label>{t('資源網址（選填）','Resource destination URL (optional)')}<Input type="text" inputMode="url" name="target_url"
+        maxLength={dtmMaterialTargetUrlMaxLength} defaultValue={edit.record?.targetUrl ?? ''}/></label>
       <label>{t('教材摘要','Material summary')}<Textarea name="summary" maxLength={2000} rows={3} defaultValue={edit.record?.summary}/></label>
     </>}
     {error && <p className="dtm-error" role="alert">{error}</p>}
@@ -152,10 +161,14 @@ function RowActions({t,edit,remove}:{t:DtmTranslate;edit:()=>void;remove:()=>voi
   </div>;
 }
 
-export function DtmStudentRecords({snapshot,course,view,gradeReportView,mode,t,refresh}:{
+type DtmStudentRecordsProps={
   snapshot:AffairsSnapshot;course?:DtmCourse;view?:DtmView;gradeReportView?:'overview';mode:'course'|'assignments'|'grades';
   t:DtmTranslate;refresh:()=>void;
-}) {
+};
+export function DtmStudentRecords(props:DtmStudentRecordsProps){
+  return <DtmStudentRecordsSession key={props.snapshot.profile.userId} {...props}/>;
+}
+function DtmStudentRecordsSession({snapshot,course,view,gradeReportView,mode,t,refresh}:DtmStudentRecordsProps) {
   const [editor,setEditor] = useState<EditRecord|null>(null);
   const [detail,setDetail] = useState<ActivityDetail|null>(null);
   const [importOpen,setImportOpen] = useState(false);
@@ -165,6 +178,9 @@ export function DtmStudentRecords({snapshot,course,view,gradeReportView,mode,t,r
   const [busy,setBusy] = useState(false);
   const [assignmentFilter,setAssignmentFilter] = useState('all');
   const [gradeEntriesOpen,setGradeEntriesOpen]=useState(false);
+  const [materialEntriesOpen,setMaterialEntriesOpen]=useState(false);
+  const deletion=useRef<AbortController|null>(null);
+  useEffect(()=>()=>deletion.current?.abort(),[]);
   const {hash}=useLocation();
   const navigate=useNavigate();
   const courses=snapshot.dtm.courses;
@@ -176,7 +192,7 @@ export function DtmStudentRecords({snapshot,course,view,gradeReportView,mode,t,r
   const own=course?.sourceMode==='personal';
   const activeView=view||'materials';
   const assignmentList=assignments.filter(row=>assignmentFilter==='all'||(assignmentFilter==='open'?row.status==='open':row.status!=='open'));
-  function edit(record:EditRecord) {setStatus('');setDetail(null);setImportOpen(false);setEditor(record);}
+  function edit(record:EditRecord) {setStatus('');setDetail(null);setMaterialEntriesOpen(false);setImportOpen(false);setEditor(record);}
   function saved(id:string) {
     const newCourse=editor?.kind==='course' && !editor.record;
     setEditor(null);
@@ -185,22 +201,25 @@ export function DtmStudentRecords({snapshot,course,view,gradeReportView,mode,t,r
     if(newCourse) navigate('/dtm/course/'+id);
   }
   async function deleteRecord() {
-    if(!deleting||busy)return;
+    if(!deleting||deletion.current)return;
+    const controller=new AbortController();deletion.current=controller;
     setBusy(true);
     setError('');
     try {
       await savePersonalSchoolRecord({kind:'delete_dtm_'+deleting.kind as `delete_dtm_${DtmRecordKind}`,
-        payload:{id:deleting.id,...(deleting.courseId?{course_id:deleting.courseId}:{})}});
+        payload:{id:deleting.id,...(deleting.courseId?{course_id:deleting.courseId}:{})}},
+        {expectedUserId:snapshot.profile.userId,signal:controller.signal});
+      if(controller.signal.aborted)return;
       setDeleting(null);
       setDetail(null);
       setEditor(null);
       setStatus(t('已刪除紀錄。','Record deleted.'));
       refresh();
       if(deleting.kind==='course')navigate('/dtm/dashboard');
-    }catch(reason){setError(reason instanceof Error?reason.message:t('無法刪除紀錄。','Could not delete the record.'));}
-    finally{setBusy(false);}
+    }catch(reason){if(!controller.signal.aborted)setError(reason instanceof Error?reason.message:t('無法刪除紀錄。','Could not delete the record.'));}
+    finally{if(deletion.current===controller)deletion.current=null;if(!controller.signal.aborted)setBusy(false);}
   }
-  function askDelete(record:DeleteRecord){setError('');setDeleting(record);}
+  function askDelete(record:DeleteRecord){setError('');setMaterialEntriesOpen(false);setDeleting(record);}
   const courseContents=course&&activeView==='materials';
   const report=mode==='grades'||(course&&activeView==='grades');
   const overview=mode==='grades'||gradeReportView==='overview';
@@ -218,6 +237,7 @@ export function DtmStudentRecords({snapshot,course,view,gradeReportView,mode,t,r
         {Boolean(course.grades?.length)&&<DropdownMenuItem onSelect={()=>setGradeEntriesOpen(true)}>{t('個人成績紀錄','Personal grade entries')}</DropdownMenuItem>}
         {own&&<>
           <DropdownMenuSeparator/>
+          <DropdownMenuItem onSelect={()=>setMaterialEntriesOpen(true)}>{t('管理教材','Manage materials')}</DropdownMenuItem>
           {(['assignment','material','meeting','grade'] as const).map(kind=><DropdownMenuItem key={kind} onSelect={()=>edit({kind,course})}>{t('新增'+names[kind][0],'Add '+names[kind][1])}</DropdownMenuItem>)}
           <DropdownMenuItem onSelect={()=>{setEditor(null);setImportOpen(true);}}>{t('匯入 Moodle 行事曆','Import Moodle calendar')}</DropdownMenuItem>
           <DropdownMenuSeparator/>
@@ -235,7 +255,7 @@ export function DtmStudentRecords({snapshot,course,view,gradeReportView,mode,t,r
       </nav>
     </>}
     {status&&<p role="status" className="dtm-saved">{status}</p>}
-    {editor&&<RecordEditor key={editor.kind+':'+(editor.record?.id||'new')} edit={editor} t={t} saved={saved} close={()=>setEditor(null)}/>}
+    {editor&&<RecordEditor key={editor.kind+':'+(editor.record?.id||'new')} edit={editor} expectedUserId={snapshot.profile.userId} t={t} saved={saved} close={()=>setEditor(null)}/>}
     {importOpen&&course&&<CalendarDeadlineImport courseId={course.id} t={t} onImported={count=>{
       setImportOpen(false);
       setStatus(count?t('已匯入 '+count+' 筆截止日期。','Imported '+count+' deadline(s).'):t('所選日期已存在。','The selected deadlines are already saved.'));
@@ -243,7 +263,7 @@ export function DtmStudentRecords({snapshot,course,view,gradeReportView,mode,t,r
     }}/>}
     {courseContents&&<DtmCourseContent key={snapshot.profile.userId+':'+course.id} userId={snapshot.profile.userId}
       courseId={course.id} refreshKey={snapshot.checkedAt} t={t}
-      onOpenAssignment={id=>navigate(pathFor(course)+'/assignment/'+id)} onOpenMaterial={record=>setDetail({kind:'material',record})}/>}
+      onOpenAssignment={id=>navigate(pathFor(course)+'/assignment/'+id)} onOpenMaterial={record=>navigate(pathFor(course)+'/material/'+encodeURIComponent(record.id))}/>}
     {(mode==='assignments'||(course&&activeView==='assignments'))&&<div className="dtm-assignment-view">
       {course&&<h3>{t('作業區','Assignments')}</h3>}
       <label className="dtm-filter">{t('篩選作業','Filter assignments')}
@@ -277,6 +297,16 @@ export function DtmStudentRecords({snapshot,course,view,gradeReportView,mode,t,r
     </ul>:<p className="dtm-empty">{t('尚無上課或出席紀錄。','No class meetings or attendance recorded.')}</p>)}
     {report&&(overview?<DtmGradeOverview key={snapshot.profile.userId} userId={snapshot.profile.userId} t={t}/>
       :course&&<DtmCourseGradeReport key={snapshot.profile.userId+':'+course.id} userId={snapshot.profile.userId} course={course} t={t}/>)}
+    <Dialog open={materialEntriesOpen} onOpenChange={setMaterialEntriesOpen}>
+      <DialogContent className="dtm-activity-dialog"><DialogHeader><DialogTitle>{t('管理教材','Manage materials')}</DialogTitle>
+        <DialogDescription>{course?.title}</DialogDescription></DialogHeader>
+        {course?.materials.length?<ul className="dtm-record-list">{course.materials.map(material=><li key={material.id}>
+          <Link to={pathFor(course)+'/material/'+encodeURIComponent(material.id)}>{material.title}</Link>
+          {own&&material.sourceMode==='personal'&&<RowActions t={t} edit={()=>edit({kind:'material',course,record:material})}
+            remove={()=>askDelete({kind:'material',id:material.id,courseId:course.id,name:material.title})}/>}
+        </li>)}</ul>:<p>{t('尚無教材紀錄。','No material records.')}</p>}
+      </DialogContent>
+    </Dialog>
     <Dialog open={gradeEntriesOpen} onOpenChange={setGradeEntriesOpen}>
       <DialogContent className="dtm-activity-dialog"><DialogHeader><DialogTitle>{t('個人成績紀錄','Personal grade entries')}</DialogTitle>
         <DialogDescription>{course?.title}</DialogDescription></DialogHeader>
@@ -288,16 +318,11 @@ export function DtmStudentRecords({snapshot,course,view,gradeReportView,mode,t,r
     </Dialog>
     <Dialog open={Boolean(detail)} onOpenChange={open=>{if(!open)setDetail(null);}}>
       <DialogContent className="dtm-activity-dialog">
-        <DialogHeader><DialogTitle>{detail?.kind==='grade'?detail.record.label:detail?.record.title}</DialogTitle><DialogDescription>{course?.title} · {course?.sourceMode==='sample'?t('範例課程','Sample course'):t('個人紀錄','Personal records')}</DialogDescription></DialogHeader>
-        {detail?.kind==='material'&&<>
-          {detail.record.summary&&<p className="dtm-detail-text">{detail.record.summary}</p>}
-          {detail.record.sourceUrl&&<a href={detail.record.sourceUrl} target="_blank" rel="noreferrer">{t('在校方 Moodle 開啟','Open in university Moodle')} <ExternalLink size={13}/></a>}
-        </>}
+        <DialogHeader><DialogTitle>{detail?.record.label}</DialogTitle><DialogDescription>{course?.title} · {course?.sourceMode==='sample'?t('範例課程','Sample course'):t('個人紀錄','Personal records')}</DialogDescription></DialogHeader>
         {detail?.kind==='grade'&&<><p>{detail.record.score} / {detail.record.maximum} · {((detail.record.score/detail.record.maximum)*100).toFixed(1)}%</p>{detail.record.date&&<p>{detail.record.date}</p>}{detail.record.feedback&&<p className="dtm-detail-text">{detail.record.feedback}</p>}</>}
         {own&&course&&detail&&<DialogFooter><RowActions t={t} edit={()=>{
-          if(detail.kind==='material')edit({kind:'material',course,record:detail.record});
-          else edit({kind:'grade',course,record:detail.record});
-        }} remove={()=>askDelete({kind:detail.kind,id:detail.record.id,courseId:course.id,name:detail.kind==='grade'?detail.record.label:detail.record.title})}/></DialogFooter>}
+          edit({kind:'grade',course,record:detail.record});
+        }} remove={()=>askDelete({kind:detail.kind,id:detail.record.id,courseId:course.id,name:detail.record.label})}/></DialogFooter>}
       </DialogContent>
     </Dialog>
     <Dialog open={Boolean(deleting)} onOpenChange={open=>{if(!open&&!busy)setDeleting(null);}}>

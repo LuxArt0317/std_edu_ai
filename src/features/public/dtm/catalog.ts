@@ -1,10 +1,8 @@
-import type { DtmCourse } from '@/services/schoolAffairsWorkspace';
-
 export const dtmViews = ['materials','meetings','assignments','grades'] as const;
 export type DtmView = typeof dtmViews[number];
 
-export function coursesByTerm(courses:DtmCourse[]) {
-  const groups = new Map<string,DtmCourse[]>();
+export function coursesByTerm<T extends {term:string}>(courses:T[]) {
+  const groups = new Map<string,T[]>();
   for (const course of courses) {
     if (!groups.has(course.term)) groups.set(course.term,[]);
     groups.get(course.term)?.push(course);

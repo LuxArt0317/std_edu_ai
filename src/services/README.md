@@ -41,4 +41,6 @@ Browser clients call the public, School Affairs and protected Nexus endpoints. `
 
 `dtmGradeReport.ts` reads and manages literal reports through the verified School Affairs caller. It rechecks identity before and after requests, bounds transport, validates exact owner/course responses and preserves retry command IDs. It does not calculate displayed grades or merge personal score trackers.
 
+`dtmCourseResource.ts` loads one owned course/material through the dedicated `dtm-course-resource` scope. It checks the caller before and after transport, enforces a 30-second total deadline and 196608-byte UTF-8 response limit, and validates the exact response scope. Stored `targetUrl` is separate from Moodle `sourceUrl` provenance; neither this client nor its renderer fetches the destination. Missing materials and failed reads remain distinct. The shared material type exposes an optional nullable `targetUrl` for compatible older snapshots. See [URL-resource QA](../../docs/qa/DTM_COURSE_RESOURCE.md).
+
 `dtmCourseContent.ts` provides caller-guarded course layout reads, exact assignment lookup and administrator mutations. Its bounded full-page assembler rejects inconsistent revisions and incomplete results. It does not query generic assistant snapshots.

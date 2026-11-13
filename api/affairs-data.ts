@@ -11,13 +11,14 @@ import { DormitoryConductError, loadDormitoryConduct, loadDormitoryConductAdmin 
 import { DtmDashboardLayoutError, loadDtmDashboardLayout } from '../server/dtmDashboardLayout.js';
 import { DtmGradeReportError, loadDtmGradeReport, loadDtmGradeReportAdmin, loadDtmGradeReportCoursesAdmin, loadDtmGradeReportOverview } from '../server/dtmGradeReport.js';
 import { DtmCourseContentError, loadDtmCourseContent, loadDtmCourseContentAdmin, loadDtmCourseContentCoursesAdmin, loadDtmCourseContentAssignment } from '../server/dtmCourseContent.js';
+import { DtmCourseResourceError, loadDtmCourseResource } from '../server/dtmCourseResource.js';
 
 type Request = {method?:string;headers:Record<string,string|string[]|undefined>;body?:unknown;query?:Record<string,string|string[]|undefined>};
 type Response = {status:(code:number)=>Response;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void};
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
 export default async function handler(request:Request,response:Response) {
   const scopes=Array.isArray(request.query?.scope)?request.query.scope:[request.query?.scope];
-  const strictStudentScope=scopes.some(scope=>typeof scope==='string'&&(scope.startsWith('student-conduct')||scope.startsWith('student-loan')||scope.startsWith('dormitory-conduct')||scope.startsWith('dtm-dashboard-layout')||scope.startsWith('dtm-grade-report')||scope.startsWith('dtm-course-content')));
+  const strictStudentScope=scopes.some(scope=>typeof scope==='string'&&(scope.startsWith('student-conduct')||scope.startsWith('student-loan')||scope.startsWith('dormitory-conduct')||scope.startsWith('dtm-dashboard-layout')||scope.startsWith('dtm-grade-report')||scope.startsWith('dtm-course-content')||scope.startsWith('dtm-course-resource')));
   if(first(request.query?.resource)==='conversations'&&!strictStudentScope)return conversations(request,response);
   const requestDeadline=Date.now()+17000;
   response.setHeader('Cache-Control','no-store, max-age=0');
@@ -28,6 +29,14 @@ export default async function handler(request:Request,response:Response) {
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
     const scope=request.query?.scope;
     if(Array.isArray(scope)){response.status(400).json({error:'Choose one records scope.'});return;}
+    if(typeof scope==='string'&&scope.startsWith('dtm-course-resource')){
+      const courseId=request.query?.course_id,materialId=request.query?.material_id;
+      if(scope==='dtm-course-resource'&&typeof courseId==='string'&&typeof materialId==='string'
+        &&Object.keys(request.query||{}).every(key=>['scope','course_id','material_id'].includes(key))){
+        response.status(200).json(await loadDtmCourseResource({...account,requestDeadline},{courseId,materialId}));return;
+      }
+      response.status(400).json({error:'Choose one course and material without additional query fields.'});return;
+    }
     if(typeof scope==='string'&&scope.startsWith('dtm-course-content')){
       const userId=request.query?.user_id,courseId=request.query?.course_id,assignmentId=request.query?.assignment_id;
       const afterKind=request.query?.after_kind,afterId=request.query?.after_id;
@@ -163,7 +172,7 @@ export default async function handler(request:Request,response:Response) {
       : await loadAffairsSnapshot(account,first(request.query?.scope)==='admin');
     response.status(200).json(snapshot);
   } catch(error) {
-    const known=error instanceof AffairsWorkspaceError||error instanceof DtmSubmissionError||error instanceof EnrollmentCertificateError||error instanceof SyllabusSearchError||error instanceof TuitionDocumentsError||error instanceof StudentConductError||error instanceof StudentLoanError||error instanceof DormitoryConductError||error instanceof DtmDashboardLayoutError||error instanceof DtmGradeReportError||error instanceof DtmCourseContentError;
+    const known=error instanceof AffairsWorkspaceError||error instanceof DtmSubmissionError||error instanceof EnrollmentCertificateError||error instanceof SyllabusSearchError||error instanceof TuitionDocumentsError||error instanceof StudentConductError||error instanceof StudentLoanError||error instanceof DormitoryConductError||error instanceof DtmDashboardLayoutError||error instanceof DtmGradeReportError||error instanceof DtmCourseContentError||error instanceof DtmCourseResourceError;
     response.status(known?error.status:503).json({error:known?error.message:'School Affairs records could not be loaded.'});
   }
 }

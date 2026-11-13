@@ -1,0 +1,7 @@
+.dtm-course-resource { color: #333; font-family: "DTM Open Sans", "Open Sans", sans-serif; font-size: 14px; line-height: 20px; min-width: 0; }
+.dtm-course-resource h2 { color: #333; font-size: 28px; font-weight: 400; line-height: 40px; margin: 10px 0; overflow-wrap: anywhere; }
+.dtm-course-resource .urlworkaround { margin: 0; padding: 0; overflow-wrap: anywhere; }
+.dtm-course-resource .urlworkaround a { color: inherit; }
+.dtm-course-resource .urlworkaround a:hover { text-decoration: underline; }
+
+.dtm .dtm-columns-course .dtm-resource-center { min-height: 0; padding: 10px; }

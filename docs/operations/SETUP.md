@@ -132,3 +132,5 @@ Use the dedicated client Google Auth project and the exact callback/provider ins
 The verified Vercel Hobby project is limited to 12 functions. `/api/affairs-conversations` rewrites to `/api/affairs-data?resource=conversations`; its private handler lives in `server/assistantConversations.js`. Keep new route handlers behind existing functions unless the hosting capacity changes. `verify:handoff` checks this budget.
 
 For owned Moodle course section placement and administrator maintenance, follow [course content QA](../qa/DTM_COURSE_CONTENT.md). Apply only the reviewed additive migration after its exact-client rollback preflight; never infer activity data from the source capture.
+
+Moodle material destinations are stored separately in `dtm_materials.target_url`; existing `source_url` is provenance only. The existing personal material editor accepts a destination. See [resource QA](../qa/DTM_COURSE_RESOURCE.md) for verification and migration requirements.

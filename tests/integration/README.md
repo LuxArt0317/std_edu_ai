@@ -88,3 +88,5 @@ The layout harness creates exactly two Google-shaped student accounts and one no
 `dtm-grade-report-rls-live.mjs` is a root-serialized rollback-only migration preflight; `--self-test` never connects. The dedicated grade-report browser/HTTP gates and exact execution prerequisites are maintained in [grade-report QA](../../docs/qa/DTM_GRADE_REPORTS.md).
 
 `dtm-course-content-ui.mjs` checks compiled course section order, exact activity navigation, account isolation, failed/inconsistent pagination and desktop/mobile layout with synthetic responses. Live content persistence is a separate serialized exact-client gate. See [course content QA](../../docs/qa/DTM_COURSE_CONTENT.md).
+
+Moodle URL resource checks: `dtm-course-resource-ui.mjs` renders compiled synthetic sessions; `dtm-course-resource-rls-live.mjs --self-test` is offline. Root-only `--execute --preflight --expected-migrations=135 --expected-rls=152` uses rollback-only DDL with exact recovery evidence. Execution is not implied by the file existing.

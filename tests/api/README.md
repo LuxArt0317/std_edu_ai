@@ -45,3 +45,5 @@ Supplemental correction regressions exercise actual reader/formatter chains for 
 `dtm-grade-report*.test.ts` verify exact literal schemas, response budgets, caller ownership, paginated scopes, operation receipts and endpoint dispatch without network access. The rollback-only SQL and separate actual-JWT gates are documented in [grade-report QA](../../docs/qa/DTM_GRADE_REPORTS.md).
 
 `dtm-course-content.test.ts` and `dtm-course-content-handler.test.ts` cover ordered-reference/DTO contracts and actual handler authentication, strict selectors, administrator dispatch and durable receipt boundaries with synthetic transport only.
+
+`dtm-course-resource*.test.ts` covers exact caller/course/material reads, strict dispatch, URL bounds, error redaction and unavailable records without live calls.

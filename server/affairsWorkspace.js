@@ -209,7 +209,7 @@ export async function loadAffairsSnapshot(account, includeAdmin = false, options
         id:row.id,code:row.code,title:row.title,term:row.term,role:row.role,sourceMode:row.source_mode,
         materials:dtmMaterials.filter(item=>item.course_id===row.id).map(item=>({
           id:item.id,title:item.title,kind:item.kind,summary:item.summary,position:item.position,
-          sourceMode:item.source_mode,sourceUrl:item.source_url ?? null,
+          sourceMode:item.source_mode,sourceUrl:item.source_url ?? null,targetUrl:item.target_url ?? null,
         })),
         meetings:dtmMeetings.filter(item=>item.course_id===row.id).map(item=>({
           id:item.id,date:item.meeting_on,startsAt:item.starts_at,title:item.title,attendance:item.attendance,notes:item.notes,

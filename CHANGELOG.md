@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Open Moodle materials as native course resource pages with exact account/course reads, explicit stored destinations and working parent navigation when the general snapshot is unavailable. Preserve existing material management and provenance; see [resource QA](docs/qa/DTM_COURSE_RESOURCE.md). [#98]
+
 - Persist Moodle activity section placement/order independently of activity type, retaining unplaced records and exact assignment links. Add guarded administrator maintenance and strict account-scoped reads. Release evidence: [course content QA](docs/qa/DTM_COURSE_CONTENT.md). [#98]
 
 - Type-check Vercel API entrypoints before building; narrow grade-report pagination parameters explicitly for the deployed compiler mode.

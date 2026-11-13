@@ -1,5 +1,14 @@
 # Task Plan
 
+## Native Moodle URL resource pages [Issue #98]
+
+- [x] Inspect the authenticated material link and capture native resource layout and navigation.
+- [x] Store explicit destination metadata separately from Moodle provenance; preserve ownership and existing material operations.
+- [x] Replace material summary dialogs with exact account/course-bound routes and source-shaped resource pages, retaining existing management.
+- [ ] Independently review URL safety, exact records outside snapshot coverage, account changes and desktop/mobile rendering; verify database and deployed behavior before acceptance.
+
+The previous goal turn made progress: c686501 was deployed and accepted. Fresh source inspection confirms a full URL-resource page with course/section/resource breadcrumbs and an explicit external destination. The School Affairs source login is awaiting CAPTCHA; Moodle source access works. No target is inferred from title or summary. The independent Issue100 assistant work remains user-paused.
+
 ## DTM course activity placement [Issue #98]
 
 - [x] Preserve the source course's section placement and explicit activity order, including assignments inside the examination section, without inventing a quiz workflow.

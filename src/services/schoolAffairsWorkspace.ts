@@ -19,7 +19,7 @@ export type ServiceRecord = {
 };
 export type DtmMeeting = {id:string;date:string;startsAt:string;title:string;attendance:'unknown'|'present'|'late'|'absent'|'excused';notes:string};
 export type DtmGrade = {id:string;label:string;score:number;maximum:number;date:string|null;feedback:string};
-export type DtmMaterial = {id:string;title:string;kind:string;summary:string;position:number;sourceMode:string;sourceUrl?:string|null};
+export type DtmMaterial = {id:string;title:string;kind:string;summary:string;position:number;sourceMode:string;sourceUrl?:string|null;targetUrl?:string|null};
 export type DtmCourse = {
   id:string;code:string;title:string;term:string;role:string;sourceMode:string;
   materials:DtmMaterial[];meetings?:DtmMeeting[];grades?:DtmGrade[];

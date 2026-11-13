@@ -4,7 +4,7 @@ import { Bell, ChevronDown, ChevronRight, ExternalLink, LogOut, MessageSquare, S
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import type { DtmAssignment, DtmCourse } from '@/services/schoolAffairsWorkspace';
+import type { DtmAssignment, DtmCourse, DtmMaterial } from '@/services/schoolAffairsWorkspace';
 import { useAffairsAuth } from '../affairs/authContext';
 import { safeSchoolReturnPath, signOutAffairs, startGoogleSignIn } from '../affairs/authClient';
 import { useAffairsRecords } from '../affairs/useAffairsRecords';
@@ -13,6 +13,10 @@ import { announcements, categories, coursesByTerm, dtmViews, observedAt, otherCa
 import { DtmCourseCreateDialog, DtmStudentRecords } from './DtmStudentRecords';
 import { DtmSubmissionWorkspace } from './DtmSubmissionWorkspace';
 import {useDtmCourseAssignment} from './useDtmCourseAssignment';
+import {useDtmCourseResource} from './useDtmCourseResource';
+import {DtmCourseResource} from './DtmCourseResource';
+import {DtmCourseContent} from './DtmCourseContent';
+import {useDtmCourseHeader} from './useDtmCourseHeader';
 import { DtmDashboardLayout, type DtmDashboardConfiguration } from './DtmDashboardLayout';
 import { termLabel, useDtmLocale, type DtmLocale, type DtmTranslate } from './locale';
 import './digital-materials.css';
@@ -30,7 +34,8 @@ const dashboardSocials=[
   ['Facebook','\uf09a','https://www.facebook.com/ShuTeUniversity/'],
 ] as const;
 
-type DtmRoute = {mode:'home'|'login'|'dashboard'|'assignments'|'grades'|'course'|'missing';id?:string;view?:DtmView;gradeReportView?:'overview';assignmentId?:string;submissionView?:'detail'|'edit'};
+type CourseHeader=Pick<DtmCourse,'id'|'title'|'code'|'term'>&Partial<Pick<DtmCourse,'sourceMode'>>;
+type DtmRoute = {mode:'home'|'login'|'dashboard'|'assignments'|'grades'|'course'|'missing';id?:string;view?:DtmView;gradeReportView?:'overview';assignmentId?:string;submissionView?:'detail'|'edit';materialId?:string};
 function dtmRoute(pathname:string):DtmRoute {
   const path = pathname.replace(/^\/school-sites\/dtm\.stu\.edu\.tw/,'/dtm').replace(/\/$/,'');
   if (path==='/dtm/login'||path==='/dtm/login/index.php') return {mode:'login'};
@@ -40,6 +45,8 @@ function dtmRoute(pathname:string):DtmRoute {
   if (path==='/dtm/grades') return {mode:'grades'};
   const overview=/^\/dtm\/course\/([a-zA-Z0-9-]+)\/grades\/overview$/.exec(path);
   if(overview)return {mode:'course',id:overview[1],view:'grades',gradeReportView:'overview'};
+  const material=/^\/dtm\/course\/([a-zA-Z0-9-]+)\/material\/([a-zA-Z0-9-]+)$/.exec(path);
+  if(material)return {mode:'course',id:material[1],view:'materials',materialId:material[2]};
   const assignment=/^\/dtm\/course\/([a-zA-Z0-9-]+)\/assignment\/([a-zA-Z0-9-]+)(\/edit)?$/.exec(path);
   if(assignment)return {mode:'course',id:assignment[1],view:'assignments',assignmentId:assignment[2],submissionView:assignment[3]?'edit':'detail'};
   const course = /^\/dtm\/course\/([a-zA-Z0-9-]+)(?:\/([a-z]+))?$/.exec(path);
@@ -56,7 +63,7 @@ function DashboardBlockContent({enabled,noOverflow=false,children}:{enabled:bool
   return enabled?<div className="dtm-dashboard-block-content">{noOverflow?<div className="dtm-dashboard-no-overflow">{children}</div>:children}</div>:<>{children}</>;
 }
 
-function Navigation({courses,home,dashboard,selected,view,gradeReportView,displayName,t,dashboardBlock,dashboardControls}:{courses:DtmCourse[];home:boolean;dashboard:boolean;selected?:DtmCourse;view?:DtmView;gradeReportView?:'overview';displayName:string;t:DtmTranslate;dashboardBlock?:'important'|'navigation'|'contacts';dashboardControls?:ReactNode}) {
+function Navigation({courses,home,dashboard,selected,view,gradeReportView,material,displayName,t,dashboardBlock,dashboardControls}:{courses:CourseHeader[];home:boolean;dashboard:boolean;selected?:CourseHeader;view?:DtmView;gradeReportView?:'overview';material?:Pick<DtmMaterial,'id'|'title'>;displayName:string;t:DtmTranslate;dashboardBlock?:'important'|'navigation'|'contacts';dashboardControls?:ReactNode}) {
   const [membersOpen,setMembersOpen]=useState(false);
   const ownTerms = new Map(coursesByTerm(courses));
   const terms = [...new Set<string>([...navigationTerms,...ownTerms.keys()])]
@@ -94,7 +101,8 @@ function Navigation({courses,home,dashboard,selected,view,gradeReportView,displa
             ? <ul>{ownTerms.get(term)?.map(course=><li key={course.id}>{selected?.id===course.id
               ? <details className="dtm-tree-selected" open><summary>{course.title}</summary>
                 <ul><li><button className="dtm-tree-member" type="button" onClick={()=>setMembersOpen(true)}>{t('成員','Participants')}</button></li>
-                  <li><Link to={courseHref(course.id)+'/grades'} aria-current={view==='grades'?'page':undefined}>{t('成績','Grades')}</Link></li></ul>
+                  <li><Link to={courseHref(course.id)+'/grades'} aria-current={view==='grades'?'page':undefined}>{t('成績','Grades')}</Link></li>
+                  {material&&<li><details open><summary>{t('教材區','Course materials')}</summary><ul><li><Link to={courseHref(course.id)+'/material/'+encodeURIComponent(material.id)} aria-current="page"><img src="/dtm-theme/url.svg" alt="" width="16" height="16"/>{material.title}</Link></li></ul></details></li>}</ul>
               </details>
               :<Link to={courseHref(course.id)}>{course.title}</Link>}</li>)}</ul>
             : <p className="dtm-tree-empty">{t('此學期沒有已儲存的課程。','No saved courses for this term.')}</p>}
@@ -212,7 +220,7 @@ function DtmHome({courses,t}:{courses:DtmCourse[];t:DtmTranslate}) {
   </>;
 }
 
-function WorkspaceHeader({route,course,assignment,displayName,t,dashboardConfiguration}:{route:DtmRoute;course?:DtmCourse;assignment?:DtmAssignment;displayName:string;t:DtmTranslate;dashboardConfiguration?:DtmDashboardConfiguration|null}) {
+function WorkspaceHeader({route,course,assignment,material,displayName,t,dashboardConfiguration}:{route:DtmRoute;course?:CourseHeader;assignment?:DtmAssignment;material?:Pick<DtmMaterial,'id'|'title'>;displayName:string;t:DtmTranslate;dashboardConfiguration?:DtmDashboardConfiguration|null}) {
   return <>
     {route.mode==='dashboard'?<header className="dtm-dashboard-header">
       <span className="dtm-dashboard-avatar"><img className="dtm-avatar" src="/dtm-theme/user-large.png" alt="" width="100" height="100"/></span><h1>{displayName}</h1>
@@ -222,11 +230,12 @@ function WorkspaceHeader({route,course,assignment,displayName,t,dashboardConfigu
       {course?<>
         <Link to="/dtm/dashboard">{t('我的課程','My courses')}</Link><ChevronRight size={16} aria-hidden="true"/>
         <Link to="/dtm/dashboard">{termLabel(course.term,t)}</Link><ChevronRight size={16} aria-hidden="true"/>
-        <Link to={courseHref(course.id)} aria-current={route.view==='materials'?'page':undefined}>{route.view==='grades'?course.title:course.code}</Link>
+        <Link to={courseHref(course.id)} aria-current={route.view==='materials'&&!route.materialId?'page':undefined}>{route.view==='grades'||route.materialId?course.title:course.code}</Link>
         {route.view==='grades'&&(route.gradeReportView==='overview'?<><ChevronRight size={16} aria-hidden="true"/><span>{t('綜覽報告','Overview report')}</span></>:<><ChevronRight size={16} aria-hidden="true"/><Link to={courseHref(course.id)+'/grades'}>{t('成績管理','Grade administration')}</Link><ChevronRight size={16} aria-hidden="true"/><span>{t('用戶報告','User report')}</span></>)}
         {assignment&&<><ChevronRight size={16} aria-hidden="true"/><Link to={courseHref(course.id)+'/assignments'}>{t('作業','Assignments')}</Link><ChevronRight size={16} aria-hidden="true"/>
           <Link to={courseHref(course.id)+'/assignment/'+assignment.id} aria-current={route.submissionView==='detail'?'page':undefined}>{assignment.title}</Link>
           {route.submissionView==='edit'&&<><ChevronRight size={16} aria-hidden="true"/><span>{t('編輯繳交作業','Edit submission')}</span></>}</>}
+        {material&&<><ChevronRight size={16} aria-hidden="true"/><Link to={courseHref(course.id)}>{t('教材區','Course materials')}</Link><ChevronRight size={16} aria-hidden="true"/><span aria-current="page">{material.title}</span></>}
         {course.sourceMode==='sample'&&<span className="dtm-sample-label">{t('範例','Sample')}</span>}
       </>:route.mode==='dashboard'?dashboardConfiguration?<>
         <Link to="/dtm/dashboard" aria-disabled={!dashboardConfiguration.canCancel} onClick={event=>{event.preventDefault();if(dashboardConfiguration.canCancel)dashboardConfiguration.onCancel();}}>{t('儀表板','Dashboard')}</Link>
@@ -240,10 +249,20 @@ function SignedInWorkspace({userId,route,t,hash,displayName,creatingCourse,onCre
   userId:string;route:DtmRoute;t:DtmTranslate;hash:string;displayName:string;
   creatingCourse:boolean;onCreatingCourseChange:(open:boolean)=>void;
 }) {
-  const {snapshot,error,loading,refresh}=useAffairsRecords(userId);
+  const {snapshot:loadedSnapshot,error,loading,refresh}=useAffairsRecords(userId);
+  const snapshot=loadedSnapshot?.profile.userId===userId?loadedSnapshot:undefined;
   const navigate=useNavigate();
-  const selected=snapshot?.profile.userId===userId?snapshot.dtm.courses.find(course=>course.id===route.id):undefined;
-  const exactAssignment=useDtmCourseAssignment(userId,selected?.id,route.assignmentId,snapshot?.checkedAt);
+  const exactResource=useDtmCourseResource(userId,route.materialId?route.id:undefined,route.materialId,snapshot?.checkedAt);
+  const resourceCourse=exactResource.data?.course;
+  const knownCourse=snapshot?.dtm.courses.find(course=>course.id===route.id);
+  const exactHeaderNeeded=route.mode==='course'&&!route.materialId&&!knownCourse&&(route.view==='materials'||Boolean(route.assignmentId));
+  const header=useDtmCourseHeader(userId,exactHeaderNeeded?route.id:undefined,snapshot?.checkedAt);
+  const fallbackCourse=route.mode==='course'&&route.view==='materials'&&!route.assignmentId&&!route.materialId&&!knownCourse;
+  const selected:CourseHeader|undefined=route.materialId?resourceCourse:knownCourse??header.course??undefined;
+  const navigationCourses=selected&&!snapshot?.dtm.courses.some(course=>course.id===selected.id)
+    ?[...(snapshot?.dtm.courses||[]),selected]:snapshot?.dtm.courses||[];
+  const material=exactResource.data?.material??undefined;
+  const exactAssignment=useDtmCourseAssignment(userId,route.id,route.assignmentId,snapshot?.checkedAt);
   const assignment=exactAssignment.assignment??undefined;
   useEffect(()=>{
     if (!snapshot || !/^#[a-z0-9_-]+$/i.test(hash)) return;
@@ -251,14 +270,21 @@ function SignedInWorkspace({userId,route,t,hash,displayName,creatingCourse,onCre
     return ()=>cancelAnimationFrame(frame);
   },[snapshot,hash,route.mode,route.view]);
   return <>
-    {(route.mode!=='dashboard'||!snapshot)&&<WorkspaceHeader route={route} course={selected} assignment={assignment} displayName={displayName} t={t}/>}
+    {(route.mode!=='dashboard'||!snapshot)&&<WorkspaceHeader route={route} course={selected} assignment={assignment} material={material} displayName={displayName} t={t}/>}
     {error&&<div role="alert" className="dtm-error">{error} <Button size="sm" variant="outline" onClick={refresh}>{t('重試','Retry')}</Button></div>}
     {loading&&!snapshot&&<p role="status">{t('載入課程紀錄中…','Loading course records…')}</p>}
     {snapshot&&route.mode==='dashboard'&&<DtmDashboardLayout userId={userId} t={t} renderHeader={configuration=><WorkspaceHeader route={route} displayName={displayName} t={t} dashboardConfiguration={configuration}/>} renderBlock={(id,controls)=><Navigation courses={snapshot.dtm.courses} home={false} dashboard displayName={snapshot.profile.displayName||displayName} t={t} dashboardBlock={id} dashboardControls={controls}/>}/>}
-    {snapshot&&route.mode!=='dashboard'&&<div className={'dtm-columns'+(route.mode==='home'?'':' dtm-columns-course')}>
-      <Navigation courses={snapshot.dtm.courses} home={route.mode==='home'} dashboard={false} selected={selected} view={route.view} gradeReportView={route.gradeReportView} displayName={snapshot.profile.displayName||displayName} t={t}/>
-      <section className={'dtm-center'+(route.mode==='course'?' dtm-course-center':'')+((route.mode==='grades'||route.view==='grades')?' dtm-grade-center':'')+(route.assignmentId?' dtm-submission-center':'')} aria-label={t('教材網內容','Digital teaching materials content')}>
-        {route.mode==='home'?<DtmHome courses={snapshot.dtm.courses} t={t}/>
+    {(snapshot||route.mode==='course')&&route.mode!=='dashboard'&&<div className={'dtm-columns'+(route.mode==='home'?'':' dtm-columns-course')}>
+      <Navigation courses={navigationCourses} home={route.mode==='home'} dashboard={false} selected={selected} view={route.view} gradeReportView={route.gradeReportView} material={material} displayName={snapshot?.profile.displayName||displayName} t={t}/>
+      <section className={'dtm-center'+(route.mode==='course'?' dtm-course-center':'')+((route.mode==='grades'||route.view==='grades')?' dtm-grade-center':'')+(route.assignmentId?' dtm-submission-center':'')+(route.materialId?' dtm-resource-center':'')} aria-label={t('教材網內容','Digital teaching materials content')}>
+        {route.mode==='home'?<DtmHome courses={snapshot?.dtm.courses||[]} t={t}/>
+          :route.materialId?exactResource.loading?<p role="status">{t('載入教材中…','Loading material…')}</p>
+            :exactResource.failed?<div role="alert" className="dtm-error">{t('無法載入教材。請重試。','Could not load this material. Please retry.')} <Button size="sm" variant="outline" onClick={exactResource.retry}>{t('重試','Retry')}</Button></div>
+            :material?<DtmCourseResource material={material} t={t}/>:<div className="dtm-card"><h2>{t('找不到教材','Material unavailable')}</h2><Link to={selected?courseHref(selected.id):'/dtm/dashboard'}>{t('返回課程','Back to course')}</Link></div>
+          :exactHeaderNeeded&&header.loading?<p role="status">{t('載入課程中…','Loading course…')}</p>
+          :exactHeaderNeeded&&header.failed?<div role="alert" className="dtm-error">{t('無法載入課程。請重試。','Could not load this course. Please retry.')} <Button size="sm" variant="outline" onClick={header.retry}>{t('重試','Retry')}</Button></div>
+          :fallbackCourse&&route.id?<DtmCourseContent key={userId+':'+route.id} userId={userId} courseId={route.id} refreshKey={snapshot?.checkedAt||''} t={t}
+            onOpenAssignment={id=>navigate(courseHref(route.id!)+'/assignment/'+id)} onOpenMaterial={row=>navigate(courseHref(route.id!)+'/material/'+row.id)}/>
           :route.assignmentId&&selected&&exactAssignment.loading?<p role="status">{t('載入作業中…','Loading assignment…')}</p>
           :route.assignmentId&&selected&&exactAssignment.failed?<div role="alert" className="dtm-error">{t('無法載入作業。請重試。','Could not load this assignment. Please retry.')} <Button size="sm" variant="outline" onClick={exactAssignment.retry}>{t('重試','Retry')}</Button></div>
           :route.mode==='missing'||(route.mode==='course'&&!selected)||(route.assignmentId&&!assignment)
@@ -267,8 +293,8 @@ function SignedInWorkspace({userId,route,t,hash,displayName,creatingCourse,onCre
             :assignment&&selected?<DtmSubmissionWorkspace key={userId+':'+assignment.id} userId={userId}
               assignment={{id:assignment.id,userId,courseId:selected.id,title:assignment.title}} view={route.submissionView||'detail'}
               onNavigate={view=>navigate(courseHref(selected.id)+'/assignment/'+assignment.id+(view==='edit'?'/edit':''))} onSaved={refresh}/>
-            :route.mode!=='login'&&<DtmStudentRecords key={route.mode+':'+(route.id||'')+':'+(route.view||'')+':'+(route.gradeReportView||'')} snapshot={snapshot}
-              course={selected} view={route.view} gradeReportView={route.gradeReportView} mode={route.mode} t={t} refresh={refresh}/>}
+            :route.mode!=='login'&&snapshot&&<DtmStudentRecords key={route.mode+':'+(route.id||'')+':'+(route.view||'')+':'+(route.gradeReportView||'')} snapshot={snapshot}
+              course={knownCourse} view={route.view} gradeReportView={route.gradeReportView} mode={route.mode} t={t} refresh={refresh}/>}
       </section>
       {route.mode==='home'&&<Resources t={t}/>}
     </div>}

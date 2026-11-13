@@ -38,3 +38,5 @@ Grade reports use strict `affairs-data` scopes `dtm-grade-report`, `dtm-grade-re
 `npm run typecheck:api` checks all Function TypeScript entrypoints in standalone NodeNext mode and is required by `npm run build`; frontend-only TypeScript checks do not cover these files.
 
 `affairs-data` exposes strict `dtm-course-content`, administrator inventory/course-picker and exact-assignment scopes. `affairs-manage` dispatches versioned content save/delete operations. These scopes cannot fall through to conversation handling; see [course content QA](../docs/qa/DTM_COURSE_CONTENT.md).
+
+Moodle resource reads use strict `dtm-course-resource` scope with one course and material ID. No caller-supplied account selector or conversation fallback is accepted. See [resource QA](../docs/qa/DTM_COURSE_RESOURCE.md).
