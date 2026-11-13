@@ -1,3 +1,7 @@
+## Course substitutions (Issue #98)
+
+The native search reproduces the source fields, original course table and nested alternatives. It uses the public department selector and exact cohort and track. Live results for cohorts 110, 113 and 115 returned 16, three and zero old courses. Migration 080000 stores the verified snapshots with read-only public RLS.
+
 ## Interdisciplinary registration (Issue #98)
 
 The authenticated university session showed the ten-column registration history. The add control did not expose a populated workflow, so the local registration and progress pages use the public program catalog and caller-owned records. The exact client migration is applied at 141 migrations and 157 public RLS tables. Production `76c117c` passed 19 actual-JWT API checks with exact cleanup and pinned browser registration, withdrawal, retry and assistant routing. The first production check saw the previous manifest during rollout and passed on retry. GitHub Quality 43472451908 passed. Course substitution now has verified public POST results for the same department and track across cohorts 110, 113 and 115. Cohort 110 returned 16 old courses and one explicit replacement, 113 returned three old courses, and 115 returned an empty result.

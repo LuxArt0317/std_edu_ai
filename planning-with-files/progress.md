@@ -53,3 +53,5 @@
 - Issue #98: Observed the authenticated interdisciplinary registration history and course selection entry states. Built service 7-3 against Supabase and applied the scoped registration migration after exact rollback verification.
 
 - Issue #98: Published 76c117c and verified 19 actual-JWT requests, exact fixture cleanup and pinned browser registration/withdrawal. Verified source substitution requests by using the autocomplete department code; captured 16, three and zero original subjects across three cohorts.
+
+- Issue #98: Built service 12-8 with exact live public selectors, parsed alternative course groups and database fallback. Verified all three source cohorts and the read-only migration preflight.

@@ -28,6 +28,7 @@ This directory contains scoped verification records and explicit acceptance limi
 
 - [Parking permits](PARKING_PERMITS.md) — General Affairs entry, instructions and guest navigation.
 
+- [Course substitutions](COURSE_SUBSTITUTION.md) — source layout, public search and database fallback.
 - [Interdisciplinary registration](PROGRAM_REGISTRATION.md) — source table, private registration and assistant checks.
 - [Interdisciplinary credit programs](INTERDISCIPLINARY_PROGRAMS.md) — source table, Supabase catalog, PDF and assistant checks.
 - [Historical curriculum plans](CURRICULUM_PLANS.md) — captured tables, PDF preview and verification.

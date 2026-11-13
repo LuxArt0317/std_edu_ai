@@ -81,3 +81,5 @@ Curriculum maps (12-7) has a four-college directory, department overview pages a
 `/services/12-6` reads the published interdisciplinary program catalog from Supabase. It keeps the six observed sortable columns and opens each available PDF on a dedicated local route. Existing private notes are available at `/services/12-6/notes`.
 
 `/services/7-3` displays the observed registration history and lets the signed-in student manage their local program registrations. Each change requires confirmation. Existing tracker notes are at `/services/7-3/notes`.
+
+`/services/12-8` offers the public substitution search. Its result path stores the exact cohort, track and department, and an optional course anchor expands that row. Existing private notes are at `/services/12-8/notes`.

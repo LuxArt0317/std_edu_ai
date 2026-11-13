@@ -577,7 +577,7 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Capture the official 35-row directory and verify the 30 linked PDFs.
 - [x] Implement the database-backed local table, document routes and assistant lookups.
 - [x] Verify migration isolation, routes, assets, assistant evidence and production deployment.
-- [ ] Verify course substitution search results and authenticated internship details when the university provides access.
+- [ ] Verify authenticated internship details when the university provides access.
 
 ## Interdisciplinary registration [Issue #98]
 
@@ -590,5 +590,5 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 
 - [x] Verify the source search uses the department code selected by autocomplete.
 - [x] Capture populated, no-replacement and empty cases in the browser and independent HTTP client.
-- [ ] Build the full read-only selector and preserve old courses, alternative groups and provenance.
+- [x] Build the full read-only selector and preserve old courses, alternative groups and provenance.
 - [ ] Verify result completeness, mobile layout, assistant lookup and deployed behavior.

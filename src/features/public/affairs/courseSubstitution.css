@@ -1,0 +1,72 @@
+.course-substitution {
+  min-height: 100vh;
+  padding: 12px 12px 20px;
+  background: #eee;
+  color: #111;
+  font: 12px/1.5 "微軟正黑體", "Microsoft JhengHei", Verdana, Helvetica, Arial, sans-serif;
+}
+.course-substitution > main {
+  max-width: 962px;
+  min-height: 722px;
+  margin: auto;
+  border: 1px solid #c9cacb;
+  border-radius: 10px;
+  background: #fff;
+  overflow: clip;
+}
+.course-substitution header {
+  margin-top: 25px;
+  padding: 0 15px 7px 85px;
+  border-bottom: 14px solid transparent;
+  border-image: linear-gradient(90deg,#00584c 50%,#008779 50% 66.67%,#eaf2f0 66.67%) 1;
+}
+.course-substitution h1 { color: #153f36; font-size: 22px; line-height: 1.3; text-shadow: 1px 1px 1px #b4b4b4; }
+.course-substitution header p { margin-left: 50px; color: #a00063; font-size: 16px; font-weight: 700; line-height: 1.2; }
+.substitution-content { padding: 3px 24px 20px; }
+.substitution-toggle { min-height: 25px; text-align: right; }
+.substitution-toggle button { color: #00658a; text-decoration: underline; }
+.course-substitution form { width: min(456px,100%); min-height: 171px; margin: auto; }
+.course-substitution form > div:not(.substitution-actions) { display: grid; grid-template-columns: 100px minmax(0,1fr); gap: 16px; margin-bottom: 8px; align-items: start; }
+.course-substitution form label { text-align: right; padding-top: 2px; }
+.course-substitution select,.course-substitution input {
+  width: min(150px,100%); min-height: 23px; padding: 0 4px;
+  border: 1px solid #999; border-radius: 3px; background: white; color: #111;
+}
+.course-substitution select#substitution-year { width: 80px; }
+.substitution-department > div { position: relative; min-width: 0; }
+.substitution-department ul {
+  position: absolute; z-index: 1; top: 100%; width: max-content; max-width: 100%; max-height: 180px; overflow: auto;
+  border: 1px solid #aaa; background: white;
+}
+.substitution-department li button { display: block; width: 100%; padding: 5px 8px; text-align: left; }
+.substitution-department li button:is(:hover,:focus-visible) { background: #eaf2f0; }
+.substitution-actions { display: flex; justify-content: center; gap: 6px; margin-top: 23px; padding-top: 8px; border-top: 1px solid #c8c5ef; }
+.substitution-actions button { min-width: 66px; min-height: 28px; border: 1px solid #777; border-radius: 6px; color: #fff; background: #5e5e5e; }
+.substitution-actions button:first-child { background: #087c6d; }
+.substitution-actions button:disabled { opacity: .65; }
+.substitution-results { margin-top: 17px; border-top: 1px solid #dce7ea; padding-top: 18px; }
+.substitution-scroll { margin-inline: 2.5%; overflow-x: auto; }
+.substitution-table,.substitution-detail { width: 100%; border-collapse: collapse; text-align: center; font-size: 13px; }
+.substitution-table caption { color: #006f99; font-size: 17px; }
+.substitution-table caption span { display: block; padding-bottom: 14px; }
+.substitution-table :is(th,td) { border: 1px solid #ddd; padding: 6px 4px; }
+.substitution-table thead th { border-block: 1px solid #87beb7; background: #ebf4f2; color: #006699; }
+.substitution-table tbody th { font-weight: normal; }
+.substitution-table button { min-width: 24px; min-height: 22px; color: #006699; }
+.substitution-old-course:nth-of-type(4n+3) { background: #fafafa; }
+.substitution-old-course:target { outline: 2px solid #087c6d; outline-offset: -2px; }
+.substitution-table tr[hidden] { display: none; }
+.substitution-detail { margin-block: 8px; }
+.substitution-detail caption { font-size: 14px; }
+.substitution-provenance { margin: 10px 2.5% 0; color: #555; }
+.substitution-notes { margin-top: 20px; border-top: 1px solid #dce7ea; padding: 18px 2.5% 0; }
+.substitution-notes h2 { margin-bottom: 4px; color: #006459; font-size: 15px; }
+.substitution-notes ol { list-style: decimal; padding-left: 20px; }
+.course-substitution footer { display: flex; justify-content: space-between; border-bottom: 1px solid #dce7ea; margin-top: 54px; }
+.course-substitution footer a,.substitution-results [role="alert"] button { color: #00658a; text-decoration: underline; }
+@media(max-width: 640px) {
+  .course-substitution header { padding-left: 20px; }
+  .course-substitution header p { margin-left: 0; }
+  .substitution-content { padding-inline: 12px; }
+  .substitution-table { min-width: 345px; }
+}

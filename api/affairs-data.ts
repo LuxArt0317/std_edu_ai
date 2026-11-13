@@ -1,3 +1,4 @@
+import { serveCourseSubstitution } from '../server/courseSubstitution.js';
 import { answerProgramRegistrations, loadProgramRegistrations } from '../server/programRegistration.js';
 import { programRegistrationScope } from '../server/programRegistrationContract.js';
 import { serveCurriculumMap } from '../server/curriculumMapLookup.js';
@@ -26,6 +27,7 @@ type Response = {status:(code:number)=>Response;json:(body:unknown)=>void;setHea
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
 export default async function handler(request:Request,response:Response) {
   const scopes=Array.isArray(request.query?.scope)?request.query.scope:[request.query?.scope];
+  if (scopes.includes('course-substitution') || scopes.includes('course-substitution-departments')) return serveCourseSubstitution(request,response);
   if (scopes.includes('curriculum-map')) return serveCurriculumMap(request,response);
   if (scopes.includes('curriculum-plan')) return serveCurriculumPlan(request,response);
   if (scopes.includes('interdisciplinary-programs')) return serveInterdisciplinaryPrograms(request,response);

@@ -1,6 +1,7 @@
+import {courseSubstitutionQuestion} from '../features/public/affairs/courseSubstitution.js';
 import {isProgramRegistrationQuestion} from '../../server/programRegistrationContract.js';
 import {readProgramRegistrationAnswer} from './programRegistration';
-import type { AssistantResponse, AssistantProgress } from './researchAssistant';
+import {askCampusAssistant,type AssistantResponse,type AssistantProgress} from './researchAssistant';
 import {readAssistantReply} from './assistantStreamReader.js';
 import { affairsClient } from '@/features/public/affairs/authClient';
 
@@ -14,6 +15,9 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
     const result:AssistantResponse = await readProgramRegistrationAnswer(data.session.user.id,question,signal);
     if (typeof result?.answer !== 'string' || result.grounding?.source !== 'account') throw new Error('Program registrations could not be loaded.');
     return result;
+  }
+  if (!images.length && courseSubstitutionQuestion(question,route)) {
+    return askCampusAssistant(question,[],signal,[],route,onProgress);
   }
   const response = await fetch('/api/affairs-assistant', {
     method:'POST', signal, headers:{'Content-Type':'application/json',Authorization:`Bearer ${data.session.access_token}`},

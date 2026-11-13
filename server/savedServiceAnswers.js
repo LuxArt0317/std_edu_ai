@@ -22,7 +22,7 @@ const plain = value=>String(value??'')
   .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
   .replace(/[\\`*_[\]()~#!|]/g,'\\$&')
   .replace(/https?:\/\//gi,scheme=>scheme.replace(':','&#58;'));
-const notePath = service=>service.id==='7-3'?service.localUrl+'/notes':service.localUrl;
+const notePath = service=>['7-3','12-8'].includes(service.id)?service.localUrl+'/notes':service.localUrl;
 const link = (key,zh)=>{
   const service=services.get(key);
   return `[${plain(service?.title||(zh?'開啟紀錄':'Open records'))}](${notePath(service)})`;

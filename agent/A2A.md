@@ -1,3 +1,7 @@
+## Course substitutions (Issue #98)
+
+Root owns 12-8, migration 080000, public source lookups, the new assistant citation path and release. Paused Issue #100 files remain out of scope.
+
 ## Interdisciplinary registration (Issue #98)
 
 Root owns service 7-3, migration 070000, the caller-bound record reader and the UI/assistant routes. Production `76c117c` passed pinned browser and 19 actual-JWT API checks with exact cleanup. The paused Issue #100 paths are excluded.

@@ -1,33 +1,9 @@
 import {load} from 'cheerio';
+import {readSchoolHtml} from './readSchoolHtml.js';
 import {curriculumMapEntry,curriculumMapSource} from '../src/features/public/affairs/curriculumMaps.js';
 
 const categories = new Map([['wf-col','department'],['wf-pro','required'],['wf-sec','elective']]);
 const text = value => value.replace(/\s+/gu,' ').trim();
-const maxBytes = 512_000;
-
-async function readHtml(response) {
-  if (!response.ok || response.redirected || !response.body ||
-      !/^text\/html\b/i.test(response.headers.get('content-type') ?? '') ||
-      Number(response.headers.get('content-length')) > maxBytes) throw Error('Map response unavailable');
-  const reader = response.body.getReader();
-  try {
-    const decoder = new TextDecoder('utf-8',{fatal:true});
-    let size=0, html='';
-    for (;;) {
-      const part=await reader.read();
-      if (part.done) break;
-      size+=part.value.byteLength;
-      if (size>maxBytes) throw Error('Map response too large');
-      html+=decoder.decode(part.value,{stream:true});
-    }
-    return html+decoder.decode();
-  } catch (error) {
-    await reader.cancel().catch(()=>{});
-    throw error;
-  } finally {
-    reader.releaseLock();
-  }
-}
 
 function parseMap(html, year, trackLabel) {
   const $=load(html);
@@ -79,7 +55,7 @@ export async function serveCurriculumMap(request,response,fetchMap=fetch) {
       redirect:'error',
       signal:AbortSignal.timeout(12000),
     });
-    const map=parseMap(await readHtml(result),year,selected?.label ?? '');
+    const map=parseMap(await readSchoolHtml(result),year,selected?.label ?? '');
     response.setHeader('Cache-Control','public, max-age=300, s-maxage=3600');
     response.status(200).json(map);
   } catch {

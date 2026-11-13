@@ -1,3 +1,5 @@
+import { answerCourseSubstitution } from './courseSubstitution.js';
+import { courseSubstitutionQuestion } from '../src/features/public/affairs/courseSubstitution.js';
 import { createHash } from "node:crypto";
 import { answerInterdisciplinaryPrograms } from "./interdisciplinaryPrograms.js";
 import { isProgramRegistrationQuestion, programRegistrationPath } from "./programRegistrationContract.js";
@@ -74,7 +76,7 @@ function parse(body) {
         const item = entry;
         return ['user', 'assistant'].includes(String(item.role)) && typeof item.content === 'string' ? [{ role: String(item.role), content: item.content.slice(0, 2000) }] : [];
     }) : [];
-    const route = typeof source.route === 'string' && /^\/school-affairs(?:\/menu\/[a-zA-Z]+\/[a-z]+)?$/.test(source.route) ? source.route : normalizePublicPageRoute(source.route);
+    const route = typeof source.route === 'string' && /^\/school-affairs(?:\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?$/.test(source.route) ? source.route : normalizePublicPageRoute(source.route);
     const rawImages = source.images;
     if (rawImages !== undefined && (!Array.isArray(rawImages) || rawImages.length > 2))
         return null;
@@ -245,6 +247,17 @@ export function createResearchAssistantHandler(dependencies = {}) {
         const personalQuestion = kind.personal || /\bmy (?:current )?(?:subjects?|courses?|classes|grades?|schedule|timetable|attendance|assignments?|enrollments?)\b|\b(?:my|our|their|his|her)\b.{0,45}\b(?:tuition|payments?|scholarships?|financial aid|records?)\b|我的.{0,16}(?:課程|科目|成績|出席|作業|課表|學費|費用|繳款|獎學金|紀錄|記錄)/i.test(input.question);
         const pageQuestion = !input.images.length && !personalQuestion && !kind.irrelevant && Boolean(normalizePublicPageRoute(input.route)) && isPublicPageQuestion(input.question);
         const chinese = /[\u3400-\u9fff]/.test(input.question);
+        if (!input.images.length && !kind.irrelevant && !personalQuestion) {
+            const selection = courseSubstitutionQuestion(input.question,input.route);
+            if (selection) {
+                stream.progress('course-substitution','Checking course substitutions','Reading the selected cohort, track and department.');
+                const answer = await answerCourseSubstitution(selection,input.question);
+                const step = answer.activity[0];
+                stream.progress(step.kind,step.label,step.detail,step.status);
+                stream.send(200,answer);
+                return;
+            }
+        }
         if (!input.images.length && !kind.irrelevant && !personalQuestion) {
             const programs = await answerInterdisciplinaryPrograms(input.question, {
                 onRead: () => stream.progress('directory', 'Checking the interdisciplinary program directory', 'Reading the published program records from Supabase.'),

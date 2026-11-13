@@ -1,3 +1,7 @@
+## Course substitutions (Issue #98)
+
+Service 12-8 opens the dedicated search. The read-only adapter checks the exact university result and can fall back to three verified, dated Supabase snapshots. See [course substitution QA](../qa/COURSE_SUBSTITUTION.md).
+
 ## Interdisciplinary registration (Issue #98)
 
 Service 7-3 opens the source-shaped registration table, with saved local registration and withdrawal, private progress and a dedicated assistant answer. Runtime `76c117c` and migration `20261114070000` are live with pinned browser and actual-JWT verification. See [registration QA](../qa/PROGRAM_REGISTRATION.md).

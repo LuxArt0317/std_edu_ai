@@ -107,3 +107,5 @@ The curriculum map lookup sends validated year and track selectors to the fixed 
 `interdisciplinaryPrograms.js` reads the public interdisciplinary catalog for both the directory API and campus assistant. Program citations link to the local viewer when the directory has a verified PDF.
 
 `programRegistration.js` handles caller-scoped registrations and assistant evidence. The shared registration contract checks owner, fields, program code and versioned receipts.
+
+`courseSubstitution.js` reads the public form, resolves the exact department code, validates returned selection and groups, and supplies the same evidence to the assistant. `readSchoolHtml.js` bounds and validates the shared university HTML reads.

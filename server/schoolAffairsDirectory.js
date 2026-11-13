@@ -1,3 +1,4 @@
+import {courseSubstitutionPath} from '../src/features/public/affairs/courseSubstitution.js';
 import {programRegistrationPath} from './programRegistrationContract.js';
 import {curriculumMapPath} from '../src/features/public/affairs/curriculumMaps.js';
 import {curriculumPlansPath} from '../src/features/public/affairs/curriculumPlans.js';
@@ -71,6 +72,11 @@ const leadershipMatches = [
   /服務領導.{0,16}(?:作業|成績|反思)|service leadership.{0,22}(?:assignments?|reflection|grades?)/i,
 ];
 const localServiceNavigation = [
+  {
+    id:'course-substitution',match:/\b(?:course substitutions?|course replacements?|replacement courses?)\b|替代科目/i,
+    title:['替代科目查詢','Course substitution search'],localUrl:courseSubstitutionPath,
+    description:['依屆別、學制與開課單位查詢已公布的替代科目。','Search published replacement courses by cohort, study track and department.'],
+  },
   {
     id:'interdisciplinary-registration',match:/\b(?:interdisciplinary|interdepartmental)(?: credit)? program registration\b|跨院系學分學程登記/i,
     title:['跨院系學分學程登記系統','Interdisciplinary program registration'],localUrl:programRegistrationPath,

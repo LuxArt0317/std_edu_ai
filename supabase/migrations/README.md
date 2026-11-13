@@ -47,3 +47,5 @@ Migration220000 adds one active private dormitory-conduct metadata record per ac
 `20261114060000_interdisciplinary_programs.sql` stores the public interdisciplinary credit program directory. RLS grants anonymous and authenticated visitors read access. Application roles have no write grants. Every available public document is identified by the verified SHA-256 digest.
 
 `20261114070000_interdisciplinary_registrations.sql` stores owner-only interdisciplinary registrations, withdrawal and completion terms, and exact operation receipts. Student writes require Google identity and use a serialized compare-and-set RPC. The period is derived from the Taipei calendar for local records.
+
+`20261114080000_course_substitutions.sql` stores verified public results for three exact cohort, track and department selections. A recorded empty result is distinct from an uncaptured selection. Application roles have read-only access under RLS.
