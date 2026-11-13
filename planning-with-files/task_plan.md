@@ -6,7 +6,7 @@
 - [x] Verify all three source staff-review links return this student account to the system index.
 - [x] Replace the generic7-1 tracker with the measured instructions/closed-period flow and add the observed selection-system index.
 - [x] Verify native route/auth/navigation, source geometry and mobile containment; update honest workflow coverage.
-- [ ] Run isolated release gates, publish and verify the production revision.
+- [x] Run isolated release gates, publish and verify production53c9304, Ready HJ937VNZjMjvXUVSTqhXvP2AV5y9 and Quality43410656358 success.
 
 The unobserved open-period application and staff review forms remain separate gaps. In parallel, audit literal Moodle grade-report persistence for the next native backend batch. Preserve the user-paused Issue100 files and all failed evidence.
 

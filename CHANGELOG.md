@@ -1,7 +1,7 @@
 # Changelog
 ## Unreleased
 
-- Replace the generic credit-load7-1 tracker with the observed instructions and closed-period acknowledgment; add the selection-system index, local student review redirects and corrected Index navigation. The open-period application and staff review forms remain unobserved. No database or school writes. Isolated943API/source,451units,build/assets and independent41-element source geometry checks pass; compiled7-1 and94/94menu navigation also pass; production acceptance pending. [#98]
+- Replace the generic credit-load7-1 tracker with the observed instructions and closed-period acknowledgment; add the selection-system index, local student review redirects and corrected Index navigation. The open-period application and staff review forms remain unobserved. No database or school writes. Isolated943API/source,451units,build/assets and independent41-element source geometry checks pass; compiled7-1 and94/94menu navigation also pass; published53c9304 passed revision-pinned production layout/navigation/guest checks; Quality43410656358 also succeeded. [#98]
 
 - Remove the floating green disclosure/account-status panel from copied public pages while preserving the shared chatbot and normal sign-in routes. [#98]
 

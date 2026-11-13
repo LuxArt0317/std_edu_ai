@@ -1,3 +1,9 @@
+## Credit-load production acceptance
+
+Published53c930447de174b97e8e1c2eafeefd6a582ab5de. Vercel Ready HJ937VNZjMjvXUVSTqhXvP2AV5y9 and exact public manifest (built2026-11-13T10:40:54.643Z; entry index-Uiw70r3I.js) verified. Revision-pinned production acceptance repeated41source measurements (max0.0390625CSSpx),6dialog/focus cases,9Index links,3review aliases,5guest gates and desktop/390/320 layouts with0unexpected requests/page errors or realAPI/auth/model/DB calls. Public startup and8routes/50assets passed. Live homepage confirms removed panel and retained assistant. Production artifacts are artifacts/credit-load-production/53c9304-2026-11-13T10-42-16.586Z/result.json and artifacts/credit-load-production/homepage-panel-removed.png. Quality43410656358 completed successfully, including public accessibility and copied-route/assistant checks.
+
+All three subordinate tasks are complete and browsers closed. Root retains Issue98 coordination; the full protected-system goal is unfinished. Issue100 remains user-paused. Next independent candidate is literal Moodle grade-report persistence as documented in findings; no schema change has been started or applied for it.
+
 ## Credit-load freeze and release gates
 
 Root owns the23-path isolated7-1/index batch. Authors are frozen; independent source geometry and interaction review accepted. Full943API/source and451units, build/assets/lint/handoff101/audit0 pass. Compiled7-1 and94/94inventory QA on fresh root-owned5184 passed. Root proceeds with named-path commit/release. Issue100 remains user-paused;66 fingerprints unchanged. No DB/model lease or operations in this UI batch.
