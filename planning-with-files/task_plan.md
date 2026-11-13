@@ -4,7 +4,8 @@
 
 - [x] Recheck school access and confirm the three distinct workflows from the university handbook.
 - [x] Connect course ownership, survey windows and confidential feedback to persistent student and administrator pages.
-- [ ] Verify isolated enrollment access, result release, and deployed browser and API behavior.
+- [x] Verify isolated enrollment access, result release, and deployed browser and API behavior.
+- [x] Check graduation-clearance source access and verify the public process diagram for the next two routes.
 - [ ] Compare the authenticated source forms when the school session is restored.
 
 ## Early graduation [Issue #98]

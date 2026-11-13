@@ -1,6 +1,8 @@
 ## Teaching feedback [Issue #98]
 
-The prior goal turn deployed the verified early-graduation release. The university teaching feedback session has expired. Two dedicated local workflows follow the public handbook, with the authenticated source forms still unobserved. Exact-client rollback and compiled browser passed.
+Production `623baac` is live as Vercel `BitJQgNJxjJfq4pKmbmFqTZDZt7d`. Migration 20261114140000 was applied alone, bringing the client to 148 migrations and 169 RLS-protected public tables. The pinned browser, 20 actual-JWT API requests including two successful student writes and their replays, exact fixture cleanup, guest assistant links, and eight public shell routes passed. Quality 43504926483 passed. The 94-destination local navigation inventory has 41 generic and 15 partial entries.
+
+Next source review is graduation clearance, services 10-1 and 16-1. Both official forms returned to separate sign-in routes. The public one-page flowchart documents the intent acknowledgement, per-office review results, and resolution of outstanding items. The recorded historical term dates are excluded from any current workflow.
 
 ## Early graduation [Issue #98]
 

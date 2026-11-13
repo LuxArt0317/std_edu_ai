@@ -2,6 +2,8 @@
 
 Services 7-5 and 7-6 have distinct enrollment-scoped workflows, administrator maintenance, and assistant status. The authenticated university forms still require sign-in for visual comparison. See [teaching feedback QA](../qa/TEACHING_FEEDBACK.md).
 
+Production `623baac` is live as Vercel `BitJQgNJxjJfq4pKmbmFqTZDZt7d`. Migration 20261114140000 was applied alone, bringing the client to 148 migrations and 169 RLS-protected public tables. The pinned browser, 20 actual-JWT API requests including two successful student writes and their replays, exact fixture cleanup, guest assistant links, and eight public shell routes passed. Quality 43504926483 passed. The 94-destination local navigation inventory has 41 generic and 15 partial entries.
+
 ## Early graduation (Issue #98)
 
 Service 7-4 has a dedicated local application, history and administrator review workflow. The observed university source showed the closed state and empty history. Open application, cancellation and populated-result screens remain unobserved. See [early graduation QA](../qa/EARLY_GRADUATION.md).
