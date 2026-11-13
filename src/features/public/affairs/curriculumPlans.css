@@ -1,0 +1,95 @@
+.curriculum-plans {
+  min-height: 100vh;
+  padding: 36px 12px 15px;
+  background: linear-gradient(90deg, #006459 50%, #008a7c 50% 66.67%, #ebf4f2 66.67%) top/100% 5px no-repeat, #efeff0;
+  color: #006459;
+  font: 12px/1.23 "Microsoft JhengHei", Verdana, Helvetica, Arial, sans-serif;
+}
+
+.curriculum-plans > main {
+  max-width: 962px;
+  margin-inline: auto;
+  border: 1px solid #c9cacb;
+  border-radius: 5px;
+  background: #fff;
+}
+
+.curriculum-plans h1 {
+  min-height: 90px;
+  padding: 10px 12px 10px 25px;
+  border-bottom: 23px solid transparent;
+  border-image: linear-gradient(90deg, #006459 50%, #008a7c 50% 66.67%, #ebf4f2 66.67%) 1;
+}
+
+.curriculum-plans h1 a { display: flex; align-items: flex-start; gap: 20px; }
+.curriculum-plans h1 img + img { margin-top: 20px; max-width: calc(100% - 90px); height: auto; }
+
+.curriculum-plans header nav {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 10px 24px 0;
+}
+
+.curriculum-plans header nav a {
+  padding: 2px 4px;
+  border-right: 1px dotted #bbb;
+  color: #00776b;
+}
+
+.curriculum-plans header nav a[aria-current],
+.curriculum-plans header nav a:hover { background: #00776b; color: #fff; }
+.curriculum-plans-content { padding: 12px 24px 18px; }
+.curriculum-plans-scroll { overflow: auto; }
+
+.curriculum-plans table {
+  width: 100%;
+  min-width: 890px;
+  border: 2px solid #ebf4f2;
+  border-collapse: collapse;
+}
+
+.curriculum-plans thead th {
+  height: 32px;
+  padding: 4px;
+  background: #008a7c;
+  color: #fff;
+  font: 20px Georgia, serif;
+  text-align: center;
+}
+
+.curriculum-plans thead th:first-child { min-width: 138px; font-size: 16px; }
+.curriculum-plans tbody th,
+.curriculum-plans td { height: 43.8px; padding: 4px 6px; text-align: left; }
+.curriculum-plans tbody th { font-weight: 400; }
+.curriculum-plans tbody tr:nth-child(even) { background: #f6f6f6; }
+.curriculum-plans tbody tr:hover { background: #ebf4f2; }
+
+.curriculum-plans td a {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 27px;
+  color: #555;
+  white-space: nowrap;
+}
+
+.curriculum-plans td a:hover { text-decoration: underline; }
+.curriculum-plans-links, .curriculum-document-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 8px;
+  border-top: 1px solid #c8d0ce;
+}
+
+.curriculum-plans-links a, .curriculum-document-actions a { text-decoration: underline; }
+.curriculum-plans h2 { font-size: 19px; }
+.curriculum-plans iframe { display: block; width: 100%; height: min(700px, 85vh); margin-top: 12px; }
+.curriculum-plans footer { max-width: 914px; margin: 12px auto 0; color: #666; }
+
+@media (max-width: 640px) {
+  .curriculum-plans-content { padding-inline: 12px; }
+  .curriculum-plans header nav { margin-inline: 12px; }
+  .curriculum-plans header nav a { padding-block: 8px; }
+}

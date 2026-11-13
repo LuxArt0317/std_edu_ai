@@ -9,3 +9,5 @@ On November12,2026, `course-catalog-heading.jpg` was captured from the observed 
 `pending-fees-banner.svg` is the observed public Student Fees logo, captured on November12,2026; its original URL, checksum and length are in the provenance manifest. No authenticated student rows are published in this directory.
 
 `dorm-conduct-logo.png` and `dorm-conduct-notice.png` are the observed public dormitory notice assets. `dorm-conduct-assets.json` records source URLs, MIME types, dimensions and hashes without private event-message URLs or identities.
+
+The `curriculum/` directory holds the university’s public curriculum header and PDF icons. Origin and checksums are recorded in the [curriculum QA guide](../../docs/qa/CURRICULUM_PLANS.md).

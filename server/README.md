@@ -99,3 +99,5 @@ The supplemental-answer correction separates coordinated student identity reques
 The service directory routes Service Leadership navigation locally. Account evidence uses a dedicated subject records destination and caller-owned Moodle material IDs.
 
 The service directory links parking-permit navigation and instructions to their distinct local destinations. Application-status requests stay outside the public navigation shortcut.
+
+The curriculum plan viewer reads a public PDF from the fixed university endpoint using a captured, allowlisted plan code. It forwards no caller credentials and bounds response size and time. The separate private account scopes retain their existing verification.

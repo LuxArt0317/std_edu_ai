@@ -561,5 +561,5 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 ## Historical curriculum plans [Issue #98]
 
 - [x] Capture the public program tabs and historical views. Verify the source table geometry and a sample plan PDF.
-- [ ] Implement the curriculum matrix and each observed program/archive route on stu.best.
+- [x] Implement the curriculum matrix and each observed program/archive route on stu.best.
 - [ ] Verify plan navigation, document access, assistant links, and desktop and mobile layout.

@@ -27,3 +27,5 @@ This directory contains scoped verification records and explicit acceptance limi
 - [Service Leadership and assistant destinations](SERVICE_LEADERSHIP.md) — observed index, account records and QA.
 
 - [Parking permits](PARKING_PERMITS.md) — General Affairs entry, instructions and guest navigation.
+
+- [Historical curriculum plans](CURRICULUM_PLANS.md) — captured tables, PDF preview and verification.

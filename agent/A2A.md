@@ -1,3 +1,7 @@
+## Historical curriculum plans (Issue #98)
+
+Root owns the 12-5 matrix, archive, public curriculum PDF scope and release. The 24 program/archive source tables were captured. No private records or database migration belong to this change. Issue #100 remains paused.
+
 ## Parking permits (Issue #98)
 
 Root owns the 46-1 entry and instructions routes, parking assistant navigation, browser QA and release. Production `097a814` passed browser, real PDF retrieval, four directory answers, the shell and Quality 43457492094. The university form remains unobserved. Root captured 24 source tables for the next historical curriculum task (12-5); implementation has not begun. Paused Issue #100 paths remain excluded. No database change.

@@ -1,3 +1,7 @@
+## Historical curriculum plans (Issue #98)
+
+The Academic Affairs 12-5 entry opens 24 captured curriculum tables across 12 program types. Links open local plan previews with a direct university download available. See [curriculum QA](../qa/CURRICULUM_PLANS.md).
+
 ## Parking permits (Issue #98)
 
 The General Affairs parking entry now opens a dedicated page and instructions viewer. Existing account notes retain their own destination. The university application and two-stage authentication run on the university domain. Its protected forms and status remain unverified. Production `097a814` passed the pinned UI suite, four assistant link checks, and live PDF loading. See [parking QA](../qa/PARKING_PERMITS.md).

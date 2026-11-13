@@ -1,3 +1,4 @@
+import {curriculumPlansPath} from '../src/features/public/affairs/curriculumPlans.js';
 import {
   internshipPath, leavePath, officialInternshipUrl, officialLeaveUrl, officialRegistrarUrl, officialWifiUrl,
   schoolServiceEntries, studentServiceByKey, teachingAssistantPath, tutorEvaluationPath, wifiGuidePath,
@@ -68,6 +69,11 @@ const leadershipMatches = [
   /服務領導.{0,16}(?:作業|成績|反思)|service leadership.{0,22}(?:assignments?|reflection|grades?)/i,
 ];
 const localServiceNavigation = [
+  {
+    id:'historical-curriculum',match:/\b(?:historical curriculum|curriculum plans?|program plans?)\b|歷年課程規劃|課程規劃表/i,
+    title:['歷年課程規劃查詢','Historical curriculum plans'],localUrl:curriculumPlansPath,
+    description:['依學制、系所與入學學年度查閱課程規劃表。','Browse published curriculum plans by program type, department and academic year.'],
+  },
   {
     id:'parking-instructions',match:/(?:parking|vehicle|car|motorcycle) permits?.{0,25}(?:guide|instructions?|rules)|(?:guide|instructions?|rules).{0,25}(?:parking|vehicle|car|motorcycle) permits?|(?:停車證|車輛通行證|汽機車證|車證).{0,12}(?:須知|需知|規定)/i,
     title:['車證申請須知','Parking permit instructions'],localUrl:parkingInstructionsPath,

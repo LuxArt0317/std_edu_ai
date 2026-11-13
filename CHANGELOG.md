@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Add historical curriculum tables for all 12 program types and their archives, with local previews of university plan PDFs and assistant navigation. [#98]
+
 - Replace the generic parking permit route with a dedicated entry and instructions, preserve private notes, and link both views from the campus assistant. Published at `097a814` after compiled and deployed checks. [#98]
 
 - Add the observed Service Leadership index and four local entry pages. Link assistant evidence to saved subjects and exact Moodle material pages. Published at `636c751` with revision-pinned browser checks and five live directory answers. [#98]
