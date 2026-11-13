@@ -95,3 +95,5 @@ The supplemental-answer correction separates coordinated student identity reques
 `exchangeGrant.js` uses the caller JWT for the dedicated grant RPCs. `exchangeGrantContract.js` validates the exact request and response shapes, including version receipts and account identity.
 
 `tutorEvaluation.js` forwards caller-bound evaluation requests to the private workflow’s RPCs. The directory maps TA report, TA self-evaluation and tutor evaluation navigation to their local routes.
+
+The service directory routes Service Leadership navigation locally. Account evidence uses a dedicated subject records destination and caller-owned Moodle material IDs.

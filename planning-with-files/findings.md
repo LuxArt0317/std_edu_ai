@@ -251,3 +251,5 @@ The TA dropdown contains two destinations, even though its index table lists onl
 ## Service leadership source
 
 Catalog 42-1 shows a two-column index with four student destinations, for unit preselection, confirmation, lecture lookup and assignments/grades. At 1280×720 the source document frame is x159, y12, width 962. The navigation is x194, y130 and width 130, and the index main area is x339, y130 and width 613. The direct preselection destination returned to the main CAPTCHA. No protected unit, lecture, or result fields were obtained.
+
+The School Affairs and internship detail sessions remain on CAPTCHA. The leadership index capture shows four distinct destinations. The preselection and lecture destination checks returned to the main school sign-in. The existing assistant subject link opened the retired account overview, and note links lost their destination after native pages replaced generic trackers. The new subject page reads the same existing enrollment data used by the assistant. Resource links use valid caller-owned course and material IDs.

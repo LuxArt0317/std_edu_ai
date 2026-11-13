@@ -1,11 +1,11 @@
-import {schoolServiceEntries,studentServiceByKey} from '../src/features/public/affairs/studentServices.js';
+import {schoolServiceEntries,schoolSubjectRecordsPath,studentServiceByKey} from '../src/features/public/affairs/studentServices.js';
 import {studentAidPath} from '../src/features/public/affairs/studentAidLinks.js';
 import {academicGradesPaths} from './academicGrades.js';
 import {graduationReviewPaths} from './graduationReview.js';
 import {academicAttendancePaths} from './academicAttendance.js';
 
 const fixed = new Map(Object.entries({
-  profile:['/school-affairs/records'],courses:['/school-affairs/records'],
+  profile:['/school-affairs/records'],courses:['/school-affairs/records',schoolSubjectRecordsPath],
   assignments:['/dtm/assignments','/dtm','/dtm/dashboard'],
   dtm:['/dtm','/dtm/dashboard','/dtm/assignments','/dtm/grades'],
   charges:['/school-affairs/services/39-1'],tasks:['/school-affairs/records'],
@@ -24,6 +24,7 @@ const reservedIds = new Set(['__proto__','prototype','constructor']);
 const segment = id=>typeof id==='string'&&/^[\p{L}\p{N}_-][\p{L}\p{M}\p{N}_-]{0,127}$/u.test(id)&&!reservedIds.has(id)
   ?encodeURIComponent(id):null;
 const rows = value=>Array.isArray(value)?value.filter(row=>row&&typeof row==='object'&&!Array.isArray(row)):[];
+const uuid = id => typeof id === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(id);
 const parentMatches=(row,id)=>['courseId','course_id','dtmCourseId','dtm_course_id'].every(field=>row[field]==null||row[field]===id);
 const bytes=value=>Buffer.byteLength(JSON.stringify(value),'utf8');
 
@@ -34,6 +35,7 @@ function dtmCandidates(records){
     const path=paths[index];
     const groups=[['meetings','meeting'],['grades','grade'],['assignments','assignment']].map(([kind,anchor])=>
       rows(course[kind]).filter(row=>segment(row.id)&&parentMatches(row,course.id)).map(row=>`${path}/${kind}#${anchor}-${segment(row.id)}`));
+    if(uuid(course.id))groups.push(rows(course.materials).filter(row=>uuid(row.id)&&parentMatches(row,course.id)).map(row=>path+'/material/'+row.id));
     // Interleave types so one long meeting history cannot hide every grade.
     const merged=[];
     for(let i=0;i<Math.max(0,...groups.map(group=>group.length));i++)for(const group of groups)if(group[i])merged.push(group[i]);

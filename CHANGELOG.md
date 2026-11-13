@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Add the observed Service Leadership index and four local entry pages. Link assistant evidence to saved subjects, and exact Moodle material pages. [#98]
+
 - Open the teaching-assistant index and its observed student destinations from both catalog entries. Add the ten-question tutor evaluation with private, retry-safe submission and assistant links. [#98]
 
 - Open Student Affairs grant service 23-1 as a standalone page with four destinations, the operation manual, private conference drafts and reflection reports. Prior personal notes remain at `/school-affairs/services/23-1/notes`. [#98]

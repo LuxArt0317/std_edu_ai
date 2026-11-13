@@ -23,3 +23,5 @@ This directory contains scoped verification records and explicit acceptance limi
 - [Exchange and conference grants](EXCHANGE_GRANTS.md) — source observations, private records and QA.
 
 - [Teaching assistant and tutor evaluation](TUTOR_EVALUATION.md) — captured screens, private submission and QA.
+
+- [Service Leadership and assistant destinations](SERVICE_LEADERSHIP.md) — observed index, account records and QA.

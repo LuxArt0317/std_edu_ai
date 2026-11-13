@@ -4,7 +4,7 @@ import {graduationReviewPaths,graduationReviewQuery,graduationReviewNamedCourseT
 import {academicAttendancePaths,academicAttendanceQuery,academicAttendanceMatchingRows,isAcademicAttendanceQuestion} from './academicAttendance.js';
 import {selectAccountEvidence,selectServiceRecords,ownEvidenceRows} from './accountEvidenceSelection.js';
 import {selectedEvidenceLinks} from './accountEvidenceLinks.js';
-import {schoolServiceEntries,studentServiceByKey} from '../src/features/public/affairs/studentServices.js';
+import {schoolServiceEntries,schoolSubjectRecordsPath,studentServiceByKey} from '../src/features/public/affairs/studentServices.js';
 const clean=value=>String(value??'—').slice(0,200);
 const nativeClean=value=>{const text=String(value??'—');return text.length<=200?text:text.slice(0,199).replace(/[\ud800-\udbff]$/,'')+'…';};
 const date=value=>!value?'Not set':Number.isFinite(new Date(value).getTime())?new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Taipei'}).format(new Date(value)):'Invalid saved date';
@@ -126,7 +126,7 @@ export function accountRecordViews(snapshot,tools,context={}){
     ?'No saved note matched the requested reference; unrelated records were not substituted.'
     :'Only selected owned local tracking records are shown; notes/statuses do not establish university approval, payment or official submission.';
   const definitions={
-    courses:['Subjects','/school-affairs/records',['Subject','Term','Status','Room','Data'],selectedRows('courses'),row=>[`${row.code} ${row.title}`,row.term,row.status,row.room,row.sourceMode]],
+    courses:['Subjects',schoolSubjectRecordsPath,['Subject','Term','Status','Room','Data'],selectedRows('courses'),row=>[`${row.code} ${row.title}`,row.term,row.status,row.room,row.sourceMode]],
     charges:['Tuition and fees','/school-affairs/services/39-1',['Item','Due','Paid','Remaining','Data'],selectedRows('charges'),row=>[row.label,money(row.amountDue,row.currency),money(row.amountPaid,row.currency),money(Number(row.amountDue)-Number(row.amountPaid),row.currency),row.sourceMode]],
     assignments:['Assignment tracker',assignmentCourse?assignmentCourse+'/assignments':'/dtm/assignments',['Assignment','Course','Due (Taipei)','Status','Data'],assignments,row=>[row.title,row.course,date(row.dueAt),row.status,row.sourceMode],'Selected owned assignments only; other courses are not evidence for this selection.'],
     tasks:['Your tasks','/school-affairs/records',['Task','Due (Taipei)','Status'],selectedRows('tasks'),row=>[row.title,date(row.dueAt),row.completedAt?'Complete':'Open']],

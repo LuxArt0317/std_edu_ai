@@ -1,3 +1,7 @@
+## Service Leadership and assistant destinations
+
+The 42-1 index reproduces the observed frame and four destinations. Protected pages are login-gated, so each local entry page provides its exact source link. The assistant can open actual saved enrollment rows and time information, and exact Moodle resources. The removed overview remains retired. Issue #98 remains open.
+
 ## Teaching assistant and tutor evaluation
 
 The TA and tutor evaluation update is live at `de1ad60`. Production passed 15 actual-JWT requests with exact fixture cleanup, six compiled browser groups, eight public routes and three live assistant links. GitHub Quality 43450755675 passed. Supabase has 139 migrations and 155 public RLS tables. The service leadership index was captured, but its preselection route returns to the main CAPTCHA. The internship, subsidy and learning support have separate CAPTCHA sign-ins. The official Moodle session expired.

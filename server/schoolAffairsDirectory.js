@@ -3,6 +3,7 @@ import {
   schoolServiceEntries, studentServiceByKey, teachingAssistantPath, tutorEvaluationPath, wifiGuidePath,
 } from '../src/features/public/affairs/studentServices.js';
 
+import {serviceLeadershipPath,serviceLeadershipViews} from '../src/features/public/affairs/serviceLeadership.js';
 import {studentAidNavigation} from './studentAidRecords.js';
 import {creditLoadHistoryNavigation} from './creditLoadHistory.js';
 import {courseSelectionNavigation} from './courseSelection.js';
@@ -59,7 +60,21 @@ const nativeAcademicNavigation=[
   {...academicAttendanceNavigation,serviceId:'14-1'},
 ];
 const localRecordIds=new Set([...courseSelectionNavigation,...nativeAcademicNavigation].map(entry=>entry.id));
-const localSurveyNavigation = [
+const leadershipMatches = [
+  /服務(?:實作)?單位預選|service (?:unit|placement) (?:preselection|pre-selection)/i,
+  /服務實作單位確認|service (?:unit|placement) confirmation/i,
+  /服務講堂課程|service leadership lectures?/i,
+  /服務領導.{0,16}(?:作業|成績|反思)|service leadership.{0,22}(?:assignments?|reflection|grades?)/i,
+];
+const localServiceNavigation = [
+  ...serviceLeadershipViews.map((view,index)=>({
+    id:'service-leadership-'+view.key,match:leadershipMatches[index],title:[view.heading,view.englishLabel],
+    localUrl:serviceLeadershipPath+'/'+view.key,description:['開啟'+view.heading+'。',view.english],
+  })),
+  {id:'service-leadership',match:/服務領導教育|\bservice leadership\b/i,
+    title:['服務領導教育系統','Service Leadership Education'],localUrl:serviceLeadershipPath,
+    description:['開啟服務領導教育系統，可查看服務單位、服務講堂及作業的入口。','Open Service Leadership Education for the placement, lecture and assignment destinations.']},
+
   {
     id:'ta-report', match:/\b(?:teaching assistant|TA)\b.{0,32}\b(?:report|learning log)\b|教學助理報告|撰寫[/／]維護學習單|教學助理.*學習單/i,
     title:['教學助理學習單','Teaching assistant learning report'],localUrl:teachingAssistantPath+'/report',
@@ -77,7 +92,7 @@ const localSurveyNavigation = [
   },
 ];
 const navigation = [
-  ...localSurveyNavigation,
+  ...localServiceNavigation,
   ...courseSelectionNavigation,
   ...nativeAcademicNavigation,
   studentAidNavigation,
@@ -131,7 +146,7 @@ export function answerCampusNavigation(question) {
     ? (zh?'註冊課務組在行政大樓 1 樓。電話 07-615-8000，分機 2007、2009、2010、2012、2014、2016。電子郵件 course@stu.edu.tw。'
       :'The Registration and Curriculum Division is on the first floor of the Administration Building. Call +886 7 615 8000, ext. 2007, 2009, 2010, 2012, 2014 or 2016, or email course@stu.edu.tw.')
     : entry.description[i];
-  const localRecordDestination = localRecordIds.has(entry.id) || localSurveyNavigation.includes(entry);
+  const localRecordDestination = localRecordIds.has(entry.id) || localServiceNavigation.includes(entry);
   const source = localRecordDestination ? entry.localUrl : wantsRegistrarContact?registrarFaq:entry.officialUrl;
   const links = [markdownLink(localRecordDestination ? (zh ? '在 stu.best 開啟' : 'Open on stu.best') : (zh ? '校方網站' : 'Official university page'),source)];
   if (entry.localUrl && !localRecordDestination) links.push(markdownLink(zh ? '在 stu.best 開啟' : 'Open on stu.best',entry.localUrl));

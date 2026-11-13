@@ -25,3 +25,5 @@
 - 25-1/25-2/28-1: Captured TA dropdown paths, the no-questionnaire state, and ten tutor survey prompts. Implemented their local routes and private survey storage. Exact rollback, compiled browser, assistant navigation and 94-route inventory passed.
 - 28-1: Applied only migration 050000 after the exact plan and rollback preflight. Corrected a fixture-generator error before any fixture insertion. The local-handler actual-JWT run passed 15 requests with exact cleanup. Assistant-link contract tests, 1002 API/source tests and 541 unit tests passed.
 - Published de1ad60 and verified the production manifest, 15 API requests, exact cleanup, six browser groups, three assistant links, and the public shell. Captured service leadership index geometry and verified that internship and learning support prompt for independent CAPTCHA sign-ins. The Moodle session timed out.
+
+- 42-1: Recreated the captured index and four entry pages. Verified local navigation, responsive layout and existing notes. Added the subject enrollment destination and exact Moodle material links.

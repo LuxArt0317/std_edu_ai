@@ -4,6 +4,7 @@ export const leavePath = '/school-affairs/services/leave';
 export const internshipPath = '/school-affairs/services/internship';
 export const teachingAssistantPath = '/school-affairs/services/25-1';
 export const tutorEvaluationPath = '/school-affairs/services/28-1';
+export const schoolSubjectRecordsPath = '/school-affairs/records/subjects';
 export const officialLeaveUrl = 'https://infosys.stu.edu.tw/StuLeave/Login/AspLoginStu';
 export const officialInternshipUrl = 'https://infosys.stu.edu.tw/StuPractice/Login/Signin';
 export const officialWifiUrl = 'https://help.ecc.stu.edu.tw/wireless-setting/';

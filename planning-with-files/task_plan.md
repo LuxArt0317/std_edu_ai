@@ -542,3 +542,11 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Pass rollback verification, targeted browser checks and all 94 catalog destination checks.
 - [x] Verify exact production release and disposable-account cleanup.
 - [ ] Compare populated TA reports and self-evaluations when a source account can open them.
+
+## Service Leadership and assistant links [Issue #98]
+
+- [x] Confirm the 42-1 index layout and source destination paths. Recheck protected detail access.
+- [x] Mount the observed index, four distinct entry pages and account-owned notes.
+- [x] Correct assistant destinations for existing subjects and Moodle materials.
+- [ ] Verify exact production release, local links and public shell.
+- [ ] Capture and implement protected leadership and internship workflows when available.

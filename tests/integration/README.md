@@ -96,3 +96,5 @@ Fee-remission verification includes `fee-remission-ui.mjs` for navigation and re
 `exchange-grant-ui.mjs` checks navigation, the local PDF, create/report/delete, retry identity, guest/foreign-account handling and viewport containment. `exchange-grant-rls-live.mjs --rollback-preflight` exercises the migration on the exact client database in a rolled-back transaction. `exchange-grant-http-live.mjs` checks actual-JWT local or deployed routes with disposable fixtures.
 
 `tutor-evaluation-ui.mjs` checks TA and tutor routes with synthetic records. `tutor-evaluation-rls-live.mjs --rollback-preflight` verifies the SQL and exact rollback on the client database. `tutor-evaluation-http-live.mjs` verifies actual-JWT handler or deployed access with disposable fixtures.
+
+`service-leadership-ui.mjs` follows the four local leadership destinations from the compiled index, verifies source geometry and responsive containment, and checks private note and subject routes plus guest sign-in.

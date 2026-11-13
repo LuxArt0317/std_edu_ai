@@ -1,3 +1,7 @@
+## Service Leadership and assistant destinations (Issue #98)
+
+Catalog 42-1 opens the observed leadership index, with four distinct local entry pages and exact official links for protected operations. The assistant's subject evidence opens the existing account data in a dedicated view. Moodle material citations open exact local resource pages. Existing leadership notes are reachable from the new index. See [workflow and QA](../qa/SERVICE_LEADERSHIP.md).
+
 ## Teaching assistant and tutor evaluation (Issue #98)
 
 Catalog entries 25-1 and 25-2 now mount the shared index and its observed report and self-evaluation states. Entry 28-1 uses the observed ten-rating form and stores an account-owned response. Current TA reporting fields were not visible, and the tutor evaluation saves to stu.best. See [workflow and QA](../qa/TUTOR_EVALUATION.md).

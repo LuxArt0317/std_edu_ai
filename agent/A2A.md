@@ -1,3 +1,7 @@
+## Service Leadership and assistant destinations
+
+Root owns the 42-1 index and entry pages, subject reader, shared service links and related tests for Issue #98. No new database schema is needed. The protected source pages still require authentication. The paused Issue #100 files remain excluded.
+
 ## Teaching assistant and tutor evaluation
 
 Production `de1ad60` passed pinned API, browser, assistant navigation and public shell checks. All disposable records and root DB leases are cleared. Root owns the TA and tutor evaluation files, directory entries, the School Affairs mount, and the relevant API hunks for Issue #98. The source exposed both TA links and the complete tutor questionnaire. The rollback preflight passed for migration 050000. Paused issue #100 paths remain excluded.

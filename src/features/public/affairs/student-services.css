@@ -134,3 +134,8 @@
   .student-service-fields { grid-template-columns: minmax(0,1fr); }
   .student-service-table { min-width: 34rem; }
 }
+
+.school-subject-times { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,16rem),1fr)); gap: 12px; margin-bottom: 20px; }
+.school-subject-times > div { padding: 12px; background: #eef3f6; border: 1px solid #dce4e8; }
+.school-subject-times dt { font-weight: 600; }
+.school-subject-times dd { margin-top: 4px; overflow-wrap: anywhere; }

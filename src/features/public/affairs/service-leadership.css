@@ -1,0 +1,69 @@
+.service-leadership {
+  min-height: 100dvh;
+  padding: 12px 12px 10px;
+  background: #efefef;
+  color: #181818;
+  font: 13px/1.5 Verdana, Arial, "Microsoft JhengHei", sans-serif;
+}
+.service-leadership-frame {
+  width: min(962px, 100%);
+  min-height: 774px;
+  margin: 0 auto;
+  padding-top: 25px;
+  border: 1px solid #c7c7c7;
+  border-radius: 10px;
+  background: #fff;
+}
+.service-leadership-banner {
+  display: flex;
+  align-items: start;
+  gap: 24px;
+  height: 70px;
+  padding: 0 25px;
+  border-bottom: 14px solid transparent;
+  border-image: linear-gradient(90deg,#265c55 66.666%,#edf3f2 66.666%) 1;
+}
+.service-leadership-banner a { display: flex; gap: 14px; align-items: center; flex: none; color: #193831; }
+.service-leadership-banner img { width: 45px; height: 48px; object-fit: contain; }
+.service-leadership-banner strong,.service-leadership-banner small { display: block; }
+.service-leadership-banner strong { font-size: 22px; line-height: 1.35; }
+.service-leadership-banner small { color: #831052; font-size: 15px; margin-left: 50px; }
+.service-leadership-dots {
+  flex: 1;
+  align-self: start;
+  height: 52px;
+  background: radial-gradient(circle at 4px 4px,#8cb5ae 3px,transparent 3.6px) 0 0 / 11.3px 13px;
+}
+.service-leadership-toggle { display: grid; place-items: center; margin-left: 24px; width: 24px; height: 22px; color: #317f91; }
+.service-leadership-content { display: flex; align-items: start; gap: 15px; padding: 0 24px 35px; }
+.service-leadership-content nav {
+  flex: 0 0 140px;
+  min-height: 550px;
+  padding: 2px 0 0 10px;
+  background: #edf3f2;
+}
+.service-leadership-content nav h2 { margin: 0; font-size: 15px; font-weight: 400; color: #255c54; }
+.service-leadership-content nav a { display: block; padding: 3px 8px 3px 13px; line-height: 1.25; overflow-wrap: anywhere; }
+.service-leadership-content nav a[aria-current=page] { background: #fff; }
+.service-leadership-content main { width: min(613px, 100%); min-width: 0; }
+.service-leadership-content h1 { color: #255c54; font-size: 17px; line-height: 1.65; font-weight: 400; margin: 0; border-bottom: 2px solid #e7e7e7; padding-bottom: 5px; }
+.service-leadership-function { min-height: 133px; padding: 15px 8px 14px; border-bottom: 2px solid #e7e7e7; }
+.service-leadership-function h2,.service-leadership-detail h2 { margin: 0 0 6px; color: #8e2039; font-size: 16px; font-weight: 700; }
+.service-leadership-detail { padding: 15px 8px; }
+.service-leadership-detail a { display: inline-flex; gap: 5px; align-items: center; margin-top: 12px; color: #255c54; text-decoration: underline; }
+.service-leadership footer { width: min(962px,100%); margin: 10px auto 0; color: #4d4d4d; font-size: 11px; }
+.service-leadership footer nav { display: flex; flex-wrap: wrap; margin-bottom: 2px; }
+.service-leadership footer nav :is(a) { color: #255c54; margin-right: 5px; padding-right: 5px; border-right: 1px dotted #c7c7c7; }
+.service-leadership a:hover { text-decoration: underline; }
+.service-leadership :is(button,a):focus-visible { outline: 2px solid #27738c; outline-offset: 2px; }
+@media(max-width: 650px) {
+  .service-leadership-banner { padding-inline: 12px; gap: 8px; }
+  .service-leadership-banner a { flex: 1; min-width: 0; }
+  .service-leadership-banner strong { font-size: 18px; }
+  .service-leadership-banner small { margin-left: 0; font-size: 11px; }
+  .service-leadership-dots { display: none; }
+  .service-leadership-toggle { margin-left: 12px; }
+  .service-leadership-content { flex-direction: column; align-items: stretch; padding-inline: 12px; gap: 10px; }
+  .service-leadership-content nav { flex-basis: auto; min-height: 0; padding-bottom: 3px; }
+  .service-leadership-function { min-height: 0; }
+}

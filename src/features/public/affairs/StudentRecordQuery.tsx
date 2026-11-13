@@ -33,10 +33,11 @@ function timetableRows(courses:Course[]):Row[] {
 const queries: Record<AccountQuery,Query> = {
   enrollments:{
     byTerm:true,
-    columns:['序號','當期課程代碼','課程名稱','必選修','學分','教師一','備註'],
+    columns:['序號','學期','課程代碼','課程名稱','學分','教師','修課狀態','資料來源'],
     rows:(_,courses)=>courses.map((course,index)=>({
       key:course.enrollmentId,
-      cells:[index+1,course.code,course.title,dash,course.credits,course.instructor||dash,enrollmentStatus[course.status] ?? course.status],
+      cells:[index+1,course.term,course.code,course.title,course.credits,course.instructor||dash,enrollmentStatus[course.status] ?? course.status,
+        course.sourceMode==='sample'?'範例':course.sourceMode==='verified'?'已驗證':'站內紀錄'],
     })),
   },
   timetable:{
@@ -91,7 +92,7 @@ export function StudentRecordQuery({kind,snapshot,title}:{kind:AccountQuery;snap
   return <section className={'student-record-query'+(kind==='timetable'?' student-record-timetable':'')} aria-label={title}>
     {query.byTerm && terms.length>0 && <label>
       學期
-      <select value={term} onChange={event=>setTerm(event.target.value)}>
+      <select aria-label="學期" value={term} onChange={event=>setTerm(event.target.value)}>
         <option value="">全部學期</option>
         {terms.map(value=><option key={value}>{value}</option>)}
       </select>
@@ -106,6 +107,6 @@ export function StudentRecordQuery({kind,snapshot,title}:{kind:AccountQuery;snap
         </tbody>
       </table>
     </div>
-    <p className="student-record-source">stu.best · 範例紀錄</p>
+    <p className="student-record-source">{kind==='enrollments'?'stu.best · 修課紀錄':'stu.best · 範例紀錄'}</p>
   </section>;
 }

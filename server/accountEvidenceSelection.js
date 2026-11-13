@@ -1,4 +1,4 @@
-import {schoolServiceEntries,studentServiceByKey} from '../src/features/public/affairs/studentServices.js';
+import {schoolServiceEntries,schoolSubjectRecordsPath,studentServiceByKey} from '../src/features/public/affairs/studentServices.js';
 
 const normalize=value=>String(value||'').normalize('NFKC').toLowerCase().replace(/\s+/g,' ').trim();
 const escapePattern=value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
@@ -158,7 +158,7 @@ export function selectAccountEvidence(snapshot,key,context={}){
   }
   if(Array.isArray(snapshot[key])){
     const rows=prioritizeEvidenceRows(ownEvidenceRows(snapshot[key],userId),question,['id','code','title','label','name','details']);
-    return {records:rows,selection:{scope:'ranked_owned_records',matchingRows:rows.length}};
+    return {records:rows,...(key==='courses'?{url:schoolSubjectRecordsPath}:{}),selection:{scope:'ranked_owned_records',matchingRows:rows.length}};
   }
   return null;
 }

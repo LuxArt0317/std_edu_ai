@@ -59,7 +59,7 @@ import {
 import type { PortalProgram } from "./model";
 import { loadPreferences, savePreferences } from "./preferences";
 import type { PortalPreferences } from "./preferences";
-import { calendarPath, nativeServiceAlias, serviceDestination, teachingAssistantPath, tutorEvaluationPath } from "./studentServices.js";
+import { calendarPath, nativeServiceAlias, schoolSubjectRecordsPath, serviceDestination, teachingAssistantPath, tutorEvaluationPath } from "./studentServices.js";
 import { StudentServiceWorkspace } from "./StudentServiceWorkspace";
 import StudentLeaveWorkspace from "./StudentLeaveWorkspace";
 import { StudentScholarshipWorkspace } from "./StudentScholarshipWorkspace";
@@ -84,6 +84,9 @@ import { StudentConductWorkspace } from "./StudentConductWorkspace";
 import { StudentLoanWorkspace } from "./StudentLoanWorkspace";
 import { DormConductWorkspace } from "./DormConductWorkspace";
 import { EducationFundWorkspace } from "./EducationFundWorkspace";
+import { SchoolSubjectRecords } from "./SchoolSubjectRecords";
+import { ServiceLeadershipWorkspace } from "./ServiceLeadershipWorkspace";
+import { serviceLeadershipPath, serviceLeadershipViews } from "./serviceLeadership.js";
 import { TeachingAssistantWorkspace } from "./TeachingAssistantWorkspace";
 import { TutorEvaluationWorkspace } from "./TutorEvaluationWorkspace";
 import { ExchangeGrantWorkspace } from "./ExchangeGrantWorkspace";
@@ -208,10 +211,11 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   const bookmarks = route[0] === "bookmarks";
   const notifications = route[0] === "notifications";
   const records = route[0] === "records" && route.length === 1;
+  const subjects = normalizedPath === schoolSubjectRecordsPath;
   const adminRecords = route[0] === "admin" && route[1] === "records" && route.length === 2;
   const servicePage = route[0] === "services";
   const { snapshot: account, loading: accountLoading, error: accountError, refresh: refreshAccount } =
-    useAffairsRecords(index || notifications || bookmarks || validMenu || adminRecords || (servicePage && ["11-1", "11-2", "13-1", "14-1", "15-1", "15-2", "34-2", "38-1"].includes(route[1])) ? user.id : undefined);
+    useAffairsRecords(index || notifications || bookmarks || validMenu || adminRecords || subjects || (servicePage && ["11-1", "11-2", "13-1", "14-1", "15-1", "15-2", "34-2", "38-1"].includes(route[1])) ? user.id : undefined);
   const verifiedAdmin = !accountLoading && !accountError && account?.profile.userId === user.id && account.profile.role === "admin";
   const ended = route[0] === "signed-out";
   const article = portalNews.find((news) => news.id === params.get("news"));
@@ -449,6 +453,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
     "--portal-font-size": `${preferences.fontSize}px`,
   } as CSSProperties;
   const serviceAlias = servicePage && route.length === 2 ? nativeServiceAlias(route[1]) : undefined;
+  if (subjects) return <SchoolSubjectRecords snapshot={account} loading={accountLoading} error={accountError} reload={refreshAccount} />;
   if (records) return <Navigate replace to="/school-affairs" />;
   if (serviceAlias) {
     return <Navigate replace to={{pathname: serviceAlias, search, hash}} />;
@@ -463,7 +468,10 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   if (normalizedPath === "/school-affairs/services/7-1") {
     return <CreditLoadApplication key={user.id} />;
   }
-  if (servicePage && route.length === 3 && route[2] === "notes" && ["25-1", "25-2", "28-1"].includes(route[1])) {
+  if (normalizedPath === serviceLeadershipPath) return <ServiceLeadershipWorkspace />;
+  const leadershipView = serviceLeadershipViews.find(item => normalizedPath === serviceLeadershipPath + "/" + item.key);
+  if (leadershipView) return <ServiceLeadershipWorkspace key={leadershipView.key} view={leadershipView} />;
+  if (servicePage && route.length === 3 && route[2] === "notes" && ["25-1", "25-2", "28-1", "42-1"].includes(route[1])) {
     return <StudentServiceWorkspace key={pathname} userId={user.id} serviceKey={route[1]} view="" />;
   }
   if (normalizedPath === teachingAssistantPath || normalizedPath === "/school-affairs/services/25-2") {
