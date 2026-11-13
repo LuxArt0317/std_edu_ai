@@ -1,3 +1,9 @@
+## Grade-report runtime and final CI accepted
+
+Runtime 0d085e1629e3c8618f80775a576e23f105999363 is Vercel Ready BN1qrWr7pLssoriH3oSw2fVsFay7; exact public manifest built2026-11-13T11:45:15.568Z and entry index-CVCsYhYc.js verified. The API compile correction has no TypeScript diagnostics in Vercel. Pinned production actual-JWT acceptance passed four groups/43HTTP requests/seven successful writes with exact fixture cleanup, protected-owner/legacy preservation and closed connection. Pinned UI acceptance passed eight groups/12screenshots at desktop/mobile sizes, maximum table geometry delta0.03125CSSpx, zero page errors/unexpected requests. Public startup and eight routes/50assets passed without model calls; fresh live-homepage screenshot confirms the floating panel is absent and chatbot remains. Quality43419257202 completed successfully. Issue100 remains user-paused; no new assistant-reader support or complete protected-system parity is claimed.
+
+Root DB/browser suites are closed. No agent live lease remains. Preserve all66Issue100 paths; next independent native-page scope is not started.
+
 ## Corrective release coordination
 
 Root owns the publication lease. Production7a52c2b actual-JWT44requests/eight writes completed with exact cleanup; the DB lease is closed. Root is publishing explicit pagination typing and API build validation. protected_service_audit reviews those changes and awaits the new SHA for pinned synthetic UI acceptance. No delegate DB/model/official calls. All66Issue100 paths remain frozen.

@@ -5,9 +5,9 @@
 - [x] Preserve source-displayed grades, weights, ranges, feedback and explicit totals in an additive owner/course-scoped report; leave personal numeric trackers intact.
 - [x] Complete administrator maintenance, strict API scopes and native grade-page integration, including existing grade links and report-only courses.
 - [x] Independently review security/round trips, source layout and account changes; run rollback-only migration preflight before an exact client deployment plan.
-- [ ] Verify database and rendered behavior, run isolated release gates, publish and verify production. Assistant semantic work remains reserved by user-paused Issue100.
+- [x] Verify database/rendered behavior and publish corrected0d085e1; pinned API/UI/public-shell checks pass. Final Quality43419257202 passed; assistant semantic work stays reserved by user-paused Issue100.
 
-The additive migration is applied at134/151 after rollback preflight. Isolated API/source965 and initial units483 pass; compiled table geometry/mobile checks pass. Local and deployed actual-JWT acceptance plus contextual overview/browser checks pass at7a52c2b. An explicit-pagination typing correction and API build gate await corrective publication. The floating-panel removal is already verified in production.
+The additive migration is applied at134/151 after rollback preflight. Isolated API/source965 and initial units483 pass; compiled table geometry/mobile checks pass. Local and deployed actual-JWT acceptance plus contextual overview/browser checks pass at7a52c2b. The explicit-pagination correction/API build gate is published as0d085e1 and passed final pinned API/UI acceptance. The floating-panel removal is already verified in production.
 
 ## Credit-load entry and selection-system navigation [Issue #98]
 

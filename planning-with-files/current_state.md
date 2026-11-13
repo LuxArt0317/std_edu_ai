@@ -1,6 +1,6 @@
-# Grade report corrective release — 2026-11-13
+# Published grade reports and panel removal — 2026-11-13
 
-7a52c2b is deployed and Quality43417935168 passed. Production actual-JWT4groups/44requests/8writes and browser8groups/12screenshots passed with exact cleanup and pinned manifests. Vercel nevertheless logged two optional-pagination type errors. Explicit string narrowing plus an API compile gate now pass the isolated build/assets/handoff and22focused API tests; corrective publication is next. All66paused paths remain excluded. The requested floating panel stays removed. No further provider/model checks are authorized while Issue100 is paused.
+Runtime 0d085e1629e3c8618f80775a576e23f105999363 is Vercel Ready BN1qrWr7pLssoriH3oSw2fVsFay7; exact public manifest built2026-11-13T11:45:15.568Z and entry index-CVCsYhYc.js verified. The API compile correction has no TypeScript diagnostics in Vercel. Pinned production actual-JWT acceptance passed four groups/43HTTP requests/seven successful writes with exact fixture cleanup, protected-owner/legacy preservation and closed connection. Pinned UI acceptance passed eight groups/12screenshots at desktop/mobile sizes, maximum table geometry delta0.03125CSSpx, zero page errors/unexpected requests. Public startup and eight routes/50assets passed without model calls; fresh live-homepage screenshot confirms the floating panel is absent and chatbot remains. Quality43419257202 completed successfully. Issue100 remains user-paused; no new assistant-reader support or complete protected-system parity is claimed.
 
 # Current state
 
