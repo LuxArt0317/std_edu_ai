@@ -1,4 +1,6 @@
 import { CourseSubstitutionWorkspace } from "./CourseSubstitutionWorkspace";
+import { FirstSelectionWorkspace } from "./FirstSelectionWorkspace";
+import { firstSelectionFeesPath, firstSelectionPath } from "./firstSelection.js";
 import { courseSubstitutionPath } from "./courseSubstitution.js";
 import { programRegistrationPath } from "../../../../server/programRegistrationContract.js";
 import { ProgramRegistrationWorkspace } from "./ProgramRegistrationWorkspace";
@@ -479,6 +481,9 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   if (normalizedPath === "/school-affairs/services/7-1") {
     return <CreditLoadApplication key={user.id} />;
   }
+  if (normalizedPath === firstSelectionPath || normalizedPath === firstSelectionFeesPath) {
+    return <FirstSelectionWorkspace key={user.id} view={normalizedPath === firstSelectionPath ? "schedule" : "fees"} />;
+  }
   if (normalizedPath === curriculumMapPath) return <CurriculumMapWorkspace />;
   if (route[0] === "services" && route[1] === "12-7" && route[2] === "program" &&
     (route.length === 4 || (route.length === 5 && ["courses", "career", "competencies"].includes(route[4])))) {
@@ -511,7 +516,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   if (normalizedPath === serviceLeadershipPath) return <ServiceLeadershipWorkspace />;
   const leadershipView = serviceLeadershipViews.find(item => normalizedPath === serviceLeadershipPath + "/" + item.key);
   if (leadershipView) return <ServiceLeadershipWorkspace key={leadershipView.key} view={leadershipView} />;
-  if (servicePage && route.length === 3 && route[2] === "notes" && ["7-3", "12-5", "12-6", "12-7", "12-8", "25-1", "25-2", "28-1", "42-1", "46-1"].includes(route[1])) {
+  if (servicePage && route.length === 3 && route[2] === "notes" && ["6-1", "7-3", "12-5", "12-6", "12-7", "12-8", "25-1", "25-2", "28-1", "42-1", "46-1"].includes(route[1])) {
     return <StudentServiceWorkspace key={pathname} userId={user.id} serviceKey={route[1]} view="" />;
   }
   if (normalizedPath === teachingAssistantPath || normalizedPath === "/school-affairs/services/25-2") {

@@ -1,4 +1,6 @@
 import { answerCourseSubstitution } from './courseSubstitution.js';
+import { answerFirstSelectionNotice } from './firstSelectionNotice.js';
+import { firstSelectionQuestion } from '../src/features/public/affairs/firstSelection.js';
 import { courseSubstitutionQuestion } from '../src/features/public/affairs/courseSubstitution.js';
 import { createHash } from "node:crypto";
 import { answerInterdisciplinaryPrograms } from "./interdisciplinaryPrograms.js";
@@ -248,6 +250,15 @@ export function createResearchAssistantHandler(dependencies = {}) {
         const pageQuestion = !input.images.length && !personalQuestion && !kind.irrelevant && Boolean(normalizePublicPageRoute(input.route)) && isPublicPageQuestion(input.question);
         const chinese = /[\u3400-\u9fff]/.test(input.question);
         if (!input.images.length && !kind.irrelevant && !personalQuestion) {
+            const firstSelection = firstSelectionQuestion(input.question,input.route);
+            if (firstSelection) {
+                stream.progress('first-selection','Reading the first-selection notice','Checking the published schedule or fee notice in Supabase.');
+                const answer = await answerFirstSelectionNotice(firstSelection,input.question);
+                const step = answer.activity[0];
+                stream.progress(step.kind,step.label,step.detail,step.status);
+                stream.send(200,answer);
+                return;
+            }
             const selection = courseSubstitutionQuestion(input.question,input.route);
             if (selection) {
                 stream.progress('course-substitution','Checking course substitutions','Reading the selected cohort, track and department.');

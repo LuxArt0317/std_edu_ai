@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Open the initial course-selection schedule and fee notice as separate pages. Store the published dates and fee rules in Supabase for the page and campus assistant. [#98]
+
 - Add course substitution search with verified cohort, track and department filters, expandable alternative groups and exact assistant links. Published at `52ec598`. [#98]
 
 - Preserve the timeout status for supplemental assistant reads and reject results that arrive after the deadline. [#98]

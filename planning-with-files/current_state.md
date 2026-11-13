@@ -1,3 +1,7 @@
+## Initial course selection (Issue #98)
+
+The native 6-1 schedule and fee notice use the same Supabase data as the bilingual assistant. Only migration 090000 was applied after exact rollback and role checks. The client has 143 migrations and 160 RLS-protected public tables. The compiled browser passed source geometry, four widths, portal return, retry, guest return and assistant activity. The 94-link audit passes with 48 generic pages and eight partial workflows. The open enrollment form and exact source alert wording are unverified.
+
 ## Course substitutions (Issue #98)
 
 The native search reproduces the source fields, original course table and nested alternatives. It uses the public department selector and exact cohort and track. Live results for cohorts 110, 113 and 115 returned 16, three and zero old courses. Migration 080000 stores the verified snapshots with read-only public RLS.

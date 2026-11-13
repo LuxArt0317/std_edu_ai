@@ -1,0 +1,68 @@
+.first-selection {
+  min-height: 100dvh;
+  background: #e6e6e6 url('/stu-reference/first-selection/bg_html_timeline.png') repeat-x top;
+  color: #333;
+  font: 13px/16px Arial, Helvetica, sans-serif;
+  padding: 19px 0 14px;
+}
+.first-selection > main { width: calc(100% - 52px); margin-inline: auto; }
+.first-selection h1 { margin: 0 0 24px; line-height: 24px; }
+.first-selection h1 img { display: block; width: 368px; max-width: 100%; height: auto; }
+.first-selection h2 {
+  color: #2f6b25;
+  margin: 0;
+  padding: 10px;
+  font: 400 18.915px/23.28px Arial, Helvetica, sans-serif;
+}
+.first-selection p { margin: 0; }
+.first-selection a { color: #257a78; font-weight: 700; }
+.first-selection a:focus-visible,
+.first-selection button:focus-visible { outline: 2px solid #265d59; outline-offset: 2px; }
+.first-selection .first-selection-reminder { margin-top: 40px; margin-bottom: 33px; }
+.first-selection-table { margin-bottom: 13px; overflow: auto; }
+.first-selection table {
+  width: 100%;
+  min-width: 670px;
+  background: #fff;
+  border: 3px solid #b5b5b5;
+  border-collapse: collapse;
+}
+.first-selection caption { color: #135f5d; text-align: center; }
+.first-selection thead { background: #5c5c5c; color: #ebf4f2; }
+.first-selection thead th { padding: 4px; line-height: 19.5px; font-weight: 400; }
+.first-selection tbody :is(th, td) {
+  height: 66px;
+  border: 1px dotted #a9a9a9;
+  color: #444;
+  text-align: center;
+  line-height: 32.5px;
+  padding: 0 26px;
+}
+.first-selection tbody th { font-weight: 400; }
+.first-selection tbody :is(th, td) { vertical-align: top; }
+.first-selection section > p { min-height: 16px; }
+.first-selection-reminders { margin-top: 20px; }
+.first-selection-schedule-action { margin: 12px 10px 0; text-align: right; }
+.first-selection-schedule-action a,
+.first-selection-fee-action button { display: inline-block; max-width: 100%; vertical-align: top; }
+.first-selection img { max-width: 100%; height: auto; }
+.first-selection-fees { width: 80%; }
+.first-selection-fees > p { padding-inline: 10px; margin-block: 10px 20px; }
+.first-selection-fee-action { padding-inline: 10px; }
+.first-selection-fee-action button { padding: 0; border: 0; background: transparent; cursor: pointer; }
+.first-selection-dialog button {
+  justify-self: end;
+  border: 1px solid #b5b5b5;
+  border-radius: 4px;
+  padding: 6px 14px;
+}
+@media (min-width: 1100px) {
+  .first-selection main > section:first-of-type > p:nth-of-type(3),
+  .first-selection .first-selection-reminders > p:last-of-type { min-height: 32px; }
+  .first-selection-fees > p:first-of-type { min-height: 48px; }
+  .first-selection-fees > p:nth-of-type(3) { min-height: 32px; }
+}
+@media (max-width: 600px) {
+  .first-selection > main { width: calc(100% - 24px); }
+  .first-selection-fees { width: 100%; }
+}

@@ -596,6 +596,8 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 ## First course selection [Issue #98]
 
 - [x] Verify the signed-in schedule, fee notice and final entry behavior on the source.
+- [x] Implement the dated schedule and fee navigation, with Supabase-backed assistant answers and existing history kept in its account scope.
+- [x] Verify the exact client migration, rendered notice geometry and assistant lookup before release.
 - [ ] Capture the exact availability message and open-period selection requirements when observable.
-- [ ] Implement native notice navigation and connect available student selection workflows to caller-owned database records and assistant tools.
-- [ ] Verify signed-in layout, persistence, permission boundaries and production behavior.
+- [ ] Implement and verify the open-period enrollment workflow with caller-owned records.
+- [ ] Verify the dated notice release on production.

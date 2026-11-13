@@ -56,3 +56,5 @@ Moodle resource reads use strict `dtm-course-resource` scope with one course and
 `GET /api/affairs-data?scope=program-registrations` reads the verified caller’s registrations. Optional `answer=en|zh` renders only that caller’s records for the campus assistant. `change_program_registration` submits a reviewed local registration or withdrawal.
 
 `GET /api/affairs-data?scope=course-substitution-departments&term=...` provides public department suggestions. `scope=course-substitution&year=110&track=1&department=01` reads the exact selection. Account selectors, extra parameters and mutation methods are rejected.
+
+`GET /api/affairs-data?scope=first-selection-notice` reads the latest dated initial-selection notice and its three Taipei windows. The scope is read-only, accepts no additional selectors, and returns 503 for a missing or incomplete notice.

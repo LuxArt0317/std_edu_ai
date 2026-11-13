@@ -1,5 +1,7 @@
 # Database migrations
 
+`20261114090000_first_selection_notice.sql` stores the dated first-selection notice and three separate phase windows. Application roles have read-only RLS access to this reference data. Student selections and account history remain in their existing private tables.
+
 `20261112120000_assistant_conversations.sql` adds owner-only chats with optimistic versions and a 100-chat quota, private reviewed-action replay receipts, and an optional preferred display name. Existing task/request/admin-announcement business functions remain authoritative. New profile/DTM-tracker actions enforce ownership, expected previous values and personal-only assignment scope. The independent migration does not require concurrent academic110000/graduation130000 drafts.
 
 

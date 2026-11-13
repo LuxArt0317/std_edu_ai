@@ -1,4 +1,5 @@
 import {courseSubstitutionPath} from '../src/features/public/affairs/courseSubstitution.js';
+import {firstSelectionPath,firstSelectionSource} from '../src/features/public/affairs/firstSelection.js';
 import {programRegistrationPath} from './programRegistrationContract.js';
 import {curriculumMapPath} from '../src/features/public/affairs/curriculumMaps.js';
 import {curriculumPlansPath} from '../src/features/public/affairs/curriculumPlans.js';
@@ -72,6 +73,11 @@ const leadershipMatches = [
   /服務領導.{0,16}(?:作業|成績|反思)|service leadership.{0,22}(?:assignments?|reflection|grades?)/i,
 ];
 const localServiceNavigation = [
+  {
+    id:'first-selection',match:/\b(?:initial|first)[ -]+(?:course[ -]+)?(?:selection|registration)\b|初選/iu,
+    title:['初選時程及注意事項','Initial course selection notice'],localUrl:firstSelectionPath,officialUrl:firstSelectionSource,
+    description:['開啟初選時程、注意事項與收費說明。','Open the first-selection schedule, instructions and fee notice.'],
+  },
   {
     id:'course-substitution',match:/\b(?:course substitutions?|course replacements?|replacement courses?)\b|替代科目/i,
     title:['替代科目查詢','Course substitution search'],localUrl:courseSubstitutionPath,

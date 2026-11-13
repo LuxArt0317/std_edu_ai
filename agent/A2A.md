@@ -1,3 +1,7 @@
+## Initial course selection (Issue #98)
+
+Root owns 6-1, migration 090000, the public notice reader and assistant route. The exact migration is applied and the compiled layout is verified. Paused Issue #100 paths remain excluded. The open-period selection workflow remains unobserved.
+
 ## Course substitutions (Issue #98)
 
 Root owns 12-8, migration 080000, public source lookups, the new assistant citation path and release. Runtime `c2607b0` includes the supplemental deadline fix and passed pinned live browser, assistant and public shell checks. Root verified the signed-in 6-1 schedule and fee notice and preserved their geometry and public artwork in ignored artifacts. Paused Issue #100 files remain out of scope.
