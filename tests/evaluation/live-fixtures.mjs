@@ -45,6 +45,85 @@ const pick=(row,keys)=>Object.fromEntries(keys.map(key=>[key,row[key]??null]));
 const sort=rows=>[...rows].sort((a,b)=>String(a.id).localeCompare(String(b.id)));
 function signals(signal,ms=15000){return signal?AbortSignal.any([signal,AbortSignal.timeout(ms)]):AbortSignal.timeout(ms);}
 function ready(){if(!state?.prepared||state.closing)fail('fixture-state','prepare() must complete before fixture access.');return state;}
+/** Synthetic sessions stay in memory; no session or refresh token is serializable. */
+export function attachFixtureSession(user,session,{url,publishable,signal,fetchImpl=fetch,clock=Date.now,timeoutMs=15000}={}){
+  if(!UUID.test(user?.id||'')||url!=='https://'+PROJECT+'.supabase.co'||typeof publishable!=='string'||!publishable||typeof fetchImpl!=='function'||typeof clock!=='function'||!Number.isInteger(timeoutMs)||timeoutMs<1||timeoutMs>15000)
+    fail('fixture-session','Synthetic session configuration is invalid.');
+  const ownerId=user.id,marginMs=180000,endpoint=url+'/auth/v1/token?grant_type=refresh_token';
+  let accessToken=null,refreshToken=null,expiresAt=0,sessionId=null,pending=null,controller=null,closed=false;
+  const validToken=value=>typeof value==='string'&&value.length>0&&value.length<=16384&&!/\s/.test(value);
+  const accept=(value,initial=false)=>{
+    let claims;
+    try{
+      if(!value||value.user?.id!==ownerId||!validToken(value.access_token)||!validToken(value.refresh_token)||value.token_type!=='bearer')throw new Error();
+      const parts=value.access_token.split('.');
+      if(parts.length!==3||parts.some(part=>!part||!/^[A-Za-z0-9_-]+$/.test(part)))throw new Error();
+      claims=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.from(parts[1],'base64url')));
+      if(claims?.sub!==ownerId||claims.iss!==url+'/auth/v1'||claims.role!=='authenticated'||claims.aud!=='authenticated'||!UUID.test(claims.session_id||'')||
+        !Number.isSafeInteger(claims.exp)||claims.exp*1000<=clock()+(initial?0:marginMs)||claims.exp*1000>clock()+86400000||
+        !initial&&claims.session_id!==sessionId||value.expires_at!==undefined&&(!Number.isSafeInteger(value.expires_at)||Math.abs(value.expires_at-claims.exp)>30))throw new Error();
+    }catch{fail('fixture-session','Synthetic session identity, lineage or expiry could not be verified.');}
+    accessToken=value.access_token;refreshToken=value.refresh_token;expiresAt=claims.exp*1000;sessionId=claims.session_id;
+  };
+  const clear=()=>{closed=true;accessToken=null;refreshToken=null;expiresAt=0;sessionId=null;controller?.abort();};
+  accept(session,true);session=null;
+  Object.defineProperty(user,'id',{value:ownerId,writable:false,configurable:false,enumerable:true});
+  Object.defineProperty(user,'token',{enumerable:false,configurable:false,get:()=>accessToken,set:value=>{
+    if(value!==null)fail('fixture-session','Synthetic session credentials cannot be replaced externally.');
+    clear();
+  }});
+  const renew=async({signal:callerSignal}={})=>{
+    const requestSignal=signal&&callerSignal?AbortSignal.any([signal,callerSignal]):signal||callerSignal;
+    if(closed||user.id!==ownerId||!accessToken||!refreshToken)fail('fixture-session','Synthetic session is closed or unavailable.');
+    if(requestSignal?.aborted)fail('fixture-aborted','Evaluation was interrupted before session renewal.');
+    if(expiresAt-clock()>marginMs)return;
+    if(pending){
+      // A joining caller can cancel its own wait, but does not own the shared
+      // operation. The attached run signal still aborts the operation itself.
+      if(!requestSignal)return pending;
+      return new Promise((resolve,reject)=>{
+        const finish=(callback,value)=>{requestSignal.removeEventListener('abort',aborted);callback(value);};
+        const aborted=()=>finish(reject,new LiveFixtureError('fixture-aborted','Evaluation was interrupted while awaiting session renewal.'));
+        requestSignal.addEventListener('abort',aborted,{once:true});
+        pending.then(value=>finish(resolve,value),error=>finish(reject,error));
+      });
+    }
+    controller=new AbortController();
+    const activeController=controller;
+    pending=(async()=>{
+      let timer,reader,response;
+      const aborted=()=>activeController.abort();
+      requestSignal?.addEventListener('abort',aborted,{once:true});
+      try{
+        // Exactly one Auth refresh attempt. A timeout may have rotated the
+        // refresh token, so it is never silently retried or used for sign-in.
+        const interrupted=new Promise((_,reject)=>{
+          activeController.signal.addEventListener('abort',()=>reject(new LiveFixtureError('fixture-session','Synthetic session renewal did not complete.')),{once:true});
+          timer=setTimeout(()=>activeController.abort(),timeoutMs);
+        });
+        const operation=(async()=>{
+          response=await fetchImpl(endpoint,{method:'POST',redirect:'error',credentials:'omit',cache:'no-store',headers:{apikey:publishable,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:refreshToken}),signal:activeController.signal});
+          if(activeController.signal.aborted){void response.body?.cancel().catch(()=>{});fail('fixture-session','Synthetic session renewal did not complete.');}
+          if(response.redirected||response.url&&response.url!==endpoint||response.status!==200||!/^application\/json(?:\s*;|$)/i.test(response.headers.get('content-type')||''))
+            fail('fixture-session','Synthetic session renewal was rejected.');
+          const length=response.headers.get('content-length');
+          if(length!==null&&(!/^\d+$/.test(length)||Number(length)>65536))fail('fixture-session','Synthetic session response exceeded its bound.');
+          reader=response.body?.getReader();if(!reader)fail('fixture-session','Synthetic session response is unavailable.');
+          const chunks=[];let size=0;
+          for(;;){const part=await reader.read();if(part.done)break;size+=part.value.byteLength;if(size>65536)fail('fixture-session','Synthetic session response exceeded its bound.');chunks.push(part.value);}
+          const value=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)));
+          if(closed||activeController.signal.aborted)fail('fixture-session','Synthetic session was closed during renewal.');
+          accept(value);
+        })();
+        await Promise.race([operation,interrupted]);
+      }catch{clear();fail('fixture-session','Synthetic session renewal failed; no model request was retried.');}
+      finally{clearTimeout(timer);requestSignal?.removeEventListener('abort',aborted);activeController.abort();if(reader)void reader.cancel().catch(()=>{});else void response?.body?.cancel().catch(()=>{});controller=null;}
+    })();
+    try{await pending;}finally{pending=null;}
+  };
+  Object.defineProperties(user,{renewSession:{value:renew},clearSession:{value:clear}});
+  return user;
+}
 /** Metadata only: never forward PostgreSQL message/detail/query or row values. */
 export function safeDatabaseDiagnostic(error){
   const fields=[];
@@ -90,6 +169,7 @@ async function saveLedger(){
 }
 async function readSnapshot(user,{signal=state?.signal,cleanup=false}={}){
   const s=state;let response;
+  await user.renewSession?.({signal:cleanup?undefined:signal});
   try{response=await fetch(new URL('/api/affairs-data',s.origin),{redirect:'error',cache:'no-store',headers:{Authorization:'Bearer '+user.token},signal:signals(cleanup?undefined:signal,45000)});}catch{fail('fixture-readback','Authenticated /api/affairs-data request did not complete.');}
   if(response.status!==200||!response.headers.get('content-type')?.includes('application/json'))fail('fixture-readback',`Authenticated /api/affairs-data returned ${response.status}; no model request may run.`);
   const reader=response.body?.getReader();if(!reader)fail('fixture-readback','Snapshot response has no body.');
@@ -131,7 +211,7 @@ async function createFixtureUser(index){
   const auth=createClient(s.url,s.publishable,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:s.boundedFetch}});
   let signed;try{signed=await auth.auth.signInWithPassword({email,password});}catch{fail('fixture-signin','Synthetic account sign-in did not complete.');}
   if(signed.error||signed.data?.session?.user?.id!==user.id)fail('fixture-signin','Synthetic account session could not be verified.');
-  user.token=signed.data.session.access_token;
+  attachFixtureSession(user,signed.data.session,{url:s.url,publishable:s.publishable,signal:s.signal,fetchImpl:s.boundedFetch});
   const initial=await readSnapshot(user);user.studentId=initial.student?.id;
   if(!UUID.test(user.studentId||''))fail('fixture-readback','Synthetic School Affairs student initialization failed.');
   return user;
@@ -328,6 +408,7 @@ export function verifySupplementalFixtureReadback(actual,plan,userId){
 }
 /** Real deployed user-JWT reads. Offline tests inject fetch only; never a mapper oracle. */
 export async function readSupplementalFixtureScopes(user,domains,{origin,signal,fetchImpl=fetch}={}){
+  await user?.renewSession?.({signal});
   requireSchema(UUID.test(user?.id)&&typeof user.token==='string'&&user.token.length>0&&Array.isArray(domains)&&new Set(domains).size===domains.length&&domains.every(domain=>Object.hasOwn(SUPPLEMENTAL_SCOPES,domain)),'Invalid scoped supplemental readback request.');
   const result={};
   await Promise.all(domains.map(async domain=>{
@@ -378,6 +459,7 @@ export function validatePublishedCatalogFixture(query,value){
 }
 /** Exact deployed published API only; no service-role SQL or account filters. */
 export async function readPublishedCatalogFixture(user,query,{origin,signal,fetchImpl=fetch}={}){
+  await user?.renewSession?.({signal});
   if(!UUID.test(user?.id)||typeof user.token!=='string'||!user.token||!(exactKeys(query,['scope','id'])&&query.scope==='syllabus-detail'&&UUID.test(query.id)||JSON.stringify(query)===JSON.stringify(catalogSearchQuery)))throw catalogSetupError('published_payload_invalid');
   const url=new URL('/api/affairs-data',origin);for(const [key,value]of Object.entries(query))url.searchParams.set(key,value);
   let response;
@@ -732,6 +814,7 @@ function ownState(snapshot){
 export async function forCase(testCase,{signal}={}){
   const s=ready();if(s.current)fail('fixture-state','afterCase() must complete before selecting another fixture.');
   if((signal||s.signal)?.aborted)fail('fixture-aborted','Evaluation was interrupted.');
+  await Promise.all(s.users.map(user=>user.renewSession?.({signal:signal||s.signal})));
   const catalogBinding=s.catalogBindings?.get(testCase.id);
   if(testCase.fixtureRequirement==='published_catalog_binding'&&!catalogBinding)fail('fixture-unsupported','Published catalog fixture binding is unavailable; this case remains in the denominator and no model request may run.');
   const checkCatalog=()=>verifyPublishedCatalogBinding(testCase,catalogBinding,{userIds:s.users.map(user=>user.id),read:(userId,query)=>readPublishedCatalogFixture(s.users.find(user=>user.id===userId),query,{origin:s.origin,signal:signal||s.signal})});
@@ -756,6 +839,7 @@ export async function forCase(testCase,{signal}={}){
   const before={snapshot:ownState(actual),supplemental,catalog};
   s.current={caseId:testCase.id,beforeHash:hash(before),supplementalDomains,catalogBinding};
   await saveLedger();
+  await s.users[0].renewSession?.({signal:signal||s.signal});
   return {token:s.users[0].token};
 }
 
@@ -790,6 +874,9 @@ export function reconcileFixtureIdentity(request,rows){
 
 export async function cleanup(){
   const s=state;if(!s)return {verified:true,createdUsers:0};
+  // Deletion/reconciliation uses the administrative client, never these tokens.
+  // Clear before any await, including failed/uncertain cleanup and closed retry.
+  for(const user of s.users)user.token=null;
   if(s.closed){
     for(const user of s.users)user.token=null;
     fail('fixture-cleanup','The previous cleanup could not be completed and its connection is closed; use the retained private ledger for explicit recovery before another fixture run.');
