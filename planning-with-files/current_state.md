@@ -1,6 +1,6 @@
 ## Curriculum maps (Issue #98)
 
-The four-college index, 42 program views, local course selectors and protected detail entry routes are implemented. The read-only lookup accepts only captured program, year and track values and checks that the public source returned the requested selection. All 42 defaults and one historical selection passed the real local handler. The 94 catalog destinations passed, with 52 generic and seven partial. Runtime `a549676389fcdc39ebd267f471fbe84e5bbd7fad` is live with Vercel `7rWzSFj1NcpqxtgZdEMdEdYVT4zP`. Chromium accepted 42 overviews and both live filter selections. The deployed API also returned a real empty result. Both assistant directions and the public shell passed. No migration applied.
+The four-college index, 42 program views, local course selectors and protected detail entry routes are implemented. The read-only lookup accepts only captured program, year and track values and checks that the public source returned the requested selection. All 42 defaults and one historical selection passed the real local handler. The 94 catalog destinations passed, with 52 generic and seven partial. Runtime `a549676389fcdc39ebd267f471fbe84e5bbd7fad` is live with Vercel `7rWzSFj1NcpqxtgZdEMdEdYVT4zP`. Chromium accepted 42 overviews and both live filter selections. The deployed API also returned a real empty result. Both assistant directions, the public shell and GitHub Quality 43463617677 passed. No migration applied.
 
 ## Historical curriculum plans (Issue #98)
 
