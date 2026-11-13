@@ -5,8 +5,8 @@ import {answerPrivateAffairsQuestion} from '../../server/affairsAnswer.js';
 import {isScholarshipRecordQuestion,mapScholarshipRecords} from '../../server/scholarshipRecords.js';
 
 const period={id:'period-one',term_label:'Local demonstration 115-1',opens_at:'2026-11-01T00:00:00Z',closes_at:'2026-11-30T12:00:00Z',published:true,instructions:'Saved instructions',source_mode:'local_demo',version:1};
-const application={id:'application-one',period_id:period.id,user_id:'student-one',status:'approved',award_amount:'12500.00',required_hours:'20.50',actual_hours:'5.25',review_note:'Local review completed',submitted_at:'2026-11-10T03:00:00Z',reviewed_at:'2026-11-11T03:00:00Z',cancelled_at:null,version:2};
-const account={user:{id:'student-one'},token:'caller-token',url:'https://xiftudmvxphxcjtmfmib.supabase.co',key:'publishable-test-key'};
+const application={id:'application-one',period_id:period.id,user_id:'10000000-0000-4000-8000-000000000001',status:'approved',award_amount:'12500.00',required_hours:'20.50',actual_hours:'5.25',review_note:'Local review completed',submitted_at:'2026-11-10T03:00:00Z',reviewed_at:'2026-11-11T03:00:00Z',cancelled_at:null,version:2};
+const account={user:{id:'10000000-0000-4000-8000-000000000001'},token:'caller-token',url:'https://xiftudmvxphxcjtmfmib.supabase.co',key:'publishable-test-key'};
 
 test('scholarship answers use saved review amounts and application dates, without model access',async()=>{
   const snapshot={checkedAt:'2026-11-12T00:00:00Z',scholarship:mapScholarshipRecords([period],[application])};
@@ -78,14 +78,14 @@ test('ordinary snapshots query only caller applications; admin review rows stay 
     const url=new URL(String(input));const table=url.pathname.split('/').at(-1);seen.push(table+':'+url.search);
     let rows:unknown=[];
     if(table==='affairs_profiles') {
-      rows=url.searchParams.get('user_id')==='in.(student-two)'
-        ? [{user_id:'student-two',email:'two@example.invalid',display_name:'One',role:'student'}]
+      rows=url.searchParams.get('user_id')==='in.(10000000-0000-4000-8000-000000000002)'
+        ? [{user_id:'10000000-0000-4000-8000-000000000002',email:'two@example.invalid',display_name:'One',role:'student'}]
         : [{user_id:account.user.id,email:'one@example.invalid',display_name:'One',role:admin?'admin':'student'}];
     }
     if(table==='affairs_scholarship_periods') rows=[period];
     if(table==='affairs_scholarship_applications'){
-      if(url.searchParams.has('user_id')) {assert.equal(url.searchParams.get('user_id'),'eq.student-one');rows=[application];}
-      else {assert.equal(admin,true);rows=[application,{...application,id:'application-two',user_id:'student-two'}];}
+      if(url.searchParams.has('user_id')) {assert.equal(url.searchParams.get('user_id'),'eq.10000000-0000-4000-8000-000000000001');rows=[application];}
+      else {assert.equal(admin,true);rows=[application,{...application,id:'application-two',user_id:'10000000-0000-4000-8000-000000000002'}];}
     }
     return new Response(JSON.stringify(rows),{status:200});
   };
@@ -97,7 +97,7 @@ test('ordinary snapshots query only caller applications; admin review rows stay 
     const manager=await loadAffairsSnapshot(account,true) as {scholarship:ReturnType<typeof mapScholarshipRecords>;admin:{scholarship:ReturnType<typeof mapScholarshipRecords>;profiles:Array<{user_id:string;email:string}>}};
     assert.equal(manager.scholarship.applications.length,1);
     assert.equal(manager.admin.scholarship.applications.length,2);
-    assert.equal(manager.admin.profiles.find(row=>row.user_id==='student-two')?.email,'two@example.invalid');
-    assert.ok(seen.some(url=>url.includes('affairs_profiles:') && url.includes('user_id=in.%28student-two%29')));
+    assert.equal(manager.admin.profiles.find(row=>row.user_id==='10000000-0000-4000-8000-000000000002')?.email,'two@example.invalid');
+    assert.ok(seen.some(url=>url.includes('affairs_profiles:') && url.includes('user_id=in.%2810000000-0000-4000-8000-000000000002%29')));
   } finally {globalThis.fetch=original;}
 });

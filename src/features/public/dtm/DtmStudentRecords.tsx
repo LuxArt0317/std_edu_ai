@@ -280,7 +280,7 @@ export function DtmStudentRecords({snapshot,course,view,mode,t,refresh}:{
           <th scope="row" className="dtm-grade-item">{course?<button className="dtm-record-title" type="button" onClick={()=>setDetail({kind:'grade',record:grade})}>{grade.label}</button>:<Link to={pathFor(rowCourse)+'/grades#grade-'+grade.id}>{grade.label}</Link>}</th>
           <td>–</td><td>{grade.score.toFixed(2)}</td><td>0–{grade.maximum.toFixed(2)}</td><td>{((grade.score/grade.maximum)*100).toFixed(2)}%</td><td>–</td><td>{grade.feedback||'–'}</td><td>–</td>
         </tr>)}
-        <tr className="dtm-grade-total"><th scope="row">{t('課程總分','Course total')}</th><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>
+        <tr className="dtm-grade-total"><th scope="row"><span className="dtm-grade-total-symbol" aria-hidden="true">Σ</span>{t('課程總分','Course total')}</th><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>
       </tbody>)}</table>
     </div>:<p className="dtm-empty">{t('尚無成績。','No saved grades.')}</p>)}
     <Dialog open={Boolean(detail)} onOpenChange={open=>{if(!open)setDetail(null);}}>

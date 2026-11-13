@@ -88,7 +88,9 @@ test('fee snapshots page beyond 500 rows, preserve null metadata, and keep admin
   const emptyTables=new Set(['affairs_terms','affairs_programs','affairs_courses','affairs_sections','affairs_announcements','affairs_tasks',
     'affairs_service_requests','dtm_courses','dtm_notices','affairs_service_records','affairs_scholarship_periods','affairs_scholarship_applications',
     'affairs_student_aid_records','affairs_credit_load_history','affairs_course_selection_records','affairs_housing_periods','affairs_housing_applications','affairs_housing_assignments','affairs_enrollments',
-    'affairs_grade_items','affairs_attendance','affairs_assignments']);
+    'affairs_grade_items','affairs_attendance','affairs_assignments',
+    'affairs_academic_grade_records','affairs_academic_term_summaries','affairs_academic_rankings','affairs_academic_metadata',
+    'affairs_graduation_reviews','affairs_academic_attendance_statistics','affairs_academic_attendance_details','affairs_academic_attendance_metadata']);
   const requestedOffsets:number[]=[];
   globalThis.fetch=async(input)=>{
     const url=new URL(String(input)),table=url.pathname.split('/').at(-1);let rows:unknown;

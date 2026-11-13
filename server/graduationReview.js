@@ -1,0 +1,220 @@
+// Pure module: the manager and server share these validation rules without
+// importing credentials, a database client, or server-only runtime modules.
+export const graduationReviewMaxPayloadBytes=131072;
+export const graduationReviewKinds=['academic_services','legacy'];
+export const graduationReviewPaths={academic_services:'/school-affairs/services/13-1/graduation',legacy:'/school-affairs/services/15-2'};
+export const graduationReviewPath=graduationReviewPaths.academic_services;
+export const isGraduationReviewKind=value=>value==='academic_services'||value==='legacy';
+export const graduationReviewReadSource={table:'affairs_graduation_reviews',order:'user_id.asc,id.asc'};
+const idPattern=/^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$/;
+const object=(value,keys)=>value!==null && typeof value==='object' && !Array.isArray(value)
+  && [Object.prototype,null].includes(Object.getPrototypeOf(value))
+  && Object.keys(value).length===keys.length && keys.every(key=>Object.hasOwn(value,key));
+function unicodeValid(value) {
+  for(const character of value){const point=character.codePointAt(0);if(point===0 || point>=0xd800 && point<=0xdfff)return false;}
+  return true;
+}
+const text=(value,max,required=false)=>value===null?!required:typeof value==='string' && unicodeValid(value)
+  && [...value].length<=max && (!required || value.trim().length>0);
+const credit=value=>value===null || typeof value==='number' && Number.isFinite(value) && value>=0 && value<=1000 && Number(value.toFixed(2))===value;
+const indicator=value=>value===null || value==='passed' || value==='attention';
+const status=(value,note=false)=>object(value,note?['text','indicator','note']:['text','indicator']) && text(value.text,160)
+  && indicator(value.indicator) && (!note || text(value.note,1000));
+function ids(value,max) {
+  return Array.isArray(value) && value.length<=max && Array.from(value).every(item=>item && typeof item==='object' && typeof item.id==='string' && idPattern.test(item.id))
+    && new Set(value.map(item=>item.id)).size===value.length;
+}
+function timestamp(value) {
+  if(value===null)return true;
+  if(typeof value!=='string')return false;
+  const match=value.match(/^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):([0-5]\d):([0-5]\d)(?:\.\d{1,6})?(?:Z|[+-](0\d|1[0-5]):[0-5]\d)$/);
+  if(!match)return false;
+  const [,yearText,monthText,dayText]=match,year=Number(yearText),month=Number(monthText),day=Number(dayText);
+  const days=[31,year%4===0 && (year%100!==0 || year%400===0)?29:28,31,30,31,30,31,31,30,31,30,31];
+  return year>0 && month>=1 && month<=12 && day>=1 && day<=days[month-1];
+}
+function course(value) {
+  return object(value,['id','sequenceText','title','credits','requiredElectiveText','yearText','transferText'])
+    && typeof value.id==='string' && idPattern.test(value.id) && text(value.sequenceText,30) && text(value.title,160,true)
+    && credit(value.credits) && text(value.requiredElectiveText,30) && text(value.yearText,30) && text(value.transferText,80);
+}
+// PostgreSQL jsonb::text uses a space after each comma and colon. Property order
+// does not affect byte length. Valid reports contain no exponent-sized numbers.
+export function graduationReviewPayloadBytes(value) {
+  const seen=new Set();
+  const serialize=item=>{
+    if(item===null)return 'null';
+    if(typeof item==='string'){if(!unicodeValid(item))throw new Error('Invalid JSON string');return JSON.stringify(item);}
+    if(typeof item==='number'){if(!Number.isFinite(item))throw new Error('Invalid JSON number');return JSON.stringify(item);}
+    if(typeof item==='boolean')return String(item);
+    if(typeof item!=='object' || seen.has(item))throw new Error('Invalid JSON value');
+    seen.add(item);
+    let result;
+    if(Array.isArray(item))result='['+Array.from(item,serialize).join(', ')+']';
+    else {
+      if(![Object.prototype,null].includes(Object.getPrototypeOf(item)))throw new Error('Invalid JSON object');
+      result='{'+Object.entries(item).map(([key,entry])=>serialize(key)+': '+serialize(entry)).join(', ')+'}';
+    }
+    seen.delete(item);return result;
+  };
+  try{return new TextEncoder().encode(serialize(value)).byteLength;}catch{return Infinity;}
+}
+export function validateGraduationReviewContent(value) {
+  if(!object(value,['reportedAt','identity','educationProgram','foreignLanguageCompletion','englishRequirement','graduationReview','languageRequirements','categories','otherCourses']))return 'The report must contain exactly the approved report fields.';
+  if(!timestamp(value.reportedAt))return 'reportedAt must be null or a valid ISO timestamp with timezone.';
+  const identityKeys=['studentNumber','studentName','departmentName','yearText','enrollmentStatusText','curriculumCohortText','doubleMajorText','minorText'];
+  if(!object(value.identity,identityKeys) || !identityKeys.every(key=>text(value.identity[key],key==='yearText'?30:160)))return 'Identity fields must be explicit nullable text within their length limits.';
+  if(!['educationProgram','foreignLanguageCompletion','englishRequirement'].every(key=>status(value[key])) || !status(value.graduationReview,true))return 'Status fields must contain nullable text and passed, attention or null indicators; the review must include its nullable note.';
+  if(!ids(value.languageRequirements,100) || !ids(value.categories,100) || !ids(value.otherCourses,1000))return 'Report arrays exceed their limits or contain invalid or duplicate IDs.';
+  for(const item of value.languageRequirements) {
+    if(!object(item,['id','label','status','requiredCredits','matchedCredits','missingCredits']) || !text(item.label,160,true)
+      || !status(item.status) || !['requiredCredits','matchedCredits','missingCredits'].every(key=>credit(item[key])))return 'A language requirement has invalid fields, text, status or credits.';
+  }
+  let total=value.otherCourses.length;
+  const rowLimit='At most 1000 combined requirement, matched-course and other-course rows are allowed.';
+  for(const item of value.categories) {
+    if(!object(item,['id','label','requiredElectiveText','requiredCredits','completedCredits','matchedCredits','excludedCredits','status','requirements','detailSubtotalCredits'])
+      || !text(item.label,160,true) || !text(item.requiredElectiveText,30) || !status(item.status)
+      || !['requiredCredits','completedCredits','matchedCredits','excludedCredits','detailSubtotalCredits'].every(key=>credit(item[key]))
+      || !ids(item.requirements,1000))return 'A category has invalid fields, text, status, credits or requirement IDs.';
+    total+=item.requirements.length;if(total>1000)return rowLimit;
+    for(const row of item.requirements) {
+      if(!object(row,['id','sequenceText','title','moduleText','credits','requiredElectiveText','yearText','transferText','indicator','matchedCourses'])
+        || !text(row.sequenceText,30) || !text(row.title,160,true) || !text(row.moduleText,160) || !credit(row.credits)
+        || !text(row.requiredElectiveText,30) || !text(row.yearText,30) || !text(row.transferText,80) || !indicator(row.indicator)
+        || !ids(row.matchedCourses,1000) || !row.matchedCourses.every(course))return 'A requirement or matched course has invalid fields, text, credits or IDs.';
+      total+=row.matchedCourses.length;if(total>1000)return rowLimit;
+    }
+  }
+  if(!value.otherCourses.every(course))return 'An other-course row has invalid fields, text or credits.';
+  if(graduationReviewPayloadBytes(value)>graduationReviewMaxPayloadBytes)return 'The report exceeds the 131072-byte JSONB limit.';
+  return null;
+}
+export function mapGraduationReview(rows=[]) {
+  return {reports:rows.filter(row=>isGraduationReviewKind(row.report_kind)).map(row=>({...row.report,id:row.id,userId:row.user_id,reportKind:row.report_kind,sourceMode:row.source_mode,version:Number(row.version),createdAt:row.created_at,updatedAt:row.updated_at}))};
+}
+const routePath=route=>typeof route==='string'?route.split(/[?#]/)[0].replace(/\/+$/,''):'';
+const routeKind=route=>{
+  const path=routePath(route);
+  if(path===graduationReviewPaths.legacy)return 'legacy';
+  if(path===graduationReviewPath || path==='/school-affairs/services/15-1')return 'academic_services';
+  return undefined;
+};
+const legacyQuestion=/\blegacy\b|\b15-2\b|舊版|舊式/i;
+const topic=/\b(?:graduation (?:review|audit|report|requirements?|credits?|eligibility|status)|degree audit|(?:eligible|ready) to graduate|(?:can|may) i graduate|qualify for graduation)\b|\b(?:credits?|requirements?)\b.{0,60}\b(?:to|for) graduat(?:e|ion)\b|畢業(?:審核|審查|檢核|學分|資格|條件|要求|狀態)|能否畢業|可以畢業|(?:學分|條件).{0,16}畢業/i;
+const otherTopic=/\b(?:dtm|moodle|elearning|e-learning|assignments?|transcripts?|grades?|gpa|rankings?|course[ -]selection|selection history|timetables?|fees?|tuition|scholarships?|housing|dormitory|attendance|credit[ -]load|overload|underload|transfer credits?|course catalog|syllabus)\b|數位教材|教材網|作業|歷年成績|預警成績|學期排名|選課紀錄|選課記錄|課表|學費|繳費|獎學金|助學|住宿|宿舍|出缺席|超修|減修|抵免學分|課程大綱|開課查詢/i;
+const contextTopic=/\b(?:my|mine|status|credits?|requirements?|missing|gaps?|matched|completed|courses?|details?|report|results?|english|language)\b|我的|狀態|學分|要求|尚缺|符合|課程|結果|明細|英文|英語/i;
+function precedingReportQuestion(history) {
+  // Only the immediately preceding user topic can provide context. Assistant
+  // prose and older topics must not resurrect a different private report kind.
+  for(let index=history.length-1;index>=0;index--){
+    const item=history[index];if(item.role!=='user')continue;
+    return !otherTopic.test(item.content) && topic.test(item.content)?item.content:'';
+  }
+  return '';
+}
+export const graduationReviewNavigation={id:'graduation-review',match:topic,title:['畢業學分檢核','Graduation review'],
+  officialUrl:'https://infosys.stu.edu.tw/AcademicServices/Login/AspLoginGradReview',localUrl:graduationReviewPath,
+  description:['查看您的站內畢業檢核參考報告與明列學分。','View your local graduation-reference report and its explicitly recorded credits.']};
+export function isGraduationReviewQuestion(question,route='',history=[]) {
+  if(otherTopic.test(question))return false;
+  if(/^(?:please\s+)?(?:remind me|add (?:a )?task|create (?:a )?task|complete (?:my |the )?task|finish (?:my |the )?task)|新增待辦|建立任務|完成任務/i.test(question))return false;
+  if(/\b(?:where (?:can|do) i (?:find|open)|where is|(?:link|url|website) for|how (?:do|can) i (?:open|find|access))\b|(?:連結|網址)|哪裡開啟/i.test(question))return false;
+  if(topic.test(question))return true;
+  return contextTopic.test(question) && (routeKind(route)!==undefined || precedingReportQuestion(history)!=='');
+}
+export function graduationReviewQueryKind(question,route='',history=[]) {
+  const clauses=question.split(/\s+(?:and|also)\s+|[;；\n]|以及|還有/i);
+  const relevant=clauses.find(clause=>topic.test(clause)&&!otherTopic.test(clause));
+  if(relevant)question=relevant;
+  const currentKind=routeKind(route);
+  return currentKind==='legacy'||legacyQuestion.test(question)?'legacy'
+    :currentKind || (!topic.test(question) && legacyQuestion.test(precedingReportQuestion(history))?'legacy':'academic_services');
+}
+export function graduationReviewQuery(question,route='',history=[]) {
+  const clauses=question.split(/\s+(?:and|also)\s+|[;；\n]|以及|還有/i).filter(part=>topic.test(part)&&!otherTopic.test(part));
+  const kinds=clauses.map(part=>legacyQuestion.test(part)?'legacy':'academic_services');
+  return {reportKind:graduationReviewQueryKind(question,route,history),multipleScopes:new Set(kinds).size>1};
+}
+export function graduationReviewNamesCourse(question,title) {
+  if(typeof title!=='string'||title.trim().length<3)return false;
+  const text=question.toLocaleLowerCase(),name=title.trim().toLocaleLowerCase(),word=/[a-z0-9]/i;
+  for(let index=text.indexOf(name);index!==-1;index=text.indexOf(name,index+1)){
+    // Do not select "Course 9" when the user names "Course 99". Chinese
+    // surrounding prose may adjoin a title without an English word boundary.
+    if((!word.test(name[0])||!word.test(text[index-1]||''))&&(!word.test(name.at(-1))||!word.test(text[index+name.length]||'')))return true;
+  }
+  return false;
+}
+export function answerGraduationReview(question,snapshot,route='',history=[]) {
+  if(!isGraduationReviewQuestion(question,route,history))return null;
+  const zh=/[\u3400-\u9fff]/.test(question),userId=snapshot.profile?.userId;
+  const query=graduationReviewQuery(question,route,history),{reportKind}=query;
+  const path=graduationReviewPaths[reportKind];
+  const owned=typeof userId==='string'&&userId.trim()?snapshot.graduationReview?.reports.filter(row=>Object.hasOwn(row,'userId')&&row.userId===userId&&isGraduationReviewKind(row.reportKind))??[]:[];
+  const matching=owned.filter(row=>row.reportKind===reportKind),report=matching.length===1?matching[0]:undefined;
+  const label=zh?(reportKind==='legacy'?'舊版畢業檢核表（15-2）':'教務應用服務畢業檢核表（13-1）')
+    :(reportKind==='legacy'?'Legacy graduation report (15-2)':'Academic Services graduation report (13-1)');
+  const provenance=zh?'站內示範參考報告，由管理員維護。文字與學分均為明列值，不計算或判定畢業資格。'
+    :'Local demonstration reference report maintained by the site administrator. Text and credits are explicitly recorded values, not a calculation or decision of graduation eligibility.';
+  const result=answer=>({answer:answer+'\n'+provenance,title:label,url:path});
+  if(query.multipleScopes)return result(zh?'您同時指定了不同種類的畢業檢核報告。請一次選擇教務應用服務或舊版報告；本回覆尚未查選或合併紀錄。'
+    :'You requested different graduation report kinds. Please choose Academic Services or legacy for one query; no records have been selected or merged for this reply.');
+  if(matching.length>1)return result(zh?`${label}有多筆站內紀錄，無法確定應顯示哪一份。請重新整理並由管理員檢查報告種類；本回覆未合併或選取其中一份。`
+    :`Multiple saved records match ${label}. Refresh and ask the administrator to check their report kinds; this answer has not merged or selected one.`);
+  if(!report){
+    const otherKind=reportKind==='legacy'?'academic_services':'legacy',otherAvailable=owned.some(row=>row.reportKind===otherKind);
+    return result((zh?`您的帳號尚未儲存${label}。這不表示您的校方紀錄為空。`:`Your account has no saved ${label}. This does not establish that your university records are empty.`)
+      +(otherAvailable?(zh?`\n帳號另有${otherKind==='legacy'?'舊版（15-2）':'教務應用服務（13-1）'}報告，可至 ${graduationReviewPaths[otherKind]} 查看；兩種報告各自保存，不互相代用。`
+        :`\nA separate ${otherKind==='legacy'?'legacy (15-2)':'Academic Services (13-1)'} report is available at ${graduationReviewPaths[otherKind]}. The report kinds are stored independently and are not substitutes.`):''));
+  }
+  const missing=zh?'未記錄':'not recorded',display=value=>value ?? missing;
+  const flag=value=>value===null?missing:zh?(value==='passed'?'通過標示':'注意標示'):value;
+  const lines=[zh?`報告種類：${label}`:`Report kind: ${label}`,zh?`報告記錄時間：${display(report.reportedAt)}`:`Report timestamp: ${display(report.reportedAt)}`];
+  for(const [key,zhLabel,enLabel] of [['educationProgram','教育學程','Education program'],['foreignLanguageCompletion','外語課程','Foreign-language completion'],
+    ['englishRequirement','英文門檻','English requirement'],['graduationReview','畢業審核','Graduation review']]) {
+    const value=report[key];lines.push(zh?`報告所載 ${zhLabel}：${display(value.text)}；標示：${flag(value.indicator)}。`
+      :`Report-stated ${enLabel}: ${display(value.text)}; indicator: ${flag(value.indicator)}.`);
+  }
+  if(report.graduationReview.note!==null)lines.push((zh?'報告備註：':'Report note: ')+report.graduationReview.note);
+  if(/\b(?:credits?|requirements?|missing|gaps?|matched|completed|courses?|details?)\b|學分|要求|尚缺|符合|課程|明細/i.test(question)) {
+    const details=report.categories.flatMap(category=>category.requirements.flatMap(row=>[
+      {kind:'required',row,categoryId:category.id},...row.matchedCourses.map(matched=>({kind:'matched',row:matched,parent:row.title,categoryId:category.id})),
+    ])).concat(report.otherCourses.map(row=>({kind:'other',row})));
+    const named=details.filter(item=>graduationReviewNamesCourse(question,item.row.title));
+    const parentCategories=report.categories.filter(category=>named.some(item=>item.categoryId===category.id));
+    const categoryScope=named.length?parentCategories:report.categories;
+    const languages=named.length?[]:report.languageRequirements.slice(0,10),categories=categoryScope.slice(0,10);
+    let clipped=(!named.length&&languages.length<report.languageRequirements.length) || categories.length<categoryScope.length;
+    for(const item of languages)lines.push(zh?`${item.label}：應修 ${display(item.requiredCredits)}；符合 ${display(item.matchedCredits)}；尚缺 ${display(item.missingCredits)}；報告狀態 ${display(item.status.text)}。`
+      :`${item.label}: required ${display(item.requiredCredits)}; matched ${display(item.matchedCredits)}; missing ${display(item.missingCredits)}; report status ${display(item.status.text)}.`);
+    if(!named.length)lines.push(zh?`語言條件列：顯示 ${languages.length} / ${report.languageRequirements.length} 列。`
+      :`Language rows shown: ${languages.length} of ${report.languageRequirements.length}.`);
+    for(const item of categories) {
+      lines.push(zh?`${item.label}：應修 ${display(item.requiredCredits)}；已修 ${display(item.completedCredits)}；符合 ${display(item.matchedCredits)}；不計入 ${display(item.excludedCredits)}；明細小計 ${display(item.detailSubtotalCredits)}；報告狀態 ${display(item.status.text)}。`
+        :`${item.label}: required ${display(item.requiredCredits)}; completed ${display(item.completedCredits)}; matched ${display(item.matchedCredits)}; excluded ${display(item.excludedCredits)}; detail subtotal ${display(item.detailSubtotalCredits)}; report status ${display(item.status.text)}.`);
+    }
+    lines.push(named.length
+      ? (zh?`名稱符合課程的所屬類別：顯示 ${categories.length} / ${categoryScope.length} 列。`:`Parent category rows for named courses shown: ${categories.length} of ${categoryScope.length}.`)
+      : (zh?`課程類別列：顯示 ${categories.length} / ${report.categories.length} 列。`:`Category rows shown: ${categories.length} of ${report.categories.length}.`));
+    if(/\b(?:courses?|details?|matched)\b|課程|明細|符合/i.test(question)) {
+      const selected=named.length?named:details,shown=selected.slice(0,20);
+      clipped ||= shown.length<selected.length || named.length>0 && named.length<details.length;
+      for(const item of shown){
+        const row=item.row;
+        if(item.kind==='required')lines.push(zh?`應修課程 ${row.title}：學分 ${display(row.credits)}；模組 ${display(row.moduleText)}；標示 ${flag(row.indicator)}。`
+          :`Required course ${row.title}: credits ${display(row.credits)}; module ${display(row.moduleText)}; indicator ${flag(row.indicator)}.`);
+        else if(item.kind==='matched')lines.push(zh?`對應課程 ${row.title}：學分 ${display(row.credits)}；對應 ${item.parent}。`
+          :`Matched course ${row.title}: credits ${display(row.credits)}; matched to ${item.parent}.`);
+        else lines.push(zh?`其他實修課程 ${row.title}：學分 ${display(row.credits)}。`:`Other actual course ${row.title}: credits ${display(row.credits)}.`);
+      }
+      lines.push(named.length
+        ? (zh?`名稱符合的課程列：顯示 ${shown.length} / ${named.length} 列；完整報告共有 ${details.length} 列課程明細。`
+          :`Named course rows shown: ${shown.length} of ${named.length} matches; the full report contains ${details.length} course-detail rows.`)
+        : (zh?`課程明細列：顯示 ${shown.length} / ${details.length} 列。`:`Course-detail rows shown: ${shown.length} of ${details.length}.`));
+    }
+    if(clipped)lines.push(zh?`此回覆僅顯示部分報告列；完整資料保留於站內報告：${path}`
+      :`This reply shows only part of the report; all saved rows remain available in the local report: ${path}`);
+  }
+  return result(lines.join('\n'));
+}

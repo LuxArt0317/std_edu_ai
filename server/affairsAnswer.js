@@ -8,6 +8,9 @@ import {answerPendingFees} from './pendingFeesAnswer.js';
 import {answerCreditLoadHistory} from './creditLoadHistory.js';
 import {answerCourseSelection} from './courseSelection.js';
 import {answerCampusNavigation} from './schoolAffairsDirectory.js';
+import {answerAcademicGrades} from './academicGrades.js';
+import {answerGraduationReview} from './graduationReview.js';
+import {answerAcademicAttendance} from './academicAttendance.js';
 
 const recordLinkTopics = [
   [/\b(?:tuition|fees?|charges?|balance|payments?)\b|學費|費用|繳費/i,'fees'],
@@ -131,10 +134,13 @@ function fallbackProposal(question,snapshot) {
 }
 
 export async function answerPrivateAffairsQuestion(question,snapshot,history=[],route='',options={}) {
+  route=route.replace(/\/+$/,'');
   // The shared offering catalog must never be answered from a student's enrollments.
   const catalogNavigation=answerCampusNavigation(question);
   if(catalogNavigation?.citations?.[0]?.chunkId==='campus-navigation:course-catalog') return catalogNavigation;
-  const records = answerCourseSelection(question,snapshot,route,history) || answerCreditLoadHistory(question,snapshot,route,history) || answerHousingRecords(question,snapshot,route,history) || answerStudentAidRecords(question,snapshot,route,history) || answerScholarshipRecords(question,snapshot,route,history) || answerPendingFees(question,snapshot,route,history) || answerStudentServiceRecords(question,snapshot) || answerDtmRecords(question,snapshot,route,history);
+  // Native query pages have independent stored records. Even an empty result
+  // must stay authoritative instead of falling through to sample enrollments.
+  const records = answerGraduationReview(question,snapshot,route,history) || answerAcademicGrades(question,snapshot,route,history) || answerAcademicAttendance(question,snapshot,route,history) || answerCourseSelection(question,snapshot,route,history) || answerCreditLoadHistory(question,snapshot,route,history) || answerHousingRecords(question,snapshot,route,history) || answerStudentAidRecords(question,snapshot,route,history) || answerScholarshipRecords(question,snapshot,route,history) || answerPendingFees(question,snapshot,route,history) || answerStudentServiceRecords(question,snapshot) || answerDtmRecords(question,snapshot,route,history);
   if (records) return {
     status:'answered',answer:records.answer,
     citations:[{chunkId:'student-workspace',claim:'Records saved to this Google account on stu.best.',

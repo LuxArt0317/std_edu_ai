@@ -1,0 +1,16 @@
+import type {GraduationReviewKind,GraduationReviewRecords} from '../src/services/graduationReview.ts';
+export const graduationReviewMaxPayloadBytes:131072;
+export const graduationReviewKinds:readonly GraduationReviewKind[];
+export const graduationReviewPaths:Readonly<Record<GraduationReviewKind,string>>;
+export function isGraduationReviewKind(value:unknown):value is GraduationReviewKind;
+export const graduationReviewPath:string;
+export const graduationReviewReadSource:{table:string;order:string};
+export const graduationReviewNavigation:{id:string;match:RegExp;title:string[];officialUrl:string;localUrl:string;description:string[]};
+export function validateGraduationReviewContent(value:unknown):string|null;
+export function graduationReviewPayloadBytes(value:unknown):number;
+export function mapGraduationReview(rows?:Record<string,unknown>[]):GraduationReviewRecords;
+export function isGraduationReviewQuestion(question:string,route?:string,history?:Array<{role:string;content:string}>):boolean;
+export function graduationReviewQueryKind(question:string,route?:string,history?:Array<{role:string;content:string}>):GraduationReviewKind;
+export function graduationReviewQuery(question:string,route?:string,history?:Array<{role:string;content:string}>):{reportKind:GraduationReviewKind;multipleScopes:boolean};
+export function graduationReviewNamesCourse(question:string,title:unknown):boolean;
+export function answerGraduationReview(question:string,snapshot:{profile?:{userId?:string};graduationReview?:GraduationReviewRecords},route?:string,history?:Array<{role:string;content:string}>):{answer:string;title:string;url:string}|null;

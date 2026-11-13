@@ -26220,5 +26220,124 @@
     "checksum": "793733e3dc049bb88086dfe71e5294749b1afe67d56c866fc1b1449985553950",
     "sourceChecksum": "793733e3dc049bb88086dfe71e5294749b1afe67d56c866fc1b1449985553950",
     "bytes": 2143476
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/images/Tlogo.png",
+    "file": "/school-assets/03599fb12dbe1c0d2b5c.png",
+    "checksum": "9ec0b3674feed90fab05656e6083f046da9bf1ed4a60674eb2883ddfbc03b79b",
+    "sourceChecksum": "9ec0b3674feed90fab05656e6083f046da9bf1ed4a60674eb2883ddfbc03b79b",
+    "bytes": 610
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/grdcheckreport/images/alert.gif",
+    "file": "/school-assets/ba103f41fe0ee059b99b.gif",
+    "checksum": "bb1645fcee7901c594c5dbf35ec08ea8e91aca172229334d75eb6fe114aaa972",
+    "sourceChecksum": "bb1645fcee7901c594c5dbf35ec08ea8e91aca172229334d75eb6fe114aaa972",
+    "bytes": 757
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/grdcheckreport/images/arrow-right.png",
+    "file": "/school-assets/4bd0c7cd8dc640cface9.png",
+    "checksum": "9b532a4f2d860e84212d315b50e9520e706b3bfcc082321aae0342e6a7e36d60",
+    "sourceChecksum": "9b532a4f2d860e84212d315b50e9520e706b3bfcc082321aae0342e6a7e36d60",
+    "bytes": 1033
+  },
+  {
+    "source": "https://info.stu.edu.tw/aca/grdcheckreport/images/accept.gif",
+    "file": "/school-assets/01b600b441302c9b892f.gif",
+    "checksum": "5dc64e5a4db2d4d8ed845dbd0d5498352b6384161350af4262d6afb7798b3ba0",
+    "sourceChecksum": "5dc64e5a4db2d4d8ed845dbd0d5498352b6384161350af4262d6afb7798b3ba0",
+    "bytes": 772
+  },
+  {
+    "source": "https://info.stu.edu.tw/ACA/images/tableArrowDown_24.png",
+    "file": "/school-assets/827a59e0174289f1388c.png",
+    "checksum": "469a05ac6bcfbd945cdcff47aabfe9af59a65916bcedf845643edda834aae2c1",
+    "sourceChecksum": "469a05ac6bcfbd945cdcff47aabfe9af59a65916bcedf845643edda834aae2c1",
+    "bytes": 525
+  },
+  {
+    "source": "https://info.stu.edu.tw/ACA/images/tableArrowUp_24.png",
+    "file": "/school-assets/cf10a5c7cb6973669783.png",
+    "checksum": "f845f4f45468c67e060b7ca21e3f71b26b458dcbb33d939bbbb1bb5087144257",
+    "sourceChecksum": "f845f4f45468c67e060b7ca21e3f71b26b458dcbb33d939bbbb1bb5087144257",
+    "bytes": 502
+  },
+  {
+    "source": "https://info.stu.edu.tw/ACA/images/arrow_expand.gif",
+    "file": "/school-assets/6172815f3391f37b1b6a.gif",
+    "checksum": "8ef5fb6ef93e905fee0f827d3f8448239cf786c77574c9d64310dce1848e61c7",
+    "sourceChecksum": "8ef5fb6ef93e905fee0f827d3f8448239cf786c77574c9d64310dce1848e61c7",
+    "bytes": 66
+  },
+  {
+    "source": "https://info.stu.edu.tw/ACA/images/arrow_collapse.gif",
+    "file": "/school-assets/f0e515db0bd6dc759cce.gif",
+    "checksum": "1b64662b991056b5a60d055ddd5620f8c25c7350342b1fc632e81c788ec7cae0",
+    "sourceChecksum": "1b64662b991056b5a60d055ddd5620f8c25c7350342b1fc632e81c788ec7cae0",
+    "bytes": 66
+  },
+  {
+    "source": "https://info.stu.edu.tw/ACA/images/arrowTopRed.jpg",
+    "file": "/school-assets/0960ed37e10f8775354c.jpg",
+    "checksum": "cb60e09a34502a84e4ad3bc6e53a380279ed57148959ec6d921d3bd2c53c44c8",
+    "sourceChecksum": "cb60e09a34502a84e4ad3bc6e53a380279ed57148959ec6d921d3bd2c53c44c8",
+    "bytes": 695
+  },
+  {
+    "source": "https://dtm.stu.edu.tw/theme/image.php/aardvark/core/1789958591/f/pdf",
+    "file": "/school-assets/6f345b4f0cef28e7086d.png",
+    "checksum": "6f345b4f0cef28e7086df56007488dbbe94ba4c10856d4d35e1e7d0fd419ba14",
+    "sourceChecksum": "6f345b4f0cef28e7086df56007488dbbe94ba4c10856d4d35e1e7d0fd419ba14",
+    "bytes": 589
+  },
+  {
+    "source": "https://dtm.stu.edu.tw/theme/image.php/aardvark/core/1789958591/a/add_file",
+    "file": "/school-assets/802a7e657787f126537d.svg",
+    "checksum": "8b4532b8e82599f6eedc692f52ce35eec4c6fa136ac262e72741dc472f06fd0c",
+    "sourceChecksum": "8b4532b8e82599f6eedc692f52ce35eec4c6fa136ac262e72741dc472f06fd0c",
+    "bytes": 555
+  },
+  {
+    "source": "https://dtm.stu.edu.tw/theme/image.php/aardvark/core/1789958591/a/download_all",
+    "file": "/school-assets/252c16446b06649136ff.svg",
+    "checksum": "d308ae81e7fb14dab521af690e6e1587a9ec12d02c09a2f6df7539a7c74178d1",
+    "sourceChecksum": "d308ae81e7fb14dab521af690e6e1587a9ec12d02c09a2f6df7539a7c74178d1",
+    "bytes": 618
+  },
+  {
+    "source": "https://dtm.stu.edu.tw/theme/image.php/aardvark/theme/1789958591/fp/view_icon_active",
+    "file": "/school-assets/af7c50f6fe273363b952.svg",
+    "checksum": "e00044ebec19bb67555e4a779794276906b44d6c64af2098f8ed66e92c998895",
+    "sourceChecksum": "e00044ebec19bb67555e4a779794276906b44d6c64af2098f8ed66e92c998895",
+    "bytes": 436
+  },
+  {
+    "source": "https://dtm.stu.edu.tw/theme/image.php/aardvark/theme/1789958591/fp/view_list_active",
+    "file": "/school-assets/019876201b206569c518.svg",
+    "checksum": "ee03c1c9040fb8c6ef075ce81f9bd058cbb6f13f0deb406b8aaaf7f68be017aa",
+    "sourceChecksum": "ee03c1c9040fb8c6ef075ce81f9bd058cbb6f13f0deb406b8aaaf7f68be017aa",
+    "bytes": 387
+  },
+  {
+    "source": "https://dtm.stu.edu.tw/theme/image.php/aardvark/theme/1789958591/fp/view_tree_active",
+    "file": "/school-assets/2c19ccfeb0d9658e19ea.svg",
+    "checksum": "44268f360e243bf210607900285be2d3af17652dc566317be70b1bd5fe17f39a",
+    "sourceChecksum": "44268f360e243bf210607900285be2d3af17652dc566317be70b1bd5fe17f39a",
+    "bytes": 438
+  },
+  {
+    "source": "https://dtm.stu.edu.tw/theme/image.php/aardvark/core/1789958591/f/pdf-80",
+    "file": "/school-assets/93b52d1355e1812e7957.png",
+    "checksum": "ec4cf80b4e9bd4f2ce454151aaef1a26ce6340bbde786b5c91637ac091ccc890",
+    "sourceChecksum": "ec4cf80b4e9bd4f2ce454151aaef1a26ce6340bbde786b5c91637ac091ccc890",
+    "bytes": 5706
+  },
+  {
+    "source": "https://dtm.stu.edu.tw/theme/image.php/aardvark/core/1789958591/i/menu",
+    "file": "/school-assets/f75b1f6e06c9776c7777.gif",
+    "checksum": "1f970849ea63be04fc1aeedd648252612557d4530b65ddf5df746a07391c8837",
+    "sourceChecksum": "1f970849ea63be04fc1aeedd648252612557d4530b65ddf5df746a07391c8837",
+    "bytes": 116
   }
 ]

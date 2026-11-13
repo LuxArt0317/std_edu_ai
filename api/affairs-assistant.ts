@@ -1,5 +1,5 @@
 import { questionKind } from '../server/schoolWebSearch.js';
-import { answerAccountWithVerification } from '../server/answerVerificationAccount.js';
+import { answerAccountWithVerification, requiredNativeTools } from '../server/answerVerificationAccount.js';
 import { answerCampusNavigation } from '../server/schoolAffairsDirectory.js';
 import { isDtmRecordQuestion } from '../server/dtmAnswer.js';
 import { isScholarshipRecordQuestion } from '../server/scholarshipRecords.js';
@@ -53,8 +53,8 @@ export default async function handler(request:ApiRequest,response:ApiResponse) {
     return ['user','assistant'].includes(String(entry.role))&&typeof entry.content==='string'?[{role:String(entry.role),content:entry.content.slice(0,1000)}]:[];
   }):[];
   const stream=createAssistantStream(input?.stream===true,response);
-  const route=typeof input?.route==='string'?input.route.slice(0,250):'';
-  const needsRecords=personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history);
+  const route=typeof input?.route==='string'?input.route.slice(0,250).replace(/\/+$/,''):'';
+  const needsRecords=personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0;
   const navigation=!needsRecords && !(Array.isArray(input?.images) && input.images.length) && !questionKind(question).irrelevant
     ? answerCampusNavigation(question) : null;
   if(navigation) {

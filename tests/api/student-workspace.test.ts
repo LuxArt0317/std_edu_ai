@@ -44,8 +44,8 @@ test('unfinished assignments omit submitted and sample work when personal course
   assert.equal(questionKind('Which assignments are not yet finished?').personal,true);
 });
 
-test('grade report and service status answers link to account views without exposing private notes',async()=>{
-  const grade=await answerPrivateAffairsQuestion('Show my grades',snapshot,[],'/');
+test('explicit Moodle grade report and service status answers link to account views without exposing private notes',async()=>{
+  const grade=await answerPrivateAffairsQuestion('Show my Moodle grades',snapshot,[],'/');
   assert.match(grade.answer,/Practice exam.*\/grades#grade-grade-item.*32\/40 \(80\.0%\)/);
   const leave=await answerPrivateAffairsQuestion('What is my leave status?',snapshot);
   assert.match(leave.answer,/Leave record.*draft/);

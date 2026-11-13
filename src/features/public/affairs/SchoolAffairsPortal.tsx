@@ -70,10 +70,18 @@ import { HousingWorkspace } from "./HousingWorkspace";
 import { PendingFees } from "./PendingFees";
 import { CreditLoadHistory } from "./CreditLoadHistory";
 import { CourseSelection } from "./CourseSelection";
+import { AcademicGrades } from "./AcademicGrades";
+import { GraduationReview } from "./GraduationReview";
+import { LegacyGraduationReview } from "./LegacyGraduationReview";
+import { AcademicAttendance } from "./AcademicAttendance";
+import { academicGradePaths, type AcademicGradesView } from "@/services/academicGrades";
+import { graduationReviewPaths } from "@/services/graduationReview";
+import { academicAttendancePaths } from "@/services/academicAttendance";
 import "./portal.css";
 
 // The university portal uses Font Awesome 4 for its navigation.
 const groupIcons = ["\uf0c9", "\uf19c", "\uf022", "\uf1ad", "\uf1b3", "\uf12b", "\uf16c"];
+const academicGradeViews: AcademicGradesView[] = ["index", "current", "transcript", "warning", "ranking", "transfer", "cycle"];
 
 function PortalIcon({ glyph }: { glyph: string }) {
   return <i className="portal-icon" aria-hidden="true">{glyph}</i>;
@@ -134,7 +142,9 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   const [copyStatus, setCopyStatus] = useState("");
   const lastNewsTrigger = useRef<HTMLElement | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
-  const route = pathname.replace(/\/$/, "").split("/").slice(2);
+  const normalizedPath = pathname.replace(/\/$/, "");
+  const route = normalizedPath.split("/").slice(2);
+  const academicGradeView = academicGradeViews.find(value => academicGradePaths[value] === normalizedPath);
   const group =
     route[0] === "search" ? "all" : route[0] === "menu" ? route[1] || "" : "";
   const view = route[0] === "search" ? "all" : route[2] || "";
@@ -178,7 +188,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   const records = route[0] === "records" && route.length === 1;
   const servicePage = route[0] === "services";
   const { snapshot: account, loading: accountLoading, error: accountError, refresh: refreshAccount } =
-    useAffairsRecords(index || notifications || (servicePage && ["11-1", "11-2"].includes(route[1])) ? user.id : undefined);
+    useAffairsRecords(index || notifications || (servicePage && ["11-1", "11-2", "13-1", "14-1", "15-1", "15-2"].includes(route[1])) ? user.id : undefined);
   const ended = route[0] === "signed-out";
   const article = portalNews.find((news) => news.id === params.get("news"));
   const programs = filterPrograms(
@@ -425,6 +435,18 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   }
   if (servicePage && route[1] === "22-1") {
     return <StudentAidWorkspace key={pathname} userId={user.id} />;
+  }
+  if (academicGradeView) {
+    return <AcademicGrades key={pathname} snapshot={account ?? null} busy={accountLoading} error={accountError} onReload={refreshAccount} onLogout={()=>navigate("/school-affairs/signed-out")} view={academicGradeView}/>;
+  }
+  if (normalizedPath === graduationReviewPaths.academic_services || normalizedPath === "/school-affairs/services/15-1") {
+    return <GraduationReview key={pathname} snapshot={account ?? null} busy={accountLoading} error={accountError} onReload={refreshAccount} onLogout={()=>navigate("/school-affairs/signed-out")}/>;
+  }
+  if (normalizedPath === graduationReviewPaths.legacy) {
+    return <LegacyGraduationReview key={pathname} snapshot={account ?? null} busy={accountLoading} error={accountError} onReload={refreshAccount}/>;
+  }
+  if (normalizedPath === academicAttendancePaths.statistics || normalizedPath === academicAttendancePaths.detail) {
+    return <AcademicAttendance key={pathname} snapshot={account ?? null} busy={accountLoading} error={accountError} onReload={refreshAccount} onLogout={()=>navigate("/school-affairs/signed-out")} view={normalizedPath === academicAttendancePaths.detail ? "detail" : "statistics"}/>;
   }
   if (servicePage && ["11-1", "11-2"].includes(route[1])) {
     return <CourseSelection key={pathname} snapshot={account ?? null} busy={accountLoading} error={accountError} onReload={refreshAccount} onLogout={()=>navigate("/school-affairs/signed-out")} view={route[1] === "11-1" ? "history" : "timetable"}/>;

@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router';
-import { Bell, ChevronDown, ChevronRight, ExternalLink, LogOut, MessageSquare, Network, Search } from 'lucide-react';
+import { Bell, ChevronDown, ChevronRight, ExternalLink, LogOut, MessageSquare, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -49,7 +49,7 @@ function Navigation({courses,home,selected,view,displayName,t}:{courses:DtmCours
       <p>{t('本平台只存放','This platform hosts ')}<strong>{t('實體課程','in-person courses')}</strong></p>
     </section>}
     <nav className="dtm-card dtm-navigation" aria-label={t('我的課程選單','My courses navigation')}>
-      <h2><Network size={18} aria-hidden="true"/>{t('導覽','Navigation')}</h2>
+      <h2><i className="dtm-navigation-icon" aria-hidden="true">{'\uf0e8'}</i>{t('導覽','Navigation')}</h2>
       <Link className="dtm-tree-home" to="/dtm">{t('首頁','Home')}</Link>
       <Link className="dtm-tree-page" to="/dtm/dashboard">{t('儀表板','Dashboard')}</Link>
       <details className="dtm-tree">

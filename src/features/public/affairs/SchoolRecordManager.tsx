@@ -9,6 +9,9 @@ import { StudentAidManager } from './studentAidManager';
 import { HousingManager } from './HousingManager';
 import {CreditLoadHistoryManager} from './CreditLoadHistoryManager';
 import {CourseSelectionManager} from './CourseSelectionManager';
+import {AcademicGradesManager} from './AcademicGradesManager';
+import {GraduationReviewManager} from './GraduationReviewManager';
+import {AcademicAttendanceManager} from './AcademicAttendanceManager';
 import {PendingFeeFields} from './PendingFeeFields';
 import {pendingFeeDraft} from '@/services/pendingFees';
 
@@ -30,7 +33,16 @@ export function SchoolRecordManager({admin,busy,onManage,onRefresh}:{admin:Admin
   const [assignmentDetails,setAssignmentDetails]=useState('');
   const [assignmentDue,setAssignmentDue]=useState('');
   const selected=admin.students.find(item=>item.id===studentId)||admin.students[0];
-  const nativeManagers=<><CourseSelectionManager records={admin.courseSelection?.records ?? []} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/><CreditLoadHistoryManager records={admin.creditLoadHistory?.records ?? []} profiles={admin.profiles} busy={busy} onSave={onManage}/><ScholarshipManager admin={admin} busy={busy} onManage={onManage}/><StudentAidManager records={admin.studentAid?.records ?? []} profiles={admin.profiles} busy={busy} onSave={onManage}/><HousingManager admin={admin} busy={busy} onManage={onManage}/></>;
+  const nativeManagers=<>
+    <CourseSelectionManager records={admin.courseSelection?.records ?? []} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/>
+    <AcademicGradesManager records={admin.academicGrades ?? {records:[],termSummaries:[],rankings:[],metadata:[]}} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/>
+    <GraduationReviewManager records={admin.graduationReview ?? {reports:[]}} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/>
+    <AcademicAttendanceManager records={admin.academicAttendance ?? {statistics:[],details:[],metadata:[]}} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/>
+    <CreditLoadHistoryManager records={admin.creditLoadHistory?.records ?? []} profiles={admin.profiles} busy={busy} onSave={onManage}/>
+    <ScholarshipManager admin={admin} busy={busy} onManage={onManage}/>
+    <StudentAidManager records={admin.studentAid?.records ?? []} profiles={admin.profiles} busy={busy} onSave={onManage}/>
+    <HousingManager admin={admin} busy={busy} onManage={onManage}/>
+  </>;
   if(!selected)return <><p>No student accounts are available for record management.</p>{nativeManagers}</>;
   const studentEnrollments=admin.enrollments.filter(item=>item.studentId===selected.id);
   const studentDtm=admin.dtmCourses.filter(item=>item.user_id===selected.user_id);

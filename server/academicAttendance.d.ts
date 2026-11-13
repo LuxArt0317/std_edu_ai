@@ -1,0 +1,14 @@
+import type {AcademicAttendanceRecords} from '../src/services/academicAttendance.ts';
+export const academicAttendancePaths:Record<'statistics'|'detail',string>;
+export const academicAttendanceReadSources:Array<{key:'statistics'|'details'|'metadata';table:string;order:string}>;
+export const academicAttendanceFields:Record<string,string[]>;
+export const academicAttendanceMaxPayloadBytes:8000;
+export const academicAttendanceNavigation:{id:string;match:RegExp;title:string[];officialUrl:string;localUrl:string;description:string[]};
+export function validateAcademicAttendancePayload(kind:string,value:unknown):string|null;
+export function academicAttendancePayloadBytes(value:unknown):number;
+export function mapAcademicAttendance(statistics?:Record<string,unknown>[],details?:Record<string,unknown>[],metadata?:Record<string,unknown>[]):AcademicAttendanceRecords;
+export function isAcademicAttendanceQuestion(question:string,route?:string,history?:Array<{role:string;content:string}>):boolean;
+export type AcademicAttendanceQuery={view:'statistics'|'details';academicYear?:number;semester?:number;courseDate:string|null;courseCode:string|null;reason:string|null};
+export function academicAttendanceQuery(question:string,metadata?:Array<{currentAcademicYear?:unknown;currentSemester?:unknown}>,route?:string,history?:Array<{role:string;content:string}>):AcademicAttendanceQuery;
+export function academicAttendanceMatchingRows<T extends Record<string,unknown>>(rows:T[],query:AcademicAttendanceQuery,question:string):T[];
+export function answerAcademicAttendance(question:string,snapshot:{profile?:{userId?:string};academicAttendance?:AcademicAttendanceRecords},route?:string,history?:Array<{role:string;content:string}>):{answer:string;title:string;url:string}|null;

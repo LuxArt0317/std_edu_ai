@@ -11,4 +11,6 @@ Vercel serverless endpoints live here. `research-assistant.ts` answers public sc
 
 `affairs-manage.ts` accepts audited, admin-only sample enrollment, charge and assignment updates. Database authorization checks the verified Lux Google identity and each linked student's record. The private assistant routes school-record follow-ups to account data and does not send that data to the public research endpoint.
 
+Native academic grades, modern/legacy graduation reports and attendance share these endpoints. Eight manager operations use versioned database RPCs; the graduation report alone has a 140KB HTTP envelope for its strictly validated nested content. Private assistant evidence preserves requested record types and terms, literal values and local links without treating Moodle scores as academic transcripts. See [native acceptance](../docs/qa/ACADEMIC_RESULTS.md).
+
 Assistant POST requests may set `stream: true` to receive server-sent `progress` events followed by one `result` or `error` event. Older JSON clients keep the same response contract. Private progress starts only after the Google bearer token is verified; public lookups never receive that token.

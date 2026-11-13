@@ -4,6 +4,7 @@ import {mapStudentAidRecords} from './studentAidRecords.js';
 import {mapHousingRecords} from './housingRecords.js';
 import {mapCreditLoadHistory} from './creditLoadHistory.js';
 import {mapCourseSelection} from './courseSelection.js';
+import {loadNativeAcademicRecords} from './nativeAcademicWorkspace.js';
 export class AffairsWorkspaceError extends Error {
   constructor(message, status = 503) { super(message); this.status = status; }
 }
@@ -47,7 +48,7 @@ async function request(account, table, options = {}) {
   if (!response.ok) {
     if (response.status===401 || response.status===403) throw new AffairsWorkspaceError('This School Affairs action is not allowed for your account.',403);
     if (response.status===400) throw new AffairsWorkspaceError('The School Affairs request was invalid. Check the fields and try again.',400);
-    if (response.status===409) throw new AffairsWorkspaceError(['affairs_scholarship_action','affairs_manage_student_aid_record','affairs_housing_action','affairs_manage_credit_load_history','affairs_manage_course_selection'].includes(table)
+    if (response.status===409) throw new AffairsWorkspaceError(['affairs_scholarship_action','affairs_manage_student_aid_record','affairs_housing_action','affairs_manage_credit_load_history','affairs_manage_course_selection','affairs_manage_academic_grades','affairs_manage_graduation_review','affairs_manage_academic_attendance'].includes(table)
       ? 'This record or its application period changed. Refresh and try again.'
       : 'A matching School Affairs record already exists.',409);
     throw new AffairsWorkspaceError('School Affairs records could not be loaded. Please try again.');
@@ -99,7 +100,7 @@ export async function loadAffairsSnapshot(account, includeAdmin = false, options
   ]);
   const profile=profiles[0];
   if (!profile || (includeAdmin && profile.role!=='admin')) throw new AffairsWorkspaceError('Administrator access is required.',403);
-  const [scholarshipPeriods,scholarshipApplications,adminScholarshipApplications,studentAidRows,adminStudentAidRows,housingPeriods,housingApplications,housingAssignments,adminHousingApplications,adminHousingAssignments,creditLoadRows,adminCreditLoadRows,selectionRows,adminSelectionRows]=await Promise.all([
+  const [scholarshipPeriods,scholarshipApplications,adminScholarshipApplications,studentAidRows,adminStudentAidRows,housingPeriods,housingApplications,housingAssignments,adminHousingApplications,adminHousingAssignments,creditLoadRows,adminCreditLoadRows,selectionRows,adminSelectionRows,nativeAcademic]=await Promise.all([
     readAccountRows(account,'affairs_scholarship_periods',{select:'*',...(includeAdmin?{}:{published:'eq.true'}),order:'opens_at.desc,id.asc'}),
     readAccountRows(account,'affairs_scholarship_applications',{...own(userId),order:'submitted_at.desc,id.asc'}),
     includeAdmin?readAccountRows(account,'affairs_scholarship_applications',{select:'*',order:'submitted_at.desc,id.asc'}):Promise.resolve([]),
@@ -114,12 +115,13 @@ export async function loadAffairsSnapshot(account, includeAdmin = false, options
     includeAdmin?readAccountRows(account,'affairs_credit_load_history',{select:'*',order:'academic_year.desc,semester.desc,id.asc'}):Promise.resolve([]),
     readAccountRows(account,'affairs_course_selection_records',{...own(userId),order:'academic_year.desc,semester.desc,selection_phase.asc,row_order.asc,id.asc'}),
     includeAdmin?readAccountRows(account,'affairs_course_selection_records',{select:'*',order:'academic_year.desc,semester.desc,selection_phase.asc,row_order.asc,id.asc'}):Promise.resolve([]),
+    loadNativeAcademicRecords(userId,includeAdmin,(table,query)=>readAccountRows(account,table,query)),
   ]);
   // The generic manager lists its first 100 profiles. Scholarship history can contain
   // older applicants, so resolve every missing applicant rather than rendering anonymous rows.
   if (includeAdmin) {
     const known=new Set(adminProfiles.map(row=>row.user_id));
-    const missing=[...new Set([...adminScholarshipApplications,...adminStudentAidRows,...adminHousingApplications,...adminHousingAssignments,...adminCreditLoadRows,...adminSelectionRows].map(row=>row.user_id).filter(id=>!known.has(id)))];
+    const missing=[...new Set([...adminScholarshipApplications,...adminStudentAidRows,...adminHousingApplications,...adminHousingAssignments,...adminCreditLoadRows,...adminSelectionRows].map(row=>row.user_id).concat(nativeAcademic.adminUserIds).filter(id=>!known.has(id)))];
     for (let offset=0;offset<missing.length;offset+=100) {
       const applicants=await readAccountRows(account,'affairs_profiles',{
         select:'user_id,email,display_name,role,created_at',user_id:byIds(missing.slice(offset,offset+100)),order:'user_id.asc',
@@ -149,11 +151,12 @@ export async function loadAffairsSnapshot(account, includeAdmin = false, options
   const sectionById=new Map(sections.map(row=>[row.id,row]));
   return {
     checkedAt:new Date().toISOString(),source:'stu.best School Affairs',officialUniversityData:false,
-    completeness:Object.fromEntries([
+    completeness:{...nativeAcademic.completeness,...Object.fromEntries([
       ['terms',terms,30],['programs',programs,100],['catalog',courses,200],['sections',sections,300],
       ['enrollments',enrollments,100],['grades',grades,200],['attendance',attendance,200],
       ['announcements',announcements,30],['dtmNotices',dtmNotices,30],['tasks',tasks,50],['requests',requests,50],
-    ].map(([key,rows,cap])=>[key,{returned:rows.length,complete:rows.length<cap,cap}])),
+    ].map(([key,rows,cap])=>[key,{returned:rows.length,complete:rows.length<cap,cap}]))},
+    ...nativeAcademic.own,
     scholarship:mapScholarshipRecords(scholarshipPeriods.filter(row=>row.published),scholarshipApplications),
     studentAid:mapStudentAidRecords(studentAidRows),
     creditLoadHistory:mapCreditLoadHistory(creditLoadRows),
@@ -204,7 +207,7 @@ export async function loadAffairsSnapshot(account, includeAdmin = false, options
       })),
       notices:dtmNotices.map(row=>({id:row.id,title:row.title,body:row.body,publishedAt:row.published_at,sourceMode:row.source_mode})),
     },
-    ...(includeAdmin?{admin:{courseSelection:mapCourseSelection(adminSelectionRows),creditLoadHistory:mapCreditLoadHistory(adminCreditLoadRows),scholarship:mapScholarshipRecords(scholarshipPeriods,adminScholarshipApplications),studentAid:mapStudentAidRecords(adminStudentAidRows),housing:mapHousingRecords(housingPeriods,adminHousingApplications,adminHousingAssignments),profiles:adminProfiles,students:adminStudents,sections:sections.map(row=>({id:row.id,code:courseById.get(row.course_id)?.code||'',term:termById.get(row.term_id)?.label||''})),enrollments:adminEnrollments.map(row=>({id:row.id,studentId:row.student_id,status:row.status,code:courseById.get(sectionById.get(row.section_id)?.course_id)?.code||''})),dtmCourses:adminDtmCourses,charges:adminCharges,assignments:adminAssignments,requests:adminRequests}}:{}),
+    ...(includeAdmin?{admin:{...nativeAcademic.admin,courseSelection:mapCourseSelection(adminSelectionRows),creditLoadHistory:mapCreditLoadHistory(adminCreditLoadRows),scholarship:mapScholarshipRecords(scholarshipPeriods,adminScholarshipApplications),studentAid:mapStudentAidRecords(adminStudentAidRows),housing:mapHousingRecords(housingPeriods,adminHousingApplications,adminHousingAssignments),profiles:adminProfiles,students:adminStudents,sections:sections.map(row=>({id:row.id,code:courseById.get(row.course_id)?.code||'',term:termById.get(row.term_id)?.label||''})),enrollments:adminEnrollments.map(row=>({id:row.id,studentId:row.student_id,status:row.status,code:courseById.get(sectionById.get(row.section_id)?.course_id)?.code||''})),dtmCourses:adminDtmCourses,charges:adminCharges,assignments:adminAssignments,requests:adminRequests}}:{}),
   };
 }
 
@@ -230,6 +233,12 @@ export async function executeAffairsAction(account,kind,payload,requestId) {
 }
 
 export async function manageAffairsRecord(account,kind,payload) {
+  if (['save_academic_grade_record','save_academic_term_summary','save_academic_ranking','save_academic_metadata'].includes(kind) && payload && typeof payload==='object' && !Array.isArray(payload))
+    return request(account,'affairs_manage_academic_grades',{rpc:true,body:{p_kind:kind,p_payload:payload}});
+  if (kind==='save_graduation_review' && payload && typeof payload==='object' && !Array.isArray(payload))
+    return request(account,'affairs_manage_graduation_review',{rpc:true,body:{p_kind:kind,p_payload:payload}});
+  if (['save_academic_attendance_statistic','save_academic_attendance_detail','save_academic_attendance_metadata'].includes(kind) && payload && typeof payload==='object' && !Array.isArray(payload))
+    return request(account,'affairs_manage_academic_attendance',{rpc:true,body:{p_kind:kind,p_payload:payload}});
   if (kind==='save_course_selection' && payload && typeof payload==='object' && !Array.isArray(payload))
     return request(account,'affairs_manage_course_selection',{rpc:true,body:{p_kind:kind,p_payload:payload}});
   if (kind==='save_credit_load_history' && payload && typeof payload==='object' && !Array.isArray(payload))

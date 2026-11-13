@@ -6,9 +6,9 @@ import {answerPrivateAffairsQuestion} from '../../server/affairsAnswer.js';
 import dataHandler from '../../api/affairs-data.ts';
 import managerHandler from '../../api/affairs-manage.ts';
 
-const row={id:'record-one',user_id:'student-one',academic_year:115,semester:1,category:'over',requested_credits:'3.50',
+const row={id:'record-one',user_id:'10000000-0000-4000-8000-000000000001',academic_year:115,semester:1,category:'over',requested_credits:'3.50',
   process_text:'示範：人工核對中',result_text:null,source_mode:'local_demo',version:1,created_at:'2026-11-12T00:00:00Z',updated_at:'2026-11-12T00:00:00Z'};
-const snapshot={profile:{userId:'student-one'},creditLoadHistory:mapCreditLoadHistory([row])};
+const snapshot={profile:{userId:'10000000-0000-4000-8000-000000000001'},creditLoadHistory:mapCreditLoadHistory([row])};
 test('credit-load mapping preserves the six independent source columns and null or zero values',()=>{
   const records=mapCreditLoadHistory([row,{...row,id:'zero',category:'under',requested_credits:'0',process_text:null,result_text:'示範結果'}]).records;
   assert.equal(records[0].requestedCredits,3.5);assert.equal(records[0].resultText,null);
@@ -16,16 +16,16 @@ test('credit-load mapping preserves the six independent source columns and null 
   assert.equal(records[1].resultText,'示範結果');assert.equal(records[0].sourceMode,'local_demo');
 });
 test('deterministic credit-load answers use only the caller history and never decide eligibility',()=>{
-  const mixed={...snapshot,creditLoadHistory:mapCreditLoadHistory([row,{...row,id:'other',user_id:'student-two',result_text:'OTHER PRIVATE RESULT'}])};
+  const mixed={...snapshot,creditLoadHistory:mapCreditLoadHistory([row,{...row,id:'other',user_id:'10000000-0000-4000-8000-000000000002',result_text:'OTHER PRIVATE RESULT'}])};
   const answer=answerCreditLoadHistory('Show my credit-load application history',mixed)!;
   assert.match(answer.answer,/115.*semester 1.*over-load 3.5 credits.*示範：人工核對中.*result: not recorded/s);
   assert.match(answer.answer,/does not determine eligibility, submit university applications, or change course selections/);
-  assert.doesNotMatch(answer.answer,/OTHER PRIVATE|student-one|record-one/);assert.equal(answer.url,'/school-affairs/services/11-3');
+  assert.doesNotMatch(answer.answer,/OTHER PRIVATE|10000000-0000-4000-8000-000000000001|record-one/);assert.equal(answer.url,'/school-affairs/services/11-3');
   assert.match(answerCreditLoadHistory('我的超減修申請進度',snapshot)!.answer,/115 學年第 1 學期.*超修 3.5 學分.*審核結果：未記錄/);
   assert.match(answerCreditLoadHistory('Am I eligible for credit-load changes?',snapshot)!.answer,/does not determine eligibility/);
 });
 test('absent caller identity and empty history cannot expose rows or manufacture approvals',()=>{
-  for(const value of [{creditLoadHistory:snapshot.creditLoadHistory},{profile:{userId:'empty'},creditLoadHistory:snapshot.creditLoadHistory},{profile:{userId:'student-one'}}]){
+  for(const value of [{creditLoadHistory:snapshot.creditLoadHistory},{profile:{userId:'empty'},creditLoadHistory:snapshot.creditLoadHistory},{profile:{userId:'10000000-0000-4000-8000-000000000001'}}]){
     const answer=answerCreditLoadHistory('My credit-load history',value)!;
     assert.match(answer.answer,/No credit-load history records/);assert.doesNotMatch(answer.answer,/3.5|eligible to|approved|submitted successfully/);
   }
@@ -40,10 +40,10 @@ test('credit-load follow-ups yield to explicit grades, transfer credits, aid, fe
   assert.equal(creditLoadHistoryNavigation.officialUrl,'https://infosys.stu.edu.tw/WebSelectCourse/Login/AspLogin/AppCreditHistory');
 });
 
-const account={user:{id:'student-one'},token:'caller-token',url:'https://xiftudmvxphxcjtmfmib.supabase.co',key:'publishable-test-key'};
+const account={user:{id:'10000000-0000-4000-8000-000000000001'},token:'caller-token',url:'https://xiftudmvxphxcjtmfmib.supabase.co',key:'publishable-test-key'};
 test('credit-load manager uses caller authorization and preserves RPC conflicts while student actions are denied',async()=>{
   const original=globalThis.fetch;let conflict=false,calls=0;
-  const payload={id:'record-one',user_id:'student-one',request_id:'request-one',expected_version:'0',academic_year:'115',semester:'1',category:'over',requested_credits:'3.5'};
+  const payload={id:'record-one',user_id:'10000000-0000-4000-8000-000000000001',request_id:'request-one',expected_version:'0',academic_year:'115',semester:'1',category:'over',requested_credits:'3.5'};
   globalThis.fetch=async(input,init)=>{
     calls++;assert.equal(String(input),account.url+'/rest/v1/rpc/affairs_manage_credit_load_history');
     assert.equal(new Headers(init?.headers).get('Authorization'),'Bearer caller-token');
@@ -74,18 +74,18 @@ test('anonymous credit-load reads and manager writes are rejected before databas
 });
 test('history snapshots page all caller rows and resolve admin labels without mixing other owners into personal data',async()=>{
   const original=globalThis.fetch;let admin=false;
-  const own=Array.from({length:501},(_,index)=>({...row,id:'own-'+index})),other={...row,id:'other',user_id:'student-two'};
+  const own=Array.from({length:501},(_,index)=>({...row,id:'own-'+index})),other={...row,id:'other',user_id:'10000000-0000-4000-8000-000000000002'};
   const seen:URL[]=[];
   globalThis.fetch=async(input,init)=>{
     const url=new URL(String(input)),table=url.pathname.split('/').at(-1);seen.push(url);
     assert.equal(new Headers(init?.headers).get('Authorization'),'Bearer caller-token');
     let result:unknown=[];
-    if(table==='affairs_profiles')result=url.searchParams.get('user_id')==='in.(student-two)'
-      ? [{user_id:'student-two',display_name:'Same Name',email:'second@example.invalid',role:'student'}]
-      : [{user_id:'student-one',display_name:'Same Name',email:'first@example.invalid',role:admin?'admin':'student'}];
+    if(table==='affairs_profiles')result=url.searchParams.get('user_id')==='in.(10000000-0000-4000-8000-000000000002)'
+      ? [{user_id:'10000000-0000-4000-8000-000000000002',display_name:'Same Name',email:'second@example.invalid',role:'student'}]
+      : [{user_id:'10000000-0000-4000-8000-000000000001',display_name:'Same Name',email:'first@example.invalid',role:admin?'admin':'student'}];
     if(table==='affairs_credit_load_history'){
       const filter=url.searchParams.get('user_id');
-      if(filter)assert.equal(filter,'eq.student-one');else assert.equal(admin,true);
+      if(filter)assert.equal(filter,'eq.10000000-0000-4000-8000-000000000001');else assert.equal(admin,true);
       assert.equal(url.searchParams.get('order'),'academic_year.desc,semester.desc,id.asc');
       const data=filter?own:[...own,other],offset=Number(url.searchParams.get('offset')||0),limit=Number(url.searchParams.get('limit'));
       result=data.slice(offset,offset+limit);
@@ -95,12 +95,12 @@ test('history snapshots page all caller rows and resolve admin labels without mi
   try{
     const personal=await loadAffairsSnapshot(account) as {creditLoadHistory:ReturnType<typeof mapCreditLoadHistory>;admin?:unknown};
     assert.equal(personal.creditLoadHistory.records.length,501);assert.equal(personal.admin,undefined);
-    assert.ok(personal.creditLoadHistory.records.every((record:{userId:string})=>record.userId==='student-one'));
+    assert.ok(personal.creditLoadHistory.records.every((record:{userId:string})=>record.userId==='10000000-0000-4000-8000-000000000001'));
     assert.ok(seen.some(url=>url.pathname.endsWith('/affairs_credit_load_history')&&url.searchParams.get('offset')==='500'));
     admin=true;
     const all=await loadAffairsSnapshot(account,true) as {creditLoadHistory:ReturnType<typeof mapCreditLoadHistory>;admin:{creditLoadHistory:ReturnType<typeof mapCreditLoadHistory>;profiles:Array<{user_id:string;email:string}>}};
     assert.equal(all.creditLoadHistory.records.length,501);assert.equal(all.admin.creditLoadHistory.records.length,502);
-    assert.equal(all.admin.profiles.find(profile=>profile.user_id==='student-two')?.email,'second@example.invalid');
+    assert.equal(all.admin.profiles.find(profile=>profile.user_id==='10000000-0000-4000-8000-000000000002')?.email,'second@example.invalid');
   }finally{globalThis.fetch=original;}
 });
 test('shared private assistant answers credit-load history locally with the exact native route',async()=>{

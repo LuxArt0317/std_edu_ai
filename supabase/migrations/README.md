@@ -16,3 +16,6 @@ Migration `20261112020000_leave_application_fields.sql` adds the remaining obser
 `20261112070000_course_syllabus.sql` adds validated structured syllabi to local catalog offerings: objectives, grading, learning outcomes, SDGs and 18 teaching weeks. Published offerings remain independent of enrollment. Migrations0400–0700 were applied to the client on 2026-11-12; subsequent schema corrections require a new migration.
 
 `20261112100000_course_selection_history.sql` adds private course-selection snapshots for native11-1/11-2. Google-identity RLS restricts reads; versioned admin-only writes atomically validate all meeting slots, reject ownership changes and keep durable replay receipts/audits. No selection history is inferred or imported from enrollment or official personal records.
+## Native academic migrations
+
+Migrations `20261112110000`, `20261112130000` and `20261112140000` add eight account-owned academic tables with RLS, admin-only audited writes and durable retry receipts. They keep academic transcripts, graduation report kinds and attendance separate from personal Moodle tracker data. Exact client planning and rollback preflight evidence are recorded in [academic QA](../../docs/qa/ACADEMIC_RESULTS.md); never reset the database to apply them.

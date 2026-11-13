@@ -7,12 +7,12 @@ import {answerCampusNavigation} from '../../server/schoolAffairsDirectory.js';
 import dataHandler from '../../api/affairs-data.ts';
 import managerHandler from '../../api/affairs-manage.ts';
 
-const row={id:'record-one',user_id:'student-one',academic_year:115,semester:1,selection_phase:'add_drop',
+const row={id:'record-one',user_id:'10000000-0000-4000-8000-000000000001',academic_year:115,semester:1,selection_phase:'add_drop',
   term_course_code:'LOCAL-DEMO-115',course_title:'Synthetic course',required_elective_text:'選修',credits:'3.50',
   instructor_one:'Synthetic teacher',remark_text:'Y(W)',row_order:1,timetable_included:true,
   meetings:[{weekday:1,period:'1',room:'Demo 101'},{weekday:3,period:'午',room:''},{weekday:5,period:'D',room:'Demo night'}],
   source_mode:'local_demo',version:1,created_at:'2026-11-12T00:00:00Z',updated_at:'2026-11-12T00:00:00Z'};
-const snapshot={profile:{userId:'student-one'},courseSelection:mapCourseSelection([row])};
+const snapshot={profile:{userId:'10000000-0000-4000-8000-000000000001'},courseSelection:mapCourseSelection([row])};
 const historyPath='/school-affairs/services/11-1',timetablePath='/school-affairs/services/11-2';
 test('course selection preserves independent source fields, all meetings, nulls, zero credits and explicit inclusion',()=>{
   const records=mapCourseSelection([row,{...row,id:'zero',credits:'0',required_elective_text:null,instructor_one:null,remark_text:null,timetable_included:false,meetings:[]}]).records;
@@ -88,9 +88,9 @@ test('multiple phases require precision and contextual filter replies retain the
   assert.doesNotMatch(answerCourseSelection('我的第12學期課表',mixed)!.answer,/Synthetic course|Initial course/);
 });
 test('missing caller identity, empty data and other owners cannot expose course-selection records',()=>{
-  const mixed={...snapshot,courseSelection:mapCourseSelection([row,{...row,id:'foreign',user_id:'student-two',course_title:'PRIVATE OTHER STUDENT'}])};
+  const mixed={...snapshot,courseSelection:mapCourseSelection([row,{...row,id:'foreign',user_id:'10000000-0000-4000-8000-000000000002',course_title:'PRIVATE OTHER STUDENT'}])};
   assert.doesNotMatch(answerCourseSelection('My course-selection history',mixed)!.answer,/PRIVATE OTHER STUDENT/);
-  for(const value of [{courseSelection:snapshot.courseSelection},{profile:{userId:'empty'},courseSelection:snapshot.courseSelection},{profile:{userId:'student-one'}}]){
+  for(const value of [{courseSelection:snapshot.courseSelection},{profile:{userId:'empty'},courseSelection:snapshot.courseSelection},{profile:{userId:'10000000-0000-4000-8000-000000000001'}}]){
     const result=answerCourseSelection('My timetable',value)!;
     assert.match(result.answer,/No timetable records/);assert.doesNotMatch(result.answer,/Synthetic course|Demo 101/);
   }
@@ -111,10 +111,10 @@ test('phase records do not hijack grades, fees, DTM, offerings or general curren
   assert.equal(isCourseSelectionQuestion('What is the result?','/school-affairs/services/39-1'),false);
 });
 
-const account={user:{id:'student-one'},token:'caller-token',url:'https://xiftudmvxphxcjtmfmib.supabase.co',key:'publishable-test-key'};
+const account={user:{id:'10000000-0000-4000-8000-000000000001'},token:'caller-token',url:'https://xiftudmvxphxcjtmfmib.supabase.co',key:'publishable-test-key'};
 test('manager transport preserves request/version/slots on retries, caller authorization and sanitized409 conflicts',async()=>{
   const original=globalThis.fetch;let conflict=false,calls=0;
-  const payload={id:'record-one',user_id:'student-one',request_id:'request-one',expected_version:0,academic_year:115,semester:1,selection_phase:'add_drop',
+  const payload={id:'record-one',user_id:'10000000-0000-4000-8000-000000000001',request_id:'request-one',expected_version:0,academic_year:115,semester:1,selection_phase:'add_drop',
     term_course_code:'LOCAL-QA',course_title:'Synthetic',required_elective_text:null,credits:0,instructor_one:null,remark_text:'Y',row_order:0,timetable_included:true,meetings:[]};
   globalThis.fetch=async(input,init)=>{
     calls++;assert.equal(String(input),account.url+'/rest/v1/rpc/affairs_manage_course_selection');
@@ -146,16 +146,16 @@ test('anonymous course-selection data and manager requests fail before database 
 });
 test('snapshots page all caller phase rows and keep admin records separate with matching owner labels',async()=>{
   const original=globalThis.fetch;let admin=false;
-  const own=Array.from({length:501},(_,index)=>({...row,id:'own-'+index})),other={...row,id:'other',user_id:'student-two'};
+  const own=Array.from({length:501},(_,index)=>({...row,id:'own-'+index})),other={...row,id:'other',user_id:'10000000-0000-4000-8000-000000000002'};
   const seen:URL[]=[];
   globalThis.fetch=async(input,init)=>{
     const url=new URL(String(input)),table=url.pathname.split('/').at(-1);seen.push(url);
     assert.equal(new Headers(init?.headers).get('Authorization'),'Bearer caller-token');let result:unknown=[];
-    if(table==='affairs_profiles')result=url.searchParams.get('user_id')==='in.(student-two)'
-      ?[{user_id:'student-two',display_name:'Same Name',email:'second@example.invalid',role:'student'}]
-      :[{user_id:'student-one',display_name:'Same Name',email:'first@example.invalid',role:admin?'admin':'student'}];
+    if(table==='affairs_profiles')result=url.searchParams.get('user_id')==='in.(10000000-0000-4000-8000-000000000002)'
+      ?[{user_id:'10000000-0000-4000-8000-000000000002',display_name:'Same Name',email:'second@example.invalid',role:'student'}]
+      :[{user_id:'10000000-0000-4000-8000-000000000001',display_name:'Same Name',email:'first@example.invalid',role:admin?'admin':'student'}];
     if(table==='affairs_course_selection_records'){
-      const filter=url.searchParams.get('user_id');if(filter)assert.equal(filter,'eq.student-one');else assert.equal(admin,true);
+      const filter=url.searchParams.get('user_id');if(filter)assert.equal(filter,'eq.10000000-0000-4000-8000-000000000001');else assert.equal(admin,true);
       assert.equal(url.searchParams.get('order'),'academic_year.desc,semester.desc,selection_phase.asc,row_order.asc,id.asc');
       const data=filter?own:[...own,other],offset=Number(url.searchParams.get('offset')||0),limit=Number(url.searchParams.get('limit'));
       result=data.slice(offset,offset+limit);
@@ -165,12 +165,12 @@ test('snapshots page all caller phase rows and keep admin records separate with 
   try{
     const personal=await loadAffairsSnapshot(account) as {courseSelection:ReturnType<typeof mapCourseSelection>;admin?:unknown};
     assert.equal(personal.courseSelection.records.length,501);assert.equal(personal.admin,undefined);
-    assert.ok(personal.courseSelection.records.every((record:{userId:string})=>record.userId==='student-one'));
+    assert.ok(personal.courseSelection.records.every((record:{userId:string})=>record.userId==='10000000-0000-4000-8000-000000000001'));
     assert.ok(seen.some(url=>url.pathname.endsWith('/affairs_course_selection_records')&&url.searchParams.get('offset')==='500'));
     admin=true;
     const all=await loadAffairsSnapshot(account,true) as {courseSelection:ReturnType<typeof mapCourseSelection>;admin:{courseSelection:ReturnType<typeof mapCourseSelection>;profiles:Array<{user_id:string;email:string}>}};
     assert.equal(all.courseSelection.records.length,501);assert.equal(all.admin.courseSelection.records.length,502);
-    assert.equal(all.admin.profiles.find(profile=>profile.user_id==='student-two')?.email,'second@example.invalid');
+    assert.equal(all.admin.profiles.find(profile=>profile.user_id==='10000000-0000-4000-8000-000000000002')?.email,'second@example.invalid');
   }finally{globalThis.fetch=original;}
 });
 test('shared assistant answers private phase records locally and cites the distinct native destinations',async()=>{
@@ -197,7 +197,7 @@ test('unrelated model fallback strips selection and admin records instead of tra
   };
   try{
     await answerPrivateAffairsQuestion('Please help me remember to review my plan',{
-      ...snapshot,profile:{userId:'student-one',displayName:'Synthetic student',email:'qa@example.invalid',role:'student'},
+      ...snapshot,profile:{userId:'10000000-0000-4000-8000-000000000001',displayName:'Synthetic student',email:'qa@example.invalid',role:'student'},
       checkedAt:'2026-11-12T00:00:00Z',student:null,courses:[],charges:[],announcements:[],tasks:[],requests:[],
       courseSelection:mapCourseSelection([{...row,course_title:'PRIVATE PHASE RECORD'}]),
       admin:{courseSelection:mapCourseSelection([{...row,user_id:'another-owner',course_title:'PRIVATE ADMIN RECORD'}])},

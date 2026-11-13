@@ -1,5 +1,13 @@
 # Client handoff
 
+## Native academic batch (Issue #98, not released)
+
+Native grades, independent modern/legacy graduation, and attendance now have account-owned records, administrator maintenance, scoped assistant tools and source-measured pages. Migrations110000/130000/140000 are applied. Local deterministic grades/attendance persistence and browser tests passed, with exact cleanup; these do not prove real model behavior. All three strengthened local suites now pass using the actual configured administrator JWT through the manager API, with exact fixture cleanup and owner integrity checks. Graduation's native navigation selector and immediate expanded bitmap transition were corrected.
+
+DTM submission migration150000 passed rollback-only permission/validation preflight and was applied to the exact client project: **125 migrations / 142 public RLS tables**. Its first actual Storage acceptance reached byte upload/download and isolation checks but failed while preparing concurrent save/cancel fixtures. Duplicate synthetic course keys and an incorrect expectation of HTTP200 for a204 cleanup acknowledgement are harness defects under repair. All exact users, objects, cleanup-queue rows and owner-fixture rows were verified absent; owner hashes were unchanged. The unmounted upload/editor draft is not released.
+
+Production remains120b2c1/runtime29ea235. The staged native release passes411API/source checks and79units; the broader working tree429/93 includes separate DTM drafts. Build/lint/handoff and dependency checks pass. Actual deployed-model acceptance remains a release gate. The enrollment-certificate source is now accessible through its portal SSO link and was inspected read-only. Its blocked state and geometry are captured privately; no official document was generated and no private school records were copied into fixtures. Root owns release/planning/database coordination in agent/A2A.md.
+
 ## Verified assistant and persistent conversations (Issue #99)
 
 The client is running `29ea235da5b0de01bf8ca20da06480ca51ac51d4`, verified Ready as [Vercel 7Dww1H452QL3PjnXxZhYk3gwg2m1](https://vercel.com/v1-d286/std_edu_ai/7Dww1H452QL3PjnXxZhYk3gwg2m1). [Quality 43327154869](https://github.com/LuxArt0317/std_edu_ai/actions/runs/43327154869) passed313 API/source and49 unit checks, build/lint/handoff/dependency gates, ten public accessibility states and395 copied-page routes plus the embedded assistant flows.

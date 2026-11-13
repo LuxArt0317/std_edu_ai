@@ -6,6 +6,9 @@ import {
 import {studentAidNavigation} from './studentAidRecords.js';
 import {creditLoadHistoryNavigation} from './creditLoadHistory.js';
 import {courseSelectionNavigation} from './courseSelection.js';
+import {academicGradesNavigation,academicGradesPaths} from './academicGrades.js';
+import {graduationReviewNavigation,graduationReviewPaths} from './graduationReview.js';
+import {academicAttendanceNavigation,academicAttendancePaths} from './academicAttendance.js';
 
 const groups = { personal:'選單資訊', sysmenu:'選單資訊', sysDoc:'選單資訊', aca:'教務系統', sao:'學務資訊', swd:'總務資訊', rdd:'研發系統', infoSystem:'資訊系統' };
 const aliases = [
@@ -35,8 +38,30 @@ const groupAliases = [
 ];
 export const directoryEntries = schoolServiceEntries;
 
+const nativeAcademicNavigation=[
+  {...graduationReviewNavigation,id:'legacy-graduation-review',serviceId:'15-2',match:/\blegacy\b.{0,35}\b(?:graduation|degree audit)\b|\bgraduation\b.{0,35}\blegacy\b|\b15-2\b|舊版畢業|舊式畢業/i,
+    title:['舊版畢業檢核表','Legacy graduation review'],officialUrl:'https://info.stu.edu.tw/aca/grdcheckreport/index.asp',localUrl:graduationReviewPaths.legacy,
+    description:['開啟您的站內舊版畢業檢核參考報告；此報告與新版檢核分開維護。','Open your local legacy graduation-reference report. It is maintained separately from the modern review.']},
+  {...graduationReviewNavigation,serviceId:'15-1'},
+  ...[
+    ['transcript',/\b(?:transcripts?|grade history|historical grades?|past grades?|all grades?)\b|歷年成績|成績紀錄|成績記錄/i,'歷年成績','Academic transcript'],
+    ['warning',/\bwarning grades?\b|預警成績/i,'預警成績','Warning grades'],
+    ['ranking',/\b(?:rankings?|class standing)\b|學期排名|系排名|班排名|名次/i,'學期排名','Semester rankings'],
+    ['current',/\bcurrent(?:[ -]term)? grades?\b|\bthis (?:term|semester)(?:’s|'s)? grades?\b|當學期成績|本學期成績|當期成績/i,'當期成績','Current-term grade query'],
+    ['transfer',/\btransfer(?:red)?[ -]credits?\b|抵免學分|抵免成績/i,'抵免成績查詢','Transfer-credit query'],
+    ['cycle',/\bcycle grades?\b|循環成績/i,'循環成績查詢','Cycle-grade query'],
+  ].map(([view,match,zh,en])=>({...academicGradesNavigation,id:'academic-grades-'+view,serviceId:'13-1',match,title:[zh,en],localUrl:academicGradesPaths[view],
+    description:[`開啟站內${zh}頁面。各查詢分開顯示，不代表已匯入校方紀錄。`,`Open the local ${en.toLowerCase()} page. Each query has its own scope; university records are not imported.`]})),
+  {...academicGradesNavigation,serviceId:'13-1'},
+  {...academicAttendanceNavigation,id:'academic-attendance-detail',serviceId:'14-1',match:/\b(?:absence|attendance|roll[ -]?call) (?:details?|dates?|records?)\b|缺曠課明細|缺曠明細|缺課明細|曠課明細/i,
+    title:['缺曠課明細','Absence details'],localUrl:academicAttendancePaths.detail,
+    description:['開啟您的站內缺曠課明細；課程日期與點名時間分開保留。','Open your local absence details, with course dates and roll-call timestamps kept separately.']},
+  {...academicAttendanceNavigation,serviceId:'14-1'},
+];
+const localRecordIds=new Set([...courseSelectionNavigation,...nativeAcademicNavigation].map(entry=>entry.id));
 const navigation = [
   ...courseSelectionNavigation,
+  ...nativeAcademicNavigation,
   studentAidNavigation,
   creditLoadHistoryNavigation,
   {id:'course-catalog',match:/\bcourse (?:catalog(?:ue)?|offerings?|search)\b|\bcourses?(?:\s+are)?\s+(?:offered|available)\b|\b(?:offered|available)\s+courses?\b|當期課程查詢|開課(?:查詢|清單|資料)|(?:有|開設)哪些課程/i,title:['當期課程查詢','Course search'],officialUrl:'https://info.stu.edu.tw/ACA/student/QueryAGECourse/index.asp',localUrl:'/school-affairs/services/12-4',description:['在 stu.best 依學期、科系、教師與上課時段查詢站內範例開課資料；開課目錄獨立於您已選的課程。','Search local sample course offerings on stu.best by term, department, instructor and meeting time. The offering catalog is separate from your enrolled courses.']},
@@ -67,17 +92,18 @@ function isRecordPageNavigation(question) {
   // A class location/time question needs private records, even when it mentions
   // the timetable. Only explicit page-opening requests belong in this directory.
   return /\b(?:open|navigate to|take me to|(?:link|url|website)(?:\s+(?:to|for))?|where (?:can|do) i (?:find|open|access|view)|how (?:can|do) i (?:find|open|access|view))\b/i.test(question)
-    || /\bwhere (?:is|are) (?:the |my |our )?(?:weekly )?(?:timetables?|(?:class|course) schedule|course[ -]selection(?: history)?|selection history|registration history)\b/i.test(question)
-    || /(?:開啟|打開|前往|連結|網址)|(?:哪裡|哪裏|何處).{0,6}(?:查看|查詢|開啟)|(?:課表|功課表|選課(?:紀錄|記錄|歷史)?)(?:的?(?:頁面|功能|連結|網址))?\s*(?:在哪|在哪裡|在哪裏)/.test(question);
+    || /\bwhere (?:is|are) (?:the |my |our )?(?:weekly )?(?:timetables?|(?:class|course) schedule|course[ -]selection(?: history)?|selection history|registration history|(?:academic |warning |current(?:[ -]term)? )?grades?|transcripts?|(?:semester |class |department )?rankings?|(?:legacy )?(?:degree audit|graduation(?: (?:review|report|audit|check))?)|(?:academic )?attendance(?: (?:statistics|details|records))?|absence (?:statistics|details|records)|transfer credits?|cycle grades?)\b/i.test(question)
+    || /(?:開啟|打開|前往|連結|網址)|(?:哪裡|哪裏|何處).{0,6}(?:查看|查詢|開啟)|(?:課表|功課表|選課(?:紀錄|記錄|歷史)?|(?:歷年|預警|當期)?成績|(?:學期|系|班)?排名|(?:舊版)?畢業(?:學分)?(?:審核|檢核|資格|條件|要求|狀態)?(?:表|報告)?|缺曠課?(?:明細|統計|紀錄|記錄)?)(?:查詢)?(?:的?(?:頁面|功能|連結|網址))?\s*(?:在哪|在哪裡|在哪裏)/.test(question);
 }
 
 export function answerCampusNavigation(question) {
   if (/\b(?:password\s*[:=]|access_token|refresh_token|sesskey)\b|密碼[：:]/i.test(question)) return null;
   const navigational = /\b(?:where|how (?:can|do|to)|link|url|website|contact|phone|help (?:me )?find)\b|哪裡|哪裏|在哪|怎麼|如何|連結|電話|聯絡/i.test(question);
   const privateStatus = /\b(?:status|approved|rejected|pending|my (?:leave|internship) (?:record|history|draft))\b|請假紀錄|審核|核准|我的實習紀錄/i.test(question);
-  if (privateStatus) return null;
+  const nativeAcademicPage=nativeAcademicNavigation.some(entry=>entry.match.test(question))&&isRecordPageNavigation(question);
+  if (privateStatus&&!nativeAcademicPage) return null;
   const ownEnrollment = /\b(?:my|our)\b.{0,35}\b(?:enrollments?|enrolled|selected|registered|completed|withdrawn|timetable)\b|\b(?:i am|i'm|we are|i have|i've|we have|am i|are we)\b.{0,35}\b(?:enrolled|taking|registered|completed|selected)\b|我.{0,12}(?:已選|已修|選修紀錄|選課紀錄|修過|正在修|課表)/i.test(question);
-  const entry = navigation.find(item => item.match.test(question) && (item.id!=='course-catalog' || !ownEnrollment) && (['course-selection-history','weekly-timetable'].includes(item.id) ? isRecordPageNavigation(question) : (navigational ||
+  const entry = navigation.find(item => item.match.test(question) && (item.id!=='course-catalog' || !ownEnrollment) && (!nativeAcademicNavigation.includes(item)||!/\b(?:dtm|moodle|elearning|e-learning)\b|數位教材|教材網/i.test(question)) && (localRecordIds.has(item.id) ? isRecordPageNavigation(question) : (navigational ||
     item.id==='course-catalog' && !ownEnrollment ||
     item.id==='wifi' && /\b(?:connect|setup|settings?)\b|連線|設定/i.test(question))));
   if (!entry) return null;
@@ -87,7 +113,7 @@ export function answerCampusNavigation(question) {
     ? (zh?'註冊課務組在行政大樓 1 樓。電話 07-615-8000，分機 2007、2009、2010、2012、2014、2016。電子郵件 course@stu.edu.tw。'
       :'The Registration and Curriculum Division is on the first floor of the Administration Building. Call +886 7 615 8000, ext. 2007, 2009, 2010, 2012, 2014 or 2016, or email course@stu.edu.tw.')
     : entry.description[i];
-  const localRecordDestination = ['course-selection-history','weekly-timetable'].includes(entry.id);
+  const localRecordDestination = localRecordIds.has(entry.id);
   const source = localRecordDestination ? entry.localUrl : wantsRegistrarContact?registrarFaq:entry.officialUrl;
   const links = [markdownLink(localRecordDestination ? (zh ? '在 stu.best 開啟' : 'Open on stu.best') : (zh ? '校方網站' : 'Official university page'),source)];
   if (entry.localUrl && !localRecordDestination) links.push(markdownLink(zh ? '在 stu.best 開啟' : 'Open on stu.best',entry.localUrl));
@@ -119,8 +145,10 @@ export function answerDirectoryQuestion(question, route='') {
   const requestedGroup = groupAliases.find(([pattern])=>pattern.test(question))?.[1];
   const query = aliases.find(([pattern]) => pattern.test(question))?.[1] || question;
   const token = normalized(query).replace(/[?？。，!！]/g,'').trim();
-  const serviceRoute = /^\/school-affairs\/services\/([^/]+)(?:\/history)?$/.exec(route)?.[1];
-  const service = serviceRoute && here ? studentServiceByKey(serviceRoute) : null;
+  const nativeRoute=nativeAcademicNavigation.find(entry=>entry.localUrl===route.split(/[?#]/)[0].replace(/\/$/,''));
+  const serviceRoute = /^\/school-affairs\/services\/([^/]+)(?:\/history)?$/.exec(route)?.[1]??nativeRoute?.serviceId;
+  const baseService = serviceRoute && here ? studentServiceByKey(serviceRoute) : null;
+  const service = baseService&&nativeRoute?{...baseService,title:nativeRoute.title[/[\u3400-\u9fff]/.test(question)?0:1],officialUrl:nativeRoute.officialUrl,localUrl:nativeRoute.localUrl}:baseService;
   const scoped = service ? [service] : section && here ? directoryEntries.filter(item => item.group === section.group && (section.view === 'all' || item.kind === section.view)) : [];
   const matches = scoped.length ? scoped : requestedGroup && /services?|systems?|menu|list|available|資訊|系統|服務|選單/i.test(question) ? directoryEntries.filter(item=>item.group===requestedGroup) : directoryEntries.filter(item => token.length >= 2 && (normalized(item.title).includes(token) || normalized(item.section).includes(token)));
   if (all && !requestedGroup && !here) {

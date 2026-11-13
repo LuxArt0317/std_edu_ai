@@ -24,3 +24,6 @@ Pending-fee suites verify complete pagination, caller/admin separation, strict A
 Verification quote checks also cover pretty-printed JSON excerpts, altered values, invented joins and image-source presence during correction.
 
 Structured evidence checks resolve exact JSON pointers, automatically include linked DTM assignments, and verify Taipei calendar evidence across UTC midnight. Missing correction evidence and unsupported links are distinguished from actual provider failures; all withhold the draft and action proposal.
+## Native academic coverage
+
+`academic-grades`, `graduation-review`, `academic-attendance` and `native-academic-*` tests cover strict mappings, account scope, explicit query selection, evidence bounds and routing through the existing private assistant. They use synthetic records; live persistence and deployed model acceptance are separate checks documented in [integration tests](../integration/README.md).

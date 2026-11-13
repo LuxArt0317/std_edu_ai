@@ -20,3 +20,5 @@ Browser clients call the public, School Affairs and protected Nexus endpoints. `
 `pendingFees.ts` preserves nullable metadata and computes positive balances in cents; occurrence dates never inherit payment deadlines. `creditLoadHistory.ts` defines administrator-authored local history, display labels and timestamps without inventing school eligibility rules.
 
 `courseSelection.ts` defines the observed course-selection phases, fourteen timetable periods, owner-scoped record types and native display helpers. Manager writes carry typed meeting arrays, explicit timetable membership, expected versions and retry IDs through the existing authorized manager API.
+
+`academicGrades.ts`, `graduationReview.ts` and `academicAttendance.ts` validate and scope native result bundles and manager edits. The shared workspace client exposes separate grade, graduation and attendance collections; explicitly requested report kind/current term is never inferred from another collection or the latest historical row.

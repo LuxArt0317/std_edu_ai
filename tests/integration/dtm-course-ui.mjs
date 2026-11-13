@@ -40,6 +40,9 @@ try{
         const box=await page.locator(selector).boundingBox();
         assert.ok([box.x,box.y,box.width].every((value,index)=>Math.abs(value-expected[index])<=1),selector+' source geometry');
       }
+      const navigationIcon=page.locator('.dtm-navigation-icon');
+      assert.equal(await navigationIcon.textContent(),'\uf0e8');
+      assert.match(await navigationIcon.evaluate(node=>getComputedStyle(node).fontFamily),/DTM Navigation Icons/);
     }
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'course overflow at '+width);
     await page.screenshot({path:`artifacts/dtm/course-${width}.png`,fullPage:true});
@@ -72,7 +75,13 @@ try{
     assert.equal(await page.locator('.dtm-grade-table thead th').count(),8);
     assert.equal(await page.locator('.dtm-grade-item').innerText(),'Practice assessment');
     assert.equal(await page.locator('.dtm-grade-total td').allTextContents().then(values=>values.every(value=>value==='–')),true);
-    if(width===1533){const box=await page.locator('.dtm-grade-table').boundingBox();assert.ok(Math.abs(box.y-305)<=1,'source grade table offset');}
+    if(width===1533){
+      const box=await page.locator('.dtm-grade-table').boundingBox();assert.ok(Math.abs(box.y-305)<=1,'source grade table offset');
+      assert.deepEqual(await page.locator('.dtm-grade-group th,.dtm-grade-item,.dtm-grade-total th').evaluateAll(nodes=>nodes.map(node=>({paddingLeft:getComputedStyle(node).paddingLeft,fontWeight:getComputedStyle(node).fontWeight}))),[{paddingLeft:'24px',fontWeight:'700'},{paddingLeft:'48px',fontWeight:'400'},{paddingLeft:'48px',fontWeight:'700'}]);
+      assert.equal(await page.locator('.dtm-grade-total-symbol').textContent(),'Σ');
+      assert.equal(await page.locator('.dtm-grade-total-symbol').getAttribute('aria-hidden'),'true');
+      assert.equal(await page.locator('.dtm-grade-item img').count(),0,'An arbitrary saved grade must not be labelled as an assignment.');
+    }
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'grade overflow at '+width);
     if(width<768){
       await page.getByRole('region',{name:'成績報告',exact:true}).focus();

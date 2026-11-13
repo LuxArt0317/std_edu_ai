@@ -5,6 +5,13 @@
   font-weight: 400;
   font-display: swap;
 }
+@font-face {
+  font-family: "DTM Navigation Icons";
+  src: url("/school-assets/2adefcbc041e7d18fcf2.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+}
 
 .dtm {
   --dtm-ink: #303f49;
@@ -79,6 +86,7 @@
 .dtm-card { background: #fff; border: 1px solid #e7ebec; box-shadow: 0 2px 3px #0001; padding: 10px 14px 5px; margin: 0 0 20px; }
 .dtm-card h2, .dtm-term-list .dtm-card h2 { margin: -10px -14px 9px; background: #f8f8f8; padding: 10px 14px; font-size: 15.4px; font-weight: 400; line-height: 20px; color: #333; }
 .dtm-navigation h2 { display: flex; gap: 12px; align-items: center; background: #657678; color: #fff; }
+.dtm-navigation-icon { display: inline-block; flex: none; width: 18px; height: 18px; font: 18px/18px "DTM Navigation Icons"; text-align: center; }
 .dtm-card p { margin: 0 0 9px; overflow-wrap: anywhere; }
 .dtm-card p > strong, .dtm-important-information strong { color: #b31d17; }
 .dtm-important-information a { text-decoration: underline; }
@@ -184,8 +192,11 @@
 .dtm-grade-table thead th { font-weight: 700; }
 .dtm-grade-table td:not(:nth-child(7)) { white-space: nowrap; }
 .dtm-grade-group, .dtm-grade-total { background: #f9f9f9; }
+.dtm-grade-table .dtm-grade-group th { padding-left: 24px; font-weight: 700; }
 .dtm-grade-group img { display: inline-block; margin-right: 5px; vertical-align: -2px; }
-.dtm-grade-table th.dtm-grade-item { padding-left: 24px; font-weight: 400; }
+.dtm-grade-table th.dtm-grade-item { padding-left: 48px; font-weight: 400; }
+.dtm-grade-table .dtm-grade-total th { padding-left: 48px; font-weight: 700; }
+.dtm-grade-total-symbol { display: inline-block; width: 16px; margin-right: 5px; font: bold 16px/16px Georgia, "Times New Roman", serif; }
 .dtm-record-list :target, .dtm-grade-table :target { outline: 2px solid #356881; outline-offset: -2px; background: #f2f8fb; }
 .dtm-empty { color: var(--dtm-muted); padding: .6rem 0; }
 .dtm-footer { display: flex; justify-content: space-between; align-items: center; gap: .55rem 1rem; flex-wrap: wrap; padding: .85rem 18px; background: #c7d4d6; color: #34484d; font-size: 13px; }

@@ -4,7 +4,7 @@ import affairsHandler from '../../api/affairs-assistant.ts';
 import publicHandler from '../../api/research-assistant.ts';
 import {answerDirectoryQuestion,directoryEntries} from '../../server/schoolAffairsDirectory.js';
 import {questionKind} from '../../server/schoolWebSearch.js';
-import {accountTools} from '../../server/answerVerificationAccount.js';
+import {accountTools,requiredNativeTools} from '../../server/answerVerificationAccount.js';
 
 const originalFetch=globalThis.fetch;
 const saved={url:process.env.VITE_SUPABASE_URL,key:process.env.VITE_SUPABASE_PUBLISHABLE_KEY,openai:process.env.OPENAI_API_KEY};
@@ -19,6 +19,68 @@ test('anonymous DTM and account questions require sign-in while public DTM quest
  assert.equal(questionKind('Who am I?').personal,true);
  assert.equal(questionKind('What is my email?').personal,true);
  assert.equal(questionKind('What is Digital Teaching Materials?').personal,false);
+});
+
+test('native multipart detection retains public navigation and DTM boundaries',()=>{
+ assert.deepEqual(requiredNativeTools('Show graduation status and academic attendance statistics'),['graduationReview','academicAttendance']);
+ assert.deepEqual(requiredNativeTools('Where is graduation review and academic attendance?'),[]);
+ assert.deepEqual(requiredNativeTools('Where is graduation review and show academic attendance statistics?'),['academicAttendance']);
+ assert.deepEqual(requiredNativeTools('What is Digital Teaching Materials?'),[]);
+ assert.deepEqual(requiredNativeTools('Show DTM grades and attendance','/dtm/grades'),[]);
+ assert.deepEqual(requiredNativeTools('Show grades and attendance','',[{role:'user',content:'My Moodle courses'}]),[]);
+ assert.deepEqual(requiredNativeTools('Show academic transcript and DTM grades','/dtm/grades'),['academicGrades']);
+});
+
+test('noun-only multipart native request loads own records and verification without public research',async()=>{
+ configured();const userId='00000000-0000-4000-8000-000000000090',calls:string[]=[],rpc:string[]=[];
+ let snapshots=0,reviews=0,repairs=0;
+ const nativeTables=new Set(['affairs_academic_grade_records','affairs_academic_term_summaries','affairs_academic_rankings','affairs_academic_metadata',
+  'affairs_graduation_reviews','affairs_academic_attendance_statistics','affairs_academic_attendance_details','affairs_academic_attendance_metadata']);
+ const readTables=new Set(['affairs_students','affairs_terms','affairs_programs','affairs_courses','affairs_sections','affairs_announcements','affairs_tasks',
+  'affairs_service_requests','affairs_service_records','affairs_scholarship_periods','affairs_scholarship_applications','affairs_student_aid_records',
+  'affairs_housing_periods','affairs_housing_applications','affairs_housing_assignments','affairs_credit_load_history','affairs_course_selection_records',
+  'affairs_grade_items','affairs_attendance','dtm_courses','dtm_notices',...nativeTables]);
+ globalThis.fetch=async(input,init)=>{
+  const url=new URL(String(input));calls.push(url.href);
+  if(url.href==='https://api.openai.com/v1/responses'){
+   const body=JSON.parse(String(init?.body)),operation=body.text.format.name,payload=JSON.parse(body.input[0].content[0].text);
+   assert.doesNotMatch(String(init?.body),/access_token|refresh_token|Bearer x{20}/);
+   let value:unknown;
+   if(operation==='account_lookup_plan')value={tools:[],publicTopics:[],action:null};
+   else {
+    assert.deepEqual(payload.evidence.map((item:{id:string})=>item.id),['account-scope','account:graduationReview','account:academicAttendance']);
+    const graduation=JSON.parse(payload.evidence[1].content),attendance=JSON.parse(payload.evidence[2].content);
+    assert.equal(graduation.requestedReportKind,'academic_services');assert.equal(graduation.records.counts[0].matchingRows,0);
+    assert.equal(attendance.selection.reason,'current_term_missing');
+    if(operation==='answer_evidence_review'){
+     reviews++;value={supported:reviews===2,answersQuestion:reviews===2,claims:reviews===1?[]:[
+      {claim:'No saved Academic Services report matches this account.',supported:true,evidenceId:'account:graduationReview',quotes:[],jsonPaths:['/records/counts/0/matchingRows']},
+      {claim:'The current attendance term is not designated.',supported:true,evidenceId:'account:academicAttendance',quotes:[],jsonPaths:['/selection/reason']},
+     ]};
+    }else {
+     assert.equal(operation,'correct_grounded_answer');repairs++;
+     value={status:'answered',answer:'No saved Academic Services report matches this account. The current attendance term is not designated.',sourceIds:['account:graduationReview','account:academicAttendance']};
+    }
+   }
+   return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}]});
+  }
+  assert.equal(url.hostname,'xiftudmvxphxcjtmfmib.supabase.co','No public research or external source may receive this record question.');
+  assert.equal((init?.headers as Record<string,string>)?.Authorization,token);
+  if(url.pathname==='/auth/v1/user')return Response.json({id:userId,identities:[{provider:'google'}]});
+  const table=url.pathname.split('/').at(-1)!;
+  if(url.pathname.includes('/rpc/')){assert.equal(snapshots,0);assert.ok(['affairs_initialize_account','dtm_initialize_account'].includes(table));rpc.push(table);return Response.json(null);}
+  assert.ok(!init?.method||init.method==='GET');
+  if(table==='affairs_profiles'){snapshots++;assert.equal(url.searchParams.get('user_id'),'eq.'+userId);return Response.json([{user_id:userId,email:'synthetic@example.invalid',display_name:'Synthetic',role:'student'}]);}
+  assert.ok(readTables.has(table),'Unexpected record source: '+table);
+  if(nativeTables.has(table))assert.equal(url.searchParams.get('user_id'),'eq.'+userId);
+  return Response.json([]);
+ };
+ const result=await invoke(affairsHandler,{question:'Show graduation status and academic attendance statistics',route:'/school-affairs'},token);
+ assert.equal(result.status,200,JSON.stringify(result.body));assert.equal(result.body.grounding.source,'account');assert.equal(result.body.verification.status,'verified');
+ assert.equal(result.body.verification.attempts,2);assert.equal(snapshots,2);assert.equal(reviews,2);assert.equal(repairs,1);
+ assert.deepEqual(rpc,['affairs_initialize_account','dtm_initialize_account']);assert.equal(result.body.proposedAction,undefined);
+ assert.match(result.body.answer,/No saved Academic Services report/);assert.match(result.body.answer,/current attendance term is not designated/);
+ assert.ok(!calls.some(url=>url.includes('/api/research-assistant')));
 });
 
 test('captured directory includes all 94 services and the current General Affairs page',()=>{
@@ -83,6 +145,14 @@ test('personal School Affairs question reads only the caller site records, never
    '/rest/v1/affairs_student_aid_records':[],
    '/rest/v1/affairs_credit_load_history':[],
    '/rest/v1/affairs_course_selection_records':[],
+   '/rest/v1/affairs_academic_grade_records':[],
+   '/rest/v1/affairs_academic_term_summaries':[],
+   '/rest/v1/affairs_academic_rankings':[],
+   '/rest/v1/affairs_academic_metadata':[],
+   '/rest/v1/affairs_graduation_reviews':[],
+   '/rest/v1/affairs_academic_attendance_statistics':[],
+   '/rest/v1/affairs_academic_attendance_details':[],
+   '/rest/v1/affairs_academic_attendance_metadata':[],
    '/rest/v1/affairs_housing_periods':[],
    '/rest/v1/affairs_housing_applications':[],
    '/rest/v1/affairs_housing_assignments':[],
@@ -124,6 +194,20 @@ test('personal School Affairs question reads only the caller site records, never
  assert.equal(selectionHistory.status,200);assert.match(selectionHistory.body.answer,/No course-selection records/);assert.equal(selectionHistory.body.grounding.source,'account');
  const phaseFollowup=await invoke(affairsHandler,{question:'semester 1',route:'/school-affairs/services/11-2'},token);
  assert.equal(phaseFollowup.status,200);assert.match(phaseFollowup.body.answer,/No timetable records/);assert.equal(phaseFollowup.body.grounding.source,'account');
+ const nativeQueries=[
+  {question:'Show my academic transcript',route:'/school-affairs/services/13-1/transcript/',expected:/No.*transcript|no.*records/i},
+  {question:'semester 1',route:'/school-affairs/services/13-1/ranking/',expected:/No.*ranking/i},
+  {question:'What is my graduation review status?',route:'/school-affairs/services/15-1/',expected:/no saved Academic Services graduation report/i},
+  {question:'What is the status?',route:'/school-affairs/services/15-2/',expected:/no saved Legacy graduation report/i},
+  {question:'What are the missing credits?',route:'/',history:[{role:'user',content:'My legacy graduation review'}],expected:/no saved Legacy graduation report/i},
+  {question:'Show my academic attendance statistics',route:'/school-affairs/services/14-1/',expected:/current term has not been explicitly designated/i},
+  {question:'semester 1',route:'/school-affairs/services/14-1/detail/',expected:/No.*attendance|no.*details/i},
+ ];
+ for(const query of nativeQueries){
+  const native=await invoke(affairsHandler,query,token);
+  assert.equal(native.status,200,JSON.stringify(native.body));assert.match(native.body.answer,query.expected);
+  assert.equal(native.body.grounding.source,'account');assert.doesNotMatch(native.body.answer,/SAMP101|DTM-SAMPLE-101/);
+ }
  assert.ok(!calls.some(url=>url.includes('/api/research-assistant')),'private questions must not be sent to public research');
  const events=await invokeStream({question:'What DTM materials do I have?',route:'/dtm'},token);
  assert.equal(events.at(-1)?.type,'result');

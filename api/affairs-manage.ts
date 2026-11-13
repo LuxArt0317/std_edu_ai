@@ -12,7 +12,7 @@ export default async function handler(request:Request,response:Response) {
   if(typeof body==='string'){try{body=JSON.parse(body);}catch{body=null;}}
   const input=body&&typeof body==='object'&&!Array.isArray(body)?body as Record<string,unknown>:null;
   const catalogAction=input?.kind==='save_course_offering'||input?.kind==='delete_course_offering';
-  const maxBodyBytes=input?.kind==='save_housing_period'?26000:catalogAction?48000:12000;
+  const maxBodyBytes=input?.kind==='save_graduation_review'?140000:input?.kind==='save_housing_period'?26000:catalogAction?48000:12000;
   if(!input || typeof input.kind!=='string' || !input.payload || typeof input.payload!=='object'
     || Array.isArray(input.payload) || Buffer.byteLength(JSON.stringify(input),'utf8')>maxBodyBytes){response.status(400).json({error:'Invalid manager request.'});return;}
   try {

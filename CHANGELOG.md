@@ -1,6 +1,13 @@
 # Changelog
 ## Unreleased
 
+### Native academic records (Issue #98, release pending)
+
+- Add source-shaped transcript, warning, ranking, independent modern/legacy graduation, and attendance statistics/detail pages.
+- Add separate account-owned native records and audited administrator editors with literal values, explicit current-term metadata, version conflicts and durable retry receipts.
+- Connect strict native assistant tools and local record links, keeping DTM/enrollment data distinct and preserving unknown history coverage.
+
+
 - Distinguish unavailable evidence and unsupported correction references from model-provider outages while withholding all unverified answers/actions. [#99]
 
 - Retrieve Moodle courses and their separately stored assignments together; provide calculated Taipei timetable evidence for today/next-class verification. Retain exact cleanup ledgers for interrupted live QA. [#99]

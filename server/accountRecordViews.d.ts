@@ -1,1 +1,3 @@
-export function accountRecordViews(snapshot:Record<string,any>,tools:string[]):Array<{id:string;title:string;url:string;columns:string[];rows:string[][];total:number;checkedAt:string;note:string}>;
+export function accountRecordViews(snapshot:Record<string,any>,tools:string[],context?:{question?:string;route?:string;history?:Array<{role:string;content:string}>}):Array<{id:string;title:string;url:string;columns:string[];rows:string[][];total:number;checkedAt:string;note:string}>;
+import type {NativeAcademicEvidenceCollection,NativeAcademicEvidenceRow,NativeAcademicEvidenceKey} from './nativeAcademicEvidence.js';
+export function nativeAccountQuery(snapshot:unknown,key:NativeAcademicEvidenceKey,context?:{question?:string;route?:string;history?:Array<{role:string;content:string}>}):{collection:NativeAcademicEvidenceCollection;matching:Record<string,NativeAcademicEvidenceRow[]>;selection:Record<string,unknown>|null};

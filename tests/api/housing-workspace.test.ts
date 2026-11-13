@@ -6,9 +6,9 @@ import {answerPrivateAffairsQuestion} from '../../server/affairsAnswer.js';
 import {housingApplicantLabel,housingPeriodState} from '../../src/services/housing.ts';
 
 const period={id:'housing-period',term_label:'Local housing 115-1',academic_year:115,semester:1,opens_at:'2026-11-01T00:00:00Z',closes_at:'2026-11-30T12:00:00Z',published:true,instructions:'Local instructions',agreement_text:'Accepted local agreement',source_mode:'local_demo',version:1};
-const application={id:'housing-application',user_id:'student-one',period_id:period.id,receipt_number:'H-12345678901234567890123456789012',full_name:'PRIVATE FULL NAME',student_number:'PRIVATE STUDENT ID',gender:'female',department:'PRIVATE DEPARTMENT',birth_date:'2000-01-01',home_phone:'PRIVATE PHONE',mobile_phone:'PRIVATE MOBILE',email:'private@example.invalid',address:'PRIVATE ADDRESS',postal_code:'PRIVATE POSTCODE',category:'disability',health_notes:'PRIVATE MEDICAL DETAILS',agreement_version:1,agreement_text:'PRIVATE ACCEPTED TEXT',submitted_at:'2026-11-12T00:00:00Z',version:1};
-const bed={id:'bed-one',user_id:'student-one',period_id:period.id,bed_number:'LOCAL-A',dormitory:'Local dormitory',bunk:'upper',accommodation_fee:'1250.75',deposit:null,subsidy_amount:null,version:1};
-const account={user:{id:'student-one'},token:'caller-token',url:'https://xiftudmvxphxcjtmfmib.supabase.co',key:'publishable-test-key'};
+const application={id:'housing-application',user_id:'10000000-0000-4000-8000-000000000001',period_id:period.id,receipt_number:'H-12345678901234567890123456789012',full_name:'PRIVATE FULL NAME',student_number:'PRIVATE STUDENT ID',gender:'female',department:'PRIVATE DEPARTMENT',birth_date:'2000-01-01',home_phone:'PRIVATE PHONE',mobile_phone:'PRIVATE MOBILE',email:'private@example.invalid',address:'PRIVATE ADDRESS',postal_code:'PRIVATE POSTCODE',category:'disability',health_notes:'PRIVATE MEDICAL DETAILS',agreement_version:1,agreement_text:'PRIVATE ACCEPTED TEXT',submitted_at:'2026-11-12T00:00:00Z',version:1};
+const bed={id:'bed-one',user_id:'10000000-0000-4000-8000-000000000001',period_id:period.id,bed_number:'LOCAL-A',dormitory:'Local dormitory',bunk:'upper',accommodation_fee:'1250.75',deposit:null,subsidy_amount:null,version:1};
+const account={user:{id:'10000000-0000-4000-8000-000000000001'},token:'caller-token',url:'https://xiftudmvxphxcjtmfmib.supabase.co',key:'publishable-test-key'};
 
 test('housing mapping preserves unknown fees and sorts assigned beds by the actual academic term',()=>{
   const older={...period,id:'older-period',academic_year:114,semester:2};
@@ -76,12 +76,12 @@ test('snapshot housing queries are account-filtered and admin-only data does not
   const original=globalThis.fetch;let admin=false;
   globalThis.fetch=async(input)=>{
     const url=new URL(String(input)),table=url.pathname.split('/').at(-1);let rows:unknown=[];
-    if(table==='affairs_profiles')rows=url.searchParams.get('user_id')?.startsWith('in.')?[{user_id:'student-two',email:'two@example.invalid',display_name:'Two',role:'student'}]:[{user_id:account.user.id,email:'one@example.invalid',display_name:'One',role:admin?'admin':'student'}];
+    if(table==='affairs_profiles')rows=url.searchParams.get('user_id')?.startsWith('in.')?[{user_id:'10000000-0000-4000-8000-000000000002',email:'two@example.invalid',display_name:'Two',role:'student'}]:[{user_id:account.user.id,email:'one@example.invalid',display_name:'One',role:admin?'admin':'student'}];
     if(table==='affairs_housing_periods')rows=[period];
     if(table==='affairs_housing_applications'||table==='affairs_housing_assignments'){
       const row=table==='affairs_housing_applications'?application:bed;
-      if(url.searchParams.has('user_id')){assert.equal(url.searchParams.get('user_id'),'eq.student-one');rows=[row];}
-      else{assert.equal(admin,true);rows=[row,{...row,id:'other-'+row.id,user_id:'student-two'}];}
+      if(url.searchParams.has('user_id')){assert.equal(url.searchParams.get('user_id'),'eq.10000000-0000-4000-8000-000000000001');rows=[row];}
+      else{assert.equal(admin,true);rows=[row,{...row,id:'other-'+row.id,user_id:'10000000-0000-4000-8000-000000000002'}];}
     }
     return new Response(JSON.stringify(rows),{status:200});
   };
@@ -91,6 +91,6 @@ test('snapshot housing queries are account-filtered and admin-only data does not
     admin=true;
     const manager=await loadAffairsSnapshot(account,true) as {housing:ReturnType<typeof mapHousingRecords>;admin:{housing:ReturnType<typeof mapHousingRecords>;profiles:Array<{user_id:string;email:string}>}};
     assert.equal(manager.housing.applications.length,1);assert.equal(manager.admin.housing.applications.length,2);assert.equal(manager.admin.housing.assignments.length,2);
-    assert.equal(manager.admin.profiles.find(row=>row.user_id==='student-two')?.email,'two@example.invalid');
+    assert.equal(manager.admin.profiles.find(row=>row.user_id==='10000000-0000-4000-8000-000000000002')?.email,'two@example.invalid');
   }finally{globalThis.fetch=original;}
 });
