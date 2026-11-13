@@ -1,3 +1,7 @@
+## Credit transfer (Issue #98)
+
+Root owns 7-2, its history, administrator review, migration 120000 and assistant answer. The current university route returned to sign-in. The published paper form and earlier closed-entry observation define the local contract. Paused Issue #100 paths remain excluded.
+
 ## Course withdrawal (Issue #98)
 
 Root owns service 6-4, the withdrawal-phase course action and current-term window, and its assistant and release checks. The source service returned to CAPTCHA sign-in. The university handbook describes course selection, confirmation, a retained withdrawal mark and restoration within the window. Paused Issue #100 paths remain excluded.

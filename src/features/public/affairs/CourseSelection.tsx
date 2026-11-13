@@ -11,7 +11,7 @@ import './courseSelection.css';
 const menus=[
   {title:'選課資訊',links:[['選課記錄查詢','/school-affairs/services/11-1'],['我的課表','/school-affairs/services/11-2'],['選課確認','/school-affairs/services/6-6'],['棄選','/school-affairs/services/6-4'],['即時教學反應','/school-affairs/services/7-6']]},
   {title:'超、減修學分',links:[['超減修學分申請','/school-affairs/services/7-1'],['歷年超減修申請紀錄','/school-affairs/services/11-3']]},
-  {title:'抵免學分',links:[['抵免學分申請','/school-affairs/services/7-2'],['已抵免學分記錄查詢','https://infosys.stu.edu.tw/WebSelectCourse/StuCcredit/GetCreditTransfer']]},
+  {title:'抵免學分',links:[['抵免學分申請','/school-affairs/services/7-2'],['已抵免學分記錄查詢','/school-affairs/services/7-2/history']]},
 ];
 const historyColumns=['序號','當期課程代碼','課程名稱','必選修','學分','教師一','備註'];
 const weekdays=['周一','周二','周三','周四','周五','周六','周日'];

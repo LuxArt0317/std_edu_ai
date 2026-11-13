@@ -1,5 +1,7 @@
 # Database migrations
 
+`20261114120000_credit_transfer.sql` adds account-owned applications, administrator review and private retry receipts. It seeds no applications and does not change transcript records.
+
 `20261114110000_course_withdrawal.sql` adds the administrator-managed withdrawal window and account-scoped read and change functions over existing withdrawal-phase records. Private receipts make retries safe.
 
 `20261114100000_course_adjustment.sql` adds public late-add notice content, private term- and phase-scoped eligibility, and a versioned administrator RPC with durable retry receipts.

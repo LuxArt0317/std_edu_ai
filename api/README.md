@@ -1,5 +1,7 @@
 # HTTP API
 
+`affairs-data.ts?scope=credit-transfer` returns the caller’s applications or an assistant answer. The admin scope selects a student. Dedicated action and manager operations handle draft saves, submissions and per-course review.
+
 `affairs-data.ts?scope=course-withdrawal` reads the signed-in student’s term and withdrawal-phase records. The admin scope takes a term only. Dedicated actions in `affairs-action.ts` and `affairs-manage.ts` apply versioned changes and window edits through Supabase.
 
 ## Account conversations and verified replies

@@ -1,5 +1,7 @@
 # School Affairs UI
 
+Credit transfer opens a private application and separate history view. Administrators can review submitted course equivalencies. See [credit transfer QA](../../../../docs/qa/CREDIT_TRANSFER.md).
+
 Service 6-4 opens the local course withdrawal table, confirmation and restoration. The existing School Affairs administration page configures the term window. See [course withdrawal QA](../../../../docs/qa/COURSE_WITHDRAWAL.md).
 
 The captured 94-link service catalog opens local pages. Shared routes cover the homepage, notifications, bookmarks, DTM and the student SSO information page. Other entries open a service workspace with its university destination and private tracking records.

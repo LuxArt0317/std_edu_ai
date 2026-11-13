@@ -1,0 +1,19 @@
+.credit-transfer { color: #333; min-width: 0; }
+.credit-transfer a { color: #245e89; text-decoration: underline; }
+.credit-transfer label { display: grid; gap: 4px; }
+.credit-transfer label select { min-height: 36px; min-width: 0; width: 100%; border: 1px solid #a9b3ba; padding: 5px 8px; background: #fff; color: #333; }
+.credit-transfer > label { max-width: 280px; margin: 10px 0; }
+.credit-transfer-form { margin: 12px 0; display: grid; gap: 8px; }
+.credit-transfer-form fieldset { min-width: 0; }
+.credit-transfer-course { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,160px),1fr)); gap: 8px; padding: 8px; margin: 10px 0; border: 1px solid #ccd5dc; }
+.credit-transfer-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 8px 0; }
+.credit-transfer-record { min-width: 0; margin: 12px 0; border: 1px solid #ccd5dc; padding: 10px; overflow-wrap: anywhere; }
+.credit-transfer-table { overflow-x: auto; max-width: 100%; margin: 8px 0; }
+.credit-transfer-table table { width: 100%; border-collapse: collapse; text-align: left; }
+.credit-transfer-table :is(td,th) { border: 1px solid #ccd5dc; padding: 6px; }
+.credit-transfer-table th { background: #f1f4f6; }
+@media print {
+  .course-selection-system:has(.credit-transfer) :is(nav,footer,.credit-transfer-form,.credit-transfer-no-print),
+  .course-selection-system:has(.credit-transfer) .credit-transfer > :not(.credit-transfer-record) { display: none; }
+  .course-selection-system:has(.credit-transfer) .credit-transfer-table { overflow: visible; }
+}

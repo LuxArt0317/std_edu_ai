@@ -4,6 +4,8 @@ import {adjustmentQuestion} from '../../server/courseAdjustmentContract.js';
 import {readCourseAdjustmentAnswer} from './courseAdjustment';
 import {withdrawalQuestion} from '../../server/courseWithdrawalContract.js';
 import {readWithdrawalAnswer} from './courseWithdrawal';
+import {creditTransferQuestion} from '../../server/creditTransferContract.js';
+import {readCreditTransferAnswer} from './creditTransfer';
 import {isProgramRegistrationQuestion} from '../../server/programRegistrationContract.js';
 import {readProgramRegistrationAnswer} from './programRegistration';
 import {askCampusAssistant,type AssistantResponse,type AssistantProgress} from './researchAssistant';
@@ -19,6 +21,12 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
     onProgress?.({kind:'program-registrations',label:'Checking interdisciplinary program registrations',detail:'Reading your School Affairs records.',status:'running'});
     const result:AssistantResponse = await readProgramRegistrationAnswer(data.session.user.id,question,signal);
     if (typeof result?.answer !== 'string' || result.grounding?.source !== 'account') throw new Error('Program registrations could not be loaded.');
+    return result;
+  }
+  if (!images.length && creditTransferQuestion(question)) {
+    onProgress?.({kind:'credit-transfer',label:'Checking credit transfer',detail:'Reading your saved applications.',status:'running'});
+    const result=await readCreditTransferAnswer(data.session.user.id,question,signal) as AssistantResponse;
+    if(typeof result?.answer!=='string'||result.grounding?.source!=='account')throw new Error('Credit transfer records could not be loaded.');
     return result;
   }
   const adjustment = !images.length && adjustmentQuestion(question);

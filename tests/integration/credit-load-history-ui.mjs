@@ -69,7 +69,7 @@ try{
   assert.deepEqual(await page.getByRole('menuitem').allTextContents(),['選課記錄查詢','我的課表','選課確認','棄選','即時教學反應']);
   assert.deepEqual(await page.getByRole('menuitem').evaluateAll(elements=>elements.map(element=>element.getAttribute('href'))),['/school-affairs/services/11-1','/school-affairs/services/11-2','/school-affairs/services/6-6','/school-affairs/services/6-4','/school-affairs/services/7-6']);await page.keyboard.press('Escape');
   await page.getByRole('button',{name:'抵免學分',exact:true}).click();
-  assert.equal(await page.getByRole('menuitem',{name:'已抵免學分記錄查詢',exact:true}).getAttribute('href'),'https://infosys.stu.edu.tw/WebSelectCourse/StuCcredit/GetCreditTransfer');await page.keyboard.press('Escape');
+  assert.equal(await page.getByRole('menuitem',{name:'已抵免學分記錄查詢',exact:true}).getAttribute('href'),'/school-affairs/services/7-2/history');await page.keyboard.press('Escape');
   const raw={id:randomUUID(),user_id:affairsTestUser.id,academic_year:115,semester:1,category:'under',requested_credits:'0',process_text:null,result_text:null,source_mode:'local_demo',version:1,created_at:checkedAt,updated_at:checkedAt};
   snapshot.creditLoadHistory=mapCreditLoadHistory([raw,{...raw,id:randomUUID(),academic_year:114,semester:2,category:'over',requested_credits:'2.50',process_text:'<img src=x onerror="window.creditInjected=true">',result_text:'站內自訂結果'},
     {...raw,id:randomUUID(),user_id:'another-account',process_text:'OTHER ACCOUNT PRIVATE PROCESS',result_text:'OTHER ACCOUNT PRIVATE RESULT'}]);
@@ -126,6 +126,6 @@ try{
   await manager.locator('select[name=user_id]:enabled').waitFor();
   assert.equal(await manager.locator('select[name=user_id]').isDisabled(),false);assert.equal(await manager.locator('select[name=user_id]').inputValue(),'');
   await managerPage.setViewportSize({width:390,height:844});await check(managerPage,'manager390');await manager.screenshot({path:directory+'/manager-390.png'});
-  assert.deepEqual(errors,[]);await writeFile(directory+'/result.json',JSON.stringify({status:'passed',syntheticOnly:true,geometry,sourceTypography,sourceInheritedContrast:contrast,unexpectedSeriousAccessibilityIssues:0,readOnlyStudent:true,emptySourceLayout:true,ownerFilter:true,escapedLabels:true,noInventedApplyControls:true,managerPrefillClearRetryAndConflict:true,logout:true,externalUnclonedChild:'https://infosys.stu.edu.tw/WebSelectCourse/StuCcredit/GetCreditTransfer'},null,2)+'\n');
+  assert.deepEqual(errors,[]);await writeFile(directory+'/result.json',JSON.stringify({status:'passed',syntheticOnly:true,geometry,sourceTypography,sourceInheritedContrast:contrast,unexpectedSeriousAccessibilityIssues:0,readOnlyStudent:true,emptySourceLayout:true,ownerFilter:true,escapedLabels:true,noInventedApplyControls:true,managerPrefillClearRetryAndConflict:true,logout:true,localTransferHistory:'/school-affairs/services/7-2/history'},null,2)+'\n');
   console.log('Credit-load history UI passed: empty/source geometry, desktop/mobile records, account filtering, read errors, no application controls, source menus/logout, manager prefill/clear/idempotent retry/conflict recovery. Source contrast is reported; no new serious/critical axe issues.');
 }finally{await browser.close();}

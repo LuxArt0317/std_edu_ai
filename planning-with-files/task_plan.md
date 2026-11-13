@@ -621,3 +621,11 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify navigation, assistant lookup and production behavior at `91d97d3`.
 - [ ] Inspect the current university withdrawal layout and active window.
 - [ ] Inspect summer selection with a source account that can pass the student-record check. The observed entry displayed a missing college-code message.
+
+## Credit transfer [Issue #98]
+
+- [x] Recheck the source entry and verify application fields and review outcomes in the published documents.
+- [x] Implement private drafts, print, confirmed submission, per-course review and assistant history.
+- [x] Verify exact-client rollback, account boundaries and idempotency.
+- [ ] Verify the migration and deployed runtime.
+- [ ] Inspect the current university open form and populated history.

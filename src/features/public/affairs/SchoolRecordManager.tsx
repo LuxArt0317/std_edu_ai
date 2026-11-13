@@ -11,6 +11,7 @@ import {CreditLoadHistoryManager} from './CreditLoadHistoryManager';
 import {CourseSelectionManager} from './CourseSelectionManager';
 import {CourseAdjustmentManager} from './CourseAdjustmentManager';
 import {CourseWithdrawalManager} from './CourseWithdrawalManager';
+import {CreditTransferManager} from './CreditTransferWorkspace';
 import {AcademicGradesManager} from './AcademicGradesManager';
 import {GraduationReviewManager} from './GraduationReviewManager';
 import {AcademicAttendanceManager} from './AcademicAttendanceManager';
@@ -86,6 +87,7 @@ export function SchoolRecordManager({admin,busy,onManage,onRefresh}:{admin:Admin
     <CourseSelectionManager records={admin.courseSelection?.records ?? []} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/>
     {managerId&&<CourseAdjustmentManager key={managerId} managerId={managerId} profiles={admin.profiles} busy={busy}/>}
     {managerId&&<CourseWithdrawalManager key={managerId} userId={managerId} busy={busy}/>}
+    {managerId&&<CreditTransferManager key={managerId} userId={managerId} profiles={admin.profiles} busy={busy}/>}
     <AcademicGradesManager records={admin.academicGrades ?? {records:[],termSummaries:[],rankings:[],metadata:[]}} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/>
     <GraduationReviewManager records={admin.graduationReview ?? {reports:[]}} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/>
     <AcademicAttendanceManager records={admin.academicAttendance ?? {statistics:[],details:[],metadata:[]}} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/>

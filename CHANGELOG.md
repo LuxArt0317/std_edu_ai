@@ -1,5 +1,7 @@
 # Changelog
 ## Unreleased
+- Add private credit transfer drafts, printable course equivalencies, confirmed submission, per-course local review and assistant history. [#98]
+
 - Add School Affairs course withdrawal and restoration, with an administrator-managed local window, private records and campus assistant lookup. [#98]
 
 

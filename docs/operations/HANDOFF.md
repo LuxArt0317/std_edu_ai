@@ -1,3 +1,7 @@
+## Credit transfer (Issue #98)
+
+Service 7-2 implements private drafts, print, submission, history and administrator review. The current university form and populated history are not yet observed. See [credit transfer QA](../qa/CREDIT_TRANSFER.md).
+
 ## Course withdrawal (Issue #98)
 
 Service 6-4 uses the local course-selection records and an administrator-managed term window. A confirmed withdrawal or restore updates the same row shown in history. Current university screen parity and dates remain open. See [course withdrawal QA](../qa/COURSE_WITHDRAWAL.md).

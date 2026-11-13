@@ -85,6 +85,11 @@ const localServiceNavigation = [
     description:['開啟補加選規則與站內資格查詢。','Open the late-add rules and eligibility lookup.'],
   },
   {
+    id:'credit-transfer',match:/\b(?:credit[ -]transfer|transfer credits?)\b|抵免學分/iu,
+    title:['抵免學分申請','Credit transfer application'],localUrl:'/school-affairs/services/7-2',
+    description:['填寫站內抵免申請及查詢審查紀錄。','Open the credit transfer form and saved application history.'],
+  },
+  {
     id:'course-withdrawal',match:/\bcourse withdrawals?\b|\bwithdraw\b.{0,30}\b(?:course|class)\b|棄選/iu,
     title:['棄選','Course withdrawal'],localUrl:'/school-affairs/services/6-4',
     description:['查詢站內棄選期間、課程與棄選紀錄。','Open the withdrawal window and your saved withdrawal-phase courses.'],

@@ -89,10 +89,10 @@ test('common navigation preserves selection links and its own Index/logout bound
   assert.equal(view.getByRole('menuitem',{name:'Logout'}).getAttribute('href'),'/school-affairs/signed-out');
 });
 
-test('the separately observed transfer-record link remains explicit external navigation, never an embedded request',async()=>{
+test('the transfer-record menu opens the separate local history route',async()=>{
   const view=render(tree());fireEvent.keyDown(view.getByRole('button',{name:'抵免學分'}),{key:'ArrowDown'});await view.findByRole('menu');
-  const external=view.getByRole('menuitem',{name:'已抵免學分記錄查詢'});
-  assert.equal(external.getAttribute('href'),'https://infosys.stu.edu.tw/WebSelectCourse/StuCcredit/GetCreditTransfer');
-  assert.equal(external.getAttribute('target'),'_blank');assert.equal(external.getAttribute('rel'),'noopener noreferrer');
+  const history=view.getByRole('menuitem',{name:'已抵免學分記錄查詢'});
+  assert.equal(history.getAttribute('href'),'/school-affairs/services/7-2/history');
+  assert.equal(history.getAttribute('target'),null);
   assert.equal(view.getByRole('menuitem',{name:'抵免學分申請'}).getAttribute('href'),'/school-affairs/services/7-2');
 });

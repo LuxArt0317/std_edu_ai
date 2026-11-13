@@ -1,5 +1,7 @@
 # Server helpers
 
+`creditTransfer.js` reads account-scoped application history and applies validated draft, submission and review operations through the caller’s Supabase session.
+
 `courseWithdrawal.js` and its contract validate account and term binding, confirmed withdrawal or restore receipts, and direct assistant answers from the saved window and course records.
 
 ## Verified account assistant (Issue #99)
