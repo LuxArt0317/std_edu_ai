@@ -8,7 +8,7 @@ The assistant can answer “Which interdisciplinary programs have I registered f
 
 The rollback suite checks owner isolation, non-Google and anonymous access, payload validation, stale writes and durable retry receipts. The actual-JWT suite runs against disposable accounts and verifies exact fixture cleanup. The browser suite covers the catalog link, source shell width, mobile containment, confirmation, retry, refresh, withdrawal, notes, guest return and signed-in assistant routing.
 
-Production `76c117c6c7ad0839f4dac7e7be9981c121280ea3` is live. The pinned browser suite and 19 actual-JWT API checks passed with exact cleanup and preserved owner state. The first production attempt saw the prior manifest during rollout, then passed on the published revision.
+Production `76c117c6c7ad0839f4dac7e7be9981c121280ea3` is live. The pinned browser suite and 19 actual-JWT API checks passed with exact cleanup and preserved owner state. The first production attempt saw the prior manifest during rollout, then passed on the published revision. [GitHub Quality checks](https://github.com/LuxArt0317/std_edu_ai/actions/runs/43472451908) passed.
 
 To repeat the pinned browser check from the client checkout:
 
