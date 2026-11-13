@@ -18,8 +18,9 @@ try{
  const page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto(base+'/school-affairs');
  await page.locator('.portal-user').click();
- await page.getByRole('menuitem',{name:'個人資料',exact:true}).click();
- await page.getByRole('button',{name:'Open site admin'}).click();
+ await page.getByRole('menuitem',{name:'School Affairs administration',exact:true}).click();
+ await page.waitForURL('**/school-affairs/admin/records');
+ await page.getByRole('heading',{name:'School Affairs administration',exact:true}).waitFor();
  await page.getByRole('heading',{name:'Manage sample school records'}).waitFor();
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();

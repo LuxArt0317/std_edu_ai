@@ -136,8 +136,8 @@ try{
     return route.fulfill({json:{id:values.id,kind:action.kind,summary:'Saved local scholarship record.'}});
   });
   const adminPage=await adminContext.newPage();adminPage.on('pageerror',error=>errors.push(error.message));
-  await adminPage.goto(base+'/school-affairs/records');
-  await adminPage.getByRole('button',{name:'Open site admin',exact:true}).click();
+  await adminPage.goto(base+'/school-affairs/admin/records');
+  await adminPage.getByRole('heading',{name:'School Affairs administration',exact:true}).waitFor();
   await adminPage.getByRole('heading',{name:'Scholarship applications · 獎助學金管理',exact:true}).waitFor();
   for(const width of [1533,390]){await adminPage.setViewportSize({width,height:900});await accessible(adminPage,'manager '+width);await adminPage.screenshot({path:`artifacts/scholarship/manager-${width}.png`,fullPage:true});}
   await adminPage.getByLabel('Scholarship term',{exact:true}).fill('QA published period');

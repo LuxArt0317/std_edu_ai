@@ -19,8 +19,8 @@ const entries=JSON.parse(await readFile(path.join(root,'src/features/public/mirr
 const copied=entries.find(page=>page.route==='/');
 assert.ok(copied,'The real copied-page wrapper must be available.');
 const $=load(renderDirectSchoolPage(root,copied));
-const notice=$('.stu-direct-notice').clone();notice.find('iframe').remove();
-const outer=notice.toString()+$('.stu-assistant-toggle').toString()+$('#stu-assistant-panel').toString();
+assert.equal($('.stu-direct-notice, .stu-account-status, iframe[src="/account-status"]').length,0,'The copied page must not inject the removed notice/account widget.');
+const outer=$('.stu-assistant-toggle').toString()+$('#stu-assistant-panel').toString();
 assert.ok(outer.includes('/campus-assistant?embed=1'));
 const fenced='\n\n```text\nBEGIN_'+('UNBROKEN_TOKEN_'.repeat(70))+'FENCE_END\n```';
 const messages=Array.from({length:20},(_,index)=>({id:`synthetic-${index}`,role:'assistant',phase:'complete',content:`Synthetic layout row ${index+1}.\n\n${'Readable conversation content. '.repeat(9)}${index===18?fenced:''}${index===19?'\n\n'+('long-token-'.repeat(100)):''}`}));
@@ -87,6 +87,7 @@ try {
       for(const mode of ['native','copied']){
         const label=`${mode}-${signedIn?'signed':'guest'}-${width}x${height}`;
         await page.goto(origin+'/__'+mode);
+        if(mode==='copied')assert.equal(await page.locator('.stu-direct-notice, .stu-account-status, iframe[src="/account-status"]').count(),0,label+' no removed notice/account widget');
         const launcher=page.getByRole('button',{name:'開啟 AI 校園助理',exact:true});
         await launcher.waitFor();
         assert.equal(await page.locator(mode==='native'?'.public-assistant-surface':'#stu-assistant-panel:popover-open').count(),0,label+' starts closed');

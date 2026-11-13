@@ -22,8 +22,10 @@ try {
   await guestPage.getByRole('button',{name:'Continue with Google'}).waitFor();
   assert.equal(new URL(guestPage.url()).pathname,'/dtm/login');
   await guestPage.goto(base+'/');
-  await guestPage.frameLocator('iframe.stu-account-status').getByRole('link',{name:'Sign in with Google'}).waitFor();
-  assert.equal(await guestPage.frameLocator('iframe.stu-account-status').getByText('student.qa@gmail.com').count(),0);
+  await guestPage.locator('body.home.page-id-243').waitFor();
+  assert.equal(await guestPage.locator('.stu-direct-notice, .stu-account-status, iframe[src="/account-status"]').count(),0);
+  assert.equal(await guestPage.getByText('student.qa@gmail.com').count(),0);
+  assert.equal(await guestPage.locator('.stu-assistant-toggle').count(),1);
   await guestPage.goto(base+'/dtm/login');
   await guestPage.route('**/api/affairs-data*',route=>route.fulfill({json:sample}));
   await guestPage.route('**/auth/v1/authorize?**',route=>route.fulfill({status:200,contentType:'text/html',body:'<h1>Mock Google authorization</h1>'}));
@@ -82,11 +84,14 @@ try {
   await page.keyboard.press('Escape');
   await page.waitForFunction(()=>document.activeElement?.matches('.dtm-user'));
   await page.goto(base+'/');
-  await page.frameLocator('iframe.stu-account-status').getByText('Signed in: student.qa@gmail.com').waitFor();
-  await page.screenshot({path:'artifacts/dtm/landing-status.png',fullPage:false});
+  await page.locator('body.home.page-id-243').waitFor();
+  assert.equal(await page.locator('.stu-direct-notice, .stu-account-status, iframe[src="/account-status"]').count(),0);
+  assert.equal(await page.getByText('Signed in: student.qa@gmail.com').count(),0);
+  assert.equal(await page.locator('.stu-assistant-toggle').count(),1);
+  await page.screenshot({path:'artifacts/dtm/landing-without-notice.png',fullPage:false});
   await page.goto(base+'/school-sites/dtm.stu.edu.tw/');
   await page.getByRole('heading',{name:'系統公告'}).waitFor();
   assert.deepEqual(errors,[]);
   await signed.close();
-  console.log(JSON.stringify({status:'ok',guestRedirect:true,sharedGoogleSession:true,courseMaterials:true,landingStatus:true,alias:true,viewports:[1533,1440,768,390,320],seriousCriticalAccessibility:0}));
+  console.log(JSON.stringify({status:'ok',guestRedirect:true,sharedGoogleSession:true,courseMaterials:true,landingNoticeAbsent:true,alias:true,viewports:[1533,1440,768,390,320],seriousCriticalAccessibility:0}));
 } finally {await browser.close();}

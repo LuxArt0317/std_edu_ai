@@ -1,5 +1,7 @@
 # API contract checks
 
+`public-release-assets.test.ts` verifies the generated copied documents and their assistant/CSP assets, including absence of the removed floating public-page notice/account-status widget. It uses local captures only.
+
 ## Account verification and chat regression checks
 
 `answer-verification*.test.ts` covers bounded graph repair, refreshed records, source-quote/link checks, timeouts, provider failures and no writes during retry. `account-assistant-actions.test.ts` covers exact owned targets, ambiguity, protected data, evidence-derived record views and safe persistence. `assistant-conversations.test.ts` verifies caller-derived ownership and stripping of executable data. Provider doubles in these tests are not real-model acceptance; run the integration suite below after release.

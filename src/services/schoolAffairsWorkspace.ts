@@ -77,11 +77,11 @@ async function call<T>(path:string,init?:RequestInit,expectedUserId?:string):Pro
   return payload as T;
 }
 export function loadSchoolAffairsData(admin=false,signal?:AbortSignal) { return call<AffairsSnapshot>(`/api/affairs-data${admin?'?scope=admin':''}`,{signal}); }
-export function performSchoolAffairsAction(action:AffairsAction) {
-  return call<{id:string;kind:string;summary:string}>('/api/affairs-action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(action)});
+export function performSchoolAffairsAction(action:AffairsAction,options?:Parameters<typeof savePersonalSchoolRecord>[1]) {
+  return call<{id:string;kind:string;summary:string}>('/api/affairs-action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(action),signal:options?.signal},options?.expectedUserId);
 }
-export function manageSchoolAffairsRecord(action:AffairsManagerAction) {
-  return call<{id:string;kind:string;summary:string}>('/api/affairs-manage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(action)});
+export function manageSchoolAffairsRecord(action:AffairsManagerAction,options?:Parameters<typeof savePersonalSchoolRecord>[1]) {
+  return call<{id:string;kind:string;summary:string}>('/api/affairs-manage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(action),signal:options?.signal},options?.expectedUserId);
 }
 export function savePersonalSchoolRecord(action:PersonalAction,options?:{expectedUserId:string;signal?:AbortSignal}) {
   const signal=options?.signal?AbortSignal.any([options.signal,AbortSignal.timeout(20000)]):AbortSignal.timeout(20000);

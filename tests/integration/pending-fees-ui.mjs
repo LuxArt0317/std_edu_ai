@@ -81,7 +81,7 @@ try{
   const managerWrites=[];
   await adminContext.route('**/api/affairs-data*',route=>route.fulfill({json:adminSnapshot}));
   await adminContext.route('**/api/affairs-manage',route=>{const action=route.request().postDataJSON();managerWrites.push(action);Object.assign(rawCharge,action.payload);return route.fulfill({json:{id:rawCharge.id,kind:'save_charge',summary:'Synthetic charge metadata saved.'}});});
-  const manager=await adminContext.newPage();manager.on('pageerror',error=>errors.push(error.message));await manager.goto(base+'/school-affairs/records');await manager.getByRole('button',{name:'Open site admin',exact:true}).click();
+  const manager=await adminContext.newPage();manager.on('pageerror',error=>errors.push(error.message));await manager.goto(base+'/school-affairs/admin/records');await manager.getByRole('heading',{name:'School Affairs administration',exact:true}).waitFor();
   const fees=manager.locator('.affairs-record-grid>section').filter({has:manager.getByRole('heading',{name:'Tuition and fees',exact:true})});
   await fees.getByRole('button',{name:'Edit',exact:true}).click();assert.equal(await fees.getByLabel('Occurrence date · 發生日期',{exact:true}).inputValue(),'2026-11-10');
   assert.equal(await fees.getByLabel('Due date',{exact:true}).inputValue(),'2030-01-01');

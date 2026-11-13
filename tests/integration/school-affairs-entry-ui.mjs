@@ -14,9 +14,14 @@ try {
  const nexus=affairsTestSession({...affairsTestUser,id:'a149fc19-57de-4f5d-a753-5bc0c0460606',email:'manager.qa@gmail.com'});
  await context.addInitScript(nexus=>{if(!localStorage.getItem('qa-nexus-seeded')){localStorage.setItem('stu-nexus-auth',JSON.stringify(nexus));localStorage.setItem('qa-nexus-seeded','1');}},nexus);
  const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
- const accountTasks=[];const accountActions=[];
+ const accountTasks=[];const accountActions=[];const accountReads=[];
  await page.route('**/api/affairs-data*',route=>{
   const authorization=route.request().headers().authorization;assert.ok(authorization?.startsWith('Bearer '));
+  const caller=JSON.parse(Buffer.from(authorization.split('.')[1],'base64url').toString());
+  assert.equal(caller.sub,affairsTestUser.id,'School Affairs reads use the Google caller, not the separate Nexus session');
+  assert.equal(route.request().method(),'GET');
+  assert.equal(new URL(route.request().url()).searchParams.get('scope'),null,'The student entry must not request administrator data');
+  accountReads.push(caller.sub);
   return route.fulfill({json:{checkedAt:'2026-11-05T00:00:00Z',officialUniversityData:false,profile:{userId:affairsTestUser.id,email:affairsTestUser.email,displayName:'QA Student',role:'student'},student:{id:'sample-student',studentNumber:'SAMPLE-QA-001',fullName:'QA Student',yearLevel:1,status:'active',sourceMode:'sample',program:'Sample General Studies'},courses:[{enrollmentId:'sample-enrollment',status:'enrolled',sourceMode:'sample',code:'SAMP101',title:'Campus Orientation',credits:2,term:'Sample Fall 2026',termStartsOn:'2026-09-07',termEndsOn:'2027-01-15',instructor:'Sample instructor',weekday:1,startsAt:'09:00:00',endsAt:'10:30:00',room:'Sample Room 101',grades:[{label:'Sample practice quiz',score:8,maximum:10,sourceMode:'sample'}],attendance:[]}],charges:[{id:'charge-qa',label:'Sample tuition',amountDue:28000,amountPaid:5000,currency:'TWD',dueOn:'2026-12-15',sourceMode:'sample'}],assignments:[{id:'assignment-qa',title:'Practice reflection',details:'Sample practice',dueAt:'2026-11-18T15:59:00Z',status:'open',submittedAt:null,sourceMode:'sample',enrollmentId:'sample-enrollment',dtmCourseId:null,course:'SAMP101'}],announcements:[],tasks:accountTasks,requests:[]}});
  });
  await page.route('**/api/affairs-action',route=>{
@@ -82,14 +87,20 @@ try {
   await page.getByRole('menuitem',{name:'校園助理',exact:true}).click();
  };
  await accountMenu();
- await page.getByRole('menuitem',{name:'個人資料',exact:true}).click();
- await page.waitForURL('**/school-affairs/records');
- await page.getByText('SAMPLE-QA-001',{exact:true}).waitFor();
- assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'account dashboard must fit phone width');
+ assert.equal(await page.getByRole('menuitem',{name:'個人資料',exact:true}).count(),0,'The invented personal overview is no longer offered');
+ assert.equal(await page.getByRole('menuitem',{name:'School Affairs administration',exact:true}).count(),0,'A student has no administration entry');
+ await page.keyboard.press('Escape');
+ await page.goto(base+'/school-affairs/records');
+ await page.waitForURL('**/school-affairs');
+ await page.locator('.portal-content').waitFor();
+ assert.equal(await page.locator('.portal-account-records,.affairs-admin,.affairs-manager').count(),0,'The compatibility link returns to index without a personal or administrator overview');
+ assert.equal(await page.getByRole('heading',{name:'My School Affairs',exact:true}).count(),0);
+ assert.ok(accountReads.length>0,'The authenticated index still reads the caller-owned snapshot');
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'authenticated index must fit phone width');
  await page.screenshot({path:`${directory}/account-320.png`,fullPage:false});
  assert.ok(calls.some(c=>c.pathname==='/auth/v1/token'&&c.search.includes('grant_type=pkce')&&c.body.includes('one-use-qa-code')));
  assert.equal(calls.filter(c=>c.pathname==='/auth/v1/token').length,1,'StrictMode exchanges one-use code once');
- assert.equal(await page.getByText('SAMP101 · Campus Orientation',{exact:true}).count(),1);
+ assert.equal(await page.getByText('SAMP101 · Campus Orientation',{exact:true}).count(),0,'Removing the overview does not render a replacement sample-course summary');
  assert.equal(await page.getByText('12,000',{exact:true}).count(),0);
  await page.locator('.portal-brand').click();
  await page.waitForURL('**/school-affairs');

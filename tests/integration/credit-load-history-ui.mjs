@@ -105,7 +105,7 @@ try{
     if(loseFirstResponse){loseFirstResponse=false;await firstBlocked;return route.fulfill({status:503,json:{error:'Synthetic response lost after save.'}});}
     return route.fulfill({json:result});
   });
-  const managerPage=await adminContext.newPage();managerPage.on('pageerror',error=>errors.push(error.message));await managerPage.goto(base+'/school-affairs/records');await managerPage.getByRole('button',{name:'Open site admin',exact:true}).click();
+  const managerPage=await adminContext.newPage();managerPage.on('pageerror',error=>errors.push(error.message));await managerPage.goto(base+'/school-affairs/admin/records');await managerPage.getByRole('heading',{name:'School Affairs administration',exact:true}).waitFor();
   const manager=managerPage.locator('.credit-load-manager');await manager.waitFor();
   assert.deepEqual(await manager.locator('select[name=user_id] option').allTextContents(),['Choose an account','Same Name ('+affairsTestUser.email+')','Same Name (other@example.invalid)']);
   await manager.locator('select[name=user_id]').selectOption(affairsTestUser.id);await manager.getByLabel('Academic year · 申請學年',{exact:true}).fill('115');await manager.getByLabel('Semester · 申請學期',{exact:true}).fill('1');
@@ -119,9 +119,11 @@ try{
   await manager.getByRole('button',{name:'Edit credit-load record',exact:true}).click();adminRows[0].version=3;adminRows[0].result_text='另一位管理員的合成更新';sync();
   await manager.getByLabel('Result label · 審核結果',{exact:true}).fill('不能覆蓋的新文字');await manager.getByRole('button',{name:'Save credit-load history',exact:true}).click();await managerPage.getByRole('alert').filter({hasText:'Synthetic concurrent version changed.'}).waitFor();
   assert.equal(adminRows[0].result_text,'另一位管理員的合成更新');assert.equal(adminRows[0].version,3);
-  await managerPage.reload();await managerPage.getByRole('button',{name:'Open site admin',exact:true}).click();await manager.getByRole('button',{name:'Edit credit-load record',exact:true}).click();
+  await managerPage.reload();await managerPage.getByRole('heading',{name:'School Affairs administration',exact:true}).waitFor();await manager.getByRole('button',{name:'Edit credit-load record',exact:true}).click();
   assert.equal(await manager.getByLabel('Result label · 審核結果',{exact:true}).inputValue(),'另一位管理員的合成更新');
   await manager.getByLabel('Result label · 審核結果',{exact:true}).fill('重新載入後的站內註記');await manager.getByRole('button',{name:'Save credit-load history',exact:true}).click();await manager.getByRole('heading',{name:'Add local credit-load history',exact:true}).waitFor();assert.equal(adminRows[0].version,4);assert.equal(writes.at(-1).payload.expected_version,'3');
+  // The dedicated admin host disables retained editors while refreshing the saved snapshot.
+  await manager.locator('select[name=user_id]:enabled').waitFor();
   assert.equal(await manager.locator('select[name=user_id]').isDisabled(),false);assert.equal(await manager.locator('select[name=user_id]').inputValue(),'');
   await managerPage.setViewportSize({width:390,height:844});await check(managerPage,'manager390');await manager.screenshot({path:directory+'/manager-390.png'});
   assert.deepEqual(errors,[]);await writeFile(directory+'/result.json',JSON.stringify({status:'passed',syntheticOnly:true,geometry,sourceTypography,sourceInheritedContrast:contrast,unexpectedSeriousAccessibilityIssues:0,readOnlyStudent:true,emptySourceLayout:true,ownerFilter:true,escapedLabels:true,noInventedApplyControls:true,managerPrefillClearRetryAndConflict:true,logout:true,externalUnclonedChild:'https://infosys.stu.edu.tw/WebSelectCourse/StuCcredit/GetCreditTransfer'},null,2)+'\n');

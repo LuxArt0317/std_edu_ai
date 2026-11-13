@@ -3,10 +3,15 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright-core";
 import AxeBuilder from "@axe-core/playwright";
 import { affairsTestUser, mockAffairsAuth } from "./helpers/affairs-auth.mjs";
-const base = process.env.PUBLIC_SITE_ORIGIN || "http://127.0.0.1:5173";
-if (!["127.0.0.1", "localhost"].includes(new URL(base).hostname))
+import {schoolServiceRouteInventory, summarizeServiceRoutes, expectedFinalServiceUrl, schoolServiceReadFixture} from './helpers/school-service-route-inventory.mjs';
+const base = process.env.PUBLIC_SITE_ORIGIN || "http://127.0.0.1:5176";
+const origin = new URL(base);
+if (origin.protocol!=="http:" || !["127.0.0.1", "localhost"].includes(origin.hostname)
+  || origin.origin!==base || origin.username || origin.password)
   throw Error("This portal preview suite is local-only.");
-const directory = "artifacts/stu-reference/affairs-qa";
+const inventoryOnly=process.argv.includes('--inventory-only');
+assert.ok(process.argv.slice(2).every(arg=>arg==='--inventory-only'),'Unknown UI test option.');
+const directory = `artifacts/stu-reference/affairs-qa/${inventoryOnly?'inventory':'full'}-${new Date().toISOString().replaceAll(/[:.]/g,'-')}`;
 await mkdir(directory, { recursive: true });
 const browser = await chromium.launch({
   headless: true,
@@ -17,6 +22,11 @@ const browser = await chromium.launch({
 const evidence = [];
 const errors = [];
 const externalRequests = [];
+const unexpectedApiRequests = [];
+const apiReads = [];
+const routeResults = [];
+const inventorySummary = summarizeServiceRoutes();
+let outcome='running',failure=null;
 async function scan(page, name, screenshot = false) {
   assert.ok(
     await page.evaluate(
@@ -44,14 +54,27 @@ async function scan(page, name, screenshot = false) {
   console.log(JSON.stringify(evidence.at(-1)));
 }
 async function wire(context) {
-  await context.route("**/*", (route) => {
-    const url = new URL(route.request().url());
-    if (!["127.0.0.1", "localhost"].includes(url.hostname)) {
+  await context.route("**/*", async (route) => {
+    const request=route.request(),url = new URL(request.url());
+    if (url.origin!==base) {
       externalRequests.push(url.origin + url.pathname);
       return route.abort();
     }
+    if(url.pathname.startsWith('/api/')) {
+      try {
+        assert.match(request.headers().authorization||'',/^Bearer /,'Account reads require the synthetic caller token.');
+        const json=schoolServiceReadFixture(url.href,request.method(),affairsTestUser,base);
+        apiReads.push(url.pathname+url.search);
+        return route.fulfill({json});
+      } catch {
+        unexpectedApiRequests.push({method:request.method(),path:url.pathname,query:url.search});
+        return route.fulfill({status:503,json:{error:'This read is not included in the menu QA fixture contract.'}});
+      }
+    }
+    if(request.method()!=='GET'){unexpectedApiRequests.push({method:request.method(),path:url.pathname});return route.abort();}
     return route.continue();
   });
+  await context.routeWebSocket('**/*',socket=>socket.close());
   context.on("page", (page) =>
     page.on("pageerror", (error) => errors.push(error.message)),
   );
@@ -87,23 +110,12 @@ try {
   const context = await browser.newContext({
     viewport: { width: 1280, height: 900 },
     reducedMotion: "reduce",
+    serviceWorkers: "block",
   });
   await wire(context);
   const page = await context.newPage();
   await mockAffairsAuth(context);
-  await context.route("**/api/affairs-data*", (route) => route.fulfill({ json: {
-    profile: { userId: affairsTestUser.id, role: "student", displayName: "QA Student" },
-    courses: [{
-      enrollmentId: "course-qa", code: "SAMPLE-101", title: "Campus Orientation", term: "QA semester",
-      status: "enrolled", credits: 2, weekday: 2, startsAt: "09:00:00", endsAt: "10:30:00",
-      grades: [{ label: "Sample quiz", score: 8, maximum: 10 }],
-      attendance: [{ date: "2026-11-10", status: "absent" }],
-    }],
-    charges: [{ id: "charge-qa", label: "Sample tuition", amountDue: 12000, amountPaid: 3000, currency: "TWD" }],
-    announcements: [],
-    requests: [],
-    serviceRecords: [],
-  } }));
+  if(!inventoryOnly) {
   for (const [group, view, count] of views) {
     await page.goto(`${base}/school-affairs/menu/${group}/${view}`);
     await page.locator("#portal-program-search").waitFor();
@@ -336,7 +348,8 @@ try {
   await page.goto(base + "/school-affairs/menu/aca/query");
   await page.getByRole("link", { name: "成績查詢", exact: true }).click();
   await page.waitForURL("**/school-affairs/services/13-1");
-  await page.getByRole("cell", { name: "Sample quiz", exact: true }).waitFor();
+  await page.locator('.academic-grade-index-table').waitFor();
+  assert.equal(await page.getByRole("cell", { name: "Sample quiz", exact: true }).count(),0,'Academic grade index does not reuse Moodle/enrollment grades.');
   await page.goto(base + "/school-affairs/menu/sao/query");
   await page.getByRole("link", { name: "待繳費用查詢", exact: true }).click();
   await page.waitForURL("**/school-affairs/services/39-1");
@@ -349,26 +362,58 @@ try {
   await page.getByRole("button", { name: /New record/ }).waitFor();
   await page.setViewportSize({ width: 390, height: 850 });
   await scan(page, "internship-contract-390", true);
+  }
+  await page.setViewportSize({width:1280,height:900});
   await page.goto(base + "/school-affairs/search");
   await page.locator("#portal-program-search").waitFor();
   const destinations = await page.locator(".portal-content a[data-program-id]").evaluateAll(links =>
-    links.map(link => ({ id: link.dataset.programId, url: new URL(link.href).pathname })),
+    links.map(link => ({ id: link.dataset.programId, url: link.href })),
   );
   assert.equal(destinations.length, 94);
+  assert.equal(new Set(destinations.map(row=>row.id)).size,94,'Each catalog entry appears once.');
+  assert.deepEqual(destinations.map(row=>row.id).sort(),schoolServiceRouteInventory.map(row=>row.id).sort());
   for (const destination of destinations) {
-    await page.locator(`.portal-content a[data-program-id="${destination.id}"]`).click();
-    await page.waitForURL(url => url.pathname === destination.url);
-    if (/^\/school-affairs\/services\//.test(destination.url)) {
-      await page.locator(".student-service, .student-internship, .student-leave").first().waitFor();
-      assert.equal(await page.getByRole("heading", { name: /Service not found/ }).count(), 0);
+    const entry=schoolServiceRouteInventory.find(row=>row.id===destination.id);
+    const result={...entry,navigation:'pending'};
+    try {
+      assert.equal(destination.url,new URL(entry.href,base).href,'Exact origin, path, query and hash.');
+      const link=page.locator(`.portal-content a[data-program-id="${entry.id}"]`);await link.waitFor();
+      assert.equal(await link.getAttribute('href'),entry.href);
+      await link.click();
+      await page.waitForURL(expectedFinalServiceUrl(entry,destination.url,base),{timeout:8000});
+      await page.locator(entry.selector).waitFor({timeout:8000});
+      await page.waitForLoadState('networkidle',{timeout:8000});
+      assert.equal(await page.locator(entry.selector).count(),1,'Unique route-specific root.');
+      assert.equal(await page.getByRole('heading',{name:/Service not found|Page not copied yet|Copied page available/}).count(),0);
+      assert.equal(await page.getByRole('alert').count(),0,'Loaded destination must not hide a fixture/read failure.');
+      if(entry.heading)assert.equal(await page.locator(entry.selector).textContent(),entry.heading);
+      if(entry.kind==='generic') {
+        assert.equal(await page.locator('.student-service-title h1').textContent(),entry.title);
+        assert.match(await page.locator('.student-service-body').innerText(),/Track your next steps here/);
+      } else if(entry.kind!=='partial')assert.equal(await page.locator('.student-service-body').count(),0,'Dedicated destination must not fall back to the generic tracker.');
+      if(entry.kind==='preview')assert.equal(await page.locator('.student-sso-preview fieldset:disabled').count(),1);
+      if(entry.id==='4-4')assert.equal(await page.locator('a[href$=".pdf"]').count(),6,'Actual calendar document, not SPA fallback.');
+      result.navigation='passed';
+    } catch(error) {
+      result.navigation='failed';result.error=error instanceof Error?error.message:'Navigation assertion failed';
+      await page.screenshot({path:`${directory}/route-${entry.id}-failure.png`,fullPage:false}).catch(()=>{});
     }
+    routeResults.push(result);
     await page.goBack();
-    await page.locator("#portal-program-search").waitFor();
+    await page.locator('#portal-program-search').waitFor();
   }
+  // Previously shared numeric links and the observed source redirect retain URL context.
+  for(const [id,path] of [['20-1','leave'],['33-1','leave/history'],['53-1','internship'],['6-6','11-1']]) {
+    await page.goto(base+`/school-affairs/services/${id}?qa=space%20value&second=1#menu-context`);
+    await page.waitForURL(base+`/school-affairs/services/${path}?qa=space%20value&second=1#menu-context`);
+  }
+  assert.deepEqual(routeResults.filter(row=>row.navigation==='failed').map(({id,kind,error})=>({id,kind,error})),[],'Catalog navigation failures; generic gaps remain gaps even when navigation passes.');
   await context.close();
+  if(!inventoryOnly) {
   const blocked = await browser.newContext({
     viewport: { width: 390, height: 900 },
     reducedMotion: "reduce",
+    serviceWorkers: "block",
   });
   await wire(blocked);
   await mockAffairsAuth(blocked);
@@ -389,23 +434,30 @@ try {
     .click();
   await blockedPage.keyboard.press("Escape");
   await blocked.close();
+  }
   assert.deepEqual(errors, []);
   assert.deepEqual(externalRequests, []);
+  assert.deepEqual(unexpectedApiRequests,[]);
+  outcome='passed';
   console.log(
     JSON.stringify({
-      status: "ok",
-      menuViews: 25,
+      status: "navigation-passed",
+      menuViews: inventoryOnly?0:25,
       programLinks: 94,
       checkedDestinations: destinations.length,
       states: evidence.length,
       externalRequests: 0,
       credentialForms: 0,
+      inventory: inventorySummary,
     }),
   );
+} catch(error) {
+  outcome='failed';failure=error instanceof Error?error.message:'Menu QA failed';throw error;
 } finally {
+  await browser.close();
   await writeFile(
     `${directory}/results.json`,
-    JSON.stringify({ evidence, errors, externalRequests }, null, 2),
+    JSON.stringify({status:outcome,failure,mode:inventoryOnly?'inventory-only':'full',evidence, errors, externalRequests,unexpectedApiRequests,apiReads,inventory:inventorySummary,routes:routeResults }, null, 2),
   );
-  await browser.close();
+  console.log('Menu QA evidence: '+directory+'/results.json');
 }

@@ -42,8 +42,9 @@ The harness owns an ephemeral loopback Vite server and an isolated headless
 Chrome context, and closes both in `finally`. It mounts the actual
 `PublicAssistant` and shared Sheet with synthetic auth/session data. The copied
 page uses the real generated outer markup, CSS, closing script and actual iframe
-containing that same component. The notices remain in the presentation fixture;
-the homepage's unrelated account-status iframe is omitted.
+containing that same component. The native guest preview notice remains. Copied
+pages now omit the removed floating notice and account-status iframe, matching
+the actual generated page.
 
 Service imports are blocked fixtures, API paths and external requests are
 rejected, and there are no credential reads, database calls or model requests.

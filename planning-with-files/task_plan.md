@@ -1,5 +1,14 @@
 # Task Plan
 
+## Remove the added personal summary and floating panel [Issue #98]
+
+- [x] Remove the floating green disclosure/account-status panel from copied public pages; retain the chatbot and normal sign-in routes.
+- [x] Remove the non-source My School Affairs summary and student menu entry; preserve saved records and old-link compatibility.
+- [x] Retain existing account/record maintenance in a separately guarded admin route, with caller-bound writes.
+- [x] Repair copied-home navigation and update the 94-entry menu inventory without counting generic trackers as complete workflows.
+- [ ] Update affected synthetic admin/login acceptance, independently review, publish and verify the follow-up.
+
+
 ## Protected navigation and Education Fund [Issue #98]
 
 - [x] Read the updated goal; audit menu destinations and preserve the separate user-paused Issue100 changes.
@@ -7,7 +16,7 @@
 - [x] Replace its generic tracker with the observed standalone page and local navigation; verify desktop/mobile rendering.
 - [x] Repair reproduced account-switch write races in Leave, Scholarship and service records, using existing caller guards.
 - [x] Verify the shared side panel, close/composer behavior, safe-area spacing and long formatted text without changing paused assistant runtime.
-- [ ] Review, run release gates, publish tested changes and verify the deployed destinations.
+- [x] Review, run release gates, publish tested changes and verify the deployed destinations.
 
 Keep stored-data provenance truthful. Do not replace missing school records with invented personal facts or assume unobserved application forms.
 

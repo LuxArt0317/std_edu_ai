@@ -116,8 +116,8 @@ try {
     return route.fulfill({json:{id:values.id,kind:action.kind,version:mapped.version,summary:'Saved synthetic aid record.'}});
   });
   const managerPage=await adminContext.newPage();managerPage.on('pageerror',error=>errors.push(error.message));
-  await managerPage.goto(base+'/school-affairs/records');
-  await managerPage.getByRole('button',{name:'Open site admin',exact:true}).click();
+  await managerPage.goto(base+'/school-affairs/admin/records');
+  await managerPage.getByRole('heading',{name:'School Affairs administration',exact:true}).waitFor();
   const manager=managerPage.locator('.student-aid-manager');
   await manager.getByRole('heading',{name:'Student aid records · 不利處境學生助學紀錄',exact:true}).waitFor();
   await manager.locator('select[name="user_id"]').selectOption(affairsTestUser.id);

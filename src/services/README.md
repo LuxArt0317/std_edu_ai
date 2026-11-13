@@ -13,6 +13,8 @@ Browser clients call the public, School Affairs and protected Nexus endpoints. `
 
 `schoolAffairsWorkspace.ts` reads account-scoped School Affairs and DTM data and sends student record edits to the audited RPCs. Its manager call uses the verified Google session and is separately authorized by the database.
 
+`performSchoolAffairsAction` and `manageSchoolAffairsRecord` also accept optional `{expectedUserId, signal}`. The separate administrative page supplies both, preventing a pending form from acquiring a different account's token. Payloads, existing callers and server permissions are unchanged. Cancellation cannot undo a write already accepted by the server.
+
 `savePersonalSchoolRecord(action, {expectedUserId, signal})` optionally binds a mutation to its initiating caller. It captures the expected ID before session lookup, requires the returned session's user ID to match, and checks cancellation before sending the POST and after reading the response. The DTM account-menu course creator supplies both the caller ID and a signal aborted when its editor unmounts, preventing an old draft from being sent with a newly switched account's token. Existing callers without the options retain their API shape; server authorization and payloads are unchanged.
 
 `scholarship.ts` defines local scholarship periods and application records, Taipei date/window helpers, and unambiguous applicant labels. The existing School Affairs action/manager clients submit versioned requests with stable retry IDs to the dedicated scholarship RPC.

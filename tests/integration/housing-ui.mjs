@@ -157,7 +157,7 @@ try {
     return route.fulfill({json:{id:row.id,kind:action.kind,version:next.version,summary:'Synthetic manager housing record saved.'}});
   });
   const managerPage=await adminContext.newPage();managerPage.on('pageerror',error=>errors.push(error.message));
-  await managerPage.goto(base+'/school-affairs/records');await managerPage.getByRole('button',{name:'Open site admin',exact:true}).click();
+  await managerPage.goto(base+'/school-affairs/admin/records');await managerPage.getByRole('heading',{name:'School Affairs administration',exact:true}).waitFor();
   const manager=managerPage.locator('.housing-manager');await manager.waitFor();
   await manager.getByLabel('Housing term',{exact:true}).fill('Synthetic published period');await manager.getByLabel('Academic year · ROC',{exact:true}).fill('116');
   await manager.getByLabel('Housing opens · Taipei time',{exact:true}).fill('2027-01-02T00:00');await manager.getByLabel('Housing closes · Taipei time',{exact:true}).fill('2027-01-01T00:00');

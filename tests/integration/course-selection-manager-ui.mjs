@@ -38,7 +38,7 @@ try{
     return route.fulfill({json:result});
   });
   const page=await context.newPage();page.setDefaultTimeout(15000);page.on('pageerror',error=>errors.push(error.message));
-  await page.goto(base+'/school-affairs/records');await page.getByRole('button',{name:'Open site admin',exact:true}).click();
+  await page.goto(base+'/school-affairs/admin/records');await page.getByRole('heading',{name:'School Affairs administration',exact:true}).waitFor();
   const manager=page.locator('.course-selection-manager');await manager.waitFor();
   assert.deepEqual(await manager.getByLabel('Course-selection account',{exact:true}).locator('option').allTextContents(),['Choose an account',`Same Name (${affairsTestUser.email})`,'Same Name (second@example.invalid)']);
   await manager.getByLabel('Course-selection account',{exact:true}).selectOption(affairsTestUser.id);

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { SchoolAccountRecords } from "./SchoolAccountRecords";
+import { SchoolAccountAdmin } from "./SchoolAccountAdmin";
 import type { CSSProperties, ReactNode } from "react";
 import { Link, Navigate, useLocation, useSearchParams, useNavigate } from "react-router";
 import {
@@ -200,9 +200,11 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   const bookmarks = route[0] === "bookmarks";
   const notifications = route[0] === "notifications";
   const records = route[0] === "records" && route.length === 1;
+  const adminRecords = route[0] === "admin" && route[1] === "records" && route.length === 2;
   const servicePage = route[0] === "services";
   const { snapshot: account, loading: accountLoading, error: accountError, refresh: refreshAccount } =
-    useAffairsRecords(index || notifications || (servicePage && ["11-1", "11-2", "13-1", "14-1", "15-1", "15-2", "34-2", "38-1"].includes(route[1])) ? user.id : undefined);
+    useAffairsRecords(index || notifications || bookmarks || validMenu || adminRecords || (servicePage && ["11-1", "11-2", "13-1", "14-1", "15-1", "15-2", "34-2", "38-1"].includes(route[1])) ? user.id : undefined);
+  const verifiedAdmin = !accountLoading && !accountError && account?.profile.userId === user.id && account.profile.role === "admin";
   const ended = route[0] === "signed-out";
   const article = portalNews.find((news) => news.id === params.get("news"));
   const programs = filterPrograms(
@@ -216,7 +218,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
     group === "menu" &&
     ["custom", "common", "course", "graduation"].includes(view);
   useEffect(() => {
-    document.title = `${index ? "校務系統入口" : validMenu ? selectedLabel : bookmarks ? "已收藏消息查詢" : notifications ? "通知訊息查詢" : records ? "個人資料" : "校務系統"} · stu.best School Affairs`;
+    document.title = `${index ? "校務系統入口" : validMenu ? selectedLabel : bookmarks ? "已收藏消息查詢" : notifications ? "通知訊息查詢" : adminRecords ? "School Affairs administration" : "校務系統"} · stu.best School Affairs`;
   }, [
     pathname,
     group,
@@ -225,7 +227,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
     selectedLabel,
     bookmarks,
     notifications,
-    records,
+    adminRecords,
   ]);
   const update = <K extends keyof PortalPreferences>(
     key: K,
@@ -259,7 +261,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   function renderProgramLink(program: PortalProgram) {
     const destination = serviceDestination(program);
     return (
-      <Link data-program-id={program.id} to={destination} reloadDocument={destination.split(/[?#]/, 1)[0] === calendarPath}>
+      <Link data-program-id={program.id} to={destination} reloadDocument={destination.split(/[?#]/, 1)[0] === calendarPath || (program.id === "4-5" && destination === "/")}>
         {program.title}
       </Link>
     );
@@ -439,6 +441,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
     "--portal-font-size": `${preferences.fontSize}px`,
   } as CSSProperties;
   const serviceAlias = servicePage && route.length === 2 ? nativeServiceAlias(route[1]) : undefined;
+  if (records) return <Navigate replace to="/school-affairs" />;
   if (serviceAlias) {
     return <Navigate replace to={{pathname: serviceAlias, search, hash}} />;
   }
@@ -590,9 +593,9 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
             <DropdownMenuItem asChild>
               <Link to="/school-affairs/bookmarks">使用者收藏校園公告查詢</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to="/school-affairs/records">個人資料</Link>
-            </DropdownMenuItem>
+            {verifiedAdmin && <DropdownMenuItem asChild>
+              <Link to="/school-affairs/admin/records">School Affairs administration</Link>
+            </DropdownMenuItem>}
             <DropdownMenuItem onSelect={() => window.dispatchEvent(new Event(campusAssistantOpenEvent))}>
               校園助理
             </DropdownMenuItem>
@@ -634,7 +637,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
                       ? "已收藏消息查詢"
                       : notifications
                         ? "通知訊息查詢"
-                        : records ? "個人資料" : "預覽"}
+                        : adminRecords ? "School Affairs administration" : "預覽"}
                 </span>
               </>
             )}
@@ -753,7 +756,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
                 </PortalWidget>
               </div>
             )}
-            {records && <SchoolAccountRecords userId={user.id} />}
+            {adminRecords && <SchoolAccountAdmin key={user.id} userId={user.id} identity={account} identityLoading={accountLoading} identityError={accountError} onReloadIdentity={refreshAccount} />}
             {validMenu && (
               <>
                 <h1 className="sr-only">
@@ -956,7 +959,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
               </section>
             )}
             {servicePage && <StudentServiceWorkspace key={pathname} userId={user.id} serviceKey={route[1] || ""} view={route.slice(2).join("/")} />}
-            {!index && !validMenu && !bookmarks && !notifications && !records && !ended && !servicePage && (
+            {!index && !validMenu && !bookmarks && !notifications && !adminRecords && !ended && !servicePage && (
               <section className="portal-ended">
                 <h1>找不到選單</h1>
                 <Link to="/school-affairs">返回 Index</Link>

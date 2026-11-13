@@ -17,13 +17,13 @@ for (const endpoint of ['/api/affairs-assistant', '/api/research-assistant']) {
 
 const home = await fetch(`${baseUrl}/`, { headers: { 'Cache-Control': 'no-cache' } })
 const homeHtml = await home.text()
-if (!home.ok || !homeHtml.includes('校園網站介面預覽（非官方）') || homeHtml.includes('data-stu-boot') || !homeHtml.includes('class="stu-assistant-frame"')) {
+if (!home.ok || !/<body\b[^>]*\bpage-id-243\b/i.test(homeHtml) || !/<meta http-equiv="Content-Security-Policy" content="[^"]*script-src 'self'[^"]*frame-src 'self'/i.test(homeHtml) || /stu-direct-notice|stu-account-status|src="\/account-status"|校園網站介面預覽（非官方）/.test(homeHtml) || homeHtml.includes('data-stu-boot') || !homeHtml.includes('class="stu-assistant-frame"')) {
   throw new Error('The public homepage must render a direct copied document without the SPA loader.')
 }
 for (const route of ['/在校學生/', '/admissions', '/freshman', '/教職員工/', '/進修人士/', '/畢業校友/', '/alumni-association', '/校外訪客/', '/國際學生/', '/international']) {
   const response = await fetch(`${baseUrl}${route}`, { headers: { 'Cache-Control': 'no-cache' } })
   const html = await response.text()
-  if (!response.ok || !html.includes('校園網站介面預覽（非官方）') || html.includes('data-stu-boot') || !html.includes('class="stu-assistant-frame"')) {
+  if (!response.ok || !/<body\b[^>]*>/i.test(html) || !/<meta http-equiv="Content-Security-Policy" content="[^"]*script-src 'self'[^"]*frame-src 'self'/i.test(html) || /stu-direct-notice|stu-account-status|src="\/account-status"|校園網站介面預覽（非官方）/.test(html) || html.includes('data-stu-boot') || !html.includes('class="stu-assistant-frame"')) {
     throw new Error(`${route} must render a direct copied document without the SPA loader.`)
   }
 }

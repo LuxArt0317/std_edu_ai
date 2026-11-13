@@ -10,7 +10,9 @@ for (const item of pages) {
   const html = await response.text();
   assert.equal(response.status, 200, `${item.route}: HTTP ${response.status}`);
   assert.match(response.headers.get('content-type') || '', /text\/html/);
-  assert.match(html, /校園網站介面預覽（非官方）/, item.route);
+  assert.match(html, /<body\b[^>]*>/i, item.route);
+  assert.match(html, /<meta http-equiv="Content-Security-Policy" content="[^"]*script-src 'self'[^"]*frame-src 'self'/i, item.route);
+  assert.doesNotMatch(html, /stu-direct-notice|stu-account-status|src="\/account-status"|校園網站介面預覽（非官方）/, item.route);
   assert.doesNotMatch(html, /data-stu-boot|class="source-mirror"/i, item.route);
   assert.match(html, /class="stu-assistant-toggle"/, item.route);
   assert.match(html, /class="stu-assistant-frame"[^>]+src="\/campus-assistant\?embed=1"/, item.route);
@@ -26,6 +28,7 @@ try {
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(origin, { waitUntil: 'domcontentloaded' });
     assert.equal(await page.locator('iframe.stu-assistant-frame').count(), 1);
+    assert.equal(await page.locator('.stu-direct-notice, .stu-account-status, iframe[src="/account-status"]').count(), 0);
     assert.equal(await page.locator('.source-mirror iframe').count(), 0);
     assert.equal(await page.locator('[data-stu-boot]').count(), 0);
     assert.ok((await page.locator('body').innerText()).length > 100);

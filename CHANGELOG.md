@@ -1,7 +1,11 @@
 # Changelog
 ## Unreleased
 
-- Replace the Education Fund tracker with the captured closed-period instructions and local navigation. Restore old numeric Leave/history/Internship URLs and the observed selection-confirmation redirect, bind pending form writes to the initiating account, and align copied-page assistant panels with the full-height native drawer. No new database schema or university submission. Offline source geometry, account-isolation, route and presentation checks pass; publication is pending. [#98]
+- Remove the floating green disclosure/account-status panel from copied public pages while preserving the shared chatbot and normal sign-in routes. [#98]
+
+- Remove the custom My School Affairs personal overview and menu entry, redirect old links to the native index, and preserve existing maintenance at a verified administrator-only route. Bind its writes to the initiating account and restore the copied homepage menu destination. No saved data or database schema is removed. Independent review, API/unit/build and scoped browser checks pass; publication is pending. [#98]
+
+- Replace the Education Fund tracker with the captured closed-period instructions and local navigation. Restore old numeric Leave/history/Internship URLs and the observed selection-confirmation redirect, bind pending form writes to the initiating account, and align copied-page assistant panels with the full-height native drawer. No new database schema or university submission. Offline source geometry, account-isolation, route and presentation checks pass; d72bb5b is published with successful Quality and deployed shell/chat checks. [#98]
 
 - Add owner-only DTM dashboard visibility, placement and order for the three observed blocks, with source-shaped configuration, versioned reset and durable retry handling. Migration230000 passed rollback preflight and is applied; actual-JWT local API/browser persistence, concurrent saves and exact cleanup passed. Published d820740; deployed actual-JWT persistence and cleanup also passed; Quality rerun passed unchanged. [#98]
 
