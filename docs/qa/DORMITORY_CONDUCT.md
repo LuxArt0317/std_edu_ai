@@ -1,6 +1,6 @@
 # Dormitory Conduct
 
-Issue [#98](https://github.com/LuxArt0317/std_edu_ai/issues/98). The native local route is `/school-affairs/services/34-2`. This batch is integrated in the release candidate and is not yet published. Migration `20261112220000_dormitory_conduct.sql` was applied after the exact client plan at132 migrations/149 public RLS tables.
+Issue [#98](https://github.com/LuxArt0317/std_edu_ai/issues/98). The native local route is `/school-affairs/services/34-2`. Published and production-accepted in runtime400abb07df6c2c2e0247a0634e4d338e70f5df0c. Migration `20261112220000_dormitory_conduct.sql` was applied after the exact client plan at132 migrations/149 public RLS tables.
 
 ## Observed source
 
@@ -43,6 +43,12 @@ November13 rollback-only preflight passed all5groups on the exact131-migration/1
 
 ## Configured candidate acceptance — November13
 
-Only220000 was permanently applied after the exact plan. The configured isolated candidate passed896 API/source checks,363 units, TypeScript/build/asset validation, lint, handoff and dependency audit0. Actual-JWT local7a3ab8b7 passed all7 groups:85 HTTP calls,32 browser API calls and6 successful audited writes, including absent-versus-empty states, permissions, direct RLS, replay/stale/tombstone/new-ID transitions, account reload/switch and390/320 containment. Exact fixture cleanup, connection closure and protected-owner preservation passed; blocked/model/download/official calls were0. Production acceptance is still pending.
+Only220000 was permanently applied after the exact plan. The configured isolated candidate passed896 API/source checks,363 units, TypeScript/build/asset validation, lint, handoff and dependency audit0. Actual-JWT local7a3ab8b7 passed all7 groups:85 HTTP calls,32 browser API calls and6 successful audited writes, including absent-versus-empty states, permissions, direct RLS, replay/stale/tombstone/new-ID transitions, account reload/switch and390/320 containment. Exact fixture cleanup, connection closure and protected-owner preservation passed; blocked/model/download/official calls were0. Production acceptance subsequently passed as recorded below.
 
 The initial localb824b8ca stopped at browser readiness before writes;9 HTTP/0 browser calls and0 writes, with exact cleanup. It is retained as failed. After linking the authorized ignored environment configuration and rebuilding, the configured candidate passed; no runtime code or acceptance bounds changed. Live administrator-browser editing, parallel RPC conflict behavior and populated source records remain unverified.
+
+## Production acceptance — November13
+
+Runtime400abb07df6c2c2e0247a0634e4d338e70f5df0c is Vercel Ready EPE1q3rqFCSJbkcMF9swjiSBfUFX, with exact public manifest and successful Quality43388722996. Production d145f4ce passed the same7groups through deployed HTTP only:53 HTTP calls,32 browser API calls and6 successful audited writes. Exact fixture cleanup, connection closure and protected-owner preservation passed; blocked/model/download/official calls were0. The production and configured-local desktop screenshots have identical SHA2566bc2e09d57681d1c821298e5b88cbd6022d4a958736e37a94495a50e778ed061. This proves equality for that captured state, not all source states or browsers.
+
+The earlier initial-mounting/pending statements are historical. Live administrator-browser interaction, parallel RPC conflicts, populated institutional records and a dedicated assistant reader remain outside this accepted scope.

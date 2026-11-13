@@ -140,3 +140,5 @@ geometry and containment, not full screenshot equivalence, mobile source parity
 or WCAG conformance. Ignored evidence:dtm-dashboard-header-final/result.json.
 
 The final isolated DTM/Dorm candidate also passed896 API/source checks,363 units, TypeScript/build/assets, lint, handoff and dependency audit0. These are offline/configured-build gates. The relocated Add course menu through an actual deployed JWT save and persisted reload has not been rerun; the unchanged backend, client caller/cancellation guards and mounted component interactions are covered by focused tests. The broad student-workspace live script also invokes models and is intentionally not used while Issue100 is paused.
+
+Published runtime400abb07df6c2c2e0247a0634e4d338e70f5df0c is Vercel Ready EPE1q3rqFCSJbkcMF9swjiSBfUFX; Quality43388722996 and public8route/50asset checks pass. These deployment checks do not fill the stated live Add course or persistent-customization gaps.

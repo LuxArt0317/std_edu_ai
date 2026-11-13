@@ -1,3 +1,9 @@
+## Accepted DTM and Dormitory runtime — November13,2026
+
+Runtime400abb07df6c2c2e0247a0634e4d338e70f5df0c is Vercel Ready EPE1q3rqFCSJbkcMF9swjiSBfUFX; public manifest and Quality43388722996 succeeded. Database132/149 and database-only client verification pass. Dorm local7a3ab8b7 and productiond145f4ce each passed7groups with exact cleanup and protected-owner preservation; production used53HTTP/32browser/6writes, no model/official/download calls. Public8route/50asset checks passed. Source-matched DTM dashboard is published; persistent block customization and deployed course-menu save/reload are not claimed.
+
+The separate Issue100 task is user-paused. Its unfinished runtime/evaluation changes remain uncommitted and unpublished; original failed results remain failed. All root live suites are now closed. Education Fund awaits user CAPTCHA. Subsequent documentation-only commits retain this runtime checkpoint. See [current state](../../planning-with-files/current_state.md); earlier pending/release entries below are historical.
+
 ## DTM and Dormitory release candidate — November13,2026
 
 Only220000 is now applied after its exact client plan:132 migrations/149 public RLS tables. The independent45path candidate passes896API/source,363unit,TypeScript/build/assets,lint,handoff and audit0. Dorm actual-JWT local7a3ab8b7 passed7groups/85HTTP/32browser/6writes with exact cleanup and protected-owner preservation. DTM six-state rendering matches measured desktop geometry and contains320/390px layouts; persisted customization and a new deployed course-menu save/reload are not claimed. Production is still e494fd4 until this separate Issue98 release is verified.
