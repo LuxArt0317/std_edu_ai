@@ -227,3 +227,7 @@ Runtime c68650147e403da367bda1b599c8aabdfef8a052 is published and Vercel Ready a
 ## Native Moodle URL resources [Issue #98]
 
 Authenticated source uses a full resource page with literal destination, course header and breadcrumb. Preserve destination separately from source provenance; never infer private URLs. Existing exact course-content reads also supply fallback headers for material/assignment navigation when the general snapshot is absent. Other missing-course views retain unavailable handling. Initial full units found three grade-context regressions from an overly broad fallback; narrowing fixed all17 affected cases. Raw failures remain in /tmp/stu-resource-units.log.
+
+## Authenticated fee-remission source — next native gap
+
+The restored portal exposes21-3 at /sao/Student/Remit/loginaction.asp. Its current screen has five instructions, a captured2026/8/1 08:00–2026/11/4 17:00 closed period and an empty seven-column remission-history table. Local21-3 still falls through to the generic note tracker. Implement only observed read-only instructions/history, with dedicated account-scoped literal cells and guarded administrative maintenance; preserve generic notes separately. Missing/error reads must not become empty history. No Apply, upload, eligibility, payment or unseen open-period form was observed. Private source evidence is ignored under artifacts/visual-parity/fee-remission.

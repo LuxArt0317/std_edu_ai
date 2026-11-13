@@ -5,9 +5,9 @@
 - [x] Inspect the authenticated material link and capture native resource layout and navigation.
 - [x] Store explicit destination metadata separately from Moodle provenance; preserve ownership and existing material operations.
 - [x] Replace material summary dialogs with exact account/course-bound routes and source-shaped resource pages, retaining existing management.
-- [ ] Independently review URL safety, exact records outside snapshot coverage, account changes and desktop/mobile rendering; verify database and deployed behavior before acceptance.
+- [x] Independently review URL safety, exact records outside snapshot coverage, account changes and desktop/mobile rendering; verify database and deployed behavior before acceptance. Runtime7476b4e is Ready and Quality43435922591 attempt2 succeeded unchanged.
 
-The previous goal turn made progress: c686501 was deployed and accepted. Fresh source inspection confirms a full URL-resource page with course/section/resource breadcrumbs and an explicit external destination. The School Affairs source login is awaiting CAPTCHA; Moodle source access works. No target is inferred from title or summary. The independent Issue100 assistant work remains user-paused.
+The previous goal turn made progress: c686501 was deployed and accepted. Fresh source inspection confirms a full URL-resource page with course/section/resource breadcrumbs and an explicit external destination. The School Affairs source login was restored by the user and verified; Moodle source access works. No target is inferred from title or summary. The independent Issue100 assistant work remains user-paused.
 
 ## DTM course activity placement [Issue #98]
 
@@ -515,3 +515,10 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [ ] Inspect internship detail forms, separate PracticeUnit55-1, remission21-3 and subsidy24-1 before defining native workflows.
 - [ ] Keep separate DTM and catalog4-2 Moodle/CU scopes explicit; do not count generic note records as native service completion.
 - [ ] Complete the reviewed dashboard row/footer/account-switch repair, then rendered and release acceptance.
+
+## Phase Next: Native fee-remission21-3 [Issue #98]
+
+- [x] Inspect restored authenticated source and save its actual closed-period instructions and empty history layout.
+- [ ] Replace generic note tracker with the native page; retain existing notes separately.
+- [ ] Persist exact account-scoped literal remission history with read-only student access and audited administrator maintenance.
+- [ ] Independently verify source layout, own-account boundaries, real persistence and deployed behavior without inventing an open-period application.
