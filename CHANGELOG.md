@@ -1,7 +1,9 @@
 # Changelog
 ## Unreleased
 
-- Add owner-only DTM dashboard visibility, placement and order for the three observed blocks, with source-shaped configuration, versioned reset and durable retry handling. Migration230000 passed rollback preflight and is applied; actual-JWT local API/browser persistence, concurrent saves and exact cleanup passed. Publication/deployed acceptance remain pending. [#98]
+- Replace the Education Fund tracker with the captured closed-period instructions and local navigation. Restore old numeric Leave/history/Internship URLs and the observed selection-confirmation redirect, bind pending form writes to the initiating account, and align copied-page assistant panels with the full-height native drawer. No new database schema or university submission. Offline source geometry, account-isolation, route and presentation checks pass; publication is pending. [#98]
+
+- Add owner-only DTM dashboard visibility, placement and order for the three observed blocks, with source-shaped configuration, versioned reset and durable retry handling. Migration230000 passed rollback preflight and is applied; actual-JWT local API/browser persistence, concurrent saves and exact cleanup passed. Published d820740; deployed actual-JWT persistence and cleanup also passed; Quality rerun passed unchanged. [#98]
 
 - Match the authenticated DTM dashboard columns, sidebar, header and footer to measured source layouts while preserving local course access and guarding course creation during account changes. Add native Dormitory Conduct unknown/empty notices, private account metadata and audited administrator maintenance; only220000 is applied. Published400abb0; local and deployed actual-JWT acceptance each passed7groups with exact cleanup and protected-owner preservation. DTM customization and a dedicated Dorm assistant reader remain unimplemented. [#98]
 

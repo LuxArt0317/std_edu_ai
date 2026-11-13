@@ -51,6 +51,16 @@ export const schoolServiceEntries = catalog.flatMap(([group, kind, section, link
   })
 );
 
+// Retain previously shared catalog URLs after a service gets its own workspace.
+export function nativeServiceAlias(key) {
+  // Observed 2026-11-13: StuSelConfirm returned to SelectCourse without a form.
+  // Evidence: artifacts/visual-parity/selection-application-availability.json.
+  if (key === '6-6') return '/school-affairs/services/11-1';
+  const entry = schoolServiceEntries.find(item => item.id === key);
+  return entry && [leavePath, leavePath + '/history', internshipPath].includes(entry.localUrl)
+    ? entry.localUrl : undefined;
+}
+
 export function studentServiceByKey(key) {
   if (key === 'leave') return {
     id:key, group:'sao', kind:'input', section:'學生請假', title:'學生請假', sourcePath:officialLeaveUrl,

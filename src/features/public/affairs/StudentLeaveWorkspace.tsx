@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -85,7 +85,7 @@ function LeaveTitle({children}:{children:ReactNode}) {
   </header>;
 }
 
-function LeaveForm({snapshot,record,saved}:{snapshot:AffairsSnapshot;record?:ServiceRecord;saved:()=>void}) {
+function LeaveForm({snapshot,record,saved,userId}:{snapshot:AffairsSnapshot;record?:ServiceRecord;saved:()=>void;userId:string}) {
   const [id] = useState(()=>record?.id ?? crypto.randomUUID());
   const initialCategory = record?.leaveCategory ?? '';
   const [category,setCategory] = useState(initialCategory);
@@ -94,6 +94,8 @@ function LeaveForm({snapshot,record,saved}:{snapshot:AffairsSnapshot;record?:Ser
   const [periods,setPeriods] = useState(record?.periods ?? '');
   const [busy,setBusy] = useState(false);
   const [error,setError] = useState('');
+  const pending = useRef<AbortController|null>(null);
+  useEffect(()=>()=>pending.current?.abort(),[]);
   const {student,profile} = snapshot;
   const slots = schedulePeriods(snapshot.courses,startsOn,endsOn);
   const chosen = new Set(periods.split(/[,、]\s*/).filter(Boolean));
@@ -114,7 +116,7 @@ function LeaveForm({snapshot,record,saved}:{snapshot:AffairsSnapshot;record?:Ser
   }
   async function submit(event:FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy) return;
+    if (busy || pending.current) return;
     const fields = Object.fromEntries(new FormData(event.currentTarget).entries()) as Record<string,string>;
     if (fields.starts_on > fields.ends_on) {
       setError('結束請假日期必須晚於或等於開始日期。');
@@ -130,6 +132,8 @@ function LeaveForm({snapshot,record,saved}:{snapshot:AffairsSnapshot;record?:Ser
       return;
     }
     const label = categories.find(([key])=>key===category)?.[2] ?? 'Leave';
+    const controller = new AbortController();
+    pending.current = controller;
     setBusy(true);
     setError('');
     try {
@@ -137,12 +141,13 @@ function LeaveForm({snapshot,record,saved}:{snapshot:AffairsSnapshot;record?:Ser
         ...fields,id,service_key:'leave',record_type:'leave',leave_category:category,contact_phone:phone,
         leave_time_period:category==='mental_health' ? fields.leave_time_period : '',
         title:record?.title ?? label+' · '+fields.starts_on,status:record?.status ?? 'draft',
-      }});
-      saved();
+      }},{expectedUserId:userId,signal:controller.signal});
+      if (!controller.signal.aborted) saved();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '無法儲存假單。');
+      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : '無法儲存假單。');
     } finally {
-      setBusy(false);
+      if (pending.current===controller) pending.current=null;
+      if (!controller.signal.aborted) setBusy(false);
     }
   }
   return <>
@@ -235,12 +240,18 @@ function LeaveForm({snapshot,record,saved}:{snapshot:AffairsSnapshot;record?:Ser
 }
 
 export default function StudentLeaveWorkspace({view,userId}:{view:string;userId:string}) {
+  return <LeaveSession key={userId} view={view} userId={userId}/>;
+}
+
+function LeaveSession({view,userId}:{view:string;userId:string}) {
   const navigate = useNavigate();
   const {state} = useLocation();
   const {snapshot,error,loading,refresh} = useAffairsRecords(view==='index'?undefined:userId);
   const [confirmation,setConfirmation] = useState<{kind:'review'|'delete';record:ServiceRecord}|null>(null);
   const [busy,setBusy] = useState(false);
   const [actionError,setActionError] = useState('');
+  const pending = useRef<AbortController|null>(null);
+  useEffect(()=>()=>pending.current?.abort(),[]);
   const records = (snapshot?.serviceRecords ?? []).filter(row=>row.serviceKey==='leave' && row.recordType==='leave');
   const editId = /^edit\/([0-9a-f-]{36})$/i.exec(view)?.[1];
   const edited = records.find(record=>record.id===editId);
@@ -250,17 +261,21 @@ export default function StudentLeaveWorkspace({view,userId}:{view:string;userId:
   const rows = archive?records.filter(row=>row.startsOn && row.startsOn<'2019-08-01'):records;
   const page = form?'填寫假單':archive?'歷史請假假單':periods?'請假節次':'Index';
   async function apply() {
-    if (!confirmation || busy) return;
+    if (!confirmation || busy || pending.current) return;
+    const controller = new AbortController();
+    pending.current = controller;
     setBusy(true);
     setActionError('');
     try {
-      await savePersonalSchoolRecord({kind:confirmation.kind==='review'?'submit_service_record_for_review':'delete_service_record',payload:{id:confirmation.record.id}});
+      await savePersonalSchoolRecord({kind:confirmation.kind==='review'?'submit_service_record_for_review':'delete_service_record',payload:{id:confirmation.record.id}},{expectedUserId:userId,signal:controller.signal});
+      if (controller.signal.aborted) return;
       setConfirmation(null);
       refresh();
     } catch (reason) {
-      setActionError(reason instanceof Error?reason.message:'無法完成操作。');
+      if (!controller.signal.aborted) setActionError(reason instanceof Error?reason.message:'無法完成操作。');
     } finally {
-      setBusy(false);
+      if (pending.current===controller) pending.current=null;
+      if (!controller.signal.aborted) setBusy(false);
     }
   }
   return <LeaveFrame page={page}>
@@ -271,7 +286,7 @@ export default function StudentLeaveWorkspace({view,userId}:{view:string;userId:
       <h2 className="leave-index-heading">學生請假填表作業</h2>
       <div className="leave-index-panel"><Link to={leavePath}>學生請假填表作業</Link></div>
     </>:form? snapshot && (!editId || edited
-      ? <LeaveForm snapshot={snapshot} record={edited} saved={()=>navigate(historyPath,{state:{saved:true}})}/>
+      ? <LeaveForm snapshot={snapshot} record={edited} userId={userId} saved={()=>navigate(historyPath,{state:{saved:true}})}/>
       : <p>找不到假單。 <Link to={historyPath}>回列表</Link></p>)
       : view==='history'||archive||periods ? <>
         <LeaveTitle>{archive?'歷史請假假單(107學年以前)':periods?'請假節次':'學生請假填表功能'}</LeaveTitle>

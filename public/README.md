@@ -5,3 +5,5 @@ Vite copies this directory into the site root. `favicon.png` is the 150 × 150 u
 `stu-reference/` also contains the 16 public School Affairs login photos. Their source URLs, local paths and SHA-256 checksums are listed in its `provenance.json`.
 
 [`dtm-theme/`](dtm-theme/README.md) contains the self-hosted Moodle activity icons, default avatars and Open Sans font used by the signed-in DTM layout.
+
+The copied-page assistant frame in `direct-school.css` uses the same full-height right-side presentation as the native assistant:512px on desktop and the full viewport below640px. `reference.css` adapts the embedded component to that frame; authentication and conversation behavior remain in the existing runtime.

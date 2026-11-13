@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {Link} from 'react-router';
 import {ChevronDown} from 'lucide-react';
 import {Button} from '@/components/ui/button';
@@ -15,12 +15,18 @@ const sourceUrl='https://info.stu.edu.tw/FRN/Scholarship/myApplication.asp';
 type Confirmation={kind:'apply_scholarship'|'cancel_scholarship';period:ScholarshipPeriod;application?:ScholarshipApplication;requestId:string};
 
 export function StudentScholarshipWorkspace({userId}:{userId:string}) {
+  return <ScholarshipSession key={userId} userId={userId}/>;
+}
+
+function ScholarshipSession({userId}:{userId:string}) {
   const {snapshot,loading,error,refresh}=useAffairsRecords(userId);
   const [now,setNow]=useState(Date.now);
   const [confirmation,setConfirmation]=useState<Confirmation|null>(null);
   const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState('');
   const [actionError,setActionError]=useState('');
+  const pending=useRef<AbortController|null>(null);
+  useEffect(()=>()=>pending.current?.abort(),[]);
   useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),30000);return()=>clearInterval(timer);},[]);
   const records=snapshot?.scholarship;
   const periods=records?.periods ?? [];
@@ -31,17 +37,18 @@ export function StudentScholarshipWorkspace({userId}:{userId:string}) {
     setActionError('');setConfirmation({kind,period,application,requestId:crypto.randomUUID()});
   }
   async function submit() {
-    if (!confirmation || busy) return;
+    if (!confirmation || busy || pending.current) return;
+    const controller=new AbortController();pending.current=controller;
     setBusy(true);setActionError('');
     try {
       await savePersonalSchoolRecord({kind:confirmation.kind,payload:{period_id:confirmation.period.id,
-        expected_version:String(confirmation.application?.version ?? 0),request_id:confirmation.requestId}});
+        expected_version:String(confirmation.application?.version ?? 0),request_id:confirmation.requestId}},{expectedUserId:userId,signal:controller.signal});
+      if(controller.signal.aborted)return;
       setMessage(confirmation.kind==='apply_scholarship'?'申請已儲存於您的 stu.best 帳號。':'已取消這筆 stu.best 申請。');
       setConfirmation(null);refresh();
     } catch (reason) {
-      setActionError(reason instanceof Error?reason.message:'申請未完成，請重試。');
-      refresh();
-    } finally {setBusy(false);}
+      if(!controller.signal.aborted){setActionError(reason instanceof Error?reason.message:'申請未完成，請重試。');refresh();}
+    } finally {if(pending.current===controller)pending.current=null;if(!controller.signal.aborted)setBusy(false);}
   }
   return <div className="student-scholarship" lang="zh-Hant">
     <header className="scholarship-navbar">

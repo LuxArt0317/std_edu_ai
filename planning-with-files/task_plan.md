@@ -1,11 +1,22 @@
 # Task Plan
 
+## Protected navigation and Education Fund [Issue #98]
+
+- [x] Read the updated goal; audit menu destinations and preserve the separate user-paused Issue100 changes.
+- [x] Reopen authenticated Education Fund and record its actual closed-period instructions and layout without school mutations.
+- [x] Replace its generic tracker with the observed standalone page and local navigation; verify desktop/mobile rendering.
+- [x] Repair reproduced account-switch write races in Leave, Scholarship and service records, using existing caller guards.
+- [x] Verify the shared side panel, close/composer behavior, safe-area spacing and long formatted text without changing paused assistant runtime.
+- [ ] Review, run release gates, publish tested changes and verify the deployed destinations.
+
+Keep stored-data provenance truthful. Do not replace missing school records with invented personal facts or assume unobserved application forms.
+
 ## DTM dashboard preferences [Issue #98]
 
 - [x] Revalidate source Customize mode and built-in block configuration without saving school changes.
 - [x] Persist owner-only Important, Navigation and Contacts visibility, region and weight with versioned reset/retry handling;230000 applied after rollback preflight.
 - [x] Match the observed configuration screen, preserve account-switch isolation, and verify local rendering and database behavior.
-- [ ] Independently review, run scoped/full release gates, publish and verify deployed behavior.
+- [x] Independently review, run scoped/full release gates, publish and verify deployed behavior.
 
 HTML block creation, Administration block behavior and unobserved Move interaction remain separate source-inspection gaps. Issue100 remains user-paused; no AI candidate or model tests are included.
 

@@ -1,0 +1,43 @@
+.education-fund{box-sizing:border-box;min-height:100vh;padding:12px 25px 0;background:#efeff0;color:#111;font:12px/1.231 "微軟正黑體","Microsoft JhengHei",Verdana,Helvetica,Arial,sans-serif}
+.education-fund *{box-sizing:content-box}
+.education-fund :is(h1,h2,h3,p,ol){margin:0;padding:0}
+.education-fund img{display:inline-block;max-width:none;vertical-align:baseline;border:0}
+.education-fund a:focus-visible{outline:2px solid #185ba5;outline-offset:2px}
+.education-fund-shell{width:960px;max-width:calc(100% - 2px);min-height:700px;margin:0 auto 12px;padding:0 0 20px;border:1px solid #c9cacb;border-radius:10px;background:#fff}
+.education-fund-banner{display:flex;justify-content:space-between;height:20px;margin:-5px -1px 0;background:#464646}
+.education-fund-banner>span{display:block;margin:0 20px 0 0;padding:3px 0 0 17px;color:#fff;text-shadow:1px 1px 3px #aaa;white-space:nowrap}
+.education-fund-heading{width:97%;margin:10px 0 0 15px}
+.education-fund-heading-row{display:flex;align-items:flex-start;min-height:55px}
+.education-fund-logo{width:55px;height:55px;flex:none}
+.education-fund-heading h1{margin:0 0 10px;padding-top:18px;color:#3f3f3f;font-size:20px;font-weight:400;line-height:1.231;text-shadow:0 1px 1px #999}
+.education-fund-breakline{height:0;padding-top:4px;border-bottom:1px solid #d3d3d3}
+.education-fund-left-breakline{width:244px;max-width:100%;height:0;border-top:1px solid #4f4f4f}
+.education-fund-container{padding:2.4px 24px}
+.education-fund-content{display:flow-root;margin-bottom:50px}
+.education-fund-region{width:80%;margin:4px auto 0}
+.education-fund-instructions{display:flow-root;width:90%;color:#382e23}
+.education-fund-instructions h2{margin-bottom:8px;padding:5px 0 0 5px;color:#903;font-size:16px;font-weight:700;line-height:20px}
+.education-fund-instructions h3{margin-bottom:7px;padding-left:5px;color:#069;font-size:14px;font-weight:400;line-height:12px}
+.education-fund-section{margin-bottom:15px;padding-bottom:15px;border-bottom:1px solid #d6d6d6}
+.education-fund-section ol{margin-left:26px;list-style:decimal outside;font-size:13px;line-height:1.231}
+.education-fund-section li{margin-bottom:6.5px}
+.education-fund-section p{margin-left:8px;font-size:13.008px;line-height:19.512px}
+.education-fund-section em{color:#f00;font-style:normal}
+.education-fund-section-empty{height:10px}
+.education-fund-footer{width:960px;max-width:100%;margin:0 auto;color:#666;font-size:10.8px;line-height:1.231}
+.education-fund-footer nav{margin-bottom:5.4px}
+.education-fund-footer a{padding:0 6px 0 0;border-right:1px dotted #bbb;color:#006459;text-decoration:none}
+.education-fund-footer p:last-child{margin-bottom:5.4px}
+@media(max-width:767px){
+  .education-fund{padding:12px 10px 10px}
+  .education-fund-banner{height:auto;min-height:20px}
+  .education-fund-banner>span{min-width:0;padding-left:10px;margin-right:10px;white-space:normal;overflow-wrap:anywhere}
+  .education-fund-banner>span:last-child{flex:none;white-space:nowrap}
+  .education-fund-heading{width:calc(100% - 30px)}
+  .education-fund-container{padding:2.4px 12px}
+  .education-fund-region,.education-fund-instructions{width:100%}
+  .education-fund-instructions h3{line-height:20px}
+  .education-fund-instructions :is(li,p){overflow-wrap:anywhere}
+  .education-fund-footer{overflow-wrap:anywhere}
+  .education-fund-footer nav{display:flex;flex-wrap:wrap;gap:5px 0}
+}

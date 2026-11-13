@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { SchoolAccountRecords } from "./SchoolAccountRecords";
 import type { CSSProperties, ReactNode } from "react";
-import { Link, useLocation, useSearchParams, useNavigate } from "react-router";
+import { Link, Navigate, useLocation, useSearchParams, useNavigate } from "react-router";
 import {
   List,
   Menu,
@@ -59,7 +59,7 @@ import {
 import type { PortalProgram } from "./model";
 import { loadPreferences, savePreferences } from "./preferences";
 import type { PortalPreferences } from "./preferences";
-import { calendarPath, serviceDestination } from "./studentServices.js";
+import { calendarPath, nativeServiceAlias, serviceDestination } from "./studentServices.js";
 import { StudentServiceWorkspace } from "./StudentServiceWorkspace";
 import StudentLeaveWorkspace from "./StudentLeaveWorkspace";
 import { StudentScholarshipWorkspace } from "./StudentScholarshipWorkspace";
@@ -81,6 +81,7 @@ import { TuitionDocumentsWorkspace } from "./TuitionDocumentsWorkspace";
 import { StudentConductWorkspace } from "./StudentConductWorkspace";
 import { StudentLoanWorkspace } from "./StudentLoanWorkspace";
 import { DormConductWorkspace } from "./DormConductWorkspace";
+import { EducationFundWorkspace } from "./EducationFundWorkspace";
 import { dormitoryConductPath } from "@/services/dormitoryConduct";
 import { studentLoanPaths, type StudentLoanView } from "@/services/studentLoan";
 import { studentConductPath } from "@/services/studentConduct";
@@ -139,7 +140,7 @@ function PortalWidget({
 
 export default function SchoolAffairsPortal({user}: {user: User}) {
   const displayName = user.email || "Google account";
-  const { pathname } = useLocation();
+  const { pathname, search, hash } = useLocation();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [snapshot, setSnapshot] = useState(() => loadPreferences(user.id));
@@ -437,6 +438,13 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   const styles = {
     "--portal-font-size": `${preferences.fontSize}px`,
   } as CSSProperties;
+  const serviceAlias = servicePage && route.length === 2 ? nativeServiceAlias(route[1]) : undefined;
+  if (serviceAlias) {
+    return <Navigate replace to={{pathname: serviceAlias, search, hash}} />;
+  }
+  if (normalizedPath === "/school-affairs/services/21-2") {
+    return <EducationFundWorkspace/>;
+  }
   if (servicePage && route[1] === "leave") {
     return <StudentLeaveWorkspace key={pathname} userId={user.id} view={route.slice(2).join("/")} />;
   }

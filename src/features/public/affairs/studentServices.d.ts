@@ -15,4 +15,5 @@ export type SchoolServiceEntry = PortalProgram & {officialUrl:string;localUrl:st
 export const schoolServiceEntries: SchoolServiceEntry[];
 export function officialServiceUrl(sourcePath:string):string;
 export function serviceDestination(program:PortalProgram):string;
+export function nativeServiceAlias(key:string):string|undefined;
 export function studentServiceByKey(key:string):SchoolServiceEntry|undefined;

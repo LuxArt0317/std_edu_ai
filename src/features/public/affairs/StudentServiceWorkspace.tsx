@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router';
 import { ArrowLeft, ChevronDown, ClipboardList, ExternalLink, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -79,30 +79,35 @@ function InternshipFrame({view,children}:{view:string;children?:ReactNode}) {
   </div>;
 }
 
-function ServiceForm({serviceKey,recordType,record,close,saved}:{
-  serviceKey:string;recordType:ServiceRecord['recordType'];record?:ServiceRecord;close:()=>void;saved:()=>void;
+function ServiceForm({serviceKey,recordType,record,close,saved,userId}:{
+  serviceKey:string;recordType:ServiceRecord['recordType'];record?:ServiceRecord;close:()=>void;saved:()=>void;userId:string;
 }) {
   const [id] = useState(()=>record?.id || crypto.randomUUID());
   const [busy,setBusy] = useState(false);
   const [error,setError] = useState('');
+  const pending = useRef<AbortController|null>(null);
+  useEffect(()=>()=>pending.current?.abort(),[]);
   const isContract = recordType==='contract';
   const submit = async (event:FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (busy) return;
+    if (busy || pending.current) return;
     const values = Object.fromEntries(new FormData(event.currentTarget).entries()) as Record<string,string>;
     if (Boolean(values.starts_on) !== Boolean(values.ends_on) || (values.starts_on && values.ends_on < values.starts_on)) {
       setError('請確認起訖日期。 Enter both dates in chronological order.');
       return;
     }
+    const controller = new AbortController();
+    pending.current = controller;
     setBusy(true);
     setError('');
     try {
-      await savePersonalSchoolRecord({kind:'save_service_record',payload:{...values,id,service_key:serviceKey,record_type:recordType}});
-      saved();
+      await savePersonalSchoolRecord({kind:'save_service_record',payload:{...values,id,service_key:serviceKey,record_type:recordType}},{expectedUserId:userId,signal:controller.signal});
+      if (!controller.signal.aborted) saved();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not save this record.');
+      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Could not save this record.');
     } finally {
-      setBusy(false);
+      if (pending.current===controller) pending.current=null;
+      if (!controller.signal.aborted) setBusy(false);
     }
   };
   return <form className="student-service-form" onSubmit={submit}>
@@ -129,6 +134,10 @@ function ServiceForm({serviceKey,recordType,record,close,saved}:{
 }
 
 export function StudentServiceWorkspace({serviceKey,view,userId}:{serviceKey:string;view:string;userId:string}) {
+  return <ServiceSession key={userId} serviceKey={serviceKey} view={view} userId={userId}/>;
+}
+
+function ServiceSession({serviceKey,view,userId}:{serviceKey:string;view:string;userId:string}) {
   const service = studentServiceByKey(serviceKey);
   const isInternship = serviceKey==='internship';
   const accountQuery = accountQueryByService[serviceKey];
@@ -139,6 +148,8 @@ export function StudentServiceWorkspace({serviceKey,view,userId}:{serviceKey:str
   const [busy,setBusy] = useState(false);
   const [actionError,setActionError] = useState('');
   const [status,setStatus] = useState('');
+  const pending = useRef<AbortController|null>(null);
+  useEffect(()=>()=>pending.current?.abort(),[]);
   const recordType = internshipView==='directory'?'company':internshipView ?? 'note';
   const records = (snapshot?.serviceRecords ?? []).filter(row=>row.serviceKey===serviceKey && row.recordType===recordType);
   if (serviceKey==='4-4' && !view) return <CalendarRedirect/>;
@@ -155,19 +166,23 @@ export function StudentServiceWorkspace({serviceKey,view,userId}:{serviceKey:str
     setActionError('');
   };
   const apply = async () => {
-    if (!confirmation || busy) return;
+    if (!confirmation || busy || pending.current) return;
+    const controller = new AbortController();
+    pending.current = controller;
     setBusy(true);
     setActionError('');
     const review = confirmation.kind==='review';
     try {
-      await savePersonalSchoolRecord({kind:review?'submit_service_record_for_review':'delete_service_record',payload:{id:confirmation.record.id}});
+      await savePersonalSchoolRecord({kind:review?'submit_service_record_for_review':'delete_service_record',payload:{id:confirmation.record.id}},{expectedUserId:userId,signal:controller.signal});
+      if (controller.signal.aborted) return;
       setConfirmation(null);
       setStatus(review?'已送出站內審核。 Sent for stu.best review.':'已刪除紀錄。 Record deleted.');
       refresh();
     } catch (reason) {
-      setActionError(reason instanceof Error ? reason.message : 'Could not complete this action.');
+      if (!controller.signal.aborted) setActionError(reason instanceof Error ? reason.message : 'Could not complete this action.');
     } finally {
-      setBusy(false);
+      if (pending.current===controller) pending.current=null;
+      if (!controller.signal.aborted) setBusy(false);
     }
   };
   const back = service.group==='sysmenu' ? 'menu/external' : service.group==='sysDoc' ? 'menu/help' : service.group+'/all';
@@ -196,7 +211,7 @@ export function StudentServiceWorkspace({serviceKey,view,userId}:{serviceKey:str
           {!editor && (!isInternship || internshipView!=='directory') &&
             <Button type="button" variant="outline" onClick={()=>{setEditor('new');setStatus('');}}><Plus size={16}/>新增紀錄 · New record</Button>}
         </div>
-        {editor && <ServiceForm key={editor==='new'?recordType:editor.id} serviceKey={serviceKey} recordType={recordType}
+        {editor && <ServiceForm key={editor==='new'?recordType:editor.id} serviceKey={serviceKey} recordType={recordType} userId={userId}
           record={editor==='new'?undefined:editor} close={()=>setEditor(null)} saved={saved}/>}
         {records.length ? <div className="student-service-table-scroll" role="region" aria-label="Saved service records" tabIndex={0}>
           <table className="student-service-table">

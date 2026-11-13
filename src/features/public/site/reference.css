@@ -210,6 +210,7 @@
 .public-assistant-surface .nexus-message-markdown p {margin:0 0 .75rem;color:inherit}
 .public-assistant-surface .nexus-message-markdown :is(ul,ol) {padding-inline-start:1.25rem;margin:.75rem 0}
 .public-assistant-surface .nexus-message-markdown a {text-decoration:underline;text-underline-offset:3px}
+.public-assistant-surface .nexus-message-markdown pre {max-width:100%;overflow-x:auto}
 .public-assistant-surface .public-assistant-user p {color:var(--primary-foreground)}
 
 /* Feedback belongs to the shared chat, including routes that do not load App.css. */
@@ -226,8 +227,16 @@
 .assistant-feedback-error { color: #a42323; font-size: .7rem !important; }
 
 /* The shared dialog header reset must not remove this full-bleed Sheet inset. */
-.public-assistant-surface > header {padding:20px 48px 20px 20px;flex-shrink:0}
-.public-assistant-surface > form {flex-shrink:0}
+.public-assistant-surface {width:100%;max-width:512px;height:100dvh;max-height:100dvh;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.public-assistant-surface > header {padding:calc(20px + env(safe-area-inset-top,0px)) calc(48px + env(safe-area-inset-right,0px)) 20px calc(20px + env(safe-area-inset-left,0px));flex-shrink:0}
+.public-assistant-surface > div:not([role="log"]) {flex-shrink:0;min-width:0;padding-left:calc(20px + env(safe-area-inset-left,0px));padding-right:calc(20px + env(safe-area-inset-right,0px))}
+.public-assistant-surface > [role="log"] {min-height:80px;min-width:0;overflow-x:hidden;overscroll-behavior:contain;padding-left:calc(20px + env(safe-area-inset-left,0px));padding-right:calc(20px + env(safe-area-inset-right,0px))}
+.public-assistant-surface > form {flex-shrink:0;padding:16px calc(16px + env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) calc(16px + env(safe-area-inset-left,0px))}
+.public-assistant-surface > button:last-child {top:calc(16px + env(safe-area-inset-top,0px));right:calc(16px + env(safe-area-inset-right,0px))}
+.public-site-shell [data-slot="sheet-trigger"][aria-label="開啟 AI 校園助理"] {right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+.stu-assistant-embed .public-assistant-surface {max-width:none;border:0;box-shadow:none}
+.stu-assistant-embed [data-slot="sheet-trigger"] {display:none}
+@media (width < 640px) {.public-assistant-surface {max-width:none}}
 
 .public-site-shell .reference-preview-notice.is-compact {position:fixed;top:auto;bottom:8px;left:8px;right:auto;max-width:calc(100% - 150px);border-radius:4px;padding:4px 8px;min-height:0;font-size:10px;z-index:80;box-shadow:0 1px 6px #0002;}
 .reference-preview-notice.is-compact span:nth-child(2) {display:none;}
