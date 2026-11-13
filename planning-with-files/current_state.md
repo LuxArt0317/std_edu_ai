@@ -1,3 +1,7 @@
+# Verified syllabus production checkpoint — 2026-11-13
+
+Runtime a3074149c5a2283e79951fd1cede16062f3ad8c3 is Production Ready6DiLkHczSmdgjqXP84FjbJbS9hos; Quality43359162777 succeeded and public manifest matches. Deployed actual-JWT syllabus acceptance passed5 groups/140 API/23 browser requests with103 offerings and3 callers; exact cleanup, zero model/official calls, owner unchanged.8routes49assets smoke passed. Client baseline127 migrations/144 RLS tables. Root returned DB/model lease to Issue100 for rollback-only190000 preflight; no permanent apply or next push yet.180000 tuition passed rollback-only preflight but remains unapplied. Native assistant answerability repairs and full protected-system parity remain unfinished.
+
 # Current checkpoint — syllabus release preparation
 
 Only170000 is applied in the verified client project:127 migrations/144 public RLS tables. Exact syllabus candidate passed524 API/source checks,198 units, forced TypeScript/build, lint, handoff and dependency checks. Actual-JWT local test df58ceef passed5 groups/159 API/23 browser requests,103 offerings/3 disposable callers; exact cleanup and protected owner unchanged. Root holds DB/release lease through production acceptance.180000 tuition and190000 conversation migration remain unapplied. Tuition draft and assistant answerability/persistence repairs remain unpublished. Production still ecf5a5e startup hotfix until the next release is verified. The full protected-system copy is unfinished.

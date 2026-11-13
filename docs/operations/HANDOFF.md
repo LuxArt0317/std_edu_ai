@@ -1,3 +1,7 @@
+# Verified production — syllabus search
+
+Runtime a3074149c5a2283e79951fd1cede16062f3ad8c3 is Vercel Ready6DiLkHczSmdgjqXP84FjbJbS9hos; Quality43359162777 success. Exact production manifest,8routes49assets and deployed actual-JWT syllabus acceptance passed (5groups/140API/23browser requests). All103 synthetic offerings/3 users and their receipts/audits were cleaned; protected owner unchanged. Database127 migrations/144 RLS tables. DB/model lease returned to Issue100 for reviewed rollback-only190000 preflight;180000/190000 remain unapplied. Tuition and assistant repair drafts are uncommitted; full protected-site parity remains unfinished.
+
 # Latest handoff — syllabus candidate
 
 Only170000 is applied (127 migrations/144 public RLS tables). Exact source524API/198unit and required local gates pass. Local actual-JWT syllabus search acceptance passed5 groups,159 API/23 browser calls,103 synthetic offerings and3 disposable users with exact cleanup and owner preservation. Production verification is pending; runtime remains ecf5a5e. Root retains DB/release lease.180000/190000 drafts and separate assistant repairs are excluded. Do not claim full protected-system parity or native model acceptance.

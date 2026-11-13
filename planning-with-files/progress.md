@@ -61,3 +61,5 @@ Earlier entries are retained in archive/progress_2026-11-13_verification.md.
 - 2026-11-13 [#98]: Only170000 applied; baseline127/144 confirmed. Actual-JWT local syllabus test df58ceef passed5groups/159API/23browser requests;103 offerings/3 callers cleaned exactly and owner unchanged. Preparing isolated syllabus release; tuition/activity/readers remain excluded.
 
 - Syllabus release preflight: full verify:client passed at127 migrations/all public tables RLS, owner CRUD cleanup,8 public routes49assets, Edge/origin checks and nonmutating OpenAI. Remote main is exactecf5a5e; publishing only37 staged syllabus/docs paths.
+
+- 2026-11-13 [#98]: Published a307414, VercelReady6DiLkHczSmdgjqXP84FjbJbS9hos, Quality43359162777 success. Deployed syllabus JWT/browser5groups/140API/23browser passed with exact103offering/3caller cleanup and owner unchanged; public8routes49assets passed. DB/model lease returned to#100; tuition180000 rollback-only preflight passed but not applied.

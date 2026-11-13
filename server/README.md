@@ -52,4 +52,4 @@ The verified account assistant explicitly selects `academicGrades`, `graduationR
 
 `researchAssistantHandler.js` owns the shared public research implementation. Both TypeScript API entrypoints import this deployable JavaScript module; do not import an API `.ts` source from another emitted function. The compiled-entrypoint regression runs without TypeScript loading, and the live deployment smoke checks JSON405 method boundaries without model or database writes.
 
-`syllabusSearch.js` implements published course search/options/detail and a separate audited metadata write. It uses caller-JWT reads, stable complete pagination, nullable explicit current/term fields and no inferred enrollment. [Syllabus acceptance](../docs/qa/SYLLABUS_SEARCH.md) records pending deployment verification.
+`syllabusSearch.js` implements published course search/options/detail and a separate audited metadata write. It uses caller-JWT reads, stable complete pagination, nullable explicit current/term fields and no inferred enrollment. [Syllabus acceptance](../docs/qa/SYLLABUS_SEARCH.md) records verified local and deployed account acceptance.
