@@ -6,6 +6,7 @@ import {createClient} from '@supabase/supabase-js';
 import {chromium} from 'playwright-core';
 import postgres from 'postgres';
 import {deploymentEnvironment} from '../../scripts/deployment-env.mjs';
+import {verifyPreviewRelease} from './verified-preview.mjs';
 
 // Prepared acceptance test: run only with the root's serialized client DB lease.
 // Both modes use real disposable accounts and real data. Production never imports
@@ -13,12 +14,16 @@ import {deploymentEnvironment} from '../../scripts/deployment-env.mjs';
 process.umask(0o077);
 const deployment=JSON.parse(await readFile('deployment.json','utf8'));
 const origin=process.env.NATIVE_ORIGIN;
-assert.ok(['http://127.0.0.1:5184','http://localhost:5184','https://stu.best'].includes(origin),
-  'Explicit NATIVE_ORIGIN=http://127.0.0.1:5184 or https://stu.best is required before creating fixtures.');
 assert.equal(deployment.vercel.productionUrl,'https://stu.best');
 assert.equal(deployment.supabase.projectRef,'xiftudmvxphxcjtmfmib');
 assert.equal(process.argv.length,2,'This test accepts no flags and never invokes a model.');
-const local=new URL(origin).hostname!=='stu.best',mode=local?'local_handlers':'deployed_http';
+const local=['http://127.0.0.1:5184','http://localhost:5184'].includes(origin);
+const preview=!local&&origin!=='https://stu.best';
+// Explicit process variables only: verify release before environment files,
+// credentials, authentication/DB clients, fixture identifiers or mutations.
+const verifiedRelease=preview?await verifyPreviewRelease(origin,{previewOrigin:process.env.PREVIEW_ORIGIN,
+  expectedReleaseRevision:process.env.EXPECTED_RELEASE_REVISION}):null;
+const mode=local?'local_handlers':'deployed_http',targetEnvironment=local?'local':preview?'preview':'production';
 const env=deploymentEnvironment();Object.assign(process.env,env);
 const url=env.VITE_SUPABASE_URL||env.NEXT_PUBLIC_SUPABASE_URL||env.SUPABASE_URL;
 assert.equal(new URL(url).origin,'https://xiftudmvxphxcjtmfmib.supabase.co');
@@ -44,7 +49,7 @@ const handlers=local?{
 }:{};
 const runId=randomUUID(),ids=[randomUUID(),randomUUID(),randomUUID()],operations=[],checks=[];
 const fixtures=[1,2].map(number=>({number,id:null,email:`certificate-live-${randomUUID()}@example.invalid`}));
-const output=`artifacts/enrollment-certificate/${local?'local':'production'}-${runId}`;
+const output=`artifacts/enrollment-certificate/${targetEnvironment}-${runId}`;
 const ledgerPath=output+'/fixture-ledger.json';
 const path='/school-affairs/services/17-1',scope='/api/affairs-data?scope=enrollment-certificate';
 const kind='save_enrollment_certificate_assessment',table='affairs_enrollment_certificate_assessments';
@@ -52,7 +57,7 @@ let ownerId,ownerBefore,ownerClient,ownerSession,browser,schemaReady=false,phase
 let failure=null,modelAttempts=0,documentAttempts=0,documentRecordCount=null;
 const fixtureIds=()=>fixtures.flatMap(item=>item.id?[item.id]:[]);
 async function ledger(state='active',cleanupFailures=[]){
-  const value={runId,origin,mode,state,fixtureAccounts:fixtures,assessmentIds:ids,operations,cleanupFailures};
+  const value={runId,origin,mode,targetEnvironment,verifiedRelease,state,fixtureAccounts:fixtures,assessmentIds:ids,operations,cleanupFailures};
   // Atomic replacement keeps the previous exact ledger readable if interrupted.
   await writeFile(ledgerPath+'.next',JSON.stringify(value,null,2),{mode:0o600});
   await rename(ledgerPath+'.next',ledgerPath);
@@ -337,7 +342,7 @@ try{
   if(ownerBefore)await clean('owner-preservation',async()=>{assert.deepEqual(await fingerprint(ownerId),ownerBefore);});
   await clean('database-close',()=>sql.end({timeout:5}));
   if(cleanupFailures.length)process.exitCode=1;
-  const result={origin,mode,passed:testPassed&&!cleanupFailures.length,checks,failure,cleanupFailures,
+  const result={origin,mode,targetEnvironment,verifiedRelease,passed:testPassed&&!cleanupFailures.length,checks,failure,cleanupFailures,
     fixtureCleanup:cleanupFailures.length?'incomplete':'verified',adminWrites:'actual existing administrator JWT; exact synthetic assessment targets only',
     modelRequestsBlocked:modelAttempts,documentRequests:documentAttempts,fixtureDocumentRowsObserved:documentRecordCount,documentWritesAttempted:0,artifacts:output};
   await ledger(cleanupFailures.length?'cleanup-required':'cleaned',cleanupFailures);

@@ -41,3 +41,9 @@ node_modules/.bin/tsx tests/integration/dtm-submissions-storage-live.mjs --execu
 ```
 
 Expected output reports passed checks, zero fixture leftovers and unchanged owner records. Do not treat a passing local handler run as deployed-model or production-UI acceptance. Production browser mode and actual-JWT certificate acceptance are the remaining release checks for this batch.
+
+## Isolated preview boundary
+
+Preview67a524d was Ready as4zqZNfamPgrQFYgnabCARMXAufRZ. The authenticated Vercel browser verified the exact release manifest and rendered Moodle login without console errors. Unauthenticated release requests redirect to Vercel SSO, so unattended preview API/model acceptance is not claimed. Existing protection remains enabled. Future accessible previews require explicit `PREVIEW_ORIGIN` and `EXPECTED_RELEASE_REVISION`; the harness checks the manifest before credentials/fixtures.
+
+Deployed DTM acceptance now uses actual HTTP for four administrator-review cases (student denial, save, replay and stale revision denial), while underlying Storage byte/RPC tests remain explicitly described as working-tree helpers using real caller JWTs. Seven preview-gate tests and thirteen offline Storage self-checks pass. Positive administrator review browser UI remains untested.

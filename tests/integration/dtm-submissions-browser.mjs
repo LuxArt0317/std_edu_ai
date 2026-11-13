@@ -1,18 +1,25 @@
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
+import {validatePreviewTarget,verifyPreviewRelease} from './verified-preview.mjs';
 
-export function dtmSubmissionBrowserMode(origin){
-  assert.ok(origin==='http://127.0.0.1:5184'||origin==='https://stu.best','Use only the exact approved local or production browser origin.');
-  return origin==='http://127.0.0.1:5184'?'local_working_tree':'deployed_http';
+export function dtmSubmissionBrowserMode(origin,previewApproval={}){
+  if(origin==='http://127.0.0.1:5184')return 'local_working_tree';
+  if(origin!=='https://stu.best')validatePreviewTarget(origin,previewApproval);
+  return 'deployed_http';
 }
 
 /** Optional actual UI/API acceptance. The parent owns every fixture,
  * recovery-ledger write and Storage cleanup. No credentials/artifacts/logs here.
- * Local Vite needs tsx for the working-tree TS handlers. Production imports no
- * handler and forwards only real deployed HTTP responses, without redirects. */
+ * Local Vite needs tsx for the working-tree TS handlers. Deployed modes import no
+ * handlers and forward only real deployed HTTP responses, without redirects. */
 export async function runDtmSubmissionsBrowser({origin,projectUrl,publishableKey,sessions,assignment,
-  beforeAction,rememberReservation,assertFixturePath,deadline,chromePath}){
-  const mode=dtmSubmissionBrowserMode(origin),local=mode==='local_working_tree';
+  beforeAction,rememberReservation,assertFixturePath,deadline,chromePath,previewOrigin,expectedReleaseRevision}){
+  const previewApproval={previewOrigin,expectedReleaseRevision};
+  const mode=dtmSubmissionBrowserMode(origin,previewApproval),local=mode==='local_working_tree';
+  const preview=!local&&origin!=='https://stu.best';
+  // The fixture parent must already gate before resolving credentials. Recheck
+  // here before opening a browser, seeding a session, or sending any API request.
+  const verifiedRelease=preview?await verifyPreviewRelease(origin,previewApproval):null;
   assert.equal(projectUrl,'https://xiftudmvxphxcjtmfmib.supabase.co');
   assert.equal(sessions.length,2);assert.notEqual(sessions[0].user.id,sessions[1].user.id);
   for(const session of sessions){
@@ -25,7 +32,8 @@ export async function runDtmSubmissionsBrowser({origin,projectUrl,publishableKey
   assert.ok(stopAt>Date.now());
   const previousEnv=new Map(local?['VITE_SUPABASE_URL','VITE_SUPABASE_PUBLISHABLE_KEY'].map(key=>[key,process.env[key]]):[]);
   if(local){process.env.VITE_SUPABASE_URL=projectUrl;process.env.VITE_SUPABASE_PUBLISHABLE_KEY=publishableKey;}
-  const stats={passed:false,mode,checks:0,apiRequests:0,uploads:0,uploadedBytes:0,downloads:0,bridgeFailures:0,pageErrors:0,blockedRequests:0};
+  const stats={passed:false,mode,targetEnvironment:local?'local':preview?'preview':'production',verifiedRelease,
+    checks:0,apiRequests:0,uploads:0,uploadedBytes:0,downloads:0,bridgeFailures:0,pageErrors:0,blockedRequests:0};
   const pending=new Set(),contexts=[],reservations=new Map(),writes=[];
   const studentKinds=new Set(['begin_dtm_submission_upload','commit_dtm_submission_upload','cancel_dtm_submission_upload']);
   let browser,timer,stopping=false,uncertainUntil=0;

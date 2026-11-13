@@ -5,6 +5,8 @@ import {parseEnv} from 'node:util';
 import {createClient} from '@supabase/supabase-js';
 import postgres from 'postgres';
 import {deploymentEnvironment} from '../../scripts/deployment-env.mjs';
+import {verifyPreviewRelease} from './verified-preview.mjs';
+import {dtmSubmissionBrowserMode} from './dtm-submissions-browser.mjs';
 import {DtmSubmissionError,executeDtmSubmissionAction,manageDtmSubmissionReview,loadDtmSubmissionWorkspace,
   createDtmSubmissionDownload,cleanupDtmSubmissionUploads} from '../../server/dtmSubmissions.js';
 
@@ -15,6 +17,12 @@ import {DtmSubmissionError,executeDtmSubmissionAction,manageDtmSubmissionReview,
 // tsx tests/integration/dtm-submissions-storage-live.mjs --execute --expected-migrations=N --expected-rls=N --browser-origin=http://127.0.0.1:5184
 // Production: use --browser-origin=https://stu.best; all browser APIs then use
 // deployed HTTP, never working-tree handlers. Default Storage10 checks are unchanged.
+// Preview additionally requires exact PREVIEW_ORIGIN and EXPECTED_RELEASE_REVISION;
+// its unauthenticated release preflight runs before environment credentials/fixtures.
+// NATIVE_ORIGIN can replace --browser-origin; when both are set they must match.
+// Storage byte/RPC checks use local helper code with real caller JWTs. In deployed
+// browser mode the existing review sequence also uses deployed affairs-manage;
+// this is positive admin API coverage, not administrator browser UI coverage.
 // Real bytes use only newly generated fixtures. Never delete storage.objects:
 // every object removal, including emergency cleanup, goes through Storage HTTP.
 // Owner password/JWTs, signed URLs and file bytes stay in memory. An ignored0600
@@ -68,6 +76,45 @@ function fixtureCourseCode(ordinal){
 }
 const drainMutations=operations=>Promise.allSettled(operations);
 
+async function deployedReviewRequest({origin,previewApproval,token,payload,submissionId,deadline,fetchImpl=fetch,
+  now=Date.now,settle=milliseconds=>new Promise(resolve=>setTimeout(resolve,milliseconds))}){
+  assert.equal(dtmSubmissionBrowserMode(origin,previewApproval),'deployed_http');
+  assert.ok(typeof token==='string'&&token&&deadline-now()>25000,'Do not start a deployed review near the mutation deadline.');
+  const kind='save_dtm_submission_review',sentAt=now();let settled=false,response;
+  try{
+    response=await fetchImpl(origin+'/api/affairs-manage',{method:'POST',redirect:'error',credentials:'omit',cache:'no-store',
+      headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({kind,payload}),
+      signal:AbortSignal.timeout(Math.max(1,Math.min(30000,deadline-now())))});
+    assert.ok(!response.redirected&&(!response.url||response.url===origin+'/api/affairs-manage'));
+    assert.match(response.headers.get('content-type')||'',/^application\/json(?:\s*;|$)/i);
+    const reader=response.body?.getReader();assert.ok(reader);
+    const chunks=[];let bytes=0,data;
+    try{
+      for(;;){const part=await reader.read();if(part.done)break;bytes+=part.value.byteLength;assert.ok(bytes<=16384,'Review JSON exceeds its bound.');chunks.push(part.value);}
+      settled=true;
+      const value=new Uint8Array(bytes);let offset=0;for(const chunk of chunks){value.set(chunk,offset);offset+=chunk.byteLength;}
+      data=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(value));
+    }finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
+    if(response.status!==200){
+      assert.ok([400,401,403,409,503].includes(response.status)&&data&&typeof data==='object'&&!Array.isArray(data)&&typeof data.error==='string',
+        'Deployed review must return a known JSON error status.');
+      // Do not propagate server text, response headers, credentials, or bodies.
+      const error=new DtmSubmissionError('Deployed fixture review was rejected.',response.status);error.operation=kind;throw error;
+    }
+    assert.deepEqual(Object.keys(data).sort(),['assignmentId','kind','reviewId','submissionId','uploadId','version']);
+    assert.equal(data.kind,kind);assert.equal(data.assignmentId,payload.assignment_id);assert.equal(data.submissionId,submissionId);
+    assert.equal(data.uploadId,payload.upload_id);assert.equal(data.version,payload.expected_version+1);
+    assert.match(data.reviewId,/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+    return data;
+  }catch(error){
+    await response?.body?.cancel().catch(()=>{});
+    // A lost response is not evidence that the17s deployed mutation stopped.
+    // Drain its bounded lifetime before the caller's finally removes fixtures.
+    if(!settled)await settle(Math.max(0,sentAt+20000-now()));
+    throw error;
+  }
+}
+
 async function selfTest(){
   const codes=Array.from({length:100},(_,index)=>fixtureCourseCode(index+1));
   assert.equal(new Set(codes).size,100);assert.ok(codes.every(code=>code.length<=32));
@@ -84,18 +131,52 @@ async function selfTest(){
   let lateMutationFinished=false;
   const results=await drainMutations([Promise.reject(new DtmSubmissionError('Conflict',409)),Promise.resolve().then(()=>{lateMutationFinished=true;return true;})]);
   assert.ok(lateMutationFinished);assert.deepEqual(results.map(result=>result.status),['rejected','fulfilled']);
-  console.log(JSON.stringify({selfTestPassed:true,checks:7,liveRequests:0}));
+  const payload={assignment_id:'10000000-0000-4000-8000-000000000001',request_id:'10000000-0000-4000-8000-000000000002',expected_version:0,
+    upload_id:'10000000-0000-4000-8000-000000000003',status:'graded',grade_text:'Synthetic P',feedback:'Synthetic review'};
+  const receipt={assignmentId:payload.assignment_id,submissionId:'10000000-0000-4000-8000-000000000004',uploadId:payload.upload_id,
+    reviewId:'10000000-0000-4000-8000-000000000005',version:1,kind:'save_dtm_submission_review'};
+  const options={origin:'https://stu.best',token:'SYNTHETIC-TEST-TOKEN',payload,submissionId:receipt.submissionId,deadline:50000,now:()=>0};
+  const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json'}});
+  assert.deepEqual(await deployedReviewRequest({...options,fetchImpl:async(url,init)=>{
+    assert.equal(url,'https://stu.best/api/affairs-manage');assert.equal(init.method,'POST');assert.equal(init.redirect,'error');assert.equal(init.credentials,'omit');
+    assert.equal(init.headers.Authorization,'Bearer '+options.token);assert.deepEqual(JSON.parse(init.body),{kind:receipt.kind,payload});return json(receipt);
+  }}),receipt);
+  for(const status of [400,401,403,409,503])await assert.rejects(deployedReviewRequest({...options,fetchImpl:async()=>json({error:secret},status)}),error=>
+    error instanceof DtmSubmissionError&&error.status===status&&!error.message.includes(secret));
+  let waits=0,calls=0;
+  await assert.rejects(deployedReviewRequest({...options,fetchImpl:async()=>{calls++;throw new Error('Synthetic lost response');},settle:async ms=>{assert.equal(ms,20000);waits++;}}));
+  assert.equal(waits,1);assert.equal(calls,1);
+  await assert.rejects(deployedReviewRequest({...options,origin:'https://invalid.example',fetchImpl:async()=>{calls++;}}));assert.equal(calls,1);
+  await assert.rejects(deployedReviewRequest({...options,deadline:20000,fetchImpl:async()=>{calls++;}}));assert.equal(calls,1);
+  for(const response of [json({...receipt,uploadId:receipt.reviewId}),json({error:secret},500),
+    new Response('<html>protected</html>',{headers:{'content-type':'text/html'}}),
+    new Response(' '.repeat(16385),{headers:{'content-type':'application/json'}})])
+    await assert.rejects(deployedReviewRequest({...options,fetchImpl:async()=>response,settle:async ms=>{assert.ok(ms<=20000);}}));
+  console.log(JSON.stringify({selfTestPassed:true,checks:13,liveRequests:0}));
 }
 
 async function main(){
   assert.ok(process.argv.includes('--execute'),'Live mutations require --execute and parent authorization.');
-  const browserOrigin=arg('--browser-origin');
-  const browserMode=browserOrigin===undefined?null:(await import('./dtm-submissions-browser.mjs')).dtmSubmissionBrowserMode(browserOrigin);
+  const argumentOrigin=arg('--browser-origin');
+  if(argumentOrigin!==undefined&&process.env.NATIVE_ORIGIN!==undefined)
+    assert.equal(argumentOrigin,process.env.NATIVE_ORIGIN,'Explicit browser origins must agree.');
+  const browserOrigin=argumentOrigin??process.env.NATIVE_ORIGIN;
+  const previewApproval={previewOrigin:process.env.PREVIEW_ORIGIN,expectedReleaseRevision:process.env.EXPECTED_RELEASE_REVISION};
+  const browserMode=browserOrigin===undefined?null:dtmSubmissionBrowserMode(browserOrigin,previewApproval);
+  const preview=browserMode==='deployed_http'&&browserOrigin!=='https://stu.best';
   if(browserMode)counts.browser={passed:false,mode:browserMode,checks:0};
   const expectedMigrations=Number(arg('--expected-migrations')),expectedRls=Number(arg('--expected-rls'));
   assert.ok(Number.isSafeInteger(expectedMigrations)&&expectedMigrations>0&&Number.isSafeInteger(expectedRls)&&expectedRls>0,'Exact deployed migration/RLS counts are required.');
   const deployment=JSON.parse(await readFile('deployment.json','utf8'));
   assert.equal(deployment.repository,'LuxArt0317/std_edu_ai');assert.equal(deployment.supabase.projectRef,'xiftudmvxphxcjtmfmib');
+  // Never resolve .env credentials, create clients, or allocate fixtures for an
+  // inaccessible, redirected, mismatched, or unapproved preview deployment.
+  const verifiedRelease=preview?await verifyPreviewRelease(browserOrigin,previewApproval):null;
+  counts.targetEnvironment=browserOrigin===undefined?'storage_only':preview?'preview':browserMode==='local_working_tree'?'local':'production';
+  counts.verifiedRelease=verifiedRelease;
+  counts.storageAcceptance='working-tree helpers with real caller JWT, Storage and RPC';
+  counts.adminReviewTransport=browserMode==='deployed_http'?'actual JWT through deployed affairs-manage HTTP':'working-tree helper with actual JWT';
+  counts.reviewApiRequests=0;
   const env=deploymentEnvironment(),project=deployment.supabase.projectRef;
   let origin,target;
   try{origin=new URL(env.VITE_SUPABASE_URL||env.NEXT_PUBLIC_SUPABASE_URL||env.SUPABASE_URL);target=new URL(env.POSTGRES_URL_NON_POOLING||env.POSTGRES_URL||env.DATABASE_URL);}
@@ -123,11 +204,12 @@ async function main(){
     ssl:{rejectUnauthorized:true,ca:await readFile('supabase/certs/prod-ca-2021.crt','utf8')},onnotice:()=>{}});
   const runId=randomUUID(),users=new Map(),plannedEmails=new Set(),paths=new Map(),submissions=new Set(),ownerRequests=new Set();
   const courseIds=new Set(),assignmentIds=new Set(),studentOperations=new Map();
-  const output='artifacts/dtm-submissions-storage-live',recoveryPath=output+'/recovery-'+runId+'.json',startedAt=new Date().toISOString();
+  const output='artifacts/dtm-submissions-storage-live'+(preview?'/preview-'+runId:''),recoveryPath=output+'/recovery-'+runId+'.json',startedAt=new Date().toISOString();
   let recoveryReady=false,recoveryStatus='prepared',recoveryWrite=Promise.resolve();
   async function persistRecovery(status=recoveryStatus){
     recoveryStatus=status;
     const document=JSON.stringify({version:1,projectRef:project,runId,startedAt,updatedAt:new Date().toISOString(),status,
+      browserOrigin:browserOrigin??null,targetEnvironment:counts.targetEnvironment,verifiedRelease,
       plannedEmails:[...plannedEmails],syntheticUsers:[...users].map(([id,value])=>({id,email:value.email,deleted:value.deleted})),
       courseIds:[...courseIds],assignmentIds:[...assignmentIds],submissionIds:[...submissions],
       objectPaths:[...paths].map(([path,userId])=>({path,userId})),studentOperations:[...studentOperations.values()],
@@ -239,7 +321,22 @@ async function main(){
     }throw new Error('Fixture cleanup did not drain within its bound.');
   }
   async function review(account,payload){
-    counts.helperCalls++;if(account.user.id===ownerId){ownerRequests.add(payload.request_id);await persistRecovery();}
+    assert.ok(assignmentIds.has(payload.assignment_id));
+    assert.ok(account.user.id===ownerId||users.has(account.user.id));
+    const [linked]=await sql`select u.submission_id,u.user_id,u.object_path,s.course_id from private.dtm_submission_uploads u
+      join public.dtm_assignment_submissions s on s.id=u.submission_id and s.user_id=u.user_id
+      where u.id=${payload.upload_id} and s.assignment_id=${payload.assignment_id}`;
+    assert.ok(linked&&submissions.has(linked.submission_id)&&courseIds.has(linked.course_id));
+    assertFixtureUser(linked.user_id);assertFixturePath(linked.object_path);
+    if(account.user.id===ownerId)ownerRequests.add(payload.request_id);
+    else studentOperations.set(account.user.id+':'+payload.request_id,{userId:account.user.id,kind:'save_dtm_submission_review',
+      requestId:payload.request_id,assignmentId:payload.assignment_id,uploadId:payload.upload_id});
+    await persistRecovery();
+    if(browserMode==='deployed_http'){
+      counts.reviewApiRequests++;
+      return deployedReviewRequest({origin:browserOrigin,previewApproval,token:account.token,payload,submissionId:linked.submission_id,deadline});
+    }
+    counts.helperCalls++;
     return manageDtmSubmissionReview(acting(account),'save_dtm_submission_review',payload);
   }
   async function deleteUser(id){
@@ -361,7 +458,7 @@ async function main(){
         where a.id=${browserAssignmentId} and s.user_id=${first.user.id}`;
       assert.ok(browserCourse&&courseIds.has(browserCourse.id));
       const {runDtmSubmissionsBrowser}=await import('./dtm-submissions-browser.mjs');
-      counts.browser=await runDtmSubmissionsBrowser({origin:browserOrigin,projectUrl:url,publishableKey:key,
+      counts.browser=await runDtmSubmissionsBrowser({origin:browserOrigin,...previewApproval,projectUrl:url,publishableKey:key,
         sessions:[users.get(first.user.id).session,users.get(second.user.id).session],
         assignment:{id:browserAssignmentId,courseId:browserCourse.id,userId:first.user.id,title:'Synthetic browser submission'},deadline,chromePath:env.CHROME_PATH,
         beforeAction:async(userId,kind,payload)=>{
@@ -375,6 +472,7 @@ async function main(){
         },assertFixturePath});
     }
 
+    if(browserMode==='deployed_http')assert.equal(counts.reviewApiRequests,4,'Deployed save/replay and student/stale denials must all use real HTTP.');
     phase='user deletion with retained bytes and administrator cleanup';
     // An Auth-provider refusal while objects are owned is a real acceptance
     // failure, not bypassed using SQL DELETE auth.users. Finally still cleans.
