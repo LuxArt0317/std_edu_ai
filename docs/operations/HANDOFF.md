@@ -1,6 +1,6 @@
 ## Parking permits (Issue #98)
 
-The General Affairs parking entry now opens a dedicated page and instructions viewer. Existing account notes retain their own destination. The university application and two-stage authentication run on the university domain. Its protected forms and status remain unverified. See [parking QA](../qa/PARKING_PERMITS.md).
+The General Affairs parking entry now opens a dedicated page and instructions viewer. Existing account notes retain their own destination. The university application and two-stage authentication run on the university domain. Its protected forms and status remain unverified. Production `097a814` passed the pinned UI suite, four assistant link checks, and live PDF loading. See [parking QA](../qa/PARKING_PERMITS.md).
 
 ## Service Leadership and assistant destinations (Issue #98)
 

@@ -1,6 +1,6 @@
 ## Parking permits (Issue #98)
 
-The local compiled parking entry, instructions and existing private notes passed browser checks at 1280, 768, 390 and 320 px. The menu opens the dedicated entry and the assistant cites exact destinations in English and Chinese. All 94 catalog links navigated. The official application still uses the university two-step sign-in, and its protected screens remain unavailable. Ready for publication.
+The local compiled parking entry, instructions and existing private notes passed browser checks at 1280, 768, 390 and 320 px. The menu opens the dedicated entry and the assistant cites exact destinations in English and Chinese. All 94 catalog links navigated. The official application still uses the university two-step sign-in, and its protected screens remain unavailable. Production `097a814325db30406f53f679d506bc05a1e08f14` is verified with Vercel `3d5hzNXKX62BAHb746RuxhvUMGB4` and successful Quality `43457492094`. The next source captures include 24 historical curriculum tables and 1,441 distinct PDF references.
 
 ## Service Leadership and assistant destinations
 

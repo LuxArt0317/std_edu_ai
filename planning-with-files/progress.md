@@ -31,3 +31,6 @@
 - 42-1: Published `636c751`, matched the public manifest and Vercel deployment, and passed Quality 43454524772. Production browser QA covered four leadership entry routes, four widths and six Moodle resource groups. Five live directory answers and the eight-route public shell passed. The official menu showed an inactivity prompt and returned to CAPTCHA after refresh. No migration was applied.
 
 - 46-1: Verified the parking entry, instructions PDF and two-stage authentication handoff. Isolated build, 1,006 API/source checks, 541 units, 380 offline evaluations, 94-link inventory and the focused Chromium suite passed. Client database verification passed at 139 migrations. No migration applied.
+
+- 46-1: Published `097a814`. Revision-pinned browser checks, real PDF retrieval, four live directory answers, eight public routes, 50 assets and Quality 43457492094 passed. The official application remains university-authenticated.
+- 12-5: Captured 24 public curriculum tables, 472 rows, and 1,441 distinct PDF references. Desktop source geometry and the Master's tab were checked in the browser. A sample plan returned PDF bytes. Source data are in the ignored curriculum-plans artifact.

@@ -555,5 +555,11 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 
 - [x] Verify the public parking entry, instructions viewer and university authentication boundary.
 - [x] Replace the generic entry with dedicated permit and instructions routes. Preserve existing private notes.
-- [ ] Verify the menu, assistant links, responsive layout and guest sign-in on the deployed revision.
+- [x] Verify the menu, assistant links, responsive layout and guest sign-in on the deployed revision.
 - [ ] Compare the authenticated application form and records when the university session is available.
+
+## Historical curriculum plans [Issue #98]
+
+- [x] Capture the public program tabs and historical views. Verify the source table geometry and a sample plan PDF.
+- [ ] Implement the curriculum matrix and each observed program/archive route on stu.best.
+- [ ] Verify plan navigation, document access, assistant links, and desktop and mobile layout.
