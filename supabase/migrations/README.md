@@ -1,5 +1,7 @@
 # Database migrations
 
+`20261114130000_early_graduation.sql` adds administrator-managed term windows and eligibility, account-owned applications, and private retry receipts. It seeds no student records or dates.
+
 `20261114120000_credit_transfer.sql` adds account-owned applications, administrator review and private retry receipts. It seeds no applications and does not change transcript records.
 
 `20261114110000_course_withdrawal.sql` adds the administrator-managed withdrawal window and account-scoped read and change functions over existing withdrawal-phase records. Private receipts make retries safe.

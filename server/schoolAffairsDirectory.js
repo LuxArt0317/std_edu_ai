@@ -1,3 +1,4 @@
+import {earlyGraduationPath} from './earlyGraduationContract.js';
 import {courseSubstitutionPath} from '../src/features/public/affairs/courseSubstitution.js';
 import {firstSelectionPath,firstSelectionSource} from '../src/features/public/affairs/firstSelection.js';
 import {adjustmentPaths} from './courseAdjustmentContract.js';
@@ -83,6 +84,11 @@ const localServiceNavigation = [
     id:'course-late-add',match:/\blate[ -]add\b|補加選/iu,
     title:['補加選','Late add'],localUrl:adjustmentPaths.late_add,
     description:['開啟補加選規則與站內資格查詢。','Open the late-add rules and eligibility lookup.'],
+  },
+  {
+    id:'early-graduation',match:/\b(?:early[ -]graduation|graduate early)\b|提前畢業/iu,
+    title:['提前畢業申請','Early graduation application'],localUrl:earlyGraduationPath,
+    description:['查詢申請期間與個人提前畢業紀錄。','Open the application window and your saved early graduation history.'],
   },
   {
     id:'credit-transfer',match:/\b(?:credit[ -]transfer|transfer credits?)\b|抵免學分/iu,

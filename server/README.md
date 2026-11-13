@@ -1,5 +1,7 @@
 # Server helpers
 
+`earlyGraduation.js` validates caller-bound reads and confirmed, retry-safe application and review operations. Its assistant answer uses the same window and history.
+
 `creditTransfer.js` reads account-scoped application history and applies validated draft, submission and review operations through the caller’s Supabase session.
 
 `courseWithdrawal.js` and its contract validate account and term binding, confirmed withdrawal or restore receipts, and direct assistant answers from the saved window and course records.

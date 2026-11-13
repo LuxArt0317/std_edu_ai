@@ -1,5 +1,9 @@
 # Progress
 
+## Early graduation [Issue #98]
+
+- Connected service 7-4, term-window maintenance, candidate eligibility, submission/cancellation, review and bilingual account answers. The 94-destination local inventory moved 7-4 from generic to partial. Exact-target rollback, migration plan, compiled browser, build, 1,030 API/source tests, 541 units, 380 assistant evaluation tests and the dependency audit passed. Only migration 20261114130000 was applied.
+
 - 2026-11-13 [#98]: Archived preceding progress to archive/progress_2026-11-13_course-content.md. Course placement is locally accepted after exact135/152 migration and five actual-JWT groups. Runtime publication and deployed acceptance remain next. Issue100 stays paused.
 
 - 2026-11-13 [#98]: Published c686501, Vercel ErFd6zWT5pwTHEgCt51s5w3jZQmT Ready and matching manifest. Production actual-JWT five groups/60HTTP/seven writes passed with exact cleanup and closed connection; pinned UI six groups/four widths passed. Quality43428235159 succeeded. Requested floating panel remains absent with working chatbot. Issue100 files remain untouched; no model calls or whole-clone completion claim.

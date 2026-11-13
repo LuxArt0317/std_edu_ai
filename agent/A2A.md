@@ -1,3 +1,7 @@
+## Early graduation (Issue #98)
+
+Root owns service 7-4, migration 20261114130000, caller-scoped assistant answers, and release. The closed source view is captured. Exact-client rollback preflight passed. Issue #100 paths remain excluded.
+
 ## Credit transfer (Issue #98)
 
 Root owns 7-2, its history, administrator review, migration 120000 and assistant answer. The current university route returned to sign-in. The published paper form and earlier closed-entry observation define the local contract. Paused Issue #100 paths remain excluded.

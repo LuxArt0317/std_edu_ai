@@ -1,3 +1,5 @@
+import {earlyGraduationQuestion} from '../../server/earlyGraduationContract.js';
+import {readEarlyGraduationAnswer} from './earlyGraduation';
 import {courseSubstitutionQuestion} from '../features/public/affairs/courseSubstitution.js';
 import {firstSelectionQuestion} from '../features/public/affairs/firstSelection.js';
 import {adjustmentQuestion} from '../../server/courseAdjustmentContract.js';
@@ -21,6 +23,12 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
     onProgress?.({kind:'program-registrations',label:'Checking interdisciplinary program registrations',detail:'Reading your School Affairs records.',status:'running'});
     const result:AssistantResponse = await readProgramRegistrationAnswer(data.session.user.id,question,signal);
     if (typeof result?.answer !== 'string' || result.grounding?.source !== 'account') throw new Error('Program registrations could not be loaded.');
+    return result;
+  }
+  if (!images.length && earlyGraduationQuestion(question)) {
+    onProgress?.({kind:'early-graduation',label:'Checking early graduation',detail:'Reading your application window and saved records.',status:'running'});
+    const result=await readEarlyGraduationAnswer(data.session.user.id,question,signal) as AssistantResponse;
+    if(typeof result?.answer!=='string'||result.grounding?.source!=='account')throw new Error('Early graduation records could not be loaded.');
     return result;
   }
   if (!images.length && creditTransferQuestion(question)) {

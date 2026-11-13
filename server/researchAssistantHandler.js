@@ -1,3 +1,4 @@
+import {earlyGraduationPath,earlyGraduationQuestion} from './earlyGraduationContract.js';
 import { answerCourseSubstitution } from './courseSubstitution.js';
 import { answerFirstSelectionNotice } from './firstSelectionNotice.js';
 import { adjustmentAnswer,loadAdjustmentNotice } from './courseAdjustment.js';
@@ -250,6 +251,14 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const kind = questionKind(input.question);
+        if(!input.images.length&&!kind.irrelevant&&earlyGraduationQuestion(input.question)){
+            const next='/school-affairs/login?next='+encodeURIComponent(earlyGraduationPath);
+            const zh=/[\u3400-\u9fff]/u.test(input.question);
+            stream.send(200,{status:'handoff',answer:zh?`[登入校務資訊系統](${next})查詢提前畢業申請期間及個人紀錄。`:
+                `[Sign in to School Affairs](${next}) to see your early graduation application window and saved records.`,
+                citations:[],suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
+            return;
+        }
         if(!input.images.length&&!kind.irrelevant&&creditTransferQuestion(input.question)){
             const next='/school-affairs/login?next='+encodeURIComponent(creditTransferPath+'/history');
             const zh=/[\u3400-\u9fff]/u.test(input.question);

@@ -1,3 +1,7 @@
+## Early graduation (Issue #98)
+
+Service 7-4 has a dedicated local application, history and administrator review workflow. The observed university source showed the closed state and empty history. Open application, cancellation and populated-result screens remain unobserved. See [early graduation QA](../qa/EARLY_GRADUATION.md).
+
 ## Credit transfer (Issue #98)
 
 Service 7-2 implements private drafts, print, submission, history and administrator review. The current university form and populated history are not yet observed. See [credit transfer QA](../qa/CREDIT_TRANSFER.md).

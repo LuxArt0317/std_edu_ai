@@ -1,0 +1,22 @@
+.early-graduation { min-height: 100vh; background: #efeff0; color: #393939; font: 13px/1.5 "Microsoft JhengHei", Arial, sans-serif; }
+.early-graduation-frame { width: 1060px; max-width: 100%; margin: 0 auto; background: #fff; padding-top: 5px; }
+.early-graduation header { min-height: 29px; padding: 0 17px; background: #7c7c7c; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+.early-graduation header a { display: flex; align-items: center; gap: 8px; }
+.early-graduation-bar { height: 56.6875px; background: #438eb9; }
+.early-graduation nav { min-height: 32.5px; padding: 6px 17px; background: #f5f5f5; border-bottom: 1px solid #ddd; }
+.early-graduation main { padding: 12px 20px 28px; }
+.early-graduation a:not(header a) { color: #225f8e; text-decoration: underline; }
+.early-graduation-instructions { padding: 12px; background: #f5f5f5; border: 1px solid #ddd; }
+.early-graduation h1,.early-graduation h2 { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
+.early-graduation p { margin: 0 0 6px; }
+.early-graduation ol { margin: 6px 0 6px 20px; list-style: decimal; }
+.early-graduation .early-graduation-state { margin: 8px 0; color: #a52219; font-weight: 700; }
+.early-graduation-table { width: 100%; overflow-x: auto; margin: 6px 0 12px; }
+.early-graduation table { width: 100%; min-width: 630px; border-collapse: collapse; text-align: left; }
+.early-graduation :is(th,td) { border: 1px solid #ddd; padding: 5px 8px; }
+.early-graduation th { background: #f2f2f2; font-weight: 700; }
+.early-graduation footer { padding: 10px; border-top: 1px solid #ddd; text-align: center; color: #36566f; }
+@media (max-width: 600px) {
+  .early-graduation main { padding-inline: 12px; }
+  .early-graduation-bar { height: 40px; }
+}

@@ -1,3 +1,5 @@
+import { EarlyGraduationWorkspace } from "./EarlyGraduationWorkspace";
+import { earlyGraduationPath } from "../../../../server/earlyGraduationContract.js";
 import { CourseSubstitutionWorkspace } from "./CourseSubstitutionWorkspace";
 import { FirstSelectionWorkspace } from "./FirstSelectionWorkspace";
 import { CourseAdjustmentWorkspace } from "./CourseAdjustmentWorkspace";
@@ -490,6 +492,9 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   if (normalizedPath === firstSelectionPath || normalizedPath === firstSelectionFeesPath) {
     return <FirstSelectionWorkspace key={user.id} view={normalizedPath === firstSelectionPath ? "schedule" : "fees"} />;
   }
+  if (normalizedPath === earlyGraduationPath) {
+    return <EarlyGraduationWorkspace key={user.id} userId={user.id} />;
+  }
   if (normalizedPath === creditTransferPath || normalizedPath === creditTransferPath + "/history") {
     return <CreditTransferWorkspace key={user.id+normalizedPath} userId={user.id} history={normalizedPath.endsWith("/history")} />;
   }
@@ -530,7 +535,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   if (normalizedPath === serviceLeadershipPath) return <ServiceLeadershipWorkspace />;
   const leadershipView = serviceLeadershipViews.find(item => normalizedPath === serviceLeadershipPath + "/" + item.key);
   if (leadershipView) return <ServiceLeadershipWorkspace key={leadershipView.key} view={leadershipView} />;
-  if (servicePage && route.length === 3 && route[2] === "notes" && ["6-1", "6-2", "6-3", "6-4", "7-2", "7-3", "12-5", "12-6", "12-7", "12-8", "25-1", "25-2", "28-1", "42-1", "46-1"].includes(route[1])) {
+  if (servicePage && route.length === 3 && route[2] === "notes" && ["6-1", "6-2", "6-3", "6-4", "7-2", "7-3", "7-4", "12-5", "12-6", "12-7", "12-8", "25-1", "25-2", "28-1", "42-1", "46-1"].includes(route[1])) {
     return <StudentServiceWorkspace key={pathname} userId={user.id} serviceKey={route[1]} view="" />;
   }
   if (normalizedPath === teachingAssistantPath || normalizedPath === "/school-affairs/services/25-2") {

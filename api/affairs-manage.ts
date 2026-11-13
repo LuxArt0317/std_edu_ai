@@ -1,3 +1,5 @@
+import { changeEarlyGraduation } from '../server/earlyGraduation.js';
+import { earlyGraduationManagerActions } from '../server/earlyGraduationContract.js';
 import { manageFeeRemission } from '../server/feeRemission.js';
 import { changeAdjustment } from '../server/courseAdjustment.js';
 import { adjustmentAction } from '../server/courseAdjustmentContract.js';
@@ -42,13 +44,18 @@ export default async function handler(request:Request,response:Response) {
   const courseContentKind=dtmCourseContentKinds.find(kind=>kind===input?.kind);
   const certificateKind=input?.kind==='save_enrollment_certificate_assessment'?'save_enrollment_certificate_assessment'
     :input?.kind==='save_enrollment_certificate_document'?'save_enrollment_certificate_document':null;
-  const maxBodyBytes=feeRemissionKind?feeRemissionMaxPayloadBytes+1024:courseContentKind?dtmCourseContentMaxPayloadBytes+1024:gradeReportKind?dtmGradeReportMaxPayloadBytes+1024:dormitoryKind?dormitoryConductMaxPayloadBytes+1024:loanKind?studentLoanMaxPayloadBytes+1024:conductKind?studentConductMaxPayloadBytes+1024:tuitionKind?tuitionDocumentMaxPayloadBytes+1024:syllabusMetadata?2000:certificateKind?10000:input?.kind==='save_graduation_review'?140000:input?.kind==='save_housing_period'?26000:catalogAction?48000:submissionReview?14000:12000;
+  const earlyGraduation=earlyGraduationManagerActions.find(kind=>kind===input?.kind);
+  const maxBodyBytes=earlyGraduation?3424:feeRemissionKind?feeRemissionMaxPayloadBytes+1024:courseContentKind?dtmCourseContentMaxPayloadBytes+1024:gradeReportKind?dtmGradeReportMaxPayloadBytes+1024:dormitoryKind?dormitoryConductMaxPayloadBytes+1024:loanKind?studentLoanMaxPayloadBytes+1024:conductKind?studentConductMaxPayloadBytes+1024:tuitionKind?tuitionDocumentMaxPayloadBytes+1024:syllabusMetadata?2000:certificateKind?10000:input?.kind==='save_graduation_review'?140000:input?.kind==='save_housing_period'?26000:catalogAction?48000:submissionReview?14000:12000;
   if(!input || typeof input.kind!=='string' || !input.payload || typeof input.payload!=='object'
     || Array.isArray(input.payload) || Buffer.byteLength(JSON.stringify(input),'utf8')>maxBodyBytes
-    || (certificateKind||syllabusMetadata||tuitionKind||conductKind||loanKind||dormitoryKind||gradeReportKind||courseContentKind||feeRemissionKind)&&(Object.keys(input).length!==2||!Object.hasOwn(input,'kind')||!Object.hasOwn(input,'payload'))){response.status(400).json({error:'Invalid manager request.'});return;}
+    || (certificateKind||syllabusMetadata||tuitionKind||conductKind||loanKind||dormitoryKind||gradeReportKind||courseContentKind||feeRemissionKind||earlyGraduation)&&(Object.keys(input).length!==2||!Object.hasOwn(input,'kind')||!Object.hasOwn(input,'payload'))){response.status(400).json({error:'Invalid manager request.'});return;}
   try {
     const authorization=first(request.headers.authorization);
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
+    if(earlyGraduation){
+      response.status(200).json(await changeEarlyGraduation({...account,requestDeadline},earlyGraduation,input.payload));
+      return;
+    }
     if(input.kind===creditTransferReview){
       if(Object.keys(input).length!==2){response.status(400).json({error:"Invalid manager request."});return;}
       response.status(200).json(await changeCreditTransfer({...account,requestDeadline},input.kind,input.payload));

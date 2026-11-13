@@ -1,3 +1,4 @@
+import {EarlyGraduationManager} from './EarlyGraduationWorkspace';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
@@ -87,6 +88,7 @@ export function SchoolRecordManager({admin,busy,onManage,onRefresh}:{admin:Admin
     <CourseSelectionManager records={admin.courseSelection?.records ?? []} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/>
     {managerId&&<CourseAdjustmentManager key={managerId} managerId={managerId} profiles={admin.profiles} busy={busy}/>}
     {managerId&&<CourseWithdrawalManager key={managerId} userId={managerId} busy={busy}/>}
+    {managerId&&<EarlyGraduationManager key={managerId} userId={managerId} profiles={admin.profiles} busy={busy}/>}
     {managerId&&<CreditTransferManager key={managerId} userId={managerId} profiles={admin.profiles} busy={busy}/>}
     <AcademicGradesManager records={admin.academicGrades ?? {records:[],termSummaries:[],rankings:[],metadata:[]}} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/>
     <GraduationReviewManager records={admin.graduationReview ?? {reports:[]}} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/>

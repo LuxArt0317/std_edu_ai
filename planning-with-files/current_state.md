@@ -1,3 +1,7 @@
+## Early graduation [Issue #98]
+
+The previous user-question turn clarified the database requirement without changing the deployment. The early graduation implementation now connects the captured notice and history to the client schema and assistant. Rollback preflight and the 94-destination navigation inventory passed. Production remains at the credit-transfer revision until the new acceptance checks pass.
+
 ## Credit transfer (Issue #98)
 
 The preceding turn deployed and verified course withdrawal. The credit transfer source currently requires school sign-in. The local application, print, submit, per-course review and account history follow the public form and prior source inspection. Exact rollback preflight passed; current populated source screens remain open.

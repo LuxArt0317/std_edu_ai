@@ -1,5 +1,13 @@
 # Task Plan
 
+## Early graduation [Issue #98]
+
+- [x] Inspect the source page and published workflow.
+- [x] Implement the term window, account eligibility, submission, cancellation, administrator review and shared assistant lookup.
+- [x] Exercise successful writes and denied scopes in an exact-target rollback.
+- [ ] Verify the compiled browser, deployed API and pinned release.
+- [ ] Compare the university’s open-period and populated-history screens when observable.
+
 ## Native Moodle URL resource pages [Issue #98]
 
 - [x] Inspect the authenticated material link and capture native resource layout and navigation.
