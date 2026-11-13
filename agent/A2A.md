@@ -2,6 +2,8 @@
 
 Root owns 7-2, its history, administrator review, migration 120000 and assistant answer. The current university route returned to sign-in. The published paper form and earlier closed-entry observation define the local contract. Paused Issue #100 paths remain excluded.
 
+Production `420b8f2` passed the pinned browser, 15 actual-session HTTP checks, public shell and Quality 43495003077. Early graduation service 7-4 displayed a closed period and a nine-column empty history. Sanitized measurements are in ignored `artifacts/visual-parity/early-graduation/source.json`.
+
 ## Course withdrawal (Issue #98)
 
 Root owns service 6-4, the withdrawal-phase course action and current-term window, and its assistant and release checks. The source service returned to CAPTCHA sign-in. The university handbook describes course selection, confirmation, a retained withdrawal mark and restoration within the window. Paused Issue #100 paths remain excluded.

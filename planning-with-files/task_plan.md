@@ -627,5 +627,12 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Recheck the source entry and verify application fields and review outcomes in the published documents.
 - [x] Implement private drafts, print, confirmed submission, per-course review and assistant history.
 - [x] Verify exact-client rollback, account boundaries and idempotency.
-- [ ] Verify the migration and deployed runtime.
+- [x] Verify the migration and deployed runtime at `420b8f2`.
 - [ ] Inspect the current university open form and populated history.
+
+## Early graduation [Issue #98]
+
+- [x] Inspect the source entry, eligibility notice, closed state and nine-column history.
+- [ ] Implement the observed page, private application and result history, period-aware cancellation and assistant lookup.
+- [ ] Verify the database, browser and deployed workflow.
+- [ ] Inspect the current open application and cancellation screens.

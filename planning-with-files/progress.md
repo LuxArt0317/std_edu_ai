@@ -70,3 +70,5 @@
 - 2026-11-14 [#98]: Released 91d97d3. Verified successful actions in the exact-client rollback, eleven deployed actual-session API checks with exact cleanup, pinned browser, eight public shell routes and Quality 43491551185. The full local portal rerun passed after the legacy .asp preview fallback correction. The 94-route inventory has 45 generic and 11 partial entries. Summer selection returned the missing college-code state.
 
 - 2026-11-14 [#98]: Rechecked the school credit-transfer sign-in gate and verified course equivalency and review fields against the public form. Implemented student and administrator workflows with account isolation and rollback-verified transitions.
+
+- 2026-11-14 [#98]: Released 420b8f2. Exact migration and protected-owner verification, 15 deployed actual-session API checks with cleanup, pinned browser, guest handoff, eight public routes, course selection and credit-load regressions, and Quality 43495003077 passed. The source 7-4 entry showed the closed window and nine-column history.

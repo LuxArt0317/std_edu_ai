@@ -12,6 +12,8 @@
 
 ## Verification
 
+Production revision `420b8f2e916b04a3e0ccdaed161b88250aefec46` passed the pinned browser and 15 real-account API checks. Actual HTTP writes verified draft creation, exact replay, confirmed submission, stale edit rejection, cross-account access denial and cleanup. A successful administrator review was verified in the exact-client rollback and browser fixture. The browser also passed print layout, mobile widths and the existing course-selection and credit-load history menus in the local regression suites.
+
 ```sh
 node tests/integration/credit-transfer-db.mjs --deployed
 node --experimental-strip-types tests/integration/credit-transfer-http.mjs --verify-client

@@ -2,6 +2,8 @@
 
 The preceding turn deployed and verified course withdrawal. The credit transfer source currently requires school sign-in. The local application, print, submit, per-course review and account history follow the public form and prior source inspection. Exact rollback preflight passed; current populated source screens remain open.
 
+Production `420b8f2` is live as Vercel `3fbDNhdAgcnuvVPKbyG3ZWGUyLcX`. Only migration 120000 was applied after rollback verification. The client passed 146 migrations and 164 RLS-protected public tables, pinned browser, 15 real-account HTTP checks with exact cleanup, guest assistant handoff, the eight-route shell and Quality 43495003077. The 94-destination inventory has 44 generic and 12 partial entries. Early graduation displayed a closed period and an empty nine-column history.
+
 ## Course withdrawal (Issue #98)
 
 The previous goal turn released add/drop eligibility and late add. The authenticated withdrawal route returned to the separate school sign-in. The official handbook establishes the withdrawal and restore sequence. Service 6-4 implements that sequence with account-owned withdrawal-phase rows, an administrator-managed term window, confirmed and versioned changes, and an assistant reader.
