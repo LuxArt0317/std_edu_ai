@@ -1,5 +1,7 @@
 # HTTP API
 
+`affairs-data.ts?scope=course-withdrawal` reads the signed-in student’s term and withdrawal-phase records. The admin scope takes a term only. Dedicated actions in `affairs-action.ts` and `affairs-manage.ts` apply versioned changes and window edits through Supabase.
+
 ## Account conversations and verified replies
 
 `affairs-data.ts?resource=conversations` (public alias `/api/affairs-conversations`) supports owner-only list/read/save/delete with the School Affairs Google session. Saves enforce a 190KB request limit, bounded text/history and database version checks. `affairs-assistant.ts` selects account evidence and runs the bounded LangGraph verification loop; `research-assistant.ts` verifies generated knowledge/web/image answers. `affairs-action.ts` accepts an optional reviewed-action `requestId` and uses durable receipts for replay protection. None of these endpoints borrow Nexus credentials or execute a write during answer verification.

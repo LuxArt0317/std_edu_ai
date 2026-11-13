@@ -1,5 +1,7 @@
 # Changelog
 ## Unreleased
+- Add School Affairs course withdrawal and restoration, with an administrator-managed local window, private records and campus assistant lookup. [#98]
+
 
 - Add the add/drop eligibility page and late-add notices, with account-scoped decisions, administrator maintenance and campus assistant answers. [#98]
 

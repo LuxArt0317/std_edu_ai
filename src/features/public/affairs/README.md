@@ -1,5 +1,7 @@
 # School Affairs UI
 
+Service 6-4 opens the local course withdrawal table, confirmation and restoration. The existing School Affairs administration page configures the term window. See [course withdrawal QA](../../../../docs/qa/COURSE_WITHDRAWAL.md).
+
 The captured 94-link service catalog opens local pages. Shared routes cover the homepage, notifications, bookmarks, DTM and the student SSO information page. Other entries open a service workspace with its university destination and private tracking records.
 
 The calendar entry opens the captured Academic Affairs calendar directly, with its six local Chinese and English academic-year PDF downloads. Source query parameters and section anchors are preserved; previously shared `/school-affairs/services/4-4` links redirect to the same document. This dated public calendar is independent of personal DTM deadlines and does not use a tracking form.

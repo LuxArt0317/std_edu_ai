@@ -2,6 +2,8 @@ import { serveCourseSubstitution } from '../server/courseSubstitution.js';
 import { serveFirstSelectionNotice } from '../server/firstSelectionNotice.js';
 import { readAdjustmentScope, serveAdjustmentNotice } from '../server/courseAdjustment.js';
 import { adjustmentNoticeScope, adjustmentScope } from '../server/courseAdjustmentContract.js';
+import { readWithdrawalScope } from '../server/courseWithdrawal.js';
+import { withdrawalScope } from '../server/courseWithdrawalContract.js';
 import { firstSelectionScope } from '../src/features/public/affairs/firstSelection.js';
 import { answerProgramRegistrations, loadProgramRegistrations } from '../server/programRegistration.js';
 import { programRegistrationScope } from '../server/programRegistrationContract.js';
@@ -38,7 +40,7 @@ export default async function handler(request:Request,response:Response) {
   if (scopes.includes('curriculum-plan')) return serveCurriculumPlan(request,response);
   if (scopes.includes('interdisciplinary-programs')) return serveInterdisciplinaryPrograms(request,response);
   const strictStudentScope=scopes.some(scope=>typeof scope==='string'&&(scope===programRegistrationScope||scope.startsWith('tutor-evaluation')||scope.startsWith('exchange-grant')||scope.startsWith('fee-remission')||scope.startsWith('student-conduct')||scope.startsWith('student-loan')||scope.startsWith('dormitory-conduct')||scope.startsWith('dtm-dashboard-layout')||scope.startsWith('dtm-grade-report')||scope.startsWith('dtm-course-content')||scope.startsWith('dtm-course-resource')));
-  if(first(request.query?.resource)==='conversations'&&!strictStudentScope&&!scopes.some(scope=>typeof scope==='string'&&scope.startsWith(adjustmentScope)))return conversations(request,response);
+  if(first(request.query?.resource)==='conversations'&&!strictStudentScope&&!scopes.some(scope=>typeof scope==='string'&&(scope.startsWith(adjustmentScope)||scope.startsWith(withdrawalScope))))return conversations(request,response);
   const requestDeadline=Date.now()+17000;
   response.setHeader('Cache-Control','no-store, max-age=0');
   response.setHeader('X-Content-Type-Options','nosniff');
@@ -48,6 +50,10 @@ export default async function handler(request:Request,response:Response) {
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
     const scope=request.query?.scope;
     if(Array.isArray(scope)){response.status(400).json({error:'Choose one records scope.'});return;}
+    if(scope===withdrawalScope||scope===withdrawalScope+'-admin'){
+      response.status(200).json(await readWithdrawalScope({...account,requestDeadline},request.query??{}));
+      return;
+    }
     if(scope===adjustmentScope||scope===adjustmentScope+'-admin'){
       response.status(200).json(await readAdjustmentScope({...account,requestDeadline},request.query??{}));
       return;

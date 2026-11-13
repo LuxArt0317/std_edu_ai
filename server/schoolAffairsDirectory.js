@@ -85,6 +85,11 @@ const localServiceNavigation = [
     description:['開啟補加選規則與站內資格查詢。','Open the late-add rules and eligibility lookup.'],
   },
   {
+    id:'course-withdrawal',match:/\bcourse withdrawals?\b|\bwithdraw\b.{0,30}\b(?:course|class)\b|棄選/iu,
+    title:['棄選','Course withdrawal'],localUrl:'/school-affairs/services/6-4',
+    description:['查詢站內棄選期間、課程與棄選紀錄。','Open the withdrawal window and your saved withdrawal-phase courses.'],
+  },
+  {
     id:'first-selection',match:/\b(?:initial|first)[ -]+(?:course[ -]+)?(?:selection|registration)\b|初選/iu,
     title:['初選時程及注意事項','Initial course selection notice'],localUrl:firstSelectionPath,officialUrl:firstSelectionSource,
     description:['開啟初選時程、注意事項與收費說明。','Open the first-selection schedule, instructions and fee notice.'],

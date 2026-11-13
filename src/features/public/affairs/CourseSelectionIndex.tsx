@@ -23,9 +23,12 @@ export function CourseSelectionSourceIcon({glyph,className=''}:{glyph:string;cla
 }
 
 /** Shared observed WebSelectCourse chrome; no account data or application capability. */
-export function CourseSelectionSystemShell({title,subtitle,application=false,children}:{title:string;subtitle:string;application?:boolean;children:ReactNode}) {
+export function CourseSelectionSystemShell({title,subtitle,application=false,breadcrumb,snapshotDescription=true,children}:{
+  title:string;subtitle:string;application?:boolean;breadcrumb?:{title:string;path:string};snapshotDescription?:boolean;children:ReactNode;
+}) {
   const description=useId();
-  return <div className="course-selection-system" lang="zh-Hant" data-observed-on={creditLoadEntryReference.observedOn}>
+  const current=breadcrumb??(application?{title:'超修減修學分系統',path:creditLoadEntryReference.path}:null);
+  return <div className="course-selection-system" lang="zh-Hant" data-observed-on={snapshotDescription?creditLoadEntryReference.observedOn:undefined}>
     <div className="course-selection-system-frame">
       <header className="course-selection-system-brand">
         <Link to={courseSelectionIndexPath}><img src={referenceAsset('https://info.stu.edu.tw/ePortal/assets/img/stu/stuBanner.svg')} width="20.4375" height="24" alt=""/>校務資訊管理系統</Link><span>Shu-Te University</span>
@@ -42,10 +45,10 @@ export function CourseSelectionSystemShell({title,subtitle,application=false,chi
       </nav>
       <nav className="course-selection-system-breadcrumb" aria-label="頁面位置">
         <CourseSelectionSourceIcon glyph={'\uf015'}/><Link to={courseSelectionIndexPath}>Index</Link>
-        {application&&<><span aria-hidden="true">›</span><Link to={creditLoadEntryReference.path}>超修減修學分系統</Link></>}
+        {current&&<><span aria-hidden="true">›</span><Link to={current.path}>{current.title}</Link></>}
       </nav>
-      <main className="course-selection-system-main" aria-describedby={description}>
-        <p id={description} className="course-selection-system-visually-hidden">校方頁面擷取於 2026-11-13；顯示當時的說明與申請期間，不代表目前開放狀態。</p>
+      <main className="course-selection-system-main" aria-describedby={snapshotDescription?description:undefined}>
+        {snapshotDescription&&<p id={description} className="course-selection-system-visually-hidden">校方頁面擷取於 2026-11-13；顯示當時的說明與申請期間，不代表目前開放狀態。</p>}
         <header className="course-selection-system-heading"><h1><CourseSelectionSourceIcon glyph={'\uf19c'}/>{' '}{title}{' '}<small><CourseSelectionSourceIcon glyph={'\uf101'}/>{' '}{subtitle}</small></h1></header>
         {children}
       </main>

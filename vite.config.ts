@@ -16,6 +16,7 @@ const hosting = JSON.parse(
   readFileSync(new URL("./vercel.json", import.meta.url), "utf8"),
 );
 const directPages = directSchoolPages(process.cwd());
+const legacyPortalEntry = /^\/eportal\/(?:index|login|apmenu)\.asp\/?$/i;
 const mirrorMiddleware = (preview: boolean) => (
   req: IncomingMessage,
   res: ServerResponse,
@@ -41,7 +42,8 @@ const mirrorMiddleware = (preview: boolean) => (
       catch { res.statusCode = 500; res.end("Copied page unavailable"); }
       return;
     }
-    if (preview && !/^\/(?:api|assets|site-pages|school-assets|school-pages)(?:\/|$)/.test(pathname) && !/\.[a-z\d]{1,8}$/i.test(pathname)) {
+    if (preview && (legacyPortalEntry.test(pathname) ||
+      (!/^\/(?:api|assets|site-pages|school-assets|school-pages)(?:\/|$)/.test(pathname) && !/\.[a-z\d]{1,8}$/i.test(pathname)))) {
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.setHeader("Cache-Control", "no-store");
       if (req.method === "HEAD") { res.end(); return; }

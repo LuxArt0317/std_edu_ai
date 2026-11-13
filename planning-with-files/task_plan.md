@@ -612,3 +612,10 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [ ] Implement and verify the eligible student's transaction workflow.
 
 For each remaining stateful School Affairs and DTM service, implement account-scoped records and real persistence for the observed transactions. Use labeled sample records where needed. An unverified or missing record must stay unknown in the assistant and UI.
+
+## Course withdrawal and restore [Issue #98]
+
+- [x] Check the authenticated course menu destination and verify the withdrawal and restore sequence in the official handbook.
+- [x] Mount the withdrawal workspace and persist confirmed changes against the caller's explicit withdrawal-phase course records.
+- [x] Give administrators control of the local term window. Verify role boundaries, deadlines, stale writes, retry receipts and history.
+- [ ] Verify navigation, assistant lookup and production behavior. Keep current university screen parity open.

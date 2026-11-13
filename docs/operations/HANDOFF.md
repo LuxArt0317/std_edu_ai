@@ -1,3 +1,7 @@
+## Course withdrawal (Issue #98)
+
+Service 6-4 uses the local course-selection records and an administrator-managed term window. A confirmed withdrawal or restore updates the same row shown in history. Current university screen parity and dates remain open. See [course withdrawal QA](../qa/COURSE_WITHDRAWAL.md).
+
 ## Course adjustment (Issue #98)
 
 Services 6-2 and 6-3 mount their own pages. Supabase holds public late-add rules and private decisions by student, phase and term. The existing School Affairs administrator can maintain decisions. The eligible registration forms remain unverified. See [course adjustment QA](../qa/COURSE_ADJUSTMENT.md).

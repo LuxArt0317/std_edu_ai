@@ -1,6 +1,8 @@
 import { manageFeeRemission } from '../server/feeRemission.js';
 import { changeAdjustment } from '../server/courseAdjustment.js';
 import { adjustmentAction } from '../server/courseAdjustmentContract.js';
+import { changeWithdrawal } from '../server/courseWithdrawal.js';
+import { withdrawalWindowChange } from '../server/courseWithdrawalContract.js';
 import { feeRemissionKinds, feeRemissionMaxPayloadBytes } from '../server/feeRemissionContract.js';
 import { AffairsWorkspaceError, manageAffairsRecord, verifyAffairsToken } from '../server/affairsWorkspace.js';
 import { manageCourseCatalog } from '../server/courseCatalog.js';
@@ -45,6 +47,11 @@ export default async function handler(request:Request,response:Response) {
   try {
     const authorization=first(request.headers.authorization);
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
+    if(input.kind===withdrawalWindowChange){
+      if(Object.keys(input).length!==2){response.status(400).json({error:'Invalid manager request.'});return;}
+      response.status(200).json(await changeWithdrawal({...account,requestDeadline},withdrawalWindowChange,input.payload));
+      return;
+    }
     if(adjustment){
       if(Object.keys(input).length!==2){response.status(400).json({error:'Invalid manager request.'});return;}
       response.status(200).json(await changeAdjustment({...account,requestDeadline},input.payload));

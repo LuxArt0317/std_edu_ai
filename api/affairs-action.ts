@@ -1,4 +1,6 @@
 import { changeProgramRegistration } from '../server/programRegistration.js';
+import { changeWithdrawal } from '../server/courseWithdrawal.js';
+import { withdrawalChange } from '../server/courseWithdrawalContract.js';
 import { programRegistrationAction } from '../server/programRegistrationContract.js';
 import { submitTutorEvaluation } from '../server/tutorEvaluation.js';
 import { tutorEvaluationKind, tutorEvaluationMaxBytes } from '../server/tutorEvaluationContract.js';
@@ -22,10 +24,11 @@ export default async function handler(request:Request,response:Response) {
   const submissionAction=typeof input?.kind==='string'&&dtmSubmissionStudentKinds.includes(input.kind);
   const submissionCleanup=input?.kind==='cleanup_dtm_submission_uploads';
   const programRegistration = input?.kind === programRegistrationAction;
+  const withdrawal = input?.kind === withdrawalChange;
   const tutorEvaluation = input?.kind === tutorEvaluationKind;
   const grantKind = exchangeGrantKinds.find(kind => kind === input?.kind);
   const dashboardKind=dtmDashboardLayoutKinds.find(kind=>kind===input?.kind);
-  const dedicatedPayloadLimit = programRegistration ? 1024 : tutorEvaluation ? tutorEvaluationMaxBytes : grantKind ? exchangeGrantMaxPayloadBytes : dashboardKind ? dtmDashboardLayoutMaxPayloadBytes : undefined;
+  const dedicatedPayloadLimit = programRegistration || withdrawal ? 1024 : tutorEvaluation ? tutorEvaluationMaxBytes : grantKind ? exchangeGrantMaxPayloadBytes : dashboardKind ? dtmDashboardLayoutMaxPayloadBytes : undefined;
   if(!input || typeof input.kind!=='string' || !input.payload || typeof input.payload!=='object'
     || Array.isArray(input.payload) || (dedicatedPayloadLimit?Buffer.byteLength(JSON.stringify(input),'utf8')>dedicatedPayloadLimit+1024:submissionAction?Buffer.byteLength(JSON.stringify(input),'utf8')>14000:JSON.stringify(input).length>(input.kind==='import_dtm_deadlines'?50000:4000))
     || dedicatedPayloadLimit&&(Object.keys(input).length!==2||!Object.hasOwn(input,'kind')||!Object.hasOwn(input,'payload'))){
@@ -35,6 +38,7 @@ export default async function handler(request:Request,response:Response) {
     const authorization=first(request.headers.authorization);
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
     const bounded={...account,requestDeadline:submissionDeadline};
+    if (withdrawal) {response.status(200).json(await changeWithdrawal(bounded,withdrawalChange,input.payload));return;}
     if (programRegistration) {response.status(200).json(await changeProgramRegistration(bounded,input.payload));return;}
     if (tutorEvaluation) {response.status(200).json(await submitTutorEvaluation(bounded,input.payload));return;}
     if (grantKind) {response.status(200).json(await manageExchangeGrant(bounded, grantKind, input.payload));return;}

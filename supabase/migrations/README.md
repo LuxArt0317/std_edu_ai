@@ -1,5 +1,7 @@
 # Database migrations
 
+`20261114110000_course_withdrawal.sql` adds the administrator-managed withdrawal window and account-scoped read and change functions over existing withdrawal-phase records. Private receipts make retries safe.
+
 `20261114100000_course_adjustment.sql` adds public late-add notice content, private term- and phase-scoped eligibility, and a versioned administrator RPC with durable retry receipts.
 
 `20261114090000_first_selection_notice.sql` stores the dated first-selection notice and three separate phase windows. Application roles have read-only RLS access to this reference data. Student selections and account history remain in their existing private tables.

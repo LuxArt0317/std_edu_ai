@@ -2,6 +2,7 @@ import { answerCourseSubstitution } from './courseSubstitution.js';
 import { answerFirstSelectionNotice } from './firstSelectionNotice.js';
 import { adjustmentAnswer,loadAdjustmentNotice } from './courseAdjustment.js';
 import { adjustmentPaths,adjustmentQuestion } from './courseAdjustmentContract.js';
+import { withdrawalPath,withdrawalQuestion } from './courseWithdrawalContract.js';
 import { firstSelectionQuestion } from '../src/features/public/affairs/firstSelection.js';
 import { courseSubstitutionQuestion } from '../src/features/public/affairs/courseSubstitution.js';
 import { createHash } from "node:crypto";
@@ -248,6 +249,14 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const kind = questionKind(input.question);
+        if(!input.images.length&&!kind.irrelevant&&withdrawalQuestion(input.question)){
+            const next='/school-affairs/login?next='+encodeURIComponent(withdrawalPath);
+            const zh=/[\u3400-\u9fff]/u.test(input.question);
+            stream.send(200,{status:'handoff',answer:zh?`[登入校務資訊系統](${next})查詢站內棄選期間與個人紀錄。`:
+                `[Sign in to School Affairs](${next}) to see the stu.best withdrawal window and your saved courses.`,
+                citations:[],suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
+            return;
+        }
         const adjustment = !input.images.length && !kind.irrelevant && adjustmentQuestion(input.question);
         if (adjustment) {
             const zh = /[\u3400-\u9fff]/u.test(input.question);

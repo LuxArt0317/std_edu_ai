@@ -2,6 +2,8 @@ import {courseSubstitutionQuestion} from '../features/public/affairs/courseSubst
 import {firstSelectionQuestion} from '../features/public/affairs/firstSelection.js';
 import {adjustmentQuestion} from '../../server/courseAdjustmentContract.js';
 import {readCourseAdjustmentAnswer} from './courseAdjustment';
+import {withdrawalQuestion} from '../../server/courseWithdrawalContract.js';
+import {readWithdrawalAnswer} from './courseWithdrawal';
 import {isProgramRegistrationQuestion} from '../../server/programRegistrationContract.js';
 import {readProgramRegistrationAnswer} from './programRegistration';
 import {askCampusAssistant,type AssistantResponse,type AssistantProgress} from './researchAssistant';
@@ -20,6 +22,13 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
     return result;
   }
   const adjustment = !images.length && adjustmentQuestion(question);
+  const withdrawal = !images.length && withdrawalQuestion(question);
+  if(withdrawal){
+    onProgress?.({kind:'course-withdrawal',label:'Checking course withdrawal',detail:'Reading your saved withdrawal records and window.',status:'running'});
+    const result:AssistantResponse=await readWithdrawalAnswer(data.session.user.id,withdrawal,question,signal);
+    if(typeof result?.answer!=='string'||result.grounding?.source!=='account')throw new Error('Course withdrawal records could not be loaded.');
+    return result;
+  }
   if (adjustment && adjustment !== 'rules') {
     onProgress?.({kind:'course-adjustment',label:'Checking course adjustment',detail:'Reading your saved eligibility decision.',status:'running'});
     const result:AssistantResponse = await readCourseAdjustmentAnswer(data.session.user.id,adjustment,question,signal);

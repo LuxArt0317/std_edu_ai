@@ -1,5 +1,7 @@
 # Quality evidence
 
+[Course withdrawal](COURSE_WITHDRAWAL.md) covers the private withdrawal and restore workflow, term windows and source evidence.
+
 [Course adjustment](COURSE_ADJUSTMENT.md) covers add/drop eligibility, late-add rules, administrator maintenance and verification boundaries.
 
 [Initial course selection](FIRST_SELECTION.md) records the dated schedule, fee notice, assistant checks and the remaining open-period workflow gap.

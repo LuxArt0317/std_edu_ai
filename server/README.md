@@ -1,5 +1,7 @@
 # Server helpers
 
+`courseWithdrawal.js` and its contract validate account and term binding, confirmed withdrawal or restore receipts, and direct assistant answers from the saved window and course records.
+
 ## Verified account assistant (Issue #99)
 
 `answerVerification.js` runs the LangGraph retrieve → draft → verify → (fresh retrieval → one correction → verify) flow. Account records and drafts stay in request-local closures rather than graph traces/checkpoints. `answerVerificationModel` requires independently referenced evidence and approved links; `answerVerificationSources` reads actual web pages through the acquisition safeguards. The endpoint has a shared 55-second deadline and withholds unverified drafts/actions. A verifier is fallible; this is not proof of perfect factual accuracy.

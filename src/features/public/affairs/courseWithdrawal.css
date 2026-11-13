@@ -1,0 +1,12 @@
+.course-withdrawal { color: #393939; }
+.course-withdrawal p { margin: 12px 0; }
+.course-withdrawal a { color: #25628c; text-decoration: underline; }
+.course-withdrawal-table { max-width: 100%; overflow-x: auto; margin: 16px 0; }
+.course-withdrawal table { width: 100%; border-collapse: collapse; text-align: left; }
+.course-withdrawal :is(th,td) { padding: 8px; border: 1px solid #dcdcdc; }
+.course-withdrawal th { background: #f3f3f3; font-weight: 700; }
+.course-withdrawal tbody tr:nth-child(even) { background: #f9f9f9; }
+.course-withdrawal button, .course-withdrawal-dialog button { padding: 5px 12px; border: 1px solid #397aa1; color: #1c5278; background: #fff; cursor: pointer; white-space: nowrap; }
+.course-withdrawal-dialog button:last-child { background: #246288; color: #fff; }
+.course-withdrawal-dialog button:disabled { opacity: .65; cursor: wait; }
+.course-withdrawal-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
