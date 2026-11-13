@@ -55,3 +55,6 @@
 - Issue #98: Published 76c117c and verified 19 actual-JWT requests, exact fixture cleanup and pinned browser registration/withdrawal. Verified source substitution requests by using the autocomplete department code; captured 16, three and zero original subjects across three cohorts.
 
 - Issue #98: Built service 12-8 with exact live public selectors, parsed alternative course groups and database fallback. Verified all three source cohorts and the read-only migration preflight.
+
+- 2026-11-14 [#98]: Production 52ec598 passed the revision-pinned browser suite, 16/3/0 live cohort results, four assistant answers and eight shell routes. With upstream HTTP 451 forced, the exact Supabase project returned all three dated snapshots and rejected an uncaptured cohort. Current database counts are 142 migrations and 158 public RLS tables. Course selection 6-1 source shows a schedule, fee notice and alert with return to the portal. No open enrollment form was observed.
+- 2026-11-14 [#98]: The first Quality run found an existing deadline classification race. The supplemental reader now identifies its timer expiry directly and discards late success. Two controlled-clock regressions, 1,022 isolated API/source tests, targeted lint and the production build passed. The 66 paused Issue #100 paths were preserved.

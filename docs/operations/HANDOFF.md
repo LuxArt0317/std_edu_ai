@@ -1,6 +1,6 @@
 ## Course substitutions (Issue #98)
 
-Service 12-8 opens the dedicated search. The read-only adapter checks the exact university result and can fall back to three verified, dated Supabase snapshots. See [course substitution QA](../qa/COURSE_SUBSTITUTION.md).
+Service 12-8 opens the dedicated search. The read-only adapter checks the exact university result and can fall back to three verified, dated Supabase snapshots. Runtime `52ec598` passed production browser, assistant and public-shell checks. The 94-entry menu still includes 49 generic pages and seven partial workflows. See [course substitution QA](../qa/COURSE_SUBSTITUTION.md).
 
 ## Interdisciplinary registration (Issue #98)
 

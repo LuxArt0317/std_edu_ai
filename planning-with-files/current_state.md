@@ -2,6 +2,10 @@
 
 The native search reproduces the source fields, original course table and nested alternatives. It uses the public department selector and exact cohort and track. Live results for cohorts 110, 113 and 115 returned 16, three and zero old courses. Migration 080000 stores the verified snapshots with read-only public RLS.
 
+Production `52ec598` is Ready as Vercel `F1UxWEuf58LFNFSCB3oSZpcfsZvy`. The pinned browser, three live result counts, four assistant queries and the eight-route shell passed. The exact Supabase fallback passed with forced upstream failure. The menu inventory has 49 generic pages and seven partial workflows. Issue #98 stays open. The previous goal turn made progress by releasing the native search and its migration.
+
+The next course-selection source has a three-stage schedule, instructions, a separate fee notice and a final entry that returned an alert followed by the portal index. The active enrollment form and eligibility rules beyond the published notices remain unobserved.
+
 ## Interdisciplinary registration (Issue #98)
 
 The authenticated university session showed the ten-column registration history. The add control did not expose a populated workflow, so the local registration and progress pages use the public program catalog and caller-owned records. The exact client migration is applied at 141 migrations and 157 public RLS tables. Production `76c117c` passed 19 actual-JWT API checks with exact cleanup and pinned browser registration, withdrawal, retry and assistant routing. The first production check saw the previous manifest during rollout and passed on retry. GitHub Quality 43472451908 passed. Course substitution now has verified public POST results for the same department and track across cohorts 110, 113 and 115. Cohort 110 returned 16 old courses and one explicit replacement, 113 returned three old courses, and 115 returned an empty result.

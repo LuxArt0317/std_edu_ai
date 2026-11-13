@@ -81,6 +81,7 @@ export function boundSupplementalResults(input,budget=supplementalEvidenceBudget
 export async function readSupplementalLookups({tools,readers={},question,route='',history=[],snapshot,deadline,attempt=1,catalogQuery=null,onProgress=()=>{}}){
   const selected=[...new Set(tools.filter(key=>keys.includes(key)))],results=new Array(selected.length);
   readers={...readers};history=history.map(row=>({...row}));catalogQuery=catalogQuery===null?null:structuredClone(catalogQuery);
+  const deadlineExceeded=Symbol('Supplemental account read timed out');
   let next=0;
   const emit=(key,status,detail)=>{try{onProgress({kind:`account-read:${key}:${attempt}`,label:(status==='running'?'Reading ':'Checked ')+supplementalAccountTools[key],detail,status});}catch{/* Disconnected progress cannot approve a read. */}};
   const worker=async()=>{while(next<selected.length){
@@ -92,13 +93,17 @@ export async function readSupplementalLookups({tools,readers={},question,route='
       else{
         const query=key==='courseCatalog'?validateCatalogReadPlan(catalogQuery):null;
         emit(key,'running','Starting the selected authorized reader. No action is executed.');
-        result=await Promise.race([Promise.resolve().then(()=>readers[key]({question,route,history:history.map(row=>({...row})),snapshot,deadline,...(query===null?{}:{catalogQuery:query})})),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('deadline')),Math.max(1,deadline-Date.now()));})]);
+        result=await Promise.race([
+          Promise.resolve().then(()=>readers[key]({question,route,history:history.map(row=>({...row})),snapshot,deadline,...(query===null?{}:{catalogQuery:query})})),
+          new Promise((_,reject)=>{timer=setTimeout(()=>reject(deadlineExceeded),Math.max(1,deadline-Date.now()));}),
+        ]);
+        if(Date.now()>=deadline)throw deadlineExceeded;
         result=structuredClone(result);
         if(result?.evidence?.id!=='account:'+key)throw new TypeError('Reader source mismatch.');
         if(bytes(result)>sourceLimits[key])throw new TypeError('Reader source exceeds its fixed budget.');
         formatSupplementalAccountAnswers([result],{question});
       }
-    }catch{result=unavailable(key,Date.now()>=deadline?'deadline_exceeded':'read_failed');}
+    }catch(error){result=unavailable(key,error===deadlineExceeded||Date.now()>=deadline?'deadline_exceeded':'read_failed');}
     finally{if(timer!==undefined)clearTimeout(timer);}
     results[index]=result;
     const payload=JSON.parse(result.evidence.content),limited=result.readState==='partial'||payload.complete===false||payload.counts?.complete===false||payload.selection?.requiresClarification;

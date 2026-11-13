@@ -1,6 +1,6 @@
 ## Course substitutions (Issue #98)
 
-Root owns 12-8, migration 080000, public source lookups, the new assistant citation path and release. Paused Issue #100 files remain out of scope.
+Root owns 12-8, migration 080000, public source lookups, the new assistant citation path and release. Runtime `52ec598` passed pinned live browser, assistant and public shell checks. Root verified the signed-in 6-1 schedule and fee notice. Paused Issue #100 files remain out of scope.
 
 ## Interdisciplinary registration (Issue #98)
 

@@ -1,7 +1,9 @@
 # Changelog
 ## Unreleased
 
-- Add course substitution search with verified cohort, track and department filters, expandable alternative groups and exact assistant links. [#98]
+- Add course substitution search with verified cohort, track and department filters, expandable alternative groups and exact assistant links. Published at `52ec598`. [#98]
+
+- Preserve the timeout status for supplemental assistant reads and reject results that arrive after the deadline. [#98]
 
 - Add private interdisciplinary program registration history, confirmation and withdrawal. The campus assistant reads the same account records. Published at `76c117c`. [#98]
 

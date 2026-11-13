@@ -591,4 +591,11 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Verify the source search uses the department code selected by autocomplete.
 - [x] Capture populated, no-replacement and empty cases in the browser and independent HTTP client.
 - [x] Build the full read-only selector and preserve old courses, alternative groups and provenance.
-- [ ] Verify result completeness, mobile layout, assistant lookup and deployed behavior.
+- [x] Verify result completeness, mobile layout, assistant lookup and deployed behavior at 52ec598.
+
+## First course selection [Issue #98]
+
+- [x] Verify the signed-in schedule, fee notice and final entry behavior on the source.
+- [ ] Capture the exact availability message and open-period selection requirements when observable.
+- [ ] Implement native notice navigation and connect available student selection workflows to caller-owned database records and assistant tools.
+- [ ] Verify signed-in layout, persistence, permission boundaries and production behavior.
