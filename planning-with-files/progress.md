@@ -17,3 +17,6 @@
 - Implemented and locally verified service 21-3. Applied only migration `20261114030000` after exact plan and rollback preflight. Actual-JWT handler acceptance passed 15 requests with exact cleanup. Final production verification pending.
 
 - Published `5b4b9e7` to Vercel. The deployed browser, actual-JWT and eight-route shell suites passed. Verified all 94 local menu destinations. Captured the exchange and conference grant index and its linked source views. GitHub quality `43441455303` passed.
+
+- 23-1: Verified restored School Affairs access. Built the observed index and destinations with a private conference draft and report workflow. The grant migration passed rollback with exact baseline restoration. Compiled Chromium passed five workflow groups at 1280/390/320, with the desktop index table within one CSS pixel of source measurements.
+- 23-1: Applied only migration 040000 after the exact plan. Real client JWTs passed 18 handler requests and exact fixture cleanup. Corrected the harness to expect the shared non-Google authentication boundary (401). Isolated 1000 API/source and 541 unit tests passed.

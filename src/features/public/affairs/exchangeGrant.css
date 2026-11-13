@@ -1,0 +1,116 @@
+.exchange-grant {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: #efeff0;
+  color: #111;
+  font: 13px/1.5 "Microsoft JhengHei", "微軟正黑體", Verdana, Helvetica, Arial, sans-serif;
+}
+.exchange-grant-frame { width: min(1060px, 100%); margin: 4px auto 60px; }
+.exchange-grant-brand {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  min-height: 30px; padding: 0 10px 0 17px; background: #7c7c7c; color: white; font-weight: 600;
+}
+.exchange-grant-brand a { display: flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; }
+.exchange-grant-brand img { flex: none; width: 19px; height: 24px; }
+.exchange-grant-brand span { white-space: nowrap; }
+.exchange-grant-menu { height: 45px; padding-right: 24px; display: flex; justify-content: flex-end; background: #5489ab; }
+.exchange-grant-menu button {
+  display: flex; align-items: center; gap: 5px; padding: 0 14px; border-inline: 1px solid #477b9d;
+  color: #fff; font-weight: 600;
+}
+.exchange-grant-menu button:hover, .exchange-grant-menu button[data-state=open] { background: #3e7496; }
+.exchange-grant-dropdown { max-width: calc(100vw - 16px); }
+.exchange-grant-crumb {
+  min-height: 31px; display: flex; gap: 7px; align-items: center; padding: 4px 17px;
+  background: #f4f4f4; color: #444; border-bottom: 1px solid #e4e4e4;
+}
+.exchange-grant-crumb svg { flex: none; }
+.exchange-grant-main { position: relative; min-width: 0; background: #fff; padding: 25px 20px 26px; }
+.exchange-grant-settings { position: absolute; top: 8px; right: 0; display: flex; align-items: flex-start; flex-direction: row-reverse; z-index: 1; }
+.exchange-grant-gear { display: grid; place-items: center; width: 42px; height: 39px; color: #5f450d; background: #f7d7a3; border-radius: 6px 0 0 6px; }
+.exchange-grant-settings-panel { display: flex; align-items: center; gap: 8px; padding: 7px; background: #fff4e2; border: 1px solid #e5c99f; font-size: 13px; }
+.exchange-grant-settings-panel button { padding: 2px 6px; border: 1px solid #9e7a3b; }
+.exchange-grant-column { width: 91.5%; }
+.exchange-grant-column > h1, .exchange-grant-report-help > h2 {
+  display: flex; align-items: center; gap: 5px; margin: 0 0 16px; padding: 4px 0 5px;
+  border-bottom: 1px solid #dfdfdf; color: #386d91; font-size: 1em; font-weight: 400;
+}
+.exchange-grant-index-table, .exchange-grant-report-table { width: 100%; border-collapse: collapse; text-align: left; }
+.exchange-grant-index-table { color: #3b6583; font-size: .875em; }
+.exchange-grant-index-table th, .exchange-grant-index-table td { border: 1px solid #7796ae; padding: 0 2px; height: 22px; overflow-wrap: anywhere; }
+.exchange-grant-index-table th { font-weight: 400; }
+.exchange-grant-index-table :is(th,td):first-child { width: 26.5%; }
+.exchange-grant-index-table :is(th,td):nth-child(2) { width: 36.75%; }
+.exchange-grant a:hover { text-decoration: underline; }
+.exchange-grant-manual { color: #a73020; font-weight: 700; }
+.exchange-grant-directions { margin-top: 5px; padding-top: 16px; border-top: 1px solid #dedede; line-height: 1.57; }
+.exchange-grant-instructions, .exchange-grant-consent { border: 1px solid #a3a3a3; }
+.exchange-grant-consent { border-top: 0; }
+.exchange-grant-instructions :is(h1,p,ol), .exchange-grant-consent :is(h2,p) { margin: 0; font-size: 1em; font-weight: 500; }
+.exchange-grant-instructions ol { list-style: none; padding: 0; }
+.exchange-grant-instructions .exchange-grant-attachment { margin-top: 23px; overflow-wrap: anywhere; }
+.exchange-grant-attachment a, .exchange-grant-back a { color: #245f8d; text-decoration: underline; }
+.exchange-grant-actions { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-top: 23px; }
+.exchange-grant-button {
+  display: inline-flex; gap: 5px; align-items: center; justify-content: center; min-height: 32px;
+  padding: 4px 11px; background: #555; color: #fff; font-size: 14px; line-height: 1.4; font-weight: 700; text-decoration: none;
+}
+.exchange-grant-button:hover { filter: brightness(.9); }
+.exchange-grant button:disabled { opacity: .55; cursor: default; }
+.exchange-grant-save { background: #487b37; }
+.exchange-grant-blue { background: #326e9a; }
+.exchange-grant-delete { background: #a63d2b; }
+.exchange-grant-unavailable { padding: 4px 9px; color: #666; font-size: 14px; }
+.exchange-grant-dialog .exchange-grant-button { justify-self: end; }
+.exchange-grant-report-title {
+  display: flex; gap: 7px; align-items: center; padding: 0 42px 13px 0; margin: -7px 0 20px;
+  border-bottom: 1px solid #e9e9e9; font-size: 1.125em; font-weight: 500;
+}
+.exchange-grant-report-title svg { color: #ac513c; flex: none; }
+.exchange-grant-local-label { margin: 0 0 10px 26%; color: #4b5b62; font-size: 14px; }
+.exchange-grant-record-form fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.exchange-grant-field {
+  display: grid; grid-template-columns: minmax(105px, 25.5%) minmax(0, 1fr); gap: 12px;
+  align-items: start; margin: 0 4.5% 14px 0;
+}
+.exchange-grant-field > :is(label,span) { padding-top: 7px; text-align: right; font-size: .85em; }
+.exchange-grant-field > label::before, .exchange-grant-field > span::before { content: '*'; color: #ab3729; }
+.exchange-grant-field :is(input:not([type=radio]),textarea) {
+  width: 100%; min-width: 0; border: 1px solid #cfcfcf; padding: 5px 8px; color: #202428; background: #fff; font-size: 14px;
+}
+.exchange-grant-field input:not([type=radio]) { height: 34px; }
+.exchange-grant-field input[readonly] { background: #f3f3f3; }
+.exchange-grant-field textarea { min-height: 433px; resize: vertical; }
+.exchange-grant-two-inputs { display: grid; grid-template-columns: minmax(0, 185px) minmax(0, 400px); gap: 5px; }
+.exchange-grant-dates, .exchange-grant-radio { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.exchange-grant-dates label { display: flex; gap: 4px; align-items: center; font-size: 14px; }
+.exchange-grant-radio { min-height: 34px; }
+.exchange-grant-radio label { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; }
+.exchange-grant-record-actions { display: flex; gap: 4px; flex-wrap: wrap; padding: 10px 0 0 26.2%; margin-top: 20px; border-top: 1px solid #dedede; }
+.exchange-grant-table-scroll { margin: 30px 12px 0; overflow-x: auto; }
+.exchange-grant-report-table th { padding: 6px; color: #fff; background: #204e61; border: 1px solid #1c4556; font-size: .85em; font-weight: 500; }
+.exchange-grant-report-table td { padding: 6px; border: 1px solid #ddd; font-size: .85em; overflow-wrap: anywhere; white-space: pre-wrap; }
+.exchange-grant-report-table td:last-child { width: 45px; }
+.exchange-grant-view { display: inline-flex; padding: 4px; color: #a83c25; }
+.exchange-grant-report-help { margin-top: 38px; font-size: .85em; }
+.exchange-grant-report-help > h2 { font-size: 1.4em; }
+.exchange-grant-report-help ol { padding-inline-start: 25px; list-style: decimal; }
+.exchange-grant-report-help ul { padding-inline-start: 26px; list-style: circle; }
+.exchange-grant-status, .exchange-grant-back { margin: 8px 12px 0; font-size: 14px; }
+.exchange-grant-status p[role=alert] { color: #942916; }
+.exchange-grant-footer { margin: auto 12px 4px max(12px, calc((100% - 876px) / 2)); padding: 14px 10px; border-top: 3px double #dedede; color: #386d91; text-align: center; }
+.exchange-grant :is(button,a,input,textarea):focus-visible { outline: 2px solid #235c8a; outline-offset: 2px; }
+@media (max-width: 650px) {
+  .exchange-grant-brand span { display: none; }
+  .exchange-grant-main { padding-inline: 12px; }
+  .exchange-grant-column { width: 100%; }
+  .exchange-grant-column > h1 { padding-right: 40px; }
+  .exchange-grant-field { grid-template-columns: 1fr; gap: 4px; margin-right: 0; }
+  .exchange-grant-field > :is(label,span) { text-align: left; }
+  .exchange-grant-two-inputs { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
+  .exchange-grant-local-label, .exchange-grant-record-actions { margin-left: 0; padding-left: 0; }
+  .exchange-grant-field textarea { min-height: 240px; }
+  .exchange-grant-table-scroll { margin-inline: 0; }
+  .exchange-grant-report-table { min-width: 480px; }
+}

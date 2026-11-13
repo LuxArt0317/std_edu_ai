@@ -529,3 +529,8 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Observe the conference and exchange instructions, the report page, and the receipt link returning to the index after a notice.
 - [ ] Verify what the application buttons lead to and implement the resulting local routes, forms and account records from observed fields.
 - [ ] Verify report maintenance and the receipt flow with their actual available controls.
+
+- [x] Implement the captured grant index, instruction pages, local manual, documented conference draft form and account-owned reports.
+- [x] Verify browser navigation and record handling at desktop and phone widths. Verify the draft migration in a rollback transaction.
+- [ ] Verify live API cleanup and release acceptance for the implemented scope.
+- [ ] Compare the current consent-gated application forms, roster fields and receipt issuance when observable.

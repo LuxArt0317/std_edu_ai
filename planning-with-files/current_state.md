@@ -1,3 +1,7 @@
+## Exchange and conference grant service 23-1
+
+The user-restored School Affairs session opened the grant catalog. The local index, instructions, manual, conference draft, report and receipt return passed compiled browser checks at 1280, 390 and 320 px. The scoped migration passed rollback authorization and version tests. Current official application continuations are consent-gated. This leaves 59 catalog entries with generic workflows, two partial and 27 native. Issue #98 remains open and issue #100 stays paused.
+
 ## Published tuition-reduction history
 
 Service 21-3 is live at revision `5b4b9e7922536e2411fd8868e884e74a193e05df`. Vercel is Ready and the public manifest agrees. The pinned production actual-JWT suite passed 15 API checks with exact cleanup, and the compiled browser suite passed four groups across three widths. Local inventory verified all 94 destinations and records 60 remaining generic pages. Only `20261114030000` was applied after rollback verification. Client database verification passed at 137 migrations and 153 public RLS tables. GitHub quality `43441455303` passed. Issue #100 remains user-paused.

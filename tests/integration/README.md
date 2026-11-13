@@ -92,3 +92,5 @@ The layout harness creates exactly two Google-shaped student accounts and one no
 Moodle URL resource checks: `dtm-course-resource-ui.mjs` renders compiled synthetic sessions; `dtm-course-resource-rls-live.mjs --self-test` is offline. Root-only `--execute --preflight --expected-migrations=135 --expected-rls=152` uses rollback-only DDL with exact recovery evidence. Execution is not implied by the file existing.
 
 Fee-remission verification includes `fee-remission-ui.mjs` for navigation and rendered workflows, `fee-remission-rls-live.mjs` for rollback-only authorization checks, and `fee-remission-http-live.mjs` for exact-client persistence and fixture cleanup. See [fee-remission QA](../../docs/qa/FEE_REMISSION.md).
+
+`exchange-grant-ui.mjs` checks navigation, the local PDF, create/report/delete, retry identity, guest/foreign-account handling and viewport containment. `exchange-grant-rls-live.mjs --rollback-preflight` exercises the migration on the exact client database in a rolled-back transaction. `exchange-grant-http-live.mjs` checks actual-JWT local or deployed routes with disposable fixtures.

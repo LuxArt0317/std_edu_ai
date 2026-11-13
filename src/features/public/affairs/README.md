@@ -65,3 +65,5 @@ Catalog entry `4-5` opens the copied homepage as a full document, so its static 
 `DtmCourseContentManager` provides selected-student course placement and order maintenance within the existing guarded manager. Its hidden disclosure retains drafts; pending edits and uncertain operations lock course/student switching. Stale references require explicit removal. It adds no authoring controls to the copied student course page.
 
 `/school-affairs/services/21-3` shows the captured tuition-reduction instructions and seven-column account history. Previous notes are accessible at `/school-affairs/services/21-3/notes`. Administrators maintain history for the selected student through `/school-affairs/admin/records`.
+
+Grant service 23-1 opens the observed index and four distinct local destinations. The conference form saves private drafts, and the report page saves a reflection against a selected draft. The operations manual is available on the index. The earlier personal notes are at `/school-affairs/services/23-1/notes`.

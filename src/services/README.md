@@ -46,3 +46,5 @@ Browser clients call the public, School Affairs and protected Nexus endpoints. `
 `dtmCourseContent.ts` provides caller-guarded course layout reads, exact assignment lookup and administrator mutations. Its bounded full-page assembler rejects inconsistent revisions and incomplete results. It does not query generic assistant snapshots.
 
 `feeRemission.ts` reads history and dispatches administrator changes with the initiating account’s session. The shared contract validates literal cells, the returned owner, and the write receipt.
+
+`exchangeGrant.ts` reads and updates account-owned grant drafts. It checks the initiating Google session before sending a request and before returning the result.

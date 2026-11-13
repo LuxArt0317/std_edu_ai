@@ -84,6 +84,8 @@ import { StudentConductWorkspace } from "./StudentConductWorkspace";
 import { StudentLoanWorkspace } from "./StudentLoanWorkspace";
 import { DormConductWorkspace } from "./DormConductWorkspace";
 import { EducationFundWorkspace } from "./EducationFundWorkspace";
+import { ExchangeGrantWorkspace } from "./ExchangeGrantWorkspace";
+import { exchangeGrantPath } from "./exchangeGrantReference";
 import { FeeRemissionWorkspace } from "./FeeRemissionWorkspace";
 import { feeRemissionPath } from "../../../../server/feeRemissionContract.js";
 import { dormitoryConductPath } from "@/services/dormitoryConduct";
@@ -458,6 +460,15 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   }
   if (normalizedPath === "/school-affairs/services/7-1") {
     return <CreditLoadApplication key={user.id} />;
+  }
+  if (normalizedPath === `${exchangeGrantPath}/notes`) {
+    return <StudentServiceWorkspace key={pathname} userId={user.id} serviceKey="23-1" view="" />;
+  }
+  if (normalizedPath === exchangeGrantPath || ["conference", "exchange", "reports", "receipts", "conference/application"]
+    .some(view => normalizedPath === `${exchangeGrantPath}/${view}`)) {
+    const name = typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : user.email ?? "";
+    return <ExchangeGrantWorkspace key={normalizedPath} view={normalizedPath.slice(exchangeGrantPath.length + 1)}
+      userId={user.id} displayName={name} />;
   }
   if (normalizedPath === `${feeRemissionPath}/notes`) {
     return <StudentServiceWorkspace key={pathname} userId={user.id} serviceKey="21-3" view="" />;

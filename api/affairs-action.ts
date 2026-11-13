@@ -1,3 +1,5 @@
+import { manageExchangeGrant } from '../server/exchangeGrant.js';
+import { exchangeGrantKinds, exchangeGrantMaxPayloadBytes } from '../server/exchangeGrantContract.js';
 import { AffairsWorkspaceError, executeAffairsAction, verifyAffairsToken } from '../server/affairsWorkspace.js';
 import { DtmSubmissionError, dtmSubmissionStudentKinds, executeDtmSubmissionAction, cleanupDtmSubmissionUploads } from '../server/dtmSubmissions.js';
 import { DtmDashboardLayoutError, dtmDashboardLayoutKinds, dtmDashboardLayoutMaxPayloadBytes, executeDtmDashboardLayoutAction } from '../server/dtmDashboardLayout.js';
@@ -15,16 +17,18 @@ export default async function handler(request:Request,response:Response) {
   const input=body&&typeof body==='object'&&!Array.isArray(body)?body as Record<string,unknown>:null;
   const submissionAction=typeof input?.kind==='string'&&dtmSubmissionStudentKinds.includes(input.kind);
   const submissionCleanup=input?.kind==='cleanup_dtm_submission_uploads';
+  const grantKind = exchangeGrantKinds.find(kind => kind === input?.kind);
   const dashboardKind=dtmDashboardLayoutKinds.find(kind=>kind===input?.kind);
   if(!input || typeof input.kind!=='string' || !input.payload || typeof input.payload!=='object'
-    || Array.isArray(input.payload) || (dashboardKind?Buffer.byteLength(JSON.stringify(input),'utf8')>dtmDashboardLayoutMaxPayloadBytes+1024:submissionAction?Buffer.byteLength(JSON.stringify(input),'utf8')>14000:JSON.stringify(input).length>(input.kind==='import_dtm_deadlines'?50000:4000))
-    || dashboardKind&&(Object.keys(input).length!==2||!Object.hasOwn(input,'kind')||!Object.hasOwn(input,'payload'))){
+    || Array.isArray(input.payload) || (grantKind?Buffer.byteLength(JSON.stringify(input),'utf8')>exchangeGrantMaxPayloadBytes+1024:dashboardKind?Buffer.byteLength(JSON.stringify(input),'utf8')>dtmDashboardLayoutMaxPayloadBytes+1024:submissionAction?Buffer.byteLength(JSON.stringify(input),'utf8')>14000:JSON.stringify(input).length>(input.kind==='import_dtm_deadlines'?50000:4000))
+    || (dashboardKind||grantKind)&&(Object.keys(input).length!==2||!Object.hasOwn(input,'kind')||!Object.hasOwn(input,'payload'))){
     response.status(400).json({error:'Invalid action request.'});return;
   }
   try {
     const authorization=first(request.headers.authorization);
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
     const bounded={...account,requestDeadline:submissionDeadline};
+    if (grantKind) {response.status(200).json(await manageExchangeGrant(bounded, grantKind, input.payload));return;}
     if(dashboardKind){response.status(200).json(await executeDtmDashboardLayoutAction(bounded,dashboardKind,input.payload));return;}
     if(submissionCleanup){
       if(Object.keys(input.payload).length){response.status(400).json({error:'Cleanup takes no file paths or user identifiers.'});return;}

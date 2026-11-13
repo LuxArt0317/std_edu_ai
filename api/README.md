@@ -42,3 +42,5 @@ Grade reports use strict `affairs-data` scopes `dtm-grade-report`, `dtm-grade-re
 Moodle resource reads use strict `dtm-course-resource` scope with one course and material ID. No caller-supplied account selector or conversation fallback is accepted. See [resource QA](../docs/qa/DTM_COURSE_RESOURCE.md).
 
 `GET /api/affairs-data?scope=fee-remission` returns the signed-in account’s history. `fee-remission-admin` takes one `user_id` and requires the verified administrator. `POST /api/affairs-manage` accepts `save_fee_remission` and `delete_fee_remission` with a request ID and expected version.
+
+`GET /api/affairs-data?scope=exchange-grant` reads only the signed-in account’s grant drafts. `POST /api/affairs-action` accepts the exact grant draft, report and deletion envelopes. Both endpoints use the caller JWT and reject account selectors.

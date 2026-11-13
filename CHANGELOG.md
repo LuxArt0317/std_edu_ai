@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Open Student Affairs grant service 23-1 as a standalone page with four destinations, the operation manual, private conference drafts and reflection reports. Prior personal notes remain at `/school-affairs/services/23-1/notes`. [#98]
+
 - Open the tuition-reduction service as a standalone page with the captured closed-period instructions and private history. Add audited administrator maintenance and keep previous personal notes at `/school-affairs/services/21-3/notes`. [#98]
 
 - Open Moodle materials as native course resource pages with exact account/course reads, explicit stored destinations and working parent navigation when the general snapshot is unavailable. Preserve existing material management and provenance; see [resource QA](docs/qa/DTM_COURSE_RESOURCE.md). [#98]

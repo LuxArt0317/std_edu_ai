@@ -1,3 +1,7 @@
+## Exchange and conference grant service 23-1
+
+Root owns the grant-specific files, the grant hunks in the School Affairs mount and shared API handlers, and the isolated release candidate. Source captures are private under `artifacts/visual-parity/exchange-grant`. Local build, browser and DB rollback checks passed. The current official application forms remain consent-gated. Issue #100’s 66 paused paths remain outside the candidate.
+
 ## Tuition-reduction history ownership
 
 Root published and verified service 21-3 at `5b4b9e7`. All database sessions and test fixtures are closed. The next source capture is service 23-1. The user-paused issue #100 files remain outside this release.

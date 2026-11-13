@@ -39,3 +39,5 @@ Migration220000 adds one active private dormitory-conduct metadata record per ac
 `20261114020000_dtm_material_targets.sql` adds nullable material destinations and preserves all existing owner-only material CRUD branches, grants and audit behavior. Omitted destination fields preserve values; explicit null/empty clears. Apply only after the exact-client rollback preflight and deployment plan.
 
 `20261114030000_fee_remission.sql` adds one protected account history table and private retry receipts. Students can read their own history. The authorized administrator can save and delete versioned rows. The migration leaves existing notes in their original table.
+
+`20261114040000_exchange_grant_drafts.sql` adds caller-owned conference drafts and reflections, verified Google identity checks, per-account write serialization, compare-and-set versions and private idempotency receipts.

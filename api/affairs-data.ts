@@ -1,3 +1,4 @@
+import { loadExchangeGrants } from '../server/exchangeGrant.js';
 import { loadFeeRemission } from '../server/feeRemission.js';
 import { AffairsWorkspaceError, loadAffairsSnapshot, verifyAffairsToken } from '../server/affairsWorkspace.js';
 import conversations from '../server/assistantConversations.js';
@@ -19,7 +20,7 @@ type Response = {status:(code:number)=>Response;json:(body:unknown)=>void;setHea
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
 export default async function handler(request:Request,response:Response) {
   const scopes=Array.isArray(request.query?.scope)?request.query.scope:[request.query?.scope];
-  const strictStudentScope=scopes.some(scope=>typeof scope==='string'&&(scope.startsWith('fee-remission')||scope.startsWith('student-conduct')||scope.startsWith('student-loan')||scope.startsWith('dormitory-conduct')||scope.startsWith('dtm-dashboard-layout')||scope.startsWith('dtm-grade-report')||scope.startsWith('dtm-course-content')||scope.startsWith('dtm-course-resource')));
+  const strictStudentScope=scopes.some(scope=>typeof scope==='string'&&(scope.startsWith('exchange-grant')||scope.startsWith('fee-remission')||scope.startsWith('student-conduct')||scope.startsWith('student-loan')||scope.startsWith('dormitory-conduct')||scope.startsWith('dtm-dashboard-layout')||scope.startsWith('dtm-grade-report')||scope.startsWith('dtm-course-content')||scope.startsWith('dtm-course-resource')));
   if(first(request.query?.resource)==='conversations'&&!strictStudentScope)return conversations(request,response);
   const requestDeadline=Date.now()+17000;
   response.setHeader('Cache-Control','no-store, max-age=0');
@@ -30,6 +31,14 @@ export default async function handler(request:Request,response:Response) {
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
     const scope=request.query?.scope;
     if(Array.isArray(scope)){response.status(400).json({error:'Choose one records scope.'});return;}
+    if (typeof scope === 'string' && scope.startsWith('exchange-grant')) {
+      if (scope === 'exchange-grant' && Object.keys(request.query || {}).length === 1) {
+        response.status(200).json(await loadExchangeGrants({...account, requestDeadline}));
+        return;
+      }
+      response.status(400).json({error:'Grant history takes no account selector.'});
+      return;
+    }
     if (typeof scope === 'string' && scope.startsWith('fee-remission')) {
       const keys = Object.keys(request.query || {});
       const userId = request.query?.user_id;

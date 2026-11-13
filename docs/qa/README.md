@@ -19,3 +19,5 @@ This directory contains scoped verification records and explicit acceptance limi
 - [Moodle URL resources](DTM_COURSE_RESOURCE.md): native pages, exact records and separate resource destinations; explicit scope and pending acceptance.
 
 - [Tuition-reduction history](FEE_REMISSION.md)
+
+- [Exchange and conference grants](EXCHANGE_GRANTS.md) — source observations, private records and QA.

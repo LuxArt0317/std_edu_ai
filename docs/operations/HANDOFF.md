@@ -1,5 +1,9 @@
 ## Tuition-reduction history
 
+## Exchange and conference grants (Issue #98)
+
+Service 23-1 has a standalone index, captured directions, a local operation manual, and caller-owned conference drafts and reflection reports. The isolated build, rendered workflow and actual-JWT local-handler acceptance passed. Only migration `20261114040000` was applied after exact rollback verification. Current consent-gated official application forms and downstream roster and receipt workflows remain unverified. See [grant QA](../qa/EXCHANGE_GRANTS.md).
+
 Service 21-3 now has the observed closed-period layout and a private history read. The database migration and actual-JWT handler verification passed. The deployed API and browser suites passed at `5b4b9e7`. GitHub quality `43441455303` passed. See [tuition-reduction QA](../qa/FEE_REMISSION.md).
 
 ## Native Moodle URL resources — published
