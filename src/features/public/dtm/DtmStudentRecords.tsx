@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { CalendarDays, ChevronRight, ExternalLink, Plus, Settings } from 'lucide-react';
+import { CalendarDays, ExternalLink, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -11,8 +11,8 @@ import {
   type DtmMaterial, type DtmMeeting, type DtmRecordKind,
 } from '@/services/schoolAffairsWorkspace';
 import { CalendarDeadlineImport } from './CalendarDeadlineImport';
-import { coursesByTerm, dtmViews, type DtmView } from './catalog';
-import { deadlineLabel, taipeiDateTimeInput, termLabel, type DtmTranslate } from './locale';
+import { dtmViews, type DtmView } from './catalog';
+import { deadlineLabel, taipeiDateTimeInput, type DtmTranslate } from './locale';
 
 type EditRecord =
   | {kind:'course';record?:DtmCourse}
@@ -47,10 +47,12 @@ function CourseActivity({kind,title,details,deadline,open,id,t}:{
   </li>;
 }
 
-function RecordEditor({edit,t,saved,close}:{edit:EditRecord;t:DtmTranslate;saved:(id:string)=>void;close:()=>void}) {
+function RecordEditor({edit,t,saved,close,onBusyChange,expectedUserId}:{edit:EditRecord;t:DtmTranslate;saved:(id:string)=>void;close:()=>void;onBusyChange?:(busy:boolean)=>void;expectedUserId?:string}) {
   const [id] = useState(()=>edit.record?.id || crypto.randomUUID());
   const [busy,setBusy] = useState(false);
   const [error,setError] = useState('');
+  const pending=useRef<AbortController|null>(null);
+  useEffect(()=>()=>pending.current?.abort(),[]);
   const {kind} = edit;
   const isEdit = Boolean(edit.record);
   const submit = async (event:FormEvent<HTMLFormElement>) => {
@@ -62,16 +64,19 @@ function RecordEditor({edit,t,saved,close}:{edit:EditRecord;t:DtmTranslate;saved
       return;
     }
     setBusy(true);
+    onBusyChange?.(true);
     setError('');
+    const controller=expectedUserId===undefined?undefined:new AbortController();
+    pending.current=controller??null;
     try {
       const result = await savePersonalSchoolRecord({kind:'save_dtm_'+kind as `save_dtm_${DtmRecordKind}`,payload:{
         ...values,id,...(kind==='course'?{}:{course_id:edit.course.id}),
         ...(kind==='assignment'?{due_at:values.due_at?new Date(values.due_at+'+08:00').toISOString():''}:{}),
-      }});
+      }},expectedUserId===undefined?undefined:{expectedUserId,signal:controller?.signal});
       saved(result.id);
     } catch (reason) {
       setError(reason instanceof Error?reason.message:t('無法儲存紀錄。','Could not save this record.'));
-    } finally {setBusy(false);}
+    } finally {pending.current=null;setBusy(false);onBusyChange?.(false);}
   };
   return <form className="dtm-record-form" onSubmit={submit}>
     <h3>{t((isEdit?'編輯':'新增')+names[kind][0],(isEdit?'Edit ':'Add ')+names[kind][1])}</h3>
@@ -131,6 +136,26 @@ function RecordEditor({edit,t,saved,close}:{edit:EditRecord;t:DtmTranslate;saved
   </form>;
 }
 
+/** Local record creation stays available without adding a dashboard block. */
+export function DtmCourseCreateDialog({userId,open,onOpenChange,t,onSaved}:{
+  userId:string;open:boolean;onOpenChange:(open:boolean)=>void;t:DtmTranslate;onSaved:(id:string)=>void;
+}) {
+  const busy=useRef(false);
+  const active=useRef(true);
+  useEffect(()=>{active.current=true;return()=>{active.current=false;};},[]);
+  function close(){if(!busy.current)onOpenChange(false);}
+  return <Dialog open={open} onOpenChange={value=>{if(value||!busy.current)onOpenChange(value);}}>
+    <DialogContent className="dtm dtm-course-create-dialog" onCloseAutoFocus={event=>{
+      event.preventDefault();document.querySelector<HTMLButtonElement>('.dtm-user')?.focus();
+    }}>
+      <DialogHeader><DialogTitle className="sr-only">{t('新增課程','Add course')}</DialogTitle>
+        <DialogDescription>{t('新增此帳號的個人課程紀錄。','Add a personal course record for this account.')}</DialogDescription></DialogHeader>
+      <RecordEditor edit={{kind:'course'}} expectedUserId={userId} t={t} close={close} onBusyChange={value=>{busy.current=value;}}
+        saved={id=>{if(active.current)onSaved(id);}}/>
+    </DialogContent>
+  </Dialog>;
+}
+
 function RowActions({t,edit,remove}:{t:DtmTranslate;edit:()=>void;remove:()=>void}) {
   return <div className="dtm-row-actions">
     <Button size="sm" variant="outline" type="button" onClick={edit}>{t('編輯','Edit')}</Button>
@@ -139,7 +164,7 @@ function RowActions({t,edit,remove}:{t:DtmTranslate;edit:()=>void;remove:()=>voi
 }
 
 export function DtmStudentRecords({snapshot,course,view,mode,t,refresh}:{
-  snapshot:AffairsSnapshot;course?:DtmCourse;view?:DtmView;mode:'dashboard'|'course'|'assignments'|'grades';
+  snapshot:AffairsSnapshot;course?:DtmCourse;view?:DtmView;mode:'course'|'assignments'|'grades';
   t:DtmTranslate;refresh:()=>void;
 }) {
   const [editor,setEditor] = useState<EditRecord|null>(null);
@@ -190,10 +215,6 @@ export function DtmStudentRecords({snapshot,course,view,mode,t,refresh}:{
   const report=mode==='grades'||(course&&activeView==='grades');
 
   return <>
-    {mode==='dashboard'&&
-      <div className="dtm-section-heading"><h2>{t('我的課程','My courses')}</h2>
-        <Button onClick={()=>edit({kind:'course'})}><Plus size={16}/>{t('新增課程','Add course')}</Button>
-      </div>}
     {course&&<div className="dtm-course-tools"><DropdownMenu>
       <DropdownMenuTrigger asChild><button type="button" className="dtm-course-menu" aria-label={t('課程選單','Course menu')}><Settings size={17}/></button></DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -223,14 +244,6 @@ export function DtmStudentRecords({snapshot,course,view,mode,t,refresh}:{
       setStatus(count?t('已匯入 '+count+' 筆截止日期。','Imported '+count+' deadline(s).'):t('所選日期已存在。','The selected deadlines are already saved.'));
       refresh();
     }}/>}
-    {mode==='dashboard'&&<div className="dtm-term-list">
-      {!courses.length&&<p>{t('尚無課程。請新增一門課程開始。','Add a course to start tracking your records.')}</p>}
-      {coursesByTerm(courses).map(([term,rows])=><section className="dtm-card" key={term}>
-        <h2>{termLabel(term,t)}</h2>
-        <ul className="dtm-record-list">{rows.map(row=><li key={row.id}><Link to={pathFor(row)}>{row.code} · {row.title}<ChevronRight size={15}/></Link>
-          {row.sourceMode==='sample'&&<small>{t('範例','Sample')}</small>}</li>)}</ul>
-      </section>)}
-    </div>}
     {courseContents&&<div className="dtm-course-content">
       <section className="dtm-course-section"><h3>{t('作業區','Assignments')}</h3>
         {assignments.length?<ul className="dtm-course-activities">{assignments.map(row=><CourseActivity key={row.id} id={row.id} kind="assignment" title={row.title} details={row.details} deadline={row.dueAt} open={()=>navigate(pathFor(course)+'/assignment/'+row.id)} t={t}/>)}</ul>

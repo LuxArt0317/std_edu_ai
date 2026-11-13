@@ -1,0 +1,23 @@
+{
+  "purpose": "Observed public event-message images for Dorm Conduct 34-2. No private query or record values.",
+  "assets": [
+    {
+      "path": "/stu-reference/dorm-conduct-notice.png",
+      "source": "https://info.stu.edu.tw/aptools/images/notice.png",
+      "mimeType": "image/png",
+      "bytes": 4068,
+      "sha256": "26cf1070671f96f16444086b31ec3b5564daa70ba8af9c96cf0ef4685f451a41",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "/stu-reference/dorm-conduct-logo.png",
+      "source": "https://info.stu.edu.tw/aptools/images/Tlogo.png",
+      "mimeType": "image/png",
+      "bytes": 610,
+      "sha256": "9ec0b3674feed90fab05656e6083f046da9bf1ed4a60674eb2883ddfbc03b79b",
+      "width": 60,
+      "height": 60
+    }
+  ]
+}

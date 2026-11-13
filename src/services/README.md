@@ -13,6 +13,8 @@ Browser clients call the public, School Affairs and protected Nexus endpoints. `
 
 `schoolAffairsWorkspace.ts` reads account-scoped School Affairs and DTM data and sends student record edits to the audited RPCs. Its manager call uses the verified Google session and is separately authorized by the database.
 
+`savePersonalSchoolRecord(action, {expectedUserId, signal})` optionally binds a mutation to its initiating caller. It captures the expected ID before session lookup, requires the returned session's user ID to match, and checks cancellation before sending the POST and after reading the response. The DTM account-menu course creator supplies both the caller ID and a signal aborted when its editor unmounts, preventing an old draft from being sent with a newly switched account's token. Existing callers without the options retain their API shape; server authorization and payloads are unchanged.
+
 `scholarship.ts` defines local scholarship periods and application records, Taipei date/window helpers, and unambiguous applicant labels. The existing School Affairs action/manager clients submit versioned requests with stable retry IDs to the dedicated scholarship RPC.
 
 `studentAid.ts` defines masked, account-owned aid records and safe amount/date display. `housing.ts` defines published housing windows, consented applications, receipts and bed history. Their writes use the existing School Affairs action/manager clients with database authorization and stable retry identities. Catalog offers and syllabus data remain independent of personal enrollment.
@@ -30,3 +32,5 @@ Browser clients call the public, School Affairs and protected Nexus endpoints. `
 `studentConduct.ts` defines literal own-account records. `studentConductClient.ts` validates complete bounded reads and sends caller-JWT personal/admin requests with deadlines, cancellation and exact receipt validation. See [conduct QA](../../docs/qa/STUDENT_CONDUCT.md).
 
 `studentLoan.ts` defines literal loan state and local routes; `studentLoanClient.ts` provides strict caller-scoped transport, selected-admin reads and validated durable receipts. See [Student Loan QA](../../docs/qa/STUDENT_LOAN.md).
+
+`dormitoryConduct.ts` and `dormitoryConductClient.ts` define strict personal/admin projections, bounded caller-JWT transport and durable write receipt checks. See [Dormitory Conduct QA](../../docs/qa/DORMITORY_CONDUCT.md).

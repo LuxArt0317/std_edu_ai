@@ -1,0 +1,29 @@
+/* Scoped event-message layout from the measured official DOM at 1280 × 720. */
+.dorm-conduct{box-sizing:border-box;min-height:100vh;padding:24px 25px 0;background:#efeff0;color:#000;font:12px/1.231 "微軟正黑體","Microsoft JhengHei",Verdana,Helvetica,Arial,sans-serif}
+.dorm-conduct *{box-sizing:content-box}
+.dorm-conduct :is(h1,p){margin:0;padding:0}
+.dorm-conduct button{font:inherit;cursor:pointer}
+.dorm-conduct :is(button,a):focus-visible{outline:2px solid #185ba5;outline-offset:3px}
+.dorm-conduct-shell{width:920px;max-width:calc(100% - 2px);margin:0 auto;padding:0 0 20px;border:1px solid #c9cacb;border-radius:10px;background:#fff}
+.dorm-conduct-container{padding:2.4px 24px}
+.dorm-conduct-frame{display:flow-root;margin:30px 20px}
+.dorm-conduct-content{margin-top:4px;padding:20px 20px 30px;border-style:solid;border-width:8px 1px 4px;border-color:#079ae0 #b6e6fd}
+.dorm-conduct-heading{padding:9px 9px 1.8px;border-top:1.5px solid #079ae0;border-bottom:1.5px solid #079ae0;margin-bottom:30px;line-height:22.158px;box-shadow:0 2px 3px #00000024}
+.dorm-conduct-logo,.dorm-conduct-message-icon{float:left;display:block;width:42px;margin:0 10px 0 0;padding:0}
+.dorm-conduct-logo>img,.dorm-conduct-message-icon>img{display:inline;width:42px;height:45px;max-width:none;margin:0;padding:0;vertical-align:baseline}
+.dorm-conduct-heading h1{padding-top:8px;color:#04567d;font-size:22px;line-height:1.231;font-weight:600}
+.dorm-conduct-subtitle{height:0;margin:0 0 14px 6px}
+.dorm-conduct-message-row{padding:5px;font-size:14px;line-height:1.231}
+/* The measured notice starts 5px below the floated icon's top. */
+.dorm-conduct-message-spacer{height:5px}
+.dorm-conduct-message{min-height:50px;padding:20px;margin:0 0 30px 50px;background:#fafafa;color:#9b3a0f;line-height:23.8px;overflow-wrap:anywhere}
+.dorm-conduct-message.is-error{color:#9e261d}
+.dorm-conduct-related{margin-left:50px;line-height:inherit}
+.dorm-conduct-related button,.dorm-conduct-retry{padding:0;border:0;background:transparent;color:#0000ee;text-decoration:none}
+.dorm-conduct-retry{margin-top:8px;text-decoration:underline}
+/* The measured gap is 23px before the source 10px support spacer. */
+.dorm-conduct-divider{height:2px;padding:0;margin:20px 0 0;border:0;border-top:1px solid #ddd}
+.dorm-conduct-support-spacer{height:10px}
+.dorm-conduct-support{font-size:12px;line-height:1.231;overflow-wrap:anywhere}
+.dorm-conduct-footer{margin-top:5px;color:#666;font-size:12px;line-height:1.231;overflow-wrap:anywhere}
+@media(max-width:600px){.dorm-conduct{padding:16px 10px 0}.dorm-conduct-container{padding:2.4px 10px}.dorm-conduct-frame{margin:20px 0}.dorm-conduct-content{padding:16px 10px 24px}.dorm-conduct-heading{padding:9px 6px 1.8px}.dorm-conduct-heading h1{font-size:19px;line-height:1.231}.dorm-conduct-message{padding:20px 10px}.dorm-conduct-footer{line-height:19px}}

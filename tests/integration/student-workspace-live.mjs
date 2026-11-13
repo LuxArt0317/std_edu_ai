@@ -73,7 +73,8 @@ try {
   const save = ()=>button('Save record').click();
   await page.goto(origin+'/dtm/dashboard');
   await page.getByRole('combobox',{name:'Language / 語言'}).selectOption('en');
-  await button('Add course').click();
+  await page.locator('.dtm-user').click();
+  await page.getByRole('menuitem',{name:'Add course',exact:true}).click();
   await page.getByLabel('Course code',{exact:true}).fill('QA115');
   await page.getByLabel('Course name',{exact:true}).fill('QA Systems Design');
   await page.getByLabel('Academic year and semester',{exact:true}).fill('115學年度第1學期');

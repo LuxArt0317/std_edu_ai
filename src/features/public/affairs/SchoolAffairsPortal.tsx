@@ -80,6 +80,8 @@ import { EnrollmentCertificateWorkspace } from "./EnrollmentCertificate";
 import { TuitionDocumentsWorkspace } from "./TuitionDocumentsWorkspace";
 import { StudentConductWorkspace } from "./StudentConductWorkspace";
 import { StudentLoanWorkspace } from "./StudentLoanWorkspace";
+import { DormConductWorkspace } from "./DormConductWorkspace";
+import { dormitoryConductPath } from "@/services/dormitoryConduct";
 import { studentLoanPaths, type StudentLoanView } from "@/services/studentLoan";
 import { studentConductPath } from "@/services/studentConduct";
 import { tuitionDocumentPaths } from "../../../../server/tuitionDocuments.js";
@@ -199,7 +201,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   const records = route[0] === "records" && route.length === 1;
   const servicePage = route[0] === "services";
   const { snapshot: account, loading: accountLoading, error: accountError, refresh: refreshAccount } =
-    useAffairsRecords(index || notifications || (servicePage && ["11-1", "11-2", "13-1", "14-1", "15-1", "15-2", "38-1"].includes(route[1])) ? user.id : undefined);
+    useAffairsRecords(index || notifications || (servicePage && ["11-1", "11-2", "13-1", "14-1", "15-1", "15-2", "34-2", "38-1"].includes(route[1])) ? user.id : undefined);
   const ended = route[0] === "signed-out";
   const article = portalNews.find((news) => news.id === params.get("news"));
   const programs = filterPrograms(
@@ -467,6 +469,13 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
       ? {userId:user.id,studentNumber:account.student.studentNumber,studentName:account.student.fullName} : null;
     return <StudentConductWorkspace key={user.id} userId={user.id} identity={identity}
       identityLoading={accountLoading} identityError={accountError} onReloadIdentity={refreshAccount}/>;
+  }
+  if (normalizedPath === dormitoryConductPath) {
+    const identity = !accountLoading && !accountError && account?.profile.userId === user.id && account.student
+      ? {userId:user.id} : null;
+    return <DormConductWorkspace key={user.id} userId={user.id} identity={identity}
+      identityLoading={accountLoading} identityError={accountError} onReloadIdentity={refreshAccount}
+      onHome={()=>navigate("/school-affairs")}/>;
   }
   const loanView = (Object.keys(studentLoanPaths) as StudentLoanView[]).find(view => studentLoanPaths[view] === normalizedPath);
   if (loanView) {

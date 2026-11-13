@@ -21,6 +21,7 @@ import {CertificateRecordEditor} from './CertificateRecordEditor';
 import {TuitionDocumentsManager} from './TuitionDocumentsManager';
 import {StudentConductManager} from './StudentConductManager';
 import {StudentLoanManager} from './StudentLoanManager';
+import {DormConductManager} from './DormConductManager';
 
 type Admin = NonNullable<AffairsSnapshot['admin']>;
 const taipeiInput=(iso:string|null)=>iso?new Date(iso).toLocaleString('sv-SE',{timeZone:'Asia/Taipei'}).replace(' ','T').slice(0,16):'';
@@ -66,6 +67,8 @@ export function SchoolRecordManager({admin,busy,onManage,onRefresh}:{admin:Admin
   const [conductOpenedFor,setConductOpenedFor]=useState('');
   const [loanOpen,setLoanOpen]=useState(false);
   const [loanOpenedFor,setLoanOpenedFor]=useState('');
+  const [dormConductOpen,setDormConductOpen]=useState(false);
+  const [dormConductOpenedFor,setDormConductOpenedFor]=useState('');
   const selected=admin.students.find(item=>item.id===studentId)||admin.students[0];
   const nativeManagers=<>
     <CourseSelectionManager records={admin.courseSelection?.records ?? []} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/>
@@ -125,6 +128,10 @@ export function SchoolRecordManager({admin,busy,onManage,onRefresh}:{admin:Admin
     {managerId&&<section className="affairs-manager" aria-label="Selected student conduct maintenance">
       <Button type="button" variant="outline" disabled={busy} aria-expanded={conductOpen} onClick={()=>{setConductOpenedFor(managerId+':'+selected.user_id);setConductOpen(value=>!value);}}>{conductOpen?'Hide conduct records':'Manage conduct records'}</Button>
       {(conductOpen||conductOpenedFor===managerId+':'+selected.user_id)&&<div hidden={!conductOpen}><StudentConductManager key={managerId+':'+selected.user_id} managerId={managerId} userId={selected.user_id} onSaved={onRefresh}/></div>}
+    </section>}
+    {managerId&&<section className="affairs-manager" aria-label="Selected student dormitory conduct maintenance">
+      <Button type="button" variant="outline" disabled={busy} aria-expanded={dormConductOpen} onClick={()=>{setDormConductOpenedFor(managerId+':'+selected.user_id);setDormConductOpen(value=>!value);}}>{dormConductOpen?'Hide dormitory conduct status':'Manage dormitory conduct status'}</Button>
+      {(dormConductOpen||dormConductOpenedFor===managerId+':'+selected.user_id)&&<div hidden={!dormConductOpen}><DormConductManager key={managerId+':'+selected.user_id} managerId={managerId} userId={selected.user_id} onSaved={onRefresh}/></div>}
     </section>}
     {managerId&&<section className="affairs-manager" aria-label="Selected student loan maintenance">
       <Button type="button" variant="outline" disabled={busy} aria-expanded={loanOpen} onClick={()=>{setLoanOpenedFor(managerId+':'+selected.user_id);setLoanOpen(value=>!value);}}>{loanOpen?'Hide loan records':'Manage loan records'}</Button>

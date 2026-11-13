@@ -27,3 +27,5 @@ Migration20261112190000 aligns the conversation SQL content ceiling with the app
 Migration200000 adds private local conduct snapshots with own-account RLS, audited administrator writes and durable retry receipts. Its rollback preflight passed at129/146; permanent application and actual-JWT local/production acceptance passed. [Conduct scope](../../docs/qa/STUDENT_CONDUCT.md).
 
 Migration210000 adds private loan metadata, an active-account singleton, literal state/count/text validation, audited versioned RPCs and tombstones. It does not issue a loan, approval, payment or document. [Student Loan QA](../../docs/qa/STUDENT_LOAN.md).
+
+Migration220000 adds one active private dormitory-conduct metadata record per account, explicit unknown/empty states, own-account RLS and audited administrator operations with immutable ownership and terminal tombstones. It was applied after the exact client plan on November13 at132 migrations/149 public RLS tables. See [Dormitory Conduct QA](../../docs/qa/DORMITORY_CONDUCT.md).

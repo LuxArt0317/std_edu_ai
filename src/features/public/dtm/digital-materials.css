@@ -57,9 +57,10 @@
 .dtm-note { color: var(--dtm-muted); font-size: 13px; }
 .dtm-error { padding: .65rem .75rem; color: #8b2020; background: #fff1f1; border: 1px solid #e5b9b9; }
 .dtm-saved { padding: .55rem .75rem; color: #135741; background: #eaf6ef; border: 1px solid #a5c6b8; }
-.is-signed-in .dtm-top { min-height: 50px; padding: 0 20px; gap: 36px; border: 0; }
-.is-signed-in .dtm-brand { font-size: 20px; font-weight: 300; line-height: 24px; color: #707070 !important; }
-.is-signed-in .dtm-language select { border: 0; color: #333; font-size: 16.8px; }
+.is-signed-in .dtm-top { min-height: 50px; padding: 0 20px; gap: 0; border: 0; box-shadow: 0 1px 10px rgba(0,0,0,.1); }
+.is-signed-in .dtm-brand { align-self: flex-start; margin-left: -20px; padding: 15px 20px 10px; font-size: 20px; font-weight: 200; line-height: 20px; color: #777 !important; }
+.is-signed-in .dtm-language { margin-right: 10px; }
+.is-signed-in .dtm-language select { display: block; width: 173.2734375px; height: 50px; min-height: 50px; padding: 15px; border: 0; border-radius: 0; color: #3d3d3d; font-size: 16.8px; line-height: 20px; }
 .is-signed-in .dtm-top-account { gap: 3px; }
 .is-signed-in .dtm-top-icon { color: #626b6c; }
 .is-signed-in .dtm-user { min-height: 50px; padding: 0 0 0 14px; border-radius: 0; font: inherit; color: #333; gap: 8px; }
@@ -71,6 +72,32 @@
 .dtm-dashboard-header h1 { margin: 0; font-size: 28px; font-weight: 400; line-height: 40px; overflow-wrap: anywhere; }
 .is-signed-in .dtm-breadcrumb { min-height: 36px; margin-bottom: 10px; background: transparent; padding: 6px 12px; }
 .dtm-sample-label { color: var(--dtm-muted); font-size: 12px; }
+
+/* The captured /my/ block layout is independent of saved course membership. */
+.dtm.is-dashboard .dtm-main { min-height: 0; padding-bottom: 0; }
+.dtm.is-dashboard .dtm-dashboard-header { gap: 14px; margin-bottom: 14px; }
+.dtm.is-dashboard .dtm-dashboard-avatar { display: block; flex: none; padding: 1px; }
+.dtm.is-dashboard .dtm-dashboard-header h1 { color: #999; font-size: 22px; line-height: 40px; }
+.dtm.is-dashboard .dtm-breadcrumb { padding: 8px 15px 8px 0; margin-bottom: 13px; }
+.dtm.is-dashboard .dtm-columns-course { grid-template-columns: 23.076923076923% 74.358974358974%; column-gap: 0; justify-content: space-between; }
+.dtm.is-dashboard .dtm-columns-course .dtm-center { min-height: 0; border-color: #e3e3e3; margin-bottom: 20px; box-shadow: 2px 2px 2px rgba(0,0,0,.05); }
+.dtm-dashboard-empty { display: block; height: 1px; }
+.dtm.is-dashboard .dtm-card { border: 0; padding: 0; box-shadow: 2px 2px 2px rgba(0,0,0,.05); }
+.dtm.is-dashboard .dtm-card h2 { margin: 0; padding: 10px 15px; }
+.dtm-dashboard-block-content { box-sizing: content-box; padding: 10px 14px 4px; }
+.dtm-dashboard-no-overflow { padding-bottom: 1px; }
+.dtm-dashboard-skip-target { display: block; height: 1px; }
+.dtm-dashboard-block-skip { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.dtm-dashboard-block-skip:focus { z-index: 1; width: auto; height: auto; padding: 4px 8px; overflow: visible; clip-path: none; background: #fff; }
+.dtm.is-dashboard .dtm-card p { margin: 0 0 10px; }
+.dtm.is-dashboard .dtm-navigation h2 { background: #7f8c8d; }
+.dtm.is-dashboard .dtm-contacts .dtm-contact-department { color: inherit; }
+.dtm.is-dashboard .dtm-navigation .dtm-dashboard-block-content > a { display: block; min-height: 20px; margin: 3px 0; }
+.dtm.is-dashboard .dtm-tree summary, .dtm.is-dashboard .dtm-tree li { min-height: 23px; }
+.dtm.is-dashboard .dtm-tree details { margin-left: 21px; }
+.dtm.is-dashboard .dtm-navigation .dtm-tree-home { font-weight: 400; }
+.dtm.is-dashboard .dtm-navigation .dtm-tree-page[aria-current="page"] { font-weight: 700; }
+.dtm.dtm-course-create-dialog { min-height: 0; max-height: calc(100dvh - 2rem); overflow-y: auto; background: #fff; }
 
 /* The source uses a nine-column outer group with a four/eight-column grid inside it. */
 .dtm-columns {
@@ -84,7 +111,7 @@
 .dtm-right { grid-column: 5; }
 .dtm-columns-course .dtm-center { grid-column: 2; min-height: 220px; background: #fff; border: 1px solid #e5e9e9; padding: 10px; }
 .dtm-card { background: #fff; border: 1px solid #e7ebec; box-shadow: 0 2px 3px #0001; padding: 10px 14px 5px; margin: 0 0 20px; }
-.dtm-card h2, .dtm-term-list .dtm-card h2 { margin: -10px -14px 9px; background: #f8f8f8; padding: 10px 14px; font-size: 15.4px; font-weight: 400; line-height: 20px; color: #333; }
+.dtm-card h2 { margin: -10px -14px 9px; background: #f8f8f8; padding: 10px 14px; font-size: 15.4px; font-weight: 400; line-height: 20px; color: #333; }
 .dtm-navigation h2 { display: flex; gap: 12px; align-items: center; background: #657678; color: #fff; }
 .dtm-navigation-icon { display: inline-block; flex: none; width: 18px; height: 18px; font: 18px/18px "DTM Navigation Icons"; text-align: center; }
 .dtm-card p { margin: 0 0 9px; overflow-wrap: anywhere; }
@@ -116,8 +143,6 @@
 .dtm-notices li a, .dtm-record-list p, .dtm-record-list strong { overflow-wrap: anywhere; }
 .dtm-notices .dtm-important a { color: #b31d17; font-size: 16px; font-weight: 700; line-height: 20px; }
 .dtm a svg { display: inline; vertical-align: -.12em; }
-.dtm-section-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .4rem .75rem; }
-.dtm-section-heading h2 { margin: .35rem 0 .6rem; }
 .dtm-category-heading { display: grid; justify-items: end; }
 .dtm-category-heading h2 { justify-self: start; margin-bottom: 5px; }
 .dtm-category-heading button { height: 24px; padding: 0; color: var(--dtm-link); font: inherit; }
@@ -156,9 +181,7 @@
 .dtm-course-center > .dtm-record-form, .dtm-course-center > .dtm-saved, .dtm-course-center > .dtm-record-list, .dtm-course-center > .dtm-empty, .dtm-course-center > .dtm-assignment-view { margin-inline: 20px; }
 .dtm-detail-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .dtm-activity-dialog { overflow-wrap: anywhere; }
-.dtm-term-list { margin-top: .8rem; }
 .dtm-record-list { background: #fff; list-style: none; margin: .55rem 0 1rem; padding: 0; border: 1px solid var(--dtm-border); }
-.dtm-term-list .dtm-record-list { border: 0; margin: 0; }
 .dtm-record-list li { display: flex; align-items: flex-start; gap: .6rem; padding: .7rem .75rem; scroll-margin-top: 12px; }
 .dtm-record-list li + li { border-top: 1px solid #e2e8ea; }
 .dtm-record-list li > div:first-of-type { flex: 1; min-width: 0; }
@@ -202,10 +225,24 @@
 .dtm-empty { color: var(--dtm-muted); padding: .6rem 0; }
 .dtm-footer { display: flex; justify-content: space-between; align-items: center; gap: .55rem 1rem; flex-wrap: wrap; padding: .85rem 18px; background: #c7d4d6; color: #34484d; font-size: 13px; }
 .is-signed-in .dtm-footer { padding: 20px; background: #c3d1d2; }
+.dtm.is-dashboard .dtm-dashboard-footer { display: block; margin: 14px 0 0; padding: 14px 0; color: #7f8c8d; font-size: 14px; line-height: 20px; box-shadow: inset 0 1px 10px rgba(0,0,0,.1); }
+.dtm-dashboard-footer-row::after { content: ""; display: table; clear: both; }
+.dtm-dashboard-footer-column { float: left; width: 31.623931623932%; min-height: 1px; margin-left: 2.564102564103%; }
+.dtm-dashboard-footer-column:first-child { margin-left: 0; }
+.dtm-dashboard-footer-block { margin: 10px 20px; overflow-wrap: anywhere; }
+.dtm-dashboard-login-info { font-size: 11.2px; line-height: 20px; }
+.dtm-dashboard-footer-block button { padding: 0; border: 0; background: none; color: var(--dtm-link); font: inherit; cursor: pointer; }
+.dtm-dashboard-footer-block button:hover { text-decoration: underline; }
+.dtm-dashboard-footer-block button:disabled { cursor: wait; }
+.dtm .dtm-dashboard-social { float: right; display: block; width: 37.8px; height: 37.8px; margin: 0 4.2px 8.4px; border-radius: 2px; background: #7f8c8d; color: #fff; font: 21px/37.8px "DTM Navigation Icons"; text-align: center; }
+.dtm-dashboard-social i { font: 21px/21px "DTM Navigation Icons"; }
+.dtm-dashboard-footer-attribution { margin: 10px 20px; font-size: 9.8px; line-height: 20px; overflow-wrap: anywhere; }
 .dtm-loading { display: grid; min-height: 60dvh; place-items: center; background: #ebeff0; }
 @media(max-width: 990px) {
   .is-signed-in .dtm-top { flex-wrap: wrap; gap: 0 12px; }
-  .is-signed-in .dtm-brand { flex: 1 1 100%; padding-top: 6px; }
+  .is-signed-in .dtm-brand { flex: 1 1 100%; margin-left: 0; padding: 6px 0 0; line-height: 24px; }
+  .is-signed-in .dtm-language { margin-right: 0; }
+  .is-signed-in .dtm-language select { width: auto; height: auto; min-height: 34px; padding: .28rem .45rem; }
 }
 @media(max-width: 767px) {
   .dtm-columns { display: flex; flex-direction: column; gap: 12px; }
@@ -213,6 +250,9 @@
   .dtm-left { order: 2; }
   .dtm-right { order: 3; }
   .is-signed-in .dtm-top, .is-signed-in .dtm-main { padding-inline: 12px; }
+  .dtm-dashboard-footer-column { float: none; width: 100%; margin-left: 0; }
+  .dtm-dashboard-footer-empty { display: none; }
+  .dtm-dashboard-footer-column::after { content: ""; display: table; clear: both; }
 }
 @media(max-width: 680px) {
   .dtm-top { flex-wrap: wrap; gap: .35rem .7rem; padding-inline: 12px; }

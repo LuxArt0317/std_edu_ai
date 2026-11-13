@@ -41,7 +41,8 @@
 - [x] Publish772ec95; verify exact manifest, Vercel Ready and successful GitHub Quality.
 - [x] Complete actual-JWT saved-conversation/browser acceptance727423ae after the reviewed auth-settlement harness correction; exact cleanup passed.
 - [x] Return the serialized model lease; grades/graduation passed on772ec95.
-- [ ] Publish the separately reviewed correction over0731, then rerun attendance and targeted supplemental cases on that exact revision; preserve explicit cleanup and release provenance.
+- [x] Publish reviewed correction e494fd4, verify Vercel Ready, Quality and deployed shell; hand sole live lease to Issue100.
+- [ ] Targeted packet completed with raw failures retained: attendance passed5groups, certificate6/7, tuition9/12, catalog3/5. Issue100 is user-paused; lease returned after exact cleanup. No unfinished BatchB publication.
 
 ## Phase Next: systemwide assistant evaluation [Issue #100]
 
@@ -440,7 +441,7 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Publish Conductfcac3c4 and pass deployed b8c64115 six-group acceptance with exact cleanup/owner preservation.
 - [x] Complete source-shaped loan UI, scoped database/administrator workflow and seven-group local/deployed acceptance at0731bda; exact cleanup/owner preservation verified. Unseen application forms and document issuance remain unavailable.
 - [ ] Review/publish the next assistant corrections and rerun targeted real-model acceptance before expanding native readers.
-- [ ] Complete Dorm34-2 isolated gates, rollback preflight and actual-JWT acceptance;220000 remains unapplied.
+- [ ] Complete Dorm34-2 actual-JWT acceptance and publication; isolated896API/363unit/build/lint/handoff/audit and rollback preflight passed. Only220000 is now applied at132/149; acceptance underway.
 
 ## Next authenticated source coverage [Issue #98]
 

@@ -58,16 +58,21 @@ export type AffairsSnapshot = {
   admin?:{academicGrades?:AcademicGradesRecords;graduationReview?:GraduationReviewRecords;academicAttendance?:AcademicAttendanceRecords;courseSelection?:CourseSelectionRecords;creditLoadHistory?:CreditLoadHistoryRecords;scholarship?:ScholarshipRecords;studentAid?:StudentAidRecords;housing?:HousingRecords;profiles:Array<{user_id:string;email:string;display_name:string;role:string;created_at:string}>;students:Array<{id:string;user_id:string;student_number:string;full_name:string}>;sections:Array<{id:string;code:string;term:string}>;enrollments:Array<{id:string;studentId:string;status:string;code:string}>;dtmCourses:Array<{id:string;user_id:string;code:string;title:string;term:string}>;charges:Array<{id:string;student_id:string;label:string;amount_due:number;amount_paid:number;due_on:string|null;occurrence_on?:string|null;category?:string|null;contact_unit?:string|null;contact_extension?:string|null;payment_unit?:string|null}>;assignments:Array<{id:string;student_id:string;enrollment_id:string|null;dtm_course_id:string|null;title:string;details:string;due_at:string|null;status:string}>;requests:Array<{id:string;user_id:string;request_type:string;title:string;details:string;status:string;created_at:string}>};
 };
 
-async function token() {
+async function token(expectedUserId?:string) {
+  if(expectedUserId!==undefined&&(typeof expectedUserId!=='string'||!expectedUserId.trim()))throw new Error('Your account changed. Reload the workspace.');
   if (!affairsClient) throw new Error('School Affairs sign-in is unavailable.');
   const {data,error}=await affairsClient.auth.getSession();
   if (error || !data.session) throw new Error('Sign in to School Affairs again.');
+  if(expectedUserId!==undefined&&data.session.user.id!==expectedUserId)throw new Error('Your account changed. Reload the workspace.');
   return data.session.access_token;
 }
-async function call<T>(path:string,init?:RequestInit):Promise<T> {
-  const accessToken=await token();
+async function call<T>(path:string,init?:RequestInit,expectedUserId?:string):Promise<T> {
+  init?.signal?.throwIfAborted();
+  const accessToken=await token(expectedUserId);
+  init?.signal?.throwIfAborted();
   const response=await fetch(path,{...init,headers:{Authorization:`Bearer ${accessToken}`,...init?.headers}});
   const payload=await response.json().catch(()=>null);
+  init?.signal?.throwIfAborted();
   if (!response.ok || !payload) throw new Error(typeof payload?.error==='string'?payload.error:'School Affairs is temporarily unavailable.');
   return payload as T;
 }
@@ -78,8 +83,9 @@ export function performSchoolAffairsAction(action:AffairsAction) {
 export function manageSchoolAffairsRecord(action:AffairsManagerAction) {
   return call<{id:string;kind:string;summary:string}>('/api/affairs-manage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(action)});
 }
-export function savePersonalSchoolRecord(action:PersonalAction) {
+export function savePersonalSchoolRecord(action:PersonalAction,options?:{expectedUserId:string;signal?:AbortSignal}) {
+  const signal=options?.signal?AbortSignal.any([options.signal,AbortSignal.timeout(20000)]):AbortSignal.timeout(20000);
   return call<{id:string;kind:string;imported?:number}>('/api/affairs-action',{
-    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(action),signal:AbortSignal.timeout(20000),
-  });
+    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(action),signal,
+  },options?.expectedUserId);
 }

@@ -1,6 +1,14 @@
-## Assistant correction publication candidate — November 13, 2026
+## DTM and Dormitory release candidate — November13,2026
 
-The frozen23-path correction over0731bda passed839 API/source,318 unit and380 offline evaluation tests,build/assets,lint,handoff and dependency audit0. Final grading review passed54 focused tests and17 independent actual-case probes. Root retains the sole live/release lease until the exact new revision is Ready and Quality succeeds, then will explicitly hand back the targeted model reruns. Dorm220000 stays unapplied at131/148. New overview/coaching and dashboard edits remain separate. Prior failed live results stay failed.
+Only220000 is now applied after its exact client plan:132 migrations/149 public RLS tables. The independent45path candidate passes896API/source,363unit,TypeScript/build/assets,lint,handoff and audit0. Dorm actual-JWT local7a3ab8b7 passed7groups/85HTTP/32browser/6writes with exact cleanup and protected-owner preservation. DTM six-state rendering matches measured desktop geometry and contains320/390px layouts; persisted customization and a new deployed course-menu save/reload are not claimed. Production is still e494fd4 until this separate Issue98 release is verified.
+
+Issue100 is USER-PAUSED and has explicitly returned the DB/model lease after exact cleanup. Raw e494 results: attendance5groupsPASS,certificate6/7,tuition9/12,catalog3/5. Preserve failed/unavailable results and unfinished BatchB; do not publish its partial runtime or continue diagnostic/helper/model work. Root holds the lease only for the separate Issue98 release. Education Fund remains awaiting user CAPTCHA. [Current state](../../planning-with-files/current_state.md) governs; checkpoints below are historical.
+
+## Verified assistant correction — November 13, 2026
+
+Main/production `e494fd4047219166f0b9d6f0df88da4c439c15f9` is Vercel Ready `C9L3ZzBigURxg9YRbFo3Wa4foBsS`; public release.json and Quality43383185453 are verified. The exact correction passed839 API/source,318 unit,380 offline evaluation,build/assets,lint,handoff and dependency audit0; final grading review added54 focused tests and17 independent probes. Deployed canonical assistant startup and8routes/50assets passed without model calls. Database remains131/148; Dorm220000 is unapplied.
+
+Issue100 now holds the sole DB/model lease for the bounded pinned acceptance packet. Root does not commit, push, deploy or perform DB/model calls until explicit return, and leaves clean `/private/tmp/stu-dtm-cert-index-t0g8pcjj` untouched. Production attendance606cbf8b is reported passed5groups with exact cleanup/protected-owner preservation; certificate/tuition/catalog are still underway. Earlier failed runs remain failed. DTM dashboard/Dorm and BatchB overview/coaching are unpublished, separate candidates. [Current state](../../planning-with-files/current_state.md) is authoritative; the following release checkpoints are historical.
 
 ## Current Student Loan release — November13,2026
 

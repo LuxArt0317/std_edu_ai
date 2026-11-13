@@ -34,4 +34,6 @@ The reference-catalog, empty-record and graduation-course-selection suites cover
 
 `student-loan.test.ts` and `student-loan-handler.test.ts` check literal metadata, caller/admin isolation, strict API dispatch, replay envelopes, bounded errors and deadlines offline. [Scope and live limits](../../docs/qa/STUDENT_LOAN.md).
 
+The `dormitory-conduct*` suites cover validation, bounded handler dispatch, ownership and offline lifecycle contracts. Rollback/HTTP live harnesses require separate exact-baseline execution. See [Dormitory Conduct QA](../../docs/qa/DORMITORY_CONDUCT.md).
+
 Supplemental correction regressions exercise actual reader/formatter chains for coordinated certificate identity and class/document privacy, literal tuition period labels and explicit document capability requests, and the exact local attendance-detail citation for unavailable subterm hours.

@@ -1,0 +1,20 @@
+import type {AffairsAccount} from './affairsWorkspace.js';
+import type {DormitoryConductData,DormitoryConductAdminData} from '../src/services/dormitoryConduct.ts';
+export type {DormitoryConductSnapshot,DormitoryConductData,DormitoryConductAdminRecord,DormitoryConductAdminData} from '../src/services/dormitoryConduct.ts';
+export type DormitoryConductAccount=AffairsAccount & {requestDeadline?:number};
+export type DormitoryConductKind='save_dormitory_conduct'|'delete_dormitory_conduct';
+export type DormitoryConductReceipt={id:string;kind:DormitoryConductKind;version:number;summary:string};
+export const dormitoryConductPath:'/school-affairs/services/34-2';
+export const dormitoryConductMaxPayloadBytes:1024;
+export const dormitoryConductKinds:readonly DormitoryConductKind[];
+export const dormitoryConductResults:readonly ['empty','unknown'];
+export const dormitoryConductFields:Readonly<Record<DormitoryConductKind,readonly string[]>>;
+export const dormitoryConductReadSource:Readonly<{table:string;select:string;order:string}>;
+export class DormitoryConductError extends Error{status:number;constructor(message:string,status?:number);}
+export function dormitoryConductPayloadBytes(value:unknown):number;
+export function validateDormitoryConductPayload(kind:unknown,value:unknown):string|null;
+export function parseDormitoryConductData(value:unknown,userId:string):DormitoryConductData;
+export function parseDormitoryConductAdminData(value:unknown,userId:string):DormitoryConductAdminData;
+export function loadDormitoryConduct(account:DormitoryConductAccount):Promise<DormitoryConductData>;
+export function loadDormitoryConductAdmin(account:DormitoryConductAccount,options:{userId:string}):Promise<DormitoryConductAdminData>;
+export function manageDormitoryConductRecord(account:DormitoryConductAccount,kind:DormitoryConductKind,payload:unknown):Promise<DormitoryConductReceipt>;
