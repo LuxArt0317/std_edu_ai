@@ -1,6 +1,6 @@
 ## Tuition-reduction history ownership
 
-Root owns service 21-3, its client migration, tests, and deployment. The user-paused issue #100 files remain outside this release.
+Root published and verified service 21-3 at `5b4b9e7`. All database sessions and test fixtures are closed. The next source capture is service 23-1. The user-paused issue #100 files remain outside this release.
 
 ## Root native URL resource release checkpoint — November 13, 2026
 

@@ -15,3 +15,5 @@
 - Published7476b4e ReadyDaqq; exact release manifest/entry, production API3b8ead29(5groups/62requests/15writes), synthetic UI(6groups/4viewports), and8routes/50assets passed. All live fixtures cleaned and lease/connection closed. CIattempt1 existing timing failure retained; attempt2 succeeded unchanged. User restored portal access; captured fee-remission21-3 for next batch, no school mutation.
 
 - Implemented and locally verified service 21-3. Applied only migration `20261114030000` after exact plan and rollback preflight. Actual-JWT handler acceptance passed 15 requests with exact cleanup. Final production verification pending.
+
+- Published `5b4b9e7` to Vercel. The deployed browser, actual-JWT and eight-route shell suites passed. Verified all 94 local menu destinations. Captured the exchange and conference grant index and its linked source views. GitHub quality `43441455303` passed.

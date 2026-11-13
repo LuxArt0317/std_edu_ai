@@ -235,3 +235,7 @@ The restored portal exposes21-3 at /sao/Student/Remit/loginaction.asp. Its curre
 ## Tuition-reduction implementation
 
 The existing menu item stays at `/school-affairs/services/21-3`. The exact legacy notes route is `/school-affairs/services/21-3/notes`. The account-owned history uses literal nullable cells and database-enforced authorization with versioned writes and retry receipts. The captured layout and local browser measurements agree within about one pixel at 1280 px.
+
+## Exchange and conference grant source
+
+Service 23-1 is still generic. Its authenticated index exposes conference and exchange application instructions, a student report page, a receipt-list entry and a manual. The instructions include a personal-data agreement. Their continuation was not clicked. The receipt link displayed a JavaScript alert and returned to the index after dismissal. Source layout and destination evidence are stored in the ignored `artifacts/visual-parity/exchange-grant/` directory.

@@ -521,4 +521,11 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Inspect restored authenticated source and save its actual closed-period instructions and empty history layout.
 - [x] Replace the generic tracker with the native page and retain notes at `/school-affairs/services/21-3/notes`.
 - [x] Implement account-owned literal history with read-only student access and audited administrator maintenance. Migration `20261114030000` was applied after rollback verification.
-- [ ] Independently verify source layout, own-account boundaries, real persistence and deployed behavior without inventing an open-period application.
+- [x] Verify source layout, account boundaries, administrator editing, real persistence and deployed behavior. The deployed page reproduces the observed closed period.
+
+## Next authenticated service, exchange and conference grants [Issue #98]
+
+- [x] Open the grant system from the authenticated Student Affairs menu and capture the index and its destinations.
+- [x] Observe the conference and exchange instructions, the report page, and the receipt link returning to the index after a notice.
+- [ ] Verify what the application buttons lead to and implement the resulting local routes, forms and account records from observed fields.
+- [ ] Verify report maintenance and the receipt flow with their actual available controls.

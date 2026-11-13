@@ -1,6 +1,8 @@
-## Tuition-reduction history release candidate
+## Published tuition-reduction history
 
-The previous goal turn published and verified native Moodle resource pages at `7476b4e`. Current work replaces service 21-3 with the observed standalone page. The exact client plan selected only `20261114030000`. The rollback preflight passed and verified restoration. Migration applied to the client, now at 137 migrations and 153 public tables. Actual-JWT local acceptance passed 15 requests with exact fixture cleanup. The compiled student route passed menu navigation, error/retry, guest access, and 1280/390/320 px. The final administrator browser and production checks are pending. Issue #100 remains paused.
+Service 21-3 is live at revision `5b4b9e7922536e2411fd8868e884e74a193e05df`. Vercel is Ready and the public manifest agrees. The pinned production actual-JWT suite passed 15 API checks with exact cleanup, and the compiled browser suite passed four groups across three widths. Local inventory verified all 94 destinations and records 60 remaining generic pages. Only `20261114030000` was applied after rollback verification. Client database verification passed at 137 migrations and 153 public RLS tables. GitHub quality `43441455303` passed. Issue #100 remains user-paused.
+
+The next source gap is exchange and conference grants, service 23-1. The authenticated menu, instructions and report layout were captured. The receipt link returned to the index after a notice. The application continuations follow a personal-data agreement and their destinations remain unverified.
 
 ## Published native Moodle URL resources — November 13, 2026
 

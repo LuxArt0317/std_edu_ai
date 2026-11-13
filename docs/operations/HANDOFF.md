@@ -1,6 +1,6 @@
 ## Tuition-reduction history
 
-Service 21-3 now has the observed closed-period layout and a private history read. The database migration and actual-JWT handler verification passed. The isolated release candidate is under verification. See [tuition-reduction QA](../qa/FEE_REMISSION.md).
+Service 21-3 now has the observed closed-period layout and a private history read. The database migration and actual-JWT handler verification passed. The deployed API and browser suites passed at `5b4b9e7`. GitHub quality `43441455303` passed. See [tuition-reduction QA](../qa/FEE_REMISSION.md).
 
 ## Native Moodle URL resources — published
 
