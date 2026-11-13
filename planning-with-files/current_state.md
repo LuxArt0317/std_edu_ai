@@ -1,3 +1,7 @@
+## Teaching feedback [Issue #98]
+
+The prior goal turn deployed the verified early-graduation release. The university teaching feedback session has expired. Two dedicated local workflows follow the public handbook, with the authenticated source forms still unobserved. Exact-client rollback and compiled browser passed.
+
 ## Early graduation [Issue #98]
 
 Production `a29243d` is live as Vercel `6CJvUKQBqEDqw8SDwm4WBoDkkS4i`. Only migration 20261114130000 was applied, bringing the client to 147 migrations and 167 public RLS tables. Pinned browser with desktop/mobile contrast checks, 14 actual-JWT requests with exact cleanup, guest assistant handoff and eight public shell routes passed. The local full portal suite checked all 94 links and 25 menu views. Quality 43500735647 passed. The 94-destination inventory has 43 generic and 13 partial entries.

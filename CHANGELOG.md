@@ -1,5 +1,7 @@
 # Changelog
 ## Unreleased
+- Add course-based teaching evaluation and immediate feedback, with persistent submissions, private completion, administrator release and assistant status. [#98]
+
 - Add private early graduation eligibility, application, cancellation, administrator review, assistant history, and an accessible header. [#98]
 
 - Add private credit transfer drafts, printable course equivalencies, confirmed submission, per-course local review and assistant history. [#98]

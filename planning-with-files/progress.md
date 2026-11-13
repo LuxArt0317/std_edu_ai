@@ -1,5 +1,9 @@
 # Progress
 
+## Teaching feedback [Issue #98]
+
+- 2026-11-14: Rechecked the source session and university handbook. Implemented 7-5 and 7-6 with independent survey and immediate feedback persistence, confidential response handling, review and assistant status. Exact-client rollback and compiled browser passed.
+
 ## Early graduation [Issue #98]
 
 - Connected service 7-4, term-window maintenance, candidate eligibility, submission/cancellation, review and bilingual account answers. The 94-destination local inventory moved 7-4 from generic to partial. Exact-target rollback, migration plan, compiled browser, build, 1,030 API/source tests, 541 units, 380 assistant evaluation tests and the dependency audit passed. Only migration 20261114130000 was applied.

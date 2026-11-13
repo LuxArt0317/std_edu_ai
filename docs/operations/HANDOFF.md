@@ -1,3 +1,7 @@
+## Teaching feedback (Issue #98)
+
+Services 7-5 and 7-6 have distinct enrollment-scoped workflows, administrator maintenance, and assistant status. The authenticated university forms still require sign-in for visual comparison. See [teaching feedback QA](../qa/TEACHING_FEEDBACK.md).
+
 ## Early graduation (Issue #98)
 
 Service 7-4 has a dedicated local application, history and administrator review workflow. The observed university source showed the closed state and empty history. Open application, cancellation and populated-result screens remain unobserved. See [early graduation QA](../qa/EARLY_GRADUATION.md).

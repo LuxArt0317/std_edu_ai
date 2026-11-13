@@ -1,3 +1,4 @@
+import {teachingFeedbackPaths} from './teachingFeedbackContract.js';
 import {earlyGraduationPath} from './earlyGraduationContract.js';
 import {courseSubstitutionPath} from '../src/features/public/affairs/courseSubstitution.js';
 import {firstSelectionPath,firstSelectionSource} from '../src/features/public/affairs/firstSelection.js';
@@ -157,6 +158,16 @@ const localServiceNavigation = [
     id:'ta-evaluation',match:/\b(?:teaching assistant|TA)\b.{0,32}\bself[- ]?evaluation\b|教學助理自我評表/i,
     title:['教學助理自我評表','Teaching assistant self-evaluation'],localUrl:teachingAssistantPath+'/evaluation',
     description:['從教學助理系統的「學生」選單開啟自我評表。','Open self-evaluation from the Student menu in the Teaching Assistant system.'],
+  },
+  {
+    id:'teaching-survey',match:/\b(?:teaching|course) (?:evaluation|survey)s?\b|教學(?:成效|意見|評量)問卷/iu,
+    title:['教學意見問卷調查','Teaching evaluation'],localUrl:teachingFeedbackPaths.survey,
+    description:['開啟期中、期末問卷與填答紀錄。','Open the midterm and final teaching evaluations and your completion status.'],
+  },
+  {
+    id:'teaching-feedback',match:/\b(?:(?:immediate|real[- ]time) teaching feedback|teaching feedback|course feedback)\b|即時反應教學意見|教學意見反應/iu,
+    title:['即時反應教學意見','Immediate teaching feedback'],localUrl:teachingFeedbackPaths.immediate,
+    description:['開啟本學期課程的教學意見表與紀錄。','Open immediate feedback for your current courses and your saved history.'],
   },
   {
     id:'tutor-evaluation',match:/\b(?:tutor|advis[eo]r) (?:evaluation|survey|questionnaire)\b|導師評量|導師問卷/i,

@@ -1,12 +1,18 @@
 # Task Plan
 
+## Teaching evaluation and immediate feedback [Issue #98]
+
+- [x] Recheck school access and confirm the three distinct workflows from the university handbook.
+- [x] Connect course ownership, survey windows and confidential feedback to persistent student and administrator pages.
+- [ ] Verify isolated enrollment access, result release, and deployed browser and API behavior.
+- [ ] Compare the authenticated source forms when the school session is restored.
+
 ## Early graduation [Issue #98]
 
 - [x] Inspect the source page and published workflow.
 - [x] Implement the term window, account eligibility, submission, cancellation, administrator review and shared assistant lookup.
 - [x] Exercise successful writes and denied scopes in an exact-target rollback.
 - [x] Verify the compiled browser, deployed API and pinned release.
-- [ ] Inspect the authenticated teaching evaluation and immediate-feedback forms for services 7-5 and 7-6.
 - [ ] Compare the university’s open-period and populated-history screens when observable.
 
 ## Native Moodle URL resource pages [Issue #98]

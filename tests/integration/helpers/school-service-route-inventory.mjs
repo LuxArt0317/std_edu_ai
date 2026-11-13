@@ -4,7 +4,7 @@ import {schoolServiceEntries} from '../../../src/features/public/affairs/student
 // Explicit review inventory, not inferred from the presence of a generic body.
 // A native mount says nothing about unobserved workflows or live backend acceptance.
 const service = id => '/school-affairs/services/'+id;
-const genericIds = '1-1 2-1 4-2 4-3 5-1 6-5 7-5 7-6 8-1 10-1 12-1 12-2 16-1 18-1 19-1 24-1 27-1 29-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 43-1 44-1 45-1 47-1 50-1 50-2 51-1 52-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
+const genericIds = '1-1 2-1 4-2 4-3 5-1 6-5 8-1 10-1 12-1 12-2 16-1 18-1 19-1 24-1 27-1 29-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 43-1 44-1 45-1 47-1 50-1 50-2 51-1 52-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
 const native = [
   ['7-3','.program-registration','program-registration-ui.mjs','Private interdisciplinary registration history and local registration controls.'],
   ['7-1','.credit-load-application','credit-load-application-ui.mjs','Observed instructions and closed-period acknowledgement only; open application and staff review forms remain unobserved.'],
@@ -53,6 +53,8 @@ const descriptors = [
     workflowSuite:'tests/integration/course-adjustment-ui.mjs',sourceBoundary:'Late-add rules, notice and fee pages with a private eligibility lookup. The eligible enrollment form remains unobserved.'},
   {id:'6-4',kind:'partial',href:service('6-4'),finalUrl:service('6-4'),selector:'.course-withdrawal',
     workflowSuite:'tests/integration/course-withdrawal-ui.mjs',sourceBoundary:'Local withdrawal and restore follow the official handbook. The current protected source layout remains unobserved.'},
+  ...['7-5','7-6'].map(id=>({id,kind:'partial',href:service(id),finalUrl:service(id),selector:'.teaching-feedback',
+    workflowSuite:'tests/integration/teaching-feedback-ui.mjs',sourceBoundary:'Published teaching feedback procedure, local forms and persisted records. Authenticated university layout remains unobserved.'})),
   {id:'7-4',kind:'partial',href:service('7-4'),finalUrl:service('7-4'),selector:'.early-graduation',
     workflowSuite:'tests/integration/early-graduation-ui.mjs',sourceBoundary:'Observed closed notice and nine-column history. Open application and cancellation screens remain unobserved.'},
   {id:'7-2',kind:'partial',href:service('7-2'),finalUrl:service('7-2'),selector:'.credit-transfer',
@@ -131,6 +133,11 @@ export function schoolServiceReadFixture(rawUrl,method,user,origin) {
   if(scope==='catalog') {
     assert.deepEqual(Object.fromEntries(url.searchParams),{yr:'1151',dep:'0',admissionType:'0',credit:'0',grd:'0',prog:'0',scope:'catalog'},'Menu opens the source-default catalog filters only.');
     return {rows:[],total:0,can_manage:false,page:0,page_size:100,terms:[]};
+  }
+  if(scope==='teaching-feedback'){
+    assert.deepEqual([...url.searchParams.keys()],['scope','view']);
+    assert.ok(['survey','immediate'].includes(url.searchParams.get('view')));
+    return {userId:user.id,courses:[],surveys:[],feedback:[],terms:[],results:[]};
   }
   assert.deepEqual([...url.searchParams.keys()],['scope'],'Account filters and unknown selectors are forbidden.');
   switch(scope) {

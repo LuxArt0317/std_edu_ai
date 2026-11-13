@@ -1,3 +1,7 @@
+## Teaching feedback (Issue #98)
+
+Root owns 7-5 and 7-6, migration 20261114140000, assistant navigation and release. School source sign-in expired. Exact-target rollback and the compiled student and administrator browser suite passed. Paused Issue #100 files remain excluded.
+
 ## Early graduation (Issue #98)
 
 Root owns service 7-4, migration 20261114130000, caller-scoped assistant answers, and release. The closed source view is captured. Exact-client rollback preflight passed. Production `a29243d` is live as Vercel `6CJvUKQBqEDqw8SDwm4WBoDkkS4i`. Only migration 20261114130000 was applied, bringing the client to 147 migrations and 167 public RLS tables. Pinned browser with desktop/mobile contrast checks, 14 actual-JWT requests with exact cleanup, guest assistant handoff and eight public shell routes passed. The local full portal suite checked all 94 links and 25 menu views. Quality 43500735647 passed. The 94-destination inventory has 43 generic and 13 partial entries. The next teaching-feedback sources require school sign-in. Issue #100 paths remain excluded.

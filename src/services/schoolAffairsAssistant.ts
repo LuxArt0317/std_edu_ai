@@ -1,3 +1,5 @@
+import {teachingFeedbackQuestion} from '../../server/teachingFeedbackContract.js';
+import {readTeachingFeedbackAnswer} from './teachingFeedback';
 import {earlyGraduationQuestion} from '../../server/earlyGraduationContract.js';
 import {readEarlyGraduationAnswer} from './earlyGraduation';
 import {courseSubstitutionQuestion} from '../features/public/affairs/courseSubstitution.js';
@@ -23,6 +25,13 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
     onProgress?.({kind:'program-registrations',label:'Checking interdisciplinary program registrations',detail:'Reading your School Affairs records.',status:'running'});
     const result:AssistantResponse = await readProgramRegistrationAnswer(data.session.user.id,question,signal);
     if (typeof result?.answer !== 'string' || result.grounding?.source !== 'account') throw new Error('Program registrations could not be loaded.');
+    return result;
+  }
+  const teachingFeedback=!images.length&&teachingFeedbackQuestion(question);
+  if(teachingFeedback){
+    onProgress?.({kind:'teaching-feedback',label:'Checking teaching feedback',detail:'Reading your saved completion and review statuses.',status:'running'});
+    const result=await readTeachingFeedbackAnswer(data.session.user.id,teachingFeedback,question,signal) as AssistantResponse;
+    if(typeof result?.answer!=='string'||result.grounding?.source!=='account')throw new Error('Teaching feedback records could not be loaded.');
     return result;
   }
   if (!images.length && earlyGraduationQuestion(question)) {

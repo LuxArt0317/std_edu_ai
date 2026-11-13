@@ -1,5 +1,7 @@
 # Quality evidence
 
+[Teaching feedback](TEACHING_FEEDBACK.md) covers teaching evaluation and immediate feedback, their database boundaries, and verification.
+
 [Early graduation](EARLY_GRADUATION.md) covers the account-scoped application and history, administrator maintenance, and source evidence.
 
 [Credit transfer](CREDIT_TRANSFER.md) documents the application, print, private history and local review flow.

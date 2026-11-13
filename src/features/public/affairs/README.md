@@ -1,5 +1,7 @@
 # School Affairs UI
 
+Services 7-5 and 7-6 open the teaching evaluation and immediate feedback pages. School Affairs administration configures surveys, releases aggregates, and reviews immediate feedback. See [teaching feedback QA](../../../../docs/qa/TEACHING_FEEDBACK.md).
+
 Service 7-4 opens the captured early graduation notice and account history. School Affairs administration maintains the local window and eligibility and reviews applications. See [early graduation QA](../../../../docs/qa/EARLY_GRADUATION.md).
 
 Credit transfer opens a private application and separate history view. Administrators can review submitted course equivalencies. See [credit transfer QA](../../../../docs/qa/CREDIT_TRANSFER.md).

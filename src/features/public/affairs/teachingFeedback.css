@@ -1,0 +1,19 @@
+.teaching-feedback { width: min(1060px, 100%); min-height: 100dvh; margin-inline: auto; background: #fff; color: #303a40; }
+.teaching-feedback > header { display: flex; flex-wrap: wrap; gap: 1rem; padding: 1rem clamp(.75rem, 3vw, 1.5rem); background: #316887; color: #fff; }
+.teaching-feedback > header a { text-decoration: underline; }
+.teaching-feedback-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; padding: 1.25rem clamp(.75rem, 3vw, 1.5rem) 4rem; }
+.teaching-feedback h1 { margin: 0; font-size: 1.5rem; font-weight: 700; }
+.teaching-feedback h2 { font-size: 1.125rem; font-weight: 600; }
+.teaching-feedback-form { display: grid; gap: .75rem; justify-items: start; }
+.teaching-feedback-form > label { display: grid; gap: .25rem; width: min(100%, 38rem); }
+.teaching-feedback-form select, .teaching-feedback-admin select { max-width: 100%; padding: .5rem; border: 1px solid #89969d; border-radius: .25rem; background: #fff; color: #263239; }
+.teaching-feedback-form fieldset { min-width: 0; width: min(100%, 38rem); padding: .75rem; border: 1px solid #bac7ce; }
+.teaching-feedback-form legend { max-width: 100%; overflow-wrap: anywhere; }
+.teaching-feedback-ratings { display: flex; flex-wrap: wrap; gap: .75rem; }
+.teaching-feedback-ratings label { display: flex; gap: .35rem; align-items: center; min-height: 2rem; }
+.teaching-feedback-scroll { max-width: 100%; overflow-x: auto; }
+.teaching-feedback-scroll table { width: 100%; min-width: 30rem; border-collapse: collapse; }
+.teaching-feedback-scroll th, .teaching-feedback-scroll td { padding: .6rem; border: 1px solid #d4dee2; text-align: start; vertical-align: top; }
+.teaching-feedback-scroll th { background: #eef4f7; color: #263239; }
+.teaching-feedback-comment { overflow-wrap: anywhere; white-space: pre-wrap; }
+.teaching-feedback-admin { display: grid; gap: .75rem; }

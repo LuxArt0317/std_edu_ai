@@ -1,3 +1,4 @@
+import {teachingFeedbackPaths,teachingFeedbackQuestion} from './teachingFeedbackContract.js';
 import {earlyGraduationPath,earlyGraduationQuestion} from './earlyGraduationContract.js';
 import { answerCourseSubstitution } from './courseSubstitution.js';
 import { answerFirstSelectionNotice } from './firstSelectionNotice.js';
@@ -251,6 +252,15 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const kind = questionKind(input.question);
+        const feedbackView=!input.images.length&&!kind.irrelevant&&teachingFeedbackQuestion(input.question);
+        if(feedbackView){
+            const next='/school-affairs/login?next='+encodeURIComponent(teachingFeedbackPaths[feedbackView]);
+            const zh=/[\u3400-\u9fff]/u.test(input.question);
+            stream.send(200,{status:'handoff',answer:zh?`[登入校務資訊系統](${next})查詢問卷或教學意見紀錄。`:
+                `[Sign in to School Affairs](${next}) to open your teaching feedback records.`,
+                citations:[],suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
+            return;
+        }
         if(!input.images.length&&!kind.irrelevant&&earlyGraduationQuestion(input.question)){
             const next='/school-affairs/login?next='+encodeURIComponent(earlyGraduationPath);
             const zh=/[\u3400-\u9fff]/u.test(input.question);

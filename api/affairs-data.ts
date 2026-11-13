@@ -1,3 +1,4 @@
+import {readTeachingFeedback} from '../server/teachingFeedback.js';
 import { readEarlyGraduation } from '../server/earlyGraduation.js';
 import { earlyGraduationScope } from '../server/earlyGraduationContract.js';
 import { serveCourseSubstitution } from '../server/courseSubstitution.js';
@@ -43,7 +44,7 @@ export default async function handler(request:Request,response:Response) {
   if (scopes.includes('curriculum-map')) return serveCurriculumMap(request,response);
   if (scopes.includes('curriculum-plan')) return serveCurriculumPlan(request,response);
   if (scopes.includes('interdisciplinary-programs')) return serveInterdisciplinaryPrograms(request,response);
-  const strictStudentScope=scopes.some(scope=>typeof scope==='string'&&(scope===programRegistrationScope||scope.startsWith('tutor-evaluation')||scope.startsWith('exchange-grant')||scope.startsWith('fee-remission')||scope.startsWith('student-conduct')||scope.startsWith('student-loan')||scope.startsWith('dormitory-conduct')||scope.startsWith('dtm-dashboard-layout')||scope.startsWith('dtm-grade-report')||scope.startsWith('dtm-course-content')||scope.startsWith('dtm-course-resource')));
+  const strictStudentScope=scopes.some(scope=>typeof scope==='string'&&(scope===programRegistrationScope||scope.startsWith('tutor-evaluation')||scope.startsWith('exchange-grant')||scope.startsWith('fee-remission')||scope.startsWith('student-conduct')||scope.startsWith('student-loan')||scope.startsWith('dormitory-conduct')||scope.startsWith('dtm-dashboard-layout')||scope.startsWith('dtm-grade-report')||scope.startsWith('dtm-course-content')||scope.startsWith('dtm-course-resource')||scope.startsWith('teaching-feedback')));
   if(first(request.query?.resource)==='conversations'&&!strictStudentScope&&!scopes.some(scope=>typeof scope==='string'&&(scope.startsWith(adjustmentScope)||scope.startsWith(withdrawalScope)||scope.startsWith(creditTransferScope)||scope.startsWith(earlyGraduationScope))))return conversations(request,response);
   const requestDeadline=Date.now()+17000;
   response.setHeader('Cache-Control','no-store, max-age=0');
@@ -54,6 +55,10 @@ export default async function handler(request:Request,response:Response) {
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
     const scope=request.query?.scope;
     if(Array.isArray(scope)){response.status(400).json({error:'Choose one records scope.'});return;}
+    if(typeof scope==='string'&&scope.startsWith('teaching-feedback')){
+      response.status(200).json(await readTeachingFeedback({...account,requestDeadline},request.query??{}));
+      return;
+    }
     if(typeof scope==='string'&&scope.startsWith(earlyGraduationScope)){
       response.status(200).json(await readEarlyGraduation({...account,requestDeadline},request.query??{}));
       return;
