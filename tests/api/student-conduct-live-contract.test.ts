@@ -4,6 +4,7 @@ import {lstat,mkdir,mkdtemp,opendir,rm,symlink,writeFile} from 'node:fs/promises
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import {runInNewContext} from 'node:vm';
 
 // Variable import keeps this pure offline harness outside the API compilation
 // project. Importing it must not resolve credentials or run its live main.
@@ -12,6 +13,20 @@ const harness=await import(modulePath);
 const op={actorId:'synthetic-admin',kind:'save_student_conduct',payload:{id:'synthetic-record',user_id:'synthetic-student',request_id:'synthetic-request',expected_version:1},state:'uncertain',sentAt:1000};
 const result={id:op.payload.id,kind:op.kind,version:2,summary:'Synthetic literal receipt'};
 const receipt={user_id:op.actorId,request_id:op.payload.request_id,kind:op.kind,payload:op.payload,result};
+function mockLeasePool(){
+  const state={pid:71,held:true,closed:false,reserves:0,releases:0,acquisitions:0,probe:null as null|(()=>Promise<{pid:number;held:boolean}[]>)},calls:string[]=[];
+  const reserved=Object.assign(async(strings:TemplateStringsArray,..._values:unknown[])=>{
+    const query=strings.join('?');calls.push(query);
+    if(state.closed)throw new Error('Synthetic reserved session closed');
+    if(query.includes('pg_try_advisory_lock')){state.acquisitions++;return [{pid:state.pid,held:state.held}];}
+    if(query.includes('pg_advisory_unlock')){const unlocked=state.held;state.held=false;return [{unlocked}];}
+    if(query.includes('pg_catalog.pg_locks'))return state.probe?state.probe():[{pid:state.pid,held:state.held}];
+    if(query==='delete exact synthetic row')return [];
+    throw new Error('Unexpected lease query');
+  },{unsafe:async(command:string)=>{calls.push(command);if(state.closed)throw new Error('Synthetic reserved session closed');},release:async()=>{state.releases++;}});
+  const pool={reserve:async()=>{state.reserves++;return reserved;},begin:()=>{throw new Error('Pool transactions must never replace the reserved session.');}};
+  return {pool,reserved,state,calls};
+}
 function cleanLedger(production=false){
   const runId=randomUUID(),marker='CONDUCT-QA-'+runId.slice(0,8);
   return {runId,origin:production?'https://stu.best':'http://127.0.0.1:5184',mode:production?'deployed_http':'actual_jwt_local_handlers',releaseRevision:production?'a'.repeat(40):null,state:'cleaned',marker,
@@ -70,6 +85,100 @@ test('Auth reconciliation refuses protected or unrelated identities and active r
   assert.ok(harness.conductCleanupAllowed({operations:[{...op,state:'reconciled'}],fixtures:[copy],inflightDrained:true}));
 });
 
+test('advisory lock and cleanup transaction use one physical reserved session through release',async()=>{
+  const fake=mockLeasePool(),lease=await harness.conductReserveLease(fake.pool);
+  assert.notEqual(lease.sql,fake.reserved);assert.equal(fake.state.reserves,1);assert.equal(fake.state.acquisitions,1);
+  assert.equal(await lease.transaction(async(sql:unknown)=>{assert.equal(sql,lease.sql);fake.calls.push('exact cleanup');await lease.sql`delete exact synthetic row`;return 'verified';}),'verified');
+  assert.deepEqual(fake.calls.filter(item=>['begin','exact cleanup','commit','rollback'].includes(item)),['begin','exact cleanup','commit']);
+  await lease.release();await lease.release();assert.equal(fake.state.releases,1);assert.equal(fake.state.held,false);
+  assert.equal(fake.state.reserves,1);assert.equal(fake.state.acquisitions,1);
+  await assert.rejects(lease.withHeld(()=>assert.fail('Released lease must not authorize cleanup.')));
+});
+
+test('session loss, PID drift and missing lock stop new cleanup and never reacquire a pool session',async()=>{
+  for(const failure of ['closed','pid','lock','onclose']){
+    const fake=mockLeasePool(),aborted=new AbortController();let losses=0,mutations=0;
+    const lease=await harness.conductReserveLease(fake.pool,{onLost:()=>{losses++;aborted.abort();}});
+    if(failure==='closed')fake.state.closed=true;
+    else if(failure==='pid')fake.state.pid++;
+    else if(failure==='lock')fake.state.held=false;
+    else lease.lose();
+    await assert.rejects(lease.withHeld(()=>{mutations++;}));assert.ok(lease.lost);assert.ok(aborted.signal.aborted);assert.equal(losses,1);
+    // A pool could now be healthy on a different session: that must not heal this lease.
+    fake.state.closed=false;fake.state.pid=71;fake.state.held=true;
+    await assert.rejects(lease.transaction(()=>{mutations++;}));await assert.rejects(lease.withHeld(()=>{mutations++;}));
+    await assert.rejects(lease.sql`delete exact synthetic row`);assert.equal(fake.calls.includes('delete exact synthetic row'),false);
+    await assert.rejects(lease.release());assert.equal(mutations,0);assert.equal(fake.state.reserves,1);assert.equal(fake.state.acquisitions,1);assert.equal(fake.state.releases,1);
+    assert.equal(fake.calls.some(item=>item.includes('pg_advisory_unlock')),false);assert.equal(fake.calls.includes('begin'),false);
+  }
+});
+
+test('busy acquisition releases its reservation before any fixture or cleanup action',async()=>{
+  const fake=mockLeasePool();fake.state.held=false;
+  await assert.rejects(harness.conductReserveLease(fake.pool));assert.equal(fake.state.releases,1);assert.equal(fake.state.reserves,1);
+  assert.equal(fake.calls.length,1);assert.equal(fake.calls.some(item=>item.includes('pg_advisory_unlock')),false);
+});
+
+test('a stale successful in-flight lock probe cannot dispatch cleanup after onclose',async()=>{
+  const fake=mockLeasePool();let losses=0,mutations=0,resolveProbe!:(rows:{pid:number;held:boolean}[])=>void,entered!:()=>void;
+  const lease=await harness.conductReserveLease(fake.pool,{onLost:()=>{losses++;}}),waiting=new Promise<void>(resolve=>{entered=resolve;});
+  fake.state.probe=()=>{entered();return new Promise(resolve=>{resolveProbe=resolve;});};
+  const operation=lease.withHeld(()=>{mutations++;});await waiting;lease.lose();resolveProbe([{pid:71,held:true}]);
+  await assert.rejects(operation);assert.equal(mutations,0);assert.equal(losses,1);assert.ok(lease.lost);
+  await assert.rejects(lease.sql`delete exact synthetic row`);assert.equal(fake.calls.includes('delete exact synthetic row'),false);
+  await assert.rejects(lease.release());assert.equal(fake.state.reserves,1);assert.equal(fake.state.acquisitions,1);assert.equal(fake.state.releases,1);
+});
+
+for(const stage of ['begin','commit'])test(`lease loss after a valid probe blocks transaction ${stage} dispatch`,async()=>{
+  const fake=mockLeasePool();let losses=0,actions=0;
+  const lease=await harness.conductReserveLease(fake.pool,{onLost:()=>{losses++;}});
+  const loseAfterProbe=()=>{fake.state.probe=async()=>[{pid:71,get held(){
+    // The probe validates successfully, then onclose runs before its caller resumes.
+    queueMicrotask(()=>lease.lose());return true;
+  }}];};
+  if(stage==='begin')loseAfterProbe();
+  await assert.rejects(lease.transaction(async()=>{actions++;if(stage==='commit')loseAfterProbe();}));
+  assert.equal(losses,1);assert.ok(lease.lost);assert.equal(actions,stage==='begin'?0:1);
+  assert.deepEqual(fake.calls.filter(item=>['begin','commit','rollback'].includes(item)),stage==='begin'?[]:['begin','rollback']);
+  await assert.rejects(lease.sql`delete exact synthetic row`);assert.equal(fake.calls.includes('delete exact synthetic row'),false);
+  await assert.rejects(lease.release());assert.equal(fake.state.reserves,1);assert.equal(fake.state.acquisitions,1);assert.equal(fake.state.releases,1);
+});
+
+test('lease loss after a valid release probe prevents unlock but releases the reservation once',async()=>{
+  const fake=mockLeasePool();let losses=0;
+  const lease=await harness.conductReserveLease(fake.pool,{onLost:()=>{losses++;}});
+  fake.state.probe=async()=>[{pid:71,get held(){queueMicrotask(()=>lease.lose());return true;}}];
+  await assert.rejects(lease.release());assert.ok(lease.lost);assert.equal(losses,1);
+  assert.equal(fake.calls.some(query=>query.includes('pg_advisory_unlock')),false);
+  await lease.release();assert.equal(fake.state.releases,1);assert.equal(fake.state.reserves,1);assert.equal(fake.state.acquisitions,1);
+});
+
+test('failed cleanup rolls back on the reserved session and a lost session never commits',async()=>{
+  const fake=mockLeasePool(),lease=await harness.conductReserveLease(fake.pool);
+  await assert.rejects(lease.transaction(async()=>{throw new Error('Synthetic cleanup assertion');}),/cleanup assertion/);
+  assert.deepEqual(fake.calls.filter(item=>['begin','commit','rollback'].includes(item)),['begin','rollback']);assert.equal(lease.lost,false);
+  fake.calls.length=0;
+  await assert.rejects(lease.transaction(async()=>{fake.state.closed=true;lease.lose();}));
+  assert.deepEqual(fake.calls.filter(item=>['begin','commit','rollback'].includes(item)),['begin','rollback']);assert.ok(lease.lost);
+  await assert.rejects(lease.release());assert.equal(fake.state.releases,1);
+});
+
+test('overflow diagnostics are bounded geometry and exclude identity, contents and capabilities',()=>{
+  const style={display:'block',visibility:'visible',overflowX:'visible',position:'static'};
+  const parent={tagName:'DIV',classList:['student-conduct-table-scroll'],style:{...style,overflowX:'auto'},parentElement:null,
+    getBoundingClientRect:()=>({left:10,right:300,top:100,bottom:300,width:290,height:200})};
+  const nodes=Array.from({length:100},()=>({tagName:'TD',classList:['student-conduct-data','PRIVATE-TOKEN'],style,parentElement:parent,
+    getBoundingClientRect:()=>({left:600,right:850,top:150,bottom:180,width:250,height:30}),
+    get textContent(){throw new Error('Must not read synthetic private text');},get value(){throw new Error('Must not read form values');},get href(){throw new Error('Must not read capabilities');}}));
+  const diagnostic=runInNewContext('('+harness.conductOverflowGeometry.toString()+')()',{
+    document:{documentElement:{scrollWidth:900},body:{scrollWidth:900},querySelectorAll:()=>nodes},innerWidth:320,innerHeight:900,
+    getComputedStyle:(node:{style:typeof style})=>node.style,
+  });
+  assert.equal(diagnostic.overflow.length,40);assert.ok(diagnostic.scanned<=41);assert.equal(diagnostic.documentWidth,900);
+  assert.equal(diagnostic.overflow[0].clip.overflowX,'auto');assert.equal(diagnostic.overflow[0].clip.right,300);
+  const text=JSON.stringify(diagnostic);assert.ok(Buffer.byteLength(text)<24000);assert.doesNotMatch(text,/PRIVATE|textContent|href|value|token|cookie|header/i);
+});
+
 test('retained-ledger preflight checks both origins and both ledger names without mutating artifacts',async()=>{
   assert.deepEqual(harness.conductAdvisoryLockKey,[23101314,115100]);assert.ok(Object.isFrozen(harness.conductAdvisoryLockKey));
   await withLedgers(async root=>{
@@ -121,6 +230,10 @@ test('ledger preflight bounds individual and cumulative bytes, directory entries
 
 test('shared advisory acquisition and retained-ledger scan precede this run ledger and owner sign-in',async()=>{
   const {readFile}=await import('node:fs/promises');const source=await readFile(new URL('../integration/student-conduct-http-live.mjs',import.meta.url),'utf8');
-  const acquire=source.indexOf('locked=(await sql`select pg_try_advisory_lock(${conductAdvisoryLockKey[0]}::int,${conductAdvisoryLockKey[1]}::int)'),scan=source.indexOf('await conductAssertNoRetainedLedgers();'),create=source.indexOf('await mkdir(output,{mode:0o700})'),login=source.indexOf('await ownerLogin();');
+  const acquire=source.indexOf('lease=await conductReserveLease(pool,'),scan=source.indexOf('await conductAssertNoRetainedLedgers();'),create=source.indexOf('await mkdir(output,{mode:0o700})'),login=source.indexOf('await ownerLogin();');
   assert.ok(acquire>=0&&acquire<scan&&scan<create&&create<login);assert.ok(source.includes('pg_advisory_unlock(${conductAdvisoryLockKey[0]}::int,${conductAdvisoryLockKey[1]}::int)'));
+  assert.ok(source.includes('max_lifetime:0,onclose:()=>lease?.lose()'));assert.ok(source.includes('const leasedClean=(label,action)=>clean(label,()=>lease.withHeld(action));'));
+  assert.ok(source.includes('const safe=!lease.lost&&conductCleanupAllowed'));assert.ok(source.includes("ledger(cleanupFailures.length?'cleanup-required':'cleaned',cleanupFailures)"));
+  assert.ok(source.includes("if(lease?.lost)cleanupFailures.push('database-lease-lost')"));assert.equal(source.includes('sql.begin('),false);assert.equal(source.includes('pool.begin('),false);
+  assert.ok(source.indexOf("clean('advisory-release'")<source.indexOf("clean('database-close'"));
 });

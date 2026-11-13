@@ -435,5 +435,6 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 
 - [x] Inspect authenticated source views read-only; preserve private source evidence outside Git.
 - [x] Mount conduct UI/admin/API locally; pass rollback preflight, focused tests and measured desktop/mobile QA.
-- [ ] Finish independent conduct live-harness review, plan/apply200000 under the root lease, verify actual JWT/browser behavior, and release.
+- [x] Finish independent conduct live-harness review, plan/apply only200000 under the root lease, and pass actual-JWT local6ee6d6a6 with exact cleanup.
+- [x] Publish Conductfcac3c4 and pass deployed b8c64115 six-group acceptance with exact cleanup/owner preservation.
 - [ ] Complete source-shaped loan UI, scoped database/administrator workflow and acceptance; do not infer unseen application forms.

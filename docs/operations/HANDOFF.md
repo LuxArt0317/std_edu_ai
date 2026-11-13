@@ -1,3 +1,11 @@
+## Conduct production accepted — November13,2026
+
+Productionfcac3c4 is ReadyEwVRJUodYYtGubUjPD1i61ozUiiC, exact public manifest and Quality43369577520 verified. Actual-JWT productionb8c64115 passed six groups/32HTTP/12browser/7writes,320/360 containment and exact fixture cleanup/protected-owner preservation. No official or model calls; administrator browser and document issuance remain untested/unavailable. Initial immediate-resize failure cleaned safely; no runtime CSS change was needed after settled diagnostic checks.
+
+Root retains the sole DB/model/release lease for the next reviewed supplemental-assistant release. Database130 migrations/147 public RLS tables; only200000 applied in the Conduct batch. Loan210000 passed rollback-only preflight after correcting test-driver JSON encoding, but remains unapplied. Its mounted offline candidate passed644API/318unit/302offline checks; actual-JWT acceptance remains pending.
+
+Grades679298e5 and graduation97c178c3 passed on772ec95; attendance1b97e0d5 remains a real-model failure with clean fixtures. The supplemental44-path candidate is independently reviewed; two stale full-API expectations were repaired without runtime changes and all783 API/source checks now pass. No complete protected-system, pixel/accessibility or semantic acceptance is claimed. Earlier checkpoints below are historical; [current state](../../planning-with-files/current_state.md) is authoritative.
+
 ## Current assistant candidate and tuition acceptance — November13,2026
 
 Tuition release `f4e8108fe5dba30cad598228d514f1960bbb86b4` is Ready with exact public manifest and successful Quality43363071016. Deployed actual-JWT acceptance passed6groups/47API/20browser requests with exact cleanup and protected owner unchanged. The earlier pending tuition checkpoints below are historical.

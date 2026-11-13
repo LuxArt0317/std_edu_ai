@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
-import {mkdir,readFile,stat,writeFile} from 'node:fs/promises';
+import {mkdir,readFile,readdir,stat,writeFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {chromium} from 'playwright-core';
+import {conductOverflowGeometry} from './student-conduct-http-live.mjs';
 
 // Synthetic component clients only. The caller owns and stops the dedicated Vite5185 process.
 process.umask(0o077);
@@ -12,6 +13,8 @@ const geometryToleranceCssPx=0.75;
 const source=JSON.parse(await readFile('artifacts/source-conduct/metrics.json','utf8'));
 const form=JSON.parse(await readFile('artifacts/source-conduct/form-metrics.json','utf8'));
 const table=JSON.parse(await readFile('artifacts/source-conduct/table-metrics.json','utf8'));
+// The mounted portal loads the other native styles too; isolated CSS alone can hide collisions.
+const nativeStyles=(await readdir('src/features/public/affairs')).filter(name=>name.endsWith('.css')).map(name=>'/src/features/public/affairs/'+name);
 const response=await fetch(origin+'/src/main.tsx',{redirect:'error',credentials:'omit',signal:AbortSignal.timeout(10000)});
 assert.equal(response.status,200);const main=await response.text();
 function modulePath(name){const match=main.match(new RegExp('"(/node_modules/\\.vite/deps/'+name.replaceAll('.','\\.')+'\\?v=[a-f0-9]+)"'));assert.ok(match,'Served shared module '+name);return match[1];}
@@ -21,11 +24,11 @@ const row={id:'20000000-0000-4000-8000-000000000001',userId:owner,sourceMode:'lo
 const initial={userId:owner,identity:{userId:owner,studentNumber:'SYNTHETIC',studentName:'合成學生'},identityLoading:false,identityError:null,records:{records:[]},fail:false,mountKey:0};
 const html=`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Synthetic conduct verification</title></head><body><div id="root"></div><script type="module">
 import RefreshRuntime from '/@react-refresh';RefreshRuntime.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>type=>type;window.__vite_plugin_react_preamble_installed__=true;await import('/@vite/client');
-const {default:React}=await import(${JSON.stringify(modulePath('react.js'))});const {createRoot}=(await import(${JSON.stringify(modulePath('react-dom_client.js'))})).default;const {MemoryRouter}=await import(${JSON.stringify(modulePath('react-router.js'))});await import('/src/index.css');
+const {default:React}=await import(${JSON.stringify(modulePath('react.js'))});const {createRoot}=(await import(${JSON.stringify(modulePath('react-dom_client.js'))})).default;const {MemoryRouter}=await import(${JSON.stringify(modulePath('react-router.js'))});await import('/src/index.css');await import('/src/features/public/site/reference.css');await Promise.all(${JSON.stringify(nativeStyles)}.map(path=>import(path)));
 const {StudentConductWorkspace}=await import('/src/features/public/affairs/StudentConductWorkspace.tsx');
 window.calls=[];window.identityReloads=0;const client={load:async(userId,signal)=>{window.calls.push(userId);await new Promise(resolve=>setTimeout(resolve,20));signal?.throwIfAborted();if(window.fixture.fail)throw new Error('PRIVATE SYNTHETIC PROVIDER FAILURE');return structuredClone(window.fixture.records);}};
 function Fixture(){const [state,setState]=React.useState(window.fixture);window.updateConduct=patch=>{window.fixture={...window.fixture,...patch};setState(window.fixture);};return React.createElement(StudentConductWorkspace,{key:state.mountKey,userId:state.userId,identity:state.identity,identityLoading:state.identityLoading,identityError:state.identityError,client,onReloadIdentity:()=>{window.identityReloads++;window.updateConduct({identityLoading:false,identityError:null,identity:{userId:state.userId,studentNumber:'SYNTHETIC',studentName:'合成學生'}});}});}
-createRoot(document.getElementById('root')).render(React.createElement(MemoryRouter,null,React.createElement(Fixture)));
+createRoot(document.getElementById('root')).render(React.createElement(MemoryRouter,null,React.createElement('div',{className:'public-site-shell'},React.createElement(Fixture))));
 </script></body></html>`;
 const comparisons=[
   ['shell','.student-conduct-shell',source.elements.find(node=>node.id==='doc')],
@@ -46,11 +49,13 @@ const comparisons=[
   ['data','.student-conduct-data',table.ancestors.find(node=>node.id==='vdata')],
   ['table','.student-conduct-table',table.ancestors.find(node=>node.tag==='TABLE')],
 ];
-let browser,page,imageBytes=0;const errors=[],unexpected=[],checks=[],geometry=[],discrepancies=[],a11y=[];
+let browser,page,imageBytes=0;const errors=[],unexpected=[],checks=[],geometry=[],discrepancies=[],a11y=[],mobileGeometry=[];
 async function settled(){await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));}
 async function update(patch){await page.evaluate(value=>window.updateConduct(value),patch);await settled();}
 async function ready(){await page.locator('.student-conduct-content[aria-busy="false"]').waitFor();await settled();}
-async function contained(label){await settled();const size=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));assert.ok(size.scroll<=size.width+1,label+' document overflow: '+JSON.stringify(size));}
+async function contained(label){await settled();const size=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
+  if(size.scroll>size.width+1)await writeFile(output+'/overflow.json',JSON.stringify(await page.evaluate(conductOverflowGeometry)),{mode:0o600});
+  assert.ok(size.scroll<=size.width+1,label+' document overflow: '+JSON.stringify(size));return size;}
 async function capture(name){const path=output+'/'+name+'.jpg';await page.screenshot({path,type:'jpeg',quality:30});imageBytes+=(await stat(path)).size;assert.ok(imageBytes<250000,'Synthetic image budget');}
 async function accessibility(label){
   await page.addScriptTag({content:await readFile(createRequire(import.meta.url).resolve('axe-core/axe.min.js'),'utf8')});
@@ -75,9 +80,9 @@ try{
   await contained('desktop1280');await capture('empty-1280');await accessibility('empty1280');checks.push('desktop-source-geometry-compared-12-exact-headers-readonly-identity-disabled-download');
   await update({records:{records:[row]},mountKey:1});await ready();assert.equal(await page.locator('tbody tr').count(),1);const cells=await page.locator('tbody td').allTextContents();assert.equal(cells.length,12);assert.equal(cells[0],'—');assert.equal(cells[4],'');assert.equal(cells[9],'0');assert.equal(await page.locator('.student-conduct-view').isDisabled(),true);
   assert.equal(await page.locator('a[download],iframe,object,input[type="file"]').count(),0);checks.push('literal-null-blank-zero-rows-and-unverified-detail-disabled');
-  for(const width of [390,320]){await page.setViewportSize({width,height:844});await contained('rows'+width);const scroll=page.getByRole('region',{name:'獎懲紀錄表，可水平捲動'});await scroll.focus();assert.equal(await scroll.evaluate(node=>node===document.activeElement),true);
+  for(const width of [390,360,320]){await page.setViewportSize({width,height:844});const immediate=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));const final=await contained('rows'+width);mobileGeometry.push({width,immediate,settled:final});const scroll=page.getByRole('region',{name:'獎懲紀錄表，可水平捲動'});await scroll.focus();assert.equal(await scroll.evaluate(node=>node===document.activeElement),true);
     assert.ok(await scroll.evaluate(node=>node.scrollWidth>node.clientWidth));await page.keyboard.press('ArrowRight');await settled();assert.ok(await scroll.evaluate(node=>node.scrollLeft>0));await contained('scrolled'+width);if(width===390)await capture('rows-390');await accessibility('rows'+width);}
-  checks.push('390-and320-document-containment-horizontal-table-and-keyboard-scroll');
+  checks.push('390-360-and320-document-containment-with-portal-styles-horizontal-table-and-keyboard-scroll');
   await update({identity:null,identityLoading:true});assert.match(await page.getByRole('status').innerText(),/載入/);assert.equal(await page.locator('tbody tr').count(),0);
   await update({identityLoading:false,identityError:'Synthetic identity load failed'});await page.getByRole('alert').waitFor();const before=await page.evaluate(()=>window.calls.length);await page.getByRole('button',{name:'重新載入',exact:true}).click();await ready();assert.equal(await page.evaluate(()=>window.identityReloads),1);assert.equal(await page.evaluate(()=>window.calls.length),before+1);assert.equal(await page.locator('tbody tr').count(),1);checks.push('identity-loading-error-retry-reloads-both-independent-sources');
   await update({fail:true,mountKey:2});await ready();await page.getByRole('alert').waitFor();assert.equal(await page.locator('tbody tr').count(),0);assert.doesNotMatch(await page.locator('body').innerText(),/PRIVATE SYNTHETIC PROVIDER FAILURE/);
@@ -87,7 +92,7 @@ try{
 }catch(error){errors.push(error instanceof Error?error.message:String(error));process.exitCode=1;}
 finally{
   await browser?.close();const status=errors.length?'failed':discrepancies.length?'discrepancies':'passed';if(status!=='passed')process.exitCode=1;
-  await writeFile(output+'/result.json',JSON.stringify({status,checks,geometryToleranceCssPx,viewport:{width:1280,height:720,deviceScaleFactor:2},geometry,discrepancies,a11y,imageBytes,apiCalls:0,unexpected,errors,
+  await writeFile(output+'/result.json',JSON.stringify({status,checks,geometryToleranceCssPx,viewport:{width:1280,height:720,deviceScaleFactor:2},geometry,mobileGeometry,discrepancies,a11y,imageBytes,apiCalls:0,unexpected,errors,
     limitations:['Source nonempty rows, sorting, issued certificates and detail contents were not observed.','Six inert sort indicators approximate the missing source bg.gif asset.','The local footer identifies stu.best and is deliberately excluded from official-footer equivalence.','Source-preserved top-link contrast is reported separately.']},null,2),{mode:0o600});
   console.log(JSON.stringify({status,checks:checks.length,discrepancies:discrepancies.length,imageBytes,output,browserClosed:true}));
 }

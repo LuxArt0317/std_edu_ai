@@ -12,6 +12,57 @@ import {pathToFileURL} from 'node:url';
 const project='xiftudmvxphxcjtmfmib',settleMs=30000,path='/school-affairs/services/38-1';
 const kinds=['save_student_conduct','delete_student_conduct'];
 export const conductAdvisoryLockKey=Object.freeze([23101314,115100]);
+/** One physical session owns the lock. A lost lease is never silently reacquired. */
+export async function conductReserveLease(pool,{onLost=()=>{}}={}){
+  const sql=await pool.reserve();let pid=null,held=false,lost=false,released=false;
+  const lose=()=>{if(!released&&!lost){lost=true;held=false;onLost();}};
+  async function assertHeld(){
+    assert.ok(held&&!lost&&!released,'Conduct database lease is unavailable; retain its recovery ledger.');
+    try{
+      const [row]=await sql`select pg_backend_pid() as pid,exists(select 1 from pg_catalog.pg_locks
+        where pid=pg_backend_pid() and locktype='advisory' and granted and mode='ExclusiveLock'
+          and classid=${conductAdvisoryLockKey[0]}::oid and objid=${conductAdvisoryLockKey[1]}::oid and objsubid=2) as held`;
+      assert.ok(!lost&&!released&&row?.pid===pid&&row.held===true,'Conduct database session or its advisory lock changed.');
+    }catch(error){lose();throw error;}
+  }
+  const withHeld=async action=>{await assertHeld();assert.ok(!lost&&!released,'Conduct database lease was lost; retain its recovery ledger.');return action();};
+  // Preserve synchronous SQL identifier/JSON builders, but gate every actual query.
+  const guarded=Object.assign((...args)=>Array.isArray(args[0])&&Object.hasOwn(args[0],'raw')
+    ?withHeld(()=>sql(...args)):sql(...args),{json:(...args)=>sql.json(...args)});
+  async function transaction(action){
+    let began=false;
+    // Control statements need the same post-await loss check as data queries.
+    try{await withHeld(()=>sql.unsafe('begin'));began=true;await assertHeld();const result=await action(guarded);await withHeld(()=>sql.unsafe('commit'));return result;}
+    catch(error){if(began)try{await sql.unsafe('rollback');}catch{lose();}throw error;}
+  }
+  async function release(){
+    if(released)return;
+    try{const [row]=await withHeld(()=>sql`select pg_advisory_unlock(${conductAdvisoryLockKey[0]}::int,${conductAdvisoryLockKey[1]}::int) as unlocked`);assert.equal(row?.unlocked,true);held=false;}
+    catch(error){lose();throw error;}
+    finally{released=true;await sql.release();}
+  }
+  try{
+    const [row]=await sql`select pg_backend_pid() as pid,pg_try_advisory_lock(${conductAdvisoryLockKey[0]}::int,${conductAdvisoryLockKey[1]}::int) as held`;
+    assert.ok(Number.isInteger(row?.pid)&&row.pid>0&&row.held===true,'Conversation/native acceptance already holds the shared advisory lease.');pid=row.pid;held=true;
+    await assertHeld();return {sql:guarded,assertHeld,withHeld,transaction,release,lose,get lost(){return lost;}};
+  }catch(error){lose();released=true;await sql.release();throw error;}
+}
+/** Browser-only numeric geometry: never inspect text, attributes, URLs or inputs. */
+export function conductOverflowGeometry(){
+  const number=value=>Math.round(Number(value)*100)/100;
+  const box=node=>{const r=node.getBoundingClientRect();return {left:number(r.left),right:number(r.right),top:number(r.top),bottom:number(r.bottom),width:number(r.width),height:number(r.height)};};
+  const name=node=>({tag:String(node.tagName||'').slice(0,16),classes:[...node.classList].filter(value=>/^(?:student-conduct(?:-[a-z-]+)?|public-site-shell|public-assistant-[a-z-]+)$/.test(value)).slice(0,4)});
+  const overflow=[];let scanned=0;
+  for(const node of document.querySelectorAll('body *')){
+    if(++scanned>4000||overflow.length>=40)break;
+    const rect=box(node),style=getComputedStyle(node);
+    if(!rect.width||!rect.height||rect.bottom<=0||rect.top>=innerHeight||style.display==='none'||style.visibility==='hidden'||rect.left>=-1&&rect.right<=innerWidth+1)continue;
+    let clip=null,parent=node.parentElement,depth=0;
+    while(parent&&depth++<12){const parentStyle=getComputedStyle(parent);if(['auto','scroll','hidden','clip'].includes(parentStyle.overflowX)){clip={...name(parent),...box(parent),overflowX:parentStyle.overflowX};break;}parent=parent.parentElement;}
+    overflow.push({...name(node),...rect,overflowX:style.overflowX,position:style.position,clip});
+  }
+  return {viewportWidth:innerWidth,viewportHeight:innerHeight,documentWidth:document.documentElement.scrollWidth,bodyWidth:document.body.scrollWidth,scanned,limit:40,overflow};
+}
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 export const conductLedgerScanLimits=Object.freeze({entries:512,runs:128,fileBytes:512*1024,totalBytes:16*1024*1024});
 function cleanedLedger(value,name){
@@ -140,16 +191,16 @@ async function run(){
   const connection=env.POSTGRES_URL_NON_POOLING||env.POSTGRES_URL||env.DATABASE_URL;let target;try{target=new URL(connection);}catch{throw new Error('Client DB connection unavailable.');}
   assert.ok(['postgres:','postgresql:'].includes(target.protocol)&&['','5432'].includes(target.port)&&target.pathname==='/postgres'&&(target.hostname===`db.${project}.supabase.co`||target.hostname.endsWith('.pooler.supabase.com')&&target.username.endsWith('.'+project)),'Exact client direct/session-pool connection required for advisory lock.');
   const key=env.VITE_SUPABASE_PUBLISHABLE_KEY||env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||env.SUPABASE_PUBLISHABLE_KEY||env.SUPABASE_ANON_KEY,serviceKey=env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_SECRET_KEY;assert.ok(key&&serviceKey);
-  const auth={persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},runDeadline=Date.now()+10*60*1000,overall=AbortSignal.timeout(10*60*1000);let cleaning=false;
-  const signal=ms=>cleaning?AbortSignal.timeout(ms):AbortSignal.any([overall,AbortSignal.timeout(ms)]);
-  const projectFetch=(input,init={})=>{assert.equal(new URL(typeof input==='string'||input instanceof URL?input:input.url).origin,url);return fetch(input,{...init,redirect:'error',credentials:'omit',signal:init.signal?AbortSignal.any([init.signal,signal(20000)]):signal(20000)});};
-  const admin=createClient(url,serviceKey,{auth,global:{fetch:projectFetch}}),sql=postgres(connection,{max:1,connect_timeout:15,idle_timeout:0,connection:{statement_timeout:20000},ssl:{rejectUnauthorized:true,ca:await readFile('supabase/certs/prod-ca-2021.crt','utf8')}});
+  const auth={persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},runDeadline=Date.now()+10*60*1000,overall=AbortSignal.timeout(10*60*1000),leaseAbort=new AbortController();let cleaning=false,lease,sql;
+  const signal=ms=>AbortSignal.any([leaseAbort.signal,AbortSignal.timeout(ms),...(cleaning?[]:[overall])]);
+  const projectFetch=async(input,init={})=>{assert.equal(new URL(typeof input==='string'||input instanceof URL?input:input.url).origin,url);await lease.assertHeld();return fetch(input,{...init,redirect:'error',credentials:'omit',signal:init.signal?AbortSignal.any([init.signal,signal(20000)]):signal(20000)});};
+  const admin=createClient(url,serviceKey,{auth,global:{fetch:projectFetch}}),pool=postgres(connection,{max:1,connect_timeout:15,idle_timeout:0,max_lifetime:0,onclose:()=>lease?.lose(),connection:{statement_timeout:20000},ssl:{rejectUnauthorized:true,ca:await readFile('supabase/certs/prod-ca-2021.crt','utf8')}});
   const handlers=local?{'/api/affairs-data':(await import('../../api/affairs-data.ts')).default,'/api/affairs-manage':(await import('../../api/affairs-manage.ts')).default}:{};
   const runId=randomUUID(),marker='CONDUCT-QA-'+runId.slice(0,8),output=`artifacts/student-conduct/${local?'local':'production'}-${runId}`,ledgerPath=output+'/fixture-ledger.json';
   const fixtures=[1,2,3].map(number=>({number,id:null,email:`conduct-live-${randomUUID()}@example.invalid`,google:number<3}));
   const targets=[{fixture:1,label:'first'},{fixture:1,label:'blank'},{fixture:2,label:'other'},{fixture:1,label:'delete'}].map(item=>({...item,id:randomUUID(),code:marker+'-'+item.label}));
-  const ids=targets.map(item=>item.id),operations=[],successes=new Map(),checks=[],activeRequests=new Set(),accounts=()=>fixtures.flatMap(item=>item.id?[item.id]:[]);
-  let ownerId,ownerBefore,ownerClient,ownerSession,browser,schemaReady=false,locked=false,ledgerReady=false,phase='preflight',passed=false,failure=null;
+  const ids=targets.map(item=>item.id),operations=[],successes=new Map(),checks=[],mobileGeometry=[],activeRequests=new Set(),accounts=()=>fixtures.flatMap(item=>item.id?[item.id]:[]);
+  let ownerId,ownerBefore,ownerClient,ownerSession,browser,schemaReady=false,ledgerReady=false,phase='preflight',passed=false,failure=null;
   let httpCalls=0,browserApiCalls=0,blockedCalls=0,downloadEvents=0;
   async function ledger(state='active',cleanupFailures=[]){await writeFile(ledgerPath+'.next',JSON.stringify({runId,origin,mode,releaseRevision,state,marker,fixtures,targets,ownerId:ownerId??null,ownerFingerprint:ownerBefore??null,operations,cleanupFailures},null,2),{mode:0o600});await rename(ledgerPath+'.next',ledgerPath);}
   const fingerprint=async id=>(await sql`select u.id,md5((to_jsonb(u)-array['last_sign_in_at','updated_at'])::text) as auth_hash,md5(to_jsonb(p)::text) as profile_hash,
@@ -159,7 +210,7 @@ async function run(){
     const signed=await ownerClient.auth.signInWithPassword({email:credentials.CRM_ADMIN_EMAIL,password:credentials.CRM_ADMIN_PASSWORD});ownerSession=signed.data.session;assert.ok(!signed.error&&ownerSession?.user.id===ownerId);
     const verified=await ownerClient.auth.getUser(ownerSession.access_token);assert.ok(!verified.error&&verified.data.user?.id===ownerId&&verified.data.user.email?.toLowerCase()===deployment.supabase.ownerEmail.toLowerCase()&&verified.data.user.identities?.some(item=>item.provider==='google'));}
   async function invoke(endpoint,{token,method='GET',body}={}){
-    if(!cleaning)overall.throwIfAborted();const destination=new URL(endpoint,origin);assert.equal(destination.origin,origin);assert.ok(['/api/affairs-data','/api/affairs-manage','/api/affairs-conversations'].includes(destination.pathname));
+    if(!cleaning)overall.throwIfAborted();await lease.assertHeld();const destination=new URL(endpoint,origin);assert.equal(destination.origin,origin);assert.ok(['/api/affairs-data','/api/affairs-manage','/api/affairs-conversations'].includes(destination.pathname));
     if(destination.pathname==='/api/affairs-conversations')assert.ok(conductBrowserReadAllowed(method,destination));
     if(token&&token===ownerSession?.access_token){if(method==='GET')assert.ok(destination.pathname==='/api/affairs-data'&&destination.searchParams.get('scope')==='student-conduct-admin'&&accounts().includes(destination.searchParams.get('user_id'))&&[...destination.searchParams.keys()].length===2,'Owner reads are selected fixture admin reads only.');
       else assert.ok(method==='POST'&&destination.pathname==='/api/affairs-manage'&&kinds.includes(body?.kind)&&ids.includes(body?.payload?.id)&&accounts().includes(body?.payload?.user_id)&&operations.some(op=>op.actorId===ownerId&&op.kind===body.kind&&isDeepStrictEqual(op.payload,body.payload)),'Owner writes must be exact pre-ledgered fixture operations.');}
@@ -170,7 +221,7 @@ async function run(){
     await handlers[resolved.pathname]({method,headers:token?{authorization:'Bearer '+token}:{},query,body},response);return result;
   }
   async function request(endpoint,{status=200,...options}={}){const result=await invoke(endpoint,options);assert.equal(result.status,status,`${phase}: API status ${result.status}`);assert.match(result.cacheControl||'',/no-store/);return result.body;}
-  async function verifyFixture(item){assert.ok(fixtures.includes(item)&&item.id&&item.id!==ownerId);const [row]=await sql`select id,email,raw_user_meta_data->>'conduct_qa_run' as run from auth.users where id=${item.id}`;assert.ok(row?.id===item.id&&row.email===item.email&&row.run===runId);}
+  async function verifyFixture(item){await lease.assertHeld();assert.ok(fixtures.includes(item)&&item.id&&item.id!==ownerId);const [row]=await sql`select id,email,raw_user_meta_data->>'conduct_qa_run' as run from auth.users where id=${item.id}`;assert.ok(row?.id===item.id&&row.email===item.email&&row.run===runId);}
   async function createFixture(item){assert.ok(runDeadline-Date.now()>settleMs);item.creationState='pending';item.creationSentAt=Date.now();await ledger();const password=randomBytes(32).toString('base64url')+'Aa1!';
     try{const created=await admin.auth.admin.createUser({email:item.email,password,email_confirm:true,user_metadata:{full_name:'Synthetic Conduct QA '+item.number,conduct_qa_run:runId}});if(created.data.user){item.id=created.data.user.id;await ledger();}assert.ok(!created.error&&item.id);await verifyFixture(item);item.creationState='created';}
     finally{if(item.creationState==='pending')item.creationState='uncertain';await ledger();}
@@ -191,7 +242,9 @@ async function run(){
   async function pageFor(session){assert.ok(accounts().includes(session.user.id)&&session.user.id!==ownerId);const context=await browser.newContext({viewport:{width:1280,height:900},locale:'zh-TW',reducedMotion:'reduce',serviceWorkers:'block'});
     await context.addInitScript(({origin,session})=>{if(window.top===window&&location.origin===origin&&!sessionStorage.getItem('conduct-live-qa')){localStorage.setItem('stu-school-affairs-auth',JSON.stringify(session));sessionStorage.setItem('conduct-live-qa','1');}},{origin,session});
     await context.route('**/*',async route=>{const req=route.request(),destination=new URL(req.url());
+      if(leaseAbort.signal.aborted)return route.abort();
       if(![origin,url].includes(destination.origin)&&!['data:','blob:'].includes(destination.protocol)){blockedCalls++;return route.abort();}
+      if(destination.origin===url||destination.origin===origin&&destination.pathname.startsWith('/api/'))try{await lease.assertHeld();}catch{return route.abort();}
       if(destination.origin===origin&&destination.pathname.startsWith('/api/')){browserApiCalls++;if(!conductBrowserReadAllowed(req.method(),destination)){blockedCalls++;return route.abort();}
         assert.ok(req.headers().authorization!=='Bearer '+ownerSession.access_token);
         if(local){const task=invoke(destination.pathname+destination.search,{method:req.method(),token:req.headers().authorization?.slice(7)});activeRequests.add(task);
@@ -200,7 +253,7 @@ async function run(){
     const page=await context.newPage();page.setDefaultTimeout(25000);const errors=[];page.on('pageerror',()=>errors.push('page-error'));page.on('download',download=>{downloadEvents++;void download.cancel();});return {context,page,errors};}
   async function ready(page){await page.locator('.student-conduct main[aria-busy="false"]').waitFor();assert.equal(await page.locator('.student-conduct [role="alert"],.student-conduct-unavailable').count(),0);}
   try{
-    locked=(await sql`select pg_try_advisory_lock(${conductAdvisoryLockKey[0]}::int,${conductAdvisoryLockKey[1]}::int) as locked`)[0].locked;assert.ok(locked,'Conversation/native acceptance already holds the shared advisory lease.');
+    lease=await conductReserveLease(pool,{onLost:()=>leaseAbort.abort(new Error('Conduct database lease lost.'))});sql=lease.sql;
     await conductAssertNoRetainedLedgers();
     await mkdir('artifacts/student-conduct',{recursive:true,mode:0o700});await mkdir(output,{mode:0o700});ledgerReady=true;await ledger();assert.equal((await stat(output)).mode&0o077,0);assert.equal((await stat(ledgerPath)).mode&0o077,0);
     const [baseline]=await sql`select (select count(*)::int from supabase_migrations.schema_migrations) as migrations,(select count(*)::int from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and c.relrowsecurity) as rls`;
@@ -235,7 +288,21 @@ async function run(){
     for(const label of ['學號','姓名'])assert.ok(await one.page.getByRole('textbox',{name:label,exact:true}).evaluate(input=>input.readOnly));
     assert.ok(await one.page.locator('.student-conduct-download').isDisabled());for(const button of await one.page.locator('.student-conduct-view').all())assert.ok(await button.isDisabled());
     await one.page.waitForFunction(()=>{const images=[...document.querySelectorAll('.student-conduct img')];return images.length>0&&images.every(image=>image.complete&&image.naturalWidth>0);});
-    for(const width of [360,320]){await one.page.setViewportSize({width,height:900});assert.ok(await one.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));const region=one.page.getByRole('region',{name:'獎懲紀錄表，可水平捲動',exact:true});await region.focus();assert.ok(await region.evaluate(node=>node===document.activeElement));}
+    for(const width of [360,320]){
+      phase='student browser containment '+width;await one.page.setViewportSize({width,height:900});
+      const immediate=await one.page.evaluate(()=>({viewportWidth:innerWidth,documentWidth:document.documentElement.scrollWidth}));
+      // Match the isolated UI suite: inspect settled media styles, without relaxing the assertion.
+      await one.page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+      const geometry=await one.page.evaluate(conductOverflowGeometry);mobileGeometry.push({width,immediate,settled:{viewportWidth:geometry.viewportWidth,documentWidth:geometry.documentWidth}});
+      if(geometry.documentWidth>geometry.viewportWidth+1){
+        const evidence=JSON.stringify({syntheticOnly:true,width,immediate,geometry},null,2);assert.ok(Buffer.byteLength(evidence)<24000,'Bounded overflow evidence');
+        await writeFile(output+'/overflow-'+width+'.json',evidence,{mode:0o600});
+        // This page was created only for the exact disposable student, never the owner.
+        await one.page.screenshot({path:output+'/overflow-'+width+'.jpg',type:'jpeg',quality:25,fullPage:false,timeout:5000}).catch(()=>{});
+      }
+      assert.ok(geometry.documentWidth<=geometry.viewportWidth+1,'Synthetic conduct document overflow at '+width);
+      const region=one.page.getByRole('region',{name:'獎懲紀錄表，可水平捲動',exact:true});await region.focus();assert.ok(await region.evaluate(node=>node===document.activeElement));
+    }
     await two.page.goto(origin+path);await ready(two.page);assert.equal(await two.page.locator('.student-conduct-table tbody tr').count(),1);assert.ok((await two.page.locator('.student-conduct').innerText()).includes(other.reason_text));assert.ok(!(await two.page.locator('.student-conduct').innerText()).includes(mainTarget.code));
     checks.push('source12-columns-literal-cells-reload-two-account-and320-360-containment-no-download');
     phase='clearing deletion and terminal retry';await save(kinds[0],next({...initial,expected_version:2}));assert.equal((await personal(first)).records.find(row=>row.id===initial.id).reasonText,null);
@@ -257,15 +324,16 @@ async function run(){
   finally{
     cleaning=true;const cleanupFailures=[];let inflightDrained=false,rowsCleaned=false;
     const clean=async(label,action)=>{try{await action();return true;}catch{cleanupFailures.push(label);return false;}};
+    const leasedClean=(label,action)=>clean(label,()=>lease.withHeld(action));
     if(ledgerReady){
     await clean('browser-close',()=>browser?.close());
     await clean('inflight-drain',async()=>{let timer;try{await Promise.race([Promise.allSettled([...activeRequests]),new Promise((_resolve,reject)=>{timer=setTimeout(()=>reject(new Error('Requests remain active; retain fixtures.')),35000);})]);inflightDrained=true;}finally{clearTimeout(timer);}});
-    if(inflightDrained)await clean('uncertain-write-reconciliation',()=>conductReconcileWrites(operations,{readReceipt:op=>sql`select user_id,request_id,kind,payload,result from private.affairs_student_conduct_operations where user_id=${op.actorId} and request_id=${op.payload.request_id}`}));
-    await clean('uncertain-auth-create-reconciliation',()=>conductReconcileCreates(fixtures,{runId,ownerId,lookup:item=>sql`select id,email,raw_user_meta_data->>'conduct_qa_run' as run from auth.users where email=${item.email}`}));
-    const safe=conductCleanupAllowed({operations,fixtures,inflightDrained});
-    if(schemaReady&&safe)rowsCleaned=await clean('exact-record-receipt-audit-cleanup',async()=>{
+    if(inflightDrained)await leasedClean('uncertain-write-reconciliation',()=>conductReconcileWrites(operations,{readReceipt:op=>sql`select user_id,request_id,kind,payload,result from private.affairs_student_conduct_operations where user_id=${op.actorId} and request_id=${op.payload.request_id}`}));
+    await leasedClean('uncertain-auth-create-reconciliation',()=>conductReconcileCreates(fixtures,{runId,ownerId,lookup:item=>sql`select id,email,raw_user_meta_data->>'conduct_qa_run' as run from auth.users where email=${item.email}`}));
+    const safe=!lease.lost&&conductCleanupAllowed({operations,fixtures,inflightDrained});
+    if(schemaReady&&safe)rowsCleaned=await leasedClean('exact-record-receipt-audit-cleanup',async()=>{
       for(const item of targets)if(fixtures.find(fixture=>fixture.number===item.fixture)?.id)await verifyTarget(item);
-      await sql.begin(async tx=>{
+      await lease.transaction(async tx=>{
         if(operations.length){const receipts=await tx`select user_id,request_id,kind,payload,result from private.affairs_student_conduct_operations where request_id=any(${operations.map(op=>op.payload.request_id)}::uuid[])`;
           for(const receipt of receipts){assert.ok(operations.some(op=>op.actorId===receipt.user_id&&op.kind===receipt.kind&&op.payload.request_id===receipt.request_id&&isDeepStrictEqual(op.payload,receipt.payload)&&conductValidReceipt(op,receipt.result)));
             await tx`delete from private.affairs_student_conduct_operations where user_id=${receipt.user_id} and request_id=${receipt.request_id} and kind=${receipt.kind} and payload=${tx.json(receipt.payload)}`;}}
@@ -274,17 +342,18 @@ async function run(){
           await tx`delete from public.affairs_agent_audit where target_id=${item.id} and user_id=any(${[ownerId,...accounts()].filter(Boolean)}::uuid[]) and action_kind=any(${kinds}::text[])`;}
       });
     });
-    if(rowsCleaned&&safe)for(const item of fixtures)if(item.id)await clean('fixture-account-'+item.number,async()=>{await verifyFixture(item);for(let attempt=0;attempt<3;attempt++){const result=await admin.auth.admin.deleteUser(item.id);if(!result.error||(await sql`select id from auth.users where id=${item.id}`).length===0)return;}throw new Error('Fixture deletion unresolved.');});
-    if(ownerSession)await clean('owner-local-signout',async()=>assert.ok(!(await ownerClient.auth.signOut({scope:'local'})).error));
-    await clean('exact-residue-verification',async()=>{assert.ok(safe,'Unresolved operations must retain the private ledger/fixtures.');for(const item of fixtures)assert.equal((await sql`select id from auth.users where email=${item.email}`).length,0);
+    if(rowsCleaned&&safe)for(const item of fixtures)if(item.id)await leasedClean('fixture-account-'+item.number,async()=>{await verifyFixture(item);for(let attempt=0;attempt<3;attempt++){const result=await admin.auth.admin.deleteUser(item.id);if(!result.error||(await sql`select id from auth.users where id=${item.id}`).length===0)return;}throw new Error('Fixture deletion unresolved.');});
+    if(ownerSession)await leasedClean('owner-local-signout',async()=>assert.ok(!(await ownerClient.auth.signOut({scope:'local'})).error));
+    await leasedClean('exact-residue-verification',async()=>{assert.ok(safe,'Unresolved operations must retain the private ledger/fixtures.');for(const item of fixtures)assert.equal((await sql`select id from auth.users where email=${item.email}`).length,0);
       if(accounts().length)for(const [table,column] of [['auth.users','id'],['auth.identities','user_id'],['public.affairs_profiles','user_id']])assert.equal((await sql`select ${sql(column)} from ${sql(table)} where ${sql(column)}=any(${accounts()}::uuid[])`).length,0);
       if(schemaReady){assert.equal((await sql`select id from public.affairs_student_conduct where id=any(${ids}::uuid[])`).length,0);assert.equal((await sql`select id from public.affairs_agent_audit where target_id=any(${ids}::uuid[])`).length,0);
         if(operations.length)assert.equal((await sql`select request_id from private.affairs_student_conduct_operations where request_id=any(${operations.map(op=>op.payload.request_id)}::uuid[])`).length,0);}});
-    if(ownerBefore)await clean('owner-fingerprint',async()=>assert.deepEqual(await fingerprint(ownerId),ownerBefore));
+    if(ownerBefore)await leasedClean('owner-fingerprint',async()=>assert.deepEqual(await fingerprint(ownerId),ownerBefore));
     }
-    if(locked)await clean('advisory-unlock',async()=>assert.equal((await sql`select pg_advisory_unlock(${conductAdvisoryLockKey[0]}::int,${conductAdvisoryLockKey[1]}::int) as unlocked`)[0].unlocked,true));
-    await clean('database-close',()=>sql.end({timeout:5}));if(cleanupFailures.length)process.exitCode=1;if(ledgerReady)await ledger(cleanupFailures.length?'cleanup-required':'cleaned',cleanupFailures);
-    const result={passed:passed&&!cleanupFailures.length,mode,releaseRevision,checks,httpCalls,browserApiCalls,successfulWrites:successes.size,blockedCalls,downloadEvents,cleanupVerified:cleanupFailures.length===0,cleanupFailures,failure,
+    if(lease)await clean('advisory-release',()=>lease.release());
+    if(lease?.lost)cleanupFailures.push('database-lease-lost');
+    await clean('database-close',()=>pool.end({timeout:5}));if(cleanupFailures.length)process.exitCode=1;if(ledgerReady)await ledger(cleanupFailures.length?'cleanup-required':'cleaned',cleanupFailures);
+    const result={passed:passed&&!cleanupFailures.length,mode,releaseRevision,checks,mobileGeometry,httpCalls,browserApiCalls,successfulWrites:successes.size,blockedCalls,downloadEvents,cleanupVerified:cleanupFailures.length===0,cleanupFailures,failure,
       limitations:['No live administrator browser; actual owner JWT API writes only.','Synthetic Google identity revocation is not protected-owner role revocation.','No official service, model, certificate or download capability tested.']};
     if(ledgerReady)await writeFile(output+'/result.json',JSON.stringify(result,null,2),{mode:0o600});console.log(JSON.stringify({...result,artifacts:ledgerReady?output:null}));
   }

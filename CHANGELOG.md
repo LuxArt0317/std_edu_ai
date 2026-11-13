@@ -1,7 +1,7 @@
 # Changelog
 ## Unreleased
 
-- Add the source-shaped student conduct report, private literal records and administrator maintenance; preserve drafts when the editor is collapsed. Local layout/security tests and rollback-only migration preflight pass; publication and actual-JWT acceptance remain pending. [#98]
+- Add the source-shaped student conduct report, private literal records and administrator maintenance; preserve drafts when the editor is collapsed. Local layout/security tests, rollback preflight and actual-JWT local acceptance pass;200000 is applied. Publishedfcac3c4; deployed six-group actual-JWT/browser acceptance passed with exact cleanup and protected-owner preservation. [#98]
 
 - Improve academic answer verification with fair bounded field guidance and exact course lineage. Preserve long saved answers and observable tool activity, isolate per-chat save failures, and make unsaved state visible. Harden test-fixture recovery and bounded response diagnostics. Migration190000 and runtime772ec95 are deployed; actual-JWT persistence and browser acceptance passed with exact cleanup; native model acceptance remains pending. [#100]
 
