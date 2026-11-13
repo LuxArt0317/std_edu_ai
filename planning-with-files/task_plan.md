@@ -532,5 +532,5 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 
 - [x] Implement the captured grant index, instruction pages, local manual, documented conference draft form and account-owned reports.
 - [x] Verify browser navigation and record handling at desktop and phone widths. Verify the draft migration in a rollback transaction.
-- [ ] Verify live API cleanup and release acceptance for the implemented scope.
+- [x] Verify live API cleanup and release acceptance for the implemented scope.
 - [ ] Compare the current consent-gated application forms, roster fields and receipt issuance when observable.

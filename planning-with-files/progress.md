@@ -20,3 +20,4 @@
 
 - 23-1: Verified restored School Affairs access. Built the observed index and destinations with a private conference draft and report workflow. The grant migration passed rollback with exact baseline restoration. Compiled Chromium passed five workflow groups at 1280/390/320, with the desktop index table within one CSS pixel of source measurements.
 - 23-1: Applied only migration 040000 after the exact plan. Real client JWTs passed 18 handler requests and exact fixture cleanup. Corrected the harness to expect the shared non-Google authentication boundary (401). Isolated 1000 API/source and 541 unit tests passed.
+- Published 5199331. Pinned deployed API, compiled browser and public shell passed. Updated the infrastructure registry after verifying the exact migration, release and fixture cleanup. Captured the teaching-assistant empty questionnaire and the separate subsidy login.

@@ -241,3 +241,7 @@ The existing menu item stays at `/school-affairs/services/21-3`. The exact legac
 Service 23-1 is still generic. Its authenticated index exposes conference and exchange application instructions, a student report page, a receipt-list entry and a manual. The instructions include a personal-data agreement. Their continuation was not clicked. The receipt link displayed a JavaScript alert and returned to the index after dismissal. Source layout and destination evidence are stored in the ignored `artifacts/visual-parity/exchange-grant/` directory.
 
 The authenticated 23-1 index table is at x130/y185, about 933×133 CSS pixels at 1280×720. The compiled local table is x130/y185 and 933.30×133. The local receipt notice is a neutral explanation of the observed return to the index. The public 2018 operation manual supplies the conference draft fields. The current conference and exchange forms remain consent-gated. No official application, participant roster or payment data was copied. The student number remains blank until a verified linkage can supply it.
+
+## Teaching-assistant and subsidy source observations
+
+Catalog 25-1 and 25-2 share the teaching-assistant student index. Its function table contains only 教學助理自我評表 with instructions for June and December. Opening the link in the authorized student session led to a 校務系統事件訊息 page with 無問卷記錄 and a return link. There were no questionnaire fields or report records visible. Catalog 24-1 leads to its own CAPTCHA sign-in. Neither view is implemented in the 23-1 release.

@@ -1,5 +1,9 @@
 ## Exchange and conference grant service 23-1
 
+Published at `51993316a552f96aa913e9caabcf1f915196ed73`. Exact production manifest and Vercel success match. The pinned production suite passed 18 requests, exact cleanup and owner preservation. Compiled production UI passed five check groups. The public shell passed eight routes and 50 assets. Database verification passed with 138 migrations and 154 public RLS tables. GitHub Quality 43446912876 passed.
+
+The next teaching-assistant index is visible in the authenticated session. Its student self-evaluation link returns a no-questionnaire event page. The tuition subsidy has its own CAPTCHA at `/GOVSUBSIDY/Login/Signin`.
+
 The user-restored School Affairs session opened the grant catalog. The local index, instructions, manual, conference draft, report and receipt return passed compiled browser checks at 1280, 390 and 320 px. The scoped migration passed rollback authorization and version tests. Current official application continuations are consent-gated. This leaves 59 catalog entries with generic workflows, two partial and 27 native. Issue #98 remains open and issue #100 stays paused.
 
 ## Published tuition-reduction history

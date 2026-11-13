@@ -1,5 +1,7 @@
 ## Exchange and conference grant service 23-1
 
+Production `5199331` passed 18 actual-JWT requests, exact cleanup, browser checks at three widths and the public shell. No grant QA session or database lease remains. Source observations for 25-1/25-2 show a shared teaching-assistant index and an empty questionnaire result. Service 24-1 requires a separate login.
+
 Root owns the grant-specific files, the grant hunks in the School Affairs mount and shared API handlers, and the isolated release candidate. Source captures are private under `artifacts/visual-parity/exchange-grant`. Local build, browser and DB rollback checks passed. The current official application forms remain consent-gated. Issue #100’s 66 paused paths remain outside the candidate.
 
 ## Tuition-reduction history ownership
