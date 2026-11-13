@@ -42,7 +42,7 @@ Product requirements and historic research claims are indexed in [docs/README.md
 
 Uses the official shadcn/ui component sources, Tailwind v4 via @tailwindcss/vite, Radix primitives, and shared semantic brand tokens. Component/unit and browser E2E checks use Testing Library and Playwright. Detailed documentation is centralized under docs/; touched runtime and test folders have short purpose READMEs. Legacy specialized layouts remain in feature CSS within a lower-priority cascade layer, while the shared controls, dialogs, navigation, tabs and theme use shadcn/ui and Tailwind.
 
-The GitHub quality workflow runs the safe, non-mutating checks without client credentials. Live E2E QA uses isolated client fixtures and keeps sessions/traces in ignored local artifacts. Playwright packages share the same version. The rich editor is loaded separately; no JavaScript chunk exceeds the default 500 kB build advisory threshold in the current build.
+The GitHub quality workflow runs the safe, non-mutating checks without client credentials. Production builds explicitly type-check Vercel API entrypoints as well as the frontend; see [build verification](docs/operations/SETUP.md). Live E2E QA uses isolated client fixtures and keeps sessions/traces in ignored local artifacts. Playwright packages share the same version. The rich editor is loaded separately; no JavaScript chunk exceeds the default 500 kB build advisory threshold in the current build.
 
 ## Unified School OS
 
@@ -74,6 +74,6 @@ Public pages use isolated, source-preserving local HTML/CSS with trusted navigat
 
 School Affairs Google authentication and its release/provider acceptance are documented in [Google School Affairs sign-in](docs/qa/GOOGLE_SCHOOL_SIGNIN.md). It uses a separate session from Nexus and the existing server/RLS authorization; Google credentials remain in Supabase provider settings. No new npm dependency is required.
 
-The DTM preview reuses that Google session. A dedicated three-table `dtm_*` schema stores account-scoped sample courses and materials under RLS; public copied pages show a verified sign-in indicator through a same-origin account-status frame. The private assistant may read the signed-in account's School Affairs and DTM preview records, but no official university Moodle records are connected. [DTM details](src/features/public/dtm/README.md).
+The DTM workspace reuses that Google session and stores private course, material, submission and grade-report records under RLS. The floating public account-status panel has been removed. Existing assistant access remains account-scoped; literal report integration is tracked separately while Issue100 is paused. No official university Moodle synchronization is claimed. [DTM details](src/features/public/dtm/README.md).
 
 The campus assistant streams server-observed directory, knowledge, web, image and account lookup activity to an expandable timeline attached to each answer. A bounded, identity-scoped transcript persists within the current browser tab across navigation and refresh; sign-out and New chat clear it. Image bytes, auth tokens and unconfirmed action capabilities are not persisted. The UI does not expose private model reasoning. Public and School Affairs answers retain separate authorization, and site actions still require user confirmation.

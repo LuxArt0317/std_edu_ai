@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "npm run prepare:school-assets && tsc -b && vite build && node scripts/write-release-manifest.mjs && npm run verify:build",
+    "build": "npm run typecheck:api && npm run prepare:school-assets && tsc -b && vite build && node scripts/write-release-manifest.mjs && npm run verify:build",
     "lint": "oxlint",
     "test": "node scripts/verify-needed-catalog.mjs && node scripts/verify-needed-v3.mjs && node scripts/verify-research-protocol.mjs && node scripts/verify-research-104.mjs && node scripts/verify-research-trace-evidence.mjs && node scripts/verify-research-evaluation.mjs && node scripts/verify-research-operations.mjs && node scripts/verify-research-hardening.mjs && node scripts/verify-stu-source-inventory.mjs && node scripts/verify-stitch-ui.mjs && node scripts/verify-stitch-all-pages.mjs && node --experimental-strip-types --test tests/api/*.test.ts",
     "verify:needed": "node scripts/verify-needed-catalog.mjs",
@@ -88,7 +88,8 @@
     "test:school-documents": "node tests/integration/school-document-bundle.mjs",
     "test:school-statistics": "node tests/integration/school-statistics-ui.mjs",
     "test:school-home-layout": "node tests/integration/school-home-layout-ui.mjs",
-    "test:assistant-evaluation": "node --test tests/evaluation/*.test.mjs"
+    "test:assistant-evaluation": "node --test tests/evaluation/*.test.mjs",
+    "typecheck:api": "tsc --ignoreConfig --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --skipLibCheck --types node api/*.ts"
   },
   "dependencies": {
     "@langchain/core": "1.4.0",

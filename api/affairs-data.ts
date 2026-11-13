@@ -37,10 +37,10 @@ export default async function handler(request:Request,response:Response) {
         response.status(200).json(await loadDtmGradeReportAdmin(bounded,{userId,courseId}));return;
       }
       if(scope==='dtm-grade-report-courses-admin'&&typeof userId==='string'&&(afterId===undefined||typeof afterId==='string')&&keys.every(key=>['scope','user_id','after_id'].includes(key))){
-        response.status(200).json(await loadDtmGradeReportCoursesAdmin(bounded,{userId,...(afterId===undefined?{}:{afterId})}));return;
+        response.status(200).json(await loadDtmGradeReportCoursesAdmin(bounded,{userId,...(typeof afterId==='string'?{afterId}:{})}));return;
       }
       if(scope==='dtm-grade-report-overview'&&(afterId===undefined||typeof afterId==='string')&&keys.every(key=>['scope','after_id'].includes(key))){
-        response.status(200).json(await loadDtmGradeReportOverview(bounded,afterId===undefined?{}:{afterId}));return;
+        response.status(200).json(await loadDtmGradeReportOverview(bounded,typeof afterId==='string'?{afterId}:{}));return;
       }
       response.status(400).json({error:'Choose one grade report scope with only its required course, account or pagination fields.'});return;
     }

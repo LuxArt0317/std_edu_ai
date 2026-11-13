@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Type-check Vercel API entrypoints before building; narrow grade-report pagination parameters explicitly for the deployed compiler mode.
+
 - Add separate persisted Moodle grade reports and a two-column course overview. Preserve literal cells, explicit totals and null/blank/zero; add selected-student administrator maintenance with caller-bound access, versions and durable retries. Existing personal score entries and their links remain available. Verification and publication are tracked in [grade-report QA](docs/qa/DTM_GRADE_REPORTS.md). [#98]
 
 - Replace the generic credit-load7-1 tracker with the observed instructions and closed-period acknowledgment; add the selection-system index, local student review redirects and corrected Index navigation. The open-period application and staff review forms remain unobserved. No database or school writes. Isolated943API/source,451units,build/assets and independent41-element source geometry checks pass; compiled7-1 and94/94menu navigation also pass; published53c9304 passed revision-pinned production layout/navigation/guest checks; Quality43410656358 also succeeded. [#98]

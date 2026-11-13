@@ -1,3 +1,7 @@
+## Corrective release coordination
+
+Root owns the publication lease. Production7a52c2b actual-JWT44requests/eight writes completed with exact cleanup; the DB lease is closed. Root is publishing explicit pagination typing and API build validation. protected_service_audit reviews those changes and awaits the new SHA for pinned synthetic UI acceptance. No delegate DB/model/official calls. All66Issue100 paths remain frozen.
+
 ## Active literal Moodle grade-report batch
 
 Root owns shared API scopes, DtmStudentRecords/SchoolRecordManager integration, source/browser inspection, planning and release. dtm_course_layout owns server/dtmGradeReport.js/.d.ts, migration20261114000000, focused API tests and rollback-only harness. scholarship_workflow owns new service/renderer/styles/admin editor and focused units. protected_service_audit owns the reviewed overview/context navigation and compiled browser harness. No delegate live DB/auth/model/school calls, commits or publication. Root applies only after independent review and exact-client preflight/plan. Issue100 remains user-paused and its66fingerprinted paths are excluded. Old personal grades and assistant links must remain reachable without fabricating literal report values.

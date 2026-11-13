@@ -6,9 +6,28 @@ import {chromium} from 'playwright-core';
 import {affairsTestUser,affairsTestSession,mockAffairsAuth} from './helpers/affairs-auth.mjs';
 import {parseDtmGradeReportData,parseDtmGradeReportOverviewData} from '../../server/dtmGradeReport.js';
 
-// Compiled local UI acceptance only. Every account/API response is synthetic.
-const origin=new URL(process.env.PUBLIC_SITE_ORIGIN||'http://127.0.0.1:5184');
-assert.ok(origin.protocol==='http:'&&['127.0.0.1','localhost'].includes(origin.hostname)&&origin.pathname==='/'&&!origin.search&&!origin.hash&&!origin.username&&!origin.password,'Local origin only');
+// Compiled UI acceptance. Only exact revision-pinned production may supplement localhost.
+// Every account/API response remains synthetic, including during production checks.
+function target(value,revision){
+  const url=new URL(value),production=url.origin==='https://stu.best';
+  assert.ok((production||url.protocol==='http:'&&['127.0.0.1','localhost'].includes(url.hostname))&&url.pathname==='/'&&!url.search&&!url.hash&&!url.username&&!url.password,'Exact production or local origin only');
+  if(production)assert.match(revision||'',/^[0-9a-f]{40}$/,'Production requires EXPECTED_RELEASE_REVISION: full lowercase 40-hex SHA');
+  return {origin:url,production,expectedRevision:production?revision:null};
+}
+async function releaseManifest(base,revision,fetcher=globalThis.fetch){
+  const response=await fetcher(base+'/release.json',{method:'GET',credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(10000)});
+  assert.equal(response.status,200,'Release manifest must return HTTP200');assert.equal(response.redirected,false,'Release redirect forbidden');
+  assert.ok(response.body,'Release manifest body required');assert.ok(Number(response.headers.get('content-length')||0)<=4096,'Release manifest exceeds4096bytes');
+  const reader=response.body.getReader(),chunks=[];let size=0;
+  try{while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;assert.ok(size<=4096,'Release manifest exceeds4096bytes');chunks.push(value);}}
+  finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
+  const data=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  assert.ok(data&&typeof data==='object'&&!Array.isArray(data),'Release object required');
+  assert.equal(data.version,1);assert.equal(data.revision,revision,'Production revision changed or does not match');assert.equal(data.environment,'production');assert.equal(data.source,'vercel-git');
+  assert.ok(typeof data.builtAt==='string'&&Number.isFinite(Date.parse(data.builtAt)),'Release build timestamp required');
+  return {version:data.version,revision:data.revision,environment:data.environment,source:data.source,builtAt:data.builtAt};
+}
+const {origin,production,expectedRevision}=target(process.env.PUBLIC_SITE_ORIGIN||'http://127.0.0.1:5184',process.env.EXPECTED_RELEASE_REVISION);
 const base=origin.origin,uuid=(family,index)=>`${family}0000000-0000-4000-8000-${String(index).padStart(12,'0')}`;
 const userA=affairsTestUser,userB={...affairsTestUser,id:uuid('b',2),email:'other.synthetic@example.invalid',user_metadata:{name:'Synthetic B'},identities:[{provider:'google',id:'synthetic-b',user_id:uuid('b',2),identity_data:{email_verified:true}}]};
 const users=new Map([userA,userB].map(user=>[user.id,user]));
@@ -32,12 +51,23 @@ if(process.argv.includes('--self-test')){
   assert.throws(()=>parseDtmGradeReportData({report},userB.id,courseId));
   assert.equal(report.items[0].gradeText,'P');assert.notEqual(report.items[0].percentageText,'75.00 %');
   assert.equal(parseDtmGradeReportData({report:null},userA.id,courseId).report,null);
-  console.log(JSON.stringify({status:'ok',fixtureContracts:4,browserConnections:0,networkCalls:0}));
+  const revision='a'.repeat(40),manifest={version:1,revision,environment:'production',source:'vercel-git',builtAt:'2026-11-13T00:00:00.000Z'};
+  assert.equal(target('http://127.0.0.1:5184').production,false);assert.equal(target('https://stu.best',revision).production,true);
+  for(const invalid of ['https://example.invalid','https://stu.best.evil.invalid','https://stu.best:444','http://stu.best','https://stu.best/path','https://stu.best?x=1','https://user@stu.best'])assert.throws(()=>target(invalid,revision));
+  for(const invalid of [undefined,'','a'.repeat(39),'A'.repeat(40),'g'.repeat(40)])assert.throws(()=>target('https://stu.best',invalid));
+  let mockReads=0;
+  assert.deepEqual(await releaseManifest('https://stu.best',revision,async(url,options)=>{mockReads++;assert.equal(url,'https://stu.best/release.json');assert.equal(options.method,'GET');assert.equal(options.credentials,'omit');assert.equal(options.redirect,'error');assert.equal(options.cache,'no-store');assert.ok(options.signal instanceof AbortSignal);return Response.json(manifest);}),manifest);
+  for(const changed of [{revision:'b'.repeat(40)},{environment:'preview'},{source:'unverified'},{version:2},{builtAt:null}])await assert.rejects(()=>releaseManifest('https://stu.best',revision,async()=>Response.json({...manifest,...changed})));
+  await assert.rejects(()=>releaseManifest('https://stu.best',revision,async()=>new Response('x'.repeat(4097))));
+  await assert.rejects(()=>releaseManifest('https://stu.best',revision,async()=>Response.json(manifest,{status:503})));
+  const redirected=Response.json(manifest);Object.defineProperty(redirected,'redirected',{value:true});await assert.rejects(()=>releaseManifest('https://stu.best',revision,async()=>redirected));
+  assert.equal(mockReads,1);
+  console.log(JSON.stringify({status:'ok',fixtureContracts:4,productionGuardContracts:23,browserConnections:0,networkCalls:0}));
   process.exit(0);
 }
 const runId=new Date().toISOString().replaceAll(':','-'),directory=resolve('artifacts/dtm-grade-report-ui',runId);
 await mkdir(directory,{recursive:true});
-const evidence={status:'running',stage:'initialization',origin:base,syntheticOnly:true,sourceHashes:{},geometry:[],geometryFailures:[],screenshots:[],checks:[],apiReads:[],mockAuthReads:0,blockedRequests:[],pageErrors:[],entries:[],liveApiCalls:0,liveAuthCalls:0,modelCalls:0};
+const evidence={status:'running',stage:'initialization',origin:base,syntheticOnly:true,expectedReleaseRevision:expectedRevision,release:{before:null,after:null},sourceHashes:{},geometry:[],geometryFailures:[],screenshots:[],checks:[],apiReads:[],mockAuthReads:0,blockedRequests:[],pageErrors:[],entries:[],liveApiCalls:0,liveAuthCalls:0,modelCalls:0};
 const source={};
 for(const [key,name] of [['report','measurements.json'],['overview','overview-measurements.json']]){
   const bytes=await readFile('artifacts/visual-parity/dtm-grade-report-source/'+name);
@@ -45,7 +75,7 @@ for(const [key,name] of [['report','measurements.json'],['overview','overview-me
   // Keep only geometry/styles: captured private text is never used as fixture data or copied to results.
   source[key]={viewport:capture.viewport,table:capture.table.rect,header:capture.rows[0].cells.map(cell=>({rect:cell.rect,style:cell.style}))};
 }
-const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
+let browser;
 let diagnosticPage;
 const contexts=[];
 function tokenUser(request){const match=/^Bearer ([^.]+)\.([^.]+)\.[^.]+$/.exec(request.headers().authorization||'');assert.ok(match,'Synthetic bearer required');const id=JSON.parse(Buffer.from(match[2],'base64url')).sub;assert.ok(users.has(id),'Known synthetic caller only');return id;}
@@ -115,6 +145,8 @@ async function geometry(page,key,selector){
 }
 async function switchAccount(page,user){const session=user?affairsTestSession(user):null;await page.evaluate(session=>{if(session)localStorage.setItem('stu-school-affairs-auth',JSON.stringify(session));else localStorage.removeItem('stu-school-affairs-auth');const channel=new BroadcastChannel('stu-school-affairs-auth');channel.postMessage({event:session?'SIGNED_IN':'SIGNED_OUT',session});setTimeout(()=>channel.close(),100);},session);}
 try{
+  if(production){evidence.stage='release before';evidence.release.before=await releaseManifest(base,expectedRevision);}
+  browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
   const {ctx,state}=await context();const page=await ctx.newPage();diagnosticPage=page;
   evidence.stage='literal report';
   const reportPath='/dtm/course/'+courseId+'/grades';
@@ -206,5 +238,10 @@ try{
   assert.deepEqual(evidence.blockedRequests,[]);assert.deepEqual(evidence.pageErrors,[]);assert.ok(evidence.entries.length>0,'Compiled application entry required');assert.deepEqual(evidence.geometryFailures,[],'Source geometry differences require review');
   evidence.status='passed';evidence.stage='complete';
 }catch(error){evidence.status='failed';evidence.failure={name:error.name,message:error.message};if(diagnosticPage&&!diagnosticPage.isClosed())await diagnosticPage.screenshot({path:resolve(directory,'failure.png'),fullPage:true}).catch(()=>{});process.exitCode=1;}
-finally{await Promise.allSettled(contexts.map(ctx=>ctx.close()));await browser.close();await writeFile(resolve(directory,'result.json'),JSON.stringify(evidence,null,2));console.log(JSON.stringify({status:evidence.status,stage:evidence.stage,checks:evidence.checks.length,screenshots:evidence.screenshots.length,entries:evidence.entries,result:resolve(directory,'result.json'),failure:evidence.failure}));}
+finally{
+  await Promise.allSettled(contexts.map(ctx=>ctx.close()));
+  if(browser)try{await browser.close();}catch(error){evidence.status='failed';evidence.cleanupFailure={name:error.name,message:error.message};process.exitCode=1;}
+  if(production&&evidence.release.before)try{evidence.release.after=await releaseManifest(base,expectedRevision);}catch(error){evidence.status='failed';evidence.stage='release after';evidence.releaseFailure={name:error.name,message:error.message};process.exitCode=1;}
+  await writeFile(resolve(directory,'result.json'),JSON.stringify(evidence,null,2));console.log(JSON.stringify({status:evidence.status,stage:evidence.stage,checks:evidence.checks.length,screenshots:evidence.screenshots.length,entries:evidence.entries,expectedReleaseRevision:expectedRevision,release:evidence.release,result:resolve(directory,'result.json'),failure:evidence.failure,releaseFailure:evidence.releaseFailure}));
+}
 async function assertEventually(predicate,label){const deadline=Date.now()+10000;while(!predicate()){assert.ok(Date.now()<deadline,label);await new Promise(done=>setTimeout(done,25));}}

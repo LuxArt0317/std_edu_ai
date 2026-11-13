@@ -11,7 +11,7 @@ Apply the independent assistant migration using `npm run db:plan -- --only=20261
 
 Use Node.js 24 and npm. Install locked dependencies with `npm ci`. Run all commands at repository root.
 
-Copy `.env.example` to `.env.local` and supply the client project's URL and publishable key. `npm run dev` starts Vite. `npm run build` validates TypeScript, builds `dist/`, and verifies lazy-route assets. Vite's development and preview servers proxy `/api` to the declared client production site so local UI verification can exercise the authorized backend. To test changed Function code locally, use `vercel dev` only after signing into and linking the correct client team. Supabase reads and writes always use the configured client project.
+Copy `.env.example` to `.env.local` and supply the client project's URL and publishable key. `npm run dev` starts Vite. `npm run build` first runs `npm run typecheck:api` for Vercel Function entrypoints, then validates frontend TypeScript, builds `dist/`, and verifies lazy-route assets. The API check uses the standalone NodeNext compiler mode so query-parameter unions cannot silently fail only during Vercel packaging. Vite's development and preview servers proxy `/api` to the declared client production site so local UI verification can exercise the authorized backend. To test changed Function code locally, use `vercel dev` only after signing into and linking the correct client team. Supabase reads and writes always use the configured client project.
 
 ## Environment variables
 
