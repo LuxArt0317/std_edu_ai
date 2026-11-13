@@ -39,6 +39,9 @@ export function conversationExpectedVersion(userId,payload,messages,before){
   return before?.user_id===userId&&before.title===payload.title&&isDeepStrictEqual(before.messages,messages)
     ?before.version:payload.version+1;
 }
+export async function assertConversationDeleteIsolation(read,remove){
+  const before=await read();await remove();assert.deepEqual(await read(),before,'Cross-account delete must leave the original read projection untouched.');
+}
 export function reconcileConversationWrite(operation,rows){
   assert.equal(rows.length,1,'Uncertain save has no unique durable row; retain recovery ledger.');
   const row=rows[0];assert.equal(row.user_id,operation.userId,'Conversation owner changed.');
@@ -67,6 +70,28 @@ export async function assertConversationRecoveryClear(directories,{list=readdir}
     let names;try{names=await list(directory);}catch(error){if(error?.code==='ENOENT')continue;throw new Error('Recovery ledger directory could not be inspected.');}
     assert.equal(names.filter(name=>/^active-fixtures-[a-f0-9-]+\.json(?:\.tmp)?$/.test(name)).length,0,'Existing recovery ledger requires manual reconciliation before another live run.');
   }
+}
+/** Status-only diagnostics: never persist headers, queries, bodies or tokens. */
+export function conversationResponseDiagnostic(method,url,status,projectOrigin){
+  let destination;try{destination=new URL(url);}catch{return null;}
+  if(!Number.isInteger(status)||status<100||status>599||!['GET','POST','DELETE'].includes(method))return null;
+  const path=destination.pathname;
+  if(destination.origin===ORIGIN&&['/dtm','/api/affairs-data','/api/affairs-conversations'].includes(path))return {method,path,status};
+  if(destination.origin===projectOrigin&&['/auth/v1/user','/auth/v1/token','/auth/v1/logout'].includes(path))return {method,path,status};
+  return null;
+}
+export async function openVerifiedConversationAssistant(page,mark=()=>{}){
+  // Auth completion remounts PublicAssistant. Opening its anonymous instance
+  // before the verified account menu appears can close the sheet on remount.
+  mark('browser: await verified DTM account menu');
+  await page.locator('[data-campus-assistant-menu]').waitFor({state:'visible'});
+  mark('browser: open campus assistant launcher');
+  await page.getByRole('button',{name:'開啟 AI 校園助理',exact:true}).click();
+}
+export async function boundedConversationDiagnostic(work,timeoutMs=3000){
+  let timer;
+  try{return await Promise.race([work,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Browser diagnostic timed out.')),timeoutMs);})]);}
+  finally{clearTimeout(timer);}
 }
 
 export async function main(){
@@ -102,7 +127,8 @@ export async function main(){
     return fetch(input,{...init,redirect:'error',signal:AbortSignal.timeout(15000)});};
   const admin=createClient(projectOrigin,serviceKey,{auth,global:{fetch:projectFetch}});
   const users=[],operations=[],sessions=new Map(),reservedConversations=new Map(),checks=[],browserErrors=[],activeBrowserWrites=new Set();
-  let sql,locked=false,ledgerOwned=false,browser,ownerId,ownerBefore,phase='preflight',failure=null,cleanupVerified=false,passed=false;
+  let sql,locked=false,ledgerOwned=false,browser,activePage,ownerId,ownerBefore,phase='preflight',failure=null,cleanupVerified=false,passed=false;
+  const browserResponses=[];
   let httpRequests=0,browserRequests=0,modelRequests=0,officialRequests=0,ledgerQueue=Promise.resolve();
   const ledger=()=>ledgerQueue=ledgerQueue.then(async()=>{
     assert.ok(ledgerOwned);const temp=ledgerPath+'.tmp',handle=await open(temp,'wx',0o600);
@@ -167,7 +193,7 @@ export async function main(){
     assert.equal((await request(first,{method:'POST',body:primary})).version,1,'Exact create replay must preserve version.');
     assert.deepEqual((await request(first,{id:primary.id})).messages,firstSaved.messages);
     await request(second,{id:primary.id,status:404});await request(second,{method:'POST',body:primary,status:403});
-    await request(second,{method:'DELETE',id:primary.id});assert.deepEqual(await request(first,{id:primary.id}),firstSaved,'Cross-account delete must leave the original row untouched.');
+    await assertConversationDeleteIsolation(()=>request(first,{id:primary.id}),()=>request(second,{method:'DELETE',id:primary.id}));
     const stale={...primary,title:'Stale edit must fail'};await request(first,{method:'POST',body:stale,status:409});
     await request(second,{method:'POST',body:secondary});
     assert.ok(!(await request(second)).conversations.some(row=>row.id===primary.id));
@@ -201,6 +227,8 @@ export async function main(){
         })();activeBrowserWrites.add(task);try{await task;}finally{activeBrowserWrites.delete(task);}
       });
       context.on('response',response=>{const req=response.request(),destination=new URL(req.url());
+        const diagnostic=conversationResponseDiagnostic(req.method(),req.url(),response.status(),projectOrigin);
+        if(diagnostic&&browserResponses.length<80)browserResponses.push(diagnostic);
         if(destination.origin===ORIGIN&&destination.pathname==='/api/affairs-conversations'&&req.method()==='GET'&&response.status()===200)remoteReads.add(destination.searchParams.get('id')||'index');
         if(req.method()!=='POST'||destination.pathname!=='/api/affairs-conversations')return;
         const task=(async()=>{const payload=req.postDataJSON(),op=[...operations].reverse().find(item=>item.userId===user.id&&item.state==='pending'&&JSON.stringify(item.payload)===JSON.stringify(payload));
@@ -208,14 +236,18 @@ export async function main(){
           try{await finishWrite(op,{status:response.status(),body:await response.json()});}catch{op.state='uncertain';browserErrors.push('Browser mutation response incomplete.');}
         })();activeBrowserWrites.add(task);void task.finally(()=>activeBrowserWrites.delete(task));
       });
-      const page=await context.newPage();page.setDefaultTimeout(30000);page.on('pageerror',()=>browserErrors.push('Browser runtime exception.'));
+      const page=await context.newPage();activePage=page;page.setDefaultTimeout(30000);page.on('pageerror',()=>browserErrors.push('Browser runtime exception.'));
+      phase='browser: navigate to signed-in DTM';
       await page.goto(ORIGIN+'/dtm',{waitUntil:'domcontentloaded'});
-      await page.getByRole('button',{name:'開啟 AI 校園助理',exact:true}).click();
+      await openVerifiedConversationAssistant(page,value=>{phase=value;});
       return {context,page,remoteReads,dialog:page.getByRole('dialog',{name:/Assistant/})};
     };
     const assertRestored=async({page,dialog},fixture,forbidden=[secondary.title])=>{
+      activePage=page;phase='browser: select saved conversation';
       await dialog.getByLabel('Conversations',{exact:true}).selectOption(fixture.id);
+      phase='browser: await account-saved status';
       await dialog.getByText('Conversation saved to your private account.',{exact:true}).waitFor();
+      phase='browser: inspect restored activity';
       const timeline=dialog.getByRole('log').locator('details').filter({has:page.locator('summary').filter({hasText:'Activity'})});
       assert.equal(await timeline.count(),1);await timeline.locator('summary').click();
       const steps=timeline.getByRole('list',{name:'Observed assistant steps'});assert.equal(await steps.getByRole('listitem').count(),40);
@@ -225,13 +257,13 @@ export async function main(){
       const summary=timeline.locator('summary');await summary.focus();await summary.press('Space');assert.equal(await timeline.getAttribute('open'),null);
       await summary.press('Enter');assert.notEqual(await timeline.getAttribute('open'),null);
       for(const marker of forbidden)assert.ok(!(await dialog.getByRole('log').innerText()).includes(marker));
-      for(const width of [390,1440]){await page.setViewportSize({width,height:900});await page.waitForFunction(()=>{
+      for(const width of [390,1440]){phase='browser: verify viewport bounds at '+width;await page.setViewportSize({width,height:900});await page.waitForFunction(()=>{
         const box=document.querySelector('[role="dialog"]')?.getBoundingClientRect();return box&&box.left>=-1&&box.right<=innerWidth+1&&box.top>=-1&&box.bottom<=innerHeight+1;
       });assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));}
     };
     const restored=await openContext(first);await assertRestored(restored,primary);
     assert.ok(restored.remoteReads.has('index')&&restored.remoteReads.has(primary.id),'Fresh browser must restore through the deployed index and detail API.');
-    await restored.page.reload({waitUntil:'domcontentloaded'});await restored.page.getByRole('button',{name:'開啟 AI 校園助理',exact:true}).click();await assertRestored(restored,primary);await restored.context.close();
+    phase='browser: reload saved conversation';await restored.page.reload({waitUntil:'domcontentloaded'});await openVerifiedConversationAssistant(restored.page,value=>{phase=value;});await assertRestored(restored,primary);await restored.context.close();
     // A separate, cache-empty context forces another actual server GET.
     const clean=await openContext(first);await assertRestored(clean,primary);assert.ok(clean.remoteReads.has('index')&&clean.remoteReads.has(primary.id));await clean.context.close();
     const other=await openContext(second);await assertRestored(other,secondary,[primary.title]);
@@ -242,7 +274,7 @@ export async function main(){
 
     phase='actual browser autosave';const seeded=conversationFixture(randomUUID(),'Browser autosave activity');
     reservedConversations.set(seeded.id,{userId:first.id,payload:seeded});
-    const ui=await openContext(first,seeded);await ui.dialog.getByText('Conversation saved to your private account.',{exact:true}).waitFor();
+    const ui=await openContext(first,seeded);phase='browser: await synthetic-turn autosave';await ui.dialog.getByText('Conversation saved to your private account.',{exact:true}).waitFor();
     await assertRestored(ui,seeded);await ui.context.close();
     await Promise.all([...activeBrowserWrites]);
     const browserSaved=await request(first,{id:seeded.id});assert.deepEqual(browserSaved.messages,sanitizeStoredConversation(seeded.messages));
@@ -250,6 +282,7 @@ export async function main(){
     assert.ok(operations.some(op=>op.payload.id===seeded.id&&op.state==='saved'),'Observed browser save must complete on the actual server.');
     checks.push('Synthetic cached turn autosaved through real browser HTTP,then restored in a cache-empty context; no model response mocked');
     phase='signed-out browser isolation';const signedOut=await openContext(first);await assertRestored(signedOut,primary);
+    phase='browser: sign out local fixture session';
     await signedOut.page.goto(ORIGIN+'/school-affairs/signed-out',{waitUntil:'domcontentloaded'});
     await signedOut.page.waitForFunction(()=>!localStorage.getItem('stu-school-affairs-auth'));
     await signedOut.page.goto(ORIGIN+'/dtm',{waitUntil:'domcontentloaded'});
@@ -259,7 +292,27 @@ export async function main(){
     assert.ok(!(await signedOut.page.evaluate(key=>sessionStorage.getItem(key)||'',CACHE)).includes(primary.id));
     await signedOut.context.close();checks.push('Real local-scope sign-out removes the account transcript and private browser cache');
     assert.deepEqual(browserErrors,[]);assert.equal(modelRequests,0);assert.equal(officialRequests,0);await manifest();passed=true;
-  }catch(error){failure={phase,type:error instanceof assert.AssertionError?'assertion':error?.name||'Error'};}
+  }catch(error){
+    failure={phase,type:error instanceof assert.AssertionError?'assertion':error?.name==='TimeoutError'?'TimeoutError':'Error'};
+    if(activePage&&!activePage.isClosed()&&new URL(activePage.url()).origin===ORIGIN){
+      // This context contains only fresh disposable identities and synthetic
+      // records. Save a viewport image before teardown; never storage/headers.
+      try{
+        failure.browser=await boundedConversationDiagnostic(activePage.evaluate(()=>({
+          path:location.pathname==='/dtm'?'/dtm':'other-local-route',
+          launchers:document.querySelectorAll('button[aria-label="開啟 AI 校園助理"]').length,
+          dialogs:document.querySelectorAll('[role="dialog"]').length,
+          pickerPresent:Boolean(document.querySelector('#assistant-conversation-picker')),
+          pickerDisabled:document.querySelector('#assistant-conversation-picker')?.disabled??null,
+          optionCount:document.querySelector('#assistant-conversation-picker')?.options.length??0,
+          alertCount:document.querySelectorAll('[role="alert"]').length,
+        })));
+        const filename='failure-'+runId+'.png';
+        await writeFile(directory+'/'+filename,await activePage.screenshot({fullPage:false,timeout:5000}),{mode:0o600});
+        failure.screenshot=filename;
+      }catch{failure.browserDiagnosticUnavailable=true;}
+    }
+  }
   finally{
     phase='cleanup';
     try{
@@ -294,7 +347,7 @@ export async function main(){
     }
     if(cleanupVerified&&ledgerOwned)try{await rm(ledgerPath);}catch{cleanupVerified=false;}
     const report={runId,origin:ORIGIN,revision:target.revision,status:passed&&cleanupVerified?'passed':'failed',checks,failure,cleanupVerified,
-      httpRequests,browserRequests,modelRequests,officialRequests,modelAcceptance:false,browserErrors};
+      httpRequests,browserRequests,modelRequests,officialRequests,modelAcceptance:false,browserErrors,browserResponses};
     await writeFile(directory+'/report-'+runId+'.json',JSON.stringify(report,null,2),{mode:0o600});
     console.log(JSON.stringify(report));if(report.status!=='passed')process.exitCode=1;
   }

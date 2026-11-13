@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {fileURLToPath} from 'node:url';
 import {readFile} from 'node:fs/promises';
 import {conversationFixture,validateConversationTarget,conversationResponseMatches,conversationExpectedVersion,
-  reconcileConversationWrite,reconcileConversationIdentity,allowedConversationBrowserRequest,assertConversationRecoveryClear} from '../integration/assistant-conversation-http-live.mjs';
+  reconcileConversationWrite,reconcileConversationIdentity,allowedConversationBrowserRequest,assertConversationRecoveryClear,assertConversationDeleteIsolation,conversationResponseDiagnostic,openVerifiedConversationAssistant,boundedConversationDiagnostic} from '../integration/assistant-conversation-http-live.mjs';
 
 const id='32475426-b5e7-4ce6-863f-91e2e7d20929',userId='c0d6abf1-ad94-43da-b7de-995d3ccbe320';
 const root=fileURLToPath(new URL('../../',import.meta.url)),origin='https://stu.best',revision='a'.repeat(40);
@@ -80,4 +80,33 @@ test('cross-suite unresolved recovery ledgers block new mutations and unreadable
   await assertConversationRecoveryClear(directories,{list:async()=>['report-'+id+'.json']});
   await assertConversationRecoveryClear(directories,{list:async()=>{throw Object.assign(new Error(),{code:'ENOENT'});}});
   await assert.rejects(assertConversationRecoveryClear(directories,{list:async()=>{throw Object.assign(new Error(),{code:'EACCES'});}}));
+});
+test('cross-account DELETE preserves the actual GET projection regardless of POST-only metadata',async()=>{
+  const post={id,title:'Saved',messages:[{id:'m',role:'user',content:'Synthetic'}],version:1,updated_at:'2026-11-13T00:00:00Z',created_at:'2026-11-12T00:00:00Z'};
+  const {created_at:creation,...get}=post;assert.ok(creation);
+  let deleted=false,reads=0;
+  await assertConversationDeleteIsolation(async()=>{reads++;return structuredClone(get);},async()=>{deleted=true;});
+  assert.equal(reads,2);assert.equal(deleted,true);
+  for(const changed of [{...get,version:2},{...get,messages:[]},{...get,title:'Changed'},null]){
+    let first=true;await assert.rejects(assertConversationDeleteIsolation(async()=>{if(first){first=false;return get;}return changed;},async()=>{}));
+  }
+});
+test('browser diagnostics expose only fixed endpoint,status and method; never query,identity or response content',()=>{
+  assert.deepEqual(conversationResponseDiagnostic('GET',origin+'/api/affairs-conversations?id=private&token=secret',200,project),{method:'GET',path:'/api/affairs-conversations',status:200});
+  assert.deepEqual(conversationResponseDiagnostic('POST',project+'/auth/v1/token?refresh_token=secret',503,project),{method:'POST',path:'/auth/v1/token',status:503});
+  for(const url of [origin+'/api/affairs-conversations/'+id,origin+'/api/unknown',origin+'/private-student-name','https://evil.invalid/api/affairs-conversations','invalid'])
+    assert.equal(conversationResponseDiagnostic('GET',url,200,project),null);
+  for(const status of [0,99,600,'200',NaN])assert.equal(conversationResponseDiagnostic('GET',origin+'/dtm',status,project),null);
+  assert.equal(conversationResponseDiagnostic('SECRET',origin+'/dtm',200,project),null);
+});
+test('launcher opens after verified account UI, so anonymous auth remount cannot close the sheet',async()=>{
+  let ready=false;const events=[];
+  const page={locator:selector=>{assert.equal(selector,'[data-campus-assistant-menu]');return {waitFor:async options=>{assert.deepEqual(options,{state:'visible'});ready=true;events.push('account');}};},
+    getByRole:(role,options)=>{assert.equal(role,'button');assert.deepEqual(options,{name:'開啟 AI 校園助理',exact:true});return {click:async()=>{assert.equal(ready,true);events.push('open');}};}};
+  await openVerifiedConversationAssistant(page);assert.deepEqual(events,['account','open']);
+  await assert.rejects(openVerifiedConversationAssistant({...page,locator:()=>({waitFor:async()=>{throw new Error('No verified session');}})}),/No verified session/);
+});
+test('a stalled browser diagnostic cannot delay fixture cleanup indefinitely',async()=>{
+  assert.equal(await boundedConversationDiagnostic(Promise.resolve('safe'),20),'safe');
+  await assert.rejects(boundedConversationDiagnostic(new Promise(()=>{}),1),/timed out/);
 });

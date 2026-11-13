@@ -38,7 +38,8 @@
 
 - [x] Independently review native evidence selection, saved-conversation handling, fixture recovery and diagnostics; pass isolated594 API/source,252 units,289 offline evaluation checks plus9 conversation-HTTP contracts.
 - [x] Pass TypeScript/build/lint/handoff/audit and repeat190000 rollback preflight at128/146; plan/apply only190000. Current client129 migrations/146 RLS tables;200000 deferred.
-- [ ] Publish the exact reviewed repair, verify production startup and actual-JWT saved-conversation/browser behavior.
+- [x] Publish772ec95; verify exact manifest, Vercel Ready and successful GitHub Quality.
+- [x] Complete actual-JWT saved-conversation/browser acceptance727423ae after the reviewed auth-settlement harness correction; exact cleanup passed.
 - [ ] Return the serialized model lease to the evaluator and rerun grades, graduation and attendance on that exact production revision.
 
 ## Phase Next: systemwide assistant evaluation [Issue #100]
@@ -429,3 +430,10 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Connect native enrollment, timetable, grade, attendance, credit, student and fee queries to account-scoped database records and assistant links.
 - [x] Match the observed leave form controls and period picker and check phone/desktop accessibility.
 - [ ] Inspect the remaining private university forms and views after the source sign-in challenge is completed. Check their layout and workflow individually.
+
+## Next protected services: conduct38-1 and loan21-1 [Issue #98]
+
+- [x] Inspect authenticated source views read-only; preserve private source evidence outside Git.
+- [x] Mount conduct UI/admin/API locally; pass rollback preflight, focused tests and measured desktop/mobile QA.
+- [ ] Finish independent conduct live-harness review, plan/apply200000 under the root lease, verify actual JWT/browser behavior, and release.
+- [ ] Complete source-shaped loan UI, scoped database/administrator workflow and acceptance; do not infer unseen application forms.

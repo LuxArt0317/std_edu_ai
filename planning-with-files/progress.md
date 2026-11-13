@@ -74,3 +74,7 @@ Earlier entries are retained in archive/progress_2026-11-13_verification.md.
 - Native/durability42path candidate independently reviewed; isolated594API/252units/289offline plus9HTTPcontracts and TypeScript/build/lint/handoff/audit pass. Repeated190000 rollback preflight128/146 passed, then exact plan/apply only190000:129/146. Model and deployed persistence acceptance remain pending.
 
 - Native repair pre-release full client verification passed129/146 with owner cleanup, public shell/assets, Edge and nonmutating AI. Publishing only the independently reviewed57-path candidate; conduct and supplemental readers remain excluded.
+
+- 2026-11-13 [#98/#100]: Verified772ec95 production Ready5LM3n91sFH7KRPUXS8Te5EFtZ7Ug/Quality43364277871. Conversation b89824a9 API checks passed but browser restore timed out; exact cleanup passed.13-contract harness correction independently reviewed; rerun active. Conduct200000 rollback-only5groups passed at129/146; local host8checks and rendered6groups passed, geometry within0.75CSSpx. Loan51 authenticated source inspected read-only; no current application/history, no official mutation. Shared infrastructure checkpoint locally committed a13e52f.
+
+- Conversation rerun727423ae passed4groups/13HTTP/22browser,40steps/cache-emptyrestore/autosave/signout/isolation;0model/official and exactcleanup/ownerpreservation. Sole DB/model lease returned in A2A to Issue100 for three native suites against772ec95; root will not deploy or mutate DB during them.
