@@ -2,7 +2,7 @@
 
 The General Affairs permit item opens the 46-1 entry. The source has a 50 px dark header, centered application button, authentication guidance and a separate PDF instructions page. The local version follows that layout and uses text for the two sign-in steps. Existing private notes are reachable from the entry footer.
 
-The application button opens the university parking system. It requires two-stage university authentication. The instructions view uses the university’s current PDF and provides a direct link. The protected form and personal application status were not observable.
+The application button opens the university parking system. It requires two-stage university authentication. The instructions view uses the university’s current PDF and provides a direct link. The source instructions also offer a POST acknowledgment labeled 閱讀完畢. The local viewer provides a direct PDF link and a return link. The acknowledgment continuation, protected form and personal application status remain unverified.
 
 ## Verify
 

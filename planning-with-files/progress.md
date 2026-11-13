@@ -34,3 +34,4 @@
 
 - 46-1: Published `097a814`. Revision-pinned browser checks, real PDF retrieval, four live directory answers, eight public routes, 50 assets and Quality 43457492094 passed. The official application remains university-authenticated.
 - 12-5: Captured 24 public curriculum tables, 472 rows, and 1,441 distinct PDF references. Desktop source geometry and the Master's tab were checked in the browser. A sample plan returned PDF bytes. Source data are in the ignored curriculum-plans artifact.
+- 46-1 follow-up: Inspected the source instructions footer and found a POST acknowledgment. Its destination remains unverified. Production Chrome attached the PDF viewer; a direct PDF link remains available.
