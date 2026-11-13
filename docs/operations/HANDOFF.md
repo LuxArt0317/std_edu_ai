@@ -2,6 +2,8 @@
 
 Service 6-4 uses the local course-selection records and an administrator-managed term window. A confirmed withdrawal or restore updates the same row shown in history. Current university screen parity and dates remain open. See [course withdrawal QA](../qa/COURSE_WITHDRAWAL.md).
 
+Production `91d97d3` passed the pinned browser and real-account checks. The client now has 145 migrations and 163 RLS-protected public tables. The 94-destination inventory has 45 generic and 11 partial entries.
+
 ## Course adjustment (Issue #98)
 
 Services 6-2 and 6-3 mount their own pages. Supabase holds public late-add rules and private decisions by student, phase and term. The existing School Affairs administrator can maintain decisions. The eligible registration forms remain unverified. See [course adjustment QA](../qa/COURSE_ADJUSTMENT.md).

@@ -66,3 +66,5 @@
 - 2026-11-14 [#98]: Released 2f4a073. Pinned production browser and manager retry/conflict, eight actual-session HTTP checks with exact fixture cleanup, eight-route public shell, and Quality 43486494908 passed. Eligible forms and course withdrawal remain open. The user confirmed that stateful service records and actions must persist. The 46 generic and ten partial catalog routes remain in scope.
 
 - 2026-11-14 [#98]: Rechecked the protected withdrawal source and verified the handbook sequence. Added native 6-4 with private current-term records, administration, withdrawal, restore and assistant lookup. Exact rollback and compiled browser passed. Current university layout and dates remain unverified.
+
+- 2026-11-14 [#98]: Released 91d97d3. Verified successful actions in the exact-client rollback, eleven deployed actual-session API checks with exact cleanup, pinned browser, eight public shell routes and Quality 43491551185. The full local portal rerun passed after the legacy .asp preview fallback correction. The 94-route inventory has 45 generic and 11 partial entries. Summer selection returned the missing college-code state.

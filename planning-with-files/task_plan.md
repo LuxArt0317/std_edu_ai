@@ -618,4 +618,6 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Check the authenticated course menu destination and verify the withdrawal and restore sequence in the official handbook.
 - [x] Mount the withdrawal workspace and persist confirmed changes against the caller's explicit withdrawal-phase course records.
 - [x] Give administrators control of the local term window. Verify role boundaries, deadlines, stale writes, retry receipts and history.
-- [ ] Verify navigation, assistant lookup and production behavior. Keep current university screen parity open.
+- [x] Verify navigation, assistant lookup and production behavior at `91d97d3`.
+- [ ] Inspect the current university withdrawal layout and active window.
+- [ ] Inspect summer selection with a source account that can pass the student-record check. The observed entry displayed a missing college-code message.

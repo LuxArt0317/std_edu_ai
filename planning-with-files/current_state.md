@@ -2,6 +2,8 @@
 
 The previous goal turn released add/drop eligibility and late add. The authenticated withdrawal route returned to the separate school sign-in. The official handbook establishes the withdrawal and restore sequence. Service 6-4 implements that sequence with account-owned withdrawal-phase rows, an administrator-managed term window, confirmed and versioned changes, and an assistant reader.
 
+Production `91d97d3` is live as Vercel `6nNozcBh8iLJkzX6og7DB7YggQsX`. Migration 110000 was applied alone after rollback preflight. Client verification passed with 145 migrations and 163 public RLS tables. The pinned browser, 11 actual-session checks with exact cleanup, public shell and Quality 43491551185 passed. The full local portal suite passed after correcting the Vite fallback for the legacy entry routes. Summer selection showed a missing college-code message. The current official withdrawal layout remains unverified.
+
 ## Course adjustment (Issue #98)
 
 The previous goal turn made progress by publishing initial selection. Services 6-2 and 6-3 now open native eligibility and late-add notice views. Migration 100000 was applied alone after an exact rollback preflight. The schema has 144 migrations and 162 public RLS tables. A second rollback check verified manager-only writes, student and phase isolation, stale edits and safe retries on the applied schema. The compiled browser passed signed-in navigation, three decision states, retry, assistant routing, responsive widths and guest return. Eligible source forms remain unverified.

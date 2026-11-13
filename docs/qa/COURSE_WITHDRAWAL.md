@@ -12,6 +12,10 @@
 
 ## Verification
 
+Production revision `91d97d35ee2acc56b0e531f81006a42d2a26b34f` passed the browser and eleven real-account API checks. Successful withdrawal and restoration were exercised in the exact-client rollback and in the synthetic browser flow. The production HTTP run exercised owner reads, assistant answers, unauthenticated and cross-account denial, malformed payload rejection and student denial for the administrator action.
+
+The full local portal suite passed 25 menu views, 94 catalog destinations and 27 responsive/accessibility states. An earlier run timed out on the legacy search route because the Vite preview served the copied homepage for the `.asp` URL. The final run used the corrected preview fallback.
+
 Run these from the client checkout. The first check uses an exact-target rollback, including window changes. The second uses disposable accounts and removes them afterward. The browser uses synthetic records and separately checks the public assistant handoff on production.
 
 ```sh

@@ -2,6 +2,8 @@
 
 Root owns service 6-4, the withdrawal-phase course action and current-term window, and its assistant and release checks. The source service returned to CAPTCHA sign-in. The university handbook describes course selection, confirmation, a retained withdrawal mark and restoration within the window. Paused Issue #100 paths remain excluded.
 
+Production `91d97d3` passed the pinned browser, eleven real-account HTTP checks, public shell and Quality 43491551185. The summer selection source displayed a missing college-code message.
+
 ## Course adjustment (Issue #98)
 
 Root owns 6-2 and 6-3, migration 100000, the private decision reader and manager, and late-add assistant navigation. The exact migration is applied. Production `2f4a073` passed the pinned browser, eight actual-session checks and the public shell. Eligible forms and withdrawal remain open. Paused Issue #100 paths remain excluded.
