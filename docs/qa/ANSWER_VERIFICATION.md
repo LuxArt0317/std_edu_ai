@@ -158,3 +158,11 @@ perfect chatbot or access to missing records.
 
 Implementation references: [LangGraph control flow](https://docs.langchain.com/oss/javascript/langgraph/thinking-in-graph-api)
 and [OpenAI structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses).
+
+## November13 supplemental correction checkpoint
+
+The frozen correction candidate over0731bda keeps the same account, action and two-review boundaries. It fixes coordinated certificate identity selection without interpreting class/document numbers as student numbers; explicit summer/evening/extended tuition settlement questions retain their settlement scope; unavailable weekly/monthly attendance-hour explanations cite the detail view. Independent runtime checks passed56 certificate and36 tuition/attendance cases, followed by839 isolated API/source checks and318 units. Build/assets passed. Publication and targeted real-model reruns remain separate gates; previous attendance, certificate and tuition failures are not relabelled by test corrections.
+
+The exact Student Loan release0731bda passed seven deployed actual-JWT/browser groups with cleanup and protected-owner preservation, but no Loan assistant tool is registered in this batch. The next own-record overview/current-courses-plus-year/career-advice work is a separate candidate, outside these frozen corrections.
+
+Final independent grader acceptance covers literal `0` versus numeric variants, valid unconfirmed-payment wording, contradictory paid/completed claims, and unavailable-read versus absent-record conclusions. All54 focused tests and17 separate actual-case probes passed. The isolated23-path release also passed380 offline evaluation tests,839 API/source checks,318 units,build/assets,lint,handoff and audit0. These are offline gates; production model acceptance is still pending.

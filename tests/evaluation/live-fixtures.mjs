@@ -39,7 +39,13 @@ export class LiveFixtureError extends Error {
   constructor(kind,message){super(`[${kind}] ${message}`);this.name='LiveFixtureError';this.code=kind;}
 }
 const fail=(kind,message)=>{throw new LiveFixtureError(kind,message);};
-const hash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
+// Object insertion order can depend on concurrent read completion. Normalize
+// keys at every depth; retain array order and JSON's literal/date semantics.
+function digestObjectKeys(_key,value){
+  return value&&typeof value==='object'&&!Array.isArray(value)
+    ? Object.fromEntries(Object.keys(value).sort().map(key=>[key,value[key]])):value;
+}
+const hash=value=>createHash('sha256').update(JSON.stringify(value,digestObjectKeys)).digest('hex');
 const timestamp=value=>value==null?null:new Date(value).toISOString();
 const pick=(row,keys)=>Object.fromEntries(keys.map(key=>[key,row[key]??null]));
 const sort=rows=>[...rows].sort((a,b)=>String(a.id).localeCompare(String(b.id)));
@@ -135,6 +141,38 @@ export function safeDatabaseDiagnostic(error){
 }
 const diagnostic=safeDatabaseDiagnostic;
 async function query(work,label){try{return await work();}catch(error){if(error instanceof LiveFixtureError)throw error;fail('fixture-database',label+diagnostic(error));}}
+function checkedProtectedOwnerFingerprint(value){
+  const keys=['id','auth_hash','profile_hash','identities_hash'];
+  if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).length!==keys.length||!keys.every(key=>Object.hasOwn(value,key))||
+    !UUID.test(value.id||'')||!keys.slice(1).every(key=>typeof value[key]==='string'&&/^[a-f0-9]{32}$/.test(value[key])))
+    fail('fixture-protected-owner','The protected owner identity and profile baseline could not be verified.');
+  return Object.freeze(Object.fromEntries(keys.map(key=>[key,value[key]])));
+}
+/** Read only the exact configured administrator; never authenticate as that account. */
+export async function readProtectedOwnerFingerprint(sql,ownerEmail){
+  if(typeof sql!=='function'||typeof ownerEmail!=='string'||ownerEmail.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail))
+    fail('fixture-protected-owner','The fixed protected owner configuration is invalid.');
+  let rows;
+  try{
+    rows=await sql`select u.id,
+      md5((to_jsonb(u)-array['last_sign_in_at','updated_at'])::text) as auth_hash,
+      md5(to_jsonb(p)::text) as profile_hash,
+      (select md5(coalesce(jsonb_agg(to_jsonb(i)-array['last_sign_in_at','updated_at'] order by i.id),'[]'::jsonb)::text)
+       from auth.identities i where i.user_id=u.id) as identities_hash
+      from auth.users u join public.affairs_profiles p on p.user_id=u.id
+      where lower(u.email)=lower(${ownerEmail}) and u.email_confirmed_at is not null and p.role='admin'
+        and exists(select 1 from auth.identities g where g.user_id=u.id and g.provider='google') limit 2`;
+  }catch{fail('fixture-protected-owner','The protected owner identity and profile fingerprint could not be read.');}
+  if(!Array.isArray(rows)||rows.length!==1)fail('fixture-protected-owner','Exactly one existing confirmed Google administrator must match the protected owner.');
+  return checkedProtectedOwnerFingerprint(rows[0]);
+}
+export function assertProtectedOwnerUnchanged(before,after){
+  const baseline=checkedProtectedOwnerFingerprint(before),current=checkedProtectedOwnerFingerprint(after);
+  if(Object.keys(baseline).some(key=>baseline[key]!==current[key]))
+    fail('fixture-protected-owner','The protected owner identity or profile changed; the recovery ledger is retained for independent review.');
+  return true;
+}
+export function protectedOwnerFingerprintDigest(value){return hash(checkedProtectedOwnerFingerprint(value));}
 async function assertNoPendingRecoveryLedgers(){
   if(!state?.locked)fail('fixture-lease','The fixture lock must be held before inspecting recovery ledgers.');
   let names;
@@ -156,13 +194,14 @@ async function reserveLedger(){
 async function saveLedger(){
   const s=state;if(!s?.ledger)return;
   if(!s.ledgerOwned||s.closed)fail('fixture-ledger','This lifecycle does not own an open cleanup ledger.');
+  const protectedOwner={version:1,fingerprint:protectedOwnerFingerprintDigest(s.protectedOwnerBefore)};
   const tmp=s.ledger+'.tmp';
   let handle;
   try{
     // A foreign stale temporary ledger is not ours to overwrite or remove.
     handle=await open(tmp,s.ledgerTempOwned?'w':'wx',0o600);s.ledgerTempOwned=true;
     await handle.writeFile(JSON.stringify({version:1,projectRef:PROJECT,runId:s.runId,origin:s.origin,createdAt:s.startedAt,
-      fixtureUserIds:s.users.map(user=>user.id),identityRequests:s.identityRequests,ownedRecordIds:[...s.recordIds].sort(),supplementalTables:[...(s.supplementalTables||[])].sort(),activeCaseId:s.current?.caseId??null},null,2));
+      protectedOwner,fixtureUserIds:s.users.map(user=>user.id),identityRequests:s.identityRequests,ownedRecordIds:[...s.recordIds].sort(),supplementalTables:[...(s.supplementalTables||[])].sort(),activeCaseId:s.current?.caseId??null},null,2));
     await handle.sync();
   }finally{await handle?.close();}
   await rename(tmp,s.ledger);s.ledgerTempOwned=false;await chmod(s.ledger,0o600);
@@ -195,7 +234,7 @@ async function createFixtureUser(index){
   await saveLedger();
   const password=randomBytes(32).toString('base64url')+'Aa1!';
   let created;try{created=await s.admin.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{full_name:index===0?'Evaluation Student':'Evaluation Other',assistant_evaluation_run:s.runId}});}catch{identityRequest.state='uncertain';await saveLedger();fail('fixture-create','Disposable account creation did not complete; its pending identity requires cleanup reconciliation.');}
-  if(created.error||!UUID.test(created.data?.user?.id||'')||created.data.user.email?.toLowerCase()!==email.toLowerCase()){
+  if(created.error||!UUID.test(created.data?.user?.id||'')||created.data.user.id===s.protectedOwnerBefore.id||created.data.user.email?.toLowerCase()!==email.toLowerCase()){
     // A network/5xx response can follow a committed write. Only a definite
     // client rejection establishes a terminal non-create response.
     const status=created.error?.status;
@@ -248,6 +287,8 @@ export async function prepare({runId,cases,now,origin,signal}={}){
     const locked=await query(()=>state.sql`select pg_try_advisory_lock(23101314,115100) as held`,'Could not acquire the fixture exclusivity lock.');
     if(locked[0]?.held!==true)fail('fixture-lease','Another evaluation fixture lifecycle owns the database lock.');state.locked=true;
     await assertNoPendingRecoveryLedgers();
+    state.protectedOwnerEmail=config.supabase.ownerEmail;
+    state.protectedOwnerBefore=await readProtectedOwnerFingerprint(state.sql,state.protectedOwnerEmail);
     await reserveLedger();
     await saveLedger();
     await createFixtureUser(0);await createFixtureUser(1);
@@ -881,16 +922,20 @@ export async function cleanup(){
     for(const user of s.users)user.token=null;
     fail('fixture-cleanup','The previous cleanup could not be completed and its connection is closed; use the retained private ledger for explicit recovery before another fixture run.');
   }
-  s.closing=true;let verified=false,cleanupError;
+  s.closing=true;let verified=false,protectedOwnerUnchanged=false,cleanupError;
   try{
     let unresolvedCreation=false;const deletable=new Set(),absent=new Set();
     if((s.identityRequests.length||s.users.length)&&!s.ledgerOwned)fail('fixture-cleanup','Fixture identities have no owned cleanup ledger; no account will be deleted.');
+    if(s.identityRequests.length||s.users.length||s.ledgerOwned)checkedProtectedOwnerFingerprint(s.protectedOwnerBefore);
+    if(s.protectedOwnerBefore&&(s.users.some(user=>user.id===s.protectedOwnerBefore.id)||s.identityRequests.some(request=>request.id===s.protectedOwnerBefore.id||request.email?.toLowerCase()===s.protectedOwnerEmail?.toLowerCase())))
+      fail('fixture-protected-owner','The protected owner cannot be treated as a disposable fixture; no account will be deleted.');
     for(const request of s.identityRequests){
       if(request.runId!==s.runId||request.id!==undefined&&!UUID.test(request.id))fail('fixture-cleanup','The fixture recovery request does not belong to this lifecycle.');
       // A changed email must not hide a known ID from ownership validation.
       const rows=await query(()=>s.sql`select id,email,raw_user_meta_data->>'assistant_evaluation_run' as run_id from auth.users
         where lower(email)=lower(${request.email}) or id=${request.id??null}::uuid limit 2`,'Could not reconcile the pending fixture identity.');
       const resolved=reconcileFixtureIdentity(request,rows);
+      if(resolved.userId&&resolved.userId===s.protectedOwnerBefore.id)fail('fixture-protected-owner','The protected owner cannot be treated as a disposable fixture; no account will be deleted.');
       unresolvedCreation ||= resolved.unresolved;
       if(resolved.userId&&!s.users.some(user=>user.id===resolved.userId))s.users.push({id:resolved.userId,token:null});
       if(resolved.userId){request.id=resolved.userId;request.state='created';deletable.add(resolved.userId);}
@@ -925,6 +970,14 @@ export async function cleanup(){
     verified=true;
   }catch(error){cleanupError=error;}
   finally{
+    // Verify even after failed cleanup, before releasing the reserved lock.
+    // This asserts identity/profile preservation, not all owner records.
+    if(s.protectedOwnerBefore){
+      try{
+        assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+        protectedOwnerUnchanged=true;
+      }catch{cleanupError=new LiveFixtureError('fixture-protected-owner','Protected owner preservation could not be verified; the recovery ledger is retained for independent review.');}
+    }
     try{if(s.locked)await s.sql`select pg_advisory_unlock(23101314,115100)`;}catch{if(!cleanupError)cleanupError=new LiveFixtureError('fixture-cleanup','Could not release the fixture advisory lock.');}
     try{await s.sql?.release?.();}catch{if(!cleanupError)cleanupError=new LiveFixtureError('fixture-cleanup','Could not release the reserved fixture database connection.');}
     try{await s.db?.end({timeout:5});}catch{if(!cleanupError)cleanupError=new LiveFixtureError('fixture-cleanup','Could not close the fixture database connection.');}
@@ -938,5 +991,5 @@ export async function cleanup(){
     }catch{cleanupError=new LiveFixtureError('fixture-cleanup','Fixture rows were removed, but the owned recovery ledger could not be cleared.');}
   }
   if(cleanupError){if(cleanupError instanceof LiveFixtureError)throw cleanupError;fail('fixture-cleanup','Cleanup could not be verified; the private ledger is retained.');}
-  return {verified:true,createdUsers:s.users.length,projectRef:PROJECT};
+  return {verified:true,createdUsers:s.users.length,projectRef:PROJECT,protectedOwnerUnchanged};
 }

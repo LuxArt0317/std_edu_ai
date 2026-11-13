@@ -31,29 +31,64 @@ export function routeMatches(pattern,concrete) {
   });
 }
 
+const browserCheckNames=['assistantPresent','keyboardUsable','sessionVerified','navigationSucceeded','accountStateVerified','privateTranscriptCleared','oauthParametersCleared'];
+const browserAuthModes=['public','signed-in','signed-out','either','transition'];
+const scenarioName=value=>typeof value==='string'&&/^[a-z][a-z0-9-]{0,79}$/.test(value);
+const validChecks=value=>Array.isArray(value)&&value.length>0&&unique(value).length===value.length&&value.every(key=>browserCheckNames.includes(key));
+const observedState=result=>result.authenticated===true?'signed-in':result.authenticated===false?'signed-out':'unspecified';
+const localDestination=value=>Boolean(localRoute(value))&&!new URL(value,'https://stu.best').hash;
+
 function routeInventory(families,fail) {
   const paths=new Map();
   for(const family of families){
     const routes=aliases(family);
     if(!routes.length){fail('routes.inventoryMissing',`Route family ${identity(family)} has no concrete paths or patterns.`);continue;}
     const browserChecks=family.browserChecks||['assistantPresent','keyboardUsable','sessionVerified'];
-    if(!Array.isArray(browserChecks)||!browserChecks.length||browserChecks.some(key=>!['assistantPresent','keyboardUsable','sessionVerified','navigationSucceeded'].includes(key)))
+    if(!validChecks(browserChecks)||!browserAuthModes.includes(family.auth??'public'))
       fail('routes.browserContractInvalid',`Route family ${identity(family)} needs explicit, recognized browser observations.`);
+    const scenarios=family.browserScenarios??[];
+    if(!Array.isArray(scenarios))fail('routes.browserContractInvalid',`Route family ${identity(family)} has invalid browser scenarios.`);
+    const declared=Array.isArray(scenarios)?scenarios:[];
+    for(const scenario of declared)if(!scenario||!routes.includes(scenario.route))
+      fail('routes.browserContractInvalid',`Route family ${identity(family)} declares a scenario outside its route inventory.`);
     for(const route of routes){
       const normalized=localRoute(route);
       if(!normalized){fail('routes.inventoryInvalid',`Route family ${identity(family)} contains an invalid local route.`);continue;}
-      const row=paths.get(normalized.key)||{route,pattern:normalized.key,families:[],browserChecks:[],authenticated:false};
+      const row=paths.get(normalized.key)||{route,pattern:normalized.key,families:[],contracts:[]};
       row.families=unique([...row.families,identity(family)]);
-      row.browserChecks=unique([...row.browserChecks,...(Array.isArray(browserChecks)?browserChecks:['assistantPresent','keyboardUsable','sessionVerified'])]);
-      row.authenticated ||= family.auth==='signed-in';
+      const selected=declared.filter(scenario=>scenario?.route===route),seen=new Set();
+      for(const scenario of selected.length?selected:[{id:'page',frame:'top-level'}]){
+        const auth=scenario.auth??family.auth??'public',checks=scenario.checks??browserChecks;
+        const key=scenario.id+':'+scenario.frame;
+        const transition=auth==='transition';
+        const invalid=!scenarioName(scenario.id)||!['top-level','iframe'].includes(scenario.frame)||!validChecks(checks)
+          ||!browserAuthModes.includes(auth)||['either','signed-in','signed-out','transition'].includes(family.auth)&&auth!==family.auth
+          ||seen.has(key)||transition&&(typeof scenario.initialAuthenticated!=='boolean'||typeof scenario.resultingAuthenticated!=='boolean'
+            ||!localDestination(scenario.resultingRoute)||!checks.includes('sessionVerified')||!checks.includes('navigationSucceeded'))
+          ||!transition&&['initialAuthenticated','resultingAuthenticated','resultingRoute'].some(name=>Object.hasOwn(scenario,name));
+        if(invalid){fail('routes.browserContractInvalid',`Invalid browser scenario for ${normalized.key}.`);continue;}
+        seen.add(key);
+        const states=auth==='either'?['signed-in','signed-out']:transition?[scenario.resultingAuthenticated?'signed-in':'signed-out']:[auth==='public'?'any':auth];
+        for(const authState of states){
+          const contract={scenario:scenario.id,frame:scenario.frame,authState,checks:[...checks],
+            ...(transition?{initialAuthenticated:scenario.initialAuthenticated,resultingRoute:scenario.resultingRoute}:{})};
+          const existing=row.contracts.find(item=>item.scenario===contract.scenario&&item.frame===contract.frame&&item.authState===contract.authState);
+          if(existing){
+            if(existing.initialAuthenticated!==contract.initialAuthenticated||existing.resultingRoute!==contract.resultingRoute)
+              fail('routes.browserContractInvalid',`Conflicting browser scenarios for ${normalized.key}.`);
+            existing.checks=unique([...existing.checks,...checks]);
+          }else row.contracts.push(contract);
+        }
+      }
       paths.set(normalized.key,row);
     }
   }
   return [...paths.values()];
 }
 
-function assessBrowserAcceptance(input,routes,sourceRevision) {
+function assessBrowserAcceptance(input,routes,sourceRevision,inventoryFailures=[]) {
   const failures=[],fail=(id,detail)=>failures.push({id,detail});
+  for(const failure of inventoryFailures)fail('browser.inventoryInvalid',failure.detail);
   if(!input)fail('browser.missing','No browser acceptance evidence was supplied. API answers do not prove page or chatbot usability.');
   else{
     if(input.status!=='passed')fail('browser.failed','Browser acceptance did not report a successful completed run.');
@@ -65,21 +100,47 @@ function assessBrowserAcceptance(input,routes,sourceRevision) {
   for(const result of results){
     const normalized=localRoute(result?.route);
     if(!normalized||!routes.some(row=>routeMatches(row.route,result.route))){fail('browser.unknownRoute','A browser result does not match an inventoried concrete route or pattern.');continue;}
-    if(observations.has(normalized.key)){fail('browser.duplicateRoute',`Duplicate browser observation: ${normalized.key}`);continue;}
-    observations.set(normalized.key,result);
+    const scenario=result.scenario??'page',frame=result.frame??'top-level',authState=observedState(result);
+    if(!scenarioName(scenario)||!['top-level','iframe'].includes(frame)||result.authenticated!==undefined&&typeof result.authenticated!=='boolean'){
+      fail('browser.invalidObservation',`Invalid browser state or context: ${normalized.key}`);continue;
+    }
+    if(!routes.some(row=>routeMatches(row.route,result.route)&&row.contracts.some(item=>item.scenario===scenario&&item.frame===frame))){
+      fail('browser.unknownScenario',`Browser observation has no declared scenario/frame: ${normalized.key}`);continue;
+    }
+    if(!routes.some(row=>routeMatches(row.route,result.route)&&row.contracts.some(item=>item.scenario===scenario&&item.frame===frame
+      &&(item.authState==='any'||item.authState===authState))))
+      fail('browser.unexpectedAuthState',`Browser observation does not establish a required authentication state: ${normalized.key}`);
+    const key=JSON.stringify([normalized.key,scenario,frame,authState]);
+    if(observations.has(key)){fail('browser.duplicateRoute',`Duplicate browser route/state/scenario/frame observation: ${normalized.key}`);continue;}
+    observations.set(key,{...result,scenario,frame,authState});
     if(result.sourceRevision&&result.sourceRevision!==sourceRevision)fail('browser.routeRevisionMismatch',`Browser route is from another revision: ${normalized.key}`);
   }
-  const missing=[],incomplete=[],passedRoutes=[];
+  const missing=[],incomplete=[],passedRoutes=[],missingScenarios=[],incompleteScenarios=[];
   for(const row of routes){
     const matches=[...observations.values()].filter(result=>routeMatches(row.route,result.route));
-    if(!matches.length){missing.push(row.pattern);continue;}
-    const ok=matches.every(result=>result.status==='passed'&&row.browserChecks.every(key=>result[key]===true)&&(!row.authenticated||result.authenticated===true)&&(!result.sourceRevision||result.sourceRevision===sourceRevision));
+    if(!matches.length)missing.push(row.pattern);
+    let ok=row.contracts.length>0;
+    for(const contract of row.contracts){
+      const candidates=matches.filter(result=>result.scenario===contract.scenario&&result.frame===contract.frame
+        &&(contract.authState==='any'||result.authState===contract.authState));
+      const description={route:row.pattern,scenario:contract.scenario,frame:contract.frame,authState:contract.authState};
+      if(!candidates.length){missingScenarios.push(description);ok=false;continue;}
+      const passed=candidates.every(result=>result.status==='passed'&&contract.checks.every(key=>result[key]===true)
+        &&(!result.sourceRevision||result.sourceRevision===sourceRevision)
+        &&(!Object.hasOwn(contract,'initialAuthenticated')||result.initialAuthenticated===contract.initialAuthenticated
+          &&localDestination(result.resultingRoute)&&routeMatches(contract.resultingRoute,result.resultingRoute)));
+      if(!passed){incompleteScenarios.push(description);ok=false;}
+    }
+    // An extra failed observation cannot be hidden behind another passing state.
+    if(matches.some(result=>result.status!=='passed'))ok=false;
     if(ok)passedRoutes.push(row.pattern);else incomplete.push(row.pattern);
   }
   if(missing.length)fail('browser.unobservedRoutes',`${missing.length} route paths/patterns have no concrete browser observation.`);
   if(incomplete.length)fail('browser.incompleteRoutes',`${incomplete.length} route paths/patterns failed required chatbot, keyboard, session or authentication observations.`);
+  if(missingScenarios.length)fail('browser.missingScenarios',`${missingScenarios.length} required route/state/scenario/frame observations are missing.`);
+  if(incompleteScenarios.length)fail('browser.incompleteScenarios',`${incompleteScenarios.length} browser scenarios failed their state or resulting-destination checks.`);
   if(!routes.length)fail('browser.noRouteInventory','Browser acceptance requires a nonempty authoritative route inventory.');
-  return {required:true,passed:failures.length===0,total:routes.length,observations:observations.size,passedRoutes:passedRoutes.length,missing,incomplete,failures};
+  return {required:true,passed:failures.length===0,total:routes.length,requiredScenarios:routes.reduce((sum,row)=>sum+row.contracts.length,0),observations:observations.size,passedRoutes:passedRoutes.length,missing,incomplete,missingScenarios,incompleteScenarios,failures};
 }
 
 function coveredBy(testCase,kind) {
@@ -96,7 +157,10 @@ function coveredBy(testCase,kind) {
  * but cannot be releaseReady. Every full case must execute on the same revision.
  * browserAcceptance is separate observed UI evidence: {status,sourceRevision,
  * routeResults:[{route,status,assistantPresent,keyboardUsable,sessionVerified,
- * authenticated?}]}. Families may set browserChecks and auth:'signed-in'.
+ * authenticated?,scenario?,frame?,initialAuthenticated?,resultingRoute?}]}.
+ * Ordinary pages default to scenario:'page'/frame:'top-level'. auth:'either'
+ * requires both authenticated states; transition scenarios require the declared
+ * initial/resulting state and destination. None of this creates semantic cases.
  */
 export function assessCoverage({cases=[],results=[],inventory={},requestedSuite='full',sourceRevision,requireLive=true,browserAcceptance}={}) {
   const failures=[];
@@ -158,7 +222,8 @@ export function assessCoverage({cases=[],results=[],inventory={},requestedSuite=
     }));
     coverage[kind]={total:ids.length,registered:ids.length-missing.length,executed:executed.length,passed:passed.length,missing};
   }
-  const routes=routeInventory(Array.isArray(inventory.routeFamilies)?inventory.routeFamilies:[],fail);
+  const routeFailures=[];
+  const routes=routeInventory(Array.isArray(inventory.routeFamilies)?inventory.routeFamilies:[],(id,detail)=>{fail(id,detail);routeFailures.push({id,detail});});
   const routeCases=new Map(routes.map(row=>[row.pattern,[]]));
   for(const testCase of caseMap.values()){
     const candidates=unique([testCase.route,...(testCase.expected?.requiredLinks||[]),...(testCase.coveredRoutes||[])].filter(Boolean));
@@ -172,7 +237,7 @@ export function assessCoverage({cases=[],results=[],inventory={},requestedSuite=
       const result=resultMap.get(testCase.id);return passedBehavior(result)&&(!requireLive||result.execution==='live-model');
     })).length,missing:missingRoutes,
     basis:'API route context or required destination checks; browser visits are assessed separately.'};
-  const browser=assessBrowserAcceptance(browserAcceptance,routes,sourceRevision);
+  const browser=assessBrowserAcceptance(browserAcceptance,routes,sourceRevision,routeFailures);
   const capabilityGaps=unique([...caseMap.values()].filter(testCase=>testCase.capability?.gap===true || testCase.capability?.gap!==false && (['partial','generic-tracker'].includes(testCase.capability?.level)||testCase.capability?.complete===false))
     .map(testCase=>JSON.stringify({domain:testCase.domain,serviceId:testCase.serviceId??null,level:testCase.capability?.level,limitation:testCase.capability?.limitation||'Capability is not complete.'}))).map(value=>JSON.parse(value));
   const byDomain={};

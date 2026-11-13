@@ -276,7 +276,7 @@ export function accountEvidence(snapshot,tools=toolNames,context={}) {
     const view=query?.selection?.view;
     const url=key==='academicGrades'?(academicGradesPaths[view]||(['english','gpa'].includes(view)?academicGradesPaths.transcript:academicGradesPaths.index))
       :key==='graduationReview'?graduationReviewPaths[kind]
-      :key==='academicAttendance'?(view==='details'?academicAttendancePaths.detail:academicAttendancePaths.statistics):selection?.url||urls[key];
+      :key==='academicAttendance'?(view==='details'||query?.selection?.reason==='subterm_hours_unavailable'?academicAttendancePaths.detail:academicAttendancePaths.statistics):selection?.url||urls[key];
     evidence.push(boundedAccountSource(key,{title:accountTools[key],url,budget,makeContent:contentBudget=>({checkedAt:snapshot.checkedAt,collection:key,
         ...(native?{rules:nativeRules[key]+' Counts: loadedRows/availableRows cover the loaded owned collection; matchingRows is the deterministic selection before budgeting; includedRows is the whole-row excerpt. partial compares includedRows with matchingRows. Selection describes the user query, not additional academic facts. When multipleScopes is true or reason is multiple_scopes, ask the user to choose one scope; zero selected rows does not mean no saved records. Named course selections include parent context; do not count parent requirements as additional title matches.',
           selection:query.selection,...(kind?{requestedReportKind:kind}:{}),...boundedNativeValue(value,contentBudget,query.matching,query.selection)}

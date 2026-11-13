@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {test} from 'node:test';
 import vm from 'node:vm';
-import {attachFixtureSession,readSupplementalFixtureScopes,reconcileFixtureIdentity,LiveFixtureError} from './live-fixtures.mjs';
+import {attachFixtureSession,readSupplementalFixtureScopes,reconcileFixtureIdentity,LiveFixtureError,protectedOwnerFingerprintDigest,assertProtectedOwnerUnchanged} from './live-fixtures.mjs';
 
 const project='xiftudmvxphxcjtmfmib',url='https://'+project+'.supabase.co';
 const owner='10000000-0000-4000-8000-000000000001',foreign='20000000-0000-4000-8000-000000000002';
@@ -132,12 +132,13 @@ const section=(start,end)=>{const a=source.indexOf(start),b=end?source.indexOf(e
 
 test('actual ledger projection remains secret-free before and after renewal',async()=>{
   let now=epoch;const user=attachFixtureSession({id:owner},session(),options({clock:()=>now,fetchImpl:async()=>Response.json(session(now,2))}));
-  const writes=[];const context={state:{ledger:'private-ledger',ledgerOwned:true,closed:false,ledgerTempOwned:false,runId,origin:'https://stu.best',startedAt:'2026-11-13',users:[user],identityRequests:[{id:owner,email:'synthetic@example.invalid',runId,state:'created'}],recordIds:new Set()},PROJECT:project,
+  const protectedOwnerBefore={id:foreign,auth_hash:'a'.repeat(32),profile_hash:'b'.repeat(32),identities_hash:'c'.repeat(32)};
+  const writes=[];const context={state:{protectedOwnerBefore,ledger:'private-ledger',ledgerOwned:true,closed:false,ledgerTempOwned:false,runId,origin:'https://stu.best',startedAt:'2026-11-13',users:[user],identityRequests:[{id:owner,email:'synthetic@example.invalid',runId,state:'created'}],recordIds:new Set()},PROJECT:project,protectedOwnerFingerprintDigest,
     open:async()=>({writeFile:async value=>writes.push(value),sync:async()=>{},close:async()=>{}}),rename:async()=>{},chmod:async()=>{},fail:(code,message)=>{throw new LiveFixtureError(code,message);}};
   const save=vm.runInNewContext(section('async function saveLedger(','async function readSnapshot(')+'\nsaveLedger;',context);
   await save();now+=3500_000;await user.renewSession();await save();
   assert.equal(writes.length,2);assert.deepEqual(JSON.parse(writes[0]),JSON.parse(writes[1]));
-  for(const serialized of writes){assert.doesNotMatch(serialized,/SYNTHETIC_|token|session|password|eyJ/);assert.deepEqual(JSON.parse(serialized).fixtureUserIds,[owner]);}
+  for(const serialized of writes){assert.doesNotMatch(serialized,/SYNTHETIC_|token|session|password|eyJ|auth_hash|profile_hash|identities_hash/);assert.deepEqual(JSON.parse(serialized).fixtureUserIds,[owner]);assert.deepEqual(JSON.parse(serialized).protectedOwner,{version:1,fingerprint:protectedOwnerFingerprintDigest(protectedOwnerBefore)});}
   user.clearSession();
 });
 
@@ -152,9 +153,11 @@ test('actual cleanup clears every synthetic session before I/O on success, failu
       return Promise.resolve([]);
     };
     sql.release=async()=>{released++;};
-    const state={runId,users:[user],identityRequests:[{id:owner,email:'synthetic@example.invalid',runId,state:'created'}],ledgerOwned:mode!=='missing-ledger',ledgerTempOwned:false,ledger:'private-ledger',closed:mode==='closed',closing:false,locked:true,sql,
+    const protectedOwnerBefore={id:foreign,auth_hash:'a'.repeat(32),profile_hash:'b'.repeat(32),identities_hash:'c'.repeat(32)};
+    const state={protectedOwnerBefore,protectedOwnerEmail:'protected-admin@example.invalid',runId,users:[user],identityRequests:[{id:owner,email:'synthetic@example.invalid',runId,state:'created'}],ledgerOwned:mode!=='missing-ledger',ledgerTempOwned:false,ledger:'private-ledger',closed:mode==='closed',closing:false,locked:true,sql,
       db:{end:async()=>{ended++;if(mode==='connection-failure')throw new Error('PRIVATE_DB_ERROR');}},admin:{auth:{admin:{deleteUser:async()=>{deleted++;return {error:mode==='delete-failure'?{message:'PRIVATE_AUTH_ERROR'}:null};}}}}};
     const context={state,UUID:/^[a-f0-9-]{36}$/i,PROJECT:project,ownTables:[],reconcileFixtureIdentity,LiveFixtureError,saveLedger:async()=>{},query:async work=>work(),
+      checkedProtectedOwnerFingerprint:value=>{protectedOwnerFingerprintDigest(value);return value;},readProtectedOwnerFingerprint:async()=>protectedOwnerBefore,assertProtectedOwnerUnchanged,
       rm:async()=>{if(mode==='ledger-failure')throw new Error('PRIVATE_LEDGER_ERROR');},fail:(code,message)=>{throw new LiveFixtureError(code,message);}};
     const cleanup=vm.runInNewContext(section('export async function cleanup(')+'\ncleanup;',context);
     if(mode==='success')assert.equal((await cleanup()).verified,true);else await assert.rejects(cleanup(),error=>{assert.equal(error.code,'fixture-cleanup');assert.doesNotMatch(error.message,/PRIVATE|SYNTHETIC_REFRESH/);return true;});

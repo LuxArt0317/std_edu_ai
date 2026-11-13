@@ -59,20 +59,33 @@ export async function discoverSurfaces() {
     signedIn('dtm-submissions',['/dtm/course/:courseId/assignment/:assignmentId','/dtm/course/:courseId/assignment/:assignmentId/edit']),
     signedIn('legacy-route-aliases',['/ePortal/index.asp','/ePortal/apMenu.asp','/school-sites/dtm.stu.edu.tw/']),
     publicFamily('authentication',['/school-affairs/login','/dtm/login','/dtm/login/index.php','/student-sso','/ePortal/login.asp','/auth/realms/stuarm/protocol/saml']),
-    {id:'authentication-transitions',routes:[callbackPath,'/school-affairs/signed-out'],auth:'either',browserChecks:['sessionVerified'],
-      browserScenario:'Complete callback or sign-out, then verify the resulting account state; these routes are transitions, not persistent pages.'},
-    publicFamily('account-information',['/school-affairs/privacy','/account-status']),
-    {id:'assistant-sessions',routes:['/campus-assistant','/campus-assistant?embed=1'],auth:'either',browserChecks:['assistantPresent','keyboardUsable','sessionVerified']},
+    {id:'authentication-transitions',routes:[callbackPath,'/school-affairs/signed-out'],auth:'transition',browserChecks:['sessionVerified'],
+      browserScenario:'Complete callback or sign-out, then verify the resulting account state; these routes are transitions, not persistent pages.',
+      browserScenarios:[
+        {route:callbackPath,id:'callback-success',frame:'top-level',initialAuthenticated:false,resultingAuthenticated:true,resultingRoute:'/school-affairs',checks:['sessionVerified','navigationSucceeded','oauthParametersCleared']},
+        {route:callbackPath,id:'callback-rejected',frame:'top-level',initialAuthenticated:false,resultingAuthenticated:false,resultingRoute:callbackPath,checks:['sessionVerified','navigationSucceeded','oauthParametersCleared']},
+        {route:'/school-affairs/signed-out',id:'sign-out',frame:'top-level',initialAuthenticated:true,resultingAuthenticated:false,resultingRoute:'/school-affairs/login',checks:['sessionVerified','navigationSucceeded','privateTranscriptCleared']},
+        {route:'/school-affairs/signed-out',id:'already-signed-out',frame:'top-level',initialAuthenticated:false,resultingAuthenticated:false,resultingRoute:'/school-affairs/login',checks:['sessionVerified','navigationSucceeded','privateTranscriptCleared']},
+      ]},
+    publicFamily('account-information',['/school-affairs/privacy','/account-status'],{browserScenarios:[
+      {route:'/account-status',id:'account-indicator',frame:'iframe',auth:'either',checks:['accountStateVerified','keyboardUsable','sessionVerified']},
+    ]}),
+    {id:'assistant-sessions',routes:['/campus-assistant','/campus-assistant?embed=1'],auth:'either',browserChecks:['assistantPresent','keyboardUsable','sessionVerified'],browserScenarios:[
+      {route:'/campus-assistant',id:'standalone',frame:'top-level'},
+      {route:'/campus-assistant?embed=1',id:'embedded',frame:'iframe'},
+    ]},
     publicFamily('campus-navigation',['/campus-directory','/local-pages']),
     ...[...new Set(publicPages.map(row=>new URL(row.source).hostname))].sort().map(host=>publicFamily('public:'+host,publicPages.filter(row=>new URL(row.source).hostname===host).map(row=>row.route))),
   ];
-  const value={version:2,services:schoolServiceEntries.map(({id,title,section,group,kind,localUrl})=>({id,title,section,group,kind,route:localUrl})),
+  const value={version:3,services:schoolServiceEntries.map(({id,title,section,group,kind,localUrl})=>({id,title,section,group,kind,route:localUrl})),
     tools:Object.entries({...accountTools,...supplementalAccountTools}).map(([id,description])=>({id,description})),routeFamilies,publicPages,
     coverageLimits:[
       'A route appearing in an API question or link is semantic/navigation coverage, not browser acceptance.',
       'Public capture title/date questions test page context only; source-content question coverage is separate.',
       'Inline administration editors, filter combinations, role states, uploads and OAuth transitions require their own browser scenarios.',
       'Explicit callback/sign-out routes are evaluated by their resulting state, not by requiring a launcher during a transient redirect.',
+      'Browser observations are keyed by route, authentication state, scenario and frame; either-state pages require both signed-in and signed-out observations.',
+      'Account-status is an iframe indicator, not a chatbot page. Raw semantic omissions remain visible for every inventoried route, including transitions and aliases.',
     ]};
   return {...value,hash:createHash('sha256').update(JSON.stringify(value)).digest('hex')};
 }

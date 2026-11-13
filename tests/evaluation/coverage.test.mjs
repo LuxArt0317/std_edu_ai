@@ -61,6 +61,25 @@ test('unknown or duplicate browser results cannot silently overwrite a failure',
   const unknown=run({browserAcceptance:{...browserAcceptance,routeResults:[...browserAcceptance.routeResults,{...browserAcceptance.routeResults[0],route:'/unknown'}]}});
   assert.equal(unknown.releaseReady,false);assert.ok(unknown.browserAcceptance.failures.some(row=>row.id==='browser.unknownRoute'));
 });
+test('either-state routes require explicit signed-in and signed-out browser proof',()=>{
+  const bothInventory={...inventory,routeFamilies:inventory.routeFamilies.map(row=>row.id==='dtm'?{...row,auth:'either'}:row)};
+  const signedOut={...browserAcceptance.routeResults[1],authenticated:false};
+  const anonymousOnly=run({inventory:bothInventory,browserAcceptance:{...browserAcceptance,routeResults:[browserAcceptance.routeResults[0],signedOut]}});
+  assert.equal(anonymousOnly.browserAcceptance.passed,false);
+  assert.deepEqual(anonymousOnly.browserAcceptance.missingScenarios,[{route:'/dtm',scenario:'page',frame:'top-level',authState:'signed-in'}]);
+  const both=run({inventory:bothInventory,browserAcceptance:{...browserAcceptance,routeResults:[...browserAcceptance.routeResults,signedOut]}});
+  assert.equal(both.releaseReady,true,JSON.stringify(both.browserAcceptance));
+  assert.equal(both.browserAcceptance.observations,3);
+  assert.equal(both.browserAcceptance.requiredScenarios,3);
+  const repeated=run({inventory:bothInventory,browserAcceptance:{...browserAcceptance,routeResults:[...browserAcceptance.routeResults,signedOut,{...signedOut,status:'failed'}]}});
+  assert.equal(repeated.releaseReady,false);
+  assert.ok(repeated.browserAcceptance.failures.some(row=>row.id==='browser.duplicateRoute'));
+});
+test('a declared either-state contract cannot be narrowed by an individual scenario',()=>{
+  const altered={...inventory,routeFamilies:[inventory.routeFamilies[0],{...inventory.routeFamilies[1],auth:'either',browserScenarios:[{route:'/dtm',id:'page',frame:'top-level',auth:'public'}]}]};
+  const report=run({inventory:altered});
+  failure(report,'routes.browserContractInvalid');assert.equal(report.releaseReady,false);
+});
 test('route inventory cannot erase browser requirements',()=>{
   const report=run({inventory:{...inventory,routeFamilies:[{...inventory.routeFamilies[0],browserChecks:[]},inventory.routeFamilies[1]]}});
   failure(report,'routes.browserContractInvalid');

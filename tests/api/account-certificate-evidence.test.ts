@@ -50,6 +50,7 @@ test('changing the caller while a certificate read awaits never authorizes a for
 
 test('explicit certificate questions match English and Chinese from any route',()=>{
   for(const question of ['Show my enrollment certificate assessment.','Show my enrolment certificate.','What does my certificate of enrollment say?',
+    'Which student name and number are recorded in my enrollment-certificate assessment, rather than my account profile?',
     'Where is proof of student status?','Print my student-status certificate.','我的在學證明目前狀態？','在学证明待缴费用是甚麼？','查詢學籍證明','在籍證明'])
     assert.equal(isCertificateEvidenceQuestion(question,'/dtm',[]),true,question);
   assert.equal(isCertificateEvidenceQuestion('What is my tuition balance and enrollment certificate status?','/dtm'),true);
@@ -111,6 +112,92 @@ test('certificate identity is projected only when specifically requested and is 
   }
   for(const question of ['Show all certificate details.','Which academic year and semester are recorded?','What is my status?','What is the certificate name?','Show all identity details.'])
     assert.equal(Object.hasOwn(decode(await read(data(),question)).assessment,'identity'),false,question);
+});
+
+test('coordinated student identity requests retain the shared qualifier in either order and possessive lists',async()=>{
+  for(const question of [
+    'Which student name and number are recorded in my enrollment-certificate assessment, rather than my account profile?',
+    'Which student number and name are recorded in my enrollment certificate?',
+    'Show the student name, number and department in my enrollment certificate.',
+    "What are the student's name and number in my enrollment certificate?",
+    'What are the student’s number and name in my enrollment certificate?',
+    'What name and number of the student are recorded in my enrollment certificate?',
+    'What number and name of the student are recorded in my enrollment certificate?',
+    'What are my name and number in my enrollment certificate?',
+    'What are my number, name and year level in my enrollment certificate?',
+    'Show student name / ID on my enrollment certificate.',
+  ]){
+    const content=decode(await read(data(),question));
+    assert.equal(content.assessment.identity.studentName,'Certificate Test Student',question);
+    assert.equal(content.assessment.identity.studentNumber,'CERT-QA-001',question);
+    assert.ok(content.identityProjection.requestedFields.includes('studentNumber'),question);
+    assert.ok(content.identityProjection.requestedFields.includes('studentName'),question);
+    assert.equal(content.identityProjection.omittedFields.includes('studentNumber'),false,question);
+  }
+});
+
+test('certificate, document and class numbers never become student identity requests',async()=>{
+  for(const question of [
+    'What is the certificate number in my enrollment certificate?',
+    'Show the document number in my enrollment-certificate assessment.',
+    'What is the class number in my enrollment certificate?',
+    'What is the student certificate number?',
+    'What is the student document number in my enrollment certificate?',
+    'What is the student class number in my enrollment certificate?',
+    'What is the certificate name and number in my enrollment certificate?',
+    'What is the number and name of my certificate in this enrollment assessment?',
+    'What is the name and number of the student certificate in my enrollment-certificate assessment?',
+    'What is the name and number of the student document in my enrollment-certificate assessment?',
+    'What is the number and name of the student certificate in my enrollment-certificate assessment?',
+    "What is the name and number of the student's document in my enrollment-certificate assessment?",
+    'What is the name and number of the student’s certificate in my enrollment-certificate assessment?',
+    'Show name, number of the student certificate in my enrollment-certificate assessment.',
+    'Show name / number of the student document in my enrollment-certificate assessment.',
+    'Show my name and number of the student certificate in my enrollment-certificate assessment.',
+  ]){
+    const content=decode(await read(data(),question));
+    assert.equal(Object.hasOwn(content.assessment,'identity'),false,question);
+    assert.deepEqual(content.identityProjection.requestedFields,[],question);
+    assert.doesNotMatch(JSON.stringify(content),/CERT-QA-001|Certificate Test Student|QA-A/,question);
+  }
+  for(const question of [
+    'What student name and certificate number are on my enrollment certificate?',
+    'What student name and document number are on my enrollment certificate?',
+    'What student name and class number are on my enrollment certificate?',
+    'What is my student name, not number, in my enrollment certificate?',
+  ])assert.deepEqual(decode(await read(data(),question)).assessment.identity,{studentName:'Certificate Test Student'},question);
+});
+
+test('projection metadata distinguishes unrequested values from requested null and blank without exposing other identity',async()=>{
+  const value={...row(),identity:{...row().identity,studentName:null,studentNumber:''}};
+  const omitted=decode(await read(data(value),'What status is stored in my enrollment certificate?'));
+  assert.equal(Object.hasOwn(omitted.assessment,'identity'),false);
+  assert.deepEqual(omitted.identityProjection,{requestedFields:[],omittedFields:['studentNumber','studentName','departmentName','yearText','classLabel'],omissionReason:'not_requested',nullMeaning:'not_recorded'});
+  const selected=decode(await read(data(value),'What student name and number are stored in my enrollment certificate?'));
+  assert.deepEqual(selected.assessment.identity,{studentNumber:'',studentName:null});
+  assert.deepEqual(selected.identityProjection,{requestedFields:['studentNumber','studentName'],omittedFields:['departmentName','yearText','classLabel'],omissionReason:'not_requested',nullMeaning:'not_recorded'});
+  assert.match(selected.rules.join(' '),/omission does not mean the stored field is absent or null/);
+  assert.doesNotMatch(JSON.stringify(selected),/Information Studies|QA-A/);
+});
+
+test('a class or department qualifier never lends its bare number to student identity',async()=>{
+  for(const question of [
+    'What is the student class name and number on my enrollment certificate?',
+    'What is the student’s class name and number on my enrollment certificate?',
+    'What is my class name and number on my enrollment certificate?',
+    'What class name and number of the student are on my enrollment certificate?',
+    'What student class label, name and number are recorded in my enrollment certificate?',
+  ]){
+    const result=decode(await read(data(),question));
+    assert.deepEqual(result.assessment.identity,{classLabel:'QA-A'},question);
+    assert.deepEqual(result.identityProjection.requestedFields,['classLabel'],question);
+    assert.doesNotMatch(JSON.stringify(result),/CERT-QA-001|Certificate Test Student/,question);
+  }
+  assert.deepEqual(decode(await read(data(),'What is the student department name and number on my enrollment certificate?')).assessment.identity,{departmentName:'Information Studies'});
+  for(const question of [
+    'What student number and class name are recorded on my enrollment certificate?',
+    'What class name and student number are recorded on my enrollment certificate?',
+  ])assert.deepEqual(decode(await read(data(),question)).assessment.identity,{studentNumber:'CERT-QA-001',classLabel:'QA-A'},question);
 });
 
 test('name and class followups need certificate context and never expose unrelated identity scalars',async()=>{

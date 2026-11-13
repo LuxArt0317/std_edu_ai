@@ -60,6 +60,37 @@ test('null, blank and zero statement text remain distinct literal values',async(
   }
 });
 
+test('literal season labels cannot redirect explicit settlement questions to document capabilities',async()=>{
+  for(const label of ['114 Summer reconciliation','114 Evening reconciliation','114 Extended-study reconciliation']){
+    let calls=0;
+    const result=await readTuitionEvidence(account,{question:`What literal statement text is saved for ${label} in my tuition settlements?`,route:path},{load:async()=>{calls++;return records([row(1,label,''),row(2,'Other period','Do not substitute')]);}});
+    const value=decode(result);
+    assert.equal(calls,1);assert.equal(result.readState,'ok');assert.equal(result.evidence.url,path);
+    assert.deepEqual(value.selection.requestedViews,['settlement']);
+    assert.equal(value.selection.scope,'named_period_labels');assert.equal(value.selection.requiresClarification,false);
+    assert.deepEqual(value.records.settlements.map((item:any)=>[item.periodLabel,item.text]),[[label,'']]);
+    assert.equal(value.capabilities.paymentLedger,false);assert.equal(value.capabilities.documentIssuance,false);
+  }
+});
+
+test('explicit document capabilities and a settlement can both be requested within one clause',async()=>{
+  for(const [question,views] of [
+    ['Show my summer tuition receipt, with my tuition settlement for Recorded Period A.',['summer','settlement']],
+    ['Show my summer tuition payment receipt, with my tuition settlement for Recorded Period A.',['summer','settlement']],
+    ['Show my summer official tuition receipt, with my tuition settlement for Recorded Period A.',['summer','settlement']],
+    ['Show my evening official tuition payment statement, with my tuition settlement for Recorded Period A.',['evening','settlement']],
+    ['Show my evening tuition statement, with my tuition settlement for Recorded Period A.',['evening','settlement']],
+    ['Show my extended-study payment records, with my tuition settlement for Recorded Period A.',['extended','settlement']],
+    ['查詢暑修收據，還要我的學費結算 Recorded Period A。',['summer','settlement']],
+  ] as const){
+    const result=await read(records(),question),value=decode(result);
+    assert.equal(result.readState,'ok',question);assert.equal(result.evidence.url,path);
+    assert.deepEqual(value.selection.requestedViews,views,question);
+    assert.equal(value.records.settlements[0].text,row().text);
+    assert.equal(value.capabilities.paymentLedger,false);assert.equal(value.capabilities.documentIssuance,false);
+  }
+});
+
 test('multiple periods require explicit choice; labels and UUIDs select only the requested owned row',async()=>{
   const data=records([row(1,'115學年第1學期','Statement one'),row(2,'115學年第2學期','Statement two')]);
   const ambiguous=decode(await read(data));assert.equal(ambiguous.selection.requiresClarification,true);assert.equal(ambiguous.selection.choices.length,2);

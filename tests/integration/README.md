@@ -68,3 +68,5 @@ Production saved-chat acceptance727423ae passed on772ec95:13HTTP/22browser reque
 `student-conduct-workspace-ui.mjs` checks source geometry and phone/desktop behavior with synthetic controlled data on dedicated port5185. `student-conduct-rls-live.mjs` covers rollback-only schema/auth/receipt contracts. `student-conduct-http-live.mjs --self-test` is offline; `--execute` requires the serialized lease and applied130/147 baseline. [Conduct QA](../../docs/qa/STUDENT_CONDUCT.md).
 
 `student-loan-workspace-ui.mjs` compares synthetic source geometry and popup/navigation behavior. The loan SQL and actual-JWT harnesses require a separate live lease and exact baseline; they are not part of an ordinary offline run. [Student Loan QA](../../docs/qa/STUDENT_LOAN.md).
+
+The attendance live acceptance oracle distinguishes explicit semester totals from weekly/monthly-hour claims and still requires the local detail link. A failed saved response stays failed; changing an oracle or publishing a citation repair is not a new real-model pass.

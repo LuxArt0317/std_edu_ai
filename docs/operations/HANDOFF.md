@@ -1,3 +1,19 @@
+## Assistant correction publication candidate — November 13, 2026
+
+The frozen23-path correction over0731bda passed839 API/source,318 unit and380 offline evaluation tests,build/assets,lint,handoff and dependency audit0. Final grading review passed54 focused tests and17 independent actual-case probes. Root retains the sole live/release lease until the exact new revision is Ready and Quality succeeds, then will explicitly hand back the targeted model reruns. Dorm220000 stays unapplied at131/148. New overview/coaching and dashboard edits remain separate. Prior failed live results stay failed.
+
+## Current Student Loan release — November13,2026
+
+Main/production0731bdaaec6f456608e722ffad89bfc895aa95eb is Ready3x7Pug9HFNkwB8pB1hMcmQ7bu3Ca, exact public manifest and Quality43377851990 verified. Only210000 applied:131 migrations/148 public RLS tables;220000 remains unapplied. Student Loan deployed41476619 passed7groups/36HTTP/16browser/7writes, including320/360 containment, reload and account isolation, with exact cleanup and protected-owner preservation. No official application, payment, model or issued-document operation was performed.
+
+Root holds the sole DB/model/schema/release lease again. Attendance/certificate/tuition real-model failures remain open pending independently reviewed runtime/test repairs and pinned reruns. Dorm34-2 and the DTM dashboard correction remain offline. [Current state](../../planning-with-files/current_state.md) supersedes the historical checkpoints below; [Student Loan evidence](../qa/STUDENT_LOAN.md) records the accepted scope and limits.
+
+## Current supplemental release — November 13, 2026
+
+Production/main is d5abe296d6ed01c0c3855b13948002a4d530150b, ReadyC5FP4fbAbJTPeRtiRvZH3QLvR8vV, exact release manifest and Quality43373206986 verified. Supplemental runtime567276e also passed its release gates, Quality43372346643 and8route/49asset shell check. d5 adds independently reviewed synthetic-session renewal only. Database130/147; Loan210000 and Dorm220000 remain unapplied.
+
+Issue100 accepted the sole DB/model lease for attendance then targeted supplemental model acceptance. Root holdsHEAD stable and does not perform DB/model calls, commits, pushes or deployments until explicit return. Loan next candidate passes829API/318units/build/lint/handoff/audit; its rollback-only preflight passed with exact restoration. Dorm34-2 UI/backend remains unmounted/offline. Complete protected-system parity and model coverage remain unfinished. [Current state](../../planning-with-files/current_state.md) supersedes historical checkpoints below.
+
 ## Conduct production accepted — November13,2026
 
 Productionfcac3c4 is ReadyEwVRJUodYYtGubUjPD1i61ozUiiC, exact public manifest and Quality43369577520 verified. Actual-JWT productionb8c64115 passed six groups/32HTTP/12browser/7writes,320/360 containment and exact fixture cleanup/protected-owner preservation. No official or model calls; administrator browser and document issuance remain untested/unavailable. Initial immediate-resize failure cleaned safely; no runtime CSS change was needed after settled diagnostic checks.

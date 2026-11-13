@@ -35,11 +35,24 @@ function explicitViews(text){
   const values=[];
   for(const clause of text.split(/\s+(?:and|also)\s+|[;；\n]|以及|還有/i)){
     const specific=[];
-    if(/\bsummer\b.{0,35}\b(?:tuition|fees?|receipts?|statements?|payment|documents?)|暑修.{0,12}(?:繳費|缴费|收據|收据|學雜費|学杂费)/i.test(clause))specific.push('summer');
-    if(/\bevening\b.{0,35}\b(?:tuition|fees?|receipts?|statements?|payment|documents?)|(?:進修部|进修部).{0,12}(?:繳費|缴费|收據|收据|學雜費|学杂费)/i.test(clause))specific.push('evening');
-    if(/\bextended[ -]study\b.{0,35}\b(?:tuition|fees?|receipts?|statements?|payment|documents?)|延修.{0,12}(?:繳費|缴费|收據|收据|學雜費|学杂费)/i.test(clause))specific.push('extended');
+    // A saved period label may contain Summer/Evening/Extended-study. Explicit
+    // settlement intent survives those words; a separate document request must
+    // name its capability rather than matching across an arbitrary period label.
+    const settlement=/\b(?:tuition|fee|fees|credit)[ -]?(?:settlement|reconciliation)|\bsettlement (?:statement|difference|period)|\b(?:my|saved|recorded)\s+settlement\b|學分學雜費結算|学分学杂费结算|結算差額|结算差额|學費結算|学费结算/i.test(clause);
+    const summer=settlement
+      ?/\bsummer\s+(?:(?:official|local|tuition|fees?|payment)\s+){0,4}(?:receipts?|statements?|slips?|documents?|pdf)\b|暑修.{0,12}(?:繳費單|缴费单|收據|收据|文件|PDF)/i
+      :/\bsummer\b.{0,35}\b(?:tuition|fees?|receipts?|statements?|payment|documents?)|暑修.{0,12}(?:繳費|缴费|收據|收据|學雜費|学杂费)/i;
+    const evening=settlement
+      ?/\bevening\s+(?:(?:official|local|tuition|fees?|payment)\s+){0,4}(?:receipts?|statements?|slips?|documents?|pdf)\b|(?:進修部|进修部).{0,12}(?:繳費單|缴费单|收據|收据|文件|PDF)/i
+      :/\bevening\b.{0,35}\b(?:tuition|fees?|receipts?|statements?|payment|documents?)|(?:進修部|进修部).{0,12}(?:繳費|缴费|收據|收据|學雜費|学杂费)/i;
+    const extended=settlement
+      ?/\bextended[ -]study\s+(?:(?:official|local|tuition|fees?|payment)\s+){0,4}(?:records?|receipts?|statements?|slips?|documents?|pdf)\b|延修.{0,12}(?:繳費資料|缴费资料|繳費單|缴费单|收據|收据|文件|PDF)/i
+      :/\bextended[ -]study\b.{0,35}\b(?:tuition|fees?|receipts?|statements?|payment|documents?)|延修.{0,12}(?:繳費|缴费|收據|收据|學雜費|学杂费)/i;
+    if(summer.test(clause))specific.push('summer');
+    if(evening.test(clause))specific.push('evening');
+    if(extended.test(clause))specific.push('extended');
     values.push(...specific);
-    if(!specific.length&&/\b(?:tuition|fee|fees|credit)[ -]?(?:settlement|reconciliation|statement)|\bsettlement (?:statement|difference|period)|\b(?:my|saved|recorded)\s+settlement\b|學分學雜費結算差額|学分学杂费结算差额|結算差額|结算差额|學費結算|学费结算/i.test(clause))values.push('settlement');
+    if(settlement||!specific.length&&/\b(?:tuition|fee|fees|credit)[ -]?statement/i.test(clause))values.push('settlement');
   }
   return [...new Set(values)];
 }

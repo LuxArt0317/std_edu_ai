@@ -60,6 +60,50 @@ test('certificate identity is only the individually requested projected field',a
   assert.match(output.answer,/Private Name/);for(const value of ['QA-1','Private Department','Private Class'])assert.equal(JSON.stringify(output).includes(value),false,value);
 });
 
+test('the exact coordinated certificate question formats both saved identity fields without profile substitution',async()=>{
+  const question='Which student name and number are recorded in my enrollment-certificate assessment, rather than my account profile?';
+  const value={...assessment(),identity:{...assessment().identity,studentName:'Certificate Evaluation Name',studentNumber:'CERT-EVAL-115'}};
+  const source=await certificate(value,question),output=format([source],{question});
+  assert.equal(output.status,'answered');assert.equal(output.complete,true);
+  assert.match(output.answer,/Student number: ` CERT-EVAL-115 `/);
+  assert.match(output.answer,/Name: ` Certificate Evaluation Name `/);
+  assert.doesNotMatch(JSON.stringify(output),/Private Department|Private Class|EVAL-115-001/);
+  assert.deepEqual(output.sourceIds,['account:enrollmentCertificate']);
+  assert.equal(output.citations[0].url,'/school-affairs/services/17-1');
+  assert.deepEqual(JSON.parse(source.evidence.content).identityProjection.requestedFields,['studentNumber','studentName']);
+});
+
+test('certificate formatting preserves requested null and blank while omitting unrequested identity fields',async()=>{
+  const value={...assessment(),identity:{...assessment().identity,studentName:null,studentNumber:''}};
+  const question='What student name and number are recorded in my enrollment certificate?';
+  const output=format([await certificate(value,question)],{question});
+  assert.match(output.answer,/Name: ` not recorded `/);
+  assert.match(output.answer,/Student number: ` \(blank\) `/);
+  assert.doesNotMatch(output.answer,/Department:|Class:|Year level:|Private Department|Private Class/);
+  const status=format([await certificate(value)],{question:'Show my enrollment certificate status.'});
+  assert.doesNotMatch(status.answer,/Student number:|Name:|Department:|Class:|Year level:/);
+});
+
+test('student certificate and document identifiers never become personal identity in reader-to-formatter answers',async()=>{
+  for(const question of [
+    'What is the name and number of the student certificate in my enrollment-certificate assessment?',
+    'What is the name and number of the student document in my enrollment-certificate assessment?',
+    "What is the number and name of the student's document in my enrollment-certificate assessment?",
+  ]){
+    const source=await certificate(assessment(),question),output=format([source],{question});
+    assert.deepEqual(JSON.parse(source.evidence.content).identityProjection.requestedFields,[],question);
+    assert.doesNotMatch(JSON.stringify(output),/Student number:|Name:|Private Name|QA-1/,question);
+  }
+});
+
+test('a requested class name and number does not disclose a student number in formatted evidence',async()=>{
+  const question='What is the student class name and number on my enrollment certificate?';
+  const source=await certificate(assessment(),question),output=format([source],{question});
+  assert.deepEqual(JSON.parse(source.evidence.content).assessment.identity,{classLabel:'Private Class'});
+  assert.match(output.answer,/Class: ` Private Class `/);
+  assert.doesNotMatch(JSON.stringify(output),/Student number:|Name:|Private Name|QA-1/);
+});
+
 test('successful empty certificate and failed certificate reads remain distinguishable',async()=>{
   const empty=format([await certificate(null)]);
   assert.equal(empty.status,'answered');assert.equal(empty.complete,true);assert.match(empty.answer,/successful lookup/);assert.match(empty.answer,/does not establish your university enrollment/);

@@ -77,3 +77,5 @@ Verifier diagnostics may include fixed lexical topic categories and local claim 
 `studentConduct.js` provides strict own/admin loaders and versioned administrator operations for migration200000. Complete bounded reads reject malformed/partial results; no document capabilities are returned. Migration is applied and actual-JWT local/production acceptance passed. See [conduct QA](../docs/qa/STUDENT_CONDUCT.md).
 
 `studentLoan.js` validates and reads one account-owned loan metadata snapshot, with separate live-admin access and versioned save/delete RPCs. Null is unknown, not a negative application. See [Student Loan QA](../docs/qa/STUDENT_LOAN.md).
+
+The supplemental-answer correction separates coordinated student identity requests from class/document numbers, preserves explicit tuition-settlement intent across season labels, and cites attendance detail for unavailable weekly/monthly hours. These are evidence-selection repairs; they do not create records, payment confirmation, issued documents or new permissions.

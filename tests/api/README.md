@@ -33,3 +33,5 @@ The `dtm-submissions*`, `dtm-admin-selection`, and `enrollment-certificate*` sui
 The reference-catalog, empty-record and graduation-course-selection suites cover bounded evidence guidance and overlapping parent/child course titles. Activity-budget/persistence/schema suites cover full observed traces, Unicode and SQL payload bounds; they are offline contracts.
 
 `student-loan.test.ts` and `student-loan-handler.test.ts` check literal metadata, caller/admin isolation, strict API dispatch, replay envelopes, bounded errors and deadlines offline. [Scope and live limits](../../docs/qa/STUDENT_LOAN.md).
+
+Supplemental correction regressions exercise actual reader/formatter chains for coordinated certificate identity and class/document privacy, literal tuition period labels and explicit document capability requests, and the exact local attendance-detail citation for unavailable subterm hours.

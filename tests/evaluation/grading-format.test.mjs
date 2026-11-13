@@ -84,6 +84,33 @@ test('one fact cannot assemble its required values from different records with t
   pass(grade('- Quiz 1; score: 12/20',[fact('Quiz 1',[12,20],'number')]));
 });
 
+test('opt-in stored-string matching never coerces a numeric-looking literal',()=>{
+  const literal=fact('saved text','0','text',{match:'literal'});
+  pass(grade('The saved text is `0`.',[literal]));
+  for(const value of ['0.00','00','+0','-0','0e0','0,000','0%'])fail(grade('The saved text is `'+value+'`.',[literal]));
+  pass(grade('Remaining balance: 0.00 TWD.',[fact('balance',0,'number')]));
+  pass(grade('Remaining balance: 23,000 TWD.',[fact('balance',23000,'number')]));
+  fail(grade('The saved text is `0`.',[{...literal,match:'unknown'}]));
+});
+
+test('independent evidence boundaries reject contradictions even beside valid caveats',()=>{
+  const facts=[fact('literal saved text','0','text',{match:'literal'})];
+  const boundary={evidenceBoundaries:['literal_text_not_payment']};
+  pass(grade('Literal saved text: 0. This does not confirm payment.',facts,boundary));
+  pass(grade('Literal saved text: 0. Payment is unconfirmed.',facts,boundary));
+  for(const claim of ['Payment is confirmed.','Payment has now been confirmed.','Payment was verified.','This proves payment.','Your tuition is paid.','Payment is complete.','Payment has been made.','This is not a guess: payment is confirmed.','Payment is not only confirmed but settled.'])
+    fail(grade('Literal saved text: 0. This does not confirm payment. '+claim,facts,boundary),'evidence.boundary.0');
+  fail(grade('Literal saved text: 0.',facts,boundary),'evidence.boundary.0');
+  fail(grade('Literal saved text: 0.',facts,{evidenceBoundaries:['unknown_boundary']}),'evidence.boundary.0');
+});
+
+test('failed-source wording cannot negate an adjacent affirmative empty-record claim',()=>{
+  const expected={evidenceBoundaries:['failed_read_not_empty'],behavior:'unavailable',limitation:true};
+  pass(grade('The backend is not available. I cannot infer that no records exist.',[],expected));
+  for(const answer of ['The extended-study backend is not available, so no records are saved.','The source could not be accessed: no records exist.'])
+    fail(grade(answer,[],expected),'evidence.boundary.0');
+});
+
 test('the default fact window remains bounded after removing link destinations',()=>{
   fail(grade('Quiz 1 '+('context '.repeat(60))+'Feedback: Revise normalization examples.',[fact('Quiz 1','Revise normalization examples.')]));
 });
@@ -115,6 +142,61 @@ test('factual balances and generic disclaimers do not masquerade as missing-data
     'Your grade is 87. Local demonstration records maintained by the site administrator.',
     'Payment completed. All records are saved.',
   ])fail(missing(answer),'answer.limitation');
+});
+
+test('explicit foreign-record and file-capability denials accept ordinary typography without accepting generic disclaimers',()=>{
+  for(const answer of [
+    'I can’t show tuition settlement statements for another student account.',
+    "I can't show another student's records.",
+    'I cannot disclose records for a different account.',
+    'I can’t verify this payment from the saved statement.',
+    'Summer payment documents: no verified local file capability.',
+    'This service has no download capability.',
+  ])pass(missing(answer));
+  for(const answer of [
+    'I can show tuition settlement statements for another student account.',
+    'I can’t show the animation. Here are the other student records.',
+    'I can’t show '+('irrelevant '.repeat(30))+'another student account.',
+    'Summer payment documents have verified local file capability.',
+  ])fail(missing(answer),'answer.limitation');
+});
+
+test('recognizing a privacy denial cannot conceal foreign values or replace an answer-required fact',()=>{
+  const item={id:'format.foreign',mode:'empty',expected:{behavior:'unavailable',limitation:true,forbiddenText:['FOREIGN PRIVATE SENTINEL']}};
+  const answer='I can’t show another student account. FOREIGN PRIVATE SENTINEL';
+  const result=gradeCase(item,{statusCode:200,execution:'recorded',body:{status:'answered',answer}});
+  fail(result,'text.forbidden.0');
+  fail(grade('I can’t show another student account.',[fact('statement','0')]));
+});
+
+test('forbidden claims cannot hide behind JSON escapes or inside structured output',()=>{
+  const item={id:'format.forbidden',mode:'empty',expected:{behavior:'unavailable',limitation:true,forbiddenText:['Payment confirmed','FOREIGN PRIVATE SENTINEL']}};
+  const evaluate=extra=>gradeCase(item,{statusCode:200,execution:'recorded',body:{status:'answered',answer:'Payment evidence is unavailable.',...extra}});
+  for(const prefix of ['\n','\r\n','\t','"']){
+    fail(evaluate({answer:'Payment evidence is unavailable.'+prefix+'Payment confirmed.'}),'text.forbidden.0');
+    fail(evaluate({views:[{rows:[['Unknown'+prefix+'FOREIGN PRIVATE SENTINEL']]}]}),'text.forbidden.1');
+  }
+  fail(evaluate({citations:[{claim:'Evidence:\nPayment confirmed'}]}),'text.forbidden.0');
+  fail(evaluate({views:[{'FOREIGN PRIVATE SENTINEL':'value'}]}),'text.forbidden.1');
+  pass(evaluate({views:[{title:'Payment',note:'confirmed',rows:[['FOREIGN PRIVATE','SENTINEL']]}]}));
+  pass(evaluate({answer:'Payment evidence is unavailable. XPayment confirmedX.'}));
+});
+
+test('numeric structured values are checked but array indexes never become invented forbidden data',()=>{
+  const item={id:'format.numeric-forbidden',mode:'empty',expected:{behavior:'unavailable',limitation:true,forbiddenText:['115']}};
+  const evaluate=views=>gradeCase(item,{statusCode:200,execution:'recorded',body:{status:'answered',answer:'Academic year is not recorded.',views}});
+  fail(evaluate([{academicYear:115}]),'text.forbidden.0');
+  fail(evaluate([{academicYear:'115'}]),'text.forbidden.0');
+  pass(evaluate([{academicYear:1150}]));
+  pass(evaluate(Array.from({length:116},()=>({academicYear:null}))));
+});
+
+test('primitive null and booleans remain visible to explicit forbidden-value checks',()=>{
+  for(const [value,forbidden] of [[null,'null'],[true,'true'],[false,'false']]){
+    const item={id:'format.primitive',mode:'empty',expected:{behavior:'unavailable',limitation:true,forbiddenText:[forbidden]}};
+    const result=gradeCase(item,{statusCode:200,execution:'recorded',body:{status:'answered',answer:'This record is unavailable.',views:[{value}]}});
+    fail(result,'text.forbidden.0');
+  }
 });
 
 test('formatted facts never bypass runtime verification, executed-tool evidence, or execution provenance',()=>{

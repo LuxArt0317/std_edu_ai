@@ -340,6 +340,9 @@ test('verified native citations open the requested report rather than the servic
     ['Show my semester rankings','/school-affairs/services/13-1/ranking'],
     ['Show my academic absence details','/school-affairs/services/14-1/detail'],
     ['Show my academic attendance statistics','/school-affairs/services/14-1'],
+    ['How many hours was I absent last week?','/school-affairs/services/14-1/detail'],
+    ['How many absence hours do I have this month?','/school-affairs/services/14-1/detail'],
+    ['上週缺課時數是多少？','/school-affairs/services/14-1/detail'],
   ]){
     const key=expected.includes('/14-1')?'academicAttendance':'academicGrades';
     assert.equal(source(data,key,{question}).url,expected,question);

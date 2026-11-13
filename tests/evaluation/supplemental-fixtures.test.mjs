@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {createHash} from 'node:crypto';
-import {buildAccountFixture,fixtureForCase,supplementalFixtureRecords,EVAL_USER_ID,EVAL_OTHER_USER_ID,evalId} from './fixtures.mjs';
+import {buildAccountFixture,fixtureForCase,EVAL_USER_ID,EVAL_OTHER_USER_ID,evalId} from './fixtures.mjs';
 import {buildAccountCases} from './account-cases.mjs';
-import {planSupplementalFixture,verifySupplementalFixtureReadback,readSupplementalFixtureScopes,reconcileFixtureIdentity,LiveFixtureError} from './live-fixtures.mjs';
+import {planSupplementalFixture,verifySupplementalFixtureReadback,readSupplementalFixtureScopes,reconcileFixtureIdentity,LiveFixtureError,protectedOwnerFingerprintDigest,assertProtectedOwnerUnchanged} from './live-fixtures.mjs';
 import {loadEnrollmentCertificate} from '../../server/enrollmentCertificate.js';
 import {loadTuitionDocuments} from '../../server/tuitionDocuments.js';
 import {gradeCase} from './grading.mjs';
@@ -143,6 +143,62 @@ test('comma and alongside mixed questions keep all three independent facts, owne
 });
 
 const source=await readFile(new URL('./live-fixtures.mjs',import.meta.url),'utf8');
+
+test('zero statement oracle accepts a saved-text label while preserving the zero, provenance, tool and payment boundaries',()=>{
+  const item=buildAccountCases().find(row=>row.id==='account:tuition-zero-text');
+  const evaluate=(answer,verification={status:'verified',attempts:2},tools=['tuition'])=>gradeCase(item,{statusCode:200,execution:'recorded',fixtureKey:item.fixtureKey,
+    toolCalls:tools.map(name=>({name,status:'complete'})),body:{status:'answered',answer,verification,citations:[{url:'/school-affairs/services/49-1'}]}});
+  const answer='For the saved local_demo tuition settlement labeled 113 Fall reconciliation, the literal saved text is `0`.\nNo—this is not a confirmed payment. The record has no payment-ledger capability.';
+  assert.equal(evaluate(answer).passed,true);
+  for(const wrong of [answer.replace('`0`','`10`'),answer.replace('literal saved text','unrelated counter'),answer+'\nPayment confirmed.',answer.replace('local_demo','')])assert.equal(evaluate(wrong).passed,false);
+  for(const literal of ['0.00','00','+0','-0','0e0','0,000','0%'])assert.equal(evaluate(answer.replace('`0`','`'+literal+'`')).passed,false,literal+' is not the saved string 0.');
+  for(const wrong of [
+    'The local_demo literal saved text is 0. Payment is confirmed.',
+    'The local_demo literal saved text is 0.00. This is not a confirmed payment.',
+    answer+' Payment is confirmed.',answer+' Payment has now been successfully confirmed.',
+    answer+' Payment was verified.',answer+' This proves payment.',
+    answer+' Your tuition is paid.',answer+' Payment is complete.',answer+' Payment has been made.',
+    answer+' This is not a guess: payment is confirmed.',answer+' Payment is not only confirmed but settled.',
+    answer+' The payment is confirmed and the tuition has been fully paid.',
+    'The local_demo literal saved text is 0. This is not a confirmed payment and payment is confirmed.',
+    'The local_demo literal saved text is 0.',
+  ])assert.equal(evaluate(wrong).passed,false,wrong);
+  for(const explanation of [
+    'This does not confirm payment.','Payment is not confirmed by this saved text.',
+    'This is not proof of payment.','I cannot verify payment from the literal text.',
+    'Payment is unconfirmed.',
+  ])assert.equal(evaluate('The local_demo literal saved text is `0`. '+explanation).passed,true,explanation);
+  assert.equal(evaluate(answer,{status:'unverified',attempts:2}).passed,false);
+  assert.equal(evaluate(answer,undefined,[]).passed,false);
+});
+
+test('an extended-study read failure cannot be graded as an empty personal collection',()=>{
+  const item=buildAccountCases().find(row=>row.id==='account:tuition-extended-gap');
+  const evaluate=(answer,tools=['tuition'],links=['/school-affairs/services/48-2'])=>gradeCase(item,{statusCode:200,execution:'recorded',fixtureKey:item.fixtureKey,
+    toolCalls:tools.map(name=>({name,status:'complete'})),body:{status:'answered',answer,citations:links.map(url=>({url}))}});
+  const valid=[
+    'The extended-study tuition backend is unavailable. This local_demo read cannot establish whether records exist.',
+    'I could not retrieve your extended-study tuition records from the local_demo source. I cannot infer that there are no records.',
+    'The local_demo extended-study backend is unavailable. I cannot infer that no records exist.',
+    'Extended-study tuition records are not available through this local_demo service. No conclusion about payment or record existence can be made.',
+  ];
+  for(const answer of valid)assert.equal(evaluate(answer).passed,true,JSON.stringify(evaluate(answer).failures));
+  for(const answer of [
+    'No records are saved for your extended-study tuition on stu.best. This is a local_demo result.',
+    'The local_demo extended-study backend is unavailable. No records are saved for you.',
+    'The local_demo extended-study query failed and your records are empty.',
+    'The local_demo source is unavailable, but you have no records.',
+    'The local_demo extended-study backend is not available, so no records are saved.',
+    'The local_demo extended-study source could not be accessed: no records exist.',
+    'The local_demo source is unavailable. Records are absent.',
+    'The local_demo query failed. Your payment records are zero.',
+    'This is a local_demo result. I cannot help.',
+  ])assert.equal(evaluate(answer).passed,false,answer);
+  assert.equal(evaluate(valid[0],[]).passed,false);
+  assert.equal(evaluate(valid[0],undefined,[]).passed,false);
+  assert.equal(item.capability.gap,true);
+});
+
 function section(start,end){const begin=source.indexOf(start),finish=end?source.indexOf(end,begin):source.length;assert.ok(begin>=0&&finish>begin);return source.slice(begin,finish).replaceAll('export async function ','async function ');}
 
 test('actual afterCase fingerprints both owners supplemental data and always clears active case after a mismatch',async()=>{
@@ -189,9 +245,11 @@ test('actual cleanup verifies both new owner tables and retains the recovery led
     };
     let removed=false,closed=false;
     sql.release=async()=>{};
-    const state={runId,users,identityRequests,ledgerOwned:true,ledgerTempOwned:false,ledger:'private-ledger',closed:false,closing:false,locked:true,sql,
+    const protectedOwnerBefore={id:evalId(988),auth_hash:'a'.repeat(32),profile_hash:'b'.repeat(32),identities_hash:'c'.repeat(32)};
+    const state={protectedOwnerBefore,protectedOwnerEmail:'protected-admin@example.invalid',runId,users,identityRequests,ledgerOwned:true,ledgerTempOwned:false,ledger:'private-ledger',closed:false,closing:false,locked:true,sql,
       supplementalTables:new Set(['affairs_enrollment_certificate_assessments','affairs_tuition_settlements']),db:{end:async()=>{closed=true;}},admin:{auth:{admin:{deleteUser:async id=>{events.push({delete:id});return {error:null};}}}}};
     const context={state,UUID:/^[a-f0-9-]{36}$/i,PROJECT:'synthetic',ownTables:[],saveLedger:async()=>{},query:async work=>work(),reconcileFixtureIdentity,LiveFixtureError,
+      checkedProtectedOwnerFingerprint:value=>{protectedOwnerFingerprintDigest(value);return value;},readProtectedOwnerFingerprint:async()=>protectedOwnerBefore,assertProtectedOwnerUnchanged,
       rm:async()=>{removed=true;},fail:(code,message)=>{throw new LiveFixtureError(code,message);}};
     const cleanup=vm.runInNewContext(body+'\ncleanup;',context);
     if(remainingTable)await assert.rejects(cleanup(),{code:'fixture-cleanup'});else assert.equal((await cleanup()).verified,true);

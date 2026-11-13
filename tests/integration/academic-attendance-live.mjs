@@ -94,6 +94,48 @@ async function invoke(endpoint,{token,method='GET',body}={}){
 }
 async function request(endpoint,options={}){const result=await invoke(endpoint,options);assert.equal(result.status,options.status??200,`${phase}: unexpected API status for ${endpoint}`);return result.body;}
 const snapshot=session=>request('/api/affairs-data',{token:session.access_token});
+function assertWeeklyAttendanceLimitation(response){
+  assert.equal(response.status,'answered');assert.equal(response.grounding?.source,'account');
+  assert.equal(response.grounding?.webSearched,false);assert.equal(response.proposedAction,undefined);
+  assert.equal(typeof response.answer,'string');
+  const clauses=response.answer.split(/[.!?。\n]+/u);
+  assert.ok(clauses.some(clause=>/weekly|last week|每週|每周|上週|上周/i.test(clause)&&/hours?|時數|小時/i.test(clause)
+    &&/unavailable|not (?:stored|available|recorded)|does not provide|doesn't provide|沒有.*(?:加總|時數)|未(?:儲存|記錄).*時數/i.test(clause)),
+  'The answer must explicitly state the unavailable weekly absence-hour total, not a generic refusal.');
+  assert.ok(clauses.some(clause=>/detail|row|period|明細|筆數|節次/i.test(clause)&&/hours?|時數|小時/i.test(clause)
+    &&/cannot.*(?:convert|infer|derive)|can['’]t.*(?:convert|infer|derive)|不能.*(?:換算|推算)/i.test(clause)),
+  'The answer must explain that detail rows or period labels cannot establish hours.');
+  const weeklyScope=/\b(?:weekly|last[-\s]+week)\b|上週|上周|每週|每周/iu;
+  const scopeLabels=/\b(?:weekly|last[-\s]+week)\b|\b(?:term|semester)(?:-level)?\s+(?:(?:absence|unexcused|teaching|recorded)\s+){0,3}(?:totals?|hours?|statistics?)\b|\b(?:totals?|hours?|statistics?)\s+for\s+(?:(?:this|the|current)\s+)?(?:term|semester)\b|上週|上周|每週|每周|(?:本)?學期(?:缺課|曠課|授課)?(?:總?時數|統計)/giu;
+  // Bind a numeric hour claim to its explicit scope, rather than rejecting a
+  // separately labelled term statistic merely because "weekly" is nearby.
+  // Keep commas inside clauses: "Last week, you missed 8 hours" is weekly.
+  const numericClauses=response.answer.split(/[;；。!?\n]+|(?<!\d)\.|\.(?!\d)|\b(?:but|whereas|while|however|yet)\b/iu);
+  const inventedWeeklyTotal=numericClauses.some(clause=>{
+    const hourClaims=clause.matchAll(/\b\d+(?:\.\d+)?\s*(?:(?:weekly|last[-\s]+week|absence|absent|unexcused|total)\s+){0,5}(?:hours?|hrs?)\b|\b(?:hours?|hrs?)\s*(?::|=|are|were|is|was|(?:has|have)\s+been|(?:amount(?:ed|s)?|came)\s+to|total(?:s|ed)?)?\s*\d+(?:\.\d+)?\b|\d+(?:\.\d+)?\s*(?:(?:上週|上周|每週|每周|缺課|曠課)\s*){0,3}(?:小時|時數)|(?:小時|時數)\s*[:：=為是]?\s*\d+(?:\.\d+)?/giu);
+    return [...hourClaims].some(claim=>{
+      if(weeklyScope.test(claim[0]))return true;
+      const before=clause.slice(Math.max(0,claim.index-120),claim.index),after=clause.slice(claim.index+claim[0].length,claim.index+claim[0].length+120);
+      if(/^\s*(?:(?:of\s+)?(?:absence|absent|total|in total)\s+)?(?:(?:during|in|for|over)\s+)?(?:the\s+)?(?:last[-\s]+week|weekly)\b|^\s*(?:上週|上周|每週|每周)/iu.test(after))return true;
+      const precedingLabels=[...before.matchAll(scopeLabels)],preceding=precedingLabels.at(-1);
+      const following=[...after.matchAll(scopeLabels)][0];
+      const priorWeekly=precedingLabels.slice(0,-1).findLast(label=>weeklyScope.test(label[0]));
+      if(preceding&&!weeklyScope.test(preceding[0])&&priorWeekly
+        &&!/unavailable|not (?:stored|available|recorded)|does not provide|doesn't provide/iu.test(before.slice(priorWeekly.index,preceding.index)))return true;
+      // A following explicit label can identify "0 hours is the recorded
+      // semester total". It cannot excuse an affirmative weekly claim.
+      const followingTerm=following&&!weeklyScope.test(following[0])
+        &&/^\s*(?:is|are|represents?|equals?|refers?\s+to)\s+(?:the\s+)?(?:separately\s+)?(?:recorded\s+)?$/iu.test(after.slice(0,following.index));
+      if(followingTerm&&(!preceding||!weeklyScope.test(preceding[0])
+        ||/unavailable|not (?:stored|available|recorded)|does not provide|doesn't provide/iu.test(before.slice(preceding.index))))return false;
+      if(preceding)return weeklyScope.test(preceding[0]);
+      return following?weeklyScope.test(following[0]):false;
+    });
+  });
+  assert.equal(inventedWeeklyTotal,false,'An unavailable weekly total cannot be replaced by an invented numeric total.');
+  assert.ok(response.citations?.some(item=>item.url===base||item.url===base+'/detail'),'The limitation must cite native attendance records.');
+  assert.ok(response.answer.includes(base+'/detail')||response.citations.some(item=>item.url===base+'/detail'),'The answer must retain the local absence-detail destination.');
+}
 function assistantDiagnostic(question,route,result,session){
   const redactions=[session.access_token,session.refresh_token,ownerSession?.access_token,ownerSession?.refresh_token,
     ownerSession?.user?.id,deployment.supabase.ownerEmail,...Object.values(ownerSession?.user?.user_metadata??{})]
@@ -203,8 +245,7 @@ try{
   assert.match(statistics.answer,/54/);assert.match(statistics.answer,/22\.5/);assert.match(statistics.answer,/unexcused[^\n]*not recorded|曠課[^\n]*未記錄/i);
   const details=await answer(first,'Show my absence details on 2026-11-12',base+'/detail');assert.ok(details.answer.includes(ownTitle));assert.match(details.answer,/Literal QA category/);assert.match(details.answer,/2026-11-12/);assert.match(details.answer,/A–B/);
   const wrongDate=await answer(first,'Show my absence details on 2026-11-13',base+'/detail');assert.match(wrongDate.answer,/no.*(?:records|entries)|沒有.*紀錄/i);assert.ok(!wrongDate.answer.includes(ownTitle),'Date filters use the course date, not the later roll-call date.');
-  const weekly=await answer(first,'How many hours was I absent last week?');assert.match(weekly.answer,/unavailable|not (?:stored|available|recorded)|沒有.*(?:加總|時數)/i);
-  assert.match(weekly.answer,/cannot.*(?:converted|infer|derive)|不能.*(?:換算|推算)/i);assert.ok(weekly.answer.includes(base+'/detail')||weekly.citations.some(item=>item.url===base+'/detail'));
+  const weekly=await answer(first,'How many hours was I absent last week?');assertWeeklyAttendanceLimitation(weekly);
   const otherAnswer=await answer(second,'Show my current academic attendance statistics');assert.ok(otherAnswer.answer.includes(otherTitle));assert.ok(!otherAnswer.answer.includes(ownTitle));
   checks.push(assistantCheck+'; own-account evidence/local citations, no public search/write, literal values, course-date filtering and unsupported weekly-hour clarification');
 

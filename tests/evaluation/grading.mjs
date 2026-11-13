@@ -43,6 +43,23 @@ function matches(text, expected) {
   return alternatives(expected).some(value => typeof value === 'string' || typeof value === 'number' ? tokenPresent(text, value) : false);
 }
 
+function literalMatches(text, expected) {
+  return alternatives(expected).some(value => {
+    if (typeof value !== 'string') return false;
+    const needle=normalize(value);
+    if(!needle)return false;
+    for(let at=text.indexOf(needle);at>=0;at=text.indexOf(needle,at+needle.length)) {
+      if(!tokenBoundary(text,needle,at))continue;
+      // A stored string is not a numeric quantity: "0", "0.00", "+0"
+      // and "0e0" are different values, even though Number() equates them.
+      if(/^[+-]?\d+(?:\.\d+)?$/u.test(needle)
+        && (/[\d.,+-]$/u.test(text.slice(0,at)) || /^(?:[.,]\d|[%\p{L}\p{N}_])/u.test(text.slice(at+needle.length))))continue;
+      return true;
+    }
+    return false;
+  });
+}
+
 function numericTokens(text) {
   return [...text.matchAll(/(?<![A-Za-z0-9_])[-+]?\d+(?:,\d{3})*(?:\.\d+)?(?![A-Za-z0-9_])/gu)]
     .map(match => ({value:Number(match[0].replace(/,/g, '')),index:match.index,length:match[0].length}));
@@ -118,7 +135,9 @@ function factResult(answer, fact) {
     }
   }
   if (!windows.length) return {passed:false,detail:'Expected fact label is absent.'};
-  if (!windows.some(window => fact.values.every(value => matches(window,value))))
+  if(fact.match!==undefined && fact.match!=='literal')return {passed:false,detail:'Unknown fact matching mode.'};
+  const valueMatches=fact.match==='literal'?literalMatches:matches;
+  if (!windows.some(window => fact.values.every(value => valueMatches(window,value))))
     return {passed:false,detail:'Expected values are missing or not attached to their semantic label.'};
   if (fact.values.some(value=>windows.some(window=>negatesValue(window,value))))
     return {passed:false,detail:'The response negates an independently expected fact.'};
@@ -133,6 +152,46 @@ function factResult(answer, fact) {
       return {passed:false,detail:'An extra numeric value contradicts this exclusive fact expectation.'};
   }
   return {passed:true,detail:'Independent labelled fact matched.'};
+}
+
+// Explicit privacy/capability denials are limitations, not empty database reads.
+// Keep these bounded to the denied target; generic disclaimers do not qualify.
+const otherAccountDenial=/\b(?:cannot|can['’]t|could not|unable to|will not|won['’]t)\s+(?:show|display|disclose)\b[^.!?\n]{0,160}\b(?:another|other|different)\s+(?:student(?:['’]s)?(?:\s+account)?|account)\b/iu;
+const unavailableFileCapability=/\bno\s+(?:verified\s+)?(?:local\s+)?(?:file|document|download)\s+capability\b/iu;
+
+// Opt-in record boundaries are separate from stored facts. A correct literal
+// beside an unsupported conclusion must not pass. Evaluate short clauses so a
+// caveat in one sentence cannot cancel an affirmative claim in another.
+function evidenceBoundaryResult(answer,kind) {
+  const clauses=visibleMarkdown(answer).normalize('NFKC').toLowerCase()
+    .split(/[.!?;；。！？\n]|\b(?:but|however|yet|and)\b/u).map(value=>value.trim()).filter(Boolean);
+  const negative=/\b(?:not(?!\s+only\b)|never|no|cannot|can't|could not|unable to|doesn't|does not|don't|do not|isn't|is not|isn’t|can’t)\b|不(?:是|能|可|代表)|無法|並非/u;
+  const isNegative=value=>negative.test(value.replace(/\bnot\s+only\b/gu,'only'));
+  const qualifyingPrefix=/\b(?:not(?!\s+only\b)|no|never)\s+(?:an?\s+)?$|\b(?:cannot|can't|could not|unable to|does not|doesn't|do not|don't)\s+(?:confirm|verify|infer|say|claim|establish|prove|treat|consider)(?:\s+(?:that|it|this|as|a|an|the)){0,4}\s*$/u;
+  const affirmative=(clause,expression)=>[...clause.matchAll(expression)].some(match=>{
+    const prefix=clause.slice(Math.max(0,match.index-55),match.index);
+    return !isNegative(match[0]) && !qualifyingPrefix.test(prefix);
+  });
+  if(kind==='literal_text_not_payment') {
+    const payment=/\b(?:payment\b[^,]{0,64}\b(?:confirmed|verified|complete|completed|made|successful|received|settled)|(?:confirmed|verified|complete|completed|successful)\s+payment|(?:you|fees|tuition|balance)\b[^,]{0,48}\b(?:fully paid|paid in full|all paid|paid|settled)|(?:confirms?|proves?|establish(?:es)?)\b[^,]{0,40}\bpayment)\b/gu;
+    const caveat=clauses.some(clause=>/\bpayment\b/u.test(clause)
+      && (isNegative(clause) && /\b(?:confirmed|confirm|verified|verify|prove|proves|proof|evidence|establish|means?|indicate|indicates)\b/u.test(clause)
+        || /\bpayment\b[^,]{0,48}\b(?:unconfirmed|unverified)\b/u.test(clause)));
+    return {passed:caveat&&!clauses.some(clause=>affirmative(clause,payment)),detail:'Literal saved text is explicitly distinguished from confirmed payment, without a contradictory payment claim.'};
+  }
+  if(kind==='failed_read_not_empty') {
+    const readFailure=clauses.some(clause=>/\b(?:read|retrieve|retrieval|access|backend|source|service|query|lookup|extended[- ]study)\b/u.test(clause)
+      && /\b(?:unavailable|unsupported|unimplemented|failed|failure|cannot|can't|could not|unable|not (?:available|implemented|configured|connected|supported))\b/u.test(clause));
+    const absence=/\b(?:no\s+(?:(?:saved|matching|own|local|extended[- ]study|tuition|payment|fee)\s+){0,7}(?:records?|payments?|fees|entries)|(?:records?|payments?|fees|entries)\s+(?:(?:are|were|is|have been|have|been|currently|all|saved|recorded)\s+){0,4}(?:absent|empty|zero|0)|(?:you|there)\s+(?:have|has|are)\s+no\s+(?:records?|fees|payments?))\b/gu;
+    // "No records" is itself the disputed positive absence claim. Only a
+    // directly preceding inability to INFER absence may qualify it. A failed
+    // backend's "not available" cannot negate a subsequent "no records".
+    const absenceQualifier=/\b(?:cannot|can't|can’t|could not|unable to)\s+(?:infer|conclude|establish|determine|say|claim|know|confirm)(?:\s+(?:that|whether|if|there|are|is)){0,4}\s*$|\b(?:does not|doesn't|do not|don't)\s+(?:mean|prove|establish|imply)(?:\s+(?:that|whether|if|there|are|is)){0,4}\s*$/u;
+    const assertsAbsence=clauses.some(clause=>[...clause.matchAll(absence)].some(match=>
+      !absenceQualifier.test(clause.slice(Math.max(0,match.index-90),match.index))));
+    return {passed:readFailure&&!assertsAbsence,detail:'A failed or unavailable read is stated explicitly and is not presented as an empty collection.'};
+  }
+  return {passed:false,detail:'Unknown independent evidence boundary.'};
 }
 
 export function extractAnswerLinks(body = {}) {
@@ -192,7 +251,15 @@ export function gradeCase(testCase, envelope = {}) {
   const body = envelope.body && typeof envelope.body === 'object' ? envelope.body : {};
   const answer = typeof body.answer === 'string' ? body.answer : '';
   const text = normalize(answer);
-  const entireOutput=normalize(JSON.stringify(body));
+  // Inspect decoded strings independently. JSON escaping turns a preceding
+  // newline into the letter n and can hide a forbidden token at that boundary.
+  // Do not join unrelated fields: their words must not form an invented claim.
+  const outputFields=[];
+  JSON.stringify(body,function(key,value){
+    if(key&&!Array.isArray(this))outputFields.push(normalize(key));
+    if(value===null||['string','number','boolean'].includes(typeof value))outputFields.push(normalize(value===null?'null':value));
+    return value;
+  });
   const behavior = expected.behavior;
   const actions = body.proposedAction;
   check('case.id',typeof testCase?.id==='string' && Boolean(testCase.id),'Case has a stable identifier.');
@@ -209,7 +276,7 @@ export function gradeCase(testCase, envelope = {}) {
   if(behavior==='unavailable'){
     check('oracle.limitation',expected.limitation===true || typeof expected.limitation==='string' || Boolean(expected.limitation?.anyOf?.length),
       'A missing-data/capability case explicitly declares its limitation oracle.');
-    check('answer.limitation',limitationText.test(answer),'The answer explicitly states missing records, inability or unsupported capability.');
+    check('answer.limitation',limitationText.test(answer.replace(/’/g,"'"))||otherAccountDenial.test(answer)||unavailableFileCapability.test(answer),'The answer explicitly states missing records, inability or unsupported capability.');
     if(expected.limitation && expected.limitation!==true)check('answer.limitation.specific',matches(text,expected.limitation),'The specific required limitation is stated.');
   }
   if (behavior==='answer' && testCase.mode==='record') {
@@ -219,9 +286,12 @@ export function gradeCase(testCase, envelope = {}) {
   if (expected.verification) check('answer.verification.expected',body.verification?.status===expected.verification,'Declared verification outcome matches.');
   if (body.verification) check('answer.verification.bound',Number.isInteger(body.verification.attempts) && body.verification.attempts>=0 && body.verification.attempts<=2,'Verification uses at most two checks.');
   for (const [index,value] of (expected.requiredText || []).entries()) check(`text.required.${index}`,matches(text,value),'Required independent text is present with token boundaries.');
-  for (const [index,value] of [...(expected.forbiddenText || []),...(expected.forbiddenAccountMarkers || [])].entries()) check(`text.forbidden.${index}`,!matches(entireOutput,value),'No forbidden contradiction, foreign-account value or unsupported claim appears in prose, cards, citations or actions.');
+  for (const [index,value] of [...(expected.forbiddenText || []),...(expected.forbiddenAccountMarkers || [])].entries()) check(`text.forbidden.${index}`,!outputFields.some(field=>matches(field,value)),'No forbidden contradiction, foreign-account value or unsupported claim appears in prose, cards, citations or actions.');
   for (const [index,fact] of (expected.facts || []).entries()) {
     const result = factResult(answer,fact);check(`fact.${index}`,result.passed,result.detail);
+  }
+  for(const [index,kind] of (expected.evidenceBoundaries || []).entries()) {
+    const result=evidenceBoundaryResult(answer,kind);check(`evidence.boundary.${index}`,result.passed,result.detail);
   }
   for (const [index,list] of (expected.exactLists || []).entries()) {
     const valid = list && Array.isArray(list.expected) && Array.isArray(list.forbidden);

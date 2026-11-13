@@ -14,7 +14,7 @@
 - [x] Inspect certificate17-1, apply160000 after preflight, mount dedicated personal/admin views and pass post-apply rollback checks.
 - [x] Complete certificate actual-JWT local API/browser acceptance with exact cleanup and protected-owner preservation.
 - [x] Verify authenticated preview, publish and pass deployed Moodle/certificate acceptance with exact cleanup. Unattended preview remains SSO-protected.
-- [ ] Continue49remaining source families. Closed school application windows do not establish unseen forms.
+- [ ] Continue remaining source families; recount current native coverage before quoting a total. Closed school application windows do not establish unseen forms.
 
 
 ## Next protected service: syllabus search12-3 [Issue #98]
@@ -32,7 +32,7 @@
 - [x] Pass independent review, rollback-only preflight and exact staged gates (545 API/source,231 units, TypeScript/build/lint/handoff/audit).
 - [x] Apply only180000 after its exact migration plan; baseline128 migrations/146 RLS tables,190000 remains unapplied.
 - [x] Complete actual-JWT local/deployed HTTP and browser acceptance with exact cleanup, then publish and verify the production revision.
-- [ ] Add tuition statement evidence to the assistant separately; payment ledger totals do not prove statement or PDF content.
+- [x] Add separately scoped tuition statement evidence to the assistant in567276e; actual-model acceptance is pending and payment ledger totals do not prove statement/PDF content.
 
 ## Current assistant repair release [Issue #100]
 
@@ -40,7 +40,8 @@
 - [x] Pass TypeScript/build/lint/handoff/audit and repeat190000 rollback preflight at128/146; plan/apply only190000. Current client129 migrations/146 RLS tables;200000 deferred.
 - [x] Publish772ec95; verify exact manifest, Vercel Ready and successful GitHub Quality.
 - [x] Complete actual-JWT saved-conversation/browser acceptance727423ae after the reviewed auth-settlement harness correction; exact cleanup passed.
-- [ ] Return the serialized model lease to the evaluator and rerun grades, graduation and attendance on that exact production revision.
+- [x] Return the serialized model lease; grades/graduation passed on772ec95.
+- [ ] Publish the separately reviewed correction over0731, then rerun attendance and targeted supplemental cases on that exact revision; preserve explicit cleanup and release provenance.
 
 ## Phase Next: systemwide assistant evaluation [Issue #100]
 
@@ -437,4 +438,13 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Mount conduct UI/admin/API locally; pass rollback preflight, focused tests and measured desktop/mobile QA.
 - [x] Finish independent conduct live-harness review, plan/apply only200000 under the root lease, and pass actual-JWT local6ee6d6a6 with exact cleanup.
 - [x] Publish Conductfcac3c4 and pass deployed b8c64115 six-group acceptance with exact cleanup/owner preservation.
-- [ ] Complete source-shaped loan UI, scoped database/administrator workflow and acceptance; do not infer unseen application forms.
+- [x] Complete source-shaped loan UI, scoped database/administrator workflow and seven-group local/deployed acceptance at0731bda; exact cleanup/owner preservation verified. Unseen application forms and document issuance remain unavailable.
+- [ ] Review/publish the next assistant corrections and rerun targeted real-model acceptance before expanding native readers.
+- [ ] Complete Dorm34-2 isolated gates, rollback preflight and actual-JWT acceptance;220000 remains unapplied.
+
+## Next authenticated source coverage [Issue #98]
+
+- [ ] Resume21-2 education-fund source after the new main-portal CAPTCHA handoff; capture only authorized read-only views.
+- [ ] Inspect internship detail forms, separate PracticeUnit55-1, remission21-3 and subsidy24-1 before defining native workflows.
+- [ ] Keep separate DTM and catalog4-2 Moodle/CU scopes explicit; do not count generic note records as native service completion.
+- [ ] Complete the reviewed dashboard row/footer/account-switch repair, then rendered and release acceptance.

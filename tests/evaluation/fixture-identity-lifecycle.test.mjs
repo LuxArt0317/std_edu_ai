@@ -3,14 +3,15 @@ import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {test} from 'node:test';
 import vm from 'node:vm';
-import {LiveFixtureError} from './live-fixtures.mjs';
+import {LiveFixtureError,readProtectedOwnerFingerprint,assertProtectedOwnerUnchanged,protectedOwnerFingerprintDigest} from './live-fixtures.mjs';
 
 const source=await readFile(new URL('./live-fixtures.mjs',import.meta.url),'utf8');
 const section=(start,end)=>{
   const a=source.indexOf(start),b=end?source.indexOf(end,a):source.length;
   assert.ok(a>=0&&b>a);return source.slice(a,b).replaceAll('export async function ','async function ').replaceAll('export function ','function ');
 };
-const lifecycleSource=section('async function assertNoPendingRecoveryLedgers(','async function readSnapshot(')
+const lifecycleSource=section('function checkedProtectedOwnerFingerprint(','/** Read only the exact configured')
+  +section('async function assertNoPendingRecoveryLedgers(','async function readSnapshot(')
   +section('async function createFixtureUser(','/** No mutation occurs')
   +section('export async function prepare(','function assertSupported(')
   +section('export function reconcileFixtureIdentity(')
@@ -18,6 +19,8 @@ const lifecycleSource=section('async function assertNoPendingRecoveryLedgers(','
 const runId='10000000-0000-4000-8000-000000000001',userId='20000000-0000-4000-8000-000000000001';
 const email='evaluation.student@example.invalid',ledger='/synthetic/active-fixtures-'+runId+'.json';
 const ownRow=()=>({id:userId,email,run_id:runId});
+const protectedOwnerEmail='protected-admin@example.invalid';
+const protectedFingerprint=()=>({id:'90000000-0000-4000-8000-000000000001',auth_hash:'a'.repeat(32),profile_hash:'b'.repeat(32),identities_hash:'c'.repeat(32)});
 
 function lifecycle({requests=[],users=[],rows=[],owned=true,locked=true,files:initialFiles,deleteFails=false,releaseFails=false,closeFails=false}={}){
   const events=[],deleted=[],records=new Map(rows.map(row=>[row.id,{...row}]));
@@ -27,6 +30,7 @@ function lifecycle({requests=[],users=[],rows=[],owned=true,locked=true,files:in
     if(!Array.isArray(strings)||!strings.raw)return strings;
     if(connectionClosed)throw new Error('CLOSED_CONNECTION_SECRET');
     const statement=strings.join('?');events.push({kind:'query',statement});
+    if(statement.includes('as auth_hash')){events.push({kind:'owner-read'});return Promise.resolve([protectedFingerprint()]);}
     if(statement.includes('raw_user_meta_data')){
       assert.match(statement,/or id=/,'Known IDs must be reconciled even if their email changed.');
       return Promise.resolve([...records.values()].filter(row=>row.email.toLowerCase()===values[0].toLowerCase()||row.id===values[1]));
@@ -37,6 +41,7 @@ function lifecycle({requests=[],users=[],rows=[],owned=true,locked=true,files:in
   };
   sql.release=async()=>{events.push({kind:'release'});connectionClosed=true;if(releaseFails)throw new Error('RELEASE_SECRET');};
   const state={runId,origin:'https://synthetic.invalid',startedAt:'2026-11-13T00:00:00Z',identityRequests:requests,users,
+    protectedOwnerEmail,protectedOwnerBefore:protectedFingerprint(),
     recordIds:new Set(),ledger,ledgerOwned:owned,ledgerTempOwned:false,locked,closing:false,closed:false,sql,
     db:{end:async()=>{events.push({kind:'end'});if(closeFails)throw new Error('CLOSE_SECRET');}},
     admin:{auth:{admin:{createUser:async payload=>{
@@ -51,7 +56,7 @@ function lifecycle({requests=[],users=[],rows=[],owned=true,locked=true,files:in
     }}}}};
   const context={state,PROJECT:'synthetic-project',UUID:/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i,
     PRIVATE_DIR:'/synthetic',readdir:async directory=>{assert.equal(directory,'/synthetic');events.push({kind:'scan'});return [...files.keys()].filter(path=>path.startsWith(directory+'/')).map(path=>path.slice(directory.length+1));},
-    LiveFixtureError,ownTables:[],fail:(code,message)=>{throw new LiveFixtureError(code,message);},query:async work=>work(),
+    LiveFixtureError,readProtectedOwnerFingerprint,assertProtectedOwnerUnchanged,protectedOwnerFingerprintDigest,ownTables:[],fail:(code,message)=>{throw new LiveFixtureError(code,message);},query:async work=>work(),
     randomBytes:()=>({toString:()=> 'PASSWORD_SECRET'}),
     open:async(path,flag,mode)=>{
       assert.equal(mode,0o600);events.push({kind:'open',path,flag});
@@ -117,6 +122,48 @@ test('actual prepare refuses an older recovery ledger before reserving a new led
   assert.equal(ledgerReads,0);assert.equal(life.files.get(prior),'OLD_RECOVERY_CONTENT_MUST_NOT_BE_READ');
   assert.equal(life.files.size,1);assert.equal(life.events.filter(event=>['open','write','rename','rm','create','delete'].includes(event.kind)).length,0);
   assert.equal(life.events.filter(event=>event.kind==='scan').length,1);assert.equal(life.context.state,undefined);
+});
+
+test('actual prepare captures the fixed owner baseline before ledger/Auth writes and baseline failure creates nothing',async()=>{
+  for(const baselineFails of [false,true]){
+    const life=lifecycle({owned:false}),root='/synthetic',project='xiftudmvxphxcjtmfmib';
+    const tagged=(strings,...values)=>Array.isArray(strings)&&strings.raw&&strings.join('?').includes('pg_try_advisory_lock')
+      ? Promise.resolve([{held:true}]):life.sql(strings,...values);
+    tagged.release=life.sql.release;
+    Object.assign(life.context,{
+      state:undefined,ROOT:root,PROJECT:project,resolve,URL,process:{cwd:()=>root},
+      deploymentEnvironment:()=>({SUPABASE_URL:'https://'+project+'.supabase.co',DATABASE_URL:'postgres://postgres:synthetic@db.'+project+'.supabase.co/postgres',SUPABASE_PUBLISHABLE_KEY:'synthetic-publishable',SUPABASE_SECRET_KEY:'synthetic-service-key'}),
+      readFile:async path=>{
+        if(path===root+'/deployment.json')return JSON.stringify({repository:'LuxArt0317/std_edu_ai',supabase:{projectRef:project,ownerEmail:protectedOwnerEmail},vercel:{productionUrl:'https://synthetic.invalid'}});
+        if(path===root+'/.gitignore')return 'artifacts/\n';
+        if(path===root+'/supabase/certs/prod-ca-2021.crt')return 'synthetic certificate';
+        throw new Error('Unexpected file read.');
+      },
+      mkdir:async()=>{},chmod:async()=>{},createClient:()=>life.admin,
+      postgres:(_connection,options)=>{
+        assert.equal(options.max,1);assert.equal(options.connection.statement_timeout,15000);assert.equal(options.connection.lock_timeout,3000);
+        return {reserve:async()=>tagged,end:life.db.end};
+      },
+      fetch:async()=>{throw new Error('Network is forbidden.');},
+      readProtectedOwnerFingerprint:async(sql,email)=>{
+        assert.equal(email,protectedOwnerEmail);assert.equal(sql,tagged);
+        if(baselineFails)throw new LiveFixtureError('fixture-protected-owner','Protected owner is unavailable.');
+        return readProtectedOwnerFingerprint(sql,email);
+      },
+    });
+    await assert.rejects(life.api.prepare({runId,cases:[{id:'synthetic-case'}],now:'2026-11-13T00:00:00Z',origin:'https://synthetic.invalid'}),error=>error.code===(baselineFails?'fixture-protected-owner':'fixture-create'));
+    assert.equal(life.deleted.length,0);
+    if(baselineFails){
+      assert.equal(life.files.size,0);assert.equal(life.events.filter(event=>['open','write','create','delete'].includes(event.kind)).length,0);
+    }else{
+      const first=kind=>life.events.findIndex(event=>event.kind===kind);
+      assert.ok(first('scan')<first('owner-read'));assert.ok(first('owner-read')<first('open'));assert.ok(first('open')<first('create'));
+      assert.equal(life.events.filter(event=>event.kind==='owner-read').length,2,'Cleanup also compares the owner after the ambiguous create.');
+      const saved=JSON.parse(life.files.get(ledger));assert.deepEqual(saved.protectedOwner,{version:1,fingerprint:protectedOwnerFingerprintDigest(protectedFingerprint())});
+      assert.doesNotMatch(life.files.get(ledger),/protected-admin|90000000|auth_hash|profile_hash|identities_hash|synthetic-service-key/);
+      assert.equal(saved.identityRequests[0].state,'uncertain');
+    }
+  }
 });
 
 test('an exclusively reserved intent survives ambiguous Auth create without persisting credentials or provider bodies',async()=>{
