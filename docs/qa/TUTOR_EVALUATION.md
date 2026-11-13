@@ -5,6 +5,10 @@
 - Verified linked student fields are read by an exact-scope RPC. Unavailable profile fields are left blank. The questionnaire stores only ratings and comments in stu.best.
 - The assistant gives local links for TA reports, TA self-evaluation and the tutor questionnaire. Populated TA forms and university submission remain unverified.
 
+## Production evidence
+
+Revision `de1ad601e35067d869787ab26a45d5535c1347a6` is live at stu.best. The exact manifest matches Vercel deployment `AYbVzPorwGJwzcmdy4cNa3i4gmbn`. Pinned production QA passed 15 real-JWT requests with exact cleanup, six browser groups at four widths, eight public routes and 50 assets. All three live assistant navigation answers returned local links. Only migration `20261114050000` was applied after rollback verification. [GitHub Quality run 43450755675](https://github.com/LuxArt0317/std_edu_ai/actions/runs/43450755675) passed.
+
 ## Verification
 
 - Start the compiled preview on port 5184 with `npm run build` and `npm run preview -- --port 5184 --strictPort`. Run `node tests/integration/tutor-evaluation-ui.mjs`. Expect six passing groups, including required ratings, retry, reload and guest/account isolation.

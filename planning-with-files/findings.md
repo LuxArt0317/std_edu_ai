@@ -247,3 +247,7 @@ The authenticated 23-1 index table is at x130/y185, about 933×133 CSS pixels at
 Catalog 25-1 and 25-2 share the teaching-assistant student index. Its function table contains only 教學助理自我評表 with instructions for June and December. Opening the link in the authorized student session led to a 校務系統事件訊息 page with 無問卷記錄 and a return link. There were no questionnaire fields or report records visible. Catalog 24-1 leads to its own CAPTCHA sign-in. Neither view is implemented in the 23-1 release.
 
 The TA dropdown contains two destinations, even though its index table lists only self-evaluation. The report target returns to the index after a browser alert. The self-evaluation target lands on a no-questionnaire event page. The tutor form contains ten single-choice scores and a comment. The source includes student and tutor values. The local form only shows verified linked student fields or the signed-in name, and leaves unlinked fields blank. The TA index at 1280×720 has a table at x130/y180 with width 933 and height 86. Compiled geometry is x130/y180, 933.30×86.
+
+## Service leadership source
+
+Catalog 42-1 shows a two-column index with four student destinations, for unit preselection, confirmation, lecture lookup and assignments/grades. At 1280×720 the source document frame is x159, y12, width 962. The navigation is x194, y130 and width 130, and the index main area is x339, y130 and width 613. The direct preselection destination returned to the main CAPTCHA. No protected unit, lecture, or result fields were obtained.

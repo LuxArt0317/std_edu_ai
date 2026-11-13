@@ -540,5 +540,5 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Observe both TA destinations and the tutor evaluation form through the authenticated source.
 - [x] Implement the observed TA routes, full tutor form, caller-scoped storage and local assistant navigation.
 - [x] Pass rollback verification, targeted browser checks and all 94 catalog destination checks.
-- [ ] Verify exact production release and disposable-account cleanup.
+- [x] Verify exact production release and disposable-account cleanup.
 - [ ] Compare populated TA reports and self-evaluations when a source account can open them.

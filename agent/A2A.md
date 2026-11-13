@@ -1,6 +1,6 @@
 ## Teaching assistant and tutor evaluation
 
-Root owns the TA and tutor evaluation files, directory entries, the School Affairs mount, and the relevant API hunks for Issue #98. The source exposed both TA links and the complete tutor questionnaire. The rollback preflight passed for migration 050000. Paused issue #100 paths remain excluded.
+Production `de1ad60` passed pinned API, browser, assistant navigation and public shell checks. All disposable records and root DB leases are cleared. Root owns the TA and tutor evaluation files, directory entries, the School Affairs mount, and the relevant API hunks for Issue #98. The source exposed both TA links and the complete tutor questionnaire. The rollback preflight passed for migration 050000. Paused issue #100 paths remain excluded.
 
 ## Exchange and conference grant service 23-1
 
