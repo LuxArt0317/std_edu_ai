@@ -2,6 +2,8 @@
 
 Service 7-4 has a dedicated local application, history and administrator review workflow. The observed university source showed the closed state and empty history. Open application, cancellation and populated-result screens remain unobserved. See [early graduation QA](../qa/EARLY_GRADUATION.md).
 
+Production `a29243d` is live as Vercel `6CJvUKQBqEDqw8SDwm4WBoDkkS4i`. Only migration 20261114130000 was applied, bringing the client to 147 migrations and 167 public RLS tables. Pinned browser with desktop/mobile contrast checks, 14 actual-JWT requests with exact cleanup, guest assistant handoff and eight public shell routes passed. The local full portal suite checked all 94 links and 25 menu views. Quality 43500735647 passed. The 94-destination inventory has 43 generic and 13 partial entries.
+
 ## Credit transfer (Issue #98)
 
 Service 7-2 implements private drafts, print, submission, history and administrator review. The current university form and populated history are not yet observed. See [credit transfer QA](../qa/CREDIT_TRANSFER.md).

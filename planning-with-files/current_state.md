@@ -1,6 +1,8 @@
 ## Early graduation [Issue #98]
 
-The previous user-question turn clarified the database requirement without changing the deployment. The early graduation implementation now connects the captured notice and history to the client schema and assistant. Rollback preflight and the 94-destination navigation inventory passed. Production remains at the credit-transfer revision until the new acceptance checks pass.
+Production `a29243d` is live as Vercel `6CJvUKQBqEDqw8SDwm4WBoDkkS4i`. Only migration 20261114130000 was applied, bringing the client to 147 migrations and 167 public RLS tables. Pinned browser with desktop/mobile contrast checks, 14 actual-JWT requests with exact cleanup, guest assistant handoff and eight public shell routes passed. The local full portal suite checked all 94 links and 25 menu views. Quality 43500735647 passed. The 94-destination inventory has 43 generic and 13 partial entries.
+
+Next source review: 7-5 teaching evaluation returned through a legacy alert to portal CAPTCHA, and 7-6 immediate teaching feedback returned to the course-selection CAPTCHA. The public Academic Affairs FAQ confirms separate evaluation periods and immediate feedback. Authenticated forms and the current evaluation window remain unobserved.
 
 ## Credit transfer (Issue #98)
 

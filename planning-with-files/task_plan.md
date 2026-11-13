@@ -5,7 +5,8 @@
 - [x] Inspect the source page and published workflow.
 - [x] Implement the term window, account eligibility, submission, cancellation, administrator review and shared assistant lookup.
 - [x] Exercise successful writes and denied scopes in an exact-target rollback.
-- [ ] Verify the compiled browser, deployed API and pinned release.
+- [x] Verify the compiled browser, deployed API and pinned release.
+- [ ] Inspect the authenticated teaching evaluation and immediate-feedback forms for services 7-5 and 7-6.
 - [ ] Compare the university’s open-period and populated-history screens when observable.
 
 ## Native Moodle URL resource pages [Issue #98]
@@ -637,10 +638,3 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify exact-client rollback, account boundaries and idempotency.
 - [x] Verify the migration and deployed runtime at `420b8f2`.
 - [ ] Inspect the current university open form and populated history.
-
-## Early graduation [Issue #98]
-
-- [x] Inspect the source entry, eligibility notice, closed state and nine-column history.
-- [ ] Implement the observed page, private application and result history, period-aware cancellation and assistant lookup.
-- [ ] Verify the database, browser and deployed workflow.
-- [ ] Inspect the current open application and cancellation screens.
