@@ -1,6 +1,6 @@
 ## Historical curriculum plans (Issue #98)
 
-Root owns the 12-5 matrix, archive, public curriculum PDF scope and release. The 24 program/archive source tables were captured. No private records or database migration belong to this change. Issue #100 remains paused.
+Root owns the 12-5 matrix, archive, public curriculum PDF scope and release. Production `fbf9680` passed 24 browser views, public assistant links, repeated real PDF requests and Quality 43460659119. Initial PDF requests returned 502, then passed on the same revision. Curriculum maps (12-7) now have 42 public overview and course-content sources captured. Career and competency detail links returned to sign-in. No private records or database migration belong to this change. Issue #100 remains paused.
 
 ## Parking permits (Issue #98)
 

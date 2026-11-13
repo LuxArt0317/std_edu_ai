@@ -562,4 +562,10 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 
 - [x] Capture the public program tabs and historical views. Verify the source table geometry and a sample plan PDF.
 - [x] Implement the curriculum matrix and each observed program/archive route on stu.best.
-- [ ] Verify plan navigation, document access, assistant links, and desktop and mobile layout.
+- [x] Verify plan navigation, sample document access, assistant links, and desktop and mobile layout.
+
+## Curriculum maps and related searches [Issue #98]
+
+- [x] Confirm the public map entry, all 42 program overview URLs, and all 42 course-content destinations. Identify the separate career and competency sign-in gates.
+- [ ] Capture the source map layouts and course-content tables for local navigation.
+- [ ] Implement the public map flow and evaluate protected detail pages when the school session is available.

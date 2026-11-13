@@ -16,3 +16,9 @@ The local logo, title graphic, and PDF icon came from `images/stu_logo.png`, `im
 - Run `node tests/integration/curriculum-plans-ui.mjs`. Expect 24 matrices, four widths, the local plan preview, existing private notes, and three guest gates.
 - Run `node --experimental-strip-types --test tests/api/curriculum-plans.test.ts`. Expect validation of the captured tables, exact assistant destination, strict query and method checks, and rejection of invalid or oversized PDF bodies.
 - In Academic Affairs → System list and search, open **歷年課程規劃查詢**. Choose a program, open the archive, and select a department-year cell. The document opens at a local route and offers the direct university download.
+
+## Production acceptance
+
+Vercel `8asjme9CEB4WpsK1BEry8q3rytPw` serves `fbf9680b3b2e2e940f8bf4e73066d7a14d197a51` with `index-CD21wS4O.js`. Quality run 43460659119 passed. The pinned browser suite passed the 24 tables, four widths, three guest redirects and private notes. The desktop table was within one CSS pixel of the measured reference in x, y, width and height. The frame height differs because the local footer includes private notes navigation.
+
+The first production browser and raw PDF runs returned 502. Both passed on the same revision after retry. Plan 115101 was byte-identical to the source download. Production plans 105101, 115871 and 115D81 also returned 200. All 21 direct source samples returned PDF bytes within the preview size limit. Unknown and repeated codes were rejected. Two live assistant questions reached the local lookup and the public shell passed eight routes and 50 assets.

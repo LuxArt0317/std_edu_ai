@@ -37,3 +37,6 @@
 - 46-1 follow-up: Inspected the source instructions footer and found a POST acknowledgment. Its destination remains unverified. Production Chrome attached the PDF viewer; a direct PDF link remains available.
 
 - 12-5: Implemented 24 curriculum matrices, plan previews and assistant navigation. Local 1,011 API/source checks, 541 units, 380 offline evaluations and all 94 catalog destinations passed. A real 1,861,707-byte university PDF matched its downloaded source exactly. The initial macOS test failed because the workspace and data module shared a case-insensitive basename; renaming the workspace fixed the build and unit suite. Browser harness waits now assert committed route content, and the byte comparison uses the raw document endpoint rather than the Chrome viewer wrapper.
+
+- 12-5: Published `fbf9680`; exact Vercel release and Quality passed. The initial raw and Chromium PDF checks returned 502, then passed unchanged. Four deployed PDF responses, including one exact source hash, two assistant links and eight-route shell passed.
+- 12-7: Reached all 42 public overview and course-content URLs. The career and competency links redirected to university sign-in. Source URL and structure inventories are in the ignored curriculum-maps artifact. The related interdisciplinary table and alternative-course search entry also responded.

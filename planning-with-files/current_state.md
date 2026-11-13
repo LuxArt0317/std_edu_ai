@@ -1,6 +1,6 @@
 ## Historical curriculum plans (Issue #98)
 
-The 12-5 route now has 12 program types, 24 current and archived tables, and 1,441 allowlisted plan codes. The preview handler returns only bounded PDFs from the fixed university path. Existing private notes retain a local route. The exact university PDF for 115101 passed the real local handler. No migration applied.
+The 12-5 route now has 12 program types, 24 current and archived tables, and 1,441 allowlisted plan codes. The preview handler returns only bounded PDFs from the fixed university path. Existing private notes retain a local route. The exact university PDF for 115101 passed the real local handler. Runtime `fbf9680b3b2e2e940f8bf4e73066d7a14d197a51` is live as Vercel `8asjme9CEB4WpsK1BEry8q3rytPw`; Quality 43460659119 passed. Revision-pinned Chromium covered 24 tables, four widths, three guest gates and existing notes. Four raw production plans returned PDFs; first attempts for 115101 returned 502 before a successful byte-exact retry. Both live assistant links and the shell passed. No migration applied.
 
 ## Parking permits (Issue #98)
 

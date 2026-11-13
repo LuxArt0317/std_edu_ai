@@ -1,6 +1,6 @@
 ## Historical curriculum plans (Issue #98)
 
-The Academic Affairs 12-5 entry opens 24 captured curriculum tables across 12 program types. Links open local plan previews with a direct university download available. See [curriculum QA](../qa/CURRICULUM_PLANS.md).
+The Academic Affairs 12-5 entry opens 24 captured curriculum tables across 12 program types. Links open local plan previews with a direct university download available. Revision `fbf9680` passed pinned browser, raw PDF, shell and assistant checks. Initial production preview requests returned 502 and passed on retry. See [curriculum QA](../qa/CURRICULUM_PLANS.md).
 
 ## Parking permits (Issue #98)
 
