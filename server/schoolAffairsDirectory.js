@@ -3,6 +3,7 @@ import {
   schoolServiceEntries, studentServiceByKey, teachingAssistantPath, tutorEvaluationPath, wifiGuidePath,
 } from '../src/features/public/affairs/studentServices.js';
 
+import {parkingInstructionsPath,parkingPermitPath} from '../src/features/public/affairs/parkingPermits.js';
 import {serviceLeadershipPath,serviceLeadershipViews} from '../src/features/public/affairs/serviceLeadership.js';
 import {studentAidNavigation} from './studentAidRecords.js';
 import {creditLoadHistoryNavigation} from './creditLoadHistory.js';
@@ -67,6 +68,16 @@ const leadershipMatches = [
   /服務領導.{0,16}(?:作業|成績|反思)|service leadership.{0,22}(?:assignments?|reflection|grades?)/i,
 ];
 const localServiceNavigation = [
+  {
+    id:'parking-instructions',match:/(?:parking|vehicle|car|motorcycle) permits?.{0,25}(?:guide|instructions?|rules)|(?:guide|instructions?|rules).{0,25}(?:parking|vehicle|car|motorcycle) permits?|(?:停車證|車輛通行證|汽機車證|車證).{0,12}(?:須知|需知|規定)/i,
+    title:['車證申請須知','Parking permit instructions'],localUrl:parkingInstructionsPath,
+    description:['在車證申請須知查看校方的申請流程與各停車場規定。','Open the parking permit instructions for the university’s application process and parking rules.'],
+  },
+  {
+    id:'parking-permit',match:/\b(?:parking|vehicle|car|motorcycle) permits?\b|停車證|汽機車證|車輛通行證|車證申請/i,
+    title:['汽機車證申請','Parking permit application'],localUrl:parkingPermitPath,
+    description:['在總務資訊開啟汽機車證申請。正式申請需在校方系統完成認證。','Open Parking Permit Application under General Affairs. Complete the university’s sign-in to apply.'],
+  },
   ...serviceLeadershipViews.map((view,index)=>({
     id:'service-leadership-'+view.key,match:leadershipMatches[index],title:[view.heading,view.englishLabel],
     localUrl:serviceLeadershipPath+'/'+view.key,description:['開啟'+view.heading+'。',view.english],

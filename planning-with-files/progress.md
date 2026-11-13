@@ -29,3 +29,5 @@
 - 42-1: Recreated the captured index and four entry pages. Verified local navigation, responsive layout and existing notes. Added the subject enrollment destination and exact Moodle material links.
 
 - 42-1: Published `636c751`, matched the public manifest and Vercel deployment, and passed Quality 43454524772. Production browser QA covered four leadership entry routes, four widths and six Moodle resource groups. Five live directory answers and the eight-route public shell passed. The official menu showed an inactivity prompt and returned to CAPTCHA after refresh. No migration was applied.
+
+- 46-1: Verified the parking entry, instructions PDF and two-stage authentication handoff. Isolated build, 1,006 API/source checks, 541 units, 380 offline evaluations, 94-link inventory and the focused Chromium suite passed. Client database verification passed at 139 migrations. No migration applied.

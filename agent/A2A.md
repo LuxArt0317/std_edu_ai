@@ -1,3 +1,7 @@
+## Parking permits (Issue #98)
+
+Root owns the 46-1 entry and instructions routes, parking assistant navigation, browser QA and release. Source public entry and PDF layout verified; university form unobserved. Paused Issue #100 paths remain excluded. No database change.
+
 ## Service Leadership and assistant destinations
 
 Root owns the 42-1 index and entry pages, subject reader, shared service links and related tests for Issue #98. No new database schema is needed. Production `636c751` passed pinned leadership and DTM browser checks, five live directory answers, the public shell and Quality 43454524772. The official menu was briefly visible after the user reported sign-in. Its inactivity prompt reloaded to CAPTCHA. The protected detail forms remain unverified. The paused Issue #100 files remain excluded.

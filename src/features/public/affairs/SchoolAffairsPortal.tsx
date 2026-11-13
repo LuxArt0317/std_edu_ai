@@ -85,6 +85,8 @@ import { StudentLoanWorkspace } from "./StudentLoanWorkspace";
 import { DormConductWorkspace } from "./DormConductWorkspace";
 import { EducationFundWorkspace } from "./EducationFundWorkspace";
 import { SchoolSubjectRecords } from "./SchoolSubjectRecords";
+import { ParkingPermitWorkspace } from "./ParkingPermitWorkspace";
+import { parkingInstructionsPath, parkingPermitPath } from "./parkingPermits.js";
 import { ServiceLeadershipWorkspace } from "./ServiceLeadershipWorkspace";
 import { serviceLeadershipPath, serviceLeadershipViews } from "./serviceLeadership.js";
 import { TeachingAssistantWorkspace } from "./TeachingAssistantWorkspace";
@@ -468,10 +470,13 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   if (normalizedPath === "/school-affairs/services/7-1") {
     return <CreditLoadApplication key={user.id} />;
   }
+  if (normalizedPath === parkingPermitPath || normalizedPath === parkingInstructionsPath) {
+    return <ParkingPermitWorkspace instructions={normalizedPath === parkingInstructionsPath} />;
+  }
   if (normalizedPath === serviceLeadershipPath) return <ServiceLeadershipWorkspace />;
   const leadershipView = serviceLeadershipViews.find(item => normalizedPath === serviceLeadershipPath + "/" + item.key);
   if (leadershipView) return <ServiceLeadershipWorkspace key={leadershipView.key} view={leadershipView} />;
-  if (servicePage && route.length === 3 && route[2] === "notes" && ["25-1", "25-2", "28-1", "42-1"].includes(route[1])) {
+  if (servicePage && route.length === 3 && route[2] === "notes" && ["25-1", "25-2", "28-1", "42-1", "46-1"].includes(route[1])) {
     return <StudentServiceWorkspace key={pathname} userId={user.id} serviceKey={route[1]} view="" />;
   }
   if (normalizedPath === teachingAssistantPath || normalizedPath === "/school-affairs/services/25-2") {

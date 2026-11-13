@@ -550,3 +550,10 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Correct assistant destinations for existing subjects and Moodle materials.
 - [x] Verify exact production release, local links and public shell.
 - [ ] Capture and implement protected leadership and internship workflows when available.
+
+## Parking permits [Issue #98]
+
+- [x] Verify the public parking entry, instructions viewer and university authentication boundary.
+- [x] Replace the generic entry with dedicated permit and instructions routes. Preserve existing private notes.
+- [ ] Verify the menu, assistant links, responsive layout and guest sign-in on the deployed revision.
+- [ ] Compare the authenticated application form and records when the university session is available.

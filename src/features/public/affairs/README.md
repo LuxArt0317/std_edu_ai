@@ -71,3 +71,5 @@ Grant service 23-1 opens the observed index and four distinct local destinations
 Catalog 25-1 and 25-2 open the teaching-assistant index, which has separate report and self-evaluation links. Catalog 28-1 opens the ten-question tutor evaluation. Previously stored personal notes stay available under each service’s `/notes` route.
 
 Service Leadership (42-1) opens the observed index and four distinct entry pages. The entry pages provide the exact university destinations while protected workflows are unobserved. Existing 42-1 notes remain at `/school-affairs/services/42-1/notes`. The assistant’s subject evidence opens `/school-affairs/records/subjects` with the same account’s enrollment rows and Taipei schedule.
+
+General Affairs parking (46-1) opens the dedicated permit entry and `/school-affairs/services/46-1/instructions`. The instructions embed the current university PDF with a direct link. The permit button opens the university service in a new tab. Existing account-owned notes are at `/school-affairs/services/46-1/notes`.

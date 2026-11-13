@@ -1,0 +1,117 @@
+.parking-permits {
+  min-height: 100vh;
+  background: #fff;
+  color: #333;
+  font: 14px/1.42857 "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.parking-permits > header {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  height: 50px;
+  background: #222;
+  border-bottom: 1px solid #080808;
+}
+
+.parking-permits > header nav {
+  width: min(900px, 100%);
+  margin-inline: auto;
+  padding-inline: 15px;
+}
+
+.parking-permits:has(.parking-permits-instructions) > header nav {
+  width: min(1170px, 100%);
+}
+
+.parking-permits > header a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 49px;
+  padding-inline: 15px;
+  color: #ddd;
+}
+
+.parking-permits > header a:hover,
+.parking-permits > header a[aria-current="page"] {
+  color: #fff;
+  background: #111;
+}
+
+.parking-permits-entry {
+  width: min(900px, 100%);
+  margin-inline: auto;
+  padding: 20px 15px 30px;
+}
+
+.parking-permits-apply {
+  display: table;
+  margin-inline: auto;
+  padding: 10px 16px;
+  border: 1px solid #2e6da4;
+  border-radius: 6px;
+  background: #286090;
+  color: #fff;
+  font-size: 18px;
+  line-height: 24px;
+}
+
+.parking-permits-apply:hover { background: #204d74; }
+
+.parking-permits-notice {
+  margin: 40px 0 24px;
+  font-size: clamp(18px, 2.3vw, 30px);
+}
+
+.parking-permits-signin {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  list-style: none;
+}
+
+.parking-permits-signin li {
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.parking-permits-signin h2 { margin-bottom: 8px; font-size: 18px; font-weight: 600; }
+
+.parking-permits-instructions {
+  width: min(1170px, 100%);
+  margin-inline: auto;
+  padding: 20px 15px 30px;
+}
+
+.parking-permits-instructions h1 {
+  margin: 0 0 22px;
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 33px;
+}
+
+.parking-permits-instructions iframe {
+  display: block;
+  width: min(1024px, 100%);
+  height: 700px;
+  margin-inline-start: min(12px, max(0px, (100% - 1024px)));
+  border: 1px solid #ddd;
+}
+
+.parking-permits footer,
+.parking-permits-instructions nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.parking-permits footer a,
+.parking-permits-instructions nav a { color: #245580; text-decoration: underline; }
+
+@media (max-width: 600px) {
+  .parking-permits-signin { grid-template-columns: 1fr; }
+}

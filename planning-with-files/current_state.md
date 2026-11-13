@@ -1,3 +1,7 @@
+## Parking permits (Issue #98)
+
+The local compiled parking entry, instructions and existing private notes passed browser checks at 1280, 768, 390 and 320 px. The menu opens the dedicated entry and the assistant cites exact destinations in English and Chinese. All 94 catalog links navigated. The official application still uses the university two-step sign-in, and its protected screens remain unavailable. Ready for publication.
+
 ## Service Leadership and assistant destinations
 
 The 42-1 index reproduces the observed frame and four destinations. Protected pages are login-gated, so each local entry page provides its exact source link. The assistant can open actual saved enrollment rows and time information, and exact Moodle resources. The removed overview remains retired. Runtime `636c7512aec9466de7994558ff47d7b9eff6bb7f` is live as Vercel `2quFSpWu4S8jXu4dEEEjNQcN9t57` with Quality `43454524772` passed. The pinned leadership and Moodle resource browser suites passed, along with five live assistant links and the public shell. The official portal showed its inactivity prompt and then returned to CAPTCHA on refresh after the reported sign-in. Issue #98 remains open. No migration was applied.

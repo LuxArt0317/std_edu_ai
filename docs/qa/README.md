@@ -25,3 +25,5 @@ This directory contains scoped verification records and explicit acceptance limi
 - [Teaching assistant and tutor evaluation](TUTOR_EVALUATION.md) — captured screens, private submission and QA.
 
 - [Service Leadership and assistant destinations](SERVICE_LEADERSHIP.md) — observed index, account records and QA.
+
+- [Parking permits](PARKING_PERMITS.md) — General Affairs entry, instructions and guest navigation.
