@@ -2,6 +2,8 @@
 
 Service 12-8 opens the dedicated search. The read-only adapter checks the exact university result and can fall back to three verified, dated Supabase snapshots. Runtime `52ec598` passed production browser, assistant and public-shell checks. The 94-entry menu still includes 49 generic pages and seven partial workflows. See [course substitution QA](../qa/COURSE_SUBSTITUTION.md).
 
+The assistant deadline correction is live at `c2607b0`. Both controlled-clock regressions failed on the previous source and pass on the correction. The deployed course substitution, four public assistant checks, eight-route shell and guest denial passed again. The deadline regression itself uses a synthetic clock. [GitHub Quality](https://github.com/LuxArt0317/std_edu_ai/actions/runs/43478065445) passed.
+
 ## Interdisciplinary registration (Issue #98)
 
 Service 7-3 opens the source-shaped registration table, with saved local registration and withdrawal, private progress and a dedicated assistant answer. Runtime `76c117c` and migration `20261114070000` are live with pinned browser and actual-JWT verification. See [registration QA](../qa/PROGRAM_REGISTRATION.md).

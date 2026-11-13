@@ -14,7 +14,7 @@ Vercel deployed revision `52ec598a870b16d17d970e10ba938f43d4a85d00` at [stu.best
 
 The isolated database check forced the upstream read to return HTTP 451. Each selection returned its exact dated Supabase record, and the uncaptured cohort 112 returned an unavailable result. Only migration `20261114080000` was applied. Both application roles have read-only RLS access to these public reference records. The catalog browser verified navigation for all 94 entries. It still identifies 49 generic pages and seven partial workflows.
 
-Repeat the production browser check with Node 24 and the repository's existing Playwright Chromium:
+Repeat the production browser check with Node 24. The harness uses the installed Google Chrome on macOS by default. Set `CHROME_PATH` when using a different Chromium binary.
 
 ```sh
 PUBLIC_SITE_ORIGIN=https://stu.best EXPECTED_RELEASE_REVISION="$(curl -fsS https://stu.best/release.json | node -p 'JSON.parse(require("node:fs").readFileSync(0,"utf8")).revision')" node tests/integration/course-substitution-ui.mjs

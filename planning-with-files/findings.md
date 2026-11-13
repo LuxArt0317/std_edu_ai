@@ -253,3 +253,9 @@ The TA dropdown contains two destinations, even though its index table lists onl
 Catalog 42-1 shows a two-column index with four student destinations, for unit preselection, confirmation, lecture lookup and assignments/grades. At 1280×720 the source document frame is x159, y12, width 962. The navigation is x194, y130 and width 130, and the index main area is x339, y130 and width 613. The direct preselection destination returned to the main CAPTCHA. No protected unit, lecture, or result fields were obtained.
 
 The School Affairs and internship detail sessions remain on CAPTCHA. The leadership index capture shows four distinct destinations. The preselection and lecture destination checks returned to the main school sign-in. The existing assistant subject link opened the retired account overview, and note links lost their destination after native pages replaced generic trackers. The new subject page reads the same existing enrollment data used by the assistant. Resource links use valid caller-owned course and material IDs.
+
+## First course selection source
+
+The authenticated 6-1 route opened the first-selection schedule for academic year 115, semester 1. It showed three distinct windows and eligible audiences. The schedule link opened a separate fee notice and the final entry displayed a browser alert before returning to the main portal. The browser exposed the alert type and destination. Its message and the open-period selection interface remain unverified. Four source PNGs and the 1280×720 geometry are preserved under the ignored `artifacts/visual-parity/first-selection/` directory.
+
+The existing `affairs_course_selection_records` rows contain caller-scoped history for term and phase, literal course details, and explicit timetable membership. The migration distinguishes these rows from enrollment decisions. The open-period workflow needs verified enrollment rules and its own transaction semantics before it can record student selections.
