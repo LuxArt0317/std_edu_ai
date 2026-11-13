@@ -85,6 +85,8 @@ import { StudentLoanWorkspace } from "./StudentLoanWorkspace";
 import { DormConductWorkspace } from "./DormConductWorkspace";
 import { EducationFundWorkspace } from "./EducationFundWorkspace";
 import { SchoolSubjectRecords } from "./SchoolSubjectRecords";
+import { CurriculumMapWorkspace } from "./CurriculumMapWorkspace";
+import { curriculumMapPath } from "./curriculumMaps.js";
 import { CurriculumPlans } from "./CurriculumPlanWorkspace";
 import { curriculumPlansPath } from "./curriculumPlans.js";
 import { ParkingPermitWorkspace } from "./ParkingPermitWorkspace";
@@ -472,6 +474,11 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   if (normalizedPath === "/school-affairs/services/7-1") {
     return <CreditLoadApplication key={user.id} />;
   }
+  if (normalizedPath === curriculumMapPath) return <CurriculumMapWorkspace />;
+  if (route[0] === "services" && route[1] === "12-7" && route[2] === "program" &&
+    (route.length === 4 || (route.length === 5 && ["courses", "career", "competencies"].includes(route[4])))) {
+    return <CurriculumMapWorkspace id={route[3]} view={route[4]} />;
+  }
   if (normalizedPath === curriculumPlansPath) return <CurriculumPlans />;
   if (route[0] === "services" && route[1] === "12-5") {
     if (route[2] === "program" && (route.length === 4 || (route.length === 5 && route[4] === "archive"))) {
@@ -485,7 +492,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   if (normalizedPath === serviceLeadershipPath) return <ServiceLeadershipWorkspace />;
   const leadershipView = serviceLeadershipViews.find(item => normalizedPath === serviceLeadershipPath + "/" + item.key);
   if (leadershipView) return <ServiceLeadershipWorkspace key={leadershipView.key} view={leadershipView} />;
-  if (servicePage && route.length === 3 && route[2] === "notes" && ["12-5", "25-1", "25-2", "28-1", "42-1", "46-1"].includes(route[1])) {
+  if (servicePage && route.length === 3 && route[2] === "notes" && ["12-5", "12-7", "25-1", "25-2", "28-1", "42-1", "46-1"].includes(route[1])) {
     return <StudentServiceWorkspace key={pathname} userId={user.id} serviceKey={route[1]} view="" />;
   }
   if (normalizedPath === teachingAssistantPath || normalizedPath === "/school-affairs/services/25-2") {

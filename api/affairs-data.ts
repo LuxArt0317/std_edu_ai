@@ -1,3 +1,4 @@
+import { serveCurriculumMap } from '../server/curriculumMapLookup.js';
 import { serveCurriculumPlan } from '../server/curriculumPlanDocument.js';
 import { loadTutorEvaluation } from '../server/tutorEvaluation.js';
 import { loadExchangeGrants } from '../server/exchangeGrant.js';
@@ -22,6 +23,7 @@ type Response = {status:(code:number)=>Response;json:(body:unknown)=>void;setHea
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
 export default async function handler(request:Request,response:Response) {
   const scopes=Array.isArray(request.query?.scope)?request.query.scope:[request.query?.scope];
+  if (scopes.includes('curriculum-map')) return serveCurriculumMap(request,response);
   if (scopes.includes('curriculum-plan')) return serveCurriculumPlan(request,response);
   const strictStudentScope=scopes.some(scope=>typeof scope==='string'&&(scope.startsWith('tutor-evaluation')||scope.startsWith('exchange-grant')||scope.startsWith('fee-remission')||scope.startsWith('student-conduct')||scope.startsWith('student-loan')||scope.startsWith('dormitory-conduct')||scope.startsWith('dtm-dashboard-layout')||scope.startsWith('dtm-grade-report')||scope.startsWith('dtm-course-content')||scope.startsWith('dtm-course-resource')));
   if(first(request.query?.resource)==='conversations'&&!strictStudentScope)return conversations(request,response);

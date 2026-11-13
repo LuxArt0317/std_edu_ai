@@ -1,3 +1,7 @@
+## Curriculum maps (Issue #98)
+
+The Academic Affairs 12-7 entry opens a source-shaped four-college directory and 42 local department pages. The year and track filters return live public course maps. The career and competency entry pages link to the university’s authenticated details. See [curriculum map QA](../qa/CURRICULUM_MAPS.md).
+
 ## Historical curriculum plans (Issue #98)
 
 The Academic Affairs 12-5 entry opens 24 captured curriculum tables across 12 program types. Links open local plan previews with a direct university download available. Revision `fbf9680` passed pinned browser, raw PDF, shell and assistant checks. Initial production preview requests returned 502 and passed on retry. See [curriculum QA](../qa/CURRICULUM_PLANS.md).

@@ -40,3 +40,5 @@
 
 - 12-5: Published `fbf9680`; exact Vercel release and Quality passed. The initial raw and Chromium PDF checks returned 502, then passed unchanged. Four deployed PDF responses, including one exact source hash, two assistant links and eight-route shell passed.
 - 12-7: Reached all 42 public overview and course-content URLs. The career and competency links redirected to university sign-in. Source URL and structure inventories are in the ignored curriculum-maps artifact. The related interdisciplinary table and alternative-course search entry also responded.
+
+- 12-7: Captured the source directory, selectors, layout measurements and artwork. Implemented the local index, 42 department routes and live year/track course maps. The real handler passed 43 selections, including populated and empty results. Local 1,015 API/source, 541 units, 380 offline evaluation checks, 94-link navigation and four-width browser acceptance passed. The university still requires sign-in for career and competency details.

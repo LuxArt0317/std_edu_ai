@@ -1,3 +1,4 @@
+import {curriculumMapPath} from '../src/features/public/affairs/curriculumMaps.js';
 import {curriculumPlansPath} from '../src/features/public/affairs/curriculumPlans.js';
 import {
   internshipPath, leavePath, officialInternshipUrl, officialLeaveUrl, officialRegistrarUrl, officialWifiUrl,
@@ -69,6 +70,11 @@ const leadershipMatches = [
   /服務領導.{0,16}(?:作業|成績|反思)|service leadership.{0,22}(?:assignments?|reflection|grades?)/i,
 ];
 const localServiceNavigation = [
+  {
+    id:'curriculum-map',match:/\b(?:curriculum|course) maps?\b|課程地圖/i,
+    title:['課程地圖','Curriculum maps'],localUrl:curriculumMapPath,
+    description:['依學院與系所瀏覽課程地圖，並選擇學年與學程查詢課程。','Browse curriculum maps by college and department. Choose an academic year and track to view courses.'],
+  },
   {
     id:'historical-curriculum',match:/\b(?:historical curriculum|curriculum plans?|program plans?)\b|歷年課程規劃|課程規劃表/i,
     title:['歷年課程規劃查詢','Historical curriculum plans'],localUrl:curriculumPlansPath,

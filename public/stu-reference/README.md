@@ -11,3 +11,5 @@ On November12,2026, `course-catalog-heading.jpg` was captured from the observed 
 `dorm-conduct-logo.png` and `dorm-conduct-notice.png` are the observed public dormitory notice assets. `dorm-conduct-assets.json` records source URLs, MIME types, dimensions and hashes without private event-message URLs or identities.
 
 The `curriculum/` directory holds the university’s public curriculum header and PDF icons. Origin and checksums are recorded in the [curriculum QA guide](../../docs/qa/CURRICULUM_PLANS.md).
+
+The `curriculum-map/` directory contains source logo, header rules, introductory illustration, relationship diagram and navigation button images captured from [Curriculum Mapping](https://info.stu.edu.tw/ACA/student/CM/cm.asp).

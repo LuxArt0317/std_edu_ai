@@ -1,3 +1,7 @@
+## Curriculum maps (Issue #98)
+
+Root owns 12-7, its captured college and department selectors, the public course lookup scope and publication. All 42 live default selections and a historical track passed locally. Protected career and competency details remain behind university sign-in. Issue #100 stays paused.
+
 ## Historical curriculum plans (Issue #98)
 
 Root owns the 12-5 matrix, archive, public curriculum PDF scope and release. Production `fbf9680` passed 24 browser views, public assistant links, repeated real PDF requests and Quality 43460659119. Initial PDF requests returned 502, then passed on the same revision. Curriculum maps (12-7) now have 42 public overview and course-content sources captured. Career and competency detail links returned to sign-in. No private records or database migration belong to this change. Issue #100 remains paused.

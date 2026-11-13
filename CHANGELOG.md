@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Add curriculum-map navigation for 42 departments and live year and track course lookups. Keep career and competency links available through the university’s sign-in. [#98]
+
 - Add historical curriculum tables for all 12 program types and their archives, with local previews of university plan PDFs and assistant navigation. Published at `fbf9680`. [#98]
 
 - Replace the generic parking permit route with a dedicated entry and instructions, preserve private notes, and link both views from the campus assistant. Published at `097a814` after compiled and deployed checks. [#98]

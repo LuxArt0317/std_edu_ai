@@ -29,3 +29,5 @@ This directory contains scoped verification records and explicit acceptance limi
 - [Parking permits](PARKING_PERMITS.md) — General Affairs entry, instructions and guest navigation.
 
 - [Historical curriculum plans](CURRICULUM_PLANS.md) — captured tables, PDF preview and verification.
+
+- [Curriculum maps](CURRICULUM_MAPS.md) — department navigation, public lookup and authentication boundaries.

@@ -75,3 +75,5 @@ Service Leadership (42-1) opens the observed index and four distinct entry pages
 General Affairs parking (46-1) opens the dedicated permit entry and `/school-affairs/services/46-1/instructions`. The instructions embed the current university PDF with a direct link. The permit button opens the university service in a new tab. Existing account-owned notes are at `/school-affairs/services/46-1/notes`.
 
 Historical curriculum plans (12-5) has a table for each program and archive, a local PDF preview, and existing notes at `/school-affairs/services/12-5/notes`. The tables describe published program curricula. Personal enrollment stays in the account’s subject and timetable views.
+
+Curriculum maps (12-7) has a four-college directory, department overview pages and an interactive year/track course lookup. Career and competency pages hand off to university sign-in. Existing private notes remain at `/school-affairs/services/12-7/notes`.

@@ -48,3 +48,5 @@ Moodle resource reads use strict `dtm-course-resource` scope with one course and
 `GET /api/affairs-data?scope=tutor-evaluation` reads the signed-in account’s evaluation and verified profile fields. `POST /api/affairs-action` accepts `submit_tutor_evaluation` with a request ID, ten ratings and an optional comment. Both routes require the caller’s Google identity.
 
 `GET /api/affairs-data?scope=curriculum-plan&code=115101` returns an inline public curriculum PDF for an allowlisted plan code. This scope takes no user ID and sends no account token. The preview is bounded to 4.4 MB. The UI provides the direct university download for preview failures.
+
+`GET /api/affairs-data?scope=curriculum-map&program=1&year=115&track=L創新應用` reads the public curriculum map. It accepts only captured selectors and returns plain-text summary and semester tables.
