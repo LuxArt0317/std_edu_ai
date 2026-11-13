@@ -519,6 +519,6 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 ## Phase Next: Native fee-remission21-3 [Issue #98]
 
 - [x] Inspect restored authenticated source and save its actual closed-period instructions and empty history layout.
-- [ ] Replace generic note tracker with the native page; retain existing notes separately.
-- [ ] Persist exact account-scoped literal remission history with read-only student access and audited administrator maintenance.
+- [x] Replace the generic tracker with the native page and retain notes at `/school-affairs/services/21-3/notes`.
+- [x] Implement account-owned literal history with read-only student access and audited administrator maintenance. Migration `20261114030000` was applied after rollback verification.
 - [ ] Independently verify source layout, own-account boundaries, real persistence and deployed behavior without inventing an open-period application.

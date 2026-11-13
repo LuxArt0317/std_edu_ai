@@ -21,6 +21,7 @@ import {CertificateRecordEditor} from './CertificateRecordEditor';
 import {TuitionDocumentsManager} from './TuitionDocumentsManager';
 import {StudentConductManager} from './StudentConductManager';
 import {StudentLoanManager} from './StudentLoanManager';
+import {FeeRemissionManager} from './FeeRemissionManager';
 import {DormConductManager} from './DormConductManager';
 import {DtmGradeReportManager} from './DtmGradeReportManager';
 import {DtmCourseContentManager} from './DtmCourseContentManager';
@@ -67,6 +68,9 @@ export function SchoolRecordManager({admin,busy,onManage,onRefresh}:{admin:Admin
   const [tuitionOpen,setTuitionOpen]=useState(false);
   const [conductOpen,setConductOpen]=useState(false);
   const [conductOpenedFor,setConductOpenedFor]=useState('');
+  const [feeRemissionOpen,setFeeRemissionOpen]=useState(false);
+  const [feeRemissionOpenedFor,setFeeRemissionOpenedFor]=useState('');
+  const [feeRemissionPending,setFeeRemissionPending]=useState(false);
   const [loanOpen,setLoanOpen]=useState(false);
   const [loanOpenedFor,setLoanOpenedFor]=useState('');
   const [dormConductOpen,setDormConductOpen]=useState(false);
@@ -96,14 +100,14 @@ export function SchoolRecordManager({admin,busy,onManage,onRefresh}:{admin:Admin
   const reviewAssignment=reviewAssignments.find(item=>item.id===reviewAssignmentId);
   function clearCharge(){setChargeId('');setChargeLabel('');setAmountDue('');setAmountPaid('0');setChargeDue('');setFeeMetadata(pendingFeeDraft());}
   function clearAssignment(){setAssignmentId('');setRelation('');setAssignmentTitle('');setAssignmentDetails('');setAssignmentDue('');}
-  function changeStudent(value:string){if(courseContentBusy)return;setCourseContentOpen(false);setCourseContentOpenedFor('');setStudentId(value);setReviewAssignmentId('');clearCharge();clearAssignment();}
+  function changeStudent(value:string){if(courseContentBusy||feeRemissionPending)return;setCourseContentOpen(false);setCourseContentOpenedFor('');setStudentId(value);setReviewAssignmentId('');clearCharge();clearAssignment();}
   function saveEnrollment(event:FormEvent){event.preventDefault();void onManage({kind:'save_enrollment',payload:{student_id:selected.id,section_id:sectionId,status:enrollmentStatus}});}
   function saveCharge(event:FormEvent){event.preventDefault();void onManage({kind:'save_charge',payload:{id:chargeId,student_id:selected.id,label:chargeLabel,amount_due:amountDue,amount_paid:amountPaid,due_on:chargeDue,...feeMetadata}}).then(saved=>{if(saved)clearCharge();});}
   function saveAssignment(event:FormEvent){event.preventDefault();const [kind,id]=relation.split(':');void onManage({kind:'save_assignment',payload:{id:assignmentId,student_id:selected.id,enrollment_id:kind==='school'?id:'',dtm_course_id:kind==='dtm'?id:'',title:assignmentTitle,details:assignmentDetails,due_at:assignmentDue?new Date(`${assignmentDue}:00+08:00`).toISOString():''}}).then(saved=>{if(saved)clearAssignment();});}
   return <div className="affairs-manager">
     <h3>Manage sample school records</h3>
     <p>These records power stu.best account answers. Changes are audited and remain separate from official university systems.</p>
-    <label className="affairs-manager-student">Student account<select disabled={busy||courseContentBusy} value={selected.id} onChange={event=>changeStudent(event.target.value)}>{admin.students.map(item=><option key={item.id} value={item.id}>{item.full_name} · {item.student_number}</option>)}</select></label>
+    <label className="affairs-manager-student">Student account<select disabled={busy||courseContentBusy||feeRemissionPending} value={selected.id} onChange={event=>changeStudent(event.target.value)}>{admin.students.map(item=><option key={item.id} value={item.id}>{item.full_name} · {item.student_number}</option>)}</select></label>
     <div className="affairs-record-grid">
       <section><h3>Subjects</h3><ul>{studentEnrollments.map(item=><li key={item.id}><strong>{item.code}</strong><span>{item.status}</span></li>)}</ul>
         <form onSubmit={saveEnrollment} className="affairs-record-form"><label htmlFor="manager-section">Add or update enrollment</label><select id="manager-section" required value={sectionId} onChange={event=>setSectionId(event.target.value)}><option value="">Choose a subject</option>{admin.sections.map(item=><option key={item.id} value={item.id}>{item.code} · {item.term}</option>)}</select><select aria-label="Enrollment status" value={enrollmentStatus} onChange={event=>setEnrollmentStatus(event.target.value)}><option value="enrolled">Enrolled</option><option value="completed">Completed</option><option value="withdrawn">Withdrawn</option></select><Button disabled={busy} type="submit">Save enrollment</Button></form>
@@ -155,6 +159,16 @@ export function SchoolRecordManager({admin,busy,onManage,onRefresh}:{admin:Admin
     {managerId&&<section className="affairs-manager" aria-label="Selected student dormitory conduct maintenance">
       <Button type="button" variant="outline" disabled={busy} aria-expanded={dormConductOpen} onClick={()=>{setDormConductOpenedFor(managerId+':'+selected.user_id);setDormConductOpen(value=>!value);}}>{dormConductOpen?'Hide dormitory conduct status':'Manage dormitory conduct status'}</Button>
       {(dormConductOpen||dormConductOpenedFor===managerId+':'+selected.user_id)&&<div hidden={!dormConductOpen}><DormConductManager key={managerId+':'+selected.user_id} managerId={managerId} userId={selected.user_id} onSaved={onRefresh}/></div>}
+    </section>}
+    {managerId && <section className="affairs-manager" aria-label="Selected student fee remission history">
+      <Button type="button" variant="outline" disabled={busy} aria-expanded={feeRemissionOpen}
+        onClick={() => {setFeeRemissionOpenedFor(managerId + ':' + selected.user_id); setFeeRemissionOpen(value => !value);}}>
+        {feeRemissionOpen ? 'Hide tuition-reduction history' : 'Manage tuition-reduction history'}
+      </Button>
+      {(feeRemissionOpen || feeRemissionOpenedFor === managerId + ':' + selected.user_id) && <div hidden={!feeRemissionOpen}>
+        <FeeRemissionManager key={managerId + ':' + selected.user_id} managerId={managerId} userId={selected.user_id}
+          parentBusy={busy} onPendingChange={setFeeRemissionPending} />
+      </div>}
     </section>}
     {managerId&&<section className="affairs-manager" aria-label="Selected student loan maintenance">
       <Button type="button" variant="outline" disabled={busy} aria-expanded={loanOpen} onClick={()=>{setLoanOpenedFor(managerId+':'+selected.user_id);setLoanOpen(value=>!value);}}>{loanOpen?'Hide loan records':'Manage loan records'}</Button>

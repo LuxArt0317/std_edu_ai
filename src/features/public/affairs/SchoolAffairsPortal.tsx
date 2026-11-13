@@ -84,6 +84,8 @@ import { StudentConductWorkspace } from "./StudentConductWorkspace";
 import { StudentLoanWorkspace } from "./StudentLoanWorkspace";
 import { DormConductWorkspace } from "./DormConductWorkspace";
 import { EducationFundWorkspace } from "./EducationFundWorkspace";
+import { FeeRemissionWorkspace } from "./FeeRemissionWorkspace";
+import { feeRemissionPath } from "../../../../server/feeRemissionContract.js";
 import { dormitoryConductPath } from "@/services/dormitoryConduct";
 import { studentLoanPaths, type StudentLoanView } from "@/services/studentLoan";
 import { studentConductPath } from "@/services/studentConduct";
@@ -456,6 +458,12 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   }
   if (normalizedPath === "/school-affairs/services/7-1") {
     return <CreditLoadApplication key={user.id} />;
+  }
+  if (normalizedPath === `${feeRemissionPath}/notes`) {
+    return <StudentServiceWorkspace key={pathname} userId={user.id} serviceKey="21-3" view="" />;
+  }
+  if (normalizedPath === feeRemissionPath) {
+    return <FeeRemissionWorkspace key={user.id} userId={user.id} />;
   }
   if (normalizedPath === "/school-affairs/services/21-2") {
     return <EducationFundWorkspace/>;

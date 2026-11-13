@@ -90,3 +90,5 @@ The layout harness creates exactly two Google-shaped student accounts and one no
 `dtm-course-content-ui.mjs` checks compiled course section order, exact activity navigation, account isolation, failed/inconsistent pagination and desktop/mobile layout with synthetic responses. Live content persistence is a separate serialized exact-client gate. See [course content QA](../../docs/qa/DTM_COURSE_CONTENT.md).
 
 Moodle URL resource checks: `dtm-course-resource-ui.mjs` renders compiled synthetic sessions; `dtm-course-resource-rls-live.mjs --self-test` is offline. Root-only `--execute --preflight --expected-migrations=135 --expected-rls=152` uses rollback-only DDL with exact recovery evidence. Execution is not implied by the file existing.
+
+Fee-remission verification includes `fee-remission-ui.mjs` for navigation and rendered workflows, `fee-remission-rls-live.mjs` for rollback-only authorization checks, and `fee-remission-http-live.mjs` for exact-client persistence and fixture cleanup. See [fee-remission QA](../../docs/qa/FEE_REMISSION.md).

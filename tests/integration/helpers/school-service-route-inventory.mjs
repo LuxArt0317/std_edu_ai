@@ -4,7 +4,7 @@ import {schoolServiceEntries} from '../../../src/features/public/affairs/student
 // Explicit review inventory, not inferred from the presence of a generic body.
 // A native mount says nothing about unobserved workflows or live backend acceptance.
 const service = id => '/school-affairs/services/'+id;
-const genericIds = '1-1 2-1 4-2 4-3 5-1 6-1 6-2 6-3 6-4 6-5 7-2 7-3 7-4 7-5 7-6 8-1 10-1 12-1 12-2 12-5 12-6 12-7 12-8 16-1 18-1 19-1 21-3 23-1 24-1 25-1 25-2 27-1 28-1 29-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 42-1 43-1 44-1 45-1 46-1 47-1 50-1 50-2 51-1 52-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
+const genericIds = '1-1 2-1 4-2 4-3 5-1 6-1 6-2 6-3 6-4 6-5 7-2 7-3 7-4 7-5 7-6 8-1 10-1 12-1 12-2 12-5 12-6 12-7 12-8 16-1 18-1 19-1 23-1 24-1 25-1 25-2 27-1 28-1 29-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 42-1 43-1 44-1 45-1 46-1 47-1 50-1 50-2 51-1 52-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
 const native = [
   ['7-1','.credit-load-application','credit-load-application-ui.mjs','Observed instructions and closed-period acknowledgement only; open application and staff review forms remain unobserved.'],
   ['9-1','.student-scholarship','scholarship-ui.mjs','Observed scholarship workflow; distinct from other aid forms.'],
@@ -20,6 +20,7 @@ const native = [
   ['17-1','.enrollment-certificate','enrollment-certificate-ui.mjs','Observed assessment; metadata does not grant certificate download.'],
   ['21-1','.student-loan','student-loan-workspace-ui.mjs','Observed loan status/navigation; no application or payment integration.'],
   ['21-2','.education-fund','education-fund-ui.mjs','Observed closed-period instructions; application controls unobserved.'],
+  ['21-3','.fee-remission','fee-remission-ui.mjs','Observed closed-period instructions and account-owned seven-column history.'],
   ['22-1','.student-aid','student-aid-ui.mjs','Observed aid record list; no inferred eligibility.'],
   ['26-1','.housing-workspace','housing-ui.mjs','Local housing application workflow; no institutional synchronization.'],
   ['34-1','.housing-history','housing-ui.mjs','Local housing history and assigned beds.'],
@@ -104,6 +105,7 @@ export function schoolServiceReadFixture(rawUrl,method,user,origin) {
     case 'syllabus-options':return {terms:[],departments:[]};
     case 'enrollment-certificate':return {assessments:[],documents:[]};
     case 'student-conduct':return {records:[]};
+    case 'fee-remission':return {userId:user.id,records:[]};
     case 'dormitory-conduct':return {snapshot:null};
     case 'student-loan':return {status:'loaded',record:null};
     case 'tuition-documents':return {periods:[],settlements:[],documents:[]};

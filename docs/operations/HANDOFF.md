@@ -1,3 +1,7 @@
+## Tuition-reduction history
+
+Service 21-3 now has the observed closed-period layout and a private history read. The database migration and actual-JWT handler verification passed. The isolated release candidate is under verification. See [tuition-reduction QA](../qa/FEE_REMISSION.md).
+
 ## Native Moodle URL resources — published
 
 Runtime `7476b4e5b6d7a81d95e3c9a47af5e16ad54aef63` is published and Vercel Ready as `DaqqwC12pEUNjxKFg7dpr5K1u2Mb`. The exact public manifest (built2026-11-13T13:44:26.588Z) and entry `index-NK0ZdXWn.js` match. Deployed actual-JWT run `3b8ead29` passed five groups/62HTTP requests/15successfulwrites with exact fixture cleanup, protected-owner/unrelated-state preservation and closed connection. Pinned compiled UI passed six groups at1533/768/390/320 with zero overflow, unexpected requests or page errors; public shell passed eight routes/50assets and two method boundaries without provider calls. Only migration242000 was applied after exact plan/rollback preflight:136migrations/152publicRLS. Isolated999API/source,541units,build/types,lint,handoff104 and dependency audit0 passed. Quality43435922591 attempt2 succeeded unchanged; attempt1 failed the existing short-deadline supplemental-reader test. All66pausedIssue100 fingerprints are preserved. The green panel remains removed and the live chatbot opens/closes. Complete protected-system parity remains unfinished. See [verification](../qa/DTM_COURSE_RESOURCE.md).

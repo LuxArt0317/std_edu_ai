@@ -40,3 +40,5 @@ Grade reports use strict `affairs-data` scopes `dtm-grade-report`, `dtm-grade-re
 `affairs-data` exposes strict `dtm-course-content`, administrator inventory/course-picker and exact-assignment scopes. `affairs-manage` dispatches versioned content save/delete operations. These scopes cannot fall through to conversation handling; see [course content QA](../docs/qa/DTM_COURSE_CONTENT.md).
 
 Moodle resource reads use strict `dtm-course-resource` scope with one course and material ID. No caller-supplied account selector or conversation fallback is accepted. See [resource QA](../docs/qa/DTM_COURSE_RESOURCE.md).
+
+`GET /api/affairs-data?scope=fee-remission` returns the signed-in account’s history. `fee-remission-admin` takes one `user_id` and requires the verified administrator. `POST /api/affairs-manage` accepts `save_fee_remission` and `delete_fee_remission` with a request ID and expected version.

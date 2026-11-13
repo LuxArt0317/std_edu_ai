@@ -1,3 +1,5 @@
+import { manageFeeRemission } from '../server/feeRemission.js';
+import { feeRemissionKinds, feeRemissionMaxPayloadBytes } from '../server/feeRemissionContract.js';
 import { AffairsWorkspaceError, manageAffairsRecord, verifyAffairsToken } from '../server/affairsWorkspace.js';
 import { manageCourseCatalog } from '../server/courseCatalog.js';
 import { DtmSubmissionError, manageDtmSubmissionReview } from '../server/dtmSubmissions.js';
@@ -29,17 +31,19 @@ export default async function handler(request:Request,response:Response) {
   const loanKind=studentLoanKinds.find(kind=>kind===input?.kind);
   const dormitoryKind=dormitoryConductKinds.find(kind=>kind===input?.kind);
   const gradeReportKind=dtmGradeReportKinds.find(kind=>kind===input?.kind);
+  const feeRemissionKind = feeRemissionKinds.find(kind => kind === input?.kind);
   const courseContentKind=dtmCourseContentKinds.find(kind=>kind===input?.kind);
   const certificateKind=input?.kind==='save_enrollment_certificate_assessment'?'save_enrollment_certificate_assessment'
     :input?.kind==='save_enrollment_certificate_document'?'save_enrollment_certificate_document':null;
-  const maxBodyBytes=courseContentKind?dtmCourseContentMaxPayloadBytes+1024:gradeReportKind?dtmGradeReportMaxPayloadBytes+1024:dormitoryKind?dormitoryConductMaxPayloadBytes+1024:loanKind?studentLoanMaxPayloadBytes+1024:conductKind?studentConductMaxPayloadBytes+1024:tuitionKind?tuitionDocumentMaxPayloadBytes+1024:syllabusMetadata?2000:certificateKind?10000:input?.kind==='save_graduation_review'?140000:input?.kind==='save_housing_period'?26000:catalogAction?48000:submissionReview?14000:12000;
+  const maxBodyBytes=feeRemissionKind?feeRemissionMaxPayloadBytes+1024:courseContentKind?dtmCourseContentMaxPayloadBytes+1024:gradeReportKind?dtmGradeReportMaxPayloadBytes+1024:dormitoryKind?dormitoryConductMaxPayloadBytes+1024:loanKind?studentLoanMaxPayloadBytes+1024:conductKind?studentConductMaxPayloadBytes+1024:tuitionKind?tuitionDocumentMaxPayloadBytes+1024:syllabusMetadata?2000:certificateKind?10000:input?.kind==='save_graduation_review'?140000:input?.kind==='save_housing_period'?26000:catalogAction?48000:submissionReview?14000:12000;
   if(!input || typeof input.kind!=='string' || !input.payload || typeof input.payload!=='object'
     || Array.isArray(input.payload) || Buffer.byteLength(JSON.stringify(input),'utf8')>maxBodyBytes
-    || (certificateKind||syllabusMetadata||tuitionKind||conductKind||loanKind||dormitoryKind||gradeReportKind||courseContentKind)&&(Object.keys(input).length!==2||!Object.hasOwn(input,'kind')||!Object.hasOwn(input,'payload'))){response.status(400).json({error:'Invalid manager request.'});return;}
+    || (certificateKind||syllabusMetadata||tuitionKind||conductKind||loanKind||dormitoryKind||gradeReportKind||courseContentKind||feeRemissionKind)&&(Object.keys(input).length!==2||!Object.hasOwn(input,'kind')||!Object.hasOwn(input,'payload'))){response.status(400).json({error:'Invalid manager request.'});return;}
   try {
     const authorization=first(request.headers.authorization);
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
-    const result=courseContentKind?await manageDtmCourseContent({...account,requestDeadline},courseContentKind,input.payload)
+    const result=feeRemissionKind?await manageFeeRemission({...account,requestDeadline},feeRemissionKind,input.payload)
+      :courseContentKind?await manageDtmCourseContent({...account,requestDeadline},courseContentKind,input.payload)
       :gradeReportKind?await manageDtmGradeReport({...account,requestDeadline},gradeReportKind,input.payload)
       :dormitoryKind?await manageDormitoryConductRecord({...account,requestDeadline},dormitoryKind,input.payload)
       :loanKind?await manageStudentLoanRecord({...account,requestDeadline},loanKind,input.payload)

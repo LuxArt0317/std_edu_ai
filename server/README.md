@@ -89,3 +89,5 @@ The supplemental-answer correction separates coordinated student identity reques
 `dtmCourseContent.js` validates bounded section references and canonical account/course-scoped responses, forwards caller JWTs to dedicated RPCs and validates durable save receipts. Course-wide revision checks support consistent inventory pagination. See [course content QA](../docs/qa/DTM_COURSE_CONTENT.md).
 
 `dtmCourseResource.js` reads one caller-owned course/material through RLS and validates literal destinations without fetching them. Source provenance remains separate. See [resource QA](../docs/qa/DTM_COURSE_RESOURCE.md).
+
+`feeRemission.js` forwards private history operations with the caller’s token. `feeRemissionContract.js` validates the bounded request and response shared by the server and browser.

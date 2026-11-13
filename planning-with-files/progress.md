@@ -13,3 +13,5 @@
 - Native Moodle URL resources: isolated build/assets, 999 API/source checks, 541 units, lint, 104-document handoff and dependency audit passed. Compiled synthetic browser acceptance passed six groups at four widths; first selector-only failure retained. Rollback preflight201c3b12 passed four groups/17commands with complete cleanup; two earlier oracle failures remain recorded. Only target-url migration is planned next; Issue100 unchanged.
 
 - Published7476b4e ReadyDaqq; exact release manifest/entry, production API3b8ead29(5groups/62requests/15writes), synthetic UI(6groups/4viewports), and8routes/50assets passed. All live fixtures cleaned and lease/connection closed. CIattempt1 existing timing failure retained; attempt2 succeeded unchanged. User restored portal access; captured fee-remission21-3 for next batch, no school mutation.
+
+- Implemented and locally verified service 21-3. Applied only migration `20261114030000` after exact plan and rollback preflight. Actual-JWT handler acceptance passed 15 requests with exact cleanup. Final production verification pending.

@@ -44,3 +44,5 @@ Browser clients call the public, School Affairs and protected Nexus endpoints. `
 `dtmCourseResource.ts` loads one owned course/material through the dedicated `dtm-course-resource` scope. It checks the caller before and after transport, enforces a 30-second total deadline and 196608-byte UTF-8 response limit, and validates the exact response scope. Stored `targetUrl` is separate from Moodle `sourceUrl` provenance; neither this client nor its renderer fetches the destination. Missing materials and failed reads remain distinct. The shared material type exposes an optional nullable `targetUrl` for compatible older snapshots. See [URL-resource QA](../../docs/qa/DTM_COURSE_RESOURCE.md).
 
 `dtmCourseContent.ts` provides caller-guarded course layout reads, exact assignment lookup and administrator mutations. Its bounded full-page assembler rejects inconsistent revisions and incomplete results. It does not query generic assistant snapshots.
+
+`feeRemission.ts` reads history and dispatches administrator changes with the initiating account’s session. The shared contract validates literal cells, the returned owner, and the write receipt.

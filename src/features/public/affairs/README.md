@@ -63,3 +63,5 @@ Catalog entry `4-5` opens the copied homepage as a full document, so its static 
 `DtmGradeReportManager` is available from selected-student administrator maintenance. Its independent course picker can discover that student's personal courses without widening legacy course RLS. It preserves item order, exact cells and explicit totals; unsaved or uncertain operations lock course switching until replay/reload or explicit draft discard. See [grade-report QA](../../../../docs/qa/DTM_GRADE_REPORTS.md).
 
 `DtmCourseContentManager` provides selected-student course placement and order maintenance within the existing guarded manager. Its hidden disclosure retains drafts; pending edits and uncertain operations lock course/student switching. Stale references require explicit removal. It adds no authoring controls to the copied student course page.
+
+`/school-affairs/services/21-3` shows the captured tuition-reduction instructions and seven-column account history. Previous notes are accessible at `/school-affairs/services/21-3/notes`. Administrators maintain history for the selected student through `/school-affairs/admin/records`.

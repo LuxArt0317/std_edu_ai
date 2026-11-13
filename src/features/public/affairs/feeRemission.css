@@ -1,0 +1,80 @@
+.fee-remission {
+  min-height: 100dvh;
+  box-sizing: border-box;
+  padding: 5px 25px 25px;
+  background: #efeff0;
+  color: #111;
+  font: 12px/1.231 "微軟正黑體", "Microsoft JhengHei", Verdana, Helvetica, Arial, sans-serif;
+}
+.fee-remission-notice, .fee-remission-results {
+  width: 90%;
+  margin: 0 auto;
+}
+.fee-remission-notice {
+  background: white;
+  box-shadow: inset 1px 0 #b8b8b8, inset -1px 0 #b8b8b8;
+}
+.fee-remission .fee-remission-notice h1 {
+  margin: 0;
+  background: #7d8b9b;
+  color: white;
+  text-align: center;
+  font: inherit;
+  line-height: 16.5px;
+}
+.fee-remission-notice ol {
+  margin: 0;
+  padding: 0 4px 6.5px 26px;
+  list-style: decimal outside;
+  color: #000;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 27px;
+}
+.fee-remission-notice li + li { margin-top: 6.5px; }
+.fee-remission-notice li::marker { font-size: 13px; font-weight: normal; }
+.fee-remission-notice a { color: #294381; }
+.fee-remission-notice a:hover { text-decoration: underline; }
+.fee-remission-notice strong, .fee-remission-period { color: #d82b1e; }
+.fee-remission .fee-remission-period, .fee-remission .fee-remission-closed {
+  margin: 0;
+  font-size: 24px;
+  line-height: 29.54px;
+  text-align: center;
+}
+.fee-remission-period { font-weight: bold; }
+.fee-remission-closed { color: #0000ee; }
+.fee-remission-results { margin-top: 60px; }
+.fee-remission-results table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.fee-remission-results caption {
+  margin: 0 0 17px;
+  color: #3c3c3c;
+  font-size: 17px;
+  font-weight: 300;
+  line-height: 24px;
+}
+.fee-remission-results th {
+  padding: 2px;
+  border: 1px solid #463e41;
+  background: #555;
+  color: white;
+  font-size: 13px;
+  line-height: 29.92px;
+}
+.fee-remission-results td {
+  padding: 8px 2px;
+  border: 1px solid #bacac7;
+  background: white;
+  color: #111;
+  line-height: 18px;
+  text-align: center;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.fee-remission-results button { text-decoration: underline; }
+@media (max-width: 640px) {
+  .fee-remission { padding-inline: 10px; }
+  .fee-remission-notice, .fee-remission-results { width: 100%; }
+  .fee-remission .fee-remission-period, .fee-remission .fee-remission-closed { font-size: 19px; line-height: 1.35; }
+  .fee-remission-results th { line-height: 1.4; overflow-wrap: anywhere; }
+}

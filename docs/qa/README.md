@@ -17,3 +17,5 @@ This directory contains scoped verification records and explicit acceptance limi
 - [Moodle course content placement](DTM_COURSE_CONTENT.md): saved section/order, exact assignment lookup, administrator maintenance and scoped verification.
 
 - [Moodle URL resources](DTM_COURSE_RESOURCE.md): native pages, exact records and separate resource destinations; explicit scope and pending acceptance.
+
+- [Tuition-reduction history](FEE_REMISSION.md)

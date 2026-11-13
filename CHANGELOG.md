@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Open the tuition-reduction service as a standalone page with the captured closed-period instructions and private history. Add audited administrator maintenance and keep previous personal notes at `/school-affairs/services/21-3/notes`. [#98]
+
 - Open Moodle materials as native course resource pages with exact account/course reads, explicit stored destinations and working parent navigation when the general snapshot is unavailable. Preserve existing material management and provenance; see [resource QA](docs/qa/DTM_COURSE_RESOURCE.md). [#98]
 
 - Persist Moodle activity section placement/order independently of activity type, retaining unplaced records and exact assignment links. Add guarded administrator maintenance and strict account-scoped reads. Release evidence: [course content QA](docs/qa/DTM_COURSE_CONTENT.md). [#98]
