@@ -51,10 +51,10 @@ export function CourseSelection({snapshot,busy,error,onReload,onLogout,view}:Pro
           {menu.links.map(([label,path])=><DropdownMenuItem asChild key={path}>{path.startsWith('https:')?<a href={path} target="_blank" rel="noopener noreferrer">{label}</a>:<Link to={path}>{label}</Link>}</DropdownMenuItem>)}
         </DropdownMenuContent></DropdownMenu>)}
         <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost">Index<ChevronDown aria-hidden="true"/></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
-          <DropdownMenuItem asChild><Link to="/school-affairs">Index</Link></DropdownMenuItem><DropdownMenuItem onSelect={onLogout}>Logout</DropdownMenuItem>
+          <DropdownMenuItem asChild><Link to="/school-affairs/course-selection">Index</Link></DropdownMenuItem><DropdownMenuItem onSelect={onLogout}>Logout</DropdownMenuItem>
         </DropdownMenuContent></DropdownMenu>
       </nav>
-      <nav className="course-selection-breadcrumb" aria-label="頁面位置"><i className="portal-icon" aria-hidden="true">{'\uf015'}</i><Link to="/school-affairs">Index</Link><span aria-hidden="true">›</span><span>{title}</span></nav>
+      <nav className="course-selection-breadcrumb" aria-label="頁面位置"><i className="portal-icon" aria-hidden="true">{'\uf015'}</i><Link to="/school-affairs/course-selection">Index</Link><span aria-hidden="true">›</span><span>{title}</span></nav>
       <main className="course-selection-main" aria-busy={busy}>
         <header className="course-selection-heading"><h1><i className="portal-icon" aria-hidden="true">{'\uf19c'}</i>{title} <small>» {name}</small></h1></header>
         <div className="course-selection-toggle-line"><button type="button" className="course-selection-toggle" aria-expanded={expanded} aria-controls={criteriaId} onClick={()=>setExpanded(!expanded)}><i className="portal-icon" aria-hidden="true">{'\uf002'}</i> 查詢條件輸入 <i className="portal-icon" aria-hidden="true">{expanded?'\uf102':'\uf103'}</i></button></div>

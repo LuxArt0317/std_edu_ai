@@ -72,6 +72,8 @@ import { HousingWorkspace } from "./HousingWorkspace";
 import { PendingFees } from "./PendingFees";
 import { CreditLoadHistory } from "./CreditLoadHistory";
 import { CourseSelection } from "./CourseSelection";
+import { CreditLoadApplication } from "./CreditLoadApplication";
+import { CourseSelectionIndex } from "./CourseSelectionIndex";
 import { AcademicGrades } from "./AcademicGrades";
 import { GraduationReview } from "./GraduationReview";
 import { LegacyGraduationReview } from "./LegacyGraduationReview";
@@ -444,6 +446,16 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   if (records) return <Navigate replace to="/school-affairs" />;
   if (serviceAlias) {
     return <Navigate replace to={{pathname: serviceAlias, search, hash}} />;
+  }
+  if (["tutor", "dean", "academic"].some(role => normalizedPath === `/school-affairs/course-selection/review/${role}`)) {
+    // Source student session returns all three review destinations to system Index.
+    return <Navigate replace to={{pathname: "/school-affairs/course-selection", search, hash}} />;
+  }
+  if (normalizedPath === "/school-affairs/course-selection") {
+    return <CourseSelectionIndex />;
+  }
+  if (normalizedPath === "/school-affairs/services/7-1") {
+    return <CreditLoadApplication key={user.id} />;
   }
   if (normalizedPath === "/school-affairs/services/21-2") {
     return <EducationFundWorkspace/>;

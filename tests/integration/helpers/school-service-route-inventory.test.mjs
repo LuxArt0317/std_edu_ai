@@ -18,14 +18,15 @@ test('all 94 catalog entries have explicit destinations and honest independent s
     if(row.workflowSuite)await access(row.workflowSuite);
   }
   const result=summarizeServiceRoutes();
-  assert.deepEqual(result.kinds,{generic:62,'local-portal':2,preview:1,'local-document':2,redirect:1,native:25,partial:1});
-  assert.equal(result.workflowVerified,0);assert.equal(result.genericGaps.length,62);
+  assert.deepEqual(result.kinds,{generic:61,'local-portal':2,preview:1,'local-document':2,redirect:1,native:26,partial:1});
+  assert.equal(result.workflowVerified,0);assert.equal(result.genericGaps.length,61);
   assert.equal(result.externalDestinations,0,'Official-source provenance URLs are not actual menu destinations.');
   assert.match(result.dtm,/not one of these 94/);
   for(const id of ['4-2','4-3'])assert.equal(inventory.find(row=>row.id===id).kind,'generic','Separate Moodle instances are not implemented by DTM.');
   assert.equal(inventory.find(row=>row.id==='4-1').kind,'preview');
   assert.match(inventory.find(row=>row.id==='48-2').sourceBoundary,/unavailable/);
   assert.match(inventory.find(row=>row.id==='21-2').sourceBoundary,/closed-period/);
+  assert.match(inventory.find(row=>row.id==='7-1').sourceBoundary,/open application and staff review forms remain unobserved/);
 });
 test('full URL comparison keeps query/hash and distinguishes the observed redirect from aliases',()=>{
   for(const id of ['6-6','20-1','33-1','53-1','4-4','4-5']){

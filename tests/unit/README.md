@@ -20,3 +20,5 @@ Assistant session hook/storage/isolation tests cover per-chat failures, saving a
 `dtm-dashboard-layout.test.tsx` checks observed block configuration, owner-keyed state, save/reset/retry/conflict behavior and transport cancellation. Source geometry and live persistence require separate browser checks.
 
 `education-fund.test.tsx` verifies captured closed-period instructions and local links; `student-service-aliases.test.tsx` exercises exact legacy routes, history replacement and unknown-path handling. `student-service-mutation-isolation.test.tsx` runs42 actual-transport DOM cases with synthetic session/fetch responses covering account switches, late completion, duplicates and unchanged retries. These are offline checks, not database acceptance.
+
+`credit-load-application.test.tsx` covers the captured closed-period entry and system-index local destinations without authentication, API or database calls.

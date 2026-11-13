@@ -23,11 +23,11 @@ export function CreditLoadHistory({userId}:{userId:string}) {
           {menu.links.map(([label,path])=><DropdownMenuItem asChild key={path}>{path.startsWith('https:')?<a href={path} target="_blank" rel="noopener noreferrer">{label}</a>:<Link to={path}>{label}</Link>}</DropdownMenuItem>)}
         </DropdownMenuContent></DropdownMenu>)}
         <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost">Index<ChevronDown size={10} aria-hidden="true"/></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
-          <DropdownMenuItem asChild><Link to="/school-affairs">Index</Link></DropdownMenuItem>
+          <DropdownMenuItem asChild><Link to="/school-affairs/course-selection">Index</Link></DropdownMenuItem>
           <DropdownMenuItem asChild><Link to="/school-affairs/signed-out">Logout</Link></DropdownMenuItem>
         </DropdownMenuContent></DropdownMenu>
       </nav>
-      <nav className="credit-load-breadcrumb" aria-label="頁面位置"><i className="portal-icon" aria-hidden="true">{'\uf015'}</i><Link to="/school-affairs">Index</Link><span aria-hidden="true">›</span><span>歷年超減修申請紀錄</span></nav>
+      <nav className="credit-load-breadcrumb" aria-label="頁面位置"><i className="portal-icon" aria-hidden="true">{'\uf015'}</i><Link to="/school-affairs/course-selection">Index</Link><span aria-hidden="true">›</span><span>歷年超減修申請紀錄</span></nav>
       <main className="credit-load-main">
         <header className="credit-load-heading"><h1><i className="portal-icon" aria-hidden="true">{'\uf19c'}</i>歷年超減修申請紀錄 <small>» 申請紀錄</small></h1></header>
         <h2 className="credit-load-record-heading"><i className="portal-icon" aria-hidden="true">{'\uf03a'}</i>申請紀錄</h2>

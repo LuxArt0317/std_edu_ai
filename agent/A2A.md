@@ -1,3 +1,11 @@
+## Credit-load freeze and release gates
+
+Root owns the23-path isolated7-1/index batch. Authors are frozen; independent source geometry and interaction review accepted. Full943API/source and451units, build/assets/lint/handoff101/audit0 pass. Compiled7-1 and94/94inventory QA on fresh root-owned5184 passed. Root proceeds with named-path commit/release. Issue100 remains user-paused;66 fingerprints unchanged. No DB/model lease or operations in this UI batch.
+
+## Active native credit-load entry batch —2026-11-13
+
+Root owns Portal, source inspection, shared docs/inventory integration and release. scholarship_workflow owns new unmounted CreditLoadApplication/CourseSelectionIndex/shell/CSS and focused units. protected_service_audit is read-only coverage reviewer. dtm_course_layout is read-only next-batch DTM grade contract auditor. No database/model calls or source-school mutations. Issue100 remains user-paused; its66fingerprinted files must not be changed, staged or published.
+
 ## Current removal release accepted —2026-11-13
 
 Published b14a672afdcbe642171ec1e8cd7d53609fc9a912; Vercel Ready GRtYdMvHk9LbGA6Uiy8D4DZJkQGE, exact /release.json and Quality43407165569 success verified. Deployed startup and8routes/50assets passed. Guarded production checks passed three copied-page assistant routes at1440/390, widget absence on home/student entrance/news detail, guest records-to-login and normal/signin. Responses were mocked; no real model/auth requests or database writes. The live homepage was also visually verified. The unrelated long-entry Escape-focus failure remains documented; no complete protected-system acceptance is claimed. All three subordinate tasks are complete; their browser/server work is closed. Root retains independent Issue98 coordination only. Issue100 stays user-paused; preserve its66fingerprinted files.

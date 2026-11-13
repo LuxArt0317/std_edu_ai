@@ -26,7 +26,7 @@ The signed-in index follows the university's notice and menu layout. **請假填
 
 `/services/12-4` is the authenticated course-offering catalog, separate from enrollment. It retains source filters, the21-column result table, sorting, paging and distinct course details. Only the site administrator edits published local sample offerings. Native standalone services retain the existing floating assistant because they do not have the portal account menu.
 
-`/services/39-1` has the measured eight-column pending-fees table with stored occurrence date, category, contact and payment units. Positive outstanding balances remain read-only; manager edits use the existing audited charge RPC. `/services/11-3` has the measured six-column credit-load history with account-owned records and a versioned admin editor. The unseen7-1 application is not implemented by this history page.
+`/services/39-1` has the measured eight-column pending-fees table with stored occurrence date, category, contact and payment units. Positive outstanding balances remain read-only; manager edits use the existing audited charge RPC. `/services/11-3` has the measured six-column credit-load history with account-owned records and a versioned admin editor. The open-period7-1 application is not implemented by this history page.
 
 `/services/11-1` and `/services/11-2` use separate academic-year/semester/selection-phase snapshots. The source-shaped query form displays seven history columns or all fourteen weekly periods, including multiple meetings and unscheduled courses. Administrators explicitly maintain timetable membership; source remarks are preserved without deriving selection success from them. Legacy assistant enrollment citations to `/records` now reach the portal index; this presentation change does not alter the assistant's stored evidence or paused evaluation work.
 
@@ -57,3 +57,5 @@ Legacy numeric service URLs 20-1, 33-1 and 53-1 replace history with the canonic
 The observed selection-confirmation entry `6-6` redirects to the native selection query `11-1`, as the captured source does. It does not expose or invent a confirmation transaction.
 
 Catalog entry `4-5` opens the copied homepage as a full document, so its static page loads instead of the SPA mirror fallback. Native portal and DTM routes keep their existing navigation.
+
+`/services/7-1` and `/school-affairs/course-selection` provide the observed credit-load instructions/closed-period acknowledgment and selection-system index. The three student-facing review links return to that index as observed; this does not implement staff review. Existing selection and credit-load history Index links now remain within that system. See [credit-load entry scope and QA](../../../../docs/qa/CREDIT_LOAD_APPLICATION.md).

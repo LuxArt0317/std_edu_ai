@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Replace the generic credit-load7-1 tracker with the observed instructions and closed-period acknowledgment; add the selection-system index, local student review redirects and corrected Index navigation. The open-period application and staff review forms remain unobserved. No database or school writes. Isolated943API/source,451units,build/assets and independent41-element source geometry checks pass; compiled7-1 and94/94menu navigation also pass; production acceptance pending. [#98]
+
 - Remove the floating green disclosure/account-status panel from copied public pages while preserving the shared chatbot and normal sign-in routes. [#98]
 
 - Remove the custom My School Affairs personal overview and menu entry, redirect old links to the native index, and preserve existing maintenance at a verified administrator-only route. Bind its writes to the initiating account and restore the copied homepage menu destination. No saved data or database schema is removed. Independent review, API/unit/build and scoped browser checks pass; b14a672 is published with successful Quality and deployed shell/chat/removal checks. [#98]

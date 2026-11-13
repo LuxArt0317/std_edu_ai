@@ -1,5 +1,15 @@
 # Task Plan
 
+## Credit-load entry and selection-system navigation [Issue #98]
+
+- [x] Reinspect signed-in source7-1, its acknowledged closed-window notice and system-index destination without submitting anything.
+- [x] Verify all three source staff-review links return this student account to the system index.
+- [x] Replace the generic7-1 tracker with the measured instructions/closed-period flow and add the observed selection-system index.
+- [x] Verify native route/auth/navigation, source geometry and mobile containment; update honest workflow coverage.
+- [ ] Run isolated release gates, publish and verify the production revision.
+
+The unobserved open-period application and staff review forms remain separate gaps. In parallel, audit literal Moodle grade-report persistence for the next native backend batch. Preserve the user-paused Issue100 files and all failed evidence.
+
 ## Remove the added personal summary and floating panel [Issue #98]
 
 - [x] Remove the floating green disclosure/account-status panel from copied public pages; retain the chatbot and normal sign-in routes.
