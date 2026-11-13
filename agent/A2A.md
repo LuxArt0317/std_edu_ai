@@ -1,6 +1,6 @@
 ## Curriculum maps (Issue #98)
 
-Root owns 12-7, its captured college and department selectors, the public course lookup scope and publication. All 42 live default selections and a historical track passed locally. Protected career and competency details remain behind university sign-in. Issue #100 stays paused.
+Root owns 12-7, its captured college and department selectors, the public course lookup scope and publication. All 42 live default selections and a historical track passed locally. Production `a549676` passed 42 overview routes, four widths, two live populated results, one empty result, bilingual assistant navigation and the public shell. The initial repeat of the unrelated assistant session isolation test failed locally and the full rerun passed. Protected career and competency details remain behind university sign-in. Issue #100 stays paused.
 
 ## Historical curriculum plans (Issue #98)
 

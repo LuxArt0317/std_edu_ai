@@ -569,5 +569,5 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Confirm the public map entry, all 42 program overview URLs, and all 42 course-content destinations. Identify the separate career and competency sign-in gates.
 - [x] Capture the source map layouts and course selectors for local navigation.
 - [x] Implement the public map flow and verify real year/track results.
-- [ ] Verify the exact production revision and assistant links.
+- [x] Verify the exact production revision and assistant links.
 - [ ] Evaluate and implement the protected career and competency detail pages when the school session is available.

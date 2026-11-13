@@ -42,3 +42,6 @@
 - 12-7: Reached all 42 public overview and course-content URLs. The career and competency links redirected to university sign-in. Source URL and structure inventories are in the ignored curriculum-maps artifact. The related interdisciplinary table and alternative-course search entry also responded.
 
 - 12-7: Captured the source directory, selectors, layout measurements and artwork. Implemented the local index, 42 department routes and live year/track course maps. The real handler passed 43 selections, including populated and empty results. Local 1,015 API/source, 541 units, 380 offline evaluation checks, 94-link navigation and four-width browser acceptance passed. The university still requires sign-in for career and competency details.
+
+- 12-7: Published `a549676`. Exact manifest, live browser, four widths, three production lookup results, two assistant links and the public shell passed. The repeat local unit run failed one existing assistant-session assertion. The next full run passed 541.
+- 12-6/12-8: Captured the 35-row interdisciplinary table and 30 document links. Verified the alternative-course year/program selectors and department autocomplete; the source returned HTTP 451 on the first results POST. Source captures are under the ignored curriculum-maps artifact.
