@@ -1,7 +1,7 @@
 # Changelog
 ## Unreleased
 
-- Add the observed Service Leadership index and four local entry pages. Link assistant evidence to saved subjects, and exact Moodle material pages. [#98]
+- Add the observed Service Leadership index and four local entry pages. Link assistant evidence to saved subjects and exact Moodle material pages. Published at `636c751` with revision-pinned browser checks and five live directory answers. [#98]
 
 - Open the teaching-assistant index and its observed student destinations from both catalog entries. Add the ten-question tutor evaluation with private, retry-safe submission and assistant links. [#98]
 

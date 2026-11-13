@@ -10,3 +10,13 @@ The assistant's subject evidence now points to an account-owned enrollment view 
 - Run `node tests/integration/service-leadership-ui.mjs`. Expect four distinct destinations, four viewport checks, private notes, a populated subject destination and guest sign-in.
 - Run `node --test tests/evaluation/evidence-links.test.mjs`. Expect evidence links to stay within the included records and exact local routes.
 - Run `node --experimental-strip-types --test tests/api/service-leadership.test.ts`. Expect the leadership, Moodle resource and subject destinations to pass.
+
+## Production acceptance
+
+Vercel deployment `2quFSpWu4S8jXu4dEEEjNQcN9t57` serves revision `636c7512aec9466de7994558ff47d7b9eff6bb7f`, built on 2026-11-13 at 15:40:11 UTC with `index-BVK78oDy.js`. GitHub Quality run 43454524772 succeeded.
+
+- The revision-pinned Chromium suites passed the leadership index and four entries, four viewport widths, saved notes, subject destination, guest sign-in, and six Moodle URL resource checks. They used synthetic account records.
+- Five live public assistant questions returned the exact local leadership links in Chinese and English, through the directory.
+- The public shell passed eight routes, 50 assets and both assistant runtime startup checks.
+- Local QA passed 1,005 API and source checks, 541 unit tests, 380 offline evaluation tests, and navigation through all 94 catalog entries. The inventory counts 55 generic and five partial entries. This release applies no migrations.
+- The official portal displayed its inactivity prompt and returned to CAPTCHA after refresh. The four protected leadership forms are still unverified.

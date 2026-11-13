@@ -548,5 +548,5 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Confirm the 42-1 index layout and source destination paths. Recheck protected detail access.
 - [x] Mount the observed index, four distinct entry pages and account-owned notes.
 - [x] Correct assistant destinations for existing subjects and Moodle materials.
-- [ ] Verify exact production release, local links and public shell.
+- [x] Verify exact production release, local links and public shell.
 - [ ] Capture and implement protected leadership and internship workflows when available.

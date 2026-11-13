@@ -27,3 +27,5 @@
 - Published de1ad60 and verified the production manifest, 15 API requests, exact cleanup, six browser groups, three assistant links, and the public shell. Captured service leadership index geometry and verified that internship and learning support prompt for independent CAPTCHA sign-ins. The Moodle session timed out.
 
 - 42-1: Recreated the captured index and four entry pages. Verified local navigation, responsive layout and existing notes. Added the subject enrollment destination and exact Moodle material links.
+
+- 42-1: Published `636c751`, matched the public manifest and Vercel deployment, and passed Quality 43454524772. Production browser QA covered four leadership entry routes, four widths and six Moodle resource groups. Five live directory answers and the eight-route public shell passed. The official menu showed an inactivity prompt and returned to CAPTCHA after refresh. No migration was applied.

@@ -1,6 +1,6 @@
 ## Service Leadership and assistant destinations (Issue #98)
 
-Catalog 42-1 opens the observed leadership index, with four distinct local entry pages and exact official links for protected operations. The assistant's subject evidence opens the existing account data in a dedicated view. Moodle material citations open exact local resource pages. Existing leadership notes are reachable from the new index. See [workflow and QA](../qa/SERVICE_LEADERSHIP.md).
+Catalog 42-1 opens the observed leadership index, with four distinct local entry pages and exact official links for protected operations. The assistant's subject evidence opens the existing account data in a dedicated view. Moodle material citations open exact local resource pages. Existing leadership notes are reachable from the new index. Production `636c751` passed the revision-pinned browser suites and five live assistant navigation queries. The university session returned to CAPTCHA on refresh, so the four official forms remain unverified. See [workflow and QA](../qa/SERVICE_LEADERSHIP.md).
 
 ## Teaching assistant and tutor evaluation (Issue #98)
 
