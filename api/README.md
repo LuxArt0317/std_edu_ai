@@ -52,3 +52,5 @@ Moodle resource reads use strict `dtm-course-resource` scope with one course and
 `GET /api/affairs-data?scope=curriculum-map&program=1&year=115&track=L創新應用` reads the public curriculum map. It accepts only captured selectors and returns plain-text summary and semester tables.
 
 `GET /api/affairs-data?scope=interdisciplinary-programs` reads the public Supabase catalog without an account selector. This scope accepts no additional query parameters.
+
+`GET /api/affairs-data?scope=program-registrations` reads the verified caller’s registrations. Optional `answer=en|zh` renders only that caller’s records for the campus assistant. `change_program_registration` submits a reviewed local registration or withdrawal.

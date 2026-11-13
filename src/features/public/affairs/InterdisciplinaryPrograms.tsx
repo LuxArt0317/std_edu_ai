@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import {readPublishedInterdisciplinaryPrograms} from "@/services/interdisciplinaryPrograms";
 import type { InterdisciplinaryProgram } from "../../../../server/interdisciplinaryPrograms.js";
 import { interdisciplinaryProgramsPath as root } from "./studentServices.js";
 import "./interdisciplinaryPrograms.css";
@@ -24,13 +25,8 @@ export function InterdisciplinaryPrograms({ code }: { code?: string }) {
     const controller = new AbortController();
     void (async () => {
       try {
-        const result = await fetch("/api/affairs-data?scope=interdisciplinary-programs", {
-          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(12000)]),
-        });
-        if (!result.ok) throw new Error("Directory request failed");
-        const data = await result.json();
-        if (!Array.isArray(data.programs)) throw new Error("Directory response missing");
-        if (!controller.signal.aborted) setPrograms(data.programs);
+        const catalog = await readPublishedInterdisciplinaryPrograms(controller.signal);
+        if (!controller.signal.aborted) setPrograms(catalog);
       } catch {
         if (!controller.signal.aborted) setError(true);
       }

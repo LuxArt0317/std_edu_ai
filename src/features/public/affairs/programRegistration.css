@@ -1,0 +1,27 @@
+.program-registration > main { min-height: 722px; border-radius: 10px; }
+.program-registration .interdisciplinary-content { padding-top: 12px; }
+.program-registration nav { min-height: 42px; }
+.program-registration h2 { margin-bottom: 4px; min-height: 42px; }
+.program-registration .interdisciplinary-table { margin-inline: 5%; }
+.program-registration th { padding: 2px 3px; height: 37px; }
+.program-registration caption {
+  border: 1px solid #ddd;
+  border-bottom: 0;
+  padding: 10px;
+  font-weight: 700;
+  text-align: left;
+}
+.program-registration tfoot td { padding: 7px; text-align: right; }
+.program-registration a { text-decoration: underline; }
+.program-registration footer { padding: 12px; text-align: center; color: #555; }
+.program-registration footer a + a { margin-inline-start: 10px; }
+.program-registration-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 12px; }
+.program-registration-form select { min-width: 0; max-width: 100%; border: 1px solid #aaa; padding: 4px; }
+.program-registration-button, .program-registration-form button {
+  border: 1px solid #999;
+  border-radius: 3px;
+  padding: 5px 12px;
+  background: #f6f6f6;
+  color: #222;
+}
+.program-registration-button:hover, .program-registration-form button:hover { background: #e8e8e8; }

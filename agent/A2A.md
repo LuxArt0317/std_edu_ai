@@ -1,3 +1,7 @@
+## Interdisciplinary registration (Issue #98)
+
+Root owns service 7-3, migration 070000, the caller-bound record reader and the UI/assistant routes. The paused Issue #100 paths are excluded.
+
 ## Interdisciplinary credit programs (Issue #98)
 
 Root owns 12-6, the public program directory migration 060000, document assets, assistant lookups and release. Runtime `c09b698` is live and verified. Quality 43468337951 passed. Issue #100 stays paused. The source 12-8 results are unavailable and the internship Student Zone requires its own sign-in.

@@ -45,3 +45,5 @@ Migration220000 adds one active private dormitory-conduct metadata record per ac
 `20261114050000_tutor_evaluations.sql` stores one immutable response per Google account and questionnaire version. It enforces ten numeric ratings, an exact request envelope, account RLS, and idempotent submission receipts.
 
 `20261114060000_interdisciplinary_programs.sql` stores the public interdisciplinary credit program directory. RLS grants anonymous and authenticated visitors read access. Application roles have no write grants. Every available public document is identified by the verified SHA-256 digest.
+
+`20261114070000_interdisciplinary_registrations.sql` stores owner-only interdisciplinary registrations, withdrawal and completion terms, and exact operation receipts. Student writes require Google identity and use a serialized compare-and-set RPC. The period is derived from the Taipei calendar for local records.

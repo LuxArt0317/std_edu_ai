@@ -578,3 +578,10 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Implement the database-backed local table, document routes and assistant lookups.
 - [x] Verify migration isolation, routes, assets, assistant evidence and production deployment.
 - [ ] Verify course substitution search results and authenticated internship details when the university provides access.
+
+## Interdisciplinary registration [Issue #98]
+
+- [x] Inspect the authenticated university registration table.
+- [x] Connect local registrations and withdrawals to the existing program catalog and private database.
+- [ ] Verify actual account read/write isolation, assistant evidence and exact production deployment.
+- [ ] Compare the official populated registration, selection and progress screens when available.

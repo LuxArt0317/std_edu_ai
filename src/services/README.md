@@ -50,3 +50,5 @@ Browser clients call the public, School Affairs and protected Nexus endpoints. `
 `exchangeGrant.ts` reads and updates account-owned grant drafts. It checks the initiating Google session before sending a request and before returning the result.
 
 `tutorEvaluation.ts` loads and submits the account’s evaluation, checks the initiating session before and after the request, and verifies the response owner and request ID.
+
+`programRegistration.ts` binds registration requests to the initiating School Affairs session. `interdisciplinaryPrograms.ts` provides the public catalog reader used by the registration and directory pages.

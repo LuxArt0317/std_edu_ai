@@ -79,3 +79,5 @@ Historical curriculum plans (12-5) has a table for each program and archive, a l
 Curriculum maps (12-7) has a four-college directory, department overview pages and an interactive year/track course lookup. Career and competency pages hand off to university sign-in. Existing private notes remain at `/school-affairs/services/12-7/notes`.
 
 `/services/12-6` reads the published interdisciplinary program catalog from Supabase. It keeps the six observed sortable columns and opens each available PDF on a dedicated local route. Existing private notes are available at `/services/12-6/notes`.
+
+`/services/7-3` displays the observed registration history and lets the signed-in student manage their local program registrations. Each change requires confirmation. Existing tracker notes are at `/services/7-3/notes`.

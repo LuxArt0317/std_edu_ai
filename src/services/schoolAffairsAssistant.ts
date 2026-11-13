@@ -1,3 +1,5 @@
+import {isProgramRegistrationQuestion} from '../../server/programRegistrationContract.js';
+import {readProgramRegistrationAnswer} from './programRegistration';
 import type { AssistantResponse, AssistantProgress } from './researchAssistant';
 import {readAssistantReply} from './assistantStreamReader.js';
 import { affairsClient } from '@/features/public/affairs/authClient';
@@ -7,6 +9,12 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
   if (!affairsClient) throw new Error('School Affairs sign-in is not configured.');
   const {data,error} = await affairsClient.auth.getSession();
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
+  if (!images.length && isProgramRegistrationQuestion(question)) {
+    onProgress?.({kind:'program-registrations',label:'Checking interdisciplinary program registrations',detail:'Reading your School Affairs records.',status:'running'});
+    const result:AssistantResponse = await readProgramRegistrationAnswer(data.session.user.id,question,signal);
+    if (typeof result?.answer !== 'string' || result.grounding?.source !== 'account') throw new Error('Program registrations could not be loaded.');
+    return result;
+  }
   const response = await fetch('/api/affairs-assistant', {
     method:'POST', signal, headers:{'Content-Type':'application/json',Authorization:`Bearer ${data.session.access_token}`},
     body:JSON.stringify({question:question.trim(),history:history.slice(-6).map(item=>({role:item.role,content:item.content.slice(0,2000)})),images,route,stream:Boolean(onProgress)}),

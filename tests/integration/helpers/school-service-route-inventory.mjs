@@ -4,8 +4,9 @@ import {schoolServiceEntries} from '../../../src/features/public/affairs/student
 // Explicit review inventory, not inferred from the presence of a generic body.
 // A native mount says nothing about unobserved workflows or live backend acceptance.
 const service = id => '/school-affairs/services/'+id;
-const genericIds = '1-1 2-1 4-2 4-3 5-1 6-1 6-2 6-3 6-4 6-5 7-2 7-3 7-4 7-5 7-6 8-1 10-1 12-1 12-2 12-8 16-1 18-1 19-1 24-1 27-1 29-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 43-1 44-1 45-1 47-1 50-1 50-2 51-1 52-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
+const genericIds = '1-1 2-1 4-2 4-3 5-1 6-1 6-2 6-3 6-4 6-5 7-2 7-4 7-5 7-6 8-1 10-1 12-1 12-2 12-8 16-1 18-1 19-1 24-1 27-1 29-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 43-1 44-1 45-1 47-1 50-1 50-2 51-1 52-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
 const native = [
+  ['7-3','.program-registration','program-registration-ui.mjs','Private interdisciplinary registration history and local registration controls.'],
   ['7-1','.credit-load-application','credit-load-application-ui.mjs','Observed instructions and closed-period acknowledgement only; open application and staff review forms remain unobserved.'],
   ['9-1','.student-scholarship','scholarship-ui.mjs','Observed scholarship workflow; distinct from other aid forms.'],
   ['11-1','.course-selection','course-selection-ui.mjs','Phase-scoped selection history, not current enrolled courses.'],
@@ -116,6 +117,7 @@ export function schoolServiceReadFixture(rawUrl,method,user,origin) {
   }
   assert.deepEqual([...url.searchParams.keys()],['scope'],'Account filters and unknown selectors are forbidden.');
   switch(scope) {
+    case 'program-registrations':return {userId:user.id,records:[]};
     case 'interdisciplinary-programs':return {programs:[]};
     case 'syllabus-options':return {terms:[],departments:[]};
     case 'enrollment-certificate':return {assessments:[],documents:[]};

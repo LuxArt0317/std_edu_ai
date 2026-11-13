@@ -1,3 +1,7 @@
+## Interdisciplinary registration (Issue #98)
+
+Service 7-3 opens the source-shaped registration table, with saved local registration and withdrawal, private progress and a dedicated assistant answer. See [registration QA](../qa/PROGRAM_REGISTRATION.md).
+
 ## Interdisciplinary credit programs (Issue #98)
 
 The 12-6 catalog route reads 35 published programs from Supabase, with 30 local documents and assistant access to the same directory. Runtime `c09b698` is live. Migration `20261114060000` passed rollback preflight and was applied alone. The pinned browser and all PDF hashes passed, and the assistant activity persisted across reload. See [program directory QA](../qa/INTERDISCIPLINARY_PROGRAMS.md).

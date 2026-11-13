@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { answerInterdisciplinaryPrograms } from "./interdisciplinaryPrograms.js";
+import { isProgramRegistrationQuestion, programRegistrationPath } from "./programRegistrationContract.js";
 import { questionKind, publicSchoolQuestion, searchSchoolWeb } from "./schoolWebSearch.js";
 import { searchAssistantKnowledge } from "./assistantKnowledge.js";
 import { inferKnowledgeLanguage } from "./knowledgePipeline.js";
@@ -231,6 +232,15 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const stream = createAssistantStream(input.stream, response);
+        if (!input.images.length && isProgramRegistrationQuestion(input.question)) {
+            const next = "/school-affairs/login?next=" + encodeURIComponent(programRegistrationPath);
+            const zh = /[\u3400-\u9fff]/u.test(input.question);
+            stream.send(200, {status:"handoff",answer:zh
+                ? `[登入校務資訊系統](${next})以查看您的學程登記。`
+                : `[Sign in to School Affairs](${next}) to view your program registrations.`,
+                citations:[],suggestedQuestions:[],grounding:{source:"assistant-help",webSearched:false}});
+            return;
+        }
         const kind = questionKind(input.question);
         const personalQuestion = kind.personal || /\bmy (?:current )?(?:subjects?|courses?|classes|grades?|schedule|timetable|attendance|assignments?|enrollments?)\b|\b(?:my|our|their|his|her)\b.{0,45}\b(?:tuition|payments?|scholarships?|financial aid|records?)\b|我的.{0,16}(?:課程|科目|成績|出席|作業|課表|學費|費用|繳款|獎學金|紀錄|記錄)/i.test(input.question);
         const pageQuestion = !input.images.length && !personalQuestion && !kind.irrelevant && Boolean(normalizePublicPageRoute(input.route)) && isPublicPageQuestion(input.question);

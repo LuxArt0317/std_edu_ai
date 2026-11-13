@@ -49,3 +49,5 @@
 - Issue #98: Captured 35 public interdisciplinary program rows and 30 PDFs, built a Supabase-backed directory and shared assistant reader, and verified that the main university portal and Internship use separate sessions.
 
 - Issue #98: Applied only the interdisciplinary directory migration. Published c09b698 and verified all 30 PDF hashes, sorting, mobile containment, assistant citations, persistent lookup activity and the public shell.
+
+- Issue #98: Observed the authenticated interdisciplinary registration history and course selection entry states. Built service 7-3 against Supabase and applied the scoped registration migration after exact rollback verification.

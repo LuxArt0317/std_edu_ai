@@ -1,3 +1,4 @@
+import {programRegistrationPath} from './programRegistrationContract.js';
 import {curriculumMapPath} from '../src/features/public/affairs/curriculumMaps.js';
 import {curriculumPlansPath} from '../src/features/public/affairs/curriculumPlans.js';
 import {
@@ -70,6 +71,11 @@ const leadershipMatches = [
   /服務領導.{0,16}(?:作業|成績|反思)|service leadership.{0,22}(?:assignments?|reflection|grades?)/i,
 ];
 const localServiceNavigation = [
+  {
+    id:'interdisciplinary-registration',match:/\b(?:interdisciplinary|interdepartmental)(?: credit)? program registration\b|跨院系學分學程登記/i,
+    title:['跨院系學分學程登記系統','Interdisciplinary program registration'],localUrl:programRegistrationPath,
+    description:['登入後查看與管理您的站內學程登記。','Sign in to view and manage your stu.best program registrations.'],
+  },
   {
     id:'interdisciplinary-programs',match:/\b(?:interdisciplinary|interdepartmental|intramural) (?:credit )?programs?\b|跨院系學分學程|學分學程查詢/i,
     title:['跨院系學分學程查詢','Interdisciplinary credit programs'],localUrl:interdisciplinaryProgramsPath,
