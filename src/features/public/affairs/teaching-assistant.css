@@ -1,0 +1,60 @@
+.ta-index,.ta-event-page {
+  min-height: 100dvh;
+  color: #111;
+  font: 13px/1.5 "Microsoft JhengHei", Verdana, Arial, sans-serif;
+}
+.ta-index { display: flex; flex-direction: column; background: #fff; }
+.ta-index-band,.ta-event-page { background: #efeff0; }
+.ta-index-frame { width: min(1060px, 100%); margin: auto; }
+.ta-index-frame header,.ta-index-frame header a,.ta-index-crumb { display: flex; align-items: center; gap: 8px; }
+.ta-index-frame header { min-height: 29px; justify-content: space-between; padding: 0 10px 0 17px; background: #7c7c7c; color: #fff; font-weight: 600; }
+.ta-index-frame header img { flex: none; }
+.ta-index-frame header span { white-space: nowrap; }
+.ta-index-menu { display: flex; justify-content: flex-end; height: 45px; padding-right: 24px; background: #5489ab; }
+.ta-index-menu button { display: flex; align-items: center; gap: 4px; padding: 0 14px; border-inline: 1px solid #477b9d; color: #fff; font-weight: 600; }
+.ta-index-menu button:hover,.ta-index-menu button[data-state=open] { background: #3e7496; }
+.ta-index-dropdown { min-width: 160px; }
+.ta-index-crumb { min-height: 31px; padding: 0 17px; color: #444; background: #f4f4f4; border-bottom: 1px solid #e4e4e4; }
+.ta-index-frame main { position: relative; min-height: 206px; padding: 26px 20px 45px; background: #fff; }
+.ta-index-frame main section { width: 91.5%; }
+.ta-index-frame h1 { display: flex; align-items: center; gap: 5px; min-height: 33px; border-bottom: 1px solid #dfdfdf; margin: 0 0 16px; color: #386d91; font-size: 1em; }
+.ta-index-frame table { width: 100%; border-collapse: collapse; font-size: .875em; text-align: left; }
+.ta-index-frame th,.ta-index-frame td { border: 1px solid #d8d8d8; padding: 8px; vertical-align: top; }
+.ta-index-frame thead th { height: 38px; background: linear-gradient(#f6f6f6,#e8e8e8); color: #505050; font-weight: 400; }
+.ta-index-frame th:first-child { width: 7%; }
+.ta-index-frame th:nth-child(2) { width: 24%; }
+.ta-index-frame tbody th,.ta-index-frame tbody td { height: 47px; background: #f7f7f7; overflow-wrap: anywhere; }
+.ta-index-frame tbody th { font-weight: 400; }
+.ta-index-frame ol { padding-inline-start: 23px; list-style: decimal; }
+.ta-index-frame td a { color: #386d91; font-weight: 600; }
+.ta-index a:hover,.ta-event-page a:hover { text-decoration: underline; }
+.ta-index-settings { position: absolute; z-index: 1; top: 8px; right: 0; display: flex; flex-direction: row-reverse; align-items: start; }
+.ta-index-gear { display: grid; place-items: center; width: 42px; height: 39px; background: #f7d7a3; color: #5f450d; border-radius: 6px 0 0 6px; }
+.ta-index-settings > div { display: flex; align-items: center; gap: 8px; padding: 6px; background: #fff4e2; border: 1px solid #e5c99f; }
+.ta-index-settings > div button { padding: 2px 6px; border: 1px solid #9e7a3b; }
+.ta-index-band { padding-bottom: 64px; }
+.ta-index > footer { margin: auto 12px 4px max(12px, calc((100% - 876px) / 2)); padding: 14px 10px; border-top: 3px double #dedede; color: #386d91; text-align: center; }
+.ta-report-confirm { justify-self: end; background: #386d91; color: white; padding: 5px 16px; border-radius: 4px; }
+.ta-event-page { padding: 24px 12px; }
+.ta-event-frame { max-width: 922px; margin: 0 auto; padding: 36px 44px 47px; border: 1px solid #c7c7c7; border-radius: 11px; background: #fff; }
+.ta-event-content { padding: 20px; border-block: 7px solid #478fca; box-shadow: 0 0 0 1px #d2e9f6 inset; }
+.ta-event-content h1 { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-block: 2px solid #7aabc8; color: #205574; font-size: 22px; font-weight: 700; }
+.ta-event-content h1 img { flex: none; }
+.ta-event-message { display: grid; grid-template-columns: 45px 1fr; gap: 10px; margin-top: 36px; }
+.ta-event-message svg { margin: 8px auto; color: #488693; }
+.ta-event-message p { padding: 22px 20px; min-height: 91px; background: #f7f7f7; color: #7a3415; }
+.ta-event-related { margin: 29px 0 22px 55px; }
+.ta-event-related a { color: #1515a4; }
+.ta-event-help { padding: 11px 0 7px; border-top: 1px solid #ccc; }
+.ta-event-frame footer { margin-top: 5px; color: #4d4d4d; }
+@media(max-width: 650px) {
+  .ta-index-frame header span { display: none; }
+  .ta-index-frame main { padding-inline: 12px; }
+  .ta-index-frame main section { width: 100%; }
+  .ta-index-frame h1 { padding-right: 42px; }
+  .ta-event-frame { padding: 18px 12px; }
+  .ta-event-content { padding: 10px; }
+  .ta-event-message { grid-template-columns: 22px 1fr; }
+  .ta-event-message p { padding: 14px 10px; }
+  .ta-event-related { margin-left: 32px; }
+}

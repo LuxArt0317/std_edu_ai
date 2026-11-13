@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Open the teaching-assistant index and its observed student destinations from both catalog entries. Add the ten-question tutor evaluation with private, retry-safe submission and assistant links. [#98]
+
 - Open Student Affairs grant service 23-1 as a standalone page with four destinations, the operation manual, private conference drafts and reflection reports. Prior personal notes remain at `/school-affairs/services/23-1/notes`. [#98]
 
 - Open the tuition-reduction service as a standalone page with the captured closed-period instructions and private history. Add audited administrator maintenance and keep previous personal notes at `/school-affairs/services/21-3/notes`. [#98]

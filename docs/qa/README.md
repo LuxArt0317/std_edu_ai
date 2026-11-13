@@ -21,3 +21,5 @@ This directory contains scoped verification records and explicit acceptance limi
 - [Tuition-reduction history](FEE_REMISSION.md)
 
 - [Exchange and conference grants](EXCHANGE_GRANTS.md) — source observations, private records and QA.
+
+- [Teaching assistant and tutor evaluation](TUTOR_EVALUATION.md) — captured screens, private submission and QA.

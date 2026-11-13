@@ -59,7 +59,7 @@ import {
 import type { PortalProgram } from "./model";
 import { loadPreferences, savePreferences } from "./preferences";
 import type { PortalPreferences } from "./preferences";
-import { calendarPath, nativeServiceAlias, serviceDestination } from "./studentServices.js";
+import { calendarPath, nativeServiceAlias, serviceDestination, teachingAssistantPath, tutorEvaluationPath } from "./studentServices.js";
 import { StudentServiceWorkspace } from "./StudentServiceWorkspace";
 import StudentLeaveWorkspace from "./StudentLeaveWorkspace";
 import { StudentScholarshipWorkspace } from "./StudentScholarshipWorkspace";
@@ -84,6 +84,8 @@ import { StudentConductWorkspace } from "./StudentConductWorkspace";
 import { StudentLoanWorkspace } from "./StudentLoanWorkspace";
 import { DormConductWorkspace } from "./DormConductWorkspace";
 import { EducationFundWorkspace } from "./EducationFundWorkspace";
+import { TeachingAssistantWorkspace } from "./TeachingAssistantWorkspace";
+import { TutorEvaluationWorkspace } from "./TutorEvaluationWorkspace";
 import { ExchangeGrantWorkspace } from "./ExchangeGrantWorkspace";
 import { exchangeGrantPath } from "./exchangeGrantReference";
 import { FeeRemissionWorkspace } from "./FeeRemissionWorkspace";
@@ -460,6 +462,19 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   }
   if (normalizedPath === "/school-affairs/services/7-1") {
     return <CreditLoadApplication key={user.id} />;
+  }
+  if (servicePage && route.length === 3 && route[2] === "notes" && ["25-1", "25-2", "28-1"].includes(route[1])) {
+    return <StudentServiceWorkspace key={pathname} userId={user.id} serviceKey={route[1]} view="" />;
+  }
+  if (normalizedPath === teachingAssistantPath || normalizedPath === "/school-affairs/services/25-2") {
+    return <TeachingAssistantWorkspace view="" />;
+  }
+  if (normalizedPath === `${teachingAssistantPath}/report` || normalizedPath === `${teachingAssistantPath}/evaluation`) {
+    return <TeachingAssistantWorkspace key={normalizedPath} view={normalizedPath.endsWith("/report") ? "report" : "evaluation"} />;
+  }
+  if (normalizedPath === tutorEvaluationPath) {
+    const name = typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : displayName;
+    return <TutorEvaluationWorkspace key={user.id} userId={user.id} displayName={name} />;
   }
   if (normalizedPath === `${exchangeGrantPath}/notes`) {
     return <StudentServiceWorkspace key={pathname} userId={user.id} serviceKey="23-1" view="" />;

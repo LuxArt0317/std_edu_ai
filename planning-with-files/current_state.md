@@ -1,3 +1,7 @@
+## Teaching assistant and tutor evaluation
+
+Both TA catalog links reach the shared index. The report link reproduces the observed return notice, and self-evaluation reaches the no-questionnaire event page. The tutor survey stores ten ratings and an optional comment in the signed-in account. Source-protected personal values were excluded. Compiled navigation covered all 94 catalog entries, with 56 generic, 28 native and four partial. Issue #98 remains open.
+
 ## Exchange and conference grant service 23-1
 
 Published at `51993316a552f96aa913e9caabcf1f915196ed73`. Exact production manifest and Vercel success match. The pinned production suite passed 18 requests, exact cleanup and owner preservation. Compiled production UI passed five check groups. The public shell passed eight routes and 50 assets. Database verification passed with 138 migrations and 154 public RLS tables. GitHub Quality 43446912876 passed.

@@ -1,3 +1,7 @@
+## Teaching assistant and tutor evaluation (Issue #98)
+
+Catalog entries 25-1 and 25-2 now mount the shared index and its observed report and self-evaluation states. Entry 28-1 uses the observed ten-rating form and stores an account-owned response. Current TA reporting fields were not visible, and the tutor evaluation saves to stu.best. See [workflow and QA](../qa/TUTOR_EVALUATION.md).
+
 ## Tuition-reduction history
 
 ## Exchange and conference grants (Issue #98)

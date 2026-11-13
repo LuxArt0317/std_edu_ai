@@ -534,3 +534,11 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 - [x] Verify browser navigation and record handling at desktop and phone widths. Verify the draft migration in a rollback transaction.
 - [x] Verify live API cleanup and release acceptance for the implemented scope.
 - [ ] Compare the current consent-gated application forms, roster fields and receipt issuance when observable.
+
+## Teaching assistant and tutor evaluation [Issue #98]
+
+- [x] Observe both TA destinations and the tutor evaluation form through the authenticated source.
+- [x] Implement the observed TA routes, full tutor form, caller-scoped storage and local assistant navigation.
+- [x] Pass rollback verification, targeted browser checks and all 94 catalog destination checks.
+- [ ] Verify exact production release and disposable-account cleanup.
+- [ ] Compare populated TA reports and self-evaluations when a source account can open them.

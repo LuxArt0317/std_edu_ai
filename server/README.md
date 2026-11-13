@@ -93,3 +93,5 @@ The supplemental-answer correction separates coordinated student identity reques
 `feeRemission.js` forwards private history operations with the caller’s token. `feeRemissionContract.js` validates the bounded request and response shared by the server and browser.
 
 `exchangeGrant.js` uses the caller JWT for the dedicated grant RPCs. `exchangeGrantContract.js` validates the exact request and response shapes, including version receipts and account identity.
+
+`tutorEvaluation.js` forwards caller-bound evaluation requests to the private workflow’s RPCs. The directory maps TA report, TA self-evaluation and tutor evaluation navigation to their local routes.

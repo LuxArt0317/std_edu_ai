@@ -48,3 +48,5 @@ Browser clients call the public, School Affairs and protected Nexus endpoints. `
 `feeRemission.ts` reads history and dispatches administrator changes with the initiating account’s session. The shared contract validates literal cells, the returned owner, and the write receipt.
 
 `exchangeGrant.ts` reads and updates account-owned grant drafts. It checks the initiating Google session before sending a request and before returning the result.
+
+`tutorEvaluation.ts` loads and submits the account’s evaluation, checks the initiating session before and after the request, and verifies the response owner and request ID.

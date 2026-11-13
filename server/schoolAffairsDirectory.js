@@ -1,6 +1,6 @@
 import {
   internshipPath, leavePath, officialInternshipUrl, officialLeaveUrl, officialRegistrarUrl, officialWifiUrl,
-  schoolServiceEntries, studentServiceByKey, wifiGuidePath,
+  schoolServiceEntries, studentServiceByKey, teachingAssistantPath, tutorEvaluationPath, wifiGuidePath,
 } from '../src/features/public/affairs/studentServices.js';
 
 import {studentAidNavigation} from './studentAidRecords.js';
@@ -59,7 +59,25 @@ const nativeAcademicNavigation=[
   {...academicAttendanceNavigation,serviceId:'14-1'},
 ];
 const localRecordIds=new Set([...courseSelectionNavigation,...nativeAcademicNavigation].map(entry=>entry.id));
+const localSurveyNavigation = [
+  {
+    id:'ta-report', match:/\b(?:teaching assistant|TA)\b.{0,32}\b(?:report|learning log)\b|教學助理報告|撰寫[/／]維護學習單|教學助理.*學習單/i,
+    title:['教學助理學習單','Teaching assistant learning report'],localUrl:teachingAssistantPath+'/report',
+    description:['從教學助理系統的「學生」選單開啟學習單。','Open the learning report from the Student menu in the Teaching Assistant system.'],
+  },
+  {
+    id:'ta-evaluation',match:/\b(?:teaching assistant|TA)\b.{0,32}\bself[- ]?evaluation\b|教學助理自我評表/i,
+    title:['教學助理自我評表','Teaching assistant self-evaluation'],localUrl:teachingAssistantPath+'/evaluation',
+    description:['從教學助理系統的「學生」選單開啟自我評表。','Open self-evaluation from the Student menu in the Teaching Assistant system.'],
+  },
+  {
+    id:'tutor-evaluation',match:/\b(?:tutor|advis[eo]r) (?:evaluation|survey|questionnaire)\b|導師評量|導師問卷/i,
+    title:['導師評量問卷','Tutor evaluation questionnaire'],localUrl:tutorEvaluationPath,
+    description:['登入後可填寫十題評量與選填意見。問卷儲存在您的 stu.best 帳戶。','After signing in, you can rate ten questions and add an optional comment. The response is saved in your stu.best account.'],
+  },
+];
 const navigation = [
+  ...localSurveyNavigation,
   ...courseSelectionNavigation,
   ...nativeAcademicNavigation,
   studentAidNavigation,
@@ -113,7 +131,7 @@ export function answerCampusNavigation(question) {
     ? (zh?'註冊課務組在行政大樓 1 樓。電話 07-615-8000，分機 2007、2009、2010、2012、2014、2016。電子郵件 course@stu.edu.tw。'
       :'The Registration and Curriculum Division is on the first floor of the Administration Building. Call +886 7 615 8000, ext. 2007, 2009, 2010, 2012, 2014 or 2016, or email course@stu.edu.tw.')
     : entry.description[i];
-  const localRecordDestination = localRecordIds.has(entry.id);
+  const localRecordDestination = localRecordIds.has(entry.id) || localSurveyNavigation.includes(entry);
   const source = localRecordDestination ? entry.localUrl : wantsRegistrarContact?registrarFaq:entry.officialUrl;
   const links = [markdownLink(localRecordDestination ? (zh ? '在 stu.best 開啟' : 'Open on stu.best') : (zh ? '校方網站' : 'Official university page'),source)];
   if (entry.localUrl && !localRecordDestination) links.push(markdownLink(zh ? '在 stu.best 開啟' : 'Open on stu.best',entry.localUrl));

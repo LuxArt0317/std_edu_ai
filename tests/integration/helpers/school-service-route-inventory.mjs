@@ -4,7 +4,7 @@ import {schoolServiceEntries} from '../../../src/features/public/affairs/student
 // Explicit review inventory, not inferred from the presence of a generic body.
 // A native mount says nothing about unobserved workflows or live backend acceptance.
 const service = id => '/school-affairs/services/'+id;
-const genericIds = '1-1 2-1 4-2 4-3 5-1 6-1 6-2 6-3 6-4 6-5 7-2 7-3 7-4 7-5 7-6 8-1 10-1 12-1 12-2 12-5 12-6 12-7 12-8 16-1 18-1 19-1 24-1 25-1 25-2 27-1 28-1 29-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 42-1 43-1 44-1 45-1 46-1 47-1 50-1 50-2 51-1 52-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
+const genericIds = '1-1 2-1 4-2 4-3 5-1 6-1 6-2 6-3 6-4 6-5 7-2 7-3 7-4 7-5 7-6 8-1 10-1 12-1 12-2 12-5 12-6 12-7 12-8 16-1 18-1 19-1 24-1 27-1 29-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 42-1 43-1 44-1 45-1 46-1 47-1 50-1 50-2 51-1 52-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
 const native = [
   ['7-1','.credit-load-application','credit-load-application-ui.mjs','Observed instructions and closed-period acknowledgement only; open application and staff review forms remain unobserved.'],
   ['9-1','.student-scholarship','scholarship-ui.mjs','Observed scholarship workflow; distinct from other aid forms.'],
@@ -39,6 +39,10 @@ const descriptors = [
     workflowSuite:'tests/integration/'+suite,sourceBoundary})),
   ...[['20-1','leave'],['33-1','leave/history']].map(([id,path]) => ({id,kind:'native',href:service(path),finalUrl:service(path),
     selector:'.student-leave',workflowSuite:'tests/integration/school-affairs-ui.mjs',sourceBoundary:'Observed Leave UI with local records; no school submission integration.'})),
+  ...['25-1','25-2'].map(id => ({id,kind:'partial',href:service(id),finalUrl:service(id),selector:'.ta-index',
+    workflowSuite:'tests/integration/tutor-evaluation-ui.mjs',sourceBoundary:'Observed common index, no-questionnaire page and report notice return; populated TA forms remain unobserved.'})),
+  {id:'28-1',kind:'native',href:service('28-1'),finalUrl:service('28-1'),selector:'.tutor-evaluation',
+    workflowSuite:'tests/integration/tutor-evaluation-ui.mjs',sourceBoundary:'Observed ten-question layout with private stu.best submissions; university survey transmission is unavailable.'},
   {id:'23-1',kind:'partial',href:service('23-1'),finalUrl:service('23-1'),selector:'.exchange-grant',
     workflowSuite:'tests/integration/exchange-grant-ui.mjs',sourceBoundary:'Observed index and instructions, local conference drafts and reports; current application, roster and receipt issuance remain unverified.'},
   {id:'53-1',kind:'partial',href:service('internship'),finalUrl:service('internship'),selector:'.student-internship',
@@ -107,6 +111,7 @@ export function schoolServiceReadFixture(rawUrl,method,user,origin) {
     case 'syllabus-options':return {terms:[],departments:[]};
     case 'enrollment-certificate':return {assessments:[],documents:[]};
     case 'student-conduct':return {records:[]};
+    case 'tutor-evaluation':return {userId:user.id,student:null,evaluation:null};
     case 'exchange-grant':
     case 'fee-remission':return {userId:user.id,records:[]};
     case 'dormitory-conduct':return {snapshot:null};

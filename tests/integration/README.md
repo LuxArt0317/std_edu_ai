@@ -94,3 +94,5 @@ Moodle URL resource checks: `dtm-course-resource-ui.mjs` renders compiled synthe
 Fee-remission verification includes `fee-remission-ui.mjs` for navigation and rendered workflows, `fee-remission-rls-live.mjs` for rollback-only authorization checks, and `fee-remission-http-live.mjs` for exact-client persistence and fixture cleanup. See [fee-remission QA](../../docs/qa/FEE_REMISSION.md).
 
 `exchange-grant-ui.mjs` checks navigation, the local PDF, create/report/delete, retry identity, guest/foreign-account handling and viewport containment. `exchange-grant-rls-live.mjs --rollback-preflight` exercises the migration on the exact client database in a rolled-back transaction. `exchange-grant-http-live.mjs` checks actual-JWT local or deployed routes with disposable fixtures.
+
+`tutor-evaluation-ui.mjs` checks TA and tutor routes with synthetic records. `tutor-evaluation-rls-live.mjs --rollback-preflight` verifies the SQL and exact rollback on the client database. `tutor-evaluation-http-live.mjs` verifies actual-JWT handler or deployed access with disposable fixtures.

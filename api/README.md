@@ -44,3 +44,5 @@ Moodle resource reads use strict `dtm-course-resource` scope with one course and
 `GET /api/affairs-data?scope=fee-remission` returns the signed-in account’s history. `fee-remission-admin` takes one `user_id` and requires the verified administrator. `POST /api/affairs-manage` accepts `save_fee_remission` and `delete_fee_remission` with a request ID and expected version.
 
 `GET /api/affairs-data?scope=exchange-grant` reads only the signed-in account’s grant drafts. `POST /api/affairs-action` accepts the exact grant draft, report and deletion envelopes. Both endpoints use the caller JWT and reject account selectors.
+
+`GET /api/affairs-data?scope=tutor-evaluation` reads the signed-in account’s evaluation and verified profile fields. `POST /api/affairs-action` accepts `submit_tutor_evaluation` with a request ID, ten ratings and an optional comment. Both routes require the caller’s Google identity.

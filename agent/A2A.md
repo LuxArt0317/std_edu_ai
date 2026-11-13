@@ -1,3 +1,7 @@
+## Teaching assistant and tutor evaluation
+
+Root owns the TA and tutor evaluation files, directory entries, the School Affairs mount, and the relevant API hunks for Issue #98. The source exposed both TA links and the complete tutor questionnaire. The rollback preflight passed for migration 050000. Paused issue #100 paths remain excluded.
+
 ## Exchange and conference grant service 23-1
 
 Production `5199331` passed 18 actual-JWT requests, exact cleanup, browser checks at three widths and the public shell. No grant QA session or database lease remains. Source observations for 25-1/25-2 show a shared teaching-assistant index and an empty questionnaire result. Service 24-1 requires a separate login.
