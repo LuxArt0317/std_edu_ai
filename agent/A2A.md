@@ -1,8 +1,12 @@
+## Active literal Moodle grade-report batch
+
+Root owns shared API scopes, DtmStudentRecords/SchoolRecordManager integration, source/browser inspection, planning and release. dtm_course_layout owns server/dtmGradeReport.js/.d.ts, migration20261114000000, focused API tests and rollback-only harness. scholarship_workflow owns new service/renderer/styles/admin editor and focused units. protected_service_audit owns the reviewed overview/context navigation and compiled browser harness. No delegate live DB/auth/model/school calls, commits or publication. Root applies only after independent review and exact-client preflight/plan. Issue100 remains user-paused and its66fingerprinted paths are excluded. Old personal grades and assistant links must remain reachable without fabricating literal report values.
+
 ## Latest panel-removal verification
 
 The latest screenshot request is already resolved in published b14a672 and retained by53c9304. Root re-opened the live homepage and visually confirmed the floating preview/account panel is absent and the campus assistant remains. Read-only generator review covers395captures; the focused public-release regression passed. No new runtime or deployment change is needed.
 
-The next literal-grade-report batch has five unmounted, unverified drafts only: server/dtmGradeReport.js, server/dtmGradeReport.d.ts, src/services/dtmGradeReport.ts, src/features/public/dtm/DtmGradeReport.tsx and src/features/public/dtm/dtmGradeReport.css. Delegates are stopped at their saved boundary while this user correction is reported. No migration, manager, shared mounting, API integration or publication exists. Do not stage these drafts as completed work. Issue100 remains user-paused; its files are separate and protected.
+The earlier five unmounted drafts are now integrated in the grade-report batch above. Migration240000 is applied at134/151; local actual-JWT acceptance passed; publication/deployed acceptance remain pending. Local live lease is released; delegates are frozen after tests. Root owns publication and the next serialized deployed acceptance. No official school writes or paused Issue100 edits are allowed.
 
 ## Credit-load production acceptance
 

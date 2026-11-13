@@ -84,3 +84,5 @@ The layout harness creates exactly two Google-shaped student accounts and one no
 `education-fund-ui.mjs` checks the standalone Education Fund page, desktop/mobile containment and route behavior using synthetic authentication and blocked external requests. `assistant-presentation-ui.mjs` compares the actual assistant component on native and copied-page hosts, including responsive drawer geometry, reachable composer controls and close/reopen behavior. Both are presentation checks without real account, database or model calls; see their linked QA reports for exact scope.
 
 `credit-load-application-ui.mjs` verifies the observed7-1 closed-period entry, selection index, local navigation and responsive geometry using synthetic authentication and blocked writes. Source prerequisites and limits are in [credit-load QA](../../docs/qa/CREDIT_LOAD_APPLICATION.md).
+
+`dtm-grade-report-rls-live.mjs` is a root-serialized rollback-only migration preflight; `--self-test` never connects. The dedicated grade-report browser/HTTP gates and exact execution prerequisites are maintained in [grade-report QA](../../docs/qa/DTM_GRADE_REPORTS.md).

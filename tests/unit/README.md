@@ -22,3 +22,5 @@ Assistant session hook/storage/isolation tests cover per-chat failures, saving a
 `education-fund.test.tsx` verifies captured closed-period instructions and local links; `student-service-aliases.test.tsx` exercises exact legacy routes, history replacement and unknown-path handling. `student-service-mutation-isolation.test.tsx` runs42 actual-transport DOM cases with synthetic session/fetch responses covering account switches, late completion, duplicates and unchanged retries. These are offline checks, not database acceptance.
 
 `credit-load-application.test.tsx` covers the captured closed-period entry and system-index local destinations without authentication, API or database calls.
+
+`dtm-grade-report*.test.ts[x]`, `dtm-course-grade-report.test.tsx` and `dtm-grade-overview.test.tsx` cover literal rendering, account-bound transport, admin drafts/retries, deferred anchors, pagination beyond 1,000 courses and account/permission changes. Fixtures are synthetic; these are not live persistence evidence.

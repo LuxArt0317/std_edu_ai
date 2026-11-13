@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { CalendarDays, ExternalLink, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -13,6 +13,8 @@ import {
 import { CalendarDeadlineImport } from './CalendarDeadlineImport';
 import { dtmViews, type DtmView } from './catalog';
 import { deadlineLabel, taipeiDateTimeInput, type DtmTranslate } from './locale';
+import {DtmCourseGradeReport} from './DtmCourseGradeReport';
+import {DtmGradeOverview} from './DtmGradeOverview';
 
 type EditRecord =
   | {kind:'course';record?:DtmCourse}
@@ -163,8 +165,8 @@ function RowActions({t,edit,remove}:{t:DtmTranslate;edit:()=>void;remove:()=>voi
   </div>;
 }
 
-export function DtmStudentRecords({snapshot,course,view,mode,t,refresh}:{
-  snapshot:AffairsSnapshot;course?:DtmCourse;view?:DtmView;mode:'course'|'assignments'|'grades';
+export function DtmStudentRecords({snapshot,course,view,gradeReportView,mode,t,refresh}:{
+  snapshot:AffairsSnapshot;course?:DtmCourse;view?:DtmView;gradeReportView?:'overview';mode:'course'|'assignments'|'grades';
   t:DtmTranslate;refresh:()=>void;
 }) {
   const [editor,setEditor] = useState<EditRecord|null>(null);
@@ -175,6 +177,8 @@ export function DtmStudentRecords({snapshot,course,view,mode,t,refresh}:{
   const [status,setStatus] = useState('');
   const [busy,setBusy] = useState(false);
   const [assignmentFilter,setAssignmentFilter] = useState('all');
+  const [gradeEntriesOpen,setGradeEntriesOpen]=useState(false);
+  const {hash}=useLocation();
   const navigate=useNavigate();
   const courses=snapshot.dtm.courses;
   const personal=courses.filter(row=>row.sourceMode==='personal');
@@ -185,7 +189,6 @@ export function DtmStudentRecords({snapshot,course,view,mode,t,refresh}:{
   const own=course?.sourceMode==='personal';
   const activeView=view||'materials';
   const assignmentList=assignments.filter(row=>assignmentFilter==='all'||(assignmentFilter==='open'?row.status==='open':row.status!=='open'));
-  const grades=selected.flatMap(row=>(row.grades||[]).map(grade=>({course:row,grade})));
   function edit(record:EditRecord) {setStatus('');setDetail(null);setImportOpen(false);setEditor(record);}
   function saved(id:string) {
     const newCourse=editor?.kind==='course' && !editor.record;
@@ -213,12 +216,19 @@ export function DtmStudentRecords({snapshot,course,view,mode,t,refresh}:{
   function askDelete(record:DeleteRecord){setError('');setDeleting(record);}
   const courseContents=course&&activeView==='materials';
   const report=mode==='grades'||(course&&activeView==='grades');
+  const overview=mode==='grades'||gradeReportView==='overview';
+  useEffect(()=>{
+    if(!report||overview||!course||!/^#grade-[0-9a-f-]{36}$/.test(hash))return;
+    const grade=course.grades?.find(row=>row.id===hash.slice(7));
+    if(grade)setDetail({kind:'grade',record:grade});
+  },[report,overview,course,hash]);
 
   return <>
     {course&&<div className="dtm-course-tools"><DropdownMenu>
       <DropdownMenuTrigger asChild><button type="button" className="dtm-course-menu" aria-label={t('課程選單','Course menu')}><Settings size={17}/></button></DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {dtmViews.map(tab=><DropdownMenuItem asChild key={tab}><Link to={pathFor(course)+(tab==='materials'?'':'/'+tab)}>{translated(t,viewNames[tab])}</Link></DropdownMenuItem>)}
+        {Boolean(course.grades?.length)&&<DropdownMenuItem onSelect={()=>setGradeEntriesOpen(true)}>{t('個人成績紀錄','Personal grade entries')}</DropdownMenuItem>}
         {own&&<>
           <DropdownMenuSeparator/>
           {(['assignment','material','meeting','grade'] as const).map(kind=><DropdownMenuItem key={kind} onSelect={()=>edit({kind,course})}>{t('新增'+names[kind][0],'Add '+names[kind][1])}</DropdownMenuItem>)}
@@ -231,10 +241,10 @@ export function DtmStudentRecords({snapshot,course,view,mode,t,refresh}:{
     </DropdownMenu></div>}
     {mode==='assignments'&&!course&&<h2>{t('我的作業','My assignments')}</h2>}
     {report&&<>
-      <h2 className="dtm-report-title">{t('用戶報告','User report')} - {snapshot.profile.displayName||snapshot.profile.email}</h2>
+      <h2 className="dtm-report-title">{overview?t('綜覽報告','Overview report'):t('用戶報告','User report')} - {snapshot.profile.displayName||snapshot.profile.email}</h2>
       <nav className="dtm-report-tabs" aria-label={t('成績報告檢視','Grade report views')}>
-        <Link to="/dtm/grades" aria-current={!course?'page':undefined}>{t('綜覽報告','Overview report')}</Link>
-        {course&&<Link to={pathFor(course)+'/grades'} aria-current="page">{t('用戶報告','User report')}</Link>}
+        <Link to={course?pathFor(course)+'/grades/overview':'/dtm/grades'} aria-current={overview?'page':undefined}>{t('綜覽報告','Overview report')}</Link>
+        {course&&<Link to={pathFor(course)+'/grades'} aria-current={overview?undefined:'page'}>{t('用戶報告','User report')}</Link>}
       </nav>
     </>}
     {status&&<p role="status" className="dtm-saved">{status}</p>}
@@ -286,19 +296,17 @@ export function DtmStudentRecords({snapshot,course,view,mode,t,refresh}:{
         {own&&<RowActions t={t} edit={()=>edit({kind:'meeting',course,record:row})} remove={()=>askDelete({kind:'meeting',id:row.id,courseId:course.id,name:row.title})}/>}
       </li>)}
     </ul>:<p className="dtm-empty">{t('尚無上課或出席紀錄。','No class meetings or attendance recorded.')}</p>)}
-    {report&&((grades.length||course)?<div className="dtm-grade-scroll" role="region" aria-label={t('成績報告','Grade report')} tabIndex={0}>
-      <table className="dtm-grade-table"><thead><tr>
-        <th scope="col">{t('評分項目','Grade item')}</th><th scope="col">{t('計算後權量','Calculated weight')}</th><th scope="col">{t('成績','Grade')}</th><th scope="col">{t('全距','Range')}</th><th scope="col">{t('百分比','Percentage')}</th>
-        <th scope="col">{t('排名','Rank')}</th><th scope="col">{t('回饋','Feedback')}</th><th scope="col">{t('貢獻到課程總分','Contribution to course total')}</th>
-      </tr></thead>{selected.filter(row=>course||row.grades?.length).map(rowCourse=><tbody key={rowCourse.id}>
-        <tr className="dtm-grade-group"><th scope="rowgroup" colSpan={8}><img src="/dtm-theme/folder.svg" width="16" height="16" alt=""/>{rowCourse.title}</th></tr>
-        {rowCourse.grades?.map(grade=><tr key={grade.id} id={'grade-'+grade.id}>
-          <th scope="row" className="dtm-grade-item">{course?<button className="dtm-record-title" type="button" onClick={()=>setDetail({kind:'grade',record:grade})}>{grade.label}</button>:<Link to={pathFor(rowCourse)+'/grades#grade-'+grade.id}>{grade.label}</Link>}</th>
-          <td>–</td><td>{grade.score.toFixed(2)}</td><td>0–{grade.maximum.toFixed(2)}</td><td>{((grade.score/grade.maximum)*100).toFixed(2)}%</td><td>–</td><td>{grade.feedback||'–'}</td><td>–</td>
-        </tr>)}
-        <tr className="dtm-grade-total"><th scope="row"><span className="dtm-grade-total-symbol" aria-hidden="true">Σ</span>{t('課程總分','Course total')}</th><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>
-      </tbody>)}</table>
-    </div>:<p className="dtm-empty">{t('尚無成績。','No saved grades.')}</p>)}
+    {report&&(overview?<DtmGradeOverview key={snapshot.profile.userId} userId={snapshot.profile.userId} t={t}/>
+      :course&&<DtmCourseGradeReport key={snapshot.profile.userId+':'+course.id} userId={snapshot.profile.userId} course={course} t={t}/>)}
+    <Dialog open={gradeEntriesOpen} onOpenChange={setGradeEntriesOpen}>
+      <DialogContent className="dtm-activity-dialog"><DialogHeader><DialogTitle>{t('個人成績紀錄','Personal grade entries')}</DialogTitle>
+        <DialogDescription>{course?.title}</DialogDescription></DialogHeader>
+        <ul className="dtm-record-list">{course?.grades?.map(grade=><li key={grade.id} id={'grade-'+grade.id}>
+          <button type="button" className="dtm-record-title" onClick={()=>{setGradeEntriesOpen(false);setDetail({kind:'grade',record:grade});}}>{grade.label}</button>
+          <span>{grade.score} / {grade.maximum}</span>
+        </li>)}</ul>
+      </DialogContent>
+    </Dialog>
     <Dialog open={Boolean(detail)} onOpenChange={open=>{if(!open)setDetail(null);}}>
       <DialogContent className="dtm-activity-dialog">
         <DialogHeader><DialogTitle>{detail?.kind==='grade'?detail.record.label:detail?.record.title}</DialogTitle><DialogDescription>{course?.title} · {course?.sourceMode==='sample'?t('範例課程','Sample course'):t('個人紀錄','Personal records')}</DialogDescription></DialogHeader>

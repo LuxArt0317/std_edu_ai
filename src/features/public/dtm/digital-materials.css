@@ -202,7 +202,7 @@
 .dtm-import-events label { display: grid; grid-template-columns: auto 1fr; align-items: start; padding: .35rem 0; }
 .dtm-import-events input { width: 18px; height: 18px; margin-top: .17rem; }
 .dtm-import-events small { display: block; color: var(--dtm-muted); }
-.dtm-columns-course .dtm-grade-center { padding: 10px; }
+.dtm-columns-course .dtm-grade-center { padding: 10px 0; border-inline: 0; border-color: transparent; background: transparent; }
 .dtm-columns-course .dtm-submission-center { padding: 0; border: 0; background: transparent; }
 .dtm-center .dtm-report-title { margin: 0 30px 10px 0; font-size: 28px; line-height: 40px; }
 .dtm-report-tabs { display: flex; border-bottom: 1px solid #ddd; min-height: 38px; margin-bottom: 40px; padding-left: 0; }

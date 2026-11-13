@@ -1,5 +1,14 @@
 # Task Plan
 
+## Literal Moodle grade report [Issue #98]
+
+- [x] Preserve source-displayed grades, weights, ranges, feedback and explicit totals in an additive owner/course-scoped report; leave personal numeric trackers intact.
+- [x] Complete administrator maintenance, strict API scopes and native grade-page integration, including existing grade links and report-only courses.
+- [x] Independently review security/round trips, source layout and account changes; run rollback-only migration preflight before an exact client deployment plan.
+- [ ] Verify database and rendered behavior, run isolated release gates, publish and verify production. Assistant semantic work remains reserved by user-paused Issue100.
+
+The additive migration is applied at134/151 after rollback preflight. Isolated API/source965 and initial units483 pass; compiled table geometry/mobile checks pass. Actual-JWT acceptance, the final contextual overview regression and publication remain. The floating-panel removal is already verified in production.
+
 ## Credit-load entry and selection-system navigation [Issue #98]
 
 - [x] Reinspect signed-in source7-1, its acknowledged closed-window notice and system-index destination without submitting anything.

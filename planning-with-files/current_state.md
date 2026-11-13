@@ -1,4 +1,16 @@
+# Grade report candidate ready — 2026-11-13
+
+Local actual-JWT4groups/44requests/8writes and exact cleanup pass; protected owner/legacy records preserved. Browser8groups/12screenshots with contextual overview pass. API965, serial units491, build/lint/handoff/client/audit pass; initial parallel-unit timing and Auth-fixture failures retained in QA docs. Only reviewed240000 is applied:134migrations/151publicRLS. Named-path commit, production publication and revision-pinned acceptance are next. All66paused paths unchanged; no Issue100 evaluator work. Standard client gate made one unintended non-mutating provider health call, recorded honestly; further model checks remain paused.
+
+# Grade report verification in progress — 2026-11-13
+
+Only grade-report migration20261114000000 applied after five-group rollback preflight:134migrations/151publicRLS. API/source965, initial units483, build and seven compiled browser groups pass; literal tables match measured source geometry within0.03125CSSpx. Actual-JWT persistence acceptance and contextual overview navigation are next. UI/API unpublished; production53c9304 retains the requested floating-panel removal. All66Issue100 fingerprints unchanged.
+
 # Current state
+
+## Literal Moodle grade report — in progress [Issue #98]
+
+Resumed the five unmounted drafts after re-reading the full goal. Separate report persistence/admin editing and source-shaped display are being completed. Root owns endpoint/mount integration; delegates own backend and UI files with an independent reviewer. No grade-report migration has been applied or feature published. Last accepted production remains53c9304; last database baseline133/150 must be rechecked before any apply. Issue100 remains user-paused.
 
 ## Latest screenshot request — verified
 

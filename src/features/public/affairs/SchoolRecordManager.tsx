@@ -22,6 +22,7 @@ import {TuitionDocumentsManager} from './TuitionDocumentsManager';
 import {StudentConductManager} from './StudentConductManager';
 import {StudentLoanManager} from './StudentLoanManager';
 import {DormConductManager} from './DormConductManager';
+import {DtmGradeReportManager} from './DtmGradeReportManager';
 
 type Admin = NonNullable<AffairsSnapshot['admin']>;
 const taipeiInput=(iso:string|null)=>iso?new Date(iso).toLocaleString('sv-SE',{timeZone:'Asia/Taipei'}).replace(' ','T').slice(0,16):'';
@@ -69,6 +70,7 @@ export function SchoolRecordManager({admin,busy,onManage,onRefresh}:{admin:Admin
   const [loanOpenedFor,setLoanOpenedFor]=useState('');
   const [dormConductOpen,setDormConductOpen]=useState(false);
   const [dormConductOpenedFor,setDormConductOpenedFor]=useState('');
+  const [gradeReportOpenedFor,setGradeReportOpenedFor]=useState('');
   const selected=admin.students.find(item=>item.id===studentId)||admin.students[0];
   const nativeManagers=<>
     <CourseSelectionManager records={admin.courseSelection?.records ?? []} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/>
@@ -117,6 +119,13 @@ export function SchoolRecordManager({admin,busy,onManage,onRefresh}:{admin:Admin
       <DtmSubmissionReview userId={managerId} assignment={reviewAssignment?{id:reviewAssignment.id,userId:selected.user_id,courseId:reviewAssignment.dtm_course_id!,title:reviewAssignment.title}:null} onSaved={onRefresh}/>
     </section>}
     {maintenance}
+    {managerId&&<section className="affairs-manager" aria-label="Selected student DTM grade report maintenance">
+      <Button type="button" variant="outline" disabled={busy} aria-expanded={gradeReportOpenedFor===selected.user_id}
+        onClick={()=>setGradeReportOpenedFor(current=>current===selected.user_id?'':selected.user_id)}>
+        {gradeReportOpenedFor===selected.user_id?'Hide DTM grade reports':'Manage DTM grade reports'}
+      </Button>
+      {gradeReportOpenedFor===selected.user_id&&<DtmGradeReportManager key={managerId+':'+selected.user_id} managerId={managerId} userId={selected.user_id} onSaved={onRefresh}/>}
+    </section>}
     {managerId&&<section className="affairs-manager" aria-label="Selected student certificate maintenance">
       <Button type="button" variant="outline" disabled={busy} aria-expanded={certificateOpen} onClick={()=>setCertificateOpen(value=>!value)}>{certificateOpen?'Hide certificate assessment':'Manage certificate assessment'}</Button>
       {certificateOpen&&<CertificateRecordEditor managerId={managerId} userId={selected.user_id} onSaved={onRefresh}/>}

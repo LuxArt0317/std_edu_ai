@@ -41,3 +41,5 @@ The `dormitory-conduct*` suites cover validation, bounded handler dispatch, owne
 Supplemental correction regressions exercise actual reader/formatter chains for coordinated certificate identity and class/document privacy, literal tuition period labels and explicit document capability requests, and the exact local attendance-detail citation for unavailable subterm hours.
 
 `dtm-dashboard-layout*.test.ts` checks strict own-account layout DTOs, isolated handler dispatch, bounded transport and draft migration preflight contracts. Mock HTTP and rollback SQL are separate from real concurrent requests.
+
+`dtm-grade-report*.test.ts` verify exact literal schemas, response budgets, caller ownership, paginated scopes, operation receipts and endpoint dispatch without network access. The rollback-only SQL and separate actual-JWT gates are documented in [grade-report QA](../../docs/qa/DTM_GRADE_REPORTS.md).

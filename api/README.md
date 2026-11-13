@@ -32,3 +32,5 @@ Reads and writes retain the caller JWT and share a 17-second API deadline. Confl
 Offline integration checks and the rollback-only migration preflight passed. Migration `20261112180000_tuition_documents.sql` is applied and actual-JWT local acceptance passed; production release acceptance is pending. See [tuition acceptance](../docs/qa/TUITION_DOCUMENTS.md) for the precise verification boundary.
 
 Conduct38-1 uses `GET /api/affairs-data?scope=student-conduct` for the caller, or exact `scope=student-conduct-admin&user_id=<uuid>` for a live administrator. `/api/affairs-manage` supports strict save_student_conduct/delete_student_conduct envelopes. Extra/repeated query fields, cross-account personal reads and unrelated resource dispatch are rejected. [Conduct QA](../docs/qa/STUDENT_CONDUCT.md).
+
+Grade reports use strict `affairs-data` scopes `dtm-grade-report`, `dtm-grade-report-overview`, `dtm-grade-report-admin` and `dtm-grade-report-courses-admin`. Personal scopes never accept another account selector. `affairs-manage` dispatches only exact save/delete report envelopes to caller-bound RPCs. See [grade-report QA](../docs/qa/DTM_GRADE_REPORTS.md).

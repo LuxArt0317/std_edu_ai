@@ -9,13 +9,14 @@ import { StudentConductError, loadStudentConduct, loadStudentConductAdmin } from
 import { StudentLoanError, loadStudentLoan, loadStudentLoanAdmin } from '../server/studentLoan.js';
 import { DormitoryConductError, loadDormitoryConduct, loadDormitoryConductAdmin } from '../server/dormitoryConduct.js';
 import { DtmDashboardLayoutError, loadDtmDashboardLayout } from '../server/dtmDashboardLayout.js';
+import { DtmGradeReportError, loadDtmGradeReport, loadDtmGradeReportAdmin, loadDtmGradeReportCoursesAdmin, loadDtmGradeReportOverview } from '../server/dtmGradeReport.js';
 
 type Request = {method?:string;headers:Record<string,string|string[]|undefined>;body?:unknown;query?:Record<string,string|string[]|undefined>};
 type Response = {status:(code:number)=>Response;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void};
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
 export default async function handler(request:Request,response:Response) {
   const scopes=Array.isArray(request.query?.scope)?request.query.scope:[request.query?.scope];
-  const strictStudentScope=scopes.some(scope=>typeof scope==='string'&&(scope.startsWith('student-conduct')||scope.startsWith('student-loan')||scope.startsWith('dormitory-conduct')||scope.startsWith('dtm-dashboard-layout')));
+  const strictStudentScope=scopes.some(scope=>typeof scope==='string'&&(scope.startsWith('student-conduct')||scope.startsWith('student-loan')||scope.startsWith('dormitory-conduct')||scope.startsWith('dtm-dashboard-layout')||scope.startsWith('dtm-grade-report')));
   if(first(request.query?.resource)==='conversations'&&!strictStudentScope)return conversations(request,response);
   const requestDeadline=Date.now()+17000;
   response.setHeader('Cache-Control','no-store, max-age=0');
@@ -26,6 +27,23 @@ export default async function handler(request:Request,response:Response) {
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
     const scope=request.query?.scope;
     if(Array.isArray(scope)){response.status(400).json({error:'Choose one records scope.'});return;}
+    if(typeof scope==='string'&&scope.startsWith('dtm-grade-report')){
+      const userId=request.query?.user_id,courseId=request.query?.course_id,afterId=request.query?.after_id;
+      const keys=Object.keys(request.query||{}),bounded={...account,requestDeadline};
+      if(scope==='dtm-grade-report'&&typeof courseId==='string'&&keys.every(key=>['scope','course_id'].includes(key))){
+        response.status(200).json(await loadDtmGradeReport(bounded,{courseId}));return;
+      }
+      if(scope==='dtm-grade-report-admin'&&typeof userId==='string'&&typeof courseId==='string'&&keys.every(key=>['scope','course_id','user_id'].includes(key))){
+        response.status(200).json(await loadDtmGradeReportAdmin(bounded,{userId,courseId}));return;
+      }
+      if(scope==='dtm-grade-report-courses-admin'&&typeof userId==='string'&&(afterId===undefined||typeof afterId==='string')&&keys.every(key=>['scope','user_id','after_id'].includes(key))){
+        response.status(200).json(await loadDtmGradeReportCoursesAdmin(bounded,{userId,...(afterId===undefined?{}:{afterId})}));return;
+      }
+      if(scope==='dtm-grade-report-overview'&&(afterId===undefined||typeof afterId==='string')&&keys.every(key=>['scope','after_id'].includes(key))){
+        response.status(200).json(await loadDtmGradeReportOverview(bounded,afterId===undefined?{}:{afterId}));return;
+      }
+      response.status(400).json({error:'Choose one grade report scope with only its required course, account or pagination fields.'});return;
+    }
     if(typeof scope==='string'&&scope.startsWith('dtm-dashboard-layout')){
       if(scope!=='dtm-dashboard-layout'||Object.keys(request.query||{}).some(key=>key!=='scope')){
         response.status(400).json({error:'Choose the personal dashboard layout scope without account filters.'});return;
@@ -123,7 +141,7 @@ export default async function handler(request:Request,response:Response) {
       : await loadAffairsSnapshot(account,first(request.query?.scope)==='admin');
     response.status(200).json(snapshot);
   } catch(error) {
-    const known=error instanceof AffairsWorkspaceError||error instanceof DtmSubmissionError||error instanceof EnrollmentCertificateError||error instanceof SyllabusSearchError||error instanceof TuitionDocumentsError||error instanceof StudentConductError||error instanceof StudentLoanError||error instanceof DormitoryConductError||error instanceof DtmDashboardLayoutError;
+    const known=error instanceof AffairsWorkspaceError||error instanceof DtmSubmissionError||error instanceof EnrollmentCertificateError||error instanceof SyllabusSearchError||error instanceof TuitionDocumentsError||error instanceof StudentConductError||error instanceof StudentLoanError||error instanceof DormitoryConductError||error instanceof DtmDashboardLayoutError||error instanceof DtmGradeReportError;
     response.status(known?error.status:503).json({error:known?error.message:'School Affairs records could not be loaded.'});
   }
 }

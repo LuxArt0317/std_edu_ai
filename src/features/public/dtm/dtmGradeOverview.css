@@ -1,0 +1,5 @@
+.dtm-grade-overview{min-width:0;max-width:100%;font:14px/20px "DTM Open Sans","Open Sans",Arial,sans-serif;color:#333}
+.dtm-grade-overview-scroll{max-width:100%;overflow-x:auto}.dtm-grade-overview-table{width:100%;table-layout:fixed;border-collapse:collapse;background:transparent}.dtm-grade-overview-course-column{width:85.4934%}
+.dtm-grade-overview-table th,.dtm-grade-overview-table td{padding:8px;border:0;text-align:start;vertical-align:top;overflow-wrap:anywhere;white-space:pre-wrap}.dtm-grade-overview-table th{font-weight:700}.dtm-grade-overview-table tbody td{border-top:1px solid #ddd}.dtm-grade-overview-table tbody tr:nth-child(odd) td{background:#f9f9f9}
+.dtm-grade-overview>p{margin:12px 0;overflow-wrap:anywhere}.dtm-grade-overview-more{padding:5px 10px;border:1px solid #356881;border-radius:3px;color:#244f68;background:#fff;font:inherit;cursor:pointer}.dtm-grade-overview-more:disabled{cursor:wait;opacity:.65}.dtm-grade-overview-more:focus-visible,.dtm-grade-overview-scroll:focus-visible{outline:2px solid #356881;outline-offset:2px}
+@media(max-width:600px){.dtm-grade-overview-course-column{width:75%}}
