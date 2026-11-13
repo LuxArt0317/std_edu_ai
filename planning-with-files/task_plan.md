@@ -576,5 +576,5 @@ Scope: only four source counters exist across the395 captured pages. Preserve so
 
 - [x] Capture the official 35-row directory and verify the 30 linked PDFs.
 - [x] Implement the database-backed local table, document routes and assistant lookups.
-- [ ] Verify migration isolation, routes, assets, assistant evidence and production deployment.
+- [x] Verify migration isolation, routes, assets, assistant evidence and production deployment.
 - [ ] Verify course substitution search results and authenticated internship details when the university provides access.

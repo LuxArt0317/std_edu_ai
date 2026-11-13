@@ -47,3 +47,5 @@
 - 12-6/12-8: Captured the 35-row interdisciplinary table and 30 document links. Verified the alternative-course year/program selectors and department autocomplete; the source returned HTTP 451 on the first results POST. Source captures are under the ignored curriculum-maps artifact.
 
 - Issue #98: Captured 35 public interdisciplinary program rows and 30 PDFs, built a Supabase-backed directory and shared assistant reader, and verified that the main university portal and Internship use separate sessions.
+
+- Issue #98: Applied only the interdisciplinary directory migration. Published c09b698 and verified all 30 PDF hashes, sorting, mobile containment, assistant citations, persistent lookup activity and the public shell.

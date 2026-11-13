@@ -1,6 +1,6 @@
 ## Interdisciplinary credit programs (Issue #98)
 
-The 12-6 catalog route reads 35 published programs from Supabase, with 30 local documents and assistant access to the same directory. See [program directory QA](../qa/INTERDISCIPLINARY_PROGRAMS.md).
+The 12-6 catalog route reads 35 published programs from Supabase, with 30 local documents and assistant access to the same directory. Runtime `c09b698` is live. Migration `20261114060000` passed rollback preflight and was applied alone. The pinned browser and all PDF hashes passed, and the assistant activity persisted across reload. See [program directory QA](../qa/INTERDISCIPLINARY_PROGRAMS.md).
 
 ## Curriculum maps (Issue #98)
 

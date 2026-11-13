@@ -1,6 +1,6 @@
 ## Interdisciplinary credit programs (Issue #98)
 
-The public directory has 35 entries and 30 verified documents. The local page and assistant read the new Supabase catalog. Course substitution searches returned HTTP 451 for three verified source years. The main school portal opened after sign-in, while the separate internship system still prompted for CAPTCHA.
+The public directory has 35 entries and 30 verified documents. The page and assistant read the new Supabase catalog. The isolated preflight confirmed read-only RLS, and the exact migration is applied (140 migrations, 156 public RLS tables). Production runtime `c09b69843ea6d7c2864f7bed5801d212b25d7d3f` is live. The pinned browser checked all 30 PDF hashes, sorting, four widths, notes and guest return. Four live assistant queries, streaming activity, activity restoration after reload and the public shell passed. One PDF served the shell during the rollout and passed on the full rerun. GitHub Quality 43468337951 passed. Course substitution searches returned HTTP 451 for three verified source years. The main school portal opened after sign-in, while the separate internship system still prompted for CAPTCHA.
 
 ## Curriculum maps (Issue #98)
 
