@@ -1,3 +1,4 @@
+import {GraduationClearanceManager} from './GraduationClearanceWorkspace';
 import {TeachingFeedbackManager} from './TeachingFeedbackWorkspace';
 import {EarlyGraduationManager} from './EarlyGraduationWorkspace';
 import { useEffect, useRef, useState } from 'react';
@@ -89,6 +90,7 @@ export function SchoolRecordManager({admin,busy,onManage,onRefresh}:{admin:Admin
     <CourseSelectionManager records={admin.courseSelection?.records ?? []} profiles={admin.profiles} busy={busy} onSave={onManage} onRefresh={onRefresh}/>
     {managerId&&<CourseAdjustmentManager key={managerId} managerId={managerId} profiles={admin.profiles} busy={busy}/>}
     {managerId&&<CourseWithdrawalManager key={managerId} userId={managerId} busy={busy}/>}
+    {managerId&&<GraduationClearanceManager key={managerId} userId={managerId} profiles={admin.profiles} busy={busy}/>}
     {managerId&&<TeachingFeedbackManager key={managerId} userId={managerId} busy={busy}/>}
     {managerId&&<EarlyGraduationManager key={managerId} userId={managerId} profiles={admin.profiles} busy={busy}/>}
     {managerId&&<CreditTransferManager key={managerId} userId={managerId} profiles={admin.profiles} busy={busy}/>}

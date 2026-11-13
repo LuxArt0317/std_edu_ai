@@ -1,5 +1,7 @@
 # Quality evidence
 
+[Graduation clearance](GRADUATION_CLEARANCE.md) covers the application and status workflows, administrator review, and verification.
+
 [Teaching feedback](TEACHING_FEEDBACK.md) covers teaching evaluation and immediate feedback, their database boundaries, and verification.
 
 [Early graduation](EARLY_GRADUATION.md) covers the account-scoped application and history, administrator maintenance, and source evidence.

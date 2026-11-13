@@ -1,3 +1,5 @@
+import {changeGraduationClearance} from '../server/graduationClearance.js';
+import {clearanceManagerActions} from '../server/graduationClearanceContract.js';
 import {changeTeachingFeedback} from '../server/teachingFeedback.js';
 import {teachingFeedbackManagerActions,teachingFeedbackMaxBytes} from '../server/teachingFeedbackContract.js';
 import { changeEarlyGraduation } from '../server/earlyGraduation.js';
@@ -48,13 +50,15 @@ export default async function handler(request:Request,response:Response) {
     :input?.kind==='save_enrollment_certificate_document'?'save_enrollment_certificate_document':null;
   const earlyGraduation=earlyGraduationManagerActions.find(kind=>kind===input?.kind);
   const teachingFeedback=teachingFeedbackManagerActions.find(kind=>kind===input?.kind);
-  const maxBodyBytes=teachingFeedback?teachingFeedbackMaxBytes+1024:earlyGraduation?3424:feeRemissionKind?feeRemissionMaxPayloadBytes+1024:courseContentKind?dtmCourseContentMaxPayloadBytes+1024:gradeReportKind?dtmGradeReportMaxPayloadBytes+1024:dormitoryKind?dormitoryConductMaxPayloadBytes+1024:loanKind?studentLoanMaxPayloadBytes+1024:conductKind?studentConductMaxPayloadBytes+1024:tuitionKind?tuitionDocumentMaxPayloadBytes+1024:syllabusMetadata?2000:certificateKind?10000:input?.kind==='save_graduation_review'?140000:input?.kind==='save_housing_period'?26000:catalogAction?48000:submissionReview?14000:12000;
+  const clearance=clearanceManagerActions.find(kind=>kind===input?.kind);
+  const maxBodyBytes=clearance?8024:teachingFeedback?teachingFeedbackMaxBytes+1024:earlyGraduation?3424:feeRemissionKind?feeRemissionMaxPayloadBytes+1024:courseContentKind?dtmCourseContentMaxPayloadBytes+1024:gradeReportKind?dtmGradeReportMaxPayloadBytes+1024:dormitoryKind?dormitoryConductMaxPayloadBytes+1024:loanKind?studentLoanMaxPayloadBytes+1024:conductKind?studentConductMaxPayloadBytes+1024:tuitionKind?tuitionDocumentMaxPayloadBytes+1024:syllabusMetadata?2000:certificateKind?10000:input?.kind==='save_graduation_review'?140000:input?.kind==='save_housing_period'?26000:catalogAction?48000:submissionReview?14000:12000;
   if(!input || typeof input.kind!=='string' || !input.payload || typeof input.payload!=='object'
     || Array.isArray(input.payload) || Buffer.byteLength(JSON.stringify(input),'utf8')>maxBodyBytes
-    || (certificateKind||syllabusMetadata||tuitionKind||conductKind||loanKind||dormitoryKind||gradeReportKind||courseContentKind||feeRemissionKind||earlyGraduation||teachingFeedback)&&(Object.keys(input).length!==2||!Object.hasOwn(input,'kind')||!Object.hasOwn(input,'payload'))){response.status(400).json({error:'Invalid manager request.'});return;}
+    || (certificateKind||syllabusMetadata||tuitionKind||conductKind||loanKind||dormitoryKind||gradeReportKind||courseContentKind||feeRemissionKind||earlyGraduation||teachingFeedback||clearance)&&(Object.keys(input).length!==2||!Object.hasOwn(input,'kind')||!Object.hasOwn(input,'payload'))){response.status(400).json({error:'Invalid manager request.'});return;}
   try {
     const authorization=first(request.headers.authorization);
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
+    if(clearance){response.status(200).json(await changeGraduationClearance({...account,requestDeadline},clearance,input.payload));return;}
     if(teachingFeedback){response.status(200).json(await changeTeachingFeedback({...account,requestDeadline},teachingFeedback,input.payload));return;}
     if(earlyGraduation){
       response.status(200).json(await changeEarlyGraduation({...account,requestDeadline},earlyGraduation,input.payload));

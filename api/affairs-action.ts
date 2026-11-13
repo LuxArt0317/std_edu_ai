@@ -1,3 +1,5 @@
+import {changeGraduationClearance} from '../server/graduationClearance.js';
+import {clearanceSubmit} from '../server/graduationClearanceContract.js';
 import {changeTeachingFeedback} from '../server/teachingFeedback.js';
 import {teachingFeedbackStudentActions,teachingFeedbackMaxBytes} from '../server/teachingFeedbackContract.js';
 import { changeEarlyGraduation } from '../server/earlyGraduation.js';
@@ -37,7 +39,8 @@ export default async function handler(request:Request,response:Response) {
   const dashboardKind=dtmDashboardLayoutKinds.find(kind=>kind===input?.kind);
   const earlyGraduation = earlyGraduationStudentActions.find(kind=>kind===input?.kind);
   const teachingFeedback=teachingFeedbackStudentActions.find(kind=>kind===input?.kind);
-  const dedicatedPayloadLimit = teachingFeedback ? teachingFeedbackMaxBytes : earlyGraduation ? 2400 : transfer ? 36000 : programRegistration || withdrawal ? 1024 : tutorEvaluation ? tutorEvaluationMaxBytes : grantKind ? exchangeGrantMaxPayloadBytes : dashboardKind ? dtmDashboardLayoutMaxPayloadBytes : undefined;
+  const clearance=input?.kind===clearanceSubmit;
+  const dedicatedPayloadLimit = clearance ? 1024 : teachingFeedback ? teachingFeedbackMaxBytes : earlyGraduation ? 2400 : transfer ? 36000 : programRegistration || withdrawal ? 1024 : tutorEvaluation ? tutorEvaluationMaxBytes : grantKind ? exchangeGrantMaxPayloadBytes : dashboardKind ? dtmDashboardLayoutMaxPayloadBytes : undefined;
   if(!input || typeof input.kind!=='string' || !input.payload || typeof input.payload!=='object'
     || Array.isArray(input.payload) || (dedicatedPayloadLimit?Buffer.byteLength(JSON.stringify(input),'utf8')>dedicatedPayloadLimit+1024:submissionAction?Buffer.byteLength(JSON.stringify(input),'utf8')>14000:JSON.stringify(input).length>(input.kind==='import_dtm_deadlines'?50000:4000))
     || dedicatedPayloadLimit&&(Object.keys(input).length!==2||!Object.hasOwn(input,'kind')||!Object.hasOwn(input,'payload'))){
@@ -47,6 +50,7 @@ export default async function handler(request:Request,response:Response) {
     const authorization=first(request.headers.authorization);
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
     const bounded={...account,requestDeadline:submissionDeadline};
+    if(clearance){response.status(200).json(await changeGraduationClearance(bounded,clearanceSubmit,input.payload));return;}
     if(teachingFeedback){response.status(200).json(await changeTeachingFeedback(bounded,teachingFeedback,input.payload));return;}
     if (earlyGraduation) {response.status(200).json(await changeEarlyGraduation(bounded,earlyGraduation,input.payload));return;}
     if (transfer) {response.status(200).json(await changeCreditTransfer(bounded,input.kind,input.payload));return;}

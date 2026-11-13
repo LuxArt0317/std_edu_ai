@@ -1,5 +1,7 @@
 # HTTP API
 
+`affairs-data.ts?scope=graduation-clearance` reads private applications, available periods and office decisions. The `manage` view takes a term and optional candidate. Dedicated student and administrator actions are versioned and retry-safe.
+
 `affairs-data.ts?scope=teaching-feedback` reads survey completion, immediate feedback, or authorized management by `view`. Dedicated student and administrator actions save evaluations, feedback, survey settings, releases, and reviews.
 
 `affairs-data.ts?scope=early-graduation` reads the caller’s application window, eligibility and history or returns a grounded assistant answer. `early-graduation-admin` takes a term and optional student. The student and administrator write endpoints dispatch separate versioned operations.

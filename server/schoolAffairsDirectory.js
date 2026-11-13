@@ -1,3 +1,4 @@
+import {clearancePaths,clearanceQuestion} from './graduationClearanceContract.js';
 import {teachingFeedbackPaths} from './teachingFeedbackContract.js';
 import {earlyGraduationPath} from './earlyGraduationContract.js';
 import {courseSubstitutionPath} from '../src/features/public/affairs/courseSubstitution.js';
@@ -158,6 +159,16 @@ const localServiceNavigation = [
     id:'ta-evaluation',match:/\b(?:teaching assistant|TA)\b.{0,32}\bself[- ]?evaluation\b|教學助理自我評表/i,
     title:['教學助理自我評表','Teaching assistant self-evaluation'],localUrl:teachingAssistantPath+'/evaluation',
     description:['從教學助理系統的「學生」選單開啟自我評表。','Open self-evaluation from the Student menu in the Teaching Assistant system.'],
+  },
+  {
+    id:'graduation-clearance-status',match:{test:question=>clearanceQuestion(question)==='status'},
+    title:['離校申請狀態查詢','Graduation clearance status'],localUrl:clearancePaths.status,
+    description:['開啟離校申請與各單位審核紀錄。','Open your submitted clearance applications and office decisions.'],
+  },
+  {
+    id:'graduation-clearance',match:{test:question=>clearanceQuestion(question)==='apply'},
+    title:['畢業離校申請','Graduation clearance application'],localUrl:clearancePaths.apply,
+    description:['開啟站內畢業離校申請。','Open the graduation clearance application and assigned periods.'],
   },
   {
     id:'teaching-survey',match:/\b(?:teaching|course) (?:evaluation|survey)s?\b|教學(?:成效|意見|評量)問卷/iu,

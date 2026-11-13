@@ -1,3 +1,7 @@
+## Graduation clearance [Issue #98]
+
+The previous goal turn deployed teaching feedback. The two graduation clearance destinations now share persistent applications and office decisions. Exact-target rollback passed. Authenticated university screens remain unavailable.
+
 ## Teaching feedback [Issue #98]
 
 Production `623baac` is live as Vercel `BitJQgNJxjJfq4pKmbmFqTZDZt7d`. Migration 20261114140000 was applied alone, bringing the client to 148 migrations and 169 RLS-protected public tables. The pinned browser, 20 actual-JWT API requests including two successful student writes and their replays, exact fixture cleanup, guest assistant links, and eight public shell routes passed. Quality 43504926483 passed. The 94-destination local navigation inventory has 41 generic and 15 partial entries.

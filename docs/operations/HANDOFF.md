@@ -1,3 +1,7 @@
+## Graduation clearance (Issue #98)
+
+Services 10-1 and 16-1 share one application and per-office review record. The official flowchart is verified. Current authenticated layouts remain unobserved. See [graduation clearance QA](../qa/GRADUATION_CLEARANCE.md).
+
 ## Teaching feedback (Issue #98)
 
 Services 7-5 and 7-6 have distinct enrollment-scoped workflows, administrator maintenance, and assistant status. The authenticated university forms still require sign-in for visual comparison. See [teaching feedback QA](../qa/TEACHING_FEEDBACK.md).

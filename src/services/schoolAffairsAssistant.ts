@@ -1,3 +1,5 @@
+import {clearanceQuestion} from '../../server/graduationClearanceContract.js';
+import {readGraduationClearanceAnswer} from './graduationClearance';
 import {teachingFeedbackQuestion} from '../../server/teachingFeedbackContract.js';
 import {readTeachingFeedbackAnswer} from './teachingFeedback';
 import {earlyGraduationQuestion} from '../../server/earlyGraduationContract.js';
@@ -25,6 +27,12 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
     onProgress?.({kind:'program-registrations',label:'Checking interdisciplinary program registrations',detail:'Reading your School Affairs records.',status:'running'});
     const result:AssistantResponse = await readProgramRegistrationAnswer(data.session.user.id,question,signal);
     if (typeof result?.answer !== 'string' || result.grounding?.source !== 'account') throw new Error('Program registrations could not be loaded.');
+    return result;
+  }
+  if(!images.length&&clearanceQuestion(question)){
+    onProgress?.({kind:'graduation-clearance',label:'Checking graduation clearance',detail:'Reading your applications and office decisions.',status:'running'});
+    const result=await readGraduationClearanceAnswer(data.session.user.id,question,signal) as AssistantResponse;
+    if(typeof result?.answer!=='string'||result.grounding?.source!=='account')throw new Error('Graduation clearance records could not be loaded.');
     return result;
   }
   const teachingFeedback=!images.length&&teachingFeedbackQuestion(question);

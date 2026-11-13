@@ -1,5 +1,7 @@
 # Server helpers
 
+`graduationClearance.js` validates caller-bound reads, office decisions and submission receipts. Its assistant reply uses persisted office statuses.
+
 `teachingFeedback.js` validates separate student and administrator requests and formats caller-bound completion and review status for the campus assistant.
 
 `earlyGraduation.js` validates caller-bound reads and confirmed, retry-safe application and review operations. Its assistant answer uses the same window and history.

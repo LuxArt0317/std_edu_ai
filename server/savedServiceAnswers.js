@@ -7,7 +7,7 @@ const services = new Map(schoolServiceEntries.map(entry=>[entry.id,entry]));
 for(const key of ['leave','internship'])services.set(key,studentServiceByKey(key));
 // These routes have dedicated readers. A general “my records/status” request
 // must reach those readers rather than being answered from unrelated notes.
-const dedicatedServices = new Set(['6-1','6-2','6-3','6-4','7-2','7-3','7-4','7-5','7-6','3-1','3-2','4-1','4-2','4-4','4-5','9-1','11-1','11-2','11-3','12-4','13-1','14-1','15-1','15-2','17-1','22-1','26-1','34-1','39-1']);
+const dedicatedServices = new Set(['6-1','6-2','6-3','6-4','7-2','7-3','7-4','7-5','7-6','10-1','16-1','3-1','3-2','4-1','4-2','4-4','4-5','9-1','11-1','11-2','11-3','12-4','13-1','14-1','15-1','15-2','17-1','22-1','26-1','34-1','39-1']);
 const structuredServices = new Set(['leave','internship','20-1','33-1','53-1']);
 const noteIntent = question=>/\bnotes?\b|\b(?:personal|private|local|saved)\s+(?:tracking|tracker)\b|\b(?:tracking|tracker)\s+(?:records?|status)\b|備註|筆記|(?:私人|站內|本地|已儲存).{0,4}追蹤/i.test(question);
 const trackerIntent = question=>/\b(?:personal|private|local|saved)\s+(?:service\s+)?(?:notes?|tracking|tracker)\b|\b(?:tracking|tracker)\s+(?:notes?|records?|status)\b|(?:私人|站內|本地|儲存).{0,6}(?:備註|筆記|追蹤)/i.test(question);

@@ -1,0 +1,18 @@
+.graduation-clearance { width: min(1060px, 100%); min-height: 100dvh; margin-inline: auto; background: #fff; color: #303a40; }
+.graduation-clearance > header { display: flex; flex-wrap: wrap; gap: 1rem; padding: 1rem clamp(.75rem, 3vw, 1.5rem); background: #316887; color: #fff; }
+.graduation-clearance > header a { text-decoration: underline; }
+.graduation-clearance-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; padding: 1.25rem clamp(.75rem, 3vw, 1.5rem) 4rem; }
+.graduation-clearance h1 { margin: 0; font-size: 1.5rem; font-weight: 700; }
+.graduation-clearance h2 { font-size: 1.125rem; font-weight: 600; }
+.graduation-clearance-scroll { max-width: 100%; overflow-x: auto; }
+.graduation-clearance-scroll table { width: 100%; min-width: 30rem; border-collapse: collapse; }
+.graduation-clearance-scroll th, .graduation-clearance-scroll td { padding: .6rem; border: 1px solid #d4dee2; text-align: start; vertical-align: top; }
+.graduation-clearance-scroll th { background: #eef4f7; color: #263239; }
+.graduation-clearance-note { overflow-wrap: anywhere; white-space: pre-wrap; }
+.graduation-clearance-admin { display: grid; gap: .75rem; }
+.graduation-clearance nav { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; }
+.graduation-clearance a { text-decoration: underline; text-underline-offset: .2em; }
+.graduation-clearance nav [aria-current] { font-weight: 700; }
+.graduation-clearance-notice { display: grid; gap: .5rem; justify-items: start; padding: .75rem; border: 1px solid #cedae1; }
+.graduation-clearance-check { display: flex; gap: .5rem; align-items: flex-start; }
+.graduation-clearance-check input { margin-block-start: .3rem; }

@@ -1,5 +1,7 @@
 # Database migrations
 
+`20261114150000_graduation_clearance.sql` adds term periods, account assignments, applications, office review rows and private replay receipts. It seeds no student records or dates.
+
 `20261114140000_teaching_feedback.sql` adds survey windows, separated completion and response storage, and immediate feedback with review status. Access is limited to the verified student or administrator RPC scope.
 
 `20261114130000_early_graduation.sql` adds administrator-managed term windows and eligibility, account-owned applications, and private retry receipts. It seeds no student records or dates.

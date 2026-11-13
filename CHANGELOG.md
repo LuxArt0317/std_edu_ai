@@ -1,5 +1,7 @@
 # Changelog
 ## Unreleased
+- Add a graduation clearance application, account-owned status page, per-office review and assistant lookup. [#98]
+
 - Add course-based teaching evaluation and immediate feedback, with persistent submissions, private completion, administrator release and assistant status. [#98]
 
 - Add private early graduation eligibility, application, cancellation, administrator review, assistant history, and an accessible header. [#98]

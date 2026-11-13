@@ -1,3 +1,4 @@
+import {clearancePaths,clearanceQuestion} from './graduationClearanceContract.js';
 import {teachingFeedbackPaths,teachingFeedbackQuestion} from './teachingFeedbackContract.js';
 import {earlyGraduationPath,earlyGraduationQuestion} from './earlyGraduationContract.js';
 import { answerCourseSubstitution } from './courseSubstitution.js';
@@ -252,6 +253,15 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const kind = questionKind(input.question);
+        const clearanceView=!input.images.length&&!kind.irrelevant&&clearanceQuestion(input.question);
+        if(clearanceView){
+            const next='/school-affairs/login?next='+encodeURIComponent(clearancePaths[clearanceView]);
+            const zh=/[\u3400-\u9fff]/u.test(input.question);
+            stream.send(200,{status:'handoff',answer:zh?`[登入校務資訊系統](${next})辦理離校申請或查詢進度。`:
+                `[Sign in to School Affairs](${next}) to open graduation clearance.`,
+                citations:[],suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
+            return;
+        }
         const feedbackView=!input.images.length&&!kind.irrelevant&&teachingFeedbackQuestion(input.question);
         if(feedbackView){
             const next='/school-affairs/login?next='+encodeURIComponent(teachingFeedbackPaths[feedbackView]);
