@@ -197,3 +197,7 @@ Service 28-1 answers questions about the student's saved questionnaire. The assi
 For a combined fee question, the account graph checks the selected fee and questionnaire independently and rereads both after a rejected draft. A failed read stays distinct from a successful lookup that found no submission. Private profile fields from the form never enter the assistant's evidence. Questions about other students are refused without a record lookup.
 
 The independent packet covers 33 scenarios, with 27 planned live cases and six offline controls. Three planned cases need separate charge fixtures. The live fixture and two-account cleanup checks remain unmounted. Local HTTP, graph and browser tests use synthetic accounts, model responses and record fixtures.
+
+### Private tracking notes
+
+The standalone 80-question packet covers seven services (27-1, 30-1, 30-2, 31-1, 31-2, 32-1 and 35-1). `tests/api/service-notes-assistant-graph.test.ts` checks the actual graph and API against injected Supabase and model transports. `tests/integration/service-notes-assistant-dispatch-ui.mjs` tests the seven rendered pages using synthetic browser authentication. The packet still requires a live fixture adapter, approved protected Preview access and runner readback before live release acceptance.

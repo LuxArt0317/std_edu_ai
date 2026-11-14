@@ -82,3 +82,7 @@ Student profile scope `student-profile` has caller-owned and selected-account ad
 Announcement email settings use the protected `announcement-email` scope and `save_announcement_email` action. The scheduled worker uses the separate bearer-protected `announcement-email-delivery` resource.
 
 Certificate awards use the caller-scoped `certificate-awards` scope and dedicated `certificate_award_` action or manager requests.
+
+### Private service notes in the account assistant
+
+`POST /api/affairs-assistant` accepts the signed-in caller’s question. A request for the selected service notes uses their existing Google session. Pure notes, note plus fee balance, and note plus next class use scoped reads. Other supported account clauses can use the existing workspace or their dedicated readers. The API returns an own-account boundary for foreign requests and a link to the service page when the requested official workflow is unavailable.

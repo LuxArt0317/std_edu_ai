@@ -1,3 +1,5 @@
+import {isServiceNoteNextClass,serviceNoteLookup} from '../server/serviceNoteIntent.js';
+import {serviceNoteGuide} from '../server/serviceNoteGuide.js';
 import {readTutorEvaluationEvidence} from '../server/accountTutorEvaluationEvidence.js';
 import {tutorEvaluationNavigation} from '../server/tutorEvaluationEvidenceIntent.js';
 import {tutorEvaluationGuide} from '../server/tutorEvaluationGuide.js';
@@ -40,7 +42,7 @@ import { isHousingRecordQuestion } from '../server/housingRecords.js';
 import { isOwnFeeBalanceQuestion, isPendingFeeQuestion, ownFeeBalanceLabel } from '../server/pendingFeesAnswer.js';
 import { isCreditLoadHistoryQuestion } from '../server/creditLoadHistory.js';
 import { isCourseSelectionQuestion } from '../server/courseSelection.js';
-import { AffairsWorkspaceError, loadAffairsSnapshot, loadOwnAffairsCharges, verifyAffairsToken } from '../server/affairsWorkspace.js';
+import { AffairsWorkspaceError, loadAffairsSnapshot, loadOwnAffairsCharges, loadOwnServiceNotes, verifyAffairsToken } from '../server/affairsWorkspace.js';
 import {loadOwnAffairsTimetable} from '../server/ownAffairsTimetable.js';
 import { createAssistantStream } from '../server/assistantStream.js';
 import { readAssistantReply } from '../src/services/assistantStreamReader.js';
@@ -179,7 +181,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   if(request.method!=='POST') {response.setHeader('Allow','POST');response.status(405).json({error:'Method not allowed'});return;}
   const body=typeof request.body==='string' ? (()=>{try{return JSON.parse(request.body);}catch{return null;}})() : request.body;
   const input=body && typeof body==='object' && !Array.isArray(body) ? body as Record<string,unknown> : null;
-  const question=typeof input?.question==='string'?input.question.trim():'';
+  let question=typeof input?.question==='string'?input.question.trim():'';
   if(question.length<2||question.length>2000) {response.status(400).json({error:'Provide a question between 2 and 2,000 characters.'});return;}
   let route:string;
   try{route=validateAffairsAssistantRoute(input?.route);}catch{response.status(400).json({error:'Provide a local page route of at most 3,100 characters, without a fragment.'});return;}
@@ -197,7 +199,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const now=Date.now(),active=(requestWindows.get(account.user.id)||[]).filter(time=>time>now-60_000);
   active.push(now);requestWindows.set(account.user.id,active);
   if(active.length>24){response.status(429).json({error:'Too many questions. Please wait a moment.'});return;}
-  const history=Array.isArray(input?.history)?input.history.slice(-6).flatMap(item=>{
+  let history=Array.isArray(input?.history)?input.history.slice(-6).flatMap(item=>{
     if(!item||typeof item!=='object')return [];
     const entry=item as Record<string,unknown>;
     return ['user','assistant'].includes(String(entry.role))&&typeof entry.content==='string'?[{role:String(entry.role),content:entry.content.slice(0,1000)}]:[];
@@ -205,10 +207,19 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const correlationId=randomUUID();
   response.setHeader('X-Assistant-Request-Id',correlationId);
   const stream=createAssistantStream(input?.stream===true,response);
+  const notes=serviceNoteLookup(question,route,history);
+  if(notes.foreign||notes.invalidService||!notes.otherQuestion&&!notes.keys.length&&(notes.excluded||notes.officialOnly)){
+    stream.send(200,serviceNoteGuide(question,notes,true));
+    return;
+  }
+  if(!notes.keys.length&&(notes.excluded||notes.officialOnly)){
+    question=notes.otherQuestion;
+    history=[];
+  }
   const foreignDtmGrades=isForeignDtmGradesQuestion(question,route);
   const foreignElearning=isForeignElearningRecordsQuestion(question,route);
   const foreignRepair=isForeignFacilityRepairQuestion(question);
-  const pageContext=nativePageLookupContext(question,route,history);
+  const pageContext=nativePageLookupContext(notes.keys.length?notes.otherQuestion:question,notes.keys.length?'':route,notes.keys.length?[]:history);
   const scopedQuestion=withoutExcludedNativePageClause(question);
   if(foreignDtmGrades||foreignElearning||foreignRepair||pageContext.foreign||isForeignAidPaymentsQuestion(scopedQuestion)){
     const chinese=/[\u3400-\u9fff]/u.test(question);
@@ -228,25 +239,25 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     stream.send(200,{status:'handoff',answer,citations:[],suggestedQuestions:[],grounding:{source:'account',webSearched:false}});
     return;
   }
-  if(tutorEvaluationNavigation(question)&&!(Array.isArray(input?.images)&&input.images.length)){
+  if(!notes.keys.length&&tutorEvaluationNavigation(question)&&!(Array.isArray(input?.images)&&input.images.length)){
     stream.send(200,tutorEvaluationGuide(question,true));
     return;
   }
   const clearanceNavigation=clearanceNavigationView(question);
-  if(clearanceNavigation&&!(Array.isArray(input?.images)&&input.images.length)){
+  if(!notes.keys.length&&clearanceNavigation&&!(Array.isArray(input?.images)&&input.images.length)){
     stream.send(200,clearanceDirectoryAnswer(question,clearanceNavigation,true));
     return;
   }
-  if(isCounselingNavigationQuestion(question)&&!(Array.isArray(input?.images)&&input.images.length)){
+  if(!notes.keys.length&&isCounselingNavigationQuestion(question)&&!(Array.isArray(input?.images)&&input.images.length)){
     stream.send(200,counselingGuide(question,'guide',true));
     return;
   }
-  if(isHealthExaminationNavigationQuestion(question)&&!(Array.isArray(input?.images)&&input.images.length)){
+  if(!notes.keys.length&&isHealthExaminationNavigationQuestion(question)&&!(Array.isArray(input?.images)&&input.images.length)){
     stream.send(200,healthExaminationGuide(question,true));
     return;
   }
   const intent=accountQuestionIntent(question,history,route);
-  if(intent.recognized&&intent.kind==='coaching'&&!intent.baseTools.length&&!pageContext.selected){
+  if(!notes.keys.length&&intent.recognized&&intent.kind==='coaching'&&!intent.baseTools.length&&!pageContext.selected){
     if(Array.isArray(input?.images)&&input.images.length){stream.send(400,{error:'For this coaching request, remove the image and ask using text.'});return;}
     try{
       // Authentication remains mandatory, but wording help needs no student
@@ -264,10 +275,12 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     }catch{stream.send(503,{error:'The guidance could not be checked. Please try again.'});}
     return;
   }
-  const chargeLabel=pageContext.feeChargeLabel??(scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):null);
-  const chargesOnly=isOwnFeeBalanceQuestion(scopedQuestion)||pageContext.feeAndBalance||chargeLabel!==null;
+  const noteFees=notes.keys.length>0&&(isOwnFeeBalanceQuestion(notes.otherQuestion)||ownFeeBalanceLabel(notes.otherQuestion)!==null);
+  const noteNext=notes.keys.length>0&&isServiceNoteNextClass(notes.otherQuestion);
+  const chargeLabel=pageContext.feeChargeLabel??(noteFees?ownFeeBalanceLabel(notes.otherQuestion):scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):null);
+  const chargesOnly=isOwnFeeBalanceQuestion(scopedQuestion)||pageContext.feeAndBalance||chargeLabel!==null&&!noteFees;
   const timetableOnly=Boolean(clearanceTimetableQuestion(question,pageContext));
-  const needsRecords=chargesOnly || timetableOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
+  const needsRecords=notes.keys.length>0 || chargesOnly || timetableOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
   const navigation=!needsRecords && !(Array.isArray(input?.images) && input.images.length) && !questionKind(question).irrelevant
     ? answerCampusNavigation(question) : null;
   if(navigation) {
@@ -297,10 +310,12 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   }
   if(Array.isArray(input?.images) && input.images.length) {stream.send(400,{error:'For private account questions, remove the image and ask using text. Images are not stored as account records.'});return;}
   try {
-    const residual=pageContext.selected?pageContext.otherQuestion:question;
+    const residual=notes.keys.length?notes.otherQuestion:pageContext.selected?pageContext.otherQuestion:question;
     const remoteOnly=Boolean(residual)&&isElearningEvidenceQuestion(residual,route,history)&&!independentElearningQuestion(residual,route,history);
     const repairContext=facilityRepairLookupContext(residual,route,history),repairOnly=repairContext.repairOnly;
-    const selectedReaderOnly=!chargesOnly&&!timetableOnly&&(pageContext.readerOnly||remoteOnly||repairOnly);
+    const ownNoteRead=notes.keys.length>0;
+    const noteScopeOnly=ownNoteRead&&(!notes.otherQuestion||noteFees||noteNext);
+    const selectedReaderOnly=!chargesOnly&&!timetableOnly&&(noteScopeOnly||pageContext.readerOnly||remoteOnly||repairOnly);
     const scopedSnapshot=()=>({checkedAt:new Date().toISOString(),profile:{userId:account.user.id}});
     if(selectedReaderOnly)stream.progress('account','Checked account access','The selected reader uses this signed-in Google account.','complete');
     else stream.progress('account','Loading your account records',timetableOnly?'Checking the timetable linked to this Google account.':chargesOnly?'Checking only the fees linked to this Google account.':'Checking School Affairs and DTM records for this signed-in Google account.');
@@ -310,7 +325,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         const normalize=(value:string)=>value.normalize('NFKC').trim().toLowerCase();
         return chargeLabel?{...saved,chargeSelectionLabel:chargeLabel,charges:saved.charges.filter(row=>normalize(row.label)===normalize(chargeLabel))}:saved;
       }catch(error){
-        if(!pageContext.feeAndBalance)throw error;
+        if(!pageContext.feeAndBalance&&!noteFees)throw error;
         const charges:Awaited<ReturnType<typeof loadOwnAffairsCharges>>['charges']=[];
         return {...scopedSnapshot(),charges,chargeReadUnavailable:true};
       }
@@ -322,8 +337,17 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         return {...scopedSnapshot(),courses,timetableReadUnavailable:true};
       }
     };
-    const loadSelectedSnapshot=(initialize?:false)=>selectedReaderOnly?Promise.resolve(scopedSnapshot())
-      :timetableOnly?loadTimetable():chargesOnly?loadCharges():loadSnapshot(account,false,{deadline,...(initialize===false?{initialize}:{})});
+    const loadBaseSnapshot=(initialize?:false)=>timetableOnly||noteNext?loadTimetable():chargesOnly||noteFees?loadCharges()
+      :selectedReaderOnly?Promise.resolve(scopedSnapshot())
+        :loadSnapshot(account,false,{deadline,...(initialize===false||ownNoteRead?{initialize:false}:{}),...(ownNoteRead||notes.excluded||notes.officialOnly?{includeServiceRecords:false}:{})});
+    const loadSelectedSnapshot=async(initialize?:false)=>{
+      const base=loadBaseSnapshot(initialize);
+      if(!ownNoteRead)return base;
+      const [snapshot,selected]=await Promise.all([base,loadOwnServiceNotes(account,notes.keys,{deadline}).then(
+        serviceRecords=>({serviceRecords}),()=>({serviceRecords:[],serviceNoteReadUnavailable:true}),
+      )]);
+      return {...snapshot,...selected};
+    };
     const snapshot=await loadSelectedSnapshot();
     if('chargeReadUnavailable' in snapshot)stream.progress('account','Fee balance unavailable','The other requested records can still be checked independently.','unavailable');
     else if('timetableReadUnavailable' in snapshot)stream.progress('account','Timetable unavailable','The timetable could not be verified for this account.','unavailable');
@@ -359,7 +383,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     stream.progress('answer',answer.verification?.status==='verified'?'Answer ready':'Verification incomplete',
       answer.verification?.status==='verified'?'The answer passed the account evidence checks.':'An unverified draft was withheld.',
       answer.verification?.status==='verified'?'complete':'unavailable');
-    stream.send(200,answer);
+    if(!notes.keys.length&&notes.officialOnly){
+      const boundary=serviceNoteGuide(question,notes,true);
+      stream.send(200,{...answer,answer:[boundary.answer,answer.answer].join('\n\n'),citations:[...boundary.citations,...answer.citations]});
+    }else stream.send(200,answer);
   } catch(error) {
     stream.send(error instanceof AffairsWorkspaceError?error.status:503,{error:error instanceof AffairsWorkspaceError?error.message:'Your School Affairs records could not be checked.'});
   }

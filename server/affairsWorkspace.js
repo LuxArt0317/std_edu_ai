@@ -4,6 +4,7 @@ import {mapStudentAidRecords} from './studentAidRecords.js';
 import {mapHousingRecords} from './housingRecords.js';
 import {mapCreditLoadHistory} from './creditLoadHistory.js';
 import {mapCourseSelection} from './courseSelection.js';
+import {serviceNoteKeys} from './serviceNoteIntent.js';
 import {loadNativeAcademicRecords} from './nativeAcademicWorkspace.js';
 export class AffairsWorkspaceError extends Error {
   constructor(message, status = 503) { super(message); this.status = status; }
@@ -36,14 +37,14 @@ export async function verifyAffairsToken(token) {
 }
 
 async function request(account, table, options = {}) {
-  const {rpc=false,body,query={}}=options;
+  const {rpc=false,body,query={},exactCount=false}=options;
   const target=new URL(`${account.url}/rest/v1/${rpc?'rpc/':''}${table}`);
   for (const [name,value] of Object.entries(query)) if (value !== undefined) target.searchParams.set(name,String(value));
   let response;
   try {
     const remaining=account.requestDeadline===undefined?12000:account.requestDeadline-Date.now();
     if(remaining<=0)throw new Error('Record lookup budget exhausted');
-    response=await fetch(target,{method:rpc?'POST':'GET',headers:headers(account.token,account.key,rpc),...(rpc?{body:JSON.stringify(body||{})}:{}),signal:AbortSignal.timeout(Math.min(12000,remaining))});
+    response=await fetch(target,{method:rpc?'POST':'GET',headers:{...headers(account.token,account.key,rpc),...(exactCount?{Prefer:'count=exact'}:{})},redirect:'error',...(rpc?{body:JSON.stringify(body||{})}:{}),signal:AbortSignal.timeout(Math.min(12000,remaining))});
   } catch { throw new AffairsWorkspaceError('The School Affairs database did not respond. Please try again.'); }
   if (!response.ok) {
     if (response.status===401 || response.status===403) throw new AffairsWorkspaceError('This School Affairs action is not allowed for your account.',403);
@@ -55,7 +56,15 @@ async function request(account, table, options = {}) {
   }
   const raw=await response.text().catch(()=>{throw new AffairsWorkspaceError('School Affairs returned an unreadable record.');});
   if (!raw && rpc) return null; // PostgREST void RPCs may return 204 without JSON.
-  try { return JSON.parse(raw); }
+  try {
+    const value=JSON.parse(raw);
+    if(!exactCount)return value;
+    const range=/^(?:(\d+)-(\d+)|\*)\/(\d+)$/u.exec(response.headers.get('content-range')||'');
+    if(!range||!Array.isArray(value)||query.offset!==undefined
+      ||(value.length?Number(range[1])!==0||Number(range[2])!==value.length-1:range[1]!==undefined)
+      ||Number(range[3])!==value.length)throw new Error('The count and selected rows differ.');
+    return value;
+  }
   catch { throw new AffairsWorkspaceError('School Affairs returned an invalid record.'); }
 }
 
@@ -109,6 +118,36 @@ export async function loadOwnAffairsCharges(account,{deadline=Date.now()+12000}=
   return {checkedAt:new Date().toISOString(),profile:{userId},studentRecordFound:true,charges:rows.map(mapAffairsCharge)};
 }
 
+/** Narrow read for explicitly selected private notes. A capped, inconsistent
+ * or unauthorized result is unavailable rather than an empty note collection. */
+export async function loadOwnServiceNotes(account,keys,{deadline=Date.now()+12000}={}) {
+  const userId=account?.user?.id;
+  if(typeof userId!=='string'||!chargeUuid.test(userId)||account.url!=='https://xiftudmvxphxcjtmfmib.supabase.co'
+    ||typeof account.token!=='string'||!account.token.trim()||typeof account.key!=='string'||!account.key.trim())
+    throw new AffairsWorkspaceError('Verified School Affairs access is required.',403);
+  if(!Array.isArray(keys)||!keys.length||keys.length>serviceNoteKeys.length||new Set(keys).size!==keys.length||keys.some(key=>!serviceNoteKeys.includes(key))
+    ||!Number.isFinite(deadline)||account.requestDeadline!==undefined&&!Number.isFinite(account.requestDeadline))
+    throw new AffairsWorkspaceError('Invalid private note scope.');
+  const scoped={user:{id:userId},url:account.url,token:account.token,key:account.key,
+    requestDeadline:Math.min(deadline,account.requestDeadline??Infinity,Date.now()+12000)};
+  const fields='id,user_id,service_key,record_type,title,notes,status,updated_at';
+  const limit=201;
+  const rows=await request(scoped,'affairs_service_records',{exactCount:true,query:{select:fields,user_id:'eq.'+userId,record_type:'eq.note',
+    service_key:keys.length===1?'eq.'+keys[0]:'in.('+keys.join(',')+')',order:'updated_at.desc,id.asc',limit}});
+  const seen=new Set();
+  if(!Array.isArray(rows)||rows.length>=limit)throw new AffairsWorkspaceError('The selected notes exceed the verified read limit.');
+  return rows.map(row=>{
+    if(row?.user_id!==userId||!keys.includes(row.service_key)||row.record_type!=='note'
+      ||typeof row.id!=='string'||!chargeUuid.test(row.id)||seen.has(row.id)
+      ||typeof row.title!=='string'||![...row.title].length||[...row.title].length>160
+      ||typeof row.notes!=='string'||[...row.notes].length>2000
+      ||!['draft','filed','withdrawn'].includes(row.status)||typeof row.updated_at!=='string'||!Number.isFinite(Date.parse(row.updated_at)))
+      throw new AffairsWorkspaceError('The selected note records could not be verified.');
+    seen.add(row.id);
+    return {id:row.id,serviceKey:row.service_key,recordType:'note',title:row.title,notes:row.notes,status:row.status,updatedAt:row.updated_at,userId};
+  });
+}
+
 export async function loadAffairsSnapshot(account, includeAdmin = false, options = {}) {
   account={...account,...(Number.isFinite(options.deadline)?{requestDeadline:options.deadline}:{})};
   if(options.initialize!==false) {
@@ -132,7 +171,7 @@ export async function loadAffairsSnapshot(account, includeAdmin = false, options
     includeAdmin?request(account,'affairs_service_requests',{query:{select:'id,user_id,request_type,title,details,status,created_at',order:'created_at.desc',limit:100}}):Promise.resolve([]),
     readAccountRows(account,'dtm_courses',{...own(userId),order:'created_at.desc,id.asc'}),
     request(account,'dtm_notices',{query:{select:'*',order:'published_at.desc',limit:30}}),
-    readAccountRows(account,'affairs_service_records',{...own(userId),select:'*,affairs_service_requests(status)',order:'updated_at.desc,id.asc'}),
+    options.includeServiceRecords===false?Promise.resolve([]):readAccountRows(account,'affairs_service_records',{...own(userId),select:'*,affairs_service_requests(status)',order:'updated_at.desc,id.asc'}),
   ]);
   const profile=profiles[0];
   if (!profile || (includeAdmin && profile.role!=='admin')) throw new AffairsWorkspaceError('Administrator access is required.',403);

@@ -1,3 +1,4 @@
+import {serviceNoteLookup} from './serviceNoteIntent.js';
 import {schoolServiceEntries,schoolSubjectRecordsPath,studentServiceByKey} from '../src/features/public/affairs/studentServices.js';
 
 const normalize=value=>String(value||'').normalize('NFKC').toLowerCase().replace(/\s+/g,' ').trim();
@@ -69,31 +70,40 @@ export function ownEvidenceRows(rows,userId){
   return Array.isArray(rows)?rows.filter(row=>row&&typeof row==='object'&&(!row.userId||row.userId===userId)&&(!row.user_id||row.user_id===userId)):[];
 }
 export function selectServiceRecords(snapshot,context={}){
-  const question=questionContext(context),q=normalize(question),direct=[];
+  const scope=context.serviceNoteScope??serviceNoteLookup(context.question,context.route,context.history);
+  const scoped=Boolean(scope.foreign||scope.invalidService||scope.excluded||scope.keys.length||scope.officialOnly);
+  const question=scoped?scope.noteQuestion:questionContext(context),q=normalize(question),direct=[];
   for(const row of schoolServiceEntries){
     if([row.title,row.section].some(label=>label.length>=4&&q.includes(normalize(label))))direct.push(canonicalKey(row.id));
   }
   // Prefer an exact title to its broad shared section (for example insurance vs injury).
   const titleMatches=schoolServiceEntries.filter(row=>row.title.length>=4&&q.includes(normalize(row.title))).map(row=>canonicalKey(row.id));
   const aliasMatches=aliases.filter(([pattern])=>pattern.test(question)).flatMap(([,ids])=>ids);
-  const explicitAll=allServices(question);
-  let keys=explicitAll?[]:[...titleMatches,...aliasMatches];
-  if(!keys.length&&!explicitAll)keys=direct;
-  if(!keys.length&&!explicitAll){const current=routeKey(context.route);if(current)keys=[current];}
+  const explicitAll=!scoped&&allServices(question);
+  const allInScope=scoped&&/\b(?:all|every)\b.{0,60}\b(?:notes?|tracking records?)\b|(?:全部|所有).{0,14}(?:備註|筆記|紀錄)/iu.test(question);
+  let keys=scoped?scope.keys:explicitAll?[]:[...titleMatches,...aliasMatches];
+  if(!scoped&&!keys.length&&!explicitAll)keys=direct;
+  if(!scoped&&!keys.length&&!explicitAll){const current=routeKey(context.route);if(current)keys=[current];}
   keys=[...new Set(keys)].filter(key=>allowedServices.has(key));
   const owned=ownEvidenceRows(snapshot.serviceRecords,snapshot.profile?.userId).filter(row=>allowedServices.has(row.serviceKey));
-  const scoped=keys.length?owned.filter(row=>keys.includes(canonicalKey(row.serviceKey))):owned;
-  const requestedReferences=referenceTokens(question);
-  const relevant=requestedReferences.length?scoped.filter(row=>matchesReference(row,requestedReferences)):scoped;
-  const matching=prioritizeEvidenceRows(relevant,question,['id','title','notes'],{filterExact:!explicitAll});
+  const candidates=scoped?owned.filter(row=>row.recordType==='note'&&keys.includes(row.serviceKey))
+    :keys.length?owned.filter(row=>keys.includes(canonicalKey(row.serviceKey))):owned;
+  const titleMatch=scoped&&/\b(?:titled|named|called)\s+(?:["“]([^"”]+)["”]|(.+))|(?:標題|名稱)為[「『]?([^」』]+)[」』]?/iu.exec(question);
+  const requestedTitle=titleMatch?normalize(titleMatch[1]||titleMatch[2]||titleMatch[3]):null;
+  const requestedReferences=requestedTitle?[]:referenceTokens(question);
+  const exampleInScope=allInScope&&/\b(?:including|such as|for example)\b|包括|例如/iu.test(question);
+  const relevant=exampleInScope?candidates:requestedTitle?candidates.filter(row=>normalize(row.title)===requestedTitle)
+    :requestedReferences.length?candidates.filter(row=>matchesReference(row,requestedReferences)):candidates;
+  const matching=prioritizeEvidenceRows(relevant,question,['id','title','notes'],{filterExact:!explicitAll&&!allInScope&&!requestedTitle});
+
   const selectedKeys=keys.length?keys:[...new Set(matching.map(row=>canonicalKey(row.serviceKey)))];
   const noteUrl=key=>key==='28-1'?'/school-affairs/services/28-1/notes':allowedServices.get(key)?.localUrl;
   const urls=selectedKeys.map(noteUrl).filter(Boolean);
   const primary=keys.length===1?noteUrl(keys[0]):'/school-affairs/records';
   return {records:matching,url:primary,urls:[...new Set([primary,...urls])],selection:{
     serviceKeys:keys,resolvedServiceKeys:selectedKeys,explicitAll,
-    requestedReference:requestedReferences[0]||null,requestedReferences,matchedReference:requestedReferences.length?matching.length>0:null,
-    scope:keys.length?'selected_services':'all_saved_services',availableRows:owned.length,matchingRows:matching.length,
+    requestedReference:requestedReferences[0]||null,requestedReferences,...(requestedTitle?{requestedTitle}:{}),matchedReference:requestedReferences.length?matching.some(row=>matchesReference(row,requestedReferences)):null,
+    scope:keys.length?'selected_services':'all_saved_services',availableRows:scoped?candidates.length:owned.length,matchingRows:matching.length,
     note:'Local saved tracking records only. Notes and local status are not institutional decisions, payments, attendance or official submissions.',
   }};
 }

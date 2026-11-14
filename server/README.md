@@ -139,3 +139,7 @@ The summer eligibility reader uses the existing caller-JWT course adjustment aut
 Announcement email uses a caller-JWT preference reader and a separately authorized, fenced delivery worker. The chatbot receives only saved setting status.
 
 Certificate awards use a bounded caller-JWT reader and send status fields only to the assistant. The Storage policy checks the exact proof reservation.
+
+### School Affairs private note evidence
+
+`serviceNoteIntent.js` validates service scope for the seven tracking pages. `loadOwnServiceNotes` reads the selected records with the caller’s existing School Affairs token, an exact row count and a 200-record ceiling. `answerVerificationAccount.js` supplies bounded note evidence, checks the draft, and refreshes the same sources for the single correction. A note’s filed status is self-marked. An unavailable read does not establish whether a note exists.

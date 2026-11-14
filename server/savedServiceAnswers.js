@@ -1,4 +1,5 @@
 import {schoolServiceEntries,studentServiceByKey} from '../src/features/public/affairs/studentServices.js';
+import {serviceNoteLookup} from './serviceNoteIntent.js';
 import {selectServiceRecords} from './accountEvidenceSelection.js';
 import {isOwnTutorEvaluationTrackingNoteQuestion} from './tutorEvaluationEvidenceIntent.js';
 
@@ -32,10 +33,13 @@ const citation = key=>({chunkId:'account:serviceRecords',claim:'Owned saved serv
   sourceName:'My stu.best records',url:notePath(services.get(key)),locator:null,effectiveAt:null,reviewedAt:null});
 
 /** Answer owned saved-note queries without equating a tracker with a school workflow. */
-export function answerSavedServiceRecords(question,snapshot,route='',history=[]){
-  if(typeof question!=='string'||!snapshot?.profile?.userId||!recordIntent(question)||mutationIntent(question))return null;
-  if(nativeIntent(question)&&!trackerIntent(question))return null;
-  const selected=selectServiceRecords(snapshot,{question,route,history}),selection=selected.selection;
+export function answerSavedServiceRecords(question,snapshot,route='',history=[],context={}){
+  const scope=context.serviceNoteScope??serviceNoteLookup(question,route,history);
+  const scoped=scope.keys.length>0;
+  if(scope.foreign||scope.invalidService||scope.officialOnly||!scoped&&scope.excluded||scoped&&scope.otherQuestion&&!context.selectedEvidence)return null;
+  if(typeof question!=='string'||!snapshot?.profile?.userId||!scoped&&!recordIntent(question)||mutationIntent(question))return null;
+  if(!scoped&&nativeIntent(question)&&!trackerIntent(question))return null;
+  const selected=context.selectedEvidence??selectServiceRecords(snapshot,{question,route,history,serviceNoteScope:scope}),selection=selected.selection;
   if(!selection.serviceKeys.length&&!selection.explicitAll&&!selection.requestedReference&&!noteIntent(question))return null;
   // “My course notes” on Moodle means teaching material, not service trackers.
   if(/^\/dtm(?:\/|$)/.test(route)&&!selection.serviceKeys.length&&!selection.explicitAll&&!selection.requestedReference)return null;
@@ -46,16 +50,17 @@ export function answerSavedServiceRecords(question,snapshot,route='',history=[])
   if(!keys.length&&!selection.explicitAll&&!selection.requestedReference)return null;
 
   const zh=/[\u3400-\u9fff]/.test(question);
-  const scope=keys.length>4?(zh?`${keys.length}項服務`:`${keys.length} services`):keys.map(key=>plain(services.get(key).title)).join(' / ');
-  const prefix=zh?`${scope||'所有服務'}的站內私人追蹤備註：`:`Your saved local tracking notes for ${scope||'all services'}:`;
+  const label=keys.length>4?(zh?`${keys.length}項服務`:`${keys.length} services`):keys.map(key=>plain(services.get(key).title)).join(' / ');
+  const prefix=zh?`${label||'所有服務'}的站內私人追蹤備註：`:`Your saved local tracking notes for ${label||'all services'}:`;
   const boundary=zh?'這些是您儲存的備註與站內追蹤狀態，不代表校方核准、付款或正式送件。':'These are your saved notes and local tracking statuses, not university approval, payment or official submission.';
-  const missing=selection.requestedReference
+  const missing=selection.requestedTitle?(zh?'找不到符合指定標題的站內備註。':'No saved local note matches that exact title.'):selection.requestedReference
     ?(zh?'找不到符合指定編號的已儲存站內備註；未以其他紀錄替代。':'No saved local note matches the requested reference; unrelated records have not been substituted.')
     :(zh?'此範圍目前沒有已儲存的站內備註。':'No saved local records were found in this scope.');
   const absence=zh?'這不代表校方系統沒有紀錄。':'This does not establish whether the university holds other records.';
   // The selector already restricts ownership. Keep note records separate from
   // structured leave/contracts even when callers supply a mixed snapshot.
   const rows=selected.records.filter(row=>services.has(row.serviceKey)&&(!row.recordType||row.recordType==='note'));
+  const textRequested=scoped&&/\b(?:what (?:text|notes?|details?) did i (?:save|write|record)|(?:show|read) (?:me )?(?:the |my )?(?:note )?text)\b|(?:備註|筆記).{0,5}內容/iu.test(question);
   const footerFor=linkKeys=>{
     const links=linkKeys.length?linkKeys.map(key=>link(key,zh)).join(' · '):`[${zh?'開啟我的紀錄':'Open my records'}](/school-affairs/records)`;
     const linkOmissions=keys.length>linkKeys.length?(zh?`另有${keys.length-linkKeys.length}項服務連結未列出；請指定服務查看。`:`${keys.length-linkKeys.length} additional service links are not displayed; name a service to open it.`):'';
@@ -70,15 +75,17 @@ export function answerSavedServiceRecords(question,snapshot,route='',history=[])
   const details=[],displayedKeys=[];
   for(const row of rows){
     if(details.length===ROW_LIMIT)break;
-    const state=[row.status,row.reviewStatus].filter(Boolean).map(plain).join(' / ')||(zh?'未記錄狀態':'Status not recorded');
+    const state=[scoped&&row.status==='filed'?(zh?'自己標記已送件':'filed (self-marked)'):row.status,scoped?null:row.reviewStatus].filter(Boolean).map(plain).join(' / ')||(zh?'未記錄狀態':'Status not recorded');
     const dates=[row.startsOn,row.endsOn].filter(Boolean).map(plain).join(' – ');
-    const item=`- **${plain(row.title)||(zh?'未命名備註':'Untitled note')}**: ${state}${dates?' · '+dates:''}\n  ${link(row.serviceKey,zh)}${row.notes?'\n  '+(zh?'備註：':'Notes: ')+plain(row.notes):''}`;
+    const item=`- **${plain(row.title)||(zh?'未命名備註':'Untitled note')}**: ${state}${dates?' · '+dates:''}\n  ${link(row.serviceKey,zh)}${row.notes||textRequested?'\n  '+(zh?'備註：':'Notes: ')+(row.notes?plain(row.notes):(zh?'空白':'(blank)')):''}`;
     if(item.length+2>remaining)continue;
     details.push(item);displayedKeys.push(row.serviceKey);remaining-=item.length+2;
   }
-  const omitted=rows.length-details.length;
-  const omissions=omitted?(zh?`顯示${rows.length}筆符合備註中的${details.length}筆；${omitted}筆因顯示上限未列出。沒有截短任何備註；請指定名稱或編號縮小範圍。`:`Showing ${details.length} of ${rows.length} matching saved notes; ${omitted} omitted because of the display limit. No note was shortened; specify a title or reference to narrow the list.`):'';
-  const content=rows.length?details.join('\n\n'):[missing,absence].join(' ');
+  const matching=context.selectedEvidence?selection.matchingRows:rows.length;
+  const omitted=matching-details.length;
+  const omissions=omitted?(zh?`顯示${matching}筆符合備註中的${details.length}筆；${omitted}筆因顯示上限未列出。沒有截短任何備註；請指定名稱或編號縮小範圍。`:`Showing ${details.length} of ${matching} matching saved notes; ${omitted} omitted because of the display limit. No note was shortened; specify a title or reference to narrow the list.`):'';
+  const content=context.unavailable?(zh?'目前無法讀取並確認此範圍的站內私人備註。':'I couldn’t verify your saved notes because this read was unavailable.')
+    :rows.length?details.join('\n\n'):context.excerpted?(zh?'符合的備註存在，但這次無法顯示完整內容。':'Matching notes exist, but their full contents could not be included in this response.'):[missing,absence].join(' ');
   const linkKeys=[...new Set([...displayedKeys,...keys])].slice(0,ROW_LIMIT);
   return {status:'answered',answer:[prefix,content,omissions,footerFor(linkKeys)].filter(Boolean).join('\n\n'),
     citations:linkKeys.map(citation),suggestedQuestions:[],

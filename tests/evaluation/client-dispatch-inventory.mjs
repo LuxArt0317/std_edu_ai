@@ -119,7 +119,8 @@ export function inspectClientDispatchSource(source){
     isClearanceEvidenceQuestion:['clearanceEvidenceIntent','question,route,history'],
     clearanceQuestion:['graduationClearanceContract','question'],
     isTutorEvaluationEvidenceQuestion:['tutorEvaluationEvidenceIntent','question,route,history'],
-    tutorEvaluationNavigation:['tutorEvaluationEvidenceIntent','question']};
+    tutorEvaluationNavigation:['tutorEvaluationEvidenceIntent','question'],
+    isServiceNoteEvidenceQuestion:['serviceNoteIntent','question,route,history']};
   const clauses=node=>ts.isParenthesizedExpression(node)?clauses(node.expression)
     :ts.isBinaryExpression(node)&&node.operatorToken.kind===ts.SyntaxKind.BarBarToken?[...clauses(node.left),...clauses(node.right)]:[node];
   const predicates=verifiedDispatch?clauses(verifiedDispatch.expression):[];
@@ -144,6 +145,7 @@ export function inspectClientDispatchSource(source){
     {id:'counseling-appointments',graphTool:'counselingAppointments',source:dispatchPath,line:first.line},
     {id:'graduation-clearance',graphTool:'graduationClearance',source:dispatchPath,line:first.line},
     {id:'tutor-evaluation',graphTool:'tutorEvaluation',source:dispatchPath,line:first.line},
+    {id:'local-service-notes',graphTool:'serviceRecords',serviceKeys:['27-1','30-1','30-2','31-1','31-2','32-1','35-1'],source:dispatchPath,line:first.line},
   ],
     fallback:{source:dispatchPath,line:api[0].line},otherDirectReaders:otherDirectReaders.filter(name=>calls.some(call=>call.name===name&&call.at<fallback.at)),
     navigationOnly:navigationOnly.map(row=>({...row,observedCalls:row.calls.filter(name=>calls.some(call=>call.name===name&&call.at<fallback.at))}))};
@@ -178,7 +180,7 @@ export async function discoverClientDispatchSurfaces({read=readSource}={}){
   const contracts=['clubStudent','certificateAwards','announcementEmail','studentProfile','graduationClearance'];
   const sources=[...new Set([dispatchPath,apiPath,'server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js','server/elearningEvidenceIntent.js','server/facilityRepairEvidenceIntent.js','server/dormitoryConductEvidenceIntent.js','server/elearningOutlineEvidenceIntent.js','server/healthExaminationEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
     ...contracts.map(name=>'server/'+name+'Contract.js'),'src/features/public/affairs/venueContract.js',
-    'server/clubServicesContract.js','server/clubOfficerContract.js','server/healthExaminationContract.js','server/counselingContract.js','server/counselingEvidenceIntent.js','server/clearanceEvidenceIntent.js','server/tutorEvaluationEvidenceIntent.js',
+    'server/clubServicesContract.js','server/clubOfficerContract.js','server/healthExaminationContract.js','server/counselingContract.js','server/counselingEvidenceIntent.js','server/clearanceEvidenceIntent.js','server/tutorEvaluationEvidenceIntent.js','server/serviceNoteIntent.js',
     'src/features/public/PublicSite.tsx','src/features/public/affairs/SchoolAffairsEntry.tsx','src/features/public/affairs/SchoolAffairsPortal.tsx',
     'src/features/public/elearning/ElearningWorkspace.tsx'])];
   const entries=await Promise.all(sources.map(async path=>[path,await read(path)]));

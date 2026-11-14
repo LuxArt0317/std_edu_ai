@@ -2,6 +2,7 @@
 ## Unreleased
 
 - Link public tutor questionnaire navigation directly to the questionnaire page. Personal status and note lookups preserve the sign-in return destination. [#100]
+- Verify the signed-in user's private tracking notes for learning support, injury, equipment borrowing, international work and rental, campus service, and group insurance. Honor excluded services and keep any requested balance or next class tied to its own records. [#100]
 
 - Use the School Affairs timetable for personal weekday questions and offer a three-step campus directory guide for the public first-week question. [#100]
 - Preserve the named course and academic term in verified assistant answers and record tables. Career wording help avoids unrelated account reads. [#100]

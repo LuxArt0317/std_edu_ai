@@ -1,3 +1,5 @@
+import {serviceNoteLookup} from './serviceNoteIntent.js';
+import {serviceNoteGuide} from './serviceNoteGuide.js';
 import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel} from './pendingFeesAnswer.js';
 import { calendarPath, wifiGuidePath } from '../src/features/public/affairs/studentServices.js';
 import { clubStudentGuide,clubStudentQuestion } from './clubStudentContract.js';
@@ -333,6 +335,12 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const stream = createAssistantStream(input.stream, response);
+        const notes=serviceNoteLookup(input.question,input.route,input.history);
+        if(notes.foreign||notes.invalidService||notes.officialOnly||notes.keys.length||notes.excluded&&!notes.otherQuestion){
+            stream.send(200,serviceNoteGuide(input.question,notes,false));
+            return;
+        }
+        if(notes.excluded){input.question=notes.otherQuestion;input.history=[];}
         const balanceQuestion=withoutExcludedTutorEvaluationClause(withoutExcludedClearanceClause(withoutExcludedCounselingClause(withoutExcludedHealthClause(input.question))));
         if(isOwnFeeBalanceQuestion(balanceQuestion)||balanceQuestion!==input.question&&ownFeeBalanceLabel(balanceQuestion)){
             const zh=/[\u3400-\u9fff]/u.test(input.question), url='/school-affairs/login?next='+encodeURIComponent('/school-affairs/services/39-1');

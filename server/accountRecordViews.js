@@ -122,7 +122,7 @@ export function accountRecordViews(snapshot,tools,context={}){
   const assignmentCourses=[...new Set(assignments.map(row=>row.dtmCourseId).filter(Boolean))];
   const assignmentCourse=assignmentCourses.length===1?courseUrl(assignmentCourses[0]):assignments.length===0&&dtm.courses.length===1?courseUrl(dtm.courses[0].id):null;
   const serviceTitle=key=>studentServiceByKey(key)?.title||schoolServiceEntries.find(row=>row.id===key)?.title||'Unknown service';
-  const serviceScope=serviceSelection.selection.requestedReference&&serviceSelection.selection.matchedReference===false
+  const serviceScope=serviceSelection.selection.requestedTitle&&!serviceSelection.records.length?'No note matched the requested exact title.':serviceSelection.selection.requestedReference&&serviceSelection.selection.matchedReference===false
     ?'No saved note matched the requested reference; unrelated records were not substituted.'
     :'Only selected owned local tracking records are shown; notes/statuses do not establish university approval, payment or official submission.';
   const definitions={
@@ -132,7 +132,7 @@ export function accountRecordViews(snapshot,tools,context={}){
     tasks:['Your tasks','/school-affairs/records',['Task','Due (Taipei)','Status'],selectedRows('tasks'),row=>[row.title,date(row.dueAt),row.completedAt?'Complete':'Open']],
     requests:['Your service requests','/school-affairs/records',['Request','Type','Status'],selectedRows('requests'),row=>[row.title,row.type,row.status]],
     dtm:['DTM courses',dtmUrl,['Course','Term','Materials','Data'],dtm.courses,row=>[`${row.code} ${row.title}`,row.term,String(row.materials?.length||0),row.sourceMode],'Selected owned courses and materials only; omitted courses are not counted.'],
-    serviceRecords:['Your service records',serviceSelection.url,['Service','Record','Type','Status','Starts'],serviceSelection.records,row=>[serviceTitle(row.serviceKey),row.title,row.recordType,row.reviewStatus||row.status,row.startsOn],serviceScope],
+    serviceRecords:['Your service records',serviceSelection.url,['Service','Record','Type','Status','Starts'],serviceSelection.records,row=>[serviceTitle(row.serviceKey),row.title,row.recordType,row.recordType==='note'&&row.status==='filed'?'filed (self-marked)':row.reviewStatus||row.status,row.startsOn],serviceScope],
     ...nativeDefinitions(snapshot,context),
   };
   const route=typeof context.route==='string'?context.route.split(/[?#]/)[0].replace(/\/+$/,''):'';

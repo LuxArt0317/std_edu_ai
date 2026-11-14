@@ -23,6 +23,7 @@ import {readStudentProfileAnswer} from './studentProfile';
 import {clearanceQuestion} from '../../server/graduationClearanceContract.js';
 import {isClearanceEvidenceQuestion} from '../../server/clearanceEvidenceIntent.js';
 import {isTutorEvaluationEvidenceQuestion,tutorEvaluationNavigation} from '../../server/tutorEvaluationEvidenceIntent.js';
+import {isServiceNoteEvidenceQuestion} from '../../server/serviceNoteIntent.js';
 import {permanentCourseQuestion} from '../features/public/affairs/permanentCourseRouting.js';
 import {venueQuestion} from '../features/public/affairs/venueContract.js';
 import {readVenueAnswer} from './venueBooking';
@@ -62,7 +63,8 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
     ||isHealthExaminationEvidenceQuestion(question,route,history)||healthExaminationQuestion(question)
     ||isCounselingEvidenceQuestion(question,route,history)||counselingQuestion(question)
     ||isClearanceEvidenceQuestion(question,route,history)||clearanceQuestion(question)
-    ||isTutorEvaluationEvidenceQuestion(question,route,history)||tutorEvaluationNavigation(question))
+    ||isTutorEvaluationEvidenceQuestion(question,route,history)||tutorEvaluationNavigation(question)
+    ||isServiceNoteEvidenceQuestion(question,route,history))
     return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress);
   const officer = !images.length ? clubOfficerQuestion(question) : null;
   if (officer) return clubOfficerGuide(question,officer,true);

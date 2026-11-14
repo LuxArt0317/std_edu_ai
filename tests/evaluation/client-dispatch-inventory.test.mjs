@@ -21,6 +21,7 @@ test('the five direct readers and verified graph dispatch remain separately visi
     {id:'counseling-appointments',graphTool:'counselingAppointments'},
     {id:'graduation-clearance',graphTool:'graduationClearance'},
     {id:'tutor-evaluation',graphTool:'tutorEvaluation'},
+    {id:'local-service-notes',graphTool:'serviceRecords'},
   ]);
   for(const service of inventory.services){
     assert.equal(service.routeAuth,'signed-in');assert.equal(service.graphTool,null);
@@ -54,6 +55,8 @@ test('native questions require the fields the reader actually supplies and discl
   assert.ok(inventory.sourceManifest.some(row=>row.path==='server/clearanceEvidenceIntent.js'));
   assert.ok(inventory.verifiedDispatch.some(row=>row.id==='tutor-evaluation'&&row.graphTool==='tutorEvaluation'));
   assert.ok(inventory.sourceManifest.some(row=>row.path==='server/tutorEvaluationEvidenceIntent.js'));
+  assert.deepEqual(inventory.verifiedDispatch.find(row=>row.id==='local-service-notes').serviceKeys,['27-1','30-1','30-2','31-1','31-2','32-1','35-1']);
+  assert.ok(inventory.sourceManifest.some(row=>row.path==='server/serviceNoteIntent.js'));
   assert.equal(inventory.navigationOnly.some(row=>row.scopes.includes('counseling-appointments')),false);
   assert.ok(inventory.verifiedDispatch.some(row=>row.id==='counseling-appointments'&&row.graphTool==='counselingAppointments'));
   assert.ok(inventory.sourceManifest.some(row=>row.path==='server/counselingEvidenceIntent.js'));
@@ -102,6 +105,7 @@ test('source drift cannot silently detach a declared native reader from auth, ow
     source.replace('||clearanceQuestion(question)',''),
     source.replace('isTutorEvaluationEvidenceQuestion(question,route,history)','false'),
     source.replace('||tutorEvaluationNavigation(question)',''),
+    source.replace('isServiceNoteEvidenceQuestion(question,route,history)','false'),
     source.replace('const officer =',"await fetch('/api/affairs-assistant'); const officer ="),
   ];
   for(const changed of mutations){assert.notEqual(changed,source);assert.throws(()=>inspectClientDispatchSource(changed));}
