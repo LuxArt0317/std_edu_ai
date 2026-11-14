@@ -4,7 +4,7 @@
 
 - [x] Verify the official flowchart and sign-in gates for the application and status pages.
 - [x] Implement acknowledged applications, period and candidate management, and shared per-office results.
-- [ ] Verify database authorization, browser workflows and deployment.
+- [x] Verify database authorization, browser workflows and deployment.
 - [ ] Compare the authenticated source layouts and office screens.
 
 ## Teaching evaluation and immediate feedback [Issue #98]

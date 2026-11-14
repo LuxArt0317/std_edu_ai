@@ -1,6 +1,8 @@
 ## Graduation clearance [Issue #98]
 
-The previous goal turn deployed teaching feedback. The two graduation clearance destinations now share persistent applications and office decisions. Exact-target rollback passed. Authenticated university screens remain unavailable.
+Production `e2671d6` is live as Vercel `7KsgCHrcNw7uXurhYpeFh4ecHtFF`. Only migration 20261114150000 was applied, bringing the client to 149 migrations and 173 RLS-protected public tables. The revision-pinned browser, 19 authenticated HTTP checks with student writes, replay and exact cleanup, two guest assistant sign-in returns, and eight public shell routes passed. Quality 43507889134 passed. The 94-destination local navigation inventory has 39 generic and 17 partial entries.
+
+Authenticated source layouts, office staff sign-ins and official synchronization remain open. The next source pair is 12-1 and 12-2. The university teacher timetable returned to sign-in. The permanent course-description search has a public filterable catalog. Both local routes still use the generic tracker.
 
 ## Teaching feedback [Issue #98]
 

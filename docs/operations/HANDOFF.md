@@ -2,6 +2,8 @@
 
 Services 10-1 and 16-1 share one application and per-office review record. The official flowchart is verified. Current authenticated layouts remain unobserved. See [graduation clearance QA](../qa/GRADUATION_CLEARANCE.md).
 
+Production `e2671d6` is live as Vercel `7KsgCHrcNw7uXurhYpeFh4ecHtFF`. Only migration 20261114150000 was applied, bringing the client to 149 migrations and 173 RLS-protected public tables. The revision-pinned browser, 19 authenticated HTTP checks with student writes, replay and exact cleanup, two guest assistant sign-in returns, and eight public shell routes passed. Quality 43507889134 passed. The 94-destination local navigation inventory has 39 generic and 17 partial entries.
+
 ## Teaching feedback (Issue #98)
 
 Services 7-5 and 7-6 have distinct enrollment-scoped workflows, administrator maintenance, and assistant status. The authenticated university forms still require sign-in for visual comparison. See [teaching feedback QA](../qa/TEACHING_FEEDBACK.md).
