@@ -90,6 +90,8 @@ try{
   await page.goto(origin+path);
   await main.getByRole('link',{name:'教務處'}).click();
   await page.waitForURL(origin+path+'/category/41');
+  await main.getByRole('heading',{name:'教務處',exact:true}).waitFor();
+  await main.getByRole('link',{name:course.title,exact:true}).waitFor();
   await main.getByLabel('搜尋課程:').fill('20220902');
   await main.getByRole('button',{name:'Go'}).click();
   await page.waitForURL(origin+path+'/search?q=20220902');

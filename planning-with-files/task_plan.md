@@ -6,7 +6,7 @@
 - [x] Implement separate local routing, a persisted catalog and caller-owned enrollment.
 - [x] Verify the hosted release, private data access and assistant links.
 - [x] Capture the full visible category listing and implement bounded database search and pagination.
-- [ ] Verify the expanded catalog on the deployed revision.
+- [x] Verify the expanded catalog on the deployed revision.
 - [ ] Verify and implement remaining resource content and private academic records.
 
 ## Counseling appointments [Issue #98]

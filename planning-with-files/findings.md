@@ -2,6 +2,8 @@
 
 The source selector exposed 43 categories and 191 visible listing pages. All were followed to an observed end. The archive contains 3,291 unique course IDs and titles. Only course metadata was extracted. The expansion preserves existing workshop enrollments and serves 20 results per page.
 
+A read-only follow-up opened the weekly course outlines for source IDs 9408 and 9098. 9408 exposes one named section with four video links and one attendance entry. 9098 exposes two named sections with 12 links, including slides, videos, attendance and feedback. This supports a later section-and-resource view. No private attendance or feedback data was read or changed.
+
 ## Separate remote-learning Moodle [Issue #98]
 
 The source notice says remote teaching moved to TronClass beginning term 112-2. The older Digital Academy remains accessible as a distinct Moodle catalog. Local self-enrollment for workshop 9718 uses the confirmed no-key form and remains separate from university course enrollment and DTM.

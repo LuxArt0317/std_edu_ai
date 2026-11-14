@@ -2,6 +2,8 @@
 
 The visible catalog is captured and searchable through bounded database reads. See the [remote-learning QA](../qa/ELEARNING.md#catalog-expansion) for scope.
 
+Production `357959c` is live as Vercel `EPrgdRGAxJhX42teSiU6EopZ4X83`. Migration 20261115020000 brings the client to 160 migrations and 192 RLS-protected public tables. The 43-category catalog contains 3,291 verified course listings. Exact-client rollback, deployed SQL and actual-JWT tests passed, including page 46 of category 28, filter validation, concurrent enrollment, existing enrollments and exact cleanup. The pinned browser, live shell, and Quality 43557177924 passed. All 94 School Affairs destinations passed the navigation audit.
+
 ## Remote-learning Moodle [Issue #98]
 
 Separate course catalog, archive and caller-owned workshop enrollment at /elearning. See [remote-learning Moodle QA](../qa/ELEARNING.md).
