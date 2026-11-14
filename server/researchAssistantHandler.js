@@ -1,9 +1,11 @@
 import {studentConductScope} from './studentConductEvidenceScope.js';
+import {currentStudyForeignYearQuestion} from './currentStudyOwnerScope.js';
+import {accountQuestionIntent,isCurrentStudyRecordQuestion} from './affairsAnswer.js';
 import {studentConductGuide} from './studentConductGuide.js';
 import {serviceNoteLookup} from './serviceNoteIntent.js';
 import {serviceNoteGuide} from './serviceNoteGuide.js';
 import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel} from './pendingFeesAnswer.js';
-import { calendarPath, wifiGuidePath } from '../src/features/public/affairs/studentServices.js';
+import { calendarPath, schoolSubjectRecordsPath, wifiGuidePath } from '../src/features/public/affairs/studentServices.js';
 import { clubStudentGuide,clubStudentQuestion } from './clubStudentContract.js';
 import { clubOfficerGuide,clubOfficerQuestion } from './clubOfficerContract.js';
 import { clubGuide,clubIntent } from './clubServicesContract.js';
@@ -339,6 +341,18 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const stream = createAssistantStream(input.stream, response);
+        const studyYear = !input.images.length && currentStudyForeignYearQuestion(input.question);
+        const currentStudy = !input.images.length && isCurrentStudyRecordQuestion(accountQuestionIntent(input.question,[],''),input.question);
+        if(studyYear||currentStudy){
+            const zh=/\p{Script=Han}/u.test(input.question);
+            const boundary=studyYear?(zh?'我無法查看他人的年級。':'I can’t show another person’s year level.'):'';
+            const url='/school-affairs/login?next='+encodeURIComponent(schoolSubjectRecordsPath);
+            const title=zh?'登入後查看你的校務紀錄':'Sign in to check your School Affairs records';
+            const citations=currentStudy||studyYear?.courseQuestion?[{chunkId:'directory:school-affairs-subjects',title,url,claim:title,sourceName:'School Affairs'}]:[];
+            stream.send(200,{status:'handoff',answer:[boundary,...citations.map(link=>'['+title+']('+link.url+')')].filter(Boolean).join('\n\n'),
+                citations,suggestedQuestions:[],grounding:{source:'directory',webSearched:false}});
+            return;
+        }
         const notes=serviceNoteLookup(input.question,input.route,input.history);
         if(notes.foreign||notes.invalidService||notes.officialOnly||notes.keys.length||notes.excluded&&!notes.otherQuestion){
             stream.send(200,serviceNoteGuide(input.question,notes,false));

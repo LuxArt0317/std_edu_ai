@@ -31,7 +31,9 @@ import {readElearningOutlineEvidence} from '../server/accountElearningOutlineEvi
 import {facilityRepairLookupContext,nativePageLookupContext,withoutExcludedNativePageClause} from '../server/accountSupplementalLookup.js';
 import {randomUUID} from 'node:crypto';
 import { questionKind } from '../server/schoolWebSearch.js';
-import { accountQuestionIntent } from '../server/affairsAnswer.js';
+import { accountQuestionIntent,isCurrentStudyRecordQuestion } from '../server/affairsAnswer.js';
+import { loadOwnAffairsStudyYear } from '../server/ownAffairsStudyYear.js';
+import { currentStudyForeignYearQuestion } from '../server/currentStudyOwnerScope.js';
 import { answerAccountWithVerification, requiredNativeTools, requiredSupplementalTools, type SupplementalAccountReaders } from '../server/answerVerificationAccount.js';
 import { readCatalogEvidence } from '../server/accountCatalogEvidence.js';
 import { readCertificateEvidence } from '../server/accountCertificateEvidence.js';
@@ -210,6 +212,17 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const correlationId=randomUUID();
   response.setHeader('X-Assistant-Request-Id',correlationId);
   const stream=createAssistantStream(input?.stream===true,response);
+  const foreignYear=currentStudyForeignYearQuestion(question);
+  const foreignYearMessage=foreignYear&&(/\p{Script=Han}/u.test(question)?
+    '我可以查看你的校務紀錄，但無法查看他人的年級。':'I can check your own School Affairs records. I can’t show another person’s year level.');
+  if(foreignYear){
+    const residual=foreignYear.courseQuestion,scope=accountQuestionIntent(residual,[],'');
+    if(!residual||!scope.recognized||!scope.currentCourses||scope.baseTools.length!==1||scope.baseTools[0]!=='courses'){
+      stream.send(200,{status:'handoff',answer:foreignYearMessage,citations:[],suggestedQuestions:[],grounding:{source:'account',webSearched:false}});
+      return;
+    }
+    question=residual;history=[];
+  }
   const notes=serviceNoteLookup(question,route,history);
   if(notes.foreign||notes.invalidService||!notes.otherQuestion&&!notes.keys.length&&(notes.excluded||notes.officialOnly)){
     stream.send(200,serviceNoteGuide(question,notes,true));
@@ -226,8 +239,9 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     return;
   }
   if((conduct.excluded||conductNavigation)&&!conduct.selected){question=conduct.otherQuestion;history=[];}
-  const withConductLink=<T extends {answer:string;citations?:unknown[]}>(answer:T)=>conductNavigation
-    ?{...answer,answer:[conductNavigation.answer,answer.answer].join('\n\n'),citations:[...conductNavigation.citations,...(answer.citations??[])]}:answer;
+  const withLocalGuidance=<T extends {answer:string;citations?:unknown[]}>(answer:T)=>conductNavigation||foreignYearMessage
+    ?{...answer,answer:[foreignYearMessage,conductNavigation?.answer,answer.answer].filter(Boolean).join('\n\n'),
+      citations:[...(conductNavigation?.citations??[]),...(answer.citations??[])]}:answer;
   const foreignDtmGrades=isForeignDtmGradesQuestion(question,route);
   const foreignElearning=isForeignElearningRecordsQuestion(question,route);
   const foreignRepair=isForeignFacilityRepairQuestion(question);
@@ -281,6 +295,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     return;
   }
   const intent=accountQuestionIntent(question,history,route);
+  const currentStudyScope=foreignYear?'courses':isCurrentStudyRecordQuestion(intent,question)?'courses_and_year':null;
   if(!notes.keys.length&&intent.recognized&&intent.kind==='coaching'&&!intent.baseTools.length&&!pageContext.selected){
     if(Array.isArray(input?.images)&&input.images.length){stream.send(400,{error:'For this coaching request, remove the image and ask using text.'});return;}
     try{
@@ -295,7 +310,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       if(answer.proposedAction||Array.isArray(answer.views)&&answer.views.length)throw new Error('Unexpected private output from coaching.');
       stream.progress('guidance',answer.verification?.status==='verified'?'Answer ready':'Verification incomplete',
         answer.verification?.status==='verified'?'The guidance passed the independent checks.':'The unchecked draft was withheld.',answer.verification?.status==='verified'?'complete':'unavailable');
-      stream.send(200,withConductLink(answer));
+      stream.send(200,withLocalGuidance(answer));
     }catch{stream.send(503,{error:'The guidance could not be checked. Please try again.'});}
     return;
   }
@@ -309,7 +324,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     ? answerCampusNavigation(question) : null;
   if(navigation) {
     stream.progress('directory','Checked campus services','Found a verified service link.','complete');
-    stream.send(200,withConductLink(navigation));
+    stream.send(200,withLocalGuidance(navigation));
     return;
   }
   if(!needsRecords) {
@@ -328,7 +343,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       const result=research.result as Record<string,unknown>|null;
       if(!result || typeof result!=='object' || Array.isArray(result) || (!research.ok && typeof result.error!=='string')) {stream.send(502,{error:'School research returned an invalid response.'});return;}
       stream.progress('public','Checked public information','The public school lookup finished.','complete');
-      stream.send(research.status,conductNavigation&&typeof result.answer==='string'?withConductLink({...result,answer:result.answer}):result);
+      stream.send(research.status,(conductNavigation||foreignYearMessage)&&typeof result.answer==='string'?withLocalGuidance({...result,answer:result.answer}):result);
     } catch {stream.send(503,{error:'School research is temporarily unavailable. Please try again.'});}
     return;
   }
@@ -342,7 +357,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const selectedReaderOnly=!chargesOnly&&!timetableOnly&&(noteScopeOnly||pageContext.readerOnly||remoteOnly||repairOnly||aidOnly);
     const scopedSnapshot=()=>({checkedAt:new Date().toISOString(),profile:{userId:account.user.id}});
     if(selectedReaderOnly)stream.progress('account','Checked account access','The selected reader uses this signed-in Google account.','complete');
-    else stream.progress('account','Loading your account records',timetableOnly?'Checking the timetable linked to this Google account.':chargesOnly?'Checking only the fees linked to this Google account.':'Checking School Affairs and DTM records for this signed-in Google account.');
+    else stream.progress('account','Loading your account records',currentStudyScope==='courses_and_year'?'Checking your School Affairs subjects and recorded year level.':currentStudyScope||timetableOnly?'Checking the timetable linked to this Google account.':chargesOnly?'Checking only the fees linked to this Google account.':'Checking School Affairs and DTM records for this signed-in Google account.');
     const loadCharges=async()=>{
       try{
         const saved=await loadOwnAffairsCharges(account,{deadline});
@@ -361,7 +376,19 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         return {...scopedSnapshot(),courses,timetableReadUnavailable:true};
       }
     };
-    const loadBaseSnapshot=(initialize?:false)=>timetableOnly||noteNext?loadTimetable():chargesOnly||noteFees?loadCharges()
+    const loadCurrentStudy=async()=>{
+      const [timetable,year]=await Promise.all([loadTimetable(),loadOwnAffairsStudyYear(account,{deadline}).then(
+        saved=>({student:saved.student,studyYearStudentFound:saved.studentRecordFound}),
+        ()=>{
+          const student:Awaited<ReturnType<typeof loadOwnAffairsStudyYear>>['student']=null;
+          return {student,studyYearReadUnavailable:true};
+        },
+      )]);
+      return {...timetable,...year,currentStudyScope:'courses_and_year'};
+    };
+    const loadBaseSnapshot=(initialize?:false)=>currentStudyScope==='courses_and_year'?loadCurrentStudy()
+      :currentStudyScope==='courses'?loadTimetable().then(saved=>({...saved,currentStudyScope:'courses'}))
+      :timetableOnly||noteNext?loadTimetable():chargesOnly||noteFees?loadCharges()
       :selectedReaderOnly?Promise.resolve(scopedSnapshot())
         :loadSnapshot(account,false,{deadline,...(initialize===false||ownNoteRead?{initialize:false}:{}),...(ownNoteRead||notes.excluded||notes.officialOnly?{includeServiceRecords:false}:{})});
     const loadSelectedSnapshot=async(initialize?:false)=>{
@@ -376,7 +403,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       return {...snapshot,...selected};
     };
     const snapshot=await loadSelectedSnapshot();
-    if('chargeReadUnavailable' in snapshot)stream.progress('account','Fee balance unavailable','The other requested records can still be checked independently.','unavailable');
+    if(currentStudyScope==='courses_and_year')stream.progress('account','Checked your School Affairs sources','Subjects and recorded year level were checked separately.','complete');
+    else if('chargeReadUnavailable' in snapshot)stream.progress('account','Fee balance unavailable','The other requested records can still be checked independently.','unavailable');
     else if('timetableReadUnavailable' in snapshot)stream.progress('account','Timetable unavailable','The timetable could not be verified for this account.','unavailable');
     else if(!selectedReaderOnly)stream.progress('account','Loaded your account records',timetableOnly?'Read the timetable scope for this Google account.':chargesOnly?'Read the fee scope for this Google account.':'Only records linked to this Google account were read.','complete');
     stream.progress('answer','Preparing your answer','Checking the account data and any requested stu.best action.');
@@ -413,7 +441,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     if(!notes.keys.length&&notes.officialOnly){
       const boundary=serviceNoteGuide(question,notes,true);
       stream.send(200,{...answer,answer:[boundary.answer,answer.answer].join('\n\n'),citations:[...boundary.citations,...answer.citations]});
-    }else stream.send(200,withConductLink(answer));
+    }else stream.send(200,withLocalGuidance(answer));
   } catch(error) {
     stream.send(error instanceof AffairsWorkspaceError?error.status:503,{error:error instanceof AffairsWorkspaceError?error.message:'Your School Affairs records could not be checked.'});
   }

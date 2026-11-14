@@ -94,3 +94,7 @@ A request for a student's own conduct records uses its dedicated source at 38-1.
 ### Salary and aid claim questions
 
 The verified School Affairs assistant forwards the exact 37-1 claims or salary page to the existing caller-scoped RPC. Guests receive navigation or a sign-in return link. An invalid page or another student's records are handled before any read.
+
+### Current subjects and year level
+
+A signed-in question asking for both uses the owned School Affairs timetable and a separate year-level lookup. The read path can report when either source is unavailable or has no linked student. It does not initialize records or read the broader workspace.

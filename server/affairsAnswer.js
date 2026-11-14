@@ -13,6 +13,7 @@ import {answerGraduationReview} from './graduationReview.js';
 import {answerAcademicAttendance} from './academicAttendance.js';
 import {answerSavedServiceRecords} from './savedServiceAnswers.js';
 import {academicTermCodes,ownEvidenceRows,selectAccountEvidence} from './accountEvidenceSelection.js';
+import {currentStudyOwnYearClause} from './currentStudyOwnerScope.js';
 
 const recordLinkTopics = [
   [/\b(?:tuition|fees?|charges?|balance|payments?)\b|學費|費用|繳費/i,'fees'],
@@ -123,10 +124,17 @@ export function accountQuestionIntent(question,history=[],route='') {
     &&!/[\u3400-\u9fff]/u.test(q.replace(/[我你您他是目現在前幾哪年級以及和與還有本這學期度第些什麼課程科修的查詢顯示看請幫整理由所資資料訊息帳戶個人概況知道關於數位教材網]+/gu,'')));
   const parts=q.split(/\s+(?:and|also|plus)\s+|[;,；，\n]|以及|還有|並且/iu).map(part=>part.trim()).filter(Boolean);
   const clausesCovered=parts.every(part=>/\b(?:courses?|subjects?|classes|lessons|year|records?|details|information|data|overview|profile)\b|課程|科目|修課|年級|資料|資訊|學籍|帳戶/iu.test(part)
+    ||ownCourseClause(part)
     ||coaching&&/\b(?:help|study|prepare|improve|interview|presentation|introduce|natural|clearer|shorter|qualified)\b|學習|讀書|面試|介紹|簡報|自然/iu.test(part));
   const recognized=Boolean(scheduleWeekday || (understood&&recordWordingCovered&&clausesCovered&&!contextTruncated&&!otherDomain&&!unhandledGrade&&!assertedQualification&&!otherRecordUse&&!unknownPersonalContext&&!unresolvedPersonalContext&&!(explicitDtm&&explicitAffairs)&&!(currentCourses&&namedTerms.length)));
   return {kind:coaching?(dependencies.length||assertedQualification||otherRecordUse||unknownPersonalContext||unresolvedPersonalContext?'mixed':'coaching'):'records',recognized,contextQuestion,
     baseTools:[...new Set(dependencies)],overview,currentCourses,courseTerms,year,explicitDtm,scheduleWeekday};
+}
+
+export function isCurrentStudyRecordQuestion(intent,question){
+  return intent.kind==='records'&&intent.recognized&&intent.contextQuestion===question.trim()
+    &&intent.currentCourses&&intent.year&&currentStudyOwnYearClause(question)&&!intent.overview&&!intent.explicitDtm&&!intent.scheduleWeekday
+    &&intent.baseTools.length===2&&intent.baseTools.includes('profile')&&intent.baseTools.includes('courses');
 }
 
 const inlineRecord=value=>String(value).replace(/\s+/gu,' ').trim().replace(/[\\`*_[\]<>]/gu,'\\$&');
@@ -173,10 +181,18 @@ function composeCoreRecordAnswer(intent,snapshot) {
     if(hasLiteral(snapshot.profile?.displayName))lines.push(t('帳戶名稱：','Account name: ')+inlineRecord(snapshot.profile.displayName)+'.');
     lines.push(t('學程：','Program: ')+(hasLiteral(student?.program)?inlineRecord(student.program):t('未記錄','not recorded'))+'.');
   }
-  if(intent.overview||intent.year)lines.push(hasLiteral(student?.yearLevel)?t('年級：','Year level: ')+inlineRecord(student.yearLevel)+'.':t('學生資料未記錄年級，因此我無法確認你目前就讀幾年級。','Your student record does not contain a year level, so I cannot confirm which year you are in.'));
+  if(intent.overview||intent.year){
+    const year=snapshot.studyYearReadUnavailable?t('無法讀取你已儲存的年級。','I couldn’t verify your recorded year level.'):
+      hasLiteral(student?.yearLevel)?t('年級：','Year level: ')+inlineRecord(student.yearLevel)+'.':
+      snapshot.studyYearStudentFound===false?t('此帳戶沒有連結可查詢年級的學生紀錄。','No student record is linked to this account for checking year level.'):
+      t('學生資料未記錄年級，因此我無法確認你目前就讀幾年級。','Your student record does not contain a year level, so I cannot confirm which year you are in.');
+    lines.push(year);
+  }
   const courses=ownEvidenceRows(snapshot.courses,userId);
   if(intent.overview||intent.currentCourses&&!intent.explicitDtm){
-    if(!Number.isFinite(Date.parse(snapshot.checkedAt)))lines.push(t('資料沒有有效的查詢時間，因此無法確認哪些修課屬於本學期。','The records have no valid check time, so I cannot determine which enrollments are current.'));
+    if(snapshot.timetableReadUnavailable)lines.push(t('無法讀取你已儲存的課表，因此無法確認本學期的修課。','I couldn’t verify this semester’s subjects because the saved timetable couldn’t be read.'));
+    else if(snapshot.currentStudyScope&&snapshot.studentRecordFound===false)lines.push(t('此帳戶沒有連結可查詢修課的學生紀錄。','No student record is linked to this account for checking subjects.'));
+    else if(!Number.isFinite(Date.parse(snapshot.checkedAt)))lines.push(t('資料沒有有效的查詢時間，因此無法確認哪些修課屬於本學期。','The records have no valid check time, so I cannot determine which enrollments are current.'));
     else{
       const current=studyCalendar(courses,snapshot.checkedAt).current;
       lines.push(current.length?t('校務本學期已儲存修課：','Current School Affairs subjects in the loaded records: ')+current.slice(0,12).map(row=>inlineRecord(row.code)+' '+inlineRecord(row.title)+' ('+inlineRecord(row.term)+')').join('; ')+'.':t('已載入的校務修課資料中，沒有狀態為在學且學期日期涵蓋查詢日期的紀錄；這不代表其他系統沒有修課。','The loaded School Affairs records contain no enrolled subjects whose term dates cover the check date; this does not establish absence from other systems.'));

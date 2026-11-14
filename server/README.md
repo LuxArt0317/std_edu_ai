@@ -151,3 +151,7 @@ Certificate awards use a bounded caller-JWT reader and send status fields only t
 ### Salary and aid claim evidence
 
 `aidPaymentsEvidenceIntent.js` validates the view, owner scope and page. `accountAidPaymentsEvidence.js` reads the requested page through the caller's existing session, preserves literal saved amounts and omits bank and row identifiers. The evidence separates collection totals from returned and included page rows. A failed review refreshes the selected source before correction.
+
+### Current subjects and year level
+
+`ownAffairsTimetable.js` reads the caller's enrolled rows and term dates. `ownAffairsStudyYear.js` reads only the same caller's saved year level and its provenance. The verification graph checks the current term against the timetable and the year against its own source. Both reads are repeated once after a rejected answer.
