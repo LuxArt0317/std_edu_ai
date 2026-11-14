@@ -1,3 +1,5 @@
+import {elearningOrigin,elearningPath} from '../../../../server/elearningContract.js';
+
 /** Pure build/runtime URL policy. This never fetches an arbitrary remote page. */
 export function canonicalSchoolUrl(
   value: string,
@@ -72,11 +74,17 @@ export function localSchoolHref(
         : "/school-affairs") + hash
     );
   if (url.hostname === "sso2.stu.edu.tw") return "/student-sso";
+  if (url.origin === elearningOrigin && (path === "/" || path.toLowerCase() === "/login/index.php"))
+    return (path === "/" ? elearningPath : elearningPath + "/login") + hash;
+  if (url.origin === elearningOrigin && path === "/course/index.php") {
+    const category = url.searchParams.get("categoryid");
+    if (category && /^[1-9]\d{0,8}$/.test(category)) return elearningPath + "/category/" + category;
+  }
   if (url.hostname === "dtm.stu.edu.tw" && (path === "/" || path.toLowerCase() === "/login/index.php"))
     return (path === "/" ? "/dtm" : "/dtm/login") + hash;
   if (url.hostname === "www.stu.edu.tw") {
     const reserved =
-      /^\/(?:app|crm|login|signin|signup|auth|study|api|assets|school-assets|school-pages|students|student-sso|school-affairs|admissions|freshman|international|alumni-association|local-pages|school-sites)(?:\/|$)/i.test(
+      /^\/(?:app|crm|login|signin|signup|auth|study|api|assets|school-assets|school-pages|students|student-sso|school-affairs|elearning|admissions|freshman|international|alumni-association|local-pages|school-sites)(?:\/|$)/i.test(
         url.pathname,
       );
     return (

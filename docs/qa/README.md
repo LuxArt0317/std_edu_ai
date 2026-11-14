@@ -1,5 +1,7 @@
 # Quality evidence
 
+[Remote-learning Moodle](ELEARNING.md) documents the source directory, saved enrollments and isolated verification.
+
 [Counseling appointments](COUNSELING.md) records the source scope, private scheduling workflow, and verification.
 
 [Certificate awards](CERTIFICATE_AWARDS.md) covers the catalog, protected evidence upload and award review.

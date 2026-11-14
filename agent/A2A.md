@@ -1,3 +1,7 @@
+## Remote-learning Moodle (Issue #98)
+
+Root owns 4-2, /elearning, migration 20261115010000, and local enrollment and assistant routing. No edits to the 66 paused Issue #100 paths. The source opening and one workshop workflow were inspected read-only.
+
 ## Counseling appointments (Issue #98)
 
 Root owns service 29-1, migration 20261115000000, the private appointments queue and explicit access grants. The user approved using the observed entry and consent screens. Production `57d7fa7` is live as Vercel `59VKBTKU6Sxv2Vp5aGDoiy5ihxts`. Migration 20261115000000 brings the client to 158 migrations and 188 RLS-protected public tables. Exact-client rollback and authenticated local-handler persistence passed, including account isolation and fixture cleanup. The pinned production browser, live JWT access checks, guest assistant and shell passed. Quality 43553189299 passed. The 94-destination audit reports 30 generic and 24 partial entries. The university entry and consent are observed. The application beyond university consent is unverified. Local booking stays unavailable until the owner assigns a coordinator. Chat links to private history without retrieving its contents. Keep Issue #100 paths excluded.

@@ -1,3 +1,4 @@
+import {elearningPath,elearningOrigin} from '../../../../server/elearningContract.js';
 import catalog from './catalog.json' with {type:'json'};
 
 export const leavePath = '/school-affairs/services/leave';
@@ -44,6 +45,7 @@ export function serviceDestination(program) {
   if (source.toLowerCase() === officialLeaveUrl.toLowerCase())
     return program.kind === 'query' ? leavePath + '/history' : leavePath;
   if (/\/stupractice\/login\//i.test(url.pathname)) return internshipPath;
+  if (url.origin === elearningOrigin && url.pathname === '/') return elearningPath;
   if (url.hostname === 'dtm.stu.edu.tw') return '/dtm';
   return '/school-affairs/services/' + program.id;
 }

@@ -1,5 +1,6 @@
 # Changelog
 ## Unreleased
+- Add the separate remote-learning Moodle portal, database-backed course catalog, saved workshop enrollment and assistant links. [#98]
 - Add a dedicated counseling entry and private appointment workflow with versioned consent, coordinator permissions, and assistant navigation. [#98]
 - Add the source-shaped certificate award application, searchable catalog, protected proof uploads, administrator review and assistant status. [#98]
 - Add saved announcement email preferences with Taipei next-day activation, assistant status, and a consent-scoped mail queue. [#98]

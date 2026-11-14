@@ -1,3 +1,5 @@
+import {elearningGuide,elearningQuestion} from '../../server/elearningContract.js';
+import {answerElearning} from './elearning';
 import {counselingGuide,counselingQuestion} from '../../server/counselingContract.js';
 import {certificateAwardQuestion} from '../../server/certificateAwardsContract.js';
 import {readCertificateAwardAnswer} from './certificateAwards';
@@ -35,6 +37,12 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
   if (!affairsClient) throw new Error('School Affairs sign-in is not configured.');
   const {data,error} = await affairsClient.auth.getSession();
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
+  const elearning=elearningQuestion(question,route);
+  if(elearning==='mine'){
+    onProgress?.({kind:'elearning-enrollments',label:'Checking remote-learning Moodle',detail:'Reading your saved enrollments.',status:'running'});
+    return answerElearning(data.session.user.id,question,signal);
+  }
+  if(elearning)return elearningGuide(question,elearning,true);
   const counseling=counselingQuestion(question);
   if(counseling)return counselingGuide(question,counseling,true);
   const certificate=!images.length&&certificateAwardQuestion(question);

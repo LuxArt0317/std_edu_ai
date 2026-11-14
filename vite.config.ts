@@ -17,6 +17,7 @@ const hosting = JSON.parse(
 );
 const directPages = directSchoolPages(process.cwd());
 const legacyPortalEntry = /^\/eportal\/(?:index|login|apmenu)\.asp\/?$/i;
+const legacyElearningEntry = /^\/school-sites\/elearning\.stu\.edu\.tw(?:\/|$)/i;
 const mirrorMiddleware = (preview: boolean) => (
   req: IncomingMessage,
   res: ServerResponse,
@@ -42,7 +43,7 @@ const mirrorMiddleware = (preview: boolean) => (
       catch { res.statusCode = 500; res.end("Copied page unavailable"); }
       return;
     }
-    if (preview && (legacyPortalEntry.test(pathname) ||
+    if (preview && (legacyPortalEntry.test(pathname) || legacyElearningEntry.test(pathname) ||
       (!/^\/(?:api|assets|site-pages|school-assets|school-pages)(?:\/|$)/.test(pathname) && !/\.[a-z\d]{1,8}$/i.test(pathname)))) {
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.setHeader("Cache-Control", "no-store");

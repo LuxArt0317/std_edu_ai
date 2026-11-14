@@ -1,3 +1,7 @@
+## Remote-learning Moodle [Issue #98]
+
+Separate course catalog, archive and caller-owned workshop enrollment at /elearning. See [remote-learning Moodle QA](../qa/ELEARNING.md).
+
 ## Counseling appointments [Issue #98]
 
 This feature adds private persisted requests, consent receipts and coordinator access without initial grants. See [counseling QA](../qa/COUNSELING.md) for exact tests and source scope.

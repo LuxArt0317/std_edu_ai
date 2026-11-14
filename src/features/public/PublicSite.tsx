@@ -13,6 +13,7 @@ const StudentSsoPreview = lazy(() =>
   })),
 );
 const SchoolAffairsPortal = lazy(() => import("./affairs/SchoolAffairsEntry"));
+const ElearningWorkspace = lazy(() => import("./elearning/ElearningWorkspace"));
 const DigitalMaterials = lazy(() => import("./dtm/DigitalMaterials"));
 import "./site/reference.css";
 import { AffairsAuthProvider } from "./affairs/AffairsAuth";
@@ -21,7 +22,7 @@ import { useAffairsAuth } from "./affairs/authContext";
 function useSignedInSchoolWorkspace() {
   const { user } = useAffairsAuth();
   const { pathname } = useLocation();
-  return Boolean(user && /^\/(?:school-affairs|dtm|school-sites\/dtm\.stu\.edu\.tw)(?:\/|$)/.test(pathname)
+  return Boolean(user && /^\/(?:school-affairs|elearning|dtm|school-sites\/dtm\.stu\.edu\.tw)(?:\/|$)/.test(pathname)
     && !/^\/school-affairs\/(?:login|auth|signed-out|privacy)(?:\/|$)/.test(pathname));
 }
 
@@ -35,6 +36,15 @@ function SchoolAccountAssistant({ embedded = false }: { embedded?: boolean }) {
   const {pathname} = useLocation();
   return <PublicAssistant key={user?.id || "anonymous"} initialOpen={pathname === "/campus-assistant"} embedded={embedded} />;
 }
+function LegacyElearningEntry() {
+  const { pathname, search } = useLocation();
+  const category = new URLSearchParams(search).get("categoryid");
+  const destination = pathname.endsWith("/login/index.php") ? "/elearning/login"
+    : pathname.endsWith("/course/index.php") && /^[1-9]\d{0,8}$/.test(category ?? "") ? "/elearning/category/" + category
+    : "/elearning";
+  return <Navigate replace to={destination} />;
+}
+
 function PublicAccountStatus() {
   const { user, loading } = useAffairsAuth();
   return <div style={{font:'13px/1.45 system-ui,sans-serif',color:'#fff',padding:'0 2px'}} aria-live="polite">
@@ -92,6 +102,8 @@ export default function PublicSite() {
           element={<Navigate to="/school-affairs/login" replace />}
         />
         <Route path="/school-affairs/*" element={<SchoolAffairsPortal />} />
+        <Route path="/school-sites/elearning.stu.edu.tw/*" element={<LegacyElearningEntry />} />
+        <Route path="/elearning/*" element={<ElearningWorkspace />} />
         <Route path="/dtm/*" element={<DigitalMaterials />} />
         <Route path="/dtm/course/:id" element={<DigitalMaterials />} />
         <Route path="/school-sites/dtm.stu.edu.tw/*" element={<DigitalMaterials />} />

@@ -1,3 +1,7 @@
+## Separate remote-learning Moodle [Issue #98]
+
+The source notice says remote teaching moved to TronClass beginning term 112-2. The older Digital Academy remains accessible as a distinct Moodle catalog. Local self-enrollment for workshop 9718 uses the confirmed no-key form and remains separate from university course enrollment and DTM.
+
 ## Counseling appointment boundary [Issue #98]
 
 The observed university notice covers health information. The local workflow requires its own narrow notice and saves appointment logistics only. Verified Google students read their own history. An explicit coordinator grant allows access to the active queue. The assistant directs students to their private appointment page.

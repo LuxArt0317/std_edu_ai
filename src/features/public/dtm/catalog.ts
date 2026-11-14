@@ -48,7 +48,7 @@ export const otherCategories = [
 ] as const;
 export const quickLinks = [
   ['學校首頁','/','School homepage'],['校務資訊系統','/school-affairs','School Affairs'],
-  ['數位學園','https://elearning.stu.edu.tw/','Digital Academy'],['CU平台','https://cu.stu.edu.tw/','CU platform'],
+  ['數位學園','/elearning','Digital Academy'],['CU平台','https://cu.stu.edu.tw/','CU platform'],
   ['TronClass平台','https://tc.stu.edu.tw/','TronClass'],['Gmail','https://my.stu.edu.tw/','School Gmail'],
   ['電算中心','https://ecc.stu.edu.tw/','Computing Center'],
 ] as const;

@@ -1,0 +1,14 @@
+import type {AssistantResponse} from '../src/services/researchAssistant';
+export const elearningPath:'/elearning';
+export const elearningServicePath:'/school-affairs/services/4-2';
+export const elearningOrigin:'https://elearning.stu.edu.tw';
+export const elearningScope:'elearning-workspace';
+export const joinElearningCourse:'elearning_join';
+export type ElearningCategory={id:number;parent_id:number|null;title:string;source_count:number|null;position:number};
+export type ElearningCourse={id:number;category_id:number;title:string;self_enroll:boolean;position:number};
+export type ElearningNotice={id:number;kind:'page'|'resource'|'url'|'folder';title:string;local_body:string|null;position:number};
+export type ElearningEnrollment={courseId:number;joinedAt:string};
+export type ElearningWorkspace={userId:string;categories:ElearningCategory[];courses:ElearningCourse[];notices:ElearningNotice[];enrollments:ElearningEnrollment[]};
+export function elearningCoursePath(id:number):string;
+export function elearningQuestion(question:string,route?:string):'mine'|'records'|'guide'|null;
+export function elearningGuide(question:string,intent:'mine'|'records'|'guide',signedIn?:boolean):AssistantResponse;

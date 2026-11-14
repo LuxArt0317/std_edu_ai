@@ -1,5 +1,7 @@
 # Integration checks
 
+[Remote-learning Moodle QA](../../docs/qa/ELEARNING.md) covers the browser flow, exact-client enrollment and retry checks.
+
 Counseling checks cover the scoped database rollback, actual authenticated API requests with disposable-account cleanup, and menu-to-appointment browser flow. See [counseling QA](../../docs/qa/COUNSELING.md).
 
 The record-manager, course-selection-manager, credit-load-history, pending-fees, student-aid, scholarship and housing synthetic suites now open `/school-affairs/admin/records` directly. `school-affairs-entry-ui.mjs` checks that the removed `/records` summary redirects to the native index while retaining its Google/Nexus session-isolation assertions. These fixtures verify UI routing and request contracts, not real database persistence. The November13 removal check passed all seven manager suites and focused entry/PKCE/redirect assertions under an isolated no-proxy server. The full entry suite still fails its later Escape focus assertion, reproduced unchanged against d72; its raw failure is retained, and conversation requests missing from that older fixture were blocked rather than sent to production.

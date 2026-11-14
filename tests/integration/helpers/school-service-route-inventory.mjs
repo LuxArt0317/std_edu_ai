@@ -4,7 +4,7 @@ import {schoolServiceEntries} from '../../../src/features/public/affairs/student
 // Explicit review inventory, not inferred from the presence of a generic body.
 // A native mount says nothing about unobserved workflows or live backend acceptance.
 const service = id => '/school-affairs/services/'+id;
-const genericIds = '1-1 4-2 4-3 5-1 12-1 18-1 19-1 24-1 27-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 43-1 50-1 50-2 51-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
+const genericIds = '1-1 4-3 5-1 12-1 18-1 19-1 24-1 27-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 43-1 50-1 50-2 51-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
 const native = [
   ['7-3','.program-registration','program-registration-ui.mjs','Private interdisciplinary registration history and local registration controls.'],
   ['7-1','.credit-load-application','credit-load-application-ui.mjs','Observed instructions and closed-period acknowledgement only; open application and staff review forms remain unobserved.'],
@@ -55,6 +55,8 @@ const descriptors = [
     workflowSuite:'tests/integration/course-adjustment-ui.mjs',sourceBoundary:'Late-add rules, notice and fee pages with a private eligibility lookup. The eligible enrollment form remains unobserved.'},
   {id:'6-5',kind:'partial',href:service('6-5'),finalUrl:service('6-5'),selector:'.summer-selection',
     workflowSuite:'tests/integration/summer-selection-ui.mjs',sourceBoundary:'Observed missing-college screen with account-owned decisions and dated public notice. Eligible registration form remains unobserved.'},
+  {id:'4-2',kind:'partial',href:'/elearning',finalUrl:'/elearning',selector:'.elearning-root',
+    workflowSuite:'tests/integration/elearning-ui.mjs',sourceBoundary:'Observed remote-learning Moodle login, home, 20 catalog entries and local workshop enrollment. Other categories, course bodies and official records are incomplete.'},
   {id:'29-1',kind:'partial',href:service('29-1'),finalUrl:service('29-1'),selector:'.counseling-workspace',
     workflowSuite:'tests/integration/counseling-ui.mjs',sourceBoundary:'Observed entry and consent layout. Local scheduling requires an assigned coordinator; protected university form remains unobserved.'},
   {id:'52-1',kind:'partial',href:service('52-1'),finalUrl:service('52-1'),selector:'.certificate-awards',
@@ -115,7 +117,7 @@ export function summarizeServiceRoutes(rows=schoolServiceRouteInventory) {
   return {catalogEntries:rows.length,kinds:rows.reduce((counts,row)=>({...counts,[row.kind]:(counts[row.kind]||0)+1}),{}),
     genericGaps:rows.filter(row=>row.kind==='generic').map(row=>row.id),externalDestinations:rows.filter(row=>row.kind==='external').length,workflowVerified:0,
     coverage:'Navigation and mounted-view checks only; linked family suites are separate workflow evidence, not executed by this inventory.',
-    dtm:'Separate /dtm family; not one of these 94 catalog entries. elearning and CU remain distinct generic gaps.'};
+    dtm:'Separate /dtm family; not one of these 94 catalog entries. remote-learning Moodle is separate and partial; CU remains generic.'};
 }
 export function expectedFinalServiceUrl(entry,href,origin) {
   const actual=new URL(href,origin),expected=new URL(entry.href,origin);
@@ -144,6 +146,10 @@ export function schoolServiceReadFixture(rawUrl,method,user,origin) {
   assert.equal(url.pathname,'/api/affairs-data','Unknown API path.');
   if(!url.search)return schoolServiceSnapshot(user);
   const scope=url.searchParams.get('scope');
+  if(scope==='elearning-workspace'){
+    assert.deepEqual(Object.fromEntries(url.searchParams),{scope});
+    return {userId:user.id,categories:[],courses:[],notices:[],enrollments:[]};
+  }
   if(scope==='counseling-appointments'){
     assert.deepEqual(Object.fromEntries(url.searchParams),{scope,view:'mine'});
     return {userId:user.id,available:false,canCoordinate:false,rows:[]};

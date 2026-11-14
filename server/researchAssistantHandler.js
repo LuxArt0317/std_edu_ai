@@ -1,3 +1,4 @@
+import {elearningGuide,elearningQuestion} from './elearningContract.js';
 import {counselingGuide,counselingQuestion} from './counselingContract.js';
 import {certificateAwardQuestion} from './certificateAwardsContract.js';
 import {certificateAwardGuide} from './certificateAwards.js';
@@ -97,7 +98,7 @@ function parse(body) {
         const item = entry;
         return ['user', 'assistant'].includes(String(item.role)) && typeof item.content === 'string' ? [{ role: String(item.role), content: item.content.slice(0, 2000) }] : [];
     }) : [];
-    const route = typeof source.route === 'string' && /^\/school-affairs(?:\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?$/.test(source.route) ? source.route : normalizePublicPageRoute(source.route);
+    const route = typeof source.route === 'string' && (/^\/school-affairs(?:\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?$/.test(source.route)||/^\/elearning(?:\/(?:course|category|notice)\/[1-9]\d{0,9}|\/(?:categories|my-courses|login|search))?\/?$/.test(source.route)) ? source.route : normalizePublicPageRoute(source.route);
     const rawImages = source.images;
     if (rawImages !== undefined && (!Array.isArray(rawImages) || rawImages.length > 2))
         return null;
@@ -265,6 +266,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const kind = questionKind(input.question);
+        const elearning=!kind.irrelevant&&elearningQuestion(input.question,input.route);
+        if(elearning){stream.send(200,elearningGuide(input.question,elearning));return;}
         const counseling=!kind.irrelevant&&counselingQuestion(input.question);
         if(counseling){stream.send(200,counselingGuide(input.question,counseling));return;}
         const certificateAward=!input.images.length&&!kind.irrelevant&&certificateAwardQuestion(input.question);

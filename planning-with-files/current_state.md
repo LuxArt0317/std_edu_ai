@@ -1,3 +1,7 @@
+## Remote-learning Moodle [Issue #98]
+
+Observed sign-in, home, Academic Affairs course category, migration notice and the unsubmitted workshop enrollment form. The local workspace has a dedicated Supabase migration and reusable School Affairs sign-in. Rollback preflight passed and only migration 20261115010000 was applied. The client now has 159 migrations and 192 RLS-protected public tables. The local authenticated HTTP test passed concurrency, account isolation, and exact fixture cleanup. Release verification is pending.
+
 ## Counseling appointments [Issue #98]
 
 Production `57d7fa7` is live as Vercel `59VKBTKU6Sxv2Vp5aGDoiy5ihxts`. Migration 20261115000000 brings the client to 158 migrations and 188 RLS-protected public tables. Exact-client rollback and authenticated local-handler persistence passed, including account isolation and fixture cleanup. The pinned production browser, live JWT access checks, guest assistant and shell passed. Quality 43553189299 passed. The 94-destination audit reports 30 generic and 24 partial entries.

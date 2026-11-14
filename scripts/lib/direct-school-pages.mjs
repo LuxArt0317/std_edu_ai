@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const reserved = /^\/(?:app|api|assets|site-pages|school-assets|school-pages|school-affairs|dtm|account-status|signin|signup|login|crm|student-sso|local-pages|campus-assistant|campus-directory|study)(?:\/|$)/;
+const reserved = /^\/(?:app|api|assets|site-pages|school-assets|school-pages|school-affairs|dtm|elearning|account-status|signin|signup|login|crm|student-sso|local-pages|campus-assistant|campus-directory|study)(?:\/|$)/;
 
 /** Exact local routes for the already captured public HTML; no runtime fetch. */
 export function directSchoolPages(root) {
