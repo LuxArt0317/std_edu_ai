@@ -1,3 +1,7 @@
+## Remote-learning catalog expansion [Issue #98]
+
+The visible catalog is captured and searchable through bounded database reads. See the [remote-learning QA](../qa/ELEARNING.md#catalog-expansion) for scope.
+
 ## Remote-learning Moodle [Issue #98]
 
 Separate course catalog, archive and caller-owned workshop enrollment at /elearning. See [remote-learning Moodle QA](../qa/ELEARNING.md).

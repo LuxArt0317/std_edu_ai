@@ -1,3 +1,7 @@
+## Remote-learning catalog expansion (Issue #98)
+
+Root owns migration 20261115020000, catalog queries and browser/API tests. Existing enrollment data and the paused Issue #100 paths are preserved.
+
 ## Remote-learning Moodle (Issue #98)
 
 Root owns 4-2, /elearning, migration 20261115010000, and local enrollment and assistant routing. No edits to the 66 paused Issue #100 paths. Production `4ead21c` is live as Vercel `EAkihex4TWsCPQK1U4qpE6jYDbDt`. Migration 20261115010000 brings the client to 159 migrations and 192 RLS-protected public tables. Rollback and actual-JWT enrollment, concurrent replay, isolation and exact fixture cleanup passed locally and on production. The pinned browser, guest assistant, live shell and Quality 43555452936 passed. The 94-destination audit reports 29 generic and 25 partial entries. The archive covers 34 categories, 20 Academic Affairs courses, 20 notice entries and one local workshop enrollment. Uncaptured course resources and official grades, assignments and enrollments remain outside the verified dataset.

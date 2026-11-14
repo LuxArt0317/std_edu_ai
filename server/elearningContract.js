@@ -32,3 +32,6 @@ export function elearningGuide(question,intent,signedIn=false){
     suggestedQuestions:[],grounding:{source:'directory',webSearched:false},
   };
 }
+
+export const elearningCatalogScope='elearning-catalog';
+export const elearningCatalogPageSize=20;

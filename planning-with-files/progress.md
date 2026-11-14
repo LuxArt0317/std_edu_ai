@@ -19,3 +19,5 @@
 - Nov 14 · #98 · Observed the signed-in remote-learning directory and an unsubmitted workshop enrollment. Implemented the independent catalog and account-scoped enrollment. Rollback preflight passed.
 
 - 2026-11-14 [#98] Production `4ead21c` is live as Vercel `EAkihex4TWsCPQK1U4qpE6jYDbDt`. Migration 20261115010000 brings the client to 159 migrations and 192 RLS-protected public tables. Rollback and actual-JWT enrollment, concurrent replay, isolation and exact fixture cleanup passed locally and on production. The pinned browser, guest assistant, live shell and Quality 43555452936 passed. The 94-destination audit reports 29 generic and 25 partial entries. The archive covers 34 categories, 20 Academic Affairs courses, 20 notice entries and one local workshop enrollment. Uncaptured course resources and official grades, assignments and enrollments remain outside the verified dataset. The separate CU platform timed out at its configured source.
+
+- Nov 14 · #98 · Captured all 43 visible remote-learning categories and 3,291 unique course listings. Added caller-validated catalog reads, search and paging.

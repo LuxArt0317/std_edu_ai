@@ -1,3 +1,7 @@
+## Remote-learning catalog expansion [Issue #98]
+
+Captured 3,291 unique course listings across 43 categories. The scoped migration, bounded API, course search, detail routing and pagination are implemented. Production verification is pending.
+
 ## Remote-learning Moodle [Issue #98]
 
 Production `4ead21c` is live as Vercel `EAkihex4TWsCPQK1U4qpE6jYDbDt`. Migration 20261115010000 brings the client to 159 migrations and 192 RLS-protected public tables. Rollback and actual-JWT enrollment, concurrent replay, isolation and exact fixture cleanup passed locally and on production. The pinned browser, guest assistant, live shell and Quality 43555452936 passed. The 94-destination audit reports 29 generic and 25 partial entries.

@@ -1,6 +1,6 @@
 import {AffairsWorkspaceError} from './affairsWorkspace.js';
 import {readFeeRemissionJson} from './feeRemissionContract.js';
-import {elearningScope} from './elearningContract.js';
+import {elearningScope,elearningCatalogScope,elearningCatalogPageSize} from './elearningContract.js';
 
 async function rpc(account,operation,payload){
   const remaining=Math.min(8000,(account.requestDeadline??Date.now()+8000)-Date.now());
@@ -17,6 +17,7 @@ async function rpc(account,operation,payload){
   if(!reply.ok){
     void reply.body?.cancel().catch(()=>{});
     if(reply.status===401||reply.status===403)throw new AffairsWorkspaceError('School Affairs sign-in is required.',403);
+    if(reply.status===400)throw new AffairsWorkspaceError('Invalid remote-learning request.',400);
     if(reply.status===404)throw new AffairsWorkspaceError('Local self-enrollment is unavailable for this course.',404);
     throw unavailable();
   }
@@ -37,4 +38,20 @@ export async function enrollElearning(account,payload){
   if(receipt?.courseId!==id||!Number.isFinite(Date.parse(receipt.joinedAt)))
     throw new AffairsWorkspaceError('The enrollment result could not be verified.',503);
   return receipt;
+}
+
+export async function readElearningCatalog(account,query){
+  const {scope,category,term='',page='1',course,...extra}=query;
+  const id=value=>typeof value==='string'&&/^[1-9]\d{0,9}$/.test(value)&&Number(value)<=2147483647;
+  if(scope!==elearningCatalogScope||Object.keys(extra).length||typeof term!=='string'||term.length>100||
+    typeof page!=='string'||!(/^[1-9]\d{0,3}$/).test(page)||Number(page)>1000||
+    (category!==undefined&&!id(category))||(course!==undefined&&(!id(course)||category!==undefined||term||page!=='1')))
+    throw new AffairsWorkspaceError('Invalid remote-learning catalog filters.',400);
+  const result=await rpc(account,'elearning_catalog',{
+    p_category:category===undefined?null:Number(category),p_term:term.trim(),p_page:Number(page),p_course:course===undefined?null:Number(course),
+  });
+  if(result?.userId!==account.user.id||!Number.isSafeInteger(result.total)||result.total<0||
+    !Array.isArray(result.courses)||result.courses.length>elearningCatalogPageSize)
+    throw new AffairsWorkspaceError('The course catalog response could not be verified.',503);
+  return result;
 }

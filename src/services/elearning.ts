@@ -1,6 +1,6 @@
 import {affairsClient} from '@/features/public/affairs/authClient';
-import {elearningCoursePath,elearningPath,elearningScope,joinElearningCourse,
-  type ElearningEnrollment,type ElearningWorkspace} from '../../server/elearningContract.js';
+import {elearningCoursePath,elearningPath,elearningScope,elearningCatalogScope,elearningCatalogPageSize,joinElearningCourse,
+  type ElearningCatalog,type ElearningEnrollment,type ElearningWorkspace} from '../../server/elearningContract.js';
 import type {AssistantResponse} from './researchAssistant';
 
 async function access(userId:string,signal:AbortSignal){
@@ -28,6 +28,15 @@ export async function loadElearning(userId:string,signal?:AbortSignal):Promise<E
   const data=await call(userId,signal,'/api/affairs-data?scope='+elearningScope);
   if(data?.userId!==userId||!['categories','courses','notices','enrollments'].every(key=>Array.isArray(data[key])))
     throw new Error('無法確認數位學園帳戶。');
+  return data;
+}
+export async function searchElearning(userId:string,filters:URLSearchParams,signal?:AbortSignal):Promise<ElearningCatalog>{
+  const params=new URLSearchParams(filters);
+  params.set('scope',elearningCatalogScope);
+  const data=await call(userId,signal,'/api/affairs-data?'+params);
+  if(data?.userId!==userId||!Number.isSafeInteger(data.total)||data.total<0||
+    !Array.isArray(data.courses)||data.courses.length>elearningCatalogPageSize)
+    throw new Error('無法確認數位學園課程。');
   return data;
 }
 export async function joinElearning(userId:string,courseId:number,signal:AbortSignal):Promise<ElearningEnrollment>{

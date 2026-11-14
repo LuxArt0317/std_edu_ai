@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {chromium} from 'playwright-core';
-import {elearningPath as path,elearningScope} from '../../server/elearningContract.js';
+import {elearningPath as path,elearningScope,elearningCatalogScope} from '../../server/elearningContract.js';
 import {affairsTestUser as user,mockAffairsAuth} from './helpers/affairs-auth.mjs';
 import {schoolServiceReadFixture} from './helpers/school-service-route-inventory.mjs';
 
@@ -15,6 +15,7 @@ async function checkRelease(){
 await checkRelease();
 const browser=await chromium.launch({executablePath:process.env.CHROME_PATH??'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
 const errors=[],writes=[];
+const archive=Array.from({length:23},(_,i)=>({id:15000+i,category_id:28,title:'歷年課程 '+(i+1),self_enroll:false,position:i+1}));
 const course={id:9718,category_id:41,title:'111-1遠距教學研習_20220902',self_enroll:true,position:1};
 let enrolled=null,failFirst=true;
 async function fixture(signedIn){
@@ -28,10 +29,22 @@ async function fixture(signedIn){
         assert.equal(request.method(),'GET');
         assert.match(request.headers().authorization??'',/^Bearer /u);
         return route.fulfill({json:{
-          userId:user.id,categories:[{id:41,parent_id:null,title:'教務處',source_count:20,position:1}],
+          userId:user.id,categories:[{id:41,parent_id:null,title:'教務處',source_count:20,position:1},
+            {id:28,parent_id:null,title:'其它學期',source_count:23,position:2}],
           courses:[course],notices:[{id:325504,kind:'page',title:'遠距教學轉入TronClass創課',local_body:'課程轉入 TronClass。',position:1}],
           enrollments:enrolled?[enrolled]:[],
         }});
+      }
+      if(url.searchParams.get('scope')===elearningCatalogScope){
+        assert.equal(signedIn,true);
+        assert.equal(request.method(),'GET');
+        assert.match(request.headers().authorization??'',/^Bearer /u);
+        const term=url.searchParams.get('term')??'';
+        const category=url.searchParams.get('category'),courseId=url.searchParams.get('course');
+        const offset=(Number(url.searchParams.get('page')??1)-1)*20;
+        const matching=[course,...archive].filter(row=>(!category||String(row.category_id)===category)&&
+          (!courseId||String(row.id)===courseId)&&row.title.includes(term));
+        return route.fulfill({json:{userId:user.id,total:matching.length,courses:matching.slice(offset,offset+20)}});
       }
       if(signedIn&&url.pathname==='/api/affairs-conversations'&&request.method()==='POST'){
         const {id,title,messages,version}=request.postDataJSON();
@@ -105,6 +118,15 @@ try{
   await assistant.getByText('Conversation saved to your private account.',{exact:true}).waitFor();
   await page.keyboard.press('Escape');
   await assistant.waitFor({state:'hidden'});
+  await page.goto(origin+path+'/category/28');
+  await main.getByRole('link',{name:'下一頁'}).click();
+  await page.waitForURL(origin+path+'/category/28?page=2');
+  await main.getByRole('link',{name:'歷年課程 23',exact:true}).waitFor();
+  await page.reload();
+  await main.getByText('第 2 / 2 頁（23 門課程）',{exact:true}).waitFor();
+  await main.getByRole('link',{name:'上一頁'}).click();
+  await main.getByRole('link',{name:'歷年課程 1',exact:true}).waitFor();
+  assert.equal(await main.getByRole('link',{name:'歷年課程 23',exact:true}).count(),0);
   await page.goto(origin+'/school-affairs/services/4-2');
   await page.waitForURL(origin+path);
   for(const width of [390,320]){

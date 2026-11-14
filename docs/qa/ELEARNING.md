@@ -27,3 +27,12 @@ Rollback, exact migration planning, migration application, and actual JWT valida
 ## Production evidence
 
 Production `4ead21c` is live as Vercel `EAkihex4TWsCPQK1U4qpE6jYDbDt`. Migration 20261115010000 brings the client to 159 migrations and 192 RLS-protected public tables. Rollback and actual-JWT enrollment, concurrent replay, isolation and exact fixture cleanup passed locally and on production. The pinned browser, guest assistant, live shell and Quality 43555452936 passed. The 94-destination audit reports 29 generic and 25 partial entries. The archive covers 34 categories, 20 Academic Affairs courses, 20 notice entries and one local workshop enrollment. Uncaptured course resources and official grades, assignments and enrollments remain outside the verified dataset.
+
+
+## Catalog expansion
+
+The signed-in source selector exposed 43 categories. Read-only capture followed 191 listing screens through their final visible page and recovered 3,291 unique course IDs and titles. The largest category held 907 courses across 46 pages. The expansion updates the catalog in place and preserves existing workshop enrollment and course IDs. Course list and search endpoints return 20 rows per page; the home and personal assistant stay bounded. The source portal determines access to materials and academic records.
+
+Validate against the exact client database with `node tests/integration/elearning-db.mjs --catalog-preflight` before applying migration `20261115020000`, or `--catalog-deployed` afterward. The HTTP suite now checks filtering, pagination, empty categories and preserved private enrollment. Browser checks drive category pagination, refresh, search, course detail and the signed-in assistant.
+
+[University course directory](https://elearning.stu.edu.tw/course/index.php?categoryid=18)

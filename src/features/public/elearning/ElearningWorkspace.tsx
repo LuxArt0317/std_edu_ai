@@ -3,9 +3,9 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { useAffairsAuth } from '../affairs/authContext';
 import { safeSchoolReturnPath, signOutAffairs, startGoogleSignIn } from '../affairs/authClient';
-import { joinElearning, loadElearning } from '@/services/elearning';
-import { elearningCoursePath, elearningOrigin, elearningPath as path,
-  type ElearningCategory, type ElearningCourse, type ElearningWorkspace as Workspace } from '../../../../server/elearningContract.js';
+import { joinElearning, loadElearning, searchElearning } from '@/services/elearning';
+import { elearningCoursePath, elearningOrigin, elearningPath as path, elearningCatalogPageSize,
+  type ElearningCatalog, type ElearningCategory, type ElearningCourse, type ElearningWorkspace as Workspace } from '../../../../server/elearningContract.js';
 import './elearning.css';
 
 const siteTitle='樹德科技大學 數位學園(遠距教學平台)';
@@ -167,6 +167,62 @@ function CourseView({course,joined,userId,onJoined}:{course:ElearningCourse;join
     </Dialog>
   </>;
 }
+function CatalogResults({userId,category,query='',course,joined,onJoined}:{
+  userId:string;category?:number;query?:string;course?:number;joined?:string;onJoined?:()=>void;
+}){
+  const {pathname,search}=useLocation();
+  const params=new URLSearchParams(search);
+  const rawPage=params.get('page')??'1';
+  const page=/^[1-9]\d{0,3}$/.test(rawPage)&&Number(rawPage)<=1000&&!course?Number(rawPage):1;
+  const filters=new URLSearchParams();
+  if(course)filters.set('course',String(course));
+  if(category)filters.set('category',String(category));
+  if(query)filters.set('term',query);
+  if(page!==1)filters.set('page',String(page));
+  const key=filters.toString();
+
+  return <CatalogPage key={key} userId={userId} filters={key} page={page} pathname={pathname}
+    query={query} course={course} joined={joined} onJoined={onJoined}/>;
+}
+
+function CatalogPage({userId,filters,page,pathname,query,course,joined,onJoined}:{
+  userId:string;filters:string;page:number;pathname:string;query:string;course?:number;joined?:string;onJoined?:()=>void;
+}){
+  const [data,setData]=useState<ElearningCatalog|null>(null);
+  const [error,setError]=useState(false);
+  const [attempt,setAttempt]=useState(0);
+  useEffect(()=>{
+    const controller=new AbortController();
+    void searchElearning(userId,new URLSearchParams(filters),controller.signal).then(result=>{
+      if(!controller.signal.aborted)setData(result);
+    }).catch(()=>{if(!controller.signal.aborted)setError(true);});
+    return ()=>controller.abort();
+  },[userId,filters,attempt]);
+
+  function toPage(number:number){
+    const params=new URLSearchParams();
+    if(query)params.set('q',query);
+    if(number!==1)params.set('page',String(number));
+    return {pathname,search:params.toString()};
+  }
+  if(error)return <p role="alert">無法讀取課程。 <button type="button" onClick={()=>{setError(false);setAttempt(value=>value+1);}}>重試</button></p>;
+  if(!data)return <p role="status">讀取課程…</p>;
+  if(course){
+    const item=data.courses.find(row=>row.id===course);
+    return item&&onJoined?<CourseView course={item} userId={userId} joined={joined} onJoined={onJoined}/>
+      :<><h2>找不到課程</h2><Link to={path+'/categories'}>返回課程類別</Link></>;
+  }
+  const pageCount=Math.ceil(data.total/elearningCatalogPageSize);
+  if(pageCount&&page>pageCount)return <p>此頁沒有課程。 <Link to={toPage(pageCount)}>前往最後一頁</Link></p>;
+  return <>
+    <CourseList courses={data.courses}/>
+    {pageCount>1&&<nav aria-label="課程分頁" className="elearning-pagination">
+      {page>1&&<Link to={toPage(page-1)}>上一頁</Link>}
+      <span>第 {page} / {pageCount} 頁（{data.total} 門課程）</span>
+      {page<pageCount&&<Link to={toPage(page+1)}>下一頁</Link>}
+    </nav>}
+  </>;
+}
 function Content({data,userId,reload}:{data:Workspace;userId:string;reload:()=>void}){
   const {pathname,search}=useLocation();
   const segments=pathname.replace(/\/$/,'').slice(path.length).split('/').filter(Boolean);
@@ -191,16 +247,16 @@ function Content({data,userId,reload}:{data:Workspace;userId:string;reload:()=>v
     return <><h2>我的課程</h2><CourseList courses={data.courses.filter(course=>ids.has(course.id))}/></>;
   }
   if(view==='search'&&segments.length===1){
-    const query=(new URLSearchParams(search).get('q')??'').slice(0,100).normalize('NFKC').trim().toLowerCase();
+    const query=(new URLSearchParams(search).get('q')??'').slice(0,100).trim();
     return <><h2>搜尋課程</h2><SearchBox key={query} initial={query}/>
-      <CourseList courses={query?data.courses.filter(course=>course.title.normalize('NFKC').toLowerCase().includes(query)):data.courses}/></>;
+      <CatalogResults userId={userId} query={query}/></>;
   }
   if(view==='category'&&segments.length===2){
     const category=data.categories.find(row=>row.id===id);
     if(category)return <><h2>{category.title}</h2><label>課程類別: <select value={id} onChange={event=>navigate(categoryLink(Number(event.target.value)))}>
       {data.categories.map(row=><option key={row.id} value={row.id}>{row.title}</option>)}</select></label><SearchBox/>
       <CategoryTree rows={data.categories} parent={id} expanded/>
-      <CourseList courses={data.courses.filter(course=>course.category_id===id)}/>
+      <CatalogResults userId={userId} category={id}/>
       {external(elearningOrigin+'/course/index.php?categoryid='+id,'瀏覽校方課程類別')}
     </>;
   }
@@ -210,11 +266,8 @@ function Content({data,userId,reload}:{data:Workspace;userId:string;reload:()=>v
       {notice.id===325504&&<p>{external('https://tc.stu.edu.tw/','TronClass創課 入口網站')}</p>}
       <p>{external(elearningOrigin+'/mod/'+notice.kind+'/view.php?id='+id,'在校方 Moodle 開啟')}</p></>;
   }
-  if(view==='course'&&segments.length===2){
-    const course=data.courses.find(row=>row.id===id);
-    if(course)return <CourseView key={id} course={course} userId={userId}
-      joined={data.enrollments.find(row=>row.courseId===id)?.joinedAt} onJoined={reload}/>;
-  }
+  if(view==='course'&&segments.length===2&&/^[1-9]\d{0,9}$/.test(value)&&id<=2147483647)
+    return <CatalogResults userId={userId} course={id} joined={data.enrollments.find(row=>row.courseId===id)?.joinedAt} onJoined={reload}/>;
   return <><h2>找不到頁面</h2><Link to={path}>返回首頁</Link></>;
 }
 function Session({userId,account}:{userId:string;account:string}){

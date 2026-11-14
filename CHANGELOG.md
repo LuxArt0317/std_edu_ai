@@ -1,5 +1,6 @@
 # Changelog
 ## Unreleased
+- Import 3,291 observed remote-learning course listings across 43 categories and add server-side pagination and search. [#98]
 - Add the separate remote-learning Moodle portal, database-backed course catalog, saved workshop enrollment and assistant links. [#98]
 - Add a dedicated counseling entry and private appointment workflow with versioned consent, coordinator permissions, and assistant navigation. [#98]
 - Add the source-shaped certificate award application, searchable catalog, protected proof uploads, administrator review and assistant status. [#98]

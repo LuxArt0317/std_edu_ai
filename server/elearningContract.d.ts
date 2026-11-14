@@ -12,3 +12,7 @@ export type ElearningWorkspace={userId:string;categories:ElearningCategory[];cou
 export function elearningCoursePath(id:number):string;
 export function elearningQuestion(question:string,route?:string):'mine'|'records'|'guide'|null;
 export function elearningGuide(question:string,intent:'mine'|'records'|'guide',signedIn?:boolean):AssistantResponse;
+
+export const elearningCatalogScope:'elearning-catalog';
+export const elearningCatalogPageSize:20;
+export type ElearningCatalog={userId:string;total:number;courses:ElearningCourse[]};

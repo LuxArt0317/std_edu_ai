@@ -1,3 +1,7 @@
+## Remote-learning catalog expansion [Issue #98]
+
+The source selector exposed 43 categories and 191 visible listing pages. All were followed to an observed end. The archive contains 3,291 unique course IDs and titles. Only course metadata was extracted. The expansion preserves existing workshop enrollments and serves 20 results per page.
+
 ## Separate remote-learning Moodle [Issue #98]
 
 The source notice says remote teaching moved to TronClass beginning term 112-2. The older Digital Academy remains accessible as a distinct Moodle catalog. Local self-enrollment for workshop 9718 uses the confirmed no-key form and remains separate from university course enrollment and DTM.
