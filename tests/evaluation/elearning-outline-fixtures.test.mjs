@@ -108,6 +108,11 @@ test('the authored live outlines accept local reference answers and reject wrong
       const explicit=exemplar.facts.map(activity=>`[${activity.title}](${activity.path})`).join(' · ');
       envelope.body.answer=original.replace(/^.*Open activity.*$/gmu,'')+'\n'+explicit;
       assert.deepEqual(gradeCase(row,envelope).failures,[],row.id);
+      envelope.body.answer=envelope.body.answer.replace(explicit,
+        explicit.replace(' · ',' · 第一段影片: [Open activity](/elearning/course/9408/activity/293396)\n'));
+      assert.deepEqual(gradeCase(row,envelope).failures.map(failure=>failure.id),['links.record.0']);
+      envelope.body.answer=original+'\n'+explicit+' and [Open activity](/elearning/course/9408/activity/293395)';
+      assert.ok(gradeCase(row,envelope).failures.some(failure=>failure.id.startsWith('links.record.')));
     }
     if(row.id.endsWith('feedback-and-slides')){
       envelope.body.answer=envelope.body.answer.replace('Section: ` 課程回饋 `','Section: ` 課程主題 `');

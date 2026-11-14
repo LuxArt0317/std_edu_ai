@@ -379,14 +379,17 @@ function recordLinkMatches(answer, binding, allBindings) {
     const mappings = [...line.matchAll(/(?<!!)\[([^\]\n]+)\]\(\s*<?([^\s)>]+)>?(?:\s+[^)]*)?\)/gu)];
     const named = mappings.filter(([, name]) => tokenPresent(normalize(name), label));
     if (named.some(([, , url]) => normalizedLink(url) !== target)) return false;
-    if (named.length) {
-      matched = true;
+    if (named.length) matched = true;
+    const visible = normalize(visibleMarkdown(line));
+    const markers = new Set(labelOccurrences(visible, knownLabels).map(marker => marker.label));
+    if (!markers.has(label)) continue;
+    const localLinks = extractAnswerLinks({answer:line}).map(normalizedLink);
+    if (markers.size > 1) {
+      const namedDestinations = mappings.filter(([, name]) => labelOccurrences(normalize(name), knownLabels).length === 1)
+        .map(([, , url]) => normalizedLink(url));
+      if (namedDestinations.length !== mappings.length || localLinks.some(url => !namedDestinations.includes(url))) return false;
       continue;
     }
-    const visible = normalize(visibleMarkdown(line));
-    const markers = labelOccurrences(visible, knownLabels);
-    if (markers.length !== 1 || markers[0].label !== label) continue;
-    const localLinks = extractAnswerLinks({answer:line}).map(normalizedLink);
     if (localLinks.some(url => url !== target)) return false;
     if (localLinks.length) matched = true;
   }
