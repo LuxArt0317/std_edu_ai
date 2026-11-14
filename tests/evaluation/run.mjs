@@ -182,7 +182,7 @@ export function validateCatalogCaseBinding(templates,result){
 /** Missing public fixtures remain setup failures, even if an adapter would
  * otherwise return a token. Never spend a model request on an unbound oracle. */
 export function assertCatalogCaseBound(testCase,report){
-  if(['native_health_metadata_planned','native_counseling_appointments_planned','native_clearance_applications_planned'].includes(testCase.fixtureRequirement))
+  if(['native_health_metadata_planned','native_counseling_appointments_planned','native_clearance_applications_planned','native_tutor_evaluation_planned'].includes(testCase.fixtureRequirement))
     throw new Error('The isolated native fixture adapter is not mounted; this case remains an unexecuted setup failure.');
   if(testCase.fixtureRequirement==='offline_reader_failure')throw new Error('This deliberately unavailable reader case has no live failure-injection fixture; it remains an unexecuted setup failure.');
   if(testCase.fixtureRequirement!=='published_catalog_binding')return;

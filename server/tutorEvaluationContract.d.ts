@@ -1,5 +1,7 @@
 export const tutorEvaluationKind: 'submit_tutor_evaluation';
 export const tutorEvaluationMaxBytes: number;
+export const tutorEvaluationEvidenceMaxBytes:26000;
+export {tutorEvaluationPath} from '../src/features/public/affairs/studentServices.js';
 export type TutorEvaluationSubmission = {request_id:string;ratings:number[];comment:string};
 export type TutorEvaluationData = {
   userId:string;

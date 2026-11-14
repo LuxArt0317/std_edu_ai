@@ -6,6 +6,7 @@ import {buildDormitoryConductCases,dormitoryConductLiveFixtureKey} from './dormi
 import {buildPlannedFeeRemissionCases} from './fee-remission-cases.mjs';
 import {buildPlannedHealthExaminationCases} from './health-examination-cases.mjs';
 import {buildPlannedCounselingAppointmentCases} from './counseling-appointment-cases.mjs';
+import {buildPlannedTutorEvaluationCases} from './tutor-evaluation-cases.mjs';
 import {buildPlannedClearanceApplicationCases} from './clearance-application-cases.mjs';
 const routes={profile:'/school-affairs/records',courses:'/school-affairs/records',assignments:'/dtm/assignments',dtm:'/dtm',charges:'/school-affairs/services/39-1',tasks:'/school-affairs/records',requests:'/school-affairs/records',serviceRecords:'/school-affairs/services/leave/history',announcements:'/school-affairs',scholarship:'/school-affairs/services/9-1',studentAid:'/school-affairs/services/22-1',housing:'/school-affairs/services/34-1',creditLoadHistory:'/school-affairs/services/11-3',courseSelection:'/school-affairs/services/11-1',academicGrades:'/school-affairs/services/13-1/transcript',graduationReview:'/school-affairs/services/13-1/graduation',academicAttendance:'/school-affairs/services/14-1'};
 const fact=(label,values,kind='text',labels=[])=>({label,labels,kind,values:Array.isArray(values)?values:[values]});
@@ -37,15 +38,17 @@ function liveDormitoryCases() {
       },capability:capability()};
   });
 }
-export function buildAccountCases({now=DEFAULT_EVAL_NOW,includePlannedFeeRemission=false,includePlannedHealthExaminations=false,includePlannedCounselingAppointments=false,includePlannedClearanceApplications=false}={}){
+export function buildAccountCases({now=DEFAULT_EVAL_NOW,includePlannedFeeRemission=false,includePlannedHealthExaminations=false,includePlannedCounselingAppointments=false,includePlannedClearanceApplications=false,includePlannedTutorEvaluation=false}={}){
   if(typeof includePlannedFeeRemission!=='boolean')throw new TypeError('Planned fee-remission inclusion must be explicit.');
   if(typeof includePlannedHealthExaminations!=='boolean')throw new TypeError('Planned health-examination inclusion must be explicit.');
   if(typeof includePlannedCounselingAppointments!=='boolean')throw new TypeError('Planned counseling appointment inclusion must be explicit.');
+  if(typeof includePlannedTutorEvaluation!=='boolean')throw new TypeError('Planned tutor evaluation inclusion must be explicit.');
   if(typeof includePlannedClearanceApplications!=='boolean')throw new TypeError('Planned clearance application inclusion must be explicit.');
   if(!Number.isFinite(Date.parse(now)))throw new Error('Evaluation now must be a valid timestamp.');
   const cases=[...buildLiveFacilityRepairCases({now}),...buildLiveOutlineCases(),...liveDormitoryCases(),
     ...(includePlannedFeeRemission?buildPlannedFeeRemissionCases():[]),...(includePlannedHealthExaminations?buildPlannedHealthExaminationCases():[]),
     ...(includePlannedCounselingAppointments?buildPlannedCounselingAppointmentCases():[]),
+    ...(includePlannedTutorEvaluation?buildPlannedTutorEvaluationCases():[]),
     ...(includePlannedClearanceApplications?buildPlannedClearanceApplicationCases({now}):[])],dates=evaluationDates(now);
   function add(id,domain,question,options={}){
     const {behavior='answer',mode='record',requiredText=[],forbiddenText=[],requiredLinks=[],requiredTools=[domain],provenance='local',facts=[],fixtureKey=domain,route=routes[domain]||'/school-affairs/records',history,language='en',level='native',limitation=null,gap=level==='partial',fixtureRequirement,...extra}=options;

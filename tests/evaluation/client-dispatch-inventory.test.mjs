@@ -20,6 +20,7 @@ test('the five direct readers and verified graph dispatch remain separately visi
     {id:'health-examinations',graphTool:'healthExaminations'},
     {id:'counseling-appointments',graphTool:'counselingAppointments'},
     {id:'graduation-clearance',graphTool:'graduationClearance'},
+    {id:'tutor-evaluation',graphTool:'tutorEvaluation'},
   ]);
   for(const service of inventory.services){
     assert.equal(service.routeAuth,'signed-in');assert.equal(service.graphTool,null);
@@ -51,6 +52,8 @@ test('native questions require the fields the reader actually supplies and discl
   assert.equal(question('client:graduation-clearance:multipart'),undefined);
   assert.ok(inventory.verifiedDispatch.some(row=>row.id==='graduation-clearance'&&row.graphTool==='graduationClearance'));
   assert.ok(inventory.sourceManifest.some(row=>row.path==='server/clearanceEvidenceIntent.js'));
+  assert.ok(inventory.verifiedDispatch.some(row=>row.id==='tutor-evaluation'&&row.graphTool==='tutorEvaluation'));
+  assert.ok(inventory.sourceManifest.some(row=>row.path==='server/tutorEvaluationEvidenceIntent.js'));
   assert.equal(inventory.navigationOnly.some(row=>row.scopes.includes('counseling-appointments')),false);
   assert.ok(inventory.verifiedDispatch.some(row=>row.id==='counseling-appointments'&&row.graphTool==='counselingAppointments'));
   assert.ok(inventory.sourceManifest.some(row=>row.path==='server/counselingEvidenceIntent.js'));
@@ -97,6 +100,8 @@ test('source drift cannot silently detach a declared native reader from auth, ow
     source.replace('||counselingQuestion(question)',''),
     source.replace('isClearanceEvidenceQuestion(question,route,history)','false'),
     source.replace('||clearanceQuestion(question)',''),
+    source.replace('isTutorEvaluationEvidenceQuestion(question,route,history)','false'),
+    source.replace('||tutorEvaluationNavigation(question)',''),
     source.replace('const officer =',"await fetch('/api/affairs-assistant'); const officer ="),
   ];
   for(const changed of mutations){assert.notEqual(changed,source);assert.throws(()=>inspectClientDispatchSource(changed));}

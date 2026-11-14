@@ -189,3 +189,11 @@ The assistant reads saved clearance applications and assigned windows through th
 For a combined question, a narrow enrollment read calculates the next class in Asia/Taipei and links to My Subjects. The two sources refresh after a rejected draft. A failed timetable read, an unlinked student, and a successful lookup with no future meeting have distinct results. An unsuccessful source does not prevent the other part from being verified.
 
 The independent packet covers 34 questions, including 25 planned fixtures and nine offline controls. The planned cases require a verified binding to existing academic terms and assigned windows. They report a setup failure before any model request until the binding and disposable-owner fixture adapter are available. Local browser and HTTP checks use synthetic authentication, scoped data and model responses.
+
+### Tutor evaluation
+
+Service 28-1 answers questions about the student's saved questionnaire. The assistant reads submission status and time, plus numbered responses and comments when requested. Tracking notes remain available through the separate notes page. The assistant makes no questionnaire changes. The saved form does not establish a school term, approval, delivery or receipt.
+
+For a combined fee question, the account graph checks the selected fee and questionnaire independently and rereads both after a rejected draft. A failed read stays distinct from a successful lookup that found no submission. Private profile fields from the form never enter the assistant's evidence. Questions about other students are refused without a record lookup.
+
+The independent packet covers 33 scenarios, with 27 planned live cases and six offline controls. Three planned cases need separate charge fixtures. The live fixture and two-account cleanup checks remain unmounted. Local HTTP, graph and browser tests use synthetic accounts, model responses and record fixtures.

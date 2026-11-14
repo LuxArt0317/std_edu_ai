@@ -87,8 +87,9 @@ export function selectServiceRecords(snapshot,context={}){
   const relevant=requestedReferences.length?scoped.filter(row=>matchesReference(row,requestedReferences)):scoped;
   const matching=prioritizeEvidenceRows(relevant,question,['id','title','notes'],{filterExact:!explicitAll});
   const selectedKeys=keys.length?keys:[...new Set(matching.map(row=>canonicalKey(row.serviceKey)))];
-  const urls=selectedKeys.map(key=>allowedServices.get(key)?.localUrl).filter(Boolean);
-  const primary=keys.length===1?allowedServices.get(keys[0]).localUrl:'/school-affairs/records';
+  const noteUrl=key=>key==='28-1'?'/school-affairs/services/28-1/notes':allowedServices.get(key)?.localUrl;
+  const urls=selectedKeys.map(noteUrl).filter(Boolean);
+  const primary=keys.length===1?noteUrl(keys[0]):'/school-affairs/records';
   return {records:matching,url:primary,urls:[...new Set([primary,...urls])],selection:{
     serviceKeys:keys,resolvedServiceKeys:selectedKeys,explicitAll,
     requestedReference:requestedReferences[0]||null,requestedReferences,matchedReference:requestedReferences.length?matching.length>0:null,

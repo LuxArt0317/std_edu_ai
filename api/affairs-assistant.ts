@@ -1,3 +1,6 @@
+import {readTutorEvaluationEvidence} from '../server/accountTutorEvaluationEvidence.js';
+import {tutorEvaluationNavigation} from '../server/tutorEvaluationEvidenceIntent.js';
+import {tutorEvaluationGuide} from '../server/tutorEvaluationGuide.js';
 import {readClearanceEvidence} from '../server/accountClearanceEvidence.js';
 import {clearanceNavigationView,clearanceTimetableQuestion} from '../server/clearanceEvidenceIntent.js';
 import {clearanceDirectoryAnswer} from '../server/graduationClearanceContract.js';
@@ -151,7 +154,7 @@ export function createAffairsAssistantHandler(dependencies:{
   verifyToken?:typeof verifyAffairsToken;
   loadSnapshot?:typeof loadAffairsSnapshot;
   answerAccount?:typeof answerAccountWithVerification;
-  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence;healthExaminations?:typeof readHealthExaminationEvidence;counselingAppointments?:typeof readCounselingEvidence;graduationClearance?:typeof readClearanceEvidence};
+  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence;healthExaminations?:typeof readHealthExaminationEvidence;counselingAppointments?:typeof readCounselingEvidence;graduationClearance?:typeof readClearanceEvidence;tutorEvaluation?:typeof readTutorEvaluationEvidence};
 }={}) {
 const publicResearch=dependencies.publicResearch??researchHandler;
 const verifyToken=dependencies.verifyToken??verifyAffairsToken,loadSnapshot=dependencies.loadSnapshot??loadAffairsSnapshot,answerAccount=dependencies.answerAccount??answerAccountWithVerification;
@@ -167,7 +170,8 @@ const readers={courseCatalog:dependencies.readers?.courseCatalog??readCatalogEvi
   feeRemission:dependencies.readers?.feeRemission??readFeeRemissionEvidence,
   healthExaminations:dependencies.readers?.healthExaminations??readHealthExaminationEvidence,
   counselingAppointments:dependencies.readers?.counselingAppointments??readCounselingEvidence,
-  graduationClearance:dependencies.readers?.graduationClearance??readClearanceEvidence};
+  graduationClearance:dependencies.readers?.graduationClearance??readClearanceEvidence,
+  tutorEvaluation:dependencies.readers?.tutorEvaluation??readTutorEvaluationEvidence};
 return async function handler(request:ApiRequest,response:ApiResponse) {
   const deadline=Date.now()+55_000;
   response.setHeader('Cache-Control','no-store, max-age=0');
@@ -214,6 +218,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
           :pageContext.foreign&&pageContext.tools.includes('feeRemission')?(chinese?'學雜費減免紀錄':'fee remission records')
           :pageContext.foreign&&pageContext.tools.includes('healthExaminations')?(chinese?'健檢紀錄':'health examination records')
           :pageContext.foreign&&pageContext.tools.includes('counselingAppointments')?(chinese?'諮商預約紀錄':'counseling appointments')
+          :pageContext.foreign&&pageContext.tools.includes('tutorEvaluation')?(chinese?'導師問卷紀錄':'tutor evaluation records')
           :pageContext.foreign&&pageContext.tools.includes('graduationClearance')?(chinese?'畢業離校紀錄':'graduation clearance records')
           :pageContext.foreign?(chinese?'宿舍獎懲或數位學園課程紀錄':'dormitory conduct or remote-learning course records')
             :(chinese?'薪資或助學請款紀錄':'salary or aid claim records');
@@ -221,6 +226,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       :`I can only check your signed-in stu.best account. I can’t show another student’s ${records}.`;
     stream.progress('account-access',chinese?'已確認帳戶範圍':'Checked account access',answer,'complete');
     stream.send(200,{status:'handoff',answer,citations:[],suggestedQuestions:[],grounding:{source:'account',webSearched:false}});
+    return;
+  }
+  if(tutorEvaluationNavigation(question)&&!(Array.isArray(input?.images)&&input.images.length)){
+    stream.send(200,tutorEvaluationGuide(question,true));
     return;
   }
   const clearanceNavigation=clearanceNavigationView(question);
@@ -339,6 +348,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       feeRemission:context=>readers.feeRemission(account,{question,route,history,deadline:readDeadline(context.deadline)}),
       healthExaminations:context=>readers.healthExaminations(account,{question:context.question,route,history,deadline:readDeadline(context.deadline)}),
       counselingAppointments:context=>readers.counselingAppointments(account,{question:context.question,route,history,deadline:readDeadline(context.deadline)}),
+      tutorEvaluation:context=>readers.tutorEvaluation(account,{question:context.question,route,history,deadline:readDeadline(context.deadline)}),
       graduationClearance:context=>readers.graduationClearance(account,{question:context.question,route,history,deadline:readDeadline(context.deadline)}),
       tuition:context=>readers.tuition(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
     };

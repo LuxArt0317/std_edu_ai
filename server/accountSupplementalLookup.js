@@ -1,3 +1,5 @@
+import {selectTutorEvaluationEvidence,isTutorEvaluationFieldClause,withoutExcludedTutorEvaluationClause} from './tutorEvaluationEvidenceIntent.js';
+import {tutorEvaluationEvidenceMaxBytes,unavailableTutorEvaluationEvidence} from './accountTutorEvaluationEvidence.js';
 import {selectClearanceEvidence,isClearanceFieldClause,withoutExcludedClearanceClause,isExactClearanceNextClassQuestion} from './clearanceEvidenceIntent.js';
 import {clearanceEvidenceMaxBytes,unavailableClearanceEvidence} from './accountClearanceEvidence.js';
 import {selectCounselingEvidence,isCounselingFieldClause,withoutExcludedCounselingClause} from './counselingEvidenceIntent.js';
@@ -41,17 +43,18 @@ export const supplementalAccountTools=Object.freeze({
   facilityRepairs:'Own saved local facility-repair reports and exact status; requested latest saved handling note with unknown event author. Separate from housing and generic service trackers. No cancellation, technician messaging, dispatch or proof of physical repair.',
   dormitoryConduct:'Own saved dormitory conduct notice metadata at34-2, distinct from student conduct and housing beds/fees. Empty notice metadata does not establish complete disciplinary history, clearance or an official document. Read-only.',
   feeRemission:'Own saved local fee reduction history at service 21-3, with literal year, semester, category, amount and check status. Separate from the charge balance, eligibility, approval and payment. Read-only.',
+  tutorEvaluation:'Own saved tutor questionnaire submission, requested numbered ratings and explicit comment. Read-only.',
   graduationClearance:'Own saved graduation clearance application status and requested office notes, plus assigned application periods. Separate from the graduation requirements report. Read-only.',
   counselingAppointments:'Own saved counseling and psychological-assessment appointment dates, preferred periods and status. No notes, documents, staff queue or appointment actions.',
   healthExaminations:'Own saved health examination codes and report availability, scoped to the selected page at service 36-1. No clinical results, dates, identity details, file access or writes.',
   elearningOutline:'Authorized local remote-learning course outline, section/activity titles and local video/slides/feedback/attendance-form links. No personal attendance, grades, submissions, video contents or completion records. Read-only.',
 });
-const predicates={courseCatalog:isCatalogEvidenceQuestion,enrollmentCertificate:isCertificateEvidenceQuestion,dtmSubmissions:isSubmissionEvidenceQuestion,tuition:isTuitionEvidenceQuestion,studentConduct:isStudentConductEvidenceQuestion,studentLoan:isStudentLoanEvidenceQuestion,aidPayments:isAidPaymentsEvidenceQuestion,dtmGradeReport:shouldReadNativeDtmGrades,elearningEnrollments:isElearningEvidenceQuestion,facilityRepairs:isFacilityRepairEvidenceQuestion,dormitoryConduct:isDormitoryConductEvidenceQuestion,elearningOutline:isElearningOutlineEvidenceQuestion,feeRemission:selectFeeRemissionEvidence,healthExaminations:selectHealthExaminationEvidence,counselingAppointments:selectCounselingEvidence,graduationClearance:selectClearanceEvidence};
+const predicates={courseCatalog:isCatalogEvidenceQuestion,enrollmentCertificate:isCertificateEvidenceQuestion,dtmSubmissions:isSubmissionEvidenceQuestion,tuition:isTuitionEvidenceQuestion,studentConduct:isStudentConductEvidenceQuestion,studentLoan:isStudentLoanEvidenceQuestion,aidPayments:isAidPaymentsEvidenceQuestion,dtmGradeReport:shouldReadNativeDtmGrades,elearningEnrollments:isElearningEvidenceQuestion,facilityRepairs:isFacilityRepairEvidenceQuestion,dormitoryConduct:isDormitoryConductEvidenceQuestion,elearningOutline:isElearningOutlineEvidenceQuestion,feeRemission:selectFeeRemissionEvidence,healthExaminations:selectHealthExaminationEvidence,counselingAppointments:selectCounselingEvidence,graduationClearance:selectClearanceEvidence,tutorEvaluation:selectTutorEvaluationEvidence};
 const keys=Object.keys(supplementalAccountTools),plain=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&[Object.prototype,null].includes(Object.getPrototypeOf(value));
 const bytes=value=>Buffer.byteLength(JSON.stringify(value),'utf8');
-const sourceLimits={courseCatalog:18000,enrollmentCertificate:12000,dtmSubmissions:24000,tuition:16000,studentConduct:studentConductEvidenceMaxBytes,studentLoan:studentLoanEvidenceMaxBytes,aidPayments:aidPaymentsEvidenceMaxBytes,dtmGradeReport:dtmGradeReportEvidenceMaxBytes,elearningEnrollments:elearningEvidenceMaxBytes,facilityRepairs:facilityRepairEvidenceMaxBytes,dormitoryConduct:dormitoryConductEvidenceMaxBytes,elearningOutline:elearningOutlineEvidenceMaxBytes,feeRemission:feeRemissionEvidenceMaxBytes,healthExaminations:healthExaminationEvidenceMaxBytes,counselingAppointments:counselingEvidenceMaxBytes,graduationClearance:clearanceEvidenceMaxBytes};
+const sourceLimits={courseCatalog:18000,enrollmentCertificate:12000,dtmSubmissions:24000,tuition:16000,studentConduct:studentConductEvidenceMaxBytes,studentLoan:studentLoanEvidenceMaxBytes,aidPayments:aidPaymentsEvidenceMaxBytes,dtmGradeReport:dtmGradeReportEvidenceMaxBytes,elearningEnrollments:elearningEvidenceMaxBytes,facilityRepairs:facilityRepairEvidenceMaxBytes,dormitoryConduct:dormitoryConductEvidenceMaxBytes,elearningOutline:elearningOutlineEvidenceMaxBytes,feeRemission:feeRemissionEvidenceMaxBytes,healthExaminations:healthExaminationEvidenceMaxBytes,counselingAppointments:counselingEvidenceMaxBytes,graduationClearance:clearanceEvidenceMaxBytes,tutorEvaluation:tutorEvaluationEvidenceMaxBytes};
 export const supplementalEvidenceBudget=54000;
-export const withoutExcludedNativePageClause=question=>withoutExcludedClearanceClause(withoutExcludedCounselingClause(withoutExcludedHealthClause(question)));
+export const withoutExcludedNativePageClause=question=>withoutExcludedTutorEvaluationClause(withoutExcludedClearanceClause(withoutExcludedCounselingClause(withoutExcludedHealthClause(question))));
 /** One shared server-side boundary for API snapshot loading and graph planning.
  * Recognized repair clauses do not authorize unrelated account collections.
  * Preserve unknown independent clauses for normal planning, never silently
@@ -89,7 +92,7 @@ function isFeeRemissionFollowup(part,operation){
  * selectors still decide identity/IDs. Residual text is untrusted query context,
  * never evidence; uncertain clauses stay with the normal planner. */
 export function nativePageLookupContext(question,route='',history=[]){
-  const selections={dormitoryConduct:selectDormitoryConductEvidence(question,route,history),elearningOutline:selectElearningOutlineEvidence(question,route,history),feeRemission:selectFeeRemissionEvidence(question,route,history),healthExaminations:selectHealthExaminationEvidence(question,route,history),counselingAppointments:selectCounselingEvidence(question,route,history),graduationClearance:selectClearanceEvidence(question,route,history)};
+  const selections={dormitoryConduct:selectDormitoryConductEvidence(question,route,history),elearningOutline:selectElearningOutlineEvidence(question,route,history),feeRemission:selectFeeRemissionEvidence(question,route,history),healthExaminations:selectHealthExaminationEvidence(question,route,history),counselingAppointments:selectCounselingEvidence(question,route,history),graduationClearance:selectClearanceEvidence(question,route,history),tutorEvaluation:selectTutorEvaluationEvidence(question,route,history)};
   const tools=Object.keys(selections).filter(key=>selections[key]);
   if(!tools.length)return {tools,selected:false,readerOnly:false,otherQuestion:question,questions:{},foreign:false,feeAndBalance:false,feeChargeLabel:null,clearanceAndNextClass:false};
   const unquoted=value=>value.replace(/["]([^"\n]*)["]|“[^”]*”|「[^」]*」/gu,'');
@@ -129,6 +132,13 @@ export function nativePageLookupContext(question,route='',history=[]){
       for(let cursor=index+1;parts[cursor]&&isClearanceFieldClause(parts[cursor]);cursor++)clearanceClauses.add(cursor);
     }
   }
+  const tutorClauses=new Set();
+  if(selections.tutorEvaluation){
+    parts.forEach((part,index)=>{if(selectTutorEvaluationEvidence(part))tutorClauses.add(index);});
+    for(const index of [...tutorClauses])for(const direction of [-1,1]){
+      for(let cursor=index+direction;parts[cursor]&&isTutorEvaluationFieldClause(parts[cursor]);cursor+=direction)tutorClauses.add(cursor);
+    }
+  }
   let previous=null,suppressed=false;
   for(const [index,part] of parts.entries()){
     if(/^(?:(?:also|then|separately|please)\s+)*(?:(?:please\s+)?(?:do not|don['’]t|never)\s+(?:show|list|read|check|include)|not(?!\s+only)\b|without\b|exclude\b|excluding\b|except\b|(?:請)?不要(?:顯示|列出|查詢|包含)|排除|不含)/iu.test(part)){
@@ -140,6 +150,7 @@ export function nativePageLookupContext(question,route='',history=[]){
     if(feeClauses.has(index)){collected.feeRemission.push(part);previous='feeRemission';continue;}
     if(healthClauses.has(index)){collected.healthExaminations.push(part);previous='healthExaminations';continue;}
     if(counselingClauses.has(index)){collected.counselingAppointments.push(part);previous='counselingAppointments';continue;}
+    if(tutorClauses.has(index)){collected.tutorEvaluation.push(part);previous='tutorEvaluation';continue;}
     if(clearanceClauses.has(index)){collected.graduationClearance.push(part);previous='graduationClearance';continue;}
     const domain=tools.filter(key=>key==='dormitoryConduct'?Boolean(selectDormitoryConductEvidence(part,'',[]))
       :key==='elearningOutline'&&Boolean(selectElearningOutlineEvidence(part,route,history)));
@@ -161,9 +172,9 @@ export function nativePageLookupContext(question,route='',history=[]){
   }
   // A short contextual follow-up can have no independently named subject.
   if(parts.length===1&&!independent.test(unquoted(question))&&tools.length===1){collected[tools[0]]=[question];other.length=0;}
-  const questions=Object.fromEntries(tools.map(key=>[key,key==='feeRemission'||key==='healthExaminations'||key==='counselingAppointments'||key==='graduationClearance'?question:collected[key].length?collected[key].join(' and '):question]));
+  const questions=Object.fromEntries(tools.map(key=>[key,key==='feeRemission'||key==='healthExaminations'||key==='counselingAppointments'||key==='graduationClearance'||key==='tutorEvaluation'?question:collected[key].length?collected[key].join(' and '):question]));
   const balanceQuestion=other.length===1?other[0].replace(/^(?:(?:also|then|separately|please)\s+)+|\s+separately$/giu,''):'';
-  const scopedBalance=Boolean(selections.feeRemission||selections.healthExaminations||selections.counselingAppointments);
+  const scopedBalance=Boolean(selections.feeRemission||selections.healthExaminations||selections.counselingAppointments||selections.tutorEvaluation);
   const feeChargeLabel=scopedBalance?ownFeeBalanceLabel(balanceQuestion):null;
   const feeAndBalance=scopedBalance&&(isOwnFeeBalanceQuestion(balanceQuestion)||feeChargeLabel!==null);
   const clearanceAndNextClass=Boolean(selections.graduationClearance)&&other.length===1&&isExactClearanceNextClassQuestion(other[0]);
@@ -198,6 +209,7 @@ function catalogRouteContext(route,question){
   return /^(?:show|list|browse)\s+(?:me\s+)?(?:all\s+)?(?:the\s+)?(?:course\s+)?(?:catalog(?:ue)?|offerings?|available courses)\s*[.!?]?$/i.test(question.trim())||/\b(?:this page|this catalog|these offerings)\b|這個頁面|本頁|這些課程/.test(question);
 }
 function unavailable(key,reason){
+  if(key==='tutorEvaluation')return unavailableTutorEvaluationEvidence(reason);
   if(key==='graduationClearance')return unavailableClearanceEvidence(reason);
   if(key==='counselingAppointments')return unavailableCounselingEvidence(reason);
   if(key==='feeRemission')return unavailableFeeRemissionEvidence(reason);

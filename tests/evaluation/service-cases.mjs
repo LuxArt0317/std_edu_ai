@@ -7,6 +7,7 @@ import {buildPlannedFeeRemissionCases} from './fee-remission-cases.mjs';
 import {buildPlannedHealthExaminationCases} from './health-examination-cases.mjs';
 import {buildPlannedCounselingAppointmentCases} from './counseling-appointment-cases.mjs';
 import {buildPlannedClearanceApplicationCases} from './clearance-application-cases.mjs';
+import {buildPlannedTutorEvaluationCases} from './tutor-evaluation-cases.mjs';
 
 const concepts = {
   '1-1':'password-change preparation','2-1':'campus announcement email preferences',
@@ -78,6 +79,7 @@ const overrides = {
   '21-3':partial('feeRemission',['feeRemission'],'Native account-owned literal fee-remission history exists. Its independent assistant cases are planned; live fixture adapter and deployed semantic acceptance remain pending. No official payment, eligibility, certificate or submission is implied.'),
   '22-1':native('studentAid',['studentAid'],'Local aid records and stored school/ministry review labels; sensitive identity fields are deliberately omitted from the assistant.'),
   '26-1':native('housing',['housing'],'Local application receipts and accommodation assignments; health/contact fields are omitted from the assistant.'),
+  '28-1':partial('tutorEvaluation',['tutorEvaluation'],'Native caller-owned questionnaire submission status and time, numbered ratings and requested comments. Live acceptance is pending. No grade, approval, delivery receipt or mutation.'),
   '29-1':partial('counselingAppointments',['counselingAppointments'],'Native caller-owned appointment preferences, scheduled times and saved states are readable. Live fixture acceptance is pending. Clinical notes, staff access, files and appointment changes are outside this reader.'),
   '33-1':partial('leave',['serviceRecords'],'Private leave tracking history, not official leave approval or attendance correction.'),
   '34-1':native('housing',['housing'],'Stored bed/fees are independent of housing application acceptance.'),
@@ -99,7 +101,7 @@ export function serviceNoteFixture(serviceId,userId='evaluation-student') {
   const capability=serviceCapabilities[serviceId];
   // Stored user-authored notes can predate the dedicated appointment reader.
   // Keep those regression fixtures separate from the native appointment cases.
-  if(!capability || capability.level!=='generic-tracker'&&!['10-1','16-1','29-1'].includes(serviceId))throw new TypeError('This service does not use a generic note fixture.');
+  if(!capability || capability.level!=='generic-tracker'&&!['10-1','16-1','28-1','29-1'].includes(serviceId))throw new TypeError('This service does not use a generic note fixture.');
   return {
     id:`e7a10000-0000-4000-8000-${serviceId.split('-').map(part=>part.padStart(6,'0')).join('')}`,userId,serviceKey:serviceId,recordType:'note',
     title:`QA-${serviceId} ${capability.concept}`,
@@ -200,6 +202,16 @@ export function buildServiceCases() {
       };
       return [entryCase(entry,capability,'navigation',`請給我「${entry.title}」在 stu.best 的連結。`,baseExpected('navigation',{requiredLinks:[entry.localUrl]}),'directory'),
         select('historical-period','record'),select('empty','empty'),select('write-boundary','action-boundary')];
+    }
+    if(entry.id==='28-1'){
+      const planned=buildPlannedTutorEvaluationCases(),select=(suffix,mode)=>{
+        const source=planned.find(row=>row.id==='account:tutor-evaluation-'+suffix);
+        if(!source)throw new Error('Missing planned tutor evaluation service criterion.');
+        return {...structuredClone(source),id:`service:${entry.id}:${mode}`,mode,
+          capability:{...source.capability,level:capability.level,limitation:capability.limitation}};
+      };
+      return [entryCase(entry,capability,'navigation','Where can I find my tutor evaluation questionnaire?',baseExpected('navigation',{requiredLinks:[entry.localUrl]}),'directory'),
+        select('submitted-time','record'),select('unsaved','empty'),select('write-submit','action-boundary')];
     }
     if(entry.id==='29-1'){
       const planned=buildPlannedCounselingAppointmentCases(),select=(suffix,mode)=>{

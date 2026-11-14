@@ -1,5 +1,6 @@
 import {schoolServiceEntries,studentServiceByKey} from '../src/features/public/affairs/studentServices.js';
 import {selectServiceRecords} from './accountEvidenceSelection.js';
+import {isOwnTutorEvaluationTrackingNoteQuestion} from './tutorEvaluationEvidenceIntent.js';
 
 export const SAVED_SERVICE_ANSWER_LIMIT = 12000;
 const ROW_LIMIT = 12;
@@ -7,7 +8,7 @@ const services = new Map(schoolServiceEntries.map(entry=>[entry.id,entry]));
 for(const key of ['leave','internship'])services.set(key,studentServiceByKey(key));
 // These routes have dedicated readers. A general “my records/status” request
 // must reach those readers rather than being answered from unrelated notes.
-const dedicatedServices = new Set(['6-1','6-2','6-3','6-4','7-2','7-3','7-4','7-5','7-6','10-1','16-1','3-1','3-2','4-1','4-2','4-4','4-5','9-1','11-1','11-2','11-3','12-4','13-1','14-1','15-1','15-2','17-1','22-1','26-1','34-1','39-1']);
+const dedicatedServices = new Set(['6-1','6-2','6-3','6-4','7-2','7-3','7-4','7-5','7-6','10-1','16-1','3-1','3-2','4-1','4-2','4-4','4-5','9-1','11-1','11-2','11-3','12-4','13-1','14-1','15-1','15-2','17-1','22-1','26-1','28-1','34-1','39-1']);
 const structuredServices = new Set(['leave','internship','20-1','33-1','53-1']);
 const noteIntent = question=>/\bnotes?\b|\b(?:personal|private|local|saved)\s+(?:tracking|tracker)\b|\b(?:tracking|tracker)\s+(?:records?|status)\b|備註|筆記|(?:私人|站內|本地|已儲存).{0,4}追蹤/i.test(question);
 const trackerIntent = question=>/\b(?:personal|private|local|saved)\s+(?:service\s+)?(?:notes?|tracking|tracker)\b|\b(?:tracking|tracker)\s+(?:notes?|records?|status)\b|(?:私人|站內|本地|儲存).{0,6}(?:備註|筆記|追蹤)/i.test(question);
@@ -22,7 +23,7 @@ const plain = value=>String(value??'')
   .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
   .replace(/[\\`*_[\]()~#!|]/g,'\\$&')
   .replace(/https?:\/\//gi,scheme=>scheme.replace(':','&#58;'));
-const notePath = service=>['6-1','6-2','6-3','6-4','7-3','12-8'].includes(service.id)?service.localUrl+'/notes':service.localUrl;
+const notePath = service=>['6-1','6-2','6-3','6-4','7-3','12-8','28-1'].includes(service.id)?service.localUrl+'/notes':service.localUrl;
 const link = (key,zh)=>{
   const service=services.get(key);
   return `[${plain(service?.title||(zh?'開啟紀錄':'Open records'))}](${notePath(service)})`;
@@ -41,7 +42,7 @@ export function answerSavedServiceRecords(question,snapshot,route='',history=[])
   const keys=[...new Set(selection.serviceKeys.length?selection.serviceKeys:selection.resolvedServiceKeys||[])].filter(key=>services.has(key));
   // Leave/internship have structured drafts/contracts and their own answerer.
   if(keys.some(key=>structuredServices.has(key)))return null;
-  if(keys.some(key=>dedicatedServices.has(key))&&!trackerIntent(question))return null;
+  if(keys.some(key=>dedicatedServices.has(key))&&!trackerIntent(question)&&!isOwnTutorEvaluationTrackingNoteQuestion(question,route))return null;
   if(!keys.length&&!selection.explicitAll&&!selection.requestedReference)return null;
 
   const zh=/[\u3400-\u9fff]/.test(question);

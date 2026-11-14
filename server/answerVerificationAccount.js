@@ -1,3 +1,4 @@
+import {isOwnTutorEvaluationTrackingNoteQuestion} from './tutorEvaluationEvidenceIntent.js';
 import {clearanceTimetableQuestion} from './clearanceEvidenceIntent.js';
 import {schoolSubjectRecordsPath} from '../src/features/public/affairs/studentServices.js';
 import {isOwnCounselingTrackingNoteQuestion} from './counselingEvidenceIntent.js';
@@ -137,7 +138,8 @@ export async function planAccountLookup(question, history, route, deadline, retr
   if(pages.clearanceAndNextClass)return {tools:[...pages.tools,'courses'],publicTopics:[],catalogQuery:null,responseIntent:'records'};
   if(clearanceTimetableQuestion(question,pages))return {tools:['courses'],publicTopics:[],catalogQuery:null,responseIntent:'records'};
   if(pages.readerOnly)return {tools:pages.tools,publicTopics:[],catalogQuery:null,responseIntent:'records'};
-  if(isOwnCounselingTrackingNoteQuestion(question))return {tools:['serviceRecords'],publicTopics:[],catalogQuery:null,responseIntent:'records'};
+  if(isOwnCounselingTrackingNoteQuestion(question)||isOwnTutorEvaluationTrackingNoteQuestion(question,route))
+    return {tools:['serviceRecords'],publicTopics:[],catalogQuery:null,responseIntent:'records'};
   const residual=pages.selected?pages.otherQuestion:question;
   const repair=facilityRepairLookupContext(residual,route,history);
   if(repair.repairOnly||repair.scheduleOnly)return {tools:[...pages.tools,...(repair.scheduleOnly?['courses','facilityRepairs']:['facilityRepairs'])],publicTopics:[],catalogQuery:null,responseIntent:'records'};
@@ -212,7 +214,7 @@ export async function planAccountLookup(question, history, route, deadline, retr
     if (!Array.isArray(plan.tools) || !Array.isArray(plan.publicTopics) || plan.tools.some(key=>!readToolNames.includes(key)) || plan.publicTopics.some(key=>!topicNames.includes(key))) throw new Error('Invalid lookup plan');
     const catalogQuery=validateCatalogReadPlan(plan.catalogQuery);
     const plannedTools=plan.tools.filter(key=>{
-      if(['dormitoryConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments','graduationClearance'].includes(key)&&!supplementalRequired.includes(key))return false;
+      if(['dormitoryConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation'].includes(key)&&!supplementalRequired.includes(key))return false;
       if(remoteLearningRequest&&key==='courses'&&!needsSeparateCourses)return false;
       if(remoteLearningWorkOnly&&['dtm','assignments','dtmSubmissions','dtmGradeReport'].includes(key))return false;
       if(remoteLearningRequest&&['dtmSubmissions','dtmGradeReport'].includes(key)&&!supplementalRequired.includes(key))return false;
@@ -514,12 +516,13 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const scopedTimetable=Boolean(clearanceTimetableQuestion(question,pageLookup));
   const scopedClearance=pageLookup.tools.includes('graduationClearance')&&pageLookup.readerOnly;
   const scopedCounseling=pageLookup.tools.includes('counselingAppointments')&&(pageLookup.readerOnly||pageLookup.feeAndBalance);
-  const counselingAndFees=scopedCounseling&&pageLookup.feeAndBalance&&pageLookup.tools.length===1
+  const scopedTutor=pageLookup.tools.includes('tutorEvaluation')&&(pageLookup.readerOnly||pageLookup.feeAndBalance);
+  const nativeAndFees=(scopedCounseling||scopedTutor)&&pageLookup.feeAndBalance&&pageLookup.tools.length===1
     &&activeTools.length===2&&activeTools.includes('charges')&&intent.kind==='records'&&!resolvedUserQuestion
     &&!plan.publicTopics.length&&!publicPageRoute&&!plan.action;
   const boundedFeeAnswer=sources=>{
     const fees=sources.find(source=>source.id==='account:charges');
-    if(!counselingAndFees||!fees)return null;
+    if(!nativeAndFees||!fees)return null;
     try{return formatSelectedChargeEvidence(fees,{language:supplementalAnswerLanguage(question)});}
     catch(error){if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;return null;}
   };
@@ -564,7 +567,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     if(intent.kind==='coaching'&&!activeTools.length)return [];
     const extra=supplemental.map(result=>result.evidence),budget=70000-Buffer.byteLength(JSON.stringify(extra),'utf8')-4;
     const scopeContext=scopedTimetable?{...context,question,history}:context;
-    const sources=[...accountEvidence(current,activeTools,{...scopeContext,budget,scopedReadOnly:scopedCounseling||scopedTimetable||scopedClearance}),...extra];
+    const sources=[...accountEvidence(current,activeTools,{...scopeContext,budget,scopedReadOnly:scopedCounseling||scopedTutor||scopedTimetable||scopedClearance}),...extra];
     if(Buffer.byteLength(JSON.stringify(sources),'utf8')>70000)throw new RangeError('Private evidence exceeds its shared budget.');
     return sources;
   };
@@ -651,7 +654,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         current=refreshed;
         // Reconsider omitted read capabilities while reserving time for the one
         // correction and second verification. Retry never changes the action.
-        if(!composeInitially&&!scopedCounseling&&!scopedClearance&&!scopedTimetable&&Date.now()<deadline-24000){
+        if(!composeInitially&&!scopedCounseling&&!scopedTutor&&!scopedClearance&&!scopedTimetable&&Date.now()<deadline-24000){
           emit({kind:'account-replan',label:'Rechecking needed account records',detail:'Checking whether another record collection is needed; no new action or web search runs.',status:'running'});
           const retry=await planAccountLookup(question,history,fullRoute,Math.min(deadline-21000,Date.now()+3000),{previousTools:activeTools,feedback});
           if(!retry.degraded){activeTools=retry.tools;if(retry.catalogQuery!==null)activeCatalogQuery=retry.catalogQuery;}
@@ -687,7 +690,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const scheduledMeeting=requestedScheduleProjection(current,scopedTimetable?{...context,question,history}:context);
   if(scheduledMeeting)viewSnapshot={...viewSnapshot,courses:scheduledMeeting.records};
   const viewTools=activeTools.filter(key=>
-    !(key==='charges'&&(viewSnapshot.chargeReadUnavailable||counselingAndFees))
+    !(key==='charges'&&(viewSnapshot.chargeReadUnavailable||nativeAndFees))
     &&!(key==='courses'&&scopedTimetable&&!scheduledMeeting?.records.length));
   const baseViews=[...accountRecordViews(viewSnapshot,viewTools,{...context,courseTerms:intent.courseTerms}),
     ...(boundedFeeAnswer(evidence)?.views||[]),...(activeTools.includes('housing')?housingBedView(viewSnapshot,context):[])];

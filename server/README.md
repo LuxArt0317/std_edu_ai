@@ -114,6 +114,8 @@ The supplemental-answer correction separates coordinated student identity reques
 
 `tutorEvaluation.js` forwards caller-bound evaluation requests to the private workflow’s RPCs. The directory maps TA report, TA self-evaluation and tutor evaluation navigation to their local routes.
 
+`accountTutorEvaluationEvidence.js` projects the question's requested fields from the caller's saved questionnaire for the assistant's verification graph. It omits the form's student profile and has no write capability.
+
 The service directory routes Service Leadership navigation locally. Account evidence uses a dedicated subject records destination and caller-owned Moodle material IDs.
 
 The service directory links parking-permit navigation and instructions to their distinct local destinations. Application-status requests stay outside the public navigation shortcut.

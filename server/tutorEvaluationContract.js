@@ -1,7 +1,9 @@
 import {feeRemissionUuid as isUuid} from './feeRemissionContract.js';
+export {tutorEvaluationPath} from '../src/features/public/affairs/studentServices.js';
 
 export const tutorEvaluationKind = 'submit_tutor_evaluation';
 export const tutorEvaluationMaxBytes = 24576;
+export const tutorEvaluationEvidenceMaxBytes=26000;
 const exact = (value, keys) => value && typeof value === 'object' && !Array.isArray(value)
   && Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value,key));
 const validText = (value,limit) => typeof value === 'string' && [...value].length <= limit &&

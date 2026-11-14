@@ -4,8 +4,10 @@
 import {aidPaymentsFields,aidPaymentsPaths} from './aidPaymentsContract.js';
 import {feeRemissionFields,feeRemissionPath} from './feeRemissionContract.js';
 import {healthExaminationPath,healthPageSize} from './healthExaminationContract.js';
+import {tutorEvaluationEvidenceMaxBytes,tutorEvaluationPath} from './tutorEvaluationContract.js';
 export const supplementalAnswerLimits=Object.freeze({answerCharacters:8000,resultBytes:24000,views:3,viewRows:12});
 const definitions={
+  'account:tutorEvaluation':{title:['Tutor evaluation','導師評量問卷'],path:tutorEvaluationPath},
   'account:graduationClearance':{title:['Saved graduation clearance records','已儲存畢業離校紀錄'],path:'/school-affairs/services/16-1'},
   'account:counselingAppointments':{title:['Saved counseling appointment metadata','已儲存諮商預約資料'],path:'/school-affairs/services/29-1/appointments'},
   'account:healthExaminations':{title:['Saved health-examination availability metadata','已儲存健檢報告可用性資料'],path:healthExaminationPath},
@@ -56,6 +58,44 @@ function counselingInstant(value){
   const match=/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,6})?(Z|[+-](\d{2}):(\d{2}))$/u.exec(value);
   return Boolean(match&&counselingDate(match[1])&&Number(match[2])<=23&&Number(match[3])<=59&&Number(match[4])<=59
     &&(!match[6]||Number(match[6])<=15&&Number(match[7])<=59)&&Number.isFinite(Date.parse(value)));
+}
+function validateTutorEvaluationPayload(envelope,p,evidence){
+  const s=p.selection,r=p.submission;
+  if(!exact(envelope,['readState','reason','evidence'])||!exact(evidence,['id','title','url','urls','provenance','content'])||bytes(envelope)>tutorEvaluationEvidenceMaxBytes
+    ||!exact(p,['collection','checkedAt','selection','readState','submissionState','submission','reason','provenance','capability','rules'])
+    ||p.collection!=='tutorEvaluation'||p.readState!==envelope.readState||p.reason!==envelope.reason||!counselingInstant(p.checkedAt)||!gradeString(p.rules)
+    ||evidence.provenance!=='saved_local'||evidence.urls?.length!==1||evidence.urls[0]!==tutorEvaluationPath
+    ||!exact(p.provenance,['sourceMode','officialUniversityData','synchronized'])||p.provenance.sourceMode!=='saved_local'||p.provenance.officialUniversityData!==false||p.provenance.synchronized!==false
+    ||!exact(p.capability,['write','identity','history'])||Object.values(p.capability).some(value=>value!==false))invalid();
+  if(s!==null&&(!exact(s,['from','positions','commentRequested','unavailableDetails','reason'])||!['question','route','history'].includes(s.from)
+    ||typeof s.commentRequested!=='boolean'||typeof s.unavailableDetails!=='boolean'||!Array.isArray(s.positions)||s.positions.length>10
+    ||s.positions.some((number,index)=>!integer(number)||number<1||number>10||index>0&&s.positions[index-1]>=number)
+    ||![null,'foreign_request','unsupported_operation','invalid_route','ambiguous_selector','outside_scope'].includes(s.reason)))invalid();
+  if(p.readState==='unavailable'){
+    if(p.submissionState!=='unknown'||r!==null||!gradeString(p.reason,120)||!p.reason||s?.reason&&s.reason!==p.reason)invalid();
+    return;
+  }
+  if(!s||s.reason!==null||p.reason!==null)invalid();
+  if(p.readState==='empty'){
+    if(p.submissionState!=='not_saved'||r!==null)invalid();
+    return;
+  }
+  if(p.readState!=='ok'||p.submissionState!=='submitted'
+    ||!exact(r,['submittedAt',...(s.positions.length?['ratings']:[]),...(s.commentRequested?['comment']:[])])
+    ||!counselingInstant(r.submittedAt))invalid();
+  if(s.positions.length&&(!Array.isArray(r.ratings)||r.ratings.length!==s.positions.length
+    ||r.ratings.some((row,index)=>!exact(row,['questionNumber','rating'])||row.questionNumber!==s.positions[index]||!integer(row.rating)||row.rating<1||row.rating>5)))invalid();
+  if(s.commentRequested&&(typeof r.comment!=='string'||[...r.comment].length>4000||/[\0\p{Cs}]/u.test(r.comment)))invalid();
+}
+function tutorEvaluationLimitations(question,t){
+  const limitations=[];
+  if(/\b(?:receipt|certificate|download|pdf)\b|證明|下載/iu.test(question))limitations.push(t('The saved form has no downloadable receipt.','已儲存的問卷沒有可下載的證明。'));
+  if(/\b(?:history|previous semesters?|prior versions?|historical|last semester)\b|歷史|歷年|上學期/iu.test(question))limitations.push(t('I can check the current saved questionnaire. Its history is unavailable.','可以查詢目前儲存的問卷，但無法查看歷史紀錄。'));
+  if(/\b(?:approval|approved)\b|核准|批准/iu.test(question))limitations.push(t('Approval is not recorded in the saved form.','已儲存的問卷沒有核准紀錄。'));
+  if(/\b(?:reach|delivered|delivery|anonymous|who (?:can|will) read)\b|送達|匿名|誰能看/iu.test(question))limitations.push(t('The saved form does not verify delivery or who can read it.','已儲存的問卷無法確認送達情況或可查看的人。'));
+  if(/\b(?:semester|academic year|school term)\b|學期|學年度/iu.test(question)&&!limitations.some(value=>value.includes('history')||value.includes('歷史')))limitations.push(t('The school term is not recorded in this submission.','這筆填答沒有記錄學期。'));
+  if(/\b(?:who is the (?:tutor|advisor|adviser)|(?:student|tutor|advisor|adviser) (?:name|number|identity|email|phone))\b|導師姓名|學生姓名|學號/iu.test(question))limitations.push(t('The saved questionnaire does not provide the requested identity.','已儲存的問卷未提供要求的身分資料。'));
+  return limitations.length?limitations:[t('The saved form cannot verify the other requested details.','已儲存的問卷無法確認其他要求的詳情。')];
 }
 function validateClearancePayload(envelope,p,evidence){
   const s=p.selection,app=p.counts?.applications,period=p.counts?.periods;
@@ -423,6 +463,7 @@ function validateGradePayload(envelope,p,evidence){
 }
 const invalid=()=>{throw new TypeError('Use validated supplemental account evidence envelopes.');};
 function allowedUrl(id,url){
+  if(id==='account:tutorEvaluation')return url===tutorEvaluationPath;
   if(id==='account:graduationClearance')return url===definitions[id].path||url===clearanceApplyPath;
   if(id==='account:counselingAppointments')return url===definitions[id].path;
   if(id==='account:healthExaminations')return typeof url==='string'&&(url===healthExaminationPath||new RegExp('^'+healthExaminationPath+'\\?page=([1-9]\\d{0,2})$','u').test(url)&&Number(url.split('=').at(-1))>=2&&Number(url.split('=').at(-1))<=201);
@@ -453,11 +494,13 @@ function allowedUrl(id,url){
 function parse(envelope){
   if(!object(envelope)||!['ok','empty','partial','unavailable'].includes(envelope.readState)||!(envelope.reason===null||typeof envelope.reason==='string')||!object(envelope.evidence))invalid();
   const evidence=envelope.evidence,id=evidence.id;
-  if(!own(definitions,id)||!allowedUrl(id,evidence.url)||typeof evidence.content!=='string'||new TextEncoder().encode(evidence.content).byteLength>24000)invalid();
+  if(!own(definitions,id)||!allowedUrl(id,evidence.url)||typeof evidence.content!=='string'
+    ||new TextEncoder().encode(evidence.content).byteLength>(id==='account:tutorEvaluation'?tutorEvaluationEvidenceMaxBytes:24000))invalid();
   if(evidence.urls!==undefined&&(!Array.isArray(evidence.urls)||evidence.urls.some(url=>!allowedUrl(id,url))))invalid();
   let payload;try{payload=JSON.parse(evidence.content);}catch{invalid();}
   if(!object(payload)||typeof payload.checkedAt!=='string'||!Number.isFinite(Date.parse(payload.checkedAt)))invalid();
-  if(id==='account:graduationClearance')validateClearancePayload(envelope,payload,evidence);
+  if(id==='account:tutorEvaluation')validateTutorEvaluationPayload(envelope,payload,evidence);
+  else if(id==='account:graduationClearance')validateClearancePayload(envelope,payload,evidence);
   else if(id==='account:counselingAppointments')validateCounselingPayload(envelope,payload,evidence);
   else if(id==='account:healthExaminations')validateHealthPayload(envelope,payload,evidence);
   else if(id==='account:feeRemission')validateFeeRemissionPayload(envelope,payload,evidence);
@@ -575,6 +618,35 @@ function sectionFor(parsed,question,zh){
     if(!integer(total))invalid();
     section.view={id:id.slice(8),title,url:evidence.url,columns,rows:[],total,checkedAt:p.checkedAt,note};
   };
+  if(id==='account:tutorEvaluation'){
+    section.usable=true;
+    section.complete=p.readState!=='unavailable';
+    if(p.submissionState==='unknown'){
+      if(p.reason==='outside_scope')section.lead.push(...tutorEvaluationLimitations(question,t));
+      else section.lead.push(p.reason==='ambiguous_selector'?t('Which question number should I check? The form has questions 1 through 10.','要查第幾題？問卷題號為 1 到 10。')
+        :p.reason==='unsupported_operation'?t('Use the questionnaire page to submit your response. No action was performed.','請在問卷頁面送出填答。尚未執行任何操作。')
+        :p.reason==='foreign_request'?t('I can only check the questionnaire saved to your own account.','我只能查詢你自己帳戶的問卷。')
+        :t('The tutor evaluation lookup is unavailable. The submission status is unknown.','無法查詢已儲存的導師問卷，送出狀態尚未確認。'));
+      return section;
+    }
+    if(p.submissionState==='not_saved'){
+      section.lead.push(t('There’s no saved submission for this tutor evaluation in your stu.best account.','你的 stu.best 帳戶目前沒有這份導師問卷的送出紀錄。'));
+    }else{
+      const saved=p.submission;
+      section.lead.push(t('Your tutor evaluation is saved in stu.best.','你的導師評量問卷已儲存至 stu.best。'));
+      item(t('Submitted at','送出時間'),saved.submittedAt);
+      if(saved.ratings){
+        view([t('Question','題號'),t('Saved rating','已儲存評分')],saved.ratings.length,t('Requested questionnaire ratings on a 1 to 5 scale.','所查詢題號的已儲存評分，範圍為 1 到 5。'));
+        for(const entry of saved.ratings){
+          const label=t('Question '+entry.questionNumber,'第 '+entry.questionNumber+' 題');
+          item(label,entry.rating);section.viewCandidates.push(row(label,entry.rating));
+        }
+      }
+      if(own(saved,'comment'))item(t('Saved comment','已儲存意見'),saved.comment, false, 4000);
+    }
+    if(p.selection.unavailableDetails)section.lead.push(...tutorEvaluationLimitations(question,t));
+    return section;
+  }
   if(id==='account:graduationClearance'){
     section.usable=true;section.complete=p.complete&&!p.selection?.documentsRequested;
     if(p.selection?.documentsRequested)section.lead.push(t('This lookup does not issue a graduation certificate or download a document. No document was issued or downloaded.','此查詢不核發畢業證明或下載文件；未核發或下載任何文件。'));
@@ -1153,7 +1225,7 @@ export function formatSupplementalAccountAnswers(results,{question='',language:r
     const groups=new Map();for(const item of section.items){if(!groups.has(item.group))groups.set(item.group,[]);groups.get(item.group).push(item);}
     section.items=[...groups.values()].flatMap(items=>items.sort((a,b)=>Number(b.header)-Number(a.header)||preferred(a.label)-preferred(b.label)));
   }
-  const topics={'account:graduationClearance':/graduation.clearance|畢業離校|離校(?:申請|審核)/iu,'account:counselingAppointments':/counseling|counselling|psychological|諮商|心理測驗/iu,'account:healthExaminations':/health|medical|健檢|健康檢查/iu,'account:feeRemission':/fee.remission|tuition.reduction|減免|减免/iu,'account:dormitoryConduct':/dormitory|dorm|宿舍/iu,'account:elearningOutline':/outline|video|slides|activities|section|feedback|大綱|影片|簡報|活動|章節|回饋/iu,'account:facilityRepairs':/repair|maintenance|報修|报修|修繕/iu,'account:dtmGradeReport':/moodle|dtm|grade report|gradebook|成績報告|成绩报告/iu,'account:aidPayments':/student aid|financial aid|salary|payroll|助學|薪資|工讀/iu,'account:studentConduct':/conduct|disciplin|獎懲/iu,'account:studentLoan':/loan|貸款|學貸/iu,'account:courseCatalog':/catalog|syllabus|offering|課綱|大綱|開課/iu,'account:enrollmentCertificate':/certificate|enrolment|enrollment|在學|在籍|學籍證明/iu,'account:dtmSubmissions':/file|upload|submission|assignment|feedback|作業|檔案|評語|上傳/iu,'account:tuition':/tuition|settlement|statement|summer|evening|學費|結算|暑修|進修部|延修/iu};
+  const topics={'account:tutorEvaluation':/tutor|advisor|mentor|導師/iu,'account:graduationClearance':/graduation.clearance|畢業離校|離校(?:申請|審核)/iu,'account:counselingAppointments':/counseling|counselling|psychological|諮商|心理測驗/iu,'account:healthExaminations':/health|medical|健檢|健康檢查/iu,'account:feeRemission':/fee.remission|tuition.reduction|減免|减免/iu,'account:dormitoryConduct':/dormitory|dorm|宿舍/iu,'account:elearningOutline':/outline|video|slides|activities|section|feedback|大綱|影片|簡報|活動|章節|回饋/iu,'account:facilityRepairs':/repair|maintenance|報修|报修|修繕/iu,'account:dtmGradeReport':/moodle|dtm|grade report|gradebook|成績報告|成绩报告/iu,'account:aidPayments':/student aid|financial aid|salary|payroll|助學|薪資|工讀/iu,'account:studentConduct':/conduct|disciplin|獎懲/iu,'account:studentLoan':/loan|貸款|學貸/iu,'account:courseCatalog':/catalog|syllabus|offering|課綱|大綱|開課/iu,'account:enrollmentCertificate':/certificate|enrolment|enrollment|在學|在籍|學籍證明/iu,'account:dtmSubmissions':/file|upload|submission|assignment|feedback|作業|檔案|評語|上傳/iu,'account:tuition':/tuition|settlement|statement|summer|evening|學費|結算|暑修|進修部|延修/iu};
   const rankedViews=sections.filter(section=>section.view).map((section,index)=>({section,index,match:question.search(topics[section.id])})).sort((a,b)=>Number(b.match>=0)-Number(a.match>=0)||Number(b.section.viewCandidates.length>0)-Number(a.section.viewCandidates.length>0)||(a.match>=0&&b.match>=0?a.match-b.match:0)||a.index-b.index);
   const selectedSet=new Set(rankedViews.slice(0,supplementalAnswerLimits.views).map(value=>value.section));
   const selectedViews=sections.filter(section=>selectedSet.has(section));

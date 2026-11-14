@@ -14,6 +14,8 @@ import {certificateAwardQuestion} from './certificateAwardsContract.js';
 import {certificateAwardGuide} from './certificateAwards.js';
 import {announcementEmailQuestion} from './announcementEmailContract.js';
 import {announcementEmailGuide} from './announcementEmail.js';
+import {isOwnTutorEvaluationTrackingNoteQuestion,selectTutorEvaluationEvidence,tutorEvaluationNavigation,withoutExcludedTutorEvaluationClause} from './tutorEvaluationEvidenceIntent.js';
+import {tutorEvaluationGuide} from './tutorEvaluationGuide.js';
 import {clearanceDirectoryAnswer} from './graduationClearanceContract.js';
 import {clearanceNavigationView,selectClearanceEvidence,withoutExcludedClearanceClause} from './clearanceEvidenceIntent.js';
 import {answerPermanentCourse} from './permanentCourses.js';
@@ -331,13 +333,19 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const stream = createAssistantStream(input.stream, response);
-        const balanceQuestion=withoutExcludedClearanceClause(withoutExcludedCounselingClause(withoutExcludedHealthClause(input.question)));
+        const balanceQuestion=withoutExcludedTutorEvaluationClause(withoutExcludedClearanceClause(withoutExcludedCounselingClause(withoutExcludedHealthClause(input.question))));
         if(isOwnFeeBalanceQuestion(balanceQuestion)||balanceQuestion!==input.question&&ownFeeBalanceLabel(balanceQuestion)){
             const zh=/[\u3400-\u9fff]/u.test(input.question), url='/school-affairs/login?next='+encodeURIComponent('/school-affairs/services/39-1');
             const title=zh?'登入後查看待繳費用':'Sign in to check your saved fee balance';
             stream.send(200,{status:'handoff',answer:'['+title+']('+url+')',
                 citations:[{chunkId:'directory:pending-fees',title,url,claim:title,sourceName:'School Affairs'}],
                 suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
+            return;
+        }
+        const tutor=selectTutorEvaluationEvidence(input.question,input.route,input.history);
+        const tutorNote=isOwnTutorEvaluationTrackingNoteQuestion(input.question,input.route);
+        if(tutor||tutorNote||!input.images.length&&tutorEvaluationNavigation(input.question)){
+            stream.send(200,tutorEvaluationGuide(input.question,false,tutor?.reason,tutorNote));
             return;
         }
         const clearance=selectClearanceEvidence(input.question,input.route,input.history);

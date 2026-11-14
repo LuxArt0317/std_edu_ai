@@ -21,7 +21,7 @@ test('every catalog link has navigation, own-record, empty-record and action-bou
 
 test('generic tracker success cannot erase missing service workflow capability',()=>{
   const gaps=serviceCapabilityGaps();
-  for(const id of ['27-1','28-1','30-1','30-2','31-1','31-2','32-1','34-2','35-1','37-1','38-1']){
+  for(const id of ['27-1','30-1','30-2','31-1','31-2','32-1','34-2','35-1','37-1','38-1']){
     assert.equal(serviceCapabilities[id].level,'generic-tracker');
     assert.ok(gaps.some(row=>row.serviceId===id&&/No structured/.test(row.limitation)));
     const fixture=serviceNoteFixture(id,'own-account');
@@ -41,6 +41,14 @@ test('generic tracker success cannot erase missing service workflow capability',
   assert.equal(serviceCapabilities['29-1'].level,'partial');
   assert.ok(gaps.some(row=>row.serviceId==='29-1'&&/appointment/.test(row.limitation)));
   assert.equal(serviceNoteFixture('29-1').recordType,'note');
+  assert.equal(serviceNoteFixture('28-1').recordType,'note');
+  assert.equal(serviceCapabilities['28-1'].level,'partial');
+  const tutor=buildServiceCases().filter(row=>row.serviceId==='28-1');
+  for(const row of tutor.slice(1)){
+    assert.equal(row.domain,'tutorEvaluation');
+    assert.equal(row.fixtureRequirement,'native_tutor_evaluation_planned');
+    assert.equal(row.plannedFixture.setupEligible,false);
+  }
 });
 
 test('native lookup criteria include literal evidence and never treat catalog as enrollment',()=>{
