@@ -1,5 +1,7 @@
 import {elearningPath,elearningServicePath} from '../../../../server/elearningContract.js';
 import {CounselingWorkspace} from "./CounselingWorkspace";
+import {AidPayments} from "./AidPayments";
+import {aidPaymentsPaths} from "../../../../server/aidPaymentsContract.js";
 import {counselingPath} from "../../../../server/counselingContract.js";
 import {CertificateAwardWorkspace} from "./CertificateAwardWorkspace";
 import {certificateAwardPath} from "../../../../server/certificateAwardsContract.js";
@@ -498,6 +500,8 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   if (subjects) return <SchoolSubjectRecords snapshot={account} loading={accountLoading} error={accountError} reload={refreshAccount} />;
   if (records) return <Navigate replace to="/school-affairs" />;
   if (normalizedPath === elearningServicePath) return <Navigate replace to={elearningPath} />;
+  if (normalizedPath === aidPaymentsPaths.claims || normalizedPath === aidPaymentsPaths.salary)
+    return <AidPayments userId={user.id} view={normalizedPath === aidPaymentsPaths.salary ? "salary" : "claims"} />;
   if (serviceAlias) {
     return <Navigate replace to={{pathname: serviceAlias, search, hash}} />;
   }

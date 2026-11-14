@@ -1,5 +1,6 @@
 # Changelog
 ## Unreleased
+- Add separate private student aid payment and salary inquiry pages with safe assistant links. [#98]
 - Open verified Moodle activities on protected local pages and let the assistant link to the requested videos, slides or feedback form. [#98]
 - Store verified remote-learning course sections and activity links with per-course authorization. Link the campus assistant to the matching saved activity. [#98]
 - Import 3,291 observed remote-learning course listings across 43 categories and add server-side pagination and search. [#98]

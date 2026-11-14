@@ -18,11 +18,13 @@ test('all 94 catalog entries have explicit destinations and honest independent s
     if(row.workflowSuite)await access(row.workflowSuite);
   }
   const result=summarizeServiceRoutes();
-  assert.deepEqual(result.kinds,{generic:55,'local-portal':2,preview:1,'local-document':2,redirect:1,native:28,partial:5});
-  assert.equal(result.workflowVerified,0);assert.equal(result.genericGaps.length,55);
+  assert.deepEqual(result.kinds,{generic:28,'local-portal':2,preview:1,'local-document':2,redirect:1,native:34,partial:26});
+  assert.equal(result.workflowVerified,0);assert.equal(result.genericGaps.length,28);
   assert.equal(result.externalDestinations,0,'Official-source provenance URLs are not actual menu destinations.');
   assert.match(result.dtm,/not one of these 94/);
-  for(const id of ['4-2','4-3'])assert.equal(inventory.find(row=>row.id===id).kind,'generic','Separate Moodle instances are not implemented by DTM.');
+  assert.equal(inventory.find(row=>row.id==='4-2').kind,'partial');
+  assert.equal(inventory.find(row=>row.id==='4-3').kind,'generic');
+  assert.equal(inventory.find(row=>row.id==='37-1').kind,'partial');
   assert.equal(inventory.find(row=>row.id==='4-1').kind,'preview');
   assert.match(inventory.find(row=>row.id==='48-2').sourceBoundary,/unavailable/);
   assert.match(inventory.find(row=>row.id==='21-2').sourceBoundary,/closed-period/);

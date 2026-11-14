@@ -4,7 +4,7 @@ import {schoolServiceEntries} from '../../../src/features/public/affairs/student
 // Explicit review inventory, not inferred from the presence of a generic body.
 // A native mount says nothing about unobserved workflows or live backend acceptance.
 const service = id => '/school-affairs/services/'+id;
-const genericIds = '1-1 4-3 5-1 12-1 18-1 19-1 24-1 27-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 43-1 50-1 50-2 51-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
+const genericIds = '1-1 4-3 5-1 12-1 18-1 19-1 24-1 27-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 40-1 41-1 43-1 50-1 50-2 51-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
 const native = [
   ['7-3','.program-registration','program-registration-ui.mjs','Private interdisciplinary registration history and local registration controls.'],
   ['7-1','.credit-load-application','credit-load-application-ui.mjs','Observed instructions and closed-period acknowledgement only; open application and staff review forms remain unobserved.'],
@@ -39,6 +39,8 @@ const native = [
   ['49-1','.tuition-documents','tuition-documents-workspace-ui.mjs','Observed empty period selector; filled official result columns unobserved.'],
 ];
 const descriptors = [
+  {id:'37-1',kind:'partial',href:service('37-1'),finalUrl:service('37-1'),selector:'.aid-payment-site',
+    workflowSuite:'tests/integration/aid-payments-ui.mjs',sourceBoundary:'Verified private claims and salary inquiry tables. Learning reports and remittance screens remain unresolved.'},
   ...genericIds.map(id => ({id,kind:'generic',href:service(id),finalUrl:service(id),selector:'.student-service',workflowSuite:null,
     sourceBoundary:'Generic personal tracker only; source destination is not implemented.'})),
   ...native.map(([id,selector,suite,sourceBoundary]) => ({id,kind:'native',href:service(id),finalUrl:service(id),selector,
@@ -146,6 +148,12 @@ export function schoolServiceReadFixture(rawUrl,method,user,origin) {
   assert.equal(url.pathname,'/api/affairs-data','Unknown API path.');
   if(!url.search)return schoolServiceSnapshot(user);
   const scope=url.searchParams.get('scope');
+  if(scope==='aid-payments'){
+    const view=url.searchParams.get('view');
+    assert.ok(['claims','salary'].includes(view));
+    assert.deepEqual(Object.fromEntries(url.searchParams),{scope,view,page:'1'});
+    return {userId:user.id,view,total:0,rows:[]};
+  }
   if(scope==='elearning-workspace'){
     assert.deepEqual(Object.fromEntries(url.searchParams),{scope});
     return {userId:user.id,categories:[],courses:[],notices:[],enrollments:[]};

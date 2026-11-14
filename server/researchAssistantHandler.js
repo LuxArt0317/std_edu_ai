@@ -1,4 +1,5 @@
 import {elearningCourseLocation,elearningCoursePath,elearningGuide,elearningQuestion,elearningOutlineCourse} from './elearningContract.js';
+import {aidPaymentsPaths,aidPaymentsQuestion} from './aidPaymentsContract.js';
 import {counselingGuide,counselingQuestion} from './counselingContract.js';
 import {certificateAwardQuestion} from './certificateAwardsContract.js';
 import {certificateAwardGuide} from './certificateAwards.js';
@@ -268,6 +269,15 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const kind = questionKind(input.question);
+        const aidPayment=!input.images.length&&!kind.irrelevant?aidPaymentsQuestion(input.question):null;
+        if(aidPayment){
+            const url='/school-affairs/login?next='+encodeURIComponent(aidPaymentsPaths[aidPayment]);
+            const title=/[\u3400-\u9fff]/u.test(input.question)?'登入後查看助學請領紀錄':'Sign in to view student payment records';
+            stream.send(200,{status:'handoff',answer:'['+title+']('+url+')',
+                citations:[{chunkId:'directory:student-aid-payments',title,url,claim:title,sourceName:'School Affairs'}],
+                suggestedQuestions:[],grounding:{source:'directory',webSearched:false}});
+            return;
+        }
         const outline=!input.images.length&&!kind.irrelevant?elearningOutlineCourse(input.question,input.route):null;
         if(outline!==null){
             const path=elearningCoursePath(outline),url='/elearning/login?next='+encodeURIComponent(path);

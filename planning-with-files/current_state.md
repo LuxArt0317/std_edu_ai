@@ -1,3 +1,7 @@
+## Student aid payment inquiries [Issue #98]
+
+Source 37-1 and its Salary tab showed empty tables with four claim columns and 17 salary columns. Migration 20261115050000 passed rollback and deployed SQL checks. Local browser acceptance and the 94-destination inventory passed. The assistant uses counts only. Learning-report and remittance destinations were unavailable or returned a source 404. Deployment verification is pending.
+
 ## Remote-learning activity pages [Issue #98]
 
 Production `2fb14bd` is live as Vercel `wU7PgdhDHjrnaNqWzHSbZGrCNmfo`. Migration 20261115040000 brings the client to 162 migrations with 195 RLS-protected public tables. Seventeen verified activity records now resolve to distinct local routes. The assistant links to the requested videos, slides or feedback from the authenticated course outline. Pinned browser, actual-JWT isolation with cleanup, client verification, shell and Quality 43562396713 passed. Local activity pages use exact university destinations. Google Drive content and form submissions stay with their providers. Official attendance results, grades, assignments and enrollments remain outside this release. School Affairs 5-1 returned a source 404. The professional program data (18-1) and internship-organization search (55-1) returned independent sign-in screens. No source records were imported.

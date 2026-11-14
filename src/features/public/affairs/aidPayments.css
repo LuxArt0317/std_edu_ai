@@ -1,0 +1,31 @@
+.aid-payment-site { min-height:100vh; padding:8px 0 0; background:#eee; color:#333; font:12px/1.231 "Microsoft JhengHei","微軟正黑體",Verdana,Helvetica,Arial,sans-serif; }
+.aid-payment-shell { max-width:962px; min-height:calc(100vh - 8px); margin:0 auto; background:#fff; border-inline:1px solid #ccc; }
+.aid-payment-brand { display:flex; justify-content:space-between; align-items:center; min-height:20px; padding:0 16px; background:#535557; color:#fff; font-weight:700; }
+.aid-payment-banner { display:flex; justify-content:space-between; align-items:end; gap:12px; margin:0 15px; min-height:59px; padding:9px 0 4px; border-bottom:2px solid #e6e6e6; }
+.aid-payment-banner h1 { display:flex; gap:6px; align-items:end; margin:0; font-size:19px; line-height:1.45; color:#3f3f3f; }
+.aid-payment-banner img { flex:none; object-fit:contain; }
+.aid-payment-banner nav { display:flex; flex-wrap:wrap; }
+.aid-payment-banner nav a { color:#292929; border:1px solid #deded4; padding:6px 9px; background:#fcfcf0; text-decoration:none; }
+.aid-payment-banner nav a+a { border-left:0; }
+.aid-payment-banner a:hover,.aid-payment-banner a:focus-visible { text-decoration:underline; }
+.aid-payment-main { padding:24px 24px 0; }
+.aid-payment-panel { width:92.4%; min-height:122px; margin:auto; padding:18px 18px 28px; border:1px solid #787878; border-inline-color:#dbdbdb; }
+.aid-payment-name { margin:0 0 17px; text-align:center; font-size:16px; line-height:22px; }
+.aid-payment-table { overflow-x:auto; }
+.aid-payment-table table { width:100%; border-collapse:collapse; }
+.aid-payment-table table:not(.aid-payment-salary) { min-width:405px; }
+.aid-payment-salary th { min-width:43px; }
+.aid-payment-table th { padding:2px 4px; border:1px solid #463e41; background:#555; color:#fff; font-size:13px; line-height:26px; font-weight:700; }
+.aid-payment-table td { padding:6px 5px; border:1px solid #d8d8d8; text-align:center; overflow-wrap:anywhere; }
+.aid-payment-table table:not(.aid-payment-salary) th:nth-child(1),.aid-payment-table table:not(.aid-payment-salary) th:nth-child(3) { width:23.5%; }
+.aid-payment-table table:not(.aid-payment-salary) th:nth-child(2) { width:11.75%; }
+.aid-payment-pages { display:flex; gap:10px; margin-top:10px; }
+.aid-payment-top { margin-top:14px; padding:2px 8px; border-bottom:1px solid #e3e3e3; text-align:right; }
+.aid-payment-top a { color:#6e6e6e; }
+.aid-payment-shell footer { margin-top:440px; padding:8px 24px; color:#555; }
+@media(max-width:720px) {
+  .aid-payment-banner { align-items:flex-start; flex-direction:column; margin-inline:10px; }
+  .aid-payment-banner nav a+a { border-left:1px solid #deded4; }
+  .aid-payment-main { padding-inline:10px; }
+  .aid-payment-panel { width:100%; padding:16px 8px 14px; }
+}
