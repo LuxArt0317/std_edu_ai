@@ -1,3 +1,7 @@
+## Remote-learning course outlines [Issue #98]
+
+Two verified Moodle outlines supply 17 typed activity links across three sections. Migration 20261115030000 applied to the client after rollback testing. Protected access is checked by caller, course and Google identity. Source content and student activity results are outside the capture. Deployment verification is pending.
+
 ## Remote-learning catalog expansion [Issue #98]
 
 Production `357959c` is live as Vercel `EPrgdRGAxJhX42teSiU6EopZ4X83`. Migration 20261115020000 brings the client to 160 migrations and 192 RLS-protected public tables. The 43-category catalog contains 3,291 verified course listings. Exact-client rollback, deployed SQL and actual-JWT tests passed, including page 46 of category 28, filter validation, concurrent enrollment, existing enrollments and exact cleanup. The pinned browser, live shell, and Quality 43557177924 passed. All 94 School Affairs destinations passed the navigation audit.

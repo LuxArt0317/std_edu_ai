@@ -1,6 +1,6 @@
 import {affairsClient} from '@/features/public/affairs/authClient';
-import {elearningCoursePath,elearningPath,elearningScope,elearningCatalogScope,elearningCatalogPageSize,joinElearningCourse,
-  type ElearningCatalog,type ElearningEnrollment,type ElearningWorkspace} from '../../server/elearningContract.js';
+import {elearningCoursePath,elearningPath,elearningScope,elearningCatalogScope,elearningOutlineScope,isElearningOutline,elearningCatalogPageSize,joinElearningCourse,
+  type ElearningCatalog,type ElearningEnrollment,type ElearningOutline,type ElearningWorkspace} from '../../server/elearningContract.js';
 import type {AssistantResponse} from './researchAssistant';
 
 async function access(userId:string,signal:AbortSignal){
@@ -38,6 +38,26 @@ export async function searchElearning(userId:string,filters:URLSearchParams,sign
     !Array.isArray(data.courses)||data.courses.length>elearningCatalogPageSize)
     throw new Error('無法確認數位學園課程。');
   return data;
+}
+export async function loadElearningOutline(userId:string,courseId:number,signal?:AbortSignal):Promise<ElearningOutline>{
+  const params=new URLSearchParams({scope:elearningOutlineScope,course:String(courseId)});
+  const data=await call(userId,signal,'/api/affairs-data?'+params);
+  if(!isElearningOutline(data,userId,courseId))throw new Error('無法確認數位學園課程大綱。');
+  return data;
+}
+export async function answerElearningOutline(userId:string,courseId:number,question:string,signal?:AbortSignal):Promise<AssistantResponse>{
+  const data=await loadElearningOutline(userId,courseId,signal);
+  const zh=/[\u3400-\u9fff]/u.test(question);
+  const url=elearningCoursePath(courseId);
+  const title=zh?'課程大綱':'Course outline';
+  const escape=(value:string)=>value.replace(/[\\`*_{}[\]()#+.!|<>~]/g,'\\$&');
+  const sections=data.sections.slice(0,6).map(section=>'**'+escape(section.title)+'**\n'+section.activities.slice(0,20).map(
+    activity=>'- ['+escape(activity.title)+']('+url+'#elearning-activity-'+activity.id+')').join('\n'));
+  const summary=sections.length?(zh?'課程大綱中列出的活動：':'Activities listed in this course outline:'):
+    (zh?'此帳戶無法讀取這門課的課程大綱。':'This course outline is unavailable to your account.');
+  return {status:sections.length?'answered':'handoff',answer:[summary,...sections,'['+title+']('+url+')'].join('\n\n'),
+    citations:[{chunkId:'account:elearning:'+courseId,title,url,claim:summary,sourceName:'stu.best',
+      locator:null,effectiveAt:null,reviewedAt:null}],suggestedQuestions:[],grounding:{source:'account',webSearched:false}};
 }
 export async function joinElearning(userId:string,courseId:number,signal:AbortSignal):Promise<ElearningEnrollment>{
   const data=await call(userId,signal,'/api/affairs-action',{kind:joinElearningCourse,payload:{course_id:courseId}});

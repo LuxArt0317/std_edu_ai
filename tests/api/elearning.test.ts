@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createResearchAssistantHandler} from '../../server/researchAssistantHandler.js';
-import {elearningPath,elearningGuide,elearningQuestion} from '../../server/elearningContract.js';
+import {elearningPath,elearningGuide,elearningQuestion,elearningOutlineCourse,elearningActivityUrl,isElearningOutline} from '../../server/elearningContract.js';
 import {schoolServiceEntries} from '../../src/features/public/affairs/studentServices.js';
 import {localSchoolHref} from '../../src/features/public/mirror/paths.ts';
 
@@ -19,6 +19,21 @@ test('archive and DTM have separate local entry routes and chat intents',()=>{
   assert.equal(elearningQuestion('What are my courses?','/dtm'),null);
 });
 
+test('outline questions bind to a specific remote-learning course and exact activity destinations',()=>{
+  assert.equal(elearningOutlineCourse('What videos are listed?','/elearning/course/9408'),9408);
+  assert.equal(elearningOutlineCourse('這門課有哪些教材？','/elearning/course/9098#anything'),9098);
+  assert.equal(elearningOutlineCourse('What videos are listed?','/dtm/course/9408'),null);
+  assert.equal(elearningOutlineCourse('What videos are listed?','/elearning/course/9408/grades'),null);
+  assert.equal(elearningOutlineCourse('What is my attendance?','/elearning/course/9408'),null);
+  const activity={id:293399,kind:'attendanceregister',title:'出席統計'};
+  assert.equal(elearningActivityUrl(activity),'https://elearning.stu.edu.tw/mod/attendanceregister/view.php?id=293399');
+  assert.equal(elearningActivityUrl({...activity,kind:'../url'}),null);
+  const outline={courseId:9408,userId:'caller',sections:[{title:'課程主題',position:1,activities:[activity]}]};
+  assert.ok(isElearningOutline(outline,'caller',9408));
+  assert.equal(isElearningOutline(outline,'different',9408),false);
+  assert.equal(isElearningOutline(outline,'caller',9098),false);
+});
+
 test('guest archive questions get a local link before public retrieval',async()=>{
   const fail=()=>{throw new Error('Unexpected retrieval');};
   const handler=createResearchAssistantHandler({readSources:fail,loadPublicPage:fail});
@@ -26,6 +41,7 @@ test('guest archive questions get a local link before public retrieval',async()=
     ['Where is the remote-learning Moodle?',undefined,elearningPath],
     ['數位學園入口在哪？',undefined,elearningPath],
     ['What are my courses?',elearningPath,elearningPath+'/login'],
+    ['Show the course outline',elearningPath+'/course/9408',elearningPath+'/login?next=%2Felearning%2Fcourse%2F9408'],
   ]){
     let code=0,reply:ReturnType<typeof elearningGuide>|undefined;
     const response={status(value:number){code=value;return response;},json(value:unknown){reply=value as typeof reply;},setHeader(){}};

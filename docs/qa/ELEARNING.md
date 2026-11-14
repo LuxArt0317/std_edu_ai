@@ -37,4 +37,12 @@ Validate against the exact client database with `node tests/integration/elearnin
 
 [University course directory](https://elearning.stu.edu.tw/course/index.php?categoryid=18)
 
+## Course outlines
+
+Migration `20261115030000` stores three sections and 17 activity records from two verified course views. The outline RPC checks the signed-in Google identity and accepts a course ID. Rows require a matching course-access grant, a saved enrollment, or an existing School Affairs administrator role. Course-access grants are managed through trusted database operations. The migration creates no production grants. The assistant looks up the course shown on screen and links to activities available to that account. Official Moodle still controls access to each activity and its contents.
+
+Use `node tests/integration/elearning-db.mjs --outline-preflight` to run rollback-only SQL checks, or `--outline-deployed` after applying the migration. The existing HTTP and browser suites also verify the outline and account isolation.
+
+[Safety training course](https://elearning.stu.edu.tw/course/view.php?id=9408) · [Retirement fund course](https://elearning.stu.edu.tw/course/view.php?id=9098)
+
 Production `357959c` is live as Vercel `EPrgdRGAxJhX42teSiU6EopZ4X83`. Migration 20261115020000 brings the client to 160 migrations and 192 RLS-protected public tables. The 43-category catalog contains 3,291 verified course listings. Exact-client rollback, deployed SQL and actual-JWT tests passed, including page 46 of category 28, filter validation, concurrent enrollment, existing enrollments and exact cleanup. The pinned browser, live shell, and Quality 43557177924 passed. All 94 School Affairs destinations passed the navigation audit. The captured scope covers the listings visible to the current university session. Course materials, official grades and university enrollment records remain separate. Two source course outlines were observed read-only for later resource work.

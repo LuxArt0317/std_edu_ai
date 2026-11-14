@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {chromium} from 'playwright-core';
-import {elearningPath as path,elearningScope,elearningCatalogScope} from '../../server/elearningContract.js';
+import {elearningPath as path,elearningScope,elearningCatalogScope,elearningOutlineScope} from '../../server/elearningContract.js';
 import {affairsTestUser as user,mockAffairsAuth} from './helpers/affairs-auth.mjs';
 import {schoolServiceReadFixture} from './helpers/school-service-route-inventory.mjs';
 
@@ -17,8 +17,9 @@ const browser=await chromium.launch({executablePath:process.env.CHROME_PATH??'/A
 const errors=[],writes=[];
 const archive=Array.from({length:23},(_,i)=>({id:15000+i,category_id:28,title:'歷年課程 '+(i+1),self_enroll:false,position:i+1}));
 const course={id:9718,category_id:41,title:'111-1遠距教學研習_20220902',self_enroll:true,position:1};
+const protectedCourse={id:9408,category_id:18,title:'一般安全衛生教育訓練-1100330',self_enroll:false,position:1};
 let enrolled=null,failFirst=true;
-async function fixture(signedIn){
+async function fixture(signedIn,courseAccess=signedIn){
   const context=await browser.newContext({viewport:{width:1280,height:720},serviceWorkers:'block'});
   await mockAffairsAuth(context,{signedIn});
   await context.route('**/api/**',async route=>{
@@ -42,9 +43,17 @@ async function fixture(signedIn){
         const term=url.searchParams.get('term')??'';
         const category=url.searchParams.get('category'),courseId=url.searchParams.get('course');
         const offset=(Number(url.searchParams.get('page')??1)-1)*20;
-        const matching=[course,...archive].filter(row=>(!category||String(row.category_id)===category)&&
+        const matching=[course,protectedCourse,...archive].filter(row=>(!category||String(row.category_id)===category)&&
           (!courseId||String(row.id)===courseId)&&row.title.includes(term));
         return route.fulfill({json:{userId:user.id,total:matching.length,courses:matching.slice(offset,offset+20)}});
+      }
+      if(url.searchParams.get('scope')===elearningOutlineScope){
+        assert.equal(signedIn,true);
+        assert.match(request.headers().authorization??'',/^Bearer /u);
+        const courseId=Number(url.searchParams.get('course'));
+        return route.fulfill({json:{userId:user.id,courseId,sections:courseAccess&&courseId===9408
+          ?[{position:1,title:'課程主題',activities:[{id:293399,kind:'attendanceregister',title:'出席統計'},
+            {id:293395,kind:'url',title:'第一段影片'}]}]:[]}});
       }
       if(signedIn&&url.pathname==='/api/affairs-conversations'&&request.method()==='POST'){
         const {id,title,messages,version}=request.postDataJSON();
@@ -141,6 +150,25 @@ try{
   }
   await page.goto(origin+'/school-sites/elearning.stu.edu.tw/course/index.php?categoryid=41');
   await page.waitForURL(origin+path+'/category/41');
+  await page.setViewportSize({width:1280,height:720});
+  await page.goto(origin+path+'/course/9408');
+  const firstVideo=main.getByRole('link',{name:'第一段影片'});
+  await firstVideo.waitFor();
+  assert.equal(await firstVideo.getAttribute('href'),'https://elearning.stu.edu.tw/mod/url/view.php?id=293395');
+  assert.equal(await main.getByRole('link',{name:'出席統計'}).getAttribute('href'),
+    'https://elearning.stu.edu.tw/mod/attendanceregister/view.php?id=293399');
+  await page.getByRole('button',{name:'開啟 AI 校園助理'}).click();
+  await page.getByPlaceholder('Ask a school question…').fill('Show the course outline');
+  await page.getByRole('button',{name:'Send',exact:true}).click();
+  const activityLink=page.getByRole('dialog').getByRole('link',{name:'第一段影片'});
+  assert.equal(await activityLink.getAttribute('href'),path+'/course/9408#elearning-activity-293395');
+  const unassigned=await fixture(true,false);
+  await Promise.all([
+    unassigned.waitForResponse(res=>new URL(res.url()).searchParams.get('scope')===elearningOutlineScope),
+    unassigned.goto(origin+path+'/course/9408'),
+  ]);
+  await unassigned.getByRole('heading',{name:protectedCourse.title}).waitFor();
+  assert.equal(await unassigned.getByRole('link',{name:'第一段影片'}).count(),0);
   const guest=await fixture(false);
   await guest.goto(origin+path+'/course/9718');
   await guest.waitForURL(url=>url.pathname===path+'/login');

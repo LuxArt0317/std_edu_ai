@@ -1,6 +1,8 @@
 import {AffairsWorkspaceError} from './affairsWorkspace.js';
 import {readFeeRemissionJson} from './feeRemissionContract.js';
-import {elearningScope,elearningCatalogScope,elearningCatalogPageSize} from './elearningContract.js';
+import {elearningScope,elearningCatalogScope,elearningCatalogPageSize,elearningOutlineScope,isElearningOutline} from './elearningContract.js';
+
+const courseId=value=>typeof value==='string'&&/^[1-9]\d{0,9}$/.test(value)&&Number(value)<=2147483647;
 
 async function rpc(account,operation,payload){
   const remaining=Math.min(8000,(account.requestDeadline??Date.now()+8000)-Date.now());
@@ -42,10 +44,9 @@ export async function enrollElearning(account,payload){
 
 export async function readElearningCatalog(account,query){
   const {scope,category,term='',page='1',course,...extra}=query;
-  const id=value=>typeof value==='string'&&/^[1-9]\d{0,9}$/.test(value)&&Number(value)<=2147483647;
   if(scope!==elearningCatalogScope||Object.keys(extra).length||typeof term!=='string'||term.length>100||
     typeof page!=='string'||!(/^[1-9]\d{0,3}$/).test(page)||Number(page)>1000||
-    (category!==undefined&&!id(category))||(course!==undefined&&(!id(course)||category!==undefined||term||page!=='1')))
+    (category!==undefined&&!courseId(category))||(course!==undefined&&(!courseId(course)||category!==undefined||term||page!=='1')))
     throw new AffairsWorkspaceError('Invalid remote-learning catalog filters.',400);
   const result=await rpc(account,'elearning_catalog',{
     p_category:category===undefined?null:Number(category),p_term:term.trim(),p_page:Number(page),p_course:course===undefined?null:Number(course),
@@ -53,5 +54,16 @@ export async function readElearningCatalog(account,query){
   if(result?.userId!==account.user.id||!Number.isSafeInteger(result.total)||result.total<0||
     !Array.isArray(result.courses)||result.courses.length>elearningCatalogPageSize)
     throw new AffairsWorkspaceError('The course catalog response could not be verified.',503);
+  return result;
+}
+
+export async function readElearningOutline(account,query){
+  const {scope,course,...extra}=query;
+  if(scope!==elearningOutlineScope||Object.keys(extra).length||!courseId(course))
+    throw new AffairsWorkspaceError('Invalid remote-learning course outline lookup.',400);
+  const id=Number(course);
+  const result=await rpc(account,'elearning_course_outline',{p_course_id:id});
+  if(!isElearningOutline(result,account.user.id,id))
+    throw new AffairsWorkspaceError('The course outline response could not be verified.',503);
   return result;
 }

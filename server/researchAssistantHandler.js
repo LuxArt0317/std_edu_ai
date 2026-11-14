@@ -1,4 +1,4 @@
-import {elearningGuide,elearningQuestion} from './elearningContract.js';
+import {elearningCoursePath,elearningGuide,elearningQuestion,elearningOutlineCourse} from './elearningContract.js';
 import {counselingGuide,counselingQuestion} from './counselingContract.js';
 import {certificateAwardQuestion} from './certificateAwardsContract.js';
 import {certificateAwardGuide} from './certificateAwards.js';
@@ -266,6 +266,15 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const kind = questionKind(input.question);
+        const outline=!input.images.length&&!kind.irrelevant?elearningOutlineCourse(input.question,input.route):null;
+        if(outline!==null){
+            const path=elearningCoursePath(outline),url='/elearning/login?next='+encodeURIComponent(path);
+            const title=/[\u3400-\u9fff]/u.test(input.question)?'登入後查看課程大綱':'Sign in to view the course outline';
+            stream.send(200,{status:'handoff',answer:'['+title+']('+url+')',
+                citations:[{chunkId:'directory:elearning-outline',title,url,claim:title,sourceName:'Digital Academy'}],
+                suggestedQuestions:[],grounding:{source:'directory',webSearched:false}});
+            return;
+        }
         const elearning=!kind.irrelevant&&elearningQuestion(input.question,input.route);
         if(elearning){stream.send(200,elearningGuide(input.question,elearning));return;}
         const counseling=!kind.irrelevant&&counselingQuestion(input.question);

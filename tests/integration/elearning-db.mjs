@@ -6,11 +6,12 @@ import {deploymentEnvironment} from '../../scripts/deployment-env.mjs';
 import {dormitoryConductClientTarget,reserveDormitoryConductLease} from './dormitory-conduct-rls-live.mjs';
 
 const [mode,...extra]=process.argv.slice(2);
-assert.ok(['--rollback-preflight','--deployed','--catalog-preflight','--catalog-deployed'].includes(mode)&&!extra.length);
+assert.ok(['--rollback-preflight','--deployed','--catalog-preflight','--catalog-deployed','--outline-preflight','--outline-deployed'].includes(mode)&&!extra.length);
 const env=deploymentEnvironment(),connection=env.POSTGRES_URL_NON_POOLING||env.POSTGRES_URL;
 dormitoryConductClientTarget(connection);
 const deployment=JSON.parse(await readFile('deployment.json','utf8'));
 const expansion=await readFile('supabase/migrations/20261115020000_elearning_catalog.sql','utf8');
+const outlineMigration=await readFile('supabase/migrations/20261115030000_elearning_course_outlines.sql','utf8');
 const ddl=await readFile('supabase/migrations/20261115010000_remote_learning.sql','utf8');
 const accounts=Array.from({length:3},()=>randomUUID()),[student,other,nonGoogle]=accounts;
 let lease;
@@ -35,7 +36,8 @@ const deny=(q,fn,code)=>assert.rejects(q.savepoint(fn),error=>error.code===code)
 try{
   lease=await reserveDormitoryConductLease(pool);
   const before=await state(lease.sql);
-  const catalogMode=mode.startsWith('--catalog-');
+  const outlineMode=mode.startsWith('--outline-');
+  const catalogMode=mode.startsWith('--catalog-')||outlineMode;
   const observe=async q=>(await q`select
     count(*)::int as courses,
     (select count(*)::int from public.elearning_categories) as categories,
@@ -43,12 +45,15 @@ try{
     (select to_regprocedure('public.elearning_catalog(integer,text,integer,integer)') is not null) as expanded
     from public.elearning_courses`)[0];
   const beforeCatalog=catalogMode?await observe(lease.sql):null;
-  if(catalogMode)assert.equal(beforeCatalog.expanded,mode==='--catalog-deployed');
+  if(catalogMode)assert.equal(beforeCatalog.expanded,mode==='--catalog-deployed'||outlineMode);
+  const outlineInstalled=async q=>(await q`select to_regprocedure('public.elearning_course_outline(integer)') is not null as present`)[0].present;
+  if(outlineMode)assert.equal(await outlineInstalled(lease.sql),mode==='--outline-deployed');
   assert.ok(before.owner&&before.fixtures===0);
   assert.equal(before.absent,mode==='--rollback-preflight');
   await lease.rollbackOnly(async q=>{
     if(before.absent)await q.unsafe(ddl);
     if(mode==='--catalog-preflight')await q.unsafe(expansion);
+    if(mode==='--outline-preflight')await q.unsafe(outlineMigration);
     for(const id of accounts){
       const email='elearning-qa-'+id+'@example.invalid';
       await q`insert into auth.users(instance_id,id,aud,role,email,email_confirmed_at,created_at,updated_at)
@@ -58,11 +63,14 @@ try{
     }
     const find=async (q,category=null,term='',page=1,course=null)=>
       (await q`select public.elearning_catalog(${category}::integer,${term},${page}::integer,${course}::integer) as response`)[0].response;
+    const outline=async(q,id)=>(await q`select public.elearning_course_outline(${id}::integer) as response`)[0].response;
     await as(q,'','anon');
+    if(outlineMode)await deny(q,s=>outline(s,9408),'42501');
     await deny(q,read,'42501');
     if(catalogMode)await deny(q,find,'42501');
     await deny(q,s=>join(s,9718),'42501');
     await as(q,nonGoogle);
+    if(outlineMode)await deny(q,s=>outline(s,9408),'42501');
     assert.equal(await read(q),null);
     if(catalogMode)await deny(q,find,'42501');
     await deny(q,s=>join(s,9718),'42501');
@@ -76,6 +84,21 @@ try{
     assert.equal(catalog.notices.length,20);
     assert.deepEqual(catalog.enrollments,[]);
     assert.ok(catalog.notices.find(row=>row.id===325504).local_body.includes('TronClass'));
+    if(outlineMode){
+      await deny(q,s=>outline(s,null),'22023');
+      await deny(q,s=>s`select * from public.elearning_activities`,'42501');
+      await deny(q,s=>s`insert into public.elearning_course_access(course_id,user_id) values(9408,${student})`,'42501');
+      assert.deepEqual(await outline(q,9408),{userId:student,courseId:9408,sections:[]});
+      await q.unsafe('reset role');
+      await q`insert into public.elearning_course_access(course_id,user_id) values(9408,${student}),(9098,${student})`;
+      await as(q,student);
+      const first=await outline(q,9408),second=await outline(q,9098);
+      assert.deepEqual(first.sections.map(s=>s.activities.map(a=>a.id)),[[293399,293395,293396,293397,293398]]);
+      assert.deepEqual(second.sections.map(s=>[s.title,s.activities.length]),[['課程主題',11],['課程回饋',1]]);
+      await as(q,other);
+      assert.deepEqual(await outline(q,9408),{userId:other,courseId:9408,sections:[]});
+      await as(q,student);
+    }
     if(catalogMode){
       const all=await find(q);
       assert.equal(all.userId,student);
@@ -114,6 +137,7 @@ try{
   });
   assert.deepEqual(await state(lease.sql),before);
   if(catalogMode)assert.deepEqual(await observe(lease.sql),beforeCatalog);
+  if(outlineMode)assert.equal(await outlineInstalled(lease.sql),mode==='--outline-deployed');
   console.log('Remote-learning catalog, private enrollment, repeat requests, DTM separation and exact rollback verified.');
 }finally{
   try{if(lease&&!lease.lost)await lease.release();}finally{await pool.end({timeout:3});}

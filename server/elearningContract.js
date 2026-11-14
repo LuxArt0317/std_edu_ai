@@ -4,6 +4,13 @@ export const elearningOrigin='https://elearning.stu.edu.tw';
 export const elearningScope='elearning-workspace';
 export const joinElearningCourse='elearning_join';
 export const elearningCoursePath=id=>elearningPath+'/course/'+id;
+export function elearningOutlineCourse(question,route=''){
+  const match=/^\/elearning\/course\/([1-9]\d{0,9})\/?(?:[?#]|$)/u.exec(route);
+  if(!match||Number(match[1])>2147483647)return null;
+  const text=question.normalize('NFKC').trim();
+  return /^(?:what (?:is (?:the course outline|in this course)|(?:videos|slides|materials|activities|sections) (?:are (?:listed|available)|does this course have))|(?:show|list) (?:me )?(?:the )?(?:course outline|course activities|course materials)|(?:本課程|這門課)(?:有)?哪些(?:教材|影片|活動|章節)|(?:顯示|查看|列出)?(?:課程大綱|本週大綱))[?？。.!]?$/iu.test(text)
+    ?Number(match[1]):null;
+}
 export function elearningQuestion(question,route=''){
   const text=question.normalize('NFKC').trim();
   if(/\b(?:write code|python|javascript|password|another student)\b|他人|密碼|寫程式/iu.test(text))return null;
@@ -35,3 +42,16 @@ export function elearningGuide(question,intent,signedIn=false){
 
 export const elearningCatalogScope='elearning-catalog';
 export const elearningCatalogPageSize=20;
+export const elearningOutlineScope='elearning-course-outline';
+export function elearningActivityUrl(activity){
+  return activity&&(activity.kind==='url'||activity.kind==='attendanceregister')&&
+    Number.isSafeInteger(activity.id)&&activity.id>0&&activity.id<=2147483647
+    ? elearningOrigin+'/mod/'+activity.kind+'/view.php?id='+activity.id : null;
+}
+export function isElearningOutline(outline,userId,courseId){
+  return outline?.userId===userId&&outline?.courseId===courseId&&Array.isArray(outline.sections)&&outline.sections.length<=64&&
+    outline.sections.every(section=>Number.isSafeInteger(section?.position)&&section.position>0&&section.position<=64&&
+      typeof section.title==='string'&&section.title.trim().length>0&&section.title.length<=400&&
+      Array.isArray(section.activities)&&section.activities.length<=100&&section.activities.every(activity=>
+        elearningActivityUrl(activity)!==null&&typeof activity.title==='string'&&activity.title.trim().length>0&&activity.title.length<=480));
+}

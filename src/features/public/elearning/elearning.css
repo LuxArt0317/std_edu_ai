@@ -86,3 +86,9 @@
 
 .elearning-pagination { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin:12px 0; }
 .elearning-pagination a { text-decoration:underline; }
+.elearning-outline section { padding:20px clamp(8px,4vw,46px); }
+.elearning-outline section+section { border-top:1px solid #dedede; }
+.elearning-outline h3 { margin:0 0 14px; font-size:14px; }
+.elearning-outline ul { margin:0; padding:0; list-style:none; }
+.elearning-outline li a { display:flex; align-items:center; gap:8px; min-height:31px; overflow-wrap:anywhere; }
+.elearning-outline li svg { flex:none; color:#3f7898; }

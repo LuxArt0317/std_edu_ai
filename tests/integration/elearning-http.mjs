@@ -5,7 +5,7 @@ import {createClient} from '@supabase/supabase-js';
 import postgres from 'postgres';
 import {deploymentEnvironment} from '../../scripts/deployment-env.mjs';
 import {dormitoryConductClientTarget,reserveDormitoryConductLease} from './dormitory-conduct-rls-live.mjs';
-import {elearningScope,elearningCatalogScope} from '../../server/elearningContract.js';
+import {elearningScope,elearningCatalogScope,elearningOutlineScope} from '../../server/elearningContract.js';
 import dataHandler from '../../api/affairs-data.ts';
 import actionHandler from '../../api/affairs-action.ts';
 
@@ -67,6 +67,7 @@ try{
         values(${row.id},${row.id},${sql.json({sub:row.id,email:row.email,email_verified:true})},${provider},now(),now())`;
       await sql`insert into public.affairs_profiles(user_id,email,display_name) values(${row.id},${row.email},'Remote Learning QA')`;
     }
+    await sql`insert into public.elearning_course_access(course_id,user_id) values(9408,${ids[0]}),(9098,${ids[0]})`;
     await sql.unsafe('commit');
     committed=true;
   }catch(error){await sql.unsafe('rollback');throw error;}
@@ -102,6 +103,16 @@ try{
   assert.equal((await call(catalog+'&course=10891',student)).courses[0].category_id,18);
   assert.equal((await call(catalog+'&category=18&term='+encodeURIComponent('教育訓練影片 2025'),student)).courses[0].id,10891);
   assert.equal((await call(catalog+'&page=2',other)).total,3291);
+  const outline='/api/affairs-data?scope='+elearningOutlineScope+'&course=9408';
+  await call(outline,'',401);
+  await call(outline+'&user_id='+ids[0],other,400);
+  await call(outline.replace('9408','0'),student,400);
+  assert.deepEqual(await call(outline,other),{userId:ids[1],courseId:9408,sections:[]});
+  const protectedOutline=await call(outline,student);
+  assert.equal(protectedOutline.userId,ids[0]);
+  assert.deepEqual(protectedOutline.sections[0].activities.map(activity=>activity.id),[293399,293395,293396,293397,293398]);
+  const secondOutline=await call(outline.replace('9408','9098'),student);
+  assert.deepEqual(secondOutline.sections.map(section=>section.activities.length),[11,1]);
   assert.equal(first.notices.length,20);
   assert.deepEqual(first.enrollments,[]);
   await join('',9718,401);
@@ -129,7 +140,8 @@ try{
         (select count(*)::int from auth.sessions where user_id=any(${ids}::uuid[])) as sessions,
         (select count(*)::int from auth.identities where user_id=any(${ids}::uuid[])) as identities,
         (select count(*)::int from public.affairs_profiles where user_id=any(${ids}::uuid[])) as profiles,
-        (select count(*)::int from public.elearning_enrollments where user_id=any(${ids}::uuid[])) as enrollments`;
+        (select count(*)::int from public.elearning_enrollments where user_id=any(${ids}::uuid[])) as enrollments,
+        (select count(*)::int from public.elearning_course_access where user_id=any(${ids}::uuid[])) as course_access`;
       assert.ok(Object.values(left).every(count=>count===0));
     }
   }finally{

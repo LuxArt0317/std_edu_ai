@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router';
+import { ClipboardList, Link2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { useAffairsAuth } from '../affairs/authContext';
 import { safeSchoolReturnPath, signOutAffairs, startGoogleSignIn } from '../affairs/authClient';
-import { joinElearning, loadElearning, searchElearning } from '@/services/elearning';
-import { elearningCoursePath, elearningOrigin, elearningPath as path, elearningCatalogPageSize,
-  type ElearningCatalog, type ElearningCategory, type ElearningCourse, type ElearningWorkspace as Workspace } from '../../../../server/elearningContract.js';
+import { joinElearning, loadElearning, loadElearningOutline, searchElearning } from '@/services/elearning';
+import { elearningActivityUrl, elearningCoursePath, elearningOrigin, elearningPath as path, elearningCatalogPageSize,
+  type ElearningCatalog, type ElearningCategory, type ElearningCourse, type ElearningOutline, type ElearningWorkspace as Workspace } from '../../../../server/elearningContract.js';
 import './elearning.css';
 
 const siteTitle='樹德科技大學 數位學園(遠距教學平台)';
@@ -139,10 +140,38 @@ function CourseList({courses}:{courses:ElearningCourse[]}){
     <Link to={elearningCoursePath(course.id)}>{course.title}</Link>
   </li>)}</ul>:<p>目前沒有本站課程紀錄。</p>;
 }
+function Outline({outline}:{outline:ElearningOutline}){
+  const {hash}=useLocation();
+  useEffect(()=>{
+    if(/^#elearning-activity-[1-9]\d*$/u.test(hash))document.getElementById(hash.slice(1))?.scrollIntoView({block:'nearest'});
+  },[hash,outline]);
+  return <div className="elearning-outline">
+    <h2 className="sr-only">本週大綱</h2>
+    {outline.sections.map(section=><section key={section.position} aria-labelledby={'elearning-section-'+section.position}>
+      <h3 id={'elearning-section-'+section.position}>{section.title}</h3>
+      <ul>{section.activities.map(activity=>{
+        const href=elearningActivityUrl(activity);
+        const Icon=activity.kind==='attendanceregister'?ClipboardList:Link2;
+        return href&&<li key={activity.id} id={'elearning-activity-'+activity.id}><a href={href} target="_blank" rel="noreferrer">
+          <Icon aria-hidden="true" size={24}/>{activity.title}
+        </a></li>;
+      })}</ul>
+    </section>)}
+  </div>;
+}
 function CourseView({course,joined,userId,onJoined}:{course:ElearningCourse;joined?:string;userId:string;onJoined:()=>void}){
   const [open,setOpen]=useState(false),[pending,setPending]=useState(false),[error,setError]=useState('');
+  const [outline,setOutline]=useState<ElearningOutline|null>(null);
+  const [outlineError,setOutlineError]=useState(false),[outlineAttempt,setOutlineAttempt]=useState(0);
   const request=useRef<AbortController|null>(null);
   useEffect(()=>()=>request.current?.abort(),[]);
+  useEffect(()=>{
+    const controller=new AbortController();
+    void loadElearningOutline(userId,course.id,controller.signal).then(result=>{
+      if(!controller.signal.aborted)setOutline(result);
+    }).catch(()=>{if(!controller.signal.aborted)setOutlineError(true);});
+    return ()=>controller.abort();
+  },[userId,course.id,outlineAttempt]);
   async function confirm(){
     if(request.current)return;
     const controller=new AbortController();request.current=controller;
@@ -152,11 +181,13 @@ function CourseView({course,joined,userId,onJoined}:{course:ElearningCourse;join
     finally{request.current=null;if(!controller.signal.aborted)setPending(false);}
   }
   return <>
-    <h2>{joined?course.title:'選課的選項'}</h2>
-    {!joined&&<h3>{course.title}</h3>}
-    {joined?<p role="status">已加入 · {zhDate.format(new Date(joined))}</p>:course.self_enroll?
+    <h2>{joined||outline?.sections.length?course.title:'選課的選項'}</h2>
+    {!joined&&!outline?.sections.length&&<h3>{course.title}</h3>}
+    {joined&&<p role="status">已加入 · {zhDate.format(new Date(joined))}</p>}
+    {outline?.sections.length?<Outline outline={outline}/>:joined?null:course.self_enroll?
       <section className="elearning-enroll"><h3>自行選課 (學生)</h3><p>不需要選課密碼</p>
         <button type="button" onClick={()=>setOpen(true)}>將我加入</button></section>:<p>此課程目前未開放本站加選。</p>}
+    {outlineError&&<p role="alert">無法讀取課程大綱。 <button type="button" onClick={()=>{setOutlineError(false);setOutlineAttempt(value=>value+1);}}>重試</button></p>}
     <p>{external(elearningOrigin+'/course/view.php?id='+course.id,'在校方 Moodle 開啟課程')}</p>
     <Dialog open={open} onOpenChange={value=>{if(!pending)setOpen(value);}}>
       <DialogContent><DialogTitle>確認加選</DialogTitle>
