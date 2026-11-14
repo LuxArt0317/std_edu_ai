@@ -2,6 +2,8 @@
 
 Service 8-1 uses a dedicated form for reviewing private baseline fields and saving a confirmation or updated mobile number. The administrator can maintain the baseline. The assistant reads confirmation status only. See [student profile QA](../qa/STUDENT_PROFILE.md). The university submission outcome and record synchronization remain outside the verified workflow.
 
+Production `1a52866` is live as Vercel `EpsnPz3VkbJd5ce8TzWFEbEuiDAU`. Migration 20261114210000 brings the client to 155 migrations and 183 RLS-protected public tables. The pinned browser, actual-JWT HTTP with exact cleanup, four bilingual guest assistant checks, eight shell routes and Quality 43545398160 passed. The 94-destination local audit reports 33 generic and 21 partial entries.
+
 ## Summer course selection (Issue #98)
 
 Service 6-5 reads saved summer eligibility and has a dated notice and summer history link. See [summer selection QA](../qa/SUMMER_SELECTION.md).

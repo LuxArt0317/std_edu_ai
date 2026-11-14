@@ -1,11 +1,17 @@
 # Task Plan
 
+## Announcement email preference [Issue #98]
+
+- [x] Observe the protected source setting and activation rule.
+- [ ] Implement private persistence, observed controls and assistant preference lookup.
+- [ ] Connect an approved delivery service and verify actual announcements reach opted-in accounts.
+
 ## Student information confirmation [Issue #98]
 
 - [x] Observe the protected 8-1 form and record its field structure and geometry.
 - [x] Implement protected baseline maintenance, personal confirmation and assistant status.
 - [x] Verify exact-client rollback, input validation, authorization and replay.
-- [ ] Apply the migration and verify the browser and actual-session API on the pinned release.
+- [x] Apply the migration and verify the browser and actual-session API on the pinned release.
 - [ ] Compare the university confirmation result when authorized evidence is available.
 
 ## Summer course selection [Issue #98]

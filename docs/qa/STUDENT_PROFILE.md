@@ -17,3 +17,7 @@ PUBLIC_SITE_ORIGIN=http://127.0.0.1:5184 node tests/integration/student-profile-
 ```
 
 The rollback and deployed modes require the exact client connection. Run the rollback preflight before applying the migration. The live HTTP suite creates and deletes disposable accounts by verified IDs. The browser suite uses test fixtures and checks menu navigation, the observed desktop geometry, mobile overflow, Escape, replay, administrator editing, and guest sign-in return.
+
+## Deployed evidence
+
+Production `1a52866` is live as Vercel `EpsnPz3VkbJd5ce8TzWFEbEuiDAU`. Migration 20261114210000 brings the client to 155 migrations and 183 RLS-protected public tables. The pinned browser, actual-JWT HTTP with exact cleanup, four bilingual guest assistant checks, eight shell routes and Quality 43545398160 passed. The 94-destination local audit reports 33 generic and 21 partial entries.

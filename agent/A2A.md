@@ -1,6 +1,6 @@
 ## Student information confirmation (Issue #98)
 
-Root owns 8-1, migration 20261114210000, the protected administration editor, and the assistant status reader. The source form was observed without submitting it or retaining student field values. Keep the Issue #100 files out of this release.
+Root owns 8-1, migration 20261114210000, the protected administration editor, and the assistant status reader. The source form was observed without submitting it or retaining student field values. Keep the Issue #100 files out of this release. Production `1a52866` is live as Vercel `EpsnPz3VkbJd5ce8TzWFEbEuiDAU`. Migration 20261114210000 brings the client to 155 migrations and 183 RLS-protected public tables. The pinned browser, actual-JWT HTTP with exact cleanup, four bilingual guest assistant checks, eight shell routes and Quality 43545398160 passed. The 94-destination local audit reports 33 generic and 21 partial entries. The university profile submission result is unobserved. Mobile confirmations are saved in stu.best. The signed-in announcement email settings source (2-1) exposes one checkbox, Confirm and Cancel, and a next-day effective rule. The next implementation needs saved account preferences and verified delivery capability.
 
 ## Venue booking (Issue #98)
 
