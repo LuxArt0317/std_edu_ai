@@ -7,3 +7,5 @@
 The online repair link resolves to the local School Affairs report route.
 
 The official student information confirmation link resolves to the signed-in School Affairs service 8-1.
+
+The official announcement mail settings link resolves to the local signed-in service 2-1.

@@ -3,7 +3,9 @@
 ## Announcement email preference [Issue #98]
 
 - [x] Observe the protected source setting and activation rule.
-- [ ] Implement private persistence, observed controls and assistant preference lookup.
+- [x] Implement private persistence, observed controls and assistant preference lookup.
+- [x] Implement the consent-scoped queue and opt-in delivery worker.
+- [ ] Verify saved preferences on the pinned production release.
 - [ ] Connect an approved delivery service and verify actual announcements reach opted-in accounts.
 
 ## Student information confirmation [Issue #98]

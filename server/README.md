@@ -133,3 +133,5 @@ The facility repair helper uses caller-JWT RPCs for versioned updates and privat
 The summer eligibility reader uses the existing caller-JWT course adjustment authorization. The separate public notice accepts an exact ROC academic year.
 
 `studentProfile.js` validates the caller-JWT RPC contract and limits the assistant response to confirmation status and a form link.
+
+Announcement email uses a caller-JWT preference reader and a separately authorized, fenced delivery worker. The chatbot receives only saved setting status.

@@ -58,3 +58,5 @@ The facility repair client verifies the active School Affairs session around pri
 The course adjustment client reads caller-owned summer decisions. Summer notice reads use a separate public scope.
 
 The student profile client uses the School Affairs session and rechecks the caller before presenting a response.
+
+The announcement email client reloads the caller-owned preference and preserves the same request ID when a confirmation receipt is lost.

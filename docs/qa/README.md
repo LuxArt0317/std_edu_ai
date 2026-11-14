@@ -1,5 +1,7 @@
 # Quality evidence
 
+[Announcement email preferences](ANNOUNCEMENT_EMAIL.md) covers saved opt-in, its activation time, the assistant and the delivery worker.
+
 [Student information confirmation](STUDENT_PROFILE.md) covers the form, private persistence, administrator maintenance and assistant status.
 
 [Summer selection](SUMMER_SELECTION.md) covers the source-shaped eligibility screen, public notice, private decisions and exact-year assistant checks.

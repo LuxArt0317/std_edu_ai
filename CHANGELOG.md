@@ -1,5 +1,6 @@
 # Changelog
 ## Unreleased
+- Add saved announcement email preferences with Taipei next-day activation, assistant status, and a consent-scoped mail queue. [#98]
 - Add student information confirmation with private Supabase records, masked identity, editable mobile number, administrator maintenance and chatbot status. [#98]
 - Add summer selection eligibility, dated fee notices, administrator decisions and a filtered summer history link. [#98]
 

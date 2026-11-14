@@ -107,3 +107,5 @@ Facilities repair uses an area picker, area-specific report, progress and manage
 The summer selection route uses the observed student identity-check layout and links to the dated notice and filtered summer history.
 
 Service 8-1 uses the observed student information confirmation table, a saved mobile update and protected baseline maintenance.
+
+Service 2-1 uses the source-shaped checkbox, confirm/cancel controls, and next-day activation. The form reports when sending is unavailable.

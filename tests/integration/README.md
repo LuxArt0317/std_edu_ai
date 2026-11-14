@@ -104,3 +104,5 @@ The facility repair suites check database authorization, actual-JWT HTTP and the
 The summer selection browser and course adjustment database/HTTP summer modes check the new phase and exact-year isolation.
 
 The student profile browser, database and actual-JWT HTTP suites cover 8-1, protected baseline maintenance, retries and status privacy.
+
+Announcement email tests cover source-shaped browser controls, real caller JWT persistence, private queue eligibility and cleanup.

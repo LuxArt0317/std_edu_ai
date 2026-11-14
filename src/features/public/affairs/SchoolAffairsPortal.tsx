@@ -1,3 +1,5 @@
+import {AnnouncementEmailSettings} from "./AnnouncementEmailSettings";
+import {announcementEmailPath} from "../../../../server/announcementEmailContract.js";
 import {GraduationClearanceWorkspace} from "./GraduationClearanceWorkspace";
 import {clearancePaths} from "../../../../server/graduationClearanceContract.js";
 import {PermanentCourseCatalog} from "./PermanentCourseCatalog";
@@ -247,6 +249,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   const records = route[0] === "records" && route.length === 1;
   const subjects = normalizedPath === schoolSubjectRecordsPath;
   const adminRecords = route[0] === "admin" && route[1] === "records" && route.length === 2;
+  const announcementEmail = normalizedPath === announcementEmailPath;
   const servicePage = route[0] === "services";
   const { snapshot: account, loading: accountLoading, error: accountError, refresh: refreshAccount } =
     useAffairsRecords(index || notifications || bookmarks || validMenu || adminRecords || subjects || (servicePage && (["11-1", "11-2", "13-1", "14-1", "15-1", "15-2", "34-2", "38-1"].includes(route[1]) || (route[1] === "45-1" && route[2] === "area"))) ? user.id : undefined);
@@ -792,6 +795,8 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
                 <span>
                   {validMenu
                     ? "Menu"
+                    : announcementEmail
+                      ? "校園公告E-MAIL設定"
                     : servicePage
                       ? "服務 · Service"
                     : bookmarks
@@ -1119,7 +1124,8 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
                 <Link to="/在校學生/">返回在校學生</Link>
               </section>
             )}
-            {servicePage && <StudentServiceWorkspace key={pathname} userId={user.id} serviceKey={route[1] || ""} view={route.slice(2).join("/")} />}
+            {announcementEmail && <AnnouncementEmailSettings key={user.id} userId={user.id}/>}
+            {servicePage && !announcementEmail && <StudentServiceWorkspace key={pathname} userId={user.id} serviceKey={route[1] || ""} view={route.slice(2).join("/")} />}
             {!index && !validMenu && !bookmarks && !notifications && !adminRecords && !ended && !servicePage && (
               <section className="portal-ended">
                 <h1>找不到選單</h1>

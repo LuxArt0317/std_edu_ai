@@ -76,3 +76,5 @@ The facility-repairs read scope supports the signed-in area and equipment catalo
 The course-adjustment scope accepts summer decisions with an optional academic year. The public summer-selection-notice scope requires one academic year.
 
 Student profile scope `student-profile` has caller-owned and selected-account administrator reads. The action and manager handlers accept versioned confirmation and baseline writes.
+
+Announcement email settings use the protected `announcement-email` scope and `save_announcement_email` action. The scheduled worker uses the separate bearer-protected `announcement-email-delivery` resource.

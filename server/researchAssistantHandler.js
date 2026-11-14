@@ -1,3 +1,5 @@
+import {announcementEmailQuestion} from './announcementEmailContract.js';
+import {announcementEmailGuide} from './announcementEmail.js';
 import {clearancePaths,clearanceQuestion} from './graduationClearanceContract.js';
 import {answerPermanentCourse} from './permanentCourses.js';
 import {answerVenue} from './venueBooking.js';
@@ -260,6 +262,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const kind = questionKind(input.question);
+        const announcementEmail=!input.images.length&&!kind.irrelevant&&announcementEmailQuestion(input.question);
+        if(announcementEmail){stream.send(200,announcementEmailGuide(input.question,announcementEmail));return;}
         const profile = !input.images.length && !kind.irrelevant && studentProfileQuestion(input.question);
         if (profile) {
             const zh = /[\u3400-\u9fff]/u.test(input.question);

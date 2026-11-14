@@ -49,3 +49,5 @@ Supplemental correction regressions exercise actual reader/formatter chains for 
 `dtm-course-resource*.test.ts` covers exact caller/course/material reads, strict dispatch, URL bounds, error redaction and unavailable records without live calls.
 
 The student profile intent test checks bilingual separation of confirmation status and form instructions.
+
+Announcement email tests check status intent, caller validation, worker authorization, provider idempotency and acknowledgement.

@@ -1,0 +1,10 @@
+export const announcementEmailPath:string;
+export const announcementEmailScope:'announcement-email';
+export const announcementEmailAction:'save_announcement_email';
+export type AnnouncementEmailReceipt={userId:string;enabled:boolean;effectiveAt:string|null;version:number};
+export type AnnouncementEmailPreference=AnnouncementEmailReceipt&{active:boolean};
+export type AnnouncementEmailChange={enabled:boolean;expected_version:number;request_id:string};
+export function validAnnouncementEmailChange(value:unknown):value is AnnouncementEmailChange;
+export function parseAnnouncementEmail(value:unknown,userId:string):AnnouncementEmailPreference;
+export function parseAnnouncementEmail(value:unknown,userId:string,expected:AnnouncementEmailChange):AnnouncementEmailReceipt;
+export function announcementEmailQuestion(question:string):'guide'|'status'|null;

@@ -265,3 +265,5 @@ The authenticated 6-1 route opened the first-selection schedule for academic yea
 The existing `affairs_course_selection_records` rows contain caller-scoped history for term and phase, literal course details, and explicit timetable membership. The migration distinguishes these rows from enrollment decisions. The open-period workflow needs verified enrollment rules and its own transaction semantics before it can record student selections.
 
 The signed-in 2-1 settings page contains one announcement email checkbox, Confirm and Cancel, with a next-day effective notice. No school setting was changed. Retain that activation boundary and independently verify delivery before claiming it.
+
+Keep saved email consent distinct from delivery capability. Activate opt-in on the next Taipei date and apply opt-out immediately to queued mail. Provider acceptance is distinct from mailbox receipt.

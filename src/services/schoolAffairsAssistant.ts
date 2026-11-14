@@ -1,3 +1,5 @@
+import {announcementEmailQuestion} from '../../server/announcementEmailContract.js';
+import {readAnnouncementEmailAnswer} from './announcementEmail';
 import {studentProfileQuestion} from '../../server/studentProfileContract.js';
 import {readStudentProfileAnswer} from './studentProfile';
 import {clearanceQuestion} from '../../server/graduationClearanceContract.js';
@@ -30,6 +32,12 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
   if (!affairsClient) throw new Error('School Affairs sign-in is not configured.');
   const {data,error} = await affairsClient.auth.getSession();
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
+  const email=!images.length&&announcementEmailQuestion(question);
+  if(email==='guide')return askCampusAssistant(question,[],signal,[],route,onProgress);
+  if(email==='status'){
+    onProgress?.({kind:'announcement-email',label:'Checking announcement email preference',detail:'Reading your saved setting.',status:'running'});
+    return readAnnouncementEmailAnswer(data.session.user.id,question,signal);
+  }
   const profile=!images.length&&studentProfileQuestion(question);
   if(profile==='guide')return askCampusAssistant(question,[],signal,[],route,onProgress);
   if(profile==='status'){

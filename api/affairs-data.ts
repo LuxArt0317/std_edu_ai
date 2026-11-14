@@ -1,3 +1,6 @@
+import {deliverAnnouncementEmail} from '../server/announcementEmailDelivery.js';
+import {readAnnouncementEmail} from '../server/announcementEmail.js';
+import {announcementEmailScope} from '../server/announcementEmailContract.js';
 import {readStudentProfile} from '../server/studentProfile.js';
 import {studentProfileScope} from '../server/studentProfileContract.js';
 import {readGraduationClearance} from '../server/graduationClearance.js';
@@ -43,7 +46,9 @@ import { DtmCourseResourceError, loadDtmCourseResource } from '../server/dtmCour
 type Request = {method?:string;headers:Record<string,string|string[]|undefined>;body?:unknown;query?:Record<string,string|string[]|undefined>};
 type Response = {status:(code:number)=>Response;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void;end?:(data:Buffer)=>void};
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
+export const config={maxDuration:60};
 export default async function handler(request:Request,response:Response) {
+  if(first(request.query?.resource)==='announcement-email-delivery')return deliverAnnouncementEmail(request,response);
   const scopes=Array.isArray(request.query?.scope)?request.query.scope:[request.query?.scope];
   if (scopes.includes('venue-search') || scopes.includes('venue-schedule')) return serveVenue(request,response);
   if (scopes.includes('permanent-courses')) return servePermanentCourses(request,response);
@@ -54,7 +59,7 @@ export default async function handler(request:Request,response:Response) {
   if (scopes.includes('curriculum-map')) return serveCurriculumMap(request,response);
   if (scopes.includes('curriculum-plan')) return serveCurriculumPlan(request,response);
   if (scopes.includes('interdisciplinary-programs')) return serveInterdisciplinaryPrograms(request,response);
-  const strictStudentScope=scopes.some(scope=>typeof scope==='string'&&(scope===studentProfileScope||scope===programRegistrationScope||scope.startsWith('tutor-evaluation')||scope.startsWith('exchange-grant')||scope.startsWith('fee-remission')||scope.startsWith('student-conduct')||scope.startsWith('student-loan')||scope.startsWith('dormitory-conduct')||scope.startsWith('dtm-dashboard-layout')||scope.startsWith('dtm-grade-report')||scope.startsWith('dtm-course-content')||scope.startsWith('dtm-course-resource')||scope.startsWith('teaching-feedback')||scope.startsWith(clearanceScope)));
+  const strictStudentScope=scopes.some(scope=>typeof scope==='string'&&(scope===announcementEmailScope||scope===studentProfileScope||scope===programRegistrationScope||scope.startsWith('tutor-evaluation')||scope.startsWith('exchange-grant')||scope.startsWith('fee-remission')||scope.startsWith('student-conduct')||scope.startsWith('student-loan')||scope.startsWith('dormitory-conduct')||scope.startsWith('dtm-dashboard-layout')||scope.startsWith('dtm-grade-report')||scope.startsWith('dtm-course-content')||scope.startsWith('dtm-course-resource')||scope.startsWith('teaching-feedback')||scope.startsWith(clearanceScope)));
   if(first(request.query?.resource)==='conversations'&&!strictStudentScope&&!scopes.includes('venue-requests')&&!scopes.includes('facility-repairs')&&!scopes.some(scope=>typeof scope==='string'&&(scope.startsWith(adjustmentScope)||scope.startsWith(withdrawalScope)||scope.startsWith(creditTransferScope)||scope.startsWith(earlyGraduationScope))))return conversations(request,response);
   const requestDeadline=Date.now()+17000;
   response.setHeader('Cache-Control','no-store, max-age=0');
@@ -68,6 +73,7 @@ export default async function handler(request:Request,response:Response) {
     if(scope==='venue-requests'){
       response.status(200).json(await readVenueRequests(account,request.query??{}));return;
     }
+    if(scope===announcementEmailScope){response.status(200).json(await readAnnouncementEmail({...account,requestDeadline},request.query??{}));return;}
     if(scope===studentProfileScope){response.status(200).json(await readStudentProfile({...account,requestDeadline},request.query??{}));return;}
     if(scope==='facility-repairs'){
       response.status(200).json(await readFacilityRepairs({...account,requestDeadline},request.query??{}));return;

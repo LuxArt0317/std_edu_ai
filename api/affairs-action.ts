@@ -1,3 +1,5 @@
+import {saveAnnouncementEmail} from '../server/announcementEmail.js';
+import {announcementEmailAction} from '../server/announcementEmailContract.js';
 import {changeStudentProfile} from '../server/studentProfile.js';
 import {changeGraduationClearance} from '../server/graduationClearance.js';
 import {changeVenueRequest} from '../server/venueBooking.js';
@@ -46,7 +48,8 @@ export default async function handler(request:Request,response:Response) {
   const venue=input?.kind==='submit_venue_request'||input?.kind==='cancel_venue_request';
   const repair=input?.kind==='submit_facility_repair'||input?.kind==='cancel_facility_repair';
   const confirmProfile=input?.kind==='confirm_student_profile';
-  const dedicatedPayloadLimit = confirmProfile ? 1024 : repair ? 7000 : venue ? 3600 : clearance ? 1024 : teachingFeedback ? teachingFeedbackMaxBytes : earlyGraduation ? 2400 : transfer ? 36000 : programRegistration || withdrawal ? 1024 : tutorEvaluation ? tutorEvaluationMaxBytes : grantKind ? exchangeGrantMaxPayloadBytes : dashboardKind ? dtmDashboardLayoutMaxPayloadBytes : undefined;
+  const saveEmail=input?.kind===announcementEmailAction;
+  const dedicatedPayloadLimit = saveEmail || confirmProfile ? 1024 : repair ? 7000 : venue ? 3600 : clearance ? 1024 : teachingFeedback ? teachingFeedbackMaxBytes : earlyGraduation ? 2400 : transfer ? 36000 : programRegistration || withdrawal ? 1024 : tutorEvaluation ? tutorEvaluationMaxBytes : grantKind ? exchangeGrantMaxPayloadBytes : dashboardKind ? dtmDashboardLayoutMaxPayloadBytes : undefined;
   if(!input || typeof input.kind!=='string' || !input.payload || typeof input.payload!=='object'
     || Array.isArray(input.payload) || (dedicatedPayloadLimit?Buffer.byteLength(JSON.stringify(input),'utf8')>dedicatedPayloadLimit+1024:submissionAction?Buffer.byteLength(JSON.stringify(input),'utf8')>14000:JSON.stringify(input).length>(input.kind==='import_dtm_deadlines'?50000:4000))
     || dedicatedPayloadLimit&&(Object.keys(input).length!==2||!Object.hasOwn(input,'kind')||!Object.hasOwn(input,'payload'))){
@@ -56,6 +59,7 @@ export default async function handler(request:Request,response:Response) {
     const authorization=first(request.headers.authorization);
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
     const bounded={...account,requestDeadline:submissionDeadline};
+    if(saveEmail){response.status(200).json(await saveAnnouncementEmail(bounded,input.payload));return;}
     if(confirmProfile){response.status(200).json(await changeStudentProfile(bounded,'confirm',input.payload));return;}
     if(repair){response.status(200).json(await changeFacilityRepair(bounded,input.kind,input.payload));return;}
     if(venue){response.status(200).json(await changeVenueRequest(bounded,input.kind,input.payload));return;}

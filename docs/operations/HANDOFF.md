@@ -1,3 +1,7 @@
+## Announcement email preference (Issue #98)
+
+Service 2-1 has a protected email checkbox and next-day activation in Taipei. The sender and schedule are opt-in configuration. Preference persistence and the worker can be verified separately from mailbox delivery. See [announcement email QA](../qa/ANNOUNCEMENT_EMAIL.md).
+
 ## Student information confirmation (Issue #98)
 
 Service 8-1 uses a dedicated form for reviewing private baseline fields and saving a confirmation or updated mobile number. The administrator can maintain the baseline. The assistant reads confirmation status only. See [student profile QA](../qa/STUDENT_PROFILE.md). The university submission outcome and record synchronization remain outside the verified workflow.

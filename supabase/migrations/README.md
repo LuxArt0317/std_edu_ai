@@ -65,3 +65,5 @@ Migration220000 adds one active private dormitory-conduct metadata record per ac
 `20261114080000_course_substitutions.sql` stores verified public results for three exact cohort, track and department selections. A recorded empty result is distinct from an uncaptured selection. Application roles have read-only access under RLS.
 
 Migration 20261114210000 adds the protected student information baseline and private versioned confirmation receipts. The migration seeds no records.
+
+Migration 20261114220000 adds caller-owned announcement email preferences and a private queue with versioned opt-in and fenced delivery.
