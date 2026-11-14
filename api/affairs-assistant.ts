@@ -1,3 +1,4 @@
+import {readFeeRemissionEvidence} from '../server/accountFeeRemissionEvidence.js';
 import {readStudentConductEvidence} from '../server/accountStudentConductEvidence.js';
 import {readStudentLoanEvidence} from '../server/accountStudentLoanEvidence.js';
 import {readAidPaymentsEvidence} from '../server/accountAidPaymentsEvidence.js';
@@ -140,7 +141,7 @@ export function createAffairsAssistantHandler(dependencies:{
   verifyToken?:typeof verifyAffairsToken;
   loadSnapshot?:typeof loadAffairsSnapshot;
   answerAccount?:typeof answerAccountWithVerification;
-  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence};
+  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence};
 }={}) {
 const publicResearch=dependencies.publicResearch??researchHandler;
 const verifyToken=dependencies.verifyToken??verifyAffairsToken,loadSnapshot=dependencies.loadSnapshot??loadAffairsSnapshot,answerAccount=dependencies.answerAccount??answerAccountWithVerification;
@@ -152,7 +153,8 @@ const readers={courseCatalog:dependencies.readers?.courseCatalog??readCatalogEvi
   elearningEnrollments:dependencies.readers?.elearningEnrollments??readElearningEvidence,
   facilityRepairs:dependencies.readers?.facilityRepairs??readFacilityRepairEvidence,
   dormitoryConduct:dependencies.readers?.dormitoryConduct??readDormitoryConductEvidence,
-  elearningOutline:dependencies.readers?.elearningOutline??readElearningOutlineEvidence};
+  elearningOutline:dependencies.readers?.elearningOutline??readElearningOutlineEvidence,
+  feeRemission:dependencies.readers?.feeRemission??readFeeRemissionEvidence};
 return async function handler(request:ApiRequest,response:ApiResponse) {
   const deadline=Date.now()+55_000;
   response.setHeader('Cache-Control','no-store, max-age=0');
@@ -195,6 +197,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const records=foreignDtmGrades?(chinese?'數位教材成績紀錄':'Moodle grade records')
       :foreignElearning?(chinese?'數位學園紀錄':'remote-learning Moodle records')
         :foreignRepair?(chinese?'報修紀錄':'facility repair records')
+          :pageContext.foreign&&pageContext.tools.includes('feeRemission')?(chinese?'學雜費減免紀錄':'fee remission records')
           :pageContext.foreign?(chinese?'宿舍獎懲或數位學園課程紀錄':'dormitory conduct or remote-learning course records')
             :(chinese?'薪資或助學請款紀錄':'salary or aid claim records');
     const answer=chinese?`我只能查詢您登入的 stu.best 帳戶，無法存取其他學生的${records}。`
@@ -222,7 +225,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     }catch{stream.send(503,{error:'The guidance could not be checked. Please try again.'});}
     return;
   }
-  const chargesOnly=isOwnFeeBalanceQuestion(question);
+  const chargesOnly=isOwnFeeBalanceQuestion(question)||pageContext.feeAndBalance;
   const needsRecords=chargesOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
   const navigation=!needsRecords && !(Array.isArray(input?.images) && input.images.length) && !questionKind(question).irrelevant
     ? answerCampusNavigation(question) : null;
@@ -260,8 +263,20 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const scopedSnapshot=()=>({checkedAt:new Date().toISOString(),profile:{userId:account.user.id}});
     if(selectedReaderOnly)stream.progress('account','Checked account access','The selected reader uses this signed-in Google account.','complete');
     else stream.progress('account','Loading your account records',chargesOnly?'Checking only the fees linked to this Google account.':'Checking School Affairs and DTM records for this signed-in Google account.');
-    const snapshot=selectedReaderOnly?scopedSnapshot():chargesOnly?await loadOwnAffairsCharges(account,{deadline}):await loadSnapshot(account,false,{deadline});
-    if(!selectedReaderOnly)stream.progress('account','Loaded your account records',chargesOnly?'Read the fee scope for this Google account.':'Only records linked to this Google account were read.','complete');
+    const loadCharges=async()=>{
+      try{
+        const saved=await loadOwnAffairsCharges(account,{deadline});
+        const label=pageContext.feeChargeLabel;
+        const normalize=(value:string)=>value.normalize('NFKC').trim().toLowerCase();
+        return label?{...saved,chargeSelectionLabel:label,charges:saved.charges.filter(row=>normalize(row.label)===normalize(label))}:saved;
+      }catch(error){
+        if(!pageContext.feeAndBalance)throw error;
+        return {...scopedSnapshot(),charges:[],chargeReadUnavailable:true};
+      }
+    };
+    const snapshot=selectedReaderOnly?scopedSnapshot():chargesOnly?await loadCharges():await loadSnapshot(account,false,{deadline});
+    if('chargeReadUnavailable' in snapshot)stream.progress('account','Fee balance unavailable','The fee-remission reader can still check its own source.','unavailable');
+    else if(!selectedReaderOnly)stream.progress('account','Loaded your account records',chargesOnly?'Read the fee scope for this Google account.':'Only records linked to this Google account were read.','complete');
     stream.progress('answer','Preparing your answer','Checking the account data and any requested stu.best action.');
     const readDeadline=(selected:number)=>{
       if(!Number.isFinite(selected))throw new TypeError('Invalid account reader deadline.');
@@ -279,10 +294,11 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       facilityRepairs:context=>readers.facilityRepairs(account,{question:repairContext.repairQuestion,route,history,deadline:readDeadline(context.deadline)}),
       dormitoryConduct:context=>readers.dormitoryConduct(account,{question:pageContext.questions.dormitoryConduct||question,route,history,deadline:readDeadline(context.deadline)}),
       elearningOutline:context=>readers.elearningOutline(account,{question:pageContext.questions.elearningOutline||question,route,history,deadline:readDeadline(context.deadline)}),
+      feeRemission:context=>readers.feeRemission(account,{question,route,history,deadline:readDeadline(context.deadline)}),
       tuition:context=>readers.tuition(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
     };
     const answer=await answerAccount({question,correlationId,snapshot,history,route,deadline,supplementalReaders,
-      loadSnapshot:()=>selectedReaderOnly?Promise.resolve(scopedSnapshot()):chargesOnly?loadOwnAffairsCharges(account,{deadline}):loadSnapshot(account,false,{initialize:false,deadline}),
+      loadSnapshot:()=>selectedReaderOnly?Promise.resolve(scopedSnapshot()):chargesOnly?loadCharges():loadSnapshot(account,false,{initialize:false,deadline}),
       onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status),
     });
     stream.progress('answer',answer.verification?.status==='verified'?'Answer ready':'Verification incomplete',

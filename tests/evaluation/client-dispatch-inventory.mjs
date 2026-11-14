@@ -121,7 +121,8 @@ export function inspectClientDispatchSource(source){
     isElearningEvidenceQuestion:['elearningEvidenceIntent','question,route,history'],isForeignElearningRecordsQuestion:['elearningEvidenceIntent','question,route'],
     isFacilityRepairEvidenceQuestion:['facilityRepairEvidenceIntent','question,route,history'],isForeignFacilityRepairQuestion:['facilityRepairEvidenceIntent','question'],
     isDormitoryConductEvidenceQuestion:['dormitoryConductEvidenceIntent','question,route,history'],
-    isElearningOutlineEvidenceQuestion:['elearningOutlineEvidenceIntent','question,route,history']};
+    isElearningOutlineEvidenceQuestion:['elearningOutlineEvidenceIntent','question,route,history'],
+    isFeeRemissionEvidenceQuestion:['feeRemissionEvidenceIntent','question,route,history']};
   const clauses=node=>ts.isParenthesizedExpression(node)?clauses(node.expression)
     :ts.isBinaryExpression(node)&&node.operatorToken.kind===ts.SyntaxKind.BarBarToken?[...clauses(node.left),...clauses(node.right)]:[node];
   const predicates=verifiedDispatch?clauses(verifiedDispatch.expression):[];
@@ -141,6 +142,7 @@ export function inspectClientDispatchSource(source){
     {id:'facility-repairs',graphTool:'facilityRepairs',source:dispatchPath,line:first.line},
     {id:'dormitory-conduct',graphTool:'dormitoryConduct',source:dispatchPath,line:first.line},
     {id:'elearning-outline',graphTool:'elearningOutline',source:dispatchPath,line:first.line},
+    {id:'fee-remission',graphTool:'feeRemission',source:dispatchPath,line:first.line},
   ],
     fallback:{source:dispatchPath,line:api[0].line},otherDirectReaders:otherDirectReaders.filter(name=>calls.some(call=>call.name===name&&call.at<fallback.at)),
     navigationOnly:navigationOnly.map(row=>({...row,observedCalls:row.calls.filter(name=>calls.some(call=>call.name===name&&call.at<fallback.at))}))};

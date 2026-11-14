@@ -16,6 +16,7 @@ test('the six direct readers and verified graph dispatch remain separately visib
     {id:'aid-payments',graphTool:'aidPayments'},{id:'dtm-grade-report',graphTool:'dtmGradeReport'},
     {id:'elearning-enrollments',graphTool:'elearningEnrollments'},{id:'facility-repairs',graphTool:'facilityRepairs'},
     {id:'dormitory-conduct',graphTool:'dormitoryConduct'},{id:'elearning-outline',graphTool:'elearningOutline'},
+    {id:'fee-remission',graphTool:'feeRemission'},
   ]);
   for(const service of inventory.services){
     assert.equal(service.routeAuth,'signed-in');assert.equal(service.graphTool,null);

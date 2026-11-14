@@ -85,7 +85,7 @@ function visibleMarkdown(text) {
 }
 
 const fieldContinuation=/^(?:(?:category|module|required(?:\s*\/\s*elective)?|elective|credits?|grade|score|teacher|instructor|type|course date|period|roll-call(?: time)?|remark|notes?|feedback|instructions|status|state|award|required service|actual|accommodation fee|deposit|subsidy|contact unit|extension|payment unit|program|department|year|room|location|paid|remaining|balance|due|indicator|completed|matched|excluded|detail subtotal|report status)\s*(?::|\b\s)|\d+(?:\.\d+)?\s+(?:credits?|hours?)\b|(?:mon|tue|wed|thu|fri|sat|sun)(?:day)?\b|(?:分類|模組|學分|成績|教師|課程日期|節次|點名時間|備註|回饋|說明|狀態|餘額|房間|系所|年級)\s*[:：])/iu;
-const foreignSubject=/^(?:(?:another|other|different|unrelated)\s+(?:student|account|course|assignment|record)|(?:student|account)\s+[\p{L}\p{N}_-]+\s*[:：]|(?:另一|其他|別的)(?:學生|帳戶|課程|作業|紀錄))/iu;
+const foreignSubject=/^(?:(?:another|other|different|unrelated)\s+(?:student|account|course|assignment|record)|(?:student\s+(?!(?:number|id|identifier)\s*[:：])|account\s+)[\p{L}\p{N}_-]+\s*[:：]|(?:另一|其他|別的)(?:學生|帳戶|課程|作業|紀錄))/iu;
 
 function paragraphs(answer) {
   const blocks=[];
@@ -165,7 +165,8 @@ function recordFieldResult(answer,fact,allFacts) {
     ||!['text','number','date'].includes(field.kind)||!Array.isArray(field.values)||field.values.length!==1||!field.values.every(validValue)
     ||field.forbiddenValues!==undefined&&(!Array.isArray(field.forbiddenValues)||!field.forbiddenValues.every(validValue))
     ||field.allowedNumbers!==undefined&&(!Array.isArray(field.allowedNumbers)||field.allowedNumbers.some(value=>typeof value!=='number'||!Number.isFinite(value)))
-    ||field.exclusive!==undefined&&typeof field.exclusive!=='boolean'||field.match!==undefined&&field.match!=='literal'))
+    ||field.exclusive!==undefined&&typeof field.exclusive!=='boolean'||field.match!==undefined&&field.match!=='literal'
+    ||field.currencyNotRecorded!==undefined&&(typeof field.currencyNotRecorded!=='boolean'||field.kind!=='text'||field.match!=='literal')))
     return {passed:false,detail:'Malformed record-scoped field expectation.'};
   const aliases=[fact.label,...(fact.labels||[])].map(normalize);
   const recordLabels=[...new Set(allFacts.filter(item=>item?.fields!==undefined).flatMap(item=>[item.label,...(item.labels||[])]).filter(value=>typeof value==='string').map(normalize))];
@@ -225,9 +226,20 @@ function recordFieldResult(answer,fact,allFacts) {
       }
     }
     if(!claims.length)return {passed:false,detail:'A required field label is missing from its matched record.'};
+    if(field.currencyNotRecorded){
+      // A literal amount without currency cannot acquire a currency from the
+      // reader or another record. Check only this record's amount/currency
+      // assertions; a separately named tuition charge may legitimately be TWD.
+      const currency=/\b(?:usd|twd|ntd|rmb|cny|eur|gbp|jpy|hkd|sgd|aud|cad|php|dollars?|euros?|pesos?|yen)\b|(?:nt|us|hk|sg|au|ca)\$|[$€£¥]|新[臺台]幣|美金|美元|人民幣|日圓|港幣|元/iu;
+      const currencyLabels=['currency','currency code','幣別','币别','貨幣','货币'];
+      const currencyClaims=contexts.flatMap(context=>context.headers
+        ?context.headers.flatMap((header,index)=>currencyLabels.includes(header)?[context.cells[index]]:[])
+        :labelOccurrences(context.text,currencyLabels).map(occurrence=>context.text.slice(occurrence.end).split(/[;；|\n。!?]|[.,](?!\d)/u)[0]));
+      if([...claims,...currencyClaims].some(claim=>currency.test(claim)))return {passed:false,detail:'A currency was added to a literal amount whose source has no recorded currency.'};
+    }
     const expected=field.values.flatMap(alternatives),allowed=(field.allowedNumbers||[]).map(Number);
     const accepts=claim=>{
-      const start=claim.replace(/^(?:nt\$|twd|\$)\s*/u,'');
+      const start=field.kind==='number'?claim.replace(/^(?:nt\$|twd|\$)\s*/u,''):claim;
       if(field.kind==='number'){
         const first=/^(?:zero\b|零|[-+]?\d+(?:,\d{3})*(?:\.\d+)?)(?![\p{L}\p{N}_])/u.exec(start);
         if(!first)return false;
@@ -397,7 +409,7 @@ function recordLinkMatches(answer, binding, allBindings) {
 }
 
 // This test-side allowlist is deliberately independent of the runtime planner.
-const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct']);
+const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct','feeRemission']);
 const toolStatusAliases={success:'complete',succeeded:'complete',failed:'error',started:'running',start:'running'};
 const toolStatuses=new Set(['running','complete','unavailable','error','cancelled','skipped']);
 const terminalStatuses=new Set(['complete','unavailable','error','cancelled','skipped']);
@@ -525,6 +537,19 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
   for (const [index,url] of (expected.requiredLinks || []).entries()) {
     const normalized=normalizedLink(url);
     check(`links.required.${index}`,Boolean(normalized) && validLinks.includes(normalized),'The required local destination appears in answer/citation/view.');
+  }
+  if(expected.requiredSourceBindings!==undefined){
+    const bindings=expected.requiredSourceBindings;
+    const valid=Array.isArray(bindings)&&bindings.length<=20&&bindings.every(binding=>binding&&typeof binding==='object'&&!Array.isArray(binding)
+      &&Object.keys(binding).every(key=>['sourceId','url','provenance'].includes(key))&&typeof binding.sourceId==='string'&&binding.sourceId.trim()
+      &&typeof binding.url==='string'&&Boolean(normalizedLink(binding.url))
+      &&(binding.provenance===undefined||typeof binding.provenance==='string'&&binding.provenance.trim()));
+    check('source.bindings.schema',Boolean(valid),'Required source bindings have explicit source IDs, safe destinations and optional provenance.');
+    if(valid)for(const [index,binding]of bindings.entries())check('source.binding.'+index,
+      (Array.isArray(body.citations)?body.citations:[]).some(citation=>citation?.chunkId===binding.sourceId
+        &&normalizedLink(citation.url)===normalizedLink(binding.url)
+        &&(binding.provenance===undefined||citation.provenance===binding.provenance)),
+      'The independently required source is paired with its own destination and provenance.');
   }
   for (const [index,binding] of (expected.requiredRecordLinks || []).entries()) {
     check(`links.record.${index}`,recordLinkMatches(answer,binding,expected.requiredRecordLinks),'The record label is paired with its exact local destination.');

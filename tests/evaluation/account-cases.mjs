@@ -3,6 +3,7 @@ import {DEFAULT_EVAL_NOW,EVAL_IDS,evaluationDates} from './fixtures.mjs';
 import {buildLiveFacilityRepairCases} from './facility-repair-cases.mjs';
 import {buildLiveOutlineCases} from './elearning-outline-fixtures.mjs';
 import {buildDormitoryConductCases,dormitoryConductLiveFixtureKey} from './dormitory-conduct-cases.mjs';
+import {buildPlannedFeeRemissionCases} from './fee-remission-cases.mjs';
 const routes={profile:'/school-affairs/records',courses:'/school-affairs/records',assignments:'/dtm/assignments',dtm:'/dtm',charges:'/school-affairs/services/39-1',tasks:'/school-affairs/records',requests:'/school-affairs/records',serviceRecords:'/school-affairs/services/leave/history',announcements:'/school-affairs',scholarship:'/school-affairs/services/9-1',studentAid:'/school-affairs/services/22-1',housing:'/school-affairs/services/34-1',creditLoadHistory:'/school-affairs/services/11-3',courseSelection:'/school-affairs/services/11-1',academicGrades:'/school-affairs/services/13-1/transcript',graduationReview:'/school-affairs/services/13-1/graduation',academicAttendance:'/school-affairs/services/14-1'};
 const fact=(label,values,kind='text',labels=[])=>({label,labels,kind,values:Array.isArray(values)?values:[values]});
 const capability=(level='native',limitation=null,gap=level==='partial')=>({level,limitation,gap});
@@ -22,7 +23,7 @@ function liveDormitoryCases() {
       :field.label==='housing fee'?{...field,labels:['accommodation fee']}
       :field.label==='tuition balance'?{...field,labels:['balance','remaining','total remaining']}
       :field);
-    const {requiredText,limitation,...contract}=row.expected;
+    const {requiredText:_requiredText,limitation:_limitation,...contract}=row.expected;
     return {id:'account:dormitory-conduct-'+suffix,domain:'dormitoryConduct',route:row.route,question:row.question,
       ...(row.history?{history:row.history}:{}),language:row.language,mode:'record',fixtureKey:row.fixtureKey,fixtureRequirement:'native_dormitory_conduct',
       expected:{...contract,facts,requiredText:limit?[{anyOf:limit}]:[],...(limit?{limitation:true}:{}),
@@ -33,9 +34,10 @@ function liveDormitoryCases() {
       },capability:capability()};
   });
 }
-export function buildAccountCases({now=DEFAULT_EVAL_NOW}={}){
+export function buildAccountCases({now=DEFAULT_EVAL_NOW,includePlannedFeeRemission=false}={}){
+  if(typeof includePlannedFeeRemission!=='boolean')throw new TypeError('Planned fee-remission inclusion must be explicit.');
   if(!Number.isFinite(Date.parse(now)))throw new Error('Evaluation now must be a valid timestamp.');
-  const cases=[...buildLiveFacilityRepairCases({now}),...buildLiveOutlineCases(),...liveDormitoryCases()],dates=evaluationDates(now);
+  const cases=[...buildLiveFacilityRepairCases({now}),...buildLiveOutlineCases(),...liveDormitoryCases(),...(includePlannedFeeRemission?buildPlannedFeeRemissionCases():[])],dates=evaluationDates(now);
   function add(id,domain,question,options={}){
     const {behavior='answer',mode='record',requiredText=[],forbiddenText=[],requiredLinks=[],requiredTools=[domain],provenance='local',facts=[],fixtureKey=domain,route=routes[domain]||'/school-affairs/records',history,language='en',level='native',limitation=null,gap=level==='partial',fixtureRequirement,...extra}=options;
     if(facts.some(row=>row.kind==='date')&&!question.includes('YYYY-MM-DD'))question+=' Use YYYY-MM-DD for dates.';

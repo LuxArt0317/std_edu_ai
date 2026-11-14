@@ -229,7 +229,9 @@ test('pure formatter is compatible with all three actual reader envelopes and do
   for(const secret of [owner,submissionId,currentId,id(99),account.token,account.key,'Private Name','Private Department'])assert.equal(JSON.stringify(result).includes(secret),false,secret);
   const module=await readFile(new URL('../../server/supplementalAccountAnswers.js',import.meta.url),'utf8');
   assert.doesNotMatch(module,/\b(?:fetch|loadSyllabusSearch|loadEnrollmentCertificate|createClient)\s*\(/m);
-  assert.deepEqual([...module.matchAll(/^import .+ from '([^']+)';$/gm)].map(match=>match[1]),['./aidPaymentsContract.js']);
+  assert.deepEqual([...module.matchAll(/^import .+ from '([^']+)';$/gm)].map(match=>match[1]),[
+    './aidPaymentsContract.js','./feeRemissionContract.js',
+  ]);
 });
 
 test('certificate pending-fee flag never overrides independent status or claims issuance',async()=>{

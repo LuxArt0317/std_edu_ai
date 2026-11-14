@@ -3,6 +3,7 @@
  * corresponding institutional workflow exists. No runtime or DB writes here.
  */
 import {schoolServiceEntries} from '../../src/features/public/affairs/studentServices.js';
+import {buildPlannedFeeRemissionCases} from './fee-remission-cases.mjs';
 
 const concepts = {
   '1-1':'password-change preparation','2-1':'campus announcement email preferences',
@@ -69,6 +70,7 @@ const overrides = {
   '15-2':native('graduationReview',['graduationReview'],'Legacy reference report only. No substitution with the modern report.'),
   '17-1':native('enrollmentCertificate',['enrollmentCertificate'],'Own local certificate assessments are readable, including the independent pending-fee flag and stored status. Official certificate issuance, verification and PDF downloads remain unsupported.'),
   '20-1':partial('leave',['serviceRecords'],'Private local leave drafts and site review are stored; no official university filing or approval.'),
+  '21-3':partial('feeRemission',['feeRemission'],'Native account-owned literal fee-remission history exists. Its independent assistant cases are planned; live fixture adapter and deployed semantic acceptance remain pending. No official payment, eligibility, certificate or submission is implied.'),
   '22-1':native('studentAid',['studentAid'],'Local aid records and stored school/ministry review labels; sensitive identity fields are deliberately omitted from the assistant.'),
   '26-1':native('housing',['housing'],'Local application receipts and accommodation assignments; health/contact fields are omitted from the assistant.'),
   '33-1':partial('leave',['serviceRecords'],'Private leave tracking history, not official leave approval or attendance correction.'),
@@ -167,6 +169,16 @@ function entryCase(entry,capability,mode,question,expected,fixtureKey) {
 export function buildServiceCases() {
   return schoolServiceEntries.flatMap(entry=>{
     const capability=serviceCapabilities[entry.id],check=recordChecks[entry.id];
+    if(entry.id==='21-3'){
+      const planned=buildPlannedFeeRemissionCases(),select=(suffix,mode)=>{
+        const source=planned.find(row=>row.id==='account:fee-remission-'+suffix);
+        if(!source)throw new Error('Missing planned fee-remission service criterion.');
+        return {...structuredClone(source),id:`service:${entry.id}:${mode}`,mode,
+          capability:{...source.capability,level:capability.level,limitation:capability.limitation}};
+      };
+      return [entryCase(entry,capability,'navigation',`請給我「${entry.title}」在 stu.best 的連結。`,baseExpected('navigation',{requiredLinks:[entry.localUrl]}),'directory'),
+        select('historical-period','record'),select('empty','empty'),select('write-boundary','action-boundary')];
+    }
     const unavailableFixture=`unavailable:${capability.domain}`;
     const emptyFixture=`empty:${capability.domain}`;
     const generic=capability.level==='generic-tracker';

@@ -53,7 +53,7 @@ test('required supplemental domains and page followups use account routing witho
     ['Which remote-learning Moodle courses am I enrolled in?','/elearning/my-courses'],['What are my courses?','/elearning/my-courses']];
   for(const [question,route]of cases){let calls=0;
     const result=await invoke(base({answerAccount:async options=>{calls++;assert.equal(options.question,question);assert.equal(options.route,route);
-      assert.deepEqual(Object.keys(options.supplementalReaders??{}),['courseCatalog','enrollmentCertificate','dtmSubmissions','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','tuition']);return answer;}}),{question,route});
+      assert.deepEqual(Object.keys(options.supplementalReaders??{}),['courseCatalog','enrollmentCertificate','dtmSubmissions','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','tuition']);return answer;}}),{question,route});
     assert.equal(result.status,200,question);assert.equal(calls,1,question);
   }
 });

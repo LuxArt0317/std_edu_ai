@@ -12,6 +12,7 @@ import {readDormitoryConductEvidence} from '../../server/accountDormitoryConduct
 import {readElearningOutlineEvidence} from '../../server/accountElearningOutlineEvidence.js';
 import {readElearningEvidence} from '../../server/accountElearningEvidence.js';
 import * as dormIntent from '../../server/dormitoryConductEvidenceIntent.js';
+import * as feeIntent from '../../server/feeRemissionEvidenceIntent.js';
 import * as outlineIntent from '../../server/elearningOutlineEvidenceIntent.js';
 import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
 
@@ -266,12 +267,13 @@ test('browser dispatch uses the common verified endpoint before direct responder
   runInNewContext(code,{exports,require:(specifier:string)=>{
     if(specifier.endsWith('dormitoryConductEvidenceIntent.js'))return dormIntent;
     if(specifier.endsWith('elearningOutlineEvidenceIntent.js'))return outlineIntent;
+    if(specifier.endsWith('feeRemissionEvidenceIntent.js'))return feeIntent;
     if(specifier.endsWith('assistantStreamReader.js'))return {readAssistantReply};
     if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{getSession:async()=>({data:{session:{user:{id:sessionOwner},access_token:'BROWSER_TOKEN'}},error:null})}}};
     return new Proxy({},{get:()=>()=>false});
   },fetch:async(url:string,init:RequestInit)=>{requests.push({url,body:JSON.parse(String(init.body)),token:(init.headers as Record<string,string>).Authorization});return Response.json({status:'answered',answer:'Verified endpoint',citations:[]});}});
-  for(const [question,route]of [[dormQuestion,dormRoute],[outlineQuestion+' Also show my tuition balance.',outlineRoute]])assert.equal((await exports.askSchoolAffairsAssistant(owner,question,[],undefined,[],route)).answer,'Verified endpoint');
-  assert.equal(requests.length,2);for(const request of requests){assert.equal(request.url,'/api/affairs-assistant');assert.equal(request.token,'Bearer BROWSER_TOKEN');}
+  for(const [question,route]of [[dormQuestion,dormRoute],[outlineQuestion+' Also show my tuition balance.',outlineRoute],['Show my fee remission and my tuition balance.','/school-affairs/services/21-3']])assert.equal((await exports.askSchoolAffairsAssistant(owner,question,[],undefined,[],route)).answer,'Verified endpoint');
+  assert.equal(requests.length,3);for(const request of requests){assert.equal(request.url,'/api/affairs-assistant');assert.equal(request.token,'Bearer BROWSER_TOKEN');}
   assert.equal(source.includes('answerElearningOutline'),false);
-  sessionOwner='52000000-0000-4000-8000-000000000002';await assert.rejects(()=>exports.askSchoolAffairsAssistant(owner,dormQuestion,[],undefined,[],dormRoute),/account changed/u);assert.equal(requests.length,2);
+  sessionOwner='52000000-0000-4000-8000-000000000002';await assert.rejects(()=>exports.askSchoolAffairsAssistant(owner,dormQuestion,[],undefined,[],dormRoute),/account changed/u);assert.equal(requests.length,3);
 });

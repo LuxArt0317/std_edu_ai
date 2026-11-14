@@ -1,13 +1,13 @@
 import type {VerificationProgress} from './answerVerification.js';
 import type {CatalogEvidenceQuery} from './accountCatalogEvidence.js';
 import type {SupplementalEvidenceResult} from './supplementalAccountAnswers.js';
-export type SupplementalAccountTool='courseCatalog'|'enrollmentCertificate'|'dtmSubmissions'|'tuition'|'studentConduct'|'studentLoan'|'aidPayments'|'dtmGradeReport'|'elearningEnrollments'|'facilityRepairs'|'dormitoryConduct'|'elearningOutline';
+export type SupplementalAccountTool='courseCatalog'|'enrollmentCertificate'|'dtmSubmissions'|'tuition'|'studentConduct'|'studentLoan'|'aidPayments'|'dtmGradeReport'|'elearningEnrollments'|'facilityRepairs'|'dormitoryConduct'|'elearningOutline'|'feeRemission';
 export type SupplementalAccountReadContext={question:string;route:string;history:Array<{role:string;content:string}>;snapshot:Record<string,any>;deadline:number;catalogQuery?:CatalogEvidenceQuery};
 export type SupplementalAccountReaders=Partial<Record<SupplementalAccountTool,(context:SupplementalAccountReadContext)=>Promise<SupplementalEvidenceResult>>>;
 export const supplementalAccountTools:Readonly<Record<SupplementalAccountTool,string>>;
 export const supplementalEvidenceBudget:54000;
 export function facilityRepairLookupContext(question:string,route?:string,history?:Array<{role:string;content:string}>):{selected:boolean;repairOnly:boolean;scheduleOnly:boolean;otherQuestion:string;repairQuestion:string};
-export function nativePageLookupContext(question:string,route?:string,history?:Array<{role:string;content:string}>):{tools:Array<'dormitoryConduct'|'elearningOutline'>;selected:boolean;readerOnly:boolean;otherQuestion:string;questions:Partial<Record<'dormitoryConduct'|'elearningOutline',string>>;foreign:boolean};
+export function nativePageLookupContext(question:string,route?:string,history?:Array<{role:string;content:string}>):{tools:Array<'dormitoryConduct'|'elearningOutline'|'feeRemission'>;selected:boolean;readerOnly:boolean;otherQuestion:string;questions:Partial<Record<'dormitoryConduct'|'elearningOutline'|'feeRemission',string>>;foreign:boolean;feeAndBalance:boolean;feeChargeLabel:string|null};
 export const catalogReadPlanSchema:Record<string,unknown>;
 export function requiredSupplementalTools(question:string,route?:string,history?:Array<{role:string;content:string}>):SupplementalAccountTool[];
 export function validateCatalogReadPlan(value:unknown):CatalogEvidenceQuery|null;

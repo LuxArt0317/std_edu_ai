@@ -8,6 +8,7 @@ import {isAidPaymentsEvidenceQuestion,isForeignAidPaymentsQuestion} from '../../
 import {isForeignDtmGradesQuestion,shouldReadNativeDtmGrades} from '../../server/dtmGradeEvidenceIntent.js';
 import {isElearningEvidenceQuestion,isForeignElearningRecordsQuestion} from '../../server/elearningEvidenceIntent.js';
 import {isFacilityRepairEvidenceQuestion,isForeignFacilityRepairQuestion} from '../../server/facilityRepairEvidenceIntent.js';
+import {isFeeRemissionEvidenceQuestion} from '../../server/feeRemissionEvidenceIntent.js';
 import {isDormitoryConductEvidenceQuestion} from '../../server/dormitoryConductEvidenceIntent.js';
 import {isElearningOutlineEvidenceQuestion} from '../../server/elearningOutlineEvidenceIntent.js';
 import {counselingGuide,counselingQuestion} from '../../server/counselingContract.js';
@@ -54,7 +55,7 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
     ||isForeignDtmGradesQuestion(question,route)||shouldReadNativeDtmGrades(question,route,history)
     ||isElearningEvidenceQuestion(question,route,history)||isForeignElearningRecordsQuestion(question,route)
     ||isFacilityRepairEvidenceQuestion(question,route,history)||isForeignFacilityRepairQuestion(question)
-    ||isDormitoryConductEvidenceQuestion(question,route,history)||isElearningOutlineEvidenceQuestion(question,route,history))
+    ||isFeeRemissionEvidenceQuestion(question,route,history)||isDormitoryConductEvidenceQuestion(question,route,history)||isElearningOutlineEvidenceQuestion(question,route,history))
     return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress);
   const officer = !images.length ? clubOfficerQuestion(question) : null;
   if (officer) return clubOfficerGuide(question,officer,true);

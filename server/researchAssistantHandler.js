@@ -1,3 +1,4 @@
+import {isOwnFeeBalanceQuestion} from './pendingFeesAnswer.js';
 import { calendarPath, wifiGuidePath } from '../src/features/public/affairs/studentServices.js';
 import { clubStudentGuide,clubStudentQuestion } from './clubStudentContract.js';
 import { clubOfficerGuide,clubOfficerQuestion } from './clubOfficerContract.js';
@@ -16,6 +17,8 @@ import {answerVenue} from './venueBooking.js';
 import {answerRepairGuide} from './facilityRepair.js';
 import {studentProfilePath,studentProfileQuestion} from './studentProfileContract.js';
 import {repairQuestion} from '../src/features/public/affairs/facilityRepair.js';
+import {selectFeeRemissionEvidence} from './feeRemissionEvidenceIntent.js';
+import {feeRemissionPath} from './feeRemissionContract.js';
 import {selectDormitoryConductEvidence} from './dormitoryConductEvidenceIntent.js';
 import {selectElearningOutlineEvidence} from './elearningOutlineEvidenceIntent.js';
 import {isFacilityRepairEvidenceQuestion,isForeignFacilityRepairQuestion} from './facilityRepairEvidenceIntent.js';
@@ -108,6 +111,7 @@ function parse(body) {
         return ['user', 'assistant'].includes(String(item.role)) && typeof item.content === 'string' ? [{ role: String(item.role), content: item.content.slice(0, 2000) }] : [];
     }) : [];
     const route = typeof source.route === 'string' && (/^\/school-affairs(?:\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?$/.test(source.route)||
+        /^\/school-affairs\/services\/21-3\/?$/.test(source.route)||
         (source.route.startsWith('/school-affairs/services/34-2')&&selectDormitoryConductEvidence('Show my records.',source.route)?.reason===null)||
         (source.route.startsWith('/school-affairs/services/45-1/history')&&isFacilityRepairEvidenceQuestion('What is its status?',source.route))||
         /^\/elearning(?:\/(?:category|notice)\/[1-9]\d{0,9}|\/(?:categories|my-courses|login|search))?\/?$/.test(source.route)||
@@ -321,6 +325,24 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const stream = createAssistantStream(input.stream, response);
+        if(isOwnFeeBalanceQuestion(input.question)){
+            const zh=/[\u3400-\u9fff]/u.test(input.question), url='/school-affairs/login?next='+encodeURIComponent('/school-affairs/services/39-1');
+            const title=zh?'登入後查看待繳費用':'Sign in to check your saved fee balance';
+            stream.send(200,{status:'handoff',answer:'['+title+']('+url+')',
+                citations:[{chunkId:'directory:pending-fees',title,url,claim:title,sourceName:'School Affairs'}],
+                suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
+            return;
+        }
+        const feeRemission=selectFeeRemissionEvidence(input.question,input.route,input.history);
+        if(feeRemission){
+            const zh=/[\u3400-\u9fff]/u.test(input.question), url='/school-affairs/login?next='+encodeURIComponent(feeRemissionPath);
+            const foreign=feeRemission.reason==='foreign_request';
+            const title=zh?'登入後查看學雜費減免紀錄':'Sign in to view fee-remission history';
+            const answer=foreign?(zh?'我只能協助查詢您自己的學雜費減免紀錄。':'I can only help you check fee-remission records for your own account.'):'['+title+']('+url+')';
+            stream.send(200,{status:'handoff',answer,citations:foreign?[]:[{chunkId:'directory:fee-remission',title,url,claim:title,sourceName:'School Affairs'}],
+                suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
+            return;
+        }
         const dormitory=selectDormitoryConductEvidence(input.question,input.route,input.history);
         const remoteOutline=selectElearningOutlineEvidence(input.question,input.route,input.history);
         if(dormitory||remoteOutline){

@@ -3,3 +3,4 @@ export function answerPendingFees(question:string,snapshot:Record<string,unknown
 export function isPendingFeeQuestion(question:string,route?:string,history?:Array<{role:string;content:string}>):boolean;
 
 export function isOwnFeeBalanceQuestion(question:string):boolean;
+export function ownFeeBalanceLabel(question:string):string|null;

@@ -2,8 +2,10 @@
  * envelopes. This is not an authorization boundary or a verification verdict.
  * Never pass raw RPC results, a workspace snapshot, or browser input here. */
 import {aidPaymentsFields,aidPaymentsPaths} from './aidPaymentsContract.js';
+import {feeRemissionFields,feeRemissionPath} from './feeRemissionContract.js';
 export const supplementalAnswerLimits=Object.freeze({answerCharacters:8000,resultBytes:24000,views:3,viewRows:12});
 const definitions={
+  'account:feeRemission':{title:['Saved fee-remission history','已儲存學雜費減免歷史'],path:feeRemissionPath},
   'account:dormitoryConduct':{title:['Saved dormitory-conduct notice','已儲存宿舍獎懲通知'],path:'/school-affairs/services/34-2'},
   'account:elearningOutline':{title:['Saved remote-learning course outline','已儲存數位學園課程大綱'],path:'/elearning'},
   'account:facilityRepairs':{title:['Saved facility repair records','已儲存設施報修紀錄'],path:'/school-affairs/services/45-1/history'},
@@ -37,6 +39,41 @@ const outlineCourse=id=>'/elearning/course/'+id;
 const outlineActivity=(course,id)=>outlineCourse(course)+'/activity/'+id;
 const outlineText=(value,max)=>gradeString(value,max)&&value.trim().length>0&&!/[\p{Cc}]/u.test(value);
 const sameText=(left,right)=>left.normalize('NFKC').trim().toLowerCase()===right.normalize('NFKC').trim().toLowerCase();
+const remissionCell=(value,max)=>value===null||gradeString(value,max*2)&&[...value].length<=max;
+function validateFeeRemissionPayload(envelope,p,evidence){
+  const s=p.selection,c=p.counts,periodKeys=['academic_year_text','semester_text'];
+  if(!exact(envelope,['readState','reason','evidence'])||!exact(evidence,['id','title','url','urls','provenance','content'])||bytes(envelope)>16000
+    ||!exact(p,['collection','checkedAt','readState','reason','selection','counts','complete','records','periodChoices','periodChoicesOmitted','provenance','capability','rules'])
+    ||p.collection!=='feeRemission'||p.readState!==envelope.readState||p.reason!==envelope.reason||!gradeString(p.rules)
+    ||evidence.provenance!=='saved_local'||evidence.url!==feeRemissionPath||!Array.isArray(evidence.urls)||evidence.urls.length!==1||evidence.urls[0]!==feeRemissionPath
+    ||!exact(p.provenance,['source','officialUniversityData','synchronized'])||p.provenance.source!=='saved_local'||p.provenance.officialUniversityData!==false||p.provenance.synchronized!==false
+    ||!exact(p.capability,['literalHistory','payment','eligibility','document','write'])||p.capability.literalHistory!==true
+    ||['payment','eligibility','document','write'].some(key=>p.capability[key]!==false)
+    ||!Array.isArray(p.records)||p.records.length>250||typeof p.complete!=='boolean'
+    ||!Array.isArray(p.periodChoices)||p.periodChoices.length>20||!integer(p.periodChoicesOmitted)||p.periodChoicesOmitted>230
+    ||p.periodChoices.some(period=>!exact(period,periodKeys)||periodKeys.some(key=>!remissionCell(period[key],40)))
+    ||new Set(p.periodChoices.map(period=>JSON.stringify(period))).size!==p.periodChoices.length)invalid();
+  if(s!==null&&(!exact(s,['from','academicYear','semester','currentTerm','studentNumber','operation','document','reason'])
+    ||!['question','route','history'].includes(s.from)||!remissionCell(s.academicYear,40)||!remissionCell(s.semester,40)
+    ||['currentTerm','studentNumber','operation','document'].some(key=>typeof s[key]!=='boolean')
+    ||![null,'invalid_route','foreign_request','invalid_period','ambiguous_period'].includes(s.reason)))invalid();
+  if(p.readState==='unavailable'){
+    if(typeof p.reason!=='string'||!p.reason||c!==null||p.complete||p.records.length||s?.reason&&p.reason!==s.reason
+      ||s?.operation&&!s.reason&&p.reason!=='unsupported_operation')invalid();
+    if(p.reason==='current_term_not_designated'){
+      if(!s||!s.currentTerm||s.reason!==null||s.operation||p.periodChoicesOmitted>0&&p.periodChoices.length!==20)invalid();
+    }else if(p.periodChoices.length||p.periodChoicesOmitted)invalid();
+    return;
+  }
+  if(!s||s.reason!==null||s.currentTerm||s.operation||p.periodChoices.length||p.periodChoicesOmitted
+    ||!exact(c,['available','matching','included','omitted'])||Object.values(c).some(value=>!integer(value))||c.available>250
+    ||c.matching>c.available||c.included!==p.records.length||c.included>c.matching||c.omitted!==c.matching-c.included
+    ||s.academicYear===null&&s.semester===null&&c.matching!==c.available||p.complete!==(c.omitted===0)
+    ||p.readState!==(c.omitted?'partial':c.matching?'ok':'empty')||p.reason!==(c.omitted?'excerpted':null))invalid();
+  const fields=feeRemissionFields.filter(([key])=>key!=='student_number'||s.studentNumber);
+  for(const record of p.records)if(!exact(record,fields.map(([key])=>key))||fields.some(([key,,max])=>!remissionCell(record[key],max))
+    ||s.academicYear!==null&&record.academic_year_text!==s.academicYear||s.semester!==null&&record.semester_text!==s.semester)invalid();
+}
 function validateDormitoryPayload(envelope,p,evidence){
   const s=p.selection;
   if(!exact(p,['collection','checkedAt','readState','selection','metadataState','provenance','counts','record','capability','reason','rules'])
@@ -253,6 +290,7 @@ function validateGradePayload(envelope,p,evidence){
 }
 const invalid=()=>{throw new TypeError('Use validated supplemental account evidence envelopes.');};
 function allowedUrl(id,url){
+  if(id==='account:feeRemission')return url===feeRemissionPath;
   if(id==='account:dormitoryConduct')return url===definitions[id].path;
   if(id==='account:elearningOutline'){
     if(url==='/elearning')return true;
@@ -283,7 +321,8 @@ function parse(envelope){
   if(evidence.urls!==undefined&&(!Array.isArray(evidence.urls)||evidence.urls.some(url=>!allowedUrl(id,url))))invalid();
   let payload;try{payload=JSON.parse(evidence.content);}catch{invalid();}
   if(!object(payload)||typeof payload.checkedAt!=='string'||!Number.isFinite(Date.parse(payload.checkedAt)))invalid();
-  if(id==='account:dormitoryConduct')validateDormitoryPayload(envelope,payload,evidence);
+  if(id==='account:feeRemission')validateFeeRemissionPayload(envelope,payload,evidence);
+  else if(id==='account:dormitoryConduct')validateDormitoryPayload(envelope,payload,evidence);
   else if(id==='account:elearningOutline')validateOutlinePayload(envelope,payload,evidence);
   else if(id==='account:facilityRepairs')validateRepairPayload(envelope,payload,evidence);
   else if(id==='account:elearningEnrollments'){
@@ -396,6 +435,40 @@ function sectionFor(parsed,question,zh){
     if(!integer(total))invalid();
     section.view={id:id.slice(8),title,url:evidence.url,columns,rows:[],total,checkedAt:p.checkedAt,note};
   };
+  if(id==='account:feeRemission'){
+    // A verified read limitation is an answer candidate, never a successful data
+    // read. Keep completeness false and require independent source review.
+    section.usable=true;
+    section.lead.push(t('These are saved local fee-remission cells at service 21-3, not proof of official university synchronization, approval or payment. Amount and check status are independent literal text; no deduction from your tuition balance has been calculated.',
+      '以下為 21-3 服務儲存的站內學雜費減免欄位，不能證明校方同步、核准或付款。金額與檢核狀態是獨立的原文欄位；未計算或扣減您的學費餘額。'));
+    if(/paid|payout|disburse|bank|付款|撥款|入帳/iu.test(question))section.lead.push(t('Official payout: not verified by these saved cells.','校方實際撥款：這些已儲存欄位未提供驗證。'));
+    if(/eligib|qualify|qualifies|資格|符合/iu.test(question))section.lead.push(t('Official eligibility: not verified by these saved cells.','校方資格：這些已儲存欄位未提供驗證。'));
+    if(p.selection?.document)section.lead.push(t('I cannot provide an official certificate or download a verified document. No document issuance was performed by this lookup.','此查詢不能核發或下載可驗證文件；本次查詢未執行文件核發。'));
+    if(envelope.readState==='unavailable'){
+      section.lead.push(envelope.reason==='foreign_request'?t('I cannot access another student’s fee-remission records. No other account was read.','無法存取其他學生的學雜費減免紀錄；未讀取其他帳戶。')
+        :envelope.reason==='unauthorized'?t('Sign in to read your own saved fee-remission history. No account records were read.','請登入以讀取自己的學雜費減免歷史；尚未讀取帳戶紀錄。')
+        :envelope.reason==='unsupported_operation'?t('I cannot change, modify or delete these records, and cannot submit, approve, pay or refund. No change or transaction was performed.','此查詢不能申請、送出、核准、修改、刪除、付款或退款；未執行任何變更或交易。')
+        :envelope.reason==='current_term_not_designated'?t('The current term is not designated in saved fee-remission history. Please specify the exact saved academic year and semester labels; the highest year does not establish the current term. No amount or status was selected for a current term.',
+          '儲存的學雜費減免歷史沒有「目前學期」指定資料。請提供確切已儲存學年及學期標籤；最大學年不代表目前學期。尚未選出目前學期的金額或狀態。')
+        :['invalid_period','ambiguous_period'].includes(envelope.reason)?t('Please specify one exact academic-year and semester label, quoting nonnumeric labels when needed. No matching records or amounts were established by this selection.','請指定一組確切學年及學期標籤，非數字標籤可加引號；此選擇尚未確認符合的紀錄或金額。')
+        :t('The fee remission history is unavailable. Whether records exist, and their amounts or check statuses, remain unknown; this is not a successful empty read.',
+          '無法查詢學雜費減免歷史；是否有紀錄、金額及檢核狀態仍未知，不能視為成功查得空白紀錄。'));
+      for(const period of p.periodChoices){group(t('Available saved period','可選已儲存期間'),period.academic_year_text);item(t('Academic year','學年'),period.academic_year_text);item(t('Semester','學期'),period.semester_text);}
+      if(p.periodChoicesOmitted)section.lead.push(t(`${p.periodChoicesOmitted} additional saved period choices were omitted. This is not the full period list.`,`另略去 ${p.periodChoicesOmitted} 個已儲存期間選項，並非完整期間清單。`));
+      return section;
+    }
+    const c=p.counts;section.complete=p.complete;
+    section.lead.push(t(`Remission record count in this local read: ${c.available}. Matching remission records: ${c.matching}. Included: ${c.included}. Omitted: ${c.omitted}.`,
+      `本次站內減免紀錄筆數：${c.available}。符合條件：${c.matching}。納入：${c.included}。略去：${c.omitted}。`));
+    if(!c.matching)section.lead.push(c.available===0?t('No saved remission records were returned by this successful local read. This does not establish that no history exists elsewhere.','這次成功的站內查詢未回傳已儲存減免紀錄，不代表其他系統沒有歷史。')
+      :t('No matching saved remission records were returned for the exact selected period. Other saved periods remain separate.','所選確切期間未回傳符合的已儲存減免紀錄；其他已儲存期間另計。'));
+    if(c.omitted)section.lead.push(t('Evidence omits whole matching records. Their values remain unknown; this is not the complete selected history.','證據略去部分完整符合紀錄，其欄位值仍未知，並非完整所選歷史。'));
+    const fields=feeRemissionFields.filter(([key])=>key!=='student_number'||p.selection.studentNumber);
+    const labels={academic_year_text:t('Academic year','學年'),semester_text:t('Semester','學期'),student_number:t('Student number','學號'),category_text:t('Category','類別'),amount_text:t('Amount','金額'),check_status_text:t('Check status','檢核狀態'),notes_text:t('Notes','備註說明')};
+    view(fields.map(([key])=>labels[key]),c.included,t('Literal saved cells; not recorded differs from blank and from the text 0. No payment, eligibility or balance is inferred.','已儲存原文欄位；未記錄、空字串與文字 0 不同。未推論付款、資格或餘額。'));
+    for(const record of p.records){group(t('Fee remission record','減免紀錄'),record.category_text);for(const [key,,max]of fields)item(labels[key],record[key],false,max*2);section.viewCandidates.push(row(...fields.map(([key])=>record[key])));}
+    return section;
+  }
   if(id==='account:dormitoryConduct'){
     section.lead.push(t('This is the saved local_demo dormitory-conduct notice at service 34-2, separate from housing and general student conduct. It does not establish official clearance, eligibility or an absence of misconduct.',
       '這是 34-2 服務儲存的 local_demo 宿舍獎懲通知，與住宿資料及學生個人獎懲分開；不能據此認定校方證明、資格或從未違規。'));
@@ -834,7 +907,7 @@ export function formatSupplementalAccountAnswers(results,{question='',language:r
     const groups=new Map();for(const item of section.items){if(!groups.has(item.group))groups.set(item.group,[]);groups.get(item.group).push(item);}
     section.items=[...groups.values()].flatMap(items=>items.sort((a,b)=>Number(b.header)-Number(a.header)||preferred(a.label)-preferred(b.label)));
   }
-  const topics={'account:dormitoryConduct':/dormitory|dorm|宿舍/iu,'account:elearningOutline':/outline|video|slides|activities|section|feedback|大綱|影片|簡報|活動|章節|回饋/iu,'account:facilityRepairs':/repair|maintenance|報修|报修|修繕/iu,'account:dtmGradeReport':/moodle|dtm|grade report|gradebook|成績報告|成绩报告/iu,'account:aidPayments':/student aid|financial aid|salary|payroll|助學|薪資|工讀/iu,'account:studentConduct':/conduct|disciplin|獎懲/iu,'account:studentLoan':/loan|貸款|學貸/iu,'account:courseCatalog':/catalog|syllabus|offering|課綱|大綱|開課/iu,'account:enrollmentCertificate':/certificate|enrolment|enrollment|在學|在籍|學籍證明/iu,'account:dtmSubmissions':/file|upload|submission|assignment|feedback|作業|檔案|評語|上傳/iu,'account:tuition':/tuition|settlement|statement|summer|evening|學費|結算|暑修|進修部|延修/iu};
+  const topics={'account:feeRemission':/fee.remission|tuition.reduction|減免|减免/iu,'account:dormitoryConduct':/dormitory|dorm|宿舍/iu,'account:elearningOutline':/outline|video|slides|activities|section|feedback|大綱|影片|簡報|活動|章節|回饋/iu,'account:facilityRepairs':/repair|maintenance|報修|报修|修繕/iu,'account:dtmGradeReport':/moodle|dtm|grade report|gradebook|成績報告|成绩报告/iu,'account:aidPayments':/student aid|financial aid|salary|payroll|助學|薪資|工讀/iu,'account:studentConduct':/conduct|disciplin|獎懲/iu,'account:studentLoan':/loan|貸款|學貸/iu,'account:courseCatalog':/catalog|syllabus|offering|課綱|大綱|開課/iu,'account:enrollmentCertificate':/certificate|enrolment|enrollment|在學|在籍|學籍證明/iu,'account:dtmSubmissions':/file|upload|submission|assignment|feedback|作業|檔案|評語|上傳/iu,'account:tuition':/tuition|settlement|statement|summer|evening|學費|結算|暑修|進修部|延修/iu};
   const rankedViews=sections.filter(section=>section.view).map((section,index)=>({section,index,match:question.search(topics[section.id])})).sort((a,b)=>Number(b.match>=0)-Number(a.match>=0)||Number(b.section.viewCandidates.length>0)-Number(a.section.viewCandidates.length>0)||(a.match>=0&&b.match>=0?a.match-b.match:0)||a.index-b.index);
   const selectedSet=new Set(rankedViews.slice(0,supplementalAnswerLimits.views).map(value=>value.section));
   const selectedViews=sections.filter(section=>selectedSet.has(section));
@@ -843,7 +916,7 @@ export function formatSupplementalAccountAnswers(results,{question='',language:r
   let omittedItems=sections.reduce((total,section)=>total+section.items.length,0),omittedViewRows=sections.reduce((total,section)=>total+section.viewCandidates.length,0);
   const result=()=>({status:sections.some(section=>section.usable)?'answered':'abstained',answer:sections.map(section=>[
     section.title,...section.lead,...section.shown.map(item=>(section.id==='account:elearningOutline'&&item.group&&!item.header?'\n  - '
-      :['account:dtmGradeReport','account:elearningEnrollments','account:facilityRepairs'].includes(section.id)&&item.group&&!item.header?'  - ':'- ')+item.text),
+      :['account:dtmGradeReport','account:elearningEnrollments','account:facilityRepairs','account:feeRemission'].includes(section.id)&&item.group&&!item.header?'  - ':'- ')+item.text),
     (section.limited||section.shown.length<section.items.length||section.viewCandidates.length>(section.view?.rows.length??0))
       ?(zh?'顯示內容已節錄，省略部分不代表沒有紀錄。':'Display excerpt: omitted fields or rows do not establish absence.'):null,
     section.view&&!section.viewSelected?(zh?'此來源表格因三張表格的顯示上限省略，文字結果與來源連結仍保留。':'This source table is omitted by the three-table display limit; its text result and source link remain available.'):null,

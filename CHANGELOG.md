@@ -12,6 +12,7 @@
 - Require the live evaluation to match the deployed revision before fixture setup and throughout the test run. [#100]
 - Verify saved facility repair status and handling notes alongside the next class when both are requested. Preserve the report link and the limit on what a saved status can establish. [#100]
 - Read only the signed-in account’s fee records for straightforward balance questions, including when a second verification check is needed. [#100]
+- Verify saved tuition-remission history in chat and show it alongside the fee balance when requested. Preserve literal academic periods, blank amounts and zero. Give signed-out students a link to sign in. [#100]
 - Verify saved dormitory notices and remote-learning activity links in signed-in chat. Preserve separate housing, tuition and enrollment answers when requested together. [#100]
 
 - Add student club and activity search, private participation history, and new-club applications with administrator review and assistant links. [#98]

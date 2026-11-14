@@ -17,8 +17,16 @@ export function isOwnFeeBalanceQuestion(question) {
   if(typeof question!=='string')return false;
   const text=question.normalize('NFKC').trim().replace(/[?.!。！？]+$/u,'').trim();
   return /^how much do i (?:still )?owe(?: (?:at|in|for) (?:the )?school)?$/iu.test(text)
-    || /^(?:(?:please )?(?:show(?: me)?|list|tell me|check)|what is|what's|how much is) my (?:(?:remaining|outstanding|unpaid|pending) )?(?:(?:school|tuition) )?(?:fees?|charges|balance)(?: (?:at|in|for) (?:the )?school)?$/iu.test(text)
+    || /^(?:(?:(?:please )?(?:show(?: me)?|list|tell me|check)|what is|what's|how much is) )?my (?:(?:remaining|outstanding|unpaid|pending) )?(?:(?:school|tuition) )?(?:fees?|charges|balance)(?: (?:at|in|for) (?:the )?school)?$/iu.test(text)
     ||/^(?:請問|請查詢|幫我查|顯示)?(?:我(?:的|目前)?)(?:學雜費|學費|費用|待繳)(?:還(?:要繳|有|欠)|尚欠|剩餘|待繳|餘額|還剩)?(?:多少|金額|明細)?$/u.test(text);
+}
+
+/** Restrict a named balance to one literal saved charge label. */
+export function ownFeeBalanceLabel(question) {
+  if(typeof question!=='string')return null;
+  const match=/^(?:what remains unpaid for|(?:(?:what is|show me) )?(?:my|the) unpaid balance (?:of|for)|how much is unpaid for) (.{3,160}?)\s*[?!.]?$/iu.exec(question.trim());
+  if(!match||!/^[\p{L}\p{N}][\p{L}\p{N} -]*$/u.test(match[1].trim()))return null;
+  return match[1].trim();
 }
 
 export function answerPendingFees(question,snapshot,route='',history=[]) {

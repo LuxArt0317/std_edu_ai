@@ -1,3 +1,6 @@
+import {selectFeeRemissionEvidence,isFeeRemissionPeriodClause} from './feeRemissionEvidenceIntent.js';
+import {feeRemissionEvidenceMaxBytes,unavailableFeeRemissionEvidence} from './accountFeeRemissionEvidence.js';
+import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel} from './pendingFeesAnswer.js';
 import {isStudentConductEvidenceQuestion,studentConductEvidenceMaxBytes} from './accountStudentConductEvidence.js';
 import {isStudentLoanEvidenceQuestion,studentLoanEvidenceMaxBytes} from './accountStudentLoanEvidence.js';
 import {isAidPaymentsEvidenceQuestion,aidPaymentsEvidenceMaxBytes} from './accountAidPaymentsEvidence.js';
@@ -31,12 +34,13 @@ export const supplementalAccountTools=Object.freeze({
   elearningEnrollments:'Saved local remote-learning Moodle course enrollments and joined times. Separate from DTM and School Affairs. Does not contain personal remote-learning grades, assignments, submissions or attendance.',
   facilityRepairs:'Own saved local facility-repair reports and exact status; requested latest saved handling note with unknown event author. Separate from housing and generic service trackers. No cancellation, technician messaging, dispatch or proof of physical repair.',
   dormitoryConduct:'Own saved dormitory conduct notice metadata at34-2, distinct from student conduct and housing beds/fees. Empty notice metadata does not establish complete disciplinary history, clearance or an official document. Read-only.',
+  feeRemission:'Own saved local fee reduction history at service 21-3, with literal year, semester, category, amount and check status. Separate from the charge balance, eligibility, approval and payment. Read-only.',
   elearningOutline:'Authorized local remote-learning course outline, section/activity titles and local video/slides/feedback/attendance-form links. No personal attendance, grades, submissions, video contents or completion records. Read-only.',
 });
-const predicates={courseCatalog:isCatalogEvidenceQuestion,enrollmentCertificate:isCertificateEvidenceQuestion,dtmSubmissions:isSubmissionEvidenceQuestion,tuition:isTuitionEvidenceQuestion,studentConduct:isStudentConductEvidenceQuestion,studentLoan:isStudentLoanEvidenceQuestion,aidPayments:isAidPaymentsEvidenceQuestion,dtmGradeReport:shouldReadNativeDtmGrades,elearningEnrollments:isElearningEvidenceQuestion,facilityRepairs:isFacilityRepairEvidenceQuestion,dormitoryConduct:isDormitoryConductEvidenceQuestion,elearningOutline:isElearningOutlineEvidenceQuestion};
+const predicates={courseCatalog:isCatalogEvidenceQuestion,enrollmentCertificate:isCertificateEvidenceQuestion,dtmSubmissions:isSubmissionEvidenceQuestion,tuition:isTuitionEvidenceQuestion,studentConduct:isStudentConductEvidenceQuestion,studentLoan:isStudentLoanEvidenceQuestion,aidPayments:isAidPaymentsEvidenceQuestion,dtmGradeReport:shouldReadNativeDtmGrades,elearningEnrollments:isElearningEvidenceQuestion,facilityRepairs:isFacilityRepairEvidenceQuestion,dormitoryConduct:isDormitoryConductEvidenceQuestion,elearningOutline:isElearningOutlineEvidenceQuestion,feeRemission:selectFeeRemissionEvidence};
 const keys=Object.keys(supplementalAccountTools),plain=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&[Object.prototype,null].includes(Object.getPrototypeOf(value));
 const bytes=value=>Buffer.byteLength(JSON.stringify(value),'utf8');
-const sourceLimits={courseCatalog:18000,enrollmentCertificate:12000,dtmSubmissions:24000,tuition:16000,studentConduct:studentConductEvidenceMaxBytes,studentLoan:studentLoanEvidenceMaxBytes,aidPayments:aidPaymentsEvidenceMaxBytes,dtmGradeReport:dtmGradeReportEvidenceMaxBytes,elearningEnrollments:elearningEvidenceMaxBytes,facilityRepairs:facilityRepairEvidenceMaxBytes,dormitoryConduct:dormitoryConductEvidenceMaxBytes,elearningOutline:elearningOutlineEvidenceMaxBytes};
+const sourceLimits={courseCatalog:18000,enrollmentCertificate:12000,dtmSubmissions:24000,tuition:16000,studentConduct:studentConductEvidenceMaxBytes,studentLoan:studentLoanEvidenceMaxBytes,aidPayments:aidPaymentsEvidenceMaxBytes,dtmGradeReport:dtmGradeReportEvidenceMaxBytes,elearningEnrollments:elearningEvidenceMaxBytes,facilityRepairs:facilityRepairEvidenceMaxBytes,dormitoryConduct:dormitoryConductEvidenceMaxBytes,elearningOutline:elearningOutlineEvidenceMaxBytes,feeRemission:feeRemissionEvidenceMaxBytes};
 export const supplementalEvidenceBudget=54000;
 /** One shared server-side boundary for API snapshot loading and graph planning.
  * Recognized repair clauses do not authorize unrelated account collections.
@@ -68,9 +72,9 @@ export function facilityRepairLookupContext(question,route='',history=[]){
  * selectors still decide identity/IDs. Residual text is untrusted query context,
  * never evidence; uncertain clauses stay with the normal planner. */
 export function nativePageLookupContext(question,route='',history=[]){
-  const selections={dormitoryConduct:selectDormitoryConductEvidence(question,route,history),elearningOutline:selectElearningOutlineEvidence(question,route,history)};
+  const selections={dormitoryConduct:selectDormitoryConductEvidence(question,route,history),elearningOutline:selectElearningOutlineEvidence(question,route,history),feeRemission:selectFeeRemissionEvidence(question,route,history)};
   const tools=Object.keys(selections).filter(key=>selections[key]);
-  if(!tools.length)return {tools,selected:false,readerOnly:false,otherQuestion:question,questions:{},foreign:false};
+  if(!tools.length)return {tools,selected:false,readerOnly:false,otherQuestion:question,questions:{},foreign:false,feeAndBalance:false,feeChargeLabel:null};
   const unquoted=value=>value.replace(/["]([^"\n]*)["]|“[^”]*”|「[^」]*」/gu,'');
   const comparative=/\b(?:compare|versus|difference between)\b|比較/iu.test(question);
   const quoted=[];let masked=question.replace(/["]([^"\n]*)["]|“[^”]*”|「[^」]*」/gu,match=>{quoted.push(match);return '\ue000'+(quoted.length-1)+'\ue001';});
@@ -80,19 +84,29 @@ export function nativePageLookupContext(question,route='',history=[]){
     .map(part=>part.replace(/\ue000(\d+)\ue001/gu,(_,index)=>quoted[Number(index)]).trim()).filter(Boolean);
   const collected=Object.fromEntries(tools.map(key=>[key,[]])),other=[];
   const independent=/\b(?:tuition|salary|grades?|gpa|scholarships?|school affairs|student conduct|next (?:scheduled )?class|timetable|class schedule|housing application|housing fees?|assigned beds?|dormitory beds?|enrollments?|joined|dtm|digital teaching materials|unpaid|charges?)\b|學費|薪資|獎學金|校務|學生獎懲|下一堂|課表|住宿申請|住宿費|床位|選課|加入時間|數位教材/iu;
+  const feeClauses=new Set();
+  if(selections.feeRemission){
+    parts.forEach((part,index)=>{if(selectFeeRemissionEvidence(part))feeClauses.add(index);});
+    for(const index of [...feeClauses])for(const direction of [-1,1]){
+      for(let cursor=index+direction;parts[cursor]&&isFeeRemissionPeriodClause(parts[cursor]);cursor+=direction)feeClauses.add(cursor);
+    }
+  }
   let previous=null,suppressed=false;
-  for(const part of parts){
-    if(/^(?:(?:please\s+)?(?:do not|don['’]t|never)\s+(?:show|list|read|check|include)|not(?!\s+only)\b|without\b|exclude\b|excluding\b|except\b|(?:請)?不要(?:顯示|列出|查詢|包含)|排除|不含)/iu.test(part)){
+  for(const [index,part] of parts.entries()){
+    if(/^(?:(?:also|then|separately|please)\s+)*(?:(?:please\s+)?(?:do not|don['’]t|never)\s+(?:show|list|read|check|include)|not(?!\s+only)\b|without\b|exclude\b|excluding\b|except\b|(?:請)?不要(?:顯示|列出|查詢|包含)|排除|不含)/iu.test(part)){
       if(previous&&!independent.test(unquoted(part)))collected[previous].push(part);
       suppressed=true;continue;
     }
     if(suppressed&&!/^(?:(?:also|then|please|now)\s+)*(?:show|list|check|read|tell|explain|include|what|which|where|when|how|can|could|do|does|is|are|compare)\b|^(?:請|還有|現在)?(?:顯示|列出|查詢|告訴|什麼|何時|怎麼|哪)/iu.test(part))continue;
     suppressed=false;
-    const domain=tools.filter(key=>key==='dormitoryConduct'
-      ?Boolean(selectDormitoryConductEvidence(part,'',[]))
-      :Boolean(selectElearningOutlineEvidence(part,route,history)));
+    if(feeClauses.has(index)){collected.feeRemission.push(part);previous='feeRemission';continue;}
+    const domain=tools.filter(key=>key==='dormitoryConduct'?Boolean(selectDormitoryConductEvidence(part,'',[]))
+      :key==='elearningOutline'&&Boolean(selectElearningOutlineEvidence(part,route,history)));
     if(independent.test(unquoted(part))){other.push(part);previous=null;continue;}
     if(domain.length){for(const key of domain)collected[key].push(part);previous=domain.length===1?domain[0]:null;continue;}
+    if(previous==='feeRemission'&&/^(?:(?:(?:show|include|check)\s+)?(?:my|the|its|saved|recorded)\s+)*(?:category|amount|check status|notes?|student (?:number|id)|approval|eligibility|payout|payment|refund)(?:\s+(?:too|separately))?$/iu.test(part)){
+      collected.feeRemission.push(part);continue;
+    }
     if(previous==='dormitoryConduct'&&(/^(?:(?:its|the|my|all|each|every|saved|recorded)\s+)*(?:dates?|reasons?|penalt(?:y|ies)|details?)(?:\s+(?:recorded|saved|for|me|my|account))*$/iu.test(part)
       ||/^(?:its|this notice['’]s|that notice['’]s)\s+(?:(?:downloadable|official|printed|saved)\s+)*(?:certificate|document|pdf|proof)$/iu.test(part))){collected[previous].push(part);continue;}
     if(previous&&(/^(?:(?:list|show|tell|explain|me|all|one|two|three|four|five|six|seven|eight|nine|ten|each|every|with|their|its|the|my|local|exact|saved|recorded)\s+)*(?:links|urls|titles|names|meaning|status|records)[.!?]?$/iu.test(part)
@@ -103,8 +117,11 @@ export function nativePageLookupContext(question,route='',history=[]){
   }
   // A short contextual follow-up can have no independently named subject.
   if(parts.length===1&&!independent.test(unquoted(question))&&tools.length===1){collected[tools[0]]=[question];other.length=0;}
-  const questions=Object.fromEntries(tools.map(key=>[key,collected[key].length?collected[key].join(' and '):question]));
-  return {tools,selected:true,readerOnly:other.length===0,otherQuestion:other.join(' and '),questions,
+  const questions=Object.fromEntries(tools.map(key=>[key,key==='feeRemission'?question:collected[key].length?collected[key].join(' and '):question]));
+  const balanceQuestion=other.length===1?other[0].replace(/^(?:(?:also|then|separately|please)\s+)+|\s+separately$/giu,''):'';
+  const feeChargeLabel=selections.feeRemission?ownFeeBalanceLabel(balanceQuestion):null;
+  const feeAndBalance=Boolean(selections.feeRemission)&&(isOwnFeeBalanceQuestion(balanceQuestion)||feeChargeLabel!==null);
+  return {tools,selected:true,readerOnly:other.length===0,otherQuestion:other.join(' and '),questions,feeAndBalance,feeChargeLabel,
     foreign:tools.some(key=>selections[key].reason==='foreign_request')};
 }
 export function requiredSupplementalTools(question,route='',history=[]){
@@ -135,6 +152,7 @@ function catalogRouteContext(route,question){
   return /^(?:show|list|browse)\s+(?:me\s+)?(?:all\s+)?(?:the\s+)?(?:course\s+)?(?:catalog(?:ue)?|offerings?|available courses)\s*[.!?]?$/i.test(question.trim())||/\b(?:this page|this catalog|these offerings)\b|這個頁面|本頁|這些課程/.test(question);
 }
 function unavailable(key,reason){
+  if(key==='feeRemission')return unavailableFeeRemissionEvidence(reason);
   if(key==='dormitoryConduct')return unavailableDormitoryConductEvidence(reason);
   if(key==='elearningOutline')return unavailableElearningOutlineEvidence(reason);
   if(key==='facilityRepairs')return unavailableFacilityRepairEvidence(reason);
