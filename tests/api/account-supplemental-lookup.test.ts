@@ -44,7 +44,7 @@ async function model(operation:(input:{name:string;payload:any;body:any})=>unkno
 
 test('discoverable supplemental tools preserve the original seventeen snapshot tools',()=>{
   assert.equal(Object.keys(accountTools).length,17);
-  assert.deepEqual(Object.keys(supplementalAccountTools),['courseCatalog','enrollmentCertificate','dtmSubmissions','studentConduct','studentLoan','tuition','aidPayments','dtmGradeReport']);
+  assert.deepEqual(Object.keys(supplementalAccountTools),['courseCatalog','enrollmentCertificate','dtmSubmissions','studentConduct','studentLoan','tuition','aidPayments','dtmGradeReport','elearningEnrollments']);
   assert.ok(accountEvidence(snapshot()).every(source=>!Object.keys(supplementalAccountTools).some(key=>source.id==='account:'+key)));
   assert.deepEqual(requiredSupplementalTools('Show my enrollment certificate and tuition settlement.'),['enrollmentCertificate','tuition']);
 });

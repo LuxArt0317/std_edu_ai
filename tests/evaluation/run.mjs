@@ -15,6 +15,7 @@ import {fixtureForCase} from './fixtures.mjs';
 import {gradeCase} from './grading.mjs';
 import {assessCoverage} from './coverage.mjs';
 import {buildGuidanceReviewBinding,validateGuidanceReview} from './guidance-rubric.mjs';
+import {createPinnedDeploymentVerifier} from './pinned-deployment.mjs';
 
 process.umask(0o077);
 const root=fileURLToPath(new URL('../../',import.meta.url));
@@ -23,8 +24,8 @@ export function options(args){
   const result={mode:'inventory',only:'',domain:'',now:new Date().toISOString(),origin:'https://stu.best',maxCases:Infinity,intervalMs:5500};
   for(let i=0;i<args.length;i++){
     const key=args[i];
-    if(!['--mode','--only','--domain','--now','--origin','--out','--fixture-module','--max-cases','--browser-acceptance','--interval-ms','--review-report','--guidance-reviews','--reviewer'].includes(key)||!args[i+1]||args[i+1].startsWith('--'))throw new Error('Unknown or incomplete option: '+key);
-    const value=args[++i];result[{'--fixture-module':'fixtureModule','--max-cases':'maxCases','--browser-acceptance':'browserAcceptance','--interval-ms':'intervalMs','--review-report':'reviewReport','--guidance-reviews':'guidanceReviews'}[key]||key.slice(2)]=value;
+    if(!['--mode','--only','--domain','--now','--origin','--approved-preview-origin','--out','--fixture-module','--max-cases','--browser-acceptance','--interval-ms','--review-report','--guidance-reviews','--reviewer'].includes(key)||!args[i+1]||args[i+1].startsWith('--'))throw new Error('Unknown or incomplete option: '+key);
+    const value=args[++i];result[{'--fixture-module':'fixtureModule','--max-cases':'maxCases','--browser-acceptance':'browserAcceptance','--interval-ms':'intervalMs','--review-report':'reviewReport','--guidance-reviews':'guidanceReviews','--approved-preview-origin':'approvedPreviewOrigin'}[key]||key.slice(2)]=value;
   }
   if(!['inventory','retrieval','draft','live','review'].includes(result.mode))throw new Error('Mode must be inventory, retrieval, draft, live or review.');
   if(result.mode==='review'){
@@ -32,6 +33,7 @@ export function options(args){
     if(!/^[A-Za-z0-9][A-Za-z0-9_.:@/-]{0,119}$/.test(result.reviewer))throw new Error('Invalid reviewer identity.');
     if(result.only||result.domain||result.fixtureModule||result.maxCases!==Infinity)throw new Error('Review cannot select, rerun or replace cases.');
   }else if(result.reviewReport||result.guidanceReviews||result.reviewer)throw new Error('Independent review inputs require review mode.');
+  if(result.approvedPreviewOrigin&&(result.mode!=='live'||result.origin!==result.approvedPreviewOrigin||result.origin==='https://stu.best'))throw new Error('An approved Preview origin must equal the live target origin.');
   if(!Number.isFinite(Date.parse(result.now)))throw new Error('Provide an ISO evaluation time.');
   if(result.maxCases!==Infinity){result.maxCases=Number(result.maxCases);if(!Number.isInteger(result.maxCases)||result.maxCases<1)throw new Error('max-cases must be a positive integer.');}
   result.intervalMs=Number(result.intervalMs);
@@ -43,8 +45,9 @@ export function options(args){
 export function createLiveRequestPacer(intervalMs=5500,{now=()=>performance.now(),sleep=(ms,signal)=>delay(ms,undefined,{signal})}={}){
   if(!Number.isSafeInteger(intervalMs)||intervalMs<5500||intervalMs>60000)throw new Error('Invalid live pacing interval.');
   let previous=null;
-  return async (start,signal)=>{
+  return async (start,signal,beforeStart)=>{
     if(typeof start!=='function')throw new Error('Live pacing requires a request callback.');
+    if(beforeStart!==undefined&&typeof beforeStart!=='function')throw new Error('Live preflight requires a callback.');
     signal?.throwIfAborted();const current=now();
     if(!Number.isFinite(current)||previous!==null&&current<previous)throw new Error('Live pacing clock must be monotonic.');
     const target=previous===null?current:previous+intervalMs;let observed=current,waited=0;
@@ -54,6 +57,10 @@ export function createLiveRequestPacer(intervalMs=5500,{now=()=>performance.now(
       if(!Number.isFinite(resumed)||resumed<=observed)throw new Error('Live pacing did not reach its scheduled start.');
       observed=resumed;
     }
+    signal?.throwIfAborted();
+    // Check the release after waiting; timestamp the actual POST, not the
+    // potentially slow manifest fetch, to preserve minimum POST spacing.
+    if(beforeStart)await beforeStart();
     signal?.throwIfAborted();
     // Invoke the actual request in this same continuation. A timestamp before
     // returning to the caller could undercount delays before fetch starts.
@@ -240,6 +247,21 @@ export function assessRun(report,{cases,inventory,requestedSuite,sourceRevision,
   if(report.sourceUnchanged!==true)integrity.push({id:'run.sourceChanged',detail:'Release inputs changed during evaluation.'});
   if(report.dirty!==false)integrity.push({id:'run.dirtySource',detail:'The evaluated source has uncommitted changes.'});
   if(report.mode==='live'&&(!report.deployment?.verified||report.deployment.sourceRevision!==sourceRevision))integrity.push({id:'run.deploymentMismatch',detail:'The target deployment could not be matched to the evaluated source revision.'});
+  if(report.injectedDependencies===true)integrity.push({id:'run.injectedDependencies',detail:'Offline injected execution cannot establish live release acceptance.'});
+  if(report.mode==='live'){
+    const pin=report.deploymentPin;
+    const complete=pin?.status==='finished'&&pin.failure===null&&pin.pendingRequest===null&&pin.sourceRevision===sourceRevision
+      &&pin.manifest?.revision===sourceRevision&&pin.identityKind==='release-manifest'&&pin.deploymentId===null
+      &&Number.isSafeInteger(pin.issued)&&pin.issued>=0&&pin.completed===pin.issued
+      &&Number.isSafeInteger(pin.rechecked)&&pin.rechecked>=report.results.filter(row=>row.executed!==false&&row.fixtureKey!=='anonymous').length
+      &&pin.checked===2+2*pin.issued+pin.rechecked;
+    if(!complete)integrity.push({id:'run.deploymentPinUnverified',detail:'Exact release checks before fixtures, around every request, and after cleanup did not complete.'});
+    const executed=report.results.filter(row=>row.executed!==false),tickets=executed.map(row=>row.response?.deploymentCheck);
+    if(tickets.some(ticket=>ticket?.verified!==true||ticket.sourceRevision!==sourceRevision||!Number.isSafeInteger(ticket.requestIndex)||ticket.requestIndex<1||ticket.requestIndex>pin?.issued)
+      ||new Set(tickets.map(ticket=>ticket?.requestIndex)).size!==tickets.length)
+      integrity.push({id:'run.responsePinUnverified',detail:'Every executed response needs a distinct paired check against the same pinned release.'});
+    if(report.results.some(row=>row.response?.deploymentIntegrityFailed))integrity.push({id:'run.deploymentDrift',detail:'A response could not be attributed to the pinned release; its original response remains in the report.'});
+  }
   if(report.bindingPending===true)integrity.push({id:'run.catalogBindingPending',detail:'Required published catalog expectations were not bound before model evaluation.'});
   assessment.integrity={passed:integrity.length===0,failures:integrity};
   assessment.failures.push(...integrity);
@@ -318,10 +340,16 @@ async function reviewSavedReport(opt,identity){
   if(!report.assessment.releaseReady)process.exitCode=1;
   return report;
 }
-export async function main(args=process.argv.slice(2)){
-  const opt=options(args),identity=await sourceIdentity();
+/** Dependencies are an offline test seam, never a CLI release bypass. Reports
+ * from any injected invocation are explicitly ineligible for release. */
+export async function main(args=process.argv.slice(2),dependencies={}){
+  const identify=dependencies.sourceIdentity||sourceIdentity,buildSuite=dependencies.evaluationSuite||evaluationSuite,
+    persist=dependencies.saveReport||saveReport,fetchImpl=dependencies.fetchImpl||globalThis.fetch,
+    loadAdapter=dependencies.loadFixtureAdapter||(path=>import(pathToFileURL(path).href)),log=dependencies.log||console.log;
+  const opt=options(args),identity=await identify();
+  if(opt.mode==='review'&&Object.keys(dependencies).length)throw new Error('Saved live reports cannot be reviewed with injected dependencies.');
   if(opt.mode==='review')return reviewSavedReport(opt,identity);
-  const suite=await evaluationSuite(opt.now),runId=randomUUID();
+  const suite=await buildSuite(opt.now),runId=randomUUID();
   let selected=suite.cases.filter(row=>(!opt.only||row.id.startsWith(opt.only))&&(!opt.domain||row.domain===opt.domain)).slice(0,opt.maxCases);
   if(!selected.length)throw new Error('No cases match.');
   const out=resolve(root,opt.out||`artifacts/assistant-evaluation/${opt.mode}-${runId}.json`);
@@ -333,29 +361,35 @@ export async function main(args=process.argv.slice(2)){
     browserAcceptance=JSON.parse(contents);
   }
   const report={version:1,runId,mode:opt.mode,startedAt:new Date().toISOString(),evaluationTime:opt.now,...identity,suiteHash:suite.suiteHash,inventoryHash:suite.inventory.hash,
+    injectedDependencies:Object.keys(dependencies).length>0,
     pacing:{minimumRequestStartIntervalMs:opt.intervalMs,automaticRequestRetries:0},
     browserEvidence:browserAcceptance?{sha256:hash(browserAcceptance),sourceRevision:browserAcceptance.sourceRevision}:null,
     selectedCases:selected.map(row=>row.id),totalCases:suite.cases.length,inventory:suite.inventory,results:[],cleanup:{required:opt.mode==='live',complete:opt.mode!=='live'}};
   if(opt.mode==='inventory'){
     report.cases=suite.cases;report.assessment=assessRun({...report,sourceUnchanged:true},{cases:suite.cases,inventory:suite.inventory,sourceRevision:identity.sourceRevision,requestedSuite:'full'});
-    await saveReport(out,report);console.log(JSON.stringify({mode:opt.mode,cases:suite.cases.length,services:suite.inventory.services.length,tools:suite.inventory.tools.length,publicPages:suite.inventory.publicPages.length,report:relative(root,out),releaseReady:false}));return report;
+    await persist(out,report);log(JSON.stringify({mode:opt.mode,cases:suite.cases.length,services:suite.inventory.services.length,tools:suite.inventory.tools.length,publicPages:suite.inventory.publicPages.length,report:relative(root,out),releaseReady:false}));return report;
   }
   const controller=new AbortController();const interrupt=()=>controller.abort();process.once('SIGINT',interrupt);process.once('SIGTERM',interrupt);
-  let adapter;const pace=createLiveRequestPacer(opt.intervalMs);
+  let adapter,deploymentGate;const pace=dependencies.pace||createLiveRequestPacer(opt.intervalMs);
   try{
     if(opt.mode==='live'){
-      const config=JSON.parse(await readFile(resolve(root,'deployment.json'),'utf8')),origin=new URL(opt.origin);
-      if(origin.origin!==config.vercel.productionUrl&&!['127.0.0.1','localhost'].includes(origin.hostname))throw new Error('Live evaluation must target the exact configured client origin or loopback.');
-      report.deployment=await deploymentIdentity(opt.origin,controller.signal);
+      const config=JSON.parse(await readFile(resolve(root,'deployment.json'),'utf8'));
+      if(opt.origin!==config.vercel.productionUrl&&opt.approvedPreviewOrigin!==opt.origin)throw new Error('Live evaluation requires the configured production origin or an explicitly approved exact Preview origin.');
+      if(identity.dirty!==false)throw new Error('Live evaluation requires a clean, exact source revision before creating fixtures.');
+      deploymentGate=createPinnedDeploymentVerifier({origin:opt.origin,expectedRevision:identity.sourceRevision,
+        approvedPreviewOrigin:opt.approvedPreviewOrigin,signal:controller.signal,fetchImpl});
+      const pinned=await deploymentGate.pin();
+      report.deployment={verified:true,sourceRevision:pinned.sourceRevision};report.deploymentPin=deploymentGate.status();
       report.bindingPending=selected.some(row=>row.fixtureRequirement==='published_catalog_binding');
       if(report.bindingPending){report.templateSuiteHash=report.suiteHash;report.suiteHash=null;}
-      await saveReport(out,report);
+      await persist(out,report);
       if(opt.fixtureModule){
         const modulePath=resolve(root,opt.fixtureModule);
         if(relative(resolve(root,'tests/evaluation'),modulePath).startsWith('..'))throw new Error('Fixture adapters must be repository evaluation modules.');
-        adapter=await import(pathToFileURL(modulePath).href);
+        adapter=await loadAdapter(modulePath);
         validateFixtureAdapter(adapter);
-        await adapter.prepare({runId,cases:selected,now:opt.now,origin:opt.origin,signal:controller.signal});
+        await adapter.prepare({runId,cases:selected,now:opt.now,origin:opt.origin,signal:controller.signal,
+          approvedPreviewOrigin:opt.approvedPreviewOrigin,expectedReleaseRevision:identity.sourceRevision});
         if(report.bindingPending&&typeof adapter.bindCatalogCases==='function'){
           const bound=validateCatalogCaseBinding(selected,await adapter.bindCatalogCases(structuredClone(selected),{signal:controller.signal}));
           selected=bound.cases;const replacements=new Map(selected.map(row=>[row.id,row]));
@@ -364,25 +398,33 @@ export async function main(args=process.argv.slice(2)){
           report.boundCatalogCases=structuredClone(selected.filter(row=>row.fixtureRequirement==='published_catalog_binding'));
           // Concrete questions/oracles are fixed and persisted before any
           // assistant call. Missing bindings retain their original case IDs.
-          await saveReport(out,report);
+          await persist(out,report);
         }
       }else if(selected.some(row=>row.fixtureKey!=='anonymous'))throw new Error('Signed-in live cases require an explicit disposable fixture adapter; no real account is inferred.');
     }
     const modules=opt.mode==='draft'||opt.mode==='retrieval'?await Promise.all([import('../../server/affairsAnswer.js'),import('../../server/answerVerificationAccount.js'),import('../../server/schoolAffairsDirectory.js')]):null;
     for(const testCase of selected){
       if(controller.signal.aborted)break;
-      const started=Date.now();let envelope,fixtureReady=false,executed=false,phase='setup',pacingWaitMs=0;
+      const started=Date.now();let envelope,fixtureReady=false,executed=false,phase='setup',pacingWaitMs=0,requestTicket;
       try{
         if(opt.mode==='live'){
           assertCatalogCaseBound(testCase,report);
+          if(testCase.fixtureKey!=='anonymous'){
+            // A prior response check cannot authorize the next fixture write:
+            // aliases can change between cases even when local source is fixed.
+            await deploymentGate.assertCurrent();report.deploymentPin=deploymentGate.status();
+          }
           const context=testCase.fixtureKey==='anonymous'?{}:await adapter.forCase(testCase,{signal:controller.signal});
           fixtureReady=testCase.fixtureKey!=='anonymous';
           if(testCase.fixtureKey!=='anonymous'&&typeof context.token!=='string')throw new Error('Private live fixture did not supply its own session.');
           const endpoint=testCase.endpoint||(testCase.fixtureKey==='anonymous'?'/api/research-assistant':'/api/affairs-assistant');
           if(!['/api/research-assistant','/api/affairs-assistant'].includes(endpoint))throw new Error('Unsupported evaluation endpoint.');
           phase='infrastructure';
-          const response=await pace(waited=>{pacingWaitMs=waited;executed=true;return fetch(new URL(endpoint,opt.origin),{method:'POST',redirect:'error',headers:{'Content-Type':'application/json',...(context.token?{Authorization:'Bearer '+context.token}:{})},
-            body:JSON.stringify({question:testCase.question,history:testCase.history||[],route:testCase.route,stream:true,consentedResearchUse:false}),signal:AbortSignal.any([controller.signal,AbortSignal.timeout(65000)])});},controller.signal);
+          const response=await pace(waited=>{pacingWaitMs=waited;executed=true;return fetchImpl(new URL(endpoint,opt.origin),{method:'POST',redirect:'error',credentials:'omit',headers:{'Content-Type':'application/json',...(context.token?{Authorization:'Bearer '+context.token}:{})},
+            body:JSON.stringify({question:testCase.question,history:testCase.history||[],route:testCase.route,stream:true,consentedResearchUse:false}),signal:AbortSignal.any([controller.signal,AbortSignal.timeout(65000)])});},controller.signal,async()=>{
+              requestTicket=await deploymentGate.beforeRequest();report.deploymentPin=deploymentGate.status();await persist(out,report);
+            });
+          if(response.redirected||response.url&&response.url!==new URL(endpoint,opt.origin).href)throw new Error('Assistant response changed the exact target URL.');
           const requestId=response.headers.get('X-Assistant-Request-Id');
           const correlationId=requestId&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(requestId)?requestId:undefined;
           envelope={statusCode:response.status,...await readReply(response),...(correlationId?{correlationId}:{}),execution:'live-model',fixtureKey:testCase.fixtureKey,sourceRevision:report.deployment.sourceRevision};
@@ -394,7 +436,7 @@ export async function main(args=process.argv.slice(2)){
           if(opt.mode==='retrieval'){
             const evidence=modules[1].accountEvidence(snapshot,testCase.expected.requiredTools||[],{question:testCase.question,route:testCase.route,history:testCase.history||[]});
             const result=gradeRetrievalCase(testCase,evidence,{sourceRevision:identity.sourceRevision,fixtureKey:testCase.fixtureKey,elapsedMs:Date.now()-started});
-            report.results.push(result);await saveReport(out,report);continue;
+            report.results.push(result);await persist(out,report);continue;
           }
           executed=true;phase='infrastructure';
           const body=testCase.mode==='navigation'?modules[2].answerDirectoryQuestion(testCase.question,testCase.route):await modules[0].answerPrivateAffairsQuestion(testCase.question,snapshot,testCase.history||[],testCase.route,{draftOnly:true});
@@ -402,9 +444,21 @@ export async function main(args=process.argv.slice(2)){
         }
       }catch(error){envelope={statusCode:0,body:{error:error instanceof Error?error.message:'Evaluation request failed'},events:[],failureKind:phase,execution:opt.mode==='live'?'live-model':'deterministic',fixtureKey:testCase.fixtureKey,sourceRevision:opt.mode==='live'?report.deployment?.sourceRevision||'unknown':identity.sourceRevision};}
       finally{
+        if(requestTicket){
+          try{await deploymentGate.afterRequest(requestTicket);envelope.deploymentCheck={requestIndex:requestTicket.requestIndex,sourceRevision:requestTicket.sourceRevision,verified:true};}
+          catch(error){report.deploymentFailure??=error.message;}
+        }
+        if(deploymentGate){
+          report.deploymentPin=deploymentGate.status();
+          if(report.deploymentPin.status==='failed'){
+            envelope.deploymentIntegrityFailed=true;envelope.failureKind='infrastructure';envelope.sourceRevision='unknown';
+            envelope.deploymentCheck={requestIndex:requestTicket?.requestIndex??null,sourceRevision:identity.sourceRevision,verified:false};
+            report.runFailure='Pinned deployment verification failed; no further assistant requests were sent.';
+          }
+        }
         if(fixtureReady&&adapter?.afterCase){
           try{await adapter.afterCase(testCase,envelope,{signal:controller.signal});}
-          catch(error){envelope.statusCode=0;envelope.body={error:error instanceof Error?error.message:'Fixture readback failed'};envelope.fixtureIntegrityFailed=true;envelope.failureKind='infrastructure';}
+          catch(error){envelope.fixtureIntegrityError=error instanceof Error?error.message:'Fixture readback failed';envelope.fixtureIntegrityFailed=true;envelope.failureKind='infrastructure';}
         }
       }
       envelope.elapsedMs=Date.now()-started;
@@ -412,9 +466,15 @@ export async function main(args=process.argv.slice(2)){
       envelope.executed=executed;
       const guidanceReviewBinding=testCase.expected.guidanceRubric&&/^[a-f0-9]{40}$/.test(envelope.sourceRevision||'')&&/^[a-f0-9]{64}$/.test(report.suiteHash||'')?buildGuidanceReviewBinding({runId:report.runId,finalSuiteHash:report.suiteHash,sourceRevision:envelope.sourceRevision,testCase,envelope}):null;
       const independentReview=guidanceReviewBinding?validateGuidanceReview({testCase,envelope,binding:guidanceReviewBinding,artifact:undefined}):undefined;
-      const result=gradeCase(testCase,envelope,{independentReview});report.results.push({...result,executed,failureKind:envelope.failureKind||(result.passed?null:'behavior'),response:envelope,...(guidanceReviewBinding?{guidanceReviewBinding,independentReview}:{})});
-      console.log(JSON.stringify({case:testCase.id,passed:result.passed,failures:result.failures.map(row=>row.id),ms:envelope.elapsedMs}));
-      await saveReport(out,report);
+      const result=gradeCase(testCase,envelope,{independentReview});
+      for(const [flag,id] of [['deploymentIntegrityFailed','run.deploymentDrift'],['fixtureIntegrityFailed','run.fixtureReadbackFailed']])if(envelope[flag]){
+        const check={id,passed:false,detail:'The original response is retained but its execution integrity was not verified.'};
+        result.passed=false;result.checks.push(check);result.failures.push(check);
+      }
+      report.results.push({...result,executed,failureKind:envelope.failureKind||(result.passed?null:'behavior'),response:envelope,...(guidanceReviewBinding?{guidanceReviewBinding,independentReview}:{})});
+      log(JSON.stringify({case:testCase.id,passed:result.passed,failures:result.failures.map(row=>row.id),ms:envelope.elapsedMs}));
+      await persist(out,report);
+      if(envelope.deploymentIntegrityFailed||envelope.fixtureIntegrityFailed)break;
     }
   }catch(error){
     report.runFailure=error instanceof Error?error.message:'Evaluation initialization failed';
@@ -422,14 +482,18 @@ export async function main(args=process.argv.slice(2)){
   }finally{
     if(adapter?.cleanup){try{const proof=await adapter.cleanup();report.cleanup.complete=proof?.verified===true;report.cleanup.proof=proof?.verified===true?{verified:true}:null;}catch(error){report.cleanup.complete=false;report.cleanup.error=error instanceof Error?error.message:'Fixture cleanup failed';}}
     else report.cleanup.complete=true;
+    if(deploymentGate){
+      try{await deploymentGate.finish();}catch(error){report.deploymentFailure??=error.message;}
+      report.deploymentPin=deploymentGate.status();
+    }
     process.removeListener('SIGINT',interrupt);process.removeListener('SIGTERM',interrupt);
     report.finishedAt=new Date().toISOString();
-    const finalIdentity=await sourceIdentity();
+    const finalIdentity=await identify();
     report.sourceUnchanged=finalIdentity.sourceRevision===identity.sourceRevision&&finalIdentity.workingTreeHash===identity.workingTreeHash;
     report.assessment=assessRun(report,{cases:suite.cases,inventory:suite.inventory,sourceRevision:identity.sourceRevision,browserAcceptance,requestedSuite:selected.length===suite.cases.length?'full':'subset'});
-    await saveReport(out,report);
+    await persist(out,report);
   }
-  console.log(JSON.stringify({report:relative(root,out),...report.assessment.totals,releaseReady:report.assessment.releaseReady,cleanup:report.cleanup.complete}));
+  log(JSON.stringify({report:relative(root,out),...report.assessment.totals,releaseReady:report.assessment.releaseReady,cleanup:report.cleanup.complete}));
   if(!report.assessment.releaseReady)process.exitCode=1;
   return report;
 }

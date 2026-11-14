@@ -23,7 +23,7 @@ test('evaluation fixtures are fresh and preserve independent oracles and explici
 test('the bank declares all registered tools while actual DTM file fixtures remain unexecutable',()=>{
   const base=Object.keys(accountTools),supplemental=Object.keys(supplementalAccountTools),registered=[...base,...supplemental];
   assert.equal(base.length,17);
-  assert.deepEqual(supplemental.sort(),['aidPayments','courseCatalog','dtmGradeReport','dtmSubmissions','enrollmentCertificate','studentConduct','studentLoan','tuition'].sort());
+  assert.deepEqual(supplemental.sort(),['aidPayments','courseCatalog','dtmGradeReport','dtmSubmissions','elearningEnrollments','enrollmentCertificate','studentConduct','studentLoan','tuition'].sort());
   assert.equal(new Set(registered).size,registered.length,'Base and supplemental registrations must not shadow each other.');
   const cases=buildAccountCases(),declared=[...new Set(cases.flatMap(row=>row.expected.requiredTools))];
   assert.deepEqual(declared.sort(),registered.sort());

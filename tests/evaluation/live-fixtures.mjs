@@ -23,6 +23,8 @@ import {parseStudentLoanSnapshot,validateStudentLoanPayload} from '../../server/
 import {catalogTextFields,catalogNumberFields,catalogBooleanFields,catalogPeriods} from '../../src/features/public/affairs/courseCatalogModel.js';
 import {normalizeCourseSyllabus} from '../../src/features/public/affairs/courseSyllabusModel.js';
 import {bindPublishedSampleEnrollments,sampleEnrollmentManifest} from './published-sample-enrollments.mjs';
+import {createPinnedDeploymentVerifier} from './pinned-deployment.mjs';
+import {assertElearningFixtureCatalog,assertElearningFixtureRows,elearningFixtureManifest,elearningFixturePlan,verifyElearningFixtureWorkspace} from './elearning-fixtures.mjs';
 import {aidPaymentFixtureManifest,aidPaymentFixtureReadContract,assertAidPaymentFixtureEmpty,assertAidPaymentFixtureIdentities,assertAidPaymentFixtureRowTargets,buildAidPaymentFixturePlan,verifyAidPaymentFixtureReadback} from './aid-payment-fixture-plan.mjs';
 import {dtmGradeReportFixtureManifest,dtmGradeReportFixtureReadContract,assertDtmGradeReportFixtureEmpty,assertDtmGradeReportFixtureIdentities,assertDtmGradeReportFixtureCourseBindings,assertDtmGradeReportFixtureRowTargets,buildDtmGradeReportFixturePlan,verifyDtmGradeReportFixtureReadback} from './dtm-grade-report-fixture-plan.mjs';
 
@@ -34,7 +36,7 @@ const PRIVATE_NATIVE_DOMAINS=['studentAid','creditLoadHistory','courseSelection'
 const CONDITIONAL_NATIVE_DOMAINS=['courses','scholarship','housing'];
 const SUPPLEMENTAL_SCOPES=Object.freeze({enrollmentCertificate:'enrollment-certificate',tuition:'tuition-documents',studentConduct:'student-conduct',studentLoan:'student-loan'});
 const SUPPLEMENTAL_TABLES=Object.freeze({enrollmentCertificate:'affairs_enrollment_certificate_assessments',tuition:'affairs_tuition_settlements',studentConduct:'affairs_student_conduct',studentLoan:'affairs_student_loan'});
-const SUPPORTED_TOOLS=new Set(['profile','charges','tasks','requests','serviceRecords','dtm','assignments','aidPayments','dtmGradeReport',...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS,...Object.keys(SUPPLEMENTAL_SCOPES)]);
+const SUPPORTED_TOOLS=new Set(['profile','charges','tasks','requests','serviceRecords','dtm','assignments','aidPayments','dtmGradeReport','elearningEnrollments',...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS,...Object.keys(SUPPLEMENTAL_SCOPES)]);
 const FOREIGN_MARKER='FOREIGN PRIVATE SENTINEL';
 export const catalogFixtureSetupReasons=Object.freeze(['catalog_read_unavailable','published_payload_invalid','public_scope_mismatch','no_suitable_published_offering','no_null_weight_offering','absent_probe_not_empty']);
 const catalogKinds=Object.freeze({'account:catalog-known-fields':'known-fields','account:catalog-null-weight':'null-weight','account:catalog-unfound':'unfound','account:catalog-enrollment-distinction':'enrollment-distinction','account:catalog-mixed-dtm':'mixed-dtm','service:12-4:record':'known-fields','service:12-4:empty':'unfound'});
@@ -209,6 +211,8 @@ async function saveLedger(){
       protectedOwner,fixtureUserIds:s.users.map(user=>user.id),identityRequests:s.identityRequests,ownedRecordIds:[...s.recordIds].sort(),supplementalTables:[...(s.supplementalTables||[])].sort(),activeCaseId:s.current?.caseId??null,
       ...(s.dtmReportPlan||s.dtmReportTransitionPending?{dtmReportFixture:{
         previous:dtmReportRecoveryBinding(s.dtmReportPlan),pending:dtmReportRecoveryBinding(s.pendingDtmReportPlan),transitionPending:Boolean(s.dtmReportTransitionPending),
+      }}:{}),...(s.elearningPlan||s.elearningTransitionPending?{elearningFixture:{
+        previous:s.elearningPlan?.rows??null,pending:s.pendingElearningPlan?.rows??null,transitionPending:Boolean(s.elearningTransitionPending),
       }}:{})},null,2));
     await handle.sync();
   }finally{await handle?.close();}
@@ -265,22 +269,33 @@ async function createFixtureUser(index){
 }
 
 /** No mutation occurs until this explicit lifecycle entry point is invoked. */
-export async function prepare({runId,cases,now,origin,signal}={}){
+export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expectedReleaseRevision,signal}={}){
   if(state)fail('fixture-state','This fixture adapter cannot run overlapping lifecycles.');
   if(!UUID.test(runId||'')||!Array.isArray(cases)||!cases.length||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
   if(resolve(process.cwd())!==resolve(ROOT))fail('fixture-target','Run this adapter from the exact client checkout root.');
   const config=JSON.parse(await readFile(resolve(ROOT,'deployment.json'),'utf8'));
   if(config.repository!=='LuxArt0317/std_edu_ai'||config.supabase?.projectRef!==PROJECT)fail('fixture-target','Deployment configuration is not the authorized client project.');
+  let target;
+  try{target=new URL(origin||config.vercel.productionUrl);}catch{fail('fixture-config','Invalid configured application origin.');}
+  if(target.username||target.password||target.pathname!=='/'||target.search||target.hash
+    ||!(target.origin===config.vercel.productionUrl||target.origin===approvedPreviewOrigin
+      ||['127.0.0.1','localhost'].includes(target.hostname)&&['http:','https:'].includes(target.protocol)))
+    fail('fixture-target','Only the configured production origin, exact approved preview or explicit loopback is allowed.');
+  if(approvedPreviewOrigin!==undefined){
+    if(target.origin!==approvedPreviewOrigin||target.origin===config.vercel.productionUrl)
+      fail('fixture-target','Preview approval must match the exact non-production origin.');
+    try{await createPinnedDeploymentVerifier({origin:target.origin,approvedPreviewOrigin,expectedRevision:expectedReleaseRevision,signal}).pin();}
+    catch{fail('fixture-target','The approved Preview could not prove the exact release before fixture setup.');}
+  }
   const env=deploymentEnvironment(); // Secrets are resolved only at explicit prepare().
   const url=env.VITE_SUPABASE_URL||env.NEXT_PUBLIC_SUPABASE_URL||env.SUPABASE_URL;
   const connection=env.POSTGRES_URL_NON_POOLING||env.POSTGRES_URL||env.DATABASE_URL;
   const publishable=env.VITE_SUPABASE_PUBLISHABLE_KEY||env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||env.SUPABASE_PUBLISHABLE_KEY||env.SUPABASE_ANON_KEY;
   const serviceKey=env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_SECRET_KEY;
   if(!url||!connection||!publishable||!serviceKey)fail('fixture-config','Exact-client database and Auth credentials are required.');
-  let db,base,target;try{db=new URL(connection);base=new URL(url);target=new URL(origin||env.ASSISTANT_EVAL_ORIGIN||config.vercel.productionUrl);}catch{fail('fixture-config','Invalid configured project or origin URL.');}
+  let db,base;try{db=new URL(connection);base=new URL(url);}catch{fail('fixture-config','Invalid configured project URL.');}
   if(base.protocol!=='https:'||base.hostname!==PROJECT+'.supabase.co'||base.username||base.password)fail('fixture-target','Supabase URL does not match the exact client project.');
   if(!(db.hostname==='db.'+PROJECT+'.supabase.co'||db.hostname.endsWith('.pooler.supabase.com')&&decodeURIComponent(db.username).endsWith('.'+PROJECT)))fail('fixture-target','Database connection does not match the exact client project.');
-  if(target.username||target.password||target.pathname!=='/'||target.search||target.hash||!(target.origin===config.vercel.productionUrl||['127.0.0.1','localhost'].includes(target.hostname)&&['http:','https:'].includes(target.protocol)))fail('fixture-target','Only the configured production origin or explicit loopback is allowed.');
   const ignore=await readFile(resolve(ROOT,'.gitignore'),'utf8');if(!/^\/?artifacts\/$/m.test(ignore))fail('fixture-ledger','Private fixture ledger directory must be ignored by Git.');
   await mkdir(PRIVATE_DIR,{recursive:true,mode:0o700});await chmod(PRIVATE_DIR,0o700);
   const boundedFetch=(input,init={})=>fetch(input,{...init,signal:signals(init.signal,15000)});
@@ -524,6 +539,68 @@ async function verifyAidFixtureIdentity(sql,plan){
 const dtmReportRecoveryBinding=plan=>plan?{
   fixtureKey:plan.fixtureKey,courseIds:Object.fromEntries(Object.entries(plan.courseBindings).map(([role,row])=>[role,row.id])),recordIds:plan.recordIds,
 }:null;
+async function readElearningFixtureTargets(sql,owners){
+  return sql`select user_id,course_id,joined_at from public.elearning_enrollments
+    where user_id in ${sql(owners)} order by user_id,course_id limit 5`;
+}
+// Exact disposable identities and composite keys, under the caller's transaction.
+export async function changeElearningFixtureRows(sql,{previous,next,identities,runId}){
+  const plan=previous||next;if(!plan)return;
+  const owners=plan.owners;
+  if(previous&&next&&owners.some((id,index)=>id!==next.owners[index]))fail('fixture-isolation','Remote-learning fixture owners changed.');
+  const auths=await sql`select id,email,raw_user_meta_data->>'assistant_evaluation_run' as run_id
+    from auth.users where id in ${sql(owners)} limit 3`;
+  if(auths.length!==2||!owners.every(id=>auths.some(auth=>auth.id===id&&auth.run_id===runId
+    &&identities.some(identity=>identity.id===id&&identity.email===auth.email&&identity.runId===runId&&identity.state==='created'))))
+    fail('fixture-isolation','Remote-learning fixture owners could not be verified.');
+  const existing=await readElearningFixtureTargets(sql,owners);
+  if(previous)assertElearningFixtureRows(previous,existing);
+  else if(existing.length)fail('fixture-isolation','Unexpected remote-learning rows already exist for a disposable account.');
+  if(next){const ids=[elearningFixtureManifest.courseA.id,elearningFixtureManifest.courseB.id];
+    assertElearningFixtureCatalog(await sql`select id,title,category_id,position from public.elearning_courses where id in ${sql(ids)}`);
+  }
+  for(const row of previous?.rows??[])
+    await sql`delete from public.elearning_enrollments where user_id=${row.user_id} and course_id=${row.course_id}`;
+  if(next)await sql`insert into public.elearning_enrollments ${sql(next.rows)}`;
+  const observed=await readElearningFixtureTargets(sql,owners);
+  if(next)assertElearningFixtureRows(next,observed);
+  else if(observed.length)fail('fixture-cleanup','Remote-learning fixture rows remain.');
+}
+
+export async function reconcileElearningFixtureRows(sql,{previous,pending,identities,runId}){
+  const plan=previous||pending;if(!plan)return;
+  const observed=await readElearningFixtureTargets(sql,plan.owners);
+  if(!observed.length)return;
+  const known=[previous,pending].filter(Boolean).find(candidate=>{
+    try{assertElearningFixtureRows(candidate,observed);return true;}catch{return false;}
+  });
+  if(!known)fail('fixture-cleanup','The remote-learning fixture commit could not be reconciled.');
+  await changeElearningFixtureRows(sql,{previous:known,next:null,identities,runId});
+}
+
+export async function readElearningFixtureScopes(plan,users,{origin,signal,fetchImpl=fetch}={}){
+  const result={};
+  try{
+    for(const owner of plan.owners){
+      const user=users.find(row=>row.id===owner);
+      await user?.renewSession?.({signal});
+      if(!user?.token)throw new Error();
+      const url=new URL('/api/affairs-data?scope=elearning-workspace',origin);
+      const response=await fetchImpl(url,{redirect:'error',cache:'no-store',headers:{Authorization:'Bearer '+user.token},signal:signals(signal,15000)});
+      if(response.status!==200||response.redirected||response.url&&response.url!==url.href||!response.headers.get('content-type')?.includes('application/json')){
+        await response.body?.cancel();throw new Error();
+      }
+      const reader=response.body?.getReader();if(!reader)throw new Error();
+      const chunks=[];let bytes=0;
+      try{for(;;){const {done,value}=await reader.read();if(done)break;bytes+=value.byteLength;if(bytes>131072)throw new Error();chunks.push(value);}}
+      finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
+      const value=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)));
+      result[owner]=verifyElearningFixtureWorkspace(plan,owner,value);
+    }
+  }catch{fail('fixture-readback','The remote-learning enrollment data did not match the independent caller fixture.');}
+  return result;
+}
+
 async function readDtmReportTargets(sql,plan){
   const owners=Object.keys(plan.expectedByOwner);
   return {dtm_grade_reports:await sql`select id,user_id,course_id,deleted_at from public.dtm_grade_reports
@@ -1064,7 +1141,7 @@ function recordsToInsert(snapshot,user){
   }
   return rows;
 }
-async function persistSnapshot(snapshot,rows,testCase,nativePlan,supplementalPlan,aidPlan,dtmReportPlan){
+async function persistSnapshot(snapshot,rows,testCase,nativePlan,supplementalPlan,aidPlan,dtmReportPlan,elearningPlan){
   const s=state,user=s.users[0];
   for(const values of Object.values(rows))for(const row of values)s.recordIds.add(row.id);
   for(const domain of supplementalPlan.domains)s.supplementalTables.add(SUPPLEMENTAL_TABLES[domain]);
@@ -1077,6 +1154,10 @@ async function persistSnapshot(snapshot,rows,testCase,nativePlan,supplementalPla
     s.supplementalTables.add(dtmGradeReportFixtureManifest.table);
   }
   if(dtmReportPlan||s.dtmReportPlan){s.pendingDtmReportPlan=dtmReportPlan;s.dtmReportTransitionPending=true;}
+  if(elearningPlan||s.elearningPlan){
+    s.supplementalTables.add('elearning_enrollments');
+    s.pendingElearningPlan=elearningPlan;s.elearningTransitionPending=true;
+  }
   await saveLedger();
   if(aidPlan||s.aidPlan){s.pendingAidPlan=aidPlan;s.aidTransitionPending=true;}
   await query(async()=>{
@@ -1095,10 +1176,11 @@ async function persistSnapshot(snapshot,rows,testCase,nativePlan,supplementalPla
     // are written only to the second fixture account, never a real identity.
     const fixtureUsers=s.users.map(item=>item.id);
     for(const table of [...ownTables,'affairs_scholarship_applications','affairs_housing_applications','affairs_housing_assignments',...s.supplementalTables]){
-      if(table==='affairs_aid_payment_claims'||table==='affairs_aid_salary_records'||table==='dtm_grade_reports')continue;
+      if(table==='affairs_aid_payment_claims'||table==='affairs_aid_salary_records'||table==='dtm_grade_reports'||table==='elearning_enrollments')continue;
       await tx`delete from ${tx('public.'+table)} where user_id in ${tx(fixtureUsers)}`;
     }
     if(aidPlan||s.aidPlan)await replaceAidFixtureRows(tx,s.aidPlan,aidPlan);
+    if(elearningPlan||s.elearningPlan)await changeElearningFixtureRows(tx,{previous:s.elearningPlan,next:elearningPlan,identities:s.identityRequests,runId:s.runId});
     if(nativePlan.domains.includes('courses'))await tx`delete from public.affairs_enrollments where student_id=${user.studentId}`;
     await tx`update public.affairs_profiles set preferred_name=${snapshot.profile.displayName} where user_id=${user.id}`;
     await tx`update public.affairs_students set student_number=${snapshot.student.studentNumber},full_name=${snapshot.student.fullName},year_level=${snapshot.student.yearLevel} where id=${user.studentId} and user_id=${user.id}`;
@@ -1122,6 +1204,7 @@ async function persistSnapshot(snapshot,rows,testCase,nativePlan,supplementalPla
     await tx.unsafe('commit');
     if(s.aidTransitionPending){s.aidPlan=aidPlan;s.pendingAidPlan=null;s.aidTransitionPending=false;}
     if(s.dtmReportTransitionPending){s.dtmReportPlan=dtmReportPlan;s.pendingDtmReportPlan=null;s.dtmReportTransitionPending=false;}
+    if(s.elearningTransitionPending){s.elearningPlan=elearningPlan;s.pendingElearningPlan=null;s.elearningTransitionPending=false;}
     }catch(error){try{await tx.unsafe('rollback');}catch{/* Preserve the original, sanitized error. */}throw error;}
   },'Could not persist private evaluation rows.');
 }
@@ -1159,6 +1242,7 @@ export async function forCase(testCase,{signal}={}){
   const s=ready();if(s.current)fail('fixture-state','afterCase() must complete before selecting another fixture.');
   if(s.aidTransitionPending)fail('fixture-state','The preceding aid fixture transaction did not settle. Cleanup must reconcile it before any further case.');
   if(s.dtmReportTransitionPending)fail('fixture-state','The preceding DTM report fixture transaction did not settle. Cleanup must reconcile it before any further case.');
+  if(s.elearningTransitionPending)fail('fixture-state','The preceding remote-learning fixture transaction did not settle. Cleanup must reconcile it before any further case.');
   if((signal||s.signal)?.aborted)fail('fixture-aborted','Evaluation was interrupted.');
   await Promise.all(s.users.map(user=>user.renewSession?.({signal:signal||s.signal})));
   const catalogBinding=s.catalogBindings?.get(testCase.id);
@@ -1188,9 +1272,13 @@ export async function forCase(testCase,{signal}={}){
     },
   }):null;
   if(!dtmReportPlan&&(testCase.expected?.requiredTools||[]).includes('dtmGradeReport'))fail('fixture-unsupported','No independent DTM report fixture is declared for this case.');
+  const elearningPlan=/^(?:empty:)?elearningEnrollments$/u.test(testCase.fixtureKey??'')
+    ?elearningFixturePlan(testCase.fixtureKey,s.users.map(user=>user.id)):null;
+  if(!elearningPlan&&(testCase.expected?.requiredTools||[]).includes('elearningEnrollments'))
+    fail('fixture-unsupported','No independent remote-learning enrollment fixture is declared for this case.');
   if(!catalogOnly){
     const rows={...recordsToInsert(expected,s.users[0]),...nativePlan.rows,...supplementalPlan.rows};
-    await persistSnapshot(expected,rows,testCase,nativePlan,supplementalPlan,aidPlan,dtmReportPlan);
+    await persistSnapshot(expected,rows,testCase,nativePlan,supplementalPlan,aidPlan,dtmReportPlan,elearningPlan);
   }
   const actual=await readSnapshot(s.users[0],{signal:signal||s.signal});
   if(!catalogOnly){verifyReadback(actual,expected,testCase);verifyNativeFixtureReadback(actual,nativePlan);}
@@ -1204,7 +1292,8 @@ export async function forCase(testCase,{signal}={}){
   }
   const aid=s.aidPlan?await readAidFixtureScopes(s.aidPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
   const dtmReport=s.dtmReportPlan?await readDtmReportFixtureScopes(s.dtmReportPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
-  const before={snapshot:ownState(actual),supplemental,catalog,...(publishedSample?{publishedSample}:{}),...(aid?{aid}:{}),...(dtmReport?{dtmReport}:{})};
+  const elearning=s.elearningPlan?await readElearningFixtureScopes(s.elearningPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
+  const before={snapshot:ownState(actual),supplemental,catalog,...(publishedSample?{publishedSample}:{}),...(aid?{aid}:{}),...(dtmReport?{dtmReport}:{}),...(elearning?{elearning}:{})};
   s.current={caseId:testCase.id,beforeHash:hash(before),supplementalDomains,catalogBinding,
     ...(publishedSample?{publishedSamplePlan:nativePlan}:{})};
   await saveLedger();
@@ -1229,7 +1318,8 @@ export async function afterCase(testCase,envelope,{signal}={}){
     const catalog=current.catalogBinding?await verifyPublishedCatalogBinding(testCase,current.catalogBinding,{userIds:s.users.map(user=>user.id),read:(userId,query)=>readPublishedCatalogFixture(s.users.find(user=>user.id===userId),query,{origin:s.origin,signal:signal||s.signal})}):null;
     const aid=s.aidPlan?await readAidFixtureScopes(s.aidPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
     const dtmReport=s.dtmReportPlan?await readDtmReportFixtureScopes(s.dtmReportPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
-    const afterHash=hash({snapshot:ownState(actual),supplemental,catalog,...(publishedSample?{publishedSample}:{}),...(aid?{aid}:{}),...(dtmReport?{dtmReport}:{})});
+    const elearning=s.elearningPlan?await readElearningFixtureScopes(s.elearningPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
+    const afterHash=hash({snapshot:ownState(actual),supplemental,catalog,...(publishedSample?{publishedSample}:{}),...(aid?{aid}:{}),...(dtmReport?{dtmReport}:{}),...(elearning?{elearning}:{})});
     envelope.stateBefore={ownedRecordsDigest:current.beforeHash};
     envelope.stateAfterProposal={ownedRecordsDigest:afterHash};
     envelope.fixtureReadback={verified:true,projectRef:PROJECT,independentGolden:true};
@@ -1279,6 +1369,16 @@ export async function cleanup(){
     }
     if(s.users.some(user=>!UUID.test(user.id)||!deletable.has(user.id)&&!absent.has(user.id)))fail('fixture-cleanup','A known fixture identity could not be reconciled; no account will be deleted.');
     if(s.ledgerOwned)await saveLedger();
+    if(s.elearningPlan||s.pendingElearningPlan){
+      await query(async()=>{
+        await s.sql.unsafe('begin');
+        try{
+          await reconcileElearningFixtureRows(s.sql,{previous:s.elearningPlan,pending:s.pendingElearningPlan,identities:s.identityRequests,runId:s.runId});
+          await s.sql.unsafe('commit');
+          s.elearningPlan=null;s.pendingElearningPlan=null;s.elearningTransitionPending=false;
+        }catch(error){try{await s.sql.unsafe('rollback');}catch{/* Preserve the original cleanup failure. */}throw error;}
+      },'Could not remove the exact disposable remote-learning enrollments.');
+    }
     if(s.dtmReportPlan||s.pendingDtmReportPlan){
       await query(async()=>{
         await s.sql.unsafe('begin');
@@ -1317,7 +1417,9 @@ export async function cleanup(){
         union all select 'service',id from public.affairs_service_records where user_id in ${s.sql(ids)}`,'Could not verify disposable fixture cleanup.');
       if(remaining.length)fail('fixture-cleanup','Fixture-owned rows remain; the private cleanup ledger is retained.');
       for(const table of [...ownTables,'affairs_scholarship_applications','affairs_housing_applications','affairs_housing_assignments',...(s.supplementalTables||[])]){
-        const native=await query(()=>s.sql`select id from ${s.sql('public.'+table)} where user_id in ${s.sql(ids)} limit 1`,'Could not verify native fixture cleanup.');
+        const native=await query(()=>table==='elearning_enrollments'
+          ?s.sql`select user_id from public.elearning_enrollments where user_id in ${s.sql(ids)} limit 1`
+          :s.sql`select id from ${s.sql('public.'+table)} where user_id in ${s.sql(ids)} limit 1`,'Could not verify native fixture cleanup.');
         if(native.length)fail('fixture-cleanup','Native fixture-owned rows remain; the private cleanup ledger is retained.');
       }
     }

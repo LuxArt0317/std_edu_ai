@@ -6,7 +6,8 @@ import { healthExaminationGuide, healthExaminationQuestion } from '../../server/
 import {elearningGuide,elearningQuestion,elearningOutlineCourse} from '../../server/elearningContract.js';
 import {isAidPaymentsEvidenceQuestion,isForeignAidPaymentsQuestion} from '../../server/aidPaymentsEvidenceIntent.js';
 import {isForeignDtmGradesQuestion,shouldReadNativeDtmGrades} from '../../server/dtmGradeEvidenceIntent.js';
-import {answerElearning,answerElearningOutline} from './elearning';
+import {isElearningEvidenceQuestion,isForeignElearningRecordsQuestion} from '../../server/elearningEvidenceIntent.js';
+import {answerElearningOutline} from './elearning';
 import {counselingGuide,counselingQuestion} from '../../server/counselingContract.js';
 import {certificateAwardQuestion} from '../../server/certificateAwardsContract.js';
 import {readCertificateAwardAnswer} from './certificateAwards';
@@ -48,7 +49,9 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
   if (data.session.user.id !== expectedUserId) throw new Error('Your account changed. Reopen the assistant and try again.');
   const {access_token:accessToken}=data.session;
-  if (isAidPaymentsEvidenceQuestion(question,route,history)||isForeignAidPaymentsQuestion(question)||isForeignDtmGradesQuestion(question,route)||shouldReadNativeDtmGrades(question,route,history))
+  if (isAidPaymentsEvidenceQuestion(question,route,history)||isForeignAidPaymentsQuestion(question)
+    ||isForeignDtmGradesQuestion(question,route)||shouldReadNativeDtmGrades(question,route,history)
+    ||isElearningEvidenceQuestion(question,route,history)||isForeignElearningRecordsQuestion(question,route))
     return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress);
   const officer = !images.length ? clubOfficerQuestion(question) : null;
   if (officer) return clubOfficerGuide(question,officer,true);
@@ -66,10 +69,6 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
     return answerElearningOutline(data.session.user.id,outline,question,signal);
   }
   const elearning=elearningQuestion(question,route);
-  if(elearning==='mine'){
-    onProgress?.({kind:'elearning-enrollments',label:'Checking remote-learning Moodle',detail:'Reading your saved enrollments.',status:'running'});
-    return answerElearning(data.session.user.id,question,signal);
-  }
   if(elearning)return elearningGuide(question,elearning,true);
   const counseling=counselingQuestion(question);
   if(counseling)return counselingGuide(question,counseling,true);

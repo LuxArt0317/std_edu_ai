@@ -4,6 +4,7 @@
 import {aidPaymentsFields,aidPaymentsPaths} from './aidPaymentsContract.js';
 export const supplementalAnswerLimits=Object.freeze({answerCharacters:8000,resultBytes:24000,views:3,viewRows:12});
 const definitions={
+  'account:elearningEnrollments':{title:['Remote-learning Moodle enrollments','數位學園選課紀錄'],path:'/elearning/my-courses'},
   'account:dtmGradeReport':{title:['Local Moodle grade report','站內 Moodle 成績報告'],path:'/dtm/grades'},
   'account:aidPayments':{title:['Saved student aid and salary records','已儲存助學請款與薪資紀錄'],path:aidPaymentsPaths.claims},
   'account:courseCatalog':{title:['Published course catalog','公開課程目錄'],path:'/school-affairs/services/12-4'},
@@ -96,6 +97,7 @@ function validateGradePayload(envelope,p,evidence){
 }
 const invalid=()=>{throw new TypeError('Use validated supplemental account evidence envelopes.');};
 function allowedUrl(id,url){
+  if(id==='account:elearningEnrollments')return url===definitions[id].path||typeof url==='string'&&/^\/elearning\/course\/[1-9]\d{0,9}$/u.test(url)&&Number(url.split('/').at(-1))<=2147483647;
   if(id==='account:dtmGradeReport')return url==='/dtm/grades'||typeof url==='string'&&gradeRoute.test(url);
   if(id==='account:aidPayments')return Object.values(aidPaymentsPaths).includes(url);
   if(id==='account:studentConduct')return url===definitions[id].path;
@@ -109,7 +111,25 @@ function parse(envelope){
   if(evidence.urls!==undefined&&(!Array.isArray(evidence.urls)||evidence.urls.some(url=>!allowedUrl(id,url))))invalid();
   let payload;try{payload=JSON.parse(evidence.content);}catch{invalid();}
   if(!object(payload)||typeof payload.checkedAt!=='string'||!Number.isFinite(Date.parse(payload.checkedAt)))invalid();
-  if(id==='account:dtmGradeReport')validateGradePayload(envelope,payload,evidence);
+  if(id==='account:elearningEnrollments'){
+    const {counts,selection,rows,provenance,capability}=payload;
+    const properties=['assignments','grades','submissions','personalAttendance','write'];
+    if(payload.collection!==id.slice(8)||payload.readState!==envelope.readState||payload.reason!==envelope.reason
+      ||evidence.url!==definitions[id].path||evidence.provenance!=='saved_local'
+      ||!exact(provenance,['enrollment','catalog','officialUniversityData','synchronized'])||provenance.enrollment!=='saved_local'
+      ||provenance.catalog!=='local_catalog'||provenance.officialUniversityData!==false||provenance.synchronized!==false
+      ||!exact(capability,['enrollments',...properties])||capability.enrollments!==true||properties.some(key=>capability[key]!==false)
+      ||!exact(selection,['enrollment','unsupported'])||Object.values(selection).some(value=>typeof value!=='boolean')
+      ||!Array.isArray(rows)||rows.length>25||new Set(rows.map(row=>row?.courseId)).size!==rows.length
+      ||rows.some(row=>!exact(row,['courseId','title','joinedAt','url'])||!integer(row.courseId)||row.url!=='/elearning/course/'+row.courseId
+        ||!evidence.urls?.includes(row.url)||!gradeString(row.title,400)||!row.title.trim()||typeof row.joinedAt!=='string'||!Number.isFinite(Date.parse(row.joinedAt)))
+      ||!exact(counts,['available','included','omitted'])||counts.included!==rows.length
+      ||(counts.available===null?counts.omitted!==null||rows.length:!integer(counts.available)||counts.available<rows.length||counts.omitted!==counts.available-rows.length)
+      ||envelope.readState==='empty'&&(counts.available!==0||!selection.enrollment)
+      ||envelope.readState==='partial'&&(!(counts.omitted>0)||!selection.enrollment)
+      ||envelope.readState==='unavailable'&&counts.available!==null
+      ||envelope.readState==='ok'&&(selection.enrollment?counts.available===null||counts.available<1||counts.omitted!==0:!selection.unsupported||counts.available!==null))invalid();
+  }else if(id==='account:dtmGradeReport')validateGradePayload(envelope,payload,evidence);
   else if(id==='account:aidPayments'){
     if(evidence.provenance!=='saved_local'||payload.collection!=='aidPayments'||payload.readState!==envelope.readState
       ||payload.provenance?.source!=='saved_local'||payload.provenance.officialUniversityData!==false||payload.provenance.synchronizationVerified!==false||payload.provenance.currency!==null
@@ -201,6 +221,29 @@ function sectionFor(parsed,question,zh){
     if(!integer(total))invalid();
     section.view={id:id.slice(8),title,url:evidence.url,columns,rows:[],total,checkedAt:p.checkedAt,note};
   };
+  if(id==='account:elearningEnrollments'){
+    if(p.selection.unsupported)section.lead.push(t('stu.best does not have personal grades, assignments, submissions or attendance from remote-learning Moodle. Those records cannot be inferred from enrollment.',
+      'stu.best 未連結數位學園的個人成績、作業、繳交與出席紀錄；無法從選課推定這些資料。'));
+    if(envelope.readState==='unavailable'){
+      section.lead.push(t('Your saved remote-learning Moodle enrollments could not be checked.','目前無法查詢您儲存的數位學園選課紀錄。'));
+      if(p.selection.unsupported)section.usable=true;
+      return section;
+    }
+    if(!p.selection.enrollment)return section;
+    section.lead.push(t('Saved stu.best enrollments. These records cannot establish official university enrollment.',
+      '以下是 stu.best 已儲存的選課紀錄，無法據此判定校方正式選課。'));
+    if(p.counts.available===0){section.lead.push(t('There are no saved remote-learning Moodle enrollments for this account.','此帳戶沒有已儲存的數位學園選課紀錄。'));return section;}
+    section.lead.push(t('Saved local enrollments: '+p.counts.available,'已儲存站內選課：'+p.counts.available+' 筆'));
+    if(p.counts.omitted>0){section.limited=true;section.lead.push(t('This answer displays a selection. Open My courses for the complete list.','此答案僅顯示部分紀錄，請開啟我的課程查看完整清單。'));}
+    view([t('Course','課程'),t('Joined','加入時間')],p.counts.available,t('Saved local enrollment dates.','站內儲存的選課日期。'));
+    for(const course of p.rows){
+      group(t('Course','課程'),course.title);
+      item(t('Joined','加入時間'),course.joinedAt);
+      section.items.push({text:'['+t('Open course','開啟課程')+']('+course.url+')',label:'Course link',group:section.group,header:false});
+      section.viewCandidates.push(row(course.title,course.joinedAt));
+    }
+    return section;
+  }
   if(id==='account:dtmGradeReport'){
     section.lead.push(t('These are literal local_demo Moodle grade-report cells, not an official transcript, a live university sync, grade-tracker entries or file-review results. No grades, totals, percentages, weights, ranks or passing status are calculated.',
       '以下為 local_demo 站內 Moodle 成績報告原文，並非正式成績單、即時校方同步、個人成績追蹤或檔案評閱結果；不計算成績、總分、百分比、權重、排名或及格狀態。'));
@@ -510,7 +553,7 @@ export function formatSupplementalAccountAnswers(results,{question='',language:r
   const omittedViews=rankedViews.length-selectedViews.length;
   let omittedItems=sections.reduce((total,section)=>total+section.items.length,0),omittedViewRows=sections.reduce((total,section)=>total+section.viewCandidates.length,0);
   const result=()=>({status:sections.some(section=>section.usable)?'answered':'abstained',answer:sections.map(section=>[
-    section.title,...section.lead,...section.shown.map(item=>(section.id==='account:dtmGradeReport'&&item.group&&!item.header?'  - ':'- ')+item.text),
+    section.title,...section.lead,...section.shown.map(item=>(['account:dtmGradeReport','account:elearningEnrollments'].includes(section.id)&&item.group&&!item.header?'  - ':'- ')+item.text),
     (section.limited||section.shown.length<section.items.length||section.viewCandidates.length>(section.view?.rows.length??0))
       ?(zh?'顯示內容已節錄，省略部分不代表沒有紀錄。':'Display excerpt: omitted fields or rows do not establish absence.'):null,
     section.view&&!section.viewSelected?(zh?'此來源表格因三張表格的顯示上限省略，文字結果與來源連結仍保留。':'This source table is omitted by the three-table display limit; its text result and source link remain available.'):null,

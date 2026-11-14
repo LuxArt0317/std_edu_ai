@@ -8,6 +8,8 @@
 - Verify saved aid claim and salary details, including net pay and tax, through the account assistant. Keep confirmed actions and private chat history bound to the initiating account. [#100]
 - Answer Moodle grade questions from the signed-in student's native report. Preserve saved feedback, weights and course totals, and verify the exact report link. [#100]
 - Use published Shu-Te resources to support first-week study advice. Check school facts separately from planning suggestions. [#100]
+- Verify saved remote-learning Moodle enrollments and unfinished DTM assignments together when a student asks for both. Keep the two systems' coursework separate. [#100]
+- Require the live evaluation to match the deployed revision before fixture setup and throughout the test run. [#100]
 
 - Add student club and activity search, private participation history, and new-club applications with administrator review and assistant links. [#98]
 

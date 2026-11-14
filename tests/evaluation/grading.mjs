@@ -301,6 +301,10 @@ function ownAccountOnlyDenial(answer) {
 
 const unavailableFileCapability=/\bno\s+(?:verified\s+)?(?:local\s+)?(?:file|document|download)\s+capability\b/iu;
 const missingDtmReportField=/\b(?:no\s+(?:(?:saved|native|moodle|dtm)\s+){0,4}grade report|no\s+(?:course[- ]total(?: object)? is saved|saved course total)|course total is (?:not recorded|missing))\b/iu;
+// The remote enrollment reader has an independent, narrowly named collection.
+// Recognize its affirmative empty result without relying on a separate official
+// enrollment disclaimer, or treating a question/negated quotation as absence.
+const missingElearningEnrollments=/(?:^|[.!]\s+|\n)\s*(?:there are )?no saved remote-learning moodle enrollments(?: for this account)?(?:\.|$)/iu;
 
 // Opt-in record boundaries are separate from stored facts. A correct literal
 // beside an unsupported conclusion must not pass. Evaluate short clauses so a
@@ -362,7 +366,7 @@ function normalizedLink(value) {
 }
 
 // This test-side allowlist is deliberately independent of the runtime planner.
-const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport']);
+const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments']);
 const toolStatusAliases={success:'complete',succeeded:'complete',failed:'error',started:'running',start:'running'};
 const toolStatuses=new Set(['running','complete','unavailable','error','cancelled','skipped']);
 const terminalStatuses=new Set(['complete','unavailable','error','cancelled','skipped']);
@@ -451,7 +455,8 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
     check('oracle.limitation',expected.limitation===true || typeof expected.limitation==='string' || Boolean(expected.limitation?.anyOf?.length),
       'A missing-data/capability case explicitly declares its limitation oracle.');
     check('answer.limitation',limitationText.test(answer.replace(/’/g,"'"))||otherAccountDenial.test(answer)||ownAccountOnlyDenial(answer)||unavailableFileCapability.test(answer)
-      ||testCase.domain==='dtmGradeReport'&&missingDtmReportField.test(answer),'The answer explicitly states missing records, inability or unsupported capability.');
+      ||testCase.domain==='dtmGradeReport'&&missingDtmReportField.test(answer)
+      ||testCase.domain==='elearningEnrollments'&&missingElearningEnrollments.test(visibleMarkdown(answer)),'The answer explicitly states missing records, inability or unsupported capability.');
     if(expected.limitation && expected.limitation!==true)check('answer.limitation.specific',matches(text,expected.limitation),'The specific required limitation is stated.');
   }
   if (behavior==='answer' && testCase.mode==='record') {

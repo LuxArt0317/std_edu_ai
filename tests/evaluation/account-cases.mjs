@@ -137,6 +137,27 @@ export function buildAccountCases({now=DEFAULT_EVAL_NOW}={}){
   // Independent Batch B cases: useful multi-part answers, bounded relevant
   // readers, and advice that never masquerades as recorded qualifications.
   const toolPolicy=(names,completed=names)=>({requiredTools:completed,requiredAttemptedTools:names,allowedTools:names,maxDistinctAttemptedTools:names.length,requireToolExecution:true,forbidPublicResearch:true,localLinksOnly:true});
+  const remoteRoute='/elearning/my-courses',remoteTitle='111-1遠距教學研習_20220902';
+  const remoteCases={route:remoteRoute,fixtureKey:'elearningEnrollments',requiredLinks:[remoteRoute],
+    ...toolPolicy(['elearningEnrollments']),provenance:'local',forbiddenText:['一般安全衛生教育訓練-1100330','You are officially enrolled']};
+  add('elearning-enrollment','elearningEnrollments','What are my remote-learning Moodle enrollments?',{
+    ...remoteCases,facts:[fact('course',remoteTitle,'text',[remoteTitle])],
+  });
+  add('elearning-enrollment-mixed','elearningEnrollments','What are my remote-learning Moodle enrollments? Also list my unfinished DTM assignments.',{
+    ...remoteCases,...toolPolicy(['elearningEnrollments','dtm','assignments']),
+    facts:[fact('course',remoteTitle,'text',[remoteTitle])],
+    exactLists:[{label:'unfinished DTM assignments',expected:['Index plan','Final portfolio'],forbidden:['Reading response']}],
+  });
+  add('elearning-enrollment-empty','elearningEnrollments','Which remote-learning Moodle courses am I enrolled in?',{
+    ...remoteCases,fixtureKey:'empty:elearningEnrollments',mode:'empty',behavior:'unavailable',verification:'verified',
+    requiredText:[{anyOf:['no saved remote-learning Moodle enrollments','no saved local enrollments','no remote-learning Moodle courses saved']}],
+    forbiddenText:[...remoteCases.forbiddenText,remoteTitle],
+  });
+  add('elearning-grades-unlinked','elearningEnrollments','What are my grades in remote-learning Moodle?',{
+    ...remoteCases,behavior:'unavailable',verification:'verified',provenance:null,
+    requiredText:[{anyOf:['does not have personal grades','grades are not linked','grades have not been linked','grades are unavailable']}],
+    forbiddenText:[...remoteCases.forbiddenText,'Quiz 1','Your grade is'],
+  });
   const rubric=(...ids)=>({version:'stu-guidance-v1',criteria:ids.map(id=>({id,proof:['honest_separation','proportionate_clarification','language_relevance'].includes(id)?'whole_answer':'spans'}))});
   const coachingRubric=rubric('requested_parts','usable_help','next_step','honest_separation','proportionate_clarification','language_relevance');
   const currentSet={label:'current courses',expected:['Database Design'],forbidden:['Historical Methods','Research Practicum','Withdrawn Studio','Networks Workshop']};

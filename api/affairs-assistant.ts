@@ -4,6 +4,8 @@ import {readAidPaymentsEvidence} from '../server/accountAidPaymentsEvidence.js';
 import {isForeignAidPaymentsQuestion} from '../server/aidPaymentsEvidenceIntent.js';
 import {readDtmGradeReportEvidence} from '../server/accountDtmGradeReportEvidence.js';
 import {isForeignDtmGradesQuestion} from '../server/dtmGradeEvidenceIntent.js';
+import {independentElearningQuestion,isElearningEvidenceQuestion,isForeignElearningRecordsQuestion} from '../server/elearningEvidenceIntent.js';
+import {readElearningEvidence} from '../server/accountElearningEvidence.js';
 import {randomUUID} from 'node:crypto';
 import { questionKind } from '../server/schoolWebSearch.js';
 import { accountQuestionIntent } from '../server/affairsAnswer.js';
@@ -133,7 +135,7 @@ export function createAffairsAssistantHandler(dependencies:{
   verifyToken?:typeof verifyAffairsToken;
   loadSnapshot?:typeof loadAffairsSnapshot;
   answerAccount?:typeof answerAccountWithVerification;
-  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence};
+  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence};
 }={}) {
 const publicResearch=dependencies.publicResearch??researchHandler;
 const verifyToken=dependencies.verifyToken??verifyAffairsToken,loadSnapshot=dependencies.loadSnapshot??loadAffairsSnapshot,answerAccount=dependencies.answerAccount??answerAccountWithVerification;
@@ -141,7 +143,8 @@ const readers={courseCatalog:dependencies.readers?.courseCatalog??readCatalogEvi
   dtmSubmissions:dependencies.readers?.dtmSubmissions??readSubmissionEvidence,tuition:dependencies.readers?.tuition??readTuitionEvidence,
   studentConduct:dependencies.readers?.studentConduct??readStudentConductEvidence,studentLoan:dependencies.readers?.studentLoan??readStudentLoanEvidence,
   aidPayments:dependencies.readers?.aidPayments??readAidPaymentsEvidence,
-  dtmGradeReport:dependencies.readers?.dtmGradeReport??readDtmGradeReportEvidence};
+  dtmGradeReport:dependencies.readers?.dtmGradeReport??readDtmGradeReportEvidence,
+  elearningEnrollments:dependencies.readers?.elearningEnrollments??readElearningEvidence};
 return async function handler(request:ApiRequest,response:ApiResponse) {
   const deadline=Date.now()+55_000;
   response.setHeader('Cache-Control','no-store, max-age=0');
@@ -176,9 +179,12 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   response.setHeader('X-Assistant-Request-Id',correlationId);
   const stream=createAssistantStream(input?.stream===true,response);
   const foreignDtmGrades=isForeignDtmGradesQuestion(question,route);
-  if(foreignDtmGrades||isForeignAidPaymentsQuestion(question)){
+  const foreignElearning=isForeignElearningRecordsQuestion(question,route);
+  if(foreignDtmGrades||foreignElearning||isForeignAidPaymentsQuestion(question)){
     const chinese=/[\u3400-\u9fff]/u.test(question);
-    const records=foreignDtmGrades?(chinese?'數位教材成績紀錄':'Moodle grade records'):(chinese?'薪資或助學請款紀錄':'salary or aid claim records');
+    const records=foreignDtmGrades?(chinese?'數位教材成績紀錄':'Moodle grade records')
+      :foreignElearning?(chinese?'數位學園紀錄':'remote-learning Moodle records')
+        :(chinese?'薪資或助學請款紀錄':'salary or aid claim records');
     const answer=chinese?`我只能查詢您登入的 stu.best 帳戶，無法存取其他學生的${records}。`
       :`I can only check your signed-in stu.best account. I can’t show another student’s ${records}.`;
     stream.progress('account-access',chinese?'已確認帳戶範圍':'Checked account access',answer,'complete');
@@ -234,9 +240,12 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   }
   if(Array.isArray(input?.images) && input.images.length) {stream.send(400,{error:'For private account questions, remove the image and ask using text. Images are not stored as account records.'});return;}
   try {
-    stream.progress('account','Loading your account records','Checking School Affairs and DTM records for this signed-in Google account.');
-    const snapshot=await loadSnapshot(account,false,{deadline});
-    stream.progress('account','Loaded your account records','Only records linked to this Google account were read.','complete');
+    const remoteOnly=isElearningEvidenceQuestion(question,route,history)&&!independentElearningQuestion(question,route,history);
+    const scopedSnapshot=()=>({checkedAt:new Date().toISOString(),profile:{userId:account.user.id}});
+    if(remoteOnly)stream.progress('account','Checked account access','The remote-learning reader uses this signed-in Google account.','complete');
+    else stream.progress('account','Loading your account records','Checking School Affairs and DTM records for this signed-in Google account.');
+    const snapshot=remoteOnly?scopedSnapshot():await loadSnapshot(account,false,{deadline});
+    if(!remoteOnly)stream.progress('account','Loaded your account records','Only records linked to this Google account were read.','complete');
     stream.progress('answer','Preparing your answer','Checking the account data and any requested stu.best action.');
     const readDeadline=(selected:number)=>{
       if(!Number.isFinite(selected))throw new TypeError('Invalid account reader deadline.');
@@ -250,10 +259,11 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       studentLoan:context=>readers.studentLoan(account,{question,route,history,deadline:readDeadline(context.deadline)}),
       aidPayments:context=>readers.aidPayments(account,{question,route,history,deadline:readDeadline(context.deadline)}),
       dtmGradeReport:context=>readers.dtmGradeReport(account,{question,route,history,deadline:readDeadline(context.deadline)}),
+      elearningEnrollments:context=>readers.elearningEnrollments(account,{question,route,history,deadline:readDeadline(context.deadline)}),
       tuition:context=>readers.tuition(account,{question,route,history,deadline:readDeadline(context.deadline)}),
     };
     const answer=await answerAccount({question,correlationId,snapshot,history,route,deadline,supplementalReaders,
-      loadSnapshot:()=>loadSnapshot(account,false,{initialize:false,deadline}),
+      loadSnapshot:()=>remoteOnly?Promise.resolve(scopedSnapshot()):loadSnapshot(account,false,{initialize:false,deadline}),
       onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status),
     });
     stream.progress('answer',answer.verification?.status==='verified'?'Answer ready':'Verification incomplete',

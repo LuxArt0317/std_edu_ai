@@ -2,7 +2,7 @@ import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import ts from 'typescript';
 import {clubStudentQuestion,clubStudentScope} from '../../server/clubStudentContract.js';
-import {elearningQuestion,elearningOutlineCourse,elearningScope,elearningOutlineScope} from '../../server/elearningContract.js';
+import {elearningOutlineCourse,elearningOutlineScope} from '../../server/elearningContract.js';
 import {certificateAwardQuestion,certificateAwardScope} from '../../server/certificateAwardsContract.js';
 import {announcementEmailQuestion,announcementEmailScope} from '../../server/announcementEmailContract.js';
 import {studentProfileQuestion,studentProfileScope} from '../../server/studentProfileContract.js';
@@ -26,12 +26,6 @@ const definitions=[
     secondPart:'Also show my current semester subjects.',secondTools:['courses'],
     support:'owned_membership_attendance_and_foundation_summary',
     limit:'Directory and general activity searches are guides, not private membership proof. Only the first page is summarized; hasMore must remain visible.'},
-  {id:'elearning-enrollments',call:'answerElearning',file:'elearning',server:'elearning',scope:elearningScope,
-    routes:['/elearning/my-courses'],selector:{},fields:['enrollments[].courseId','courses[].id','courses[].title'],
-    question:'What are my remote-learning Moodle enrollments?',
-    secondPart:'Also list my unfinished DTM assignments.',secondTools:['assignments','dtm'],
-    support:'owned_enrollment_course_titles',
-    limit:'Match courses to own enrollment IDs; catalog membership is not enrollment. Current output is capped at ten courses without an omission statement; provider grades/submissions are not linked.'},
   {id:'elearning-outline',call:'answerElearningOutline',file:'elearning',server:'elearning',scope:elearningOutlineScope,
     routes:['/elearning/course/:id','/elearning/course/:courseId/activity/:activityId'],selector:{course:'<owned-accessible-course-id>'},
     fields:['courseId','sections[].title','sections[].activities[].id','sections[].activities[].title','sections[].activities[].purpose'],
@@ -91,7 +85,6 @@ const otherDirectReaders=['readProgramRegistrationAnswer','readTeachingFeedbackA
 export function probeNativePredicate(id,question,route=''){
   switch(id){
     case 'club-student':return clubStudentQuestion(question);
-    case 'elearning-enrollments':return elearningQuestion(question,route)==='mine'?'mine':null;
     case 'elearning-outline':return elearningOutlineCourse(question,route);
     case 'certificate-awards':return certificateAwardQuestion(question)==='status'?'status':null;
     case 'announcement-email':return announcementEmailQuestion(question)==='status'?'status':null;
@@ -139,14 +132,15 @@ export function inspectClientDispatchSource(source){
     return {id:definition.id,call:definition.call,source:dispatchPath,line:selected[0].line,beforeGraphFallback:true,callerArgument:'data.session.user.id'};
   });
   const first=graphCalls[0];
-  const verifiedDispatch=entry.body.statements.find(node=>ts.isIfStatement(node)&&node.expression.getText(file).replace(/\s/g,'')==='isAidPaymentsEvidenceQuestion(question,route,history)||isForeignAidPaymentsQuestion(question)||isForeignDtmGradesQuestion(question,route)||shouldReadNativeDtmGrades(question,route,history)'
+  const verifiedDispatch=entry.body.statements.find(node=>ts.isIfStatement(node)&&node.expression.getText(file).replace(/\s/g,'')==='isAidPaymentsEvidenceQuestion(question,route,history)||isForeignAidPaymentsQuestion(question)||isForeignDtmGradesQuestion(question,route)||shouldReadNativeDtmGrades(question,route,history)||isElearningEvidenceQuestion(question,route,history)||isForeignElearningRecordsQuestion(question,route)'
     &&ts.isReturnStatement(node.thenStatement)&&node.thenStatement.expression?.getText(file).startsWith('askVerifiedAccount('));
   if(!verifiedDispatch||first.at<=guardPosition||contracts.some(row=>row.line<=first.line)||functions.get('isAidPaymentsEvidenceQuestion')!=='../../server/aidPaymentsEvidenceIntent.js'
-    ||functions.get('shouldReadNativeDtmGrades')!=='../../server/dtmGradeEvidenceIntent.js')
-    throw new Error('Aid payment and native grade-report questions must enter account verification before direct readers.');
+    ||functions.get('shouldReadNativeDtmGrades')!=='../../server/dtmGradeEvidenceIntent.js'||functions.get('isElearningEvidenceQuestion')!=='../../server/elearningEvidenceIntent.js')
+    throw new Error('Graph-backed questions must enter account verification before any direct reader.');
   return {contracts,verifiedDispatch:[
     {id:'aid-payments',graphTool:'aidPayments',source:dispatchPath,line:first.line},
     {id:'dtm-grade-report',graphTool:'dtmGradeReport',source:dispatchPath,line:first.line},
+    {id:'elearning-enrollments',graphTool:'elearningEnrollments',source:dispatchPath,line:first.line},
   ],
     fallback:{source:dispatchPath,line:api[0].line},otherDirectReaders:otherDirectReaders.filter(name=>calls.some(call=>call.name===name&&call.at<fallback.at)),
     navigationOnly:navigationOnly.map(row=>({...row,observedCalls:row.calls.filter(name=>calls.some(call=>call.name===name&&call.at<fallback.at))}))};
@@ -179,7 +173,7 @@ function questionCases(definition){
  * fixture creation, user-session import, model call or product code execution. */
 export async function discoverClientDispatchSurfaces({read=readSource}={}){
   const contracts=['clubStudent','elearning','certificateAwards','announcementEmail','studentProfile','graduationClearance'];
-  const sources=[...new Set([dispatchPath,apiPath,'server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
+  const sources=[...new Set([dispatchPath,apiPath,'server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js','server/elearningEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
     ...contracts.map(name=>'server/'+name+'Contract.js'),'src/features/public/affairs/facilityRepair.js','src/features/public/affairs/venueContract.js',
     'server/clubServicesContract.js','server/clubOfficerContract.js','server/healthExaminationContract.js','server/counselingContract.js',
     'src/features/public/PublicSite.tsx','src/features/public/affairs/SchoolAffairsEntry.tsx','src/features/public/affairs/SchoolAffairsPortal.tsx',

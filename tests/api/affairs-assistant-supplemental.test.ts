@@ -49,10 +49,11 @@ test('required supplemental domains and page followups use account routing witho
     ['What does this say?','/school-affairs/services/38-1'],['What does this say?','/school-affairs/services/21-1/history'],
     ['What does this say?','/school-affairs/services/49-1'],['Show saved assignment files.','/dtm'],['What feedback was recorded?','/dtm/course/20000000-0000-4000-8000-000000000001/assignment/20000000-0000-4000-8000-000000000002'],
     ['What tax is recorded?','/school-affairs/services/37-1/salary'],['List saved student aid claims.','/dtm'],
-    ['Show saved Moodle grades.','/'],['What is on this page?','/dtm/grades']];
+    ['Show saved Moodle grades.','/'],['What is on this page?','/dtm/grades'],
+    ['Which remote-learning Moodle courses am I enrolled in?','/elearning/my-courses'],['What are my courses?','/elearning/my-courses']];
   for(const [question,route]of cases){let calls=0;
     const result=await invoke(base({answerAccount:async options=>{calls++;assert.equal(options.question,question);assert.equal(options.route,route);
-      assert.deepEqual(Object.keys(options.supplementalReaders??{}),['courseCatalog','enrollmentCertificate','dtmSubmissions','studentConduct','studentLoan','aidPayments','dtmGradeReport','tuition']);return answer;}}),{question,route});
+      assert.deepEqual(Object.keys(options.supplementalReaders??{}),['courseCatalog','enrollmentCertificate','dtmSubmissions','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','tuition']);return answer;}}),{question,route});
     assert.equal(result.status,200,question);assert.equal(calls,1,question);
   }
 });
@@ -60,12 +61,29 @@ test('required supplemental domains and page followups use account routing witho
 test('foreign salary, aid and DTM grade requests are denied after auth with zero private or public lookups',async()=>{
   const disallowed=async()=>{assert.fail('A rejected account scope must not load or search records.');};
   for(const question of ['Show another student’s student salary records.','List another student’s financial aid claims.',
-    'Show my classmate’s Moodle grades.','Show the Moodle grade report for student s12345678.']){
+    'Show my classmate’s Moodle grades.','Show the Moodle grade report for student s12345678.',
+    'Show another student’s remote-learning Moodle enrollments.']){
     const result=await invoke(base({loadSnapshot:disallowed,answerAccount:disallowed,publicResearch:disallowed}),{question,route:'/dtm'});
     assert.equal(result.status,200);assert.equal(result.body.status,'handoff');assert.equal(result.body.grounding.webSearched,false);
     assert.match(result.body.answer,/only check your signed-in stu\.best account/iu);
     assert.deepEqual(result.body.citations,[]);assert.equal(result.body.proposedAction,undefined);
   }
+});
+
+test('remote-learning-only answers avoid loading unrelated School Affairs and DTM snapshots',async()=>{
+  let verified=0;
+  const result=await invoke(base({
+    loadSnapshot:async()=>assert.fail('No broader account snapshot expected'),
+    answerAccount:async options=>{
+      assert.deepEqual(Object.keys(options.snapshot).sort(),['checkedAt','profile']);
+      assert.equal((await options.loadSnapshot()).profile.userId,options.snapshot.profile.userId);
+      assert.equal(typeof options.supplementalReaders?.elearningEnrollments,'function');
+      verified++;
+      return answer;
+    },
+  }),{question:'What are my courses?',route:'/elearning/my-courses'});
+  assert.equal(result.status,200);
+  assert.equal(verified,1);
 });
 
 test('callbacks capture verified credentials, preserve full selectors and use fresh graph snapshots with bounded deadlines',async()=>{

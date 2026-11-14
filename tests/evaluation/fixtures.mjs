@@ -128,7 +128,7 @@ export function fixtureForCase(testCase,{userId=EVAL_USER_ID,now=DEFAULT_EVAL_NO
       ...common(891,userId),currentTermLabel:'115 Fall',currentApplicationState:'recorded',
       currentApplicationText:'Local application entry',progressText:'Waiting for local review',historyCount:0,historyText:null,
     }};
-  }else if(['aidPayments','empty:aidPayments','dtmGradeReport','empty:dtmGradeReport','full:dtmGradeReport'].includes(key)){
+  }else if(['aidPayments','empty:aidPayments','dtmGradeReport','empty:dtmGradeReport','full:dtmGradeReport','elearningEnrollments','empty:elearningEnrollments'].includes(key)){
     // Native report and payment fixtures are independent of the base account
     // snapshot; grading and payroll cells never come from tracker rows.
   }else if(key.startsWith('empty:'))emptyDomain(snapshot,key.slice(6));

@@ -21,6 +21,7 @@ import {supplementalAccountTools,requiredSupplementalTools,catalogReadPlanSchema
 import {formatSupplementalAccountAnswers} from './supplementalAccountAnswers.js';
 import {isAidPaymentsEvidenceQuestion} from './aidPaymentsEvidenceIntent.js';
 import {mentionsDtmSubmissionDetail,needsSeparateDtmTracker} from './dtmGradeEvidenceIntent.js';
+import {hasIndependentDtmWork,independentElearningQuestion,isElearningEvidenceQuestion} from './elearningEvidenceIntent.js';
 import {isStudentAidRecordQuestion} from './studentAidRecords.js';
 export {supplementalAccountTools,requiredSupplementalTools} from './accountSupplementalLookup.js';
 
@@ -131,6 +132,22 @@ export async function planAccountLookup(question, history, route, deadline, retr
   const supplementalRequired=requiredSupplementalTools(dependencyQuestion,dependencyRoute,dependencyHistory);
   const baseRequired=[...intent.baseTools];
   const aidPaymentRequest=supplementalRequired.includes('aidPayments');
+  // On the remote-learning pages the caller's unqualified "my courses" is
+  // already scoped. Reuse that scope for the same intent the HTTP entry uses.
+  const remoteLearningRequest=isElearningEvidenceQuestion(question,route,history);
+  if(remoteLearningRequest&&!supplementalRequired.includes('elearningEnrollments'))supplementalRequired.push('elearningEnrollments');
+  const otherQuestion=remoteLearningRequest?independentElearningQuestion(question,route,history):dependencyQuestion;
+  if(remoteLearningRequest&&!otherQuestion)return {tools:['elearningEnrollments'],publicTopics:[],catalogQuery:null,responseIntent:'records'};
+  const remoteLearningWorkOnly=remoteLearningRequest&&!hasIndependentDtmWork(question,route,history);
+  const needsSeparateCourses=/\b(?:school affairs|next (?:scheduled )?class|class schedule|timetable|current (?:semester )?subjects|my (?:current |enrolled )?(?:courses|subjects|classes))\b|校務|課表|下一堂|本學期科目/iu.test(otherQuestion);
+  if(remoteLearningRequest){
+    if(remoteLearningWorkOnly)for(const key of ['dtm','assignments']){
+      const index=baseRequired.indexOf(key);if(index!==-1)baseRequired.splice(index,1);
+    }
+    if(!needsSeparateCourses){
+      const index=baseRequired.indexOf('courses');if(index!==-1)baseRequired.splice(index,1);
+    }else baseRequired.push('courses');
+  }
   const nativeDtmGradeRequest=supplementalRequired.includes('dtmGradeReport');
   const needsDtmTracker=nativeDtmGradeRequest&&needsSeparateDtmTracker(dependencyQuestion,dependencyRoute,dependencyHistory);
   if(nativeDtmGradeRequest&&!needsDtmTracker){
@@ -146,15 +163,16 @@ export async function planAccountLookup(question, history, route, deadline, retr
   // clause when the planner is unavailable.
   if(/\b(?:balance|charges?|amount (?:due|paid|owed)|how much.{0,35}(?:tuition|fees?|owe)|unpaid tuition)\b|餘額|欠費|應繳金額|已繳金額|學費多少/iu.test(question)
     &&(!aidPaymentRequest||/\b(?:tuition|school fees?|fee balance)\b|學費|學雜費|費用餘額/iu.test(question)))baseRequired.push('charges');
-  if(/\b(?:assignments?|homework|coursework|tracker)\b|作業|功課/iu.test(question)
+  if(/\b(?:assignments?|homework|coursework|tracker)\b|作業|功課/iu.test(otherQuestion)
     &&(!nativeDtmGradeRequest||needsDtmTracker)
+    &&!remoteLearningWorkOnly
     &&(!supplementalRequired.includes('dtmSubmissions')||/\b(?:tracker|compare|versus|vs)\b|追蹤|比較/iu.test(question))){
     baseRequired.push('assignments');
-    if(/\b(?:dtm|moodle|digital teaching materials)\b|數位教材|教材網/iu.test(question))baseRequired.push('dtm');
+    if(/\b(?:dtm|moodle|digital teaching materials)\b|數位教材|教材網/iu.test(otherQuestion))baseRequired.push('dtm');
   }
   if(/\b(?:my|unfinished|pending|open|completed)\b.{0,35}\b(?:tasks?|todos?)\b|\b(?:tasks?|todos?)\b.{0,25}\b(?:unfinished|pending|completed|due)\b|我的待辦|未完成任務|已完成任務/iu.test(question))baseRequired.push('tasks');
   if(/\bmy\b.{0,30}\b(?:requests?|service applications?)\b|我的(?:申請|請求)/iu.test(question))baseRequired.push('requests');
-  const required=[...baseRequired,...requiredNativeTools(dependencyQuestion,dependencyRoute,dependencyHistory),...supplementalRequired];
+  const required=[...baseRequired,...requiredNativeTools(otherQuestion,dependencyRoute,dependencyHistory),...supplementalRequired];
   const responseIntent=intent.kind;
   // A request for wording or coaching does not authorize a speculative read of
   // grades, identity or other private collections merely because a page is open.
@@ -173,6 +191,9 @@ export async function planAccountLookup(question, history, route, deadline, retr
     if (!Array.isArray(plan.tools) || !Array.isArray(plan.publicTopics) || plan.tools.some(key=>!readToolNames.includes(key)) || plan.publicTopics.some(key=>!topicNames.includes(key))) throw new Error('Invalid lookup plan');
     const catalogQuery=validateCatalogReadPlan(plan.catalogQuery);
     const plannedTools=plan.tools.filter(key=>{
+      if(remoteLearningRequest&&key==='courses'&&!needsSeparateCourses)return false;
+      if(remoteLearningWorkOnly&&['dtm','assignments','dtmSubmissions','dtmGradeReport'].includes(key))return false;
+      if(remoteLearningRequest&&['dtmSubmissions','dtmGradeReport'].includes(key)&&!supplementalRequired.includes(key))return false;
       if(aidPaymentRequest&&(key==='studentAid'||key==='charges')&&!baseRequired.includes(key))return false;
       if(nativeDtmGradeRequest&&(key==='dtm'||key==='assignments')&&!needsDtmTracker)return false;
       if(nativeDtmGradeRequest&&key==='dtmSubmissions'&&!mentionsDtmSubmissionDetail(dependencyQuestion,dependencyHistory))return false;
@@ -419,6 +440,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     const formatted=formatSupplementalAccountAnswers(supplemental,{question});
     initial={...formatted,suggestedQuestions:[],grounding:{source:'account',webSearched:false,checkedAt:snapshot.checkedAt},activity:[]};
     const aid=supplemental.find(source=>source.evidence.id==='account:aidPayments');
+    const remoteLearning=supplemental.some(source=>source.evidence.id==='account:elearningEnrollments');
     if(aid&&aid.readState!=='unavailable'&&aid.readState!=='empty'&&!JSON.parse(aid.evidence.content).selection.summaryOnly)needsComposition=true;
     // A catalog/record formatter can describe only its own source. Compose a
     // multipart request from the selected evidence before the first review,
@@ -426,7 +448,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     const parts=question.split(/\s+(?:and|also|plus)\s+|[.;；\n]|以及|還有|並且|和/iu).map(part=>part.trim()).filter(Boolean);
     const comparison=/\b(?:compare|versus|difference|vs)\b|比較|差異/iu.test(question);
     const hasBaseQuestion=parts.some(part=>!requiredSupplementalTools(part,fullRoute,history).length);
-    if(completeAccountTools(activeTools).length&&(comparison||parts.length>1&&hasBaseQuestion||!plan.degraded))needsComposition=true;
+    if(completeAccountTools(activeTools).length&&(remoteLearning||comparison||parts.length>1&&hasBaseQuestion||!plan.degraded))needsComposition=true;
   }
   if(requested.action){
     initial.proposedAction=requested.action;

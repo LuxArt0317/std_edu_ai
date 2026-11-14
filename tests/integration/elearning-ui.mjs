@@ -14,7 +14,7 @@ async function checkRelease(){
 }
 await checkRelease();
 const browser=await chromium.launch({executablePath:process.env.CHROME_PATH??'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
-const errors=[],writes=[];
+const errors=[],writes=[],assistantRequests=[];
 const archive=Array.from({length:23},(_,i)=>({id:15000+i,category_id:28,title:'歷年課程 '+(i+1),self_enroll:false,position:i+1}));
 const course={id:9718,category_id:41,title:'111-1遠距教學研習_20220902',self_enroll:true,position:1};
 const protectedCourse={id:9408,category_id:18,title:'一般安全衛生教育訓練-1100330',self_enroll:false,position:1};
@@ -54,6 +54,22 @@ async function fixture(signedIn,courseAccess=signedIn){
         return route.fulfill({json:{userId:user.id,courseId,sections:courseAccess&&courseId===9408
           ?[{position:1,title:'課程主題',activities:[{id:293399,kind:'attendanceregister',title:'出席統計',purpose:'attendance'},
             {id:293395,kind:'url',title:'第一段影片',purpose:'video'}]}]:[]}});
+      }
+      if(url.pathname==='/api/affairs-assistant'){
+        assert.equal(signedIn,true);
+        assert.equal(request.method(),'POST');
+        const authorization=request.headers().authorization??'';
+        assert.match(authorization,/^Bearer /u);
+        assert.equal(JSON.parse(Buffer.from(authorization.split('.')[1],'base64url').toString()).sub,user.id);
+        const input=request.postDataJSON();
+        assert.equal(input.route,path+'/my-courses');
+        assert.ok(['What are my courses?','What are my grades in remote-learning Moodle?'].includes(input.question));
+        assistantRequests.push(input.question);
+        const grades=input.question.includes('grades');
+        const answer=grades?'This account lookup does not provide personal remote-learning grades.'
+          : `Your saved remote-learning course is [${course.title}](${path}/course/9718).`;
+        return route.fulfill({json:{answer,status:'answered',citations:[],verification:{status:'verified',attempts:1},
+          activity:[{kind:'account-read:elearningEnrollments:1',label:'Checked remote-learning scope',detail:'Used the signed-in remote-learning reader.',status:'complete'}]}});
       }
       if(signedIn&&url.pathname==='/api/affairs-conversations'&&request.method()==='POST'){
         const {id,title,messages,version}=request.postDataJSON();
@@ -127,6 +143,13 @@ try{
   await assistant.getByRole('link',{name:course.title}).waitFor();
   assert.equal(await assistant.getByRole('link',{name:course.title}).getAttribute('href'),path+'/course/9718');
   await assistant.getByText('Conversation saved to your private account.',{exact:true}).waitFor();
+  await page.getByPlaceholder('Ask a school question…').fill('What are my grades in remote-learning Moodle?');
+  await page.getByRole('button',{name:'Send',exact:true}).click();
+  await assistant.getByText('This account lookup does not provide personal remote-learning grades.',{exact:true}).waitFor();
+  const gradeReply=assistant.locator('article').last();
+  await gradeReply.locator('details summary').click();
+  await gradeReply.getByText('Checked remote-learning scope',{exact:true}).waitFor();
+  assert.deepEqual(assistantRequests,['What are my courses?','What are my grades in remote-learning Moodle?']);
   await page.keyboard.press('Escape');
   await assistant.waitFor({state:'hidden'});
   await page.goto(origin+path+'/category/28');
@@ -201,6 +224,6 @@ try{
   assert.equal(await guest.locator('input[type=password]').count(),0);
   assert.deepEqual(errors,[]);
   await checkRelease();
-  console.log('Remote-learning menu, layout, notice, search, enrollment retry, refresh, responsive widths and guest return verified.');
+  console.log('Remote-learning layout, enrollment retry, refresh, responsive widths, guest return and authenticated assistant dispatch verified with mocked APIs.');
 }catch(error){if(errors.length)console.error(errors);throw error;}
 finally{await browser.close();}

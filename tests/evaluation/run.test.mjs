@@ -289,7 +289,7 @@ test('catalog runner blocks pending/unavailable fixtures before adapter or model
   const source=await readFile(new URL('./run.mjs',import.meta.url),'utf8');
   const from=source.indexOf('    for(const testCase of selected){'),to=source.indexOf('\n  }catch(error){\n    report.runFailure',from);
   assert.ok(from>0&&to>from);
-  const persisted=source.indexOf('report.boundCatalogCases=structuredClone('),saved=source.indexOf('await saveReport(out,report);',persisted);
+  const persisted=source.indexOf('report.boundCatalogCases=structuredClone('),saved=source.indexOf('await persist(out,report);',persisted);
   assert.ok(persisted>0&&saved>persisted&&saved<from,'The concrete bound oracle is persisted before the request loop.');
   for(const kind of ['pending','unavailable','changed','bound']){
     const {templates,result}=catalogBindingFixture(),bound=validateCatalogCaseBinding(templates,result);
@@ -297,16 +297,17 @@ test('catalog runner blocks pending/unavailable fixtures before adapter or model
     const report={results:[],bindingPending:kind==='pending',catalogBinding:structuredClone(bound.binding),boundCatalogCases:structuredClone(bound.cases),deployment:{sourceRevision:'a'.repeat(40)}};
     if(kind==='unavailable'){report.catalogBinding.selected=[];report.catalogBinding.unavailable=[{caseId:testCase.id,reason:'no_suitable_published_offering'}];}
     if(kind==='changed')testCase.question+=' Changed after the fingerprint.';
-    let setupCalls=0,modelCalls=0;
+    let setupCalls=0,modelCalls=0,pinChecks=0;
     const execute=vm.runInNewContext('(async()=>{'+source.slice(from,to)+'})',{
       selected:[testCase],report,opt:{mode:'live',origin:'https://synthetic.invalid'},controller:new AbortController(),assertCatalogCaseBound,
       adapter:{forCase:async()=>{setupCalls++;return {token:'synthetic-token'};},afterCase:async()=>{}},
-      pace:async start=>start(0),fetch:async()=>{modelCalls++;return new Response(JSON.stringify({status:'answered',answer:'Synthetic response'}),{headers:{'content-type':'application/json'}});},
-      URL,AbortSignal,readReply,gradeCase,saveReport:async()=>{},out:'unused',console:{log(){}},identity:{sourceRevision:'a'.repeat(40)},
+      pace:async(start,_signal,beforeStart)=>{await beforeStart();return start(0);},fetchImpl:async()=>{modelCalls++;return new Response(JSON.stringify({status:'answered',answer:'Synthetic response'}),{headers:{'content-type':'application/json'}});},
+      deploymentGate:{assertCurrent:async()=>{pinChecks++;},beforeRequest:async()=>{pinChecks++;return {requestIndex:1,sourceRevision:'a'.repeat(40)};},afterRequest:async()=>{pinChecks++;},status:()=>({status:'pinned'})},
+      URL,AbortSignal,readReply,gradeCase,persist:async()=>{},out:'unused',log(){},identity:{sourceRevision:'a'.repeat(40)},
     });
     await execute();assert.equal(report.results.length,1);assert.equal(report.results[0].caseId,testCase.id);
-    if(kind==='bound'){assert.equal(setupCalls,1);assert.equal(modelCalls,1);assert.equal(report.results[0].executed,true);}
-    else{assert.equal(setupCalls,0);assert.equal(modelCalls,0);assert.equal(report.results[0].executed,false);assert.equal(report.results[0].failureKind,'setup');assert.equal(report.results[0].passed,false);}
+    if(kind==='bound'){assert.equal(setupCalls,1);assert.equal(modelCalls,1);assert.equal(pinChecks,3);assert.equal(report.results[0].executed,true);}
+    else{assert.equal(setupCalls,0);assert.equal(modelCalls,0);assert.equal(pinChecks,0);assert.equal(report.results[0].executed,false);assert.equal(report.results[0].failureKind,'setup');assert.equal(report.results[0].passed,false);}
   }
 });
 
@@ -359,8 +360,8 @@ test('public authentication cases assert HTTP denial rather than a fabricated an
 test('full bank includes every source page and catalog entry without duplicate case IDs',async()=>{
   const suite=await evaluationSuite('2026-11-13T02:00:00Z');
   assert.equal(new Set(suite.cases.map(row=>row.id)).size,suite.cases.length);
-  assert.equal(suite.inventory.clientDispatch.questions.length,45);
-  assert.deepEqual(suite.inventory.clientDispatch.verifiedDispatch.map(({graphTool})=>graphTool),['aidPayments','dtmGradeReport']);
+  assert.equal(suite.inventory.clientDispatch.questions.length,40);
+  assert.deepEqual(suite.inventory.clientDispatch.verifiedDispatch.map(({graphTool})=>graphTool),['aidPayments','dtmGradeReport','elearningEnrollments']);
   assert.ok(suite.inventory.clientDispatch.questions.every(row=>row.executed===false));
   assert.ok(suite.inventory.clientDispatch.questions.every(row=>!suite.cases.some(apiCase=>apiCase.id===row.id)));
   const assessment=assessRun({results:[],cleanup:{complete:true},sourceUnchanged:true,dirty:false},{...suite,requestedSuite:'full',sourceRevision:'offline'});

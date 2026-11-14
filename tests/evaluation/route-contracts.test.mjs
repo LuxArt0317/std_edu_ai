@@ -195,7 +195,7 @@ test('route coverage retains only unresolved semantic cases after adding public 
     '/campus-assistant?embed=1','/campus-directory','/local-pages',
   ];
   const added=[
-    '/elearning/categories','/elearning/my-courses','/elearning/search','/elearning/category/:id','/elearning/notice/:id',
+    '/elearning/categories','/elearning/search','/elearning/category/:id','/elearning/notice/:id',
     '/elearning/course/:id','/elearning/course/:courseId/activity/:activityId','/elearning/search?q=%3Aquery',
     '/elearning/search?page=%3Apage&q=%3Aquery','/elearning/category/:id?page=%3Apage','/elearning/login',
     '/school-affairs/services/4-2','/school-sites/elearning.stu.edu.tw','/school-sites/elearning.stu.edu.tw/login/index.php',
@@ -207,18 +207,19 @@ test('route coverage retains only unresolved semantic cases after adding public 
     'student-loan-literal','student-loan-empty','student-loan-document-unavailable'].map(id=>'account:'+id);
   const aidIds=['salary-count','salary-multipart','salary-tax','claim','both','empty','bank-unavailable','foreign'].map(id=>'account:aid-payments-'+id);
   const dtmIds=['feedback','absent','total','saved-total','tail'].map(id=>'account:dtm-native-report-'+id);
-  const addedPrivacyIds=['anonymous-records-studentConduct','anonymous-records-studentLoan','anonymous-records-aidPayments','anonymous-records-dtmGradeReport'];
-  const newIds=[...reproductionIds,...nativeIds,...aidIds,...dtmIds,...addedPrivacyIds,'public-study-first-week'];
+  const elearningIds=['enrollment','enrollment-mixed','enrollment-empty','grades-unlinked'].map(id=>'account:elearning-'+id);
+  const addedPrivacyIds=['anonymous-records-studentConduct','anonymous-records-studentLoan','anonymous-records-aidPayments','anonymous-records-dtmGradeReport','anonymous-records-elearningEnrollments'];
+  const newIds=[...reproductionIds,...nativeIds,...aidIds,...dtmIds,...elearningIds,...addedPrivacyIds,'public-study-first-week'];
   assert.equal(cases.filter(row=>!newIds.includes(row.id)).length,945);
-  for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,addedPrivacyIds])assert.deepEqual(cases.filter(row=>ids.includes(row.id)).map(row=>row.id).sort(),[...ids].sort());
+  for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,addedPrivacyIds])assert.deepEqual(cases.filter(row=>ids.includes(row.id)).map(row=>row.id).sort(),[...ids].sort());
   assert.equal(report.coverage.routes.total,576);
-  assert.equal(expected.length,58);assert.equal(added.length,15);
+  assert.equal(expected.length,58);assert.equal(added.length,14);
   assert.deepEqual(report.coverage.routes.missing.filter(route=>!added.includes(route)),expected);
   assert.deepEqual(report.coverage.routes.missing.filter(route=>added.includes(route)),added);
-  assert.equal(report.coverage.routes.missing.length,73);
+  assert.equal(report.coverage.routes.missing.length,72);
   assert.equal(report.browserAcceptance.total,576);assert.equal(report.browserAcceptance.requiredScenarios,586);
   assert.equal(report.coverage.routeFamilies.total,53);
   assert.deepEqual(report.coverage.routeFamilies.missing,['school-menus','dtm-submissions','elearning-authentication','elearning-entry-transitions','legacy-route-aliases','authentication-transitions','account-information','assistant-sessions','campus-navigation']);
   assert.equal(report.releaseReady,false);assert.equal(report.totals.executed,0);
-  assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,73);
+  assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,72);
 });

@@ -1,5 +1,5 @@
 import {affairsClient} from '@/features/public/affairs/authClient';
-import {elearningActivityPath,elearningCoursePath,elearningPath,elearningScope,elearningCatalogScope,elearningOutlineFilter,elearningOutlineScope,isElearningOutline,elearningCatalogPageSize,joinElearningCourse,
+import {elearningActivityPath,elearningCoursePath,elearningScope,elearningCatalogScope,elearningOutlineFilter,elearningOutlineScope,isElearningOutline,elearningCatalogPageSize,joinElearningCourse,
   type ElearningCatalog,type ElearningEnrollment,type ElearningOutline,type ElearningWorkspace} from '../../server/elearningContract.js';
 import type {AssistantResponse} from './researchAssistant';
 
@@ -72,19 +72,4 @@ export async function joinElearning(userId:string,courseId:number,signal:AbortSi
   if(data?.courseId!==courseId||typeof data.joinedAt!=='string'||!Number.isFinite(Date.parse(data.joinedAt)))
     throw new Error('無法確認加選結果。');
   return data;
-}
-export async function answerElearning(userId:string,question:string,signal?:AbortSignal):Promise<AssistantResponse>{
-  const data=await loadElearning(userId,signal);
-  const zh=/[\u3400-\u9fff]/u.test(question);
-  const enrolled=new Set(data.enrollments.map(item=>item.courseId));
-  const courses=data.courses.filter(item=>enrolled.has(item.id));
-  const title=zh?'數位學園選課':'Remote-learning Moodle enrollments';
-  const answer=courses.length
-    ?(zh?'您在 stu.best 數位學園的課程：':'Your stu.best remote-learning Moodle courses:')
-      +'\n\n'+courses.slice(0,10).map(course=>`- [${course.title.replace(/[[\]\\]/g,'\\$&')}](${elearningCoursePath(course.id)})`).join('\n')
-    :zh?'您的 stu.best 帳戶目前沒有數位學園選課紀錄。':'Your stu.best account has no remote-learning Moodle enrollments.';
-  return {status:'answered',answer,citations:[{chunkId:'account:elearning',title,url:elearningPath+'/my-courses',
-    claim:zh?'您的數位學園選課紀錄':'Your remote-learning Moodle enrollment records',
-    sourceName:'stu.best',locator:null,effectiveAt:null,reviewedAt:null}],suggestedQuestions:[],
-    grounding:{source:'account',webSearched:false}};
 }

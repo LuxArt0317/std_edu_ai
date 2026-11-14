@@ -56,15 +56,18 @@ try {
  const rotating=await browser.newContext({reducedMotion:'no-preference'});
  await mockAffairsAuth(rotating,{signedIn:false});
  const rotationPage=await rotating.newPage();
+ await rotationPage.clock.install();
  await rotationPage.goto(base+'/school-affairs/login');
  await rotationPage.getByRole('button',{name:'Pause campus photos'}).waitFor();
  const before=await rotationPage.locator('.affairs-login-photo > img').getAttribute('src');
- await rotationPage.waitForTimeout(5300);
+ await rotationPage.clock.fastForward(5300);
+ await rotationPage.waitForFunction(source=>document.querySelector('.affairs-login-photo > img')?.getAttribute('src')!==source,before);
  const after=await rotationPage.locator('.affairs-login-photo > img').getAttribute('src');
  assert.notEqual(after,before,'campus photo rotates automatically');
  await rotationPage.getByRole('button',{name:'Pause campus photos'}).click();
+ await rotationPage.getByRole('button',{name:'Play campus photos'}).waitFor();
  const paused=await rotationPage.locator('.affairs-login-photo > img').getAttribute('src');
- await rotationPage.waitForTimeout(5300);
+ await rotationPage.clock.fastForward(5300);
  assert.equal(await rotationPage.locator('.affairs-login-photo > img').getAttribute('src'),paused,'pause keeps current photo');
  await rotating.close();
  evidence.push({campusPhotos:16,randomStart:true,automaticRotation:true,manualControls:true,reducedMotion:true,pause:true});
@@ -110,11 +113,12 @@ try {
  let assistantRequests=0;
  const salaryQuestion='How many student salary records do I have? Also show the net pay and tax for each period.';
  const moodleGradeQuestion='Show my Moodle grades.';
+ const remoteLearningQuestion='What are my remote-learning Moodle enrollments? Also list my unfinished DTM assignments.';
  await page.route('**/api/affairs-assistant',async route=>{
   assistantRequests++;
   const authorization=route.request().headers().authorization;assert.ok(authorization?.startsWith('Bearer '));
   const payload=JSON.parse(Buffer.from(authorization.split('.')[1],'base64url').toString());assert.equal(payload.sub,affairsTestUser.id);
-  const body=route.request().postDataJSON();assert.ok(['What are my current subjects?','What is in this screenshot?','Remind me to review my sample courses',salaryQuestion,moodleGradeQuestion].includes(body.question));assert.equal(body.route,'/school-affairs');
+  const body=route.request().postDataJSON();assert.ok(['What are my current subjects?','What is in this screenshot?','Remind me to review my sample courses',salaryQuestion,moodleGradeQuestion,remoteLearningQuestion].includes(body.question));assert.equal(body.route,'/school-affairs');
   if(body.question===salaryQuestion){
    await route.fulfill({json:{answer:'You have 1 saved salary record. September net pay was 5400, with tax 0.',status:'answered',citations:[],
     verification:{status:'verified',attempts:1},activity:[{kind:'account-read:aidPayments:1',label:'Checked your salary record',detail:'Read the saved period, net pay and tax.',status:'complete'}]}});
@@ -123,6 +127,13 @@ try {
   if(body.question===moodleGradeQuestion){
    await route.fulfill({json:{answer:'Your saved Moodle course total is 73.50.',status:'answered',citations:[],
     verification:{status:'verified',attempts:1},activity:[{kind:'account-read:dtmGradeReport:1',label:'Checked your Moodle grade report',detail:'Read the saved native course total.',status:'complete'}]}});
+   return;
+  }
+  if(body.question===remoteLearningQuestion){
+   await route.fulfill({json:{answer:'Saved remote-learning enrollment: Workshop 9718. Unfinished DTM assignment: Index plan.',status:'answered',citations:[],
+    verification:{status:'verified',attempts:1},activity:[
+     {kind:'account-read:elearningEnrollments:1',label:'Checked remote-learning enrollments',detail:'Read the saved enrollments from your account.',status:'complete'},
+     {kind:'account-read:assignments:1',label:'Checked DTM assignments',detail:'Read the saved assignments from your account.',status:'complete'}]}});
    return;
   }
   await route.fulfill({json:body.question.startsWith('Remind me')?{answer:'I can create a stu.best task after you confirm.',citations:[],proposedAction:{kind:'create_task',label:'Create task: Review my sample courses',payload:{title:'Review my sample courses'},requestId:reviewedTaskId}}:body.images?.length?{answer:'The image shows a School Affairs service menu.',citations:[],activity:[{kind:'image',label:'Read the attached image',detail:'1 image analyzed',status:'complete'}]}:{answer:'Your sample subject is SAMP101 Campus Orientation.',citations:[],activity:[{kind:'account',label:'Read your School Affairs records',detail:'Only this account was queried',status:'complete'}]}});
@@ -189,6 +200,23 @@ try {
  await page.getByText('Checked your Moodle grade report',{exact:true}).waitFor();
  assert.equal(assistantRequests,beforeMoodleGrades+1,'Moodle grades from School Affairs enter the graph transport once');
  evidence.push({nativeDtmGradesEnteredGraph:true});
+ const beforeRemote=assistantRequests;
+ await page.getByLabel('Your question').fill(remoteLearningQuestion);
+ await page.getByRole('button',{name:'Send',exact:true}).click();
+ await page.getByText('Saved remote-learning enrollment: Workshop 9718. Unfinished DTM assignment: Index plan.',{exact:true}).waitFor();
+ await page.locator('article').last().locator('details').locator('summary').click();
+ await page.getByText('Checked remote-learning enrollments',{exact:true}).waitFor();
+ await page.getByText('Checked DTM assignments',{exact:true}).waitFor();
+ assert.equal(assistantRequests,beforeRemote+1,'Compound study question should enter one verification request');
+ await page.reload();
+ await openAssistant();
+ await page.getByText('Saved remote-learning enrollment: Workshop 9718. Unfinished DTM assignment: Index plan.',{exact:true}).waitFor();
+ const remoteAnswer=page.locator('article').filter({hasText:'Saved remote-learning enrollment: Workshop 9718.'}).last();
+ const remoteActivity=remoteAnswer.locator('details');
+ if(!await remoteActivity.evaluate(details=>details.open)) await remoteActivity.locator('summary').click();
+ await remoteAnswer.getByText('Checked remote-learning enrollments',{exact:true}).waitFor();
+ await remoteAnswer.getByText('Checked DTM assignments',{exact:true}).waitFor();
+ evidence.push({remoteLearningMultipartEnteredGraph:true,remoteLearningActivityRestored:true});
  const image=Buffer.concat([Buffer.from('89504e470d0a1a0a','hex'),Buffer.alloc(40)]);
  await page.locator('.public-assistant-surface input[type=file]').setInputFiles({name:'school-menu.png',mimeType:'image/png',buffer:image});
  await page.getByRole('list',{name:'Attached images'}).getByText('school-menu.png').waitFor();

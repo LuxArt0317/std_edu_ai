@@ -323,7 +323,7 @@ function unsupportedClaimDiagnostics(review){
 
 const diagnosticCollections=new Set(['account-scope','profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements',
   'scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance',
-  'courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport']);
+  'courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments']);
 const diagnosticReasons=new Set(['no_supported_answer','unsupported_claims','evidence_unavailable','snapshot_provenance_missing','invalid_generated_answer','generated_abstention']);
 /** Internal correlation only. Never serialize context, evidence, or provider text. */
 function countOnlyDiagnostic(context,stage,reason,evidence,review,hasImages=false){
