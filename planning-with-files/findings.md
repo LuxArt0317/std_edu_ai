@@ -283,3 +283,7 @@ The signed-in 2-1 settings page contains one announcement email checkbox, Confir
 Keep saved email consent distinct from delivery capability. Activate opt-in on the next Taipei date and apply opt-out immediately to queued mail. Provider acceptance is distinct from mailbox receipt.
 
 Certificate award source has distinct entry and catalog routes. The student confirms separately after proof upload. Keep proof identity and the account reference outside assistant context.
+
+## Remote-learning activity screens
+
+Fourteen linked slide/video screens display Google Drive previews and one feedback screen displays a Google Form. Only the screen and destination types were verified. The source attendance report denied access in the current session. The teacher timetable source still requires its own CAPTCHA sign-in.

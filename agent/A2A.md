@@ -1,3 +1,7 @@
+## Remote-learning course layout [Issue #98]
+
+Production `4acef46` is live as Vercel `HSEtphCQGR3ngn5RQqoqp4SpELyi`. The outline layout uses the verified course header, category breadcrumbs, original Moodle icons and measured section spacing. The pinned browser and actual-JWT verification passed. All 94 School Affairs destinations passed navigation, with 29 generic and 25 partial. Quality 43559400070 passed. No migration was required. Fourteen linked slide/video screens display Google Drive previews and one feedback screen displays a Google Form. Only the screen and destination types were verified. The source attendance report denied access in the current session. The teacher timetable source still requires its own CAPTCHA sign-in.
+
 ## Remote-learning course outlines (Issue #98)
 
 Production `d4f9cfa` is live as Vercel `GY1xXgz6xpFruqB4xiTjeTtYY65s`. Migration 20261115030000 brings the client to 161 migrations and 195 RLS-protected public tables. Three sections and 17 verified activity links are available across two course outlines. Rollback and actual-JWT verification covered course-level access, non-Google denial, account isolation and exact cleanup. The pinned browser verified the course page and signed-in assistant links. Guest assistant, shell and Quality 43558768540 passed. Moodle controls access to the linked activity content. The migration creates no production access grants. Official grades, assignment submissions, enrollment and attendance results remain outside this import. Preserve paused Issue #100 paths.
