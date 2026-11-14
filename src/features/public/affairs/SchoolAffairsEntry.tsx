@@ -9,6 +9,7 @@ import { affairsCallbackPath, completeGoogleSignIn, consumeGoogleReturnPath, saf
 import './login.css';
 import { SchoolAffairsPrivacy } from './SchoolAccountRecords';
 import { permanentCoursesPath } from './permanentCourseRouting.js';
+import { venuePaths } from './venueContract.js';
 const base = 'https://info.stu.edu.tw/ePortal/';
 const campusPhotos = Array.from({ length: 16 }, (_, index) =>
   referenceAsset(`${base}assets/images/stu${index}.jpg`),
@@ -90,7 +91,8 @@ export default function SchoolAffairsEntry() {
   if (user) return <SchoolAffairsPortal key={user.id} user={user} />;
   if (pathname !== '/school-affairs/login') {
     const ordinaryTarget = safeSchoolReturnPath(pathname + hash);
-    const target = pathname === permanentCoursesPath ? safeSchoolReturnPath(pathname + search + hash,ordinaryTarget) : ordinaryTarget;
+    const target = [permanentCoursesPath,venuePaths.schedule].includes(pathname)
+      ? safeSchoolReturnPath(pathname + search + hash,ordinaryTarget) : ordinaryTarget;
     return <Navigate to={target==='/school-affairs'?'/school-affairs/login':'/school-affairs/login?next='+encodeURIComponent(target)} replace />;
   }
   return <main className="affairs-login" style={{backgroundImage:`url("${referenceAsset(base+'assets/css/images/pattern.jpg')}")`}}>

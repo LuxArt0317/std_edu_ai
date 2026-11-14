@@ -1,0 +1,44 @@
+.venue-page{min-height:100vh;background:#eee;padding:8px 0;color:#222;font:13px/1.3 Arial,sans-serif}
+.venue-workspace{width:min(962px,100%);min-height:calc(100vh - 10px);margin:auto;background:#fff;border:1px solid #c7c7c7;border-top:0;border-radius:0 0 5px 5px}
+.venue-workspace>header{min-height:20px;background:#535759;color:#fff;display:flex;justify-content:space-between;align-items:center;padding:2px 16px;gap:6px}
+.venue-workspace h1{margin:10px 14px 0;min-height:49px;border-bottom:1px solid #ccc;font-size:20px;color:#444;display:flex;align-items:center;gap:7px;font-weight:bold}
+.venue-workspace h1 img{width:39px;height:39px;object-fit:contain}
+.venue-instructions,.venue-query,.venue-requests{margin-inline:24px}
+.venue-instructions{min-height:36px;border-bottom:1px solid #ccc;display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:5px}
+.venue-instructions button,.venue-workspace footer a{color:#17679a;text-decoration:underline;cursor:pointer}
+.venue-query{margin-top:5px;padding:20px 10px 24px;border:1px solid #d2e3f4;border-block:4px solid #1875a9}
+.venue-inputs{display:flex;align-items:center;flex-wrap:wrap;gap:5px}
+.venue-inputs input{width:210px;max-width:100%;height:22px;padding:1px 4px;border:1px solid #ccc;border-radius:3px}
+.venue-inputs input[readonly]{width:min(310px,100%)}
+.venue-search{position:relative;max-width:100%}
+.venue-search ul{position:absolute;top:100%;left:0;z-index:3;min-width:min(300px,80vw);max-height:230px;overflow:auto;background:#fff;border:1px solid #aaa;box-shadow:0 2px 6px #0002}
+.venue-search li button{display:block;width:100%;text-align:left;padding:5px 8px;cursor:pointer}
+.venue-search li button:hover,.venue-search li button:focus-visible{background:#e3f2f4}
+.venue-week-buttons{display:flex;gap:4px;flex-wrap:wrap}
+.venue-week-buttons button,.venue-request-dialog form div button{padding:3px 14px;border-radius:3px;background:#087b70;color:white;font-size:15px;cursor:pointer;border:1px solid #08655c}
+.venue-week-buttons button:last-child{background:#c72079;border-color:#ac1868}
+.venue-table-scroll{margin:10px auto 0;width:min(846px,100%);overflow:auto}
+.venue-table-scroll table{width:100%;min-width:720px;border-collapse:collapse;font:inherit}
+.venue-table-scroll th,.venue-table-scroll td{border:1px solid #d8d8d8;padding:6px;text-align:left;overflow-wrap:anywhere}
+.venue-table-scroll th{background:#eaf3f1;color:#065b86;text-align:center;font-weight:400;height:30px}
+.venue-table-scroll th[scope=row]{min-width:116px}
+.venue-table-scroll td{height:30px}
+.venue-table-scroll thead tr:first-child th[colspan]{height:45px}
+.venue-table-scroll button{color:#076b9e;cursor:pointer;text-decoration:underline}
+.venue-requests{margin-top:18px}
+.venue-requests h2{font-size:16px;font-weight:600}
+.venue-requests p{margin-block:6px}
+.venue-workspace footer{padding:16px 8px 12px;text-align:center;margin:10px 24px 0;border-top:1px solid #d2e3f4}
+.venue-workspace [role=alert],.venue-request-dialog [role=alert]{color:#9a1818}
+.venue-workspace :focus-visible,.venue-request-dialog :focus-visible{outline:2px solid #176da1;outline-offset:2px}
+.venue-request-dialog form{display:grid;gap:10px}
+.venue-request-dialog textarea{display:block;width:100%;min-height:90px;margin-top:4px;border:1px solid #aaa;padding:5px}
+.venue-request-dialog form div{display:flex;justify-content:flex-end;gap:8px}
+.venue-request-dialog form div button:disabled{opacity:.55;cursor:default}
+@media(max-width:600px){
+  .venue-page{padding-top:0}
+  .venue-instructions,.venue-query,.venue-requests,.venue-workspace footer{margin-inline:8px}
+  .venue-workspace h1{margin-inline:8px;font-size:18px}
+  .venue-query{padding:12px 6px}
+  .venue-inputs{margin-bottom:5px}
+}

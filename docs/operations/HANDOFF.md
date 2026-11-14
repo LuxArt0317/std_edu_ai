@@ -1,3 +1,7 @@
+## Venue booking (Issue #98)
+
+Services 44-1 and 47-1 use saved venue schedules and private local requests. The administrator can approve or decline a request, and the assistant reads the same records. The official application remains behind university sign-in. See [venue booking QA](../qa/VENUE_BOOKING.md).
+
 ## Permanent course catalog (Issue #98)
 
 Service 12-2 uses the permanent-course snapshot in Supabase. The import contains 15,580 public records and all 120 observed kind/division combinations. The service accepts only reads. The public source provides exact descriptions and the server caches them by course code. See [permanent course QA and refresh](../qa/PERMANENT_COURSES.md).

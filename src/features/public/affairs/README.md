@@ -1,5 +1,7 @@
 # School Affairs UI
 
+Services 44-1 and 47-1 open the venue application and weekly schedule. The administrator can review local requests. See [venue booking QA](../../../../docs/qa/VENUE_BOOKING.md).
+
 Service 12-2 opens the permanent course catalog and its print dialog. See [permanent course QA and data refresh](../../../../docs/qa/PERMANENT_COURSES.md).
 
 Services 10-1 and 16-1 open graduation clearance and its status. School Affairs administration configures periods, assigns candidates and records office decisions. See [graduation clearance QA](../../../../docs/qa/GRADUATION_CLEARANCE.md).

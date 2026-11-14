@@ -1,5 +1,7 @@
 # Supabase
 
+Migration 20261114170000 adds venue schedules, private requests and operation receipts. See [venue booking verification](../docs/qa/VENUE_BOOKING.md).
+
 Migration 20261114160000 creates the public permanent course catalog and description cache. See [data import and verification](../docs/qa/PERMANENT_COURSES.md).
 
 `migrations/` contains additive client database changes. `functions/` contains Edge Function sources and `certs/` contains the public TLS certificate used by deployment checks. Deploy only to the project in `deployment.json` using the root `db:plan` and `db:deploy` scripts; see [operational setup](../docs/operations/SETUP.md).

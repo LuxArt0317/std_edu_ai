@@ -1,5 +1,7 @@
 # Server helpers
 
+`venueBooking.js` validates the public schedule, persists room occupancy, and serves caller-scoped requests and review operations.
+
 `permanentCourses.js` serves the published course list and exact-code descriptions to the catalog and campus assistant. `permanentCourseSource.js` parses the public source and uses each source-issued description identifier only in its original request session.
 
 `graduationClearance.js` validates caller-bound reads, office decisions and submission receipts. Its assistant reply uses persisted office statuses.

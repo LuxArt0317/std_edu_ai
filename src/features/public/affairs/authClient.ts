@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.generated';
 import { clearAssistantConversation } from '@/services/assistantConversation';
 import { permanentCoursesPath } from './permanentCourseRouting.js';
+import { venuePaths,venueScheduleSelection } from './venueContract.js';
 
 const url = import.meta.env.VITE_SUPABASE_URL?.trim();
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
@@ -9,6 +10,10 @@ export const affairsStorageKey = 'stu-school-affairs-auth';
 export const affairsCallbackPath = '/school-affairs/auth/callback';
 const returnKey = 'stu-school-affairs-return';
 export function safeSchoolReturnPath(value:string|null,fallback='/school-affairs') {
+  if (value?.startsWith(venuePaths.schedule+'?') && value.length<=240 && !value.includes('#')) {
+    const venue=venueScheduleSelection(new URLSearchParams(value.slice(venuePaths.schedule.length+1)));
+    if(venue)return venuePaths.schedule+'?'+new URLSearchParams(venue);
+  }
   if (value?.startsWith(permanentCoursesPath+'?') && value.length<=240 && !value.includes('#')) {
     const query=new URLSearchParams(value.slice(permanentCoursesPath.length+1));
     const course=query.get('course');

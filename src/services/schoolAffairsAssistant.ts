@@ -1,6 +1,8 @@
 import {clearanceQuestion} from '../../server/graduationClearanceContract.js';
 import {readGraduationClearanceAnswer} from './graduationClearance';
 import {permanentCourseQuestion} from '../features/public/affairs/permanentCourseRouting.js';
+import {venueQuestion} from '../features/public/affairs/venueContract.js';
+import {readVenueAnswer} from './venueBooking';
 import {teachingFeedbackQuestion} from '../../server/teachingFeedbackContract.js';
 import {readTeachingFeedbackAnswer} from './teachingFeedback';
 import {earlyGraduationQuestion} from '../../server/earlyGraduationContract.js';
@@ -24,6 +26,12 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
   if (!affairsClient) throw new Error('School Affairs sign-in is not configured.');
   const {data,error} = await affairsClient.auth.getSession();
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
+  const venue=!images.length&&venueQuestion(question);
+  if(venue){
+    if(venue.view!=='mine')return askCampusAssistant(question,[],signal,[],route,onProgress);
+    onProgress?.({kind:'venue-booking',label:'Checking venue requests',detail:'Reading your saved request statuses.',status:'running'});
+    return readVenueAnswer(data.session.user.id,question,signal);
+  }
   if (!images.length && permanentCourseQuestion(question)) return askCampusAssistant(question,[],signal,[],route,onProgress);
   if (!images.length && isProgramRegistrationQuestion(question)) {
     onProgress?.({kind:'program-registrations',label:'Checking interdisciplinary program registrations',detail:'Reading your School Affairs records.',status:'running'});

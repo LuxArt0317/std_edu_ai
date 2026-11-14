@@ -1,5 +1,7 @@
 # Changelog
 ## Unreleased
+- Add venue schedule search, persisted room availability, private local requests and administrator review. [#98]
+
 - Add the permanent course catalog with verified university course records, filtered search, printable descriptions and campus assistant links. [#98]
 
 - Add a graduation clearance application, account-owned status page, per-office review and assistant lookup. [#98]

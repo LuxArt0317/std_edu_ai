@@ -4,7 +4,7 @@ import {schoolServiceEntries} from '../../../src/features/public/affairs/student
 // Explicit review inventory, not inferred from the presence of a generic body.
 // A native mount says nothing about unobserved workflows or live backend acceptance.
 const service = id => '/school-affairs/services/'+id;
-const genericIds = '1-1 2-1 4-2 4-3 5-1 6-5 8-1 12-1 18-1 19-1 24-1 27-1 29-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 43-1 44-1 45-1 47-1 50-1 50-2 51-1 52-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
+const genericIds = '1-1 2-1 4-2 4-3 5-1 6-5 8-1 12-1 18-1 19-1 24-1 27-1 29-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 43-1 45-1 50-1 50-2 51-1 52-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
 const native = [
   ['7-3','.program-registration','program-registration-ui.mjs','Private interdisciplinary registration history and local registration controls.'],
   ['7-1','.credit-load-application','credit-load-application-ui.mjs','Observed instructions and closed-period acknowledgement only; open application and staff review forms remain unobserved.'],
@@ -32,6 +32,7 @@ const native = [
   ['34-2','.dorm-conduct','dorm-conduct-ui.mjs','Only empty/unknown source result observed; no populated-row schema.'],
   ['38-1','.student-conduct','student-conduct-workspace-ui.mjs','Observed table; unobserved details and document downloads disabled.'],
   ['39-1','.pending-fees','pending-fees-ui.mjs','Explicit pending charges; no payment execution.'],
+  ['47-1','.venue-workspace','venue-booking-ui.mjs','Public university weekly venue schedule with persisted occupancy and local approved slots.'],
   ['48-1','.tuition-documents','tuition-documents-workspace-ui.mjs','Observed summer print instructions; no verified document capability.'],
   ['48-2','.tuition-documents','tuition-documents-workspace-ui.mjs','Observed Index/unavailable destination; populated extended-study view unobserved.'],
   ['48-3','.tuition-documents','tuition-documents-workspace-ui.mjs','Observed evening print instructions; no verified document capability.'],
@@ -66,6 +67,8 @@ const descriptors = [
     workflowSuite:'tests/integration/curriculum-maps-ui.mjs',sourceBoundary:'Public map and live course lookup. The career and competency details require university sign-in.'},
   {id:'46-1',kind:'partial',href:service('46-1'),finalUrl:service('46-1'),selector:'.parking-permits',
     workflowSuite:'tests/integration/parking-permits-ui.mjs',sourceBoundary:'Observed parking entry and instructions; the university-authenticated form and records remain unobserved.'},
+  {id:'44-1',kind:'partial',href:service('44-1'),finalUrl:service('44-1'),selector:'.venue-workspace',
+    workflowSuite:'tests/integration/venue-booking-ui.mjs',sourceBoundary:'Local application and review linked to public availability. Protected university application layout is unobserved.'},
   {id:'42-1',kind:'partial',href:service('42-1'),finalUrl:service('42-1'),selector:'.service-leadership',
     workflowSuite:'tests/integration/service-leadership-ui.mjs',sourceBoundary:'Observed index with four local destinations and exact university sign-in handoffs; protected details remain unobserved.'},
   {id:'28-1',kind:'native',href:service('28-1'),finalUrl:service('28-1'),selector:'.tutor-evaluation',
@@ -129,6 +132,10 @@ export function schoolServiceReadFixture(rawUrl,method,user,origin) {
   assert.equal(url.pathname,'/api/affairs-data','Unknown API path.');
   if(!url.search)return schoolServiceSnapshot(user);
   const scope=url.searchParams.get('scope');
+  if(scope==='venue-requests'){
+    assert.deepEqual(Object.fromEntries(url.searchParams),{scope,view:'mine'});
+    return {userId:user.id,rows:[]};
+  }
   if(scope==='permanent-courses'){
     assert.deepEqual(Object.fromEntries(url.searchParams),{scope});
     return {rows:[],kinds:[],divisions:[],total:0,page:0,pageSize:50,capturedAt:'2026-11-14T00:00:00Z'};

@@ -1,3 +1,7 @@
+## Venue booking (Issue #98)
+
+Root owns 44-1 and 47-1, migration 20261114170000, venue schedule, request review and assistant routing. Exact-client rollback passed and the migration is installed. Paused Issue #100 paths remain excluded.
+
 ## Permanent course catalog (Issue #98)
 
 Root owns service 12-2, migration 20261114160000, public course import, catalog detail cache and assistant routing. Production `3665b12` is live as Vercel `2BRvLpYQSkpokYgEUgEBQAn2BYwN`. Only migration 20261114160000 was applied, bringing the client to 150 migrations and 176 RLS-protected public tables. The import has 15,580 course records across 120 groups. The pinned browser, public catalog and bilingual assistant HTTP checks, persisted on-demand description and eight public shell routes passed. Quality 43534205868 passed. The local audit reached all 94 destinations and reports 38 generic and 17 partial entries. The teacher timetable and venue application still require university sign-in. The public venue lookup returned a 105-slot weekly schedule for a verified room. The next venue work can use that schedule as evidence while the protected application is inspected. Paused Issue #100 paths remain excluded.

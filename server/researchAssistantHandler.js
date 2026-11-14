@@ -1,5 +1,7 @@
 import {clearancePaths,clearanceQuestion} from './graduationClearanceContract.js';
 import {answerPermanentCourse} from './permanentCourses.js';
+import {answerVenue} from './venueBooking.js';
+import {venueQuestion} from '../src/features/public/affairs/venueContract.js';
 import {permanentCourseQuestion} from '../src/features/public/affairs/permanentCourseRouting.js';
 import {teachingFeedbackPaths,teachingFeedbackQuestion} from './teachingFeedbackContract.js';
 import {earlyGraduationPath,earlyGraduationQuestion} from './earlyGraduationContract.js';
@@ -255,6 +257,15 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const kind = questionKind(input.question);
+        const venue = !input.images.length && !kind.irrelevant && venueQuestion(input.question);
+        if (venue) {
+            stream.progress('venue-booking','Checking venue information','Reading the venue service and schedule.');
+            const answer = await answerVenue(input.question,venue);
+            const step = answer.activity[0];
+            stream.progress(step.kind,step.label,step.detail,step.status);
+            stream.send(200,answer);
+            return;
+        }
         const permanentCourse = !input.images.length && !kind.irrelevant && permanentCourseQuestion(input.question);
         if (permanentCourse) {
             const answer = await answerPermanentCourse(input.question, permanentCourse, {

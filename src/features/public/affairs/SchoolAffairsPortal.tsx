@@ -1,6 +1,8 @@
 import {GraduationClearanceWorkspace} from "./GraduationClearanceWorkspace";
 import {clearancePaths} from "../../../../server/graduationClearanceContract.js";
 import {PermanentCourseCatalog} from "./PermanentCourseCatalog";
+import {VenueWorkspace} from "./VenueWorkspace";
+import {venuePaths} from "./venueContract.js";
 import {permanentCoursesPath} from "./permanentCourseRouting.js";
 import {TeachingFeedbackWorkspace} from "./TeachingFeedbackWorkspace";
 import {teachingFeedbackPaths} from "../../../../server/teachingFeedbackContract.js";
@@ -642,6 +644,10 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
     return <CourseCatalog userId={user.id} />;
   }
   if (normalizedPath === permanentCoursesPath) return <PermanentCourseCatalog />;
+  if (normalizedPath === venuePaths.apply || normalizedPath === venuePaths.schedule || normalizedPath === venuePaths.manage) {
+    return <VenueWorkspace key={user.id+normalizedPath+search} userId={user.id}
+      view={normalizedPath===venuePaths.manage?'manage':normalizedPath===venuePaths.apply?'apply':'schedule'}/>;
+  }
   if (normalizedPath === syllabusSearchPath) {
     return <SyllabusSearchRoute userId={user.id} />;
   }
