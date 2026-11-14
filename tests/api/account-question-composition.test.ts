@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
+import {accountEvidence} from '../../server/answerVerificationAccount.js';
 import {accountQuestionIntent,answerPrivateAffairsQuestion,fallbackPrivateAnswer} from '../../server/affairsAnswer.js';
 
 const user='10000000-0000-4000-8000-000000000001',other='10000000-0000-4000-8000-000000000002';
@@ -184,4 +185,33 @@ test('missing check time and absent student remain narrow limitations, not fabri
 
 test('the exported deterministic fallback uses the same current-course composition',()=>{
   const answer=fallbackPrivateAnswer(question,fixture());assert.match(answer,/Year level: 3/);assert.match(answer,/SAMP103/);assert.doesNotMatch(answer,/SAMP090|SAMP201/);
+});
+
+test('a current weekday timetable question reads only the matching School Affairs classes',async()=>{
+  const friday='Which class in my current schedule meets on Fridays, and at what time and room?';
+  const snapshot=fixture();
+  snapshot.courses[0].weekday=1;
+  snapshot.courses[1].weekday=3;
+  Object.assign(snapshot.courses[2],{startsAt:'10:00:00',endsAt:'11:30:00',room:'Sample Room 305'});
+  const meetings: object[] = snapshot.dtm.courses[0].meetings;
+  meetings.push({id:'different-meeting',title:'DTM-only meeting'});
+  assert.equal(accountQuestionIntent(friday,[],'/').scheduleWeekday,5);
+  assert.deepEqual(accountQuestionIntent(friday,[],'/').baseTools,['courses']);
+  const result=await draft(friday,snapshot,'/');
+  assert.match(result.answer,/SAMP103 · Student Services Practice \(sample\) · 10:00–11:30 · Sample Room 305/u);
+  assert.match(result.answer,/Taipei time/u);
+  assert.match(result.answer,/\/school-affairs\/records\/subjects/u);
+  assert.doesNotMatch(result.answer,/DTM-only meeting|SAMP101|SAMP102|SAMP090|SAMP201|FOREIGN/u);
+  const empty=await draft(friday.replace('Fridays','Saturdays'),snapshot,'/');
+  assert.match(empty.answer,/no current classes recorded for Saturday/u);
+  const zh=await draft('我本學期課表星期五有哪些課，幾點，在哪個教室？',snapshot,'/');
+  assert.match(zh.answer,/星期五.*台北時間/u);
+  assert.match(zh.answer,/11:30 · Sample Room 305/u);
+  const evidence = accountEvidence(snapshot,['courses'],{question:friday,route:'/'});
+  const selection = evidence.find(source=>source.id==='account:courses');
+  assert.ok(selection);
+  assert.match(selection.content,/SAMP103/u);
+  assert.doesNotMatch(selection.content,/SAMP101|SAMP102|FOREIGN|DTM-only meeting/u);
+  assert.equal(accountQuestionIntent(friday,[],'/dtm').scheduleWeekday,null);
+  assert.equal(accountQuestionIntent(friday.slice(0,-1)+' and what is my tuition?',[],'/').scheduleWeekday,null);
 });

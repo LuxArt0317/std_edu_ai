@@ -22,6 +22,17 @@ const recordLinkTopics = [
   [/\b(?:subjects?|courses?|enrollments?)\b|科目|課程|選課/i,'enrollments'],
 ];
 
+const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const weekdaysZh = '一二三四五六日';
+
+function schoolScheduleWeekday(question, route) {
+  if (/^\/dtm(?:[/?]|$)/u.test(route)) return null;
+  const english = /^(?:please )?(?:which|what) (?:class(?:es)?|courses?|subjects?) (?:in|on) my (?:current )?(?:schedule|timetable)(?: (?:meets?|are|is))? (?:on )?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)s?(?:,? and (?:at )?what (?:time and (?:room|location)|time|room|location))?[?.!]*$/i.exec(question);
+  if (english) return weekdays.findIndex(day => day.toLowerCase() === english[1].toLowerCase()) + 1;
+  const chinese = /^(?:請問)?我(?:的)?(?:本學期|這學期|目前)?課表(?:中|上)?(?:星期|週)([一二三四五六日天])有(?:哪些|哪一門|什麼)課(?:[，、, ]*(?:幾點|在什麼教室|在哪個教室|在哪裡)){0,2}[？?。！!]*$/u.exec(question);
+  return chinese ? weekdaysZh.indexOf(chinese[1] === '天' ? '日' : chinese[1]) + 1 : null;
+}
+
 function privateRecordPath(question) {
   const kind = recordLinkTopics.find(([pattern])=>pattern.test(question))?.[1];
   // Native11-1/11-2 contain independent phase snapshots, not the enrollment
@@ -56,6 +67,7 @@ export function accountQuestionIntent(question,history=[],route='') {
   const q=contextQuestion.normalize('NFKC');
   const explicitDtm=/\b(?:moodle|dtm|digital teaching(?: materials)?)\b|數位教材|教材網/iu.test(q);
   const explicitAffairs=/\bschool affairs\b|校務/iu.test(q);
+  const scheduleWeekday = contextTruncated ? null : schoolScheduleWeekday(q, route);
   const scopedRecordFollowup=/^(?:\/school-affairs\/services\/|\/dtm\/(?:course|grades|assignments|dashboard)(?:\/|$))/u.test(typeof route==='string'?route:'')
     &&/^(?:(?:please\s+)?(?:show|view|list)\s+(?:me\s+)?my\s+records?|(?:顯示|查看|列出)我的(?:資料|紀錄))[?.!？。\s]*$/iu.test(q);
   const overview=!scopedRecordFollowup&&/\b(?:what do you know about (?:me|my (?:(?:school|account|personal) )?(?:records?|details|information|data))|what (?:details|information|data|records?) do you (?:know|have) about me|what are (?:all )?my (?:(?:school|account|personal) )?details|(?:show|summari[sz]e|give me an overview of) (?:all )?my (?:(?:school|account|personal) )?(?:records?|details|information|data)|tell me about my (?:school|account|profile)|my account overview)\b|你(?:知道|有)我(?:的|哪些).{0,8}(?:資料|資訊)|(?:我的|幫我整理|查看我的).{0,8}(?:資料概況|學籍概況|帳戶資料|所有資料)|^我的(?:資料|資訊|詳情)[？?。\s]*$/iu.test(q);
@@ -89,7 +101,8 @@ export function accountQuestionIntent(question,history=[],route='') {
   const unresolvedPersonalContext=coaching&&(/\bmy\s+(?:(?:saved|stored|recorded)\s+)*(?:records?|profile|details|information|feedback|materials?|year|quiz(?:zes)?|assignments?)\b|我的(?:資料|紀錄|資訊|評語|回饋|教材|作業)/iu.test(q))
     &&!(overview||ownCourses||year||ownGrades||dtmContext||assignmentContext);
   const dependencies=[];
-  if(overview)dependencies.push('profile','courses','dtm','assignments','charges','tasks','requests');
+  if (scheduleWeekday) dependencies.push('courses');
+  else if(overview)dependencies.push('profile','courses','dtm','assignments','charges','tasks','requests');
   else {
     if(ownCourses)for(const part of ownCourseClauses)dependencies.push(/\b(?:moodle|dtm|digital teaching)\b|數位教材|教材網/iu.test(part)&&!/\bschool affairs\b|校務/iu.test(part)?'dtm':'courses');
     if(year)dependencies.push('profile');
@@ -111,14 +124,46 @@ export function accountQuestionIntent(question,history=[],route='') {
   const parts=q.split(/\s+(?:and|also|plus)\s+|[;,；，\n]|以及|還有|並且/iu).map(part=>part.trim()).filter(Boolean);
   const clausesCovered=parts.every(part=>/\b(?:courses?|subjects?|classes|lessons|year|records?|details|information|data|overview|profile)\b|課程|科目|修課|年級|資料|資訊|學籍|帳戶/iu.test(part)
     ||coaching&&/\b(?:help|study|prepare|improve|interview|presentation|introduce|natural|clearer|shorter|qualified)\b|學習|讀書|面試|介紹|簡報|自然/iu.test(part));
-  const recognized=Boolean(understood&&recordWordingCovered&&clausesCovered&&!contextTruncated&&!otherDomain&&!unhandledGrade&&!assertedQualification&&!otherRecordUse&&!unknownPersonalContext&&!unresolvedPersonalContext&&!(explicitDtm&&explicitAffairs)&&!(currentCourses&&namedTerms.length));
+  const recognized=Boolean(scheduleWeekday || (understood&&recordWordingCovered&&clausesCovered&&!contextTruncated&&!otherDomain&&!unhandledGrade&&!assertedQualification&&!otherRecordUse&&!unknownPersonalContext&&!unresolvedPersonalContext&&!(explicitDtm&&explicitAffairs)&&!(currentCourses&&namedTerms.length)));
   return {kind:coaching?(dependencies.length||assertedQualification||otherRecordUse||unknownPersonalContext||unresolvedPersonalContext?'mixed':'coaching'):'records',recognized,contextQuestion,
-    baseTools:[...new Set(dependencies)],overview,currentCourses,courseTerms,year,explicitDtm};
+    baseTools:[...new Set(dependencies)],overview,currentCourses,courseTerms,year,explicitDtm,scheduleWeekday};
 }
 
 const inlineRecord=value=>String(value).replace(/\s+/gu,' ').trim().replace(/[\\`*_[\]<>]/gu,'\\$&');
 const hasLiteral=value=>value!==null&&value!==undefined&&(typeof value==='number'?Number.isFinite(value):typeof value==='string'&&Boolean(value.trim()));
+function composeSchoolScheduleAnswer(intent, snapshot) {
+  const weekday = intent.scheduleWeekday;
+  const chinese = /[\u3400-\u9fff]/u.test(intent.contextQuestion);
+  const formatTime = value => /^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/u.test(value || '') ? value.slice(0, 5) : null;
+  const validCheck = Number.isFinite(Date.parse(snapshot.checkedAt));
+  const courses = ownEvidenceRows(snapshot.courses, snapshot.profile?.userId);
+  const current = validCheck ? studyCalendar(courses, snapshot.checkedAt).current : [];
+  const rows = current.filter(row => row.weekday === weekday)
+    .sort((a, b) => (formatTime(a.startsAt) || '99:99').localeCompare(formatTime(b.startsAt) || '99:99'));
+  const lines = [];
+  const day = chinese ? '星期' + weekdaysZh[weekday - 1] : weekdays[weekday - 1];
+  if (!validCheck) {
+    lines.push(chinese ? '課表沒有有效的查詢時間，因此無法確認本學期的課程。' : 'The timetable has no valid check time, so I can’t determine which courses are current.');
+  } else if (!rows.length) {
+    lines.push(chinese ? `已載入的校務課表沒有${day}的本學期課程。` : `Your loaded School Affairs timetable has no current classes recorded for ${day}.`);
+  } else {
+    lines.push(chinese ? `校務課表的${day}課程（台北時間）` : `${day} classes in your School Affairs timetable (Taipei time)`);
+    for (const row of rows.slice(0, 12)) {
+      const start = formatTime(row.startsAt);
+      const end = formatTime(row.endsAt);
+      const room = hasLiteral(row.room) ? inlineRecord(row.room) : (chinese ? '未記錄教室' : 'room not recorded');
+      const sample = ['sample', 'local_demo'].includes(row.sourceMode) ? (chinese ? '（範例）' : ' (sample)') : '';
+      const time = start && end ? `${start}–${end}` : start || (chinese ? '未記錄開始時間' : 'start time not recorded');
+      lines.push(`- ${inlineRecord(row.code)} · ${inlineRecord(row.title)}${sample} · ${time} · ${room}`);
+    }
+    if (rows.length > 12) lines.push(chinese ? `共載入 ${rows.length} 門課，顯示前 12 門。` : `Showing 12 of ${rows.length} matching classes in the loaded timetable.`);
+  }
+  lines.push(chinese ? `[查看我的校務課表](${schoolSubjectRecordsPath})` : `[View my School Affairs timetable](${schoolSubjectRecordsPath})`);
+  return {answer:lines.join('\n'),title:chinese ? '校務課表' : 'School Affairs timetable',url:schoolSubjectRecordsPath};
+}
+
 function composeCoreRecordAnswer(intent,snapshot) {
+  if (intent.scheduleWeekday) return composeSchoolScheduleAnswer(intent, snapshot);
   if(!intent.recognized||intent.kind!=='records'||!(intent.overview||intent.currentCourses||intent.courseTerms.length||intent.year))return null;
   const userId=snapshot.profile?.userId,student=snapshot.student&&(!snapshot.student.userId||snapshot.student.userId===userId)?snapshot.student:null;
   const chinese=/[\u3400-\u9fff]/u.test(intent.contextQuestion),t=(zh,en)=>chinese?zh:en;

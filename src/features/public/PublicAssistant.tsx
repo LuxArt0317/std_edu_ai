@@ -306,7 +306,14 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
                 <AssistantMarkdown>{message.content}</AssistantMarkdown>
               )}
               {message.result?.grounding?.source === "web" && <p className="text-xs text-muted-foreground">Found online · See sources below.</p>}
-              {message.result?.verification?<p className="text-xs text-muted-foreground">{message.result.verification.status==='verified'?'Checked against retrieved evidence':'Could not verify this answer'} · {message.result.verification.attempts} {message.result.verification.attempts===1?'check':'checks'}</p>:null}
+              {message.result?.verification && <p className="text-xs text-muted-foreground">
+                {message.result.verification.status === 'verified'
+                  ? message.result.verification.attempts === 0 && message.result.grounding?.source === 'directory'
+                    ? 'From the campus service directory'
+                    : 'Checked against retrieved evidence'
+                  : 'Could not verify this answer'}
+                {message.result.verification.attempts > 0 && ` · ${message.result.verification.attempts} ${message.result.verification.attempts === 1 ? 'check' : 'checks'}`}
+              </p>}
               {message.result?.views?.map(view=><details key={view.id} className="min-w-0 rounded-md border bg-muted/20 p-2 text-xs"><summary className="cursor-pointer font-semibold">{view.title} · {view.total} retrieved</summary><div className="mt-2 max-w-full overflow-x-auto" role="region" aria-label={view.title} tabIndex={0}><table className="w-full border-collapse text-left"><thead><tr>{view.columns.map(column=><th key={column} className="border-b p-2 whitespace-nowrap">{column}</th>)}</tr></thead><tbody>{view.rows.map((row,index)=><tr key={index}>{row.map((cell,column)=><td key={column} className="border-b p-2 align-top">{cell}</td>)}</tr>)}</tbody></table></div><p className="mt-2 text-muted-foreground">{view.rows.length<view.total?`Showing ${view.rows.length} of ${view.total} retrieved records. `:''}{view.note}</p><a className="mt-2 inline-block underline" href={view.url} target={embedded?'_top':undefined}>Open records</a></details>)}
               {message.result?.proposedAction && user ? <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
                 <p className="font-semibold">Review action</p>

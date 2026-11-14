@@ -310,9 +310,11 @@ export function accountEvidence(snapshot,tools=toolNames,context={}) {
     const budget=Math.min(24000,Math.floor(availableBudget*weight(key)/totalWeight));
     const native=Object.hasOwn(nativePredicates,key),query=native?nativeAccountQuery(snapshot,key,context):null;
     let selection=native?null:selectAccountEvidence(snapshot,key,{...context,courseTerms:intent.courseTerms});
-    if(key==='courses'&&selection&&intent.recognized&&intent.currentCourses&&!intent.explicitDtm){
+    if(key==='courses'&&selection&&intent.recognized&&(intent.currentCourses||intent.scheduleWeekday)&&!intent.explicitDtm&&Number.isFinite(Date.parse(snapshot.checkedAt))){
       const current=studyCalendar(selection.records,snapshot.checkedAt).current;
-      selection={...selection,records:current,selection:{...selection.selection,scope:'current_enrolled_term',availableRows:selection.records.length,matchingRows:current.length}};
+      const matching=intent.scheduleWeekday?current.filter(row=>row.weekday===intent.scheduleWeekday):current;
+      const scope=intent.scheduleWeekday?'current_term_weekday':'current_enrolled_term';
+      selection={...selection,records:matching,selection:{...selection.selection,scope,availableRows:selection.records.length,matchingRows:matching.length}};
     }
     // Selection needs the owned source rows, but model evidence keeps the
     // original explicit field allowlist. Never forward contact/owner/reviewer
@@ -326,7 +328,7 @@ export function accountEvidence(snapshot,tools=toolNames,context={}) {
         :{...value,student};
     }
     let calendar;
-    if(key==='courses'&&snapshot.checkedAt){
+    if(key==='courses'&&Number.isFinite(Date.parse(snapshot.checkedAt))){
       const computed=studyCalendar(value,snapshot.checkedAt);
       const meeting=row=>pick(row,['enrollmentId','id','code','title','term','weekday','startsAt','endsAt','room','sourceMode']);
       const enrollmentId=row=>row.enrollmentId??row.id;
@@ -528,8 +530,11 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     },repair:context=>repairEvidenceAnswer({...context,responseIntent:intent.kind,resolvedUserQuestion,diagnosticContext:diagnosticContext()}),
   });
   const supplementalViews=supplemental.length?formatSupplementalAccountAnswers(supplemental,{question}).views:[];
-  const viewSnapshot=intent.recognized&&intent.currentCourses&&!intent.explicitDtm
-    ?{...current,courses:studyCalendar(ownRows(current.courses,current.profile?.userId),current.checkedAt).current}:current;
+  let viewSnapshot=current;
+  if(intent.recognized&&(intent.currentCourses||intent.scheduleWeekday)&&!intent.explicitDtm&&Number.isFinite(Date.parse(current.checkedAt))){
+    const enrolled=studyCalendar(ownRows(current.courses,current.profile?.userId),current.checkedAt).current;
+    viewSnapshot={...current,courses:intent.scheduleWeekday?enrolled.filter(row=>row.weekday===intent.scheduleWeekday):enrolled};
+  }
   const baseViews=accountRecordViews(viewSnapshot,activeTools,{...context,courseTerms:intent.courseTerms}),views=[...supplementalViews,...baseViews].slice(0,3);
   if(supplementalViews.length+baseViews.length>3)for(const view of views)view.note+=' Additional source tables were omitted by the three-table display limit; use the source links for the full records.';
   return {...result,views,grounding:{...result.grounding,webSearched:observed.some(step=>step.kind.startsWith('web-')),checkedAt:current.checkedAt},

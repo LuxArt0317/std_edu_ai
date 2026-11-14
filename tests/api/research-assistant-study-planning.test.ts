@@ -8,7 +8,8 @@ const originalFetch=globalThis.fetch;
 const envNames=['OPENAI_API_KEY','VITE_SUPABASE_URL','VITE_SUPABASE_PUBLISHABLE_KEY','SUPABASE_SERVICE_ROLE_KEY'] as const;
 const previous=Object.fromEntries(envNames.map(name=>[name,process.env[name]]));
 after(()=>{globalThis.fetch=originalFetch;for(const name of envNames){if(previous[name]===undefined)delete process.env[name];else process.env[name]=previous[name];}});
-const question='How should I plan a first week of study at Shu-Te University? Give me three practical steps using public school resources and cite the sources.';
+const exactFirstWeekQuestion='How should I plan a first week of study at Shu-Te University? Give me three practical steps using public school resources and cite the sources.';
+const question='What are three practical ways to organize my first week of studying at Shu-Te University using public school resources?';
 const history=[{role:'user',content:'Where can I find campus Wi-Fi instructions?'},{role:'assistant',content:'Use the public campus Wi-Fi guide.'}];
 const sources=Array.from({length:7},(_,index)=>({
   chunk_id:`10000000-0000-4000-8000-${String(index+1).padStart(12,'0')}`,
@@ -142,4 +143,20 @@ test('the existing official-web fallback applies the same guidance review to rea
   const result=await invoke({question,history},{empty:true,web:true});
   assert.equal(result.body.status,'answered');assert.equal(result.body.verification.attempts,1);assert.equal(result.body.grounding.source,'web');assert.equal(result.readSources,1);
   assert.equal(packetInput(result.packets.at(-1)!).responseIntent,'mixed');assert.match(result.body.answer,/1\. Open/);
+});
+
+test('the first-week campus guide provides three linked suggestions from the campus directory',async()=>{
+  const result=await invoke({question:exactFirstWeekQuestion,history,route:'/campus-assistant'},{empty:true});
+  assert.equal(result.statusCode,200);
+  assert.equal(result.body.status,'answered');
+  assert.equal(result.body.grounding.source,'directory');
+  assert.deepEqual(result.body.verification,{status:'verified',attempts:0});
+  assert.equal(result.body.answer.match(/^\d\. /gm)?.length,3);
+  assert.match(result.body.answer,/A suggested plan/u);
+  assert.deepEqual(result.body.citations.map((item:{url:string})=>item.url),[
+    '/school-sites/www.aca.stu.edu.tw/%E8%A1%8C%E4%BA%8B%E6%9B%86%EF%BD%9Ccalendar/',
+    '/school-affairs/services/12-4',
+    '/school-sites/help.ecc.stu.edu.tw/wireless-setting/',
+  ]);
+  assert.equal(result.packets.length,0);
 });

@@ -1,3 +1,4 @@
+import { calendarPath, wifiGuidePath } from '../src/features/public/affairs/studentServices.js';
 import { clubStudentGuide,clubStudentQuestion } from './clubStudentContract.js';
 import { clubOfficerGuide,clubOfficerQuestion } from './clubOfficerContract.js';
 import { clubGuide,clubIntent } from './clubServicesContract.js';
@@ -187,6 +188,34 @@ function publicStudyPlanningQuestion(question) {
     const resources = questionKind(question).school || /\bpublic (?:school )?resources?\b|公開.{0,8}資源|公开.{0,8}资源/iu.test(question);
     return study && planning && resources && !/\b(?:career|interview|job qualification|hiring)\b|求職|求职|面試|面试/iu.test(question);
 }
+function publicFirstWeekPlan(question) {
+    // The directory supports the three resource links. The steps are suggestions
+    // and make no claims about dates, personal enrollment or service access.
+    const naturalQuestion = question.trim().replace(/\s+/gu, ' ');
+    const english = /^(?:how (?:should|can|do) i (?:plan|prepare for)|(?:please )?(?:help me plan|plan|give me a plan for)) (?:a |my |the )?first week (?:of study )?at (?:shu[ -]te university|stu)[?.!]?(?: (?:(?:please )?give me three practical steps (?:using public school resources )?and cite the sources)[?.!]?)?$/iu.test(naturalQuestion);
+    const chinese = /^(?:請問|請幫我)?(?:我該如何|我該怎麼|如何|怎麼)?(?:安排|規劃|準備)(?:在)?樹德(?:科技大學|科大)?(?:的)?第一週(?:的)?(?:讀書|學習)?(?:計畫|安排)?[？?。！!]?$/u.test(naturalQuestion);
+    if (!english && !chinese) return null;
+    const resources = [
+        { id:'calendar', title:chinese?'教務處行事曆':'Academic Affairs calendar', url:calendarPath,
+            suggestion:chinese?'開啟行事曆，找出適用於你的日期，並加到自己的行事曆。':'Open the calendar, identify the dates that apply to you, and add them to your planner.' },
+        { id:'course-catalog', title:chinese?'當期課程查詢':'Course search', url:'/school-affairs/services/12-4',
+            suggestion:chinese?'查詢感興趣的課程，記下要再確認的時段與教室。':'Look up courses you’re interested in and note the times or rooms you want to confirm.' },
+        { id:'wifi', title:chinese?'校園無線網路設定':'Campus Wi-Fi setup guide', url:wifiGuidePath,
+            suggestion:chinese?'先測試自己的裝置能否連線，再安排一段時間瀏覽課程資料。':'Set up your devices and test your connection before setting aside time to review course materials.' },
+    ];
+    const steps = resources.map((source, index) => (index + 1) + '. **[' + source.title + '](' + source.url + ').** ' + source.suggestion);
+    return {
+        status:'answered',
+        answer:(chinese?'第一週建議安排':'A suggested plan for your first week')+'\n\n'+steps.join('\n\n'),
+        citations:resources.map(source=>({chunkId:'campus-navigation:'+source.id,claim:source.title,title:source.title,
+            sourceName:'stu.best campus directory',url:source.url,locator:null,effectiveAt:null,reviewedAt:null})),
+        suggestedQuestions:[],
+        grounding:{source:'directory',webSearched:false},
+        verification:{status:'verified',attempts:0},
+        activity:[{kind:'directory',label:'Checked the campus service directory',detail:'Used the listed calendar, course search and Wi-Fi guide. The steps are suggestions.',status:'complete'}],
+    };
+}
+
 function personalPublicQuestion(question) {
     return questionKind(question).personal || /\bmy (?:current )?(?:subjects?|courses?|classes|grades?|schedule|timetable|attendance|assignments?|enrollments?)\b|\b(?:my|our|their|his|her)\b.{0,45}\b(?:tuition|payments?|scholarships?|financial aid|records?)\b|我的.{0,16}(?:課程|科目|成績|出席|作業|課表|學費|費用|繳款|獎學金|紀錄|記錄)/i.test(question);
 }
@@ -471,6 +500,15 @@ export function createResearchAssistantHandler(dependencies = {}) {
         }
         const personalQuestion = personalPublicQuestion(input.question);
         const publicStudyGuidance = !input.images.length && !personalQuestion && !kind.irrelevant && publicStudyPlanningQuestion(input.question);
+        const firstWeekPlan = !input.images.length && !personalQuestion && !kind.irrelevant
+            ? publicFirstWeekPlan(input.question)
+            : null;
+        if (firstWeekPlan) {
+            const step = firstWeekPlan.activity[0];
+            stream.progress(step.kind, step.label, step.detail, step.status);
+            stream.send(200, firstWeekPlan);
+            return;
+        }
         const publicGuidanceHistory = publicStudyGuidance ? input.history.filter(item => item.role === 'user' && questionKind(item.content).school && !personalPublicQuestion(item.content) && !questionKind(item.content).irrelevant) : input.history;
         const pageQuestion = !input.images.length && !personalQuestion && !kind.irrelevant && Boolean(normalizePublicPageRoute(input.route)) && isPublicPageQuestion(input.question);
         const chinese = /[\u3400-\u9fff]/.test(input.question);

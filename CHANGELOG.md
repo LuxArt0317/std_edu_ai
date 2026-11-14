@@ -1,6 +1,7 @@
 # Changelog
 ## Unreleased
 
+- Use the School Affairs timetable for personal weekday questions and offer a three-step campus directory guide for the public first-week question. [#100]
 - Preserve the named course and academic term in verified assistant answers and record tables. Career wording help avoids unrelated account reads. [#100]
 - Verify saved student conduct and loan records using the signed-in account. Preserve literal fields and show the relevant School Affairs links. [#100]
 - Add synthetic reproduction cases, independent helpfulness review and browser dispatch coverage tracking to the assistant evaluation. [#100]
