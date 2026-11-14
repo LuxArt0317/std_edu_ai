@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {chmod,link,lstat,mkdir,mkdtemp,readFile,readdir,rename,rm,symlink,writeFile} from 'node:fs/promises';
+import {chmod,link,lstat,mkdir,mkdtemp,open,readFile,readdir,rename,rm,symlink,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {test} from 'node:test';
@@ -25,11 +25,24 @@ async function local(t){const root=await mkdtemp(join(tmpdir(),'stu-transcript-j
 test('four turns persist exact private metadata atomically and expose no raw transcript or token',async t=>{
   const env=await local(t),journal=await createTranscriptDurableJournal({...env,binding});
   assert.equal((await lstat(env.directory)).mode&0o777,0o700);assert.equal((await lstat(env.path)).mode&0o777,0o600);
-  let oldInode=(await lstat(env.path)).ino;
   for(let turn=1;turn<=4;turn++){
-    const a=assistant(turn),s=save(turn);await journal.pending(a);
-    const pending=await readTranscriptDurableJournal({...env,binding});assert.equal(pending.entries.at(-1).received,null);
-    assert.deepEqual(pending.entries.at(-1).pending,a);assert.notEqual((await lstat(env.path)).ino,oldInode);oldInode=(await lstat(env.path)).ino;
+    const a=assistant(turn),s=save(turn);
+    // Keep the preceding file open so its inode cannot be recycled during replacement.
+    const previous=await open(env.path,'r');
+    try{
+      const bytes=await readFile(env.path);
+      const before=await previous.stat({bigint:true});
+      await journal.pending(a);
+      const pending=await readTranscriptDurableJournal({...env,binding});
+      const after=await lstat(env.path,{bigint:true});
+      assert.notDeepEqual([after.dev,after.ino],[before.dev,before.ino]);
+      assert.deepEqual(await previous.readFile(),bytes);
+      assert.equal(pending.revision,(turn-1)*4+1);
+      assert.equal(pending.entries.at(-1).received,null);
+      assert.deepEqual(pending.entries.at(-1).pending,a);
+    }finally{
+      await previous.close();
+    }
     await journal.received(receipt(a));await journal.pending(s);await journal.received(saveReceipt(s));
   }
   const stored=await journal.read();assert.equal(stored.revision,16);assert.equal(stored.entries.length,8);assert.equal(stored.terminal,null);
