@@ -8,7 +8,7 @@
 - [x] Capture the full visible category listing and implement bounded database search and pagination.
 - [x] Verify the expanded catalog on the deployed revision.
 - [x] Verify two source course outlines and their 17 activity destinations.
-- [ ] Verify and publish the account-scoped outlines and assistant links.
+- [x] Verify and publish the account-scoped outlines and assistant links.
 - [ ] Verify and implement remaining resource content and private academic records.
 
 ## Counseling appointments [Issue #98]

@@ -86,9 +86,13 @@
 
 .elearning-pagination { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin:12px 0; }
 .elearning-pagination a { text-decoration:underline; }
-.elearning-outline section { padding:20px clamp(8px,4vw,46px); }
-.elearning-outline section+section { border-top:1px solid #dedede; }
+.elearning-frame.course-outline .elearning-header h1 { line-height:1.231; overflow-wrap:anywhere; }
+.elearning-frame.course-outline .elearning-breadcrumb { min-height:29.5px; background:#697f55; color:#fff; font-weight:700; overflow-wrap:anywhere; }
+.elearning-frame.course-outline .elearning-content { padding-top:11px; }
+.elearning-outline section { border:1px solid #e3e3e3; padding:18px clamp(8px,4vw,45px) 10px; }
+.elearning-outline section+section { margin-top:5px; }
 .elearning-outline h3 { margin:0 0 14px; font-size:14px; }
-.elearning-outline ul { margin:0; padding:0; list-style:none; }
-.elearning-outline li a { display:flex; align-items:center; gap:8px; min-height:31px; overflow-wrap:anywhere; }
-.elearning-outline li svg { flex:none; color:#3f7898; }
+.elearning-outline ul { margin:0; padding:0 0 0 clamp(6px,2.3vw,29px); list-style:none; }
+.elearning-outline li a { display:flex; align-items:center; gap:3px; min-height:31.2px; overflow-wrap:anywhere; }
+.elearning-outline li img { flex:none; width:24px; height:24px; object-fit:contain; }
+.elearning-outline li:target { background:#eef2e9; }

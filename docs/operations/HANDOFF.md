@@ -1,3 +1,7 @@
+## Remote-learning course outlines [Issue #98]
+
+Production `d4f9cfa` is live as Vercel `GY1xXgz6xpFruqB4xiTjeTtYY65s`. Migration 20261115030000 brings the client to 161 migrations and 195 RLS-protected public tables. Three sections and 17 verified activity links are available across two course outlines. Rollback and actual-JWT verification covered course-level access, non-Google denial, account isolation and exact cleanup. The pinned browser verified the course page and signed-in assistant links. Guest assistant, shell and Quality 43558768540 passed. Moodle controls access to the linked activity content. The migration creates no production access grants. Official grades, assignment submissions, enrollment and attendance results remain outside this import. [Course outline QA](../qa/ELEARNING.md#course-outlines)
+
 ## Remote-learning catalog expansion [Issue #98]
 
 The visible catalog is captured and searchable through bounded database reads. See the [remote-learning QA](../qa/ELEARNING.md#catalog-expansion) for scope.

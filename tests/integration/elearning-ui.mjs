@@ -154,7 +154,11 @@ try{
   await page.goto(origin+path+'/course/9408');
   const firstVideo=main.getByRole('link',{name:'第一段影片'});
   await firstVideo.waitFor();
+  await page.locator('.elearning-header').getByRole('heading',{name:protectedCourse.title}).waitFor();
+  assert.equal(await main.getByRole('heading',{name:protectedCourse.title}).count(),0);
+  assert.equal(await page.locator('.elearning-breadcrumb [aria-current=page]').count(),1);
   assert.equal(await firstVideo.getAttribute('href'),'https://elearning.stu.edu.tw/mod/url/view.php?id=293395');
+  await firstVideo.locator('img').evaluate(img=>img.decode());
   assert.equal(await main.getByRole('link',{name:'出席統計'}).getAttribute('href'),
     'https://elearning.stu.edu.tw/mod/attendanceregister/view.php?id=293399');
   await page.getByRole('button',{name:'開啟 AI 校園助理'}).click();

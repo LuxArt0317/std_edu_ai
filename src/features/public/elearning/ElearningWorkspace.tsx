@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router';
-import { ClipboardList, Link2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { useAffairsAuth } from '../affairs/authContext';
 import { safeSchoolReturnPath, signOutAffairs, startGoogleSignIn } from '../affairs/authClient';
@@ -15,10 +14,11 @@ const noticeLink=(id:number)=>path+'/notice/'+id;
 const external=(url:string,label:ReactNode)=><a href={url} target="_blank" rel="noreferrer">{label}</a>;
 const zhDate=new Intl.DateTimeFormat('zh-TW',{timeZone:'Asia/Taipei',dateStyle:'medium'});
 const taipeiParts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'});
+type OutlineHeader={courseId:number;title:string;categoryId:number};
 
-function Header({account,onSignOut,loggingOut,home=false}:{account?:string;onSignOut?:()=>void;loggingOut?:boolean;home?:boolean}){
+function Header({account,onSignOut,loggingOut,home=false,title=siteTitle}:{account?:string;onSignOut?:()=>void;loggingOut?:boolean;home?:boolean;title?:string}){
   return <header className="elearning-header">
-    <h1>{siteTitle}</h1>
+    <h1>{title}</h1>
     {home&&<p>elearning.stu.edu.tw</p>}
     <div className="elearning-account">{account
       ?<>您以 {account} 登入 (<button type="button" onClick={onSignOut} disabled={loggingOut}>登出</button>)</>
@@ -151,15 +151,15 @@ function Outline({outline}:{outline:ElearningOutline}){
       <h3 id={'elearning-section-'+section.position}>{section.title}</h3>
       <ul>{section.activities.map(activity=>{
         const href=elearningActivityUrl(activity);
-        const Icon=activity.kind==='attendanceregister'?ClipboardList:Link2;
         return href&&<li key={activity.id} id={'elearning-activity-'+activity.id}><a href={href} target="_blank" rel="noreferrer">
-          <Icon aria-hidden="true" size={24}/>{activity.title}
+          <img alt="" width="24" height="24" src={activity.kind==='attendanceregister'
+            ?'/elearning/moodle-attendance.gif':'/elearning/moodle-url.svg'}/>{activity.title}
         </a></li>;
       })}</ul>
     </section>)}
   </div>;
 }
-function CourseView({course,joined,userId,onJoined}:{course:ElearningCourse;joined?:string;userId:string;onJoined:()=>void}){
+function CourseView({course,joined,userId,onJoined,onCourse}:{course:ElearningCourse;joined?:string;userId:string;onJoined:()=>void;onCourse:(value:OutlineHeader|null)=>void}){
   const [open,setOpen]=useState(false),[pending,setPending]=useState(false),[error,setError]=useState('');
   const [outline,setOutline]=useState<ElearningOutline|null>(null);
   const [outlineError,setOutlineError]=useState(false),[outlineAttempt,setOutlineAttempt]=useState(0);
@@ -168,10 +168,12 @@ function CourseView({course,joined,userId,onJoined}:{course:ElearningCourse;join
   useEffect(()=>{
     const controller=new AbortController();
     void loadElearningOutline(userId,course.id,controller.signal).then(result=>{
-      if(!controller.signal.aborted)setOutline(result);
+      if(controller.signal.aborted)return;
+      setOutline(result);
+      if(result.sections.length)onCourse({courseId:course.id,title:course.title,categoryId:course.category_id});
     }).catch(()=>{if(!controller.signal.aborted)setOutlineError(true);});
-    return ()=>controller.abort();
-  },[userId,course.id,outlineAttempt]);
+    return ()=>{controller.abort();onCourse(null);};
+  },[userId,course.id,course.title,course.category_id,outlineAttempt,onCourse]);
   async function confirm(){
     if(request.current)return;
     const controller=new AbortController();request.current=controller;
@@ -181,14 +183,14 @@ function CourseView({course,joined,userId,onJoined}:{course:ElearningCourse;join
     finally{request.current=null;if(!controller.signal.aborted)setPending(false);}
   }
   return <>
-    <h2>{joined||outline?.sections.length?course.title:'選課的選項'}</h2>
+    {!outline?.sections.length&&<h2>{joined?course.title:'選課的選項'}</h2>}
     {!joined&&!outline?.sections.length&&<h3>{course.title}</h3>}
     {joined&&<p role="status">已加入 · {zhDate.format(new Date(joined))}</p>}
     {outline?.sections.length?<Outline outline={outline}/>:joined?null:course.self_enroll?
       <section className="elearning-enroll"><h3>自行選課 (學生)</h3><p>不需要選課密碼</p>
         <button type="button" onClick={()=>setOpen(true)}>將我加入</button></section>:<p>此課程目前未開放本站加選。</p>}
     {outlineError&&<p role="alert">無法讀取課程大綱。 <button type="button" onClick={()=>{setOutlineError(false);setOutlineAttempt(value=>value+1);}}>重試</button></p>}
-    <p>{external(elearningOrigin+'/course/view.php?id='+course.id,'在校方 Moodle 開啟課程')}</p>
+    {!outline?.sections.length&&<p>{external(elearningOrigin+'/course/view.php?id='+course.id,'在校方 Moodle 開啟課程')}</p>}
     <Dialog open={open} onOpenChange={value=>{if(!pending)setOpen(value);}}>
       <DialogContent><DialogTitle>確認加選</DialogTitle>
         <DialogDescription>將 {course.title} 加入您的 stu.best 數位學園帳戶。</DialogDescription>
@@ -198,8 +200,8 @@ function CourseView({course,joined,userId,onJoined}:{course:ElearningCourse;join
     </Dialog>
   </>;
 }
-function CatalogResults({userId,category,query='',course,joined,onJoined}:{
-  userId:string;category?:number;query?:string;course?:number;joined?:string;onJoined?:()=>void;
+function CatalogResults({userId,category,query='',course,joined,onJoined,onCourse}:{
+  userId:string;category?:number;query?:string;course?:number;joined?:string;onJoined?:()=>void;onCourse?:(value:OutlineHeader|null)=>void;
 }){
   const {pathname,search}=useLocation();
   const params=new URLSearchParams(search);
@@ -213,11 +215,11 @@ function CatalogResults({userId,category,query='',course,joined,onJoined}:{
   const key=filters.toString();
 
   return <CatalogPage key={key} userId={userId} filters={key} page={page} pathname={pathname}
-    query={query} course={course} joined={joined} onJoined={onJoined}/>;
+    query={query} course={course} joined={joined} onJoined={onJoined} onCourse={onCourse}/>;
 }
 
-function CatalogPage({userId,filters,page,pathname,query,course,joined,onJoined}:{
-  userId:string;filters:string;page:number;pathname:string;query:string;course?:number;joined?:string;onJoined?:()=>void;
+function CatalogPage({userId,filters,page,pathname,query,course,joined,onJoined,onCourse}:{
+  userId:string;filters:string;page:number;pathname:string;query:string;course?:number;joined?:string;onJoined?:()=>void;onCourse?:(value:OutlineHeader|null)=>void;
 }){
   const [data,setData]=useState<ElearningCatalog|null>(null);
   const [error,setError]=useState(false);
@@ -240,7 +242,7 @@ function CatalogPage({userId,filters,page,pathname,query,course,joined,onJoined}
   if(!data)return <p role="status">讀取課程…</p>;
   if(course){
     const item=data.courses.find(row=>row.id===course);
-    return item&&onJoined?<CourseView course={item} userId={userId} joined={joined} onJoined={onJoined}/>
+    return item&&onJoined&&onCourse?<CourseView course={item} userId={userId} joined={joined} onJoined={onJoined} onCourse={onCourse}/>
       :<><h2>找不到課程</h2><Link to={path+'/categories'}>返回課程類別</Link></>;
   }
   const pageCount=Math.ceil(data.total/elearningCatalogPageSize);
@@ -254,7 +256,7 @@ function CatalogPage({userId,filters,page,pathname,query,course,joined,onJoined}
     </nav>}
   </>;
 }
-function Content({data,userId,reload}:{data:Workspace;userId:string;reload:()=>void}){
+function Content({data,userId,reload,onCourse}:{data:Workspace;userId:string;reload:()=>void;onCourse:(value:OutlineHeader|null)=>void}){
   const {pathname,search}=useLocation();
   const segments=pathname.replace(/\/$/,'').slice(path.length).split('/').filter(Boolean);
   const [view,value]=segments;
@@ -298,7 +300,7 @@ function Content({data,userId,reload}:{data:Workspace;userId:string;reload:()=>v
       <p>{external(elearningOrigin+'/mod/'+notice.kind+'/view.php?id='+id,'在校方 Moodle 開啟')}</p></>;
   }
   if(view==='course'&&segments.length===2&&/^[1-9]\d{0,9}$/.test(value)&&id<=2147483647)
-    return <CatalogResults userId={userId} course={id} joined={data.enrollments.find(row=>row.courseId===id)?.joinedAt} onJoined={reload}/>;
+    return <CatalogResults userId={userId} course={id} joined={data.enrollments.find(row=>row.courseId===id)?.joinedAt} onJoined={reload} onCourse={onCourse}/>;
   return <><h2>找不到頁面</h2><Link to={path}>返回首頁</Link></>;
 }
 function Session({userId,account}:{userId:string;account:string}){
@@ -318,16 +320,33 @@ function Session({userId,account}:{userId:string;account:string}){
     try{await signOutAffairs();navigate(path+'/login',{replace:true});}
     catch{setLogoutError('無法登出，請重試。');setLoggingOut(false);}
   }
+  const courseMatch=/^\/elearning\/course\/([1-9]\d{0,9})\/?$/u.exec(location.pathname);
+  const courseId=courseMatch?Number(courseMatch[1]):null;
+  const [courseHeader,setCourseHeader]=useState<OutlineHeader|null>(null);
+  const headerCourse=courseHeader?.courseId===courseId?courseHeader:null;
+  const categories:ElearningCategory[]=[];
+  if(headerCourse&&data){
+    let ancestor:number|null=headerCourse.categoryId;
+    while(ancestor!==null&&categories.length<data.categories.length){
+      const category:ElearningCategory|undefined=data.categories.find(row=>row.id===ancestor);
+      if(!category||categories.some(row=>row.id===category.id))break;
+      categories.unshift(category);
+      ancestor=category.parent_id;
+    }
+  }
   const home=location.pathname.replace(/\/$/,'')===path;
   const detail=!home;
-  return <div className="elearning-root" lang="zh-Hant"><div className="elearning-frame">
+  return <div className="elearning-root" lang="zh-Hant"><div className={'elearning-frame'+(headerCourse?' course-outline':'')}>
     <a href="#elearning-main" className="elearning-skip">跳到主要內容</a>
-    <Header account={account} onSignOut={()=>void logout()} loggingOut={loggingOut} home={home}/>
-    {detail&&<nav className="elearning-breadcrumb" aria-label="頁面路徑"><Link to={path}>首頁</Link> ▸ <Link to={path+'/categories'}>課程</Link></nav>}
+    <Header account={account} onSignOut={()=>void logout()} loggingOut={loggingOut} home={home} title={headerCourse?.title}/>
+    {detail&&<nav className="elearning-breadcrumb" aria-label="頁面路徑"><Link to={path}>首頁</Link> ▸ <Link to={path+'/categories'}>課程</Link>
+      {categories.map(category=><span key={category.id}> ▸ <Link to={categoryLink(category.id)}>{category.title}</Link></span>)}
+      {headerCourse&&<span aria-current="page"> ▸ {headerCourse.title}</span>}
+    </nav>}
     {logoutError&&<p role="alert">{logoutError}</p>}
     <div className={'elearning-layout'+(detail?' detail':'')}><LeftColumn/><main id="elearning-main" className="elearning-content">
       {error?<div role="alert"><p>{error}</p><button type="button" onClick={reload}>重試</button></div>:data
-        ?<Content data={data} userId={userId} reload={reload}/>:<p role="status">讀取數位學園…</p>}
+        ?<Content data={data} userId={userId} reload={reload} onCourse={setCourseHeader}/>:<p role="status">讀取數位學園…</p>}
     </main>{home&&<RightColumn/>}</div>
     <Footer account={account}/>
   </div></div>;

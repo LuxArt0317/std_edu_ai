@@ -1,6 +1,6 @@
 ## Remote-learning course outlines [Issue #98]
 
-Two verified Moodle outlines supply 17 typed activity links across three sections. Migration 20261115030000 applied to the client after rollback testing. Protected access is checked by caller, course and Google identity. Source content and student activity results are outside the capture. Deployment verification is pending.
+Production `d4f9cfa` is live as Vercel `GY1xXgz6xpFruqB4xiTjeTtYY65s`. Migration 20261115030000 brings the client to 161 migrations and 195 RLS-protected public tables. Three sections and 17 verified activity links are available across two course outlines. Rollback and actual-JWT verification covered course-level access, non-Google denial, account isolation and exact cleanup. The pinned browser verified the course page and signed-in assistant links. Guest assistant, shell and Quality 43558768540 passed. Moodle controls access to the linked activity content. The migration creates no production access grants. Official grades, assignment submissions, enrollment and attendance results remain outside this import.
 
 ## Remote-learning catalog expansion [Issue #98]
 
