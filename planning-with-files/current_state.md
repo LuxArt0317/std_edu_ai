@@ -1,6 +1,8 @@
 ## Permanent course catalog [Issue #98]
 
-The preceding goal turn made progress by releasing and verifying graduation clearance. The public permanent course catalog was captured across 120 kind/division combinations. Migration 20261114160000 and the 15,580-row import passed exact-client rollback and were applied. The page and assistant are implemented. Browser and deployed verification are pending.
+Production `3665b12` is live as Vercel `2BRvLpYQSkpokYgEUgEBQAn2BYwN`. Only migration 20261114160000 was applied, bringing the client to 150 migrations and 176 RLS-protected public tables. The import has 15,580 course records across 120 groups. The pinned browser, public catalog and bilingual assistant HTTP checks, persisted on-demand description and eight public shell routes passed. Quality 43534205868 passed. The local audit reached all 94 destinations and reports 38 generic and 17 partial entries.
+
+The teacher timetable and venue application still require university sign-in. The public venue lookup returned a 105-slot weekly schedule for a verified room. The next venue work can use that schedule as evidence while the protected application is inspected.
 
 ## Graduation clearance [Issue #98]
 

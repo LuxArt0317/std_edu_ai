@@ -5,7 +5,7 @@
 - [x] Observe the public search, every course kind and division, and the description dialog.
 - [x] Capture and import the public course list into the exact client database with read-only visitor policies.
 - [x] Add the dedicated catalog, database-backed detail lookup and assistant links.
-- [ ] Verify the browser, persisted detail lookup and pinned production release.
+- [x] Verify the browser, persisted detail lookup and pinned production release.
 - [ ] Inspect the authenticated teacher timetable and catalog maintenance screens.
 
 ## Graduation clearance [Issue #98]

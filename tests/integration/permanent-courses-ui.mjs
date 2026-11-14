@@ -94,7 +94,13 @@ try {
   await guest.goto(origin+path+'?course=AAJ00101');
   await guest.waitForURL(url=>url.pathname==='/school-affairs/login');
   assert.equal(new URL(guest.url()).searchParams.get('next'),path+'?course=AAJ00101');
-  assert.equal(reads.filter(read=>read.code==='AAJ00101').length,2);
+  const signedInReturn=await contextFor(1440,true);
+  await signedInReturn.goto(guest.url());
+  await signedInReturn.waitForURL(origin+path+'?course=AAJ00101');
+  await signedInReturn.getByRole('dialog').getByText('Introduction to Computer',{exact:true}).waitFor();
+  await signedInReturn.goto(origin+'/school-affairs/login?next='+encodeURIComponent(path+'?course=AAJ00101&next=https://example.invalid'));
+  await signedInReturn.waitForURL(origin+'/school-affairs');
+  assert.equal(reads.filter(read=>read.code==='AAJ00101').length,3);
   assert.deepEqual(errors,[]);
   console.log('Permanent courses browser passed with actual catalog API, search, pagination, detail, print, keyboard, mobile, and sign-in return.');
 }finally{await browser.close();}

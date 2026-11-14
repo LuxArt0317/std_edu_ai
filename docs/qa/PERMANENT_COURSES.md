@@ -14,3 +14,9 @@ The initial public snapshot was captured at 2026-11-14 00:08:40 UTC, SHA-256 `7b
 - `node scripts/import-permanent-courses.mjs /tmp/stu-permanent-courses.json --rollback` verifies the import, row counts and visitor policy without leaving changes. The script also supports an initial migration preflight when the tables are absent.
 - `node scripts/import-permanent-courses.mjs /tmp/stu-permanent-courses.json --apply` applies a complete, newer capture atomically in the exact client database. Existing descriptions are preserved for retained course codes.
 - `node tests/integration/permanent-courses-ui.mjs` checks the direct menu destination, filter, pagination, printing, keyboard dismissal, narrow layout and sign-in return against the catalog API. Set `PUBLIC_SITE_ORIGIN=https://stu.best` and `EXPECTED_RELEASE_REVISION` for the deployed bundle.
+
+## Deployed evidence
+
+Production `3665b12` is live as Vercel `2BRvLpYQSkpokYgEUgEBQAn2BYwN`. Only migration 20261114160000 was applied, bringing the client to 150 migrations and 176 RLS-protected public tables. The import has 15,580 course records across 120 groups. The pinned browser, public catalog and bilingual assistant HTTP checks, persisted on-demand description and eight public shell routes passed. Quality 43534205868 passed. The local audit reached all 94 destinations and reports 38 generic and 17 partial entries.
+
+Run `EXPECTED_RELEASE_REVISION=3665b1207bd78dec081b8c5f7a4d295248e3876e node tests/integration/permanent-courses-http.mjs` to replay the public API and assistant checks. The first local unit run had one assistant-conversation timing failure. The complete rerun passed all 541 unit tests. The initial browser run revealed dialog positioning and sign-in query loss. Both were corrected and the focused and navigation suites passed.

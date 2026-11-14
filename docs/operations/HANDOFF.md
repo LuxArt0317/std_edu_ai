@@ -2,6 +2,8 @@
 
 Service 12-2 uses the permanent-course snapshot in Supabase. The import contains 15,580 public records and all 120 observed kind/division combinations. The service accepts only reads. The public source provides exact descriptions and the server caches them by course code. See [permanent course QA and refresh](../qa/PERMANENT_COURSES.md).
 
+Production `3665b12` is live as Vercel `2BRvLpYQSkpokYgEUgEBQAn2BYwN`. Only migration 20261114160000 was applied, bringing the client to 150 migrations and 176 RLS-protected public tables. The import has 15,580 course records across 120 groups. The pinned browser, public catalog and bilingual assistant HTTP checks, persisted on-demand description and eight public shell routes passed. Quality 43534205868 passed. The local audit reached all 94 destinations and reports 38 generic and 17 partial entries.
+
 ## Graduation clearance (Issue #98)
 
 Services 10-1 and 16-1 share one application and per-office review record. The official flowchart is verified. Current authenticated layouts remain unobserved. See [graduation clearance QA](../qa/GRADUATION_CLEARANCE.md).
