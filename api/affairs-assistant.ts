@@ -344,7 +344,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       const base=loadBaseSnapshot(initialize);
       if(!ownNoteRead)return base;
       const [snapshot,selected]=await Promise.all([base,loadOwnServiceNotes(account,notes.keys,{deadline}).then(
-        serviceRecords=>({serviceRecords}),()=>({serviceRecords:[],serviceNoteReadUnavailable:true}),
+        serviceRecords=>({serviceRecords}),()=>{
+          const serviceRecords:Awaited<ReturnType<typeof loadOwnServiceNotes>>=[];
+          return {serviceRecords,serviceNoteReadUnavailable:true};
+        },
       )]);
       return {...snapshot,...selected};
     };
