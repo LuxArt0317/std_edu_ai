@@ -49,6 +49,17 @@ test('missing caller student and successful empty enrollment read have different
   assert.equal(b.studentRecordFound,true);assert.equal(b.completeness.courses.complete,true);assert.equal(b.completeness.courses.reason,null);assert.equal(empty.calls.length,2);assert.deepEqual(b.courses,[]);
 });
 
+test('private expected-student assertion catches same-owner replacement before enrollments and stays out of output',async()=>{
+  for(const [expectedStudentId,students]of [[student,[{id:foreign,user_id:owner}]],[student,[]],[null,[{id:student,user_id:owner}]]] as const){
+    const io=transport([],students);await rejected(load(account,{expectedStudentId},{fetchImpl:io.fetchImpl}));assert.equal(io.calls.length,1);
+  }
+  const io=transport(),options:{expectedStudentId:string|null}={expectedStudentId:student};
+  const out=await load(account,options,{fetchImpl:async(input,init)=>{const response=await io.fetchImpl(input,init);options.expectedStudentId=foreign;return response;}});
+  assert.equal(out.courses.length,1);assert.doesNotMatch(JSON.stringify(out),new RegExp(student));
+  assert.equal((await load(account,{expectedStudentId:null},{fetchImpl:transport([],[]).fetchImpl})).studentRecordFound,false);
+  let reads=0;await rejected(load(account,{expectedStudentId:'invalid'},{fetchImpl:async()=>{reads++;throw Error('Must not read');}}));assert.equal(reads,0);
+});
+
 test('invalid caller/selector/deadline and expired inherited budget fail before transport',async()=>{
   let calls=0;const fetchImpl:typeof fetch=async()=>{calls++;throw new Error('no transport expected');};
   for(const invalid of [{...account,user:{id:foreign+'x'}},{...account,url:'https://foreign.invalid'},{...account,token:''},{...account,user:null}])await rejected(load(invalid as typeof account,{}, {fetchImpl}),403);

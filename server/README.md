@@ -159,3 +159,7 @@ Certificate awards use a bounded caller-JWT reader and send status fields only t
 ### Teaching feedback evidence
 
 The account graph reads only the selected student teaching feedback views for focused questions. It checks the literal course, status, questionnaire window and requested comment against each view. The two-part semester and year question also requires a reviewer reference to each requested field or its precise missing or failed record state. The graph keeps the current two-attempt limit.
+
+### Saved account overview
+
+`accountOverviewEvidence.js` projects seven bounded account sources with separate totals, excerpt and failure states. The assistant checks each source in LangGraph and refreshes the same scope on retry. The overview does not assign a current term to DTM or interpret tracker counts as official outcomes.

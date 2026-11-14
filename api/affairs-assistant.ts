@@ -31,8 +31,9 @@ import {readElearningOutlineEvidence} from '../server/accountElearningOutlineEvi
 import {facilityRepairLookupContext,nativePageLookupContext,withoutExcludedNativePageClause} from '../server/accountSupplementalLookup.js';
 import {randomUUID} from 'node:crypto';
 import { questionKind } from '../server/schoolWebSearch.js';
-import { accountQuestionIntent,isCurrentStudyRecordQuestion } from '../server/affairsAnswer.js';
+import { accountQuestionIntent,isAccountOverviewQuestion,isCurrentStudyRecordQuestion } from '../server/affairsAnswer.js';
 import { loadOwnAffairsStudyYear } from '../server/ownAffairsStudyYear.js';
+import { loadAccountOverviewSnapshot } from '../server/accountOverviewEvidence.js';
 import { currentStudyForeignYearQuestion } from '../server/currentStudyOwnerScope.js';
 import { teachingFeedbackLookupContext } from '../server/teachingFeedbackEvidenceIntent.js';
 import { teachingFeedbackGuide } from '../server/teachingFeedbackGuide.js';
@@ -310,6 +311,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     return;
   }
   const intent=accountQuestionIntent(question,history,route);
+  const overviewOnly=!teachingSelection&&!notes.keys.length&&isAccountOverviewQuestion(intent,question);
   const studyQuestion=teachingSelection?(foreignYear?ownCoursesBesideForeignYear:teaching.otherQuestion):question;
   const studyIntent=teachingSelection?accountQuestionIntent(studyQuestion,[],''):intent;
   const currentStudyScope=foreignYear&&(!teachingSelection||studyQuestion)?'courses':isCurrentStudyRecordQuestion(studyIntent,studyQuestion)?'courses_and_year':null;
@@ -375,7 +377,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const noteScopeOnly=ownNoteRead&&(!notes.otherQuestion||noteFees||noteNext);
     const selectedReaderOnly=!chargesOnly&&!timetableOnly&&(noteScopeOnly||pageContext.readerOnly||remoteOnly||repairOnly||aidOnly||teachingSelection&&!studyQuestion);
     const scopedSnapshot=()=>({checkedAt:new Date().toISOString(),profile:{userId:account.user.id}});
-    if(selectedReaderOnly)stream.progress('account','Checked account access','The selected reader uses this signed-in Google account.','complete');
+    if(overviewOnly)stream.progress('account','Checking your saved overview','Checking course lists and counts from your signed-in account.');
+    else if(selectedReaderOnly)stream.progress('account','Checked account access','The selected reader uses this signed-in Google account.','complete');
     else stream.progress('account','Loading your account records',currentStudyScope==='courses_and_year'?'Checking your School Affairs subjects and recorded year level.':currentStudyScope||timetableOnly?'Checking the timetable linked to this Google account.':chargesOnly?'Checking only the fees linked to this Google account.':'Checking School Affairs and DTM records for this signed-in Google account.');
     const loadCharges=async()=>{
       try{
@@ -405,7 +408,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       )]);
       return {...timetable,...year,currentStudyScope:'courses_and_year'};
     };
-    const loadBaseSnapshot=(initialize?:false)=>currentStudyScope==='courses_and_year'?loadCurrentStudy()
+    const loadBaseSnapshot=(initialize?:false)=>overviewOnly?loadAccountOverviewSnapshot(account,{deadline})
+      :currentStudyScope==='courses_and_year'?loadCurrentStudy()
       :currentStudyScope==='courses'?loadTimetable().then(saved=>({...saved,currentStudyScope:'courses'}))
       :timetableOnly||noteNext?loadTimetable():chargesOnly||noteFees?loadCharges()
       :selectedReaderOnly?Promise.resolve(scopedSnapshot())
@@ -422,7 +426,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       return {...snapshot,...selected};
     };
     const snapshot=await loadSelectedSnapshot();
-    if(currentStudyScope==='courses_and_year')stream.progress('account','Checked your School Affairs sources','Subjects and recorded year level were checked separately.','complete');
+    if(overviewOnly)stream.progress('account','Checked your saved overview','Only the account name, program, year, course lists and record counts were requested.','complete');
+    else if(currentStudyScope==='courses_and_year')stream.progress('account','Checked your School Affairs sources','Subjects and recorded year level were checked separately.','complete');
     else if('chargeReadUnavailable' in snapshot)stream.progress('account','Fee balance unavailable','The other requested records can still be checked independently.','unavailable');
     else if('timetableReadUnavailable' in snapshot)stream.progress('account','Timetable unavailable','The timetable could not be verified for this account.','unavailable');
     else if(!selectedReaderOnly)stream.progress('account','Loaded your account records',timetableOnly?'Read the timetable scope for this Google account.':chargesOnly?'Read the fee scope for this Google account.':'Only records linked to this Google account were read.','complete');

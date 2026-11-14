@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Answer account overview questions from saved student and course metadata and exact record counts. Keep private request text, grades and other unrelated data outside the lookup. [#100]
+
 - Verify saved teaching evaluation completion and immediate teaching feedback through the account assistant. Keep selected course, tuition and timetable facts tied to their own records, and check each requested part before showing the answer. [#100]
 
 - Answer current-semester subjects and recorded year using only the two caller-owned School Affairs sources. Keep available facts when one source fails. [#100]

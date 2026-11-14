@@ -1,6 +1,6 @@
 import {studentConductScope} from './studentConductEvidenceScope.js';
 import {currentStudyForeignYearQuestion} from './currentStudyOwnerScope.js';
-import {accountQuestionIntent,isCurrentStudyRecordQuestion} from './affairsAnswer.js';
+import {accountQuestionIntent,isAccountOverviewQuestion,isCurrentStudyRecordQuestion} from './affairsAnswer.js';
 import {studentConductGuide} from './studentConductGuide.js';
 import {serviceNoteLookup} from './serviceNoteIntent.js';
 import {serviceNoteGuide} from './serviceNoteGuide.js';
@@ -350,6 +350,16 @@ export function createResearchAssistantHandler(dependencies = {}) {
             }) : null;
         if(teachingGuide&&!teaching.otherQuestion){stream.send(200,teachingGuide);return;}
         const studyQuestion=teachingGuide?teaching.otherQuestion:input.question;
+        const studyIntent=accountQuestionIntent(studyQuestion,[],input.route);
+        if(!input.images.length&&isAccountOverviewQuestion(studyIntent,studyQuestion)){
+            const zh=/\p{Script=Han}/u.test(input.question);
+            const url='/school-affairs/login?next='+encodeURIComponent('/school-affairs/records');
+            const title=zh?'登入後查看你的帳戶資料':'Sign in to view your saved account records';
+            stream.send(200,{status:'handoff',answer:['['+title+']('+url+')',teachingGuide?.answer].filter(Boolean).join('\n\n'),
+                citations:[{chunkId:'directory:school-affairs-overview',title,url,claim:title,sourceName:'School Affairs'},...(teachingGuide?.citations??[])],
+                suggestedQuestions:[],grounding:{source:'directory',webSearched:false}});
+            return;
+        }
         const studyYear = !input.images.length && currentStudyForeignYearQuestion(studyQuestion);
         const currentStudy = !input.images.length && isCurrentStudyRecordQuestion(accountQuestionIntent(studyQuestion,[],''),studyQuestion);
         if(studyYear||currentStudy){

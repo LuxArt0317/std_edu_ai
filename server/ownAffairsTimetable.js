@@ -92,16 +92,22 @@ function project(row,ownerId,studentId,seen){
  * selector. Missing student is explicit. Failed, capped or inconsistent reads
  * throw instead of returning an apparently complete empty/partial timetable. */
 export async function loadOwnAffairsTimetable(account,options={},dependencies={}){
-  if(!object(options)||Object.keys(options).some(key=>key!=='deadline')||!object(dependencies)||Object.keys(dependencies).some(key=>key!=='fetchImpl')
+  if(!object(options)||Object.keys(options).some(key=>!['deadline','expectedStudentId'].includes(key))||!object(dependencies)||Object.keys(dependencies).some(key=>key!=='fetchImpl')
     ||dependencies.fetchImpl!==undefined&&typeof dependencies.fetchImpl!=='function')fail('Invalid timetable read options.');
   if(!object(account)||!object(account.user)||!uuid(account.user.id)||account.url!==origin
     ||typeof account.key!=='string'||!account.key.trim()||typeof account.token!=='string'||!account.token.trim())fail('Verified School Affairs access is required.',403);
   if(![options.deadline,account.requestDeadline].every(value=>value===undefined||Number.isFinite(value)))fail('Invalid timetable read deadline.');
+  if(options.expectedStudentId!==undefined&&options.expectedStudentId!==null&&!uuid(options.expectedStudentId))fail('Invalid expected student linkage.');
   const captured=Object.freeze({userId:account.user.id,key:account.key,token:account.token,
+    expectedStudentId:options.expectedStudentId,
     deadline:Math.min(options.deadline??Infinity,account.requestDeadline??Infinity,Date.now()+ownAffairsTimetableLimits.deadlineMs)});
   const fetchImpl=dependencies.fetchImpl??globalThis.fetch;
   const students=await read(captured,'affairs_students',{select:'id,user_id',user_id:'eq.'+captured.userId,limit:2},fetchImpl);
   if(!Array.isArray(students)||students.length>1||students.some(row=>!exact(row,['id','user_id'])||!uuid(row.id)||row.user_id!==captured.userId))fail();
+  // This optional private assertion never selects a student. The own-user read
+  // above remains authoritative; a changed link cannot be combined with another
+  // source's old program/year or fee counts. Do not include the ID in output.
+  if(captured.expectedStudentId!==undefined&&(students[0]?.id??null)!==captured.expectedStudentId)fail('The saved student linkage changed. Refresh the account records.');
   if(!students.length)return snapshot(captured.userId,false,[]);
   const studentId=students[0].id,courses=[],seen={enrollments:new Set(),sections:new Set(),courses:new Map(),terms:new Map(),previous:null};let expectedTotal;
   for(let offset=0;offset<=ownAffairsTimetableLimits.rows;offset+=ownAffairsTimetableLimits.pageRows){

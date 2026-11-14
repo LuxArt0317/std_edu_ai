@@ -13,6 +13,10 @@ export type OwnAffairsTimetable={profile:{userId:string};checkedAt:string;source
  * reads throw AffairsWorkspaceError and never return apparent zero classes.
  * The inherited deadline and 12-second shared bound include response streaming.
  * Sub-minute schedules are rejected instead of rounded by the minute scheduler.
+ * Optional expectedStudentId is a private consistency assertion from a prior
+ * verified own lookup (null means expected unlinked). It never changes the
+ * caller-user filter, and a mismatch stops before reading enrollments. The
+ * captured ID is never returned to a model or rendered in the snapshot.
  */
-export function loadOwnAffairsTimetable(account:AffairsAccount&{requestDeadline?:number},options?:{deadline?:number},
+export function loadOwnAffairsTimetable(account:AffairsAccount&{requestDeadline?:number},options?:{deadline?:number;expectedStudentId?:string|null},
   dependencies?:{fetchImpl?:typeof fetch}):Promise<OwnAffairsTimetable>;

@@ -6,7 +6,7 @@ import {clearanceTimetableQuestion} from './clearanceEvidenceIntent.js';
 import {schoolSubjectRecordsPath} from '../src/features/public/affairs/studentServices.js';
 import {isOwnCounselingTrackingNoteQuestion} from './counselingEvidenceIntent.js';
 import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel} from './pendingFeesAnswer.js';
-import { answerPrivateAffairsQuestion, accountQuestionIntent,isCurrentStudyRecordQuestion } from './affairsAnswer.js';
+import { answerPrivateAffairsQuestion, accountQuestionIntent,isAccountOverviewQuestion,isCurrentStudyRecordQuestion } from './affairsAnswer.js';
 import { runAnswerVerification } from './answerVerification.js';
 import { verificationModelCall, verifyEvidenceAnswer, repairEvidenceAnswer, composeEvidenceAnswer } from './answerVerificationModel.js';
 import { searchAssistantKnowledge } from './assistantKnowledge.js';
@@ -448,6 +448,24 @@ export function accountEvidence(snapshot,tools=toolNames,context={}) {
     completeness:context.scopedReadOnly?undefined:snapshot.completeness || 'Legacy snapshot: catalog, enrollments, released grades, attendance, notices, tasks and requests may be capped. Do not claim a complete history or overall absence for those collections.',
     actions:context.scopedReadOnly?[]:['create_task','complete_task','create_service_request','update_display_name','set_assignment_status (personal DTM tracker only)',...(snapshot.profile?.role==='admin'?['publish_announcement']:[])],
   })}];
+  if(snapshot.overviewScope===true){
+    const current=studyCalendar(snapshot.courses,snapshot.checkedAt).current;
+    for(const key of selected){
+      const overview=snapshot.overview[key];
+      if(!overview)continue;
+      const records=key==='profile'?{profile:pick(snapshot.profile,['displayName']),student:snapshot.student,
+        profileRecordFound:snapshot.profileRecordFound,studentRecordFound:snapshot.studentRecordFound}
+        :key==='courses'?current.map(row=>pick(row,['code','title','term','sourceMode']))
+          :key==='dtm'?snapshot.dtm.courses.map(row=>pick(row,['code','title','term','sourceMode'])):undefined;
+      evidence.push({id:'account:'+key,title:accountTools[key],url:key==='courses'?schoolSubjectRecordsPath:urls[key],
+        content:JSON.stringify({collection:key,checkedAt:snapshot.checkedAt,overview,records,
+          ...(overview.readState==='unavailable'?{unavailableReason:overview.reason}:{}),
+          ...(key==='courses'?{calendar:{scope:'current_enrolled_term',included:current.length,complete:overview.complete,timeZone:'Asia/Taipei'}}:{}),
+          ...(key==='dtm'?{calendar:'DTM course records have no designated current term.'}:{}),
+          rules:snapshot.meaning})});
+    }
+    return evidence;
+  }
   const budgetLimit=Number.isSafeInteger(context.budget)&&context.budget>=6000&&context.budget<=70000?context.budget:70000;
   const availableBudget=budgetLimit-Buffer.byteLength(JSON.stringify(evidence),'utf8')-128;
   const weight=key=>Object.hasOwn(nativePredicates,key)?4:1;
@@ -524,6 +542,21 @@ export function accountEvidence(snapshot,tools=toolNames,context={}) {
   return evidence;
 }
 
+function overviewReviewReferences(evidence){
+  return evidence.filter(source=>source.id.startsWith('account:')).flatMap(source=>{
+    const id=source.id,label=id.slice(8),data=JSON.parse(source.content);
+    const part=(paths,detail=label)=>({id,paths,label:detail});
+    if(label==='profile'){
+      if(!data.records.student)return [part(/^\/records\/studentRecordFound$/u,'saved program and year availability')];
+      return [part(/^\/records\/student\/program$/u,'academic program'),part(/^\/records\/student\/yearLevel$/u,'recorded year level')];
+    }
+    if(data.overview.readState==='unavailable')return [part(/^\/(?:unavailableReason|overview\/readState)$/u)];
+    if(label==='courses'||label==='dtm')return [part(data.records.length
+      ?/^\/records\/\d+\/(?:code|title|term)$/u:/^\/(?:records|calendar\/(?:included|complete)|overview\/(?:total|included|readState))$/u,label==='courses'?'current School Affairs subjects':'saved DTM courses')];
+    return [part(/^\/overview\/total$/u,label+' count')];
+  });
+}
+
 function scopedReviewReferences(evidence,tools,teachingQuestion){
   const parts=[];
   for(const tool of tools){
@@ -567,6 +600,22 @@ function scopedReviewReferences(evidence,tools,teachingQuestion){
     }
   }
   return parts;
+}
+
+function overviewRecordViews(snapshot){
+  const views=[];
+  const current=studyCalendar(snapshot.courses,snapshot.checkedAt).current;
+  const add=(id,title,url,rows,note,total=rows.length)=>{
+    if(snapshot.overview[id].readState==='unavailable'||!rows.length)return;
+    views.push({id,title,url,columns:['Course','Term','Data'],rows:rows.slice(0,12).map(row=>[
+      (row.code+' '+row.title).slice(0,200),row.term,row.sourceMode,
+    ]),total,checkedAt:snapshot.checkedAt,note:note+(total>Math.min(12,rows.length)?' Some saved rows are outside this excerpt.':'')});
+  };
+  add('courses','Current School Affairs subjects',schoolSubjectRecordsPath,current,
+    snapshot.overview.courses.complete?'Current subjects in the checked enrollment timetable.':'Only current subjects found in the retrieved timetable excerpt.');
+  add('dtm','Saved DTM courses','/dtm',snapshot.dtm.courses,
+    'Course metadata only. DTM has no designated current term here.',snapshot.overview.dtm.total??0);
+  return views;
 }
 
 function evidenceCitations(evidence) {
@@ -617,6 +666,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     :snapshot.currentStudyScope==='courses'&&studyIntent.recognized&&studyIntent.currentCourses&&studyIntent.baseTools.length===1&&studyIntent.baseTools[0]==='courses'
       ?['courses',...(teachingSelected?['teachingFeedback']:[])]:null;
   const scopedStudy=Boolean(studyTools);
+  const scopedOverview=snapshot.overviewScope===true&&isAccountOverviewQuestion(intent,question);
   const publicPageRoute=!scopedStudy&&!scopedTeaching&&isPublicPageQuestion(question)?normalizePublicPageRoute(fullRoute):'';
   const serviceNoteScope=serviceNoteLookup(question,fullRoute,history);
   const scopedNotes=serviceNoteScope.keys.length>0;
@@ -639,7 +689,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const diagnosticContext=()=>correlationId?{correlationId,attempt:evidenceAttempt}:undefined;
   const observed=[];
   const emit=step=>{observed.push(step);onProgress?.(step);};
-  const plan=studyTools?{tools:studyTools,publicTopics:[],catalogQuery:null,responseIntent:'records'}
+  const plan=scopedOverview||studyTools?{tools:scopedOverview?intent.baseTools:studyTools,publicTopics:[],catalogQuery:null,responseIntent:'records'}
     :await planAccountLookup(question,history,fullRoute,deadline);
   let activeTools=plan.tools,activeCatalogQuery=plan.catalogQuery;
   const scopedTimetable=Boolean(clearanceTimetableQuestion(question,pageLookup));
@@ -703,7 +753,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     if(intent.kind==='coaching'&&!activeTools.length)return [];
     const extra=supplemental.map(result=>result.evidence),budget=70000-Buffer.byteLength(JSON.stringify(extra),'utf8')-4;
     const scopeContext=scopedStudy&&teachingSelected?{...context,question:studyQuestion,history:[]}:scopedTimetable?{...context,question,history}:context;
-    const sources=[...accountEvidence(current,activeTools,{...scopeContext,budget,scopedReadOnly:scopedCounseling||scopedTutor||scopedConduct||scopedTimetable||scopedClearance||scopedNotes||scopedAid||scopedStudy||scopedTeaching}),...extra];
+    const sources=[...accountEvidence(current,activeTools,{...scopeContext,budget,scopedReadOnly:scopedOverview||scopedCounseling||scopedTutor||scopedConduct||scopedTimetable||scopedClearance||scopedNotes||scopedAid||scopedStudy||scopedTeaching}),...extra];
     if(Buffer.byteLength(JSON.stringify(sources),'utf8')>70000)throw new RangeError('Private evidence exceeds its shared budget.');
     return sources;
   };
@@ -782,7 +832,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   // receives, instead of trusting a first-match draft from the full snapshot.
   // This replaces the optional retry-planner call, keeping the existing maximum
   // of five provider calls and two independent checks per request.
-  const composeInitially=scopedTimetable||scopedNotes||scopedAid||scopedStudy||scopedTeaching?needsComposition:needsComposition||(repairLookup.selected||pageLookup.selected)&&plan.publicTopics.length>0||Boolean(resolvedUserQuestion)||intent.kind!=='records'||intent.overview||intent.currentCourses&&intent.year||intent.courseTerms.length>0&&!intent.recognized||!activeTools.length;
+  const composeInitially=scopedOverview||scopedTimetable||scopedNotes||scopedAid||scopedStudy||scopedTeaching?needsComposition:needsComposition||(repairLookup.selected||pageLookup.selected)&&plan.publicTopics.length>0||Boolean(resolvedUserQuestion)||intent.kind!=='records'||intent.overview||intent.currentCourses&&intent.year||intent.courseTerms.length>0&&!intent.recognized||!activeTools.length;
   if(composeInitially){
     emit({kind:'account-compose',label:'Preparing your answer',detail:'Combining the requested details and clearly separating recorded facts from suggestions.',status:'running'});
     try{
@@ -805,7 +855,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         current=refreshed;
         // Reconsider omitted read capabilities while reserving time for the one
         // correction and second verification. Retry never changes the action.
-        if(!composeInitially&&!scopedNotes&&!scopedCounseling&&!scopedTutor&&!scopedConduct&&!scopedClearance&&!scopedTimetable&&!scopedAid&&!scopedStudy&&!scopedTeaching&&Date.now()<deadline-24000){
+        if(!composeInitially&&!scopedOverview&&!scopedNotes&&!scopedCounseling&&!scopedTutor&&!scopedConduct&&!scopedClearance&&!scopedTimetable&&!scopedAid&&!scopedStudy&&!scopedTeaching&&Date.now()<deadline-24000){
           emit({kind:'account-replan',label:'Rechecking needed account records',detail:'Checking whether another record collection is needed; no new action or web search runs.',status:'running'});
           const retry=await planAccountLookup(question,history,fullRoute,Math.min(deadline-21000,Date.now()+3000),{previousTools:activeTools,feedback});
           if(!retry.degraded){activeTools=retry.tools;if(retry.catalogQuery!==null)activeCatalogQuery=retry.catalogQuery;}
@@ -824,7 +874,8 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     },
     verify:async context=>{
       if(needsComposition){needsComposition=false;return {ok:false,reason:'needs_grounded_composition',feedback:['Compose all requested parts from the selected evidence, explicitly identify unavailable details and keep suggestions distinct from factual claims. Do not substitute tracker status for file reviews, charges for statements, or catalog offerings for enrollment.']};}
-      const requiredEvidenceReferences=scopedStudy||scopedTeaching?scopedReviewReferences(context.evidence,activeTools,teaching.selection?.question):undefined;
+      const requiredEvidenceReferences=scopedOverview?overviewReviewReferences(context.evidence)
+        :scopedStudy||scopedTeaching?scopedReviewReferences(context.evidence,activeTools,teaching.selection?.question):undefined;
       return verifyEvidenceAnswer({...context,responseIntent:intent.kind,resolvedUserQuestion,requiredEvidenceReferences,diagnosticContext:diagnosticContext()});
     },repair:context=>repairEvidenceAnswer({...context,responseIntent:intent.kind,resolvedUserQuestion,diagnosticContext:diagnosticContext()}),
   });
@@ -835,7 +886,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       :source.evidence.id==='account:feeRemission'?['current_term_not_designated','ambiguous_period','invalid_period'].includes(source.reason)
         :source.evidence.id==='account:healthExaminations'&&['ambiguous_selector','invalid_selector','invalid_route'].includes(source.reason));
   let viewSnapshot=current;
-  if(studyIntent.recognized&&(studyIntent.currentCourses||studyIntent.scheduleWeekday)&&!studyIntent.explicitDtm&&Number.isFinite(Date.parse(current.checkedAt))){
+  if(studyIntent.recognized&&(scopedOverview||studyIntent.currentCourses||studyIntent.scheduleWeekday)&&!studyIntent.explicitDtm&&Number.isFinite(Date.parse(current.checkedAt))){
     const enrolled=studyCalendar(ownRows(current.courses,current.profile?.userId),current.checkedAt).current;
     viewSnapshot={...current,courses:studyIntent.scheduleWeekday?enrolled.filter(row=>row.weekday===studyIntent.scheduleWeekday):enrolled};
   }
@@ -850,7 +901,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     !(key==='charges'&&(viewSnapshot.chargeReadUnavailable||nativeAndFees||noteFees||aidFees||teachingFees))
     &&!(key==='courses'&&((scopedTimetable||noteNext||aidNext||teachingNext)&&!scheduledMeeting?.records.length||scopedStudy&&(viewSnapshot.timetableReadUnavailable||viewSnapshot.studentRecordFound===false)))
     &&!(key==='serviceRecords'&&viewSnapshot.serviceNoteReadUnavailable));
-  const baseViews=[...accountRecordViews(viewSnapshot,viewTools,{...context,courseTerms:intent.courseTerms}),
+  const baseViews=[...(scopedOverview?overviewRecordViews(viewSnapshot):accountRecordViews(viewSnapshot,viewTools,{...context,courseTerms:intent.courseTerms})),
     ...(boundedFeeAnswer(evidence)?.views||[]),...(activeTools.includes('housing')?housingBedView(viewSnapshot,context):[])];
   const views=[...supplementalViews,...baseViews].slice(0,3);
   if(supplementalViews.length+baseViews.length>3)for(const view of views)view.note+=' Additional source tables were omitted by the three-table display limit; use the source links for the full records.';

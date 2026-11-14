@@ -102,3 +102,7 @@ A signed-in question asking for both uses the owned School Affairs timetable and
 ### Teaching feedback questions
 
 The signed-in assistant can verify caller-owned questionnaire completion and immediate teaching feedback from services 7-5 and 7-6. Explicitly selected immediate comments can be shown. Anonymous survey responses are unavailable. A rejected draft triggers a fresh read of the selected records. Navigation and unsupported operations use the service links.
+
+### Saved account overview
+
+The assistant uses a read-only overview for a general request about saved account records. It checks the caller’s name, program, year, current School Affairs subjects and saved DTM labels. It counts assignment tracker items, charges, tasks and service requests without reading their contents. No account provisioning runs on this path.

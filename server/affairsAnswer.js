@@ -131,6 +131,11 @@ export function accountQuestionIntent(question,history=[],route='') {
     baseTools:[...new Set(dependencies)],overview,currentCourses,courseTerms,year,explicitDtm,scheduleWeekday};
 }
 
+export function isAccountOverviewQuestion(intent,question){
+  return intent.recognized&&intent.kind==='records'&&intent.contextQuestion===question.trim()
+    &&intent.overview&&!intent.currentCourses&&!intent.courseTerms.length&&!intent.year&&!intent.explicitDtm&&!intent.scheduleWeekday;
+}
+
 export function isCurrentStudyRecordQuestion(intent,question){
   return intent.kind==='records'&&intent.recognized&&intent.contextQuestion===question.trim()
     &&intent.currentCourses&&intent.year&&currentStudyOwnYearClause(question)&&!intent.overview&&!intent.explicitDtm&&!intent.scheduleWeekday
@@ -171,9 +176,48 @@ function composeSchoolScheduleAnswer(intent, snapshot) {
   return {answer:lines.join('\n'),title:chinese ? '校務課表' : 'School Affairs timetable',url:schoolSubjectRecordsPath};
 }
 
+function composeAccountOverview(intent,snapshot){
+  const zh=/[\u3400-\u9fff]/u.test(intent.contextQuestion),t=(en,zhText)=>zh?zhText:en;
+  const {overview,profile,student}=snapshot;
+  const rows=[t('Here’s what I can see in your saved stu.best records. Sample entries are demonstration data.','以下是我能查看的 stu.best 帳戶紀錄。標記為示範的項目是範例資料。')];
+  if(hasLiteral(profile.displayName))rows.push(t('Account name: ','帳戶名稱：')+inlineRecord(profile.displayName)+'.');
+  if(student){
+    rows.push(t('Program: ','學程：')+inlineRecord(student.program)+'. '+t('Year level: ','年級：')+inlineRecord(student.yearLevel)+'.');
+  }else rows.push(snapshot.studentRecordFound===false
+    ?t('No School Affairs student record is linked to this account.','此帳戶沒有連結校務學生紀錄。')
+    :t('I couldn’t check your saved program or year level.','無法查詢已儲存的學程或年級。'));
+  if(snapshot.profileRecordFound===null)rows.push(t('I couldn’t check your saved account name.','無法查詢已儲存的帳戶名稱。'));
+  const labels=(list,limit)=>list.slice(0,limit).map(row=>inlineRecord(row.code)+' '+inlineRecord(row.title)
+    +' ('+inlineRecord(row.term)+(row.sourceMode==='sample'?t(', sample','，示範'):'')+')').join('; ');
+  const current=studyCalendar(snapshot.courses,snapshot.checkedAt).current;
+  const classSummary=overview.courses.readState==='unavailable'
+    ?t('I couldn’t check the saved timetable.','無法查詢已儲存的課表。')
+    :current.length?labels(current,12):overview.courses.readState==='partial'
+      ?t('The excerpt contains no current subjects. The omitted records are unknown.','此節錄中沒有本學期科目，略去的紀錄仍未知。')
+      :t('No current subjects appear in the retrieved timetable.','查到的課表中沒有本學期修課。');
+  rows.push(t('Current School Affairs subjects: ','本學期校務科目：')+classSummary);
+  if(overview.courses.readState==='partial'||current.length>12)
+    rows.push(t('The timetable shown here is an excerpt.','此處的課表為節錄。'));
+  const dtm=snapshot.dtm.courses;
+  const moodle=overview.dtm.readState==='unavailable'
+    ?t('I couldn’t check your DTM courses.','無法查詢你的數位教材課程。')
+    :dtm.length?labels(dtm,8):t('No courses in the retrieved list.','查到的清單中沒有課程。');
+  rows.push(t('Saved DTM courses: ','已儲存的數位教材課程：')+moodle);
+  if(overview.dtm.readState!=='unavailable'&&(overview.dtm.readState==='partial'||dtm.length>8))
+    rows.push(t(`Showing ${Math.min(dtm.length,8)} of ${overview.dtm.total} saved DTM courses.`,`已顯示 ${overview.dtm.total} 門數位教材課程中的 ${Math.min(dtm.length,8)} 門。`));
+  const counts=[['assignments',t('assignment tracker records','作業追蹤紀錄')],['charges',t('charge items','費用項目')],
+    ['tasks',t('saved tasks','待辦事項')],['requests',t('service requests','服務申請')]];
+  rows.push(counts.map(([key,label])=>overview[key].total===null
+    ?t(`${label}: count unavailable`,`${label}：無法查詢筆數`)
+    :t(`${overview[key].total} ${label}`,`${overview[key].total} 筆${label}`)).join(zh?'、':', ')+'.');
+  rows.push(t(`[Open School Affairs subjects](${schoolSubjectRecordsPath}) · [Open DTM](/dtm)`,`[查看校務科目](${schoolSubjectRecordsPath}) · [開啟數位教材網](/dtm)`));
+  return {answer:rows.join('\n\n'),title:t('My stu.best records','我的 stu.best 紀錄'),url:schoolSubjectRecordsPath};
+}
+
 function composeCoreRecordAnswer(intent,snapshot) {
   if (intent.scheduleWeekday) return composeSchoolScheduleAnswer(intent, snapshot);
   if(!intent.recognized||intent.kind!=='records'||!(intent.overview||intent.currentCourses||intent.courseTerms.length||intent.year))return null;
+  if(intent.overview&&snapshot.overviewScope===true)return composeAccountOverview(intent,snapshot);
   const userId=snapshot.profile?.userId,student=snapshot.student&&(!snapshot.student.userId||snapshot.student.userId===userId)?snapshot.student:null;
   const chinese=/[\u3400-\u9fff]/u.test(intent.contextQuestion),t=(zh,en)=>chinese?zh:en;
   const lines=[t('以下是 stu.best 已儲存的帳戶資料，並非校方即時同步；標記為 sample 或 local_demo 的紀錄是示範資料。','These are saved stu.best account records, not a live university sync. Records marked sample or local_demo are demonstration data.')];
