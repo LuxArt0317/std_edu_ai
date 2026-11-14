@@ -68,6 +68,13 @@ export function facilityRepairLookupContext(question,route='',history=[]){
   const scheduleOnly=schedule&&(scheduleWords.test(otherQuestion)||/^(?:請問|請|顯示|告訴我|我|的|下一堂|課|課表|時間|教室|在哪裡|幾點|以及|和|[，、\s])+$/u.test(otherQuestion));
   return {selected:true,repairOnly:!otherQuestion,scheduleOnly,otherQuestion,repairQuestion:otherQuestion&&repairParts.length?repairParts.join(' and '):question};
 }
+function isFeeRemissionFollowup(part,operation){
+  const [field,period]=part.split(/\s+(?=(?:for|in|during)\s+)/iu);
+  const fieldOnly=/^(?:(?:(?:show|include|check)\s+)?(?:my|the|its|saved|recorded)\s+)*(?:categor(?:y|ies)|amount|check status|notes?|student (?:number|id)|approval|eligibility|payout|payment|refund|(?:record )?count|number of (?:saved )?(?:remission )?records)(?:\s+(?:too|separately))?$/iu;
+  return fieldOnly.test(field)&&(!period||isFeeRemissionPeriodClause(part.slice(field.length).trim()))
+    ||operation&&/^(?:submit|send)\s+(?:it|that|this)\s+to\s+(?:the\s+)?(?:school|university)$/iu.test(part);
+}
+
 /** Isolate these native page requests from independent clauses. The original
  * selectors still decide identity/IDs. Residual text is untrusted query context,
  * never evidence; uncertain clauses stay with the normal planner. */
@@ -104,7 +111,7 @@ export function nativePageLookupContext(question,route='',history=[]){
       :key==='elearningOutline'&&Boolean(selectElearningOutlineEvidence(part,route,history)));
     if(independent.test(unquoted(part))){other.push(part);previous=null;continue;}
     if(domain.length){for(const key of domain)collected[key].push(part);previous=domain.length===1?domain[0]:null;continue;}
-    if(previous==='feeRemission'&&/^(?:(?:(?:show|include|check)\s+)?(?:my|the|its|saved|recorded)\s+)*(?:category|amount|check status|notes?|student (?:number|id)|approval|eligibility|payout|payment|refund)(?:\s+(?:too|separately))?$/iu.test(part)){
+    if(previous==='feeRemission'&&isFeeRemissionFollowup(part,selections.feeRemission.operation)){
       collected.feeRemission.push(part);continue;
     }
     if(previous==='dormitoryConduct'&&(/^(?:(?:its|the|my|all|each|every|saved|recorded)\s+)*(?:dates?|reasons?|penalt(?:y|ies)|details?)(?:\s+(?:recorded|saved|for|me|my|account))*$/iu.test(part)

@@ -14,6 +14,7 @@ import postgres from 'postgres';
 import {deploymentEnvironment} from '../../scripts/deployment-env.mjs';
 import {fixtureForCase,evaluationDates,EVAL_OTHER_USER_ID,supplementalFixtureRecords} from './fixtures.mjs';
 import {loadNativeAcademicRecords} from '../../server/nativeAcademicWorkspace.js';
+import {loadOwnAffairsCharges} from '../../server/affairsWorkspace.js';
 import {mapScholarshipRecords} from '../../server/scholarshipRecords.js';
 import {mapHousingRecords} from '../../server/housingRecords.js';
 import {validateEnrollmentCertificatePayload} from '../../server/enrollmentCertificate.js';
@@ -31,6 +32,9 @@ import {assertDormitoryConductFixtureIdentities,assertDormitoryConductFixtureRow
 import {buildFacilityRepairFixturePlan,changeFacilityRepairFixtureRows,facilityRepairLiveFixtureKey,verifyFacilityRepairFixtureDatabase,verifyFacilityRepairFixtureReadback} from './facility-repair-fixtures.mjs';
 import {aidPaymentFixtureManifest,aidPaymentFixtureReadContract,assertAidPaymentFixtureEmpty,assertAidPaymentFixtureIdentities,assertAidPaymentFixtureRowTargets,buildAidPaymentFixturePlan,verifyAidPaymentFixtureReadback} from './aid-payment-fixture-plan.mjs';
 import {dtmGradeReportFixtureManifest,dtmGradeReportFixtureReadContract,assertDtmGradeReportFixtureEmpty,assertDtmGradeReportFixtureIdentities,assertDtmGradeReportFixtureCourseBindings,assertDtmGradeReportFixtureRowTargets,buildDtmGradeReportFixturePlan,verifyDtmGradeReportFixtureReadback} from './dtm-grade-report-fixture-plan.mjs';
+import {buildFeeRemissionFixturePlan,feeRemissionLiveFamilyForCase,feeRemissionLivePlanManifest} from './fee-remission-live-plan.mjs';
+import {createFeeRemissionFixtureLifecycle} from './fee-remission-fixture-lifecycle.mjs';
+import {readRows as readFeeRows,deleteRows as deleteFeeRows,insertRows as insertFeeRows} from './fee-remission-fixture-sql.mjs';
 
 const ROOT=fileURLToPath(new URL('../../',import.meta.url));
 const PROJECT='xiftudmvxphxcjtmfmib';
@@ -42,6 +46,8 @@ const SUPPLEMENTAL_SCOPES=Object.freeze({enrollmentCertificate:'enrollment-certi
 const SUPPLEMENTAL_TABLES=Object.freeze({enrollmentCertificate:'affairs_enrollment_certificate_assessments',tuition:'affairs_tuition_settlements',studentConduct:'affairs_student_conduct',studentLoan:'affairs_student_loan'});
 const SUPPORTED_TOOLS=new Set(['profile','charges','tasks','requests','serviceRecords','dtm','assignments','aidPayments','dtmGradeReport','elearningEnrollments','elearningOutline','facilityRepairs','dormitoryConduct',...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS,...Object.keys(SUPPLEMENTAL_SCOPES)]);
 const FOREIGN_MARKER='FOREIGN PRIVATE SENTINEL';
+const FEE_FIXTURE_MODE='fee-remission-only';
+export const fixtureModes=Object.freeze([FEE_FIXTURE_MODE]);
 export const catalogFixtureSetupReasons=Object.freeze(['catalog_read_unavailable','published_payload_invalid','public_scope_mismatch','no_suitable_published_offering','no_null_weight_offering','absent_probe_not_empty']);
 const catalogKinds=Object.freeze({'account:catalog-known-fields':'known-fields','account:catalog-null-weight':'null-weight','account:catalog-unfound':'unfound','account:catalog-enrollment-distinction':'enrollment-distinction','account:catalog-mixed-dtm':'mixed-dtm','service:12-4:record':'known-fields','service:12-4:empty':'unfound'});
 let state;
@@ -213,6 +219,7 @@ async function saveLedger(){
     handle=await open(tmp,s.ledgerTempOwned?'w':'wx',0o600);s.ledgerTempOwned=true;
     await handle.writeFile(JSON.stringify({version:1,projectRef:PROJECT,runId:s.runId,origin:s.origin,createdAt:s.startedAt,
       protectedOwner,fixtureUserIds:s.users.map(user=>user.id),identityRequests:s.identityRequests,ownedRecordIds:[...s.recordIds].sort(),supplementalTables:[...(s.supplementalTables||[])].sort(),activeCaseId:s.current?.caseId??null,
+      ...(s.feeFixture?{feeRemissionFixture:{students:s.feeFixture.students,journal:s.feeFixture.journal}}:{}),
       ...(s.dtmReportPlan||s.dtmReportTransitionPending?{dtmReportFixture:{
         previous:dtmReportRecoveryBinding(s.dtmReportPlan),pending:dtmReportRecoveryBinding(s.pendingDtmReportPlan),transitionPending:Boolean(s.dtmReportTransitionPending),
       }}:{}),...(s.elearningPlan||s.elearningTransitionPending?{elearningFixture:{
@@ -273,15 +280,22 @@ async function createFixtureUser(index){
   let signed;try{signed=await auth.auth.signInWithPassword({email,password});}catch{fail('fixture-signin','Synthetic account sign-in did not complete.');}
   if(signed.error||signed.data?.session?.user?.id!==user.id)fail('fixture-signin','Synthetic account session could not be verified.');
   attachFixtureSession(user,signed.data.session,{url:s.url,publishable:s.publishable,signal:s.signal,fetchImpl:s.boundedFetch});
+  if(s.fixtureMode!==undefined&&s.fixtureMode===FEE_FIXTURE_MODE)return user;
   const initial=await readSnapshot(user);user.studentId=initial.student?.id;
   if(!UUID.test(user.studentId||''))fail('fixture-readback','Synthetic School Affairs student initialization failed.');
   return user;
 }
 
 /** No mutation occurs until this explicit lifecycle entry point is invoked. */
-export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expectedReleaseRevision,signal}={}){
+export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expectedReleaseRevision,signal,fixtureMode,caseFamily}={}){
   if(state)fail('fixture-state','This fixture adapter cannot run overlapping lifecycles.');
   if(!UUID.test(runId||'')||!Array.isArray(cases)||!cases.length||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
+  if(fixtureMode!==undefined||caseFamily!==undefined){
+    const expected=feeRemissionLivePlanManifest.eligibleCaseIds;
+    if(fixtureMode!==FEE_FIXTURE_MODE||caseFamily!=='fee-remission'||!approvedPreviewOrigin||cases.length!==expected.length
+      ||new Set(cases.map(row=>row?.id)).size!==expected.length||!expected.every(id=>cases.some(row=>row?.id===id)))
+      fail('fixture-config','The fee-only adapter requires the complete approved Preview packet.');
+  }
   if(resolve(process.cwd())!==resolve(ROOT))fail('fixture-target','Run this adapter from the exact client checkout root.');
   const config=JSON.parse(await readFile(resolve(ROOT,'deployment.json'),'utf8'));
   if(config.repository!=='LuxArt0317/std_edu_ai'||config.supabase?.projectRef!==PROJECT)fail('fixture-target','Deployment configuration is not the authorized client project.');
@@ -309,7 +323,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const ignore=await readFile(resolve(ROOT,'.gitignore'),'utf8');if(!/^\/?artifacts\/$/m.test(ignore))fail('fixture-ledger','Private fixture ledger directory must be ignored by Git.');
   await mkdir(PRIVATE_DIR,{recursive:true,mode:0o700});await chmod(PRIVATE_DIR,0o700);
   const boundedFetch=(input,init={})=>fetch(input,{...init,signal:signals(init.signal,15000)});
-  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,
+  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,
     ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),admin:createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})};
   try{
     state.sql=postgres(connection,{max:1,connect_timeout:10,idle_timeout:10,max_lifetime:0,
@@ -325,6 +339,11 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     await reserveLedger();
     await saveLedger();
     await createFixtureUser(0);await createFixtureUser(1);
+    if(fixtureMode!==undefined&&fixtureMode===FEE_FIXTURE_MODE){
+      await prepareFeeFixture(state);
+      state.prepared=true;
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['feeRemission','charges']};
+    }
     const foreignId=randomUUID();state.recordIds.add(foreignId);await saveLedger();
     await query(()=>state.sql`insert into public.dtm_courses(id,user_id,code,title,term,role,source_mode)
       values(${foreignId},${state.users[1].id},'FOREIGN-EVAL',${FOREIGN_MARKER},'Synthetic private term','student','personal')`,'Could not create the isolated second-account sentinel.');
@@ -339,6 +358,133 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     try{await cleanup();}catch{/* The original error is safe; ledger remains. */}
     if(error instanceof LiveFixtureError)throw error;fail('fixture-prepare','Fixture preparation failed'+diagnostic(error)+'.');
   }
+}
+
+async function feeTransaction(s,work){
+  await s.sql.unsafe('begin');
+  try{
+    const result=await work();
+    await s.sql.unsafe('commit');
+    return result;
+  }catch(error){
+    try{await s.sql.unsafe('rollback');}catch{/* Retain the journal if the outcome is unknown. */}
+    throw error;
+  }
+}
+
+async function assertFeeFixtureLease(s,{runId,projectRef,ownerIds,studentIds}){
+  if(state!==s||!s.locked||s.closed||!s.ledgerOwned||runId!==s.runId||projectRef!==PROJECT
+    ||!isSameIds(ownerIds,s.users.map(user=>user.id))||!isSameIds(studentIds,Object.values(s.feeFixture.students).map(row=>row.id)))
+    fail('fixture-lease','The fee remission fixture is outside its recorded run or owner lease.');
+  if(!s.closing)s.signal?.throwIfAborted();
+  const locks=await s.sql`select 1 from pg_locks where locktype='advisory' and pid=pg_backend_pid()
+    and classid=23101314 and objid=115100 and objsubid=2 and granted`;
+  if(locks.length!==1)fail('fixture-lease','The disposable fee fixture lost its database lease.');
+  assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+  return true;
+}
+
+function isSameIds(actual,expected){
+  return Array.isArray(actual)&&actual.length===expected.length&&new Set(actual).size===expected.length&&actual.every(id=>expected.includes(id));
+}
+
+async function readFeeFixtureIdentities(s,ownerIds){
+  const identities=await s.sql`select u.id,u.email,u.raw_user_meta_data->>'assistant_evaluation_run' as "runMarker"
+    from auth.users u where u.id in ${s.sql(ownerIds)} and u.email_confirmed_at is not null
+      and exists(select 1 from auth.identities i where i.user_id=u.id and i.provider='google'
+        and i.provider_id=u.id::text and i.identity_data->>'email'=u.email and i.identity_data->>'email_verified'='true')`;
+  const students=await s.sql`select st.id,st.user_id from public.affairs_students st
+    join public.affairs_profiles p on p.user_id=st.user_id and p.role='student'
+    join auth.users u on u.id=st.user_id and u.email=p.email
+    where st.user_id in ${s.sql(ownerIds)} and st.source_mode='sample'`;
+  return {identities,students};
+}
+
+async function feeReadback(s,{role,view,contract}){
+  const user=s.users[role==='A'?0:1];
+  if(user?.id!==contract.ownerId)fail('fixture-readback','Fee remission fixture caller binding changed.');
+  await user.renewSession({signal:s.signal});
+  if(view==='charges')return loadOwnAffairsCharges({user:{id:user.id},url:s.url,key:s.publishable,token:user.token});
+  if(view!=='feeRemission'||contract.method!=='GET'||contract.path!=='/api/affairs-data'||contract.query.scope!=='fee-remission')
+    fail('fixture-readback','Unsupported fee remission readback.');
+  const url=new URL('/api/affairs-data?scope=fee-remission',s.origin);
+  const response=await fetch(url,{redirect:'error',cache:'no-store',headers:{Authorization:'Bearer '+user.token},signal:signals(s.signal,15000)});
+  if(response.status!==200||response.redirected||response.url&&response.url!==url.href||!response.headers.get('content-type')?.includes('application/json')){
+    await response.body?.cancel();fail('fixture-readback','Caller-scoped fee remission read did not return JSON.');
+  }
+  const reader=response.body?.getReader();if(!reader)fail('fixture-readback','Fee remission readback did not contain a body.');
+  const chunks=[];let bytes=0;
+  try{
+    for(;;){
+      const {done,value}=await reader.read();if(done)break;
+      bytes+=value.byteLength;if(bytes>131072)fail('fixture-readback','Fee remission readback exceeded its bound.');
+      chunks.push(value);
+    }
+    return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)));
+  }finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
+}
+
+async function prepareFeeFixture(s){
+  const owners=Object.fromEntries(s.users.map((user,index)=>{
+    const request=s.identityRequests.find(row=>row.id===user.id);
+    return [index===0?'A':'B',{id:user.id,email:request?.email,runMarker:request?.runId}];
+  }));
+  const ownerIds=Object.values(owners).map(row=>row.id);
+  if(ownerIds.length!==2||ownerIds.includes(s.protectedOwnerBefore.id))fail('fixture-create','Fee remission requires two disposable owners.');
+  const students=Object.fromEntries(Object.entries(owners).map(([role,owner])=>[role,{id:randomUUID(),user_id:owner.id}]));
+  const studentIds=Object.values(students).map(row=>row.id);
+  buildFeeRemissionFixturePlan({runId:s.runId,owners,students,fixtureKey:'feeRemission'});
+  s.feeFixture={owners,students,journal:null,lifecycle:null};
+  await saveLedger();
+  await query(()=>feeTransaction(s,async()=>{
+    await assertFeeFixtureLease(s,{runId:s.runId,projectRef:PROJECT,ownerIds,studentIds});
+    const existing=await readFeeFixtureIdentities(s,ownerIds);
+    if(existing.identities.length!==2||!Object.values(owners).every(owner=>existing.identities.some(actual=>
+      actual.id===owner.id&&actual.email===owner.email&&actual.runMarker===owner.runMarker)))
+      fail('fixture-create','Fee remission requires verified disposable Google identities.');
+    const programs=await s.sql`select id from public.affairs_programs where code='SAMPLE-GEN' and source_mode='sample'`;
+    if(programs.length!==1)fail('fixture-create','The existing sample program could not be bound.');
+    for(const [role,owner] of Object.entries(owners)){
+      const name=role==='A'?'Evaluation Student':'Evaluation Other';
+      const studentId=students[role].id;
+      await s.sql`insert into public.affairs_profiles(user_id,email,display_name,role) values(${owner.id},${owner.email},${name},'student')`;
+      await s.sql`insert into public.affairs_students(id,user_id,student_number,full_name,program_id,year_level,source_mode)
+        values(${studentId},${owner.id},${'EVAL-'+studentId},${name},${programs[0].id},1,'sample')`;
+      // The existing student insert trigger creates a sample charge. Remove
+      // that exact trigger result in the same transaction, before seeding cases.
+      const [charge,...extra]=await s.sql`select id,student_id,label,amount_due,amount_paid,currency,due_on::text,source_mode,
+        occurrence_on,category,contact_unit,contact_extension,payment_unit from public.affairs_charges where student_id=${studentId} limit 2`;
+      if(extra.length||charge?.student_id!==studentId||!UUID.test(charge.id)||charge.label!=='Sample Fall 2026 tuition'
+        ||Number(charge.amount_due)!==28000||Number(charge.amount_paid)!==5000||charge.currency!=='TWD'||charge.due_on!=='2026-12-15'
+        ||charge.source_mode!=='sample'||['occurrence_on','category','contact_unit','contact_extension','payment_unit'].some(key=>charge[key]!==null))
+        fail('fixture-create','The generated sample charge differed from the published seed.');
+      const deleted=await s.sql`delete from public.affairs_charges where id=${charge.id} and student_id=${studentId} returning id`;
+      if(deleted.length!==1||deleted[0].id!==charge.id)fail('fixture-create','The generated charge could not be removed exactly.');
+    }
+  }),'Could not prepare the isolated fee fixture student bindings.');
+  s.users.forEach((user,index)=>{user.studentId=students[index===0?'A':'B'].id;});
+  s.feeFixture.lifecycle=createFeeRemissionFixtureLifecycle({
+    assertLease:binding=>assertFeeFixtureLease(s,binding),
+    readIdentities:binding=>readFeeFixtureIdentities(s,binding.ownerIds),
+    readRows:descriptor=>readFeeRows(s.sql,descriptor),
+    transaction:work=>query(()=>feeTransaction(s,()=>work({
+      readRows:descriptor=>readFeeRows(s.sql,descriptor),deleteRows:descriptor=>deleteFeeRows(s.sql,descriptor),insertRows:descriptor=>insertFeeRows(s.sql,descriptor),
+    })),'Could not apply the owned fee fixture transaction.'),
+    readNative:descriptor=>feeReadback(s,descriptor),
+    writeJournal:async journal=>{
+      s.feeFixture.journal=journal;
+      journal.recordIds.forEach(id=>s.recordIds.add(id));
+      await saveLedger();return true;
+    },
+    readCleanupProof:async descriptor=>{
+      const {identities,students}=await readFeeFixtureIdentities(s,ownerIds);
+      const rows=await readFeeRows(s.sql,descriptor);
+      if(Object.values(rows).some(items=>items.length))fail('fixture-cleanup','A reserved or owned fee fixture row remains.');
+      return {identities,students,
+        remainingByTable:Object.fromEntries(Object.keys(rows).map(table=>[table,ownerIds.map(userId=>({userId,count:0}))])),
+        reservedByTable:{affairs_fee_remission:0,affairs_charges:0}};
+    },
+  });
 }
 
 function assertSupported(testCase,snapshot){
@@ -1418,8 +1564,24 @@ function ownState(snapshot){
 }
 
 /** Persists golden facts, then proves the application's actual auth/RLS read path. */
-export async function forCase(testCase,{signal}={}){
+export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
   const s=ready();if(s.current)fail('fixture-state','afterCase() must complete before selecting another fixture.');
+  if(s.feeFixture){
+    const family=feeRemissionLiveFamilyForCase(testCase);
+    const anonymous=testCase.id==='account:fee-remission-anonymous';
+    if(fixtureMode!==FEE_FIXTURE_MODE||fixtureFamily!==family||!s.caseIds.has(testCase.id)
+      ||testCase.fixtureKey!==(anonymous?'anonymous':'planned:'+family))
+      fail('fixture-case','Unexpected case or family for the disposable fee fixture.');
+    (signal||s.signal)?.throwIfAborted();
+    const {lifecycle,owners,students}=s.feeFixture;
+    const plan=buildFeeRemissionFixturePlan({runId:s.runId,owners,students,fixtureKey:family});
+    const before=lifecycle.status().currentFamily===family?await lifecycle.verifyUnchanged():await lifecycle.transition(plan);
+    if(!anonymous)await s.users[0].renewSession({signal:signal||s.signal});
+    s.current={caseId:testCase.id,beforeHash:before.digest,fixtureFamily:family};
+    try{await saveLedger();}catch(error){s.current=null;throw error;}
+    return anonymous?{}:{token:s.users[0].token};
+  }
+  if(fixtureMode!==undefined||fixtureFamily!==undefined)fail('fixture-case','Fixture mode changed after preparation.');
   if(s.aidTransitionPending)fail('fixture-state','The preceding aid fixture transaction did not settle. Cleanup must reconcile it before any further case.');
   if(s.dtmReportTransitionPending)fail('fixture-state','The preceding DTM report fixture transaction did not settle. Cleanup must reconcile it before any further case.');
   if(s.elearningTransitionPending)fail('fixture-state','The preceding remote-learning fixture transaction did not settle. Cleanup must reconcile it before any further case.');
@@ -1521,10 +1683,25 @@ async function currentDormitoryFixture(s,signal){
 }
 
 /** Deliberately never confirms or executes a proposed assistant action. */
-export async function afterCase(testCase,envelope,{signal}={}){
+export async function afterCase(testCase,envelope,{signal,fixtureMode,fixtureFamily}={}){
   const s=ready();if(s.current?.caseId!==testCase.id)fail('fixture-state','afterCase() does not match the prepared case.');
   const current=s.current;
   try{
+    if(s.feeFixture){
+      if(fixtureMode!==FEE_FIXTURE_MODE||fixtureFamily!==current.fixtureFamily)fail('fixture-state','Fee fixture scope changed during evaluation.');
+      const after=await s.feeFixture.lifecycle.verifyUnchanged();
+      if(after.digest!==current.beforeHash)fail('fixture-unapproved-write','The fee records changed during the assistant request.');
+      const publicReply=JSON.stringify({body:envelope.body,events:envelope.events});
+      const ownerMarkers=[s.feeFixture.owners.B.id,s.feeFixture.students.B.id,s.feeFixture.owners.B.email];
+      if(ownerMarkers.some(marker=>publicReply.includes(marker))){
+        envelope.body={error:'Fee fixture account isolation failed.'};envelope.events=[];
+        fail('fixture-isolation','The assistant exposed a disposable foreign identity.');
+      }
+      envelope.stateBefore={ownedRecordsDigest:current.beforeHash};
+      envelope.stateAfterProposal={ownedRecordsDigest:after.digest};
+      envelope.fixtureReadback={verified:true,projectRef:PROJECT,independentGolden:true};
+      return;
+    }
     const actual=await readSnapshot(s.users[0],{signal:signal||s.signal});
     let publishedSample=null;
     if(current.publishedSamplePlan){
@@ -1592,6 +1769,10 @@ export async function cleanup(){
     }
     if(s.users.some(user=>!UUID.test(user.id)||!deletable.has(user.id)&&!absent.has(user.id)))fail('fixture-cleanup','A known fixture identity could not be reconciled; no account will be deleted.');
     if(s.ledgerOwned)await saveLedger();
+    if(s.feeFixture?.lifecycle){
+      await s.feeFixture.lifecycle.cleanup();
+      await saveLedger();
+    }
     if(s.dormitoryPlan||s.pendingDormitoryPlan){
       await query(async()=>{
         await s.sql.unsafe('begin');

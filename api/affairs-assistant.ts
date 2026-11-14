@@ -271,7 +271,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         return label?{...saved,chargeSelectionLabel:label,charges:saved.charges.filter(row=>normalize(row.label)===normalize(label))}:saved;
       }catch(error){
         if(!pageContext.feeAndBalance)throw error;
-        return {...scopedSnapshot(),charges:[],chargeReadUnavailable:true};
+        const charges:Awaited<ReturnType<typeof loadOwnAffairsCharges>>['charges']=[];
+        return {...scopedSnapshot(),charges,chargeReadUnavailable:true};
       }
     };
     const snapshot=selectedReaderOnly?scopedSnapshot():chargesOnly?await loadCharges():await loadSnapshot(account,false,{deadline});

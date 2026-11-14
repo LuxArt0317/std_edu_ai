@@ -28,6 +28,14 @@ The read-only integrations are:
 - Tuition: read the caller's literal settlement statements separately from charge balances. Null, blank text and the literal text `0` have distinct meanings; none proves a payment, issued receipt or completed refund.
 - Tuition remission uses the saved history at School Affairs service 21-3. The independent case bank checks exact literal periods, amount and status, missing fields, unauthorized account references and combined charge requests. Its fixture plan verifies both callers' complete remission and charge records independently. The planned cases remain outside default live execution.
 
+To list the isolated fee packet without contacting a provider, run:
+
+```sh
+node tests/evaluation/run.mjs --mode inventory --case-family fee-remission
+```
+
+An authorized release operator can evaluate the same 20 questions by choosing `--mode live`, supplying `--fixture-module tests/evaluation/live-fixtures.mjs`, and setting `--origin` and `--approved-preview-origin` to the same exact approved Preview. The checkout must be clean and match the pinned Preview manifest. The isolated adapter verifies both disposable student bindings, the complete fee and charge records, and the absence of operations or audit records before and after the requests. The anonymous case sends no account credential. The run verifies cleanup before reporting completion. This packet is a subset of the systemwide release evaluation.
+
 Each integration has a selected planner capability, own-account and parent/child validation, bounded evidence, source-linked verification and observable tool events. Certificate/tuition fixtures create only exact disposable caller-owned records and verify complete scoped readback for both accounts. Published catalog cases bind through both fresh caller JWTs before model requests, save their concrete expectations and final fingerprint, and reject record/revision drift before and after each answer. Missing bindings remain setup failures with zero model calls. Catalog-only cases do not reseed private data or mutate the shared catalog.
 
 Real file-upload fixtures remain deferred pending a reviewed Storage cleanup lifecycle; metadata-reader tests do not prove live submission behavior. Actual upload actions and certificate issuance are separate capabilities. The runner's minimum 5.5-second request-start interval avoids burst retries; errors remain failures. These are implementation and test-method statements, not a claim that the entire current deployment passes the full evaluation.

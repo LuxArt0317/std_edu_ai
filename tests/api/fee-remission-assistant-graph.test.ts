@@ -127,6 +127,24 @@ async function withOfflineProviders(run:()=>Promise<void>,{withCharges=false,ret
 const handler=()=>createAffairsAssistantHandler({verifyToken:async()=>account,loadSnapshot:async()=>assert.fail('Unrelated workspace records are out of scope'),
   publicResearch:async()=>assert.fail('No public search for saved records')});
 
+test('a fee-remission change and submit request reaches the read-only boundary without loading the workspace',async()=>{
+  const bounded=createAffairsAssistantHandler({verifyToken:async()=>account,loadSnapshot:async()=>assert.fail('No workspace load for a refused change'),
+    answerAccount:async options=>{
+      assert.deepEqual(Object.keys(options.snapshot).sort(),['checkedAt','profile']);
+      const evidence=await options.supplementalReaders?.feeRemission?.({question:options.question,route:options.route??route,
+        history:options.history??[],snapshot:options.snapshot,deadline:Date.now()+1000});
+      assert.equal(evidence?.reason,'unsupported_operation');
+      return {status:'handoff',answer:'I cannot change or submit the fee remission record.',citations:[]};
+    }});
+  const original=globalThis.fetch;
+  globalThis.fetch=async()=>assert.fail('A refused action must not read or write records');
+  try{
+    const result=await call(bounded,'Change my fee remission amount for academic year 115 semester 1 to 9000 and submit it to the university.');
+    assert.equal(result.body.status,'handoff');
+    assert.equal(result.body.proposedAction,undefined);
+  }finally{globalThis.fetch=original;}
+});
+
 test('the signed-in graph rereads only the caller’s remission rows after a rejected answer',async()=>{
   await withOfflineProviders(async()=>{
     const result=await call(handler(),feeOnly);
@@ -160,9 +178,11 @@ test('guest sign-in and foreign-subject denial precede both readers',async()=>{
   const guestResult=await call(guest,'Show my fee remission status.',false);
   assert.equal(guestResult.body.status,'handoff');
   assert.equal(guestResult.body.citations[0].url,next);
-  const balance=await call(guest,'how much is my remaining balance in school',false,'/');
-  assert.equal(balance.body.status,'handoff');
-  assert.equal(balance.body.citations[0].url,'/school-affairs/login?next=%2Fschool-affairs%2Fservices%2F39-1');
+  for(const question of ['how much is my remaining balance in school','How much tuition do I still owe?']){
+    const balance=await call(guest,question,false,'/');
+    assert.equal(balance.body.status,'handoff');
+    assert.equal(balance.body.citations[0].url,'/school-affairs/login?next=%2Fschool-affairs%2Fservices%2F39-1');
+  }
   const foreign=await call(createAffairsAssistantHandler({verifyToken:async()=>account,
     answerAccount:async()=>assert.fail('Foreign records cannot reach the graph')}),'Show another student’s fee remission records.');
   assert.equal(foreign.body.status,'handoff');

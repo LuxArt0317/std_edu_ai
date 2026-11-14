@@ -10,13 +10,14 @@ const url='https://xiftudmvxphxcjtmfmib.supabase.co';
 test('the exact own fee scope leaves compound, public, mutation and other-person queries to their established routing',()=>{
   for(const question of [
     'how much is my remaining balance in school','How much do I still owe?','List my unpaid school fees.',
-    'What is my tuition balance?','請問我學費還要繳多少？',
+    'What is my tuition balance?','How much tuition do I still owe?','How much do I owe for tuition?','請問我學費還要繳多少？',
   ])assert.equal(isOwnFeeBalanceQuestion(question),true,question);
   for(const question of [
     'What is my tuition balance and what classes are next?',
     'What is the tuition fee for a freshman?',
     'Why is my tuition balance different from my settlement statement?',
     'Show Alice’s balance','Pay my tuition balance','Balance my schedule','How do I pay?',
+    'How much tuition does Alice still owe?','How much tuition do I still owe and when are my classes?',
   ])assert.equal(isOwnFeeBalanceQuestion(question),false,question);
 });
 

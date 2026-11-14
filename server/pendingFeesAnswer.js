@@ -16,7 +16,7 @@ export function isPendingFeeQuestion(question,route='',history=[]) {
 export function isOwnFeeBalanceQuestion(question) {
   if(typeof question!=='string')return false;
   const text=question.normalize('NFKC').trim().replace(/[?.!。！？]+$/u,'').trim();
-  return /^how much do i (?:still )?owe(?: (?:at|in|for) (?:the )?school)?$/iu.test(text)
+  return /^how much(?: (?:school |tuition )?fees?| tuition)? do i (?:still )?owe(?: (?:at|in|for) (?:the )?(?:school|tuition))?$/iu.test(text)
     || /^(?:(?:(?:please )?(?:show(?: me)?|list|tell me|check)|what is|what's|how much is) )?my (?:(?:remaining|outstanding|unpaid|pending) )?(?:(?:school|tuition) )?(?:fees?|charges|balance)(?: (?:at|in|for) (?:the )?school)?$/iu.test(text)
     ||/^(?:請問|請查詢|幫我查|顯示)?(?:我(?:的|目前)?)(?:學雜費|學費|費用|待繳)(?:還(?:要繳|有|欠)|尚欠|剩餘|待繳|餘額|還剩)?(?:多少|金額|明細)?$/u.test(text);
 }

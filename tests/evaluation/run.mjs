@@ -11,6 +11,8 @@ import {discoverClientDispatchSurfaces} from './client-dispatch-inventory.mjs';
 import {buildPublicCases} from './public-cases.mjs';
 import {buildServiceCases} from './service-cases.mjs';
 import {buildAccountCases} from './account-cases.mjs';
+import {buildPlannedFeeRemissionCases} from './fee-remission-cases.mjs';
+import {feeRemissionLivePlanManifest,feeRemissionLiveFamilyForCase} from './fee-remission-live-plan.mjs';
 import {fixtureForCase} from './fixtures.mjs';
 import {gradeCase} from './grading.mjs';
 import {assessCoverage} from './coverage.mjs';
@@ -25,10 +27,16 @@ export function options(args){
   const result={mode:'inventory',only:'',domain:'',now:new Date().toISOString(),origin:'https://stu.best',maxCases:Infinity,intervalMs:5500};
   for(let i=0;i<args.length;i++){
     const key=args[i];
-    if(!['--mode','--only','--domain','--now','--origin','--approved-preview-origin','--out','--fixture-module','--max-cases','--browser-acceptance','--interval-ms','--review-report','--guidance-reviews','--reviewer'].includes(key)||!args[i+1]||args[i+1].startsWith('--'))throw new Error('Unknown or incomplete option: '+key);
-    const value=args[++i];result[{'--fixture-module':'fixtureModule','--max-cases':'maxCases','--browser-acceptance':'browserAcceptance','--interval-ms':'intervalMs','--review-report':'reviewReport','--guidance-reviews':'guidanceReviews','--approved-preview-origin':'approvedPreviewOrigin'}[key]||key.slice(2)]=value;
+    if(!['--mode','--case-family','--only','--domain','--now','--origin','--approved-preview-origin','--out','--fixture-module','--max-cases','--browser-acceptance','--interval-ms','--review-report','--guidance-reviews','--reviewer'].includes(key)||!args[i+1]||args[i+1].startsWith('--'))throw new Error('Unknown or incomplete option: '+key);
+    const value=args[++i];result[{'--case-family':'caseFamily','--fixture-module':'fixtureModule','--max-cases':'maxCases','--browser-acceptance':'browserAcceptance','--interval-ms':'intervalMs','--review-report':'reviewReport','--guidance-reviews':'guidanceReviews','--approved-preview-origin':'approvedPreviewOrigin'}[key]||key.slice(2)]=value;
   }
   if(!['inventory','retrieval','draft','live','review'].includes(result.mode))throw new Error('Mode must be inventory, retrieval, draft, live or review.');
+  if(result.caseFamily!==undefined){
+    if(result.caseFamily!=='fee-remission')throw new Error('Unknown case family.');
+    if(!['inventory','live'].includes(result.mode)||result.only||result.domain||result.maxCases!==Infinity)throw new Error('Fee remission runs require the complete isolated family in inventory or live mode; case filters are not permitted.');
+    if(result.mode==='live'&&!result.fixtureModule)throw new Error('Fee remission live runs require an explicit isolated fixture adapter.');
+    if(result.mode==='live'&&(!result.approvedPreviewOrigin||result.origin!==result.approvedPreviewOrigin||!/^https:\/\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?-v1-d286\.vercel\.app$/u.test(result.origin)))throw new Error('Fee remission live runs require an explicitly approved exact project Preview origin.');
+  }
   if(result.mode==='review'){
     if(!result.reviewReport||!result.guidanceReviews||!result.reviewer||!result.out)throw new Error('Review requires the saved report, independent reviews, reviewer identity and a separate output path.');
     if(!/^[A-Za-z0-9][A-Za-z0-9_.:@/-]{0,119}$/.test(result.reviewer))throw new Error('Invalid reviewer identity.');
@@ -76,10 +84,26 @@ export async function sourceIdentity(){
   for(const file of files){digest.update(file+'\0');try{for await(const chunk of createReadStream(resolve(root,file)))digest.update(chunk);}catch(error){if(error.code!=='ENOENT')throw error;digest.update('DELETED');}digest.update('\0');}
   return {sourceRevision,workingTreeHash:digest.digest('hex'),dirty:changes.length>0};
 }
-export async function evaluationSuite(now){
+/** These cases are a scoped acceptance packet, never full-project coverage.
+ * Keep the frozen planned oracles and IDs; only correct anonymous dispatch. */
+export function feeRemissionRunnerCases(){
+  const cases=structuredClone(buildPlannedFeeRemissionCases());
+  for(const row of cases)if(row.plannedFixture.auth==='anonymous')row.fixtureKey='anonymous';
+  return cases;
+}
+export function validateFeeRemissionRunnerCases(cases){
+  const canonical=feeRemissionRunnerCases(),ids=feeRemissionLivePlanManifest.eligibleCaseIds;
+  if(!Array.isArray(cases)||cases.length!==20||ids.length!==20||new Set(ids).size!==20
+    ||!isDeepStrictEqual(cases.map(row=>row?.id),ids)||!isDeepStrictEqual(cases,canonical))
+    throw new Error('Fee remission requires the exact 20 manifest cases and unchanged independent oracles.');
+  return true;
+}
+export async function evaluationSuite(now,{caseFamily}={}){
+  if(caseFamily!==undefined&&caseFamily!=='fee-remission')throw new Error('Unknown case family.');
   const [graphInventory,clientDispatch]=await Promise.all([discoverSurfaces(),discoverClientDispatchSurfaces()]);
   const inventory={...graphInventory,clientDispatch,hash:hash({graph:graphInventory.hash,clientDispatch})};
-  const cases=[...buildServiceCases(),...buildAccountCases({now}),...buildPublicCases(inventory)];
+  const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases():[...buildServiceCases(),...buildAccountCases({now}),...buildPublicCases(inventory)];
+  if(caseFamily==='fee-remission')validateFeeRemissionRunnerCases(cases);
   const ids=new Set();
   for(const item of cases){if(!item.id||ids.has(item.id))throw new Error('Duplicate or missing case ID: '+item.id);ids.add(item.id);}
   return {inventory,cases,suiteHash:hash(cases)};
@@ -196,8 +220,14 @@ export async function readReply(response){
   if(!body)throw new Error('Assistant stream ended without a result.');
   return {body,events};
 }
-export function validateFixtureAdapter(adapter){
+export function validateFixtureAdapter(adapter,{fixtureMode}={}){
   if(!adapter||!['prepare','forCase','cleanup'].every(key=>typeof adapter[key]==='function'))throw new Error('A live fixture adapter must implement prepare, forCase and verified cleanup before any fixture is created.');
+  if(fixtureMode==='fee-remission-only'&&(!Array.isArray(adapter.fixtureModes)||!adapter.fixtureModes.includes(fixtureMode)||typeof adapter.afterCase!=='function'))throw new Error('The isolated fee remission adapter must explicitly support fee-remission-only and implement mandatory afterCase readback.');
+}
+function assertFeeRemissionReadback(envelope){
+  const before=envelope.stateBefore?.ownedRecordsDigest,after=envelope.stateAfterProposal?.ownedRecordsDigest;
+  if(typeof before!=='string'||!(/^[a-f0-9]{64}$/u.test(before))||before!==after||envelope.fixtureReadback?.verified!==true||envelope.fixtureReadback?.independentGolden!==true)
+    throw new Error('Fee remission afterCase did not prove unchanged owned rows against the independent fixture.');
 }
 export async function deploymentIdentity(origin,signal){
   try{
@@ -324,7 +354,7 @@ async function reviewSavedReport(opt,identity){
   if(relative(resolve(root,'artifacts/assistant-evaluation'),out).startsWith('..')||!out.endsWith('.json')||[opt.reviewReport,opt.guidanceReviews].some(path=>resolve(root,path)===out))throw new Error('Review output must be a separate evaluation JSON report.');
   // Never overwrite an existing acceptance artifact, even another review.
   try{await stat(out);throw new Error('Review output already exists.');}catch(error){if(error.code!=='ENOENT')throw error;}
-  const suite=await evaluationSuite(original.evaluationTime);
+  const suite=await evaluationSuite(original.evaluationTime,{caseFamily:original.caseFamily});
   const {report,cases}=applyGuidanceReviews(original,suite,reviewFile,{reviewer:opt.reviewer,sourceRevision:identity.sourceRevision});
   let browserAcceptance;
   if(opt.browserAcceptance){
@@ -334,7 +364,7 @@ async function reviewSavedReport(opt,identity){
   const after=await sourceIdentity();
   report.reviewSourceUnchanged=after.sourceRevision===identity.sourceRevision&&after.workingTreeHash===identity.workingTreeHash&&identity.dirty===false;
   report.sourceUnchanged=original.sourceUnchanged===true&&report.reviewSourceUnchanged;
-  report.assessment=assessRun(report,{cases,inventory:suite.inventory,sourceRevision:identity.sourceRevision,browserAcceptance,requestedSuite:report.selectedCases.length===cases.length?'full':'subset'});
+  report.assessment=assessRun(report,{cases,inventory:suite.inventory,sourceRevision:identity.sourceRevision,browserAcceptance,requestedSuite:report.caseFamily?'subset':report.selectedCases.length===cases.length?'full':'subset'});
   await mkdir(dirname(out),{recursive:true,mode:0o700});
   await writeFile(out,JSON.stringify(report,null,2)+'\n',{flag:'wx',mode:0o600});
   console.log(JSON.stringify({mode:'review',report:relative(root,out),originalReport:opt.reviewReport,...report.assessment.totals,releaseReady:report.assessment.releaseReady}));
@@ -350,7 +380,9 @@ export async function main(args=process.argv.slice(2),dependencies={}){
   const opt=options(args),identity=await identify();
   if(opt.mode==='review'&&Object.keys(dependencies).length)throw new Error('Saved live reports cannot be reviewed with injected dependencies.');
   if(opt.mode==='review')return reviewSavedReport(opt,identity);
-  const suite=await buildSuite(opt.now),runId=randomUUID();
+  const feeOnly=opt.caseFamily==='fee-remission',fixtureMode=feeOnly?'fee-remission-only':undefined;
+  const suite=await buildSuite(opt.now,{caseFamily:opt.caseFamily}),runId=randomUUID();
+  if(feeOnly){validateFeeRemissionRunnerCases(suite.cases);if(suite.suiteHash!==hash(suite.cases))throw new Error('Fee remission suite hash does not match its frozen cases.');}
   let selected=suite.cases.filter(row=>(!opt.only||row.id.startsWith(opt.only))&&(!opt.domain||row.domain===opt.domain)).slice(0,opt.maxCases);
   if(!selected.length)throw new Error('No cases match.');
   const out=resolve(root,opt.out||`artifacts/assistant-evaluation/${opt.mode}-${runId}.json`);
@@ -362,12 +394,12 @@ export async function main(args=process.argv.slice(2),dependencies={}){
     browserAcceptance=JSON.parse(contents);
   }
   const report={version:1,runId,mode:opt.mode,startedAt:new Date().toISOString(),evaluationTime:opt.now,...identity,suiteHash:suite.suiteHash,inventoryHash:suite.inventory.hash,
-    injectedDependencies:Object.keys(dependencies).length>0,
+    injectedDependencies:Object.keys(dependencies).length>0,...(feeOnly?{caseFamily:opt.caseFamily,fixtureMode}:{}),
     pacing:{minimumRequestStartIntervalMs:opt.intervalMs,automaticRequestRetries:0},
     browserEvidence:browserAcceptance?{sha256:hash(browserAcceptance),sourceRevision:browserAcceptance.sourceRevision}:null,
     selectedCases:selected.map(row=>row.id),totalCases:suite.cases.length,inventory:suite.inventory,results:[],cleanup:{required:opt.mode==='live',complete:opt.mode!=='live'}};
   if(opt.mode==='inventory'){
-    report.cases=suite.cases;report.assessment=assessRun({...report,sourceUnchanged:true},{cases:suite.cases,inventory:suite.inventory,sourceRevision:identity.sourceRevision,requestedSuite:'full'});
+    report.cases=suite.cases;report.assessment=assessRun({...report,sourceUnchanged:true},{cases:suite.cases,inventory:suite.inventory,sourceRevision:identity.sourceRevision,requestedSuite:feeOnly?'subset':'full'});
     await persist(out,report);log(JSON.stringify({mode:opt.mode,cases:suite.cases.length,services:suite.inventory.services.length,tools:suite.inventory.tools.length,publicPages:suite.inventory.publicPages.length,report:relative(root,out),releaseReady:false}));return report;
   }
   const controller=new AbortController();const interrupt=()=>controller.abort();process.once('SIGINT',interrupt);process.once('SIGTERM',interrupt);
@@ -388,9 +420,9 @@ export async function main(args=process.argv.slice(2),dependencies={}){
         const modulePath=resolve(root,opt.fixtureModule);
         if(relative(resolve(root,'tests/evaluation'),modulePath).startsWith('..'))throw new Error('Fixture adapters must be repository evaluation modules.');
         adapter=await loadAdapter(modulePath);
-        validateFixtureAdapter(adapter);
-        await adapter.prepare({runId,cases:selected,now:opt.now,origin:opt.origin,signal:controller.signal,
-          approvedPreviewOrigin:opt.approvedPreviewOrigin,expectedReleaseRevision:identity.sourceRevision});
+        validateFixtureAdapter(adapter,{fixtureMode});
+        await adapter.prepare({runId,cases:feeOnly?structuredClone(selected):selected,now:opt.now,origin:opt.origin,signal:controller.signal,
+          approvedPreviewOrigin:opt.approvedPreviewOrigin,expectedReleaseRevision:identity.sourceRevision,...(feeOnly?{fixtureMode,caseFamily:opt.caseFamily}:{})});
         if(report.bindingPending&&typeof adapter.bindCatalogCases==='function'){
           const bound=validateCatalogCaseBinding(selected,await adapter.bindCatalogCases(structuredClone(selected),{signal:controller.signal}));
           selected=bound.cases;const replacements=new Map(selected.map(row=>[row.id,row]));
@@ -405,19 +437,23 @@ export async function main(args=process.argv.slice(2),dependencies={}){
     }
     const modules=opt.mode==='draft'||opt.mode==='retrieval'?await Promise.all([import('../../server/affairsAnswer.js'),import('../../server/answerVerificationAccount.js'),import('../../server/schoolAffairsDirectory.js')]):null;
     for(const testCase of selected){
+      const feeOnly=opt.caseFamily==='fee-remission';
       if(controller.signal.aborted)break;
       const started=Date.now();let envelope,fixtureReady=false,executed=false,phase='setup',pacingWaitMs=0,requestTicket;
       try{
         if(opt.mode==='live'){
           assertCatalogCaseBound(testCase,report);
-          if(testCase.fixtureKey!=='anonymous'){
+          if(feeOnly||testCase.fixtureKey!=='anonymous'){
             // A prior response check cannot authorize the next fixture write:
             // aliases can change between cases even when local source is fixed.
             await deploymentGate.assertCurrent();report.deploymentPin=deploymentGate.status();
           }
-          const context=testCase.fixtureKey==='anonymous'?{}:await adapter.forCase(testCase,{signal:controller.signal});
-          fixtureReady=testCase.fixtureKey!=='anonymous';
-          if(testCase.fixtureKey!=='anonymous'&&typeof context.token!=='string')throw new Error('Private live fixture did not supply its own session.');
+          const fixtureContext={signal:controller.signal,...(feeOnly?{fixtureMode,fixtureFamily:feeRemissionLiveFamilyForCase(testCase)}:{})};
+          const context=!feeOnly&&testCase.fixtureKey==='anonymous'?{}:await adapter.forCase(feeOnly?structuredClone(testCase):testCase,fixtureContext);
+          fixtureReady=feeOnly||testCase.fixtureKey!=='anonymous';
+          if(!context||typeof context!=='object')throw new Error('Live fixture did not supply a valid request context.');
+          if(testCase.fixtureKey!=='anonymous'&&(typeof context.token!=='string'||!context.token.trim()))throw new Error('Private live fixture did not supply its own session.');
+          if(feeOnly&&testCase.fixtureKey==='anonymous'&&context.token!==undefined)throw new Error('Anonymous fee remission must not receive a session token.');
           const endpoint=testCase.endpoint||(testCase.fixtureKey==='anonymous'?'/api/research-assistant':'/api/affairs-assistant');
           if(!['/api/research-assistant','/api/affairs-assistant'].includes(endpoint))throw new Error('Unsupported evaluation endpoint.');
           phase='infrastructure';
@@ -463,7 +499,10 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           }
         }
         if(fixtureReady&&adapter?.afterCase){
-          try{await adapter.afterCase(testCase,envelope,{signal:controller.signal});}
+          try{
+            await adapter.afterCase(feeOnly?structuredClone(testCase):testCase,envelope,{signal:controller.signal,...(feeOnly?{fixtureMode,fixtureFamily:feeRemissionLiveFamilyForCase(testCase)}:{})});
+            if(feeOnly)assertFeeRemissionReadback(envelope);
+          }
           catch(error){envelope.fixtureIntegrityError=error instanceof Error?error.message:'Fixture readback failed';envelope.fixtureIntegrityFailed=true;envelope.failureKind='infrastructure';}
         }
       }
@@ -479,8 +518,10 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       }
       report.results.push({...result,executed,failureKind:envelope.failureKind||(result.passed?null:'behavior'),response:envelope,...(guidanceReviewBinding?{guidanceReviewBinding,independentReview}:{})});
       log(JSON.stringify({case:testCase.id,passed:result.passed,failures:result.failures.map(row=>row.id),ms:envelope.elapsedMs}));
+      const feeSetupFailed=feeOnly&&envelope.failureKind==='setup';
+      if(feeSetupFailed)report.runFailure='Fee remission fixture setup failed; no further cases or fixture transitions were attempted.';
       await persist(out,report);
-      if(envelope.deploymentIntegrityFailed||envelope.fixtureIntegrityFailed)break;
+      if(envelope.deploymentIntegrityFailed||envelope.fixtureIntegrityFailed||feeSetupFailed)break;
     }
   }catch(error){
     report.runFailure=error instanceof Error?error.message:'Evaluation initialization failed';
@@ -496,7 +537,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
     report.finishedAt=new Date().toISOString();
     const finalIdentity=await identify();
     report.sourceUnchanged=finalIdentity.sourceRevision===identity.sourceRevision&&finalIdentity.workingTreeHash===identity.workingTreeHash;
-    report.assessment=assessRun(report,{cases:suite.cases,inventory:suite.inventory,sourceRevision:identity.sourceRevision,browserAcceptance,requestedSuite:selected.length===suite.cases.length?'full':'subset'});
+    report.assessment=assessRun(report,{cases:suite.cases,inventory:suite.inventory,sourceRevision:identity.sourceRevision,browserAcceptance,requestedSuite:feeOnly?'subset':selected.length===suite.cases.length?'full':'subset'});
     await persist(out,report);
   }
   log(JSON.stringify({report:relative(root,out),...report.assessment.totals,releaseReady:report.assessment.releaseReady,cleanup:report.cleanup.complete}));

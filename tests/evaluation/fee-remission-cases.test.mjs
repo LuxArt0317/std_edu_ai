@@ -8,6 +8,8 @@ import {buildAccountCases} from './account-cases.mjs';
 import {buildServiceCases,serviceCapabilities,serviceNoteFixture} from './service-cases.mjs';
 import {fixtureForCase} from './fixtures.mjs';
 import {feeRemissionLivePlanManifest} from './fee-remission-live-plan.mjs';
+import {nativePageLookupContext} from '../../server/accountSupplementalLookup.js';
+import {selectFeeRemissionEvidence} from '../../server/feeRemissionEvidenceIntent.js';
 
 const bank=buildFeeRemissionCases(),find=id=>{const row=bank.find(item=>item.id==='account:fee-remission-'+id);assert.ok(row,id);return row;};
 const account={url:'https://xiftudmvxphxcjtmfmib.supabase.co',key:'SYNTHETIC',token:'SYNTHETIC',user:{id:m.owners.A}};
@@ -58,6 +60,28 @@ function envelope(row){
 }
 function reject(id,change,pattern){const row=find(id),value=envelope(row);change(value);const result=gradeFeeRemissionCase(row,value);
   assert.equal(result.passed,false,id);assert.ok(result.failures.some(item=>pattern.test(item.id)),JSON.stringify(result.failures));}
+
+test('exact-period absence can acknowledge other saved terms without denying the entire history',()=>{
+  const row=find('exact-period-absent'),reply=envelope(row);
+  reply.body.answer='Matching remission records: 0. No matching saved remission records were returned for the exact selected period. Other saved periods remain separate. Saved local stu.best history. [Open records]('+m.route+')';
+  assert.equal(gradeFeeRemissionCase(row,reply).passed,true);
+  reply.body.answer=reply.body.answer.replace('No matching saved remission records were returned for the exact selected period.','The selected period exists.');
+  assert.ok(gradeFeeRemissionCase(row,reply).failures.some(item=>item.id==='answer.limitation'));
+});
+
+test('native routing keeps fee field and period continuations scoped across the whole live packet',()=>{
+  for(const {question,route,id} of buildPlannedFeeRemissionCases()){
+    const context=nativePageLookupContext(question,route);
+    const mixed=id.endsWith('-mixed-tuition')||id.endsWith('-mixed-reversed');
+    assert.deepEqual(context.tools,['feeRemission'],id);
+    assert.equal(context.readerOnly,!mixed,id);
+    assert.equal(context.feeAndBalance,mixed,id);
+    assert.equal(selectFeeRemissionEvidence(question,route).operation,id.endsWith('-write-boundary'),id);
+  }
+  assert.equal(nativePageLookupContext('Show my fee remission amount and my grades for academic year 115 semester 1.',m.route).otherQuestion,'my grades for academic year 115 semester 1');
+  assert.equal(nativePageLookupContext('Show my fee remission and contact the registrar.',m.route).readerOnly,false);
+  assert.equal(nativePageLookupContext('Show my fee remission and submit it to the university.',m.route).readerOnly,true);
+});
 
 test('packet is complete, independent, immutable and explicitly not mounted/live accepted',()=>{
   assert.equal(bank.length,27);assert.equal(new Set(bank.map(row=>row.id)).size,27);
