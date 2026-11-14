@@ -1,5 +1,7 @@
 # Changelog
 ## Unreleased
+- Add summer selection eligibility, dated fee notices, administrator decisions and a filtered summer history link. [#98]
+
 - Add facilities repair area selection, a searchable equipment catalog, confirmed reports, private history, administrator review and assistant status. [#98]
 
 - Add venue schedule search, persisted room availability, private local requests and administrator review. [#98]

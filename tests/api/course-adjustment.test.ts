@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {adjustmentQuestion,adjustmentTerm,parseAdjustmentRow,validAdjustmentPayload} from '../../server/courseAdjustmentContract.js';
+import {adjustmentQuestion,adjustmentTerm,parseAdjustmentRow,summerSelectionQuestion,validAdjustmentPayload,validAdjustmentSelector} from '../../server/courseAdjustmentContract.js';
 
 const user='cddf188a-1f12-47a0-994f-3f4c210f7fb4';
 const payload={user_id:user,phase:'add_drop',academic_year:115,semester:1,decision:'unverified',request_id:user,expected_version:0};
@@ -26,4 +26,19 @@ test('manager mutation and receipt bind phase, student, term and version',()=>{
   assert.throws(()=>parseAdjustmentRow(row,'foreign','add_drop',115,1));
   assert.throws(()=>parseAdjustmentRow(row,user,'late_add',115,1));
   assert.throws(()=>parseAdjustmentRow(row,user,'add_drop',115,2));
+});
+
+test('summer checks retain the academic year, reject ambiguous dates and leave course history alone',()=>{
+  assert.deepEqual(summerSelectionQuestion('Am I eligible for summer courses in 114?'),{view:'mine',year:114,ambiguousYear:false});
+  assert.deepEqual(summerSelectionQuestion('114 學年度暑期選課收費？'),{view:'notice',year:114,ambiguousYear:false});
+  assert.deepEqual(summerSelectionQuestion('Where is summer course selection?'),{view:'navigation'});
+  assert.equal(summerSelectionQuestion('What are my summer course grades?'),null);
+  assert.equal(summerSelectionQuestion('Write code for summer course enrollment'),null);
+  assert.deepEqual(summerSelectionQuestion('How much are summer course fees in 2026?'),{view:'notice',year:undefined,ambiguousYear:true});
+  assert.deepEqual(adjustmentTerm(new Date('2026-07-31T15:59:00Z'),'summer'),{academicYear:114,semester:3});
+  assert.ok(validAdjustmentSelector('summer',115,3));
+  assert.equal(validAdjustmentSelector('summer',115,2),false);
+  assert.equal(validAdjustmentSelector('late_add',115,3),false);
+  assert.equal(validAdjustmentPayload({...payload,decision:'missing_college'}),false);
+  assert.ok(validAdjustmentPayload({...payload,phase:'summer',semester:3,decision:'missing_college'}));
 });

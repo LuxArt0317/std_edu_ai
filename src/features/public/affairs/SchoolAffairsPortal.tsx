@@ -17,6 +17,7 @@ import { CourseWithdrawalWorkspace } from "./CourseWithdrawalWorkspace";
 import { CreditTransferWorkspace } from "./CreditTransferWorkspace";
 import { creditTransferPath } from "../../../../server/creditTransferContract.js";
 import { withdrawalPath } from "../../../../server/courseWithdrawalContract.js";
+import {SummerSelectionWorkspace} from "./SummerSelectionWorkspace";
 import { adjustmentPaths } from "../../../../server/courseAdjustmentContract.js";
 import { firstSelectionFeesPath, firstSelectionPath } from "./firstSelection.js";
 import { courseSubstitutionPath } from "./courseSubstitution.js";
@@ -515,6 +516,10 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
     return <CreditTransferWorkspace key={user.id+normalizedPath} userId={user.id} history={normalizedPath.endsWith("/history")} />;
   }
   if (normalizedPath === withdrawalPath) return <CourseWithdrawalWorkspace key={user.id} userId={user.id} />;
+  if (normalizedPath === adjustmentPaths.summer || normalizedPath === adjustmentPaths.summer + "/notice") {
+    return <SummerSelectionWorkspace key={user.id + normalizedPath + search} userId={user.id}
+      notice={normalizedPath.endsWith("/notice")} search={search} />;
+  }
   if (normalizedPath === adjustmentPaths.add_drop ||
     [adjustmentPaths.late_add, ...["entry","notice","fees"].map(view=>adjustmentPaths.late_add+"/"+view)].includes(normalizedPath)) {
     return <CourseAdjustmentWorkspace key={user.id+normalizedPath} userId={user.id} path={normalizedPath} />;
@@ -634,7 +639,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
     return <TuitionDocumentsWorkspace key={pathname} userId={user.id} view={tuitionView} onLogout={()=>navigate("/school-affairs/signed-out")}/>;
   }
   if (servicePage && ["11-1", "11-2"].includes(route[1])) {
-    return <CourseSelection key={pathname} snapshot={account ?? null} busy={accountLoading} error={accountError} onReload={refreshAccount} onLogout={()=>navigate("/school-affairs/signed-out")} view={route[1] === "11-1" ? "history" : "timetable"}/>;
+    return <CourseSelection key={pathname+search} snapshot={account ?? null} busy={accountLoading} error={accountError} onReload={refreshAccount} onLogout={()=>navigate("/school-affairs/signed-out")} view={route[1] === "11-1" ? "history" : "timetable"}/>;
   }
   if (servicePage && route[1] === "11-3") {
     return <CreditLoadHistory key={pathname} userId={user.id} />;

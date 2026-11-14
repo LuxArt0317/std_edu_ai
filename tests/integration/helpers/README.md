@@ -7,3 +7,5 @@
 The credit-load7-1 inventory entry tracks the observed instructions/closed-period view only; the open application and staff review remain unobserved.
 
 The School Affairs route inventory treats facilities repair as a partial source match with a dedicated workflow suite.
+
+The navigation inventory classifies summer selection as a partial workflow and provides an account-bound eligibility fixture.

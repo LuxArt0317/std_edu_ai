@@ -100,3 +100,5 @@ Fee-remission verification includes `fee-remission-ui.mjs` for navigation and re
 `service-leadership-ui.mjs` follows the four local leadership destinations from the compiled index, verifies source geometry and responsive containment, and checks private note and subject routes plus guest sign-in.
 
 The facility repair suites check database authorization, actual-JWT HTTP and the rendered student and administrator flow. See [facility repair QA](../../docs/qa/FACILITY_REPAIR.md).
+
+The summer selection browser and course adjustment database/HTTP summer modes check the new phase and exact-year isolation.

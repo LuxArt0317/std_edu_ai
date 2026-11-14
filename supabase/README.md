@@ -13,3 +13,5 @@ Private Moodle submissions and certificate assessments use migrations150000/1600
 Draft `20261113230000_dtm_dashboard_layout.sql` adds owner-only layout preferences for the three observed DTM dashboard blocks and private durable command receipts/audit. It grants no direct client writes or administrator cross-account reads, performs no profile/identity initialization, and makes reset a versioned write. Its offline helper/handler checks do not establish SQL, concurrency or deployed persistence acceptance; application requires the separate migration plan and authorized preflight.
 
 Migration 20261114180000_facility_repairs.sql adds private repair reports and versioned events with caller-scoped reads, idempotent submissions and administrator transitions. Migration `20261114190000_facility_repair_catalog.sql` adds the observed area and item catalogs and structured submission fields.
+
+Migration 20261114200000 adds summer eligibility to the audited course adjustment workflow and stores dated public summer notices.

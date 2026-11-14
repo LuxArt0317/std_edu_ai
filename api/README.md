@@ -72,3 +72,5 @@ Moodle resource reads use strict `dtm-course-resource` scope with one course and
 `GET /api/affairs-data?scope=course-adjustment&phase=add_drop` reads the caller's current-term decision. Use phase `late_add` for late add or `answer=en|zh` for its deterministic assistant reply. The separate `course-adjustment-admin` scope requires a student ID and term. `POST /api/affairs-manage` accepts `set_course_adjustment_eligibility` with versioned and replay-safe fields. `GET /api/affairs-data?scope=late-add-notice` reads public notice content.
 
 The facility-repairs read scope supports the signed-in area and equipment catalogs, private lists, details and assistant statuses. The action and management endpoints handle confirmed reports, cancellation and review.
+
+The course-adjustment scope accepts summer decisions with an optional academic year. The public summer-selection-notice scope requires one academic year.

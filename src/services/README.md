@@ -54,3 +54,5 @@ Browser clients call the public, School Affairs and protected Nexus endpoints. `
 `programRegistration.ts` binds registration requests to the initiating School Affairs session. `interdisciplinaryPrograms.ts` provides the public catalog reader used by the registration and directory pages.
 
 The facility repair client verifies the active School Affairs session around private reads and writes, and validates the mutation receipt before navigating.
+
+The course adjustment client reads caller-owned summer decisions. Summer notice reads use a separate public scope.

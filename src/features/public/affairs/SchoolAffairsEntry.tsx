@@ -1,3 +1,4 @@
+import {adjustmentPaths} from '../../../../server/courseAdjustmentContract.js';
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -91,7 +92,7 @@ export default function SchoolAffairsEntry() {
   if (user) return <SchoolAffairsPortal key={user.id} user={user} />;
   if (pathname !== '/school-affairs/login') {
     const ordinaryTarget = safeSchoolReturnPath(pathname + hash);
-    const target = [permanentCoursesPath,venuePaths.schedule].includes(pathname)
+    const target = [permanentCoursesPath,venuePaths.schedule,adjustmentPaths.summer,adjustmentPaths.summer+'/notice','/school-affairs/services/11-1'].includes(pathname.replace(/\/$/,''))
       ? safeSchoolReturnPath(pathname + search + hash,ordinaryTarget) : ordinaryTarget;
     return <Navigate to={target==='/school-affairs'?'/school-affairs/login':'/school-affairs/login?next='+encodeURIComponent(target)} replace />;
   }

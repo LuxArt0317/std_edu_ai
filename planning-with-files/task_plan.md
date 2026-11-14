@@ -1,5 +1,15 @@
 # Task Plan
 
+## Summer course selection [Issue #98]
+
+- [x] Observe the signed-in identity-check screen and verify the dated notice.
+- [x] Add account-scoped summer decisions and the public notice with exact-year lookup.
+- [x] Connect the source-shaped page, administration, history link and campus assistant.
+- [x] Apply the summer migration after rollback verification.
+- [ ] Verify the pinned release with browser, authenticated HTTP and guest assistant checks.
+- [ ] Compare the eligible university registration, availability and payment workflow.
+
+
 ## Facilities repair [Issue #98]
 
 - [x] Confirm the reporting and status fields from the public noticeboard and check the protected source gate.

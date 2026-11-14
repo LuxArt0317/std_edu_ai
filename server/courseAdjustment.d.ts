@@ -4,3 +4,5 @@ type Account = Awaited<ReturnType<typeof verifyAffairsToken>> & { requestDeadlin
 export function serveAdjustmentNotice(request:{method?:string;query?:Record<string,unknown>},response:{setHeader(name:string,value:string):void;status(code:number):{json(value:unknown):void}}):Promise<void>;
 export function readAdjustmentScope(account:Account,query:Record<string,unknown>):Promise<unknown>;
 export function changeAdjustment(account:Account,payload:unknown):Promise<AdjustmentRow>;
+
+export const serveSummerNotice: typeof serveAdjustmentNotice;

@@ -1,5 +1,5 @@
 import {useId,useState,type FormEvent} from 'react';
-import {Link} from 'react-router';
+import {Link,useSearchParams} from 'react-router';
 import {ChevronDown} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuTrigger} from '@/components/ui/dropdown-menu';
@@ -21,14 +21,20 @@ const draftFrom=(filter:CourseSelectionFilter):DraftFilter=>({academicYear:Strin
 
 export function CourseSelection({snapshot,busy,error,onReload,onLogout,view}:Props) {
   const records=snapshot?.courseSelection?.records??[],userId=snapshot?.profile.userId??'';
+  const [params]=useSearchParams();
+  const summerYear=params.getAll('summerYear');
+  const exactSummerYear=summerYear.length===1&&/^[1-9][0-9]{2}$/.test(summerYear[0])?Number(summerYear[0]):null;
+  const initialFilter=():CourseSelectionFilter=>exactSummerYear===null?defaultCourseSelectionFilter(records,userId):
+    {academicYear:exactSummerYear,semester:3,selectionPhase:'summer1'};
+  const years=[...new Set([...courseSelectionYears(records,userId),...(exactSummerYear===null?[]:[exactSummerYear])])].sort((a,b)=>a-b);
   const [filterOwner,setFilterOwner]=useState(userId);
-  const [applied,setApplied]=useState(()=>defaultCourseSelectionFilter(records,userId));
+  const [applied,setApplied]=useState(initialFilter);
   const [draft,setDraft]=useState(()=>draftFrom(applied));
   const [expanded,setExpanded]=useState(false);
   const criteriaId=useId();
   // Initialize once when the account arrives, and never carry a previous account's filter forward.
   if(filterOwner!==userId){
-    const next=defaultCourseSelectionFilter(records,userId);
+    const next=initialFilter();
     setFilterOwner(userId);setApplied(next);setDraft(draftFrom(next));setExpanded(false);
   }
   const title=view==='history'?'選課記錄查詢':'我的課表';
@@ -40,7 +46,7 @@ export function CourseSelection({snapshot,busy,error,onReload,onLogout,view}:Pro
     const semester=semesterOptions.find(option=>String(option.value)===draft.semester);
     const phase=selectionPhaseOptions.find(option=>option.value===draft.selectionPhase);
     const academicYear=Number(draft.academicYear);
-    if(!semester||!phase||!courseSelectionYears(records,userId).includes(academicYear))return;
+    if(!semester||!phase||!years.includes(academicYear))return;
     setApplied({academicYear,semester:semester.value,selectionPhase:phase.value});setExpanded(false);
   };
   return <div className="course-selection" lang="zh-Hant">
@@ -61,7 +67,7 @@ export function CourseSelection({snapshot,busy,error,onReload,onLogout,view}:Pro
         {expanded&&<section id={criteriaId} className="course-selection-criteria" aria-label="查詢條件輸入">
           <form onSubmit={query}>
             <div className="course-selection-term-fields">
-              <label>學年:<select aria-label="學年" required value={draft.academicYear} disabled={!snapshot||busy} onChange={event=>setDraft({...draft,academicYear:event.target.value})}><option value="">請選擇學年</option>{courseSelectionYears(records,userId).map(year=><option key={year} value={year}>{year}</option>)}</select></label>
+              <label>學年:<select aria-label="學年" required value={draft.academicYear} disabled={!snapshot||busy} onChange={event=>setDraft({...draft,academicYear:event.target.value})}><option value="">請選擇學年</option>{years.map(year=><option key={year} value={year}>{year}</option>)}</select></label>
               <label>學期:<select aria-label="學期" required value={draft.semester} disabled={!snapshot||busy} onChange={event=>setDraft({...draft,semester:event.target.value})}><option value="">請選擇學期</option>{semesterOptions.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
             </div>
             <label className="course-selection-phase-field">選課階段:<select aria-label="選課階段" required value={draft.selectionPhase} disabled={!snapshot||busy} onChange={event=>setDraft({...draft,selectionPhase:event.target.value})}><option value="">請選擇階段</option>{selectionPhaseOptions.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label>

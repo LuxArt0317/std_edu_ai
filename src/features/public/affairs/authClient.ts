@@ -20,6 +20,7 @@ export function safeSchoolReturnPath(value:string|null,fallback='/school-affairs
     if ([...query.keys()].length===1 && course && /^[A-Z]{2}[UGJ]\d{5}$/.test(course))
       return permanentCoursesPath+'?course='+course;
   }
+  if (value && /^\/school-affairs\/services\/(?:6-5(?:\/notice)?\?year|11-1\?summerYear)=[1-9][0-9]{2}$/.test(value)) return value;
   if (!value || value.length>240 || !/^\/(?:school-affairs|dtm)(?:\/[a-z0-9_-]+)*(?:#[a-z0-9_-]+)?$/i.test(value)) return fallback;
   if (/\/(?:login|auth|signed-out)(?:\/|#|$)/i.test(value)) return fallback;
   return value;

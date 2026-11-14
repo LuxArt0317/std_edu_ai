@@ -9,8 +9,8 @@ import {teachingFeedbackPaths,teachingFeedbackQuestion} from './teachingFeedback
 import {earlyGraduationPath,earlyGraduationQuestion} from './earlyGraduationContract.js';
 import { answerCourseSubstitution } from './courseSubstitution.js';
 import { answerFirstSelectionNotice } from './firstSelectionNotice.js';
-import { adjustmentAnswer,loadAdjustmentNotice } from './courseAdjustment.js';
-import { adjustmentPaths,adjustmentQuestion } from './courseAdjustmentContract.js';
+import { adjustmentAnswer,loadAdjustmentNotice,loadSummerNotice,summerNoticeAnswer } from './courseAdjustment.js';
+import { adjustmentPaths,adjustmentQuestion,adjustmentTerm,summerSelectionQuestion } from './courseAdjustmentContract.js';
 import { withdrawalPath,withdrawalQuestion } from './courseWithdrawalContract.js';
 import { creditTransferPath,creditTransferQuestion } from './creditTransferContract.js';
 import { firstSelectionQuestion } from '../src/features/public/affairs/firstSelection.js';
@@ -320,6 +320,34 @@ export function createResearchAssistantHandler(dependencies = {}) {
             stream.send(200,{status:'handoff',answer:zh?`[登入校務資訊系統](${next})查詢站內棄選期間與個人紀錄。`:
                 `[Sign in to School Affairs](${next}) to see the stu.best withdrawal window and your saved courses.`,
                 citations:[],suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
+            return;
+        }
+        const summer = !input.images.length && !kind.irrelevant && summerSelectionQuestion(input.question);
+        if(summer){
+            const zh=/[\u3400-\u9fff]/u.test(input.question);
+            const path=adjustmentPaths.summer;
+            const basic={citations:[],suggestedQuestions:[],grounding:{source:'directory',webSearched:false}};
+            if(summer.view==='navigation'){
+                stream.send(200,{...basic,status:'answered',answer:zh?`[開啟暑期選課](${path})。`:`[Open summer course selection](${path}).`});
+            }else if(summer.ambiguousYear){
+                stream.send(200,{...basic,status:'handoff',answer:zh?'請指定一個民國學年度，例如 114。':'Which ROC academic year should I check? For example, academic year 114.'});
+            }else if(summer.view==='mine'){
+                const next='/school-affairs/login?next='+encodeURIComponent(path+(summer.year?'?year='+summer.year:''));
+                stream.send(200,{...basic,status:'handoff',answer:zh?`[登入校務資訊系統](${next})查詢暑期選課資格。`:
+                    `[Sign in to School Affairs](${next}) to check your saved summer selection eligibility.`});
+            }else{
+                const year=summer.year??adjustmentTerm(new Date(),'summer').academicYear;
+                stream.progress('summer-selection','Reading the summer notice','Checking the notice for the requested academic year.');
+                try{
+                    const answer=summerNoticeAnswer(year,zh?'zh':'en',await loadSummerNotice(year));
+                    const step=answer.activity[0];
+                    stream.progress(step.kind,step.label,step.detail,step.status);
+                    stream.send(200,answer);
+                }catch{
+                    stream.progress('summer-selection','Summer notice unavailable','The saved notice could not be loaded.','unavailable');
+                    stream.send(200,{...basic,status:'handoff',answer:zh?'暑期選課公告暫時無法載入。':'The summer selection notice is temporarily unavailable.'});
+                }
+            }
             return;
         }
         const adjustment = !input.images.length && !kind.irrelevant && adjustmentQuestion(input.question);

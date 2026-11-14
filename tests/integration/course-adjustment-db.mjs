@@ -7,11 +7,12 @@ import {dormitoryConductClientTarget,reserveDormitoryConductLease} from './dormi
 
 const mode=process.argv[2];
 assert.deepEqual(process.argv.slice(2),[mode]);
-assert.ok(['--rollback-preflight','--deployed'].includes(mode));
+assert.ok(['--rollback-preflight','--deployed','--summer-preflight','--summer-deployed'].includes(mode));
 const env=deploymentEnvironment(),connection=env.POSTGRES_URL_NON_POOLING||env.POSTGRES_URL;
 dormitoryConductClientTarget(connection);
 const config=JSON.parse(await readFile('deployment.json','utf8'));
 const ddl=await readFile('supabase/migrations/20261114100000_course_adjustment.sql','utf8');
+const summerMode=mode.startsWith('--summer-');
 const students=Array.from({length:3},()=>randomUUID());
 const [own,other,nonGoogle]=students;
 const action={user_id:own,phase:'add_drop',academic_year:115,semester:1,decision:'eligible',expected_version:0,request_id:randomUUID()};
@@ -23,7 +24,8 @@ const fingerprint=async q=>(await q`select
   (select count(*)::int from supabase_migrations.schema_migrations) as migrations,
   (select md5(to_jsonb(u)::text) from auth.users u where lower(u.email)=lower(${config.supabase.ownerEmail})) as owner,
   (select count(*)::int from auth.users where id=any(${students}::uuid[])) as fixtures,
-  to_regclass('public.affairs_course_adjustment_eligibility') is null as absent`)[0];
+  to_regclass('public.affairs_course_adjustment_eligibility') is null as absent,
+  to_regclass('public.affairs_summer_selection_notices') is null as summer_absent`)[0];
 const read=q=>q`select user_id,decision,version from public.affairs_course_adjustment_eligibility where user_id=any(${students}::uuid[])`;
 const save=async (q,payload)=>(await q`select public.affairs_set_course_adjustment_eligibility(${q.json(payload)}) as result`)[0].result;
 const deny=(q,fn,code)=>assert.rejects(q.savepoint(fn),error=>error.code===code);
@@ -38,6 +40,10 @@ try{
   assert.equal(before.absent,mode==='--rollback-preflight');
   await lease.rollbackOnly(async q=>{
     if(before.absent)await q.unsafe(ddl);
+    if(mode==='--summer-preflight'){
+      assert.equal(before.summer_absent,true);
+      await q.unsafe(await readFile('supabase/migrations/20261114200000_summer_selection.sql','utf8'));
+    }else if(summerMode)assert.equal(before.summer_absent,false);
     const [owner]=await q`select id from auth.users where lower(email)=lower(${config.supabase.ownerEmail})`;
     assert.ok(owner?.id);
     // Simulate the owner profile and linked identity only inside this rollback transaction.
@@ -60,6 +66,10 @@ try{
     assert.equal(notice.rules_en.length,2);
     assert.equal(notice.selection_notes.length,4);
     assert.equal(notice.fee_notes.length,3);
+    if(summerMode){
+      const [summer]=await q`select academic_year,fee_per_unit,minimum_paid_students from public.affairs_summer_selection_notices`;
+      assert.deepEqual(summer,{academic_year:114,fee_per_unit:1522,minimum_paid_students:12});
+    }
     await deny(q,s=>read(s),'42501');
     await deny(q,s=>save(s,action),'42501');
     await as(q,own);
@@ -75,8 +85,17 @@ try{
     const next={...action,decision:'ineligible',expected_version:1,request_id:randomUUID()};
     assert.equal((await save(q,next)).version,2);
     assert.equal((await save(q,{...action,phase:'late_add',request_id:randomUUID()})).version,1);
+    if(summerMode){
+      const summer={...action,phase:'summer',semester:3,decision:'missing_college',request_id:randomUUID()};
+      await deny(q,s=>save(s,{...summer,semester:2}),'22023');
+      await deny(q,s=>save(s,{...summer,phase:'late_add',semester:1}),'22023');
+      const result=await save(q,summer);
+      assert.equal(result.decision,'missing_college');
+      assert.deepEqual(await save(q,summer),result);
+      await deny(q,s=>save(s,{...summer,request_id:randomUUID(),decision:'eligible'}),'PT409');
+    }
     await as(q,own);
-    assert.deepEqual((await read(q)).map(row=>row.decision).sort(),['eligible','ineligible']);
+    assert.deepEqual((await read(q)).map(row=>row.decision).sort(),summerMode?['eligible','ineligible','missing_college']:['eligible','ineligible']);
     await deny(q,s=>s`update public.affairs_course_adjustment_eligibility set decision='eligible'`,'42501');
     await as(q,other);
     assert.equal((await read(q)).length,0);

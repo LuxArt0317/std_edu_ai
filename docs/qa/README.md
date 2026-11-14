@@ -1,5 +1,7 @@
 # Quality evidence
 
+[Summer selection](SUMMER_SELECTION.md) covers the source-shaped eligibility screen, public notice, private decisions and exact-year assistant checks.
+
 [Facilities repair](FACILITY_REPAIR.md) covers account-owned reports, administrator status updates and assistant checks.
 
 [Graduation clearance](GRADUATION_CLEARANCE.md) covers the application and status workflows, administrator review, and verification.

@@ -8,7 +8,8 @@ import {dormitoryConductClientTarget,reserveDormitoryConductLease} from './dormi
 import {adjustmentTerm} from '../../server/courseAdjustmentContract.js';
 import handler from '../../api/affairs-data.ts';
 
-assert.deepEqual(process.argv.slice(2),['--verify-client']);
+const summer=process.argv[3]==='--summer';
+assert.deepEqual(process.argv.slice(2),summer?['--verify-client','--summer']:['--verify-client']);
 const env=deploymentEnvironment(),connection=env.POSTGRES_URL_NON_POOLING||env.POSTGRES_URL;
 dormitoryConductClientTarget(connection);
 const url=env.VITE_SUPABASE_URL||env.NEXT_PUBLIC_SUPABASE_URL||env.SUPABASE_URL;
@@ -28,6 +29,7 @@ const rows=Array.from({length:2},()=>({
   id:randomUUID(),email:'course-adjustment-qa-'+randomUUID()+'@example.invalid',password:randomBytes(24).toString('base64url')+'Aa1!',
 }));
 const [student]=rows,ids=rows.map(row=>row.id),term=adjustmentTerm(),sessions=[];
+const phase=summer?'summer':'add_drop',year=summer?114:term.academicYear,semester=summer?3:term.semester;
 let lease,committed=false;
 const pool=postgres(connection,{max:1,connect_timeout:12,max_lifetime:0,idle_timeout:0,
   ssl:{rejectUnauthorized:true,ca:await readFile('supabase/certs/prod-ca-2021.crt','utf8')},
@@ -64,7 +66,7 @@ try{
       await sql`insert into public.affairs_profiles(user_id,email,display_name) values(${row.id},${row.email},'Course Adjustment QA')`;
     }
     await sql`insert into public.affairs_course_adjustment_eligibility(user_id,phase,academic_year,semester,decision)
-      values(${student.id},'add_drop',${term.academicYear},${term.semester},'eligible')`;
+      values(${student.id},${phase},${year},${semester},${summer?'missing_college':'eligible'})`;
     await sql.unsafe('commit');
     committed=true;
   }catch(error){await sql.unsafe('rollback');throw error;}
@@ -76,19 +78,26 @@ try{
     assert.ok(!error && data.user?.id===row.id,'Disposable sign-in failed.');
     sessions.push({client,token:data.session.access_token});
   }
-  const [a,b]=sessions.map(session=>session.token),scope={scope:'course-adjustment',phase:'add_drop'};
+  const [a,b]=sessions.map(session=>session.token),scope={scope:'course-adjustment',phase,...(summer?{year:String(year)}:{})};
   await get(scope,undefined,401);
-  assert.equal((await get(scope,a)).record.decision,'eligible');
+  assert.equal((await get(scope,a)).record.decision,summer?'missing_college':'eligible');
   assert.equal((await get(scope,b)).record,null);
-  assert.equal((await get({...scope,phase:'late_add'},a)).record,null);
+  assert.equal((await get({scope:'course-adjustment',phase:'late_add'},a)).record,null);
   await get({...scope,user_id:student.id},b,400);
-  await get({...scope,scope:'course-adjustment-admin',user_id:student.id,year:term.academicYear.toString(),semester:term.semester.toString()},b,403);
+  await get({...scope,scope:'course-adjustment-admin',user_id:student.id,year:String(year),semester:String(semester)},b,403);
   const answer=await get({...scope,answer:'en'},a);
-  assert.match(answer.answer,/saved local decision is eligible/u);
-  assert.equal(answer.citations[0].url,'/school-affairs/services/6-2');
+  assert.match(answer.answer,summer?/missing college code/u:/saved local decision is eligible/u);
+  assert.equal(answer.citations[0].url,summer?'/school-affairs/services/6-5?year=114':'/school-affairs/services/6-2');
   const missing=await get({...scope,answer:'en'},b);
   assert.match(missing.answer,/no saved eligibility decision/u);
   assert.doesNotMatch(missing.answer,/decision is eligible/u);
+  if(summer){
+    assert.equal((await get({scope:'summer-selection-notice',year:'114'})).notice.fee_per_unit,1522);
+    assert.equal((await get({scope:'summer-selection-notice',year:'115'})).notice,null);
+    assert.equal((await get({...scope,year:'115'},a)).record,null);
+    await get({scope:'summer-selection-notice',year:'114',user_id:student.id},undefined,400);
+    await get({...scope,semester:'1'},a,400);
+  }
   await checkRevision();
 }finally{
   try{
@@ -111,4 +120,4 @@ try{
     try{await lease?.release();}finally{await pool.end({timeout:5});}
   }
 }
-console.log('Eight real-account API checks passed. Disposable identities, sessions, profiles and eligibility records were removed.');
+console.log((summer?'Summer selection':'Course adjustment')+' actual-JWT checks passed. Disposable identities, sessions, profiles and eligibility records were removed.');

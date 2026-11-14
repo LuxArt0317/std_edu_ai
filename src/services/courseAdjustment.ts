@@ -1,7 +1,7 @@
 import {affairsClient} from '../features/public/affairs/authClient';
 import {
   adjustmentAction,adjustmentNoticeScope,adjustmentScope,parseAdjustmentRow,validAdjustmentSelector,
-  type AdjustmentNotice,type AdjustmentPayload,type AdjustmentPhase,type AdjustmentRow,
+  summerNoticeScope,type SummerNotice,type AdjustmentNotice,type AdjustmentPayload,type AdjustmentPhase,type AdjustmentRow,
 } from '../../server/courseAdjustmentContract.js';
 
 type Term = {academicYear:number;semester:number};
@@ -37,12 +37,14 @@ async function accountRequest(userId:string,signal:AbortSignal|undefined,query:U
   return result;
 }
 
-export async function readCourseAdjustment(userId:string,phase:AdjustmentPhase,signal:AbortSignal,selection?:Selection):Promise<{term:Term;record:AdjustmentRow|null}> {
+export async function readCourseAdjustment(userId:string,phase:AdjustmentPhase,signal:AbortSignal,selection?:Selection,summerYear?:number):Promise<{term:Term;record:AdjustmentRow|null}> {
   const query=new URLSearchParams({scope:adjustmentScope+(selection?'-admin':''),phase});
+  if(summerYear!==undefined)query.set('year',String(summerYear));
   if(selection){query.set('user_id',selection.userId);query.set('year',String(selection.academicYear));query.set('semester',String(selection.semester));}
   const data=await accountRequest(userId,signal,query);
   const target=selection?.userId??userId;
   if(data?.userId!==target||!validAdjustmentSelector(phase,data.term?.academicYear,data.term?.semester)||
+     (summerYear!==undefined&&data.term.academicYear!==summerYear)||
      (selection&&(data.term.academicYear!==selection.academicYear||data.term.semester!==selection.semester)))throw new CourseAdjustmentError(503);
   const record=data.record===null?null:parseAdjustmentRow(data.record,target,phase,data.term.academicYear,data.term.semester);
   return {term:data.term,record};
@@ -55,12 +57,25 @@ export async function saveCourseAdjustment(userId:string,signal:AbortSignal,payl
   return row;
 }
 
-export function readCourseAdjustmentAnswer(userId:string,phase:AdjustmentPhase,question:string,signal?:AbortSignal) {
-  return accountRequest(userId,signal,new URLSearchParams({scope:adjustmentScope,phase,answer:/[\u3400-\u9fff]/u.test(question)?'zh':'en'}));
+export function readCourseAdjustmentAnswer(userId:string,phase:AdjustmentPhase,question:string,signal?:AbortSignal,summerYear?:number) {
+  const query=new URLSearchParams({scope:adjustmentScope,phase,answer:/[\u3400-\u9fff]/u.test(question)?'zh':'en'});
+  if(summerYear!==undefined)query.set('year',String(summerYear));
+  return accountRequest(userId,signal,query);
 }
 
 export async function readLateAddNotice(signal:AbortSignal):Promise<AdjustmentNotice> {
   const response=await fetch('/api/affairs-data?scope='+adjustmentNoticeScope,{signal,redirect:'error',credentials:'omit',cache:'no-store'});
   if(!response.ok)throw new CourseAdjustmentError(response.status);
   return response.json();
+}
+
+export async function readSummerNotice(year:number,signal:AbortSignal):Promise<SummerNotice|null> {
+  const query=new URLSearchParams({scope:summerNoticeScope,year:String(year)});
+  const response=await fetch('/api/affairs-data?'+query,{
+    signal:AbortSignal.any([signal,AbortSignal.timeout(12000)]),redirect:'error',credentials:'omit',cache:'no-store',
+  });
+  if(!response.ok)throw new CourseAdjustmentError(response.status);
+  const data=await response.json();
+  if(data?.academicYear!==year||!(data.notice===null||data.notice?.academic_year===year))throw new CourseAdjustmentError(503);
+  return data.notice;
 }

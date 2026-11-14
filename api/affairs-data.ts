@@ -8,8 +8,8 @@ import { readEarlyGraduation } from '../server/earlyGraduation.js';
 import { earlyGraduationScope } from '../server/earlyGraduationContract.js';
 import { serveCourseSubstitution } from '../server/courseSubstitution.js';
 import { serveFirstSelectionNotice } from '../server/firstSelectionNotice.js';
-import { readAdjustmentScope, serveAdjustmentNotice } from '../server/courseAdjustment.js';
-import { adjustmentNoticeScope, adjustmentScope } from '../server/courseAdjustmentContract.js';
+import { readAdjustmentScope, serveAdjustmentNotice, serveSummerNotice } from '../server/courseAdjustment.js';
+import { adjustmentNoticeScope, adjustmentScope, summerNoticeScope } from '../server/courseAdjustmentContract.js';
 import { readWithdrawalScope } from '../server/courseWithdrawal.js';
 import { withdrawalScope } from '../server/courseWithdrawalContract.js';
 import { readCreditTransfer } from '../server/creditTransfer.js';
@@ -46,6 +46,7 @@ export default async function handler(request:Request,response:Response) {
   if (scopes.includes('venue-search') || scopes.includes('venue-schedule')) return serveVenue(request,response);
   if (scopes.includes('permanent-courses')) return servePermanentCourses(request,response);
   if (scopes.includes(firstSelectionScope)) return serveFirstSelectionNotice(request,response);
+  if (scopes.includes(summerNoticeScope)) return serveSummerNotice(request,response);
   if (scopes.includes(adjustmentNoticeScope)) return serveAdjustmentNotice(request,response);
   if (scopes.includes('course-substitution') || scopes.includes('course-substitution-departments')) return serveCourseSubstitution(request,response);
   if (scopes.includes('curriculum-map')) return serveCurriculumMap(request,response);

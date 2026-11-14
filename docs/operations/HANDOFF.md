@@ -1,3 +1,7 @@
+## Summer course selection (Issue #98)
+
+Service 6-5 reads saved summer eligibility and has a dated notice and summer history link. See [summer selection QA](../qa/SUMMER_SELECTION.md).
+
 ## Facilities repair (Issue #98)
 
 Service 45-1 has the observed area picker, equipment selection, report form and progress table, with private records and an administrator queue. The campus assistant reads the signed-in user's report status. See [facility repair QA](../qa/FACILITY_REPAIR.md) for the source boundary and verification.

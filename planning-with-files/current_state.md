@@ -1,3 +1,7 @@
+## Summer course selection [Issue #98]
+
+The previous goal turn made progress by deploying the facility repair form and its Supabase catalogs. The signed-in summer selection source showed a missing-college notice. Service 6-5 now has that screen, separately stored term decisions and the public academic year 114 notice. The client installed migration 20261114200000. The eligible university registration and payment screens remain unobserved. Production acceptance is pending.
+
 ## Facilities repair [Issue #98]
 
 Production `ad917ad` is live as Vercel `A1pZQJgYoQvHp4v1g9ybdWmZUjAH`. Migrations 20261114180000 and 20261114190000 bring the client to 153 migrations and 181 RLS-protected public tables. The signed-in area and equipment catalogs contain 18 areas and 110 items. The pinned browser, authenticated HTTP with exact fixture cleanup, three guest assistant checks and eight shell routes passed. Quality 43540831108 passed. The 94-destination local audit reports 35 generic and 19 partial entries.

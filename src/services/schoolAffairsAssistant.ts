@@ -11,7 +11,7 @@ import {earlyGraduationQuestion} from '../../server/earlyGraduationContract.js';
 import {readEarlyGraduationAnswer} from './earlyGraduation';
 import {courseSubstitutionQuestion} from '../features/public/affairs/courseSubstitution.js';
 import {firstSelectionQuestion} from '../features/public/affairs/firstSelection.js';
-import {adjustmentQuestion} from '../../server/courseAdjustmentContract.js';
+import {adjustmentPaths,adjustmentQuestion,summerSelectionQuestion} from '../../server/courseAdjustmentContract.js';
 import {readCourseAdjustmentAnswer} from './courseAdjustment';
 import {withdrawalQuestion} from '../../server/courseWithdrawalContract.js';
 import {readWithdrawalAnswer} from './courseWithdrawal';
@@ -73,6 +73,17 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
     onProgress?.({kind:'credit-transfer',label:'Checking credit transfer',detail:'Reading your saved applications.',status:'running'});
     const result=await readCreditTransferAnswer(data.session.user.id,question,signal) as AssistantResponse;
     if(typeof result?.answer!=='string'||result.grounding?.source!=='account')throw new Error('Credit transfer records could not be loaded.');
+    return result;
+  }
+  const summer=!images.length&&summerSelectionQuestion(question);
+  if(summer){
+    if(summer.view!=='mine'||summer.ambiguousYear)return askCampusAssistant(question,[],signal,[],route,onProgress);
+    onProgress?.({kind:'course-adjustment',label:'Checking summer eligibility',detail:'Reading your saved eligibility decision.',status:'running'});
+    const params=new URL(route||'/',window.location.origin);
+    const routeYear=params.pathname===adjustmentPaths.summer?params.searchParams.get('year'):null;
+    const year=summer.year??(routeYear&&/^[1-9][0-9]{2}$/.test(routeYear)?Number(routeYear):undefined);
+    const result:AssistantResponse=await readCourseAdjustmentAnswer(data.session.user.id,'summer',question,signal,year);
+    if(typeof result?.answer!=='string'||result.grounding?.source!=='account')throw new Error('Summer eligibility could not be checked.');
     return result;
   }
   const adjustment = !images.length && adjustmentQuestion(question);
