@@ -23,6 +23,7 @@ test('the five direct readers and verified graph dispatch remain separately visi
     {id:'tutor-evaluation',graphTool:'tutorEvaluation'},
     {id:'student-conduct',graphTool:'studentConduct'},
     {id:'local-service-notes',graphTool:'serviceRecords'},
+    {id:'teaching-feedback',graphTool:'teachingFeedback'},
   ]);
   for(const service of inventory.services){
     assert.equal(service.routeAuth,'signed-in');assert.equal(service.graphTool,null);
@@ -37,7 +38,7 @@ test('the five direct readers and verified graph dispatch remain separately visi
     assert.ok(['independent_owned_native_records','offline_reader_failure'].includes(question.fixtureRequirement));
   }
   assert.ok(inventory.sourceManifest.every(row=>/^[a-f0-9]{64}$/u.test(row.sha256)));
-  assert.equal(inventory.otherDirectReaders.length,6);
+  assert.equal(inventory.otherDirectReaders.length,5);
 });
 
 test('native questions require the fields the reader actually supplies and disclose narrower summaries',async()=>{

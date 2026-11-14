@@ -5,8 +5,12 @@ import {aidPaymentsFields,aidPaymentsMaxPage,aidPaymentsPagePath,aidPaymentsPage
 import {feeRemissionFields,feeRemissionPath} from './feeRemissionContract.js';
 import {healthExaminationPath,healthPageSize} from './healthExaminationContract.js';
 import {tutorEvaluationEvidenceMaxBytes,tutorEvaluationPath} from './tutorEvaluationContract.js';
+import {teachingFeedbackPaths} from './teachingFeedbackContract.js';
+import {teachingFeedbackImmediateFields,selectTeachingFeedbackEvidence} from './teachingFeedbackEvidenceIntent.js';
+import {validateTeachingFeedbackAnswerEvidence} from './teachingFeedbackAnswerEvidence.js';
 export const supplementalAnswerLimits=Object.freeze({answerCharacters:8000,resultBytes:24000,views:3,viewRows:12});
 const definitions={
+  'account:teachingFeedback':{title:['Saved teaching evaluation and immediate feedback','已儲存教學評量與即時教學意見'],path:teachingFeedbackPaths.survey},
   'account:tutorEvaluation':{title:['Tutor evaluation','導師評量問卷'],path:tutorEvaluationPath},
   'account:graduationClearance':{title:['Saved graduation clearance records','已儲存畢業離校紀錄'],path:'/school-affairs/services/16-1'},
   'account:counselingAppointments':{title:['Saved counseling appointment metadata','已儲存諮商預約資料'],path:'/school-affairs/services/29-1/appointments'},
@@ -463,6 +467,7 @@ function validateGradePayload(envelope,p,evidence){
 }
 const invalid=()=>{throw new TypeError('Use validated supplemental account evidence envelopes.');};
 function allowedUrl(id,url){
+  if(id==='account:teachingFeedback')return Object.values(teachingFeedbackPaths).includes(url);
   if(id==='account:tutorEvaluation')return url===tutorEvaluationPath;
   if(id==='account:graduationClearance')return url===definitions[id].path||url===clearanceApplyPath;
   if(id==='account:counselingAppointments')return url===definitions[id].path;
@@ -506,6 +511,7 @@ function parse(envelope){
   let payload;try{payload=JSON.parse(evidence.content);}catch{invalid();}
   if(!object(payload)||typeof payload.checkedAt!=='string'||!Number.isFinite(Date.parse(payload.checkedAt)))invalid();
   if(id==='account:tutorEvaluation')validateTutorEvaluationPayload(envelope,payload,evidence);
+  else if(id==='account:teachingFeedback'){if(!validateTeachingFeedbackAnswerEvidence(envelope,payload))invalid();}
   else if(id==='account:graduationClearance')validateClearancePayload(envelope,payload,evidence);
   else if(id==='account:counselingAppointments')validateCounselingPayload(envelope,payload,evidence);
   else if(id==='account:healthExaminations')validateHealthPayload(envelope,payload,evidence);
@@ -637,6 +643,80 @@ function sectionFor(parsed,question,zh){
     if(!integer(total))invalid();
     section.view={id:id.slice(8),title,url:evidence.url,columns,rows:[],total,checkedAt:p.checkedAt,note};
   };
+  if(id==='account:teachingFeedback'){
+    section.lead.push(t('These are your saved stu.best teaching feedback records.','以下是你在 stu.best 已儲存的教學意見紀錄。'));
+    section.complete&&=p.complete;
+    section.usable=true;
+    section.limited=p.views.some(source=>source.readState==='partial');
+    const status={scheduled:t('scheduled','尚未開始'),open:t('open','開放中'),closed:t('closed','已結束'),
+      submitted:t('submitted','已送出'),reviewed:t('reviewed','已檢閱')};
+    const name=mode=>mode==='survey'?t('Teaching evaluation','教學評量'):t('Immediate teaching feedback','即時教學意見');
+    const requested=teachingFeedbackImmediateFields(selectTeachingFeedbackEvidence(question)?.question??question);
+    let shownRows=0;
+    for(const source of p.views){
+      const label=name(source.view);
+      section.lead.push(`[${t('Open '+label,'開啟'+label)}](${teachingFeedbackPaths[source.view]})`);
+      if(source.readState==='unavailable'){
+        section.lead.push(t(`${label} could not be read.`,`無法讀取${label}。`));
+        continue;
+      }
+      if(source.readState==='partial')section.lead.push(t('The retrieved records are incomplete. The omitted history remains unknown.','本次只查到部分紀錄，尚無法確認略去的歷史資料。'));
+      if(source.readState==='empty')section.lead.push(t(
+        p.selection.course?'No matching saved records were found for the selected course.':'No saved records were found in this view.',
+        p.selection.course?'未找到所選課程的已儲存紀錄。':'此類別尚無已儲存紀錄。'));
+      if(source.view==='survey'){
+        const count=source.counts.surveys;
+        section.lead.push(t(`Surveys returned: ${count.returned}. `+(count.total===null?'The total is unknown.':''),`已查回問卷：${count.returned} 份。`+(count.total===null?'總數未知。':'')));
+        section.lead.push(t('Completion comes from your saved receipt. Individual ratings and responses are anonymous.','完成狀態來自你已儲存的收件紀錄。各筆評分與填答皆為匿名。'));
+        for(const survey of source.surveys){
+          const phase=survey.phase==='midterm'?t('Midterm','期中'):t('Final','期末');
+          group(t('Questionnaire','問卷'),survey.term+' · '+phase);
+          item(t('Saved window status','儲存的開放狀態'),status[survey.state]);
+          item(t('Opens at','開放時間'),survey.opensAt);
+          item(t('Closes at','截止時間'),survey.closesAt);
+          for(const course of survey.courses){
+            const courseLabel=course.code+' '+course.course+' · '+course.section;
+            const completion=course.completed?t('completed','已完成'):t('not completed','未完成');
+            item(t('Course completion','課程完成狀態'),courseLabel+' · '+completion, false, 800);
+            section.viewCandidates.push(row(label,courseLabel,survey.term+' · '+phase,completion));
+            shownRows++;
+          }
+        }
+      }else{
+        if(requested.courses){
+          const count=source.counts.eligibleCourses;
+          section.lead.push(t(`Eligible courses returned: ${count.returned}. `+(count.total===null?'The total is unknown.':'')
+            +` Showing ${count.included} of ${count.matching} matching courses.`,
+          `已查回 ${count.returned} 門可填寫的課程。`+(count.total===null?'總數未知。':'')+` 顯示 ${count.matching} 門符合課程中的 ${count.included} 門。`));
+          for(const course of source.courses){
+            const courseLabel=course.code+' '+course.course+' · '+course.section;
+            item(t('Eligible course','可填寫課程'),courseLabel+' · '+course.term,false,1000);
+            section.viewCandidates.push(row(label,courseLabel,course.term,t('eligible','可填寫')));
+            shownRows++;
+          }
+        }
+        if(!requested.feedback)continue;
+        if(!source.counts.feedback.matching&&(source.readState==='ok'||source.readState==='empty'))
+          section.lead.push(t('No saved immediate feedback matched this lookup.','這次查詢沒有符合的已儲存即時教學意見。'));
+        for(const feedback of source.feedback){
+          const courseLabel=feedback.code+' '+feedback.course;
+          group(t('Saved immediate feedback','儲存的即時教學意見'),courseLabel+' · '+feedback.term);
+          item(t('Saved status','儲存狀態'),status[feedback.status]);
+          item(t('Submitted at','送出時間'),feedback.submittedAt);
+          item(t('Reviewed at','檢閱時間'),feedback.reviewedAt);
+          if(Object.hasOwn(feedback,'comment'))item(t('Saved comment','儲存的意見'),feedback.comment,false,2000);
+          if(feedback.status==='reviewed'&&/delivered|teacher read|teacher saw|送達|老師.{0,6}(?:閱讀|看過)/iu.test(question))
+            section.lead.push(t('The saved review status does not show whether the teacher read it.','已儲存的檢閱狀態無法確認老師是否已讀。'));
+          section.viewCandidates.push(row(label,courseLabel,feedback.term,status[feedback.status]));
+          shownRows++;
+        }
+      }
+    }
+    if(!p.views.length)section.lead.push(t('I couldn’t check the saved teaching feedback.','無法查詢已儲存的教學意見。'));
+    if(shownRows)view([t('Record','紀錄'),t('Course','課程'),t('Term','學期'),t('Saved status','儲存狀態')],shownRows,
+      t('Only retrieved saved completion or status is shown.','僅顯示查到的完成或檢閱狀態。'));
+    return section;
+  }
   if(id==='account:tutorEvaluation'){
     section.usable=true;
     section.complete=p.readState!=='unavailable';
@@ -1270,7 +1350,7 @@ export function formatSupplementalAccountAnswers(results,{question='',language:r
   let omittedItems=sections.reduce((total,section)=>total+section.items.length,0),omittedViewRows=sections.reduce((total,section)=>total+section.viewCandidates.length,0);
   const result=()=>({status:sections.some(section=>section.usable)?'answered':'abstained',answer:sections.map(section=>[
     section.title,...section.lead,...section.shown.map(item=>(section.id==='account:elearningOutline'&&item.group&&!item.header?'\n  - '
-      :['account:dtmGradeReport','account:aidPayments','account:elearningEnrollments','account:facilityRepairs','account:feeRemission','account:healthExaminations','account:counselingAppointments','account:graduationClearance'].includes(section.id)&&item.group&&!item.header?'  - ':'- ')+item.text),
+      :['account:dtmGradeReport','account:aidPayments','account:teachingFeedback','account:elearningEnrollments','account:facilityRepairs','account:feeRemission','account:healthExaminations','account:counselingAppointments','account:graduationClearance'].includes(section.id)&&item.group&&!item.header?'  - ':'- ')+item.text),
     (section.limited||section.shown.length<section.items.length||section.viewCandidates.length>(section.view?.rows.length??0))
       ?(zh?'顯示內容已節錄，省略部分不代表沒有紀錄。':'Display excerpt: omitted fields or rows do not establish absence.'):null,
     section.view&&!section.viewSelected?(zh?'此來源表格因三張表格的顯示上限省略，文字結果與來源連結仍保留。':'This source table is omitted by the three-table display limit; its text result and source link remain available.'):null,

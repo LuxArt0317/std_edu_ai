@@ -211,3 +211,7 @@ The browser dispatch uses the verified account path for native conduct and nearb
 The focused API tests exercise direct account and guest navigation, wrong owners, skipped reads, page selection, stale history, and an actual caller-scoped reader behind the verification graph with synthetic HTTP. The reader uses the same saved ordering and 25-row pagination as the visible page. Rejected drafts cause a fresh read of the same selected page. The tests distinguish a failed read, zero total, an empty later page and null financial fields.
 
 Run `node --experimental-strip-types --test tests/api/aid-payments-assistant-routing.test.ts tests/api/account-aid-payments-evidence.test.ts`. These tests use synthetic credentials and responses. The independent aid question bank and its observation checks are offline. They do not count toward signed-in acceptance on a protected deployment.
+
+## Teaching feedback coverage
+
+The independent 40-question offline packet models both student teaching feedback views, caller ownership, exact course filters, anonymous-response limitations and companion School Affairs requests. Intercepted API tests exercise the verification graph, including deliberate rejection and a draft that omits a requested part. The packet is outside the live fixture manifest and carries no live model acceptance.

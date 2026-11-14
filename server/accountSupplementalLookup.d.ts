@@ -2,7 +2,7 @@ import type {VerificationProgress} from './answerVerification.js';
 import type {CatalogEvidenceQuery} from './accountCatalogEvidence.js';
 import type {SupplementalEvidenceResult} from './supplementalAccountAnswers.js';
 type NativePageTool='studentConduct'|'dormitoryConduct'|'elearningOutline'|'feeRemission'|'healthExaminations'|'counselingAppointments'|'graduationClearance'|'tutorEvaluation';
-export type SupplementalAccountTool='courseCatalog'|'enrollmentCertificate'|'dtmSubmissions'|'tuition'|'studentLoan'|'aidPayments'|'dtmGradeReport'|'elearningEnrollments'|'facilityRepairs'|NativePageTool;
+export type SupplementalAccountTool='courseCatalog'|'enrollmentCertificate'|'dtmSubmissions'|'tuition'|'studentLoan'|'aidPayments'|'dtmGradeReport'|'elearningEnrollments'|'facilityRepairs'|'teachingFeedback'|NativePageTool;
 export type SupplementalAccountReadContext={question:string;route:string;history:Array<{role:string;content:string}>;snapshot:Record<string,any>;deadline:number;catalogQuery?:CatalogEvidenceQuery};
 export type SupplementalAccountReaders=Partial<Record<SupplementalAccountTool,(context:SupplementalAccountReadContext)=>Promise<SupplementalEvidenceResult>>>;
 export const supplementalAccountTools:Readonly<Record<SupplementalAccountTool,string>>;

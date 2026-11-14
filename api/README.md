@@ -98,3 +98,7 @@ The verified School Affairs assistant forwards the exact 37-1 claims or salary p
 ### Current subjects and year level
 
 A signed-in question asking for both uses the owned School Affairs timetable and a separate year-level lookup. The read path can report when either source is unavailable or has no linked student. It does not initialize records or read the broader workspace.
+
+### Teaching feedback questions
+
+The signed-in assistant can verify caller-owned questionnaire completion and immediate teaching feedback from services 7-5 and 7-6. Explicitly selected immediate comments can be shown. Anonymous survey responses are unavailable. A rejected draft triggers a fresh read of the selected records. Navigation and unsupported operations use the service links.

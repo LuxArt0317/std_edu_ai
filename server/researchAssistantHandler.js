@@ -37,7 +37,8 @@ import {selectElearningOutlineEvidence} from './elearningOutlineEvidenceIntent.j
 import {isFacilityRepairEvidenceQuestion,isForeignFacilityRepairQuestion} from './facilityRepairEvidenceIntent.js';
 import {venueQuestion} from '../src/features/public/affairs/venueContract.js';
 import {permanentCourseQuestion} from '../src/features/public/affairs/permanentCourseRouting.js';
-import {teachingFeedbackPaths,teachingFeedbackQuestion} from './teachingFeedbackContract.js';
+import {teachingFeedbackLookupContext} from './teachingFeedbackEvidenceIntent.js';
+import {teachingFeedbackGuide} from './teachingFeedbackGuide.js';
 import {earlyGraduationPath,earlyGraduationQuestion} from './earlyGraduationContract.js';
 import { answerCourseSubstitution } from './courseSubstitution.js';
 import { answerFirstSelectionNotice } from './firstSelectionNotice.js';
@@ -341,16 +342,24 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const stream = createAssistantStream(input.stream, response);
-        const studyYear = !input.images.length && currentStudyForeignYearQuestion(input.question);
-        const currentStudy = !input.images.length && isCurrentStudyRecordQuestion(accountQuestionIntent(input.question,[],''),input.question);
+        const teaching = !input.images.length && teachingFeedbackLookupContext(input.question,input.route,input.history);
+        const teachingGuide = teaching && (teaching.selection || teaching.excluded || teaching.navigation.length)
+            ? teachingFeedbackGuide(input.question,{
+                views:teaching.selection?.requestedViews,navigation:teaching.navigation,reason:teaching.selection?.reason,
+                excluded:teaching.excluded&&!teaching.selection,
+            }) : null;
+        if(teachingGuide&&!teaching.otherQuestion){stream.send(200,teachingGuide);return;}
+        const studyQuestion=teachingGuide?teaching.otherQuestion:input.question;
+        const studyYear = !input.images.length && currentStudyForeignYearQuestion(studyQuestion);
+        const currentStudy = !input.images.length && isCurrentStudyRecordQuestion(accountQuestionIntent(studyQuestion,[],''),studyQuestion);
         if(studyYear||currentStudy){
             const zh=/\p{Script=Han}/u.test(input.question);
             const boundary=studyYear?(zh?'我無法查看他人的年級。':'I can’t show another person’s year level.'):'';
             const url='/school-affairs/login?next='+encodeURIComponent(schoolSubjectRecordsPath);
             const title=zh?'登入後查看你的校務紀錄':'Sign in to check your School Affairs records';
             const citations=currentStudy||studyYear?.courseQuestion?[{chunkId:'directory:school-affairs-subjects',title,url,claim:title,sourceName:'School Affairs'}]:[];
-            stream.send(200,{status:'handoff',answer:[boundary,...citations.map(link=>'['+title+']('+link.url+')')].filter(Boolean).join('\n\n'),
-                citations,suggestedQuestions:[],grounding:{source:'directory',webSearched:false}});
+            stream.send(200,{status:'handoff',answer:[boundary,...citations.map(link=>'['+title+']('+link.url+')'),teachingGuide?.answer].filter(Boolean).join('\n\n'),
+                citations:[...citations,...(teachingGuide?.citations??[])],suggestedQuestions:[],grounding:{source:'directory',webSearched:false}});
             return;
         }
         const notes=serviceNoteLookup(input.question,input.route,input.history);
@@ -376,13 +385,21 @@ export function createResearchAssistantHandler(dependencies = {}) {
             }
             if(aid.excluded){input.question=aid.otherQuestion;input.history=[];}
         }
-        const balanceQuestion=withoutExcludedTutorEvaluationClause(withoutExcludedClearanceClause(withoutExcludedCounselingClause(withoutExcludedHealthClause(input.question))));
-        if(isOwnFeeBalanceQuestion(balanceQuestion)||balanceQuestion!==input.question&&ownFeeBalanceLabel(balanceQuestion)){
+        const balanceQuestion=withoutExcludedTutorEvaluationClause(withoutExcludedClearanceClause(withoutExcludedCounselingClause(withoutExcludedHealthClause(studyQuestion))));
+        if(isOwnFeeBalanceQuestion(balanceQuestion)||balanceQuestion!==studyQuestion&&ownFeeBalanceLabel(balanceQuestion)){
             const zh=/[\u3400-\u9fff]/u.test(input.question), url='/school-affairs/login?next='+encodeURIComponent('/school-affairs/services/39-1');
             const title=zh?'登入後查看待繳費用':'Sign in to check your saved fee balance';
-            stream.send(200,{status:'handoff',answer:'['+title+']('+url+')',
-                citations:[{chunkId:'directory:pending-fees',title,url,claim:title,sourceName:'School Affairs'}],
+            stream.send(200,{status:'handoff',answer:['['+title+']('+url+')',teachingGuide?.answer].filter(Boolean).join('\n\n'),
+                citations:[{chunkId:'directory:pending-fees',title,url,claim:title,sourceName:'School Affairs'},...(teachingGuide?.citations??[])],
                 suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
+            return;
+        }
+        if(teachingGuide){
+            const publicNavigation=answerCampusNavigation(teaching.otherQuestion);
+            stream.send(200,publicNavigation?{
+                ...teachingGuide,answer:[teachingGuide.answer,publicNavigation.answer].join('\n\n'),
+                citations:[...teachingGuide.citations,...publicNavigation.citations],
+            }:teachingGuide);
             return;
         }
         const tutor=selectTutorEvaluationEvidence(input.question,input.route,input.history);
@@ -544,15 +561,6 @@ export function createResearchAssistantHandler(dependencies = {}) {
         }
         const clearanceView=!input.images.length&&!kind.irrelevant&&clearanceNavigationView(input.question);
         if(clearanceView){stream.send(200,clearanceDirectoryAnswer(input.question,clearanceView));return;}
-        const feedbackView=!input.images.length&&!kind.irrelevant&&teachingFeedbackQuestion(input.question);
-        if(feedbackView){
-            const next='/school-affairs/login?next='+encodeURIComponent(teachingFeedbackPaths[feedbackView]);
-            const zh=/[\u3400-\u9fff]/u.test(input.question);
-            stream.send(200,{status:'handoff',answer:zh?`[登入校務資訊系統](${next})查詢問卷或教學意見紀錄。`:
-                `[Sign in to School Affairs](${next}) to open your teaching feedback records.`,
-                citations:[],suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
-            return;
-        }
         if(!input.images.length&&!kind.irrelevant&&earlyGraduationQuestion(input.question)){
             const next='/school-affairs/login?next='+encodeURIComponent(earlyGraduationPath);
             const zh=/[\u3400-\u9fff]/u.test(input.question);

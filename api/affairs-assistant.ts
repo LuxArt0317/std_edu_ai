@@ -34,6 +34,9 @@ import { questionKind } from '../server/schoolWebSearch.js';
 import { accountQuestionIntent,isCurrentStudyRecordQuestion } from '../server/affairsAnswer.js';
 import { loadOwnAffairsStudyYear } from '../server/ownAffairsStudyYear.js';
 import { currentStudyForeignYearQuestion } from '../server/currentStudyOwnerScope.js';
+import { teachingFeedbackLookupContext } from '../server/teachingFeedbackEvidenceIntent.js';
+import { teachingFeedbackGuide } from '../server/teachingFeedbackGuide.js';
+import { readTeachingFeedbackEvidence,unavailableTeachingFeedbackEvidence } from '../server/accountTeachingFeedbackEvidence.js';
 import { answerAccountWithVerification, requiredNativeTools, requiredSupplementalTools, type SupplementalAccountReaders } from '../server/answerVerificationAccount.js';
 import { readCatalogEvidence } from '../server/accountCatalogEvidence.js';
 import { readCertificateEvidence } from '../server/accountCertificateEvidence.js';
@@ -161,7 +164,7 @@ export function createAffairsAssistantHandler(dependencies:{
   verifyToken?:typeof verifyAffairsToken;
   loadSnapshot?:typeof loadAffairsSnapshot;
   answerAccount?:typeof answerAccountWithVerification;
-  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence;healthExaminations?:typeof readHealthExaminationEvidence;counselingAppointments?:typeof readCounselingEvidence;graduationClearance?:typeof readClearanceEvidence;tutorEvaluation?:typeof readTutorEvaluationEvidence};
+  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence;healthExaminations?:typeof readHealthExaminationEvidence;counselingAppointments?:typeof readCounselingEvidence;graduationClearance?:typeof readClearanceEvidence;tutorEvaluation?:typeof readTutorEvaluationEvidence;teachingFeedback?:typeof readTeachingFeedbackEvidence};
 }={}) {
 const publicResearch=dependencies.publicResearch??researchHandler;
 const verifyToken=dependencies.verifyToken??verifyAffairsToken,loadSnapshot=dependencies.loadSnapshot??loadAffairsSnapshot,answerAccount=dependencies.answerAccount??answerAccountWithVerification;
@@ -178,7 +181,8 @@ const readers={courseCatalog:dependencies.readers?.courseCatalog??readCatalogEvi
   healthExaminations:dependencies.readers?.healthExaminations??readHealthExaminationEvidence,
   counselingAppointments:dependencies.readers?.counselingAppointments??readCounselingEvidence,
   graduationClearance:dependencies.readers?.graduationClearance??readClearanceEvidence,
-  tutorEvaluation:dependencies.readers?.tutorEvaluation??readTutorEvaluationEvidence};
+  tutorEvaluation:dependencies.readers?.tutorEvaluation??readTutorEvaluationEvidence,
+  teachingFeedback:dependencies.readers?.teachingFeedback??readTeachingFeedbackEvidence};
 return async function handler(request:ApiRequest,response:ApiResponse) {
   const deadline=Date.now()+55_000;
   response.setHeader('Cache-Control','no-store, max-age=0');
@@ -212,16 +216,27 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const correlationId=randomUUID();
   response.setHeader('X-Assistant-Request-Id',correlationId);
   const stream=createAssistantStream(input?.stream===true,response);
-  const foreignYear=currentStudyForeignYearQuestion(question);
+  const teaching=teachingFeedbackLookupContext(question,route,history);
+  const teachingSelection=teaching.selection?.views.length?teaching.selection:null;
+  const teachingReason=teaching.foreign?'foreign_request':teaching.selection?.reason??(teachingSelection?.unavailableDetails?'outside_scope':null);
+  const teachingNotes=teaching.navigation.length||teachingReason||teaching.excluded&&!teachingSelection
+    ?teachingFeedbackGuide(question,{views:teaching.selection?.requestedViews,navigation:teaching.navigation,reason:teachingReason,
+      excluded:teaching.excluded&&!teachingSelection,signedIn:true}):null;
+  if(teachingNotes&&!teachingSelection&&!teaching.otherQuestion){stream.send(200,teachingNotes);return;}
+  if(teachingNotes&&!teachingSelection){question=teaching.otherQuestion;history=[];}
+  const foreignYear=currentStudyForeignYearQuestion(teachingSelection?teaching.otherQuestion:question);
   const foreignYearMessage=foreignYear&&(/\p{Script=Han}/u.test(question)?
     '我可以查看你的校務紀錄，但無法查看他人的年級。':'I can check your own School Affairs records. I can’t show another person’s year level.');
-  if(foreignYear){
-    const residual=foreignYear.courseQuestion,scope=accountQuestionIntent(residual,[],'');
-    if(!residual||!scope.recognized||!scope.currentCourses||scope.baseTools.length!==1||scope.baseTools[0]!=='courses'){
+  const foreignYearResidual=foreignYear?.courseQuestion??'';
+  const residualCourseIntent=accountQuestionIntent(foreignYearResidual,[],'');
+  const ownCoursesBesideForeignYear=foreignYearResidual&&residualCourseIntent.recognized&&residualCourseIntent.currentCourses
+    &&residualCourseIntent.baseTools.length===1&&residualCourseIntent.baseTools[0]==='courses'?foreignYearResidual:'';
+  if(foreignYear&&!teachingSelection){
+    if(!ownCoursesBesideForeignYear){
       stream.send(200,{status:'handoff',answer:foreignYearMessage,citations:[],suggestedQuestions:[],grounding:{source:'account',webSearched:false}});
       return;
     }
-    question=residual;history=[];
+    question=ownCoursesBesideForeignYear;history=[];
   }
   const notes=serviceNoteLookup(question,route,history);
   if(notes.foreign||notes.invalidService||!notes.otherQuestion&&!notes.keys.length&&(notes.excluded||notes.officialOnly)){
@@ -239,9 +254,9 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     return;
   }
   if((conduct.excluded||conductNavigation)&&!conduct.selected){question=conduct.otherQuestion;history=[];}
-  const withLocalGuidance=<T extends {answer:string;citations?:unknown[]}>(answer:T)=>conductNavigation||foreignYearMessage
-    ?{...answer,answer:[foreignYearMessage,conductNavigation?.answer,answer.answer].filter(Boolean).join('\n\n'),
-      citations:[...(conductNavigation?.citations??[]),...(answer.citations??[])]}:answer;
+  const withLocalGuidance=<T extends {answer:string;citations?:unknown[]}>(answer:T)=>conductNavigation||foreignYearMessage||teachingNotes
+    ?{...answer,answer:[foreignYearMessage,conductNavigation?.answer,teachingNotes?.answer,answer.answer].filter(Boolean).join('\n\n'),
+      citations:[...(conductNavigation?.citations??[]),...(teachingNotes?.citations??[]),...(answer.citations??[])]}:answer;
   const foreignDtmGrades=isForeignDtmGradesQuestion(question,route);
   const foreignElearning=isForeignElearningRecordsQuestion(question,route);
   const foreignRepair=isForeignFacilityRepairQuestion(question);
@@ -295,8 +310,12 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     return;
   }
   const intent=accountQuestionIntent(question,history,route);
-  const currentStudyScope=foreignYear?'courses':isCurrentStudyRecordQuestion(intent,question)?'courses_and_year':null;
-  if(!notes.keys.length&&intent.recognized&&intent.kind==='coaching'&&!intent.baseTools.length&&!pageContext.selected){
+  const studyQuestion=teachingSelection?(foreignYear?ownCoursesBesideForeignYear:teaching.otherQuestion):question;
+  const studyIntent=teachingSelection?accountQuestionIntent(studyQuestion,[],''):intent;
+  const currentStudyScope=foreignYear&&(!teachingSelection||studyQuestion)?'courses':isCurrentStudyRecordQuestion(studyIntent,studyQuestion)?'courses_and_year':null;
+  const teachingFees=Boolean(teachingSelection&&(isOwnFeeBalanceQuestion(studyQuestion)||ownFeeBalanceLabel(studyQuestion)!==null));
+  const teachingNext=Boolean(teachingSelection&&isServiceNoteNextClass(studyQuestion));
+  if(!teachingSelection&&!notes.keys.length&&intent.recognized&&intent.kind==='coaching'&&!intent.baseTools.length&&!pageContext.selected){
     if(Array.isArray(input?.images)&&input.images.length){stream.send(400,{error:'For this coaching request, remove the image and ask using text.'});return;}
     try{
       // Authentication remains mandatory, but wording help needs no student
@@ -316,10 +335,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   }
   const noteFees=notes.keys.length>0&&(isOwnFeeBalanceQuestion(notes.otherQuestion)||ownFeeBalanceLabel(notes.otherQuestion)!==null);
   const noteNext=notes.keys.length>0&&isServiceNoteNextClass(notes.otherQuestion);
-  const chargeLabel=pageContext.feeChargeLabel??(noteFees?ownFeeBalanceLabel(notes.otherQuestion):aidFees?ownFeeBalanceLabel(aid.otherQuestion):aid.excluded?ownFeeBalanceLabel(question):scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):null);
-  const chargesOnly=isOwnFeeBalanceQuestion(aid.excluded?question:scopedQuestion)||pageContext.feeAndBalance||aidFees||chargeLabel!==null&&!noteFees;
-  const timetableOnly=Boolean(clearanceTimetableQuestion(question,pageContext))||aidNext;
-  const needsRecords=Boolean(aid.selection) || conduct.selected || notes.keys.length>0 || chargesOnly || timetableOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
+  const chargeLabel=pageContext.feeChargeLabel??(teachingFees?ownFeeBalanceLabel(studyQuestion):noteFees?ownFeeBalanceLabel(notes.otherQuestion):aidFees?ownFeeBalanceLabel(aid.otherQuestion):aid.excluded?ownFeeBalanceLabel(question):scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):null);
+  const chargesOnly=isOwnFeeBalanceQuestion(aid.excluded?question:scopedQuestion)||pageContext.feeAndBalance||aidFees||teachingFees||chargeLabel!==null&&!noteFees;
+  const timetableOnly=Boolean(clearanceTimetableQuestion(question,pageContext))||aidNext||teachingNext;
+  const needsRecords=Boolean(teachingSelection||aid.selection) || conduct.selected || notes.keys.length>0 || chargesOnly || timetableOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
   const navigation=!needsRecords && !(Array.isArray(input?.images) && input.images.length) && !questionKind(question).irrelevant
     ? answerCampusNavigation(question) : null;
   if(navigation) {
@@ -343,7 +362,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       const result=research.result as Record<string,unknown>|null;
       if(!result || typeof result!=='object' || Array.isArray(result) || (!research.ok && typeof result.error!=='string')) {stream.send(502,{error:'School research returned an invalid response.'});return;}
       stream.progress('public','Checked public information','The public school lookup finished.','complete');
-      stream.send(research.status,(conductNavigation||foreignYearMessage)&&typeof result.answer==='string'?withLocalGuidance({...result,answer:result.answer}):result);
+      stream.send(research.status,(conductNavigation||foreignYearMessage||teachingNotes)&&typeof result.answer==='string'?withLocalGuidance({...result,answer:result.answer}):result);
     } catch {stream.send(503,{error:'School research is temporarily unavailable. Please try again.'});}
     return;
   }
@@ -354,7 +373,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const repairContext=facilityRepairLookupContext(residual,route,history),repairOnly=repairContext.repairOnly;
     const ownNoteRead=notes.keys.length>0;
     const noteScopeOnly=ownNoteRead&&(!notes.otherQuestion||noteFees||noteNext);
-    const selectedReaderOnly=!chargesOnly&&!timetableOnly&&(noteScopeOnly||pageContext.readerOnly||remoteOnly||repairOnly||aidOnly);
+    const selectedReaderOnly=!chargesOnly&&!timetableOnly&&(noteScopeOnly||pageContext.readerOnly||remoteOnly||repairOnly||aidOnly||teachingSelection&&!studyQuestion);
     const scopedSnapshot=()=>({checkedAt:new Date().toISOString(),profile:{userId:account.user.id}});
     if(selectedReaderOnly)stream.progress('account','Checked account access','The selected reader uses this signed-in Google account.','complete');
     else stream.progress('account','Loading your account records',currentStudyScope==='courses_and_year'?'Checking your School Affairs subjects and recorded year level.':currentStudyScope||timetableOnly?'Checking the timetable linked to this Google account.':chargesOnly?'Checking only the fees linked to this Google account.':'Checking School Affairs and DTM records for this signed-in Google account.');
@@ -364,7 +383,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         const normalize=(value:string)=>value.normalize('NFKC').trim().toLowerCase();
         return chargeLabel?{...saved,chargeSelectionLabel:chargeLabel,charges:saved.charges.filter(row=>normalize(row.label)===normalize(chargeLabel))}:saved;
       }catch(error){
-        if(!pageContext.feeAndBalance&&!noteFees&&!aidFees)throw error;
+        if(!pageContext.feeAndBalance&&!noteFees&&!aidFees&&!teachingFees)throw error;
         const charges:Awaited<ReturnType<typeof loadOwnAffairsCharges>>['charges']=[];
         return {...scopedSnapshot(),charges,chargeReadUnavailable:true};
       }
@@ -430,8 +449,11 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       tutorEvaluation:context=>readers.tutorEvaluation(account,{question:context.question,route,history,deadline:readDeadline(context.deadline)}),
       graduationClearance:context=>readers.graduationClearance(account,{question:context.question,route,history,deadline:readDeadline(context.deadline)}),
       tuition:context=>readers.tuition(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
+      teachingFeedback:context=>teachingSelection?readers.teachingFeedback(account,{views:[...teachingSelection.views],commentRequested:teachingSelection.commentRequested,
+        ...(teachingSelection.course?{course:{...teachingSelection.course}}:{}),deadline:readDeadline(context.deadline)}):Promise.resolve(unavailableTeachingFeedbackEvidence('reader_unavailable')),
     };
-    const answer=await answerAccount({question,correlationId,snapshot,history,route,deadline,supplementalReaders,
+    const graphQuestion=teachingSelection&&foreignYear?[teaching.question,studyQuestion].filter(Boolean).join('\n'):question;
+    const answer=await answerAccount({question:graphQuestion,correlationId,snapshot,history,route,deadline,supplementalReaders,
       loadSnapshot:()=>loadSelectedSnapshot(false),
       onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status),
     });

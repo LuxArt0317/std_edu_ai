@@ -120,7 +120,7 @@ test('the reported prompt checks only the caller’s current courses and year, i
   const original=globalThis.fetch,key=process.env.OPENAI_API_KEY;
   process.env.OPENAI_API_KEY='STUDY_TEST_MODEL';
   try{
-    for(const mode of ['healthy','retry','missing','year-failed','timetable-failed','reject']){
+    for(const mode of ['healthy','retry','missing','year-failed','timetable-failed','reject','repair-omits-year','repair-cites-sample-only']){
       let yearReads=0,studentReads=0,coursesReads=0,reviews=0,repairs=0;
       const failures:unknown[]=[];
       async function mock(input:RequestInfo|URL,init?:RequestInit){
@@ -166,32 +166,36 @@ test('the reported prompt checks only the caller’s current courses and year, i
         let value;
         if(stage==='answer_evidence_review'){
           reviews++;
-          const supported=mode!=='reject'&&(mode!=='retry'||reviews>1);
+          const supported=mode!=='reject'&&(!['retry','repair-omits-year','repair-cites-sample-only'].includes(mode)||reviews>1);
           value={supported,answersQuestion:supported,claims:[
-            {claim:yearClaim,supported,evidenceId:'account:profile',jsonPaths:[yearPath],quotes:[]},
+            ...(mode==='repair-omits-year'&&reviews===2?[]:[{
+              claim:mode==='repair-cites-sample-only'&&reviews===2?'The student record is sample data.':yearClaim,
+              supported,evidenceId:'account:profile',jsonPaths:[mode==='repair-cites-sample-only'&&reviews===2?'/records/student/sourceMode':yearPath],quotes:[],
+            }]),
             {claim:courseClaim,supported,evidenceId:'account:courses',jsonPaths:[coursePath],quotes:[]},
           ]};
         }else{
           assert.equal(stage,'correct_grounded_answer');repairs++;
-          value={status:'answered',answer:yearClaim+' '+courseClaim,sourceIds:['account:profile','account:courses']};
+          value=mode==='repair-omits-year'?{status:'answered',answer:courseClaim,sourceIds:['account:courses']}
+            :{status:'answered',answer:(mode==='repair-cites-sample-only'?'The student record is sample data.':yearClaim)+' '+courseClaim,sourceIds:['account:profile','account:courses']};
         }
         return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}]});
       }
       globalThis.fetch=(...args)=>mock(...args).catch(error=>{failures.push(error);throw error;});
       const result=await ask(exact,mode==='retry'?'/dtm':'/');
       assert.deepEqual(failures,[],mode);
-      const attempts=mode==='retry'||mode==='reject'?2:1;
+      const attempts=['retry','reject','repair-omits-year','repair-cites-sample-only'].includes(mode)?2:1;
       assert.equal(yearReads,attempts,mode);assert.equal(studentReads,attempts,mode);
       assert.equal(coursesReads,mode==='missing'?0:attempts,mode);
       assert.equal(reviews,attempts,mode);assert.equal(repairs,attempts-1,mode);
-      assert.equal(result.verification.status,mode==='reject'?'unverified':'verified',mode);
+      assert.equal(result.verification.status,['reject','repair-omits-year','repair-cites-sample-only'].includes(mode)?'unverified':'verified',mode);
       assert.doesNotMatch(JSON.stringify(result),/Previous subject|Future subject|STUDY_TEST/u);
       if(mode==='retry')assert.match(result.answer,/Year level: 4/u);
       if(mode==='healthy')assert.match(result.answer,/Year level: 3/u);
       if(mode==='year-failed')assert.match(result.answer,/couldn’t verify your recorded year level/u);
       if(mode==='timetable-failed')assert.match(result.answer,/saved timetable couldn’t be read/u);
       if(mode==='missing')assert.match(result.answer,/No student record is linked/u);
-      if(!['timetable-failed','missing','reject'].includes(mode))assert.match(result.answer,/Current saved subject/u);
+      if(!['timetable-failed','missing','reject','repair-omits-year','repair-cites-sample-only'].includes(mode))assert.match(result.answer,/Current saved subject/u);
     }
   }finally{
     globalThis.fetch=original;

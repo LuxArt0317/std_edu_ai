@@ -1,3 +1,4 @@
+import {buildTeachingFeedbackNativeCases,teachingFeedbackNativeManifest} from './teaching-feedback-native-cases.mjs';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {answerDtmRecords,answerStudentServiceRecords} from '../../server/dtmAnswer.js';
@@ -23,10 +24,12 @@ test('evaluation fixtures are fresh and preserve independent oracles and explici
 test('the bank declares all registered tools while actual DTM file fixtures remain unexecutable',()=>{
   const base=Object.keys(accountTools),supplemental=Object.keys(supplementalAccountTools),registered=[...base,...supplemental];
   assert.equal(base.length,17);
-  assert.deepEqual(supplemental.sort(),['aidPayments','counselingAppointments','courseCatalog','dormitoryConduct','dtmGradeReport','dtmSubmissions','elearningEnrollments','elearningOutline','enrollmentCertificate','facilityRepairs','feeRemission','graduationClearance','healthExaminations','studentConduct','studentLoan','tuition','tutorEvaluation'].sort());
+  assert.deepEqual(supplemental.sort(),['aidPayments','counselingAppointments','courseCatalog','dormitoryConduct','dtmGradeReport','dtmSubmissions','elearningEnrollments','elearningOutline','enrollmentCertificate','facilityRepairs','feeRemission','graduationClearance','healthExaminations','studentConduct','studentLoan','teachingFeedback','tuition','tutorEvaluation'].sort());
   assert.equal(new Set(registered).size,registered.length,'Base and supplemental registrations must not shadow each other.');
   const cases=buildAccountCases({includePlannedFeeRemission:true,includePlannedHealthExaminations:true,includePlannedCounselingAppointments:true,includePlannedClearanceApplications:true,includePlannedTutorEvaluation:true}),declared=[...new Set(cases.flatMap(row=>row.expected.requiredTools))];
-  assert.deepEqual(declared.sort(),registered.sort());
+  assert.deepEqual(declared.sort(),registered.filter(key=>key!=='teachingFeedback').sort());
+  assert.ok(buildTeachingFeedbackNativeCases().some(row=>row.toolPolicy.required.includes('teachingFeedback')));
+  assert.equal(teachingFeedbackNativeManifest.mounted,false);
   const actualFileCases=cases.filter(row=>row.expected.requiredTools.includes('dtmSubmissions'));
   assert.equal(actualFileCases.length,1,'Declared actual-file intent is not evidence of executable fixtures or successful model coverage.');
   const trackerBoundary=cases.find(row=>row.id==='account:actual-file-submission-gap');

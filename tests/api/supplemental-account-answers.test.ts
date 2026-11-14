@@ -254,6 +254,7 @@ test('pure formatter is compatible with all three actual reader envelopes and do
   assert.doesNotMatch(module,/\b(?:fetch|loadSyllabusSearch|loadEnrollmentCertificate|createClient)\s*\(/m);
   assert.deepEqual([...module.matchAll(/^import .+ from '([^']+)';$/gm)].map(match=>match[1]),[
     './aidPaymentsContract.js','./feeRemissionContract.js','./healthExaminationContract.js','./tutorEvaluationContract.js',
+    './teachingFeedbackContract.js','./teachingFeedbackEvidenceIntent.js','./teachingFeedbackAnswerEvidence.js',
   ]);
 });
 

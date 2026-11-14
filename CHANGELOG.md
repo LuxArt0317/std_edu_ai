@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Verify saved teaching evaluation completion and immediate teaching feedback through the account assistant. Keep selected course, tuition and timetable facts tied to their own records, and check each requested part before showing the answer. [#100]
+
 - Answer current-semester subjects and recorded year using only the two caller-owned School Affairs sources. Keep available facts when one source fails. [#100]
 
 - Verify the requested page of a student's saved salary or aid claims in the assistant. Keep each amount with its saved period or reason and preserve page links, independent fee and timetable questions, and caller ownership. [#100]
