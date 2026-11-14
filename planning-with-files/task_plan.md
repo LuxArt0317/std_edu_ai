@@ -232,7 +232,9 @@ HTML block creation, Administration block behavior and unobserved Move interacti
 - [x] Complete actual-JWT saved-conversation/browser acceptance727423ae after the reviewed auth-settlement harness correction; exact cleanup passed.
 - [x] Return the serialized model lease; grades/graduation passed on772ec95.
 - [x] Publish reviewed correction e494fd4, verify Vercel Ready, Quality and deployed shell; hand sole live lease to Issue100.
-- [ ] Targeted packet completed with raw failures retained: attendance passed5groups, certificate6/7, tuition9/12, catalog3/5. Issue100 is user-paused; lease returned after exact cleanup. No unfinished BatchB publication.
+- [ ] Resume Issue #100. Preserve the earlier targeted evidence and its failures: attendance passed five groups, certificate 6/7, tuition 9/12, catalog 3/5. The unfinished Batch B was not published.
+- [ ] Review the frozen candidate on the current deployed base, including term precedence, course follow-ups and the evaluator's remote-learning route coverage.
+- [ ] Run the reported reproduction with cleaned synthetic accounts under one DB/model lease. Record exact revision, raw results and cleanup before publication acceptance.
 
 ## Phase Next: systemwide assistant evaluation [Issue #100]
 

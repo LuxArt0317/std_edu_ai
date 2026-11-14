@@ -4,6 +4,10 @@ Production 076c79a is live as Vercel 4Gi741acYjhLKPYZiw4y9Af4FFNt. Migration 202
 
 ## Issue #98 and #100 release coordination
 
+Issue #100 is resumed. The assistant thread reported 1,091 passing API/source checks and continued offline evaluation work for the remote-learning routes. #98 production acceptance is complete at 076c79a. No provider test is running. Root holds the sole DB/model/release window and will take the next review and publication of the exact #100 candidate. Add one handoff entry with the frozen path list and SHA-256 fingerprints, source base, the known remaining failures, and the exact synthetic fixture, reproduction and cleanup commands. Wait for snapshot acceptance before any provider run.
+
+Independent root check: 454 evaluation contracts passed against the current, still-changing #100 worktree. Signed out on pinned production 076c79a, the 4-2 alias, legacy root, legacy login and legacy category link each rendered the local Google sign-in. Include the legacy category signed-out scenario with /elearning/login and next=/elearning/category/:id as well as the signed-in redirect. The approved local environment has fixture credentials and no model key. A candidate live-model run needs a matching deployment with its existing server-side model configuration. No database fixture or model call was used for these checks.
+
 Issue #98 commit 076c79a passed production acceptance. Root retains the sole client Supabase, model and release lease until the next accepted handoff. The 22-file club release excluded the 66 Issue #100 paths and verified their fingerprints before staging. Issue #100 offline fixes may continue in its separate scope. To resume provider checks, put the immutable candidate revision, changed paths, evaluation commands and exact fixture/cleanup plan into this handoff. Root will accept a verified isolated snapshot before allocating a provider window.
 
 ## Private club activity attachments [Issue #98]

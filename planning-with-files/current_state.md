@@ -1,3 +1,7 @@
+## Assistant evaluation resumed [Issue #100]
+
+Production is still 076c79a. Issue #100 offline corrections resumed on the client checkout. The current evaluation contracts passed 454 checks and yielded 74 unresolved route omissions, including newly inventoried remote-learning routes. Signed-out browser checks on production confirmed the 4-2 and three legacy remote-learning entry paths lead to the expected local login. Root owns the live fixture and release window. The next gate is immutable candidate review, then the reported real-model reproduction with exact cleanup. No new assistant runtime has been deployed.
+
 ## Student club menu and foundation [Issue #98]
 
 Production 076c79a is live as Vercel 4Gi741acYjhLKPYZiw4y9Af4FFNt. Migration 20261115100000 brings the client to 169 migrations with 206 RLS-protected public tables. Five student club destinations add searchable clubs and activities, account-owned participation and memberships, and new-club applications with protected approval. Local and production actual JWT, exact cleanup, pinned browser, five guest assistant links, deployment shell, client verification and Quality 43575984434 passed. All 94 catalog routes passed navigation. University menu labels and destinations were verified. Each new source detail page returned CAPTCHA sign-in, so the rebuilt screens use the verified club shell with local controls. No student records were imported. Officer profile, roster and attendance maintenance and equipment management remain open.
