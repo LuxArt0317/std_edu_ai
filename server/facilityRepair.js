@@ -4,6 +4,7 @@ import {repairId,repairPaths,repairStatuses} from '../src/features/public/affair
 
 const invalid=()=>new AffairsWorkspaceError('請檢查報修資料。',400);
 const statusKnown=value=>typeof value==='string'&&Object.hasOwn(repairStatuses,value);
+const structuredFields={area_code:6,equipment_code:6,contact_phone:32,room:30,floor_label:6,bed:1,location_remark:100,other_item:250,description:1000};
 const text=(value,max,allowEmpty=false)=>typeof value==='string'&&(allowEmpty||Boolean(value.trim()))&&[...value].length<=max;
 
 async function rpc(account,operation,body){
@@ -22,6 +23,13 @@ async function rpc(account,operation,body){
 
 export async function readFacilityRepairs(account,query){
   const {scope,view,id,page='0',status='',answer,...extra}=query;
+  if(scope==='facility-repairs'&&view==='catalog'){
+    if(Object.keys(query).length!==2)throw invalid();
+    const result=await rpc(account,'affairs_facility_repair_catalog',{});
+    if(result?.userId!==account.user.id||!Array.isArray(result.areas)||!Array.isArray(result.items))
+      throw new AffairsWorkspaceError('無法確認報修選項。');
+    return result;
+  }
   if(scope!=='facility-repairs'||!['mine','manage'].includes(view)||Object.keys(extra).length||
     (id!==undefined&&!repairId(id))||typeof page!=='string'||!/^\d{1,3}$/.test(page)||
     (status!==''&&!statusKnown(status))||(id&&(status||Number(page)))||
@@ -49,12 +57,17 @@ export async function readFacilityRepairs(account,query){
 }
 
 export async function changeFacilityRepair(account,action,payload){
-  const keys=action==='submit_facility_repair'?['request_id','building','location','item','description','confirmed']:
+  const structured=action==='submit_facility_repair'&&payload&&Object.hasOwn(payload,'area_code');
+  const keys=action==='submit_facility_repair'?['request_id','confirmed',...(structured?Object.keys(structuredFields):['building','location','item','description'])]:
     action==='cancel_facility_repair'?['request_id','id','version']:
       action==='review_facility_repair'?['request_id','id','version','status','note']:[];
   if(!keys.length||!payload||typeof payload!=='object'||Array.isArray(payload)||
     Object.keys(payload).length!==keys.length||!keys.every(key=>Object.hasOwn(payload,key))||!repairId(payload.request_id))throw invalid();
-  if(action==='submit_facility_repair'){
+  if(structured){
+    if(payload.confirmed!==true||Object.entries(structuredFields).some(([key,max])=>!text(payload[key],max,true))||
+      !/^AR[0-9]{4}$/.test(payload.area_code)||!/^RI[0-9]{4}$/.test(payload.equipment_code)||
+      !/^[+0-9() -]{3,32}$/.test(payload.contact_phone)||!payload.description.trim())throw invalid();
+  }else if(action==='submit_facility_repair'){
     if(payload.confirmed!==true||!text(payload.building,100)||!text(payload.location,120)||!text(payload.item,100)||!text(payload.description,1000))throw invalid();
   }else if(!repairId(payload.id)||!Number.isInteger(payload.version)||payload.version<1||payload.version>10000||
     (action==='review_facility_repair'&&(!['in_progress','resolved'].includes(payload.status)||!text(payload.note,600,true))))throw invalid();
@@ -71,7 +84,7 @@ export function answerRepairGuide(question,view){
   const href=view==='history'?'/school-affairs/login?next='+encodeURIComponent(repairPaths.history):repairPaths.report;
   const answer=view==='history'?(zh?'登入以查詢自己的站內報修。':'Sign in to view your own stu.best repair reports.'):
     view==='network'?(zh?'校方宿網報修服務為上班日 08:00–17:00，請撥 07-615-8000 分機 2420。':'For university residence-network repairs, call 07-615-8000 ext. 2420 during office hours (08:00–17:00).'):
-    (zh?'請填寫棟別、地點、項目和故障說明。送出後可查詢站內處理狀態。':'Enter the building, location, item, and problem. After submitting, you can track the stu.best report.');
+    (zh?'先選擇報修區域，再填寫聯絡電話、地點、設備及損壞情形。送出後可查詢站內處理狀態。':'Choose a repair area, then enter your contact number, location, equipment and problem. After submitting, you can track the stu.best report.');
   return {status:view==='history'?'handoff':'answered',answer:`${answer}\n\n[${title}](${href})`,
     citations:view==='network'?[{chunkId:'facility-repairs:network',title:zh?'校方修繕公告':'University repair noticeboard',
       sourceName:'STU Facilities',url:'https://info.stu.edu.tw/swd/all/Rpg/indexContent.asp',locator:null,effectiveAt:null,reviewedAt:null}]:[],

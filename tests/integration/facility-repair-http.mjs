@@ -85,13 +85,17 @@ try{
   await call(path+'mine',undefined,401);
   await call(path+'manage',b,403);
   await call(path+'mine&user_id='+ids[0],b,400);
-  const submit={kind:'submit_facility_repair',payload:{request_id:randomUUID(),building:'QA building',
-    location:'QA floor',item:'Light',description:'Private repair QA detail',confirmed:true}};
+  const catalog=await call(path+'catalog',a);
+  assert.equal(catalog.areas.length,18);
+  assert.equal(catalog.items.length,110);
+  const submit={kind:'submit_facility_repair',payload:{request_id:randomUUID(),area_code:'AR0500',equipment_code:'RI2004',
+    contact_phone:'0221',room:'QA',floor_label:'2樓',bed:'',location_remark:'',other_item:'',
+    description:'Private repair QA detail',confirmed:true}};
   await call(action,a,400,{...submit,payload:{...submit.payload,confirmed:false}});
   const saved=await call(action,a,200,submit);
   assert.equal(saved.status,'submitted');
   assert.deepEqual(await call(action,a,200,submit),saved);
-  await call(action,a,409,{...submit,payload:{...submit.payload,item:'Changed'}});
+  await call(action,a,409,{...submit,payload:{...submit.payload,room:'Changed'}});
   const cancel={kind:'cancel_facility_repair',payload:{request_id:randomUUID(),id:saved.id,version:1}};
   await call(path+'mine&id='+saved.id,b,404);
   await call(path+'mine&answer=en&id='+saved.id,b,404);
@@ -104,6 +108,8 @@ try{
   assert.equal(list[0].description,undefined);
   const detail=await call(path+'mine&id='+saved.id,a);
   assert.equal(detail.detail.description,submit.payload.description);
+  assert.equal(detail.detail.contact_phone,submit.payload.contact_phone);
+  assert.equal(detail.detail.equipment_code,submit.payload.equipment_code);
   assert.deepEqual(detail.events.map(event=>event.status),['submitted']);
   const answer=await call(path+'mine&answer=en&id='+saved.id,a);
   assert.equal(answer.grounding.source,'account');

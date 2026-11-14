@@ -134,6 +134,11 @@ export function schoolServiceReadFixture(rawUrl,method,user,origin) {
   assert.equal(url.pathname,'/api/affairs-data','Unknown API path.');
   if(!url.search)return schoolServiceSnapshot(user);
   const scope=url.searchParams.get('scope');
+  if(scope==='facility-repairs'){
+    assert.deepEqual(Object.fromEntries(url.searchParams),{scope,view:'catalog'});
+    return {userId:user.id,areas:[{code:'AR0500',label:'管理大樓',outdoor:false,sort_order:6}],
+      items:[{code:'RI2004',label:'日光燈',category:2,category_label:'電燈設備'}]};
+  }
   if(scope==='venue-requests'){
     assert.deepEqual(Object.fromEntries(url.searchParams),{scope,view:'mine'});
     return {userId:user.id,rows:[]};

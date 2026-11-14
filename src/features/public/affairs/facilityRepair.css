@@ -1,85 +1,74 @@
-.facility-repair-page {
-  min-height: 100vh;
-  padding: 8px 0;
-  background: #eee;
-  color: #252525;
-  font: 15px/1.5 Arial, sans-serif;
+.facility-repair-page { min-height:100vh; padding:4px 0 20px; background:#eee; color:#171717; font:13px/1.45 Arial,sans-serif; }
+.facility-repair { width:min(1060px,100%); min-height:calc(100vh - 24px); margin:auto; display:flex; flex-direction:column; }
+.facility-repair > header { display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px 12px; min-height:30px; padding:3px 12px 3px 16px; align-items:center; background:#737373; color:white; }
+.facility-repair > header span:first-child { display:flex; align-items:center; gap:8px; }
+.facility-repair > header img { width:23px; height:23px; object-fit:contain; }
+.facility-repair a { color:#2b6082; }
+.repair-navigation { display:flex; flex-wrap:wrap; justify-content:flex-end; min-height:45px; padding-right:24px; background:#417291; }
+.repair-navigation > a,.repair-navigation summary { display:flex; align-items:center; gap:5px; padding:0 15px; min-height:45px; color:white; cursor:pointer; border-inline-start:1px solid #3b6b8a; list-style:none; }
+.repair-navigation details { position:relative; }
+.repair-navigation details > div { position:absolute; right:0; top:100%; z-index:1; min-width:128px; background:#fff; border:1px solid #ccc; }
+.repair-navigation details > div a { display:block; padding:6px 10px; }
+.repair-breadcrumbs { display:flex; align-items:center; gap:8px; padding:5px 16px; min-height:31px; background:#f5f5f5; border-bottom:1px solid #e2e2e2; }
+.repair-breadcrumbs span:last-child { color:#3d6480; }
+.repair-body { padding:14px 20px 40px; background:#fff; }
+.repair-body h1 { display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:4px 0 12px; border-bottom:1px solid #e9e9e9; font-size:16px; font-weight:600; }
+.repair-body h1 svg { color:#a74432; }
+.repair-body h1 small { color:#606060; font-size:13px; font-weight:400; }
+.repair-area-title { margin:32px 0 16px; padding-bottom:5px; border-bottom:1px solid #ddd; color:#a3452c; font-size:17px; font-weight:700; }
+.repair-area-group { margin-bottom:20px; border:1px solid #ddd; border-radius:4px; }
+.repair-area-group summary { padding:11px 14px; cursor:pointer; background:#f5f5f5; color:#2b6082; }
+.repair-area-group > div { display:flex; flex-wrap:wrap; gap:10px 12px; padding:15px 15px 26px; border-top:1px solid #ddd; }
+.repair-area-group a { padding:4px 11px; border-radius:4px; background:#3e72a4; color:white; font-weight:700; overflow-wrap:anywhere; }
+.repair-area-group:last-of-type a { background:#547745; }
+.repair-network { padding:0 0 14px; margin-top:-3px; color:#a23120; }
+.repair-form { --repair-label:calc(25% - 6px); display:grid; gap:15px; max-width:846px; margin:10px 0 0; }
+.repair-form > label,.repair-form-row { display:grid; grid-template-columns:var(--repair-label) minmax(0,1fr); align-items:start; gap:12px; text-align:right; }
+.repair-form label { line-height:30px; }
+.repair-field-with-help { display:flex; align-items:center; flex-wrap:wrap; gap:8px 14px; text-align:left; }
+.repair-field-with-help small { color:#325b78; font-size:12px; }
+.repair-form input,.repair-form select,.repair-form textarea,.repair-filter select,.repair-dialog input,.repair-dialog textarea {
+  min-width:0; min-height:30px; width:90px; max-width:100%; padding:3px 6px; border:1px solid #b9b9b9; background:#fff; color:#353535; font:inherit; line-height:1.45;
 }
-.facility-repair {
-  width: min(962px, 100%);
-  min-height: calc(100vh - 16px);
-  margin: auto;
-  border: 1px solid #c7c7c7;
-  background: #fff;
+.repair-form input:read-only,.repair-form :disabled { background:#eee; }
+.repair-form .repair-wide,.repair-dialog input { width:210px; }
+.repair-form .repair-location { width:270px; }
+.repair-form textarea,.repair-dialog textarea { width:100%; min-height:123px; resize:vertical; }
+.repair-form textarea[placeholder] { min-height:142px; }
+.repair-form-actions { display:flex; align-items:center; flex-wrap:wrap; gap:12px; padding-left:calc(var(--repair-label) + 12px); }
+.facility-repair button,.repair-dialog footer button,.repair-item-picker table button {
+  padding:4px 10px; border:1px solid #346e9e; border-radius:2px; background:#3b75a7; color:#fff; cursor:pointer;
 }
-.facility-repair > header {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 4px 12px;
-  padding: 3px 16px;
-  background: #535759;
-  color: #fff;
-  font-size: 13px;
+.facility-repair button:disabled,.repair-dialog footer button:disabled { opacity:.65; cursor:default; }
+.repair-notes { margin-top:40px; border-top:1px solid #e5e5e5; }
+.repair-notes h2 { margin:10px 0; color:#325b78; }
+.repair-notes ol { margin-left:20px; list-style:decimal; }
+.repair-footer { margin-top:auto; padding:18px 12px 0; text-align:center; color:#325b78; }
+.repair-filter { display:inline-block; margin-top:10px; }
+.repair-table { margin-top:12px; max-width:100%; overflow:auto; }
+.repair-table table { width:100%; border-collapse:collapse; }
+.repair-body .repair-table table { min-width:690px; }
+.repair-table :is(th,td) { padding:8px; border:1px solid #d2d9dc; text-align:left; }
+.repair-table th { background:#214e63; color:white; }
+.repair-table tbody tr:nth-child(odd) { background:#f5f5f5; }
+.repair-pages { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-block:12px; }
+.repair-detail { display:grid; gap:1px; margin-top:12px; background:#dce3e7; }
+.repair-detail > div { display:grid; grid-template-columns:7rem minmax(0,1fr); gap:10px; padding:7px 9px; background:#f5f8fa; }
+.repair-detail dt { font-weight:bold; }
+.repair-detail dd,.repair-wrap,.repair-events p { white-space:pre-wrap; overflow-wrap:anywhere; }
+.repair-events { margin:6px 0 14px; padding-left:1.25rem; list-style:decimal; }
+.repair-events li { margin-bottom:6px; }
+.repair-dialog label { display:grid; gap:4px; }
+.repair-dialog footer { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }
+.repair-dialog.repair-item-picker { width:min(600px,calc(100vw - 24px)); max-width:600px; max-height:90dvh; grid-template-rows:auto auto auto minmax(0,1fr); }
+.repair-item-picker .repair-table { min-height:0; }
+.facility-repair [role=alert],.repair-dialog [role=alert] { color:#981a1a; }
+.facility-repair :focus-visible,.repair-dialog :focus-visible { outline:2px solid #176b99; outline-offset:2px; }
+@media(max-width:600px){
+  .repair-body { padding-inline:12px; }
+  .repair-navigation { padding-right:0; }
+  .repair-form { --repair-label:6.5rem; }
+  .repair-form > label,.repair-form-row { gap:8px; }
+  .repair-field-with-help { gap:2px 8px; }
+  .repair-item-picker .repair-table table { min-width:430px; }
 }
-.facility-repair section { padding: 12px clamp(12px, 3vw, 26px) 28px; }
-.facility-repair h1 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 46px;
-  border-bottom: 1px solid #ccc;
-  color: #3b4548;
-  font-size: 22px;
-  font-weight: bold;
-}
-.facility-repair h1 img { width: 32px; height: 32px; object-fit: contain; }
-.facility-repair h2 { margin-top: 16px; font-weight: bold; }
-.facility-repair nav { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-block: 10px 16px; }
-.facility-repair a { color: #146398; text-decoration: underline; }
-.repair-form {
-  display: grid;
-  justify-items: start;
-  gap: 12px;
-  margin-top: 12px;
-  padding: 14px;
-  border: 1px solid #c8d9e4;
-  border-block: 3px solid #186c9d;
-}
-.repair-form label, .repair-dialog label { display: grid; gap: 4px; width: min(480px, 100%); }
-.repair-form input, .repair-form textarea, .repair-filter select, .repair-dialog textarea {
-  min-width: 0;
-  padding: 5px 8px;
-  border: 1px solid #858e95;
-  background: white;
-  color: #252525;
-}
-.repair-form textarea, .repair-dialog textarea { min-height: 90px; resize: vertical; }
-.facility-repair button, .repair-dialog footer button {
-  padding: 5px 12px;
-  border: 1px solid #135b86;
-  border-radius: 3px;
-  background: #176b99;
-  color: white;
-  cursor: pointer;
-}
-.facility-repair button:disabled, .repair-dialog button:disabled { opacity: .6; cursor: default; }
-.repair-table { margin-top: 12px; max-width: 100%; overflow: auto; }
-.repair-table table { width: 100%; border-collapse: collapse; }
-.repair-table :is(th, td) {
-  padding: 6px 8px;
-  border: 1px solid #c7d2d8;
-  text-align: left;
-  overflow-wrap: anywhere;
-}
-.repair-table th { background: #e9f2f5; color: #1d4b66; }
-.repair-pages { align-items: center; }
-.repair-detail { display: grid; gap: 1px; margin-top: 12px; background: #dce3e7; }
-.repair-detail > div { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: 10px; padding: 7px 9px; background: #f5f8fa; }
-.repair-detail dt { font-weight: bold; }
-.repair-detail dd, .repair-wrap, .repair-events p { white-space: pre-wrap; overflow-wrap: anywhere; }
-.repair-events { margin: 6px 0 14px; padding-left: 1.25rem; list-style: decimal; }
-.repair-events li { margin-bottom: 6px; }
-.repair-dialog footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
-.facility-repair [role=alert], .repair-dialog [role=alert] { color: #981a1a; }
-.facility-repair :focus-visible, .repair-dialog :focus-visible { outline: 2px solid #176b99; outline-offset: 2px; }

@@ -246,7 +246,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   const adminRecords = route[0] === "admin" && route[1] === "records" && route.length === 2;
   const servicePage = route[0] === "services";
   const { snapshot: account, loading: accountLoading, error: accountError, refresh: refreshAccount } =
-    useAffairsRecords(index || notifications || bookmarks || validMenu || adminRecords || subjects || (servicePage && ["11-1", "11-2", "13-1", "14-1", "15-1", "15-2", "34-2", "38-1"].includes(route[1])) ? user.id : undefined);
+    useAffairsRecords(index || notifications || bookmarks || validMenu || adminRecords || subjects || (servicePage && (["11-1", "11-2", "13-1", "14-1", "15-1", "15-2", "34-2", "38-1"].includes(route[1]) || (route[1] === "45-1" && route[2] === "area"))) ? user.id : undefined);
   const verifiedAdmin = !accountLoading && !accountError && account?.profile.userId === user.id && account.profile.role === "admin";
   const ended = route[0] === "signed-out";
   const article = portalNews.find((news) => news.id === params.get("news"));
@@ -645,8 +645,12 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   if (servicePage && route[1] === "12-4") {
     return <CourseCatalog userId={user.id} />;
   }
-  if (normalizedPath === repairPaths.report) {
-    return <FacilityRepairWorkspace key={user.id} userId={user.id} view="report" />;
+  if (normalizedPath === repairPaths.report || /^\/school-affairs\/services\/45-1\/area\/AR[0-9]{4}$/.test(normalizedPath)) {
+    const ownsProfile = !accountLoading && !accountError && account?.profile.userId === user.id;
+    return <FacilityRepairWorkspace key={user.id} userId={user.id} view="report"
+      areaCode={normalizedPath === repairPaths.report ? undefined : route.at(-1)}
+      applicantName={ownsProfile ? (account.student?.fullName || account.profile.displayName) : undefined}
+      applicantCode={ownsProfile ? account.student?.studentNumber : undefined}/>;
   }
   for (const [view, base] of [["history", repairPaths.history], ["manage", repairPaths.manage]] as const) {
     const id = normalizedPath.slice(base.length + 1);

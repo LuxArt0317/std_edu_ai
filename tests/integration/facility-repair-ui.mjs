@@ -27,6 +27,7 @@ async function open(user,width){
     try{
       if(url.searchParams.get('scope')==='facility-repairs'){
         assert.match(req.headers().authorization??'',/^Bearer /);
+        if(url.searchParams.get('view')==='catalog')return route.fulfill({json:schoolServiceReadFixture(url.href,req.method(),user,origin)});
         if(url.searchParams.get('view')==='manage'&&user!==manager)return route.fulfill({status:403,json:{error:'Denied'}});
         if(url.searchParams.has('answer')){
           assert.equal(user,affairsTestUser);
@@ -50,8 +51,9 @@ async function open(user,width){
         const action=req.postDataJSON();writes.push(action);
         if(action.kind==='submit_facility_repair'){
           assert.equal(user,affairsTestUser);assert.equal(action.payload.confirmed,true);
-          const {building,location,item,description}=action.payload;
-          Object.assign(row,{building,location,item,description});
+          assert.equal(action.payload.area_code,'AR0500');
+          assert.equal(action.payload.equipment_code,'RI2004');
+          Object.assign(row,{...action.payload,building:'管理大樓',location:action.payload.room,item:'日光燈'});
           if(writes.length===1){
             events.push({version:1,status:'submitted',note:'',occurred_at:date});
             return route.fulfill({status:503,json:{error:'Retry requested'}});
@@ -79,21 +81,33 @@ try{
   await student.goto(origin+'/school-affairs/menu/swd/input');
   await student.locator('a[href="'+repairPaths.report+'"]').click();
   await student.waitForURL(origin+repairPaths.report);
-  await student.getByLabel('棟別').fill('QA building');
-  await student.getByLabel('樓層及地點').fill('QA floor');
-  await student.getByLabel('報修項目').fill('Light');
-  await student.getByLabel('故障說明').fill('Private detail');
+  await student.getByRole('link',{name:'管理大樓'}).waitFor();
+  await student.screenshot({path:'artifacts/facility-repair/areas-1440.png'});
+  const areaLayout=await student.locator('.facility-repair').boundingBox();
+  assert.equal(areaLayout.width,1060);
+  await student.getByRole('link',{name:'管理大樓'}).click();
+  await student.waitForURL(origin+repairPaths.report+'/area/AR0500');
+  await student.waitForFunction(()=>[...document.querySelectorAll('.repair-form input[readonly]')].some(input=>input.value==='QA Student'));
+  await student.getByLabel('申請人電話').fill('0221');
+  await student.getByLabel('請修房間').fill('QA room');
+  await student.getByLabel('請修樓層').selectOption('2樓');
+  await student.getByRole('button',{name:'選擇',exact:true}).click();
+  await student.getByLabel('關鍵字').fill('RI2004');
+  await student.getByRole('dialog').screenshot({path:'artifacts/facility-repair/equipment-picker.png'});
+  await student.getByRole('button',{name:'選取 日光燈'}).click();
+  await student.getByRole('dialog').waitFor({state:'hidden'});
+  await student.getByLabel('損壞情形').fill('Private detail');
   await student.screenshot({path:'artifacts/facility-repair/report-1440.png'});
   const dialog=student.getByRole('dialog');
-  await student.getByRole('button',{name:'確認報修'}).click();
+  await student.getByRole('button',{name:'送出',exact:true}).click();
   await dialog.waitFor();
   await student.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});
   assert.equal(writes.length,0);
-  await student.getByRole('button',{name:'確認報修'}).click();
+  await student.getByRole('button',{name:'送出',exact:true}).click();
   await dialog.getByRole('button',{name:'送出報修'}).click();
   await dialog.getByRole('alert').getByText('Retry requested').waitFor();
   await dialog.getByRole('button',{name:'返回'}).click();
-  await student.getByRole('button',{name:'確認報修'}).click();
+  await student.getByRole('button',{name:'送出',exact:true}).click();
   await dialog.getByRole('button',{name:'送出報修'}).click();
   const detail=repairPaths.history+'/'+row.id;
   await student.waitForURL(origin+detail);
@@ -127,10 +141,10 @@ try{
   await student.keyboard.press('Escape');
   const phone=await open(affairsTestUser,390);
   await phone.goto(origin+repairPaths.history);
-  await phone.getByText('QA building',{exact:false}).waitFor();
+  await phone.getByText('管理大樓',{exact:false}).waitFor();
   assert.equal(await phone.evaluate(()=>document.documentElement.scrollWidth),390);
   const a11y=await new AxeBuilder({page:phone}).include('.facility-repair').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
-  assert.deepEqual(a11y.violations.map(item=>item.id),[]);
+  assert.deepEqual(a11y.violations.map(item=>[item.id,item.nodes.map(node=>node.target)]),[]);
   await phone.screenshot({path:'artifacts/facility-repair/history-390.png'});
   const guest=await open(null,390);await guest.goto(origin+detail);
   await guest.waitForURL(url=>url.pathname==='/school-affairs/login');

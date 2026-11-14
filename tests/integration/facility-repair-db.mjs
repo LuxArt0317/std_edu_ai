@@ -6,7 +6,7 @@ import {deploymentEnvironment} from '../../scripts/deployment-env.mjs';
 import {dormitoryConductClientTarget,reserveDormitoryConductLease} from './dormitory-conduct-rls-live.mjs';
 
 const mode=process.argv[2];
-assert.ok(['--rollback-preflight','--deployed'].includes(mode));
+assert.ok(['--rollback-preflight','--catalog-preflight','--deployed'].includes(mode));
 const env=deploymentEnvironment(),connection=env.POSTGRES_URL_NON_POOLING||env.POSTGRES_URL;
 dormitoryConductClientTarget(connection);
 const config=JSON.parse(await readFile('deployment.json','utf8'));
@@ -27,6 +27,7 @@ try{
   lease=await reserveDormitoryConductLease(pool);
   await lease.rollbackOnly(async q=>{
     if(mode==='--rollback-preflight')await q.unsafe(await readFile('supabase/migrations/20261114180000_facility_repairs.sql','utf8'));
+    if(mode==='--catalog-preflight')await q.unsafe(await readFile('supabase/migrations/20261114190000_facility_repair_catalog.sql','utf8'));
     const [owner]=await q`select id from auth.users where lower(email)=lower(${config.supabase.ownerEmail})`;
     assert.ok(owner);
     await q`insert into auth.identities(provider_id,user_id,identity_data,provider,created_at,updated_at)
@@ -76,6 +77,23 @@ try{
     const [event]= (await read(q,{id:first.id})).events;
     assert.deepEqual(Object.keys(event).sort(),['note','occurred_at','status','version']);
     await fail(q,'PT409',s=>action(s,'cancel_facility_repair',{...cancel,version:4}));
+    const structured={request_id:randomUUID(),area_code:'AR0500',equipment_code:'RI2004',contact_phone:'0221',room:'QA',
+      floor_label:'2樓',bed:'',location_remark:'',other_item:'',description:'Structured details',confirmed:true};
+    if(mode!=='--rollback-preflight'){
+      const [catalog]=await q`select public.affairs_facility_repair_catalog() as result`;
+      assert.equal(catalog.result.areas.length,18);
+      assert.equal(catalog.result.items.length,110);
+      await fail(q,'22023',s=>action(s,'submit_facility_repair',{...structured,equipment_code:'RI0000'}));
+      await fail(q,'22023',s=>action(s,'submit_facility_repair',{...structured,equipment_code:'RI9999'}));
+      const result=await action(q,'submit_facility_repair',structured);
+      assert.deepEqual(await action(q,'submit_facility_repair',structured),result);
+      const detail=(await read(q,{id:result.id})).detail;
+      assert.equal(detail.area_code,'AR0500');
+      assert.equal(detail.equipment_code,'RI2004');
+      assert.equal(detail.building,'管理大樓');
+      assert.equal(detail.location,'QA · 2樓');
+      assert.equal(detail.contact_phone,'0221');
+    }
     const second=await action(q,'submit_facility_repair',{...submit,request_id:randomUUID()});
     const cancelled=await action(q,'cancel_facility_repair',{...cancel,id:second.id});
     assert.equal(cancelled.status,'cancelled');

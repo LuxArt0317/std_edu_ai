@@ -1,6 +1,6 @@
 # Changelog
 ## Unreleased
-- Add confirmed facilities repair reports, account history, administrator review and campus assistant status lookup. [#98]
+- Add facilities repair area selection, a searchable equipment catalog, confirmed reports, private history, administrator review and assistant status. [#98]
 
 - Add venue schedule search, persisted room availability, private local requests and administrator review. [#98]
 

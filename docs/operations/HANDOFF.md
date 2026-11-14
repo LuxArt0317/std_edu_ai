@@ -1,6 +1,6 @@
 ## Facilities repair (Issue #98)
 
-Service 45-1 has a confirmed report form, saved private status and an administrator queue. The campus assistant reads the signed-in user's report status. See [facility repair QA](../qa/FACILITY_REPAIR.md) for the source boundary and verification.
+Service 45-1 has the observed area picker, equipment selection, report form and progress table, with private records and an administrator queue. The campus assistant reads the signed-in user's report status. See [facility repair QA](../qa/FACILITY_REPAIR.md) for the source boundary and verification.
 
 ## Venue booking (Issue #98)
 

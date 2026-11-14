@@ -1,6 +1,6 @@
 ## Facilities repair [Issue #98]
 
-The preceding goal turn made progress by adding the facility repair backend and form. The current turn connected the form, private history and administrator queue to their routes. The client installed migration 20261114180000 after rollback verification. Database verification reports 152 migrations and 179 RLS-protected public tables. The public noticeboard confirms the workflow. The authenticated university layout remains unobserved. Production acceptance is pending.
+The preceding goal turn made progress by adding the facility repair backend and form. The current turn connected the form, private history and administrator queue to their routes. The client installed migration 20261114180000 after rollback verification. Database verification reports 152 migrations and 179 RLS-protected public tables. The first-pass production browser and API passed. The signed-in browser then exposed the university area picker, building and outdoor forms, equipment picker and empty progress table. The follow-up adopts those structures and stores the observed area and equipment catalogs. Verification of the follow-up release is pending.
 
 ## Venue booking [Issue #98]
 

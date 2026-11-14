@@ -6,7 +6,9 @@
 - [x] Implement confirmed reports, private history, administrator review and assistant status.
 - [x] Apply the exact-client migration after rollback verification.
 - [ ] Verify the production browser, actual-JWT HTTP, guest assistant and pinned release.
-- [ ] Compare the authenticated university submission, dispatch and results screens.
+- [x] Observe the authenticated area picker, two form variants, equipment picker and empty progress view.
+- [x] Connect the observed area and equipment catalogs to the form and persist the structured report fields.
+- [ ] Compare populated university history and dispatch screens.
 
 
 ## Venue booking [Issue #98]

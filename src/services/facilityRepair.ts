@@ -4,9 +4,14 @@ import type {AssistantResponse} from './researchAssistant';
 
 export type RepairFields={building:string;location:string;item:string;description:string};
 export type RepairRow=Omit<RepairFields,'description'>&{id:string;user_id:string;status:RepairStatus;version:number;created_at:string;updated_at:string};
-export type RepairDetail={userId:string;detail:RepairRow&Pick<RepairFields,'description'>;events:Array<{status:RepairStatus;version:number;note:string;occurred_at:string}>};
+export type RepairArea={code:string;label:string;outdoor:boolean;sort_order:number};
+export type RepairItem={code:string;label:string;category:number;category_label:string};
+export type RepairCatalog={userId:string;areas:RepairArea[];items:RepairItem[]};
+export type RepairInput={area_code:string;equipment_code:string;contact_phone:string;room:string;floor_label:string;bed:string;
+  location_remark:string;other_item:string;description:string};
+export type RepairDetail={userId:string;detail:RepairRow&Pick<RepairFields,'description'>&Partial<RepairInput>;events:Array<{status:RepairStatus;version:number;note:string;occurred_at:string}>};
 export type RepairList={userId:string;rows:RepairRow[];total:number;page:number;pageSize:number};
-export type RepairAction={kind:'submit_facility_repair';payload:RepairFields&{request_id:string;confirmed:true}}
+export type RepairAction={kind:'submit_facility_repair';payload:RepairInput&{request_id:string;confirmed:true}}
   |{kind:'cancel_facility_repair';payload:{id:string;version:number;request_id:string}}
   |{kind:'review_facility_repair';payload:{id:string;version:number;request_id:string;status:'in_progress'|'resolved';note:string}};
 
@@ -32,7 +37,16 @@ async function request<T>(userId:string,path:string,signal?:AbortSignal,action?:
   if(!response.ok||!data)throw new RepairError(typeof data?.error==='string'?data.error:'報修資料暫時無法載入。',response.status);
   return data as T;
 }
-const path=(view:'mine'|'manage',fields:Record<string,string>)=>'/api/affairs-data?'+new URLSearchParams({scope:'facility-repairs',view,...fields});
+const path=(view:'mine'|'manage'|'catalog',fields:Record<string,string>)=>'/api/affairs-data?'+new URLSearchParams({scope:'facility-repairs',view,...fields});
+export async function loadRepairCatalog(userId:string,signal:AbortSignal){
+  const result=await request<RepairCatalog>(userId,path('catalog',{}),signal);
+  if(result.userId!==userId||!Array.isArray(result.areas)||!result.areas.length||result.areas.length>200||
+    !result.areas.every(area=>/^AR[0-9]{4}$/.test(area.code)&&typeof area.label==='string'&&typeof area.outdoor==='boolean')||
+    !Array.isArray(result.items)||!result.items.length||result.items.length>1000||
+    !result.items.every(item=>/^RI[0-9]{4}$/.test(item.code)&&typeof item.label==='string'&&typeof item.category_label==='string'))
+    throw new RepairError('無法確認報修選項。',502);
+  return result;
+}
 const validRow=(row:RepairRow,userId:string,manage:boolean)=>repairId(row?.id)&&Object.hasOwn(repairStatuses,row.status)&&(manage||row.user_id===userId);
 export async function loadRepairList(userId:string,manage:boolean,page:number,status:string,signal:AbortSignal){
   const result=await request<RepairList>(userId,path(manage?'manage':'mine',{page:String(page),...(status?{status}:{})}),signal);
