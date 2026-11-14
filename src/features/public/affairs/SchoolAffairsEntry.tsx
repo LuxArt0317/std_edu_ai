@@ -11,6 +11,7 @@ import './login.css';
 import { SchoolAffairsPrivacy } from './SchoolAccountRecords';
 import { permanentCoursesPath } from './permanentCourseRouting.js';
 import { venuePaths } from './venueContract.js';
+import { healthExaminationPath } from '../../../../server/healthExaminationContract.js';
 const base = 'https://info.stu.edu.tw/ePortal/';
 const campusPhotos = Array.from({ length: 16 }, (_, index) =>
   referenceAsset(`${base}assets/images/stu${index}.jpg`),
@@ -92,8 +93,11 @@ export default function SchoolAffairsEntry() {
   if (user) return <SchoolAffairsPortal key={user.id} user={user} />;
   if (pathname !== '/school-affairs/login') {
     const ordinaryTarget = safeSchoolReturnPath(pathname + hash);
-    const target = [permanentCoursesPath,venuePaths.schedule,adjustmentPaths.summer,adjustmentPaths.summer+'/notice','/school-affairs/services/11-1'].includes(pathname.replace(/\/$/,''))
-      ? safeSchoolReturnPath(pathname + search + hash,ordinaryTarget) : ordinaryTarget;
+    const barePath = pathname.replace(/\/$/,'');
+    const target = barePath === healthExaminationPath
+      ? safeSchoolReturnPath(barePath + search + hash,ordinaryTarget)
+      : [permanentCoursesPath,venuePaths.schedule,adjustmentPaths.summer,adjustmentPaths.summer+'/notice','/school-affairs/services/11-1'].includes(barePath)
+        ? safeSchoolReturnPath(pathname + search + hash,ordinaryTarget) : ordinaryTarget;
     return <Navigate to={target==='/school-affairs'?'/school-affairs/login':'/school-affairs/login?next='+encodeURIComponent(target)} replace />;
   }
   return <main className="affairs-login" style={{backgroundImage:`url("${referenceAsset(base+'assets/css/images/pattern.jpg')}")`}}>

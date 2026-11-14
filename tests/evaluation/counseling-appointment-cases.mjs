@@ -186,4 +186,3 @@ export function gradeCounselingAppointmentCase(testCase,envelope,{observation}={
   check('counseling.noStorageOutput',!/(?:storage\/v1\/|object\/sign\/|[?&]token=|"signedURL"|"signedUrl")/iu.test(JSON.stringify(envelope?.body)),'No file URLs or download capabilities are returned.');
   return {...result,checks:[...result.checks,...checks],failures:[...result.failures,...checks.filter(item=>!item.passed)],passed:result.passed&&checks.every(item=>item.passed)};
 }
-
