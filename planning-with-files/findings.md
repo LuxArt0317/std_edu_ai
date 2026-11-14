@@ -287,3 +287,7 @@ Certificate award source has distinct entry and catalog routes. The student conf
 ## Remote-learning activity screens
 
 Fourteen linked slide/video screens display Google Drive previews and one feedback screen displays a Google Form. Only the screen and destination types were verified. The source attendance report denied access in the current session. The teacher timetable source still requires its own CAPTCHA sign-in.
+
+## Remaining School Affairs source checks
+
+School Affairs 5-1 returned a source 404. The professional program data (18-1) and internship-organization search (55-1) returned independent sign-in screens. No source records were imported.

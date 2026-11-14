@@ -10,7 +10,7 @@
 - [x] Verify two source course outlines and their 17 activity destinations.
 - [x] Verify and publish the account-scoped outlines and assistant links.
 - [x] Match the verified outline header, breadcrumbs, icons and spacing.
-- [ ] Publish and verify local protected activity pages and type-specific assistant links.
+- [x] Publish and verify local protected activity pages and type-specific assistant links.
 - [ ] Verify and implement remaining resource content and private academic records.
 
 ## Counseling appointments [Issue #98]
