@@ -1,6 +1,8 @@
 ## Announcement email preference [Issue #98]
 
-Service 2-1 has a source-shaped form, private persistence and assistant status. The queue and worker passed rollback and controlled transport tests. The client mail sender remains unavailable and the schedule is gated. Production verification is pending.
+Production `2917920` is live as Vercel `9wmknk5mMEQEspGaerrDGzJzA2bh`. Migration 20261114220000 brings the client to 156 migrations and 184 RLS-protected public tables. The pinned browser, authenticated HTTP with fixture cleanup, four bilingual guest assistant checks, eight shell routes and Quality 43547791212 passed. The 94-destination local audit reports 32 generic and 22 partial entries.
+
+The sender is unconfigured and the delivery job is disabled by its repository gate. Queue eligibility, retries and transport were verified with controlled responses. Mailbox receipt remains open. The teacher timetable, professional program and learning questionnaire sources require their own sign-in. The source portal guide path returned 404. Certificate award service 52-1 opened its signed-in form and certificate search. The next implementation can use the observed layouts, private attachment storage and a protected review workflow.
 
 ## Student information confirmation [Issue #98]
 

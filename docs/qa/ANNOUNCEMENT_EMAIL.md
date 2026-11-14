@@ -22,3 +22,7 @@ PUBLIC_SITE_ORIGIN=http://127.0.0.1:54629 node tests/integration/announcement-em
 ```
 
 Use the preflight mode before applying the migration and the deployed mode afterward. The database suite rolls back its announcements and fixtures. The authenticated HTTP suite removes disposable accounts and preferences. Worker tests use a controlled provider response, and browser tests use a synthetic account. The deployment ships with the delivery workflow disabled until a sender is available.
+
+## Deployed evidence
+
+Production `2917920` is live as Vercel `9wmknk5mMEQEspGaerrDGzJzA2bh`. Migration 20261114220000 brings the client to 156 migrations and 184 RLS-protected public tables. The pinned browser, authenticated HTTP with fixture cleanup, four bilingual guest assistant checks, eight shell routes and Quality 43547791212 passed. The 94-destination local audit reports 32 generic and 22 partial entries. The sender is unconfigured and the delivery job is disabled by its repository gate. Queue eligibility, retries and transport were verified with controlled responses. Mailbox receipt remains open.

@@ -2,6 +2,8 @@
 
 Service 2-1 has a protected email checkbox and next-day activation in Taipei. The sender and schedule are opt-in configuration. Preference persistence and the worker can be verified separately from mailbox delivery. See [announcement email QA](../qa/ANNOUNCEMENT_EMAIL.md).
 
+Production `2917920` is live as Vercel `9wmknk5mMEQEspGaerrDGzJzA2bh`. Migration 20261114220000 brings the client to 156 migrations and 184 RLS-protected public tables. The pinned browser, authenticated HTTP with fixture cleanup, four bilingual guest assistant checks, eight shell routes and Quality 43547791212 passed. The 94-destination local audit reports 32 generic and 22 partial entries. The sender is unconfigured and the delivery job is disabled by its repository gate. Queue eligibility, retries and transport were verified with controlled responses. Mailbox receipt remains open.
+
 ## Student information confirmation (Issue #98)
 
 Service 8-1 uses a dedicated form for reviewing private baseline fields and saving a confirmation or updated mobile number. The administrator can maintain the baseline. The assistant reads confirmation status only. See [student profile QA](../qa/STUDENT_PROFILE.md). The university submission outcome and record synchronization remain outside the verified workflow.
