@@ -21,7 +21,7 @@ test('every catalog link has navigation, own-record, empty-record and action-bou
 
 test('generic tracker success cannot erase missing service workflow capability',()=>{
   const gaps=serviceCapabilityGaps();
-  for(const id of ['27-1','28-1','29-1','30-1','30-2','31-1','31-2','32-1','34-2','35-1','36-1','37-1','38-1']){
+  for(const id of ['27-1','28-1','29-1','30-1','30-2','31-1','31-2','32-1','34-2','35-1','37-1','38-1']){
     assert.equal(serviceCapabilities[id].level,'generic-tracker');
     assert.ok(gaps.some(row=>row.serviceId===id&&/No structured/.test(row.limitation)));
     const fixture=serviceNoteFixture(id,'own-account');
@@ -35,6 +35,9 @@ test('generic tracker success cannot erase missing service workflow capability',
     assert.equal(record.expected.provenance,'personal');
   }
   assert.throws(()=>serviceNoteFixture('34-1'),TypeError);
+  assert.equal(serviceCapabilities['36-1'].level,'partial');
+  assert.ok(gaps.some(row=>row.serviceId==='36-1'&&/metadata/.test(row.limitation)));
+  assert.throws(()=>serviceNoteFixture('36-1'),TypeError);
 });
 
 test('native lookup criteria include literal evidence and never treat catalog as enrollment',()=>{

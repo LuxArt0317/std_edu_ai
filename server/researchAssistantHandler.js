@@ -1,9 +1,10 @@
-import {isOwnFeeBalanceQuestion} from './pendingFeesAnswer.js';
+import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel} from './pendingFeesAnswer.js';
 import { calendarPath, wifiGuidePath } from '../src/features/public/affairs/studentServices.js';
 import { clubStudentGuide,clubStudentQuestion } from './clubStudentContract.js';
 import { clubOfficerGuide,clubOfficerQuestion } from './clubOfficerContract.js';
 import { clubGuide,clubIntent } from './clubServicesContract.js';
-import { healthExaminationGuide, healthExaminationQuestion } from './healthExaminationContract.js';
+import { healthExaminationGuide, healthExaminationPath, healthExaminationQuestion } from './healthExaminationContract.js';
+import {isHealthExaminationNavigationQuestion,selectHealthExaminationEvidence,withoutExcludedHealthClause} from './healthExaminationEvidenceIntent.js';
 import {elearningCourseLocation,elearningCoursePath,elearningGuide,elearningQuestion,elearningOutlineCourse} from './elearningContract.js';
 import {aidPaymentsPaths,aidPaymentsQuestion} from './aidPaymentsContract.js';
 import {counselingGuide,counselingQuestion} from './counselingContract.js';
@@ -112,6 +113,8 @@ function parse(body) {
     }) : [];
     const route = typeof source.route === 'string' && (/^\/school-affairs(?:\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?$/.test(source.route)||
         /^\/school-affairs\/services\/21-3\/?$/.test(source.route)||
+        (source.route.startsWith(healthExaminationPath)&&selectHealthExaminationEvidence('Show my health records.',source.route)?.reason===null&&
+          /^\/school-affairs\/services\/36-1\/?(?:\?page=[1-9]\d{0,2})?$/.test(source.route))||
         (source.route.startsWith('/school-affairs/services/34-2')&&selectDormitoryConductEvidence('Show my records.',source.route)?.reason===null)||
         (source.route.startsWith('/school-affairs/services/45-1/history')&&isFacilityRepairEvidenceQuestion('What is its status?',source.route))||
         /^\/elearning(?:\/(?:category|notice)\/[1-9]\d{0,9}|\/(?:categories|my-courses|login|search))?\/?$/.test(source.route)||
@@ -325,11 +328,23 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const stream = createAssistantStream(input.stream, response);
-        if(isOwnFeeBalanceQuestion(input.question)){
+        const balanceQuestion=withoutExcludedHealthClause(input.question);
+        if(isOwnFeeBalanceQuestion(balanceQuestion)||balanceQuestion!==input.question&&ownFeeBalanceLabel(balanceQuestion)){
             const zh=/[\u3400-\u9fff]/u.test(input.question), url='/school-affairs/login?next='+encodeURIComponent('/school-affairs/services/39-1');
             const title=zh?'登入後查看待繳費用':'Sign in to check your saved fee balance';
             stream.send(200,{status:'handoff',answer:'['+title+']('+url+')',
                 citations:[{chunkId:'directory:pending-fees',title,url,claim:title,sourceName:'School Affairs'}],
+                suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
+            return;
+        }
+        const healthExaminations=selectHealthExaminationEvidence(input.question,input.route,input.history);
+        if(healthExaminations){
+            const zh=/[\u3400-\u9fff]/u.test(input.question),foreign=healthExaminations.reason==='foreign_request';
+            const path=healthExaminationPath+(healthExaminations.page>1?'?page='+healthExaminations.page:'');
+            const url='/school-affairs/login?next='+encodeURIComponent(path);
+            const title=zh?'登入後查看健檢紀錄':'Sign in to view health examination records';
+            const answer=foreign?(zh?'我只能協助查詢您自己的健檢紀錄。':'I can only help you check health examination records for your own account.'):'['+title+']('+url+')';
+            stream.send(200,{status:'handoff',answer,citations:foreign?[]:[{chunkId:'directory:health-examinations',title,url,claim:title,sourceName:'School Affairs'}],
                 suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
             return;
         }
@@ -392,7 +407,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             stream.send(200,clubGuide(input.question,clubs));
             return;
         }
-        if (!kind.irrelevant && healthExaminationQuestion(input.question)) {
+        if (!kind.irrelevant && (isHealthExaminationNavigationQuestion(input.question)||healthExaminationQuestion(input.question))) {
             stream.send(200, healthExaminationGuide(input.question));
             return;
         }

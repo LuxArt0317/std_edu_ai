@@ -24,7 +24,7 @@ export function isOwnFeeBalanceQuestion(question) {
 /** Restrict a named balance to one literal saved charge label. */
 export function ownFeeBalanceLabel(question) {
   if(typeof question!=='string')return null;
-  const match=/^(?:what remains unpaid for|(?:(?:what is|show me) )?(?:my|the) unpaid balance (?:of|for)|how much is unpaid for) (.{3,160}?)\s*[?!.]?$/iu.exec(question.trim());
+  const match=/^(?:what remains unpaid for|(?:(?:what is|show(?: me)?) )?(?:my|the) unpaid balance (?:of|for)|how much is unpaid for) (.{3,160}?)\s*[?!.]?$/iu.exec(question.trim());
   if(!match||!/^[\p{L}\p{N}][\p{L}\p{N} -]*$/u.test(match[1].trim()))return null;
   return match[1].trim();
 }

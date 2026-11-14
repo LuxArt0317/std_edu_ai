@@ -1,4 +1,5 @@
-import {isOwnFeeBalanceQuestion} from './pendingFeesAnswer.js';
+import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel} from './pendingFeesAnswer.js';
+import {withoutExcludedHealthClause} from './healthExaminationEvidenceIntent.js';
 import { answerPrivateAffairsQuestion, accountQuestionIntent } from './affairsAnswer.js';
 import { runAnswerVerification } from './answerVerification.js';
 import { verificationModelCall, verifyEvidenceAnswer, repairEvidenceAnswer, composeEvidenceAnswer } from './answerVerificationModel.js';
@@ -125,7 +126,9 @@ function plannerRouteContext(route){
 }
 
 export async function planAccountLookup(question, history, route, deadline, retry) {
-  if(isOwnFeeBalanceQuestion(question))return {tools:['charges'],publicTopics:[],catalogQuery:null,responseIntent:'records'};
+  const balanceQuestion=withoutExcludedHealthClause(question);
+  if(isOwnFeeBalanceQuestion(balanceQuestion)||balanceQuestion!==question&&ownFeeBalanceLabel(balanceQuestion))
+    return {tools:['charges'],publicTopics:[],catalogQuery:null,responseIntent:'records'};
   const pages=nativePageLookupContext(question,route,history);
   if(pages.feeAndBalance)return {tools:[...pages.tools,'charges'],publicTopics:[],catalogQuery:null,responseIntent:'records'};
   if(pages.readerOnly)return {tools:pages.tools,publicTopics:[],catalogQuery:null,responseIntent:'records'};
@@ -203,7 +206,7 @@ export async function planAccountLookup(question, history, route, deadline, retr
     if (!Array.isArray(plan.tools) || !Array.isArray(plan.publicTopics) || plan.tools.some(key=>!readToolNames.includes(key)) || plan.publicTopics.some(key=>!topicNames.includes(key))) throw new Error('Invalid lookup plan');
     const catalogQuery=validateCatalogReadPlan(plan.catalogQuery);
     const plannedTools=plan.tools.filter(key=>{
-      if(['dormitoryConduct','elearningOutline','feeRemission'].includes(key)&&!supplementalRequired.includes(key))return false;
+      if(['dormitoryConduct','elearningOutline','feeRemission','healthExaminations'].includes(key)&&!supplementalRequired.includes(key))return false;
       if(remoteLearningRequest&&key==='courses'&&!needsSeparateCourses)return false;
       if(remoteLearningWorkOnly&&['dtm','assignments','dtmSubmissions','dtmGradeReport'].includes(key))return false;
       if(remoteLearningRequest&&['dtmSubmissions','dtmGradeReport'].includes(key)&&!supplementalRequired.includes(key))return false;
@@ -602,10 +605,11 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     },repair:context=>repairEvidenceAnswer({...context,responseIntent:intent.kind,resolvedUserQuestion,diagnosticContext:diagnosticContext()}),
   });
   const supplementalViews=supplemental.length?formatSupplementalAccountAnswers(supplemental,{question}).views:[];
-  const repairClarification=activeTools.length===1&&['facilityRepairs','elearningOutline','feeRemission'].includes(activeTools[0])
+  const repairClarification=activeTools.length===1&&['facilityRepairs','elearningOutline','feeRemission','healthExaminations'].includes(activeTools[0])
     &&supplemental.some(source=>source.evidence.id==='account:facilityRepairs'?JSON.parse(source.evidence.content).requiresClarification===true
       :source.evidence.id==='account:elearningOutline'?['choose_course','invalid_selector','ambiguous_selector','ambiguous_section','ambiguous_activity'].includes(source.reason)
-      :source.evidence.id==='account:feeRemission'&&['current_term_not_designated','ambiguous_period','invalid_period'].includes(source.reason));
+      :source.evidence.id==='account:feeRemission'?['current_term_not_designated','ambiguous_period','invalid_period'].includes(source.reason)
+        :source.evidence.id==='account:healthExaminations'&&['ambiguous_selector','invalid_selector','invalid_route'].includes(source.reason));
   let viewSnapshot=current;
   if(intent.recognized&&(intent.currentCourses||intent.scheduleWeekday)&&!intent.explicitDtm&&Number.isFinite(Date.parse(current.checkedAt))){
     const enrolled=studyCalendar(ownRows(current.courses,current.profile?.userId),current.checkedAt).current;

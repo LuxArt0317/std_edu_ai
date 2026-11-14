@@ -4,6 +4,7 @@
  */
 import {schoolServiceEntries} from '../../src/features/public/affairs/studentServices.js';
 import {buildPlannedFeeRemissionCases} from './fee-remission-cases.mjs';
+import {buildPlannedHealthExaminationCases} from './health-examination-cases.mjs';
 
 const concepts = {
   '1-1':'password-change preparation','2-1':'campus announcement email preferences',
@@ -75,6 +76,7 @@ const overrides = {
   '26-1':native('housing',['housing'],'Local application receipts and accommodation assignments; health/contact fields are omitted from the assistant.'),
   '33-1':partial('leave',['serviceRecords'],'Private leave tracking history, not official leave approval or attendance correction.'),
   '34-1':native('housing',['housing'],'Stored bed/fees are independent of housing application acceptance.'),
+  '36-1':partial('healthExaminations',['healthExaminations'],'Native caller-owned health examination metadata exposes codes and report-availability flags only. Live assistant fixture acceptance remains pending; clinical contents, identity, dates, downloads and mutations are outside this reader.'),
   '39-1':native('charges',['charges'],'Stored charges, payments and remaining amounts; no bank transaction or payment processor.'),
   '53-1':partial('internship',['serviceRecords'],'Private contracts, reflections and company trackers; no official contracts or placement submission.'),
 };
@@ -178,6 +180,16 @@ export function buildServiceCases() {
       };
       return [entryCase(entry,capability,'navigation',`請給我「${entry.title}」在 stu.best 的連結。`,baseExpected('navigation',{requiredLinks:[entry.localUrl]}),'directory'),
         select('historical-period','record'),select('empty','empty'),select('write-boundary','action-boundary')];
+    }
+    if(entry.id==='36-1'){
+      const planned=buildPlannedHealthExaminationCases(),select=(suffix,mode)=>{
+        const source=planned.find(row=>row.id==='account:health-examinations-'+suffix);
+        if(!source)throw new Error('Missing planned health-examination service criterion.');
+        return {...structuredClone(source),id:`service:${entry.id}:${mode}`,mode,
+          capability:{...source.capability,level:capability.level,limitation:capability.limitation}};
+      };
+      return [entryCase(entry,capability,'navigation',`請給我「${entry.title}」在 stu.best 的連結。`,baseExpected('navigation',{requiredLinks:[entry.localUrl]}),'directory'),
+        select('metadata','record'),select('empty','empty'),select('write-boundary','action-boundary')];
     }
     const unavailableFixture=`unavailable:${capability.domain}`;
     const emptyFixture=`empty:${capability.domain}`;

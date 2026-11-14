@@ -214,7 +214,7 @@ test('route coverage retains only unresolved semantic cases after adding public 
   const dormitoryIds=['saved-empty','saved-unknown','missing-metadata','empty-not-clearance','details-unavailable','document-unavailable',
     'follow-up','chinese-empty','mixed-housing','mixed-tuition'].map(id=>'account:dormitory-conduct-'+id);
   const addedPrivacyIds=['anonymous-records-studentConduct','anonymous-records-studentLoan','anonymous-records-aidPayments','anonymous-records-dtmGradeReport',
-    'anonymous-records-elearningEnrollments','anonymous-records-facilityRepairs','anonymous-records-elearningOutline','anonymous-records-dormitoryConduct','anonymous-records-feeRemission'];
+    'anonymous-records-elearningEnrollments','anonymous-records-facilityRepairs','anonymous-records-elearningOutline','anonymous-records-dormitoryConduct','anonymous-records-feeRemission','anonymous-records-healthExaminations'];
   const newIds=[...reproductionIds,...nativeIds,...aidIds,...dtmIds,...elearningIds,...facilityIds,...outlineIds,...dormitoryIds,...addedPrivacyIds,'public-study-first-week'];
   assert.equal(cases.filter(row=>!newIds.includes(row.id)).length,945);
   for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,outlineIds,dormitoryIds,addedPrivacyIds])

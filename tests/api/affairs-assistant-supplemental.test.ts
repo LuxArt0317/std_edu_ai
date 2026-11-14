@@ -50,10 +50,11 @@ test('required supplemental domains and page followups use account routing witho
     ['What does this say?','/school-affairs/services/49-1'],['Show saved assignment files.','/dtm'],['What feedback was recorded?','/dtm/course/20000000-0000-4000-8000-000000000001/assignment/20000000-0000-4000-8000-000000000002'],
     ['What tax is recorded?','/school-affairs/services/37-1/salary'],['List saved student aid claims.','/dtm'],
     ['Show saved Moodle grades.','/'],['What is on this page?','/dtm/grades'],
-    ['Which remote-learning Moodle courses am I enrolled in?','/elearning/my-courses'],['What are my courses?','/elearning/my-courses']];
+    ['Which remote-learning Moodle courses am I enrolled in?','/elearning/my-courses'],['What are my courses?','/elearning/my-courses'],
+    ['What about reports?','/school-affairs/services/36-1?page=2']];
   for(const [question,route]of cases){let calls=0;
     const result=await invoke(base({answerAccount:async options=>{calls++;assert.equal(options.question,question);assert.equal(options.route,route);
-      assert.deepEqual(Object.keys(options.supplementalReaders??{}),['courseCatalog','enrollmentCertificate','dtmSubmissions','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','tuition']);return answer;}}),{question,route});
+      assert.deepEqual(Object.keys(options.supplementalReaders??{}),['courseCatalog','enrollmentCertificate','dtmSubmissions','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','healthExaminations','tuition']);return answer;}}),{question,route});
     assert.equal(result.status,200,question);assert.equal(calls,1,question);
   }
 });

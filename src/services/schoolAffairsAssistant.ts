@@ -2,7 +2,7 @@ import { clubStudentQuestion } from '../../server/clubStudentContract.js';
 import { answerStudentClubs } from './clubStudent';
 import { clubOfficerGuide,clubOfficerQuestion } from '../../server/clubOfficerContract.js';
 import { clubGuide,clubIntent } from '../../server/clubServicesContract.js';
-import { healthExaminationGuide, healthExaminationQuestion } from '../../server/healthExaminationContract.js';
+import { healthExaminationQuestion } from '../../server/healthExaminationContract.js';
 import {elearningGuide,elearningQuestion} from '../../server/elearningContract.js';
 import {isAidPaymentsEvidenceQuestion,isForeignAidPaymentsQuestion} from '../../server/aidPaymentsEvidenceIntent.js';
 import {isForeignDtmGradesQuestion,shouldReadNativeDtmGrades} from '../../server/dtmGradeEvidenceIntent.js';
@@ -11,6 +11,7 @@ import {isFacilityRepairEvidenceQuestion,isForeignFacilityRepairQuestion} from '
 import {isFeeRemissionEvidenceQuestion} from '../../server/feeRemissionEvidenceIntent.js';
 import {isDormitoryConductEvidenceQuestion} from '../../server/dormitoryConductEvidenceIntent.js';
 import {isElearningOutlineEvidenceQuestion} from '../../server/elearningOutlineEvidenceIntent.js';
+import {isHealthExaminationEvidenceQuestion} from '../../server/healthExaminationEvidenceIntent.js';
 import {counselingGuide,counselingQuestion} from '../../server/counselingContract.js';
 import {certificateAwardQuestion} from '../../server/certificateAwardsContract.js';
 import {readCertificateAwardAnswer} from './certificateAwards';
@@ -55,7 +56,8 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
     ||isForeignDtmGradesQuestion(question,route)||shouldReadNativeDtmGrades(question,route,history)
     ||isElearningEvidenceQuestion(question,route,history)||isForeignElearningRecordsQuestion(question,route)
     ||isFacilityRepairEvidenceQuestion(question,route,history)||isForeignFacilityRepairQuestion(question)
-    ||isFeeRemissionEvidenceQuestion(question,route,history)||isDormitoryConductEvidenceQuestion(question,route,history)||isElearningOutlineEvidenceQuestion(question,route,history))
+    ||isFeeRemissionEvidenceQuestion(question,route,history)||isDormitoryConductEvidenceQuestion(question,route,history)||isElearningOutlineEvidenceQuestion(question,route,history)
+    ||isHealthExaminationEvidenceQuestion(question,route,history)||healthExaminationQuestion(question))
     return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress);
   const officer = !images.length ? clubOfficerQuestion(question) : null;
   if (officer) return clubOfficerGuide(question,officer,true);
@@ -66,7 +68,6 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
   }
   const clubs = !images.length ? clubIntent(question) : null;
   if (clubs) return clubGuide(question, clubs, true);
-  if (healthExaminationQuestion(question)) return healthExaminationGuide(question, true);
   const elearning=elearningQuestion(question,route);
   if(elearning)return elearningGuide(question,elearning,true);
   const counseling=counselingQuestion(question);

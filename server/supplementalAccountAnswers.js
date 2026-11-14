@@ -3,8 +3,10 @@
  * Never pass raw RPC results, a workspace snapshot, or browser input here. */
 import {aidPaymentsFields,aidPaymentsPaths} from './aidPaymentsContract.js';
 import {feeRemissionFields,feeRemissionPath} from './feeRemissionContract.js';
+import {healthExaminationPath,healthPageSize} from './healthExaminationContract.js';
 export const supplementalAnswerLimits=Object.freeze({answerCharacters:8000,resultBytes:24000,views:3,viewRows:12});
 const definitions={
+  'account:healthExaminations':{title:['Saved health-examination availability metadata','已儲存健檢報告可用性資料'],path:healthExaminationPath},
   'account:feeRemission':{title:['Saved fee-remission history','已儲存學雜費減免歷史'],path:feeRemissionPath},
   'account:dormitoryConduct':{title:['Saved dormitory-conduct notice','已儲存宿舍獎懲通知'],path:'/school-affairs/services/34-2'},
   'account:elearningOutline':{title:['Saved remote-learning course outline','已儲存數位學園課程大綱'],path:'/elearning'},
@@ -40,6 +42,39 @@ const outlineActivity=(course,id)=>outlineCourse(course)+'/activity/'+id;
 const outlineText=(value,max)=>gradeString(value,max)&&value.trim().length>0&&!/[\p{Cc}]/u.test(value);
 const sameText=(left,right)=>left.normalize('NFKC').trim().toLowerCase()===right.normalize('NFKC').trim().toLowerCase();
 const remissionCell=(value,max)=>value===null||gradeString(value,max*2)&&[...value].length<=max;
+function validateHealthPayload(envelope,p,evidence){
+  const s=p.selection,c=p.counts,page=s?.page??1,offset=(page-1)*healthPageSize;
+  if(!exact(envelope,['readState','reason','evidence'])||!exact(evidence,['id','title','url','urls','provenance','content'])||bytes(envelope)>12000
+    ||!exact(p,['collection','checkedAt','readState','selection','collectionState','counts','complete','records','provenance','capability','reason','rules'])
+    ||p.collection!=='healthExaminations'||p.readState!==envelope.readState||p.reason!==envelope.reason||!gradeString(p.rules)
+    ||evidence.provenance!=='saved_local'||evidence.url!==healthExaminationPath+(page>1?'?page='+page:'')
+    ||!Array.isArray(evidence.urls)||evidence.urls.length!==1||evidence.urls[0]!==evidence.url
+    ||!exact(p.provenance,['sourceMode','officialUniversityData','synchronized'])||p.provenance.sourceMode!=='saved_local'
+    ||p.provenance.officialUniversityData!==false||p.provenance.synchronized!==false
+    ||!exact(p.capability,['metadata','identity','clinicalContent','examinationDate','downloads','write'])||p.capability.metadata!==true
+    ||['identity','clinicalContent','examinationDate','downloads','write'].some(key=>p.capability[key]!==false)
+    ||!Array.isArray(p.records)||p.records.length>healthPageSize||typeof p.complete!=='boolean'
+    ||!exact(c,['total','offset','pageSize','returned','included','omitted','hasMore'])||c.offset!==offset||c.pageSize!==healthPageSize||c.included!==p.records.length)invalid();
+  if(s!==null&&(!exact(s,['from','page','clinical','document','operation','reason'])||!['question','route','history'].includes(s.from)
+    ||['clinical','document','operation'].some(key=>typeof s[key]!=='boolean')
+    ||![null,'invalid_route','foreign_request','invalid_selector','ambiguous_selector'].includes(s.reason)
+    ||(s.reason===null?!(integer(s.page)&&s.page>=1&&s.page<=201):s.page!==null)))invalid();
+  if(p.readState==='unavailable'){
+    if(!gradeString(p.reason,120)||!p.reason||p.collectionState!=='unavailable'||p.complete||p.records.length
+      ||c.total!==null||c.returned!==null||c.omitted!==null||c.hasMore!==null
+      ||s?.reason&&p.reason!==s.reason||s?.operation&&!s.reason&&p.reason!=='unsupported_operation')invalid();
+    return;
+  }
+  if(!s||s.reason!==null||s.operation||!integer(c.total)||c.total>2147483647
+    ||c.returned!==Math.max(0,Math.min(healthPageSize,c.total-offset))||c.included>c.returned
+    ||c.omitted!==c.returned-c.included||c.hasMore!==(offset+c.returned<c.total)
+    ||p.complete!==(offset===0&&c.total===c.included&&c.omitted===0)
+    ||p.collectionState!==(c.total===0?'empty':c.returned===0?'page_empty':'records')
+    ||p.readState!==(c.total===0?'empty':offset>0||c.included<c.total||c.omitted>0?'partial':'ok')
+    ||p.reason!==(c.omitted?'excerpted':null)
+    ||p.records.some(record=>!exact(record,['examinationCode','reportAvailable'])||!outlineText(record.examinationCode,80)||typeof record.reportAvailable!=='boolean')
+    ||new Set(p.records.map(record=>record.examinationCode)).size!==p.records.length)invalid();
+}
 function validateFeeRemissionPayload(envelope,p,evidence){
   const s=p.selection,c=p.counts,periodKeys=['academic_year_text','semester_text'];
   if(!exact(envelope,['readState','reason','evidence'])||!exact(evidence,['id','title','url','urls','provenance','content'])||bytes(envelope)>16000
@@ -290,6 +325,7 @@ function validateGradePayload(envelope,p,evidence){
 }
 const invalid=()=>{throw new TypeError('Use validated supplemental account evidence envelopes.');};
 function allowedUrl(id,url){
+  if(id==='account:healthExaminations')return typeof url==='string'&&(url===healthExaminationPath||new RegExp('^'+healthExaminationPath+'\\?page=([1-9]\\d{0,2})$','u').test(url)&&Number(url.split('=').at(-1))>=2&&Number(url.split('=').at(-1))<=201);
   if(id==='account:feeRemission')return url===feeRemissionPath;
   if(id==='account:dormitoryConduct')return url===definitions[id].path;
   if(id==='account:elearningOutline'){
@@ -321,7 +357,8 @@ function parse(envelope){
   if(evidence.urls!==undefined&&(!Array.isArray(evidence.urls)||evidence.urls.some(url=>!allowedUrl(id,url))))invalid();
   let payload;try{payload=JSON.parse(evidence.content);}catch{invalid();}
   if(!object(payload)||typeof payload.checkedAt!=='string'||!Number.isFinite(Date.parse(payload.checkedAt)))invalid();
-  if(id==='account:feeRemission')validateFeeRemissionPayload(envelope,payload,evidence);
+  if(id==='account:healthExaminations')validateHealthPayload(envelope,payload,evidence);
+  else if(id==='account:feeRemission')validateFeeRemissionPayload(envelope,payload,evidence);
   else if(id==='account:dormitoryConduct')validateDormitoryPayload(envelope,payload,evidence);
   else if(id==='account:elearningOutline')validateOutlinePayload(envelope,payload,evidence);
   else if(id==='account:facilityRepairs')validateRepairPayload(envelope,payload,evidence);
@@ -435,6 +472,34 @@ function sectionFor(parsed,question,zh){
     if(!integer(total))invalid();
     section.view={id:id.slice(8),title,url:evidence.url,columns,rows:[],total,checkedAt:p.checkedAt,note};
   };
+  if(id==='account:healthExaminations'){
+    section.usable=true;section.complete=p.complete&&!p.selection?.clinical&&!p.selection?.document;
+    section.lead.push(t('This is your saved local health-examination availability metadata, not a clinical report or proof of official university synchronization. Only examination codes and report-availability flags are included; identity, clinical content and examination dates are not included.',
+      '以下僅為您站內儲存的健檢報告可用性資料，不是臨床報告或校方同步證明。只包含檢查代碼及報告可用旗標，不含身分資料、臨床內容或檢查日期。'));
+    section.lead.push(t('A true flag means a saved report flag and matching private object were found at read time. A false flag does not establish no examination, no medical condition or a normal result. This lookup did not open a report, request a PDF or authorize a download; file access is not guaranteed. No record or appointment was changed.',
+      'true 旗標表示讀取時找到已儲存報告旗標及相符的私人檔案物件。false 不代表未曾檢查、沒有疾病或結果正常。本次查詢未開啟報告、要求 PDF 或授權下載，也不保證檔案存取；未變更任何紀錄或預約。'));
+    if(p.selection?.clinical)section.lead.push(t('I cannot determine clinical results, diagnoses or examination dates from these metadata.','無法從這些資料判定臨床結果、診斷或檢查日期。'));
+    if(p.selection?.document)section.lead.push(t('I cannot provide a report file, signed URL, printout or download authorization through this metadata lookup.','此可用性查詢不能提供報告檔案、簽名網址、列印內容或下載授權。'));
+    if(envelope.readState==='unavailable'){
+      section.lead.push(envelope.reason==='foreign_request'?t('I cannot access another student’s health records. No other account was read.','無法存取其他學生的健檢紀錄；未讀取其他帳戶。')
+        :envelope.reason==='unauthorized'?t('Sign in to read your own saved health-examination metadata. No account records were read.','請登入以讀取自己的健檢可用性資料；尚未讀取帳戶紀錄。')
+        :envelope.reason==='unsupported_operation'?t('This lookup cannot upload, submit, edit or delete health records or reports. No action was performed.','此查詢不能上傳、提交、修改或刪除健檢紀錄及報告；未執行任何操作。')
+        :['invalid_selector','ambiguous_selector','invalid_route'].includes(envelope.reason)?t('Please choose one explicit health-record page number from 1 to 201. No record count or report availability was established by this selection.','請指定一個 1 至 201 的健檢紀錄頁碼；此選擇尚未確認紀錄筆數或報告可用性。')
+        :t('The health-examination metadata could not be checked. The record count and report availability remain unknown; this is not a successful empty read.','無法查詢健檢可用性資料；紀錄筆數及報告可用性仍未知，不能視為成功查得空白紀錄。'));
+      return section;
+    }
+    const c=p.counts;
+    section.lead.push(t(`Saved examination-record count: ${c.total}. Selected page: ${p.selection.page} (${c.pageSize} records per page; offset ${c.offset}). Returned on this page: ${c.returned}. Included in evidence: ${c.included}. Omitted from this page: ${c.omitted}.`,
+      `已儲存檢查紀錄筆數：${c.total}。所選頁碼：${p.selection.page}（每頁 ${c.pageSize} 筆；位移 ${c.offset}）。本頁回傳：${c.returned}。證據納入：${c.included}。本頁略去：${c.omitted}。`));
+    if(p.collectionState==='empty')section.lead.push(t('This successful local read returned zero saved examination records. It does not establish no examination or history elsewhere.','這次成功的站內查詢回傳零筆已儲存檢查紀錄，不代表未曾檢查或其他系統沒有歷史。'));
+    else if(p.collectionState==='page_empty')section.lead.push(t('The selected page contains no rows, but saved records exist on other pages. This is not an empty collection.','所選頁面沒有資料列，但其他頁面有已儲存紀錄；整個集合並非空白。'));
+    if(c.hasMore)section.lead.push(t('More saved rows exist after this page; their codes and availability are not included.','本頁之後仍有已儲存資料列，其代碼及可用性未納入。'));
+    if(c.offset>0)section.lead.push(t('Earlier pages were not included in this lookup.','本次查詢未納入較早頁面。'));
+    if(c.omitted)section.lead.push(t('Whole page records were omitted by the evidence limit; their code and availability remain unknown.','證據上限略去部分完整本頁紀錄，其代碼及可用性仍未知。'));
+    view([t('Examination code','檢查代碼'),t('Saved report availability','已儲存報告可用旗標')],c.included,t('Availability metadata only. The flag is not a diagnosis or a download guarantee.','僅為可用性資料，旗標不是診斷或下載保證。'));
+    for(const record of p.records){group(t('Examination code','檢查代碼'),record.examinationCode);item(t('Saved report availability','已儲存報告可用旗標'),record.reportAvailable);section.viewCandidates.push(row(record.examinationCode,record.reportAvailable));}
+    return section;
+  }
   if(id==='account:feeRemission'){
     // A verified read limitation is an answer candidate, never a successful data
     // read. Keep completeness false and require independent source review.
@@ -907,7 +972,7 @@ export function formatSupplementalAccountAnswers(results,{question='',language:r
     const groups=new Map();for(const item of section.items){if(!groups.has(item.group))groups.set(item.group,[]);groups.get(item.group).push(item);}
     section.items=[...groups.values()].flatMap(items=>items.sort((a,b)=>Number(b.header)-Number(a.header)||preferred(a.label)-preferred(b.label)));
   }
-  const topics={'account:feeRemission':/fee.remission|tuition.reduction|減免|减免/iu,'account:dormitoryConduct':/dormitory|dorm|宿舍/iu,'account:elearningOutline':/outline|video|slides|activities|section|feedback|大綱|影片|簡報|活動|章節|回饋/iu,'account:facilityRepairs':/repair|maintenance|報修|报修|修繕/iu,'account:dtmGradeReport':/moodle|dtm|grade report|gradebook|成績報告|成绩报告/iu,'account:aidPayments':/student aid|financial aid|salary|payroll|助學|薪資|工讀/iu,'account:studentConduct':/conduct|disciplin|獎懲/iu,'account:studentLoan':/loan|貸款|學貸/iu,'account:courseCatalog':/catalog|syllabus|offering|課綱|大綱|開課/iu,'account:enrollmentCertificate':/certificate|enrolment|enrollment|在學|在籍|學籍證明/iu,'account:dtmSubmissions':/file|upload|submission|assignment|feedback|作業|檔案|評語|上傳/iu,'account:tuition':/tuition|settlement|statement|summer|evening|學費|結算|暑修|進修部|延修/iu};
+  const topics={'account:healthExaminations':/health|medical|健檢|健康檢查/iu,'account:feeRemission':/fee.remission|tuition.reduction|減免|减免/iu,'account:dormitoryConduct':/dormitory|dorm|宿舍/iu,'account:elearningOutline':/outline|video|slides|activities|section|feedback|大綱|影片|簡報|活動|章節|回饋/iu,'account:facilityRepairs':/repair|maintenance|報修|报修|修繕/iu,'account:dtmGradeReport':/moodle|dtm|grade report|gradebook|成績報告|成绩报告/iu,'account:aidPayments':/student aid|financial aid|salary|payroll|助學|薪資|工讀/iu,'account:studentConduct':/conduct|disciplin|獎懲/iu,'account:studentLoan':/loan|貸款|學貸/iu,'account:courseCatalog':/catalog|syllabus|offering|課綱|大綱|開課/iu,'account:enrollmentCertificate':/certificate|enrolment|enrollment|在學|在籍|學籍證明/iu,'account:dtmSubmissions':/file|upload|submission|assignment|feedback|作業|檔案|評語|上傳/iu,'account:tuition':/tuition|settlement|statement|summer|evening|學費|結算|暑修|進修部|延修/iu};
   const rankedViews=sections.filter(section=>section.view).map((section,index)=>({section,index,match:question.search(topics[section.id])})).sort((a,b)=>Number(b.match>=0)-Number(a.match>=0)||Number(b.section.viewCandidates.length>0)-Number(a.section.viewCandidates.length>0)||(a.match>=0&&b.match>=0?a.match-b.match:0)||a.index-b.index);
   const selectedSet=new Set(rankedViews.slice(0,supplementalAnswerLimits.views).map(value=>value.section));
   const selectedViews=sections.filter(section=>selectedSet.has(section));
@@ -916,7 +981,7 @@ export function formatSupplementalAccountAnswers(results,{question='',language:r
   let omittedItems=sections.reduce((total,section)=>total+section.items.length,0),omittedViewRows=sections.reduce((total,section)=>total+section.viewCandidates.length,0);
   const result=()=>({status:sections.some(section=>section.usable)?'answered':'abstained',answer:sections.map(section=>[
     section.title,...section.lead,...section.shown.map(item=>(section.id==='account:elearningOutline'&&item.group&&!item.header?'\n  - '
-      :['account:dtmGradeReport','account:elearningEnrollments','account:facilityRepairs','account:feeRemission'].includes(section.id)&&item.group&&!item.header?'  - ':'- ')+item.text),
+      :['account:dtmGradeReport','account:elearningEnrollments','account:facilityRepairs','account:feeRemission','account:healthExaminations'].includes(section.id)&&item.group&&!item.header?'  - ':'- ')+item.text),
     (section.limited||section.shown.length<section.items.length||section.viewCandidates.length>(section.view?.rows.length??0))
       ?(zh?'顯示內容已節錄，省略部分不代表沒有紀錄。':'Display excerpt: omitted fields or rows do not establish absence.'):null,
     section.view&&!section.viewSelected?(zh?'此來源表格因三張表格的顯示上限省略，文字結果與來源連結仍保留。':'This source table is omitted by the three-table display limit; its text result and source link remain available.'):null,

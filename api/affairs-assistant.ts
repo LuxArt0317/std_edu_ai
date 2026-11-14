@@ -1,4 +1,7 @@
 import {readFeeRemissionEvidence} from '../server/accountFeeRemissionEvidence.js';
+import {readHealthExaminationEvidence} from '../server/accountHealthExaminationEvidence.js';
+import {isHealthExaminationNavigationQuestion,withoutExcludedHealthClause} from '../server/healthExaminationEvidenceIntent.js';
+import {healthExaminationGuide} from '../server/healthExaminationContract.js';
 import {readStudentConductEvidence} from '../server/accountStudentConductEvidence.js';
 import {readStudentLoanEvidence} from '../server/accountStudentLoanEvidence.js';
 import {readAidPaymentsEvidence} from '../server/accountAidPaymentsEvidence.js';
@@ -25,7 +28,7 @@ import { isDtmRecordQuestion } from '../server/dtmAnswer.js';
 import { isScholarshipRecordQuestion } from '../server/scholarshipRecords.js';
 import { isStudentAidRecordQuestion } from '../server/studentAidRecords.js';
 import { isHousingRecordQuestion } from '../server/housingRecords.js';
-import { isOwnFeeBalanceQuestion, isPendingFeeQuestion } from '../server/pendingFeesAnswer.js';
+import { isOwnFeeBalanceQuestion, isPendingFeeQuestion, ownFeeBalanceLabel } from '../server/pendingFeesAnswer.js';
 import { isCreditLoadHistoryQuestion } from '../server/creditLoadHistory.js';
 import { isCourseSelectionQuestion } from '../server/courseSelection.js';
 import { AffairsWorkspaceError, loadAffairsSnapshot, loadOwnAffairsCharges, verifyAffairsToken } from '../server/affairsWorkspace.js';
@@ -141,7 +144,7 @@ export function createAffairsAssistantHandler(dependencies:{
   verifyToken?:typeof verifyAffairsToken;
   loadSnapshot?:typeof loadAffairsSnapshot;
   answerAccount?:typeof answerAccountWithVerification;
-  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence};
+  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence;healthExaminations?:typeof readHealthExaminationEvidence};
 }={}) {
 const publicResearch=dependencies.publicResearch??researchHandler;
 const verifyToken=dependencies.verifyToken??verifyAffairsToken,loadSnapshot=dependencies.loadSnapshot??loadAffairsSnapshot,answerAccount=dependencies.answerAccount??answerAccountWithVerification;
@@ -154,7 +157,8 @@ const readers={courseCatalog:dependencies.readers?.courseCatalog??readCatalogEvi
   facilityRepairs:dependencies.readers?.facilityRepairs??readFacilityRepairEvidence,
   dormitoryConduct:dependencies.readers?.dormitoryConduct??readDormitoryConductEvidence,
   elearningOutline:dependencies.readers?.elearningOutline??readElearningOutlineEvidence,
-  feeRemission:dependencies.readers?.feeRemission??readFeeRemissionEvidence};
+  feeRemission:dependencies.readers?.feeRemission??readFeeRemissionEvidence,
+  healthExaminations:dependencies.readers?.healthExaminations??readHealthExaminationEvidence};
 return async function handler(request:ApiRequest,response:ApiResponse) {
   const deadline=Date.now()+55_000;
   response.setHeader('Cache-Control','no-store, max-age=0');
@@ -192,18 +196,24 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const foreignElearning=isForeignElearningRecordsQuestion(question,route);
   const foreignRepair=isForeignFacilityRepairQuestion(question);
   const pageContext=nativePageLookupContext(question,route,history);
-  if(foreignDtmGrades||foreignElearning||foreignRepair||pageContext.foreign||isForeignAidPaymentsQuestion(question)){
+  const scopedQuestion=withoutExcludedHealthClause(question);
+  if(foreignDtmGrades||foreignElearning||foreignRepair||pageContext.foreign||isForeignAidPaymentsQuestion(scopedQuestion)){
     const chinese=/[\u3400-\u9fff]/u.test(question);
     const records=foreignDtmGrades?(chinese?'數位教材成績紀錄':'Moodle grade records')
       :foreignElearning?(chinese?'數位學園紀錄':'remote-learning Moodle records')
         :foreignRepair?(chinese?'報修紀錄':'facility repair records')
           :pageContext.foreign&&pageContext.tools.includes('feeRemission')?(chinese?'學雜費減免紀錄':'fee remission records')
+          :pageContext.foreign&&pageContext.tools.includes('healthExaminations')?(chinese?'健檢紀錄':'health examination records')
           :pageContext.foreign?(chinese?'宿舍獎懲或數位學園課程紀錄':'dormitory conduct or remote-learning course records')
             :(chinese?'薪資或助學請款紀錄':'salary or aid claim records');
     const answer=chinese?`我只能查詢您登入的 stu.best 帳戶，無法存取其他學生的${records}。`
       :`I can only check your signed-in stu.best account. I can’t show another student’s ${records}.`;
     stream.progress('account-access',chinese?'已確認帳戶範圍':'Checked account access',answer,'complete');
     stream.send(200,{status:'handoff',answer,citations:[],suggestedQuestions:[],grounding:{source:'account',webSearched:false}});
+    return;
+  }
+  if(isHealthExaminationNavigationQuestion(question)&&!(Array.isArray(input?.images)&&input.images.length)){
+    stream.send(200,healthExaminationGuide(question,true));
     return;
   }
   const intent=accountQuestionIntent(question,history,route);
@@ -225,7 +235,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     }catch{stream.send(503,{error:'The guidance could not be checked. Please try again.'});}
     return;
   }
-  const chargesOnly=isOwnFeeBalanceQuestion(question)||pageContext.feeAndBalance;
+  const chargeLabel=pageContext.feeChargeLabel??(scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):null);
+  const chargesOnly=isOwnFeeBalanceQuestion(scopedQuestion)||pageContext.feeAndBalance||chargeLabel!==null;
   const needsRecords=chargesOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
   const navigation=!needsRecords && !(Array.isArray(input?.images) && input.images.length) && !questionKind(question).irrelevant
     ? answerCampusNavigation(question) : null;
@@ -266,9 +277,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const loadCharges=async()=>{
       try{
         const saved=await loadOwnAffairsCharges(account,{deadline});
-        const label=pageContext.feeChargeLabel;
         const normalize=(value:string)=>value.normalize('NFKC').trim().toLowerCase();
-        return label?{...saved,chargeSelectionLabel:label,charges:saved.charges.filter(row=>normalize(row.label)===normalize(label))}:saved;
+        return chargeLabel?{...saved,chargeSelectionLabel:chargeLabel,charges:saved.charges.filter(row=>normalize(row.label)===normalize(chargeLabel))}:saved;
       }catch(error){
         if(!pageContext.feeAndBalance)throw error;
         const charges:Awaited<ReturnType<typeof loadOwnAffairsCharges>>['charges']=[];
@@ -276,7 +286,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       }
     };
     const snapshot=selectedReaderOnly?scopedSnapshot():chargesOnly?await loadCharges():await loadSnapshot(account,false,{deadline});
-    if('chargeReadUnavailable' in snapshot)stream.progress('account','Fee balance unavailable','The fee-remission reader can still check its own source.','unavailable');
+    if('chargeReadUnavailable' in snapshot)stream.progress('account','Fee balance unavailable','The other requested records can still be checked independently.','unavailable');
     else if(!selectedReaderOnly)stream.progress('account','Loaded your account records',chargesOnly?'Read the fee scope for this Google account.':'Only records linked to this Google account were read.','complete');
     stream.progress('answer','Preparing your answer','Checking the account data and any requested stu.best action.');
     const readDeadline=(selected:number)=>{
@@ -296,6 +306,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       dormitoryConduct:context=>readers.dormitoryConduct(account,{question:pageContext.questions.dormitoryConduct||question,route,history,deadline:readDeadline(context.deadline)}),
       elearningOutline:context=>readers.elearningOutline(account,{question:pageContext.questions.elearningOutline||question,route,history,deadline:readDeadline(context.deadline)}),
       feeRemission:context=>readers.feeRemission(account,{question,route,history,deadline:readDeadline(context.deadline)}),
+      healthExaminations:context=>readers.healthExaminations(account,{question:context.question,route,history,deadline:readDeadline(context.deadline)}),
       tuition:context=>readers.tuition(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
     };
     const answer=await answerAccount({question,correlationId,snapshot,history,route,deadline,supplementalReaders,

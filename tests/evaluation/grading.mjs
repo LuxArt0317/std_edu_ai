@@ -339,8 +339,10 @@ function evidenceBoundaryResult(answer,kind) {
         || /\bpayment\b[^,]{0,48}\b(?:unconfirmed|unverified)\b/u.test(clause)));
     return {passed:caveat&&!clauses.some(clause=>affirmative(clause,payment)),detail:'Literal saved text is explicitly distinguished from confirmed payment, without a contradictory payment claim.'};
   }
-  if(kind==='failed_read_not_empty') {
-    const readFailure=clauses.some(clause=>/\b(?:read|retrieve|retrieval|access|backend|source|service|query|lookup|extended[- ]study)\b/u.test(clause)
+  if(kind==='failed_read_not_empty'||kind==='health_failed_read_not_empty') {
+    const readSubject=clause=>/\b(?:read|retrieve|retrieval|access|backend|source|service|query|lookup|extended[- ]study)\b/u.test(clause)
+      ||kind==='health_failed_read_not_empty'&&/\bhealth[- ]examination metadata\b/u.test(clause);
+    const readFailure=clauses.some(clause=>readSubject(clause)
       && /\b(?:unavailable|unsupported|unimplemented|failed|failure|cannot|can't|could not|unable|not (?:available|implemented|configured|connected|supported))\b/u.test(clause));
     const absence=/\b(?:no\s+(?:(?:saved|matching|own|local|extended[- ]study|tuition|payment|fee)\s+){0,7}(?:records?|payments?|fees|entries)|(?:records?|payments?|fees|entries)\s+(?:(?:are|were|is|have been|have|been|currently|all|saved|recorded)\s+){0,4}(?:absent|empty|zero|0)|(?:you|there)\s+(?:have|has|are)\s+no\s+(?:records?|fees|payments?))\b/gu;
     // "No records" is itself the disputed positive absence claim. Only a
@@ -352,11 +354,36 @@ function evidenceBoundaryResult(answer,kind) {
     // Causal/conclusive connectors end that protection; ordinary preceding
     // negatives (such as "backend not available") still cannot qualify absence.
     const negatedProofQualifier=/\bnot\s+(?:proof|evidence)\s+that\s+(?:(?:(?!\b(?:so|therefore|thus|hence|instead|indeed|actually|certainly)\b)[^,;.!?\n]){1,100}\s+or\s+that\s+)?$/u;
-    const assertsAbsence=clauses.some(clause=>[...clause.matchAll(absence)].some(match=>{
+    const scopedAbsence=kind==='health_failed_read_not_empty'
+      ?new RegExp(absence.source.replace('extended[- ]study|tuition','extended[- ]study|health|medical|examination|tuition'),'gu'):absence;
+    const assertsAbsence=clauses.some(clause=>{
+      // This exact metadata formatter statement denies a mutation, not the
+      // existence of records. It must not erase an absence in another clause.
+      if(kind==='health_failed_read_not_empty'&&/^no record or appointment was changed$/u.test(clause))return false;
+      return [...clause.matchAll(scopedAbsence)].some(match=>{
       const prefix=clause.slice(Math.max(0,match.index-150),match.index);
       return !absenceQualifier.test(prefix.slice(-90))&&!negatedProofQualifier.test(prefix);
-    }));
+      });
+    });
     return {passed:readFailure&&!assertsAbsence,detail:'A failed or unavailable read is stated explicitly and is not presented as an empty collection.'};
+  }
+  if(kind==='health_metadata_not_clinical'||kind==='health_metadata_no_clinical_claims') {
+    const caveat=clauses.some(clause=>/\b(?:clinical|diagnos(?:is|es)|medical (?:results?|report|condition)|health status|normal)\b/u.test(clause)
+      &&(isNegative(clause)||/\b(?:unknown|unavailable|unverified|not included)\b/u.test(clause)));
+    const diagnosis=/\b(?:your|the)\s+(?:(?:health|medical|blood|examination|exam)\s+){0,3}(?:results?|condition|status|examination)\s+(?:is|are|shows?|indicates?|confirms?)\s+(?:normal|healthy|abnormal|high|low|diabetes|disease)\b|\byou (?:are healthy|have (?:diabetes|a disease|no medical condition))\b/gu;
+    return {passed:(kind==='health_metadata_no_clinical_claims'||caveat)&&!clauses.some(clause=>affirmative(clause,diagnosis)),detail:'Metadata flags are explicitly separated from clinical findings or a diagnosis.'};
+  }
+  if(kind==='health_metadata_not_download'||kind==='health_metadata_no_download_claims') {
+    const caveat=clauses.some(clause=>/\b(?:download|downloaded|open|opened|authorize|authorization|pdf|file content)\b/u.test(clause)&&isNegative(clause));
+    const completion=/\b(?:i|we) (?:have )?(?:downloaded|opened|authorized|read) (?:your |the |a )?(?:health |medical |examination )?(?:pdf|report|file)\b|\bdownload (?:is )?(?:complete|completed|ready)\b/gu;
+    return {passed:(kind==='health_metadata_no_download_claims'||caveat)&&!clauses.some(clause=>affirmative(clause,completion)),detail:'An availability flag does not become file access, authorization or a completed download.'};
+  }
+  if(kind==='health_page_not_collection') {
+    const pageEmpty=clauses.some(clause=>/\bpage\b/u.test(clause)&&/\b(?:empty|no (?:matching )?(?:records?|rows)|zero|0)\b/u.test(clause));
+    const distinction=clauses.some(clause=>/\b(?:collection|history|other pages|saved records)\b/u.test(clause)
+      &&(/\b(?:not|does not|doesn't)\b/u.test(clause)||/\b(?:remain|elsewhere|separate|26)\b/u.test(clause)));
+    const absent=/\b(?:you have no|there are no|no saved) (?:health |medical |examination )*(?:records|history)\b/gu;
+    return {passed:pageEmpty&&distinction&&!clauses.some(clause=>affirmative(clause,absent)),detail:'An empty selected page is distinguished from the nonempty saved collection.'};
   }
   return {passed:false,detail:'Unknown independent evidence boundary.'};
 }
@@ -409,7 +436,7 @@ function recordLinkMatches(answer, binding, allBindings) {
 }
 
 // This test-side allowlist is deliberately independent of the runtime planner.
-const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct','feeRemission']);
+const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct','feeRemission','healthExaminations']);
 const toolStatusAliases={success:'complete',succeeded:'complete',failed:'error',started:'running',start:'running'};
 const toolStatuses=new Set(['running','complete','unavailable','error','cancelled','skipped']);
 const terminalStatuses=new Set(['complete','unavailable','error','cancelled','skipped']);
@@ -500,6 +527,7 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
     check('answer.limitation',limitationText.test(answer.replace(/’/g,"'"))||otherAccountDenial.test(answer)||ownAccountOnlyDenial(answer)||unavailableFileCapability.test(answer)
       ||testCase.domain==='dtmGradeReport'&&missingDtmReportField.test(answer)
       ||testCase.domain==='elearningEnrollments'&&missingElearningEnrollments.test(visibleMarkdown(answer))
+      ||testCase.domain==='healthExaminations'&&/\b(?:no (?:saved health (?:examination )?)?records (?:were returned|on (?:this |the |selected )?page)|(?:selected |this )?page.{0,30}empty|no saved health (?:examination )?records)\b/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='feeRemission'&&/\bno matching saved remission records\b/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='facilityRepairs'&&limitedFacilityRepair.test(visibleMarkdown(answer)),'The answer explicitly states missing records, inability or unsupported capability.');
     if(expected.limitation && expected.limitation!==true)check('answer.limitation.specific',matches(text,expected.limitation),'The specific required limitation is stated.');
@@ -599,6 +627,16 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
       bound=equalJson(binding,current);
     }catch{/* Missing, stale or malformed response bindings cannot authorize a review. */}
     check('guidance.independentReview',Boolean(valid&&bound&&independentReview?.status==='passed'&&independentReview.passed===true&&Array.isArray(reviewed)&&reviewed.length===ids.length&&new Set(reviewed.map(item=>item?.id)).size===ids.length&&reviewed.every(item=>item&&ids.includes(item.id)&&item.passed===true)&&Array.isArray(independentReview.failures)&&independentReview.failures.length===0),'Applicable guidance criteria require a separately validated review; missing/pending review never earns a pass.');
+  }
+  if(expected.healthMetadataOnly===true){
+    const serialized=JSON.stringify(body);
+    const allowedHealthLinks=(expected.requiredLinks||[]).map(normalizedLink).filter(url=>url?.startsWith('https://stu.best/school-affairs/services/36-1'));
+    const healthLinks=extractAnswerLinks(body).map(normalizedLink).filter(url=>url?.startsWith('https://stu.best/school-affairs/services/36-1'));
+    check('health.exactPageLinks',healthLinks.every(url=>allowedHealthLinks.includes(url)),'Every health destination names the selected exact local page; a correct citation cannot excuse a conflicting prose link.');
+    check('health.noClinicalClaims',evidenceBoundaryResult(answer,'health_metadata_no_clinical_claims').passed,'No clinical finding or diagnosis is inferred from metadata.');
+    check('health.noDownloadClaims',evidenceBoundaryResult(answer,'health_metadata_no_download_claims').passed,'No report access or successful download is claimed from metadata.');
+    check('health.noStorageOutput',!/(?:storage\/v1\/|object\/sign\/|affairs-health-reports\/|[?&]token=|"signedURL"|"signedUrl")/iu.test(serialized),'Health metadata responses contain no Storage path, signed URL or download token in any field.');
+    check('health.noFileActivity',!tools.events.some(event=>/storage|health.report.authoriz|file.download|download.report/iu.test(String(event?.kind))),'The metadata conversation records no report authorization, Storage or file-download action.');
   }
   const allEvents=tools.events;
   for (const kind of expected.requiredEvents || []) check(`event.${kind}`,allEvents.some(event=>event.kind===kind && event.status==='complete'),'Required completed operation is retained.');

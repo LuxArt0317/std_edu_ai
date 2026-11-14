@@ -1,5 +1,7 @@
 import {selectFeeRemissionEvidence,isFeeRemissionPeriodClause} from './feeRemissionEvidenceIntent.js';
 import {feeRemissionEvidenceMaxBytes,unavailableFeeRemissionEvidence} from './accountFeeRemissionEvidence.js';
+import {selectHealthExaminationEvidence,isHealthExaminationPageClause,isHealthExaminationFieldClause} from './healthExaminationEvidenceIntent.js';
+import {healthExaminationEvidenceMaxBytes,unavailableHealthExaminationEvidence} from './accountHealthExaminationEvidence.js';
 import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel} from './pendingFeesAnswer.js';
 import {isStudentConductEvidenceQuestion,studentConductEvidenceMaxBytes} from './accountStudentConductEvidence.js';
 import {isStudentLoanEvidenceQuestion,studentLoanEvidenceMaxBytes} from './accountStudentLoanEvidence.js';
@@ -35,12 +37,13 @@ export const supplementalAccountTools=Object.freeze({
   facilityRepairs:'Own saved local facility-repair reports and exact status; requested latest saved handling note with unknown event author. Separate from housing and generic service trackers. No cancellation, technician messaging, dispatch or proof of physical repair.',
   dormitoryConduct:'Own saved dormitory conduct notice metadata at34-2, distinct from student conduct and housing beds/fees. Empty notice metadata does not establish complete disciplinary history, clearance or an official document. Read-only.',
   feeRemission:'Own saved local fee reduction history at service 21-3, with literal year, semester, category, amount and check status. Separate from the charge balance, eligibility, approval and payment. Read-only.',
+  healthExaminations:'Own saved health examination codes and report availability, scoped to the selected page at service 36-1. No clinical results, dates, identity details, file access or writes.',
   elearningOutline:'Authorized local remote-learning course outline, section/activity titles and local video/slides/feedback/attendance-form links. No personal attendance, grades, submissions, video contents or completion records. Read-only.',
 });
-const predicates={courseCatalog:isCatalogEvidenceQuestion,enrollmentCertificate:isCertificateEvidenceQuestion,dtmSubmissions:isSubmissionEvidenceQuestion,tuition:isTuitionEvidenceQuestion,studentConduct:isStudentConductEvidenceQuestion,studentLoan:isStudentLoanEvidenceQuestion,aidPayments:isAidPaymentsEvidenceQuestion,dtmGradeReport:shouldReadNativeDtmGrades,elearningEnrollments:isElearningEvidenceQuestion,facilityRepairs:isFacilityRepairEvidenceQuestion,dormitoryConduct:isDormitoryConductEvidenceQuestion,elearningOutline:isElearningOutlineEvidenceQuestion,feeRemission:selectFeeRemissionEvidence};
+const predicates={courseCatalog:isCatalogEvidenceQuestion,enrollmentCertificate:isCertificateEvidenceQuestion,dtmSubmissions:isSubmissionEvidenceQuestion,tuition:isTuitionEvidenceQuestion,studentConduct:isStudentConductEvidenceQuestion,studentLoan:isStudentLoanEvidenceQuestion,aidPayments:isAidPaymentsEvidenceQuestion,dtmGradeReport:shouldReadNativeDtmGrades,elearningEnrollments:isElearningEvidenceQuestion,facilityRepairs:isFacilityRepairEvidenceQuestion,dormitoryConduct:isDormitoryConductEvidenceQuestion,elearningOutline:isElearningOutlineEvidenceQuestion,feeRemission:selectFeeRemissionEvidence,healthExaminations:selectHealthExaminationEvidence};
 const keys=Object.keys(supplementalAccountTools),plain=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&[Object.prototype,null].includes(Object.getPrototypeOf(value));
 const bytes=value=>Buffer.byteLength(JSON.stringify(value),'utf8');
-const sourceLimits={courseCatalog:18000,enrollmentCertificate:12000,dtmSubmissions:24000,tuition:16000,studentConduct:studentConductEvidenceMaxBytes,studentLoan:studentLoanEvidenceMaxBytes,aidPayments:aidPaymentsEvidenceMaxBytes,dtmGradeReport:dtmGradeReportEvidenceMaxBytes,elearningEnrollments:elearningEvidenceMaxBytes,facilityRepairs:facilityRepairEvidenceMaxBytes,dormitoryConduct:dormitoryConductEvidenceMaxBytes,elearningOutline:elearningOutlineEvidenceMaxBytes,feeRemission:feeRemissionEvidenceMaxBytes};
+const sourceLimits={courseCatalog:18000,enrollmentCertificate:12000,dtmSubmissions:24000,tuition:16000,studentConduct:studentConductEvidenceMaxBytes,studentLoan:studentLoanEvidenceMaxBytes,aidPayments:aidPaymentsEvidenceMaxBytes,dtmGradeReport:dtmGradeReportEvidenceMaxBytes,elearningEnrollments:elearningEvidenceMaxBytes,facilityRepairs:facilityRepairEvidenceMaxBytes,dormitoryConduct:dormitoryConductEvidenceMaxBytes,elearningOutline:elearningOutlineEvidenceMaxBytes,feeRemission:feeRemissionEvidenceMaxBytes,healthExaminations:healthExaminationEvidenceMaxBytes};
 export const supplementalEvidenceBudget=54000;
 /** One shared server-side boundary for API snapshot loading and graph planning.
  * Recognized repair clauses do not authorize unrelated account collections.
@@ -79,7 +82,7 @@ function isFeeRemissionFollowup(part,operation){
  * selectors still decide identity/IDs. Residual text is untrusted query context,
  * never evidence; uncertain clauses stay with the normal planner. */
 export function nativePageLookupContext(question,route='',history=[]){
-  const selections={dormitoryConduct:selectDormitoryConductEvidence(question,route,history),elearningOutline:selectElearningOutlineEvidence(question,route,history),feeRemission:selectFeeRemissionEvidence(question,route,history)};
+  const selections={dormitoryConduct:selectDormitoryConductEvidence(question,route,history),elearningOutline:selectElearningOutlineEvidence(question,route,history),feeRemission:selectFeeRemissionEvidence(question,route,history),healthExaminations:selectHealthExaminationEvidence(question,route,history)};
   const tools=Object.keys(selections).filter(key=>selections[key]);
   if(!tools.length)return {tools,selected:false,readerOnly:false,otherQuestion:question,questions:{},foreign:false,feeAndBalance:false,feeChargeLabel:null};
   const unquoted=value=>value.replace(/["]([^"\n]*)["]|“[^”]*”|「[^」]*」/gu,'');
@@ -98,6 +101,13 @@ export function nativePageLookupContext(question,route='',history=[]){
       for(let cursor=index+direction;parts[cursor]&&isFeeRemissionPeriodClause(parts[cursor]);cursor+=direction)feeClauses.add(cursor);
     }
   }
+  const healthClauses=new Set();
+  if(selections.healthExaminations){
+    parts.forEach((part,index)=>{if(selectHealthExaminationEvidence(part))healthClauses.add(index);});
+    for(const index of [...healthClauses])for(const direction of [-1,1]){
+      for(let cursor=index+direction;parts[cursor]&&(isHealthExaminationPageClause(parts[cursor])||isHealthExaminationFieldClause(parts[cursor]));cursor+=direction)healthClauses.add(cursor);
+    }
+  }
   let previous=null,suppressed=false;
   for(const [index,part] of parts.entries()){
     if(/^(?:(?:also|then|separately|please)\s+)*(?:(?:please\s+)?(?:do not|don['’]t|never)\s+(?:show|list|read|check|include)|not(?!\s+only)\b|without\b|exclude\b|excluding\b|except\b|(?:請)?不要(?:顯示|列出|查詢|包含)|排除|不含)/iu.test(part)){
@@ -107,12 +117,16 @@ export function nativePageLookupContext(question,route='',history=[]){
     if(suppressed&&!/^(?:(?:also|then|please|now)\s+)*(?:show|list|check|read|tell|explain|include|what|which|where|when|how|can|could|do|does|is|are|compare)\b|^(?:請|還有|現在)?(?:顯示|列出|查詢|告訴|什麼|何時|怎麼|哪)/iu.test(part))continue;
     suppressed=false;
     if(feeClauses.has(index)){collected.feeRemission.push(part);previous='feeRemission';continue;}
+    if(healthClauses.has(index)){collected.healthExaminations.push(part);previous='healthExaminations';continue;}
     const domain=tools.filter(key=>key==='dormitoryConduct'?Boolean(selectDormitoryConductEvidence(part,'',[]))
       :key==='elearningOutline'&&Boolean(selectElearningOutlineEvidence(part,route,history)));
     if(independent.test(unquoted(part))){other.push(part);previous=null;continue;}
     if(domain.length){for(const key of domain)collected[key].push(part);previous=domain.length===1?domain[0]:null;continue;}
     if(previous==='feeRemission'&&isFeeRemissionFollowup(part,selections.feeRemission.operation)){
       collected.feeRemission.push(part);continue;
+    }
+    if(previous==='healthExaminations'&&isHealthExaminationFieldClause(part)){
+      collected.healthExaminations.push(part);continue;
     }
     if(previous==='dormitoryConduct'&&(/^(?:(?:its|the|my|all|each|every|saved|recorded)\s+)*(?:dates?|reasons?|penalt(?:y|ies)|details?)(?:\s+(?:recorded|saved|for|me|my|account))*$/iu.test(part)
       ||/^(?:its|this notice['’]s|that notice['’]s)\s+(?:(?:downloadable|official|printed|saved)\s+)*(?:certificate|document|pdf|proof)$/iu.test(part))){collected[previous].push(part);continue;}
@@ -124,10 +138,11 @@ export function nativePageLookupContext(question,route='',history=[]){
   }
   // A short contextual follow-up can have no independently named subject.
   if(parts.length===1&&!independent.test(unquoted(question))&&tools.length===1){collected[tools[0]]=[question];other.length=0;}
-  const questions=Object.fromEntries(tools.map(key=>[key,key==='feeRemission'?question:collected[key].length?collected[key].join(' and '):question]));
+  const questions=Object.fromEntries(tools.map(key=>[key,key==='feeRemission'||key==='healthExaminations'?question:collected[key].length?collected[key].join(' and '):question]));
   const balanceQuestion=other.length===1?other[0].replace(/^(?:(?:also|then|separately|please)\s+)+|\s+separately$/giu,''):'';
-  const feeChargeLabel=selections.feeRemission?ownFeeBalanceLabel(balanceQuestion):null;
-  const feeAndBalance=Boolean(selections.feeRemission)&&(isOwnFeeBalanceQuestion(balanceQuestion)||feeChargeLabel!==null);
+  const scopedBalance=Boolean(selections.feeRemission||selections.healthExaminations);
+  const feeChargeLabel=scopedBalance?ownFeeBalanceLabel(balanceQuestion):null;
+  const feeAndBalance=scopedBalance&&(isOwnFeeBalanceQuestion(balanceQuestion)||feeChargeLabel!==null);
   return {tools,selected:true,readerOnly:other.length===0,otherQuestion:other.join(' and '),questions,feeAndBalance,feeChargeLabel,
     foreign:tools.some(key=>selections[key].reason==='foreign_request')};
 }
@@ -160,6 +175,7 @@ function catalogRouteContext(route,question){
 }
 function unavailable(key,reason){
   if(key==='feeRemission')return unavailableFeeRemissionEvidence(reason);
+  if(key==='healthExaminations')return unavailableHealthExaminationEvidence(reason);
   if(key==='dormitoryConduct')return unavailableDormitoryConductEvidence(reason);
   if(key==='elearningOutline')return unavailableElearningOutlineEvidence(reason);
   if(key==='facilityRepairs')return unavailableFacilityRepairEvidence(reason);

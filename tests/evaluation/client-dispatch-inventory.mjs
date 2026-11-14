@@ -59,7 +59,6 @@ const definitions=[
 
 const navigationOnly=[
   {calls:['clubOfficerGuide','clubGuide'],scopes:['club-officer','student-clubs'],reason:'Client opens an authorized page; it does not read private officer/application/equipment rows.'},
-  {calls:['healthExaminationGuide'],scopes:['health-examinations'],reason:'Private medical reports are linked, not retrieved into the assistant.'},
   {calls:['counselingGuide'],scopes:['counseling-appointments'],reason:'Counseling history is linked without disclosing private appointment content.'},
 ];
 const otherDirectReaders=['readProgramRegistrationAnswer','readTeachingFeedbackAnswer','readEarlyGraduationAnswer','readCreditTransferAnswer','readWithdrawalAnswer','readCourseAdjustmentAnswer'];
@@ -122,7 +121,9 @@ export function inspectClientDispatchSource(source){
     isFacilityRepairEvidenceQuestion:['facilityRepairEvidenceIntent','question,route,history'],isForeignFacilityRepairQuestion:['facilityRepairEvidenceIntent','question'],
     isDormitoryConductEvidenceQuestion:['dormitoryConductEvidenceIntent','question,route,history'],
     isElearningOutlineEvidenceQuestion:['elearningOutlineEvidenceIntent','question,route,history'],
-    isFeeRemissionEvidenceQuestion:['feeRemissionEvidenceIntent','question,route,history']};
+    isFeeRemissionEvidenceQuestion:['feeRemissionEvidenceIntent','question,route,history'],
+    isHealthExaminationEvidenceQuestion:['healthExaminationEvidenceIntent','question,route,history'],
+    healthExaminationQuestion:['healthExaminationContract','question']};
   const clauses=node=>ts.isParenthesizedExpression(node)?clauses(node.expression)
     :ts.isBinaryExpression(node)&&node.operatorToken.kind===ts.SyntaxKind.BarBarToken?[...clauses(node.left),...clauses(node.right)]:[node];
   const predicates=verifiedDispatch?clauses(verifiedDispatch.expression):[];
@@ -143,6 +144,7 @@ export function inspectClientDispatchSource(source){
     {id:'dormitory-conduct',graphTool:'dormitoryConduct',source:dispatchPath,line:first.line},
     {id:'elearning-outline',graphTool:'elearningOutline',source:dispatchPath,line:first.line},
     {id:'fee-remission',graphTool:'feeRemission',source:dispatchPath,line:first.line},
+    {id:'health-examinations',graphTool:'healthExaminations',source:dispatchPath,line:first.line},
   ],
     fallback:{source:dispatchPath,line:api[0].line},otherDirectReaders:otherDirectReaders.filter(name=>calls.some(call=>call.name===name&&call.at<fallback.at)),
     navigationOnly:navigationOnly.map(row=>({...row,observedCalls:row.calls.filter(name=>calls.some(call=>call.name===name&&call.at<fallback.at))}))};
@@ -175,7 +177,7 @@ function questionCases(definition){
  * fixture creation, user-session import, model call or product code execution. */
 export async function discoverClientDispatchSurfaces({read=readSource}={}){
   const contracts=['clubStudent','certificateAwards','announcementEmail','studentProfile','graduationClearance'];
-  const sources=[...new Set([dispatchPath,apiPath,'server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js','server/elearningEvidenceIntent.js','server/facilityRepairEvidenceIntent.js','server/dormitoryConductEvidenceIntent.js','server/elearningOutlineEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
+  const sources=[...new Set([dispatchPath,apiPath,'server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js','server/elearningEvidenceIntent.js','server/facilityRepairEvidenceIntent.js','server/dormitoryConductEvidenceIntent.js','server/elearningOutlineEvidenceIntent.js','server/healthExaminationEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
     ...contracts.map(name=>'server/'+name+'Contract.js'),'src/features/public/affairs/venueContract.js',
     'server/clubServicesContract.js','server/clubOfficerContract.js','server/healthExaminationContract.js','server/counselingContract.js',
     'src/features/public/PublicSite.tsx','src/features/public/affairs/SchoolAffairsEntry.tsx','src/features/public/affairs/SchoolAffairsPortal.tsx',

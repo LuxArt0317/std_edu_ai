@@ -1,3 +1,4 @@
+import type {HealthExaminationEvidenceResult} from './accountHealthExaminationEvidence.js';
 import type {FeeRemissionEvidenceResult} from './accountFeeRemissionEvidence.js';
 import type {StudentConductEvidenceResult} from './accountStudentConductEvidence.js';
 import type {AidPaymentsEvidenceResult} from './accountAidPaymentsEvidence.js';
@@ -12,7 +13,7 @@ import type {CertificateEvidenceResult} from './accountCertificateEvidence.js';
 import type {SubmissionEvidenceResult} from './accountSubmissionEvidence.js';
 import type {TuitionEvidenceResult} from './accountTuitionEvidence.js';
 
-export type SupplementalEvidenceResult=FeeRemissionEvidenceResult|CatalogEvidenceResult|CertificateEvidenceResult|SubmissionEvidenceResult|TuitionEvidenceResult|StudentConductEvidenceResult|StudentLoanEvidenceResult|AidPaymentsEvidenceResult|DtmGradeReportEvidenceResult|ElearningEvidenceResult|FacilityRepairEvidenceResult|DormitoryConductEvidenceResult|ElearningOutlineEvidenceResult;
+export type SupplementalEvidenceResult=HealthExaminationEvidenceResult|FeeRemissionEvidenceResult|CatalogEvidenceResult|CertificateEvidenceResult|SubmissionEvidenceResult|TuitionEvidenceResult|StudentConductEvidenceResult|StudentLoanEvidenceResult|AidPaymentsEvidenceResult|DtmGradeReportEvidenceResult|ElearningEvidenceResult|FacilityRepairEvidenceResult|DormitoryConductEvidenceResult|ElearningOutlineEvidenceResult;
 export type SupplementalRecordView={id:string;title:string;url:string;columns:string[];rows:string[][];total:number;checkedAt:string;note:string};
 export type SupplementalAnswerCandidate={
   status:'answered'|'abstained';answer:string;
