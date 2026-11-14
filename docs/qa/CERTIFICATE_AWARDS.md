@@ -1,0 +1,24 @@
+# Certificate award applications
+
+[Issue #98](https://github.com/LuxArt0317/std_edu_ai/issues/98) tracks School Affairs service 52-1. The signed-in source displays the student certificate form, source catalog lookup, proof upload, award option, read-only cashier fields and a separate review block. The introductory link returns to the entry. The source was observed without submitting a form or copying private values. [University certificate service](https://info.stu.edu.tw/sao/certificate/index.asp)
+
+## Workflow
+
+At [stu.best service 52-1](https://stu.best/school-affairs/services/52-1), select from the 30 initially observed catalog entries, enter the date earned and contact phone, and upload JPG or PDF proof. The catalog is searchable by code, name, level and issuer. An administrator can maintain catalog entries and the student's verified payout reference. The form uses the student baseline from service 8-1 and shows an empty identity until one is available.
+
+Uploading creates a versioned draft with a unique proof reservation. The private Supabase bucket limits each file to 5 MiB. The student can remove a proof before submitting or while supplying requested documents. The submission waits for an attached proof and, for an award, verified payout details. Managers can request documents, approve, or record the review amount. The account details and proof files are accessible only to the record owner and authorized reviewer as appropriate. The assistant reads a narrow status response and links to the application. It receives no contact phone, bank details, proof path or attachment.
+
+The school-facing manager stores only the last four account digits and administrative reference. No payment transfer or university-side application takes place from the stu.best form. The 30 captured catalog records are the initial source view, and protected results beyond the initial view and official handling remain open.
+
+## Verification
+
+```sh
+npm run db:plan -- --only=20261114230000
+node tests/integration/certificate-awards-db.mjs --rollback-preflight
+node tests/integration/certificate-awards-db.mjs --deployed
+node --experimental-strip-types --test tests/api/certificate-awards.test.ts
+node --experimental-strip-types tests/integration/certificate-awards-http.mjs --verify-client
+PUBLIC_SITE_ORIGIN=http://127.0.0.1:54630 node tests/integration/certificate-awards-ui.mjs
+```
+
+Use rollback preflight before applying the migration and deployed mode afterward. The browser suite uses disposable fixtures. The authenticated HTTP suite creates disposable accounts, issues a real Storage upload, checks unauthorized access and removes the fixture bytes through Storage before deleting database records.

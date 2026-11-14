@@ -1,3 +1,7 @@
+## Certificate awards (Issue #98)
+
+Service 52-1 has a searchable initial catalog, protected proof files, versioned applications and administrator review. See [certificate awards QA](../qa/CERTIFICATE_AWARDS.md).
+
 ## Announcement email preference (Issue #98)
 
 Service 2-1 has a protected email checkbox and next-day activation in Taipei. The sender and schedule are opt-in configuration. Preference persistence and the worker can be verified separately from mailbox delivery. See [announcement email QA](../qa/ANNOUNCEMENT_EMAIL.md).

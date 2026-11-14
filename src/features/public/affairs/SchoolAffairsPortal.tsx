@@ -1,3 +1,5 @@
+import {CertificateAwardWorkspace} from "./CertificateAwardWorkspace";
+import {certificateAwardPath} from "../../../../server/certificateAwardsContract.js";
 import {AnnouncementEmailSettings} from "./AnnouncementEmailSettings";
 import {announcementEmailPath} from "../../../../server/announcementEmailContract.js";
 import {GraduationClearanceWorkspace} from "./GraduationClearanceWorkspace";
@@ -504,6 +506,12 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   }
   if (normalizedPath === "/school-affairs/services/7-1") {
     return <CreditLoadApplication key={user.id} />;
+  }
+  if (normalizedPath === certificateAwardPath || normalizedPath === certificateAwardPath + "/overview" ||
+    normalizedPath === certificateAwardPath + "/catalog" || (route[0] === "services" && route[1] === "52-1" &&
+      route[2] === "record" && route.length === 4 && /^[0-9a-f-]{36}$/.test(route[3]))) {
+    return <CertificateAwardWorkspace key={user.id+normalizedPath} userId={user.id}
+      view={route[2]==="catalog"?"catalog":route[2]==="record"?"record":"form"} id={route[2]==="record"?route[3]:undefined}/>;
   }
   if (normalizedPath === studentProfilePath) return <StudentProfileWorkspace key={user.id} userId={user.id} />;
   if (normalizedPath === firstSelectionPath || normalizedPath === firstSelectionFeesPath) {

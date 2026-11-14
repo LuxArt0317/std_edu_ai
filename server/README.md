@@ -135,3 +135,5 @@ The summer eligibility reader uses the existing caller-JWT course adjustment aut
 `studentProfile.js` validates the caller-JWT RPC contract and limits the assistant response to confirmation status and a form link.
 
 Announcement email uses a caller-JWT preference reader and a separately authorized, fenced delivery worker. The chatbot receives only saved setting status.
+
+Certificate awards use a bounded caller-JWT reader and send status fields only to the assistant. The Storage policy checks the exact proof reservation.

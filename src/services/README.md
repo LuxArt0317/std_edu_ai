@@ -60,3 +60,5 @@ The course adjustment client reads caller-owned summer decisions. Summer notice 
 The student profile client uses the School Affairs session and rechecks the caller before presenting a response.
 
 The announcement email client reloads the caller-owned preference and preserves the same request ID when a confirmation receipt is lost.
+
+The certificate award client uses the School Affairs session for application and Storage requests, checks account binding and uses only the private proof bucket.

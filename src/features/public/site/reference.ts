@@ -1,3 +1,4 @@
+import {certificateAwardPath} from "../../../../server/certificateAwardsContract.js";
 import {announcementEmailPath} from "../../../../server/announcementEmailContract.js";
 import {studentProfilePath} from "../../../../server/studentProfileContract.js";
 import {repairPaths} from "../affairs/facilityRepair.js";
@@ -30,6 +31,12 @@ export function referenceHref(href: string): string {
       url.hostname === "sso2.stu.edu.tw"
     )
       return "/student-sso";
+    if (url.hostname === "info.stu.edu.tw") {
+      const path=url.pathname.toLowerCase();
+      if (path==="/sao/certificate/student/qrycrtnamerecordbystu.asp") return certificateAwardPath+"/catalog";
+      if (path==="/sao/certificate/student/index.asp") return certificateAwardPath+"/overview";
+      if (["/sao/certificate/index.asp","/sao/certificate/student/mtncrtrecordbystu.asp"].includes(path)) return certificateAwardPath;
+    }
     if (url.hostname === "info.stu.edu.tw" && url.pathname.toLowerCase() === "/eportal/pg/setnewstomail.asp")
       return announcementEmailPath;
     if (url.hostname === "info.stu.edu.tw" && url.pathname.toLowerCase() === "/aca/student/newstu/mtnstudata.asp")

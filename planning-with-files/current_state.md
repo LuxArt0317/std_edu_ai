@@ -1,3 +1,7 @@
+## Certificate awards [Issue #98]
+
+The observed source layout, catalog, application and review are implemented and exact-client rollback passed. The official payment and unobserved source pages remain open. Production verification is pending.
+
 ## Announcement email preference [Issue #98]
 
 Production `2917920` is live as Vercel `9wmknk5mMEQEspGaerrDGzJzA2bh`. Migration 20261114220000 brings the client to 156 migrations and 184 RLS-protected public tables. The pinned browser, authenticated HTTP with fixture cleanup, four bilingual guest assistant checks, eight shell routes and Quality 43547791212 passed. The 94-destination local audit reports 32 generic and 22 partial entries.

@@ -109,3 +109,5 @@ The summer selection route uses the observed student identity-check layout and l
 Service 8-1 uses the observed student information confirmation table, a saved mobile update and protected baseline maintenance.
 
 Service 2-1 uses the source-shaped checkbox, confirm/cancel controls, and next-day activation. The form reports when sending is unavailable.
+
+Service 52-1 mounts the certificate application, catalog and record views. The protected administration panel maintains catalog, verified payout reference and review state.

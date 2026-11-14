@@ -3,7 +3,7 @@
 ## Certificate award applications [Issue #98]
 
 - [x] Observe the authenticated 52-1 form and certificate catalog search.
-- [ ] Implement the student form, catalog lookup, private proof documents and protected review.
+- [x] Implement the student form, catalog lookup, private proof documents and protected review.
 - [ ] Verify the browser, authenticated API, storage isolation and assistant status.
 
 ## Announcement email preference [Issue #98]

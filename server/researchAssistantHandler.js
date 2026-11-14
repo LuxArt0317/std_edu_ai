@@ -1,3 +1,5 @@
+import {certificateAwardQuestion} from './certificateAwardsContract.js';
+import {certificateAwardGuide} from './certificateAwards.js';
 import {announcementEmailQuestion} from './announcementEmailContract.js';
 import {announcementEmailGuide} from './announcementEmail.js';
 import {clearancePaths,clearanceQuestion} from './graduationClearanceContract.js';
@@ -262,6 +264,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const kind = questionKind(input.question);
+        const certificateAward=!input.images.length&&!kind.irrelevant&&certificateAwardQuestion(input.question);
+        if(certificateAward){stream.send(200,certificateAwardGuide(input.question,certificateAward));return;}
         const announcementEmail=!input.images.length&&!kind.irrelevant&&announcementEmailQuestion(input.question);
         if(announcementEmail){stream.send(200,announcementEmailGuide(input.question,announcementEmail));return;}
         const profile = !input.images.length && !kind.irrelevant && studentProfileQuestion(input.question);

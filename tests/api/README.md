@@ -51,3 +51,5 @@ Supplemental correction regressions exercise actual reader/formatter chains for 
 The student profile intent test checks bilingual separation of confirmation status and form instructions.
 
 Announcement email tests check status intent, caller validation, worker authorization, provider idempotency and acknowledgement.
+
+The certificate award intent checks distinguish status from navigation and enrollment certificates.

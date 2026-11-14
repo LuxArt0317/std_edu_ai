@@ -1,3 +1,7 @@
+## Certificate awards (Issue #98)
+
+Root owns service 52-1, migration 20261114230000, private proof bucket, protected review and assistant status. The observed source exposed 30 initial catalog entries. Preserve paused Issue #100 paths.
+
 ## Announcement email preference (Issue #98)
 
 Root owns service 2-1, migration 20261114220000, assistant routing and the delivery worker. The signed-in settings form was measured without changing the school's setting. Keep Issue #100 edits excluded. Production `2917920` is live as Vercel `9wmknk5mMEQEspGaerrDGzJzA2bh`. Migration 20261114220000 brings the client to 156 migrations and 184 RLS-protected public tables. The pinned browser, authenticated HTTP with fixture cleanup, four bilingual guest assistant checks, eight shell routes and Quality 43547791212 passed. The 94-destination local audit reports 32 generic and 22 partial entries. The sender is unconfigured and the delivery job is disabled by its repository gate. Queue eligibility, retries and transport were verified with controlled responses. Mailbox receipt remains open. The teacher timetable, professional program and learning questionnaire sources require their own sign-in. The source portal guide path returned 404. Certificate award service 52-1 opened its signed-in form and certificate search. The next implementation can use the observed layouts, private attachment storage and a protected review workflow.

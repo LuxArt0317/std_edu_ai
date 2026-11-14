@@ -1,3 +1,5 @@
+import {certificateAwardQuestion} from '../../server/certificateAwardsContract.js';
+import {readCertificateAwardAnswer} from './certificateAwards';
 import {announcementEmailQuestion} from '../../server/announcementEmailContract.js';
 import {readAnnouncementEmailAnswer} from './announcementEmail';
 import {studentProfileQuestion} from '../../server/studentProfileContract.js';
@@ -32,6 +34,12 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
   if (!affairsClient) throw new Error('School Affairs sign-in is not configured.');
   const {data,error} = await affairsClient.auth.getSession();
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
+  const certificate=!images.length&&certificateAwardQuestion(question);
+  if(certificate==='guide')return askCampusAssistant(question,[],signal,[],route,onProgress);
+  if(certificate==='status'){
+    onProgress?.({kind:'certificate-awards',label:'Checking certificate applications',detail:'Reading your saved application status.',status:'running'});
+    return readCertificateAwardAnswer(data.session.user.id,question,signal);
+  }
   const email=!images.length&&announcementEmailQuestion(question);
   if(email==='guide')return askCampusAssistant(question,[],signal,[],route,onProgress);
   if(email==='status'){

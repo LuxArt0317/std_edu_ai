@@ -1,0 +1,18 @@
+export const certificateAwardPath:string;
+export const certificateAwardScope:'certificate-awards';
+export const certificateProofBucket:'affairs-certificate-proofs';
+export const certificateProofLimit:number;
+export type StudentAwardOp='draft'|'reserve'|'attach'|'detach'|'discard'|'submit'|'add_award';
+export type ManagerAwardOp='review'|'payout'|'catalog';
+export const certificateAwardStudentOps:StudentAwardOp[];
+export const certificateAwardManagerOps:ManagerAwardOp[];
+export type AwardStatus='draft'|'submitted'|'reviewing'|'needs_documents'|'approved';
+export const certificateAwardLabels:Record<AwardStatus,[string,string]>;
+export type CertificateCatalogRow={code:string;name:string;level:string;issuer:string};
+export type CertificateAwardRow={id:string;certificate_code:string;obtained_on:string;phone:string;teacher_code:string;wants_award:boolean;
+  status:AwardStatus;application_fee:number|null;award_amount:number|null;review_note:string;version:number;updated_at:string;name:string;level:string;issuer:string};
+export type CertificateProof={id:string;filename:string;sizeBytes:number;contentType:'application/pdf'|'image/jpeg';attached:boolean;path:string};
+export type CertificatePayout={bank:string;branch:string;account_last_four:string;note:string;verified_at:string};
+export type CertificateWorkspace={userId:string;identity:{studentNumber:string;name:string}|null;payout:CertificatePayout|null;rows:CertificateAwardRow[];files:CertificateProof[]};
+export type CertificateAwardReceipt={id:string;version:number;status?:AwardStatus;fileId?:string;path?:string};
+export function certificateAwardQuestion(question:string):'guide'|'status'|null;

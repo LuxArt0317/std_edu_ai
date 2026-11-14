@@ -67,3 +67,5 @@ Migration220000 adds one active private dormitory-conduct metadata record per ac
 Migration 20261114210000 adds the protected student information baseline and private versioned confirmation receipts. The migration seeds no records.
 
 Migration 20261114220000 adds caller-owned announcement email preferences and a private queue with versioned opt-in and fenced delivery.
+
+Migration 20261114230000 installs the observed initial certificate catalog, protected applications, masked payout references, and reservation-based proof Storage.

@@ -1,0 +1,62 @@
+.certificate-awards { min-height:100vh; padding:12px 0 18px; background:#e6e6e6; color:#111; font:12px/1.45 "Microsoft JhengHei",Verdana,Arial,sans-serif; }
+.certificate-frame { width:min(962px,100%); margin:auto; border:1px solid #c9cacb; border-top:0; border-radius:0 0 5px 5px; background:#fff; }
+.certificate-banner { display:flex; flex-wrap:wrap; justify-content:space-between; min-height:20px; padding:2px 17px; color:#fff; background:#56585c; }
+.certificate-heading { display:flex; align-items:flex-start; gap:4px; margin:0 16px; border-bottom:1px solid #ccc; }
+.certificate-heading img { width:42px; height:42px; }
+.certificate-heading h1 { color:#3f3f3f; font:20px/1.35 Arial,sans-serif; }
+.certificate-frame nav { display:flex; flex-wrap:wrap; gap:2px; margin:-14px 16px 0; padding-left:46px; position:relative; }
+.certificate-frame nav a { padding:1px 10px; color:#fff; background:#006b88; }
+.certificate-content { width:95%; margin:7px auto 42px; }
+.certificate-intro { min-height:211px; padding:13px 19px 10px; border:1px solid #b9cbd1; background:#f4f8f9; }
+.certificate-intro h2,.certificate-notes h2 { color:#006459; font:16px/1.4 Arial,sans-serif; }
+.certificate-intro ol,.certificate-notes ol { list-style:decimal; margin:8px 0 12px 19px; }
+.certificate-intro p { margin:8px 0; }
+.certificate-entry { width:95.63%; margin:30px auto 0; }
+.certificate-fields { min-width:0; margin:0 0 26px; padding:9px 0 21px; border:1px solid #b9cbd1; }
+.certificate-fields legend { margin-left:12px; padding:0 7px; color:#006459; font-size:14px; }
+.certificate-row { display:grid; grid-template-columns:117px minmax(0,1fr); min-height:32px; align-items:start; gap:0; padding:4px 9px 4px 0; }
+.certificate-row>strong { padding:2px 7px 0 2px; text-align:right; font-weight:400; }
+.certificate-row input:not([type=radio]),.certificate-row textarea,.certificate-catalog-form input { width:210px; max-width:100%; min-height:22px; padding:1px 4px; border:1px solid #888; border-radius:0; background:#fff; font:inherit; }
+.certificate-row input[readonly],.certificate-row textarea[readonly] { background:#f6f6f6; }
+.certificate-row textarea { width:411px; min-height:37px; resize:vertical; }
+.certificate-entry .certificate-row .certificate-wide { width:610px; }
+.certificate-row .certificate-inline input:not([type=radio]) { width:90px; }
+.certificate-row .certificate-inline .certificate-issuer { width:260px; }
+.certificate-row .certificate-inline [aria-label="證照級數"] { width:260px; }
+.certificate-row .certificate-inline [aria-label="證照編號"] { width:60px; }
+.certificate-row .certificate-inline [aria-label="附件數目"] { width:40px; }
+.certificate-row input[type=date] { width:135px; }
+.certificate-row input[aria-label="教師代碼"] { width:90px; }
+.certificate-inline { display:flex; flex-wrap:wrap; align-items:center; gap:5px; }
+.certificate-inline label { display:inline-flex; align-items:center; gap:4px; }
+.certificate-inline input[type=radio] { appearance:auto; width:13px; height:13px; }
+.certificate-buttons { display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+.certificate-buttons :is(button,a),.certificate-row button,.certificate-proofs button { min-height:27px; min-width:61px; padding:3px 7px; border-radius:2px; color:#fff; background:#666; text-align:center; font:14px/1.4 Arial,sans-serif; cursor:pointer; }
+.certificate-awards .certificate-query,.certificate-dialog .certificate-query { background:#006c95; }
+.certificate-awards .certificate-add,.certificate-dialog .certificate-add { background:#00766b; }
+.certificate-buttons button:disabled,.certificate-row button:disabled,.certificate-proofs button:disabled { opacity:.6; cursor:default; }
+.certificate-entry-actions { margin:4px 0 0 117px; }
+.certificate-alert { margin:10px 0; color:#8b371e; }
+.certificate-notes { width:95.63%; margin:32px auto 12px; padding:10px 12px; border:1px solid #ddd; }
+.certificate-scroll { overflow-x:auto; margin:12px auto; }
+.certificate-table { width:100%; min-width:540px; border-collapse:collapse; }
+.certificate-table :is(th,td) { border:1px solid #ccc; padding:4px 6px; text-align:left; overflow-wrap:anywhere; }
+.certificate-table th { color:#fff; background:#007979; }
+.certificate-table tbody tr:nth-child(even) { background:#f6f6f6; }
+.certificate-table a { color:#005b80; text-decoration:underline; }
+.certificate-proofs { display:grid; gap:6px; margin:12px 0; }
+.certificate-proofs li { display:flex; align-items:center; flex-wrap:wrap; gap:8px; overflow-wrap:anywhere; }
+.certificate-catalog-form { display:grid; gap:8px; padding:18px 12px; }
+.certificate-catalog-form label { display:grid; grid-template-columns:100px minmax(0,1fr); align-items:center; }
+.certificate-catalog-form .certificate-buttons { margin-left:100px; }
+.certificate-dialog { max-height:85dvh; overflow-y:auto; }
+.certificate-awards footer { margin:16px auto 0; color:#555; text-align:center; }
+.certificate-awards :focus-visible,.certificate-dialog :focus-visible { outline:2px solid #005a81; outline-offset:2px; }
+@media(max-width:560px) {
+  .certificate-content { width:94%; }
+  .certificate-intro { min-height:auto; padding:10px; }
+  .certificate-row { grid-template-columns:94px minmax(0,1fr); }
+  .certificate-entry-actions { margin-left:0; }
+  .certificate-catalog-form label { grid-template-columns:80px minmax(0,1fr); }
+  .certificate-catalog-form .certificate-buttons { margin-left:0; }
+}

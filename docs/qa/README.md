@@ -1,5 +1,7 @@
 # Quality evidence
 
+[Certificate awards](CERTIFICATE_AWARDS.md) covers the catalog, protected evidence upload and award review.
+
 [Announcement email preferences](ANNOUNCEMENT_EMAIL.md) covers saved opt-in, its activation time, the assistant and the delivery worker.
 
 [Student information confirmation](STUDENT_PROFILE.md) covers the form, private persistence, administrator maintenance and assistant status.

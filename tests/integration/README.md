@@ -106,3 +106,5 @@ The summer selection browser and course adjustment database/HTTP summer modes ch
 The student profile browser, database and actual-JWT HTTP suites cover 8-1, protected baseline maintenance, retries and status privacy.
 
 Announcement email tests cover source-shaped browser controls, real caller JWT persistence, private queue eligibility and cleanup.
+
+Certificate award suites cover the observed geometry, catalog and form, protected lifecycle, caller-JWT Storage isolation and disposable fixture cleanup.

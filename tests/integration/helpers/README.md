@@ -13,3 +13,5 @@ The navigation inventory classifies summer selection as a partial workflow and p
 The navigation inventory includes the 8-1 profile form. Its QA fixtures contain synthetic field values only.
 
 The announcement email navigation fixture models an opt-out account with sending unavailable.
+
+Certificate award navigation uses an empty, account-bound workspace fixture.
