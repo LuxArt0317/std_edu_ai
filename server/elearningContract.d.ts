@@ -10,7 +10,10 @@ export type ElearningNotice={id:number;kind:'page'|'resource'|'url'|'folder';tit
 export type ElearningEnrollment={courseId:number;joinedAt:string};
 export type ElearningWorkspace={userId:string;categories:ElearningCategory[];courses:ElearningCourse[];notices:ElearningNotice[];enrollments:ElearningEnrollment[]};
 export function elearningCoursePath(id:number):string;
+export function elearningActivityPath(course:number,id:number):string;
+export function elearningCourseLocation(path:string):{courseId:number;activityId:number|null}|null;
 export function elearningOutlineCourse(question:string,route?:string):number|null;
+export function elearningOutlineFilter(question:string):'video'|'slides'|'feedback'|null;
 export function elearningQuestion(question:string,route?:string):'mine'|'records'|'guide'|null;
 export function elearningGuide(question:string,intent:'mine'|'records'|'guide',signedIn?:boolean):AssistantResponse;
 
@@ -18,7 +21,8 @@ export const elearningCatalogScope:'elearning-catalog';
 export const elearningCatalogPageSize:20;
 export type ElearningCatalog={userId:string;total:number;courses:ElearningCourse[]};
 export const elearningOutlineScope:'elearning-course-outline';
-export type ElearningActivity={id:number;title:string;kind:'url'|'attendanceregister'};
-export type ElearningOutline={userId:string;courseId:number;sections:{position:number;title:string;activities:ElearningActivity[]}[]};
+export type ElearningActivity={id:number;title:string;kind:'url'|'attendanceregister';purpose?:'link'|'video'|'slides'|'feedback'|'attendance'};
+export type ElearningSection={position:number;title:string;activities:ElearningActivity[]};
+export type ElearningOutline={userId:string;courseId:number;sections:ElearningSection[]};
 export function elearningActivityUrl(activity:unknown):string|null;
 export function isElearningOutline(outline:unknown,userId:string,courseId:number):outline is ElearningOutline;

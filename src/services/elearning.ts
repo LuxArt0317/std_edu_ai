@@ -1,5 +1,5 @@
 import {affairsClient} from '@/features/public/affairs/authClient';
-import {elearningCoursePath,elearningPath,elearningScope,elearningCatalogScope,elearningOutlineScope,isElearningOutline,elearningCatalogPageSize,joinElearningCourse,
+import {elearningActivityPath,elearningCoursePath,elearningPath,elearningScope,elearningCatalogScope,elearningOutlineFilter,elearningOutlineScope,isElearningOutline,elearningCatalogPageSize,joinElearningCourse,
   type ElearningCatalog,type ElearningEnrollment,type ElearningOutline,type ElearningWorkspace} from '../../server/elearningContract.js';
 import type {AssistantResponse} from './researchAssistant';
 
@@ -51,11 +51,19 @@ export async function answerElearningOutline(userId:string,courseId:number,quest
   const url=elearningCoursePath(courseId);
   const title=zh?'課程大綱':'Course outline';
   const escape=(value:string)=>value.replace(/[\\`*_{}[\]()#+.!|<>~]/g,'\\$&');
-  const sections=data.sections.slice(0,6).map(section=>'**'+escape(section.title)+'**\n'+section.activities.slice(0,20).map(
-    activity=>'- ['+escape(activity.title)+']('+url+'#elearning-activity-'+activity.id+')').join('\n'));
-  const summary=sections.length?(zh?'課程大綱中列出的活動：':'Activities listed in this course outline:'):
-    (zh?'此帳戶無法讀取這門課的課程大綱。':'This course outline is unavailable to your account.');
-  return {status:sections.length?'answered':'handoff',answer:[summary,...sections,'['+title+']('+url+')'].join('\n\n'),
+  const filter=elearningOutlineFilter(question);
+  const sections=data.sections.map(section=>({
+    title:section.title,
+    activities:filter?section.activities.filter(activity=>activity.purpose===filter):section.activities,
+  })).filter(section=>section.activities.length);
+  const groups=sections.slice(0,6).map(section=>'**'+escape(section.title)+'**\n'+section.activities.slice(0,20).map(
+    activity=>'- ['+escape(activity.title)+']('+elearningActivityPath(courseId,activity.id)+')').join('\n'));
+  const summary=!data.sections.length
+    ?(zh?'此帳戶無法讀取這門課的課程大綱。':'This course outline is unavailable to your account.')
+    :!groups.length
+      ?(zh?'儲存的課程大綱沒有符合的活動。':'The saved course outline has no matching activities.')
+      :(zh?'課程大綱中列出的活動：':'Activities listed in this course outline:');
+  return {status:data.sections.length?'answered':'handoff',answer:[summary,...groups,'['+title+']('+url+')'].join('\n\n'),
     citations:[{chunkId:'account:elearning:'+courseId,title,url,claim:summary,sourceName:'stu.best',
       locator:null,effectiveAt:null,reviewedAt:null}],suggestedQuestions:[],grounding:{source:'account',webSearched:false}};
 }

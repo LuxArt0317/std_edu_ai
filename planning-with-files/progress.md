@@ -1,5 +1,7 @@
 # Progress
 
+- 2026-11-14 [#98] Applied the activity-purpose migration after rollback verification. The authenticated SQL and local HTTP checks verified the classified activity lists, account isolation and fixture cleanup.
+
 - 2026-11-14 [#98] Verified the source course section layout and 17 activity destinations. Applied the bounded per-course outline migration after rollback verification. The migration grants no accounts new course access.
 
 - 2026-11-14 [#98] Observed the protected student profile form. Implemented the baseline and confirmation workflow and passed the exact-client rollback, authorization and replay checks.

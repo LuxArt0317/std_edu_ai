@@ -1,3 +1,7 @@
+## Remote-learning activity pages [Issue #98]
+
+Protected activity routes resolve from the authenticated course response. Migration 20261115040000 passed rollback testing and is applied. The verified activity types match the two course outlines. The actual-JWT local-handler suite verified account isolation and cleaned up its fixtures. Browser and deployment verification remain in progress.
+
 ## Remote-learning course layout [Issue #98]
 
 Production `4acef46` is live as Vercel `HSEtphCQGR3ngn5RQqoqp4SpELyi`. The outline layout uses the verified course header, category breadcrumbs, original Moodle icons and measured section spacing. The pinned browser and actual-JWT verification passed. All 94 School Affairs destinations passed navigation, with 29 generic and 25 partial. Quality 43559400070 passed. No migration was required. Fourteen linked slide/video screens display Google Drive previews and one feedback screen displays a Google Form. Only the screen and destination types were verified. The source attendance report denied access in the current session. The teacher timetable source still requires its own CAPTCHA sign-in.

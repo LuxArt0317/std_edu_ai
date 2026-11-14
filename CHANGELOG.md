@@ -1,5 +1,6 @@
 # Changelog
 ## Unreleased
+- Open verified Moodle activities on protected local pages and let the assistant link to the requested videos, slides or feedback form. [#98]
 - Store verified remote-learning course sections and activity links with per-course authorization. Link the campus assistant to the matching saved activity. [#98]
 - Import 3,291 observed remote-learning course listings across 43 categories and add server-side pagination and search. [#98]
 - Add the separate remote-learning Moodle portal, database-backed course catalog, saved workshop enrollment and assistant links. [#98]

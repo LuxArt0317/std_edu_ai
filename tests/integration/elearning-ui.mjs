@@ -52,8 +52,8 @@ async function fixture(signedIn,courseAccess=signedIn){
         assert.match(request.headers().authorization??'',/^Bearer /u);
         const courseId=Number(url.searchParams.get('course'));
         return route.fulfill({json:{userId:user.id,courseId,sections:courseAccess&&courseId===9408
-          ?[{position:1,title:'課程主題',activities:[{id:293399,kind:'attendanceregister',title:'出席統計'},
-            {id:293395,kind:'url',title:'第一段影片'}]}]:[]}});
+          ?[{position:1,title:'課程主題',activities:[{id:293399,kind:'attendanceregister',title:'出席統計',purpose:'attendance'},
+            {id:293395,kind:'url',title:'第一段影片',purpose:'video'}]}]:[]}});
       }
       if(signedIn&&url.pathname==='/api/affairs-conversations'&&request.method()==='POST'){
         const {id,title,messages,version}=request.postDataJSON();
@@ -157,15 +157,32 @@ try{
   await page.locator('.elearning-header').getByRole('heading',{name:protectedCourse.title}).waitFor();
   assert.equal(await main.getByRole('heading',{name:protectedCourse.title}).count(),0);
   assert.equal(await page.locator('.elearning-breadcrumb [aria-current=page]').count(),1);
-  assert.equal(await firstVideo.getAttribute('href'),'https://elearning.stu.edu.tw/mod/url/view.php?id=293395');
+  const videoRoute=path+'/course/9408/activity/293395';
+  assert.equal(await firstVideo.getAttribute('href'),videoRoute);
   await firstVideo.locator('img').evaluate(img=>img.decode());
   assert.equal(await main.getByRole('link',{name:'出席統計'}).getAttribute('href'),
-    'https://elearning.stu.edu.tw/mod/attendanceregister/view.php?id=293399');
+    path+'/course/9408/activity/293399');
+  await firstVideo.click();
+  await page.waitForURL(origin+videoRoute);
+  const officialVideo=main.getByRole('link',{name:'在 Moodle 觀看影片'});
+  assert.equal(await officialVideo.getAttribute('href'),'https://elearning.stu.edu.tw/mod/url/view.php?id=293395');
+  assert.equal(await officialVideo.getAttribute('target'),'_blank');
+  assert.equal(await main.locator('iframe').count(),0);
+  await page.reload();
+  await officialVideo.waitFor();
+  await page.locator('.elearning-breadcrumb [aria-current=page]').filter({hasText:'第一段影片'}).waitFor();
   await page.getByRole('button',{name:'開啟 AI 校園助理'}).click();
-  await page.getByPlaceholder('Ask a school question…').fill('Show the course outline');
+  await page.getByPlaceholder('Ask a school question…').fill('What videos are listed?');
   await page.getByRole('button',{name:'Send',exact:true}).click();
   const activityLink=page.getByRole('dialog').getByRole('link',{name:'第一段影片'});
-  assert.equal(await activityLink.getAttribute('href'),path+'/course/9408#elearning-activity-293395');
+  assert.equal(await activityLink.getAttribute('href'),videoRoute);
+  assert.equal(await page.getByRole('dialog').getByRole('link',{name:'出席統計'}).count(),0);
+  await page.keyboard.press('Escape');
+  await main.getByRole('link',{name:'返回課程'}).click();
+  await firstVideo.waitFor();
+  await page.goto(origin+path+'/course/9408/activity/281294');
+  await main.getByRole('heading',{name:'無法開啟活動'}).waitFor();
+  assert.equal(await main.getByRole('link',{name:/在 Moodle/}).count(),0);
   const unassigned=await fixture(true,false);
   await Promise.all([
     unassigned.waitForResponse(res=>new URL(res.url()).searchParams.get('scope')===elearningOutlineScope),
@@ -173,10 +190,13 @@ try{
   ]);
   await unassigned.getByRole('heading',{name:protectedCourse.title}).waitFor();
   assert.equal(await unassigned.getByRole('link',{name:'第一段影片'}).count(),0);
+  await unassigned.goto(origin+videoRoute);
+  await unassigned.locator('#elearning-main').getByRole('heading',{name:'無法開啟活動'}).waitFor();
+  assert.equal(await unassigned.locator('#elearning-main').getByRole('link',{name:/在 Moodle/}).count(),0);
   const guest=await fixture(false);
-  await guest.goto(origin+path+'/course/9718');
+  await guest.goto(origin+videoRoute);
   await guest.waitForURL(url=>url.pathname===path+'/login');
-  assert.equal(new URL(guest.url()).searchParams.get('next'),path+'/course/9718');
+  assert.equal(new URL(guest.url()).searchParams.get('next'),videoRoute);
   await guest.getByRole('button',{name:'Continue with Google'}).waitFor();
   assert.equal(await guest.locator('input[type=password]').count(),0);
   assert.deepEqual(errors,[]);

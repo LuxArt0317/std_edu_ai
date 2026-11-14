@@ -47,6 +47,14 @@ The authorized outline uses the course title in the page header, category breadc
 
 [Safety training course](https://elearning.stu.edu.tw/course/view.php?id=9408) · [Retirement fund course](https://elearning.stu.edu.tw/course/view.php?id=9098)
 
+## Activity pages
+
+Open a saved activity at `/elearning/course/:courseId/activity/:activityId`. The page resolves the activity only from the authenticated result for that course. Both an unknown activity and a mismatched course hide the destination. Local links preserve the breadcrumb and the exact post-sign-in destination. The panel opens the institutional Moodle resource on explicit click and uses the same data as the assistant. No Drive share URLs, videos, slides, submissions or attendance results are imported.
+
+Migration `20261115040000` adds an activity purpose for the 17 verified records. Outline requests and the assistant distinguish videos, slides, feedback and attendance links. The browser suite covers course-to-activity navigation, reload, guest sign-in return and denied access. Run the rollback checks with `node tests/integration/elearning-db.mjs --activity-preflight` or use `--activity-deployed` against the installed migration.
+
+[Moodle URL resources](https://docs.moodle.org/501/en/URL_resource)
+
 Production `d4f9cfa` is live as Vercel `GY1xXgz6xpFruqB4xiTjeTtYY65s`. Migration 20261115030000 brings the client to 161 migrations and 195 RLS-protected public tables. Three sections and 17 verified activity links are available across two course outlines. Rollback and actual-JWT verification covered course-level access, non-Google denial, account isolation and exact cleanup. The pinned browser verified the course page and signed-in assistant links. Guest assistant, shell and Quality 43558768540 passed. Moodle controls access to the linked activity content. The migration creates no production access grants. Official grades, assignment submissions, enrollment and attendance results remain outside this import.
 
 Production `357959c` is live as Vercel `EPrgdRGAxJhX42teSiU6EopZ4X83`. Migration 20261115020000 brings the client to 160 migrations and 192 RLS-protected public tables. The 43-category catalog contains 3,291 verified course listings. Exact-client rollback, deployed SQL and actual-JWT tests passed, including page 46 of category 28, filter validation, concurrent enrollment, existing enrollments and exact cleanup. The pinned browser, live shell, and Quality 43557177924 passed. All 94 School Affairs destinations passed the navigation audit. The captured scope covers the listings visible to the current university session. Course materials, official grades and university enrollment records remain separate. Two source course outlines were observed read-only for later resource work.

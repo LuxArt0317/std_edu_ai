@@ -4,12 +4,25 @@ export const elearningOrigin='https://elearning.stu.edu.tw';
 export const elearningScope='elearning-workspace';
 export const joinElearningCourse='elearning_join';
 export const elearningCoursePath=id=>elearningPath+'/course/'+id;
+export const elearningActivityPath=(course,id)=>elearningCoursePath(course)+'/activity/'+id;
+export function elearningCourseLocation(path){
+  const match=/^\/elearning\/course\/([1-9]\d{0,9})(?:\/activity\/([1-9]\d{0,9}))?\/?(?:[?#]|$)/u.exec(path);
+  if(!match||Number(match[1])>2147483647||Number(match[2])>2147483647)return null;
+  return {courseId:Number(match[1]),activityId:match[2]?Number(match[2]):null};
+}
 export function elearningOutlineCourse(question,route=''){
-  const match=/^\/elearning\/course\/([1-9]\d{0,9})\/?(?:[?#]|$)/u.exec(route);
-  if(!match||Number(match[1])>2147483647)return null;
+  const location=elearningCourseLocation(route);
+  if(!location)return null;
   const text=question.normalize('NFKC').trim();
-  return /^(?:what (?:is (?:the course outline|in this course)|(?:videos|slides|materials|activities|sections) (?:are (?:listed|available)|does this course have))|(?:show|list) (?:me )?(?:the )?(?:course outline|course activities|course materials)|(?:本課程|這門課)(?:有)?哪些(?:教材|影片|活動|章節)|(?:顯示|查看|列出)?(?:課程大綱|本週大綱))[?？。.!]?$/iu.test(text)
-    ?Number(match[1]):null;
+  return /^(?:(?:what|which) (?:is (?:the course outline|in this course)|(?:videos|slides|materials|activities|sections) (?:are (?:listed|available)|does this course have))|(?:show|list) (?:me )?(?:the )?(?:course outline|course activities|course materials|videos|slides)|where (?:is|can i find) (?:the )?(?:course )?feedback (?:form|link)|(?:本課程|這門課)(?:有)?哪些(?:教材|影片|活動|章節|簡報)|(?:顯示|查看|列出)?(?:課程大綱|本週大綱)|(?:課程)?回饋單在哪(?:裡|里)?)[?？。.!]?$/iu.test(text)
+    ?location.courseId:null;
+}
+export function elearningOutlineFilter(question){
+  const text=question.normalize('NFKC');
+  if(/\bvideos?\b|影片/iu.test(text))return 'video';
+  if(/\bslides?\b|簡報/iu.test(text))return 'slides';
+  if(/\bfeedback\b|回饋單/iu.test(text))return 'feedback';
+  return null;
 }
 export function elearningQuestion(question,route=''){
   const text=question.normalize('NFKC').trim();
@@ -53,5 +66,7 @@ export function isElearningOutline(outline,userId,courseId){
     outline.sections.every(section=>Number.isSafeInteger(section?.position)&&section.position>0&&section.position<=64&&
       typeof section.title==='string'&&section.title.trim().length>0&&section.title.length<=400&&
       Array.isArray(section.activities)&&section.activities.length<=100&&section.activities.every(activity=>
-        elearningActivityUrl(activity)!==null&&typeof activity.title==='string'&&activity.title.trim().length>0&&activity.title.length<=480));
+        elearningActivityUrl(activity)!==null&&typeof activity.title==='string'&&activity.title.trim().length>0&&activity.title.length<=480&&
+        (activity.purpose===undefined||(activity.kind==='url'
+          ?['link','video','slides','feedback'].includes(activity.purpose):['link','attendance'].includes(activity.purpose)))));
 }

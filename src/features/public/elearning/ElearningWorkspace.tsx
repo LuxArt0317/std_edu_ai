@@ -4,8 +4,8 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { useAffairsAuth } from '../affairs/authContext';
 import { safeSchoolReturnPath, signOutAffairs, startGoogleSignIn } from '../affairs/authClient';
 import { joinElearning, loadElearning, loadElearningOutline, searchElearning } from '@/services/elearning';
-import { elearningActivityUrl, elearningCoursePath, elearningOrigin, elearningPath as path, elearningCatalogPageSize,
-  type ElearningCatalog, type ElearningCategory, type ElearningCourse, type ElearningOutline, type ElearningWorkspace as Workspace } from '../../../../server/elearningContract.js';
+import { elearningActivityPath, elearningActivityUrl, elearningCourseLocation, elearningCoursePath, elearningOrigin, elearningPath as path, elearningCatalogPageSize,
+  type ElearningActivity, type ElearningCatalog, type ElearningCategory, type ElearningCourse, type ElearningOutline, type ElearningWorkspace as Workspace } from '../../../../server/elearningContract.js';
 import './elearning.css';
 
 const siteTitle='樹德科技大學 數位學園(遠距教學平台)';
@@ -14,7 +14,7 @@ const noticeLink=(id:number)=>path+'/notice/'+id;
 const external=(url:string,label:ReactNode)=><a href={url} target="_blank" rel="noreferrer">{label}</a>;
 const zhDate=new Intl.DateTimeFormat('zh-TW',{timeZone:'Asia/Taipei',dateStyle:'medium'});
 const taipeiParts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'});
-type OutlineHeader={courseId:number;title:string;categoryId:number};
+type OutlineHeader={courseId:number;title:string;categoryId:number;activity?:{id:number;title:string;section:string}};
 
 function Header({account,onSignOut,loggingOut,home=false,title=siteTitle}:{account?:string;onSignOut?:()=>void;loggingOut?:boolean;home?:boolean;title?:string}){
   return <header className="elearning-header">
@@ -150,19 +150,34 @@ function Outline({outline}:{outline:ElearningOutline}){
     {outline.sections.map(section=><section key={section.position} aria-labelledby={'elearning-section-'+section.position}>
       <h3 id={'elearning-section-'+section.position}>{section.title}</h3>
       <ul>{section.activities.map(activity=>{
-        const href=elearningActivityUrl(activity);
-        return href&&<li key={activity.id} id={'elearning-activity-'+activity.id}><a href={href} target="_blank" rel="noreferrer">
+        return <li key={activity.id} id={'elearning-activity-'+activity.id}><Link to={elearningActivityPath(outline.courseId,activity.id)}>
           <img alt="" width="24" height="24" src={activity.kind==='attendanceregister'
             ?'/elearning/moodle-attendance.gif':'/elearning/moodle-url.svg'}/>{activity.title}
-        </a></li>;
+        </Link></li>;
       })}</ul>
     </section>)}
+  </div>;
+}
+function ActivityPage({courseId,activity}:{courseId:number;activity:ElearningActivity|null}){
+  const url=elearningActivityUrl(activity);
+  const back=<Link to={elearningCoursePath(courseId)}>返回課程</Link>;
+  if(!activity||!url)return <><h2>無法開啟活動</h2>{back}</>;
+  const label=activity.purpose==='video'?'在 Moodle 觀看影片':activity.purpose==='slides'?'在 Moodle 開啟簡報':
+    activity.purpose==='feedback'?'在 Moodle 開啟回饋單':activity.kind==='attendanceregister'?'在 Moodle 查詢出席統計':'在 Moodle 開啟資源';
+  return <div className="elearning-activity">
+    <h2>{activity.title}</h2>
+    <p>{external(url,label)}</p>
+    {back}
   </div>;
 }
 function CourseView({course,joined,userId,onJoined,onCourse}:{course:ElearningCourse;joined?:string;userId:string;onJoined:()=>void;onCourse:(value:OutlineHeader|null)=>void}){
   const [open,setOpen]=useState(false),[pending,setPending]=useState(false),[error,setError]=useState('');
   const [outline,setOutline]=useState<ElearningOutline|null>(null);
   const [outlineError,setOutlineError]=useState(false),[outlineAttempt,setOutlineAttempt]=useState(0);
+  const {pathname}=useLocation();
+  const activityId=elearningCourseLocation(pathname)?.activityId??null;
+  const section=activityId===null?undefined:outline?.sections.find(item=>item.activities.some(activity=>activity.id===activityId));
+  const activity=section?.activities.find(item=>item.id===activityId);
   const request=useRef<AbortController|null>(null);
   useEffect(()=>()=>request.current?.abort(),[]);
   useEffect(()=>{
@@ -170,10 +185,15 @@ function CourseView({course,joined,userId,onJoined,onCourse}:{course:ElearningCo
     void loadElearningOutline(userId,course.id,controller.signal).then(result=>{
       if(controller.signal.aborted)return;
       setOutline(result);
-      if(result.sections.length)onCourse({courseId:course.id,title:course.title,categoryId:course.category_id});
     }).catch(()=>{if(!controller.signal.aborted)setOutlineError(true);});
-    return ()=>{controller.abort();onCourse(null);};
-  },[userId,course.id,course.title,course.category_id,outlineAttempt,onCourse]);
+    return ()=>controller.abort();
+  },[userId,course.id,outlineAttempt]);
+  useEffect(()=>{
+    if(!outline?.sections.length)return;
+    onCourse({courseId:course.id,title:course.title,categoryId:course.category_id,
+      ...(activity&&section?{activity:{id:activity.id,title:activity.title,section:section.title}}:{})});
+    return ()=>onCourse(null);
+  },[outline,course.id,course.title,course.category_id,activity,section,onCourse]);
   async function confirm(){
     if(request.current)return;
     const controller=new AbortController();request.current=controller;
@@ -182,6 +202,10 @@ function CourseView({course,joined,userId,onJoined,onCourse}:{course:ElearningCo
     catch(reason){if(!controller.signal.aborted)setError(reason instanceof Error?reason.message:'無法完成加選，請重試。');}
     finally{request.current=null;if(!controller.signal.aborted)setPending(false);}
   }
+  const outlineFailure=outlineError?<p role="alert">無法讀取課程大綱。 <button type="button" onClick={()=>{setOutlineError(false);setOutlineAttempt(value=>value+1);}}>重試</button></p>:null;
+  if(activityId!==null)return outlineFailure??(outline
+    ?<ActivityPage courseId={course.id} activity={activity??null}/>
+    :<p role="status">讀取活動…</p>);
   return <>
     {!outline?.sections.length&&<h2>{joined?course.title:'選課的選項'}</h2>}
     {!joined&&!outline?.sections.length&&<h3>{course.title}</h3>}
@@ -189,7 +213,7 @@ function CourseView({course,joined,userId,onJoined,onCourse}:{course:ElearningCo
     {outline?.sections.length?<Outline outline={outline}/>:joined?null:course.self_enroll?
       <section className="elearning-enroll"><h3>自行選課 (學生)</h3><p>不需要選課密碼</p>
         <button type="button" onClick={()=>setOpen(true)}>將我加入</button></section>:<p>此課程目前未開放本站加選。</p>}
-    {outlineError&&<p role="alert">無法讀取課程大綱。 <button type="button" onClick={()=>{setOutlineError(false);setOutlineAttempt(value=>value+1);}}>重試</button></p>}
+    {outlineFailure}
     {!outline?.sections.length&&<p>{external(elearningOrigin+'/course/view.php?id='+course.id,'在校方 Moodle 開啟課程')}</p>}
     <Dialog open={open} onOpenChange={value=>{if(!pending)setOpen(value);}}>
       <DialogContent><DialogTitle>確認加選</DialogTitle>
@@ -258,6 +282,7 @@ function CatalogPage({userId,filters,page,pathname,query,course,joined,onJoined,
 }
 function Content({data,userId,reload,onCourse}:{data:Workspace;userId:string;reload:()=>void;onCourse:(value:OutlineHeader|null)=>void}){
   const {pathname,search}=useLocation();
+  const courseLocation=elearningCourseLocation(pathname);
   const segments=pathname.replace(/\/$/,'').slice(path.length).split('/').filter(Boolean);
   const [view,value]=segments;
   const id=Number(value);
@@ -299,8 +324,8 @@ function Content({data,userId,reload,onCourse}:{data:Workspace;userId:string;rel
       {notice.id===325504&&<p>{external('https://tc.stu.edu.tw/','TronClass創課 入口網站')}</p>}
       <p>{external(elearningOrigin+'/mod/'+notice.kind+'/view.php?id='+id,'在校方 Moodle 開啟')}</p></>;
   }
-  if(view==='course'&&segments.length===2&&/^[1-9]\d{0,9}$/.test(value)&&id<=2147483647)
-    return <CatalogResults userId={userId} course={id} joined={data.enrollments.find(row=>row.courseId===id)?.joinedAt} onJoined={reload} onCourse={onCourse}/>;
+  if(courseLocation)return <CatalogResults userId={userId} course={courseLocation.courseId}
+    joined={data.enrollments.find(row=>row.courseId===courseLocation.courseId)?.joinedAt} onJoined={reload} onCourse={onCourse}/>;
   return <><h2>找不到頁面</h2><Link to={path}>返回首頁</Link></>;
 }
 function Session({userId,account}:{userId:string;account:string}){
@@ -320,10 +345,10 @@ function Session({userId,account}:{userId:string;account:string}){
     try{await signOutAffairs();navigate(path+'/login',{replace:true});}
     catch{setLogoutError('無法登出，請重試。');setLoggingOut(false);}
   }
-  const courseMatch=/^\/elearning\/course\/([1-9]\d{0,9})\/?$/u.exec(location.pathname);
-  const courseId=courseMatch?Number(courseMatch[1]):null;
+  const courseLocation=elearningCourseLocation(location.pathname);
   const [courseHeader,setCourseHeader]=useState<OutlineHeader|null>(null);
-  const headerCourse=courseHeader?.courseId===courseId?courseHeader:null;
+  const headerCourse=courseHeader?.courseId===courseLocation?.courseId?courseHeader:null;
+  const headerActivity=headerCourse?.activity?.id===courseLocation?.activityId?headerCourse?.activity:null;
   const categories:ElearningCategory[]=[];
   if(headerCourse&&data){
     let ancestor:number|null=headerCourse.categoryId;
@@ -341,7 +366,9 @@ function Session({userId,account}:{userId:string;account:string}){
     <Header account={account} onSignOut={()=>void logout()} loggingOut={loggingOut} home={home} title={headerCourse?.title}/>
     {detail&&<nav className="elearning-breadcrumb" aria-label="頁面路徑"><Link to={path}>首頁</Link> ▸ <Link to={path+'/categories'}>課程</Link>
       {categories.map(category=><span key={category.id}> ▸ <Link to={categoryLink(category.id)}>{category.title}</Link></span>)}
-      {headerCourse&&<span aria-current="page"> ▸ {headerCourse.title}</span>}
+      {headerCourse&&(headerActivity?<><span> ▸ <Link to={elearningCoursePath(headerCourse.courseId)}>{headerCourse.title}</Link></span>
+        <span> ▸ {headerActivity.section}</span><span aria-current="page"> ▸ {headerActivity.title}</span></>
+        :<span aria-current="page"> ▸ {headerCourse.title}</span>)}
     </nav>}
     {logoutError&&<p role="alert">{logoutError}</p>}
     <div className={'elearning-layout'+(detail?' detail':'')}><LeftColumn/><main id="elearning-main" className="elearning-content">

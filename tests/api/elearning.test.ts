@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createResearchAssistantHandler} from '../../server/researchAssistantHandler.js';
-import {elearningPath,elearningGuide,elearningQuestion,elearningOutlineCourse,elearningActivityUrl,isElearningOutline} from '../../server/elearningContract.js';
+import {elearningPath,elearningGuide,elearningQuestion,elearningOutlineCourse,elearningOutlineFilter,elearningCourseLocation,elearningActivityPath,elearningActivityUrl,isElearningOutline} from '../../server/elearningContract.js';
 import {schoolServiceEntries} from '../../src/features/public/affairs/studentServices.js';
 import {localSchoolHref} from '../../src/features/public/mirror/paths.ts';
 
@@ -25,6 +25,13 @@ test('outline questions bind to a specific remote-learning course and exact acti
   assert.equal(elearningOutlineCourse('What videos are listed?','/dtm/course/9408'),null);
   assert.equal(elearningOutlineCourse('What videos are listed?','/elearning/course/9408/grades'),null);
   assert.equal(elearningOutlineCourse('What is my attendance?','/elearning/course/9408'),null);
+  const resource=elearningActivityPath(9098,281294);
+  assert.deepEqual(elearningCourseLocation(resource),{courseId:9098,activityId:281294});
+  assert.equal(elearningCourseLocation(resource+'/extra'),null);
+  assert.equal(elearningCourseLocation('/elearning/course/9408/activity/2147483648'),null);
+  assert.equal(elearningOutlineCourse('Where can I find the feedback form?',resource),9098);
+  assert.equal(elearningOutlineFilter('Where can I find the feedback form?'),'feedback');
+  assert.equal(elearningOutlineFilter('What videos are listed?'),'video');
   const activity={id:293399,kind:'attendanceregister',title:'出席統計'};
   assert.equal(elearningActivityUrl(activity),'https://elearning.stu.edu.tw/mod/attendanceregister/view.php?id=293399');
   assert.equal(elearningActivityUrl({...activity,kind:'../url'}),null);
@@ -32,6 +39,7 @@ test('outline questions bind to a specific remote-learning course and exact acti
   assert.ok(isElearningOutline(outline,'caller',9408));
   assert.equal(isElearningOutline(outline,'different',9408),false);
   assert.equal(isElearningOutline(outline,'caller',9098),false);
+  assert.equal(isElearningOutline({...outline,sections:[{title:'課程主題',position:1,activities:[{...activity,purpose:'video'}]}]},'caller',9408),false);
 });
 
 test('guest archive questions get a local link before public retrieval',async()=>{

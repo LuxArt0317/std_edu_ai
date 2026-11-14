@@ -96,3 +96,6 @@
 .elearning-outline li a { display:flex; align-items:center; gap:3px; min-height:31.2px; overflow-wrap:anywhere; }
 .elearning-outline li img { flex:none; width:24px; height:24px; object-fit:contain; }
 .elearning-outline li:target { background:#eef2e9; }
+.elearning-activity { min-width:0; padding:15px 0; overflow-wrap:anywhere; }
+.elearning-activity h2 { margin:0 0 16px; font-size:16px; }
+.elearning-activity a { text-decoration:underline; }

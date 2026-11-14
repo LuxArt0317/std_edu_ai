@@ -111,8 +111,10 @@ try{
   const protectedOutline=await call(outline,student);
   assert.equal(protectedOutline.userId,ids[0]);
   assert.deepEqual(protectedOutline.sections[0].activities.map(activity=>activity.id),[293399,293395,293396,293397,293398]);
+  assert.deepEqual(protectedOutline.sections[0].activities.map(activity=>activity.purpose),['attendance','video','video','video','video']);
   const secondOutline=await call(outline.replace('9408','9098'),student);
   assert.deepEqual(secondOutline.sections.map(section=>section.activities.length),[11,1]);
+  assert.equal(secondOutline.sections[1].activities[0].purpose,'feedback');
   assert.equal(first.notices.length,20);
   assert.deepEqual(first.enrollments,[]);
   await join('',9718,401);
