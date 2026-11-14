@@ -1,3 +1,4 @@
+import {changeStudentProfile} from '../server/studentProfile.js';
 import {changeGraduationClearance} from '../server/graduationClearance.js';
 import {changeVenueRequest} from '../server/venueBooking.js';
 import {changeFacilityRepair} from '../server/facilityRepair.js';
@@ -60,6 +61,10 @@ export default async function handler(request:Request,response:Response) {
   try {
     const authorization=first(request.headers.authorization);
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
+    if(input.kind==='save_student_profile'){
+      if(Object.keys(input).length!==2){response.status(400).json({error:'Invalid manager request.'});return;}
+      response.status(200).json(await changeStudentProfile({...account,requestDeadline},'save',input.payload));return;
+    }
     if(input.kind==='review_facility_repair'){
       if(Object.keys(input).length!==2){response.status(400).json({error:'Invalid manager request.'});return;}
       response.status(200).json(await changeFacilityRepair({...account,requestDeadline},input.kind,input.payload));return;

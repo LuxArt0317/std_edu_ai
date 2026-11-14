@@ -56,3 +56,5 @@ Browser clients call the public, School Affairs and protected Nexus endpoints. `
 The facility repair client verifies the active School Affairs session around private reads and writes, and validates the mutation receipt before navigating.
 
 The course adjustment client reads caller-owned summer decisions. Summer notice reads use a separate public scope.
+
+The student profile client uses the School Affairs session and rechecks the caller before presenting a response.

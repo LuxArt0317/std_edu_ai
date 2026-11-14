@@ -5,3 +5,5 @@
 `reference.css` also sizes the assistant sheet to its same-origin full-height right-side frame when `/campus-assistant?embed=1` is opened from a copied public page.
 
 The online repair link resolves to the local School Affairs report route.
+
+The official student information confirmation link resolves to the signed-in School Affairs service 8-1.

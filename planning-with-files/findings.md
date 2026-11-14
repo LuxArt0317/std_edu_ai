@@ -1,5 +1,9 @@
 # Findings
 
+## Student information confirmation [Issue #98]
+
+The 8-1 source makes only the mobile number editable. Model the baseline as administrator-maintained and the confirmation as a student action. A data-free account should show an empty state. The assistant reads only confirmation status. Recent progress through summer selection is preserved in [the prior progress log](archive/progress_2026-11-14_before_student_profile.md).
+
 ## Native protected-service expansion — Issue #98
 
 Live source inspection distinguishes a historical guide from the current page: housing history now has eight columns including subsidy, while the older walkthrough shows seven. Student aid currently exposes a records query without an Apply button. Preserve those observed controls and keep management in the admin workspace. Catalog offerings and syllabi are separate from enrollment, so the assistant must not treat a catalog match as the caller taking that course. Housing consent snapshots, immutable ownership and versioned writes prevent applying under stale instructions; a retry must recover an existing receipt or ask for renewed consent after a period change.

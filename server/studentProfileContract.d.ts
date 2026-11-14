@@ -1,0 +1,22 @@
+export const studentProfilePath:string;
+export const studentProfileScope:'student-profile';
+export type StudentProfileFields={
+  student_number:string;name_zh:string;name_en:string|null;identity_last_four:string|null;birthday_label:string|null;
+  gender:'male'|'female'|null;overseas:boolean|null;overseas_place:string|null;indigenous:boolean|null;indigenous_place:string|null;
+  registered_address:string|null;mailing_address:string|null;postal_code:string|null;home_phone:string|null;
+  contact_phone:string|null;original_mobile:string|null;guardian:string|null;occupation:string|null;
+};
+export type StudentProfileRecord=StudentProfileFields&{user_id:string;version:number;confirmed_at:string|null;updated_mobile:string|null};
+export type StudentProfileResult={userId:string;record:StudentProfileRecord|null};
+export type StudentProfileReceipt={userId:string;version:number;confirmedAt:string|null};
+type RequestFields={expected_version:number;request_id:string};
+export type ConfirmStudentProfile=RequestFields&{updated_mobile:string|null;confirmed:true};
+export type SaveStudentProfile=RequestFields&{user_id:string;record:StudentProfileFields};
+export const profileFieldLengths:Record<keyof StudentProfileFields,number>;
+export const profileFieldLabels:Record<keyof StudentProfileFields,string>;
+export function validProfileMobile(value:unknown):value is string|null;
+export function validProfileAction(operation:'save',payload:unknown):payload is SaveStudentProfile;
+export function validProfileAction(operation:'confirm',payload:unknown):payload is ConfirmStudentProfile;
+export function parseStudentProfile(value:unknown,userId:string):StudentProfileResult;
+export function parseProfileReceipt(value:unknown,userId:string,expected:number,operation:'save'|'confirm'):StudentProfileReceipt;
+export function studentProfileQuestion(question:string):'guide'|'status'|null;

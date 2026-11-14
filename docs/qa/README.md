@@ -1,5 +1,7 @@
 # Quality evidence
 
+[Student information confirmation](STUDENT_PROFILE.md) covers the form, private persistence, administrator maintenance and assistant status.
+
 [Summer selection](SUMMER_SELECTION.md) covers the source-shaped eligibility screen, public notice, private decisions and exact-year assistant checks.
 
 [Facilities repair](FACILITY_REPAIR.md) covers account-owned reports, administrator status updates and assistant checks.

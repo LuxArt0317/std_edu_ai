@@ -4,7 +4,7 @@ import {schoolServiceEntries} from '../../../src/features/public/affairs/student
 // Explicit review inventory, not inferred from the presence of a generic body.
 // A native mount says nothing about unobserved workflows or live backend acceptance.
 const service = id => '/school-affairs/services/'+id;
-const genericIds = '1-1 2-1 4-2 4-3 5-1 8-1 12-1 18-1 19-1 24-1 27-1 29-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 43-1 50-1 50-2 51-1 52-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
+const genericIds = '1-1 2-1 4-2 4-3 5-1 12-1 18-1 19-1 24-1 27-1 29-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 43-1 50-1 50-2 51-1 52-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
 const native = [
   ['7-3','.program-registration','program-registration-ui.mjs','Private interdisciplinary registration history and local registration controls.'],
   ['7-1','.credit-load-application','credit-load-application-ui.mjs','Observed instructions and closed-period acknowledgement only; open application and staff review forms remain unobserved.'],
@@ -55,6 +55,8 @@ const descriptors = [
     workflowSuite:'tests/integration/course-adjustment-ui.mjs',sourceBoundary:'Late-add rules, notice and fee pages with a private eligibility lookup. The eligible enrollment form remains unobserved.'},
   {id:'6-5',kind:'partial',href:service('6-5'),finalUrl:service('6-5'),selector:'.summer-selection',
     workflowSuite:'tests/integration/summer-selection-ui.mjs',sourceBoundary:'Observed missing-college screen with account-owned decisions and dated public notice. Eligible registration form remains unobserved.'},
+  {id:'8-1',kind:'partial',href:service('8-1'),finalUrl:service('8-1'),selector:'.student-profile',
+    workflowSuite:'tests/integration/student-profile-ui.mjs',sourceBoundary:'Observed form and one editable mobile field. University submission outcome remains unobserved.'},
   {id:'6-4',kind:'partial',href:service('6-4'),finalUrl:service('6-4'),selector:'.course-withdrawal',
     workflowSuite:'tests/integration/course-withdrawal-ui.mjs',sourceBoundary:'Local withdrawal and restore follow the official handbook. The current protected source layout remains unobserved.'},
   ...['10-1','16-1'].map(id=>({id,kind:'partial',href:service(id),finalUrl:service(id),selector:'.graduation-clearance',
@@ -136,6 +138,10 @@ export function schoolServiceReadFixture(rawUrl,method,user,origin) {
   assert.equal(url.pathname,'/api/affairs-data','Unknown API path.');
   if(!url.search)return schoolServiceSnapshot(user);
   const scope=url.searchParams.get('scope');
+  if(scope==='student-profile'){
+    assert.deepEqual(Object.fromEntries(url.searchParams),{scope,view:'mine'});
+    return {userId:user.id,record:null};
+  }
   if(scope==='facility-repairs'){
     assert.deepEqual(Object.fromEntries(url.searchParams),{scope,view:'catalog'});
     return {userId:user.id,areas:[{code:'AR0500',label:'管理大樓',outdoor:false,sort_order:6}],

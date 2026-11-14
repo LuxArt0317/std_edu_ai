@@ -47,3 +47,5 @@ Supplemental correction regressions exercise actual reader/formatter chains for 
 `dtm-course-content.test.ts` and `dtm-course-content-handler.test.ts` cover ordered-reference/DTO contracts and actual handler authentication, strict selectors, administrator dispatch and durable receipt boundaries with synthetic transport only.
 
 `dtm-course-resource*.test.ts` covers exact caller/course/material reads, strict dispatch, URL bounds, error redaction and unavailable records without live calls.
+
+The student profile intent test checks bilingual separation of confirmation status and form instructions.

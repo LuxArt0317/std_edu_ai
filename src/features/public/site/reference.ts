@@ -1,3 +1,4 @@
+import {studentProfilePath} from "../../../../server/studentProfileContract.js";
 import {repairPaths} from "../affairs/facilityRepair.js";
 import assets from "./assets.json";
 import { localSchoolHref } from "../mirror/paths";
@@ -28,6 +29,8 @@ export function referenceHref(href: string): string {
       url.hostname === "sso2.stu.edu.tw"
     )
       return "/student-sso";
+    if (url.hostname === "info.stu.edu.tw" && url.pathname.toLowerCase() === "/aca/student/newstu/mtnstudata.asp")
+      return studentProfilePath;
     if (url.hostname === "infosys.stu.edu.tw" &&
       url.pathname.replace(/\/$/, "").toLowerCase() === "/webrpg/login/asplogin/1")
       return repairPaths.report;

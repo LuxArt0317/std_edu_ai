@@ -74,3 +74,5 @@ Moodle resource reads use strict `dtm-course-resource` scope with one course and
 The facility-repairs read scope supports the signed-in area and equipment catalogs, private lists, details and assistant statuses. The action and management endpoints handle confirmed reports, cancellation and review.
 
 The course-adjustment scope accepts summer decisions with an optional academic year. The public summer-selection-notice scope requires one academic year.
+
+Student profile scope `student-profile` has caller-owned and selected-account administrator reads. The action and manager handlers accept versioned confirmation and baseline writes.

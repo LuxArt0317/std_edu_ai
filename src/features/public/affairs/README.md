@@ -105,3 +105,5 @@ Curriculum maps (12-7) has a four-college directory, department overview pages a
 Facilities repair uses an area picker, area-specific report, progress and management routes. Reports and decisions are saved through the School Affairs API.
 
 The summer selection route uses the observed student identity-check layout and links to the dated notice and filtered summer history.
+
+Service 8-1 uses the observed student information confirmation table, a saved mobile update and protected baseline maintenance.

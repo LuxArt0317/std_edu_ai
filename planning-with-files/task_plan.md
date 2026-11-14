@@ -1,5 +1,13 @@
 # Task Plan
 
+## Student information confirmation [Issue #98]
+
+- [x] Observe the protected 8-1 form and record its field structure and geometry.
+- [x] Implement protected baseline maintenance, personal confirmation and assistant status.
+- [x] Verify exact-client rollback, input validation, authorization and replay.
+- [ ] Apply the migration and verify the browser and actual-session API on the pinned release.
+- [ ] Compare the university confirmation result when authorized evidence is available.
+
 ## Summer course selection [Issue #98]
 
 - [x] Observe the signed-in identity-check screen and verify the dated notice.

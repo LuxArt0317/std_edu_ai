@@ -1,5 +1,6 @@
 # Changelog
 ## Unreleased
+- Add student information confirmation with private Supabase records, masked identity, editable mobile number, administrator maintenance and chatbot status. [#98]
 - Add summer selection eligibility, dated fee notices, administrator decisions and a filtered summer history link. [#98]
 
 - Add facilities repair area selection, a searchable equipment catalog, confirmed reports, private history, administrator review and assistant status. [#98]

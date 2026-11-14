@@ -2,6 +2,7 @@ import {clearancePaths,clearanceQuestion} from './graduationClearanceContract.js
 import {answerPermanentCourse} from './permanentCourses.js';
 import {answerVenue} from './venueBooking.js';
 import {answerRepairGuide} from './facilityRepair.js';
+import {studentProfilePath,studentProfileQuestion} from './studentProfileContract.js';
 import {repairQuestion} from '../src/features/public/affairs/facilityRepair.js';
 import {venueQuestion} from '../src/features/public/affairs/venueContract.js';
 import {permanentCourseQuestion} from '../src/features/public/affairs/permanentCourseRouting.js';
@@ -259,6 +260,20 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const kind = questionKind(input.question);
+        const profile = !input.images.length && !kind.irrelevant && studentProfileQuestion(input.question);
+        if (profile) {
+            const zh = /[\u3400-\u9fff]/u.test(input.question);
+            const title = zh ? '學生基本資料確認' : 'Student information confirmation';
+            const url = profile === 'status' ? '/school-affairs/login?next=' + encodeURIComponent(studentProfilePath) : studentProfilePath;
+            const summary = profile === 'status'
+                ? (zh ? '請先登入以查詢您的確認狀態。' : 'Sign in to check your confirmation status.')
+                : (zh ? '請核對學生基本資料。需要時可更新行動電話，再確認送出。'
+                    : 'Review your student details, update your mobile number if needed, and confirm the form.');
+            stream.send(200, {status:profile==='status'?'handoff':'answered',answer:summary+'\n\n['+title+']('+url+')',
+                citations:[{chunkId:'directory:student-profile',claim:summary,title,url,sourceName:'School Affairs'}],
+                suggestedQuestions:[],grounding:{source:'directory',webSearched:false}});
+            return;
+        }
         const repair = !input.images.length && !kind.irrelevant && repairQuestion(input.question);
         if(repair){stream.send(200,answerRepairGuide(input.question,repair));return;}
         const venue = !input.images.length && !kind.irrelevant && venueQuestion(input.question);

@@ -131,3 +131,5 @@ The curriculum map lookup sends validated year and track selectors to the fixed 
 The facility repair helper uses caller-JWT RPCs for versioned updates and private status reads. The public repair guide contains navigation and contact guidance.
 
 The summer eligibility reader uses the existing caller-JWT course adjustment authorization. The separate public notice accepts an exact ROC academic year.
+
+`studentProfile.js` validates the caller-JWT RPC contract and limits the assistant response to confirmation status and a form link.

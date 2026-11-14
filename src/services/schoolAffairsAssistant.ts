@@ -1,3 +1,5 @@
+import {studentProfileQuestion} from '../../server/studentProfileContract.js';
+import {readStudentProfileAnswer} from './studentProfile';
 import {clearanceQuestion} from '../../server/graduationClearanceContract.js';
 import {readGraduationClearanceAnswer} from './graduationClearance';
 import {permanentCourseQuestion} from '../features/public/affairs/permanentCourseRouting.js';
@@ -28,6 +30,12 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
   if (!affairsClient) throw new Error('School Affairs sign-in is not configured.');
   const {data,error} = await affairsClient.auth.getSession();
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
+  const profile=!images.length&&studentProfileQuestion(question);
+  if(profile==='guide')return askCampusAssistant(question,[],signal,[],route,onProgress);
+  if(profile==='status'){
+    onProgress?.({kind:'student-profile',label:'Checking student information confirmation',detail:'Reading your confirmation status.',status:'running'});
+    return readStudentProfileAnswer(data.session.user.id,question,signal);
+  }
   const repairDetail=route.startsWith(repairPaths.history+'/')
     ? route.slice(repairPaths.history.length+1).split(/[?#]/,1)[0] : null;
   const repairFollowUp=repairId(repairDetail)&&/^(?:what(?:'s| is) (?:the|its) status|is (?:this|it) (?:resolved|complete|done)|(?:目前)?(?:進度|處理情形|報修狀態))[?？。]?$/iu.test(question.trim());

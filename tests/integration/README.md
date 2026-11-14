@@ -102,3 +102,5 @@ Fee-remission verification includes `fee-remission-ui.mjs` for navigation and re
 The facility repair suites check database authorization, actual-JWT HTTP and the rendered student and administrator flow. See [facility repair QA](../../docs/qa/FACILITY_REPAIR.md).
 
 The summer selection browser and course adjustment database/HTTP summer modes check the new phase and exact-year isolation.
+
+The student profile browser, database and actual-JWT HTTP suites cover 8-1, protected baseline maintenance, retries and status privacy.

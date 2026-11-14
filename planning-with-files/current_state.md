@@ -1,3 +1,7 @@
+## Student information confirmation [Issue #98]
+
+The observed 8-1 table, administrator baseline editor, mobile confirmation and assistant status reader are implemented. The exact-client migration passed rollback preflight with no persistent fixture data. Production verification is pending. The university submission result is unobserved.
+
 ## Summer course selection [Issue #98]
 
 Production `12c9f7a` is live as Vercel `Dh8ssmVGAF1xZRdx5TNeH7Ynyg43`. Migration 20261114200000 brings the client to 154 migrations and 182 RLS-protected public tables. The pinned summer and existing add/drop browser checks, actual-JWT summer HTTP with exact cleanup, five guest assistant replies, eight shell routes and Quality 43542947470 passed. The local 94-destination audit reports 34 generic and 20 partial entries.

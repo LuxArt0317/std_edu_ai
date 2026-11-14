@@ -4,6 +4,7 @@ import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Textarea} from '@/components/ui/textarea';
 import {manageSchoolAffairsRecord,performSchoolAffairsAction,type AffairsAction,type AffairsManagerAction,type AffairsSnapshot} from '@/services/schoolAffairsWorkspace';
+import {StudentProfileManager} from './StudentProfileManager';
 import {SchoolRecordManager} from './SchoolRecordManager';
 import {useAffairsRecords} from './useAffairsRecords';
 import {repairPaths} from './facilityRepair.js';
@@ -62,6 +63,7 @@ function AdminSession({userId,identity,identityLoading,identityError,onReloadIde
     <Link to={repairPaths.manage}>Review facility repairs</Link>
     {loading&&<p role="status">Loading administrative records…</p>}
     {error&&<div role="alert"><p>{error}</p><Button variant="outline" onClick={refresh}>Try again</Button></div>}
+    {authorized&&<StudentProfileManager managerId={userId} profiles={admin.profiles.filter(profile=>profile.role==='student')}/>}
     <SchoolRecordManager admin={admin} busy={busy||!authorized} onManage={manage} onRefresh={refresh}/>
     <div className="affairs-record-grid">
       <section><h3>Accounts ({admin.profiles.length})</h3><ul>{admin.profiles.map(item=><li key={item.user_id}><strong>{item.display_name}</strong><span>{item.email} · {item.role}</span></li>)}</ul></section>

@@ -18,6 +18,8 @@ import { CreditTransferWorkspace } from "./CreditTransferWorkspace";
 import { creditTransferPath } from "../../../../server/creditTransferContract.js";
 import { withdrawalPath } from "../../../../server/courseWithdrawalContract.js";
 import {SummerSelectionWorkspace} from "./SummerSelectionWorkspace";
+import { StudentProfileWorkspace } from "./StudentProfileWorkspace";
+import { studentProfilePath } from "../../../../server/studentProfileContract.js";
 import { adjustmentPaths } from "../../../../server/courseAdjustmentContract.js";
 import { firstSelectionFeesPath, firstSelectionPath } from "./firstSelection.js";
 import { courseSubstitutionPath } from "./courseSubstitution.js";
@@ -500,6 +502,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   if (normalizedPath === "/school-affairs/services/7-1") {
     return <CreditLoadApplication key={user.id} />;
   }
+  if (normalizedPath === studentProfilePath) return <StudentProfileWorkspace key={user.id} userId={user.id} />;
   if (normalizedPath === firstSelectionPath || normalizedPath === firstSelectionFeesPath) {
     return <FirstSelectionWorkspace key={user.id} view={normalizedPath === firstSelectionPath ? "schedule" : "fees"} />;
   }

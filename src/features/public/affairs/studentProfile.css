@@ -1,0 +1,30 @@
+.student-profile { min-height:100vh; padding:12px 0; background:#e6e6e6; color:#111; font:12px/1.231 "Microsoft JhengHei",Verdana,Helvetica,Arial,sans-serif; }
+.student-profile-frame { width:min(962px,100%); min-height:722px; margin:auto; border:1px solid #c9cacb; border-top:0; border-radius:0 0 5px 5px; background:#fff; }
+.student-profile-banner { display:flex; flex-wrap:wrap; justify-content:space-between; min-height:20px; padding:2px 17px; color:#fff; background:#56585c; }
+.student-profile-heading { position:relative; display:flex; gap:3px; align-items:flex-start; margin:6px 15px 0; border-bottom:1px solid #d3d3d3; }
+.student-profile-heading::after { position:absolute; bottom:-1px; left:0; width:152px; border-bottom:1px solid #4f4f4f; content:""; }
+.student-profile-heading img { width:42px; height:42px; }
+.student-profile-heading h1 { padding-top:17px; color:#3f3f3f; font:20px/1.231 Arial,sans-serif; }
+.student-profile-form { padding-top:23px; }
+.student-profile-table-scroll { width:min(820.796875px,calc(100% - 24px)); margin:auto; overflow:auto; }
+.student-profile-table { width:100%; min-width:580px; table-layout:fixed; border-collapse:collapse; }
+.student-profile-label { width:105px; }
+.student-profile-table :is(th,td) { height:19.765625px; border:1px solid #ddd; overflow-wrap:anywhere; }
+.student-profile-table th { padding:2px; border-color:#006767; text-align:right; font-weight:400; color:#fff; background:#008080; }
+.student-profile-table td { padding:0 2px; }
+.student-profile-table input[type=tel] { width:164px; max-width:100%; height:21px; padding:2px 4px; border:1px solid #8c8c8c; }
+.student-profile-radio { display:inline-flex; gap:3px; align-items:center; padding-right:4px; }
+.student-profile-actions { display:flex; flex-wrap:wrap; gap:4px; margin:16px 12px 0 max(12px,14.65%); }
+.student-profile-actions :is(a,button) { min-height:27px; min-width:61px; padding:2px 7px 4px; border-radius:2px; color:#fff; background:#666; text-align:center; font:14.52px/1.4 Arial,sans-serif; }
+.student-profile-actions button { min-width:90px; background:#00766b; cursor:pointer; }
+.student-profile-actions button:disabled { opacity:.65; cursor:default; }
+.student-profile-result,.student-profile-message { margin:12px 5%; }
+.student-profile-message :is(button,a) { color:#006459; text-decoration:underline; }
+.student-profile-notes { width:90.25%; margin:75px auto 32px; }
+.student-profile-notes h2 { color:#006459; font:16px/1.231 Arial,sans-serif; }
+.student-profile-notes ol { margin:8px 0 4px 17px; list-style:decimal; }
+.student-profile-notes table { margin-left:17px; border-collapse:collapse; }
+.student-profile-notes :is(th,td) { padding:3px 6px; border:1px solid #ccc; text-align:left; }
+.student-profile-dialog-actions { display:flex; justify-content:flex-end; gap:12px; }
+.student-profile-dialog-actions button { padding:4px 10px; border:1px solid currentColor; border-radius:3px; }
+.student-profile :focus-visible,.student-profile-dialog-actions :focus-visible { outline:2px solid #005b83; outline-offset:2px; }
