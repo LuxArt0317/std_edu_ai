@@ -13,14 +13,16 @@ test('private endpoint refreshes records after rejection without repeating initi
       if(url.hostname==='api.openai.com') {
         const body=JSON.parse(String(init?.body));const payload=JSON.parse(body.input[0].content[0].text);
         let result:unknown;
-        if(body.text.format.name==='account_lookup_plan')result={tools:['charges'],publicTopics:[]};
+        if(body.text.format.name==='account_lookup_plan')result={tools:['charges','tasks'],publicTopics:[]};
         else if(body.text.format.name==='answer_evidence_review') {
           reviews++;result=reviews===1?{supported:false,answersQuestion:false,claims:[]}:
-            {supported:true,answersQuestion:true,claims:[{claim:'NT$500 remains',supported:true,evidenceId:'account:charges',quote:'"amountPaid":500'}]};
+            {supported:true,answersQuestion:true,claims:[{claim:'NT$500 remains',supported:true,evidenceId:'account:charges',quotes:[],jsonPaths:['/records/0/amountDue','/records/0/amountPaid']},
+              {claim:'No open tasks are saved',supported:true,evidenceId:'account:tasks',quotes:[],jsonPaths:['/records']}]};
         } else {
           assert.equal(body.text.format.name,'correct_grounded_answer');repairs++;
           assert.match(JSON.stringify(payload.evidence),/amountPaid\\":500/);
-          result={status:'answered',answer:'Your sample tuition is NT$1,000, paid NT$500, so NT$500 remains.',sourceIds:['account:charges']};
+          assert.ok(payload.evidence.some((source:{id:string})=>source.id==='account:tasks'));
+          result={status:'answered',answer:'Your sample tuition is NT$1,000, paid NT$500, so NT$500 remains. No open tasks are saved.',sourceIds:['account:charges','account:tasks']};
         }
         return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(result)}]}]});
       }
@@ -36,7 +38,7 @@ test('private endpoint refreshes records after rejection without repeating initi
       return Response.json([]);
     };
     let body:any;const response={status(_code:number){return response;},json(value:unknown){body=value;},setHeader(){}};
-    await handler({method:'POST',headers:{authorization:'Bearer '+token},body:{question:'What is my tuition balance?'}},response);
+    await handler({method:'POST',headers:{authorization:'Bearer '+token},body:{question:'What is my tuition balance and which tasks are open?'}},response);
     assert.equal(body.verification.status,'verified',JSON.stringify(body));assert.equal(body.verification.attempts,2);
     assert.match(body.answer,/NT\$500 remains/);assert.equal(reads,2);assert.equal(reviews,2);assert.equal(repairs,1);
     assert.deepEqual(rpc,['affairs_initialize_account','dtm_initialize_account']);

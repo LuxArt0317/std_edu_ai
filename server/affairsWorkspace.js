@@ -72,6 +72,43 @@ async function readAccountRows(account, table, query) {
     if (page.length < pageSize) return rows;
   }
 }
+const chargeOrder = 'occurrence_on.desc.nullslast,id.asc';
+const chargeUuid = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu;
+function mapAffairsCharge(row) {
+  return {id:row.id,label:row.label,amountDue:Number(row.amount_due),amountPaid:Number(row.amount_paid),
+    currency:row.currency,dueOn:row.due_on,sourceMode:row.source_mode,occurrenceOn:row.occurrence_on??null,
+    category:row.category??null,contactUnit:row.contact_unit??null,contactExtension:row.contact_extension??null,
+    paymentUnit:row.payment_unit??null};
+}
+
+/** Read only the caller's charges. First-use provisioning belongs to the workspace. */
+export async function loadOwnAffairsCharges(account,{deadline=Date.now()+12000}={}) {
+  const userId=account?.user?.id;
+  if(typeof userId!=='string'||!chargeUuid.test(userId)||account.url!=='https://xiftudmvxphxcjtmfmib.supabase.co'
+    ||typeof account.token!=='string'||!account.token.trim()||typeof account.key!=='string'||!account.key.trim())
+    throw new AffairsWorkspaceError('Verified School Affairs access is required.',403);
+  if(!Number.isFinite(deadline)||account.requestDeadline!==undefined&&!Number.isFinite(account.requestDeadline))
+    throw new AffairsWorkspaceError('Invalid School Affairs read deadline.');
+  const scoped={user:{id:userId},url:account.url,token:account.token,key:account.key,
+    requestDeadline:Math.min(deadline,account.requestDeadline??Infinity,Date.now()+12000)};
+  const students=await request(scoped,'affairs_students',{query:{select:'id,user_id',user_id:`eq.${userId}`,limit:1}});
+  if(!Array.isArray(students)||students.length>1||students.some(row=>row?.user_id!==userId||typeof row.id!=='string'||!chargeUuid.test(row.id)))
+    throw new AffairsWorkspaceError('The student record could not be verified.');
+  const student=students[0];
+  if(!student)return {checkedAt:new Date().toISOString(),profile:{userId},studentRecordFound:false,charges:[]};
+  const fields='id,student_id,label,amount_due,amount_paid,currency,due_on,source_mode,occurrence_on,category,contact_unit,contact_extension,payment_unit';
+  const rows=await readAccountRows(scoped,'affairs_charges',{select:fields,student_id:`eq.${student.id}`,order:chargeOrder});
+  const ids=new Set();
+  for(const row of rows){
+    if(row?.student_id!==student.id||typeof row.id!=='string'||!chargeUuid.test(row.id)||ids.has(row.id)
+      ||typeof row.label!=='string'||!row.label.trim()||typeof row.currency!=='string'||!row.currency.trim()
+      ||![row.amount_due,row.amount_paid].every(amount=>(typeof amount==='number'||typeof amount==='string'&&amount.trim())&&Number.isFinite(Number(amount))))
+      throw new AffairsWorkspaceError('The fee records could not be verified.');
+    ids.add(row.id);
+  }
+  return {checkedAt:new Date().toISOString(),profile:{userId},studentRecordFound:true,charges:rows.map(mapAffairsCharge)};
+}
+
 export async function loadAffairsSnapshot(account, includeAdmin = false, options = {}) {
   account={...account,...(Number.isFinite(options.deadline)?{requestDeadline:options.deadline}:{})};
   if(options.initialize!==false) {
@@ -137,7 +174,7 @@ export async function loadAffairsSnapshot(account, includeAdmin = false, options
   const [grades,attendance,charges,assignments,dtmMaterials,adminCharges,adminAssignments,adminDtmCourses,dtmMeetings,dtmGrades]=await Promise.all([
     request(account,'affairs_grade_items',{query:{select:'*',enrollment_id:byIds(enrollmentIds),limit:200}}),
     request(account,'affairs_attendance',{query:{select:'*',enrollment_id:byIds(enrollmentIds),limit:200}}),
-    student?readAccountRows(account,'affairs_charges',{select:'*',student_id:`eq.${student.id}`,order:'occurrence_on.desc.nullslast,id.asc'}):Promise.resolve([]),
+    student?readAccountRows(account,'affairs_charges',{select:'*',student_id:`eq.${student.id}`,order:chargeOrder}):Promise.resolve([]),
     student?readAccountRows(account,'affairs_assignments',{select:'*',student_id:`eq.${student.id}`,order:'due_at.asc.nullslast,id.asc'}):Promise.resolve([]),
     dtmRows('dtm_materials','position.asc,id.asc'),
     includeAdmin?readAccountRows(account,'affairs_charges',{select:'*',order:'occurrence_on.desc.nullslast,id.asc'}):Promise.resolve([]),
@@ -186,7 +223,7 @@ export async function loadAffairsSnapshot(account, includeAdmin = false, options
         grades:grades.filter(row=>row.enrollment_id===enrollment.id && row.released_at).map(row=>({label:row.label,score:row.score,maximum:row.maximum,sourceMode:row.source_mode})),
         attendance:attendance.filter(row=>row.enrollment_id===enrollment.id).map(row=>({date:row.meeting_on,status:row.status,sourceMode:row.source_mode}))};
     }),
-    charges:charges.map(row=>({id:row.id,label:row.label,amountDue:Number(row.amount_due),amountPaid:Number(row.amount_paid),currency:row.currency,dueOn:row.due_on,sourceMode:row.source_mode,occurrenceOn:row.occurrence_on??null,category:row.category??null,contactUnit:row.contact_unit??null,contactExtension:row.contact_extension??null,paymentUnit:row.payment_unit??null})),
+    charges:charges.map(mapAffairsCharge),
     assignments:assignments.map(row=>({id:row.id,title:row.title,details:row.details,dueAt:row.due_at,status:row.status,submittedAt:row.submitted_at,sourceMode:row.source_mode,
       enrollmentId:row.enrollment_id,dtmCourseId:row.dtm_course_id,meetingId:row.meeting_id ?? null,
       origin:row.import_key?'moodle_calendar':row.source_mode==='personal'?'manual':'sample',

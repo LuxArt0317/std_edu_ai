@@ -377,9 +377,35 @@ export function reviewMatchesEvidence(review, evidence, hasImages = false) {
       || referencesMatch(sources.get(claim.evidenceId), claim)));
 }
 
-export function answerLinksSupported(answer, evidence) {
-  const allowed = new Set(evidence.flatMap(source => [source.url, ...(source.urls || [])]).filter(Boolean));
-  if (typeof answer !== 'string' || answer.length > 100000) return false;
+const outlineActivityPath=/^\/elearning\/course\/([1-9]\d*)\/activity\/([1-9]\d*)$/u;
+const linkText=value=>value.normalize('NFC').replace(/\s+/gu,' ').trim();
+function renderedLinkText(node,omitCode=false) {
+  const parts=[],pending=[node];
+  while(pending.length){
+    const current=pending.pop();
+    if(omitCode&&['code','pre'].includes(current.tagName))parts.push(' ');
+    else if(current.type==='text')parts.push(current.value);
+    else if(current.tagName==='br')parts.push(' ');
+    else for(let index=(current.children||[]).length-1;index>=0;index--)pending.push(current.children[index]);
+  }
+  return linkText(parts.join(''));
+}
+function attachedLinkPrefix(block,target,omitCode=false){
+  const parts=[],pending=[block];
+  while(pending.length){
+    const node=pending.pop();if(node===target)break;
+    // A previous independently labelled link starts a new local association;
+    // it must not contaminate the next link's prefix in ordinary prose.
+    if(node.tagName==='a'){parts.length=0;continue;}
+    if(omitCode&&['code','pre'].includes(node.tagName))parts.push(' ');
+    else if(node.type==='text')parts.push(node.value);
+    else if(node.tagName==='br')parts.push(' ');
+    else for(let index=(node.children||[]).length-1;index>=0;index--)pending.push(node.children[index]);
+  }
+  return linkText(parts.join(''));
+}
+function answerLinkObservations(answer,includeOutlinePaths) {
+  if (typeof answer !== 'string' || answer.length > 100000) return null;
   // Use the same CommonMark parser as AssistantMarkdown. Regex alone misses
   // reference/shortcut links, email autolinks, escaped URLs and entity decoding.
   // Inspect destinations before the renderer's URL sanitization, failing closed
@@ -387,22 +413,119 @@ export function answerLinksSupported(answer, evidence) {
   const links = [];
   try {
     Markdown({children:answer, skipHtml:true, rehypePlugins:[() => tree => {
-      const pending = [{node:tree,inert:false,insideLink:false}];
+      const pending = [{node:tree,inert:false,insideLink:false,block:tree}];
       while (pending.length) {
-        const {node,inert,insideLink} = pending.pop();
+        const {node,inert,insideLink,block:parentBlock} = pending.pop();
+        const block=['p','li','tr'].includes(node.tagName)?node:parentBlock;
         const isInert = inert || node.tagName === 'code' || node.tagName === 'pre';
         const isLink = node.type === 'element' && node.tagName === 'a';
-        if (isLink) links.push(node.properties?.href);
+        if (isLink) links.push({url:node.properties?.href,label:renderedLinkText(node),identity:renderedLinkText(node,true),block,node});
         // Plain HTTP text remains a claimed destination even though this
         // renderer does not auto-link it. Code and escaped HTML are only text.
         if (node.type === 'text' && !isInert && !insideLink) {
-          for (const match of node.value.matchAll(/https?:\/\/[^\s<>\])]+/g)) links.push(match[0].replace(/[.,;]+$/, ''));
+          for (const match of node.value.matchAll(/https?:\/\/[^\s<>\])]+/g)) links.push({url:match[0].replace(/[.,;]+$/, ''),label:'',identity:'',block});
+          if(includeOutlinePaths)for(const match of node.value.matchAll(/(?<![\p{L}\p{N}/:])\/elearning\/course\/\d+\/activity\/\d+(?:[^\s<>\])]*[\p{L}\p{N}/?#=&%])?/gu))
+            links.push({url:match[0].replace(/[.,;]+$/, ''),label:'',identity:'',block});
         }
-        for (const child of node.children || []) pending.push({node:child,inert:isInert,insideLink:insideLink || isLink});
+        if(links.length>4096)throw new RangeError('Too many answer links.');
+        for (const child of node.children || []) pending.push({node:child,inert:isInert,insideLink:insideLink || isLink,block});
       }
     }]});
-    return links.every(url => typeof url === 'string' && allowed.has(url));
-  } catch { return false; }
+    return links;
+  } catch { return null; }
+}
+function outlineBindings(evidence) {
+  const sources=evidence.filter(source=>source.id==='account:elearningOutline');
+  if(!sources.length)return null;
+  if(sources.length!==1)throw new TypeError('Ambiguous outline source.');
+  const source=sources[0];
+  if(typeof source.content!=='string'||source.content.length>16000)throw new TypeError('Oversized outline source.');
+  const payload=JSON.parse(source.content),bindings=new Map();
+  const identifier=value=>Number.isSafeInteger(value)&&value>0&&value<=2147483647;
+  if(source.provenance!=='saved_local'||payload.collection!=='elearningOutline'||!Array.isArray(payload.records)||payload.records.length>64
+    ||!['ok','empty','partial','unavailable'].includes(payload.readState))throw new TypeError('Invalid outline source.');
+  for(const section of payload.records){
+    if(!identifier(section.courseId)||section.courseId!==payload.selection?.courseId||!identifier(section.sectionPosition)
+      ||typeof section.title!=='string'||!section.title.trim()||!Array.isArray(section.activities)||section.activities.length>100)throw new TypeError('Invalid outline section.');
+    for(const activity of section.activities){
+      const expected=`/elearning/course/${section.courseId}/activity/${activity.id}`;
+      if(!identifier(activity.id)||activity.courseId!==section.courseId||activity.sectionPosition!==section.sectionPosition
+        ||typeof activity.title!=='string'||!activity.title.trim()||activity.title.length>1920
+        ||activity.url!==expected||bindings.has(expected)||!(source.urls||[]).includes(expected))throw new TypeError('Invalid outline activity.');
+      bindings.set(expected,{id:activity.id,title:linkText(activity.title)});
+    }
+  }
+  if(payload.readState==='unavailable'&&bindings.size)throw new TypeError('Unavailable outline contains activities.');
+  return bindings;
+}
+function outlineLinksPaired(links,evidence) {
+  try{
+    const bindings=outlineBindings(evidence);if(bindings===null)return true;
+    if(links.length>512)return false;
+    const entries=[...bindings.values()],cache=new WeakMap(),idCache=new Map(),titleCache=new Map();
+    const ids=value=>{
+      if(!idCache.has(value))idCache.set(value,[...value.matchAll(/\bactivity\s*(?:id\s*)?#?\s*(\d+)\b|活動\s*(?:編號\s*|ID\s*|#\s*)?(\d+)/giu)].map(match=>Number(match[1]||match[2])));
+      return idCache.get(value);
+    };
+    const titles=value=>{
+      if(titleCache.has(value))return titleCache.get(value);
+      const found=[];
+      for(const entry of entries){
+        let start=value.indexOf(entry.title);
+        while(start!==-1){
+          const end=start+entry.title.length,before=start?value[start-1]:'',after=value[end]||'';
+          if(!/[\p{L}\p{N}]/u.test(before)&&!/[\p{L}\p{N}]/u.test(after))found.push({entry,start,end});
+          start=value.indexOf(entry.title,start+1);
+        }
+      }
+      const matched=[...new Set(found.filter(match=>!found.some(other=>other.start<=match.start&&other.end>=match.end
+        &&other.end-other.start>match.end-match.start)).map(match=>match.entry))];
+      titleCache.set(value,matched);return matched;
+    };
+    const matches=(value,expected,identity=value)=>{
+      const exactTitles=entries.filter(entry=>entry.title===value);
+      if(exactTitles.length)return exactTitles.length===1&&exactTitles[0].id===expected.id;
+      const namedIds=[...new Set(ids(identity))],namedTitles=titles(value);
+      if(namedIds.length)return namedIds.length===1&&namedIds[0]===expected.id
+        &&namedTitles.every(entry=>entry.title===expected.title);
+      return namedTitles.length===1&&namedTitles[0].id===expected.id;
+    };
+    for(const link of links){
+      if(typeof link.url!=='string'||!outlineActivityPath.test(link.url))continue;
+      const expected=bindings.get(link.url);if(!expected)return false;
+      // A title-labelled link is self-contained even when prose lists several
+      // activities together. A generic label must belong to one unambiguous
+      // paragraph/row; membership somewhere in the answer is not a pairing.
+      const labelHasIdentity=ids(link.identity).length||titles(link.label).length;
+      if(labelHasIdentity){
+        if(!matches(link.label,expected,link.identity))return false;
+        const prefix=attachedLinkPrefix(link.block,link.node),prefixIdentity=attachedLinkPrefix(link.block,link.node,true);
+        if(/[:：—–-]\s*$/u.test(prefix)&&(ids(prefixIdentity).length||titles(prefix).length)
+          &&!matches(prefix,expected,prefixIdentity))return false;
+        continue;
+      }
+      if(!cache.has(link.block))cache.set(link.block,{text:renderedLinkText(link.block),identity:renderedLinkText(link.block,true)});
+      // The native formatter includes a separate section field after the
+      // activity. It is parent metadata, not a second activity title.
+      const row=cache.get(link.block),parentField=/[,;]\s*(?:Section|章節)\s*:/iu;
+      if(!matches(row.text.split(parentField)[0],expected,row.identity.split(parentField)[0]))return false;
+    }
+    return true;
+  }catch{return false;}
+}
+function answerLinkAudit(answer,evidence) {
+  const outline=evidence.some(source=>source.id==='account:elearningOutline');
+  const links=answerLinkObservations(answer,outline);
+  if(!links)return {allowed:false,paired:false};
+  const allowed=new Set(evidence.flatMap(source=>[source.url,...(source.urls||[])]).filter(Boolean));
+  return {allowed:links.every(link=>typeof link.url==='string'&&allowed.has(link.url)),paired:outlineLinksPaired(links,evidence)};
+}
+/** Exact activity/title associations supplement, never replace, factual review. */
+export function outlineAnswerLinksSupported(answer,evidence) {
+  const result=answerLinkAudit(answer,evidence);return result.allowed&&result.paired;
+}
+export function answerLinksSupported(answer, evidence) {
+  const result=answerLinkAudit(answer,evidence);return result.allowed&&result.paired;
 }
 
 export function snapshotProvenanceSupported(candidate, evidence, sourceIds) {
@@ -424,8 +547,10 @@ export async function verifyEvidenceAnswer({ question, candidate, evidence, dead
   if(guidance&&!parts)return rejected('unsupported_claims');
   const citationsMatch = (candidate.citations || []).every(citation => evidence.some(source =>
     source.id === citation.chunkId && [source.url, ...(source.urls || [])].includes(citation.url)));
+  const linkAudit=answerLinkAudit(candidate.answer,evidence);
   if ((!validEvidence(evidence) && !(Array.isArray(evidence) && !evidence.length && (images.length||responseIntent==='coaching')))
-    || !answerLinksSupported(candidate.answer, evidence) || !citationsMatch) return rejected('evidence_unavailable');
+    || !linkAudit.allowed || !citationsMatch) return rejected('evidence_unavailable');
+  if(!linkAudit.paired)return rejected('unsupported_claims',['Keep each remote-learning activity title or explicit activity ID paired with its own supplied local URL. Use title-labelled links or one unambiguous activity per paragraph/list row; never swap authorized activity destinations.']);
   const snapshotFeedback = ['Use dated snapshot provenance for every captured source: include "Source snapshot: YYYY-MM-DD" in the answer and label its citation as a public page snapshot. Do not imply live verification.'];
   if (!snapshotProvenanceSupported(candidate, evidence)) return rejected('snapshot_provenance_missing',snapshotFeedback);
   const review = await verificationModelCall('answer_evidence_review', guidance?guidanceReviewSchema:reviewSchema,

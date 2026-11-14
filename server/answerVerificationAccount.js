@@ -1,3 +1,4 @@
+import {isOwnFeeBalanceQuestion} from './pendingFeesAnswer.js';
 import { answerPrivateAffairsQuestion, accountQuestionIntent } from './affairsAnswer.js';
 import { runAnswerVerification } from './answerVerification.js';
 import { verificationModelCall, verifyEvidenceAnswer, repairEvidenceAnswer, composeEvidenceAnswer } from './answerVerificationModel.js';
@@ -124,6 +125,7 @@ function plannerRouteContext(route){
 }
 
 export async function planAccountLookup(question, history, route, deadline, retry) {
+  if(isOwnFeeBalanceQuestion(question))return {tools:['charges'],publicTopics:[],catalogQuery:null,responseIntent:'records'};
   const pages=nativePageLookupContext(question,route,history);
   if(pages.readerOnly)return {tools:pages.tools,publicTopics:[],catalogQuery:null,responseIntent:'records'};
   const residual=pages.selected?pages.otherQuestion:question;
@@ -404,6 +406,7 @@ export function accountEvidence(snapshot,tools=toolNames,context={}) {
       :key==='housing'?housingEvidencePath(context)
       :key==='academicAttendance'?(view==='details'||query?.selection?.reason==='subterm_hours_unavailable'?academicAttendancePaths.detail:academicAttendancePaths.statistics):selection?.url||urls[key];
     evidence.push(boundedAccountSource(key,{title:accountTools[key],url,budget,makeContent:contentBudget=>({checkedAt:snapshot.checkedAt,collection:key,
+        ...(key==='charges'&&typeof snapshot.studentRecordFound==='boolean'?{studentRecordFound:snapshot.studentRecordFound}:{}),
         ...(native?{rules:nativeRules[key]+' Counts: loadedRows/availableRows cover the loaded owned collection; matchingRows is the deterministic selection before budgeting; includedRows is the whole-row excerpt. partial compares includedRows with matchingRows. Selection describes the user query, not additional academic facts. When multipleScopes is true or reason is multiple_scopes, ask the user to choose one scope; zero selected rows does not mean no saved records. Named course selections include parent context; do not count parent requirements as additional title matches.',
           selection:query.selection,...(kind?{requestedReportKind:kind}:{}),...boundedNativeValue(value,contentBudget,query.matching,query.selection)}
           :selection?boundSelectedEvidence(selection,{key,budget:Math.max(1024,calendar?Math.floor(contentBudget*2/3):contentBudget)})
@@ -507,7 +510,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   };
   let evidence=[];
   // Directory records support local links, without including unrelated students.
-  const nativeLinks=new Set([...Object.values(academicGradesPaths),...Object.values(graduationReviewPaths),'/school-affairs/services/15-1',...Object.values(academicAttendancePaths),...supplemental.flatMap(result=>[result.evidence.url,...(result.evidence.urls||[])])]);
+  const nativeLinks=new Set([...(snapshot.studentRecordFound!==undefined?[urls.charges]:[]),...Object.values(academicGradesPaths),...Object.values(graduationReviewPaths),'/school-affairs/services/15-1',...Object.values(academicAttendancePaths),...supplemental.flatMap(result=>[result.evidence.url,...(result.evidence.urls||[])])]);
   // Native tools already provide their local destinations. The source school's
   // private portal URL is not additional evidence for a saved local record.
   const relevant=directoryEntries.filter(item=>!nativeLinks.has(item.localUrl)&&initial.citations.some(citation=>[item.localUrl,item.officialUrl].includes(citation.url)));

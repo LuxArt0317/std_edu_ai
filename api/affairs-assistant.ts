@@ -24,10 +24,10 @@ import { isDtmRecordQuestion } from '../server/dtmAnswer.js';
 import { isScholarshipRecordQuestion } from '../server/scholarshipRecords.js';
 import { isStudentAidRecordQuestion } from '../server/studentAidRecords.js';
 import { isHousingRecordQuestion } from '../server/housingRecords.js';
-import { isPendingFeeQuestion } from '../server/pendingFeesAnswer.js';
+import { isOwnFeeBalanceQuestion, isPendingFeeQuestion } from '../server/pendingFeesAnswer.js';
 import { isCreditLoadHistoryQuestion } from '../server/creditLoadHistory.js';
 import { isCourseSelectionQuestion } from '../server/courseSelection.js';
-import { AffairsWorkspaceError, loadAffairsSnapshot, verifyAffairsToken } from '../server/affairsWorkspace.js';
+import { AffairsWorkspaceError, loadAffairsSnapshot, loadOwnAffairsCharges, verifyAffairsToken } from '../server/affairsWorkspace.js';
 import { createAssistantStream } from '../server/assistantStream.js';
 import { readAssistantReply } from '../src/services/assistantStreamReader.js';
 import researchHandler from '../server/researchAssistantHandler.js';
@@ -222,7 +222,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     }catch{stream.send(503,{error:'The guidance could not be checked. Please try again.'});}
     return;
   }
-  const needsRecords=intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
+  const chargesOnly=isOwnFeeBalanceQuestion(question);
+  const needsRecords=chargesOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
   const navigation=!needsRecords && !(Array.isArray(input?.images) && input.images.length) && !questionKind(question).irrelevant
     ? answerCampusNavigation(question) : null;
   if(navigation) {
@@ -255,12 +256,12 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const residual=pageContext.selected?pageContext.otherQuestion:question;
     const remoteOnly=Boolean(residual)&&isElearningEvidenceQuestion(residual,route,history)&&!independentElearningQuestion(residual,route,history);
     const repairContext=facilityRepairLookupContext(residual,route,history),repairOnly=repairContext.repairOnly;
-    const selectedReaderOnly=pageContext.readerOnly||remoteOnly||repairOnly;
+    const selectedReaderOnly=!chargesOnly&&(pageContext.readerOnly||remoteOnly||repairOnly);
     const scopedSnapshot=()=>({checkedAt:new Date().toISOString(),profile:{userId:account.user.id}});
     if(selectedReaderOnly)stream.progress('account','Checked account access','The selected reader uses this signed-in Google account.','complete');
-    else stream.progress('account','Loading your account records','Checking School Affairs and DTM records for this signed-in Google account.');
-    const snapshot=selectedReaderOnly?scopedSnapshot():await loadSnapshot(account,false,{deadline});
-    if(!selectedReaderOnly)stream.progress('account','Loaded your account records','Only records linked to this Google account were read.','complete');
+    else stream.progress('account','Loading your account records',chargesOnly?'Checking only the fees linked to this Google account.':'Checking School Affairs and DTM records for this signed-in Google account.');
+    const snapshot=selectedReaderOnly?scopedSnapshot():chargesOnly?await loadOwnAffairsCharges(account,{deadline}):await loadSnapshot(account,false,{deadline});
+    if(!selectedReaderOnly)stream.progress('account','Loaded your account records',chargesOnly?'Read the fee scope for this Google account.':'Only records linked to this Google account were read.','complete');
     stream.progress('answer','Preparing your answer','Checking the account data and any requested stu.best action.');
     const readDeadline=(selected:number)=>{
       if(!Number.isFinite(selected))throw new TypeError('Invalid account reader deadline.');
@@ -281,7 +282,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       tuition:context=>readers.tuition(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
     };
     const answer=await answerAccount({question,correlationId,snapshot,history,route,deadline,supplementalReaders,
-      loadSnapshot:()=>selectedReaderOnly?Promise.resolve(scopedSnapshot()):loadSnapshot(account,false,{initialize:false,deadline}),
+      loadSnapshot:()=>selectedReaderOnly?Promise.resolve(scopedSnapshot()):chargesOnly?loadOwnAffairsCharges(account,{deadline}):loadSnapshot(account,false,{initialize:false,deadline}),
       onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status),
     });
     stream.progress('answer',answer.verification?.status==='verified'?'Answer ready':'Verification incomplete',

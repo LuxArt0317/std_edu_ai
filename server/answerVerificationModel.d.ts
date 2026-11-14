@@ -1,5 +1,6 @@
 import type {VerificationContext,VerificationEvidence,VerificationCandidate} from './answerVerification.js';
 export function answerLinksSupported(answer:string,evidence:VerificationEvidence[]):boolean;
+export function outlineAnswerLinksSupported(answer:string,evidence:VerificationEvidence[]):boolean;
 export function snapshotProvenanceSupported(candidate:VerificationCandidate,evidence:VerificationEvidence[],sourceIds?:string[]):boolean;
 export function verificationModelCall(name:string,schema:Record<string,any>,instructions:string,input:unknown,deadline:number,images?:Array<{dataUrl:string}>):Promise<any>;
 export function validEvidence(evidence:VerificationEvidence[]):boolean;

@@ -11,10 +11,26 @@ export function isPendingFeeQuestion(question,route='',history=[]) {
   if(/\bbalance\b/i.test(question) && anotherTopic.test(question) && !feeTopic.test(question.replace(/\bbalance\b/gi,'')))return false;
   return feeTopic.test(question)||(followup.test(question)&&!anotherTopic.test(question)&&(route===feesPath||feeTopic.test(history.filter(item=>item.role==='user').at(-1)?.content||'')));
 }
+// An exact read-only balance question can bypass the broad workspace load.
+// Other clauses, public procedures and account actions stay with the planner.
+export function isOwnFeeBalanceQuestion(question) {
+  if(typeof question!=='string')return false;
+  const text=question.normalize('NFKC').trim().replace(/[?.!。！？]+$/u,'').trim();
+  return /^how much do i (?:still )?owe(?: (?:at|in|for) (?:the )?school)?$/iu.test(text)
+    || /^(?:(?:please )?(?:show(?: me)?|list|tell me|check)|what is|what's|how much is) my (?:(?:remaining|outstanding|unpaid|pending) )?(?:(?:school|tuition) )?(?:fees?|charges|balance)(?: (?:at|in|for) (?:the )?school)?$/iu.test(text)
+    ||/^(?:請問|請查詢|幫我查|顯示)?(?:我(?:的|目前)?)(?:學雜費|學費|費用|待繳)(?:還(?:要繳|有|欠)|尚欠|剩餘|待繳|餘額|還剩)?(?:多少|金額|明細)?$/u.test(text);
+}
+
 export function answerPendingFees(question,snapshot,route='',history=[]) {
-  if(!isPendingFeeQuestion(question,route,history))return null;
-  const contextual=!feeTopic.test(question);
+  const exactFeeBalance=isOwnFeeBalanceQuestion(question);
+  if(!exactFeeBalance&&!isPendingFeeQuestion(question,route,history))return null;
+  const contextual=!exactFeeBalance&&!feeTopic.test(question);
   const chinese=/[\u3400-\u9fff]/.test(question);
+  if(snapshot.studentRecordFound===false)return {
+    answer:chinese?'此帳戶尚未連結站內學生紀錄，因此無法查詢待繳金額。請開啟待繳費用頁面確認。':
+      'This account has no linked stu.best student record, so I can’t verify a remaining balance. Open My Pending Payments to check.',
+    title:chinese?'我的待繳費用':'My pending payments',url:feesPath,
+  };
   const missing=chinese?'未記錄':'not recorded';
   const pending=/\b(?:unpaid|pending|outstanding|arrears|remaining|owe)\b|待繳|未繳|欠費|餘額/i.test(question)||contextual;
   const rows=(snapshot.charges||[]).filter(row=>Number.isFinite(Number(row.amountDue))&&Number.isFinite(Number(row.amountPaid)));
