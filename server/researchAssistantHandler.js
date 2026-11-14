@@ -344,8 +344,9 @@ export function createResearchAssistantHandler(dependencies = {}) {
         }
         const tutor=selectTutorEvaluationEvidence(input.question,input.route,input.history);
         const tutorNote=isOwnTutorEvaluationTrackingNoteQuestion(input.question,input.route);
-        if(tutor||tutorNote||!input.images.length&&tutorEvaluationNavigation(input.question)){
-            stream.send(200,tutorEvaluationGuide(input.question,false,tutor?.reason,tutorNote));
+        const tutorFormNavigation=!input.images.length&&Boolean(tutorEvaluationNavigation(input.question));
+        if(tutor||tutorNote||tutorFormNavigation){
+            stream.send(200,tutorEvaluationGuide(input.question,false,tutor?.reason,tutorNote,tutorFormNavigation));
             return;
         }
         const clearance=selectClearanceEvidence(input.question,input.route,input.history);

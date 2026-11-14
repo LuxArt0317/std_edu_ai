@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Link public tutor questionnaire navigation directly to the questionnaire page. Personal status and note lookups preserve the sign-in return destination. [#100]
+
 - Use the School Affairs timetable for personal weekday questions and offer a three-step campus directory guide for the public first-week question. [#100]
 - Preserve the named course and academic term in verified assistant answers and record tables. Career wording help avoids unrelated account reads. [#100]
 - Verify saved student conduct and loan records using the signed-in account. Preserve literal fields and show the relevant School Affairs links. [#100]

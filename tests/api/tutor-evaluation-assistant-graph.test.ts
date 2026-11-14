@@ -188,6 +188,9 @@ test('returns signed-in and guest links, and denies a named foreign request with
   try{
     const guest=await ask(status,{serve:createResearchAssistantHandler()});
     assert.equal(guest.citations[0].url,'/school-affairs/login?next='+encodeURIComponent(route));
+    const publicGuide=await ask('Where can I fill in my tutor questionnaire?',{serve:createResearchAssistantHandler()});
+    assert.equal(publicGuide.status,'answered');
+    assert.equal(publicGuide.citations[0].url,route);
     const guide=await ask('Where can I find my tutor evaluation questionnaire?');
     assert.equal(guide.citations[0].url,route);
     for(const question of ["Does Alice have a saved tutor evaluation?",'Show the tutor evaluation of my mother.','Which tutor evaluation ratings belong to Alice?']){
