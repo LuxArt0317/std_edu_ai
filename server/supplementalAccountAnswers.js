@@ -6,6 +6,8 @@ const definitions={
   'account:courseCatalog':{title:['Published course catalog','公開課程目錄'],path:'/school-affairs/services/12-4'},
   'account:enrollmentCertificate':{title:['Enrollment-certificate assessment','在學證明評估'],path:'/school-affairs/services/17-1'},
   'account:dtmSubmissions':{title:['Saved assignment files and reviews','已儲存作業檔案與評閱'],path:'/dtm'},
+  'account:studentConduct':{title:['Student conduct','學生個人獎懲'],path:'/school-affairs/services/38-1'},
+  'account:studentLoan':{title:['Student loan','就學貸款'],path:'/school-affairs/services/21-1'},
   'account:tuition':{title:['Saved tuition statements and document availability','已儲存學費結算與文件功能'],path:'/school-affairs/services/49-1'},
 };
 const tuitionPaths={settlement:'/school-affairs/services/49-1',summer:'/school-affairs/services/48-1',extended:'/school-affairs/services/48-2',evening:'/school-affairs/services/48-3'};
@@ -18,6 +20,8 @@ const detailRoute=new RegExp('^/dtm/course/'+uuid+'/assignment/'+uuid+'$','i');
 const catalogRoute=new RegExp('^/school-affairs/services/12-4(?:\\?(?:course|syllabus)='+uuid+')?$','i');
 const invalid=()=>{throw new TypeError('Use validated supplemental account evidence envelopes.');};
 function allowedUrl(id,url){
+  if(id==='account:studentConduct')return url===definitions[id].path;
+  if(id==='account:studentLoan')return ['', '/progress','/history','/document'].some(suffix=>url===definitions[id].path+suffix);
   return typeof url==='string'&&(id==='account:courseCatalog'?catalogRoute.test(url):id==='account:enrollmentCertificate'?url===definitions[id].path:id==='account:tuition'?Object.values(tuitionPaths).includes(url):url==='/dtm'||detailRoute.test(url));
 }
 function parse(envelope){
@@ -37,6 +41,12 @@ function parse(envelope){
     const expected=payload.selection.requestedViews;
     if(expected.length>4||new Set(expected).size!==expected.length||expected.length!==payload.serviceAvailability.length)invalid();
     for(const [index,service]of payload.serviceAvailability.entries())if(!object(service)||service.view!==expected[index]||!own(tuitionPaths,service.view)||service.url!==tuitionPaths[service.view]||service.capability!==(service.view==='settlement'?'literal_settlement_records':service.view==='extended'?'extended_records_unavailable':'verified_file_unavailable')||!evidence.urls?.includes(service.url))invalid();
+  }else if(id==='account:studentConduct'||id==='account:studentLoan'){
+    if(payload.collection!==id.slice(8)||payload.sourceMode!=='local_demo'||payload.readState!==envelope.readState
+      ||!['ok','empty','unavailable'].includes(envelope.readState)||!object(payload.counts)||typeof payload.complete!=='boolean')invalid();
+    const rows=id==='account:studentConduct'?payload.records:payload.record===null?[]:[payload.record];
+    if(!Array.isArray(rows)||rows.length!==payload.counts.included||rows.some(row=>!object(row)||row.sourceMode!=='local_demo')
+      ||envelope.readState!=='ok'&&rows.length)invalid();
   }else if(payload.officialUniversityData!==false||!Array.isArray(payload.records)||payload.records.length>5||!Array.isArray(payload.unavailable)||!object(payload.selection)||!Array.isArray(payload.selection.choices)||!object(payload.counts)||typeof payload.complete!=='boolean')invalid();
   return {envelope,evidence,id,payload};
 }
@@ -80,7 +90,10 @@ function sectionFor(parsed,question,zh){
     section.view={id:id.slice(8),title,url:evidence.url,columns,rows:[],total,checkedAt:p.checkedAt,note};
   };
   if(id==='account:tuition'){
-    section.lead.push(t('Stored local_demo statements only, not official university records or a payment ledger. Statement text is literal; it does not independently establish an amount owed, refund, waiver, eligibility or current term.','僅為 local_demo 站內結算紀錄，並非校方紀錄或付款流水。文字照錄，不能另行認定欠款、退款、減免、資格或當期學期。'));
+    const asksPaymentConfirmation=/\b(?:confirmed payment|payment (?:confirmed|confirmation)|confirm (?:a |my )?payment|prove (?:i paid|payment))\b|確認付款|付款確認|證明已繳/iu.test(question);
+    section.lead.push(asksPaymentConfirmation
+      ?t('A saved local_demo settlement statement cannot confirm a payment. This lookup has no payment ledger.','local_demo 站內結算文字無法確認是否付款。本次查詢不含付款流水。')
+      :t('Stored local_demo statements only, not official university records or a payment ledger. Statement text is literal; it does not independently establish an amount owed, refund, waiver, eligibility or current term.','僅為 local_demo 站內結算紀錄，並非校方紀錄或付款流水。文字照錄，不能另行認定欠款、退款、減免、資格或當期學期。'));
     for(const service of p.serviceAvailability){
       if(service.view==='settlement')continue;
       const label=service.view==='summer'?t('Summer payment documents','暑修繳費文件'):service.view==='evening'?t('Evening payment documents','進修部繳費文件'):t('Extended-study records','延修繳費紀錄');
@@ -126,6 +139,37 @@ function sectionFor(parsed,question,zh){
           if(!object(choice))invalid();item(t('Choice','可選項目'),`${display(choice.courseTitle)} — ${display(choice.assignmentTitle)}`);section.usable=true;
         }
       }
+    }
+    return section;
+  }
+  if(id==='account:studentConduct'||id==='account:studentLoan'){
+    const conduct=id==='account:studentConduct';
+    section.lead.push(conduct
+      ?t('These are saved local_demo conduct records. Only the stored fields are shown.','以下為 local_demo 站內獎懲紀錄，僅顯示已儲存欄位。')
+      :t('These are saved local_demo loan fields. Approval, disbursement and payment require separate evidence.','以下為 local_demo 站內貸款欄位。核准、撥款和付款須另有證據。'));
+    section.complete&&=p.complete;
+    const asksOfficialDocument=/\b(?:download|print|issu(?:e|ance)|official (?:record|document)|pdf|proof of payment)\b|下載|列印|核發|官方紀錄|繳款證明/iu.test(question);
+    if(asksOfficialDocument)section.lead.push(t('An official document or download is unavailable through this lookup.','本次查詢無法核發或下載官方文件。'));
+    if(envelope.readState==='empty'){
+      section.lead.push(t('No matching local record was saved in this account lookup.','本次帳戶查詢未找到站內紀錄。'));
+      return section;
+    }
+    const fields=conduct
+      ?[['occurredOnText','Recorded date','紀錄日期'],['academicYearText','Academic year','學年'],['semesterText','Semester','學期'],
+        ['yearLevelText','Year level','年級'],['reasonText','Reason','事由'],['conductCode','Code','代碼'],['conductName','Conduct','獎懲'],
+        ['quantityText','Recorded quantity','紀錄數量'],['voidStatusText','Void status','註銷狀態'],['studentNumber','Student number','學號'],['studentName','Student name','姓名']]
+      :[['currentTermLabel','Recorded term','紀錄學期'],['currentApplicationState','Application state','申請狀態'],
+        ['currentApplicationText','Application text','申請文字'],['progressText','Recorded progress','紀錄進度'],['historyCount','Recorded history count','紀錄歷史筆數'],['historyText','History text','歷史文字']];
+    const records=conduct?p.records:p.record?[p.record]:[];
+    if(!p.complete)section.lead.push(t('Some saved fields or rows were outside the evidence limit.','部分已儲存欄位或紀錄超出證據上限。'));
+    view(conduct?[t('Date','日期'),t('Conduct','獎懲'),t('Quantity','數量'),t('Void status','註銷狀態')]
+      :[t('Term','學期'),t('Application state','申請狀態'),t('Progress','進度'),t('Recorded history count','紀錄歷史筆數')],records.length,
+      t('This table shows the included local_demo evidence.','此表顯示本次納入的 local_demo 站內證據。'));
+    for(const record of records){
+      group(t('Saved record','已保存紀錄'),conduct?record.conductName:record.currentTermLabel);
+      for(const [key,en,cn] of fields)if(own(record,key))item(t(en,cn),record[key]);
+      section.viewCandidates.push(conduct?row(record.occurredOnText,record.conductName,record.quantityText,record.voidStatusText)
+        :row(record.currentTermLabel,record.currentApplicationState,record.progressText,record.historyCount));
     }
     return section;
   }
@@ -226,7 +270,7 @@ function sectionFor(parsed,question,zh){
 /** No network, mutations, model calls or verification status. The caller must
  * supply these same source IDs/content to independent answer verification. */
 export function formatSupplementalAccountAnswers(results,{question='',language:requestedLanguage}={}){
-  if(!Array.isArray(results)||results.length>4||typeof question!=='string'||question.length>12000)invalid();
+  if(!Array.isArray(results)||results.length>Object.keys(definitions).length||typeof question!=='string'||question.length>12000)invalid();
   const parsed=results.map(parse);if(new Set(parsed.map(item=>item.id)).size!==parsed.length)invalid();
   const zh=language(question,requestedLanguage),sections=parsed.map(item=>sectionFor(item,question,zh));
   const interests=[/objectiv|goal|目標/iu,/feedback|comment|評語|評閱/iu,/grad(?:e|ing)|score|評分|成績|比重/iu,/material|textbook|教材/iu,/reference|參考/iu,/room|classroom|教室/iu,/prerequisite|先修/iu,/office hours|諮商時間/iu,/statement|text|原文|內容/iu,/week|週/iu];
@@ -237,7 +281,7 @@ export function formatSupplementalAccountAnswers(results,{question='',language:r
     const groups=new Map();for(const item of section.items){if(!groups.has(item.group))groups.set(item.group,[]);groups.get(item.group).push(item);}
     section.items=[...groups.values()].flatMap(items=>items.sort((a,b)=>Number(b.header)-Number(a.header)||preferred(a.label)-preferred(b.label)));
   }
-  const topics={'account:courseCatalog':/catalog|syllabus|offering|課綱|大綱|開課/iu,'account:enrollmentCertificate':/certificate|enrolment|enrollment|在學|在籍|學籍證明/iu,'account:dtmSubmissions':/file|upload|submission|assignment|feedback|作業|檔案|評語|上傳/iu,'account:tuition':/tuition|settlement|statement|summer|evening|學費|結算|暑修|進修部|延修/iu};
+  const topics={'account:studentConduct':/conduct|disciplin|獎懲/iu,'account:studentLoan':/loan|貸款|學貸/iu,'account:courseCatalog':/catalog|syllabus|offering|課綱|大綱|開課/iu,'account:enrollmentCertificate':/certificate|enrolment|enrollment|在學|在籍|學籍證明/iu,'account:dtmSubmissions':/file|upload|submission|assignment|feedback|作業|檔案|評語|上傳/iu,'account:tuition':/tuition|settlement|statement|summer|evening|學費|結算|暑修|進修部|延修/iu};
   const rankedViews=sections.filter(section=>section.view).map((section,index)=>({section,index,match:question.search(topics[section.id])})).sort((a,b)=>Number(b.match>=0)-Number(a.match>=0)||Number(b.section.viewCandidates.length>0)-Number(a.section.viewCandidates.length>0)||(a.match>=0&&b.match>=0?a.match-b.match:0)||a.index-b.index);
   const selectedSet=new Set(rankedViews.slice(0,supplementalAnswerLimits.views).map(value=>value.section));
   const selectedViews=sections.filter(section=>selectedSet.has(section));

@@ -6,6 +6,7 @@ import {accountTools,supplementalAccountTools} from '../../server/answerVerifica
 import {academicGradesPaths} from '../../server/academicGrades.js';
 import {graduationReviewPaths} from '../../server/graduationReview.js';
 import {academicAttendancePaths} from '../../server/academicAttendance.js';
+import {elearningPath,elearningServicePath,elearningCoursePath,elearningActivityPath} from '../../server/elearningContract.js';
 
 // Read literal route descriptors without importing React, executing product
 // source or copying a second menu list that silently drifts from the UI.
@@ -57,6 +58,33 @@ export async function discoverSurfaces() {
     signedIn('academic-attendance',Object.values(academicAttendancePaths)),
     signedIn('dtm',['/dtm','/dtm/dashboard','/dtm/my','/dtm/assignments','/dtm/grades','/dtm/course/:id',...dtmViews.map(view=>'/dtm/course/:id/'+view)]),
     signedIn('dtm-submissions',['/dtm/course/:courseId/assignment/:assignmentId','/dtm/course/:courseId/assignment/:assignmentId/edit']),
+    // Content in ElearningWorkspace is authenticated, including its catalog and
+    // notices. A copied public catalog does not make this workspace anonymous.
+    signedIn('elearning',[elearningPath,...['categories','my-courses','search','category/:id','notice/:id'].map(view=>elearningPath+'/'+view),
+      elearningCoursePath(':id'),elearningActivityPath(':courseId',':activityId'),
+      elearningPath+'/search?q=:query',elearningPath+'/search?q=:query&page=:page',elearningPath+'/category/:id?page=:page']),
+    {id:'elearning-authentication',routes:[elearningPath+'/login'],auth:'public',browserChecks:['assistantPresent','keyboardUsable','sessionVerified'],
+      browserScenarios:[
+        {route:elearningPath+'/login',id:'signed-out-login',frame:'top-level',auth:'signed-out'},
+        {route:elearningPath+'/login',id:'already-signed-in',frame:'top-level',auth:'transition',initialAuthenticated:true,resultingAuthenticated:true,
+          resultingRoute:elearningPath,checks:['sessionVerified','navigationSucceeded']},
+      ]},
+    {id:'elearning-entry-transitions',routes:[elearningServicePath,'/school-sites/elearning.stu.edu.tw/','/school-sites/elearning.stu.edu.tw/login/index.php',
+      '/school-sites/elearning.stu.edu.tw/course/index.php?categoryid=48'],auth:'transition',browserChecks:['sessionVerified','navigationSucceeded'],
+      browserScenarios:[
+        ...[elearningServicePath,'/school-sites/elearning.stu.edu.tw/','/school-sites/elearning.stu.edu.tw/login/index.php'].flatMap(route=>[
+          {route,id:'signed-in-entry',frame:'top-level',initialAuthenticated:true,resultingAuthenticated:true,resultingRoute:elearningPath},
+          {route,id:'signed-out-entry',frame:'top-level',initialAuthenticated:false,resultingAuthenticated:false,
+            resultingRoute:route===elearningServicePath?'/school-affairs/login?next='+encodeURIComponent(elearningServicePath)
+              :elearningPath+'/login'+(route.endsWith('/login/index.php')?'':'?next='+encodeURIComponent(elearningPath))},
+        ]),
+        // A concrete captured category makes source→destination identity
+        // checkable; two independent :id patterns do not bind the same value.
+        {route:'/school-sites/elearning.stu.edu.tw/course/index.php?categoryid=48',id:'signed-in-category',frame:'top-level',
+          initialAuthenticated:true,resultingAuthenticated:true,resultingRoute:elearningPath+'/category/48'},
+        {route:'/school-sites/elearning.stu.edu.tw/course/index.php?categoryid=48',id:'signed-out-category',frame:'top-level',
+          initialAuthenticated:false,resultingAuthenticated:false,resultingRoute:elearningPath+'/login?next='+encodeURIComponent(elearningPath+'/category/48')},
+      ]},
     signedIn('legacy-route-aliases',['/ePortal/index.asp','/ePortal/apMenu.asp','/school-sites/dtm.stu.edu.tw/']),
     publicFamily('authentication',['/school-affairs/login','/dtm/login','/dtm/login/index.php','/student-sso','/ePortal/login.asp','/auth/realms/stuarm/protocol/saml']),
     {id:'authentication-transitions',routes:[callbackPath,'/school-affairs/signed-out'],auth:'transition',browserChecks:['sessionVerified'],
@@ -86,6 +114,8 @@ export async function discoverSurfaces() {
       'Explicit callback/sign-out routes are evaluated by their resulting state, not by requiring a launcher during a transient redirect.',
       'Browser observations are keyed by route, authentication state, scenario and frame; either-state pages require both signed-in and signed-out observations.',
       'Account-status is an iframe indicator, not a chatbot page. Raw semantic omissions remain visible for every inventoried route, including transitions and aliases.',
+      'Remote-learning catalog, notice, course and activity pages require the shared signed-in session. Their presence does not establish university enrollment, available course-outline permission, or provider-hosted grades and submissions.',
+      'The legacy remote-learning category redirect uses captured category 48 in both session states as one exact representative; passing it does not cover every category identifier or return destination.',
     ]};
   return {...value,hash:createHash('sha256').update(JSON.stringify(value)).digest('hex')};
 }

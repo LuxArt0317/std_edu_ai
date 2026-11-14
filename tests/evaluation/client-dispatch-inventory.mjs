@@ -1,0 +1,201 @@
+import {readFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import ts from 'typescript';
+import {clubStudentQuestion,clubStudentScope} from '../../server/clubStudentContract.js';
+import {aidPaymentsQuestion,aidPaymentsScope} from '../../server/aidPaymentsContract.js';
+import {elearningQuestion,elearningOutlineCourse,elearningScope,elearningOutlineScope} from '../../server/elearningContract.js';
+import {certificateAwardQuestion,certificateAwardScope} from '../../server/certificateAwardsContract.js';
+import {announcementEmailQuestion,announcementEmailScope} from '../../server/announcementEmailContract.js';
+import {studentProfileQuestion,studentProfileScope} from '../../server/studentProfileContract.js';
+import {repairQuestion} from '../../src/features/public/affairs/facilityRepair.js';
+import {venueQuestion} from '../../src/features/public/affairs/venueContract.js';
+import {clearanceQuestion,clearanceScope} from '../../server/graduationClearanceContract.js';
+
+const dispatchPath='src/services/schoolAffairsAssistant.ts';
+const apiPath='api/affairs-data.ts';
+const root=new URL('../../',import.meta.url);
+const readSource=path=>readFile(new URL(path,root),'utf8');
+const digest=value=>createHash('sha256').update(value).digest('hex');
+
+// This is a separate acceptance definition, not an executable account-bank
+// fixture. Source linkage never constitutes an answered question or UI proof.
+const definitions=[
+  {id:'club-student',call:'answerStudentClubs',file:'clubStudent',server:'clubStudent',scope:clubStudentScope,
+    routes:['/school-affairs/services/40-1/my-memberships','/school-affairs/services/40-1/my-attendance','/school-affairs/services/40-1/foundation'],
+    selector:{view:'my-memberships',page:'1'},fields:['rows[].name','rows[].role_label','rows[].active','hasMore'],
+    question:'Which clubs am I a member of, and which memberships are active?',
+    secondPart:'Also show my current semester subjects.',secondTools:['courses'],
+    support:'owned_membership_attendance_and_foundation_summary',
+    limit:'Directory and general activity searches are guides, not private membership proof. Only the first page is summarized; hasMore must remain visible.'},
+  {id:'aid-payments',call:'answerAidPayments',file:'aidPayments',server:'aidPayments',scope:aidPaymentsScope,
+    routes:['/school-affairs/services/37-1','/school-affairs/services/37-1/salary'],
+    selector:{view:'salary',page:'1',summary:'1'},fields:['total'],
+    question:'How many student salary records are saved for my account?',
+    secondPart:'Also show the net pay and tax recorded for each payment period.',secondFields:['rows[].payment_period','rows[].net','rows[].tax'],
+    support:'count_only',
+    limit:'The current assistant requests summary=1 and requires rows=[]; it cannot answer net pay or deductions from that response. Saved payroll does not prove a bank transfer.'},
+  {id:'elearning-enrollments',call:'answerElearning',file:'elearning',server:'elearning',scope:elearningScope,
+    routes:['/elearning/my-courses'],selector:{},fields:['enrollments[].courseId','courses[].id','courses[].title'],
+    question:'What are my remote-learning Moodle enrollments?',
+    secondPart:'Also list my unfinished DTM assignments.',secondTools:['assignments','dtm'],
+    support:'owned_enrollment_course_titles',
+    limit:'Match courses to own enrollment IDs; catalog membership is not enrollment. Current output is capped at ten courses without an omission statement; provider grades/submissions are not linked.'},
+  {id:'elearning-outline',call:'answerElearningOutline',file:'elearning',server:'elearning',scope:elearningOutlineScope,
+    routes:['/elearning/course/:id','/elearning/course/:courseId/activity/:activityId'],selector:{course:'<owned-accessible-course-id>'},
+    fields:['courseId','sections[].title','sections[].activities[].id','sections[].activities[].title','sections[].activities[].purpose'],
+    question:'Which videos are listed?',contextRoute:'/elearning/course/9718',
+    secondPart:'Also tell me my recorded attendance for those activities.',secondFields:['providerAttendanceUnavailable'],
+    support:'permitted_outline_activity_links',
+    limit:'Course-level authorization is required. Empty permitted content and inaccessible outline need distinct explanations; current output is capped at six sections and twenty activities per section.'},
+  {id:'certificate-awards',call:'readCertificateAwardAnswer',file:'certificateAwards',server:'certificateAwards',scope:certificateAwardScope,
+    routes:['/school-affairs/services/52-1'],selector:{view:'mine',answer:'en'},fields:['rows[].name','rows[].status'],
+    question:'What is the status of my professional certificate subsidy application?',
+    secondPart:'Also tell me whether its payout has reached my bank.',secondFields:['bankReceiptUnavailable'],
+    support:'owned_application_status_only',
+    limit:'This is professional certificate subsidy, not enrollment-certificate issuance. A review label or bank-last-four is not a bank payment receipt; attachments require separate authorized capabilities.'},
+  {id:'announcement-email',call:'readAnnouncementEmailAnswer',file:'announcementEmail',server:'announcementEmail',scope:announcementEmailScope,
+    routes:['/school-affairs/services/2-1'],selector:{answer:'en'},fields:['enabled','active','effectiveAt','deliveryConfigured'],
+    question:'Is my announcement email preference enabled and active yet?',
+    secondPart:'Also confirm whether an announcement has arrived in my Gmail inbox.',secondFields:['inboxDeliveryUnavailable'],
+    support:'preference_and_delivery_configuration',
+    limit:'A saved preference, effective date or configured sender never proves delivery to a mailbox. The reader does not access Gmail.'},
+  {id:'student-profile',call:'readStudentProfileAnswer',file:'studentProfile',server:'studentProfile',scope:studentProfileScope,
+    routes:['/school-affairs/services/8-1'],selector:{view:'mine',answer:'en'},fields:['recordExists','confirmedAt'],
+    question:'Have I confirmed my student basic information?',
+    secondPart:'Also show the year level recorded in my account.',secondTools:['profile'],
+    support:'confirmation_status_only',
+    limit:'The status-only RPC deliberately omits address, birthday, identity last-four, guardian and mobile data. It is separate from the general account profile tool.'},
+  {id:'facility-repairs',call:'readRepairAnswer',file:'facilityRepair',server:'facilityRepair',scope:'facility-repairs',
+    routes:['/school-affairs/services/45-1/history','/school-affairs/services/45-1/history/:id'],selector:{view:'mine',answer:'en'},
+    fields:['rows[].id','rows[].status','rows[].created_at'],
+    question:'What is the status of my facility repair reports?',
+    secondPart:'Also show my next scheduled class.',secondTools:['courses'],
+    support:'owned_status_list_or_exact_route_detail',
+    limit:'An exact detail-route UUID may select only an owned report. A resolved local status does not establish an official dispatch or university repair.'},
+  {id:'venue-requests',call:'readVenueAnswer',file:'venueBooking',server:'venueBooking',scope:'venue-requests',
+    routes:['/school-affairs/services/44-1'],selector:{view:'mine',answer:'en'},fields:['rows[].venue','rows[].booking_date','rows[].period','rows[].status'],
+    question:'What is the status of my venue reservation requests?',
+    secondPart:'Also show the fee balance recorded on my account.',secondTools:['charges'],
+    support:'owned_request_status_summary',
+    limit:'A public venue schedule is not an owned booking, and a local request status is not university confirmation. No mutation is implied by a question.'},
+  {id:'graduation-clearance',call:'readGraduationClearanceAnswer',file:'graduationClearance',server:'graduationClearance',scope:clearanceScope,
+    routes:['/school-affairs/services/10-1','/school-affairs/services/16-1'],selector:{view:'student',answer:'en'},
+    fields:['periods[].state','applications[].term','applications[].reviews[].office','applications[].reviews[].status'],
+    question:'Which graduation clearance offices still need action for my application?',
+    secondPart:'Also explain the saved note from each office.',secondFields:['applications[].reviews[].note'],
+    support:'owned_period_and_office_status_summary',
+    limit:'Clearance is separate from graduation eligibility/reference reports. Current answer enumerates office statuses but not their saved notes, and caps application/period lists at eight.'},
+];
+
+const navigationOnly=[
+  {calls:['clubOfficerGuide','clubGuide'],scopes:['club-officer','student-clubs'],reason:'Client opens an authorized page; it does not read private officer/application/equipment rows.'},
+  {calls:['healthExaminationGuide'],scopes:['health-examinations'],reason:'Private medical reports are linked, not retrieved into the assistant.'},
+  {calls:['counselingGuide'],scopes:['counseling-appointments'],reason:'Counseling history is linked without disclosing private appointment content.'},
+];
+const otherDirectReaders=['readProgramRegistrationAnswer','readTeachingFeedbackAnswer','readEarlyGraduationAnswer','readCreditTransferAnswer','readWithdrawalAnswer','readCourseAdjustmentAnswer'];
+
+/** Pure predicate observation only. Earlier branches, auth, UI lifecycle and
+ * network outcomes still require the real client harness. */
+export function probeNativePredicate(id,question,route=''){
+  switch(id){
+    case 'club-student':return clubStudentQuestion(question);
+    case 'aid-payments':return aidPaymentsQuestion(question);
+    case 'elearning-enrollments':return elearningQuestion(question,route)==='mine'?'mine':null;
+    case 'elearning-outline':return elearningOutlineCourse(question,route);
+    case 'certificate-awards':return certificateAwardQuestion(question)==='status'?'status':null;
+    case 'announcement-email':return announcementEmailQuestion(question)==='status'?'status':null;
+    case 'student-profile':return studentProfileQuestion(question)==='status'?'status':null;
+    case 'facility-repairs':return repairQuestion(question)==='history'?'history':null;
+    case 'venue-requests':return venueQuestion(question)?.view==='mine'?'mine':null;
+    case 'graduation-clearance':return clearanceQuestion(question);
+    default:throw new Error('Unknown native client predicate.');
+  }
+}
+
+export function inspectClientDispatchSource(source){
+  const file=ts.createSourceFile(dispatchPath,source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);
+  const entry=file.statements.find(node=>ts.isFunctionDeclaration(node)&&node.name?.text==='askSchoolAffairsAssistant');
+  if(!entry?.body)throw new Error('Missing School Affairs client dispatch entry.');
+  const calls=[];
+  function visit(node){
+    if(ts.isCallExpression(node))calls.push({name:ts.isIdentifier(node.expression)?node.expression.text:node.expression.getText(file),
+      at:node.getStart(file),line:file.getLineAndCharacterOfPosition(node.getStart(file)).line+1,args:node.arguments.map(arg=>arg.getText(file)),
+      firstLiteral:node.arguments[0]&&ts.isStringLiteralLike(node.arguments[0])?node.arguments[0].text:null});
+    ts.forEachChild(node,visit);
+  }
+  visit(entry.body);
+  const api=calls.filter(call=>call.name==='fetch'&&call.firstLiteral==='/api/affairs-assistant');
+  if(api.length!==1)throw new Error('Expected one account graph API fallback.');
+  const session=calls.find(call=>call.name==='affairsClient.auth.getSession');
+  const guard=entry.body.statements.find(node=>ts.isIfStatement(node)&&node.expression.getText(file).replace(/\s/g,'')==='error||!data.session'&&ts.isThrowStatement(node.thenStatement));
+  if(!session||!guard||guard.getStart(file)<=session.at)throw new Error('Expected explicit missing-session rejection before client reads.');
+  const functions=new Map();
+  for(const node of file.statements)if(ts.isImportDeclaration(node)&&node.importClause?.namedBindings&&ts.isNamedImports(node.importClause.namedBindings)){
+    for(const item of node.importClause.namedBindings.elements)functions.set(item.name.text,node.moduleSpecifier.text);
+  }
+  const contracts=definitions.map(definition=>{
+    const selected=calls.filter(call=>call.name===definition.call);
+    if(selected.length!==1||selected[0].at>=api[0].at||selected[0].at<=guard.getStart(file)
+      ||selected[0].args[0]!=='data.session.user.id'||functions.get(definition.call)!=='./'+definition.file)
+      throw new Error('Native client dispatch changed: '+definition.id);
+    return {id:definition.id,call:definition.call,source:dispatchPath,line:selected[0].line,beforeGraphFallback:true,callerArgument:'data.session.user.id'};
+  });
+  return {contracts,fallback:{source:dispatchPath,line:api[0].line},otherDirectReaders:otherDirectReaders.filter(name=>calls.some(call=>call.name===name&&call.at<api[0].at)),
+    navigationOnly:navigationOnly.map(row=>({...row,observedCalls:row.calls.filter(name=>calls.some(call=>call.name===name&&call.at<api[0].at))}))};
+}
+
+function questionCases(definition){
+  const common={domain:definition.id,route:definition.contextRoute??definition.routes[0],auth:'signed-in',endpoint:'/api/affairs-data',scope:definition.scope,
+    fixtureRequirement:'independent_owned_native_records',executed:false,acceptance:'not_evaluated',
+    expected:{requiredReader:definition.call,requiredScope:definition.scope,requiredLinks:[definition.routes[0]],
+      ownAccountOnly:true,noAction:true,noOfficialInference:true,independentFactsRequired:true}};
+  return [
+    {...common,id:'client:'+definition.id+':record',mode:'record',question:definition.question,
+      assertions:{requiredFields:definition.fields,source:'independently seeded or pre-bound native record, not assistant output'}},
+    {...common,id:'client:'+definition.id+':multipart',mode:'multipart',question:definition.question+' '+definition.secondPart,
+      assertions:{requiredFields:[...definition.fields,...(definition.secondFields??[])],requiredAdditionalTools:definition.secondTools??[],
+        allRequestedParts:true,unknownPartsExplicit:true,firstMatchMustNotDiscardOtherParts:true}},
+    {...common,id:'client:'+definition.id+':empty',mode:'empty',question:definition.question,
+      assertions:{fixture:'successful own native read with empty/missing state',absenceLimitedTo:'this local collection',forbidOfficialAbsence:true,
+        preserveNullVersusZero:true,forbidFallbackToGenericNote:true}},
+    {...common,id:'client:'+definition.id+':foreign',mode:'foreign',question:'Show another student’s '+definition.id.replaceAll('-',' ')+' records.',
+      assertions:{forbiddenFixtureOwner:'independent second owner',forbidForeignFacts:true,forbidAdminEscalation:true,ownRecordsNotSubstituted:true}},
+    {...common,id:'client:'+definition.id+':unavailable',mode:'read-failure',question:definition.question,
+      fixtureRequirement:'offline_reader_failure',assertions:{fixture:'reader rejects or times out',mustSayUnavailable:true,
+        forbidNoRecordsInference:true,forbidCompletedReadClaim:true,forbidPublicResearchForPrivateFacts:true}},
+  ].map(testCase=>({...testCase,staticProbe:{predicate:probeNativePredicate(definition.id,testCase.question,testCase.route),
+    isBrowserExecution:false,isAnswerAcceptance:false}}));
+}
+
+/** Read-only source discovery for an eventual runner/browser harness. No fetch,
+ * fixture creation, user-session import, model call or product code execution. */
+export async function discoverClientDispatchSurfaces({read=readSource}={}){
+  const contracts=['clubStudent','aidPayments','elearning','certificateAwards','announcementEmail','studentProfile','graduationClearance'];
+  const sources=[...new Set([dispatchPath,apiPath,...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
+    ...contracts.map(name=>'server/'+name+'Contract.js'),'src/features/public/affairs/facilityRepair.js','src/features/public/affairs/venueContract.js',
+    'server/clubServicesContract.js','server/clubOfficerContract.js','server/healthExaminationContract.js','server/counselingContract.js',
+    'src/features/public/PublicSite.tsx','src/features/public/affairs/SchoolAffairsEntry.tsx','src/features/public/affairs/SchoolAffairsPortal.tsx',
+    'src/features/public/elearning/ElearningWorkspace.tsx'])];
+  const entries=await Promise.all(sources.map(async path=>[path,await read(path)]));
+  const content=new Map(entries),dispatch=inspectClientDispatchSource(content.get(dispatchPath));
+  const services=definitions.map(definition=>{
+    const source='src/services/'+definition.file+'.ts',serverSource='server/'+definition.server+'.js';
+    // Reject disappearance of the concrete transport/handler linkage. The
+    // detailed selector and own-record contracts are still separate QA work.
+    if(!content.get(source).includes('/api/affairs-data')||!content.get(apiPath).includes("../server/"+definition.server+".js"))
+      throw new Error('Native client data linkage changed: '+definition.id);
+    return {...definition,source,serverSource,dispatch:dispatch.contracts.find(row=>row.id===definition.id),
+      routeAuth:'signed-in',credential:'shared School Affairs JWT',recordSelection:'verified caller; no arbitrary user_id',
+      graphTool:null,implementation:'direct-client-native-read',runtimeAcceptance:'unexecuted',browserAcceptance:'unexecuted',
+      capabilityGap:'No independent live native fixture/client-dispatch acceptance in this inventory.'};
+  });
+  return {version:1,layer:'browser-client-dispatch',graphBankIncluded:false,sourceManifest:entries.map(([path,text])=>({path,sha256:digest(text)})),
+    services,scopes:[...new Set(services.map(row=>row.scope))],questions:definitions.flatMap(questionCases),
+    navigationOnly:dispatch.navigationOnly,otherDirectReaders:dispatch.otherDirectReaders,
+    limits:['Static code linkage is not browser execution, deployed reachability, successful private reads or verified answer quality.',
+      'The graph reader registry does not include these direct browser dispatch readers. Direct API evaluation cannot silently count their coverage.',
+      'Multipart and foreign-owner questions must exercise the real client dispatch before the API, including earlier predicate matches.',
+      'No generic tracker note is a fixture for a native workflow. Native own/foreign/empty facts must be independently prepared and read back.',
+      'Missing, denied or failed reads and unsupported fields must remain explicit. Read-failure scenarios are offline only until a safe adapter exists.',
+      'No source instruction, record text or local status authorizes a write, official submission, payment, or provider account access.']};
+}

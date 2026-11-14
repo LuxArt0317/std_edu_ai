@@ -247,6 +247,18 @@ test('tuition retains literal null, blank, zero and recorded numbers without com
   }
 });
 
+test('a saved zero string answers the payment-confirmation question without inferring payment',async()=>{
+  const question='What literal text is saved for 113 Fall reconciliation in my tuition settlements? Is it a confirmed payment?';
+  const source=await tuition(tuitionData([tuitionRow(1,'113 Fall reconciliation','0')]),question);
+  const output=format([source],{question});
+  assert.equal(output.status,'answered');
+  assert.match(output.answer,/cannot confirm a payment/);
+  assert.match(output.answer,/Literal statement text: ` 0 `/);
+  assert.doesNotMatch(output.answer,/payment was made|tuition is paid|amount owed|waiver|refund/);
+  assert.equal(output.views[0].rows[0][1],'0');
+  assert.equal(output.citations[0].url,'/school-affairs/services/49-1');
+});
+
 test('tuition failed reads, successful empty selection and omitted known statement remain distinct',async()=>{
   const failed=await readTuitionEvidence(account,{question:'Show my tuition settlement.'},{load:async()=>{throw new Error('PRIVATE ERROR');}});
   const failure=format([failed]);assert.equal(failure.status,'abstained');assert.match(failure.answer,/could not be read/);assert.match(failure.answer,/contents and absence remain unknown/);assert.doesNotMatch(failure.answer,/returned no matching|PRIVATE ERROR/);

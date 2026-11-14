@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
+import {readFile} from 'node:fs/promises';
 import {assessCoverage} from './coverage.mjs';
 import {discoverSurfaces} from './surface-inventory.mjs';
 import {buildAccountCases} from './account-cases.mjs';
@@ -131,7 +132,45 @@ test('malformed or downgraded transition contracts fail closed',()=>{
   }
 });
 
-test('scenario bookkeeping preserves all 561 routes and all 59 raw semantic gaps',async()=>{
+test('remote-learning inventory follows the authenticated workspace and distinct login/redirect states',async()=>{
+  const {routeFamilies,services}=await discoverSurfaces();
+  assert.equal(services.find(row=>row.id==='4-2').route,'/elearning');
+  const workspace=routeFamilies.find(row=>row.id==='elearning');
+  assert.equal(workspace.auth,'signed-in');
+  assert.deepEqual(workspace.browserChecks,['assistantPresent','keyboardUsable','sessionVerified']);
+  assert.deepEqual(workspace.routes,[
+    '/elearning','/elearning/categories','/elearning/my-courses','/elearning/search','/elearning/category/:id','/elearning/notice/:id',
+    '/elearning/course/:id','/elearning/course/:courseId/activity/:activityId',
+    '/elearning/search?q=:query','/elearning/search?q=:query&page=:page','/elearning/category/:id?page=:page',
+  ]);
+  // Guard the actual Content dispatcher, not a second claimed page catalog.
+  const source=await readFile(new URL('../../src/features/public/elearning/ElearningWorkspace.tsx',import.meta.url),'utf8');
+  const views=[...source.matchAll(/if\(view==='([^']+)'&&segments\.length===(\d)\)/gu)].map(match=>[match[1],Number(match[2])]);
+  assert.deepEqual(views,[['categories',1],['my-courses',1],['search',1],['category',2],['notice',2]]);
+  assert.match(source,/if\(!user&&!isLogin\)return <Navigate/u);
+  const login=routeFamilies.find(row=>row.id==='elearning-authentication');
+  const validLogin=[observe('/elearning/login',{scenario:'signed-out-login',authenticated:false}),
+    observe('/elearning/login',{scenario:'already-signed-in',initialAuthenticated:true,authenticated:true,
+      resultingRoute:'/elearning',navigationSucceeded:true,assistantPresent:false})];
+  assert.equal(assess([login],validLogin).browserAcceptance.passed,true);
+  assert.equal(assess([login],validLogin.slice(0,1)).browserAcceptance.passed,false);
+  assert.equal(assess([login],validLogin.map(row=>row.scenario==='already-signed-in'?{...row,resultingRoute:'/elearning/login'}:row)).browserAcceptance.passed,false);
+  const redirects=routeFamilies.find(row=>row.id==='elearning-entry-transitions');
+  assert.equal(redirects.auth,'transition');
+  const actual=value=>value.replaceAll(':id','123');
+  const entries=redirects.browserScenarios.map(row=>observe(actual(row.route),{
+    scenario:row.id,initialAuthenticated:row.initialAuthenticated,authenticated:row.resultingAuthenticated,
+    resultingRoute:actual(row.resultingRoute),navigationSucceeded:true,assistantPresent:false,
+  }));
+  assert.equal(assess([redirects],entries).browserAcceptance.passed,true);
+  assert.equal(assess([redirects],entries.map(row=>({...row,navigationSucceeded:false}))).browserAcceptance.passed,false);
+  assert.equal(assess([redirects],entries.map(row=>row.scenario==='signed-in-category'
+    ?{...row,resultingRoute:'/elearning/category/987'}:row)).browserAcceptance.passed,false);
+  assert.equal(assess([redirects],entries.map(row=>row.scenario==='signed-out-category'
+    ?{...row,resultingRoute:'/elearning/login?next='+encodeURIComponent('/elearning/category/987')}:row)).browserAcceptance.passed,false);
+});
+
+test('remote-learning discovery adds honest omissions while preserving the existing 59 raw semantic gaps',async()=>{
   const inventory=await discoverSurfaces();
   const cases=[...buildServiceCases(),...buildAccountCases({now:'2026-11-13T02:00:00Z'}),...buildPublicCases(inventory)];
   const report=assessCoverage({cases,results:[],inventory,sourceRevision:revision,requireLive:false});
@@ -155,11 +194,29 @@ test('scenario bookkeeping preserves all 561 routes and all 59 raw semantic gaps
     '/school-affairs/auth/callback','/school-affairs/signed-out','/school-affairs/privacy','/account-status',
     '/campus-assistant','/campus-assistant?embed=1','/campus-directory','/local-pages',
   ];
-  assert.equal(cases.length,931);assert.equal(report.coverage.routes.total,561);
-  assert.equal(expected.length,59);assert.deepEqual(report.coverage.routes.missing,expected);
-  assert.equal(report.browserAcceptance.total,561);assert.equal(report.browserAcceptance.requiredScenarios,566);
-  assert.equal(report.coverage.routeFamilies.total,50);
-  assert.deepEqual(report.coverage.routeFamilies.missing,['school-menus','dtm-submissions','legacy-route-aliases','authentication-transitions','account-information','assistant-sessions','campus-navigation']);
+  const added=[
+    '/elearning/categories','/elearning/my-courses','/elearning/search','/elearning/category/:id','/elearning/notice/:id',
+    '/elearning/course/:id','/elearning/course/:courseId/activity/:activityId','/elearning/search?q=%3Aquery',
+    '/elearning/search?page=%3Apage&q=%3Aquery','/elearning/category/:id?page=%3Apage','/elearning/login',
+    '/school-affairs/services/4-2','/school-sites/elearning.stu.edu.tw','/school-sites/elearning.stu.edu.tw/login/index.php',
+    '/school-sites/elearning.stu.edu.tw/course/index.php?categoryid=48',
+  ];
+  const reproductionIds=['record-overview','current-courses-year','remaining-balance','interview-help','completed-subject','friday-class']
+    .map(id=>'account:reproduction-'+id);
+  const nativeIds=['student-conduct-literal','student-conduct-empty','student-conduct-detail-unavailable',
+    'student-loan-literal','student-loan-empty','student-loan-document-unavailable'].map(id=>'account:'+id);
+  const addedPrivacyIds=['anonymous-records-studentConduct','anonymous-records-studentLoan'];
+  const newIds=[...reproductionIds,...nativeIds,...addedPrivacyIds];
+  assert.equal(cases.filter(row=>!newIds.includes(row.id)).length,945);
+  for(const ids of [reproductionIds,nativeIds,addedPrivacyIds])assert.deepEqual(cases.filter(row=>ids.includes(row.id)).map(row=>row.id).sort(),[...ids].sort());
+  assert.equal(report.coverage.routes.total,576);
+  assert.equal(expected.length,59);assert.equal(added.length,15);
+  assert.deepEqual(report.coverage.routes.missing.filter(route=>!added.includes(route)),expected);
+  assert.deepEqual(report.coverage.routes.missing.filter(route=>added.includes(route)),added);
+  assert.equal(report.coverage.routes.missing.length,74);
+  assert.equal(report.browserAcceptance.total,576);assert.equal(report.browserAcceptance.requiredScenarios,586);
+  assert.equal(report.coverage.routeFamilies.total,53);
+  assert.deepEqual(report.coverage.routeFamilies.missing,['school-menus','dtm-submissions','elearning-authentication','elearning-entry-transitions','legacy-route-aliases','authentication-transitions','account-information','assistant-sessions','campus-navigation']);
   assert.equal(report.releaseReady,false);assert.equal(report.totals.executed,0);
-  assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,59);
+  assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,74);
 });

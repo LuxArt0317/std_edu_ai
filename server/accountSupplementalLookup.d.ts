@@ -1,7 +1,7 @@
 import type {VerificationProgress} from './answerVerification.js';
 import type {CatalogEvidenceQuery} from './accountCatalogEvidence.js';
 import type {SupplementalEvidenceResult} from './supplementalAccountAnswers.js';
-export type SupplementalAccountTool='courseCatalog'|'enrollmentCertificate'|'dtmSubmissions'|'tuition';
+export type SupplementalAccountTool='courseCatalog'|'enrollmentCertificate'|'dtmSubmissions'|'tuition'|'studentConduct'|'studentLoan';
 export type SupplementalAccountReadContext={question:string;route:string;history:Array<{role:string;content:string}>;snapshot:Record<string,any>;deadline:number;catalogQuery?:CatalogEvidenceQuery};
 export type SupplementalAccountReaders=Partial<Record<SupplementalAccountTool,(context:SupplementalAccountReadContext)=>Promise<SupplementalEvidenceResult>>>;
 export const supplementalAccountTools:Readonly<Record<SupplementalAccountTool,string>>;

@@ -1,6 +1,10 @@
 # Changelog
 ## Unreleased
 
+- Preserve the named course and academic term in verified assistant answers and record tables. Career wording help avoids unrelated account reads. [#100]
+- Verify saved student conduct and loan records using the signed-in account. Preserve literal fields and show the relevant School Affairs links. [#100]
+- Add synthetic reproduction cases, independent helpfulness review and browser dispatch coverage tracking to the assistant evaluation. [#100]
+
 - Add student club and activity search, private participation history, and new-club applications with administrator review and assistant links. [#98]
 
 - Save private club proposal and closeout PDFs with scoped download, replacement and removal. [#98]

@@ -10,15 +10,21 @@ test('evaluation fixtures are fresh and preserve independent oracles and explici
   const a=buildAccountFixture(),b=buildAccountFixture();a.profile.displayName='Modified fixture';assert.equal(b.profile.displayName,'Evaluation Student');
   const cases=buildAccountCases();assert.equal(new Set(cases.map(row=>row.id)).size,cases.length);
   const registered={...accountTools,...supplementalAccountTools};
-  for(const item of cases.filter(row=>!Object.hasOwn(registered,row.domain)))assert.equal(item.capability.gap,true,'An unregistered backend capability must remain an explicit gap.');
+  for(const item of cases.filter(row=>!Object.hasOwn(registered,row.domain))){
+    if(item.domain==='assistant-guidance'){
+      assert.equal(item.mode,'coaching');assert.deepEqual(item.expected.requiredTools,[]);assert.deepEqual(item.expected.allowedTools,[]);
+      assert.equal(item.expected.maxDistinctAttemptedTools,0);assert.equal(item.expected.guidanceRubric.version,'stu-guidance-v1');assert.equal(item.expected.verification,'verified');
+      assert.ok(!item.coveredTools?.length,'Coaching must not fabricate personal-record coverage.');
+    }else assert.equal(item.capability.gap,true,'An unregistered backend capability must remain an explicit gap.');
+  }
   for(const item of cases){assert.ok(fixtureForCase(item));if(item.mode==='record'&&item.expected.behavior==='answer')assert.ok(item.expected.facts.length||item.expected.exactLists?.length,item.id);}
   assert.throws(()=>fixtureForCase('unknown-domain'));assert.throws(()=>fixtureForCase('unavailable:unknown'));
 });
-test('the bank declares all twenty-one registered tools while actual DTM file fixtures remain unexecutable',()=>{
+test('the bank declares all twenty-three registered tools while actual DTM file fixtures remain unexecutable',()=>{
   const base=Object.keys(accountTools),supplemental=Object.keys(supplementalAccountTools),registered=[...base,...supplemental];
   assert.equal(base.length,17);
-  assert.deepEqual(supplemental.sort(),['courseCatalog','dtmSubmissions','enrollmentCertificate','tuition'].sort());
-  assert.equal(registered.length,21);assert.equal(new Set(registered).size,21,'Base and supplemental registrations must not shadow each other.');
+  assert.deepEqual(supplemental.sort(),['courseCatalog','dtmSubmissions','enrollmentCertificate','studentConduct','studentLoan','tuition'].sort());
+  assert.equal(registered.length,23);assert.equal(new Set(registered).size,23,'Base and supplemental registrations must not shadow each other.');
   const cases=buildAccountCases(),declared=[...new Set(cases.flatMap(row=>row.expected.requiredTools))];
   assert.deepEqual(declared.sort(),registered.sort());
   const actualFileCases=cases.filter(row=>row.expected.requiredTools.includes('dtmSubmissions'));

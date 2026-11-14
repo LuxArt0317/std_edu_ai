@@ -1,4 +1,4 @@
-import {readFile,writeFile,mkdir,rename} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,rename,stat} from 'node:fs/promises';
 import {createReadStream} from 'node:fs';
 import {resolve,relative,dirname} from 'node:path';
 import {pathToFileURL,fileURLToPath} from 'node:url';
@@ -7,12 +7,14 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {execFileSync} from 'node:child_process';
 import {isDeepStrictEqual} from 'node:util';
 import {discoverSurfaces} from './surface-inventory.mjs';
+import {discoverClientDispatchSurfaces} from './client-dispatch-inventory.mjs';
 import {buildPublicCases} from './public-cases.mjs';
 import {buildServiceCases} from './service-cases.mjs';
 import {buildAccountCases} from './account-cases.mjs';
 import {fixtureForCase} from './fixtures.mjs';
 import {gradeCase} from './grading.mjs';
 import {assessCoverage} from './coverage.mjs';
+import {buildGuidanceReviewBinding,validateGuidanceReview} from './guidance-rubric.mjs';
 
 process.umask(0o077);
 const root=fileURLToPath(new URL('../../',import.meta.url));
@@ -21,10 +23,15 @@ export function options(args){
   const result={mode:'inventory',only:'',domain:'',now:new Date().toISOString(),origin:'https://stu.best',maxCases:Infinity,intervalMs:5500};
   for(let i=0;i<args.length;i++){
     const key=args[i];
-    if(!['--mode','--only','--domain','--now','--origin','--out','--fixture-module','--max-cases','--browser-acceptance','--interval-ms'].includes(key)||!args[i+1]||args[i+1].startsWith('--'))throw new Error('Unknown or incomplete option: '+key);
-    const value=args[++i];result[{'--fixture-module':'fixtureModule','--max-cases':'maxCases','--browser-acceptance':'browserAcceptance','--interval-ms':'intervalMs'}[key]||key.slice(2)]=value;
+    if(!['--mode','--only','--domain','--now','--origin','--out','--fixture-module','--max-cases','--browser-acceptance','--interval-ms','--review-report','--guidance-reviews','--reviewer'].includes(key)||!args[i+1]||args[i+1].startsWith('--'))throw new Error('Unknown or incomplete option: '+key);
+    const value=args[++i];result[{'--fixture-module':'fixtureModule','--max-cases':'maxCases','--browser-acceptance':'browserAcceptance','--interval-ms':'intervalMs','--review-report':'reviewReport','--guidance-reviews':'guidanceReviews'}[key]||key.slice(2)]=value;
   }
-  if(!['inventory','retrieval','draft','live'].includes(result.mode))throw new Error('Mode must be inventory, retrieval, draft or live.');
+  if(!['inventory','retrieval','draft','live','review'].includes(result.mode))throw new Error('Mode must be inventory, retrieval, draft, live or review.');
+  if(result.mode==='review'){
+    if(!result.reviewReport||!result.guidanceReviews||!result.reviewer||!result.out)throw new Error('Review requires the saved report, independent reviews, reviewer identity and a separate output path.');
+    if(!/^[A-Za-z0-9][A-Za-z0-9_.:@/-]{0,119}$/.test(result.reviewer))throw new Error('Invalid reviewer identity.');
+    if(result.only||result.domain||result.fixtureModule||result.maxCases!==Infinity)throw new Error('Review cannot select, rerun or replace cases.');
+  }else if(result.reviewReport||result.guidanceReviews||result.reviewer)throw new Error('Independent review inputs require review mode.');
   if(!Number.isFinite(Date.parse(result.now)))throw new Error('Provide an ISO evaluation time.');
   if(result.maxCases!==Infinity){result.maxCases=Number(result.maxCases);if(!Number.isInteger(result.maxCases)||result.maxCases<1)throw new Error('max-cases must be a positive integer.');}
   result.intervalMs=Number(result.intervalMs);
@@ -62,7 +69,8 @@ export async function sourceIdentity(){
   return {sourceRevision,workingTreeHash:digest.digest('hex'),dirty:changes.length>0};
 }
 export async function evaluationSuite(now){
-  const inventory=await discoverSurfaces();
+  const [graphInventory,clientDispatch]=await Promise.all([discoverSurfaces(),discoverClientDispatchSurfaces()]);
+  const inventory={...graphInventory,clientDispatch,hash:hash({graph:graphInventory.hash,clientDispatch})};
   const cases=[...buildServiceCases(),...buildAccountCases({now}),...buildPublicCases(inventory)];
   const ids=new Set();
   for(const item of cases){if(!item.id||ids.has(item.id))throw new Error('Duplicate or missing case ID: '+item.id);ids.add(item.id);}
@@ -142,6 +150,7 @@ export function validateCatalogCaseBinding(templates,result){
 /** Missing public fixtures remain setup failures, even if an adapter would
  * otherwise return a token. Never spend a model request on an unbound oracle. */
 export function assertCatalogCaseBound(testCase,report){
+  if(testCase.fixtureRequirement==='offline_reader_failure')throw new Error('This deliberately unavailable reader case has no live failure-injection fixture; it remains an unexecuted setup failure.');
   if(testCase.fixtureRequirement!=='published_catalog_binding')return;
   if(report.bindingPending!==false||report.catalogBinding?.unavailable?.some(row=>row.caseId===testCase.id)
     ||!report.catalogBinding?.selected?.some(row=>row.caseId===testCase.id)
@@ -217,6 +226,14 @@ export function gradeRetrievalCase(testCase,evidence,metadata={}){
 export function assessRun(report,{cases,inventory,requestedSuite,sourceRevision,browserAcceptance}){
   const assessment=assessCoverage({cases,results:report.results,inventory,requestedSuite,sourceRevision,browserAcceptance,requireLive:true});
   const integrity=[];
+  if(inventory.clientDispatch?.questions.length){
+    const missing=inventory.clientDispatch.questions.map(item=>item.id);
+    assessment.clientDispatch={total:missing.length,executed:0,passed:0,missing};
+    assessment.releaseReady=false;
+    assessment.passed=false;
+    assessment.releaseBlockers.push('client_dispatch_acceptance_missing');
+    assessment.failures.push({id:'client_dispatch_acceptance_missing',detail:'The native browser dispatch questions require independent end-to-end execution. Graph API results do not satisfy them.'});
+  }
   if(report.runFailure)integrity.push({id:'run.executionFailed',detail:report.runFailure});
   if(report.results.some(row=>row.response?.fixtureIntegrityFailed))integrity.push({id:'run.fixtureReadbackFailed',detail:'Post-request fixture integrity could not be verified.'});
   if(report.cleanup?.complete!==true)integrity.push({id:'run.cleanupUnverified',detail:'Disposable fixture cleanup has not been verified.'});
@@ -229,8 +246,82 @@ export function assessRun(report,{cases,inventory,requestedSuite,sourceRevision,
   if(integrity.length){assessment.releaseReady=false;assessment.passed=false;assessment.releaseBlockers.push(...integrity.map(row=>row.id));}
   return assessment;
 }
+
+/** A completed report is immutable evidence. A human review creates a new
+ * assessment of its exact responses; it never reruns or replaces an answer. */
+export function applyGuidanceReviews(report,suite,reviewFile,{reviewer,sourceRevision}){
+  if(!report||report.version!==1||report.mode!=='live'||typeof report.runId!=='string'||!Array.isArray(report.results)||!Array.isArray(report.selectedCases)
+    ||report.sourceRevision!==sourceRevision||!report.finishedAt||report.bindingPending||report.guidanceReviewOf)
+    throw new Error('Review requires an original completed live report at the same source revision.');
+  if(!reviewFile||reviewFile.version!==1||!Array.isArray(reviewFile.reviews)||reviewFile.reviews.length>1000||Object.keys(reviewFile).some(key=>!['version','reviews'].includes(key)))
+    throw new Error('Invalid independent review file.');
+  const cases=structuredClone(suite.cases);
+  const bound=report.boundCatalogCases||[];
+  if(bound.length){
+    const verified=validateCatalogCaseBinding(suite.cases.filter(row=>report.selectedCases.includes(row.id)),{cases:suite.cases.filter(row=>report.selectedCases.includes(row.id)).map(row=>bound.find(item=>item.id===row.id)||row),binding:report.catalogBinding});
+    const replacements=new Map(verified.cases.map(row=>[row.id,row]));
+    for(let i=0;i<cases.length;i++)cases[i]=replacements.get(cases[i].id)||cases[i];
+  }
+  if(hash(cases)!==report.suiteHash||suite.inventory.hash!==report.inventoryHash)throw new Error('The frozen evaluation suite or inventory has changed.');
+  const byCase=new Map(cases.map(row=>[row.id,row])),seen=new Set(),artifacts=new Map();
+  if(new Set(report.selectedCases).size!==report.selectedCases.length||report.selectedCases.some(id=>!byCase.has(id)))throw new Error('Invalid selected case identities.');
+  for(const artifact of reviewFile.reviews){
+    const caseId=artifact?.binding?.caseId??artifact?.caseId;
+    if(typeof caseId!=='string'||artifacts.has(caseId)||!report.selectedCases.includes(caseId)||!byCase.get(caseId)?.expected?.guidanceRubric
+      ||artifact.reviewer?.id!==reviewer)throw new Error('Duplicate, unrelated or untrusted review artifact.');
+    artifacts.set(caseId,artifact);
+  }
+  const reviewed=structuredClone(report);
+  reviewed.results=report.results.map(row=>{
+    const testCase=byCase.get(row.caseId);
+    if(!testCase||!report.selectedCases.includes(row.caseId)||seen.has(row.caseId)||!row.response)throw new Error('Invalid original result identity or response.');
+    seen.add(row.caseId);
+    if(row.response.sourceRevision!==sourceRevision||row.response.fixtureKey!==testCase.fixtureKey)throw new Error('Response provenance differs from its frozen case.');
+    if(!testCase.expected.guidanceRubric)return structuredClone(row);
+    const binding=buildGuidanceReviewBinding({runId:report.runId,finalSuiteHash:report.suiteHash,sourceRevision,testCase,envelope:row.response});
+    if(!row.guidanceReviewBinding||!isDeepStrictEqual(row.guidanceReviewBinding,binding))throw new Error('The saved response differs from its original review binding.');
+    const artifact=artifacts.get(row.caseId),independentReview=validateGuidanceReview({testCase,envelope:row.response,binding,artifact});
+    const grade=gradeCase(testCase,row.response,{independentReview});
+    return {...structuredClone(row),...grade,guidanceReviewBinding:binding,independentReview,independentReviewArtifact:artifact?structuredClone(artifact):null,
+      failureKind:row.response.failureKind||(grade.passed?null:'behavior')};
+  });
+  if([...artifacts.keys()].some(id=>!seen.has(id)))throw new Error('Review artifact has no original response.');
+  reviewed.guidanceReviewOf={runId:report.runId,sha256:hash(report),reviewer,reviewedAt:new Date().toISOString(),reviewsHash:hash(reviewFile)};
+  return {report:reviewed,cases};
+}
+
+async function boundedReportRead(path,maxBytes){
+  const file=resolve(root,path),base=resolve(root,'artifacts/assistant-evaluation');
+  if(relative(base,file).startsWith('..')||!file.endsWith('.json')||(await stat(file)).size>maxBytes)throw new Error('Review input must be a bounded JSON file in artifacts/assistant-evaluation.');
+  return JSON.parse(await readFile(file,'utf8'));
+}
+async function reviewSavedReport(opt,identity){
+  const [original,reviewFile]=await Promise.all([boundedReportRead(opt.reviewReport,100_000_000),boundedReportRead(opt.guidanceReviews,8_000_000)]);
+  const out=resolve(root,opt.out);
+  if(relative(resolve(root,'artifacts/assistant-evaluation'),out).startsWith('..')||!out.endsWith('.json')||[opt.reviewReport,opt.guidanceReviews].some(path=>resolve(root,path)===out))throw new Error('Review output must be a separate evaluation JSON report.');
+  // Never overwrite an existing acceptance artifact, even another review.
+  try{await stat(out);throw new Error('Review output already exists.');}catch(error){if(error.code!=='ENOENT')throw error;}
+  const suite=await evaluationSuite(original.evaluationTime);
+  const {report,cases}=applyGuidanceReviews(original,suite,reviewFile,{reviewer:opt.reviewer,sourceRevision:identity.sourceRevision});
+  let browserAcceptance;
+  if(opt.browserAcceptance){
+    browserAcceptance=JSON.parse(await readFile(resolve(root,opt.browserAcceptance),'utf8'));
+    if(!original.browserEvidence||hash(browserAcceptance)!==original.browserEvidence.sha256)throw new Error('Browser evidence differs from the original run.');
+  }
+  const after=await sourceIdentity();
+  report.reviewSourceUnchanged=after.sourceRevision===identity.sourceRevision&&after.workingTreeHash===identity.workingTreeHash&&identity.dirty===false;
+  report.sourceUnchanged=original.sourceUnchanged===true&&report.reviewSourceUnchanged;
+  report.assessment=assessRun(report,{cases,inventory:suite.inventory,sourceRevision:identity.sourceRevision,browserAcceptance,requestedSuite:report.selectedCases.length===cases.length?'full':'subset'});
+  await mkdir(dirname(out),{recursive:true,mode:0o700});
+  await writeFile(out,JSON.stringify(report,null,2)+'\n',{flag:'wx',mode:0o600});
+  console.log(JSON.stringify({mode:'review',report:relative(root,out),originalReport:opt.reviewReport,...report.assessment.totals,releaseReady:report.assessment.releaseReady}));
+  if(!report.assessment.releaseReady)process.exitCode=1;
+  return report;
+}
 export async function main(args=process.argv.slice(2)){
-  const opt=options(args),identity=await sourceIdentity(),suite=await evaluationSuite(opt.now),runId=randomUUID();
+  const opt=options(args),identity=await sourceIdentity();
+  if(opt.mode==='review')return reviewSavedReport(opt,identity);
+  const suite=await evaluationSuite(opt.now),runId=randomUUID();
   let selected=suite.cases.filter(row=>(!opt.only||row.id.startsWith(opt.only))&&(!opt.domain||row.domain===opt.domain)).slice(0,opt.maxCases);
   if(!selected.length)throw new Error('No cases match.');
   const out=resolve(root,opt.out||`artifacts/assistant-evaluation/${opt.mode}-${runId}.json`);
@@ -246,7 +337,7 @@ export async function main(args=process.argv.slice(2)){
     browserEvidence:browserAcceptance?{sha256:hash(browserAcceptance),sourceRevision:browserAcceptance.sourceRevision}:null,
     selectedCases:selected.map(row=>row.id),totalCases:suite.cases.length,inventory:suite.inventory,results:[],cleanup:{required:opt.mode==='live',complete:opt.mode!=='live'}};
   if(opt.mode==='inventory'){
-    report.cases=suite.cases;report.assessment=assessCoverage({cases:suite.cases,results:[],inventory:suite.inventory,sourceRevision:identity.sourceRevision,requireLive:true});
+    report.cases=suite.cases;report.assessment=assessRun({...report,sourceUnchanged:true},{cases:suite.cases,inventory:suite.inventory,sourceRevision:identity.sourceRevision,requestedSuite:'full'});
     await saveReport(out,report);console.log(JSON.stringify({mode:opt.mode,cases:suite.cases.length,services:suite.inventory.services.length,tools:suite.inventory.tools.length,publicPages:suite.inventory.publicPages.length,report:relative(root,out),releaseReady:false}));return report;
   }
   const controller=new AbortController();const interrupt=()=>controller.abort();process.once('SIGINT',interrupt);process.once('SIGTERM',interrupt);
@@ -292,7 +383,9 @@ export async function main(args=process.argv.slice(2)){
           phase='infrastructure';
           const response=await pace(waited=>{pacingWaitMs=waited;executed=true;return fetch(new URL(endpoint,opt.origin),{method:'POST',redirect:'error',headers:{'Content-Type':'application/json',...(context.token?{Authorization:'Bearer '+context.token}:{})},
             body:JSON.stringify({question:testCase.question,history:testCase.history||[],route:testCase.route,stream:true,consentedResearchUse:false}),signal:AbortSignal.any([controller.signal,AbortSignal.timeout(65000)])});},controller.signal);
-          envelope={statusCode:response.status,...await readReply(response),execution:'live-model',fixtureKey:testCase.fixtureKey,sourceRevision:report.deployment.sourceRevision};
+          const requestId=response.headers.get('X-Assistant-Request-Id');
+          const correlationId=requestId&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(requestId)?requestId:undefined;
+          envelope={statusCode:response.status,...await readReply(response),...(correlationId?{correlationId}:{}),execution:'live-model',fixtureKey:testCase.fixtureKey,sourceRevision:report.deployment.sourceRevision};
           const expectedStatus=testCase.expected.expectedStatusCode||testCase.expected.statusCode;
           if(response.status>=500||response.status===429||envelope.body?.error&&response.status!==expectedStatus)envelope.failureKind='infrastructure';
         }else{
@@ -317,7 +410,9 @@ export async function main(args=process.argv.slice(2)){
       envelope.elapsedMs=Date.now()-started;
       envelope.pacingWaitMs=pacingWaitMs;
       envelope.executed=executed;
-      const result=gradeCase(testCase,envelope);report.results.push({...result,executed,failureKind:envelope.failureKind||(result.passed?null:'behavior'),response:envelope});
+      const guidanceReviewBinding=testCase.expected.guidanceRubric&&/^[a-f0-9]{40}$/.test(envelope.sourceRevision||'')&&/^[a-f0-9]{64}$/.test(report.suiteHash||'')?buildGuidanceReviewBinding({runId:report.runId,finalSuiteHash:report.suiteHash,sourceRevision:envelope.sourceRevision,testCase,envelope}):null;
+      const independentReview=guidanceReviewBinding?validateGuidanceReview({testCase,envelope,binding:guidanceReviewBinding,artifact:undefined}):undefined;
+      const result=gradeCase(testCase,envelope,{independentReview});report.results.push({...result,executed,failureKind:envelope.failureKind||(result.passed?null:'behavior'),response:envelope,...(guidanceReviewBinding?{guidanceReviewBinding,independentReview}:{})});
       console.log(JSON.stringify({case:testCase.id,passed:result.passed,failures:result.failures.map(row=>row.id),ms:envelope.elapsedMs}));
       await saveReport(out,report);
     }

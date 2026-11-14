@@ -1,6 +1,6 @@
 import {studyCalendar} from './affairsSchedule.js';
 import {answerDtmRecords,answerStudentServiceRecords} from './dtmAnswer.js';
-import {accountQueryByService} from '../src/features/public/affairs/studentServices.js';
+import {accountQueryByService,schoolSubjectRecordsPath} from '../src/features/public/affairs/studentServices.js';
 import {answerScholarshipRecords} from './scholarshipRecords.js';
 import {answerStudentAidRecords} from './studentAidRecords.js';
 import {answerHousingRecords} from './housingRecords.js';
@@ -12,6 +12,7 @@ import {answerAcademicGrades} from './academicGrades.js';
 import {answerGraduationReview} from './graduationReview.js';
 import {answerAcademicAttendance} from './academicAttendance.js';
 import {answerSavedServiceRecords} from './savedServiceAnswers.js';
+import {academicTermCodes,ownEvidenceRows,selectAccountEvidence} from './accountEvidenceSelection.js';
 
 const recordLinkTopics = [
   [/\b(?:tuition|fees?|charges?|balance|payments?)\b|學費|費用|繳費/i,'fees'],
@@ -37,7 +38,130 @@ const format={type:'json_schema',name:'school_affairs_personal_answer',strict:tr
 }};
 function outputText(payload) { return (payload?.output||[]).flatMap(item=>item.content||[]).filter(item=>item.type==='output_text').map(item=>item.text||'').join('\n').trim(); }
 
+/** A conservative minimum for understood questions, never an authorization decision. */
+export function accountQuestionIntent(question,history=[],route='') {
+  const original=typeof question==='string'?question.trim():'';
+  let contextQuestion=original.slice(0,2000);
+  let contextTruncated=original.length>2000;
+  const previous=Array.isArray(history)?[...history].reverse().find(item=>item?.role==='user'&&typeof item.content==='string'):null;
+  const courseFollowup=previous&&/\b(?:my|i)\b|我/iu.test(previous.content)
+    &&/\b(?:courses?|subjects?|classes|lessons)\b|課程|科目|修課|學期.{0,8}課/iu.test(previous.content)
+    &&/\b(?:who (?:teaches|is teaching) (?:it|them|that course)|(?:which|what) room (?:is|are) (?:it|they|that course)|(?:its|their) (?:instructor|teacher|room))\b|誰教(?:它|這門|那門)|(?:它|這門課|那門課).{0,8}(?:教室|老師)/iu.test(contextQuestion)
+    &&!/\b(?:wifi|library|tuition|fees?|leave|certificate|housing)\b|無線網路|圖書館|學費|請假|宿舍/iu.test(contextQuestion);
+  // Resolve content-free or narrow course-pronoun follow-ups. A new explicit
+  // subject (including "and what year am I in?") keeps independent tools.
+  if(courseFollowup||/^(?:and\s+)?(?:what about (?:those|them|that)|and those|the same (?:ones|question)|those too|make (?:that|it|this) (?:more natural|shorter|clearer)|say that more naturally)[?.!\s]*$|^(?:那些呢|它們呢|同樣的問題|說得自然一點|寫得自然一點|讓它更自然|再自然一點)[？?。\s]*$/iu.test(contextQuestion)) {
+    if(previous){contextQuestion=previous.content.slice(0,1500)+'\n'+contextQuestion.slice(0,499);contextTruncated||=previous.content.length>1500;}
+  }
+  const q=contextQuestion.normalize('NFKC');
+  const explicitDtm=/\b(?:moodle|dtm|digital teaching(?: materials)?)\b|數位教材|教材網/iu.test(q);
+  const explicitAffairs=/\bschool affairs\b|校務/iu.test(q);
+  const scopedRecordFollowup=/^(?:\/school-affairs\/services\/|\/dtm\/(?:course|grades|assignments|dashboard)(?:\/|$))/u.test(typeof route==='string'?route:'')
+    &&/^(?:(?:please\s+)?(?:show|view|list)\s+(?:me\s+)?my\s+records?|(?:顯示|查看|列出)我的(?:資料|紀錄))[?.!？。\s]*$/iu.test(q);
+  const overview=!scopedRecordFollowup&&/\b(?:what do you know about (?:me|my (?:(?:school|account|personal) )?(?:records?|details|information|data))|what (?:details|information|data|records?) do you (?:know|have) about me|what are (?:all )?my (?:(?:school|account|personal) )?details|(?:show|summari[sz]e|give me an overview of) (?:all )?my (?:(?:school|account|personal) )?(?:records?|details|information|data)|tell me about my (?:school|account|profile)|my account overview)\b|你(?:知道|有)我(?:的|哪些).{0,8}(?:資料|資訊)|(?:我的|幫我整理|查看我的).{0,8}(?:資料概況|學籍概況|帳戶資料|所有資料)|^我的(?:資料|資訊|詳情)[？?。\s]*$/iu.test(q);
+  const courseClauses=q.split(/\s+(?:and|also|plus)\s+|[;；\n]|以及|還有|並且/iu);
+  const courseClause=part=>/\b(?:courses?|subjects?|classes|lessons)\b|課程|科目|修課|(?:本|這)學期.{0,12}課/iu.test(part)
+    &&!/\b(?:offered|offerings?|available courses|catalog(?:ue)?|syllabus)\b|開課|課程查詢/iu.test(part);
+  const ownCourseClause=part=>courseClause(part)&&/\b(?:my|i)\b|我/iu.test(part);
+  const hasOwnedCourseClause=courseClauses.some(ownCourseClause);
+  // "My current courses and courses for 114-2" shares the first clause's
+  // ownership. A named catalog clause remains a separate request.
+  const ownCourseClauses=courseClauses.filter(part=>ownCourseClause(part)
+    ||hasOwnedCourseClause&&courseClause(part)&&academicTermCodes(part).length);
+  const ownCourses=ownCourseClauses.length>0;
+  const namedTerms=[...new Set(ownCourseClauses.flatMap(academicTermCodes))];
+  const currentCourses=ownCourseClauses.some(part=>!academicTermCodes(part).length&&/\b(?:current|currently|this (?:term|semester))\b|本學期|這學期|目前/iu.test(part));
+  // Separate current and historical clauses need both sets in the evidence.
+  const courseTerms=currentCourses||explicitDtm&&explicitAffairs?[]:namedTerms;
+  const year=/\b(?:what|which)\s+(?:(?:school|study|student)\s+)?year(?:\s+level)?\s+(?:am\s+i|i\s+am)|\b(?:my|your recorded)\s+year\s+level\b|\bmy\s+(?:recorded|current)\s+year(?:\s+level)?(?=\s*(?:[?!.;,，。？\n]|$)|\s+(?:and|also|plus|as|is|was|at|in)\b)|\bwhat\s+is\s+my\s+(?:current\s+)?year(?:\s+level)?\b|\bwhat year level is (?:currently )?recorded for me\b|幾年級|我的年級|我目前.{0,4}年級/iu.test(q);
+  const coaching=/\bhow\s+(?:can|should|do|could)\s+i\s+(?:study|prepare|improve|organize|manage|learn|introduce|present)|\b(?:help me|advice (?:on|for)|tips (?:on|for))\s+(?:to\s+)?(?:study|prepare|plan|organize|introduce|present)|\bstudy\s+(?:plan|tips|advice)\b|\bwhat should i (?:study|say|prepare)\b|\b(?:interview|presentation|self.introduction)\b.{0,45}\b(?:help|advice|tips|wording|template|prepare)\b|\b(?:help|prepare|practice|draft|write|wording|template)\b.{0,45}\b(?:interview|presentation|self.introduction)\b|(?:如何|怎麼|建議|幫我).{0,15}(?:讀書|學習|準備面試|面試準備|自我介紹|簡報)/iu.test(q)
+    ||(/\b(?:engineer|developer|designer|role|job|position)\b/iu.test(q)&&(/\bqualif(?:ied|ications)\b/iu.test(q)&&/\b(?:help me|how (?:do|should|can) i (?:answer|respond)|what should i say)\b/iu.test(q)
+      ||/\bhelp me (?:draft|answer|explain|describe)\b/iu.test(q)));
+  const ownGrades=/\bmy\s+(?:(?:academic|school|moodle|dtm)\s+)?grades?\b|我的成績/iu.test(q);
+  const assertedQualification=/\b(?:say(?:ing)?|claim(?:ing)?|stat(?:e|ing)|mention(?:ing)?|write|tell them)\b.{0,70}\b(?:i (?:am|have|earned)|my (?:degree|certification|experience))\b|(?:說|聲稱|寫).{0,20}(?:我有|我已|我具備).{0,12}(?:資格|經驗|證照|學位)/iu.test(q);
+  const otherRecordUse=coaching&&/\b(?:based on|using|use|according to|from)\b.{0,40}\bmy (?:records?|profile|details|information|experience|qualifications?)\b|(?:根據|使用|按照)我的(?:資料|學籍|經驗|資格)/iu.test(q);
+  const personalContext=/\b(?:my|saved|stored|recorded)\b|我的|已儲存|紀錄中/iu.test(q);
+  const dtmContext=personalContext&&(/\b(?:quiz(?:zes)?|course feedback|course materials?|meeting notes?|lesson notes?|teaching materials?)\b|測驗|課程評語|教材|上課筆記/iu.test(q)||explicitDtm&&/\b(?:materials?|feedback)\b|評語|回饋/iu.test(q));
+  const assignmentContext=personalContext&&/\b(?:assignments?|homework|coursework|assignment tracker)\b|作業|功課/iu.test(q)
+    &&(!/\b(?:uploaded|attached|submitted) files?\b|\bfile (?:review|submission|revision)\b|已上傳檔案|檔案審查/iu.test(q)||/\btracker\b|追蹤/iu.test(q));
+  const knownPersonalNouns=new Set('interview presentation answer wording response study courses course subjects subject classes grades grade quiz quizzes feedback materials year records profile details information assignment assignments homework coursework'.split(' '));
+  const unknownPersonalContext=coaching&&[...q.matchAll(/\bmy\s+(?:(?:current|saved|stored|recorded|moodle|dtm)\s+)*([a-z-]+)/giu)].some(match=>!knownPersonalNouns.has(match[1].toLowerCase()));
+  const unresolvedPersonalContext=coaching&&(/\bmy\s+(?:(?:saved|stored|recorded)\s+)*(?:records?|profile|details|information|feedback|materials?|year|quiz(?:zes)?|assignments?)\b|我的(?:資料|紀錄|資訊|評語|回饋|教材|作業)/iu.test(q))
+    &&!(overview||ownCourses||year||ownGrades||dtmContext||assignmentContext);
+  const dependencies=[];
+  if(overview)dependencies.push('profile','courses','dtm','assignments','charges','tasks','requests');
+  else {
+    if(ownCourses)for(const part of ownCourseClauses)dependencies.push(/\b(?:moodle|dtm|digital teaching)\b|數位教材|教材網/iu.test(part)&&!/\bschool affairs\b|校務/iu.test(part)?'dtm':'courses');
+    if(year)dependencies.push('profile');
+    if(coaching&&ownGrades)dependencies.push(explicitDtm?'dtm':'academicGrades');
+    if(coaching&&dtmContext)dependencies.push('dtm');
+    if(coaching&&assignmentContext)dependencies.push('assignments');
+  }
+  // An understood clause is not a complete plan for a compound question. Leave
+  // other domains to the existing planner instead of stripping legitimate tools.
+  const otherDomain=/\b(?:tuition|fees?|charges?|payments?|balance|leave|absen(?:t|ce)|attendance|assignments?|homework|submissions?|materials?|notices?|announcements?|housing|dormitory|scholarships?|aid|graduation|certificates?|registrar|wifi|wi-fi|wireless|library|bus|parking|health|insurance|internship|salary|requests?|tasks?|ranking|gpa|transcript|credits?|instructor|teacher|room|today|tomorrow|next|past|previous|historical|future|completed|withdrawn|catalog|syllabus|qualifications?|experience|degree|certified)\b|學費|費用|繳費|請假|缺席|出席|作業|教材內容|公告|宿舍|獎學金|助學|畢業|證明|註冊組|無線網路|圖書館|公車|停車|健檢|保險|實習|薪資|申請|待辦|排名|學分|老師|教室|今天|明天|下學期|歷史|資格|經驗|學位/iu.test(q);
+  const unhandledGrade=/\b(?:grades?|scores?)\b|成績/iu.test(q)&&!(coaching&&ownGrades);
+  const understood=overview||ownCourses||year||coaching;
+  // Keyword hits alone are insufficient to declare an exhaustive read plan.
+  // Restrict the initial records-only grammar to common overview/course/year
+  // wording; unfamiliar modifiers retain the model planner and its additions.
+  const coreWords=new Set('a about account all also am and are as at can class classes course courses current currently data details digital do enrolled for give have i in information is know level materials me moodle my of on overview personal please plus record recorded records school semester show student study subject subjects summarise summarize teaching tell term the this to what which year you your dtm'.split(' '));
+  const recordWordingCovered=coaching||((q.match(/[a-z]+/giu)||[]).every(word=>coreWords.has(word.toLowerCase()))
+    &&!/[\u3400-\u9fff]/u.test(q.replace(/[我你您他是目現在前幾哪年級以及和與還有本這學期度第些什麼課程科修的查詢顯示看請幫整理由所資資料訊息帳戶個人概況知道關於數位教材網]+/gu,'')));
+  const parts=q.split(/\s+(?:and|also|plus)\s+|[;,；，\n]|以及|還有|並且/iu).map(part=>part.trim()).filter(Boolean);
+  const clausesCovered=parts.every(part=>/\b(?:courses?|subjects?|classes|lessons|year|records?|details|information|data|overview|profile)\b|課程|科目|修課|年級|資料|資訊|學籍|帳戶/iu.test(part)
+    ||coaching&&/\b(?:help|study|prepare|improve|interview|presentation|introduce|natural|clearer|shorter|qualified)\b|學習|讀書|面試|介紹|簡報|自然/iu.test(part));
+  const recognized=Boolean(understood&&recordWordingCovered&&clausesCovered&&!contextTruncated&&!otherDomain&&!unhandledGrade&&!assertedQualification&&!otherRecordUse&&!unknownPersonalContext&&!unresolvedPersonalContext&&!(explicitDtm&&explicitAffairs)&&!(currentCourses&&namedTerms.length));
+  return {kind:coaching?(dependencies.length||assertedQualification||otherRecordUse||unknownPersonalContext||unresolvedPersonalContext?'mixed':'coaching'):'records',recognized,contextQuestion,
+    baseTools:[...new Set(dependencies)],overview,currentCourses,courseTerms,year,explicitDtm};
+}
+
+const inlineRecord=value=>String(value).replace(/\s+/gu,' ').trim().replace(/[\\`*_[\]<>]/gu,'\\$&');
+const hasLiteral=value=>value!==null&&value!==undefined&&(typeof value==='number'?Number.isFinite(value):typeof value==='string'&&Boolean(value.trim()));
+function composeCoreRecordAnswer(intent,snapshot) {
+  if(!intent.recognized||intent.kind!=='records'||!(intent.overview||intent.currentCourses||intent.courseTerms.length||intent.year))return null;
+  const userId=snapshot.profile?.userId,student=snapshot.student&&(!snapshot.student.userId||snapshot.student.userId===userId)?snapshot.student:null;
+  const chinese=/[\u3400-\u9fff]/u.test(intent.contextQuestion),t=(zh,en)=>chinese?zh:en;
+  const lines=[t('以下是 stu.best 已儲存的帳戶資料，並非校方即時同步；標記為 sample 或 local_demo 的紀錄是示範資料。','These are saved stu.best account records, not a live university sync. Records marked sample or local_demo are demonstration data.')];
+  if(intent.overview){
+    if(hasLiteral(snapshot.profile?.displayName))lines.push(t('帳戶名稱：','Account name: ')+inlineRecord(snapshot.profile.displayName)+'.');
+    lines.push(t('學程：','Program: ')+(hasLiteral(student?.program)?inlineRecord(student.program):t('未記錄','not recorded'))+'.');
+  }
+  if(intent.overview||intent.year)lines.push(hasLiteral(student?.yearLevel)?t('年級：','Year level: ')+inlineRecord(student.yearLevel)+'.':t('學生資料未記錄年級，因此我無法確認你目前就讀幾年級。','Your student record does not contain a year level, so I cannot confirm which year you are in.'));
+  const courses=ownEvidenceRows(snapshot.courses,userId);
+  if(intent.overview||intent.currentCourses&&!intent.explicitDtm){
+    if(!Number.isFinite(Date.parse(snapshot.checkedAt)))lines.push(t('資料沒有有效的查詢時間，因此無法確認哪些修課屬於本學期。','The records have no valid check time, so I cannot determine which enrollments are current.'));
+    else{
+      const current=studyCalendar(courses,snapshot.checkedAt).current;
+      lines.push(current.length?t('校務本學期已儲存修課：','Current School Affairs subjects in the loaded records: ')+current.slice(0,12).map(row=>inlineRecord(row.code)+' '+inlineRecord(row.title)+' ('+inlineRecord(row.term)+')').join('; ')+'.':t('已載入的校務修課資料中，沒有狀態為在學且學期日期涵蓋查詢日期的紀錄；這不代表其他系統沒有修課。','The loaded School Affairs records contain no enrolled subjects whose term dates cover the check date; this does not establish absence from other systems.'));
+      if(current.length>12)lines.push(t(`已顯示 ${current.slice(0,12).length} 筆，共 ${current.length} 筆符合；其餘請查看紀錄頁。`,`Showing 12 of ${current.length} matching loaded enrollments; see the records page for the rest.`));
+    }
+  }
+  if(intent.courseTerms.length){
+    const source=intent.explicitDtm?'dtm':'courses';
+    const selected=selectAccountEvidence(snapshot,source,{question:intent.contextQuestion,courseTerms:intent.courseTerms});
+    const rows=(source==='dtm'?selected?.records.courses:selected?.records)||[];
+    const termList=intent.courseTerms.join(', ');
+    const name=intent.explicitDtm?'DTM':t('校務','School Affairs');
+    lines.push(rows.length
+      ?t(`${name} ${termList} 已儲存修課：`,`Saved ${name} subjects for ${termList}: `)+rows.slice(0,12).map(row=>inlineRecord(row.code)+' '+inlineRecord(row.title)+' ('+inlineRecord(row.term)+')').join('; ')+'.'
+      :t(`已載入的 ${name} 紀錄中沒有符合 ${termList} 的課程。`,`I found no ${name} subjects matching ${termList} in the loaded records.`));
+    if(rows.length>12)lines.push(t(`已顯示 12 筆，共 ${rows.length} 筆符合。`,`Showing 12 of ${rows.length} matching loaded records.`));
+  }
+  if(intent.currentCourses&&intent.explicitDtm)lines.push(t('DTM 紀錄沒有指定目前學期，也沒有學期起訖日期，因此我無法確認哪些 DTM 課程屬於本學期。請指定學年度與學期；校務修課日期不能代替 DTM 的學期資訊。','The DTM records do not designate a current term or provide term dates, so I cannot determine which DTM courses belong to this semester. Specify the academic year and semester; School Affairs enrollment dates cannot establish the DTM term.'));
+  if(intent.overview){
+    const dtm=ownEvidenceRows(snapshot.dtm?.courses,userId);
+    lines.push(t('另有已儲存的 DTM 課程：','Separately saved DTM courses: ')+(dtm.length?dtm.slice(0,8).map(row=>inlineRecord(row.code)+' '+inlineRecord(row.title)+' ('+inlineRecord(row.term)+')').join('; '):t('此快照未載入課程','none in this loaded snapshot'))+'.');
+    if(dtm.length>8)lines.push(t(`已顯示 8 筆，共載入 ${dtm.length} 筆 DTM 課程。`,`Showing 8 of ${dtm.length} loaded DTM courses.`));
+    const counts=['assignments','charges','tasks','requests'].map(key=>ownEvidenceRows(snapshot[key],userId).length);
+    lines.push(t(`此快照另載入 ${counts[0]} 筆作業、${counts[1]} 筆費用、${counts[2]} 筆待辦與 ${counts[3]} 筆申請。這是已載入資料的摘要，不代表完整校方歷史紀錄。`,`This snapshot also contains ${counts[0]} assignments, ${counts[1]} charge items, ${counts[2]} tasks and ${counts[3]} requests. This is a summary of the loaded records, not a complete university history.`));
+  }
+  return {answer:lines.join('\n\n'),title:t('我的 stu.best 紀錄','My stu.best records'),url:intent.explicitDtm&&!intent.overview?'/dtm':intent.currentCourses||intent.courseTerms.length||intent.overview?schoolSubjectRecordsPath:'/school-affairs/records'};
+}
+
 export function fallbackPrivateAnswer(question,snapshot) {
+  const composed=composeCoreRecordAnswer(accountQuestionIntent(question),snapshot);
+  if(composed)return composed.answer;
   const q=question.toLowerCase();
   const student=snapshot.student;
   const courses=snapshot.courses||[];
@@ -144,12 +268,14 @@ function fallbackProposal(question,snapshot) {
 
 export async function answerPrivateAffairsQuestion(question,snapshot,history=[],route='',options={}) {
   route=route.replace(/\/+$/,'');
+  const intent=accountQuestionIntent(question,history,route);
+  const core=composeCoreRecordAnswer(intent,snapshot);
   // The shared offering catalog must never be answered from a student's enrollments.
   const catalogNavigation=answerCampusNavigation(question);
-  if(catalogNavigation?.citations?.[0]?.chunkId==='campus-navigation:course-catalog') return catalogNavigation;
+  if(!core&&catalogNavigation?.citations?.[0]?.chunkId==='campus-navigation:course-catalog') return catalogNavigation;
   // Native query pages have independent stored records. Even an empty result
   // must stay authoritative instead of falling through to sample enrollments.
-  const records = answerGraduationReview(question,snapshot,route,history) || answerAcademicGrades(question,snapshot,route,history) || answerAcademicAttendance(question,snapshot,route,history) || answerCourseSelection(question,snapshot,route,history) || answerCreditLoadHistory(question,snapshot,route,history) || answerHousingRecords(question,snapshot,route,history) || answerStudentAidRecords(question,snapshot,route,history) || answerScholarshipRecords(question,snapshot,route,history) || answerPendingFees(question,snapshot,route,history) || answerStudentServiceRecords(question,snapshot,route,history) || answerDtmRecords(question,snapshot,route,history);
+  const records = core || answerGraduationReview(question,snapshot,route,history) || answerAcademicGrades(question,snapshot,route,history) || answerAcademicAttendance(question,snapshot,route,history) || answerCourseSelection(question,snapshot,route,history) || answerCreditLoadHistory(question,snapshot,route,history) || answerHousingRecords(question,snapshot,route,history) || answerStudentAidRecords(question,snapshot,route,history) || answerScholarshipRecords(question,snapshot,route,history) || answerPendingFees(question,snapshot,route,history) || answerStudentServiceRecords(question,snapshot,route,history) || answerDtmRecords(question,snapshot,route,history);
   if (records) return {
     status:'answered',answer:records.answer,
     citations:[{chunkId:'student-workspace',claim:'Records saved to this Google account on stu.best.',

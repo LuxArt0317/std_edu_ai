@@ -43,13 +43,14 @@ test('unsafe, malformed, fragmented or oversized routes fail before authenticati
   }
 });
 
-test('all four required supplemental domains and page followups use account routing without the word my',async()=>{
+test('all six required supplemental domains and page followups use account routing without the word my',async()=>{
   const cases=[['What courses are available?',endpoint],['Show enrollment certificate status.','/school-affairs/services/17-1'],
     ['What is the status?','/school-affairs/services/17-1'],['Show tuition settlement.','/school-affairs/services/49-1'],
+    ['What does this say?','/school-affairs/services/38-1'],['What does this say?','/school-affairs/services/21-1/history'],
     ['What does this say?','/school-affairs/services/49-1'],['Show saved assignment files.','/dtm'],['What feedback was recorded?','/dtm/course/20000000-0000-4000-8000-000000000001/assignment/20000000-0000-4000-8000-000000000002']];
   for(const [question,route]of cases){let calls=0;
     const result=await invoke(base({answerAccount:async options=>{calls++;assert.equal(options.question,question);assert.equal(options.route,route);
-      assert.deepEqual(Object.keys(options.supplementalReaders??{}),['courseCatalog','enrollmentCertificate','dtmSubmissions','tuition']);return answer;}}),{question,route});
+      assert.deepEqual(Object.keys(options.supplementalReaders??{}),['courseCatalog','enrollmentCertificate','dtmSubmissions','studentConduct','studentLoan','tuition']);return answer;}}),{question,route});
     assert.equal(result.status,200,question);assert.equal(calls,1,question);
   }
 });

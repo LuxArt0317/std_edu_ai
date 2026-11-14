@@ -18,8 +18,11 @@ import {mapScholarshipRecords} from '../../server/scholarshipRecords.js';
 import {mapHousingRecords} from '../../server/housingRecords.js';
 import {validateEnrollmentCertificatePayload} from '../../server/enrollmentCertificate.js';
 import {validateTuitionDocumentPayload} from '../../server/tuitionDocuments.js';
+import {validateStudentConductPayload} from '../../server/studentConduct.js';
+import {parseStudentLoanSnapshot,validateStudentLoanPayload} from '../../server/studentLoan.js';
 import {catalogTextFields,catalogNumberFields,catalogBooleanFields,catalogPeriods} from '../../src/features/public/affairs/courseCatalogModel.js';
 import {normalizeCourseSyllabus} from '../../src/features/public/affairs/courseSyllabusModel.js';
+import {bindPublishedSampleEnrollments,sampleEnrollmentManifest} from './published-sample-enrollments.mjs';
 
 const ROOT=fileURLToPath(new URL('../../',import.meta.url));
 const PROJECT='xiftudmvxphxcjtmfmib';
@@ -27,8 +30,8 @@ const PRIVATE_DIR=resolve(ROOT,'artifacts/assistant-evaluation');
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const PRIVATE_NATIVE_DOMAINS=['studentAid','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance'];
 const CONDITIONAL_NATIVE_DOMAINS=['courses','scholarship','housing'];
-const SUPPLEMENTAL_SCOPES=Object.freeze({enrollmentCertificate:'enrollment-certificate',tuition:'tuition-documents'});
-const SUPPLEMENTAL_TABLES=Object.freeze({enrollmentCertificate:'affairs_enrollment_certificate_assessments',tuition:'affairs_tuition_settlements'});
+const SUPPLEMENTAL_SCOPES=Object.freeze({enrollmentCertificate:'enrollment-certificate',tuition:'tuition-documents',studentConduct:'student-conduct',studentLoan:'student-loan'});
+const SUPPLEMENTAL_TABLES=Object.freeze({enrollmentCertificate:'affairs_enrollment_certificate_assessments',tuition:'affairs_tuition_settlements',studentConduct:'affairs_student_conduct',studentLoan:'affairs_student_loan'});
 const SUPPORTED_TOOLS=new Set(['profile','charges','tasks','requests','serviceRecords','dtm','assignments',...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS,...Object.keys(SUPPLEMENTAL_SCOPES)]);
 const FOREIGN_MARKER='FOREIGN PRIVATE SENTINEL';
 export const catalogFixtureSetupReasons=Object.freeze(['catalog_read_unavailable','published_payload_invalid','public_scope_mismatch','no_suitable_published_offering','no_null_weight_offering','absent_probe_not_empty']);
@@ -320,6 +323,10 @@ function assertSupported(testCase,snapshot){
   if(testCase.id==='account:dtm-notices')fail('fixture-unsupported','DTM notices are globally shared; this adapter never publishes synthetic notices.');
   if(key==='submissions')fail('fixture-unsupported','This adapter does not create file uploads or submission revisions; a tracker row is not submission evidence.');
   if(snapshot.profile.role!=='student')fail('fixture-unsupported','The live adapter never elevates a fixture to administrator.');
+  if(String(key).startsWith('published-sample:')){
+    if(key!=='published-sample:records')fail('fixture-unsupported','Unknown published sample fixture family.');
+    if(evaluationDates(state.now).today!==evaluationDates(new Date().toISOString()).today)fail('fixture-clock','Published sample evaluation must use the actual campus day; literal term dates cannot be rebased.');
+  }
   if(testCase.expected?.timeFixture){
     const expected=evaluationDates(state.now),actual=evaluationDates(new Date().toISOString());
     if(expected.today!==actual.today||expected.nextClass!==actual.nextClass)fail('fixture-clock','Live date boundary no longer matches the authored case; rebuild the suite with the current clock.');
@@ -409,15 +416,51 @@ function uniqueRows(rows){
 }
 function stableRowId(value){const digest=hash(value);return digest.slice(0,8)+'-'+digest.slice(8,12)+'-4'+digest.slice(13,16)+'-a'+digest.slice(17,20)+'-'+digest.slice(20,32);}
 
-/** Only private assessment/statement rows. No catalog, document, role or Storage writes. */
+const conductFixtureFields=['occurredOnText','studentNumber','studentName','academicYearText','semesterText','yearLevelText','reasonText','conductCode','conductName','quantityText','voidStatusText','rowOrder'];
+const loanFixtureFields=['currentTermLabel','currentApplicationState','currentApplicationText','progressText','historyCount','historyText'];
+const exactFields=(value,fields)=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&[Object.prototype,null].includes(Object.getPrototypeOf(value))
+  &&Reflect.ownKeys(value).length===fields.length&&fields.every(key=>Object.hasOwn(value,key)&&Object.hasOwn(Object.getOwnPropertyDescriptor(value,key),'value'));
+function studentRecordSentinels(userId,stamp){
+  const common=domain=>({id:stableRowId([userId,domain,'foreign-sentinel']),userId,sourceMode:'local_demo',version:1,createdAt:stamp,updatedAt:stamp});
+  return {
+    studentConduct:{records:[{...common('studentConduct'),occurredOnText:null,studentNumber:'FOREIGN-NUMBER',studentName:'FOREIGN-NAME',academicYearText:'114',semesterText:'2',yearLevelText:'2',
+      reasonText:FOREIGN_MARKER+' conduct',conductCode:'FOREIGN-CODE',conductName:'FOREIGN CONDUCT',quantityText:'9',voidStatusText:'FOREIGN STATUS',rowOrder:1}]},
+    studentLoan:{status:'loaded',record:{...common('studentLoan'),currentTermLabel:'FOREIGN TERM',currentApplicationState:'unknown',currentApplicationText:FOREIGN_MARKER+' loan',
+      progressText:'FOREIGN PROGRESS',historyCount:9,historyText:'FOREIGN HISTORY'}},
+  };
+}
+function planStudentRecordRows(value,domain,userId){
+  const conduct=domain==='studentConduct',fields=conduct?conductFixtureFields:loanFixtureFields;
+  requireSchema(exactFields(value,conduct?['records']:['status','record']),`Invalid exact ${domain} snapshot.`);
+  if(conduct)requireSchema(Array.isArray(value.records)&&value.records.length<=1000, 'Invalid complete conduct fixture collection.');
+  else requireSchema(value.status==='loaded','Loan fixture must explicitly distinguish loaded metadata from an unavailable read.');
+  const items=conduct?value.records:value.record===null?[]:[value.record];
+  const rows=[];
+  for(const item of items){
+    requireSchema(exactFields(item,[...COMMON,...fields])&&item.userId===userId,'Student record fixture owner or exact fields differ from its disposable account.');
+    const row={...requiredFields(item,[...COMMON,...fields],domain),deleted_at:null};
+    requireSchema(validCommon(row)&&integer(row.version,1,999999999)&&[row.created_at,row.updated_at].every(value=>Number(value.slice(0,4))>0&&/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,6})?(?:Z|[+-](?:0\d|1[0-5]):[0-5]\d)$/.test(value)),'Invalid student record provenance, version or timestamp.');
+    const payload={id:row.id,user_id:userId,request_id:row.id,expected_version:0,...Object.fromEntries(fields.map(field=>[snake(field),row[snake(field)]]))};
+    requireSchema((conduct?validateStudentConductPayload('save_student_conduct',payload):validateStudentLoanPayload('save_student_loan',payload))===null,'Student record fixture violates its native literal schema.');
+    rows.push(row);
+  }
+  if(!conduct){try{parseStudentLoanSnapshot(value,userId);}catch{fail('fixture-schema','Loan snapshot fails the actual native parser.');}}
+  return rows;
+}
+
+/** Only private native records. No catalog, document, role or Storage writes. */
 export function planSupplementalFixture(snapshot,{userId,otherUserId,domains=[]}={}){
   requireSchema(UUID.test(userId)&&UUID.test(otherUserId)&&userId!==otherUserId&&snapshot?.profile?.userId===userId,'Supplemental fixtures need two distinct disposable owners.');
   requireSchema(Array.isArray(domains)&&new Set(domains).size===domains.length&&domains.every(domain=>Object.hasOwn(SUPPLEMENTAL_SCOPES,domain)),'Unknown supplemental fixture domain.');
-  const rows={},expectedByOwner={[userId]:{},[otherUserId]:{}},foreign=supplementalFixtureRecords(otherUserId,{foreign:true});
+  const rows={},expectedByOwner={[userId]:{},[otherUserId]:{}},foreign={...supplementalFixtureRecords(otherUserId,{foreign:true}),...studentRecordSentinels(otherUserId,snapshot.checkedAt)};
   const certificateFields=['academicYear','semester','hasPendingFees','status','resultText','assessedAt'],identityFields=['studentNumber','studentName','departmentName','yearText','classLabel'];
   for(const domain of domains){
     const table=SUPPLEMENTAL_TABLES[domain];rows[table]=[];
     for(const [id,source] of [[userId,snapshot],[otherUserId,foreign]]){
+      if(domain==='studentConduct'||domain==='studentLoan'){
+        rows[table].push(...planStudentRecordRows(source[domain],domain,id));
+        expectedByOwner[id][domain]=structuredClone(source[domain]);continue;
+      }
       const value=source[domain];requireSchema(value&&Array.isArray(value.documents)&&value.documents.length===0,'No supplemental fixture may fabricate a document capability.');
       const collection=domain==='enrollmentCertificate'?'assessments':'settlements';
       requireSchema(Array.isArray(value[collection])&&value[collection].length<100&&!(domain==='enrollmentCertificate'&&value[collection].length>1),'Invalid complete supplemental fixture collection.');
@@ -716,7 +759,68 @@ export function verifyNativeFixtureReadback(actual,plan){
     const ordered=value=>domain==='courses'&&Array.isArray(value)?[...value].sort((a,b)=>String(a.enrollmentId).localeCompare(String(b.enrollmentId))):value;
     assertFactEqual(ordered(actual[domain]),ordered(plan.expected[domain]),domain+' native records');
   }
+  if(plan.publishedSampleBinding){
+    assertFactEqual(actual.profile?.userId,plan.userId,'published sample caller');
+    assertFactEqual(actual.student?.id,plan.studentId,'published sample student');
+    assertFactEqual(actual.student?.program,sampleEnrollmentManifest.program.name,'published sample program');
+  }
   return true;
+}
+
+/** Complete read-only initializer union, not a convenient five-code lookup.
+ * The injected query runner preserves the live adapter's connection/timeouts. */
+export async function readPublishedSampleInitializerRows(sql,{runQuery=task=>task()}={}){
+  requireSchema(typeof sql==='function'&&typeof runQuery==='function','A bounded shared-row query is required.');
+  const values=await runQuery(()=>sql`select s.id as section_id,c.id as course_id,t.id as term_id,p.id as program_id,
+    c.code,c.title,c.credits,c.source_mode as course_source_mode,p.code as program_code,p.name as program_name,p.department,p.source_mode as program_source_mode,
+    t.code as term_code,t.label as term_label,to_char(t.starts_on,'YYYY-MM-DD') as term_starts_on,to_char(t.ends_on,'YYYY-MM-DD') as term_ends_on,t.source_mode as term_source_mode,
+    s.section_code,s.instructor,s.weekday,s.starts_at::text,s.ends_at::text,s.room,s.source_mode as section_source_mode
+    from public.affairs_sections s join public.affairs_courses c on c.id=s.course_id join public.affairs_terms t on t.id=s.term_id
+    left join public.affairs_programs p on p.id=c.program_id
+    where t.code='SAMPLE-2026-FALL' or c.code in ('SAMP090','SAMP103','SAMP201') order by s.id limit 501`);
+  if(!Array.isArray(values)||values.length>500)fail('fixture-unsupported','The complete published sample initializer union could not be established.');
+  return {scope:structuredClone(sampleEnrollmentManifest.scope),complete:true,rows:values.map(row=>({
+    sectionId:row.section_id,courseId:row.course_id,termId:row.term_id,programId:row.program_id,code:row.code,title:row.title,credits:Number(row.credits),courseSourceMode:row.course_source_mode,
+    programCode:row.program_code,programName:row.program_name,department:row.department,programSourceMode:row.program_source_mode,
+    termCode:row.term_code,termLabel:row.term_label,termStartsOn:row.term_starts_on,termEndsOn:row.term_ends_on,termSourceMode:row.term_source_mode,
+    sectionCode:row.section_code,instructor:row.instructor,weekday:Number(row.weekday),startsAt:row.starts_at,endsAt:row.ends_at,room:row.room,sectionSourceMode:row.section_source_mode,
+  }))};
+}
+
+/** Independent migration constants stay golden; only shared UUIDs are bound.
+ * These rows target the fresh caller's enrollments, never the shared catalog. */
+export async function planPublishedSampleFixture(snapshot,{userId,studentId,otherUserId,now,read,domains=PRIVATE_NATIVE_DOMAINS,shared={}}={}){
+  requireSchema(snapshot?.profile?.userId===userId&&snapshot.profile.role==='student'&&Array.isArray(snapshot.courses)&&snapshot.courses.length===5,'Published samples require the exact disposable student and five-course fixture.');
+  requireSchema(validStamp(snapshot.checkedAt),'Published sample seeded grades require a valid readback timestamp.');
+  requireSchema(snapshot.student?.program===sampleEnrollmentManifest.program.name,'Published sample program must retain its independently authored literal name.');
+  const enrollmentIdsByCode=Object.fromEntries(snapshot.courses.map(course=>[course.code,course.enrollmentId]));
+  let bound;
+  try{bound=bindPublishedSampleEnrollments(read,{userId,studentId,enrollmentIdsByCode,now});}
+  catch{fail('fixture-unsupported','Published sample initializer rows or literal evaluation dates do not match the reviewed binding.');}
+  // 050100 initializer restores this exact released grade on every read.
+  // Keeping it absent would make readback itself mutate the expected fixture.
+  const practiceGrade={label:'Sample practice quiz',score:8,maximum:10,sourceMode:'sample'};
+  const expectedCourses=bound.expectedCourses.map(course=>({...course,grades:course.code==='SAMP101'?[{...practiceGrade}]:[],attendance:[]}));
+  assertFactEqual([...snapshot.courses].sort((a,b)=>a.code.localeCompare(b.code)),[...expectedCourses].sort((a,b)=>a.code.localeCompare(b.code)),'published sample golden enrollment fields');
+  const plan=await planNativeFixture(snapshot,{userId,studentId,otherUserId,domains:domains.filter(domain=>domain!=='courses'),shared});
+  const enrollment=bound.enrollments.find(row=>row.id===enrollmentIdsByCode.SAMP101);
+  plan.domains.push('courses');plan.expected.courses=expectedCourses;
+  plan.rows.affairs_enrollments=bound.enrollments.map(row=>({...row}));
+  plan.rows.affairs_grade_items=[{id:stableRowId([enrollment.id,'grade',0]),enrollment_id:enrollment.id,...pick(practiceGrade,['label','score','maximum']),released_at:snapshot.checkedAt,source_mode:'sample'}];
+  plan.rows.affairs_attendance=[];
+  plan.publishedSampleBinding=structuredClone(bound.binding);
+  plan.publishedSampleEnrollmentIds={...enrollmentIdsByCode};
+  uniqueRows(plan.rows);return plan;
+}
+
+/** Re-read all shared facts before and after the model. Never relax a mismatch. */
+export async function verifyPublishedSampleFixtureBinding(plan,{read,now}={}){
+  requireSchema(plan?.publishedSampleBinding&&typeof read==='function','A published sample binding and complete read are required.');
+  let current;
+  try{current=bindPublishedSampleEnrollments(await read(),{...plan.publishedSampleBinding.owner,enrollmentIdsByCode:plan.publishedSampleEnrollmentIds,now});}
+  catch{fail('fixture-unsupported','Published sample facts changed or their complete read is unavailable.');}
+  if(current.binding.sharedDigest!==plan.publishedSampleBinding.sharedDigest)fail('fixture-mapping','Published sample shared identities changed after binding.');
+  return current.binding.sharedDigest;
 }
 /** Matches service row checks, including the separate mental-health time enum. */
 export function validateFixtureServiceRecord(row){
@@ -733,12 +837,16 @@ export function validateFixtureServiceRecord(row){
   return true;
 }
 async function readNativeBindings(snapshot,testCase){
-  const s=state,required=new Set(testCase.expected?.requiredTools||[]),domains=[...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS.filter(domain=>required.has(domain))],shared={};
+  const s=state,publishedSample=testCase.fixtureKey==='published-sample:records',required=new Set(testCase.expected?.requiredTools||[]),domains=[...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS.filter(domain=>required.has(domain)||domain==='courses'&&publishedSample)],shared={};
   for(const domain of ['scholarship','housing'].filter(domain=>domains.includes(domain))){
     const values=await query(()=>s.sql`select * from ${s.sql('public.'+periodTables[domain])} where published=true order by id limit 501`,'Could not read published fixture period bindings.');
     if(values.length>500)fail('fixture-unsupported','Published period bindings exceed the bounded fixture inventory.');
     const normalized=values.map(row=>({...row,opens_at:timestamp(row.opens_at),closes_at:timestamp(row.closes_at)}));
     shared[domain]=domain==='scholarship'?mapScholarshipRecords(normalized,[]):mapHousingRecords(normalized,[],[]);
+  }
+  if(publishedSample){
+    const read=await readPublishedSampleInitializerRows(s.sql,{runQuery:task=>query(task,'Could not read the complete published sample initializer union.')});
+    return planPublishedSampleFixture(snapshot,{userId:s.users[0].id,studentId:s.users[0].studentId,otherUserId:s.users[1].id,now:s.now,read,domains,shared});
   }
   if(domains.includes('courses')){
     const codes=snapshot.courses.map(row=>row.code);
@@ -809,9 +917,14 @@ async function persistSnapshot(snapshot,rows,testCase,nativePlan,supplementalPla
     await tx`update public.affairs_students set student_number=${snapshot.student.studentNumber},full_name=${snapshot.student.fullName},year_level=${snapshot.student.yearLevel} where id=${user.studentId} and user_id=${user.id}`;
     // Programs are shared catalog data. Existing rows may be referenced, never
     // created or changed to accommodate an evaluation.
-    const programs=await tx`select id from public.affairs_programs where name=${snapshot.student.program} order by id limit 2`;
-    if(programs.length===1)await tx`update public.affairs_students set program_id=${programs[0].id} where id=${user.studentId} and user_id=${user.id}`;
-    else if(JSON.stringify(testCase.expected).includes('Information Studies'))fail('fixture-unsupported','The required synthetic program is absent from the shared catalog; no global catalog row will be created.');
+    if(nativePlan.publishedSampleBinding){
+      const programId=nativePlan.publishedSampleBinding.sections[0].programId;
+      await tx`update public.affairs_students set program_id=${programId} where id=${user.studentId} and user_id=${user.id}`;
+    }else{
+      const programs=await tx`select id from public.affairs_programs where name=${snapshot.student.program} order by id limit 2`;
+      if(programs.length===1)await tx`update public.affairs_students set program_id=${programs[0].id} where id=${user.studentId} and user_id=${user.id}`;
+      else if(JSON.stringify(testCase.expected).includes('Information Studies'))fail('fixture-unsupported','The required synthetic program is absent from the shared catalog; no global catalog row will be created.');
+    }
     for(const [table,values] of Object.entries(rows)){
       for(let start=0;start<values.length;start+=100){
         const batch=values.slice(start,start+100).map(row=>({...row,...(table==='affairs_course_selection_records'?{meetings:tx.json(row.meetings)}:{}),...(table==='affairs_graduation_reviews'?{report:tx.json(row.report)}:{})}));
@@ -871,14 +984,17 @@ export async function forCase(testCase,{signal}={}){
   }
   const actual=await readSnapshot(s.users[0],{signal:signal||s.signal});
   if(!catalogOnly){verifyReadback(actual,expected,testCase);verifyNativeFixtureReadback(actual,nativePlan);}
+  const publishedSample=nativePlan?.publishedSampleBinding?await verifyPublishedSampleFixtureBinding(nativePlan,{now:s.now,
+    read:()=>readPublishedSampleInitializerRows(s.sql,{runQuery:task=>query(task,'Could not recheck the published sample initializer union.')})}):null;
   const supplementalDomains=Object.keys(SUPPLEMENTAL_TABLES).filter(key=>s.supplementalTables.has(SUPPLEMENTAL_TABLES[key]));
   const supplemental={};
   for(const user of s.users){
     supplemental[user.id]=await readSupplementalFixtureScopes(user,supplementalDomains,{origin:s.origin,signal:signal||s.signal});
     verifySupplementalFixtureReadback(supplemental[user.id],supplementalPlan,user.id);
   }
-  const before={snapshot:ownState(actual),supplemental,catalog};
-  s.current={caseId:testCase.id,beforeHash:hash(before),supplementalDomains,catalogBinding};
+  const before={snapshot:ownState(actual),supplemental,catalog,...(publishedSample?{publishedSample}:{})};
+  s.current={caseId:testCase.id,beforeHash:hash(before),supplementalDomains,catalogBinding,
+    ...(publishedSample?{publishedSamplePlan:nativePlan}:{})};
   await saveLedger();
   await s.users[0].renewSession?.({signal:signal||s.signal});
   return {token:s.users[0].token};
@@ -890,10 +1006,16 @@ export async function afterCase(testCase,envelope,{signal}={}){
   const current=s.current;
   try{
     const actual=await readSnapshot(s.users[0],{signal:signal||s.signal});
+    let publishedSample=null;
+    if(current.publishedSamplePlan){
+      verifyNativeFixtureReadback(actual,current.publishedSamplePlan);
+      publishedSample=await verifyPublishedSampleFixtureBinding(current.publishedSamplePlan,{now:s.now,
+        read:()=>readPublishedSampleInitializerRows(s.sql,{runQuery:task=>query(task,'Could not recheck the published sample initializer union.')})});
+    }
     const supplemental={};
     for(const user of s.users)supplemental[user.id]=await readSupplementalFixtureScopes(user,current.supplementalDomains,{origin:s.origin,signal:signal||s.signal});
     const catalog=current.catalogBinding?await verifyPublishedCatalogBinding(testCase,current.catalogBinding,{userIds:s.users.map(user=>user.id),read:(userId,query)=>readPublishedCatalogFixture(s.users.find(user=>user.id===userId),query,{origin:s.origin,signal:signal||s.signal})}):null;
-    const afterHash=hash({snapshot:ownState(actual),supplemental,catalog});
+    const afterHash=hash({snapshot:ownState(actual),supplemental,catalog,...(publishedSample?{publishedSample}:{})});
     envelope.stateBefore={ownedRecordsDigest:current.beforeHash};
     envelope.stateAfterProposal={ownedRecordsDigest:afterHash};
     envelope.fixtureReadback={verified:true,projectRef:PROJECT,independentGolden:true};
