@@ -1,3 +1,4 @@
+import { clubGuide,clubIntent } from '../../server/clubServicesContract.js';
 import { healthExaminationGuide, healthExaminationQuestion } from '../../server/healthExaminationContract.js';
 import {elearningGuide,elearningQuestion,elearningOutlineCourse} from '../../server/elearningContract.js';
 import {aidPaymentsQuestion} from '../../server/aidPaymentsContract.js';
@@ -40,6 +41,8 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
   if (!affairsClient) throw new Error('School Affairs sign-in is not configured.');
   const {data,error} = await affairsClient.auth.getSession();
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
+  const clubs = !images.length ? clubIntent(question) : null;
+  if (clubs) return clubGuide(question, clubs, true);
   if (healthExaminationQuestion(question)) return healthExaminationGuide(question, true);
   const aidPayment=!images.length?aidPaymentsQuestion(question):null;
   if(aidPayment){

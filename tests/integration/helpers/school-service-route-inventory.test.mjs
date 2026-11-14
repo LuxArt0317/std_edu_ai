@@ -18,12 +18,13 @@ test('all 94 catalog entries have explicit destinations and honest independent s
     if(row.workflowSuite)await access(row.workflowSuite);
   }
   const result=summarizeServiceRoutes();
-  assert.deepEqual(result.kinds,{generic:27,'local-portal':2,preview:1,'local-document':2,redirect:1,native:34,partial:27});
-  assert.equal(result.workflowVerified,0);assert.equal(result.genericGaps.length,27);
+  assert.deepEqual(result.kinds,{generic:26,'local-portal':2,preview:1,'local-document':2,redirect:1,native:34,partial:28});
+  assert.equal(result.workflowVerified,0);assert.equal(result.genericGaps.length,26);
   assert.equal(result.externalDestinations,0,'Official-source provenance URLs are not actual menu destinations.');
   assert.match(result.dtm,/not one of these 94/);
   assert.equal(inventory.find(row=>row.id==='4-2').kind,'partial');
   assert.equal(inventory.find(row=>row.id==='4-3').kind,'generic');
+  assert.equal(inventory.find(row=>row.id==='40-1').kind,'partial');
   assert.equal(inventory.find(row=>row.id==='36-1').kind,'partial');
   assert.equal(inventory.find(row=>row.id==='37-1').kind,'partial');
   assert.equal(inventory.find(row=>row.id==='4-1').kind,'preview');

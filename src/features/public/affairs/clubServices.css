@@ -1,0 +1,77 @@
+.student-clubs { padding:4px 10px 20px; background:#efeff0; color:#262626; font-family:"Microsoft JhengHei","微軟正黑體",Arial,sans-serif; }
+.club-shell { width:min(1120px,100%); margin:auto; min-height:calc(100dvh - 24px); display:flex; flex-direction:column; }
+.club-shell .internship-brand { min-height:30px; padding:3px 10px 3px 16px; background:#707070; font-size:13px; }
+.club-shell .internship-menu { min-height:45px; background:#4e7a98; padding-right:24px; }
+.club-shell .internship-menu button { min-height:45px; padding-inline:15px; font-size:13px; }
+.club-shell .internship-breadcrumb { min-height:31px; padding:3px 18px; font-size:13px; }
+.club-shell .internship-content { padding:8px 20px 24px; }
+.club-shell .internship-content h1 { min-height:48px; margin-bottom:20px; padding:8px 0 14px; font-size:19px; }
+.club-shell .internship-content:has(.club-equipment-form) h1 { margin-bottom:8px; }
+.club-shell .internship-content h1 small { font-size:14px; }
+.club-shell .internship-content > h2 { margin-top:30px; margin-bottom:15px; font-size:17px; }
+.club-shell .internship-block { width:92%; min-height:76px; padding:21px 24px 27px; margin-bottom:18px; font-size:14px; }
+.club-shell .internship-block h3 { font-size:15px; }
+.club-shell .internship-block ul { margin:7px 0 6px; padding-left:24px; }
+.club-shell > footer { margin-top:auto; padding:16px; text-align:center; color:#3f7897; border-top:1px solid #ddd; font-size:13px; }
+.club-calendar,.club-request-table { overflow-x:auto; }
+.club-calendar table,.club-request-table table { width:100%; border-collapse:collapse; }
+.club-calendar table { table-layout:fixed; min-width:540px; }
+.club-calendar-toolbar { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px; }
+.club-calendar-toolbar h2 { font-size:21px; font-weight:500; margin:0; }
+.club-calendar-toolbar nav { display:flex; align-items:center; }
+.club-calendar-toolbar a,.club-request-table button,.club-equipment-form button:not(.club-primary),.club-form-actions a {
+  padding:4px 10px; min-height:30px; border:1px solid #bfc4c8; color:#2b5f80; background:#f8f8f8; border-radius:2px;
+}
+.club-calendar :is(th,td),.club-request-table :is(th,td) { border:1px solid #d4d6d7; padding:5px; }
+.club-calendar th,.club-request-table th { background:#f2f2f2; font-weight:700; white-space:nowrap; text-align:center; }
+.club-calendar td { vertical-align:top; height:clamp(84px,10vw,130px); text-align:right; overflow-wrap:anywhere; }
+.club-calendar td.outside { color:#777; background:#fafafa; }
+.club-calendar td button { display:block; width:100%; margin-top:4px; padding:3px; color:#fff; background:var(--club-event,#4e6172); border-radius:2px; text-align:left; }
+.club-calendar td button:hover { text-decoration:underline; }
+.club-legend { display:flex; flex-wrap:wrap; gap:4px 10px; margin:20px 0; padding:0; list-style:none; }
+.club-legend li::before { content:'●'; color:var(--club-event,#4e6172); margin-right:3px; }
+.student-clubs [data-category=lecture] { --club-event:#275a90; }
+.student-clubs [data-category=performance] { --club-event:#a34c3f; }
+.student-clubs [data-category=outreach] { --club-event:#286c51; }
+.student-clubs [data-category=camp] { --club-event:#785123; }
+.student-clubs [data-category=service] { --club-event:#317178; }
+.student-clubs [data-category=special] { --club-event:#7b497a; }
+.student-clubs [data-category=competition] { --club-event:#873f60; }
+.student-clubs [data-category=sports] { --club-event:#56701e; }
+.club-instructions { margin-top:22px; padding:14px 18px; border:1px solid #d6e1e8; color:#254f68; background:#edf5fa; }
+.club-instructions h2 { margin:0 0 8px; font-size:16px; font-weight:700; }
+.club-instructions ol { margin:0; padding-left:1.5rem; list-style:decimal; }
+.club-instructions a { text-decoration:underline; }
+.club-request-table { margin-top:10px; }
+.club-request-table table { min-width:850px; text-align:center; font-size:13px; }
+.club-request-table td { overflow-wrap:anywhere; }
+.student-clubs .club-primary { display:inline-block; min-height:30px; padding:5px 12px; color:#fff; background:#34799f; border:1px solid #30678a; border-radius:2px; }
+.club-equipment-form { display:grid; grid-template-columns:minmax(110px,210px) minmax(0,1fr); align-items:start; column-gap:20px; row-gap:15px; }
+.club-equipment-form > label { justify-self:end; padding-top:5px; text-align:right; font-weight:700; }
+.club-equipment-form :is(input,select,textarea),.club-review-form :is(input,select) {
+  min-width:0; width:min(210px,100%); min-height:30px; padding:3px 7px; color:#292929; background:#fff; border:1px solid #bfc4c8; border-radius:0;
+}
+.club-equipment-form input[readonly],.club-equipment-form textarea[readonly] { background:#f3f3f3; }
+.club-student-fields,.club-equipment-details,.club-purpose,.club-form-actions { display:flex; flex-wrap:wrap; align-items:center; gap:5px; }
+.club-student-fields input { width:min(90px,100%); }
+.club-equipment-form input[type=date] { width:min(168px,100%); }
+.club-equipment-details { display:grid; grid-template-columns:minmax(0,210px) max-content; gap:1px 5px; }
+.club-equipment-details textarea { grid-column:1 / -1; width:min(536px,100%); min-height:55px; }
+.club-equipment-details:has(textarea) { width:min(536px,100%); }
+.club-purpose label { flex-wrap:nowrap; }
+.club-purpose label input { flex:0 1 210px; }
+.club-purpose label { display:flex; flex-wrap:wrap; align-items:center; gap:5px; }
+.club-purpose select { width:min(150px,100%); }
+.club-form-actions,.club-form-message { grid-column:2; }
+.club-review-form { display:grid; gap:10px; }
+.student-clubs :is(a,button,input,select,textarea):focus-visible { outline:2px solid #22577a; outline-offset:2px; }
+.student-clubs button:disabled { opacity:.65; cursor:not-allowed; }
+@media (max-width:650px) {
+  .club-shell .internship-content { padding-inline:12px; }
+  .club-shell .internship-block { width:100%; }
+  .club-calendar-toolbar { min-width:360px; }
+  .club-purpose label { flex-wrap:wrap; }
+  .club-equipment-details { grid-template-columns:minmax(0,1fr); }
+  .club-equipment-form { grid-template-columns:minmax(75px,1fr) minmax(0,3fr); gap:10px; }
+}
+.club-table-actions { display:flex; align-items:center; justify-content:center; gap:8px; }

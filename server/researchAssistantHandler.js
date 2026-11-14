@@ -1,3 +1,4 @@
+import { clubGuide,clubIntent } from './clubServicesContract.js';
 import { healthExaminationGuide, healthExaminationQuestion } from './healthExaminationContract.js';
 import {elearningCourseLocation,elearningCoursePath,elearningGuide,elearningQuestion,elearningOutlineCourse} from './elearningContract.js';
 import {aidPaymentsPaths,aidPaymentsQuestion} from './aidPaymentsContract.js';
@@ -270,6 +271,11 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const kind = questionKind(input.question);
+        const clubs = !kind.irrelevant && !input.images.length ? clubIntent(input.question) : null;
+        if (clubs) {
+            stream.send(200,clubGuide(input.question,clubs));
+            return;
+        }
         if (!kind.irrelevant && healthExaminationQuestion(input.question)) {
             stream.send(200, healthExaminationGuide(input.question));
             return;

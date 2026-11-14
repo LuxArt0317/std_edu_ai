@@ -1,3 +1,5 @@
+import { ClubServices } from "./ClubServices";
+import { clubPath } from "../../../../server/clubServicesContract.js";
 import {elearningPath,elearningServicePath} from '../../../../server/elearningContract.js';
 import {CounselingWorkspace} from "./CounselingWorkspace";
 import { HealthExaminations } from "./HealthExaminations";
@@ -502,6 +504,11 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   if (subjects) return <SchoolSubjectRecords snapshot={account} loading={accountLoading} error={accountError} reload={refreshAccount} />;
   if (records) return <Navigate replace to="/school-affairs" />;
   if (normalizedPath === elearningServicePath) return <Navigate replace to={elearningPath} />;
+  if (normalizedPath === clubPath || normalizedPath.startsWith(clubPath + "/")) {
+    const view=route.slice(2).join("/");
+    if (view==="" || view==="activities" || view==="equipment" || view==="equipment/new" || view==="equipment/review")
+      return <ClubServices key={user.id} userId={user.id} view={view} />;
+  }
   if (normalizedPath === healthExaminationPath) return <HealthExaminations userId={user.id} />;
   if (normalizedPath === aidPaymentsPaths.claims || normalizedPath === aidPaymentsPaths.salary)
     return <AidPayments userId={user.id} view={normalizedPath === aidPaymentsPaths.salary ? "salary" : "claims"} />;

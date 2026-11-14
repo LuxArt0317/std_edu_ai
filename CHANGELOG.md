@@ -1,6 +1,7 @@
 # Changelog
 ## Unreleased
 
+- Add the student club activity calendar, equipment requests and staff review to School Affairs. [#98]
 - School Affairs now includes a student health examination inquiry with private PDF downloads and an assistant shortcut.
 - Add separate private student aid payment and salary inquiry pages with safe assistant links. [#98]
 - Open verified Moodle activities on protected local pages and let the assistant link to the requested videos, slides or feedback form. [#98]
