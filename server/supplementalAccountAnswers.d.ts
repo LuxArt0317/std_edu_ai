@@ -1,3 +1,5 @@
+import type {ClearanceEvidenceResult} from './accountClearanceEvidence.js';
+import type {CounselingEvidenceResult} from './accountCounselingEvidence.js';
 import type {HealthExaminationEvidenceResult} from './accountHealthExaminationEvidence.js';
 import type {FeeRemissionEvidenceResult} from './accountFeeRemissionEvidence.js';
 import type {StudentConductEvidenceResult} from './accountStudentConductEvidence.js';
@@ -13,7 +15,7 @@ import type {CertificateEvidenceResult} from './accountCertificateEvidence.js';
 import type {SubmissionEvidenceResult} from './accountSubmissionEvidence.js';
 import type {TuitionEvidenceResult} from './accountTuitionEvidence.js';
 
-export type SupplementalEvidenceResult=CounselingEvidenceResult|HealthExaminationEvidenceResult|FeeRemissionEvidenceResult|CatalogEvidenceResult|CertificateEvidenceResult|SubmissionEvidenceResult|TuitionEvidenceResult|StudentConductEvidenceResult|StudentLoanEvidenceResult|AidPaymentsEvidenceResult|DtmGradeReportEvidenceResult|ElearningEvidenceResult|FacilityRepairEvidenceResult|DormitoryConductEvidenceResult|ElearningOutlineEvidenceResult;
+export type SupplementalEvidenceResult=ClearanceEvidenceResult|CounselingEvidenceResult|HealthExaminationEvidenceResult|FeeRemissionEvidenceResult|CatalogEvidenceResult|CertificateEvidenceResult|SubmissionEvidenceResult|TuitionEvidenceResult|StudentConductEvidenceResult|StudentLoanEvidenceResult|AidPaymentsEvidenceResult|DtmGradeReportEvidenceResult|ElearningEvidenceResult|FacilityRepairEvidenceResult|DormitoryConductEvidenceResult|ElearningOutlineEvidenceResult;
 export type SupplementalRecordView={id:string;title:string;url:string;columns:string[];rows:string[][];total:number;checkedAt:string;note:string};
 export type SupplementalAnswerCandidate={
   status:'answered'|'abstained';answer:string;
@@ -34,4 +36,3 @@ export const supplementalAnswerLimits:Readonly<{answerCharacters:8000;resultByte
  * impossible metadata budget throws RangeError rather than concealing facts.
  */
 export function formatSupplementalAccountAnswers(results:readonly SupplementalEvidenceResult[],options?:{question?:string;language?:'en'|'zh-TW'}):SupplementalAnswerCandidate;
-import type {CounselingEvidenceResult} from './accountCounselingEvidence.js';

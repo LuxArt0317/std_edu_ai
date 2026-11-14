@@ -1,3 +1,6 @@
+import {readClearanceEvidence} from '../server/accountClearanceEvidence.js';
+import {clearanceNavigationView,clearanceTimetableQuestion} from '../server/clearanceEvidenceIntent.js';
+import {clearanceDirectoryAnswer} from '../server/graduationClearanceContract.js';
 import {readCounselingEvidence} from '../server/accountCounselingEvidence.js';
 import {isCounselingNavigationQuestion} from '../server/counselingEvidenceIntent.js';
 import {counselingGuide} from '../server/counselingContract.js';
@@ -35,6 +38,7 @@ import { isOwnFeeBalanceQuestion, isPendingFeeQuestion, ownFeeBalanceLabel } fro
 import { isCreditLoadHistoryQuestion } from '../server/creditLoadHistory.js';
 import { isCourseSelectionQuestion } from '../server/courseSelection.js';
 import { AffairsWorkspaceError, loadAffairsSnapshot, loadOwnAffairsCharges, verifyAffairsToken } from '../server/affairsWorkspace.js';
+import {loadOwnAffairsTimetable} from '../server/ownAffairsTimetable.js';
 import { createAssistantStream } from '../server/assistantStream.js';
 import { readAssistantReply } from '../src/services/assistantStreamReader.js';
 import researchHandler from '../server/researchAssistantHandler.js';
@@ -147,7 +151,7 @@ export function createAffairsAssistantHandler(dependencies:{
   verifyToken?:typeof verifyAffairsToken;
   loadSnapshot?:typeof loadAffairsSnapshot;
   answerAccount?:typeof answerAccountWithVerification;
-  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence;healthExaminations?:typeof readHealthExaminationEvidence;counselingAppointments?:typeof readCounselingEvidence};
+  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence;healthExaminations?:typeof readHealthExaminationEvidence;counselingAppointments?:typeof readCounselingEvidence;graduationClearance?:typeof readClearanceEvidence};
 }={}) {
 const publicResearch=dependencies.publicResearch??researchHandler;
 const verifyToken=dependencies.verifyToken??verifyAffairsToken,loadSnapshot=dependencies.loadSnapshot??loadAffairsSnapshot,answerAccount=dependencies.answerAccount??answerAccountWithVerification;
@@ -162,7 +166,8 @@ const readers={courseCatalog:dependencies.readers?.courseCatalog??readCatalogEvi
   elearningOutline:dependencies.readers?.elearningOutline??readElearningOutlineEvidence,
   feeRemission:dependencies.readers?.feeRemission??readFeeRemissionEvidence,
   healthExaminations:dependencies.readers?.healthExaminations??readHealthExaminationEvidence,
-  counselingAppointments:dependencies.readers?.counselingAppointments??readCounselingEvidence};
+  counselingAppointments:dependencies.readers?.counselingAppointments??readCounselingEvidence,
+  graduationClearance:dependencies.readers?.graduationClearance??readClearanceEvidence};
 return async function handler(request:ApiRequest,response:ApiResponse) {
   const deadline=Date.now()+55_000;
   response.setHeader('Cache-Control','no-store, max-age=0');
@@ -209,12 +214,18 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
           :pageContext.foreign&&pageContext.tools.includes('feeRemission')?(chinese?'學雜費減免紀錄':'fee remission records')
           :pageContext.foreign&&pageContext.tools.includes('healthExaminations')?(chinese?'健檢紀錄':'health examination records')
           :pageContext.foreign&&pageContext.tools.includes('counselingAppointments')?(chinese?'諮商預約紀錄':'counseling appointments')
+          :pageContext.foreign&&pageContext.tools.includes('graduationClearance')?(chinese?'畢業離校紀錄':'graduation clearance records')
           :pageContext.foreign?(chinese?'宿舍獎懲或數位學園課程紀錄':'dormitory conduct or remote-learning course records')
             :(chinese?'薪資或助學請款紀錄':'salary or aid claim records');
     const answer=chinese?`我只能查詢您登入的 stu.best 帳戶，無法存取其他學生的${records}。`
       :`I can only check your signed-in stu.best account. I can’t show another student’s ${records}.`;
     stream.progress('account-access',chinese?'已確認帳戶範圍':'Checked account access',answer,'complete');
     stream.send(200,{status:'handoff',answer,citations:[],suggestedQuestions:[],grounding:{source:'account',webSearched:false}});
+    return;
+  }
+  const clearanceNavigation=clearanceNavigationView(question);
+  if(clearanceNavigation&&!(Array.isArray(input?.images)&&input.images.length)){
+    stream.send(200,clearanceDirectoryAnswer(question,clearanceNavigation,true));
     return;
   }
   if(isCounselingNavigationQuestion(question)&&!(Array.isArray(input?.images)&&input.images.length)){
@@ -246,7 +257,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   }
   const chargeLabel=pageContext.feeChargeLabel??(scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):null);
   const chargesOnly=isOwnFeeBalanceQuestion(scopedQuestion)||pageContext.feeAndBalance||chargeLabel!==null;
-  const needsRecords=chargesOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
+  const timetableOnly=Boolean(clearanceTimetableQuestion(question,pageContext));
+  const needsRecords=chargesOnly || timetableOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
   const navigation=!needsRecords && !(Array.isArray(input?.images) && input.images.length) && !questionKind(question).irrelevant
     ? answerCampusNavigation(question) : null;
   if(navigation) {
@@ -279,10 +291,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const residual=pageContext.selected?pageContext.otherQuestion:question;
     const remoteOnly=Boolean(residual)&&isElearningEvidenceQuestion(residual,route,history)&&!independentElearningQuestion(residual,route,history);
     const repairContext=facilityRepairLookupContext(residual,route,history),repairOnly=repairContext.repairOnly;
-    const selectedReaderOnly=!chargesOnly&&(pageContext.readerOnly||remoteOnly||repairOnly);
+    const selectedReaderOnly=!chargesOnly&&!timetableOnly&&(pageContext.readerOnly||remoteOnly||repairOnly);
     const scopedSnapshot=()=>({checkedAt:new Date().toISOString(),profile:{userId:account.user.id}});
     if(selectedReaderOnly)stream.progress('account','Checked account access','The selected reader uses this signed-in Google account.','complete');
-    else stream.progress('account','Loading your account records',chargesOnly?'Checking only the fees linked to this Google account.':'Checking School Affairs and DTM records for this signed-in Google account.');
+    else stream.progress('account','Loading your account records',timetableOnly?'Checking the timetable linked to this Google account.':chargesOnly?'Checking only the fees linked to this Google account.':'Checking School Affairs and DTM records for this signed-in Google account.');
     const loadCharges=async()=>{
       try{
         const saved=await loadOwnAffairsCharges(account,{deadline});
@@ -294,9 +306,19 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         return {...scopedSnapshot(),charges,chargeReadUnavailable:true};
       }
     };
-    const snapshot=selectedReaderOnly?scopedSnapshot():chargesOnly?await loadCharges():await loadSnapshot(account,false,{deadline});
+    const loadTimetable=async()=>{
+      try{return await loadOwnAffairsTimetable(account,{deadline});}
+      catch{
+        const courses:Awaited<ReturnType<typeof loadOwnAffairsTimetable>>['courses']=[];
+        return {...scopedSnapshot(),courses,timetableReadUnavailable:true};
+      }
+    };
+    const loadSelectedSnapshot=(initialize?:false)=>selectedReaderOnly?Promise.resolve(scopedSnapshot())
+      :timetableOnly?loadTimetable():chargesOnly?loadCharges():loadSnapshot(account,false,{deadline,...(initialize===false?{initialize}:{})});
+    const snapshot=await loadSelectedSnapshot();
     if('chargeReadUnavailable' in snapshot)stream.progress('account','Fee balance unavailable','The other requested records can still be checked independently.','unavailable');
-    else if(!selectedReaderOnly)stream.progress('account','Loaded your account records',chargesOnly?'Read the fee scope for this Google account.':'Only records linked to this Google account were read.','complete');
+    else if('timetableReadUnavailable' in snapshot)stream.progress('account','Timetable unavailable','The timetable could not be verified for this account.','unavailable');
+    else if(!selectedReaderOnly)stream.progress('account','Loaded your account records',timetableOnly?'Read the timetable scope for this Google account.':chargesOnly?'Read the fee scope for this Google account.':'Only records linked to this Google account were read.','complete');
     stream.progress('answer','Preparing your answer','Checking the account data and any requested stu.best action.');
     const readDeadline=(selected:number)=>{
       if(!Number.isFinite(selected))throw new TypeError('Invalid account reader deadline.');
@@ -317,10 +339,11 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       feeRemission:context=>readers.feeRemission(account,{question,route,history,deadline:readDeadline(context.deadline)}),
       healthExaminations:context=>readers.healthExaminations(account,{question:context.question,route,history,deadline:readDeadline(context.deadline)}),
       counselingAppointments:context=>readers.counselingAppointments(account,{question:context.question,route,history,deadline:readDeadline(context.deadline)}),
+      graduationClearance:context=>readers.graduationClearance(account,{question:context.question,route,history,deadline:readDeadline(context.deadline)}),
       tuition:context=>readers.tuition(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
     };
     const answer=await answerAccount({question,correlationId,snapshot,history,route,deadline,supplementalReaders,
-      loadSnapshot:()=>selectedReaderOnly?Promise.resolve(scopedSnapshot()):chargesOnly?loadCharges():loadSnapshot(account,false,{initialize:false,deadline}),
+      loadSnapshot:()=>loadSelectedSnapshot(false),
       onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status),
     });
     stream.progress('answer',answer.verification?.status==='verified'?'Answer ready':'Verification incomplete',

@@ -15,6 +15,7 @@
 - Verify saved tuition-remission history in chat and show it alongside the fee balance when requested. Preserve literal academic periods, blank amounts and zero. Give signed-out students a link to sign in. [#100]
 - Answer signed-in counseling appointment questions from saved School Affairs metadata. Distinguish preferred dates from scheduled times and check tuition through its separate records when asked. [#100]
 - Preserve the selected health examination page when a student signs in from a page link. [#100]
+- Verify saved graduation clearance decisions and requested office notes in chat. Answer combined next-class questions from the student’s saved enrollment timetable. [#100]
 - Answer signed-in health examination questions with the saved examination codes and report availability from the selected page. Preserve tuition as a separate source in combined questions. [#100]
 - Verify saved dormitory notices and remote-learning activity links in signed-in chat. Preserve separate housing, tuition and enrollment answers when requested together. [#100]
 

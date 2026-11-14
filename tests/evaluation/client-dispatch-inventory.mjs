@@ -6,7 +6,6 @@ import {certificateAwardQuestion,certificateAwardScope} from '../../server/certi
 import {announcementEmailQuestion,announcementEmailScope} from '../../server/announcementEmailContract.js';
 import {studentProfileQuestion,studentProfileScope} from '../../server/studentProfileContract.js';
 import {venueQuestion} from '../../src/features/public/affairs/venueContract.js';
-import {clearanceQuestion,clearanceScope} from '../../server/graduationClearanceContract.js';
 
 const dispatchPath='src/services/schoolAffairsAssistant.ts';
 const apiPath='api/affairs-data.ts';
@@ -48,13 +47,6 @@ const definitions=[
     secondPart:'Also show the fee balance recorded on my account.',secondTools:['charges'],
     support:'owned_request_status_summary',
     limit:'A public venue schedule is not an owned booking, and a local request status is not university confirmation. No mutation is implied by a question.'},
-  {id:'graduation-clearance',call:'readGraduationClearanceAnswer',file:'graduationClearance',server:'graduationClearance',scope:clearanceScope,
-    routes:['/school-affairs/services/10-1','/school-affairs/services/16-1'],selector:{view:'student',answer:'en'},
-    fields:['periods[].state','applications[].term','applications[].reviews[].office','applications[].reviews[].status'],
-    question:'Which graduation clearance offices still need action for my application?',
-    secondPart:'Also explain the saved note from each office.',secondFields:['applications[].reviews[].note'],
-    support:'owned_period_and_office_status_summary',
-    limit:'Clearance is separate from graduation eligibility/reference reports. Current answer enumerates office statuses but not their saved notes, and caps application/period lists at eight.'},
 ];
 
 const navigationOnly=[
@@ -71,7 +63,6 @@ export function probeNativePredicate(id,question,route=''){
     case 'announcement-email':return announcementEmailQuestion(question)==='status'?'status':null;
     case 'student-profile':return studentProfileQuestion(question)==='status'?'status':null;
     case 'venue-requests':return venueQuestion(question)?.view==='mine'?'mine':null;
-    case 'graduation-clearance':return clearanceQuestion(question);
     default:throw new Error('Unknown native client predicate.');
   }
 }
@@ -124,7 +115,9 @@ export function inspectClientDispatchSource(source){
     isHealthExaminationEvidenceQuestion:['healthExaminationEvidenceIntent','question,route,history'],
     healthExaminationQuestion:['healthExaminationContract','question'],
     isCounselingEvidenceQuestion:['counselingEvidenceIntent','question,route,history'],
-    counselingQuestion:['counselingContract','question']};
+    counselingQuestion:['counselingContract','question'],
+    isClearanceEvidenceQuestion:['clearanceEvidenceIntent','question,route,history'],
+    clearanceQuestion:['graduationClearanceContract','question']};
   const clauses=node=>ts.isParenthesizedExpression(node)?clauses(node.expression)
     :ts.isBinaryExpression(node)&&node.operatorToken.kind===ts.SyntaxKind.BarBarToken?[...clauses(node.left),...clauses(node.right)]:[node];
   const predicates=verifiedDispatch?clauses(verifiedDispatch.expression):[];
@@ -147,6 +140,7 @@ export function inspectClientDispatchSource(source){
     {id:'fee-remission',graphTool:'feeRemission',source:dispatchPath,line:first.line},
     {id:'health-examinations',graphTool:'healthExaminations',source:dispatchPath,line:first.line},
     {id:'counseling-appointments',graphTool:'counselingAppointments',source:dispatchPath,line:first.line},
+    {id:'graduation-clearance',graphTool:'graduationClearance',source:dispatchPath,line:first.line},
   ],
     fallback:{source:dispatchPath,line:api[0].line},otherDirectReaders:otherDirectReaders.filter(name=>calls.some(call=>call.name===name&&call.at<fallback.at)),
     navigationOnly:navigationOnly.map(row=>({...row,observedCalls:row.calls.filter(name=>calls.some(call=>call.name===name&&call.at<fallback.at))}))};
@@ -181,7 +175,7 @@ export async function discoverClientDispatchSurfaces({read=readSource}={}){
   const contracts=['clubStudent','certificateAwards','announcementEmail','studentProfile','graduationClearance'];
   const sources=[...new Set([dispatchPath,apiPath,'server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js','server/elearningEvidenceIntent.js','server/facilityRepairEvidenceIntent.js','server/dormitoryConductEvidenceIntent.js','server/elearningOutlineEvidenceIntent.js','server/healthExaminationEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
     ...contracts.map(name=>'server/'+name+'Contract.js'),'src/features/public/affairs/venueContract.js',
-    'server/clubServicesContract.js','server/clubOfficerContract.js','server/healthExaminationContract.js','server/counselingContract.js','server/counselingEvidenceIntent.js',
+    'server/clubServicesContract.js','server/clubOfficerContract.js','server/healthExaminationContract.js','server/counselingContract.js','server/counselingEvidenceIntent.js','server/clearanceEvidenceIntent.js',
     'src/features/public/PublicSite.tsx','src/features/public/affairs/SchoolAffairsEntry.tsx','src/features/public/affairs/SchoolAffairsPortal.tsx',
     'src/features/public/elearning/ElearningWorkspace.tsx'])];
   const entries=await Promise.all(sources.map(async path=>[path,await read(path)]));

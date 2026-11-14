@@ -6,6 +6,7 @@ import {schoolServiceEntries} from '../../src/features/public/affairs/studentSer
 import {buildPlannedFeeRemissionCases} from './fee-remission-cases.mjs';
 import {buildPlannedHealthExaminationCases} from './health-examination-cases.mjs';
 import {buildPlannedCounselingAppointmentCases} from './counseling-appointment-cases.mjs';
+import {buildPlannedClearanceApplicationCases} from './clearance-application-cases.mjs';
 
 const concepts = {
   '1-1':'password-change preparation','2-1':'campus announcement email preferences',
@@ -62,6 +63,7 @@ const overrides = {
   '4-4':{domain:'calendar',level:'public',tools:[],limitation:'Public captured calendar; not a personal timetable.'},
   '4-5':{domain:'public-home',level:'public',tools:[],limitation:'Public captured homepage; not a private student record.'},
   '9-1':native('scholarship',['scholarship'],'Local application/award/hour records, not official university scholarship submissions.'),
+  '10-1':partial('graduationClearance',['graduationClearance'],'Assigned application periods come from the caller-scoped student read. Live fixture acceptance is pending. No submission or eligibility inference.'),
   '11-1':native('courseSelection',['courseSelection'],'Independent stored selection phase history; not the enrolled-course collection.'),
   '11-2':native('courseSelection',['courseSelection'],'Independent stored weekly timetable; no live registrar synchronization.'),
   '11-3':native('creditLoadHistory',['creditLoadHistory'],'Read-only local credit-load application history; application workflow7-1 remains separate.'),
@@ -70,6 +72,7 @@ const overrides = {
   '14-1':native('academicAttendance',['academicAttendance'],'Term statistics and roll-call details are independent. No daily/monthly hour aggregation or inferred leave clearance.'),
   '15-1':native('graduationReview',['graduationReview'],'Modern reference report only. No eligibility decision or substitution with the legacy report.'),
   '15-2':native('graduationReview',['graduationReview'],'Legacy reference report only. No substitution with the modern report.'),
+  '16-1':partial('graduationClearance',['graduationClearance'],'Caller-owned application statuses and explicitly requested office notes are readable. Live fixture acceptance is pending. No manager access, official documents or mutations.'),
   '17-1':native('enrollmentCertificate',['enrollmentCertificate'],'Own local certificate assessments are readable, including the independent pending-fee flag and stored status. Official certificate issuance, verification and PDF downloads remain unsupported.'),
   '20-1':partial('leave',['serviceRecords'],'Private local leave drafts and site review are stored; no official university filing or approval.'),
   '21-3':partial('feeRemission',['feeRemission'],'Native account-owned literal fee-remission history exists. Its independent assistant cases are planned; live fixture adapter and deployed semantic acceptance remain pending. No official payment, eligibility, certificate or submission is implied.'),
@@ -96,7 +99,7 @@ export function serviceNoteFixture(serviceId,userId='evaluation-student') {
   const capability=serviceCapabilities[serviceId];
   // Stored user-authored notes can predate the dedicated appointment reader.
   // Keep those regression fixtures separate from the native appointment cases.
-  if(!capability || capability.level!=='generic-tracker'&&serviceId!=='29-1')throw new TypeError('This service does not use a generic note fixture.');
+  if(!capability || capability.level!=='generic-tracker'&&!['10-1','16-1','29-1'].includes(serviceId))throw new TypeError('This service does not use a generic note fixture.');
   return {
     id:`e7a10000-0000-4000-8000-${serviceId.split('-').map(part=>part.padStart(6,'0')).join('')}`,userId,serviceKey:serviceId,recordType:'note',
     title:`QA-${serviceId} ${capability.concept}`,
@@ -175,6 +178,19 @@ function entryCase(entry,capability,mode,question,expected,fixtureKey) {
 export function buildServiceCases() {
   return schoolServiceEntries.flatMap(entry=>{
     const capability=serviceCapabilities[entry.id],check=recordChecks[entry.id];
+    if(entry.id==='10-1'||entry.id==='16-1'){
+      const application=entry.id==='10-1',planned=buildPlannedClearanceApplicationCases();
+      const select=(suffix,mode)=>{
+        const source=planned.find(row=>row.id==='account:clearance-applications-'+suffix);
+        if(!source)throw new Error('Missing planned graduation-clearance service criterion.');
+        return {...structuredClone(source),id:`service:${entry.id}:${mode}`,serviceId:entry.id,route:entry.localUrl,mode,
+          capability:{...source.capability,level:capability.level,limitation:capability.limitation}};
+      };
+      return [entryCase(entry,capability,'navigation',application?'Where can I apply for graduation clearance?':'Where can I view my graduation clearance?',
+        baseExpected('navigation',{requiredLinks:[entry.localUrl]}),'directory'),
+      select(application?'windows':'office-statuses','record'),select(application?'empty-windows':'empty-applications','empty'),
+      select(application?'write-submit':'write-approve','action-boundary')];
+    }
     if(entry.id==='21-3'){
       const planned=buildPlannedFeeRemissionCases(),select=(suffix,mode)=>{
         const source=planned.find(row=>row.id==='account:fee-remission-'+suffix);

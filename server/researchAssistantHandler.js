@@ -14,7 +14,8 @@ import {certificateAwardQuestion} from './certificateAwardsContract.js';
 import {certificateAwardGuide} from './certificateAwards.js';
 import {announcementEmailQuestion} from './announcementEmailContract.js';
 import {announcementEmailGuide} from './announcementEmail.js';
-import {clearancePaths,clearanceQuestion} from './graduationClearanceContract.js';
+import {clearanceDirectoryAnswer} from './graduationClearanceContract.js';
+import {clearanceNavigationView,selectClearanceEvidence,withoutExcludedClearanceClause} from './clearanceEvidenceIntent.js';
 import {answerPermanentCourse} from './permanentCourses.js';
 import {answerVenue} from './venueBooking.js';
 import {answerRepairGuide} from './facilityRepair.js';
@@ -330,13 +331,23 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const stream = createAssistantStream(input.stream, response);
-        const balanceQuestion=withoutExcludedCounselingClause(withoutExcludedHealthClause(input.question));
+        const balanceQuestion=withoutExcludedClearanceClause(withoutExcludedCounselingClause(withoutExcludedHealthClause(input.question)));
         if(isOwnFeeBalanceQuestion(balanceQuestion)||balanceQuestion!==input.question&&ownFeeBalanceLabel(balanceQuestion)){
             const zh=/[\u3400-\u9fff]/u.test(input.question), url='/school-affairs/login?next='+encodeURIComponent('/school-affairs/services/39-1');
             const title=zh?'登入後查看待繳費用':'Sign in to check your saved fee balance';
             stream.send(200,{status:'handoff',answer:'['+title+']('+url+')',
                 citations:[{chunkId:'directory:pending-fees',title,url,claim:title,sourceName:'School Affairs'}],
                 suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
+            return;
+        }
+        const clearance=selectClearanceEvidence(input.question,input.route,input.history);
+        if(clearance){
+            if(clearance.reason){
+                const zh=/[\u3400-\u9fff]/u.test(input.question);
+                const answer=clearance.reason==='foreign_request'?(zh?'我只能查詢您自己的畢業離校紀錄。':'I can only help you check graduation clearance records for your own account.')
+                    :(zh?'請開啟自己的校務離校紀錄再試一次。':'Open your own School Affairs graduation clearance page and ask again.');
+                stream.send(200,{status:'handoff',answer,citations:[],suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
+            }else stream.send(200,clearanceDirectoryAnswer(input.question,clearance.periodsRequested&&!clearance.applicationsRequested?'apply':'status'));
             return;
         }
         const appointment=selectCounselingEvidence(input.question,input.route,input.history);
@@ -488,15 +499,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
             stream.send(200,answer);
             return;
         }
-        const clearanceView=!input.images.length&&!kind.irrelevant&&clearanceQuestion(input.question);
-        if(clearanceView){
-            const next='/school-affairs/login?next='+encodeURIComponent(clearancePaths[clearanceView]);
-            const zh=/[\u3400-\u9fff]/u.test(input.question);
-            stream.send(200,{status:'handoff',answer:zh?`[登入校務資訊系統](${next})辦理離校申請或查詢進度。`:
-                `[Sign in to School Affairs](${next}) to open graduation clearance.`,
-                citations:[],suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
-            return;
-        }
+        const clearanceView=!input.images.length&&!kind.irrelevant&&clearanceNavigationView(input.question);
+        if(clearanceView){stream.send(200,clearanceDirectoryAnswer(input.question,clearanceView));return;}
         const feedbackView=!input.images.length&&!kind.irrelevant&&teachingFeedbackQuestion(input.question);
         if(feedbackView){
             const next='/school-affairs/login?next='+encodeURIComponent(teachingFeedbackPaths[feedbackView]);

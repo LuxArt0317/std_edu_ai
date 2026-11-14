@@ -21,7 +21,7 @@ import {readAnnouncementEmailAnswer} from './announcementEmail';
 import {studentProfileQuestion} from '../../server/studentProfileContract.js';
 import {readStudentProfileAnswer} from './studentProfile';
 import {clearanceQuestion} from '../../server/graduationClearanceContract.js';
-import {readGraduationClearanceAnswer} from './graduationClearance';
+import {isClearanceEvidenceQuestion} from '../../server/clearanceEvidenceIntent.js';
 import {permanentCourseQuestion} from '../features/public/affairs/permanentCourseRouting.js';
 import {venueQuestion} from '../features/public/affairs/venueContract.js';
 import {readVenueAnswer} from './venueBooking';
@@ -59,7 +59,8 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
     ||isFacilityRepairEvidenceQuestion(question,route,history)||isForeignFacilityRepairQuestion(question)
     ||isFeeRemissionEvidenceQuestion(question,route,history)||isDormitoryConductEvidenceQuestion(question,route,history)||isElearningOutlineEvidenceQuestion(question,route,history)
     ||isHealthExaminationEvidenceQuestion(question,route,history)||healthExaminationQuestion(question)
-    ||isCounselingEvidenceQuestion(question,route,history)||counselingQuestion(question))
+    ||isCounselingEvidenceQuestion(question,route,history)||counselingQuestion(question)
+    ||isClearanceEvidenceQuestion(question,route,history)||clearanceQuestion(question))
     return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress);
   const officer = !images.length ? clubOfficerQuestion(question) : null;
   if (officer) return clubOfficerGuide(question,officer,true);
@@ -103,12 +104,6 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
     onProgress?.({kind:'program-registrations',label:'Checking interdisciplinary program registrations',detail:'Reading your School Affairs records.',status:'running'});
     const result:AssistantResponse = await readProgramRegistrationAnswer(data.session.user.id,question,signal);
     if (typeof result?.answer !== 'string' || result.grounding?.source !== 'account') throw new Error('Program registrations could not be loaded.');
-    return result;
-  }
-  if(!images.length&&clearanceQuestion(question)){
-    onProgress?.({kind:'graduation-clearance',label:'Checking graduation clearance',detail:'Reading your applications and office decisions.',status:'running'});
-    const result=await readGraduationClearanceAnswer(data.session.user.id,question,signal) as AssistantResponse;
-    if(typeof result?.answer!=='string'||result.grounding?.source!=='account')throw new Error('Graduation clearance records could not be loaded.');
     return result;
   }
   const teachingFeedback=!images.length&&teachingFeedbackQuestion(question);

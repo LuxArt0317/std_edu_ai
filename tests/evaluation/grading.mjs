@@ -436,7 +436,7 @@ function recordLinkMatches(answer, binding, allBindings) {
 }
 
 // This test-side allowlist is deliberately independent of the runtime planner.
-const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct','feeRemission','healthExaminations','counselingAppointments']);
+const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct','feeRemission','healthExaminations','counselingAppointments','graduationClearance']);
 const toolStatusAliases={success:'complete',succeeded:'complete',failed:'error',started:'running',start:'running'};
 const toolStatuses=new Set(['running','complete','unavailable','error','cancelled','skipped']);
 const terminalStatuses=new Set(['complete','unavailable','error','cancelled','skipped']);
@@ -529,6 +529,7 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
       ||testCase.domain==='elearningEnrollments'&&missingElearningEnrollments.test(visibleMarkdown(answer))
       ||testCase.domain==='healthExaminations'&&/\b(?:no (?:saved health (?:examination )?)?records (?:were returned|on (?:this |the |selected )?page)|(?:selected |this )?page.{0,30}empty|no saved health (?:examination )?records)\b/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='counselingAppointments'&&/\bno saved (?:counseling )?appointments\b|沒有已儲存預約/iu.test(visibleMarkdown(answer))
+      ||testCase.domain==='graduationClearance'&&/\b(?:no (?:matching office|submitted clearance applications|assigned (?:application )?periods)|clearance lookup failed)\b|未找到已送出的離校申請|離校查詢失敗/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='feeRemission'&&/\bno matching saved remission records\b/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='facilityRepairs'&&limitedFacilityRepair.test(visibleMarkdown(answer)),'The answer explicitly states missing records, inability or unsupported capability.');
     if(expected.limitation && expected.limitation!==true)check('answer.limitation.specific',matches(text,expected.limitation),'The specific required limitation is stated.');

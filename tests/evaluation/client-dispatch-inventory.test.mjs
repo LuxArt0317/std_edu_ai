@@ -5,13 +5,13 @@ import {discoverClientDispatchSurfaces,inspectClientDispatchSource,probeNativePr
 
 const dispatchSource=()=>readFile(new URL('../../src/services/schoolAffairsAssistant.ts',import.meta.url),'utf8');
 
-test('the six direct readers and verified graph dispatch remain separately visible',async()=>{
+test('the five direct readers and verified graph dispatch remain separately visible',async()=>{
   const inventory=await discoverClientDispatchSurfaces();
-  assert.equal(inventory.services.length,6);assert.equal(inventory.scopes.length,6);assert.equal(inventory.questions.length,30);
+  assert.equal(inventory.services.length,5);assert.equal(inventory.scopes.length,5);assert.equal(inventory.questions.length,25);
   assert.equal(inventory.graphBankIncluded,false);assert.equal(inventory.layer,'browser-client-dispatch');
   assert.deepEqual(inventory.scopes,['club-student',
-    'certificate-awards','announcement-email','student-profile','venue-requests','graduation-clearance']);
-  assert.equal(new Set(inventory.questions.map(row=>row.id)).size,30);
+    'certificate-awards','announcement-email','student-profile','venue-requests']);
+  assert.equal(new Set(inventory.questions.map(row=>row.id)).size,25);
   assert.deepEqual(inventory.verifiedDispatch.map(({id,graphTool})=>({id,graphTool})),[
     {id:'aid-payments',graphTool:'aidPayments'},{id:'dtm-grade-report',graphTool:'dtmGradeReport'},
     {id:'elearning-enrollments',graphTool:'elearningEnrollments'},{id:'facility-repairs',graphTool:'facilityRepairs'},
@@ -19,6 +19,7 @@ test('the six direct readers and verified graph dispatch remain separately visib
     {id:'fee-remission',graphTool:'feeRemission'},
     {id:'health-examinations',graphTool:'healthExaminations'},
     {id:'counseling-appointments',graphTool:'counselingAppointments'},
+    {id:'graduation-clearance',graphTool:'graduationClearance'},
   ]);
   for(const service of inventory.services){
     assert.equal(service.routeAuth,'signed-in');assert.equal(service.graphTool,null);
@@ -46,8 +47,10 @@ test('native questions require the fields the reader actually supplies and discl
   assert.equal(service('elearning-enrollments'),undefined);
   assert.equal(service('facility-repairs'),undefined);
   assert.equal(service('elearning-outline'),undefined);
-  assert.ok(question('client:graduation-clearance:multipart').assertions.requiredFields.includes('applications[].reviews[].note'));
-  assert.match(service('graduation-clearance').limit,/not their saved notes/u);
+  assert.equal(service('graduation-clearance'),undefined);
+  assert.equal(question('client:graduation-clearance:multipart'),undefined);
+  assert.ok(inventory.verifiedDispatch.some(row=>row.id==='graduation-clearance'&&row.graphTool==='graduationClearance'));
+  assert.ok(inventory.sourceManifest.some(row=>row.path==='server/clearanceEvidenceIntent.js'));
   assert.equal(inventory.navigationOnly.some(row=>row.scopes.includes('counseling-appointments')),false);
   assert.ok(inventory.verifiedDispatch.some(row=>row.id==='counseling-appointments'&&row.graphTool==='counselingAppointments'));
   assert.ok(inventory.sourceManifest.some(row=>row.path==='server/counselingEvidenceIntent.js'));
@@ -77,7 +80,8 @@ test('independent natural-language probes expose unsupported wording without cou
 
 test('source drift cannot silently detach a declared native reader from auth, ownership or API ordering',async()=>{
   const source=await dispatchSource();
-  assert.equal(inspectClientDispatchSource(source).contracts.length,6);
+  assert.equal(inspectClientDispatchSource(source).contracts.length,5);
+  assert.doesNotMatch(source,/readGraduationClearanceAnswer/u);
   const mutations=[
     source.replace('if (error || !data.session) throw new Error','if (false) throw new Error'),
     source.replace('answerStudentClubs(data.session.user.id,','answerStudentClubs(otherUserId,'),
@@ -91,6 +95,8 @@ test('source drift cannot silently detach a declared native reader from auth, ow
     source.replace('||healthExaminationQuestion(question)',''),
     source.replace('isCounselingEvidenceQuestion(question,route,history)','false'),
     source.replace('||counselingQuestion(question)',''),
+    source.replace('isClearanceEvidenceQuestion(question,route,history)','false'),
+    source.replace('||clearanceQuestion(question)',''),
     source.replace('const officer =',"await fetch('/api/affairs-assistant'); const officer ="),
   ];
   for(const changed of mutations){assert.notEqual(changed,source);assert.throws(()=>inspectClientDispatchSource(changed));}
