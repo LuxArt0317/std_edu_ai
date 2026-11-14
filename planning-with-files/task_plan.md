@@ -1,10 +1,17 @@
 # Task Plan
 
+## Counseling appointments [Issue #98]
+
+- [x] Observe the source landing and consent views.
+- [ ] Verify the source appointment controls and model the account-scoped workflow.
+- [ ] Verify private request persistence and restricted access.
+
 ## Certificate award applications [Issue #98]
 
 - [x] Observe the authenticated 52-1 form and certificate catalog search.
 - [x] Implement the student form, catalog lookup, private proof documents and protected review.
-- [ ] Verify the browser, authenticated API, storage isolation and assistant status.
+- [x] Verify the browser, authenticated API, storage isolation and assistant status.
+- [ ] Verify official review and payout handling with an authorized integration.
 
 ## Announcement email preference [Issue #98]
 

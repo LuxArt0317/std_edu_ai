@@ -22,3 +22,7 @@ PUBLIC_SITE_ORIGIN=http://127.0.0.1:54630 node tests/integration/certificate-awa
 ```
 
 Use rollback preflight before applying the migration and deployed mode afterward. The browser suite uses disposable fixtures. The authenticated HTTP suite creates disposable accounts, issues a real Storage upload, checks unauthorized access and removes the fixture bytes through Storage before deleting database records.
+
+## Deployed evidence
+
+Production `014def8` is live as Vercel `C57h6aW36V71tBftNhFu9LLg3g11`. Migration 20261114230000 brings the client to 157 migrations and 187 RLS-protected public tables with a private proof bucket. The pinned browser, actual-JWT HTTP and Storage test with exact cleanup, four bilingual guest assistant checks, eight shell routes and Quality 43550501226 passed. The 94-destination local audit reports 31 generic and 23 partial entries. The first 30 observed catalog entries are available. Official review and bank transfer remain outside the verified workflow. Payout references store the final four digits only.
