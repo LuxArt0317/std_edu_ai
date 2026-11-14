@@ -98,3 +98,5 @@ Fee-remission verification includes `fee-remission-ui.mjs` for navigation and re
 `tutor-evaluation-ui.mjs` checks TA and tutor routes with synthetic records. `tutor-evaluation-rls-live.mjs --rollback-preflight` verifies the SQL and exact rollback on the client database. `tutor-evaluation-http-live.mjs` verifies actual-JWT handler or deployed access with disposable fixtures.
 
 `service-leadership-ui.mjs` follows the four local leadership destinations from the compiled index, verifies source geometry and responsive containment, and checks private note and subject routes plus guest sign-in.
+
+The facility repair suites check database authorization, actual-JWT HTTP and the rendered student and administrator flow. See [facility repair QA](../../docs/qa/FACILITY_REPAIR.md).

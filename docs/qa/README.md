@@ -1,5 +1,7 @@
 # Quality evidence
 
+[Facilities repair](FACILITY_REPAIR.md) covers account-owned reports, administrator status updates and assistant checks.
+
 [Graduation clearance](GRADUATION_CLEARANCE.md) covers the application and status workflows, administrator review, and verification.
 
 [Teaching feedback](TEACHING_FEEDBACK.md) covers teaching evaluation and immediate feedback, their database boundaries, and verification.

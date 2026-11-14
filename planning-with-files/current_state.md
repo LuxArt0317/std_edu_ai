@@ -1,3 +1,7 @@
+## Facilities repair [Issue #98]
+
+The preceding goal turn made progress by adding the facility repair backend and form. The current turn connected the form, private history and administrator queue to their routes. The client installed migration 20261114180000 after rollback verification. Database verification reports 152 migrations and 179 RLS-protected public tables. The public noticeboard confirms the workflow. The authenticated university layout remains unobserved. Production acceptance is pending.
+
 ## Venue booking [Issue #98]
 
 Production `52e47ea` is live as Vercel `EBvMNxV4o1VgDcgkdbF8pDErgvsG`. Only migration 20261114170000 was applied. The client has 151 migrations and 178 RLS-protected public tables. The revision-pinned browser, 19 authenticated HTTP requests with exact cleanup, three guest assistant replies, and eight public shell routes passed. Quality 43536795319 passed. All 94 local links passed the navigation inventory, which reports 36 generic and 18 partial destinations.

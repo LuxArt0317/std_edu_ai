@@ -1,5 +1,7 @@
 # Changelog
 ## Unreleased
+- Add confirmed facilities repair reports, account history, administrator review and campus assistant status lookup. [#98]
+
 - Add venue schedule search, persisted room availability, private local requests and administrator review. [#98]
 
 - Add the permanent course catalog with verified university course records, filtered search, printable descriptions and campus assistant links. [#98]

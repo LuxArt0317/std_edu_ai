@@ -1,6 +1,8 @@
 import {GraduationClearanceWorkspace} from "./GraduationClearanceWorkspace";
 import {clearancePaths} from "../../../../server/graduationClearanceContract.js";
 import {PermanentCourseCatalog} from "./PermanentCourseCatalog";
+import {FacilityRepairWorkspace} from "./FacilityRepairWorkspace";
+import {repairPaths} from "./facilityRepair.js";
 import {VenueWorkspace} from "./VenueWorkspace";
 import {venuePaths} from "./venueContract.js";
 import {permanentCoursesPath} from "./permanentCourseRouting.js";
@@ -642,6 +644,16 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   }
   if (servicePage && route[1] === "12-4") {
     return <CourseCatalog userId={user.id} />;
+  }
+  if (normalizedPath === repairPaths.report) {
+    return <FacilityRepairWorkspace key={user.id} userId={user.id} view="report" />;
+  }
+  for (const [view, base] of [["history", repairPaths.history], ["manage", repairPaths.manage]] as const) {
+    const id = normalizedPath.slice(base.length + 1);
+    if (normalizedPath === base || (normalizedPath.startsWith(base + "/") && !id.includes("/"))) {
+      return <FacilityRepairWorkspace key={user.id + normalizedPath} userId={user.id}
+        view={view} id={normalizedPath === base ? undefined : id} />;
+    }
   }
   if (normalizedPath === permanentCoursesPath) return <PermanentCourseCatalog />;
   if (normalizedPath === venuePaths.apply || normalizedPath === venuePaths.schedule || normalizedPath === venuePaths.manage) {

@@ -6,6 +6,7 @@ import {Textarea} from '@/components/ui/textarea';
 import {manageSchoolAffairsRecord,performSchoolAffairsAction,type AffairsAction,type AffairsManagerAction,type AffairsSnapshot} from '@/services/schoolAffairsWorkspace';
 import {SchoolRecordManager} from './SchoolRecordManager';
 import {useAffairsRecords} from './useAffairsRecords';
+import {repairPaths} from './facilityRepair.js';
 import {venuePaths} from './venueContract.js';
 
 type Props={userId:string;identity?:AffairsSnapshot;identityLoading:boolean;identityError?:string;onReloadIdentity:()=>void};
@@ -58,6 +59,7 @@ function AdminSession({userId,identity,identityLoading,identityError,onReloadIde
   return <section className="affairs-admin" aria-label="School Affairs administration">
     <h1>School Affairs administration</h1>
     <Link to={venuePaths.manage}>Review venue requests</Link>
+    <Link to={repairPaths.manage}>Review facility repairs</Link>
     {loading&&<p role="status">Loading administrative records…</p>}
     {error&&<div role="alert"><p>{error}</p><Button variant="outline" onClick={refresh}>Try again</Button></div>}
     <SchoolRecordManager admin={admin} busy={busy||!authorized} onManage={manage} onRefresh={refresh}/>

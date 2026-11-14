@@ -52,3 +52,5 @@ Browser clients call the public, School Affairs and protected Nexus endpoints. `
 `tutorEvaluation.ts` loads and submits the account’s evaluation, checks the initiating session before and after the request, and verifies the response owner and request ID.
 
 `programRegistration.ts` binds registration requests to the initiating School Affairs session. `interdisciplinaryPrograms.ts` provides the public catalog reader used by the registration and directory pages.
+
+The facility repair client verifies the active School Affairs session around private reads and writes, and validates the mutation receipt before navigating.

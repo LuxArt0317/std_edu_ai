@@ -1,5 +1,14 @@
 # Task Plan
 
+## Facilities repair [Issue #98]
+
+- [x] Confirm the reporting and status fields from the public noticeboard and check the protected source gate.
+- [x] Implement confirmed reports, private history, administrator review and assistant status.
+- [x] Apply the exact-client migration after rollback verification.
+- [ ] Verify the production browser, actual-JWT HTTP, guest assistant and pinned release.
+- [ ] Compare the authenticated university submission, dispatch and results screens.
+
+
 ## Venue booking [Issue #98]
 
 - [x] Inspect the public weekly schedule and confirm the application sign-in gate.

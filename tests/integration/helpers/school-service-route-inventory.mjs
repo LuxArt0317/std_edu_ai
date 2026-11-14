@@ -4,7 +4,7 @@ import {schoolServiceEntries} from '../../../src/features/public/affairs/student
 // Explicit review inventory, not inferred from the presence of a generic body.
 // A native mount says nothing about unobserved workflows or live backend acceptance.
 const service = id => '/school-affairs/services/'+id;
-const genericIds = '1-1 2-1 4-2 4-3 5-1 6-5 8-1 12-1 18-1 19-1 24-1 27-1 29-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 43-1 45-1 50-1 50-2 51-1 52-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
+const genericIds = '1-1 2-1 4-2 4-3 5-1 6-5 8-1 12-1 18-1 19-1 24-1 27-1 29-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 43-1 50-1 50-2 51-1 52-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
 const native = [
   ['7-3','.program-registration','program-registration-ui.mjs','Private interdisciplinary registration history and local registration controls.'],
   ['7-1','.credit-load-application','credit-load-application-ui.mjs','Observed instructions and closed-period acknowledgement only; open application and staff review forms remain unobserved.'],
@@ -69,6 +69,8 @@ const descriptors = [
     workflowSuite:'tests/integration/parking-permits-ui.mjs',sourceBoundary:'Observed parking entry and instructions; the university-authenticated form and records remain unobserved.'},
   {id:'44-1',kind:'partial',href:service('44-1'),finalUrl:service('44-1'),selector:'.venue-workspace',
     workflowSuite:'tests/integration/venue-booking-ui.mjs',sourceBoundary:'Local application and review linked to public availability. Protected university application layout is unobserved.'},
+  {id:'45-1',kind:'partial',href:service('45-1'),finalUrl:service('45-1'),selector:'.facility-repair',
+    workflowSuite:'tests/integration/facility-repair-ui.mjs',sourceBoundary:'Local reporting, private status and review. Protected university form remains unobserved.'},
   {id:'42-1',kind:'partial',href:service('42-1'),finalUrl:service('42-1'),selector:'.service-leadership',
     workflowSuite:'tests/integration/service-leadership-ui.mjs',sourceBoundary:'Observed index with four local destinations and exact university sign-in handoffs; protected details remain unobserved.'},
   {id:'28-1',kind:'native',href:service('28-1'),finalUrl:service('28-1'),selector:'.tutor-evaluation',

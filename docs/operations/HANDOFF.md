@@ -1,3 +1,7 @@
+## Facilities repair (Issue #98)
+
+Service 45-1 has a confirmed report form, saved private status and an administrator queue. The campus assistant reads the signed-in user's report status. See [facility repair QA](../qa/FACILITY_REPAIR.md) for the source boundary and verification.
+
 ## Venue booking (Issue #98)
 
 Services 44-1 and 47-1 use saved venue schedules and private local requests. The administrator can approve or decline a request, and the assistant reads the same records. The official application remains behind university sign-in. See [venue booking QA](../qa/VENUE_BOOKING.md).

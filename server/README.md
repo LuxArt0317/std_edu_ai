@@ -127,3 +127,5 @@ The curriculum map lookup sends validated year and track selectors to the fixed 
 `programRegistration.js` handles caller-scoped registrations and assistant evidence. The shared registration contract checks owner, fields, program code and versioned receipts.
 
 `courseSubstitution.js` reads the public form, resolves the exact department code, validates returned selection and groups, and supplies the same evidence to the assistant. `readSchoolHtml.js` bounds and validates the shared university HTML reads.
+
+The facility repair helper uses caller-JWT RPCs for versioned updates and private status reads. The public repair guide contains navigation and contact guidance.

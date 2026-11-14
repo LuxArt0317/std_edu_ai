@@ -1,3 +1,4 @@
+import {repairPaths} from "../affairs/facilityRepair.js";
 import assets from "./assets.json";
 import { localSchoolHref } from "../mirror/paths";
 
@@ -27,6 +28,9 @@ export function referenceHref(href: string): string {
       url.hostname === "sso2.stu.edu.tw"
     )
       return "/student-sso";
+    if (url.hostname === "infosys.stu.edu.tw" &&
+      url.pathname.replace(/\/$/, "").toLowerCase() === "/webrpg/login/asplogin/1")
+      return repairPaths.report;
     return localSchoolHref(href) || href;
   } catch {
     return href;

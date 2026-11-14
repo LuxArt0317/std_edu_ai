@@ -3,6 +3,8 @@ import {readGraduationClearanceAnswer} from './graduationClearance';
 import {permanentCourseQuestion} from '../features/public/affairs/permanentCourseRouting.js';
 import {venueQuestion} from '../features/public/affairs/venueContract.js';
 import {readVenueAnswer} from './venueBooking';
+import {repairId,repairPaths,repairQuestion} from '../features/public/affairs/facilityRepair.js';
+import {readRepairAnswer} from './facilityRepair';
 import {teachingFeedbackQuestion} from '../../server/teachingFeedbackContract.js';
 import {readTeachingFeedbackAnswer} from './teachingFeedback';
 import {earlyGraduationQuestion} from '../../server/earlyGraduationContract.js';
@@ -26,6 +28,15 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
   if (!affairsClient) throw new Error('School Affairs sign-in is not configured.');
   const {data,error} = await affairsClient.auth.getSession();
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
+  const repairDetail=route.startsWith(repairPaths.history+'/')
+    ? route.slice(repairPaths.history.length+1).split(/[?#]/,1)[0] : null;
+  const repairFollowUp=repairId(repairDetail)&&/^(?:what(?:'s| is) (?:the|its) status|is (?:this|it) (?:resolved|complete|done)|(?:目前)?(?:進度|處理情形|報修狀態))[?？。]?$/iu.test(question.trim());
+  const repair=!images.length&&(repairFollowUp?'history':repairQuestion(question));
+  if(repair){
+    if(repair!=='history')return askCampusAssistant(question,[],signal,[],route,onProgress);
+    onProgress?.({kind:'facility-repairs',label:'Checking repair reports',detail:'Reading your saved repair statuses.',status:'running'});
+    return readRepairAnswer(data.session.user.id,question,signal,repairId(repairDetail)?repairDetail:undefined);
+  }
   const venue=!images.length&&venueQuestion(question);
   if(venue){
     if(venue.view!=='mine')return askCampusAssistant(question,[],signal,[],route,onProgress);

@@ -1,6 +1,8 @@
 import {clearancePaths,clearanceQuestion} from './graduationClearanceContract.js';
 import {answerPermanentCourse} from './permanentCourses.js';
 import {answerVenue} from './venueBooking.js';
+import {answerRepairGuide} from './facilityRepair.js';
+import {repairQuestion} from '../src/features/public/affairs/facilityRepair.js';
 import {venueQuestion} from '../src/features/public/affairs/venueContract.js';
 import {permanentCourseQuestion} from '../src/features/public/affairs/permanentCourseRouting.js';
 import {teachingFeedbackPaths,teachingFeedbackQuestion} from './teachingFeedbackContract.js';
@@ -257,6 +259,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const kind = questionKind(input.question);
+        const repair = !input.images.length && !kind.irrelevant && repairQuestion(input.question);
+        if(repair){stream.send(200,answerRepairGuide(input.question,repair));return;}
         const venue = !input.images.length && !kind.irrelevant && venueQuestion(input.question);
         if (venue) {
             stream.progress('venue-booking','Checking venue information','Reading the venue service and schedule.');
