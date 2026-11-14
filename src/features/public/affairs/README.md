@@ -1,5 +1,7 @@
 # School Affairs UI
 
+Service 29-1 opens the counseling entry and private appointment history. School Affairs administration can assign coordinators. See [counseling QA](../../../../docs/qa/COUNSELING.md).
+
 Services 44-1 and 47-1 open the venue application and weekly schedule. The administrator can review local requests. See [venue booking QA](../../../../docs/qa/VENUE_BOOKING.md).
 
 Service 12-2 opens the permanent course catalog and its print dialog. See [permanent course QA and data refresh](../../../../docs/qa/PERMANENT_COURSES.md).

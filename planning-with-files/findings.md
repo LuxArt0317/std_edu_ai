@@ -1,3 +1,7 @@
+## Counseling appointment boundary [Issue #98]
+
+The observed university notice covers health information. The local workflow requires its own narrow notice and saves appointment logistics only. Verified Google students read their own history. An explicit coordinator grant allows access to the active queue. The assistant directs students to their private appointment page.
+
 # Findings
 
 ## Student information confirmation [Issue #98]

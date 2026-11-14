@@ -3,8 +3,9 @@
 ## Counseling appointments [Issue #98]
 
 - [x] Observe the source landing and consent views.
-- [ ] Verify the source appointment controls and model the account-scoped workflow.
-- [ ] Verify private request persistence and restricted access.
+- [x] Model the account-scoped workflow and verify persistence and restricted access.
+- [ ] Verify the pinned production UI and published assistant navigation.
+- [ ] Verify the university appointment controls beyond the observed consent page.
 
 ## Certificate award applications [Issue #98]
 

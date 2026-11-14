@@ -1,0 +1,39 @@
+.counseling-workspace { min-height:100vh; padding:12px 0 14px; background:#e6e6e6; color:#111; font:14px/1.55 "Microsoft JhengHei",Verdana,Arial,sans-serif; }
+.counseling-frame { width:min(962px,100%); min-height:722px; margin:auto; border:1px solid #c9cacb; border-top:0; border-radius:0 0 5px 5px; background:#fff; }
+.counseling-banner { display:flex; flex-wrap:wrap; justify-content:space-between; min-height:20px; padding:2px 17px; color:#fff; background:#56585c; font-size:12px; }
+.counseling-heading { display:flex; align-items:flex-start; gap:5px; min-height:52px; margin:0 16px; border-bottom:1px solid #ccc; }
+.counseling-heading img { flex:none; width:42px; height:42px; }
+.counseling-heading h1 { color:#3f3f3f; font:20px/1.3 Arial,sans-serif; }
+.counseling-frame nav { display:flex; flex-wrap:wrap; gap:2px; margin:-17px 16px 0; padding-left:47px; position:relative; }
+.counseling-frame nav a { padding:1px 9px; color:#fff; background:#006b88; font-size:12px; }
+.counseling-overview { min-height:600px; padding:30px 35px; }
+.counseling-overview h2,.counseling-notice h2,.counseling-appointments h2 { margin:0 0 18px; color:#102e5c; font:22px/1.4 "Microsoft JhengHei",Arial,sans-serif; }
+.counseling-overview h3 { margin:20px 0 8px; color:#006459; font-size:18px; font-weight:500; }
+.counseling-overview p { margin-bottom:14px; }
+.counseling-consent,.counseling-appointments { width:95%; margin:25px auto; }
+.counseling-notice { width:min(800px,100%); min-height:400px; padding:18px 24px; color:#191919; line-height:1.85; }
+.counseling-notice p { margin:16px 0; }
+.counseling-controls { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+.counseling-consent-actions { margin:18px 0 0 min(49%,446px); }
+.counseling-controls :is(button,a) { min-width:61px; min-height:27px; padding:2px 7px; border-radius:2px; color:#fff; background:#666; text-align:center; font:14px/1.5 Arial,sans-serif; cursor:pointer; }
+.counseling-controls .counseling-primary { background:#00766b; }
+.counseling-controls button:disabled { opacity:.55; cursor:default; }
+.counseling-official { margin:16px 0; }
+.counseling-overview a,.counseling-official a,.counseling-appointments a,.counseling-table-wrap button { color:#00658c; text-decoration:underline; }
+.counseling-form { display:grid; gap:10px; max-width:500px; margin:15px 0; }
+.counseling-form label { display:grid; align-items:center; grid-template-columns:100px minmax(0,1fr); }
+.counseling-form :is(select,input) { min-width:0; min-height:28px; padding:2px 6px; border:1px solid #888; background:#fff; }
+.counseling-form .counseling-controls { margin-left:100px; }
+.counseling-table-wrap { margin:20px 0 8px; overflow:auto; }
+.counseling-table-wrap table { width:100%; min-width:510px; border-collapse:collapse; }
+.counseling-table-wrap :is(th,td) { padding:6px; border:1px solid #ddd; text-align:left; }
+.counseling-table-wrap th { color:#fff; background:#007979; font-weight:400; }
+.counseling-workspace footer { margin-top:16px; color:#555; text-align:center; font-size:11px; }
+.counseling-workspace :focus-visible,.counseling-controls :focus-visible { outline:2px solid #005b83; outline-offset:2px; }
+@media(max-width:520px) {
+  .counseling-overview { min-height:0; padding:24px 14px; }
+  .counseling-heading { min-height:52px; }
+  .counseling-frame nav { margin-top:0; padding-left:0; }
+  .counseling-notice { min-height:0; padding:10px 0; }
+  .counseling-consent-actions { margin-left:0; }
+}

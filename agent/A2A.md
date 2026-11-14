@@ -1,3 +1,7 @@
+## Counseling appointments (Issue #98)
+
+Root owns service 29-1, migration 20261115000000, the private appointments queue and explicit access grants. The user approved using the observed entry and consent screens. The migration is applied after successful rollback. Keep Issue #100 paths excluded. No default coordinator.
+
 ## Certificate awards (Issue #98)
 
 Root owns service 52-1, migration 20261114230000, private proof bucket, protected review and assistant status. The observed source exposed 30 initial catalog entries. Preserve paused Issue #100 paths. Production `014def8` is live as Vercel `C57h6aW36V71tBftNhFu9LLg3g11`. Migration 20261114230000 brings the client to 157 migrations and 187 RLS-protected public tables with a private proof bucket. The pinned browser, actual-JWT HTTP and Storage test with exact cleanup, four bilingual guest assistant checks, eight shell routes and Quality 43550501226 passed. The 94-destination local audit reports 31 generic and 23 partial entries. The first 30 observed catalog entries are available. Official review and bank transfer remain outside the verified workflow. Payout references store the final four digits only. The university graduating-student and internship organization sources return to their own sign-ins. The counseling entry and consent page are observed. The application beyond consent remains unverified.

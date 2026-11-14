@@ -1,3 +1,4 @@
+import {counselingPath} from "../../../../server/counselingContract.js";
 import {certificateAwardPath} from "../../../../server/certificateAwardsContract.js";
 import {announcementEmailPath} from "../../../../server/announcementEmailContract.js";
 import {studentProfilePath} from "../../../../server/studentProfileContract.js";
@@ -33,6 +34,8 @@ export function referenceHref(href: string): string {
       return "/student-sso";
     if (url.hostname === "info.stu.edu.tw") {
       const path=url.pathname.toLowerCase();
+      if (path==="/sao/interview/index.asp") return counselingPath;
+      if (["/sao/interview/trnfile/mtnapplyformbystu.asp","/sao/interview/trnfile/mtndatascurity.asp"].includes(path)) return counselingPath+"/consent";
       if (path==="/sao/certificate/student/qrycrtnamerecordbystu.asp") return certificateAwardPath+"/catalog";
       if (path==="/sao/certificate/student/index.asp") return certificateAwardPath+"/overview";
       if (["/sao/certificate/index.asp","/sao/certificate/student/mtncrtrecordbystu.asp"].includes(path)) return certificateAwardPath;

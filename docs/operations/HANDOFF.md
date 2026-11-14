@@ -1,3 +1,7 @@
+## Counseling appointments [Issue #98]
+
+This feature adds private persisted requests, consent receipts and coordinator access without initial grants. See [counseling QA](../qa/COUNSELING.md) for exact tests, source scope and release status.
+
 ## Certificate awards (Issue #98)
 
 Service 52-1 has a searchable initial catalog, protected proof files, versioned applications and administrator review. See [certificate awards QA](../qa/CERTIFICATE_AWARDS.md).

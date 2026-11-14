@@ -1,3 +1,7 @@
+## Counseling appointments [Issue #98]
+
+Migration 20261115000000 was applied alone after a successful rollback preflight and exact client plan. Client snapshot is 158 migrations and 188 public RLS tables. Actual JWT calls to the local handlers passed with exact fixture cleanup. Build, 94-destination navigation and bilingual assistant checks passed. Consent and entry are observed. The university form beyond consent remains unverified.
+
 ## Certificate awards [Issue #98]
 
 Production `014def8` is live as Vercel `C57h6aW36V71tBftNhFu9LLg3g11`. Migration 20261114230000 brings the client to 157 migrations and 187 RLS-protected public tables with a private proof bucket. The pinned browser, actual-JWT HTTP and Storage test with exact cleanup, four bilingual guest assistant checks, eight shell routes and Quality 43550501226 passed. The 94-destination local audit reports 31 generic and 23 partial entries.

@@ -1,3 +1,4 @@
+import {CounselingAccessManager} from './CounselingManagement';
 import {CertificateAwardManager} from './CertificateAwardManager';
 import {useEffect,useLayoutEffect,useRef,useState,type FormEvent} from 'react';
 import {Link} from 'react-router';
@@ -66,6 +67,7 @@ function AdminSession({userId,identity,identityLoading,identityError,onReloadIde
     {error&&<div role="alert"><p>{error}</p><Button variant="outline" onClick={refresh}>Try again</Button></div>}
     {authorized&&<StudentProfileManager managerId={userId} profiles={admin.profiles.filter(profile=>profile.role==='student')}/>}
     {authorized&&<CertificateAwardManager managerId={userId} profiles={admin.profiles.filter(profile=>profile.role==='student')}/>}
+    {authorized&&<CounselingAccessManager userId={userId} profiles={admin.profiles}/>}
     <SchoolRecordManager admin={admin} busy={busy||!authorized} onManage={manage} onRefresh={refresh}/>
     <div className="affairs-record-grid">
       <section><h3>Accounts ({admin.profiles.length})</h3><ul>{admin.profiles.map(item=><li key={item.user_id}><strong>{item.display_name}</strong><span>{item.email} · {item.role}</span></li>)}</ul></section>
