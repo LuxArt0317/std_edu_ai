@@ -114,11 +114,13 @@ try {
  const salaryQuestion='How many student salary records do I have? Also show the net pay and tax for each period.';
  const moodleGradeQuestion='Show my Moodle grades.';
  const remoteLearningQuestion='What are my remote-learning Moodle enrollments? Also list my unfinished DTM assignments.';
+ const repairQuestion='What is the status of my facility repair reports? Also show my next scheduled class.';
+ const repairReply='Your saved repair status is in progress. Your next class is Campus Orientation at 09:00 Taipei time.';
  await page.route('**/api/affairs-assistant',async route=>{
   assistantRequests++;
   const authorization=route.request().headers().authorization;assert.ok(authorization?.startsWith('Bearer '));
   const payload=JSON.parse(Buffer.from(authorization.split('.')[1],'base64url').toString());assert.equal(payload.sub,affairsTestUser.id);
-  const body=route.request().postDataJSON();assert.ok(['What are my current subjects?','What is in this screenshot?','Remind me to review my sample courses',salaryQuestion,moodleGradeQuestion,remoteLearningQuestion].includes(body.question));assert.equal(body.route,'/school-affairs');
+  const body=route.request().postDataJSON();assert.ok(['What are my current subjects?','What is in this screenshot?','Remind me to review my sample courses',salaryQuestion,moodleGradeQuestion,remoteLearningQuestion,repairQuestion].includes(body.question));assert.equal(body.route,'/school-affairs');
   if(body.question===salaryQuestion){
    await route.fulfill({json:{answer:'You have 1 saved salary record. September net pay was 5400, with tax 0.',status:'answered',citations:[],
     verification:{status:'verified',attempts:1},activity:[{kind:'account-read:aidPayments:1',label:'Checked your salary record',detail:'Read the saved period, net pay and tax.',status:'complete'}]}});
@@ -134,6 +136,12 @@ try {
     verification:{status:'verified',attempts:1},activity:[
      {kind:'account-read:elearningEnrollments:1',label:'Checked remote-learning enrollments',detail:'Read the saved enrollments from your account.',status:'complete'},
      {kind:'account-read:assignments:1',label:'Checked DTM assignments',detail:'Read the saved assignments from your account.',status:'complete'}]}});
+   return;
+  }
+  if(body.question===repairQuestion){
+   await route.fulfill({json:{answer:repairReply,status:'answered',citations:[],verification:{status:'verified',attempts:1},activity:[
+    {kind:'account-read:facilityRepairs:1',label:'Checked your repair reports',detail:'Read the saved local repair status.',status:'complete'},
+    {kind:'account-read:courses:1',label:'Checked your next class',detail:'Read the signed-in School Affairs timetable.',status:'complete'}]}});
    return;
   }
   await route.fulfill({json:body.question.startsWith('Remind me')?{answer:'I can create a stu.best task after you confirm.',citations:[],proposedAction:{kind:'create_task',label:'Create task: Review my sample courses',payload:{title:'Review my sample courses'},requestId:reviewedTaskId}}:body.images?.length?{answer:'The image shows a School Affairs service menu.',citations:[],activity:[{kind:'image',label:'Read the attached image',detail:'1 image analyzed',status:'complete'}]}:{answer:'Your sample subject is SAMP101 Campus Orientation.',citations:[],activity:[{kind:'account',label:'Read your School Affairs records',detail:'Only this account was queried',status:'complete'}]}});
@@ -217,6 +225,16 @@ try {
  await remoteAnswer.getByText('Checked remote-learning enrollments',{exact:true}).waitFor();
  await remoteAnswer.getByText('Checked DTM assignments',{exact:true}).waitFor();
  evidence.push({remoteLearningMultipartEnteredGraph:true,remoteLearningActivityRestored:true});
+ const beforeRepair=assistantRequests;
+ await page.getByLabel('Your question').fill(repairQuestion);
+ await page.getByRole('button',{name:'Send',exact:true}).click();
+ const repairAnswer=page.locator('article').filter({hasText:repairReply});
+ await repairAnswer.getByText(repairReply,{exact:true}).waitFor();
+ await repairAnswer.locator('details summary').click();
+ await repairAnswer.getByText('Checked your repair reports',{exact:true}).waitFor();
+ await repairAnswer.getByText('Checked your next class',{exact:true}).waitFor();
+ assert.equal(assistantRequests,beforeRepair+1,'Repair details and next class enter one signed-in graph request');
+ evidence.push({repairAndScheduleEnteredGraph:true});
  const image=Buffer.concat([Buffer.from('89504e470d0a1a0a','hex'),Buffer.alloc(40)]);
  await page.locator('.public-assistant-surface input[type=file]').setInputFiles({name:'school-menu.png',mimeType:'image/png',buffer:image});
  await page.getByRole('list',{name:'Attached images'}).getByText('school-menu.png').waitFor();

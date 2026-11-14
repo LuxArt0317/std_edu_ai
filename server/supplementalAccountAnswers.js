@@ -4,6 +4,7 @@
 import {aidPaymentsFields,aidPaymentsPaths} from './aidPaymentsContract.js';
 export const supplementalAnswerLimits=Object.freeze({answerCharacters:8000,resultBytes:24000,views:3,viewRows:12});
 const definitions={
+  'account:facilityRepairs':{title:['Saved facility repair records','已儲存設施報修紀錄'],path:'/school-affairs/services/45-1/history'},
   'account:elearningEnrollments':{title:['Remote-learning Moodle enrollments','數位學園選課紀錄'],path:'/elearning/my-courses'},
   'account:dtmGradeReport':{title:['Local Moodle grade report','站內 Moodle 成績報告'],path:'/dtm/grades'},
   'account:aidPayments':{title:['Saved student aid and salary records','已儲存助學請款與薪資紀錄'],path:aidPaymentsPaths.claims},
@@ -23,10 +24,81 @@ const uuid='[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const detailRoute=new RegExp('^/dtm/course/'+uuid+'/assignment/'+uuid+'$','i');
 const catalogRoute=new RegExp('^/school-affairs/services/12-4(?:\\?(?:course|syllabus)='+uuid+')?$','i');
 const gradeRoute=new RegExp('^/dtm/course/('+uuid+')/grades$');
+const repairRoute=new RegExp('^/school-affairs/services/45-1/history/('+uuid+')$');
+const repairStates=['submitted','in_progress','resolved','cancelled'];
 const gradeCells=['score','maximum','gradeText','rangeText','percentageText','weightText','weightNote','rankText','feedbackText','contributionText'];
 const exact=(value,keys)=>object(value)&&Object.keys(value).length===keys.length&&keys.every(key=>own(value,key));
 const gradeString=(value,max=12000)=>typeof value==='string'&&value.length<=max&&!value.includes('\0')&&!/[\ud800-\udfff]/u.test(value);
 const gradeId=value=>typeof value==='string'&&new RegExp('^'+uuid+'$').test(value);
+function repairUrl(selection){
+  if(selection.id)return definitions['account:facilityRepairs'].path+'/'+selection.id;
+  const query=new URLSearchParams();if(selection.page)query.set('page',String(selection.page));if(selection.status)query.set('status',selection.status);
+  return definitions['account:facilityRepairs'].path+(query.size?'?'+query:'');
+}
+function validateRepairPayload(envelope,p,evidence){
+  const base=['collection','checkedAt','readState','selection','provenance','counts','records','recordPresent','latestHandlingNote','eventCoverage','complete','excerpted','requiresClarification','capabilities','rules'];
+  const s=p.selection,c=p.counts,n=p.latestHandlingNote;
+  if(!exact(p,[...base,...(own(p,'unavailableReason')?['unavailableReason']:[])])||p.collection!=='facilityRepairs'
+    ||p.readState!==envelope.readState||evidence.provenance!=='saved_local'||!gradeString(p.rules)
+    ||(p.unavailableReason??null)!==envelope.reason||!exact(s,['scope','id','idSource','page','pageSize','status','latestNoteRequested','noteHistoryRequested','fields'])
+    ||!(s.id===null||gradeId(s.id))||s.scope!==(s.id?'owned_detail':'owned_page')
+    ||!['none','route','question','previous_user','ambiguous','only_matching_report'].includes(s.idSource)
+    ||!integer(s.page)||s.page>999||s.pageSize!==25||!['',...repairStates].includes(s.status)||s.id&&(s.page!==0||s.status!=='')
+    ||typeof s.latestNoteRequested!=='boolean'||typeof s.noteHistoryRequested!=='boolean'||s.noteHistoryRequested&&!s.latestNoteRequested
+    ||!exact(s.fields,['location','item','description'])||Object.values(s.fields).some(value=>typeof value!=='boolean')
+    ||evidence.url!==repairUrl(s)||!exact(p.provenance,['source','officialUniversityData','synchronizationVerified','eventAuthorRoleAvailable'])
+    ||p.provenance.source!=='saved_local'||['officialUniversityData','synchronizationVerified','eventAuthorRoleAvailable'].some(key=>p.provenance[key]!==false)
+    ||!exact(p.capabilities,['read','latestHandlingNote','eventAuthor','fullEventHistory','write','cancel','review','officialSync'])
+    ||p.capabilities.read!==true||p.capabilities.latestHandlingNote!==true||['eventAuthor','fullEventHistory','write','cancel','review','officialSync'].some(key=>p.capabilities[key]!==false)
+    ||!exact(c,['available','returned','included','omitted'])||!integer(c.included)||['available','returned','omitted'].some(key=>c[key]!==null&&!integer(c[key]))
+    ||!Array.isArray(p.records)||p.records.length>25||c.included!==p.records.length||!exact(n,['state','event','authorRole'])||n.authorRole!==null
+    ||typeof p.complete!=='boolean'||typeof p.excerpted!=='boolean'||typeof p.requiresClarification!=='boolean')invalid();
+  for(const record of p.records){
+    const keys=['reference','url','status','version','createdAt','updatedAt',...(s.fields.location?['building','location']:[]),...(s.fields.item?['item']:[]),...(s.fields.description&&s.id?['description']:[])];
+    if(!exact(record,keys)||typeof record.url!=='string'||!repairRoute.test(record.url)
+      ||record.reference!==record.url.split('/').at(-1).slice(0,8).toUpperCase()||s.id&&record.url!==evidence.url
+      ||!repairStates.includes(record.status)||s.status&&record.status!==s.status||!integer(record.version)||record.version<1||record.version>10000
+      ||!['createdAt','updatedAt'].every(key=>gradeString(record[key],80)&&Number.isFinite(Date.parse(record[key])))||Date.parse(record.updatedAt)<Date.parse(record.createdAt))invalid();
+    for(const [key,max]of [['building',200],['location',240],['item',200],['description',2000]])if(own(record,key)&&(!gradeString(record[key],max)||!record[key].trim()))invalid();
+  }
+  const urls=[...new Set([evidence.url,...p.records.map(record=>record.url)])];
+  if(new Set(p.records.map(record=>record.url)).size!==p.records.length||!Array.isArray(evidence.urls)||evidence.urls.length!==urls.length||evidence.urls.some((url,index)=>url!==urls[index]))invalid();
+  if(p.readState==='unavailable'){
+    if(c.available!==null||c.returned!==null||c.included!==0||c.omitted!==null||p.recordPresent!==null||p.complete||p.excerpted
+      ||p.eventCoverage!==null||n.state!==(s.latestNoteRequested?'unknown':'not_requested')||n.event!==null
+      ||p.requiresClarification&&envelope.reason!=='ambiguous_selection')invalid();return;
+  }
+  if(c.available===null||c.returned===null||c.returned>25||c.returned<c.included||c.omitted!==c.available-c.included||p.recordPresent!==(c.available>0))invalid();
+  if(!s.id){
+    const choice=(s.latestNoteRequested||s.fields.description)&&c.available>0;
+    if(c.returned!==Math.min(25,Math.max(0,c.available-s.page*25))||p.requiresClarification!==choice
+      ||p.complete!==(!choice&&c.omitted===0)||p.excerpted!==(c.omitted>0)||p.eventCoverage!==null||n.event!==null
+      ||n.state!==(s.latestNoteRequested?(c.available===0?'no_saved_report':'selection_required'):'not_requested')
+      ||p.readState!==(choice||c.omitted?'partial':c.available===0?'empty':'ok'))invalid();return;
+  }
+  if(c.available!==1||c.returned!==1||c.included!==1||c.omitted!==0||p.requiresClarification||p.excerpted)invalid();
+  if(!s.latestNoteRequested){if(n.state!=='not_requested'||n.event!==null||p.eventCoverage!==null||p.readState!=='ok'||!p.complete)invalid();return;}
+  const coverage=p.eventCoverage,record=p.records[0];
+  if(!exact(coverage,['returned','limit','oldestVersion','newestVersion','tailContiguousToCurrent','completeHistory','roleMetadataAvailable'])
+    ||!integer(coverage.returned)||coverage.returned>100||coverage.limit!==100||coverage.roleMetadataAvailable!==false
+    ||typeof coverage.tailContiguousToCurrent!=='boolean'||typeof coverage.completeHistory!=='boolean')invalid();
+  if(coverage.returned===0){if(coverage.oldestVersion!==null||coverage.newestVersion!==null||coverage.tailContiguousToCurrent||coverage.completeHistory)invalid();}
+  else if(!integer(coverage.oldestVersion)||coverage.oldestVersion<1||!integer(coverage.newestVersion)||coverage.newestVersion>record.version
+    ||coverage.newestVersion-coverage.oldestVersion+1<coverage.returned
+    ||coverage.tailContiguousToCurrent!==(coverage.newestVersion===record.version&&coverage.newestVersion-coverage.oldestVersion+1===coverage.returned)
+    ||coverage.completeHistory!==(coverage.tailContiguousToCurrent&&coverage.oldestVersion===1))invalid();
+  if(n.state==='recorded'){
+    const event=n.event;
+    if(!coverage.tailContiguousToCurrent||!exact(event,['version','status','text','occurredAt','basis'])||!integer(event.version)
+      ||event.version<coverage.oldestVersion||event.version>record.version||!['in_progress','resolved'].includes(event.status)
+      ||['in_progress','resolved'].includes(record.status)&&event.version!==record.version
+      ||event.version===record.version&&event.status!==record.status||event.basis!=='saved_review_status'
+      ||!gradeString(event.text,1200)||[...event.text].length>600||!gradeString(event.occurredAt,80)||!Number.isFinite(Date.parse(event.occurredAt)))invalid();
+  }else if(!['not_recorded','unknown'].includes(n.state)||n.event!==null||n.state==='not_recorded'&&!coverage.completeHistory||n.state==='unknown'&&coverage.completeHistory
+    ||coverage.tailContiguousToCurrent&&['in_progress','resolved'].includes(record.status))invalid();
+  const partial=s.noteHistoryRequested||n.state==='unknown';
+  if(p.readState!==(partial?'partial':'ok')||p.complete===partial)invalid();
+}
 function validateGradeCells(value,item=false){
   if(!exact(value,item?['id','label','activityKind',...gradeCells]:gradeCells))invalid();
   for(const key of gradeCells){const cell=value[key];
@@ -97,6 +169,16 @@ function validateGradePayload(envelope,p,evidence){
 }
 const invalid=()=>{throw new TypeError('Use validated supplemental account evidence envelopes.');};
 function allowedUrl(id,url){
+  if(id==='account:facilityRepairs'){
+    if(typeof url!=='string')return false;
+    if(repairRoute.test(url))return true;
+    try{const parsed=new URL(url,'https://stu.best');
+      return parsed.origin==='https://stu.best'&&url.startsWith(definitions[id].path)&&parsed.pathname===definitions[id].path&&!parsed.hash
+        &&[...parsed.searchParams.keys()].every(key=>['page','status'].includes(key)&&parsed.searchParams.getAll(key).length===1)
+        &&(!parsed.searchParams.has('page')||/^[1-9]\d{0,2}$/u.test(parsed.searchParams.get('page')))
+        &&(!parsed.searchParams.has('status')||repairStates.includes(parsed.searchParams.get('status')));
+    }catch{return false;}
+  }
   if(id==='account:elearningEnrollments')return url===definitions[id].path||typeof url==='string'&&/^\/elearning\/course\/[1-9]\d{0,9}$/u.test(url)&&Number(url.split('/').at(-1))<=2147483647;
   if(id==='account:dtmGradeReport')return url==='/dtm/grades'||typeof url==='string'&&gradeRoute.test(url);
   if(id==='account:aidPayments')return Object.values(aidPaymentsPaths).includes(url);
@@ -111,7 +193,8 @@ function parse(envelope){
   if(evidence.urls!==undefined&&(!Array.isArray(evidence.urls)||evidence.urls.some(url=>!allowedUrl(id,url))))invalid();
   let payload;try{payload=JSON.parse(evidence.content);}catch{invalid();}
   if(!object(payload)||typeof payload.checkedAt!=='string'||!Number.isFinite(Date.parse(payload.checkedAt)))invalid();
-  if(id==='account:elearningEnrollments'){
+  if(id==='account:facilityRepairs')validateRepairPayload(envelope,payload,evidence);
+  else if(id==='account:elearningEnrollments'){
     const {counts,selection,rows,provenance,capability}=payload;
     const properties=['assignments','grades','submissions','personalAttendance','write'];
     if(payload.collection!==id.slice(8)||payload.readState!==envelope.readState||payload.reason!==envelope.reason
@@ -206,14 +289,14 @@ function sectionFor(parsed,question,zh){
   };
   // Literal record text must not create Markdown links, HTML, instructions or
   // citations. Code spans retain literal punctuation and make embedded URLs inert.
-  const literal=value=>{
+  const literal=(value,limit=360)=>{
     // A blank line terminates a Markdown paragraph even inside apparent code
     // fences. Render newlines visibly instead of allowing record text to create
     // a new paragraph, link, HTML block, list or fake source citation.
-    const valueText=display(value).replace(/\r\n|[\r\n\u0085\u2028\u2029]/gu,'\\n'),runs=valueText.match(/`+/g)||[],fence='`'.repeat(Math.max(0,...runs.map(run=>run.length))+1);
+    const valueText=display(value,limit).replace(/\r\n|[\r\n\u0085\u2028\u2029]/gu,'\\n'),runs=valueText.match(/`+/g)||[],fence='`'.repeat(Math.max(0,...runs.map(run=>run.length))+1);
     return fence+' '+valueText+' '+fence;
   };
-  const item=(label,value,header=false)=>section.items.push({text:`${label}: ${literal(value)}`,label,group:section.group,header});
+  const item=(label,value,header=false,limit=360)=>section.items.push({text:`${label}: ${literal(value,limit)}`,label,group:section.group,header});
   const group=(label,value)=>{section.group++;item(label,value,true);};
   const row=(...values)=>values.map(value=>display(value,160));
   const field=(record,key)=>own(record,key)?record[key]:t('not included in this lookup','本次查詢未納入');
@@ -221,6 +304,55 @@ function sectionFor(parsed,question,zh){
     if(!integer(total))invalid();
     section.view={id:id.slice(8),title,url:evidence.url,columns,rows:[],total,checkedAt:p.checkedAt,note};
   };
+  if(id==='account:facilityRepairs'){
+    section.lead.push(t('These are saved local stu.best repair records. A saved status does not confirm physical completion, a technician visit or an official university update.',
+      '以下是 stu.best 站內儲存的報修紀錄；儲存狀態不能確認實際完修、技師到場或校方系統更新。'));
+    section.complete&&=p.complete&&!p.requiresClarification;section.limited=p.excerpted;
+    if(envelope.readState==='unavailable'){
+      section.lead.push(envelope.reason==='ambiguous_selection'
+        ?t('Please provide the full report ID or choose a report. No specific report was read.','請提供完整報修識別碼或選擇一筆報修單；尚未讀取特定報修單。')
+        :envelope.reason==='unauthorized'?t('Sign in to access your own repair records. No account records were read.','請先登入以查詢自己的報修紀錄；尚未讀取帳戶紀錄。')
+        :envelope.reason==='forbidden'?t('I cannot access another student’s repair records. No other account was read.','無法存取其他學生的報修紀錄；未讀取其他帳戶。')
+        :envelope.reason==='record_not_found'?t('The requested report was not found or is unavailable to this account; its status and note are unknown. This does not establish that your other repair records are empty.',
+          '找不到所指定報修單，或此帳戶無法存取；狀態與處理註記仍未知，不代表您的其他報修紀錄為空。')
+        :t('The repair record query is unavailable. I cannot determine whether records exist, or verify their count, status or notes.',
+          '報修紀錄查詢無法完成，不能判定是否有紀錄，也無法確認筆數、狀態或處理註記。'));
+      return section;
+    }
+    section.lead.push(t('Repair record count: '+p.counts.available+'.','報修紀錄筆數：'+p.counts.available+'。'));
+    if(p.counts.available===0){section.lead.push(t('No saved repair records were returned by this successful selected local query. This does not establish university repair history.',
+      '這次成功的所選站內查詢未回傳已儲存報修紀錄，不代表校方報修歷史。'));return section;}
+    if(p.requiresClarification)section.lead.push(t('Choose one report below to read its handling note or description. No report detail or handling note was read for these choices.',
+      '請從下方選擇一筆報修單，以讀取處理註記或報修描述；這些選項尚未讀取明細或處理註記。'));
+    if(p.counts.omitted>0)section.lead.push(t(`Included ${p.counts.included} records; ${p.counts.omitted} records are not included in this page or evidence excerpt.`,
+      `納入 ${p.counts.included} 筆；此頁或證據節錄未納入 ${p.counts.omitted} 筆。`));
+    view([t('Repair reference','報修識別'),t('Saved status','儲存狀態'),t('Updated at','更新時間')],p.counts.available,
+      t('Included saved local reports only. Handling notes remain paired with their report in the answer; no technician identity is supplied.',
+        '僅顯示納入的站內報修紀錄；答案中的處理註記對應各自報修單，未提供技師身分。'));
+    for(const record of p.records){
+      group(t('Repair reference','報修識別'),record.reference);item(t('Saved status','儲存狀態'),record.status);
+      if(p.selection.id&&p.selection.latestNoteRequested){
+        const note=p.latestHandlingNote;
+        item(t('Latest handling note','最新處理註記'),note.state==='recorded'?note.event.text:note.state==='not_recorded'
+          ?t('not recorded in this complete saved event history','完整已儲存事件歷史中未記錄')
+          :t('unknown; the event history is incomplete','未知；事件歷史不完整'),false,1200);
+        item(t('Technician author','技師作者'),t('unknown; the source does not record event authors or technician roles','未知；來源未記錄事件作者或技師角色'));
+        if(note.state==='recorded'){item(t('Handling-note version','處理註記版本'),note.event.version);item(t('Handling-note recorded at','處理註記時間'),note.event.occurredAt);}
+      }
+      for(const [key,en,cn]of [['building','Building','建築物'],['location','Location','位置'],['item','Reported item','報修項目'],['description','Original report description','原始報修描述']])
+        if(own(record,key))item(t(en,cn),record[key],false,key==='description'?2000:360);
+      item(t('Updated at','更新時間'),record.updatedAt);
+      section.items.push({text:`[${t('Open this repair report','開啟此報修單')}](${record.url})`,label:'Repair report link',group:section.group,header:false});
+      section.viewCandidates.push(row(record.reference,record.status,record.updatedAt));
+    }
+    if(p.selection.noteHistoryRequested)section.lead.push(t('The full note history is unavailable through this reader; only the requested latest handling note can be included.',
+      '此查詢未提供完整註記歷史，只能納入所要求的最新處理註記。'));
+    if(/physical|technician|official|really|actually|技師|技师|實際|实际|校方|完修/iu.test(question))section.lead.push(t('Physical repair completion: not verified. A saved review-status note does not identify its author.',
+      '實際完修：尚未驗證。儲存的處理狀態註記不能識別作者。'));
+    if(/\b(?:cancel|submit|withdraw)\b.{0,80}\b(?:repair|maintenance|report)\b|\b(?:cancel|submit|withdraw)\s+(?:it|this|that)\b|\b(?:notify|message|tell)\b.{0,45}\b(?:technician|maintenance (?:staff|team)|repair team)\b|(?:取消|撤銷|撤销|送出|提交).{0,30}(?:報修|报修|維修|维修)|(?:通知|傳訊|传讯).{0,20}(?:技師|技师|維修人員|维修人员)/iu.test(question))section.lead.push(t('Cancellation: not supported by this reader. I cannot message the technician. No submission, cancellation, review or notification was performed.',
+      '取消：此查詢不支援。無法傳訊給技師，未執行送出、取消、審核或通知。'));
+    return section;
+  }
   if(id==='account:elearningEnrollments'){
     if(p.selection.unsupported)section.lead.push(t('stu.best does not have personal grades, assignments, submissions or attendance from remote-learning Moodle. Those records cannot be inferred from enrollment.',
       'stu.best 未連結數位學園的個人成績、作業、繳交與出席紀錄；無法從選課推定這些資料。'));
@@ -537,7 +669,7 @@ export function formatSupplementalAccountAnswers(results,{question='',language:r
   if(!Array.isArray(results)||results.length>Object.keys(definitions).length||typeof question!=='string'||question.length>12000)invalid();
   const parsed=results.map(parse);if(new Set(parsed.map(item=>item.id)).size!==parsed.length)invalid();
   const zh=language(question,requestedLanguage),sections=parsed.map(item=>sectionFor(item,question,zh));
-  const interests=[/objectiv|goal|目標/iu,/feedback|comment|評語|評閱/iu,/grad(?:e|ing)|score|評分|成績|比重/iu,/weight|權重|权重/iu,/percentage|百分比/iu,/rank|排名/iu,/range|範圍|范围/iu,/contribution|貢獻|贡献/iu,/maximum|滿分|满分/iu,/material|textbook|教材/iu,/reference|參考/iu,/room|classroom|教室/iu,/prerequisite|先修/iu,/office hours|諮商時間/iu,/statement|text|原文|內容/iu,/week|週/iu,/net|tax|gross|salary|amount|approval|淨額|所得稅|薪資|金額|簽核/iu];
+  const interests=[/note|註記|备注|備註/iu,/status|狀態|状态/iu,/objectiv|goal|目標/iu,/feedback|comment|評語|評閱/iu,/grad(?:e|ing)|score|評分|成績|比重/iu,/weight|權重|权重/iu,/percentage|百分比/iu,/rank|排名/iu,/range|範圍|范围/iu,/contribution|貢獻|贡献/iu,/maximum|滿分|满分/iu,/material|textbook|教材/iu,/reference|參考/iu,/room|classroom|教室/iu,/prerequisite|先修/iu,/office hours|諮商時間/iu,/statement|text|原文|內容/iu,/week|週/iu,/net|tax|gross|salary|amount|approval|淨額|所得稅|薪資|金額|簽核/iu];
   const preferred=label=>interests.some(pattern=>pattern.test(question)&&pattern.test(label))?0:1;
   // Prioritize requested fields within each record, never move a child's facts
   // under another record. A rejected heading also rejects all its child fields.
@@ -545,7 +677,7 @@ export function formatSupplementalAccountAnswers(results,{question='',language:r
     const groups=new Map();for(const item of section.items){if(!groups.has(item.group))groups.set(item.group,[]);groups.get(item.group).push(item);}
     section.items=[...groups.values()].flatMap(items=>items.sort((a,b)=>Number(b.header)-Number(a.header)||preferred(a.label)-preferred(b.label)));
   }
-  const topics={'account:dtmGradeReport':/moodle|dtm|grade report|gradebook|成績報告|成绩报告/iu,'account:aidPayments':/student aid|financial aid|salary|payroll|助學|薪資|工讀/iu,'account:studentConduct':/conduct|disciplin|獎懲/iu,'account:studentLoan':/loan|貸款|學貸/iu,'account:courseCatalog':/catalog|syllabus|offering|課綱|大綱|開課/iu,'account:enrollmentCertificate':/certificate|enrolment|enrollment|在學|在籍|學籍證明/iu,'account:dtmSubmissions':/file|upload|submission|assignment|feedback|作業|檔案|評語|上傳/iu,'account:tuition':/tuition|settlement|statement|summer|evening|學費|結算|暑修|進修部|延修/iu};
+  const topics={'account:facilityRepairs':/repair|maintenance|報修|报修|修繕/iu,'account:dtmGradeReport':/moodle|dtm|grade report|gradebook|成績報告|成绩报告/iu,'account:aidPayments':/student aid|financial aid|salary|payroll|助學|薪資|工讀/iu,'account:studentConduct':/conduct|disciplin|獎懲/iu,'account:studentLoan':/loan|貸款|學貸/iu,'account:courseCatalog':/catalog|syllabus|offering|課綱|大綱|開課/iu,'account:enrollmentCertificate':/certificate|enrolment|enrollment|在學|在籍|學籍證明/iu,'account:dtmSubmissions':/file|upload|submission|assignment|feedback|作業|檔案|評語|上傳/iu,'account:tuition':/tuition|settlement|statement|summer|evening|學費|結算|暑修|進修部|延修/iu};
   const rankedViews=sections.filter(section=>section.view).map((section,index)=>({section,index,match:question.search(topics[section.id])})).sort((a,b)=>Number(b.match>=0)-Number(a.match>=0)||Number(b.section.viewCandidates.length>0)-Number(a.section.viewCandidates.length>0)||(a.match>=0&&b.match>=0?a.match-b.match:0)||a.index-b.index);
   const selectedSet=new Set(rankedViews.slice(0,supplementalAnswerLimits.views).map(value=>value.section));
   const selectedViews=sections.filter(section=>selectedSet.has(section));
@@ -553,7 +685,7 @@ export function formatSupplementalAccountAnswers(results,{question='',language:r
   const omittedViews=rankedViews.length-selectedViews.length;
   let omittedItems=sections.reduce((total,section)=>total+section.items.length,0),omittedViewRows=sections.reduce((total,section)=>total+section.viewCandidates.length,0);
   const result=()=>({status:sections.some(section=>section.usable)?'answered':'abstained',answer:sections.map(section=>[
-    section.title,...section.lead,...section.shown.map(item=>(['account:dtmGradeReport','account:elearningEnrollments'].includes(section.id)&&item.group&&!item.header?'  - ':'- ')+item.text),
+    section.title,...section.lead,...section.shown.map(item=>(['account:dtmGradeReport','account:elearningEnrollments','account:facilityRepairs'].includes(section.id)&&item.group&&!item.header?'  - ':'- ')+item.text),
     (section.limited||section.shown.length<section.items.length||section.viewCandidates.length>(section.view?.rows.length??0))
       ?(zh?'顯示內容已節錄，省略部分不代表沒有紀錄。':'Display excerpt: omitted fields or rows do not establish absence.'):null,
     section.view&&!section.viewSelected?(zh?'此來源表格因三張表格的顯示上限省略，文字結果與來源連結仍保留。':'This source table is omitted by the three-table display limit; its text result and source link remain available.'):null,

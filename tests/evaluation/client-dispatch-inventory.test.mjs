@@ -5,16 +5,16 @@ import {discoverClientDispatchSurfaces,inspectClientDispatchSource,probeNativePr
 
 const dispatchSource=()=>readFile(new URL('../../src/services/schoolAffairsAssistant.ts',import.meta.url),'utf8');
 
-test('the eight direct readers and graph-backed enrollment dispatch remain separately visible',async()=>{
+test('the seven direct readers and graph-backed enrollment and repair dispatch remain separately visible',async()=>{
   const inventory=await discoverClientDispatchSurfaces();
-  assert.equal(inventory.services.length,8);assert.equal(inventory.scopes.length,8);assert.equal(inventory.questions.length,40);
+  assert.equal(inventory.services.length,7);assert.equal(inventory.scopes.length,7);assert.equal(inventory.questions.length,35);
   assert.equal(inventory.graphBankIncluded,false);assert.equal(inventory.layer,'browser-client-dispatch');
   assert.deepEqual(inventory.scopes,['club-student','elearning-course-outline',
-    'certificate-awards','announcement-email','student-profile','facility-repairs','venue-requests','graduation-clearance']);
-  assert.equal(new Set(inventory.questions.map(row=>row.id)).size,40);
+    'certificate-awards','announcement-email','student-profile','venue-requests','graduation-clearance']);
+  assert.equal(new Set(inventory.questions.map(row=>row.id)).size,35);
   assert.deepEqual(inventory.verifiedDispatch.map(({id,graphTool})=>({id,graphTool})),[
     {id:'aid-payments',graphTool:'aidPayments'},{id:'dtm-grade-report',graphTool:'dtmGradeReport'},
-    {id:'elearning-enrollments',graphTool:'elearningEnrollments'},
+    {id:'elearning-enrollments',graphTool:'elearningEnrollments'},{id:'facility-repairs',graphTool:'facilityRepairs'},
   ]);
   for(const service of inventory.services){
     assert.equal(service.routeAuth,'signed-in');assert.equal(service.graphTool,null);
@@ -40,6 +40,7 @@ test('native questions require the fields the reader actually supplies and discl
   assert.deepEqual(service('student-profile').fields,['recordExists','confirmedAt']);
   assert.match(service('student-profile').limit,/deliberately omits address/u);
   assert.equal(service('elearning-enrollments'),undefined);
+  assert.equal(service('facility-repairs'),undefined);
   assert.ok(question('client:graduation-clearance:multipart').assertions.requiredFields.includes('applications[].reviews[].note'));
   assert.match(service('graduation-clearance').limit,/not their saved notes/u);
   assert.ok(inventory.navigationOnly.some(row=>row.scopes.includes('counseling-appointments')&&row.observedCalls.includes('counselingGuide')));
@@ -68,12 +69,13 @@ test('independent natural-language probes expose unsupported wording without cou
 
 test('source drift cannot silently detach a declared native reader from auth, ownership or API ordering',async()=>{
   const source=await dispatchSource();
-  assert.equal(inspectClientDispatchSource(source).contracts.length,8);
+  assert.equal(inspectClientDispatchSource(source).contracts.length,7);
   const mutations=[
     source.replace('if (error || !data.session) throw new Error','if (false) throw new Error'),
     source.replace('answerStudentClubs(data.session.user.id,','answerStudentClubs(otherUserId,'),
     source.replace("from './clubStudent'","from './unrelated'"),
     source.replace('isElearningEvidenceQuestion(question,route,history)','false'),
+    source.replace('isFacilityRepairEvidenceQuestion(question,route,history)','true'),
     source.replace('data.session.user.id !== expectedUserId','false'),
     source.replace('return answerElearningOutline(data.session.user.id,outline,question,signal);','return undefined;'),
     source.replace('const officer =',"await fetch('/api/affairs-assistant'); const officer ="),

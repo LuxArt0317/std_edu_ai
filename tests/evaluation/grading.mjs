@@ -305,6 +305,7 @@ const missingDtmReportField=/\b(?:no\s+(?:(?:saved|native|moodle|dtm)\s+){0,4}gr
 // Recognize its affirmative empty result without relying on a separate official
 // enrollment disclaimer, or treating a question/negated quotation as absence.
 const missingElearningEnrollments=/(?:^|[.!]\s+|\n)\s*(?:there are )?no saved remote-learning moodle enrollments(?: for this account)?(?:\.|$)/iu;
+const limitedFacilityRepair=/(?:^|[.!]\s+|\n)\s*(?:(?:there are )?no (?:saved|local) (?:facility )?repair (?:records|reports)(?: (?:for this account|match(?:ing)? this query|are saved))?|physical repair completion\s*:\s*unverified)(?:\.|$)/iu;
 
 // Opt-in record boundaries are separate from stored facts. A correct literal
 // beside an unsupported conclusion must not pass. Evaluate short clauses so a
@@ -366,7 +367,7 @@ function normalizedLink(value) {
 }
 
 // This test-side allowlist is deliberately independent of the runtime planner.
-const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments']);
+const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs']);
 const toolStatusAliases={success:'complete',succeeded:'complete',failed:'error',started:'running',start:'running'};
 const toolStatuses=new Set(['running','complete','unavailable','error','cancelled','skipped']);
 const terminalStatuses=new Set(['complete','unavailable','error','cancelled','skipped']);
@@ -456,7 +457,8 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
       'A missing-data/capability case explicitly declares its limitation oracle.');
     check('answer.limitation',limitationText.test(answer.replace(/’/g,"'"))||otherAccountDenial.test(answer)||ownAccountOnlyDenial(answer)||unavailableFileCapability.test(answer)
       ||testCase.domain==='dtmGradeReport'&&missingDtmReportField.test(answer)
-      ||testCase.domain==='elearningEnrollments'&&missingElearningEnrollments.test(visibleMarkdown(answer)),'The answer explicitly states missing records, inability or unsupported capability.');
+      ||testCase.domain==='elearningEnrollments'&&missingElearningEnrollments.test(visibleMarkdown(answer))
+      ||testCase.domain==='facilityRepairs'&&limitedFacilityRepair.test(visibleMarkdown(answer)),'The answer explicitly states missing records, inability or unsupported capability.');
     if(expected.limitation && expected.limitation!==true)check('answer.limitation.specific',matches(text,expected.limitation),'The specific required limitation is stated.');
   }
   if (behavior==='answer' && testCase.mode==='record') {
@@ -543,6 +545,11 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
   for (const kind of expected.requiredEvents || []) check(`event.${kind}`,allEvents.some(event=>event.kind===kind && event.status==='complete'),'Required completed operation is retained.');
   const noAction=expected.noAction ?? behavior!=='proposal';
   if (noAction) check('action.none',!actions,'Read, navigation, clarification and unavailable answers do not propose writes.');
+  if(expected.requireUnchangedOwnedRecords){
+    const before=envelope.stateBefore?.ownedRecordsDigest,after=envelope.stateAfterProposal?.ownedRecordsDigest;
+    check('action.ownedRecordsUnchanged',typeof before==='string'&&/^[a-f0-9]{64}$/u.test(before)&&before===after
+      &&envelope.fixtureReadback?.verified===true&&envelope.fixtureReadback?.independentGolden===true,'Two independently read fixture snapshots show that the assistant changed no owned record.');
+  }
   if (behavior==='proposal' || expected.action) {
     check('action.expected',Boolean(expected.action && typeof expected.action.kind==='string' && expected.action.payload && typeof expected.action.payload==='object'),'Action acceptance declares an immutable kind and payload.');
     check('action.kind',Boolean(actions && actions.kind===expected.action?.kind),'Only the requested action kind is proposed.');

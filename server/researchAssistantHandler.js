@@ -16,6 +16,7 @@ import {answerVenue} from './venueBooking.js';
 import {answerRepairGuide} from './facilityRepair.js';
 import {studentProfilePath,studentProfileQuestion} from './studentProfileContract.js';
 import {repairQuestion} from '../src/features/public/affairs/facilityRepair.js';
+import {isFacilityRepairEvidenceQuestion,isForeignFacilityRepairQuestion} from './facilityRepairEvidenceIntent.js';
 import {venueQuestion} from '../src/features/public/affairs/venueContract.js';
 import {permanentCourseQuestion} from '../src/features/public/affairs/permanentCourseRouting.js';
 import {teachingFeedbackPaths,teachingFeedbackQuestion} from './teachingFeedbackContract.js';
@@ -105,6 +106,7 @@ function parse(body) {
         return ['user', 'assistant'].includes(String(item.role)) && typeof item.content === 'string' ? [{ role: String(item.role), content: item.content.slice(0, 2000) }] : [];
     }) : [];
     const route = typeof source.route === 'string' && (/^\/school-affairs(?:\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?$/.test(source.route)||
+        (source.route.startsWith('/school-affairs/services/45-1/history')&&isFacilityRepairEvidenceQuestion('What is its status?',source.route))||
         /^\/elearning(?:\/(?:category|notice)\/[1-9]\d{0,9}|\/(?:categories|my-courses|login|search))?\/?$/.test(source.route)||
         (source.route.startsWith('/elearning/course/')&&!/[?#]/.test(source.route)&&elearningCourseLocation(source.route))) ? source.route : normalizePublicPageRoute(source.route);
     const rawImages = source.images;
@@ -316,6 +318,16 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const stream = createAssistantStream(input.stream, response);
+        const foreignRepair=isForeignFacilityRepairQuestion(input.question);
+        if(foreignRepair||isFacilityRepairEvidenceQuestion(input.question,input.route,input.history)){
+            const path='/school-affairs/services/45-1/history',url='/school-affairs/login?next='+encodeURIComponent(path);
+            const zh=/[\u3400-\u9fff]/u.test(input.question);
+            const answer=foreignRepair
+                ?(zh?'我無法存取其他學生的報修紀錄。登入後只能查詢您自己的紀錄。':'I cannot access another student’s facility repair records. After signing in, you can ask about your own saved records.')
+                :(zh?`[登入校務資訊系統](${url})後，才能查詢您的報修紀錄。`:`[Sign in to School Affairs](${url}) to ask about your own saved facility repair records.`);
+            stream.send(200,{status:'handoff',answer,citations:[],suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
+            return;
+        }
         if (!input.images.length && isProgramRegistrationQuestion(input.question)) {
             const next = "/school-affairs/login?next=" + encodeURIComponent(programRegistrationPath);
             const zh = /[\u3400-\u9fff]/u.test(input.question);

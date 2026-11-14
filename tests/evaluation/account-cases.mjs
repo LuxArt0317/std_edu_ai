@@ -1,11 +1,12 @@
 /** Golden student questions authored from stored-field contracts, not answer implementations. */
 import {DEFAULT_EVAL_NOW,EVAL_IDS,evaluationDates} from './fixtures.mjs';
+import {buildLiveFacilityRepairCases} from './facility-repair-cases.mjs';
 const routes={profile:'/school-affairs/records',courses:'/school-affairs/records',assignments:'/dtm/assignments',dtm:'/dtm',charges:'/school-affairs/services/39-1',tasks:'/school-affairs/records',requests:'/school-affairs/records',serviceRecords:'/school-affairs/services/leave/history',announcements:'/school-affairs',scholarship:'/school-affairs/services/9-1',studentAid:'/school-affairs/services/22-1',housing:'/school-affairs/services/34-1',creditLoadHistory:'/school-affairs/services/11-3',courseSelection:'/school-affairs/services/11-1',academicGrades:'/school-affairs/services/13-1/transcript',graduationReview:'/school-affairs/services/13-1/graduation',academicAttendance:'/school-affairs/services/14-1'};
 const fact=(label,values,kind='text',labels=[])=>({label,labels,kind,values:Array.isArray(values)?values:[values]});
 const capability=(level='native',limitation=null,gap=level==='partial')=>({level,limitation,gap});
 export function buildAccountCases({now=DEFAULT_EVAL_NOW}={}){
   if(!Number.isFinite(Date.parse(now)))throw new Error('Evaluation now must be a valid timestamp.');
-  const cases=[],dates=evaluationDates(now);
+  const cases=buildLiveFacilityRepairCases({now}),dates=evaluationDates(now);
   function add(id,domain,question,options={}){
     const {behavior='answer',mode='record',requiredText=[],forbiddenText=[],requiredLinks=[],requiredTools=[domain],provenance='local',facts=[],fixtureKey=domain,route=routes[domain]||'/school-affairs/records',history,language='en',level='native',limitation=null,gap=level==='partial',fixtureRequirement,...extra}=options;
     if(facts.some(row=>row.kind==='date')&&!question.includes('YYYY-MM-DD'))question+=' Use YYYY-MM-DD for dates.';

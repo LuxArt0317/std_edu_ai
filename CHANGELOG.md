@@ -10,6 +10,7 @@
 - Use published Shu-Te resources to support first-week study advice. Check school facts separately from planning suggestions. [#100]
 - Verify saved remote-learning Moodle enrollments and unfinished DTM assignments together when a student asks for both. Keep the two systems' coursework separate. [#100]
 - Require the live evaluation to match the deployed revision before fixture setup and throughout the test run. [#100]
+- Verify saved facility repair status and handling notes alongside the next class when both are requested. Preserve the report link and the limit on what a saved status can establish. [#100]
 
 - Add student club and activity search, private participation history, and new-club applications with administrator review and assistant links. [#98]
 

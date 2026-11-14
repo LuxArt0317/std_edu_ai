@@ -1,6 +1,5 @@
 import {affairsClient} from '@/features/public/affairs/authClient';
 import {repairId,repairStatuses,type RepairStatus} from '@/features/public/affairs/facilityRepair.js';
-import type {AssistantResponse} from './researchAssistant';
 
 export type RepairFields={building:string;location:string;item:string;description:string};
 export type RepairRow=Omit<RepairFields,'description'>&{id:string;user_id:string;status:RepairStatus;version:number;created_at:string;updated_at:string};
@@ -69,10 +68,5 @@ export async function writeRepair(userId:string,action:RepairAction,signal:Abort
     (initial?result.version!==1:result.id!==action.payload.id||result.version!==action.payload.version+1)){
     throw new RepairError('無法確認報修結果，請重試。',502);
   }
-  return result;
-}
-export async function readRepairAnswer(userId:string,question:string,signal?:AbortSignal,id?:string){
-  const result=await request<AssistantResponse>(userId,path('mine',{answer:/[\u3400-\u9fff]/u.test(question)?'zh':'en',...(id?{id}:{})}),signal);
-  if(typeof result.answer!=='string'||result.grounding?.source!=='account')throw Error('Could not verify your repair status.');
   return result;
 }

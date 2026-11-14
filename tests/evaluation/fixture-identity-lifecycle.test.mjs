@@ -166,6 +166,28 @@ test('actual prepare captures the fixed owner baseline before ledger/Auth writes
   }
 });
 
+test('preview setup verifies the exact origin and current revision before credentials or ledger access',async()=>{
+  const root='/synthetic',life=lifecycle({owned:false}),project='xiftudmvxphxcjtmfmib';
+  const origin='https://stdedu-example-v1-d286.vercel.app',expectedReleaseRevision='a'.repeat(40);
+  let pinAttempts=0,credentialReads=0;
+  Object.assign(life.context,{
+    state:undefined,ROOT:root,PROJECT:project,resolve,URL,process:{cwd:()=>root},
+    readFile:async()=>JSON.stringify({repository:'LuxArt0317/std_edu_ai',supabase:{projectRef:project},vercel:{productionUrl:'https://stu.best'}}),
+    deploymentEnvironment:()=>{credentialReads++;throw new Error('No credentials should be read');},
+    createPinnedDeploymentVerifier:(value)=>{
+      assert.equal(value.origin,origin);assert.equal(value.approvedPreviewOrigin,origin);
+      assert.equal(value.expectedRevision,expectedReleaseRevision);
+      return {pin:async()=>{pinAttempts++;throw new Error('fixture mismatch');}};
+    },
+  });
+  const params={runId,cases:[{id:'synthetic-case'}],now:'2026-11-14T00:00:00Z',origin,expectedReleaseRevision};
+  await assert.rejects(life.api.prepare(params),{code:'fixture-target'});
+  await assert.rejects(life.api.prepare({...params,approvedPreviewOrigin:origin}),{code:'fixture-target'});
+  assert.equal(pinAttempts,1);
+  assert.equal(credentialReads,0);
+  assert.deepEqual(life.events,[]);
+});
+
 test('an exclusively reserved intent survives ambiguous Auth create without persisting credentials or provider bodies',async()=>{
   const life=lifecycle({owned:false});
   await life.api.reserveLedger();

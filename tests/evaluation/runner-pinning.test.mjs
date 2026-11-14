@@ -10,8 +10,8 @@ const caseFor=n=>({id:'pin:'+n,domain:'fees',route:'/school-affairs/services/39-
   capability:{level:'native',gap:false},expected:{behavior:'answer',facts:[{label:'Tuition balance',kind:'number',values:[23000]}],requiredTools:[]}});
 const inventory={hash:'c'.repeat(64),services:[],tools:[],publicPages:[],routeFamilies:[{id:'affairs',routes:['/school-affairs/services/39-1'],auth:'signed-in'}]};
 
-function rig({count=2,origin='https://stu.best',manifestAt,post,prepare,afterCase,cleanup,identities}={}){
-  const events=[],saved=[],cases=Array.from({length:count},(_,n)=>caseFor(n+1));let reads=0,posts=0,identifications=0;
+function rig({count=2,origin='https://stu.best',manifestAt,post,prepare,afterCase,cleanup,identities,caseChanges}={}){
+  const events=[],saved=[],cases=Array.from({length:count},(_,n)=>({...caseFor(n+1),...caseChanges}));let reads=0,posts=0,identifications=0;
   const manifest={...baseManifest,environment:origin===preview?'preview':'production'};
   const adapter={
     async prepare(context){events.push('prepare');assert.equal(context.origin,origin);assert.equal(context.expectedReleaseRevision,revision);
@@ -73,6 +73,18 @@ test('wrong revision, protection, redirects and untrusted manifest stop before f
 test('dirty source is stopped before even the release request',async()=>{
   const env=rig({identities:[{...identity,dirty:true},identity]});await assert.rejects(env.run(),/clean, exact source revision/u);
   assert.deepEqual(env.events,[]);assert.equal(env.saved.at(-1).results.length,0);
+});
+
+test('a next-class clock mismatch after the deployment preflight cannot send a model request',async()=>{
+  const env=rig({count:1,caseChanges:{publishedNextClass:{asOf:'2026-11-14T02:00:00Z'}}});
+  const report=await env.run();
+  assert.equal(env.posts,0);
+  assert.ok(env.events.includes('readback:pin:1'));
+  assert.ok(env.events.includes('cleanup'));
+  assert.equal(report.results[0].response.executed,false);
+  assert.equal(report.results[0].response.failureKind,'setup');
+  assert.match(report.results[0].response.body.error,/differs from the independent literal oracle/u);
+  assert.equal(report.assessment.releaseReady,false);
 });
 
 test('explicit approved Preview is passed unchanged to the fixture adapter; no bare Preview or loopback bypass',async()=>{

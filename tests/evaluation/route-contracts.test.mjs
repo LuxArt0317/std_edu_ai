@@ -208,10 +208,12 @@ test('route coverage retains only unresolved semantic cases after adding public 
   const aidIds=['salary-count','salary-multipart','salary-tax','claim','both','empty','bank-unavailable','foreign'].map(id=>'account:aid-payments-'+id);
   const dtmIds=['feedback','absent','total','saved-total','tail'].map(id=>'account:dtm-native-report-'+id);
   const elearningIds=['enrollment','enrollment-mixed','enrollment-empty','grades-unlinked'].map(id=>'account:elearning-'+id);
-  const addedPrivacyIds=['anonymous-records-studentConduct','anonymous-records-studentLoan','anonymous-records-aidPayments','anonymous-records-dtmGradeReport','anonymous-records-elearningEnrollments'];
-  const newIds=[...reproductionIds,...nativeIds,...aidIds,...dtmIds,...elearningIds,...addedPrivacyIds,'public-study-first-week'];
+  const facilityIds=['detail-status','status-not-physical-proof','latest-note','latest-blank','no-review-event','owned-list','all-overrides-detail',
+    'ambiguous-reference','exact-not-found','empty-owned-list','read-only-action','foreign-account','anonymous','compound-next-class','compound-reversed'].map(id=>'account:facility-repair-'+id);
+  const addedPrivacyIds=['anonymous-records-studentConduct','anonymous-records-studentLoan','anonymous-records-aidPayments','anonymous-records-dtmGradeReport','anonymous-records-elearningEnrollments','anonymous-records-facilityRepairs'];
+  const newIds=[...reproductionIds,...nativeIds,...aidIds,...dtmIds,...elearningIds,...facilityIds,...addedPrivacyIds,'public-study-first-week'];
   assert.equal(cases.filter(row=>!newIds.includes(row.id)).length,945);
-  for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,addedPrivacyIds])assert.deepEqual(cases.filter(row=>ids.includes(row.id)).map(row=>row.id).sort(),[...ids].sort());
+  for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,addedPrivacyIds])assert.deepEqual(cases.filter(row=>ids.includes(row.id)).map(row=>row.id).sort(),[...ids].sort());
   assert.equal(report.coverage.routes.total,576);
   assert.equal(expected.length,58);assert.equal(added.length,14);
   assert.deepEqual(report.coverage.routes.missing.filter(route=>!added.includes(route)),expected);

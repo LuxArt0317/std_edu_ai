@@ -7,6 +7,7 @@ import {elearningGuide,elearningQuestion,elearningOutlineCourse} from '../../ser
 import {isAidPaymentsEvidenceQuestion,isForeignAidPaymentsQuestion} from '../../server/aidPaymentsEvidenceIntent.js';
 import {isForeignDtmGradesQuestion,shouldReadNativeDtmGrades} from '../../server/dtmGradeEvidenceIntent.js';
 import {isElearningEvidenceQuestion,isForeignElearningRecordsQuestion} from '../../server/elearningEvidenceIntent.js';
+import {isFacilityRepairEvidenceQuestion,isForeignFacilityRepairQuestion} from '../../server/facilityRepairEvidenceIntent.js';
 import {answerElearningOutline} from './elearning';
 import {counselingGuide,counselingQuestion} from '../../server/counselingContract.js';
 import {certificateAwardQuestion} from '../../server/certificateAwardsContract.js';
@@ -20,8 +21,7 @@ import {readGraduationClearanceAnswer} from './graduationClearance';
 import {permanentCourseQuestion} from '../features/public/affairs/permanentCourseRouting.js';
 import {venueQuestion} from '../features/public/affairs/venueContract.js';
 import {readVenueAnswer} from './venueBooking';
-import {repairId,repairPaths,repairQuestion} from '../features/public/affairs/facilityRepair.js';
-import {readRepairAnswer} from './facilityRepair';
+import {repairQuestion} from '../features/public/affairs/facilityRepair.js';
 import {teachingFeedbackQuestion} from '../../server/teachingFeedbackContract.js';
 import {readTeachingFeedbackAnswer} from './teachingFeedback';
 import {earlyGraduationQuestion} from '../../server/earlyGraduationContract.js';
@@ -51,7 +51,8 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
   const {access_token:accessToken}=data.session;
   if (isAidPaymentsEvidenceQuestion(question,route,history)||isForeignAidPaymentsQuestion(question)
     ||isForeignDtmGradesQuestion(question,route)||shouldReadNativeDtmGrades(question,route,history)
-    ||isElearningEvidenceQuestion(question,route,history)||isForeignElearningRecordsQuestion(question,route))
+    ||isElearningEvidenceQuestion(question,route,history)||isForeignElearningRecordsQuestion(question,route)
+    ||isFacilityRepairEvidenceQuestion(question,route,history)||isForeignFacilityRepairQuestion(question))
     return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress);
   const officer = !images.length ? clubOfficerQuestion(question) : null;
   if (officer) return clubOfficerGuide(question,officer,true);
@@ -90,15 +91,8 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
     onProgress?.({kind:'student-profile',label:'Checking student information confirmation',detail:'Reading your confirmation status.',status:'running'});
     return readStudentProfileAnswer(data.session.user.id,question,signal);
   }
-  const repairDetail=route.startsWith(repairPaths.history+'/')
-    ? route.slice(repairPaths.history.length+1).split(/[?#]/,1)[0] : null;
-  const repairFollowUp=repairId(repairDetail)&&/^(?:what(?:'s| is) (?:the|its) status|is (?:this|it) (?:resolved|complete|done)|(?:目前)?(?:進度|處理情形|報修狀態))[?？。]?$/iu.test(question.trim());
-  const repair=!images.length&&(repairFollowUp?'history':repairQuestion(question));
-  if(repair){
-    if(repair!=='history')return askCampusAssistant(question,[],signal,[],route,onProgress);
-    onProgress?.({kind:'facility-repairs',label:'Checking repair reports',detail:'Reading your saved repair statuses.',status:'running'});
-    return readRepairAnswer(data.session.user.id,question,signal,repairId(repairDetail)?repairDetail:undefined);
-  }
+  const repair=!images.length&&repairQuestion(question);
+  if(repair&&repair!=='history')return askCampusAssistant(question,[],signal,[],route,onProgress);
   const venue=!images.length&&venueQuestion(question);
   if(venue){
     if(venue.view!=='mine')return askCampusAssistant(question,[],signal,[],route,onProgress);

@@ -17,13 +17,13 @@ test('evaluation fixtures are fresh and preserve independent oracles and explici
       assert.ok(!item.coveredTools?.length,'Coaching must not fabricate personal-record coverage.');
     }else assert.equal(item.capability.gap,true,'An unregistered backend capability must remain an explicit gap.');
   }
-  for(const item of cases){assert.ok(fixtureForCase(item));if(item.mode==='record'&&item.expected.behavior==='answer')assert.ok(item.expected.facts.length||item.expected.exactLists?.length,item.id);}
+  for(const item of cases){if(item.fixtureKey!=='anonymous')assert.ok(fixtureForCase(item));if(item.mode==='record'&&item.expected.behavior==='answer')assert.ok(item.expected.facts.length||item.expected.exactLists?.length,item.id);}
   assert.throws(()=>fixtureForCase('unknown-domain'));assert.throws(()=>fixtureForCase('unavailable:unknown'));
 });
 test('the bank declares all registered tools while actual DTM file fixtures remain unexecutable',()=>{
   const base=Object.keys(accountTools),supplemental=Object.keys(supplementalAccountTools),registered=[...base,...supplemental];
   assert.equal(base.length,17);
-  assert.deepEqual(supplemental.sort(),['aidPayments','courseCatalog','dtmGradeReport','dtmSubmissions','elearningEnrollments','enrollmentCertificate','studentConduct','studentLoan','tuition'].sort());
+  assert.deepEqual(supplemental.sort(),['aidPayments','courseCatalog','dtmGradeReport','dtmSubmissions','elearningEnrollments','enrollmentCertificate','facilityRepairs','studentConduct','studentLoan','tuition'].sort());
   assert.equal(new Set(registered).size,registered.length,'Base and supplemental registrations must not shadow each other.');
   const cases=buildAccountCases(),declared=[...new Set(cases.flatMap(row=>row.expected.requiredTools))];
   assert.deepEqual(declared.sort(),registered.sort());

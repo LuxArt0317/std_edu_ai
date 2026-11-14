@@ -23,8 +23,10 @@ import {parseStudentLoanSnapshot,validateStudentLoanPayload} from '../../server/
 import {catalogTextFields,catalogNumberFields,catalogBooleanFields,catalogPeriods} from '../../src/features/public/affairs/courseCatalogModel.js';
 import {normalizeCourseSyllabus} from '../../src/features/public/affairs/courseSyllabusModel.js';
 import {bindPublishedSampleEnrollments,sampleEnrollmentManifest} from './published-sample-enrollments.mjs';
+import {assertPublishedNextClassClock} from './published-next-class.mjs';
 import {createPinnedDeploymentVerifier} from './pinned-deployment.mjs';
 import {assertElearningFixtureCatalog,assertElearningFixtureRows,elearningFixtureManifest,elearningFixturePlan,verifyElearningFixtureWorkspace} from './elearning-fixtures.mjs';
+import {buildFacilityRepairFixturePlan,changeFacilityRepairFixtureRows,facilityRepairLiveFixtureKey,verifyFacilityRepairFixtureDatabase,verifyFacilityRepairFixtureReadback} from './facility-repair-fixtures.mjs';
 import {aidPaymentFixtureManifest,aidPaymentFixtureReadContract,assertAidPaymentFixtureEmpty,assertAidPaymentFixtureIdentities,assertAidPaymentFixtureRowTargets,buildAidPaymentFixturePlan,verifyAidPaymentFixtureReadback} from './aid-payment-fixture-plan.mjs';
 import {dtmGradeReportFixtureManifest,dtmGradeReportFixtureReadContract,assertDtmGradeReportFixtureEmpty,assertDtmGradeReportFixtureIdentities,assertDtmGradeReportFixtureCourseBindings,assertDtmGradeReportFixtureRowTargets,buildDtmGradeReportFixturePlan,verifyDtmGradeReportFixtureReadback} from './dtm-grade-report-fixture-plan.mjs';
 
@@ -36,7 +38,7 @@ const PRIVATE_NATIVE_DOMAINS=['studentAid','creditLoadHistory','courseSelection'
 const CONDITIONAL_NATIVE_DOMAINS=['courses','scholarship','housing'];
 const SUPPLEMENTAL_SCOPES=Object.freeze({enrollmentCertificate:'enrollment-certificate',tuition:'tuition-documents',studentConduct:'student-conduct',studentLoan:'student-loan'});
 const SUPPLEMENTAL_TABLES=Object.freeze({enrollmentCertificate:'affairs_enrollment_certificate_assessments',tuition:'affairs_tuition_settlements',studentConduct:'affairs_student_conduct',studentLoan:'affairs_student_loan'});
-const SUPPORTED_TOOLS=new Set(['profile','charges','tasks','requests','serviceRecords','dtm','assignments','aidPayments','dtmGradeReport','elearningEnrollments',...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS,...Object.keys(SUPPLEMENTAL_SCOPES)]);
+const SUPPORTED_TOOLS=new Set(['profile','charges','tasks','requests','serviceRecords','dtm','assignments','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs',...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS,...Object.keys(SUPPLEMENTAL_SCOPES)]);
 const FOREIGN_MARKER='FOREIGN PRIVATE SENTINEL';
 export const catalogFixtureSetupReasons=Object.freeze(['catalog_read_unavailable','published_payload_invalid','public_scope_mismatch','no_suitable_published_offering','no_null_weight_offering','absent_probe_not_empty']);
 const catalogKinds=Object.freeze({'account:catalog-known-fields':'known-fields','account:catalog-null-weight':'null-weight','account:catalog-unfound':'unfound','account:catalog-enrollment-distinction':'enrollment-distinction','account:catalog-mixed-dtm':'mixed-dtm','service:12-4:record':'known-fields','service:12-4:empty':'unfound'});
@@ -213,6 +215,8 @@ async function saveLedger(){
         previous:dtmReportRecoveryBinding(s.dtmReportPlan),pending:dtmReportRecoveryBinding(s.pendingDtmReportPlan),transitionPending:Boolean(s.dtmReportTransitionPending),
       }}:{}),...(s.elearningPlan||s.elearningTransitionPending?{elearningFixture:{
         previous:s.elearningPlan?.rows??null,pending:s.pendingElearningPlan?.rows??null,transitionPending:Boolean(s.elearningTransitionPending),
+      }}:{}),...(s.facilityRepairPlan||s.facilityRepairTransitionPending?{facilityRepairFixture:{
+        previous:s.facilityRepairPlan??null,pending:s.pendingFacilityRepairPlan??null,transitionPending:Boolean(s.facilityRepairTransitionPending),
       }}:{})},null,2));
     await handle.sync();
   }finally{await handle?.close();}
@@ -344,6 +348,10 @@ function assertSupported(testCase,snapshot){
   if(testCase.id==='account:dtm-notices')fail('fixture-unsupported','DTM notices are globally shared; this adapter never publishes synthetic notices.');
   if(key==='submissions')fail('fixture-unsupported','This adapter does not create file uploads or submission revisions; a tracker row is not submission evidence.');
   if(snapshot.profile.role!=='student')fail('fixture-unsupported','The live adapter never elevates a fixture to administrator.');
+  if(key==='facility-repairs:compound'){
+    try{assertPublishedNextClassClock(testCase.publishedNextClass,{now:new Date().toISOString()});}
+    catch{fail('fixture-clock','The original published next-class expectation cannot be verified at the current Taipei time.');}
+  }
   if(String(key).startsWith('published-sample:')){
     if(key!=='published-sample:records')fail('fixture-unsupported','Unknown published sample fixture family.');
     if(evaluationDates(state.now).today!==evaluationDates(new Date().toISOString()).today)fail('fixture-clock','Published sample evaluation must use the actual campus day; literal term dates cannot be rebased.');
@@ -599,6 +607,29 @@ export async function readElearningFixtureScopes(plan,users,{origin,signal,fetch
     }
   }catch{fail('fixture-readback','The remote-learning enrollment data did not match the independent caller fixture.');}
   return result;
+}
+
+export async function readFacilityRepairFixtureScopes(plan,users,{origin,signal,fetchImpl=fetch}={}){
+  try{
+    const target=new URL('/api/affairs-data',origin);
+    await Promise.all(users.map(user=>user.renewSession?.({signal})));
+    return await verifyFacilityRepairFixtureReadback(plan,async(owner,id)=>{
+      const user=users.find(row=>row.id===owner);
+      if(!user?.token)throw new Error();
+      const url=new URL(target);
+      url.searchParams.set('scope','facility-repairs');url.searchParams.set('view','mine');
+      if(id)url.searchParams.set('id',id);
+      const response=await fetchImpl(url,{redirect:'error',cache:'no-store',headers:{Authorization:'Bearer '+user.token},signal:signals(signal,15000)});
+      if(![200,404].includes(response.status)||response.redirected||response.url&&response.url!==url.href||!response.headers.get('content-type')?.includes('application/json')){
+        await response.body?.cancel();throw new Error();
+      }
+      const reader=response.body?.getReader();if(!reader)throw new Error();
+      const chunks=[];let bytes=0;
+      try{for(;;){const {done,value}=await reader.read();if(done)break;bytes+=value.byteLength;if(bytes>131072)throw new Error();chunks.push(value);}}
+      finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
+      return {status:response.status,body:JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)))};
+    });
+  }catch{fail('fixture-readback','Facility repair status, event history or account isolation differed from the independent fixture.');}
 }
 
 async function readDtmReportTargets(sql,plan){
@@ -1088,7 +1119,8 @@ export function validateFixtureServiceRecord(row){
   return true;
 }
 async function readNativeBindings(snapshot,testCase){
-  const s=state,publishedSample=testCase.fixtureKey==='published-sample:records',required=new Set(testCase.expected?.requiredTools||[]),domains=[...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS.filter(domain=>required.has(domain)||domain==='courses'&&publishedSample)],shared={};
+  const s=state,publishedSample=testCase.fixtureKey==='published-sample:records'||testCase.fixtureKey==='facility-repairs:compound';
+  const required=new Set(testCase.expected?.requiredTools||[]),domains=[...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS.filter(domain=>required.has(domain)||domain==='courses'&&publishedSample)],shared={};
   for(const domain of ['scholarship','housing'].filter(domain=>domains.includes(domain))){
     const values=await query(()=>s.sql`select * from ${s.sql('public.'+periodTables[domain])} where published=true order by id limit 501`,'Could not read published fixture period bindings.');
     if(values.length>500)fail('fixture-unsupported','Published period bindings exceed the bounded fixture inventory.');
@@ -1141,7 +1173,7 @@ function recordsToInsert(snapshot,user){
   }
   return rows;
 }
-async function persistSnapshot(snapshot,rows,testCase,nativePlan,supplementalPlan,aidPlan,dtmReportPlan,elearningPlan){
+async function persistSnapshot(snapshot,rows,testCase,nativePlan,supplementalPlan,aidPlan,dtmReportPlan,elearningPlan,facilityRepairPlan){
   const s=state,user=s.users[0];
   for(const values of Object.values(rows))for(const row of values)s.recordIds.add(row.id);
   for(const domain of supplementalPlan.domains)s.supplementalTables.add(SUPPLEMENTAL_TABLES[domain]);
@@ -1157,6 +1189,9 @@ async function persistSnapshot(snapshot,rows,testCase,nativePlan,supplementalPla
   if(elearningPlan||s.elearningPlan){
     s.supplementalTables.add('elearning_enrollments');
     s.pendingElearningPlan=elearningPlan;s.elearningTransitionPending=true;
+  }
+  if(facilityRepairPlan||s.facilityRepairPlan){
+    s.pendingFacilityRepairPlan=facilityRepairPlan;s.facilityRepairTransitionPending=true;
   }
   await saveLedger();
   if(aidPlan||s.aidPlan){s.pendingAidPlan=aidPlan;s.aidTransitionPending=true;}
@@ -1181,6 +1216,7 @@ async function persistSnapshot(snapshot,rows,testCase,nativePlan,supplementalPla
     }
     if(aidPlan||s.aidPlan)await replaceAidFixtureRows(tx,s.aidPlan,aidPlan);
     if(elearningPlan||s.elearningPlan)await changeElearningFixtureRows(tx,{previous:s.elearningPlan,next:elearningPlan,identities:s.identityRequests,runId:s.runId});
+    if(facilityRepairPlan||s.facilityRepairPlan)await changeFacilityRepairFixtureRows(tx,{previous:s.facilityRepairPlan,next:facilityRepairPlan,identities:s.identityRequests,runId:s.runId});
     if(nativePlan.domains.includes('courses'))await tx`delete from public.affairs_enrollments where student_id=${user.studentId}`;
     await tx`update public.affairs_profiles set preferred_name=${snapshot.profile.displayName} where user_id=${user.id}`;
     await tx`update public.affairs_students set student_number=${snapshot.student.studentNumber},full_name=${snapshot.student.fullName},year_level=${snapshot.student.yearLevel} where id=${user.studentId} and user_id=${user.id}`;
@@ -1205,6 +1241,7 @@ async function persistSnapshot(snapshot,rows,testCase,nativePlan,supplementalPla
     if(s.aidTransitionPending){s.aidPlan=aidPlan;s.pendingAidPlan=null;s.aidTransitionPending=false;}
     if(s.dtmReportTransitionPending){s.dtmReportPlan=dtmReportPlan;s.pendingDtmReportPlan=null;s.dtmReportTransitionPending=false;}
     if(s.elearningTransitionPending){s.elearningPlan=elearningPlan;s.pendingElearningPlan=null;s.elearningTransitionPending=false;}
+    if(s.facilityRepairTransitionPending){s.facilityRepairPlan=facilityRepairPlan;s.pendingFacilityRepairPlan=null;s.facilityRepairTransitionPending=false;}
     }catch(error){try{await tx.unsafe('rollback');}catch{/* Preserve the original, sanitized error. */}throw error;}
   },'Could not persist private evaluation rows.');
 }
@@ -1243,6 +1280,7 @@ export async function forCase(testCase,{signal}={}){
   if(s.aidTransitionPending)fail('fixture-state','The preceding aid fixture transaction did not settle. Cleanup must reconcile it before any further case.');
   if(s.dtmReportTransitionPending)fail('fixture-state','The preceding DTM report fixture transaction did not settle. Cleanup must reconcile it before any further case.');
   if(s.elearningTransitionPending)fail('fixture-state','The preceding remote-learning fixture transaction did not settle. Cleanup must reconcile it before any further case.');
+  if(s.facilityRepairTransitionPending)fail('fixture-state','The preceding repair fixture transaction did not settle. Cleanup must reconcile it before any further case.');
   if((signal||s.signal)?.aborted)fail('fixture-aborted','Evaluation was interrupted.');
   await Promise.all(s.users.map(user=>user.renewSession?.({signal:signal||s.signal})));
   const catalogBinding=s.catalogBindings?.get(testCase.id);
@@ -1276,9 +1314,13 @@ export async function forCase(testCase,{signal}={}){
     ?elearningFixturePlan(testCase.fixtureKey,s.users.map(user=>user.id)):null;
   if(!elearningPlan&&(testCase.expected?.requiredTools||[]).includes('elearningEnrollments'))
     fail('fixture-unsupported','No independent remote-learning enrollment fixture is declared for this case.');
+  const facilityRepairPlan=testCase.fixtureRequirement==='native_facility_repair'&&facilityRepairLiveFixtureKey(testCase.fixtureKey)
+    ?buildFacilityRepairFixturePlan(testCase,s.users.map(user=>user.id)):null;
+  if(!facilityRepairPlan&&[...testCase.expected?.requiredTools??[],...testCase.expected?.requiredAttemptedTools??[]].includes('facilityRepairs'))
+    fail('fixture-unsupported','No independent repair history fixture is declared for this case.');
   if(!catalogOnly){
     const rows={...recordsToInsert(expected,s.users[0]),...nativePlan.rows,...supplementalPlan.rows};
-    await persistSnapshot(expected,rows,testCase,nativePlan,supplementalPlan,aidPlan,dtmReportPlan,elearningPlan);
+    await persistSnapshot(expected,rows,testCase,nativePlan,supplementalPlan,aidPlan,dtmReportPlan,elearningPlan,facilityRepairPlan);
   }
   const actual=await readSnapshot(s.users[0],{signal:signal||s.signal});
   if(!catalogOnly){verifyReadback(actual,expected,testCase);verifyNativeFixtureReadback(actual,nativePlan);}
@@ -1293,12 +1335,19 @@ export async function forCase(testCase,{signal}={}){
   const aid=s.aidPlan?await readAidFixtureScopes(s.aidPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
   const dtmReport=s.dtmReportPlan?await readDtmReportFixtureScopes(s.dtmReportPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
   const elearning=s.elearningPlan?await readElearningFixtureScopes(s.elearningPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
-  const before={snapshot:ownState(actual),supplemental,catalog,...(publishedSample?{publishedSample}:{}),...(aid?{aid}:{}),...(dtmReport?{dtmReport}:{}),...(elearning?{elearning}:{})};
+  const facilityRepairs=s.facilityRepairPlan?await currentFacilityRepairFixture(s,signal):null;
+  const before={snapshot:ownState(actual),supplemental,catalog,...(publishedSample?{publishedSample}:{}),...(aid?{aid}:{}),...(dtmReport?{dtmReport}:{}),...(elearning?{elearning}:{}),...(facilityRepairs?{facilityRepairs}:{})};
   s.current={caseId:testCase.id,beforeHash:hash(before),supplementalDomains,catalogBinding,
     ...(publishedSample?{publishedSamplePlan:nativePlan}:{})};
   await saveLedger();
   await s.users[0].renewSession?.({signal:signal||s.signal});
   return {token:s.users[0].token};
+}
+
+async function currentFacilityRepairFixture(s,signal){
+  const readback=await readFacilityRepairFixtureScopes(s.facilityRepairPlan,s.users,{origin:s.origin,signal:signal||s.signal});
+  await query(()=>verifyFacilityRepairFixtureDatabase(s.sql,s.facilityRepairPlan),'Could not verify persisted repair rows and event metadata.');
+  return readback;
 }
 
 /** Deliberately never confirms or executes a proposed assistant action. */
@@ -1319,7 +1368,9 @@ export async function afterCase(testCase,envelope,{signal}={}){
     const aid=s.aidPlan?await readAidFixtureScopes(s.aidPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
     const dtmReport=s.dtmReportPlan?await readDtmReportFixtureScopes(s.dtmReportPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
     const elearning=s.elearningPlan?await readElearningFixtureScopes(s.elearningPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
-    const afterHash=hash({snapshot:ownState(actual),supplemental,catalog,...(publishedSample?{publishedSample}:{}),...(aid?{aid}:{}),...(dtmReport?{dtmReport}:{}),...(elearning?{elearning}:{})});
+    const facilityRepairs=s.facilityRepairPlan?await currentFacilityRepairFixture(s,signal):null;
+    if(testCase.publishedNextClass)assertPublishedNextClassClock(testCase.publishedNextClass,{now:new Date().toISOString()});
+    const afterHash=hash({snapshot:ownState(actual),supplemental,catalog,...(publishedSample?{publishedSample}:{}),...(aid?{aid}:{}),...(dtmReport?{dtmReport}:{}),...(elearning?{elearning}:{}),...(facilityRepairs?{facilityRepairs}:{})});
     envelope.stateBefore={ownedRecordsDigest:current.beforeHash};
     envelope.stateAfterProposal={ownedRecordsDigest:afterHash};
     envelope.fixtureReadback={verified:true,projectRef:PROJECT,independentGolden:true};
@@ -1369,6 +1420,17 @@ export async function cleanup(){
     }
     if(s.users.some(user=>!UUID.test(user.id)||!deletable.has(user.id)&&!absent.has(user.id)))fail('fixture-cleanup','A known fixture identity could not be reconciled; no account will be deleted.');
     if(s.ledgerOwned)await saveLedger();
+    if(s.facilityRepairPlan||s.pendingFacilityRepairPlan){
+      await query(async()=>{
+        await s.sql.unsafe('begin');
+        try{
+          await changeFacilityRepairFixtureRows(s.sql,{previous:s.facilityRepairPlan,next:s.pendingFacilityRepairPlan,identities:s.identityRequests,runId:s.runId,recovering:true});
+          await s.sql.unsafe('commit');
+          s.facilityRepairPlan=null;s.pendingFacilityRepairPlan=null;s.facilityRepairTransitionPending=false;
+        }catch(error){try{await s.sql.unsafe('rollback');}catch{/* Preserve the original cleanup failure. */}throw error;}
+      },'Could not remove the exact disposable repair records and history.');
+      await saveLedger();
+    }
     if(s.elearningPlan||s.pendingElearningPlan){
       await query(async()=>{
         await s.sql.unsafe('begin');

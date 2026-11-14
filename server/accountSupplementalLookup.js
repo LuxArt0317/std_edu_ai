@@ -12,6 +12,8 @@ import {isSubmissionEvidenceQuestion} from './accountSubmissionEvidence.js';
 import {isTuitionEvidenceQuestion} from './accountTuitionEvidence.js';
 import {normalizeSyllabusSearchQuery} from './syllabusSearch.js';
 import {formatSupplementalAccountAnswers} from './supplementalAccountAnswers.js';
+import {isFacilityRepairEvidenceQuestion} from './facilityRepairEvidenceIntent.js';
+import {facilityRepairEvidenceMaxBytes,unavailableFacilityRepairEvidence} from './accountFacilityRepairEvidence.js';
 
 export const supplementalAccountTools=Object.freeze({
   courseCatalog:'Published local sample course offerings and syllabus plans, independent of enrollment. Supports exact offering IDs and validated keyword/term/department/theme search.',
@@ -23,12 +25,39 @@ export const supplementalAccountTools=Object.freeze({
   aidPayments:'Own saved student aid claims and salary records, with separate counts, exact periods, amounts, deductions and approval text. Independent from financial aid applications, student loans, tuition, and bank transfers.',
   dtmGradeReport:'Own native DTM grade report and grades overview. Literal report items, feedback and saved total values. Separate from the personal grade tracker, file reviews, and School Affairs transcript.',
   elearningEnrollments:'Saved local remote-learning Moodle course enrollments and joined times. Separate from DTM and School Affairs. Does not contain personal remote-learning grades, assignments, submissions or attendance.',
+  facilityRepairs:'Own saved local facility-repair reports and exact status; requested latest saved handling note with unknown event author. Separate from housing and generic service trackers. No cancellation, technician messaging, dispatch or proof of physical repair.',
 });
-const predicates={courseCatalog:isCatalogEvidenceQuestion,enrollmentCertificate:isCertificateEvidenceQuestion,dtmSubmissions:isSubmissionEvidenceQuestion,tuition:isTuitionEvidenceQuestion,studentConduct:isStudentConductEvidenceQuestion,studentLoan:isStudentLoanEvidenceQuestion,aidPayments:isAidPaymentsEvidenceQuestion,dtmGradeReport:shouldReadNativeDtmGrades,elearningEnrollments:isElearningEvidenceQuestion};
+const predicates={courseCatalog:isCatalogEvidenceQuestion,enrollmentCertificate:isCertificateEvidenceQuestion,dtmSubmissions:isSubmissionEvidenceQuestion,tuition:isTuitionEvidenceQuestion,studentConduct:isStudentConductEvidenceQuestion,studentLoan:isStudentLoanEvidenceQuestion,aidPayments:isAidPaymentsEvidenceQuestion,dtmGradeReport:shouldReadNativeDtmGrades,elearningEnrollments:isElearningEvidenceQuestion,facilityRepairs:isFacilityRepairEvidenceQuestion};
 const keys=Object.keys(supplementalAccountTools),plain=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&[Object.prototype,null].includes(Object.getPrototypeOf(value));
 const bytes=value=>Buffer.byteLength(JSON.stringify(value),'utf8');
-const sourceLimits={courseCatalog:18000,enrollmentCertificate:12000,dtmSubmissions:24000,tuition:16000,studentConduct:studentConductEvidenceMaxBytes,studentLoan:studentLoanEvidenceMaxBytes,aidPayments:aidPaymentsEvidenceMaxBytes,dtmGradeReport:dtmGradeReportEvidenceMaxBytes,elearningEnrollments:elearningEvidenceMaxBytes};
+const sourceLimits={courseCatalog:18000,enrollmentCertificate:12000,dtmSubmissions:24000,tuition:16000,studentConduct:studentConductEvidenceMaxBytes,studentLoan:studentLoanEvidenceMaxBytes,aidPayments:aidPaymentsEvidenceMaxBytes,dtmGradeReport:dtmGradeReportEvidenceMaxBytes,elearningEnrollments:elearningEvidenceMaxBytes,facilityRepairs:facilityRepairEvidenceMaxBytes};
 export const supplementalEvidenceBudget=54000;
+/** One shared server-side boundary for API snapshot loading and graph planning.
+ * Recognized repair clauses do not authorize unrelated account collections.
+ * Preserve unknown independent clauses for normal planning, never silently
+ * claim a repair-only answer covers them. This text is query context, not fact. */
+export function facilityRepairLookupContext(question,route='',history=[]){
+  if(!isFacilityRepairEvidenceQuestion(question,route,history))return {selected:false,repairOnly:false,scheduleOnly:false,otherQuestion:question,repairQuestion:question};
+  const independent=/\b(?:salary|tuition|fees?|grades?|courses?|class(?:es)?|assignments?|scholarships?|loans?|leave|enrollments?|certificates?|clubs?|housing|dormitory|tasks?|announcements?|profile)\b|薪資|學費|成績|課程|作業|請假|社團|住宿|獎學金|下一堂|課表/iu;
+  const repairContext=[{role:'user',content:question}];
+  const other=[],repairParts=[];let priorScope='repair';
+  for(const part of question.split(/[.!?;；。！？\n]|\s+(?:and|also|plus)\s+|以及|還有|並且/iu).map(part=>part.trim()).filter(Boolean)){
+    const explicitRepair=/\b(?:repairs?|maintenance)\b|報修|报修/iu.test(part)&&isFacilityRepairEvidenceQuestion(part,route,repairContext);
+    // Bare continuations such as "and room" belong to the preceding class
+    // clause; they must not become permission to read a repair's location.
+    if(independent.test(part)||priorScope==='other'&&!explicitRepair){other.push(part);priorScope='other';continue;}
+    if(explicitRepair||isFacilityRepairEvidenceQuestion(part,route,repairContext)
+      ||/^(?:(?:list|show|include|each|every|all|the|my|reference|references|count|total|exact|saved|status|statuses)\b|[\s,:-])+$/iu.test(part)
+      ||/\b(?:technician|handling note|note author|author role|authorship|physical repair)\b|技師|技工|處理註記|作者|實際修復/iu.test(part)){
+      repairParts.push(part);priorScope='repair';
+    }else{other.push(part);priorScope='other';}
+  }
+  const otherQuestion=other.join(' and ');
+  const schedule=/\b(?:class(?:es)?|timetable|schedule)\b|下一堂|課表/iu.test(otherQuestion);
+  const scheduleWords=/^(?:(?:when|where|what|which|is|are|does|do|i|my|me|the|a|an|next|scheduled|school|affairs|class|classes|course|courses|timetable|schedule|date|day|time|start|starts|room|location|in|on|at|have|show|tell|remind|please|also|and)\b|[\s,:-])+$/iu;
+  const scheduleOnly=schedule&&(scheduleWords.test(otherQuestion)||/^(?:請問|請|顯示|告訴我|我|的|下一堂|課|課表|時間|教室|在哪裡|幾點|以及|和|[，、\s])+$/u.test(otherQuestion));
+  return {selected:true,repairOnly:!otherQuestion,scheduleOnly,otherQuestion,repairQuestion:otherQuestion&&repairParts.length?repairParts.join(' and '):question};
+}
 export function requiredSupplementalTools(question,route='',history=[]){
   const remote=isElearningEvidenceQuestion(question,route,history);
   const otherQuestion=remote?independentElearningQuestion(question,route,history):question;
@@ -56,6 +85,7 @@ function catalogRouteContext(route,question){
   return /^(?:show|list|browse)\s+(?:me\s+)?(?:all\s+)?(?:the\s+)?(?:course\s+)?(?:catalog(?:ue)?|offerings?|available courses)\s*[.!?]?$/i.test(question.trim())||/\b(?:this page|this catalog|these offerings)\b|這個頁面|本頁|這些課程/.test(question);
 }
 function unavailable(key,reason){
+  if(key==='facilityRepairs')return unavailableFacilityRepairEvidence(reason);
   if(key==='dtmGradeReport')return unavailableDtmGradeReportEvidence(reason);
   if(key==='elearningEnrollments')return unavailableElearningEvidence(reason);
   const checkedAt=new Date().toISOString(),common={checkedAt,rules:'This selected lookup is unavailable. No record absence or successful account read can be inferred.'};
@@ -103,12 +133,14 @@ export function boundSupplementalResults(input,budget=supplementalEvidenceBudget
   const results=structuredClone(input);
   for(const result of results){if(bytes(result)>(sourceLimits[result?.evidence?.id?.slice(8)]||0))throw new TypeError('Invalid supplemental source budget.');formatSupplementalAccountAnswers([result]);}
   if(new Set(results.map(result=>result.evidence.id)).size!==results.length)throw new TypeError('Duplicate supplemental sources.');
+  const replaced=new Set();
   while(bytes(results)>budget){
     const ranked=results.map((result,index)=>({result,index,size:bytes(result)})).sort((a,b)=>b.size-a.size);
     if(ranked.some(({result})=>trimOne(result)))continue;
-    const candidate=ranked.find(({result})=>result.reason!=='aggregate_evidence_budget');
+    const candidate=ranked.find(({index})=>!replaced.has(index));
     if(!candidate)throw new RangeError('Supplemental metadata exceeds aggregate budget.');
     results[candidate.index]=unavailable(candidate.result.evidence.id.slice(8),'aggregate_evidence_budget');
+    replaced.add(candidate.index);
   }
   return results;
 }
@@ -130,7 +162,7 @@ export async function readSupplementalLookups({tools,readers={},question,route='
         const query=key==='courseCatalog'?validateCatalogReadPlan(catalogQuery):null;
         emit(key,'running','Starting the selected authorized reader. No action is executed.');
         result=await Promise.race([
-          Promise.resolve().then(()=>readers[key]({question,route,history:history.map(row=>({...row})),snapshot,deadline,...(query===null?{}:{catalogQuery:query})})),
+          Promise.resolve().then(()=>readers[key]({question:key==='facilityRepairs'?facilityRepairLookupContext(question,route,history).repairQuestion:question,route,history:history.map(row=>({...row})),snapshot,deadline,...(query===null?{}:{catalogQuery:query})})),
           new Promise((_,reject)=>{timer=setTimeout(()=>reject(deadlineExceeded),Math.max(1,deadline-Date.now()));}),
         ]);
         if(Date.now()>=deadline)throw deadlineExceeded;

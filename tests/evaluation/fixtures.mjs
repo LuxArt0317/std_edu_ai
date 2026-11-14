@@ -1,5 +1,6 @@
 import {sampleEnrollmentManifest} from './published-sample-enrollments.mjs';
 import {serviceNoteFixture} from './service-cases.mjs';
+import {facilityRepairLiveFixtureKey} from './facility-repair-fixtures.mjs';
 /** Synthetic, local-only golden records. No production answer helpers or credentials. */
 export const EVAL_USER_ID='00000000-0000-4000-8000-000000000001';
 export const EVAL_OTHER_USER_ID='00000000-0000-4000-8000-000000000002';
@@ -109,7 +110,7 @@ const emptyDomain=(snapshot,domain)=>{
 export function fixtureForCase(testCase,{userId=EVAL_USER_ID,now=DEFAULT_EVAL_NOW}={}){
   const snapshot=buildAccountFixture({userId,now}),key=typeof testCase==='string'?testCase:testCase.fixtureKey;
   if(typeof key!=='string')throw new Error('An evaluation fixtureKey is required.');
-  if(key==='published-sample:records'){
+  if(key==='published-sample:records'||key==='facility-repairs:compound'){
     snapshot.student.program='Sample General Studies';
     snapshot.courses=sampleEnrollmentManifest.courses.map((course,index)=>{
       const term=sampleEnrollmentManifest.terms.find(candidate=>candidate.code===course.termCode);
@@ -128,7 +129,7 @@ export function fixtureForCase(testCase,{userId=EVAL_USER_ID,now=DEFAULT_EVAL_NO
       ...common(891,userId),currentTermLabel:'115 Fall',currentApplicationState:'recorded',
       currentApplicationText:'Local application entry',progressText:'Waiting for local review',historyCount:0,historyText:null,
     }};
-  }else if(['aidPayments','empty:aidPayments','dtmGradeReport','empty:dtmGradeReport','full:dtmGradeReport','elearningEnrollments','empty:elearningEnrollments'].includes(key)){
+  }else if(facilityRepairLiveFixtureKey(key)||['aidPayments','empty:aidPayments','dtmGradeReport','empty:dtmGradeReport','full:dtmGradeReport','elearningEnrollments','empty:elearningEnrollments'].includes(key)){
     // Native report and payment fixtures are independent of the base account
     // snapshot; grading and payroll cells never come from tracker rows.
   }else if(key.startsWith('empty:'))emptyDomain(snapshot,key.slice(6));

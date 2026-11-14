@@ -16,6 +16,7 @@ import {gradeCase} from './grading.mjs';
 import {assessCoverage} from './coverage.mjs';
 import {buildGuidanceReviewBinding,validateGuidanceReview} from './guidance-rubric.mjs';
 import {createPinnedDeploymentVerifier} from './pinned-deployment.mjs';
+import {assertPublishedNextClassClock} from './published-next-class.mjs';
 
 process.umask(0o077);
 const root=fileURLToPath(new URL('../../',import.meta.url));
@@ -420,7 +421,12 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           const endpoint=testCase.endpoint||(testCase.fixtureKey==='anonymous'?'/api/research-assistant':'/api/affairs-assistant');
           if(!['/api/research-assistant','/api/affairs-assistant'].includes(endpoint))throw new Error('Unsupported evaluation endpoint.');
           phase='infrastructure';
-          const response=await pace(waited=>{pacingWaitMs=waited;executed=true;return fetchImpl(new URL(endpoint,opt.origin),{method:'POST',redirect:'error',credentials:'omit',headers:{'Content-Type':'application/json',...(context.token?{Authorization:'Bearer '+context.token}:{})},
+          const response=await pace(waited=>{
+            if(testCase.publishedNextClass){
+              try{assertPublishedNextClassClock(testCase.publishedNextClass,{now:new Date().toISOString()});}
+              catch(error){phase='setup';throw error;}
+            }
+            pacingWaitMs=waited;executed=true;return fetchImpl(new URL(endpoint,opt.origin),{method:'POST',redirect:'error',credentials:'omit',headers:{'Content-Type':'application/json',...(context.token?{Authorization:'Bearer '+context.token}:{})},
             body:JSON.stringify({question:testCase.question,history:testCase.history||[],route:testCase.route,stream:true,consentedResearchUse:false}),signal:AbortSignal.any([controller.signal,AbortSignal.timeout(65000)])});},controller.signal,async()=>{
               requestTicket=await deploymentGate.beforeRequest();report.deploymentPin=deploymentGate.status();await persist(out,report);
             });

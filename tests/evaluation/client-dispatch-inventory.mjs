@@ -6,7 +6,6 @@ import {elearningOutlineCourse,elearningOutlineScope} from '../../server/elearni
 import {certificateAwardQuestion,certificateAwardScope} from '../../server/certificateAwardsContract.js';
 import {announcementEmailQuestion,announcementEmailScope} from '../../server/announcementEmailContract.js';
 import {studentProfileQuestion,studentProfileScope} from '../../server/studentProfileContract.js';
-import {repairQuestion} from '../../src/features/public/affairs/facilityRepair.js';
 import {venueQuestion} from '../../src/features/public/affairs/venueContract.js';
 import {clearanceQuestion,clearanceScope} from '../../server/graduationClearanceContract.js';
 
@@ -51,13 +50,6 @@ const definitions=[
     secondPart:'Also show the year level recorded in my account.',secondTools:['profile'],
     support:'confirmation_status_only',
     limit:'The status-only RPC deliberately omits address, birthday, identity last-four, guardian and mobile data. It is separate from the general account profile tool.'},
-  {id:'facility-repairs',call:'readRepairAnswer',file:'facilityRepair',server:'facilityRepair',scope:'facility-repairs',
-    routes:['/school-affairs/services/45-1/history','/school-affairs/services/45-1/history/:id'],selector:{view:'mine',answer:'en'},
-    fields:['rows[].id','rows[].status','rows[].created_at'],
-    question:'What is the status of my facility repair reports?',
-    secondPart:'Also show my next scheduled class.',secondTools:['courses'],
-    support:'owned_status_list_or_exact_route_detail',
-    limit:'An exact detail-route UUID may select only an owned report. A resolved local status does not establish an official dispatch or university repair.'},
   {id:'venue-requests',call:'readVenueAnswer',file:'venueBooking',server:'venueBooking',scope:'venue-requests',
     routes:['/school-affairs/services/44-1'],selector:{view:'mine',answer:'en'},fields:['rows[].venue','rows[].booking_date','rows[].period','rows[].status'],
     question:'What is the status of my venue reservation requests?',
@@ -89,7 +81,6 @@ export function probeNativePredicate(id,question,route=''){
     case 'certificate-awards':return certificateAwardQuestion(question)==='status'?'status':null;
     case 'announcement-email':return announcementEmailQuestion(question)==='status'?'status':null;
     case 'student-profile':return studentProfileQuestion(question)==='status'?'status':null;
-    case 'facility-repairs':return repairQuestion(question)==='history'?'history':null;
     case 'venue-requests':return venueQuestion(question)?.view==='mine'?'mine':null;
     case 'graduation-clearance':return clearanceQuestion(question);
     default:throw new Error('Unknown native client predicate.');
@@ -132,15 +123,29 @@ export function inspectClientDispatchSource(source){
     return {id:definition.id,call:definition.call,source:dispatchPath,line:selected[0].line,beforeGraphFallback:true,callerArgument:'data.session.user.id'};
   });
   const first=graphCalls[0];
-  const verifiedDispatch=entry.body.statements.find(node=>ts.isIfStatement(node)&&node.expression.getText(file).replace(/\s/g,'')==='isAidPaymentsEvidenceQuestion(question,route,history)||isForeignAidPaymentsQuestion(question)||isForeignDtmGradesQuestion(question,route)||shouldReadNativeDtmGrades(question,route,history)||isElearningEvidenceQuestion(question,route,history)||isForeignElearningRecordsQuestion(question,route)'
-    &&ts.isReturnStatement(node.thenStatement)&&node.thenStatement.expression?.getText(file).startsWith('askVerifiedAccount('));
-  if(!verifiedDispatch||first.at<=guardPosition||contracts.some(row=>row.line<=first.line)||functions.get('isAidPaymentsEvidenceQuestion')!=='../../server/aidPaymentsEvidenceIntent.js'
-    ||functions.get('shouldReadNativeDtmGrades')!=='../../server/dtmGradeEvidenceIntent.js'||functions.get('isElearningEvidenceQuestion')!=='../../server/elearningEvidenceIntent.js')
+  const verifiedDispatch=entry.body.statements.find(node=>ts.isIfStatement(node)&&ts.isReturnStatement(node.thenStatement)
+    &&node.thenStatement.expression?.getStart(file)===first.at);
+  const graphPredicates={isAidPaymentsEvidenceQuestion:['aidPaymentsEvidenceIntent','question,route,history'],isForeignAidPaymentsQuestion:['aidPaymentsEvidenceIntent','question'],
+    isForeignDtmGradesQuestion:['dtmGradeEvidenceIntent','question,route'],shouldReadNativeDtmGrades:['dtmGradeEvidenceIntent','question,route,history'],
+    isElearningEvidenceQuestion:['elearningEvidenceIntent','question,route,history'],isForeignElearningRecordsQuestion:['elearningEvidenceIntent','question,route'],
+    isFacilityRepairEvidenceQuestion:['facilityRepairEvidenceIntent','question,route,history'],isForeignFacilityRepairQuestion:['facilityRepairEvidenceIntent','question']};
+  const clauses=node=>ts.isParenthesizedExpression(node)?clauses(node.expression)
+    :ts.isBinaryExpression(node)&&node.operatorToken.kind===ts.SyntaxKind.BarBarToken?[...clauses(node.left),...clauses(node.right)]:[node];
+  const predicates=verifiedDispatch?clauses(verifiedDispatch.expression):[];
+  const observed=new Set();
+  const valid=predicates.every(node=>{
+    const name=ts.isCallExpression(node)&&ts.isIdentifier(node.expression)?node.expression.text:null;
+    if(!name||!Object.hasOwn(graphPredicates,name)||observed.has(name))return false;
+    const [module,args]=graphPredicates[name];observed.add(name);
+    return functions.get(name)==='../../server/'+module+'.js'&&node.arguments.map(arg=>arg.getText(file)).join(',')===args;
+  });
+  if(!valid||observed.size!==Object.keys(graphPredicates).length||first.at<=guardPosition||contracts.some(row=>row.line<=first.line))
     throw new Error('Graph-backed questions must enter account verification before any direct reader.');
   return {contracts,verifiedDispatch:[
     {id:'aid-payments',graphTool:'aidPayments',source:dispatchPath,line:first.line},
     {id:'dtm-grade-report',graphTool:'dtmGradeReport',source:dispatchPath,line:first.line},
     {id:'elearning-enrollments',graphTool:'elearningEnrollments',source:dispatchPath,line:first.line},
+    {id:'facility-repairs',graphTool:'facilityRepairs',source:dispatchPath,line:first.line},
   ],
     fallback:{source:dispatchPath,line:api[0].line},otherDirectReaders:otherDirectReaders.filter(name=>calls.some(call=>call.name===name&&call.at<fallback.at)),
     navigationOnly:navigationOnly.map(row=>({...row,observedCalls:row.calls.filter(name=>calls.some(call=>call.name===name&&call.at<fallback.at))}))};
@@ -173,8 +178,8 @@ function questionCases(definition){
  * fixture creation, user-session import, model call or product code execution. */
 export async function discoverClientDispatchSurfaces({read=readSource}={}){
   const contracts=['clubStudent','elearning','certificateAwards','announcementEmail','studentProfile','graduationClearance'];
-  const sources=[...new Set([dispatchPath,apiPath,'server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js','server/elearningEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
-    ...contracts.map(name=>'server/'+name+'Contract.js'),'src/features/public/affairs/facilityRepair.js','src/features/public/affairs/venueContract.js',
+  const sources=[...new Set([dispatchPath,apiPath,'server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js','server/elearningEvidenceIntent.js','server/facilityRepairEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
+    ...contracts.map(name=>'server/'+name+'Contract.js'),'src/features/public/affairs/venueContract.js',
     'server/clubServicesContract.js','server/clubOfficerContract.js','server/healthExaminationContract.js','server/counselingContract.js',
     'src/features/public/PublicSite.tsx','src/features/public/affairs/SchoolAffairsEntry.tsx','src/features/public/affairs/SchoolAffairsPortal.tsx',
     'src/features/public/elearning/ElearningWorkspace.tsx'])];
