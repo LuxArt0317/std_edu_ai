@@ -1,5 +1,7 @@
 # School Affairs UI
 
+Service 12-2 opens the permanent course catalog and its print dialog. See [permanent course QA and data refresh](../../../../docs/qa/PERMANENT_COURSES.md).
+
 Services 10-1 and 16-1 open graduation clearance and its status. School Affairs administration configures periods, assigns candidates and records office decisions. See [graduation clearance QA](../../../../docs/qa/GRADUATION_CLEARANCE.md).
 
 Services 7-5 and 7-6 open the teaching evaluation and immediate feedback pages. School Affairs administration configures surveys, releases aggregates, and reviews immediate feedback. See [teaching feedback QA](../../../../docs/qa/TEACHING_FEEDBACK.md).

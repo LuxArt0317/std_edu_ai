@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.generated';
 import { clearAssistantConversation } from '@/services/assistantConversation';
+import { permanentCoursesPath } from './permanentCourseRouting.js';
 
 const url = import.meta.env.VITE_SUPABASE_URL?.trim();
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
@@ -8,6 +9,12 @@ export const affairsStorageKey = 'stu-school-affairs-auth';
 export const affairsCallbackPath = '/school-affairs/auth/callback';
 const returnKey = 'stu-school-affairs-return';
 export function safeSchoolReturnPath(value:string|null,fallback='/school-affairs') {
+  if (value?.startsWith(permanentCoursesPath+'?') && value.length<=240 && !value.includes('#')) {
+    const query=new URLSearchParams(value.slice(permanentCoursesPath.length+1));
+    const course=query.get('course');
+    if ([...query.keys()].length===1 && course && /^[A-Z]{2}[UGJ]\d{5}$/.test(course))
+      return permanentCoursesPath+'?course='+course;
+  }
   if (!value || value.length>240 || !/^\/(?:school-affairs|dtm)(?:\/[a-z0-9_-]+)*(?:#[a-z0-9_-]+)?$/i.test(value)) return fallback;
   if (/\/(?:login|auth|signed-out)(?:\/|#|$)/i.test(value)) return fallback;
   return value;

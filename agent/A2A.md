@@ -1,3 +1,7 @@
+## Permanent course catalog (Issue #98)
+
+Root owns service 12-2, migration 20261114160000, public course import, catalog detail cache and assistant routing. The three tables were installed after an exact-client rollback, and 15,580 course records were imported. Browser and deployed checks are pending. The teacher timetable requires university sign-in. Paused Issue #100 paths remain excluded.
+
 ## Graduation clearance (Issue #98)
 
 Root owns services 10-1 and 16-1, migration 20261114150000, the administrator editor and assistant lookup. Production `e2671d6` is live as Vercel `7KsgCHrcNw7uXurhYpeFh4ecHtFF`. Only migration 20261114150000 was applied, bringing the client to 149 migrations and 173 RLS-protected public tables. The revision-pinned browser, 19 authenticated HTTP checks with student writes, replay and exact cleanup, two guest assistant sign-in returns, and eight public shell routes passed. Quality 43507889134 passed. The 94-destination local navigation inventory has 39 generic and 17 partial entries. The official workflow was verified. Authenticated school layouts remain open. Paused Issue #100 files remain excluded.

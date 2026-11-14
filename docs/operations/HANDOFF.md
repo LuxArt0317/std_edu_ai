@@ -1,3 +1,7 @@
+## Permanent course catalog (Issue #98)
+
+Service 12-2 uses the permanent-course snapshot in Supabase. The import contains 15,580 public records and all 120 observed kind/division combinations. The service accepts only reads. The public source provides exact descriptions and the server caches them by course code. See [permanent course QA and refresh](../qa/PERMANENT_COURSES.md).
+
 ## Graduation clearance (Issue #98)
 
 Services 10-1 and 16-1 share one application and per-office review record. The official flowchart is verified. Current authenticated layouts remain unobserved. See [graduation clearance QA](../qa/GRADUATION_CLEARANCE.md).

@@ -1,4 +1,5 @@
 import {readGraduationClearance} from '../server/graduationClearance.js';
+import {servePermanentCourses} from '../server/permanentCourses.js';
 import {clearanceScope} from '../server/graduationClearanceContract.js';
 import {readTeachingFeedback} from '../server/teachingFeedback.js';
 import { readEarlyGraduation } from '../server/earlyGraduation.js';
@@ -40,6 +41,7 @@ type Response = {status:(code:number)=>Response;json:(body:unknown)=>void;setHea
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
 export default async function handler(request:Request,response:Response) {
   const scopes=Array.isArray(request.query?.scope)?request.query.scope:[request.query?.scope];
+  if (scopes.includes('permanent-courses')) return servePermanentCourses(request,response);
   if (scopes.includes(firstSelectionScope)) return serveFirstSelectionNotice(request,response);
   if (scopes.includes(adjustmentNoticeScope)) return serveAdjustmentNotice(request,response);
   if (scopes.includes('course-substitution') || scopes.includes('course-substitution-departments')) return serveCourseSubstitution(request,response);

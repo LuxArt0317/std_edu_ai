@@ -1,4 +1,6 @@
 import {clearancePaths,clearanceQuestion} from './graduationClearanceContract.js';
+import {answerPermanentCourse} from './permanentCourses.js';
+import {permanentCourseQuestion} from '../src/features/public/affairs/permanentCourseRouting.js';
 import {teachingFeedbackPaths,teachingFeedbackQuestion} from './teachingFeedbackContract.js';
 import {earlyGraduationPath,earlyGraduationQuestion} from './earlyGraduationContract.js';
 import { answerCourseSubstitution } from './courseSubstitution.js';
@@ -253,6 +255,16 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const kind = questionKind(input.question);
+        const permanentCourse = !input.images.length && !kind.irrelevant && permanentCourseQuestion(input.question);
+        if (permanentCourse) {
+            const answer = await answerPermanentCourse(input.question, permanentCourse, {
+                onRead: () => stream.progress('permanent-courses','Checking permanent courses','Reading the published course catalog.'),
+            });
+            const step = answer.activity[0];
+            stream.progress(step.kind,step.label,step.detail,step.status);
+            stream.send(200,answer);
+            return;
+        }
         const clearanceView=!input.images.length&&!kind.irrelevant&&clearanceQuestion(input.question);
         if(clearanceView){
             const next='/school-affairs/login?next='+encodeURIComponent(clearancePaths[clearanceView]);

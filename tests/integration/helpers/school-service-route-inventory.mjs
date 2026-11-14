@@ -4,7 +4,7 @@ import {schoolServiceEntries} from '../../../src/features/public/affairs/student
 // Explicit review inventory, not inferred from the presence of a generic body.
 // A native mount says nothing about unobserved workflows or live backend acceptance.
 const service = id => '/school-affairs/services/'+id;
-const genericIds = '1-1 2-1 4-2 4-3 5-1 6-5 8-1 12-1 12-2 18-1 19-1 24-1 27-1 29-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 43-1 44-1 45-1 47-1 50-1 50-2 51-1 52-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
+const genericIds = '1-1 2-1 4-2 4-3 5-1 6-5 8-1 12-1 18-1 19-1 24-1 27-1 29-1 30-1 30-2 31-1 31-2 32-1 35-1 36-1 37-1 40-1 41-1 43-1 44-1 45-1 47-1 50-1 50-2 51-1 52-1 54-1 55-1 56-1 57-1 57-2 57-3 57-4'.split(' ');
 const native = [
   ['7-3','.program-registration','program-registration-ui.mjs','Private interdisciplinary registration history and local registration controls.'],
   ['7-1','.credit-load-application','credit-load-application-ui.mjs','Observed instructions and closed-period acknowledgement only; open application and staff review forms remain unobserved.'],
@@ -12,6 +12,7 @@ const native = [
   ['11-1','.course-selection','course-selection-ui.mjs','Phase-scoped selection history, not current enrolled courses.'],
   ['11-2','.course-selection','course-selection-ui.mjs','Explicit phase-scoped timetable, not inferred from grades.'],
   ['11-3','.credit-load-history','credit-load-history-ui.mjs','Observed history only; unseen credit-load application is excluded.'],
+  ['12-2','.permanent-course-catalog','permanent-courses-ui.mjs','Public permanent course catalog with database search, descriptions and print. Protected course maintenance is separate.'],
   ['12-3','.syllabus-search','syllabus-search-workspace-ui.mjs','Published offering search; no inferred current term.'],
   ['12-5','.curriculum-plans','curriculum-plans-ui.mjs','Public source program and archive tables with allowlisted plan previews.'],
   ['12-6','.interdisciplinary-programs','interdisciplinary-programs-ui.mjs','Published public program directory and captured program PDFs.'],
@@ -128,6 +129,10 @@ export function schoolServiceReadFixture(rawUrl,method,user,origin) {
   assert.equal(url.pathname,'/api/affairs-data','Unknown API path.');
   if(!url.search)return schoolServiceSnapshot(user);
   const scope=url.searchParams.get('scope');
+  if(scope==='permanent-courses'){
+    assert.deepEqual(Object.fromEntries(url.searchParams),{scope});
+    return {rows:[],kinds:[],divisions:[],total:0,page:0,pageSize:50,capturedAt:'2026-11-14T00:00:00Z'};
+  }
   if(scope==='course-adjustment'){
     assert.deepEqual(Object.fromEntries(url.searchParams),{scope:'course-adjustment',phase:'add_drop'});
     return {userId:user.id,term:{academicYear:115,semester:1},record:null};

@@ -1,5 +1,7 @@
 # Project scripts
 
+`capture-permanent-courses.mjs` and `import-permanent-courses.mjs` refresh the public permanent course catalog. Use the [exact-target rollback and import steps](../docs/qa/PERMANENT_COURSES.md).
+
 `deploy-database.mjs --only=YYYYMMDDHHMMSS` plans/applies one explicitly selected independent migration while reporting deferred drafts. It retains the exact-client check, advisory lock and transaction/history recording. The flag does not infer dependency safety: inspect the selected SQL and record why deferred migrations are independent before using it.
 
 

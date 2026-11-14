@@ -1,3 +1,7 @@
+## Permanent course catalog [Issue #98]
+
+The preceding goal turn made progress by releasing and verifying graduation clearance. The public permanent course catalog was captured across 120 kind/division combinations. Migration 20261114160000 and the 15,580-row import passed exact-client rollback and were applied. The page and assistant are implemented. Browser and deployed verification are pending.
+
 ## Graduation clearance [Issue #98]
 
 Production `e2671d6` is live as Vercel `7KsgCHrcNw7uXurhYpeFh4ecHtFF`. Only migration 20261114150000 was applied, bringing the client to 149 migrations and 173 RLS-protected public tables. The revision-pinned browser, 19 authenticated HTTP checks with student writes, replay and exact cleanup, two guest assistant sign-in returns, and eight public shell routes passed. Quality 43507889134 passed. The 94-destination local navigation inventory has 39 generic and 17 partial entries.

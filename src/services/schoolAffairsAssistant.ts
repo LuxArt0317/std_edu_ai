@@ -1,5 +1,6 @@
 import {clearanceQuestion} from '../../server/graduationClearanceContract.js';
 import {readGraduationClearanceAnswer} from './graduationClearance';
+import {permanentCourseQuestion} from '../features/public/affairs/permanentCourseRouting.js';
 import {teachingFeedbackQuestion} from '../../server/teachingFeedbackContract.js';
 import {readTeachingFeedbackAnswer} from './teachingFeedback';
 import {earlyGraduationQuestion} from '../../server/earlyGraduationContract.js';
@@ -23,6 +24,7 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
   if (!affairsClient) throw new Error('School Affairs sign-in is not configured.');
   const {data,error} = await affairsClient.auth.getSession();
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
+  if (!images.length && permanentCourseQuestion(question)) return askCampusAssistant(question,[],signal,[],route,onProgress);
   if (!images.length && isProgramRegistrationQuestion(question)) {
     onProgress?.({kind:'program-registrations',label:'Checking interdisciplinary program registrations',detail:'Reading your School Affairs records.',status:'running'});
     const result:AssistantResponse = await readProgramRegistrationAnswer(data.session.user.id,question,signal);

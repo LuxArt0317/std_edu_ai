@@ -1,5 +1,7 @@
 import {GraduationClearanceWorkspace} from "./GraduationClearanceWorkspace";
 import {clearancePaths} from "../../../../server/graduationClearanceContract.js";
+import {PermanentCourseCatalog} from "./PermanentCourseCatalog";
+import {permanentCoursesPath} from "./permanentCourseRouting.js";
 import {TeachingFeedbackWorkspace} from "./TeachingFeedbackWorkspace";
 import {teachingFeedbackPaths} from "../../../../server/teachingFeedbackContract.js";
 import { EarlyGraduationWorkspace } from "./EarlyGraduationWorkspace";
@@ -639,6 +641,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   if (servicePage && route[1] === "12-4") {
     return <CourseCatalog userId={user.id} />;
   }
+  if (normalizedPath === permanentCoursesPath) return <PermanentCourseCatalog />;
   if (normalizedPath === syllabusSearchPath) {
     return <SyllabusSearchRoute userId={user.id} />;
   }
