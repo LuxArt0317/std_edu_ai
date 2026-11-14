@@ -57,3 +57,7 @@ Authenticated assistant replies use the same read API for private participation 
 - `node tests/integration/club-student-db.mjs --deployed` verifies literal filtering, paging, publication, caller isolation and the approval/withdrawal workflow in a rolled-back transaction.
 - `node --import tsx tests/integration/club-student-http.mjs` checks authentication, private reads, durable retries and withdrawal against the API with disposable accounts. Set `EXPECTED_RELEASE_REVISION` to use production.
 - `node tests/integration/club-student-ui.mjs` verifies all six menu links, form retries, review, mobile width and the assistant response using synthetic browser fixtures. Pin production with `PUBLIC_SITE_ORIGIN=https://stu.best` and `EXPECTED_RELEASE_REVISION`.
+
+### Release evidence
+
+Production 076c79a is live as Vercel 4Gi741acYjhLKPYZiw4y9Af4FFNt. Migration 20261115100000 brings the client to 169 migrations with 206 RLS-protected public tables. Five student club destinations add searchable clubs and activities, account-owned participation and memberships, and new-club applications with protected approval. Local and production actual JWT, exact cleanup, pinned browser, five guest assistant links, deployment shell, client verification and Quality 43575984434 passed. All 94 catalog routes passed navigation.

@@ -11,7 +11,7 @@
 - [x] Implement private officer proposal and closeout attachments with application and file version checks.
 - [x] Verify deployed attachment reads, writes, access isolation and removal.
 - [x] Map all six student menu links, including five previously missing local destinations.
-- [ ] Verify student club lookup, personal records, foundation approval and assistant grounding in production.
+- [x] Verify student club lookup, personal records, foundation approval and assistant grounding in production.
 - [ ] Implement profile/roster maintenance, attendance editing and remaining equipment management and reports.
 
 ## Student aid payment inquiries [Issue #98]

@@ -311,3 +311,7 @@ The source exposed empty attachment columns. Proposal and closeout uploads, prof
 ## Private club activity attachments [Issue #98]
 
 The university list showed both attachment columns. The upload and post-save views were unavailable. The local file controls accept one 2 MiB PDF per column. No university files were imported. Profile/roster editing, attendance import, equipment inventory and reports remain open.
+
+## Student club menu and foundation [Issue #98]
+
+University menu labels and destinations were verified. Each new source detail page returned CAPTCHA sign-in, so the rebuilt screens use the verified club shell with local controls. No student records were imported. Officer profile, roster and attendance maintenance and equipment management remain open.
