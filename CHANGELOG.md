@@ -1,5 +1,7 @@
 # Changelog
 ## Unreleased
+
+- School Affairs now includes a student health examination inquiry with private PDF downloads and an assistant shortcut.
 - Add separate private student aid payment and salary inquiry pages with safe assistant links. [#98]
 - Open verified Moodle activities on protected local pages and let the assistant link to the requested videos, slides or feedback form. [#98]
 - Store verified remote-learning course sections and activity links with per-course authorization. Link the campus assistant to the matching saved activity. [#98]

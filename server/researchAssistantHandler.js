@@ -1,3 +1,4 @@
+import { healthExaminationGuide, healthExaminationQuestion } from './healthExaminationContract.js';
 import {elearningCourseLocation,elearningCoursePath,elearningGuide,elearningQuestion,elearningOutlineCourse} from './elearningContract.js';
 import {aidPaymentsPaths,aidPaymentsQuestion} from './aidPaymentsContract.js';
 import {counselingGuide,counselingQuestion} from './counselingContract.js';
@@ -269,6 +270,10 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const kind = questionKind(input.question);
+        if (!kind.irrelevant && healthExaminationQuestion(input.question)) {
+            stream.send(200, healthExaminationGuide(input.question));
+            return;
+        }
         const aidPayment=!input.images.length&&!kind.irrelevant?aidPaymentsQuestion(input.question):null;
         if(aidPayment){
             const url='/school-affairs/login?next='+encodeURIComponent(aidPaymentsPaths[aidPayment]);

@@ -1,0 +1,24 @@
+.health-examination .aid-payment-main { padding-top:85px; }
+.health-examination-notes,
+.health-examination-table { width:88.2%; margin-inline:auto; }
+.health-examination-notes { min-height:66px; padding:8px 12px; border:1px solid #e1e1e1; background:#f6f6f6; }
+.health-examination-notes p { margin:0; line-height:1.75; }
+.health-examination-table { margin-top:59px; padding-bottom:12px; }
+.health-examination-table table { table-layout:fixed; }
+.health-examination-table table:not(.aid-payment-salary) th:nth-child(-n+4) { width:20.8%; }
+.health-examination-table button {
+  border:1px solid #b7c3cb;
+  background:#fff;
+  color:#204d6a;
+  border-radius:3px;
+  padding:4px 7px;
+}
+.health-examination-table button:not(:disabled) { cursor:pointer; }
+.health-examination-table a { color:#204d6a; text-decoration:underline; }
+.health-examination-table :is(button,a):focus-visible { outline:2px solid #204d6a; outline-offset:2px; }
+@media(max-width:720px) {
+  .health-examination .aid-payment-main { padding-top:30px; }
+  .health-examination-notes,
+  .health-examination-table { width:100%; }
+  .health-examination-table { margin-top:28px; }
+}

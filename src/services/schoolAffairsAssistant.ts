@@ -1,3 +1,4 @@
+import { healthExaminationGuide, healthExaminationQuestion } from '../../server/healthExaminationContract.js';
 import {elearningGuide,elearningQuestion,elearningOutlineCourse} from '../../server/elearningContract.js';
 import {aidPaymentsQuestion} from '../../server/aidPaymentsContract.js';
 import {answerAidPayments} from './aidPayments';
@@ -39,6 +40,7 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
   if (!affairsClient) throw new Error('School Affairs sign-in is not configured.');
   const {data,error} = await affairsClient.auth.getSession();
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
+  if (healthExaminationQuestion(question)) return healthExaminationGuide(question, true);
   const aidPayment=!images.length?aidPaymentsQuestion(question):null;
   if(aidPayment){
     onProgress?.({kind:'aid-payments',label:'Checking student payment records',detail:'Reading the count for your account.',status:'running'});

@@ -1,3 +1,5 @@
+import { authorizeHealthReport, readHealthExaminations } from '../server/healthExaminations.js';
+import { healthExaminationScope } from '../server/healthExaminationContract.js';
 import {readElearning,readElearningCatalog,readElearningOutline} from '../server/elearning.js';
 import {readAidPayments} from '../server/aidPayments.js';
 import {aidPaymentsScope} from '../server/aidPaymentsContract.js';
@@ -56,8 +58,14 @@ type Response = {status:(code:number)=>Response;json:(body:unknown)=>void;setHea
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
 export const config={maxDuration:60};
 export default async function handler(request:Request,response:Response) {
-  if(first(request.query?.resource)==='announcement-email-delivery')return deliverAnnouncementEmail(request,response);
   const scopes=Array.isArray(request.query?.scope)?request.query.scope:[request.query?.scope];
+  if (scopes.includes(healthExaminationScope) &&
+      (scopes.length !== 1 || Object.keys(request.query ?? {}).some(key => key !== 'scope' && key !== 'page' && key !== 'report'))) {
+    response.setHeader('Cache-Control','no-store, max-age=0');
+    response.status(400).json({ error: 'Invalid health examination inquiry.' });
+    return;
+  }
+  if(first(request.query?.resource)==='announcement-email-delivery')return deliverAnnouncementEmail(request,response);
   if (scopes.includes('venue-search') || scopes.includes('venue-schedule')) return serveVenue(request,response);
   if (scopes.includes('permanent-courses')) return servePermanentCourses(request,response);
   if (scopes.includes(firstSelectionScope)) return serveFirstSelectionNotice(request,response);
@@ -78,6 +86,13 @@ export default async function handler(request:Request,response:Response) {
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
     const scope=request.query?.scope;
     if(Array.isArray(scope)){response.status(400).json({error:'Choose one records scope.'});return;}
+    if (scope === healthExaminationScope) {
+      const query = request.query ?? {};
+      const bounded = { ...account, requestDeadline };
+      const result = await ('report' in query ? authorizeHealthReport(bounded, query) : readHealthExaminations(bounded, query));
+      response.status(200).json(result);
+      return;
+    }
     if(scope===aidPaymentsScope){response.status(200).json(await readAidPayments({...account,requestDeadline},request.query??{}));return;}
     if(scope==='venue-requests'){
       response.status(200).json(await readVenueRequests(account,request.query??{}));return;

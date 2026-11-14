@@ -739,3 +739,9 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify exact-client rollback, account boundaries and idempotency.
 - [x] Verify the migration and deployed runtime at `420b8f2`.
 - [ ] Inspect the current university open form and populated history.
+
+## Health examination inquiry [Issue #98]
+
+- [x] Verify the university inquiry layout and report access boundaries.
+- [x] Implement persistent account-owned examination metadata and private attachment access.
+- [ ] Verify PDF downloads and account isolation through the live API and browser.
