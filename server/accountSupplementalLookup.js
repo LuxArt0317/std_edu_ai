@@ -1,6 +1,8 @@
 import {studentConductScope} from './studentConductEvidenceScope.js';
 import {selectTutorEvaluationEvidence,isTutorEvaluationFieldClause,withoutExcludedTutorEvaluationClause} from './tutorEvaluationEvidenceIntent.js';
 import {tutorEvaluationEvidenceMaxBytes,unavailableTutorEvaluationEvidence} from './accountTutorEvaluationEvidence.js';
+import {teachingFeedbackEvidenceLimits,unavailableTeachingFeedbackEvidence} from './accountTeachingFeedbackEvidence.js';
+import {selectTeachingFeedbackEvidence} from './teachingFeedbackEvidenceIntent.js';
 import {selectClearanceEvidence,isClearanceFieldClause,withoutExcludedClearanceClause,isExactClearanceNextClassQuestion} from './clearanceEvidenceIntent.js';
 import {clearanceEvidenceMaxBytes,unavailableClearanceEvidence} from './accountClearanceEvidence.js';
 import {selectCounselingEvidence,isCounselingFieldClause,withoutExcludedCounselingClause} from './counselingEvidenceIntent.js';
@@ -44,15 +46,18 @@ export const supplementalAccountTools=Object.freeze({
   dormitoryConduct:'Own saved dormitory conduct notice metadata at34-2, distinct from student conduct and housing beds/fees. Empty notice metadata does not establish complete disciplinary history, clearance or an official document. Read-only.',
   feeRemission:'Own saved local fee reduction history at service 21-3, with literal year, semester, category, amount and check status. Separate from the charge balance, eligibility, approval and payment. Read-only.',
   tutorEvaluation:'Own saved tutor questionnaire submission, requested numbered ratings and explicit comment. Read-only.',
+  teachingFeedback:'Own saved teaching questionnaire completion/windows and immediate feedback statuses, with only explicitly selected comments. No anonymous survey responses, manager results or writes.',
   graduationClearance:'Own saved graduation clearance application status and requested office notes, plus assigned application periods. Separate from the graduation requirements report. Read-only.',
   counselingAppointments:'Own saved counseling and psychological-assessment appointment dates, preferred periods and status. No notes, documents, staff queue or appointment actions.',
   healthExaminations:'Own saved health examination codes and report availability, scoped to the selected page at service 36-1. No clinical results, dates, identity details, file access or writes.',
   elearningOutline:'Authorized local remote-learning course outline, section/activity titles and local video/slides/feedback/attendance-form links. No personal attendance, grades, submissions, video contents or completion records. Read-only.',
 });
-const predicates={courseCatalog:isCatalogEvidenceQuestion,enrollmentCertificate:isCertificateEvidenceQuestion,dtmSubmissions:isSubmissionEvidenceQuestion,tuition:isTuitionEvidenceQuestion,studentConduct:isStudentConductEvidenceQuestion,studentLoan:isStudentLoanEvidenceQuestion,aidPayments:isAidPaymentsEvidenceQuestion,dtmGradeReport:shouldReadNativeDtmGrades,elearningEnrollments:isElearningEvidenceQuestion,facilityRepairs:isFacilityRepairEvidenceQuestion,dormitoryConduct:isDormitoryConductEvidenceQuestion,elearningOutline:isElearningOutlineEvidenceQuestion,feeRemission:selectFeeRemissionEvidence,healthExaminations:selectHealthExaminationEvidence,counselingAppointments:selectCounselingEvidence,graduationClearance:selectClearanceEvidence,tutorEvaluation:selectTutorEvaluationEvidence};
+const predicates={courseCatalog:isCatalogEvidenceQuestion,enrollmentCertificate:isCertificateEvidenceQuestion,dtmSubmissions:isSubmissionEvidenceQuestion,tuition:isTuitionEvidenceQuestion,studentConduct:isStudentConductEvidenceQuestion,studentLoan:isStudentLoanEvidenceQuestion,aidPayments:isAidPaymentsEvidenceQuestion,dtmGradeReport:shouldReadNativeDtmGrades,elearningEnrollments:isElearningEvidenceQuestion,facilityRepairs:isFacilityRepairEvidenceQuestion,dormitoryConduct:isDormitoryConductEvidenceQuestion,elearningOutline:isElearningOutlineEvidenceQuestion,feeRemission:selectFeeRemissionEvidence,healthExaminations:selectHealthExaminationEvidence,counselingAppointments:selectCounselingEvidence,graduationClearance:selectClearanceEvidence,tutorEvaluation:selectTutorEvaluationEvidence,
+  teachingFeedback:(question,route,history)=>Boolean(selectTeachingFeedbackEvidence(question,route,history)?.views.length)};
 const keys=Object.keys(supplementalAccountTools),plain=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&[Object.prototype,null].includes(Object.getPrototypeOf(value));
 const bytes=value=>Buffer.byteLength(JSON.stringify(value),'utf8');
-const sourceLimits={courseCatalog:18000,enrollmentCertificate:12000,dtmSubmissions:24000,tuition:16000,studentConduct:studentConductEvidenceMaxBytes,studentLoan:studentLoanEvidenceMaxBytes,aidPayments:aidPaymentsEvidenceMaxBytes,dtmGradeReport:dtmGradeReportEvidenceMaxBytes,elearningEnrollments:elearningEvidenceMaxBytes,facilityRepairs:facilityRepairEvidenceMaxBytes,dormitoryConduct:dormitoryConductEvidenceMaxBytes,elearningOutline:elearningOutlineEvidenceMaxBytes,feeRemission:feeRemissionEvidenceMaxBytes,healthExaminations:healthExaminationEvidenceMaxBytes,counselingAppointments:counselingEvidenceMaxBytes,graduationClearance:clearanceEvidenceMaxBytes,tutorEvaluation:tutorEvaluationEvidenceMaxBytes};
+const sourceLimits={courseCatalog:18000,enrollmentCertificate:12000,dtmSubmissions:24000,tuition:16000,studentConduct:studentConductEvidenceMaxBytes,studentLoan:studentLoanEvidenceMaxBytes,aidPayments:aidPaymentsEvidenceMaxBytes,dtmGradeReport:dtmGradeReportEvidenceMaxBytes,elearningEnrollments:elearningEvidenceMaxBytes,facilityRepairs:facilityRepairEvidenceMaxBytes,dormitoryConduct:dormitoryConductEvidenceMaxBytes,elearningOutline:elearningOutlineEvidenceMaxBytes,feeRemission:feeRemissionEvidenceMaxBytes,healthExaminations:healthExaminationEvidenceMaxBytes,counselingAppointments:counselingEvidenceMaxBytes,graduationClearance:clearanceEvidenceMaxBytes,tutorEvaluation:tutorEvaluationEvidenceMaxBytes,
+  teachingFeedback:teachingFeedbackEvidenceLimits.responseBytes};
 export const supplementalEvidenceBudget=54000;
 export const withoutExcludedNativePageClause=question=>withoutExcludedTutorEvaluationClause(withoutExcludedClearanceClause(withoutExcludedCounselingClause(withoutExcludedHealthClause(question))));
 /** One shared server-side boundary for API snapshot loading and graph planning.
@@ -222,6 +227,7 @@ function catalogRouteContext(route,question){
   return /^(?:show|list|browse)\s+(?:me\s+)?(?:all\s+)?(?:the\s+)?(?:course\s+)?(?:catalog(?:ue)?|offerings?|available courses)\s*[.!?]?$/i.test(question.trim())||/\b(?:this page|this catalog|these offerings)\b|這個頁面|本頁|這些課程/.test(question);
 }
 function unavailable(key,reason){
+  if(key==='teachingFeedback')return unavailableTeachingFeedbackEvidence(reason);
   if(key==='tutorEvaluation')return unavailableTutorEvaluationEvidence(reason);
   if(key==='graduationClearance')return unavailableClearanceEvidence(reason);
   if(key==='counselingAppointments')return unavailableCounselingEvidence(reason);

@@ -29,8 +29,7 @@ import {permanentCourseQuestion} from '../features/public/affairs/permanentCours
 import {venueQuestion} from '../features/public/affairs/venueContract.js';
 import {readVenueAnswer} from './venueBooking';
 import {repairQuestion} from '../features/public/affairs/facilityRepair.js';
-import {teachingFeedbackQuestion} from '../../server/teachingFeedbackContract.js';
-import {readTeachingFeedbackAnswer} from './teachingFeedback';
+import {isTeachingFeedbackScopeQuestion} from '../../server/teachingFeedbackEvidenceIntent.js';
 import {earlyGraduationQuestion} from '../../server/earlyGraduationContract.js';
 import {readEarlyGraduationAnswer} from './earlyGraduation';
 import {courseSubstitutionQuestion} from '../features/public/affairs/courseSubstitution.js';
@@ -65,7 +64,8 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
     ||isCounselingEvidenceQuestion(question,route,history)||counselingQuestion(question)
     ||isClearanceEvidenceQuestion(question,route,history)||clearanceQuestion(question)
     ||isTutorEvaluationEvidenceQuestion(question,route,history)||tutorEvaluationNavigation(question)
-    ||isStudentConductScopeQuestion(question,route,history)||isServiceNoteEvidenceQuestion(question,route,history))
+    ||isStudentConductScopeQuestion(question,route,history)||isServiceNoteEvidenceQuestion(question,route,history)
+    ||isTeachingFeedbackScopeQuestion(question,route,history))
     return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress);
   const officer = !images.length ? clubOfficerQuestion(question) : null;
   if (officer) return clubOfficerGuide(question,officer,true);
@@ -109,13 +109,6 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
     onProgress?.({kind:'program-registrations',label:'Checking interdisciplinary program registrations',detail:'Reading your School Affairs records.',status:'running'});
     const result:AssistantResponse = await readProgramRegistrationAnswer(data.session.user.id,question,signal);
     if (typeof result?.answer !== 'string' || result.grounding?.source !== 'account') throw new Error('Program registrations could not be loaded.');
-    return result;
-  }
-  const teachingFeedback=!images.length&&teachingFeedbackQuestion(question);
-  if(teachingFeedback){
-    onProgress?.({kind:'teaching-feedback',label:'Checking teaching feedback',detail:'Reading your saved completion and review statuses.',status:'running'});
-    const result=await readTeachingFeedbackAnswer(data.session.user.id,teachingFeedback,question,signal) as AssistantResponse;
-    if(typeof result?.answer!=='string'||result.grounding?.source!=='account')throw new Error('Teaching feedback records could not be loaded.');
     return result;
   }
   if (!images.length && earlyGraduationQuestion(question)) {

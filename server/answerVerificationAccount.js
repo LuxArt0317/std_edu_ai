@@ -32,6 +32,8 @@ import {aidPaymentsLookupContext,isAidPaymentsEvidenceQuestion} from './aidPayme
 import {mentionsDtmSubmissionDetail,needsSeparateDtmTracker} from './dtmGradeEvidenceIntent.js';
 import {hasIndependentDtmWork,independentElearningQuestion,isElearningEvidenceQuestion} from './elearningEvidenceIntent.js';
 import {isHousingRecordQuestion} from './housingRecords.js';
+import {teachingFeedbackImmediateFields,teachingFeedbackLookupContext} from './teachingFeedbackEvidenceIntent.js';
+import {currentStudyForeignYearQuestion} from './currentStudyOwnerScope.js';
 import {isStudentAidRecordQuestion} from './studentAidRecords.js';
 export {supplementalAccountTools,requiredSupplementalTools} from './accountSupplementalLookup.js';
 
@@ -133,6 +135,25 @@ function plannerRouteContext(route){
 }
 
 export async function planAccountLookup(question, history, route, deadline, retry, skipServiceNoteScope=false) {
+  const teaching=teachingFeedbackLookupContext(question,route,history);
+  if(teaching.selection?.views.length){
+    const foreignYear=currentStudyForeignYearQuestion(teaching.otherQuestion);
+    const remainder=foreignYear?foreignYear.courseQuestion:teaching.otherQuestion;
+    const study=accountQuestionIntent(remainder,[],'');
+    const ownedCourses=remainder&&study.recognized&&study.currentCourses&&study.baseTools.length===1&&study.baseTools[0]==='courses';
+    let tools;
+    if(!remainder||foreignYear&&!ownedCourses)tools=['teachingFeedback'];
+    else if(foreignYear||isServiceNoteNextClass(remainder))tools=['courses','teachingFeedback'];
+    else if(isOwnFeeBalanceQuestion(remainder)||ownFeeBalanceLabel(remainder)!==null)tools=['charges','teachingFeedback'];
+    else if(isCurrentStudyRecordQuestion(study,remainder))tools=['profile','courses','teachingFeedback'];
+    if(tools)return {tools,publicTopics:[],catalogQuery:null,responseIntent:'records'};
+    const independent=await planAccountLookup(remainder,[],'',deadline,retry,skipServiceNoteScope);
+    return {...independent,tools:[...new Set([...independent.tools,'teachingFeedback'])],action:undefined};
+  }
+  if(teaching.selection?.reason||teaching.excluded||teaching.navigation.length){
+    if(!teaching.otherQuestion)return {tools:[],publicTopics:[],catalogQuery:null,responseIntent:'records'};
+    return planAccountLookup(teaching.otherQuestion,[],'',deadline,retry,skipServiceNoteScope);
+  }
   const notes=skipServiceNoteScope?null:serviceNoteLookup(question,route,history);
   if(notes&&(notes.foreign||notes.invalidService||!notes.keys.length&&(notes.excluded||notes.officialOnly)&&!notes.otherQuestion))
     return {tools:[],publicTopics:[],catalogQuery:null,responseIntent:'records'};
@@ -244,7 +265,7 @@ export async function planAccountLookup(question, history, route, deadline, retr
     if (!Array.isArray(plan.tools) || !Array.isArray(plan.publicTopics) || plan.tools.some(key=>!readToolNames.includes(key)) || plan.publicTopics.some(key=>!topicNames.includes(key))) throw new Error('Invalid lookup plan');
     const catalogQuery=validateCatalogReadPlan(plan.catalogQuery);
     const plannedTools=plan.tools.filter(key=>{
-      if(['dormitoryConduct','studentConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation'].includes(key)&&!supplementalRequired.includes(key))return false;
+      if(['dormitoryConduct','studentConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation','teachingFeedback'].includes(key)&&!supplementalRequired.includes(key))return false;
       if(remoteLearningRequest&&key==='courses'&&!needsSeparateCourses)return false;
       if(remoteLearningWorkOnly&&['dtm','assignments','dtmSubmissions','dtmGradeReport'].includes(key))return false;
       if(remoteLearningRequest&&['dtmSubmissions','dtmGradeReport'].includes(key)&&!supplementalRequired.includes(key))return false;
@@ -366,7 +387,7 @@ function boundedAccountSource(key,{title,url,budget,makeContent}){
 
 function requestedScheduleProjection(snapshot,context){
   const question=context.question||'',route=context.route||'',history=context.history||[];
-  const clearance=Boolean(context.aidNext||clearanceTimetableQuestion(question,nativePageLookupContext(question,route,history)));
+  const clearance=Boolean(context.aidNext||context.teachingNext||clearanceTimetableQuestion(question,nativePageLookupContext(question,route,history)));
   const repair=facilityRepairLookupContext(question,route,history);
   const notes=context.serviceNoteScope??serviceNoteLookup(question,route,history);
   const noteNext=notes.keys.length>0&&isServiceNoteNextClass(notes.otherQuestion);
@@ -503,6 +524,51 @@ export function accountEvidence(snapshot,tools=toolNames,context={}) {
   return evidence;
 }
 
+function scopedReviewReferences(evidence,tools,teachingQuestion){
+  const parts=[];
+  for(const tool of tools){
+    const id='account:'+tool,source=evidence.find(item=>item.id===id);
+    const data=source?JSON.parse(source.content):{};
+    if(tool==='profile'){
+      const paths=data.unavailableReason? /^\/unavailableReason$/u :data.studentRecordFound===false? /^\/studentRecordFound$/u
+        :data.records?.student? /^\/records\/student\/yearLevel$/u : /^\/records\/student$/u;
+      parts.push({id,paths,label:'recorded year level'});
+    }else if(tool==='courses'||tool==='charges'){
+      let paths;
+      if(data.unavailableReason)paths=/^\/unavailableReason$/u;
+      else if(data.studentRecordFound===false)paths=/^\/studentRecordFound$/u;
+      else if(tool==='courses'&&data.selection?.scope==='next_scheduled_class'&&data.calendar?.records?.next===null)
+        paths=/^\/calendar\/records\/next$/u;
+      else if(!data.records?.length)paths=/^\/(?:records|selection\/matchingRows)$/u;
+      else if(tool==='courses')
+        paths=/^\/(?:records\/\d+\/(?:code|title|term|startsAt|endsAt|weekday|room)|calendar\/records\/next\/(?:day|course(?:\/(?:code|title|startsAt|room))?))$/u;
+      else paths=/^\/records\/\d+\/(?:amountDue|amountPaid|currency)$/u;
+      parts.push({id,paths,label:tool==='courses'?'saved classes':'saved balance'});
+    }else if(tool==='teachingFeedback'){
+      if(!data.views?.length)parts.push({id,paths:/^\/(?:readState|selection)$/u,label:'teaching feedback availability'});
+      else data.views.forEach((view,index)=>{
+        const root='^/views/'+index+'/';
+        const requireField=(field,label)=>parts.push({id,paths:new RegExp(root+field+'$','u'),label});
+        if(view.readState==='unavailable')requireField('(?:reason|readState)',view.view==='survey'?'teaching evaluation':'immediate teaching feedback');
+        else if(view.view==='survey'){
+          requireField(view.surveys.length?'surveys/[0-9]+/(?:courses/[0-9]+/completed|state|opensAt|closesAt)'
+            :'counts/(?:surveys|courseCompletions)/(?:returned|matching|included)','teaching evaluation');
+        }else{
+          const requested=teachingFeedbackImmediateFields(teachingQuestion);
+          if(requested.courses){
+            requireField(view.courses.length?'courses/[0-9]+/(?:code|course|term|section)':'counts/eligibleCourses/(?:matching|included)','eligible teaching feedback courses');
+            if(requested.completeness)requireField('(?:complete|counts/eligibleCourses/(?:total|omitted|capReached))','eligible course coverage');
+          }
+          if(requested.feedback)requireField(view.feedback.length
+            ?data.selection.commentRequested?'feedback/[0-9]+/comment':'feedback/[0-9]+/(?:status|submittedAt|reviewedAt)'
+            :'counts/feedback/(?:returned|matching|included|total|capReached)','immediate teaching feedback');
+        }
+      });
+    }
+  }
+  return parts;
+}
+
 function evidenceCitations(evidence) {
   return evidence.filter(source=>source.url).map(source=>({chunkId:source.id,claim:'Retrieved evidence for this answer',title:source.title||source.id,sourceName:source.capturedOn?`Public page snapshot · ${source.capturedOn}`:source.id.startsWith('account')?'My stu.best records':'Public school information',url:source.url,locator:null,effectiveAt:null,reviewedAt:null}));
 }
@@ -539,10 +605,19 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const fullRoute=route;
   route=normalizeRoute(route);
   const intent=accountQuestionIntent(question,history,fullRoute);
-  const studyTools=snapshot.currentStudyScope==='courses_and_year'&&isCurrentStudyRecordQuestion(intent,question)?['profile','courses']
-    :snapshot.currentStudyScope==='courses'&&intent.recognized&&intent.currentCourses&&intent.baseTools.length===1&&intent.baseTools[0]==='courses'?['courses']:null;
+  const teaching=teachingFeedbackLookupContext(question,fullRoute,history);
+  const teachingSelected=Boolean(teaching.selection?.views.length);
+  const teachingForeignYear=teachingSelected&&currentStudyForeignYearQuestion(teaching.otherQuestion);
+  const studyQuestion=teachingForeignYear?teachingForeignYear.courseQuestion:teachingSelected?teaching.otherQuestion:question;
+  const studyIntent=teachingSelected?accountQuestionIntent(studyQuestion,[],''):intent;
+  const teachingFees=teachingSelected&&(isOwnFeeBalanceQuestion(studyQuestion)||ownFeeBalanceLabel(studyQuestion)!==null);
+  const teachingNext=teachingSelected&&isServiceNoteNextClass(studyQuestion);
+  const scopedTeaching=teachingSelected&&(!studyQuestion||teachingFees||teachingNext);
+  const studyTools=snapshot.currentStudyScope==='courses_and_year'&&isCurrentStudyRecordQuestion(studyIntent,studyQuestion)?['profile','courses',...(teachingSelected?['teachingFeedback']:[])]
+    :snapshot.currentStudyScope==='courses'&&studyIntent.recognized&&studyIntent.currentCourses&&studyIntent.baseTools.length===1&&studyIntent.baseTools[0]==='courses'
+      ?['courses',...(teachingSelected?['teachingFeedback']:[])]:null;
   const scopedStudy=Boolean(studyTools);
-  const publicPageRoute=!scopedStudy&&isPublicPageQuestion(question)?normalizePublicPageRoute(fullRoute):'';
+  const publicPageRoute=!scopedStudy&&!scopedTeaching&&isPublicPageQuestion(question)?normalizePublicPageRoute(fullRoute):'';
   const serviceNoteScope=serviceNoteLookup(question,fullRoute,history);
   const scopedNotes=serviceNoteScope.keys.length>0;
   const noteNext=scopedNotes&&isServiceNoteNextClass(serviceNoteScope.otherQuestion);
@@ -558,7 +633,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   // Only the intent resolver's bounded user-message antecedent resolves "it".
   // This is query context, not an account fact or a new evidence source.
   const resolvedUserQuestion=intent.contextQuestion!==question.trim()?intent.contextQuestion:undefined;
-  const context={question:resolvedUserQuestion||question,route,history:resolvedUserQuestion?[]:history,serviceNoteScope,aidNext,
+  const context={question:resolvedUserQuestion||question,route,history:resolvedUserQuestion?[]:history,serviceNoteScope,aidNext,teachingNext,
     ...(resolvedUserQuestion?{resolvedUserQuestion}:{})};
   let evidenceAttempt=1;
   const diagnosticContext=()=>correlationId?{correlationId,attempt:evidenceAttempt}:undefined;
@@ -577,7 +652,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     &&!plan.publicTopics.length&&!publicPageRoute&&!plan.action;
   const boundedFeeAnswer=sources=>{
     const fees=sources.find(source=>source.id==='account:charges');
-    if(!(nativeAndFees||noteFees||aidFees)||!fees)return null;
+    if(!(nativeAndFees||noteFees||aidFees||teachingFees)||!fees)return null;
     try{return formatSelectedChargeEvidence(fees,{language:supplementalAnswerLanguage(question)});}
     catch(error){if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;return null;}
   };
@@ -612,6 +687,11 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     const comparison=/\b(?:compare|versus|difference|vs)\b|比較|差異/iu.test(question);
     const hasBaseQuestion=parts.some(part=>!requiredSupplementalTools(part,fullRoute,history).length);
     if(completeAccountTools(activeTools).length&&(pageLookup.feeAndBalance||remoteLearning||comparison||parts.length>1&&hasBaseQuestion||!plan.degraded))needsComposition=true;
+    if(scopedStudy&&teachingSelected){
+      const academics=await answerPrivateAffairsQuestion(studyQuestion,snapshot,[],'',{draftOnly:true});
+      initial.answer=[academics.answer,initial.answer].join('\n\n');
+      needsComposition=initial.answer.length>supplementalAnswerLimits.answerCharacters;
+    }
   }
   if(requested.action){
     initial.proposedAction=requested.action;
@@ -622,8 +702,8 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const privateEvidence=()=>{
     if(intent.kind==='coaching'&&!activeTools.length)return [];
     const extra=supplemental.map(result=>result.evidence),budget=70000-Buffer.byteLength(JSON.stringify(extra),'utf8')-4;
-    const scopeContext=scopedTimetable?{...context,question,history}:context;
-    const sources=[...accountEvidence(current,activeTools,{...scopeContext,budget,scopedReadOnly:scopedCounseling||scopedTutor||scopedConduct||scopedTimetable||scopedClearance||scopedNotes||scopedAid||scopedStudy}),...extra];
+    const scopeContext=scopedStudy&&teachingSelected?{...context,question:studyQuestion,history:[]}:scopedTimetable?{...context,question,history}:context;
+    const sources=[...accountEvidence(current,activeTools,{...scopeContext,budget,scopedReadOnly:scopedCounseling||scopedTutor||scopedConduct||scopedTimetable||scopedClearance||scopedNotes||scopedAid||scopedStudy||scopedTeaching}),...extra];
     if(Buffer.byteLength(JSON.stringify(sources),'utf8')>70000)throw new RangeError('Private evidence exceeds its shared budget.');
     return sources;
   };
@@ -682,7 +762,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     }
   }
   const fees=boundedFeeAnswer(evidence);
-  if((noteFees||aidFees)&&!fees)needsComposition=true;
+  if((noteFees||aidFees||teachingFees)&&!fees)needsComposition=true;
   if(fees){
     const combined={...initial,answer:[initial.answer,fees.answer].filter(Boolean).join('\n\n'),views:[...(initial.views||[]),...fees.views]};
     if(combined.answer.length<=selectedChargeAnswerLimits.answerCharacters
@@ -691,10 +771,10 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       needsComposition=false;
     }
   }
-  const timetableAnswer=scopedTimetable||noteNext||aidNext?clearanceNextClassAnswer(evidence,question):null;
+  const timetableAnswer=scopedTimetable||noteNext||aidNext||teachingNext?clearanceNextClassAnswer(evidence,question):null;
   if(timetableAnswer){
     const answer=initial.answer?[initial.answer,timetableAnswer]:[timetableAnswer];
-    if(initial.answer&&question.trimStart().startsWith(noteNext?serviceNoteScope.otherQuestion:aidNext?aidScope.otherQuestion:pageLookup.otherQuestion))answer.reverse();
+    if(initial.answer&&question.trimStart().startsWith(noteNext?serviceNoteScope.otherQuestion:aidNext?aidScope.otherQuestion:teachingNext?studyQuestion:pageLookup.otherQuestion))answer.reverse();
     initial={...initial,answer:answer.join('\n\n')};
     needsComposition=initial.answer.length>supplementalAnswerLimits.answerCharacters;
   }
@@ -702,7 +782,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   // receives, instead of trusting a first-match draft from the full snapshot.
   // This replaces the optional retry-planner call, keeping the existing maximum
   // of five provider calls and two independent checks per request.
-  const composeInitially=scopedTimetable||scopedNotes||scopedAid||scopedStudy?needsComposition:needsComposition||(repairLookup.selected||pageLookup.selected)&&plan.publicTopics.length>0||Boolean(resolvedUserQuestion)||intent.kind!=='records'||intent.overview||intent.currentCourses&&intent.year||intent.courseTerms.length>0&&!intent.recognized||!activeTools.length;
+  const composeInitially=scopedTimetable||scopedNotes||scopedAid||scopedStudy||scopedTeaching?needsComposition:needsComposition||(repairLookup.selected||pageLookup.selected)&&plan.publicTopics.length>0||Boolean(resolvedUserQuestion)||intent.kind!=='records'||intent.overview||intent.currentCourses&&intent.year||intent.courseTerms.length>0&&!intent.recognized||!activeTools.length;
   if(composeInitially){
     emit({kind:'account-compose',label:'Preparing your answer',detail:'Combining the requested details and clearly separating recorded facts from suggestions.',status:'running'});
     try{
@@ -725,7 +805,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         current=refreshed;
         // Reconsider omitted read capabilities while reserving time for the one
         // correction and second verification. Retry never changes the action.
-        if(!composeInitially&&!scopedNotes&&!scopedCounseling&&!scopedTutor&&!scopedConduct&&!scopedClearance&&!scopedTimetable&&!scopedAid&&!scopedStudy&&Date.now()<deadline-24000){
+        if(!composeInitially&&!scopedNotes&&!scopedCounseling&&!scopedTutor&&!scopedConduct&&!scopedClearance&&!scopedTimetable&&!scopedAid&&!scopedStudy&&!scopedTeaching&&Date.now()<deadline-24000){
           emit({kind:'account-replan',label:'Rechecking needed account records',detail:'Checking whether another record collection is needed; no new action or web search runs.',status:'running'});
           const retry=await planAccountLookup(question,history,fullRoute,Math.min(deadline-21000,Date.now()+3000),{previousTools:activeTools,feedback});
           if(!retry.degraded){activeTools=retry.tools;if(retry.catalogQuery!==null)activeCatalogQuery=retry.catalogQuery;}
@@ -736,7 +816,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       }
       for(const source of evidence)if(source.id.startsWith('account:')&&Object.hasOwn(accountTools,source.id.slice(8))){
         const payload=JSON.parse(source.content),unavailable=Boolean(payload.unavailableReason);
-        const timetable=(scopedTimetable||aidNext)&&source.id==='account:courses';
+        const timetable=(scopedTimetable||aidNext||teachingNext)&&source.id==='account:courses';
         emit({kind:'account-read:'+source.id.slice(8)+':'+attempt,label:timetable?'Checked your next class':'Checked '+accountTools[source.id.slice(8)],
           detail:timetable?(unavailable?'The saved timetable could not be read.':payload.studentRecordFound===false?'No student record is linked to this account.':'Calculated the next meeting from your saved enrollments.'):unavailable?'Selected snapshot evidence is unavailable; no absent record was inferred.':payload.excerpted?'Read a bounded selection from the signed-in snapshot; omitted records remain unknown.':'Read the selected signed-in account snapshot for this question.',status:unavailable?'unavailable':'complete'});
       }
@@ -744,7 +824,8 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     },
     verify:async context=>{
       if(needsComposition){needsComposition=false;return {ok:false,reason:'needs_grounded_composition',feedback:['Compose all requested parts from the selected evidence, explicitly identify unavailable details and keep suggestions distinct from factual claims. Do not substitute tracker status for file reviews, charges for statements, or catalog offerings for enrollment.']};}
-      return verifyEvidenceAnswer({...context,responseIntent:intent.kind,resolvedUserQuestion,diagnosticContext:diagnosticContext()});
+      const requiredEvidenceReferences=scopedStudy||scopedTeaching?scopedReviewReferences(context.evidence,activeTools,teaching.selection?.question):undefined;
+      return verifyEvidenceAnswer({...context,responseIntent:intent.kind,resolvedUserQuestion,requiredEvidenceReferences,diagnosticContext:diagnosticContext()});
     },repair:context=>repairEvidenceAnswer({...context,responseIntent:intent.kind,resolvedUserQuestion,diagnosticContext:diagnosticContext()}),
   });
   const supplementalViews=supplemental.length?formatSupplementalAccountAnswers(supplemental,{question}).views:[];
@@ -754,9 +835,9 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       :source.evidence.id==='account:feeRemission'?['current_term_not_designated','ambiguous_period','invalid_period'].includes(source.reason)
         :source.evidence.id==='account:healthExaminations'&&['ambiguous_selector','invalid_selector','invalid_route'].includes(source.reason));
   let viewSnapshot=current;
-  if(intent.recognized&&(intent.currentCourses||intent.scheduleWeekday)&&!intent.explicitDtm&&Number.isFinite(Date.parse(current.checkedAt))){
+  if(studyIntent.recognized&&(studyIntent.currentCourses||studyIntent.scheduleWeekday)&&!studyIntent.explicitDtm&&Number.isFinite(Date.parse(current.checkedAt))){
     const enrolled=studyCalendar(ownRows(current.courses,current.profile?.userId),current.checkedAt).current;
-    viewSnapshot={...current,courses:intent.scheduleWeekday?enrolled.filter(row=>row.weekday===intent.scheduleWeekday):enrolled};
+    viewSnapshot={...current,courses:studyIntent.scheduleWeekday?enrolled.filter(row=>row.weekday===studyIntent.scheduleWeekday):enrolled};
   }
   const scheduledMeeting=requestedScheduleProjection(current,scopedTimetable?{...context,question,history}:context);
   if(scheduledMeeting)viewSnapshot={...viewSnapshot,courses:scheduledMeeting.records};
@@ -766,8 +847,8 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     viewSnapshot={...viewSnapshot,serviceRecords:payload?.records??[]};
   }
   const viewTools=activeTools.filter(key=>
-    !(key==='charges'&&(viewSnapshot.chargeReadUnavailable||nativeAndFees||noteFees||aidFees))
-    &&!(key==='courses'&&((scopedTimetable||noteNext||aidNext)&&!scheduledMeeting?.records.length||scopedStudy&&(viewSnapshot.timetableReadUnavailable||viewSnapshot.studentRecordFound===false)))
+    !(key==='charges'&&(viewSnapshot.chargeReadUnavailable||nativeAndFees||noteFees||aidFees||teachingFees))
+    &&!(key==='courses'&&((scopedTimetable||noteNext||aidNext||teachingNext)&&!scheduledMeeting?.records.length||scopedStudy&&(viewSnapshot.timetableReadUnavailable||viewSnapshot.studentRecordFound===false)))
     &&!(key==='serviceRecords'&&viewSnapshot.serviceNoteReadUnavailable));
   const baseViews=[...accountRecordViews(viewSnapshot,viewTools,{...context,courseTerms:intent.courseTerms}),
     ...(boundedFeeAnswer(evidence)?.views||[]),...(activeTools.includes('housing')?housingBedView(viewSnapshot,context):[])];
