@@ -319,3 +319,6 @@ University menu labels and destinations were verified. Each new source detail pa
 ### Housing 34-1 evidence [Issue #100]
 
 A broad snapshot could miss an accommodation assignment question or read unrelated records on an exclusion. The dedicated projection only accepts verified caller identity and reads assignments plus their own referenced year and semester. The housing table stores demonstration values including nullable deposit and subsidy. The reader exposes availability separately and preserves literal amounts without inferring payment or current occupancy. The adjacent 26-1 application and 34-2 conduct sources remain independent.
+### Reported transcript [Issue #100]
+
+The four-turn conversation requires independent factual grading and two helpfulness reviews after collection. Successful transport, storage and cleanup are recorded separately. The retained journal and reconstructed digests bind the answer, visible cards and activity to the reported turn. A synthetic run cannot earn live acceptance.

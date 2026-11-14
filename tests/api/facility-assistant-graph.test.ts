@@ -11,6 +11,7 @@ import {facilityRepairLookupContext,requiredSupplementalTools,supplementalAccoun
 import {readFacilityRepairEvidence} from '../../server/accountFacilityRepairEvidence.js';
 import * as repairIntent from '../../server/facilityRepairEvidenceIntent.js';
 import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
+import {boundedAssistantText} from '../../src/services/assistantActivityBudget.js';
 
 const owner='20000000-0000-4000-8000-000000000001',report='a1000001-0000-4000-8000-000000000001';
 const history='/school-affairs/services/45-1/history',route=history+'/'+report,now='2026-11-16T08:00:00Z';
@@ -210,10 +211,15 @@ test('actual browser service forwards both compound orders after same-user sessi
   runInNewContext(code,{exports,require:(specifier:string)=>{
     if(specifier.endsWith('facilityRepairEvidenceIntent.js'))return repairIntent;
     if(specifier.endsWith('assistantStreamReader.js'))return {readAssistantReply};
+    if(specifier.endsWith('assistantActivityBudget.js'))return {boundedAssistantText};
     if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{getSession:async()=>({data:{session:{user:{id:sessionOwner},access_token:'BROWSER_TOKEN'}},error:null})}}};
     return new Proxy({},{get:()=>()=>false});
   },fetch:async(url:string,init:RequestInit)=>{requests.push({url,body:JSON.parse(String(init.body)),token:(init.headers as Record<string,string>).Authorization});return Response.json({status:'answered',answer:'From verified graph',citations:[]});}});
-  for(const text of questions){const result=await exports.askSchoolAffairsAssistant(owner,text,[],undefined,[],route);assert.equal(result.answer,'From verified graph');}
-  assert.equal(requests.length,2);for(const request of requests){assert.equal(request.url,'/api/affairs-assistant');assert.equal(request.token,'Bearer BROWSER_TOKEN');assert.equal(request.body.route,route);}
+  const prior='甲😀'.repeat(700);
+  for(const text of questions){const result=await exports.askSchoolAffairsAssistant(owner,text,[{role:'assistant',content:prior}],undefined,[],route);assert.equal(result.answer,'From verified graph');}
+  assert.equal(requests.length,2);for(const request of requests){
+    assert.equal(request.url,'/api/affairs-assistant');assert.equal(request.token,'Bearer BROWSER_TOKEN');assert.equal(request.body.route,route);
+    assert.deepEqual(request.body.history,[{role:'assistant',content:'甲😀'.repeat(666)+'甲'}]);
+  }
   sessionOwner='20000000-0000-4000-8000-000000000099';await assert.rejects(()=>exports.askSchoolAffairsAssistant(owner,question,[],undefined,[],route),/account changed/u);assert.equal(requests.length,2);
 });

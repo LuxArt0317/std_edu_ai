@@ -3,6 +3,51 @@ import {test} from 'node:test';
 import {selectHousingBedEvidence as select,housingBedLookupContext as context,housingBedNavigation as nav,isHousingBedScopeQuestion as scope} from '../../server/housingBedEvidenceIntent.js';
 const path='/school-affairs/services/34-1';
 const defaults=['academicYear','semester','bedNumber','dormitory','bunk'];
+test('bounded companion lists retain every positive source and last explicit exclusions',()=>{
+  for(const q of [
+    'Show my dormitory bed. What is my next class? How much is my remaining balance in school?',
+    'How much is my remaining balance in school? What is my next class? Show my dormitory bed.',
+    'Show my dormitory bed, my tuition balance, and my next class.',
+  ]){
+    const x=context(q,path);assert.equal(x.companionOnly,true,q);assert.equal(x.companion,null,q);
+    assert.deepEqual(x.companions,['next_class','fee_balance'],q);assert.deepEqual(x.excludedCompanions,[],q);
+    assert.doesNotMatch(x.otherQuestion,/,\./u,q);
+  }
+  for(const q of ['Show my dormitory bed. Do not show my tuition balance.','Do not read my tuition balance. Show my dormitory bed.']){
+    const x=context(q,path);assert.equal(x.companionOnly,true,q);assert.deepEqual(x.companions,[],q);assert.deepEqual(x.excludedCompanions,['fee_balance'],q);
+  }
+  const x=context('Show my dormitory bed. Show my tuition balance. Do not show my tuition balance. What is my next class?',path);
+  assert.deepEqual(x.companions,['next_class']);assert.deepEqual(x.excludedCompanions,['fee_balance']);
+  const y=context('Show my dormitory bed. Do not show my next class. Show my next class. Do not show my tuition balance.',path);
+  assert.deepEqual(y.companions,['next_class']);assert.deepEqual(y.excludedCompanions,['fee_balance']);
+  const unknown=context('Show my dormitory bed. Show my tuition balance. Show my assignment deadlines.',path);
+  assert.equal(unknown.companionOnly,false);assert.match(unknown.otherQuestion,/assignment deadlines/u);
+});
+test('localized, tell-me and coordinated nor exclusions never become positive companion scopes',()=>{
+  for(const q of ['顯示我的住宿床位。不要顯示我的學費餘額。','Show my dormitory bed. Don’t tell me my tuition balance.',
+    'Show my dormitory bed. Do not show my next class, nor my tuition balance.']){
+    const x=context(q,path);assert.equal(x.companionOnly,true,q);assert.deepEqual(x.companions,[],q);
+    assert.ok(x.excludedCompanions.includes('fee_balance'),q);
+  }
+  const x=context('Show my dormitory bed. Do not show my next class, nor my tuition balance.',path);
+  assert.deepEqual(x.excludedCompanions,['next_class','fee_balance']);
+});
+test('a bounded foreign fee or timetable clause never substitutes the caller’s independent records',()=>{
+  for(const q of ['Show my dormitory bed and tuition balance for Alice.','Show tuition balance for Alice. Show my dormitory bed.',
+    'Show my dormitory bed. Show QA123’s tuition balance.','Show my dormitory bed and tuition balance for my mother.',
+    'Show my dormitory bed and my friend’s tuition balance.']){
+    const x=context(q,path);assert.equal(x.companionOnly,true,q);assert.deepEqual(x.companions,[],q);assert.deepEqual(x.foreignCompanions,['fee_balance'],q);
+    assert.equal(x.selection?.reason,null,q);
+  }
+  const own=context('Show my dormitory bed. Show my tuition balance. Show Alice’s tuition balance.',path);
+  assert.deepEqual(own.companions,['fee_balance']);assert.deepEqual(own.foreignCompanions,['fee_balance']);
+  const excludedForeign=context('Show my dormitory bed and my tuition balance. Do not show Alice’s tuition balance.',path);
+  assert.deepEqual(excludedForeign.companions,['fee_balance']);assert.deepEqual(excludedForeign.excludedCompanions,[]);assert.deepEqual(excludedForeign.foreignCompanions,[]);
+  for(const self of ['me','myself']){
+    const x=context('Show my dormitory bed and tuition balance for '+self+'.',path);
+    assert.equal(x.companionOnly,true);assert.deepEqual(x.companions,['fee_balance']);assert.deepEqual(x.foreignCompanions,[]);
+  }
+});
 test('native bed headings and own questions select metadata without application PII or implicit money',()=>{
   for(const question of ['Which dormitory beds are saved for me?','Show all my dormitory bed assignments.','What’s my dormitory bed number?',
     '請列出我的住宿床位編號、學年、學期、宿舍名稱與上下舖。','請顯示我自己的住宿床位。','住宿床位查詢','Show my saved bed and its academic year and semester.']){

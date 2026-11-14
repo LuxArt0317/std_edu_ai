@@ -49,3 +49,15 @@ The November13 correction batch adds a preexisting protected-owner fingerprint b
 The verified client dispatch inventory includes accommodation beds (34-1). Route linkage is source-level evidence. Signed-in browser and model acceptance require a separately authorized evaluation run.
 
 The 22-question accommodation bank runs through the real API with synthetic authentication, captured record reads and a controlled reviewer. An independent oracle checks facts, source scopes and limits. It does not measure live model quality or browser behavior.
+
+The reported four-turn conversation has its own protected Preview runner. Run from a clean checkout of the deployed commit with an authorized operator module that exports `fetchPreview(url, init)` and can reach the specified protected Preview over the evaluator's exact-origin HTTP contract.
+
+```sh
+node tests/evaluation/run-transcript-preview.mjs \
+  --origin "$PREVIEW_ORIGIN" --approved-preview-origin "$PREVIEW_ORIGIN" \
+  --revision "$PREVIEW_REVISION" --transport-module "$PREVIEW_TRANSPORT_MODULE"
+```
+
+This command creates disposable Supabase accounts through the client fixture adapter only after verifying the Preview release. It saves each answer through the conversation API and checks both the authenticated API response and its owner-scoped persisted row before continuing. The output reports collection, failed or pending cases, and cleanup separately. Detailed responses and the request journal are written to the ignored owner-only evaluation directory.
+
+`assessTranscriptPreview(report, {reviews})` verifies request and saved-message digests and evaluates the report against the frozen cases. Supply independent review artifacts for the account overview and interview response. A completed collection can still fail evaluation. An unresolved write retains its journal for reconciliation. Never replay a pending write or use this packet alone as the production gate.

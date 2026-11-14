@@ -775,3 +775,7 @@ Issue #98 summer selection 6-5 uses the signed-in missing-college layout, the ex
 ### Accommodation beds [Issue #100]
 
 The isolated housing candidate extends protected overview `bb81449`. The caller-scoped service 34-1 reader, routing, answer formatting, verification and tests live in the candidate only. The shared dirty checkout belongs to concurrent work. The production revision is outside this candidate. This runtime requires no schema change. Exact local manifest and test evidence accompany the handoff.
+
+### Issue #100 transcript run and accommodation scope
+
+The isolated combined candidate uses the accepted transcript cleanup and journal helpers, verifies each saved turn's digest, and runs the evaluation contracts in CI. Accommodation preserves an explicitly requested own balance when a foreign balance is excluded. The Unicode history fix applies to the real browser dispatcher. The housing application receipt reader remains in separate development. The release operator owns protected publication and any exact-origin fixture run.

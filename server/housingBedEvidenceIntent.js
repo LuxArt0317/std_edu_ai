@@ -7,17 +7,17 @@ const bedTopic=/\b(?:(?:dormitory|dorm|housing|residence hall)[ -]+(?:beds?|assi
 const application=/\b(?:housing|dormitory|dorm|accommodation)\s+(?:application|receipt|application window|application period)s?\b|住宿申請|住宿申请|住宿收據|住宿收据|申請期間|申请期间/iu;
 const conduct=/\b(?:dormitory|dorm|housing)\s+(?:conduct|discipline|rewards?|penalties)\b|宿舍獎懲|宿舍奖惩|宿舍紀律|宿舍纪律/iu;
 const independent=/\b(?:tuition|(?:school\s+)?fee\s+(?:balance|amount due)|remaining balance in school|next\s+(?:(?:school affairs|scheduled)\s+)?class|courses?|classes|grades?|assignments?|homework|salary|aid claims?|counseling|health|student conduct|scholarship|clearance|leave|profile|student (?:number|name)|year level)\b|學費|学费|下一堂課|下一堂课|課程|课程|成績|成绩|作業|作业|薪資|薪资|諮商|咨询|健檢|健检|學生獎懲|学生奖惩|請假|请假|年級|年级/iu;
-const negative=/^(?:(?:(?:please|also|but)\s+)*(?:do not|don['’]t|never)\s+(?:read|show|include|list|check)|not(?!\s+only)\b|without\b|skip\b|exclude\b|excluding\b|except\b|(?:請|请)?不要|別(?:讀|顯示)|排除|不含)/iu;
+const negative=/^(?:(?:(?:please|also|but)\s+)*(?:do not|don['’]t|never)\s+(?:read|show|include|list|check|tell(?:\s+me)?)|not(?!\s+only)\b|nor\b|without\b|skip\b|exclude\b|excluding\b|except\b|(?:請|请)?不要|別(?:讀|顯示)|排除|不含)/iu;
 const fieldOnly=/^(?:(?:and|also|then|please)\s+)*(?:(?:show|list|include|tell me|what (?:is|are|about|was|were)|how much (?:is|was))\s+)?(?:(?:my|the|its|their|saved|recorded|each|all)\s+)*(?:bed(?: number)?s?|dormitory(?: name)?s?|bunks?|upper|lower|academic year|school year|semester|term|accommodation fees?|housing fees?|fees?|deposits?|subsid(?:y|ies)(?: amount)?|amounts?|records?|history|status|details)(?:\b|$)|^(?:請|请|顯示|显示|列出|包含|我的|它的|儲存的|保存的)*(?:學年|学年|學期|学期|床位|宿舍名稱|宿舍名称|上下舖|上下铺|住宿費|住宿费|保證金|保证金|補助|补助|紀錄|记录)/iu;
 const follow=/^(?:(?:and|also|then|please)\s+)*(?:(?:show|list|check)\s+(?:me\s+)?(?:my|the|its|those|these)?\s*(?:saved\s+|recorded\s+)?(?:bed|records?|history|details|fees?|deposit|subsidy)|what (?:is|are|was|were|about) (?:my|the|its|their)?\s*(?:bed|dormitory|bunk|fee|deposit|subsidy|academic year|semester|status)|how much (?:is|was) (?:my|the|its)?\s*(?:fee|deposit|subsidy)|which (?:bed|dormitory|bunk)|(?:the\s+)?(?:academic year|semester)\s+\d)|^(?:請|请|顯示|显示|列出|我的|它的)*(?:床位|上下舖|上下铺|住宿費|住宿费|保證金|保证金|補助|补助|紀錄|记录|學年|学年|學期|学期)/iu;
-const clean=value=>value.replace(/^(?:(?:also|then|but)\s+)+/iu,'').trim();
+const clean=value=>value.replace(/^(?:(?:also|then|but)\s+)+/iu,'').replace(/[,，]\s*$/u,'').trim();
 function clauses(value){
-  const boundary=/[;；。!?！？\n]|\.(?:\s+|$)|[,，]\s*(?=(?:also\b|then\b|show\b|what\b|when\b|where\b|my\b|do not\b|don['’]t\b|never\b|not\b|without\b|exclude\b|excluding\b|except\b|for\b|請|请|不要|排除|不含))|\s+(?:and|also|but)\s+(?=(?:show\b|what\b|when\b|where\b|do not\b|don['’]t\b|never\b|not\b|skip\b|my\b|tuition\b|(?:school )?fee balance\b|next (?:School Affairs )?class\b|current courses\b|year level\b|dormitory bed\b|bed history\b|[\p{L}\p{N}][\p{L}\p{N}_’-]*['’]s\b|the status of my\b|the balance of my\b))|(?<!do)\s+(?=(?:without|excluding|except|not(?!\s+only))\b)|還有|还有|以及(?=我的)|(?=排除|不含)/giu;
+  const boundary=/[;；。!?！？\n]|\.(?:\s+|$)|[,，]\s*(?=(?:also\b|then\b|show\b|what\b|when\b|where\b|my\b|do not\b|don['’]t\b|never\b|not\b|without\b|exclude\b|excluding\b|except\b|for\b|請|请|不要|排除|不含))|\s+(?:and|also|but|nor)\s+(?=(?:show\b|what\b|when\b|where\b|do not\b|don['’]t\b|never\b|not\b|skip\b|my\b|tuition\b|(?:school )?fee balance\b|next (?:School Affairs )?class\b|current courses\b|year level\b|dormitory bed\b|bed history\b|[\p{L}\p{N}][\p{L}\p{N}_’-]*['’]s\b|the status of my\b|the balance of my\b))|(?<!do)\s+(?=(?:without|excluding|except|not(?!\s+only))\b)|還有|还有|以及(?=我的)|(?=排除|不含)/giu;
   const result=[];let start=0,priorBoundary='';
   for(const match of [...value.matchAll(boundary),{index:value.length,0:''}]){
     let part=clean(value.slice(start,match.index));
     if(part){
-      if(/^and$/iu.test(priorBoundary.trim())&&negative.test(result.at(-1)??'')&&!/^(?:show|list|read|include|check|what|when|where|how|do not|don['’]t|never|請|请|顯示|显示)\b/iu.test(part))part='Do not show '+part;
+      if((/^nor$/iu.test(priorBoundary.trim())||/^and$/iu.test(priorBoundary.trim())&&negative.test(result.at(-1)??''))&&!/^(?:show|list|read|include|check|what|when|where|how|do not|don['’]t|never|請|请|顯示|显示)\b/iu.test(part))part='Do not show '+part;
       result.push(part);
     }
     start=match.index+match[0].length;priorBoundary=match[0];
@@ -112,6 +112,29 @@ function companion(value){
     ||/^(?:請|请)?(?:顯示|显示|查詢|查询)?我的學費(?:餘額|余额|欠款)$/u.test(q))return 'fee_balance';
   return null;
 }
+function companionScope(parts){
+  const states=new Map(),foreign=new Set();let companionOnly=true;
+  for(const part of parts){
+    const excluded=negative.test(part);
+    const positive=excluded?part.replace(/^(?:(?:(?:please|also|but)\s+)*(?:do not|don['’]t|never)\s+(?:read|show|include|list|check|tell(?:\s+me)?)\s*|(?:not|nor|without|skip|exclude|excluding|except)\s+|(?:請|请)?(?:不要|別|别)(?:讀取|读取|讀|读|顯示|显示|列出|查詢|查询|包含|告訴我|告诉我)?\s*|(?:排除|不含)\s*)/iu,''):part;
+    const owned=companion(positive.replace(/\s+(?:for|of)\s+(?:me|myself)[.?!]?$/iu,'')),other=owned?null:foreignCompanion(positive),kind=owned??other;
+    if(other){if(!excluded)foreign.add(other);}
+    else if(kind)states.set(kind,!excluded);
+    else companionOnly=false;
+  }
+  const order=['next_class','fee_balance'];
+  const companions=order.filter(kind=>states.get(kind)===true),excludedCompanions=order.filter(kind=>states.get(kind)===false);
+  return {companions,excludedCompanions,foreignCompanions:order.filter(kind=>foreign.has(kind)),companionOnly,companion:companions.length===1?companions[0]:null};
+}
+function foreignCompanion(value){
+  const postfix=/^(.*?)\s+(?:for|of|belong(?:s|ing)? to)\s+(?:(?:the\s+)?student\s+)?([\p{L}\p{N}][\p{L}\p{N}_’'-]*(?:\s+[\p{L}\p{N}][\p{L}\p{N}_’'-]*){0,2})[.?!]?$/iu.exec(value);
+  if(postfix&&(/^my (?:mother|father|parents?|friend|sister|brother|classmate|roommate|colleague|partner)$/iu.test(postfix[2])
+    ||!/^(?:me|myself|my|this|that|the|current|academic|school|semester|term|year|next|last|previous|every|each)\b|^\d{1,3}$/iu.test(postfix[2])))return companion(postfix[1]);
+  const possessive=/^(?:(?:show|check|list|tell me)(?: me)?\s+)?(?:my\s+)?([\p{L}\p{N}][\p{L}\p{N}_’-]*)['’]s\s+(.+)$/iu.exec(value);
+  if(possessive&&!/^(?:what|where|when|who|how|school|university)$/iu.test(possessive[1]))return companion(possessive[2]);
+  const pronoun=/^(?:(?:show|check|list|tell me)(?: me)?\s+)?(?:his|her|their|your)\s+(.+)$/iu.exec(value);
+  return pronoun?companion(pronoun[1]):null;
+}
 function priorScope(previous){
   if(!previous)return null;
   const parts=clauses(previous),own=parts.filter(part=>bedTopic.test(part)&&!application.test(part)&&!conduct.test(part));
@@ -121,7 +144,7 @@ function priorScope(previous){
 
 export function housingBedLookupContext(question,route='',history=[]){
   const value=text(question),context=routeContext(route),previous=latest(history),prior=priorScope(previous);
-  const empty={selection:null,question:'',otherQuestion:value,companion:null,navigation:false,foreign:false,excluded:false};
+  const empty={selection:null,question:'',otherQuestion:value,companion:null,companions:[],excludedCompanions:[],foreignCompanions:[],companionOnly:false,navigation:false,foreign:false,excluded:false};
   if(!value)return empty;
   const parts=clauses(value),explicit=parts.some(part=>bedTopic.test(part)&&!application.test(part)&&!conduct.test(part));
   const implicit=!explicit&&follow.test(value)&&!independent.test(value)&&!application.test(value)&&!conduct.test(value)
@@ -144,7 +167,8 @@ export function housingBedLookupContext(question,route='',history=[]){
     navigation ||= named&&isNav(part);
   }
   const scopedQuestion=scoped.join('. '),otherQuestion=other.join('. '),from=explicit?'question':prior?'history':'route';
-  if(!selected)return {...empty,otherQuestion,companion:companion(otherQuestion),excluded};
+  const companions=companionScope(other);
+  if(!selected)return {...empty,otherQuestion,...companions,excluded};
   if(implicit&&prior?.foreign)foreign=true;
   const termQuestion=scopedQuestion+(implicit&&prior?'. '+prior.question:'');
   const terms=termSelection(termQuestion);
@@ -153,7 +177,7 @@ export function housingBedLookupContext(question,route='',history=[]){
   // A guide is public only when no requested literal fields or operation are attached.
   const pureNav=navigation&&scoped.every(part=>isNav(part))&&!reason;
   const selection=pureNav?null:{from,question:scopedQuestion,term:terms.term,fields:reason?[]:requestedFields(scoped),unsupported:unsupported(scopedQuestion),reason};
-  return {selection,question:scopedQuestion,otherQuestion,companion:companion(otherQuestion),navigation:pureNav,foreign,excluded:false};
+  return {selection,question:scopedQuestion,otherQuestion,...companions,navigation:pureNav,foreign,excluded:false};
 }
 export function selectHousingBedEvidence(question,route='',history=[]){return housingBedLookupContext(question,route,history).selection;}
 export function isHousingBedEvidenceQuestion(question,route='',history=[]){return selectHousingBedEvidence(question,route,history)!==null;}

@@ -27,6 +27,7 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run test:unit
+      - run: npm run test:assistant-evaluation
       - run: npm run build
       - run: npm run verify:handoff
       - run: npm run verify:dependency-audit

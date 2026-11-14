@@ -1,4 +1,5 @@
 import {isStudentConductScopeQuestion} from '../../server/studentConductEvidenceScope.js';
+import {boundedAssistantText} from './assistantActivityBudget.js';
 import { clubStudentQuestion } from '../../server/clubStudentContract.js';
 import { answerStudentClubs } from './clubStudent';
 import { clubOfficerGuide,clubOfficerQuestion } from '../../server/clubOfficerContract.js';
@@ -159,7 +160,7 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
 async function askVerifiedAccount(accessToken:string, question:string, history:Array<{role:string;content:string}>, signal:AbortSignal|undefined, images:Array<{name:string;dataUrl:string}>, route:string, onProgress:((step:AssistantProgress)=>void)|undefined) {
   const response = await fetch('/api/affairs-assistant', {
     method:'POST', signal, headers:{'Content-Type':'application/json',Authorization:`Bearer ${accessToken}`},
-    body:JSON.stringify({question:question.trim(),history:history.slice(-6).map(item=>({role:item.role,content:item.content.slice(0,2000)})),images,route,stream:Boolean(onProgress)}),
+    body:JSON.stringify({question:question.trim(),history:history.slice(-6).map(item=>({role:item.role,content:boundedAssistantText(item.content,2000)})),images,route,stream:Boolean(onProgress)}),
   });
   const result = await readAssistantReply(response,onProgress) as (Partial<AssistantResponse> & {error?:string})|null;
   if (!response.ok || typeof result?.answer !== 'string') throw new Error(typeof result?.error === 'string' ? result.error : 'Your account answer could not be loaded. Please try again or sign in again.');

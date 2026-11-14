@@ -53,3 +53,5 @@
 - 2026-11-14 [#100] Verified the 50-file snapshot and exact preview manifest at 11b1675. Fresh preview chat produced the expected Wi-Fi links and reproduced a first-week guidance abstention. The isolated candidate passed 454 evaluation contracts. The separate b41e46d course link repair passed 1,128 API/source checks. Production stayed on 076c79a. Automated signed-in model tests await scoped preview authorization.
 
 - Verified service 34-1 and its companion fee, timetable and conduct paths offline. Corrected a governing-negation regression that could query a fee balance the user excluded. Captured auth and model transports exercised a fresh retry and blocked an unverified housing view.
+
+- 2026-11-15 [#100] Mounted the exact transcript runner and its durable save/readback checks. Independent review reproduced forged digests and a split Unicode character at the history boundary. Added digest reconstruction and reused the Unicode-safe limit for the browser and evaluator. Chinese and compound exclusions and foreign-account companions now have actual-handler coverage. The model and deployed conversation replay remain pending Preview HTTP access.

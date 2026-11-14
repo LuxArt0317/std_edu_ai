@@ -7,6 +7,7 @@ import {planAccountLookup} from '../../server/answerVerificationAccount.js';
 const origin='https://xiftudmvxphxcjtmfmib.supabase.co';
 const id=(n:number)=>'74010000-0000-4000-8000-'+String(n).padStart(12,'0');
 const account={url:origin,key:'HOUSING_TEST_KEY',token:'HOUSING_TEST_TOKEN',user:{id:id(1)}};
+let ownerSequence=100;
 const housingPath='/school-affairs/services/34-1';
 const bedQuestion='Which dormitory bed was assigned to me?';
 const feeQuestion='How much is my remaining balance in school?';
@@ -33,6 +34,9 @@ const charge={id:id(10),student_id:id(5),label:'QA Tuition',amount_due:28000,amo
 type Options={tools:string[];fields?:string[];empty?:boolean;failed?:boolean;missingPeriod?:boolean;omitReference?:string;reject?:number;feeFailed?:boolean};
 type Evidence={id:string;url:string;content:string};
 async function offline({tools,fields=[],empty=false,failed=false,missingPeriod=false,omitReference,reject=0,feeFailed=false}:Options,exercise:()=>Promise<void>){
+  // Independent synthetic caller per scenario keeps the real API rate limit
+  // enabled without coupling unrelated test cases to one account's quota.
+  account.user.id=id(++ownerSequence);
   const original=globalThis.fetch,key=process.env.OPENAI_API_KEY;
   const errors:unknown[]=[],calls:string[]=[];
   let reads=0,reviews=0,lastDraft='';
@@ -50,17 +54,17 @@ async function offline({tools,fields=[],empty=false,failed=false,missingPeriod=f
         if(failed)return Response.json({error:'PRIVATE_HOUSING_FAILURE'},{status:503});
         if(empty)return ranged([]);
         const amounts=Object.fromEntries(fields.map(key=>[key,key==='deposit'?0:key==='subsidy_amount'?null:3200.25]));
-        return ranged([{id:id(2),user_id:id(1),period_id:id(3),bed_number:'BED-'+reads,version:1,dormitory:'Test Hall',bunk:'upper',...amounts}]);
+        return ranged([{id:id(2),user_id:account.user.id,period_id:id(3),bed_number:'BED-'+reads,version:1,dormitory:'Test Hall',bunk:'upper',...amounts}]);
       }
       if(path==='affairs_housing_periods'){
         assert.equal(url.searchParams.get('id'),'in.('+id(3)+')');
         return ranged(missingPeriod?[]:[{id:id(3),academic_year:115,semester:1,source_mode:'local_demo',version:1}]);
       }
-      if(path==='affairs_students')return Response.json([{id:id(5),user_id:id(1)}]);
+      if(path==='affairs_students')return Response.json([{id:id(5),user_id:account.user.id}]);
       assert.equal(url.searchParams.get('student_id'),'eq.'+id(5));
       if(path==='affairs_charges')return feeFailed?Response.json({}, {status:503}):ranged([charge]);
       assert.equal(path,'affairs_enrollments');
-      return ranged([timetable]);
+      return ranged([{...timetable,student:{...timetable.student,user_id:account.user.id}}]);
     }
     assert.equal(url.origin,'https://api.openai.com');
     const request=JSON.parse(String(init?.body)),packet=JSON.parse(request.input[0].content[0].text);
@@ -71,6 +75,7 @@ async function offline({tools,fields=[],empty=false,failed=false,missingPeriod=f
     if(tools.includes('housing'))assert.deepEqual(scope.actions,[]);
     assert.deepEqual(scope.selectedTools.slice().sort(),[...tools].sort());
     assert.doesNotMatch(JSON.stringify(evidence),/HOUSING_TEST|PRIVATE_HOUSING_FAILURE|74010000-0000-4000-8000-000000000001/u);
+    assert.equal(JSON.stringify(evidence).includes(account.user.id),false);
     const claims=evidence.slice(1).flatMap(source=>{
       const data=JSON.parse(source.content);
       const claim=(text:string,...paths:string[])=>({claim:text,evidenceId:source.id,jsonPaths:paths,quotes:[],supported:true});
@@ -151,6 +156,65 @@ test('the correction reloads both authorized sources and replaces stale facts',a
   assert.equal(result.reviews,2);
 });
 
+test('explicitly excluded companions never trigger their private reader or the broad snapshot',async()=>{
+  for(const question of [bedQuestion+' Do not show my tuition balance.','Do not read my tuition balance. '+bedQuestion,
+    bedQuestion+' Show my tuition balance. Do not show my tuition balance.',
+    '顯示我的住宿床位。不要顯示我的學費餘額。',
+    'Show my dormitory bed. Don’t tell me my tuition balance.',
+    'Show my dormitory bed. Do not show my next class, nor my tuition balance.']){
+    assert.deepEqual((await planAccountLookup(question,[],housingPath,Date.now()-1)).tools,['housing']);
+    const result=await offline({tools:['housing']},async()=>{
+      const body=await ask(question);assert.equal(body.verification.status,'verified');assert.match(body.answer,/BED\\?-1/u);
+      assert.doesNotMatch(body.answer,/23,000|QA Tuition|SAVED1/u);
+    });
+    assert.deepEqual(result.calls,['affairs_housing_assignments','affairs_housing_periods','answer_evidence_review']);
+  }
+});
+
+test('own beds survive foreign finance clauses without fee, timetable or broad snapshot access',async()=>{
+  for(const question of ['Show my dormitory bed and tuition balance for Alice.','Show tuition balance for Alice. Show my dormitory bed.',
+    'Show my dormitory bed and tuition balance for my mother.','Show my dormitory bed and my friend’s tuition balance.']){
+    const result=await offline({tools:['housing']},async()=>{
+      const body=await ask(question);assert.equal(body.verification.status,'verified');assert.match(body.answer,/BED\\?-1/u);
+      assert.match(body.answer,/cannot show another person/u);assert.doesNotMatch(body.answer,/23,000|QA Tuition/u);
+    });
+    assert.deepEqual(result.calls,['affairs_housing_assignments','affairs_housing_periods','answer_evidence_review']);
+  }
+  await offline({tools:['housing','charges']},async()=>{
+    const body=await ask('Show my dormitory bed and my tuition balance. Do not show Alice’s tuition balance.');
+    assert.equal(body.verification.status,'verified');assert.match(body.answer,/BED\\?-1/u);assert.match(body.answer,/23,000/u);
+  });
+});
+
+test('three-part housing, next-class and balance questions read and answer all three sources',async()=>{
+  for(const question of [bedQuestion+' '+nextQuestion+' '+feeQuestion,feeQuestion+' '+nextQuestion+' '+bedQuestion,
+    'Show my dormitory bed, my tuition balance, and my next class.']){
+    const tools=['housing','courses','charges'];
+    assert.deepEqual((await planAccountLookup(question,[],housingPath,Date.now()-1)).tools,tools);
+    const result=await offline({tools},async()=>{
+      const body=await ask(question);assert.equal(body.verification.status,'verified',body.answer);
+      assert.match(body.answer,/BED\\?-1/u);assert.match(body.answer,/SAVED1/u);assert.match(body.answer,/23,000/u);
+      for(const url of [housingPath,'/school-affairs/records/subjects','/school-affairs/services/39-1'])
+        assert.ok(body.citations.some((item:{url:string})=>item.url===url),url);
+    });
+    for(const source of ['affairs_housing_assignments','affairs_enrollments','affairs_charges','answer_evidence_review'])
+      assert.equal(result.calls.filter(call=>call===source).length,1,source);
+  }
+});
+
+test('a positive companion survives a separate explicit source exclusion',async()=>{
+  for(const [question,tool,forbidden] of [
+    [bedQuestion+' Do not show my tuition balance. '+nextQuestion,'courses','affairs_charges'],
+    [bedQuestion+' Do not show my next class. '+feeQuestion,'charges','affairs_enrollments'],
+  ]){
+    const result=await offline({tools:['housing',tool]},async()=>{
+      const body=await ask(question);assert.equal(body.verification.status,'verified');assert.match(body.answer,/BED\\?-1/u);
+      assert.match(body.answer,tool==='courses'?/SAVED1/u:/23,000/u);
+    });
+    assert.equal(result.calls.includes(forbidden),false);
+  }
+});
+
 test('the review must reference the requested deposit and withholds a twice unsupported draft',async()=>{
   const result=await offline({tools:['housing'],fields:['deposit'],omitReference:'deposit'},async()=>{
     const body=await ask('How much is my dormitory deposit?');
@@ -195,6 +259,18 @@ test('a failed independent fee read preserves the verified saved accommodation a
     assert.match(body.answer,/fee records could not be read, so the balance is unknown/iu);
     assert.doesNotMatch(body.answer,/23,000/u);
   });
+});
+
+test('failed fees in a three-part request keep the saved bed and next class without inferring a zero balance',async()=>{
+  const result=await offline({tools:['housing','courses','charges'],feeFailed:true},async()=>{
+    const body=await ask(bedQuestion+' '+feeQuestion+' '+nextQuestion);
+    assert.equal(body.verification.status,'verified',body.answer);
+    assert.match(body.answer,/BED\\?-1/u);assert.match(body.answer,/SAVED1/u);
+    assert.match(body.answer,/fee records could not be read, so the balance is unknown/iu);
+    assert.doesNotMatch(body.answer,/23,000|balance (?:is )?0/u);
+  });
+  assert.equal(result.calls.filter(path=>path==='affairs_enrollments').length,1);
+  assert.equal(result.calls.filter(path=>path==='affairs_charges').length,1);
 });
 
 test('a foreign-bed clause retains the caller’s independently requested fee answer',async()=>{

@@ -1,6 +1,9 @@
 # Changelog
 ## Unreleased
 
+- Respect explicit exclusions and account boundaries in combined dormitory, timetable and tuition questions. Keep all eight record card columns after reopening saved chats and preserve complete Unicode characters in follow-up history. [#100]
+- Add the reported four-turn conversation to offline CI checks and prepare a protected Preview runner that verifies saved turns, fixture cleanup and independent review evidence. [#100]
+
 - Verify the signed-in student’s saved dormitory bed, term and requested amounts. A combined next-class or fee balance question checks the corresponding records separately. [#100]
 
 - Answer account overview questions from saved student and course metadata and exact record counts. Keep private request text, grades and other unrelated data outside the lookup. [#100]

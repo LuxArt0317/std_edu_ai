@@ -110,3 +110,5 @@ The assistant uses a read-only overview for a general request about saved accoun
 ### Saved dormitory bed assignments
 
 The assistant reads service 34-1 for its authenticated caller. A bed-only question reads the assignment and its linked period. Monetary fields require an explicit request. A separate request for the next class, a balance, or the dormitory conduct notice uses that source. Public navigation returns the local route and guest record requests preserve the sign-in return path.
+
+Explicitly excluded and foreign-account companion requests stay outside the account read. An independently requested own balance or timetable remains eligible.

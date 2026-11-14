@@ -35,6 +35,7 @@ import {dtmGradeReportFixtureManifest,dtmGradeReportFixtureReadContract,assertDt
 import {buildFeeRemissionFixturePlan,feeRemissionLiveFamilyForCase,feeRemissionLivePlanManifest} from './fee-remission-live-plan.mjs';
 import {createFeeRemissionFixtureLifecycle} from './fee-remission-fixture-lifecycle.mjs';
 import {readRows as readFeeRows,deleteRows as deleteFeeRows,insertRows as insertFeeRows} from './fee-remission-fixture-sql.mjs';
+import {createTranscriptConversationFixture} from './transcript-conversation-fixture.mjs';
 
 const ROOT=fileURLToPath(new URL('../../',import.meta.url));
 const PROJECT='xiftudmvxphxcjtmfmib';
@@ -68,6 +69,63 @@ const pick=(row,keys)=>Object.fromEntries(keys.map(key=>[key,row[key]??null]));
 const sort=rows=>[...rows].sort((a,b)=>String(a.id).localeCompare(String(b.id)));
 function signals(signal,ms=15000){return signal?AbortSignal.any([signal,AbortSignal.timeout(ms)]):AbortSignal.timeout(ms);}
 function ready(){if(!state?.prepared||state.closing)fail('fixture-state','prepare() must complete before fixture access.');return state;}
+const transcriptFixtureCases=Object.freeze([
+  ['account:reproduction-record-overview','what do you know about my records',['profile','courses','dtm','assignments','charges','tasks','requests']],
+  ['account:reproduction-current-courses-year','what courses i have for this semester and what year i am currently at',['profile','courses']],
+  ['account:reproduction-remaining-balance','how much is my remaining balance in school',['charges']],
+  ['account:reproduction-interview-help','i am asked what makes me qualified to be a software engineer i dont know what cna you help me?',[]],
+]);
+function assertTranscriptFixtureCase(testCase,index=transcriptFixtureCases.findIndex(row=>row[0]===testCase?.id)){
+  const expected=transcriptFixtureCases[index];
+  if(!expected||testCase?.id!==expected[0]||testCase.question!==expected[1]||testCase.route!=='/'||testCase.fixtureKey!=='published-sample:records'
+    ||testCase.fixtureRequirement!==undefined||JSON.stringify(testCase.expected?.requiredTools)!==JSON.stringify(expected[2]))
+    fail('fixture-config','The injected application transport supports only the exact four-turn published-sample packet.');
+  return expected[0];
+}
+/** Only release metadata and a complete own snapshot may use this opt-in
+ * application transport. Auth/admin/refresh credentials never use this hook.
+ * The dependency owns any authorized Preview session; no cookie is discovered. */
+export function createTranscriptFixtureApplicationFetch({origin,fetchImpl,signal,timeoutMs=45000}={}){
+  let target;try{target=new URL(origin);}catch{fail('fixture-target','Invalid fixture application target.');}
+  if(origin!==target.origin||target.protocol!=='https:'||target.username||target.password||target.port
+    ||!(origin==='https://stu.best'||/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?-v1-d286\.vercel\.app$/u.test(target.hostname))
+    ||typeof fetchImpl!=='function'||!Number.isInteger(timeoutMs)||timeoutMs<1||timeoutMs>45000
+    ||signal!==undefined&&!(signal instanceof AbortSignal))fail('fixture-config','Invalid fixture application transport.');
+  return async(input,init={})=>{
+    let url,headers;try{url=new URL(String(input));headers=new Headers(init.headers);}catch{fail('fixture-target','Invalid fixture application request.');}
+    const manifest=url.pathname==='/release.json';
+    if(url.origin!==origin||url.username||url.password||url.search||url.hash||!['/release.json','/api/affairs-data'].includes(url.pathname)
+      ||(init.method??'GET')!=='GET'||init.body!==undefined||[...headers.keys()].some(key=>!['accept','authorization'].includes(key))
+      ||manifest&&headers.has('authorization')||!manifest&&!/^Bearer [^\s\p{Cc}]+$/u.test(headers.get('authorization')||'')
+      ||init.signal!==undefined&&!(init.signal instanceof AbortSignal))fail('fixture-target','The fixture application request is outside its read-only scope.');
+    const controller=new AbortController(),active=AbortSignal.any([controller.signal,...[signal,init.signal].filter(Boolean)]),duration=Math.min(timeoutMs,manifest?8000:45000),expiresAt=Date.now()+duration;
+    let timer,response,reader,onAbort;
+    const cancel=()=>{if(reader)void reader.cancel().catch(()=>{});else if(response?.body)void response.body.cancel().catch(()=>{});};
+    try{
+      const work=async()=>{
+        if(active.aborted||Date.now()>=expiresAt)throw Error();
+        response=await fetchImpl(url.href,{method:'GET',redirect:'error',credentials:'omit',cache:'no-store',headers,signal:active});
+        if(active.aborted||Date.now()>=expiresAt){cancel();throw Error();}
+        if(response.status!==200||response.redirected||response.url&&response.url!==url.href||!/^application\/json(?:\s*;|$)/iu.test(response.headers.get('content-type')||''))throw Error();
+        reader=response.body?.getReader();if(!reader)throw Error();
+        const chunks=[];let bytes=0,iterations=0;const maximum=manifest?4096:8_000_000;
+        for(;;){if(active.aborted||Date.now()>=expiresAt)throw Error();const {done,value}=await reader.read();if(done)break;bytes+=value.byteLength;if(bytes>maximum||++iterations>4096)throw Error();if(value.byteLength)chunks.push(value);}
+        const body=Buffer.concat(chunks);JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(body));
+        if(active.aborted||Date.now()>=expiresAt)throw Error();
+        const result=new Response(body,{status:200,headers:{'content-type':'application/json'}});
+        Object.defineProperty(result,'url',{value:url.href});return result;
+      };
+      return await Promise.race([work(),new Promise((_,reject)=>{
+        onAbort=()=>{cancel();reject(Error());};active.addEventListener('abort',onAbort,{once:true});
+        timer=setTimeout(()=>controller.abort(),duration);
+      })]);
+    }catch{fail('fixture-readback','The scoped fixture application response could not be verified.');}
+    finally{
+      clearTimeout(timer);if(onAbort)active.removeEventListener('abort',onAbort);controller.abort();cancel();
+      if(reader)try{reader.releaseLock();}catch{/* Cancelled read may still settle. */}
+    }
+  };
+}
 /** Synthetic sessions stay in memory; no session or refresh token is serializable. */
 export function attachFixtureSession(user,session,{url,publishable,signal,fetchImpl=fetch,clock=Date.now,timeoutMs=15000}={}){
   if(!UUID.test(user?.id||'')||url!=='https://'+PROJECT+'.supabase.co'||typeof publishable!=='string'||!publishable||typeof fetchImpl!=='function'||typeof clock!=='function'||!Number.isInteger(timeoutMs)||timeoutMs<1||timeoutMs>15000)
@@ -220,6 +278,7 @@ async function saveLedger(){
     await handle.writeFile(JSON.stringify({version:1,projectRef:PROJECT,runId:s.runId,origin:s.origin,createdAt:s.startedAt,
       protectedOwner,fixtureUserIds:s.users.map(user=>user.id),identityRequests:s.identityRequests,ownedRecordIds:[...s.recordIds].sort(),supplementalTables:[...(s.supplementalTables||[])].sort(),activeCaseId:s.current?.caseId??null,
       ...(s.feeFixture?{feeRemissionFixture:{students:s.feeFixture.students,journal:s.feeFixture.journal}}:{}),
+      ...(s.transcriptConversationRecovery?{transcriptConversation:s.transcriptConversationRecovery}:{}),
       ...(s.dtmReportPlan||s.dtmReportTransitionPending?{dtmReportFixture:{
         previous:dtmReportRecoveryBinding(s.dtmReportPlan),pending:dtmReportRecoveryBinding(s.pendingDtmReportPlan),transitionPending:Boolean(s.dtmReportTransitionPending),
       }}:{}),...(s.elearningPlan||s.elearningTransitionPending?{elearningFixture:{
@@ -238,7 +297,7 @@ async function saveLedger(){
 async function readSnapshot(user,{signal=state?.signal,cleanup=false}={}){
   const s=state;let response;
   await user.renewSession?.({signal:cleanup?undefined:signal});
-  try{response=await fetch(new URL('/api/affairs-data',s.origin),{redirect:'error',cache:'no-store',headers:{Authorization:'Bearer '+user.token},signal:signals(cleanup?undefined:signal,45000)});}catch{fail('fixture-readback','Authenticated /api/affairs-data request did not complete.');}
+  try{response=await (s.applicationFetch??fetch)(new URL('/api/affairs-data',s.origin),{redirect:'error',cache:'no-store',headers:{Authorization:'Bearer '+user.token},signal:signals(cleanup?undefined:signal,45000)});}catch{fail('fixture-readback','Authenticated /api/affairs-data request did not complete.');}
   if(response.status!==200||!response.headers.get('content-type')?.includes('application/json'))fail('fixture-readback',`Authenticated /api/affairs-data returned ${response.status}; no model request may run.`);
   const reader=response.body?.getReader();if(!reader)fail('fixture-readback','Snapshot response has no body.');
   const chunks=[];let size=0;
@@ -287,9 +346,15 @@ async function createFixtureUser(index){
 }
 
 /** No mutation occurs until this explicit lifecycle entry point is invoked. */
-export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expectedReleaseRevision,signal,fixtureMode,caseFamily}={}){
+export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expectedReleaseRevision,signal,fixtureMode,caseFamily,applicationFetch}={}){
   if(state)fail('fixture-state','This fixture adapter cannot run overlapping lifecycles.');
   if(!UUID.test(runId||'')||!Array.isArray(cases)||!cases.length||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
+  let transcriptCaseIds;
+  if(applicationFetch!==undefined){
+    if(typeof applicationFetch!=='function'||cases.length!==transcriptFixtureCases.length||fixtureMode!==undefined||caseFamily!==undefined
+      ||!approvedPreviewOrigin||origin!==approvedPreviewOrigin)fail('fixture-config','The injected transport requires the exact approved Preview four-turn packet.');
+    transcriptCaseIds=cases.map((testCase,index)=>assertTranscriptFixtureCase(testCase,index));
+  }
   if(fixtureMode!==undefined||caseFamily!==undefined){
     const expected=feeRemissionLivePlanManifest.eligibleCaseIds;
     if(fixtureMode!==FEE_FIXTURE_MODE||caseFamily!=='fee-remission'||!approvedPreviewOrigin||cases.length!==expected.length
@@ -305,10 +370,11 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     ||!(target.origin===config.vercel.productionUrl||target.origin===approvedPreviewOrigin
       ||['127.0.0.1','localhost'].includes(target.hostname)&&['http:','https:'].includes(target.protocol)))
     fail('fixture-target','Only the configured production origin, exact approved preview or explicit loopback is allowed.');
+  const scopedApplicationFetch=applicationFetch===undefined?undefined:createTranscriptFixtureApplicationFetch({origin:target.origin,fetchImpl:applicationFetch,signal});
   if(approvedPreviewOrigin!==undefined){
     if(target.origin!==approvedPreviewOrigin||target.origin===config.vercel.productionUrl)
       fail('fixture-target','Preview approval must match the exact non-production origin.');
-    try{await createPinnedDeploymentVerifier({origin:target.origin,approvedPreviewOrigin,expectedRevision:expectedReleaseRevision,signal}).pin();}
+    try{await createPinnedDeploymentVerifier({origin:target.origin,approvedPreviewOrigin,expectedRevision:expectedReleaseRevision,signal,...(scopedApplicationFetch?{fetchImpl:scopedApplicationFetch}:{})}).pin();}
     catch{fail('fixture-target','The approved Preview could not prove the exact release before fixture setup.');}
   }
   const env=deploymentEnvironment(); // Secrets are resolved only at explicit prepare().
@@ -323,7 +389,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const ignore=await readFile(resolve(ROOT,'.gitignore'),'utf8');if(!/^\/?artifacts\/$/m.test(ignore))fail('fixture-ledger','Private fixture ledger directory must be ignored by Git.');
   await mkdir(PRIVATE_DIR,{recursive:true,mode:0o700});await chmod(PRIVATE_DIR,0o700);
   const boundedFetch=(input,init={})=>fetch(input,{...init,signal:signals(init.signal,15000)});
-  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,
+  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,
     ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),admin:createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})};
   try{
     state.sql=postgres(connection,{max:1,connect_timeout:10,idle_timeout:10,max_lifetime:0,
@@ -1566,6 +1632,14 @@ function ownState(snapshot){
 /** Persists golden facts, then proves the application's actual auth/RLS read path. */
 export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
   const s=ready();if(s.current)fail('fixture-state','afterCase() must complete before selecting another fixture.');
+  const transcript=s.applicationFetch?s.transcriptFixture??null:null;
+  if(s.applicationFetch){
+    if(transcript?.blocked)fail('fixture-state','The saved transcript fixture requires reconciliation.');
+    assertTranscriptFixtureCase(testCase,transcript?.nextIndex??0);
+    if(transcript&&(!transcript.publishedSamplePlan||!transcript.beforeHash))
+      fail('fixture-state','The saved transcript fixture is not bound.');
+    if(transcript)transcript.blocked=true;
+  }
   if(s.feeFixture){
     const family=feeRemissionLiveFamilyForCase(testCase);
     const anonymous=testCase.id==='account:fee-remission-anonymous';
@@ -1597,7 +1671,7 @@ export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
   const catalogOnly=Boolean(catalogBinding&&(testCase.expected?.requiredTools||[]).every(key=>key==='courseCatalog'));
   const expected=fixtureForCase(testCase,{userId:s.users[0].id,now:s.now});
   assertSupported(testCase,expected);
-  const nativePlan=catalogOnly?null:await readNativeBindings(expected,testCase);
+  const nativePlan=transcript?.publishedSamplePlan??(catalogOnly?null:await readNativeBindings(expected,testCase));
   const supplementalPlan=planSupplementalFixture(expected,{userId:s.users[0].id,otherUserId:s.users[1].id,domains:(testCase.expected?.requiredTools||[]).filter(key=>Object.hasOwn(SUPPLEMENTAL_SCOPES,key))});
   const aidPlan=['aidPayments','empty:aidPayments'].includes(testCase.fixtureKey)?buildAidPaymentFixturePlan({
     runId:s.runId,fixtureKey:testCase.fixtureKey,owners:Object.fromEntries(s.users.map((user,index)=>{
@@ -1634,7 +1708,8 @@ export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
     ?buildFacilityRepairFixturePlan(testCase,s.users.map(user=>user.id)):null;
   if(!facilityRepairPlan&&[...testCase.expected?.requiredTools??[],...testCase.expected?.requiredAttemptedTools??[]].includes('facilityRepairs'))
     fail('fixture-unsupported','No independent repair history fixture is declared for this case.');
-  if(!catalogOnly){
+  if(!catalogOnly&&!transcript){
+    if(s.applicationFetch)s.transcriptFixture={blocked:true};
     const rows={...recordsToInsert(expected,s.users[0]),...nativePlan.rows,...supplementalPlan.rows};
     await persistSnapshot(expected,rows,testCase,nativePlan,supplementalPlan,aidPlan,dtmReportPlan,elearningPlan,facilityRepairPlan,outlinePlan,dormitoryPlan);
   }
@@ -1655,7 +1730,13 @@ export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
   const dormitory=s.dormitoryPlan?await currentDormitoryFixture(s,signal):null;
   const facilityRepairs=s.facilityRepairPlan?await currentFacilityRepairFixture(s,signal):null;
   const before={snapshot:ownState(actual),supplemental,catalog,...(publishedSample?{publishedSample}:{}),...(aid?{aid}:{}),...(dtmReport?{dtmReport}:{}),...(elearning?{elearning}:{}),...(facilityRepairs?{facilityRepairs}:{}),...(outline?{outline}:{}),...(dormitory?{dormitory}:{})};
-  s.current={caseId:testCase.id,beforeHash:hash(before),supplementalDomains,catalogBinding,
+  const beforeHash=hash(before);
+  if(transcript&&beforeHash!==transcript.beforeHash){
+    transcript.blocked=true;
+    fail('fixture-readback','The saved transcript fixture changed between turns.');
+  }
+  if(s.applicationFetch)s.transcriptFixture={blocked:true,nextIndex:transcript?.nextIndex??0,beforeHash,publishedSamplePlan:nativePlan};
+  s.current={caseId:testCase.id,beforeHash,supplementalDomains,catalogBinding,
     ...(publishedSample?{publishedSamplePlan:nativePlan}:{})};
   await saveLedger();
   await s.users[0].renewSession?.({signal:signal||s.signal});
@@ -1724,6 +1805,10 @@ export async function afterCase(testCase,envelope,{signal,fixtureMode,fixtureFam
     envelope.stateAfterProposal={ownedRecordsDigest:afterHash};
     envelope.fixtureReadback={verified:true,projectRef:PROJECT,independentGolden:true};
     if(afterHash!==current.beforeHash)fail('fixture-unapproved-write','Generating an answer or proposal changed the fixture records before confirmation.');
+    if(s.applicationFetch&&envelope.statusCode===200){
+      s.transcriptFixture.nextIndex++;
+      s.transcriptFixture.blocked=false;
+    }
   }finally{s.current=null;await saveLedger();}
 }
 
@@ -1737,6 +1822,43 @@ export function reconcileFixtureIdentity(request,rows){
   if(!UUID.test(row?.id||'')||row.email?.toLowerCase()!==request.email.toLowerCase()||row.run_id!==request.runId||request.id&&request.id!==row.id)
     fail('fixture-cleanup','Reserved identity ownership does not match this run; no existing account will be deleted.');
   return {userId:row.id,unresolved:false};
+}
+
+/** Only the exact four-turn application fixture exposes this metadata. No
+ * access token, email, student identifier or mutable state escapes. */
+export function transcriptFixtureIdentity(){
+  const s=ready();
+  if(!s.applicationFetch||!s.locked||!s.ledgerOwned||s.users.length!==2||s.users.some(user=>!UUID.test(user.id)))
+    fail('fixture-state','The reserved transcript fixture is not ready.');
+  return Object.freeze({ownerId:s.users[0].id});
+}
+
+export async function reserveTranscriptConversation({conversationId,journal}={}){
+  const s=ready(),{ownerId}=transcriptFixtureIdentity();
+  if(s.transcriptConversation)fail('fixture-state','This fixture already reserved a transcript conversation.');
+  const owners=s.users.map(user=>{
+    const matches=s.identityRequests.filter(request=>request.id===user.id&&request.runId===s.runId&&request.state==='created');
+    if(matches.length!==1)fail('fixture-state','The transcript owner is not an exact disposable identity.');
+    return {id:user.id,email:matches[0].email};
+  });
+  const fixture=createTranscriptConversationFixture({runId:s.runId,owners,conversationId,journal,sql:s.sql,
+    assertLease:async()=>{
+      if(state!==s||!s.locked||s.closed||!s.ledgerOwned)fail('fixture-lease','The transcript fixture lease is unavailable.');
+      if(!s.closing)s.signal?.throwIfAborted();
+      assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));return true;
+    },
+    persist:async record=>{
+      if(state!==s||s.closed||!s.ledgerOwned)fail('fixture-ledger','The transcript cleanup ledger is unavailable.');
+      s.transcriptConversationRecovery=record;await saveLedger();
+    }});
+  // Keep a failed reservation attached: cleanup must not cascade an unexpected
+  // pre-existing conversation or lose the reserved-ID collision evidence.
+  s.transcriptConversation=fixture;
+  await fixture.reserve();
+  return Object.freeze({ownerId,conversationId,readback:async()=>{
+    if(ready()!==s)fail('fixture-state','The transcript fixture changed.');
+    return fixture.readback();
+  }});
 }
 
 export async function cleanup(){
@@ -1769,6 +1891,10 @@ export async function cleanup(){
     }
     if(s.users.some(user=>!UUID.test(user.id)||!deletable.has(user.id)&&!absent.has(user.id)))fail('fixture-cleanup','A known fixture identity could not be reconciled; no account will be deleted.');
     if(s.ledgerOwned)await saveLedger();
+    if(s.transcriptConversation){
+      await s.transcriptConversation.cleanup();
+      await saveLedger();
+    }
     if(s.feeFixture?.lifecycle){
       await s.feeFixture.lifecycle.cleanup();
       await saveLedger();
@@ -1868,6 +1994,7 @@ export async function cleanup(){
         if(native.length)fail('fixture-cleanup','Native fixture-owned rows remain; the private cleanup ledger is retained.');
       }
     }
+    if(s.transcriptConversation)s.transcriptConversationCleanup=await s.transcriptConversation.verifyAbsent();
     // A timed-out create with no row yet may still commit later. Keep the
     // exact private recovery intent and never turn an absent row into success.
     if(unresolvedCreation)fail('fixture-cleanup','An Auth creation outcome is still uncertain; the exact pending identity is retained in the private recovery ledger.');
@@ -1895,5 +2022,6 @@ export async function cleanup(){
     }catch{cleanupError=new LiveFixtureError('fixture-cleanup','Fixture rows were removed, but the owned recovery ledger could not be cleared.');}
   }
   if(cleanupError){if(cleanupError instanceof LiveFixtureError)throw cleanupError;fail('fixture-cleanup','Cleanup could not be verified; the private ledger is retained.');}
-  return {verified:true,createdUsers:s.users.length,projectRef:PROJECT,protectedOwnerUnchanged};
+  return {verified:true,createdUsers:s.users.length,projectRef:PROJECT,protectedOwnerUnchanged,
+    ...(s.transcriptConversation?{conversationCleanup:s.transcriptConversationCleanup}:{})};
 }

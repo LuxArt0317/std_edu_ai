@@ -768,3 +768,11 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Mount the caller-owned assignment source and linked-period projection in the verification graph and graph-backed client dispatch.
 - [ ] Evaluate the full housing question bank on an authorized protected Preview.
 - [ ] Complete the broader signed-in acceptance gate before promoting to production.
+
+### Reported conversation [Issue #100]
+
+- [x] Save and independently read back each of the four exact prompts in the offline endpoint replay.
+- [x] Journal request and conversation commitments and reconcile disposable account cleanup.
+- [x] Prevent unrelated companion reads on the reproduced housing scope failures and preserve Unicode follow-up history.
+- [ ] Execute the exact protected Preview with real model responses and verify cleanup.
+- [ ] Record independent helpfulness decisions and resolve failures before progressing to full-suite acceptance.

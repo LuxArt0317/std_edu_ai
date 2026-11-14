@@ -232,9 +232,11 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   }
   const resolvedFee=savedFeeBalanceFollowup(question,history);
   if(!housingSelection&&resolvedFee){question=resolvedFee;history=[];route='';}
-  const housingFees=Boolean(housingSelection&&housing.companion==='fee_balance');
-  const housingNext=Boolean(housingSelection&&housing.companion==='next_class');
-  const housingOnly=Boolean(housingSelection&&(!housing.otherQuestion||housingFees||housingNext));
+  const housingFees=Boolean(housingSelection&&housing.companions.includes('fee_balance'));
+  const housingNext=Boolean(housingSelection&&housing.companions.includes('next_class'));
+  const housingOnly=Boolean(housingSelection&&(!housing.otherQuestion||housing.companionOnly));
+  const housingCompanionBoundary=housingSelection&&housing.foreignCompanions.length
+    ?(/\p{Script=Han}/u.test(question)?'我可以查看你自己的住宿紀錄，但不能提供他人的費用或課表紀錄。':'I can check your own housing records, but cannot show another person’s fee or timetable records.'):null;
   const teaching=teachingFeedbackLookupContext(question,route,history);
   const teachingSelection=teaching.selection?.views.length?teaching.selection:null;
   const teachingReason=teaching.foreign?'foreign_request':teaching.selection?.reason??(teachingSelection?.unavailableDetails?'outside_scope':null);
@@ -273,8 +275,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     return;
   }
   if((conduct.excluded||conductNavigation)&&!conduct.selected){question=conduct.otherQuestion;history=[];}
-  const withLocalGuidance=<T extends {answer:string;citations?:unknown[]}>(answer:T)=>conductNavigation||foreignYearMessage||teachingNotes||housingGuidance
-    ?{...answer,answer:[foreignYearMessage,conductNavigation?.answer,teachingNotes?.answer,housingGuidance?.answer,answer.answer].filter(Boolean).join('\n\n'),
+  const withLocalGuidance=<T extends {answer:string;citations?:unknown[]}>(answer:T)=>conductNavigation||foreignYearMessage||teachingNotes||housingGuidance||housingCompanionBoundary
+    ?{...answer,answer:[foreignYearMessage,conductNavigation?.answer,teachingNotes?.answer,housingGuidance?.answer,housingCompanionBoundary,answer.answer].filter(Boolean).join('\n\n'),
       citations:[...(conductNavigation?.citations??[]),...(teachingNotes?.citations??[]),...(housingGuidance?.citations??[]),...(answer.citations??[])]}:answer;
   const foreignDtmGrades=isForeignDtmGradesQuestion(question,route);
   const foreignElearning=isForeignElearningRecordsQuestion(question,route);
@@ -428,8 +430,20 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       )]);
       return {...timetable,...year,currentStudyScope:'courses_and_year'};
     };
+    const loadHousingCompanions=async()=>{
+      if(!housingNext)return housingFees?loadCharges():scopedSnapshot();
+      if(!housingFees)return loadTimetable();
+      const [timetable,charges]=await Promise.all([loadTimetable(),loadCharges()]);
+      // The independent lookups must agree that the student is linked before
+      // their results are presented as one coherent set. A failed lookup keeps
+      // its own unavailable flag; it does not erase a successful other source.
+      if('studentRecordFound' in timetable&&'studentRecordFound' in charges
+        &&timetable.studentRecordFound!==charges.studentRecordFound)
+        return {...scopedSnapshot(),courses:[],charges:[],timetableReadUnavailable:true,chargeReadUnavailable:true};
+      return {...timetable,...charges};
+    };
     const loadBaseSnapshot=(initialize?:false)=>housingOnly
-      ?housingNext?loadTimetable():housingFees?loadCharges():Promise.resolve(scopedSnapshot())
+      ?loadHousingCompanions()
       :overviewOnly?loadAccountOverviewSnapshot(account,{deadline})
       :currentStudyScope==='courses_and_year'?loadCurrentStudy()
       :currentStudyScope==='courses'?loadTimetable().then(saved=>({...saved,currentStudyScope:'courses'}))

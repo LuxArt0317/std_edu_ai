@@ -139,9 +139,9 @@ function plannerRouteContext(route){
 export async function planAccountLookup(question, history, route, deadline, retry, skipServiceNoteScope=false) {
   const housing=housingBedLookupContext(question,route,history);
   if(housing.selection?.fields.length){
-    if(!housing.otherQuestion||housing.companion){
-      const companionTool=housing.companion==='next_class'?'courses':housing.companion==='fee_balance'?'charges':null;
-      return {tools:companionTool?['housing',companionTool]:['housing'],publicTopics:[],catalogQuery:null,responseIntent:'records'};
+    if(!housing.otherQuestion||housing.companionOnly){
+      const companionTools=housing.companions.map(kind=>kind==='next_class'?'courses':'charges');
+      return {tools:['housing',...companionTools],publicTopics:[],catalogQuery:null,responseIntent:'records'};
     }
     const independent=await planAccountLookup(housing.otherQuestion,[],'',deadline,retry,skipServiceNoteScope);
     return {...independent,tools:[...new Set(['housing',...independent.tools])]};
@@ -688,8 +688,8 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const intent=accountQuestionIntent(question,history,fullRoute);
   const housing=housingBedLookupContext(question,fullRoute,history);
   const housingSelected=Boolean(snapshot.housingBedEvidence&&housing.selection?.fields.length);
-  const housingFees=housingSelected&&housing.companion==='fee_balance';
-  const housingNext=housingSelected&&housing.companion==='next_class';
+  const housingFees=housingSelected&&housing.companions.includes('fee_balance');
+  const housingNext=housingSelected&&housing.companions.includes('next_class');
   const teaching=teachingFeedbackLookupContext(question,fullRoute,history);
   const teachingSelected=Boolean(teaching.selection?.views.length);
   const teachingForeignYear=teachingSelected&&currentStudyForeignYearQuestion(teaching.otherQuestion);
@@ -711,7 +711,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const repairLookup=facilityRepairLookupContext(question,fullRoute,history);
   const pageLookup=nativePageLookupContext(housingSelected?housing.otherQuestion:scopedNotes?serviceNoteScope.otherQuestion:question,
     housingSelected||scopedNotes?'':fullRoute,housingSelected||scopedNotes?[]:history);
-  const scopedHousing=housingSelected&&(!housing.otherQuestion||housingFees||housingNext||pageLookup.readerOnly);
+  const scopedHousing=housingSelected&&(!housing.otherQuestion||housing.companionOnly||pageLookup.readerOnly);
   const aidScope=aidPaymentsLookupContext(pageLookup.selected?pageLookup.otherQuestion:scopedNotes?serviceNoteScope.otherQuestion:question,
     pageLookup.selected||scopedNotes?'':fullRoute,pageLookup.selected||scopedNotes?[]:history);
   const aidNext=Boolean(aidScope.selection&&!pageLookup.selected&&!scopedNotes&&isServiceNoteNextClass(aidScope.otherQuestion));

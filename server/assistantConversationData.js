@@ -1,4 +1,4 @@
-import {boundedAssistantActivity,boundedAssistantText,boundedConversationMessages} from '../src/services/assistantActivityBudget.js';
+import {MAX_ASSISTANT_RECORD_COLUMNS,boundedAssistantActivity,boundedAssistantText,boundedConversationMessages} from '../src/services/assistantActivityBudget.js';
 
 const text=boundedAssistantText;
 const url=value=>typeof value==='string'&&/^(?:https?:\/\/|\/(?!\/))/.test(value)?text(value,2000):'';
@@ -10,7 +10,7 @@ function result(value){
     suggestedQuestions:Array.isArray(value.suggestedQuestions)?value.suggestedQuestions.slice(0,3).map(item=>text(item,180)):[],activity:activity(value.activity),
     ...(value.grounding?{grounding:{source:text(value.grounding.source,80),checkedAt:text(value.grounding.checkedAt,50),webSearched:value.grounding.webSearched===true,degraded:value.grounding.degraded===true}}:{}),
     ...(value.verification&&['verified','unverified'].includes(value.verification.status)?{verification:{status:value.verification.status,attempts:Math.max(0,Math.min(2,Number(value.verification.attempts)||0))}}:{}),
-    ...(Array.isArray(value.views)?{views:value.views.slice(0,3).filter(view=>view&&/^\/(?!\/)/.test(view.url)&&Array.isArray(view.columns)&&Array.isArray(view.rows)).map(view=>({id:text(view.id,60),title:text(view.title,100),url:url(view.url),columns:view.columns.slice(0,5).map(item=>text(item,100)),rows:view.rows.slice(0,12).filter(Array.isArray).map(row=>row.slice(0,5).map(item=>text(item,200))),total:Math.max(0,Number(view.total)||0),checkedAt:text(view.checkedAt,60),note:text(view.note,400)}))}:{}),
+    ...(Array.isArray(value.views)?{views:value.views.slice(0,3).filter(view=>view&&/^\/(?!\/)/.test(view.url)&&Array.isArray(view.columns)&&Array.isArray(view.rows)).map(view=>({id:text(view.id,60),title:text(view.title,100),url:url(view.url),columns:view.columns.slice(0,MAX_ASSISTANT_RECORD_COLUMNS).map(item=>text(item,100)),rows:view.rows.slice(0,12).filter(Array.isArray).map(row=>row.slice(0,MAX_ASSISTANT_RECORD_COLUMNS).map(item=>text(item,200))),total:Math.max(0,Number(view.total)||0),checkedAt:text(view.checkedAt,60),note:text(view.note,400)}))}:{}),
   };
 }
 /** A server-side allowlist; never persist execution payloads or image bytes. */

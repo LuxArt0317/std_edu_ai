@@ -1,5 +1,5 @@
 import type { AssistantProgress, AssistantResponse } from './researchAssistant';
-import {boundedAssistantActivity,boundedAssistantText,boundedConversationMessages,reconcileAssistantActivity} from './assistantActivityBudget.js';
+import {MAX_ASSISTANT_RECORD_COLUMNS,boundedAssistantActivity,boundedAssistantText,boundedConversationMessages,reconcileAssistantActivity} from './assistantActivityBudget.js';
 
 export type AssistantMessage = {
   id: string;
@@ -49,7 +49,7 @@ function cleanResult(value: unknown): AssistantResponse | undefined {
       if(!raw||typeof raw!=='object')return [];
       const view=raw as Record<string,unknown>;
       if(typeof view.url!=='string'||!/^\/(?!\/)/.test(view.url)||!Array.isArray(view.columns)||!Array.isArray(view.rows))return [];
-      return [{id:boundedAssistantText(String(view.id),60),title:boundedAssistantText(String(view.title),100),url:boundedAssistantText(view.url,500),columns:view.columns.slice(0,5).map(item=>boundedAssistantText(String(item),100)),rows:view.rows.slice(0,12).filter(Array.isArray).map(row=>row.slice(0,5).map(item=>boundedAssistantText(String(item),200))),total:Math.max(0,Number(view.total)||0),checkedAt:boundedAssistantText(String(view.checkedAt),60),note:boundedAssistantText(String(view.note),400)}];
+      return [{id:boundedAssistantText(String(view.id),60),title:boundedAssistantText(String(view.title),100),url:boundedAssistantText(view.url,500),columns:view.columns.slice(0,MAX_ASSISTANT_RECORD_COLUMNS).map(item=>boundedAssistantText(String(item),100)),rows:view.rows.slice(0,12).filter(Array.isArray).map(row=>row.slice(0,MAX_ASSISTANT_RECORD_COLUMNS).map(item=>boundedAssistantText(String(item),200))),total:Math.max(0,Number(view.total)||0),checkedAt:boundedAssistantText(String(view.checkedAt),60),note:boundedAssistantText(String(view.note),400)}];
     })}:{}),
     suggestedQuestions:Array.isArray(result.suggestedQuestions)?result.suggestedQuestions.filter((item):item is string=>typeof item==='string').slice(0,3).map(item=>boundedAssistantText(item,180)):[],
     activity:mergeAssistantActivity([],Array.isArray(result.activity)?result.activity:[]),

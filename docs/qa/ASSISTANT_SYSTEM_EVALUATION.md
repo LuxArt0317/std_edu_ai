@@ -4,6 +4,8 @@ Issue [#100](https://github.com/LuxArt0317/std_edu_ai/issues/100). Work in progr
 
 ## Acceptance contract
 
+The user's four reported prompts must run in order under one disposable signed-in session. Use the [protected Preview transcript runner](../../tests/evaluation/README.md) to verify each saved turn, request scope, evidence and cleanup. Two independent helpfulness reviews are required alongside factual grading. The committed offline replay runs in CI and gives no live acceptance credit.
+
 Discover the authoritative service catalog, registered account tools and copied public-page manifest at run time. Every service has navigation, populated-record, empty-record and action-boundary questions. Additional independently authored cases cover DTM lessons/materials/assignments/grades, current/past/future study records, fees, native academic records, privacy and mixed questions. Public page-context questions cover the captured-page denominator; they prove page recognition/navigation, not every possible factual question within each document.
 
 Grade an answer against independently specified facts, dates, list members, ownership, local destinations, provenance and action requirements. A runtime `verified` flag is necessary for a verified model answer but is not the evaluation oracle. Returning an expected amount alongside a contradictory amount must fail. Refusing a question whose authorized evidence exists must fail answerability. Missing capabilities remain visible separately from safe abstention.
