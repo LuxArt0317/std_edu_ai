@@ -2,6 +2,8 @@
 
 Services 44-1 and 47-1 use saved venue schedules and private local requests. The administrator can approve or decline a request, and the assistant reads the same records. The official application remains behind university sign-in. See [venue booking QA](../qa/VENUE_BOOKING.md).
 
+Production `52e47ea` is live as Vercel `EBvMNxV4o1VgDcgkdbF8pDErgvsG`. Only migration 20261114170000 was applied. The client has 151 migrations and 178 RLS-protected public tables. The revision-pinned browser, 19 authenticated HTTP requests with exact cleanup, three guest assistant replies, and eight public shell routes passed. Quality 43536795319 passed. All 94 local links passed the navigation inventory, which reports 36 generic and 18 partial destinations.
+
 ## Permanent course catalog (Issue #98)
 
 Service 12-2 uses the permanent-course snapshot in Supabase. The import contains 15,580 public records and all 120 observed kind/division combinations. The service accepts only reads. The public source provides exact descriptions and the server caches them by course code. See [permanent course QA and refresh](../qa/PERMANENT_COURSES.md).

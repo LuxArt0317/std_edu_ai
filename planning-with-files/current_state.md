@@ -1,6 +1,8 @@
 ## Venue booking [Issue #98]
 
-The preceding goal turn made progress by publishing the permanent course catalog. The public venue schedule and application sign-in gate were verified. Migration 20261114170000 installed two public RLS tables. An exact-target rollback verified account boundaries and conflicting approvals. Two actual T0308 weeks were read and persisted. Browser and release verification are pending.
+Production `52e47ea` is live as Vercel `EBvMNxV4o1VgDcgkdbF8pDErgvsG`. Only migration 20261114170000 was applied. The client has 151 migrations and 178 RLS-protected public tables. The revision-pinned browser, 19 authenticated HTTP requests with exact cleanup, three guest assistant replies, and eight public shell routes passed. Quality 43536795319 passed. All 94 local links passed the navigation inventory, which reports 36 generic and 18 partial destinations.
+
+Facilities repair service 45-1 returns to the university sign-in. The public directory and noticeboard confirm reporting and status communication. Protected repair controls remain to be inspected.
 
 ## Permanent course catalog [Issue #98]
 

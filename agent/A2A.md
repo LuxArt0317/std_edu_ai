@@ -1,6 +1,6 @@
 ## Venue booking (Issue #98)
 
-Root owns 44-1 and 47-1, migration 20261114170000, venue schedule, request review and assistant routing. Exact-client rollback passed and the migration is installed. Paused Issue #100 paths remain excluded.
+Root owns 44-1 and 47-1, migration 20261114170000, venue schedule, request review and assistant routing. Production `52e47ea` is live as Vercel `EBvMNxV4o1VgDcgkdbF8pDErgvsG`. Only migration 20261114170000 was applied. The client has 151 migrations and 178 RLS-protected public tables. The revision-pinned browser, 19 authenticated HTTP requests with exact cleanup, three guest assistant replies, and eight public shell routes passed. Quality 43536795319 passed. All 94 local links passed the navigation inventory, which reports 36 generic and 18 partial destinations. Facilities repair service 45-1 returns to the university sign-in. The public directory and noticeboard confirm reporting and status communication. Protected repair controls remain to be inspected. Paused Issue #100 paths remain excluded.
 
 ## Permanent course catalog (Issue #98)
 

@@ -5,7 +5,7 @@
 - [x] Inspect the public weekly schedule and confirm the application sign-in gate.
 - [x] Add verified room availability, private local applications and administrator review.
 - [x] Verify authorization, overlap and request retries in an exact-client rollback.
-- [ ] Verify source-shaped browser workflows, public and private assistant routing, and the deployed release.
+- [x] Verify source-shaped browser workflows, public and private assistant routing, and the deployed release.
 - [ ] Compare the authenticated university application and use-status views.
 
 ## Permanent course catalog [Issue #98]

@@ -12,3 +12,9 @@ The campus assistant links a room and week when supplied and reads saved request
 
 - `node tests/integration/venue-booking-db.mjs --rollback-preflight` tests the exact migration against the client database and rolls back all test writes. Use `--deployed` for the installed migration.
 - `node tests/integration/venue-booking-ui.mjs` checks both menu routes, the live public schedule, confirmation, repeat requests, administrator review, cancellation, mobile and the sign-in return. The browser uses fixtures for private reads and writes. Set `PUBLIC_SITE_ORIGIN=https://stu.best` and `EXPECTED_RELEASE_REVISION` for a deployed check.
+
+## Deployed evidence
+
+Production `52e47ea` is live as Vercel `EBvMNxV4o1VgDcgkdbF8pDErgvsG`. Only migration 20261114170000 was applied. The client has 151 migrations and 178 RLS-protected public tables. The revision-pinned browser, 19 authenticated HTTP requests with exact cleanup, three guest assistant replies, and eight public shell routes passed. Quality 43536795319 passed. All 94 local links passed the navigation inventory, which reports 36 generic and 18 partial destinations.
+
+The authorization and competing-approval test rolled back all data changes. The deployed browser used live public schedules and fixtures for private actions. The separate HTTP suite used real Supabase JWTs and removed its accounts, requests, receipts and isolated schedule. Public schedule measurements matched the 962px frame and the 105-cell grid. The protected form remains unobserved.
