@@ -1,3 +1,4 @@
+import { clubStudentGuide,clubStudentQuestion } from './clubStudentContract.js';
 import { clubOfficerGuide,clubOfficerQuestion } from './clubOfficerContract.js';
 import { clubGuide,clubIntent } from './clubServicesContract.js';
 import { healthExaminationGuide, healthExaminationQuestion } from './healthExaminationContract.js';
@@ -275,6 +276,11 @@ export function createResearchAssistantHandler(dependencies = {}) {
         const officer = !kind.irrelevant && !input.images.length ? clubOfficerQuestion(input.question) : null;
         if (officer) {
             stream.send(200,clubOfficerGuide(input.question,officer));
+            return;
+        }
+        const studentClub = !kind.irrelevant && !input.images.length ? clubStudentQuestion(input.question) : null;
+        if (studentClub) {
+            stream.send(200,clubStudentGuide(input.question,studentClub));
             return;
         }
         const clubs = !kind.irrelevant && !input.images.length ? clubIntent(input.question) : null;

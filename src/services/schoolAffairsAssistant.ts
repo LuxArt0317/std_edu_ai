@@ -1,3 +1,5 @@
+import { clubStudentQuestion } from '../../server/clubStudentContract.js';
+import { answerStudentClubs } from './clubStudent';
 import { clubOfficerGuide,clubOfficerQuestion } from '../../server/clubOfficerContract.js';
 import { clubGuide,clubIntent } from '../../server/clubServicesContract.js';
 import { healthExaminationGuide, healthExaminationQuestion } from '../../server/healthExaminationContract.js';
@@ -44,6 +46,11 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
   const officer = !images.length ? clubOfficerQuestion(question) : null;
   if (officer) return clubOfficerGuide(question,officer,true);
+  const studentClub = !images.length ? clubStudentQuestion(question) : null;
+  if (studentClub) {
+    onProgress?.({kind:'student-clubs',label:'Checking club records',detail:'Using your School Affairs session.',status:'running'});
+    return answerStudentClubs(data.session.user.id,question,studentClub,signal);
+  }
   const clubs = !images.length ? clubIntent(question) : null;
   if (clubs) return clubGuide(question, clubs, true);
   if (healthExaminationQuestion(question)) return healthExaminationGuide(question, true);

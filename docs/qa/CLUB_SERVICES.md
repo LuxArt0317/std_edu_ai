@@ -45,3 +45,15 @@ The submitting officer may save, replace or remove one PDF per column, with a 2 
 ### Release evidence
 
 Production e98e3f1 is live as Vercel 2X65ZvEwvLoUfN2UcDW9VsLtdsN5. Migration 20261115090000 brings the client to 168 migrations and retains 206 RLS-protected public tables. Proposal and closeout PDFs persist in a private table. The signed-in officer can save, replace or remove each attachment during its workflow window. SQL rollback and approval conflicts, real-JWT 2 MiB upload and download, cross-club isolation and cleanup, pinned browser, guest assistant, deployment shell, client verification and Quality 43574014749 passed. All 94 catalog URLs passed navigation.
+
+## Student menu and new club applications
+
+The university club index lists the club directory, activity notices, activity search, personal activity and club participation records, and new-club applications. The five additional links returned to a CAPTCHA sign-in when opened. The local pages follow the verified menu and reuse the club shell. Their exact university form fields and detail layouts remain unverified.
+
+The directory searches active clubs and the activity lookup searches published activities. Each participation page queries only the signed-in student's membership or attendance rows. A verified School Affairs account with a student profile can propose a club and withdraw a pending application. The protected School Affairs owner can approve or decline. Approval creates the active club and the student's officer membership in one transaction. Case-insensitive duplicate pending names, stale decisions and retries are handled in the database. No university student records or applications were imported.
+
+Authenticated assistant replies use the same read API for private participation and application status. The public assistant provides sign-in links for those questions. The directory and activity search answers link to their respective search pages.
+
+- `node tests/integration/club-student-db.mjs --deployed` verifies literal filtering, paging, publication, caller isolation and the approval/withdrawal workflow in a rolled-back transaction.
+- `node --import tsx tests/integration/club-student-http.mjs` checks authentication, private reads, durable retries and withdrawal against the API with disposable accounts. Set `EXPECTED_RELEASE_REVISION` to use production.
+- `node tests/integration/club-student-ui.mjs` verifies all six menu links, form retries, review, mobile width and the assistant response using synthetic browser fixtures. Pin production with `PUBLIC_SITE_ORIGIN=https://stu.best` and `EXPECTED_RELEASE_REVISION`.

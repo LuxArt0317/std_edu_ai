@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Add student club and activity search, private participation history, and new-club applications with administrator review and assistant links. [#98]
+
 - Save private club proposal and closeout PDFs with scoped download, replacement and removal. [#98]
 - Add local club officer applications, completion, club profiles, membership and participation records. [#98]
 - Add the student club activity calendar, equipment requests and staff review to School Affairs. [#98]

@@ -1,3 +1,4 @@
+import { writeClubFoundation } from '../server/clubStudent.js';
 import { changeClubEquipment,changeClubOfficer } from '../server/clubServices.js';
 import {changeCounseling} from '../server/counseling.js';
 import {changeCertificateAward} from '../server/certificateAwards.js';
@@ -64,6 +65,12 @@ export default async function handler(request:Request,response:Response) {
   try {
     const authorization=first(request.headers.authorization);
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
+    if(input.kind==='review_club_foundation'){
+      if(Object.keys(input).length!==2||Buffer.byteLength(JSON.stringify(input),'utf8')>4500){
+        response.status(400).json({error:'Invalid club foundation review.'});return;
+      }
+      response.status(200).json(await writeClubFoundation({...account,requestDeadline},input.kind,input.payload,true));return;
+    }
     if(input.kind==='review_club_application'){
       if(Object.keys(input).length!==2||Buffer.byteLength(JSON.stringify(input),'utf8')>5000){response.status(400).json({error:'Invalid club application review.'});return;}
       response.status(200).json(await changeClubOfficer({...account,requestDeadline},input.kind,input.payload,true));return;

@@ -1,3 +1,5 @@
+import { ClubStudent } from './ClubStudent';
+import { clubStudentMenu,isClubStudentView } from '../../../../server/clubStudentContract.js';
 import { ClubOfficer,clubOfficerHeading } from './ClubOfficer';
 import { clubOfficerMenu } from '../../../../server/clubOfficerContract.js';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
@@ -41,9 +43,11 @@ export function ClubServices({userId,view}:{userId:string;view:string}) {
   const month=clubMonth.test(raw)?raw:currentMonth;
   const queryView=view==='activities'?'activities':view==='equipment/review'?'review':'equipment';
   const officer=clubOfficerHeading(view);
-  const heading=officer??headings[view];
+  const student=isClubStudentView(view)?view:null;
+  const studentTitle=view==='foundation/review'?'新社團申請審核':student?clubStudentMenu.find(([path])=>path===student)?.[2]:undefined;
+  const heading=officer??(studentTitle?[studentTitle]:headings[view]);
   if(!heading)return null;
-  const title=officer?.[0]??(view==='activities'?'社團活動系統':'器材借用');
+  const title=officer?.[0]??studentTitle??(view==='activities'?'社團活動系統':'器材借用');
   return <div className="student-internship student-clubs" lang="zh-Hant">
     <div className="club-shell">
       <header className="internship-brand">
@@ -57,7 +61,8 @@ export function ClubServices({userId,view}:{userId:string;view:string}) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild><Button variant="ghost">學生 <span aria-hidden="true">⌄</span></Button></DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {clubStudentLinks.map(([path,label])=><DropdownMenuItem asChild key={path}><Link to={clubPath+'/'+path}>{label}</Link></DropdownMenuItem>)}
+            {clubStudentMenu.map(([path,label])=><DropdownMenuItem asChild key={path}><Link to={clubPath+'/'+path}>{label}</Link></DropdownMenuItem>)}
+            <DropdownMenuItem asChild><Link to={clubPath+'/equipment'}>器材借用申請填單</Link></DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <DropdownMenu>
@@ -77,13 +82,13 @@ export function ClubServices({userId,view}:{userId:string;view:string}) {
       </nav>
       <nav className="internship-breadcrumb" aria-label="頁面位置">
         <i className="portal-icon" aria-hidden="true">{'\uf015'}</i><Link to={clubPath}>Index</Link>
-        {view&&<><span aria-hidden="true">›</span><Link to={clubPath+'/'+(officer?view:queryView.replace('review','equipment/review'))}>{title}</Link></>}
+        {view&&<><span aria-hidden="true">›</span><Link to={clubPath+'/'+(officer||student?view:queryView.replace('review','equipment/review'))}>{title}</Link></>}
       </nav>
       <main className="internship-content">
         <h1><i className="portal-icon" aria-hidden="true">{view==='equipment/new'?'\uf044':'\uf19c'}</i>
           {heading[0]} {heading[1]&&<small>» {heading[1]}</small>}
         </h1>
-        {!view?<ClubIndex/>:officer?<ClubOfficer userId={userId} path={view}/>:<ClubRecords key={userId+':'+view+':'+(view==='activities'?month:editId??'')}
+        {!view?<ClubIndex/>:student?<ClubStudent key={userId+':'+student} userId={userId} view={student}/>:officer?<ClubOfficer userId={userId} path={view}/>:<ClubRecords key={userId+':'+view+':'+(view==='activities'?month:editId??'')}
           userId={userId} view={view as Exclude<View,''>} editId={editId} queryView={queryView} month={month} currentMonth={currentMonth}/>}
       </main>
       <footer><Link to="/school-affairs">校務資訊系統</Link></footer>
@@ -100,7 +105,7 @@ function ClubIndex() {
     <section className="internship-block"><h3>管理者</h3>
       <ul>{administration.map(([label,path],index)=><li key={path}>{index===0
         ? <Link to={clubPath+'/equipment/review'}>{label}</Link>
-        : <a href={original+path}>{label}</a>}</li>)}<li><Link to={clubPath+'/officer/review'}>活動申請審核</Link></li></ul>
+        : <a href={original+path}>{label}</a>}</li>)}<li><Link to={clubPath+'/officer/review'}>活動申請審核</Link></li><li><Link to={clubPath+'/foundation/review'}>新社團申請審核</Link></li></ul>
     </section>
     <section className="internship-block"><h3>備註</h3></section>
   </>;

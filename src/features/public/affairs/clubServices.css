@@ -75,3 +75,13 @@
   .club-equipment-form { grid-template-columns:minmax(75px,1fr) minmax(0,3fr); gap:10px; }
 }
 .club-table-actions { display:flex; align-items:center; justify-content:center; gap:8px; }
+
+.club-student-search { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-block:12px; }
+.club-foundation-form { display:grid; gap:8px; width:min(100%,560px); margin-block:12px 20px; }
+.club-student-search label,.club-foundation-form label { font-weight:700; }
+.club-student-search input,.club-foundation-form :is(input,textarea),.club-review-form textarea {
+  min-width:0; padding:5px 8px; color:#292929; background:#fff; border:1px solid #a8afb4;
+}
+.club-student-search input { width:min(100%,270px); }
+.club-foundation-form button { justify-self:start; }
+.club-request-table.club-student-table table { min-width:570px; }
