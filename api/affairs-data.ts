@@ -196,7 +196,7 @@ export default async function handler(request:Request,response:Response) {
         response.status(400).json({error:'Program registrations take no account selector.'});return;
       }
       const bounded={...account,requestDeadline};
-      response.status(200).json(answer ? await answerProgramRegistrations(bounded,answer)
+      response.status(200).json(answer === 'en' || answer === 'zh' ? await answerProgramRegistrations(bounded,answer)
         : {userId:account.user.id,records:await loadProgramRegistrations(bounded)});
       return;
     }
