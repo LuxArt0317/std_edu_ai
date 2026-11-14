@@ -40,7 +40,7 @@ const native = [
 ];
 const descriptors = [
   {id:'40-1',kind:'partial',href:service('40-1'),finalUrl:service('40-1'),selector:'.student-clubs',
-    workflowSuite:'tests/integration/club-services-ui.mjs',sourceBoundary:'Verified student club index, calendar and equipment list/form. The five verified officer destinations also have scoped local routes. Officer attachments and edits to membership/attendance, and equipment maintenance/reports, remain incomplete.'},
+    workflowSuite:'tests/integration/club-services-ui.mjs',sourceBoundary:'Verified student club index, calendar and equipment list/form. The five verified officer destinations also have scoped local routes. The proposal and closeout columns open private local PDF controls. Membership and attendance edits, and equipment maintenance and reports, remain incomplete.'},
   {id:'36-1',kind:'partial',href:service('36-1'),finalUrl:service('36-1'),selector:'.health-examination',
     workflowSuite:'tests/integration/health-examinations-ui.mjs',sourceBoundary:'Verified examination inquiry list. Official health card and clinical report screens were unavailable.'},
   {id:'37-1',kind:'partial',href:service('37-1'),finalUrl:service('37-1'),selector:'.aid-payment-site',

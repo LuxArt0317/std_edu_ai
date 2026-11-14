@@ -7,6 +7,7 @@ import dataHandler from '../../api/affairs-data.ts';
 import actionHandler from '../../api/affairs-action.ts';
 import { deploymentEnvironment } from '../../scripts/deployment-env.mjs';
 import { clubOfficerScope } from '../../server/clubOfficerContract.js';
+import { clubDocumentLimit,clubDocumentScope } from '../../server/clubActivityDocuments.js';
 import { dormitoryConductClientTarget, reserveDormitoryConductLease } from './dormitory-conduct-rls-live.mjs';
 
 const env=deploymentEnvironment(), connection=env.POSTGRES_URL_NON_POOLING||env.POSTGRES_URL;
@@ -34,12 +35,12 @@ async function pin() {
   assert.equal((await response.json()).revision,revision);
 }
 await pin();
-let lease,committed=false;
+let lease,committed=false,testApplicationId=null;
 const pool=postgres(connection,{max:1,max_lifetime:0,connect_timeout:12,idle_timeout:0,
   ssl:{rejectUnauthorized:true,ca:await readFile('supabase/certs/prod-ca-2021.crt','utf8')},
   connection:{statement_timeout:15000},onclose:()=>lease?.lose(),onnotice:()=>{}});
 const readPath='/api/affairs-data?scope='+clubOfficerScope;
-async function request(path,token,status,body) {
+async function request(path,token,status,body,checkPdf=false) {
   const endpoint=new URL(path,site);
   const method=body?'POST':'GET';
   const headers={...(token?{authorization:'Bearer '+token}:{}),...(body?{'content-type':'application/json'}:{})};
@@ -47,13 +48,24 @@ async function request(path,token,status,body) {
     const response=await fetch(endpoint,{method,headers,body:body&&JSON.stringify(body),redirect:'error',signal:AbortSignal.timeout(16000)});
     assert.equal(response.status,status);
     assert.match(response.headers.get('cache-control')??'',/no-store/);
+    if(checkPdf)return pdfBytes(Buffer.from(await response.arrayBuffer()),response.headers);
     return response.json();
   }
-  let code,value;
-  const response={setHeader(){},status(input){code=input;return this;},json(input){value=input;}};
+  let code=200,value;
+  const responseHeaders=new Headers();
+  const response={setHeader(name,input){responseHeaders.set(name,input);},status(input){code=input;return this;},
+    json(input){value=input;},end(input){value=input;}};
   await (body?actionHandler:dataHandler)({method,headers,query:Object.fromEntries(endpoint.searchParams),body},response);
   assert.equal(code,status,typeof value?.error==='string'?value.error:undefined);
-  return value;
+  assert.match(responseHeaders.get('cache-control')??'',/no-store/);
+  return checkPdf?pdfBytes(value,responseHeaders):value;
+}
+function pdfBytes(bytes,headers) {
+  assert.equal(headers.get('content-type'),'application/pdf');
+  assert.equal(headers.get('x-content-type-options'),'nosniff');
+  assert.equal(Number(headers.get('content-length')),bytes.length);
+  assert.match(headers.get('content-disposition')??'',/^attachment; filename="club-activity\.pdf"; filename\*=UTF-8''%E4/u);
+  return bytes;
 }
 const get=(query,token,status=200)=>request(readPath+query,token,status);
 const act=(kind,payload,token,status=200)=>request('/api/affairs-action',token,status,{kind,payload});
@@ -68,7 +80,8 @@ async function cleanupFixtures(sql) {
       (select count(*)::int from auth.sessions where user_id in (${officer.id},${other.id})) sessions,
       (select count(*)::int from public.affairs_club_memberships where club_id=${club}) memberships,
       (select count(*)::int from public.affairs_club_applications where club_id in (${club},${otherClub})) requests,
-      (select count(*)::int from private.affairs_club_officer_operations where actor in (${officer.id},${other.id})) operations`;
+      (select count(*)::int from private.affairs_club_officer_operations where actor in (${officer.id},${other.id})) operations,
+      (select count(*)::int from private.affairs_club_activity_documents where application_id=${testApplicationId}) documents`;
     assert.ok(Object.values(left).every(value=>value===0));
     await sql.unsafe('commit');
   } catch (error) {
@@ -123,6 +136,7 @@ try {
   const input={request_id:randomUUID(),application};
   await act('submit_club_application',input,peer,403);
   const submitted=await act('submit_club_application',input,mine);
+  testApplicationId=submitted.id;
   assert.equal(submitted.status,'submitted');
   assert.deepEqual(await act('submit_club_application',input,mine),submitted);
   const edit={id:submitted.id,expected_version:1,request_id:randomUUID(),application:{...application,title:'QA Edited'}};
@@ -130,7 +144,30 @@ try {
   assert.equal((await act('edit_club_application',edit,mine)).version,2);
   assert.equal((await get('&view=applications',mine)).rows.find(row=>row.id===submitted.id)?.title,'QA Edited');
   assert.equal((await get('&view=applications',peer)).rows.length,0);
-  assert.equal((await act('withdraw_club_application',{id:submitted.id,expected_version:2,request_id:randomUUID()},mine)).status,'withdrawn');
+  const documentPath='/api/affairs-data?scope='+clubDocumentScope+'&application_id='+submitted.id;
+  const pdf=Buffer.alloc(clubDocumentLimit,0x20);
+  pdf.write('%PDF-1.4\n');
+  pdf.write('%%EOF\n',pdf.length-6);
+  const downloadPath=documentPath+'&download=proposal&version=1';
+  const metadata=await request(documentPath,mine,200);
+  assert.equal(metadata.rows[0].version,0);
+  assert.equal(metadata.rows[0].editable,true);
+  assert.equal(metadata.rows[1].editable,false);
+  await request(documentPath,'',401);
+  await request(documentPath,peer,404);
+  const upload={application_id:submitted.id,application_version:2,kind:'proposal',expected_version:0,
+    request_id:randomUUID(),filename:'企劃 QA.pdf',content:pdf.toString('base64')};
+  await act('upload_club_activity_document',upload,peer,404);
+  const receipt=await act('upload_club_activity_document',upload,mine);
+  assert.equal(receipt.version,1);
+  assert.deepEqual(await act('upload_club_activity_document',upload,mine),receipt);
+  await request(downloadPath,peer,404);
+  await request(documentPath+'&download=proposal&version=2',mine,409);
+  assert.ok((await request(downloadPath,mine,200,undefined,true)).equals(pdf),'Downloaded bytes must match the full 2 MiB upload.');
+  const removal={application_id:submitted.id,application_version:3,kind:'proposal',expected_version:1,request_id:randomUUID()};
+  assert.equal((await act('remove_club_activity_document',removal,mine)).version,2);
+  await request(downloadPath,mine,404);
+  assert.equal((await act('withdraw_club_application',{id:submitted.id,expected_version:4,request_id:randomUUID()},mine)).status,'withdrawn');
   await pin();
   assert.equal(await ownerState(sql),owner);
 } finally {
@@ -144,4 +181,4 @@ try {
     try{if(lease&&!lease.lost)await lease.release();}finally{await pool.end({timeout:4});}
   }
 }
-console.log('Real JWT club officer reads, application submit/edit/withdraw, cross-club denial and exact cleanup passed.');
+console.log('Real JWT club officer lifecycle, 2 MiB PDF round trip, cross-club denial and exact cleanup passed.');

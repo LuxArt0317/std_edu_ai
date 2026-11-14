@@ -22,7 +22,7 @@ Production `502cf1d` is live as Vercel `3cpEDyT3qRETcoiKgz5wJWW7KbZu`. Migration
 
 Under **社團幹部**, activity applications, club profiles, activity completion, membership and attendance have their own routes. The application form captures the verified date, location, organizer, contact and classification fields. An approved School Affairs manager publishes the activity to the calendar during review. The submitting officer can revise or withdraw a pending request and record completion after the activity ends.
 
-An operator grants officer access by marking an existing `affairs_club_memberships` row as `officer` for the correct club and user. Club profiles and rosters show only records in clubs the current officer manages. Provision contact fields only where the student has approved their use. Attendance list records can be provisioned by an operator in `affairs_club_attendance` against approved or completed applications. Academic period columns display values when provided. The source session showed attachment columns and empty lists. Proposal/closeout uploads, profile editing, attendance import and member management remain unverified or unimplemented. The source maintenance roles still need an authorized source view.
+An operator grants officer access by marking an existing `affairs_club_memberships` row as `officer` for the correct club and user. Club profiles and rosters show only records in clubs the current officer manages. Provision contact fields only where the student has approved their use. Attendance list records can be provisioned by an operator in `affairs_club_attendance` against approved or completed applications. Academic period columns display values when provided. The source session showed attachment columns and empty lists. Profile editing, attendance import and member management remain open. The source maintenance roles still need an authorized source view.
 
 - `node tests/integration/club-officer-db.mjs --deployed` checks database permissions, application edits, approval and publication, completion and rollback.
 - `node tests/integration/club-officer-http.mjs` verifies the API using disposable authenticated officers. Set `EXPECTED_RELEASE_REVISION` for production.
@@ -31,3 +31,13 @@ An operator grants officer access by marking an existing `affairs_club_membershi
 ## Release evidence
 
 Production `7a5ab57` is live as Vercel `8JWkVsMbphjiX8EQm8Q8Cne1pfdA`. Migration 20261115080000 brings the client to 167 migrations and 206 RLS-protected public tables. Five verified officer destinations have distinct local routes. Officers can submit, edit, withdraw and complete club applications. Manager approval publishes the calendar record. Club profiles, membership and attendance are filtered by officer membership. Actual-JWT workflow and cleanup, rollback SQL, pinned browser, guest assistant, deployment shell, client verification and Quality 43572010483 passed. All 94 catalog destinations navigated in local QA.
+
+## Activity proposal and closeout attachments
+
+The university application list showed separate proposal and closeout attachment columns. The available session did not expose the upload or post-save details. The local dialog uses those verified columns as its entry points and provides file controls for the stu.best implementation.
+
+The submitting officer may save, replace or remove one PDF per column, with a 2 MiB limit. The proposal is editable while an application awaits review. The closeout file is editable once an approved activity ends, until completion. A reviewer must reload an application if a file changes after the list was opened. Only officers for the application’s club and the School Affairs administrator can read attachment metadata or download a saved version. Files and their revisions are stored together in a private Postgres table behind account-scoped RPC calls. There are no public links. No university student files were imported.
+
+- `node tests/integration/club-documents-db.mjs --deployed` checks permissions, workflow states, exact replay, removal, approval conflicts and rollback.
+- `node --import tsx tests/integration/club-officer-http.mjs` exercises both officers and uploads and retrieves a 2 MiB test PDF. Set `EXPECTED_RELEASE_REVISION` to use production.
+- `node tests/integration/club-officer-ui.mjs` exercises the attachment dialog, retry, download and removal. Set `PUBLIC_SITE_ORIGIN=https://stu.best` and `EXPECTED_RELEASE_REVISION` to pin production.

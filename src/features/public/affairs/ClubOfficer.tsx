@@ -1,3 +1,4 @@
+import { ClubActivityDocuments } from './ClubActivityDocuments';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
@@ -119,13 +120,23 @@ function useOfficerWrite(userId:string) {
 }
 
 function ActivityList({userId,rows,view,reload}:{userId:string;rows:ClubApplication[];view:OfficerView;reload:()=>void}) {
-  const [selected,setSelected]=useState<{row:ClubApplication;mode:'withdraw'|'complete'|'review'|'details'}|null>(null);
+  const [selected,setSelected]=useState<{row:ClubApplication;mode:'withdraw'|'complete'|'review'|'details'|'documents'}|null>(null);
   const {busy,error,send}=useOfficerWrite(userId);
+  const [documentBusy,setDocumentBusy]=useState(false);
+  const [documentsChanged,setDocumentsChanged]=useState(false);
+  function close() {
+    if(busy||documentBusy)return;
+    setSelected(null);
+    if(documentsChanged){setDocumentsChanged(false);reload();}
+  }
   return <>
     {view==='applications'&&<Link className="club-primary" to={base+'new'}>新增</Link>}
     <OfficerTable headers={applicationColumns} rows={rows.map(row=>[
       row.club_name,row.title,row.organizer,times.format(new Date(row.starts_at))+' – '+times.format(new Date(row.ends_at)),
-      row.hours,row.location,row.details.coordinator,row.details.coordinator_phone,'','',clubApplicationStatus[row.status],row.academic_year,row.term,
+      row.hours,row.location,row.details.coordinator,row.details.coordinator_phone,
+      <button type="button" onClick={()=>setSelected({row,mode:'documents'})}>企劃書附件</button>,
+      <button type="button" onClick={()=>setSelected({row,mode:'documents'})}>結案附件</button>,
+      clubApplicationStatus[row.status],row.academic_year,row.term,
       <div className="club-table-actions">
         <button type="button" onClick={()=>setSelected({row,mode:'details'})}>查看</button>
         {view==='applications'&&row.status==='submitted'&&row.can_edit&&<>
@@ -137,11 +148,13 @@ function ActivityList({userId,rows,view,reload}:{userId:string;rows:ClubApplicat
         {view==='review'&&<button type="button" onClick={()=>setSelected({row,mode:'review'})}>審核</button>}
       </div>,
     ])}/>
-    <Dialog open={Boolean(selected)} onOpenChange={open=>{if(!open&&!busy)setSelected(null);}}>
-      {selected&&<DialogContent>
+    <Dialog open={Boolean(selected)} onOpenChange={open=>{if(!open)close();}}>
+      {selected&&<DialogContent className={selected.mode==='documents'?'club-documents-dialog':undefined}>
         <DialogHeader><DialogTitle>{selected.mode==='withdraw'?'撤回活動申請':selected.mode==='complete'?'成果結案':
-          selected.mode==='review'?'活動申請審核':'活動資料'}</DialogTitle><DialogDescription>{selected.row.title}</DialogDescription></DialogHeader>
-        {selected.mode==='details'?<dl className="club-officer-details">
+          selected.mode==='review'?'活動申請審核':selected.mode==='documents'?'活動附件':'活動資料'}</DialogTitle><DialogDescription>{selected.row.title}</DialogDescription></DialogHeader>
+        {selected.mode==='documents'?<ClubActivityDocuments key={selected.row.id} userId={userId} applicationId={selected.row.id}
+          busy={documentBusy} onBusy={setDocumentBusy} onChanged={()=>setDocumentsChanged(true)}/>
+          : selected.mode==='details'?<dl className="club-officer-details">
           <dt>社團名稱</dt><dd>{selected.row.club_name}</dd><dt>主辦單位</dt><dd>{selected.row.organizer}</dd>
           <dt>活動地點</dt><dd>{selected.row.location}</dd><dt>審核狀態</dt><dd>{clubApplicationStatus[selected.row.status]}</dd>
           {selected.row.review_note&&<><dt>審核備註</dt><dd>{selected.row.review_note}</dd></>}

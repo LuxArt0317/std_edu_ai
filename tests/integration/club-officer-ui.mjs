@@ -20,7 +20,9 @@ try{
   const recordId='c929fde5-7740-4ba4-b1f4-6c102111bd0e';
   const period={academic_year:115,term:1};
   const next=[];
-  const writes=[];
+  const writes=[],documentWrites=[];
+  const pdf=Buffer.from('%PDF-1.4\n%%EOF\n');
+  let documentVersion=0,filename=null,failUpload=true;
   let fail=true;
   await context.route('**/api/**',async route=>{
     const req=route.request(),url=new URL(req.url()),view=url.searchParams.get('view');
@@ -37,8 +39,41 @@ try{
         [{...student,title:'QA Activity',starts_at:'2026-11-29T02:00:00Z'}];
       return route.fulfill({json:{userId:user.id,view,clubs:[club],rows}});
     }
+    if(url.searchParams.get('scope')==='club-activity-documents'){
+      assert.match(req.headers().authorization??'',/^Bearer /u);
+      assert.equal(url.searchParams.get('application_id'),recordId);
+      if(url.searchParams.has('download')){
+        assert.equal(url.searchParams.get('download'),'proposal');
+        assert.equal(url.searchParams.get('version'),String(documentVersion));
+        return route.fulfill({contentType:'application/pdf',headers:{'content-length':String(pdf.length)},body:pdf});
+      }
+      return route.fulfill({json:{userId:user.id,applicationId:recordId,applicationVersion:next[0].version,rows:[
+        {kind:'proposal',filename,version:documentVersion,editable:true,size:filename?pdf.length:null,updatedAt:null},
+        {kind:'closeout',filename:null,version:0,editable:false,size:null,updatedAt:null},
+      ]}});
+    }
     if(url.pathname==='/api/affairs-action'){
       const {kind,payload}=req.postDataJSON();
+      if(kind.endsWith('_club_activity_document')){
+        assert.equal(payload.application_id,recordId);
+        assert.equal(payload.kind,'proposal');
+        assert.equal(payload.expected_version,documentVersion);
+        assert.equal(payload.application_version,next[0].version);
+        documentWrites.push(payload.request_id);
+        if(kind==='upload_club_activity_document'){
+          assert.deepEqual(Buffer.from(payload.content,'base64'),pdf);
+          if(failUpload){failUpload=false;return route.fulfill({status:503,json:{error:'請重試。'}});}
+          assert.equal(documentWrites[0],documentWrites[1]);
+          filename=payload.filename;
+        }else{
+          assert.equal(kind,'remove_club_activity_document');
+          filename=null;
+          assert.notEqual(documentWrites[1],documentWrites[2]);
+        }
+        documentVersion++;
+        next[0].version++;
+        return route.fulfill({json:{applicationId:recordId,kind:'proposal',version:documentVersion,filename}});
+      }
       writes.push(payload.request_id);
       assert.match(payload.request_id,/^[a-f0-9-]{36}$/u);
       if(kind==='submit_club_application'){
@@ -53,8 +88,8 @@ try{
       }else{
         assert.equal(kind,'withdraw_club_application');
         assert.equal(payload.id,recordId);
-        assert.equal(payload.expected_version,1);
-        next[0].status='withdrawn';next[0].version=2;
+        assert.equal(payload.expected_version,3);
+        next[0].status='withdrawn';next[0].version=4;
       }
       return route.fulfill({json:{id:recordId,version:next[0].version,status:next[0].status}});
     }
@@ -101,6 +136,23 @@ try{
   await page.getByRole('link',{name:'編輯',exact:true}).click();
   assert.equal(await page.getByLabel('活動名稱',{exact:true}).inputValue(),'QA Workshop');
   await page.getByRole('link',{name:'回列表',exact:true}).click();
+  await page.getByRole('button',{name:'企劃書附件',exact:true}).click();
+  const documents=page.getByRole('dialog',{name:'活動附件'});
+  await documents.getByLabel('選擇 PDF').setInputFiles({name:'QA Proposal.pdf',mimeType:'application/pdf',buffer:pdf});
+  await documents.getByRole('button',{name:'上傳',exact:true}).click();
+  await documents.getByRole('alert').getByText('請重試。').waitFor();
+  await documents.getByRole('button',{name:'上傳',exact:true}).click();
+  await documents.getByText('附件已儲存。').waitFor();
+  const completionDownload=page.waitForEvent('download');
+  await documents.getByRole('button',{name:'QA Proposal.pdf'}).click();
+  assert.equal((await completionDownload).suggestedFilename(),'QA Proposal.pdf');
+  await documents.getByRole('button',{name:'移除',exact:true}).click();
+  await documents.getByRole('button',{name:'確認移除',exact:true}).click();
+  await documents.getByText('附件已移除。').waitFor();
+  await documents.getByText('無附件',{exact:true}).first().waitFor();
+  await page.keyboard.press('Escape');
+  await documents.waitFor({state:'hidden'});
+  assert.equal(documentWrites.length,3);
   await page.getByRole('button',{name:'撤回',exact:true}).click();
   await page.getByRole('button',{name:'確認撤回'}).click();
   await page.getByText('已撤回',{exact:true}).waitFor();
@@ -119,5 +171,5 @@ try{
   await page.getByRole('alert').getByText('Denied').waitFor();
   assert.deepEqual(pageErrors,[]);
   await pin();
-  console.log('Five local officer routes, filtered rosters, exact application fields, submit retry, edit preload, withdrawal and mobile table passed.');
+  console.log('Five local officer routes, filtered rosters, exact application fields, submit retry, edit preload, withdrawal, PDF upload retry/download/removal, and mobile table passed.');
 }finally{await browser.close();}

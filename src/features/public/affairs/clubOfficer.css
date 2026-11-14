@@ -25,3 +25,11 @@
   .club-officer-form { grid-template-columns:minmax(75px,1fr) minmax(0,3fr); gap:10px; }
   .club-officer-pair label { flex-wrap:wrap; white-space:normal; }
 }
+.club-documents-dialog { max-height:88dvh; overflow-y:auto; }
+.club-documents { display:grid; gap:10px; }
+.club-document-row { display:grid; gap:7px; border-top:1px solid #d4d6d7; padding-block:9px; }
+.club-document-row h3 { margin:0; font-size:14px; font-weight:700; }
+.club-document-row form { display:flex; flex-wrap:wrap; align-items:end; gap:6px; }
+.club-document-row label { display:grid; min-width:0; }
+.club-document-row input { max-width:100%; }
+.club-document-download { justify-self:start; overflow-wrap:anywhere; color:#245d7e; text-decoration:underline; }
