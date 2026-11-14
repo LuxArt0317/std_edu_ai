@@ -41,3 +41,7 @@ The submitting officer may save, replace or remove one PDF per column, with a 2 
 - `node tests/integration/club-documents-db.mjs --deployed` checks permissions, workflow states, exact replay, removal, approval conflicts and rollback.
 - `node --import tsx tests/integration/club-officer-http.mjs` exercises both officers and uploads and retrieves a 2 MiB test PDF. Set `EXPECTED_RELEASE_REVISION` to use production.
 - `node tests/integration/club-officer-ui.mjs` exercises the attachment dialog, retry, download and removal. Set `PUBLIC_SITE_ORIGIN=https://stu.best` and `EXPECTED_RELEASE_REVISION` to pin production.
+
+### Release evidence
+
+Production e98e3f1 is live as Vercel 2X65ZvEwvLoUfN2UcDW9VsLtdsN5. Migration 20261115090000 brings the client to 168 migrations and retains 206 RLS-protected public tables. Proposal and closeout PDFs persist in a private table. The signed-in officer can save, replace or remove each attachment during its workflow window. SQL rollback and approval conflicts, real-JWT 2 MiB upload and download, cross-club isolation and cleanup, pinned browser, guest assistant, deployment shell, client verification and Quality 43574014749 passed. All 94 catalog URLs passed navigation.

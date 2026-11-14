@@ -9,7 +9,7 @@
 - [x] Implement officer applications, closeout, club profiles and the membership and attendance lists.
 - [x] Verify officer and manager permissions, database writes and all five routes on the deployed release.
 - [x] Implement private officer proposal and closeout attachments with application and file version checks.
-- [ ] Verify deployed attachment reads, writes, access isolation and removal.
+- [x] Verify deployed attachment reads, writes, access isolation and removal.
 - [ ] Implement profile/roster maintenance, attendance editing and remaining equipment management and reports.
 
 ## Student aid payment inquiries [Issue #98]

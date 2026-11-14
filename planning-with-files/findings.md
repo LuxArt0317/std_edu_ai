@@ -307,3 +307,7 @@ The calendar and inventory start empty until an operator provisions records. No 
 ## Club officer applications and records [Issue #98]
 
 The source exposed empty attachment columns. Proposal and closeout uploads, profile and roster editing, attendance import, equipment inventory maintenance and reports remain open. No university student or club records were imported.
+
+## Private club activity attachments [Issue #98]
+
+The university list showed both attachment columns. The upload and post-save views were unavailable. The local file controls accept one 2 MiB PDF per column. No university files were imported. Profile/roster editing, attendance import, equipment inventory and reports remain open.
