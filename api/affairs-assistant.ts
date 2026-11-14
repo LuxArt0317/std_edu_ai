@@ -1,6 +1,9 @@
+import {readCounselingEvidence} from '../server/accountCounselingEvidence.js';
+import {isCounselingNavigationQuestion} from '../server/counselingEvidenceIntent.js';
+import {counselingGuide} from '../server/counselingContract.js';
 import {readFeeRemissionEvidence} from '../server/accountFeeRemissionEvidence.js';
 import {readHealthExaminationEvidence} from '../server/accountHealthExaminationEvidence.js';
-import {isHealthExaminationNavigationQuestion,withoutExcludedHealthClause} from '../server/healthExaminationEvidenceIntent.js';
+import {isHealthExaminationNavigationQuestion} from '../server/healthExaminationEvidenceIntent.js';
 import {healthExaminationGuide} from '../server/healthExaminationContract.js';
 import {readStudentConductEvidence} from '../server/accountStudentConductEvidence.js';
 import {readStudentLoanEvidence} from '../server/accountStudentLoanEvidence.js';
@@ -14,7 +17,7 @@ import {readFacilityRepairEvidence} from '../server/accountFacilityRepairEvidenc
 import {isForeignFacilityRepairQuestion} from '../server/facilityRepairEvidenceIntent.js';
 import {readDormitoryConductEvidence} from '../server/accountDormitoryConductEvidence.js';
 import {readElearningOutlineEvidence} from '../server/accountElearningOutlineEvidence.js';
-import {facilityRepairLookupContext,nativePageLookupContext} from '../server/accountSupplementalLookup.js';
+import {facilityRepairLookupContext,nativePageLookupContext,withoutExcludedNativePageClause} from '../server/accountSupplementalLookup.js';
 import {randomUUID} from 'node:crypto';
 import { questionKind } from '../server/schoolWebSearch.js';
 import { accountQuestionIntent } from '../server/affairsAnswer.js';
@@ -144,7 +147,7 @@ export function createAffairsAssistantHandler(dependencies:{
   verifyToken?:typeof verifyAffairsToken;
   loadSnapshot?:typeof loadAffairsSnapshot;
   answerAccount?:typeof answerAccountWithVerification;
-  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence;healthExaminations?:typeof readHealthExaminationEvidence};
+  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence;healthExaminations?:typeof readHealthExaminationEvidence;counselingAppointments?:typeof readCounselingEvidence};
 }={}) {
 const publicResearch=dependencies.publicResearch??researchHandler;
 const verifyToken=dependencies.verifyToken??verifyAffairsToken,loadSnapshot=dependencies.loadSnapshot??loadAffairsSnapshot,answerAccount=dependencies.answerAccount??answerAccountWithVerification;
@@ -158,7 +161,8 @@ const readers={courseCatalog:dependencies.readers?.courseCatalog??readCatalogEvi
   dormitoryConduct:dependencies.readers?.dormitoryConduct??readDormitoryConductEvidence,
   elearningOutline:dependencies.readers?.elearningOutline??readElearningOutlineEvidence,
   feeRemission:dependencies.readers?.feeRemission??readFeeRemissionEvidence,
-  healthExaminations:dependencies.readers?.healthExaminations??readHealthExaminationEvidence};
+  healthExaminations:dependencies.readers?.healthExaminations??readHealthExaminationEvidence,
+  counselingAppointments:dependencies.readers?.counselingAppointments??readCounselingEvidence};
 return async function handler(request:ApiRequest,response:ApiResponse) {
   const deadline=Date.now()+55_000;
   response.setHeader('Cache-Control','no-store, max-age=0');
@@ -196,7 +200,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const foreignElearning=isForeignElearningRecordsQuestion(question,route);
   const foreignRepair=isForeignFacilityRepairQuestion(question);
   const pageContext=nativePageLookupContext(question,route,history);
-  const scopedQuestion=withoutExcludedHealthClause(question);
+  const scopedQuestion=withoutExcludedNativePageClause(question);
   if(foreignDtmGrades||foreignElearning||foreignRepair||pageContext.foreign||isForeignAidPaymentsQuestion(scopedQuestion)){
     const chinese=/[\u3400-\u9fff]/u.test(question);
     const records=foreignDtmGrades?(chinese?'數位教材成績紀錄':'Moodle grade records')
@@ -204,12 +208,17 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         :foreignRepair?(chinese?'報修紀錄':'facility repair records')
           :pageContext.foreign&&pageContext.tools.includes('feeRemission')?(chinese?'學雜費減免紀錄':'fee remission records')
           :pageContext.foreign&&pageContext.tools.includes('healthExaminations')?(chinese?'健檢紀錄':'health examination records')
+          :pageContext.foreign&&pageContext.tools.includes('counselingAppointments')?(chinese?'諮商預約紀錄':'counseling appointments')
           :pageContext.foreign?(chinese?'宿舍獎懲或數位學園課程紀錄':'dormitory conduct or remote-learning course records')
             :(chinese?'薪資或助學請款紀錄':'salary or aid claim records');
     const answer=chinese?`我只能查詢您登入的 stu.best 帳戶，無法存取其他學生的${records}。`
       :`I can only check your signed-in stu.best account. I can’t show another student’s ${records}.`;
     stream.progress('account-access',chinese?'已確認帳戶範圍':'Checked account access',answer,'complete');
     stream.send(200,{status:'handoff',answer,citations:[],suggestedQuestions:[],grounding:{source:'account',webSearched:false}});
+    return;
+  }
+  if(isCounselingNavigationQuestion(question)&&!(Array.isArray(input?.images)&&input.images.length)){
+    stream.send(200,counselingGuide(question,'guide',true));
     return;
   }
   if(isHealthExaminationNavigationQuestion(question)&&!(Array.isArray(input?.images)&&input.images.length)){
@@ -307,6 +316,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       elearningOutline:context=>readers.elearningOutline(account,{question:pageContext.questions.elearningOutline||question,route,history,deadline:readDeadline(context.deadline)}),
       feeRemission:context=>readers.feeRemission(account,{question,route,history,deadline:readDeadline(context.deadline)}),
       healthExaminations:context=>readers.healthExaminations(account,{question:context.question,route,history,deadline:readDeadline(context.deadline)}),
+      counselingAppointments:context=>readers.counselingAppointments(account,{question:context.question,route,history,deadline:readDeadline(context.deadline)}),
       tuition:context=>readers.tuition(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
     };
     const answer=await answerAccount({question,correlationId,snapshot,history,route,deadline,supplementalReaders,

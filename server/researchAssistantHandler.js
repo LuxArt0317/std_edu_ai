@@ -4,10 +4,12 @@ import { clubStudentGuide,clubStudentQuestion } from './clubStudentContract.js';
 import { clubOfficerGuide,clubOfficerQuestion } from './clubOfficerContract.js';
 import { clubGuide,clubIntent } from './clubServicesContract.js';
 import { healthExaminationGuide, healthExaminationPath, healthExaminationQuestion } from './healthExaminationContract.js';
-import {isHealthExaminationNavigationQuestion,selectHealthExaminationEvidence,withoutExcludedHealthClause} from './healthExaminationEvidenceIntent.js';
+import {isHealthExaminationNavigationQuestion,selectHealthExaminationEvidence} from './healthExaminationEvidenceIntent.js';
 import {elearningCourseLocation,elearningCoursePath,elearningGuide,elearningQuestion,elearningOutlineCourse} from './elearningContract.js';
 import {aidPaymentsPaths,aidPaymentsQuestion} from './aidPaymentsContract.js';
-import {counselingGuide,counselingQuestion} from './counselingContract.js';
+import {withoutExcludedHealthClause} from './healthExaminationEvidenceIntent.js';
+import {selectCounselingEvidence,withoutExcludedCounselingClause} from './counselingEvidenceIntent.js';
+import {counselingPath,counselingGuide,counselingQuestion} from './counselingContract.js';
 import {certificateAwardQuestion} from './certificateAwardsContract.js';
 import {certificateAwardGuide} from './certificateAwards.js';
 import {announcementEmailQuestion} from './announcementEmailContract.js';
@@ -328,12 +330,26 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const stream = createAssistantStream(input.stream, response);
-        const balanceQuestion=withoutExcludedHealthClause(input.question);
+        const balanceQuestion=withoutExcludedCounselingClause(withoutExcludedHealthClause(input.question));
         if(isOwnFeeBalanceQuestion(balanceQuestion)||balanceQuestion!==input.question&&ownFeeBalanceLabel(balanceQuestion)){
             const zh=/[\u3400-\u9fff]/u.test(input.question), url='/school-affairs/login?next='+encodeURIComponent('/school-affairs/services/39-1');
             const title=zh?'登入後查看待繳費用':'Sign in to check your saved fee balance';
             stream.send(200,{status:'handoff',answer:'['+title+']('+url+')',
                 citations:[{chunkId:'directory:pending-fees',title,url,claim:title,sourceName:'School Affairs'}],
+                suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
+            return;
+        }
+        const appointment=selectCounselingEvidence(input.question,input.route,input.history);
+        if(appointment){
+            const zh=/[\u3400-\u9fff]/u.test(input.question);
+            const available=appointment.reason===null;
+            const url='/school-affairs/login?next='+encodeURIComponent(counselingPath+'/appointments');
+            const title=zh?'登入後查看諮商預約紀錄':'Sign in to view counseling appointments';
+            const answer=available?'['+title+']('+url+')'
+                :appointment.reason==='foreign_request'?(zh?'我只能協助查詢您自己的諮商預約。':'I can only help you check counseling appointments for your own account.')
+                :appointment.reason==='restricted_view'?(zh?'這裡只能查詢您自己的預約紀錄。':'I can only check your own appointment history here.')
+                :(zh?'請開啟校務系統中的諮商預約頁再試一次。':'Open your School Affairs appointments page and ask again.');
+            stream.send(200,{status:'handoff',answer,citations:available?[{chunkId:'directory:counseling-appointments',title,url,claim:title,sourceName:'School Affairs'}]:[],
                 suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
             return;
         }

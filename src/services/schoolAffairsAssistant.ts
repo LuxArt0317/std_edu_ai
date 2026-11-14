@@ -12,7 +12,8 @@ import {isFeeRemissionEvidenceQuestion} from '../../server/feeRemissionEvidenceI
 import {isDormitoryConductEvidenceQuestion} from '../../server/dormitoryConductEvidenceIntent.js';
 import {isElearningOutlineEvidenceQuestion} from '../../server/elearningOutlineEvidenceIntent.js';
 import {isHealthExaminationEvidenceQuestion} from '../../server/healthExaminationEvidenceIntent.js';
-import {counselingGuide,counselingQuestion} from '../../server/counselingContract.js';
+import {counselingQuestion} from '../../server/counselingContract.js';
+import {isCounselingEvidenceQuestion} from '../../server/counselingEvidenceIntent.js';
 import {certificateAwardQuestion} from '../../server/certificateAwardsContract.js';
 import {readCertificateAwardAnswer} from './certificateAwards';
 import {announcementEmailQuestion} from '../../server/announcementEmailContract.js';
@@ -57,7 +58,8 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
     ||isElearningEvidenceQuestion(question,route,history)||isForeignElearningRecordsQuestion(question,route)
     ||isFacilityRepairEvidenceQuestion(question,route,history)||isForeignFacilityRepairQuestion(question)
     ||isFeeRemissionEvidenceQuestion(question,route,history)||isDormitoryConductEvidenceQuestion(question,route,history)||isElearningOutlineEvidenceQuestion(question,route,history)
-    ||isHealthExaminationEvidenceQuestion(question,route,history)||healthExaminationQuestion(question))
+    ||isHealthExaminationEvidenceQuestion(question,route,history)||healthExaminationQuestion(question)
+    ||isCounselingEvidenceQuestion(question,route,history)||counselingQuestion(question))
     return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress);
   const officer = !images.length ? clubOfficerQuestion(question) : null;
   if (officer) return clubOfficerGuide(question,officer,true);
@@ -70,8 +72,6 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
   if (clubs) return clubGuide(question, clubs, true);
   const elearning=elearningQuestion(question,route);
   if(elearning)return elearningGuide(question,elearning,true);
-  const counseling=counselingQuestion(question);
-  if(counseling)return counselingGuide(question,counseling,true);
   const certificate=!images.length&&certificateAwardQuestion(question);
   if(certificate==='guide')return askCampusAssistant(question,[],signal,[],route,onProgress);
   if(certificate==='status'){

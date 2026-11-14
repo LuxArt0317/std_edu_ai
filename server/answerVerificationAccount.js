@@ -1,5 +1,5 @@
+import {isOwnCounselingTrackingNoteQuestion} from './counselingEvidenceIntent.js';
 import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel} from './pendingFeesAnswer.js';
-import {withoutExcludedHealthClause} from './healthExaminationEvidenceIntent.js';
 import { answerPrivateAffairsQuestion, accountQuestionIntent } from './affairsAnswer.js';
 import { runAnswerVerification } from './answerVerification.js';
 import { verificationModelCall, verifyEvidenceAnswer, repairEvidenceAnswer, composeEvidenceAnswer } from './answerVerificationModel.js';
@@ -19,8 +19,9 @@ import {academicAttendancePaths,isAcademicAttendanceQuestion} from './academicAt
 import {selectAccountEvidence,boundSelectedEvidence,ownEvidenceRows} from './accountEvidenceSelection.js';
 import {selectedEvidenceLinks} from './accountEvidenceLinks.js';
 import {boundedPublicPageEvidence,isPublicPageQuestion,loadPublicPageContext,normalizePublicPageRoute,publicPageCandidate} from './publicPageContext.js';
-import {supplementalAccountTools,requiredSupplementalTools,facilityRepairLookupContext,nativePageLookupContext,catalogReadPlanSchema,validateCatalogReadPlan,readSupplementalLookups} from './accountSupplementalLookup.js';
-import {formatSupplementalAccountAnswers} from './supplementalAccountAnswers.js';
+import {supplementalAccountTools,requiredSupplementalTools,facilityRepairLookupContext,nativePageLookupContext,withoutExcludedNativePageClause,catalogReadPlanSchema,validateCatalogReadPlan,readSupplementalLookups} from './accountSupplementalLookup.js';
+import {formatSupplementalAccountAnswers,supplementalAnswerLanguage} from './supplementalAccountAnswers.js';
+import {formatSelectedChargeEvidence,selectedChargeAnswerLimits} from './selectedChargeEvidenceAnswer.js';
 import {isAidPaymentsEvidenceQuestion} from './aidPaymentsEvidenceIntent.js';
 import {mentionsDtmSubmissionDetail,needsSeparateDtmTracker} from './dtmGradeEvidenceIntent.js';
 import {hasIndependentDtmWork,independentElearningQuestion,isElearningEvidenceQuestion} from './elearningEvidenceIntent.js';
@@ -126,12 +127,13 @@ function plannerRouteContext(route){
 }
 
 export async function planAccountLookup(question, history, route, deadline, retry) {
-  const balanceQuestion=withoutExcludedHealthClause(question);
+  const balanceQuestion=withoutExcludedNativePageClause(question);
   if(isOwnFeeBalanceQuestion(balanceQuestion)||balanceQuestion!==question&&ownFeeBalanceLabel(balanceQuestion))
     return {tools:['charges'],publicTopics:[],catalogQuery:null,responseIntent:'records'};
   const pages=nativePageLookupContext(question,route,history);
   if(pages.feeAndBalance)return {tools:[...pages.tools,'charges'],publicTopics:[],catalogQuery:null,responseIntent:'records'};
   if(pages.readerOnly)return {tools:pages.tools,publicTopics:[],catalogQuery:null,responseIntent:'records'};
+  if(isOwnCounselingTrackingNoteQuestion(question))return {tools:['serviceRecords'],publicTopics:[],catalogQuery:null,responseIntent:'records'};
   const residual=pages.selected?pages.otherQuestion:question;
   const repair=facilityRepairLookupContext(residual,route,history);
   if(repair.repairOnly||repair.scheduleOnly)return {tools:[...pages.tools,...(repair.scheduleOnly?['courses','facilityRepairs']:['facilityRepairs'])],publicTopics:[],catalogQuery:null,responseIntent:'records'};
@@ -206,7 +208,7 @@ export async function planAccountLookup(question, history, route, deadline, retr
     if (!Array.isArray(plan.tools) || !Array.isArray(plan.publicTopics) || plan.tools.some(key=>!readToolNames.includes(key)) || plan.publicTopics.some(key=>!topicNames.includes(key))) throw new Error('Invalid lookup plan');
     const catalogQuery=validateCatalogReadPlan(plan.catalogQuery);
     const plannedTools=plan.tools.filter(key=>{
-      if(['dormitoryConduct','elearningOutline','feeRemission','healthExaminations'].includes(key)&&!supplementalRequired.includes(key))return false;
+      if(['dormitoryConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments'].includes(key)&&!supplementalRequired.includes(key))return false;
       if(remoteLearningRequest&&key==='courses'&&!needsSeparateCourses)return false;
       if(remoteLearningWorkOnly&&['dtm','assignments','dtmSubmissions','dtmGradeReport'].includes(key))return false;
       if(remoteLearningRequest&&['dtmSubmissions','dtmGradeReport'].includes(key)&&!supplementalRequired.includes(key))return false;
@@ -352,18 +354,19 @@ function housingBedView(snapshot,context){
 }
 
 export function accountEvidence(snapshot,tools=toolNames,context={}) {
-  const selected=completeAccountTools(tools);
+  const selected=completeAccountTools(tools),selectedTools=completeReadTools(tools);
   const intent=accountQuestionIntent(context.question||'',context.history||[],context.route||'');
   const resolvedFollowup=intent.contextQuestion!==(context.question||'').trim();
   if(resolvedFollowup)context={...context,question:intent.contextQuestion,history:[],resolvedUserQuestion:intent.contextQuestion};
   const repairMeeting=repairScheduleProjection(snapshot,context);
   const evidence=[{id:'account-scope',title:'Account access and record provenance',url:'/school-affairs/records',content:JSON.stringify({
     checkedAt:snapshot.checkedAt,timeZone:'Asia/Taipei',source:'stu.best account records',officialUniversityData:false,
-    role:snapshot.profile?.role,selectedTools:selected,
-    availableTools:{...accountTools,...supplementalAccountTools},
-    rules:'Only the authenticated account records were queried. Sample/local_demo records are fictional demonstration data. Personal records are saved/imported by the account, not a live university sync. Empty selected data does not establish absence elsewhere. Native coverage describes the loaded owned snapshot; historyCompleteness remains unknown even if database pagination is complete. Excerpted collections and suppressed values cannot prove completeness or absence. Never infer eligibility or official enrollment from a catalog or selection snapshot. Site tasks/requests require user confirmation; no action has executed during this answer. Housing/aid/native academic projections omit sensitive identity fields; use the linked records page for those fields.',
-    completeness:snapshot.completeness || 'Legacy snapshot: catalog, enrollments, released grades, attendance, notices, tasks and requests may be capped. Do not claim a complete history or overall absence for those collections.',
-    actions:['create_task','complete_task','create_service_request','update_display_name','set_assignment_status (personal DTM tracker only)',...(snapshot.profile?.role==='admin'?['publish_announcement']:[])],
+    role:context.scopedReadOnly?undefined:snapshot.profile?.role,selectedTools,
+    availableTools:context.scopedReadOnly?Object.fromEntries(selectedTools.map(key=>[key,accountTools[key]||supplementalAccountTools[key]])):{...accountTools,...supplementalAccountTools},
+    catalogScope:context.scopedReadOnly?'selected_for_this_request':undefined,
+    rules:context.scopedReadOnly?'Only the selected readers for this authenticated account contribute facts. Collections absent from this evidence were not selected. Omitted or unread records cannot prove absence or completeness. Use the provenance, scope, record counts and capabilities in each selected source. No action has run.':'Only the authenticated account records were queried. Sample/local_demo records are fictional demonstration data. Personal records are saved/imported by the account, not a live university sync. Empty selected data does not establish absence elsewhere. Native coverage describes the loaded owned snapshot; historyCompleteness remains unknown even if database pagination is complete. Excerpted collections and suppressed values cannot prove completeness or absence. Never infer eligibility or official enrollment from a catalog or selection snapshot. Site tasks/requests require user confirmation; no action has executed during this answer. Housing/aid/native academic projections omit sensitive identity fields; use the linked records page for those fields.',
+    completeness:context.scopedReadOnly?undefined:snapshot.completeness || 'Legacy snapshot: catalog, enrollments, released grades, attendance, notices, tasks and requests may be capped. Do not claim a complete history or overall absence for those collections.',
+    actions:context.scopedReadOnly?[]:['create_task','complete_task','create_service_request','update_display_name','set_assignment_status (personal DTM tracker only)',...(snapshot.profile?.role==='admin'?['publish_announcement']:[])],
   })}];
   const budgetLimit=Number.isSafeInteger(context.budget)&&context.budget>=6000&&context.budget<=70000?context.budget:70000;
   const availableBudget=budgetLimit-Buffer.byteLength(JSON.stringify(evidence),'utf8')-128;
@@ -383,6 +386,8 @@ export function accountEvidence(snapshot,tools=toolNames,context={}) {
     // original explicit field allowlist. Never forward contact/owner/reviewer
     // metadata or newly added database columns through a whole-row spread.
     if(key==='serviceRecords'&&selection)selection={...selection,records:accountCollection({serviceRecords:selection.records},key)};
+    if(key==='charges'&&selection&&context.scopedReadOnly)selection={...selection,
+      records:selection.records.map(row=>pick(row,['id','label','amountDue','amountPaid','currency','sourceMode']))};
     if(key==='courses'&&selection&&repairMeeting)selection={...selection,records:repairMeeting.records,
       selection:{scope:repairMeeting.nextOnly?'next_scheduled_class':'owned_timetable',availableRows:repairMeeting.availableRows,matchingRows:repairMeeting.records.length}};
     let value=query?query.collection:selection?selection.records:accountCollection(snapshot,key);
@@ -473,6 +478,16 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const emit=step=>{observed.push(step);onProgress?.(step);};
   const plan=await planAccountLookup(question,history,fullRoute,deadline);
   let activeTools=plan.tools,activeCatalogQuery=plan.catalogQuery;
+  const scopedCounseling=pageLookup.tools.includes('counselingAppointments')&&(pageLookup.readerOnly||pageLookup.feeAndBalance);
+  const counselingAndFees=scopedCounseling&&pageLookup.feeAndBalance&&pageLookup.tools.length===1
+    &&activeTools.length===2&&activeTools.includes('charges')&&intent.kind==='records'&&!resolvedUserQuestion
+    &&!plan.publicTopics.length&&!publicPageRoute&&!plan.action;
+  const boundedFeeAnswer=sources=>{
+    const fees=sources.find(source=>source.id==='account:charges');
+    if(!counselingAndFees||!fees)return null;
+    try{return formatSelectedChargeEvidence(fees,{language:supplementalAnswerLanguage(question)});}
+    catch(error){if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;return null;}
+  };
   const requested=prepareAccountAction(plan.action,question,snapshot);
   // A write is only a proposal. Missing or ambiguous fields produce a question.
   if(requested.clarification)return {status:'clarification',answer:requested.clarification,citations:[],suggestedQuestions:[],grounding:{source:'account',checkedAt:snapshot.checkedAt,webSearched:false},activity:[{kind:'action-fields',label:'Checked action requirements',detail:'No action has run. More information is required.',status:'complete'}]};
@@ -512,7 +527,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const privateEvidence=()=>{
     if(intent.kind==='coaching'&&!activeTools.length)return [];
     const extra=supplemental.map(result=>result.evidence),budget=70000-Buffer.byteLength(JSON.stringify(extra),'utf8')-4;
-    const sources=[...accountEvidence(current,activeTools,{...context,budget}),...extra];
+    const sources=[...accountEvidence(current,activeTools,{...context,budget,scopedReadOnly:scopedCounseling}),...extra];
     if(Buffer.byteLength(JSON.stringify(sources),'utf8')>70000)throw new RangeError('Private evidence exceeds its shared budget.');
     return sources;
   };
@@ -556,6 +571,15 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   evidence=assembleEvidence();
   if(pageContext&&evidence.some(source=>source.id===pageContext.evidence.id))initial.answer+='\n\n'+publicPageCandidate(pageContext,question).answer;
   initial.citations=evidenceCitations(evidence);
+  const fees=boundedFeeAnswer(evidence);
+  if(fees){
+    const combined={...initial,answer:initial.answer+'\n\n'+fees.answer,views:[...(initial.views||[]),...fees.views]};
+    if(combined.answer.length<=selectedChargeAnswerLimits.answerCharacters
+      &&Buffer.byteLength(JSON.stringify(combined),'utf8')<=selectedChargeAnswerLimits.resultBytes){
+      initial=combined;
+      needsComposition=false;
+    }
+  }
   // Compose multipart answers from the exact bounded evidence the reviewer
   // receives, instead of trusting a first-match draft from the full snapshot.
   // This replaces the optional retry-planner call, keeping the existing maximum
@@ -583,7 +607,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         current=refreshed;
         // Reconsider omitted read capabilities while reserving time for the one
         // correction and second verification. Retry never changes the action.
-        if(!composeInitially&&Date.now()<deadline-24000){
+        if(!composeInitially&&!scopedCounseling&&Date.now()<deadline-24000){
           emit({kind:'account-replan',label:'Rechecking needed account records',detail:'Checking whether another record collection is needed; no new action or web search runs.',status:'running'});
           const retry=await planAccountLookup(question,history,fullRoute,Math.min(deadline-21000,Date.now()+3000),{previousTools:activeTools,feedback});
           if(!retry.degraded){activeTools=retry.tools;if(retry.catalogQuery!==null)activeCatalogQuery=retry.catalogQuery;}
@@ -617,7 +641,10 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   }
   const repairMeeting=repairScheduleProjection(current,context);
   if(repairMeeting)viewSnapshot={...viewSnapshot,courses:repairMeeting.records};
-  const baseViews=[...accountRecordViews(viewSnapshot,viewSnapshot.chargeReadUnavailable?activeTools.filter(key=>key!=='charges'):activeTools,{...context,courseTerms:intent.courseTerms}),...(activeTools.includes('housing')?housingBedView(viewSnapshot,context):[])],views=[...supplementalViews,...baseViews].slice(0,3);
+  const viewTools=viewSnapshot.chargeReadUnavailable||counselingAndFees?activeTools.filter(key=>key!=='charges'):activeTools;
+  const baseViews=[...accountRecordViews(viewSnapshot,viewTools,{...context,courseTerms:intent.courseTerms}),
+    ...(boundedFeeAnswer(evidence)?.views||[]),...(activeTools.includes('housing')?housingBedView(viewSnapshot,context):[])];
+  const views=[...supplementalViews,...baseViews].slice(0,3);
   if(supplementalViews.length+baseViews.length>3)for(const view of views)view.note+=' Additional source tables were omitted by the three-table display limit; use the source links for the full records.';
   return {...result,...(repairClarification&&result.verification?.status==='verified'?{status:'clarification'}:{}),views,grounding:{...result.grounding,webSearched:observed.some(step=>step.kind.startsWith('web-')),checkedAt:current.checkedAt},
     activity:[...new Map([...(result.activity||[]),...observed].map(step=>[step.kind,step])).values()]};

@@ -370,7 +370,7 @@ function evidenceBoundaryResult(answer,kind) {
   if(kind==='health_metadata_not_clinical'||kind==='health_metadata_no_clinical_claims') {
     const caveat=clauses.some(clause=>/\b(?:clinical|diagnos(?:is|es)|medical (?:results?|report|condition)|health status|normal)\b/u.test(clause)
       &&(isNegative(clause)||/\b(?:unknown|unavailable|unverified|not included)\b/u.test(clause)));
-    const diagnosis=/\b(?:your|the)\s+(?:(?:health|medical|blood|examination|exam)\s+){0,3}(?:results?|condition|status|examination)\s+(?:is|are|shows?|indicates?|confirms?)\s+(?:normal|healthy|abnormal|high|low|diabetes|disease)\b|\byou (?:are healthy|have (?:diabetes|a disease|no medical condition))\b/gu;
+    const diagnosis=/\b(?:your|the)\s+(?:(?:health|medical|blood|examination|exam)\s+){0,3}(?:results?|condition|status|examination)\s+(?:is|are|shows?|indicates?|confirms?)\s+(?:normal|healthy|abnormal|high|low|diabetes|disease)\b|\byou (?:are healthy|have (?:diabetes|a disease|no medical condition))\b|^\s*(?:diagnosis|clinical diagnosis|medical diagnosis|blood results?|clinical results?)\s*[:：]\s*(?:normal|healthy|abnormal|high|low|diabetes|disease)\b/gu;
     return {passed:(kind==='health_metadata_no_clinical_claims'||caveat)&&!clauses.some(clause=>affirmative(clause,diagnosis)),detail:'Metadata flags are explicitly separated from clinical findings or a diagnosis.'};
   }
   if(kind==='health_metadata_not_download'||kind==='health_metadata_no_download_claims') {
@@ -436,7 +436,7 @@ function recordLinkMatches(answer, binding, allBindings) {
 }
 
 // This test-side allowlist is deliberately independent of the runtime planner.
-const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct','feeRemission','healthExaminations']);
+const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct','feeRemission','healthExaminations','counselingAppointments']);
 const toolStatusAliases={success:'complete',succeeded:'complete',failed:'error',started:'running',start:'running'};
 const toolStatuses=new Set(['running','complete','unavailable','error','cancelled','skipped']);
 const terminalStatuses=new Set(['complete','unavailable','error','cancelled','skipped']);
@@ -528,6 +528,7 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
       ||testCase.domain==='dtmGradeReport'&&missingDtmReportField.test(answer)
       ||testCase.domain==='elearningEnrollments'&&missingElearningEnrollments.test(visibleMarkdown(answer))
       ||testCase.domain==='healthExaminations'&&/\b(?:no (?:saved health (?:examination )?)?records (?:were returned|on (?:this |the |selected )?page)|(?:selected |this )?page.{0,30}empty|no saved health (?:examination )?records)\b/iu.test(visibleMarkdown(answer))
+      ||testCase.domain==='counselingAppointments'&&/\bno saved (?:counseling )?appointments\b|沒有已儲存預約/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='feeRemission'&&/\bno matching saved remission records\b/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='facilityRepairs'&&limitedFacilityRepair.test(visibleMarkdown(answer)),'The answer explicitly states missing records, inability or unsupported capability.');
     if(expected.limitation && expected.limitation!==true)check('answer.limitation.specific',matches(text,expected.limitation),'The specific required limitation is stated.');
@@ -630,11 +631,22 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
   }
   if(expected.healthMetadataOnly===true){
     const serialized=JSON.stringify(body);
+    // Inspect displayed claims separately: a disclaimer in prose must never
+    // cancel an invented finding in a card, title, citation or activity label.
+    const displayedClaims=[answer];
+    const visit=value=>{
+      if(typeof value==='string')displayedClaims.push(value);
+      else if(Array.isArray(value)){
+        if(value.length>1&&value.every(cell=>typeof cell==='string'||typeof cell==='number'||typeof cell==='boolean'))displayedClaims.push(value.join(': '));
+        value.forEach(visit);
+      }else if(value&&typeof value==='object')Object.values(value).forEach(visit);
+    };
+    visit(body);
     const allowedHealthLinks=(expected.requiredLinks||[]).map(normalizedLink).filter(url=>url?.startsWith('https://stu.best/school-affairs/services/36-1'));
     const healthLinks=extractAnswerLinks(body).map(normalizedLink).filter(url=>url?.startsWith('https://stu.best/school-affairs/services/36-1'));
     check('health.exactPageLinks',healthLinks.every(url=>allowedHealthLinks.includes(url)),'Every health destination names the selected exact local page; a correct citation cannot excuse a conflicting prose link.');
-    check('health.noClinicalClaims',evidenceBoundaryResult(answer,'health_metadata_no_clinical_claims').passed,'No clinical finding or diagnosis is inferred from metadata.');
-    check('health.noDownloadClaims',evidenceBoundaryResult(answer,'health_metadata_no_download_claims').passed,'No report access or successful download is claimed from metadata.');
+    check('health.noClinicalClaims',displayedClaims.every(claim=>evidenceBoundaryResult(claim,'health_metadata_no_clinical_claims').passed),'No clinical finding or diagnosis is inferred from metadata.');
+    check('health.noDownloadClaims',displayedClaims.every(claim=>evidenceBoundaryResult(claim,'health_metadata_no_download_claims').passed),'No report access or successful download is claimed from metadata.');
     check('health.noStorageOutput',!/(?:storage\/v1\/|object\/sign\/|affairs-health-reports\/|[?&]token=|"signedURL"|"signedUrl")/iu.test(serialized),'Health metadata responses contain no Storage path, signed URL or download token in any field.');
     check('health.noFileActivity',!tools.events.some(event=>/storage|health.report.authoriz|file.download|download.report/iu.test(String(event?.kind))),'The metadata conversation records no report authorization, Storage or file-download action.');
   }

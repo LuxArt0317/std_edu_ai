@@ -51,10 +51,10 @@ test('required supplemental domains and page followups use account routing witho
     ['What tax is recorded?','/school-affairs/services/37-1/salary'],['List saved student aid claims.','/dtm'],
     ['Show saved Moodle grades.','/'],['What is on this page?','/dtm/grades'],
     ['Which remote-learning Moodle courses am I enrolled in?','/elearning/my-courses'],['What are my courses?','/elearning/my-courses'],
-    ['What about reports?','/school-affairs/services/36-1?page=2']];
+    ['What about reports?','/school-affairs/services/36-1?page=2'],['What is the status?','/school-affairs/services/29-1/appointments']];
   for(const [question,route]of cases){let calls=0;
     const result=await invoke(base({answerAccount:async options=>{calls++;assert.equal(options.question,question);assert.equal(options.route,route);
-      assert.deepEqual(Object.keys(options.supplementalReaders??{}),['courseCatalog','enrollmentCertificate','dtmSubmissions','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','healthExaminations','tuition']);return answer;}}),{question,route});
+      assert.deepEqual(Object.keys(options.supplementalReaders??{}),['courseCatalog','enrollmentCertificate','dtmSubmissions','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments','tuition']);return answer;}}),{question,route});
     assert.equal(result.status,200,question);assert.equal(calls,1,question);
   }
 });

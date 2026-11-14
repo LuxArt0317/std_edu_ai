@@ -14,7 +14,7 @@ System-wide question bank, independent grading, discovered coverage and per-case
 
 Live fixture creation records each reserved identity's email and run marker in the ignored owner-only ledger before sending the Auth request. Cleanup reconciles both values before deleting a fixture. An ambiguous creation timeout with no matching row remains unresolved: its recovery ledger is retained and the run cannot pass cleanup. A pre-existing account or mismatched run marker is never adopted or deleted. No password or session token is written to that ledger.
 
-The assistant registers twelve supplemental readers alongside its 17 default collections. The signed-in browser sends aid payments, native Moodle grades, remote-learning enrollments and outlines, dormitory notices and facility repair questions through the verification graph. Select the new packets with `--only account:elearning-outline-` or `--only account:dormitory-conduct-` on a revision-matched deployment. The fixture adapter checks both disposable accounts before and after each request. The grade-report fixtures include a missing report, a saved report with no total, and a 20-item report with its own stored total. Earlier native browser fixtures remain baseline evidence.
+The assistant registers 15 supplemental readers alongside its 17 default collections. The signed-in browser sends aid payments, native Moodle grades, remote-learning enrollments and outlines, dormitory notices and facility repair questions through the verification graph. Select the new packets with `--only account:elearning-outline-` or `--only account:dormitory-conduct-` on a revision-matched deployment. The fixture adapter checks both disposable accounts before and after each request. The grade-report fixtures include a missing report, a saved report with no total, and a 20-item report with its own stored total. Earlier native browser fixtures remain baseline evidence.
 
 The read-only integrations are:
 
@@ -27,6 +27,8 @@ The read-only integrations are:
 - Remote-learning outline cases compare each requested activity title, section and native link against the published records. Both callers' exact course access and crossed empty responses are verified before and after each answer. The fixture creates disposable access links only and leaves shared course content intact. An empty response without course access cannot establish that materials are absent.
 - Tuition: read the caller's literal settlement statements separately from charge balances. Null, blank text and the literal text `0` have distinct meanings; none proves a payment, issued receipt or completed refund.
 - Tuition remission uses the saved history at School Affairs service 21-3. The independent case bank checks exact literal periods, amount and status, missing fields, unauthorized account references and combined charge requests. Its fixture plan verifies both callers' complete remission and charge records independently. The planned cases remain outside default live execution.
+
+The health and counseling packets include exact own-account fixture plans. The normal evaluator reports their live cases as pending until the corresponding adapters are mounted. Counseling uses the private appointments page and reads tuition separately when requested.
 
 To list the isolated fee packet without contacting a provider, run:
 

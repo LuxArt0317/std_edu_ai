@@ -6,6 +6,7 @@ import {feeRemissionFields,feeRemissionPath} from './feeRemissionContract.js';
 import {healthExaminationPath,healthPageSize} from './healthExaminationContract.js';
 export const supplementalAnswerLimits=Object.freeze({answerCharacters:8000,resultBytes:24000,views:3,viewRows:12});
 const definitions={
+  'account:counselingAppointments':{title:['Saved counseling appointment metadata','已儲存諮商預約資料'],path:'/school-affairs/services/29-1/appointments'},
   'account:healthExaminations':{title:['Saved health-examination availability metadata','已儲存健檢報告可用性資料'],path:healthExaminationPath},
   'account:feeRemission':{title:['Saved fee-remission history','已儲存學雜費減免歷史'],path:feeRemissionPath},
   'account:dormitoryConduct':{title:['Saved dormitory-conduct notice','已儲存宿舍獎懲通知'],path:'/school-affairs/services/34-2'},
@@ -42,6 +43,49 @@ const outlineActivity=(course,id)=>outlineCourse(course)+'/activity/'+id;
 const outlineText=(value,max)=>gradeString(value,max)&&value.trim().length>0&&!/[\p{Cc}]/u.test(value);
 const sameText=(left,right)=>left.normalize('NFKC').trim().toLowerCase()===right.normalize('NFKC').trim().toLowerCase();
 const remissionCell=(value,max)=>value===null||gradeString(value,max*2)&&[...value].length<=max;
+function counselingDate(value){
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/u.test(value)||value.startsWith('0000'))return false;
+  const parsed=Date.parse(value+'T00:00:00Z');return Number.isFinite(parsed)&&new Date(parsed).toISOString().slice(0,10)===value;
+}
+function counselingInstant(value){
+  if(typeof value!=='string'||value.length>40)return false;
+  const match=/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,6})?(Z|[+-](\d{2}):(\d{2}))$/u.exec(value);
+  return Boolean(match&&counselingDate(match[1])&&Number(match[2])<=23&&Number(match[3])<=59&&Number(match[4])<=59
+    &&(!match[6]||Number(match[6])<=15&&Number(match[7])<=59)&&Number.isFinite(Date.parse(value)));
+}
+function validateCounselingPayload(envelope,p,evidence){
+  const s=p.selection,c=p.counts,path=definitions['account:counselingAppointments'].path;
+  if(!exact(envelope,['readState','reason','evidence'])||!exact(evidence,['id','title','url','urls','provenance','content'])||bytes(envelope)>16000
+    ||!exact(p,['collection','checkedAt','readState','selection','collectionState','counts','complete','records','provenance','capability','reason','rules'])
+    ||p.collection!=='counselingAppointments'||p.readState!==envelope.readState||p.reason!==envelope.reason||!gradeString(p.rules)
+    ||evidence.provenance!=='saved_local'||evidence.url!==path||!Array.isArray(evidence.urls)||evidence.urls.length!==1||evidence.urls[0]!==path
+    ||!exact(p.provenance,['sourceMode','officialUniversityData','synchronized'])||p.provenance.sourceMode!=='saved_local'
+    ||p.provenance.officialUniversityData!==false||p.provenance.synchronized!==false
+    ||!exact(p.capability,['appointmentMetadata','identity','clinicalContent','coordinatorAccess','documents','write'])||p.capability.appointmentMetadata!==true
+    ||['identity','clinicalContent','coordinatorAccess','documents','write'].some(key=>p.capability[key]!==false)
+    ||!Array.isArray(p.records)||p.records.length>50||typeof p.complete!=='boolean'
+    ||!exact(c,['returned','included','omitted','total','totalLowerBound','nativeLimit','truncationPossible'])||c.nativeLimit!==50||c.included!==p.records.length)invalid();
+  if(s!==null&&(!exact(s,['from','clinical','document','identity','operation','reason'])||!['question','route','history'].includes(s.from)
+    ||['clinical','document','identity','operation'].some(key=>typeof s[key]!=='boolean')
+    ||![null,'invalid_route','foreign_request','restricted_view'].includes(s.reason)))invalid();
+  if(p.readState==='unavailable'){
+    if(!gradeString(p.reason,120)||!p.reason||p.collectionState!=='unavailable'||p.complete||p.records.length
+      ||c.returned!==null||c.omitted!==null||c.total!==null||c.totalLowerBound!==null||c.truncationPossible!==null
+      ||s?.reason&&p.reason!==s.reason||s?.operation&&!s.reason&&p.reason!=='unsupported_operation')invalid();
+    return;
+  }
+  if(!s||s.reason!==null||s.operation||!integer(c.returned)||c.returned>50||c.included>c.returned||c.omitted!==c.returned-c.included
+    ||c.total!==(c.returned===50?null:c.returned)||c.totalLowerBound!==c.returned||c.truncationPossible!==(c.returned===50)
+    ||p.complete!==(c.returned<50&&c.omitted===0)||p.collectionState!==(c.returned===0?'empty':'records')
+    ||p.readState!==(c.returned===0?'empty':c.returned===50||c.omitted?'partial':'ok')||p.reason!==(c.omitted?'excerpted':null))invalid();
+  let open=0;
+  for(const record of p.records){
+    if(!exact(record,['kind','status','preferredOn','preferredPeriod','scheduledAt'])||!['counseling','assessment'].includes(record.kind)
+      ||!['requested','scheduled','cancelled','closed'].includes(record.status)||!counselingDate(record.preferredOn)||!['morning','afternoon'].includes(record.preferredPeriod)
+      ||!(record.scheduledAt===null||counselingInstant(record.scheduledAt))||record.status==='scheduled'&&record.scheduledAt===null
+      ||['requested','scheduled'].includes(record.status)&&++open>1)invalid();
+  }
+}
 function validateHealthPayload(envelope,p,evidence){
   const s=p.selection,c=p.counts,page=s?.page??1,offset=(page-1)*healthPageSize;
   if(!exact(envelope,['readState','reason','evidence'])||!exact(evidence,['id','title','url','urls','provenance','content'])||bytes(envelope)>12000
@@ -325,6 +369,7 @@ function validateGradePayload(envelope,p,evidence){
 }
 const invalid=()=>{throw new TypeError('Use validated supplemental account evidence envelopes.');};
 function allowedUrl(id,url){
+  if(id==='account:counselingAppointments')return url===definitions[id].path;
   if(id==='account:healthExaminations')return typeof url==='string'&&(url===healthExaminationPath||new RegExp('^'+healthExaminationPath+'\\?page=([1-9]\\d{0,2})$','u').test(url)&&Number(url.split('=').at(-1))>=2&&Number(url.split('=').at(-1))<=201);
   if(id==='account:feeRemission')return url===feeRemissionPath;
   if(id==='account:dormitoryConduct')return url===definitions[id].path;
@@ -357,7 +402,8 @@ function parse(envelope){
   if(evidence.urls!==undefined&&(!Array.isArray(evidence.urls)||evidence.urls.some(url=>!allowedUrl(id,url))))invalid();
   let payload;try{payload=JSON.parse(evidence.content);}catch{invalid();}
   if(!object(payload)||typeof payload.checkedAt!=='string'||!Number.isFinite(Date.parse(payload.checkedAt)))invalid();
-  if(id==='account:healthExaminations')validateHealthPayload(envelope,payload,evidence);
+  if(id==='account:counselingAppointments')validateCounselingPayload(envelope,payload,evidence);
+  else if(id==='account:healthExaminations')validateHealthPayload(envelope,payload,evidence);
   else if(id==='account:feeRemission')validateFeeRemissionPayload(envelope,payload,evidence);
   else if(id==='account:dormitoryConduct')validateDormitoryPayload(envelope,payload,evidence);
   else if(id==='account:elearningOutline')validateOutlinePayload(envelope,payload,evidence);
@@ -442,6 +488,7 @@ function language(question,requested){
   if(/^\s*(?:what|which|when|where|who|how|show|list|explain|compare|can|do|does|did|is|are|was|were|please)\b/iu.test(question))return false;
   return /[\u3400-\u9fff]/u.test(question);
 }
+export const supplementalAnswerLanguage=question=>language(question)?'zh-TW':'en';
 function sectionFor(parsed,question,zh){
   const {envelope,evidence,id,payload:p}=parsed,title=definitions[id].title[Number(zh)];
   const section={id,title,lead:[],items:[],shown:[],view:null,viewCandidates:[],complete:['ok','empty'].includes(envelope.readState),limited:false,usable:envelope.readState!=='unavailable',evidence,group:0,retainedGroups:new Set(),viewSelected:false};
@@ -472,6 +519,36 @@ function sectionFor(parsed,question,zh){
     if(!integer(total))invalid();
     section.view={id:id.slice(8),title,url:evidence.url,columns,rows:[],total,checkedAt:p.checkedAt,note};
   };
+  if(id==='account:counselingAppointments'){
+    section.usable=true;section.complete=p.complete&&!p.selection?.clinical&&!p.selection?.document&&!p.selection?.identity;
+    if(p.selection?.clinical)section.lead.push(t('Clinical notes are unavailable in this appointment lookup; no session contents, assessment results or diagnosis can be inferred.','此預約查詢不提供臨床紀錄，也不能推定會談內容、測驗結果或診斷。'));
+    if(p.selection?.document)section.lead.push(t('This lookup cannot download or open report files; no report was downloaded and no file access was authorized.','此查詢無法下載或開啟報告檔案；未下載報告，也未授權檔案存取。'));
+    if(p.selection?.identity)section.lead.push(t('Identity fields are not included; student identifiers, counselor identity and contact details are unavailable in this metadata lookup.','此資料不包含身分欄位；未提供學號、諮商人員身分或聯絡資訊。'));
+    if(envelope.readState==='unavailable'){
+      section.lead.push(p.reason==='foreign_request'?t('I cannot show another student’s account records. No other account was read.','無法顯示其他學生的帳戶紀錄；未讀取其他帳戶。')
+        :p.reason==='unauthorized'?t('Sign in to read your own saved counseling appointments. No account records were read.','請登入以讀取自己的諮商預約；尚未讀取帳戶紀錄。')
+        :p.reason==='restricted_view'?t('This lookup cannot access coordinator queues, access rosters or other students’ appointments. It only reads your own appointment metadata.','此查詢無法存取承辦佇列、權限名單或其他學生的預約；只能讀取您自己的預約資料。')
+        :p.reason==='unsupported_operation'?t('This lookup cannot change, book, cancel, reschedule or submit appointments. No action was performed.','此查詢無法變更、新增、取消、改期或提交預約；未執行任何操作。')
+        :p.reason==='invalid_route'?t('Open the local private appointments page to select your own records. This route did not establish any appointment details.','請開啟站內私人預約頁面以查看自己的紀錄；此路徑尚未確認任何預約內容。')
+        :t('The counseling appointment lookup failed or is unavailable. Saved history, record counts and scheduled times remain unknown; this is not a successful empty read.','諮商預約查詢失敗或暫時無法使用；歷史、筆數及安排時間仍未知，不能視為成功查得空白紀錄。'));
+      return section;
+    }
+    const c=p.counts;
+    if(c.truncationPossible)section.lead.push(t('Returned records: 50. The exact total is unknown; at least 50 saved records exist.','回傳紀錄：50。確切總數未知；至少有 50 筆已儲存紀錄。'));
+    else if(c.returned===0)section.lead.push(t('You have no saved appointments in your stu.best account. This check only covers stu.best.','您的 stu.best 帳戶目前沒有已儲存預約。本次查詢僅涵蓋 stu.best。'));
+    else section.lead.push(t(`You have ${c.total} saved appointment${c.total===1?'':'s'} in stu.best.`,`您的 stu.best 帳戶有 ${c.total} 筆已儲存預約。`));
+    if(c.omitted)section.lead.push(t('Whole appointment records were omitted by the evidence limit; their details are not included.','證據上限略去部分完整預約紀錄，未納入其內容。'));
+    if(p.records.length)section.lead.push(t('A preferred date is a request, not a confirmed scheduled time.','偏好日期只是申請意願，不是已確認的安排時間。'));
+    if(p.records.some(row=>row.status==='cancelled'||row.status==='closed'))section.lead.push(t('Cancelled and closed appointments are historical, not active or upcoming.','已取消和結案的預約屬於歷史紀錄，並非有效或即將進行的預約。'));
+    view([t('Preferred date','偏好日期'),t('Kind','類型'),t('Status','狀態'),t('Preferred period','偏好時段'),t('Scheduled time','已安排時間')],c.included,
+      t(`Own stu.best records. Returned: ${c.returned}. Included in evidence: ${c.included}. Omitted from the read: ${c.omitted}. Closed does not prove attendance or treatment.`,`僅限本人的 stu.best 紀錄。回傳 ${c.returned} 筆，證據納入 ${c.included} 筆，讀取略去 ${c.omitted} 筆。結案不證明出席或接受治療。`));
+    for(const record of p.records){
+      group(t('Preferred date','偏好日期'),record.preferredOn);item(t('Kind','類型'),record.kind);item(t('Status','狀態'),record.status);
+      item(t('Preferred period','偏好時段'),record.preferredPeriod);item(t('Scheduled time','已安排時間'),record.scheduledAt);
+      section.viewCandidates.push(row(record.preferredOn,record.kind,record.status,record.preferredPeriod,record.scheduledAt));
+    }
+    return section;
+  }
   if(id==='account:healthExaminations'){
     section.usable=true;section.complete=p.complete&&!p.selection?.clinical&&!p.selection?.document;
     section.lead.push(t('This is your saved local health-examination availability metadata, not a clinical report or proof of official university synchronization. Only examination codes and report-availability flags are included; identity, clinical content and examination dates are not included.',
@@ -972,7 +1049,7 @@ export function formatSupplementalAccountAnswers(results,{question='',language:r
     const groups=new Map();for(const item of section.items){if(!groups.has(item.group))groups.set(item.group,[]);groups.get(item.group).push(item);}
     section.items=[...groups.values()].flatMap(items=>items.sort((a,b)=>Number(b.header)-Number(a.header)||preferred(a.label)-preferred(b.label)));
   }
-  const topics={'account:healthExaminations':/health|medical|健檢|健康檢查/iu,'account:feeRemission':/fee.remission|tuition.reduction|減免|减免/iu,'account:dormitoryConduct':/dormitory|dorm|宿舍/iu,'account:elearningOutline':/outline|video|slides|activities|section|feedback|大綱|影片|簡報|活動|章節|回饋/iu,'account:facilityRepairs':/repair|maintenance|報修|报修|修繕/iu,'account:dtmGradeReport':/moodle|dtm|grade report|gradebook|成績報告|成绩报告/iu,'account:aidPayments':/student aid|financial aid|salary|payroll|助學|薪資|工讀/iu,'account:studentConduct':/conduct|disciplin|獎懲/iu,'account:studentLoan':/loan|貸款|學貸/iu,'account:courseCatalog':/catalog|syllabus|offering|課綱|大綱|開課/iu,'account:enrollmentCertificate':/certificate|enrolment|enrollment|在學|在籍|學籍證明/iu,'account:dtmSubmissions':/file|upload|submission|assignment|feedback|作業|檔案|評語|上傳/iu,'account:tuition':/tuition|settlement|statement|summer|evening|學費|結算|暑修|進修部|延修/iu};
+  const topics={'account:counselingAppointments':/counseling|counselling|psychological|諮商|心理測驗/iu,'account:healthExaminations':/health|medical|健檢|健康檢查/iu,'account:feeRemission':/fee.remission|tuition.reduction|減免|减免/iu,'account:dormitoryConduct':/dormitory|dorm|宿舍/iu,'account:elearningOutline':/outline|video|slides|activities|section|feedback|大綱|影片|簡報|活動|章節|回饋/iu,'account:facilityRepairs':/repair|maintenance|報修|报修|修繕/iu,'account:dtmGradeReport':/moodle|dtm|grade report|gradebook|成績報告|成绩报告/iu,'account:aidPayments':/student aid|financial aid|salary|payroll|助學|薪資|工讀/iu,'account:studentConduct':/conduct|disciplin|獎懲/iu,'account:studentLoan':/loan|貸款|學貸/iu,'account:courseCatalog':/catalog|syllabus|offering|課綱|大綱|開課/iu,'account:enrollmentCertificate':/certificate|enrolment|enrollment|在學|在籍|學籍證明/iu,'account:dtmSubmissions':/file|upload|submission|assignment|feedback|作業|檔案|評語|上傳/iu,'account:tuition':/tuition|settlement|statement|summer|evening|學費|結算|暑修|進修部|延修/iu};
   const rankedViews=sections.filter(section=>section.view).map((section,index)=>({section,index,match:question.search(topics[section.id])})).sort((a,b)=>Number(b.match>=0)-Number(a.match>=0)||Number(b.section.viewCandidates.length>0)-Number(a.section.viewCandidates.length>0)||(a.match>=0&&b.match>=0?a.match-b.match:0)||a.index-b.index);
   const selectedSet=new Set(rankedViews.slice(0,supplementalAnswerLimits.views).map(value=>value.section));
   const selectedViews=sections.filter(section=>selectedSet.has(section));
@@ -981,7 +1058,7 @@ export function formatSupplementalAccountAnswers(results,{question='',language:r
   let omittedItems=sections.reduce((total,section)=>total+section.items.length,0),omittedViewRows=sections.reduce((total,section)=>total+section.viewCandidates.length,0);
   const result=()=>({status:sections.some(section=>section.usable)?'answered':'abstained',answer:sections.map(section=>[
     section.title,...section.lead,...section.shown.map(item=>(section.id==='account:elearningOutline'&&item.group&&!item.header?'\n  - '
-      :['account:dtmGradeReport','account:elearningEnrollments','account:facilityRepairs','account:feeRemission','account:healthExaminations'].includes(section.id)&&item.group&&!item.header?'  - ':'- ')+item.text),
+      :['account:dtmGradeReport','account:elearningEnrollments','account:facilityRepairs','account:feeRemission','account:healthExaminations','account:counselingAppointments'].includes(section.id)&&item.group&&!item.header?'  - ':'- ')+item.text),
     (section.limited||section.shown.length<section.items.length||section.viewCandidates.length>(section.view?.rows.length??0))
       ?(zh?'顯示內容已節錄，省略部分不代表沒有紀錄。':'Display excerpt: omitted fields or rows do not establish absence.'):null,
     section.view&&!section.viewSelected?(zh?'此來源表格因三張表格的顯示上限省略，文字結果與來源連結仍保留。':'This source table is omitted by the three-table display limit; its text result and source link remain available.'):null,

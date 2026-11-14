@@ -13,6 +13,7 @@
 - Verify saved facility repair status and handling notes alongside the next class when both are requested. Preserve the report link and the limit on what a saved status can establish. [#100]
 - Read only the signed-in account’s fee records for straightforward balance questions, including when a second verification check is needed. [#100]
 - Verify saved tuition-remission history in chat and show it alongside the fee balance when requested. Preserve literal academic periods, blank amounts and zero. Give signed-out students a link to sign in. [#100]
+- Answer signed-in counseling appointment questions from saved School Affairs metadata. Distinguish preferred dates from scheduled times and check tuition through its separate records when asked. [#100]
 - Answer signed-in health examination questions with the saved examination codes and report availability from the selected page. Preserve tuition as a separate source in combined questions. [#100]
 - Verify saved dormitory notices and remote-learning activity links in signed-in chat. Preserve separate housing, tuition and enrollment answers when requested together. [#100]
 

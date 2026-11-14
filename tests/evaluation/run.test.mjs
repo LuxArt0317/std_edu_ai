@@ -98,6 +98,8 @@ test('review rejects wrong identities, changed suites and duplicate artifacts in
 });
 test('deliberately failed reader fixtures remain unexecuted live setup gaps',()=>{
   assert.throws(()=>assertCatalogCaseBound({fixtureRequirement:'offline_reader_failure'},{}),/no live failure-injection fixture/);
+  for(const fixtureRequirement of ['native_health_metadata_planned','native_counseling_appointments_planned'])
+    assert.throws(()=>assertCatalogCaseBound({fixtureRequirement},{}),/native fixture adapter is not mounted/);
 });
 test('live pacing is explicit,bounded and cannot be disabled through CLI',()=>{
   assert.equal(options([]).intervalMs,5500);assert.equal(options(['--interval-ms','9000']).intervalMs,9000);
@@ -361,7 +363,7 @@ test('full bank includes every source page and catalog entry without duplicate c
   const suite=await evaluationSuite('2026-11-13T02:00:00Z');
   assert.equal(new Set(suite.cases.map(row=>row.id)).size,suite.cases.length);
   assert.equal(suite.inventory.clientDispatch.questions.length,30);
-  assert.deepEqual(suite.inventory.clientDispatch.verifiedDispatch.map(({graphTool})=>graphTool),['aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','healthExaminations']);
+  assert.deepEqual(suite.inventory.clientDispatch.verifiedDispatch.map(({graphTool})=>graphTool),['aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments']);
   assert.ok(suite.inventory.clientDispatch.questions.every(row=>row.executed===false));
   assert.ok(suite.inventory.clientDispatch.questions.every(row=>!suite.cases.some(apiCase=>apiCase.id===row.id)));
   const assessment=assessRun({results:[],cleanup:{complete:true},sourceUnchanged:true,dirty:false},{...suite,requestedSuite:'full',sourceRevision:'offline'});

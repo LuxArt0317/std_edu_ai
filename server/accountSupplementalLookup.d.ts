@@ -1,12 +1,13 @@
 import type {VerificationProgress} from './answerVerification.js';
 import type {CatalogEvidenceQuery} from './accountCatalogEvidence.js';
 import type {SupplementalEvidenceResult} from './supplementalAccountAnswers.js';
-type NativePageTool='dormitoryConduct'|'elearningOutline'|'feeRemission'|'healthExaminations';
+type NativePageTool='dormitoryConduct'|'elearningOutline'|'feeRemission'|'healthExaminations'|'counselingAppointments';
 export type SupplementalAccountTool='courseCatalog'|'enrollmentCertificate'|'dtmSubmissions'|'tuition'|'studentConduct'|'studentLoan'|'aidPayments'|'dtmGradeReport'|'elearningEnrollments'|'facilityRepairs'|NativePageTool;
 export type SupplementalAccountReadContext={question:string;route:string;history:Array<{role:string;content:string}>;snapshot:Record<string,any>;deadline:number;catalogQuery?:CatalogEvidenceQuery};
 export type SupplementalAccountReaders=Partial<Record<SupplementalAccountTool,(context:SupplementalAccountReadContext)=>Promise<SupplementalEvidenceResult>>>;
 export const supplementalAccountTools:Readonly<Record<SupplementalAccountTool,string>>;
 export const supplementalEvidenceBudget:54000;
+export function withoutExcludedNativePageClause(question:string):string;
 export function facilityRepairLookupContext(question:string,route?:string,history?:Array<{role:string;content:string}>):{selected:boolean;repairOnly:boolean;scheduleOnly:boolean;otherQuestion:string;repairQuestion:string};
 export function nativePageLookupContext(question:string,route?:string,history?:Array<{role:string;content:string}>):{tools:NativePageTool[];selected:boolean;readerOnly:boolean;otherQuestion:string;questions:Partial<Record<NativePageTool,string>>;foreign:boolean;feeAndBalance:boolean;feeChargeLabel:string|null};
 export const catalogReadPlanSchema:Record<string,unknown>;
