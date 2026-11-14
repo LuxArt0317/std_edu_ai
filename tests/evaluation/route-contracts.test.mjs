@@ -176,11 +176,10 @@ test('route coverage retains only unresolved semantic cases after adding public 
   const report=assessCoverage({cases,results:[],inventory,sourceRevision:revision,requireLive:false});
   const join=(prefix,suffixes)=>suffixes.map(suffix=>prefix+suffix);
   const expected=[
-    '/school-affairs/search',
     ...join('/school-affairs/menu/menu/',['custom','common','external','help','course','graduation']),
     ...join('/school-affairs/menu/aca/',['all','input','query','portal']),
     ...join('/school-affairs/menu/sao/',['all','input','query','portal']),
-    ...join('/school-affairs/menu/swd/',['all','input','query']),
+    '/school-affairs/menu/swd/all',
     ...join('/school-affairs/menu/rdd/',['all','input','query','portal']),
     ...join('/school-affairs/menu/personal/',['all','input']),
     ...join('/school-affairs/menu/infoSystem/',['all','library']),
@@ -215,18 +214,19 @@ test('route coverage retains only unresolved semantic cases after adding public 
     'follow-up','chinese-empty','mixed-housing','mixed-tuition'].map(id=>'account:dormitory-conduct-'+id);
   const addedPrivacyIds=['anonymous-records-studentConduct','anonymous-records-studentLoan','anonymous-records-aidPayments','anonymous-records-dtmGradeReport',
     'anonymous-records-elearningEnrollments','anonymous-records-facilityRepairs','anonymous-records-elearningOutline','anonymous-records-dormitoryConduct','anonymous-records-feeRemission','anonymous-records-healthExaminations','anonymous-records-counselingAppointments','anonymous-records-graduationClearance','anonymous-records-tutorEvaluation','anonymous-records-teachingFeedback'];
-  const newIds=[...reproductionIds,...nativeIds,...aidIds,...dtmIds,...elearningIds,...facilityIds,...outlineIds,...dormitoryIds,...addedPrivacyIds,'public-study-first-week'];
+  const menuIds=['public-affairs-system-search','public-affairs-facilities-input','public-affairs-facilities-query'];
+  const newIds=[...reproductionIds,...nativeIds,...aidIds,...dtmIds,...elearningIds,...facilityIds,...outlineIds,...dormitoryIds,...addedPrivacyIds,...menuIds,'public-study-first-week'];
   assert.equal(cases.filter(row=>!newIds.includes(row.id)).length,945);
-  for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,outlineIds,dormitoryIds,addedPrivacyIds])
+  for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,outlineIds,dormitoryIds,addedPrivacyIds,menuIds])
     assert.deepEqual(cases.filter(row=>ids.includes(row.id)).map(row=>row.id).sort(),[...ids].sort());
   assert.equal(report.coverage.routes.total,576);
-  assert.equal(expected.length,58);assert.equal(added.length,12);
+  assert.equal(expected.length,55);assert.equal(added.length,12);
   assert.deepEqual(report.coverage.routes.missing.filter(route=>!added.includes(route)),expected);
   assert.deepEqual(report.coverage.routes.missing.filter(route=>added.includes(route)),added);
-  assert.equal(report.coverage.routes.missing.length,70);
+  assert.equal(report.coverage.routes.missing.length,67);
   assert.equal(report.browserAcceptance.total,576);assert.equal(report.browserAcceptance.requiredScenarios,586);
   assert.equal(report.coverage.routeFamilies.total,53);
-  assert.deepEqual(report.coverage.routeFamilies.missing,['school-menus','dtm-submissions','elearning-authentication','elearning-entry-transitions','legacy-route-aliases','authentication-transitions','account-information','assistant-sessions','campus-navigation']);
+  assert.deepEqual(report.coverage.routeFamilies.missing,['dtm-submissions','elearning-authentication','elearning-entry-transitions','legacy-route-aliases','authentication-transitions','account-information','assistant-sessions','campus-navigation']);
   assert.equal(report.releaseReady,false);assert.equal(report.totals.executed,0);
-  assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,70);
+  assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,67);
 });

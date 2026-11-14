@@ -3,9 +3,21 @@ import {test} from 'node:test';
 import captures from '../../src/features/public/mirror/pages.json' with {type:'json'};
 import {buildPublicCases} from './public-cases.mjs';
 import {gradeCase} from './grading.mjs';
+import {answerDirectoryQuestion} from '../../server/schoolAffairsDirectory.js';
 
 const cases=buildPublicCases({publicPages:captures,tools:[]}).filter(row=>row.domain==='public-page-context');
 const envelope=(testCase,answer)=>({statusCode:200,execution:'deterministic',fixtureKey:testCase.fixtureKey,sourceRevision:'synthetic-public-bank-review',body:{status:'answered',answer,citations:[],activity:[],verification:{status:'verified',attempts:1}}});
+
+test('School Affairs directory case grading checks the actual controls, facilities and destinations',()=>{
+  const menuCases=buildPublicCases({publicPages:[],tools:[]}).filter(row=>row.domain==='school-menu-context');
+  assert.equal(menuCases.length,3);
+  for(const row of menuCases){
+    const body=answerDirectoryQuestion(row.question,row.route);
+    assert.ok(body);
+    assert.equal(gradeCase(row,{...envelope(row,body.answer),body}).passed,true,row.route);
+    assert.equal(gradeCase(row,envelope(row,'[Open this page]('+row.route+')')).passed,false);
+  }
+});
 
 test('all public pages have a concrete nonempty title oracle or a specific missing-title oracle',()=>{
   assert.equal(cases.length,395);

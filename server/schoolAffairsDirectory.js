@@ -258,17 +258,33 @@ function markdownLink(title, url) { return '[' + title + '](' + url + ')'; }
 
 function normalized(value) { return String(value).normalize('NFKC').toLocaleLowerCase(); }
 function routeGroup(route) {
-  const match = /^\/school-affairs\/menu\/([a-zA-Z]+)\/(all|input|query|portal|external|help|library)$/.exec(route || '');
+  const match = /^\/school-affairs\/menu\/([a-zA-Z]+)\/(all|input|query|portal|external|help|library)\/?$/.exec(route || '');
   return match ? {group:match[1],view:match[2]} : null;
 }
 function citation(entry) {
   return {chunkId:`directory:${entry.group}:${entry.title}`,claim:'Captured School Affairs service directory entry; the official service may require separate sign-in.',title:entry.title,sourceName:'School Affairs service directory · captured snapshot',url:entry.officialUrl,locator:entry.localUrl,effectiveAt:null,reviewedAt:null};
 }
+export function answerSchoolSystemSearch(question,route) {
+  if (!/^\/school-affairs\/search\/?$/u.test(route)
+    || !/^(?:what does (?:the )?keyword field(?: on this page)? search|how (?:can|do) i (?:use (?:the )?keyword field(?: on this page)?(?: to find (?:a )?service)?|search(?: on)? this page)|(?:這個頁面|這頁|此頁)的?關鍵字(?:欄位)?(?:可以)?搜尋什麼|(?:如何|怎麼)(?:使用關鍵字|在這個頁面搜尋|在此頁搜尋))[?？。]?$/iu.test(question.trim())) return null;
+  const chinese = /[\u3400-\u9fff]/u.test(question);
+  const url='/school-affairs/search';
+  const title=chinese?'校務系統搜尋':'School Affairs system search';
+  const claim=chinese
+    ? '在「系統名稱關鍵字」輸入程式名稱或分類，例如「線上報修」。結果會列出符合的服務連結，可直接開啟。'
+    : 'Enter a service name or category in the keyword field. For example, search 線上報修 for online repairs, then open the matching service link.';
+  return {status:'answered',answer:claim+'\n\n'+markdownLink(title,url),
+    citations:[{chunkId:'directory:system-search',claim,title,sourceName:'stu.best School Affairs',url,locator:null,effectiveAt:null,reviewedAt:null}],
+    suggestedQuestions:[],grounding:{source:'directory',webSearched:false,checkedAt:new Date().toISOString()},
+    activity:[{kind:'directory',label:'Checked School Affairs system search',detail:title,status:'complete'}]};
+}
 export function answerDirectoryQuestion(question, route='') {
+  const searchAnswer=answerSchoolSystemSearch(question,route);
+  if (searchAnswer) return searchAnswer;
+  const here = /\b(?:here|this page|this section|on this screen|services here|what can i do)\b|這(?:裡|裏|頁|個頁面)|此頁|這些(?:服務|資訊)/i.test(question);
   const navigationAnswer = answerCampusNavigation(question);
   if (navigationAnswer) return navigationAnswer;
   const section = routeGroup(route);
-  const here = /\b(?:here|this page|this section|on this screen|services here|what can i do)\b|這(?:裡|頁|個頁面)|此頁|這些(?:服務|資訊)/i.test(question);
   const all = /\b(?:all|every|full|entire)\b.{0,35}\b(?:services?|systems?|menu|directory)\b|所有.{0,12}(?:服務|系統|選單)|全部.{0,12}(?:服務|系統|選單)/i.test(question);
   const requestedGroup = groupAliases.find(([pattern])=>pattern.test(question))?.[1];
   const query = aliases.find(([pattern]) => pattern.test(question))?.[1] || question;

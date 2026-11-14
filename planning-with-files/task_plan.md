@@ -776,3 +776,6 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Prevent unrelated companion reads on the reproduced housing scope failures and preserve Unicode follow-up history.
 - [ ] Execute the exact protected Preview with real model responses and verify cleanup.
 - [ ] Record independent helpfulness decisions and resolve failures before progressing to full-suite acceptance.
+
+- [x] Add semantic coverage for School Affairs keyword search and General Affairs input and query menu context.
+- [ ] Validate the remaining menu detail and authorized record routes.

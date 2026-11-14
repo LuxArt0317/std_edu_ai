@@ -1,5 +1,7 @@
 ## Assistant evaluation resumed [Issue #100]
 
+The local menu context follow-up adds coverage for the School Affairs search and General Affairs input/query routes. Both authenticated and public handler tests answer from the local catalog while excluding the other menu's entries. The full route and live-model gates remain pending.
+
 The ordered transcript Preview runner, saved-record view fixes and bounded housing companion selection are under local verification. The offline run writes each answer to the conversation API, checks its owner and digest, then uses saved history for the next turn. The prior protected accommodation revision is `eb801ef`. Production is still `076c79a`. The existing browser can open the protected Preview. The evaluator still lacks authorized HTTP access to it. Real conversation, model and fixture cleanup acceptance remain pending.
 
 Production is still 076c79a. Issue #100 offline corrections resumed on the client checkout. The current evaluation contracts passed 454 checks and yielded 74 unresolved route omissions, including newly inventoried remote-learning routes. Signed-out browser checks on production confirmed the 4-2 and three legacy remote-learning entry paths lead to the expected local login. Root owns the live fixture and release window. The next gate is immutable candidate review, then the reported real-model reproduction with exact cleanup. No new assistant runtime has been deployed.

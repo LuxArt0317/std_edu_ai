@@ -1,6 +1,9 @@
 # Changelog
 ## Unreleased
 
+- Explain School Affairs keyword search and the General Affairs application and lookup menus from the local catalog. Keep account and public follow-up history within valid Unicode boundaries. [#100]
+- Show all requested sign-in destinations when guests ask about a dormitory bed, tuition and the next class. Recognize common first-person Chinese requests for a bed number. [#100]
+
 - Respect explicit exclusions and account boundaries in combined dormitory, timetable and tuition questions. Keep all eight record card columns after reopening saved chats and preserve complete Unicode characters in follow-up history. [#100]
 - Add the reported four-turn conversation to offline CI checks and prepare a protected Preview runner that verifies saved turns, fixture cleanup and independent review evidence. [#100]
 

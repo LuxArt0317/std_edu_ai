@@ -2,7 +2,7 @@ import {test,after} from 'node:test';
 import assert from 'node:assert/strict';
 import affairsHandler from '../../api/affairs-assistant.ts';
 import publicHandler from '../../api/research-assistant.ts';
-import {answerDirectoryQuestion,directoryEntries} from '../../server/schoolAffairsDirectory.js';
+import {answerDirectoryQuestion,answerSchoolSystemSearch,directoryEntries} from '../../server/schoolAffairsDirectory.js';
 import {questionKind} from '../../server/schoolWebSearch.js';
 import {accountTools,requiredNativeTools} from '../../server/answerVerificationAccount.js';
 
@@ -101,6 +101,40 @@ test('signed School Affairs directory question never loads Nexus context or tran
  const streamed=await invokeStream({question:'What is on this page?',route:'/school-affairs/menu/swd/input'},token);
  assert.deepEqual(streamed.map(event=>event.type),['progress','progress','progress','progress','result']);
  assert.deepEqual(streamed.filter(event=>event.type==='progress').map(event=>event.data.kind),['public','directory','directory','public']);
+});
+
+test('School Affairs search and General Affairs menu cases answer from their route when the model is unavailable',async()=>{
+ configured();
+ delete process.env.OPENAI_API_KEY;
+ const authCalls:string[]=[];
+ globalThis.fetch=async(input)=>{
+  const url=String(input);authCalls.push(url);
+  assert.equal(url,'https://xiftudmvxphxcjtmfmib.supabase.co/auth/v1/user');
+  return Response.json({id:'00000000-0000-4000-8000-000000000001',identities:[{provider:'google'}]});
+ };
+ const cases=[
+  {route:'/school-affairs/search', question:'How do I use the keyword field on this page to find a service?',
+    required:['keyword','線上報修','matching service link','/school-affairs/search'],excluded:[]},
+  {route:'/school-affairs/menu/swd/input',question:'這個頁面有哪些申請或輸入服務？',
+    required:['場地借用','線上報修','汽機車證'],excluded:['場地使用狀況查詢']},
+  {route:'/school-affairs/menu/swd/query/',question:'Which service lookups are shown on this page?',
+    required:['場地使用狀況查詢','使用者電匯付款查詢','學生帳戶繳交狀態查詢'],excluded:['線上報修','汽機車證申請']},
+ ];
+ for(const {route,question,required,excluded} of cases){
+  const body={route,question};
+  for(const [handler,authorization] of [[publicHandler,undefined],[affairsHandler,token]] as const){
+   const result=await invoke(handler,body,authorization);
+   assert.equal(result.status,200,route+' '+handler.name+' '+JSON.stringify(result.body)+' '+JSON.stringify(authCalls));
+   assert.equal(result.body.grounding?.source,'directory');
+   for(const value of required)assert.ok(result.body.answer.includes(value),value+' missing from '+result.body.answer);
+   for(const value of excluded)assert.ok(!result.body.answer.includes(value),value);
+   assert.equal(result.body.proposedAction,undefined);
+  }
+ }
+ assert.equal(authCalls.length,3);
+ assert.equal(answerSchoolSystemSearch('What does the keyword field search and what are my grades?','/school-affairs/search'),null);
+ assert.equal(answerSchoolSystemSearch('What does the keyword field on this page search?','/school-affairs/menu/swd/input'),null);
+ configured();
 });
 
 test('personal School Affairs question reads only the caller site records, never Nexus',async()=>{

@@ -1,4 +1,5 @@
 import Markdown from 'react-markdown';
+import {boundedAssistantText} from '../src/services/assistantActivityBudget.js';
 
 const readText = payload => (payload?.output || []).flatMap(item => item.content || [])
   .filter(item => item.type === 'output_text').map(item => item.text || '').join('').trim();
@@ -663,7 +664,7 @@ async function generateEvidenceAnswer({ question, candidate = {citations:[]}, ev
     ].join(' '),
     { question,...(!initial?{previousAnswer:candidate?.answer,unsupportedClaims:feedback}:{}),proposedAction:candidate?.proposedAction||null,evidence,
       ...(userReferentContext(resolvedUserQuestion,question)?{untrustedUserContext:userReferentContext(resolvedUserQuestion,question)}:{}),
-      ...(guidance?{responseIntent}:{}),...(initial||guidance?{history:Array.isArray(history)?history.slice(-6).flatMap(item=>item&&['user','assistant'].includes(item.role)&&typeof item.content==='string'?[{role:item.role,content:item.content.slice(0,1000)}]:[]):[]}:{}) }, deadline, images);
+      ...(guidance?{responseIntent}:{}),...(initial||guidance?{history:Array.isArray(history)?history.slice(-6).flatMap(item=>item&&['user','assistant'].includes(item.role)&&typeof item.content==='string'?[{role:item.role,content:boundedAssistantText(item.content,1000)}]:[]):[]}:{}) }, deadline, images);
   const ids = new Set(evidence.map(item => item.id));
   if (images.length) ids.add('attached-image');
   if (typeof result.answer !== 'string' || !result.answer.trim() || result.answer.length > 8000

@@ -169,3 +169,5 @@ The account graph reads only the selected student teaching feedback views for fo
 The 34-1 reader projects caller-owned bed assignments and their referenced period metadata. It returns distinct complete, partial and unavailable outcomes. The LangGraph verification retry rereads the selected scope. An unverified draft withholds its accommodation table. Saved amount cells and period records establish neither payment nor current occupancy.
 
 Housing companion intent keeps positive, excluded and foreign requests separate. Each selected caller-owned lookup retains its own availability and evidence.
+
+School Affairs search and menu context use the captured service catalog. Public menu answers can be returned before opening the model or research corpus.

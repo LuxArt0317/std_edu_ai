@@ -8,6 +8,7 @@ const origin='https://xiftudmvxphxcjtmfmib.supabase.co';
 const id=(n:number)=>'74010000-0000-4000-8000-'+String(n).padStart(12,'0');
 const account={url:origin,key:'HOUSING_TEST_KEY',token:'HOUSING_TEST_TOKEN',user:{id:id(1)}};
 let ownerSequence=100;
+let guestSequence=78;
 const housingPath='/school-affairs/services/34-1';
 const bedQuestion='Which dormitory bed was assigned to me?';
 const feeQuestion='How much is my remaining balance in school?';
@@ -20,7 +21,7 @@ async function ask(question:string,route=housingPath,signedIn=true,history:Array
   const output:{status:number;body:any}={status:200,body:null};
   const reply={setHeader(){},status(code:number){output.status=code;return reply;},json(body:unknown){output.body=body;}};
   await (signedIn?handler:guest)({method:'POST',headers:{
-    authorization:'Bearer '+account.token,'x-forwarded-for':'192.0.2.78',
+    ...(signedIn?{authorization:'Bearer '+account.token}:{}),'x-forwarded-for':'192.0.2.'+guestSequence++,
   },body:{question,route,history}},reply);
   assert.equal(output.status,200,JSON.stringify(output.body));
   return output.body;
@@ -321,5 +322,27 @@ test('navigation, access and unsupported changes never query private sources',as
       '/school-affairs/login?next='+encodeURIComponent(housingPath),
       '/school-affairs/login?next='+encodeURIComponent('/school-affairs/records/subjects'),
     ]);
+  }finally{globalThis.fetch=original;}
+});
+
+test('reported guest prompts link each authorized sign-in destination and preserve Chinese first-person intent',async()=>{
+  const original=globalThis.fetch;
+  globalThis.fetch=never;
+  const signIn=(target:string)=>'/school-affairs/login?next='+encodeURIComponent(target);
+  const links=(body:any)=>body.citations.map((item:{url:string})=>item.url);
+  try{
+    const mixed=await ask('Which dormitory bed was assigned to me? How much is my remaining balance in school? When is my next class?','/',false);
+    assert.equal(mixed.status,'handoff');
+    assert.deepEqual(links(mixed),[signIn(housingPath),signIn('/school-affairs/records/subjects'),signIn('/school-affairs/services/39-1')]);
+    for(const url of links(mixed))assert.ok(mixed.answer.includes(url));
+    const chinese=await ask('請幫我查宿舍床號','/',false);
+    assert.equal(chinese.status,'handoff');
+    assert.deepEqual(links(chinese),[signIn(housingPath)]);
+    assert.doesNotMatch(chinese.answer,/其他學生/u);
+    const foreign=await ask('請幫我查王小明的宿舍床號','/',false);
+    assert.deepEqual(links(foreign),[]);
+    assert.match(foreign.answer,/其他學生/u);
+    const excluded=await ask('Show my dormitory bed. Do not show my tuition balance. When is my next class?','/',false);
+    assert.deepEqual(links(excluded),[signIn(housingPath),signIn('/school-affairs/records/subjects')]);
   }finally{globalThis.fetch=original;}
 });

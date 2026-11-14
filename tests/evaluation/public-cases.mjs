@@ -27,6 +27,20 @@ export function buildPublicCases(inventory) {
   const privacy=inventory.tools.map(tool=>({...caseBase,id:'anonymous-records-'+tool.id,domain:'authentication',routeFamily:'authentication',route:'/school-affairs',mode:'record',
     endpoint:'/api/affairs-assistant',question:`Show my ${tool.id} records.`,
     expected:{behavior:'denial',expectedStatusCode:401,requiredText:[],forbiddenText:['QA-PRIVATE','Other Student Secret'],requiredLinks:[],requiredTools:[],noAction:true}}));
+  const menuPages=[
+    {id:'public-affairs-system-search',route:'/school-affairs/search',routeFamily:'school-affairs',
+      question:'How do I use the keyword field on this page to find a service?',
+      requiredText:['keyword','線上報修','matching service link'],requiredLinks:['/school-affairs/search'],forbiddenText:[]},
+    {id:'public-affairs-facilities-input',route:'/school-affairs/menu/swd/input',routeFamily:'school-menus',
+      question:'這個頁面有哪些申請或輸入服務？',
+      requiredText:['場地借用','線上報修','汽機車證'],requiredLinks:['/school-affairs/services/44-1','/school-affairs/services/45-1','/school-affairs/services/46-1'],
+      forbiddenText:['場地使用狀況查詢'],language:'zh-TW'},
+    {id:'public-affairs-facilities-query',route:'/school-affairs/menu/swd/query',routeFamily:'school-menus',
+      question:'Which service lookups are shown on this page?',
+      requiredText:['場地使用狀況查詢','使用者電匯付款查詢','學生帳戶繳交狀態查詢'],
+      requiredLinks:['/school-affairs/services/47-1','/school-affairs/services/50-1','/school-affairs/services/50-2'],forbiddenText:['線上報修','汽機車證申請']},
+  ].map(({requiredText,requiredLinks,forbiddenText,...definition})=>({...caseBase,...definition,domain:'school-menu-context',
+    expected:{behavior:'navigation',requiredText,requiredLinks,forbiddenText,requiredTools:[],noAction:true}}));
   const studyPlanning={
     ...caseBase,id:'public-study-first-week',domain:'public-guidance',routeFamily:'school-services',route:'/campus-assistant',mode:'coaching',
     question:'How should I plan a first week of study at Shu-Te University? Give me three practical steps using public school resources and cite the sources.',
@@ -42,5 +56,5 @@ export function buildPublicCases(inventory) {
         {id:'honest_separation',proof:'whole_answer'},{id:'language_relevance',proof:'whole_answer'},
       ]}},
   };
-  return [...pages,...questions,...privacy,studyPlanning];
+  return [...pages,...questions,...menuPages,...privacy,studyPlanning];
 }

@@ -1,4 +1,5 @@
 import {readAssistantReply} from './assistantStreamReader.js';
+import {boundedAssistantText} from './assistantActivityBudget.js';
 
 export type AssistantFeedbackCapability = { token: string; expiresAt: string };
 export type AssistantResponse = {
@@ -52,7 +53,7 @@ export async function askCampusAssistant(
       "Please enter a question before sending it to the assistant.",
     );
   }
-  const conversation = history.filter(item=>['user','assistant'].includes(item.role)).slice(-6).map(item=>({role:item.role,content:item.content.slice(0,2000)}));
+  const conversation = history.filter(item=>['user','assistant'].includes(item.role)).slice(-6).map(item=>({role:item.role,content:boundedAssistantText(item.content,2000)}));
   const response = await fetch("/api/research-assistant", {
     method: "POST",
     signal,

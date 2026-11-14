@@ -47,7 +47,7 @@ function routeContext(route){
 const hanTerm=/(?:\d+\s*(?:學年|学年)(?:度)?\s*)?(?:第\s*[12]\s*(?:學期|学期))|\d+\s*(?:學年度|学年度|學年|学年)/gu;
 const relativeTerm=/\b(?:this|current|last|previous|next) (?:academic )?(?:semester|term|academic year)\b|\b(?:semester|term) (?:this|last|next) year\b|(?:本|這|这|上|下|當前|当前|目前)(?:個|个)?(?:學期|学期|學年|学年)/iu;
 function ownHan(value){
-  const remaining=value.replace(/^(?:請問|请问|請|请|幫我|帮我|替我|麻煩|麻烦|顯示|显示|查看|查詢|查询|列出|提供|看看|哪裡|哪里|可以|看)+/u,'')
+  const remaining=value.replace(/^(?:請問|请问|請|请|幫我|帮我|替我|麻煩|麻烦|顯示|显示|查看|查詢|查询|查|列出|提供|看看|哪裡|哪里|可以|看)+/u,'')
     .replace(/的$/u,'');
   return !remaining||/^(?:我(?:自己|本人)?|本人|自己|我的|我(?:目前|現在|现在)|我在校方確認|我在校方确认)$/u.test(remaining);
 }

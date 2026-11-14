@@ -5,6 +5,7 @@
 `assistantSessions.ts` handles account-bound conversation API calls and a bounded tab cache. `assistantConversation.ts` preserves observed activity, verification results and record views while dropping executable proposals and raw images on restore. Guest chats stay in the tab; signed-in chats sync to owner-only database rows. Account/scope changes discard the prior account's local view. The UI exposes save/conflict failures rather than pretending a chat was synced.
 
 Account follow-ups preserve complete Unicode characters within the existing history limit. The browser and server share the eight-column persistence limit for assistant record cards.
+Public campus follow-ups use the same Unicode-safe truncation.
 
 Browser clients call the public, School Affairs and protected Nexus endpoints. `schoolAffairsAssistant.ts` uses only the isolated School Affairs session. Provider secrets stay on the server.
 

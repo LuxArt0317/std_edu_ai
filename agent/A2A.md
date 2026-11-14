@@ -779,3 +779,7 @@ The isolated housing candidate extends protected overview `bb81449`. The caller-
 ### Issue #100 transcript run and accommodation scope
 
 The isolated combined candidate uses the accepted transcript cleanup and journal helpers, verifies each saved turn's digest, and runs the evaluation contracts in CI. Accommodation preserves an explicitly requested own balance when a foreign balance is excluded. The Unicode history fix applies to the real browser dispatcher. The housing application receipt reader remains in separate development. The release operator owns protected publication and any exact-origin fixture run.
+
+The menu context follow-up is a separate local candidate. It covers three missing route questions without changing the rendered menus. Its API changes touch routing and history only. Keep the DTM reader and housing application reviews separate until their scope and tests are ready.
+
+The follow-up also exercises both hosted guest reproductions. The three-part housing question restores all three sign-in links, and `請幫我查宿舍床號` restores the accommodation link. A named foreign bed request still receives an access boundary answer.

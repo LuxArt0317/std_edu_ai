@@ -1,4 +1,5 @@
 import {studentConductScope} from './studentConductEvidenceScope.js';
+import {boundedAssistantText} from '../src/services/assistantActivityBudget.js';
 import {currentStudyForeignYearQuestion} from './currentStudyOwnerScope.js';
 import {accountQuestionIntent,isAccountOverviewQuestion,isCurrentStudyRecordQuestion} from './affairsAnswer.js';
 import {studentConductGuide} from './studentConductGuide.js';
@@ -124,9 +125,9 @@ function parse(body) {
         if (!entry || typeof entry !== 'object')
             return [];
         const item = entry;
-        return ['user', 'assistant'].includes(String(item.role)) && typeof item.content === 'string' ? [{ role: String(item.role), content: item.content.slice(0, 2000) }] : [];
+        return ['user', 'assistant'].includes(String(item.role)) && typeof item.content === 'string' ? [{ role: String(item.role), content: boundedAssistantText(item.content, 2000) }] : [];
     }) : [];
-    const route = typeof source.route === 'string' && (/^\/school-affairs(?:\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?$/.test(source.route)||
+    const route = typeof source.route === 'string' && (/^\/school-affairs(?:\/search|\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/21-3\/?$/.test(source.route)||
         /^\/school-affairs\/services\/37-1(?:\/salary)?\/?(?:\?page=[0-9]{1,4}(?:&page=[0-9]{1,4})?)?$/.test(source.route)||
         (source.route.startsWith(healthExaminationPath)&&selectHealthExaminationEvidence('Show my health records.',source.route)?.reason===null&&
@@ -348,15 +349,17 @@ export function createResearchAssistantHandler(dependencies = {}) {
         if(housing&&(housing.selection||housing.excluded||housing.navigation||housing.foreign)){
             const guide=housingBedGuide(input.question,housing);
             const publicNavigation=housing.otherQuestion?answerCampusNavigation(housing.otherQuestion):null;
-            const companionPath=housing.companion==='next_class'?schoolSubjectRecordsPath
-                :housing.companion==='fee_balance'?'/school-affairs/services/39-1':null;
-            const companionLink=companionPath?'/school-affairs/login?next='+encodeURIComponent(companionPath):null;
-            const companionTitle=housing.companion==='next_class'?(/\p{Script=Han}/u.test(input.question)?'登入後查看課表':'Sign in to check your timetable')
-                :(/\p{Script=Han}/u.test(input.question)?'登入後查看學雜費':'Sign in to check your fee balance');
+            const zh=/\p{Script=Han}/u.test(input.question);
+            const companions=housing.companions.map(kind=>{
+                const path=kind==='next_class'?schoolSubjectRecordsPath:'/school-affairs/services/39-1';
+                const title=kind==='next_class'?(zh?'登入後查看課表':'Sign in to check your timetable')
+                    :(zh?'登入後查看學雜費':'Sign in to check your fee balance');
+                return {chunkId:'directory:accommodation-companion:'+kind,title,url:'/school-affairs/login?next='+encodeURIComponent(path),claim:title,sourceName:'School Affairs'};
+            });
             stream.send(200,{
                 ...guide,
-                answer:[guide.answer,companionLink?'['+companionTitle+']('+companionLink+')':publicNavigation?.answer].filter(Boolean).join('\n\n'),
-                citations:[...guide.citations,...(companionLink?[{chunkId:'directory:accommodation-companion',title:companionTitle,url:companionLink,claim:companionTitle,sourceName:'School Affairs'}]:publicNavigation?.citations??[])],
+                answer:[guide.answer,...companions.map(item=>'['+item.title+']('+item.url+')'),...(!companions.length&&publicNavigation?[publicNavigation.answer]:[])].join('\n\n'),
+                citations:[...guide.citations,...(companions.length?companions:publicNavigation?.citations??[])],
             });return;
         }
         const teaching = !input.images.length && teachingFeedbackLookupContext(input.question,input.route,input.history);
@@ -719,6 +722,19 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     : (chinese ? "您好！我可以幫您查詢樹德科技大學的聯絡方式、招生、課程、住宿、交通與公告。我會先查知識庫，資料不足時再查官方網站與相關網路來源。您想了解什麼？" : "Hello! I can help with Shu-Te University contacts, admissions, courses, accommodation, transport and announcements. I check managed knowledge first, then official school pages and related web sources when needed. What would you like to know?"), citations: [], suggestedQuestions: [], grounding: { source: "assistant-help", webSearched: false } });
             return;
         }
+        const directoryEligible = !input.images.length && !kind.personal && !personalQuestion && !kind.irrelevant;
+        const isSchoolMenu = /^\/school-affairs\/(?:search|menu\/[a-zA-Z]+\/[a-z]+)\/?$/u.test(input.route);
+        const checkDirectory = () => {
+            stream.progress('directory', 'Checking school services', 'Looking for a matching service in the captured directory.');
+            const directory = answerDirectoryQuestion(input.question, input.route);
+            stream.progress('directory', 'Checked school services', directory
+                ? 'Found a matching directory entry.' : 'No direct directory answer matched.', 'complete');
+            if (directory) stream.send(200, directory);
+            return Boolean(directory);
+        };
+        // Menu facts are derived from the service catalog used by the portal.
+        // They remain available when the model or research corpus is unavailable.
+        if (directoryEligible && isSchoolMenu && checkDirectory()) return;
         const openAiKey = process.env.OPENAI_API_KEY;
         const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
         const publishableKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
@@ -760,16 +776,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
         }
         // The captured School Affairs catalog is a separate public source. It has no
         // Nexus classes, terms or users, and its official links still require school sign-in.
-        if (!input.images.length && !kind.personal && !kind.irrelevant) {
-            stream.progress('directory', 'Checking school services', 'Looking for a matching service in the captured directory.');
-            const directory = answerDirectoryQuestion(input.question, input.route);
-            if (directory) {
-                stream.progress('directory', 'Checked school services', 'Found a matching directory entry.', 'complete');
-                stream.send(200, directory);
-                return;
-            }
-            stream.progress('directory', 'Checked school services', 'No direct directory answer matched.', 'complete');
-        }
+        if (directoryEligible && !isSchoolMenu && checkDirectory()) return;
         if (input.images.length) {
             stream.progress('image', 'Reading your image', `Analyzing ${input.images.length} attached image${input.images.length === 1 ? '' : 's'}.`);
             try {

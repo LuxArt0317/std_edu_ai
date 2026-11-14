@@ -55,3 +55,7 @@
 - Verified service 34-1 and its companion fee, timetable and conduct paths offline. Corrected a governing-negation regression that could query a fee balance the user excluded. Captured auth and model transports exercised a fresh retry and blocked an unverified housing view.
 
 - 2026-11-15 [#100] Mounted the exact transcript runner and its durable save/readback checks. Independent review reproduced forged digests and a split Unicode character at the history boundary. Added digest reconstruction and reused the Unicode-safe limit for the browser and evaluator. Chinese and compound exclusions and foreign-account companions now have actual-handler coverage. The model and deployed conversation replay remain pending Preview HTTP access.
+
+- 2026-11-15 [#100] Reproduced a School Affairs search interpretation failure that entered the signed-in snapshot path. Added exact local keyword help and model-independent menu context, plus three independently graded questions, both handler paths, and Unicode-safe history on server composition and campus follow-ups.
+
+- 2026-11-15 [#100] Replayed two hosted guest housing failures through the public handler. The corrected compound answer links bed, timetable and tuition separately. The Chinese first-person prompt receives the bed lookup link, with an explicit foreign-owner denial exercised in the same test.

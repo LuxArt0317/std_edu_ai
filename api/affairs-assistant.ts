@@ -1,4 +1,5 @@
 import {studentConductScope} from '../server/studentConductEvidenceScope.js';
+import {boundedAssistantText} from '../src/services/assistantActivityBudget.js';
 import {studentConductGuide} from '../server/studentConductGuide.js';
 import {isServiceNoteNextClass,serviceNoteLookup} from '../server/serviceNoteIntent.js';
 import {serviceNoteGuide} from '../server/serviceNoteGuide.js';
@@ -46,7 +47,7 @@ import { readCatalogEvidence } from '../server/accountCatalogEvidence.js';
 import { readCertificateEvidence } from '../server/accountCertificateEvidence.js';
 import { readSubmissionEvidence } from '../server/accountSubmissionEvidence.js';
 import { readTuitionEvidence } from '../server/accountTuitionEvidence.js';
-import { answerCampusNavigation } from '../server/schoolAffairsDirectory.js';
+import { answerCampusNavigation,answerSchoolSystemSearch } from '../server/schoolAffairsDirectory.js';
 import { isDtmRecordQuestion } from '../server/dtmAnswer.js';
 import { isScholarshipRecordQuestion } from '../server/scholarshipRecords.js';
 import { isStudentAidRecordQuestion } from '../server/studentAidRecords.js';
@@ -216,11 +217,19 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   let history=Array.isArray(input?.history)?input.history.slice(-6).flatMap(item=>{
     if(!item||typeof item!=='object')return [];
     const entry=item as Record<string,unknown>;
-    return ['user','assistant'].includes(String(entry.role))&&typeof entry.content==='string'?[{role:String(entry.role),content:entry.content.slice(0,1000)}]:[];
+    return ['user','assistant'].includes(String(entry.role))&&typeof entry.content==='string'?[{role:String(entry.role),content:boundedAssistantText(entry.content,1000)}]:[];
   }):[];
   const correlationId=randomUUID();
   response.setHeader('X-Assistant-Request-Id',correlationId);
   const stream=createAssistantStream(input?.stream===true,response);
+  const searchGuide=(!input?.images||Array.isArray(input.images)&&input.images.length===0)&&!questionKind(question).irrelevant
+    ? answerSchoolSystemSearch(question,route) : null;
+  if(searchGuide){
+    const [step]=searchGuide.activity;
+    stream.progress(step.kind,step.label,step.detail,step.status);
+    stream.send(200,searchGuide);
+    return;
+  }
   const housing=housingBedLookupContext(question,route,history);
   const housingSelection=housing.selection?.fields.length?housing.selection:null;
   const housingGuidance=!housingSelection&&(housing.navigation||housing.foreign||housing.excluded||housing.selection?.reason)
