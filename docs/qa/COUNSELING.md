@@ -22,3 +22,7 @@ Use rollback mode against the client before applying the migration and deployed 
 Rollback preflight passed, preserving the protected owner and schema. The exact client plan selected only migration 20261115000000. It was applied to the client database, bringing it to 158 migrations and 188 public tables with RLS. Authenticated local-handler tests passed with exact fixture cleanup. The separate 94-destination audit passed navigation and reports 30 generic and 24 partial entries.
 
 [Source counseling entry](https://info.stu.edu.tw/sao/Interview/index.asp)
+
+## Production evidence
+
+Production `57d7fa7` is live as Vercel `59VKBTKU6Sxv2Vp5aGDoiy5ihxts`. Migration 20261115000000 brings the client to 158 migrations and 188 RLS-protected public tables. Exact-client rollback and authenticated local-handler persistence passed, including account isolation and fixture cleanup. The pinned production browser, live JWT access checks, guest assistant and shell passed. Quality 43553189299 passed. The 94-destination audit reports 30 generic and 24 partial entries. The university entry and consent are observed. The application beyond university consent is unverified. Local booking stays unavailable until the owner assigns a coordinator. Chat links to private history without retrieving its contents.

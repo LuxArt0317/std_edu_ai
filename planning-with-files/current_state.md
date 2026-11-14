@@ -1,6 +1,8 @@
 ## Counseling appointments [Issue #98]
 
-Migration 20261115000000 was applied alone after a successful rollback preflight and exact client plan. Client snapshot is 158 migrations and 188 public RLS tables. Actual JWT calls to the local handlers passed with exact fixture cleanup. Build, 94-destination navigation and bilingual assistant checks passed. Consent and entry are observed. The university form beyond consent remains unverified.
+Production `57d7fa7` is live as Vercel `59VKBTKU6Sxv2Vp5aGDoiy5ihxts`. Migration 20261115000000 brings the client to 158 migrations and 188 RLS-protected public tables. Exact-client rollback and authenticated local-handler persistence passed, including account isolation and fixture cleanup. The pinned production browser, live JWT access checks, guest assistant and shell passed. Quality 43553189299 passed. The 94-destination audit reports 30 generic and 24 partial entries.
+
+The university entry and consent are observed. The application beyond university consent is unverified. Local booking stays unavailable until the owner assigns a coordinator. Chat links to private history without retrieving its contents. The separate remote-learning Moodle portal exposes its signed-out page. Library activities share a protected sign-in. The legacy portal guide returned 404.
 
 ## Certificate awards [Issue #98]
 

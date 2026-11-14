@@ -4,7 +4,7 @@
 
 - [x] Observe the source landing and consent views.
 - [x] Model the account-scoped workflow and verify persistence and restricted access.
-- [ ] Verify the pinned production UI and published assistant navigation.
+- [x] Verify the pinned production UI and published assistant navigation.
 - [ ] Verify the university appointment controls beyond the observed consent page.
 
 ## Certificate award applications [Issue #98]
