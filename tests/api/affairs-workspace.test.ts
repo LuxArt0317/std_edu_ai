@@ -38,7 +38,7 @@ test('personal answer uses only the account snapshot and names sample data',asyn
   assert.equal(result.grounding.source,'account');
   const [citation] = result.citations;
   assert.ok(citation && typeof citation==='object' && 'url' in citation);
-  assert.equal(citation.url,'/school-affairs/records');
+  assert.equal(citation.url,'/school-affairs/records/subjects');
   assert.equal(result.proposedAction,undefined);
 });
 test('a task request is proposed without writing any data',async()=>{

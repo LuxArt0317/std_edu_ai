@@ -1,3 +1,4 @@
+import {sampleEnrollmentManifest} from './published-sample-enrollments.mjs';
 import {serviceNoteFixture} from './service-cases.mjs';
 /** Synthetic, local-only golden records. No production answer helpers or credentials. */
 export const EVAL_USER_ID='00000000-0000-4000-8000-000000000001';
@@ -108,7 +109,29 @@ const emptyDomain=(snapshot,domain)=>{
 export function fixtureForCase(testCase,{userId=EVAL_USER_ID,now=DEFAULT_EVAL_NOW}={}){
   const snapshot=buildAccountFixture({userId,now}),key=typeof testCase==='string'?testCase:testCase.fixtureKey;
   if(typeof key!=='string')throw new Error('An evaluation fixtureKey is required.');
-  if(key.startsWith('empty:'))emptyDomain(snapshot,key.slice(6));
+  if(key==='published-sample:records'){
+    snapshot.student.program='Sample General Studies';
+    snapshot.courses=sampleEnrollmentManifest.courses.map((course,index)=>{
+      const term=sampleEnrollmentManifest.terms.find(candidate=>candidate.code===course.termCode);
+      return {enrollmentId:evalId(471+index),code:course.code,title:course.title,credits:course.credits,status:course.status,
+        sourceMode:'sample',term:term.label,termStartsOn:term.startsOn,termEndsOn:term.endsOn,instructor:course.instructor,
+        weekday:course.weekday,startsAt:course.startsAt,endsAt:course.endsAt,room:course.room,
+        grades:course.code==='SAMP101'?[{label:'Sample practice quiz',score:8,maximum:10,sourceMode:'sample'}]:[],attendance:[]};
+    });
+  }else if(key==='studentConduct'||key==='empty:studentConduct'){
+    snapshot.studentConduct={records:key.startsWith('empty:')?[]:[{...common(881,userId),rowOrder:1,
+      occurredOnText:'115/11/07',studentNumber:'CONDUCT-PRIVATE-NUMBER',studentName:'CONDUCT-PRIVATE-NAME',
+      academicYearText:'115',semesterText:'1',yearLevelText:'3',reasonText:'Returned borrowed equipment',
+      conductCode:'M-0',conductName:'Service merit',quantityText:'0',voidStatusText:null}]};
+  }else if(key==='studentLoan'||key==='empty:studentLoan'){
+    snapshot.studentLoan={status:'loaded',record:key.startsWith('empty:')?null:{
+      ...common(891,userId),currentTermLabel:'115 Fall',currentApplicationState:'recorded',
+      currentApplicationText:'Local application entry',progressText:'Waiting for local review',historyCount:0,historyText:null,
+    }};
+  }else if(['aidPayments','empty:aidPayments','dtmGradeReport','empty:dtmGradeReport','full:dtmGradeReport'].includes(key)){
+    // Native report and payment fixtures are independent of the base account
+    // snapshot; grading and payroll cells never come from tracker rows.
+  }else if(key.startsWith('empty:'))emptyDomain(snapshot,key.slice(6));
   else if(key.startsWith('service-note:')){
     const serviceId=key.slice(13);if(!/^\d+-\d+$/.test(serviceId))throw new Error('Invalid synthetic service ID.');
     snapshot.serviceRecords=[{...serviceNoteFixture(serviceId,userId),updatedAt:now}];

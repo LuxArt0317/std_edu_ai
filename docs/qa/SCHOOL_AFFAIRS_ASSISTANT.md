@@ -1,5 +1,11 @@
 # School Affairs assistant and account data — Issues #90, #94 and #95
 
+## Assistant account changes — November 14, 2026
+
+The assistant checks that the current Auth session belongs to the account whose conversation is open before sending private history or confirming a proposed action. A later account or conversation change discards stale action results. An action requires its review ID, and its text and category are visible before confirmation where applicable. Opening the assistant from the account menu returns keyboard focus there when the assistant closes.
+
+The local School Affairs entry suite passed using Chromium and synthetic sessions. It forces a session change before the UI receives the account update, verifies that both the read and the action make zero application requests, restores the original session and verifies one action request with its review ID. This covers the browser behavior. Live execution and idempotence still require separate backend acceptance.
+
 ## Personal summary removal — November13,2026
 
 The added personal summary is removed without deleting account records. A verified admin-only route retains the existing manager, while student requests to that route are denied. Thirteen focused route/transport cases and seven synthetic manager browser suites pass. The focused sign-in entry checks pass; the longer historical suite retains a later Escape focus failure reproduced against the unchanged d72 baseline, so a complete auth/chat E2E pass is not claimed. This UI change does not modify the paused assistant answer/evaluation work.

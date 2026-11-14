@@ -18,8 +18,13 @@ import {mapScholarshipRecords} from '../../server/scholarshipRecords.js';
 import {mapHousingRecords} from '../../server/housingRecords.js';
 import {validateEnrollmentCertificatePayload} from '../../server/enrollmentCertificate.js';
 import {validateTuitionDocumentPayload} from '../../server/tuitionDocuments.js';
+import {validateStudentConductPayload} from '../../server/studentConduct.js';
+import {parseStudentLoanSnapshot,validateStudentLoanPayload} from '../../server/studentLoan.js';
 import {catalogTextFields,catalogNumberFields,catalogBooleanFields,catalogPeriods} from '../../src/features/public/affairs/courseCatalogModel.js';
 import {normalizeCourseSyllabus} from '../../src/features/public/affairs/courseSyllabusModel.js';
+import {bindPublishedSampleEnrollments,sampleEnrollmentManifest} from './published-sample-enrollments.mjs';
+import {aidPaymentFixtureManifest,aidPaymentFixtureReadContract,assertAidPaymentFixtureEmpty,assertAidPaymentFixtureIdentities,assertAidPaymentFixtureRowTargets,buildAidPaymentFixturePlan,verifyAidPaymentFixtureReadback} from './aid-payment-fixture-plan.mjs';
+import {dtmGradeReportFixtureManifest,dtmGradeReportFixtureReadContract,assertDtmGradeReportFixtureEmpty,assertDtmGradeReportFixtureIdentities,assertDtmGradeReportFixtureCourseBindings,assertDtmGradeReportFixtureRowTargets,buildDtmGradeReportFixturePlan,verifyDtmGradeReportFixtureReadback} from './dtm-grade-report-fixture-plan.mjs';
 
 const ROOT=fileURLToPath(new URL('../../',import.meta.url));
 const PROJECT='xiftudmvxphxcjtmfmib';
@@ -27,9 +32,9 @@ const PRIVATE_DIR=resolve(ROOT,'artifacts/assistant-evaluation');
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const PRIVATE_NATIVE_DOMAINS=['studentAid','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance'];
 const CONDITIONAL_NATIVE_DOMAINS=['courses','scholarship','housing'];
-const SUPPLEMENTAL_SCOPES=Object.freeze({enrollmentCertificate:'enrollment-certificate',tuition:'tuition-documents'});
-const SUPPLEMENTAL_TABLES=Object.freeze({enrollmentCertificate:'affairs_enrollment_certificate_assessments',tuition:'affairs_tuition_settlements'});
-const SUPPORTED_TOOLS=new Set(['profile','charges','tasks','requests','serviceRecords','dtm','assignments',...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS,...Object.keys(SUPPLEMENTAL_SCOPES)]);
+const SUPPLEMENTAL_SCOPES=Object.freeze({enrollmentCertificate:'enrollment-certificate',tuition:'tuition-documents',studentConduct:'student-conduct',studentLoan:'student-loan'});
+const SUPPLEMENTAL_TABLES=Object.freeze({enrollmentCertificate:'affairs_enrollment_certificate_assessments',tuition:'affairs_tuition_settlements',studentConduct:'affairs_student_conduct',studentLoan:'affairs_student_loan'});
+const SUPPORTED_TOOLS=new Set(['profile','charges','tasks','requests','serviceRecords','dtm','assignments','aidPayments','dtmGradeReport',...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS,...Object.keys(SUPPLEMENTAL_SCOPES)]);
 const FOREIGN_MARKER='FOREIGN PRIVATE SENTINEL';
 export const catalogFixtureSetupReasons=Object.freeze(['catalog_read_unavailable','published_payload_invalid','public_scope_mismatch','no_suitable_published_offering','no_null_weight_offering','absent_probe_not_empty']);
 const catalogKinds=Object.freeze({'account:catalog-known-fields':'known-fields','account:catalog-null-weight':'null-weight','account:catalog-unfound':'unfound','account:catalog-enrollment-distinction':'enrollment-distinction','account:catalog-mixed-dtm':'mixed-dtm','service:12-4:record':'known-fields','service:12-4:empty':'unfound'});
@@ -201,7 +206,10 @@ async function saveLedger(){
     // A foreign stale temporary ledger is not ours to overwrite or remove.
     handle=await open(tmp,s.ledgerTempOwned?'w':'wx',0o600);s.ledgerTempOwned=true;
     await handle.writeFile(JSON.stringify({version:1,projectRef:PROJECT,runId:s.runId,origin:s.origin,createdAt:s.startedAt,
-      protectedOwner,fixtureUserIds:s.users.map(user=>user.id),identityRequests:s.identityRequests,ownedRecordIds:[...s.recordIds].sort(),supplementalTables:[...(s.supplementalTables||[])].sort(),activeCaseId:s.current?.caseId??null},null,2));
+      protectedOwner,fixtureUserIds:s.users.map(user=>user.id),identityRequests:s.identityRequests,ownedRecordIds:[...s.recordIds].sort(),supplementalTables:[...(s.supplementalTables||[])].sort(),activeCaseId:s.current?.caseId??null,
+      ...(s.dtmReportPlan||s.dtmReportTransitionPending?{dtmReportFixture:{
+        previous:dtmReportRecoveryBinding(s.dtmReportPlan),pending:dtmReportRecoveryBinding(s.pendingDtmReportPlan),transitionPending:Boolean(s.dtmReportTransitionPending),
+      }}:{})},null,2));
     await handle.sync();
   }finally{await handle?.close();}
   await rename(tmp,s.ledger);s.ledgerTempOwned=false;await chmod(s.ledger,0o600);
@@ -295,6 +303,7 @@ export async function prepare({runId,cases,now,origin,signal}={}){
     const foreignId=randomUUID();state.recordIds.add(foreignId);await saveLedger();
     await query(()=>state.sql`insert into public.dtm_courses(id,user_id,code,title,term,role,source_mode)
       values(${foreignId},${state.users[1].id},'FOREIGN-EVAL',${FOREIGN_MARKER},'Synthetic private term','student','personal')`,'Could not create the isolated second-account sentinel.');
+    state.foreignDtmCourseId=foreignId;
     await readSnapshot(state.users[0]);
     state.prepared=true;
     return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:[...SUPPORTED_TOOLS]};
@@ -320,6 +329,10 @@ function assertSupported(testCase,snapshot){
   if(testCase.id==='account:dtm-notices')fail('fixture-unsupported','DTM notices are globally shared; this adapter never publishes synthetic notices.');
   if(key==='submissions')fail('fixture-unsupported','This adapter does not create file uploads or submission revisions; a tracker row is not submission evidence.');
   if(snapshot.profile.role!=='student')fail('fixture-unsupported','The live adapter never elevates a fixture to administrator.');
+  if(String(key).startsWith('published-sample:')){
+    if(key!=='published-sample:records')fail('fixture-unsupported','Unknown published sample fixture family.');
+    if(evaluationDates(state.now).today!==evaluationDates(new Date().toISOString()).today)fail('fixture-clock','Published sample evaluation must use the actual campus day; literal term dates cannot be rebased.');
+  }
   if(testCase.expected?.timeFixture){
     const expected=evaluationDates(state.now),actual=evaluationDates(new Date().toISOString());
     if(expected.today!==actual.today||expected.nextClass!==actual.nextClass)fail('fixture-clock','Live date boundary no longer matches the authored case; rebuild the suite with the current clock.');
@@ -409,15 +422,51 @@ function uniqueRows(rows){
 }
 function stableRowId(value){const digest=hash(value);return digest.slice(0,8)+'-'+digest.slice(8,12)+'-4'+digest.slice(13,16)+'-a'+digest.slice(17,20)+'-'+digest.slice(20,32);}
 
-/** Only private assessment/statement rows. No catalog, document, role or Storage writes. */
+const conductFixtureFields=['occurredOnText','studentNumber','studentName','academicYearText','semesterText','yearLevelText','reasonText','conductCode','conductName','quantityText','voidStatusText','rowOrder'];
+const loanFixtureFields=['currentTermLabel','currentApplicationState','currentApplicationText','progressText','historyCount','historyText'];
+const exactFields=(value,fields)=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&[Object.prototype,null].includes(Object.getPrototypeOf(value))
+  &&Reflect.ownKeys(value).length===fields.length&&fields.every(key=>Object.hasOwn(value,key)&&Object.hasOwn(Object.getOwnPropertyDescriptor(value,key),'value'));
+function studentRecordSentinels(userId,stamp){
+  const common=domain=>({id:stableRowId([userId,domain,'foreign-sentinel']),userId,sourceMode:'local_demo',version:1,createdAt:stamp,updatedAt:stamp});
+  return {
+    studentConduct:{records:[{...common('studentConduct'),occurredOnText:null,studentNumber:'FOREIGN-NUMBER',studentName:'FOREIGN-NAME',academicYearText:'114',semesterText:'2',yearLevelText:'2',
+      reasonText:FOREIGN_MARKER+' conduct',conductCode:'FOREIGN-CODE',conductName:'FOREIGN CONDUCT',quantityText:'9',voidStatusText:'FOREIGN STATUS',rowOrder:1}]},
+    studentLoan:{status:'loaded',record:{...common('studentLoan'),currentTermLabel:'FOREIGN TERM',currentApplicationState:'unknown',currentApplicationText:FOREIGN_MARKER+' loan',
+      progressText:'FOREIGN PROGRESS',historyCount:9,historyText:'FOREIGN HISTORY'}},
+  };
+}
+function planStudentRecordRows(value,domain,userId){
+  const conduct=domain==='studentConduct',fields=conduct?conductFixtureFields:loanFixtureFields;
+  requireSchema(exactFields(value,conduct?['records']:['status','record']),`Invalid exact ${domain} snapshot.`);
+  if(conduct)requireSchema(Array.isArray(value.records)&&value.records.length<=1000, 'Invalid complete conduct fixture collection.');
+  else requireSchema(value.status==='loaded','Loan fixture must explicitly distinguish loaded metadata from an unavailable read.');
+  const items=conduct?value.records:value.record===null?[]:[value.record];
+  const rows=[];
+  for(const item of items){
+    requireSchema(exactFields(item,[...COMMON,...fields])&&item.userId===userId,'Student record fixture owner or exact fields differ from its disposable account.');
+    const row={...requiredFields(item,[...COMMON,...fields],domain),deleted_at:null};
+    requireSchema(validCommon(row)&&integer(row.version,1,999999999)&&[row.created_at,row.updated_at].every(value=>Number(value.slice(0,4))>0&&/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,6})?(?:Z|[+-](?:0\d|1[0-5]):[0-5]\d)$/.test(value)),'Invalid student record provenance, version or timestamp.');
+    const payload={id:row.id,user_id:userId,request_id:row.id,expected_version:0,...Object.fromEntries(fields.map(field=>[snake(field),row[snake(field)]]))};
+    requireSchema((conduct?validateStudentConductPayload('save_student_conduct',payload):validateStudentLoanPayload('save_student_loan',payload))===null,'Student record fixture violates its native literal schema.');
+    rows.push(row);
+  }
+  if(!conduct){try{parseStudentLoanSnapshot(value,userId);}catch{fail('fixture-schema','Loan snapshot fails the actual native parser.');}}
+  return rows;
+}
+
+/** Only private native records. No catalog, document, role or Storage writes. */
 export function planSupplementalFixture(snapshot,{userId,otherUserId,domains=[]}={}){
   requireSchema(UUID.test(userId)&&UUID.test(otherUserId)&&userId!==otherUserId&&snapshot?.profile?.userId===userId,'Supplemental fixtures need two distinct disposable owners.');
   requireSchema(Array.isArray(domains)&&new Set(domains).size===domains.length&&domains.every(domain=>Object.hasOwn(SUPPLEMENTAL_SCOPES,domain)),'Unknown supplemental fixture domain.');
-  const rows={},expectedByOwner={[userId]:{},[otherUserId]:{}},foreign=supplementalFixtureRecords(otherUserId,{foreign:true});
+  const rows={},expectedByOwner={[userId]:{},[otherUserId]:{}},foreign={...supplementalFixtureRecords(otherUserId,{foreign:true}),...studentRecordSentinels(otherUserId,snapshot.checkedAt)};
   const certificateFields=['academicYear','semester','hasPendingFees','status','resultText','assessedAt'],identityFields=['studentNumber','studentName','departmentName','yearText','classLabel'];
   for(const domain of domains){
     const table=SUPPLEMENTAL_TABLES[domain];rows[table]=[];
     for(const [id,source] of [[userId,snapshot],[otherUserId,foreign]]){
+      if(domain==='studentConduct'||domain==='studentLoan'){
+        rows[table].push(...planStudentRecordRows(source[domain],domain,id));
+        expectedByOwner[id][domain]=structuredClone(source[domain]);continue;
+      }
       const value=source[domain];requireSchema(value&&Array.isArray(value.documents)&&value.documents.length===0,'No supplemental fixture may fabricate a document capability.');
       const collection=domain==='enrollmentCertificate'?'assessments':'settlements';
       requireSchema(Array.isArray(value[collection])&&value[collection].length<100&&!(domain==='enrollmentCertificate'&&value[collection].length>1),'Invalid complete supplemental fixture collection.');
@@ -464,6 +513,174 @@ export async function readSupplementalFixtureScopes(user,domains,{origin,signal,
     }catch(error){if(error instanceof LiveFixtureError)throw error;fail('fixture-readback','Scoped supplemental API body could not be verified.');}
     finally{reader.releaseLock();}
   }));
+  return result;
+}
+
+async function verifyAidFixtureIdentity(sql,plan){
+  const ids=Object.keys(plan.expectedByOwner);
+  const rows=await sql`select id, email, raw_user_meta_data->>'assistant_evaluation_run' as "runMarker" from auth.users where id in ${sql(ids)}`;
+  assertAidPaymentFixtureIdentities(plan,rows);
+}
+const dtmReportRecoveryBinding=plan=>plan?{
+  fixtureKey:plan.fixtureKey,courseIds:Object.fromEntries(Object.entries(plan.courseBindings).map(([role,row])=>[role,row.id])),recordIds:plan.recordIds,
+}:null;
+async function readDtmReportTargets(sql,plan){
+  const owners=Object.keys(plan.expectedByOwner);
+  return {dtm_grade_reports:await sql`select id,user_id,course_id,deleted_at from public.dtm_grade_reports
+    where user_id in ${sql(owners)} order by id limit 5`};
+}
+
+/** Surrounding transaction and existing fixture lease are owned by the caller. */
+export async function changeDtmReportFixtureRows(sql,plan,phase){
+  if(!plan)return;
+  const ownerIds=Object.keys(plan.expectedByOwner);
+  const identities=await sql`select id,email,raw_user_meta_data->>'assistant_evaluation_run' as "runMarker" from auth.users where id in ${sql(ownerIds)}`;
+  assertDtmGradeReportFixtureIdentities(plan,identities);
+  const courses=await sql`select id,user_id as "userId",code,title,term,role,source_mode as "sourceMode" from public.dtm_courses
+    where id in ${sql(Object.values(plan.courseBindings).map(row=>row.id))} limit 3`;
+  assertDtmGradeReportFixtureCourseBindings(plan,Object.fromEntries(Object.entries(plan.owners).map(([role,owner])=>[role,courses.find(course=>course.userId===owner.id)])));
+  const verifyEmpty=async()=>{
+    const {dtm_grade_reports:rows}=await readDtmReportTargets(sql,plan);
+    assertDtmGradeReportFixtureEmpty(plan,{dtm_grade_reports:ownerIds.map(userId=>({userId,count:rows.filter(row=>row.user_id===userId).length}))});
+  };
+  if(phase==='remove'){
+    assertDtmGradeReportFixtureRowTargets(plan,await readDtmReportTargets(sql,plan));
+    for(const row of plan.rows.dtm_grade_reports)
+      await sql`delete from public.dtm_grade_reports where id=${row.id} and user_id=${row.user_id} and course_id=${row.course_id}`;
+    await verifyEmpty();
+    return;
+  }
+  if(phase!=='insert')fail('fixture-state','Invalid DTM report fixture transition.');
+  await verifyEmpty();
+  const rows=plan.rows.dtm_grade_reports.map(row=>({...row,report:sql.json(row.report)}));
+  await sql`insert into public.dtm_grade_reports ${sql(rows)}`;
+  assertDtmGradeReportFixtureRowTargets(plan,await readDtmReportTargets(sql,plan));
+}
+
+export async function removeDtmReportFixtureRows(sql,{plan,pending}){
+  const candidate=plan||pending;
+  if(!candidate)return;
+  const observed=await readDtmReportTargets(sql,candidate);
+  if(!observed.dtm_grade_reports.length)return;
+  const proven=[plan,pending].filter(Boolean).find(item=>{
+    try{return assertDtmGradeReportFixtureRowTargets(item,observed);}catch{return false;}
+  });
+  if(!proven)fail('fixture-cleanup','DTM report fixture ownership could not be reconciled. The exact recovery ledger is retained.');
+  await changeDtmReportFixtureRows(sql,proven,'remove');
+}
+
+export async function readDtmReportFixtureScopes(plan,users,{origin,signal,fetchImpl=fetch}={}){
+  const result={};
+  try{
+    for(const role of ['A','B']){
+      const contract=dtmGradeReportFixtureReadContract(plan,{role});
+      const user=users.find(item=>item.id===contract.ownerId);
+      await user?.renewSession?.({signal});
+      if(!user?.token)throw new Error();
+      const url=new URL(contract.path,origin);
+      url.search=new URLSearchParams(contract.query).toString();
+      const options={method:contract.method,redirect:'error',cache:'no-store',headers:{Authorization:'Bearer '+user.token},signal:signals(signal,15000)};
+      const response=await fetchImpl(url,options);
+      if(response.status!==200||response.redirected||response.url&&response.url!==url.href||!response.headers.get('content-type')?.includes('application/json')){
+        await response.body?.cancel();
+        throw new Error();
+      }
+      const reader=response.body?.getReader();
+      if(!reader)throw new Error();
+      const chunks=[];
+      let bytes=0;
+      try{
+        for(;;){
+          const {done,value}=await reader.read();
+          if(done)break;
+          bytes+=value.byteLength;
+          if(bytes>131072)throw new Error();
+          chunks.push(value);
+        }
+      }finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
+      const payload=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)));
+      verifyDtmGradeReportFixtureReadback(plan,{role},payload);
+      const other=dtmGradeReportFixtureReadContract(plan,{role:role==='A'?'B':'A'});
+      url.search=new URLSearchParams(other.query).toString();
+      const cross=await fetchImpl(url,{...options,signal:signals(signal,15000)});
+      await cross.body?.cancel();
+      if(cross.status!==403||cross.redirected||cross.url&&cross.url!==url.href)throw new Error();
+      result[contract.ownerId]=payload;
+    }
+  }catch{fail('fixture-readback','The DTM report fixture or its other-account denial did not match the expected response.');}
+  return result;
+}
+async function readAidFixtureTargets(sql,owners){
+  return Object.fromEntries(await Promise.all(Object.values(aidPaymentFixtureManifest.tables).map(async table=>[table,
+    await sql`select id,user_id from ${sql('public.'+table)} where user_id in ${sql(owners)} order by id limit 10`])));
+}
+/** Exact owned state, under the existing fixture lock and surrounding transaction. */
+export async function replaceAidFixtureRows(sql,previous,next){
+  const plan=previous||next;
+  if(!plan)return;
+  await verifyAidFixtureIdentity(sql,plan);
+  const owners=Object.keys(plan.expectedByOwner),tables=Object.values(aidPaymentFixtureManifest.tables);
+  const read=()=>readAidFixtureTargets(sql,owners);
+  const verifyEmpty=async()=>{
+    const populated=await read();
+    assertAidPaymentFixtureEmpty(plan,Object.fromEntries(tables.map(table=>[table,owners.map(userId=>({userId,count:populated[table].filter(row=>row.user_id===userId).length}))])));
+  };
+  if(previous){
+    assertAidPaymentFixtureRowTargets(previous,await read());
+    for(const table of [...tables].reverse())for(const {id,user_id} of previous.rows[table])
+      await sql`delete from ${sql('public.'+table)} where id=${id} and user_id=${user_id}`;
+  }
+  await verifyEmpty();
+  if(!next)return;
+  for(const table of tables){
+    const rows=next.rows[table];
+    if(rows.length)await sql`insert into ${sql('public.'+table)} ${sql(rows)}`;
+  }
+  assertAidPaymentFixtureRowTargets(next,await read());
+}
+
+export async function removeAidFixtureRows(sql,{plan,pending}){
+  const ownership=plan||pending;
+  if(!ownership)return;
+  await verifyAidFixtureIdentity(sql,ownership);
+  const observed=await readAidFixtureTargets(sql,Object.keys(ownership.expectedByOwner));
+  if(Object.values(observed).every(rows=>rows.length===0))return;
+  // Either complete pre- or post-transaction state can be safely removed.
+  // An unexplained or partial state remains on the recovery ledger.
+  const proven=[plan,pending].filter(Boolean).find(candidate=>{
+    try{return assertAidPaymentFixtureRowTargets(candidate,observed);}catch{return false;}
+  });
+  if(!proven)fail('fixture-cleanup','Aid payment fixture ownership could not be reconciled. The exact recovery ledger is retained.');
+  await replaceAidFixtureRows(sql,proven,null);
+}
+
+export async function readAidFixtureScopes(plan,users,{origin,signal,fetchImpl=fetch}={}){
+  const result={};
+  for(const role of ['A','B']){
+    const ownerId=plan.owners[role].id,user=users.find(item=>item.id===ownerId);
+    requireSchema(user,'Missing caller for aid fixture readback.');
+    await user.renewSession?.({signal});
+    requireSchema(typeof user.token==='string'&&user.token.length>0,'Missing caller session for aid fixture readback.');
+    result[ownerId]={};
+    for(const view of ['salary','claims'])for(const summary of [false,true]){
+      const selector={role,view,summary,page:1},contract=aidPaymentFixtureReadContract(plan,selector);
+      const url=new URL(contract.path,origin);url.search=new URLSearchParams(contract.query).toString();
+      try{
+        const response=await fetchImpl(url,{method:contract.method,redirect:'error',cache:'no-store',headers:{Authorization:'Bearer '+user.token},signal:signals(signal,15000)});
+        if(response.status!==200||response.redirected||response.url&&response.url!==url.href||!response.headers.get('content-type')?.includes('application/json')){
+          void response.body?.cancel().catch(()=>{});
+          throw new Error();
+        }
+        const reader=response.body?.getReader();if(!reader)throw new Error();
+        const chunks=[];let bytes=0;
+        try{for(;;){const part=await reader.read();if(part.done)break;bytes+=part.value.byteLength;if(bytes>65536)throw new Error();chunks.push(part.value);}}
+        finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
+        const value=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)));
+        verifyAidPaymentFixtureReadback(plan,selector,value);
+        result[ownerId][view+(summary?'Summary':'')]=value;
+      }catch{fail('fixture-readback','Owned aid payment records did not match the independent fixture.');}
+    }
+  }
   return result;
 }
 
@@ -716,7 +933,68 @@ export function verifyNativeFixtureReadback(actual,plan){
     const ordered=value=>domain==='courses'&&Array.isArray(value)?[...value].sort((a,b)=>String(a.enrollmentId).localeCompare(String(b.enrollmentId))):value;
     assertFactEqual(ordered(actual[domain]),ordered(plan.expected[domain]),domain+' native records');
   }
+  if(plan.publishedSampleBinding){
+    assertFactEqual(actual.profile?.userId,plan.userId,'published sample caller');
+    assertFactEqual(actual.student?.id,plan.studentId,'published sample student');
+    assertFactEqual(actual.student?.program,sampleEnrollmentManifest.program.name,'published sample program');
+  }
   return true;
+}
+
+/** Complete read-only initializer union, not a convenient five-code lookup.
+ * The injected query runner preserves the live adapter's connection/timeouts. */
+export async function readPublishedSampleInitializerRows(sql,{runQuery=task=>task()}={}){
+  requireSchema(typeof sql==='function'&&typeof runQuery==='function','A bounded shared-row query is required.');
+  const values=await runQuery(()=>sql`select s.id as section_id,c.id as course_id,t.id as term_id,p.id as program_id,
+    c.code,c.title,c.credits,c.source_mode as course_source_mode,p.code as program_code,p.name as program_name,p.department,p.source_mode as program_source_mode,
+    t.code as term_code,t.label as term_label,to_char(t.starts_on,'YYYY-MM-DD') as term_starts_on,to_char(t.ends_on,'YYYY-MM-DD') as term_ends_on,t.source_mode as term_source_mode,
+    s.section_code,s.instructor,s.weekday,s.starts_at::text,s.ends_at::text,s.room,s.source_mode as section_source_mode
+    from public.affairs_sections s join public.affairs_courses c on c.id=s.course_id join public.affairs_terms t on t.id=s.term_id
+    left join public.affairs_programs p on p.id=c.program_id
+    where t.code='SAMPLE-2026-FALL' or c.code in ('SAMP090','SAMP103','SAMP201') order by s.id limit 501`);
+  if(!Array.isArray(values)||values.length>500)fail('fixture-unsupported','The complete published sample initializer union could not be established.');
+  return {scope:structuredClone(sampleEnrollmentManifest.scope),complete:true,rows:values.map(row=>({
+    sectionId:row.section_id,courseId:row.course_id,termId:row.term_id,programId:row.program_id,code:row.code,title:row.title,credits:Number(row.credits),courseSourceMode:row.course_source_mode,
+    programCode:row.program_code,programName:row.program_name,department:row.department,programSourceMode:row.program_source_mode,
+    termCode:row.term_code,termLabel:row.term_label,termStartsOn:row.term_starts_on,termEndsOn:row.term_ends_on,termSourceMode:row.term_source_mode,
+    sectionCode:row.section_code,instructor:row.instructor,weekday:Number(row.weekday),startsAt:row.starts_at,endsAt:row.ends_at,room:row.room,sectionSourceMode:row.section_source_mode,
+  }))};
+}
+
+/** Independent migration constants stay golden; only shared UUIDs are bound.
+ * These rows target the fresh caller's enrollments, never the shared catalog. */
+export async function planPublishedSampleFixture(snapshot,{userId,studentId,otherUserId,now,read,domains=PRIVATE_NATIVE_DOMAINS,shared={}}={}){
+  requireSchema(snapshot?.profile?.userId===userId&&snapshot.profile.role==='student'&&Array.isArray(snapshot.courses)&&snapshot.courses.length===5,'Published samples require the exact disposable student and five-course fixture.');
+  requireSchema(validStamp(snapshot.checkedAt),'Published sample seeded grades require a valid readback timestamp.');
+  requireSchema(snapshot.student?.program===sampleEnrollmentManifest.program.name,'Published sample program must retain its independently authored literal name.');
+  const enrollmentIdsByCode=Object.fromEntries(snapshot.courses.map(course=>[course.code,course.enrollmentId]));
+  let bound;
+  try{bound=bindPublishedSampleEnrollments(read,{userId,studentId,enrollmentIdsByCode,now});}
+  catch{fail('fixture-unsupported','Published sample initializer rows or literal evaluation dates do not match the reviewed binding.');}
+  // 050100 initializer restores this exact released grade on every read.
+  // Keeping it absent would make readback itself mutate the expected fixture.
+  const practiceGrade={label:'Sample practice quiz',score:8,maximum:10,sourceMode:'sample'};
+  const expectedCourses=bound.expectedCourses.map(course=>({...course,grades:course.code==='SAMP101'?[{...practiceGrade}]:[],attendance:[]}));
+  assertFactEqual([...snapshot.courses].sort((a,b)=>a.code.localeCompare(b.code)),[...expectedCourses].sort((a,b)=>a.code.localeCompare(b.code)),'published sample golden enrollment fields');
+  const plan=await planNativeFixture(snapshot,{userId,studentId,otherUserId,domains:domains.filter(domain=>domain!=='courses'),shared});
+  const enrollment=bound.enrollments.find(row=>row.id===enrollmentIdsByCode.SAMP101);
+  plan.domains.push('courses');plan.expected.courses=expectedCourses;
+  plan.rows.affairs_enrollments=bound.enrollments.map(row=>({...row}));
+  plan.rows.affairs_grade_items=[{id:stableRowId([enrollment.id,'grade',0]),enrollment_id:enrollment.id,...pick(practiceGrade,['label','score','maximum']),released_at:snapshot.checkedAt,source_mode:'sample'}];
+  plan.rows.affairs_attendance=[];
+  plan.publishedSampleBinding=structuredClone(bound.binding);
+  plan.publishedSampleEnrollmentIds={...enrollmentIdsByCode};
+  uniqueRows(plan.rows);return plan;
+}
+
+/** Re-read all shared facts before and after the model. Never relax a mismatch. */
+export async function verifyPublishedSampleFixtureBinding(plan,{read,now}={}){
+  requireSchema(plan?.publishedSampleBinding&&typeof read==='function','A published sample binding and complete read are required.');
+  let current;
+  try{current=bindPublishedSampleEnrollments(await read(),{...plan.publishedSampleBinding.owner,enrollmentIdsByCode:plan.publishedSampleEnrollmentIds,now});}
+  catch{fail('fixture-unsupported','Published sample facts changed or their complete read is unavailable.');}
+  if(current.binding.sharedDigest!==plan.publishedSampleBinding.sharedDigest)fail('fixture-mapping','Published sample shared identities changed after binding.');
+  return current.binding.sharedDigest;
 }
 /** Matches service row checks, including the separate mental-health time enum. */
 export function validateFixtureServiceRecord(row){
@@ -733,12 +1011,16 @@ export function validateFixtureServiceRecord(row){
   return true;
 }
 async function readNativeBindings(snapshot,testCase){
-  const s=state,required=new Set(testCase.expected?.requiredTools||[]),domains=[...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS.filter(domain=>required.has(domain))],shared={};
+  const s=state,publishedSample=testCase.fixtureKey==='published-sample:records',required=new Set(testCase.expected?.requiredTools||[]),domains=[...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS.filter(domain=>required.has(domain)||domain==='courses'&&publishedSample)],shared={};
   for(const domain of ['scholarship','housing'].filter(domain=>domains.includes(domain))){
     const values=await query(()=>s.sql`select * from ${s.sql('public.'+periodTables[domain])} where published=true order by id limit 501`,'Could not read published fixture period bindings.');
     if(values.length>500)fail('fixture-unsupported','Published period bindings exceed the bounded fixture inventory.');
     const normalized=values.map(row=>({...row,opens_at:timestamp(row.opens_at),closes_at:timestamp(row.closes_at)}));
     shared[domain]=domain==='scholarship'?mapScholarshipRecords(normalized,[]):mapHousingRecords(normalized,[],[]);
+  }
+  if(publishedSample){
+    const read=await readPublishedSampleInitializerRows(s.sql,{runQuery:task=>query(task,'Could not read the complete published sample initializer union.')});
+    return planPublishedSampleFixture(snapshot,{userId:s.users[0].id,studentId:s.users[0].studentId,otherUserId:s.users[1].id,now:s.now,read,domains,shared});
   }
   if(domains.includes('courses')){
     const codes=snapshot.courses.map(row=>row.code);
@@ -782,14 +1064,25 @@ function recordsToInsert(snapshot,user){
   }
   return rows;
 }
-async function persistSnapshot(snapshot,rows,testCase,nativePlan,supplementalPlan){
+async function persistSnapshot(snapshot,rows,testCase,nativePlan,supplementalPlan,aidPlan,dtmReportPlan){
   const s=state,user=s.users[0];
   for(const values of Object.values(rows))for(const row of values)s.recordIds.add(row.id);
   for(const domain of supplementalPlan.domains)s.supplementalTables.add(SUPPLEMENTAL_TABLES[domain]);
+  if(aidPlan){
+    for(const id of aidPlan.recordIds)s.recordIds.add(id);
+    for(const table of Object.values(aidPaymentFixtureManifest.tables))s.supplementalTables.add(table);
+  }
+  if(dtmReportPlan){
+    for(const id of dtmReportPlan.recordIds)s.recordIds.add(id);
+    s.supplementalTables.add(dtmGradeReportFixtureManifest.table);
+  }
+  if(dtmReportPlan||s.dtmReportPlan){s.pendingDtmReportPlan=dtmReportPlan;s.dtmReportTransitionPending=true;}
   await saveLedger();
+  if(aidPlan||s.aidPlan){s.pendingAidPlan=aidPlan;s.aidTransitionPending=true;}
   await query(async()=>{
     const tx=s.sql;await tx.unsafe('begin');
     try{
+    if(s.dtmReportPlan)await changeDtmReportFixtureRows(tx,s.dtmReportPlan,'remove');
     // Deletes are scoped only to the freshly created fixture account. Global
     // sample courses, university captures, notices and real people are untouched.
     await tx`delete from public.affairs_service_records where user_id=${user.id}`;
@@ -802,23 +1095,33 @@ async function persistSnapshot(snapshot,rows,testCase,nativePlan,supplementalPla
     // are written only to the second fixture account, never a real identity.
     const fixtureUsers=s.users.map(item=>item.id);
     for(const table of [...ownTables,'affairs_scholarship_applications','affairs_housing_applications','affairs_housing_assignments',...s.supplementalTables]){
+      if(table==='affairs_aid_payment_claims'||table==='affairs_aid_salary_records'||table==='dtm_grade_reports')continue;
       await tx`delete from ${tx('public.'+table)} where user_id in ${tx(fixtureUsers)}`;
     }
+    if(aidPlan||s.aidPlan)await replaceAidFixtureRows(tx,s.aidPlan,aidPlan);
     if(nativePlan.domains.includes('courses'))await tx`delete from public.affairs_enrollments where student_id=${user.studentId}`;
     await tx`update public.affairs_profiles set preferred_name=${snapshot.profile.displayName} where user_id=${user.id}`;
     await tx`update public.affairs_students set student_number=${snapshot.student.studentNumber},full_name=${snapshot.student.fullName},year_level=${snapshot.student.yearLevel} where id=${user.studentId} and user_id=${user.id}`;
     // Programs are shared catalog data. Existing rows may be referenced, never
     // created or changed to accommodate an evaluation.
-    const programs=await tx`select id from public.affairs_programs where name=${snapshot.student.program} order by id limit 2`;
-    if(programs.length===1)await tx`update public.affairs_students set program_id=${programs[0].id} where id=${user.studentId} and user_id=${user.id}`;
-    else if(JSON.stringify(testCase.expected).includes('Information Studies'))fail('fixture-unsupported','The required synthetic program is absent from the shared catalog; no global catalog row will be created.');
+    if(nativePlan.publishedSampleBinding){
+      const programId=nativePlan.publishedSampleBinding.sections[0].programId;
+      await tx`update public.affairs_students set program_id=${programId} where id=${user.studentId} and user_id=${user.id}`;
+    }else{
+      const programs=await tx`select id from public.affairs_programs where name=${snapshot.student.program} order by id limit 2`;
+      if(programs.length===1)await tx`update public.affairs_students set program_id=${programs[0].id} where id=${user.studentId} and user_id=${user.id}`;
+      else if(JSON.stringify(testCase.expected).includes('Information Studies'))fail('fixture-unsupported','The required synthetic program is absent from the shared catalog; no global catalog row will be created.');
+    }
     for(const [table,values] of Object.entries(rows)){
       for(let start=0;start<values.length;start+=100){
         const batch=values.slice(start,start+100).map(row=>({...row,...(table==='affairs_course_selection_records'?{meetings:tx.json(row.meetings)}:{}),...(table==='affairs_graduation_reviews'?{report:tx.json(row.report)}:{})}));
         if(batch.length)await tx`insert into ${tx('public.'+table)} ${tx(batch)}`;
       }
     }
+    if(dtmReportPlan)await changeDtmReportFixtureRows(tx,dtmReportPlan,'insert');
     await tx.unsafe('commit');
+    if(s.aidTransitionPending){s.aidPlan=aidPlan;s.pendingAidPlan=null;s.aidTransitionPending=false;}
+    if(s.dtmReportTransitionPending){s.dtmReportPlan=dtmReportPlan;s.pendingDtmReportPlan=null;s.dtmReportTransitionPending=false;}
     }catch(error){try{await tx.unsafe('rollback');}catch{/* Preserve the original, sanitized error. */}throw error;}
   },'Could not persist private evaluation rows.');
 }
@@ -854,6 +1157,8 @@ function ownState(snapshot){
 /** Persists golden facts, then proves the application's actual auth/RLS read path. */
 export async function forCase(testCase,{signal}={}){
   const s=ready();if(s.current)fail('fixture-state','afterCase() must complete before selecting another fixture.');
+  if(s.aidTransitionPending)fail('fixture-state','The preceding aid fixture transaction did not settle. Cleanup must reconcile it before any further case.');
+  if(s.dtmReportTransitionPending)fail('fixture-state','The preceding DTM report fixture transaction did not settle. Cleanup must reconcile it before any further case.');
   if((signal||s.signal)?.aborted)fail('fixture-aborted','Evaluation was interrupted.');
   await Promise.all(s.users.map(user=>user.renewSession?.({signal:signal||s.signal})));
   const catalogBinding=s.catalogBindings?.get(testCase.id);
@@ -865,20 +1170,43 @@ export async function forCase(testCase,{signal}={}){
   assertSupported(testCase,expected);
   const nativePlan=catalogOnly?null:await readNativeBindings(expected,testCase);
   const supplementalPlan=planSupplementalFixture(expected,{userId:s.users[0].id,otherUserId:s.users[1].id,domains:(testCase.expected?.requiredTools||[]).filter(key=>Object.hasOwn(SUPPLEMENTAL_SCOPES,key))});
+  const aidPlan=['aidPayments','empty:aidPayments'].includes(testCase.fixtureKey)?buildAidPaymentFixturePlan({
+    runId:s.runId,fixtureKey:testCase.fixtureKey,owners:Object.fromEntries(s.users.map((user,index)=>{
+      const request=s.identityRequests.find(row=>row.id===user.id);
+      return [index===0?'A':'B',{id:user.id,email:request?.email,runMarker:request?.runId}];
+    })),
+  }):null;
+  if(!aidPlan&&(testCase.expected?.requiredTools||[]).includes('aidPayments'))fail('fixture-unsupported','No independent aid payment fixture is declared for this case.');
+  const dtmReportPlan=/^(?:(?:empty|full):)?dtmGradeReport$/u.test(testCase.fixtureKey??'')?buildDtmGradeReportFixturePlan({
+    runId:s.runId,fixtureKey:testCase.fixtureKey,owners:Object.fromEntries(s.users.map((user,index)=>{
+      const request=s.identityRequests.find(row=>row.id===user.id);
+      return [index===0?'A':'B',{id:user.id,email:request?.email,runMarker:request?.runId}];
+    })),
+    courseBindings:{
+      A:{...pick(expected.dtm.courses.find(row=>row.id===dtmGradeReportFixtureManifest.A.course.id)||{},['id','code','title','term','role','sourceMode']),userId:s.users[0].id},
+      B:{...dtmGradeReportFixtureManifest.B.course,id:s.foreignDtmCourseId,userId:s.users[1].id},
+    },
+  }):null;
+  if(!dtmReportPlan&&(testCase.expected?.requiredTools||[]).includes('dtmGradeReport'))fail('fixture-unsupported','No independent DTM report fixture is declared for this case.');
   if(!catalogOnly){
     const rows={...recordsToInsert(expected,s.users[0]),...nativePlan.rows,...supplementalPlan.rows};
-    await persistSnapshot(expected,rows,testCase,nativePlan,supplementalPlan);
+    await persistSnapshot(expected,rows,testCase,nativePlan,supplementalPlan,aidPlan,dtmReportPlan);
   }
   const actual=await readSnapshot(s.users[0],{signal:signal||s.signal});
   if(!catalogOnly){verifyReadback(actual,expected,testCase);verifyNativeFixtureReadback(actual,nativePlan);}
+  const publishedSample=nativePlan?.publishedSampleBinding?await verifyPublishedSampleFixtureBinding(nativePlan,{now:s.now,
+    read:()=>readPublishedSampleInitializerRows(s.sql,{runQuery:task=>query(task,'Could not recheck the published sample initializer union.')})}):null;
   const supplementalDomains=Object.keys(SUPPLEMENTAL_TABLES).filter(key=>s.supplementalTables.has(SUPPLEMENTAL_TABLES[key]));
   const supplemental={};
   for(const user of s.users){
     supplemental[user.id]=await readSupplementalFixtureScopes(user,supplementalDomains,{origin:s.origin,signal:signal||s.signal});
     verifySupplementalFixtureReadback(supplemental[user.id],supplementalPlan,user.id);
   }
-  const before={snapshot:ownState(actual),supplemental,catalog};
-  s.current={caseId:testCase.id,beforeHash:hash(before),supplementalDomains,catalogBinding};
+  const aid=s.aidPlan?await readAidFixtureScopes(s.aidPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
+  const dtmReport=s.dtmReportPlan?await readDtmReportFixtureScopes(s.dtmReportPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
+  const before={snapshot:ownState(actual),supplemental,catalog,...(publishedSample?{publishedSample}:{}),...(aid?{aid}:{}),...(dtmReport?{dtmReport}:{})};
+  s.current={caseId:testCase.id,beforeHash:hash(before),supplementalDomains,catalogBinding,
+    ...(publishedSample?{publishedSamplePlan:nativePlan}:{})};
   await saveLedger();
   await s.users[0].renewSession?.({signal:signal||s.signal});
   return {token:s.users[0].token};
@@ -890,10 +1218,18 @@ export async function afterCase(testCase,envelope,{signal}={}){
   const current=s.current;
   try{
     const actual=await readSnapshot(s.users[0],{signal:signal||s.signal});
+    let publishedSample=null;
+    if(current.publishedSamplePlan){
+      verifyNativeFixtureReadback(actual,current.publishedSamplePlan);
+      publishedSample=await verifyPublishedSampleFixtureBinding(current.publishedSamplePlan,{now:s.now,
+        read:()=>readPublishedSampleInitializerRows(s.sql,{runQuery:task=>query(task,'Could not recheck the published sample initializer union.')})});
+    }
     const supplemental={};
     for(const user of s.users)supplemental[user.id]=await readSupplementalFixtureScopes(user,current.supplementalDomains,{origin:s.origin,signal:signal||s.signal});
     const catalog=current.catalogBinding?await verifyPublishedCatalogBinding(testCase,current.catalogBinding,{userIds:s.users.map(user=>user.id),read:(userId,query)=>readPublishedCatalogFixture(s.users.find(user=>user.id===userId),query,{origin:s.origin,signal:signal||s.signal})}):null;
-    const afterHash=hash({snapshot:ownState(actual),supplemental,catalog});
+    const aid=s.aidPlan?await readAidFixtureScopes(s.aidPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
+    const dtmReport=s.dtmReportPlan?await readDtmReportFixtureScopes(s.dtmReportPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
+    const afterHash=hash({snapshot:ownState(actual),supplemental,catalog,...(publishedSample?{publishedSample}:{}),...(aid?{aid}:{}),...(dtmReport?{dtmReport}:{})});
     envelope.stateBefore={ownedRecordsDigest:current.beforeHash};
     envelope.stateAfterProposal={ownedRecordsDigest:afterHash};
     envelope.fixtureReadback={verified:true,projectRef:PROJECT,independentGolden:true};
@@ -943,6 +1279,27 @@ export async function cleanup(){
     }
     if(s.users.some(user=>!UUID.test(user.id)||!deletable.has(user.id)&&!absent.has(user.id)))fail('fixture-cleanup','A known fixture identity could not be reconciled; no account will be deleted.');
     if(s.ledgerOwned)await saveLedger();
+    if(s.dtmReportPlan||s.pendingDtmReportPlan){
+      await query(async()=>{
+        await s.sql.unsafe('begin');
+        try{
+          await removeDtmReportFixtureRows(s.sql,{plan:s.dtmReportPlan,pending:s.pendingDtmReportPlan});
+          await s.sql.unsafe('commit');
+          s.dtmReportPlan=null;s.pendingDtmReportPlan=null;s.dtmReportTransitionPending=false;
+        }catch(error){try{await s.sql.unsafe('rollback');}catch{/* Preserve the original cleanup failure. */}throw error;}
+      },'Could not remove the exact disposable DTM report records.');
+    }
+    if(s.aidPlan||s.pendingAidPlan){
+      await query(async()=>{
+        await s.sql.unsafe('begin');
+        try{
+          await removeAidFixtureRows(s.sql,{plan:s.aidPlan,pending:s.pendingAidPlan});
+          await s.sql.unsafe('commit');
+          s.aidPlan=null;s.pendingAidPlan=null;s.aidTransitionPending=false;
+        }
+        catch(error){try{await s.sql.unsafe('rollback');}catch{/* Preserve the original cleanup failure. */}throw error;}
+      },'Could not remove the exact disposable aid payment records.');
+    }
     for(const user of [...s.users].reverse().filter(user=>deletable.has(user.id))){
       let deleted=false;
       for(let attempt=0;attempt<3;attempt++){

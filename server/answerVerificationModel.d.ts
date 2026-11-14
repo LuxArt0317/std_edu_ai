@@ -5,5 +5,11 @@ export function verificationModelCall(name:string,schema:Record<string,any>,inst
 export function validEvidence(evidence:VerificationEvidence[]):boolean;
 export function reviewMatchesEvidence(review:unknown,evidence:VerificationEvidence[],hasImages?:boolean):boolean;
 export function evidenceReferenceCatalog(evidence:VerificationEvidence[]):{format:'RFC6901';sources:Array<{evidenceId:string;jsonPaths:string[];partial:boolean}>;partial:boolean};
-export function verifyEvidenceAnswer(context:VerificationContext,images?:Array<{dataUrl:string}>):Promise<{ok:boolean;reason:string;feedback?:string[]}>;
-export function repairEvidenceAnswer(context:VerificationContext,images?:Array<{dataUrl:string}>):Promise<VerificationCandidate>;
+export type AnswerResponseIntent='records'|'coaching'|'mixed';
+/** A fresh server-generated random UUID, never an account or caller-supplied identifier. */
+export type VerificationDiagnosticContext={correlationId:string;attempt?:1|2};
+/** Resolved prior USER wording is reference context only, never factual evidence or authorization. */
+export type GuidanceVerificationContext=VerificationContext & {responseIntent?:AnswerResponseIntent;history?:Array<{role:string;content:string}>;resolvedUserQuestion?:string;diagnosticContext?:VerificationDiagnosticContext};
+export function verifyEvidenceAnswer(context:GuidanceVerificationContext,images?:Array<{dataUrl:string}>):Promise<{ok:boolean;reason:string;feedback?:string[]}>;
+export function repairEvidenceAnswer(context:GuidanceVerificationContext,images?:Array<{dataUrl:string}>):Promise<VerificationCandidate>;
+export function composeEvidenceAnswer(context:Omit<GuidanceVerificationContext,'candidate'> & {candidate?:VerificationCandidate},images?:Array<{dataUrl:string}>):Promise<VerificationCandidate>;

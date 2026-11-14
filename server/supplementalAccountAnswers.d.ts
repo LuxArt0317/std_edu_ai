@@ -1,9 +1,13 @@
+import type {StudentConductEvidenceResult} from './accountStudentConductEvidence.js';
+import type {AidPaymentsEvidenceResult} from './accountAidPaymentsEvidence.js';
+import type {DtmGradeReportEvidenceResult} from './accountDtmGradeReportEvidence.js';
+import type {StudentLoanEvidenceResult} from './accountStudentLoanEvidence.js';
 import type {CatalogEvidenceResult} from './accountCatalogEvidence.js';
 import type {CertificateEvidenceResult} from './accountCertificateEvidence.js';
 import type {SubmissionEvidenceResult} from './accountSubmissionEvidence.js';
 import type {TuitionEvidenceResult} from './accountTuitionEvidence.js';
 
-export type SupplementalEvidenceResult=CatalogEvidenceResult|CertificateEvidenceResult|SubmissionEvidenceResult|TuitionEvidenceResult;
+export type SupplementalEvidenceResult=CatalogEvidenceResult|CertificateEvidenceResult|SubmissionEvidenceResult|TuitionEvidenceResult|StudentConductEvidenceResult|StudentLoanEvidenceResult|AidPaymentsEvidenceResult|DtmGradeReportEvidenceResult;
 export type SupplementalRecordView={id:string;title:string;url:string;columns:string[];rows:string[][];total:number;checkedAt:string;note:string};
 export type SupplementalAnswerCandidate={
   status:'answered'|'abstained';answer:string;

@@ -1,4 +1,5 @@
 /** Independent, declarative acceptance checks. Never use the runtime verdict as the oracle. */
+import {buildGuidanceReviewBinding} from './guidance-rubric.mjs';
 const normalize = value => String(value ?? '').normalize('NFKC').replace(/\*\*|__|`/g, '').replace(/\s+/g, ' ').trim().toLocaleLowerCase();
 const word = /[\p{L}\p{N}_]/u;
 
@@ -115,11 +116,143 @@ function paragraphs(answer) {
   });
 }
 
-function factResult(answer, fact) {
+// Opt-in nested fields bind a value to both its record and its column. These
+// blocks are deliberately separate from the legacy labelled-fact matcher.
+function recordFieldBlocks(answer) {
+  const lines=String(answer).split(/\r?\n/u),blocks=[];
+  const cells=line=>line.trim().replace(/^\||\|$/gu,'').split('|').map(value=>normalize(visibleMarkdown(value)));
+  let current='',indent=0;
+  const flush=()=>{if(current)blocks.push({text:normalize(current)});current='';};
+  for(let index=0;index<lines.length;index++){
+    const raw=lines[index],line=visibleMarkdown(raw).trim();
+    if(!line){flush();continue;}
+    if(line.includes('|')&&index+1<lines.length){
+      const headers=cells(line),divider=cells(lines[index+1]);
+      if(headers.length>1&&headers.length<=24&&divider.length===headers.length&&divider.every(value=>/^:?-{3,}:?$/u.test(value))){
+        flush();index++;
+        const unique=new Set(headers).size===headers.length&&headers.every(Boolean);
+        while(index+1<lines.length&&lines[index+1].includes('|')){
+          const values=cells(lines[++index]);
+          if(unique&&values.length===headers.length&&values.join(' ').length<=4096)
+            blocks.push({text:values.join(' | '),headers,cells:values});
+        }
+        continue;
+      }
+    }
+    const depth=raw.match(/^\s*/u)[0].replace(/\t/gu,'  ').length;
+    const content=line.replace(/^(?:[-*+]\s+|\d+[.)]\s+|#{1,6}\s+)/u,'');
+    if(current&&depth>indent&&!foreignSubject.test(content)&&!line.startsWith('|'))current+='; '+content;
+    else{flush();current=content;indent=depth;}
+  }
+  flush();return blocks.filter(block=>block.text.length<=4096);
+}
+
+function labelOccurrences(text,labels) {
+  const found=[];
+  for(const raw of labels){const label=normalize(raw);if(!label)continue;
+    for(let at=text.indexOf(label);at>=0;at=text.indexOf(label,at+label.length))
+      if(tokenBoundary(text,label,at))found.push({at,end:at+label.length,label});
+  }
+  found.sort((a,b)=>a.at-b.at||b.end-a.end);
+  return found.filter((item,index)=>!found.slice(0,index).some(prior=>prior.at<=item.at&&prior.end>=item.end));
+}
+
+function recordFieldResult(answer,fact,allFacts) {
+  const fields=fact.fields,validValue=value=>typeof value==='string'&&value.trim().length>0||typeof value==='number'&&Number.isFinite(value)
+    ||value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length===1&&Array.isArray(value.anyOf)&&value.anyOf.length>0&&value.anyOf.every(item=>typeof item==='string'&&item.trim().length>0||typeof item==='number'&&Number.isFinite(item));
+  if(!Array.isArray(fields)||!fields.length||fields.length>16||fields.some(field=>!field||typeof field!=='object'||Array.isArray(field)
+    ||typeof field.label!=='string'||!field.label.trim()||field.labels!==undefined&&(!Array.isArray(field.labels)||field.labels.some(label=>typeof label!=='string'||!label.trim()))
+    ||!['text','number','date'].includes(field.kind)||!Array.isArray(field.values)||field.values.length!==1||!field.values.every(validValue)
+    ||field.forbiddenValues!==undefined&&(!Array.isArray(field.forbiddenValues)||!field.forbiddenValues.every(validValue))
+    ||field.allowedNumbers!==undefined&&(!Array.isArray(field.allowedNumbers)||field.allowedNumbers.some(value=>typeof value!=='number'||!Number.isFinite(value)))
+    ||field.exclusive!==undefined&&typeof field.exclusive!=='boolean'||field.match!==undefined&&field.match!=='literal'))
+    return {passed:false,detail:'Malformed record-scoped field expectation.'};
+  const aliases=[fact.label,...(fact.labels||[])].map(normalize);
+  const recordLabels=[...new Set(allFacts.filter(item=>item?.fields!==undefined).flatMap(item=>[item.label,...(item.labels||[])]).filter(value=>typeof value==='string').map(normalize))];
+  const ownerHeaders=new Set(['account','owner','student','record owner','account owner','student account','帳戶','帳號','學生','所有者','紀錄所有者']);
+  const contexts=[];
+  for(const block of recordFieldBlocks(answer)){
+    const markers=labelOccurrences(block.text,recordLabels);
+    for(let index=0;index<markers.length;index++){
+      const marker=markers[index];if(!aliases.includes(marker.label))continue;
+      // A row with two record identities cannot donate another row's cells.
+      if(block.headers){
+        const otherOwner=block.headers.some((header,position)=>ownerHeaders.has(header)&&foreignSubject.test(block.cells[position].trim()));
+        if(markers.length===1&&!otherOwner)contexts.push(block);continue;
+      }
+      const candidate=block.text.slice(index===0?0:marker.at,markers[index+1]?.at??block.text.length);
+      const own=[];
+      for(const clause of candidate.split(/(?<=[;；。])|(?<=\.)(?!\d)/u)){
+        // The record label identifies a period, not its owner. A foreign
+        // possessive immediately after that label must not donate its fields.
+        // A separate privacy disclaimer is not a foreign record assertion.
+        const afterRecord=labelOccurrences(clause,recordLabels).map(item=>clause.slice(item.end).replace(/^\s*[:：—–-]?\s*/u,''));
+        if(foreignSubject.test(clause.trim())||afterRecord.some(text=>foreignSubject.test(text)))break;
+        own.push(clause);
+      }
+      const text=own.join('');if(text)contexts.push({text});
+    }
+  }
+  if(!contexts.length)return {passed:false,detail:'No unambiguous record block is available for its fields.'};
+  const recordMatches=fact.match==='literal'?literalMatches:matches;
+  if(!fact.values.every(value=>contexts.some(context=>recordMatches(context.text,value))
+    ||fields.some(field=>field.values.some(expected=>JSON.stringify(expected)===JSON.stringify(value)))))
+    return {passed:false,detail:'The matched record is missing an independently expected value.'};
+  if((fact.forbiddenValues||[]).some(value=>contexts.some(context=>matches(context.text,value))))
+    return {passed:false,detail:'A contradictory value appears in the independently matched record.'};
+  for(const field of fields){
+    const labels=[field.label,...(field.labels||[])].map(normalize),claims=[];
+    for(const context of contexts){
+      if(context.headers){
+        context.headers.forEach((header,index)=>{if(labels.includes(header))claims.push(context.cells[index]);});
+        continue;
+      }
+      let previousEnd=-1;
+      for(const occurrence of labelOccurrences(context.text,labels)){
+        if(previousEnd>=0&&!/[;；|。\n!?.,]|\b(?:and|but|while|whereas)\b/u.test(context.text.slice(previousEnd,occurrence.at)))continue;
+        previousEnd=occurrence.end;
+        const prefix=context.text.slice(0,occurrence.at);
+        let tail=context.text.slice(occurrence.end);
+        // Stop before a separate labelled field or sentence. Decimal points
+        // and thousands separators remain part of the same literal number.
+        const boundary=tail.search(/[;；|\n。!?]|[.,](?!\d)|\b(?:and|but|while|whereas)\s+[\p{L}][\p{L} -]{0,45}(?::|=|\bis\b|\bare\b|\bwas\b|\bwere\b)/u);
+        if(boundary>=0)tail=tail.slice(0,boundary);
+        tail=tail.replace(/^\s*(?:[:：=]|\b(?:is|are|was|were|equals?|of|at)\b|為|是|為了)\s*/u,'').trim();
+        // Natural "zero tax" is still an explicit field claim. Unlabelled
+        // numbers elsewhere in the record never satisfy the field.
+        if(!tail&&/\bzero\s*$/u.test(prefix))tail=/\bnot\s+zero\s*$/u.test(prefix)?'not zero':'zero';
+        if(tail)claims.push(tail.slice(0,240));
+      }
+    }
+    if(!claims.length)return {passed:false,detail:'A required field label is missing from its matched record.'};
+    const expected=field.values.flatMap(alternatives),allowed=(field.allowedNumbers||[]).map(Number);
+    const accepts=claim=>{
+      const start=claim.replace(/^(?:nt\$|twd|\$)\s*/u,'');
+      if(field.kind==='number'){
+        const first=/^(?:zero\b|零|[-+]?\d+(?:,\d{3})*(?:\.\d+)?)(?![\p{L}\p{N}_])/u.exec(start);
+        if(!first)return false;
+        const number=/^(?:zero|零)$/u.test(first[0])?0:Number(first[0].replace(/,/gu,''));
+        if(!expected.some(value=>typeof value==='number'&&value===number))return false;
+        if(field.exclusive!==false&&numericTokens(claim).some(item=>![...expected,...allowed].includes(item.value)))return false;
+      }else{
+        const match=field.match==='literal'?literalMatches:matches;
+        if(!field.values.every(value=>alternatives(value).some(item=>{
+          const wanted=normalize(item);return start.startsWith(wanted)&&tokenBoundary(start,wanted,0)&&match(start,item);
+        })))return false;
+      }
+      return !field.values.some(value=>negatesValue(claim,value))&&!(field.forbiddenValues||[]).some(value=>matches(claim,value));
+    };
+    if(!claims.every(accepts))return {passed:false,detail:'A record field is missing its literal value or contains a contradictory field assertion.'};
+  }
+  return {passed:true,detail:'Independent record, field and literal value matched.'};
+}
+
+function factResult(answer, fact, allFacts=[]) {
   if (!fact || typeof fact !== 'object' || !Array.isArray(fact.values) || !fact.values.length || !['text','number','date'].includes(fact.kind))
     return {passed:false,detail:'Malformed independent fact expectation.'};
   const labels = [fact.label,...(fact.labels || [])].filter(value => typeof value === 'string' && value.trim());
   if (!labels.length) return {passed:false,detail:'A fact needs a semantic label or record identifier.'};
+  if(fact.fields!==undefined)return recordFieldResult(answer,fact,allFacts.length?allFacts:[fact]);
   const windows = [];
   const maxWindow = Math.max(20,Math.min(1000,Number(fact.maxWindow) || 240));
   for (const paragraph of paragraphs(answer)) {
@@ -157,7 +290,17 @@ function factResult(answer, fact) {
 // Explicit privacy/capability denials are limitations, not empty database reads.
 // Keep these bounded to the denied target; generic disclaimers do not qualify.
 const otherAccountDenial=/\b(?:cannot|can['’]t|could not|unable to|will not|won['’]t)\s+(?:show|display|disclose)\b[^.!?\n]{0,160}\b(?:another|other|different)\s+(?:student(?:['’]s)?(?:\s+account)?|account)\b/iu;
+function ownAccountOnlyDenial(answer) {
+  const ownOnly=/\b(?:i|we)\s+can\s+only\s+(?:access|read|query)\s+(?:the\s+)?(?:authenticated|signed[- ]in|current)\s+(?:student\s+)?account(?:['’]s)?\s+(?:saved\s+)?records\b/iu;
+  const foreignUnavailable=/\bno\s+(?:other|another|different)\s+(?:student\s+)?account(?:['’]s)?\b[^.!?\n]{0,180}\b(?:is|are)\s+available\b/iu;
+  const foreignContrast=/\bnot\s+(?:another|other|different)\s+(?:student(?:['’]s)?(?:\s+account(?:['’]s)?)?|account(?:['’]s)?)\s+(?:(?:enrollment[- ]certificate|tuition|settlement|saved|personal)\s+){0,5}(?:records?|statements?|assessments?|student\s+number)\b/iu;
+  const contradictory=/\b(?:i|we)\s+can\s+(?:also\s+)?(?:access|read|query|show|display)\b[^.!?\n]{0,90}\b(?:other|another|different)\s+(?:students?(?:['’]s?)?(?:\s+accounts?)?|accounts?)(?:['’]s?)?\b/iu;
+  return !contradictory.test(answer)&&(ownOnly.test(answer)&&foreignUnavailable.test(answer)
+    ||String(answer).split(/[.!?\n]/u).some(clause=>ownOnly.test(clause)&&foreignContrast.test(clause)));
+}
+
 const unavailableFileCapability=/\bno\s+(?:verified\s+)?(?:local\s+)?(?:file|document|download)\s+capability\b/iu;
+const missingDtmReportField=/\b(?:no\s+(?:(?:saved|native|moodle|dtm)\s+){0,4}grade report|no\s+(?:course[- ]total(?: object)? is saved|saved course total)|course total is (?:not recorded|missing))\b/iu;
 
 // Opt-in record boundaries are separate from stored facts. A correct literal
 // beside an unsupported conclusion must not pass. Evaluate short clauses so a
@@ -187,8 +330,15 @@ function evidenceBoundaryResult(answer,kind) {
     // directly preceding inability to INFER absence may qualify it. A failed
     // backend's "not available" cannot negate a subsequent "no records".
     const absenceQualifier=/\b(?:cannot|can't|can’t|could not|unable to)\s+(?:infer|conclude|establish|determine|say|claim|know|confirm)(?:\s+(?:that|whether|if|there|are|is)){0,4}\s*$|\b(?:does not|doesn't|do not|don't)\s+(?:mean|prove|establish|imply)(?:\s+(?:that|whether|if|there|are|is)){0,4}\s*$/u;
-    const assertsAbsence=clauses.some(clause=>[...clause.matchAll(absence)].some(match=>
-      !absenceQualifier.test(clause.slice(Math.max(0,match.index-90),match.index))));
+    // A bounded, explicitly negated proof may govern a second proposition:
+    // "not proof that X or that no payment was made" denies that inference.
+    // Causal/conclusive connectors end that protection; ordinary preceding
+    // negatives (such as "backend not available") still cannot qualify absence.
+    const negatedProofQualifier=/\bnot\s+(?:proof|evidence)\s+that\s+(?:(?:(?!\b(?:so|therefore|thus|hence|instead|indeed|actually|certainly)\b)[^,;.!?\n]){1,100}\s+or\s+that\s+)?$/u;
+    const assertsAbsence=clauses.some(clause=>[...clause.matchAll(absence)].some(match=>{
+      const prefix=clause.slice(Math.max(0,match.index-150),match.index);
+      return !absenceQualifier.test(prefix.slice(-90))&&!negatedProofQualifier.test(prefix);
+    }));
     return {passed:readFailure&&!assertsAbsence,detail:'A failed or unavailable read is stated explicitly and is not presented as an empty collection.'};
   }
   return {passed:false,detail:'Unknown independent evidence boundary.'};
@@ -211,15 +361,39 @@ function normalizedLink(value) {
   } catch { return null; }
 }
 
+// This test-side allowlist is deliberately independent of the runtime planner.
+const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport']);
+const toolStatusAliases={success:'complete',succeeded:'complete',failed:'error',started:'running',start:'running'};
+const toolStatuses=new Set(['running','complete','unavailable','error','cancelled','skipped']);
+const terminalStatuses=new Set(['complete','unavailable','error','cancelled','skipped']);
+
 function observedTools(envelope) {
-  const explicit = [...(envelope.toolCalls || []),...(envelope.events || []).flatMap(event=>{
-    const named=/^account-read:([a-zA-Z]+):[12]$/.exec(event?.kind||'');
-    return [...(Array.isArray(event?.tools)?event.tools.map(name=>({name,status:event.status})):[]),...(named?[{name:named[1],status:event.status}]:[])];
-  })];
-  const observed = new Set(explicit.filter(item=>typeof item?.name==='string' && ['complete','success','succeeded'].includes(item.status)).map(item=>item.name));
+  const events=[...(Array.isArray(envelope.events)?envelope.events:[]),...(Array.isArray(envelope.body?.activity)?envelope.body.activity:[])];
+  const explicit=[...(Array.isArray(envelope.toolCalls)?envelope.toolCalls:[])];
+  const invalid=[];
+  if(envelope.events!==undefined&&!Array.isArray(envelope.events)||envelope.toolCalls!==undefined&&!Array.isArray(envelope.toolCalls)||envelope.body?.activity!==undefined&&!Array.isArray(envelope.body.activity))invalid.push('malformed_telemetry_collection');
+  for(const event of events) {
+    const kind=event?.kind||'',named=/^account-read:([a-zA-Z]+):([12])$/.exec(kind);
+    if(named)explicit.push({name:named[1],status:event.status,attempt:Number(named[2])});
+    else if(typeof kind==='string'&&kind.startsWith('account-read:'))invalid.push('malformed_read_event');
+    // A planner's selected `tools` list is not a read attempt or completion.
+  }
+  const attempted=new Set(),observed=new Set(),terminal={};
+  for(const item of explicit) {
+    if(typeof item?.name!=='string'){invalid.push('missing_tool_name');continue;}
+    attempted.add(item.name);
+    const status=toolStatusAliases[item.status]||item.status;
+    if(!accountReadNames.has(item.name)||!toolStatuses.has(status)){invalid.push('unknown_tool_or_status');continue;}
+    if(item.attempt!==undefined&&![1,2].includes(item.attempt)){invalid.push('invalid_attempt');continue;}
+    if(status==='complete')observed.add(item.name);
+    if(terminalStatuses.has(status)) {
+      if(!Object.hasOwn(terminal,item.name))terminal[item.name]=[];
+      if(!terminal[item.name].includes(status))terminal[item.name].push(status);
+    }
+  }
   // These are claimed evidence selections, not proof that a database read ran.
-  const cited = new Set((envelope.body?.citations || []).map(item=>item?.chunkId).filter(id=>typeof id==='string' && id.startsWith('account:')).map(id=>id.slice(8)));
-  return {observed,cited};
+  const cited=new Set((Array.isArray(envelope.body?.citations)?envelope.body.citations:[]).map(item=>item?.chunkId).filter(id=>typeof id==='string'&&id.startsWith('account:')).map(id=>id.slice(8)));
+  return {observed,attempted,cited,terminal,invalid,events,hasTelemetry:Array.isArray(envelope.events)||Array.isArray(envelope.toolCalls)||Array.isArray(envelope.body?.activity)};
 }
 
 function equalJson(left,right) {
@@ -244,7 +418,7 @@ const limitationText=/(?:\b(?:unavailable|unrecorded|unsupported|unimplemented|u
  * requireToolExecution, requiredEvents and forbiddenAccountMarkers strengthen
  * the common case contract. Nothing here changes an answer or executes an action.
  */
-export function gradeCase(testCase, envelope = {}) {
+export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
   const checks = [];
   const check = (id,passed,detail) => checks.push({id,passed:passed===true,detail});
   const expected = testCase?.expected || {};
@@ -276,7 +450,8 @@ export function gradeCase(testCase, envelope = {}) {
   if(behavior==='unavailable'){
     check('oracle.limitation',expected.limitation===true || typeof expected.limitation==='string' || Boolean(expected.limitation?.anyOf?.length),
       'A missing-data/capability case explicitly declares its limitation oracle.');
-    check('answer.limitation',limitationText.test(answer.replace(/’/g,"'"))||otherAccountDenial.test(answer)||unavailableFileCapability.test(answer),'The answer explicitly states missing records, inability or unsupported capability.');
+    check('answer.limitation',limitationText.test(answer.replace(/’/g,"'"))||otherAccountDenial.test(answer)||ownAccountOnlyDenial(answer)||unavailableFileCapability.test(answer)
+      ||testCase.domain==='dtmGradeReport'&&missingDtmReportField.test(answer),'The answer explicitly states missing records, inability or unsupported capability.');
     if(expected.limitation && expected.limitation!==true)check('answer.limitation.specific',matches(text,expected.limitation),'The specific required limitation is stated.');
   }
   if (behavior==='answer' && testCase.mode==='record') {
@@ -288,7 +463,7 @@ export function gradeCase(testCase, envelope = {}) {
   for (const [index,value] of (expected.requiredText || []).entries()) check(`text.required.${index}`,matches(text,value),'Required independent text is present with token boundaries.');
   for (const [index,value] of [...(expected.forbiddenText || []),...(expected.forbiddenAccountMarkers || [])].entries()) check(`text.forbidden.${index}`,!outputFields.some(field=>matches(field,value)),'No forbidden contradiction, foreign-account value or unsupported claim appears in prose, cards, citations or actions.');
   for (const [index,fact] of (expected.facts || []).entries()) {
-    const result = factResult(answer,fact);check(`fact.${index}`,result.passed,result.detail);
+    const result = factResult(answer,fact,expected.facts);check(`fact.${index}`,result.passed,result.detail);
   }
   for(const [index,kind] of (expected.evidenceBoundaries || []).entries()) {
     const result=evidenceBoundaryResult(answer,kind);check(`evidence.boundary.${index}`,result.passed,result.detail);
@@ -321,7 +496,45 @@ export function gradeCase(testCase, envelope = {}) {
     check(`tool.${name}`,tools.observed.has(name) || !expected.requireToolExecution && tools.cited.has(name),
       tools.observed.has(name)?'Completed tool execution was observed.':expected.requireToolExecution?'A completed tool execution is required.':'The selected account collection is declared in response evidence; this is not database execution proof.');
   }
-  const allEvents=[...(envelope.events || []),...(body.activity || [])];
+  const relevance=expected.allowedTools!==undefined||expected.maxDistinctAttemptedTools!==undefined||expected.requiredAttemptedTools!==undefined||expected.toolTerminalStates!==undefined||expected.forbidPublicResearch===true;
+  if(relevance) {
+    const validNames=value=>Array.isArray(value)&&new Set(value).size===value.length&&value.every(name=>accountReadNames.has(name));
+    check('tools.telemetry',tools.hasTelemetry&&!tools.invalid.length,'Named account reads have valid statuses/attempts; planner selections and citations are not execution proof.');
+    if(expected.allowedTools!==undefined) {
+      const valid=validNames(expected.allowedTools);
+      check('tools.allowed.schema',valid,'The relevance policy declares distinct registered tools.');
+      check('tools.allowed.attempted',valid&&[...tools.attempted].every(name=>expected.allowedTools.includes(name)),'Every attempted read, including failed/retried reads, is relevant.');
+      check('tools.allowed.cited',valid&&[...tools.cited].every(name=>expected.allowedTools.includes(name)),'Cited account evidence stays within the declared relevant collections.');
+    }
+    if(expected.maxDistinctAttemptedTools!==undefined)check('tools.attempted.limit',Number.isInteger(expected.maxDistinctAttemptedTools)&&expected.maxDistinctAttemptedTools>=0&&tools.attempted.size<=expected.maxDistinctAttemptedTools,'Distinct attempts stay within the independent relevance budget.');
+    if(expected.requiredAttemptedTools!==undefined) {
+      const valid=validNames(expected.requiredAttemptedTools);
+      check('tools.attempted.schema',valid,'Required attempts use registered tool names.');
+      for(const name of valid?expected.requiredAttemptedTools:[])check('tool.attempted.'+name,tools.attempted.has(name),'The required reader was attempted, regardless of whether it succeeded.');
+    }
+    if(expected.toolTerminalStates!==undefined) {
+      const states=expected.toolTerminalStates,valid=states&&typeof states==='object'&&!Array.isArray(states)&&Object.entries(states).every(([name,allowed])=>accountReadNames.has(name)&&Array.isArray(allowed)&&allowed.length>0&&new Set(allowed).size===allowed.length&&allowed.every(status=>terminalStatuses.has(status)));
+      check('tools.terminal.schema',Boolean(valid),'Terminal-state oracles use registered readers and explicit outcomes.');
+      if(valid)for(const [name,allowed]of Object.entries(states))check('tool.terminal.'+name,Boolean(tools.terminal[name]?.length)&&tools.terminal[name].every(status=>allowed.includes(status)),'Every observed terminal outcome for this reader matches; running-only, empty, and failed reads are distinct.');
+    }
+    if(expected.forbidPublicResearch)check('tools.public.none',!tools.events.some(event=>typeof event?.kind==='string'&&/^(?:public(?:-|$)|web(?:-|$)|knowledge(?:-|$)|page-context$)/u.test(event.kind)),'Private-account/coaching cases do not enter public research, including failed searches.');
+  }
+  if(expected.guidanceRubric) {
+    // The runner alone supplies a separately validated exact-response review.
+    // A response body (or a top-level response field) cannot approve itself.
+    const declared=expected.guidanceRubric.criteria,reviewed=independentReview?.criteria;
+    const ids=Array.isArray(declared)?declared.map(item=>item?.id):[];
+    const rubricIds=['requested_parts','usable_help','next_step','honest_separation','proportionate_clarification','missing_data','language_relevance'];
+    const valid=expected.guidanceRubric.version==='stu-guidance-v1'&&ids.length>0&&new Set(ids).size===ids.length&&declared.every(item=>item&&rubricIds.includes(item.id)&&['spans','whole_answer'].includes(item.proof));
+    let bound=false;
+    try {
+      const binding=independentReview?.binding;
+      const current=buildGuidanceReviewBinding({...binding,testCase,envelope});
+      bound=equalJson(binding,current);
+    }catch{/* Missing, stale or malformed response bindings cannot authorize a review. */}
+    check('guidance.independentReview',Boolean(valid&&bound&&independentReview?.status==='passed'&&independentReview.passed===true&&Array.isArray(reviewed)&&reviewed.length===ids.length&&new Set(reviewed.map(item=>item?.id)).size===ids.length&&reviewed.every(item=>item&&ids.includes(item.id)&&item.passed===true)&&Array.isArray(independentReview.failures)&&independentReview.failures.length===0),'Applicable guidance criteria require a separately validated review; missing/pending review never earns a pass.');
+  }
+  const allEvents=tools.events;
   for (const kind of expected.requiredEvents || []) check(`event.${kind}`,allEvents.some(event=>event.kind===kind && event.status==='complete'),'Required completed operation is retained.');
   const noAction=expected.noAction ?? behavior!=='proposal';
   if (noAction) check('action.none',!actions,'Read, navigation, clarification and unavailable answers do not propose writes.');
@@ -341,6 +554,6 @@ export function gradeCase(testCase, envelope = {}) {
     caseId:testCase?.id,passed:failures.length===0,checks,failures,
     execution:envelope.execution,sourceRevision:envelope.sourceRevision,fixtureKey:envelope.fixtureKey,
     domain:testCase?.domain,mode:testCase?.mode,behavior,capability:testCase?.capability,
-    elapsedMs:envelope.elapsedMs,toolEvidence:{observed:[...tools.observed],claimed:[...tools.cited]},
+    elapsedMs:envelope.elapsedMs,toolEvidence:{attempted:[...tools.attempted],observed:[...tools.observed],claimed:[...tools.cited],terminalStates:tools.terminal},
   };
 }

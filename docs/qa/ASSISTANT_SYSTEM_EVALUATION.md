@@ -116,3 +116,26 @@ Graduation run `97c178c3-9a3b-4577-83f1-ebb17961a5d7` passed all four groups, in
 Grades run `679298e5-822e-429d-8d59-e305d82270d9` passed all four groups, including the five actual-model answers, literal transcript/warning/ranking values, a supported grade-view clarification, account isolation, deployed page layouts and manager replay/conflict/clearing checks. Exact cleanup completed without failures and the owner fingerprint check passed. The test-only clarification fix accepts legitimate English/Chinese choices while still requiring supported views, local grounding and no implicit write.
 
 Attendance run `1b97e0d5-de4d-4628-a1fb-415c6cbc2d77` still failed its initial missing-current-term question: the actual model withheld the answer after two evidence checks with `unsupported_claims`. Cleanup and the owner's final fingerprint check passed. Live provider-log metadata reported one unsupported claim on each review, with `answersQuestion:true` and no unmatched references; the specific rejected claim was not retained. This remains a real answerability failure; the harness has not been relaxed to accept a generic refusal.
+
+
+## November 14 candidate and acceptance
+
+The candidate adds scoped conduct and loan readers, preserves an explicitly named academic term, and keeps a prior user-named course consistent across evidence, review, correction and record cards. General career coaching reads no student records. Mixed course catalog and Moodle questions compose from both selected sources before the first review. Correlation IDs join private evaluator reports to count-only model diagnostics.
+
+The current bank has 959 API cases. Source discovery includes 576 route patterns, 74 uncovered semantic routes and 586 required browser observations. The runner also records 50 browser-dispatch questions across ten native scopes as a separate unexecuted acceptance requirement. Graph API results cannot satisfy these cases.
+
+Run the reported conversation against the pinned candidate with `node tests/evaluation/run.mjs --mode live --only account:reproduction- --fixture-module tests/evaluation/live-fixtures.mjs --out artifacts/assistant-evaluation/issue100-reproduction.json`. The six SAMP cases require an exact read-only binding of the five published sample sections and the saved sample quiz. The adapter seeds only disposable account records, reads them back through the actual authenticated API, and verifies fixture and protected-owner cleanup. The other relevant prefixes are `account:student-conduct-`, `account:student-loan-`, `account:catalog-` and `account:tuition-`. Run serially under the shared lease. A partial packet remains ineligible for the whole-system release gate.
+
+An existing model-enabled deployment must match the evaluated Git revision. The reproduced career coaching and record overview require separate evidence-bound helpfulness assessments. Retain the original failed or unreviewed reports and save independent review to a new report.
+
+## Aid claims and salary next candidate
+
+The browser sends saved aid claim and salary questions to the account verification graph. The reader uses the caller's existing aid inquiry RPC. It supports count-only queries and literal details for the selected claim or salary view. It separates a completed zero-row read, missing fields, a failed view, and an excerpt. The assistant does not receive bank suffixes or use saved salary amounts to establish a bank transfer.
+
+Eight aid cases cover registered tools, claim status, multiple pay periods, tax zero versus missing, both inquiry views, empty records, unknown bank settlement and foreign access. The two-owner fixture checks actual scoped detail and summary replies before and after a question. Its tests simulate both sides of a lost transaction acknowledgement and reject unplanned owned rows. The Chromium entry suite with synthetic responses confirms that a compound salary request enters the graph endpoint and retains activity. No model or live database acceptance has been established for this candidate.
+
+## Native Moodle grades
+
+Plain Moodle grade prompts select the caller's saved native report. A personal grade-tracker request still selects the tracker, and a file review or assignment request selects its own records when asked separately. The result preserves stored text and prioritizes requested totals and feedback when the report is large. Detail citations open the exact course report. The fixture independently covers missing reports, missing totals, zero weight, stored totals in a 20-item report and late-item feedback. It journals both sides of a transition and checks the caller-owned detail endpoints and cross-owner denial before and after a model request. The authenticated handler and Chromium dispatch were checked with synthetic responses. No live fixture or model run has verified this revision.
+
+The study-planning repair passed injected-source checks with the recorded first-week prompt. Its actual model response still needs review against the public-resource and helpfulness criteria. The current inventory lists 975 cases across 576 routes. It still has 73 route omissions and 45 separate direct-reader browser questions that require execution. Counts describe the inventory. Titles, links and generic saved notes alone cannot establish native workflow behavior.

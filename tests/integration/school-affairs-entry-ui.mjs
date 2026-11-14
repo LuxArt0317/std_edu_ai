@@ -15,6 +15,7 @@ try {
  await context.addInitScript(nexus=>{if(!localStorage.getItem('qa-nexus-seeded')){localStorage.setItem('stu-nexus-auth',JSON.stringify(nexus));localStorage.setItem('qa-nexus-seeded','1');}},nexus);
  const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const accountTasks=[];const accountActions=[];const accountReads=[];
+ const reviewedTaskId='f27b6ba4-106b-4488-b0f9-2ac413fd11ca';
  await page.route('**/api/affairs-data*',route=>{
   const authorization=route.request().headers().authorization;assert.ok(authorization?.startsWith('Bearer '));
   const caller=JSON.parse(Buffer.from(authorization.split('.')[1],'base64url').toString());
@@ -26,6 +27,8 @@ try {
  });
  await page.route('**/api/affairs-action',route=>{
   const input=route.request().postDataJSON();accountActions.push(input);
+  const caller=JSON.parse(Buffer.from(route.request().headers().authorization.split('.')[1],'base64url').toString());
+  assert.equal(caller.sub,affairsTestUser.id,'Only the reviewed account may confirm');
   if(input.kind==='create_task') accountTasks.push({id:'site-task',title:input.payload.title,dueAt:null,completedAt:null,sourceMode:'site'});
   return route.fulfill({json:{id:'site-task',kind:input.kind,summary:'Created task: '+input.payload.title}});
  });
@@ -104,17 +107,49 @@ try {
  assert.equal(await page.getByText('12,000',{exact:true}).count(),0);
  await page.locator('.portal-brand').click();
  await page.waitForURL('**/school-affairs');
+ let assistantRequests=0;
+ const salaryQuestion='How many student salary records do I have? Also show the net pay and tax for each period.';
+ const moodleGradeQuestion='Show my Moodle grades.';
  await page.route('**/api/affairs-assistant',async route=>{
+  assistantRequests++;
   const authorization=route.request().headers().authorization;assert.ok(authorization?.startsWith('Bearer '));
   const payload=JSON.parse(Buffer.from(authorization.split('.')[1],'base64url').toString());assert.equal(payload.sub,affairsTestUser.id);
-  const body=route.request().postDataJSON();assert.ok(['What are my current subjects?','What is in this screenshot?','Remind me to review my sample courses'].includes(body.question));assert.equal(body.route,'/school-affairs');
-  await route.fulfill({json:body.question.startsWith('Remind me')?{answer:'I can create a stu.best task after you confirm.',citations:[],proposedAction:{kind:'create_task',label:'Create task: Review my sample courses',payload:{title:'Review my sample courses'}}}:body.images?.length?{answer:'The image shows a School Affairs service menu.',citations:[],activity:[{kind:'image',label:'Read the attached image',detail:'1 image analyzed',status:'complete'}]}:{answer:'Your sample subject is SAMP101 Campus Orientation.',citations:[],activity:[{kind:'account',label:'Read your School Affairs records',detail:'Only this account was queried',status:'complete'}]}});
+  const body=route.request().postDataJSON();assert.ok(['What are my current subjects?','What is in this screenshot?','Remind me to review my sample courses',salaryQuestion,moodleGradeQuestion].includes(body.question));assert.equal(body.route,'/school-affairs');
+  if(body.question===salaryQuestion){
+   await route.fulfill({json:{answer:'You have 1 saved salary record. September net pay was 5400, with tax 0.',status:'answered',citations:[],
+    verification:{status:'verified',attempts:1},activity:[{kind:'account-read:aidPayments:1',label:'Checked your salary record',detail:'Read the saved period, net pay and tax.',status:'complete'}]}});
+   return;
+  }
+  if(body.question===moodleGradeQuestion){
+   await route.fulfill({json:{answer:'Your saved Moodle course total is 73.50.',status:'answered',citations:[],
+    verification:{status:'verified',attempts:1},activity:[{kind:'account-read:dtmGradeReport:1',label:'Checked your Moodle grade report',detail:'Read the saved native course total.',status:'complete'}]}});
+   return;
+  }
+  await route.fulfill({json:body.question.startsWith('Remind me')?{answer:'I can create a stu.best task after you confirm.',citations:[],proposedAction:{kind:'create_task',label:'Create task: Review my sample courses',payload:{title:'Review my sample courses'},requestId:reviewedTaskId}}:body.images?.length?{answer:'The image shows a School Affairs service menu.',citations:[],activity:[{kind:'image',label:'Read the attached image',detail:'1 image analyzed',status:'complete'}]}:{answer:'Your sample subject is SAMP101 Campus Orientation.',citations:[],activity:[{kind:'account',label:'Read your School Affairs records',detail:'Only this account was queried',status:'complete'}]}});
  });
  await openAssistant();
  await page.getByRole('button',{name:'What are my current subjects?',exact:true}).click();
  await page.getByText('Your sample subject is SAMP101 Campus Orientation.',{exact:true}).waitFor();
  await page.locator('article').last().locator('details').locator('summary').click();
  await page.getByText('Read your School Affairs records',{exact:true}).waitFor();
+ // Simulate the interval after Auth has switched accounts and before the
+ // rendered account context receives its change notification.
+ const switchSession=async otherSession=>page.evaluate(async session=>{
+  const authModule='/src/features/public/affairs/authClient.ts';
+  const {affairsClient}=await import(authModule);
+  const auth=affairsClient.auth;
+  if(session){
+   Object.defineProperty(auth,'getSession',{configurable:true,writable:true,value:async()=>({data:{session},error:null})});
+  }else Reflect.deleteProperty(auth,'getSession');
+ },otherSession);
+ const otherSession=affairsTestSession({...affairsTestUser,id:'ca0844fd-3a60-4fc5-8df9-a2a52bcc0c26'});
+ const beforeMismatch=assistantRequests;
+ await page.getByLabel('Your question').fill('What are my current subjects?');
+ await switchSession(otherSession);
+ await page.getByRole('button',{name:'Send',exact:true}).click();
+ await page.getByText('Your account changed. Reopen the assistant and try again.',{exact:true}).waitFor();
+ assert.equal(assistantRequests,beforeMismatch,'Old-account chat history must not reach the new account');
+ await switchSession(null);
  await page.getByLabel('Your question').fill('Remind me to review my sample courses');
  await page.getByRole('button',{name:'Send',exact:true}).click();
  await page.getByRole('button',{name:'Confirm action',exact:true}).waitFor();
@@ -129,9 +164,31 @@ try {
  await page.getByLabel('Your question').fill('Remind me to review my sample courses');
  await page.getByRole('button',{name:'Send',exact:true}).click();
  await page.getByRole('button',{name:'Confirm action',exact:true}).waitFor();
+ await switchSession(otherSession);
+ await page.getByRole('button',{name:'Confirm action',exact:true}).click();
+ await page.getByText('Your account changed. Reload the workspace.',{exact:true}).waitFor();
+ assert.equal(accountActions.length,0,'The old-account action must not execute with the new session');
+ await switchSession(null);
  await page.getByRole('button',{name:'Confirm action',exact:true}).click();
  await page.getByText(/Created task: Review my sample courses/).first().waitFor();
- assert.equal(accountActions.length,1);
+ assert.deepEqual(accountActions,[{kind:'create_task',payload:{title:'Review my sample courses'},requestId:reviewedTaskId}]);
+ evidence.push({assistantAccountSwitchReadBlocked:true,assistantAccountSwitchWriteBlocked:true,reviewedActionRequestId:true});
+ const beforeSalary=assistantRequests;
+ await page.getByLabel('Your question').fill(salaryQuestion);
+ await page.getByRole('button',{name:'Send',exact:true}).click();
+ await page.getByText('You have 1 saved salary record. September net pay was 5400, with tax 0.',{exact:true}).waitFor();
+ await page.locator('article').last().locator('details').locator('summary').click();
+ await page.getByText('Checked your salary record',{exact:true}).waitFor();
+ assert.equal(assistantRequests,beforeSalary+1,'Salary details enter the graph transport once instead of the browser count reader');
+ evidence.push({multipartAidEnteredGraph:true});
+ const beforeMoodleGrades=assistantRequests;
+ await page.getByLabel('Your question').fill(moodleGradeQuestion);
+ await page.getByRole('button',{name:'Send',exact:true}).click();
+ await page.getByText('Your saved Moodle course total is 73.50.',{exact:true}).waitFor();
+ await page.locator('article').last().locator('details').locator('summary').click();
+ await page.getByText('Checked your Moodle grade report',{exact:true}).waitFor();
+ assert.equal(assistantRequests,beforeMoodleGrades+1,'Moodle grades from School Affairs enter the graph transport once');
+ evidence.push({nativeDtmGradesEnteredGraph:true});
  const image=Buffer.concat([Buffer.from('89504e470d0a1a0a','hex'),Buffer.alloc(40)]);
  await page.locator('.public-assistant-surface input[type=file]').setInputFiles({name:'school-menu.png',mimeType:'image/png',buffer:image});
  await page.getByRole('list',{name:'Attached images'}).getByText('school-menu.png').waitFor();

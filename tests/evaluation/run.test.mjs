@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
-import {options,readReply,sourceIdentity,validateFixtureAdapter,deploymentIdentity,evaluationSuite,createLiveRequestPacer,validateCatalogCaseBinding,assertCatalogCaseBound} from './run.mjs';
+import {createHash} from 'node:crypto';
+import {options,readReply,sourceIdentity,validateFixtureAdapter,deploymentIdentity,evaluationSuite,createLiveRequestPacer,validateCatalogCaseBinding,assertCatalogCaseBound,applyGuidanceReviews,assessRun} from './run.mjs';
+import {buildGuidanceReviewBinding} from './guidance-rubric.mjs';
 import {buildPublicCases} from './public-cases.mjs';
 import {buildAccountCases} from './account-cases.mjs';
 import {buildServiceCases} from './service-cases.mjs';
@@ -27,6 +29,75 @@ test('CLI rejects unknown modes, malformed limits, missing values and invalid da
   assert.equal(options([]).mode,'inventory');
   assert.equal(options(['--mode','live','--max-cases','3']).maxCases,3);
   for(const args of [['--unsafe','yes'],['--mode'],['--mode','--only','x'],['--mode','pretend'],['--max-cases','0'],['--max-cases','2.5'],['--max-cases','Infinity'],['--now','not-a-date']])assert.throws(()=>options(args),Error);
+});
+test('independent review mode requires an explicit reviewer and separate report without executing a new selection',()=>{
+  const args=['--mode','review','--review-report','artifacts/assistant-evaluation/original.json','--guidance-reviews','artifacts/assistant-evaluation/reviews.json','--reviewer','independent-qa','--out','artifacts/assistant-evaluation/reviewed.json'];
+  assert.equal(options(args).mode,'review');
+  for(const missing of ['--review-report','--guidance-reviews','--reviewer','--out']){const value=[...args],at=value.indexOf(missing);value.splice(at,2);assert.throws(()=>options(value));}
+  for(const extra of [['--only','account:'],['--max-cases','1'],['--fixture-module','anything'],['--domain','profile']])assert.throws(()=>options([...args,...extra]));
+  assert.throws(()=>options(['--mode','live','--reviewer','independent-qa']));
+});
+
+const jsonHash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
+function guidanceReportFixture(){
+  const sourceRevision='a'.repeat(40),runId='20000000-0000-4000-8000-000000000001';
+  const testCase={id:'account:review-contract',question:'What year am I in? Help me draft an introduction.',route:'/school-affairs',domain:'profile',mode:'record',fixtureKey:'profile',expected:{
+    behavior:'answer',facts:[{kind:'number',label:'year',values:[3]}],noAction:true,
+    guidanceRubric:{version:'stu-guidance-v1',criteria:[{id:'usable_help',proof:'spans'},{id:'honest_separation',proof:'whole_answer'}]},
+  }};
+  const body={status:'answered',answer:'Your recorded year is 3. Try: I contributed to [project] by [specific work].',citations:[],verification:{status:'verified',attempts:1}};
+  const envelope={statusCode:200,body,events:[],execution:'live-model',sourceRevision,fixtureKey:'profile',executed:true};
+  const suite={cases:[testCase],suiteHash:jsonHash([testCase]),inventory:{hash:'b'.repeat(64)}};
+  const report={version:1,mode:'live',runId,sourceRevision,suiteHash:suite.suiteHash,inventoryHash:suite.inventory.hash,finishedAt:'2026-11-13T00:00:00Z',selectedCases:[testCase.id],results:[{...gradeCase(testCase,envelope),response:envelope,executed:true,failureKind:'behavior'}]};
+  const binding=buildGuidanceReviewBinding({runId,finalSuiteHash:suite.suiteHash,sourceRevision,testCase,envelope});
+  report.results[0].guidanceReviewBinding=binding;
+  const text='I contributed to [project] by [specific work]',start=body.answer.indexOf(text);
+  const artifact={binding,reviewer:{id:'independent-qa',method:'manual'},criteria:[
+    {id:'usable_help',passed:true,answerSpans:[{start,end:start+text.length,text}]},
+    {id:'honest_separation',passed:true,answerSpans:[],examinedRange:{start:0,end:body.answer.length}},
+  ]};
+  return {testCase,envelope,suite,report,artifact,settings:{reviewer:'independent-qa',sourceRevision}};
+}
+test('independent review preserves raw responses and adds only a separate bound assessment',()=>{
+  const f=guidanceReportFixture(),before=structuredClone(f.report);
+  const result=applyGuidanceReviews(f.report,f.suite,{version:1,reviews:[f.artifact]},f.settings).report;
+  assert.deepEqual(f.report,before);assert.deepEqual(result.results[0].response,before.results[0].response);
+  assert.equal(result.results[0].independentReview.status,'passed');assert.equal(result.results[0].passed,true);
+  assert.equal(result.guidanceReviewOf.sha256,jsonHash(before));assert.equal(result.guidanceReviewOf.runId,f.report.runId);
+  const artifactBefore=structuredClone(f.artifact);
+  result.results[0].response.body.answer='Changed reviewed copy';result.results[0].independentReviewArtifact.reviewer.id='changed-copy';
+  assert.deepEqual(f.report,before);assert.deepEqual(f.artifact,artifactBefore);
+});
+test('helpfulness review cannot replace a failed factual answer or a missing independent review',()=>{
+  const f=guidanceReportFixture();
+  const pending=applyGuidanceReviews(f.report,f.suite,{version:1,reviews:[]},f.settings).report.results[0];
+  assert.equal(pending.passed,false);assert.equal(pending.independentReview.status,'pending');
+  f.envelope.body.answer=f.envelope.body.answer.replace('year is 3','year is 4');
+  f.artifact.binding=buildGuidanceReviewBinding({runId:f.report.runId,finalSuiteHash:f.suite.suiteHash,sourceRevision:f.settings.sourceRevision,testCase:f.testCase,envelope:f.envelope});
+  // Construct a genuinely failed original answer, rather than changing a
+  // response after its saved immutable binding has already been reviewed.
+  f.report.results[0].guidanceReviewBinding=f.artifact.binding;
+  const wrong=applyGuidanceReviews(f.report,f.suite,{version:1,reviews:[f.artifact]},f.settings).report.results[0];
+  assert.equal(wrong.independentReview.status,'passed');assert.equal(wrong.passed,false);assert.ok(wrong.failures.some(item=>item.id==='fact.0'));
+});
+test('review rejects wrong identities, changed suites and duplicate artifacts instead of blessing them',()=>{
+  for(const mutate of [f=>{f.artifact.reviewer.id='production-verifier';},f=>{f.report.sourceRevision='c'.repeat(40);},f=>{f.suite.cases[0].question='Changed question';},f=>{f.report.selectedCases.push(f.testCase.id);},f=>{f.report.results.push(f.report.results[0]);},f=>{f.report.guidanceReviewOf={};}]){
+    const f=guidanceReportFixture();mutate(f);assert.throws(()=>applyGuidanceReviews(f.report,f.suite,{version:1,reviews:[f.artifact]},f.settings));
+  }
+  const f=guidanceReportFixture();assert.throws(()=>applyGuidanceReviews(f.report,f.suite,{version:1,reviews:[f.artifact,f.artifact]},f.settings));
+  f.artifact.binding={...f.artifact.binding,responseHash:'d'.repeat(64)};
+  const stale=applyGuidanceReviews(f.report,f.suite,{version:1,reviews:[f.artifact]},f.settings).report.results[0];
+  assert.equal(stale.independentReview.status,'invalid');assert.equal(stale.passed,false);
+  for(const change of [g=>{g.envelope.body.answer+=' Extra text.';},g=>{g.envelope.elapsedMs=99;},g=>{g.envelope.events.push({kind:'changed',status:'complete'});}]){
+    const g=guidanceReportFixture();change(g);
+    g.artifact.binding=buildGuidanceReviewBinding({runId:g.report.runId,finalSuiteHash:g.suite.suiteHash,sourceRevision:g.settings.sourceRevision,testCase:g.testCase,envelope:g.envelope});
+    assert.throws(()=>applyGuidanceReviews(g.report,g.suite,{version:1,reviews:[g.artifact]},g.settings),/original review binding/);
+  }
+  const missing=guidanceReportFixture();delete missing.report.results[0].guidanceReviewBinding;
+  assert.throws(()=>applyGuidanceReviews(missing.report,missing.suite,{version:1,reviews:[missing.artifact]},missing.settings),/original review binding/);
+});
+test('deliberately failed reader fixtures remain unexecuted live setup gaps',()=>{
+  assert.throws(()=>assertCatalogCaseBound({fixtureRequirement:'offline_reader_failure'},{}),/no live failure-injection fixture/);
 });
 test('live pacing is explicit,bounded and cannot be disabled through CLI',()=>{
   assert.equal(options([]).intervalMs,5500);assert.equal(options(['--interval-ms','9000']).intervalMs,9000);
@@ -288,6 +359,14 @@ test('public authentication cases assert HTTP denial rather than a fabricated an
 test('full bank includes every source page and catalog entry without duplicate case IDs',async()=>{
   const suite=await evaluationSuite('2026-11-13T02:00:00Z');
   assert.equal(new Set(suite.cases.map(row=>row.id)).size,suite.cases.length);
+  assert.equal(suite.inventory.clientDispatch.questions.length,45);
+  assert.deepEqual(suite.inventory.clientDispatch.verifiedDispatch.map(({graphTool})=>graphTool),['aidPayments','dtmGradeReport']);
+  assert.ok(suite.inventory.clientDispatch.questions.every(row=>row.executed===false));
+  assert.ok(suite.inventory.clientDispatch.questions.every(row=>!suite.cases.some(apiCase=>apiCase.id===row.id)));
+  const assessment=assessRun({results:[],cleanup:{complete:true},sourceUnchanged:true,dirty:false},{...suite,requestedSuite:'full',sourceRevision:'offline'});
+  assert.equal(assessment.clientDispatch.executed,0);
+  assert.ok(assessment.releaseBlockers.includes('client_dispatch_acceptance_missing'));
+
   for(const page of suite.inventory.publicPages)assert.ok(suite.cases.some(row=>row.domain==='public-page-context'&&row.route===page.route),page.route);
   for(const service of suite.inventory.services)assert.equal(suite.cases.filter(row=>row.serviceId===service.id).length,4,service.id);
   assert.ok(suite.cases.filter(row=>row.domain==='public-page-context').every(row=>row.coveragePurpose?.includes('not proof')),'Metadata questions must not claim complete content QA.');

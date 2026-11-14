@@ -112,11 +112,20 @@ test('personal School Affairs question reads only the caller site records, never
     assert.equal((init?.headers as Record<string,string>)?.Authorization,'Bearer test-key');
     const body=JSON.parse(String(init?.body));
     const name=body.text.format.name;
-    assert.ok(['account_lookup_plan','answer_evidence_review'].includes(name));
+    assert.ok(['account_lookup_plan','compose_grounded_answer','answer_evidence_review'].includes(name));
     assert.doesNotMatch(String(init?.body),/access_token|refresh_token|Bearer x{20}/);
     const payload=JSON.parse(body.input[0].content[0].text);
-    const value=name==='account_lookup_plan'?{tools:Object.keys(accountTools),publicTopics:[]}:
+    let value:unknown=name==='account_lookup_plan'?{tools:Object.keys(accountTools),publicTopics:[]}:
       {supported:true,answersQuestion:true,claims:[{claim:'The data is local account evidence',supported:true,evidenceId:'account-scope',quote:'stu.best account records'}]};
+    if(name==='compose_grounded_answer'){
+      assert.equal(payload.previousAnswer,undefined);
+      const sources=new Map<string,any>(payload.evidence.map((row:any)=>[row.id,JSON.parse(row.content)]));
+      const profile=sources.get('account:profile').records,courses=sources.get('account:courses').records,dtm=sources.get('account:dtm').records;
+      assert.equal(profile.student.studentNumber,undefined);
+      assert.equal(profile.profile.email,undefined);
+      assert.equal(profile.student.program,'Sample General Studies');
+      value={status:'answered',answer:`Saved sample records for ${profile.profile.displayName}: ${profile.student.program}, year ${profile.student.yearLevel}. Current subjects: ${courses.map((row:any)=>row.code+' '+row.title).join(', ')}. Separately saved DTM courses: ${dtm.courses.map((row:any)=>row.code+' '+row.title).join(', ')}.`,sourceIds:['account:profile','account:courses','account:dtm']};
+    }
     if(name==='answer_evidence_review')assert.ok(payload.evidence.every((row:any)=>row.id.startsWith('account')||row.id==='service-directory'));
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}]});
   }
@@ -173,9 +182,11 @@ test('personal School Affairs question reads only the caller site records, never
  const dtm=await invoke(affairsHandler,{question:'What DTM materials do I have?',route:'/dtm'},token);
  assert.equal(dtm.status,200);assert.match(dtm.body.answer,/Getting started guide/);assert.match(dtm.body.answer,/sample/i);
  const account=await invoke(affairsHandler,{question:'what are all my school details',route:'/dtm'},token);
- assert.equal(account.status,200);assert.match(account.body.answer,/student@example.com/);assert.match(account.body.answer,/SAMP101/);assert.match(account.body.answer,/DTM-SAMPLE-101/);
+ assert.equal(account.status,200);assert.match(account.body.answer,/Sample General Studies/);assert.match(account.body.answer,/year 1/);assert.match(account.body.answer,/SAMP101/);assert.match(account.body.answer,/DTM-SAMPLE-101/);assert.doesNotMatch(account.body.answer,/student@example.com/);
  const known=await invoke(affairsHandler,{question:'what details do you know about me',route:'/school-affairs'},token);
- assert.equal(known.status,200);assert.match(known.body.answer,/SAMPLE-123/);assert.match(known.body.answer,/sample/i);
+ assert.equal(known.status,200);assert.match(known.body.answer,/Sample General Studies/);assert.match(known.body.answer,/year 1/);assert.match(known.body.answer,/sample/i);
+ const identity=await invoke(affairsHandler,{question:'What is my student number?',route:'/school-affairs'},token);
+ assert.equal(identity.status,200);assert.match(identity.body.answer,/SAMPLE-123/);
  const tools=await invoke(affairsHandler,{question:'what tools do you have?',route:'/dtm'},token);
  assert.equal(tools.status,200);assert.match(tools.body.answer,/prepare a task or service request/);assert.match(tools.body.answer,/cannot access or change official university records/i);
  const assignments=await invoke(affairsHandler,{question:'What are my Moodle assignments?',route:'/dtm'},token);

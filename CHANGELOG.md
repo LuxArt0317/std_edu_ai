@@ -1,6 +1,13 @@
 # Changelog
 ## Unreleased
 
+- Preserve the named course and academic term in verified assistant answers and record tables. Career wording help avoids unrelated account reads. [#100]
+- Verify saved student conduct and loan records using the signed-in account. Preserve literal fields and show the relevant School Affairs links. [#100]
+- Add synthetic reproduction cases, independent helpfulness review and browser dispatch coverage tracking to the assistant evaluation. [#100]
+- Verify saved aid claim and salary details, including net pay and tax, through the account assistant. Keep confirmed actions and private chat history bound to the initiating account. [#100]
+- Answer Moodle grade questions from the signed-in student's native report. Preserve saved feedback, weights and course totals, and verify the exact report link. [#100]
+- Use published Shu-Te resources to support first-week study advice. Check school facts separately from planning suggestions. [#100]
+
 - Add student club and activity search, private participation history, and new-club applications with administrator review and assistant links. [#98]
 
 - Save private club proposal and closeout PDFs with scoped download, replacement and removal. [#98]

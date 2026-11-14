@@ -43,14 +43,28 @@ test('unsafe, malformed, fragmented or oversized routes fail before authenticati
   }
 });
 
-test('all four required supplemental domains and page followups use account routing without the word my',async()=>{
+test('required supplemental domains and page followups use account routing without the word my',async()=>{
   const cases=[['What courses are available?',endpoint],['Show enrollment certificate status.','/school-affairs/services/17-1'],
     ['What is the status?','/school-affairs/services/17-1'],['Show tuition settlement.','/school-affairs/services/49-1'],
-    ['What does this say?','/school-affairs/services/49-1'],['Show saved assignment files.','/dtm'],['What feedback was recorded?','/dtm/course/20000000-0000-4000-8000-000000000001/assignment/20000000-0000-4000-8000-000000000002']];
+    ['What does this say?','/school-affairs/services/38-1'],['What does this say?','/school-affairs/services/21-1/history'],
+    ['What does this say?','/school-affairs/services/49-1'],['Show saved assignment files.','/dtm'],['What feedback was recorded?','/dtm/course/20000000-0000-4000-8000-000000000001/assignment/20000000-0000-4000-8000-000000000002'],
+    ['What tax is recorded?','/school-affairs/services/37-1/salary'],['List saved student aid claims.','/dtm'],
+    ['Show saved Moodle grades.','/'],['What is on this page?','/dtm/grades']];
   for(const [question,route]of cases){let calls=0;
     const result=await invoke(base({answerAccount:async options=>{calls++;assert.equal(options.question,question);assert.equal(options.route,route);
-      assert.deepEqual(Object.keys(options.supplementalReaders??{}),['courseCatalog','enrollmentCertificate','dtmSubmissions','tuition']);return answer;}}),{question,route});
+      assert.deepEqual(Object.keys(options.supplementalReaders??{}),['courseCatalog','enrollmentCertificate','dtmSubmissions','studentConduct','studentLoan','aidPayments','dtmGradeReport','tuition']);return answer;}}),{question,route});
     assert.equal(result.status,200,question);assert.equal(calls,1,question);
+  }
+});
+
+test('foreign salary, aid and DTM grade requests are denied after auth with zero private or public lookups',async()=>{
+  const disallowed=async()=>{assert.fail('A rejected account scope must not load or search records.');};
+  for(const question of ['Show another student’s student salary records.','List another student’s financial aid claims.',
+    'Show my classmate’s Moodle grades.','Show the Moodle grade report for student s12345678.']){
+    const result=await invoke(base({loadSnapshot:disallowed,answerAccount:disallowed,publicResearch:disallowed}),{question,route:'/dtm'});
+    assert.equal(result.status,200);assert.equal(result.body.status,'handoff');assert.equal(result.body.grounding.webSearched,false);
+    assert.match(result.body.answer,/only check your signed-in stu\.best account/iu);
+    assert.deepEqual(result.body.citations,[]);assert.equal(result.body.proposedAction,undefined);
   }
 });
 

@@ -1,4 +1,12 @@
+import {readStudentConductEvidence} from '../server/accountStudentConductEvidence.js';
+import {readStudentLoanEvidence} from '../server/accountStudentLoanEvidence.js';
+import {readAidPaymentsEvidence} from '../server/accountAidPaymentsEvidence.js';
+import {isForeignAidPaymentsQuestion} from '../server/aidPaymentsEvidenceIntent.js';
+import {readDtmGradeReportEvidence} from '../server/accountDtmGradeReportEvidence.js';
+import {isForeignDtmGradesQuestion} from '../server/dtmGradeEvidenceIntent.js';
+import {randomUUID} from 'node:crypto';
 import { questionKind } from '../server/schoolWebSearch.js';
+import { accountQuestionIntent } from '../server/affairsAnswer.js';
 import { answerAccountWithVerification, requiredNativeTools, requiredSupplementalTools, type SupplementalAccountReaders } from '../server/answerVerificationAccount.js';
 import { readCatalogEvidence } from '../server/accountCatalogEvidence.js';
 import { readCertificateEvidence } from '../server/accountCertificateEvidence.js';
@@ -125,12 +133,15 @@ export function createAffairsAssistantHandler(dependencies:{
   verifyToken?:typeof verifyAffairsToken;
   loadSnapshot?:typeof loadAffairsSnapshot;
   answerAccount?:typeof answerAccountWithVerification;
-  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence};
+  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence};
 }={}) {
 const publicResearch=dependencies.publicResearch??researchHandler;
 const verifyToken=dependencies.verifyToken??verifyAffairsToken,loadSnapshot=dependencies.loadSnapshot??loadAffairsSnapshot,answerAccount=dependencies.answerAccount??answerAccountWithVerification;
 const readers={courseCatalog:dependencies.readers?.courseCatalog??readCatalogEvidence,enrollmentCertificate:dependencies.readers?.enrollmentCertificate??readCertificateEvidence,
-  dtmSubmissions:dependencies.readers?.dtmSubmissions??readSubmissionEvidence,tuition:dependencies.readers?.tuition??readTuitionEvidence};
+  dtmSubmissions:dependencies.readers?.dtmSubmissions??readSubmissionEvidence,tuition:dependencies.readers?.tuition??readTuitionEvidence,
+  studentConduct:dependencies.readers?.studentConduct??readStudentConductEvidence,studentLoan:dependencies.readers?.studentLoan??readStudentLoanEvidence,
+  aidPayments:dependencies.readers?.aidPayments??readAidPaymentsEvidence,
+  dtmGradeReport:dependencies.readers?.dtmGradeReport??readDtmGradeReportEvidence};
 return async function handler(request:ApiRequest,response:ApiResponse) {
   const deadline=Date.now()+55_000;
   response.setHeader('Cache-Control','no-store, max-age=0');
@@ -161,8 +172,39 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const entry=item as Record<string,unknown>;
     return ['user','assistant'].includes(String(entry.role))&&typeof entry.content==='string'?[{role:String(entry.role),content:entry.content.slice(0,1000)}]:[];
   }):[];
+  const correlationId=randomUUID();
+  response.setHeader('X-Assistant-Request-Id',correlationId);
   const stream=createAssistantStream(input?.stream===true,response);
-  const needsRecords=personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
+  const foreignDtmGrades=isForeignDtmGradesQuestion(question,route);
+  if(foreignDtmGrades||isForeignAidPaymentsQuestion(question)){
+    const chinese=/[\u3400-\u9fff]/u.test(question);
+    const records=foreignDtmGrades?(chinese?'數位教材成績紀錄':'Moodle grade records'):(chinese?'薪資或助學請款紀錄':'salary or aid claim records');
+    const answer=chinese?`我只能查詢您登入的 stu.best 帳戶，無法存取其他學生的${records}。`
+      :`I can only check your signed-in stu.best account. I can’t show another student’s ${records}.`;
+    stream.progress('account-access',chinese?'已確認帳戶範圍':'Checked account access',answer,'complete');
+    stream.send(200,{status:'handoff',answer,citations:[],suggestedQuestions:[],grounding:{source:'account',webSearched:false}});
+    return;
+  }
+  const intent=accountQuestionIntent(question,history,route);
+  if(intent.recognized&&intent.kind==='coaching'&&!intent.baseTools.length){
+    if(Array.isArray(input?.images)&&input.images.length){stream.send(400,{error:'For this coaching request, remove the image and ask using text.'});return;}
+    try{
+      // Authentication remains mandatory, but wording help needs no student
+      // profile, role, account initialization, record reader or write tool.
+      const emptySnapshot={checkedAt:new Date().toISOString(),profile:{userId:account.user.id}};
+      stream.progress('guidance','Preparing helpful guidance','No personal record lookup is needed for this request.','running');
+      const answer=await answerAccount({question,correlationId,snapshot:emptySnapshot,history,route,deadline,supplementalReaders:{},
+        loadSnapshot:async()=>({...emptySnapshot,checkedAt:new Date().toISOString()}),
+        onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status),
+      });
+      if(answer.proposedAction||Array.isArray(answer.views)&&answer.views.length)throw new Error('Unexpected private output from coaching.');
+      stream.progress('guidance',answer.verification?.status==='verified'?'Answer ready':'Verification incomplete',
+        answer.verification?.status==='verified'?'The guidance passed the independent checks.':'The unchecked draft was withheld.',answer.verification?.status==='verified'?'complete':'unavailable');
+      stream.send(200,answer);
+    }catch{stream.send(503,{error:'The guidance could not be checked. Please try again.'});}
+    return;
+  }
+  const needsRecords=intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
   const navigation=!needsRecords && !(Array.isArray(input?.images) && input.images.length) && !questionKind(question).irrelevant
     ? answerCampusNavigation(question) : null;
   if(navigation) {
@@ -204,9 +246,13 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       courseCatalog:context=>readers.courseCatalog(account,{question,route,query:context.catalogQuery,deadline:readDeadline(context.deadline)}),
       enrollmentCertificate:context=>readers.enrollmentCertificate(account,{question,route,history,deadline:readDeadline(context.deadline)}),
       dtmSubmissions:context=>readers.dtmSubmissions(account,{question,route,history,snapshot:context.snapshot,deadline:readDeadline(context.deadline)}),
+      studentConduct:context=>readers.studentConduct(account,{question,route,history,deadline:readDeadline(context.deadline)}),
+      studentLoan:context=>readers.studentLoan(account,{question,route,history,deadline:readDeadline(context.deadline)}),
+      aidPayments:context=>readers.aidPayments(account,{question,route,history,deadline:readDeadline(context.deadline)}),
+      dtmGradeReport:context=>readers.dtmGradeReport(account,{question,route,history,deadline:readDeadline(context.deadline)}),
       tuition:context=>readers.tuition(account,{question,route,history,deadline:readDeadline(context.deadline)}),
     };
-    const answer=await answerAccount({question,snapshot,history,route,deadline,supplementalReaders,
+    const answer=await answerAccount({question,correlationId,snapshot,history,route,deadline,supplementalReaders,
       loadSnapshot:()=>loadSnapshot(account,false,{initialize:false,deadline}),
       onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status),
     });

@@ -1,3 +1,9 @@
+import {isStudentConductEvidenceQuestion,studentConductEvidenceMaxBytes} from './accountStudentConductEvidence.js';
+import {isStudentLoanEvidenceQuestion,studentLoanEvidenceMaxBytes} from './accountStudentLoanEvidence.js';
+import {isAidPaymentsEvidenceQuestion,aidPaymentsEvidenceMaxBytes} from './accountAidPaymentsEvidence.js';
+import {aidPaymentsPageSize,aidPaymentsPaths} from './aidPaymentsContract.js';
+import {dtmGradeReportEvidenceMaxBytes,unavailableDtmGradeReportEvidence} from './accountDtmGradeReportEvidence.js';
+import {mentionsDtmSubmissionDetail,shouldReadNativeDtmGrades} from './dtmGradeEvidenceIntent.js';
 import {isCatalogEvidenceQuestion} from './accountCatalogEvidence.js';
 import {isCertificateEvidenceQuestion} from './accountCertificateEvidence.js';
 import {isSubmissionEvidenceQuestion} from './accountSubmissionEvidence.js';
@@ -9,14 +15,21 @@ export const supplementalAccountTools=Object.freeze({
   courseCatalog:'Published local sample course offerings and syllabus plans, independent of enrollment. Supports exact offering IDs and validated keyword/term/department/theme search.',
   enrollmentCertificate:'Own saved enrollment-certificate assessment, literal independent pending-fee flag/status and individually requested identity fields; no issuance/download capability.',
   dtmSubmissions:'Own saved DTM assignment file metadata and revision-specific reviews; current files, retained older reviews and pending reservations are distinct. No file content or upload action.',
+  studentConduct:'Own saved student conduct rows, including reason, quantity and void text. Different from dormitory conduct or official clearance.',
+  studentLoan:'Own saved student loan application state, progress and history metadata. No disbursement, payment or official approval.',
   tuition:'Own literal saved tuition settlement statements/periods at49-1, plus explicit unavailable file capabilities at48-1/48-3 and extended-study records at48-2; not charges, balances or payment ledger.',
+  aidPayments:'Own saved student aid claims and salary records, with separate counts, exact periods, amounts, deductions and approval text. Independent from financial aid applications, student loans, tuition, and bank transfers.',
+  dtmGradeReport:'Own native DTM grade report and grades overview. Literal report items, feedback and saved total values. Separate from the personal grade tracker, file reviews, and School Affairs transcript.',
 });
-const predicates={courseCatalog:isCatalogEvidenceQuestion,enrollmentCertificate:isCertificateEvidenceQuestion,dtmSubmissions:isSubmissionEvidenceQuestion,tuition:isTuitionEvidenceQuestion};
+const predicates={courseCatalog:isCatalogEvidenceQuestion,enrollmentCertificate:isCertificateEvidenceQuestion,dtmSubmissions:isSubmissionEvidenceQuestion,tuition:isTuitionEvidenceQuestion,studentConduct:isStudentConductEvidenceQuestion,studentLoan:isStudentLoanEvidenceQuestion,aidPayments:isAidPaymentsEvidenceQuestion,dtmGradeReport:shouldReadNativeDtmGrades};
 const keys=Object.keys(supplementalAccountTools),plain=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&[Object.prototype,null].includes(Object.getPrototypeOf(value));
 const bytes=value=>Buffer.byteLength(JSON.stringify(value),'utf8');
-const sourceLimits={courseCatalog:18000,enrollmentCertificate:12000,dtmSubmissions:24000,tuition:16000};
+const sourceLimits={courseCatalog:18000,enrollmentCertificate:12000,dtmSubmissions:24000,tuition:16000,studentConduct:studentConductEvidenceMaxBytes,studentLoan:studentLoanEvidenceMaxBytes,aidPayments:aidPaymentsEvidenceMaxBytes,dtmGradeReport:dtmGradeReportEvidenceMaxBytes};
 export const supplementalEvidenceBudget=54000;
-export function requiredSupplementalTools(question,route='',history=[]){return keys.filter(key=>predicates[key](question,route,history));}
+export function requiredSupplementalTools(question,route='',history=[]){
+  const nativeGradeOnly=shouldReadNativeDtmGrades(question,route,history)&&!mentionsDtmSubmissionDetail(question,history);
+  return keys.filter(key=>(key!=='dtmSubmissions'||!nativeGradeOnly)&&predicates[key](question,route,history));
+}
 const queryKeys=['id','search_scope','keyword','term','department','themes','page','page_size','sort','direction'];
 export const catalogReadPlanSchema={anyOf:[{type:'null'},{type:'object',additionalProperties:false,properties:Object.fromEntries(queryKeys.map(key=>[key,{type:['string','null'],...(key==='search_scope'?{enum:['current','historical',null]}:key==='direction'?{enum:['asc','desc',null]}:{})}])),required:queryKeys}]};
 /** Only named search fields, never a table/owner/URL. Reader independently
@@ -38,13 +51,28 @@ function catalogRouteContext(route,question){
   return /^(?:show|list|browse)\s+(?:me\s+)?(?:all\s+)?(?:the\s+)?(?:course\s+)?(?:catalog(?:ue)?|offerings?|available courses)\s*[.!?]?$/i.test(question.trim())||/\b(?:this page|this catalog|these offerings)\b|這個頁面|本頁|這些課程/.test(question);
 }
 function unavailable(key,reason){
+  if(key==='dtmGradeReport')return unavailableDtmGradeReportEvidence(reason);
   const checkedAt=new Date().toISOString(),common={checkedAt,rules:'This selected lookup is unavailable. No record absence or successful account read can be inferred.'};
   let payload,url;
   if(key==='courseCatalog'){url='/school-affairs/services/12-4';payload={...common,collection:'courseCatalog',readState:'unavailable',reason,provenance:{sourceMode:'sample',officialUniversityData:false,enrollmentEvidence:false},rows:[],omittedFields:[],counts:{total:null,returnedRows:null,includedRows:null,complete:false}};}
   else if(key==='enrollmentCertificate'){url='/school-affairs/services/17-1';payload={...common,collection:'enrollmentCertificate',sourceMode:'local_demo',readState:'unavailable',assessment:null};}
   else if(key==='dtmSubmissions'){url='/dtm';payload={...common,officialUniversityData:false,selection:{scope:'unavailable',requiresClarification:false,choices:[]},counts:{available:null,selected:null,requested:null,loaded:null,included:null,omitted:null,unavailable:null},complete:false,records:[],unavailable:[]};}
+  else if(key==='aidPayments'){
+    url=aidPaymentsPaths.claims;payload={...common,collection:key,readState:'unavailable',
+      selection:{views:[],summaryOnly:false,scope:'owned_first_page_per_view',page:1,pageSize:aidPaymentsPageSize},
+      provenance:{source:'saved_local',officialUniversityData:false,synchronizationVerified:false,currency:null},
+      counts:{viewsSelected:0,viewsLoaded:0,viewsUnavailable:0,available:null,included:0,omitted:null},
+      complete:false,recordsComplete:false,excerpted:false,views:[],
+      capabilities:{read:true,write:false,approve:false,pay:false,bankAccess:false,verifiedDocument:false}};
+  }
+  else if(key==='studentConduct'||key==='studentLoan'){
+    url=key==='studentConduct'?'/school-affairs/services/38-1':'/school-affairs/services/21-1';
+    payload={...common,collection:key,sourceMode:'local_demo',readState:'unavailable',unavailableReason:reason,complete:false,excerpted:false,
+      counts:{available:null,matching:null,included:0,omitted:null},...(key==='studentConduct'?{records:[]}:{record:null,recordPresent:null})};
+  }
   else{url='/school-affairs/services/49-1';payload={...common,collection:'tuition',sourceMode:'local_demo',readState:'unavailable',coverageScope:'selected_settlement_records_and_periods_only',selection:{view:'settlement',requestedViews:['settlement'],scope:'unavailable',requiresClarification:false,choices:[]},serviceAvailability:[{view:'settlement',url,capability:'literal_settlement_records'}],counts:{available:null,matching:null,included:null,omitted:null},complete:false,excerpted:false,records:{periods:[],settlements:[]}};}
-  return {readState:'unavailable',reason,evidence:{id:'account:'+key,title:supplementalAccountTools[key],url,urls:[url],...(['tuition','enrollmentCertificate'].includes(key)?{provenance:'local_demo'}:{}),content:JSON.stringify(payload)}};
+  const provenance=key==='aidPayments'?'saved_local':['tuition','enrollmentCertificate','studentConduct','studentLoan'].includes(key)?'local_demo':null;
+  return {readState:'unavailable',reason,evidence:{id:'account:'+key,title:supplementalAccountTools[key],url,urls:[url],...(provenance?{provenance}:{}),content:JSON.stringify(payload)}};
 }
 function trimOne(result){
   const p=JSON.parse(result.evidence.content),key=result.evidence.id.slice(8);
@@ -57,13 +85,15 @@ function trimOne(result){
     p.complete=false;result.readState='partial';result.reason='evidence_budget';
   }else if(key==='tuition'&&p.records.periods.length>1){
     p.records.periods.pop();if(p.records.settlements.length)p.records.settlements.pop();p.counts.included--;p.counts.omitted++;p.complete=false;p.excerpted=true;
+  }else if(key==='studentConduct'&&p.records.length>1){
+    p.records.pop();p.counts.included--;p.counts.omitted++;p.complete=false;p.excerpted=true;
   }else return false;
   result.evidence.content=JSON.stringify(p);return true;
 }
 /** Whole validated rows/lineage only. Keep one source record where possible;
  * if even that cannot fit, mark that source unavailable, never empty. */
 export function boundSupplementalResults(input,budget=supplementalEvidenceBudget){
-  if(!Array.isArray(input)||input.length>4||!Number.isSafeInteger(budget)||budget<6000||budget>supplementalEvidenceBudget)throw new TypeError('Invalid supplemental budget.');
+  if(!Array.isArray(input)||input.length>keys.length||!Number.isSafeInteger(budget)||budget<6000||budget>supplementalEvidenceBudget)throw new TypeError('Invalid supplemental budget.');
   const results=structuredClone(input);
   for(const result of results){if(bytes(result)>(sourceLimits[result?.evidence?.id?.slice(8)]||0))throw new TypeError('Invalid supplemental source budget.');formatSupplementalAccountAnswers([result]);}
   if(new Set(results.map(result=>result.evidence.id)).size!==results.length)throw new TypeError('Duplicate supplemental sources.');

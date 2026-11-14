@@ -50,5 +50,7 @@ test('context handling never reads referrer, parent document or fragment data',(
 test('PublicAssistant supplies the route helper to the existing authenticated/anonymous request flow',()=>{
   const source=readFileSync(new URL('../../src/features/public/PublicAssistant.tsx',import.meta.url),'utf8');
   assert.match(source,/import\s*\{assistantPageRoute\}\s*from ['"]\.\.\/\.\.\/services\/assistantPageRoute\.js/);
-  assert.match(source,/\(user \? askSchoolAffairsAssistant : askCampusAssistant\)\(\s*question,\s*messages,\s*controller\.signal,\s*attached,\s*assistantPageRoute\(embedded\),/);
+  assert.match(source,/const route\s*=\s*assistantPageRoute\(embedded\)/);
+  assert.match(source,/askSchoolAffairsAssistant\(user\.id,\s*question,\s*messages,\s*controller\.signal,\s*attached,\s*route,\s*onProgress\)/);
+  assert.match(source,/askCampusAssistant\(question,\s*messages,\s*controller\.signal,\s*attached,\s*route,\s*onProgress\)/);
 });

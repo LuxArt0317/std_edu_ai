@@ -74,20 +74,28 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
   const viewport = useRef<HTMLDivElement>(null),
     fileInput = useRef<HTMLInputElement>(null),
     pending = useRef<AbortController | null>(null),
+    pendingAction = useRef<AbortController | null>(null),
+    openedFromMenu = useRef(false),
     sequence = useRef(0);
-  useEffect(() => () => {pending.current?.abort();}, []);
+  useEffect(() => () => {pending.current?.abort();pendingAction.current?.abort();}, []);
   useEffect(() => {
-    const openFromAccount = () => setOpen(true);
+    const openFromAccount = () => {
+      openedFromMenu.current=true;
+      setOpen(true);
+    };
     window.addEventListener(campusAssistantOpenEvent, openFromAccount);
     return () => window.removeEventListener(campusAssistantOpenEvent, openFromAccount);
   }, []);
   useEffect(() => {
     sequence.current++;
     pending.current?.abort();
+    pendingAction.current?.abort();
+    pendingAction.current=null;
     setImages([]);
     setQuery("");
     setError("");
     setBusy(false);
+    setActionBusy(null);
   }, [scope,sessions.active?.id]);
   useEffect(() => {
     if (!embedded) return;
@@ -121,18 +129,15 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
     setError("");
     setBusy(true);
     try {
-      const result = await (user ? askSchoolAffairsAssistant : askCampusAssistant)(
-        question,
-        messages,
-        controller.signal,
-        attached,
-        assistantPageRoute(embedded),
-        (step) => {
-          if (request !== sequence.current || controller.signal.aborted) return;
-          setMessages(old=>old.map(item=>item.id===answerId?{...item,activity:mergeAssistantActivity(item.activity,[step])}:item));
-        },
-      );
-      if (request === sequence.current)
+      const route=assistantPageRoute(embedded);
+      const onProgress=(step:AssistantProgress)=>{
+        if (request !== sequence.current || controller.signal.aborted) return;
+        setMessages(old=>old.map(item=>item.id===answerId?{...item,activity:mergeAssistantActivity(item.activity,[step])}:item));
+      };
+      const result = await (user
+        ? askSchoolAffairsAssistant(user.id,question,messages,controller.signal,attached,route,onProgress)
+        : askCampusAssistant(question,messages,controller.signal,attached,route,onProgress));
+      if (request === sequence.current && !controller.signal.aborted)
         setMessages(old=>old.map(item=>item.id===answerId?{...item,phase:'complete',content:result.answer,result,activity:finishAssistantActivity(mergeFinalAssistantActivity(item.activity,result.activity))}:item));
     } catch (reason) {
       if (request === sequence.current && !controller.signal.aborted)
@@ -160,11 +165,20 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
   }
   async function applyAction(message:Message) {
     const action=message.result?.proposedAction;
-    if (!action || actionBusy || !user) return;
+    if (!action || pendingAction.current || !user) return;
+    if (!action.requestId) {
+      setError('This action needs a new review. Ask again before applying it.');
+      return;
+    }
+    const controller=new AbortController();
+    pendingAction.current=controller;
     setActionBusy(message.id);
     setError("");
     try {
-      const result=await performSchoolAffairsAction(action);
+      const signal=AbortSignal.any([controller.signal,AbortSignal.timeout(20000)]);
+      const {kind,payload,requestId}=action;
+      const result=await performSchoolAffairsAction({kind,payload,requestId},{expectedUserId:user.id,signal});
+      if (pendingAction.current!==controller || controller.signal.aborted) return;
       setMessages(old=>old.map(item=>item.id===message.id?{
         ...item,
         content:`${item.content}\n\n✓ ${result.summary}. [View updated records](${action.url||'/school-affairs/records'}).`,
@@ -173,8 +187,11 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
       }:item));
       window.dispatchEvent(new Event('school-affairs:updated'));
     } catch(reason) {
+      if (pendingAction.current!==controller || controller.signal.aborted) return;
       setError(reason instanceof Error?reason.message:'The action could not be completed. Please try again.');
-    } finally {setActionBusy(null);}
+    } finally {
+      if(pendingAction.current===controller){pendingAction.current=null;setActionBusy(null);}
+    }
   }
   return (
     <Sheet open={open} onOpenChange={(next) => {
@@ -196,7 +213,9 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
         aria-describedby="public-assistant-description"
         showCloseButton={!embedded}
         onCloseAutoFocus={(event) => {
-          if (showLauncher) return;
+          const fromMenu=openedFromMenu.current;
+          openedFromMenu.current=false;
+          if (showLauncher && !fromMenu) return;
           const trigger = document.querySelector<HTMLButtonElement>("[data-campus-assistant-menu]");
           if (!trigger) return;
           event.preventDefault();
@@ -241,7 +260,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
             <Button variant="ghost" size="icon" aria-label="Delete this conversation" disabled={busy||!!actionBusy||sessions.syncing||sessions.loadingChat||!messages.length} onClick={()=>void sessions.deleteChat()}><Trash2 className="size-4"/></Button>
           </div>
           <p className="text-xs text-muted-foreground" role="status">{sessions.loadingChat?'Loading conversation…':sessions.persistenceStatus}</p>
-          {sessions.syncError?<div className="text-xs text-destructive" role="alert"><p>{sessions.syncError}</p><button className="mr-3 underline" onClick={sessions.retrySync}>Retry save</button>{sessions.active?.version?<button className="underline" onClick={()=>void sessions.chooseChat(sessions.active!.id,true)}>Reload saved chat (discards unsaved edits)</button>:null}</div>:null}
+          {sessions.syncError?<div className="text-xs text-destructive" role="alert"><p>{sessions.syncError}</p><button className="mr-3 underline" onClick={sessions.retrySync}>Retry save</button>{sessions.active?.version?<button className="underline" disabled={busy||!!actionBusy} onClick={()=>void sessions.chooseChat(sessions.active!.id,true)}>Reload saved chat (discards unsaved edits)</button>:null}</div>:null}
         </div>
         <div
           ref={viewport}
@@ -289,7 +308,17 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
               {message.result?.grounding?.source === "web" && <p className="text-xs text-muted-foreground">Found online · See sources below.</p>}
               {message.result?.verification?<p className="text-xs text-muted-foreground">{message.result.verification.status==='verified'?'Checked against retrieved evidence':'Could not verify this answer'} · {message.result.verification.attempts} {message.result.verification.attempts===1?'check':'checks'}</p>:null}
               {message.result?.views?.map(view=><details key={view.id} className="min-w-0 rounded-md border bg-muted/20 p-2 text-xs"><summary className="cursor-pointer font-semibold">{view.title} · {view.total} retrieved</summary><div className="mt-2 max-w-full overflow-x-auto" role="region" aria-label={view.title} tabIndex={0}><table className="w-full border-collapse text-left"><thead><tr>{view.columns.map(column=><th key={column} className="border-b p-2 whitespace-nowrap">{column}</th>)}</tr></thead><tbody>{view.rows.map((row,index)=><tr key={index}>{row.map((cell,column)=><td key={column} className="border-b p-2 align-top">{cell}</td>)}</tr>)}</tbody></table></div><p className="mt-2 text-muted-foreground">{view.rows.length<view.total?`Showing ${view.rows.length} of ${view.total} retrieved records. `:''}{view.note}</p><a className="mt-2 inline-block underline" href={view.url} target={embedded?'_top':undefined}>Open records</a></details>)}
-              {message.result?.proposedAction && user ? <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm"><p className="font-semibold">Review action</p><p className="my-2 break-words">{message.result.proposedAction.label}</p><p className="mb-3 text-xs text-muted-foreground">This changes stu.best records only. No university system is contacted.</p><Button size="sm" disabled={!!actionBusy} onClick={()=>void applyAction(message)}>{actionBusy===message.id?'Applying…':'Confirm action'}</Button></div> : null}
+              {message.result?.proposedAction && user ? <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
+                <p className="font-semibold">Review action</p>
+                <p className="my-2 break-words">{message.result.proposedAction.label}</p>
+                {message.result.proposedAction.kind==='publish_announcement' ? <p className="mb-2 whitespace-pre-wrap break-words">{message.result.proposedAction.payload.body}</p> : null}
+                {message.result.proposedAction.kind==='create_service_request' ? <>
+                  <p className="mb-1 text-xs text-muted-foreground">Request category · {message.result.proposedAction.payload.request_type}</p>
+                  <p className="mb-2 whitespace-pre-wrap break-words">{message.result.proposedAction.payload.details}</p>
+                </> : null}
+                <p className="mb-3 text-xs text-muted-foreground">This changes stu.best records only. No university system is contacted.</p>
+                <Button size="sm" disabled={!!actionBusy} onClick={()=>void applyAction(message)}>{actionBusy===message.id?'Applying…':'Confirm action'}</Button>
+              </div> : null}
               {message.actionExpired && !message.result?.proposedAction ? <p className="rounded-md border bg-muted/50 p-2 text-xs text-muted-foreground">The earlier action review expired when this chat was restored. Ask again if you still want to do it.</p> : null}
               {message.role === 'assistant' ? <ActivityTimeline message={message} /> : null}
               {message.result?.citations.length ? (

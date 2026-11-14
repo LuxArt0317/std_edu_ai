@@ -4,8 +4,8 @@ import { clubOfficerGuide,clubOfficerQuestion } from '../../server/clubOfficerCo
 import { clubGuide,clubIntent } from '../../server/clubServicesContract.js';
 import { healthExaminationGuide, healthExaminationQuestion } from '../../server/healthExaminationContract.js';
 import {elearningGuide,elearningQuestion,elearningOutlineCourse} from '../../server/elearningContract.js';
-import {aidPaymentsQuestion} from '../../server/aidPaymentsContract.js';
-import {answerAidPayments} from './aidPayments';
+import {isAidPaymentsEvidenceQuestion,isForeignAidPaymentsQuestion} from '../../server/aidPaymentsEvidenceIntent.js';
+import {isForeignDtmGradesQuestion,shouldReadNativeDtmGrades} from '../../server/dtmGradeEvidenceIntent.js';
 import {answerElearning,answerElearningOutline} from './elearning';
 import {counselingGuide,counselingQuestion} from '../../server/counselingContract.js';
 import {certificateAwardQuestion} from '../../server/certificateAwardsContract.js';
@@ -40,10 +40,16 @@ import {readAssistantReply} from './assistantStreamReader.js';
 import { affairsClient } from '@/features/public/affairs/authClient';
 
 /** Uses only School Affairs credentials; never imports the Nexus client. */
-export async function askSchoolAffairsAssistant(question: string, history: Array<{role:string;content:string}>, signal?: AbortSignal, images: Array<{name:string;dataUrl:string}> = [], route = '', onProgress?: (step:AssistantProgress)=>void): Promise<AssistantResponse> {
+export async function askSchoolAffairsAssistant(expectedUserId: string, question: string, history: Array<{role:string;content:string}>, signal?: AbortSignal, images: Array<{name:string;dataUrl:string}> = [], route = '', onProgress?: (step:AssistantProgress)=>void): Promise<AssistantResponse> {
+  signal?.throwIfAborted();
   if (!affairsClient) throw new Error('School Affairs sign-in is not configured.');
   const {data,error} = await affairsClient.auth.getSession();
+  signal?.throwIfAborted();
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
+  if (data.session.user.id !== expectedUserId) throw new Error('Your account changed. Reopen the assistant and try again.');
+  const {access_token:accessToken}=data.session;
+  if (isAidPaymentsEvidenceQuestion(question,route,history)||isForeignAidPaymentsQuestion(question)||isForeignDtmGradesQuestion(question,route)||shouldReadNativeDtmGrades(question,route,history))
+    return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress);
   const officer = !images.length ? clubOfficerQuestion(question) : null;
   if (officer) return clubOfficerGuide(question,officer,true);
   const studentClub = !images.length ? clubStudentQuestion(question) : null;
@@ -54,11 +60,6 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
   const clubs = !images.length ? clubIntent(question) : null;
   if (clubs) return clubGuide(question, clubs, true);
   if (healthExaminationQuestion(question)) return healthExaminationGuide(question, true);
-  const aidPayment=!images.length?aidPaymentsQuestion(question):null;
-  if(aidPayment){
-    onProgress?.({kind:'aid-payments',label:'Checking student payment records',detail:'Reading the count for your account.',status:'running'});
-    return answerAidPayments(data.session.user.id,aidPayment,question,signal);
-  }
   const outline=images.length?null:elearningOutlineCourse(question,route);
   if(outline!==null){
     onProgress?.({kind:'elearning-outline',label:'Checking the course outline',detail:'Looking up activities available to your account.',status:'running'});
@@ -165,8 +166,12 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
   if (!images.length && (adjustment === 'rules' || courseSubstitutionQuestion(question,route) || firstSelectionQuestion(question,route))) {
     return askCampusAssistant(question,[],signal,[],route,onProgress);
   }
+  return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress);
+}
+
+async function askVerifiedAccount(accessToken:string, question:string, history:Array<{role:string;content:string}>, signal:AbortSignal|undefined, images:Array<{name:string;dataUrl:string}>, route:string, onProgress:((step:AssistantProgress)=>void)|undefined) {
   const response = await fetch('/api/affairs-assistant', {
-    method:'POST', signal, headers:{'Content-Type':'application/json',Authorization:`Bearer ${data.session.access_token}`},
+    method:'POST', signal, headers:{'Content-Type':'application/json',Authorization:`Bearer ${accessToken}`},
     body:JSON.stringify({question:question.trim(),history:history.slice(-6).map(item=>({role:item.role,content:item.content.slice(0,2000)})),images,route,stream:Boolean(onProgress)}),
   });
   const result = await readAssistantReply(response,onProgress) as (Partial<AssistantResponse> & {error?:string})|null;

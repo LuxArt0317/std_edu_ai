@@ -178,6 +178,30 @@ function validateModelAnswer(payload, retrieved) {
             .map((entry) => entry.slice(0, 300)),
     };
 }
+// Public resource planning is a proposal, not a claim that the university
+// prescribes a particular study schedule. Keep this opt-in narrower than
+// account/career coaching; private questions are gated before it is used.
+function publicStudyPlanningQuestion(question) {
+    const study = /\b(?:study|studying|learning|academic)\b|讀書|读书|學習|学习/u.test(question.toLowerCase());
+    const planning = /\b(?:plan(?:ning)?|prepare|organis?e|organiz(?:e|ing)|steps?|routine|tips?|advice)\b|安排|計畫|计划|規劃|规划|步驟|步骤|建議|建议/u.test(question.toLowerCase());
+    const resources = questionKind(question).school || /\bpublic (?:school )?resources?\b|公開.{0,8}資源|公开.{0,8}资源/iu.test(question);
+    return study && planning && resources && !/\b(?:career|interview|job qualification|hiring)\b|求職|求职|面試|面试/iu.test(question);
+}
+function personalPublicQuestion(question) {
+    return questionKind(question).personal || /\bmy (?:current )?(?:subjects?|courses?|classes|grades?|schedule|timetable|attendance|assignments?|enrollments?)\b|\b(?:my|our|their|his|her)\b.{0,45}\b(?:tuition|payments?|scholarships?|financial aid|records?)\b|我的.{0,16}(?:課程|科目|成績|出席|作業|課表|學費|費用|繳款|獎學金|紀錄|記錄)/i.test(question);
+}
+const publicStudyGuidanceInstructions = [
+    'This is public study-planning guidance. Distinguish proposed study steps from source-backed school facts: suggestions are optional, not an official schedule, requirement, guarantee or action already performed.',
+    'Give the requested practical steps using at least one relevant supplied school resource, and include a clickable citation to that resource. If only one resource is supported, useful steps may explain how to use that resource; never invent additional services to fill the plan.',
+    'Separate suggestions into short paragraphs from factual descriptions. Every statement about a school resource, availability, hours, deadlines, access conditions or policy still requires supplied evidence. Do not treat a citation as proof of details absent from its content.',
+    'Give a useful partial plan when a specific detail is missing, identify that exact limitation, and suggest checking it at the cited resource. Do not infer student enrollment, personal schedules, skills or account access. No private-record lookup is needed for these public suggestions.',
+].join(' ');
+function hasCitedPublicResource(candidate, evidence) {
+    const links = new Set([...String(candidate?.answer || '').matchAll(/\[[^\]\n]+\]\(([^\s)]+)\)/gu)].map(match => match[1]));
+    return Array.isArray(candidate?.citations) && candidate.citations.some(citation =>
+        links.has(citation.url) && evidence.some(source => source.id === citation.chunkId &&
+            [source.url, ...(source.urls || [])].includes(citation.url) && typeof source.content === 'string' && source.content.trim()));
+}
 function headers(response) {
     response.setHeader("Cache-Control", "no-store, max-age=0");
     response.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -445,7 +469,9 @@ export function createResearchAssistantHandler(dependencies = {}) {
             }
             return;
         }
-        const personalQuestion = kind.personal || /\bmy (?:current )?(?:subjects?|courses?|classes|grades?|schedule|timetable|attendance|assignments?|enrollments?)\b|\b(?:my|our|their|his|her)\b.{0,45}\b(?:tuition|payments?|scholarships?|financial aid|records?)\b|我的.{0,16}(?:課程|科目|成績|出席|作業|課表|學費|費用|繳款|獎學金|紀錄|記錄)/i.test(input.question);
+        const personalQuestion = personalPublicQuestion(input.question);
+        const publicStudyGuidance = !input.images.length && !personalQuestion && !kind.irrelevant && publicStudyPlanningQuestion(input.question);
+        const publicGuidanceHistory = publicStudyGuidance ? input.history.filter(item => item.role === 'user' && questionKind(item.content).school && !personalPublicQuestion(item.content) && !questionKind(item.content).irrelevant) : input.history;
         const pageQuestion = !input.images.length && !personalQuestion && !kind.irrelevant && Boolean(normalizePublicPageRoute(input.route)) && isPublicPageQuestion(input.question);
         const chinese = /[\u3400-\u9fff]/.test(input.question);
         if (!input.images.length && !kind.irrelevant && !personalQuestion) {
@@ -505,6 +531,16 @@ export function createResearchAssistantHandler(dependencies = {}) {
         const verificationQuestion = input.question;
         const deadline = started + 55_000;
         const verificationProgress = (step) => stream.progress(step.kind, step.label, step.detail, step.status);
+        const verifyPublicAnswer = context => {
+            // A source-free generic plan cannot satisfy an explicit request for
+            // school resources, even if a reviewer accepts its suggestions.
+            if (publicStudyGuidance && !hasCitedPublicResource(context.candidate, context.evidence))
+                return Promise.resolve({ ok: false, reason: 'evidence_unavailable', feedback: ['Include a clickable citation to at least one relevant supplied public school resource, or withhold the unsupported plan.'] });
+            return verifyEvidenceAnswer(publicStudyGuidance ? { ...context, responseIntent: 'mixed' } : context);
+        };
+        const repairPublicAnswer = context => repairEvidenceAnswer(publicStudyGuidance
+            ? { ...context, responseIntent: 'mixed', feedback: [...(context.feedback || []), publicStudyGuidanceInstructions] }
+            : context);
         const language = inferKnowledgeLanguage(input.question);
         const model = process.env.OPENAI_PUBLIC_MODEL ||
             process.env.OPENAI_MODEL ||
@@ -574,7 +610,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             .update(input.question.normalize("NFKC").toLowerCase())
             .digest("hex");
         let webAttempted = false;
-        const publicQuestion = publicSchoolQuestion(input.question, input.history);
+        const publicQuestion = publicSchoolQuestion(input.question, publicGuidanceHistory);
         async function tryWebAnswer() {
             if (webAttempted || !publicQuestion || personalQuestion)
                 return false;
@@ -596,7 +632,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             stream.progress('web', 'Found school sources', `${web.result.citations.length} source links found; checking their contents.`, 'complete');
             const candidate = { status: "answered", answer: web.result.answer, citations: web.result.citations, suggestedQuestions: [], grounding: { source: "web", webSearched: true, checkedAt: web.result.checkedAt, officialOnly: web.result.officialOnly, retrieverVersion: "school-web@1", responseMs: Date.now() - started }, activity: [{ kind: 'knowledge', label: 'Checked managed school knowledge', detail: 'No sufficient current answer found', status: 'complete' }, { kind: 'web', label: 'Searched public school sources', detail: `${web.result.citations.length} source links found`, status: 'complete' }] };
             const checked = await runAnswerVerification({ question: verificationQuestion, initialAnswer: candidate, deadline, onProgress: verificationProgress,
-                loadEvidence: () => readSources(web.result.citations, deadline), verify: verifyEvidenceAnswer, repair: repairEvidenceAnswer });
+                loadEvidence: () => readSources(web.result.citations, deadline), verify: verifyPublicAnswer, repair: repairPublicAnswer });
             stream.send(200, checked);
             return true;
         }
@@ -673,12 +709,13 @@ export function createResearchAssistantHandler(dependencies = {}) {
                             "Do not invent a policy, date, office, route, exception, decision, or private fact.",
                             "Every material factual claim in an answered response must cite one or more supplied chunk IDs.",
                             "Be helpful: answer every supported part first and explain only the specific missing detail. Resolve short follow-ups from the conversation. Do not refuse a school question merely because a source is incomplete. The server can perform live web search when managed knowledge cannot answer. Never guess an official decision or unsupported fact.",
+                            ...(publicStudyGuidance ? [publicStudyGuidanceInstructions] : []),
                             "Use the user's language, preserve official Traditional Chinese names, be concise, and link only supplied official URLs.",
                             "Return strict JSON matching the schema.",
                         ].join(" "),
                         input: JSON.stringify({
                             question: input.question,
-                            conversation: input.history,
+                            conversation: publicGuidanceHistory,
                             asOf: new Date().toISOString(),
                             language,
                             evidence: retrieved.map((item) => ({
@@ -789,7 +826,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                         }
                         return retrieved.map(item => ({ id: item.chunk_id, title: item.document_title, url: item.source_url,
                             content: JSON.stringify({ content: item.content, effectiveAt: item.effective_at, reviewedAt: item.reviewed_at, sourceName: item.source_name, authority: item.authority_level }) }));
-                    }, verify: verifyEvidenceAnswer, repair: repairEvidenceAnswer, });
+                    }, verify: verifyPublicAnswer, repair: repairPublicAnswer, });
                 answer = { status: checked.status, answer: checked.answer, citations: checked.citations.map(item => ({ chunkId: item.chunkId, claim: item.claim })), suggestedQuestions: checked.suggestedQuestions || [] };
                 citations = checked.citations;
             }

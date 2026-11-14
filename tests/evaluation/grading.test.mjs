@@ -13,7 +13,7 @@ const failure=(result,id)=>assert.ok(result.failures.some(item=>item.id===id),JS
 
 test('independent amount, provenance, local link and selected evidence pass',()=>{
   const result=gradeCase(record,response());assert.equal(result.passed,true,JSON.stringify(result));
-  assert.deepEqual(result.toolEvidence,{observed:[],claimed:['charges']});
+  assert.deepEqual(result.toolEvidence,{attempted:[],observed:[],claimed:['charges'],terminalStates:{}});
 });
 test('self-reported verified and the right substring cannot hide a contradiction',()=>{
   const result=gradeCase(record,response('Your sample QA tuition balance is NT$23,000. Your remaining balance is 999999.'));
