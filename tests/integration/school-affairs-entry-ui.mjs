@@ -116,11 +116,13 @@ try {
  const remoteLearningQuestion='What are my remote-learning Moodle enrollments? Also list my unfinished DTM assignments.';
  const repairQuestion='What is the status of my facility repair reports? Also show my next scheduled class.';
  const repairReply='Your saved repair status is in progress. Your next class is Campus Orientation at 09:00 Taipei time.';
+ const dormitoryQuestion='Show my dormitory conduct notice and my tuition balance.';
+ const dormitoryReply='Your saved dormitory notice says unknown. Your remaining tuition balance is NT$23,000.';
  await page.route('**/api/affairs-assistant',async route=>{
   assistantRequests++;
   const authorization=route.request().headers().authorization;assert.ok(authorization?.startsWith('Bearer '));
   const payload=JSON.parse(Buffer.from(authorization.split('.')[1],'base64url').toString());assert.equal(payload.sub,affairsTestUser.id);
-  const body=route.request().postDataJSON();assert.ok(['What are my current subjects?','What is in this screenshot?','Remind me to review my sample courses',salaryQuestion,moodleGradeQuestion,remoteLearningQuestion,repairQuestion].includes(body.question));assert.equal(body.route,'/school-affairs');
+  const body=route.request().postDataJSON();assert.ok(['What are my current subjects?','What is in this screenshot?','Remind me to review my sample courses',salaryQuestion,moodleGradeQuestion,remoteLearningQuestion,repairQuestion,dormitoryQuestion].includes(body.question));assert.equal(body.route,'/school-affairs');
   if(body.question===salaryQuestion){
    await route.fulfill({json:{answer:'You have 1 saved salary record. September net pay was 5400, with tax 0.',status:'answered',citations:[],
     verification:{status:'verified',attempts:1},activity:[{kind:'account-read:aidPayments:1',label:'Checked your salary record',detail:'Read the saved period, net pay and tax.',status:'complete'}]}});
@@ -142,6 +144,12 @@ try {
    await route.fulfill({json:{answer:repairReply,status:'answered',citations:[],verification:{status:'verified',attempts:1},activity:[
     {kind:'account-read:facilityRepairs:1',label:'Checked your repair reports',detail:'Read the saved local repair status.',status:'complete'},
     {kind:'account-read:courses:1',label:'Checked your next class',detail:'Read the signed-in School Affairs timetable.',status:'complete'}]}});
+   return;
+  }
+  if(body.question===dormitoryQuestion){
+   await route.fulfill({json:{answer:dormitoryReply,status:'answered',citations:[],verification:{status:'verified',attempts:1},activity:[
+    {kind:'account-read:dormitoryConduct:1',label:'Checked your dormitory notice',detail:'Read the saved notice result.',status:'complete'},
+    {kind:'account-read:charges:1',label:'Checked your tuition balance',detail:'Read your saved charges.',status:'complete'}]}});
    return;
   }
   await route.fulfill({json:body.question.startsWith('Remind me')?{answer:'I can create a stu.best task after you confirm.',citations:[],proposedAction:{kind:'create_task',label:'Create task: Review my sample courses',payload:{title:'Review my sample courses'},requestId:reviewedTaskId}}:body.images?.length?{answer:'The image shows a School Affairs service menu.',citations:[],activity:[{kind:'image',label:'Read the attached image',detail:'1 image analyzed',status:'complete'}]}:{answer:'Your sample subject is SAMP101 Campus Orientation.',citations:[],activity:[{kind:'account',label:'Read your School Affairs records',detail:'Only this account was queried',status:'complete'}]}});
@@ -235,6 +243,16 @@ try {
  await repairAnswer.getByText('Checked your next class',{exact:true}).waitFor();
  assert.equal(assistantRequests,beforeRepair+1,'Repair details and next class enter one signed-in graph request');
  evidence.push({repairAndScheduleEnteredGraph:true});
+ const beforeDormitory=assistantRequests;
+ await page.getByLabel('Your question').fill(dormitoryQuestion);
+ await page.getByRole('button',{name:'Send',exact:true}).click();
+ const dormitoryAnswer=page.locator('article').filter({hasText:dormitoryReply});
+ await dormitoryAnswer.getByText(dormitoryReply,{exact:true}).waitFor();
+ await dormitoryAnswer.locator('details summary').click();
+ await dormitoryAnswer.getByText('Checked your dormitory notice',{exact:true}).waitFor();
+ await dormitoryAnswer.getByText('Checked your tuition balance',{exact:true}).waitFor();
+ assert.equal(assistantRequests,beforeDormitory+1,'Dormitory notice and tuition enter one signed-in graph request');
+ evidence.push({dormitoryAndTuitionEnteredGraph:true});
  const image=Buffer.concat([Buffer.from('89504e470d0a1a0a','hex'),Buffer.alloc(40)]);
  await page.locator('.public-assistant-surface input[type=file]').setInputFiles({name:'school-menu.png',mimeType:'image/png',buffer:image});
  await page.getByRole('list',{name:'Attached images'}).getByText('school-menu.png').waitFor();

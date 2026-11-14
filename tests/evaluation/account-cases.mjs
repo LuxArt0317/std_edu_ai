@@ -1,12 +1,41 @@
 /** Golden student questions authored from stored-field contracts, not answer implementations. */
 import {DEFAULT_EVAL_NOW,EVAL_IDS,evaluationDates} from './fixtures.mjs';
 import {buildLiveFacilityRepairCases} from './facility-repair-cases.mjs';
+import {buildLiveOutlineCases} from './elearning-outline-fixtures.mjs';
+import {buildDormitoryConductCases,dormitoryConductLiveFixtureKey} from './dormitory-conduct-cases.mjs';
 const routes={profile:'/school-affairs/records',courses:'/school-affairs/records',assignments:'/dtm/assignments',dtm:'/dtm',charges:'/school-affairs/services/39-1',tasks:'/school-affairs/records',requests:'/school-affairs/records',serviceRecords:'/school-affairs/services/leave/history',announcements:'/school-affairs',scholarship:'/school-affairs/services/9-1',studentAid:'/school-affairs/services/22-1',housing:'/school-affairs/services/34-1',creditLoadHistory:'/school-affairs/services/11-3',courseSelection:'/school-affairs/services/11-1',academicGrades:'/school-affairs/services/13-1/transcript',graduationReview:'/school-affairs/services/13-1/graduation',academicAttendance:'/school-affairs/services/14-1'};
 const fact=(label,values,kind='text',labels=[])=>({label,labels,kind,values:Array.isArray(values)?values:[values]});
 const capability=(level='native',limitation=null,gap=level==='partial')=>({level,limitation,gap});
+function liveDormitoryCases() {
+  const readLimits={
+    'missing-metadata':['no saved dormitory','no saved notice','notice was not found','notice is not recorded','no saved local notice'],
+    'empty-not-clearance':['cannot establish official clearance','does not establish official clearance','does not prove official clearance','cannot confirm official clearance'],
+    'details-unavailable':['detailed conduct entries','individual conduct entries','detailed penalties','does not include conduct events'],
+    'document-unavailable':['downloadable document','downloadable certificate','cannot issue a certificate','no document'],
+  };
+  return buildDormitoryConductCases().filter(row=>dormitoryConductLiveFixtureKey(row.fixtureKey)
+    &&!row.helperExpected.reason).map(row=>{
+    const suffix=row.id.slice('dormitory-conduct:'.length),limit=readLimits[suffix];
+    const tools=row.expected.requiredTools;
+    const facts=row.expected.facts.map(field=>field.label==='saved dormitory-conduct result'
+      ?{...field,label:row.language==='zh-TW'?'宿舍獎懲結果':field.label,labels:row.language==='zh-TW'?['已儲存結果','結果','狀態']:['saved result','recorded status','notice result','result']}
+      :field.label==='housing fee'?{...field,labels:['accommodation fee']}
+      :field.label==='tuition balance'?{...field,labels:['balance','remaining','total remaining']}
+      :field);
+    const {requiredText,limitation,...contract}=row.expected;
+    return {id:'account:dormitory-conduct-'+suffix,domain:'dormitoryConduct',route:row.route,question:row.question,
+      ...(row.history?{history:row.history}:{}),language:row.language,mode:'record',fixtureKey:row.fixtureKey,fixtureRequirement:'native_dormitory_conduct',
+      expected:{...contract,facts,requiredText:limit?[{anyOf:limit}]:[],...(limit?{limitation:true}:{}),
+        requiredAttemptedTools:tools,allowedTools:tools,toolTerminalStates:Object.fromEntries(tools.map(tool=>[tool,['complete']])),
+        maxDistinctAttemptedTools:tools.length,requireToolExecution:true,forbidPublicResearch:true,localLinksOnly:true,noAction:true,
+        forbiddenLinks:suffix==='mixed-housing'?['/school-affairs/services/38-1']:['/school-affairs/services/34-1','/school-affairs/services/38-1'],
+        requireUnchangedOwnedRecords:true,
+      },capability:capability()};
+  });
+}
 export function buildAccountCases({now=DEFAULT_EVAL_NOW}={}){
   if(!Number.isFinite(Date.parse(now)))throw new Error('Evaluation now must be a valid timestamp.');
-  const cases=buildLiveFacilityRepairCases({now}),dates=evaluationDates(now);
+  const cases=[...buildLiveFacilityRepairCases({now}),...buildLiveOutlineCases(),...liveDormitoryCases()],dates=evaluationDates(now);
   function add(id,domain,question,options={}){
     const {behavior='answer',mode='record',requiredText=[],forbiddenText=[],requiredLinks=[],requiredTools=[domain],provenance='local',facts=[],fixtureKey=domain,route=routes[domain]||'/school-affairs/records',history,language='en',level='native',limitation=null,gap=level==='partial',fixtureRequirement,...extra}=options;
     if(facts.some(row=>row.kind==='date')&&!question.includes('YYYY-MM-DD'))question+=' Use YYYY-MM-DD for dates.';

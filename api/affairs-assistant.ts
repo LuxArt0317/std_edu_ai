@@ -8,7 +8,9 @@ import {independentElearningQuestion,isElearningEvidenceQuestion,isForeignElearn
 import {readElearningEvidence} from '../server/accountElearningEvidence.js';
 import {readFacilityRepairEvidence} from '../server/accountFacilityRepairEvidence.js';
 import {isForeignFacilityRepairQuestion} from '../server/facilityRepairEvidenceIntent.js';
-import {facilityRepairLookupContext} from '../server/accountSupplementalLookup.js';
+import {readDormitoryConductEvidence} from '../server/accountDormitoryConductEvidence.js';
+import {readElearningOutlineEvidence} from '../server/accountElearningOutlineEvidence.js';
+import {facilityRepairLookupContext,nativePageLookupContext} from '../server/accountSupplementalLookup.js';
 import {randomUUID} from 'node:crypto';
 import { questionKind } from '../server/schoolWebSearch.js';
 import { accountQuestionIntent } from '../server/affairsAnswer.js';
@@ -138,7 +140,7 @@ export function createAffairsAssistantHandler(dependencies:{
   verifyToken?:typeof verifyAffairsToken;
   loadSnapshot?:typeof loadAffairsSnapshot;
   answerAccount?:typeof answerAccountWithVerification;
-  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence};
+  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence};
 }={}) {
 const publicResearch=dependencies.publicResearch??researchHandler;
 const verifyToken=dependencies.verifyToken??verifyAffairsToken,loadSnapshot=dependencies.loadSnapshot??loadAffairsSnapshot,answerAccount=dependencies.answerAccount??answerAccountWithVerification;
@@ -148,7 +150,9 @@ const readers={courseCatalog:dependencies.readers?.courseCatalog??readCatalogEvi
   aidPayments:dependencies.readers?.aidPayments??readAidPaymentsEvidence,
   dtmGradeReport:dependencies.readers?.dtmGradeReport??readDtmGradeReportEvidence,
   elearningEnrollments:dependencies.readers?.elearningEnrollments??readElearningEvidence,
-  facilityRepairs:dependencies.readers?.facilityRepairs??readFacilityRepairEvidence};
+  facilityRepairs:dependencies.readers?.facilityRepairs??readFacilityRepairEvidence,
+  dormitoryConduct:dependencies.readers?.dormitoryConduct??readDormitoryConductEvidence,
+  elearningOutline:dependencies.readers?.elearningOutline??readElearningOutlineEvidence};
 return async function handler(request:ApiRequest,response:ApiResponse) {
   const deadline=Date.now()+55_000;
   response.setHeader('Cache-Control','no-store, max-age=0');
@@ -185,12 +189,14 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const foreignDtmGrades=isForeignDtmGradesQuestion(question,route);
   const foreignElearning=isForeignElearningRecordsQuestion(question,route);
   const foreignRepair=isForeignFacilityRepairQuestion(question);
-  if(foreignDtmGrades||foreignElearning||foreignRepair||isForeignAidPaymentsQuestion(question)){
+  const pageContext=nativePageLookupContext(question,route,history);
+  if(foreignDtmGrades||foreignElearning||foreignRepair||pageContext.foreign||isForeignAidPaymentsQuestion(question)){
     const chinese=/[\u3400-\u9fff]/u.test(question);
     const records=foreignDtmGrades?(chinese?'數位教材成績紀錄':'Moodle grade records')
       :foreignElearning?(chinese?'數位學園紀錄':'remote-learning Moodle records')
         :foreignRepair?(chinese?'報修紀錄':'facility repair records')
-          :(chinese?'薪資或助學請款紀錄':'salary or aid claim records');
+          :pageContext.foreign?(chinese?'宿舍獎懲或數位學園課程紀錄':'dormitory conduct or remote-learning course records')
+            :(chinese?'薪資或助學請款紀錄':'salary or aid claim records');
     const answer=chinese?`我只能查詢您登入的 stu.best 帳戶，無法存取其他學生的${records}。`
       :`I can only check your signed-in stu.best account. I can’t show another student’s ${records}.`;
     stream.progress('account-access',chinese?'已確認帳戶範圍':'Checked account access',answer,'complete');
@@ -198,7 +204,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     return;
   }
   const intent=accountQuestionIntent(question,history,route);
-  if(intent.recognized&&intent.kind==='coaching'&&!intent.baseTools.length){
+  if(intent.recognized&&intent.kind==='coaching'&&!intent.baseTools.length&&!pageContext.selected){
     if(Array.isArray(input?.images)&&input.images.length){stream.send(400,{error:'For this coaching request, remove the image and ask using text.'});return;}
     try{
       // Authentication remains mandatory, but wording help needs no student
@@ -246,9 +252,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   }
   if(Array.isArray(input?.images) && input.images.length) {stream.send(400,{error:'For private account questions, remove the image and ask using text. Images are not stored as account records.'});return;}
   try {
-    const remoteOnly=isElearningEvidenceQuestion(question,route,history)&&!independentElearningQuestion(question,route,history);
-    const repairContext=facilityRepairLookupContext(question,route,history),repairOnly=repairContext.repairOnly;
-    const selectedReaderOnly=remoteOnly||repairOnly;
+    const residual=pageContext.selected?pageContext.otherQuestion:question;
+    const remoteOnly=Boolean(residual)&&isElearningEvidenceQuestion(residual,route,history)&&!independentElearningQuestion(residual,route,history);
+    const repairContext=facilityRepairLookupContext(residual,route,history),repairOnly=repairContext.repairOnly;
+    const selectedReaderOnly=pageContext.readerOnly||remoteOnly||repairOnly;
     const scopedSnapshot=()=>({checkedAt:new Date().toISOString(),profile:{userId:account.user.id}});
     if(selectedReaderOnly)stream.progress('account','Checked account access','The selected reader uses this signed-in Google account.','complete');
     else stream.progress('account','Loading your account records','Checking School Affairs and DTM records for this signed-in Google account.');
@@ -260,16 +267,18 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       return Math.min(deadline,selected);
     };
     const supplementalReaders:SupplementalAccountReaders={
-      courseCatalog:context=>readers.courseCatalog(account,{question,route,query:context.catalogQuery,deadline:readDeadline(context.deadline)}),
-      enrollmentCertificate:context=>readers.enrollmentCertificate(account,{question,route,history,deadline:readDeadline(context.deadline)}),
-      dtmSubmissions:context=>readers.dtmSubmissions(account,{question,route,history,snapshot:context.snapshot,deadline:readDeadline(context.deadline)}),
-      studentConduct:context=>readers.studentConduct(account,{question,route,history,deadline:readDeadline(context.deadline)}),
-      studentLoan:context=>readers.studentLoan(account,{question,route,history,deadline:readDeadline(context.deadline)}),
-      aidPayments:context=>readers.aidPayments(account,{question,route,history,deadline:readDeadline(context.deadline)}),
-      dtmGradeReport:context=>readers.dtmGradeReport(account,{question,route,history,deadline:readDeadline(context.deadline)}),
-      elearningEnrollments:context=>readers.elearningEnrollments(account,{question,route,history,deadline:readDeadline(context.deadline)}),
+      courseCatalog:context=>readers.courseCatalog(account,{question:residual||question,route,query:context.catalogQuery,deadline:readDeadline(context.deadline)}),
+      enrollmentCertificate:context=>readers.enrollmentCertificate(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
+      dtmSubmissions:context=>readers.dtmSubmissions(account,{question:residual||question,route,history,snapshot:context.snapshot,deadline:readDeadline(context.deadline)}),
+      studentConduct:context=>readers.studentConduct(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
+      studentLoan:context=>readers.studentLoan(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
+      aidPayments:context=>readers.aidPayments(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
+      dtmGradeReport:context=>readers.dtmGradeReport(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
+      elearningEnrollments:context=>readers.elearningEnrollments(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
       facilityRepairs:context=>readers.facilityRepairs(account,{question:repairContext.repairQuestion,route,history,deadline:readDeadline(context.deadline)}),
-      tuition:context=>readers.tuition(account,{question,route,history,deadline:readDeadline(context.deadline)}),
+      dormitoryConduct:context=>readers.dormitoryConduct(account,{question:pageContext.questions.dormitoryConduct||question,route,history,deadline:readDeadline(context.deadline)}),
+      elearningOutline:context=>readers.elearningOutline(account,{question:pageContext.questions.elearningOutline||question,route,history,deadline:readDeadline(context.deadline)}),
+      tuition:context=>readers.tuition(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
     };
     const answer=await answerAccount({question,correlationId,snapshot,history,route,deadline,supplementalReaders,
       loadSnapshot:()=>selectedReaderOnly?Promise.resolve(scopedSnapshot()):loadSnapshot(account,false,{initialize:false,deadline}),

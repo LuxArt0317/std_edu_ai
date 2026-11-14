@@ -4,6 +4,8 @@
 import {aidPaymentsFields,aidPaymentsPaths} from './aidPaymentsContract.js';
 export const supplementalAnswerLimits=Object.freeze({answerCharacters:8000,resultBytes:24000,views:3,viewRows:12});
 const definitions={
+  'account:dormitoryConduct':{title:['Saved dormitory-conduct notice','已儲存宿舍獎懲通知'],path:'/school-affairs/services/34-2'},
+  'account:elearningOutline':{title:['Saved remote-learning course outline','已儲存數位學園課程大綱'],path:'/elearning'},
   'account:facilityRepairs':{title:['Saved facility repair records','已儲存設施報修紀錄'],path:'/school-affairs/services/45-1/history'},
   'account:elearningEnrollments':{title:['Remote-learning Moodle enrollments','數位學園選課紀錄'],path:'/elearning/my-courses'},
   'account:dtmGradeReport':{title:['Local Moodle grade report','站內 Moodle 成績報告'],path:'/dtm/grades'},
@@ -30,6 +32,88 @@ const gradeCells=['score','maximum','gradeText','rangeText','percentageText','we
 const exact=(value,keys)=>object(value)&&Object.keys(value).length===keys.length&&keys.every(key=>own(value,key));
 const gradeString=(value,max=12000)=>typeof value==='string'&&value.length<=max&&!value.includes('\0')&&!/[\ud800-\udfff]/u.test(value);
 const gradeId=value=>typeof value==='string'&&new RegExp('^'+uuid+'$').test(value);
+const outlineId=value=>Number.isSafeInteger(value)&&value>0&&value<=2147483647;
+const outlineCourse=id=>'/elearning/course/'+id;
+const outlineActivity=(course,id)=>outlineCourse(course)+'/activity/'+id;
+const outlineText=(value,max)=>gradeString(value,max)&&value.trim().length>0&&!/[\p{Cc}]/u.test(value);
+const sameText=(left,right)=>left.normalize('NFKC').trim().toLowerCase()===right.normalize('NFKC').trim().toLowerCase();
+function validateDormitoryPayload(envelope,p,evidence){
+  const s=p.selection;
+  if(!exact(p,['collection','checkedAt','readState','selection','metadataState','provenance','counts','record','capability','reason','rules'])
+    ||p.collection!=='dormitoryConduct'||p.readState!==envelope.readState||p.reason!==envelope.reason||!gradeString(p.rules)
+    ||evidence.provenance!=='local_demo'||evidence.url!==definitions['account:dormitoryConduct'].path
+    ||!Array.isArray(evidence.urls)||evidence.urls.length!==1||evidence.urls[0]!==evidence.url
+    ||!exact(p.provenance,['sourceMode','officialUniversityData','synchronized'])||p.provenance.sourceMode!=='local_demo'
+    ||p.provenance.officialUniversityData!==false||p.provenance.synchronized!==false
+    ||!exact(p.capability,['readNotice','detailedEntries','officialClearance','document','write'])||p.capability.readNotice!==true
+    ||['detailedEntries','officialClearance','document','write'].some(key=>p.capability[key]!==false)
+    ||!exact(p.counts,['metadataRecords'])||!(s===null||exact(s,['from','operation','document','reason'])
+      &&['question','route','history'].includes(s.from)&&typeof s.operation==='boolean'&&typeof s.document==='boolean'
+      &&[null,'invalid_route','foreign_request'].includes(s.reason)))invalid();
+  if(p.readState==='unavailable'){
+    if(typeof p.reason!=='string'||!p.reason||p.metadataState!=='unavailable'||p.record!==null||p.counts.metadataRecords!==null
+      ||s?.reason&&p.reason!==s.reason||s?.operation&&!s.reason&&p.reason!=='unsupported_operation')invalid();
+    return;
+  }
+  if(p.readState!=='ok'||p.reason!==null||!s||s.reason!==null||s.operation)invalid();
+  if(p.metadataState==='missing'){
+    if(p.record!==null||p.counts.metadataRecords!==0)invalid();
+  }else if(p.metadataState!=='saved'||p.counts.metadataRecords!==1||!exact(p.record,['result'])||!['empty','unknown'].includes(p.record.result))invalid();
+}
+function validateOutlinePayload(envelope,p,evidence){
+  const s=p.selection,c=p.counts;
+  if(!exact(p,['collection','checkedAt','readState','selection','counts','complete','provenance','capability','records','reason','rules'])
+    ||p.collection!=='elearningOutline'||p.readState!==envelope.readState||p.reason!==envelope.reason||!gradeString(p.rules)
+    ||evidence.provenance!=='saved_local'||!exact(p.provenance,['outline','officialUniversityData','synchronized'])
+    ||p.provenance.outline!=='saved_local'||p.provenance.officialUniversityData!==false||p.provenance.synchronized!==false
+    ||!exact(p.capability,['outlineLinks','content','personalAttendance','grades','submissions','write'])||p.capability.outlineLinks!==true
+    ||['content','personalAttendance','grades','submissions','write'].some(key=>p.capability[key]!==false)
+    ||!Array.isArray(p.records)||p.records.length>64||typeof p.complete!=='boolean')invalid();
+  if(s!==null&&(!exact(s,['courseId','activityId','sectionPosition','sectionTitle','activityTitle','purposes','from','reason'])
+    ||![s.courseId,s.activityId].every(value=>value===null||outlineId(value))
+    ||!(s.sectionPosition===null||integer(s.sectionPosition)&&s.sectionPosition>=1&&s.sectionPosition<=64)
+    ||!(s.sectionTitle===null||outlineText(s.sectionTitle,200))||!(s.activityTitle===null||outlineText(s.activityTitle,240))
+    ||!Array.isArray(s.purposes)||s.purposes.length>4||new Set(s.purposes).size!==s.purposes.length
+    ||s.purposes.some(value=>!['video','slides','feedback','attendance'].includes(value))
+    ||!['question','route','history','none'].includes(s.from)
+    ||![null,'invalid_route','foreign_request','invalid_selector','ambiguous_selector','choose_course'].includes(s.reason)))invalid();
+  if(evidence.url!==(s?.courseId?outlineCourse(s.courseId):'/elearning'))invalid();
+  const urls=[evidence.url];
+  if(p.readState==='unavailable'){
+    if(typeof p.reason!=='string'||!p.reason||c!==null||p.complete||p.records.length||s?.reason&&p.reason!==s.reason)invalid();
+  }else{
+    if(!s||!outlineId(s.courseId)||s.reason!==null||s.from==='none'
+      ||!exact(c,['availableSections','availableActivities','matchingSections','matchingActivities','includedSections','includedActivities','omittedSections','omittedActivities','unknownPurposeActivities'])
+      ||Object.values(c).some(value=>!integer(value))||c.availableSections<1||c.availableSections>64||c.availableActivities>6400
+      ||c.matchingSections>c.availableSections||c.matchingActivities>c.availableActivities
+      ||c.includedSections!==p.records.length||c.includedSections>c.matchingSections||c.includedActivities>c.matchingActivities
+      ||c.omittedSections!==c.matchingSections-c.includedSections||c.omittedActivities!==c.matchingActivities-c.includedActivities
+      ||c.unknownPurposeActivities>c.availableActivities-c.matchingActivities||!s.purposes.length&&c.unknownPurposeActivities!==0)invalid();
+    const positions=new Set(),ids=new Set();let included=0;
+    for(const section of p.records){
+      if(!exact(section,['courseId','sectionPosition','title','activities'])||section.courseId!==s.courseId
+        ||!integer(section.sectionPosition)||section.sectionPosition<1||section.sectionPosition>64||positions.has(section.sectionPosition)
+        ||!outlineText(section.title,400)||!Array.isArray(section.activities)||section.activities.length>100
+        ||s.sectionPosition!==null&&section.sectionPosition!==s.sectionPosition||s.sectionTitle!==null&&!sameText(section.title,s.sectionTitle))invalid();
+      positions.add(section.sectionPosition);
+      for(const activity of section.activities){
+        if(!exact(activity,['courseId','sectionPosition','id','title','kind','purpose','url'])||activity.courseId!==s.courseId
+          ||activity.sectionPosition!==section.sectionPosition||!outlineId(activity.id)||ids.has(activity.id)||!outlineText(activity.title,480)
+          ||!['url','attendanceregister'].includes(activity.kind)
+          ||!(activity.kind==='url'?[null,'link','video','slides','feedback']:[null,'link','attendance']).includes(activity.purpose)
+          ||activity.url!==outlineActivity(s.courseId,activity.id)||s.activityId!==null&&activity.id!==s.activityId
+          ||s.activityTitle!==null&&!sameText(activity.title,s.activityTitle)||s.purposes.length&&!s.purposes.includes(activity.purpose))invalid();
+        ids.add(activity.id);included++;urls.push(activity.url);
+      }
+    }
+    if(included!==c.includedActivities)invalid();
+    const partial=c.omittedSections>0||c.omittedActivities>0||c.unknownPurposeActivities>0;
+    const filtering=s.purposes.length||s.activityId!==null||s.activityTitle!==null||s.sectionPosition!==null||s.sectionTitle!==null;
+    const state=partial?'partial':!c.matchingActivities&&filtering?'empty':'ok';
+    if(p.complete!==!partial||p.readState!==state||p.reason!==(c.unknownPurposeActivities?'purpose_metadata_missing':partial?'excerpted':null))invalid();
+  }
+  if(!Array.isArray(evidence.urls)||evidence.urls.length!==urls.length||evidence.urls.some((url,index)=>url!==urls[index]))invalid();
+}
 function repairUrl(selection){
   if(selection.id)return definitions['account:facilityRepairs'].path+'/'+selection.id;
   const query=new URLSearchParams();if(selection.page)query.set('page',String(selection.page));if(selection.status)query.set('status',selection.status);
@@ -169,6 +253,12 @@ function validateGradePayload(envelope,p,evidence){
 }
 const invalid=()=>{throw new TypeError('Use validated supplemental account evidence envelopes.');};
 function allowedUrl(id,url){
+  if(id==='account:dormitoryConduct')return url===definitions[id].path;
+  if(id==='account:elearningOutline'){
+    if(url==='/elearning')return true;
+    const match=typeof url==='string'&&/^\/elearning\/course\/([1-9]\d{0,9})(?:\/activity\/([1-9]\d{0,9}))?$/u.exec(url);
+    return Boolean(match&&outlineId(Number(match[1]))&&(!match[2]||outlineId(Number(match[2]))));
+  }
   if(id==='account:facilityRepairs'){
     if(typeof url!=='string')return false;
     if(repairRoute.test(url))return true;
@@ -193,7 +283,9 @@ function parse(envelope){
   if(evidence.urls!==undefined&&(!Array.isArray(evidence.urls)||evidence.urls.some(url=>!allowedUrl(id,url))))invalid();
   let payload;try{payload=JSON.parse(evidence.content);}catch{invalid();}
   if(!object(payload)||typeof payload.checkedAt!=='string'||!Number.isFinite(Date.parse(payload.checkedAt)))invalid();
-  if(id==='account:facilityRepairs')validateRepairPayload(envelope,payload,evidence);
+  if(id==='account:dormitoryConduct')validateDormitoryPayload(envelope,payload,evidence);
+  else if(id==='account:elearningOutline')validateOutlinePayload(envelope,payload,evidence);
+  else if(id==='account:facilityRepairs')validateRepairPayload(envelope,payload,evidence);
   else if(id==='account:elearningEnrollments'){
     const {counts,selection,rows,provenance,capability}=payload;
     const properties=['assignments','grades','submissions','personalAttendance','write'];
@@ -304,6 +396,71 @@ function sectionFor(parsed,question,zh){
     if(!integer(total))invalid();
     section.view={id:id.slice(8),title,url:evidence.url,columns,rows:[],total,checkedAt:p.checkedAt,note};
   };
+  if(id==='account:dormitoryConduct'){
+    section.lead.push(t('This is the saved local_demo dormitory-conduct notice at service 34-2, separate from housing and general student conduct. It does not establish official clearance, eligibility or an absence of misconduct.',
+      '這是 34-2 服務儲存的 local_demo 宿舍獎懲通知，與住宿資料及學生個人獎懲分開；不能據此認定校方證明、資格或從未違規。'));
+    if(envelope.readState==='unavailable'){
+      section.lead.push(envelope.reason==='foreign_request'?t('I cannot access another student’s dormitory-conduct records. No other account was read.','無法存取其他學生的宿舍獎懲紀錄；未讀取其他帳戶。')
+        :envelope.reason==='unauthorized'?t('Sign in to read your own saved notice. No account records were read.','請先登入以讀取自己的通知；尚未讀取帳戶紀錄。')
+        :envelope.reason==='unsupported_operation'?t('This reader cannot delete, edit or clear the notice. No change was performed.','此查詢不能刪除、修改或清除通知；未執行任何變更。')
+        :t('The dormitory-conduct notice could not be checked. Missing metadata and an empty record are not established by this failed or unavailable read.',
+          '無法查詢宿舍獎懲通知；失敗或不可用的查詢不能證明通知未儲存或紀錄為空。'));
+      return section;
+    }
+    if(p.metadataState==='missing')section.lead.push(t('No saved notice metadata was returned by this successful local read. This does not establish an empty dormitory-conduct record.',
+      '這次成功的站內查詢未回傳已儲存通知資料；這不代表宿舍獎懲紀錄為空。'));
+    else{
+      item(t('Saved dormitory-conduct result','儲存的宿舍獎懲結果'),p.record.result);
+      section.lead.push(p.record.result==='empty'?t('The saved notice explicitly records empty. This is a literal local notice result, not a complete disciplinary history.',
+        '已儲存通知明確記錄 empty；這只是站內通知原值，並非完整獎懲歷史。')
+        :t('The saved notice explicitly records unknown. It does not establish an empty record.','已儲存通知明確記錄 unknown；這不能證明紀錄為空。'));
+      view([t('Saved notice result','儲存通知結果')],1,t('Literal local_demo notice metadata only; no detailed conduct history.','僅為 local_demo 通知原值，不含詳細獎懲歷史。'));
+      section.viewCandidates.push(row(p.record.result));
+    }
+    section.lead.push(t('Detailed conduct entries, reasons, dates and penalties are unavailable from this notice. No certificate, downloadable document or official clearance is provided; no change was performed.',
+      '此通知不提供詳細獎懲項目、事由、日期或懲處；未提供證明、可下載文件或校方認證，也未執行變更。'));
+    return section;
+  }
+  if(id==='account:elearningOutline'){
+    section.lead.push(t('These are saved local remote-learning outline titles and links. They do not establish enrollment, official university synchronization or the contents of videos, slides or files.',
+      '以下為站內已儲存的數位學園大綱標題與連結，不能證明選課、校方同步，或影片、簡報與檔案的內容。'));
+    section.complete&&=p.complete;section.limited=envelope.readState==='partial';
+    if(envelope.readState==='unavailable'){
+      section.lead.push(envelope.reason==='foreign_request'?t('I cannot access another student’s course outline. No other account was read.','無法存取其他學生的課程大綱；未讀取其他帳戶。')
+        :envelope.reason==='unauthorized'?t('Sign in to read the course outline available to your account.','請登入以讀取此帳戶可存取的課程大綱。')
+        :['choose_course','invalid_selector','ambiguous_selector','ambiguous_section','ambiguous_activity'].includes(envelope.reason)
+          ?t('Choose one course and provide an exact course, section or activity identifier/title. This lookup did not establish a matching outline or activity.',
+            '請選擇一門課程，並提供確切課程、章節或活動識別碼／標題；此查詢尚未確認符合條件的大綱或活動。')
+          :envelope.reason==='outline_access_or_content_unknown'?t('The native read returned no sections. Course access or stored outline content is unknown; this does not prove no materials exist or that access was denied.',
+            '原生查詢未回傳章節；課程存取權或已儲存大綱內容仍未知，不能證明沒有教材或存取遭拒。')
+            :t('The selected course outline could not be checked. Its activities and their absence remain unknown.','無法查詢所選課程大綱；活動內容與是否存在仍未知。'));
+      return section;
+    }
+    const c=p.counts;
+    section.lead.push(t(`Course ${p.selection.courseId}: ${c.availableSections} sections and ${c.availableActivities} activities in the retrieved outline; ${c.matchingSections} sections and ${c.matchingActivities} activities match this selection. Included ${c.includedSections} sections and ${c.includedActivities} activities.`,
+      `課程 ${p.selection.courseId}：讀取大綱含 ${c.availableSections} 個章節、${c.availableActivities} 個活動；符合選擇條件 ${c.matchingSections} 個章節、${c.matchingActivities} 個活動。納入 ${c.includedSections} 個章節、${c.includedActivities} 個活動。`));
+    if(c.unknownPurposeActivities)section.lead.push(t(`${c.unknownPurposeActivities} selected activity candidates have no recorded purpose. The requested purpose list is incomplete; missing purpose metadata does not establish absence.`,
+      `${c.unknownPurposeActivities} 個所選活動候選項目未記錄用途；所要求的用途清單不完整，缺少用途資料不能證明活動不存在。`));
+    if(c.omittedSections||c.omittedActivities)section.lead.push(t(`Evidence omitted ${c.omittedSections} sections and ${c.omittedActivities} activities. This is not the complete selected list.`,
+      `證據略去 ${c.omittedSections} 個章節與 ${c.omittedActivities} 個活動，並非完整所選清單。`));
+    if(envelope.readState==='empty')section.lead.push(t('No matching activities were returned from the successfully loaded outline for these selectors. This does not establish absence in other sections, courses or university systems.',
+      '成功讀取的大綱未回傳符合這些選擇條件的活動；不能據此判定其他章節、課程或校方系統也沒有活動。'));
+    section.lead.push(t('An attendance register or feedback link is only an outline activity. No personal attendance, grades, answers, submissions or completion records were read; no action was performed.',
+      '出席登記或回饋連結只是大綱活動；未讀取個人出席、成績、答案、繳交或完成紀錄，亦未執行任何操作。'));
+    view([t('Section','章節'),t('Activity','活動'),t('Recorded purpose','儲存用途'),t('Local link','站內連結')],c.matchingActivities,
+      t('Activities remain paired with their saved course and section. Links do not establish content or completion.','活動對應已儲存課程及章節；連結不能證明內容或完成情況。'));
+    for(const entry of p.records){
+      section.group++;item(t('Section','章節')+' '+entry.sectionPosition,entry.title,true,400);
+      if(!entry.activities.length)item(t('Included activities','納入活動'),0);
+      for(const activity of entry.activities){
+        const purpose=activity.purpose===null?t('not recorded','未記錄'):activity.purpose;
+        section.items.push({text:t('Activity','活動')+' '+activity.id+': '+literal(activity.title,480)+', '+t('Section','章節')+': '+literal(entry.title,400)
+          +', '+t('Recorded purpose','儲存用途')+': '+literal(purpose)+', ['+t('Open activity','開啟活動')+']('+activity.url+')',label:'Activity',group:section.group,header:false});
+        section.viewCandidates.push(row(entry.sectionPosition+' — '+entry.title,activity.title,purpose,activity.url));
+      }
+    }
+    return section;
+  }
   if(id==='account:facilityRepairs'){
     section.lead.push(t('These are saved local stu.best repair records. A saved status does not confirm physical completion, a technician visit or an official university update.',
       '以下是 stu.best 站內儲存的報修紀錄；儲存狀態不能確認實際完修、技師到場或校方系統更新。'));
@@ -677,7 +834,7 @@ export function formatSupplementalAccountAnswers(results,{question='',language:r
     const groups=new Map();for(const item of section.items){if(!groups.has(item.group))groups.set(item.group,[]);groups.get(item.group).push(item);}
     section.items=[...groups.values()].flatMap(items=>items.sort((a,b)=>Number(b.header)-Number(a.header)||preferred(a.label)-preferred(b.label)));
   }
-  const topics={'account:facilityRepairs':/repair|maintenance|報修|报修|修繕/iu,'account:dtmGradeReport':/moodle|dtm|grade report|gradebook|成績報告|成绩报告/iu,'account:aidPayments':/student aid|financial aid|salary|payroll|助學|薪資|工讀/iu,'account:studentConduct':/conduct|disciplin|獎懲/iu,'account:studentLoan':/loan|貸款|學貸/iu,'account:courseCatalog':/catalog|syllabus|offering|課綱|大綱|開課/iu,'account:enrollmentCertificate':/certificate|enrolment|enrollment|在學|在籍|學籍證明/iu,'account:dtmSubmissions':/file|upload|submission|assignment|feedback|作業|檔案|評語|上傳/iu,'account:tuition':/tuition|settlement|statement|summer|evening|學費|結算|暑修|進修部|延修/iu};
+  const topics={'account:dormitoryConduct':/dormitory|dorm|宿舍/iu,'account:elearningOutline':/outline|video|slides|activities|section|feedback|大綱|影片|簡報|活動|章節|回饋/iu,'account:facilityRepairs':/repair|maintenance|報修|报修|修繕/iu,'account:dtmGradeReport':/moodle|dtm|grade report|gradebook|成績報告|成绩报告/iu,'account:aidPayments':/student aid|financial aid|salary|payroll|助學|薪資|工讀/iu,'account:studentConduct':/conduct|disciplin|獎懲/iu,'account:studentLoan':/loan|貸款|學貸/iu,'account:courseCatalog':/catalog|syllabus|offering|課綱|大綱|開課/iu,'account:enrollmentCertificate':/certificate|enrolment|enrollment|在學|在籍|學籍證明/iu,'account:dtmSubmissions':/file|upload|submission|assignment|feedback|作業|檔案|評語|上傳/iu,'account:tuition':/tuition|settlement|statement|summer|evening|學費|結算|暑修|進修部|延修/iu};
   const rankedViews=sections.filter(section=>section.view).map((section,index)=>({section,index,match:question.search(topics[section.id])})).sort((a,b)=>Number(b.match>=0)-Number(a.match>=0)||Number(b.section.viewCandidates.length>0)-Number(a.section.viewCandidates.length>0)||(a.match>=0&&b.match>=0?a.match-b.match:0)||a.index-b.index);
   const selectedSet=new Set(rankedViews.slice(0,supplementalAnswerLimits.views).map(value=>value.section));
   const selectedViews=sections.filter(section=>selectedSet.has(section));
@@ -685,7 +842,8 @@ export function formatSupplementalAccountAnswers(results,{question='',language:r
   const omittedViews=rankedViews.length-selectedViews.length;
   let omittedItems=sections.reduce((total,section)=>total+section.items.length,0),omittedViewRows=sections.reduce((total,section)=>total+section.viewCandidates.length,0);
   const result=()=>({status:sections.some(section=>section.usable)?'answered':'abstained',answer:sections.map(section=>[
-    section.title,...section.lead,...section.shown.map(item=>(['account:dtmGradeReport','account:elearningEnrollments','account:facilityRepairs'].includes(section.id)&&item.group&&!item.header?'  - ':'- ')+item.text),
+    section.title,...section.lead,...section.shown.map(item=>(section.id==='account:elearningOutline'&&item.group&&!item.header?'\n  - '
+      :['account:dtmGradeReport','account:elearningEnrollments','account:facilityRepairs'].includes(section.id)&&item.group&&!item.header?'  - ':'- ')+item.text),
     (section.limited||section.shown.length<section.items.length||section.viewCandidates.length>(section.view?.rows.length??0))
       ?(zh?'顯示內容已節錄，省略部分不代表沒有紀錄。':'Display excerpt: omitted fields or rows do not establish absence.'):null,
     section.view&&!section.viewSelected?(zh?'此來源表格因三張表格的顯示上限省略，文字結果與來源連結仍保留。':'This source table is omitted by the three-table display limit; its text result and source link remain available.'):null,

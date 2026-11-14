@@ -360,8 +360,8 @@ test('public authentication cases assert HTTP denial rather than a fabricated an
 test('full bank includes every source page and catalog entry without duplicate case IDs',async()=>{
   const suite=await evaluationSuite('2026-11-13T02:00:00Z');
   assert.equal(new Set(suite.cases.map(row=>row.id)).size,suite.cases.length);
-  assert.equal(suite.inventory.clientDispatch.questions.length,35);
-  assert.deepEqual(suite.inventory.clientDispatch.verifiedDispatch.map(({graphTool})=>graphTool),['aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs']);
+  assert.equal(suite.inventory.clientDispatch.questions.length,30);
+  assert.deepEqual(suite.inventory.clientDispatch.verifiedDispatch.map(({graphTool})=>graphTool),['aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline']);
   assert.ok(suite.inventory.clientDispatch.questions.every(row=>row.executed===false));
   assert.ok(suite.inventory.clientDispatch.questions.every(row=>!suite.cases.some(apiCase=>apiCase.id===row.id)));
   const assessment=assessRun({results:[],cleanup:{complete:true},sourceUnchanged:true,dirty:false},{...suite,requestedSuite:'full',sourceRevision:'offline'});
@@ -371,6 +371,8 @@ test('full bank includes every source page and catalog entry without duplicate c
   for(const page of suite.inventory.publicPages)assert.ok(suite.cases.some(row=>row.domain==='public-page-context'&&row.route===page.route),page.route);
   for(const service of suite.inventory.services)assert.equal(suite.cases.filter(row=>row.serviceId===service.id&&row.id.startsWith('service:')).length,4,service.id);
   assert.equal(suite.cases.filter(row=>row.domain==='facilityRepairs'&&row.fixtureRequirement==='native_facility_repair').length,15);
+  assert.equal(suite.cases.filter(row=>row.domain==='elearningOutline'&&row.fixtureRequirement==='native_elearning_outline').length,5);
+  assert.equal(suite.cases.filter(row=>row.domain==='dormitoryConduct'&&row.fixtureRequirement==='native_dormitory_conduct').length,10);
   assert.ok(suite.cases.filter(row=>row.domain==='public-page-context').every(row=>row.coveragePurpose?.includes('not proof')),'Metadata questions must not claim complete content QA.');
 });
 

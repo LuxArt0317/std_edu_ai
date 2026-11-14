@@ -18,6 +18,7 @@ const errors=[],writes=[],assistantRequests=[];
 const archive=Array.from({length:23},(_,i)=>({id:15000+i,category_id:28,title:'歷年課程 '+(i+1),self_enroll:false,position:i+1}));
 const course={id:9718,category_id:41,title:'111-1遠距教學研習_20220902',self_enroll:true,position:1};
 const protectedCourse={id:9408,category_id:18,title:'一般安全衛生教育訓練-1100330',self_enroll:false,position:1};
+const outlineQuestion='Which videos are listed, and what are my saved remote-learning enrollments?';
 let enrolled=null,failFirst=true;
 async function fixture(signedIn,courseAccess=signedIn){
   const context=await browser.newContext({viewport:{width:1280,height:720},serviceWorkers:'block'});
@@ -62,6 +63,18 @@ async function fixture(signedIn,courseAccess=signedIn){
         assert.match(authorization,/^Bearer /u);
         assert.equal(JSON.parse(Buffer.from(authorization.split('.')[1],'base64url').toString()).sub,user.id);
         const input=request.postDataJSON();
+        if([outlineQuestion,'What videos are listed?'].includes(input.question)){
+          const mixed=input.question===outlineQuestion;
+          assert.equal(input.route,path+'/course/9408'+(mixed?'':'/activity/293395'));
+          assistantRequests.push(input.question);
+          const answer=`The outline links to [第一段影片](${path}/course/9408/activity/293395).`
+            +(mixed?` Your saved enrollment is [${course.title}](${path}/course/9718).`:'');
+          return route.fulfill({json:{answer,status:'answered',citations:[],verification:{status:'verified',attempts:1},
+            activity:[
+              {kind:'account-read:elearningOutline:1',label:'Checked the saved course outline',detail:'Read permitted local activity links.',status:'complete'},
+              ...(mixed?[{kind:'account-read:elearningEnrollments:1',label:'Checked saved enrollments',detail:'Read your saved enrollment.',status:'complete'}]:[]),
+            ]}});
+        }
         assert.equal(input.route,path+'/my-courses');
         assert.ok(['What are my courses?','What are my grades in remote-learning Moodle?'].includes(input.question));
         assistantRequests.push(input.question);
@@ -152,6 +165,20 @@ try{
   assert.deepEqual(assistantRequests,['What are my courses?','What are my grades in remote-learning Moodle?']);
   await page.keyboard.press('Escape');
   await assistant.waitFor({state:'hidden'});
+  await page.goto(origin+path+'/course/9408');
+  await main.getByRole('link',{name:'第一段影片',exact:true}).waitFor();
+  await page.getByRole('button',{name:'開啟 AI 校園助理'}).click();
+  await page.getByPlaceholder('Ask a school question…').fill(outlineQuestion);
+  await page.getByRole('button',{name:'Send',exact:true}).click();
+  const outlineReply=assistant.locator('article').filter({hasText:'The outline links to'});
+  assert.equal(await outlineReply.getByRole('link',{name:'第一段影片',exact:true}).getAttribute('href'),path+'/course/9408/activity/293395');
+  assert.equal(await outlineReply.getByRole('link',{name:course.title,exact:true}).getAttribute('href'),path+'/course/9718');
+  await outlineReply.locator('details summary').click();
+  await outlineReply.getByText('Checked the saved course outline',{exact:true}).waitFor();
+  await outlineReply.getByText('Checked saved enrollments',{exact:true}).waitFor();
+  assert.equal(assistantRequests.filter(question=>question===outlineQuestion).length,1);
+  await page.keyboard.press('Escape');
+  await assistant.waitFor({state:'hidden'});
   await page.goto(origin+path+'/category/28');
   await main.getByRole('link',{name:'下一頁'}).click();
   await page.waitForURL(origin+path+'/category/28?page=2');
@@ -197,8 +224,10 @@ try{
   await page.getByRole('button',{name:'開啟 AI 校園助理'}).click();
   await page.getByPlaceholder('Ask a school question…').fill('What videos are listed?');
   await page.getByRole('button',{name:'Send',exact:true}).click();
-  const activityLink=page.getByRole('dialog').getByRole('link',{name:'第一段影片'});
+  const activityReply=page.getByRole('dialog').locator('article').last();
+  const activityLink=activityReply.getByRole('link',{name:'第一段影片'});
   assert.equal(await activityLink.getAttribute('href'),videoRoute);
+  assert.equal(assistantRequests.filter(question=>question==='What videos are listed?').length,1);
   assert.equal(await page.getByRole('dialog').getByRole('link',{name:'出席統計'}).count(),0);
   await page.keyboard.press('Escape');
   await main.getByRole('link',{name:'返回課程'}).click();

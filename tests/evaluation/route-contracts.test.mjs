@@ -196,7 +196,7 @@ test('route coverage retains only unresolved semantic cases after adding public 
   ];
   const added=[
     '/elearning/categories','/elearning/search','/elearning/category/:id','/elearning/notice/:id',
-    '/elearning/course/:id','/elearning/course/:courseId/activity/:activityId','/elearning/search?q=%3Aquery',
+    '/elearning/search?q=%3Aquery',
     '/elearning/search?page=%3Apage&q=%3Aquery','/elearning/category/:id?page=%3Apage','/elearning/login',
     '/school-affairs/services/4-2','/school-sites/elearning.stu.edu.tw','/school-sites/elearning.stu.edu.tw/login/index.php',
     '/school-sites/elearning.stu.edu.tw/course/index.php?categoryid=48',
@@ -210,18 +210,23 @@ test('route coverage retains only unresolved semantic cases after adding public 
   const elearningIds=['enrollment','enrollment-mixed','enrollment-empty','grades-unlinked'].map(id=>'account:elearning-'+id);
   const facilityIds=['detail-status','status-not-physical-proof','latest-note','latest-blank','no-review-event','owned-list','all-overrides-detail',
     'ambiguous-reference','exact-not-found','empty-owned-list','read-only-action','foreign-account','anonymous','compound-next-class','compound-reversed'].map(id=>'account:facility-repair-'+id);
-  const addedPrivacyIds=['anonymous-records-studentConduct','anonymous-records-studentLoan','anonymous-records-aidPayments','anonymous-records-dtmGradeReport','anonymous-records-elearningEnrollments','anonymous-records-facilityRepairs'];
-  const newIds=[...reproductionIds,...nativeIds,...aidIds,...dtmIds,...elearningIds,...facilityIds,...addedPrivacyIds,'public-study-first-week'];
+  const outlineIds=['videos','feedback-and-slides','follow-up-slides','mixed-enrollments','crossed-access'].map(id=>'account:elearning-outline-'+id);
+  const dormitoryIds=['saved-empty','saved-unknown','missing-metadata','empty-not-clearance','details-unavailable','document-unavailable',
+    'follow-up','chinese-empty','mixed-housing','mixed-tuition'].map(id=>'account:dormitory-conduct-'+id);
+  const addedPrivacyIds=['anonymous-records-studentConduct','anonymous-records-studentLoan','anonymous-records-aidPayments','anonymous-records-dtmGradeReport',
+    'anonymous-records-elearningEnrollments','anonymous-records-facilityRepairs','anonymous-records-elearningOutline','anonymous-records-dormitoryConduct'];
+  const newIds=[...reproductionIds,...nativeIds,...aidIds,...dtmIds,...elearningIds,...facilityIds,...outlineIds,...dormitoryIds,...addedPrivacyIds,'public-study-first-week'];
   assert.equal(cases.filter(row=>!newIds.includes(row.id)).length,945);
-  for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,addedPrivacyIds])assert.deepEqual(cases.filter(row=>ids.includes(row.id)).map(row=>row.id).sort(),[...ids].sort());
+  for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,outlineIds,dormitoryIds,addedPrivacyIds])
+    assert.deepEqual(cases.filter(row=>ids.includes(row.id)).map(row=>row.id).sort(),[...ids].sort());
   assert.equal(report.coverage.routes.total,576);
-  assert.equal(expected.length,58);assert.equal(added.length,14);
+  assert.equal(expected.length,58);assert.equal(added.length,12);
   assert.deepEqual(report.coverage.routes.missing.filter(route=>!added.includes(route)),expected);
   assert.deepEqual(report.coverage.routes.missing.filter(route=>added.includes(route)),added);
-  assert.equal(report.coverage.routes.missing.length,72);
+  assert.equal(report.coverage.routes.missing.length,70);
   assert.equal(report.browserAcceptance.total,576);assert.equal(report.browserAcceptance.requiredScenarios,586);
   assert.equal(report.coverage.routeFamilies.total,53);
   assert.deepEqual(report.coverage.routeFamilies.missing,['school-menus','dtm-submissions','elearning-authentication','elearning-entry-transitions','legacy-route-aliases','authentication-transitions','account-information','assistant-sessions','campus-navigation']);
   assert.equal(report.releaseReady,false);assert.equal(report.totals.executed,0);
-  assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,72);
+  assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,70);
 });

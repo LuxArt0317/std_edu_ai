@@ -2,7 +2,6 @@ import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import ts from 'typescript';
 import {clubStudentQuestion,clubStudentScope} from '../../server/clubStudentContract.js';
-import {elearningOutlineCourse,elearningOutlineScope} from '../../server/elearningContract.js';
 import {certificateAwardQuestion,certificateAwardScope} from '../../server/certificateAwardsContract.js';
 import {announcementEmailQuestion,announcementEmailScope} from '../../server/announcementEmailContract.js';
 import {studentProfileQuestion,studentProfileScope} from '../../server/studentProfileContract.js';
@@ -25,13 +24,6 @@ const definitions=[
     secondPart:'Also show my current semester subjects.',secondTools:['courses'],
     support:'owned_membership_attendance_and_foundation_summary',
     limit:'Directory and general activity searches are guides, not private membership proof. Only the first page is summarized; hasMore must remain visible.'},
-  {id:'elearning-outline',call:'answerElearningOutline',file:'elearning',server:'elearning',scope:elearningOutlineScope,
-    routes:['/elearning/course/:id','/elearning/course/:courseId/activity/:activityId'],selector:{course:'<owned-accessible-course-id>'},
-    fields:['courseId','sections[].title','sections[].activities[].id','sections[].activities[].title','sections[].activities[].purpose'],
-    question:'Which videos are listed?',contextRoute:'/elearning/course/9718',
-    secondPart:'Also tell me my recorded attendance for those activities.',secondFields:['providerAttendanceUnavailable'],
-    support:'permitted_outline_activity_links',
-    limit:'Course-level authorization is required. Empty permitted content and inaccessible outline need distinct explanations; current output is capped at six sections and twenty activities per section.'},
   {id:'certificate-awards',call:'readCertificateAwardAnswer',file:'certificateAwards',server:'certificateAwards',scope:certificateAwardScope,
     routes:['/school-affairs/services/52-1'],selector:{view:'mine',answer:'en'},fields:['rows[].name','rows[].status'],
     question:'What is the status of my professional certificate subsidy application?',
@@ -77,7 +69,6 @@ const otherDirectReaders=['readProgramRegistrationAnswer','readTeachingFeedbackA
 export function probeNativePredicate(id,question,route=''){
   switch(id){
     case 'club-student':return clubStudentQuestion(question);
-    case 'elearning-outline':return elearningOutlineCourse(question,route);
     case 'certificate-awards':return certificateAwardQuestion(question)==='status'?'status':null;
     case 'announcement-email':return announcementEmailQuestion(question)==='status'?'status':null;
     case 'student-profile':return studentProfileQuestion(question)==='status'?'status':null;
@@ -128,7 +119,9 @@ export function inspectClientDispatchSource(source){
   const graphPredicates={isAidPaymentsEvidenceQuestion:['aidPaymentsEvidenceIntent','question,route,history'],isForeignAidPaymentsQuestion:['aidPaymentsEvidenceIntent','question'],
     isForeignDtmGradesQuestion:['dtmGradeEvidenceIntent','question,route'],shouldReadNativeDtmGrades:['dtmGradeEvidenceIntent','question,route,history'],
     isElearningEvidenceQuestion:['elearningEvidenceIntent','question,route,history'],isForeignElearningRecordsQuestion:['elearningEvidenceIntent','question,route'],
-    isFacilityRepairEvidenceQuestion:['facilityRepairEvidenceIntent','question,route,history'],isForeignFacilityRepairQuestion:['facilityRepairEvidenceIntent','question']};
+    isFacilityRepairEvidenceQuestion:['facilityRepairEvidenceIntent','question,route,history'],isForeignFacilityRepairQuestion:['facilityRepairEvidenceIntent','question'],
+    isDormitoryConductEvidenceQuestion:['dormitoryConductEvidenceIntent','question,route,history'],
+    isElearningOutlineEvidenceQuestion:['elearningOutlineEvidenceIntent','question,route,history']};
   const clauses=node=>ts.isParenthesizedExpression(node)?clauses(node.expression)
     :ts.isBinaryExpression(node)&&node.operatorToken.kind===ts.SyntaxKind.BarBarToken?[...clauses(node.left),...clauses(node.right)]:[node];
   const predicates=verifiedDispatch?clauses(verifiedDispatch.expression):[];
@@ -146,6 +139,8 @@ export function inspectClientDispatchSource(source){
     {id:'dtm-grade-report',graphTool:'dtmGradeReport',source:dispatchPath,line:first.line},
     {id:'elearning-enrollments',graphTool:'elearningEnrollments',source:dispatchPath,line:first.line},
     {id:'facility-repairs',graphTool:'facilityRepairs',source:dispatchPath,line:first.line},
+    {id:'dormitory-conduct',graphTool:'dormitoryConduct',source:dispatchPath,line:first.line},
+    {id:'elearning-outline',graphTool:'elearningOutline',source:dispatchPath,line:first.line},
   ],
     fallback:{source:dispatchPath,line:api[0].line},otherDirectReaders:otherDirectReaders.filter(name=>calls.some(call=>call.name===name&&call.at<fallback.at)),
     navigationOnly:navigationOnly.map(row=>({...row,observedCalls:row.calls.filter(name=>calls.some(call=>call.name===name&&call.at<fallback.at))}))};
@@ -177,8 +172,8 @@ function questionCases(definition){
 /** Read-only source discovery for an eventual runner/browser harness. No fetch,
  * fixture creation, user-session import, model call or product code execution. */
 export async function discoverClientDispatchSurfaces({read=readSource}={}){
-  const contracts=['clubStudent','elearning','certificateAwards','announcementEmail','studentProfile','graduationClearance'];
-  const sources=[...new Set([dispatchPath,apiPath,'server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js','server/elearningEvidenceIntent.js','server/facilityRepairEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
+  const contracts=['clubStudent','certificateAwards','announcementEmail','studentProfile','graduationClearance'];
+  const sources=[...new Set([dispatchPath,apiPath,'server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js','server/elearningEvidenceIntent.js','server/facilityRepairEvidenceIntent.js','server/dormitoryConductEvidenceIntent.js','server/elearningOutlineEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
     ...contracts.map(name=>'server/'+name+'Contract.js'),'src/features/public/affairs/venueContract.js',
     'server/clubServicesContract.js','server/clubOfficerContract.js','server/healthExaminationContract.js','server/counselingContract.js',
     'src/features/public/PublicSite.tsx','src/features/public/affairs/SchoolAffairsEntry.tsx','src/features/public/affairs/SchoolAffairsPortal.tsx',

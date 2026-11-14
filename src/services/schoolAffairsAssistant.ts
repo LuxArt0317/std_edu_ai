@@ -3,12 +3,13 @@ import { answerStudentClubs } from './clubStudent';
 import { clubOfficerGuide,clubOfficerQuestion } from '../../server/clubOfficerContract.js';
 import { clubGuide,clubIntent } from '../../server/clubServicesContract.js';
 import { healthExaminationGuide, healthExaminationQuestion } from '../../server/healthExaminationContract.js';
-import {elearningGuide,elearningQuestion,elearningOutlineCourse} from '../../server/elearningContract.js';
+import {elearningGuide,elearningQuestion} from '../../server/elearningContract.js';
 import {isAidPaymentsEvidenceQuestion,isForeignAidPaymentsQuestion} from '../../server/aidPaymentsEvidenceIntent.js';
 import {isForeignDtmGradesQuestion,shouldReadNativeDtmGrades} from '../../server/dtmGradeEvidenceIntent.js';
 import {isElearningEvidenceQuestion,isForeignElearningRecordsQuestion} from '../../server/elearningEvidenceIntent.js';
 import {isFacilityRepairEvidenceQuestion,isForeignFacilityRepairQuestion} from '../../server/facilityRepairEvidenceIntent.js';
-import {answerElearningOutline} from './elearning';
+import {isDormitoryConductEvidenceQuestion} from '../../server/dormitoryConductEvidenceIntent.js';
+import {isElearningOutlineEvidenceQuestion} from '../../server/elearningOutlineEvidenceIntent.js';
 import {counselingGuide,counselingQuestion} from '../../server/counselingContract.js';
 import {certificateAwardQuestion} from '../../server/certificateAwardsContract.js';
 import {readCertificateAwardAnswer} from './certificateAwards';
@@ -52,7 +53,8 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
   if (isAidPaymentsEvidenceQuestion(question,route,history)||isForeignAidPaymentsQuestion(question)
     ||isForeignDtmGradesQuestion(question,route)||shouldReadNativeDtmGrades(question,route,history)
     ||isElearningEvidenceQuestion(question,route,history)||isForeignElearningRecordsQuestion(question,route)
-    ||isFacilityRepairEvidenceQuestion(question,route,history)||isForeignFacilityRepairQuestion(question))
+    ||isFacilityRepairEvidenceQuestion(question,route,history)||isForeignFacilityRepairQuestion(question)
+    ||isDormitoryConductEvidenceQuestion(question,route,history)||isElearningOutlineEvidenceQuestion(question,route,history))
     return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress);
   const officer = !images.length ? clubOfficerQuestion(question) : null;
   if (officer) return clubOfficerGuide(question,officer,true);
@@ -64,11 +66,6 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
   const clubs = !images.length ? clubIntent(question) : null;
   if (clubs) return clubGuide(question, clubs, true);
   if (healthExaminationQuestion(question)) return healthExaminationGuide(question, true);
-  const outline=images.length?null:elearningOutlineCourse(question,route);
-  if(outline!==null){
-    onProgress?.({kind:'elearning-outline',label:'Checking the course outline',detail:'Looking up activities available to your account.',status:'running'});
-    return answerElearningOutline(data.session.user.id,outline,question,signal);
-  }
   const elearning=elearningQuestion(question,route);
   if(elearning)return elearningGuide(question,elearning,true);
   const counseling=counselingQuestion(question);

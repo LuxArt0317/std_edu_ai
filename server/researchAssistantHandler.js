@@ -16,6 +16,8 @@ import {answerVenue} from './venueBooking.js';
 import {answerRepairGuide} from './facilityRepair.js';
 import {studentProfilePath,studentProfileQuestion} from './studentProfileContract.js';
 import {repairQuestion} from '../src/features/public/affairs/facilityRepair.js';
+import {selectDormitoryConductEvidence} from './dormitoryConductEvidenceIntent.js';
+import {selectElearningOutlineEvidence} from './elearningOutlineEvidenceIntent.js';
 import {isFacilityRepairEvidenceQuestion,isForeignFacilityRepairQuestion} from './facilityRepairEvidenceIntent.js';
 import {venueQuestion} from '../src/features/public/affairs/venueContract.js';
 import {permanentCourseQuestion} from '../src/features/public/affairs/permanentCourseRouting.js';
@@ -106,6 +108,7 @@ function parse(body) {
         return ['user', 'assistant'].includes(String(item.role)) && typeof item.content === 'string' ? [{ role: String(item.role), content: item.content.slice(0, 2000) }] : [];
     }) : [];
     const route = typeof source.route === 'string' && (/^\/school-affairs(?:\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?$/.test(source.route)||
+        (source.route.startsWith('/school-affairs/services/34-2')&&selectDormitoryConductEvidence('Show my records.',source.route)?.reason===null)||
         (source.route.startsWith('/school-affairs/services/45-1/history')&&isFacilityRepairEvidenceQuestion('What is its status?',source.route))||
         /^\/elearning(?:\/(?:category|notice)\/[1-9]\d{0,9}|\/(?:categories|my-courses|login|search))?\/?$/.test(source.route)||
         (source.route.startsWith('/elearning/course/')&&!/[?#]/.test(source.route)&&elearningCourseLocation(source.route))) ? source.route : normalizePublicPageRoute(source.route);
@@ -318,6 +321,20 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const stream = createAssistantStream(input.stream, response);
+        const dormitory=selectDormitoryConductEvidence(input.question,input.route,input.history);
+        const remoteOutline=selectElearningOutlineEvidence(input.question,input.route,input.history);
+        if(dormitory||remoteOutline){
+            const foreign=dormitory?.reason==='foreign_request'||remoteOutline?.reason==='foreign_request';
+            const zh=/[\u3400-\u9fff]/u.test(input.question);
+            const path=dormitory?'/school-affairs/services/34-2':remoteOutline.courseId?elearningCoursePath(remoteOutline.courseId):'/elearning';
+            const url=(dormitory?'/school-affairs/login':'/elearning/login')+'?next='+encodeURIComponent(path);
+            const answer=foreign?(zh?'我無法存取其他學生的紀錄。登入後只能查詢您自己有權限的資料。':'I cannot access another student’s records. After signing in, you can ask about information available to your own account.')
+                :zh?`[登入 stu.best](${url})後，才能查詢您的宿舍獎懲紀錄或帳戶可存取的課程大綱。`:`[Sign in to stu.best](${url}) to check your saved dormitory conduct or the course outline available to your account.`;
+            const title=zh?'登入後查詢帳戶資料':'Sign in to view account information';
+            const citations=foreign?[]:[{chunkId:dormitory?'directory:dormitory-conduct':'directory:elearning-outline',title,url,claim:title,sourceName:dormitory?'School Affairs':'Digital Academy'}];
+            stream.send(200,{status:'handoff',answer,citations,suggestedQuestions:[],grounding:{source:'assistant-help',webSearched:false}});
+            return;
+        }
         const foreignRepair=isForeignFacilityRepairQuestion(input.question);
         if(foreignRepair||isFacilityRepairEvidenceQuestion(input.question,input.route,input.history)){
             const path='/school-affairs/services/45-1/history',url='/school-affairs/login?next='+encodeURIComponent(path);

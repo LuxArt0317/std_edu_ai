@@ -13,6 +13,10 @@ import {isTuitionEvidenceQuestion} from './accountTuitionEvidence.js';
 import {normalizeSyllabusSearchQuery} from './syllabusSearch.js';
 import {formatSupplementalAccountAnswers} from './supplementalAccountAnswers.js';
 import {isFacilityRepairEvidenceQuestion} from './facilityRepairEvidenceIntent.js';
+import {selectDormitoryConductEvidence,isDormitoryConductEvidenceQuestion} from './dormitoryConductEvidenceIntent.js';
+import {selectElearningOutlineEvidence,isElearningOutlineEvidenceQuestion} from './elearningOutlineEvidenceIntent.js';
+import {dormitoryConductEvidenceMaxBytes,unavailableDormitoryConductEvidence} from './accountDormitoryConductEvidence.js';
+import {elearningOutlineEvidenceMaxBytes,unavailableElearningOutlineEvidence} from './accountElearningOutlineEvidence.js';
 import {facilityRepairEvidenceMaxBytes,unavailableFacilityRepairEvidence} from './accountFacilityRepairEvidence.js';
 
 export const supplementalAccountTools=Object.freeze({
@@ -26,11 +30,13 @@ export const supplementalAccountTools=Object.freeze({
   dtmGradeReport:'Own native DTM grade report and grades overview. Literal report items, feedback and saved total values. Separate from the personal grade tracker, file reviews, and School Affairs transcript.',
   elearningEnrollments:'Saved local remote-learning Moodle course enrollments and joined times. Separate from DTM and School Affairs. Does not contain personal remote-learning grades, assignments, submissions or attendance.',
   facilityRepairs:'Own saved local facility-repair reports and exact status; requested latest saved handling note with unknown event author. Separate from housing and generic service trackers. No cancellation, technician messaging, dispatch or proof of physical repair.',
+  dormitoryConduct:'Own saved dormitory conduct notice metadata at34-2, distinct from student conduct and housing beds/fees. Empty notice metadata does not establish complete disciplinary history, clearance or an official document. Read-only.',
+  elearningOutline:'Authorized local remote-learning course outline, section/activity titles and local video/slides/feedback/attendance-form links. No personal attendance, grades, submissions, video contents or completion records. Read-only.',
 });
-const predicates={courseCatalog:isCatalogEvidenceQuestion,enrollmentCertificate:isCertificateEvidenceQuestion,dtmSubmissions:isSubmissionEvidenceQuestion,tuition:isTuitionEvidenceQuestion,studentConduct:isStudentConductEvidenceQuestion,studentLoan:isStudentLoanEvidenceQuestion,aidPayments:isAidPaymentsEvidenceQuestion,dtmGradeReport:shouldReadNativeDtmGrades,elearningEnrollments:isElearningEvidenceQuestion,facilityRepairs:isFacilityRepairEvidenceQuestion};
+const predicates={courseCatalog:isCatalogEvidenceQuestion,enrollmentCertificate:isCertificateEvidenceQuestion,dtmSubmissions:isSubmissionEvidenceQuestion,tuition:isTuitionEvidenceQuestion,studentConduct:isStudentConductEvidenceQuestion,studentLoan:isStudentLoanEvidenceQuestion,aidPayments:isAidPaymentsEvidenceQuestion,dtmGradeReport:shouldReadNativeDtmGrades,elearningEnrollments:isElearningEvidenceQuestion,facilityRepairs:isFacilityRepairEvidenceQuestion,dormitoryConduct:isDormitoryConductEvidenceQuestion,elearningOutline:isElearningOutlineEvidenceQuestion};
 const keys=Object.keys(supplementalAccountTools),plain=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&[Object.prototype,null].includes(Object.getPrototypeOf(value));
 const bytes=value=>Buffer.byteLength(JSON.stringify(value),'utf8');
-const sourceLimits={courseCatalog:18000,enrollmentCertificate:12000,dtmSubmissions:24000,tuition:16000,studentConduct:studentConductEvidenceMaxBytes,studentLoan:studentLoanEvidenceMaxBytes,aidPayments:aidPaymentsEvidenceMaxBytes,dtmGradeReport:dtmGradeReportEvidenceMaxBytes,elearningEnrollments:elearningEvidenceMaxBytes,facilityRepairs:facilityRepairEvidenceMaxBytes};
+const sourceLimits={courseCatalog:18000,enrollmentCertificate:12000,dtmSubmissions:24000,tuition:16000,studentConduct:studentConductEvidenceMaxBytes,studentLoan:studentLoanEvidenceMaxBytes,aidPayments:aidPaymentsEvidenceMaxBytes,dtmGradeReport:dtmGradeReportEvidenceMaxBytes,elearningEnrollments:elearningEvidenceMaxBytes,facilityRepairs:facilityRepairEvidenceMaxBytes,dormitoryConduct:dormitoryConductEvidenceMaxBytes,elearningOutline:elearningOutlineEvidenceMaxBytes};
 export const supplementalEvidenceBudget=54000;
 /** One shared server-side boundary for API snapshot loading and graph planning.
  * Recognized repair clauses do not authorize unrelated account collections.
@@ -58,11 +64,55 @@ export function facilityRepairLookupContext(question,route='',history=[]){
   const scheduleOnly=schedule&&(scheduleWords.test(otherQuestion)||/^(?:請問|請|顯示|告訴我|我|的|下一堂|課|課表|時間|教室|在哪裡|幾點|以及|和|[，、\s])+$/u.test(otherQuestion));
   return {selected:true,repairOnly:!otherQuestion,scheduleOnly,otherQuestion,repairQuestion:otherQuestion&&repairParts.length?repairParts.join(' and '):question};
 }
+/** Isolate these native page requests from independent clauses. The original
+ * selectors still decide identity/IDs. Residual text is untrusted query context,
+ * never evidence; uncertain clauses stay with the normal planner. */
+export function nativePageLookupContext(question,route='',history=[]){
+  const selections={dormitoryConduct:selectDormitoryConductEvidence(question,route,history),elearningOutline:selectElearningOutlineEvidence(question,route,history)};
+  const tools=Object.keys(selections).filter(key=>selections[key]);
+  if(!tools.length)return {tools,selected:false,readerOnly:false,otherQuestion:question,questions:{},foreign:false};
+  const unquoted=value=>value.replace(/["]([^"\n]*)["]|“[^”]*”|「[^」]*」/gu,'');
+  const comparative=/\b(?:compare|versus|difference between)\b|比較/iu.test(question);
+  const quoted=[];let masked=question.replace(/["]([^"\n]*)["]|“[^”]*”|「[^」]*」/gu,match=>{quoted.push(match);return '\ue000'+(quoted.length-1)+'\ue001';});
+  masked=masked.replace(/\s+(?:including|together with|along with|as well as)\s+(?=(?:my|our|the|student|school|housing|tuition)\b)/giu,' and ');
+  if(comparative)masked=masked.replace(/\s+(?:with|versus|vs\.?)\s+/giu,' and ');
+  const parts=masked.split(/[;；。!?！？\n,，]|\.(?:\s+|$)|\s+(?:and|also|plus|but)\s+|\s+(?=(?:without|except|excluding)\b)|(?<!\bdo)(?<!\s)\s+(?=not(?!\s+only)\b)|以及|還有|並且|(?=排除|不含)/iu)
+    .map(part=>part.replace(/\ue000(\d+)\ue001/gu,(_,index)=>quoted[Number(index)]).trim()).filter(Boolean);
+  const collected=Object.fromEntries(tools.map(key=>[key,[]])),other=[];
+  const independent=/\b(?:tuition|salary|grades?|gpa|scholarships?|school affairs|student conduct|next (?:scheduled )?class|timetable|class schedule|housing application|housing fees?|assigned beds?|dormitory beds?|enrollments?|joined|dtm|digital teaching materials|unpaid|charges?)\b|學費|薪資|獎學金|校務|學生獎懲|下一堂|課表|住宿申請|住宿費|床位|選課|加入時間|數位教材/iu;
+  let previous=null,suppressed=false;
+  for(const part of parts){
+    if(/^(?:(?:please\s+)?(?:do not|don['’]t|never)\s+(?:show|list|read|check|include)|not(?!\s+only)\b|without\b|exclude\b|excluding\b|except\b|(?:請)?不要(?:顯示|列出|查詢|包含)|排除|不含)/iu.test(part)){
+      if(previous&&!independent.test(unquoted(part)))collected[previous].push(part);
+      suppressed=true;continue;
+    }
+    if(suppressed&&!/^(?:(?:also|then|please|now)\s+)*(?:show|list|check|read|tell|explain|include|what|which|where|when|how|can|could|do|does|is|are|compare)\b|^(?:請|還有|現在)?(?:顯示|列出|查詢|告訴|什麼|何時|怎麼|哪)/iu.test(part))continue;
+    suppressed=false;
+    const domain=tools.filter(key=>key==='dormitoryConduct'
+      ?Boolean(selectDormitoryConductEvidence(part,'',[]))
+      :Boolean(selectElearningOutlineEvidence(part,route,history)));
+    if(independent.test(unquoted(part))){other.push(part);previous=null;continue;}
+    if(domain.length){for(const key of domain)collected[key].push(part);previous=domain.length===1?domain[0]:null;continue;}
+    if(previous==='dormitoryConduct'&&(/^(?:(?:its|the|my|all|each|every|saved|recorded)\s+)*(?:dates?|reasons?|penalt(?:y|ies)|details?)(?:\s+(?:recorded|saved|for|me|my|account))*$/iu.test(part)
+      ||/^(?:its|this notice['’]s|that notice['’]s)\s+(?:(?:downloadable|official|printed|saved)\s+)*(?:certificate|document|pdf|proof)$/iu.test(part))){collected[previous].push(part);continue;}
+    if(previous&&(/^(?:(?:list|show|tell|explain|me|all|one|two|three|four|five|six|seven|eight|nine|ten|each|every|with|their|its|the|my|local|exact|saved|recorded)\s+)*(?:links|urls|titles|names|meaning|status|records)[.!?]?$/iu.test(part)
+      ||/^(?:(?:their|its|the|my|all|each|every|exact|local|saved|recorded|with|include|including|list|show|please|only)\s+)*(?:links?|urls?|titles?|names?|meaning|status|records?|rewards?|penalties|videos?|slides?|materials?|activities|sections?)(?:\s+(?:too|as well))?$/iu.test(part)
+      ||/^(?:course|activity|section)\s+(?:(?:id|number|#)\s*)?\d+$/iu.test(part)
+      ||/^(?:not|without|except|exclude|excluding|do not|don['’]t|不要|排除|不含)\b/iu.test(part))){collected[previous].push(part);continue;}
+    other.push(part);previous=null;
+  }
+  // A short contextual follow-up can have no independently named subject.
+  if(parts.length===1&&!independent.test(unquoted(question))&&tools.length===1){collected[tools[0]]=[question];other.length=0;}
+  const questions=Object.fromEntries(tools.map(key=>[key,collected[key].length?collected[key].join(' and '):question]));
+  return {tools,selected:true,readerOnly:other.length===0,otherQuestion:other.join(' and '),questions,
+    foreign:tools.some(key=>selections[key].reason==='foreign_request')};
+}
 export function requiredSupplementalTools(question,route='',history=[]){
-  const remote=isElearningEvidenceQuestion(question,route,history);
-  const otherQuestion=remote?independentElearningQuestion(question,route,history):question;
+  const pages=nativePageLookupContext(question,route,history),remaining=pages.selected?pages.otherQuestion:question;
+  const remote=Boolean(remaining)&&isElearningEvidenceQuestion(remaining,route,history);
+  const otherQuestion=remote?independentElearningQuestion(remaining,route,history):remaining;
   const nativeGradeOnly=shouldReadNativeDtmGrades(otherQuestion,route,history)&&!mentionsDtmSubmissionDetail(otherQuestion,history);
-  return keys.filter(key=>key==='elearningEnrollments'?remote:otherQuestion&&(key!=='dtmSubmissions'||!nativeGradeOnly)&&predicates[key](otherQuestion,route,history));
+  return [...new Set([...pages.tools,...keys.filter(key=>!pages.tools.includes(key)&&(key==='elearningEnrollments'?remote:otherQuestion&&(key!=='dtmSubmissions'||!nativeGradeOnly)&&predicates[key](otherQuestion,route,history)))])];
 }
 const queryKeys=['id','search_scope','keyword','term','department','themes','page','page_size','sort','direction'];
 export const catalogReadPlanSchema={anyOf:[{type:'null'},{type:'object',additionalProperties:false,properties:Object.fromEntries(queryKeys.map(key=>[key,{type:['string','null'],...(key==='search_scope'?{enum:['current','historical',null]}:key==='direction'?{enum:['asc','desc',null]}:{})}])),required:queryKeys}]};
@@ -85,6 +135,8 @@ function catalogRouteContext(route,question){
   return /^(?:show|list|browse)\s+(?:me\s+)?(?:all\s+)?(?:the\s+)?(?:course\s+)?(?:catalog(?:ue)?|offerings?|available courses)\s*[.!?]?$/i.test(question.trim())||/\b(?:this page|this catalog|these offerings)\b|這個頁面|本頁|這些課程/.test(question);
 }
 function unavailable(key,reason){
+  if(key==='dormitoryConduct')return unavailableDormitoryConductEvidence(reason);
+  if(key==='elearningOutline')return unavailableElearningOutlineEvidence(reason);
   if(key==='facilityRepairs')return unavailableFacilityRepairEvidence(reason);
   if(key==='dtmGradeReport')return unavailableDtmGradeReportEvidence(reason);
   if(key==='elearningEnrollments')return unavailableElearningEvidence(reason);
@@ -149,6 +201,8 @@ export function boundSupplementalResults(input,budget=supplementalEvidenceBudget
 export async function readSupplementalLookups({tools,readers={},question,route='',history=[],snapshot,deadline,attempt=1,catalogQuery=null,onProgress=()=>{}}){
   const selected=[...new Set(tools.filter(key=>keys.includes(key)))],results=new Array(selected.length);
   readers={...readers};history=history.map(row=>({...row}));catalogQuery=catalogQuery===null?null:structuredClone(catalogQuery);
+  const pageContext=nativePageLookupContext(question,route,history);
+  const residual=pageContext.selected?pageContext.otherQuestion:question;
   const deadlineExceeded=Symbol('Supplemental account read timed out');
   let next=0;
   const emit=(key,status,detail)=>{try{onProgress({kind:`account-read:${key}:${attempt}`,label:(status==='running'?'Reading ':'Checked ')+supplementalAccountTools[key],detail,status});}catch{/* Disconnected progress cannot approve a read. */}};
@@ -162,7 +216,7 @@ export async function readSupplementalLookups({tools,readers={},question,route='
         const query=key==='courseCatalog'?validateCatalogReadPlan(catalogQuery):null;
         emit(key,'running','Starting the selected authorized reader. No action is executed.');
         result=await Promise.race([
-          Promise.resolve().then(()=>readers[key]({question:key==='facilityRepairs'?facilityRepairLookupContext(question,route,history).repairQuestion:question,route,history:history.map(row=>({...row})),snapshot,deadline,...(query===null?{}:{catalogQuery:query})})),
+          Promise.resolve().then(()=>readers[key]({question:key==='facilityRepairs'?facilityRepairLookupContext(residual,route,history).repairQuestion:pageContext.questions[key]||residual||question,route,history:history.map(row=>({...row})),snapshot,deadline,...(query===null?{}:{catalogQuery:query})})),
           new Promise((_,reject)=>{timer=setTimeout(()=>reject(deadlineExceeded),Math.max(1,deadline-Date.now()));}),
         ]);
         if(Date.now()>=deadline)throw deadlineExceeded;

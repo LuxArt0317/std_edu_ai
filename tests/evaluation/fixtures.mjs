@@ -1,6 +1,8 @@
 import {sampleEnrollmentManifest} from './published-sample-enrollments.mjs';
 import {serviceNoteFixture} from './service-cases.mjs';
 import {facilityRepairLiveFixtureKey} from './facility-repair-fixtures.mjs';
+import {isOutlineFixtureKey} from './elearning-outline-fixtures.mjs';
+import {dormitoryConductLiveFixtureKey} from './dormitory-conduct-cases.mjs';
 /** Synthetic, local-only golden records. No production answer helpers or credentials. */
 export const EVAL_USER_ID='00000000-0000-4000-8000-000000000001';
 export const EVAL_OTHER_USER_ID='00000000-0000-4000-8000-000000000002';
@@ -129,7 +131,9 @@ export function fixtureForCase(testCase,{userId=EVAL_USER_ID,now=DEFAULT_EVAL_NO
       ...common(891,userId),currentTermLabel:'115 Fall',currentApplicationState:'recorded',
       currentApplicationText:'Local application entry',progressText:'Waiting for local review',historyCount:0,historyText:null,
     }};
-  }else if(facilityRepairLiveFixtureKey(key)||['aidPayments','empty:aidPayments','dtmGradeReport','empty:dtmGradeReport','full:dtmGradeReport','elearningEnrollments','empty:elearningEnrollments'].includes(key)){
+  }else if(facilityRepairLiveFixtureKey(key)||testCase.fixtureRequirement==='native_elearning_outline'&&isOutlineFixtureKey(key)
+    ||testCase.fixtureRequirement==='native_dormitory_conduct'&&dormitoryConductLiveFixtureKey(key)
+    ||['aidPayments','empty:aidPayments','dtmGradeReport','empty:dtmGradeReport','full:dtmGradeReport','elearningEnrollments','empty:elearningEnrollments'].includes(key)){
     // Native report and payment fixtures are independent of the base account
     // snapshot; grading and payroll cells never come from tracker rows.
   }else if(key.startsWith('empty:'))emptyDomain(snapshot,key.slice(6));

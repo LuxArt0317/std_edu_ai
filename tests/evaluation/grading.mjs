@@ -366,8 +366,35 @@ function normalizedLink(value) {
   } catch { return null; }
 }
 
+// The overall link set cannot tell which destination was attached to each
+// record. Require an explicit label/target pair or one unambiguous record row.
+function recordLinkMatches(answer, binding, allBindings) {
+  if (!binding || typeof binding.label !== 'string' || !binding.label.trim() || typeof binding.url !== 'string') return false;
+  const target = normalizedLink(binding.url);
+  if (!target?.startsWith('https://stu.best/')) return false;
+  const label = normalize(binding.label);
+  const knownLabels = allBindings.map(item => item?.label).filter(value => typeof value === 'string' && value.trim());
+  let matched = false;
+  for (const line of String(answer).split(/\r?\n/u)) {
+    const mappings = [...line.matchAll(/(?<!!)\[([^\]\n]+)\]\(\s*<?([^\s)>]+)>?(?:\s+[^)]*)?\)/gu)];
+    const named = mappings.filter(([, name]) => tokenPresent(normalize(name), label));
+    if (named.some(([, , url]) => normalizedLink(url) !== target)) return false;
+    if (named.length) {
+      matched = true;
+      continue;
+    }
+    const visible = normalize(visibleMarkdown(line));
+    const markers = labelOccurrences(visible, knownLabels);
+    if (markers.length !== 1 || markers[0].label !== label) continue;
+    const localLinks = extractAnswerLinks({answer:line}).map(normalizedLink);
+    if (localLinks.some(url => url !== target)) return false;
+    if (localLinks.length) matched = true;
+  }
+  return matched;
+}
+
 // This test-side allowlist is deliberately independent of the runtime planner.
-const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs']);
+const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct']);
 const toolStatusAliases={success:'complete',succeeded:'complete',failed:'error',started:'running',start:'running'};
 const toolStatuses=new Set(['running','complete','unavailable','error','cancelled','skipped']);
 const terminalStatuses=new Set(['complete','unavailable','error','cancelled','skipped']);
@@ -495,6 +522,9 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
   for (const [index,url] of (expected.requiredLinks || []).entries()) {
     const normalized=normalizedLink(url);
     check(`links.required.${index}`,Boolean(normalized) && validLinks.includes(normalized),'The required local destination appears in answer/citation/view.');
+  }
+  for (const [index,binding] of (expected.requiredRecordLinks || []).entries()) {
+    check(`links.record.${index}`,recordLinkMatches(answer,binding,expected.requiredRecordLinks),'The record label is paired with its exact local destination.');
   }
   for (const [index,url] of (expected.forbiddenLinks || []).entries()) check(`links.forbidden.${index}`,!validLinks.includes(normalizedLink(url)),'A forbidden destination is absent.');
   if (expected.localLinksOnly) check('links.localOnly',validLinks.every(url=>url?.startsWith('https://stu.best/')),'Personal record navigation stays on stu.best.');
