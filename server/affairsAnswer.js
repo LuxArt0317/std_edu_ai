@@ -153,7 +153,8 @@ function composeSchoolScheduleAnswer(intent, snapshot) {
       const end = formatTime(row.endsAt);
       const room = hasLiteral(row.room) ? inlineRecord(row.room) : (chinese ? '未記錄教室' : 'room not recorded');
       const sample = ['sample', 'local_demo'].includes(row.sourceMode) ? (chinese ? '（範例）' : ' (sample)') : '';
-      const time = start && end ? `${start}–${end}` : start || (chinese ? '未記錄開始時間' : 'start time not recorded');
+      const range = start && end ? `${start}–${end}` : start;
+      const time = range ? (chinese ? '時間：' : 'Time: ') + range : (chinese ? '未記錄開始時間' : 'start time not recorded');
       lines.push(`- ${inlineRecord(row.code)} · ${inlineRecord(row.title)}${sample} · ${time} · ${room}`);
     }
     if (rows.length > 12) lines.push(chinese ? `共載入 ${rows.length} 門課，顯示前 12 門。` : `Showing 12 of ${rows.length} matching classes in the loaded timetable.`);

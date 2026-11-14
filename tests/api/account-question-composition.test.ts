@@ -198,7 +198,7 @@ test('a current weekday timetable question reads only the matching School Affair
   assert.equal(accountQuestionIntent(friday,[],'/').scheduleWeekday,5);
   assert.deepEqual(accountQuestionIntent(friday,[],'/').baseTools,['courses']);
   const result=await draft(friday,snapshot,'/');
-  assert.match(result.answer,/SAMP103 · Student Services Practice \(sample\) · 10:00–11:30 · Sample Room 305/u);
+  assert.match(result.answer,/SAMP103 · Student Services Practice \(sample\) · Time: 10:00–11:30 · Sample Room 305/u);
   assert.match(result.answer,/Taipei time/u);
   assert.match(result.answer,/\/school-affairs\/records\/subjects/u);
   assert.doesNotMatch(result.answer,/DTM-only meeting|SAMP101|SAMP102|SAMP090|SAMP201|FOREIGN/u);
