@@ -33,6 +33,10 @@ async function fixture(signedIn){
           enrollments:enrolled?[enrolled]:[],
         }});
       }
+      if(signedIn&&url.pathname==='/api/affairs-conversations'&&request.method()==='POST'){
+        const {id,title,messages,version}=request.postDataJSON();
+        return route.fulfill({json:{id,title,messages,version:version+1,updated_at:new Date().toISOString()}});
+      }
       if(signedIn&&url.pathname==='/api/affairs-action'&&request.method()==='POST'){
         const body=request.postDataJSON();
         assert.deepEqual(body,{kind:'elearning_join',payload:{course_id:9718}});
@@ -92,6 +96,15 @@ try{
   await main.getByRole('status').filter({hasText:'已加入'}).waitFor();
   await page.goto(origin+path+'/my-courses');
   await main.getByRole('link',{name:course.title}).waitFor();
+  await page.getByRole('button',{name:'開啟 AI 校園助理'}).click();
+  await page.getByPlaceholder('Ask a school question…').fill('What are my courses?');
+  await page.getByRole('button',{name:'Send',exact:true}).click();
+  const assistant=page.getByRole('dialog');
+  await assistant.getByRole('link',{name:course.title}).waitFor();
+  assert.equal(await assistant.getByRole('link',{name:course.title}).getAttribute('href'),path+'/course/9718');
+  await assistant.getByText('Conversation saved to your private account.',{exact:true}).waitFor();
+  await page.keyboard.press('Escape');
+  await assistant.waitFor({state:'hidden'});
   await page.goto(origin+'/school-affairs/services/4-2');
   await page.waitForURL(origin+path);
   for(const width of [390,320]){

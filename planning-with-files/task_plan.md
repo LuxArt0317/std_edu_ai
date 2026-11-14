@@ -4,7 +4,7 @@
 
 - [x] Inspect the source login, signed-in directory, workshop catalog and unsubmitted self-enrollment form.
 - [x] Implement separate local routing, a persisted catalog and caller-owned enrollment.
-- [ ] Verify the hosted release, private data access and assistant links.
+- [x] Verify the hosted release, private data access and assistant links.
 - [ ] Verify and implement remaining course categories, resource content and private academic records.
 
 ## Counseling appointments [Issue #98]
