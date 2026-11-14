@@ -1,6 +1,10 @@
 # Changelog
 ## Unreleased
 
+- Verify saved housing application receipts, submission times and academic terms separately from dormitory bed assignments. Keep related Moodle grades, tuition and the next class tied to their own sources. [#100]
+- Read native Moodle grades directly for focused grade questions. Preserve listed, blank, zero and unavailable grade values, and refresh the same source if the first verification fails. [#100]
+- Add independent housing receipt, native Moodle and teaching feedback evaluation cases. The report tracks unmounted teaching fixtures as unresolved. [#100]
+
 - Explain School Affairs keyword search and the General Affairs application and lookup menus from the local catalog. Keep account and public follow-up history within valid Unicode boundaries. [#100]
 - Show all requested sign-in destinations when guests ask about a dormitory bed, tuition and the next class. Recognize common first-person Chinese requests for a bed number. [#100]
 

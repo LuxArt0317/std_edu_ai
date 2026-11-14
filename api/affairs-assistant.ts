@@ -22,7 +22,7 @@ import {readAidPaymentsEvidence} from '../server/accountAidPaymentsEvidence.js';
 import {aidPaymentsLookupContext,aidPaymentsNavigation} from '../server/aidPaymentsEvidenceIntent.js';
 import {aidPaymentsCapabilityGuide,aidPaymentsGuide,aidPaymentsUnsupportedAction} from '../server/aidPaymentsGuide.js';
 import {readDtmGradeReportEvidence} from '../server/accountDtmGradeReportEvidence.js';
-import {isForeignDtmGradesQuestion} from '../server/dtmGradeEvidenceIntent.js';
+import {isForeignDtmGradesQuestion,isNativeDtmGradeOnlyQuestion} from '../server/dtmGradeEvidenceIntent.js';
 import {independentElearningQuestion,isElearningEvidenceQuestion,isForeignElearningRecordsQuestion} from '../server/elearningEvidenceIntent.js';
 import {readElearningEvidence} from '../server/accountElearningEvidence.js';
 import {readFacilityRepairEvidence} from '../server/accountFacilityRepairEvidence.js';
@@ -41,6 +41,9 @@ import { teachingFeedbackGuide } from '../server/teachingFeedbackGuide.js';
 import { readHousingBedEvidence, unavailableHousingBedEvidence } from '../server/accountHousingBedEvidence.js';
 import { housingBedLookupContext } from '../server/housingBedEvidenceIntent.js';
 import { housingBedGuide } from '../server/housingBedAnswer.js';
+import {housingApplicationLookupContext} from '../server/housingApplicationEvidenceIntent.js';
+import {housingApplicationGuide} from '../server/housingApplicationAnswer.js';
+import {readHousingApplicationEvidence,unavailableHousingApplicationEvidence} from '../server/accountHousingApplicationEvidence.js';
 import { readTeachingFeedbackEvidence,unavailableTeachingFeedbackEvidence } from '../server/accountTeachingFeedbackEvidence.js';
 import { answerAccountWithVerification, requiredNativeTools, requiredSupplementalTools, type SupplementalAccountReaders } from '../server/answerVerificationAccount.js';
 import { readCatalogEvidence } from '../server/accountCatalogEvidence.js';
@@ -169,7 +172,7 @@ export function createAffairsAssistantHandler(dependencies:{
   verifyToken?:typeof verifyAffairsToken;
   loadSnapshot?:typeof loadAffairsSnapshot;
   answerAccount?:typeof answerAccountWithVerification;
-  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence;healthExaminations?:typeof readHealthExaminationEvidence;counselingAppointments?:typeof readCounselingEvidence;graduationClearance?:typeof readClearanceEvidence;tutorEvaluation?:typeof readTutorEvaluationEvidence;teachingFeedback?:typeof readTeachingFeedbackEvidence;housingBed?:typeof readHousingBedEvidence};
+  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence;healthExaminations?:typeof readHealthExaminationEvidence;counselingAppointments?:typeof readCounselingEvidence;graduationClearance?:typeof readClearanceEvidence;tutorEvaluation?:typeof readTutorEvaluationEvidence;teachingFeedback?:typeof readTeachingFeedbackEvidence;housingBed?:typeof readHousingBedEvidence;housingApplications?:typeof readHousingApplicationEvidence};
 }={}) {
 const publicResearch=dependencies.publicResearch??researchHandler;
 const verifyToken=dependencies.verifyToken??verifyAffairsToken,loadSnapshot=dependencies.loadSnapshot??loadAffairsSnapshot,answerAccount=dependencies.answerAccount??answerAccountWithVerification;
@@ -188,7 +191,8 @@ const readers={courseCatalog:dependencies.readers?.courseCatalog??readCatalogEvi
   graduationClearance:dependencies.readers?.graduationClearance??readClearanceEvidence,
   tutorEvaluation:dependencies.readers?.tutorEvaluation??readTutorEvaluationEvidence,
   teachingFeedback:dependencies.readers?.teachingFeedback??readTeachingFeedbackEvidence,
-  housingBed:dependencies.readers?.housingBed??readHousingBedEvidence};
+  housingBed:dependencies.readers?.housingBed??readHousingBedEvidence,
+  housingApplications:dependencies.readers?.housingApplications??readHousingApplicationEvidence};
 return async function handler(request:ApiRequest,response:ApiResponse) {
   const deadline=Date.now()+55_000;
   response.setHeader('Cache-Control','no-store, max-age=0');
@@ -230,21 +234,27 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     stream.send(200,searchGuide);
     return;
   }
-  const housing=housingBedLookupContext(question,route,history);
+  const application=housingApplicationLookupContext(question,route,history);
+  const applicationSelection=application.selection&&!application.selection.reason?application.selection:null;
+  const applicationGuidance=!applicationSelection&&(application.selection||application.navigation||application.foreign||application.excluded)
+    ?housingApplicationGuide(question,application,true):null;
+  if(applicationGuidance&&!application.otherQuestion){stream.send(200,applicationGuidance);return;}
+  if(applicationGuidance){question=application.otherQuestion;history=[];if(route==='/school-affairs/services/26-1')route='';}
+  const housing=housingBedLookupContext(applicationSelection?application.otherQuestion:question,applicationSelection?'':route,applicationSelection?[]:history);
   const housingSelection=housing.selection?.fields.length?housing.selection:null;
   const housingGuidance=!housingSelection&&(housing.navigation||housing.foreign||housing.excluded||housing.selection?.reason)
     ?housingBedGuide(question,housing,true):null;
-  if(housingGuidance&&!housing.otherQuestion){stream.send(200,housingGuidance);return;}
-  if(housingGuidance){
+  if(housingGuidance&&!housing.otherQuestion&&!applicationSelection){stream.send(200,housingGuidance);return;}
+  if(housingGuidance&&!applicationSelection){
     question=housing.otherQuestion;history=[];
     if(route.split('?')[0].replace(/\/+$/u,'')==='/school-affairs/services/34-1')route='';
   }
   const resolvedFee=savedFeeBalanceFollowup(question,history);
-  if(!housingSelection&&resolvedFee){question=resolvedFee;history=[];route='';}
-  const housingFees=Boolean(housingSelection&&housing.companions.includes('fee_balance'));
-  const housingNext=Boolean(housingSelection&&housing.companions.includes('next_class'));
-  const housingOnly=Boolean(housingSelection&&(!housing.otherQuestion||housing.companionOnly));
-  const housingCompanionBoundary=housingSelection&&housing.foreignCompanions.length
+  if(!housingSelection&&!applicationSelection&&resolvedFee){question=resolvedFee;history=[];route='';}
+  const housingFees=Boolean((housingSelection||applicationSelection)&&housing.companions.includes('fee_balance'));
+  const housingNext=Boolean((housingSelection||applicationSelection)&&housing.companions.includes('next_class'));
+  const housingOnly=Boolean((housingSelection||applicationSelection)&&(!housing.otherQuestion||housing.companionOnly));
+  const housingCompanionBoundary=(housingSelection||applicationSelection)&&housing.foreignCompanions.length
     ?(/\p{Script=Han}/u.test(question)?'我可以查看你自己的住宿紀錄，但不能提供他人的費用或課表紀錄。':'I can check your own housing records, but cannot show another person’s fee or timetable records.'):null;
   const teaching=teachingFeedbackLookupContext(question,route,history);
   const teachingSelection=teaching.selection?.views.length?teaching.selection:null;
@@ -284,14 +294,14 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     return;
   }
   if((conduct.excluded||conductNavigation)&&!conduct.selected){question=conduct.otherQuestion;history=[];}
-  const withLocalGuidance=<T extends {answer:string;citations?:unknown[]}>(answer:T)=>conductNavigation||foreignYearMessage||teachingNotes||housingGuidance||housingCompanionBoundary
-    ?{...answer,answer:[foreignYearMessage,conductNavigation?.answer,teachingNotes?.answer,housingGuidance?.answer,housingCompanionBoundary,answer.answer].filter(Boolean).join('\n\n'),
-      citations:[...(conductNavigation?.citations??[]),...(teachingNotes?.citations??[]),...(housingGuidance?.citations??[]),...(answer.citations??[])]}:answer;
+  const withLocalGuidance=<T extends {answer:string;citations?:unknown[]}>(answer:T)=>conductNavigation||foreignYearMessage||teachingNotes||housingGuidance||housingCompanionBoundary||applicationGuidance
+    ?{...answer,answer:[foreignYearMessage,conductNavigation?.answer,teachingNotes?.answer,applicationGuidance?.answer,housingGuidance?.answer,housingCompanionBoundary,answer.answer].filter(Boolean).join('\n\n'),
+      citations:[...(conductNavigation?.citations??[]),...(teachingNotes?.citations??[]),...(housingGuidance?.citations??[]),...(applicationGuidance?.citations??[]),...(answer.citations??[])]}:answer;
   const foreignDtmGrades=isForeignDtmGradesQuestion(question,route);
   const foreignElearning=isForeignElearningRecordsQuestion(question,route);
   const foreignRepair=isForeignFacilityRepairQuestion(question);
-  const pageContext=nativePageLookupContext(housingSelection?housing.otherQuestion:notes.keys.length?notes.otherQuestion:question,
-    housingSelection||notes.keys.length?'':route,housingSelection||notes.keys.length?[]:history);
+  const pageContext=nativePageLookupContext(housingSelection||applicationSelection?housing.otherQuestion:notes.keys.length?notes.otherQuestion:question,
+    housingSelection||applicationSelection||notes.keys.length?'':route,housingSelection||applicationSelection||notes.keys.length?[]:history);
   const scopedQuestion=withoutExcludedNativePageClause(question);
   const aidQuestion=notes.keys.length?notes.otherQuestion:scopedQuestion;
   const aid=aidPaymentsLookupContext(aidQuestion,notes.keys.length?'':route,notes.keys.length?[]:history);
@@ -341,13 +351,13 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     return;
   }
   const intent=accountQuestionIntent(question,history,route);
-  const overviewOnly=!housingSelection&&!teachingSelection&&!notes.keys.length&&isAccountOverviewQuestion(intent,question);
+  const overviewOnly=!housingSelection&&!applicationSelection&&!teachingSelection&&!notes.keys.length&&isAccountOverviewQuestion(intent,question);
   const studyQuestion=teachingSelection?(foreignYear?ownCoursesBesideForeignYear:teaching.otherQuestion):question;
   const studyIntent=teachingSelection?accountQuestionIntent(studyQuestion,[],''):intent;
   const currentStudyScope=foreignYear&&(!teachingSelection||studyQuestion)?'courses':isCurrentStudyRecordQuestion(studyIntent,studyQuestion)?'courses_and_year':null;
   const teachingFees=Boolean(teachingSelection&&(isOwnFeeBalanceQuestion(studyQuestion)||ownFeeBalanceLabel(studyQuestion)!==null));
   const teachingNext=Boolean(teachingSelection&&isServiceNoteNextClass(studyQuestion));
-  if(!housingSelection&&!teachingSelection&&!notes.keys.length&&intent.recognized&&intent.kind==='coaching'&&!intent.baseTools.length&&!pageContext.selected){
+  if(!housingSelection&&!applicationSelection&&!teachingSelection&&!notes.keys.length&&intent.recognized&&intent.kind==='coaching'&&!intent.baseTools.length&&!pageContext.selected){
     if(Array.isArray(input?.images)&&input.images.length){stream.send(400,{error:'For this coaching request, remove the image and ask using text.'});return;}
     try{
       // Authentication remains mandatory, but wording help needs no student
@@ -370,7 +380,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const chargeLabel=pageContext.feeChargeLabel??(housingFees?ownFeeBalanceLabel(housing.otherQuestion):teachingFees?ownFeeBalanceLabel(studyQuestion):noteFees?ownFeeBalanceLabel(notes.otherQuestion):aidFees?ownFeeBalanceLabel(aid.otherQuestion):aid.excluded?ownFeeBalanceLabel(question):scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):null);
   const chargesOnly=isOwnFeeBalanceQuestion(aid.excluded?question:scopedQuestion)||pageContext.feeAndBalance||aidFees||teachingFees||housingFees||chargeLabel!==null&&!noteFees;
   const timetableOnly=Boolean(clearanceTimetableQuestion(question,pageContext))||aidNext||teachingNext||housingNext;
-  const needsRecords=Boolean(housingSelection||teachingSelection||aid.selection) || conduct.selected || notes.keys.length>0 || chargesOnly || timetableOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
+  const needsRecords=Boolean(housingSelection||applicationSelection||teachingSelection||aid.selection) || conduct.selected || notes.keys.length>0 || chargesOnly || timetableOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
   const navigation=!needsRecords && !(Array.isArray(input?.images) && input.images.length) && !questionKind(question).irrelevant
     ? answerCampusNavigation(question) : null;
   if(navigation) {
@@ -400,12 +410,17 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   }
   if(Array.isArray(input?.images) && input.images.length) {stream.send(400,{error:'For private account questions, remove the image and ask using text. Images are not stored as account records.'});return;}
   try {
-    const residual=notes.keys.length?notes.otherQuestion:pageContext.selected?pageContext.otherQuestion:question;
-    const remoteOnly=Boolean(residual)&&isElearningEvidenceQuestion(residual,route,history)&&!independentElearningQuestion(residual,route,history);
+    const housingRead=Boolean(housingSelection||applicationSelection);
+    const residual=notes.keys.length?notes.otherQuestion:pageContext.selected?pageContext.otherQuestion:housingRead?housing.otherQuestion:question;
+    const residualRoute=housingRead?'':route;
+    const residualHistory=housingRead?[]:history;
+    const remoteOnly=Boolean(residual)&&isElearningEvidenceQuestion(residual,residualRoute,residualHistory)&&!independentElearningQuestion(residual,residualRoute,residualHistory);
     const repairContext=facilityRepairLookupContext(residual,route,history),repairOnly=repairContext.repairOnly;
     const ownNoteRead=notes.keys.length>0;
     const noteScopeOnly=ownNoteRead&&(!notes.otherQuestion||noteFees||noteNext);
-    const selectedReaderOnly=!chargesOnly&&!timetableOnly&&(noteScopeOnly||pageContext.readerOnly||remoteOnly||repairOnly||aidOnly||teachingSelection&&!studyQuestion);
+    const nativeDtmOnly=isNativeDtmGradeOnlyQuestion(residual,residualRoute,residualHistory)
+      &&!notes.keys.length&&!teachingSelection&&!pageContext.selected;
+    const selectedReaderOnly=!chargesOnly&&!timetableOnly&&(nativeDtmOnly||noteScopeOnly||pageContext.readerOnly||remoteOnly||repairOnly||aidOnly||teachingSelection&&!studyQuestion);
     const scopedSnapshot=()=>({checkedAt:new Date().toISOString(),profile:{userId:account.user.id}});
     if(housingOnly)stream.progress('account','Checking saved dormitory assignments','Only the requested accommodation fields and any requested fee or timetable records will be checked.');
     else if(overviewOnly)stream.progress('account','Checking your saved overview','Checking course lists and counts from your signed-in account.');
@@ -460,12 +475,15 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       :selectedReaderOnly?Promise.resolve(scopedSnapshot())
         :loadSnapshot(account,false,{deadline,...(initialize===false||ownNoteRead?{initialize:false}:{}),...(ownNoteRead||notes.excluded||notes.officialOnly?{includeServiceRecords:false}:{})});
     const loadSelectedSnapshot=async(initialize?:false)=>{
-      const base=loadBaseSnapshot(housingSelection?false:initialize);
+      const base=loadBaseSnapshot(housingSelection||applicationSelection?false:initialize);
       const housingEvidence=housingSelection?readers.housingBed(account,{fields:[...housingSelection.fields],term:housingSelection.term,deadline})
         .catch(()=>unavailableHousingBedEvidence('read_failed')):null;
       const withHousing=housingEvidence?Promise.all([base,housingEvidence]).then(([snapshot,result])=>({...snapshot,housingBedEvidence:result.evidence})):base;
-      if(!ownNoteRead)return withHousing;
-      const [snapshot,selected]=await Promise.all([withHousing,loadOwnServiceNotes(account,notes.keys,{deadline}).then(
+      const applicationEvidence=applicationSelection?readers.housingApplications(account,{term:applicationSelection.term,deadline})
+        .catch(()=>unavailableHousingApplicationEvidence('read_failed')):null;
+      const withApplication=applicationEvidence?Promise.all([withHousing,applicationEvidence]).then(([snapshot,result])=>({...snapshot,housingApplicationEvidence:result.evidence})):withHousing;
+      if(!ownNoteRead)return withApplication;
+      const [snapshot,selected]=await Promise.all([withApplication,loadOwnServiceNotes(account,notes.keys,{deadline}).then(
         serviceRecords=>({serviceRecords}),()=>{
           const serviceRecords:Awaited<ReturnType<typeof loadOwnServiceNotes>>=[];
           return {serviceRecords,serviceNoteReadUnavailable:true};
@@ -492,7 +510,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       studentConduct:context=>readers.studentConduct(account,{question:pageContext.questions.studentConduct||conduct.question||residual||question,route,history,deadline:readDeadline(context.deadline)}),
       studentLoan:context=>readers.studentLoan(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
       aidPayments:context=>readers.aidPayments(account,{question:aid.selection?.question||residual||question,route,history,deadline:readDeadline(context.deadline)}),
-      dtmGradeReport:context=>readers.dtmGradeReport(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
+      dtmGradeReport:context=>readers.dtmGradeReport(account,{question:residual||question,route,
+        history:residualHistory,deadline:readDeadline(context.deadline)}),
       elearningEnrollments:context=>readers.elearningEnrollments(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
       facilityRepairs:context=>readers.facilityRepairs(account,{question:repairContext.repairQuestion,route,history,deadline:readDeadline(context.deadline)}),
       dormitoryConduct:context=>readers.dormitoryConduct(account,{question:pageContext.questions.dormitoryConduct||question,route,history,deadline:readDeadline(context.deadline)}),

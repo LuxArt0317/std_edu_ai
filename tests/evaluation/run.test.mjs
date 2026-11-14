@@ -13,6 +13,7 @@ import {newCourseOffering} from '../../src/features/public/affairs/courseCatalog
 import {newCourseSyllabus} from '../../src/features/public/affairs/courseSyllabusModel.js';
 import {EVAL_USER_ID,EVAL_OTHER_USER_ID,evalId} from './fixtures.mjs';
 import {gradeCase} from './grading.mjs';
+import {assertTeachingFeedbackCaseReady,gradeEvaluationCase} from './teaching-feedback-runner.mjs';
 import {discoverSurfaces,readRouteLiteral} from './surface-inventory.mjs';
 
 const event=(name,data,newline='\n')=>`event: ${name}${newline}data: ${JSON.stringify(data)}${newline}${newline}`;
@@ -305,7 +306,7 @@ test('catalog runner blocks pending/unavailable fixtures before adapter or model
       adapter:{forCase:async()=>{setupCalls++;return {token:'synthetic-token'};},afterCase:async()=>{}},
       pace:async(start,_signal,beforeStart)=>{await beforeStart();return start(0);},fetchImpl:async()=>{modelCalls++;return new Response(JSON.stringify({status:'answered',answer:'Synthetic response'}),{headers:{'content-type':'application/json'}});},
       deploymentGate:{assertCurrent:async()=>{pinChecks++;},beforeRequest:async()=>{pinChecks++;return {requestIndex:1,sourceRevision:'a'.repeat(40)};},afterRequest:async()=>{pinChecks++;},status:()=>({status:'pinned'})},
-      URL,AbortSignal,readReply,gradeCase,persist:async()=>{},out:'unused',log(){},identity:{sourceRevision:'a'.repeat(40)},
+      URL,AbortSignal,readReply,gradeEvaluationCase,assertTeachingFeedbackCaseReady,persist:async()=>{},out:'unused',log(){},identity:{sourceRevision:'a'.repeat(40)},
     });
     await execute();assert.equal(report.results.length,1);assert.equal(report.results[0].caseId,testCase.id);
     if(kind==='bound'){assert.equal(setupCalls,1);assert.equal(modelCalls,1);assert.equal(pinChecks,3);assert.equal(report.results[0].executed,true);}
@@ -363,7 +364,7 @@ test('full bank includes every source page and catalog entry without duplicate c
   const suite=await evaluationSuite('2026-11-13T02:00:00Z');
   assert.equal(new Set(suite.cases.map(row=>row.id)).size,suite.cases.length);
   assert.equal(suite.inventory.clientDispatch.questions.length,25);
-  assert.deepEqual(suite.inventory.clientDispatch.verifiedDispatch.map(({graphTool})=>graphTool),['aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation','studentConduct','serviceRecords','teachingFeedback','housing']);
+  assert.deepEqual(suite.inventory.clientDispatch.verifiedDispatch.map(({graphTool})=>graphTool),['aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation','studentConduct','serviceRecords','teachingFeedback','housing','housingApplications']);
   assert.ok(suite.inventory.clientDispatch.questions.every(row=>row.executed===false));
   assert.ok(suite.inventory.clientDispatch.questions.every(row=>!suite.cases.some(apiCase=>apiCase.id===row.id)));
   const assessment=assessRun({results:[],cleanup:{complete:true},sourceUnchanged:true,dirty:false},{...suite,requestedSuite:'full',sourceRevision:'offline'});

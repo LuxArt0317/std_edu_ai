@@ -42,8 +42,10 @@ async function model(operation:(input:{name:string;payload:any;body:any})=>unkno
   }
 }
 
-test('discoverable supplemental tools preserve the original seventeen snapshot tools',()=>{
-  assert.equal(Object.keys(accountTools).length,17);
+test('discoverable supplemental tools stay distinct from snapshot and scoped account tools',()=>{
+  assert.deepEqual(Object.keys(accountTools),['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords',
+    'announcements','scholarship','studentAid','housing','housingApplications','creditLoadHistory','courseSelection','academicGrades',
+    'graduationReview','academicAttendance']);
   assert.deepEqual(Object.keys(supplementalAccountTools),['courseCatalog','enrollmentCertificate','dtmSubmissions','studentConduct','studentLoan','tuition','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','feeRemission','tutorEvaluation','teachingFeedback','graduationClearance','counselingAppointments','healthExaminations','elearningOutline']);
   assert.ok(accountEvidence(snapshot()).every(source=>!Object.keys(supplementalAccountTools).some(key=>source.id==='account:'+key)));
   assert.deepEqual(requiredSupplementalTools('Show my enrollment certificate and tuition settlement.'),['enrollmentCertificate','tuition']);
@@ -102,7 +104,6 @@ test('authenticated endpoint reads the native Moodle report and verifies its sav
   let reads=0;
   await model(({name,payload})=>{
     calls.push(name);
-    if(name==='account_lookup_plan')return {tools:['courses','dtm','assignments'],publicTopics:[],catalogQuery:null,action:null};
     assert.equal(name,'answer_evidence_review');
     assert.deepEqual(payload.evidence.map((source:any)=>source.id).sort(),['account-scope','account:dtmGradeReport']);
     const evidence=JSON.parse(payload.evidence.find((row:any)=>row.id==='account:dtmGradeReport').content);
@@ -117,7 +118,7 @@ test('authenticated endpoint reads the native Moodle report and verifies its sav
     let body:any,status=200;
     const handler=createAffairsAssistantHandler({
       verifyToken:async token=>{assert.equal(token,'browser-synthetic-token');return account;},
-      loadSnapshot:async()=>snapshot(),
+      loadSnapshot:async()=>assert.fail('A native-only report must not read the general snapshot.'),
       publicResearch:async()=>assert.fail('A native report must never enter public research.'),
       readers:{dtmGradeReport:(authorized,input)=>readDtmGradeReportEvidence(authorized,input,{
         loadOverview:async selected=>({courses:[{id:courseId,userId:selected.user.id,title:'Research Lab',code:'QA801',term:'115-1',gradeText:null}],limit:100,nextCursor:null}),
@@ -140,7 +141,7 @@ test('authenticated endpoint reads the native Moodle report and verifies its sav
     assert.equal(body.views[0]?.url,route);
   });
   assert.equal(reads,1);
-  assert.deepEqual(calls,['account_lookup_plan','answer_evidence_review']);
+  assert.deepEqual(calls,['answer_evidence_review']);
 });
 
 test('graph uses the native aid detail read and checks literal net and zero tax against the same rows',async()=>{

@@ -6,7 +6,7 @@ const origin='https://xiftudmvxphxcjtmfmib.supabase.co';
 const fields=['academicYear','semester','bedNumber','dormitory','bunk','accommodationFee','deposit','subsidyAmount'];
 const columns={dormitory:'dormitory',bunk:'bunk',accommodationFee:'accommodation_fee',deposit:'deposit',subsidyAmount:'subsidy_amount'};
 const anchors=['academicYear','semester','bedNumber'];
-const reasons=new Set(['invalid_options','invalid_account','invalid_records','read_failed','access_denied','deadline_exceeded','reader_unavailable']);
+const reasons=new Set(['invalid_options','invalid_account','invalid_records','read_failed','access_denied','deadline_exceeded','reader_unavailable','aggregate_evidence_budget']);
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&[Object.prototype,null].includes(Object.getPrototypeOf(value))
   &&Reflect.ownKeys(value).every(key=>typeof key==='string'&&Object.hasOwn(Object.getOwnPropertyDescriptor(value,key),'value'));
 const exact=(value,keys)=>object(value)&&Object.keys(value).length===keys.length&&keys.every(key=>Object.hasOwn(value,key));

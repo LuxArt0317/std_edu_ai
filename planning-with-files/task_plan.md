@@ -238,6 +238,10 @@ HTML block creation, Administration block behavior and unobserved Move interacti
 
 ## Phase Next: systemwide assistant evaluation [Issue #100]
 
+- [x] Integrate housing receipt scope, direct native Moodle grades and the teaching question bank on the protected menu-context revision.
+- [x] Check compound receipt and Moodle reads through the API with a controlled reviewer, preserve card metadata, and keep deferred teaching cases in the denominator.
+- [ ] Mount caller-bound teaching and multi-course DTM fixtures with trusted request observations, and cover remaining route, browser and actual model behavior.
+
 - [ ] Verifier thread owns isolated tests/evaluation and docs/qa/ASSISTANT_SYSTEM_EVALUATION.md to derive question coverage from all current routes/services/records.
 - [x] Hand assistant runtime and serialized DB/model lease to Issue #100 after native release and certificate rollback cleanup.
 - [ ] Track supported, unsupported and unverified capabilities separately; new file submissions are not personal tracker changes.

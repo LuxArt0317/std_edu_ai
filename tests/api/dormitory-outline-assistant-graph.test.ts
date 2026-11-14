@@ -109,7 +109,7 @@ test('native page tools preserve requested clauses, exclusions and independent d
     for(const question of ['Show my dormitory conduct record and my tuition balance.','What is my tuition balance? Also show my dormitory conduct record.']){
       assert.deepEqual((await planAccountLookup(question,[],dormRoute,Date.now()+1000)).tools,['charges','dormitoryConduct']);
     }
-    assert.deepEqual((await planAccountLookup('Show my housing application and my dormitory conduct record.',[],dormRoute,Date.now()+1000)).tools,['housing','dormitoryConduct']);
+    assert.deepEqual((await planAccountLookup('Show my housing application and my dormitory conduct record.',[],dormRoute,Date.now()+1000)).tools,['housingApplications','dormitoryConduct']);
     assert.deepEqual((await planAccountLookup('Show my dormitory conduct and my student conduct.',[],dormRoute,Date.now()+1000)).tools,['studentConduct','dormitoryConduct']);
     assert.deepEqual((await planAccountLookup('Show my dormitory conduct including my grades.',[],dormRoute,Date.now()+1000)).tools,['academicGrades','dormitoryConduct']);
     assert.deepEqual((await planAccountLookup('Show my dormitory conduct including my GPA.',[],dormRoute,Date.now()+1000)).tools,['academicGrades','dormitoryConduct']);

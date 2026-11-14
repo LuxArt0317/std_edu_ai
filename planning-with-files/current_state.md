@@ -1,5 +1,7 @@
 ## Assistant evaluation resumed [Issue #100]
 
+The housing receipt and native Moodle grade checkpoint builds on protected Preview `4be7b0c`. Receipt and bed scopes are separate and the combined receipt/Moodle test exercises both selected readers without loading the general snapshot. Receipt cards retain count, time and scope on save. Production remains `076c79a`. Teaching feedback contributes 40 independent questions to the full runner, with fixture setup blocked until trusted observations are available. The 14 native DTM grade cases use offline observations. The live four-turn replay, fixture cleanup and full browser/semantic acceptance remain open.
+
 The local menu context follow-up adds coverage for the School Affairs search and General Affairs input/query routes. Both authenticated and public handler tests answer from the local catalog while excluding the other menu's entries. The full route and live-model gates remain pending.
 
 The ordered transcript Preview runner, saved-record view fixes and bounded housing companion selection are under local verification. The offline run writes each answer to the conversation API, checks its owner and digest, then uses saved history for the next turn. The prior protected accommodation revision is `eb801ef`. Production is still `076c79a`. The existing browser can open the protected Preview. The evaluator still lacks authorized HTTP access to it. Real conversation, model and fixture cleanup acceptance remain pending.

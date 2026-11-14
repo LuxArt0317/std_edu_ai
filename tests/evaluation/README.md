@@ -63,3 +63,11 @@ This command creates disposable Supabase accounts through the client fixture ada
 `assessTranscriptPreview(report, {reviews})` verifies request and saved-message digests and evaluates the report against the frozen cases. Supply independent review artifacts for the account overview and interview response. A completed collection can still fail evaluation. An unresolved write retains its journal for reconciliation. Never replay a pending write or use this packet alone as the production gate.
 
 The School Affairs menu question bank covers the keyword search control and General Affairs application and lookup sections. Cases require the named controls or service entries and their exact destinations. Generic page links do not pass. The API tests exercise both signed-out public and verified signed-in paths with the model unavailable.
+
+### Housing receipts, native Moodle grades and teaching feedback
+
+The housing cases distinguish application receipts at 26-1 from bed assignments at 34-1. They check literal fields, missing or unreadable records, separate tool execution and each native source link. The exact published-period fixture guard still applies.
+
+`dtm-native-route-cases.mjs` contains 14 independently authored cases exercised offline through the native reader and formatter, with API tests for the actual dispatch, transport contract and retry. The multi-course fixture is not mounted in the live runner.
+
+The [teaching feedback evaluation](../../docs/qa/TEACHING_FEEDBACK_LIVE_EVALUATION.md) registers forty independent cases in the main suite. Each remains a setup failure until the native fixtures and request-bound observations are mounted.

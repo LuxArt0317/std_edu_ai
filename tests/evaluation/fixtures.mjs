@@ -103,6 +103,7 @@ const emptyDomain=(snapshot,domain)=>{
   else if(domain==='tuition')snapshot.tuition={settlements:[],periods:[],documents:[]};
   else if(['studentAid','creditLoadHistory','courseSelection'].includes(domain))snapshot[domain]={records:[]};
   else if(domain==='scholarship')snapshot.scholarship={periods:[],applications:[]};
+  else if(domain==='housingApplications')snapshot.housing.applications=[];
   else if(domain==='housing')snapshot.housing={periods:[],applications:[],assignments:[]};
   else if(Object.hasOwn(snapshot,domain)&&Array.isArray(snapshot[domain]))snapshot[domain]=[];
   else if(['bookmarks','student-sso','calendar','public-home','courseCatalog'].includes(domain))return;
@@ -166,6 +167,6 @@ export function fixtureForCase(testCase,{userId=EVAL_USER_ID,now=DEFAULT_EVAL_NO
     snapshot.academicGrades.records.push({...snapshot.academicGrades.records[0],id:evalId(9991),userId:EVAL_OTHER_USER_ID,courseTitle:'FOREIGN PRIVATE SENTINEL',gradeText:'99'});
     snapshot.academicAttendance.statistics.push({...snapshot.academicAttendance.statistics[0],id:evalId(9992),userId:EVAL_OTHER_USER_ID,courseTitle:'FOREIGN PRIVATE SENTINEL'});
     snapshot.graduationReview.reports.push({...snapshot.graduationReview.reports[0],id:evalId(9993),userId:EVAL_OTHER_USER_ID,graduationReview:{...status('FOREIGN PRIVATE SENTINEL'),note:null}});
-  }else if(!['directory','all','profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','leave','internship','submissions','payment-history','enrollmentCertificate','tuition'].includes(key))throw new Error('Unknown evaluation fixture: '+key);
+  }else if(!['directory','all','profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','housingApplications','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','leave','internship','submissions','payment-history','enrollmentCertificate','tuition'].includes(key))throw new Error('Unknown evaluation fixture: '+key);
   return snapshot;
 }

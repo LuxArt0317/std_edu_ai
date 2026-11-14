@@ -29,11 +29,15 @@ import {supplementalAccountTools,requiredSupplementalTools,facilityRepairLookupC
 import {formatSupplementalAccountAnswers,supplementalAnswerLanguage,supplementalAnswerLimits} from './supplementalAccountAnswers.js';
 import {formatSelectedChargeEvidence,selectedChargeAnswerLimits} from './selectedChargeEvidenceAnswer.js';
 import {aidPaymentsLookupContext,isAidPaymentsEvidenceQuestion} from './aidPaymentsEvidenceIntent.js';
-import {mentionsDtmSubmissionDetail,needsSeparateDtmTracker} from './dtmGradeEvidenceIntent.js';
+import {mentionsDtmSubmissionDetail,needsSeparateDtmTracker,isNativeDtmGradeOnlyQuestion} from './dtmGradeEvidenceIntent.js';
 import {hasIndependentDtmWork,independentElearningQuestion,isElearningEvidenceQuestion} from './elearningEvidenceIntent.js';
 import {isHousingRecordQuestion} from './housingRecords.js';
 import {housingBedLookupContext} from './housingBedEvidenceIntent.js';
 import {formatHousingBedAnswer} from './housingBedAnswer.js';
+import {unavailableHousingBedEvidence} from './accountHousingBedEvidence.js';
+import {housingApplicationLookupContext} from './housingApplicationEvidenceIntent.js';
+import {formatHousingApplicationAnswer} from './housingApplicationAnswer.js';
+import {unavailableHousingApplicationEvidence} from './accountHousingApplicationEvidence.js';
 import {teachingFeedbackImmediateFields,teachingFeedbackLookupContext} from './teachingFeedbackEvidenceIntent.js';
 import {currentStudyForeignYearQuestion} from './currentStudyOwnerScope.js';
 import {isStudentAidRecordQuestion} from './studentAidRecords.js';
@@ -54,6 +58,7 @@ export const accountTools = {
   scholarship: 'Scholarship periods, applications, awards and service hours',
   studentAid: 'Student-aid subsidy and school/ministry review records',
   housing: 'Accommodation periods, applications, assigned beds and fees',
+  housingApplications: 'Own saved local housing application receipt numbers, submitted-at timestamps and referenced academic terms; no private form, approval, bed allocation or file issuance',
   creditLoadHistory: 'Over-load and under-load applications and review results',
   courseSelection: 'Independent selection phase histories and weekly timetable snapshots',
   academicGrades: 'Native Academic Services transcript, warning grades, explicit term summaries, literal semester rankings and English-requirement display text; separate from DTM and enrolled-course practice grades. GPA/current-term/transfer/cycle grade models are unavailable.',
@@ -137,6 +142,20 @@ function plannerRouteContext(route){
 }
 
 export async function planAccountLookup(question, history, route, deadline, retry, skipServiceNoteScope=false) {
+  const application=housingApplicationLookupContext(question,route,history);
+  if(application.selection&&!application.selection.reason){
+    if(!application.otherQuestion)return {tools:['housingApplications'],publicTopics:[],catalogQuery:null,responseIntent:'records'};
+    const rest=housingBedLookupContext(application.otherQuestion,'',[]);
+    if(!rest.selection&&rest.companionOnly)return {tools:['housingApplications',...rest.companions.map(kind=>kind==='next_class'?'courses':'charges')],publicTopics:[],catalogQuery:null,responseIntent:'records'};
+    const independent=await planAccountLookup(application.otherQuestion,[],'',deadline,retry,skipServiceNoteScope);
+    return {...independent,tools:[...new Set(['housingApplications',...independent.tools])]};
+  }
+  if(application.selection?.reason||application.navigation||application.foreign||application.excluded){
+    if(!application.otherQuestion)return {tools:[],publicTopics:[],catalogQuery:null,responseIntent:'records'};
+    return planAccountLookup(application.otherQuestion,[],'',deadline,retry,skipServiceNoteScope);
+  }
+  if(isNativeDtmGradeOnlyQuestion(question,route,history))
+    return {tools:['dtmGradeReport'],publicTopics:[],catalogQuery:null,responseIntent:'records'};
   const housing=housingBedLookupContext(question,route,history);
   if(housing.selection?.fields.length){
     if(!housing.otherQuestion||housing.companionOnly){
@@ -280,6 +299,7 @@ export async function planAccountLookup(question, history, route, deadline, retr
     if (!Array.isArray(plan.tools) || !Array.isArray(plan.publicTopics) || plan.tools.some(key=>!readToolNames.includes(key)) || plan.publicTopics.some(key=>!topicNames.includes(key))) throw new Error('Invalid lookup plan');
     const catalogQuery=validateCatalogReadPlan(plan.catalogQuery);
     const plannedTools=plan.tools.filter(key=>{
+      if(key==='housingApplications')return false;
       if(['dormitoryConduct','studentConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation','teachingFeedback'].includes(key)&&!supplementalRequired.includes(key))return false;
       if(remoteLearningRequest&&key==='courses'&&!needsSeparateCourses)return false;
       if(remoteLearningWorkOnly&&['dtm','assignments','dtmSubmissions','dtmGradeReport'].includes(key))return false;
@@ -451,6 +471,25 @@ function housingBedView(snapshot,context){
     total:rows.length,checkedAt:snapshot.checkedAt,note:`Showing ${Math.min(12,rows.length)} of ${rows.length} owned saved assignment rows. Literal fees are not payment confirmation; local records do not establish official university synchronization.`}];
 }
 
+function boundHousingSource(source,budget,unavailable){
+  if(Buffer.byteLength(JSON.stringify(source),'utf8')<=budget)return source;
+  const data=JSON.parse(source.content);
+  if(data.readState==='unavailable'||!data.records.length)return unavailable('aggregate_evidence_budget').evidence;
+  data.readState='partial';
+  data.reason='aggregate_evidence_budget';
+  data.complete=false;
+  data.excerpted=true;
+  const limited={...source};
+  while(data.records.length){
+    data.records.pop();
+    data.counts.included=data.records.length;
+    data.counts.omitted=data.counts.matching-data.records.length;
+    limited.content=JSON.stringify(data);
+    if(Buffer.byteLength(JSON.stringify(limited),'utf8')<=budget)return limited;
+  }
+  return unavailable('aggregate_evidence_budget').evidence;
+}
+
 export function accountEvidence(snapshot,tools=toolNames,context={}) {
   const selected=completeAccountTools(tools),selectedTools=completeReadTools(tools);
   const intent=accountQuestionIntent(context.question||'',context.history||[],context.route||'');
@@ -460,7 +499,7 @@ export function accountEvidence(snapshot,tools=toolNames,context={}) {
   const evidence=[{id:'account-scope',title:'Account access and record provenance',url:'/school-affairs/records',content:JSON.stringify({
     checkedAt:snapshot.checkedAt,timeZone:'Asia/Taipei',source:'stu.best account records',officialUniversityData:false,
     role:context.scopedReadOnly?undefined:snapshot.profile?.role,selectedTools,
-    availableTools:context.scopedReadOnly?Object.fromEntries(selectedTools.map(key=>[key,accountTools[key]||supplementalAccountTools[key]])):{...accountTools,...supplementalAccountTools},
+    availableTools:Object.fromEntries(selectedTools.map(key=>[key,accountTools[key]||supplementalAccountTools[key]])),
     catalogScope:context.scopedReadOnly?'selected_for_this_request':undefined,
     rules:context.scopedReadOnly?'Only the selected readers for this authenticated account contribute facts. Collections absent from this evidence were not selected. Omitted or unread records cannot prove absence or completeness. Use the provenance, scope, record counts and capabilities in each selected source. No action has run.':'Only the authenticated account records were queried. Sample/local_demo records are fictional demonstration data. Personal records are saved/imported by the account, not a live university sync. Empty selected data does not establish absence elsewhere. Native coverage describes the loaded owned snapshot; historyCompleteness remains unknown even if database pagination is complete. Excerpted collections and suppressed values cannot prove completeness or absence. Never infer eligibility or official enrollment from a catalog or selection snapshot. Site tasks/requests require user confirmation; no action has executed during this answer. Housing/aid/native academic projections omit sensitive identity fields; use the linked records page for those fields.',
     completeness:context.scopedReadOnly?undefined:snapshot.completeness || 'Legacy snapshot: catalog, enrollments, released grades, attendance, notices, tasks and requests may be capped. Do not claim a complete history or overall absence for those collections.',
@@ -486,14 +525,23 @@ export function accountEvidence(snapshot,tools=toolNames,context={}) {
   }
   const budgetLimit=Number.isSafeInteger(context.budget)&&context.budget>=6000&&context.budget<=70000?context.budget:70000;
   const availableBudget=budgetLimit-Buffer.byteLength(JSON.stringify(evidence),'utf8')-128;
+  const selectedHousing=selected.filter(key=>key==='housingApplications'||key==='housing'&&snapshot.housingBedEvidence);
+  const snapshotKeys=selected.filter(key=>!selectedHousing.includes(key));
+  // Keep each independently selected housing source within the shared envelope.
+  // Reserve room for truthful unavailable envelopes and the other selected readers.
+  const housingBudget=selectedHousing.length
+    ?Math.min(16384,Math.floor((availableBudget-Math.min(Math.floor(availableBudget/2),2400*snapshotKeys.length))/selectedHousing.length)):0;
+  const scopedSources=new Map(selectedHousing.map(key=>{
+    const unavailable=key==='housing'?unavailableHousingBedEvidence:unavailableHousingApplicationEvidence;
+    const source=key==='housing'?snapshot.housingBedEvidence:snapshot.housingApplicationEvidence;
+    return [key,source?boundHousingSource(source,housingBudget,unavailable):unavailable('reader_unavailable').evidence];
+  }));
+  const snapshotBudget=availableBudget-[...scopedSources.values()].reduce((total,source)=>total+Buffer.byteLength(JSON.stringify(source),'utf8')+1,0);
   const weight=key=>Object.hasOwn(nativePredicates,key)?4:1;
-  const totalWeight=selected.reduce((total,key)=>total+weight(key),0)||1;
+  const totalWeight=snapshotKeys.reduce((total,key)=>total+weight(key),0)||1;
   for (const key of selected) {
-    if(key==='housing'&&snapshot.housingBedEvidence){
-      evidence.push(snapshot.housingBedEvidence);
-      continue;
-    }
-    const budget=Math.min(24000,Math.floor(availableBudget*weight(key)/totalWeight));
+    if(scopedSources.has(key)){evidence.push(scopedSources.get(key));continue;}
+    const budget=Math.min(24000,Math.floor(snapshotBudget*weight(key)/totalWeight));
     const clearanceTimetable=key==='courses'&&requestedMeeting?.clearance;
     const native=Object.hasOwn(nativePredicates,key),query=native?nativeAccountQuery(snapshot,key,context):null;
     let selection=native?null:selectAccountEvidence(snapshot,key,{...context,courseTerms:intent.courseTerms});
@@ -599,6 +647,12 @@ function scopedReviewReferences(evidence,tools,teachingQuestion){
         paths=/^\/(?:records\/\d+\/(?:code|title|term|startsAt|endsAt|weekday|room)|calendar\/records\/next\/(?:day|course(?:\/(?:code|title|startsAt|room))?))$/u;
       else paths=/^\/records\/\d+\/(?:amountDue|amountPaid|currency)$/u;
       parts.push({id,paths,label:tool==='courses'?'saved classes':'saved balance'});
+    }else if(tool==='housingApplications'&&data.collection==='housingApplications'){
+      if(!data.records?.length)parts.push({id,paths:/^\/(?:readState|reason|counts\/(?:matching|unresolvedPeriods))$/u,label:'housing application availability'});
+      else{
+        for(const field of ['receiptNumber','submittedAt','academicYear','semester'])parts.push({id,paths:new RegExp('^/records/[0-9]+/'+field+'$','u'),label:'housing application '+field});
+        if(data.readState==='partial')parts.push({id,paths:/^\/(?:readState|counts\/(?:unread|omitted|unresolvedPeriods))$/u,label:'housing application limits'});
+      }
     }else if(tool==='housing'&&data.collection==='housingBed'){
       if(!data.records?.length){
         parts.push({id,paths:/^\/(?:readState|reason|counts\/(?:matching|unresolvedPeriods))$/u,label:'accommodation record availability'});
@@ -686,10 +740,12 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const fullRoute=route;
   route=normalizeRoute(route);
   const intent=accountQuestionIntent(question,history,fullRoute);
-  const housing=housingBedLookupContext(question,fullRoute,history);
+  const application=housingApplicationLookupContext(question,fullRoute,history);
+  const applicationSelected=Boolean(snapshot.housingApplicationEvidence&&application.selection&&!application.selection.reason);
+  const housing=housingBedLookupContext(applicationSelected?application.otherQuestion:question,applicationSelected?'':fullRoute,applicationSelected?[]:history);
   const housingSelected=Boolean(snapshot.housingBedEvidence&&housing.selection?.fields.length);
-  const housingFees=housingSelected&&housing.companions.includes('fee_balance');
-  const housingNext=housingSelected&&housing.companions.includes('next_class');
+  const housingFees=(housingSelected||applicationSelected)&&housing.companions.includes('fee_balance');
+  const housingNext=(housingSelected||applicationSelected)&&housing.companions.includes('next_class');
   const teaching=teachingFeedbackLookupContext(question,fullRoute,history);
   const teachingSelected=Boolean(teaching.selection?.views.length);
   const teachingForeignYear=teachingSelected&&currentStudyForeignYearQuestion(teaching.otherQuestion);
@@ -703,15 +759,16 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       ?['courses',...(teachingSelected?['teachingFeedback']:[])]:null;
   const scopedStudy=Boolean(studyTools);
   const scopedOverview=snapshot.overviewScope===true&&isAccountOverviewQuestion(intent,question);
-  const publicPageRoute=!scopedStudy&&!scopedTeaching&&!housingSelected&&isPublicPageQuestion(question)?normalizePublicPageRoute(fullRoute):'';
+  const publicPageRoute=!scopedStudy&&!scopedTeaching&&!housingSelected&&!applicationSelected&&isPublicPageQuestion(question)?normalizePublicPageRoute(fullRoute):'';
   const serviceNoteScope=serviceNoteLookup(question,fullRoute,history);
   const scopedNotes=serviceNoteScope.keys.length>0;
   const noteNext=scopedNotes&&isServiceNoteNextClass(serviceNoteScope.otherQuestion);
   const noteFees=scopedNotes&&(isOwnFeeBalanceQuestion(serviceNoteScope.otherQuestion)||ownFeeBalanceLabel(serviceNoteScope.otherQuestion)!==null);
   const repairLookup=facilityRepairLookupContext(question,fullRoute,history);
-  const pageLookup=nativePageLookupContext(housingSelected?housing.otherQuestion:scopedNotes?serviceNoteScope.otherQuestion:question,
-    housingSelected||scopedNotes?'':fullRoute,housingSelected||scopedNotes?[]:history);
-  const scopedHousing=housingSelected&&(!housing.otherQuestion||housing.companionOnly||pageLookup.readerOnly);
+  const pageLookup=nativePageLookupContext(housingSelected||applicationSelected?housing.otherQuestion:scopedNotes?serviceNoteScope.otherQuestion:question,
+    housingSelected||applicationSelected||scopedNotes?'':fullRoute,housingSelected||applicationSelected||scopedNotes?[]:history);
+  const scopedHousing=(housingSelected||applicationSelected)&&(!housing.otherQuestion||housing.companionOnly||pageLookup.readerOnly
+    ||isNativeDtmGradeOnlyQuestion(housing.otherQuestion,'',[]));
   const aidScope=aidPaymentsLookupContext(pageLookup.selected?pageLookup.otherQuestion:scopedNotes?serviceNoteScope.otherQuestion:question,
     pageLookup.selected||scopedNotes?'':fullRoute,pageLookup.selected||scopedNotes?[]:history);
   const aidNext=Boolean(aidScope.selection&&!pageLookup.selected&&!scopedNotes&&isServiceNoteNextClass(aidScope.otherQuestion));
@@ -758,7 +815,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   if(publicPageRoute)emit({kind:'page-context',label:'Checked the current public page',detail:pageContext?.contentAvailable?'Read the checksum-verified public snapshot; account records remain separate.':'Only available public page metadata can be used; no account records were sent to the capture host.',status:pageContext?.contentAvailable?'complete':'unavailable'});
   let current=snapshot,supplemental=firstSupplemental,needsComposition=false;
   let initial;
-  if((scopedTimetable||scopedNotes||housingSelected)&&!supplemental.length)initial={status:'answered',answer:'',citations:[],suggestedQuestions:[],activity:[]};
+  if((scopedTimetable||scopedNotes||housingSelected||applicationSelected)&&!supplemental.length)initial={status:'answered',answer:'',citations:[],suggestedQuestions:[],activity:[]};
   else if(intent.kind==='coaching'&&!activeTools.length)initial={status:'abstained',answer:'',citations:[],suggestedQuestions:[],activity:[]};
   else if(!supplemental.length)initial=await answerPrivateAffairsQuestion(question,snapshot,history,route,{draftOnly:true});
   else{
@@ -774,14 +831,14 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     const parts=question.split(/\s+(?:and|also|plus)\s+|[.;；\n]|以及|還有|並且|和/iu).map(part=>part.trim()).filter(Boolean);
     const comparison=/\b(?:compare|versus|difference|vs)\b|比較|差異/iu.test(question);
     const hasBaseQuestion=parts.some(part=>!requiredSupplementalTools(part,fullRoute,history).length);
-    if(!(scopedHousing&&pageLookup.readerOnly)&&completeAccountTools(activeTools).length&&(pageLookup.feeAndBalance||remoteLearning||comparison||parts.length>1&&hasBaseQuestion||!plan.degraded))needsComposition=true;
+    if(!scopedHousing&&completeAccountTools(activeTools).length&&(pageLookup.feeAndBalance||remoteLearning||comparison||parts.length>1&&hasBaseQuestion||!plan.degraded))needsComposition=true;
     if(scopedStudy&&teachingSelected){
       const academics=await answerPrivateAffairsQuestion(studyQuestion,snapshot,[],'',{draftOnly:true});
       initial.answer=[academics.answer,initial.answer].join('\n\n');
       needsComposition=initial.answer.length>supplementalAnswerLimits.answerCharacters;
     }
   }
-  if(housingSelected&&!scopedHousing)needsComposition=true;
+  if((housingSelected||applicationSelected)&&!scopedHousing)needsComposition=true;
   if(requested.action){
     initial.proposedAction=requested.action;
     initial.answer=`Please review: ${requested.action.label}. This will change your stu.best records only after you confirm; it will not change an official university record.`+(supplemental.length?'\n\n'+initial.answer:'');
@@ -840,6 +897,9 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     const source=housingSelected&&sources.find(item=>item.id==='account:housing');
     return source?formatHousingBedAnswer(source,question,housing.selection.unsupported):null;
   };
+  const applicationAnswer=sources=>{const source=applicationSelected&&sources.find(item=>item.id==='account:housingApplications');return source?formatHousingApplicationAnswer(source,question):null;};
+  const appAnswer=applicationAnswer(evidence);
+  if(appAnswer)initial.answer=[initial.answer,appAnswer.answer].filter(Boolean).join('\n\n');
   const bedAnswer=housingAnswer(evidence);
   if(bedAnswer)initial.answer=[initial.answer,bedAnswer.answer].filter(Boolean).join('\n\n');
   if(scopedNotes){
@@ -900,7 +960,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         current=refreshed;
         // Reconsider omitted read capabilities while reserving time for the one
         // correction and second verification. Retry never changes the action.
-        if(!composeInitially&&!scopedOverview&&!scopedNotes&&!scopedCounseling&&!scopedTutor&&!scopedConduct&&!scopedClearance&&!scopedTimetable&&!scopedAid&&!scopedStudy&&!scopedTeaching&&!housingSelected&&Date.now()<deadline-24000){
+        if(!composeInitially&&!scopedOverview&&!scopedNotes&&!scopedCounseling&&!scopedTutor&&!scopedConduct&&!scopedClearance&&!scopedTimetable&&!scopedAid&&!scopedStudy&&!scopedTeaching&&!housingSelected&&!applicationSelected&&Date.now()<deadline-24000){
           emit({kind:'account-replan',label:'Rechecking needed account records',detail:'Checking whether another record collection is needed; no new action or web search runs.',status:'running'});
           const retry=await planAccountLookup(question,history,fullRoute,Math.min(deadline-21000,Date.now()+3000),{previousTools:activeTools,feedback});
           if(!retry.degraded){activeTools=retry.tools;if(retry.catalogQuery!==null)activeCatalogQuery=retry.catalogQuery;}
@@ -920,7 +980,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     verify:async context=>{
       if(needsComposition){needsComposition=false;return {ok:false,reason:'needs_grounded_composition',feedback:['Compose all requested parts from the selected evidence, explicitly identify unavailable details and keep suggestions distinct from factual claims. Do not substitute tracker status for file reviews, charges for statements, or catalog offerings for enrollment.']};}
       const requiredEvidenceReferences=scopedOverview?overviewReviewReferences(context.evidence)
-        :scopedStudy||scopedTeaching||housingSelected?scopedReviewReferences(context.evidence,activeTools,teaching.selection?.question):undefined;
+        :scopedStudy||scopedTeaching||housingSelected||applicationSelected?scopedReviewReferences(context.evidence,activeTools,teaching.selection?.question):undefined;
       return verifyEvidenceAnswer({...context,responseIntent:intent.kind,resolvedUserQuestion,requiredEvidenceReferences,diagnosticContext:diagnosticContext()});
     },repair:context=>repairEvidenceAnswer({...context,responseIntent:intent.kind,resolvedUserQuestion,diagnosticContext:diagnosticContext()}),
   });
@@ -946,11 +1006,11 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     !(key==='charges'&&(viewSnapshot.chargeReadUnavailable||nativeAndFees||noteFees||aidFees||teachingFees||housingFees))
     &&!(key==='courses'&&((scopedTimetable||noteNext||aidNext||teachingNext||housingNext)&&!scheduledMeeting?.records.length||scopedStudy&&(viewSnapshot.timetableReadUnavailable||viewSnapshot.studentRecordFound===false)))
     &&!(key==='serviceRecords'&&viewSnapshot.serviceNoteReadUnavailable)
-    &&!(key==='housing'&&housingSelected));
+    &&!(key==='housing'&&housingSelected)&&key!=='housingApplications');
   const baseViews=[...(scopedOverview?overviewRecordViews(viewSnapshot):accountRecordViews(viewSnapshot,viewTools,{...context,courseTerms:intent.courseTerms})),
-    ...(boundedFeeAnswer(evidence)?.views||[]),...(housingSelected?(result.verification?.status==='verified'?housingAnswer(evidence)?.views??[]:[]):activeTools.includes('housing')?housingBedView(viewSnapshot,context):[])];
+    ...(boundedFeeAnswer(evidence)?.views||[]),...(applicationSelected&&result.verification?.status==='verified'?applicationAnswer(evidence)?.views??[]:[]),...(housingSelected?(result.verification?.status==='verified'?housingAnswer(evidence)?.views??[]:[]):activeTools.includes('housing')?housingBedView(viewSnapshot,context):[])];
   const views=[...supplementalViews,...baseViews].slice(0,3);
-  if(supplementalViews.length+baseViews.length>3)for(const view of views)view.note+=' Additional source tables were omitted by the three-table display limit; use the source links for the full records.';
+  if(supplementalViews.length+baseViews.length>3)for(const view of views)view.note=(view.note?view.note+' ':'')+'Additional source tables were omitted by the three-table display limit; use the source links for the full records.';
   return {...result,...(repairClarification&&result.verification?.status==='verified'?{status:'clarification'}:{}),views,grounding:{...result.grounding,webSearched:observed.some(step=>step.kind.startsWith('web-')),checkedAt:current.checkedAt},
     activity:[...new Map([...(result.activity||[]),...observed].map(step=>[step.kind,step])).values()]};
 }

@@ -783,3 +783,7 @@ The isolated combined candidate uses the accepted transcript cleanup and journal
 The menu context follow-up is a separate local candidate. It covers three missing route questions without changing the rendered menus. Its API changes touch routing and history only. Keep the DTM reader and housing application reviews separate until their scope and tests are ready.
 
 The follow-up also exercises both hosted guest reproductions. The three-part housing question restores all three sign-in links, and `請幫我查宿舍床號` restores the accommodation link. A named foreign bed request still receives an access boundary answer.
+
+### Housing receipt and native Moodle grade candidate [Issue #100]
+
+The isolated receipt, Moodle and teaching admission checkpoint is based on `4be7b0c`. It changes no migration or fixture records. Use the frozen candidate manifest for the protected Preview. Whole-system and reported four-turn acceptance still require the serialized authenticated model and Supabase run. The teaching cases remain setup failures in the runner. A separate offline immediate-feedback fixture lifecycle is ready for later review once request observations can be bound.

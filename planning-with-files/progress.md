@@ -59,3 +59,5 @@
 - 2026-11-15 [#100] Reproduced a School Affairs search interpretation failure that entered the signed-in snapshot path. Added exact local keyword help and model-independent menu context, plus three independently graded questions, both handler paths, and Unicode-safe history on server composition and campus follow-ups.
 
 - 2026-11-15 [#100] Replayed two hosted guest housing failures through the public handler. The corrected compound answer links bed, timetable and tuition separately. The Chinese first-person prompt receives the bed lookup link, with an explicit foreign-owner denial exercised in the same test.
+
+- 2026-11-15 Issue #100. Integrated receipt and native Moodle grade scope on `4be7b0c`. Restored the committed public reference assets for test execution and reran verification after correcting dispatch expectations. Added the teaching evaluation bank to the default denominator with explicit fixture failures. Independent review found that inconsistent receipt cards and claims of official approval or absence could pass the evaluator. Added negative cases and fixed the grader to check those visible claims.

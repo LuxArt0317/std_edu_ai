@@ -49,6 +49,12 @@ Runtime and question-bank fingerprints accompany reports. A source change during
 
 These are implemented changes with automated regression coverage, not a claim of completed live-model acceptance.
 
+### Housing, native Moodle and teaching feedback
+
+Housing application questions have their own receipt and submission-time cases. The oracle checks saved data, exact source links and observed tool selection. A dormitory bed case cannot satisfy that source check. The native DTM grade cases compare saved report and overview values against caller-bound fixture rows, including blank and zero grades. The 14-case DTM packet uses offline fixtures, and the live multi-course adapter remains open.
+
+The [teaching feedback admission](TEACHING_FEEDBACK_LIVE_EVALUATION.md) puts 40 independent cases in the full runner denominator. They remain unexecuted setup failures while caller-bound fixtures and trusted request observations are unavailable. Test passes for the admission code do not satisfy those question gates.
+
 ## Known coverage gaps
 
 The bank includes questions for each of the 94 service entries and the 395 captured public pages. Four service cases cover navigation, populated records, absent records and action boundaries. Account-specific cases cover tool selection, academic history, native grades/attendance/graduation, DTM, fees, privacy, actions and follow-ups. An inventory entry is not evidence that a native workflow exists.

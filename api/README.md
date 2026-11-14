@@ -114,3 +114,7 @@ The assistant reads service 34-1 for its authenticated caller. A bed-only questi
 Explicitly excluded and foreign-account companion requests stay outside the account read. An independently requested own balance or timetable remains eligible.
 
 The signed-in account handler answers School Affairs keyword-field help after verifying the session. It uses the public search controls and skips private record queries for that help request.
+
+### Housing receipt and native Moodle questions
+
+The account assistant reads the signed-in user's housing receipt number, submission time and linked term from service 26-1. Bed assignments at 34-1 use a separate reader. A question about both housing receipts and the Moodle grade overview uses those two readers. Focused native Moodle grade questions skip the general account snapshot and planner. A failed first check reloads the selected records before one correction.

@@ -596,3 +596,7 @@ The floating campus assistant on copied school pages embeds its chat in an ifram
 
 
 Full client verification passed after190000 at129 migrations/146 RLS tables: owner login/profile/CRUD cleanup, all public shell/assets, Edge authorization/directory and nonmutating OpenAI.
+
+### Issue #100 housing receipt and native Moodle grade checkpoint
+
+The isolated candidate extends the protected menu-context revision `4be7b0c`. Verify the candidate manifest and rerun Quality on its exact deployed tree. Keep production at the currently accepted revision until the signed-in model, persistence, independent review and cleanup gates pass. The protected four-turn replay remains outstanding. The receipt fixture requires the existing published period, and the new teaching cases are still unexecuted setup failures.

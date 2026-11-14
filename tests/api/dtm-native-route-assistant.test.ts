@@ -1,0 +1,187 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {readFile} from 'node:fs/promises';
+import {runInNewContext} from 'node:vm';
+import ts from 'typescript';
+import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
+import {planAccountLookup} from '../../server/answerVerificationAccount.js';
+import {readDtmGradeReportEvidence} from '../../server/accountDtmGradeReportEvidence.js';
+import * as nativeIntent from '../../server/dtmGradeEvidenceIntent.js';
+import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
+import {boundedAssistantText} from '../../src/services/assistantActivityBudget.js';
+import {buildDtmNativeRouteCases,dtmNativeRouteFixture,dtmNativeRouteManifest,gradeDtmNativeRouteCase} from '../evaluation/dtm-native-route-cases.mjs';
+
+const bank=buildDtmNativeRouteCases(),origin='https://xiftudmvxphxcjtmfmib.supabase.co',owner=dtmNativeRouteManifest.ownerId;
+const account={url:origin,key:'OFFLINE_DTM_KEY',token:'OFFLINE_DTM_TOKEN',user:{id:owner}};
+type Case=ReturnType<typeof buildDtmNativeRouteCases>[number];
+async function invoke(handler:ReturnType<typeof createAffairsAssistantHandler>,row:Case){
+  const output:{statusCode:number;body:any}={statusCode:200,body:null};
+  const response={setHeader(){},status(code:number){output.statusCode=code;return response;},json(body:unknown){output.body=body;}};
+  await handler({method:'POST',headers:{authorization:'Bearer '+account.token},body:{question:row.question,route:row.route,history:row.history}},response);
+  return output;
+}
+async function actual(row:Case,{rejectOnce=false}={}){
+  const fixture=dtmNativeRouteFixture(row.nativeExpectation.fixture),reads:any[]=[],wire:any[]=[],errors:unknown[]=[],stages:string[]=[];
+  const observation={ownerId:owner,execution:'mocked',reads,evidence:null as any,broadReads:0,publicReads:0,writes:0};
+  const previous=globalThis.fetch,key=process.env.OPENAI_API_KEY;let reviews=0,lastDraft='';
+  process.env.OPENAI_API_KEY='OFFLINE_DTM_MODEL';
+  globalThis.fetch=async(input,init)=>{
+    try{
+      const url=new URL(String(input)),headers=new Headers(init?.headers),body=init?.body?JSON.parse(String(init.body)):null;
+      if(url.origin===origin){
+        wire.push({path:url.pathname,method:init?.method,query:Object.fromEntries(url.searchParams),body});
+        assert.equal(headers.get('authorization'),'Bearer '+account.token);assert.equal(init?.redirect,'error');
+        if(url.pathname==='/rest/v1/rpc/dtm_grade_report_overview'){
+          assert.equal(init?.method,'POST');assert.deepEqual(body,{});
+          reads.push({operation:'overview',ownerId:owner,query:{},...(row.nativeExpectation.fixture==='failed'?{failed:true}:{data:structuredClone(fixture.overview)})});
+          return row.nativeExpectation.fixture==='failed'?Response.json({}, {status:503}):Response.json(fixture.overview);
+        }
+        assert.equal(init?.method,'GET');assert.equal(url.searchParams.get('user_id'),'eq.'+owner);
+        if(url.pathname==='/rest/v1/dtm_courses'){
+          assert.equal(url.searchParams.get('id'),'eq.'+dtmNativeRouteManifest.courseId);assert.equal(url.searchParams.get('select'),'id,user_id');
+          return Response.json([{id:dtmNativeRouteManifest.courseId,user_id:owner}]);
+        }
+        assert.equal(url.pathname,'/rest/v1/dtm_grade_reports');assert.equal(url.searchParams.get('course_id'),'eq.'+dtmNativeRouteManifest.courseId);
+        assert.equal(url.searchParams.get('deleted_at'),'is.null');assert.equal(url.searchParams.get('limit'),'2');
+        reads.push({operation:'report',ownerId:owner,courseId:dtmNativeRouteManifest.courseId,data:structuredClone(fixture.report)});
+        const saved=fixture.report.report;
+        return Response.json(saved?[{id:saved.id,user_id:owner,course_id:saved.courseId,source_mode:saved.sourceMode,version:saved.version,
+          created_at:saved.createdAt,updated_at:saved.updatedAt,deleted_at:null,report:{items:saved.items,total:saved.total}}]:[]);
+      }
+      assert.equal(url.origin,'https://api.openai.com','Every external transport must be intercepted.');
+      const stage=body.text.format.name,packet=JSON.parse(body.input[0].content[0].text);stages.push(stage);
+      assert.ok(stage==='answer_evidence_review'||stage==='correct_grounded_answer'&&(row.nativeExpectation.fixture==='failed'||rejectOnce),row.id+': unexpected '+stage);
+      assert.deepEqual(packet.evidence.map((source:any)=>source.id),['account-scope','account:dtmGradeReport']);
+      assert.deepEqual(JSON.parse(packet.evidence[0].content).selectedTools,['dtmGradeReport']);
+      assert.doesNotMatch(JSON.stringify(packet),/OFFLINE_DTM|78000000-0000-4000-8000-00000000000[12]|TRACKER|INVENTED_PRIVATE/u);
+      const data=JSON.parse(packet.evidence[1].content);observation.evidence=data;
+      assert.equal(data.readState,row.nativeExpectation.read);
+      if(stage==='correct_grounded_answer')return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({status:'answered',
+        answer:row.nativeExpectation.fixture==='failed'?'The native grade-report lookup is unavailable. I cannot determine the saved grades.':lastDraft,sourceIds:['account:dtmGradeReport']})}]}]});
+      lastDraft=typeof packet.answer==='string'?packet.answer:packet.answer.answer;
+      const paths=['/readState','/courseCoverage/complete','/counts/included'];
+      if(data.selection.view==='overview')data.courses.forEach((_:unknown,index:number)=>paths.push('/courses/'+index+'/title','/courses/'+index+'/gradeText'));
+      if(data.selection.view==='report'){
+        paths.push('/reportPresent');if(data.report){
+          data.report.items.forEach((_:unknown,index:number)=>paths.push('/report/items/'+index+'/label','/report/items/'+index+'/feedbackText','/report/items/'+index+'/weightText','/report/items/'+index+'/gradeText'));
+          paths.push('/report/totalPresent');if(data.report.total)paths.push('/report/total/gradeText','/report/total/feedbackText');
+        }
+      }
+      const supported=!rejectOnce||++reviews>1;
+      const claims=Array.from({length:Math.ceil(paths.length/8)},(_,index)=>({claim:'Saved native grade-report cells and explicit read limitations.',evidenceId:'account:dtmGradeReport',jsonPaths:paths.slice(index*8,index*8+8),quotes:[],supported}));
+      return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({supported,answersQuestion:supported,claims})}]}]});
+    }catch(error){errors.push(error);throw error;}
+  };
+  const handler=createAffairsAssistantHandler({verifyToken:async()=>account,
+    loadSnapshot:async()=>{observation.broadReads++;throw Error('Unrelated snapshot forbidden.');},
+    publicResearch:async()=>{observation.publicReads++;throw Error('Public research forbidden.');}});
+  try{
+    const envelope=await invoke(handler,row);assert.deepEqual(errors,[]);return {envelope:{...envelope,execution:'deterministic',fixtureKey:row.fixtureKey,events:envelope.body?.activity??[]},observation,wire,stages};
+  }finally{globalThis.fetch=previous;if(key===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=key;}
+}
+
+test('actual authenticated native transport and graph answer the independent route packet without the general snapshot',async()=>{
+  for(const row of bank.filter((item:Case)=>!['failed','foreign'].includes(item.id.split('-').at(-1)!))){
+    const value=await actual(row);assert.equal(value.envelope.statusCode,200,row.id);
+    const graded=gradeDtmNativeRouteCase(row,value.envelope,value.observation);
+    assert.equal(graded.passed,true,row.id+': '+JSON.stringify(graded.failures));assert.equal(graded.modelAcceptance,false);
+    assert.equal(value.envelope.body.verification.status,'verified');assert.deepEqual(value.stages,['answer_evidence_review']);
+    assert.ok(value.wire.every((request:any)=>['/rest/v1/rpc/dtm_grade_report_overview','/rest/v1/dtm_courses','/rest/v1/dtm_grade_reports'].includes(request.path)));
+  }
+});
+test('foreign requests perform no native, snapshot, planner or public transport',async()=>{
+  const row=bank.find((item:Case)=>item.id.endsWith('-foreign'))!,value=await actual(row);
+  assert.equal(value.envelope.statusCode,200);assert.equal(value.envelope.body.status,'handoff');assert.deepEqual(value.wire,[]);assert.deepEqual(value.stages,[]);
+  assert.equal(gradeDtmNativeRouteCase(row,value.envelope,value.observation).passed,true);
+});
+test('unavailable native read stays unavailable and cannot borrow tracker grades',async()=>{
+  const row=bank.find((item:Case)=>item.id.endsWith('-failed'))!,value=await actual(row);
+  assert.equal(value.observation.broadReads,0);assert.equal(value.observation.publicReads,0);assert.ok(value.observation.reads.length>=1&&value.observation.reads.length<=2);
+  assert.ok(value.wire.every((request:any)=>request.path==='/rest/v1/rpc/dtm_grade_report_overview'));
+  assert.doesNotMatch(value.envelope.body.answer??'',/no saved courses|grade is zero|TRACKER|INVENTED_PRIVATE/iu);
+});
+test('a rejected review refreshes the same caller-only native source before its one correction',async()=>{
+  const row=bank.find((item:Case)=>item.id.endsWith('-item-feedback'))!,value=await actual(row,{rejectOnce:true});
+  assert.equal(value.envelope.statusCode,200);assert.equal(value.envelope.body.verification.status,'verified');
+  assert.equal(value.envelope.body.verification.attempts,2);
+  assert.deepEqual(value.stages,['answer_evidence_review','correct_grounded_answer','answer_evidence_review']);
+  assert.deepEqual(value.observation.reads.map(read=>read.operation),['overview','report','overview','report']);
+  assert.equal(value.observation.broadReads,0);assert.equal(value.observation.publicReads,0);
+  assert.equal(value.wire.filter(request=>request.path==='/rest/v1/dtm_courses').length,2);
+  assert.equal(gradeDtmNativeRouteCase(row,value.envelope,{...value.observation,reads:value.observation.reads.slice(-2)}).passed,true);
+});
+test('mixed assignment, tracker and financial requests retain their separate base dependencies',async()=>{
+  const original=globalThis.fetch;globalThis.fetch=async()=>{throw Error('Offline planner unavailable');};
+  try{
+    for(const [question,tools]of [
+      ['Show my Moodle grades and list my unfinished assignments.',['dtmGradeReport','assignments','dtm']],
+      ['Show my native DTM grade report and my personal grade tracker.',['dtmGradeReport','dtm','assignments']],
+      ['Show my Moodle grades and my tuition balance.',['dtmGradeReport','charges']],
+    ] as const){
+      assert.equal(nativeIntent.isNativeDtmGradeOnlyQuestion(question,'/dtm/grades'),false);
+      const plan=await planAccountLookup(question,[],'/dtm/grades',Date.now()-1);for(const tool of tools)assert.ok(plan.tools.includes(tool),question+': '+tool);
+      let broad=0,answer=0;
+      const handler=createAffairsAssistantHandler({verifyToken:async()=>account,loadSnapshot:async()=>{broad++;return {checkedAt:new Date().toISOString(),profile:{userId:owner}} as any;},
+        answerAccount:async options=>{answer++;assert.equal(options.snapshot.profile.userId,owner);return {status:'abstained',answer:'Offline mixed-path check only.',citations:[],suggestedQuestions:[],verification:{status:'abstained',attempts:0}} as any;},
+        publicResearch:async()=>assert.fail('No public dispatch')});
+      await invoke(handler,{...bank[0],question});assert.equal(broad,1);assert.equal(answer,1);
+    }
+  }finally{globalThis.fetch=original;}
+});
+
+test('actual mixed graph composes independent tuition and native report facts without substituting either source',async()=>{
+  const row={...bank.find((item:Case)=>item.id.endsWith('-item-feedback'))!,question:'Show my native DTM grade report feedback for Study Methods and my tuition balance.'};
+  const fixture=dtmNativeRouteFixture(),stages:string[]=[],errors:unknown[]=[],previous=globalThis.fetch,key=process.env.OPENAI_API_KEY;
+  let broad=0,native=0;process.env.OPENAI_API_KEY='OFFLINE_DTM_MIXED';
+  globalThis.fetch=async(input,init)=>{try{
+    assert.equal(new URL(String(input)).origin,'https://api.openai.com');
+    const body=JSON.parse(String(init?.body)),stage=body.text.format.name,packet=JSON.parse(body.input[0].content[0].text);stages.push(stage);
+    let result:unknown;
+    if(stage==='account_lookup_plan')result={tools:['dtmGradeReport','charges'],publicTopics:[],catalogQuery:null,action:null};
+    else{
+      assert.deepEqual(packet.evidence.map((source:any)=>source.id).sort(),['account-scope','account:charges','account:dtmGradeReport']);
+      assert.doesNotMatch(JSON.stringify(packet),/UNREQUESTED_COURSE|UNREQUESTED_PROFILE|OFFLINE_DTM/);
+      const charge=JSON.parse(packet.evidence.find((source:any)=>source.id==='account:charges').content);
+      assert.equal(charge.records[0].amountDue,28000);assert.equal(charge.records[0].amountPaid,5000);
+      const report=JSON.parse(packet.evidence.find((source:any)=>source.id==='account:dtmGradeReport').content);
+      assert.equal(report.report.items[0].feedbackText,'Explain the sampling choice.');
+      if(stage==='compose_grounded_answer')result={status:'answered',answer:'Source Analysis has saved feedback: Explain the sampling choice. The separate QA Tuition charge has TWD 23000 remaining (28000 charged, 5000 paid). These are saved local demonstration records.',sourceIds:['account:dtmGradeReport','account:charges']};
+      else{assert.equal(stage,'answer_evidence_review');result={supported:true,answersQuestion:true,claims:[
+        {claim:'Source Analysis saved feedback',evidenceId:'account:dtmGradeReport',jsonPaths:['/report/items/0/label','/report/items/0/feedbackText'],quotes:[],supported:true},
+        {claim:'QA Tuition remaining balance',evidenceId:'account:charges',jsonPaths:['/records/0/label','/records/0/amountDue','/records/0/amountPaid','/records/0/currency'],quotes:[],supported:true}]};}
+    }
+    return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify(result)}]}]});
+  }catch(error){errors.push(error);throw error;}};
+  try{
+    const handler=createAffairsAssistantHandler({verifyToken:async()=>account,publicResearch:async()=>assert.fail('No public source'),
+      loadSnapshot:async()=>{broad++;return {checkedAt:'2026-11-14T00:00:00Z',profile:{userId:owner,displayName:'UNREQUESTED_PROFILE'},
+        courses:[{title:'UNREQUESTED_COURSE'}],charges:[{id:'78000000-0000-4000-8000-000000000401',userId:owner,label:'QA Tuition',amountDue:28000,amountPaid:5000,currency:'TWD',sourceMode:'sample'}]} as any;},
+      readers:{dtmGradeReport:(authorized,options)=>readDtmGradeReportEvidence(authorized,options,{
+        loadOverview:async caller=>{native++;assert.equal(caller.user.id,owner);return fixture.overview;},
+        loadReport:async(caller,query)=>{assert.equal(caller.user.id,owner);assert.equal(query.courseId,dtmNativeRouteManifest.courseId);return fixture.report;}})}});
+    const result=await invoke(handler,row);assert.deepEqual(errors,[]);assert.equal(result.statusCode,200);assert.equal(result.body.verification.status,'verified');
+    assert.match(result.body.answer,/Explain the sampling choice/);assert.match(result.body.answer,/23000/);
+    assert.deepEqual(result.body.citations.map((item:any)=>item.chunkId).sort(),['account:charges','account:dtmGradeReport']);
+    assert.equal(broad,1);assert.equal(native,1);assert.deepEqual(stages,['account_lookup_plan','compose_grounded_answer','answer_evidence_review']);
+  }finally{globalThis.fetch=previous;if(key===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=key;}
+});
+
+test('actual compiled client preserves every native question/route/history and verifies caller before dispatch',async()=>{
+  const source=await readFile(new URL('../../src/services/schoolAffairsAssistant.ts',import.meta.url),'utf8');
+  const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+  const exports:any={},calls:any[]=[];let current=owner;
+  runInNewContext(code,{exports,require:(specifier:string)=>{
+    if(specifier.endsWith('dtmGradeEvidenceIntent.js'))return nativeIntent;
+    if(specifier.endsWith('assistantStreamReader.js'))return {readAssistantReply};
+    if(specifier.endsWith('assistantActivityBudget.js'))return {boundedAssistantText};
+    if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{getSession:async()=>({data:{session:{user:{id:current},access_token:'OFFLINE_BROWSER'}},error:null})}}};
+    return new Proxy({},{get:()=>()=>false});
+  },fetch:async(url:string,init:RequestInit)=>{calls.push({url,body:JSON.parse(String(init.body)),headers:init.headers});return Response.json({status:'answered',answer:'Intercepted verified API dispatch.',citations:[]});}});
+  for(const row of bank){
+    await exports.askSchoolAffairsAssistant(owner,row.question,row.history,undefined,[],row.route);
+    const sent=calls.at(-1);assert.equal(sent.url,'/api/affairs-assistant');assert.equal(sent.headers.Authorization,'Bearer OFFLINE_BROWSER');
+    assert.equal(sent.body.question,row.question);assert.equal(sent.body.route,row.route);assert.deepEqual(sent.body.history,structuredClone(row.history));
+  }
+  assert.equal(calls.length,bank.length);current=dtmNativeRouteManifest.foreignOwnerId;
+  await assert.rejects(()=>exports.askSchoolAffairsAssistant(owner,bank[0].question,[],undefined,[],bank[0].route),/account changed/u);assert.equal(calls.length,bank.length);
+});

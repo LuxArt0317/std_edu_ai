@@ -42,6 +42,9 @@ import {teachingFeedbackLookupContext} from './teachingFeedbackEvidenceIntent.js
 import {teachingFeedbackGuide} from './teachingFeedbackGuide.js';
 import {housingBedLookupContext} from './housingBedEvidenceIntent.js';
 import {housingBedGuide} from './housingBedAnswer.js';
+import {housingApplicationLookupContext} from './housingApplicationEvidenceIntent.js';
+import {housingApplicationGuide} from './housingApplicationAnswer.js';
+import {isNativeDtmGradeOnlyQuestion} from './dtmGradeEvidenceIntent.js';
 import {earlyGraduationPath,earlyGraduationQuestion} from './earlyGraduationContract.js';
 import { answerCourseSubstitution } from './courseSubstitution.js';
 import { answerFirstSelectionNotice } from './firstSelectionNotice.js';
@@ -345,6 +348,27 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const stream = createAssistantStream(input.stream, response);
+        const application=!input.images.length&&housingApplicationLookupContext(input.question,input.route,input.history);
+        if(application&&(application.selection||application.navigation||application.foreign||application.excluded)){
+            const guide=housingApplicationGuide(input.question,application);
+            const bed=housingBedLookupContext(application.otherQuestion,'',[]);
+            const bedGuide=bed.selection||bed.navigation||bed.foreign||bed.excluded?housingBedGuide(application.otherQuestion,bed):null;
+            const zh=/\p{Script=Han}/u.test(input.question);
+            const companions=bed.companions.map(kind=>{
+                const target=kind==='next_class'?schoolSubjectRecordsPath:'/school-affairs/services/39-1';
+                const title=kind==='next_class'?(zh?'登入後查看課表':'Sign in to check your timetable')
+                    :(zh?'登入後查看學雜費':'Sign in to check your fee balance');
+                const url='/school-affairs/login?next='+encodeURIComponent(target);
+                return {chunkId:'directory:housing-application-'+kind,title,url,claim:title,sourceName:'School Affairs'};
+            });
+            if(isNativeDtmGradeOnlyQuestion(bed.otherQuestion,'',[])){
+                const title=zh?'登入後查看數位教材成績':'Sign in to check your Moodle grades';
+                companions.push({chunkId:'directory:dtm-grades',title,url:'/dtm/login?next=%2Fdtm%2Fgrades',claim:title,sourceName:'Digital Teaching Materials'});
+            }
+            const navigation=!bed.companionOnly&&bed.otherQuestion?answerCampusNavigation(bed.otherQuestion):null;
+            stream.send(200,{...guide,answer:[guide.answer,bedGuide?.answer,...companions.map(row=>'['+row.title+']('+row.url+')'),navigation?.answer].filter(Boolean).join('\n\n'),
+                citations:[...guide.citations,...(bedGuide?.citations??[]),...companions,...(navigation?.citations??[])]});return;
+        }
         const housing=!input.images.length&&housingBedLookupContext(input.question,input.route,input.history);
         if(housing&&(housing.selection||housing.excluded||housing.navigation||housing.foreign)){
             const guide=housingBedGuide(input.question,housing);

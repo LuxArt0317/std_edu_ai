@@ -171,3 +171,9 @@ The 34-1 reader projects caller-owned bed assignments and their referenced perio
 Housing companion intent keeps positive, excluded and foreign requests separate. Each selected caller-owned lookup retains its own availability and evidence.
 
 School Affairs search and menu context use the captured service catalog. Public menu answers can be returned before opening the model or research corpus.
+
+### Housing receipts and native Moodle grades
+
+`accountHousingApplicationEvidence.js` reads the caller's receipt metadata and only referenced period rows. It exposes complete, partial, empty and unavailable states. The graph preserves whole selected housing rows when it fits the evidence budget and reports omissions. Receipt views carry a record count, retrieval time and scope note so reopened chats display the same evidence context.
+
+A focused native DTM grade request selects its reader directly. The reader validates the caller and route, and the verifier uses saved report cells or grade-overview rows. Compound questions can select independent sources. Storage revisions and the personal assignment tracker require their own tools.

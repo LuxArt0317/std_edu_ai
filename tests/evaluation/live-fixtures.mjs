@@ -45,7 +45,7 @@ const PRIVATE_NATIVE_DOMAINS=['studentAid','creditLoadHistory','courseSelection'
 const CONDITIONAL_NATIVE_DOMAINS=['courses','scholarship','housing'];
 const SUPPLEMENTAL_SCOPES=Object.freeze({enrollmentCertificate:'enrollment-certificate',tuition:'tuition-documents',studentConduct:'student-conduct',studentLoan:'student-loan'});
 const SUPPLEMENTAL_TABLES=Object.freeze({enrollmentCertificate:'affairs_enrollment_certificate_assessments',tuition:'affairs_tuition_settlements',studentConduct:'affairs_student_conduct',studentLoan:'affairs_student_loan'});
-const SUPPORTED_TOOLS=new Set(['profile','charges','tasks','requests','serviceRecords','dtm','assignments','aidPayments','dtmGradeReport','elearningEnrollments','elearningOutline','facilityRepairs','dormitoryConduct',...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS,...Object.keys(SUPPLEMENTAL_SCOPES)]);
+const SUPPORTED_TOOLS=new Set(['profile','charges','tasks','requests','serviceRecords','dtm','assignments','aidPayments','dtmGradeReport','elearningEnrollments','elearningOutline','facilityRepairs','dormitoryConduct','housingApplications',...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS,...Object.keys(SUPPLEMENTAL_SCOPES)]);
 const FOREIGN_MARKER='FOREIGN PRIVATE SENTINEL';
 const FEE_FIXTURE_MODE='fee-remission-only';
 export const fixtureModes=Object.freeze([FEE_FIXTURE_MODE]);
@@ -349,6 +349,8 @@ async function createFixtureUser(index){
 export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expectedReleaseRevision,signal,fixtureMode,caseFamily,applicationFetch}={}){
   if(state)fail('fixture-state','This fixture adapter cannot run overlapping lifecycles.');
   if(!UUID.test(runId||'')||!Array.isArray(cases)||!cases.length||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
+  if(cases.some(row=>row?.fixtureRequirement==='offline_native_teaching_feedback'||typeof row?.id==='string'&&row.id.startsWith('account:teaching-native-')))
+    fail('fixture-unsupported','Teaching feedback requires an isolated fixture and trusted request observation; the legacy adapter cannot prepare this offline packet.');
   let transcriptCaseIds;
   if(applicationFetch!==undefined){
     if(typeof applicationFetch!=='function'||cases.length!==transcriptFixtureCases.length||fixtureMode!==undefined||caseFamily!==undefined
@@ -1462,7 +1464,7 @@ export function validateFixtureServiceRecord(row){
 }
 async function readNativeBindings(snapshot,testCase){
   const s=state,publishedSample=testCase.fixtureKey==='published-sample:records'||testCase.fixtureKey==='facility-repairs:compound';
-  const required=new Set(testCase.expected?.requiredTools||[]),domains=[...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS.filter(domain=>required.has(domain)||domain==='courses'&&publishedSample)],shared={};
+  const required=new Set(testCase.expected?.requiredTools||[]),domains=[...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS.filter(domain=>required.has(domain)||domain==='housing'&&required.has('housingApplications')||domain==='courses'&&publishedSample)],shared={};
   for(const domain of ['scholarship','housing'].filter(domain=>domains.includes(domain))){
     const values=await query(()=>s.sql`select * from ${s.sql('public.'+periodTables[domain])} where published=true order by id limit 501`,'Could not read published fixture period bindings.');
     if(values.length>500)fail('fixture-unsupported','Published period bindings exceed the bounded fixture inventory.');

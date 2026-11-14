@@ -25,6 +25,7 @@ test('the five direct readers and verified graph dispatch remain separately visi
     {id:'local-service-notes',graphTool:'serviceRecords'},
     {id:'teaching-feedback',graphTool:'teachingFeedback'},
     {id:'housing-beds',graphTool:'housing'},
+    {id:'housing-applications',graphTool:'housingApplications'},
   ]);
   for(const service of inventory.services){
     assert.equal(service.routeAuth,'signed-in');assert.equal(service.graphTool,null);
@@ -95,6 +96,7 @@ test('source drift cannot silently detach a declared native reader from auth, ow
     source.replace('if (error || !data.session) throw new Error','if (false) throw new Error'),
     source.replace('answerStudentClubs(data.session.user.id,','answerStudentClubs(otherUserId,'),
     source.replace("from './clubStudent'","from './unrelated'"),
+    source.replace('isHousingApplicationScopeQuestion(question,route,history)','false'),
     source.replace('isElearningEvidenceQuestion(question,route,history)','false'),
     source.replace('isFacilityRepairEvidenceQuestion(question,route,history)','true'),
     source.replace('data.session.user.id !== expectedUserId','false'),

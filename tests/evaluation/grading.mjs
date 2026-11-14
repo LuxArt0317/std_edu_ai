@@ -319,6 +319,57 @@ const missingDtmReportField=/\b(?:no\s+(?:(?:saved|native|moodle|dtm)\s+){0,4}gr
 const missingElearningEnrollments=/(?:^|[.!]\s+|\n)\s*(?:there are )?no saved remote-learning moodle enrollments(?: for this account)?(?:\.|$)/iu;
 const limitedFacilityRepair=/(?:^|[.!]\s+|\n)\s*(?:(?:there are )?no (?:saved|local) (?:facility )?repair (?:records|reports)(?: (?:for this account|match(?:ing)? this query|are saved))?|physical repair completion\s*:\s*unverified)(?:\.|$)/iu;
 
+// Optional independent card consistency. Cards cannot supply missing prose
+// facts; each displayed field is checked separately under its exact record ID.
+function visibleRecordFactsResult(views,facts) {
+  const valueValid=value=>typeof value==='string'&&value.trim().length>0||typeof value==='number'&&Number.isFinite(value)
+    ||value&&typeof value==='object'&&Array.isArray(value.anyOf)&&value.anyOf.length>0&&value.anyOf.every(item=>typeof item==='string'&&item.trim().length>0||typeof item==='number'&&Number.isFinite(item));
+  if(!Array.isArray(facts)||!facts.length||facts.length>24||facts.some(fact=>!fact||typeof fact.record!=='string'||!fact.record.trim()
+    ||!Array.isArray(fact.recordHeaders)||!fact.recordHeaders.length||fact.recordHeaders.some(value=>typeof value!=='string'||!value.trim())
+    ||!Array.isArray(fact.fields)||!fact.fields.length||fact.fields.length>16||fact.fields.some(field=>!field||typeof field.label!=='string'||!field.label.trim()
+      ||!['text','number','date'].includes(field.kind)||!Array.isArray(field.values)||field.values.length!==1||!field.values.every(valueValid)
+      ||field.labels!==undefined&&(!Array.isArray(field.labels)||field.labels.some(value=>typeof value!=='string'||!value.trim()))
+      ||field.match!==undefined&&field.match!=='literal'||field.exclusive!==undefined&&typeof field.exclusive!=='boolean'))
+    ||new Set(facts.map(fact=>normalize(fact.record))).size!==facts.length)return {passed:false,detail:'Malformed independent visible-record contract.'};
+  if(views===undefined)return {passed:true,detail:'No cards supplied; required prose facts are checked independently.'};
+  if(!Array.isArray(views)||views.length>24)return {passed:false,detail:'Malformed visible card collection.'};
+  const identityHeaders=new Set(facts.flatMap(fact=>fact.recordHeaders.map(normalize)));
+  for(const view of views){
+    if(!view||!Array.isArray(view.columns)||!view.columns.length||view.columns.length>24
+      ||view.columns.some(value=>typeof value!=='string'||!value.trim()||value.length>200)
+      ||new Set(view.columns.map(normalize)).size!==view.columns.length
+      ||!Array.isArray(view.rows)||view.rows.length>200)return {passed:false,detail:'Visible card headers or rows are ambiguous.'};
+    const headers=view.columns.map(normalize),identityColumns=headers.flatMap((header,index)=>identityHeaders.has(header)?[index]:[]);
+    if(identityColumns.length>1)return {passed:false,detail:'A visible row has ambiguous record identity columns.'};
+    for(const row of view.rows){
+      if(!Array.isArray(row)||row.length!==headers.length||row.some(value=>value!==null&&!['string','number','boolean'].includes(typeof value)
+        ||typeof value==='number'&&!Number.isFinite(value)||typeof value==='string'&&value.length>8000))return {passed:false,detail:'A visible row does not match its headers.'};
+      const matching=facts.filter(fact=>identityColumns.length
+        ?normalize(row[identityColumns[0]])===normalize(fact.record)
+        :row.some(value=>normalize(value)===normalize(fact.record)));
+      if(identityColumns.length&&matching.length!==1)return {passed:false,detail:'A displayed receipt has no unique independently expected identity.'};
+      for(const fact of matching)for(const field of fact.fields){
+        const labels=[field.label,...(field.labels||[])].map(normalize);
+        for(let index=0;index<headers.length;index++)if(labels.includes(headers[index])){
+          const value=row[index]===null?'null':String(row[index]);
+          const result=factResult(field.label+': '+value,{...field,exclusive:field.exclusive??true});
+          if(!result.passed)return {passed:false,detail:'A displayed field contradicts its independently bound receipt record.'};
+        }
+      }
+    }
+  }
+  return {passed:true,detail:'Supplied card fields agree with independently bound record identities.'};
+}
+function visibleBoundaryText(body) {
+  const text=[body.answer||''];
+  for(const view of Array.isArray(body.views)?body.views:[]){
+    for(const name of ['title','summary','note'])if(typeof view?.[name]==='string')text.push(view[name]);
+    for(const row of Array.isArray(view?.rows)?view.rows:[])if(Array.isArray(row))text.push(row.map((cell,index)=>
+      (typeof view?.columns?.[index]==='string'?view.columns[index]+': ':'')+String(cell??'null')).join(', '));
+  }
+  return text.join('\n');
+}
+
 // Opt-in record boundaries are separate from stored facts. A correct literal
 // beside an unsupported conclusion must not pass. Evaluate short clauses so a
 // caveat in one sentence cannot cancel an affirmative claim in another.
@@ -332,6 +383,21 @@ function evidenceBoundaryResult(answer,kind) {
     const prefix=clause.slice(Math.max(0,match.index-55),match.index);
     return !isNegative(match[0]) && !qualifyingPrefix.test(prefix);
   });
+  if(kind==='housing_receipt_no_official_approval'||kind==='housing_receipt_record_not_absent') {
+    const qualifier=/\b(?:cannot|can't|can’t|could not|unable to)\s+(?:infer|conclude|establish|determine|say|claim|know|confirm|verify)(?:\s+(?:that|whether|if|there|are|is|it|was)){0,5}\s*$|\b(?:does not|doesn't|do not|don't)\s+(?:mean|prove|establish|imply)(?:\s+(?:that|whether|if|there|are|is)){0,4}\s*$|\bnot\s+(?:proof|evidence|true)\s+that\s*$/u;
+    const approval=/\b(?:(?:(?:your|my|the|this|saved)\s+)?(?:(?:housing|dormitory|accommodation)\s+)?applications?(?:\s+receipt)?\b[^,]{0,70}\b(?:approved|accepted)|(?:this|your|the|saved)\s+receipt\b[^,]{0,45}\b(?:confirms?|proves?|establishes?)\b[^,]{0,30}\b(?:official |university )?approval|(?:official |university )?approval(?:\s+status)?\s*[:：]\s*(?:approved|confirmed|verified|complete))\b/gu;
+    const absence=/\b(?:(?:there\s+(?:are|is)|you\s+have|your\s+account\s+has)\s+(?:no|zero|0)\s+(?:(?:saved|local|matching|housing|dormitory|accommodation|application)\s+){0,5}(?:applications?|receipts?|records?)|no\s+(?:(?:saved|local|matching|university)\s+){0,3}(?:housing|dormitory|accommodation)\s+(?:applications?|receipts?)|(?:your\s+)?(?:housing|dormitory|accommodation)\s+application(?:\s+(?:list|collection|records))?\s+(?:is|are)\s+(?:empty|absent))\b/gu;
+    const expression=kind==='housing_receipt_no_official_approval'?approval:absence;
+    const contradiction=clauses.some(clause=>[...clause.matchAll(expression)].some(match=>{
+      const prefix=clause.slice(Math.max(0,match.index-120),match.index);
+      // In "no applications", no is the disputed absence claim, not its
+      // negation. Only a directly attached non-inference qualifier protects it.
+      return !qualifier.test(prefix)&&(kind==='housing_receipt_record_not_absent'||!isNegative(match[0]));
+    }));
+    return {passed:!contradiction,detail:kind==='housing_receipt_no_official_approval'
+      ?'Receipt metadata does not become an affirmative official approval claim.'
+      :'A positively saved housing application cannot be contradicted by an empty-account claim.'};
+  }
   if(kind==='literal_text_not_payment') {
     const payment=/\b(?:payment\b[^,]{0,64}\b(?:confirmed|verified|complete|completed|made|successful|received|settled)|(?:confirmed|verified|complete|completed|successful)\s+payment|(?:you|fees|tuition|balance)\b[^,]{0,48}\b(?:fully paid|paid in full|all paid|paid|settled)|(?:confirms?|proves?|establish(?:es)?)\b[^,]{0,40}\bpayment)\b/gu;
     const caveat=clauses.some(clause=>/\bpayment\b/u.test(clause)
@@ -436,7 +502,7 @@ function recordLinkMatches(answer, binding, allBindings) {
 }
 
 // This test-side allowlist is deliberately independent of the runtime planner.
-const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation']);
+const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','housingApplications','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation']);
 const toolStatusAliases={success:'complete',succeeded:'complete',failed:'error',started:'running',start:'running'};
 const toolStatuses=new Set(['running','complete','unavailable','error','cancelled','skipped']);
 const terminalStatuses=new Set(['complete','unavailable','error','cancelled','skipped']);
@@ -531,6 +597,7 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
       ||testCase.domain==='counselingAppointments'&&/\bno saved (?:counseling )?appointments\b|沒有已儲存預約/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='tutorEvaluation'&&/\b(?:no saved submission|submission status is unknown|form has no downloadable receipt|approval is not recorded|history is unavailable)\b|沒有這份導師問卷的送出紀錄/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='graduationClearance'&&/\b(?:no (?:matching office|submitted clearance applications|assigned (?:application )?periods)|clearance lookup failed)\b|未找到已送出的離校申請|離校查詢失敗/iu.test(visibleMarkdown(answer))
+      ||testCase.domain==='housingApplications'&&/\bno saved housing application(?:s)? matching (?:this|the) selection\b/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='feeRemission'&&/\bno matching saved remission records\b/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='facilityRepairs'&&limitedFacilityRepair.test(visibleMarkdown(answer)),'The answer explicitly states missing records, inability or unsupported capability.');
     if(expected.limitation && expected.limitation!==true)check('answer.limitation.specific',matches(text,expected.limitation),'The specific required limitation is stated.');
@@ -546,8 +613,12 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
   for (const [index,fact] of (expected.facts || []).entries()) {
     const result = factResult(answer,fact,expected.facts);check(`fact.${index}`,result.passed,result.detail);
   }
+  if(expected.visibleRecordFacts!==undefined){
+    const result=visibleRecordFactsResult(body.views,expected.visibleRecordFacts);check('views.recordFacts',result.passed,result.detail);
+  }
   for(const [index,kind] of (expected.evidenceBoundaries || []).entries()) {
-    const result=evidenceBoundaryResult(answer,kind);check(`evidence.boundary.${index}`,result.passed,result.detail);
+    const boundaryAnswer=typeof kind==='string'&&kind.startsWith('housing_receipt_')?visibleBoundaryText(body):answer;
+    const result=evidenceBoundaryResult(boundaryAnswer,kind);check(`evidence.boundary.${index}`,result.passed,result.detail);
   }
   for (const [index,list] of (expected.exactLists || []).entries()) {
     const valid = list && Array.isArray(list.expected) && Array.isArray(list.forbidden);

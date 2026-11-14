@@ -8,7 +8,7 @@ import {buildPlannedHealthExaminationCases} from './health-examination-cases.mjs
 import {buildPlannedCounselingAppointmentCases} from './counseling-appointment-cases.mjs';
 import {buildPlannedTutorEvaluationCases} from './tutor-evaluation-cases.mjs';
 import {buildPlannedClearanceApplicationCases} from './clearance-application-cases.mjs';
-const routes={profile:'/school-affairs/records',courses:'/school-affairs/records',assignments:'/dtm/assignments',dtm:'/dtm',charges:'/school-affairs/services/39-1',tasks:'/school-affairs/records',requests:'/school-affairs/records',serviceRecords:'/school-affairs/services/leave/history',announcements:'/school-affairs',scholarship:'/school-affairs/services/9-1',studentAid:'/school-affairs/services/22-1',housing:'/school-affairs/services/34-1',creditLoadHistory:'/school-affairs/services/11-3',courseSelection:'/school-affairs/services/11-1',academicGrades:'/school-affairs/services/13-1/transcript',graduationReview:'/school-affairs/services/13-1/graduation',academicAttendance:'/school-affairs/services/14-1'};
+const routes={profile:'/school-affairs/records',courses:'/school-affairs/records',assignments:'/dtm/assignments',dtm:'/dtm',charges:'/school-affairs/services/39-1',tasks:'/school-affairs/records',requests:'/school-affairs/records',serviceRecords:'/school-affairs/services/leave/history',announcements:'/school-affairs',scholarship:'/school-affairs/services/9-1',studentAid:'/school-affairs/services/22-1',housing:'/school-affairs/services/34-1',housingApplications:'/school-affairs/services/26-1',creditLoadHistory:'/school-affairs/services/11-3',courseSelection:'/school-affairs/services/11-1',academicGrades:'/school-affairs/services/13-1/transcript',graduationReview:'/school-affairs/services/13-1/graduation',academicAttendance:'/school-affairs/services/14-1'};
 const fact=(label,values,kind='text',labels=[])=>({label,labels,kind,values:Array.isArray(values)?values:[values]});
 const capability=(level='native',limitation=null,gap=level==='partial')=>({level,limitation,gap});
 function liveDormitoryCases() {
@@ -110,7 +110,29 @@ export function buildAccountCases({now=DEFAULT_EVAL_NOW,includePlannedFeeRemissi
   add('student-aid-locked','studentAid','Is my student aid record locked?',{facts:[fact('record','locked')],requiredLinks:[routes.studentAid]});
   add('housing-bed','housing','Which dormitory bed was assigned to me?',{requiredText:['East Hall','E-305-2'],facts:[fact('bed','E-305-2'),fact('dormitory','East Hall')],requiredLinks:[routes.housing]});
   add('housing-costs','housing','What are my accommodation fee, deposit and subsidy?',{facts:[fact('accommodation fee',8500,'number'),fact('deposit',1000,'number'),fact('subsidy',2000,'number')],requiredLinks:[routes.housing]});
-  add('housing-receipt','housing','What is my housing application receipt number?',{requiredText:['HOUSING-EVAL-001'],facts:[fact('receipt','HOUSING-EVAL-001')],requiredLinks:['/school-affairs/services/26-1']});
+  // Application receipt metadata is an independent owned source, never a bed lookup.
+  const receiptPolicy=(tools=['housingApplications'])=>({requiredTools:tools,requiredAttemptedTools:tools,allowedTools:tools,
+    toolTerminalStates:Object.fromEntries(tools.map(tool=>[tool,['complete']])),maxDistinctAttemptedTools:tools.length,
+    requireToolExecution:true,forbidPublicResearch:true,localLinksOnly:true,noAction:true,provenance:'local_demo',
+    forbiddenText:['Synthetic evaluation residence','evaluation.student@example.invalid','EVAL-115-001','FOREIGN PRIVATE SENTINEL'],
+    requiredLinks:tools.map(tool=>routes[tool]),requiredSourceBindings:tools.map(tool=>({sourceId:'account:'+tool,url:routes[tool]})),fixtureKey:'housingApplications'});
+  const receiptFact={label:'receipt',labels:['receipt number','收據號碼'],kind:'text',values:['HOUSING-EVAL-001']};
+  const receiptMetadata={label:'HOUSING-EVAL-001',kind:'text',values:['HOUSING-EVAL-001'],fields:[
+    {label:'academic year',labels:['學年度'],kind:'number',values:[115]},
+    {label:'semester',labels:['學期'],kind:'number',values:[1]},
+    {label:'submitted at',labels:['submission time','提交時間'],kind:'text',match:'literal',values:[{anyOf:['2026-11-01T02:00:00Z','2026-11-01T02:00:00+00:00','2026-11-01T02:00:00.000Z','2026-11-01T02:00:00.000+00:00']}]},
+  ]};
+  add('housing-receipt','housingApplications','What is my housing application receipt number?',{...receiptPolicy(),facts:[receiptFact]});
+  add('housing-receipt-metadata','housingApplications','For my saved housing application receipt, show its receipt number, recorded academic year, semester and exact ISO submission timestamp.',{...receiptPolicy(),facts:[receiptMetadata]});
+  add('housing-receipt-term-prefix','housingApplications','For academic year 115 semester 1, show my housing application receipt.',{...receiptPolicy(),facts:[{...receiptMetadata,fields:receiptMetadata.fields.slice(0,2)}]});
+  for(const [id,question] of [
+    ['housing-receipt-and-bed','Show my housing application receipt and my dormitory bed.'],
+    ['housing-bed-and-receipt','Show my dormitory bed and my housing application receipt.'],
+  ])add(id,'housingApplications',question,{...receiptPolicy(['housingApplications','housing']),facts:[receiptFact,fact('bed','E-305-2','text',['bed number','recorded beds','床位'])]});
+  add('housing-receipt-and-balance','housingApplications','Show my housing application receipt and my remaining tuition balance.',{...receiptPolicy(['housingApplications','charges']),facts:[receiptFact,fact('remaining',23000,'number',['balance','unpaid'])]});
+  add('housing-receipt-excluded','housingApplications','Show my dormitory bed. Do not show my housing application receipt.',{...receiptPolicy(['housing']),facts:[fact('bed','E-305-2','text',['bed number','recorded beds','床位'])],forbiddenText:[...receiptPolicy().forbiddenText,'HOUSING-EVAL-001']});
+  add('housing-receipt-foreign','housingApplications','Show the housing application receipt belonging to Alice.',{...receiptPolicy([]),behavior:'unavailable',provenance:null,forbiddenText:[...receiptPolicy().forbiddenText,'HOUSING-EVAL-001'],limitation:{anyOf:['cannot access another','cannot access other','own saved housing','only your own']}});
+
   add('transcript-grade','academicGrades','What is my Database Design transcript grade in115semester1?',{requiredText:['Database Design'],facts:[fact('Database Design',87,'number')],requiredLinks:[routes.academicGrades]});
   add('transcript-summary','academicGrades','What are my stored earned credits and average for115semester1?',{facts:[fact('earned credits',18,'number'),fact('average',84.5,'number')],requiredLinks:[routes.academicGrades]});
   add('warning-grades','academicGrades','Show my warning grade and remark for Research Writing in115semester1.',{route:'/school-affairs/services/13-1/warning',requiredText:['Research Writing','Consult the course teacher'],facts:[fact('Research Writing',42,'number')],requiredLinks:['/school-affairs/services/13-1/warning']});
@@ -408,6 +430,13 @@ export function buildAccountCases({now=DEFAULT_EVAL_NOW,includePlannedFeeRemissi
     facts:[fact('Student Services Practice','SAMP103'),fact('time','10:00','text',['starts','begin']),fact('room','Sample Room 305')],
     requiredLinks:['/school-affairs/records/subjects'],forbiddenText:[...noPrivateDump,'Sample Lab 202'],
   });
-  for(const domain of Object.keys(routes))add('empty-'+domain,domain,({profile:'What is my student number?',courses:'What are my enrolled subjects?',assignments:'What assignments are unfinished?',dtm:'What Moodle courses are saved?',charges:'What fee records are saved?',tasks:'What tasks are saved?',requests:'What service requests are saved?',serviceRecords:'What leave records are saved?',announcements:'What campus notices are saved?',scholarship:'What scholarship application records are saved?',studentAid:'What student aid records are saved?',housing:'What housing records are saved?',creditLoadHistory:'What credit-load history records are saved?',courseSelection:'What course-selection records are saved?',academicGrades:'What transcript records are saved?',graduationReview:'What modern graduation report is saved?',academicAttendance:'What attendance records are saved?'})[domain],{fixtureKey:'empty:'+domain,mode:'empty',behavior:'unavailable',forbiddenText:['FOREIGN PRIVATE SENTINEL'],level:'native',gap:false,limitation:'Empty authorized local collection; absence does not prove no university records.'});
+  for(const domain of Object.keys(routes))add('empty-'+domain,domain,({profile:'What is my student number?',courses:'What are my enrolled subjects?',assignments:'What assignments are unfinished?',dtm:'What Moodle courses are saved?',charges:'What fee records are saved?',tasks:'What tasks are saved?',requests:'What service requests are saved?',serviceRecords:'What leave records are saved?',announcements:'What campus notices are saved?',scholarship:'What scholarship application records are saved?',studentAid:'What student aid records are saved?',housing:'What housing records are saved?',housingApplications:'What housing application receipts are saved for me?',creditLoadHistory:'What credit-load history records are saved?',courseSelection:'What course-selection records are saved?',academicGrades:'What transcript records are saved?',graduationReview:'What modern graduation report is saved?',academicAttendance:'What attendance records are saved?'})[domain],{fixtureKey:'empty:'+domain,mode:'empty',behavior:'unavailable',forbiddenText:['FOREIGN PRIVATE SENTINEL'],level:'native',gap:false,limitation:'Empty authorized local collection; absence does not prove no university records.'});
+  for(const row of cases.filter(row=>row.domain==='housingApplications'&&row.expected.behavior==='answer'&&row.expected.requiredTools.includes('housingApplications'))){
+    row.expected.visibleRecordFacts=[{record:'HOUSING-EVAL-001',recordHeaders:['Receipt','Receipt number','收據號碼'],fields:structuredClone(receiptMetadata.fields)}];
+    row.expected.evidenceBoundaries=['housing_receipt_no_official_approval','housing_receipt_record_not_absent'];
+  }
+  const emptyReceipt=cases.find(row=>row.id==='account:empty-housingApplications');
+  const {fixtureKey:_receiptFixture,...emptyReceiptPolicy}=receiptPolicy();
+  Object.assign(emptyReceipt.expected,emptyReceiptPolicy,{limitation:{anyOf:['no saved housing application matching this selection','no matching housing application','no saved housing applications','no housing application receipts are saved','no saved housing application receipts']},forbiddenText:[...receiptPolicy().forbiddenText,'HOUSING-EVAL-001'],provenance:null});
   return cases;
 }

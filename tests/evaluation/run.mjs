@@ -14,7 +14,7 @@ import {buildAccountCases} from './account-cases.mjs';
 import {buildPlannedFeeRemissionCases} from './fee-remission-cases.mjs';
 import {feeRemissionLivePlanManifest,feeRemissionLiveFamilyForCase} from './fee-remission-live-plan.mjs';
 import {fixtureForCase} from './fixtures.mjs';
-import {gradeCase} from './grading.mjs';
+import {teachingFeedbackRunnerCases,teachingFeedbackCaseAdmission,assertTeachingFeedbackCaseReady,gradeEvaluationCase,teachingFeedbackSetupSummary} from './teaching-feedback-runner.mjs';
 import {assessCoverage} from './coverage.mjs';
 import {buildGuidanceReviewBinding,validateGuidanceReview} from './guidance-rubric.mjs';
 import {createPinnedDeploymentVerifier} from './pinned-deployment.mjs';
@@ -102,7 +102,7 @@ export async function evaluationSuite(now,{caseFamily}={}){
   if(caseFamily!==undefined&&caseFamily!=='fee-remission')throw new Error('Unknown case family.');
   const [graphInventory,clientDispatch]=await Promise.all([discoverSurfaces(),discoverClientDispatchSurfaces()]);
   const inventory={...graphInventory,clientDispatch,hash:hash({graph:graphInventory.hash,clientDispatch})};
-  const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases():[...buildServiceCases(),...buildAccountCases({now}),...buildPublicCases(inventory)];
+  const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases():[...buildServiceCases(),...buildAccountCases({now}),...teachingFeedbackRunnerCases(),...buildPublicCases(inventory)];
   if(caseFamily==='fee-remission')validateFeeRemissionRunnerCases(cases);
   const ids=new Set();
   for(const item of cases){if(!item.id||ids.has(item.id))throw new Error('Duplicate or missing case ID: '+item.id);ids.add(item.id);}
@@ -182,6 +182,7 @@ export function validateCatalogCaseBinding(templates,result){
 /** Missing public fixtures remain setup failures, even if an adapter would
  * otherwise return a token. Never spend a model request on an unbound oracle. */
 export function assertCatalogCaseBound(testCase,report){
+  assertTeachingFeedbackCaseReady(testCase);
   if(['native_health_metadata_planned','native_counseling_appointments_planned','native_clearance_applications_planned','native_tutor_evaluation_planned'].includes(testCase.fixtureRequirement))
     throw new Error('The isolated native fixture adapter is not mounted; this case remains an unexecuted setup failure.');
   if(testCase.fixtureRequirement==='offline_reader_failure')throw new Error('This deliberately unavailable reader case has no live failure-injection fixture; it remains an unexecuted setup failure.');
@@ -266,6 +267,11 @@ export function gradeRetrievalCase(testCase,evidence,metadata={}){
 export function assessRun(report,{cases,inventory,requestedSuite,sourceRevision,browserAcceptance}){
   const assessment=assessCoverage({cases,results:report.results,inventory,requestedSuite,sourceRevision,browserAcceptance,requireLive:true});
   const integrity=[];
+  const teachingSetup=teachingFeedbackSetupSummary(cases);
+  if(teachingSetup.registered){
+    assessment.teachingFeedbackSetup=teachingSetup;
+    integrity.push({id:'run.teachingFixtureUnbound',detail:'Registered teaching cases still require isolated fixtures and independent request-bound read observations; offline declarations cannot establish live acceptance.'});
+  }
   if(inventory.clientDispatch?.questions.length){
     const missing=inventory.clientDispatch.questions.map(item=>item.id);
     assessment.clientDispatch={total:missing.length,executed:0,passed:0,missing};
@@ -336,7 +342,7 @@ export function applyGuidanceReviews(report,suite,reviewFile,{reviewer,sourceRev
     const binding=buildGuidanceReviewBinding({runId:report.runId,finalSuiteHash:report.suiteHash,sourceRevision,testCase,envelope:row.response});
     if(!row.guidanceReviewBinding||!isDeepStrictEqual(row.guidanceReviewBinding,binding))throw new Error('The saved response differs from its original review binding.');
     const artifact=artifacts.get(row.caseId),independentReview=validateGuidanceReview({testCase,envelope:row.response,binding,artifact});
-    const grade=gradeCase(testCase,row.response,{independentReview});
+    const grade=gradeEvaluationCase(testCase,row.response,{independentReview});
     return {...structuredClone(row),...grade,guidanceReviewBinding:binding,independentReview,independentReviewArtifact:artifact?structuredClone(artifact):null,
       failureKind:row.response.failureKind||(grade.passed?null:'behavior')};
   });
@@ -387,6 +393,9 @@ export async function main(args=process.argv.slice(2),dependencies={}){
   if(feeOnly){validateFeeRemissionRunnerCases(suite.cases);if(suite.suiteHash!==hash(suite.cases))throw new Error('Fee remission suite hash does not match its frozen cases.');}
   let selected=suite.cases.filter(row=>(!opt.only||row.id.startsWith(opt.only))&&(!opt.domain||row.domain===opt.domain)).slice(0,opt.maxCases);
   if(!selected.length)throw new Error('No cases match.');
+  // Do not pass an unmounted teaching case into the legacy adapter: prepare
+  // may initialize accounts and seed unrelated data before forCase is called.
+  const fixtureCases=selected.filter(row=>!teachingFeedbackCaseAdmission(row));
   const out=resolve(root,opt.out||`artifacts/assistant-evaluation/${opt.mode}-${runId}.json`);
   if(relative(resolve(root,'artifacts/assistant-evaluation'),out).startsWith('..')||!out.endsWith('.json'))throw new Error('Reports must be JSON under artifacts/assistant-evaluation.');
   let browserAcceptance;
@@ -400,6 +409,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
     pacing:{minimumRequestStartIntervalMs:opt.intervalMs,automaticRequestRetries:0},
     browserEvidence:browserAcceptance?{sha256:hash(browserAcceptance),sourceRevision:browserAcceptance.sourceRevision}:null,
     selectedCases:selected.map(row=>row.id),totalCases:suite.cases.length,inventory:suite.inventory,results:[],cleanup:{required:opt.mode==='live',complete:opt.mode!=='live'}};
+  if(selected.some(row=>teachingFeedbackCaseAdmission(row)))report.teachingFeedbackSetup=teachingFeedbackSetupSummary(selected);
   if(opt.mode==='inventory'){
     report.cases=suite.cases;report.assessment=assessRun({...report,sourceUnchanged:true},{cases:suite.cases,inventory:suite.inventory,sourceRevision:identity.sourceRevision,requestedSuite:feeOnly?'subset':'full'});
     await persist(out,report);log(JSON.stringify({mode:opt.mode,cases:suite.cases.length,services:suite.inventory.services.length,tools:suite.inventory.tools.length,publicPages:suite.inventory.publicPages.length,report:relative(root,out),releaseReady:false}));return report;
@@ -418,12 +428,12 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       report.bindingPending=selected.some(row=>row.fixtureRequirement==='published_catalog_binding');
       if(report.bindingPending){report.templateSuiteHash=report.suiteHash;report.suiteHash=null;}
       await persist(out,report);
-      if(opt.fixtureModule){
+      if(opt.fixtureModule&&fixtureCases.length){
         const modulePath=resolve(root,opt.fixtureModule);
         if(relative(resolve(root,'tests/evaluation'),modulePath).startsWith('..'))throw new Error('Fixture adapters must be repository evaluation modules.');
         adapter=await loadAdapter(modulePath);
         validateFixtureAdapter(adapter,{fixtureMode});
-        await adapter.prepare({runId,cases:feeOnly?structuredClone(selected):selected,now:opt.now,origin:opt.origin,signal:controller.signal,
+        await adapter.prepare({runId,cases:feeOnly?structuredClone(fixtureCases):fixtureCases,now:opt.now,origin:opt.origin,signal:controller.signal,
           approvedPreviewOrigin:opt.approvedPreviewOrigin,expectedReleaseRevision:identity.sourceRevision,...(feeOnly?{fixtureMode,caseFamily:opt.caseFamily}:{})});
         if(report.bindingPending&&typeof adapter.bindCatalogCases==='function'){
           const bound=validateCatalogCaseBinding(selected,await adapter.bindCatalogCases(structuredClone(selected),{signal:controller.signal}));
@@ -435,7 +445,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           // assistant call. Missing bindings retain their original case IDs.
           await persist(out,report);
         }
-      }else if(selected.some(row=>row.fixtureKey!=='anonymous'))throw new Error('Signed-in live cases require an explicit disposable fixture adapter; no real account is inferred.');
+      }else if(fixtureCases.some(row=>row.fixtureKey!=='anonymous'))throw new Error('Signed-in live cases require an explicit disposable fixture adapter; no real account is inferred.');
     }
     const modules=opt.mode==='draft'||opt.mode==='retrieval'?await Promise.all([import('../../server/affairsAnswer.js'),import('../../server/answerVerificationAccount.js'),import('../../server/schoolAffairsDirectory.js')]):null;
     for(const testCase of selected){
@@ -443,6 +453,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       if(controller.signal.aborted)break;
       const started=Date.now();let envelope,fixtureReady=false,executed=false,phase='setup',pacingWaitMs=0,requestTicket;
       try{
+        assertTeachingFeedbackCaseReady(testCase);
         if(opt.mode==='live'){
           assertCatalogCaseBound(testCase,report);
           if(feeOnly||testCase.fixtureKey!=='anonymous'){
@@ -513,7 +524,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       envelope.executed=executed;
       const guidanceReviewBinding=testCase.expected.guidanceRubric&&/^[a-f0-9]{40}$/.test(envelope.sourceRevision||'')&&/^[a-f0-9]{64}$/.test(report.suiteHash||'')?buildGuidanceReviewBinding({runId:report.runId,finalSuiteHash:report.suiteHash,sourceRevision:envelope.sourceRevision,testCase,envelope}):null;
       const independentReview=guidanceReviewBinding?validateGuidanceReview({testCase,envelope,binding:guidanceReviewBinding,artifact:undefined}):undefined;
-      const result=gradeCase(testCase,envelope,{independentReview});
+      const result=gradeEvaluationCase(testCase,envelope,{independentReview});
       for(const [flag,id] of [['deploymentIntegrityFailed','run.deploymentDrift'],['fixtureIntegrityFailed','run.fixtureReadbackFailed']])if(envelope[flag]){
         const check={id,passed:false,detail:'The original response is retained but its execution integrity was not verified.'};
         result.passed=false;result.checks.push(check);result.failures.push(check);

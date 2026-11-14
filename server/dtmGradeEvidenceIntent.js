@@ -83,3 +83,34 @@ export function mentionsDtmSubmissionDetail(question,history=[]){
   return submissionDetail.test(current)
     ||dtmGradeFollowup.test(current)&&submissionDetail.test(previousDtmGradeQuestion(history));
 }
+
+/** A deliberately bounded fast path. This only decides whether the base
+ * snapshot can be omitted; the native reader still validates course ownership
+ * and every display cell. Unrecognized or compound clauses keep normal planning.
+ */
+export function isNativeDtmGradeOnlyQuestion(question,route='',history=[]){
+  const current=text(question);
+  if(!shouldReadNativeDtmGrades(current,route,history)||needsSeparateDtmTracker(current,route,history)
+    ||dtmGradeOtherDomain.test(current))return false;
+  const parts=current.split(/[;；。!?！？\n]|\.(?:\s+|$)/u).map(part=>part.trim()).filter(Boolean);
+  if(!parts.length)return false;
+  return parts.every(part=>{
+    // A literal course/item qualifier may name saved rows, but cannot conceal
+    // an independent request after a conjunction or sentence boundary.
+    const qualifier=/\s+(?:for|in)\s+(.+)$/iu.exec(part);
+    let fields=part;
+    if(qualifier){
+      if(/\b(?:and|also|plus|then|but|except|without|with|including|show|list|read|check|tell|what|which)\b|[,，:：/;；。!?！？\n]/iu.test(qualifier[1]))return false;
+      fields=part.slice(0,qualifier.index);
+    }
+    // Every coordinated field clause must itself describe report data. A
+    // separate "and my courses" request cannot inherit the first grade noun.
+    if(!fields.split(/\s+(?:and|also)\s+/iu).every(field=>/\b(?:grades?|marks?|feedback|weights?|percentages?|ranks?|totals?|report|overview)\b/iu.test(field)))return false;
+    const allowed=new Set(('show list read check tell me what which how many is are was were does did do i my mine the a an this that its these those there '+
+      'all every each of and also please native local saved recorded literal displayed moodle dtm course courses '+
+      'grade grades mark marks gradebook feedback weight weights percentage percentages rank ranks total totals '+
+      'report reports overview item items assessment assessments text cell cells score maximum range contribution '+
+      'get receive received earned save have has say says').split(' '));
+    return fields.toLowerCase().replace(/[-,:]/gu,' ').split(/\s+/u).every(word=>allowed.has(word));
+  });
+}

@@ -322,3 +322,7 @@ A broad snapshot could miss an accommodation assignment question or read unrelat
 ### Reported transcript [Issue #100]
 
 The four-turn conversation requires independent factual grading and two helpfulness reviews after collection. Successful transport, storage and cleanup are recorded separately. The retained journal and reconstructed digests bind the answer, visible cards and activity to the reported turn. A synthetic run cannot earn live acceptance.
+
+### Housing receipt and native DTM scope [Issue #100]
+
+The housing application receipt and bed readers can both contribute evidence in a single request. Direct native DTM grade questions use their own roster/report transport. A combined receipt and grade overview request needs neither the broad snapshot nor the planner. The shared budget keeps whole housing rows and records where the result is partial. A failed retrieval cannot establish empty records.
