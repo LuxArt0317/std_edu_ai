@@ -4,7 +4,7 @@
 
 - [x] Inspect the university club index, calendar, request list, form and officer-menu destinations.
 - [x] Implement distinct local routes backed by published activity and account-owned borrowing records.
-- [ ] Verify local and deployed data boundaries, request lifecycle and navigation.
+- [x] Verify local and deployed data boundaries, request lifecycle and navigation.
 - [ ] Implement the remaining officer application, club management and report screens.
 
 ## Student aid payment inquiries [Issue #98]

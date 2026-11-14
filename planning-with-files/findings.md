@@ -299,3 +299,7 @@ The pages read locally maintained records. Official payroll, bank transfers and 
 ## Student health examination inquiry [Issue #98]
 
 The university health card still opens its separate sign-in. The clinical report view was unavailable for comparison. The local register starts empty and no university health data was imported. Assistant answers show the route and contact extension only.
+
+## Club activities and equipment borrowing [Issue #98]
+
+The calendar and inventory start empty until an operator provisions records. No university student or club records were imported. Officer applications, club management and report screens still open university destinations.

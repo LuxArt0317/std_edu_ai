@@ -13,3 +13,7 @@ The student-facing pages follow the university's [club index](https://infosys.st
 - `node tests/integration/club-services-db.mjs --deployed` checks eligibility, publication, overlapping reservations, record ownership, admin review and rollback.
 - `node tests/integration/club-services-http.mjs` checks authenticated reads/writes and cleanup with disposable accounts. Set `EXPECTED_RELEASE_REVISION` to exercise the deployed API.
 - `node tests/integration/club-services-ui.mjs` checks the signed-in UI using synthetic browser fixtures. Set `PUBLIC_SITE_ORIGIN=https://stu.best` with the expected revision to pin production.
+
+## Release evidence
+
+Production `502cf1d` is live as Vercel `3cpEDyT3qRETcoiKgz5wJWW7KbZu`. Migration 20261115070000 brings the client to 166 migrations and 204 RLS-protected public tables. The 40-1 index opens the calendar and separate equipment history and application routes. The database enforces membership, closure dates, inventory conflicts, ownership, retry safety and staff review. Actual-JWT workflow and cleanup, rollback SQL, pinned browser, guest assistant, deployment shell, client verification and Quality 43569869233 passed. All 94 catalog destinations navigated in local QA, with 26 generic and 28 partial.
