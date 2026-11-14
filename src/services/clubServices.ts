@@ -1,3 +1,4 @@
+import { clubOfficerScope, validClubApplicationReceipt, validClubOfficerWorkspace, type OfficerAction, type OfficerView } from '../../server/clubOfficerContract.js';
 import { affairsClient } from '@/features/public/affairs/authClient';
 import { clubScope, validClubReceipt, validClubWorkspace, type ClubAction, type ClubView } from '../../server/clubServicesContract.js';
 
@@ -8,7 +9,7 @@ async function token(userId:string, signal:AbortSignal) {
   if (result?.error || result?.data.session?.user.id!==userId) throw new Error('請重新登入校務系統。');
   return result.data.session.access_token;
 }
-async function request(userId:string,url:string,cancel:AbortSignal,action?:ClubAction) {
+async function request(userId:string,url:string,cancel:AbortSignal,action?:ClubAction|OfficerAction) {
   const signal=AbortSignal.any([cancel,AbortSignal.timeout(18000)]);
   const auth=await token(userId,signal);
   const response=await fetch(url,{
@@ -40,4 +41,22 @@ export async function writeClubEquipment(userId:string,action:ClubAction,signal:
     action.kind==='review_club_equipment'?action.payload.status:'submitted';
   if(receipt.status!==expected)throw new Error('無法確認借用紀錄。請重新整理。');
   return receipt;
+}
+
+export async function loadClubOfficer(userId:string,view:OfficerView,signal:AbortSignal,club?:string) {
+  const params=new URLSearchParams({scope:clubOfficerScope,view});
+  if(club)params.set('club',club);
+  const value=await request(userId,'/api/affairs-data?'+params,signal);
+  if(!validClubOfficerWorkspace(value,userId,view))throw new Error('無法確認社團活動資料。');
+  return value;
+}
+export async function writeClubOfficer(userId:string,action:OfficerAction,signal:AbortSignal) {
+  const result=await request(userId,action.kind==='review_club_application'?'/api/affairs-manage':'/api/affairs-action',signal,action);
+  if(!validClubApplicationReceipt(result))throw new Error('無法確認社團活動申請結果。請重試。');
+  if(action.kind!=='submit_club_application'&&(action.payload.id!==result.id||action.payload.expected_version+1!==result.version))
+    throw new Error('申請已變更，請重新整理。');
+  const expected=action.kind==='withdraw_club_application'?'withdrawn':action.kind==='complete_club_application'?'completed':
+    action.kind==='review_club_application'?action.payload.status:'submitted';
+  if(result.status!==expected)throw new Error('無法確認申請狀態。');
+  return result;
 }

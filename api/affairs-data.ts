@@ -1,4 +1,5 @@
-import { readClubServices } from '../server/clubServices.js';
+import { clubOfficerScope } from '../server/clubOfficerContract.js';
+import { readClubOfficer, readClubServices } from '../server/clubServices.js';
 import { clubScope } from '../server/clubServicesContract.js';
 import { authorizeHealthReport, readHealthExaminations } from '../server/healthExaminations.js';
 import { healthExaminationScope } from '../server/healthExaminationContract.js';
@@ -61,6 +62,12 @@ const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:val
 export const config={maxDuration:60};
 export default async function handler(request:Request,response:Response) {
   const scopes=Array.isArray(request.query?.scope)?request.query.scope:[request.query?.scope];
+  if (scopes.includes(clubOfficerScope) &&
+      (scopes.length!==1 || Object.keys(request.query ?? {}).some(key=>!['scope','view','club'].includes(key)))) {
+    response.setHeader('Cache-Control','no-store, max-age=0');
+    response.status(400).json({error:'Invalid club officer query.'});
+    return;
+  }
   if (scopes.includes(clubScope) &&
       (scopes.length!==1 || Object.keys(request.query ?? {}).some(key=>!['scope','view','month'].includes(key)))) {
     response.setHeader('Cache-Control','no-store, max-age=0');
@@ -94,6 +101,11 @@ export default async function handler(request:Request,response:Response) {
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
     const scope=request.query?.scope;
     if(Array.isArray(scope)){response.status(400).json({error:'Choose one records scope.'});return;}
+    if (scope === clubOfficerScope) {
+      const result=await readClubOfficer({...account,requestDeadline},request.query??{});
+      response.status(200).json(result);
+      return;
+    }
     if (scope === clubScope) {
       const result=await readClubServices({...account,requestDeadline},request.query??{});
       response.status(200).json(result);

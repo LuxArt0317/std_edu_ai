@@ -1,0 +1,27 @@
+.club-officer-table table { min-width:1040px; }
+.club-officer-form { display:grid; grid-template-columns:minmax(110px,210px) minmax(0,1fr); align-items:start; gap:15px 20px; }
+.club-officer-form > :is(label,span), .club-officer-fields > :is(label,span) { text-align:right; padding-top:5px; font-weight:700; }
+.club-officer-fields { display:contents; }
+.club-officer-form :is(input:not([type=checkbox],[type=radio]),select), .club-roster-search select {
+  width:min(530px,100%); min-width:0; min-height:30px; padding:3px 7px; color:#292929; background:#fff; border:1px solid #bfc4c8; border-radius:0;
+}
+.club-officer-form > select { width:min(270px,100%); }
+.club-officer-form input.club-short-field { width:min(168px,100%); }
+.club-officer-pair,.club-officer-choices,.club-roster-search { display:flex; flex-wrap:wrap; align-items:center; gap:7px 14px; }
+.club-officer-pair :is(input,label) { max-width:235px; }
+.club-officer-pair label { display:flex; align-items:center; gap:6px; white-space:nowrap; }
+.club-officer-pair label input { flex:1 1 168px; }
+.club-officer-choices > label { display:inline-flex; align-items:center; gap:4px; padding-block:4px; }
+.club-officer-choices input:not([type=checkbox],[type=radio]) { width:min(180px,100%); }
+.club-officer-choices:has(input[name=education_other]) label:has(input[name=education_other]) { white-space:nowrap; }
+.club-officer-form input[type=datetime-local].club-short-field { width:min(190px,100%); }
+.club-roster-search { margin-bottom:14px; }
+.club-roster-search select { width:min(280px,100%); }
+.club-officer-details { display:grid; grid-template-columns:auto 1fr; gap:6px 12px; }
+.club-officer-details dt { font-weight:600; }
+.club-officer-details dd { margin:0; overflow-wrap:anywhere; }
+.club-review-form textarea { min-height:80px; width:100%; border:1px solid #bfc4c8; }
+@media(max-width:650px) {
+  .club-officer-form { grid-template-columns:minmax(75px,1fr) minmax(0,3fr); gap:10px; }
+  .club-officer-pair label { flex-wrap:wrap; white-space:normal; }
+}

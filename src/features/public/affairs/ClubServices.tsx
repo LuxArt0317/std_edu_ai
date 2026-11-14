@@ -1,3 +1,5 @@
+import { ClubOfficer,clubOfficerHeading } from './ClubOfficer';
+import { clubOfficerMenu } from '../../../../server/clubOfficerContract.js';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
@@ -18,13 +20,9 @@ const administration = [
   ['器材借用單審核','/ToolBorrowByAdm/Index'],['器材類別維護','/ToolType/Index'],['器材項目維護','/ToolItem/Index'],
   ['器材借用統計報表','/ToolBorrowStatic/Index'],['器材借用查詢','/ToolBorrowHistory/Index'],
 ] as const;
-const officerLinks = [
-  ['2-1活動申請','/CorpActivity/Index'],['2-2社團基本資料','/CorpCorp/Index'],['2-3成果結案','/CorpActivity/IndexB'],
-  ['2-4學生參與社團記錄','/CorpMember/Index'],['2-5學生參與活動記錄','/CorpRoll/Index'],
-] as const;
 const reportLink = original+'/Doc/'+encodeURIComponent('線上借用器材教學.pdf');
 type View = ''|'activities'|'equipment'|'equipment/new'|'equipment/review';
-const headings:Record<View,[string,string?]> = {
+const headings:Record<string,[string,string?]> = {
   '':['Index','學生校園活動管理系統 Index'], activities:['學生社團活動清單'],
   equipment:['課指組器材借用記錄清單','器材借用記錄首頁'],
   'equipment/new':['課外組器材借用記錄清單','器材借用記錄新增'],
@@ -35,14 +33,17 @@ const activityTime = new Intl.DateTimeFormat('zh-TW',{timeZone:'Asia/Taipei',dat
 const dayMs = 24*60*60*1000;
 const weekdays = ['日','一','二','三','四','五','六'];
 
-export function ClubServices({userId,view}:{userId:string;view:View}) {
+export function ClubServices({userId,view}:{userId:string;view:string}) {
   const [params]=useSearchParams();
   const editId=params.get('edit')??undefined;
   const currentMonth=taipeiDate.format(new Date()).slice(0,7);
   const raw=params.get('month') ?? '';
   const month=clubMonth.test(raw)?raw:currentMonth;
   const queryView=view==='activities'?'activities':view==='equipment/review'?'review':'equipment';
-  const title=view==='activities'?'社團活動系統':'器材借用';
+  const officer=clubOfficerHeading(view);
+  const heading=officer??headings[view];
+  if(!heading)return null;
+  const title=officer?.[0]??(view==='activities'?'社團活動系統':'器材借用');
   return <div className="student-internship student-clubs" lang="zh-Hant">
     <div className="club-shell">
       <header className="internship-brand">
@@ -62,7 +63,7 @@ export function ClubServices({userId,view}:{userId:string;view:View}) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild><Button variant="ghost">社團幹部 <span aria-hidden="true">⌄</span></Button></DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {officerLinks.map(([label,path])=><DropdownMenuItem asChild key={path}><a href={original+path}>{label}</a></DropdownMenuItem>)}
+            {clubOfficerMenu.map(([path,label])=><DropdownMenuItem asChild key={path}><Link to={clubPath+'/'+path}>{label}</Link></DropdownMenuItem>)}
             <DropdownMenuItem asChild><Link to={clubPath+'/equipment'}>2-A器材借用</Link></DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -76,14 +77,14 @@ export function ClubServices({userId,view}:{userId:string;view:View}) {
       </nav>
       <nav className="internship-breadcrumb" aria-label="頁面位置">
         <i className="portal-icon" aria-hidden="true">{'\uf015'}</i><Link to={clubPath}>Index</Link>
-        {view&&<><span aria-hidden="true">›</span><Link to={clubPath+'/'+queryView.replace('review','equipment/review')}>{title}</Link></>}
+        {view&&<><span aria-hidden="true">›</span><Link to={clubPath+'/'+(officer?view:queryView.replace('review','equipment/review'))}>{title}</Link></>}
       </nav>
       <main className="internship-content">
         <h1><i className="portal-icon" aria-hidden="true">{view==='equipment/new'?'\uf044':'\uf19c'}</i>
-          {headings[view][0]} {headings[view][1]&&<small>» {headings[view][1]}</small>}
+          {heading[0]} {heading[1]&&<small>» {heading[1]}</small>}
         </h1>
-        {!view?<ClubIndex/>:<ClubRecords key={userId+':'+view+':'+(view==='activities'?month:editId??'')}
-          userId={userId} view={view} editId={editId} queryView={queryView} month={month} currentMonth={currentMonth}/>}
+        {!view?<ClubIndex/>:officer?<ClubOfficer userId={userId} path={view}/>:<ClubRecords key={userId+':'+view+':'+(view==='activities'?month:editId??'')}
+          userId={userId} view={view as Exclude<View,''>} editId={editId} queryView={queryView} month={month} currentMonth={currentMonth}/>}
       </main>
       <footer><Link to="/school-affairs">校務資訊系統</Link></footer>
     </div>
@@ -99,7 +100,7 @@ function ClubIndex() {
     <section className="internship-block"><h3>管理者</h3>
       <ul>{administration.map(([label,path],index)=><li key={path}>{index===0
         ? <Link to={clubPath+'/equipment/review'}>{label}</Link>
-        : <a href={original+path}>{label}</a>}</li>)}</ul>
+        : <a href={original+path}>{label}</a>}</li>)}<li><Link to={clubPath+'/officer/review'}>活動申請審核</Link></li></ul>
     </section>
     <section className="internship-block"><h3>備註</h3></section>
   </>;

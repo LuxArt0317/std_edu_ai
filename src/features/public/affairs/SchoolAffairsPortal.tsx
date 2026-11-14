@@ -1,3 +1,4 @@
+import { clubOfficerHeading } from './ClubOfficer';
 import { ClubServices } from "./ClubServices";
 import { clubPath } from "../../../../server/clubServicesContract.js";
 import {elearningPath,elearningServicePath} from '../../../../server/elearningContract.js';
@@ -506,7 +507,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   if (normalizedPath === elearningServicePath) return <Navigate replace to={elearningPath} />;
   if (normalizedPath === clubPath || normalizedPath.startsWith(clubPath + "/")) {
     const view=route.slice(2).join("/");
-    if (view==="" || view==="activities" || view==="equipment" || view==="equipment/new" || view==="equipment/review")
+    if (view==="" || view==="activities" || view==="equipment" || view==="equipment/new" || view==="equipment/review" || clubOfficerHeading(view))
       return <ClubServices key={user.id} userId={user.id} view={view} />;
   }
   if (normalizedPath === healthExaminationPath) return <HealthExaminations userId={user.id} />;

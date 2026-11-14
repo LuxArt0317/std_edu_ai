@@ -17,3 +17,13 @@ The student-facing pages follow the university's [club index](https://infosys.st
 ## Release evidence
 
 Production `502cf1d` is live as Vercel `3cpEDyT3qRETcoiKgz5wJWW7KbZu`. Migration 20261115070000 brings the client to 166 migrations and 204 RLS-protected public tables. The 40-1 index opens the calendar and separate equipment history and application routes. The database enforces membership, closure dates, inventory conflicts, ownership, retry safety and staff review. Actual-JWT workflow and cleanup, rollback SQL, pinned browser, guest assistant, deployment shell, client verification and Quality 43569869233 passed. All 94 catalog destinations navigated in local QA, with 26 generic and 28 partial.
+
+## Club officer services
+
+Under **社團幹部**, activity applications, club profiles, activity completion, membership and attendance have their own routes. The application form captures the verified date, location, organizer, contact and classification fields. An approved School Affairs manager publishes the activity to the calendar during review. The submitting officer can revise or withdraw a pending request and record completion after the activity ends.
+
+An operator grants officer access by marking an existing `affairs_club_memberships` row as `officer` for the correct club and user. Club profiles and rosters show only records in clubs the current officer manages. Provision contact fields only where the student has approved their use. Attendance list records can be provisioned by an operator in `affairs_club_attendance` against approved or completed applications. Academic period columns display values when provided. The source session showed attachment columns and empty lists. Proposal/closeout uploads, profile editing, attendance import and member management remain unverified or unimplemented. The source maintenance roles still need an authorized source view.
+
+- `node tests/integration/club-officer-db.mjs --deployed` checks database permissions, application edits, approval and publication, completion and rollback.
+- `node tests/integration/club-officer-http.mjs` verifies the API using disposable authenticated officers. Set `EXPECTED_RELEASE_REVISION` for production.
+- `node tests/integration/club-officer-ui.mjs` checks the rendered officer menu, form and roster using test fixtures.

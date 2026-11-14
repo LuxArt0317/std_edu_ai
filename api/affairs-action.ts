@@ -1,4 +1,5 @@
-import { changeClubEquipment } from '../server/clubServices.js';
+import { clubOfficerActions } from '../server/clubOfficerContract.js';
+import { changeClubEquipment,changeClubOfficer } from '../server/clubServices.js';
 import {enrollElearning} from '../server/elearning.js';
 import {joinElearningCourse} from '../server/elearningContract.js';
 import {changeCounseling} from '../server/counseling.js';
@@ -54,11 +55,12 @@ export default async function handler(request:Request,response:Response) {
   const repair=input?.kind==='submit_facility_repair'||input?.kind==='cancel_facility_repair';
   const confirmProfile=input?.kind==='confirm_student_profile';
   const enroll=input?.kind===joinElearningCourse;
+  const clubOfficer=typeof input?.kind==='string'&&input.kind!=='review_club_application'&&Object.hasOwn(clubOfficerActions,input.kind);
   const clubEquipment=input?.kind==='submit_club_equipment'||input?.kind==='edit_club_equipment'||input?.kind==='cancel_club_equipment';
   const counseling=typeof input?.kind==='string'&&input.kind.startsWith('counseling_');
   const certificateAward=typeof input?.kind==='string'&&input.kind.startsWith('certificate_award_');
   const saveEmail=input?.kind===announcementEmailAction;
-  const dedicatedPayloadLimit = enroll ? 200 : clubEquipment ? 3000 : counseling ? 2000 : certificateAward ? 9000 : saveEmail || confirmProfile ? 1024 : repair ? 7000 : venue ? 3600 : clearance ? 1024 : teachingFeedback ? teachingFeedbackMaxBytes : earlyGraduation ? 2400 : transfer ? 36000 : programRegistration || withdrawal ? 1024 : tutorEvaluation ? tutorEvaluationMaxBytes : grantKind ? exchangeGrantMaxPayloadBytes : dashboardKind ? dtmDashboardLayoutMaxPayloadBytes : undefined;
+  const dedicatedPayloadLimit = clubOfficer ? 11000 : enroll ? 200 : clubEquipment ? 3000 : counseling ? 2000 : certificateAward ? 9000 : saveEmail || confirmProfile ? 1024 : repair ? 7000 : venue ? 3600 : clearance ? 1024 : teachingFeedback ? teachingFeedbackMaxBytes : earlyGraduation ? 2400 : transfer ? 36000 : programRegistration || withdrawal ? 1024 : tutorEvaluation ? tutorEvaluationMaxBytes : grantKind ? exchangeGrantMaxPayloadBytes : dashboardKind ? dtmDashboardLayoutMaxPayloadBytes : undefined;
   if(!input || typeof input.kind!=='string' || !input.payload || typeof input.payload!=='object'
     || Array.isArray(input.payload) || (dedicatedPayloadLimit?Buffer.byteLength(JSON.stringify(input),'utf8')>dedicatedPayloadLimit+1024:submissionAction?Buffer.byteLength(JSON.stringify(input),'utf8')>14000:JSON.stringify(input).length>(input.kind==='import_dtm_deadlines'?50000:4000))
     || dedicatedPayloadLimit&&(Object.keys(input).length!==2||!Object.hasOwn(input,'kind')||!Object.hasOwn(input,'payload'))){
@@ -68,6 +70,7 @@ export default async function handler(request:Request,response:Response) {
     const authorization=first(request.headers.authorization);
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
     const bounded={...account,requestDeadline:submissionDeadline};
+    if(clubOfficer){response.status(200).json(await changeClubOfficer(bounded,input.kind,input.payload));return;}
     if(clubEquipment){response.status(200).json(await changeClubEquipment(bounded,input.kind,input.payload));return;}
     if(enroll){response.status(200).json(await enrollElearning(bounded,input.payload));return;}
     if(counseling){response.status(200).json(await changeCounseling(bounded,String(input.kind),input.payload));return;}

@@ -1,6 +1,7 @@
 # Changelog
 ## Unreleased
 
+- Add local club officer applications, completion, club profiles, membership and participation records. [#98]
 - Add the student club activity calendar, equipment requests and staff review to School Affairs. [#98]
 - School Affairs now includes a student health examination inquiry with private PDF downloads and an assistant shortcut.
 - Add separate private student aid payment and salary inquiry pages with safe assistant links. [#98]
