@@ -27,3 +27,7 @@ An operator grants officer access by marking an existing `affairs_club_membershi
 - `node tests/integration/club-officer-db.mjs --deployed` checks database permissions, application edits, approval and publication, completion and rollback.
 - `node tests/integration/club-officer-http.mjs` verifies the API using disposable authenticated officers. Set `EXPECTED_RELEASE_REVISION` for production.
 - `node tests/integration/club-officer-ui.mjs` checks the rendered officer menu, form and roster using test fixtures.
+
+## Release evidence
+
+Production `7a5ab57` is live as Vercel `8JWkVsMbphjiX8EQm8Q8Cne1pfdA`. Migration 20261115080000 brings the client to 167 migrations and 206 RLS-protected public tables. Five verified officer destinations have distinct local routes. Officers can submit, edit, withdraw and complete club applications. Manager approval publishes the calendar record. Club profiles, membership and attendance are filtered by officer membership. Actual-JWT workflow and cleanup, rollback SQL, pinned browser, guest assistant, deployment shell, client verification and Quality 43572010483 passed. All 94 catalog destinations navigated in local QA.

@@ -303,3 +303,7 @@ The university health card still opens its separate sign-in. The clinical report
 ## Club activities and equipment borrowing [Issue #98]
 
 The calendar and inventory start empty until an operator provisions records. No university student or club records were imported. Officer applications, club management and report screens still open university destinations.
+
+## Club officer applications and records [Issue #98]
+
+The source exposed empty attachment columns. Proposal and closeout uploads, profile and roster editing, attendance import, equipment inventory maintenance and reports remain open. No university student or club records were imported.
