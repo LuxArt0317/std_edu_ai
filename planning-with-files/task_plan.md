@@ -744,4 +744,4 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 
 - [x] Verify the university inquiry layout and report access boundaries.
 - [x] Implement persistent account-owned examination metadata and private attachment access.
-- [ ] Verify PDF downloads and account isolation through the live API and browser.
+- [x] Verify PDF downloads and account isolation through the live API and browser.

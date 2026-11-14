@@ -14,3 +14,7 @@ An authorized operator provisions each row against a verified Google-linked Scho
 - `node tests/integration/health-examinations-ui.mjs` checks the rendered inquiry with synthetic records, errors, sign-in navigation and file responses.
 - `node tests/integration/health-examinations-http.mjs` exercises Supabase Auth, Storage, and the API with disposable test accounts. With `EXPECTED_RELEASE_REVISION` set, it tests the pinned production endpoint.
 - The reference screen is at [STU Student Health Management](https://info.stu.edu.tw/SAO/PEC/trnFiles/rptStuReportByStu.asp).
+
+## Release evidence
+
+Production `31c20e0` is live as Vercel `CrRgSSF79DVRByQ9PrsBpLYDHQCK`. Migrations 20261115060000 and 20261115061000 bring the client to 165 migrations and 198 RLS-protected public tables. The 36-1 inquiry reads account-owned examination rows and issues a 30-second link for a published PDF. Two-account and guest checks, exact fixture cleanup, rollback SQL, pinned browser, guest assistant, deployment shell, client verification and Quality 43566919743 passed. The navigation test covered all 94 catalog destinations, with 27 generic and 27 partial.

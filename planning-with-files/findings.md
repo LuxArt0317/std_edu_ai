@@ -295,3 +295,7 @@ School Affairs 5-1 returned a source 404. The professional program data (18-1) a
 ## Student aid and health source evidence
 
 The pages read locally maintained records. Official payroll, bank transfers and learning-report submissions were outside the capture. The activity learning-report and remittance destinations returned HTTP 404. The 36-1 health inquiry exposes five columns, instructions and a separate health-card link. Only the layout and public instructions were inspected. The report contents and health-card workflow remain unverified.
+
+## Student health examination inquiry [Issue #98]
+
+The university health card still opens its separate sign-in. The clinical report view was unavailable for comparison. The local register starts empty and no university health data was imported. Assistant answers show the route and contact extension only.
