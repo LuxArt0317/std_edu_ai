@@ -37,6 +37,9 @@ import { loadAccountOverviewSnapshot } from '../server/accountOverviewEvidence.j
 import { currentStudyForeignYearQuestion } from '../server/currentStudyOwnerScope.js';
 import { teachingFeedbackLookupContext } from '../server/teachingFeedbackEvidenceIntent.js';
 import { teachingFeedbackGuide } from '../server/teachingFeedbackGuide.js';
+import { readHousingBedEvidence, unavailableHousingBedEvidence } from '../server/accountHousingBedEvidence.js';
+import { housingBedLookupContext } from '../server/housingBedEvidenceIntent.js';
+import { housingBedGuide } from '../server/housingBedAnswer.js';
 import { readTeachingFeedbackEvidence,unavailableTeachingFeedbackEvidence } from '../server/accountTeachingFeedbackEvidence.js';
 import { answerAccountWithVerification, requiredNativeTools, requiredSupplementalTools, type SupplementalAccountReaders } from '../server/answerVerificationAccount.js';
 import { readCatalogEvidence } from '../server/accountCatalogEvidence.js';
@@ -48,7 +51,7 @@ import { isDtmRecordQuestion } from '../server/dtmAnswer.js';
 import { isScholarshipRecordQuestion } from '../server/scholarshipRecords.js';
 import { isStudentAidRecordQuestion } from '../server/studentAidRecords.js';
 import { isHousingRecordQuestion } from '../server/housingRecords.js';
-import { isOwnFeeBalanceQuestion, isPendingFeeQuestion, ownFeeBalanceLabel } from '../server/pendingFeesAnswer.js';
+import { isOwnFeeBalanceQuestion, isPendingFeeQuestion, ownFeeBalanceLabel, savedFeeBalanceFollowup } from '../server/pendingFeesAnswer.js';
 import { isCreditLoadHistoryQuestion } from '../server/creditLoadHistory.js';
 import { isCourseSelectionQuestion } from '../server/courseSelection.js';
 import { AffairsWorkspaceError, loadAffairsSnapshot, loadOwnAffairsCharges, loadOwnServiceNotes, verifyAffairsToken } from '../server/affairsWorkspace.js';
@@ -165,7 +168,7 @@ export function createAffairsAssistantHandler(dependencies:{
   verifyToken?:typeof verifyAffairsToken;
   loadSnapshot?:typeof loadAffairsSnapshot;
   answerAccount?:typeof answerAccountWithVerification;
-  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence;healthExaminations?:typeof readHealthExaminationEvidence;counselingAppointments?:typeof readCounselingEvidence;graduationClearance?:typeof readClearanceEvidence;tutorEvaluation?:typeof readTutorEvaluationEvidence;teachingFeedback?:typeof readTeachingFeedbackEvidence};
+  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence;healthExaminations?:typeof readHealthExaminationEvidence;counselingAppointments?:typeof readCounselingEvidence;graduationClearance?:typeof readClearanceEvidence;tutorEvaluation?:typeof readTutorEvaluationEvidence;teachingFeedback?:typeof readTeachingFeedbackEvidence;housingBed?:typeof readHousingBedEvidence};
 }={}) {
 const publicResearch=dependencies.publicResearch??researchHandler;
 const verifyToken=dependencies.verifyToken??verifyAffairsToken,loadSnapshot=dependencies.loadSnapshot??loadAffairsSnapshot,answerAccount=dependencies.answerAccount??answerAccountWithVerification;
@@ -183,7 +186,8 @@ const readers={courseCatalog:dependencies.readers?.courseCatalog??readCatalogEvi
   counselingAppointments:dependencies.readers?.counselingAppointments??readCounselingEvidence,
   graduationClearance:dependencies.readers?.graduationClearance??readClearanceEvidence,
   tutorEvaluation:dependencies.readers?.tutorEvaluation??readTutorEvaluationEvidence,
-  teachingFeedback:dependencies.readers?.teachingFeedback??readTeachingFeedbackEvidence};
+  teachingFeedback:dependencies.readers?.teachingFeedback??readTeachingFeedbackEvidence,
+  housingBed:dependencies.readers?.housingBed??readHousingBedEvidence};
 return async function handler(request:ApiRequest,response:ApiResponse) {
   const deadline=Date.now()+55_000;
   response.setHeader('Cache-Control','no-store, max-age=0');
@@ -217,6 +221,20 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const correlationId=randomUUID();
   response.setHeader('X-Assistant-Request-Id',correlationId);
   const stream=createAssistantStream(input?.stream===true,response);
+  const housing=housingBedLookupContext(question,route,history);
+  const housingSelection=housing.selection?.fields.length?housing.selection:null;
+  const housingGuidance=!housingSelection&&(housing.navigation||housing.foreign||housing.excluded||housing.selection?.reason)
+    ?housingBedGuide(question,housing,true):null;
+  if(housingGuidance&&!housing.otherQuestion){stream.send(200,housingGuidance);return;}
+  if(housingGuidance){
+    question=housing.otherQuestion;history=[];
+    if(route.split('?')[0].replace(/\/+$/u,'')==='/school-affairs/services/34-1')route='';
+  }
+  const resolvedFee=savedFeeBalanceFollowup(question,history);
+  if(!housingSelection&&resolvedFee){question=resolvedFee;history=[];route='';}
+  const housingFees=Boolean(housingSelection&&housing.companion==='fee_balance');
+  const housingNext=Boolean(housingSelection&&housing.companion==='next_class');
+  const housingOnly=Boolean(housingSelection&&(!housing.otherQuestion||housingFees||housingNext));
   const teaching=teachingFeedbackLookupContext(question,route,history);
   const teachingSelection=teaching.selection?.views.length?teaching.selection:null;
   const teachingReason=teaching.foreign?'foreign_request':teaching.selection?.reason??(teachingSelection?.unavailableDetails?'outside_scope':null);
@@ -255,13 +273,14 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     return;
   }
   if((conduct.excluded||conductNavigation)&&!conduct.selected){question=conduct.otherQuestion;history=[];}
-  const withLocalGuidance=<T extends {answer:string;citations?:unknown[]}>(answer:T)=>conductNavigation||foreignYearMessage||teachingNotes
-    ?{...answer,answer:[foreignYearMessage,conductNavigation?.answer,teachingNotes?.answer,answer.answer].filter(Boolean).join('\n\n'),
-      citations:[...(conductNavigation?.citations??[]),...(teachingNotes?.citations??[]),...(answer.citations??[])]}:answer;
+  const withLocalGuidance=<T extends {answer:string;citations?:unknown[]}>(answer:T)=>conductNavigation||foreignYearMessage||teachingNotes||housingGuidance
+    ?{...answer,answer:[foreignYearMessage,conductNavigation?.answer,teachingNotes?.answer,housingGuidance?.answer,answer.answer].filter(Boolean).join('\n\n'),
+      citations:[...(conductNavigation?.citations??[]),...(teachingNotes?.citations??[]),...(housingGuidance?.citations??[]),...(answer.citations??[])]}:answer;
   const foreignDtmGrades=isForeignDtmGradesQuestion(question,route);
   const foreignElearning=isForeignElearningRecordsQuestion(question,route);
   const foreignRepair=isForeignFacilityRepairQuestion(question);
-  const pageContext=nativePageLookupContext(notes.keys.length?notes.otherQuestion:question,notes.keys.length?'':route,notes.keys.length?[]:history);
+  const pageContext=nativePageLookupContext(housingSelection?housing.otherQuestion:notes.keys.length?notes.otherQuestion:question,
+    housingSelection||notes.keys.length?'':route,housingSelection||notes.keys.length?[]:history);
   const scopedQuestion=withoutExcludedNativePageClause(question);
   const aidQuestion=notes.keys.length?notes.otherQuestion:scopedQuestion;
   const aid=aidPaymentsLookupContext(aidQuestion,notes.keys.length?'':route,notes.keys.length?[]:history);
@@ -311,13 +330,13 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     return;
   }
   const intent=accountQuestionIntent(question,history,route);
-  const overviewOnly=!teachingSelection&&!notes.keys.length&&isAccountOverviewQuestion(intent,question);
+  const overviewOnly=!housingSelection&&!teachingSelection&&!notes.keys.length&&isAccountOverviewQuestion(intent,question);
   const studyQuestion=teachingSelection?(foreignYear?ownCoursesBesideForeignYear:teaching.otherQuestion):question;
   const studyIntent=teachingSelection?accountQuestionIntent(studyQuestion,[],''):intent;
   const currentStudyScope=foreignYear&&(!teachingSelection||studyQuestion)?'courses':isCurrentStudyRecordQuestion(studyIntent,studyQuestion)?'courses_and_year':null;
   const teachingFees=Boolean(teachingSelection&&(isOwnFeeBalanceQuestion(studyQuestion)||ownFeeBalanceLabel(studyQuestion)!==null));
   const teachingNext=Boolean(teachingSelection&&isServiceNoteNextClass(studyQuestion));
-  if(!teachingSelection&&!notes.keys.length&&intent.recognized&&intent.kind==='coaching'&&!intent.baseTools.length&&!pageContext.selected){
+  if(!housingSelection&&!teachingSelection&&!notes.keys.length&&intent.recognized&&intent.kind==='coaching'&&!intent.baseTools.length&&!pageContext.selected){
     if(Array.isArray(input?.images)&&input.images.length){stream.send(400,{error:'For this coaching request, remove the image and ask using text.'});return;}
     try{
       // Authentication remains mandatory, but wording help needs no student
@@ -337,10 +356,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   }
   const noteFees=notes.keys.length>0&&(isOwnFeeBalanceQuestion(notes.otherQuestion)||ownFeeBalanceLabel(notes.otherQuestion)!==null);
   const noteNext=notes.keys.length>0&&isServiceNoteNextClass(notes.otherQuestion);
-  const chargeLabel=pageContext.feeChargeLabel??(teachingFees?ownFeeBalanceLabel(studyQuestion):noteFees?ownFeeBalanceLabel(notes.otherQuestion):aidFees?ownFeeBalanceLabel(aid.otherQuestion):aid.excluded?ownFeeBalanceLabel(question):scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):null);
-  const chargesOnly=isOwnFeeBalanceQuestion(aid.excluded?question:scopedQuestion)||pageContext.feeAndBalance||aidFees||teachingFees||chargeLabel!==null&&!noteFees;
-  const timetableOnly=Boolean(clearanceTimetableQuestion(question,pageContext))||aidNext||teachingNext;
-  const needsRecords=Boolean(teachingSelection||aid.selection) || conduct.selected || notes.keys.length>0 || chargesOnly || timetableOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
+  const chargeLabel=pageContext.feeChargeLabel??(housingFees?ownFeeBalanceLabel(housing.otherQuestion):teachingFees?ownFeeBalanceLabel(studyQuestion):noteFees?ownFeeBalanceLabel(notes.otherQuestion):aidFees?ownFeeBalanceLabel(aid.otherQuestion):aid.excluded?ownFeeBalanceLabel(question):scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):null);
+  const chargesOnly=isOwnFeeBalanceQuestion(aid.excluded?question:scopedQuestion)||pageContext.feeAndBalance||aidFees||teachingFees||housingFees||chargeLabel!==null&&!noteFees;
+  const timetableOnly=Boolean(clearanceTimetableQuestion(question,pageContext))||aidNext||teachingNext||housingNext;
+  const needsRecords=Boolean(housingSelection||teachingSelection||aid.selection) || conduct.selected || notes.keys.length>0 || chargesOnly || timetableOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
   const navigation=!needsRecords && !(Array.isArray(input?.images) && input.images.length) && !questionKind(question).irrelevant
     ? answerCampusNavigation(question) : null;
   if(navigation) {
@@ -364,7 +383,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       const result=research.result as Record<string,unknown>|null;
       if(!result || typeof result!=='object' || Array.isArray(result) || (!research.ok && typeof result.error!=='string')) {stream.send(502,{error:'School research returned an invalid response.'});return;}
       stream.progress('public','Checked public information','The public school lookup finished.','complete');
-      stream.send(research.status,(conductNavigation||foreignYearMessage||teachingNotes)&&typeof result.answer==='string'?withLocalGuidance({...result,answer:result.answer}):result);
+      stream.send(research.status,(conductNavigation||foreignYearMessage||teachingNotes||housingGuidance)&&typeof result.answer==='string'?withLocalGuidance({...result,answer:result.answer}):result);
     } catch {stream.send(503,{error:'School research is temporarily unavailable. Please try again.'});}
     return;
   }
@@ -377,7 +396,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const noteScopeOnly=ownNoteRead&&(!notes.otherQuestion||noteFees||noteNext);
     const selectedReaderOnly=!chargesOnly&&!timetableOnly&&(noteScopeOnly||pageContext.readerOnly||remoteOnly||repairOnly||aidOnly||teachingSelection&&!studyQuestion);
     const scopedSnapshot=()=>({checkedAt:new Date().toISOString(),profile:{userId:account.user.id}});
-    if(overviewOnly)stream.progress('account','Checking your saved overview','Checking course lists and counts from your signed-in account.');
+    if(housingOnly)stream.progress('account','Checking saved dormitory assignments','Only the requested accommodation fields and any requested fee or timetable records will be checked.');
+    else if(overviewOnly)stream.progress('account','Checking your saved overview','Checking course lists and counts from your signed-in account.');
     else if(selectedReaderOnly)stream.progress('account','Checked account access','The selected reader uses this signed-in Google account.','complete');
     else stream.progress('account','Loading your account records',currentStudyScope==='courses_and_year'?'Checking your School Affairs subjects and recorded year level.':currentStudyScope||timetableOnly?'Checking the timetable linked to this Google account.':chargesOnly?'Checking only the fees linked to this Google account.':'Checking School Affairs and DTM records for this signed-in Google account.');
     const loadCharges=async()=>{
@@ -386,7 +406,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         const normalize=(value:string)=>value.normalize('NFKC').trim().toLowerCase();
         return chargeLabel?{...saved,chargeSelectionLabel:chargeLabel,charges:saved.charges.filter(row=>normalize(row.label)===normalize(chargeLabel))}:saved;
       }catch(error){
-        if(!pageContext.feeAndBalance&&!noteFees&&!aidFees&&!teachingFees)throw error;
+        if(!pageContext.feeAndBalance&&!noteFees&&!aidFees&&!teachingFees&&!housingFees)throw error;
         const charges:Awaited<ReturnType<typeof loadOwnAffairsCharges>>['charges']=[];
         return {...scopedSnapshot(),charges,chargeReadUnavailable:true};
       }
@@ -408,16 +428,21 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       )]);
       return {...timetable,...year,currentStudyScope:'courses_and_year'};
     };
-    const loadBaseSnapshot=(initialize?:false)=>overviewOnly?loadAccountOverviewSnapshot(account,{deadline})
+    const loadBaseSnapshot=(initialize?:false)=>housingOnly
+      ?housingNext?loadTimetable():housingFees?loadCharges():Promise.resolve(scopedSnapshot())
+      :overviewOnly?loadAccountOverviewSnapshot(account,{deadline})
       :currentStudyScope==='courses_and_year'?loadCurrentStudy()
       :currentStudyScope==='courses'?loadTimetable().then(saved=>({...saved,currentStudyScope:'courses'}))
       :timetableOnly||noteNext?loadTimetable():chargesOnly||noteFees?loadCharges()
       :selectedReaderOnly?Promise.resolve(scopedSnapshot())
         :loadSnapshot(account,false,{deadline,...(initialize===false||ownNoteRead?{initialize:false}:{}),...(ownNoteRead||notes.excluded||notes.officialOnly?{includeServiceRecords:false}:{})});
     const loadSelectedSnapshot=async(initialize?:false)=>{
-      const base=loadBaseSnapshot(initialize);
-      if(!ownNoteRead)return base;
-      const [snapshot,selected]=await Promise.all([base,loadOwnServiceNotes(account,notes.keys,{deadline}).then(
+      const base=loadBaseSnapshot(housingSelection?false:initialize);
+      const housingEvidence=housingSelection?readers.housingBed(account,{fields:[...housingSelection.fields],term:housingSelection.term,deadline})
+        .catch(()=>unavailableHousingBedEvidence('read_failed')):null;
+      const withHousing=housingEvidence?Promise.all([base,housingEvidence]).then(([snapshot,result])=>({...snapshot,housingBedEvidence:result.evidence})):base;
+      if(!ownNoteRead)return withHousing;
+      const [snapshot,selected]=await Promise.all([withHousing,loadOwnServiceNotes(account,notes.keys,{deadline}).then(
         serviceRecords=>({serviceRecords}),()=>{
           const serviceRecords:Awaited<ReturnType<typeof loadOwnServiceNotes>>=[];
           return {serviceRecords,serviceNoteReadUnavailable:true};
@@ -426,7 +451,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       return {...snapshot,...selected};
     };
     const snapshot=await loadSelectedSnapshot();
-    if(overviewOnly)stream.progress('account','Checked your saved overview','Only the account name, program, year, course lists and record counts were requested.','complete');
+    if(housingOnly)stream.progress('account','Selected your dormitory records','The dormitory lookup uses this signed-in Google account.','complete');
+    else if(overviewOnly)stream.progress('account','Checked your saved overview','Only the account name, program, year, course lists and record counts were requested.','complete');
     else if(currentStudyScope==='courses_and_year')stream.progress('account','Checked your School Affairs sources','Subjects and recorded year level were checked separately.','complete');
     else if('chargeReadUnavailable' in snapshot)stream.progress('account','Fee balance unavailable','The other requested records can still be checked independently.','unavailable');
     else if('timetableReadUnavailable' in snapshot)stream.progress('account','Timetable unavailable','The timetable could not be verified for this account.','unavailable');

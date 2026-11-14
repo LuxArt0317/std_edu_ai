@@ -53,3 +53,5 @@ The student profile intent test checks bilingual separation of confirmation stat
 Announcement email tests check status intent, caller validation, worker authorization, provider idempotency and acknowledgement.
 
 The certificate award intent checks distinguish status from navigation and enrollment certificates.
+
+The housing bed tests cover the caller-only projection, field and term selection, signed-out handoff and mixed School Affairs questions through the real API handler with captured transports. The two-check tests exercise fresh evidence and confirm a twice rejected answer withholds the housing view.

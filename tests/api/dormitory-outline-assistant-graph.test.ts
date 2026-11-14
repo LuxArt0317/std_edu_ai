@@ -8,6 +8,7 @@ import {createResearchAssistantHandler} from '../../server/researchAssistantHand
 import {AffairsWorkspaceError} from '../../server/affairsWorkspace.js';
 import {answerAccountWithVerification,planAccountLookup} from '../../server/answerVerificationAccount.js';
 import {nativePageLookupContext,requiredSupplementalTools,readSupplementalLookups} from '../../server/accountSupplementalLookup.js';
+import {readHousingBedEvidence} from '../../server/accountHousingBedEvidence.js';
 import {readDormitoryConductEvidence} from '../../server/accountDormitoryConductEvidence.js';
 import {readElearningOutlineEvidence} from '../../server/accountElearningOutlineEvidence.js';
 import {readElearningEvidence} from '../../server/accountElearningEvidence.js';
@@ -63,11 +64,14 @@ async function provider(run:(calls:string[])=>Promise<void>,options:{rejectFirst
           clauses.push('The saved Tuition charge is 1300.');claims.push({claim:'Saved charge',supported:true,evidenceId:source.id,quotes:[],jsonPaths:['/records/0/amountDue']});
         }else if(source.id==='account:elearningEnrollments'){
           clauses.push('The saved remote-learning enrollment is QA remote workshop.');claims.push({claim:'Saved enrollment',supported:true,evidenceId:source.id,quotes:[],jsonPaths:['/rows/0/title']});
-        }else if(source.id==='account:housing'&&value.records.assignments.length){
+        }else if(source.id==='account:housing'&&value.collection==='housingBed'){
           assert.equal((source as {url?:string}).url,'/school-affairs/services/34-1');
           assert.doesNotMatch(source.content,/FOREIGN_BED/u);
+          assert.equal(value.records[0].bedNumber,'E-305-2');
+          assert.equal(value.records[0].accommodationFee,8500);
           clauses.push('The saved bed number is E-305-2 and accommodation fee is 8500.');
-          claims.push({claim:'Saved bed and fee',supported:true,evidenceId:source.id,quotes:[],jsonPaths:['/records/assignments/0/bedNumber','/records/assignments/0/accommodationFee']});
+          claims.push({claim:'Saved bed and fields',supported:true,evidenceId:source.id,quotes:[],
+            jsonPaths:Object.keys(value.records[0]).map(field=>'/records/0/'+field)});
         }else if(source.id==='account:courses'||source.id==='account:housing'){
           clauses.push('No matching rows are present in the selected local collection.');claims.push({claim:'Selected collection',supported:true,evidenceId:source.id,quotes:[],jsonPaths:['/records']});
         }else assert.fail('Unexpected source: '+source.id);
@@ -117,16 +121,27 @@ test('native page tools preserve requested clauses, exclusions and independent d
 });
 
 test('mixed dormitory notice and bed/fee question uses exact assignment source and card, never the application route',async()=>provider(async()=>{
-  const owned={...snapshot(),housing:{periods:[],applications:[],assignments:[
-    {userId:owner,bedNumber:'E-305-2',accommodationFee:8500,sourceMode:'local_demo'},
-    {userId:'52000000-0000-4000-8000-000000000099',bedNumber:'FOREIGN_BED',accommodationFee:99999,sourceMode:'local_demo'},
-  ]}};
-  const result=await invoke({loadSnapshot:async()=>owned,readers:{dormitoryConduct:(caller,options)=>readDormitoryConductEvidence(caller,options,{load:async()=>dormNative()})}},
-    {question:'Show my dormitory conduct record and my saved bed number and housing fee.',route:dormRoute,stream:true});
+  const assignmentId='52000000-0000-4000-8000-000000000002',periodId='52000000-0000-4000-8000-000000000003';
+  const result=await invoke({loadSnapshot:async()=>assert.fail('Both native readers need no broad snapshot'),readers:{
+    dormitoryConduct:(caller,options)=>readDormitoryConductEvidence(caller,options,{load:async()=>dormNative()}),
+    housingBed:(caller,options)=>readHousingBedEvidence(caller,options,{fetchImpl:async(input,init)=>{
+      const url=new URL(String(input));
+      assert.equal(new Headers(init?.headers).get('authorization'),'Bearer '+account.token);
+      const headers={'content-range':'0-0/1'};
+      if(url.pathname.endsWith('/affairs_housing_assignments')){
+        assert.equal(url.searchParams.get('user_id'),'eq.'+owner);
+        return Response.json([{id:assignmentId,user_id:owner,period_id:periodId,bed_number:'E-305-2',dormitory:'QA Hall',
+          bunk:'upper',accommodation_fee:8500,version:1}],{headers});
+      }
+      assert.equal(url.pathname,'/rest/v1/affairs_housing_periods');
+      assert.equal(url.searchParams.get('id'),'in.('+periodId+')');
+      return Response.json([{id:periodId,academic_year:115,semester:1,source_mode:'local_demo',version:1}],{headers});
+    }}),
+  }},{question:'Show my dormitory conduct record and my saved bed number and housing fee.',route:dormRoute,stream:true});
   assert.equal(result.body.verification.status,'verified');assert.match(result.body.answer,/E-305-2/u);assert.match(result.body.answer,/8500/u);
   assert.ok(result.body.citations.some((citation:{url:string})=>citation.url==='/school-affairs/services/34-1'));
   assert.ok(result.body.citations.every((citation:{url:string})=>citation.url!=='/school-affairs/services/26-1'));
-  const view=result.body.views.find((item:{id:string})=>item.id==='housing');assert.equal(view.url,'/school-affairs/services/34-1');assert.deepEqual(view.rows,[['E-305-2','8500','local_demo']]);
+  const view=result.body.views.find((item:{id:string})=>item.id==='housing');assert.equal(view.url,'/school-affairs/services/34-1');assert.deepEqual(view.rows,[['115','1','E-305-2','QA Hall','upper','8500']]);
   assert.doesNotMatch(JSON.stringify(result.body),/FOREIGN_BED|99999/u);
 }));
 

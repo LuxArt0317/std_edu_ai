@@ -24,6 +24,7 @@ test('the five direct readers and verified graph dispatch remain separately visi
     {id:'student-conduct',graphTool:'studentConduct'},
     {id:'local-service-notes',graphTool:'serviceRecords'},
     {id:'teaching-feedback',graphTool:'teachingFeedback'},
+    {id:'housing-beds',graphTool:'housing'},
   ]);
   for(const service of inventory.services){
     assert.equal(service.routeAuth,'signed-in');assert.equal(service.graphTool,null);

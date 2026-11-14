@@ -51,3 +51,5 @@
 - 2026-11-14 [#100] Resumed offline assistant evaluation. The root suite passed 454 evaluation contracts. Four signed-out remote-learning entry points passed in a fresh Chrome session pinned to production 076c79a. Requested exact candidate fingerprints and model/fixture commands in the shared handoff. No assistant runtime change or fixture/model run was performed.
 
 - 2026-11-14 [#100] Verified the 50-file snapshot and exact preview manifest at 11b1675. Fresh preview chat produced the expected Wi-Fi links and reproduced a first-week guidance abstention. The isolated candidate passed 454 evaluation contracts. The separate b41e46d course link repair passed 1,128 API/source checks. Production stayed on 076c79a. Automated signed-in model tests await scoped preview authorization.
+
+- Verified service 34-1 and its companion fee, timetable and conduct paths offline. Corrected a governing-negation regression that could query a fee balance the user excluded. Captured auth and model transports exercised a fresh retry and blocked an unverified housing view.

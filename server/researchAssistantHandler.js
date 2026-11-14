@@ -39,6 +39,8 @@ import {venueQuestion} from '../src/features/public/affairs/venueContract.js';
 import {permanentCourseQuestion} from '../src/features/public/affairs/permanentCourseRouting.js';
 import {teachingFeedbackLookupContext} from './teachingFeedbackEvidenceIntent.js';
 import {teachingFeedbackGuide} from './teachingFeedbackGuide.js';
+import {housingBedLookupContext} from './housingBedEvidenceIntent.js';
+import {housingBedGuide} from './housingBedAnswer.js';
 import {earlyGraduationPath,earlyGraduationQuestion} from './earlyGraduationContract.js';
 import { answerCourseSubstitution } from './courseSubstitution.js';
 import { answerFirstSelectionNotice } from './firstSelectionNotice.js';
@@ -342,6 +344,21 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const stream = createAssistantStream(input.stream, response);
+        const housing=!input.images.length&&housingBedLookupContext(input.question,input.route,input.history);
+        if(housing&&(housing.selection||housing.excluded||housing.navigation||housing.foreign)){
+            const guide=housingBedGuide(input.question,housing);
+            const publicNavigation=housing.otherQuestion?answerCampusNavigation(housing.otherQuestion):null;
+            const companionPath=housing.companion==='next_class'?schoolSubjectRecordsPath
+                :housing.companion==='fee_balance'?'/school-affairs/services/39-1':null;
+            const companionLink=companionPath?'/school-affairs/login?next='+encodeURIComponent(companionPath):null;
+            const companionTitle=housing.companion==='next_class'?(/\p{Script=Han}/u.test(input.question)?'登入後查看課表':'Sign in to check your timetable')
+                :(/\p{Script=Han}/u.test(input.question)?'登入後查看學雜費':'Sign in to check your fee balance');
+            stream.send(200,{
+                ...guide,
+                answer:[guide.answer,companionLink?'['+companionTitle+']('+companionLink+')':publicNavigation?.answer].filter(Boolean).join('\n\n'),
+                citations:[...guide.citations,...(companionLink?[{chunkId:'directory:accommodation-companion',title:companionTitle,url:companionLink,claim:companionTitle,sourceName:'School Affairs'}]:publicNavigation?.citations??[])],
+            });return;
+        }
         const teaching = !input.images.length && teachingFeedbackLookupContext(input.question,input.route,input.history);
         const teachingGuide = teaching && (teaching.selection || teaching.excluded || teaching.navigation.length)
             ? teachingFeedbackGuide(input.question,{

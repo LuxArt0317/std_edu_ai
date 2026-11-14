@@ -85,8 +85,9 @@ export function formatSelectedChargeEvidence(source,options={}){
   const shown=[],columns=[t('Charge','費用'),t('Currency','幣別'),t('Saved amount due','已儲存應繳金額'),t('Saved amount paid','已儲存已繳金額'),t('Calculated remaining','計算餘額'),t('Source mode','來源標記')];
   function result(){
     const omitted=rows.length-shown.length,complete=state==='records'&&p.studentRecordFound===true&&!p.excerpted&&c.availableRows===c.matchingRows&&!omitted;
-    const lines=shown.map(row=>(shown.length>1?'- ':'')+literal(row.label)+t(' has ','：剩餘 ')+literal(money(row.remaining,row.currency))
-      +t(' remaining (','（應繳 ')+literal(money(row.due,row.currency))+t(' charged, ','，已繳 ')+literal(money(row.paid,row.currency))+t(' paid).','）。'));
+    const lines=shown.map(row=>(shown.length>1?'- ':'')+literal(row.label)+t('\n  Remaining balance ','\n  待繳金額：')+literal(money(row.remaining,row.currency))
+      +t('\n  Saved amount due ','\n  已儲存應繳金額：')+literal(money(row.due,row.currency))
+      +t('\n  Saved amount paid ','\n  已儲存已繳金額：')+literal(money(row.paid,row.currency)));
     const notes=[];
     const counts=state==='records'?t(`Loaded owned rows: ${c.availableRows}; selected rows: ${c.matchingRows}; included in this evidence: ${c.includedRows}; omitted from evidence: ${c.matchingRows-c.includedRows}.`,
       `已載入本人紀錄：${c.availableRows}；選定紀錄：${c.matchingRows}；證據包含：${c.includedRows}；證據省略：${c.matchingRows-c.includedRows}。`):'';

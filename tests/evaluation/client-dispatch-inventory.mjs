@@ -122,7 +122,8 @@ export function inspectClientDispatchSource(source){
     tutorEvaluationNavigation:['tutorEvaluationEvidenceIntent','question'],
     isStudentConductScopeQuestion:['studentConductEvidenceScope','question,route,history'],
     isServiceNoteEvidenceQuestion:['serviceNoteIntent','question,route,history'],
-    isTeachingFeedbackScopeQuestion:['teachingFeedbackEvidenceIntent','question,route,history']};
+    isTeachingFeedbackScopeQuestion:['teachingFeedbackEvidenceIntent','question,route,history'],
+    isHousingBedScopeQuestion:['housingBedEvidenceIntent','question,route,history']};
   const clauses=node=>ts.isParenthesizedExpression(node)?clauses(node.expression)
     :ts.isBinaryExpression(node)&&node.operatorToken.kind===ts.SyntaxKind.BarBarToken?[...clauses(node.left),...clauses(node.right)]:[node];
   const predicates=verifiedDispatch?clauses(verifiedDispatch.expression):[];
@@ -150,6 +151,7 @@ export function inspectClientDispatchSource(source){
     {id:'student-conduct',graphTool:'studentConduct',serviceKeys:['38-1'],source:dispatchPath,line:first.line},
     {id:'local-service-notes',graphTool:'serviceRecords',serviceKeys:['27-1','30-1','30-2','31-1','31-2','32-1','35-1'],source:dispatchPath,line:first.line},
     {id:'teaching-feedback',graphTool:'teachingFeedback',serviceKeys:['7-5','7-6'],source:dispatchPath,line:first.line},
+    {id:'housing-beds',graphTool:'housing',serviceKeys:['34-1'],source:dispatchPath,line:first.line},
   ],
     fallback:{source:dispatchPath,line:api[0].line},otherDirectReaders:otherDirectReaders.filter(name=>calls.some(call=>call.name===name&&call.at<fallback.at)),
     navigationOnly:navigationOnly.map(row=>({...row,observedCalls:row.calls.filter(name=>calls.some(call=>call.name===name&&call.at<fallback.at))}))};

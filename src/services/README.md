@@ -62,3 +62,5 @@ The student profile client uses the School Affairs session and rechecks the call
 The announcement email client reloads the caller-owned preference and preserves the same request ID when a confirmation receipt is lost.
 
 The certificate award client uses the School Affairs session for application and Storage requests, checks account binding and uses only the private proof bucket.
+
+Accommodation bed questions from service 34-1 use the common account verification endpoint. The signed-out assistant can show the service route and sign-in return link.

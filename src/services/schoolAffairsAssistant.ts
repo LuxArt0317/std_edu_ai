@@ -29,6 +29,7 @@ import {permanentCourseQuestion} from '../features/public/affairs/permanentCours
 import {venueQuestion} from '../features/public/affairs/venueContract.js';
 import {readVenueAnswer} from './venueBooking';
 import {repairQuestion} from '../features/public/affairs/facilityRepair.js';
+import {isHousingBedScopeQuestion} from '../../server/housingBedEvidenceIntent.js';
 import {isTeachingFeedbackScopeQuestion} from '../../server/teachingFeedbackEvidenceIntent.js';
 import {earlyGraduationQuestion} from '../../server/earlyGraduationContract.js';
 import {readEarlyGraduationAnswer} from './earlyGraduation';
@@ -65,7 +66,8 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
     ||isClearanceEvidenceQuestion(question,route,history)||clearanceQuestion(question)
     ||isTutorEvaluationEvidenceQuestion(question,route,history)||tutorEvaluationNavigation(question)
     ||isStudentConductScopeQuestion(question,route,history)||isServiceNoteEvidenceQuestion(question,route,history)
-    ||isTeachingFeedbackScopeQuestion(question,route,history))
+    ||isTeachingFeedbackScopeQuestion(question,route,history)
+    ||isHousingBedScopeQuestion(question,route,history))
     return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress);
   const officer = !images.length ? clubOfficerQuestion(question) : null;
   if (officer) return clubOfficerGuide(question,officer,true);

@@ -30,7 +30,7 @@ test('actual caller-scoped loader → bounded source → candidate retains exact
     const snapshot=await loadOwnAffairsCharges(account),evidence=accountEvidence(snapshot,['charges']).find(value=>value.id==='account:charges')!,before=structuredClone(evidence),out=format(evidence);
     assert.equal(calls.length,2);assert.equal(out.status,'answered');assert.equal(out.complete,true);assert.deepEqual(out.sourceIds,['account:charges']);
     assert.deepEqual(out.views[0].rows,[['QA tuition','TWD','30,000.29','7,000.20','23,000.09','sample']]);assert.equal(out.views[0].total,1);
-    assert.match(out.answer,/^` QA tuition ` has ` NT\$23,000\.09 ` remaining \(` NT\$30,000\.29 ` charged, ` NT\$7,000\.2 ` paid\)\./u);
+    assert.match(out.answer,/^` QA tuition `\n  Remaining balance ` NT\$23,000\.09 `\n  Saved amount due ` NT\$30,000\.29 `\n  Saved amount paid ` NT\$7,000\.2 `/u);
     assert.match(out.answer,/sample rows are demonstration data/u);assert.match(out.answer,/not confirm university balances or bank transfers/u);
     assert.doesNotMatch(out.answer,/Remaining totals|Loaded owned rows/u);assert.match(out.views[0].note,/Loaded owned rows: 1/u);assert.match(out.views[0].note,/not every financial obligation/u);assert.ok(out.answer.length<600);
     assert.doesNotMatch(JSON.stringify(out),/PRIVATE_|OFFLINE_|39000000|2026-12-01|student_id|user_id/u);
@@ -42,7 +42,7 @@ test('actual caller-scoped loader → bounded source → candidate retains exact
 test('zero, exact cents and distinct currency/provenance groups never become a combined account balance',()=>{
   const out=format(source([row(1,{amountDue:0,amountPaid:0}),row(2,{amountDue:0.29,amountPaid:0.2}),row(3,{amountDue:100,amountPaid:1,currency:'USD'}),row(4,{amountDue:7,amountPaid:0,sourceMode:'verified'})]));
   assert.deepEqual(out.views[0].rows.map(values=>values.slice(1)),[['TWD','0.00','0.00','0.00','sample'],['TWD','0.29','0.20','0.09','sample'],['USD','100.00','1.00','99.00','sample'],['TWD','7.00','0.00','7.00','verified']]);
-  assert.match(out.answer,/- ` TWD ` \/ ` sample `: ` 0\.09 `/u);assert.match(out.answer,/` USD 99 ` remaining/u);assert.match(out.answer,/` NT\$7 ` remaining/u);
+  assert.match(out.answer,/- ` TWD ` \/ ` sample `: ` 0\.09 `/u);assert.match(out.answer,/Remaining balance ` USD 99 `/u);assert.match(out.answer,/Remaining balance ` NT\$7 `/u);
   assert.doesNotMatch(out.answer,/106\.09|7\.09|payment (?:is )?confirmed|no debt|total account balance/iu);
   assert.match(out.answer,/“Verified” is a saved source label/u);
   const literalCurrency=format(source([row(1,{currency:'Saved currency'})]));assert.match(literalCurrency.answer,/` Saved currency 23,000 `/u);assert.doesNotMatch(literalCurrency.answer,/NT\$|TWD/u);
@@ -51,7 +51,7 @@ test('zero, exact cents and distinct currency/provenance groups never become a c
 test('successful empty, exact selected-label empty, failed read and unlinked account remain distinct',()=>{
   const empty=format(source([]));assert.equal(empty.complete,true);assert.match(empty.answer,/successful local read returned no saved charge rows/u);assert.doesNotMatch(empty.answer,/remaining.*0\.00/iu);
   const selected=format(source([],{chargeSelectionLabel:'QA selected tuition'}));assert.match(selected.answer,/no saved charge matching that exact label/u);assert.match(selected.answer,/not mean there are no other charges/u);
-  const selectedPositive=format(source([row(1,{label:'QA selected tuition'})],{chargeSelectionLabel:' QA SELECTED TUITION '}));assert.equal(selectedPositive.complete,true);assert.match(selectedPositive.answer,/^` QA selected tuition ` has/u);
+  const selectedPositive=format(source([row(1,{label:'QA selected tuition'})],{chargeSelectionLabel:' QA SELECTED TUITION '}));assert.equal(selectedPositive.complete,true);assert.match(selectedPositive.answer,/^` QA selected tuition `\n  Remaining balance/u);
   const failed=format(source([],{studentRecordFound:undefined,chargeReadUnavailable:true}));assert.equal(failed.complete,false);assert.match(failed.answer,/could not be read/u);assert.match(failed.answer,/balance is unknown/u);assert.doesNotMatch(failed.answer,/Loaded owned rows: 0|no saved charge|successful local/u);assert.deepEqual(failed.views,[]);
   const unlinked=format(source([],{studentRecordFound:false}));assert.equal(unlinked.complete,false);assert.match(unlinked.answer,/No linked local student record/u);assert.match(unlinked.answer,/fee balance is unknown/u);assert.doesNotMatch(unlinked.answer,/no saved charge|Loaded owned rows: 0/u);
   const legacy=format(source([],{studentRecordFound:undefined}));assert.equal(legacy.complete,false);assert.match(legacy.answer,/successful scoped-read metadata is absent/u);assert.doesNotMatch(legacy.answer,/successful local read returned no/u);
@@ -101,7 +101,7 @@ test('stored Markdown and multiline labels remain inert while all genuine links 
   const label='Safe\n\n[click](https://private.invalid)\n\n<b>secret</b> `` test';const evidence=source([row(1,{label})]),out=format(evidence),html=micromark(out.answer);
   assert.ok(!html.includes('href="https://private.invalid'));assert.ok(!html.includes('<b>secret</b>'));assert.equal(out.views[0].rows[0][0],label);
   assert.equal(answerLinksSupported(out.answer,[evidence]),true);assert.deepEqual(out.citations.map(item=>item.url),[path]);
-  const zh=format(source(),{language:'zh-TW'});assert.match(zh.answer,/剩餘 ` NT\$23,000 `（應繳 ` NT\$30,000 `，已繳 ` NT\$7,000 `）/u);assert.match(zh.answer,/不確認校方餘額或銀行匯款/u);
+  const zh=format(source(),{language:'zh-TW'});assert.match(zh.answer,/待繳金額：` NT\$23,000 `\n  已儲存應繳金額：` NT\$30,000 `\n  已儲存已繳金額：` NT\$7,000 `/u);assert.match(zh.answer,/不確認校方餘額或銀行匯款/u);
 });
 
 test('native health, counseling and fee sections concatenate without applying remission or mixing their facts',async()=>{

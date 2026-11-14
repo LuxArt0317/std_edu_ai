@@ -21,6 +21,17 @@ export function isOwnFeeBalanceQuestion(question) {
     ||/^(?:請問|請查詢|幫我查|顯示)?(?:我(?:的|目前)?)(?:學雜費|學費|費用|待繳)(?:還(?:要繳|有|欠)|尚欠|剩餘|待繳|餘額|還剩)?(?:多少|金額|明細)?$/u.test(text);
 }
 
+/** Resolve only an explicit follow-up to the immediately preceding user topic. */
+export function savedFeeBalanceFollowup(question,history=[]){
+  if(typeof question!=='string'||!Array.isArray(history))return null;
+  const latest=history.findLast(item=>item?.role==='user')?.content;
+  if(!isOwnFeeBalanceQuestion(latest))return null;
+  const text=question.normalize('NFKC').trim().replace(/[?.!。！？]+$/u,'');
+  if(/^how much (?:is (?:still )?due|do i still owe|is left|remains unpaid)$/iu.test(text))return 'How much is my remaining balance in school?';
+  if(/^(?:還要繳多少|還欠多少|剩多少|还有多少未缴|還有多少未繳)$/u.test(text))return '我的學費還要繳多少';
+  return null;
+}
+
 /** Restrict a named balance to one literal saved charge label. */
 export function ownFeeBalanceLabel(question) {
   if(typeof question!=='string')return null;
@@ -51,7 +62,7 @@ export function answerPendingFees(question,snapshot,route='',history=[]) {
   const lines=selected.slice(0,20).map(row=>{
     const amount=money(balance(row),row.currency);
     const parts=[chinese?`${row.label}：待繳 ${amount}（應繳 ${money(cents(row.amountDue),row.currency)}；已繳 ${money(cents(row.amountPaid),row.currency)}）`:
-      `${row.label}: remaining ${amount} (charged ${money(cents(row.amountDue),row.currency)}; paid ${money(cents(row.amountPaid),row.currency)})`];
+      `${row.label}\n  Remaining balance ${amount}\n  Saved amount due ${money(cents(row.amountDue),row.currency)}\n  Saved amount paid ${money(cents(row.amountPaid),row.currency)}`];
     if(contact)parts.push(chinese?`連絡單位 ${row.contactUnit||missing}；分機 ${row.contactExtension||missing}；繳費單位 ${row.paymentUnit||missing}`:
       `contact unit ${row.contactUnit||missing}; extension ${row.contactExtension||missing}; payment unit ${row.paymentUnit||missing}`);
     if(date)parts.push(chinese?`發生日期 ${row.occurrenceOn||missing}；繳費期限 ${row.dueOn||missing}`:

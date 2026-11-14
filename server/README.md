@@ -163,3 +163,7 @@ The account graph reads only the selected student teaching feedback views for fo
 ### Saved account overview
 
 `accountOverviewEvidence.js` projects seven bounded account sources with separate totals, excerpt and failure states. The assistant checks each source in LangGraph and refreshes the same scope on retry. The overview does not assign a current term to DTM or interpret tracker counts as official outcomes.
+
+### Accommodation bed evidence
+
+The 34-1 reader projects caller-owned bed assignments and their referenced period metadata. It returns distinct complete, partial and unavailable outcomes. The LangGraph verification retry rereads the selected scope. An unverified draft withholds its accommodation table. Saved amount cells and period records establish neither payment nor current occupancy.

@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Verify the signed-in student’s saved dormitory bed, term and requested amounts. A combined next-class or fee balance question checks the corresponding records separately. [#100]
+
 - Answer account overview questions from saved student and course metadata and exact record counts. Keep private request text, grades and other unrelated data outside the lookup. [#100]
 
 - Verify saved teaching evaluation completion and immediate teaching feedback through the account assistant. Keep selected course, tuition and timetable facts tied to their own records, and check each requested part before showing the answer. [#100]

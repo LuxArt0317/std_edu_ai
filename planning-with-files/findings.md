@@ -315,3 +315,7 @@ The university list showed both attachment columns. The upload and post-save vie
 ## Student club menu and foundation [Issue #98]
 
 University menu labels and destinations were verified. Each new source detail page returned CAPTCHA sign-in, so the rebuilt screens use the verified club shell with local controls. No student records were imported. Officer profile, roster and attendance maintenance and equipment management remain open.
+
+### Housing 34-1 evidence [Issue #100]
+
+A broad snapshot could miss an accommodation assignment question or read unrelated records on an exclusion. The dedicated projection only accepts verified caller identity and reads assignments plus their own referenced year and semester. The housing table stores demonstration values including nullable deposit and subsidy. The reader exposes availability separately and preserves literal amounts without inferring payment or current occupancy. The adjacent 26-1 application and 34-2 conduct sources remain independent.

@@ -761,3 +761,10 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify the university inquiry layout and report access boundaries.
 - [x] Implement persistent account-owned examination metadata and private attachment access.
 - [x] Verify PDF downloads and account isolation through the live API and browser.
+
+### School Affairs accommodation beds [Issue #100]
+
+- [x] Reproduce the broad reader and missed companion selections.
+- [x] Mount the caller-owned assignment source and linked-period projection in the verification graph and graph-backed client dispatch.
+- [ ] Evaluate the full housing question bank on an authorized protected Preview.
+- [ ] Complete the broader signed-in acceptance gate before promoting to production.
