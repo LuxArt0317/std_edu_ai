@@ -291,3 +291,7 @@ Fourteen linked slide/video screens display Google Drive previews and one feedba
 ## Remaining School Affairs source checks
 
 School Affairs 5-1 returned a source 404. The professional program data (18-1) and internship-organization search (55-1) returned independent sign-in screens. No source records were imported.
+
+## Student aid and health source evidence
+
+The pages read locally maintained records. Official payroll, bank transfers and learning-report submissions were outside the capture. The activity learning-report and remittance destinations returned HTTP 404. The 36-1 health inquiry exposes five columns, instructions and a separate health-card link. Only the layout and public instructions were inspected. The report contents and health-card workflow remain unverified.

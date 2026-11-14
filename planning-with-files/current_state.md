@@ -1,6 +1,6 @@
 ## Student aid payment inquiries [Issue #98]
 
-Source 37-1 and its Salary tab showed empty tables with four claim columns and 17 salary columns. Migration 20261115050000 passed rollback and deployed SQL checks. Local browser acceptance and the 94-destination inventory passed. The assistant uses counts only. Learning-report and remittance destinations were unavailable or returned a source 404. Deployment verification is pending.
+Production `b7a59fa` is live as Vercel `2YY9mFqy319UYDEiBeTxrSta4cT4`. Migration 20261115050000 brings the client to 163 migrations and 197 RLS-protected public tables. The 37-1 claims and salary routes use separate caller-scoped records. Exact SQL rollback, local and deployed actual-JWT HTTP with fixture cleanup, pinned browser, guest assistant, client verification, shell and Quality 43564064710 passed. All 94 destinations navigated in local QA, with 28 generic and 26 partial. The pages read locally maintained records. Official payroll, bank transfers and learning-report submissions were outside the capture. The activity learning-report and remittance destinations returned HTTP 404.
 
 ## Remote-learning activity pages [Issue #98]
 

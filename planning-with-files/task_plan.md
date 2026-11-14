@@ -3,8 +3,8 @@
 ## Student aid payment inquiries [Issue #98]
 
 - [x] Verify the claims and salary layouts in the university session.
-- [ ] Verify caller-scoped claims and salary data, masked bank values and the assistant count.
-- [ ] Publish and verify both inquiry routes on the client deployment.
+- [x] Verify caller-scoped claims and salary data, masked bank values and the assistant count.
+- [x] Publish and verify both inquiry routes on the client deployment.
 - [ ] Verify learning-report and remittance screens if their source services become available.
 
 ## Remote-learning Moodle [Issue #98]

@@ -1,6 +1,6 @@
 ## Student aid payment inquiries [Issue #98]
 
-Root owns the 37-1 claims and salary pages, migration 20261115050000 and production acceptance. Preserve the 66 paused Issue #100 paths. Salary data stays distinct from aid claims and tuition. Assistant access is count-only. No official data imports or payment actions are part of this batch.
+Production `b7a59fa` is live as Vercel `2YY9mFqy319UYDEiBeTxrSta4cT4`. Migration 20261115050000 brings the client to 163 migrations and 197 RLS-protected public tables. The 37-1 claims and salary routes use separate caller-scoped records. Exact SQL rollback, local and deployed actual-JWT HTTP with fixture cleanup, pinned browser, guest assistant, client verification, shell and Quality 43564064710 passed. All 94 destinations navigated in local QA, with 28 generic and 26 partial. The pages read locally maintained records. Official payroll, bank transfers and learning-report submissions were outside the capture. The activity learning-report and remittance destinations returned HTTP 404. Preserve the 66 paused Issue #100 paths.
 
 ## Remote-learning activity pages [Issue #98]
 
