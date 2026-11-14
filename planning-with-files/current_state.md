@@ -1,6 +1,8 @@
 ## Facilities repair [Issue #98]
 
-The preceding goal turn made progress by adding the facility repair backend and form. The current turn connected the form, private history and administrator queue to their routes. The client installed migration 20261114180000 after rollback verification. Database verification reports 152 migrations and 179 RLS-protected public tables. The first-pass production browser and API passed. The signed-in browser then exposed the university area picker, building and outdoor forms, equipment picker and empty progress table. The follow-up adopts those structures and stores the observed area and equipment catalogs. Verification of the follow-up release is pending.
+Production `ad917ad` is live as Vercel `A1pZQJgYoQvHp4v1g9ybdWmZUjAH`. Migrations 20261114180000 and 20261114190000 bring the client to 153 migrations and 181 RLS-protected public tables. The signed-in area and equipment catalogs contain 18 areas and 110 items. The pinned browser, authenticated HTTP with exact fixture cleanup, three guest assistant checks and eight shell routes passed. Quality 43540831108 passed. The 94-destination local audit reports 35 generic and 19 partial entries.
+
+The university authenticated submission and empty progress layouts were observed. Populated history, assignment and dispatch screens remain open. Summer selection 6-5 showed an academic-record eligibility notice in the signed-in browser, with no selection controls. The dated registrar notice provides separate term-specific policy and fee evidence.
 
 ## Venue booking [Issue #98]
 

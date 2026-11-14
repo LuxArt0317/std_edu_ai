@@ -5,7 +5,7 @@
 - [x] Confirm the reporting and status fields from the public noticeboard and check the protected source gate.
 - [x] Implement confirmed reports, private history, administrator review and assistant status.
 - [x] Apply the exact-client migration after rollback verification.
-- [ ] Verify the production browser, actual-JWT HTTP, guest assistant and pinned release.
+- [x] Verify the production browser, actual-JWT HTTP, guest assistant and pinned release.
 - [x] Observe the authenticated area picker, two form variants, equipment picker and empty progress view.
 - [x] Connect the observed area and equipment catalogs to the form and persist the structured report fields.
 - [ ] Compare populated university history and dispatch screens.

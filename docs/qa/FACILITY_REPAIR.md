@@ -13,3 +13,11 @@ Migration `20261114180000` enables row-level security on reports and events. Dir
 - `node tests/integration/facility-repair-db.mjs --rollback-preflight` tests the migration in a transaction before installation. Use `--catalog-preflight` for the second migration or `--deployed` for installed functions. All modes roll back test writes.
 - `node tests/integration/facility-repair-ui.mjs` tests the distinct menu destination, confirmation, Escape, duplicate prevention on retry, private history, administrator review, assistant activity and mobile layout with browser fixtures. Set `PUBLIC_SITE_ORIGIN=https://stu.best` and `EXPECTED_RELEASE_REVISION` to check production.
 - `node --experimental-strip-types tests/integration/facility-repair-http.mjs --verify-client` checks the real client database with two disposable, separately authenticated callers and verifies their cleanup. Set `EXPECTED_RELEASE_REVISION` to test production HTTP handlers.
+
+## Deployed evidence
+
+Production `ad917ad` is live as Vercel `A1pZQJgYoQvHp4v1g9ybdWmZUjAH`. Migrations 20261114180000 and 20261114190000 bring the client to 153 migrations and 181 RLS-protected public tables. The signed-in area and equipment catalogs contain 18 areas and 110 items. The pinned browser, authenticated HTTP with exact fixture cleanup, three guest assistant checks and eight shell routes passed. Quality 43540831108 passed. The 94-destination local audit reports 35 generic and 19 partial entries.
+
+The university authenticated submission and empty progress layouts were observed. Populated history, assignment and dispatch screens remain open. Summer selection 6-5 showed an academic-record eligibility notice in the signed-in browser, with no selection controls. The dated registrar notice provides separate term-specific policy and fee evidence.
+
+At 1280 pixels, the observed and local panels are 1060 pixels wide. The phone and room controls match the observed 90 × 30 size, with less than 0.27 CSS pixel of position difference. The 390- and 320-pixel checks found no page overflow. The local header colors were adjusted for contrast.

@@ -2,6 +2,8 @@
 
 Service 45-1 has the observed area picker, equipment selection, report form and progress table, with private records and an administrator queue. The campus assistant reads the signed-in user's report status. See [facility repair QA](../qa/FACILITY_REPAIR.md) for the source boundary and verification.
 
+Production `ad917ad` is live as Vercel `A1pZQJgYoQvHp4v1g9ybdWmZUjAH`. Migrations 20261114180000 and 20261114190000 bring the client to 153 migrations and 181 RLS-protected public tables. The signed-in area and equipment catalogs contain 18 areas and 110 items. The pinned browser, authenticated HTTP with exact fixture cleanup, three guest assistant checks and eight shell routes passed. Quality 43540831108 passed. The 94-destination local audit reports 35 generic and 19 partial entries.
+
 ## Venue booking (Issue #98)
 
 Services 44-1 and 47-1 use saved venue schedules and private local requests. The administrator can approve or decline a request, and the assistant reads the same records. The official application remains behind university sign-in. See [venue booking QA](../qa/VENUE_BOOKING.md).
