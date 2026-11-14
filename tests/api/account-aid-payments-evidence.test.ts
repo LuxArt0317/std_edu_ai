@@ -38,16 +38,53 @@ test('aid intent is specific, caller-only and preserves both explicit views acro
     assert.equal(isAidPaymentsEvidenceQuestion('Show my student salary.',route),false,route);
 });
 
-test('incidental query filters cannot change owner, native view, selected fields or transport arguments',async()=>{
-  for(const [question,route] of [
-    ['Show my student salary.','https://stu.best/school-affairs/services/12-3?keyword=Database%20Design&course=321&view=claims&page=99&summary=1'],
-    ['What is the net amount?',aidPaymentsPaths.salary+'?view=claims&page=99&summary=1'],
+test('only the exact native page can contribute a page number, and unrelated selectors are ignored',async()=>{
+  for(const [question,route,page] of [
+    ['Show my student salary.','https://stu.best/school-affairs/services/12-3?keyword=Database%20Design&course=321&view=claims&page=99&summary=1','1'],
+    ['What is the net amount?',aidPaymentsPaths.salary+'?view=claims&page=99&summary=1','99'],
   ]){
     const result=await readAidPaymentsEvidence(account,{question,route},{read:async(caller,query)=>{
-      assert.equal(caller.user.id,owner);assert.deepEqual(query,{scope:'aid-payments',view:'salary',page:'1'});return native('salary');
+      assert.equal(caller.user.id,owner);assert.deepEqual(query,{scope:'aid-payments',view:'salary',page});return native('salary',1,page==='1'?[row('salary')]:[]);
     }});
-    assert.equal(result.readState,'ok');assert.deepEqual(decode(result).selection.views,['salary']);assert.deepEqual(result.evidence.urls,[aidPaymentsPaths.salary]);
+    assert.equal(result.readState,page==='1'?'ok':'partial');assert.deepEqual(decode(result).selection.views,['salary']);
+    assert.deepEqual(result.evidence.urls,[aidPaymentsPaths.salary+(page==='1'?'':'?page='+page)]);
     assert.equal(JSON.stringify(result).includes('Database'),false);
+  }
+});
+
+test('an exact later page uses the correct transport offset and preserves its total, signature and literal rows',async()=>{
+  const original=globalThis.fetch;
+  const calls:unknown[]=[];
+  globalThis.fetch=async(input,init)=>{
+    assert.equal(String(input),account.url+'/rest/v1/rpc/affairs_read_aid_payments');
+    assert.equal(new Headers(init?.headers).get('authorization'),'Bearer '+account.token);
+    calls.push(JSON.parse(String(init?.body)));
+    return new Response(JSON.stringify(native('salary',26,[{...row('salary',26),payment_period:'Saved later page',net:0}])));
+  };
+  try{
+    const result=await readAidPaymentsEvidence(account,{question:'Show page 2 of my student salary.'});
+    assert.deepEqual(calls,[{p_view:'salary',p_offset:25,p_summary:false}]);
+    assert.equal(result.readState,'partial');
+    assert.equal(result.evidence.url,aidPaymentsPaths.salary+'?page=2');
+    const payload=decode(result);
+    assert.equal(payload.views[0].page,2);
+    assert.deepEqual(payload.views[0].counts,{available:26,returned:1,included:1,omitted:25});
+    assert.equal(payload.views[0].records[0].net,0);
+    assert.equal(payload.views[0].records[0].payment_period,'Saved later page');
+    assert.doesNotMatch(JSON.stringify(payload),/0091|bank_last4|userId/);
+    const rejected=await readAidPaymentsEvidence(account,{question:'Show page 3 of my student salary.'});
+    assert.equal(decode(rejected).views[0].reason,'invalid_records','A row cannot belong to this out-of-range page.');
+  }finally{globalThis.fetch=original;}
+});
+
+test('an invalid or conflicting page performs no transport',async()=>{
+  for(const [question,expected] of [
+    ['Show page 202 of my student salary.','invalid_page'],
+    ['Show page 2 and page 3 of my student salary.','ambiguous_page'],
+  ]){
+    const result=await readAidPaymentsEvidence(account,{question},{read:async()=>assert.fail('Invalid page cannot read records')});
+    assert.equal(result.readState,'unavailable');
+    assert.equal(result.reason,expected);
   }
 });
 

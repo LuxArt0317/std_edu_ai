@@ -1,7 +1,7 @@
 import {useEffect,useState} from 'react';
 import {Link,useSearchParams} from 'react-router';
 import {loadAidPayments} from '@/services/aidPayments';
-import {aidPaymentsFields,aidPaymentsPageSize,aidPaymentsPaths,type AidPaymentResult,type AidPaymentView} from '../../../../server/aidPaymentsContract.js';
+import {aidPaymentsFields,aidPaymentsMaxPage,aidPaymentsPagePath,aidPaymentsPageSize,aidPaymentsPaths,type AidPaymentResult,type AidPaymentView} from '../../../../server/aidPaymentsContract.js';
 import './aidPayments.css';
 
 const navigation=[
@@ -16,7 +16,7 @@ const number=new Intl.NumberFormat('zh-TW',{maximumFractionDigits:2});
 export function AidPayments({userId,view}:{userId:string;view:AidPaymentView}){
   const [params]=useSearchParams();
   const raw=params.get('page')??'1';
-  const page=/^[1-9]\d{0,2}$/.test(raw)&&Number(raw)<=201?Number(raw):1;
+  const page=/^[1-9]\d{0,2}$/.test(raw)&&Number(raw)<=aidPaymentsMaxPage?Number(raw):1;
   return <AidPaymentPage key={userId+':'+view+':'+page} userId={userId} view={view} page={page}/>;
 }
 function AidPaymentPage({userId,view,page}:{userId:string;view:AidPaymentView;page:number}){
@@ -32,8 +32,8 @@ function AidPaymentPage({userId,view,page}:{userId:string;view:AidPaymentView;pa
     return ()=>controller.abort();
   },[userId,view,page,attempt]);
   const columns=aidPaymentsFields[view];
-  const pageCount=Math.max(1,Math.min(201,Math.ceil((data?.total??0)/aidPaymentsPageSize)));
-  const link=(next:number)=>aidPaymentsPaths[view]+(next>1?'?page='+next:'');
+  const pageCount=Math.max(1,Math.min(aidPaymentsMaxPage,Math.ceil((data?.total??0)/aidPaymentsPageSize)));
+  const link=(next:number)=>aidPaymentsPagePath(view,next);
   return <div className="aid-payment-site" id="aid-payment-top" lang="zh-Hant">
     <div className="aid-payment-shell">
       <header className="aid-payment-brand"><span>助學請領查詢系統</span><span lang="en">Shu-Te University</span></header>

@@ -12,8 +12,7 @@ import {healthExaminationEvidenceMaxBytes,unavailableHealthExaminationEvidence} 
 import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel} from './pendingFeesAnswer.js';
 import {isStudentConductEvidenceQuestion,studentConductEvidenceMaxBytes} from './accountStudentConductEvidence.js';
 import {isStudentLoanEvidenceQuestion,studentLoanEvidenceMaxBytes} from './accountStudentLoanEvidence.js';
-import {isAidPaymentsEvidenceQuestion,aidPaymentsEvidenceMaxBytes} from './accountAidPaymentsEvidence.js';
-import {aidPaymentsPageSize,aidPaymentsPaths} from './aidPaymentsContract.js';
+import {isAidPaymentsEvidenceQuestion,aidPaymentsEvidenceMaxBytes,unavailableAidPaymentsEvidence} from './accountAidPaymentsEvidence.js';
 import {dtmGradeReportEvidenceMaxBytes,unavailableDtmGradeReportEvidence} from './accountDtmGradeReportEvidence.js';
 import {mentionsDtmSubmissionDetail,shouldReadNativeDtmGrades} from './dtmGradeEvidenceIntent.js';
 import {elearningEvidenceMaxBytes,unavailableElearningEvidence} from './accountElearningEvidence.js';
@@ -233,26 +232,19 @@ function unavailable(key,reason){
   if(key==='facilityRepairs')return unavailableFacilityRepairEvidence(reason);
   if(key==='dtmGradeReport')return unavailableDtmGradeReportEvidence(reason);
   if(key==='elearningEnrollments')return unavailableElearningEvidence(reason);
+  if(key==='aidPayments')return unavailableAidPaymentsEvidence(reason);
   const checkedAt=new Date().toISOString(),common={checkedAt,rules:'This selected lookup is unavailable. No record absence or successful account read can be inferred.'};
   let payload,url;
   if(key==='courseCatalog'){url='/school-affairs/services/12-4';payload={...common,collection:'courseCatalog',readState:'unavailable',reason,provenance:{sourceMode:'sample',officialUniversityData:false,enrollmentEvidence:false},rows:[],omittedFields:[],counts:{total:null,returnedRows:null,includedRows:null,complete:false}};}
   else if(key==='enrollmentCertificate'){url='/school-affairs/services/17-1';payload={...common,collection:'enrollmentCertificate',sourceMode:'local_demo',readState:'unavailable',assessment:null};}
   else if(key==='dtmSubmissions'){url='/dtm';payload={...common,officialUniversityData:false,selection:{scope:'unavailable',requiresClarification:false,choices:[]},counts:{available:null,selected:null,requested:null,loaded:null,included:null,omitted:null,unavailable:null},complete:false,records:[],unavailable:[]};}
-  else if(key==='aidPayments'){
-    url=aidPaymentsPaths.claims;payload={...common,collection:key,readState:'unavailable',
-      selection:{views:[],summaryOnly:false,scope:'owned_first_page_per_view',page:1,pageSize:aidPaymentsPageSize},
-      provenance:{source:'saved_local',officialUniversityData:false,synchronizationVerified:false,currency:null},
-      counts:{viewsSelected:0,viewsLoaded:0,viewsUnavailable:0,available:null,included:0,omitted:null},
-      complete:false,recordsComplete:false,excerpted:false,views:[],
-      capabilities:{read:true,write:false,approve:false,pay:false,bankAccess:false,verifiedDocument:false}};
-  }
   else if(key==='studentConduct'||key==='studentLoan'){
     url=key==='studentConduct'?'/school-affairs/services/38-1':'/school-affairs/services/21-1';
     payload={...common,collection:key,sourceMode:'local_demo',readState:'unavailable',unavailableReason:reason,complete:false,excerpted:false,
       counts:{available:null,matching:null,included:0,omitted:null},...(key==='studentConduct'?{records:[]}:{record:null,recordPresent:null})};
   }
   else{url='/school-affairs/services/49-1';payload={...common,collection:'tuition',sourceMode:'local_demo',readState:'unavailable',coverageScope:'selected_settlement_records_and_periods_only',selection:{view:'settlement',requestedViews:['settlement'],scope:'unavailable',requiresClarification:false,choices:[]},serviceAvailability:[{view:'settlement',url,capability:'literal_settlement_records'}],counts:{available:null,matching:null,included:null,omitted:null},complete:false,excerpted:false,records:{periods:[],settlements:[]}};}
-  const provenance=key==='aidPayments'?'saved_local':['tuition','enrollmentCertificate','studentConduct','studentLoan'].includes(key)?'local_demo':null;
+  const provenance=['tuition','enrollmentCertificate','studentConduct','studentLoan'].includes(key)?'local_demo':null;
   return {readState:'unavailable',reason,evidence:{id:'account:'+key,title:supplementalAccountTools[key],url,urls:[url],...(provenance?{provenance}:{}),content:JSON.stringify(payload)}};
 }
 function trimOne(result){

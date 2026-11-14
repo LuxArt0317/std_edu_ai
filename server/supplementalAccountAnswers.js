@@ -1,7 +1,7 @@
 /** Pure presentation of already validated, caller-scoped reader
  * envelopes. This is not an authorization boundary or a verification verdict.
  * Never pass raw RPC results, a workspace snapshot, or browser input here. */
-import {aidPaymentsFields,aidPaymentsPaths} from './aidPaymentsContract.js';
+import {aidPaymentsFields,aidPaymentsMaxPage,aidPaymentsPagePath,aidPaymentsPageSize,aidPaymentsPaths,aidPaymentsRowsOnPage} from './aidPaymentsContract.js';
 import {feeRemissionFields,feeRemissionPath} from './feeRemissionContract.js';
 import {healthExaminationPath,healthPageSize} from './healthExaminationContract.js';
 import {tutorEvaluationEvidenceMaxBytes,tutorEvaluationPath} from './tutorEvaluationContract.js';
@@ -486,7 +486,13 @@ function allowedUrl(id,url){
   }
   if(id==='account:elearningEnrollments')return url===definitions[id].path||typeof url==='string'&&/^\/elearning\/course\/[1-9]\d{0,9}$/u.test(url)&&Number(url.split('/').at(-1))<=2147483647;
   if(id==='account:dtmGradeReport')return url==='/dtm/grades'||typeof url==='string'&&gradeRoute.test(url);
-  if(id==='account:aidPayments')return Object.values(aidPaymentsPaths).includes(url);
+  if(id==='account:aidPayments'){
+    if(typeof url!=='string')return false;
+    const [path,query]=url.split('?');
+    const view=Object.keys(aidPaymentsPaths).find(key=>aidPaymentsPaths[key]===path);
+    const page=query?.match(/^page=([1-9]\d{0,2})$/u)?.[1];
+    return Boolean(view&&(url===path||Number(page)>1&&Number(page)<=aidPaymentsMaxPage&&url===aidPaymentsPagePath(view,Number(page))));
+  }
   if(id==='account:studentConduct')return url===definitions[id].path;
   if(id==='account:studentLoan')return ['', '/progress','/history','/document'].some(suffix=>url===definitions[id].path+suffix);
   return typeof url==='string'&&(id==='account:courseCatalog'?catalogRoute.test(url):id==='account:enrollmentCertificate'?url===definitions[id].path:id==='account:tuition'?Object.values(tuitionPaths).includes(url):url==='/dtm'||detailRoute.test(url));
@@ -529,22 +535,30 @@ function parse(envelope){
   else if(id==='account:aidPayments'){
     if(evidence.provenance!=='saved_local'||payload.collection!=='aidPayments'||payload.readState!==envelope.readState
       ||payload.provenance?.source!=='saved_local'||payload.provenance.officialUniversityData!==false||payload.provenance.synchronizationVerified!==false||payload.provenance.currency!==null
-      ||!object(payload.selection)||typeof payload.selection.summaryOnly!=='boolean'||!Array.isArray(payload.selection.views)||payload.selection.views.length>2
+      ||!exact(payload.selection,['views','summaryOnly','scope','pageSize'])||typeof payload.selection.summaryOnly!=='boolean'
+      ||payload.selection.scope!==(payload.selection.summaryOnly?'owned_counts_only':'owned_page_per_view')||payload.selection.pageSize!==aidPaymentsPageSize
+      ||!Array.isArray(payload.selection.views)||payload.selection.views.length>2
       ||new Set(payload.selection.views).size!==payload.selection.views.length||!Array.isArray(payload.views)||payload.views.length!==payload.selection.views.length
-      ||!object(payload.counts)||typeof payload.complete!=='boolean'||typeof payload.recordsComplete!=='boolean')invalid();
+      ||!exact(payload.counts,['viewsSelected','viewsLoaded','viewsUnavailable','available','included','omitted'])
+      ||typeof payload.complete!=='boolean'||typeof payload.recordsComplete!=='boolean'||typeof payload.excerpted!=='boolean')invalid();
     const summaryOnly=payload.selection.summaryOnly;
+    if(evidence.url!==(payload.views[0]?.url??aidPaymentsPaths.claims)||!Array.isArray(evidence.urls)
+      ||evidence.urls.length!==payload.views.length||new Set(evidence.urls).size!==evidence.urls.length)invalid();
     for(const [index,source] of payload.views.entries()){
-      if(!object(source)||!own(aidPaymentsPaths,source.view)||source.view!==payload.selection.views[index]||source.url!==aidPaymentsPaths[source.view]
-        ||!evidence.urls?.includes(source.url)||!['ok','empty','partial','unavailable'].includes(source.readState)||source.summaryOnly!==summaryOnly
-        ||!object(source.counts)||!Array.isArray(source.records)||source.records.length>25||source.counts.included!==source.records.length)invalid();
+      if(!exact(source,['view','page','url','readState','reason','summaryOnly','counts','records'])||!own(aidPaymentsPaths,source.view)
+        ||source.view!==payload.selection.views[index]||!integer(source.page)||source.page<1||source.page>aidPaymentsMaxPage||summaryOnly&&source.page!==1
+        ||source.url!==aidPaymentsPagePath(source.view,source.page)||evidence.urls[index]!==source.url
+        ||!['ok','empty','partial','unavailable'].includes(source.readState)||source.summaryOnly!==summaryOnly
+        ||!exact(source.counts,['available','returned','included','omitted'])||!Array.isArray(source.records)
+        ||source.records.length>aidPaymentsPageSize||source.counts.included!==source.records.length)invalid();
       if(source.readState==='unavailable'){
-        if(source.records.length||source.counts.available!==null||source.counts.returned!==null||source.counts.omitted!==null)invalid();
+        if(typeof source.reason!=='string'||source.records.length||source.counts.available!==null||source.counts.returned!==null||source.counts.omitted!==null)invalid();
         continue;
       }
       const counts=source.counts,fields=aidPaymentsFields[source.view].filter(([key])=>key!=='bank_last4').map(([key])=>key);
-      if(![counts.available,counts.returned,counts.included,counts.omitted].every(integer)||counts.returned>Math.min(25,counts.available)
-        ||counts.included>counts.returned||counts.omitted!==counts.available-counts.included||summaryOnly&&(counts.returned!==0||counts.included!==0)
-        ||!summaryOnly&&counts.returned!==Math.min(25,counts.available)
+      if(source.reason!==null||![counts.available,counts.returned,counts.included,counts.omitted].every(integer)
+        ||counts.included>counts.returned||counts.omitted!==counts.available-counts.included
+        ||counts.returned!==(summaryOnly?0:aidPaymentsRowsOnPage(counts.available,source.page))
         ||source.readState!==(!summaryOnly&&counts.omitted>0?'partial':counts.available===0?'empty':'ok'))invalid();
       for(const record of source.records){
         if(!object(record)||Object.keys(record).length!==fields.length||fields.some(key=>!own(record,key)))invalid();
@@ -557,8 +571,13 @@ function parse(envelope){
     }
     const loaded=payload.views.filter(source=>source.readState!=='unavailable'),allKnown=loaded.length>0&&loaded.length===payload.views.length;
     const omitted=loaded.reduce((sum,source)=>sum+source.counts.omitted,0);
+    const included=loaded.reduce((sum,source)=>sum+source.counts.included,0),available=loaded.reduce((sum,source)=>sum+source.counts.available,0);
     const state=!loaded.length?'unavailable':!allKnown||!summaryOnly&&omitted?'partial':loaded.every(source=>source.counts.available===0)?'empty':'ok';
-    if(state!==envelope.readState||payload.complete!==(allKnown&&(summaryOnly||omitted===0))||payload.recordsComplete!==(allKnown&&!summaryOnly&&omitted===0))invalid();
+    if(state!==envelope.readState||payload.complete!==(allKnown&&(summaryOnly||omitted===0))
+      ||payload.recordsComplete!==(allKnown&&!summaryOnly&&omitted===0)||payload.excerpted!==(!summaryOnly&&omitted>0)
+      ||payload.counts.viewsSelected!==payload.views.length||payload.counts.viewsLoaded!==loaded.length
+      ||payload.counts.viewsUnavailable!==payload.views.length-loaded.length||payload.counts.included!==included
+      ||payload.counts.available!==(allKnown?available:null)||payload.counts.omitted!==(allKnown?omitted:null))invalid();
   }else if(id==='account:courseCatalog'){
     if(payload.collection!=='courseCatalog'||payload.readState!==envelope.readState||!object(payload.provenance)||payload.provenance.sourceMode!=='sample'||payload.provenance.officialUniversityData!==false||payload.provenance.enrollmentEvidence!==false||!Array.isArray(payload.rows)||!object(payload.counts)||!Array.isArray(payload.omittedFields))invalid();
   }else if(id==='account:enrollmentCertificate'){
@@ -997,12 +1016,25 @@ function sectionFor(parsed,question,zh){
     section.lead.push(t('These are saved local aid and salary records, not verified university or bank records. Approval status, amounts, tax and net pay are independent saved fields; none establishes a bank transfer. No currency is declared.','以下為站內儲存的助學請款與薪資紀錄，並非已驗證的校方或銀行紀錄。簽核狀態、金額、稅額與淨額各自記錄，不能據此認定已匯款；資料未指定幣別。'));
     section.complete&&=p.complete;section.limited=p.excerpted===true;
     const summaryOnly=p.selection.summaryOnly,loaded=p.views.filter(source=>source.readState!=='unavailable');
-    section.usable=loaded.length>0;
+    const invalidPage=['invalid_page','ambiguous_page'].includes(envelope.reason);
+    section.usable=loaded.length>0||invalidPage;
+    if(invalidPage)section.lead.push(t(
+      envelope.reason==='ambiguous_page'?'Which one page should I check for each record type?':'Which page should I check? Enter a page from 1 to 201.',
+      envelope.reason==='ambiguous_page'?'每種紀錄要查看哪一頁？請各指定一頁。':'要查看哪一頁？請輸入 1 到 201 之間的頁碼。'));
     for(const source of p.views){
       const label=source.view==='salary'?t('Student salary','學生薪資'):t('Student aid claims','助學請款');
       if(source.readState==='unavailable')section.lead.push(t(`${label}: this view could not be read; its record count and contents are unknown.`,`${label}：無法讀取；紀錄筆數與內容仍未知。`));
       else{
         section.lead.push(t(`${label}: ${source.counts.available} saved local records; ${source.counts.included} detail rows included, ${source.counts.omitted} not included.`,`${label}：站內已儲存 ${source.counts.available} 筆；納入 ${source.counts.included} 筆明細，未納入 ${source.counts.omitted} 筆。`));
+        if(!summaryOnly&&source.counts.available>0){
+          const {page,counts}=source;
+          if(counts.returned===0)section.lead.push(t(`Page ${page} has no saved rows. The collection still has ${counts.available} records.`,`第 ${page} 頁沒有紀錄；此類別仍有 ${counts.available} 筆紀錄。`));
+          else{
+            const first=(page-1)*aidPaymentsPageSize+1;
+            section.lead.push(t(`Page ${page} contains saved rows ${first}–${first+counts.returned-1}.`,`第 ${page} 頁含第 ${first} 至 ${first+counts.returned-1} 筆已儲存紀錄。`));
+            if(counts.included<counts.returned)section.lead.push(t('Open the source page for its full detail.','請開啟原頁查看該頁完整明細。'));
+          }
+        }
         if(source.counts.available===0)section.lead.push(t(`The successful ${label.toLowerCase()} lookup returned zero saved local records; this does not establish an institutional or bank history.`,`${label}查詢成功，站內紀錄為零；不代表校方或銀行沒有歷史紀錄。`));
       }
       section.lead.push(`[${t('Open '+label,'開啟'+label)}](${source.url})`);
@@ -1014,7 +1046,9 @@ function sectionFor(parsed,question,zh){
       for(const source of loaded)section.viewCandidates.push(row(source.view==='salary'?t('Student salary','學生薪資'):t('Student aid claims','助學請款'),source.counts.available));
       return section;
     }
-    section.lead.push(t('Detail rows come from the first saved page of up to 25 per view, further limited by the evidence budget. A filtered count cannot be established from omitted rows. Null means not recorded; blank text and zero remain distinct. Payment-period labels do not designate a current term.','每種類別僅讀取首個已儲存頁面，最多 25 筆，並受證據容量限制。若略去紀錄，不能據此確立篩選後筆數。null 表示未記錄，空白與零不同；給付期間標籤不指定當期學期。'));
+    if(p.excerpted)section.lead.push(t('A filtered count cannot be established from omitted rows.','若略去紀錄，不能據此確立篩選後筆數。'));
+    if(/\b(?:latest|most recent|current|this month)\b|最近|最新|目前|本月/iu.test(question))
+      section.lead.push(t('I can’t verify the latest or current pay period from the saved labels and display order.','無法從已儲存的期間標籤與顯示順序確認最新或當期給付。'));
     const labels={reason:['Reason','請款事由'],amount:['Claim amount','請領金額'],approval_result:['Approval result','簽核結果'],approval_status:['Approval status','各單位簽核狀態'],
       appointment_type:['Appointment type','任用類別'],payment_period:['Payment-period label','給付起迄標籤'],rate:['Salary rate','單位薪資'],work_units:['Work units','工讀基數'],gross:['Gross pay','給付金額'],
       employer_labor:['Employer labor contribution','勞保（單）'],employer_health:['Employer health contribution','健保（單）'],employer_pension:['Employer pension contribution','退休金（單）'],employer_supplement:['Employer supplement','補充保費（單）'],
@@ -1025,8 +1059,10 @@ function sectionFor(parsed,question,zh){
     for(let index=0;index<maximum;index++)for(const source of loaded){
       const record=source.records[index];if(!record)continue;
       const label=source.view==='salary'?t('Student salary','學生薪資'):t('Student aid claims','助學請款');
-      group(t('Saved record','已儲存紀錄'),`${label} ${index+1}`);
-      for(const [key]of aidPaymentsFields[source.view])if(key!=='bank_last4')item(t(...labels[key]),record[key]);
+      const titleKey=source.view==='salary'?'payment_period':'reason';
+      const ordinal=(source.page-1)*aidPaymentsPageSize+index+1;
+      group(`${label} ${ordinal} · ${t(...labels[titleKey])}`,record[titleKey]);
+      for(const [key]of aidPaymentsFields[source.view])if(key!=='bank_last4'&&key!==titleKey)item(t(...labels[key]),record[key]);
       const summary=source.view==='salary'?`${t('Gross','給付金額')}: ${display(record.gross)}; ${t('Tax','所得稅')}: ${display(record.tax)}; ${t('Net','淨額')}: ${display(record.net)}`
         :`${t('Claim amount','請領金額')}: ${display(record.amount)}; ${t('Approval result','簽核結果')}: ${display(record.approval_result)}; ${t('Approval status','簽核狀態')}: ${display(record.approval_status)}`;
       section.viewCandidates.push(row(label,source.view==='salary'?record.payment_period:record.reason,summary));
@@ -1234,7 +1270,7 @@ export function formatSupplementalAccountAnswers(results,{question='',language:r
   let omittedItems=sections.reduce((total,section)=>total+section.items.length,0),omittedViewRows=sections.reduce((total,section)=>total+section.viewCandidates.length,0);
   const result=()=>({status:sections.some(section=>section.usable)?'answered':'abstained',answer:sections.map(section=>[
     section.title,...section.lead,...section.shown.map(item=>(section.id==='account:elearningOutline'&&item.group&&!item.header?'\n  - '
-      :['account:dtmGradeReport','account:elearningEnrollments','account:facilityRepairs','account:feeRemission','account:healthExaminations','account:counselingAppointments','account:graduationClearance'].includes(section.id)&&item.group&&!item.header?'  - ':'- ')+item.text),
+      :['account:dtmGradeReport','account:aidPayments','account:elearningEnrollments','account:facilityRepairs','account:feeRemission','account:healthExaminations','account:counselingAppointments','account:graduationClearance'].includes(section.id)&&item.group&&!item.header?'  - ':'- ')+item.text),
     (section.limited||section.shown.length<section.items.length||section.viewCandidates.length>(section.view?.rows.length??0))
       ?(zh?'顯示內容已節錄，省略部分不代表沒有紀錄。':'Display excerpt: omitted fields or rows do not establish absence.'):null,
     section.view&&!section.viewSelected?(zh?'此來源表格因三張表格的顯示上限省略，文字結果與來源連結仍保留。':'This source table is omitted by the three-table display limit; its text result and source link remain available.'):null,

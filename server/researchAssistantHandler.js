@@ -10,7 +10,8 @@ import { clubGuide,clubIntent } from './clubServicesContract.js';
 import { healthExaminationGuide, healthExaminationPath, healthExaminationQuestion } from './healthExaminationContract.js';
 import {isHealthExaminationNavigationQuestion,selectHealthExaminationEvidence} from './healthExaminationEvidenceIntent.js';
 import {elearningCourseLocation,elearningCoursePath,elearningGuide,elearningQuestion,elearningOutlineCourse} from './elearningContract.js';
-import {aidPaymentsPaths,aidPaymentsQuestion} from './aidPaymentsContract.js';
+import {aidPaymentsLookupContext,aidPaymentsNavigation} from './aidPaymentsEvidenceIntent.js';
+import {aidPaymentsCapabilityGuide,aidPaymentsGuide,aidPaymentsUnsupportedAction} from './aidPaymentsGuide.js';
 import {withoutExcludedHealthClause} from './healthExaminationEvidenceIntent.js';
 import {selectCounselingEvidence,withoutExcludedCounselingClause} from './counselingEvidenceIntent.js';
 import {counselingPath,counselingGuide,counselingQuestion} from './counselingContract.js';
@@ -122,6 +123,7 @@ function parse(body) {
     }) : [];
     const route = typeof source.route === 'string' && (/^\/school-affairs(?:\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?$/.test(source.route)||
         /^\/school-affairs\/services\/21-3\/?$/.test(source.route)||
+        /^\/school-affairs\/services\/37-1(?:\/salary)?\/?(?:\?page=[0-9]{1,4}(?:&page=[0-9]{1,4})?)?$/.test(source.route)||
         (source.route.startsWith(healthExaminationPath)&&selectHealthExaminationEvidence('Show my health records.',source.route)?.reason===null&&
           /^\/school-affairs\/services\/36-1\/?(?:\?page=[1-9]\d{0,2})?$/.test(source.route))||
         (source.route.startsWith('/school-affairs/services/34-2')&&selectDormitoryConductEvidence('Show my records.',source.route)?.reason===null)||
@@ -349,6 +351,17 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         if(conduct.excluded){input.question=conduct.otherQuestion;input.history=[];}
+        if(!input.images.length&&!questionKind(input.question).irrelevant){
+            const aid=aidPaymentsLookupContext(input.question,input.route,input.history);
+            const aidLink=aidPaymentsNavigation(input.question);
+            const aidAction=aid.foreign||aid.selection?.reason?null:aidPaymentsUnsupportedAction(input.question,aid);
+            if(aidAction){stream.send(200,aidPaymentsCapabilityGuide(input.question,aid,aidAction));return;}
+            if(aid.foreign||aid.selection||aidLink||aid.excluded&&!aid.otherQuestion){
+                stream.send(200,aidPaymentsGuide(input.question,aid,aidLink));
+                return;
+            }
+            if(aid.excluded){input.question=aid.otherQuestion;input.history=[];}
+        }
         const balanceQuestion=withoutExcludedTutorEvaluationClause(withoutExcludedClearanceClause(withoutExcludedCounselingClause(withoutExcludedHealthClause(input.question))));
         if(isOwnFeeBalanceQuestion(balanceQuestion)||balanceQuestion!==input.question&&ownFeeBalanceLabel(balanceQuestion)){
             const zh=/[\u3400-\u9fff]/u.test(input.question), url='/school-affairs/login?next='+encodeURIComponent('/school-affairs/services/39-1');
@@ -461,15 +474,6 @@ export function createResearchAssistantHandler(dependencies = {}) {
         }
         if (!kind.irrelevant && (isHealthExaminationNavigationQuestion(input.question)||healthExaminationQuestion(input.question))) {
             stream.send(200, healthExaminationGuide(input.question));
-            return;
-        }
-        const aidPayment=!input.images.length&&!kind.irrelevant?aidPaymentsQuestion(input.question):null;
-        if(aidPayment){
-            const url='/school-affairs/login?next='+encodeURIComponent(aidPaymentsPaths[aidPayment]);
-            const title=/[\u3400-\u9fff]/u.test(input.question)?'登入後查看助學請領紀錄':'Sign in to view student payment records';
-            stream.send(200,{status:'handoff',answer:'['+title+']('+url+')',
-                citations:[{chunkId:'directory:student-aid-payments',title,url,claim:title,sourceName:'School Affairs'}],
-                suggestedQuestions:[],grounding:{source:'directory',webSearched:false}});
             return;
         }
         const outline=!input.images.length&&!kind.irrelevant?elearningOutlineCourse(input.question,input.route):null;

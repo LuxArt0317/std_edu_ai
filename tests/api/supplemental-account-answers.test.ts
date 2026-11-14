@@ -210,6 +210,29 @@ test('aid saved text stays inert in rendered Markdown and Chinese retains litera
   assert.doesNotMatch(html,/href="https:\/\/private\.invalid"/);assert.match(output.answer,/未指定幣別/);assert.match(output.answer,/簽核結果: ` （空白） `/);
 });
 
+test('later salary pages link to their exact records, and an empty later page preserves the positive collection total',async()=>{
+  const expected=aidPaymentsPaths.salary+'?page=2';
+  const question='Show page 2 of my student salary.';
+  for(const total of [26,1]){
+    const source=await readAidPaymentsEvidence(account,{question},{read:async()=>({
+      userId:owner,view:'salary',total,rows:total>25?[aidRow('salary',26)]:[],
+    })});
+    const output=format([source],{question});
+    assert.equal(output.status,'answered');
+    assert.ok(output.answer.includes(']('+expected+')'));
+    assert.equal(output.citations[0].url,expected);
+    if(total>25)assert.match(output.answer,/Page 2 contains saved rows 26–26/);
+    else{
+      assert.match(output.answer,/Page 2 has no saved rows/);
+      assert.match(output.answer,/collection still has 1 record/);
+      assert.doesNotMatch(output.answer,/returned zero saved local records/);
+    }
+    const forged=structuredClone(source);forged.evidence.urls=[aidPaymentsPaths.salary];
+    assert.throws(()=>format([forged]),TypeError);
+    assert.throws(()=>format([replacePayload(source,(p:any)=>{p.views[0].page=1;})]),TypeError);
+  }
+});
+
 test('aid formatter rejects wrong sources, contradictory counts/states, unknown IDs and bank suffix injection',async()=>{
   const source=await aid('Show my student salary.');
   for(const change of [(p:any)=>{p.views[0].records[0].bank_last4='0921';},(p:any)=>{p.views[0].records[0].id=id(998);},(p:any)=>{p.views[0].counts.omitted=4;},

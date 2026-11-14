@@ -1,12 +1,12 @@
 import {AffairsWorkspaceError} from './affairsWorkspace.js';
 import {readFeeRemissionJson} from './feeRemissionContract.js';
-import {aidPaymentsPageSize,aidPaymentsScope,validAidPayments} from './aidPaymentsContract.js';
+import {aidPaymentsMaxPage,aidPaymentsPageSize,aidPaymentsScope,validAidPayments} from './aidPaymentsContract.js';
 
 export async function readAidPayments(account,query){
   const {scope,view,page='1',summary,...unknown}=query;
   if(scope!==aidPaymentsScope||Object.keys(unknown).length||!['claims','salary'].includes(view)||
     (summary!==undefined&&(summary!=='1'||page!=='1'))||
-    typeof page!=='string'||!/^[1-9]\d{0,2}$/.test(page)||Number(page)>201)
+    typeof page!=='string'||!/^[1-9]\d{0,2}$/.test(page)||Number(page)>aidPaymentsMaxPage)
     throw new AffairsWorkspaceError('Invalid student payment inquiry.',400);
   const unavailable=()=>new AffairsWorkspaceError('Student payment records are temporarily unavailable.',503);
   const timeout=Math.min(8000,(account.requestDeadline??Date.now()+8000)-Date.now());

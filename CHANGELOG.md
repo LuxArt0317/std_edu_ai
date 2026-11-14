@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Verify the requested page of a student's saved salary or aid claims in the assistant. Keep each amount with its saved period or reason and preserve page links, independent fee and timetable questions, and caller ownership. [#100]
+
 - Keep requests about the student’s own conduct history on the verified account path. Preserve literal conduct fields, respect excluded and foreign requests, and keep dormitory, tuition and timetable evidence separate. [#100]
 
 - Link public tutor questionnaire navigation directly to the questionnaire page. Personal status and note lookups preserve the sign-in return destination. [#100]

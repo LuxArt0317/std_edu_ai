@@ -147,3 +147,7 @@ Certificate awards use a bounded caller-JWT reader and send status fields only t
 ### Student conduct evidence
 
 `studentConductEvidenceScope.js` defines the same caller-owned conduct scope for the browser, API and graph. The native reader preserves the permitted database fields and omits student identity unless directly requested. It is a read-only local record source. The independent reviewer rechecks unsupported answers against fresh data.
+
+### Salary and aid claim evidence
+
+`aidPaymentsEvidenceIntent.js` validates the view, owner scope and page. `accountAidPaymentsEvidence.js` reads the requested page through the caller's existing session, preserves literal saved amounts and omits bank and row identifiers. The evidence separates collection totals from returned and included page rows. A failed review refreshes the selected source before correction.

@@ -17,18 +17,19 @@ test('salary and claims are distinct and full bank numbers fail response validat
   assert.equal(validAidPayments({...envelope,rows:[{...salary,user_id:id}]},id,'salary'),false);
 });
 
-test('guest payment questions only get a sign-in link before external retrieval',async()=>{
+test('guest payment questions get a direct navigation link or private-record sign-in link without retrieval',async()=>{
   const fail=()=>{throw new Error('Unexpected public retrieval');};
   const handler=createResearchAssistantHandler({readSources:fail,loadPublicPage:fail});
-  for(const [question,view] of [['Where can I see my student salary?','salary'],['Where are my student aid claims?','claims']] as const){
+  for(const [question,view,navigation] of [['Where can I see my student salary?','salary',true],['Where are my student aid claims?','claims',true],
+    ['What is my student salary?','salary',false],['What is the amount on my student aid claim?','claims',false]] as const){
     let status=0;
     let result:unknown;
     const response={status(value:number){status=value;return response;},json(value:unknown){result=value;},setHeader(){}};
     await handler({method:'POST',headers:{'x-real-ip':'203.0.113.27'},body:{question}},response);
     assert.equal(status,200);
     const payload=result as {status:string;citations:Array<{url:string}>;grounding:{webSearched:boolean}};
-    assert.equal(payload.status,'handoff');
-    assert.equal(payload.citations[0].url,'/school-affairs/login?next='+encodeURIComponent(aidPaymentsPaths[view]));
+    assert.equal(payload.status,navigation?'answered':'handoff');
+    assert.equal(payload.citations[0].url,navigation?aidPaymentsPaths[view]:'/school-affairs/login?next='+encodeURIComponent(aidPaymentsPaths[view]));
     assert.equal(payload.grounding.webSearched,false);
   }
 });

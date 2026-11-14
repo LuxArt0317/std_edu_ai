@@ -205,3 +205,9 @@ The standalone 80-question packet covers seven services (27-1, 30-1, 30-2, 31-1,
 ### Student conduct at 38-1
 
 The browser dispatch uses the verified account path for native conduct and nearby privacy or navigation requests. The conduct reader checks the signed-in account and returns literal saved cells, including blank and zero. Compound tuition and timetable requests use separate account sources. A campus conduct report and a dormitory notice have separate tools. The browser, injected HTTP and graph tests check foreign denial, latest exclusion, public and sign-in return links, independent evidence and retry. Signed-in provider evaluation remains pending.
+
+### Aid claims and salary at 37-1
+
+The focused API tests exercise direct account and guest navigation, wrong owners, skipped reads, page selection, stale history, and an actual caller-scoped reader behind the verification graph with synthetic HTTP. The reader uses the same saved ordering and 25-row pagination as the visible page. Rejected drafts cause a fresh read of the same selected page. The tests distinguish a failed read, zero total, an empty later page and null financial fields.
+
+Run `node --experimental-strip-types --test tests/api/aid-payments-assistant-routing.test.ts tests/api/account-aid-payments-evidence.test.ts`. These tests use synthetic credentials and responses. The independent aid question bank and its observation checks are offline. They do not count toward signed-in acceptance on a protected deployment.

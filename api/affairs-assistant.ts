@@ -18,7 +18,8 @@ import {healthExaminationGuide} from '../server/healthExaminationContract.js';
 import {readStudentConductEvidence} from '../server/accountStudentConductEvidence.js';
 import {readStudentLoanEvidence} from '../server/accountStudentLoanEvidence.js';
 import {readAidPaymentsEvidence} from '../server/accountAidPaymentsEvidence.js';
-import {isForeignAidPaymentsQuestion} from '../server/aidPaymentsEvidenceIntent.js';
+import {aidPaymentsLookupContext,aidPaymentsNavigation} from '../server/aidPaymentsEvidenceIntent.js';
+import {aidPaymentsCapabilityGuide,aidPaymentsGuide,aidPaymentsUnsupportedAction} from '../server/aidPaymentsGuide.js';
 import {readDtmGradeReportEvidence} from '../server/accountDtmGradeReportEvidence.js';
 import {isForeignDtmGradesQuestion} from '../server/dtmGradeEvidenceIntent.js';
 import {independentElearningQuestion,isElearningEvidenceQuestion,isForeignElearningRecordsQuestion} from '../server/elearningEvidenceIntent.js';
@@ -232,7 +233,20 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const foreignRepair=isForeignFacilityRepairQuestion(question);
   const pageContext=nativePageLookupContext(notes.keys.length?notes.otherQuestion:question,notes.keys.length?'':route,notes.keys.length?[]:history);
   const scopedQuestion=withoutExcludedNativePageClause(question);
-  if(foreignDtmGrades||foreignElearning||foreignRepair||pageContext.foreign||isForeignAidPaymentsQuestion(scopedQuestion)){
+  const aidQuestion=notes.keys.length?notes.otherQuestion:scopedQuestion;
+  const aid=aidPaymentsLookupContext(aidQuestion,notes.keys.length?'':route,notes.keys.length?[]:history);
+  const aidLink=notes.keys.length?null:aidPaymentsNavigation(aidQuestion);
+  if(aid.foreign||!aid.otherQuestion&&(aid.excluded||aid.selection?.reason)||aidLink&&!(Array.isArray(input?.images)&&input.images.length)){
+    stream.send(200,aidPaymentsGuide(scopedQuestion,aid,aidLink));
+    return;
+  }
+  const aidAction=notes.keys.length?null:aidPaymentsUnsupportedAction(aidQuestion,aid);
+  if(aidAction){stream.send(200,aidPaymentsCapabilityGuide(aidQuestion,aid,aidAction));return;}
+  const aidFees=Boolean(aid.selection&&aid.otherQuestion&&(isOwnFeeBalanceQuestion(aid.otherQuestion)||ownFeeBalanceLabel(aid.otherQuestion)!==null));
+  const aidNext=Boolean(aid.selection&&isServiceNoteNextClass(aid.otherQuestion));
+  const aidOnly=Boolean(aid.selection&&!aid.otherQuestion);
+  if(aid.excluded&&aid.otherQuestion){question=aid.otherQuestion;history=[];}
+  if(foreignDtmGrades||foreignElearning||foreignRepair||pageContext.foreign){
     const chinese=/[\u3400-\u9fff]/u.test(question);
     const records=foreignDtmGrades?(chinese?'數位教材成績紀錄':'Moodle grade records')
       :foreignElearning?(chinese?'數位學園紀錄':'remote-learning Moodle records')
@@ -242,8 +256,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
           :pageContext.foreign&&pageContext.tools.includes('counselingAppointments')?(chinese?'諮商預約紀錄':'counseling appointments')
           :pageContext.foreign&&pageContext.tools.includes('tutorEvaluation')?(chinese?'導師問卷紀錄':'tutor evaluation records')
           :pageContext.foreign&&pageContext.tools.includes('graduationClearance')?(chinese?'畢業離校紀錄':'graduation clearance records')
-          :pageContext.foreign?(chinese?'宿舍獎懲或數位學園課程紀錄':'dormitory conduct or remote-learning course records')
-            :(chinese?'薪資或助學請款紀錄':'salary or aid claim records');
+          :(chinese?'宿舍獎懲或數位學園課程紀錄':'dormitory conduct or remote-learning course records');
     const answer=chinese?`我只能查詢您登入的 stu.best 帳戶，無法存取其他學生的${records}。`
       :`I can only check your signed-in stu.best account. I can’t show another student’s ${records}.`;
     stream.progress('account-access',chinese?'已確認帳戶範圍':'Checked account access',answer,'complete');
@@ -288,10 +301,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   }
   const noteFees=notes.keys.length>0&&(isOwnFeeBalanceQuestion(notes.otherQuestion)||ownFeeBalanceLabel(notes.otherQuestion)!==null);
   const noteNext=notes.keys.length>0&&isServiceNoteNextClass(notes.otherQuestion);
-  const chargeLabel=pageContext.feeChargeLabel??(noteFees?ownFeeBalanceLabel(notes.otherQuestion):scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):null);
-  const chargesOnly=isOwnFeeBalanceQuestion(scopedQuestion)||pageContext.feeAndBalance||chargeLabel!==null&&!noteFees;
-  const timetableOnly=Boolean(clearanceTimetableQuestion(question,pageContext));
-  const needsRecords=conduct.selected || notes.keys.length>0 || chargesOnly || timetableOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
+  const chargeLabel=pageContext.feeChargeLabel??(noteFees?ownFeeBalanceLabel(notes.otherQuestion):aidFees?ownFeeBalanceLabel(aid.otherQuestion):aid.excluded?ownFeeBalanceLabel(question):scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):null);
+  const chargesOnly=isOwnFeeBalanceQuestion(aid.excluded?question:scopedQuestion)||pageContext.feeAndBalance||aidFees||chargeLabel!==null&&!noteFees;
+  const timetableOnly=Boolean(clearanceTimetableQuestion(question,pageContext))||aidNext;
+  const needsRecords=Boolean(aid.selection) || conduct.selected || notes.keys.length>0 || chargesOnly || timetableOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
   const navigation=!needsRecords && !(Array.isArray(input?.images) && input.images.length) && !questionKind(question).irrelevant
     ? answerCampusNavigation(question) : null;
   if(navigation) {
@@ -326,7 +339,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const repairContext=facilityRepairLookupContext(residual,route,history),repairOnly=repairContext.repairOnly;
     const ownNoteRead=notes.keys.length>0;
     const noteScopeOnly=ownNoteRead&&(!notes.otherQuestion||noteFees||noteNext);
-    const selectedReaderOnly=!chargesOnly&&!timetableOnly&&(noteScopeOnly||pageContext.readerOnly||remoteOnly||repairOnly);
+    const selectedReaderOnly=!chargesOnly&&!timetableOnly&&(noteScopeOnly||pageContext.readerOnly||remoteOnly||repairOnly||aidOnly);
     const scopedSnapshot=()=>({checkedAt:new Date().toISOString(),profile:{userId:account.user.id}});
     if(selectedReaderOnly)stream.progress('account','Checked account access','The selected reader uses this signed-in Google account.','complete');
     else stream.progress('account','Loading your account records',timetableOnly?'Checking the timetable linked to this Google account.':chargesOnly?'Checking only the fees linked to this Google account.':'Checking School Affairs and DTM records for this signed-in Google account.');
@@ -336,7 +349,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         const normalize=(value:string)=>value.normalize('NFKC').trim().toLowerCase();
         return chargeLabel?{...saved,chargeSelectionLabel:chargeLabel,charges:saved.charges.filter(row=>normalize(row.label)===normalize(chargeLabel))}:saved;
       }catch(error){
-        if(!pageContext.feeAndBalance&&!noteFees)throw error;
+        if(!pageContext.feeAndBalance&&!noteFees&&!aidFees)throw error;
         const charges:Awaited<ReturnType<typeof loadOwnAffairsCharges>>['charges']=[];
         return {...scopedSnapshot(),charges,chargeReadUnavailable:true};
       }
@@ -377,7 +390,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       dtmSubmissions:context=>readers.dtmSubmissions(account,{question:residual||question,route,history,snapshot:context.snapshot,deadline:readDeadline(context.deadline)}),
       studentConduct:context=>readers.studentConduct(account,{question:pageContext.questions.studentConduct||conduct.question||residual||question,route,history,deadline:readDeadline(context.deadline)}),
       studentLoan:context=>readers.studentLoan(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
-      aidPayments:context=>readers.aidPayments(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
+      aidPayments:context=>readers.aidPayments(account,{question:aid.selection?.question||residual||question,route,history,deadline:readDeadline(context.deadline)}),
       dtmGradeReport:context=>readers.dtmGradeReport(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
       elearningEnrollments:context=>readers.elearningEnrollments(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
       facilityRepairs:context=>readers.facilityRepairs(account,{question:repairContext.repairQuestion,route,history,deadline:readDeadline(context.deadline)}),

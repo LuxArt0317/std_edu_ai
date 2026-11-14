@@ -7,6 +7,7 @@ import { referenceAsset } from '../site/reference';
 import SchoolAffairsPortal from './SchoolAffairsPortal';
 import { useAffairsAuth } from './authContext';
 import { affairsCallbackPath, completeGoogleSignIn, consumeGoogleReturnPath, safeSchoolReturnPath, startGoogleSignIn, signOutAffairs } from './authClient';
+import { aidPaymentsPaths } from '../../../../server/aidPaymentsContract.js';
 import './login.css';
 import { SchoolAffairsPrivacy } from './SchoolAccountRecords';
 import { permanentCoursesPath } from './permanentCourseRouting.js';
@@ -94,7 +95,7 @@ export default function SchoolAffairsEntry() {
   if (pathname !== '/school-affairs/login') {
     const ordinaryTarget = safeSchoolReturnPath(pathname + hash);
     const barePath = pathname.replace(/\/$/,'');
-    const target = barePath === healthExaminationPath
+    const target = barePath === healthExaminationPath || Object.values(aidPaymentsPaths).includes(barePath)
       ? safeSchoolReturnPath(barePath + search + hash,ordinaryTarget)
       : [permanentCoursesPath,venuePaths.schedule,adjustmentPaths.summer,adjustmentPaths.summer+'/notice','/school-affairs/services/11-1'].includes(barePath)
         ? safeSchoolReturnPath(pathname + search + hash,ordinaryTarget) : ordinaryTarget;

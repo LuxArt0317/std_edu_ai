@@ -105,4 +105,4 @@ export function isServiceNoteEvidenceQuestion(question,route='',history=[]) {
   return lookup.foreign||lookup.invalidService||lookup.excluded||lookup.keys.length>0||lookup.officialOnly;
 }
 
-export const isServiceNoteNextClass = value => /^(?:(?:please|show me|tell me|what(?: time)?(?: is|'s)|when is)\s+)*(?:my\s+)?next (?:scheduled )?class$|^(?:告訴我|請問|查詢|我的)*(?:下一堂課|下堂課)(?:是什麼|是甚麼|的時間)?$/iu.test(value);
+export const isServiceNoteNextClass = value => /^(?:(?:(?:please|show me|tell me|what(?: time)?(?: is|['’]s)|when is)\s+)*(?:my\s+)?next (?:scheduled )?class|(?:what|which) class do i have next)$|^(?:告訴我|請問|查詢|我的)*(?:下一堂課|下堂課)(?:是什麼|是甚麼|的時間)?$/iu.test(value);

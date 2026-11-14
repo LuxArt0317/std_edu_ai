@@ -5,7 +5,7 @@ import { clubOfficerGuide,clubOfficerQuestion } from '../../server/clubOfficerCo
 import { clubGuide,clubIntent } from '../../server/clubServicesContract.js';
 import { healthExaminationQuestion } from '../../server/healthExaminationContract.js';
 import {elearningGuide,elearningQuestion} from '../../server/elearningContract.js';
-import {isAidPaymentsEvidenceQuestion,isForeignAidPaymentsQuestion} from '../../server/aidPaymentsEvidenceIntent.js';
+import {isAidPaymentsScopeQuestion} from '../../server/aidPaymentsEvidenceIntent.js';
 import {isForeignDtmGradesQuestion,shouldReadNativeDtmGrades} from '../../server/dtmGradeEvidenceIntent.js';
 import {isElearningEvidenceQuestion,isForeignElearningRecordsQuestion} from '../../server/elearningEvidenceIntent.js';
 import {isFacilityRepairEvidenceQuestion,isForeignFacilityRepairQuestion} from '../../server/facilityRepairEvidenceIntent.js';
@@ -56,7 +56,7 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
   if (data.session.user.id !== expectedUserId) throw new Error('Your account changed. Reopen the assistant and try again.');
   const {access_token:accessToken}=data.session;
-  if (isAidPaymentsEvidenceQuestion(question,route,history)||isForeignAidPaymentsQuestion(question)
+  if (isAidPaymentsScopeQuestion(question,route,history)
     ||isForeignDtmGradesQuestion(question,route)||shouldReadNativeDtmGrades(question,route,history)
     ||isElearningEvidenceQuestion(question,route,history)||isForeignElearningRecordsQuestion(question,route)
     ||isFacilityRepairEvidenceQuestion(question,route,history)||isForeignFacilityRepairQuestion(question)

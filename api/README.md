@@ -90,3 +90,7 @@ Certificate awards use the caller-scoped `certificate-awards` scope and dedicate
 ### Student conduct questions
 
 A request for a student's own conduct records uses its dedicated source at 38-1. A direct question about tuition or the next class can use its independent source in the same response. Public form navigation returns 38-1, while private lookup guidance preserves the 38-1 return path through sign-in.
+
+### Salary and aid claim questions
+
+The verified School Affairs assistant forwards the exact 37-1 claims or salary page to the existing caller-scoped RPC. Guests receive navigation or a sign-in return link. An invalid page or another student's records are handled before any read.

@@ -105,7 +105,7 @@ export function inspectClientDispatchSource(source){
   const first=graphCalls[0];
   const verifiedDispatch=entry.body.statements.find(node=>ts.isIfStatement(node)&&ts.isReturnStatement(node.thenStatement)
     &&node.thenStatement.expression?.getStart(file)===first.at);
-  const graphPredicates={isAidPaymentsEvidenceQuestion:['aidPaymentsEvidenceIntent','question,route,history'],isForeignAidPaymentsQuestion:['aidPaymentsEvidenceIntent','question'],
+  const graphPredicates={isAidPaymentsScopeQuestion:['aidPaymentsEvidenceIntent','question,route,history'],
     isForeignDtmGradesQuestion:['dtmGradeEvidenceIntent','question,route'],shouldReadNativeDtmGrades:['dtmGradeEvidenceIntent','question,route,history'],
     isElearningEvidenceQuestion:['elearningEvidenceIntent','question,route,history'],isForeignElearningRecordsQuestion:['elearningEvidenceIntent','question,route'],
     isFacilityRepairEvidenceQuestion:['facilityRepairEvidenceIntent','question,route,history'],isForeignFacilityRepairQuestion:['facilityRepairEvidenceIntent','question'],
