@@ -2,6 +2,8 @@
 
 Service 6-5 reads saved summer eligibility and has a dated notice and summer history link. See [summer selection QA](../qa/SUMMER_SELECTION.md).
 
+Production `12c9f7a` is live as Vercel `Dh8ssmVGAF1xZRdx5TNeH7Ynyg43`. Migration 20261114200000 brings the client to 154 migrations and 182 RLS-protected public tables. The pinned summer and existing add/drop browser checks, actual-JWT summer HTTP with exact cleanup, five guest assistant replies, eight shell routes and Quality 43542947470 passed. The local 94-destination audit reports 34 generic and 20 partial entries.
+
 ## Facilities repair (Issue #98)
 
 Service 45-1 has the observed area picker, equipment selection, report form and progress table, with private records and an administrator queue. The campus assistant reads the signed-in user's report status. See [facility repair QA](../qa/FACILITY_REPAIR.md) for the source boundary and verification.

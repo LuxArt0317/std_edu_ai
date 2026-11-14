@@ -1,6 +1,8 @@
 ## Summer course selection [Issue #98]
 
-The previous goal turn made progress by deploying the facility repair form and its Supabase catalogs. The signed-in summer selection source showed a missing-college notice. Service 6-5 now has that screen, separately stored term decisions and the public academic year 114 notice. The client installed migration 20261114200000. The eligible university registration and payment screens remain unobserved. Production acceptance is pending.
+Production `12c9f7a` is live as Vercel `Dh8ssmVGAF1xZRdx5TNeH7Ynyg43`. Migration 20261114200000 brings the client to 154 migrations and 182 RLS-protected public tables. The pinned summer and existing add/drop browser checks, actual-JWT summer HTTP with exact cleanup, five guest assistant replies, eight shell routes and Quality 43542947470 passed. The local 94-destination audit reports 34 generic and 20 partial entries.
+
+The signed-in university summer registration and payment screens remain unobserved beyond the eligibility notice. Service 8-1 opened a student information confirmation table with one editable mobile number field and a confirmation action. The next workflow should reproduce the form and save caller-owned confirmations without using the observed personal values.
 
 ## Facilities repair [Issue #98]
 

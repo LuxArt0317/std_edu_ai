@@ -15,3 +15,9 @@ Migration `20261114200000` extends the existing eligibility table and audited mu
 - `node tests/integration/course-adjustment-db.mjs --summer-deployed` verifies the installed migration in a rollback transaction, including old and new phases, account isolation and retry behavior.
 - `node --experimental-strip-types tests/integration/course-adjustment-http.mjs --verify-client --summer` verifies real authenticated HTTP handlers and removes its disposable accounts.
 - `node tests/integration/summer-selection-ui.mjs` verifies the source-shaped notice, retry, mobile fit, preserved sign-in return, assistant and exact summer history link. Set `PUBLIC_SITE_ORIGIN=https://stu.best` and `EXPECTED_RELEASE_REVISION` for the deployed browser.
+
+## Deployed evidence
+
+Production `12c9f7a` is live as Vercel `Dh8ssmVGAF1xZRdx5TNeH7Ynyg43`. Migration 20261114200000 brings the client to 154 migrations and 182 RLS-protected public tables. The pinned summer and existing add/drop browser checks, actual-JWT summer HTTP with exact cleanup, five guest assistant replies, eight shell routes and Quality 43542947470 passed. The local 94-destination audit reports 34 generic and 20 partial entries.
+
+The signed-in university summer registration and payment screens remain unobserved beyond the eligibility notice. Service 8-1 opened a student information confirmation table with one editable mobile number field and a confirmation action. The next workflow should reproduce the form and save caller-owned confirmations without using the observed personal values.

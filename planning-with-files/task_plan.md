@@ -6,7 +6,7 @@
 - [x] Add account-scoped summer decisions and the public notice with exact-year lookup.
 - [x] Connect the source-shaped page, administration, history link and campus assistant.
 - [x] Apply the summer migration after rollback verification.
-- [ ] Verify the pinned release with browser, authenticated HTTP and guest assistant checks.
+- [x] Verify the pinned release with browser, authenticated HTTP and guest assistant checks.
 - [ ] Compare the eligible university registration, availability and payment workflow.
 
 
