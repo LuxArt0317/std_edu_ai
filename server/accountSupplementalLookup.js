@@ -1,3 +1,4 @@
+import {studentConductScope} from './studentConductEvidenceScope.js';
 import {selectTutorEvaluationEvidence,isTutorEvaluationFieldClause,withoutExcludedTutorEvaluationClause} from './tutorEvaluationEvidenceIntent.js';
 import {tutorEvaluationEvidenceMaxBytes,unavailableTutorEvaluationEvidence} from './accountTutorEvaluationEvidence.js';
 import {selectClearanceEvidence,isClearanceFieldClause,withoutExcludedClearanceClause,isExactClearanceNextClassQuestion} from './clearanceEvidenceIntent.js';
@@ -92,8 +93,16 @@ function isFeeRemissionFollowup(part,operation){
  * selectors still decide identity/IDs. Residual text is untrusted query context,
  * never evidence; uncertain clauses stay with the normal planner. */
 export function nativePageLookupContext(question,route='',history=[]){
-  const selections={dormitoryConduct:selectDormitoryConductEvidence(question,route,history),elearningOutline:selectElearningOutlineEvidence(question,route,history),feeRemission:selectFeeRemissionEvidence(question,route,history),healthExaminations:selectHealthExaminationEvidence(question,route,history),counselingAppointments:selectCounselingEvidence(question,route,history),graduationClearance:selectClearanceEvidence(question,route,history),tutorEvaluation:selectTutorEvaluationEvidence(question,route,history)};
+  const studentConduct=studentConductScope(question,route,history);
+  const selections={studentConduct:studentConduct.selected||studentConduct.foreign?studentConduct:null,dormitoryConduct:selectDormitoryConductEvidence(question,route,history),elearningOutline:selectElearningOutlineEvidence(question,route,history),feeRemission:selectFeeRemissionEvidence(question,route,history),healthExaminations:selectHealthExaminationEvidence(question,route,history),counselingAppointments:selectCounselingEvidence(question,route,history),graduationClearance:selectClearanceEvidence(question,route,history),tutorEvaluation:selectTutorEvaluationEvidence(question,route,history)};
   const tools=Object.keys(selections).filter(key=>selections[key]);
+  if(tools.length===1&&selections.studentConduct){
+    const residual=studentConduct.otherQuestion;
+    const feeChargeLabel=ownFeeBalanceLabel(residual);
+    return {tools,selected:true,readerOnly:!residual,otherQuestion:residual,questions:{studentConduct:studentConduct.question},
+      foreign:studentConduct.foreign,feeAndBalance:feeChargeLabel!==null||isOwnFeeBalanceQuestion(residual),feeChargeLabel,
+      clearanceAndNextClass:isExactClearanceNextClassQuestion(residual)};
+  }
   if(!tools.length)return {tools,selected:false,readerOnly:false,otherQuestion:question,questions:{},foreign:false,feeAndBalance:false,feeChargeLabel:null,clearanceAndNextClass:false};
   const unquoted=value=>value.replace(/["]([^"\n]*)["]|“[^”]*”|「[^」]*」/gu,'');
   const comparative=/\b(?:compare|versus|difference between)\b|比較/iu.test(question);
@@ -132,6 +141,10 @@ export function nativePageLookupContext(question,route='',history=[]){
       for(let cursor=index+1;parts[cursor]&&isClearanceFieldClause(parts[cursor]);cursor++)clearanceClauses.add(cursor);
     }
   }
+  const studentConductClauses=new Set();
+  if(selections.studentConduct){
+    parts.forEach((part,index)=>{if(studentConductScope(part,'',[]).selected)studentConductClauses.add(index);});
+  }
   const tutorClauses=new Set();
   if(selections.tutorEvaluation){
     parts.forEach((part,index)=>{if(selectTutorEvaluationEvidence(part))tutorClauses.add(index);});
@@ -150,6 +163,7 @@ export function nativePageLookupContext(question,route='',history=[]){
     if(feeClauses.has(index)){collected.feeRemission.push(part);previous='feeRemission';continue;}
     if(healthClauses.has(index)){collected.healthExaminations.push(part);previous='healthExaminations';continue;}
     if(counselingClauses.has(index)){collected.counselingAppointments.push(part);previous='counselingAppointments';continue;}
+    if(studentConductClauses.has(index)){collected.studentConduct.push(part);previous='studentConduct';continue;}
     if(tutorClauses.has(index)){collected.tutorEvaluation.push(part);previous='tutorEvaluation';continue;}
     if(clearanceClauses.has(index)){collected.graduationClearance.push(part);previous='graduationClearance';continue;}
     const domain=tools.filter(key=>key==='dormitoryConduct'?Boolean(selectDormitoryConductEvidence(part,'',[]))
@@ -172,12 +186,12 @@ export function nativePageLookupContext(question,route='',history=[]){
   }
   // A short contextual follow-up can have no independently named subject.
   if(parts.length===1&&!independent.test(unquoted(question))&&tools.length===1){collected[tools[0]]=[question];other.length=0;}
-  const questions=Object.fromEntries(tools.map(key=>[key,key==='feeRemission'||key==='healthExaminations'||key==='counselingAppointments'||key==='graduationClearance'||key==='tutorEvaluation'?question:collected[key].length?collected[key].join(' and '):question]));
+  const questions=Object.fromEntries(tools.map(key=>[key,key==='studentConduct'?studentConduct.question:key==='feeRemission'||key==='healthExaminations'||key==='counselingAppointments'||key==='graduationClearance'||key==='tutorEvaluation'?question:collected[key].length?collected[key].join(' and '):question]));
   const balanceQuestion=other.length===1?other[0].replace(/^(?:(?:also|then|separately|please)\s+)+|\s+separately$/giu,''):'';
-  const scopedBalance=Boolean(selections.feeRemission||selections.healthExaminations||selections.counselingAppointments||selections.tutorEvaluation);
+  const scopedBalance=Boolean(selections.feeRemission||selections.healthExaminations||selections.counselingAppointments||selections.tutorEvaluation||selections.studentConduct);
   const feeChargeLabel=scopedBalance?ownFeeBalanceLabel(balanceQuestion):null;
   const feeAndBalance=scopedBalance&&(isOwnFeeBalanceQuestion(balanceQuestion)||feeChargeLabel!==null);
-  const clearanceAndNextClass=Boolean(selections.graduationClearance)&&other.length===1&&isExactClearanceNextClassQuestion(other[0]);
+  const clearanceAndNextClass=Boolean(selections.graduationClearance||selections.studentConduct)&&other.length===1&&isExactClearanceNextClassQuestion(other[0]);
   return {tools,selected:true,readerOnly:other.length===0,otherQuestion:other.join(' and '),questions,feeAndBalance,feeChargeLabel,clearanceAndNextClass,
     foreign:tools.some(key=>selections[key].reason==='foreign_request')};
 }

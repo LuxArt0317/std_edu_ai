@@ -201,3 +201,7 @@ The independent packet covers 33 scenarios, with 27 planned live cases and six o
 ### Private tracking notes
 
 The standalone 80-question packet covers seven services (27-1, 30-1, 30-2, 31-1, 31-2, 32-1 and 35-1). `tests/api/service-notes-assistant-graph.test.ts` checks the actual graph and API against injected Supabase and model transports. `tests/integration/service-notes-assistant-dispatch-ui.mjs` tests the seven rendered pages using synthetic browser authentication. The packet still requires a live fixture adapter, approved protected Preview access and runner readback before live release acceptance.
+
+### Student conduct at 38-1
+
+The browser dispatch uses the verified account path for native conduct and nearby privacy or navigation requests. The conduct reader checks the signed-in account and returns literal saved cells, including blank and zero. Compound tuition and timetable requests use separate account sources. A campus conduct report and a dormitory notice have separate tools. The browser, injected HTTP and graph tests check foreign denial, latest exclusion, public and sign-in return links, independent evidence and retry. Signed-in provider evaluation remains pending.

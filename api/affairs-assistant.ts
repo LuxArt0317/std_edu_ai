@@ -1,3 +1,5 @@
+import {studentConductScope} from '../server/studentConductEvidenceScope.js';
+import {studentConductGuide} from '../server/studentConductGuide.js';
 import {isServiceNoteNextClass,serviceNoteLookup} from '../server/serviceNoteIntent.js';
 import {serviceNoteGuide} from '../server/serviceNoteGuide.js';
 import {readTutorEvaluationEvidence} from '../server/accountTutorEvaluationEvidence.js';
@@ -216,6 +218,15 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     question=notes.otherQuestion;
     history=[];
   }
+  const conduct=studentConductScope(question,route,history);
+  const conductNavigation=conduct.navigation&&Boolean(conduct.otherQuestion||conduct.selected)?studentConductGuide(question,conduct,true):null;
+  if(conduct.foreign||conduct.navigation&&!conductNavigation&&!conduct.selected||conduct.excluded&&!conduct.selected&&!conduct.otherQuestion){
+    stream.send(200,studentConductGuide(question,conduct,true));
+    return;
+  }
+  if((conduct.excluded||conductNavigation)&&!conduct.selected){question=conduct.otherQuestion;history=[];}
+  const withConductLink=<T extends {answer:string;citations?:unknown[]}>(answer:T)=>conductNavigation
+    ?{...answer,answer:[conductNavigation.answer,answer.answer].join('\n\n'),citations:[...conductNavigation.citations,...(answer.citations??[])]}:answer;
   const foreignDtmGrades=isForeignDtmGradesQuestion(question,route);
   const foreignElearning=isForeignElearningRecordsQuestion(question,route);
   const foreignRepair=isForeignFacilityRepairQuestion(question);
@@ -271,7 +282,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       if(answer.proposedAction||Array.isArray(answer.views)&&answer.views.length)throw new Error('Unexpected private output from coaching.');
       stream.progress('guidance',answer.verification?.status==='verified'?'Answer ready':'Verification incomplete',
         answer.verification?.status==='verified'?'The guidance passed the independent checks.':'The unchecked draft was withheld.',answer.verification?.status==='verified'?'complete':'unavailable');
-      stream.send(200,answer);
+      stream.send(200,withConductLink(answer));
     }catch{stream.send(503,{error:'The guidance could not be checked. Please try again.'});}
     return;
   }
@@ -280,12 +291,12 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const chargeLabel=pageContext.feeChargeLabel??(noteFees?ownFeeBalanceLabel(notes.otherQuestion):scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):null);
   const chargesOnly=isOwnFeeBalanceQuestion(scopedQuestion)||pageContext.feeAndBalance||chargeLabel!==null&&!noteFees;
   const timetableOnly=Boolean(clearanceTimetableQuestion(question,pageContext));
-  const needsRecords=notes.keys.length>0 || chargesOnly || timetableOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
+  const needsRecords=conduct.selected || notes.keys.length>0 || chargesOnly || timetableOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
   const navigation=!needsRecords && !(Array.isArray(input?.images) && input.images.length) && !questionKind(question).irrelevant
     ? answerCampusNavigation(question) : null;
   if(navigation) {
     stream.progress('directory','Checked campus services','Found a verified service link.','complete');
-    stream.send(200,navigation);
+    stream.send(200,withConductLink(navigation));
     return;
   }
   if(!needsRecords) {
@@ -304,7 +315,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       const result=research.result as Record<string,unknown>|null;
       if(!result || typeof result!=='object' || Array.isArray(result) || (!research.ok && typeof result.error!=='string')) {stream.send(502,{error:'School research returned an invalid response.'});return;}
       stream.progress('public','Checked public information','The public school lookup finished.','complete');
-      stream.send(research.status,result);
+      stream.send(research.status,conductNavigation&&typeof result.answer==='string'?withConductLink({...result,answer:result.answer}):result);
     } catch {stream.send(503,{error:'School research is temporarily unavailable. Please try again.'});}
     return;
   }
@@ -364,7 +375,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       courseCatalog:context=>readers.courseCatalog(account,{question:residual||question,route,query:context.catalogQuery,deadline:readDeadline(context.deadline)}),
       enrollmentCertificate:context=>readers.enrollmentCertificate(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
       dtmSubmissions:context=>readers.dtmSubmissions(account,{question:residual||question,route,history,snapshot:context.snapshot,deadline:readDeadline(context.deadline)}),
-      studentConduct:context=>readers.studentConduct(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
+      studentConduct:context=>readers.studentConduct(account,{question:pageContext.questions.studentConduct||conduct.question||residual||question,route,history,deadline:readDeadline(context.deadline)}),
       studentLoan:context=>readers.studentLoan(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
       aidPayments:context=>readers.aidPayments(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
       dtmGradeReport:context=>readers.dtmGradeReport(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
@@ -389,7 +400,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     if(!notes.keys.length&&notes.officialOnly){
       const boundary=serviceNoteGuide(question,notes,true);
       stream.send(200,{...answer,answer:[boundary.answer,answer.answer].join('\n\n'),citations:[...boundary.citations,...answer.citations]});
-    }else stream.send(200,answer);
+    }else stream.send(200,withConductLink(answer));
   } catch(error) {
     stream.send(error instanceof AffairsWorkspaceError?error.status:503,{error:error instanceof AffairsWorkspaceError?error.message:'Your School Affairs records could not be checked.'});
   }

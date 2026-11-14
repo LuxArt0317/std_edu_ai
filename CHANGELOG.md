@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Keep requests about the student’s own conduct history on the verified account path. Preserve literal conduct fields, respect excluded and foreign requests, and keep dormitory, tuition and timetable evidence separate. [#100]
+
 - Link public tutor questionnaire navigation directly to the questionnaire page. Personal status and note lookups preserve the sign-in return destination. [#100]
 - Verify the signed-in user's private tracking notes for learning support, injury, equipment borrowing, international work and rental, campus service, and group insurance. Honor excluded services and keep any requested balance or next class tied to its own records. [#100]
 

@@ -86,3 +86,7 @@ Certificate awards use the caller-scoped `certificate-awards` scope and dedicate
 ### Private service notes in the account assistant
 
 `POST /api/affairs-assistant` accepts the signed-in caller’s question. A request for the selected service notes uses their existing Google session. Pure notes, note plus fee balance, and note plus next class use scoped reads. Other supported account clauses can use the existing workspace or their dedicated readers. The API returns an own-account boundary for foreign requests and a link to the service page when the requested official workflow is unavailable.
+
+### Student conduct questions
+
+A request for a student's own conduct records uses its dedicated source at 38-1. A direct question about tuition or the next class can use its independent source in the same response. Public form navigation returns 38-1, while private lookup guidance preserves the 38-1 return path through sign-in.

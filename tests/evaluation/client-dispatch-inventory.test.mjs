@@ -21,6 +21,7 @@ test('the five direct readers and verified graph dispatch remain separately visi
     {id:'counseling-appointments',graphTool:'counselingAppointments'},
     {id:'graduation-clearance',graphTool:'graduationClearance'},
     {id:'tutor-evaluation',graphTool:'tutorEvaluation'},
+    {id:'student-conduct',graphTool:'studentConduct'},
     {id:'local-service-notes',graphTool:'serviceRecords'},
   ]);
   for(const service of inventory.services){

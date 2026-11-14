@@ -1,3 +1,4 @@
+import {isStudentConductScopeQuestion} from '../../server/studentConductEvidenceScope.js';
 import { clubStudentQuestion } from '../../server/clubStudentContract.js';
 import { answerStudentClubs } from './clubStudent';
 import { clubOfficerGuide,clubOfficerQuestion } from '../../server/clubOfficerContract.js';
@@ -64,7 +65,7 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
     ||isCounselingEvidenceQuestion(question,route,history)||counselingQuestion(question)
     ||isClearanceEvidenceQuestion(question,route,history)||clearanceQuestion(question)
     ||isTutorEvaluationEvidenceQuestion(question,route,history)||tutorEvaluationNavigation(question)
-    ||isServiceNoteEvidenceQuestion(question,route,history))
+    ||isStudentConductScopeQuestion(question,route,history)||isServiceNoteEvidenceQuestion(question,route,history))
     return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress);
   const officer = !images.length ? clubOfficerQuestion(question) : null;
   if (officer) return clubOfficerGuide(question,officer,true);

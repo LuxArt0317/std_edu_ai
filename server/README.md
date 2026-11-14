@@ -143,3 +143,7 @@ Certificate awards use a bounded caller-JWT reader and send status fields only t
 ### School Affairs private note evidence
 
 `serviceNoteIntent.js` validates service scope for the seven tracking pages. `loadOwnServiceNotes` reads the selected records with the caller’s existing School Affairs token, an exact row count and a 200-record ceiling. `answerVerificationAccount.js` supplies bounded note evidence, checks the draft, and refreshes the same sources for the single correction. A note’s filed status is self-marked. An unavailable read does not establish whether a note exists.
+
+### Student conduct evidence
+
+`studentConductEvidenceScope.js` defines the same caller-owned conduct scope for the browser, API and graph. The native reader preserves the permitted database fields and omits student identity unless directly requested. It is a read-only local record source. The independent reviewer rechecks unsupported answers against fresh data.

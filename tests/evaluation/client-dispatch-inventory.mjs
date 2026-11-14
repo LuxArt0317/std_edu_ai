@@ -120,6 +120,7 @@ export function inspectClientDispatchSource(source){
     clearanceQuestion:['graduationClearanceContract','question'],
     isTutorEvaluationEvidenceQuestion:['tutorEvaluationEvidenceIntent','question,route,history'],
     tutorEvaluationNavigation:['tutorEvaluationEvidenceIntent','question'],
+    isStudentConductScopeQuestion:['studentConductEvidenceScope','question,route,history'],
     isServiceNoteEvidenceQuestion:['serviceNoteIntent','question,route,history']};
   const clauses=node=>ts.isParenthesizedExpression(node)?clauses(node.expression)
     :ts.isBinaryExpression(node)&&node.operatorToken.kind===ts.SyntaxKind.BarBarToken?[...clauses(node.left),...clauses(node.right)]:[node];
@@ -145,6 +146,7 @@ export function inspectClientDispatchSource(source){
     {id:'counseling-appointments',graphTool:'counselingAppointments',source:dispatchPath,line:first.line},
     {id:'graduation-clearance',graphTool:'graduationClearance',source:dispatchPath,line:first.line},
     {id:'tutor-evaluation',graphTool:'tutorEvaluation',source:dispatchPath,line:first.line},
+    {id:'student-conduct',graphTool:'studentConduct',serviceKeys:['38-1'],source:dispatchPath,line:first.line},
     {id:'local-service-notes',graphTool:'serviceRecords',serviceKeys:['27-1','30-1','30-2','31-1','31-2','32-1','35-1'],source:dispatchPath,line:first.line},
   ],
     fallback:{source:dispatchPath,line:api[0].line},otherDirectReaders:otherDirectReaders.filter(name=>calls.some(call=>call.name===name&&call.at<fallback.at)),

@@ -1,3 +1,5 @@
+import {studentConductScope} from './studentConductEvidenceScope.js';
+import {studentConductGuide} from './studentConductGuide.js';
 import {serviceNoteLookup} from './serviceNoteIntent.js';
 import {serviceNoteGuide} from './serviceNoteGuide.js';
 import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel} from './pendingFeesAnswer.js';
@@ -341,6 +343,12 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         if(notes.excluded){input.question=notes.otherQuestion;input.history=[];}
+        const conduct=studentConductScope(input.question,input.route,input.history);
+        if(conduct.foreign||conduct.navigation||conduct.selected||conduct.excluded&&!conduct.otherQuestion){
+            stream.send(200,studentConductGuide(input.question,conduct,false));
+            return;
+        }
+        if(conduct.excluded){input.question=conduct.otherQuestion;input.history=[];}
         const balanceQuestion=withoutExcludedTutorEvaluationClause(withoutExcludedClearanceClause(withoutExcludedCounselingClause(withoutExcludedHealthClause(input.question))));
         if(isOwnFeeBalanceQuestion(balanceQuestion)||balanceQuestion!==input.question&&ownFeeBalanceLabel(balanceQuestion)){
             const zh=/[\u3400-\u9fff]/u.test(input.question), url='/school-affairs/login?next='+encodeURIComponent('/school-affairs/services/39-1');
