@@ -1,4 +1,4 @@
-import {elearningCoursePath,elearningGuide,elearningQuestion,elearningOutlineCourse} from './elearningContract.js';
+import {elearningCourseLocation,elearningCoursePath,elearningGuide,elearningQuestion,elearningOutlineCourse} from './elearningContract.js';
 import {counselingGuide,counselingQuestion} from './counselingContract.js';
 import {certificateAwardQuestion} from './certificateAwardsContract.js';
 import {certificateAwardGuide} from './certificateAwards.js';
@@ -98,7 +98,9 @@ function parse(body) {
         const item = entry;
         return ['user', 'assistant'].includes(String(item.role)) && typeof item.content === 'string' ? [{ role: String(item.role), content: item.content.slice(0, 2000) }] : [];
     }) : [];
-    const route = typeof source.route === 'string' && (/^\/school-affairs(?:\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?$/.test(source.route)||/^\/elearning(?:\/(?:course|category|notice)\/[1-9]\d{0,9}|\/(?:categories|my-courses|login|search))?\/?$/.test(source.route)) ? source.route : normalizePublicPageRoute(source.route);
+    const route = typeof source.route === 'string' && (/^\/school-affairs(?:\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?$/.test(source.route)||
+        /^\/elearning(?:\/(?:category|notice)\/[1-9]\d{0,9}|\/(?:categories|my-courses|login|search))?\/?$/.test(source.route)||
+        (source.route.startsWith('/elearning/course/')&&!/[?#]/.test(source.route)&&elearningCourseLocation(source.route))) ? source.route : normalizePublicPageRoute(source.route);
     const rawImages = source.images;
     if (rawImages !== undefined && (!Array.isArray(rawImages) || rawImages.length > 2))
         return null;

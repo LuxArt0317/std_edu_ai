@@ -50,6 +50,8 @@ test('guest archive questions get a local link before public retrieval',async()=
     ['數位學園入口在哪？',undefined,elearningPath],
     ['What are my courses?',elearningPath,elearningPath+'/login'],
     ['Show the course outline',elearningPath+'/course/9408',elearningPath+'/login?next=%2Felearning%2Fcourse%2F9408'],
+    ['What videos are listed?',elearningActivityPath(9408,293395),elearningPath+'/login?next=%2Felearning%2Fcourse%2F9408'],
+    ['Where can I find the feedback form?',elearningActivityPath(9098,281294),elearningPath+'/login?next=%2Felearning%2Fcourse%2F9098'],
   ]){
     let code=0,reply:ReturnType<typeof elearningGuide>|undefined;
     const response={status(value:number){code=value;return response;},json(value:unknown){reply=value as typeof reply;},setHeader(){}};
