@@ -1110,5 +1110,10 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Check exact `f2f73e0`. Quality passed. Two public smoke cases passed and the unread storage notice retained its link with a generic answer.
 - [x] Replay all three public smoke cases on protected `5e1e662`. Check exact link, named quota and date gaps, signed-out privacy, and founding year.
 - [x] Verify and archive the interrupted Student Profile fixture cleanup. Reclaim local storage from the inactive sparse-ready checkout while preserving report hashes.
-- [ ] Recheck the isolated Announcement Email and Student Profile browser cases on exact `5e1e662`. The prior run supplied four passing cases against the 30-case browser gate.
+- [x] Replay both Certificate, all three Announcement Email, and both nonempty Student Profile cases on exact `5e1e662` with independent saves, restores, crossed reads and disposal.
+- [x] Correct the empty Student Profile evaluator selector for the inline exit link and check it in the rendered app locally.
+- [ ] Replay the corrected empty Student Profile case on protected Preview.
+- [x] Mount the five frozen Club Attendance browser cases in the proof-aware aggregate evaluator, with controlled actual LangGraph and Chromium coverage.
+- [ ] Run the protected Club Attendance evaluator on exact `0c8815c`. Preserve the independent outage requirement and any case that remains unverified.
+- [ ] Cover the separate Club Student membership question, active status, and compound current semester subjects. Use distinct owned evidence and refuse other-owner queries.
 - [ ] Verify the follow-up `7461124` on protected Preview, including its different-publication continuation after an unread indexed notice.
