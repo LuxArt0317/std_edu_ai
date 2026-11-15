@@ -12,6 +12,7 @@ import {readNativeHttpResponse} from './helpers/native-http-response.mjs';
 import {createPinnedDeploymentVerifier} from '../evaluation/pinned-deployment.mjs';
 import {conversationDeleteProbeTitles,createTrustedPreviewFetch,isEvaluationPreviewOrigin} from '../evaluation/vercel-preview-transport.mjs';
 import {createProtectedConversationBrowserRelay,validateProtectedConversationBrowserResources} from '../evaluation/vercel-preview-browser-transport.mjs';
+import {protectedBrowserDenial,requireProtectedBrowser} from '../evaluation/protected-browser-diagnostics.mjs';
 import {installProtectedConversationBrowserRoute,protectedConversationQuestions,runProtectedConversationBrowser,verifyProtectedBrowserSave}
   from './helpers/protected-conversation-browser.mjs';
 
@@ -234,7 +235,13 @@ export async function main(){
   const admin=createClient(projectOrigin,serviceKey,{auth,global:{fetch:projectFetch}});
   const users=[],operations=[],deletions=[],sessions=new Map(),reservedConversations=new Map(),checks=[],browserErrors=[],activeBrowserWrites=new Set();
   let sql,locked=false,ledgerOwned=false,browser,activePage,ownerId,ownerBefore,phase='preflight',failure=null,cleanupVerified=false,passed=false,browserAcceptance;
-  const browserResponses=[];
+  const browserResponses=[],browserDenials=[],browserTurnProofs=[];
+  let browserPinQueue=Promise.resolve();
+  const withBrowserPin=work=>{
+    const finished=browserPinQueue.then(work);
+    browserPinQueue=finished.catch(()=>{});
+    return finished;
+  };
   let httpRequests=0,browserRequests=0,modelRequests=0,officialRequests=0,ledgerQueue=Promise.resolve();
   const ledger=()=>ledgerQueue=ledgerQueue.then(async()=>{
     assert.ok(ledgerOwned);const temp=ledgerPath+'.tmp',handle=await open(temp,'wx',0o600);
@@ -291,7 +298,7 @@ export async function main(){
       ownerId:reserved.userId,title:reserved.payload.title,callerIds:users.map(user=>user.id),
     });
   };
-  const request=async(user,{method='GET',id,body,status=200}={})=>{
+  const requestImpl=async(user,{method='GET',id,body,status=200}={})=>{
     if(previewBrowser)assert.ok(method==='GET'&&body===undefined&&user&&users.includes(user)&&reservedConversations.has(id));
     const dispatch=previewBrowser?createTrustedPreviewFetch({origin:target.origin,token:process.env.VERCEL_OIDC_TOKEN,conversationId:id}):fetchTarget;
     const ticket=previewPin?await previewPin.beforeRequest():null;
@@ -322,6 +329,7 @@ export async function main(){
     }
     return response.body;
   };
+  const request=(user,options)=>previewBrowser?withBrowserPin(()=>requestImpl(user,options)):requestImpl(user,options);
   try{
     sql=await pool.reserve();assert.equal((await sql`select pg_try_advisory_lock(23101314,115100) as held`)[0].held,true);locked=true;
     assert.ok((await sql`select version from supabase_migrations.schema_migrations where version='20261112190000'`).length,'190000 must be applied by release owner first.');
@@ -347,6 +355,8 @@ export async function main(){
         const user=side==='owner'?first:second,session=sessions.get(user.id);
         const context=await browser.newContext({viewport:{width:390,height:900},serviceWorkers:'block'});
         const reads=new Set();
+        let deny;
+        const denied=new Promise(resolve=>{deny=resolve;});
         await context.addInitScript(({session,origin})=>{
           if(location.origin===origin&&!sessionStorage.getItem('conversation-qa-init')){
             localStorage.setItem('stu-school-affairs-auth',JSON.stringify(session));
@@ -354,14 +364,15 @@ export async function main(){
           }
         },{session,origin:target.origin});
         const relay=createProtectedConversationBrowserRelay({origin:target.origin,revision:target.revision,token:process.env.VERCEL_OIDC_TOKEN,
-          ownerId:user.id,getCallerToken:()=>sessions.get(user.id)?.access_token,verifyPin:previewPin.assertCurrent,
+          ownerId:user.id,getCallerToken:()=>sessions.get(user.id)?.access_token,verifyPin:()=>withBrowserPin(()=>previewPin.assertCurrent()),
           assets:browserAssets.assets,dataPaths:browserAssets.dataPaths,
           authorizeSave:async({ownerId,payload,...observed})=>{
             const reservation=reservedConversations.get(payload.id);
-            assert.equal(ownerId,user.id);assert.equal(reservation?.userId,user.id);
+            requireProtectedBrowser(ownerId===user.id&&reservation?.userId===user.id,'save fixture owner mismatch');
             const expected=await verifyProtectedBrowserSave({payload,question:reservation.question,...observed});
-            assert.equal((await sql`select id from public.affairs_conversations where id=${payload.id}`).length,0);
-            await recordWrite(user,payload);
+            requireProtectedBrowser((await sql`select id from public.affairs_conversations where id=${payload.id}`).length===0,
+              'save reserved row already present');
+            try{await recordWrite(user,payload);}catch{requireProtectedBrowser(false,'save journal write failed');}
             reservation.expected=expected;
             return true;
           },
@@ -380,23 +391,26 @@ export async function main(){
           if(method==='GET'){reads.add(destination.searchParams.get('id')||'index');return;}
           const body=JSON.parse(reply.body.toString('utf8'));
           const op=operations.find(item=>item.userId===user.id&&item.payload.id===body.id&&item.state==='pending');
-          assert.ok(op,'A protected browser response must match one journaled save.');
-          await finishWrite(op,{status:reply.status,body});
-          assert.equal(op.state,'saved');
-        },onDenied({url}){
-          const destination=new URL(url);
-          if(destination.origin===target.origin&&destination.pathname.startsWith('/api/'))browserErrors.push('Protected browser application request denied.');
+          requireProtectedBrowser(op,'save receipt not journaled');
+          try{await finishWrite(op,{status:reply.status,body});}catch{requireProtectedBrowser(false,'save journal write failed');}
+          requireProtectedBrowser(op.state==='saved','save receipt mismatch');
+        },onDenied(request){
+          const diagnostic=protectedBrowserDenial({origin:target.origin,...request});
+          if(!diagnostic)return;
+          if(browserDenials.length<20)browserDenials.push({phase,...diagnostic});
+          if(browserErrors.length<20)browserErrors.push('Protected browser application request denied.');
+          deny(new Error('Protected browser application request denied.'));
         }});
         const close=async()=>{await context.close();await drain();};
         try{
           const page=await context.newPage();activePage=page;page.setDefaultTimeout(30000);
-          page.on('pageerror',()=>browserErrors.push('Protected browser runtime exception.'));
+          page.on('pageerror',()=>{if(browserErrors.length<20)browserErrors.push('Protected browser runtime exception.');});
           const index=page.waitForResponse(response=>response.url()===target.origin+'/api/affairs-conversations'
             &&response.request().method()==='GET'&&response.ok(),{timeout:45000}).then(()=>null,error=>error);
           await page.goto(target.origin+'/dtm',{waitUntil:'domcontentloaded'});
           await openVerifiedConversationAssistant(page,value=>{phase=value;});
-          const failed=await index;if(failed)throw failed;
-          return {page,dialog:page.getByRole('dialog',{name:/Assistant/}),reads,close,reserve(reservation){
+          const failed=await Promise.race([index,denied]);if(failed)throw failed;
+          return {page,dialog:page.getByRole('dialog',{name:/Assistant/}),reads,denied,close,reserve(reservation){
             assert.equal(side,'owner');assert.ok(!reservedConversations.has(reservation.id));
             relay.reserve(reservation);
             reservedConversations.set(reservation.id,{userId:user.id,question:reservation.question});
@@ -404,6 +418,7 @@ export async function main(){
         }catch(error){await close();throw error;}
       };
       browserAcceptance=await runProtectedConversationBrowser({origin:target.origin,openContext,mark:value=>{phase=value;},
+        onTurnVerified:proof=>browserTurnProofs.push(proof),
         async verifyPersisted({id,question}){
           const reservation=reservedConversations.get(id);
           assert.equal(reservation?.userId,first.id);assert.equal(reservation.question,question);
@@ -605,7 +620,8 @@ export async function main(){
     const report={runId,origin:target.origin,revision:target.revision,status:passed&&cleanupVerified?'passed':'failed',checks,failure,cleanupVerified,
       httpRequests,browserRequests,modelRequests,officialRequests,modelAcceptance:false,browserErrors,browserResponses,
       ...(previewPin?{probe:previewBrowser?'protected-conversation-browser':'uuidv7-conversation-delete',deployment:previewPin.status()}:{}),
-      ...(browserAcceptance?{browserAcceptance,incrementalActivityAcceptance:false}:{}),
+      ...(previewBrowser?{browserDenials,browserTurnProofs,incrementalActivityAcceptance:false}:{}),
+      ...(browserAcceptance?{browserAcceptance}:{}),
     };
     await writeFile(directory+'/report-'+runId+'.json',JSON.stringify(report,null,2),{mode:0o600});
     console.log(JSON.stringify(report));if(report.status!=='passed')process.exitCode=1;
