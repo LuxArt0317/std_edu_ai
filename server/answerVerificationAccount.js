@@ -1721,6 +1721,24 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   // The deeper review, when useful, works from the same verified read scope.
   const recordFreeCoaching=intent.recognized&&intent.kind==='coaching'&&!activeTools.length&&!evidence.length;
   const coachingGuide=recordFreeCoaching?generalCoachingGuide(question):null;
+  const studyInterviewGuide=studyCoaching?generalCoachingGuide(studyCoaching.coachingQuestion,{interviewOnly:true}):null;
+  const renderStudyCoachingFallback=sources=>{
+    if(!studyInterviewGuide)return null;
+    const expected=['account-scope',...studyTools.map(tool=>'account:'+tool)].sort();
+    if(!isDeepStrictEqual(sources.map(source=>source.id).sort(),expected))return null;
+    const records=composeCurrentStudyEvidence(question,sources,{
+      includeYear:studyCoaching.scope==='courses_and_year',requireReadStates:true,
+    });
+    if(!records)return null;
+    const notice=/[㐀-鿿]/u.test(question)
+      ?'上述紀錄查詢使用 stu.best。目前無法產生客製化草稿。以下是一般的面試練習方式。'
+      :'The record check above used stu.best. A tailored draft was unavailable. Here’s a general way to practise for your interview.';
+    const answer=[records,notice,studyInterviewGuide.answer].join('\n\n');
+    if(!answerLinksSupported(answer,sources))return null;
+    return {...studyInterviewGuide,answer,citations:evidenceCitations(sources),
+      grounding:{source:'account',webSearched:false,checkedAt:current.checkedAt,degraded:true}};
+  };
+  let studyCoachingUsedFallback=false;
   const composeInitially=Boolean(studyCoaching)||(emptyHousing||directNoteCompanion||exactSupplemental?false
     :servicePlan||dtmCompound||scopedOverview||scopedTimetable||scopedNotes||scopedAid||scopedStudy||scopedTeaching||scopedHousing?needsComposition
     :needsComposition||(repairLookup.selected||pageLookup.selected)&&plan.publicTopics.length>0||Boolean(resolvedUserQuestion)
@@ -1732,10 +1750,15 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         resolvedUserQuestion,history:studyCoaching||coachingGuide||resolvedUserQuestion&&intent.kind==='records'?[]:history,diagnosticContext:diagnosticContext(),onProviderCompleted});
       needsComposition=false;
       emit({kind:'account-compose',label:'Prepared your answer',detail:'The draft will now be independently checked.',status:'complete'});
-    }catch{
-      needsComposition=true;
-      initial={...initial,status:'abstained',answer:'',citations:[]};
-      emit({kind:'account-compose',label:'Answer preparation incomplete',detail:'A fresh evidence-based correction will be attempted within the remaining budget.',status:'unavailable'});
+    }catch(error){
+      const outage=['VERIFICATION_UNAVAILABLE','VERIFICATION_TIMEOUT','VERIFICATION_QUOTA_EXHAUSTED'].includes(error?.code);
+      const fallback=outage?renderStudyCoachingFallback(evidence):null;
+      studyCoachingUsedFallback=Boolean(fallback);
+      needsComposition=!fallback;
+      initial=fallback??{...initial,status:'abstained',answer:'',citations:[]};
+      emit({kind:'account-compose',label:'Answer preparation incomplete',detail:fallback
+        ?'Tailored wording was unavailable. The saved subjects and general practice guide can be checked locally.'
+        :'A fresh evidence-based correction will be attempted within the remaining budget.',status:'unavailable'});
     }
   }
   const fixedEvidenceScope=scopedAcademics||directNoteCompanion||exactSupplemental||servicePlan||scopedAssignment||scopedOverview||scopedNotes||scopedCounseling||scopedTutor||scopedConduct
@@ -1879,6 +1902,13 @@ export async function answerAccountWithVerification({question,snapshot,history=[
           return {ok:true};
         }
       }
+      if(studyCoachingUsedFallback){
+        const supported=renderStudyCoachingFallback(context.evidence);
+        if(!supported||!isDeepStrictEqual(context.candidate,supported))return {ok:false,reason:'evidence_unavailable'};
+        emit({kind:'current-study-coaching-fallback',label:'Checked your saved records and used a practice guide',
+          detail:'Matched the answer to the selected record results and their limits. The general guide uses no personal facts.',status:'complete'});
+        return {ok:true};
+      }
       if(needsComposition){needsComposition=false;return {ok:false,reason:'needs_grounded_composition',feedback:['Compose all requested parts from the selected evidence, explicitly identify unavailable details and keep suggestions distinct from factual claims. Do not substitute tracker status for file reviews, charges for statements, or catalog offerings for enrollment.']};}
       const requiredEvidenceReferences=scopedOverview?overviewReviewReferences(context.evidence)
         :servicePlan||scopedAssignment||scopedStudy||scopedTeaching||housingSelected||applicationSelected
@@ -1887,6 +1917,8 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       return verifyEvidenceAnswer({...context,responseIntent,resolvedUserQuestion,requiredEvidenceReferences,
         deeperReview:context.attempt>2,diagnosticContext:diagnosticContext(context.attempt),onProviderCompleted});
     },repair:context=>{
+      if(studyCoachingUsedFallback)
+        return renderStudyCoachingFallback(context.evidence)??{status:'abstained',answer:'',citations:[]};
       if(coachingGuide&&context.evidence.length===0){
         emit({kind:'general-coaching-guide',label:'Used a general coaching guide',
           detail:'The answer uses fixed practice guidance without personal records or external sources.',status:'complete'});

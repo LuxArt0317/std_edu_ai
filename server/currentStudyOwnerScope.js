@@ -78,19 +78,19 @@ export function currentStudyCoachingQuestion(question) {
   if(!input)return null;
   const parts=clauses(input);
   if(parts.length<2||parts.length>3)return null;
-  let courses='',year='',coaching=false;
+  let courses='',year='',coachingQuestion='';
   for(const part of parts){
     const value=normalized(part);
     if(!courses&&ownCurrentCourses(value)&&courseListRequests.some(pattern=>pattern.test(value))){courses=part;continue;}
     if(!year&&ownYear(value)&&!foreignYear(value)&&yearRequests.some(pattern=>pattern.test(value))){year=part;continue;}
-    if(!coaching&&interviewRequests.some(pattern=>pattern.test(value))){coaching=true;continue;}
+    if(!coachingQuestion&&interviewRequests.some(pattern=>pattern.test(value))){coachingQuestion=part;continue;}
     return null;
   }
-  if(!courses||!coaching)return null;
+  if(!courses||!coachingQuestion)return null;
   const zh=/\p{Script=Han}/u.test(courses);
   return {recordQuestion:year?(zh?'我這學期有哪些課？我目前是幾年級？':'What courses do I have this semester and what year am I currently in?')
     :(zh?'我這學期有哪些課？':'What courses do I have this semester?'),
-    scope:year?'courses_and_year':'courses'};
+    scope:year?'courses_and_year':'courses',coachingQuestion};
 }
 
 /** True only when the year request itself is first-person, not a nearby course. */

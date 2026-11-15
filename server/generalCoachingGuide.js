@@ -58,9 +58,9 @@ const content={
   },
 };
 
-export function generalCoachingGuide(question){
+export function generalCoachingGuide(question,{interviewOnly=false}={}){
   if(typeof question!=='string'||schoolOrHiringFacts.test(question)||refersToEarlierWording.test(question))return null;
-  const topic=interview.test(question)?(technicalRole.test(question)?'technicalInterview':'interview')
+  const topic=(interviewOnly||interview.test(question))?(technicalRole.test(question)?'technicalInterview':'interview')
     :presentation.test(question)?'presentation':study.test(question)?'study':null;
   if(!topic)return null;
   const language=/[\u3400-\u9fff]/u.test(question)?'zh':'en';

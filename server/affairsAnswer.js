@@ -148,26 +148,30 @@ const inlineRecord=value=>String(value).replace(/\s+/gu,' ').trim().replace(/[\\
 const hasLiteral=value=>value!==null&&value!==undefined&&(typeof value==='number'?Number.isFinite(value):typeof value==='string'&&Boolean(value.trim()));
 
 /** Render only the selected School Affairs evidence, including its read state. */
-export function composeCurrentStudyEvidence(question,evidence){
+export function composeCurrentStudyEvidence(question,evidence,{includeYear=true,requireReadStates=false}={}){
   const source=key=>{
     const item=evidence.find(row=>row.id==='account:'+key);
     if(!item)return null;
     const data=JSON.parse(item.content);
     return data.collection===key?data:null;
   };
-  const year=source('profile'),courses=source('courses');
+  const year=includeYear?source('profile'):null,courses=source('courses');
   const student=year?.records?.student,rows=courses?.records;
   const validSource=mode=>mode==='sample'||mode==='verified';
   const hasYear=!year?.unavailableReason&&year?.studentRecordFound===true&&Number.isInteger(student?.yearLevel)
     &&student.yearLevel>=1&&student.yearLevel<=8&&validSource(student.sourceMode);
   const unlinkedYear=!year?.unavailableReason&&year?.studentRecordFound===false&&student===null;
+  const failedYear=year?.unavailableReason==='read_failed'&&year.studentRecordFound===undefined&&student===null;
   const unlinkedCourses=!courses?.unavailableReason&&courses?.studentRecordFound===false&&Array.isArray(rows)&&rows.length===0;
+  const failedCourses=courses?.unavailableReason==='read_failed'&&courses.studentRecordFound===undefined&&Array.isArray(rows)&&rows.length===0;
   const matching=courses?.selection?.matchingRows;
   const hasCourses=!courses?.unavailableReason&&courses?.studentRecordFound===true&&Array.isArray(rows)
     &&courses.selection?.scope==='current_enrolled_term'&&Number.isSafeInteger(matching)&&matching>=rows.length
     &&Number.isFinite(Date.parse(courses.checkedAt))&&rows.every(row=>[row?.code,row?.title,row?.term].every(value=>typeof value==='string'&&hasLiteral(value))
       &&validSource(row.sourceMode))&&studyCalendar(rows,courses.checkedAt).current.length===rows.length;
-  if(!hasYear&&!unlinkedYear&&!hasCourses&&!unlinkedCourses)return null;
+  if(requireReadStates){
+    if(!(hasCourses||unlinkedCourses||failedCourses)||includeYear&&!(hasYear||unlinkedYear||failedYear))return null;
+  }else if(!hasYear&&!unlinkedYear&&!hasCourses&&!unlinkedCourses)return null;
 
   const chinese=/[\u3400-\u9fff]/u.test(question),t=(zh,en)=>chinese?zh:en;
   const sample=t('（示範資料）',' (sample data)');
@@ -191,7 +195,7 @@ export function composeCurrentStudyEvidence(question,evidence){
   }else courseLines.push(unlinkedCourses?t('此帳戶沒有連結可查詢修課的學生紀錄。','No student record is linked to this account for checking subjects.')
     :t('無法查證本學期的修課，因為無法讀取已儲存的課表。','I couldn’t verify this semester’s subjects because the saved timetable couldn’t be read.'));
   const link=t(`[查看校務修課紀錄](${schoolSubjectRecordsPath})`,`[Open your School Affairs subjects](${schoolSubjectRecordsPath})`);
-  return [...courseLines,yearLine,link].join('\n\n');
+  return [...courseLines,...(includeYear?[yearLine]:[]),link].join('\n\n');
 }
 
 function composeSchoolScheduleAnswer(intent, snapshot) {
