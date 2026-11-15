@@ -3,7 +3,7 @@ import captures from '../src/features/public/mirror/pages.json' with {type:'json
 import { acquireHttpsSource, detectAndExtractSource } from './knowledgeAcquisition.js';
 import { safeWebSource } from './schoolWebSearch.js';
 import { isSchoolSignInDestination, officialSchoolLeadUrl } from './publicSchoolSourceLeads.js';
-import { isOfficialLibraryLead } from './publicLibrarySources.js';
+import { isOfficialLibraryHoursLead, isOfficialLibraryLead } from './publicLibrarySources.js';
 
 const accessRequired = Symbol('school sign-in required');
 function stopAtSignIn(destination) {
@@ -37,7 +37,8 @@ async function capturedSource(url,deadline,dependencies) {
   if(bytes.length>4_000_000||createHash('sha256').update(bytes).digest('hex')!==capture.checksum)throw new Error('Public capture checksum mismatch');
   if(isLibraryChallenge(bytes,'text/html',capture.source))throw new Error('Public capture contains a browser verification screen');
   const extracted=await detectAndExtractSource(bytes,'text/html',capture.source);
-  return {capturedOn:capture.capturedOn,content:JSON.stringify({provenance:'Previously captured public school page; not a live source.',capturedOn:capture.capturedOn,originalSource:capture.source,content:extracted.sections.map(section=>section.content).join('\n').slice(0,14000)}),urls:[capture.route]};
+  const libraryWeekdayHours=isOfficialLibraryHoursLead(url)?extracted.libraryWeekdayHours:null;
+  return {...(libraryWeekdayHours?{libraryWeekdayHours}:{}),capturedOn:capture.capturedOn,content:JSON.stringify({provenance:'Previously captured public school page; not a live source.',capturedOn:capture.capturedOn,originalSource:capture.source,content:extracted.sections.map(section=>section.content).join('\n').slice(0,14000)}),urls:[capture.route]};
 }
 
 /** Read cited contents independently; exact dated public captures can survive a source outage. */
@@ -55,7 +56,8 @@ export async function readVerificationSources(citations, deadline, dependencies=
       const extracted=await detectAndExtractSource(acquired.bytes,acquired.mimeType,acquired.finalUrl);
       const content=extracted.sections.map(section=>section.content).join('\n').slice(0,16000);
       if(!content.trim())throw new Error('Source has no readable content');
-      contents={content};
+      const libraryWeekdayHours=isOfficialLibraryHoursLead(url)?extracted.libraryWeekdayHours:null;
+      contents={content,...(libraryWeekdayHours?{libraryWeekdayHours}:{})};
     }catch(error){
       if(error===accessRequired&&officialSchoolLeadUrl(url)) {
         dependencies.onAccessRequired?.({url,title:citation.title});

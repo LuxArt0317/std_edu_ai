@@ -5,6 +5,7 @@ import { load } from 'cheerio'
 import { fileTypeFromBuffer } from 'file-type'
 import { chunkKnowledgeText, normalizeKnowledgeText, sha256 } from './knowledgePipeline.js'
 import { isOfficialLibraryHoursLead } from './publicLibrarySources.js'
+import { readLibraryWeekdayTable } from './publicLibraryWeekdayHours.js'
 
 export const MAX_ACQUISITION_BYTES = 4_000_000
 export const MAX_REDIRECTS = 3
@@ -188,9 +189,11 @@ export function extractHtmlSections(html, sourceUrl) {
     ordinal += 1
     sections.push({ headingPath: headingPath.filter(Boolean), content: text, sourceLocator: `html:${tag}:${ordinal}` })
   })
-  if (isOfficialLibraryHoursLead(sourceUrl)) sections.push(...libraryScheduleSections($, root))
+  const libraryHoursPage = isOfficialLibraryHoursLead(sourceUrl)
+  if (libraryHoursPage) sections.push(...libraryScheduleSections($, root))
   if (!sections.length) throw new Error('The HTML source did not contain readable main content.')
-  return { title: cleanText($('title').first().text()), sections }
+  const libraryWeekdayHours = libraryHoursPage && root.is('main') ? readLibraryWeekdayTable($,root) : null
+  return { title: cleanText($('title').first().text()), sections, ...(libraryWeekdayHours ? {libraryWeekdayHours} : {}) }
 }
 
 export function extractTextSections(text, mimeType = 'text/plain') {

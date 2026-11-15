@@ -87,6 +87,7 @@ import { composeEvidenceAnswer, validEvidence, verifyEvidenceAnswer, repairEvide
 import { readVerificationSources } from "./answerVerificationSources.js";
 import { createPublicSchoolSourceLeads, officialSchoolLeadUrl } from "./publicSchoolSourceLeads.js";
 import {findOfficialLibraryServiceLeads, libraryAnswerLanguage, libraryAnswerMatchesLanguage} from './publicLibrarySources.js';
+import {answerLibraryWeekdayHours, asksForLibraryWeekdayHours} from './publicLibraryWeekdayHours.js';
 import { boundedPublicPageEvidence, institutionalPublicCapture, isPublicPageQuestion, isPublicPageSummaryQuestion, loadPublicPageContext, normalizePublicPageRoute, publicPageCandidate } from "./publicPageContext.js";
 export function detectEvidenceConflict(retrieved) {
     const authoritative = retrieved.filter((item) => ["primary_official", "delegated_official"].includes(item.authority_level) && Boolean(item.document_logical_key && item.document_checksum));
@@ -844,6 +845,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
         const libraryRequest = !personalQuestion && !kind.personal && !kind.irrelevant && !input.images.length && !pageQuestion
             && findOfficialLibraryServiceLeads(input.question).length > 0;
         const libraryLanguage = libraryRequest ? libraryAnswerLanguage(input.question) : undefined;
+        const exactLibraryWeekday = libraryRequest && asksForLibraryWeekdayHours(input.question);
         const chinese = libraryLanguage ? libraryLanguage === 'zh-Hant' : /[\u3400-\u9fff]/.test(input.question);
         const localizedLibrary = libraryLanguage ? { publicResponseLanguage: libraryLanguage } : {};
         const librarySearch = libraryRequest ? { libraryScope: true, responseLanguage: libraryLanguage } : {};
@@ -909,10 +911,9 @@ export function createResearchAssistantHandler(dependencies = {}) {
             process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
             process.env.SUPABASE_ANON_KEY ||
             process.env.SUPABASE_PUBLISHABLE_KEY;
-        if (!openAiKey || !supabaseUrl || !publishableKey) {
-            sendWithDirectory(503, publicDirectory ? {} : { error: "The research assistant is not configured." });
-            return;
-        }
+        const researchConfigured = Boolean(openAiKey && supabaseUrl && publishableKey);
+        const unconfigured = () => sendWithDirectory(503, publicDirectory ? {} : { error: "The research assistant is not configured." });
+        if (!researchConfigured && !exactLibraryWeekday) { unconfigured(); return; }
         const started = Date.now();
         const verificationQuestion = input.question;
         const deadline = Math.min(started + 55_000, Number.isFinite(context?.deadline) ? context.deadline : Infinity);
@@ -1079,6 +1080,17 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 }
             }
             sendWithDirectory(200, reply);
+        }
+        if (exactLibraryWeekday) {
+            const evidence = await indexedRead;
+            const exact = answerLibraryWeekdayHours(input.question, evidence.filter(source => !sourceLeads?.isBlocked(source.url)));
+            if (exact && Date.now() < deadline) {
+                const [step] = exact.activity;
+                verificationProgress(step);
+                await sendPublicReply(exact);
+                return;
+            }
+            if (!researchConfigured) { unconfigured(); return; }
         }
         let knowledgeWebSwitch, publicStop, firstWebMiss, targetedWebStep, noticeAlternateStep, bootstrapRead, bootstrapDiscovery;
         async function tryWebAnswer(earlierReview, managedPartial) {
