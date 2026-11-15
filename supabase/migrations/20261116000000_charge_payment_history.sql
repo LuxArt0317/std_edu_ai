@@ -200,6 +200,7 @@ begin
     where e.student_id=student and (p_charge_id is null or e.charge_id=p_charge_id)
       and (p_from is null or e.paid_on>=p_from) and (p_through is null or e.paid_on<=p_through);
   select coalesce(jsonb_agg(jsonb_build_object('id',e.id,'chargeId',e.charge_id,'chargeLabel',c.label,
+      'chargeCategory',c.category,
       'entryKind',e.entry_kind,'paidOn',to_char(e.paid_on,'YYYY-MM-DD'),'amount',e.amount::text,
       'currency',e.currency,'sourceMode',e.source_mode,'reversesPaymentId',e.reverses_payment_id) order by e.paid_on desc,e.id desc),'[]'::jsonb)
     into entries from (
