@@ -41,3 +41,5 @@
 - 2026-11-15 [#100] Built the isolated confirmed-task Preview evaluator and tested transport binding, no write before confirmation, replay, ownership and cleanup checks offline. The dormitory conduct Preview packet found four answer-precision regressions and a published housing-period fixture mismatch.
 
 - 2026-11-15 [#100] Completed protected baseline reads on `aa31201`: dormitory 5/10, aid payroll 3/8 and student conduct 3/3, all cleaned up. Corrected the first task operator’s URL argument, mounted 16 health and 9 counseling cases, and fixed the exact payroll and dormitory answer paths. Full API/source checks passed 1,804, evaluator passed 1,338 with one optional skip, and both TypeScript modes passed after resolving fixture declarations for the failed Preview build.
+
+- 2026-11-15 [#100] Protected `0f3ac28` passed all 10 confirmed-task requests with exact audited readbacks and cleanup. Integrated the four route-specific service boundaries and fixed the shared-deadline overview race observed in Quality. Full merged local checks passed 1,806 API/source and 1,338 evaluator tests with one optional skip, plus both TypeScript modes.

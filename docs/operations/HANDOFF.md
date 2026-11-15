@@ -626,3 +626,7 @@ The combined candidate includes twelve native Moodle resource cases, thirty nati
 ### Action and Moodle list candidate [Issue #100]
 
 Protected base `e0f0f4b` passed GitHub Quality and the hosted sign-in return checks. The follow-up contains explicit action staging and receipt validation, the exact Moodle assignment-list reader, and Student Leave UUID and offline observation corrections. Review the frozen candidate with the QA evidence. The protected runner must authenticate against the exact release before live model or fixture work.
+
+### Scoped confirmed tasks and account verification [Issue #100]
+
+Protected `0f3ac28` passed the complete task creation and completion packet for two disposable callers. It verified zero writes during proposals, exact audited mutations, idempotent and changed-body replays, crossed-owner denials and task/receipt/identity cleanup. The public release still serves `076c79a`. Continue the remaining protected read packets and the combined Quality gate before promotion. The new service routing repairs distinguish Student Health equipment from club equipment and preserve the exact service pages in guest and signed-in requests. Monthly tuition history needs the separate ledger migration and integration. Existing cumulative paid amounts have no transaction date.

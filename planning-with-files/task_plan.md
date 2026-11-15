@@ -830,11 +830,14 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify the four timetable and charge companions on protected `3f706aa`. The direct tuition-payment handoff also passed.
 - [x] Run the 18 Student Leave cases on protected `9e43792` with signed reader and provider receipts. Eight answers passed and ten exposed formatting or verification failures.
 - [x] Verify all 18 Student Leave cases on the exact-field recovery Preview with signed reader and deterministic verification receipts.
-- [ ] Confirm both task actions on protected Preview, including no write from a proposal, exact replays, crossed-owner denial and cleanup.
+- [x] Confirm both task actions on protected Preview, including no write from a proposal, exact replays, crossed-owner denial and cleanup.
 - [x] Verify all three student-conduct queries on `aa31201` with caller scope and fixture cleanup.
 - [x] Replay the identified payroll and dormitory precision regressions through the real local handlers with independent facts and scoped reads.
 - [ ] Replay the payroll and dormitory fixes on a matching protected build. Rebind the exact published academic period before the housing-companion case.
 - [ ] Verify the protected Health Exam and Counseling packets, each with two independent caller views and fixture cleanup.
+- [x] Verify 30-1, 30-2, 31-2 and 35-1 in both controlled guest and authenticated HTTP handlers, including exact navigation and no private read for an unsupported outcome.
+- [ ] Verify those service boundaries on the integrated protected Preview.
+- [ ] Add dated tuition payment history from explicitly recorded ledger entries. Preserve legacy aggregate-only payment amounts and verify per-month, undo, no-history, failed-read and owner-isolation cases.
 
 - [x] Save and independently read back each of the four exact prompts in the offline endpoint replay.
 - [x] Journal request and conversation commitments and reconcile disposable account cleanup.
