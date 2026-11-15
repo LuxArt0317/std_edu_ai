@@ -1,3 +1,9 @@
+## Hosted answers and adaptive public retrieval [Issue #100]
+
+The four reported signed-in prompts passed independent grading on protected Preview `4eb1522`. The answer-only diagnostic carried each reply into the next request and verified the same disposable records throughout. No conversation endpoint ran. The account cleanup and protected owner preservation passed. GitHub Quality and the exact 394-outcome fixture-controlled Chromium matrix passed. The archive `progress_2026-11-15_hosted-preview.md` records the work that led to this checkpoint.
+
+The user's public-search trace exposes a different failure. The first two reads checked the same cited links, so an unresolved evidence gap could survive a correction. The next candidate will give the search workflow a targeted follow-up and reserve an additional evidence check when it can help. Sample provenance stays readable in ordinary answers while explicit official-record questions still receive a precise limitation.
+
 ## Native internship evidence [Issue #100]
 
 The company directory and company application use the same owner-qualified saved subtype. Neither provides an institutional directory, placement, approval or receipt. The assistant reads distinct contract and self-assessment rows. A selected field can expose an own reflection or linked local review. Missing review data leaves that claim unavailable without changing the saved tracker status. Exact public guidance remains eligible for public lookup. The normal runner prevents unresolved native fixture cases from entering the legacy adapter.

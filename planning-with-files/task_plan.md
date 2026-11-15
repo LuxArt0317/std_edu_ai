@@ -805,6 +805,12 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 
 ### Reported conversation [Issue #100]
 
+- [x] Run an answer-only diagnostic against the exact protected combined candidate and grade all four real authenticated replies independently.
+- [x] Verify the embedded assistant's host context and guest/authenticated behavior in a controlled browser.
+- [ ] Reproduce the public lookup that found only a near-match, then verify targeted retrieval and the next grounded check.
+- [ ] Compare the existing verification model with a stronger available model on difficult cases. Record factual quality, observed tools, latency and remaining budget before changing the deployed default.
+- [ ] Confirm routine positive responses use concise saved-record wording and preserve exact limits when a user asks about official data.
+
 - [x] Save and independently read back each of the four exact prompts in the offline endpoint replay.
 - [x] Journal request and conversation commitments and reconcile disposable account cleanup.
 - [x] Verify generated protected chat IDs from transcript preparation to stored readback and cleanup.
