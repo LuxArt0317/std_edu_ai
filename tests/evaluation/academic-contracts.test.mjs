@@ -25,7 +25,7 @@ test('evaluation fixtures are fresh and preserve independent oracles and explici
   assert.throws(()=>fixtureForCase('unknown-domain'));assert.throws(()=>fixtureForCase('unavailable:unknown'));
 });
 test('the bank declares all registered tools while actual DTM file fixtures remain unexecutable',()=>{
-  const base=Object.keys(accountTools),supplemental=Object.keys(supplementalAccountTools),registered=[...base,...supplemental,'dtmMaterials'];
+  const base=Object.keys(accountTools),supplemental=Object.keys(supplementalAccountTools),registered=[...base,...supplemental,'dtmMaterials','dtmAssignmentList'];
   assert.equal(base.length,18);
   assert.ok(base.includes('housingApplications'));
   assert.deepEqual(supplemental.sort(),['aidPayments','counselingAppointments','courseCatalog','dormitoryConduct','dtmAssignment','dtmGradeReport','dtmSubmissions','elearningEnrollments','elearningOutline','enrollmentCertificate','facilityRepairs','feeRemission','graduationClearance','healthExaminations','internshipRecords','leaveRecords','studentConduct','studentLoan','teachingFeedback','tuition','tutorEvaluation'].sort());
@@ -33,7 +33,7 @@ test('the bank declares all registered tools while actual DTM file fixtures rema
   const cases=buildAccountCases({includePlannedFeeRemission:true,includePlannedHealthExaminations:true,includePlannedCounselingAppointments:true,includePlannedClearanceApplications:true,includePlannedTutorEvaluation:true}),declared=[...new Set([...cases,...nativeDtmRunnerCases(),...studentLeaveRunnerCases(),...internshipRunnerCases()].flatMap(row=>row.expected.requiredTools))];
   assert.deepEqual(declared.sort(),registered.filter(key=>key!=='teachingFeedback').sort());
   const nativeDtm=nativeDtmRunnerCases();
-  assert.equal(nativeDtm.length,44);
+  assert.equal(nativeDtm.length,69);
   assert.equal(new Set(nativeDtm.map(row=>row.id)).size,nativeDtm.length);
   assert.ok(nativeDtm.every(nativeDtmSetupRequired));
   assert.deepEqual(nativeDtm.filter(row=>!row.route.startsWith('/dtm/')).map(row=>[row.id,row.route]),[['account:dtm-native-route-followup','/']]);

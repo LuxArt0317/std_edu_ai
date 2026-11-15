@@ -4,6 +4,7 @@ export const studentLeaveArchiveCutoff='2019-08-01';
 export const studentLeaveFieldNames=Object.freeze(['title','dates','status','category','periods','reviewStatus']);
 export const isStudentLeaveUuid=value=>typeof value==='string'&&/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/u.test(value);
 
+const recordIdToken=/(?<![A-Za-z0-9-])[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}(?![A-Za-z0-9-])/giu;
 const normalize=value=>typeof value==='string'&&value.length<=12000&&!/[\p{Cc}\p{Cs}]/u.test(value.replace(/[\r\n\t]/gu,''))?value.normalize('NFKC').trim():'';
 const leave=/\b(?:student\s+leave|leave\s+(?:of\s+absence|forms?|requests?|records?|history|applications?|status|periods?|dates?|category|categories|types?|was|has been|is|id|number)|(?:type|category|status) of (?:my )?leave|(?:my|our|own|saved|recorded|filed|draft|withdrawn|approved|sick|personal|official|archived?|historical)\s+(?:(?:current|prior|recent|latest|saved|recorded)\s+)?leaves?|i\s+(?:have|request|filed?|submitted?|took|take)\s+(?:(?:for|any|a|some)\s+){0,2}leave|absence\s+(?:requests?|forms?))\b|請假|请假|假單|假单|假別|假别|病假|事假|公假|喪假|丧假|心理假|生理假|產假|产假|哺乳假/iu;
 const external=/\b(?:tuition|fee balance|amount (?:due|owed)|next class|schedule|courses?|grades?|homework|assignments?|attendance|dormitory|internship|financial aid|salary|records? overview)\b|學費|学费|課表|课表|下一堂課|下一堂课|成績|成绩|作業|作业|出缺席|曠課|曠课|宿舍|薪資|薪资|實習|实习/iu;
@@ -87,7 +88,7 @@ function foreignTarget(value){
   if(/\b(?:for|of|belong(?:s|ing)? to|by)\s+(?:the\s+)?student\s+(?!(?:leave|records?|me|myself|my)\b)[\p{L}\p{N}_’-]+|\b(?:student|user|account)(?:\s+(?:id|number))?\s*[:#]?\s*[A-Za-z]*\d{4,}\b/iu.test(q))return true;
   if(/\b(?!(?:my|the|student|university|school)['’]s)\p{L}[\p{L}\p{N}_-]*['’]s\s+(?:(?:saved|recorded)\s+)?[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,3}\s+leave\b/u.test(q))return true;
   if(/\b(?:for|belong(?:s|ing)? to|by)\s+(?:all students|the whole class|everyone)\b|(?:替|幫|帮)(?!我|本人)[\p{Script=Han}]{2,12}(?:查詢|查询|查看)(?:請假|请假|假單|假单)/iu.test(q))return true;
-  if(/\b(?:for|belong(?:s|ing)? to|by)\s+(?!(?:me|my(?:self)?|my\s+own|the|a|an|this|that|those|school|student|leave|review|dates?|periods?|(?:a[mp]|p[mp])|today|yesterday|tomorrow|last|next|[A-Za-z]+day|[0-9])\b)[\p{L}][\p{L}\p{N}_’-]+\b/iu.test(q))return true;
+  if(/\b(?:for|belong(?:s|ing)? to|by)\s+(?!(?:me|my(?:self)?|my\s+own|the|a|an|this|that|those|school|student|leave|review|dates?|periods?|(?:a[mp]|p[mp])|today|yesterday|tomorrow|last|next|[A-Za-z]+day|[0-9])\b)[\p{L}][\p{L}\p{N}_’-]+\b/iu.test(q.replace(recordIdToken,'0')))return true;
   return /[\p{Script=Han}]{1,12}的(?:請假|请假|假單|假单|假別|假别)/u.test(
     q.replace(/(?:我自己|我本人|本人|自己|我的|該筆|该笔|這筆|这笔)(?:的)?/gu,'').replace(/(?:儲存|保存|這張|这张|該張|该张|歷史|历史)的/gu,'')
   );
@@ -120,7 +121,8 @@ export function isStudentLeaveDate(value){
   return Number.isFinite(parsed.getTime())&&parsed.toISOString().slice(0,10)===value;
 }
 const iso=date=>date.toISOString().slice(0,10);
-function rangeFor(q,now){
+function rangeFor(text,now){
+  const q=text.replace(recordIdToken,' ');
   const dates=[...new Set([...q.matchAll(/(?<![\p{L}\p{N}-])(\d{4}-\d{1,2}-\d{1,2})(?![\d-])/gu)].map(match=>match[1]))];
   const relative=/\b(today|yesterday|tomorrow|this month|last month|this year|last year|this week|last week)\b|今天|昨日|昨天|明天|本月|上月|本週|本周|上週|上周|今年|去年/giu;
   const offsets={today:0,yesterday:-1,tomorrow:1,今天:0,昨天:-1,昨日:-1,明天:1};
@@ -242,7 +244,7 @@ export function studentLeaveLookupContext(question,route='',history=[],now=Date.
   const explicitScope=archive.test(active)?'archive':periodView.test(active)?'periods'
     :/\b(?:full|all|every|history|leaves|forms|records|requests)\b|全部|所有|每[張张筆笔]/iu.test(active)?'history':null;
   let view=explicitScope??previousSelection?.view??context.view??'history',id=null;
-  const ids=[...new Set(active.match(/(?<![A-Za-z0-9-])[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}(?![A-Za-z0-9-])/giu)?.map(id=>id.toLowerCase())??[])];
+  const ids=[...new Set(active.match(recordIdToken)?.map(id=>id.toLowerCase())??[])];
   const malformedId=/\b(?:leave|record|request|form)\s+(?:id|number|#)\s*[:#]?\s*[a-z0-9-]+|(?:假單|假单)(?:編號|编号)\s*[:：#]?\s*[a-z0-9-]+/iu.test(active)&&!ids.length;
   const explicitExact=ids.length>0||exactView.test(active);
   if(ids.length===1){view='record';id=ids[0];}

@@ -22,3 +22,8 @@ export type DtmCourseMaterialList = {
 };
 export function loadDtmCourseMaterialList(account: Parameters<typeof loadDtmCourseResource>[0], options: {courseId: string}): Promise<DtmCourseMaterialList>;
 export function parseDtmCourseMaterialList(row: unknown, userId: string, courseId: string): DtmCourseMaterialList;
+export const dtmAssignmentListLimit:20;
+export type SavedDtmAssignmentList={rows:Array<{id:string;courseId:string;courseCode:string;title:string;sourceMode:'personal'|'sample';
+  dueAt?:string|null;trackerStatus?:'open'|'submitted'|'graded'}>;total:number;courseScope:'selected'|'personal'|'sample'};
+export function loadDtmAssignmentList(account:DtmCourseResourceAccount,options:{courseId:string|null;mode:'all'|'open'|'done'|'submitted'|'graded';
+  period:string|null;dates:boolean;statuses:boolean;countOnly:boolean;asOf:number}):Promise<SavedDtmAssignmentList>;

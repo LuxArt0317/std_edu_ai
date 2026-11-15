@@ -49,17 +49,21 @@ function within(task,signal){
     void Promise.resolve().then(()=>{signal.throwIfAborted();return task();}).then(value=>{signal.removeEventListener('abort',abort);if(signal.aborted)reject(signal.reason);else resolve(value);},error=>{signal.removeEventListener('abort',abort);reject(error);});
   });
 }
-async function request(account,path,{query,body}={}){
+async function request(account,path,{query,body,exactCount=false}={}){
   const remaining=Math.floor(account.deadline-Date.now());if(remaining<=0)throw new DtmCourseResourceError('Course resource request timed out. Please retry.');
   const signal=AbortSignal.timeout(remaining),url=new URL(account.url.replace(/\/$/,'')+'/rest/v1/'+path);
   for(const [key,value] of Object.entries(query??{}))url.searchParams.set(key,value);
-  let response;try{response=await within(()=>fetch(url,{method:body?'POST':'GET',redirect:'error',signal,headers:{apikey:account.key,Authorization:'Bearer '+account.token,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})}),signal);}
+  let response;try{response=await within(()=>fetch(url,{method:body?'POST':'GET',redirect:'error',signal,headers:{apikey:account.key,Authorization:'Bearer '+account.token,...(exactCount?{Prefer:'count=exact'}:{}),...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})}),signal);}
   catch{throw new DtmCourseResourceError('The course resource is temporarily unavailable. Please retry.');}
   if(!response.ok){void response.body?.cancel().catch(()=>{});const status=[400,401,403,409].includes(response.status)?response.status:503;
     throw new DtmCourseResourceError(status===401?'Sign in to School Affairs again.':status===403?'This course resource is not available to your account.':'The course resource is temporarily unavailable. Please retry.',status);}
   if(!response.body||Number(response.headers.get('content-length'))>dtmCourseResourceMaxResponseBytes){void response.body?.cancel().catch(()=>{});throw malformed();}
   const reader=response.body.getReader(),decoder=new TextDecoder('utf-8',{fatal:true});let bytes=0,text='';
-  try{for(;;){const part=await within(()=>reader.read(),signal);if(part.done)break;bytes+=part.value.byteLength;if(bytes>dtmCourseResourceMaxResponseBytes)throw malformed();text+=decoder.decode(part.value,{stream:true});}return JSON.parse(text+decoder.decode());}
+  try{for(;;){const part=await within(()=>reader.read(),signal);if(part.done)break;bytes+=part.value.byteLength;if(bytes>dtmCourseResourceMaxResponseBytes)throw malformed();text+=decoder.decode(part.value,{stream:true});}const rows=JSON.parse(text+decoder.decode());if(!exactCount)return rows;
+    const range=/^(?:(\d+)-(\d+)|\*)\/(\d+)$/.exec(response.headers.get('content-range')||'');
+    if (!range||!Array.isArray(rows)||(rows.length?Number(range[1])!==0||Number(range[2])!==rows.length-1:range[1]!==undefined)
+      ||!Number.isSafeInteger(Number(range[3]))||Number(range[3])<rows.length)throw malformed();
+    return {rows,total:Number(range[3])};}
   catch{void reader.cancel().catch(()=>{});throw malformed();}finally{reader.releaseLock();}
 }
 export async function loadDtmCourseResource(account,options){
@@ -107,4 +111,82 @@ export function parseDtmCourseMaterialList(row, userId, courseId) {
     position=item.position;
   }
   return structuredClone(row);
+}
+
+export const dtmAssignmentListLimit=20;
+const trackerStates=['open','submitted','graded'];
+const statusFilters={open:'eq.open',done:'in.(submitted,graded)',submitted:'eq.submitted',graded:'eq.graded'};
+const dueDateFormat=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'});
+const instant=value=>typeof value==='string'&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,6})?(?:Z|[+-]\d\d:\d\d)$/u.test(value)
+  &&Number.isFinite(Date.parse(value));
+const boundedLiteral=(value,limit)=>unicode(value)&&[...value].length<=limit&&!/\p{Cc}/u.test(value);
+function dueFilter(period,now){
+  if(!period)return {};
+  if(period==='overdue')return {due_at:'lt.'+new Date(now).toISOString()};
+  const day=period==='today'||period==='tomorrow'?dueDateFormat.format(now+(period==='tomorrow'?86_400_000:0)):period;
+  const first=Date.parse(day+'T00:00:00+08:00');
+  return {and:'(due_at.gte.'+new Date(first).toISOString()+',due_at.lt.'+new Date(first+86_400_000).toISOString()+')'};
+}
+function matchesDeadline(period,value,now){
+  if(!period)return true;
+  if(!value)return false;
+  if(period==='overdue')return Date.parse(value)<now;
+  const day=period==='today'||period==='tomorrow'?dueDateFormat.format(now+(period==='tomorrow'?86_400_000:0)):period;
+  return dueDateFormat.format(new Date(value))===day;
+}
+
+/** Same caller/visibility rules as the saved assignment UI, with bounded
+ * fields and an exact count. Details, submissions and grade items are separate. */
+export async function loadDtmAssignmentList(account,{courseId,mode:filter,period,dates,statuses,countOnly,asOf}){
+  if(!(courseId===null||uuid(courseId))||!['all',...Object.keys(statusFilters)].includes(filter)
+    ||!([null,'today','tomorrow','overdue'].includes(period)||typeof period==='string'&&/^20\d\d-\d\d-\d\d$/u.test(period)
+      &&Number.isFinite(Date.parse(period))&&new Date(period).toISOString().startsWith(period+'T'))
+    ||![dates,statuses,countOnly].every(value=>typeof value==='boolean')||!Number.isFinite(asOf))throw malformed();
+  const caller=capture(account),own='eq.'+caller.userId;
+  const query={select:'id,user_id,code,source_mode',user_id:own,order:'id.asc',limit:courseId?'2':'1',
+    ...(courseId?{id:'eq.'+courseId}:{source_mode:'eq.personal'})};
+  const courses=await request(caller,'dtm_courses',{query});
+  if(!Array.isArray(courses)||courses.length>1||courses.some(course=>!exact(course,['id','user_id','code','source_mode'])
+    ||!uuid(course.id)||course.user_id!==caller.userId||!boundedLiteral(course.code,160)||!mode(course.source_mode)
+    ||(courseId?course.id!==courseId:course.source_mode!=='personal')))throw malformed();
+  if(courseId&&!courses.length)throw new DtmCourseResourceError('This course is not available to your account.',403);
+  const personalOnly=!courseId&&courses.length>0;
+  const hasDue=dates&&!countOnly||period!==null;
+  const hasStatus=statuses&&!countOnly||filter!=='all';
+  const fields=['id','dtm_course_id','source_mode',...(!countOnly?['title']:[]),...(hasDue?['due_at']:[]),...(hasStatus?['status']:[]),
+    'dtm_courses!inner(id,user_id,code,source_mode)','affairs_students!inner(user_id)'];
+  const selected=await request(caller,'affairs_assignments',{exactCount:true,query:{
+    select:fields.join(','),'dtm_courses.user_id':own,'affairs_students.user_id':own,enrollment_id:'is.null',
+    dtm_course_id:courseId?'eq.'+courseId:'not.is.null',
+    ...(personalOnly?{'dtm_courses.source_mode':'eq.personal'}:!courseId?{'dtm_courses.source_mode':'eq.sample'}:{}),
+    ...(filter==='all'?{}:{status:statusFilters[filter]}),...dueFilter(period,asOf),
+    order:'due_at.asc.nullslast,id.asc',limit:String(countOnly?1:dtmAssignmentListLimit),
+  }});
+  const {rows,total}=selected;
+  if(rows.length!==Math.min(countOnly?1:dtmAssignmentListLimit,total))throw malformed();
+  const seen=new Set(),keys=fields.map(key=>key.split('!')[0]),validStatus=value=>trackerStates.includes(value)
+    &&(filter==='all'||(filter==='done'?value!=='open':filter===value));
+  for(const row of rows){
+    const course=row?.dtm_courses,student=row?.affairs_students;
+    if(!exact(row,keys)||!uuid(row.id)||seen.has(row.id)||!uuid(row.dtm_course_id)||!mode(row.source_mode)
+      ||!exact(student,['user_id'])||student.user_id!==caller.userId||!exact(course,['id','user_id','code','source_mode'])
+      ||course.id!==row.dtm_course_id||course.user_id!==caller.userId||!boundedLiteral(course.code,160)||course.source_mode!==row.source_mode
+      ||(courseId?(course.id!==courseId||course.code!==courses[0].code||course.source_mode!==courses[0].source_mode)
+        :course.source_mode!==(personalOnly?'personal':'sample'))
+      ||!countOnly&&(!boundedLiteral(row.title,160)||!row.title.trim())
+      ||hasStatus&&!validStatus(row.status)||hasDue&&row.due_at!==null&&!instant(row.due_at)
+      ||!matchesDeadline(period,row.due_at,asOf))throw malformed();
+    seen.add(row.id);
+  }
+  if(hasDue&&rows.some((row,index)=>index>0&&compareAssignmentDue(rows[index-1],row)>=0))throw malformed();
+  return {rows:countOnly?[]:rows.map(row=>({id:row.id,courseId:row.dtm_course_id,courseCode:row.dtm_courses.code,
+    title:row.title,sourceMode:row.source_mode,...(dates?{dueAt:row.due_at}:{}),...(statuses?{trackerStatus:row.status}:{})})),
+    total,courseScope:courseId?'selected':personalOnly?'personal':'sample'};
+}
+
+function compareAssignmentDue(previous,next){
+  const asMilliseconds=value=>value===null?Infinity:Date.parse(value)
+    +Number((/\.(\d{4,6})/u.exec(value)?.[1]??'').padEnd(6,'0').slice(3))/1000;
+  const left=asMilliseconds(previous.due_at),right=asMilliseconds(next.due_at);
+  return left===right?(previous.id<next.id?-1:1):left<right?-1:1;
 }

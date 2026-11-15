@@ -269,3 +269,20 @@ test('source dependencies inventory excludes writes, account setup and wide stud
   const source=await readFile(new URL('../../server/accountStudentLeaveEvidence.js',import.meta.url),'utf8');
   assert.doesNotMatch(source,/affairs_initialize_account|loadAffairsSnapshot|affairs_manage_service_record|method:'POST'/u);
 });
+
+test('exact UUIDs cannot be misread as another student or an undeclared date',()=>{
+  for(const id of ['a8212233-86ab-4001-a010-7fdd00223344','77112233-2026-4110-a010-7fdd00223344']){
+    const question='Show my leave dates for '+id;
+    const ordinary=studentLeaveLookupContext(question).selection;
+    assert.equal(ordinary.reason,null);
+    assert.equal(ordinary.view,'record');
+    assert.equal(ordinary.id,id);
+    assert.equal(ordinary.range,null);
+    const prior=studentLeaveLookupContext('Status?','/',[{role:'user',content:question}]).selection;
+    assert.equal(prior.reason,null);
+    assert.equal(prior.id,id);
+    const dated=studentLeaveLookupContext(question+' on 2026-11-10').selection;
+    assert.deepEqual(dated.range,{from:'2026-11-10',through:'2026-11-10'});
+    assert.equal(studentLeaveLookupContext('Show leave dates for Alice '+id).selection.reason,'foreign_request');
+  }
+});

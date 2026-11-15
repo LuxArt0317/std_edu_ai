@@ -126,3 +126,5 @@ The account assistant reads the signed-in user's housing receipt number, submiss
 ### Verified internship record questions
 
 `affairs-assistant.ts` reads only the verified caller's selected internship subtype. It derives the local contract, self-assessment, company application or enterprise directory from the question and current route. The same filters apply when verification retries. Explicit fee balance or next-class requests use their own read scopes. Guests receive a local sign-in return for the selected destination.
+
+`affairs-assistant.ts` routes written questions on the two Moodle assignment-list views to the scoped tracker reader before the broad snapshot branch. Exact assignment detail, submission and grade paths retain their existing readers.

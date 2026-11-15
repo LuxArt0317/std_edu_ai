@@ -1,3 +1,4 @@
+import type {ExplicitAccountAction} from './accountActionIntent.js';
 export class AffairsWorkspaceError extends Error { status:number; constructor(message:string,status?:number); }
 export type AffairsAccount = {user:{id:string;email?:string};token:string;url:string;key:string};
 export function schoolAffairsDatabaseConfiguration(): {url:string;key:string};
@@ -8,6 +9,7 @@ export type AffairsCharge={id:string;label:string;amountDue:number;amountPaid:nu
 export function loadOwnAffairsCharges(account:AffairsAccount&{requestDeadline?:number},options?:{deadline?:number}):Promise<{
   checkedAt:string;profile:{userId:string};studentRecordFound:boolean;charges:AffairsCharge[];
 }>;
+export function loadOwnAffairsActionContext(account:AffairsAccount,selection:ExplicitAccountAction,options?:{deadline?:number;onRead?:(tool:string,status:'running'|'complete'|'unavailable')=>void}):Promise<Record<string,unknown>>;
 export function executeAffairsAction(account:AffairsAccount,kind:string,payload:unknown,requestId?:string):Promise<Record<string,unknown>>;
 export function manageAffairsRecord(account:AffairsAccount,kind:string,payload:unknown):Promise<Record<string,unknown>>;
 

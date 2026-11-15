@@ -1,5 +1,9 @@
+import {parseExplicitAccountAction} from '../server/accountActionIntent.js';
+import {answerRequestedAffairsAction} from '../server/answerRequestedAffairsAction.js';
 import type {VerificationProgress} from '../server/answerVerification.js';
 import {answerDtmMaterial} from '../server/accountDtmMaterialAnswer.js';
+import {answerDtmAssignmentList} from '../server/accountDtmAssignmentListAnswer.js';
+import {dtmAssignmentListBoundary,dtmAssignmentListSelection} from '../server/dtmAssignmentListIntent.js';
 import {dtmMaterialBoundary,dtmMaterialIntent} from '../server/dtmMaterialIntent.js';
 import {readInternshipEvidence} from '../server/accountInternshipEvidence.js';
 import {internshipAssistantPlan,internshipBoundary,internshipSelectedTools,internshipUnavailable} from '../server/internshipAssistantPlan.js';
@@ -242,6 +246,37 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const [step]=searchGuide.activity;
     stream.progress(step.kind,step.label,step.detail,step.status);
     stream.send(200,searchGuide);
+    return;
+  }
+  const actionRequest=parseExplicitAccountAction(question);
+  if(actionRequest){
+    if(Array.isArray(input?.images)&&input.images.length){
+      stream.send(400,{error:'Describe the requested change as text before reviewing it.'});
+      return;
+    }
+    try{
+      const result=await answerRequestedAffairsAction({account,question,selection:actionRequest,deadline,
+        onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
+      stream.send(200,result);
+    }catch{
+      stream.send(503,{error:'The requested change could not be checked.'});
+    }
+    return;
+  }
+  const assignmentList=dtmAssignmentListSelection(question,route);
+  if(assignmentList){
+    if(Array.isArray(input?.images)&&input.images.length){
+      stream.send(400,{error:'For private account questions, remove the image and ask using text. Images are not stored as account records.'});
+      return;
+    }
+    if(assignmentList.reason){stream.send(200,dtmAssignmentListBoundary(assignmentList,question,true));return;}
+    try{
+      const result=await answerDtmAssignmentList({account,selection:assignmentList,question,deadline,
+        onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
+      stream.send(200,result);
+    }catch{
+      stream.send(503,{error:'The saved Moodle assignment list could not be checked.'});
+    }
     return;
   }
   const material=dtmMaterialIntent(question,route);

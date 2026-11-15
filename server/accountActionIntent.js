@@ -1,0 +1,64 @@
+// Every proposed change starts with a direct request in the current turn.
+// Saved messages, tool output and model-selected values cannot supply consent.
+const lead = /^(?:(?:please|could you(?: please)?|can you(?: please)?|would you(?: please)?)\s+)+/iu;
+const unrelatedClause = /[;；\r\n]|[?？]|(?:[.!。！]\s+[^\s])|\b(?:and|then|also|but)\s+(?:(?:please|don['’]t|do not|never)\s+)?(?:add|create|delete|complete|finish|mark|update|edit|rename|change|submit|post|publish|tell|show|check|what|when|where|how|why)\b|(?:，|、|然後|並且|也請|但是)(?:請)?(?:新增|建立|刪除|修改|提交|完成|查詢|顯示)/iu;
+const laterRequest = /(?:[.;；!?。！？]\s+|\b(?:and|then|also|but)\s+)(?:(?:please|could you|can you)\s+)*(?:add|create|delete|complete|mark|update|edit|rename|change|submit|post|publish|tell me|show me|check my|what|when|where|how|why)\b|[。；！？](?:請|幫我)?(?:新增|建立|刪除|修改|提交|完成|查詢|顯示)/iu;
+const escapedPattern = /^"([^"\r\n]*)"$|^“([^”\r\n]*)”$|^「([^」\r\n]*)」$|^『([^』\r\n]*)』$/u;
+const quotedText = /"[^"\r\n]*"|“[^”\r\n]*”|「[^」\r\n]*」|『[^』\r\n]*』/gu;
+const holdClause = /(?:^|[;；,.，。!?！？\n]\s*|\b(?:and|but|then|however)\s+)(?:(?:please|actually)\s+)*(?:do not|don['’]t|never|wait|hold off|cancel (?:it|that)|(?:請|先)?(?:不要|別|取消|稍等))(?:\b|(?=[\p{Script=Han}\s]|$))|\b(?:only if|unless|only after)\b|\bif\s+(?:i|we)\s+(?:approve|confirm|agree|say yes)\b|(?:等|待)我(?:同意|確認)|經我確認/iu;
+const badText = /[\p{Cs}\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u;
+
+function field(value, {body=false} = {}) {
+  const text = (value ?? '').trim();
+  if (badText.test(text)) return null;
+  const quote = escapedPattern.exec(text);
+  if (quote) return quote.slice(1).find(part => part !== undefined).trim();
+  if ((body ? laterRequest : unrelatedClause).test(text)) return null;
+  return text;
+}
+
+export function parseExplicitAccountAction(question) {
+  if (typeof question !== 'string' || question.length > 3000 || badText.test(question)) return null;
+  const rawCommand = question.trim().replace(lead,'').replace(/^請\s*/u,'');
+  const command = rawCommand.replace(/[.!?。！？]+$/u,'').trim();
+  const held=holdClause.test(rawCommand.replace(quotedText,'〈text〉'));
+  const checked=result=>({...result,ambiguous:held||result.ambiguous});
+  const ownName = /^(?:(?:change|set|update|rename) (?:my |the )?(?:stu\.best )?(?:display name|nickname)(?: to\s+([\s\S]+))?|call me\s+("[^"\r\n]+"|“[^”\r\n]+”)|(?:幫我)?(?:把)?(?:我的)?(?:顯示名稱|暱稱)(?:改成|改為|設為)([\s\S]*))$/iu.exec(command);
+  if (ownName) {
+    const title = field(ownName[1] ?? ownName[2] ?? ownName[3]);
+    return checked({kind:'update_display_name',title:title ?? '',ambiguous:title===null});
+  }
+
+  const task = /^(?:(?:add|create) (?:a )?(?:personal )?task(?:\s+(?:titled|called|named|to|with (?:the )?title))?(?:\s*[:：])?(?:\s+([\s\S]+))?|(?:remind me to|help me remember to)\s+([\s\S]+)|(?:幫我)?(?:新增|建立)(?:待辦|任務)\s*[:：]?\s*([\s\S]*))$/iu.exec(command);
+  if (task) {
+    const title = field(task[1] ?? task[2] ?? task[3]);
+    return checked({kind:'create_task',title:title ?? '',ambiguous:title===null});
+  }
+
+  const tracker = /^(?:(?:mark|set) (?:my )?(?:personal )?(?:(?:DTM|Moodle) )?assignment(?: tracker)?\s+([\s\S]+?)\s+(?:as|to)\s+(open|submitted)|(?:將|把)(?:我的)?(?:個人)?作業(?:追蹤)?\s*([\s\S]+?)\s*(?:標記為|設為)(未完成|已繳交))$/iu.exec(command);
+  if (tracker) {
+    const target = field(tracker[1] ?? tracker[3]);
+    const status = tracker[2]?.toLowerCase() ?? (tracker[4]==='未完成'?'open':'submitted');
+    return checked({kind:'set_assignment_status',target:target ?? '',status,ambiguous:target===null});
+  }
+
+  const complete = /^(?:(?:complete|finish|mark done) (?:my |the )?(?:task(?:\s+([\s\S]+))?)|(?:幫我)?(?:完成|標記完成)(?:我的)?(?:待辦|任務)\s*[:：]?\s*([\s\S]*))$/iu.exec(command)
+    ?? /^(?:complete|finish|mark done) (["“][^"”\r\n]+["”])$/iu.exec(command);
+  if (complete && !/\b(?:assignment|coursework|exam|payment|registration)\b|作業|繳費/iu.test(complete[1]??complete[2]??'')) {
+    const target = field(complete[1] ?? complete[2]);
+    return checked({kind:'complete_task',target:target ?? '',ambiguous:target===null});
+  }
+
+  const request = /^(?:create|submit) (?:a |my )?(?:(records|registration|general) )?(?:stu\.best )?service request(?: (?:titled|called|named) ([\s\S]+?))?(?: with (?:details|description)\s*[:：]?\s+([\s\S]+))?[.!。！]?$/iu.exec(rawCommand);
+  if (request) {
+    const title = field(request[2]), details = field(request[3],{body:true});
+    return checked({kind:'create_service_request',title:title ?? '',details:details ?? '',requestType:request[1]?.toLowerCase() ?? '',ambiguous:title===null||details===null});
+  }
+
+  const announcement = /^(?:post|publish) (?:a |an )?(?:stu\.best )?announcement(?: (?:titled|called|named) ([\s\S]+?))?(?: with (?:body|text)\s*[:：]?\s+([\s\S]+))?[.!。！]?$/iu.exec(rawCommand);
+  if (announcement) {
+    const title=field(announcement[1]),details=field(announcement[2],{body:true});
+    return checked({kind:'publish_announcement',title:title ?? '',details:details ?? '',ambiguous:title===null||details===null});
+  }
+  return null;
+}

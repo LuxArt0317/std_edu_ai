@@ -74,3 +74,5 @@ Accommodation bed questions from service 34-1 use the common account verificatio
 Housing receipt and bed questions go through the School Affairs verification endpoint. Its returned record cards include the same metadata shape as other assistant cards, so the conversation serializer retains the count, timestamp and source note.
 
 For the four School Affairs internship views, `schoolAffairsAssistant.ts` sends matching questions to the account verification endpoint before the legacy snapshot branch. The endpoint selects and verifies the actual record fields.
+
+Written requests about the Moodle assignment-list view go through the signed-in account endpoint. Explicit assignment-detail paths retain their separate evidence selector.

@@ -179,9 +179,15 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
       const {kind,payload,requestId}=action;
       const result=await performSchoolAffairsAction({kind,payload,requestId},{expectedUserId:user.id,signal});
       if (pendingAction.current!==controller || controller.signal.aborted) return;
+      const expectedRecordId=kind==='complete_task'?payload.task_id:kind==='set_assignment_status'?payload.id
+        :kind==='update_display_name'?user.id:undefined;
+      if (result.kind!==kind || expectedRecordId!==undefined&&result.id!==expectedRecordId || typeof result.id!=='string' || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu.test(result.id)
+        || typeof result.summary!=='string' || !result.summary.trim() || result.summary.length>500)
+        throw new Error('The action receipt could not be verified. Retry the same confirmation.');
+      const summary=result.summary.replace(/[\r\n]+/gu,' ').replace(/[\\`*_\[\]<>]/gu,'\\$&');
       setMessages(old=>old.map(item=>item.id===message.id?{
         ...item,
-        content:`${item.content}\n\n✓ ${result.summary}. [View updated records](${action.url||'/school-affairs/records'}).`,
+        content:`${item.content}\n\n✓ ${summary}. [View updated records](${action.url||'/school-affairs/records'}).`,
         result:item.result?{...item.result,proposedAction:undefined}:undefined,
         activity:mergeAssistantActivity(item.activity,[{kind:'action',label:'Updated your stu.best record',detail:result.summary,status:'complete'}]),
       }:item));

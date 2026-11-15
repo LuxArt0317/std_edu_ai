@@ -80,3 +80,9 @@ The 12 native Moodle material cases are in `dtm-material-cases.mjs`. `dtm-materi
 [The internship packet](../../docs/qa/INTERNSHIP_NATIVE_READ.md) registers 30 bilingual native questions for the contract, self-assessment, company application and directory. It retains four prior questions with a fixture rebind requirement. The default runner reports the unresolved setup before calling a hosted model or creating fixtures.
 
 The School Affairs directory adds 22 bilingual catalog cases and an explicit browser-local Custom menu case. Controlled public and signed-in handlers verify links and sibling exclusions without forwarding account data. The Student Leave lifecycle stages caller and foreign sentinels, records uncertain transactions durably, and checks both owners before making any cleanup claim. The lifecycle tests do not authorize the live fixture adapter.
+
+### Moodle assignment lists
+
+`dtm-assignment-list-handler.test.mjs` grades all 25 list cases through the actual endpoint using synthetic callers and controlled row requests. It checks the selected course, global personal/sample fallback, Taipei dates, exact counts, tracker states, access, retry and distinct submission and grade capabilities. Four original cases retain their earlier oracles and wait for updated fixture binding.
+
+The registered action cases check exact proposed payloads, relevant named reads and review text. `confirmed-assistant-action.test.ts` runs the real handlers with controlled authentication and database transport. The compiled browser check `tests/integration/assistant-confirmed-action-ui.mjs` verifies confirmation, receipt mismatch handling and reuse of the same operation ID. Run it against the local compiled preview. Hosted writes require separate acceptance.

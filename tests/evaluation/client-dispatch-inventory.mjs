@@ -105,7 +105,7 @@ export function inspectClientDispatchSource(source){
   const first=graphCalls[0];
   const verifiedDispatch=entry.body.statements.find(node=>ts.isIfStatement(node)&&ts.isReturnStatement(node.thenStatement)
     &&node.thenStatement.expression?.getStart(file)===first.at);
-  const graphPredicates={dtmMaterialIntent:['dtmMaterialIntent','question,route'],isInternshipEvidenceQuestion:['internshipEvidenceIntent','question,route,history'],
+  const graphPredicates={parseExplicitAccountAction:['accountActionIntent','question'],dtmAssignmentListSelection:['dtmAssignmentListIntent','question,route'],dtmMaterialIntent:['dtmMaterialIntent','question,route'],isInternshipEvidenceQuestion:['internshipEvidenceIntent','question,route,history'],
     isStudentLeaveEvidenceQuestion:['studentLeaveEvidenceIntent','question,route,history'],
     isDtmAssignmentEvidenceQuestion:['dtmAssignmentEvidenceIntent','question,route,history'],
     isAidPaymentsScopeQuestion:['aidPaymentsEvidenceIntent','question,route,history'],
@@ -141,6 +141,7 @@ export function inspectClientDispatchSource(source){
   if(!valid||observed.size!==Object.keys(graphPredicates).length||first.at<=guardPosition||contracts.some(row=>row.line<=first.line))
     throw new Error('Graph-backed questions must enter account verification before any direct reader.');
   return {contracts,verifiedDispatch:[
+    {id:'dtm-assignment-list',graphTool:'dtmAssignmentList',source:dispatchPath,line:first.line},
     {id:'dtm-materials',graphTool:'dtmMaterials',source:dispatchPath,line:first.line},
     {id:'student-leave',graphTool:'leaveRecords',serviceKeys:['20-1','33-1'],source:dispatchPath,line:first.line},
     {id:'internship',graphTool:'internshipRecords',serviceKeys:['53-1','55-1'],source:dispatchPath,line:first.line},
@@ -193,7 +194,7 @@ function questionCases(definition){
  * fixture creation, user-session import, model call or product code execution. */
 export async function discoverClientDispatchSurfaces({read=readSource}={}){
   const contracts=['clubStudent','certificateAwards','announcementEmail','studentProfile','graduationClearance'];
-  const sources=[...new Set([dispatchPath,apiPath,'server/dtmMaterialIntent.js','server/internshipEvidenceIntent.js','server/studentLeaveEvidenceIntent.js','server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js','server/dtmAssignmentEvidenceIntent.js','server/elearningEvidenceIntent.js','server/facilityRepairEvidenceIntent.js','server/dormitoryConductEvidenceIntent.js','server/elearningOutlineEvidenceIntent.js','server/healthExaminationEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
+  const sources=[...new Set([dispatchPath,apiPath,'server/accountActionIntent.js','server/dtmAssignmentListIntent.js','server/dtmMaterialIntent.js','server/internshipEvidenceIntent.js','server/studentLeaveEvidenceIntent.js','server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js','server/dtmAssignmentEvidenceIntent.js','server/elearningEvidenceIntent.js','server/facilityRepairEvidenceIntent.js','server/dormitoryConductEvidenceIntent.js','server/elearningOutlineEvidenceIntent.js','server/healthExaminationEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
     ...contracts.map(name=>'server/'+name+'Contract.js'),'src/features/public/affairs/venueContract.js',
     'server/clubServicesContract.js','server/clubOfficerContract.js','server/healthExaminationContract.js','server/counselingContract.js','server/counselingEvidenceIntent.js','server/clearanceEvidenceIntent.js','server/tutorEvaluationEvidenceIntent.js','server/serviceNoteIntent.js',
     'src/features/public/PublicSite.tsx','src/features/public/affairs/SchoolAffairsEntry.tsx','src/features/public/affairs/SchoolAffairsPortal.tsx',

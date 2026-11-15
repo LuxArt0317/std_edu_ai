@@ -338,3 +338,7 @@ The four-turn conversation requires independent factual grading and two helpfuln
 ### Housing receipt and native DTM scope [Issue #100]
 
 The housing application receipt and bed readers can both contribute evidence in a single request. Direct native DTM grade questions use their own roster/report transport. A combined receipt and grade overview request needs neither the broad snapshot nor the planner. The shared budget keeps whole housing rows and records where the result is partial. A failed retrieval cannot establish empty records.
+
+## Moodle assignment-list sources [Issue #100]
+
+The course list uses the exact course in the URL. My assignments uses personal courses if any exist, including when those courses have zero matches. If none exist, it uses the saved sample courses. The UI renders tracker rows from School Affairs assignments with a Moodle course. The separate native assignment detail, submission workspace and grade report supply their own fields. The assistant's two owner qualifications match the course and student to the verified caller, even for an administrator.
