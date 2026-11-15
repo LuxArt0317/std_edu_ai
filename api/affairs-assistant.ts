@@ -64,7 +64,7 @@ import {isForeignDtmGradesQuestion,isNativeDtmGradeOnlyQuestion} from '../server
 import {independentElearningQuestion,isElearningEvidenceQuestion,isForeignElearningRecordsQuestion} from '../server/elearningEvidenceIntent.js';
 import {readElearningEvidence} from '../server/accountElearningEvidence.js';
 import {readFacilityRepairEvidence} from '../server/accountFacilityRepairEvidence.js';
-import {isForeignFacilityRepairQuestion} from '../server/facilityRepairEvidenceIntent.js';
+import {isForeignFacilityRepairQuestion,requestsFacilityRepairTechnicianMessage} from '../server/facilityRepairEvidenceIntent.js';
 import {readDormitoryConductEvidence} from '../server/accountDormitoryConductEvidence.js';
 import {readElearningOutlineEvidence} from '../server/accountElearningOutlineEvidence.js';
 import {facilityRepairLookupContext,nativePageLookupContext,withoutExcludedNativePageClause} from '../server/accountSupplementalLookup.js';
@@ -331,7 +331,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       stream.send(200,result);
     }catch{stream.send(503,{error:'The saved venue requests could not be checked.'});}
   }
-  const actionRequest=parseExplicitAccountAction(question);
+  const parsedAction=parseExplicitAccountAction(question);
+  const actionRequest=parsedAction?.kind==='cancel_facility_repair'&&requestsFacilityRepairTechnicianMessage(question)?null:parsedAction;
   async function replyRequestedAction(selection:NonNullable<ReturnType<typeof parseExplicitAccountAction>>){
     if(Array.isArray(input?.images)&&input.images.length){
       stream.send(400,{error:'Describe the requested change as text before reviewing it.'});
@@ -866,6 +867,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const residualHistory=housingRead?[]:history;
     const remoteOnly=Boolean(residual)&&isElearningEvidenceQuestion(residual,residualRoute,residualHistory)&&!independentElearningQuestion(residual,residualRoute,residualHistory);
     const repairContext=facilityRepairLookupContext(residual,route,history),repairOnly=repairContext.repairOnly;
+    const repairNext=repairContext.nextClassOnly&&!notes.keys.length&&!pageContext.selected&&!housingRead;
     const ownNoteRead=notes.keys.length>0;
     const noteScopeOnly=ownNoteRead&&(!notes.otherQuestion||noteFees||noteNext);
     const nativeDtmOnly=isNativeDtmGradeOnlyQuestion(residual,residualRoute,residualHistory)
@@ -874,6 +876,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const scopedSnapshot=()=>({checkedAt:new Date().toISOString(),profile:{userId:account.user.id}});
     if(housingOnly)stream.progress('account','Checking saved dormitory assignments','Only the requested accommodation fields and any requested fee or timetable records will be checked.');
     else if(overviewOnly)stream.progress('account','Checking your saved overview','Checking course lists and counts from your signed-in account.');
+    else if(repairNext)stream.progress('account','Checking saved repair and class records','Checking only your repair records and School Affairs timetable.');
     else if(selectedReaderOnly)stream.progress('account','Checked account access','The selected reader uses this signed-in Google account.','complete');
     else stream.progress('account','Loading your account records',currentStudyScope==='courses_and_year'?'Checking your School Affairs subjects and recorded year level.':currentStudyScope||timetableOnly?'Checking the timetable linked to this Google account.':chargesOnly?'Checking only the fees linked to this Google account.':'Checking School Affairs and DTM records for this signed-in Google account.');
     const loadCharges=async()=>{
@@ -927,7 +930,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       :overviewOnly?loadAccountOverviewSnapshot(account,{deadline})
       :currentStudyScope==='courses_and_year'?loadCurrentStudy()
       :currentStudyScope==='courses'?loadTimetable().then(saved=>({...saved,currentStudyScope:'courses'}))
-      :timetableOnly||noteNext?loadTimetable():chargesOnly||noteFees?loadCharges()
+      :timetableOnly||noteNext||repairNext?loadTimetable():chargesOnly||noteFees?loadCharges()
       :selectedReaderOnly?Promise.resolve(scopedSnapshot())
         :loadSnapshot(account,false,{deadline,...(initialize===false||ownNoteRead?{initialize:false}:{}),...(ownNoteRead||notes.excluded||notes.officialOnly?{includeServiceRecords:false}:{})});
     const loadSelectedSnapshot=async(initialize?:false)=>{

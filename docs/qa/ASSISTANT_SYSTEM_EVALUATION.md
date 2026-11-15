@@ -451,3 +451,13 @@ The local Chromium sweep passed 552 comparisons across 265 routes, 16 guest retu
 ### Clearance and Academic Services after provider quota errors
 
 Protected `639f81b` produced four passing clearance answers out of 16 with stable persisted records and disposal. The deployed reviewer reported exhausted quota. The revised LangGraph checks complete typed clearance data, exact selected office notes and stable links before returning a response. A separately confirmed staff or write boundary can verify without a student record read. `b9aa9b3` passed all 16 mounted clearance cases and all 11 selected Academic Services cases. Native academic verification was required and both operators checked exact readbacks and disposed of their test accounts. Academic Services covers transcript, warning, ranking and saved English requirement views. Unavailable views preserve their precise capability limit. Three positive clearance window cases still require an isolated available window. The pure formatter boundary repair has separate follow-up quality checks.
+
+### Facility Repair reads during reviewer outages
+
+The exact repair path checks saved status, handling-note state, report counts, and links against the selected caller-owned evidence. A next-class request alongside a repair question uses the dedicated enrollment timetable read. A failed source leaves that part unavailable while the assistant retains independently verified records from the other source. A request to cancel a report and message the technician stays read-only and explains both action limits.
+
+The protected baseline withheld six repair replies after successful owned reads because the model reviewer had exhausted its quota. Paired fixture readbacks and cleanup passed. The local regression uses the actual request handler and native transport contract against all 18 unchanged reference cases, plus two independent source outages. It simulates provider quota exhaustion and asserts zero provider requests, zero writes, and no broad account snapshot or public research. Hosted replay remains separate.
+
+```sh
+node --experimental-strip-types --test tests/evaluation/facility-repair-native-handler.test.mjs
+```

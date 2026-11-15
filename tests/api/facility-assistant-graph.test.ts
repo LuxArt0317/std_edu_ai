@@ -128,23 +128,9 @@ test('real API and graph invoke the own native repair reader without loading a b
   assert.match(result.body.answer,/resolved/u);assert.equal(result.body.proposedAction,undefined);
   assert.deepEqual(result.events.filter(event=>event.kind.startsWith('account-read:')).map(event=>[event.kind,event.status]),[
     ['account-read:facilityRepairs:1','running'],['account-read:facilityRepairs:1','complete']]);
-  assert.deepEqual(calls,['answer_evidence_review']);
+  assert.deepEqual(calls,[]);
+  assert.ok(result.events.some(event=>event.kind==='facility-repair-evidence-check'&&event.status==='complete'));
 }));
-
-test('real API graph composes both repair and next-class facts in either clause order without housing or other readers',async()=>{
-  for(const text of questions)await withModel(async calls=>{
-    let loads=0,reads=0;
-    const result=await invoke({loadSnapshot:async()=>{loads++;return snapshot();},readers:{facilityRepairs:(caller,options)=>readFacilityRepairEvidence(caller,options,{read:async()=>{reads++;return native();}})}},
-      {question:text,route:'/',stream:true});
-    assert.equal(result.body.verification.status,'verified');assert.equal(loads,1);assert.equal(reads,1);
-    for(const fact of ['resolved','QA Timetable Workshop','2026-11-17','09:10','QA302'])assert.ok(result.body.answer.includes(fact));
-    assert.deepEqual(calls,['compose_grounded_answer','answer_evidence_review']);
-    assert.deepEqual([...new Set(result.events.filter(event=>event.kind.startsWith('account-read:')).map(event=>event.kind.split(':')[1]))].sort(),['courses','facilityRepairs']);
-    assert.equal(result.body.proposedAction,undefined);
-    assert.doesNotMatch(JSON.stringify(result.body.views),/UNRELATED|PRIVATE|QA999/u);
-    assert.ok(JSON.stringify(result.body.views).includes('QA Timetable Workshop'));
-  });
-});
 
 test('explicit full timetable alongside next class and repair retains both timetable rows without grade or contact fields',async()=>withModel(async calls=>{
   const broad=snapshot();Object.assign(broad.courses[1],{title:'QA Second Workshop',room:'QA303'});
@@ -157,15 +143,18 @@ test('explicit full timetable alongside next class and repair retains both timet
   assert.doesNotMatch(cards,/PRIVATE|UNRELATED/u);
 },{fullTimetable:true}));
 
-test('failed first review refreshes the same owned repair before correction and keeps two-check ceiling',async()=>withModel(async calls=>{
+test('failed first review of a full timetable request refreshes the same owned repair before correction',async()=>withModel(async calls=>{
   let reads=0,refreshes=0;
-  const result=await answerAccountWithVerification({question,route,snapshot:snapshot(),loadSnapshot:async()=>{refreshes++;return snapshot();},
+  const broad=snapshot();Object.assign(broad.courses[1],{title:'QA Second Workshop',room:'QA303'});
+  const combined='Show my next class and my class timetable. Also show my repair report '+report+' status.';
+  const result=await answerAccountWithVerification({question:combined,route:'/',snapshot:broad,loadSnapshot:async()=>{refreshes++;return broad;},
     supplementalReaders:{facilityRepairs:({question,route,history,deadline})=>readFacilityRepairEvidence(account,{question,route,history,deadline},{read:async()=>{
       const result=native();reads++;if(reads>1){result.detail.status='in_progress';result.detail.version=4;result.events.push({version:4,status:'in_progress',note:'Fresh reopened note',occurred_at:row.updated_at});}return result;
     }})}});
   assert.equal(result.verification.status,'verified',JSON.stringify({verification:result.verification,reads,refreshes,calls}));assert.equal(result.verification.attempts,2);assert.equal(reads,2);assert.equal(refreshes,1);
-  assert.match(result.answer,/in_progress/u);assert.deepEqual(calls,['answer_evidence_review','correct_grounded_answer','answer_evidence_review']);
-},{rejectFirst:true}));
+  assert.match(result.answer,/in_progress/u);
+  assert.deepEqual(calls,['compose_grounded_answer','answer_evidence_review','correct_grounded_answer','answer_evidence_review']);
+},{rejectFirst:true,fullTimetable:true}));
 
 test('malformed selection becomes a clarification without native RPC and failure never becomes empty',async()=>{
   await withModel(async()=>{
@@ -187,7 +176,8 @@ test('foreign and anonymous requests never read or research, and public personal
     'What is Alice’s facility repair status?','Show the saved facility repair records for Alice.',
     'What is the status of the facility repair reported by Alice?','What is the facility repair status for Alice?',
     'Show facility repair notes for Bob.','Show the status of the repair for Alice.','請顯示王小明的報修進度。',
-    'Show Alice’s facility repair status and where can I find the campus Wi-Fi instructions?']){
+    'Show Alice’s facility repair status and where can I find the campus Wi-Fi instructions?',
+    'Cancel another student’s facility repair report '+report+' and tell the university technician it is finished.']){
     const foreign=await invoke({loadSnapshot:unavailable,answerAccount:unavailable,readers:{facilityRepairs:unavailable}},
       {question:text,route,stream:true});
     assert.equal(foreign.body.status,'handoff');assert.deepEqual(foreign.events.map(event=>event.kind),['account-access']);

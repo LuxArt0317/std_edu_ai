@@ -712,6 +712,20 @@ export function formatExactClearanceAnswer(result,question,refusal){
   return refusal?{status:'handoff',answer,citations:[],views:[]}:{status,answer,citations,views};
 }
 
+export function formatExactFacilityRepairAnswer(result,question,selected){
+  if(result?.evidence?.id!=='account:facilityRepairs'||!selected)return null;
+  const {payload}=parse(result),actual=payload.selection;
+  const resolvedSingle=!selected.id&&actual.idSource==='only_matching_report'&&actual.id
+    &&(selected.latestNoteRequested||selected.fields.description);
+  if(!(resolvedSingle||actual.id===selected.id&&actual.idSource===selected.idSource
+    &&actual.page===selected.page&&actual.status===selected.status)
+    ||actual.latestNoteRequested!==selected.latestNoteRequested||actual.noteHistoryRequested!==selected.noteHistoryRequested
+    ||Object.keys(selected.fields).some(field=>actual.fields[field]!==selected.fields[field])
+    ||selected.requiresClarification&&result.reason!=='ambiguous_selection')return null;
+  const {status,answer,citations,views}=formatSupplementalAccountAnswers([result],{question});
+  return {status:payload.requiresClarification?'clarification':status,answer,citations,views};
+}
+
 export function formatExactTeachingFeedbackAnswer(result,question,selected){
   if(result?.evidence?.id!=='account:teachingFeedback'||!(selected?.views.length===1||selected?.views.length===2&&teachingFeedbackPairedStatus(selected.question))
     ||result.reason!==null||!['ok','empty'].includes(result.readState))return null;

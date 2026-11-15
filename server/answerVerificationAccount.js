@@ -34,7 +34,7 @@ import {selectAccountEvidence,boundSelectedEvidence,ownEvidenceRows} from './acc
 import {selectedEvidenceLinks} from './accountEvidenceLinks.js';
 import {boundedPublicPageEvidence,isPublicPageQuestion,loadPublicPageContext,normalizePublicPageRoute,publicPageCandidate} from './publicPageContext.js';
 import {supplementalAccountTools,requiredSupplementalTools,facilityRepairLookupContext,nativePageLookupContext,withoutExcludedNativePageClause,catalogReadPlanSchema,validateCatalogReadPlan,readSupplementalLookups} from './accountSupplementalLookup.js';
-import {formatExactClearanceAnswer,formatExactDtmGradeAnswer,formatExactTeachingFeedbackAnswer,formatRequestedAidPaymentDetails,formatSupplementalAccountAnswers,supplementalAnswerLanguage,supplementalAnswerLimits} from './supplementalAccountAnswers.js';
+import {formatExactClearanceAnswer,formatExactDtmGradeAnswer,formatExactFacilityRepairAnswer,formatExactTeachingFeedbackAnswer,formatRequestedAidPaymentDetails,formatSupplementalAccountAnswers,supplementalAnswerLanguage,supplementalAnswerLimits} from './supplementalAccountAnswers.js';
 import {formatSelectedChargeEvidence,selectedChargeAnswerLimits} from './selectedChargeEvidenceAnswer.js';
 import {asksAboutOfficialRecords} from './accountAnswerLanguage.js';
 import {aidPaymentsLookupContext,isAidPaymentsEvidenceQuestion} from './aidPaymentsEvidenceIntent.js';
@@ -48,6 +48,7 @@ import {housingApplicationLookupContext} from './housingApplicationEvidenceInten
 import {formatHousingApplicationAnswer} from './housingApplicationAnswer.js';
 import {unavailableHousingApplicationEvidence} from './accountHousingApplicationEvidence.js';
 import {exactTeachingFeedbackRead,teachingFeedbackImmediateFields,teachingFeedbackLookupContext} from './teachingFeedbackEvidenceIntent.js';
+import {selectFacilityRepairEvidence} from './facilityRepairEvidenceIntent.js';
 import {currentStudyForeignYearQuestion} from './currentStudyOwnerScope.js';
 import {isStudentAidRecordQuestion} from './studentAidRecords.js';
 export {supplementalAccountTools,requiredSupplementalTools} from './accountSupplementalLookup.js';
@@ -441,7 +442,7 @@ function boundedAccountSource(key,{title,url,budget,makeContent}){
 
 function requestedScheduleProjection(snapshot,context){
   const question=context.question||'',route=context.route||'',history=context.history||[];
-  const clearance=Boolean(context.serviceNext||context.aidNext||context.teachingNext||context.housingNext||clearanceTimetableQuestion(question,nativePageLookupContext(question,route,history)));
+  const clearance=Boolean(context.serviceNext||context.aidNext||context.teachingNext||context.housingNext||context.repairNext||clearanceTimetableQuestion(question,nativePageLookupContext(question,route,history)));
   const repair=facilityRepairLookupContext(question,route,history);
   const notes=context.serviceNoteScope??serviceNoteLookup(question,route,history);
   const noteNext=notes.keys.length>0&&isServiceNoteNextClass(notes.otherQuestion);
@@ -475,7 +476,7 @@ function clearanceNextClassAnswer(evidence,question,{labelFields=false}={}){
   return t(`Your next saved stu.best class is ${name} on ${day}, ${time} (Taipei time)`,`你在 stu.best 儲存的下一堂課是 ${name}，${day} ${time}（台北時間）`)+where+t('.','。')+provenance;
 }
 
-function exactInternshipNextClass(source,snapshot,question){
+function exactOwnedNextClass(source,snapshot,question,{labelFields=false,requireRoom=true}={}){
   const read=snapshot.completeness?.courses;
   if(source?.url!==schoolSubjectRecordsPath||snapshot.timetableReadUnavailable||snapshot.studentRecordFound!==true
     ||read?.scope!=='owned_enrolled_timetable'||read.complete!==true||!Array.isArray(snapshot.courses)
@@ -485,7 +486,7 @@ function exactInternshipNextClass(source,snapshot,question){
   if(payload.collection!=='courses'||payload.checkedAt!==snapshot.checkedAt||payload.studentRecordFound!==true
     ||payload.unavailableReason||payload.excerpted!==false||payload.selection?.scope!=='next_scheduled_class'
     ||payload.selection.availableRows!==read.returned||payload.selection.matchingRows!==1||payload.includedRows!==1
-    ||!selected?.enrollmentId||!next?.day||!next.course?.room?.trim())return null;
+    ||!selected?.enrollmentId||!next?.day||!next.course||requireRoom&&!next.course.room?.trim())return null;
   const {course,day}=next;
   const meetingFields=['enrollmentId','code','title','term','weekday','startsAt','endsAt','room','sourceMode'];
   const owned=snapshot.courses.find(row=>row.enrollmentId===selected.enrollmentId);
@@ -495,10 +496,35 @@ function exactInternshipNextClass(source,snapshot,question){
   // row in the calendar excerpt alone does not resolve that overlap.
   if(snapshot.courses.some(row=>row.status==='enrolled'&&row.enrollmentId!==owned.enrollmentId&&row.weekday===owned.weekday
     &&row.startsAt===owned.startsAt&&day>=row.termStartsOn&&day<=row.termEndsOn))return null;
-  const answer=clearanceNextClassAnswer([source],question);
+  const answer=clearanceNextClassAnswer([source],question,{labelFields});
   if(!answer)return null;
   const title=supplementalAnswerLanguage(question)==='zh-TW'?'開啟校務系統的上課紀錄':'Open your saved class records';
   return {answer:answer+'\n\n['+title+']('+schoolSubjectRecordsPath+')',citations:evidenceCitations([source]),sourceIds:[source.id],views:[]};
+}
+
+function facilityRepairNextClassEvidence(snapshot,context,question){
+  const scope={...context,repairNext:true,scopedReadOnly:true};
+  const source=accountEvidence(snapshot,['courses'],scope).find(item=>item.id==='account:courses');
+  if(!source||source.url!==schoolSubjectRecordsPath)return null;
+  const data=JSON.parse(source.content),read=snapshot.completeness?.courses;
+  if(data.collection!=='courses'||data.checkedAt!==snapshot.checkedAt)return null;
+  const meeting=exactOwnedNextClass(source,snapshot,question,{labelFields:true,requireRoom:false});
+  if(meeting){
+    const projected=requestedScheduleProjection(snapshot,scope);
+    const views=accountRecordViews({...snapshot,courses:projected.records},['courses'],scope);
+    return {source,answer:meeting.answer,citations:meeting.citations,views,available:true};
+  }
+  const linked=snapshot.studentRecordFound===true&&read?.scope==='owned_enrolled_timetable'&&read.complete===true
+    &&Array.isArray(snapshot.courses)&&read.returned===snapshot.courses.length;
+  const empty=linked&&data.calendar?.records?.next===null&&!studyCalendar(snapshot.courses,snapshot.checkedAt).next;
+  const unlinked=snapshot.studentRecordFound===false&&data.studentRecordFound===false;
+  const loadingFailed=snapshot.timetableReadUnavailable===true&&Boolean(data.unavailableReason);
+  const zh=supplementalAnswerLanguage(question)==='zh-TW';
+  const label=zh?'開啟校務系統的上課紀錄':'Open your saved class records';
+  const answer=loadingFailed||empty||unlinked?clearanceNextClassAnswer([source],question)
+    :zh?'無法以這次查到的課表資料確認你的下一堂課。':'I couldn’t verify your next class from the available timetable evidence.';
+  return {source,answer:answer+'\n\n['+label+']('+schoolSubjectRecordsPath+')',
+    citations:evidenceCitations([source]),views:[],available:empty||unlinked};
 }
 
 function housingEvidencePath(context){
@@ -1117,6 +1143,63 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         activity:[...new Map(observed.map(step=>[step.kind,step])).values()]};
     }
   }
+  const repairNext=repairLookup.nextClassOnly;
+  const exactRepair=(repairLookup.repairOnly||repairNext)&&!plan.publicTopics.length&&!publicPageRoute
+    &&activeTools.includes('facilityRepairs')&&activeTools.length===(repairNext?2:1)
+    &&(!repairNext||activeTools.includes('courses'))
+    ?selectFacilityRepairEvidence(repairLookup.repairQuestion,fullRoute,history):null;
+  if(exactRepair){
+    let results=firstSupplemental,current=snapshot;
+    const prepare=()=>{
+      if(results.length!==1)return null;
+      try{
+        const [result]=results;
+        const report=formatExactFacilityRepairAnswer(result,question,exactRepair);
+        if(!report)return null;
+        const schedule=repairNext?facilityRepairNextClassEvidence(current,context,question):null;
+        if(repairNext&&!schedule)return null;
+        const sources=[result.evidence,...(schedule?[schedule.source]:[])];
+        const scheduleFirst=schedule&&question.trimStart().toLowerCase().startsWith(repairLookup.otherQuestion.split(' and ')[0].toLowerCase());
+        const answer=schedule?(scheduleFirst?[schedule.answer,report.answer]:[report.answer,schedule.answer]).join('\n\n'):report.answer;
+        const candidate={status:schedule?.available&&report.status==='abstained'?'answered':report.status,answer,
+          citations:[...report.citations,...(schedule?.citations??[])],views:[...report.views,...(schedule?.views??[])].slice(0,3)};
+        return answer.length<=supplementalAnswerLimits.answerCharacters&&Buffer.byteLength(JSON.stringify(candidate),'utf8')<=supplementalAnswerLimits.resultBytes
+          &&answerLinksSupported(answer,sources)?{candidate,sources,scheduleAvailable:schedule?.available,degraded:result.readState==='unavailable'||result.readState==='partial'||schedule?.available===false}:null;
+      }catch(error){if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;return null;}
+    };
+    let selected=prepare();
+    if(selected){
+      const boundary={status:'abstained',answer:'',citations:[],views:[]};
+      const zh=supplementalAnswerLanguage(question)==='zh-TW';
+      const checked=await runAnswerVerification({question,deadline,initialAnswer:selected.candidate,onProgress:emit,
+        async loadEvidence({attempt}){
+          if(attempt>1){
+            if(repairNext){
+              current=await loadSnapshot();
+              if(current.profile?.userId!==snapshot.profile?.userId)throw new Error('Account scope changed during repair evidence refresh.');
+            }
+            results=await readSupplemental(current,attempt);
+            selected=prepare();
+          }
+          if(repairNext)emit({kind:'account-read:courses:'+attempt,label:zh?'查閱下一堂課':'Checked your next class',
+            detail:selected?.scheduleAvailable?'Checked the next meeting in your saved timetable.':'The available timetable could not establish the next meeting.',
+            status:selected?.scheduleAvailable?'complete':'unavailable'});
+          return selected?.sources??[];
+        },
+        verify({candidate,evidence}){
+          const expected=isDeepStrictEqual(evidence,selected?.sources)?prepare():null;
+          if(!expected||!isDeepStrictEqual(candidate,expected.candidate))return {ok:false,reason:'evidence_unavailable'};
+          emit({kind:'facility-repair-evidence-check',label:zh?'已核對報修紀錄':'Checked the saved repair evidence',
+            detail:zh?'依讀取結果核對報修欄位、來源連結及查詢限制。':'Matched the displayed repair fields, links and lookup limits to the selected evidence.',status:'complete'});
+          return {ok:true};
+        },
+        repair:async()=>selected?.candidate??boundary,
+      });
+      return {...checked,views:checked.views??[],suggestedQuestions:[],
+        grounding:{source:'account',webSearched:false,checkedAt:current.checkedAt,degraded:checked.verification?.status!=='verified'||selected?.degraded===true},
+        activity:[...new Map(observed.map(step=>[step.kind,step])).values()]};
+    }
+  }
   const exactTeaching=allowNativeTeachingVerification&&!plan.publicTopics.length&&!publicPageRoute&&activeTools.length===1&&activeTools[0]==='teachingFeedback'
     ?exactTeachingFeedbackRead(teaching):null;
   if(exactTeaching){
@@ -1232,7 +1315,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         const answer=formatSupplementalAccountAnswers(results,{question});
         if(answer.status!=='answered'||!answer.complete)return null;
         if(!internshipCompanion)return answerLinksSupported(answer.answer,sources())?answer:null;
-        const companion=internshipCompanion==='charges'?boundedFeeAnswer(sources()):exactInternshipNextClass(companionSource,current,question);
+        const companion=internshipCompanion==='charges'?boundedFeeAnswer(sources()):exactOwnedNextClass(companionSource,current,question);
         // Incomplete, unavailable or ambiguous companion reads retain their
         // existing scoped recovery and limitation behavior.
         if(!companion||internshipCompanion==='charges'&&(!companion.complete||!companion.views.length))return null;

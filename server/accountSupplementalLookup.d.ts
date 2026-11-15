@@ -8,7 +8,7 @@ export type SupplementalAccountReaders=Partial<Record<SupplementalAccountTool,(c
 export const supplementalAccountTools:Readonly<Record<SupplementalAccountTool,string>>;
 export const supplementalEvidenceBudget:54000;
 export function withoutExcludedNativePageClause(question:string):string;
-export function facilityRepairLookupContext(question:string,route?:string,history?:Array<{role:string;content:string}>):{selected:boolean;repairOnly:boolean;scheduleOnly:boolean;otherQuestion:string;repairQuestion:string};
+export function facilityRepairLookupContext(question:string,route?:string,history?:Array<{role:string;content:string}>):{selected:boolean;repairOnly:boolean;scheduleOnly:boolean;nextClassOnly:boolean;otherQuestion:string;repairQuestion:string};
 export function nativePageLookupContext(question:string,route?:string,history?:Array<{role:string;content:string}>):{tools:NativePageTool[];selected:boolean;readerOnly:boolean;otherQuestion:string;questions:Partial<Record<NativePageTool,string>>;foreign:boolean;feeAndBalance:boolean;feeChargeLabel:string|null;clearanceAndNextClass:boolean};
 export const catalogReadPlanSchema:Record<string,unknown>;
 export function requiredSupplementalTools(question:string,route?:string,history?:Array<{role:string;content:string}>):SupplementalAccountTool[];
