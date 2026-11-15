@@ -63,13 +63,13 @@ export function normalizePublicPageRoute(route) {
 }
 
 export function isPublicPageQuestion(question) {
-  return /\b(?:this|current|present)\s+(?:web\s*)?page\b|\bpage\s+(?:(?:that\s+)?i(?:'m| am)\s+(?:on|viewing|reading)|i (?:have )?opened)\b|(?:這(?:個|一)?|此|本|目前(?:的)?|當前(?:的)?)\s*(?:網頁|頁面|頁)/i.test(String(question));
+  return /\b(?:this|current|present)\s+(?:web\s*)?page\b|\bpage\s+(?:(?:that\s+)?i(?:'m| am)\s+(?:on|viewing|reading)|i (?:have )?opened)\b|(?:這(?:個|一)?|此|本|目前(?:的)?|當前(?:的)?)\s*(?:(?:在校學生|學生服務)\s*)?(?:網頁|頁面|頁)/i.test(String(question));
 }
 
 const pageMention='(?:this|the current|the present)\\s+(?:web\\s*)?page';
 const englishPageSummary=new RegExp(
   `\\b(?:what(?: is| was|['’]s) ${pageMention} about|what (?:does|did) ${pageMention} (?:cover|discuss)|(?:summari[sz]e|describe|explain|give (?:me )?(?:a |an )?(?:brief )?(?:summary|overview) of) ${pageMention})\\b(?!['’]s\\b)`,'iu');
-const chinesePageSummary=/(?:這(?:個|一)?|此|本|目前(?:的)?|當前(?:的)?)\s*(?:網頁|頁面|頁).{0,10}(?:關於什麼|主要內容|在說什麼|介紹什麼|有什麼內容)|(?:摘要|概述|總結).{0,12}(?:這(?:個|一)?|此|本).{0,8}(?:網頁|頁面|頁)/u;
+const chinesePageSummary=/(?:這(?:個|一)?|此|本|目前(?:的)?|當前(?:的)?)\s*(?:(?:在校學生|學生服務)\s*)?(?:網頁|頁面|頁).{0,10}(?:關於什麼|主要內容|在說什麼|介紹什麼|有什麼內容)|(?:摘要|概述|總結).{0,12}(?:這(?:個|一)?|此|本).{0,8}(?:網頁|頁面|頁)/u;
 
 /** A page summary asks about the capture body, beyond its manifest identity. */
 export function isPublicPageSummaryQuestion(question) {
@@ -173,9 +173,9 @@ export function publicPageCandidate(context,question,{summary}={}) {
   const {page,evidence,contentAvailable}=context;
   const title=(page.title||(chinese?'目前公開頁面':'this public page')).replace(/[\\[\]]/g,'\\$&');
   const link=`[${title}](${page.route})`;
-  const snapshot=`Source snapshot: ${page.capturedOn}`;
+  const snapshot=chinese?`擷取日期：${page.capturedOn}`:`Source snapshot: ${page.capturedOn}`;
   const body=contentAvailable&&typeof summary==='string'
-    ?summary.split('\n').filter(line=>!/^Source snapshot: \d{4}-\d{2}-\d{2}\.?$/iu.test(line.trim())).join('\n').trim():'';
+    ?summary.split('\n').filter(line=>!/^(?:Source snapshot:\s*|擷取日期[：:]\s*)\d{4}-\d{2}-\d{2}[.。]?$/iu.test(line.trim())).join('\n').trim():'';
   const answer=(chinese?`這個頁面是 ${link}，為已儲存的學校公開頁面。`:`This is ${link}, a saved public school page.`)
     +(body?`\n\n${body}`:'')
     +`\n\n${snapshot}`

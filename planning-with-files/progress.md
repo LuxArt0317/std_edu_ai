@@ -79,3 +79,5 @@
 - 2026-11-15 [#100] `ae5135f` passed GitHub Quality 43697662242. Exact `eddb586` passed three pinned public probes and an independent review of substantive English and Traditional Chinese archived content, original OneDrive notice access, and retained verification after a further search. Tracked the caption and link wording issues separately.
 
 - 2026-11-15 [#100] Integrated locally tested Counseling cancellation `a57fd2c`. The combined 57 endpoint tests and Chromium confirmations passed. Logged the exact public and signed-in protected evidence and the separate wider grade and Counseling replay work in Issue #100.
+
+- 2026-11-15 [#100] Integrated scoped exact Moodle grade selection and ten disposable paired native-report cases. Added Traditional Chinese capture-date formatting and rejected wording that asks for a known notice link while keeping inaccessible contents outside evidence.

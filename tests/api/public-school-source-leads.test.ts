@@ -120,7 +120,8 @@ const provider=(body:unknown)=>Response.json({output:[{type:'message',content:[{
 const search=(url:string,answer:string)=>Response.json({output:[{type:'web_search_call',status:'completed',action:{sources:[{url,title:'STU Cloud Storage'}]}},
   {type:'message',content:[{text:JSON.stringify({status:'answered',source_urls:[url],answer})}]}]});
 
-for(const verifiedPartial of [false,true])test(`the OneDrive response preserves its original login-gated lead with ${verifiedPartial?'verified partial facts':'unavailable details'}`,async t=>{
+for(const scenario of ['unavailable','verified','needs-copy-repair'] as const)test(`the OneDrive response preserves its original login-gated lead with ${scenario}`,async t=>{
+  const verifiedPartial=scenario!=='unavailable';
   const old={key:process.env.OPENAI_API_KEY,url:process.env.VITE_SUPABASE_URL,publish:process.env.VITE_SUPABASE_PUBLISHABLE_KEY};
   process.env.OPENAI_API_KEY='controlled-public-leads-key';process.env.VITE_SUPABASE_URL='https://controlled-public-leads.supabase.co';
   process.env.VITE_SUPABASE_PUBLISHABLE_KEY='controlled-publishable-key';
@@ -129,7 +130,7 @@ for(const verifiedPartial of [false,true])test(`the OneDrive response preserves 
       if(value===undefined)delete process.env[key];else process.env[key]=value;
     }
   });
-  let searches=0;
+  let searches=0,corrections=0;
   t.mock.method(globalThis,'fetch',async (input:RequestInfo|URL,init:RequestInit)=>{
     const url=String(input);
     if(url.includes('/embeddings'))return Response.json({data:[{embedding:Array(1536).fill(0)}]});
@@ -138,14 +139,23 @@ for(const verifiedPartial of [false,true])test(`the OneDrive response preserves 
     const request=JSON.parse(String(init?.body)),name=request.text.format.name;
     if(name==='stu_web_answer'){
       if(++searches>1)return Response.json({output:[]});
-      return verifiedPartial?search(support,`${content} The student quota and announcement date could not be verified.`)
+      return verifiedPartial?search(support,scenario==='needs-copy-repair'
+        ?`${content} The missing details are the announcement’s URL or text and its student quota.`
+        :`${content} The student quota and announcement date could not be verified.`)
         :search(notice,'This unsupported draft invents a 987 GB quota and an announcement date of November 31.');
     }
     assert.equal(verifiedPartial,true,'Login shell or gated title must never produce a verification request.');
-    assert.equal(name,'answer_evidence_review');
     const inputData=JSON.parse(request.input[0].content[0].text);
     assert.deepEqual(inputData.evidence.map((source:{url:string})=>source.url),[support]);
     assert.doesNotMatch(JSON.stringify(inputData),/625803|LOGIN_MARKER|987 GB/u);
+    assert.match(request.instructions,/a relevant notice link is available separately as navigation/iu);
+    if(name==='correct_grounded_answer'){
+      corrections++;
+      return provider({status:'answered',answer:`${content} I couldn’t verify the student quota or announcement date in the notice.`,
+        sourceIds:[inputData.evidence[0].id]});
+    }
+    assert.equal(name,'answer_evidence_review');
+    assert.doesNotMatch(inputData.answer,/URL or text/u);
     return provider({supported:true,answersQuestion:true,claims:[{claim:content,supported:true,evidenceId:inputData.evidence[0].id,quotes:[content],jsonPaths:[]}]});
   });
   const direct:string[]=[];
@@ -163,11 +173,12 @@ for(const verifiedPartial of [false,true])test(`the OneDrive response preserves 
     const [,event,value]=/^event: (\w+)\ndata: (.+)\n\n$/u.exec(raw)??[];
     if(event==='progress')events.push(JSON.parse(value));if(event==='result')body=JSON.parse(value);
   },end(){}};
-  await handler({method:'POST',body:{question,stream:true},headers:{'x-forwarded-for':verifiedPartial?'192.0.2.47':'192.0.2.46'}},sink);
+  await handler({method:'POST',body:{question,stream:true},headers:{'x-forwarded-for':scenario==='needs-copy-repair'?'192.0.2.48':verifiedPartial?'192.0.2.47':'192.0.2.46'}},sink);
   assert.match(body.answer,/Microsoft 365 and OneDrive storage quotas\]\(https:\/\/dtm\.stu\.edu\.tw\/mod\/page\/view\.php\?id=625803\)/u);
   assert.match(body.answer,/School sign-in is required\. I could not verify the notice contents/u);
   assert.doesNotMatch(JSON.stringify(body),/LOGIN_MARKER|login\/index|987 GB|November 31/u);
-  assert.doesNotMatch(body.answer,/Please try again or specify the course/u);
+  assert.doesNotMatch(body.answer,/Please try again or specify the course|URL or text/u);
+  assert.equal(corrections,scenario==='needs-copy-repair'?1:0);
   assert.deepEqual(body.citations.map((citation:{url:string})=>citation.url),verifiedPartial?[support]:[],JSON.stringify({activity:body.activity,verification:body.verification,direct}));
   assert.equal(body.verification?.status,verifiedPartial?'verified':'unverified');
   assert.equal(events.filter(step=>step.kind==='school-source-lead'&&step.status==='complete').length,1);

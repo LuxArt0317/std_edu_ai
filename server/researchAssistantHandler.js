@@ -992,6 +992,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
         const sourceLeads = publicQuestion && !personalQuestion && !input.images.length ? createPublicSchoolSourceLeads(input.question) : null;
         const indexedSources = (sourceLeads?.indexed || []).map(lead => ({ chunkId: lead.id, url: lead.url,
             title: chinese ? lead.titleZh : lead.titleEn, sourceName: 'STU Digital Teaching Materials' }));
+        const hasKnownNoticeLink = indexedSources.length > 0;
         async function readPublicSources(citations, until) {
             const evidence = await readSources(citations, until, {
                 onAccessRequired: lead => sourceLeads?.recordAccessRequired(lead),
@@ -1183,6 +1184,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 const composed = await composeEvidenceAnswer({ question: verificationQuestion,
                     candidate: { ...candidate, citations: [...checkedSources.values()] }, evidence, deadline: composeUntil,
                     deeperReview: previousChecks === maxAnswerVerificationChecks - 1,
+                    hasKnownNoticeLink,
                     ...(publicStudyGuidance ? { responseIntent: 'mixed', feedback: [publicStudyGuidanceInstructions] } : {}),
                 }).catch(() => null);
                 if (composed?.status !== 'answered') {
@@ -1265,9 +1267,9 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     addedEvidenceOnLastPass = Boolean(evidence.length);
                     return evidence;
                 },
-                verify: context => verifyPublicAnswer({ ...context, trackPublicCoverage: canRecover&&!publicStudyGuidance,
+                verify: context => verifyPublicAnswer({ ...context, hasKnownNoticeLink, trackPublicCoverage: canRecover&&!publicStudyGuidance,
                     deeperReview: context.attempt + previousChecks >= maxAnswerVerificationChecks }),
-                repair: context => repairPublicAnswer({ ...context, deeperReview: context.attempt + previousChecks >= maxAnswerVerificationChecks,
+                repair: context => repairPublicAnswer({ ...context, hasKnownNoticeLink, deeperReview: context.attempt + previousChecks >= maxAnswerVerificationChecks,
                     candidate: { ...context.candidate, citations: context.evidence.map(source => checkedSources.get(source.id)).filter(Boolean) } }),
             });
             checked.activity = [...candidate.activity, ...steps.values()];
@@ -1280,9 +1282,11 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 }
             }
             if (checked.verification?.status === 'unverified') {
-                checked.answer = chinese
-                    ? '目前查閱的頁面無法確認你要找的資訊。若你有公告標題或連結，請提供給我，我可以查那份資料。'
-                    : 'I could not verify that detail in the pages I checked. If you have the notice title or a link, send it and I can check that source.';
+                checked.answer = hasKnownNoticeLink
+                    ? (chinese ? '目前無法核實公告中的資料。' : 'I couldn’t verify the requested details in the notice.')
+                    : (chinese
+                        ? '目前查閱的頁面無法確認你要找的資訊。若你有公告標題或連結，請提供給我，我可以查那份資料。'
+                        : 'I could not verify that detail in the pages I checked. If you have the notice title or a link, send it and I can check that source.');
             }
             await sendPublicReply(checked);
             return true;
@@ -1504,7 +1508,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
                         }
                         return retrieved.map(item => ({ id: item.chunk_id, title: item.document_title, url: item.source_url,
                             content: JSON.stringify({ content: item.content, effectiveAt: item.effective_at, reviewedAt: item.reviewed_at, sourceName: item.source_name, authority: item.authority_level }) }));
-                    }, verify: verifyPublicAnswer, repair: repairPublicAnswer, });
+                    }, verify: context => verifyPublicAnswer({ ...context, hasKnownNoticeLink }),
+                    repair: context => repairPublicAnswer({ ...context, hasKnownNoticeLink }), });
                 if (checked.verification?.status === 'unverified' && await tryWebAnswer(checked)) return;
                 answer = { status: checked.status, answer: checked.answer, citations: checked.citations.map(item => ({ chunkId: item.chunkId, claim: item.claim })), suggestedQuestions: checked.suggestedQuestions || [] };
                 citations = checked.citations;

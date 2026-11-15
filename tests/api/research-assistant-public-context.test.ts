@@ -3,7 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {after,test} from 'node:test';
 import captures from '../../src/features/public/mirror/pages.json' with {type:'json'};
 import {createResearchAssistantHandler} from '../../api/research-assistant.ts';
-import {boundedPublicPageEvidence,isPublicPageSummaryQuestion,loadPublicPageContext,type PublicPageContext} from '../../server/publicPageContext.js';
+import {boundedPublicPageEvidence,isPublicPageSummaryQuestion,loadPublicPageContext,publicPageCandidate,type PublicPageContext} from '../../server/publicPageContext.js';
 
 const originalFetch=globalThis.fetch;
 const names=['OPENAI_API_KEY','VITE_SUPABASE_URL','VITE_SUPABASE_PUBLISHABLE_KEY'] as const;
@@ -97,6 +97,34 @@ test('the compound page question corrects a mismatched language and returns a ve
   assert.equal(reads,1);assert.equal(loads,1);
   assert.deepEqual(saved,before);
   assert.deepEqual(calls,['compose_grounded_answer','correct_grounded_answer','answer_evidence_review']);
+});
+
+test('the Traditional Chinese caption uses the exact saved date and removes duplicate date lines from a draft',async()=>{
+  configure();
+  const saved=await context();
+  saved.contentAvailable=true;
+  const prompt='這個在校學生頁面介紹什麼？請提供本頁連結與擷取日期。';
+  const draft=publicPageCandidate(saved,prompt,{summary:`頁面彙整在校學生服務。\n\nSource snapshot: ${page.capturedOn}.\n擷取日期：${page.capturedOn}。`});
+  assert.equal((draft.answer.match(/擷取日期：/gu)||[]).length,1);
+  assert.match(draft.answer,new RegExp('擷取日期：'+page.capturedOn,'u'));
+  assert.doesNotMatch(draft.answer,/Source snapshot/u);
+  let calls=0;
+  globalThis.fetch=async(url,init)=>{
+    assert.equal(String(url),'https://api.openai.com/v1/responses');
+    const call=JSON.parse(String(init?.body));
+    const input=JSON.parse(call.input[0].content[0].text);
+    calls++;
+    if(call.text.format.name==='compose_grounded_answer')
+      return modelResponse({status:'answered',answer:'此頁彙整在校學生使用的校務資源，包括課程選課與請假服務。',sourceIds:[saved.evidence.id]});
+    assert.match(input.answer,new RegExp('擷取日期：'+page.capturedOn,'u'));
+    return modelResponse({supported:true,answersQuestion:true,claims:[
+      {claim:'課程選課及請假',supported:true,evidenceId:saved.evidence.id,quotes:[],jsonPaths:['/excerpt']},
+    ]});
+  };
+  const metadata=JSON.parse(saved.evidence.content);
+  saved.evidence.content=JSON.stringify({...metadata,contentAvailable:true,excerpt:'學生選課系統與學生請假。'});
+  const result=await invoke({question:prompt,route:page.route},async()=>saved);
+  assert.equal(result.body.verification.status,'verified');assert.equal(calls,2);
 });
 
 test('a title-only approval prompts correction against the excerpt or withholds the failed summary',async()=>{

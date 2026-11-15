@@ -1,6 +1,10 @@
 # Changelog
 ## Unreleased
 
+- Route exact Moodle grade-report questions to the signed-in report and test the record contents and crossed-account denials on protected Preview. [#100]
+
+- Localize the capture date on Traditional Chinese page summaries and distinguish a known school notice link from its unread contents. [#100]
+
 - Let signed-in students confirm cancellation of one saved counseling or psychological assessment appointment from the campus assistant. Verify the native cancellation receipt before displaying the result. [#100]
 
 - Follow another public school source when a verified reply still leaves part of the question unanswered, and keep the verified facts when the extra search cannot fill the gap. [#100]

@@ -882,7 +882,8 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Require the archived-page answer to summarize requested content from the same capture and independently grade it locally.
 - [x] Verify the substantive archived student-page summary, title, link and date on protected `ae5135f`.
 - [x] Verify substantive English and Traditional Chinese archive content, exact link/date and no web retrieval on `eddb586`.
-- [ ] Localize the Chinese capture-date caption and clarify the OneDrive notice text versus the separately available link.
+- [x] Localize the Chinese capture-date caption and distinguish a known notice link from unread content in controlled endpoint tests.
+- [ ] Confirm the caption and notice wording on the exact protected Preview.
 - [x] Verify that a scoped public answer can follow new evidence after approval of a partial draft, while keeping the prior verified reply if the extra lookup cannot improve it.
 - [x] Preserve the original DTM notice link outside answer evidence and verify the login redirect handling locally.
 - [x] Verify the exact DTM notice access handoff on protected `ae5135f`.
@@ -892,7 +893,8 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 
 ### Native grade and appointment actions [Issue #100]
 
-- [ ] Mount and replay the exact Moodle native grade-report cases after checking separate gradebook and tracker facts.
+- [x] Mount ten signed-in Moodle grade-report cases with exact own/crossed readbacks, separate gradebook and tracker facts, and disposal.
+- [ ] Replay those cases on protected Preview and cover the remaining multi-course, empty-account and feedback cases.
 - [x] Implement and locally verify explicit confirmation of one eligible caller-owned 29-1 appointment through the versioned workflow.
 - [ ] Verify the confirmed Counseling cancellation against protected Preview fixture rows and operation receipts.
 - [ ] Replay the four authenticated service boundary families at 30-1, 30-2, 31-2 and 35-1.
