@@ -8,6 +8,7 @@ const officialDirectory = 'https://www.lib.stu.edu.tw/visitor-information/';
 const officialNotice = 'https://www.lib.stu.edu.tw/2026-archive-exhibit/';
 const officialOffice = 'https://www.lib.stu.edu.tw/archive-office/';
 const eventCalendar = 'https://www.lib.stu.edu.tw/archive-calendar/';
+const queuedBatch = [1,2,3].map(index => `https://www.lib.stu.edu.tw/archive-related-${index}/`);
 const officeContent = 'The archive office will open the exhibition in November, with hours to be announced.';
 const calendarContent = 'The library lists the archive exhibition on November 24 and refers visitors to the organizer for hours.';
 const directoryContent = 'The library visitor directory lists the exhibits and explains how to contact staff.';
@@ -72,7 +73,7 @@ async function invoke(input: Record<string,unknown>, run: ReturnType<typeof crea
   return responseBody;
 }
 
-function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link'|'unused-tool-lead'|'third-pass-discovery'|'incomplete-office'|'fourth-check'|'fourth-rejected'|'fourth-budget'|'mirror'|'mirror-then-primary'|'transient-lead'|'transient-initial'|'transient-uncited'|'empty-deep-search'|'empty-alternate-search'|'review-timeout-lead'|'review-timeout-duplicate'|'review-timeout-no-lead'|'correction-timeout'|'correction-outage'|'correction-mirrored-lead'|'correction-no-lead'|'second-review-outage'|'second-review-quota') {
+function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link'|'unused-tool-lead'|'third-pass-discovery'|'incomplete-office'|'fourth-check'|'fourth-rejected'|'fourth-budget'|'mirror'|'mirror-then-primary'|'transient-lead'|'transient-initial'|'transient-uncited'|'empty-deep-search'|'empty-alternate-search'|'review-timeout-lead'|'review-timeout-duplicate'|'review-timeout-no-lead'|'correction-timeout'|'correction-outage'|'correction-mirrored-lead'|'correction-no-lead'|'second-review-outage'|'second-review-quota'|'second-review-batch-unreadable'|'second-review-batch-mirror'|'second-review-batch-budget') {
   configured();
   const started = Date.now();
   let elapsed = 0;
@@ -87,6 +88,7 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
   const timedReview = outcome.startsWith('review-timeout-');
   const interruptedCorrection = outcome.startsWith('correction-');
   const secondReviewOutage = outcome.startsWith('second-review-');
+  const multipleQueuedBatches = outcome.startsWith('second-review-batch-');
   if (timedReview || interruptedCorrection) AbortSignal.timeout = milliseconds => {
     lastTimeout = milliseconds;
     return originalTimeout(milliseconds);
@@ -118,7 +120,8 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
         return Response.json(searchPayload([officialNotice],unsafeDraft));
       }
       if ((interruptedCorrection || secondReviewOutage) && searchCalls === 2) {
-        const urls = outcome === 'correction-no-lead' ? [officialOffice,eventCalendar] : [officialOffice,eventCalendar,officialNotice];
+        const urls = outcome === 'correction-no-lead' ? [officialOffice,eventCalendar]
+          : [officialOffice,eventCalendar,...(multipleQueuedBatches ? queuedBatch : []),officialNotice];
         return Response.json(searchPayload(urls,unsafeDraft));
       }
       if (searchCalls === 1) return Response.json(outcome === 'unused-tool-lead'
@@ -207,12 +210,17 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
       captures:[],
       acquire: async url=>{
         acquiredUrls.push(url);
+        if (queuedBatch.includes(url) && outcome !== 'second-review-batch-mirror') {
+          if (outcome === 'second-review-batch-budget' && url === queuedBatch.at(-1)) elapsed += 3_000;
+          throw new Error('Controlled unavailable source');
+        }
         if (outcome === 'unreadable-tool-link' || ((outcome === 'transient-lead' || outcome === 'transient-initial' || outcome === 'transient-uncited') && url === officialNotice
           && acquiredUrls.filter(visited => visited === officialNotice).length === 1))
           throw Object.assign(new Error('Controlled source read failure'),{code:'ECONNRESET'});
         const content = new Map([
           [officialDirectory,directoryContent], [officialNotice,['review-timeout-duplicate','correction-mirrored-lead'].includes(outcome) ? directoryContent : noticeContent], [officialOffice,officeContent],
           [eventCalendar,outcome.startsWith('mirror') ? officeContent : calendarContent],
+          ...queuedBatch.map(url => [url,directoryContent] as const),
         ]).get(url);
         assert.ok(content);
         return {bytes:new TextEncoder().encode(`<html><title>STU Library</title><main><p>${content}</p></main></html>`),mimeType:'text/html',finalUrl:url};
@@ -233,6 +241,32 @@ test('a temporary failure on the second check does not discard a queued primary 
   assert.deepEqual(progress.filter(step=>/^verification-\d+$/u.test(step.kind)&&step.status!=='running')
     .map(({kind,status})=>[kind,status]),[['verification-1','unavailable'],['verification-2','unavailable'],['verification-3','complete']]);
   assert.equal(progress.some(step=>step.kind==='verification-stop'),false);
+});
+
+test('after a second-review outage, an empty or mirrored batch leaves the next queued page eligible', async () => {
+  for (const outcome of ['second-review-batch-unreadable','second-review-batch-mirror'] as const) {
+    const attempt = harness(outcome), progress: Progress[] = [];
+    const answer = await invoke({question:testQuestion},attempt.run,outcome,progress);
+    assert.equal(attempt.searchRequests.length,2);
+    assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialOffice,eventCalendar,...queuedBatch,officialNotice]);
+    assert.deepEqual(answer.verification,{status:'verified',attempts:3});
+    assert.match(answer.answer,/opens at 10:30 a\.m\./u);
+    assert.deepEqual(answer.citations.map(({url}:{url:string})=>url),[officialNotice]);
+    const finalReview = attempt.scopes.filter(({name})=>name==='answer_evidence_review').at(-1);
+    assert.ok(finalReview?.urls.includes(officialNotice));
+    assert.equal(finalReview.urls.some(url=>queuedBatch.includes(url)),false);
+    assert.equal(progress.some(step=>step.kind==='verification-stop'),false);
+  }
+});
+
+test('additional queued pages share the original evidence read deadline', async () => {
+  const attempt = harness('second-review-batch-budget');
+  const answer = await invoke({question:testQuestion},attempt.run,'second-review-batch-budget');
+  assert.equal(attempt.searchRequests.length,2);
+  assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialOffice,eventCalendar,...queuedBatch]);
+  assert.equal(answer.verification.status,'unverified');
+  assert.equal(answer.verification.attempts,2);
+  assert.deepEqual(answer.citations,[]);
 });
 
 test('hard quota exhaustion stops without spending another lookup or returning the draft', async () => {

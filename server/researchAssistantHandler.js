@@ -1454,14 +1454,18 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 // evidence. The last check still needs a different source.
                 if (canRecover && (interrupted || needsPublicEvidence(previousFailure) || (extended && previousFailure === 'verification_output_limit'))) {
                     const readUntil = Math.min(until - 8_500, Date.now() + 4_000);
-                    if (readUntil - Date.now() >= 1_000) {
-                        const attempts = lead => readAttempts.get(canonicalUrl(lead.url)) || 0;
-                        const leadsToRead = [...pendingLeads.values()].filter(lead => !interrupted || attempts(lead) === 0)
-                            .sort((first, second) => attempts(first) - attempts(second));
-                        fresh = retainDifferentContents(await checkNewSources(leadsToRead, readUntil, 3));
-                        if (fresh.length) progress({ kind: extended ? 'web-extended-source' : 'web-alternate-source',
-                            label: 'Read another school source', detail: 'Checked additional school pages.', status: 'complete' });
+                    const attempts = lead => readAttempts.get(canonicalUrl(lead.url)) || 0;
+                    const leadsToRead = [...pendingLeads.values()]
+                        .filter(lead => canRead(canonicalUrl(lead.url)) && (!interrupted || attempts(lead) === 0))
+                        .sort((first, second) => attempts(first) - attempts(second));
+                    const batchSize = 3;
+                    // Continue past unavailable or duplicate pages within the same read window.
+                    for (let offset = 0; offset < leadsToRead.length && !fresh.length && readUntil - Date.now() >= 1_500; offset += batchSize) {
+                        const batch = leadsToRead.slice(offset, offset + batchSize);
+                        fresh = retainDifferentContents(await checkNewSources(batch, readUntil, batchSize));
                     }
+                    if (fresh.length) progress({ kind: extended ? 'web-extended-source' : 'web-alternate-source',
+                        label: 'Read another school source', detail: 'Checked additional school pages.', status: 'complete' });
                     const searchUntil = Math.min(until - 11_000, Date.now() + (deeper ? 8_000 : 6_500));
                     if (!interrupted && !fresh.length && (!extended || !triedAlternateSearch) && searchUntil - Date.now() >= 2_500) {
                         const step = extended
