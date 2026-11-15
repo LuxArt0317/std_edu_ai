@@ -202,8 +202,12 @@ test('real durable journal commits all eight requests and survives the runner cl
 test('entry point only accepts an explicit exact protected target and operator transport',()=>{
   const args=['--origin',origin,'--approved-preview-origin',origin,'--revision',sourceRevision,'--transport-module','/private/path/transport.mjs'];
   assert.deepEqual(transcriptPreviewOptions(args),{origin,approvedPreviewOrigin:origin,sourceRevision,transportModule:'/private/path/transport.mjs'});
+  const oidcOrigin='https://stdedu-abcdef123-v1-d286.vercel.app';
+  const oidc=['--origin',oidcOrigin,'--approved-preview-origin',oidcOrigin,'--revision',sourceRevision,'--preview-auth','oidc'];
+  assert.deepEqual(transcriptPreviewOptions(oidc),{origin:oidcOrigin,approvedPreviewOrigin:oidcOrigin,sourceRevision,previewAuth:'oidc'});
   for(const bad of [[],['--origin','https://stu.best'],args.slice(0,-2),[...args,'--origin',origin],
-    [...args,'--simulation','true'],args.map(value=>value===origin?'https://example.com':value)]){
+    [...args,'--simulation','true'],args.map(value=>value===origin?'https://example.com':value),
+    [...oidc,'--transport-module','/private/path/transport.mjs'],oidc.map(value=>value===oidcOrigin?origin:value)]){
     assert.throws(()=>transcriptPreviewOptions(bad),/invalid_options/u);
   }
 });

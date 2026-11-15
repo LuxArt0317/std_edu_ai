@@ -7,6 +7,7 @@ import {dirname,join,resolve} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {runTranscriptPreview} from './transcript-preview-run.mjs';
 import {createTranscriptDurableJournal} from './transcript-durable-journal.mjs';
+import {createTrustedPreviewFetch,isEvaluationPreviewOrigin} from './vercel-preview-transport.mjs';
 
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const git=(...args)=>execFileSync('git',args,{cwd:root,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
@@ -17,14 +18,16 @@ const fail=code=>{throw new Error('Transcript Preview entry point: '+code+'.');}
 
 export function transcriptPreviewOptions(args){
   const values={};
-  const keys={'--origin':'origin','--approved-preview-origin':'approvedPreviewOrigin','--revision':'sourceRevision','--transport-module':'transportModule'};
+  const keys={'--origin':'origin','--approved-preview-origin':'approvedPreviewOrigin','--revision':'sourceRevision','--transport-module':'transportModule','--preview-auth':'previewAuth'};
   for(let index=0;index<args.length;index+=2){
     const name=keys[args[index]],value=args[index+1];
     if(!Object.hasOwn(keys,args[index])||!value||value.startsWith('--')||Object.hasOwn(values,name))fail('invalid_options');
     values[name]=value;
   }
+  const operatorModule=!!values.transportModule&&values.previewAuth===undefined;
+  const trustedOidc=values.previewAuth==='oidc'&&!values.transportModule&&isEvaluationPreviewOrigin(values.origin);
   if(!preview.test(values.origin??'')||values.approvedPreviewOrigin!==values.origin
-    ||!revisionPattern.test(values.sourceRevision??'')||!values.transportModule)fail('invalid_options');
+    ||!revisionPattern.test(values.sourceRevision??'')||(!operatorModule&&!trustedOidc))fail('invalid_options');
   return values;
 }
 
@@ -65,26 +68,30 @@ async function createPrivateReportFile(directory){
 async function exactSource(sourceRevision){
   const config=JSON.parse(await readFile(resolve(root,'deployment.json'),'utf8'));
   if(config.repository!==expectedRepo||config.supabase?.projectRef!=='xiftudmvxphxcjtmfmib'
-    ||config.vercel?.teamSlug!=='v1-d286'||!['https://github.com/'+expectedRepo+'.git','git@github.com:'+expectedRepo+'.git'].includes(git('remote','get-url','origin'))
+    ||config.vercel?.teamSlug!=='v1-d286'||config.vercel?.projectName!=='std_edu_ai'||!['https://github.com/'+expectedRepo+'.git','git@github.com:'+expectedRepo+'.git'].includes(git('remote','get-url','origin'))
     ||git('rev-parse','HEAD')!==sourceRevision||git('status','--porcelain'))fail('unverified_checkout');
 
 }
 
-/**
- * Explicit operator entry point. The supplied module exports an already
- * authorized connection as fetchPreview. Its code and service session are
- * operator-provided. This entry point performs no credential discovery.
- */
-export async function main(args=process.argv.slice(2)){
-  const options=transcriptPreviewOptions(args);
-  await exactSource(options.sourceRevision);
-  if(git('check-ignore','artifacts/transcript-report-probe')!=='artifacts/transcript-report-probe')fail('unsafe_report_directory');
-  const modulePath=await realpath(resolve(options.transportModule));
+async function loadOperatorTransport(path){
+  const modulePath=await realpath(resolve(path));
   const stat=await lstat(modulePath);
   if(!stat.isFile()||stat.uid!==process.getuid()||(stat.mode&0o022)!==0)fail('untrusted_transport_module');
   const {fetchPreview}=await import(pathToFileURL(modulePath).href);
   if(typeof fetchPreview!=='function')fail('invalid_transport_module');
+  return fetchPreview;
+}
+
+/** Run the exact replay through an authorized operator transport or the
+ * project's supplied Development OIDC token. No credentials are discovered. */
+export async function main(args=process.argv.slice(2)){
+  const options=transcriptPreviewOptions(args);
+  await exactSource(options.sourceRevision);
+  if(git('check-ignore','artifacts/transcript-report-probe')!=='artifacts/transcript-report-probe')fail('unsafe_report_directory');
   const runId=randomUUID(),conversationId=newConversationId(),base=resolve(root,'artifacts/assistant-evaluation');
+  const fetchPreview=options.previewAuth
+    ?createTrustedPreviewFetch({origin:options.origin,token:process.env.VERCEL_OIDC_TOKEN,conversationId})
+    :await loadOperatorTransport(options.transportModule);
   await privateDirectory(dirname(base),{existing:true});
   await privateDirectory(base,{existing:true});
   const directory=join(base,'transcript-'+runId);

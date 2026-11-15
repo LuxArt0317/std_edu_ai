@@ -266,6 +266,8 @@ HTML block creation, Administration block behavior and unobserved Move interacti
 - [ ] Execute student leave and native Moodle cases with exact caller-bound fixtures on the protected Preview. Verify the live four-turn conversation and signed-in browser paths.
 - [ ] Mount caller-bound teaching and multi-course DTM fixtures with trusted request observations, and cover remaining route, browser and actual model behavior.
 - [x] Verify the current caller's Google sign-in with seven separately graded account-status cases.
+- [x] Bind club attendance to independently checked disposable accounts in the main suite and verify the immutable Preview transport with controlled requests.
+- [ ] Run the club fixture and exact four-turn transcript using the authorized Vercel runner on the pinned candidate.
 
 - [ ] Verifier thread owns isolated tests/evaluation and docs/qa/ASSISTANT_SYSTEM_EVALUATION.md to derive question coverage from all current routes/services/records.
 - [x] Hand assistant runtime and serialized DB/model lease to Issue #100 after native release and certificate rollback cleanup.

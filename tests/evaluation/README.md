@@ -53,17 +53,21 @@ The verified client dispatch inventory includes accommodation beds (34-1). Route
 
 The 22-question accommodation bank runs through the real API with synthetic authentication, captured record reads and a controlled reviewer. An independent oracle checks facts, source scopes and limits. It does not measure live model quality or browser behavior.
 
-The reported four-turn conversation has its own protected Preview runner. Run from a clean checkout of the deployed commit with an authorized operator module that exports `fetchPreview(url, init)` and can reach the specified protected Preview over the evaluator's exact-origin HTTP contract.
+The reported four-turn conversation has its own protected Preview runner. Run from a clean checkout of the deployed commit. Use `--preview-auth oidc` with an authorized Development `VERCEL_OIDC_TOKEN` already in the process environment, or `--transport-module` with an authorized operator module that exports `fetchPreview(url, init)` and follows the exact-origin contract.
 
 ```sh
 node tests/evaluation/run-transcript-preview.mjs \
   --origin "$PREVIEW_ORIGIN" --approved-preview-origin "$PREVIEW_ORIGIN" \
-  --revision "$PREVIEW_REVISION" --transport-module "$PREVIEW_TRANSPORT_MODULE"
+  --revision "$PREVIEW_REVISION" --preview-auth oidc
 ```
 
 This command creates disposable Supabase accounts through the client fixture adapter only after verifying the Preview release. It saves each answer through the conversation API and checks both the authenticated API response and its owner-scoped persisted row before continuing. The output reports collection, failed or pending cases, and cleanup separately. Detailed responses and the request journal are written to the ignored owner-only evaluation directory.
 
 The Preview runner creates the same UUIDv7 chat ID as the browser. The operator transport must relay that exact conversation ID. The offline transcript tests exercise planning, all four saves, durable readback and isolated cleanup; the hosted run requires independently observed data and model responses.
+
+The main evaluation runner also accepts `--preview-auth oidc` with `--mode live`, `--origin` and `--approved-preview-origin`. Use the deployment-specific host verified for the exact Vercel project. The transport checks the pinned revision before fixture setup and relays the token only to that host. It rejects branch aliases and keeps the Vercel header separate from the fixture user's Supabase authorization. Direct Supabase, Auth renewal and SQL connections retain their existing credentials and guards. [Vercel Trusted Sources](https://vercel.com/docs/deployment-protection/methods-to-bypass-deployment-protection/trusted-sources)
+
+Club attendance has 18 independently specified cases. The live fixture verifies disposable caller-owned attendance for two accounts before and after the request. Native reader results can satisfy the corresponding live case contract without earning model execution credit. See `node --test tests/evaluation/club-attendance-runner.test.mjs` for the local runner and grading contracts.
 
 `assessTranscriptPreview(report, {reviews})` verifies request and saved-message digests and evaluates the report against the frozen cases. Supply independent review artifacts for the account overview and interview response. A completed collection can still fail evaluation. An unresolved write retains its journal for reconciliation. Never replay a pending write or use this packet alone as the production gate.
 

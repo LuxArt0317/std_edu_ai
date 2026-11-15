@@ -1,5 +1,7 @@
 ## Assistant evaluation resumed [Issue #100]
 
+The local club evaluation integrates 18 independent questions and a two-owner fixture with exact readback and cleanup. Inventory reaches 1,304 cases across 579 routes and 46 tools, with 18 route omissions. Both Preview runners now accept the exact development OIDC identity, retain the pinned release gate and keep caller Auth separate. All 1,194 offline evaluator checks passed. The default CLI belongs to another account and the authorized Development token is absent. The hosted fixture runner has not executed.
+
 The sign-in follow-up adds verified caller identity answers and seven independent evidence cases. Inventory reaches 1,285 questions, 45 tools and 18 paths without semantic cases. The compiled Moodle browser test verifies both a restored answer and the appended answer after changing the viewport and reopening the page. A real legacy browser tab kept its draft after switching to the upgraded API, and a protected delete blocked its delayed retry in scratch PostgreSQL. Both follow-ups remain outside the frozen migration preflight.
 
 Read-only client preflight matched 105 changed paths from protected `64a8ccb` to local `749fd3f`, verified both pending migrations and zero existing UUIDv7 chats, and found that the available Preview and Production use the same database. The automated protected Preview request returned HTTP 302. [Preflight evidence](https://github.com/LuxArt0317/std_edu_ai/issues/100#issuecomment-6887882546)

@@ -89,7 +89,7 @@ test('uncertain commit resolves only exact previous, pending or empty report fix
 test('each live case reads the exact native report as its owner and rejects it with the other JWT',async()=>{
   const active=plan('empty:dtmGradeReport'),users=Object.entries(owners).map(([role,owner])=>({id:owner.id,token:'synthetic-'+role}));
   const calls=[];
-  const transport=(crossStatus=403)=>async(input,init)=>{
+  const transport=(cross=()=>Response.json({error:'This grade report is not available to your account.'},{status:403}))=>async(input,init)=>{
     const url=new URL(input),role=init.headers.Authorization.at(-1),contract=dtmGradeReportFixtureReadContract(active,{role});
     assert.equal(url.origin,origin);
     assert.equal(url.pathname,contract.path);
@@ -100,12 +100,15 @@ test('each live case reads the exact native report as its owner and rejects it w
     const own=url.searchParams.get('course_id')===contract.query.course_id;
     calls.push([role,own]);
     if(own)return Response.json(contract.expected);
-    return Response.json({error:'Synthetic other-course response'},{status:crossStatus});
+    return cross();
   };
   const result=await readDtmReportFixtureScopes(active,users,{origin,fetchImpl:transport()});
   assert.deepEqual(calls,[['A',true],['A',false],['B',true],['B',false]]);
   assert.equal(result[owners.A.id].report,null);
   assert.match(result[owners.B.id].report.items[0].label,/FOREIGN NATIVE DTM REPORT/);
-  await assert.rejects(readDtmReportFixtureScopes(active,users,{origin,fetchImpl:transport(200)}),/fixture-readback/);
+  for(const cross of [()=>Response.json({error:'This grade report is not available to your account.'}),
+    ()=>new Response('<h1>Forbidden</h1>',{status:403,headers:{'Content-Type':'text/html'}}),
+    ()=>Response.json({error:'Trusted Sources authentication failed.'},{status:403})])
+    await assert.rejects(readDtmReportFixtureScopes(active,users,{origin,fetchImpl:transport(cross)}),/fixture-readback/);
   for(const key of dtmGradeReportFixtureManifest.families)assert.ok(fixtureForCase(key).dtm.courses.some(row=>row.id===courseBindings.A.id));
 });

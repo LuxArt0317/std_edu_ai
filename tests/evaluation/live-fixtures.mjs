@@ -55,6 +55,7 @@ const FOREIGN_MARKER='FOREIGN PRIVATE SENTINEL';
 const FEE_FIXTURE_MODE='fee-remission-only';
 export const fixtureModes=Object.freeze([FEE_FIXTURE_MODE]);
 export const clubAttendanceFixtureVersion=1;
+export const protectedPreviewReadbackVersion=1;
 export const catalogFixtureSetupReasons=Object.freeze(['catalog_read_unavailable','published_payload_invalid','public_scope_mismatch','no_suitable_published_offering','no_null_weight_offering','absent_probe_not_empty']);
 const catalogKinds=Object.freeze({'account:catalog-known-fields':'known-fields','account:catalog-null-weight':'null-weight','account:catalog-unfound':'unfound','account:catalog-enrollment-distinction':'enrollment-distinction','account:catalog-mixed-dtm':'mixed-dtm','service:12-4:record':'known-fields','service:12-4:empty':'unfound'});
 let state;
@@ -304,7 +305,7 @@ async function saveLedger(){
 async function readSnapshot(user,{signal=state?.signal,cleanup=false}={}){
   const s=state;let response;
   await user.renewSession?.({signal:cleanup?undefined:signal});
-  try{response=await (s.applicationFetch??fetch)(new URL('/api/affairs-data',s.origin),{redirect:'error',cache:'no-store',headers:{Authorization:'Bearer '+user.token},signal:signals(cleanup?undefined:signal,45000)});}catch{fail('fixture-readback','Authenticated /api/affairs-data request did not complete.');}
+  try{response=await (s.applicationFetch??s.previewReadbackFetch??fetch)(new URL('/api/affairs-data',s.origin),{redirect:'error',cache:'no-store',headers:{Authorization:'Bearer '+user.token},signal:signals(cleanup?undefined:signal,45000)});}catch{fail('fixture-readback','Authenticated /api/affairs-data request did not complete.');}
   if(response.status!==200||!response.headers.get('content-type')?.includes('application/json'))fail('fixture-readback',`Authenticated /api/affairs-data returned ${response.status}; no model request may run.`);
   const reader=response.body?.getReader();if(!reader)fail('fixture-readback','Snapshot response has no body.');
   const chunks=[];let size=0;
@@ -353,7 +354,7 @@ async function createFixtureUser(index){
 }
 
 /** No mutation occurs until this explicit lifecycle entry point is invoked. */
-export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expectedReleaseRevision,signal,fixtureMode,caseFamily,applicationFetch}={}){
+export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expectedReleaseRevision,signal,fixtureMode,caseFamily,applicationFetch,previewReadbackFetch}={}){
   if(state)fail('fixture-state','This fixture adapter cannot run overlapping lifecycles.');
   if(!UUID.test(runId||'')||!Array.isArray(cases)||!cases.length||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
   if(cases.some(row=>row?.fixtureRequirement==='offline_dtm_native_fixture'||row?.fixtureRequirement==='legacy_dtm_assignment_list_rebind'||typeof row?.id==='string'
@@ -395,10 +396,14 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       ||['127.0.0.1','localhost'].includes(target.hostname)&&['http:','https:'].includes(target.protocol)))
     fail('fixture-target','Only the configured production origin, exact approved preview or explicit loopback is allowed.');
   const scopedApplicationFetch=applicationFetch===undefined?undefined:createTranscriptFixtureApplicationFetch({origin:target.origin,fetchImpl:applicationFetch,signal});
+  if(previewReadbackFetch!==undefined&&(typeof previewReadbackFetch!=='function'||applicationFetch!==undefined
+    ||!approvedPreviewOrigin||origin!==approvedPreviewOrigin||target.origin===config.vercel.productionUrl))
+    fail('fixture-target','Protected fixture readbacks require the exact approved Preview.');
   if(approvedPreviewOrigin!==undefined){
     if(target.origin!==approvedPreviewOrigin||target.origin===config.vercel.productionUrl)
       fail('fixture-target','Preview approval must match the exact non-production origin.');
-    try{await createPinnedDeploymentVerifier({origin:target.origin,approvedPreviewOrigin,expectedRevision:expectedReleaseRevision,signal,...(scopedApplicationFetch?{fetchImpl:scopedApplicationFetch}:{})}).pin();}
+    const pinFetch=scopedApplicationFetch??previewReadbackFetch;
+    try{await createPinnedDeploymentVerifier({origin:target.origin,approvedPreviewOrigin,expectedRevision:expectedReleaseRevision,signal,...(pinFetch?{fetchImpl:pinFetch}:{})}).pin();}
     catch{fail('fixture-target','The approved Preview could not prove the exact release before fixture setup.');}
   }
   const env=deploymentEnvironment(); // Secrets are resolved only at explicit prepare().
@@ -413,7 +418,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const ignore=await readFile(resolve(ROOT,'.gitignore'),'utf8');if(!/^\/?artifacts\/$/m.test(ignore))fail('fixture-ledger','Private fixture ledger directory must be ignored by Git.');
   await mkdir(PRIVATE_DIR,{recursive:true,mode:0o700});await chmod(PRIVATE_DIR,0o700);
   const boundedFetch=(input,init={})=>fetch(input,{...init,signal:signals(init.signal,15000)});
-  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,clubOnly,
+  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,clubOnly,
     ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),admin:createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})};
   try{
     state.sql=postgres(connection,{max:1,connect_timeout:10,idle_timeout:10,max_lifetime:0,
@@ -502,7 +507,7 @@ async function feeReadback(s,{role,view,contract}){
   if(view!=='feeRemission'||contract.method!=='GET'||contract.path!=='/api/affairs-data'||contract.query.scope!=='fee-remission')
     fail('fixture-readback','Unsupported fee remission readback.');
   const url=new URL('/api/affairs-data?scope=fee-remission',s.origin);
-  const response=await fetch(url,{redirect:'error',cache:'no-store',headers:{Authorization:'Bearer '+user.token},signal:signals(s.signal,15000)});
+  const response=await (s.previewReadbackFetch??fetch)(url,{redirect:'error',cache:'no-store',headers:{Authorization:'Bearer '+user.token},signal:signals(s.signal,15000)});
   if(response.status!==200||response.redirected||response.url&&response.url!==url.href||!response.headers.get('content-type')?.includes('application/json')){
     await response.body?.cancel();fail('fixture-readback','Caller-scoped fee remission read did not return JSON.');
   }
@@ -840,8 +845,8 @@ async function readOutlineFixtureTargets(sql,owners){
     where user_id in ${sql(owners)} order by user_id,course_id limit 5`;
 }
 
-async function readBoundedFixtureResponse(response,url,maxBytes){
-  if(response.status!==200||response.redirected||response.url&&response.url!==url.href||!response.headers.get('content-type')?.includes('application/json')){
+async function readBoundedFixtureResponse(response,url,maxBytes,expectedStatus=200){
+  if(response.status!==expectedStatus||response.redirected||response.url&&response.url!==url.href||!/^application\/json(?:\s*;|$)/iu.test(response.headers.get('content-type')||'')){
     await response.body?.cancel();throw new Error('Unexpected fixture response.');
   }
   const reader=response.body?.getReader();if(!reader)throw new Error('Missing fixture response.');
@@ -849,7 +854,7 @@ async function readBoundedFixtureResponse(response,url,maxBytes){
   try{
     for(;;){
       const {done,value}=await reader.read();if(done)break;
-      bytes+=value.byteLength;if(bytes>maxBytes)throw new Error('Fixture response exceeded its limit.');
+      bytes+=value.byteLength;if(bytes>maxBytes||chunks.length>=4096)throw new Error('Fixture response exceeded its limit.');
       chunks.push(value);
     }
   }finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
@@ -867,7 +872,7 @@ async function clubAttendanceObservation(s,oracle,signal){
   await assertClubAttendanceLease(s);
   return query(()=>observeClubAttendanceFixture({sql:s.sql,plan:s.clubAttendancePlan,identities:s.identityRequests,
     users:s.users,origin:s.origin,page:oracle.page,signal,read:async(url,token,active)=>{
-      const response=await fetch(url,{method:'GET',redirect:'error',credentials:'omit',cache:'no-store',
+      const response=await (s.previewReadbackFetch??fetch)(url,{method:'GET',redirect:'error',credentials:'omit',cache:'no-store',
         headers:{Authorization:'Bearer '+token},signal:signals(active,15000)});
       return readBoundedFixtureResponse(response,url,32768);
     }}),'Could not independently recheck both disposable club attendance views.');
@@ -1075,31 +1080,13 @@ export async function readDtmReportFixtureScopes(plan,users,{origin,signal,fetch
       const url=new URL(contract.path,origin);
       url.search=new URLSearchParams(contract.query).toString();
       const options={method:contract.method,redirect:'error',cache:'no-store',headers:{Authorization:'Bearer '+user.token},signal:signals(signal,15000)};
-      const response=await fetchImpl(url,options);
-      if(response.status!==200||response.redirected||response.url&&response.url!==url.href||!response.headers.get('content-type')?.includes('application/json')){
-        await response.body?.cancel();
-        throw new Error();
-      }
-      const reader=response.body?.getReader();
-      if(!reader)throw new Error();
-      const chunks=[];
-      let bytes=0;
-      try{
-        for(;;){
-          const {done,value}=await reader.read();
-          if(done)break;
-          bytes+=value.byteLength;
-          if(bytes>131072)throw new Error();
-          chunks.push(value);
-        }
-      }finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
-      const payload=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)));
+      const payload=await readBoundedFixtureResponse(await fetchImpl(url,options),url,131072);
       verifyDtmGradeReportFixtureReadback(plan,{role},payload);
       const other=dtmGradeReportFixtureReadContract(plan,{role:role==='A'?'B':'A'});
       url.search=new URLSearchParams(other.query).toString();
       const cross=await fetchImpl(url,{...options,signal:signals(signal,15000)});
-      await cross.body?.cancel();
-      if(cross.status!==403||cross.redirected||cross.url&&cross.url!==url.href)throw new Error();
+      const denial=await readBoundedFixtureResponse(cross,url,4096,403);
+      assert.deepEqual(denial,{error:'This grade report is not available to your account.'});
       result[contract.ownerId]=payload;
     }
   }catch{fail('fixture-readback','The DTM report fixture or its other-account denial did not match the expected response.');}
@@ -1303,7 +1290,7 @@ export async function bindCatalogCases(cases,{signal}={}){
   const s=ready();if(s.current||s.catalogBound)fail('fixture-state','Catalog cases can be bound once before any model case.');
   if(!Array.isArray(cases)||cases.length!==s.caseIds.size||cases.some(row=>!s.caseIds.has(row.id)))fail('fixture-case','Catalog binding must preserve exactly the prepared case IDs.');
   const bounded=signals(signal||s.signal,120000);
-  const result=await collectPublishedCatalogBinding(cases,{userIds:s.users.map(user=>user.id),absentId:randomUUID(),read:(userId,query)=>readPublishedCatalogFixture(s.users.find(user=>user.id===userId),query,{origin:s.origin,signal:bounded})});
+  const result=await collectPublishedCatalogBinding(cases,{userIds:s.users.map(user=>user.id),absentId:randomUUID(),read:(userId,query)=>readPublishedCatalogFixture(s.users.find(user=>user.id===userId),query,{origin:s.origin,signal:bounded,fetchImpl:s.previewReadbackFetch})});
   s.catalogBound=true;s.catalogBindings=result.bound;s.catalogBindingFailures=new Map(result.binding.unavailable.map(row=>[row.caseId,row.reason]));s.catalogBindingDigest=result.binding.digest;
   return {cases:result.cases,binding:result.binding};
 }
@@ -1739,7 +1726,7 @@ export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
   await Promise.all(s.users.map(user=>user.renewSession?.({signal:signal||s.signal})));
   const catalogBinding=s.catalogBindings?.get(testCase.id);
   if(testCase.fixtureRequirement==='published_catalog_binding'&&!catalogBinding)fail('fixture-unsupported','Published catalog fixture binding is unavailable; this case remains in the denominator and no model request may run.');
-  const checkCatalog=()=>verifyPublishedCatalogBinding(testCase,catalogBinding,{userIds:s.users.map(user=>user.id),read:(userId,query)=>readPublishedCatalogFixture(s.users.find(user=>user.id===userId),query,{origin:s.origin,signal:signal||s.signal})});
+  const checkCatalog=()=>verifyPublishedCatalogBinding(testCase,catalogBinding,{userIds:s.users.map(user=>user.id),read:(userId,query)=>readPublishedCatalogFixture(s.users.find(user=>user.id===userId),query,{origin:s.origin,signal:signal||s.signal,fetchImpl:s.previewReadbackFetch})});
   const catalog=catalogBinding?await checkCatalog():null;
   const catalogOnly=Boolean(catalogBinding&&(testCase.expected?.requiredTools||[]).every(key=>key==='courseCatalog'));
   const expected=fixtureForCase(testCase,{userId:s.users[0].id,now:s.now});
@@ -1793,12 +1780,12 @@ export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
   const supplementalDomains=Object.keys(SUPPLEMENTAL_TABLES).filter(key=>s.supplementalTables.has(SUPPLEMENTAL_TABLES[key]));
   const supplemental={};
   for(const user of s.users){
-    supplemental[user.id]=await readSupplementalFixtureScopes(user,supplementalDomains,{origin:s.origin,signal:signal||s.signal});
+    supplemental[user.id]=await readSupplementalFixtureScopes(user,supplementalDomains,{origin:s.origin,signal:signal||s.signal,fetchImpl:s.previewReadbackFetch});
     verifySupplementalFixtureReadback(supplemental[user.id],supplementalPlan,user.id);
   }
-  const aid=s.aidPlan?await readAidFixtureScopes(s.aidPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
-  const dtmReport=s.dtmReportPlan?await readDtmReportFixtureScopes(s.dtmReportPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
-  const elearning=s.elearningPlan?await readElearningFixtureScopes(s.elearningPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
+  const aid=s.aidPlan?await readAidFixtureScopes(s.aidPlan,s.users,{origin:s.origin,signal:signal||s.signal,fetchImpl:s.previewReadbackFetch}):null;
+  const dtmReport=s.dtmReportPlan?await readDtmReportFixtureScopes(s.dtmReportPlan,s.users,{origin:s.origin,signal:signal||s.signal,fetchImpl:s.previewReadbackFetch}):null;
+  const elearning=s.elearningPlan?await readElearningFixtureScopes(s.elearningPlan,s.users,{origin:s.origin,signal:signal||s.signal,fetchImpl:s.previewReadbackFetch}):null;
   const outline=s.outlinePlan?await currentOutlineFixture(s,signal):null;
   const dormitory=s.dormitoryPlan?await currentDormitoryFixture(s,signal):null;
   const facilityRepairs=s.facilityRepairPlan?await currentFacilityRepairFixture(s,signal):null;
@@ -1817,7 +1804,7 @@ export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
 }
 
 async function currentFacilityRepairFixture(s,signal){
-  const readback=await readFacilityRepairFixtureScopes(s.facilityRepairPlan,s.users,{origin:s.origin,signal:signal||s.signal});
+  const readback=await readFacilityRepairFixtureScopes(s.facilityRepairPlan,s.users,{origin:s.origin,signal:signal||s.signal,fetchImpl:s.previewReadbackFetch});
   await query(()=>verifyFacilityRepairFixtureDatabase(s.sql,s.facilityRepairPlan),'Could not verify persisted repair rows and event metadata.');
   return readback;
 }
@@ -1826,14 +1813,14 @@ async function currentOutlineFixture(s,signal){
   const plan=s.outlinePlan,owners=plan.map(row=>row.user_id);
   const rows=await query(()=>readOutlineFixtureTargets(s.sql,owners),'Could not verify saved outline access.');
   assertOutlineFixtureRows(plan,rows);
-  return readOutlineFixtureScopes(plan,s.users,{origin:s.origin,signal:signal||s.signal});
+  return readOutlineFixtureScopes(plan,s.users,{origin:s.origin,signal:signal||s.signal,fetchImpl:s.previewReadbackFetch});
 }
 
 async function currentDormitoryFixture(s,signal){
   const plan=s.dormitoryPlan,owners=['A','B'].map(role=>plan.owners[role].id);
   const rows=await query(()=>readDormitoryFixtureTargets(s.sql,owners,plan.recordIds),'Could not verify persisted dormitory notices.');
   assertDormitoryConductFixtureRows(plan,rows);
-  return readDormitoryFixtureScopes(plan,s.users,{origin:s.origin,signal:signal||s.signal});
+  return readDormitoryFixtureScopes(plan,s.users,{origin:s.origin,signal:signal||s.signal,fetchImpl:s.previewReadbackFetch});
 }
 
 /** Deliberately never confirms or executes a proposed assistant action. */
@@ -1879,11 +1866,11 @@ export async function afterCase(testCase,envelope,{signal,fixtureMode,fixtureFam
         read:()=>readPublishedSampleInitializerRows(s.sql,{runQuery:task=>query(task,'Could not recheck the published sample initializer union.')})});
     }
     const supplemental={};
-    for(const user of s.users)supplemental[user.id]=await readSupplementalFixtureScopes(user,current.supplementalDomains,{origin:s.origin,signal:signal||s.signal});
-    const catalog=current.catalogBinding?await verifyPublishedCatalogBinding(testCase,current.catalogBinding,{userIds:s.users.map(user=>user.id),read:(userId,query)=>readPublishedCatalogFixture(s.users.find(user=>user.id===userId),query,{origin:s.origin,signal:signal||s.signal})}):null;
-    const aid=s.aidPlan?await readAidFixtureScopes(s.aidPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
-    const dtmReport=s.dtmReportPlan?await readDtmReportFixtureScopes(s.dtmReportPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
-    const elearning=s.elearningPlan?await readElearningFixtureScopes(s.elearningPlan,s.users,{origin:s.origin,signal:signal||s.signal}):null;
+    for(const user of s.users)supplemental[user.id]=await readSupplementalFixtureScopes(user,current.supplementalDomains,{origin:s.origin,signal:signal||s.signal,fetchImpl:s.previewReadbackFetch});
+    const catalog=current.catalogBinding?await verifyPublishedCatalogBinding(testCase,current.catalogBinding,{userIds:s.users.map(user=>user.id),read:(userId,query)=>readPublishedCatalogFixture(s.users.find(user=>user.id===userId),query,{origin:s.origin,signal:signal||s.signal,fetchImpl:s.previewReadbackFetch})}):null;
+    const aid=s.aidPlan?await readAidFixtureScopes(s.aidPlan,s.users,{origin:s.origin,signal:signal||s.signal,fetchImpl:s.previewReadbackFetch}):null;
+    const dtmReport=s.dtmReportPlan?await readDtmReportFixtureScopes(s.dtmReportPlan,s.users,{origin:s.origin,signal:signal||s.signal,fetchImpl:s.previewReadbackFetch}):null;
+    const elearning=s.elearningPlan?await readElearningFixtureScopes(s.elearningPlan,s.users,{origin:s.origin,signal:signal||s.signal,fetchImpl:s.previewReadbackFetch}):null;
     const outline=s.outlinePlan?await currentOutlineFixture(s,signal):null;
     const dormitory=s.dormitoryPlan?await currentDormitoryFixture(s,signal):null;
     const facilityRepairs=s.facilityRepairPlan?await currentFacilityRepairFixture(s,signal):null;

@@ -26,6 +26,7 @@ import {clubAttendanceRunnerCases,clubAttendanceOracle,isClubAttendanceCase,grad
 import {studentLeaveRunnerCases,markLegacyStudentLeaveFixture,nativeStudentLeaveSetupRequired,assertNativeStudentLeaveCaseReady,studentLeaveSetupSummary} from './student-leave-runner.mjs';
 import {buildGuidanceReviewBinding,validateGuidanceReview} from './guidance-rubric.mjs';
 import {createPinnedDeploymentVerifier} from './pinned-deployment.mjs';
+import {createTrustedPreviewFetch,isEvaluationPreviewOrigin} from './vercel-preview-transport.mjs';
 import {assertPublishedNextClassClock} from './published-next-class.mjs';
 
 process.umask(0o077);
@@ -35,8 +36,8 @@ export function options(args){
   const result={mode:'inventory',only:'',domain:'',now:new Date().toISOString(),origin:'https://stu.best',maxCases:Infinity,intervalMs:5500};
   for(let i=0;i<args.length;i++){
     const key=args[i];
-    if(!['--mode','--case-family','--only','--domain','--now','--origin','--approved-preview-origin','--out','--fixture-module','--max-cases','--browser-acceptance','--interval-ms','--review-report','--guidance-reviews','--reviewer'].includes(key)||!args[i+1]||args[i+1].startsWith('--'))throw new Error('Unknown or incomplete option: '+key);
-    const value=args[++i];result[{'--case-family':'caseFamily','--fixture-module':'fixtureModule','--max-cases':'maxCases','--browser-acceptance':'browserAcceptance','--interval-ms':'intervalMs','--review-report':'reviewReport','--guidance-reviews':'guidanceReviews','--approved-preview-origin':'approvedPreviewOrigin'}[key]||key.slice(2)]=value;
+    if(!['--mode','--case-family','--only','--domain','--now','--origin','--approved-preview-origin','--preview-auth','--out','--fixture-module','--max-cases','--browser-acceptance','--interval-ms','--review-report','--guidance-reviews','--reviewer'].includes(key)||!args[i+1]||args[i+1].startsWith('--'))throw new Error('Unknown or incomplete option: '+key);
+    const value=args[++i];result[{'--case-family':'caseFamily','--fixture-module':'fixtureModule','--max-cases':'maxCases','--browser-acceptance':'browserAcceptance','--interval-ms':'intervalMs','--review-report':'reviewReport','--guidance-reviews':'guidanceReviews','--approved-preview-origin':'approvedPreviewOrigin','--preview-auth':'previewAuth'}[key]||key.slice(2)]=value;
   }
   if(!['inventory','retrieval','draft','live','review'].includes(result.mode))throw new Error('Mode must be inventory, retrieval, draft, live or review.');
   if(result.caseFamily!==undefined){
@@ -51,6 +52,8 @@ export function options(args){
     if(result.only||result.domain||result.fixtureModule||result.maxCases!==Infinity)throw new Error('Review cannot select, rerun or replace cases.');
   }else if(result.reviewReport||result.guidanceReviews||result.reviewer)throw new Error('Independent review inputs require review mode.');
   if(result.approvedPreviewOrigin&&(result.mode!=='live'||result.origin!==result.approvedPreviewOrigin||result.origin==='https://stu.best'))throw new Error('An approved Preview origin must equal the live target origin.');
+  if(result.previewAuth!==undefined&&(result.previewAuth!=='oidc'||result.mode!=='live'
+    ||result.approvedPreviewOrigin!==result.origin||!isEvaluationPreviewOrigin(result.origin)))throw new Error('Preview OIDC requires an explicitly approved exact project Preview.');
   if(!Number.isFinite(Date.parse(result.now)))throw new Error('Provide an ISO evaluation time.');
   if(result.maxCases!==Infinity){result.maxCases=Number(result.maxCases);if(!Number.isInteger(result.maxCases)||result.maxCases<1)throw new Error('max-cases must be a positive integer.');}
   result.intervalMs=Number(result.intervalMs);
@@ -425,7 +428,7 @@ async function reviewSavedReport(opt,identity){
  * from any injected invocation are explicitly ineligible for release. */
 export async function main(args=process.argv.slice(2),dependencies={}){
   const identify=dependencies.sourceIdentity||sourceIdentity,buildSuite=dependencies.evaluationSuite||evaluationSuite,
-    persist=dependencies.saveReport||saveReport,fetchImpl=dependencies.fetchImpl||globalThis.fetch,
+    persist=dependencies.saveReport||saveReport,
     loadAdapter=dependencies.loadFixtureAdapter||(path=>import(pathToFileURL(path).href)),log=dependencies.log||console.log;
   const opt=options(args),identity=await identify();
   if(opt.mode==='review'&&Object.keys(dependencies).length)throw new Error('Saved live reports cannot be reviewed with injected dependencies.');
@@ -448,6 +451,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
   }
   const report={version:1,runId,mode:opt.mode,startedAt:new Date().toISOString(),evaluationTime:opt.now,...identity,suiteHash:suite.suiteHash,inventoryHash:suite.inventory.hash,
     injectedDependencies:Object.keys(dependencies).length>0,...(feeOnly?{caseFamily:opt.caseFamily,fixtureMode}:{}),
+    ...(opt.previewAuth?{previewAccess:'vercel-development-oidc'}:{}),
     pacing:{minimumRequestStartIntervalMs:opt.intervalMs,automaticRequestRetries:0},
     browserEvidence:browserAcceptance?{sha256:hash(browserAcceptance),sourceRevision:browserAcceptance.sourceRevision}:null,
     selectedCases:selected.map(row=>row.id),totalCases:suite.cases.length,inventory:suite.inventory,results:[],cleanup:{required:opt.mode==='live',complete:opt.mode!=='live'}};
@@ -464,11 +468,17 @@ export async function main(args=process.argv.slice(2),dependencies={}){
   }
   const controller=new AbortController();const interrupt=()=>controller.abort();process.once('SIGINT',interrupt);process.once('SIGTERM',interrupt);
   let adapter,deploymentGate;const pace=dependencies.pace||createLiveRequestPacer(opt.intervalMs);
+  let fetchImpl=dependencies.fetchImpl||globalThis.fetch;
   try{
     if(opt.mode==='live'){
       const config=JSON.parse(await readFile(resolve(root,'deployment.json'),'utf8'));
       if(opt.origin!==config.vercel.productionUrl&&opt.approvedPreviewOrigin!==opt.origin)throw new Error('Live evaluation requires the configured production origin or an explicitly approved exact Preview origin.');
       if(identity.dirty!==false)throw new Error('Live evaluation requires a clean, exact source revision before creating fixtures.');
+      if(opt.previewAuth){
+        if(config.repository!=='LuxArt0317/std_edu_ai'||config.vercel.teamSlug!=='v1-d286'||config.vercel.projectName!=='std_edu_ai')
+          throw new Error('Preview OIDC requires the exact client project checkout.');
+        fetchImpl=createTrustedPreviewFetch({origin:opt.origin,token:process.env.VERCEL_OIDC_TOKEN,fetchImpl});
+      }
       deploymentGate=createPinnedDeploymentVerifier({origin:opt.origin,expectedRevision:identity.sourceRevision,
         approvedPreviewOrigin:opt.approvedPreviewOrigin,signal:controller.signal,fetchImpl});
       const pinned=await deploymentGate.pin();
@@ -481,11 +491,18 @@ export async function main(args=process.argv.slice(2),dependencies={}){
         if(relative(resolve(root,'tests/evaluation'),modulePath).startsWith('..'))throw new Error('Fixture adapters must be repository evaluation modules.');
         adapter=await loadAdapter(modulePath);
         validateFixtureAdapter(adapter,{fixtureMode});
+        if(opt.previewAuth&&adapter.protectedPreviewReadbackVersion!==1)
+          throw new Error('The fixture adapter must support exact protected Preview readbacks.');
         if(fixtureCases.some(row=>row.fixtureKey!=='anonymous'&&isClubAttendanceCase(row))
           &&(adapter.clubAttendanceFixtureVersion!==1||typeof adapter.afterCase!=='function'))
           throw new Error('Club attendance requires the bound disposable fixture and both-owner readback adapter.');
+        const previewReadbackFetch=opt.previewAuth?async(input,init={})=>{
+          if((init.method??'GET')!=='GET')throw new Error('Protected fixture transport is read-only.');
+          return fetchImpl(input,init);
+        }:undefined;
         await adapter.prepare({runId,cases:feeOnly?structuredClone(fixtureCases):fixtureCases,now:opt.now,origin:opt.origin,signal:controller.signal,
-          approvedPreviewOrigin:opt.approvedPreviewOrigin,expectedReleaseRevision:identity.sourceRevision,...(feeOnly?{fixtureMode,caseFamily:opt.caseFamily}:{})});
+          approvedPreviewOrigin:opt.approvedPreviewOrigin,expectedReleaseRevision:identity.sourceRevision,...(feeOnly?{fixtureMode,caseFamily:opt.caseFamily}:{}),
+          ...(previewReadbackFetch?{previewReadbackFetch}:{})});
         if(report.bindingPending&&typeof adapter.bindCatalogCases==='function'){
           const bound=validateCatalogCaseBinding(selected,await adapter.bindCatalogCases(structuredClone(selected),{signal:controller.signal}));
           selected=bound.cases;const replacements=new Map(selected.map(row=>[row.id,row]));
