@@ -112,7 +112,7 @@ Verifier diagnostics may include fixed lexical topic categories and local claim 
 
 `dormitoryConduct.js` provides strict caller-owned empty/unknown snapshots and separately authorized administrator save/delete operations. It never infers a populated disciplinary history. See [Dormitory Conduct QA](../docs/qa/DORMITORY_CONDUCT.md).
 
-The account verification graph renders standalone dormitory notices and exact notice-plus-bed questions from their selected evidence. After an initial rejected review it repeats the scoped reads, rebuilds the answer and compares the result, table and links with the refreshed evidence.
+The account verification graph renders standalone dormitory notices and exact notice-plus-bed questions from their selected evidence. After an initial rejected review it repeats the scoped reads, rebuilds the answer and compares the result, table and links with the refreshed evidence. The standalone health examination reader uses the same exact recovery for the selected page's paired codes and availability flags. Multi-page ambiguity and health write requests produce scoped limitations without a metadata read. Standalone counseling requests also verify the exact refreshed metadata from the caller's mine view. UTC timestamps render with the Z designator while keeping the saved instant and other offsets.
 
 The supplemental-answer correction separates coordinated student identity requests from class/document numbers, preserves explicit tuition-settlement intent across season labels, and cites attendance detail for unavailable weekly/monthly hours. These are evidence-selection repairs; they do not create records, payment confirmation, issued documents or new permissions.
 

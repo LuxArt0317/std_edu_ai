@@ -1043,16 +1043,19 @@ function sectionFor(parsed,question,zh){
     view([t('Preferred date','偏好日期'),t('Kind','類型'),t('Status','狀態'),t('Preferred period','偏好時段'),t('Scheduled time','已安排時間')],c.included,
       t(`Own stu.best records. Returned: ${c.returned}. Included in evidence: ${c.included}. Omitted from the read: ${c.omitted}. Closed does not prove attendance or treatment.`,`僅限本人的 stu.best 紀錄。回傳 ${c.returned} 筆，證據納入 ${c.included} 筆，讀取略去 ${c.omitted} 筆。結案不證明出席或接受治療。`));
     for(const record of p.records){
+      // PostgreSQL emits UTC as +00:00. Display the same instant with Z,
+      // preserving non-UTC offsets and any nonzero fractional precision.
+      const scheduledAt=record.scheduledAt?.replace(/(?:\.0{1,6})?\+00:00$/u,'Z')??null;
       group(t('Preferred date','偏好日期'),record.preferredOn);item(t('Kind','類型'),record.kind);item(t('Status','狀態'),record.status);
-      item(t('Preferred period','偏好時段'),record.preferredPeriod);item(t('Scheduled time','已安排時間'),record.scheduledAt);
-      section.viewCandidates.push(row(record.preferredOn,record.kind,record.status,record.preferredPeriod,record.scheduledAt));
+      item(t('Preferred period','偏好時段'),record.preferredPeriod);item(t('Scheduled time','已安排時間'),scheduledAt);
+      section.viewCandidates.push(row(record.preferredOn,record.kind,record.status,record.preferredPeriod,scheduledAt));
     }
     return section;
   }
   if(id==='account:healthExaminations'){
     section.usable=true;section.complete=p.complete&&!p.selection?.clinical&&!p.selection?.document;
-    section.lead.push(t('This is your saved local health-examination availability metadata, not a clinical report or proof of official university synchronization. Only examination codes and report-availability flags are included; identity, clinical content and examination dates are not included.',
-      '以下僅為您站內儲存的健檢報告可用性資料，不是臨床報告或校方同步證明。只包含檢查代碼及報告可用旗標，不含身分資料、臨床內容或檢查日期。'));
+    section.lead.push(t('Only examination codes and report-availability flags are included. Identity fields and examination dates are not included. This is not a clinical report.',
+      '只包含檢查代碼及報告可用旗標，不含身分資料或檢查日期。此查詢僅提供可用性資訊。'));
     section.lead.push(t('A true flag means a saved report flag and matching private object were found at read time. A false flag does not establish no examination, no medical condition or a normal result. This lookup did not open a report, request a PDF or authorize a download; file access is not guaranteed. No record or appointment was changed.',
       'true 旗標表示讀取時找到已儲存報告旗標及相符的私人檔案物件。false 不代表未曾檢查、沒有疾病或結果正常。本次查詢未開啟報告、要求 PDF 或授權下載，也不保證檔案存取；未變更任何紀錄或預約。'));
     if(p.selection?.clinical)section.lead.push(t('I cannot determine clinical results, diagnoses or examination dates from these metadata.','無法從這些資料判定臨床結果、診斷或檢查日期。'));
@@ -1060,8 +1063,9 @@ function sectionFor(parsed,question,zh){
     if(envelope.readState==='unavailable'){
       section.lead.push(envelope.reason==='foreign_request'?t('I cannot access another student’s health records. No other account was read.','無法存取其他學生的健檢紀錄；未讀取其他帳戶。')
         :envelope.reason==='unauthorized'?t('Sign in to read your own saved health-examination metadata. No account records were read.','請登入以讀取自己的健檢可用性資料；尚未讀取帳戶紀錄。')
-        :envelope.reason==='unsupported_operation'?t('This lookup cannot upload, submit, edit or delete health records or reports. No action was performed.','此查詢不能上傳、提交、修改或刪除健檢紀錄及報告；未執行任何操作。')
-        :['invalid_selector','ambiguous_selector','invalid_route'].includes(envelope.reason)?t('Please choose one explicit health-record page number from 1 to 201. No record count or report availability was established by this selection.','請指定一個 1 至 201 的健檢紀錄頁碼；此選擇尚未確認紀錄筆數或報告可用性。')
+        :envelope.reason==='unsupported_operation'?t('I cannot delete or change these health records. I cannot upload or submit reports. No action was performed.','無法刪除或修改健檢紀錄，也無法上傳或提交報告；未執行任何操作。')
+        :envelope.reason==='ambiguous_selector'?t('Please choose one page of your health examination records. No records were read for this request.','請指定要查詢哪一個健檢紀錄頁面；本次尚未讀取紀錄。')
+        :['invalid_selector','invalid_route'].includes(envelope.reason)?t('Please choose one explicit health-record page number from 1 to 201. No record count or report availability was established by this selection.','請指定一個 1 至 201 的健檢紀錄頁碼；此選擇尚未確認紀錄筆數或報告可用性。')
         :t('The health-examination metadata could not be checked. The record count and report availability remain unknown; this is not a successful empty read.','無法查詢健檢可用性資料；紀錄筆數及報告可用性仍未知，不能視為成功查得空白紀錄。'));
       return section;
     }

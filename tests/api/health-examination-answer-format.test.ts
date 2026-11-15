@@ -74,7 +74,7 @@ test('clinical and file questions retain metadata while clearly withholding clin
 });
 
 test('foreign, guest, action and malformed page limitations never make another read or expose requested values',async()=>{
-  for(const [q,pattern]of [["Show Alice's health records.",/cannot access another student/u],['Delete my health records.',/cannot upload, submit, edit or delete/u],['Show my health records page two.',/choose one explicit health-record page number/u]] as const){
+  for(const [q,pattern]of [["Show Alice's health records.",/cannot access another student/u],['Delete my health records.',/cannot delete or change .*cannot upload or submit reports/u],['Show my health records page two.',/choose one explicit health-record page number/u]] as const){
     const source=await readHealthExaminationEvidence(account,{question:q,route},{read:async()=>assert.fail('Boundary must not read')}),out=format([source],{question:q});
     assert.equal(out.status,'answered');assert.equal(out.complete,false);assert.match(out.answer,pattern);
     assert.doesNotMatch(out.answer,/EXAM-1|Alice|Examination code:/u);assert.equal(Object.hasOwn(out,'proposedAction'),false);
