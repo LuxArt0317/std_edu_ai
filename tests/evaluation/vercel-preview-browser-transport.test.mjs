@@ -6,6 +6,9 @@ import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
 import {certificateBrowserHeading,certificateBrowserProfile,createProtectedConversationBrowserRelay} from './vercel-preview-browser-transport.mjs';
 import {previewTrustedHeader} from './vercel-preview-transport.mjs';
 import {ProtectedBrowserDiagnostic} from './protected-browser-diagnostics.mjs';
+import {verifyProtectedCertificateBrowserEgress,verifyProtectedCertificateBrowserSave} from './certificate-browser-turn.mjs';
+import {sanitizeStoredConversation} from '../../server/assistantConversationData.js';
+import {certificateAwardBankReceiptNote} from '../../server/certificateAwardsContract.js';
 
 const epoch=1800000000,origin='https://stdedu-abcdef123-v1-d286.vercel.app',project='https://xiftudmvxphxcjtmfmib.supabase.co';
 const revision='a'.repeat(40),ownerId=randomUUID(),otherId=randomUUID();
@@ -52,13 +55,32 @@ const certificateCompound=certificateAnswer+'&bank_receipt=requested';
 const certificateQuestion='What is the status of my professional certificate subsidy application?';
 const certificateCompoundQuestion=certificateQuestion+' Also tell me whether its payout has reached my bank.';
 const certificateGet=(path,actor=ownerId,route=certificateRoute)=>({...get(path,ownedHeaders(actor)),frameUrl:origin+route});
-const directAnswer={...answer,grounding:{source:'account',webSearched:false}};
+const certTitle='Certificate award applications',certSummary='Your recent certificate applications:';
+const certRead={kind:'certificate-awards',label:certTitle,detail:certSummary,status:'complete'};
+const certBank={kind:'certificate-awards-bank-receipt',label:'Bank receipt confirmation',detail:certificateAwardBankReceiptNote[1],status:'unavailable'};
+const certUpdatedAt='2027-01-15T05:20:00+00:00';
+const directAnswer=(bankReceipt=false)=>({status:'answered',
+  answer:[certSummary,'- (MOS)Excel Associate Microsoft 365 Apps · Approved · NT$900',...(bankReceipt?[certBank.detail]:[]),
+    `[${certTitle}](${certificateRoute})`].join('\n\n'),
+  activity:[certRead,...(bankReceipt?[certBank]:[])],
+  citations:[{chunkId:'account:certificate-awards',claim:certSummary,title:certTitle,url:certificateRoute,sourceName:'My stu.best records'}],
+  suggestedQuestions:[],grounding:{source:'account',webSearched:false}});
+function certificateSave(target,bankReceipt=false){
+  const question=bankReceipt?certificateCompoundQuestion:certificateQuestion;
+  const direct=directAnswer(bankReceipt),messageId=randomUUID();
+  return {id:target,title:question.slice(0,80),version:0,messages:sanitizeStoredConversation([
+    {id:'u-'+messageId,role:'user',content:question,images:[]},
+    {id:'a-'+messageId,role:'assistant',phase:'complete',content:direct.answer,activity:direct.activity,result:direct},
+  ])};
+}
+const certificatePost=(payload,actor=ownerId)=>({...save(payload),frameUrl:origin+certificateRoute,
+  headers:{...ownedHeaders(actor),'Content-Type':'application/json'}});
 function certificateHarness(overrides={}){
   return harness({profile:certificateBrowserProfile,assets:[assets[0],certificateBrowserHeading],
     respond:url=>{
       if(url.pathname==='/api/affairs-conversations')return Response.json({conversations:[]});
       if(url.pathname==='/api/affairs-data')
-        return Response.json(url.searchParams.has('answer')?directAnswer:{userId:ownerId,rows:[],files:[]});
+        return Response.json(url.searchParams.has('answer')?directAnswer(url.searchParams.has('bank_receipt')):{userId:ownerId,rows:[],files:[]});
       return new Response('Pinned certificate page',{headers:{'Content-Type':'text/html'}});
     },...overrides});
 }
@@ -82,10 +104,10 @@ for(const [question,path] of [[certificateQuestion,certificateAnswer],[certifica
     await assert.rejects(h.dispatch(certificateGet(path===certificateAnswer?certificateCompound:certificateAnswer)),/unapproved request operation/u);
     await assert.rejects(h.dispatch(certificateGet(path+'&id='+otherId)),/unapproved request operation/u);
     const response=await h.dispatch(certificateGet(path));
-    assert.deepEqual(JSON.parse(response.body),directAnswer);
+    assert.deepEqual(JSON.parse(response.body),directAnswer(path===certificateCompound));
     await assert.rejects(h.dispatch(certificateGet(path)),/unapproved request operation/u);
     await assert.rejects(h.dispatch(assistant(bodyFor(),certificateRoute)),/unapproved request operation/u);
-    await assert.rejects(h.dispatch({...save(saveFor(reservation.id)),frameUrl:origin+certificateRoute}),/unapproved request operation/u);
+    await assert.rejects(h.dispatch({...save(saveFor(reservation.id)),frameUrl:origin+certificateRoute}),/unreserved conversation save/u);
     assert.deepEqual(h.calls.map(({url})=>url),[certificateRoute,certificateBrowserHeading,'/api/affairs-conversations',certificateBootstrap,path].map(path=>origin+path));
     assert.equal(h.authorized.length,0);
     assert.deepEqual(h.egress().observations.filter(row=>row.request==='certificate-answer'&&row.forwarded),
@@ -119,7 +141,7 @@ test('certificate profiles cannot broaden data paths and malformed replies canno
   const h=certificateHarness({respond:url=>url.pathname===certificateRoute
     ?new Response('Pinned certificate page',{headers:{'Content-Type':'text/html'}})
     :Response.json(url.searchParams.has('answer')
-      ?{...directAnswer,grounding:{source:'public',webSearched:true}}:{userId:ownerId,rows:[],files:[]})});
+      ?{...directAnswer(),grounding:{source:'public',webSearched:true}}:{userId:ownerId,rows:[],files:[]})});
   await h.dispatch(get(certificateRoute));
   await h.dispatch(certificateGet(certificateBootstrap));
   h.reserve({id:id(),mode:'turn',route:certificateRoute,question:certificateQuestion});
@@ -147,6 +169,130 @@ test('an in-flight certificate bootstrap remains visible and cannot admit a turn
   await read;
   h.reserve(reservation);
   assert.equal(h.egress().observations[1].result,'accepted');
+});
+
+function savedCertificateHarness(options={}){
+  return certificateHarness({respond:(url,init)=>{
+    if(url.pathname===certificateRoute)return new Response('Pinned certificate page',{headers:{'Content-Type':'text/html'}});
+    if(url.pathname==='/api/affairs-data')return Response.json(url.searchParams.has('answer')
+      ?directAnswer(url.searchParams.has('bank_receipt')):{userId:ownerId,rows:[],files:[]});
+    if(init.method==='GET')return Response.json({conversations:[]});
+    const payload=JSON.parse(init.body);
+    return Response.json({...payload,version:1,created_at:certUpdatedAt,updated_at:certUpdatedAt});
+  },...options});
+}
+
+async function prepareCertificateSave(h,payload,bankReceipt){
+  await h.dispatch(get(certificateRoute));
+  await h.dispatch(certificateGet(certificateBootstrap));
+  h.reserve({id:payload.id,mode:'turn',route:certificateRoute,question:payload.messages[0].content});
+  await h.dispatch(certificateGet(bankReceipt?certificateCompound:certificateAnswer));
+}
+
+test('drained egress distinguishes a complete certificate turn from one with blocked or pending effects',async()=>{
+  const payload=certificateSave(id()),h=savedCertificateHarness();
+  await h.dispatch(get(certificateRoute));
+  await h.dispatch(certificateGet(certificateBootstrap));
+  await h.dispatch(certificateGet('/api/affairs-conversations'));
+  h.reserve({id:payload.id,mode:'turn',route:certificateRoute,question:certificateQuestion});
+  await h.dispatch(certificateGet(certificateAnswer));
+  assert.throws(()=>verifyProtectedCertificateBrowserEgress({evidence:h.egress(),mode:'turn',requestSequence:4}),{code:'certificate-egress-mismatch'});
+  await h.dispatch(certificatePost(payload));
+  const proof=verifyProtectedCertificateBrowserEgress({evidence:h.egress(),mode:'turn',requestSequence:4});
+  assert.deepEqual(proof,{mode:'turn',answerRequests:1,saveRequests:1,restoreRequests:0});
+  await assert.rejects(h.dispatch({url:'https://example.invalid/unapproved',method:'GET'}));
+  assert.throws(()=>verifyProtectedCertificateBrowserEgress({evidence:h.egress(),mode:'turn',requestSequence:4}),{code:'certificate-egress-mismatch'});
+});
+
+test('certificate JSON binds the long title, browser save, independent journal and exact receipt',async()=>{
+  const target=id(),payload=certificateSave(target,true);
+  const h=savedCertificateHarness({authorizeSave:command=>{
+    const {ownerId:actor,assistantResponse,expected,requestSequence}=command;
+    assert.equal(actor,ownerId);
+    assert.equal(expected.id,target);
+    assert.equal(expected.title,certificateCompoundQuestion.slice(0,80));
+    assert.equal(expected.question,certificateCompoundQuestion);
+    assert.deepEqual(expected,verifyProtectedCertificateBrowserSave(command));
+    assert.deepEqual(JSON.parse(assistantResponse),directAnswer(true));
+    assert.equal(requestSequence,3);
+    command.payload.messages[1].content='Callback mutation';
+    expected.messages[1].content='Callback mutation';
+    assistantResponse.fill(0);
+    return true;
+  }});
+  await prepareCertificateSave(h,payload,true);
+  await assert.rejects(h.dispatch(certificatePost(payload,otherId)),/wrong fixture caller/u);
+  const result=await h.dispatch(certificatePost(payload));
+  assert.deepEqual(result.certificateReceipt,{id:target,version:1,updatedAt:certUpdatedAt});
+  assert.deepEqual(JSON.parse(h.calls.at(-1).init.body),payload);
+  await assert.rejects(h.dispatch(certificatePost(payload)),/unreserved conversation save/u);
+  await assert.rejects(h.dispatch(get(certificateRoute)),/unapproved request operation/u);
+  await assert.rejects(h.dispatch(certificateGet('/api/affairs-conversations?id='+target)),/unreserved conversation read/u);
+  assert.equal(h.authorized.length,1);
+  assert.equal(h.calls.filter(row=>row.init.method==='POST').length,1);
+  assert.deepEqual(h.egress().observations.filter(row=>row.request==='conversation-save').map(row=>[row.forwarded,row.result]),
+    [[false,'rejected'],[true,'accepted'],[false,'rejected']]);
+});
+
+test('modified direct replies, transcript and save receipts fail before credit and never permit a retry',async()=>{
+  for(const [mutate,code] of [
+    [row=>{row.title+='X';},'save-envelope-mismatch'],
+    [row=>{row.messages[1].content='Different certificates.';},'save-answer-mismatch'],
+    [row=>{row.messages[1].activity.pop();},'save-activity-mismatch'],
+    [row=>{row.messages[1].result.citations[0].url='/dtm';},'save-certificate-transcript-mismatch'],
+    [row=>{row.messages[1].result.verification={status:'verified',attempts:1};},'save-certificate-transcript-mismatch'],
+    [row=>{row.messages[1].id='a-'+randomUUID();},'save-message-shape-mismatch'],
+  ]){
+    const payload=certificateSave(id(),true),h=savedCertificateHarness();
+    await prepareCertificateSave(h,payload,true);
+    const changed=structuredClone(payload);mutate(changed);
+    await assert.rejects(h.dispatch(certificatePost(changed)),{code});
+    await assert.rejects(h.dispatch(certificatePost(payload)),/unreserved conversation save/u);
+    assert.equal(h.authorized.length,0);
+    assert.equal(h.calls.length,3);
+  }
+  const payload=certificateSave(id(),false);
+  const alteredReceipt=savedCertificateHarness({respond:(url,init)=>{
+    if(init?.method==='POST')
+      return Response.json({...JSON.parse(init.body),version:2,created_at:certUpdatedAt,updated_at:certUpdatedAt});
+    if(url.pathname===certificateRoute)return new Response('Pinned page',{headers:{'Content-Type':'text/html'}});
+    return Response.json(url.searchParams.has('answer')?directAnswer():{userId:ownerId,rows:[],files:[]});
+  }});
+  await prepareCertificateSave(alteredReceipt,payload,false);
+  await assert.rejects(alteredReceipt.dispatch(certificatePost(payload)),{code:'save-certificate-receipt-mismatch'});
+  await assert.rejects(alteredReceipt.dispatch(certificatePost(payload)),/unreserved conversation save/u);
+  assert.equal(alteredReceipt.authorized.length,1);
+  assert.equal(alteredReceipt.calls.filter(row=>row.init.method==='POST').length,1);
+});
+
+test('a fresh certificate context can load one precisely observed saved turn and cannot save or re-ask',async()=>{
+  const payload=certificateSave(id()),row={...payload,version:1,updated_at:certUpdatedAt};
+  const expected={...verifyProtectedCertificateBrowserSave({payload,question:certificateQuestion,
+    assistantResponse:Buffer.from(JSON.stringify(directAnswer())),requestSequence:3,bankReceipt:false}),updatedAt:certUpdatedAt};
+  for(const changed of [false,true]){
+    const fresh=savedCertificateHarness({respond:url=>{
+      if(url.pathname===certificateRoute)return new Response('Pinned page',{headers:{'Content-Type':'text/html'}});
+      if(url.pathname==='/api/affairs-conversations'){
+        if(url.search)return Response.json({...row,updated_at:changed?'2027-01-16T05:20:00+00:00':row.updated_at});
+        return Response.json({conversations:[{id:row.id,title:row.title,version:1,updated_at:row.updated_at}]});
+      }
+      return Response.json({userId:ownerId,rows:[],files:[]});
+    }});
+    fresh.reserve({id:row.id,mode:'read',expected});
+    await fresh.dispatch(get(certificateRoute));
+    await fresh.dispatch(certificateGet(certificateBootstrap));
+    await fresh.dispatch(certificateGet('/api/affairs-conversations'));
+    const detail=certificateGet('/api/affairs-conversations?id='+row.id);
+    await assert.rejects(fresh.dispatch(certificateGet('/api/affairs-conversations?id='+id())),/unreserved conversation read/u);
+    if(changed)await assert.rejects(fresh.dispatch(detail),{code:'save-certificate-receipt-mismatch'});
+    else assert.deepEqual((await fresh.dispatch(detail)).certificateReceipt,{id:row.id,version:1,updatedAt:certUpdatedAt});
+    await assert.rejects(fresh.dispatch(detail),/unreserved conversation read/u);
+    await assert.rejects(fresh.dispatch(certificateGet(certificateAnswer)),/unapproved request operation/u);
+    await assert.rejects(fresh.dispatch(certificatePost(payload)),/unapproved request operation/u);
+    assert.equal(fresh.authorized.length,0);
+    assert.equal(fresh.calls.length,4);
+    assert.ok(fresh.egress().observations.every(item=>item.phase==='restore'));
+  }
 });
 
 test('only registered navigation and build assets receive the separate Preview credential',async()=>{

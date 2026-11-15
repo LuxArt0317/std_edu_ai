@@ -3,7 +3,7 @@ import {isDeepStrictEqual} from 'node:util';
 import {isConversationId} from '../../../src/services/assistantConversationId.js';
 import {boundedAssistantActivity,boundedAssistantText,reconcileAssistantActivity} from '../../../src/services/assistantActivityBudget.js';
 import {readAssistantReply} from '../../../src/services/assistantStreamReader.js';
-import {assistantActivityTimeline} from '../../../src/features/public/assistantActivityTimeline.ts';
+import {assistantActivityStatus,assistantActivityTimeline} from '../../../src/features/public/assistantActivityTimeline.ts';
 import {sanitizeStoredConversation} from '../../../server/assistantConversationData.js';
 import {requireProtectedBrowser as check} from '../../evaluation/protected-browser-diagnostics.mjs';
 
@@ -73,6 +73,44 @@ function waitForWrite(page,origin,id){
     if(response.url()!==origin+conversationPath||request.method()!=='POST'||!response.ok())return false;
     try{return request.postDataJSON()?.id===id;}catch{return false;}
   },{timeout:65000}).then(()=>null,error=>error);
+}
+
+/** Compare the visible native reply, local links and expanded Activity to the
+ * verified save. Works in the original view and after an independent reload. */
+export async function verifyRenderedCertificateBrowserTurn({dialog,expected}){
+  const log=dialog.getByRole('log',{name:'Assistant conversation'});
+  const articles=log.getByRole('article'),reply=articles.nth(1),display=expected.display;
+  await reply.getByText(display.summary,{exact:true}).first().waitFor({state:'visible'});
+  const header=articles.nth(0);
+  check(await articles.count()===2&&await header.getByText(expected.question,{exact:true}).isVisible(),
+    'rendered certificate transcript mismatch');
+  const markdown=reply.locator('.nexus-message-markdown');
+  const body=await markdown.evaluate(element=>({
+    paragraphs:[...element.querySelectorAll(':scope > p')].map(row=>row.textContent),
+    items:[...element.querySelectorAll(':scope > ul > li')].map(row=>row.textContent),
+    links:[...element.querySelectorAll('a')].map(row=>({title:row.textContent,url:row.getAttribute('href')})),
+    tags:[...element.children].map(row=>row.tagName),
+  }));
+  const links=[{title:display.title,url:display.url}];
+  check(isDeepStrictEqual(body,{paragraphs:[display.summary,...(display.bankNote?[display.bankNote]:[]),display.title],
+    items:display.items,links,tags:['P',...(display.items.length?['UL']:[]),...(display.bankNote?['P']:[]),'P']}),
+  'rendered certificate transcript mismatch');
+  const sources=await reply.getByRole('list',{name:'Sources'}).evaluate(element=>({
+    links:[...element.querySelectorAll('a')].map(row=>({title:row.textContent,url:row.getAttribute('href')})),
+    names:[...element.querySelectorAll('li > span')].map(row=>row.textContent),
+  }));
+  check(isDeepStrictEqual(sources,{links,names:[display.sourceName]}),'rendered certificate transcript mismatch');
+  const activity=reply.locator('details').filter({hasText:'Activity'});
+  check(await activity.count()===1&&await activity.locator('summary').getByText('Activity',{exact:true}).isVisible(),
+    'rendered certificate activity mismatch');
+  if(await activity.getAttribute('open')===null)await activity.locator('summary').click();
+  const steps=await activity.getByRole('list',{name:'Observed assistant steps'}).evaluate(element=>
+    [...element.querySelectorAll(':scope > li > span:not([aria-hidden])')].map(row=>
+      [...row.children].map(node=>node.textContent)));
+  check(isDeepStrictEqual(steps,assistantActivityTimeline(expected.activity).map(step=>[
+    assistantActivityStatus(step)+': ',step.label,step.detail,
+  ])),'rendered certificate activity mismatch');
+  return {requestSequence:expected.requestSequence,observedSteps:steps.length};
 }
 
 /** Run the two browser saves, independent reads and fresh-context restoration. */

@@ -1,7 +1,7 @@
 # Changelog
 ## Unreleased
 
-- Add a read-only protected browser relay profile for the two English certificate award questions, with separate workspace and answer requests and bounded egress diagnostics. [#100]
+- Add a protected browser relay profile for the two English certificate award questions. Bind separate workspace and answer reads to the displayed reply and one journaled conversation save and restore, with bounded egress diagnostics. [#100]
 
 - Verify named-course term absence hours directly against the caller's saved attendance statistics. [#100]
 
