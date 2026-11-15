@@ -40,3 +40,5 @@ Earlier entries are preserved in [the November 16 archive](archive/progress_2026
 - 2026-11-16 [#100] Integrated the three frozen Tutor and named tuition questions plus the isolated paired record operator. All 1,970 API tests and both TypeScript checks passed. Protected replay will use a separate exact candidate after the active certificate lease.
 
 - 2026-11-16 [#100] Protected `186f495` passed both original certificate browser cases with exact answers, one save and one fresh restore per case, paired readback and exact disposal. The consolidated evaluator now has a proof-aware opt-in for the two cases. Focused runner checks passed 66/66.
+
+- 2026-11-16 [#100] Exact `851fa3e` Tutor/tuition setup sent zero requests and cleaned both fixture scopes. A rolled-back client database probe reproduced the student-profile foreign-key failure. The corrected disposable seed atomically creates and verifies its own two profiles before the students and charges. Migrated validation passed all three frozen prompts.

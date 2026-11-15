@@ -68,7 +68,7 @@ import {isDeepStrictEqual} from 'node:util';
 import {createTutorEvaluationFixture,gradeHostedTutorEvaluation,observeTutorEvaluationCallers,requestTutorEvaluation,
   tutorEvaluationFamily,tutorEvaluationFixtureMode,tutorEvaluationHostedCases,tutorEvaluationHostedGaps,
   validateTutorEvaluationHostedCases} from './tutor-evaluation-hosted.mjs';
-import {gradeHostedTutorTuition,hasTutorTuitionProof,tutorTuitionFixtureMode,tutorTuitionHostedCases,
+import {gradeHostedTutorTuition,hasTutorTuitionProof,stageTutorTuitionRows,tutorTuitionFixtureMode,tutorTuitionHostedCases,
   validateTutorTuitionHostedCases} from './tutor-tuition-hosted.mjs';
 import {buildClubEquipmentHostedPlan,clubEquipmentFamily,clubEquipmentFixtureMode,clubEquipmentHostedCases,clubEquipmentHostedRouteCases,clubEquipmentRequirement,
   createClubEquipmentFixture,gradeClubEquipmentHosted,observeClubEquipmentCallers,requestClubEquipment,
@@ -94,7 +94,7 @@ import {buildInternshipTimetableFixture,cleanupInternshipTimetable,observeIntern
   readInternshipNextMeeting,stageInternshipTimetable,verifyInternshipTimetableAbsent} from './internship-timetable-fixture.mjs';
 import {buildInternshipChargeFixture,cleanupInternshipCharges,observeInternshipChargeCallers,observeInternshipChargeRows,
   stageInternshipCharges,verifyInternshipChargesAbsent,buildTutorChargeFixture,cleanupOwnedChargeRows,observeOwnedChargeCallers,observeOwnedChargeRows,
-  stageOwnedChargeRows,verifyOwnedChargeRowsAbsent} from './internship-charge-fixture.mjs';
+  verifyOwnedChargeRowsAbsent} from './internship-charge-fixture.mjs';
 import {buildTeachingSampleFixture,createTeachingSampleFixture,observeTeachingSampleCallers,readTeachingSampleCatalog} from './teaching-feedback-sample-fixture.mjs';
 import {requestTeachingSampleCase,teachingOriginalProtectedCases,teachingSampleCases} from './teaching-feedback-sample-hosted.mjs';
 import {requestObservedStudentLeave,studentLeaveHostedSelection} from './student-leave-hosted-observation.mjs';
@@ -2636,11 +2636,11 @@ export async function runTutorEvaluationPreview({origin,sourceRevision,previewTo
   await prepare({runId,cases,now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
     signal,fixtureMode:compound?tutorTuitionFixtureMode:tutorEvaluationFixtureMode,caseFamily:tutorEvaluationFamily,previewReadbackFetch:readback});
   const s=ready(),pace=createLiveRequestPacer(),results=[],correlationIds=new Set();
-  let cleanupProof=null,completed=false;
+  let cleanupProof=null,completed=false,failure,phase='bind-owners';
   const report=terminal=>{
     const deployment=s.previewGate.status();
     return structuredClone({runId,origin,sourceRevision,results,deployment,cleanup:cleanupProof,egressObservation:false,
-      ...(compound?{terminal}:{unmounted:tutorEvaluationHostedGaps()}),
+      ...(compound?{terminal,...(failure?{failure}:{})}:{unmounted:tutorEvaluationHostedGaps()}),
       liveAcceptance:terminal&&completed&&results.length===cases.length&&results.every(row=>row.passed)
         &&cleanupProof?.verified===true&&cleanupProof.tutorEvaluationCleanup===true
         &&(!compound||cleanupProof.tutorChargeCleanup===true&&cleanupProof.protectedOwnerUnchanged===true&&hasTutorTuitionProof(results)
@@ -2665,6 +2665,7 @@ export async function runTutorEvaluationPreview({origin,sourceRevision,previewTo
       transaction:work=>feeTransaction(s,work),
     });
     if(compound){
+      phase='seed-tuition';
       await assertRecordedFixtureLease(s,'Tutor tuition fixture');
       assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
       await s.previewGate.assertCurrent();
@@ -2673,7 +2674,7 @@ export async function runTutorEvaluationPreview({origin,sourceRevision,previewTo
       s.tutorChargePlan=buildTutorChargeFixture({runId,owners:{A:owners.A.id,B:owners.B.id},programId:programs[0].id});
       for(const id of s.tutorChargePlan.recordIds)s.recordIds.add(id);
       await saveLedger();
-      await query(()=>feeTransaction(s,()=>stageOwnedChargeRows(s.sql,s.tutorChargePlan)),
+      await query(()=>feeTransaction(s,()=>stageTutorTuitionRows(s.sql,{owners,plan:s.tutorChargePlan})),
         'Could not stage the exact disposable Tutor tuition rows.');
     }
     const observe=async()=>{
@@ -2690,26 +2691,33 @@ export async function runTutorEvaluationPreview({origin,sourceRevision,previewTo
       return {rowsDigest,callers,...(charges?{charges}:{})};
     };
     for(const testCase of cases){
+      phase='prepare-'+testCase.id;
       await s.tutorEvaluationFixture.transition(testCase.fixtureKey.slice('live:'.length));
       const before=await observe();
       const markers=[...s.users.flatMap(user=>[user.id,user.token]),...s.identityRequests.map(row=>row.email),
         ...s.tutorEvaluationJournal.requestIds,...(s.tutorChargePlan?.recordIds??[])];
       let ticket,request;
+      phase='dispatch-'+testCase.id;
       try{
         request=await pace(()=>requestTutorEvaluation({testCase,origin,token:s.users[0].token,signal:signals(signal,65000),
           fetchImpl:readback,privateMarkers:markers,correlationIds}),signal,async()=>{ticket=await s.previewGate.beforeRequest();});
       }finally{if(ticket)await s.previewGate.afterRequest(ticket);}
+      phase='readback-'+testCase.id;
       const after=await observe();
       const {envelope,...requestProof}=request;
       const grade=compound?gradeHostedTutorTuition:gradeHostedTutorEvaluation;
       results.push({...grade(testCase,envelope,before,after),...requestProof,requestIndex:ticket.requestIndex});
       await onCheckpoint?.(report(false));
     }
+    phase='verify-release';
     const final=await sourceIdentity();
     if(final.dirty||final.sourceRevision!==sourceRevision||final.workingTreeHash!==identity.workingTreeHash)
       fail('fixture-target','Tutor evaluation source changed during verification.');
     await s.previewGate.finish();
     completed=true;
+  }catch(error){
+    if(!compound)throw error;
+    failure={phase,code:error instanceof LiveFixtureError?error.code:'unexpected'};
   }finally{
     try{cleanupProof=await cleanup();}
     finally{await onCheckpoint?.(report(true));}

@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
 import {buildPlannedTutorEvaluationCases,tutorEvaluationVisibleChecks} from './tutor-evaluation-cases.mjs';
 import {gradeCase} from './grading.mjs';
+import {buildTutorChargeFixture,stageOwnedChargeRows} from './internship-charge-fixture.mjs';
 
 export const tutorTuitionFixtureMode='tutor-evaluation-tuition-only';
 const prefix='account:tutor-evaluation-';
@@ -22,6 +23,26 @@ export function tutorTuitionHostedCases(){
 export function validateTutorTuitionHostedCases(cases){
   if(!isDeepStrictEqual(cases,tutorTuitionHostedCases()))
     throw new Error('Tutor and tuition requires the exact three-case protected packet.');
+}
+
+/** Called inside the disposable owner's transaction. The School Affairs
+ * student foreign key requires an exact profile before the charge seed. */
+export async function stageTutorTuitionRows(sql,{owners,plan}){
+  const expected=buildTutorChargeFixture({runId:plan.runId,owners:{A:owners.A.id,B:owners.B.id},programId:plan.programId});
+  if(!isDeepStrictEqual(expected,plan))throw new Error('Unexpected Tutor and tuition charge plan.');
+  const profiles=Object.values(owners).map(({id,email})=>({
+    user_id:id,email,display_name:'Tutor tuition evaluation fixture',role:'student',
+  }));
+  const scoped=await sql`select u.id,u.email,u.raw_user_meta_data->>'assistant_evaluation_run' as "runMarker",
+    exists(select 1 from auth.identities i where i.user_id=u.id and i.provider='google') as google
+    from auth.users u where id in ${sql(profiles.map(profile=>profile.user_id))} and email_confirmed_at is not null
+    order by id for key share of u`;
+  if(scoped.length!==2||!Object.values(owners).every(owner=>scoped.some(({google,...row})=>google&&isDeepStrictEqual(row,owner))))
+    throw new Error('Tutor tuition profile is outside the disposable Google identities.');
+  const existing=await sql`select user_id from public.affairs_profiles where user_id in ${sql(profiles.map(profile=>profile.user_id))}`;
+  if(existing.length)throw new Error('Tutor tuition profiles overlap an existing account.');
+  await sql`insert into public.affairs_profiles ${sql(profiles)}`;
+  await stageOwnedChargeRows(sql,plan);
 }
 
 function readbackProof(before,after){

@@ -8,8 +8,8 @@ import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {buildPlannedTutorEvaluationCases,buildTutorEvaluationCases,tutorEvaluationFixtureForCase,tutorEvaluationVisibleChecks} from './tutor-evaluation-cases.mjs';
 import {buildTutorEvaluationHostedFixture} from './tutor-evaluation-hosted.mjs';
 import {buildTutorChargeFixture,cleanupOwnedChargeRows,observeOwnedChargeCallers,observeOwnedChargeRows,
-  stageOwnedChargeRows,verifyOwnedChargeRowsAbsent} from './internship-charge-fixture.mjs';
-import {gradeHostedTutorTuition,tutorTuitionHostedCases} from './tutor-tuition-hosted.mjs';
+  verifyOwnedChargeRowsAbsent} from './internship-charge-fixture.mjs';
+import {gradeHostedTutorTuition,stageTutorTuitionRows,tutorTuitionHostedCases} from './tutor-tuition-hosted.mjs';
 import {gradeCase} from './grading.mjs';
 import {readReply} from './run.mjs';
 
@@ -81,11 +81,10 @@ test('frozen Tutor and named tuition requests verify separate persisted records 
       user.chargeId=chargePlan.charges[index].id;
       await db.query('insert into auth.users values($1,$2,now(),$3)',[user.id,user.email,{assistant_evaluation_run:runId}]);
       await db.query("insert into auth.identities values($1,'google')",[user.id]);
-      await db.query("insert into public.affairs_profiles(user_id,email,display_name) values($1,$2,'Tutor fixture')",[user.id,user.email]);
       await db.query(`insert into public.affairs_tutor_evaluations(user_id,questionnaire_version,ratings,comment,request_id,submitted_at)
         values($1,1,$2,$3,$4,$5)`,[user.id,tutor.ratings,tutor.comment,tutor.request_id,tutor.submitted_at]);
     }
-    await db.transaction(tx=>stageOwnedChargeRows(pgliteSql(tx),chargePlan));
+    await db.transaction(tx=>stageTutorTuitionRows(pgliteSql(tx),{owners,plan:chargePlan}));
     const as=(user,read)=>db.transaction(async tx=>{
       await tx.exec('set local role authenticated');
       await tx.query("select set_config('request.jwt.claim.sub',$1,true)",[user.id]);
