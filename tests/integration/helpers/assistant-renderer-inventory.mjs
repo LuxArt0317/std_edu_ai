@@ -55,8 +55,8 @@ function guestRoute(route){
   return home+'/login?'+(home==='/elearning'?new URLSearchParams({next:normalized+search}).toString():'next='+encodeURIComponent(normalized+search));
 }
 function selector(family,route){
-  const {pathname,search}=local(route);
-  if(pathname==='/school-affairs/services/12-4'&&search)return '.catalog-detail';
+  const {pathname,search,searchParams}=local(route);
+  if(pathname==='/school-affairs/services/12-4'&&search)return searchParams.has('syllabus')?'.course-syllabus':'.catalog-detail';
   if(pathname.startsWith('/dtm')||pathname.startsWith('/school-sites/dtm.stu.edu.tw/'))return '.dtm.is-signed-in #dtm-content';
   if(pathname.startsWith('/elearning'))return '.elearning-root #elearning-main';
   if (/^\/school-affairs\/services\/[^/]+\/notes$/u.test(pathname))return '.student-service';

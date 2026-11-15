@@ -25,6 +25,8 @@ test('route oracles keep exact private return selectors and aliases without expe
   assert.equal(route('/school-affairs/records').final,'/school-affairs');
   assert.equal(route('/school-affairs/services/6-6').final,'/school-affairs/services/11-1');
   assert.equal(route('/school-affairs/services/4-2').final,'/elearning');
+  assert.equal(route('/school-affairs/services/12-4?course='+fixtureIds.offering).selector,'.catalog-detail');
+  assert.equal(route('/school-affairs/services/12-4?syllabus='+fixtureIds.offering).selector,'.course-syllabus');
   assert.equal(route('/dtm/course/'+fixtureIds.course+'/assignment/'+fixtureIds.assignment+'/edit').families[0],'dtm-submissions');
   const activity='/elearning/course/'+fixtureIds.elearningCourse+'/activity/'+fixtureIds.elearningActivity;
   assert.equal(new URL(route(activity).guest,'https://renderer.invalid').searchParams.get('next'),activity);

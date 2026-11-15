@@ -15,6 +15,7 @@ import {clubStudentScope,isClubStudentView,validClubStudentWorkspace} from '../.
 import {clubEquipmentNewPath} from '../../server/clubServicesContract.js';
 import {fixtureIds as ids,rendererInventory} from './helpers/assistant-renderer-inventory.mjs';
 import {rendererDtmContextProbes,rendererDtmExpectation,rendererDtmRead,rendererDtmSnapshotCourse} from './helpers/assistant-renderer-dtm.mjs';
+import {curriculumPdfApiPath,rendererAcademicExpectation,rendererAcademicRead,rendererCurriculumPdf} from './helpers/assistant-renderer-academic.mjs';
 
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const git=args=>execFileSync('git',args,{cwd:root,encoding:'utf8'}).trim();
@@ -25,7 +26,7 @@ const roleAccount={state:true,name:'School Affairs account'},roleGuest={state:fa
 const args=process.argv.slice(2);
 const {hash,cases}=await rendererInventory();
 const family=args.length===2&&args[0]==='--family'?args[1]:null;
-const selected=cases.filter(row=>!family||row.families.includes(family));
+const selected=cases.filter(row=>family==='academic-document-readback'?rendererAcademicExpectation(row.route):!family||row.families.includes(family));
 assert.ok((!args.length||family)&&selected.length,'Use --family followed by a signed-in route family.');
 const fileId=randomUUID(),cache=await mkdtemp(join(tmpdir(),'stu100-renderer-'));
 const artifact=join(root,'artifacts/assistant-renderer',fileId+'.json');
@@ -38,14 +39,15 @@ const academyCourse={id:Number(ids.elearningCourse),category_id:Number(ids.elear
 const academyCategory={id:Number(ids.elearningCategory),parent_id:null,title:'Renderer safety category',source_count:1,position:1};
 const publicScopes=new Set(['permanent-courses','interdisciplinary-programs','first-selection-notice','late-add-notice',
   'course-substitution','curriculum-maps','curriculum-plans','summer-selection-notice','curriculum-plan']);
-const publicPlanQuery='?scope=curriculum-plan&code=115101';
-const fixture=(url,parent)=>{
+const fixture=(url,parent,authorization)=>{
   const scope=url.searchParams.get('scope');
   if(url.pathname!=='/api/affairs-data')return schoolServiceReadFixture(url.href,'GET',user,parent);
   for(const key of new Set(url.searchParams.keys()))assert.equal(url.searchParams.getAll(key).length,1);
   if(!url.search){const data=schoolServiceSnapshot(user);data.dtm.courses.push(rendererDtmSnapshotCourse);return data;}
   const dtm=rendererDtmRead(url,user.id);
   if(dtm)return dtm;
+  const academic=rendererAcademicRead(url,authorization);
+  if(academic)return academic;
   if(scope==='summer-selection-notice'){
     const year=url.searchParams.get('year');
     assert.match(year??'',/^[1-9][0-9]{2}$/u);
@@ -131,11 +133,13 @@ async function wire(context,mode,origin){
       observed.security.push('unexpected-api-or-caller');return route.fulfill({status:403,json:{error:'Synthetic renderer read denied.'}});
     }
     try{
-      if(scope==='curriculum-plan'&&url.pathname==='/api/affairs-data'&&url.search===publicPlanQuery){
-        observed.api.push({path:url.pathname,scope,status:204});
-        return route.fulfill({status:204});
+      if(url.pathname+url.search===curriculumPdfApiPath){
+        assert.equal(auth,undefined);
+        observed.api.push({path:url.pathname,scope,status:200});
+        return route.fulfill({status:200,contentType:'application/pdf',body:rendererCurriculumPdf,
+          headers:{'Content-Disposition':'inline; filename="curriculum-115101.pdf"','Content-Security-Policy':"default-src 'none'; frame-ancestors 'self'"}});
       }
-      const json=url.pathname==='/api/affairs-conversations'&&!url.search?{conversations:[...conversations.values()]}:fixture(url,origin);
+      const json=url.pathname==='/api/affairs-conversations'&&!url.search?{conversations:[...conversations.values()]}:fixture(url,origin,auth);
       observed.api.push({path:url.pathname,scope,status:200});return route.fulfill({json});
     }catch{
       observed.api.push({path:url.pathname,scope,status:503});return route.fulfill({status:503,json:{error:'No response fixture for this workflow.'}});
@@ -172,12 +176,16 @@ async function settledFocus(page,selector){
 async function checkRoute(page,contextState,row,mode,device,origin){
   contextState.api.length=0;contextState.security.length=0;contextState.pageErrors=0;contextState.externalBlocked=0;contextState.authVerified=0;
   const dtmExpectation=mode.state?rendererDtmExpectation(row.route):null;
+  const academicExpectation=mode.state?rendererAcademicExpectation(row.route):null;
   const dtmProbe=mode.state?rendererDtmContextProbes.get(row.route):null;
   contextState.dtmProbe=null;contextState.assistantCalls=0;contextState.conversationSaves=0;
-  let stage='navigate',finalPath=null,nativeDataRendered=false,assistantPageContextPassed=false;
+  let stage='navigate',finalPath=null,nativeDataRendered=false,academicDataRendered=false,assistantPageContextPassed=false;
   const checks={navigationSucceeded:false,workspaceMounted:false,sessionVerified:false,assistantPresent:false,keyboardUsable:false};
   try{
-    const response=await page.goto(origin+row.route,{waitUntil:'domcontentloaded'});
+    const [pdfResponse,response]=await Promise.all([
+      academicExpectation?.pdf?page.waitForResponse(origin+curriculumPdfApiPath,{timeout:12000}):null,
+      page.goto(origin+row.route,{waitUntil:'domcontentloaded'}),
+    ]);
     assert.equal(response?.status(),200);
     stage='expected-route';
     await page.waitForURL(origin+(mode.state?row.final:row.guest));
@@ -203,6 +211,23 @@ async function checkRoute(page,contextState,row,mode,device,origin){
         assert.ok(contextState.api.some(read=>read.path==='/api/affairs-data'&&read.scope===scope&&read.status===200));
       assert.ok(contextState.api.every(read=>read.path!=='/api/affairs-data'||read.status===200));
       nativeDataRendered=true;
+    }
+    if(academicExpectation){
+      stage='native-academic-readback';
+      const record=page.locator(academicExpectation.selector);
+      await (academicExpectation.text?record.getByText(academicExpectation.text,{exact:true}):record).waitFor();
+      if(academicExpectation.pdf){
+        assert.equal(await record.getAttribute('src'),curriculumPdfApiPath);
+        assert.equal(pdfResponse?.status(),200);
+        assert.equal(pdfResponse?.headers()['content-type'],'application/pdf');
+      }
+      if(academicExpectation.disclose){
+        await record.getByRole('button',{name:academicExpectation.disclose,exact:true}).press('Enter');
+        await page.locator(academicExpectation.replacementSelector).getByText(academicExpectation.replacement,{exact:true}).waitFor();
+      }
+      assert.ok(contextState.api.some(read=>read.path==='/api/affairs-data'&&read.scope===academicExpectation.scope&&read.status===200));
+      assert.ok(contextState.api.every(read=>read.path!=='/api/affairs-data'||read.status===200));
+      academicDataRendered=true;
     }
     stage='launcher';
     const launcher=page.getByRole('button',{name:launcherName,exact:true});
@@ -255,7 +280,7 @@ async function checkRoute(page,contextState,row,mode,device,origin){
   const workspaceReads=reads.filter(read=>read.path==='/api/affairs-data');
   return {route:row.route,expectedRoute:mode.state?row.final:row.guest,finalPath,families:row.families,evidenceScope:row.evidenceScope,
     auth:mode.state?'synthetic-signed-in':'guest',device,checks,passed:stage===null,failureStage:stage,reads,
-    ...(dtmExpectation?{nativeDataRendered}:{}),...(dtmProbe?{assistantPageContextPassed}:{}),
+    ...(dtmExpectation?{nativeDataRendered}:{}),...(academicExpectation?{academicDataRendered}:{}),...(dtmProbe?{assistantPageContextPassed}:{}),
     nativeData:workspaceReads.some(read=>read.status!==200)?'fixture-unavailable':workspaceReads.length?'synthetic-response-sent':'no-observed-read',
     externalRequestsBlocked:contextState.externalBlocked,securityFailures:contextState.security.length,pageErrors:contextState.pageErrors};
 }
@@ -355,6 +380,8 @@ try{
     matrixComplete:outcomes.length===expectedComparisons,
     passed:outcomes.filter(row=>row.passed).length,failures:outcomes.filter(row=>!row.passed).length,
     fixtureUnavailable:outcomes.filter(row=>row.nativeData==='fixture-unavailable').length,
+    academicReadbackChecks:outcomes.filter(row=>row.academicDataRendered!==undefined).length,
+    academicReadbackPassed:outcomes.filter(row=>row.academicDataRendered).length,
     dtmReadbackChecks:outcomes.filter(row=>row.nativeDataRendered!==undefined).length,
     dtmReadbackPassed:outcomes.filter(row=>row.nativeDataRendered).length,
     dtmContextChecks:outcomes.filter(row=>row.assistantPageContextPassed!==undefined).length,

@@ -12,6 +12,8 @@ Use `--family school-service-views` for protected service subviews and `--family
 
 Across `--family dtm`, `--family dtm-submissions` and `--family legacy-route-aliases`, the signed-in runner waits for real Moodle components to display synthetic layout settings, saved course content, a resource, literal grade reports and an existing submission filename. Each covered view must complete its expected authenticated read. Context probes send a question from native and copied views in fresh tabs, verify the exact canonical page in the authenticated request and check the synthetic answer and conversation receipt. The report records data readback and page context separately. All responses stay local to the browser fixture.
 
+Use `--family academic-document-readback` to replay the four academic detail routes. It checks rendered catalog and syllabus values from an exact account request, the selected curriculum iframe and PDF response, and the selected course substitution with its replacement row opened by keyboard. The fixtures use the existing offering validator and substitution parser. The PDF and substitution endpoints remain unauthenticated reads inside the signed-in page checks.
+
 [Remote-learning Moodle QA](../../docs/qa/ELEARNING.md) covers the browser flow, exact-client enrollment and retry checks.
 
 Counseling checks cover the scoped database rollback, actual authenticated API requests with disposable-account cleanup, and menu-to-appointment browser flow. See [counseling QA](../../docs/qa/COUNSELING.md).

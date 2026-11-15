@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Verify course and syllabus details, curriculum PDF loading, and substitution results in the signed-in browser checks. [#100]
+
 - Keep transcript grades, warning remarks, credits and rankings in the requested academic term, including compact semester references. Check the saved English requirement display independently of semester filters. [#100]
 
 - Verify synthetic Moodle records in the signed-in browser checks and confirm that copied assignment and grade pages send the exact page context to the assistant. [#100]
