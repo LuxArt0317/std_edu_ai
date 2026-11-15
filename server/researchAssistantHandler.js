@@ -5,6 +5,7 @@ import {clubAttendanceBoundary,clubAttendanceRoute,clubAttendanceSelection} from
 import {parseExplicitAccountAction} from './accountActionIntent.js';
 import {internshipAssistantPlan,internshipGuestAnswer} from './internshipAssistantPlan.js';
 import {accountStatusIntent} from './accountStatusIntent.js';
+import {answerLearningEntry,learningEntryIntent} from './learningEntryContract.js';
 import {guestAccountStatusAnswer} from './accountStatusAnswer.js';
 import {studentConductScope} from './studentConductEvidenceScope.js';
 import {boundedAssistantText} from '../src/services/assistantActivityBudget.js';
@@ -146,7 +147,8 @@ function parse(body) {
     }) : [];
     const catalogRoute=elearningCatalogGuestRoute(source.route), metadataRoute=elearningMetadataGuestRoute(source.route);
     const offeringRoute=catalogDetailGuestRoute(source.route);
-    const route = source.route==='/account-status'?source.route:offeringRoute?offeringRoute:isElearningMetadataQuestion(question,metadataRoute)?metadataRoute:
+    const entryRoute=learningEntryIntent(question,source.route)?.context;
+    const route = source.route==='/account-status'?source.route:entryRoute??(offeringRoute?offeringRoute:isElearningMetadataQuestion(question,metadataRoute)?metadataRoute:
         isElearningCatalogPageQuestion(question,catalogRoute)?catalogRoute:typeof source.route === 'string' && (/^\/school-affairs(?:\/search|\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/leave(?:\/(?:index|history|archive|periods)|\/edit\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/internship(?:\/(?:contract|self_assessment|company|directory))?\/?$/.test(source.route)||
@@ -158,7 +160,7 @@ function parse(body) {
         (source.route.startsWith('/school-affairs/services/45-1/history')&&isFacilityRepairEvidenceQuestion('What is its status?',source.route))||
         (source.route.startsWith('/dtm/course/')&&dtmMaterialRoute(source.route))||dtmAssignmentListRoute.test(source.route)||
         /^\/elearning(?:\/(?:category|notice)\/[1-9]\d{0,9}|\/(?:categories|my-courses|login|search))?\/?$/.test(source.route)||
-        (source.route.startsWith('/elearning/course/')&&!/[?#]/.test(source.route)&&elearningCourseLocation(source.route))) ? source.route : normalizePublicPageRoute(source.route);
+        (source.route.startsWith('/elearning/course/')&&!/[?#]/.test(source.route)&&elearningCourseLocation(source.route))) ? source.route : normalizePublicPageRoute(source.route));
     const rawImages = source.images;
     if (rawImages !== undefined && (!Array.isArray(rawImages) || rawImages.length > 2))
         return null;
@@ -372,6 +374,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
             stream.send(200,guestAccountStatusAnswer(input.question));
             return;
         }
+        const learningEntry=learningEntryIntent(input.question,input.route);
+        if(learningEntry){stream.send(200,answerLearningEntry(input.question,learningEntry,false));return;}
         const offering=!input.images.length&&catalogDetailIntent(input.question,input.route);
         if(offering){stream.send(200,catalogDetailGuestAnswer(input.question,offering));return;}
         const action=!input.images.length&&parseExplicitAccountAction(input.question);

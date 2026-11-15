@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { useAffairsAuth } from '../affairs/authContext';
 import { safeSchoolReturnPath, signOutAffairs, startGoogleSignIn } from '../affairs/authClient';
+import {learningLoginReturnFromQuery} from '../../../../server/learningEntryContract.js';
 import { joinElearning, loadElearning, loadElearningOutline, searchElearning } from '@/services/elearning';
 import { elearningActivityPath, elearningActivityUrl, elearningCourseLocation, elearningCoursePath, elearningOrigin, elearningPath as path, elearningCatalogPageSize,
   type ElearningActivity, type ElearningCatalog, type ElearningCategory, type ElearningCourse, type ElearningOutline, type ElearningWorkspace as Workspace } from '../../../../server/elearningContract.js';
@@ -382,7 +383,7 @@ export default function ElearningWorkspace(){
   const {user,loading,error}=useAffairsAuth();
   const {pathname,search}=useLocation();
   const isLogin=pathname.replace(/\/$/,'')===path+'/login';
-  const requested=safeSchoolReturnPath(isLogin?new URLSearchParams(search).get('next'):pathname+search,path);
+  const requested=isLogin?learningLoginReturnFromQuery('elearning',search):safeSchoolReturnPath(pathname+search,path);
   const next=requested===path||requested.startsWith(path+'/')?requested:path;
   useEffect(()=>{document.title=siteTitle;},[]);
   if(loading)return <main className="elearning-root" role="status">讀取數位學園…</main>;

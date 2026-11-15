@@ -1,5 +1,6 @@
 import {parseExplicitAccountAction} from '../../server/accountActionIntent.js';
 import {accountStatusIntent} from '../../server/accountStatusIntent.js';
+import {learningEntryIntent} from '../../server/learningEntryContract.js';
 import {dtmAssignmentListSelection} from '../../server/dtmAssignmentListIntent.js';
 import {dtmMaterialIntent} from '../../server/dtmMaterialIntent.js';
 import {isElearningCatalogPageQuestion} from '../../server/elearningCatalogPageIntent.js';
@@ -69,7 +70,7 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
   if (data.session.user.id !== expectedUserId) throw new Error('Your account changed. Reopen the assistant and try again.');
   const {access_token:accessToken}=data.session;
-  if (accountStatusIntent(question,route)||catalogDetailIntent(question,route)||isElearningCatalogPageQuestion(question,route)||isElearningMetadataQuestion(question,route)||parseExplicitAccountAction(question)||dtmAssignmentListSelection(question,route)||dtmMaterialIntent(question,route)||isInternshipEvidenceQuestion(question,route,history)||isStudentLeaveEvidenceQuestion(question,route,history)||isVenueRequestQuestion(question,route,history)||isDtmAssignmentEvidenceQuestion(question,route,history)||isAidPaymentsScopeQuestion(question,route,history)
+  if (accountStatusIntent(question,route)||learningEntryIntent(question,route)||catalogDetailIntent(question,route)||isElearningCatalogPageQuestion(question,route)||isElearningMetadataQuestion(question,route)||parseExplicitAccountAction(question)||dtmAssignmentListSelection(question,route)||dtmMaterialIntent(question,route)||isInternshipEvidenceQuestion(question,route,history)||isStudentLeaveEvidenceQuestion(question,route,history)||isVenueRequestQuestion(question,route,history)||isDtmAssignmentEvidenceQuestion(question,route,history)||isAidPaymentsScopeQuestion(question,route,history)
     ||isForeignDtmGradesQuestion(question,route)||shouldReadNativeDtmGrades(question,route,history)
     ||isElearningEvidenceQuestion(question,route,history)||isForeignElearningRecordsQuestion(question,route)
     ||isFacilityRepairEvidenceQuestion(question,route,history)||isForeignFacilityRepairQuestion(question)

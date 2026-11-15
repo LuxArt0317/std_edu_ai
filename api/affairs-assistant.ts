@@ -8,6 +8,7 @@ import {parseExplicitAccountAction} from '../server/accountActionIntent.js';
 import {answerRequestedAffairsAction} from '../server/answerRequestedAffairsAction.js';
 import type {VerificationProgress} from '../server/answerVerification.js';
 import {accountStatusIntent} from '../server/accountStatusIntent.js';
+import {answerLearningEntry,learningEntryIntent} from '../server/learningEntryContract.js';
 import {answerAccountStatus} from '../server/accountStatusAnswer.js';
 import {answerElearningCatalog,answerElearningMetadata,elearningCatalogBoundary,elearningMetadataBoundary} from '../server/accountElearningCatalogAnswer.js';
 import {isElearningCatalogPageQuestion,selectElearningCatalogPage} from '../server/elearningCatalogPageIntent.js';
@@ -262,6 +263,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     }catch{stream.send(503,{error:'The current School Affairs sign-in could not be checked.'});}
     return;
   }
+  const learningEntry=learningEntryIntent(question,route);
+  if(learningEntry){stream.send(200,answerLearningEntry(question,learningEntry,true));return;}
   const clubAttendance=clubAttendanceSelection(question,route);
   if(clubAttendance){
     if(clubAttendance.reason){stream.send(200,clubAttendanceBoundary(clubAttendance,question,true));return;}

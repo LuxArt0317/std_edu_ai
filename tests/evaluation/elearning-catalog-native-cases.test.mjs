@@ -7,6 +7,7 @@ import ts from 'typescript';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {createResearchAssistantHandler} from '../../server/researchAssistantHandler.js';
 import {accountStatusIntent} from '../../server/accountStatusIntent.js';
+import {learningEntryIntent} from '../../server/learningEntryContract.js';
 import {AffairsWorkspaceError} from '../../server/affairsWorkspace.js';
 import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
 import {readElearningCatalogPage,selectElearningCatalogPage} from '../../server/elearningCatalogPageEvidence.js';
@@ -298,6 +299,7 @@ test('compiled signed-in client sends exact filters directly to the authenticate
   let owner=account.user.id;
   runInNewContext(code,{exports,require:specifier=>{
     if(specifier.endsWith('accountStatusIntent.js'))return {accountStatusIntent};
+    if(specifier.endsWith('learningEntryContract.js'))return {learningEntryIntent};
     if(specifier.endsWith('catalogDetailIntent.js'))return {catalogDetailIntent};
     if(specifier.endsWith('elearningCatalogPageIntent.js'))return {isElearningCatalogPageQuestion};
     if(specifier.endsWith('assistantStreamReader.js'))return {readAssistantReply};

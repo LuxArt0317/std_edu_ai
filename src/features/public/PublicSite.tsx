@@ -18,6 +18,7 @@ const DigitalMaterials = lazy(() => import("./dtm/DigitalMaterials"));
 import "./site/reference.css";
 import { AffairsAuthProvider } from "./affairs/AffairsAuth";
 import { useAffairsAuth } from "./affairs/authContext";
+import {legacyElearningDestination} from "../../../server/learningEntryContract.js";
 
 function useSignedInSchoolWorkspace() {
   const { user } = useAffairsAuth();
@@ -38,11 +39,7 @@ function SchoolAccountAssistant({ embedded = false }: { embedded?: boolean }) {
 }
 function LegacyElearningEntry() {
   const { pathname, search } = useLocation();
-  const category = new URLSearchParams(search).get("categoryid");
-  const destination = pathname.endsWith("/login/index.php") ? "/elearning/login"
-    : pathname.endsWith("/course/index.php") && /^[1-9]\d{0,8}$/.test(category ?? "") ? "/elearning/category/" + category
-    : "/elearning";
-  return <Navigate replace to={destination} />;
+  return <Navigate replace to={legacyElearningDestination(pathname,search)} />;
 }
 
 function PublicAccountStatus() {
