@@ -1342,20 +1342,29 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       const source=sources.find(item=>item.id==='account:charges');
       const charge=JSON.parse(source.content);
       const page=pairedHealth?JSON.parse(supplemental[0].evidence.content):null;
+      const exactHealthPage=page&&isDeepStrictEqual(page.selection,healthSelection);
       // The requested page may be complete even if earlier or later health records exist.
-      const supportedPage=page?['ok','empty','partial'].includes(page.readState)&&!page.reason&&page.counts?.omitted===0
-        &&!rendered.formatting.limited&&isDeepStrictEqual(page.selection,healthSelection)
+      const supportedPage=page?exactHealthPage&&['ok','empty','partial'].includes(page.readState)&&!page.reason&&page.counts?.omitted===0
+        &&!rendered.formatting.limited
         :supplemental[0].readState==='ok'&&rendered.complete;
-      if(!supportedPage||rendered.status!=='answered'||charge.checkedAt!==current.checkedAt
-        ||charge.selectionLabel!==pairedChargeLabel||charge.unavailableReason||charge.studentRecordFound!==true
-        ||charge.excerpted!==false||charge.records?.length!==1||charge.counts?.[0]?.matchingRows!==1)return null;
+      const healthReadFailed=Boolean(exactHealthPage&&page.readState==='unavailable'&&page.reason==='read_failed');
+      if(rendered.status!=='answered'||charge.checkedAt!==current.checkedAt||charge.selectionLabel!==pairedChargeLabel||charge.excerpted!==false)return null;
+      const supportedCharge=!charge.unavailableReason&&charge.studentRecordFound===true
+        &&charge.records?.length===1&&charge.counts?.[0]?.matchingRows===1;
+      const chargeReadFailed=pairedHealth&&current.chargeReadFailed===true&&charge.unavailableReason==='read_failed'&&charge.studentRecordFound===undefined;
+      if(!(supportedPage&&(supportedCharge||chargeReadFailed)||healthReadFailed&&supportedCharge))return null;
       try{
-        const fees=formatSelectedChargeEvidence(source,{language:supplementalAnswerLanguage(question),exactBalance:true,separateCurrency:true});
+        const language=supplementalAnswerLanguage(question);
+        const fees=formatSelectedChargeEvidence(source,{language,exactBalance:true,separateCurrency:true});
+        if(fees.formatting.limited||(chargeReadFailed?fees.views.length!==0:fees.views[0]?.rows.length!==1))return null;
+        const feeAnswer=chargeReadFailed?(language==='zh-TW'?'無法讀取選定費用的餘額，應繳及已繳金額仍未知。\n\n[開啟已儲存費用紀錄]':'I could not read the charge balance. The amount due and payments remain unknown.\n\n[Open saved fee records]')+'('+source.url+')':fees.answer;
+        const degraded=healthReadFailed||chargeReadFailed;
         const chargeFirst=question.trimStart().toLowerCase().startsWith(pageLookup.otherQuestion.toLowerCase());
-        const answer=(chargeFirst?[fees.answer,rendered.answer]:[rendered.answer,fees.answer]).join('\n\n');
+        const answer=(chargeFirst?[feeAnswer,rendered.answer]:[rendered.answer,feeAnswer]).join('\n\n');
         const combined={...rendered,answer,citations:[...rendered.citations,...fees.citations],views:[...rendered.views,...fees.views],
-          sourceIds:[...rendered.sourceIds,...fees.sourceIds]};
-        return fees.views[0]?.rows.length===1&&answer.length<=supplementalAnswerLimits.answerCharacters
+          sourceIds:[...rendered.sourceIds,...fees.sourceIds],
+          ...(degraded?{complete:false,grounding:{source:'account',webSearched:false,checkedAt:current.checkedAt,degraded:true}}:{})};
+        return answer.length<=supplementalAnswerLimits.answerCharacters
           &&Buffer.byteLength(JSON.stringify(combined),'utf8')<=supplementalAnswerLimits.resultBytes&&answerLinksSupported(answer,sources)?combined:null;
       }catch(error){
         if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;
@@ -1537,6 +1546,13 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         }
         if(pairedHealth&&pairedChargeLabel!==null){
           const zh=supplementalAnswerLanguage(question)==='zh-TW';
+          if(supported.grounding?.degraded){
+            const feeUnavailable=current.chargeReadFailed===true;
+            emit({kind:'health-examination-evidence-check',label:zh?'已核對可讀取的紀錄':'Verified the available records',
+              detail:feeUnavailable?(zh?'已比對所選健檢頁面；費用餘額無法讀取。':'Matched the selected health record page. The fee balance could not be read.')
+                :(zh?'已從獨立費用紀錄核對餘額；健檢頁面無法讀取。':'Verified the balance from the separate fee record. The health record page could not be read.'),status:'complete'});
+            return {ok:true};
+          }
           emit({kind:'health-examination-evidence-check',label:zh?'已分別核對健檢可用性與費用餘額':'Verified the health record page and separate fee balance',
             detail:zh?'已比對所選頁面的檢查代碼及報告旗標，並從獨立費用紀錄計算餘額。'
               :'Matched the examination codes and availability flags on the selected page, and calculated the balance from its own charge record.',status:'complete'});
@@ -1655,7 +1671,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     viewSnapshot={...viewSnapshot,serviceRecords:payload?.records??[]};
   }
   const viewTools=activeTools.filter(key=>
-    !(key==='charges'&&(viewSnapshot.chargeReadUnavailable||nativeAndFees||noteFees||excludedNoteFees||aidFees||teachingFees||housingFees||serviceFees))
+    !(key==='charges'&&(viewSnapshot.chargeReadUnavailable||pairedHealth&&pairedChargeLabel!==null||nativeAndFees||noteFees||excludedNoteFees||aidFees||teachingFees||housingFees||serviceFees))
     &&!(key==='courses'&&((scopedTimetable||noteNext||aidNext||teachingNext||housingNext||serviceNext)&&!scheduledMeeting?.records.length||scopedStudy&&(viewSnapshot.timetableReadUnavailable||viewSnapshot.studentRecordFound===false)))
     &&!(key==='serviceRecords'&&viewSnapshot.serviceNoteReadUnavailable)
     &&!(key==='housing'&&housingSelected)&&key!=='housingApplications');

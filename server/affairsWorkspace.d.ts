@@ -1,5 +1,6 @@
 import type {ExplicitAccountAction} from './accountActionIntent.js';
 export class AffairsWorkspaceError extends Error { status:number; constructor(message:string,status?:number); }
+export class AffairsWorkspaceReadUnavailableError extends AffairsWorkspaceError {}
 export type AffairsAccount = {user:{id:string;email?:string};token:string;url:string;key:string};
 export function schoolAffairsDatabaseConfiguration(): {url:string;key:string};
 export function verifyAffairsToken(token:string):Promise<AffairsAccount&{user:{user_metadata?:Record<string,unknown>}}>;

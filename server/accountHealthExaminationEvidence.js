@@ -1,4 +1,5 @@
 import {readHealthExaminations} from './healthExaminations.js';
+import {AffairsWorkspaceError,AffairsWorkspaceReadUnavailableError} from './affairsWorkspace.js';
 import {healthExaminationPath,healthExaminationScope,healthPageSize} from './healthExaminationContract.js';
 import {selectHealthExaminationEvidence} from './healthExaminationEvidenceIntent.js';
 export {isHealthExaminationEvidenceQuestion} from './healthExaminationEvidenceIntent.js';
@@ -67,6 +68,10 @@ export async function readHealthExaminationEvidence(account,options={},dependenc
     const partial=included.length<result.rows.length||(selection.page-1)*healthPageSize>0||included.length<result.total;
     const readState=result.total===0?'empty':partial?'partial':'ok';
     return reply(readState,selection,included,result.total,result.rows.length,included.length<result.rows.length?'excerpted':null);
-  }catch(error){return fail(error?.status===401||error?.status===403?'access_denied':'read_failed');}
+  }catch(error){
+    if(error?.status===401||error?.status===403)return fail('access_denied');
+    if(error instanceof AffairsWorkspaceError&&!(error instanceof AffairsWorkspaceReadUnavailableError))return fail('invalid_records');
+    return fail('read_failed');
+  }
   finally{clearTimeout(timer);}
 }

@@ -10,6 +10,9 @@ import {readFeeRemissionJson} from './feeRemissionContract.js';
 export class AffairsWorkspaceError extends Error {
   constructor(message, status = 503) { super(message); this.status = status; }
 }
+// A read outage can be reported alongside independent evidence. Invalid or
+// unauthorized responses retain their own error path even when returned as 503.
+export class AffairsWorkspaceReadUnavailableError extends AffairsWorkspaceError {}
 
 export function schoolAffairsDatabaseConfiguration() {
   const url = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -41,12 +44,16 @@ async function request(account, table, options = {}) {
   const {rpc=false,body,query={},exactCount=false,readJson,errorMessages,observeRead}=options;
   const target=new URL(`${account.url}/rest/v1/${rpc?'rpc/':''}${table}`);
   for (const [name,value] of Object.entries(query)) if (value !== undefined) target.searchParams.set(name,String(value));
+  const networkError='The School Affairs database did not respond. Please try again.';
+  const remaining=account.requestDeadline===undefined?12000:account.requestDeadline-Date.now();
+  if(remaining<=0)throw new AffairsWorkspaceError(networkError);
   let response;
   try {
-    const remaining=account.requestDeadline===undefined?12000:account.requestDeadline-Date.now();
-    if(remaining<=0)throw new Error('Record lookup budget exhausted');
     response=await fetch(target,{method:rpc?'POST':'GET',headers:{...headers(account.token,account.key,rpc),...(exactCount?{Prefer:'count=exact'}:{})},redirect:'error',...(rpc?{body:JSON.stringify(body||{})}:{}),signal:AbortSignal.timeout(Math.min(12000,remaining))});
-  } catch { throw new AffairsWorkspaceError('The School Affairs database did not respond. Please try again.'); }
+  } catch {
+    const ErrorType=rpc?AffairsWorkspaceError:AffairsWorkspaceReadUnavailableError;
+    throw new ErrorType(networkError);
+  }
   if (!response.ok) {
     if (errorMessages) {
       void response.body?.cancel().catch(()=>{});
@@ -58,6 +65,10 @@ async function request(account, table, options = {}) {
     if (response.status===409) throw new AffairsWorkspaceError(['affairs_scholarship_action','affairs_manage_student_aid_record','affairs_housing_action','affairs_manage_credit_load_history','affairs_manage_course_selection','affairs_manage_academic_grades','affairs_manage_graduation_review','affairs_manage_academic_attendance'].includes(table)
       ? 'This record or its application period changed. Refresh and try again.'
       : 'A matching School Affairs record already exists.',409);
+    if (!rpc&&(response.status>=500||response.status===408||response.status===429)) {
+      void response.body?.cancel().catch(()=>{});
+      throw new AffairsWorkspaceReadUnavailableError('School Affairs records could not be loaded. Please try again.');
+    }
     throw new AffairsWorkspaceError('School Affairs records could not be loaded. Please try again.');
   }
   if (readJson) {
@@ -129,6 +140,11 @@ export async function loadOwnLearningSupportWithdrawalContext(account,selection,
 
 const chargeOrder = 'occurrence_on.desc.nullslast,id.asc';
 const chargeUuid = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu;
+function ownChargeAmount(value){
+  if(typeof value!=='number'&&(typeof value!=='string'||!/^\d+(?:\.\d{1,2})?$/u.test(value)))return false;
+  const amount=Number(value);
+  return Number.isFinite(amount)&&amount>=0&&amount<=9999999999.99&&Number(amount.toFixed(2))===amount;
+}
 function mapAffairsCharge(row) {
   return {id:row.id,label:row.label,amountDue:Number(row.amount_due),amountPaid:Number(row.amount_paid),
     currency:row.currency,dueOn:row.due_on,sourceMode:row.source_mode,occurrenceOn:row.occurrence_on??null,
@@ -233,7 +249,8 @@ export async function loadOwnAffairsCharges(account,{deadline=Date.now()+12000,o
   for(const row of rows){
     if(row?.student_id!==student.id||typeof row.id!=='string'||!chargeUuid.test(row.id)||ids.has(row.id)
       ||typeof row.label!=='string'||!row.label.trim()||typeof row.currency!=='string'||!row.currency.trim()
-      ||![row.amount_due,row.amount_paid].every(amount=>(typeof amount==='number'||typeof amount==='string'&&amount.trim())&&Number.isFinite(Number(amount))))
+      ||!['sample','verified'].includes(row.source_mode)||![row.amount_due,row.amount_paid].every(ownChargeAmount)
+      ||Number(row.amount_paid)>Number(row.amount_due))
       throw new AffairsWorkspaceError('The fee records could not be verified.');
     ids.add(row.id);
   }

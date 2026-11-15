@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Keep the verified health metadata or named tuition balance when the other record service temporarily fails. Show which lookup is unavailable and link to both record pages. [#100]
+
 - Verify a selected health-record page and a separately named tuition charge against their own saved records. Respect explicit requests to leave health records unread. [#100]
 
 - Preserve the assignment or grade-report destination when a copied DTM link leads to sign-in. Connect the assistant there to the matching local records. Expand signed-in launcher checks to service subviews. [#100]

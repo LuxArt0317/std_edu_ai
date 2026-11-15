@@ -29,7 +29,7 @@ async function call(handler:Handler,prompt:string,localRoute=route,authenticated
   await handler({method:'POST',headers:authenticated?{authorization:'Bearer '+account.token}:{},body:{question:prompt,route:localRoute,stream:true}},response);
   return result;
 }
-const handler=()=>createAffairsAssistantHandler({verifyToken:async()=>account,
+const handler=(caller=account)=>createAffairsAssistantHandler({verifyToken:async()=>caller,
   loadSnapshot:async()=>assert.fail('No broad workspace read for the selected health and balance scopes'),
   publicResearch:async()=>assert.fail('No public retrieval for these private questions')});
 
@@ -229,13 +229,14 @@ test('both compound orders and unavailable halves use two independently scoped c
   }
 });
 
-test('named charges keep the exact health page, question order and deliberate health exclusions',async t=>{
+test('named charges keep the exact health page, preserve either half during outages, and respect health exclusions',async t=>{
   const cases=buildHealthExaminationCases();
   const calls:string[]=[],errors:unknown[]=[];
   const priorKey=process.env.OPENAI_API_KEY;
   process.env.OPENAI_API_KEY='HEALTH_TEST_MODEL';
   t.after(()=>{if(priorKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=priorKey;});
   let targetPage=1;
+  let outage:''|'health'|'charges'='';
   const intercept:typeof fetch=async(input,init)=>{
     const url=new URL(String(input));
     if(url.hostname==='api.openai.com'){
@@ -254,6 +255,7 @@ test('named charges keep the exact health page, question order and deliberate he
     if(url.pathname.endsWith('/affairs_read_health_examinations')){
       assert.ok(targetPage>0,'An explicit health exclusion forbids a metadata read.');
       assert.equal(init?.body,JSON.stringify({p_offset:(targetPage-1)*25}));
+      if(outage==='health')return new Response(null,{status:503});
       const codes=targetPage===1?['QA HEALTH A-01','QA HEALTH A-02','QA HEALTH A-03']:['QA HEALTH PAGE 26'];
       return Response.json({userId:owner,total:targetPage===1?3:26,rows:codes.map((examination_code,index)=>({
         id:'36000000-0000-4000-8000-'+String(index+200).padStart(12,'0'),examination_code,
@@ -267,21 +269,23 @@ test('named charges keep the exact health page, question order and deliberate he
     }
     assert.equal(url.pathname,'/rest/v1/affairs_charges');
     assert.equal(url.searchParams.get('student_id'),'eq.'+student);
+    if(outage==='charges')return new Response(null,{status:503});
     const due={id:charge,student_id:student,label:'QA Health Tuition instalment',amount_due:28000,amount_paid:5000,currency:'TWD',due_on:null,source_mode:'sample'};
     return Response.json([due,{...due,id:'37000000-0000-4000-8000-000000000002',label:'Unrelated charge',amount_due:123456}]);
   };
   t.mock.method(globalThis,'fetch',(...args:Parameters<typeof fetch>)=>intercept(...args).catch(error=>{errors.push(error);throw error;}));
-  for(const suffix of ['mixed-tuition','mixed-reversed','negative-health']){
+  for(const suffix of ['mixed-tuition','mixed-reversed','mixed-health-unavailable','mixed-charges-unavailable','negative-health']){
     const testCase=cases.find(row=>row.id==='account:health-examinations-'+suffix);
     assert.ok(testCase);
     targetPage=suffix==='negative-health'?0:suffix==='mixed-reversed'?2:1;
+    outage=suffix==='mixed-health-unavailable'?'health':suffix==='mixed-charges-unavailable'?'charges':'';
     calls.length=0;
     const actual=await call(handler(),testCase.question,testCase.route);
     assert.equal(actual.status,200);
     assert.deepEqual(actual.body.verification,{status:'verified',attempts:targetPage?1:2});
     const graded=gradeCase(testCase,{body:actual.body,statusCode:actual.status,events:actual.steps,execution:'deterministic',fixtureKey:testCase.fixtureKey});
     assert.equal(graded.passed,true,JSON.stringify(graded.failures));
-    if(targetPage){
+    if(targetPage&&!outage){
       const healthCode=targetPage===1?'QA HEALTH A-01':'QA HEALTH PAGE 26';
       assert.equal(actual.body.answer.indexOf(healthCode)<actual.body.answer.indexOf('QA Health Tuition instalment'),targetPage===1);
     }
@@ -289,8 +293,66 @@ test('named charges keep the exact health page, question order and deliberate he
     const expected=targetPage?[...ownedReads,'/rest/v1/rpc/affairs_read_health_examinations']:[...ownedReads,...ownedReads,'review'];
     assert.deepEqual(calls.sort(),expected.sort());
     assert.doesNotMatch(JSON.stringify(actual.body),/Unrelated charge|123,456|PRIVATE HEALTH/u);
-    assert.deepEqual(actual.body.views.map((view:{id:string})=>view.id),targetPage?['healthExaminations','charges']:['charges']);
+    const viewIds=actual.body.views.map((view:{id:string})=>view.id);
+    assert.deepEqual(viewIds,targetPage?(outage==='health'?['charges']:outage==='charges'?['healthExaminations']:['healthExaminations','charges']):['charges']);
+    if(outage){
+      assert.equal(actual.body.complete,false);
+      assert.equal(actual.body.grounding.degraded,true);
+      assert.ok(actual.steps.some(step=>step.kind==='health-examination-evidence-check'&&step.status==='complete'));
+      assert.ok(actual.steps.some(step=>step.kind===`account-read:${outage==='health'?'healthExaminations':'charges'}:1`&&step.status==='unavailable'));
+      assert.ok(actual.steps.every(step=>!step.kind.includes(':2')&&step.kind!=='account-compose'));
+    }
     assert.deepEqual(errors,[]);
+  }
+});
+
+test('malformed, denied, ambiguous, or doubly unavailable paired reads cannot use native partial verification',async t=>{
+  const frozen=buildHealthExaminationCases().find(row=>row.id==='account:health-examinations-mixed-tuition');
+  assert.ok(frozen);
+  const caller={...account,user:{id:'36000000-0000-4000-8000-000000000007'}};
+  const validHealth={userId:caller.user.id,total:1,rows:[{id:rowId,examination_code:'QA HEALTH A-01',student_number:'PRIVATE_NUMBER',
+    student_name:'PRIVATE_NAME',class_label:'PRIVATE_CLASS',report_available:false}]};
+  const due={id:charge,student_id:student,label:'QA Health Tuition instalment',amount_due:28000,amount_paid:5000,currency:'TWD',due_on:null,source_mode:'sample'};
+  const originalKey=process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY='HEALTH_TEST_MODEL';
+  t.after(()=>{if(originalKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=originalKey;});
+  let scenario='wrong-health-owner';
+  let providerCalls=0;
+  t.mock.method(globalThis,'fetch',async(input:URL,init:RequestInit)=>{
+    const url=new URL(input);
+    if(url.hostname==='api.openai.com'){
+      providerCalls++;
+      return Response.json({error:{code:'insufficient_quota',type:'insufficient_quota'}},{status:429});
+    }
+    assert.equal(url.origin,account.url);
+    assert.equal(new Headers(init.headers).get('authorization'),'Bearer '+account.token);
+    if(url.pathname==='/rest/v1/rpc/affairs_read_health_examinations'){
+      if(['double-outage','empty-charge','duplicate-charge','invalid-charge-amount'].includes(scenario))return new Response(null,{status:503});
+      if(scenario==='health-denied')return new Response(null,{status:403});
+      if(scenario==='invalid-health-shape')return Response.json({...validHealth,rows:[]});
+      return Response.json(scenario==='wrong-health-owner'?{...validHealth,userId:student}:validHealth);
+    }
+    if(url.pathname==='/rest/v1/affairs_students')return Response.json([{id:student,user_id:caller.user.id}]);
+    assert.equal(url.pathname,'/rest/v1/affairs_charges');
+    if(scenario==='double-outage')return new Response(null,{status:503});
+    if(scenario==='charge-denied')return new Response(null,{status:403});
+    if(scenario==='wrong-charge-owner')return Response.json([{...due,student_id:owner}]);
+    if(scenario==='invalid-charge-shape')return Response.json({records:[due]});
+    if(scenario==='invalid-charge-amount')return Response.json([{...due,amount_paid:50000}]);
+    if(scenario==='duplicate-charge')return Response.json([due,{...due,id:'37000000-0000-4000-8000-000000000002'}]);
+    return Response.json(scenario==='empty-charge'?[]:[due]);
+  });
+  for(const mode of ['wrong-health-owner','invalid-health-shape','health-denied','wrong-charge-owner','invalid-charge-shape',
+    'charge-denied','double-outage','empty-charge','duplicate-charge','invalid-charge-amount']){
+    scenario=mode;
+    const before=providerCalls;
+    const result=await call(handler(caller),frozen.question,frozen.route);
+    assert.equal(result.status,200,mode);
+    assert.ok(result.steps.every(step=>step.kind!=='health-examination-evidence-check'),mode);
+    assert.notEqual(result.body.verification.status,'verified',mode);
+    assert.ok(providerCalls>before,mode);
+    assert.doesNotMatch(JSON.stringify(result.body),/PRIVATE_NUMBER|PRIVATE_NAME|PRIVATE_CLASS|36000000|37000000/u,mode);
+    assert.ok(result.body.views.every((view:{id:string})=>view.id!=='charges'),mode);
   }
 });
 

@@ -248,6 +248,8 @@ The runner saves an owner-only report under `artifacts/assistant-evaluation`. A 
 
 The isolated 36-1 packet exercises 16 independent questions about saved codes and availability, selected and empty pages, ambiguous selectors, and access or capability limits. Two disposable callers read the native metadata-only endpoint before and after each assistant request. The runner checks those results against the frozen oracle, the exact pinned assistant request, and unchanged synthetic rows. Inserts and deletes are limited to the independently reconciled synthetic metadata rows with false report flags. The cleanup journal retains the reserved IDs until absence is verified.
 
+The controlled health handler also runs both frozen mixed-outage cases against the unchanged question grader. If the selected health page or the separately named charge cannot be read, the other result can pass the account evidence check with an explicit limitation and both record links. It uses the original two read scopes and calls no model. Invalid, ambiguous or denied data and double outages stay outside this partial verification. Run `node --experimental-strip-types --test tests/api/health-examination-assistant-graph.test.ts` for this check.
+
 ```sh
 node tests/evaluation/run.mjs --mode live --case-family health-examination-metadata \
   --origin "$PREVIEW_ORIGIN" --approved-preview-origin "$PREVIEW_ORIGIN" --preview-auth oidc \

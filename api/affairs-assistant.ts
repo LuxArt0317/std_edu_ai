@@ -99,7 +99,7 @@ import {answerChargePaymentHistory,chargePaymentHistoryBoundary,selectChargePaym
 import { answerDirectTuitionPayment, isOwnFeeBalanceQuestion, isPendingFeeQuestion, ownFeeBalanceLabel, savedFeeBalanceFollowup, standaloneFeeBalanceLabel } from '../server/pendingFeesAnswer.js';
 import { isCreditLoadHistoryQuestion } from '../server/creditLoadHistory.js';
 import { isCourseSelectionQuestion } from '../server/courseSelection.js';
-import { AffairsWorkspaceError, loadAffairsSnapshot, loadOwnAffairsCharges, loadOwnServiceNotes, verifyAffairsToken, type AffairsAccount } from '../server/affairsWorkspace.js';
+import { AffairsWorkspaceError, AffairsWorkspaceReadUnavailableError, loadAffairsSnapshot, loadOwnAffairsCharges, loadOwnServiceNotes, verifyAffairsToken, type AffairsAccount } from '../server/affairsWorkspace.js';
 import {loadOwnAffairsTimetable} from '../server/ownAffairsTimetable.js';
 import { createAssistantStream } from '../server/assistantStream.js';
 import { readAssistantReply } from '../src/services/assistantStreamReader.js';
@@ -868,6 +868,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         if(!exactBalance&&!assignmentFees&&!pageContext.feeAndBalance&&!noteFees&&!excludedNoteFeeLabel&&!aidFees&&!teachingFees&&!housingFees)throw error;
         const charges:Awaited<ReturnType<typeof loadOwnAffairsCharges>>['charges']=[];
         return {...scopedSnapshot(),charges,chargeReadUnavailable:true,...(exactBalance?{feeBalanceScope:true}:{}),
+          ...(pageContext.feeChargeLabel!==null&&pageContext.tools.includes('healthExaminations')&&error instanceof AffairsWorkspaceReadUnavailableError?{chargeReadFailed:true}:{}),
           ...(chargeLabel?{chargeSelectionLabel:chargeLabel}:{})};
       }
     };
