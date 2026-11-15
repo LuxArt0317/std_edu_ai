@@ -899,7 +899,10 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Preserve verified native course totals, missing reports and complete no-course lookups in bilingual deterministic answers. Keep the original grader.
 - [x] Run the six Moodle overview cases on protected `2427eee`. The grade index, selected course and empty-account cases passed. Three aggregate or feedback cases need their exact facts preserved. Verified cleanup of both accounts and all report rows.
 - [ ] Replay the ten default Moodle grade cases with the three corrected availability answers.
-- [ ] Fix and recheck the three exact Moodle overview and all-feedback answers.
+- [x] Preserve course totals and all-item feedback directly from typed Moodle responses for complete exact lookups.
+- [ ] Replay all six protected Moodle overview cases.
+- [x] Mount 24 of 30 existing Student Internship cases with signed native observations and paired own/crossed reads. Verify the disposable fixture and cleanup on scratch PostgreSQL.
+- [ ] Execute the mounted protected Student Internship packet. Six cases still need separate outage or companion fixture coverage.
 - [x] Verify all eight signed-in payroll cases on protected `f5b37da` with exact fixture cleanup.
 - [x] Implement and locally verify confirmed facilities report cancellation with a native receipt check and same-page refresh.
 - [ ] Mount a protected facilities cancellation fixture that allows only its expected native event.
@@ -911,4 +914,6 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Continue a verified partial reply when exact missing-detail coverage improves and another distinct source is available. Recover actionable rejected drafts within the same cap and keep the best verified reply on terminal failure.
 - [x] Exercise four observed checks, a third-draft rejection followed by verified recovery, a duplicate source, a lost detail, reviewer outage, time, and persisted activity through the actual public endpoint with controlled providers.
 - [x] Replay four pinned public questions on exact protected `0c0ac77`. Verify the OneDrive reply recovered on check three, pursued another lead and kept its verified partial. Confirm both archive languages.
-- [ ] Fix the independent live library source selection and default language findings. Verify primary links and a clear access result without attributing current facts to unread pages.
+- [x] Correct the library source selection and response language in controlled real-handler tests, including independently readable primary contents and human-verification fallback.
+- [x] Follow another eligible publisher after a known notice sign-in gate and an empty targeted search. Verify exact recovery, exhausted search, deadline, and non-gated controls.
+- [ ] Replay the exact library and gated publisher changes on protected Preview.
