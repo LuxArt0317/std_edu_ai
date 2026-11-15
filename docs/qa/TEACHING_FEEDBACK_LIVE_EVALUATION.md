@@ -53,8 +53,32 @@ for the database test. Use the scratch database setup in the
 `stu100-teaching-pg.` and the teaching test command. The database test applies
 the real migrations, checks the paired and empty fixture states, recovers an
 uncertain commit after recreating the fixture controller and verifies cleanup and
-preservation of an unrelated caller's row. The protected Preview operator and
-the request-bound observation still need integration.
+preservation of an unrelated caller's row.
+
+### Additional protected sample questions
+
+Run `node tests/evaluation/run-teaching-sample-preview.mjs --preflight` to
+list the eleven additional questions by count, including seven real native reads
+and four privacy/action boundaries. This command performs no network requests.
+The sample packet has its own case IDs and independent rubric. Its coverage
+does not replace any of the original forty entries.
+
+The live command requires the clean deployed revision, its exact protected
+Preview origin, and the same Development `VERCEL_OIDC_TOKEN` and disposable
+fixture environment used by the other protected operators.
+
+```sh
+node tests/evaluation/run-teaching-sample-preview.mjs <protected-preview-origin> <source-revision>
+```
+
+The application signs request-bound raw DTO and selected evidence commitments.
+The operator checks those commitments against the saved history of the two
+isolated account profiles, verification events and completed model reviews.
+Its private report stores verdicts and hashes. Cleanup verifies the exact fixture identity and
+row removals and preserves the protected owner. A passing sample report covers
+saved local history, empty reads and restricted actions. Published survey
+windows, survey completion, eligibility, companion sources, caps and service
+failures retain their original evaluation requirements.
 
 ## Required next mount
 

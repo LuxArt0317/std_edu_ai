@@ -131,7 +131,8 @@ export async function readTeachingFeedbackEvidence(account,options={},dependenci
   if(!object(options)||Object.keys(options).some(key=>!['views','commentRequested','course','deadline'].includes(key))||!dense(options.views)||!options.views.length||options.views.length>2
     ||options.views.some(view=>!['survey','immediate'].includes(view))||new Set(options.views).size!==options.views.length
     ||options.commentRequested!==undefined&&typeof options.commentRequested!=='boolean'||options.commentRequested===true&&!options.views.includes('immediate')
-    ||!object(dependencies)||Object.keys(dependencies).some(key=>key!=='read')||dependencies.read!==undefined&&typeof dependencies.read!=='function')return invalid('invalid_options');
+    ||!object(dependencies)||Object.keys(dependencies).some(key=>!['read','observeRead'].includes(key))
+    ||[dependencies.read,dependencies.observeRead].some(value=>value!==undefined&&typeof value!=='function'))return invalid('invalid_options');
   if(options.course!==undefined&&(!object(options.course)||!Object.keys(options.course).length||Object.keys(options.course).some(key=>!['code','title'].includes(key))
     ||Object.hasOwn(options.course,'code')&&!string(options.course.code,80,1)||Object.hasOwn(options.course,'title')&&!string(options.course.title,600,1)))return invalid('invalid_options');
   const selection=Object.freeze({views:Object.freeze([...options.views]),commentRequested:options.commentRequested===true,course:options.course?Object.freeze({...options.course}):null});
@@ -150,7 +151,9 @@ export async function readTeachingFeedbackEvidence(account,options={},dependenci
       const query=Object.freeze({scope:'teaching-feedback',view});
       const value=await Promise.race([Promise.resolve().then(()=>Date.now()>=deadline?timedOut:read(captured,query)),new Promise(resolve=>{timer=setTimeout(()=>resolve(timedOut),Math.max(1,deadline-Date.now()));})]);
       if(value===timedOut||Date.now()>=deadline){deadlineReached=true;results.push(failed(view,'deadline_exceeded'));continue;}
-      results.push(rawProjection(value,captured.user.id,view,selection)??failed(view,'invalid_records'));
+      const projected=rawProjection(value,captured.user.id,view,selection);
+      if(projected)dependencies.observeRead?.(view,value);
+      results.push(projected??failed(view,'invalid_records'));
     }catch(error){results.push(failed(view,error?.status===401||error?.status===403?'access_denied':'read_failed'));}finally{clearTimeout(timer);}
   }
   // Bound the serialized envelope, preserving each complete survey with its

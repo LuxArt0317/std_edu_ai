@@ -15,4 +15,5 @@ export function unavailableTeachingFeedbackEvidence(reason:string):TeachingFeedb
  */
 export function readTeachingFeedbackEvidence(account:TeachingFeedbackEvidenceAccount,options:TeachingFeedbackEvidenceOptions,dependencies?:{
   read?:(account:TeachingFeedbackEvidenceAccount,query:{scope:'teaching-feedback';view:'survey'|'immediate'})=>Promise<unknown>;
+  observeRead?:(view:'survey'|'immediate',dto:unknown)=>void;
 }):Promise<TeachingFeedbackEvidenceResult>;

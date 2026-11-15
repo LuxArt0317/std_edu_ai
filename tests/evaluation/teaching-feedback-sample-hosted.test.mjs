@@ -1,0 +1,134 @@
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import {test} from 'node:test';
+import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
+import {createTeachingProbe,teachingObservationHeader,verifyTeachingObservation} from '../../server/teachingFeedbackObservation.js';
+import {buildTeachingSampleFixture,expectedTeachingSampleDto} from './teaching-feedback-sample-fixture.mjs';
+import {requestTeachingSampleCase,teachingSampleCases} from './teaching-feedback-sample-hosted.mjs';
+
+const id=n=>'75060000-0000-4000-8000-'+String(n).padStart(12,'0');
+const origin='https://stdedu-abcd12345-v1-d286.vercel.app',db='https://xiftudmvxphxcjtmfmib.supabase.co';
+const sourceRevision='a'.repeat(40),key='sample-only-key-'.repeat(4),runId=id(80);
+const owners={A:{id:id(1),email:'evaluation.student@example.invalid'},
+  B:{id:id(2),email:`evaluation.other.${runId}@example.invalid`}};
+const tokens={A:'synthetic-teaching-test-token-A',B:'synthetic-teaching-test-token-B'};
+const catalog={termId:id(4),programId:id(5),sections:[
+  ...['Campus Orientation','Digital Learning Basics','Student Services Practice'].map((course,index)=>({
+    id:id(6+index),course,code:'SAMP10'+(index+1),term:'Sample Fall 2026',section:'A',
+  })),
+]};
+const requestFor=row=>({question:row.question,route:row.route,history:[],stream:false,consentedResearchUse:false});
+const metadata=()=>({VERCEL_ENV:'preview',VERCEL_URL:new URL(origin).host,VERCEL_GIT_COMMIT_SHA:sourceRevision,
+  SUPABASE_SERVICE_ROLE_KEY:key,OPENAI_API_KEY:'controlled-teaching-review'});
+const readResponse=async response=>response.json();
+const nativeRpc='/rest/v1/rpc/affairs_read_teaching_feedback';
+
+function review(init){
+  const request=JSON.parse(String(init.body));
+  const packet=JSON.parse(request.input[0].content[0].text);
+  assert.equal(request.text.format.name,'answer_evidence_review');
+  assert.deepEqual(packet.evidence.map(source=>source.id),['account-scope','account:teachingFeedback']);
+  const data=JSON.parse(packet.evidence[1].content);
+  const jsonPaths=data.views.flatMap((view,index)=>{
+    const base='/views/'+index;
+    if(view.readState==='empty')return Object.keys(view.counts).map(key=>base+'/counts/'+key+'/returned');
+    return view.feedback.flatMap((row,position)=>Object.keys(row).filter(field=>row[field]!==null).map(field=>base+'/feedback/'+position+'/'+field));
+  });
+  const claims=jsonPaths.map(path=>({claim:'Checked a selected saved teaching field',evidenceId:'account:teachingFeedback',
+    jsonPaths:[path],quotes:[],supported:true}));
+  const reply={supported:true,answersQuestion:true,claims};
+  return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify(reply)}]}]});
+}
+
+test('every additional sample prompt uses the actual protected assistant handler and a verified native read receipt',async()=>{
+  const env=metadata(),previous=Object.fromEntries(Object.keys(env).map(name=>[name,process.env[name]]));
+  const original=globalThis.fetch,errors=[];
+  Object.assign(process.env,env);
+  let plan;
+  const fail=async()=>{
+    const error=new Error('A signed sample teaching question must not use a general snapshot or public research.');
+    errors.push(error);throw error;
+  };
+  const handler=createAffairsAssistantHandler({loadSnapshot:fail,publicResearch:fail,verifyToken:async token=>{
+    const owner=Object.keys(tokens).find(label=>tokens[label]===token);
+    assert.ok(owner);
+    return {url:db,key:'synthetic-publishable-key',token,user:{...owners[owner],user_metadata:{assistant_evaluation_run:runId}}};
+  }});
+  let sent=[];
+  globalThis.fetch=async(input,init)=>{
+    try{
+      const url=new URL(String(input));
+      if(url.origin==='https://api.openai.com'){
+        sent.push('review');
+        return review(init);
+      }
+      assert.equal(url.origin,db);
+      assert.equal(url.pathname,nativeRpc);
+      assert.equal(init.method,'POST');
+      const {p_scope,...selectors}=JSON.parse(init.body);
+      assert.deepEqual(selectors,{p_term:null,p_survey:null,p_section:null});
+      const authorization=new Headers(init.headers).get('authorization');
+      const owner=Object.keys(tokens).find(label=>'Bearer '+tokens[label]===authorization);
+      assert.ok(owner);
+      sent.push(p_scope);
+      return Response.json(expectedTeachingSampleDto(plan,owner,p_scope));
+    }catch(error){errors.push(error);throw error;}
+  };
+  const fetchImpl=async(endpoint,init)=>{
+    const headers=new Headers();
+    let status=200,payload;
+    const response={setHeader(name,value){headers.set(name,value);},status(code){status=code;return response;},json(body){payload=body;}};
+    await handler({method:'POST',headers:{host:endpoint.host,authorization:init.headers.Authorization},body:init.body},response);
+    return Response.json(payload,{status,headers});
+  };
+  try{
+    const correlations=new Set();
+    const failures=[];
+    for(const testCase of teachingSampleCases()){
+      plan=buildTeachingSampleFixture({runId,owners},catalog,testCase.variant);
+      sent=[];
+      const result=await requestTeachingSampleCase({testCase,plan,origin,sourceRevision,runId,token:tokens[testCase.owner],key,
+        fetchImpl,readResponse,privateMarkers:[owners.A.id,owners.B.id,...Object.values(tokens)],correlations});
+      assert.deepEqual(sent,[...testCase.views,...(testCase.views.length?['review']:[])],testCase.id);
+      if(!result.passed)failures.push({id:testCase.id,failures:result.failures});
+      assert.ok(result.receiptDigest);
+    }
+    assert.deepEqual(errors,[]);
+    assert.deepEqual(failures,[]);
+
+    const [first]=teachingSampleCases(),request=requestFor(first);
+    const probe=createTeachingProbe({ownerId:owners.A.id,nonce:randomUUID(),runId,origin,sourceRevision},request,key);
+    const endpoint=new URL('/api/affairs-assistant',origin),post=body=>({headers:{Authorization:'Bearer '+tokens.A},body:JSON.stringify(body)});
+    for(const body of [{...probe.body,question:request.question+' now'}, {...probe.body,evaluationInternshipProbe:'other-probe'},
+      {...probe.body,stream:true}]){
+      sent=[];
+      const denied=await fetchImpl(endpoint,post(body));
+      assert.equal(denied.status,404);
+      assert.equal(denied.headers.has(teachingObservationHeader),false);
+      assert.deepEqual(sent,[]);
+    }
+    const crossed=await fetchImpl(endpoint,{...post(probe.body),headers:{Authorization:'Bearer '+tokens.B}});
+    assert.equal(crossed.status,404);
+    assert.equal(crossed.headers.has(teachingObservationHeader),false);
+    const mismatchedHost=await fetchImpl(new URL('/api/affairs-assistant','https://stu.best'),post(probe.body));
+    assert.equal(mismatchedHost.status,404);
+    process.env.VERCEL_GIT_COMMIT_SHA='b'.repeat(40);
+    assert.equal((await fetchImpl(endpoint,post(probe.body))).status,404);
+    process.env.VERCEL_GIT_COMMIT_SHA=sourceRevision;
+    process.env.VERCEL_ENV='production';
+    const production=await fetchImpl(endpoint,post(probe.body));
+    assert.equal(production.status,404);
+    assert.deepEqual(sent,[]);
+    process.env.VERCEL_ENV='preview';
+    const accepted=await fetchImpl(endpoint,post(probe.body));
+    const body=await accepted.json();
+    const receipt=accepted.headers.get(teachingObservationHeader),correlationId=accepted.headers.get('x-assistant-request-id');
+    assert.ok(verifyTeachingObservation({receipt,binding:probe.binding,correlationId,body},key));
+    assert.equal(verifyTeachingObservation({receipt,binding:probe.binding,correlationId,body:{...body,answer:'changed'}},key),null);
+  }finally{
+    globalThis.fetch=original;
+    for(const [name,value] of Object.entries(previous)){
+      if(value===undefined)delete process.env[name];else process.env[name]=value;
+    }
+  }
+});

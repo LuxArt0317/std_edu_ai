@@ -26,6 +26,7 @@ import {readInternshipEvidence} from '../server/accountInternshipEvidence.js';
 import {internshipAssistantPlan,internshipBoundary,internshipSelectedTools,internshipUnavailable} from '../server/internshipAssistantPlan.js';
 import {readStudentLeaveEvidence} from '../server/accountStudentLeaveEvidence.js';
 import {internshipObservationHeader,openInternshipObservation} from '../server/internshipObservation.js';
+import {teachingObservationHeader,openTeachingObservation} from '../server/teachingFeedbackObservation.js';
 import {leaveObservationHeader,openStudentLeaveObservation} from '../server/studentLeaveObservation.js';
 import {studentLeaveAssistantPlan,studentLeaveBoundary,studentLeaveNavigation,studentLeaveSelectedTools} from '../server/studentLeaveAssistantPlan.js';
 import {dtmNativeClauseScope,dtmNativeClauseNotice} from '../server/dtmNativeClauseScope.js';
@@ -239,9 +240,12 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const input=body && typeof body==='object' && !Array.isArray(body) ? body as Record<string,unknown> : null;
   const hasLeaveProbe=Boolean(input&&Object.hasOwn(input,'evaluationLeaveProbe'));
   const hasInternshipProbe=Boolean(input&&Object.hasOwn(input,'evaluationInternshipProbe'));
-  const hasProbe=hasLeaveProbe||hasInternshipProbe;
-  const rejectProbe=()=>response.status(404).json({error:hasInternshipProbe?'Internship observation unavailable.':'Student Leave observation unavailable.'});
-  if(hasProbe&&(hasLeaveProbe&&hasInternshipProbe||process.env.VERCEL_ENV!=='preview'||value(request.headers.host)!==process.env.VERCEL_URL)){
+  const hasTeachingProbe=Boolean(input&&Object.hasOwn(input,'evaluationTeachingProbe'));
+  const probeCount=Number(hasLeaveProbe)+Number(hasInternshipProbe)+Number(hasTeachingProbe);
+  const hasProbe=probeCount>0;
+  const rejectProbe=()=>response.status(404).json({error:hasTeachingProbe?'Teaching feedback observation unavailable.':
+    hasInternshipProbe?'Internship observation unavailable.':'Student Leave observation unavailable.'});
+  if(hasProbe&&(probeCount>1||process.env.VERCEL_ENV!=='preview'||value(request.headers.host)!==process.env.VERCEL_URL)){
     rejectProbe();return;
   }
   const requestedQuestion=typeof input?.question==='string'?input.question.trim():'';
@@ -282,6 +286,12 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       ? !observedInternship.selection||observedInternship.reason||observedInternship.feeLabel!==null
         ||internshipSelectedTools(observedInternship).join()!=='internshipRecords,'+internshipObservation.companion
       : internshipSelectedTools(observedInternship).some(tool=>tool!=='internshipRecords')))){
+    rejectProbe();return;
+  }
+  const teachingObservation=hasTeachingProbe?openTeachingObservation({body,identity:probeIdentity,correlationId}):null;
+  const observedTeaching=teachingObservation?teachingFeedbackLookupContext(question,route,history):null;
+  if(hasTeachingProbe&&(!observedTeaching||observedTeaching.otherQuestion||
+    !(observedTeaching.selection||observedTeaching.foreign||observedTeaching.excluded||observedTeaching.navigation.length))){
     rejectProbe();return;
   }
   const now=Date.now(),active=(requestWindows.get(account.user.id)||[]).filter(time=>time>now-60_000);
@@ -595,7 +605,11 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const teachingNotes=teaching.navigation.length||teachingReason||teaching.excluded&&!teachingSelection
     ?teachingFeedbackGuide(question,{views:teaching.selection?.requestedViews,navigation:teaching.navigation,reason:teachingReason,
       excluded:teaching.excluded&&!teachingSelection,signedIn:true}):null;
-  if(teachingNotes&&!teachingSelection&&!teaching.otherQuestion){stream.send(200,teachingNotes);return;}
+  if(teachingNotes&&!teachingSelection&&!teaching.otherQuestion){
+    const receipt=teachingObservation?.finish(teachingNotes,false);
+    if(receipt)response.setHeader(teachingObservationHeader,receipt);
+    stream.send(200,teachingNotes);return;
+  }
   if(teachingNotes&&!teachingSelection){question=teaching.otherQuestion;history=[];}
   const foreignYear=currentStudyForeignYearQuestion(teachingSelection?teaching.otherQuestion:question);
   const foreignYearMessage=foreignYear&&(/\p{Script=Han}/u.test(question)?
@@ -882,13 +896,19 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       tutorEvaluation:context=>readers.tutorEvaluation(account,{question:context.question,route,history,deadline:readDeadline(context.deadline)}),
       graduationClearance:context=>readers.graduationClearance(account,{question:context.question,route,history,deadline:readDeadline(context.deadline)}),
       tuition:context=>readers.tuition(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
-      teachingFeedback:context=>teachingSelection?readers.teachingFeedback(account,{views:[...teachingSelection.views],commentRequested:teachingSelection.commentRequested,
-        ...(teachingSelection.course?{course:{...teachingSelection.course}}:{}),deadline:readDeadline(context.deadline)}):Promise.resolve(unavailableTeachingFeedbackEvidence('reader_unavailable')),
+      teachingFeedback:context=>{
+        if(!teachingSelection)return Promise.resolve(unavailableTeachingFeedbackEvidence('reader_unavailable'));
+        const options={views:[...teachingSelection.views],commentRequested:teachingSelection.commentRequested,
+          ...(teachingSelection.course?{course:{...teachingSelection.course}}:{}),deadline:readDeadline(context.deadline)};
+        return teachingObservation?teachingObservation.observe(dependencies=>readers.teachingFeedback(account,options,dependencies))
+          :readers.teachingFeedback(account,options);
+      },
     };
     const graphQuestion=teachingSelection&&foreignYear?[teaching.question,studyQuestion].filter(Boolean).join('\n'):excludedNoteFeeLabel?noteQuestion:question;
     const answer=await answerAccount({question:graphQuestion,correlationId,snapshot,history,route,deadline,supplementalReaders,
       loadSnapshot:()=>loadSelectedSnapshot(false),
       onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status),
+      ...(teachingObservation?{onProviderCompleted:teachingObservation.modelCompleted}:{}),
     });
     stream.progress('answer',answer.verification?.status==='verified'?'Answer ready':'Verification incomplete',
       answer.verification?.status==='verified'?'The answer passed the account evidence checks.':'An unverified draft was withheld.',
@@ -896,7 +916,12 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     if(!notes.keys.length&&notes.officialOnly){
       const boundary=serviceNoteGuide(question,notes,true);
       stream.send(200,{...answer,answer:[boundary.answer,answer.answer].join('\n\n'),citations:[...boundary.citations,...answer.citations]});
-    }else stream.send(200,withLocalGuidance(answer));
+    }else {
+      const payload=withLocalGuidance(answer);
+      const receipt=teachingObservation?.finish(payload,true);
+      if(receipt)response.setHeader(teachingObservationHeader,receipt);
+      stream.send(200,payload);
+    }
   } catch(error) {
     stream.send(error instanceof AffairsWorkspaceError?error.status:503,{error:error instanceof AffairsWorkspaceError?error.message:'Your School Affairs records could not be checked.'});
   }
