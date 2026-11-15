@@ -82,7 +82,7 @@ import { inferKnowledgeLanguage } from "./knowledgePipeline.js";
 import { recordResearchOperation, safeOperationalCode } from "./researchOperations.js";
 import { answerCampusNavigation, answerDirectoryQuestion, directoryEntries } from "./schoolAffairsDirectory.js";
 import { createAssistantStream } from "./assistantStream.js";
-import { runAnswerVerification, unverifiedAnswer, verificationStopActivity } from "./answerVerification.js";
+import { normalizeMissingDetails, runAnswerVerification, unverifiedAnswer, verificationStopActivity } from "./answerVerification.js";
 import { composeEvidenceAnswer, validEvidence, verifyEvidenceAnswer, repairEvidenceAnswer } from "./answerVerificationModel.js";
 import { readVerificationSources } from "./answerVerificationSources.js";
 import { createPublicSchoolSourceLeads } from "./publicSchoolSourceLeads.js";
@@ -1044,15 +1044,16 @@ export function createResearchAssistantHandler(dependencies = {}) {
             stream.send(200, reply);
         }
         let knowledgeWebSwitch, publicStop, firstWebMiss, targetedWebStep, noticeAlternateStep, bootstrapRead, bootstrapDiscovery;
-        async function tryWebAnswer(earlierReview) {
+        async function tryWebAnswer(earlierReview, managedPartial) {
             const recoveringEmptySearch = Boolean(earlierReview && firstWebMiss && !targetedWebStep);
             if (!publicQuestion || personalQuestion || (webAttempted && !recoveringEmptySearch))
                 return false;
             const priorActivity = (earlierReview?.activity || []).filter(step => step.kind !== 'verification-stop');
             const previousChecks = priorActivity.filter(step => /^verification-[0-9]+$/u.test(step.kind)
                 && step.status !== 'running').length;
+            const recordPartialProgress = step => managedPartial?.progress.set(step.kind, step);
             if (earlierReview) {
-                const reason = earlierReview.verification?.reason;
+                const reason = managedPartial ? 'verified_partial' : earlierReview.verification?.reason;
                 const canSwitchSource = needsPublicEvidence(reason) || reason === 'verification_output_limit';
                 if (input.images.length || !previousChecks || !canSwitchSource)
                     return false;
@@ -1061,7 +1062,9 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     return false;
                 }
                 knowledgeWebSwitch = { kind: 'verification-source-switch', label: 'Checking public school sources',
-                    detail: 'The managed excerpts did not verify the requested detail.', status: 'complete' };
+                    detail: managedPartial ? 'Checking public pages for details still missing from the verified answer.'
+                        : 'The managed excerpts did not verify the requested detail.', status: 'complete' };
+                recordPartialProgress(knowledgeWebSwitch);
                 verificationProgress(knowledgeWebSwitch);
             }
             if (librarySources.length && !earlierReview && !captureActivity.some(step => step.kind === 'library-primary-source')) {
@@ -1086,6 +1089,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 const step = { kind: searchStep, label, detail, status };
                 if (searchStep === 'web-after-empty') targetedWebStep = step;
                 if (searchStep === 'web-notice-alternate') noticeAlternateStep = step;
+                recordPartialProgress(step);
                 verificationProgress(step);
                 return step;
             }
@@ -1138,7 +1142,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     retrieverVersion: 'school-web@1', responseMs: Date.now() - started },
                 activity: [
                     ...captureActivity,
-                    { kind: 'knowledge', label: 'Checked managed school knowledge', detail: 'No sufficient current answer found', status: 'complete' },
+                    { kind: 'knowledge', label: 'Checked managed school knowledge',
+                        detail: managedPartial ? 'Verified part of the requested information.' : 'No sufficient current answer found', status: 'complete' },
                     ...(recoveringEmptySearch ? [firstWebMiss] : []),
                     ...priorActivity,
                     ...(earlierReview ? [knowledgeWebSwitch] : []),
@@ -1149,14 +1154,19 @@ export function createResearchAssistantHandler(dependencies = {}) {
             try {
                 // After two managed drafts failed, start from actual page
                 // contents, including leads the discovery draft never used.
-                const composeFromSources = !web.result || (previousChecks === maxAnswerVerificationChecks - 1 && Boolean(web.discoveredSources?.length));
-                return await verifyPublicSources(candidate, { previousChecks, composeFromSources, leads: [...(web.discoveredSources || []), ...availableIndexed] });
+                const composeFromSources = Boolean(managedPartial) || !web.result
+                    || (previousChecks === maxAnswerVerificationChecks - 1 && Boolean(web.discoveredSources?.length));
+                return await verifyPublicSources(candidate, { previousChecks, composeFromSources, managedPartial,
+                    leads: [...(web.discoveredSources || []), ...availableIndexed] });
             } finally { await searchOperation; }
         }
-        async function verifyPublicSources(candidate, { previousChecks = 0, capture, composeFromSources = false, leads = [] } = {}) {
-            const checkedSources = new Map(capture ? candidate.citations.map(citation => [citation.chunkId, citation]) : []);
+        async function verifyPublicSources(candidate, { previousChecks = 0, capture, composeFromSources = false, leads = [], managedPartial } = {}) {
+            const retainedSources = managedPartial?.evidence ?? [];
+            const retainedCitations = managedPartial?.candidate.citations ?? [];
+            const retainedIds = new Set(retainedSources.map(source => source.id));
+            const checkedSources = new Map((capture ? candidate.citations : retainedCitations).map(citation => [citation.chunkId, citation]));
             const canonicalUrl = url => safeWebSource(url)?.replace(/\/(?=\?|$)/u, '');
-            const seenUrls = new Set(capture ? [canonicalUrl(capture.originalUrl)] : []);
+            const seenUrls = new Set([...(capture ? [canonicalUrl(capture.originalUrl)] : []), ...retainedSources.map(source => canonicalUrl(source.url))]);
             const readAttempts = new Map();
             const pendingLeads = new Map([...leads, ...candidate.citations].map(lead => [canonicalUrl(lead.url), lead]));
             const canRead = url => Boolean(url) && !seenUrls.has(url) && !sourceLeads?.isBlocked(url) && (readAttempts.get(url) || 0) < 2;
@@ -1164,8 +1174,25 @@ export function createResearchAssistantHandler(dependencies = {}) {
             let evidence = [];
             const progress = (step) => {
                 steps.set(step.kind, step);
+                managedPartial?.progress.set(step.kind, step);
                 verificationProgress(step);
             };
+            const normalizeText = content => content.normalize('NFKC').replace(/\s+/gu, ' ').trim();
+            const retainedText = retainedSources.map(source => normalizeText(JSON.parse(source.content).content));
+            function newEvidence(sources) {
+                const existing = new Set([...retainedText, ...evidence.map(source => normalizeText(source.content))]);
+                return sources.filter(source => {
+                    const content = normalizeText(source.content);
+                    if (existing.has(content)) return false;
+                    existing.add(content);
+                    return true;
+                });
+            }
+            function preservingSources(fresh, prior) {
+                const added = fresh.reduce((current, source) =>
+                    validEvidence([...current, source, ...prior]) ? [...current, source] : current, []);
+                return [...added, ...prior];
+            }
             async function checkNewSources(citations, until, limit) {
                 const candidates = [];
                 for (const citation of citations) {
@@ -1213,7 +1240,10 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     publicStop = verificationStopActivity(verificationQuestion, 'time_budget');
                     return false;
                 }
-                evidence = await checkNewSources([...leads, ...candidate.citations], readUntil, 4);
+                const viableContents = sources => managedPartial
+                    ? preservingSources(newEvidence(sources), retainedSources).filter(source => !retainedSources.includes(source))
+                    : sources;
+                evidence = viableContents(await checkNewSources([...leads, ...candidate.citations], readUntil, 4));
                 if (!evidence.length && canRecover) {
                     // One bounded attempt can reach an unread lead or recover a
                     // transient read failure before this draft is composed.
@@ -1229,7 +1259,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                         const step = { kind: 'web-bootstrap-reread', label: 'Checking another available page',
                             detail: 'The first read returned no usable page contents.', status: 'running' };
                         progress(step);
-                        evidence = await checkNewSources(remaining, retryUntil, 4);
+                        evidence = viableContents(await checkNewSources(remaining, retryUntil, 4));
                         bootstrapRead = { ...step, status: evidence.length ? 'complete' : 'unavailable',
                             detail: evidence.length ? 'Read usable contents from a school page.' : 'The remaining pages did not provide usable contents.' };
                         progress(bootstrapRead);
@@ -1244,7 +1274,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     const step = { kind: 'web-bootstrap-discovery', label: 'Looking for a different school publication',
                         detail: 'Looking for the requested detail in another official source.', status: 'running' };
                     progress(step);
-                    evidence = await discoverEvidence({ searchUntil, readUntil: deadline - 11_000, alternate: true });
+                    evidence = viableContents(await discoverEvidence({ searchUntil, readUntil: deadline - 11_000, alternate: true }));
                     bootstrapDiscovery = { ...step, status: evidence.length ? 'complete' : 'unavailable',
                         detail: evidence.length ? 'Read usable contents from a different school page.' : 'This search found no new readable evidence.' };
                     progress(bootstrapDiscovery);
@@ -1260,8 +1290,13 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     publicStop = verificationStopActivity(verificationQuestion, 'time_budget');
                     return false;
                 }
-                const composed = await composeEvidenceAnswer({ question: verificationQuestion,
-                    candidate: { ...candidate, citations: [...checkedSources.values()] }, evidence, deadline: composeUntil,
+                if (managedPartial) evidence = [...evidence, ...retainedSources];
+                const draftCandidate = { ...candidate, citations: evidence.map(source => checkedSources.get(source.id)).filter(Boolean) };
+                const compose = managedPartial ? repairPublicAnswer : composeEvidenceAnswer;
+                const composed = await compose({ question: verificationQuestion,
+                    candidate: managedPartial ? { ...draftCandidate, answer: managedPartial.candidate.answer } : draftCandidate,
+                    evidence, deadline: composeUntil,
+                    ...(managedPartial ? { afterVerifiedPartial: true } : {}),
                     deeperReview: previousChecks === maxAnswerVerificationChecks - 1,
                     hasKnownNoticeLink,
                     ...localizedLibrary,
@@ -1283,16 +1318,6 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 const extended = ordinal === maxPublicAnswerVerificationChecks;
                 const usefulFeedback = evidence.length > 0 && (feedback.some(detail => typeof detail === 'string' && detail.trim())
                     || previousFailure === 'verification_output_limit');
-                const normalizedContent = content => content.normalize('NFKC').replace(/\s+/gu, ' ').trim();
-                function newEvidence(sources) {
-                    const existing = new Set(evidence.map(source => normalizedContent(source.content)));
-                    return sources.filter(source => {
-                        const content = normalizedContent(source.content);
-                        if (existing.has(content)) return false;
-                        existing.add(content);
-                        return true;
-                    });
-                }
                 let fresh = [];
                 if (needsPublicEvidence(previousFailure) && canRecover) {
                     const readUntil = Math.min(until - 8_500, Date.now() + 4_000);
@@ -1316,9 +1341,16 @@ export function createResearchAssistantHandler(dependencies = {}) {
                             status: fresh.length ? 'complete' : 'unavailable' });
                     }
                 }
-                addedEvidenceOnLastPass = Boolean(fresh.length);
-                if (fresh.length) evidence = [...fresh, ...evidence].reduce((merged, source) =>
-                    validEvidence([...merged, source]) ? [...merged, source] : merged, []);
+                if (managedPartial) {
+                    const merged = preservingSources(fresh, evidence);
+                    addedEvidenceOnLastPass = merged.length > evidence.length;
+                    if (!addedEvidenceOnLastPass) fresh = [];
+                    evidence = merged;
+                } else {
+                    addedEvidenceOnLastPass = Boolean(fresh.length);
+                    if (fresh.length) evidence = [...fresh, ...evidence].reduce((merged, source) =>
+                        validEvidence([...merged, source]) ? [...merged, source] : merged, []);
+                }
                 // The stronger third review can fix a drafting problem. A fourth
                 // review is only useful when it can evaluate different evidence.
                 if (!fresh.length && (extended || previousFailure==='verified_partial' || !usefulFeedback)) {
@@ -1329,6 +1361,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 return evidence;
             }
             const checked = await runAnswerVerification({ question: verificationQuestion, initialAnswer: candidate, deadline, onProgress: progress, allowDeeperReview: true, previousChecks,
+                ...(managedPartial ? { priorVerifiedPartial: managedPartial } : {}),
                 ...(canRecover ? {
                     loadDeeperEvidence: recoverPublicEvidence, maxChecks: maxPublicAnswerVerificationChecks, canExtendReview,
                     lookForMissingPublicDetails: () => !publicStudyGuidance&&([...pendingLeads.keys()].some(url=>canRead(url)&&!readAttempts.has(url))||kind.fresh),
@@ -1340,11 +1373,23 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     addedEvidenceOnLastPass = Boolean(evidence.length);
                     return evidence;
                 },
-                verify: context => verifyPublicAnswer({ ...context, hasKnownNoticeLink, trackPublicCoverage: canRecover&&!publicStudyGuidance,
-                    deeperReview: context.attempt + previousChecks >= maxAnswerVerificationChecks }),
+                verify: async context => {
+                    const review = await verifyPublicAnswer({ ...context, hasKnownNoticeLink, trackPublicCoverage: canRecover&&!publicStudyGuidance,
+                        deeperReview: context.attempt + previousChecks >= maxAnswerVerificationChecks });
+                    if (managedPartial && review.ok && !context.candidate.citations.some(citation =>
+                        !retainedIds.has(citation.chunkId) && context.evidence.some(source => source.id === citation.chunkId)))
+                        return { ...review, missingRequestedDetails: undefined };
+                    return review;
+                },
                 repair: context => repairPublicAnswer({ ...context, hasKnownNoticeLink, deeperReview: context.attempt + previousChecks >= maxAnswerVerificationChecks,
                     candidate: { ...context.candidate, citations: context.evidence.map(source => checkedSources.get(source.id)).filter(Boolean) } }),
             });
+            // The graph returns the original citation array when it keeps
+            // the prior candidate. Finish that answer in the managed path.
+            if (managedPartial && checked.citations === managedPartial.candidate.citations) {
+                managedPartial.attempts = checked.verification.attempts;
+                return false;
+            }
             checked.activity = [...candidate.activity, ...steps.values()];
             if ((capture || librarySources.length) && webAttempted) checked.grounding.webSearched = true;
             if (capture && webAttempted) {
@@ -1566,8 +1611,10 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     reviewedAt: source.reviewed_at,
                 };
             });
-            let checked;
+            let checked, managedPartial;
             if (answer.status === 'answered' || answer.status === 'abstained') {
+                const trackPublicCoverage = Boolean(publicQuestion && !personalQuestion && !pageQuestion && !publicStudyGuidance && !input.images.length);
+                let managedCoverage;
                 checked = await runAnswerVerification({ question: input.question, initialAnswer: { ...answer, citations }, deadline, onProgress: verificationProgress, deferTerminalProgress: true,
                     loadEvidence: async ({ attempt }) => {
                         if (attempt > 1) {
@@ -1581,9 +1628,32 @@ export function createResearchAssistantHandler(dependencies = {}) {
                         }
                         return retrieved.map(item => ({ id: item.chunk_id, title: item.document_title, url: item.source_url,
                             content: JSON.stringify({ content: item.content, effectiveAt: item.effective_at, reviewedAt: item.reviewed_at, sourceName: item.source_name, authority: item.authority_level }) }));
-                    }, verify: context => verifyPublicAnswer({ ...context, hasKnownNoticeLink }),
+                    }, verify: async context => {
+                        const review = await verifyPublicAnswer({ ...context, hasKnownNoticeLink, trackPublicCoverage });
+                        const missing = trackPublicCoverage && review.ok && context.candidate.status === 'answered'
+                            ? normalizeMissingDetails(review.missingRequestedDetails) : null;
+                        if (missing?.length) {
+                            const ids = new Set(context.candidate.citations.map(citation => citation.chunkId));
+                            const evidence = context.evidence.filter(source => ids.has(source.id));
+                            if (validEvidence(evidence)) managedCoverage = { missing, evidence };
+                        }
+                        return review;
+                    },
                     repair: context => repairPublicAnswer({ ...context, hasKnownNoticeLink }), });
                 if (checked.verification?.status === 'unverified' && await tryWebAnswer(checked)) return;
+                if (checked.verification?.status === 'verified' && managedCoverage) {
+                    managedPartial = { ...managedCoverage, candidate: checked, progress: new Map(), attempts: checked.verification.attempts };
+                    try {
+                        if (await tryWebAnswer(checked, managedPartial)) return;
+                    } catch { /* A failed public lookup cannot discard the checked managed answer. */ }
+                    if (!managedPartial.progress.has('verification-kept-partial')) {
+                        const kept = { kind: 'verification-kept-partial', label: 'Kept the verified details',
+                            detail: publicStop?.detail ?? 'The extra lookup did not verify more of the requested information.', status: 'complete' };
+                        managedPartial.progress.set(kept.kind, kept);
+                        verificationProgress(kept);
+                    }
+                    checked = { ...checked, verification: { ...checked.verification, attempts: managedPartial.attempts } };
+                }
                 answer = { status: checked.status, answer: checked.answer, citations: checked.citations.map(item => ({ chunkId: item.chunkId, claim: item.claim })), suggestedQuestions: checked.suggestedQuestions || [] };
                 citations = checked.citations;
             }
@@ -1627,10 +1697,11 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 },
                 activity: [...captureActivity,
                     { kind: 'knowledge', label: 'Checked managed school knowledge', detail: `${retrieved.length} matching evidence excerpts`, status: 'complete' },
-                    ...(targetedWebStep ? [firstWebMiss, ...checkedActivity, knowledgeWebSwitch, targetedWebStep, ...(noticeAlternateStep ? [noticeAlternateStep] : [])]
+                    ...(managedPartial ? [...(firstWebMiss ? [firstWebMiss] : []), ...checkedActivity, ...managedPartial.progress.values()]
+                        : targetedWebStep ? [firstWebMiss, ...checkedActivity, knowledgeWebSwitch, targetedWebStep, ...(noticeAlternateStep ? [noticeAlternateStep] : [])]
                         : knowledgeWebSwitch ? [...checkedActivity, knowledgeWebSwitch, ...failedWebActivity] : [...failedWebActivity, ...checkedActivity]),
-                    ...(bootstrapRead ? [bootstrapRead] : []),
-                    ...(bootstrapDiscovery ? [bootstrapDiscovery] : []),
+                    ...(!managedPartial && bootstrapRead ? [bootstrapRead] : []),
+                    ...(!managedPartial && bootstrapDiscovery ? [bootstrapDiscovery] : []),
                     ...(stop ? [stop] : [])],
             });
         }

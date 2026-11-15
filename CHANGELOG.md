@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Follow public sources when a verified managed answer still has unanswered details. Keep the checked text and citations whenever the additional lookup cannot verify more. [#100]
+
 - Verify the exact count of saved conduct entries at 38-1 using the signed-in account without retrieving conduct record details. [#100]
 
 - Register equipment history, new form and owned edit-page questions in the default evaluator. Keep separate paired-owner proof for protected results, and treat requests for pickup and return dates as reads. [#100]

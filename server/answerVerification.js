@@ -7,7 +7,7 @@ const VerificationState = Annotation.Root({
 const standardChecks = 2;
 const deeperReviewBudgetMs = 18_000;
 const deeperReviewReasons = new Set(['unsupported_claims', 'no_supported_answer', 'snapshot_provenance_missing', 'verification_output_limit']);
-function normalizeMissingDetails(details) {
+export function normalizeMissingDetails(details) {
   if (!Array.isArray(details) || details.length > 12 || details.some(detail => typeof detail !== 'string' || !detail.trim() || detail.length > 160)) return null;
   return [...new Set(details.map(detail => detail.normalize('NFKC').trim().replace(/\s+/gu, ' ').toLowerCase()))];
 }
@@ -56,7 +56,7 @@ export function unverifiedAnswer(question, candidate, activity, attempts, reason
 /** Request-local graph. Its retry edge only reads evidence and revises text. */
 export async function runAnswerVerification({
   question, initialAnswer, loadEvidence, loadDeeperEvidence, verify, repair, onProgress, allowDeeperReview = false, deferTerminalProgress = false,
-  previousChecks = 0, maxChecks = maxAnswerVerificationChecks, canExtendReview, lookForMissingPublicDetails, deadline = Date.now() + 50_000,
+  previousChecks = 0, maxChecks = maxAnswerVerificationChecks, canExtendReview, lookForMissingPublicDetails, priorVerifiedPartial, deadline = Date.now() + 50_000,
 }) {
   if (maxChecks !== maxAnswerVerificationChecks && maxChecks !== maxPublicAnswerVerificationChecks)
     throw new RangeError('Invalid verification check limit');
@@ -76,6 +76,15 @@ export async function runAnswerVerification({
   const withinBudget = () => Date.now() < deadline - 500;
   const safeToContinue = () => allowDeeperReview && !initialAnswer?.proposedAction && !candidate?.proposedAction;
   const publicRecovery = maxChecks === maxPublicAnswerVerificationChecks && Boolean(loadDeeperEvidence);
+  if (priorVerifiedPartial) {
+    const { candidate: priorCandidate } = priorVerifiedPartial;
+    const missing = normalizeMissingDetails(priorVerifiedPartial.missing);
+    if (!publicRecovery || !previousChecks || priorCandidate?.status !== 'answered'
+      || priorCandidate.proposedAction || priorCandidate.verification?.status !== 'verified'
+      || priorCandidate.verification.attempts !== previousChecks || !missing?.length)
+      throw new TypeError('Invalid retained public answer');
+    verifiedPartial = { candidate: priorCandidate, missing };
+  }
   const enoughTimeToContinue = attempt => deadline - Date.now() >= (
     publicRecovery && attempt + previousChecks >= maxAnswerVerificationChecks ? 14_000 : deeperReviewBudgetMs
   );

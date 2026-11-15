@@ -363,6 +363,8 @@ A rejected account overview refreshes the same seven caller-owned projections, c
 
 If managed excerpts still leave an evidence gap and time remains, the public handler can switch to official pages. It submits only the screened public question to search, reads the returned page independently, and spends the remaining verification check on that evidence. The earlier checks and source switch stay in the Activity timeline. Controlled handler cases verify a recovered answer, missing web results, expiring budget, a prior web attempt and a provider outage. No search is sent for a private question or image in this path.
 
+A managed answer can also pass claim verification while leaving a requested detail unanswered. The public graph keeps that checked answer and its citations while it reads a new school source independently. A replacement must cite new readable evidence and reduce the missing fields without introducing a new gap. Failed reads, mirrored content, no improvement and expired time all preserve the original answer. The controlled tests check both one and two prior managed reviews, source privacy, exact review counts and saved Activity.
+
 ### Protected source recovery Preview
 
 Vercel deployment `dpl_392BytNSPQ9uxFuQm9a3tuMQ6jnz` served exact revision `8cfbd8d`. The local suite passed 1,783 API and source checks, 1,260 evaluator checks and 541 unit checks. Build, type checks, lint, handoff, dependency audit and the two-width Activity browser check passed. The Preview build also reported two non-strict TypeScript diagnostics while emitting the API. Follow-up `c8f5a48` resolves both in the strict and non-strict compilers.

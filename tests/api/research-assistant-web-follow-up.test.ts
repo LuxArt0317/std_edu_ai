@@ -1035,3 +1035,125 @@ test('a truncated managed reviewer can verify the answer with an independently r
   assert.deepEqual(answer.citations.map(({ url }: { url: string }) => url), [officialNotice]);
   assert.equal(progress.some(step => step.kind === 'verification-stop'), false);
 });
+
+test('a managed verified partial searches fresh public evidence while preserving its supported source',async()=>{
+  const question=knowledgeQuestion+' Also explain how to contact the exhibition staff.';
+  const baseline='Archive visitors can contact the library staff through the visitor directory. The exhibition opening time is still unverified.';
+  const completed='Archive visitors can contact the library staff through the visitor directory. '+noticeContent;
+  const pending=['Exhibition opening time PRIVATE_GAP_LABEL'];
+  const priorClaim='Archive visitor contact guidance PRIVATE_DRAFT_SENTINEL';
+  for(const rejectedFirst of [false,true]){
+    const attempt=managedHarness('verified-knowledge');
+    const controlledFetch=globalThis.fetch;
+    const progress:Progress[]=[];
+    const stages:string[]=[];
+    const measuredCoverage:boolean[]=[];
+    let managedReviews=0;
+    globalThis.fetch=async (input,init)=>{
+      if(!String(input).endsWith('/v1/responses'))return controlledFetch(input,init);
+      const call=JSON.parse(String(init?.body)),name=call.text.format.name;
+      stages.push(name);
+      if(name==='stu_web_answer'){
+        assert.equal(JSON.parse(call.input).question,question);
+        assert.doesNotMatch(call.input,/PRIVATE_|my attendance/u);
+        return controlledFetch(input,init);
+      }
+      if(name==='public_grounded_answer')return provider({status:'answered',answer:baseline,
+        citations:[{chunkId:managedExcerpt.chunk_id,claim:priorClaim}],suggestedQuestions:[]});
+      const context=JSON.parse(call.input[0].content[0].text);
+      if(name==='correct_grounded_answer'){
+        assert.equal(context.previousAnswer,baseline);
+        if(context.evidence.length===1){
+          assert.equal(rejectedFirst,true);
+          return provider({status:'answered',answer:baseline,sourceIds:[managedExcerpt.chunk_id]});
+        }
+        assert.deepEqual(context.evidence.map((item:{url:string})=>item.url).sort(),[officialDirectory,officialNotice].sort());
+        return provider({status:'answered',answer:completed,sourceIds:context.evidence.map((item:{id:string})=>item.id)});
+      }
+      assert.equal(name,'answer_evidence_review');
+      measuredCoverage.push(call.text.format.schema.required.includes('missingRequestedDetails'));
+      const managed=context.evidence.find((item:{id:string})=>item.id===managedExcerpt.chunk_id);
+      const web=context.evidence.find((item:{url:string})=>item.url===officialNotice);
+      if(web)assert.deepEqual(context.previousMissingRequestedDetails,[pending[0].toLowerCase()]);
+      if(!web&&rejectedFirst&&++managedReviews===1)return provider({supported:false,answersQuestion:false,missingRequestedDetails:pending,
+        claims:[{claim:'The first managed draft needs rechecking',supported:false,evidenceId:managed.id,jsonPaths:[],quotes:[]}]});
+      return provider({supported:true,answersQuestion:true,missingRequestedDetails:web?[]:pending,claims:[
+        {claim:priorClaim,supported:true,evidenceId:managed.id,jsonPaths:['/content'],quotes:[]},
+        ...(web?[{claim:'Exhibition opening time',supported:true,evidenceId:web.id,jsonPaths:[],quotes:[noticeContent]}]:[]),
+      ]});
+    };
+    const answer=await invoke({question,history:[
+      {role:'user',content:'What are my attendance records at STU?'},
+      {role:'assistant',content:'PRIVATE_HISTORY_SENTINEL'},
+    ]},attempt.run,'managed-verified-partial-fresh-'+rejectedFirst,progress);
+    assert.deepEqual(stages,['public_grounded_answer','answer_evidence_review',
+      ...(rejectedFirst?['correct_grounded_answer','answer_evidence_review']:[]),'stu_web_answer','correct_grounded_answer','answer_evidence_review']);
+    const checks=rejectedFirst?3:2;
+    assert.deepEqual(measuredCoverage,Array(checks).fill(true));
+    assert.deepEqual(answer.verification,{status:'verified',attempts:checks});
+    assert.equal(answer.answer,completed);
+    assert.deepEqual(answer.citations.map(({url}:{url:string})=>url).sort(),[officialDirectory,officialNotice].sort());
+    assert.ok(progress.some(step=>step.kind==='verification-source-switch'&&step.status==='complete'));
+    assert.doesNotMatch(JSON.stringify(answer.activity),/PRIVATE_(?:GAP|DRAFT|HISTORY)/u);
+  }
+});
+
+test('managed public recovery keeps verified text and citations through stalls, changed missing details and time limits',async()=>{
+  const question=knowledgeQuestion+' Include how to contact staff and which entrance to use.';
+  const baseline='The visitor directory explains how to contact the library staff. The exhibition time and entrance are unverified.';
+  const firstGaps=['opening time PRIVATE_GAP_LABEL','entrance'];
+  for(const outcome of ['same-coverage','lost-known-detail','uncited-new-source','unreadable','mirror','no-time','complete'] as const){
+    managedHarness('verified-knowledge');
+    const controlledFetch=globalThis.fetch;
+    const start=Date.now();
+    const progress:Progress[]=[];
+    const run=createResearchAssistantHandler({readSources:async citations=>outcome==='unreadable'?[]:citations.map(source=>({
+      id:source.chunkId,url:source.url,content:outcome==='mirror'?directoryContent:noticeContent,
+    }))});
+    let reviews=0,searches=0,repairs=0;
+    globalThis.fetch=async (input,init)=>{
+      if(!String(input).endsWith('/v1/responses'))return controlledFetch(input,init);
+      const call=JSON.parse(String(init?.body)),name=call.text.format.name;
+      if(name==='stu_web_answer'){
+        searches++;
+        assert.equal(JSON.parse(call.input).question,question);
+        assert.doesNotMatch(call.input,/PRIVATE_|exhibition time and entrance are unverified/u);
+        return Response.json(searchPayload([officialNotice],noticeContent));
+      }
+      if(name==='public_grounded_answer')return provider({status:'answered',answer:baseline,
+        citations:[{chunkId:managedExcerpt.chunk_id,claim:'Contact guidance'}],suggestedQuestions:[]});
+      const context=JSON.parse(call.input[0].content[0].text);
+      if(name==='correct_grounded_answer'){
+        repairs++;
+        return provider({status:'answered',answer:outcome==='lost-known-detail'||outcome==='uncited-new-source'
+          ?noticeContent:'The directory gives staff contact information.',
+          sourceIds:outcome==='uncited-new-source'?[managedExcerpt.chunk_id]:context.evidence.map((source:{id:string})=>source.id)});
+      }
+      assert.equal(name,'answer_evidence_review',outcome);
+      reviews++;
+      const web=context.evidence.find((source:{url:string})=>source.url===officialNotice);
+      const missing=outcome==='complete'||outcome==='uncited-new-source'&&web?[]:outcome==='lost-known-detail'&&web?['staff contact']:firstGaps;
+      const claims=web&&outcome==='lost-known-detail'
+        ?[{claim:'Exhibition opening',supported:true,evidenceId:web.id,quotes:[noticeContent],jsonPaths:[]}]
+        :[{claim:'Archive visitor contact guidance',supported:true,evidenceId:managedExcerpt.chunk_id,quotes:[],jsonPaths:['/content']}];
+      return provider({supported:true,answersQuestion:true,missingRequestedDetails:missing,claims});
+    };
+    const answer=await invoke({question},run,'managed-partial-'+outcome,progress,outcome==='no-time'?start+23_900:undefined);
+    const improvedRead=['same-coverage','lost-known-detail','uncited-new-source'].includes(outcome);
+    assert.equal(reviews,improvedRead?2:1,outcome);
+    assert.equal(repairs,improvedRead?1:0,outcome);
+    if(outcome==='no-time'||outcome==='complete')assert.equal(searches,0,outcome);
+    else assert.ok(searches>=1&&searches<=2,outcome);
+    assert.deepEqual(answer.verification,{status:'verified',attempts:reviews},outcome);
+    assert.equal(answer.answer,baseline,outcome);
+    assert.deepEqual(answer.citations.map(({url}:{url:string})=>url),[officialDirectory],outcome);
+    assert.equal(answer.grounding.source,'knowledge',outcome);
+    const kept=answer.activity.filter((step:Progress)=>step.kind==='verification-kept-partial');
+    assert.equal(kept.length,outcome==='complete'?0:1,outcome);
+    if(outcome==='no-time')assert.match(kept[0].detail,/time left/u);
+    assert.doesNotMatch(JSON.stringify(answer.activity),/PRIVATE_GAP_LABEL/u);
+    const saved=sanitizeStoredConversation([{id:outcome,role:'assistant',content:answer.answer,activity:answer.activity,result:answer}]);
+    assert.deepEqual(saved[0].result.verification,{status:'verified',attempts:reviews});
+    assert.equal(saved[0].activity.filter(({kind}:Progress)=>kind==='verification-kept-partial').length,kept.length);
+  }
+});
