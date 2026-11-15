@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Explain the shared Google sign-in for Digital Teaching Materials and Digital Academy and restore valid selected learning destinations. [#100]
+- Register the 80 private service-note questions with exact fixture support for 61 cases. [#100]
 - Run signed-in evaluations on a pinned Vercel Preview using an authorized Development identity. Verify club attendance fixtures and require the application’s exact cross-account Moodle denial. [#100]
 - Answer which Google account is signed in from the caller's verified session. [#100]
 - Verify Digital Academy category and notice details and the signed-in student's saved club attendance from the selected page. [#100]

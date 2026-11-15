@@ -267,6 +267,9 @@ HTML block creation, Administration block behavior and unobserved Move interacti
 - [ ] Mount caller-bound teaching and multi-course DTM fixtures with trusted request observations, and cover remaining route, browser and actual model behavior.
 - [x] Verify the current caller's Google sign-in with seven separately graded account-status cases.
 - [x] Bind club attendance to independently checked disposable accounts in the main suite and verify the immutable Preview transport with controlled requests.
+- [x] Cover the exact DTM and Digital Academy login and legacy entry flows with route-aware assistant links and continuation checks.
+- [x] Register the seven service-note services in the main suite and verify the eligible two-account fixture locally.
+- [ ] Complete hosted evaluation for the eligible service-note cases and bind the 19 deferred scenarios.
 - [ ] Run the club fixture and exact four-turn transcript using the authorized Vercel runner on the pinned candidate.
 
 - [ ] Verifier thread owns isolated tests/evaluation and docs/qa/ASSISTANT_SYSTEM_EVALUATION.md to derive question coverage from all current routes/services/records.

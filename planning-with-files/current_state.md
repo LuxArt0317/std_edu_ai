@@ -1,5 +1,7 @@
 ## Assistant evaluation resumed [Issue #100]
 
+The integrated learning-entry and service-note checkpoint contains 1,408 evaluation cases and ten route omissions. It adds 24 learning-entry answers and admits 61 of 80 service-note cases to hosted testing with exact two-owner fixtures. All 1,764 API/source, 1,226 evaluator and 541 unit checks and the compiled build passed locally. No client migrations or hosted model evaluations have run for this candidate.
+
 The local club evaluation integrates 18 independent questions and a two-owner fixture with exact readback and cleanup. Inventory reaches 1,304 cases across 579 routes and 46 tools, with 18 route omissions. Both Preview runners now accept the exact development OIDC identity, retain the pinned release gate and keep caller Auth separate. All 1,194 offline evaluator checks passed. The default CLI belongs to another account and the authorized Development token is absent. The hosted fixture runner has not executed.
 
 The sign-in follow-up adds verified caller identity answers and seven independent evidence cases. Inventory reaches 1,285 questions, 45 tools and 18 paths without semantic cases. The compiled Moodle browser test verifies both a restored answer and the appended answer after changing the viewport and reopening the page. A real legacy browser tab kept its draft after switching to the upgraded API, and a protected delete blocked its delayed retry in scratch PostgreSQL. Both follow-ups remain outside the frozen migration preflight.

@@ -69,6 +69,8 @@ The main evaluation runner also accepts `--preview-auth oidc` with `--mode live`
 
 Club attendance has 18 independently specified cases. The live fixture verifies disposable caller-owned attendance for two accounts before and after the request. Native reader results can satisfy the corresponding live case contract without earning model execution credit. See `node --test tests/evaluation/club-attendance-runner.test.mjs` for the local runner and grading contracts.
 
+The service-note runner registers all 80 questions for the seven local-note services and separates the 61 currently bound cases from the 19 that require additional setup. The signed-in fixture verifies exact owned rows and crossed access directly against Supabase for two disposable callers, alongside the pinned assistant response. Its transport stays separate from Vercel OIDC. Run `node --test tests/evaluation/service-note-runner.test.mjs` for the local fixture and grading contracts.
+
 `assessTranscriptPreview(report, {reviews})` verifies request and saved-message digests and evaluates the report against the frozen cases. Supply independent review artifacts for the account overview and interview response. A completed collection can still fail evaluation. An unresolved write retains its journal for reconciliation. Never replay a pending write or use this packet alone as the production gate.
 
 The School Affairs menu question bank covers the keyword search control and General Affairs application and lookup sections. Cases require the named controls or service entries and their exact destinations. Generic page links do not pass. The API tests exercise both signed-out public and verified signed-in paths with the model unavailable.
