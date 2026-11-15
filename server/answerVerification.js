@@ -9,6 +9,7 @@ const deeperReviewBudgetMs = 18_000;
 const deeperReviewReasons = new Set(['unsupported_claims', 'no_supported_answer', 'snapshot_provenance_missing', 'verification_output_limit']);
 const preparationInterruptions = new Set(['repair_timeout', 'transient_repair_unavailable']);
 const reviewInterruptions = new Set(['verification_timeout', 'transient_verifier_unavailable']);
+const sourceReadTimeLimit = 'source_read_time_limit';
 export const publicEvidenceInterruption = reason => preparationInterruptions.has(reason) || reviewInterruptions.has(reason);
 export function normalizeMissingDetails(details) {
   if (!Array.isArray(details) || details.length > 12 || details.some(detail => typeof detail !== 'string' || !detail.trim() || detail.length > 160)) return null;
@@ -27,6 +28,7 @@ const reviewFailureDetails = new Map([
 ]);
 const stopDetails = {
   time_budget: ['There was too little time left for another evidence check.', '此請求已沒有足夠時間再次核對。'],
+  [sourceReadTimeLimit]: ['The source-reading time limit was reached while school pages were still queued.', '讀取來源的時間已用完，仍有候選頁面尚未核對。'],
   reviewer_unavailable: ['The checker could not complete another verification.', '核對服務無法完成下一次查核。'],
   repair_unavailable: ['A corrected answer could not be prepared for another check.', '無法準備修正後的答案以再次查核。'],
   no_usable_evidence: ['There was no additional usable evidence for another check.', '沒有其他可用的證據可供再次查核。'],
@@ -120,7 +122,8 @@ export async function runAnswerVerification({
   const retainsSameGaps = () => missingRequestedDetails.length === verifiedPartial.missing.length
     && missingRequestedDetails.every(detail => verifiedPartial.missing.includes(detail));
   const stop = (attempts, reason, attempt) => {
-    const cause = reason === 'provider_quota_exhausted' ? 'reviewer_unavailable'
+    const cause = reason === sourceReadTimeLimit ? sourceReadTimeLimit
+      : reason === 'provider_quota_exhausted' ? 'reviewer_unavailable'
       : ['timeout', 'verification_timeout', 'repair_timeout'].includes(reason) || !withinBudget()
       || (attempt + previousChecks < maxChecks && canFollowLead(attempt) && !enoughTimeToContinue(attempt)
         && (previousChecks > 0 ? canRetryAfterSourceSwitch({ reason }) : shouldDeepen({ reason })))
@@ -155,7 +158,8 @@ export async function runAnswerVerification({
         return { verdict: null };
       } catch (error) {
         evidence = [];
-        const reason = error?.code === 'VERIFICATION_TIMEOUT' ? 'timeout'
+        const reason = error?.code === 'PUBLIC_SOURCE_READ_TIMEOUT' ? sourceReadTimeLimit
+          : error?.code === 'VERIFICATION_TIMEOUT' ? 'timeout'
           : error?.code === 'NO_MORE_EVIDENCE' ? 'source_exhausted' : 'evidence_unavailable';
         return { verdict: { ok: false, reason } };
       }
@@ -251,7 +255,8 @@ export async function runAnswerVerification({
     .addEdge('retrieve', 'draft')
     .addEdge('draft', 'verify')
     .addConditionalEdges('verify', state => {
-      if(state.attempt + previousChecks >= maxChecks || !withinBudget() || state.verdict.reason === 'source_exhausted')return END;
+      if(state.attempt + previousChecks >= maxChecks || !withinBudget()
+        || ['source_exhausted',sourceReadTimeLimit].includes(state.verdict.reason))return END;
       if(state.verdict.reason==='provider_quota_exhausted')return hasLocalCorrection&&state.attempt===1?'retry':END;
       if(publicRecovery&&publicEvidenceInterruption(state.verdict.reason))
         return canRecoverFromInterruption(state.attempt)?'retry':END;
@@ -280,8 +285,10 @@ export async function runAnswerVerification({
   function verified(candidate,attempts){
     return {...candidate,verification:{status:'verified',attempts},activity:[...(candidate.activity||[]),...activity]};
   }
-  function keepPartial(){
-    emit('verification-kept-partial','Kept the verified details','The extra lookup did not verify more of the requested information.');
+  function keepPartial(reason){
+    const detail = reason === sourceReadTimeLimit ? verificationStopActivity(question, sourceReadTimeLimit).detail
+      : 'The extra lookup did not verify more of the requested information.';
+    emit('verification-kept-partial','Kept the verified details',detail);
     return verified(verifiedPartial.candidate,checks);
   }
   let result;
@@ -291,7 +298,7 @@ export async function runAnswerVerification({
     return verifiedPartial?keepPartial():stop(checks, 'verification_unavailable', maxChecks);
   }
   const attempts=allowDeeperReview || previousChecks > 0 ? checks : result.attempt;
-  if(verifiedPartial&&(!result.verdict.ok||!improvesPartial()))return keepPartial();
+  if(verifiedPartial&&(!result.verdict.ok||!improvesPartial()))return keepPartial(result.verdict.reason);
   if (!result.verdict.ok) return stop(attempts, result.verdict.reason, result.attempt);
   return verified(candidate,attempts);
 }

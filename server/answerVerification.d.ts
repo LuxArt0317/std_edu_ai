@@ -9,4 +9,4 @@ export function runAnswerVerification(options:{question:string;initialAnswer:Ver
 export function normalizeMissingDetails(details:unknown):string[]|null;
 export function publicEvidenceInterruption(reason?:string):boolean;
 export function unverifiedAnswer(question:string,candidate:VerificationCandidate,activity:VerificationProgress[],attempts:number,reason:string):VerificationCandidate;
-export function verificationStopActivity(question:string,cause?:'time_budget'|'reviewer_unavailable'|'repair_unavailable'|'no_usable_evidence'|'no_safe_continuation'|'verification_limit'):VerificationProgress;
+export function verificationStopActivity(question:string,cause?:'time_budget'|'source_read_time_limit'|'reviewer_unavailable'|'repair_unavailable'|'no_usable_evidence'|'no_safe_continuation'|'verification_limit'):VerificationProgress;

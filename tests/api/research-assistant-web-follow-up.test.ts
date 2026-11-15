@@ -13,6 +13,8 @@ const officeContent = 'The archive office will open the exhibition in November, 
 const calendarContent = 'The library lists the archive exhibition on November 24 and refers visitors to the organizer for hours.';
 const directoryContent = 'The library visitor directory lists the exhibits and explains how to contact staff.';
 const noticeContent = 'The archive exhibition opens at 10:30 a.m. on November 24, 2026.';
+const partialAnswer = 'The library visitor directory explains how to contact staff. It does not give the exhibition opening time.';
+const queueTimeLimitDetail = 'The source-reading time limit was reached while school pages were still queued.';
 const testQuestion = 'When does the STU library archive exhibition open in November 2026?';
 const storageQuestion = 'What does the official Shu-Te University Microsoft Office 365 OneDrive storage quota notice say about the per-account student limit and announcement date?';
 const storageNotice = 'https://dtm.stu.edu.tw/mod/page/view.php?id=625803';
@@ -73,7 +75,7 @@ async function invoke(input: Record<string,unknown>, run: ReturnType<typeof crea
   return responseBody;
 }
 
-function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link'|'unused-tool-lead'|'third-pass-discovery'|'incomplete-office'|'fourth-check'|'fourth-rejected'|'fourth-budget'|'mirror'|'mirror-then-primary'|'transient-lead'|'transient-initial'|'transient-uncited'|'empty-deep-search'|'empty-alternate-search'|'review-timeout-lead'|'review-timeout-duplicate'|'review-timeout-no-lead'|'correction-timeout'|'correction-outage'|'correction-mirrored-lead'|'correction-no-lead'|'second-review-outage'|'second-review-quota'|'second-review-batch-unreadable'|'second-review-batch-mirror'|'second-review-batch-budget') {
+function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link'|'unused-tool-lead'|'third-pass-discovery'|'incomplete-office'|'fourth-check'|'fourth-rejected'|'fourth-budget'|'mirror'|'mirror-then-primary'|'transient-lead'|'transient-initial'|'transient-uncited'|'empty-deep-search'|'empty-alternate-search'|'review-timeout-lead'|'review-timeout-duplicate'|'review-timeout-no-lead'|'correction-timeout'|'correction-outage'|'correction-mirrored-lead'|'correction-no-lead'|'second-review-outage'|'second-review-quota'|'second-review-batch-unreadable'|'second-review-batch-mirror'|'second-review-batch-budget'|'partial-queued-budget') {
   configured();
   const started = Date.now();
   let elapsed = 0;
@@ -89,6 +91,7 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
   const interruptedCorrection = outcome.startsWith('correction-');
   const secondReviewOutage = outcome.startsWith('second-review-');
   const multipleQueuedBatches = outcome.startsWith('second-review-batch-');
+  const partialQueueCutoff = outcome === 'partial-queued-budget';
   if (timedReview || interruptedCorrection) AbortSignal.timeout = milliseconds => {
     lastTimeout = milliseconds;
     return originalTimeout(milliseconds);
@@ -104,6 +107,10 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
     if (name === 'stu_web_answer') {
       searchRequests.push(request);
       searchCalls++;
+      if (partialQueueCutoff) {
+        assert.equal(searchCalls,1);
+        return Response.json(searchPayload([officialDirectory,...queuedBatch,officialNotice],partialAnswer,[officialDirectory]));
+      }
       if (timedReview) {
         assert.equal(searchCalls,1);
         elapsed = 19_000;
@@ -179,6 +186,9 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
     }
     assert.equal(name,'answer_evidence_review');
     reviewCalls++;
+    if (partialQueueCutoff) return provider({supported:true,answersQuestion:true,missingRequestedDetails:['opening time'],claims:[{
+      claim:'The directory explains how to contact library staff.',supported:true,evidenceId:context.evidence[0].id,quotes:[directoryContent],jsonPaths:[],
+    }]});
     if (interruptedCorrection && reviewCalls === 1) elapsed = 24_000;
     if (secondReviewOutage && reviewCalls === 2) return outcome === 'second-review-quota'
       ? Response.json({error:{type:'insufficient_quota'}},{status:429})
@@ -211,7 +221,7 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
       acquire: async url=>{
         acquiredUrls.push(url);
         if (queuedBatch.includes(url) && outcome !== 'second-review-batch-mirror') {
-          if (outcome === 'second-review-batch-budget' && url === queuedBatch.at(-1)) elapsed += 3_000;
+          if ((outcome === 'second-review-batch-budget' || partialQueueCutoff) && url === queuedBatch.at(-1)) elapsed += 3_000;
           throw new Error('Controlled unavailable source');
         }
         if (outcome === 'unreadable-tool-link' || ((outcome === 'transient-lead' || outcome === 'transient-initial' || outcome === 'transient-uncited') && url === officialNotice
@@ -260,13 +270,39 @@ test('after a second-review outage, an empty or mirrored batch leaves the next q
 });
 
 test('additional queued pages share the original evidence read deadline', async () => {
-  const attempt = harness('second-review-batch-budget');
-  const answer = await invoke({question:testQuestion},attempt.run,'second-review-batch-budget');
+  const attempt = harness('second-review-batch-budget'), progress: Progress[] = [];
+  const answer = await invoke({question:testQuestion},attempt.run,'second-review-batch-budget',progress);
   assert.equal(attempt.searchRequests.length,2);
   assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialOffice,eventCalendar,...queuedBatch]);
-  assert.equal(answer.verification.status,'unverified');
-  assert.equal(answer.verification.attempts,2);
+  assert.deepEqual(attempt.scopes.map(({name})=>name),['answer_evidence_review','correct_grounded_answer','answer_evidence_review']);
+  assert.deepEqual(answer.verification,{status:'unverified',attempts:2,reason:'source_read_time_limit'});
   assert.deepEqual(answer.citations,[]);
+  const stops=progress.filter(step=>step.kind==='verification-stop');
+  assert.equal(stops.length,1);
+  assert.equal(stops[0].detail,queueTimeLimitDetail);
+  const saved=sanitizeStoredConversation([{id:'queued-budget',role:'assistant',content:answer.answer,activity:answer.activity,result:answer}]);
+  assert.deepEqual(saved[0].activity.filter(step=>step.kind==='verification-stop'),stops);
+  assert.deepEqual(saved[0].result.activity.filter(step=>step.kind==='verification-stop'),stops);
+  assert.deepEqual(saved[0].result.verification,{status:'unverified',attempts:2});
+});
+
+test('a queued read timeout keeps a verified partial answer and saves the reason', async () => {
+  const attempt = harness('partial-queued-budget'), progress: Progress[] = [];
+  const answer = await invoke({question:testQuestion},attempt.run,'partial-queued-budget',progress);
+  assert.equal(attempt.searchRequests.length,1);
+  assert.deepEqual(attempt.acquiredUrls,[officialDirectory,...queuedBatch]);
+  assert.deepEqual(attempt.scopes.map(({name})=>name),['answer_evidence_review']);
+  assert.deepEqual(answer.verification,{status:'verified',attempts:1});
+  assert.equal(answer.answer.split('\n\n')[0],partialAnswer);
+  assert.deepEqual(answer.citations.map(({url}:{url:string})=>url),[officialDirectory]);
+  const retained=progress.filter(step=>step.kind==='verification-kept-partial');
+  assert.equal(retained.length,1);
+  assert.equal(retained[0].detail,queueTimeLimitDetail);
+  assert.equal(retained[0].status,'complete');
+  assert.equal(progress.some(step=>step.kind==='verification-stop'),false);
+  const saved=sanitizeStoredConversation([{id:'partial-queued-budget',role:'assistant',content:answer.answer,activity:answer.activity,result:answer}]);
+  assert.deepEqual(saved[0].activity.filter(step=>step.kind==='verification-kept-partial'),retained);
+  assert.deepEqual(saved[0].result.verification,{status:'verified',attempts:1});
 });
 
 test('hard quota exhaustion stops without spending another lookup or returning the draft', async () => {

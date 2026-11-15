@@ -1458,11 +1458,14 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     const leadsToRead = [...pendingLeads.values()]
                         .filter(lead => canRead(canonicalUrl(lead.url)) && (!interrupted || attempts(lead) === 0))
                         .sort((first, second) => attempts(first) - attempts(second));
-                    const batchSize = 3;
+                    const batchSize = 3, minimumReadTime = 1_500;
                     // Continue past unavailable or duplicate pages within the same read window.
-                    for (let offset = 0; offset < leadsToRead.length && !fresh.length && readUntil - Date.now() >= 1_500; offset += batchSize) {
+                    for (let offset = 0; offset < leadsToRead.length && !fresh.length && readUntil - Date.now() >= minimumReadTime; offset += batchSize) {
                         const batch = leadsToRead.slice(offset, offset + batchSize);
                         fresh = retainDifferentContents(await checkNewSources(batch, readUntil, batchSize));
+                    }
+                    if (!fresh.length && readUntil - Date.now() < minimumReadTime && hasUnreadPublicLead()) {
+                        throw Object.assign(new Error('Queued public source read deadline'), { code: 'PUBLIC_SOURCE_READ_TIMEOUT' });
                     }
                     if (fresh.length) progress({ kind: extended ? 'web-extended-source' : 'web-alternate-source',
                         label: 'Read another school source', detail: 'Checked additional school pages.', status: 'complete' });
