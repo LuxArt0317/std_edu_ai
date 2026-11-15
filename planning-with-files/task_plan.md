@@ -900,9 +900,9 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Run the six Moodle overview cases on protected `2427eee`. The grade index, selected course and empty-account cases passed. Three aggregate or feedback cases need their exact facts preserved. Verified cleanup of both accounts and all report rows.
 - [x] Confirm the three corrected Moodle availability cases on exact protected `0c0ac77`. Four previously passing model-written fact answers fluctuated. All ten requests retained exact readbacks and cleanup.
 - [x] Verify named item feedback/weight, a scoped follow-up, a saved course total, and the final report item directly against typed records. Preserve feedback-only scope. Confirm both local SQL-backed packets with the original factual rubrics.
-- [ ] Replay the ten grade report cases after the exact report field fix.
+- [x] Pass 10/10 exact protected grade-report requests on `0b88ca1`, with paired caller readbacks and verified cleanup.
 - [x] Preserve course totals and all-item feedback directly from typed Moodle responses for complete exact lookups.
-- [ ] Replay all six protected Moodle overview cases.
+- [x] Pass 6/6 exact protected Moodle overview requests on `0b88ca1`, with paired caller readbacks and verified cleanup.
 - [x] Mount 24 of 30 existing Student Internship cases with signed native observations and paired own/crossed reads. Verify the disposable fixture and cleanup on scratch PostgreSQL.
 - [ ] Execute the mounted protected Student Internship packet. Six cases still need separate outage or companion fixture coverage.
 - [x] Verify all eight signed-in payroll cases on protected `f5b37da` with exact fixture cleanup.
@@ -918,4 +918,4 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Replay four pinned public questions on exact protected `0c0ac77`. Verify the OneDrive reply recovered on check three, pursued another lead and kept its verified partial. Confirm both archive languages.
 - [x] Correct the library source selection and response language in controlled real-handler tests, including independently readable primary contents and human-verification fallback.
 - [x] Follow another eligible publisher after a known notice sign-in gate and an empty targeted search. Verify exact recovery, exhausted search, deadline, and non-gated controls.
-- [ ] Replay the exact library and gated publisher changes on protected Preview.
+- [x] Replay four public questions on exact protected `0b88ca1`. Confirm primary library links, English fallback, further search when sources are unreadable, the OneDrive partial retained after three checks, and both archived-page languages. The gated-publisher recovery branch also passed its controlled live-handler conditions.
