@@ -1,4 +1,5 @@
 import {internshipAssistantPlan,internshipSelectedTools} from './internshipAssistantPlan.js';
+import {parseInternshipEvidence} from './internshipEvidenceContract.js';
 import {studentLeaveAssistantPlan,studentLeaveSelectedTools} from './studentLeaveAssistantPlan.js';
 import {studentLeaveBasePath,studentLeaveFieldNames} from './studentLeaveEvidenceIntent.js';
 import {isDeepStrictEqual} from 'node:util';
@@ -845,7 +846,7 @@ async function answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadl
   return {...result,answer:unavailable+'\n\n['+title+']('+urls.charges+')',views:[],grounding:grounding(true),activity:[...observed.values()]};
 }
 
-export async function answerAccountWithVerification({question,snapshot,history=[],route='',loadSnapshot,onProgress,deadline=Date.now()+55000,supplementalReaders={},correlationId,leavePlan,internshipPlan,onProviderCompleted,onNativeLeaveVerified}) {
+export async function answerAccountWithVerification({question,snapshot,history=[],route='',loadSnapshot,onProgress,deadline=Date.now()+55000,supplementalReaders={},correlationId,leavePlan,internshipPlan,onProviderCompleted,onNativeLeaveVerified,onNativeInternshipVerified}) {
   if(snapshot.feeBalanceScope===true&&snapshot.profile?.userId&&isOwnFeeBalanceQuestion(question)&&!leavePlan&&!internshipPlan)
     return answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadline,onProgress,correlationId});
   // Capture the complete route, including its query; native account routing below
@@ -1001,6 +1002,43 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       });
       return {...checked,suggestedQuestions:[],views:checked.views??[],grounding:{source:'account',webSearched:false,
         checkedAt:snapshot.checkedAt,degraded:checked.verification?.status!=='verified'},activity:[...new Map(observed.map(step=>[step.kind,step])).values()]};
+    }
+  }
+  if(internshipPlan?.selection&&!internshipPlan.reason&&!internshipPlan.hasOtherQuestion
+    &&!internshipPlan.feeQuestion&&!internshipPlan.classQuestion&&!internshipPlan.gradeQuestion
+    &&activeTools.length===1&&activeTools[0]==='internshipRecords'){
+    let results=firstSupplemental;
+    const render=()=>{
+      if(results.length!==1)return null;
+      const [result]=results,payload=parseInternshipEvidence(result);
+      if(!payload?.complete||!isDeepStrictEqual(payload.selection,internshipPlan.selection))return null;
+      try{
+        const answer=formatSupplementalAccountAnswers(results,{question});
+        return answer.status==='answered'&&answer.complete&&answerLinksSupported(answer.answer,[result.evidence])?answer:null;
+      }catch(error){if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;return null;}
+    };
+    const initial=render();
+    if(initial){
+      const zh=supplementalAnswerLanguage(question)==='zh-TW';
+      const checked=await runAnswerVerification({question,deadline,initialAnswer:initial,onProgress:emit,
+        async loadEvidence({attempt}){
+          if(attempt>1)results=await readSupplemental(snapshot,attempt);
+          return results.map(result=>result.evidence);
+        },
+        verify({candidate,evidence}){
+          const expected=evidence.length===1&&evidence[0]===results[0]?.evidence?render():null;
+          if(!expected||!isDeepStrictEqual(candidate,expected))return {ok:false,reason:'evidence_unavailable'};
+          emit({kind:'internship-evidence-check',label:zh?'核對已儲存的實習紀錄':'Verified your saved internship records',
+            detail:zh?'逐筆核對欄位及其紀錄頁面。':'Matched each displayed field and the page link to the selected records.',status:'complete'});
+          return {ok:true};
+        },
+        repair:async()=>render()??{status:'abstained',answer:'',citations:[],views:[]},
+      });
+      const verified=checked.verification?.status==='verified';
+      if(verified)onNativeInternshipVerified?.();
+      return {...checked,views:checked.views??[],suggestedQuestions:[],
+        grounding:{source:'account',webSearched:false,checkedAt:snapshot.checkedAt,degraded:!verified},
+        activity:[...new Map(observed.map(step=>[step.kind,step])).values()]};
     }
   }
   if(leavePlan?.deterministicRead&&activeTools.length===1&&activeTools[0]==='leaveRecords'

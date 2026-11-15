@@ -8,7 +8,7 @@ const route=/^\/school-affairs\/services\/internship\/(?:contract|self_assessmen
 const keyPattern=/^[^\s\p{Cc}]{40,4096}$/u;
 const requestKeys=['question','route','history','stream','consentedResearchUse'];
 const scopeKeys=['ownerId','runId','origin','sourceRevision','nonce'];
-const receiptKeys=['binding','correlationId','attempts','modelOperations','responseDigest'];
+const receiptKeys=['binding','correlationId','attempts','modelOperations','verificationMethod','responseDigest'];
 const modelOperationsAllowed=new Set(['compose_grounded_answer','answer_evidence_review','correct_grounded_answer']);
 export const internshipObservationHeader='X-Internship-Observation';
 
@@ -61,7 +61,7 @@ export function openInternshipObservation({body,identity,correlationId},env=proc
     ||!Number.isSafeInteger(issuedAt)||!Number.isSafeInteger(now)||issuedAt>now+5000||now-issuedAt>120000
     ||declaredDigest!==requestDigest(scope.origin,request))return null;
   const attempts=[],modelOperations=[];
-  let invalid=false;
+  let invalid=false,nativeChecked=false;
   return {
     async observe(reader){
       const reads=[],attempt={reads,evidenceDigest:null};
@@ -78,13 +78,19 @@ export function openInternshipObservation({body,identity,correlationId},env=proc
       return result;
     },
     modelCompleted(operation){
-      if(!modelOperationsAllowed.has(operation)||modelOperations.length>=maxAnswerVerificationChecks*2)invalid=true;
+      if(nativeChecked||!modelOperationsAllowed.has(operation)||modelOperations.length>=maxAnswerVerificationChecks*2)invalid=true;
       else modelOperations.push(operation);
+    },
+    nativeCheckCompleted(){
+      if(nativeChecked||modelOperations.length)invalid=true;
+      else nativeChecked=true;
     },
     finish(payload,expectsRead){
       if(invalid||expectsRead!==Boolean(attempts.length)||!expectsRead&&modelOperations.length
+        ||nativeChecked&&(!expectsRead||attempts.some(attempt=>attempt.reads.length!==1))
         ||attempts.some(attempt=>!sha.test(attempt.evidenceDigest)))return null;
-      return seal('response',{binding,correlationId,attempts,modelOperations,
+      const verificationMethod=nativeChecked?'native-exact':expectsRead?'model':'none';
+      return seal('response',{binding,correlationId,attempts,modelOperations,verificationMethod,
         responseDigest:internshipObservationDigest({statusCode:200,body:payload})},key);
     },
   };
@@ -100,6 +106,10 @@ export function verifyInternshipObservation({receipt,binding,correlationId,body}
     ||observed.attempts.some(row=>!exact(row,['reads','evidenceDigest'])||!sha.test(row.evidenceDigest)
       ||!Array.isArray(row.reads)||row.reads.length>1||row.reads.some(digest=>!sha.test(digest)))
     ||!Array.isArray(observed.modelOperations)||observed.modelOperations.length>maxAnswerVerificationChecks*2
-    ||observed.modelOperations.some(operation=>!modelOperationsAllowed.has(operation)))return null;
+    ||observed.modelOperations.some(operation=>!modelOperationsAllowed.has(operation))
+    ||!['native-exact','model','none'].includes(observed.verificationMethod)
+    ||observed.verificationMethod==='none'&&(observed.attempts.length!==0||observed.modelOperations.length!==0)
+    ||observed.verificationMethod!=='none'&&observed.attempts.length===0
+    ||observed.verificationMethod==='native-exact'&&(observed.modelOperations.length!==0||observed.attempts.some(attempt=>attempt.reads.length!==1)))return null;
   return observed;
 }

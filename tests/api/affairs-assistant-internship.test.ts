@@ -36,14 +36,15 @@ async function invoke(handler:any,body:Body,host?:string){
   return captured;
 }
 
-async function exercise(suffix:string,{retry=false,unverifiable=false,observed=false,hosted=false}={}){
+async function exercise(suffix:string,{retry=false,unverifiable=false,observed=false,hosted=false,providerAbsent=false}={}){
   const row=rowFor(suffix);assert.ok(row,suffix);
   const {sourceRead,rows,requests,forbidden}=internshipNativeFixtureForCase(row);
   const companion=row.observationExpectation.companion;
   const originalFetch=globalThis.fetch,oldKey=process.env.OPENAI_API_KEY;
   const calls:string[]=[],model:string[]=[],errors:unknown[]=[],readDigests:string[]=[];
   let checked=0,lastDraft='',broadReads=0;
-  process.env.OPENAI_API_KEY='OFFLINE_PROVIDER_KEY';
+  if(providerAbsent)delete process.env.OPENAI_API_KEY;
+  else process.env.OPENAI_API_KEY='OFFLINE_PROVIDER_KEY';
   globalThis.fetch=async(input,init)=>{
     try{
       const url=new URL(String(input));
@@ -66,8 +67,14 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
           const projected=rows.filter((item:any)=>item.service_key==='internship'&&item.user_id===owner&&item.record_type===sourceRead.recordType)
             .map((item:any)=>({ ...Object.fromEntries(selected.map(key=>[key,key==='status'&&checked&&item.status==='filed'?'withdrawn':item[key]])),
               ...(review?{review_request_id:item.review_request_id,site_review:requests.find((request:any)=>request.id===item.review_request_id)??null}:{})}));
-          readDigests.push(internshipObservationDigest({method:'GET',url:url.href,ownerId:owner,available:projected.length,rows:projected}));
-          return Response.json(projected,{headers:{'content-range':projected.length?'0-'+(projected.length-1)+'/'+projected.length:'*/0'}});
+          // Exercise the existing model-verification path with a real capped
+          // projection. The exact renderer cannot attest a partial read.
+          const bounded=retry||unverifiable;
+          if(bounded)for(let index=projected.length;index<25;index++)projected.push({...projected[0],
+            id:'53010000-0000-4000-8000-'+String(800+index).padStart(12,'0'),title:'QA capped internship row '+index});
+          const available=bounded?26:projected.length;
+          readDigests.push(internshipObservationDigest({method:'GET',url:url.href,ownerId:owner,available,rows:projected}));
+          return Response.json(projected,{headers:{'content-range':projected.length?'0-'+(projected.length-1)+'/'+available:'*/0'}});
         }
         assert.ok(companion,'Unexpected independent reader');
         if(url.pathname==='/rest/v1/affairs_students'){
@@ -91,6 +98,7 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
       }
       assert.ok(sourceRead);
       assert.equal(url.origin,'https://api.openai.com');
+      assert.equal(providerAbsent,false,'An exact answer must never contact a model');
       const wire=JSON.parse(String(init?.body)),stage=wire.text.format.name,packet=JSON.parse(wire.input[0].content[0].text);
       model.push(stage);
       const tools=['internshipRecords',...(companion?[companion]:[])];
@@ -108,6 +116,7 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
         lastDraft=packet.answer;
         const paths=values.readState==='unavailable'?['/reason']:values.readState==='empty'?['/counts/available']
           :unverifiable?['/records/0/title']:Object.keys(values.records[0]).map(key=>'/records/0/'+key);
+        if(values.readState==='partial'&&!unverifiable)paths.push('/counts/omitted');
         const supported=!retry||checked>1;
         const claims=[{claim:'Saved internship facts',supported,evidenceId:'account:internshipRecords',jsonPaths:paths,quotes:[]}];
         if(companion==='charges')claims.push({claim:'Independent saved balance',supported,evidenceId:'account:charges',
@@ -162,6 +171,7 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
       assert.ok(observation,suffix+' returned '+result.status);
       assert.deepEqual(observation.attempts.flatMap(attempt=>attempt.reads),readDigests);
       assert.deepEqual(observation.modelOperations,model);
+      assert.equal(observation.verificationMethod,model.length?'model':sourceRead?'native-exact':'none');
       assert.equal(verifyInternshipObservation({...binding,body:{...result.body,answer:'Tampered'}},operatorKey),null);
       assert.doesNotMatch(Buffer.from(receipt!.split('.')[0],'base64url').toString('utf8'),/QA private|OFFLINE_|QA Harbor Analytics/iu);
     }
@@ -175,7 +185,7 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
 
 test('all four internship views verify literal own rows with exact local citations',async()=>{
   for(const suffix of ['contract-dates','self-assessment-reflection','company-review-zh','directory-personal']){
-    const {result,calls,model}=await exercise(suffix);
+    const {result,calls,model}=await exercise(suffix,{providerAbsent:true});
     const row=rowFor(suffix),fixture=internshipNativeFixtureForCase(row);
     assert.equal(result.status,200,suffix);
     assert.equal(result.body.verification?.status,'verified',suffix);
@@ -183,8 +193,25 @@ test('all four internship views verify literal own rows with exact local citatio
     assert.equal(result.body.views[0].url,row.route);
     for(const entry of fixture.sourceRead!.records)assert.ok(result.body.answer.includes(entry.title));
     assert.deepEqual(calls,['/rest/v1/affairs_service_records']);
-    assert.deepEqual(model,['answer_evidence_review']);
+    assert.deepEqual(model,[]);
+    assert.ok(result.body.activity.some((step:any)=>step.kind==='internship-evidence-check'&&step.status==='complete'));
     if(suffix==='directory-personal')assert.match(result.body.answer,/directory lists company rows saved to your account/iu);
+  }
+});
+
+test('all exact standalone Internship controls pass their record-scoped rubric without a provider',async t=>{
+  t.mock.timers.enable({apis:['Date'],now:new Date(internshipNativeManifest.asOf)});
+  const exact=bank.filter(row=>row.auth!=='anonymous'&&!row.observationExpectation.companion
+    &&row.observationExpectation.read&&row.observationExpectation.read.state!=='unavailable');
+  assert.equal(exact.length,17);
+  for(const row of exact){
+    t.mock.timers.setTime(Date.now()+61_000);
+    const {result,calls,model}=await exercise(row.id.replace(/^account:internship-native-/u,''),{providerAbsent:true});
+    assert.deepEqual(calls,['/rest/v1/affairs_service_records']);
+    assert.deepEqual(model,[]);
+    assert.equal(result.body.verification.attempts,1);
+    const graded=gradeCase(row,{statusCode:result.status,fixtureKey:row.fixtureKey,body:result.body,events:result.body.activity,execution:'deterministic'});
+    assert.equal(graded.passed,true,row.id+' '+JSON.stringify(graded.failures));
   }
 });
 
