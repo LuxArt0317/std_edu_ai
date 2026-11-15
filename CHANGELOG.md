@@ -1,6 +1,10 @@
 # Changelog
 ## Unreleased
 
+- Verify requested stu.best task, nickname, tracker, service-request and announcement changes before showing the confirmation button. Check the action receipt before showing success. [#100]
+- Answer saved Moodle assignment-list questions from the caller’s exact list and selected course. [#100]
+- Preserve exact Student Leave record IDs and bind offline requests to independent ownership and reader observations. [#100]
+
 - Answer Moodle assignment-list questions from the signed-in course or My assignments view. Verify saved deadlines and tracker status without reading submitted files or grade reports. [#100]
 
 - Answer route-specific School Affairs menu questions from local directory entries. Direct students to their own browser for Custom menu links. [#100]

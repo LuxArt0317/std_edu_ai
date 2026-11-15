@@ -616,3 +616,7 @@ The candidate adds caller-bound list and exact material answers on the protected
 ### Combined assistant evidence [Issue #100]
 
 The combined candidate includes twelve native Moodle resource cases, thirty native internship cases, twenty-two static menu cases, the Custom menu browser boundary, and the two-owner leave fixture lifecycle. The fixture implementation was checked offline with the real scoped handlers and injected transaction transport. The release gate still requires pinned, authorized Preview observations, independent review and exact cleanup of any hosted fixtures.
+
+### Action and Moodle list candidate [Issue #100]
+
+Protected base `e0f0f4b` passed GitHub Quality and the hosted sign-in return checks. The follow-up contains explicit action staging and receipt validation, the exact Moodle assignment-list reader, and Student Leave UUID and offline observation corrections. Review the frozen candidate with the QA evidence. The protected runner must authenticate against the exact release before live model or fixture work.

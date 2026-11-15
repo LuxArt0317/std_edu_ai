@@ -298,3 +298,7 @@ Moodle materials, all four internship views, 23 menu paths, and the Student Leav
 ### Moodle assignment-list verification [Issue #100]
 
 On exact combined freeze d83c25b7, both assignment lists are verified using caller-owned rows, exact counts and bounded output. Twenty-five native cases passed offline through the actual endpoint and an independent grader. Four older fixture cases remain registered for rebinding. Hosted data, signed-in browser and live acceptance remain pending.
+
+### Reviewed action and assignment-list candidate [Issue #100]
+
+The previous combined Preview `e0f0f4b` is Ready and GitHub Quality passed. The local follow-up verifies current-turn action proposals, authenticated confirmation, exact Moodle list scope and Student Leave UUID identity. Controlled tests and the compiled confirmation flow passed. The latest inventory contains 1,240 questions and 28 paths without semantic cases. The four reported prompts still need authenticated Preview replay.

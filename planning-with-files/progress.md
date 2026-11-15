@@ -74,3 +74,5 @@
 - 2026-11-15 [#100] Integrated the reviewed native internship and menu lanes together with the two-owner leave fixture. Added the browser-local Custom menu case to the full denominator, corrected cross-suite registry expectations, and moved detailed internship evidence under the QA documentation tree.
 
 - 2026-11-15 [#100] Traced both Moodle assignment lists to their real tracker tables and visibility rules. Verified 25 native answers through the actual endpoint with synthetic authentication and controlled read observations. Retained the four prior cases as setup-blocked for fixture rebinding.
+
+- 2026-11-15 [#100] Verified Ready and successful CI for the combined Preview. Reproduced off-target action proposals. Replaced model-supplied action fields with current-turn intent, checked minimal signed-in state and verified confirmation receipts in Chromium. Integrated Moodle lists and Student Leave ID fixes with controlled request observations.

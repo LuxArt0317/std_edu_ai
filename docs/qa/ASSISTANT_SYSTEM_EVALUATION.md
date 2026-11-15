@@ -251,3 +251,13 @@ cleanup.
 ### Native Moodle assignment lists
 
 The default evaluator includes 25 questions about the course assignment list and My assignments. The independent observations use only the two owner-qualified tracker relations. The tests cover open, submitted, graded and completed tracker states, exact Taipei day boundaries, count-only output, pagination limits and data failures. The main runner records the native fixtures and four legacy rebindings as unexecuted until trusted live request observations are available.
+
+## Reviewed actions, Moodle lists and Student Leave observations
+
+The assistant selects a single requested change from the original current-turn text. Controlled endpoint checks grade all eight existing proposal and target-boundary cases. They cover explicit consent, literal fields, the exact caller, task-title ambiguity, personal DTM status, and the database administrator check. The compiled browser shows no write before confirmation, withholds an unmatched receipt, and retries with the original operation ID.
+
+The Moodle assignment-list packet independently grades 25 signed-in and guest outcomes. It checks deadlines and tracker statuses from the selected local account or course list. File submission and grade report claims require their own sources. Four earlier cases remain visible as fixture rebind obligations.
+
+The Student Leave observer verifies 18 data cases and 14 boundary cases with controlled two-owner transport. It binds the current request and exact course/form selectors to the observed reader calls and projected results. This caught a UUID parsing bug. A complete offline observation records no live answer result.
+
+The combined candidate passed 1,717 API and source checks, 1,096 offline evaluator checks and 541 unit tests. Build, TypeScript, lint, handoff and dependency audit finished successfully. The inventory is 1,240 questions, 94 services, 41 tools and 395 public page captures. There are 28 routes without a semantic case. Pinned live transcript, real browser acceptance and hosted fixture readback remain open.
