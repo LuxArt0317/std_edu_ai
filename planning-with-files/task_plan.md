@@ -993,5 +993,7 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Rerun the absent DTM and academic browser fixtures in focused local Chromium and record the 17 observed record checks separately from the prior full matrix.
 - [x] Scope Academic Services 13-1 exact semester and course selection, verify all 11 frozen handler cases, and exercise six against isolated PostgreSQL.
 - [x] Bind a 16-case clearance status packet without creating shared terms or periods. Verify isolated PostgreSQL and an unmodified pre-existing term state.
-- [ ] Run the status and notes clearance packet on exact protected `639f81b`. Run positive window cases after a suitable isolated fixture is available.
+- [x] Execute the status and notes packet on exact protected `639f81b`. Preserve the answer failures, matched data and cleanup proof.
+- [x] Verify the narrowed exact clearance recovery against the unchanged 16-case grader and actual isolated PostgreSQL without provider calls.
+- [ ] Replay the typed clearance recovery on the exact protected app. Run positive window cases after a suitable isolated fixture is available.
 - [ ] Mount and replay outstanding Academic Services 13-1 cases on the exact protected app.
