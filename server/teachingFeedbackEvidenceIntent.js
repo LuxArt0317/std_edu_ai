@@ -47,7 +47,7 @@ function routeScope(route){
     const path=url.pathname.replace(/\/$/u,''),view=Object.keys(teachingFeedbackPaths).find(key=>teachingFeedbackPaths[key]===path)||null;
     if(view&&url.search||[...url.searchParams.keys()].some(key=>/^(?:user_?id|owner|token|view)$/iu.test(key)))return {valid:false,view};
     if(Object.values(teachingFeedbackPaths).some(base=>path.startsWith(base+'/')&&path!==base+'/notes'))return {valid:false,view};
-    return {valid:true,view};
+    return {valid:true,view,path};
   }catch{return {valid:false,view:null};}
 }
 function views(value,contextual=false){
@@ -168,6 +168,21 @@ export function teachingFeedbackLookupContext(question,route='',history=[]){
     commentRequested:!reason&&requestedViews.includes('immediate')&&commentsRequested,unavailableDetails,reason,...(!reason&&course.course?{course:course.course}:{})}):null;
   return Object.freeze({selection,question:nativeQuestion,otherQuestion:otherParts.join('\n'),foreign:stoppedForeign,excluded,
     navigation:Object.freeze([...guides].filter(view=>!states.has(view)))});
+}
+/** Clarify an ambiguous reference without treating chat prose or the active
+ * page as consent to query personal records. */
+export function teachingFeedbackClarificationReason(question,route,history,context=teachingFeedbackLookupContext(question,route,history)){
+  if(context.selection||context.excluded||context.foreign||context.navigation.length)return null;
+  const current=routeScope(route);
+  if(!current.valid)return null;
+  const text=clean(question).replace(/[.!?。！？]+$/u,'').replace(/\s+/gu,' ');
+  if(Object.values(teachingFeedbackPaths).some(path=>current.path===path+'/notes')&&tracker.test(text)&&views(text).length
+    &&/^(?:what (?:reference|note) did i save|which reference did i save|我(?:儲存|保存)了什麼(?:備註|筆記))/iu.test(text))return 'tracking_note';
+  if(current.view&&/^(?:(?:what(?:['’]s| is)|how is) (?:the )?weather(?: today| tomorrow| now)?|今天(?:的)?天氣如何|天氣怎麼樣)$/iu.test(text))
+    return 'weather_location';
+  if(!/^(?:what (?:comment|remark) did i (?:save|write)|我(?:儲存|寫)了什麼(?:留言|評語))$/iu.test(text)||!Array.isArray(history))return null;
+  return history.slice(-6).some(item=>['user','assistant'].includes(item?.role)&&views(clean(item.content)).length)
+    ?'saved_comment_reference':null;
 }
 export function selectTeachingFeedbackEvidence(question,route='',history=[]){return teachingFeedbackLookupContext(question,route,history).selection;}
 export function teachingFeedbackSurveyPresentation(question){

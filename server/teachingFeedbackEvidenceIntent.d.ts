@@ -11,6 +11,9 @@ export type TeachingEvidenceSelection={
 };
 export type TeachingEvidenceContext={readonly selection:TeachingEvidenceSelection|null;readonly question:string;readonly otherQuestion:string;readonly foreign:boolean;readonly excluded:boolean;readonly navigation:readonly TeachingEvidenceView[]};
 export function teachingFeedbackLookupContext(question:unknown,route?:unknown,history?:unknown):TeachingEvidenceContext;
+export type TeachingFeedbackClarificationReason='tracking_note'|'weather_location'|'saved_comment_reference';
+export function teachingFeedbackClarificationReason(question:unknown,route?:unknown,history?:unknown,context?:TeachingEvidenceContext):
+  TeachingFeedbackClarificationReason|null;
 export function selectTeachingFeedbackEvidence(question:unknown,route?:unknown,history?:unknown):TeachingEvidenceSelection|null;
 export function exactTeachingFeedbackRead(context:TeachingEvidenceContext):TeachingEvidenceSelection|null;
 export function teachingFeedbackPairedStatus(question:unknown):boolean;

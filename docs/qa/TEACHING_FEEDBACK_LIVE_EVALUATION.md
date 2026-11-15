@@ -86,9 +86,11 @@ failures retain their original evaluation requirements.
 
 ### Original teaching-feedback questions in scratch PostgreSQL
 
-Twenty-nine unchanged original cases run through the actual assistant handler and the migrated PostgreSQL RPC. These cover survey status, course completion, dates, phase comparison, Traditional Chinese, immediate status and timestamps, literal comments, survey exclusion, separate views, review status versus delivery, empty records, navigation, caller denials, and unsupported submissions. The harness pins its test-process clock inside the authored midterm-open and final-scheduled interval. It checks the exact caller-bound RPC requests, raw response order, typed projection counts and fields, the independent answer rubric, and unchanged stored rows. The two outage cases inject an HTTP 503 for the selected failed transport only. A healthy sibling read uses the migrated SQL. The current-subject and year exclusion case uses SQL under the caller role with no teaching RPC in the observed request. Those three cases exercise the normal verification path through a controlled reviewer transport bound to the observed source fields. The other 26 use deterministic local verification or zero-read guidance. Live model calls, external network, assistant writes and public research are outside this replay.
+Thirty-nine of the forty original prompts pass their unchanged answer rubrics against the actual assistant handlers in the scratch replay. The replay covers survey state, completion, windows and phase comparison, immediate status, timestamps and opt-in comments, separate and mixed sources, explicit exclusions, access boundaries, navigation, empty results, and controlled outages. The four ambiguous or unrelated prompts and the signed-out prompt verify zero account reads. The harness pins time inside the authored survey interval. It validates caller-bound RPC arguments, raw order and records, typed projection counters, independent answer verdicts and unchanged stored rows.
 
-The remaining 11 original cases still need separate evidence. The signed-out handler provides a return link to the requested feedback page. The frozen anonymous case expects the bare login URL. Real PostgreSQL results for cap variants, a compatible current-enrollment fixture for the two mixed positive prompts, and the other untouched cases retain their original evaluation requirements. An isolated fixture setup check confirms that the native eligibility and current timetable share the same courses at the same campus date, while the unchanged mixed cases expect different course sets. These local runs do not establish deployed or live-provider results.
+The two outage cases inject an HTTP 503 for the selected failed transport only. Healthy sibling reads use PostgreSQL. Each cap scenario inserts one extra row beyond the native 50-survey, 100-feedback or 200-eligible-course limit and requires an unknown total. For the two mixed prompts, historical DB701/WS702 feedback retains its authored states, while the separate current timetable and immediate eligibility both contain CUR301/CUR302. The original offline fixture still exists. The scratch evaluator explicitly opts into this reviewed SQL scenario, with the original prompt, answer facts and rubric intact. Those two mixed cases, the exclusion with current subjects and year, the three cap cases and the two outages exercise the verifier with a controlled reviewer response referencing the observed evidence paths. All other replayed cases use deterministic verification or zero-read guidance.
+
+The remaining original exclusion-only case expects a record answer while providing no facts or exact-list criteria and barring record reads. It remains in the 40-case denominator. No live provider, external network, assistant writes or public research are used by the scratch replay.
 
 Use a locally installed PGlite runtime entry. The test skips without the explicit path and never downloads a package.
 
@@ -118,15 +120,12 @@ STU_TEACHING_TEST_PGLITE_ENTRY=/absolute/path/to/@electric-sql/pglite/dist/index
    - Survey state depends on the database clock; the fixed November/December
      2026 windows must be guarded before and after the request, or rebound with
      explicit independent expected state before evaluation.
-   - Immediate eligibility and current-subject companions both derive the
-     caller's enrolled current-term sections. The offline mixed fixtures use
-     DB701/WS702 for eligibility but CUR301/CUR302 for current subjects. They need
-     a consistent live fixture and reviewed companion golden; do not silently
-     trim either read to manufacture that mismatch.
-   - Native caps are 50 surveys, 200 eligible courses and 100 feedback rows. Cap
-     cases require real ordered data and honest unknown-total/omission semantics.
-     Deliberate read-failure cases need an approved failure-injection seam, not
-     fabricated unavailable responses. Both stay in the denominator if deferred.
+   - Preserve the reviewed scratch distinction between current enrollment and
+     historical feedback when authoring mixed hosted fixtures. Verify the same
+     current sections in the eligibility and timetable reads.
+   - Preserve the independently verified cap boundaries and raw ordering in a
+     hosted fixture. The controlled scratch outage replay does not mount a
+     hosted failure-injection seam.
 4. Add trusted request-bound observations. The current public response exposes
    tool events, not the raw native DTO or selected verification evidence. Bind
    server correlation, deployed revision, exact request and the fixture owner's

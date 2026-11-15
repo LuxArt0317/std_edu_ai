@@ -1,18 +1,18 @@
 import {teachingFeedbackPaths} from './teachingFeedbackContract.js';
 
 /** No private records are queried for navigation or access guidance. */
-export function teachingFeedbackGuide(question,{views=[],navigation=null,reason=null,signedIn=false,excluded=false}={}){
+export function teachingFeedbackGuide(question,{views=[],navigation=null,reason=null,signedIn=false,excluded=false,returnToService=true}={}){
   const zh=/[\p{Script=Han}]/u.test(question);
   const t=(en,zhText)=>zh?zhText:en;
   const result={status:'handoff',answer:'',citations:[],suggestedQuestions:[],grounding:{source:'directory',webSearched:false}};
   if(reason==='foreign_request')return {...result,answer:t('I can check teaching feedback saved to your own stu.best account. I can’t show another student’s records.','你可以查詢自己的 stu.best 教學意見。這裡沒有其他帳號的存取權限，因此無法查看其他學生的紀錄。')};
-  if(excluded)return {...result,answer:t('I skipped the teaching feedback records you asked me to leave out.','已略過你要求不要查詢的教學意見紀錄。')};
+  if(excluded)return {...result,status:'answered',answer:t('I did not read the teaching feedback records you asked me to leave out.','我沒有讀取你要求略過的教學意見紀錄。')};
   const navigationViews=Array.isArray(navigation)?navigation:navigation?[navigation]:[];
   const selected=Array.from(new Set(navigationViews.length?navigationViews:views)).filter(view=>Object.hasOwn(teachingFeedbackPaths,view));
   const direct=signedIn||navigationViews.length>0;
   const citations=selected.map(view=>{
     const path=teachingFeedbackPaths[view];
-    const url=direct?path:'/school-affairs/login?next='+encodeURIComponent(path);
+    const url=direct?path:'/school-affairs/login'+(returnToService?'?next='+encodeURIComponent(path):'');
     const title=view==='survey'
       ?direct?t('Open the teaching evaluation questionnaire','開啟教學意見問卷'):t('Sign in to check teaching evaluations','登入後查看教學意見問卷')
       :direct?t('Open immediate teaching feedback','開啟即時教學意見'):t('Sign in to check immediate teaching feedback','登入後查看即時教學意見');
@@ -30,4 +30,17 @@ export function teachingFeedbackGuide(question,{views=[],navigation=null,reason=
   const answer=[detail,...citations.map(({title,url})=>'['+title+']('+url+')')].filter(Boolean).join('\n\n');
   return {...result,status:navigationViews.length?'answered':reason==='ambiguous_selector'?'clarification':'handoff',
     answer:answer||t('Open School Affairs and choose the teaching feedback service you need.','請開啟校務系統並選擇要查詢的教學意見服務。'),citations};
+}
+
+export function teachingFeedbackClarification(question,reason){
+  const zh=/[\p{Script=Han}]/u.test(question);
+  const lines={
+    tracking_note:['Tracking notes and teaching evaluation records are separate. Which tracking note or reference do you mean?',
+      '追蹤筆記與教學評量紀錄分開保存。你指的是哪一筆追蹤筆記或參考資料？'],
+    weather_location:['Are you asking about the weather near Shu-Te University?','你是想查詢樹德科技大學附近的天氣嗎？'],
+    saved_comment_reference:['Which saved comment do you mean? Specify the course, service, or form you used.',
+      '你指的是哪一筆已儲存留言？請告訴我課程、服務或表單名稱。'],
+  };
+  return {status:'clarification',answer:lines[reason][zh?1:0],citations:[],suggestedQuestions:[],
+    grounding:{source:'directory',webSearched:false}};
 }

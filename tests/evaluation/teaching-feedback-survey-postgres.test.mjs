@@ -4,6 +4,7 @@ import {isAbsolute} from 'node:path';
 import {test} from 'node:test';
 import {pathToFileURL} from 'node:url';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
+import {createResearchAssistantHandler} from '../../server/researchAssistantHandler.js';
 import {readTeachingFeedbackEvidence} from '../../server/accountTeachingFeedbackEvidence.js';
 import {buildTeachingFeedbackNativeCases,gradeTeachingFeedbackNativeCase,teachingFeedbackNativeFixtureForCase} from './teaching-feedback-native-cases.mjs';
 
@@ -12,7 +13,8 @@ const idPrefix='account:teaching-native-';
 const ids=['survey-status','course-completion','survey-windows','survey-phases','survey-zh',
   'immediate-status','immediate-comment','without-comment','immediate-times','both-views','history-followup','exclude-survey',
   'review-not-delivery','survey-link','immediate-link','anonymous-responses','manager-results','submit-survey','submit-feedback',
-  'foreign-survey','foreign-immediate','foreign-postfix','foreign-zh','read-failure','one-view-failure','markup-comment','empty-survey','empty-immediate','excluded-native'];
+  'foreign-survey','foreign-immediate','foreign-postfix','foreign-zh','read-failure','one-view-failure','markup-comment','empty-survey','empty-immediate','excluded-native','mixed-before','mixed-after','survey-cap','feedback-cap','eligible-cap',
+  'stale-history','assistant-history','generic-note','unrelated-on-page','anonymous'];
 const frozen=buildTeachingFeedbackNativeCases();
 const cases=ids.map(id=>frozen.find(row=>row.id===idPrefix+id));
 const migrations=['20261105010000_school_affairs_workspace.sql','20261105020000_dtm_sample_workspace.sql',
@@ -31,13 +33,16 @@ function observeEvidence(result,row,fixture){
   const payload=JSON.parse(result.evidence.content);
   assert.equal(payload.collection,'teachingFeedback');
   assert.deepEqual(payload.selection,{views:row.readExpectation.views,commentRequested:row.readExpectation.comments,course:row.readExpectation.courseFilter});
-  assert.equal(payload.complete,row.readExpectation.failed.length===0);
+  assert.equal(payload.complete,fixture.evidence.every(source=>source.complete));
   assert.deepEqual(payload.views.map(value=>value.view),row.readExpectation.views);
-  const counts=(returned,matching,nativeLimit)=>({returned,matching,included:matching,omitted:0,total:returned,totalLowerBound:returned,nativeLimit,capReached:false});
+  const counts=(returned,matching,included,nativeLimit,capReached=returned===nativeLimit)=>({
+    returned,matching,included,omitted:matching-included,total:capReached?null:returned,totalLowerBound:returned,nativeLimit,capReached,
+  });
   return payload.views.map((value,index)=>{
     const raw=fixture.reads[index].result,golden=fixture.evidence[index];
     const survey=value.view==='survey';
-    assert.equal(value.readState,golden.state==='ok'&&row.fixtureKey.endsWith(':empty')?'empty':golden.state);
+    const state=golden.state==='unavailable'?'unavailable':golden.capReached?'partial':row.fixtureKey.endsWith(':empty')?'empty':'ok';
+    assert.equal(value.readState,state);
     assert.equal(value.complete,golden.complete);
     if(value.readState==='unavailable'){
       assert.equal(value.reason,'read_failed');
@@ -49,15 +54,16 @@ function observeEvidence(result,row,fixture){
         capReached:false,omitted:{records:0,eligibleCourses:0},complete:false};
     }
     assert.deepEqual(value.counts,survey?{
-      surveys:counts(raw.surveys.length,golden.records.length,50),
-      courseCompletions:counts(raw.surveys.flatMap(item=>item.courses).length,golden.records.flatMap(item=>item.courses).length,null),
+      surveys:counts(raw.surveys.length,golden.records.length,value.surveys.length,50),
+      courseCompletions:counts(raw.surveys.flatMap(item=>item.courses).length,golden.records.flatMap(item=>item.courses).length,
+        value.surveys.flatMap(item=>item.courses).length,null,raw.surveys.length===50),
     }:{
-      feedback:counts(raw.feedback.length,golden.records.length,100),
-      eligibleCourses:counts(raw.courses.length,golden.eligibleCourses.length,200),
+      feedback:counts(raw.feedback.length,golden.records.length,value.feedback.length,100),
+      eligibleCourses:counts(raw.courses.length,golden.eligibleCourses.length,value.courses.length,200),
     });
     if(survey)assert.equal(result.surveyIdentityUnambiguous,true);
-    // The oracle records whether the RPC succeeded. A successful empty SQL result is still an RPC success.
-    return {view:value.view,state:value.readState==='empty'?'ok':value.readState,
+    // The oracle describes raw RPC success. Projection can be empty or partial.
+    return {view:value.view,state:'ok',
       records:survey?value.surveys.map(surveyTimes):value.feedback.map(feedbackTimes),eligibleCourses:survey?[]:value.courses,
       nativeCounts:{surveys:survey?value.counts.surveys.returned:0,feedback:survey?0:value.counts.feedback.returned,
         eligibleCourses:survey?0:value.counts.eligibleCourses.returned},
@@ -159,7 +165,9 @@ test('unchanged teaching questions use real PostgreSQL records and the actual as
     (select count(*) from public.affairs_agent_audit) as audit`)).rows[0];
   let observation,currentCase,fixture,mode='normal';
   const blocked=[];
-  let reviews=[],companionReads=[],hasCompanions=false;
+  let reviews=[],companionReads=[],hasCompanions=false,capCase=false;
+  const mixedCases=frozen.filter(item=>['mixed-before','mixed-after'].some(name=>item.id===idPrefix+name));
+  const mixedSeed=teachingFeedbackNativeFixtureForCase(mixedCases[0],{sqlScenario:true});
   globalThis.fetch=async(url,init)=>{
     const target=new URL(String(url)),auth=new Headers(init.headers);
     if(hasCompanions&&target.origin===origin&&init.method==='GET'){
@@ -200,31 +208,42 @@ test('unchanged teaching questions use real PostgreSQL records and the actual as
       })).sort((left,right)=>left.code.localeCompare(right.code));
       return Response.json(rows,{headers:{'content-range':rows.length?'0-'+(rows.length-1)+'/'+rows.length:'*/0'}});
     }
-    if(target.href==='https://api.openai.com/v1/responses'&&(currentCase.readExpectation.failed.length||hasCompanions)){
+    if(target.href==='https://api.openai.com/v1/responses'&&(currentCase.readExpectation.failed.length||hasCompanions||capCase)){
       const request=JSON.parse(init.body),stage=request.text.format.name;
       reviews.push(stage);
       assert.equal(stage,'answer_evidence_review');
       const packet=JSON.parse(request.input[0].content[0].text);
-      assert.deepEqual(packet.evidence.map(source=>source.id),hasCompanions?
-        ['account-scope','account:profile','account:courses']:['account-scope','account:teachingFeedback']);
-      const source=packet.evidence[1];
+      assert.deepEqual(packet.evidence.map(source=>source.id),['account-scope',
+        ...(hasCompanions?['account:profile','account:courses']:[]),
+        ...(currentCase.readExpectation.views.length?['account:teachingFeedback']:[]),
+      ]);
+      const source=packet.evidence.find(item=>item.id==='account:teachingFeedback');
       const claims=hasCompanions?[
         {claim:'Your saved year level is '+observation.companions.profile.yearLevel+'.',
-          evidenceId:source.id,jsonPaths:['/records/student/yearLevel'],quotes:[],supported:true},
+          evidenceId:'account:profile',jsonPaths:['/records/student/yearLevel'],quotes:[],supported:true},
         ...JSON.parse(packet.evidence[2].content).records.map((record,index)=>({claim:record.code+' is a current subject.',
-          evidenceId:packet.evidence[2].id,jsonPaths:['/records/'+index+'/code'],quotes:[],supported:true})),
-      ]:JSON.parse(source.content).views.flatMap((view,index)=>{
+          evidenceId:'account:courses',jsonPaths:['/records/'+index+'/code'],quotes:[],supported:true})),
+      ]:[];
+      claims.push(...(source?JSON.parse(source.content).views.flatMap((view,index)=>{
         const base='/views/'+index;
         if(view.readState==='unavailable')return [{
           claim:view.view==='survey'?'The teaching evaluation survey could not be read.':'Immediate teaching feedback could not be read.',
           evidenceId:source.id,jsonPaths:[base+'/reason'],quotes:[],supported:true,
         }];
-        assert.equal(view.view,'immediate');
+        if(view.view==='survey'){
+          assert.equal(view.counts.surveys.capReached,true);
+          return [{claim:'The SQL read returned '+view.counts.surveys.returned+' surveys and the total is unknown.',
+            evidenceId:source.id,jsonPaths:[base+'/counts/surveys/returned',base+'/counts/surveys/total',base+'/surveys/0/state'],quotes:[],supported:true}];
+        }
+        if(view.counts.eligibleCourses.capReached)return [{claim:'The SQL read returned '+view.counts.eligibleCourses.returned+' eligible courses and the total is unknown.',
+          evidenceId:source.id,jsonPaths:[base+'/counts/eligibleCourses/returned',base+'/counts/eligibleCourses/total',base+'/courses/0/code'],quotes:[],supported:true}];
+        if(view.counts.feedback.capReached)return [{claim:'The SQL read returned '+view.counts.feedback.returned+' feedback records and the total is unknown.',
+          evidenceId:source.id,jsonPaths:[base+'/counts/feedback/returned',base+'/counts/feedback/total',base+'/feedback/0/status'],quotes:[],supported:true}];
         return view.feedback.map((record,row)=>({
           claim:record.code+' saved status: '+record.status+'.',evidenceId:source.id,
           jsonPaths:[base+'/feedback/'+row+'/status'],quotes:[],supported:true,
         }));
-      });
+      }):[]));
       return Response.json({status:'completed',output:[{content:[
         {type:'output_text',text:JSON.stringify({supported:true,answersQuestion:true,claims})},
       ]}]});
@@ -246,6 +265,56 @@ test('unchanged teaching questions use real PostgreSQL records and the actual as
     return Response.json(value);
   };
   const studentId=(await db.query('select id from public.affairs_students where user_id=$1',[owner])).rows[0].id;
+  const enroll=sectionId=>db.query('insert into public.affairs_enrollments(student_id,section_id) values($1,$2)',[studentId,sectionId]);
+  const insertFeedback=row=>db.query(`insert into public.affairs_teaching_feedback
+    (id,user_id,section_id,comment,status,submitted_at,reviewed_at,request_id)
+    values(coalesce($1,gen_random_uuid()),$2,$3,$4,$5,$6,$7,gen_random_uuid())`,
+  [row.id??null,owner,row.sectionId,row.comment,row.status,row.submittedAt,row.reviewedAt]);
+  const insertTerm=async(label,starts='2026-09-01',ends='2027-01-31',id=null)=>(await db.query(`
+    insert into public.affairs_terms(id,code,label,starts_on,ends_on)
+    values(coalesce($1,gen_random_uuid()),$2,$2,$3,$4) returning id`,[id,label,starts,ends])).rows[0].id;
+  const insertSection=async(row,termId)=>{
+    let course=(await db.query('select id,title from public.affairs_courses where code=$1',[row.code])).rows[0];
+    if(!course)course=(await db.query('insert into public.affairs_courses(code,title,credits,program_id) values($1,$2,3,$3) returning id,title',
+      [row.code,row.course,program])).rows[0];
+    assert.equal(course.title,row.course);
+    return (await db.query(`insert into public.affairs_sections(id,course_id,term_id,section_code,instructor,weekday,starts_at,ends_at,room)
+      values(coalesce($1,gen_random_uuid()),$2,$3,$4,'Scratch instructor',2,'10:00','12:00','Scratch classroom') returning id`,
+    [row.id??null,course.id,termId,row.section])).rows[0].id;
+  };
+  const seedCaps=async(family,data)=>{
+    await db.query('delete from public.affairs_enrollments where student_id=$1',[studentId]);
+    await db.query('delete from public.affairs_teaching_feedback where user_id=$1',[owner]);
+    if(family==='survey-cap'){
+      const extra={...data.survey.surveys[0],id:null,termId:null,term:'QA older capped survey',opensAt:'2026-10-01T00:00:00Z',
+        closesAt:'2026-10-31T00:00:00Z',courses:[{...data.survey.surveys[0].courses[0],id:null,completed:false}]};
+      for(const survey of [...data.survey.surveys,extra]){
+        const termId=await insertTerm(survey.term,undefined,undefined,survey.termId);
+        const surveyId=(await db.query(`insert into public.affairs_teaching_surveys
+          (id,term_id,phase,questions,opens_at,closes_at,version,released)
+          values(coalesce($1,gen_random_uuid()),$2,$3,$4,$5,$6,$7,$8) returning id`,
+        [survey.id,termId,survey.phase,survey.questions,survey.opensAt,survey.closesAt,survey.version,survey.released])).rows[0].id;
+        for(const course of survey.courses){
+          const sectionId=await insertSection(course,termId);
+          await enroll(sectionId);
+          if(course.completed)await db.query(`insert into private.affairs_teaching_survey_completions(user_id,survey_id,section_id,request_id)
+            values($1,$2,$3,gen_random_uuid())`,[owner,surveyId,sectionId]);
+        }
+      }
+      return;
+    }
+    const immediate=data.immediate;
+    if(family==='feedback-cap'){
+      await db.query("update public.affairs_terms set ends_on='2027-01-31' where id=$1",[midterm.termId]);
+      for(const course of immediate.courses)await enroll(course.id);
+      for(const feedback of immediate.feedback)await insertFeedback(feedback);
+      await insertFeedback({...immediate.feedback[0],id:null,submittedAt:'2026-11-12T01:00:00Z'});
+      return;
+    }
+    const extra={...immediate.courses[0],id:null,code:'ZZ-OVER-CAP',course:'QA course past the limit'};
+    for(const course of [...immediate.courses,extra])await enroll(await insertSection(course,midterm.termId));
+    for(const feedback of immediate.feedback)await insertFeedback(feedback);
+  };
   const handler=createAffairsAssistantHandler({
     verifyToken:async candidate=>{
       assert.equal(candidate,token);
@@ -261,35 +330,35 @@ test('unchanged teaching questions use real PostgreSQL records and the actual as
       return result;
     }},
   });
+  const guest=createResearchAssistantHandler();
   for(const [index,row] of cases.entries())await t.test(row.id,async()=>{
     // Keep each request outside the prior request's rate window while staying
     // inside the independently checked survey periods.
     t.mock.timers.setTime(Date.parse(clock)+index*65_000);
-    fixture=teachingFeedbackNativeFixtureForCase(row,{nativeSurveyOrder:true});
+    fixture=teachingFeedbackNativeFixtureForCase(row,{nativeSurveyOrder:true,sqlScenario:true});
     currentCase=row;
     reviews=[];
     companionReads=[];
-    hasCompanions=row.id===idPrefix+'excluded-native';
-    if(hasCompanions){
+    hasCompanions=row.toolPolicy.allowed.includes('courses');
+    capCase=row.fixtureKey.endsWith('-cap');
+    if(capCase)await seedCaps(row.fixtureKey.split(':').at(-1),fixture.data);
+    if(row.id===idPrefix+'excluded-native'){
       const companionTerm=(await db.query(`insert into public.affairs_terms(code,label,starts_on,ends_on)
         values('QA-CURRENT-ONLY','QA Current Fall','2026-09-01','2027-01-31') returning id`)).rows[0].id;
-      for(const [index,course] of fixture.companions.courses.entries()){
+      for(const [index,course] of mixedSeed.data.immediate.courses.entries()){
         const saved=(await db.query('insert into public.affairs_courses(code,title,credits,program_id) values($1,$2,3,$3) returning id',
-          [course.code,course.title,program])).rows[0].id;
-        const section=(await db.query(`insert into public.affairs_sections(course_id,term_id,section_code,instructor,weekday,starts_at,ends_at,room)
-          values($1,$2,'A','Scratch instructor',$3,'10:00','12:00','Scratch classroom') returning id`,[saved,companionTerm,index+1])).rows[0].id;
-        await db.query('insert into public.affairs_enrollments(student_id,section_id) values($1,$2)',[studentId,section]);
+          [course.code,course.course,program])).rows[0].id;
+        await db.query(`insert into public.affairs_sections(id,course_id,term_id,section_code,instructor,weekday,starts_at,ends_at,room)
+          values($1,$2,$3,'A','Scratch instructor',$4,'10:00','12:00','Scratch classroom')`,[course.id,saved,companionTerm,index+1]);
+        await db.query('insert into public.affairs_enrollments(student_id,section_id) values($1,$2)',[studentId,course.id]);
       }
-      // Before observing the exclusion request, inspect the scratch fixture.
-      // A real companion timetable and the immediate eligible courses agree.
-      // This setup probe is deliberately outside the recorded assistant request.
-      const eligible=(await read(owner,'immediate')).courses.map(course=>course.code);
-      assert.deepEqual(eligible,fixture.companions.courses.map(course=>course.code));
-      for(const name of ['mixed-before','mixed-after']){
-        const mixed=teachingFeedbackNativeFixtureForCase(frozen.find(item=>item.id===idPrefix+name));
-        assert.deepEqual(mixed.companions.courses.map(course=>course.code),eligible);
-        assert.notDeepEqual(mixed.reads[0].result.courses.map(course=>course.code),eligible);
-      }
+      assert.deepEqual((await read(owner,'immediate')).courses,mixedSeed.data.immediate.courses);
+    }
+    if(row.id===idPrefix+'mixed-before'){
+      await db.query("update public.affairs_terms set ends_on='2026-11-15' where id=$1",[midterm.termId]);
+      for(const feedback of fixture.data.immediate.feedback)await db.query(`insert into public.affairs_teaching_feedback
+        (id,user_id,section_id,comment,status,submitted_at,reviewed_at,request_id) values($1,$2,$3,$4,$5,$6,$7,gen_random_uuid())`,
+      [feedback.id,owner,feedback.sectionId,feedback.comment,feedback.status,feedback.submittedAt,feedback.reviewedAt]);
     }
     const next=row.fixtureKey.split(':').at(-1);
     if(mode!==next&&next==='markup')
@@ -302,26 +371,28 @@ test('unchanged teaching questions use real PostgreSQL records and the actual as
     }
     mode=next;
     const before=await fingerprint();
-    observation={callerId:owner,reads:[],evidence:[],companions:{},writeRequests:[],storageRequests:[],publicRequests:[]};
+    const anonymous=row.auth==='anonymous';
+    observation={callerId:anonymous?null:owner,reads:[],evidence:[],companions:{},writeRequests:[],storageRequests:[],publicRequests:[]};
     let body,statusCode=200;
     const response={setHeader(){},status(code){statusCode=code;return this;},json(value){body=value;}};
-    await handler({method:'POST',headers:{authorization:'Bearer '+token},
+    const ask=anonymous?guest:handler;
+    await ask({method:'POST',headers:anonymous?{}:{authorization:'Bearer '+token},
       body:{question:row.question,route:row.route,history:row.history}},response);
     assert.deepEqual(blocked.splice(0),[]);
     const activity=body?.activity??[];
     if(row.readExpectation.views.length){
       assert.deepEqual(body?.verification,{status:'verified',attempts:1},body?.answer);
-      const degraded=row.readExpectation.failed.length>0;
-      assert.equal(activity.filter(item=>item.kind==='teaching-feedback-evidence-check'&&item.status==='complete').length,degraded?0:1);
-      assert.deepEqual(reviews,degraded?['answer_evidence_review']:[]);
+      const usesReviewer=row.readExpectation.failed.length>0||hasCompanions||capCase;
+      assert.equal(activity.filter(item=>item.kind==='teaching-feedback-evidence-check'&&item.status==='complete').length,usesReviewer?0:1);
+      assert.deepEqual(reviews,usesReviewer?['answer_evidence_review']:[]);
     }else {
       assert.deepEqual(observation.reads,[]);
       assert.deepEqual(reviews,hasCompanions?['answer_evidence_review']:[]);
       if(hasCompanions)assert.deepEqual(body?.verification,{status:'verified',attempts:1},JSON.stringify(body));
-      assert.deepEqual(companionReads.sort(),hasCompanions?['enrollments','linkage','year']:[]);
     }
+    assert.deepEqual(companionReads.sort(),hasCompanions?['enrollments','linkage','year']:[]);
     const verdict=gradeTeachingFeedbackNativeCase(row,{statusCode,body,events:activity,execution:'deterministic',fixtureKey:row.fixtureKey},
-      {observation,nativeSurveyOrder:true});
+      {observation,nativeSurveyOrder:true,sqlScenario:true});
     assert.deepEqual(verdict.failures,[],body?.answer+' '+JSON.stringify({
       citations:body?.citations?.map(({chunkId,url})=>({chunkId,url})),views:body?.views?.map(({id,url})=>({id,url})),
     }));

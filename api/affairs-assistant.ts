@@ -76,8 +76,8 @@ import { accountQuestionIntent,isAccountOverviewQuestion,isCurrentStudyRecordQue
 import { loadOwnAffairsStudyYear } from '../server/ownAffairsStudyYear.js';
 import { loadAccountOverviewSnapshot } from '../server/accountOverviewEvidence.js';
 import { currentStudyForeignYearQuestion } from '../server/currentStudyOwnerScope.js';
-import { teachingFeedbackLookupContext } from '../server/teachingFeedbackEvidenceIntent.js';
-import { teachingFeedbackGuide } from '../server/teachingFeedbackGuide.js';
+import { teachingFeedbackClarificationReason, teachingFeedbackLookupContext } from '../server/teachingFeedbackEvidenceIntent.js';
+import { teachingFeedbackClarification, teachingFeedbackGuide } from '../server/teachingFeedbackGuide.js';
 import { readHousingBedEvidence, unavailableHousingBedEvidence } from '../server/accountHousingBedEvidence.js';
 import { housingBedLookupContext } from '../server/housingBedEvidenceIntent.js';
 import { housingBedGuide } from '../server/housingBedAnswer.js';
@@ -637,6 +637,9 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const housingCompanionBoundary=(housingSelection||applicationSelection)&&housing.foreignCompanions.length
     ?(/\p{Script=Han}/u.test(question)?'我可以查看你自己的住宿紀錄，但不能提供他人的費用或課表紀錄。':'I can check your own housing records, but cannot show another person’s fee or timetable records.'):null;
   const teaching=teachingFeedbackLookupContext(question,route,history);
+  const clarification=!(Array.isArray(input?.images)&&input.images.length)
+    ?teachingFeedbackClarificationReason(question,route,history,teaching):null;
+  if(clarification){stream.send(200,teachingFeedbackClarification(question,clarification));return;}
   const teachingSelection=teaching.selection?.views.length?teaching.selection:null;
   const teachingReason=teaching.foreign?'foreign_request':teaching.selection?.reason??(teachingSelection?.unavailableDetails?'outside_scope':null);
   const teachingNotes=teaching.navigation.length||teachingReason||teaching.excluded&&!teachingSelection

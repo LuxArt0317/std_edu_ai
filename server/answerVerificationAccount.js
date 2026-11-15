@@ -1346,7 +1346,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     const comparison=/\b(?:compare|versus|difference|vs)\b|比較|差異/iu.test(question);
     const hasBaseQuestion=parts.some(part=>!requiredSupplementalTools(part,fullRoute,history).length);
     if(!servicePlan&&!scopedHousing&&completeAccountTools(activeTools).length&&(pageLookup.feeAndBalance||remoteLearning||comparison||parts.length>1&&hasBaseQuestion||!plan.degraded))needsComposition=true;
-    if(scopedStudy&&teachingSelected){
+    if(scopedStudy&&teachingSelected&&!studyTools.includes('profile')){
       const academics=await answerPrivateAffairsQuestion(studyQuestion,snapshot,[],'',{draftOnly:true});
       initial.answer=[academics.answer,initial.answer].join('\n\n');
       needsComposition=initial.answer.length>supplementalAnswerLimits.answerCharacters;
@@ -1398,6 +1398,13 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     return sources;
   };
   evidence=assembleEvidence();
+  if(scopedStudy&&teachingSelected&&studyTools.includes('profile')){
+    const academics=composeCurrentStudyEvidence(studyQuestion,evidence);
+    const teachingFirst=question.trimStart().toLowerCase().startsWith(teaching.question.toLowerCase());
+    const sections=teachingFirst?[initial.answer,academics]:[academics,initial.answer];
+    initial.answer=sections.filter(Boolean).join('\n\n');
+    needsComposition=!academics||initial.answer.length>supplementalAnswerLimits.answerCharacters;
+  }
   const scopedOverviewAnswer=sources=>{
     const answer=composeAccountOverviewEvidence(question,sources);
     return answer&&answerLinksSupported(answer,sources)?answer:null;

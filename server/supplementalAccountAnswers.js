@@ -1102,9 +1102,11 @@ function sectionFor(parsed,question,zh){
       }else{
         if(requested.courses){
           const count=source.counts.eligibleCourses;
-          section.lead.push(t(`Eligible courses returned: ${count.returned}. `+(count.total===null?'The total is unknown.':'')
-            +` Showing ${count.included} of ${count.matching} matching courses.`,
-          `已查回 ${count.returned} 門可填寫的課程。`+(count.total===null?'總數未知。':'')+` 顯示 ${count.matching} 門符合課程中的 ${count.included} 門。`));
+          section.lead.push(t(`Eligible courses returned: ${count.returned}.`+(count.total===null?' The total is unknown.':''),
+            `已查回 ${count.returned} 門可填寫的課程。`+(count.total===null?'總數未知。':'')));
+          if(count.matching!==count.returned||count.included!==count.matching)section.lead.push(t(
+            `Selected course excerpt: ${count.included} of ${count.matching} matching courses.`,
+            `已顯示 ${count.matching} 門符合課程中的 ${count.included} 門。`));
           for(const course of source.courses){
             const courseLabel=course.code+' '+course.course+' · '+course.section;
             item(t('Eligible course','可填寫課程'),courseLabel+' · '+course.term,false,1000);
@@ -1113,6 +1115,9 @@ function sectionFor(parsed,question,zh){
           }
         }
         if(!requested.feedback)continue;
+        if(source.counts.feedback.capReached)section.lead.push(t(
+          `Feedback records returned: ${source.counts.feedback.returned}. The total is unknown.`,
+          `已查回 ${source.counts.feedback.returned} 筆教學意見。總數未知。`));
         if(!source.counts.feedback.matching&&(source.readState==='ok'||source.readState==='empty'))
           section.lead.push(t('No saved immediate teaching feedback matched this lookup.','這次查詢沒有符合的已儲存即時教學意見。'));
         if(reviewMeaning)section.lead.push(t(

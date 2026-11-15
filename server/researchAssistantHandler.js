@@ -59,8 +59,8 @@ import {selectElearningOutlineEvidence} from './elearningOutlineEvidenceIntent.j
 import {isFacilityRepairEvidenceQuestion,isForeignFacilityRepairQuestion} from './facilityRepairEvidenceIntent.js';
 import {venueQuestion} from '../src/features/public/affairs/venueContract.js';
 import {permanentCourseQuestion} from '../src/features/public/affairs/permanentCourseRouting.js';
-import {teachingFeedbackLookupContext} from './teachingFeedbackEvidenceIntent.js';
-import {teachingFeedbackGuide} from './teachingFeedbackGuide.js';
+import {teachingFeedbackClarificationReason,teachingFeedbackLookupContext} from './teachingFeedbackEvidenceIntent.js';
+import {teachingFeedbackClarification,teachingFeedbackGuide} from './teachingFeedbackGuide.js';
 import {housingBedLookupContext} from './housingBedEvidenceIntent.js';
 import {housingBedGuide} from './housingBedAnswer.js';
 import {housingApplicationLookupContext} from './housingApplicationEvidenceIntent.js';
@@ -163,6 +163,7 @@ function parse(body) {
         isElearningCatalogPageQuestion(question,catalogRoute)?catalogRoute:typeof source.route === 'string' && (/^\/school-affairs(?:\/search|\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/leave(?:\/(?:index|history|archive|periods)|\/edit\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/internship(?:\/(?:contract|self_assessment|company|directory))?\/?$/.test(source.route)||
+        /^\/school-affairs\/services\/7-[56](?:\/notes)?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/21-3\/?$/.test(source.route)||clubAttendanceRoute.test(source.route)||clubEquipmentRoute.test(source.route)||
         /^\/school-affairs\/services\/37-1(?:\/salary)?\/?(?:\?page=[0-9]{1,4}(?:&page=[0-9]{1,4})?)?$/.test(source.route)||
         (source.route.startsWith(healthExaminationPath)&&selectHealthExaminationEvidence('Show my health records.',source.route)?.reason===null&&
@@ -448,10 +449,12 @@ export function createResearchAssistantHandler(dependencies = {}) {
             });return;
         }
         const teaching = !input.images.length && teachingFeedbackLookupContext(input.question,input.route,input.history);
+        const clarification=teaching&&teachingFeedbackClarificationReason(input.question,input.route,input.history,teaching);
+        if(clarification){stream.send(200,teachingFeedbackClarification(input.question,clarification));return;}
         const teachingGuide = teaching && (teaching.selection || teaching.excluded || teaching.navigation.length)
             ? teachingFeedbackGuide(input.question,{
                 views:teaching.selection?.requestedViews,navigation:teaching.navigation,reason:teaching.selection?.reason,
-                excluded:teaching.excluded&&!teaching.selection,
+                excluded:teaching.excluded&&!teaching.selection,returnToService:input.route!=='/'&&input.route!=='',
             }) : null;
         if(teachingGuide&&!teaching.otherQuestion){stream.send(200,teachingGuide);return;}
         const studyQuestion=teachingGuide?teaching.otherQuestion:input.question;
