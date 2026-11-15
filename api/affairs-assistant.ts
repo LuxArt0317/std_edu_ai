@@ -65,6 +65,7 @@ import {readDtmGradeReportEvidence} from '../server/accountDtmGradeReportEvidenc
 import {isForeignDtmGradesQuestion,isNativeDtmGradeOnlyQuestion} from '../server/dtmGradeEvidenceIntent.js';
 import {independentElearningQuestion,isElearningEvidenceQuestion,isForeignElearningRecordsQuestion} from '../server/elearningEvidenceIntent.js';
 import {readElearningEvidence} from '../server/accountElearningEvidence.js';
+import {answerExactCourseSelection,selectExactCourseSelection} from '../server/accountCourseSelectionAnswer.js';
 import {answerExactAcademicAttendance,selectExactAcademicAttendance} from '../server/accountAcademicAttendanceAnswer.js';
 import {answerExactElearning,selectExactElearningReply} from '../server/accountElearningExactAnswer.js';
 import {readFacilityRepairEvidence} from '../server/accountFacilityRepairEvidence.js';
@@ -484,6 +485,17 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       stream.send(200,await answerDtmStudyRecords({account,selection:dtmStudy,question,route,deadline,
         onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));
     }catch{stream.send(503,{error:'The selected Moodle records could not be checked.'});}
+    return;
+  }
+  const exactSelection=selectExactCourseSelection(question,route,history);
+  if(exactSelection){
+    if(Array.isArray(input?.images)&&input.images.length){
+      stream.send(400,{error:'Ask about your saved course-selection records using text.'});return;
+    }
+    try{
+      stream.send(200,await answerExactCourseSelection({account,question,route,plan:exactSelection,deadline,
+        onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));
+    }catch{stream.send(503,{error:'The selected course records could not be checked.'});}
     return;
   }
   const exactAttendance=selectExactAcademicAttendance(question,route,history);

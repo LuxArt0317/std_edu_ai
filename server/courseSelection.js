@@ -38,7 +38,7 @@ export function mapCourseSelection(rows) {
     sourceMode:row.source_mode,version:Number(row.version),createdAt:row.created_at,updatedAt:row.updated_at,
   }))};
 }
-function filters(text) {
+export function courseSelectionFilters(text) {
   const year=text.match(/(?:academic\s+year|學年)\s*[:：]?\s*([1-9]\d{0,3})\b/i)?.[1]
     ?? text.match(/(?:^|[^\d])([1-9]\d{0,3})\s*(?:學年|academic\s+year\b)/i)?.[1];
   const semester=text.match(/(?:semester|學期)\s*[:：]?\s*(one\b|two\b|summer\b|[123](?!\d)|[一二暑])/i)?.[1]
@@ -53,7 +53,7 @@ function filters(text) {
     invalidSemester:numericSemester!==undefined && !/^[123]$/.test(numericSemester)};
 }
 function hasFilters(question) {
-  const value=filters(question);
+  const value=courseSelectionFilters(question);
   return Boolean(value.academicYear || value.semester || value.selectionPhase || value.ambiguousPhase || value.invalidSemester);
 }
 function contextualQuestion(question) {
@@ -84,8 +84,8 @@ export function answerCourseSelection(question,snapshot,route='',history=[]) {
   const timetable=timetableTopic.test(question) || (!historyTopic.test(question) &&
     (route===timetablePath || timetableTopic.test(previous)));
   const own=userId?(snapshot.courseSelection?.records ?? []).filter(row=>row.userId===userId):[];
-  const explicit=filters(question),prior=(historyTopic.test(previous) || timetableTopic.test(previous) ||
-    ((route===historyPath || route===timetablePath) && !otherTopic.test(previous) && hasFilters(previous)))?filters(previous):{};
+  const explicit=courseSelectionFilters(question),prior=(historyTopic.test(previous) || timetableTopic.test(previous) ||
+    ((route===historyPath || route===timetablePath) && !otherTopic.test(previous) && hasFilters(previous)))?courseSelectionFilters(previous):{};
   const selected={academicYear:explicit.academicYear ?? prior.academicYear,semester:explicit.semester ?? prior.semester,
     selectionPhase:explicit.selectionPhase ?? prior.selectionPhase};
   const rows=own.filter(row=>(selected.academicYear===undefined || row.academicYear===selected.academicYear) &&

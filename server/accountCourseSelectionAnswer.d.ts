@@ -1,0 +1,8 @@
+import type {VerificationCandidate,VerificationProgress} from './answerVerification.js';
+import type {CourseSelectionReadScope} from './accountCourseSelectionRows.js';
+import type {AffairsAccount} from './affairsWorkspace.js';
+export type ExactCourseSelectionPlan={view:'history'|'timetable'|'remark';scope:CourseSelectionReadScope;
+  chinese:boolean;ambiguous:boolean;course:string|null;remark:string|null};
+export function selectExactCourseSelection(question:string,route:string,history?:Array<{role:string;content:string}>):ExactCourseSelectionPlan|null;
+export function answerExactCourseSelection(options:{account:AffairsAccount;question:string;route:string;plan:ExactCourseSelectionPlan;deadline:number;
+  onProgress?:(step:VerificationProgress)=>void}):Promise<VerificationCandidate>;

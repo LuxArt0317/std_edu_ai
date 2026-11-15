@@ -4,6 +4,7 @@ import {mapStudentAidRecords} from './studentAidRecords.js';
 import {mapHousingRecords} from './housingRecords.js';
 import {mapCreditLoadHistory} from './creditLoadHistory.js';
 import {mapCourseSelection} from './courseSelection.js';
+import {courseSelectionQuery,courseSelectionTable,mapOwnedCourseSelection} from './accountCourseSelectionRows.js';
 import {serviceNoteKeys} from './serviceNoteIntent.js';
 import {loadNativeAcademicRecords,loadNativeGradeView,loadNativeAttendanceView} from './nativeAcademicWorkspace.js';
 import {graduationReviewMaxPayloadBytes,graduationReviewReadSource,isGraduationReviewKind,projectGraduationReviewDetail} from './graduationReview.js';
@@ -276,6 +277,19 @@ export async function loadOwnAcademicGrades(account,view,{deadline=Date.now()+12
   const scoped={user:{id:userId},url:account.url,key:account.key,token:account.token,requestDeadline:Math.min(deadline,Date.now()+12000)};
   const academicGrades=await loadNativeGradeView(userId,view,(table,query)=>readAccountRows(scoped,table,query));
   return {checkedAt:new Date().toISOString(),profile:{userId},academicGrades,academicGradesOnly:true,academicGradesView:view};
+}
+
+export async function loadOwnCourseSelection(account,scope,{deadline=Date.now()+12000}={}){
+  const userId=account?.user?.id;
+  if(!chargeUuid.test(userId??'')||account.url!=='https://xiftudmvxphxcjtmfmib.supabase.co'
+    ||typeof account.token!=='string'||!account.token.trim()||typeof account.key!=='string'||!account.key.trim())
+    throw new AffairsWorkspaceError('Verified School Affairs access is required.',403);
+  if(!Number.isFinite(deadline)||account.requestDeadline!==undefined&&!Number.isFinite(account.requestDeadline))
+    throw new AffairsWorkspaceError('Invalid course selection deadline.',400);
+  const scoped={user:{id:userId},url:account.url,key:account.key,token:account.token,
+    requestDeadline:Math.min(deadline,account.requestDeadline??Infinity,Date.now()+12000)};
+  const rows=await request(scoped,courseSelectionTable,{query:{...courseSelectionQuery(scope),user_id:'eq.'+userId,limit:100},exactCount:true});
+  return mapOwnedCourseSelection(rows,userId,scope);
 }
 
 export async function loadOwnAcademicAttendance(account,question,route,{deadline=Date.now()+12000}={}){

@@ -1,3 +1,4 @@
+import type {CourseSelectionReadScope,mapOwnedCourseSelection} from './accountCourseSelectionRows.js';
 import type {loadNativeAttendanceView} from './nativeAcademicWorkspace.js';
 import type {ExplicitAccountAction} from './accountActionIntent.js';
 import type {GraduationReviewAnswerSelection} from './graduationReview.js';
@@ -14,6 +15,7 @@ export type AffairsCharge={id:string;label:string;amountDue:number;amountPaid:nu
 export function loadOwnAffairsCharges(account:AffairsAccount&{requestDeadline?:number},options?:{deadline?:number;observeRead?:(read:unknown)=>void;requireExactProjection?:boolean}):Promise<{
   checkedAt:string;profile:{userId:string};studentRecordFound:boolean;charges:AffairsCharge[];
 }>;
+export function loadOwnCourseSelection(account:AffairsAccount,scope:CourseSelectionReadScope,options?:{deadline?:number}):Promise<ReturnType<typeof mapOwnedCourseSelection>>;
 export function loadOwnAcademicAttendance(account:AffairsAccount,question:string,route:string,options?:{deadline?:number}):ReturnType<typeof loadNativeAttendanceView>;
 export function loadOwnAcademicGrades(account:AffairsAccount,view:string,options?:{deadline?:number}):Promise<Record<string,unknown>>;
 export function loadOwnGraduationReviewAnswer(account:AffairsAccount,selection:GraduationReviewAnswerSelection,options?:{deadline?:number}):Promise<Record<string,unknown>>;

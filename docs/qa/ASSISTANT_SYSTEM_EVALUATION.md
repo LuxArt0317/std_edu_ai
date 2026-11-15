@@ -138,6 +138,8 @@ Attendance run `1b97e0d5-de4d-4628-a1fb-415c6cbc2d77` still failed its initial m
 
 The 14-1 assistant now verifies explicit attendance answers using the signed-in caller's saved term and selected view. A missing designation can be answered after checking the metadata alone. Dated detail questions filter by the course date and preserve the separately recorded roll-call timestamp. Weekly-hour requests explain the stored term scope without looking up unrelated rows. The six original attendance questions pass the independent rubric against the actual HTTP handler with controlled source responses and provider calls disabled. This is local evidence. A fresh protected Preview replay is pending.
 
+The 11-1 and 11-2 assistant answers standalone history, timetable and exact saved-remark questions directly from the selected owner's course-selection records. Timetable inclusion and scheduled slots come from separate saved fields. A recorded review remark cannot establish approved enrollment. The older handler used the broad workspace path for all four frozen questions. The scoped handler passes their unchanged rubrics, rehearses temporary and permanent read failures, and checks both callers against migrated PostgreSQL. This is local evidence. Protected Preview replay is pending.
+
 ## November 14 candidate and acceptance
 
 The candidate adds scoped conduct and loan readers, preserves an explicitly named academic term, and keeps a prior user-named course consistent across evidence, review, correction and record cards. General career coaching reads no student records. Mixed course catalog and Moodle questions compose from both selected sources before the first review. Correlation IDs join private evaluator reports to count-only model diagnostics.
