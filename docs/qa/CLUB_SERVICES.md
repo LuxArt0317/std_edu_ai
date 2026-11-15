@@ -66,7 +66,7 @@ Production 076c79a is live as Vercel 4Gi741acYjhLKPYZiw4y9Af4FFNt. Migration 202
 
 From `/school-affairs/services/40-1/equipment`, ask “What is the status of my club equipment request, and when do I return the items?” The signed-in assistant verifies the saved status and scheduled date, then links to the borrowing page. It also supports a recent request, an exact owned request, or a count. The source returns up to 100 requests sorted by their last update, and the answer identifies that limit when the source returns 100. The Student Health equipment entry at `/school-affairs/services/30-2` has its own tracking notes.
 
-Run `node --import tsx --test tests/api/club-equipment-assistant.test.ts` for offline client and handler checks. The fixture verifies bearer-scoped equipment reads, omitted identity and contact data, guest and other-owner boundaries, source failure and retry, and a combined reference to the separately saved tuition balance. A protected deployment replay with disposable accounts is needed to verify this assistant path against the live records service.
+Run `node --import tsx --test tests/api/club-equipment-assistant.test.ts` for offline client and handler checks. The fixture verifies bearer-scoped equipment reads, omitted identity and contact data, guest and other-owner boundaries, source failure and retry, and a combined reference to the separately saved tuition balance. The protected Preview operator in [Student assistant evaluation](../../tests/evaluation/README.md#protected-preview-club-equipment-readback) binds those checks to two disposable accounts and verifies cleanup.
 
 ## Assistant cancellation of a pending equipment request
 

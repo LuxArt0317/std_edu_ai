@@ -1,3 +1,4 @@
+import {clubEquipmentFamily,clubEquipmentRequirement} from './club-equipment-hosted.mjs';
 import {tutorEvaluationFamily} from './tutor-evaluation-hosted.mjs';
 import {healthMetadataFixtureMode,healthMetadataRequirement} from './health-examination-live.mjs';
 import {dtmAssignmentListFixtureMode,dtmAssignmentListRequirement} from './dtm-assignment-list-live.mjs';
@@ -60,7 +61,7 @@ test('actual prepare rejects altered, partial, reordered or unrelated packet sco
 
 function isolatedPreparation({applicationFetch,invalidEnvironment=false}={}){
   let credentials=0,authOptions,dbCalls=0;const seen=[],root='/synthetic';
-  const context={tuitionLedgerFixtureMode,tutorEvaluationFamily,healthMetadataFixtureMode,healthMetadataRequirement,dtmAssignmentListFixtureMode,dtmAssignmentListRequirement,nativeVenueSetupRequired,nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,isElearningPublishedReadbackCase,URL,Headers,Response,AbortSignal,Buffer,TextDecoder,TextEncoder,setTimeout,clearTimeout,structuredClone,resolve,process:{cwd:()=>root},
+  const context={tuitionLedgerFixtureMode,clubEquipmentFamily,clubEquipmentRequirement,tutorEvaluationFamily,healthMetadataFixtureMode,healthMetadataRequirement,dtmAssignmentListFixtureMode,dtmAssignmentListRequirement,nativeVenueSetupRequired,nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,isElearningPublishedReadbackCase,URL,Headers,Response,AbortSignal,Buffer,TextDecoder,TextEncoder,setTimeout,clearTimeout,structuredClone,resolve,process:{cwd:()=>root},
     state:undefined,ROOT:root,PROJECT:project,PRIVATE_DIR:'/synthetic/artifacts',UUID:/^[a-f0-9-]{36}$/iu,LiveFixtureError,
     fail:(code,message)=>{throw new LiveFixtureError(code,message);},createTranscriptFixtureApplicationFetch,createPinnedDeploymentVerifier,
     fetch:async(url)=>{seen.push(String(url));return Response.json({});},signals:signal=>signal,

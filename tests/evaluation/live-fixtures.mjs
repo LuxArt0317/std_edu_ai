@@ -41,6 +41,9 @@ import {isDeepStrictEqual} from 'node:util';
 import {createTutorEvaluationFixture,gradeHostedTutorEvaluation,observeTutorEvaluationCallers,requestTutorEvaluation,
   tutorEvaluationFamily,tutorEvaluationFixtureMode,tutorEvaluationHostedCases,tutorEvaluationHostedGaps,
   validateTutorEvaluationHostedCases} from './tutor-evaluation-hosted.mjs';
+import {buildClubEquipmentHostedPlan,clubEquipmentFamily,clubEquipmentFixtureMode,clubEquipmentHostedCases,clubEquipmentRequirement,
+  createClubEquipmentFixture,gradeClubEquipmentHosted,observeClubEquipmentCallers,requestClubEquipment,
+  validateClubEquipmentHostedCases} from './club-equipment-hosted.mjs';
 import {assertHealthMetadataLiveCases,bindHealthMetadataReadback,healthMetadataCase,healthMetadataFamily,
   healthMetadataFixtureMode,healthMetadataRequirement,readHealthMetadataPages} from './health-examination-live.mjs';
 import {createHealthMetadataFixture} from './health-examination-live-fixture.mjs';
@@ -329,6 +332,7 @@ async function saveLedger(){
       ...(s.transcriptConversationRecovery?{transcriptConversation:s.transcriptConversationRecovery}:{}),
       ...(s.healthMetadataJournal?{healthMetadataFixture:s.healthMetadataJournal}:{}),
       ...(s.tutorEvaluationJournal?{tutorEvaluationFixture:s.tutorEvaluationJournal}:{}),
+      ...(s.clubEquipmentJournal?{clubEquipmentFixture:s.clubEquipmentJournal}:{}),
       ...(s.clubAttendancePlan?{clubAttendanceFixture:{plan:s.clubAttendancePlan,setupPending:!!s.clubAttendancePending}}:{}),
       ...(s.serviceNotePlan||s.pendingServiceNotePlan?{serviceNoteFixture:{
         caseId:s.serviceNotePlan?.caseId??null,pendingCaseId:s.pendingServiceNotePlan?.caseId??null,
@@ -395,7 +399,7 @@ async function createFixtureUser(index){
   let signed;try{signed=await auth.auth.signInWithPassword({email,password});}catch{fail('fixture-signin','Synthetic account sign-in did not complete.');}
   if(signed.error||signed.data?.session?.user?.id!==user.id)fail('fixture-signin','Synthetic account session could not be verified.');
   attachFixtureSession(user,signed.data.session,{url:s.url,publishable:s.publishable,signal:s.signal,fetchImpl:s.boundedFetch});
-  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly||s.tutorEvaluationOnly)return user;
+  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly||s.tutorEvaluationOnly||s.clubEquipmentOnly)return user;
   const initial=await readSnapshot(user);user.studentId=initial.student?.id;
   if(!UUID.test(user.studentId||''))fail('fixture-readback','Synthetic School Affairs student initialization failed.');
   return user;
@@ -425,6 +429,14 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     validateCounselingHostedCases(cases);
   }else if(cases.some(row=>row?.fixtureRequirement==='counseling_appointments_disposable'))
     fail('fixture-target','Counseling fixture cases must run in the isolated evaluator.');
+  const clubEquipmentOnly=caseFamily===clubEquipmentFamily;
+  if(clubEquipmentOnly){
+    if(fixtureMode!==clubEquipmentFixtureMode||origin!==approvedPreviewOrigin||!isEvaluationPreviewOrigin(origin)
+      ||typeof previewReadbackFetch!=='function'||applicationFetch!==undefined)
+      fail('fixture-target','Club equipment requires the exact protected Preview and its isolated fixture.');
+    validateClubEquipmentHostedCases(cases);
+  }else if(cases.some(row=>row?.fixtureRequirement===clubEquipmentRequirement||typeof row?.id==='string'&&row.id.startsWith('account:club-equipment-')))
+    fail('fixture-target','Club equipment cases require their isolated evaluator.');
   const tutorEvaluationOnly=caseFamily===tutorEvaluationFamily;
   if(tutorEvaluationOnly){
     if(fixtureMode!==tutorEvaluationFixtureMode||origin!==approvedPreviewOrigin||!isEvaluationPreviewOrigin(origin)
@@ -488,7 +500,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       ||!approvedPreviewOrigin||origin!==approvedPreviewOrigin)fail('fixture-config','The injected transport requires the exact approved Preview four-turn packet.');
     transcriptCaseIds=cases.map((testCase,index)=>assertTranscriptFixtureCase(testCase,index));
   }
-  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
+  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&!clubEquipmentOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
     const expected=feeRemissionLivePlanManifest.eligibleCaseIds;
     if(fixtureMode!==FEE_FIXTURE_MODE||caseFamily!=='fee-remission'||!approvedPreviewOrigin||cases.length!==expected.length
       ||new Set(cases.map(row=>row?.id)).size!==expected.length||!expected.every(id=>cases.some(row=>row?.id===id)))
@@ -530,7 +542,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const ignore=await readFile(resolve(ROOT,'.gitignore'),'utf8');if(!/^\/?artifacts\/$/m.test(ignore))fail('fixture-ledger','Private fixture ledger directory must be ignored by Git.');
   await mkdir(PRIVATE_DIR,{recursive:true,mode:0o700});await chmod(PRIVATE_DIR,0o700);
   const boundedFetch=(input,init={})=>fetch(input,{...init,signal:signals(init.signal,15000)});
-  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,counselingOnly,clubOnly,healthMetadataOnly,tutorEvaluationOnly,elearningPublishedReadbackOnly,previewGate,
+  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,counselingOnly,clubOnly,healthMetadataOnly,tutorEvaluationOnly,clubEquipmentOnly,elearningPublishedReadbackOnly,previewGate,
     ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),admin:createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})};
   try{
     state.sql=postgres(connection,{max:1,connect_timeout:10,idle_timeout:10,max_lifetime:0,
@@ -573,6 +585,10 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     if(counselingOnly){
       state.prepared=true;
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['counselingAppointments']};
+    }
+    if(clubEquipmentOnly){
+      state.prepared=true;
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['clubEquipment']};
     }
     if(tutorEvaluationOnly){
       state.prepared=true;
@@ -965,6 +981,62 @@ export async function runTutorEvaluationPreview({origin,sourceRevision,previewTo
   return {runId,origin,sourceRevision,results,unmounted:tutorEvaluationHostedGaps(),deployment:s.previewGate.status(),
     cleanup:cleanupProof,egressObservation:false,
     liveAcceptance:results.length===cases.length&&results.every(row=>row.passed)&&cleanupProof.verified&&cleanupProof.tutorEvaluationCleanup===true};
+}
+
+export async function runClubEquipmentPreview({origin,sourceRevision,previewToken,signal}={}){
+  if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??''))
+    fail('fixture-config','Club equipment requires an exact protected Preview and source revision.');
+  const {createLiveRequestPacer,sourceIdentity}=await import('./run.mjs');
+  const identity=await sourceIdentity();
+  if(identity.dirty||identity.sourceRevision!==sourceRevision)fail('fixture-target','Club equipment requires the exact clean deployed source.');
+  const readback=createTrustedPreviewFetch({origin,token:previewToken}),runId=randomUUID(),cases=clubEquipmentHostedCases();
+  await prepare({runId,cases,now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
+    signal,fixtureMode:clubEquipmentFixtureMode,caseFamily:clubEquipmentFamily,previewReadbackFetch:readback});
+  const s=ready(),pace=createLiveRequestPacer(),results=[],correlationIds=new Set();
+  let cleanupProof;
+  try{
+    const owners=Object.fromEntries(s.users.map((user,index)=>{
+      const requests=s.identityRequests.filter(row=>row.id===user.id&&row.runId===runId&&row.state==='created');
+      if(requests.length!==1||user.id===s.protectedOwnerBefore.id)fail('fixture-isolation','Club equipment callers are outside the fixture lease.');
+      return [index===0?'A':'B',{id:user.id,email:requests[0].email,runMarker:runId}];
+    }));
+    const plan=buildClubEquipmentHostedPlan({runId,owners});
+    s.clubEquipmentFixture=createClubEquipmentFixture({sql:s.sql,plan,
+      assertLease:async({cleanup})=>{
+        await assertRecordedFixtureLease(s,'Club equipment');
+        assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+        if(!cleanup)await s.previewGate.assertCurrent();
+      },
+      persist:async journal=>{s.clubEquipmentJournal=journal;await saveLedger();},
+      transaction:work=>feeTransaction(s,work),
+    });
+    await s.clubEquipmentFixture.setup();
+    const observe=async()=>{
+      const rowsDigest=await s.clubEquipmentFixture.observe();
+      await Promise.all(s.users.map(user=>user.renewSession({signal})));
+      const callers=await observeClubEquipmentCallers(plan,{users:s.users,origin,previewFetch:readback,
+        readResponse:readBoundedFixtureResponse,signal:signals(signal)});
+      return {rowsDigest,callers};
+    };
+    for(const testCase of cases){
+      const before=await observe();
+      const token=testCase.actor==='guest'?null:s.users[testCase.actor==='A'?0:1].token;
+      let ticket,request;
+      try{
+        request=await pace(()=>requestClubEquipment({testCase,plan,origin,token,signal:signals(signal,65000),
+          fetchImpl:readback,privateMarkers:s.users.map(user=>user.token),correlationIds}),signal,async()=>{ticket=await s.previewGate.beforeRequest();});
+      }finally{if(ticket)await s.previewGate.afterRequest(ticket);}
+      const after=await observe();
+      const {envelope,...requestProof}=request;
+      results.push({...gradeClubEquipmentHosted(testCase,{...requestProof,envelope},before,after),...requestProof,requestIndex:ticket.requestIndex});
+    }
+    const final=await sourceIdentity();
+    if(final.dirty||final.sourceRevision!==sourceRevision||final.workingTreeHash!==identity.workingTreeHash)
+      fail('fixture-target','Club equipment source changed during verification.');
+    await s.previewGate.finish();
+  }finally{cleanupProof=await cleanup();}
+  return {runId,origin,sourceRevision,results,deployment:s.previewGate.status(),cleanup:cleanupProof,
+    liveAcceptance:results.length===cases.length&&results.every(row=>row.passed)&&cleanupProof.verified&&cleanupProof.clubEquipmentCleanup===true};
 }
 
 async function feeTransaction(s,work){
@@ -2786,6 +2858,10 @@ export async function cleanup(){
       await s.healthMetadataFixture.cleanup();
       await s.healthMetadataFixture.verifyAbsent();
     }
+    if(s.clubEquipmentFixture){
+      await s.clubEquipmentFixture.cleanup();
+      await s.clubEquipmentFixture.verifyAbsent();
+    }
     if(s.tutorEvaluationFixture){
       await s.tutorEvaluationFixture.cleanup();
       await s.tutorEvaluationFixture.verifyAbsent();
@@ -2929,6 +3005,14 @@ export async function cleanup(){
       s.tuitionLedgerCleanup=true;
     }
     if(s.healthMetadataFixture)await s.healthMetadataFixture.verifyAbsent();
+    if(s.clubEquipmentFixture){
+      await s.clubEquipmentFixture.verifyAbsent();
+      const ids=s.users.map(user=>user.id);
+      const identities=await query(()=>s.sql`select 1 from auth.identities where user_id in ${s.sql(ids)}`,
+        'Could not verify club equipment fixture identity cleanup.');
+      if(identities.length)fail('fixture-cleanup','A club equipment fixture identity remains.');
+      s.clubEquipmentCleanup=true;
+    }
     if(s.tutorEvaluationFixture){
       await s.tutorEvaluationFixture.verifyAbsent();
       const ids=s.users.map(user=>user.id);
@@ -2969,6 +3053,7 @@ export async function cleanup(){
     ...(s.taskActionCleanup?{taskActionCleanup:true}:{}),
     ...(s.tuitionLedgerCleanup?{tuitionLedgerCleanup:true}:{}),
     ...(s.tutorEvaluationCleanup?{tutorEvaluationCleanup:true}:{}),
+    ...(s.clubEquipmentCleanup?{clubEquipmentCleanup:true}:{}),
     ...(s.studentLeaveData?{studentLeaveDataCleanup:s.studentLeaveDataCleanup}:{}),
     ...(s.transcriptConversation?{conversationCleanup:s.transcriptConversationCleanup}:{})};
 }
