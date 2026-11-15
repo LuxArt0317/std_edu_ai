@@ -1,3 +1,8 @@
+import type {VerificationProgress} from '../server/answerVerification.js';
+import {answerDtmMaterial} from '../server/accountDtmMaterialAnswer.js';
+import {dtmMaterialBoundary,dtmMaterialIntent} from '../server/dtmMaterialIntent.js';
+import {readInternshipEvidence} from '../server/accountInternshipEvidence.js';
+import {internshipAssistantPlan,internshipBoundary,internshipSelectedTools,internshipUnavailable} from '../server/internshipAssistantPlan.js';
 import {readStudentLeaveEvidence} from '../server/accountStudentLeaveEvidence.js';
 import {studentLeaveAssistantPlan,studentLeaveBoundary,studentLeaveNavigation,studentLeaveSelectedTools} from '../server/studentLeaveAssistantPlan.js';
 import {dtmNativeClauseScope,dtmNativeClauseNotice} from '../server/dtmNativeClauseScope.js';
@@ -177,11 +182,11 @@ export function createAffairsAssistantHandler(dependencies:{
   verifyToken?:typeof verifyAffairsToken;
   loadSnapshot?:typeof loadAffairsSnapshot;
   answerAccount?:typeof answerAccountWithVerification;
-  readers?:{leaveRecords?:typeof readStudentLeaveEvidence;dtmAssignment?:typeof readDtmAssignmentEvidence;courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence;healthExaminations?:typeof readHealthExaminationEvidence;counselingAppointments?:typeof readCounselingEvidence;graduationClearance?:typeof readClearanceEvidence;tutorEvaluation?:typeof readTutorEvaluationEvidence;teachingFeedback?:typeof readTeachingFeedbackEvidence;housingBed?:typeof readHousingBedEvidence;housingApplications?:typeof readHousingApplicationEvidence};
+  readers?:{internshipRecords?:typeof readInternshipEvidence;leaveRecords?:typeof readStudentLeaveEvidence;dtmAssignment?:typeof readDtmAssignmentEvidence;courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence;healthExaminations?:typeof readHealthExaminationEvidence;counselingAppointments?:typeof readCounselingEvidence;graduationClearance?:typeof readClearanceEvidence;tutorEvaluation?:typeof readTutorEvaluationEvidence;teachingFeedback?:typeof readTeachingFeedbackEvidence;housingBed?:typeof readHousingBedEvidence;housingApplications?:typeof readHousingApplicationEvidence};
 }={}) {
 const publicResearch=dependencies.publicResearch??researchHandler;
 const verifyToken=dependencies.verifyToken??verifyAffairsToken,loadSnapshot=dependencies.loadSnapshot??loadAffairsSnapshot,answerAccount=dependencies.answerAccount??answerAccountWithVerification;
-const readers={leaveRecords:dependencies.readers?.leaveRecords??readStudentLeaveEvidence,dtmAssignment:dependencies.readers?.dtmAssignment??readDtmAssignmentEvidence,courseCatalog:dependencies.readers?.courseCatalog??readCatalogEvidence,enrollmentCertificate:dependencies.readers?.enrollmentCertificate??readCertificateEvidence,
+const readers={internshipRecords:dependencies.readers?.internshipRecords??readInternshipEvidence,leaveRecords:dependencies.readers?.leaveRecords??readStudentLeaveEvidence,dtmAssignment:dependencies.readers?.dtmAssignment??readDtmAssignmentEvidence,courseCatalog:dependencies.readers?.courseCatalog??readCatalogEvidence,enrollmentCertificate:dependencies.readers?.enrollmentCertificate??readCertificateEvidence,
   dtmSubmissions:dependencies.readers?.dtmSubmissions??readSubmissionEvidence,tuition:dependencies.readers?.tuition??readTuitionEvidence,
   studentConduct:dependencies.readers?.studentConduct??readStudentConductEvidence,studentLoan:dependencies.readers?.studentLoan??readStudentLoanEvidence,
   aidPayments:dependencies.readers?.aidPayments??readAidPaymentsEvidence,
@@ -239,14 +244,53 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     stream.send(200,searchGuide);
     return;
   }
+  const material=dtmMaterialIntent(question,route);
+  if(material){
+    const progress=(step:VerificationProgress)=>
+      stream.progress(step.kind,step.label,step.detail,step.status);
+    if(Array.isArray(input?.images)&&input.images.length){
+      stream.send(400,{error:'For private account questions, remove the image and ask using text. Images are not stored as account records.'});
+      return;
+    }
+    const loadFees=()=>loadOwnAffairsCharges(account,{deadline});
+    const feeQuestion=material.feeQuestion;
+    try{
+      const [resource,fees]=await Promise.all([
+        material.reason?Promise.resolve(dtmMaterialBoundary(material,question,true)):answerDtmMaterial({account,selection:material,question,deadline,onProgress:progress}),
+        feeQuestion?loadFees().then(snapshot=>answerAccount({question:feeQuestion,route:'/school-affairs/services/39-1',
+          snapshot,loadSnapshot:loadFees,deadline,correlationId,onProgress:progress})).catch(()=>({
+            answer:/\p{Script=Han}/u.test(question)?'目前無法查核你的待繳費用。':'I couldn’t verify your saved fee balance.',citations:[],activity:[],
+            verification:{status:'unverified',attempts:0},
+          })):null,
+      ]);
+      const results=[resource,...(fees?[fees]:[])];
+      const checks=results.flatMap(result=>'verification' in result&&result.verification?[result.verification]:[]);
+      const verification=checks.length?{status:checks.every(check=>check.status==='verified')?'verified':'unverified',
+        attempts:Math.max(...checks.map(check=>check.attempts))}:undefined;
+      const other=material.hasOtherQuestion?(/\p{Script=Han}/u.test(question)?'其他問題需要另行查詢。':'Ask the other part separately so I can check its own records.'):'';
+      const answerParts=[...results.map(result=>result.answer),other].filter(Boolean);
+      stream.send(200,{...resource,status:fees?.verification?.status==='verified'?'answered':resource.status,
+        verification,answer:answerParts.join('\n\n'),
+        citations:results.flatMap(result=>result.citations),
+        activity:results.flatMap(result=>'activity' in result?result.activity??[]:[]),
+      });
+    }catch{
+      stream.send(503,{error:'The selected Moodle materials could not be checked.'});
+    }
+    return;
+  }
   const leavePlan=studentLeaveAssistantPlan(question,route,history);
-  if(leavePlan){
-    const {selection,feeQuestion,feeLabel,classQuestion,gradeQuestion}=leavePlan;
-    const tools=studentLeaveSelectedTools(leavePlan);
-    const nav=studentLeaveNavigation(leavePlan,question);
-    const boundary=nav?.answer??studentLeaveBoundary(leavePlan,question);
+  const internshipPlan=leavePlan?null:internshipAssistantPlan(question,route,history);
+  const servicePlan=leavePlan??internshipPlan;
+  if(servicePlan){
+    const {feeQuestion,feeLabel,classQuestion,gradeQuestion}=servicePlan;
+    const leaveSelection=leavePlan?.selection;
+    const tools=leavePlan?studentLeaveSelectedTools(leavePlan):internshipSelectedTools(internshipPlan!);
+    const nav=leavePlan?studentLeaveNavigation(leavePlan,question):null;
+    const boundary=nav?.answer??(leavePlan?studentLeaveBoundary(leavePlan,question):internshipBoundary(internshipPlan!,question));
+    const unavailable=leavePlan?.foreign||Boolean(internshipPlan&&internshipUnavailable(internshipPlan));
     if(!tools.length){
-      stream.send(200,nav??{status:leavePlan.foreign?'handoff':'clarification',answer:boundary,citations:[],
+      stream.send(200,nav??{status:unavailable?'handoff':'clarification',answer:boundary,citations:[],
         suggestedQuestions:[],grounding:{source:'account',webSearched:false}});
       return;
     }
@@ -254,7 +298,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       stream.send(400,{error:'For private account questions, remove the image and ask using text. Images are not stored as account records.'});
       return;
     }
-    const loadLeaveCompanions=async()=>{
+    const loadServiceCompanions=async()=>{
       const base={checkedAt:new Date().toISOString(),profile:{userId:account.user.id}};
       const [fees,timetable]=await Promise.all([
         feeQuestion?loadOwnAffairsCharges(account,{deadline}).then(saved=>{
@@ -268,15 +312,18 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       return {...fees,...timetable,...base};
     };
     const supplementalReaders:SupplementalAccountReaders={};
-    if(selection&&!selection.reason)supplementalReaders.leaveRecords=context=>
-      readers.leaveRecords(account,{selection,deadline:Math.min(deadline,context.deadline)});
+    if(leaveSelection&&!leaveSelection.reason)supplementalReaders.leaveRecords=context=>
+      readers.leaveRecords(account,{selection:leaveSelection,deadline:Math.min(deadline,context.deadline)});
+    if(internshipPlan?.selection)supplementalReaders.internshipRecords=context=>
+      readers.internshipRecords(account,{question,route,history,deadline:Math.min(deadline,context.deadline)});
     if(gradeQuestion)supplementalReaders.dtmGradeReport=context=>
       readers.dtmGradeReport(account,{question:gradeQuestion,route:'/dtm/grades',history:[],deadline:Math.min(deadline,context.deadline)});
-    const selectedQuestion=[selection&&!selection.reason?selection.question:'',feeQuestion,classQuestion,gradeQuestion].filter(Boolean).join('. ');
+    const nativeQuestion=leaveSelection&&!leaveSelection.reason?leaveSelection.question:internshipPlan?.selection?internshipPlan.question:'';
+    const selectedQuestion=[nativeQuestion,feeQuestion,classQuestion,gradeQuestion].filter(Boolean).join('. ');
     try{
-      const snapshot=await loadLeaveCompanions();
-      const answer=await answerAccount({question:selectedQuestion,history:[],route,snapshot,loadSnapshot:loadLeaveCompanions,deadline,correlationId,
-        leavePlan,supplementalReaders,onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
+      const snapshot=await loadServiceCompanions();
+      const answer=await answerAccount({question:selectedQuestion,history:[],route,snapshot,loadSnapshot:loadServiceCompanions,deadline,correlationId,
+        leavePlan:leavePlan??undefined,internshipPlan:internshipPlan??undefined,supplementalReaders,onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
       stream.send(200,{...answer,answer:[answer.answer,boundary].filter(Boolean).join('\n\n'),citations:[...answer.citations,...(nav?.citations??[])]});
     }catch{
       stream.send(503,{error:'The selected School Affairs records could not be checked.'});

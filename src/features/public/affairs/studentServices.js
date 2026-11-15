@@ -57,6 +57,48 @@ export const schoolServiceEntries = catalog.flatMap(([group, kind, section, link
   })
 );
 
+const programByTitle = title => schoolServiceEntries.find(program => program.title === title);
+const commonTitles = [
+  ["請假填單", "請假填單"],
+  ["就學貸款申請", "就學貸款申請"],
+  ["Leave application form", "請假填單"],
+  ["Inquiry of Absenteeism Records", "缺曠課紀錄查詢"],
+  ["Checking the status of your application to leave school", "離校申請狀態查詢"],
+  ["行事曆", "行事曆"],
+  ["CU數位平台", "CU數位平台"],
+  ["學校首頁", "學校首頁"],
+  ["Calendar", "行事曆"],
+  ["Moodle Digital Academy", "Moodle數位學園"],
+  ["mySTU", "mySTU"],
+  ["My course schedule;", "我的功課表"],
+  ["Course selection record query;", "選課紀錄查詢"],
+  ["Club activities", "社團活動"],
+  ["Proof of enrollment", "在學證明"],
+];
+const courseTitles = [
+  "初選", "加退選", "我的功課表", "暑期選課", "棄選",
+  "歷年超減修申請紀錄查詢", "永久課程簡介查詢", "補加選", "選課確認", "選課紀錄查詢",
+];
+export const commonSchoolMenuPrograms = commonTitles.map(([title, sourceTitle]) => ({
+  ...programByTitle(sourceTitle), title,
+}));
+/** Shared menu selection used by the portal UI and the assistant's captured directory. */
+export function schoolMenuPrograms(group, view, favorites = []) {
+  if (group === 'menu') {
+    switch (view) {
+      case 'common': return commonSchoolMenuPrograms;
+      case 'custom': return schoolServiceEntries.filter(program => favorites.includes(program.id));
+      case 'course': return courseTitles.map(programByTitle);
+      case 'graduation': return [programByTitle("離校申請狀態查詢")];
+      case 'external': return schoolServiceEntries.filter(program => program.group === 'sysmenu');
+      case 'help': return schoolServiceEntries.filter(program => program.group === 'sysDoc');
+      default: return [];
+    }
+  }
+  return schoolServiceEntries.filter(program => (group === 'all' || program.group === group)
+    && (view === 'all' || view === 'library' || program.kind === view));
+}
+
 // Retain previously shared catalog URLs after a service gets its own workspace.
 export function nativeServiceAlias(key) {
   // Observed 2026-11-13: StuSelConfirm returned to SelectCourse without a form.

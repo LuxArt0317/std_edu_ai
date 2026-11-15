@@ -17,6 +17,8 @@ export type AccountQuery = 'enrollments'|'timetable'|'grades'|'attendance'|'cred
 export const accountQueryByService: Readonly<Partial<Record<string,AccountQuery>>>;
 export type SchoolServiceEntry = PortalProgram & {officialUrl:string;localUrl:string};
 export const schoolServiceEntries: SchoolServiceEntry[];
+export const commonSchoolMenuPrograms: SchoolServiceEntry[];
+export function schoolMenuPrograms(group:string,view:string,favorites?:readonly string[]):SchoolServiceEntry[];
 export function officialServiceUrl(sourcePath:string):string;
 export function serviceDestination(program:PortalProgram):string;
 export function nativeServiceAlias(key:string):string|undefined;

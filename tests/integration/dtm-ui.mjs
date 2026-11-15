@@ -59,11 +59,31 @@ try {
   await signed.route('**/api/affairs-data*',route=>{
     assert.match(route.request().headers().authorization || '',/^Bearer /);
     const query=new URL(route.request().url()).searchParams;
+    if(query.get('scope')==='dtm-course-resource'){
+      assert.equal(query.get('course_id'),course.id);
+      assert.equal(query.get('material_id'),material.id);
+      return route.fulfill({json:{course:{...course,sourceMode:'sample'},material:{...material,userId:course.userId,courseId:course.id,sourceUrl:null,targetUrl:null}}});
+    }
     if(query.get('scope')==='dtm-course-content'){
       assert.equal(query.get('course_id'),course.id);
       return route.fulfill({json:content});
     }
     return route.fulfill({json:sample});
+  });
+  await signed.route('**/api/affairs-conversations*',route=>{
+    const req=route.request();
+    assert.match(req.headers().authorization || '',/^Bearer /);
+    if(req.method()==='GET')return route.fulfill({json:{conversations:[]}});
+    const saved=req.postDataJSON();
+    return route.fulfill({json:{id:saved.id,title:saved.title,messages:saved.messages,version:saved.version+1,updated_at:new Date().toISOString()}});
+  });
+  const materialRequests=[];
+  await signed.route('**/api/affairs-assistant',route=>{
+    assert.match(route.request().headers().authorization || '',/^Bearer /);
+    const request=route.request().postDataJSON();
+    materialRequests.push(request);
+    return route.fulfill({json:{status:'answered',answer:'The verified saved material description is Sample guide.',
+      citations:[],suggestedQuestions:[],verification:{status:'verified',attempts:1},grounding:{source:'account',webSearched:false}}});
   });
   const page = await signed.newPage();
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
@@ -103,6 +123,23 @@ try {
   await page.getByRole('dialog',{name:/Assistant/}).waitFor();
   await page.keyboard.press('Escape');
   await page.waitForFunction(()=>document.activeElement?.matches('.dtm-user'));
+  const materialRoute='/dtm/course/'+course.id+'/material/'+material.id;
+  for(const width of [1440,390]){
+    await page.setViewportSize({width,height:900});
+    await page.goto(base+materialRoute);
+    await page.getByRole('heading',{name:material.title,exact:true}).waitFor();
+    await page.locator('.dtm-user').click();
+    await page.getByRole('menuitem',{name:'校園助理',exact:true}).click();
+    const chat=page.getByRole('dialog',{name:/Assistant/});
+    await chat.getByPlaceholder('Ask a school question…').fill('What is this saved material about?');
+    await chat.getByRole('button',{name:'Send',exact:true}).click();
+    await chat.getByText('The verified saved material description is Sample guide.').waitFor();
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`Material chat overflow at ${width}`);
+    await page.keyboard.press('Escape');
+  }
+  assert.deepEqual(materialRequests.map(request=>({route:request.route,question:request.question})),Array(2).fill({
+    route:materialRoute,question:'What is this saved material about?',
+  }));
   await page.goto(base+'/');
   await page.locator('body.home.page-id-243').waitFor();
   assert.equal(await page.locator('.stu-direct-notice, .stu-account-status, iframe[src="/account-status"]').count(),0);
@@ -113,5 +150,5 @@ try {
   await page.getByRole('heading',{name:'系統公告'}).waitFor();
   assert.deepEqual(errors,[]);
   await signed.close();
-  console.log(JSON.stringify({status:'ok',guestRedirect:true,sharedGoogleSession:true,courseMaterials:true,landingNoticeAbsent:true,alias:true,viewports:[1533,1440,768,390,320],seriousCriticalAccessibility:0}));
+  console.log(JSON.stringify({status:'ok',guestRedirect:true,sharedGoogleSession:true,courseMaterials:true,materialChat:[1440,390],landingNoticeAbsent:true,alias:true,viewports:[1533,1440,768,390,320],seriousCriticalAccessibility:0}));
 } finally {await browser.close();}

@@ -1,3 +1,4 @@
+import {buildDtmMaterialCases,dtmMaterialCasePrefix} from './dtm-material-cases.mjs';
 import {buildDtmNativeRouteCases} from './dtm-native-route-cases.mjs';
 import {dtmAssignmentCases,dtmAssignmentFixture} from './dtm-assignment-native-cases.mjs';
 
@@ -19,12 +20,12 @@ export function nativeDtmRunnerCases(){
         requiredText:text,allowedTools:tools,requiredTools:row.mode==='failed'?[]:tools,
         requiredAttemptedTools:tools,noAction:true,forbidPublicResearch:true,localLinksOnly:true}};
   });
-  return [...grades,...assignments];
+  return [...grades,...assignments,...buildDtmMaterialCases()];
 }
 
 export function nativeDtmSetupRequired(testCase){
   return testCase?.fixtureRequirement===requirement||typeof testCase?.id==='string'
-    &&(testCase.id.startsWith(assignmentPrefix)||testCase.id.startsWith(gradePrefix));
+    &&(testCase.id.startsWith(assignmentPrefix)||testCase.id.startsWith(gradePrefix)||testCase.id.startsWith(dtmMaterialCasePrefix));
 }
 
 export function assertNativeDtmCaseReady(testCase){

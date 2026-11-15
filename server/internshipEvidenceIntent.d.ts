@@ -1,0 +1,12 @@
+export const internshipEvidencePath:'/school-affairs/services/internship';
+export type InternshipView='contract'|'self_assessment'|'company'|'directory';
+export type InternshipRecordType='contract'|'self_assessment'|'company';
+export const internshipRecordTypes:Readonly<Record<InternshipView,InternshipRecordType>>;
+export type InternshipField='title'|'status'|'startsOn'|'endsOn'|'notes'|'reviewStatus';
+export const internshipFields:readonly InternshipField[];
+export type InternshipIntentReason='foreign_request'|'unsupported_operation'|'unsupported_authority'|'excluded'|'invalid_route'|'ambiguous_selector'|'invalid_reference'|'unsupported_field';
+export type InternshipHistory=readonly {role:string;content:string}[];
+export type InternshipSelection={view:InternshipView;recordType:InternshipRecordType;route:string;recordId:string|null;fields:InternshipField[]};
+export type InternshipLookupContext={recognized:boolean;selection:InternshipSelection|null;reason:InternshipIntentReason|null;question:string;otherQuestion:string;companion:'charges'|'courses'|null};
+export function internshipLookupContext(question:unknown,route?:string,history?:InternshipHistory):InternshipLookupContext;
+export function isInternshipEvidenceQuestion(question:unknown,route?:string,history?:InternshipHistory):boolean;

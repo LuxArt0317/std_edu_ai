@@ -1,3 +1,5 @@
+import {dtmMaterialIntent} from '../../server/dtmMaterialIntent.js';
+import {isInternshipEvidenceQuestion} from '../../server/internshipEvidenceIntent.js';
 import {isStudentLeaveEvidenceQuestion} from '../../server/studentLeaveEvidenceIntent.js';
 import {isDtmAssignmentEvidenceQuestion} from '../../server/dtmAssignmentEvidenceIntent.js';
 import {isStudentConductScopeQuestion} from '../../server/studentConductEvidenceScope.js';
@@ -60,7 +62,7 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
   if (data.session.user.id !== expectedUserId) throw new Error('Your account changed. Reopen the assistant and try again.');
   const {access_token:accessToken}=data.session;
-  if (isStudentLeaveEvidenceQuestion(question,route,history)||isDtmAssignmentEvidenceQuestion(question,route,history)||isAidPaymentsScopeQuestion(question,route,history)
+  if (dtmMaterialIntent(question,route)||isInternshipEvidenceQuestion(question,route,history)||isStudentLeaveEvidenceQuestion(question,route,history)||isDtmAssignmentEvidenceQuestion(question,route,history)||isAidPaymentsScopeQuestion(question,route,history)
     ||isForeignDtmGradesQuestion(question,route)||shouldReadNativeDtmGrades(question,route,history)
     ||isElearningEvidenceQuestion(question,route,history)||isForeignElearningRecordsQuestion(question,route)
     ||isFacilityRepairEvidenceQuestion(question,route,history)||isForeignFacilityRepairQuestion(question)

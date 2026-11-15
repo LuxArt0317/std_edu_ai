@@ -608,3 +608,11 @@ Use the frozen assignment manifest against protected Preview base `eac8ecf0`. Th
 ### Issue #100 student leave checkpoint
 
 The leave checkpoint extends assignment Preview `20298f1` and includes the separate Moodle browser repair. It uses the existing account-owned leave and request tables. The scoped handler, fixture admissions and local browser tests use controlled data. Use disposable accounts and an independently pinned request observer for actual signed-in leave and transcript replay.
+
+### Native Moodle materials candidate [Issue #100]
+
+The candidate adds caller-bound list and exact material answers on the protected Student Leave release base. Native coverage includes bilingual list questions, resource metadata, exclusion and owner controls, exact guest return, missing records and a same-scope retry. Controlled API and browser checks completed. The hosted fixture and actual protected replay are still pending.
+
+### Combined assistant evidence [Issue #100]
+
+The combined candidate includes twelve native Moodle resource cases, thirty native internship cases, twenty-two static menu cases, the Custom menu browser boundary, and the two-owner leave fixture lifecycle. The fixture implementation was checked offline with the real scoped handlers and injected transaction transport. The release gate still requires pinned, authorized Preview observations, independent review and exact cleanup of any hosted fixtures.

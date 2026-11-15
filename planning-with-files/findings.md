@@ -1,3 +1,7 @@
+## Native internship evidence [Issue #100]
+
+The company directory and company application use the same owner-qualified saved subtype. Neither provides an institutional directory, placement, approval or receipt. The assistant reads distinct contract and self-assessment rows. A selected field can expose an own reflection or linked local review. Missing review data leaves that claim unavailable without changing the saved tracker status. Exact public guidance remains eligible for public lookup. The normal runner prevents unresolved native fixture cases from entering the legacy adapter.
+
 ## Student leave evidence [Issue #100]
 
 An archived date is bound to the native cutoff and the queried date range. The reader verifies saved row state and requested linked review state independently. Scoped queries and retries avoid account initialization. When a compound question exceeds the supported leave, balance, timetable and native grade readers, the answer identifies the part that still needs a separate lookup.

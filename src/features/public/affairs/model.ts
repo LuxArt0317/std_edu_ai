@@ -105,66 +105,7 @@ export const menuPath = (group: string, view: string) =>
   `/school-affairs/menu/${group}/${view}`;
 export const programByTitle = (title: string) =>
   portalPrograms.find((program) => program.title === title);
-const commonTitles = [
-  ["請假填單", "請假填單"],
-  ["就學貸款申請", "就學貸款申請"],
-  ["Leave application form", "請假填單"],
-  ["Inquiry of Absenteeism Records", "缺曠課紀錄查詢"],
-  [
-    "Checking the status of your application to leave school",
-    "離校申請狀態查詢",
-  ],
-  ["行事曆", "行事曆"],
-  ["CU數位平台", "CU數位平台"],
-  ["學校首頁", "學校首頁"],
-  ["Calendar", "行事曆"],
-  ["Moodle Digital Academy", "Moodle數位學園"],
-  ["mySTU", "mySTU"],
-  ["My course schedule;", "我的功課表"],
-  ["Course selection record query;", "選課紀錄查詢"],
-  ["Club activities", "社團活動"],
-  ["Proof of enrollment", "在學證明"],
-];
-export const commonPrograms = commonTitles.map(([label, title]) => ({
-  ...programByTitle(title)!,
-  title: label,
-}));
-const courseTitles = [
-  "初選",
-  "加退選",
-  "我的功課表",
-  "暑期選課",
-  "棄選",
-  "歷年超減修申請紀錄查詢",
-  "永久課程簡介查詢",
-  "補加選",
-  "選課確認",
-  "選課紀錄查詢",
-];
-export function getMenuPrograms(
-  group: string,
-  view: string,
-  favorites: readonly string[] = [],
-): PortalProgram[] {
-  if (group === "menu") {
-    if (view === "common") return commonPrograms;
-    if (view === "custom")
-      return portalPrograms.filter((program) => favorites.includes(program.id));
-    if (view === "course")
-      return courseTitles.map((title) => programByTitle(title)!);
-    if (view === "graduation") return [programByTitle("離校申請狀態查詢")!];
-    if (view === "external")
-      return portalPrograms.filter((program) => program.group === "sysmenu");
-    if (view === "help")
-      return portalPrograms.filter((program) => program.group === "sysDoc");
-    return [];
-  }
-  return portalPrograms.filter(
-    (program) =>
-      (group === "all" || program.group === group) &&
-      (["all", "library"].includes(view) || program.kind === view),
-  );
-}
+export { commonSchoolMenuPrograms as commonPrograms, schoolMenuPrograms as getMenuPrograms } from "./studentServices.js";
 export const filterPrograms = (
   programs: readonly PortalProgram[],
   query: string,

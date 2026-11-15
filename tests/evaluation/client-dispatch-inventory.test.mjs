@@ -13,7 +13,9 @@ test('the five direct readers and verified graph dispatch remain separately visi
     'certificate-awards','announcement-email','student-profile','venue-requests']);
   assert.equal(new Set(inventory.questions.map(row=>row.id)).size,25);
   assert.deepEqual(inventory.verifiedDispatch.map(({id,graphTool})=>({id,graphTool})),[
+    {id:'dtm-materials',graphTool:'dtmMaterials'},
     {id:'student-leave',graphTool:'leaveRecords'},
+    {id:'internship',graphTool:'internshipRecords'},
     {id:'dtm-assignment-detail',graphTool:'dtmAssignment'},{id:'aid-payments',graphTool:'aidPayments'},{id:'dtm-grade-report',graphTool:'dtmGradeReport'},
     {id:'elearning-enrollments',graphTool:'elearningEnrollments'},{id:'facility-repairs',graphTool:'facilityRepairs'},
     {id:'dormitory-conduct',graphTool:'dormitoryConduct'},{id:'elearning-outline',graphTool:'elearningOutline'},
@@ -51,6 +53,7 @@ test('native questions require the fields the reader actually supplies and discl
   assert.equal(service('student-leave'),undefined);
   assert.deepEqual(inventory.verifiedDispatch.find(row=>row.id==='student-leave').serviceKeys,['20-1','33-1']);
   assert.ok(inventory.sourceManifest.some(row=>row.path==='server/studentLeaveEvidenceIntent.js'));
+  assert.ok(inventory.sourceManifest.some(row=>row.path==='server/internshipEvidenceIntent.js'));
   assert.equal(question('client:aid-payments:multipart'),undefined);
   assert.deepEqual(service('student-profile').fields,['recordExists','confirmedAt']);
   assert.match(service('student-profile').limit,/deliberately omits address/u);

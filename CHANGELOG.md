@@ -1,6 +1,13 @@
 # Changelog
 ## Unreleased
 
+- Answer route-specific School Affairs menu questions from local directory entries. Direct students to their own browser for Custom menu links. [#100]
+- Add a two-account Student Leave fixture with transaction recovery and verified cleanup. Keep live fixture admission explicit. [#100]
+
+- Answer Moodle material questions from the signed-in course list or exact resource. Keep the saved description and link availability separate from file contents. Retry a failed read once and keep independently verified fee answers. [#100]
+- Verify a student's saved internship contracts, self-assessments, company applications and local directory from their respective School Affairs views. Keep saved tuition and the next class tied to independent sources. [#100]
+- Add 30 internship evaluation cases and report missing live fixture bindings before any model request. [#100]
+
 - Verify saved leave history, archived dates, periods, exact forms and local review status in the signed-in assistant. Check explicitly requested balances, the next class and native Moodle grades through their respective sources. [#100]
 
 - Serve the legacy Moodle sign-in URL in local preview and improve contrast for the signed-in Moodle header. [#100]

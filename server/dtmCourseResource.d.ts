@@ -10,3 +10,15 @@ export class DtmCourseResourceError extends Error{status:number;constructor(mess
 export function validateDtmMaterialTargetUrl(value:unknown):string|null;
 export function parseDtmCourseResourceData(value:unknown,userId:string,courseId:string,materialId:string):DtmCourseResourceData;
 export function loadDtmCourseResource(account:DtmCourseResourceAccount,options:{courseId:string;materialId:string}):Promise<DtmCourseResourceData>;
+
+export const dtmMaterialListLimit: 12;
+export type DtmCourseMaterialList = {
+  id: string;
+  user_id: string;
+  dtm_materials: {
+    id: string; course_id: string; title: string; kind: 'page' | 'file' | 'assignment';
+    source_mode: 'sample' | 'personal'; position: number;
+  }[];
+};
+export function loadDtmCourseMaterialList(account: Parameters<typeof loadDtmCourseResource>[0], options: {courseId: string}): Promise<DtmCourseMaterialList>;
+export function parseDtmCourseMaterialList(row: unknown, userId: string, courseId: string): DtmCourseMaterialList;

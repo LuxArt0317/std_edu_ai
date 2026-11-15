@@ -17,6 +17,7 @@ import {fixtureForCase} from './fixtures.mjs';
 import {teachingFeedbackRunnerCases,teachingFeedbackCaseAdmission,assertTeachingFeedbackCaseReady,gradeEvaluationCase,teachingFeedbackSetupSummary} from './teaching-feedback-runner.mjs';
 import {assessCoverage} from './coverage.mjs';
 import {nativeDtmRunnerCases,nativeDtmSetupRequired,assertNativeDtmCaseReady} from './dtm-native-runner.mjs';
+import {internshipRunnerCases,markLegacyInternshipFixture,nativeInternshipSetupRequired,assertNativeInternshipCaseReady,internshipSetupSummary} from './internship-native-runner.mjs';
 import {studentLeaveRunnerCases,markLegacyStudentLeaveFixture,nativeStudentLeaveSetupRequired,assertNativeStudentLeaveCaseReady,studentLeaveSetupSummary} from './student-leave-runner.mjs';
 import {buildGuidanceReviewBinding,validateGuidanceReview} from './guidance-rubric.mjs';
 import {createPinnedDeploymentVerifier} from './pinned-deployment.mjs';
@@ -105,8 +106,8 @@ export async function evaluationSuite(now,{caseFamily}={}){
   const [graphInventory,clientDispatch]=await Promise.all([discoverSurfaces(),discoverClientDispatchSurfaces()]);
   const inventory={...graphInventory,clientDispatch,hash:hash({graph:graphInventory.hash,clientDispatch})};
   const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases()
-    :[...[...buildServiceCases(),...buildAccountCases({now})].map(markLegacyStudentLeaveFixture),
-      ...teachingFeedbackRunnerCases(),...nativeDtmRunnerCases(),...studentLeaveRunnerCases(),...buildPublicCases(inventory)];
+    :[...[...buildServiceCases(),...buildAccountCases({now})].map(markLegacyStudentLeaveFixture).map(markLegacyInternshipFixture),
+      ...teachingFeedbackRunnerCases(),...nativeDtmRunnerCases(),...studentLeaveRunnerCases(),...internshipRunnerCases(),...buildPublicCases(inventory)];
   if(caseFamily==='fee-remission')validateFeeRemissionRunnerCases(cases);
   const ids=new Set();
   for(const item of cases){if(!item.id||ids.has(item.id))throw new Error('Duplicate or missing case ID: '+item.id);ids.add(item.id);}
@@ -286,6 +287,11 @@ export function assessRun(report,{cases,inventory,requestedSuite,sourceRevision,
     assessment.studentLeaveSetup=leaveSetup;
     integrity.push({id:'run.studentLeaveFixtureUnbound',detail:'Registered Student Leave cases require independent caller-bound fixtures and request observations before live execution.'});
   }
+  const internshipSetup=internshipSetupSummary(cases);
+  if(internshipSetup.registered){
+    assessment.internshipSetup=internshipSetup;
+    integrity.push({id:'run.nativeInternshipFixtureUnbound',detail:'Registered native internship cases require isolated caller-bound fixtures and independent request observations before live execution.'});
+  }
   if(inventory.clientDispatch?.questions.length){
     const missing=inventory.clientDispatch.questions.map(item=>item.id);
     assessment.clientDispatch={total:missing.length,executed:0,passed:0,missing};
@@ -409,7 +415,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
   if(!selected.length)throw new Error('No cases match.');
   // Do not pass an unmounted native case into the legacy adapter: prepare
   // may initialize accounts and seed unrelated data before forCase is called.
-  const fixtureCases=selected.filter(row=>!teachingFeedbackCaseAdmission(row)&&!nativeDtmSetupRequired(row)&&!nativeStudentLeaveSetupRequired(row));
+  const fixtureCases=selected.filter(row=>!teachingFeedbackCaseAdmission(row)&&!nativeDtmSetupRequired(row)&&!nativeStudentLeaveSetupRequired(row)&&!nativeInternshipSetupRequired(row));
   const out=resolve(root,opt.out||`artifacts/assistant-evaluation/${opt.mode}-${runId}.json`);
   if(relative(resolve(root,'artifacts/assistant-evaluation'),out).startsWith('..')||!out.endsWith('.json'))throw new Error('Reports must be JSON under artifacts/assistant-evaluation.');
   let browserAcceptance;
@@ -426,6 +432,8 @@ export async function main(args=process.argv.slice(2),dependencies={}){
   if(selected.some(row=>teachingFeedbackCaseAdmission(row)))report.teachingFeedbackSetup=teachingFeedbackSetupSummary(selected);
   const leaveSetup=studentLeaveSetupSummary(selected);
   if(leaveSetup.registered)report.studentLeaveSetup=leaveSetup;
+  const internshipSetup=internshipSetupSummary(selected);
+  if(internshipSetup.registered)report.internshipSetup=internshipSetup;
   if(opt.mode==='inventory'){
     report.cases=suite.cases;report.assessment=assessRun({...report,sourceUnchanged:true},{cases:suite.cases,inventory:suite.inventory,sourceRevision:identity.sourceRevision,requestedSuite:feeOnly?'subset':'full'});
     await persist(out,report);log(JSON.stringify({mode:opt.mode,cases:suite.cases.length,services:suite.inventory.services.length,tools:suite.inventory.tools.length,publicPages:suite.inventory.publicPages.length,report:relative(root,out),releaseReady:false}));return report;
@@ -472,6 +480,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
         assertTeachingFeedbackCaseReady(testCase);
         assertNativeDtmCaseReady(testCase);
         assertNativeStudentLeaveCaseReady(testCase);
+        assertNativeInternshipCaseReady(testCase);
         if(opt.mode==='live'){
           assertCatalogCaseBound(testCase,report);
           if(feeOnly||testCase.fixtureKey!=='anonymous'){
@@ -516,7 +525,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           envelope={statusCode:200,body:body||{status:'abstained',answer:'No deterministic answer'},events:[],execution:'deterministic',fixtureKey:testCase.fixtureKey,sourceRevision:identity.sourceRevision};
         }
       }catch(error){
-        const execution=phase==='setup'&&nativeStudentLeaveSetupRequired(testCase)?'not-run':opt.mode==='live'?'live-model':'deterministic';
+        const execution=phase==='setup'&&(nativeStudentLeaveSetupRequired(testCase)||nativeInternshipSetupRequired(testCase))?'not-run':opt.mode==='live'?'live-model':'deterministic';
         envelope={statusCode:0,body:{error:error instanceof Error?error.message:'Evaluation request failed'},events:[],failureKind:phase,execution,
           fixtureKey:testCase.fixtureKey,sourceRevision:opt.mode==='live'?report.deployment?.sourceRevision||'unknown':identity.sourceRevision};
       }

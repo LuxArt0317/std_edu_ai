@@ -25,3 +25,25 @@ Run `node --test tests/evaluation/student-leave-native-cases.test.mjs` using Nod
 The whole-project runner lists 42 native Student Leave cases, including concrete paths for the index, archive, periods and one exact edit record. It reports the cases as setup failures until independently bound fixtures and request observations are available. A pinned manifest, saved runtime verdict, or compiled client transport test cannot supply that evidence. Nine existing leave questions and their original oracles remain in the denominator with explicit pending fixture bindings.
 
 Run `node --test tests/evaluation/student-leave-runner.test.mjs` for the runner admission, independent grading, and compiled client transport checks. These checks use injected responses and never contact the assistant or create fixtures.
+
+
+## Isolated fixture lifecycle
+
+`student-leave-fixture-plan.mjs` reserves deterministic form and request IDs for two independently verified disposable Google-linked student identities. It stages exact synthetic rows for the ordinary, archive, relative-date, sibling, dated-history, count and named snapshots. The raw read probes cover each direction of caller and target for both tables. Crossed probes use the target's actual owner filter and valid row IDs, so an empty result can demonstrate isolation instead of a query mismatch. The fixture's scoped evidence excludes notes, phone and raw review identifiers.
+
+`student-leave-fixture-lifecycle.mjs` uses the existing run lease, exact Preview and protected-owner proof patterns. `student-leave-fixture-journal.mjs` writes an owner-only, append-only, fsynced chain of intent and result records. A transition records its intent, then records that mutation may start only after the transaction establishes the exact previous state. Recovery can reconcile an exact state that the journal authorized or the empty state. It cannot adopt lookalike or partially changed rows.
+
+The adapter must perform the transaction on the same serialized connection with safe isolation. Its exact delete statements must compare every saved cell, including null and timestamps, and return the exact removed rows. The scoped read includes all rows owned by the two accounts, globally reserved IDs, and forms referencing any reserved review ID. Delete the forms before their requests. Unexpected references, audit rows or field changes stop deletion. Cleanup verifies the exact scope is empty and repeats the protected-owner and identity checks. It can finish under the same lease after a Preview access failure. This workflow neither creates nor deletes Auth accounts.
+
+| Existing case group | Count | Supported by this change | Outstanding for live execution |
+| --- | ---: | --- | --- |
+| Leave data | 18 | Exact route, range, field and row binding, including filtered empty | Scoped live executor and request-bound observations |
+| Boundary or navigation | 14 | Exact request binding and controlled API behavior | Trusted proof of zero unintended reads or mutations |
+| Relative Taipei dates and counts | 3 | Exact dataset and controlled read at the reference time | Independently pinned request clock or a reviewed time-aware case binding |
+| Companion readers | 5 | Leave state for the four questions that request it | Independently bound charges, next class or Moodle grade records |
+| Explicit unavailable or partial | 2 | Distinct correctly seeded forms and linked review | Trusted, bounded failure injection for the exact read, plus observations |
+| Existing legacy cases | 9 | Named leave dataset for three cases, all original oracles retained | Exact case rebinding or an explicit missing capability, including the mixed missed-lesson question |
+
+The exported `studentLeaveFixtureManifest.cases` lists all 51 case IDs with their exact obligations. It grants no live admission. The provider adapter must bind each fresh caller session to the run, prove the pinned revision, carry out the bounded database operations, and collect trusted request-correlated observations of raw reads and projected evidence. Normal fixture preparation and the evaluator admission guard remain unchanged. A deployable response or a valid raw probe cannot substitute for those observations.
+
+Run `node --test tests/evaluation/student-leave-fixture-lifecycle.test.mjs` with Node 24. The 13 controlled checks include 21 data cases through the normal selector and reader, 14 boundary cases through the handler, both-owner readbacks, unknown-commit recovery and guarded cleanup. They make no provider requests.

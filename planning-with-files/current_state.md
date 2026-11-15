@@ -1,5 +1,7 @@
 ## Assistant evaluation resumed [Issue #100]
 
+The isolated internship integration adds one owner- and subtype-bound reader for the four local internship destinations. The account handler verifies selected fields from the exact view, checks the supported fee or next-class clauses independently, refreshes the same scope once, and withholds unverified record cards. The main evaluation registers 30 native questions and retains four legacy cases with setup failures. Hosted fixture binding, signed-in browser acceptance, real-model evaluation and publication are pending.
+
 The student leave candidate uses the signed-in caller's history, archive, periods and exact saved record independently of tuition, the next class and native Moodle grades. The handler consumes no full account snapshot for these scoped questions. Protected Preview `20298f1` serves the assignment checkpoint. The signed-in four-prompt and leave evaluations still require authorized Preview access and live fixture proof.
 
 Local checks passed 1,692 API, 541 unit and 990 evaluator tests. The compiled browser passed eight synthetic route/width combinations. The inventory contains 1,147 questions across 94 services, 38 tools and 395 public pages. Fifty-seven routes still lack semantic cases. The 42 native and nine retained leave cases still require live fixture bindings.
@@ -284,3 +286,11 @@ The accommodation bed candidate now uses a dedicated owner-scoped reader with op
 The final local accommodation candidate passed 1,633 API tests and 816 evaluation checks, including the 22-question real-handler replay with synthetic auth and model transports. The isolated transcript fixture follow-up 150ad8b passed 73 checks and proves that four ordered questions reuse one seeded fixture with before/after readback. It still needs authorized Preview access and conversation persistence acceptance.
 
 A pre-publication review caught common Chinese spelling and relative-term routing. First-person bed numbers use 34-1. A relative term without a saved current-term designation asks for a numbered term. Both paths preserve ownership and guest access rules. The original local revision was superseded before publication.
+
+### Moodle material verification [Issue #100]
+
+Work is active in the isolated assistant integration checkout. The leave checkpoint passed its protected Preview and GitHub Quality checks. The Moodle material follow-up adds exact caller-owned resource and list lookup, local LangGraph verification, two-width compiled-browser dispatch, and twelve independently graded cases. The protected four-turn replay is pending authorized runner access and exact fixture binding.
+
+### Combined assistant candidate [Issue #100]
+
+Moodle materials, all four internship views, 23 menu paths, and the Student Leave fixture lifecycle are integrated on verified protected Preview base `06e6a54`. The suite includes the 12 Moodle and 30 internship cases, link scopes for all static menus, and an explicit boundary for browser-local favorites. The leave fixture binds synthetic own and crossed rows in controlled tests. Exact live fixture admission, the four-turn replay, and whole-site live acceptance remain open.

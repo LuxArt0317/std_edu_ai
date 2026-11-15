@@ -1,3 +1,4 @@
+import type {InternshipEvidenceResult} from './internshipEvidenceContract.js';
 import type {StudentLeaveEvidenceResult} from './accountStudentLeaveEvidence.js';
 import type {DtmAssignmentEvidenceResult} from './accountDtmAssignmentEvidence.js';
 import type {TutorEvaluationEvidenceResult} from './accountTutorEvaluationEvidence.js';
@@ -19,7 +20,7 @@ import type {SubmissionEvidenceResult} from './accountSubmissionEvidence.js';
 import type {TuitionEvidenceResult} from './accountTuitionEvidence.js';
 import type {TeachingFeedbackEvidenceResult} from './accountTeachingFeedbackEvidence.js';
 
-export type SupplementalEvidenceResult=StudentLeaveEvidenceResult|DtmAssignmentEvidenceResult|TutorEvaluationEvidenceResult|ClearanceEvidenceResult|CounselingEvidenceResult|HealthExaminationEvidenceResult|FeeRemissionEvidenceResult|CatalogEvidenceResult|CertificateEvidenceResult|SubmissionEvidenceResult|TuitionEvidenceResult|StudentConductEvidenceResult|StudentLoanEvidenceResult|AidPaymentsEvidenceResult|DtmGradeReportEvidenceResult|ElearningEvidenceResult|FacilityRepairEvidenceResult|DormitoryConductEvidenceResult|ElearningOutlineEvidenceResult|TeachingFeedbackEvidenceResult;
+export type SupplementalEvidenceResult=InternshipEvidenceResult|StudentLeaveEvidenceResult|DtmAssignmentEvidenceResult|TutorEvaluationEvidenceResult|ClearanceEvidenceResult|CounselingEvidenceResult|HealthExaminationEvidenceResult|FeeRemissionEvidenceResult|CatalogEvidenceResult|CertificateEvidenceResult|SubmissionEvidenceResult|TuitionEvidenceResult|StudentConductEvidenceResult|StudentLoanEvidenceResult|AidPaymentsEvidenceResult|DtmGradeReportEvidenceResult|ElearningEvidenceResult|FacilityRepairEvidenceResult|DormitoryConductEvidenceResult|ElearningOutlineEvidenceResult|TeachingFeedbackEvidenceResult;
 export type SupplementalRecordView={id:string;title:string;url:string;columns:string[];rows:string[][];total:number;checkedAt:string;note:string};
 export type SupplementalAnswerCandidate={
   status:'answered'|'abstained';answer:string;

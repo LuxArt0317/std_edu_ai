@@ -73,3 +73,10 @@ The housing cases distinguish application receipts at 26-1 from bed assignments 
 `dtm-native-route-cases.mjs` contains 14 independently authored cases exercised offline through the native reader and formatter, with API tests for the actual dispatch, transport contract and retry. The multi-course fixture is not mounted in the live runner.
 
 The [teaching feedback evaluation](../../docs/qa/TEACHING_FEEDBACK_LIVE_EVALUATION.md) registers forty independent cases in the main suite. Each remains a setup failure until the native fixtures and request-bound observations are mounted.
+
+The 12 native Moodle material cases are in `dtm-material-cases.mjs`. `dtm-material-assistant.test.ts` grades replies from the actual account handler with controlled PostgREST responses and exact route, ownership, projection, and retry checks. Hosted evaluation still requires a caller-bound disposable fixture. A passed controlled check supplies no live acceptance credit.
+### Native internship
+
+[The internship packet](../../docs/qa/INTERNSHIP_NATIVE_READ.md) registers 30 bilingual native questions for the contract, self-assessment, company application and directory. It retains four prior questions with a fixture rebind requirement. The default runner reports the unresolved setup before calling a hosted model or creating fixtures.
+
+The School Affairs directory adds 22 bilingual catalog cases and an explicit browser-local Custom menu case. Controlled public and signed-in handlers verify links and sibling exclusions without forwarding account data. The Student Leave lifecycle stages caller and foreign sentinels, records uncertain transactions durably, and checks both owners before making any cleanup claim. The lifecycle tests do not authorize the live fixture adapter.

@@ -1,8 +1,10 @@
+import {internshipAssistantPlan,internshipGuestAnswer} from './internshipAssistantPlan.js';
 import {studentConductScope} from './studentConductEvidenceScope.js';
 import {boundedAssistantText} from '../src/services/assistantActivityBudget.js';
 import {currentStudyForeignYearQuestion} from './currentStudyOwnerScope.js';
 import {accountQuestionIntent,isAccountOverviewQuestion,isCurrentStudyRecordQuestion} from './affairsAnswer.js';
 import {studentConductGuide} from './studentConductGuide.js';
+import {dtmMaterialBoundary,dtmMaterialIntent,dtmMaterialRoute} from './dtmMaterialIntent.js';
 import {studentLeaveAssistantPlan,studentLeaveGuestAnswer} from './studentLeaveAssistantPlan.js';
 import {serviceNoteLookup} from './serviceNoteIntent.js';
 import {serviceNoteGuide} from './serviceNoteGuide.js';
@@ -133,12 +135,14 @@ function parse(body) {
     }) : [];
     const route = typeof source.route === 'string' && (/^\/school-affairs(?:\/search|\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/leave(?:\/(?:index|history|archive|periods)|\/edit\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})?\/?$/.test(source.route)||
+        /^\/school-affairs\/services\/internship(?:\/(?:contract|self_assessment|company|directory))?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/21-3\/?$/.test(source.route)||
         /^\/school-affairs\/services\/37-1(?:\/salary)?\/?(?:\?page=[0-9]{1,4}(?:&page=[0-9]{1,4})?)?$/.test(source.route)||
         (source.route.startsWith(healthExaminationPath)&&selectHealthExaminationEvidence('Show my health records.',source.route)?.reason===null&&
           /^\/school-affairs\/services\/36-1\/?(?:\?page=[1-9]\d{0,2})?$/.test(source.route))||
         (source.route.startsWith('/school-affairs/services/34-2')&&selectDormitoryConductEvidence('Show my records.',source.route)?.reason===null)||
         (source.route.startsWith('/school-affairs/services/45-1/history')&&isFacilityRepairEvidenceQuestion('What is its status?',source.route))||
+        (source.route.startsWith('/dtm/course/')&&dtmMaterialRoute(source.route))||
         /^\/elearning(?:\/(?:category|notice)\/[1-9]\d{0,9}|\/(?:categories|my-courses|login|search))?\/?$/.test(source.route)||
         (source.route.startsWith('/elearning/course/')&&!/[?#]/.test(source.route)&&elearningCourseLocation(source.route))) ? source.route : normalizePublicPageRoute(source.route);
     const rawImages = source.images;
@@ -418,8 +422,12 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 citations:[...citations,...(teachingGuide?.citations??[])],suggestedQuestions:[],grounding:{source:'directory',webSearched:false}});
             return;
         }
+        const material=!input.images.length&&dtmMaterialIntent(input.question,input.route);
+        if(material){stream.send(200,dtmMaterialBoundary(material,input.question,false));return;}
         const leave=!input.images.length&&studentLeaveAssistantPlan(input.question,input.route,input.history);
         if(leave){stream.send(200,studentLeaveGuestAnswer(leave,input.question));return;}
+        const internship=!input.images.length&&internshipAssistantPlan(input.question,input.route,input.history);
+        if(internship){stream.send(200,internshipGuestAnswer(internship,input.question));return;}
         const notes=serviceNoteLookup(input.question,input.route,input.history);
         if(notes.foreign||notes.invalidService||notes.officialOnly||notes.keys.length||notes.excluded&&!notes.otherQuestion){
             stream.send(200,serviceNoteGuide(input.question,notes,false));

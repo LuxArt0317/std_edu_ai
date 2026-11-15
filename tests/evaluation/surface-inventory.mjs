@@ -56,7 +56,7 @@ export async function discoverSurfaces() {
     signedIn('academic-grades',Object.values(academicGradesPaths)),
     signedIn('academic-graduation',[...Object.values(graduationReviewPaths),'/school-affairs/services/15-1']),
     signedIn('academic-attendance',Object.values(academicAttendancePaths)),
-    signedIn('dtm',['/dtm','/dtm/dashboard','/dtm/my','/dtm/assignments','/dtm/grades','/dtm/course/:id',...dtmViews.map(view=>'/dtm/course/:id/'+view)]),
+    signedIn('dtm',['/dtm','/dtm/dashboard','/dtm/my','/dtm/assignments','/dtm/grades','/dtm/course/:id',...dtmViews.map(view=>'/dtm/course/:id/'+view),'/dtm/course/:id/material/:materialId']),
     signedIn('dtm-submissions',['/dtm/course/:courseId/assignment/:assignmentId','/dtm/course/:courseId/assignment/:assignmentId/edit']),
     // Content in ElearningWorkspace is authenticated, including its catalog and
     // notices. A copied public catalog does not make this workspace anonymous.
@@ -106,7 +106,7 @@ export async function discoverSurfaces() {
     ...[...new Set(publicPages.map(row=>new URL(row.source).hostname))].sort().map(host=>publicFamily('public:'+host,publicPages.filter(row=>new URL(row.source).hostname===host).map(row=>row.route))),
   ];
   const value={version:3,services:schoolServiceEntries.map(({id,title,section,group,kind,localUrl})=>({id,title,section,group,kind,route:localUrl})),
-    tools:Object.entries({...accountTools,...supplementalAccountTools}).map(([id,description])=>({id,description})),routeFamilies,publicPages,
+    tools:Object.entries({...accountTools,...supplementalAccountTools,dtmMaterials:'Saved Moodle material lists and exact resource metadata for the caller’s course.'}).map(([id,description])=>({id,description})),routeFamilies,publicPages,
     coverageLimits:[
       'A route appearing in an API question or link is semantic/navigation coverage, not browser acceptance.',
       'Public capture title/date questions test page context only; source-content question coverage is separate.',

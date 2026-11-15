@@ -36,6 +36,7 @@ import {buildFeeRemissionFixturePlan,feeRemissionLiveFamilyForCase,feeRemissionL
 import {createFeeRemissionFixtureLifecycle} from './fee-remission-fixture-lifecycle.mjs';
 import {readRows as readFeeRows,deleteRows as deleteFeeRows,insertRows as insertFeeRows} from './fee-remission-fixture-sql.mjs';
 import {createTranscriptConversationFixture} from './transcript-conversation-fixture.mjs';
+import {nativeInternshipSetupRequired} from './internship-native-runner.mjs';
 import {nativeStudentLeaveSetupRequired} from './student-leave-runner.mjs';
 
 const ROOT=fileURLToPath(new URL('../../',import.meta.url));
@@ -357,6 +358,8 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     fail('fixture-unsupported','Teaching feedback requires an isolated fixture and trusted request observation; the legacy adapter cannot prepare this offline packet.');
   if(cases.some(nativeStudentLeaveSetupRequired))
     fail('fixture-unsupported','Native Student Leave requires an isolated fixture and trusted request observations.');
+  if(cases.some(nativeInternshipSetupRequired))
+    fail('fixture-unsupported','Native internship requires isolated caller fixtures and independent request observations.');
   let transcriptCaseIds;
   if(applicationFetch!==undefined){
     if(typeof applicationFetch!=='function'||cases.length!==transcriptFixtureCases.length||fixtureMode!==undefined||caseFamily!==undefined
@@ -1639,6 +1642,8 @@ function ownState(snapshot){
 
 /** Persists golden facts, then proves the application's actual auth/RLS read path. */
 export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
+  if(nativeInternshipSetupRequired(testCase))
+    fail('fixture-unsupported','Native internship requires isolated caller fixtures and independent request observations.');
   if(nativeStudentLeaveSetupRequired(testCase))
     fail('fixture-unsupported','Native Student Leave requires an isolated fixture and trusted request observations.');
   const s=ready();if(s.current)fail('fixture-state','afterCase() must complete before selecting another fixture.');

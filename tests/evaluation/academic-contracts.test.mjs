@@ -1,4 +1,5 @@
 import {nativeDtmRunnerCases,nativeDtmSetupRequired,assertNativeDtmCaseReady} from './dtm-native-runner.mjs';
+import {internshipRunnerCases} from './internship-native-runner.mjs';
 import {studentLeaveRunnerCases} from './student-leave-runner.mjs';
 import {buildTeachingFeedbackNativeCases,teachingFeedbackNativeManifest} from './teaching-feedback-native-cases.mjs';
 import assert from 'node:assert/strict';
@@ -24,16 +25,16 @@ test('evaluation fixtures are fresh and preserve independent oracles and explici
   assert.throws(()=>fixtureForCase('unknown-domain'));assert.throws(()=>fixtureForCase('unavailable:unknown'));
 });
 test('the bank declares all registered tools while actual DTM file fixtures remain unexecutable',()=>{
-  const base=Object.keys(accountTools),supplemental=Object.keys(supplementalAccountTools),registered=[...base,...supplemental];
+  const base=Object.keys(accountTools),supplemental=Object.keys(supplementalAccountTools),registered=[...base,...supplemental,'dtmMaterials'];
   assert.equal(base.length,18);
   assert.ok(base.includes('housingApplications'));
-  assert.deepEqual(supplemental.sort(),['aidPayments','counselingAppointments','courseCatalog','dormitoryConduct','dtmAssignment','dtmGradeReport','dtmSubmissions','elearningEnrollments','elearningOutline','enrollmentCertificate','facilityRepairs','feeRemission','graduationClearance','healthExaminations','leaveRecords','studentConduct','studentLoan','teachingFeedback','tuition','tutorEvaluation'].sort());
+  assert.deepEqual(supplemental.sort(),['aidPayments','counselingAppointments','courseCatalog','dormitoryConduct','dtmAssignment','dtmGradeReport','dtmSubmissions','elearningEnrollments','elearningOutline','enrollmentCertificate','facilityRepairs','feeRemission','graduationClearance','healthExaminations','internshipRecords','leaveRecords','studentConduct','studentLoan','teachingFeedback','tuition','tutorEvaluation'].sort());
   assert.equal(new Set(registered).size,registered.length,'Base and supplemental registrations must not shadow each other.');
-  const cases=buildAccountCases({includePlannedFeeRemission:true,includePlannedHealthExaminations:true,includePlannedCounselingAppointments:true,includePlannedClearanceApplications:true,includePlannedTutorEvaluation:true}),declared=[...new Set([...cases,...nativeDtmRunnerCases(),...studentLeaveRunnerCases()].flatMap(row=>row.expected.requiredTools))];
+  const cases=buildAccountCases({includePlannedFeeRemission:true,includePlannedHealthExaminations:true,includePlannedCounselingAppointments:true,includePlannedClearanceApplications:true,includePlannedTutorEvaluation:true}),declared=[...new Set([...cases,...nativeDtmRunnerCases(),...studentLeaveRunnerCases(),...internshipRunnerCases()].flatMap(row=>row.expected.requiredTools))];
   assert.deepEqual(declared.sort(),registered.filter(key=>key!=='teachingFeedback').sort());
   const nativeDtm=nativeDtmRunnerCases();
-  assert.equal(nativeDtm.length,32);
-  assert.equal(new Set(nativeDtm.map(row=>row.id)).size,32);
+  assert.equal(nativeDtm.length,44);
+  assert.equal(new Set(nativeDtm.map(row=>row.id)).size,nativeDtm.length);
   assert.ok(nativeDtm.every(nativeDtmSetupRequired));
   assert.deepEqual(nativeDtm.filter(row=>!row.route.startsWith('/dtm/')).map(row=>[row.id,row.route]),[['account:dtm-native-route-followup','/']]);
   for(const row of nativeDtm)assert.throws(()=>assertNativeDtmCaseReady(row),/fixture and independent request observations/u);

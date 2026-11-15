@@ -46,7 +46,7 @@ test('discoverable supplemental tools stay distinct from snapshot and scoped acc
   assert.deepEqual(Object.keys(accountTools),['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords',
     'announcements','scholarship','studentAid','housing','housingApplications','creditLoadHistory','courseSelection','academicGrades',
     'graduationReview','academicAttendance']);
-  assert.deepEqual(Object.keys(supplementalAccountTools),['leaveRecords','courseCatalog','enrollmentCertificate','dtmSubmissions','studentConduct','studentLoan','tuition','aidPayments','dtmAssignment','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','feeRemission','tutorEvaluation','teachingFeedback','graduationClearance','counselingAppointments','healthExaminations','elearningOutline']);
+  assert.deepEqual(Object.keys(supplementalAccountTools),['internshipRecords','leaveRecords','courseCatalog','enrollmentCertificate','dtmSubmissions','studentConduct','studentLoan','tuition','aidPayments','dtmAssignment','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','feeRemission','tutorEvaluation','teachingFeedback','graduationClearance','counselingAppointments','healthExaminations','elearningOutline']);
   assert.ok(accountEvidence(snapshot()).every(source=>!Object.keys(supplementalAccountTools).some(key=>source.id==='account:'+key)));
   assert.deepEqual(requiredSupplementalTools('Show my enrollment certificate and tuition settlement.'),['enrollmentCertificate','tuition']);
 });

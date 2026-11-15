@@ -9,7 +9,7 @@ import {curriculumMapPath} from '../src/features/public/affairs/curriculumMaps.j
 import {curriculumPlansPath} from '../src/features/public/affairs/curriculumPlans.js';
 import {
   interdisciplinaryProgramsPath, internshipPath, leavePath, officialInternshipUrl, officialLeaveUrl, officialRegistrarUrl, officialWifiUrl,
-  schoolServiceEntries, studentServiceByKey, teachingAssistantPath, tutorEvaluationPath, wifiGuidePath,
+  schoolMenuPrograms, schoolServiceEntries, studentServiceByKey, teachingAssistantPath, tutorEvaluationPath, wifiGuidePath,
 } from '../src/features/public/affairs/studentServices.js';
 
 import {parkingInstructionsPath,parkingPermitPath} from '../src/features/public/affairs/parkingPermits.js';
@@ -21,7 +21,10 @@ import {academicGradesNavigation,academicGradesPaths} from './academicGrades.js'
 import {graduationReviewNavigation,graduationReviewPaths} from './graduationReview.js';
 import {academicAttendanceNavigation,academicAttendancePaths} from './academicAttendance.js';
 
-const groups = { personal:'選單資訊', sysmenu:'選單資訊', sysDoc:'選單資訊', aca:'教務系統', sao:'學務資訊', swd:'總務資訊', rdd:'研發系統', infoSystem:'資訊系統' };
+const groups = { personal:'電算中心', sysmenu:'選單資訊', sysDoc:'選單資訊', aca:'教務系統', sao:'學務資訊', swd:'總務資訊', rdd:'研發系統', infoSystem:'資訊系統' };
+const menuLabels = {'menu/common':'常用選單', 'menu/external':'外部選單', 'menu/help':'系統說明選單',
+  'menu/course':'選課選單', 'menu/graduation':'畢業離校選單', 'infoSystem/library':'圖書資訊系統'};
+const customMenuUrl = '/school-affairs/menu/menu/custom';
 const aliases = [
   [/repair|maintenance|fix (?:a |the )?(?:room|facility)|報修/i, '報修'],
   [/parking|car permit|停車/i, '停車證'],
@@ -258,11 +261,26 @@ function markdownLink(title, url) { return '[' + title + '](' + url + ')'; }
 
 function normalized(value) { return String(value).normalize('NFKC').toLocaleLowerCase(); }
 function routeGroup(route) {
-  const match = /^\/school-affairs\/menu\/([a-zA-Z]+)\/(all|input|query|portal|external|help|library)\/?$/.exec(route || '');
-  return match ? {group:match[1],view:match[2]} : null;
+  const match = /^\/school-affairs\/menu\/(menu|aca|sao|swd|rdd|personal|infoSystem)\/([a-z]+)\/?$/.exec(route || '');
+  if (!match) return null;
+  const [, group, view] = match;
+  const label = menuLabels[group+'/'+view];
+  if (label) return {group,view,label};
+  if (group !== 'menu' && ['all','input','query','portal'].includes(view)) return {group,view,label:groups[group]};
+  return null;
 }
 function citation(entry) {
   return {chunkId:`directory:${entry.group}:${entry.title}`,claim:'Captured School Affairs service directory entry; the official service may require separate sign-in.',title:entry.title,sourceName:'School Affairs service directory · captured snapshot',url:entry.officialUrl,locator:entry.localUrl,effectiveAt:null,reviewedAt:null};
+}
+function customMenuGuide(question) {
+  const chinese = /[\u3400-\u9fff]/u.test(question);
+  const title = chinese ? '自訂選單' : 'Custom menu';
+  const claim = chinese ? '自訂選單的連結儲存在目前使用的瀏覽器。請在該瀏覽器開啟自訂選單查看。'
+    : 'This menu shows links saved in your browser. Open it in that browser to see your selections.';
+  return {status:'handoff',answer:claim+'\n\n'+markdownLink(title,customMenuUrl),
+    citations:[{chunkId:'directory:custom-menu',claim,title,sourceName:'stu.best School Affairs',url:customMenuUrl,locator:null,effectiveAt:null,reviewedAt:null}],
+    suggestedQuestions:[],grounding:{source:'directory',webSearched:false,checkedAt:new Date().toISOString()},
+    activity:[{kind:'directory',label:'Checked School Affairs menu scope',detail:title,status:'complete'}]};
 }
 export function answerSchoolSystemSearch(question,route) {
   if (!/^\/school-affairs\/search\/?$/u.test(route)
@@ -284,6 +302,7 @@ export function answerDirectoryQuestion(question, route='') {
   const here = /\b(?:here|this page|this section|on this screen|services here|what can i do)\b|這(?:裡|裏|頁|個頁面)|此頁|這些(?:服務|資訊)/i.test(question);
   const navigationAnswer = answerCampusNavigation(question);
   if (navigationAnswer) return navigationAnswer;
+  if (here && (route === customMenuUrl || route === customMenuUrl+'/')) return customMenuGuide(question);
   const section = routeGroup(route);
   const all = /\b(?:all|every|full|entire)\b.{0,35}\b(?:services?|systems?|menu|directory)\b|所有.{0,12}(?:服務|系統|選單)|全部.{0,12}(?:服務|系統|選單)/i.test(question);
   const requestedGroup = groupAliases.find(([pattern])=>pattern.test(question))?.[1];
@@ -293,7 +312,7 @@ export function answerDirectoryQuestion(question, route='') {
   const serviceRoute = /^\/school-affairs\/services\/([^/]+)(?:\/history)?$/.exec(route)?.[1]??nativeRoute?.serviceId;
   const baseService = serviceRoute && here ? studentServiceByKey(serviceRoute) : null;
   const service = baseService&&nativeRoute?{...baseService,title:nativeRoute.title[/[\u3400-\u9fff]/.test(question)?0:1],officialUrl:nativeRoute.officialUrl,localUrl:nativeRoute.localUrl}:baseService;
-  const scoped = service ? [service] : section && here ? directoryEntries.filter(item => item.group === section.group && (section.view === 'all' || item.kind === section.view)) : [];
+  const scoped = service ? [service] : section && here ? schoolMenuPrograms(section.group,section.view) : [];
   const matches = scoped.length ? scoped : requestedGroup && /services?|systems?|menu|list|available|資訊|系統|服務|選單/i.test(question) ? directoryEntries.filter(item=>item.group===requestedGroup) : directoryEntries.filter(item => token.length >= 2 && (normalized(item.title).includes(token) || normalized(item.section).includes(token)));
   if (all && !requestedGroup && !here) {
     const chinese = /[\u3400-\u9fff]/.test(question);
@@ -304,9 +323,11 @@ export function answerDirectoryQuestion(question, route='') {
   if (!matches.length) return null;
   const relevant = matches.slice(0, here ? 12 : 6);
   const chinese = /[\u3400-\u9fff]/.test(question);
-  const lead = here ? (chinese ? `此頁列出${groups[section?.group] || '校務資訊'}的服務：` : `This page lists ${groups[section?.group] || 'School Affairs'} services:`) : (chinese ? '校務服務目錄中有：' : 'The School Affairs directory lists:');
+  const lead = here ? (chinese ? `此頁列出${section?.label || '校務資訊'}的服務：` : `This page lists ${section?.label || 'School Affairs'} services:`) : (chinese ? '校務服務目錄中有：' : 'The School Affairs directory lists:');
   const lines = relevant.map(item => `- [${item.title}](${item.localUrl}) · [${chinese ? '校方服務' : 'official service'}](${item.officialUrl})`);
-  const extra = matches.length>relevant.length ? (chinese?`\n\n另有 ${matches.length-relevant.length} 個項目；請開啟[服務清單](/school-affairs/menu/${requestedGroup || section?.group || 'aca'}/all)查看。`:`\n\n${matches.length-relevant.length} more entries are available in the [service list](/school-affairs/menu/${requestedGroup || section?.group || 'aca'}/all).`) : '';
+  const listUrl = here && section && scoped.length ? `/school-affairs/menu/${section.group}/${section.view}`
+    : `/school-affairs/menu/${requestedGroup || 'aca'}/all`;
+  const extra = matches.length>relevant.length ? (chinese?`\n\n另有 ${matches.length-relevant.length} 個項目；請開啟[服務清單](${listUrl})查看。`:`\n\n${matches.length-relevant.length} more entries are available in the [service list](${listUrl}).`) : '';
   const note = chinese ? '這是 2026 年 11 月擷取的服務目錄；校方服務可能需要另外登入。stu.best 的 Google 登入不會匯入正式選課、成績或個人課表。' : 'This is a November 2026 service-directory snapshot. Official services may require a separate school sign-in. Your stu.best Google login does not import official enrollment, grades or timetable.';
   return {status:'answered',answer:`${lead}\n\n${lines.join('\n')}${extra}\n\n${note}`,citations:relevant.map(citation),suggestedQuestions:[],grounding:{source:'directory',webSearched:false,checkedAt:new Date().toISOString()},activity:[{kind:'directory',label:'Checked the School Affairs service directory',detail:`${matches.length} matching services in the captured catalog`,status:'complete'}]};
 }

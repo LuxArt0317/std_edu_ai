@@ -9,7 +9,7 @@ const cases=buildPublicCases({publicPages:captures,tools:[]}).filter(row=>row.do
 const envelope=(testCase,answer)=>({statusCode:200,execution:'deterministic',fixtureKey:testCase.fixtureKey,sourceRevision:'synthetic-public-bank-review',body:{status:'answered',answer,citations:[],activity:[],verification:{status:'verified',attempts:1}}});
 
 test('School Affairs directory case grading checks the actual controls, facilities and destinations',()=>{
-  const menuCases=buildPublicCases({publicPages:[],tools:[]}).filter(row=>row.domain==='school-menu-context');
+  const menuCases=buildPublicCases({publicPages:[],tools:[]}).filter(row=>row.id.startsWith('public-affairs-'));
   assert.equal(menuCases.length,3);
   for(const row of menuCases){
     const body=answerDirectoryQuestion(row.question,row.route);
@@ -17,6 +17,14 @@ test('School Affairs directory case grading checks the actual controls, faciliti
     assert.equal(gradeCase(row,{...envelope(row,body.answer),body}).passed,true,row.route);
     assert.equal(gradeCase(row,envelope(row,'[Open this page]('+row.route+')')).passed,false);
   }
+});
+
+test('the custom menu response points to browser-local favorites without inventing entries',()=>{
+  const row=buildPublicCases({publicPages:[],tools:[]}).find(item=>item.id==='public-custom-menu-browser-only');
+  const body=answerDirectoryQuestion(row.question,row.route);
+  assert.equal(gradeCase(row,{...envelope(row,body.answer),body}).passed,true);
+  assert.deepEqual(body.citations.map(citation=>citation.url),[row.route]);
+  assert.equal(gradeCase(row,envelope(row,'Here are your saved links. [Custom menu]('+row.route+')')).passed,false);
 });
 
 test('all public pages have a concrete nonempty title oracle or a specific missing-title oracle',()=>{

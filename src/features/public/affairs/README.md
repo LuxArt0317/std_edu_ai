@@ -1,5 +1,7 @@
 # School Affairs UI
 
+The portal and assistant share the captured menu selection for common, external, help, course selection, graduation and library links. The Custom menu shows service links saved in the signed-in user's browser.
+
 Service 29-1 opens the counseling entry and private appointment history. School Affairs administration can assign coordinators. See [counseling QA](../../../../docs/qa/COUNSELING.md).
 
 Services 44-1 and 47-1 open the venue application and weekly schedule. The administrator can review local requests. See [venue booking QA](../../../../docs/qa/VENUE_BOOKING.md).

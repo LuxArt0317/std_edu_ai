@@ -225,3 +225,25 @@ Run `node --experimental-strip-types --test tests/api/aid-payments-assistant-rou
 ## Teaching feedback coverage
 
 The independent 40-question offline packet models both student teaching feedback views, caller ownership, exact course filters, anonymous-response limitations and companion School Affairs requests. Intercepted API tests exercise the verification graph, including deliberate rejection and a draft that omits a requested part. The packet is outside the live fixture manifest and carries no live model acceptance.
+
+### Native internship views
+
+The default bank registers the 30 bilingual internship cases from [the native reader packet](INTERNSHIP_NATIVE_READ.md). Local tests cover exact caller scope, field selection and the verification loop. Four prior internship oracles retain their original question and expectations with a fixture rebind requirement. Live eligibility requires two isolated caller fixtures, exact request-bound observations and cleanup evidence. The runner reports `run.nativeInternshipFixtureUnbound` until the binding is available.
+
+## Combined candidate on Student Leave Preview
+
+The local API and source checks passed 1,708 tests, the evaluator passed 1,056
+tests, and the unit suite passed 541 tests. The public and signed-in menu
+handler checks exercised 22 matching catalogs with no account data reads or
+external research. The Custom menu case keeps saved links in the browser.
+The 12 Moodle material and 30 internship cases passed the actual handler
+with controlled authentication and provider responses. Signed-in Moodle
+material dispatch passed at 1440 and 390 pixels with intercepted auth and
+assistant endpoints.
+
+The current inventory registers 1,214 questions, 94 services, 40 tools and
+395 public captures. It identifies 29 paths without semantic cases. A
+registered route still needs its live browser and answer observations. The
+four reported prompts require authorized protected Preview access, a bound
+disposable account, conversation readback, independent review and verified
+cleanup.

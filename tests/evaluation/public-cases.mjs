@@ -1,3 +1,4 @@
+import {buildSchoolMenuNativeCases} from './school-menu-native-cases.mjs';
 import {createHash} from 'node:crypto';
 
 const caseBase={fixtureKey:'anonymous',language:'en',mode:'navigation',capability:{level:'public',limitation:null}};
@@ -56,5 +57,11 @@ export function buildPublicCases(inventory) {
         {id:'honest_separation',proof:'whole_answer'},{id:'language_relevance',proof:'whole_answer'},
       ]}},
   };
-  return [...pages,...questions,...menuPages,...privacy,studyPlanning];
+  const customMenu={
+    ...caseBase,id:'public-custom-menu-browser-only',domain:'school-menu-context',routeFamily:'school-menus',
+    route:'/school-affairs/menu/menu/custom',question:'Which service links are listed on this page?',
+    expected:{behavior:'denial',requiredText:['links saved in your browser'],requiredLinks:['/school-affairs/menu/menu/custom'],
+      allowedTools:[],requiredTools:[],requiredAttemptedTools:[],noAction:true,forbidPublicResearch:true},
+  };
+  return [...pages,...questions,...menuPages,customMenu,...buildSchoolMenuNativeCases(),...privacy,studyPlanning];
 }

@@ -797,3 +797,14 @@ The local Moodle browser follow-up is a separate commit after the assignment che
 ### Student leave checkpoint [Issue #100]
 
 The integration checkout is based on published assignment Preview `20298f1` and includes the local Moodle browser follow-up. Root owns the API and verification wiring. The leave evaluator agent owns registration and independent grading. The internship packet remains separately frozen. The release coordinator owns protected publication and the serialized live run.
+
+### Native Moodle materials [Issue #100]
+
+Root owns the isolated Moodle material route and verification changes on protected Student Leave revision `06e6a54`. Internship and static menu work arrived as separate frozen packets. The leave lifecycle fixture uses a separate exact two-owner transaction. The release coordinator owns hosted publication and the live replay. No database or provider access changes were made by the runtime work.
+### Issue #100 native internship handoff
+
+The isolated branch `codex/issue100-native-internship` builds on `93b579e745a0ed24b1e5fd490fc62e43316e75eb`. The scoped reader consumes the existing `affairs_service_records` table with the caller's token, explicit caller filter, literal service/subtype and selected fields. Independent fee and timetable sections use existing exact readers. Local checks cover views, transport and verification. `docs/qa/INTERNSHIP_NATIVE_READ.md` documents the case bank and commands. Root retains the provider and release window. A two-owner live fixture and trusted request observations are still required.
+
+### Combined candidate handoff [Issue #100]
+
+The isolated candidate merges the Moodle material, internship and menu lanes on protected Student Leave base `06e6a54`. The landed fixture lifecycle includes no hosted fixture runner access. Release coordination owns the exact new Preview and any external acceptance. Record the hosted revision and Quality run separately from local verification.

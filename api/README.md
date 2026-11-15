@@ -122,3 +122,7 @@ The signed-in account handler answers School Affairs keyword-field help after ve
 ### Housing receipt and native Moodle questions
 
 The account assistant reads the signed-in user's housing receipt number, submission time and linked term from service 26-1. Bed assignments at 34-1 use a separate reader. A question about both housing receipts and the Moodle grade overview uses those two readers. Focused native Moodle grade questions skip the general account snapshot and planner. A failed first check reloads the selected records before one correction.
+
+### Verified internship record questions
+
+`affairs-assistant.ts` reads only the verified caller's selected internship subtype. It derives the local contract, self-assessment, company application or enterprise directory from the question and current route. The same filters apply when verification retries. Explicit fee balance or next-class requests use their own read scopes. Guests receive a local sign-in return for the selected destination.

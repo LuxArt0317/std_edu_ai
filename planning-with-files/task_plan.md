@@ -242,6 +242,12 @@ HTML block creation, Administration block behavior and unobserved Move interacti
 - [x] Check compound receipt and Moodle reads through the API with a controlled reviewer, preserve card metadata, and keep deferred teaching cases in the denominator.
 - [x] Add scoped Moodle assignment details, preserve independent native grade clauses, and register their 32 acceptance cases.
 - [x] Connect student leave reads and independent tuition, next-class and Moodle grade companions to the verified account endpoint.
+- [x] Verify saved Moodle materials and exact resource metadata, including independent fee answers and signed-in browser dispatch.
+- [ ] Bind the native Moodle material cases to disposable caller-owned data and run them against the pinned protected release.
+- [x] Integrate four native internship views, all remaining School Affairs menu routes, and the controlled two-owner leave fixture lifecycle.
+- [ ] Run the native internship and leave lifecycle against hosted disposable accounts with independent request observations.
+- [x] Connect the four internship views and independent tuition and timetable lookup to the verified account endpoint. Register the 30-case native bank.
+- [ ] Bind the internship cases to disposable accounts and trusted request observations. Rebind four earlier internship cases against their original requirements.
 - [ ] Execute student leave and native Moodle cases with exact caller-bound fixtures on the protected Preview. Verify the live four-turn conversation and signed-in browser paths.
 - [ ] Mount caller-bound teaching and multi-course DTM fixtures with trusted request observations, and cover remaining route, browser and actual model behavior.
 

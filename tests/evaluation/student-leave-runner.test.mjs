@@ -3,6 +3,8 @@ import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
+import * as materialIntent from '../../server/dtmMaterialIntent.js';
+import * as internshipIntent from '../../server/internshipEvidenceIntent.js';
 import * as leaveIntent from '../../server/studentLeaveEvidenceIntent.js';
 import {boundedAssistantText} from '../../src/services/assistantActivityBudget.js';
 import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
@@ -54,6 +56,8 @@ test('compiled client selects account verification before older direct readers a
   let caller=leaveFixtureOwner;
   const exports={},requests=[];
   runInNewContext(code,{exports,require:specifier=>{
+    if(specifier.endsWith('dtmMaterialIntent.js'))return materialIntent;
+    if(specifier.endsWith('internshipEvidenceIntent.js'))return internshipIntent;
     if(specifier.endsWith('studentLeaveEvidenceIntent.js'))return leaveIntent;
     if(specifier.endsWith('assistantActivityBudget.js'))return {boundedAssistantText};
     if(specifier.endsWith('assistantStreamReader.js'))return {readAssistantReply};

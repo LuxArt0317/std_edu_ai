@@ -1,3 +1,6 @@
+import {parseInternshipEvidence} from './internshipEvidenceContract.js';
+import {internshipEvidenceUrls} from './internshipAssistantPlan.js';
+import {internshipEvidencePath} from './internshipEvidenceIntent.js';
 import {parseDtmAssignmentEvidence} from './dtmAssignmentEvidenceContract.js';
 import {isStudentLeaveDate,isStudentLeaveTitle,isStudentLeaveUuid,studentLeaveArchiveCutoff,studentLeaveBasePath,studentLeaveFieldNames} from './studentLeaveEvidenceIntent.js';
 /** Pure presentation of already validated, caller-scoped reader
@@ -12,6 +15,7 @@ import {teachingFeedbackImmediateFields,selectTeachingFeedbackEvidence} from './
 import {validateTeachingFeedbackAnswerEvidence} from './teachingFeedbackAnswerEvidence.js';
 export const supplementalAnswerLimits=Object.freeze({answerCharacters:8000,resultBytes:24000,views:3,viewRows:12});
 const definitions={
+  'account:internshipRecords':{title:['Saved internship records','已儲存實習紀錄'],path:internshipEvidencePath},
   'account:leaveRecords':{title:['Saved student leave records','已儲存請假紀錄'],path:studentLeaveBasePath+'/history'},
   'account:teachingFeedback':{title:['Saved teaching evaluation and immediate feedback','已儲存教學評量與即時教學意見'],path:teachingFeedbackPaths.survey},
   'account:tutorEvaluation':{title:['Tutor evaluation','導師評量問卷'],path:tutorEvaluationPath},
@@ -549,6 +553,7 @@ function allowedUrl(id,url){
   }
   if(id==='account:elearningEnrollments')return url===definitions[id].path||typeof url==='string'&&/^\/elearning\/course\/[1-9]\d{0,9}$/u.test(url)&&Number(url.split('/').at(-1))<=2147483647;
   if(id==='account:dtmAssignment')return url==='/dtm/assignments'||typeof url==='string'&&detailRoute.test(url);
+  if(id==='account:internshipRecords')return url===internshipEvidencePath||internshipEvidenceUrls.includes(url);
   if(id==='account:leaveRecords')return allowedLeaveUrl(url);
   if(id==='account:dtmGradeReport')return url==='/dtm/grades'||typeof url==='string'&&gradeRoute.test(url);
   if(id==='account:aidPayments'){
@@ -571,6 +576,7 @@ function parse(envelope){
   let payload;try{payload=JSON.parse(evidence.content);}catch{invalid();}
   if(!object(payload)||typeof payload.checkedAt!=='string'||!Number.isFinite(Date.parse(payload.checkedAt)))invalid();
   if(id==='account:dtmAssignment'){if(!parseDtmAssignmentEvidence(envelope))invalid();}
+  else if(id==='account:internshipRecords'){if(!parseInternshipEvidence(envelope))invalid();}
   else if(id==='account:leaveRecords')validateLeavePayload(envelope,payload,evidence);
   else if(id==='account:tutorEvaluation')validateTutorEvaluationPayload(envelope,payload,evidence);
   else if(id==='account:teachingFeedback'){if(!validateTeachingFeedbackAnswerEvidence(envelope,payload))invalid();}
@@ -705,6 +711,54 @@ function sectionFor(parsed,question,zh){
     if(!integer(total))invalid();
     section.view={id:id.slice(8),title,url:evidence.url,columns,rows:[],total,checkedAt:p.checkedAt,note};
   };
+  if(id==='account:internshipRecords'){
+    section.usable=true;
+    if(envelope.readState==='unavailable'){
+      section.lead.push(t('The saved internship records could not be read. Their contents and availability are unknown.',
+        '無法讀取已儲存的實習紀錄，內容及是否存在仍未知。'));
+      return section;
+    }
+    const {selection,counts,records}=p;
+    const viewTitles={
+      contract:t('Internship contracts','校外實習合約'),self_assessment:t('Internship self-assessments','校外實習自評'),
+      company:t('Internship company applications','實習企業申請'),directory:t('Saved internship company directory','已儲存的實習企業名單'),
+    };
+    section.title=viewTitles[selection.view];
+    section.complete=p.complete;
+    section.limited=!p.complete;
+    section.lead.push(t('These are local tracking records. A saved status does not prove submission to the university, receipt, signing or approval.',
+      '這些是站內追蹤紀錄。儲存狀態不代表校方已收件、簽約或核准。'));
+    if(selection.view==='directory')section.lead.push(t(
+      'This directory lists company rows saved to your account. It does not establish school accreditation, placement or enrollment.',
+      '此名單僅列出您帳戶儲存的公司紀錄，無法證明校方認證、實習分發或登錄。'));
+    if(envelope.readState==='empty'){
+      section.lead.push(t('No matching saved records were found in this view.','查無已儲存的符合紀錄。'));
+      return section;
+    }
+    section.lead.push(t('Matching saved internship records: ','相符的已儲存實習紀錄筆數：')+counts.available+'.');
+    if(counts.omitted)section.lead.push(t('Showing ','顯示 ')+counts.included+' / '+counts.available+t(' matching rows.',' 筆符合資料。'));
+    const status={draft:t('draft','草稿'),filed:t('marked filed by you','自行標記已送出'),withdrawn:t('withdrawn from tracking','已取消追蹤')};
+    const review={open:t('awaiting site review','站內待審'),in_review:t('in site review','站內審核中'),resolved:t('site review resolved','站內審核已處理')};
+    const labels={title:t('Saved title','儲存名稱'),status:t('Tracking status','追蹤狀態'),startsOn:t('Start date','開始日期'),
+      endsOn:t('End date','結束日期'),notes:selection.view==='self_assessment'?t('Saved reflection','儲存反思'):t('Saved notes','儲存備註'),
+      reviewStatus:t('Site review status','站內審核狀態')};
+    view(selection.fields.map(key=>labels[key]),counts.available,t('Selected fields from this view.','僅包含此頁所選欄位。'));
+    section.view.title=section.title;
+    for(const record of records){
+      group(labels.title,record.title);
+      const values=selection.fields.map(key=>{
+        if(key==='title')return record.title;
+        const value=key==='status'?status[record.status]:key==='reviewStatus'
+          ?record.reviewState==='recorded'?review[record.reviewStatus]:record.reviewState==='unavailable'?t('linked review unavailable','連結的站內審核無法查核')
+            :t('no linked review','沒有站內審核')
+          :record[key];
+        item(labels[key],value,false,key==='notes'?2000:360);
+        return value;
+      });
+      section.viewCandidates.push(row(...values));
+    }
+    return section;
+  }
   if(id==='account:leaveRecords'){
     section.usable=true;
     if(envelope.readState==='unavailable'){
@@ -1467,7 +1521,7 @@ export function formatSupplementalAccountAnswers(results,{question='',language:r
     const groups=new Map();for(const item of section.items){if(!groups.has(item.group))groups.set(item.group,[]);groups.get(item.group).push(item);}
     section.items=[...groups.values()].flatMap(items=>items.sort((a,b)=>Number(b.header)-Number(a.header)||preferred(a.label)-preferred(b.label)));
   }
-  const topics={'account:leaveRecords':/leave|請假|假單|假單/iu,'account:tutorEvaluation':/tutor|advisor|mentor|導師/iu,'account:graduationClearance':/graduation.clearance|畢業離校|離校(?:申請|審核)/iu,'account:counselingAppointments':/counseling|counselling|psychological|諮商|心理測驗/iu,'account:healthExaminations':/health|medical|健檢|健康檢查/iu,'account:feeRemission':/fee.remission|tuition.reduction|減免|减免/iu,'account:dormitoryConduct':/dormitory|dorm|宿舍/iu,'account:elearningOutline':/outline|video|slides|activities|section|feedback|大綱|影片|簡報|活動|章節|回饋/iu,'account:facilityRepairs':/repair|maintenance|報修|报修|修繕/iu,'account:dtmGradeReport':/moodle|dtm|grade report|gradebook|成績報告|成绩报告/iu,'account:aidPayments':/student aid|financial aid|salary|payroll|助學|薪資|工讀/iu,'account:studentConduct':/conduct|disciplin|獎懲/iu,'account:studentLoan':/loan|貸款|學貸/iu,'account:courseCatalog':/catalog|syllabus|offering|課綱|大綱|開課/iu,'account:enrollmentCertificate':/certificate|enrolment|enrollment|在學|在籍|學籍證明/iu,'account:dtmSubmissions':/file|upload|submission|assignment|feedback|作業|檔案|評語|上傳/iu,'account:tuition':/tuition|settlement|statement|summer|evening|學費|結算|暑修|進修部|延修/iu};
+  const topics={'account:internshipRecords':/internship|實習|实习/iu,'account:leaveRecords':/leave|請假|假單|假單/iu,'account:tutorEvaluation':/tutor|advisor|mentor|導師/iu,'account:graduationClearance':/graduation.clearance|畢業離校|離校(?:申請|審核)/iu,'account:counselingAppointments':/counseling|counselling|psychological|諮商|心理測驗/iu,'account:healthExaminations':/health|medical|健檢|健康檢查/iu,'account:feeRemission':/fee.remission|tuition.reduction|減免|减免/iu,'account:dormitoryConduct':/dormitory|dorm|宿舍/iu,'account:elearningOutline':/outline|video|slides|activities|section|feedback|大綱|影片|簡報|活動|章節|回饋/iu,'account:facilityRepairs':/repair|maintenance|報修|报修|修繕/iu,'account:dtmGradeReport':/moodle|dtm|grade report|gradebook|成績報告|成绩报告/iu,'account:aidPayments':/student aid|financial aid|salary|payroll|助學|薪資|工讀/iu,'account:studentConduct':/conduct|disciplin|獎懲/iu,'account:studentLoan':/loan|貸款|學貸/iu,'account:courseCatalog':/catalog|syllabus|offering|課綱|大綱|開課/iu,'account:enrollmentCertificate':/certificate|enrolment|enrollment|在學|在籍|學籍證明/iu,'account:dtmSubmissions':/file|upload|submission|assignment|feedback|作業|檔案|評語|上傳/iu,'account:tuition':/tuition|settlement|statement|summer|evening|學費|結算|暑修|進修部|延修/iu};
   const rankedViews=sections.filter(section=>section.view).map((section,index)=>({section,index,match:question.search(topics[section.id])})).sort((a,b)=>Number(b.match>=0)-Number(a.match>=0)||Number(b.section.viewCandidates.length>0)-Number(a.section.viewCandidates.length>0)||(a.match>=0&&b.match>=0?a.match-b.match:0)||a.index-b.index);
   const selectedSet=new Set(rankedViews.slice(0,supplementalAnswerLimits.views).map(value=>value.section));
   const selectedViews=sections.filter(section=>selectedSet.has(section));
@@ -1476,7 +1530,7 @@ export function formatSupplementalAccountAnswers(results,{question='',language:r
   let omittedItems=sections.reduce((total,section)=>total+section.items.length,0),omittedViewRows=sections.reduce((total,section)=>total+section.viewCandidates.length,0);
   const result=()=>({status:sections.some(section=>section.usable)?'answered':'abstained',answer:sections.map(section=>[
     section.title,...section.lead,...section.shown.map(item=>(section.id==='account:elearningOutline'&&item.group&&!item.header?'\n  - '
-      :['account:dtmGradeReport','account:aidPayments','account:teachingFeedback','account:elearningEnrollments','account:facilityRepairs','account:feeRemission','account:healthExaminations','account:counselingAppointments','account:graduationClearance'].includes(section.id)&&item.group&&!item.header?'  - ':'- ')+item.text),
+      :['account:internshipRecords','account:dtmGradeReport','account:aidPayments','account:teachingFeedback','account:elearningEnrollments','account:facilityRepairs','account:feeRemission','account:healthExaminations','account:counselingAppointments','account:graduationClearance'].includes(section.id)&&item.group&&!item.header?'  - ':'- ')+item.text),
     (section.limited||section.shown.length<section.items.length||section.viewCandidates.length>(section.view?.rows.length??0))
       ?(zh?'顯示內容已節錄，省略部分不代表沒有紀錄。':'Display excerpt: omitted fields or rows do not establish absence.'):null,
     section.view&&!section.viewSelected?(zh?'此來源表格因三張表格的顯示上限省略，文字結果與來源連結仍保留。':'This source table is omitted by the three-table display limit; its text result and source link remain available.'):null,

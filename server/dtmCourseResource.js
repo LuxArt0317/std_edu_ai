@@ -75,3 +75,36 @@ export async function loadDtmCourseResource(account,options){
   return parseDtmCourseResourceData({course:{id:row.id,userId:row.user_id,title:row.title,code:row.code,term:row.term,sourceMode:row.source_mode},
     material:item?{id:item.id,userId:row.user_id,courseId:item.course_id,title:item.title,kind:item.kind,summary:item.summary,position:item.position,sourceMode:item.source_mode,sourceUrl:item.source_url,targetUrl:item.target_url}:null},caller.userId,courseId,materialId);
 }
+
+export const dtmMaterialListLimit = 12;
+
+/** Read only the named caller-owned course's teaching-material rows.
+ * The extra row indicates an incomplete list without reading file contents. */
+export async function loadDtmCourseMaterialList(account, options) {
+  if(!exact(options,['courseId'])||!uuid(options.courseId))throw new DtmCourseResourceError('Choose one owned course.',400);
+  const {courseId}=options,caller=capture(account);
+  const rows=await request(caller,'dtm_courses',{query:{
+    select:'id,user_id,dtm_materials(id,course_id,title,kind,source_mode,position)',
+    id:'eq.'+courseId,user_id:'eq.'+caller.userId,'dtm_materials.course_id':'eq.'+courseId,
+    'dtm_materials.order':'position.asc,id.asc','dtm_materials.limit':String(dtmMaterialListLimit+1),limit:'2',
+  }});
+  if(!Array.isArray(rows)||rows.length>1)throw malformed();
+  if(!rows.length)throw new DtmCourseResourceError('This course is not available to your account.',403);
+  return parseDtmCourseMaterialList(rows[0],caller.userId,courseId);
+}
+
+export function parseDtmCourseMaterialList(row, userId, courseId) {
+  budget(row);
+  if(!uuid(userId)||!uuid(courseId)||!exact(row,['id','user_id','dtm_materials'])||row.id!==courseId||row.user_id!==userId
+    ||!Array.isArray(row.dtm_materials)||row.dtm_materials.length>dtmMaterialListLimit+1)throw malformed();
+  const seen=new Set();
+  let position=0;
+  for(const item of row.dtm_materials){
+    if(!exact(item,['id','course_id','title','kind','source_mode','position'])||!uuid(item.id)||seen.has(item.id)||item.course_id!==courseId
+      ||!unicode(item.title)||!['page','file','assignment'].includes(item.kind)||!mode(item.source_mode)
+      ||!Number.isSafeInteger(item.position)||item.position<=position||item.position>2147483647)throw malformed();
+    seen.add(item.id);
+    position=item.position;
+  }
+  return structuredClone(row);
+}
