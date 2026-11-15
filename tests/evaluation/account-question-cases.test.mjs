@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {buildAccountCases} from './account-cases.mjs';
 import {buildAccountFixture,fixtureForCase} from './fixtures.mjs';
+import {studyCalendar} from '../../server/affairsSchedule.js';
 import {gradeCase} from './grading.mjs';
 import {buildGuidanceReviewBinding,validateGuidanceReview} from './guidance-rubric.mjs';
 
@@ -67,6 +68,41 @@ test('course advice requires both records and independent usable-help review',()
   const rejected=review(item,onlyFacts);rejected.independentReview.status='failed';rejected.independentReview.passed=false;rejected.independentReview.criteria.find(row=>row.id==='usable_help').passed=false;
   fail(gradeCase(item,onlyFacts,rejected),'guidance.independentReview');
 });
+test('published sample coaching keeps its own literal course binding, rubric and scope',()=>{
+  const original=get('current-courses-plus-interview-draft'),sample=get('published-sample-current-courses-plus-interview-draft');
+  assert.equal(sample.question,original.question);
+  assert.equal(original.fixtureKey,'courses');
+  assert.deepEqual(original.expected.facts.map(({label,values})=>[label,values]),[['Database Design',['DB301']]]);
+  assert.equal(sample.fixtureKey,'published-sample:records');
+  assert.deepEqual(sample.expected.guidanceRubric,original.expected.guidanceRubric);
+  assert.deepEqual(sample.expected.requiredTools,['courses']);
+  assert.deepEqual(sample.expected.requiredAttemptedTools,['courses']);
+  assert.deepEqual(sample.expected.allowedTools,['courses']);
+  assert.equal(sample.expected.requireToolExecution,true);
+  assert.equal(sample.expected.forbidPublicResearch,true);
+
+  const now='2026-11-16T04:00:00.000Z',snapshot=fixtureForCase(sample,{now}),calendar=studyCalendar(snapshot.courses,now);
+  assert.deepEqual(calendar.current.map(({code,title,sourceMode})=>[code,title,sourceMode]),[
+    ['SAMP101','Campus Orientation','sample'],['SAMP102','Digital Learning Basics','sample'],['SAMP103','Student Services Practice','sample'],
+  ]);
+  assert.deepEqual(calendar.historical.map(row=>row.code),['SAMP090']);
+  assert.deepEqual(calendar.upcoming.map(row=>row.code),['SAMP201']);
+
+  const answer='Your saved sample subjects for this semester are Campus Orientation (SAMP101), Digital Learning Basics (SAMP102) and Student Services Practice (SAMP103).'
+    +'\n\nPick one real exercise. Practice draft: “In [exercise], my contribution was [what you actually did].”';
+  const item=envelope(sample,answer);
+  assert.equal(reviewedGrade(sample,item).passed,true);
+  fail(gradeCase(sample,item),'guidance.independentReview');
+  fail(reviewedGrade(sample,envelope(sample,answer.replace('Student Services Practice (SAMP103)','Study Skills Foundations (SAMP090)'))),'list.0.exclude.0');
+  const enrollmentClaim=sample.expected.forbiddenText.indexOf('officially enrolled');
+  fail(reviewedGrade(sample,envelope(sample,answer+' You are officially enrolled.')),'text.forbidden.'+enrollmentClaim);
+  fail(reviewedGrade(sample,envelope(sample,answer.replace('saved sample','saved local'))),'source.provenance');
+  const overbroad=structuredClone(item);
+  overbroad.events.push({kind:'account-read:charges:1',status:'complete'});
+  fail(reviewedGrade(sample,overbroad),'tools.allowed.attempted');
+  fail(reviewedGrade(original,envelope(original,answer)),'fact.0');
+});
+
 test('empty transcript fixture does not erase the useful coaching requirement or become a failed read',()=>{
   const item=get('empty-transcript-interview-help'),fixture=fixtureForCase(item);assert.deepEqual(fixture.academicGrades.records,[]);
   const good=envelope(item,'Your local transcript has no saved records. You can still draft an honest introduction using [actual learning], [a real example], and [what you want to improve]. Choose one real exercise and fill in those details.');

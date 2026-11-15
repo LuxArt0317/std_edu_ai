@@ -11,6 +11,7 @@ import {buildPlannedClearanceApplicationCases} from './clearance-application-cas
 const routes={profile:'/school-affairs/records',courses:'/school-affairs/records',assignments:'/dtm/assignments',dtm:'/dtm',charges:'/school-affairs/services/39-1',tasks:'/school-affairs/records',requests:'/school-affairs/records',serviceRecords:'/school-affairs/services/leave/history',announcements:'/school-affairs',scholarship:'/school-affairs/services/9-1',studentAid:'/school-affairs/services/22-1',housing:'/school-affairs/services/34-1',housingApplications:'/school-affairs/services/26-1',creditLoadHistory:'/school-affairs/services/11-3',courseSelection:'/school-affairs/services/11-1',academicGrades:'/school-affairs/services/13-1/transcript',graduationReview:'/school-affairs/services/13-1/graduation',academicAttendance:'/school-affairs/services/14-1'};
 const fact=(label,values,kind='text',labels=[])=>({label,labels,kind,values:Array.isArray(values)?values:[values]});
 const capability=(level='native',limitation=null,gap=level==='partial')=>({level,limitation,gap});
+const courseInterviewQuestion='List my current semester courses, then help me draft an honest answer about why I could be a software engineer.';
 function liveDormitoryCases() {
   const readLimits={
     'missing-metadata':['no saved dormitory','no saved notice','notice was not found','notice is not recorded','no saved local notice'],
@@ -284,7 +285,7 @@ export function buildAccountCases({now=DEFAULT_EVAL_NOW,includePlannedFeeRemissi
     route:'/',fixtureKey:'dtm',...toolPolicy(['dtm','assignments']),facts:[fact('Quiz 1','Revise normalization examples.'),fact('Learning Research','Quiz 1')],
     requiredLinks:['/dtm/course/'+EVAL_IDS.dtmCourse+'/grades'],forbiddenText:[...noPrivateDump,...qualificationClaims,'Your Quiz 1 score is 18','Your Quiz 1 score is 87'],guidanceRubric:coachingRubric,
   });
-  add('current-courses-plus-interview-draft','courses','List my current semester courses, then help me draft an honest answer about why I could be a software engineer.',{
+  add('current-courses-plus-interview-draft','courses',courseInterviewQuestion,{
     route:'/',fixtureKey:'courses',...toolPolicy(['courses']),facts:[fact('Database Design','DB301')],exactLists:[currentSet],
     requiredLinks:[routes.courses],forbiddenText:[...noPrivateDump,...qualificationClaims],guidanceRubric:coachingRubric,
   });
@@ -438,6 +439,13 @@ export function buildAccountCases({now=DEFAULT_EVAL_NOW,includePlannedFeeRemissi
   add('reproduction-interview-help','assistant-guidance','i am asked what makes me qualified to be a software engineer i dont know what cna you help me?',{
     route:'/',fixtureKey:sampleFixture,mode:'coaching',...toolPolicy([]),provenance:null,verification:'verified',guidanceRubric:coachingRubric,
     forbiddenText:[...noPrivateDump,...qualificationClaims,...sampleCurrent,'Sample General Studies','Learning Research'],
+  });
+  add('published-sample-current-courses-plus-interview-draft','courses',courseInterviewQuestion,{
+    route:'/',fixtureKey:sampleFixture,...toolPolicy(['courses']),provenance:'sample',
+    facts:[fact('Campus Orientation','SAMP101'),fact('Digital Learning Basics','SAMP102'),fact('Student Services Practice','SAMP103')],
+    exactLists:[{label:'current School Affairs subjects',expected:sampleCurrent,forbidden:sampleNoncurrent}],
+    requiredLinks:['/school-affairs/records/subjects'],forbiddenText:[...noPrivateDump,...qualificationClaims,'DB301','officially enrolled'],
+    guidanceRubric:coachingRubric,
   });
   add('reproduction-completed-subject','courses','Which historical subjects have I completed?',{
     route:'/',fixtureKey:sampleFixture,...toolPolicy(['courses']),provenance:'sample',
