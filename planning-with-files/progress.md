@@ -77,3 +77,5 @@
 - 2026-11-15 [#100] Protected `ae5135f` passed both account packets. Club reads and cancellation passed 18 pinned requests and Moodle timing passed six with exact cleanup. The five public probes preserved the gated notice and verified saved archive contents. Staged `eddb586` to correct the observed archive language mismatch and remove the generic retry text when there is a specific school-source link.
 
 - 2026-11-15 [#100] `ae5135f` passed GitHub Quality 43697662242. Exact `eddb586` passed three pinned public probes and an independent review of substantive English and Traditional Chinese archived content, original OneDrive notice access, and retained verification after a further search. Tracked the caption and link wording issues separately.
+
+- 2026-11-15 [#100] Integrated locally tested Counseling cancellation `a57fd2c`. The combined 57 endpoint tests and Chromium confirmations passed. Logged the exact public and signed-in protected evidence and the separate wider grade and Counseling replay work in Issue #100.

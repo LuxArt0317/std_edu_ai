@@ -954,3 +954,10 @@ kept verified information after a further source search and appended the
 original sign-in-required link. The Chinese date caption and the missing
 notice URL wording remain small presentation gaps. Full generated-bank
 and production gates stay open.
+
+Counseling cancellation `a57fd2c` is merged locally with combined API,
+TypeScript and Chromium proof. Hosted confirmation and cleanup still need
+an independent operator. Moodle grade worktree is
+`/private/var/tmp/stu100-dtm-grade-preview.QvcDjT/source`. Its scratch replay
+passed 9/10 and exposed a grade-report-tail dispatch gap. Keep this separate
+from the six accepted Moodle timing cases.
