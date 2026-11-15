@@ -14,6 +14,7 @@ import {schoolServiceReadFixture,schoolServiceSnapshot} from './helpers/school-s
 import {clubStudentScope,isClubStudentView,validClubStudentWorkspace} from '../../server/clubStudentContract.js';
 import {clubEquipmentNewPath} from '../../server/clubServicesContract.js';
 import {fixtureIds as ids,rendererInventory} from './helpers/assistant-renderer-inventory.mjs';
+import {rendererDtmContextProbes,rendererDtmExpectation,rendererDtmRead,rendererDtmSnapshotCourse} from './helpers/assistant-renderer-dtm.mjs';
 
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const git=args=>execFileSync('git',args,{cwd:root,encoding:'utf8'}).trim();
@@ -32,8 +33,7 @@ const viewports={desktop:{width:1280,height:800},phone:{width:390,height:740}};
 const contextualPhoneRoutes=new Set(['/school-affairs','/school-affairs/services/leave','/school-affairs/services/40-1/my-attendance?page=2',
   '/school-affairs/services/36-1','/school-affairs/services/27-1','/school-affairs/services/39-1/payment-history',
   '/school-affairs/services/40-1/officer/applications','/dtm','/dtm/course/'+ids.course+'/grades','/elearning','/elearning/course/9408/activity/293395']);
-const fakeCourse={id:ids.course,code:'QA-DTM',title:'Renderer fixture DTM course',term:'115學年度第1學期',role:'student',sourceMode:'personal',
-  materials:[{id:ids.material,title:'Renderer fixture DTM material',kind:'url',summary:'Synthetic material',position:1,sourceMode:'personal'}],meetings:[],grades:[]};
+const syntheticDtmReply='The renderer received the exact saved Moodle page context.';
 const academyCourse={id:Number(ids.elearningCourse),category_id:Number(ids.elearningCategory),title:'Renderer safety course',self_enroll:false,position:1};
 const academyCategory={id:Number(ids.elearningCategory),parent_id:null,title:'Renderer safety category',source_count:1,position:1};
 const publicScopes=new Set(['permanent-courses','interdisciplinary-programs','first-selection-notice','late-add-notice',
@@ -43,7 +43,9 @@ const fixture=(url,parent)=>{
   const scope=url.searchParams.get('scope');
   if(url.pathname!=='/api/affairs-data')return schoolServiceReadFixture(url.href,'GET',user,parent);
   for(const key of new Set(url.searchParams.keys()))assert.equal(url.searchParams.getAll(key).length,1);
-  if(!url.search){const data=schoolServiceSnapshot(user);data.dtm.courses.push(fakeCourse);return data;}
+  if(!url.search){const data=schoolServiceSnapshot(user);data.dtm.courses.push(rendererDtmSnapshotCourse);return data;}
+  const dtm=rendererDtmRead(url,user.id);
+  if(dtm)return dtm;
   if(scope==='summer-selection-notice'){
     const year=url.searchParams.get('year');
     assert.match(year??'',/^[1-9][0-9]{2}$/u);
@@ -82,17 +84,48 @@ const outcomes=[],returnPathChecks=[],accountMenuChecks=[];
 let server,browser;
 
 async function wire(context,mode,origin){
-  const observed={api:[],security:[],externalBlocked:0,pageErrors:0,authVerified:0};
+  const observed={api:[],security:[],externalBlocked:0,pageErrors:0,authVerified:0,dtmProbe:null,assistantCalls:0,conversationSaves:0};
+  const conversations=new Map();
   await context.route('**/*',async route=>{
     const req=route.request(),url=new URL(req.url());
     if(url.origin!==origin){observed.externalBlocked++;return route.abort();}
-    if(req.method()!=='GET'){observed.security.push('non-read-request');return route.abort();}
-    if(!url.pathname.startsWith('/api/'))return route.continue();
+    if(!url.pathname.startsWith('/api/')&&req.method()==='GET')return route.continue();
     const scope=url.searchParams.get('scope')??'unscoped';
     const auth=req.headers().authorization;
     let caller;
     try{if(auth?.startsWith('Bearer '))caller=JSON.parse(Buffer.from(auth.split('.')[1]||'e30','base64url').toString()).sub;}
     catch{/* Malformed authorization continues into the fixture denial. */}
+    // Synthetic assistant transport and its matching conversation receipt. No
+    // other POST or external request can reach an application or provider.
+    if(mode.state&&caller===user.id&&req.method()==='POST'&&!url.search&&observed.dtmProbe){
+      const probe=observed.dtmProbe;
+      try{
+        if(url.pathname==='/api/affairs-assistant'){
+          observed.assistantCalls++;
+          assert.equal(observed.assistantCalls,1);
+          assert.deepEqual(req.postDataJSON(),{question:probe.question,route:probe.route,images:[],history:[],stream:true});
+          return route.fulfill({json:{answer:syntheticDtmReply,status:'answered',citations:[],suggestedQuestions:[]}});
+        }
+        if(url.pathname==='/api/affairs-conversations'){
+          observed.conversationSaves++;
+          assert.equal(observed.conversationSaves,1);
+          const body=req.postDataJSON();
+          assert.match(body.id,/^[0-9a-f-]{36}$/u);
+          assert.equal(conversations.has(body.id),false);
+          assert.equal(body.version,0);
+          assert.equal(body.title,probe.question);
+          assert.deepEqual(body.messages.map(({role,content})=>({role,content})),
+            [{role:'user',content:probe.question},{role:'assistant',content:syntheticDtmReply}]);
+          const receipt={...body,version:1,updated_at:'2026-11-16T00:00:00Z'};
+          conversations.set(body.id,receipt);
+          return route.fulfill({json:receipt});
+        }
+      }catch{
+        observed.security.push('unexpected-dtm-context-payload');
+        return route.fulfill({status:400,json:{error:'Synthetic Moodle context assertion failed.'}});
+      }
+    }
+    if(req.method()!=='GET'){observed.security.push('non-read-request');return route.abort();}
     if(!mode.state||(!publicScopes.has(scope)&&caller!==user.id)
       ||!['/api/affairs-data','/api/affairs-conversations'].includes(url.pathname)){
       observed.security.push('unexpected-api-or-caller');return route.fulfill({status:403,json:{error:'Synthetic renderer read denied.'}});
@@ -102,7 +135,7 @@ async function wire(context,mode,origin){
         observed.api.push({path:url.pathname,scope,status:204});
         return route.fulfill({status:204});
       }
-      const json=fixture(url,origin);
+      const json=url.pathname==='/api/affairs-conversations'&&!url.search?{conversations:[...conversations.values()]}:fixture(url,origin);
       observed.api.push({path:url.pathname,scope,status:200});return route.fulfill({json});
     }catch{
       observed.api.push({path:url.pathname,scope,status:503});return route.fulfill({status:503,json:{error:'No response fixture for this workflow.'}});
@@ -138,7 +171,10 @@ async function settledFocus(page,selector){
 // console error text, provider data, headers, images or HTML is persisted.
 async function checkRoute(page,contextState,row,mode,device,origin){
   contextState.api.length=0;contextState.security.length=0;contextState.pageErrors=0;contextState.externalBlocked=0;contextState.authVerified=0;
-  let stage='navigate',finalPath=null;
+  const dtmExpectation=mode.state?rendererDtmExpectation(row.route):null;
+  const dtmProbe=mode.state?rendererDtmContextProbes.get(row.route):null;
+  contextState.dtmProbe=null;contextState.assistantCalls=0;contextState.conversationSaves=0;
+  let stage='navigate',finalPath=null,nativeDataRendered=false,assistantPageContextPassed=false;
   const checks={navigationSucceeded:false,workspaceMounted:false,sessionVerified:false,assistantPresent:false,keyboardUsable:false};
   try{
     const response=await page.goto(origin+row.route,{waitUntil:'domcontentloaded'});
@@ -159,6 +195,15 @@ async function checkRoute(page,contextState,row,mode,device,origin){
     if(mode.state)await waitMounted(page,row.selector);
     else await page.getByRole('button',{name:'Continue with Google',exact:true}).waitFor();
     checks.workspaceMounted=true;
+    if(dtmExpectation){
+      stage='native-dtm-readback';
+      const record=page.locator(dtmExpectation.selector);
+      await (dtmExpectation.text?record.getByText(dtmExpectation.text,{exact:true}):record).waitFor();
+      for(const scope of dtmExpectation.scopes)
+        assert.ok(contextState.api.some(read=>read.path==='/api/affairs-data'&&read.scope===scope&&read.status===200));
+      assert.ok(contextState.api.every(read=>read.path!=='/api/affairs-data'||read.status===200));
+      nativeDataRendered=true;
+    }
     stage='launcher';
     const launcher=page.getByRole('button',{name:launcherName,exact:true});
     await launcher.waitFor();
@@ -182,6 +227,16 @@ async function checkRoute(page,contextState,row,mode,device,origin){
     await settledFocus(page,'.public-assistant-surface');
     await page.keyboard.press('Tab');await settledFocus(page,'.public-assistant-surface');
     await page.keyboard.press('Shift+Tab');await settledFocus(page,'.public-assistant-surface');
+    if(dtmProbe){
+      stage='dtm-assistant-page-context';
+      contextState.dtmProbe=dtmProbe;
+      await dialog.getByPlaceholder('Ask a school question…').fill(dtmProbe.question);
+      await dialog.getByRole('button',{name:'Send',exact:true}).click();
+      await dialog.getByText(syntheticDtmReply,{exact:true}).waitFor();
+      await dialog.getByText('Conversation saved to your private account.',{exact:true}).waitFor();
+      assert.equal(contextState.assistantCalls,1);assert.equal(contextState.conversationSaves,1);
+      assistantPageContextPassed=true;
+    }
     stage='keyboard-close-and-return';
     await page.keyboard.press('Escape');
     await dialog.waitFor({state:'hidden'});
@@ -200,6 +255,7 @@ async function checkRoute(page,contextState,row,mode,device,origin){
   const workspaceReads=reads.filter(read=>read.path==='/api/affairs-data');
   return {route:row.route,expectedRoute:mode.state?row.final:row.guest,finalPath,families:row.families,evidenceScope:row.evidenceScope,
     auth:mode.state?'synthetic-signed-in':'guest',device,checks,passed:stage===null,failureStage:stage,reads,
+    ...(dtmExpectation?{nativeDataRendered}:{}),...(dtmProbe?{assistantPageContextPassed}:{}),
     nativeData:workspaceReads.some(read=>read.status!==200)?'fixture-unavailable':workspaceReads.length?'synthetic-response-sent':'no-observed-read',
     externalRequestsBlocked:contextState.externalBlocked,securityFailures:contextState.security.length,pageErrors:contextState.pageErrors};
 }
@@ -261,11 +317,20 @@ try{
       const context=await browser.newContext({viewport,reducedMotion:'reduce',serviceWorkers:'block'});
       try{
         const observation=await wire(context,mode,origin);
-        const page=await context.newPage();page.setDefaultTimeout(3500);page.setDefaultNavigationTimeout(6500);
+        const openPage=async()=>{
+          const page=await context.newPage();page.setDefaultTimeout(3500);page.setDefaultNavigationTimeout(6500);
+          return page;
+        };
+        const page=await openPage();
         for(const row of selected.filter(row=>device==='desktop'||contextualPhoneRoutes.has(row.route))){
-          const outcome=await checkRoute(page,observation,row,mode,device,origin);
-          outcomes.push(outcome);
-          if(!outcome.passed)console.log(JSON.stringify({route:row.route,auth:outcome.auth,device,failureStage:outcome.failureStage,finalPath:outcome.finalPath}));
+          // A fresh tab gives the synthetic question an empty conversation while
+          // retaining the same authenticated browser and native page code.
+          const probePage=mode.state&&rendererDtmContextProbes.has(row.route)?await openPage():null;
+          try{
+            const outcome=await checkRoute(probePage??page,observation,row,mode,device,origin);
+            outcomes.push(outcome);
+            if(!outcome.passed)console.log(JSON.stringify({route:row.route,auth:outcome.auth,device,failureStage:outcome.failureStage,finalPath:outcome.finalPath}));
+          }finally{await probePage?.close();}
         }
         if(device==='desktop'&&mode.state&&selected.some(row=>row.families.includes('student-club-attendance')))
           await checkClubReturnTargets(page,origin,'/school-affairs/services/40-1/my-attendance',['page=2','page=1000'],
@@ -290,6 +355,10 @@ try{
     matrixComplete:outcomes.length===expectedComparisons,
     passed:outcomes.filter(row=>row.passed).length,failures:outcomes.filter(row=>!row.passed).length,
     fixtureUnavailable:outcomes.filter(row=>row.nativeData==='fixture-unavailable').length,
+    dtmReadbackChecks:outcomes.filter(row=>row.nativeDataRendered!==undefined).length,
+    dtmReadbackPassed:outcomes.filter(row=>row.nativeDataRendered).length,
+    dtmContextChecks:outcomes.filter(row=>row.assistantPageContextPassed!==undefined).length,
+    dtmContextPassed:outcomes.filter(row=>row.assistantPageContextPassed).length,
     returnPathChecks:returnPathChecks.length,failedReturnPathChecks:returnPathChecks.filter(row=>!row.passed).length,
     accountMenuChecks:accountMenuChecks.length,failedAccountMenuChecks:accountMenuChecks.filter(row=>!row.passed).length};
   await writeFile(artifact,JSON.stringify({version:1,scope:'local Chromium renderer and synthetic authentication only',inventoryHash:hash,sourceRevision,workingTreeDirty,

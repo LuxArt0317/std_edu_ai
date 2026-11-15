@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Verify synthetic Moodle records in the signed-in browser checks and confirm that copied assignment and grade pages send the exact page context to the assistant. [#100]
+
 - Verify combined health-record and tuition replies against independently fetched owned records on protected Preview. Include the second-page case and explicit health exclusion. [#100]
 
 - Keep the verified health metadata or named tuition balance when the other record service temporarily fails. Show which lookup is unavailable and link to both record pages. [#100]

@@ -10,6 +10,8 @@
 
 Use `--family school-service-views` for protected service subviews and `--family school-service-acknowledgements` for the teaching-assistant and exchange-grant notices. The latter confirms the blocking notice on its own route, acknowledges it by keyboard, and checks assistant access on the resulting workspace. `--family legacy-route-aliases` checks that copied DTM assignment and grade-report links stay usable through local sign-in. The synthetic student reaches the signed-in shell of administrative routes. The records admin view verifies the exact student denial, with no administrator record request. Administrative authorization and data remain separate checks.
 
+Across `--family dtm`, `--family dtm-submissions` and `--family legacy-route-aliases`, the signed-in runner waits for real Moodle components to display synthetic layout settings, saved course content, a resource, literal grade reports and an existing submission filename. Each covered view must complete its expected authenticated read. Context probes send a question from native and copied views in fresh tabs, verify the exact canonical page in the authenticated request and check the synthetic answer and conversation receipt. The report records data readback and page context separately. All responses stay local to the browser fixture.
+
 [Remote-learning Moodle QA](../../docs/qa/ELEARNING.md) covers the browser flow, exact-client enrollment and retry checks.
 
 Counseling checks cover the scoped database rollback, actual authenticated API requests with disposable-account cleanup, and menu-to-appointment browser flow. See [counseling QA](../../docs/qa/COUNSELING.md).
