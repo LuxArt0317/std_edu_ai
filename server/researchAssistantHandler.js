@@ -1044,9 +1044,10 @@ export function createResearchAssistantHandler(dependencies = {}) {
             sourceName: lead.kind === 'library-service' ? 'STU Library' : 'STU Digital Teaching Materials' }));
         const librarySources = libraryRequest ? indexedSources.filter(source => source.sourceName === 'STU Library') : [];
         const hasKnownNoticeLink = indexedSources.some(source => source.sourceName === 'STU Digital Teaching Materials');
-        async function readPublicSources(citations, until) {
+        async function readPublicSources(citations, until, onRetryableFailure) {
             const evidence = await readSources(citations, until, {
                 onAccessRequired: lead => sourceLeads?.recordAccessRequired(lead),
+                onRetryableFailure,
             }).catch(() => []);
             for (const source of evidence) if (validEvidence([source])) sourceLeads?.recordReadable(source.url);
             return evidence;
@@ -1242,8 +1243,13 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 ...retainedSources.filter(source => !officialSchoolLeadUrl(source.url)).map(source => canonicalUrl(source.url)),
             ]);
             const readAttempts = new Map();
+            const retryableUrls = new Set();
             const pendingLeads = new Map([...leads, ...candidate.citations].map(lead => [canonicalUrl(lead.url), lead]));
-            const canRead = url => Boolean(url) && !seenUrls.has(url) && !sourceLeads?.isBlocked(url) && (readAttempts.get(url) || 0) < 2;
+            const canRead = url => {
+                if (!url || seenUrls.has(url) || sourceLeads?.isBlocked(url)) return false;
+                const count = readAttempts.get(url) || 0;
+                return count === 0 || (count === 1 && retryableUrls.has(url));
+            };
             const steps = new Map();
             let evidence = [];
             const progress = (step) => {
@@ -1292,7 +1298,12 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     return source ? [{ ...source, id: citation.chunkId }] : [];
                 });
                 const pending = candidates.filter(citation => !cached.some(source => source.url === citation.url) && !sourceLeads?.isBlocked(citation.url));
-                const fetched = [...cached, ...(pending.length ? await readPublicSources(pending, until) : [])];
+                const pendingUrls = new Set(pending.map(citation => canonicalUrl(citation.url)));
+                const fresh = pending.length ? await readPublicSources(pending, until, url => {
+                    const key = canonicalUrl(url);
+                    if (officialSchoolLeadUrl(url) && pendingUrls.has(key)) retryableUrls.add(key);
+                }) : [];
+                const fetched = [...cached, ...fresh];
                 return candidates.flatMap(citation => {
                     const source = fetched.find(item => item.id === citation.chunkId && item.url === citation.url);
                     if (!source || !validEvidence([source])) return [];
@@ -1467,7 +1478,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 ...(canRecover ? {
                     loadDeeperEvidence: recoverPublicEvidence, maxChecks: maxPublicAnswerVerificationChecks, canExtendReview,
                     hasUnreadPublicLead,
-                    lookForMissingPublicDetails: () => !publicStudyGuidance && (hasUnreadPublicLead() || kind.fresh),
+                    lookForMissingPublicDetails: () => !publicStudyGuidance && ([...pendingLeads.keys()].some(canRead) || kind.fresh),
                 } : {}),
                 async loadEvidence(context) {
                     if (context.attempt > 1) return recoverPublicEvidence(context);

@@ -85,7 +85,7 @@ async function requestOnce(value, options = {}) {
         }
         if (status < 200 || status >= 300) {
           response.resume()
-          reject(new Error(`The source returned HTTP ${status}.`))
+          reject(Object.assign(new Error(`The source returned HTTP ${status}.`), { statusCode: status }))
           return
         }
         const declaredLength = Number(response.headers['content-length'] || 0)
