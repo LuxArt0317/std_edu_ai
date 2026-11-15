@@ -64,12 +64,13 @@ const decimal=value=>(value/100).toLocaleString('en-US',{minimumFractionDigits:2
 const money=(value,currency)=>(currency==='TWD'?'NT$':currency+' ')+(value/100).toLocaleString('en-US',{maximumFractionDigits:2,useGrouping:true});
 
 export function formatSelectedChargeEvidence(source,options={}){
-  if(!keys(options,[],['language','includeAuthorityLimit'])
+  if(!keys(options,[],['language','includeAuthorityLimit','exactBalance'])
     ||options.language!==undefined&&!['en','zh-TW'].includes(options.language)
-    ||options.includeAuthorityLimit!==undefined&&typeof options.includeAuthorityLimit!=='boolean')invalid();
+    ||options.includeAuthorityLimit!==undefined&&typeof options.includeAuthorityLimit!=='boolean'
+    ||options.exactBalance!==undefined&&typeof options.exactBalance!=='boolean')invalid();
   const {p,c,rows,state}=validate(source),zh=options.language==='zh-TW',t=(en,tw)=>zh?tw:en;
   const title=t('Selected local tuition and fee records','選定的站內學費及費用紀錄');
-  const citation={chunkId:sourceId,claim:title,title,sourceName:'stu.best account records',url:path,locator:null,effectiveAt:null,reviewedAt:null};
+  const citation={chunkId:sourceId,claim:title,title,sourceName:'stu.best account records',url:path,locator:null,effectiveAt:null,reviewedAt:options.exactBalance?p.checkedAt??null:null};
   const authority=options.includeAuthorityLimit?t('I can show saved fee amounts. Official balances and bank transfers require separate verification.',
     '此處可查看已儲存的費用金額，校方正式餘額與銀行匯款需另行確認。'):'';
   const lead=[],selection=p.selectionLabel;
@@ -87,7 +88,8 @@ export function formatSelectedChargeEvidence(source,options={}){
   const shown=[],columns=[t('Charge','費用'),t('Currency','幣別'),t('Saved amount due','已儲存應繳金額'),t('Saved amount paid','已儲存已繳金額'),t('Calculated remaining','計算餘額'),t('Source mode','來源標記')];
   function result(){
     const omitted=rows.length-shown.length,complete=state==='records'&&p.studentRecordFound===true&&!p.excerpted&&c.availableRows===c.matchingRows&&!omitted;
-    const lines=shown.map(row=>(shown.length>1?'- ':'')+literal(row.label)+t('\n  Remaining balance ','\n  待繳金額：')+literal(money(row.remaining,row.currency))
+    const rowMode=row=>options.exactBalance?(row.sourceMode==='sample'?t(' (sample)','（範例）'):t(' (saved source marked verified)','（儲存來源標記為 verified）')):'';
+    const lines=shown.map(row=>(shown.length>1?'- ':'')+literal(row.label)+rowMode(row)+t('\n  Remaining balance ','\n  待繳金額：')+literal(money(row.remaining,row.currency))
       +t('\n  Saved amount due ','\n  已儲存應繳金額：')+literal(money(row.due,row.currency))
       +t('\n  Saved amount paid ','\n  已儲存已繳金額：')+literal(money(row.paid,row.currency)));
     const notes=[];
@@ -98,18 +100,19 @@ export function formatSelectedChargeEvidence(source,options={}){
     if(state==='records'&&rows.length){
       if(complete&&rows.length>1){
         const sums=new Map();for(const row of rows){const key=JSON.stringify([row.currency,row.sourceMode]),sum=sums.get(key)||{currency:row.currency,sourceMode:row.sourceMode,total:0,count:0};sum.total+=row.remaining;sum.count++;sums.set(key,sum);}
-        const combined=[...sums.values()].filter(sum=>sum.count>1);
+        const combined=[...sums.values()].filter(sum=>options.exactBalance||sum.count>1);
         if(combined.length&&combined.every(sum=>Number.isSafeInteger(sum.total))){
           notes.push(t('Remaining totals for the selected local rows only, grouped by exact saved currency and source mode (no currency conversion):','僅限選定站內紀錄的剩餘金額合計，依儲存幣別及來源標記分列（不換匯）：'));
-          for(const {currency,sourceMode,total}of combined)notes.push('- '+literal(currency)+' / '+literal(sourceMode)+': '+literal(decimal(total)));
+          for(const {currency,sourceMode,total}of combined)notes.push('- '+literal(currency)+' / '+literal(sourceMode)+': '+literal(options.exactBalance?money(total,currency):decimal(total)));
         }else if(combined.length)notes.push(t('Aggregate amounts exceed safe exact arithmetic; no aggregate balance is stated.','合計金額超出安全精確計算範圍，因此不提供合計餘額。'));
       }else if(!complete)notes.push(t('No complete balance total is stated: read-scope metadata or selected/displayed rows are incomplete. Each remaining value shown applies only to its own charge.','讀取範圍資料或選定／顯示紀錄不完整，因此不提供完整餘額合計。每筆顯示餘額僅適用於該費用。'));
     }
     const scopeNote=t('This answer covers only the selected local charge evidence, not every financial obligation.','此回答僅涵蓋選定站內費用證據，並非所有財務義務。');
     const modes=[...new Set(shown.map(row=>row.sourceMode))];
-    const provenance=[modes.includes('sample')?t('Sample fee records.','範例費用紀錄。'):'',
+    const provenance=options.exactBalance?'':[modes.includes('sample')?t('Sample fee records.','範例費用紀錄。'):'',
       modes.includes('verified')?t('“Verified” is a saved source label.','verified 是儲存來源標記。'):''].filter(Boolean).join(' ');
-    const answer=[...lead,...lines,...notes,provenance,authority,`[${t('Open saved fee records','開啟已儲存費用紀錄')}](${path})`].filter(Boolean).join('\n\n');
+    const scope=options.exactBalance&&shown.length?t('From your saved stu.best fee records:','以下是您在 stu.best 已儲存的費用紀錄：'):'';
+    const answer=[...lead,scope,...lines,...notes,provenance,authority,`[${t('Open saved fee records','開啟已儲存費用紀錄')}](${path})`].filter(Boolean).join('\n\n');
     const viewNote=[counts,scopeNote].filter(Boolean).join(' ');
     return {status:'answered',answer,citations:[citation],sourceIds:[sourceId],complete,
       views:state==='records'&&rows.length?[{id:'charges',title,url:path,columns,rows:shown.map(row=>[row.label,row.currency,decimal(row.due),decimal(row.paid),decimal(row.remaining),row.sourceMode]),

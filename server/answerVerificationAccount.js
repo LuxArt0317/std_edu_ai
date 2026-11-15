@@ -786,7 +786,66 @@ export async function lookupPublicTopics(topics,deadline,onProgress=()=>{}) {
   return [...new Map(evidence.map(item=>[item.id,item])).values()];
 }
 
+async function answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadline,onProgress,correlationId}){
+  const observed=new Map();
+  const emit=step=>{observed.set(step.kind,step);onProgress?.(step);};
+  const language=supplementalAnswerLanguage(question),zh=language==='zh-TW';
+  const userId=snapshot.profile?.userId;
+  let current=snapshot;
+  const readEvidence=()=>accountEvidence(current,['charges'],{question,scopedReadOnly:true});
+  const grounding=degraded=>({source:'account',webSearched:false,checkedAt:current.checkedAt,degraded});
+  const candidateFrom=sources=>{
+    const [scope,charges]=sources;
+    if(sources.length!==2||scope.id!=='account-scope'||charges.id!=='account:charges')return null;
+    const payload=JSON.parse(charges.content);
+    if(payload.checkedAt!==current.checkedAt||payload.unavailableReason||payload.selectionLabel!==undefined
+      ||typeof payload.studentRecordFound!=='boolean')return null;
+    try{
+      const charge=formatSelectedChargeEvidence(charges,{language,exactBalance:true});
+      return {...charge,grounding:grounding(!charge.complete),suggestedQuestions:[],activity:[]};
+    }catch(error){
+      if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;
+      return null;
+    }
+  };
+  const withheld=()=>({status:'abstained',answer:'',citations:[],views:[],grounding:grounding(true)});
+  emit({kind:'account-tools',label:'Selected account lookups',detail:accountTools.charges,status:'complete'});
+  const firstEvidence=readEvidence();
+  const result=await runAnswerVerification({
+    question,initialAnswer:candidateFrom(firstEvidence)??withheld(),deadline,onProgress:emit,
+    loadEvidence:async({attempt})=>{
+      if(attempt>1){
+        const refreshed=await loadSnapshot();
+        if(!userId||refreshed.profile?.userId!==userId||refreshed.feeBalanceScope!==true)
+          throw new Error('Fee scope changed during evidence refresh.');
+        current=refreshed;
+      }
+      const evidence=attempt===1?firstEvidence:readEvidence();
+      const available=Boolean(candidateFrom(evidence));
+      emit({kind:'account-read:charges:'+attempt,label:'Checked your saved fee records',
+        detail:available?'Read the fee scope for this signed-in account.':'The saved fee amounts could not be validated.',status:available?'complete':'unavailable'});
+      return evidence;
+    },
+    verify:context=>{
+      const expected=candidateFrom(context.evidence);
+      if(!expected||JSON.stringify(context.candidate)!==JSON.stringify(expected))return {ok:false,reason:'evidence_unavailable'};
+      if(context.attempt===1)return verifyEvidenceAnswer({...context,responseIntent:'records',
+        diagnosticContext:correlationId?{correlationId,attempt:context.attempt}:undefined});
+      emit({kind:'fee-balance-evidence-check',label:'Recalculated your saved fee balance',
+        detail:'Checked the amounts, currencies, source labels and read limits against the refreshed fee records.',status:'complete'});
+      return {ok:true};
+    },
+    repair:context=>candidateFrom(context.evidence)??withheld(),
+  });
+  if(result.verification?.status==='verified')return {...result,activity:[...observed.values()]};
+  const title=zh?'開啟已儲存費用紀錄':'Open saved fee records';
+  const unavailable=zh?'這次無法驗證您已儲存的費用餘額。':'I couldn’t verify your saved fee balance this time.';
+  return {...result,answer:unavailable+'\n\n['+title+']('+urls.charges+')',views:[],grounding:grounding(true),activity:[...observed.values()]};
+}
+
 export async function answerAccountWithVerification({question,snapshot,history=[],route='',loadSnapshot,onProgress,deadline=Date.now()+55000,supplementalReaders={},correlationId,leavePlan,internshipPlan}) {
+  if(snapshot.feeBalanceScope===true&&snapshot.profile?.userId&&isOwnFeeBalanceQuestion(question)&&!leavePlan&&!internshipPlan)
+    return answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadline,onProgress,correlationId});
   // Capture the complete route, including its query; native account routing below
   // intentionally drops queries. The public loader receives no account data.
   const fullRoute=route;

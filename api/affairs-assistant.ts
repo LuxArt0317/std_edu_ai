@@ -227,7 +227,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   if(request.method!=='POST') {response.setHeader('Allow','POST');response.status(405).json({error:'Method not allowed'});return;}
   const body=typeof request.body==='string' ? (()=>{try{return JSON.parse(request.body);}catch{return null;}})() : request.body;
   const input=body && typeof body==='object' && !Array.isArray(body) ? body as Record<string,unknown> : null;
-  let question=typeof input?.question==='string'?input.question.trim():'';
+  const requestedQuestion=typeof input?.question==='string'?input.question.trim():'';
+  let question=requestedQuestion;
   if(question.length<2||question.length>2000) {response.status(400).json({error:'Provide a question between 2 and 2,000 characters.'});return;}
   let route:string;
   try{route=validateAffairsAssistantRoute(input?.route);}catch{response.status(400).json({error:'Provide a local page route of at most 3,100 characters, without a fragment.'});return;}
@@ -618,6 +619,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const noteNext=notes.keys.length>0&&isServiceNoteNextClass(notes.otherQuestion);
   const chargeLabel=pageContext.feeChargeLabel??(assignmentFees?ownFeeBalanceLabel(assignment.otherQuestion):housingFees?ownFeeBalanceLabel(housing.otherQuestion):teachingFees?ownFeeBalanceLabel(studyQuestion):noteFees?ownFeeBalanceLabel(notes.otherQuestion):aidFees?ownFeeBalanceLabel(aid.otherQuestion):aid.excluded?ownFeeBalanceLabel(question):scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):null);
   const chargesOnly=assignmentFees||isOwnFeeBalanceQuestion(aid.excluded?question:scopedQuestion)||pageContext.feeAndBalance||aidFees||teachingFees||housingFees||chargeLabel!==null&&!noteFees;
+  const exactBalance=(question===requestedQuestion||question===resolvedFee)&&isOwnFeeBalanceQuestion(question)
+    &&/\b(?:balance|owe)\b|還要繳|還有|尚欠|剩餘|餘額|還剩/iu.test(question.normalize('NFKC'))
+    &&!chargeLabel&&!pageContext.selected&&!notes.keys.length
+    &&!dtmCompound&&!assignment.selection&&!aid.selection&&!teachingSelection&&!housingSelection&&!applicationSelection;
   const timetableOnly=Boolean(clearanceTimetableQuestion(question,pageContext))||aidNext||teachingNext||housingNext;
   const needsRecords=Boolean(dtmCompound||housingSelection||applicationSelection||teachingSelection||aid.selection) || conduct.selected || notes.keys.length>0 || chargesOnly || timetableOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
   const navigation=!needsRecords && !(Array.isArray(input?.images) && input.images.length) && !questionKind(question).irrelevant
@@ -668,12 +673,13 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const loadCharges=async()=>{
       try{
         const saved=await loadOwnAffairsCharges(account,{deadline});
+        if(exactBalance)return {...saved,feeBalanceScope:true};
         const normalize=(value:string)=>value.normalize('NFKC').trim().toLowerCase();
         return chargeLabel?{...saved,chargeSelectionLabel:chargeLabel,charges:saved.charges.filter(row=>normalize(row.label)===normalize(chargeLabel))}:saved;
       }catch(error){
-        if(!assignmentFees&&!pageContext.feeAndBalance&&!noteFees&&!aidFees&&!teachingFees&&!housingFees)throw error;
+        if(!exactBalance&&!assignmentFees&&!pageContext.feeAndBalance&&!noteFees&&!aidFees&&!teachingFees&&!housingFees)throw error;
         const charges:Awaited<ReturnType<typeof loadOwnAffairsCharges>>['charges']=[];
-        return {...scopedSnapshot(),charges,chargeReadUnavailable:true};
+        return {...scopedSnapshot(),charges,chargeReadUnavailable:true,...(exactBalance?{feeBalanceScope:true}:{})};
       }
     };
     const loadTimetable=async()=>{
@@ -734,7 +740,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     if(housingOnly)stream.progress('account','Selected your dormitory records','The dormitory lookup uses this signed-in Google account.','complete');
     else if(overviewOnly)stream.progress('account','Checked your saved overview','Only the account name, program, year, course lists and record counts were requested.','complete');
     else if(currentStudyScope==='courses_and_year')stream.progress('account','Checked your School Affairs sources','Subjects and recorded year level were checked separately.','complete');
-    else if('chargeReadUnavailable' in snapshot)stream.progress('account','Fee balance unavailable','The other requested records can still be checked independently.','unavailable');
+    else if('chargeReadUnavailable' in snapshot)stream.progress('account','Fee balance unavailable',exactBalance?'The saved fee records could not be read.':'The other requested records can still be checked independently.','unavailable');
     else if('timetableReadUnavailable' in snapshot)stream.progress('account','Timetable unavailable','The timetable could not be verified for this account.','unavailable');
     else if(!selectedReaderOnly)stream.progress('account','Loaded your account records',timetableOnly?'Read the timetable scope for this Google account.':chargesOnly?'Read the fee scope for this Google account.':'Only records linked to this Google account were read.','complete');
     stream.progress('answer','Preparing your answer','Checking the account data and any requested stu.best action.');
