@@ -1,7 +1,7 @@
 /** Literal local conduct records only. No merits calculation, detail or document capability. */
-export const studentConductPath='/school-affairs/services/38-1';
+import {studentConductMaxRecords} from './studentConductContract.js';
+export {studentConductMaxRecords,studentConductPath} from './studentConductContract.js';
 export const studentConductMaxPayloadBytes=16000;
-export const studentConductMaxRecords=1000;
 export const studentConductKinds=['save_student_conduct','delete_student_conduct'];
 export const studentConductTextLimits={occurred_on_text:40,student_number:80,student_name:160,academic_year_text:40,
   semester_text:40,year_level_text:40,reason_text:2000,conduct_code:80,conduct_name:160,quantity_text:80,void_status_text:160};

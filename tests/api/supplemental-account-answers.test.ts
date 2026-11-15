@@ -258,7 +258,7 @@ test('pure formatter is compatible with all three actual reader envelopes and do
   assert.deepEqual([...module.matchAll(/^import .+ from '([^']+)';$/gm)].map(match=>match[1]),[
     './dtmGradeEvidenceIntent.js','./internshipEvidenceContract.js','./accountAnswerLanguage.js','./internshipAssistantPlan.js','./internshipEvidenceIntent.js',
     './dtmAssignmentEvidenceContract.js','./studentLeaveEvidenceIntent.js','./aidPaymentsContract.js','./feeRemissionContract.js','./healthExaminationContract.js','./tutorEvaluationContract.js',
-    './teachingFeedbackContract.js','./teachingFeedbackEvidenceIntent.js','./teachingFeedbackAnswerEvidence.js',
+    './teachingFeedbackContract.js','./teachingFeedbackEvidenceIntent.js','./teachingFeedbackAnswerEvidence.js','./studentConductContract.js',
   ]);
 });
 

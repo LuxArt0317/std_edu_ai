@@ -5,6 +5,7 @@ import {createResearchAssistantHandler} from '../../server/researchAssistantHand
 import {isStudentConductCountQuestion,studentConductScope} from '../../server/studentConductEvidenceScope.js';
 import {readStudentConductEvidence} from '../../server/accountStudentConductEvidence.js';
 import {gradeCase} from './grading.mjs';
+import {buildAccountCases} from './account-cases.mjs';
 
 const db='https://xiftudmvxphxcjtmfmib.supabase.co',route='/school-affairs/services/38-1',source='account:studentConduct';
 const ownerA='38000000-0000-4000-8000-000000000001',ownerB='38000000-0000-4000-8000-000000000002';
@@ -101,6 +102,16 @@ test('the actual signed-in handler verifies all saved report counts with one exa
     assert.doesNotMatch(failed.body.answer,/record count\s*:|no saved|zero saved|no matching record/iu);
     assert.ok(failed.body.activity.filter(step=>step.kind.startsWith('account-read:')).every(step=>step.status==='unavailable'));
     assert.ok(privateMarkers.every(marker=>!JSON.stringify(failed.body).includes(marker)));
+  }
+  for(const [suffix,role,count,fixtureKey] of [['owned','A',1,'studentConduct'],['empty','B',0,'empty:studentConduct']]){
+    const id='account:student-conduct-count-'+suffix;
+    const testCase=buildAccountCases().find(row=>row.id===id);
+    assert.ok(testCase,id);
+    delivery=owner=>savedCount(count,owner);
+    const state=await send(ask,testCase.question,{role});
+    assert.equal(requests.at(-1).owner,fixtures[role].id);
+    const result=gradeCase(testCase,{...state,fixtureKey,events:state.body.activity,execution:'deterministic'});
+    assert.deepEqual(result.failures.map(row=>row.id),[],id);
   }
   const before=requests.length;
   const other=await send(ask,'How many conduct records does Alice have?');

@@ -318,6 +318,15 @@ export function buildAccountCases({now=DEFAULT_EVAL_NOW,includePlannedFeeRemissi
   add('student-conduct-empty','studentConduct','Are any student conduct records saved for me?',{
     ...conductCase,fixtureKey:'empty:studentConduct',behavior:'unavailable',mode:'empty',forbiddenText:[...conductCase.forbiddenText,'You have a clean disciplinary record'],
   });
+  for(const [id,fixtureKey,count,question] of [
+    ['student-conduct-count-owned','studentConduct',1,'How many student conduct records do I have?'],
+    ['student-conduct-count-empty','empty:studentConduct',0,'What is the total number of my saved conduct records?'],
+  ])add(id,'studentConduct',question,{
+    ...conductCase,fixtureKey,executionContract:'live-native',provenance:null,verification:'verified',noAction:true,
+    facts:[{...fact('Saved conduct record count',count,'number'),exclusive:true}],
+    requiredSourceBindings:[{sourceId:'account:studentConduct',url:conductPath}],
+    forbiddenText:[...conductCase.forbiddenText,'Returned borrowed equipment','M-0','You have a clean disciplinary record'],
+  });
   add('student-conduct-detail-unavailable','studentConduct','Download my official student conduct record PDF.',{
     ...conductCase,behavior:'unavailable',mode:'action-boundary',level:'partial',limitation:'The caller-scoped reader exposes local conduct cells only. It cannot issue an official PDF.',
     forbiddenText:[...conductCase.forbiddenText,'Your PDF is ready','Download complete'],

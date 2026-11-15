@@ -1,6 +1,6 @@
 // Browser-safe scope selection only. The native reader remains responsible for
 // caller authorization, literal field projection, deadlines and all transport.
-const path='/school-affairs/services/38-1';
+import {studentConductPath as path} from './studentConductContract.js';
 const topic=/\b(?:student conduct|conduct (?:records?|history|details?|code|name|quantity|status)|disciplinary (?:records?|history)|(?:merits?|demerits?)(?: records?)?|(?:student )?rewards? (?:and |or )?(?:punishments?|discipline)|student (?:rewards?|discipline)(?: records?)?)\b|獎懲|奖惩|操行/iu;
 const dorm=/\b(?:dorm(?:itory)?|housing|residence hall)\b|宿舍|住宿/iu;
 const tracking=/\b(?:(?:tracking|tracker|service)\s+(?:notes?|records?|status)|(?:private|personal|local|saved)\s+(?:(?:student\s+)?conduct\s+)?(?:tracking\s+)?notes?)\b|追蹤備註|追踪备注|私人備註|私人备注/iu;

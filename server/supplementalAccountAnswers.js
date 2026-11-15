@@ -15,7 +15,7 @@ import {tutorEvaluationEvidenceMaxBytes,tutorEvaluationPath} from './tutorEvalua
 import {teachingFeedbackPaths} from './teachingFeedbackContract.js';
 import {teachingFeedbackImmediateFields,selectTeachingFeedbackEvidence} from './teachingFeedbackEvidenceIntent.js';
 import {validateTeachingFeedbackAnswerEvidence} from './teachingFeedbackAnswerEvidence.js';
-import {studentConductMaxRecords} from './studentConduct.js';
+import {studentConductMaxRecords} from './studentConductContract.js';
 export const supplementalAnswerLimits=Object.freeze({answerCharacters:8000,resultBytes:24000,views:3,viewRows:12});
 const definitions={
   'account:internshipRecords':{title:['Saved internship records','已儲存實習紀錄'],path:internshipEvidencePath},
