@@ -70,7 +70,7 @@ async function invoke(input: Record<string,unknown>, run: ReturnType<typeof crea
   return responseBody;
 }
 
-function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link'|'unused-tool-lead'|'third-pass-discovery'|'incomplete-office'|'fourth-check'|'fourth-rejected'|'fourth-budget'|'mirror'|'mirror-then-primary'|'transient-lead'|'transient-initial'|'transient-uncited') {
+function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link'|'unused-tool-lead'|'third-pass-discovery'|'incomplete-office'|'fourth-check'|'fourth-rejected'|'fourth-budget'|'mirror'|'mirror-then-primary'|'transient-lead'|'transient-initial'|'transient-uncited'|'empty-deep-search'|'empty-alternate-search') {
   configured();
   const started = Date.now();
   let elapsed = 0;
@@ -104,6 +104,11 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
         : searchPayload([officialDirectory],unsafeDraft));
       if (outcome === 'transient-lead' || (outcome === 'deeper-review' && searchCalls === 3))
         return Response.json(searchPayload([officialDirectory,officialNotice],unsafeDraft));
+      if (outcome === 'empty-deep-search' || outcome === 'empty-alternate-search') {
+        if (searchCalls === 2) return Response.json(searchPayload([officialOffice],unsafeDraft));
+        if (searchCalls === 4 && outcome === 'empty-deep-search') return Response.json(searchPayload([officialNotice],unsafeDraft));
+        return Response.json({output:[]});
+      }
       if (outcome === 'incomplete-office' || outcome === 'fourth-check' || outcome === 'fourth-rejected' || outcome === 'fourth-budget' || outcome === 'mirror' || outcome === 'mirror-then-primary') {
         const source = searchCalls === 2 ? officialOffice
           : (searchCalls === 3 && outcome !== 'incomplete-office') || outcome === 'mirror' ? eventCalendar : officialNotice;
@@ -309,6 +314,22 @@ test('an additional source never bypasses the fourth verdict or the remaining ti
     const stops = progress.filter(({kind})=>kind==='verification-stop');
     assert.equal(stops.length,1);
     assert.match(stops[0].detail,hasTime ? /details still unverified/u : /too little time/u);
+  }
+});
+
+test('an empty deeper search still permits a different publication search without repeating the draft', async () => {
+  for (const outcome of ['empty-deep-search','empty-alternate-search'] as const) {
+    const attempt = harness(outcome);
+    const progress: Progress[] = [];
+    const answer = await invoke({question:testQuestion},attempt.run,'web-'+outcome,progress);
+    const resolved = outcome === 'empty-deep-search';
+    assert.equal(attempt.searchRequests.length,4);
+    assert.match(String(attempt.searchRequests[3].instructions),/independent official publication/u);
+    assert.deepEqual(attempt.acquiredUrls,resolved?[officialDirectory,officialOffice,officialNotice]:[officialDirectory,officialOffice]);
+    assert.equal(answer.verification.attempts,resolved?4:3);
+    assert.equal(answer.verification.status,resolved?'verified':'unverified');
+    assert.deepEqual(answer.citations.map(({url}: {url:string})=>url),resolved?[officialNotice]:[]);
+    assert.equal(progress.filter(({kind})=>kind==='verification-stop').length,resolved?0:1);
   }
 });
 
