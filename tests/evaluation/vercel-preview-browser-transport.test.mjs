@@ -5,6 +5,7 @@ import {newConversationId} from '../../src/services/assistantConversationId.js';
 import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
 import {createProtectedConversationBrowserRelay} from './vercel-preview-browser-transport.mjs';
 import {previewTrustedHeader} from './vercel-preview-transport.mjs';
+import {ProtectedBrowserDiagnostic} from './protected-browser-diagnostics.mjs';
 
 const epoch=1800000000,origin='https://stdedu-abcdef123-v1-d286.vercel.app',project='https://xiftudmvxphxcjtmfmib.supabase.co';
 const revision='a'.repeat(40),ownerId=randomUUID(),otherId=randomUUID();
@@ -165,4 +166,19 @@ test('redirects, a different final URL, leaked header values and cross-owner fix
   assert.throws(()=>harness({dataPaths:['/api/affairs-data?resource=conversations']}),/invalid data route allowlist/u);
   assert.throws(()=>harness({assets:['/assets/../index.js']}),/invalid URL|invalid resource allowlist/u);
   assert.throws(()=>harness({now:()=>epoch*1000+100_000}),/outside its validity window/u);
+});
+
+
+test('relay preserves safe save validation codes before network and categorizes unknown failures',async()=>{
+  for(const [failure,code] of [[new ProtectedBrowserDiagnostic('save assistant unverified'),'save-assistant-unverified'],
+    [new Error('private provider response with credentials'),'save-intent-could-not-be-verified-and-journaled']]){
+    const h=harness({authorizeSave:()=>{throw failure;}});
+    const session=id();h.reserve({id:session,mode:'turn',route:frame,question:questions[0]});
+    await h.dispatch(assistant());
+    await assert.rejects(h.dispatch(save(saveFor(session))),error=>error.code===code&&!error.message.includes('credentials'));
+    assert.deepEqual(h.calls.map(item=>item.url),[origin+'/api/affairs-assistant']);
+  }
+  const h=harness({respond:()=>Response.json({error:'private data'},{status:503})});
+  await assert.rejects(h.dispatch(get('/api/affairs-conversations',ownedHeaders())),
+    error=>error.code==='unexpected-application-status'&&error.status===503&&!error.message.includes('private data'));
 });

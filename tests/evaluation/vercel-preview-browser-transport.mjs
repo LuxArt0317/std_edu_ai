@@ -1,6 +1,7 @@
 import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
 import {isConversationId} from '../../src/services/assistantConversationId.js';
 import {createPreviewDevelopmentTokenGuard,isEvaluationPreviewOrigin,previewTrustedHeader} from './vercel-preview-transport.mjs';
+import {ProtectedBrowserDiagnostic,requireProtectedBrowser as check} from './protected-browser-diagnostics.mjs';
 
 const project='https://xiftudmvxphxcjtmfmib.supabase.co';
 const conversationPath='/api/affairs-conversations',assistantPath='/api/affairs-assistant';
@@ -10,7 +11,6 @@ const sha=/^[a-f0-9]{40}$/u,uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a
 const asset=/^\/(?:assets|stu-reference|school-assets|dtm-theme)\/[a-zA-Z0-9._/-]+\.[a-zA-Z0-9]+$/u;
 const replyHeaders=new Set(['content-type','content-security-policy','content-security-policy-report-only','referrer-policy',
   'x-content-type-options','x-frame-options','cross-origin-resource-policy','x-assistant-request-id']);
-const check=(condition,stage)=>{if(!condition)throw new Error('Protected browser transport: '+stage+'.');};
 const exact=(value,keys)=>value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).sort().join()===keys;
 const authPaths=new Map([['/auth/v1/user','GET'],['/auth/v1/token?grant_type=refresh_token','POST'],['/auth/v1/logout?scope=local','POST']]);
 function target(raw){
@@ -18,11 +18,11 @@ function target(raw){
     const url=new URL(raw);
     if(raw===url.origin+url.pathname+url.search&&url.protocol==='https:'&&!url.username&&!url.password)return url;
   }catch{/* Only canonical absolute URLs are eligible. */}
-  throw new Error('Protected browser transport: invalid URL.');
+  throw new ProtectedBrowserDiagnostic('invalid URL');
 }
 function decode(body,max){
   check(typeof body==='string'&&Buffer.byteLength(body)<=max,'invalid request body');
-  try{return JSON.parse(body);}catch{throw new Error('Protected browser transport: invalid JSON body.');}
+  try{return JSON.parse(body);}catch{throw new ProtectedBrowserDiagnostic('invalid JSON body');}
 }
 function callerClaims(value){
   if(typeof value!=='string'||value.length>16000||!/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/u.test(value))return null;
@@ -61,7 +61,8 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
   assets=[],dataPaths=['/api/affairs-data'],fetchImpl=globalThis.fetch,now=Date.now}={}){
   check(isEvaluationPreviewOrigin(origin)&&sha.test(revision??'')&&uuid.test(ownerId??'')&&typeof getCallerToken==='function'
     &&typeof verifyPin==='function'&&typeof authorizeSave==='function'&&typeof fetchImpl==='function','invalid fixture config');
-  const checkToken=createPreviewDevelopmentTokenGuard(token,now);
+  const tokenGuard=createPreviewDevelopmentTokenGuard(token,now);
+  const checkToken=()=>{try{tokenGuard();}catch{check(false,'Preview credential expired');}};
   const {staticPaths,ownDataPaths}=validateProtectedConversationBrowserResources({origin,assets,dataPaths});
   const reservations=new Map(),correlations=new Set();
   let releaseChecked=false,pinFailed=false,pinQueue=Promise.resolve();
@@ -143,7 +144,10 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
       try{
         approved=await authorizeSave({ownerId,payload:structuredClone(transaction),correlationId:save.answer?.correlationId??null,
           assistantResponse:save.answer?Buffer.from(save.answer.bytes):null});
-      }catch{/* The raw verifier error can contain private fixture material. */}
+      }catch(error){
+        // Forward only our allowlisted categories from the durable save checker.
+        if(error instanceof ProtectedBrowserDiagnostic)throw error;
+      }
       check(approved===true,'save intent could not be verified and journaled');
     }
     checkToken();
@@ -151,11 +155,11 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
     let response;
     const deadline=AbortSignal.timeout(65000),active=signal?AbortSignal.any([signal,deadline]):deadline;
     try{response=await fetchImpl(url,{method,headers,...(post?{body}:{}),signal:active,redirect:'error',credentials:'omit',cache:'no-store'});}
-    catch{throw new Error('Protected browser transport: request could not reach the pinned deployment.');}
+    catch{throw new ProtectedBrowserDiagnostic('request could not reach the pinned deployment');}
     if(response.redirected||response.url&&response.url!==url.href||response.status>=300&&response.status<400){
-      void response.body?.cancel().catch(()=>{});check(false,'unexpected redirect or response URL');
+      void response.body?.cancel().catch(()=>{});check(false,'unexpected redirect or response URL',response.status);
     }
-    check(response.status===200,'unexpected application response');
+    check(response.status===200,'unexpected application status',response.status);
     const limit=publicResource?4_000_000:ownDataPaths.has(path)?1_000_000:ask?300000:220000;
     const bytes=await capture(response,limit);
     check(!bytes.includes(token)&&(!caller||!bytes.includes(caller)),'credential in response');

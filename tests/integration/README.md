@@ -137,6 +137,8 @@ node tests/integration/assistant-conversation-http-live.mjs --preview-browser
 
 The operator uses the serialized fixture lease and seeds only the verified disposable session in each browser context. It records each reserved conversation before submission, checks the verified answer and Activity against the endpoint SSE, and journals the exact save before relaying it. The two durable saves must agree with both authenticated API and direct SQL readbacks. The second conversation opens first in a fresh context and must issue the server detail GET. Activity expansion and account isolation are checked in the browser before exact fixture cleanup.
 
+Each turn’s browser save and independent HTTP/SQL readbacks are verified before the next question. The private report retains `browserTurnProofs` for verified turns even if a later turn fails. On a denied app request, `browserDenials` records the current phase, fixed endpoint and method, an allowlisted failure code, and HTTP status when available. Logs omit request content, response text, query strings, caller IDs and credentials.
+
 The relay keeps Development OIDC in the Node process, forwards only exact Preview requests, and disables redirects. Supabase Auth continues through the original browser request and carries no Preview credential. The relay buffers a bounded SSE body for Playwright fulfillment. This mode verifies durable Activity after a real endpoint answer and a fresh context. A separate streaming run is required to verify incremental Activity timing.
 
 

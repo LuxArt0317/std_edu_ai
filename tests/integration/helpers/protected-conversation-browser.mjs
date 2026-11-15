@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
+import {isDeepStrictEqual} from 'node:util';
 import {isConversationId} from '../../../src/services/assistantConversationId.js';
 import {boundedAssistantActivity,boundedAssistantText,reconcileAssistantActivity} from '../../../src/services/assistantActivityBudget.js';
 import {readAssistantReply} from '../../../src/services/assistantStreamReader.js';
 import {assistantActivityTimeline} from '../../../src/features/public/assistantActivityTimeline.ts';
 import {sanitizeStoredConversation} from '../../../server/assistantConversationData.js';
+import {requireProtectedBrowser as check} from '../../evaluation/protected-browser-diagnostics.mjs';
 
 export const protectedConversationQuestions=Object.freeze(['What is my display name?','How much is my unpaid tuition?']);
 const conversationPath='/api/affairs-conversations',route='/dtm',savedLabel='Conversation saved to your private account.';
@@ -11,28 +13,32 @@ const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}
 
 /** Independently bind the exact persisted message and observed timeline to the endpoint SSE. */
 export async function verifyProtectedBrowserSave({payload,question,assistantResponse,correlationId}){
-  assert.ok(uuid.test(correlationId??'')&&Buffer.isBuffer(assistantResponse)&&assistantResponse.length>0);
-  let progress=[];
-  const reply=await readAssistantReply(new Response(assistantResponse,{headers:{'Content-Type':'text/event-stream'}}),
-    step=>{progress=boundedAssistantActivity(progress,[step]);});
-  assert.equal(reply.status,'answered');
-  assert.equal(reply.verification?.status,'verified');
-  assert.equal(reply.proposedAction,undefined);
-  assert.equal(payload.title,question);assert.equal(payload.version,0);
-  assert.equal(isConversationId(payload.id)&&payload.id[14]==='7',true);
+  check(uuid.test(correlationId??'')&&Buffer.isBuffer(assistantResponse)&&assistantResponse.length>0,'save stream binding');
+  let reply,progress=[];
+  try{
+    reply=await readAssistantReply(new Response(assistantResponse,{headers:{'Content-Type':'text/event-stream'}}),
+      step=>{progress=boundedAssistantActivity(progress,[step]);});
+  }catch{check(false,'save malformed assistant stream');}
+  if(reply.status==='abstained')check(false,'save assistant abstained');
+  if(reply.status==='clarification')check(false,'save assistant clarification');
+  if(reply.status==='handoff')check(false,'save assistant handoff');
+  check(reply.status==='answered','save unexpected assistant status');
+  check(reply.verification?.status==='verified','save assistant unverified');
+  check(reply.proposedAction===undefined,'save unexpected proposed action');
+  check(payload?.title===question&&payload.version===0&&isConversationId(payload.id)&&payload.id[14]==='7','save envelope mismatch');
   const [prompt,answer,...rest]=sanitizeStoredConversation(payload.messages);
-  assert.deepEqual(rest,[]);assert.equal(prompt?.role,'user');assert.equal(prompt.content,question);
-  assert.equal(answer?.role,'assistant');assert.equal(answer.phase,'complete');assert.equal(answer.actionExpired,false);
+  check(!rest.length&&prompt?.role==='user'&&prompt.content===question&&answer?.role==='assistant'
+    &&answer.phase==='complete'&&answer.actionExpired===false,'save message shape mismatch');
   const expectedContent=boundedAssistantText(reply.answer,8000);
-  assert.ok(expectedContent.length>0);
-  assert.equal(answer.content,expectedContent);assert.equal(answer.result?.answer,expectedContent);
-  assert.equal(answer.result.status,reply.status);
-  assert.deepEqual(answer.result.verification,{status:'verified',attempts:reply.verification.attempts});
+  check(expectedContent&&answer.content===expectedContent&&answer.result?.answer===expectedContent
+    &&answer.result.status===reply.status,'save answer mismatch');
+  check(answer.result.verification?.status==='verified'&&answer.result.verification.attempts===reply.verification.attempts,
+    'save verification mismatch');
   const expected=boundedAssistantActivity([],reconcileAssistantActivity(progress,reply.activity??[]).map(step=>step.status==='running'
     ?{...step,status:'unavailable',detail:step.detail+' No completion update was received.'}:step));
-  assert.ok(expected.length>0&&expected.some(step=>step.status==='complete'));
-  assert.deepEqual(answer.activity,expected);
-  assert.deepEqual(answer.result.activity,boundedAssistantActivity([],reply.activity??[]));
+  check(expected.length>0&&expected.some(step=>step.status==='complete'),'save no completed activity');
+  check(isDeepStrictEqual(answer.activity,expected),'save activity mismatch');
+  check(isDeepStrictEqual(answer.result.activity,boundedAssistantActivity([],reply.activity??[])),'save terminal activity mismatch');
   return {question,answer:expectedContent,activity:expected,correlationId};
 }
 
@@ -49,8 +55,8 @@ export async function installProtectedConversationBrowserRoute(context,{relay,on
         if(reply.kind==='supabase-auth'){await route.continue();return;}
         await onReply({url,method,reply});
         await route.fulfill({status:reply.status,headers:reply.headers,body:reply.body});
-      }catch{
-        onDenied({url,method});
+      }catch(error){
+        onDenied({url,method,error});
         await route.abort('blockedbyclient').catch(()=>{});
       }
     })();
@@ -70,27 +76,34 @@ function waitForWrite(page,origin,id){
 }
 
 /** Run the two browser saves, independent reads and fresh-context restoration. */
-export async function runProtectedConversationBrowser({origin,openContext,verifyPersisted,mark=()=>{}}){
+export async function runProtectedConversationBrowser({origin,openContext,verifyPersisted,onTurnVerified=()=>{},mark=()=>{}}){
   const completed=[];
   mark('protected browser: create and save two conversations');
   const live=await openContext('owner',[]);
   try{
     const {page,dialog}=live,picker=dialog.getByLabel('Conversations',{exact:true});
     for(const [index,question] of protectedConversationQuestions.entries()){
+      const label='protected browser: turn '+(index+1);
+      mark(label+' prepare conversation');
       if(index)await dialog.getByRole('button',{name:'New chat',exact:true}).click();
       const id=await picker.inputValue();
       assert.ok(isConversationId(id)&&id[14]==='7'&&!completed.some(item=>item.id===id));
       live.reserve({id,mode:'turn',question,route});
       const wait=waitForWrite(page,origin,id);
+      mark(label+' await browser autosave');
       await dialog.getByRole('textbox',{name:'Your question',exact:true}).fill(question);
       await dialog.getByRole('button',{name:'Send',exact:true}).click();
-      const failed=await wait;if(failed)throw failed;
-      await dialog.getByText(savedLabel,{exact:true}).waitFor();
-      completed.push({id,question});
+      const failure=await Promise.race(live.denied?[wait,live.denied]:[wait]);
+      if(failure)throw failure;
+      const saveStatus=dialog.getByText(savedLabel,{exact:true}).waitFor().then(()=>null,error=>error);
+      const missing=await Promise.race(live.denied?[saveStatus,live.denied]:[saveStatus]);
+      if(missing)throw missing;
+      mark(label+' check owned HTTP and SQL');
+      const expected=await verifyPersisted({id,question});
+      completed.push({id,question,expected});
+      await onTurnVerified({turn:index+1,observedSteps:expected.activity.length});
     }
   }finally{await live.close();}
-  mark('protected browser: verify independent stored conversations');
-  for(const item of completed)item.expected=await verifyPersisted(item);
   assert.notEqual(completed[0].expected.correlationId,completed[1].expected.correlationId);
 
   mark('protected browser: reopen second conversation in a fresh context');
