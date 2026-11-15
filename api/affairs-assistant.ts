@@ -73,7 +73,7 @@ import {publicServiceFollowup} from '../server/publicServiceFollowup.js';
 import { accountQuestionIntent,isAccountOverviewQuestion,isCurrentStudyRecordQuestion } from '../server/affairsAnswer.js';
 import { loadOwnAffairsStudyYear } from '../server/ownAffairsStudyYear.js';
 import { loadAccountOverviewSnapshot } from '../server/accountOverviewEvidence.js';
-import { currentStudyForeignYearQuestion } from '../server/currentStudyOwnerScope.js';
+import { currentStudyCoachingQuestion,currentStudyForeignYearQuestion } from '../server/currentStudyOwnerScope.js';
 import { teachingFeedbackLookupContext } from '../server/teachingFeedbackEvidenceIntent.js';
 import { teachingFeedbackGuide } from '../server/teachingFeedbackGuide.js';
 import { readHousingBedEvidence, unavailableHousingBedEvidence } from '../server/accountHousingBedEvidence.js';
@@ -765,7 +765,11 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const overviewOnly=!housingSelection&&!applicationSelection&&!teachingSelection&&!notes.keys.length&&isAccountOverviewQuestion(intent,question);
   const studyQuestion=teachingSelection?(foreignYear?ownCoursesBesideForeignYear:teaching.otherQuestion):question;
   const studyIntent=teachingSelection?accountQuestionIntent(studyQuestion,[],''):intent;
-  const currentStudyScope=foreignYear&&(!teachingSelection||studyQuestion)?'courses':isCurrentStudyRecordQuestion(studyIntent,studyQuestion)?'courses_and_year':null;
+  const studyCoaching=question===requestedQuestion&&!foreignYear&&!housingSelection&&!applicationSelection&&!teachingSelection
+    &&!notes.keys.length&&!pageContext.selected&&!assignment.selection&&!aid.selection&&!dtmCompound
+    ?currentStudyCoachingQuestion(question):null;
+  const currentStudyScope=foreignYear&&(!teachingSelection||studyQuestion)?'courses'
+    :isCurrentStudyRecordQuestion(studyIntent,studyQuestion)?'courses_and_year':studyCoaching?.scope??null;
   const teachingFees=Boolean(teachingSelection&&(isOwnFeeBalanceQuestion(studyQuestion)||ownFeeBalanceLabel(studyQuestion)!==null));
   const teachingNext=Boolean(teachingSelection&&isServiceNoteNextClass(studyQuestion));
   if(!housingSelection&&!applicationSelection&&!teachingSelection&&!notes.keys.length&&intent.recognized&&intent.kind==='coaching'&&!intent.baseTools.length&&!pageContext.selected){
