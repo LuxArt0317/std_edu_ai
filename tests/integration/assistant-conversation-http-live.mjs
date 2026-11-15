@@ -1,5 +1,6 @@
 /** Actual deployed persistence acceptance. Synthetic conversation content is a
  * fixture, not a generated/model-verified answer. Importing this file is inert. */
+import {newConversationId} from '../../src/services/assistantConversationId.js';
 import assert from 'node:assert/strict';
 import {randomBytes,randomUUID} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
@@ -186,7 +187,7 @@ export async function main(){
     const file=await open(ledgerPath,'wx',0o600);ledgerOwned=true;await file.close();await ledger();
     phase='actual JWT identities';const first=await createUser(),second=await createUser();
     phase='deployed HTTP save and isolation';
-    const primary=conversationFixture(randomUUID(),'HTTP durable activity'),secondary=conversationFixture(randomUUID(),'Other account private activity');
+    const primary=conversationFixture(newConversationId(),'HTTP durable activity'),secondary=conversationFixture(newConversationId(),'Other account private activity');
     reservedConversations.set(primary.id,{userId:first.id,payload:primary});reservedConversations.set(secondary.id,{userId:second.id,payload:secondary});
     await request(null,{status:401});
     const firstSaved=await request(first,{method:'POST',body:primary});assert.equal(firstSaved.version,1);assert.deepEqual(firstSaved.messages,sanitizeStoredConversation(primary.messages));
@@ -272,7 +273,7 @@ export async function main(){
     assert.ok(!(await other.dialog.getByRole('log').innerText()).includes(primary.title));await other.context.close();
     checks.push('Fresh-context server restoration,40 mandatory expandable steps,reload,phone/desktop bounds and other-account picker isolation');
 
-    phase='actual browser autosave';const seeded=conversationFixture(randomUUID(),'Browser autosave activity');
+    phase='actual browser autosave';const seeded=conversationFixture(newConversationId(),'Browser autosave activity');
     reservedConversations.set(seeded.id,{userId:first.id,payload:seeded});
     const ui=await openContext(first,seeded);phase='browser: await synthetic-turn autosave';await ui.dialog.getByText('Conversation saved to your private account.',{exact:true}).waitFor();
     await assertRestored(ui,seeded);await ui.context.close();

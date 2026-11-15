@@ -1,3 +1,4 @@
+import {newConversationId} from '../../src/services/assistantConversationId.js';
 import {createHash,randomUUID} from 'node:crypto';
 import {constants} from 'node:fs';
 import {lstat,mkdir,open,readFile,realpath,rename,unlink} from 'node:fs/promises';
@@ -83,7 +84,7 @@ export async function main(args=process.argv.slice(2)){
   if(!stat.isFile()||stat.uid!==process.getuid()||(stat.mode&0o022)!==0)fail('untrusted_transport_module');
   const {fetchPreview}=await import(pathToFileURL(modulePath).href);
   if(typeof fetchPreview!=='function')fail('invalid_transport_module');
-  const runId=randomUUID(),conversationId=randomUUID(),base=resolve(root,'artifacts/assistant-evaluation');
+  const runId=randomUUID(),conversationId=newConversationId(),base=resolve(root,'artifacts/assistant-evaluation');
   await privateDirectory(dirname(base),{existing:true});
   await privateDirectory(base,{existing:true});
   const directory=join(base,'transcript-'+runId);

@@ -1,12 +1,16 @@
 import {affairsClient} from '@/features/public/affairs/authClient';
 import {sanitizeAssistantMessages,type AssistantMessage} from './assistantConversation';
 import {boundedAssistantText} from './assistantActivityBudget.js';
+import {newConversationId} from './assistantConversationId.js';
 export type AssistantSession={id:string;title:string;messages:AssistantMessage[];version:number;updatedAt:string};
 export type SessionIndex=Omit<AssistantSession,'messages'>;
 export type SessionCacheResult={chats:Record<string,{status:'saved'|'previous'|'uncached';error:string}>};
 const storageKey='stu-campus-assistant-sessions-v2';
 const savedTitle=(value:unknown)=>boundedAssistantText(value,100).trim()||'New conversation';
-export const newAssistantSession=():AssistantSession=>({id:crypto.randomUUID(),title:'New conversation',messages:[],version:0,updatedAt:new Date().toISOString()});
+export function newAssistantSession():AssistantSession{
+  const now=Date.now();
+  return {id:newConversationId(now),title:'New conversation',messages:[],version:0,updatedAt:new Date(now).toISOString()};
+}
 function cachedChats(value:unknown,interrupted=false):AssistantSession[]{
   return Array.isArray(value)?value.slice(0,20).flatMap((chat:AssistantSession)=>{
     try{return typeof chat?.id==='string'&&typeof chat.title==='string'?[{...chat,title:savedTitle(chat.title),messages:sanitizeAssistantMessages(chat.messages,interrupted)}]:[];}

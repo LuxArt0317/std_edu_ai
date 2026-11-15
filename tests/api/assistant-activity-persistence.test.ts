@@ -16,8 +16,9 @@ test('authenticated persistence sends all normal activity steps and rejects over
     const url=new URL(String(input));
     if(url.pathname==='/auth/v1/user')return Response.json({id:owner,identities:[{provider:'google'}]});
     assert.equal(((init?.headers??{}) as Record<string,string>).Authorization,'Bearer '+'x'.repeat(40));
-    if(url.pathname.endsWith('/rpc/affairs_save_conversation')){writes++;stored=JSON.parse(String(init?.body)).p_messages;return Response.json({id,version:1});}
-    assert.equal(url.searchParams.get('user_id'),'eq.'+owner);return Response.json([{id,messages:stored,version:1}]);
+    if(url.pathname.endsWith('/rpc/affairs_save_conversation_v2')){writes++;stored=JSON.parse(String(init?.body)).p_messages;return Response.json({id,version:1});}
+    assert.ok(url.pathname.endsWith('/rpc/affairs_read_conversations_v2'));
+    assert.equal(init?.method,'POST');assert.deepEqual(JSON.parse(String(init?.body)),{p_id:id});return Response.json({id,messages:stored,version:1});
   };
   const call=async(method:string,body?:unknown)=>{let status=200,value:any;const res={status(code:number){status=code;return res;},json(result:unknown){value=result;},setHeader(){}};await handler({method,body,query:{id},headers:{authorization:'Bearer '+'x'.repeat(40)}},res);return{status,value};};
   try{
@@ -36,7 +37,7 @@ test('conversation titles are safe for PostgreSQL and invalid or stripped-empty 
   globalThis.fetch=async(input,init)=>{
     const url=new URL(String(input));
     if(url.pathname==='/auth/v1/user')return Response.json({id:owner,identities:[{provider:'google'}]});
-    assert.ok(url.pathname.endsWith('/rpc/affairs_save_conversation'));
+    assert.ok(url.pathname.endsWith('/rpc/affairs_save_conversation_v2'));
     writes.push(JSON.parse(String(init?.body)));return Response.json({id,version:3});
   };
   const call=async(title:unknown)=>{let status=200;const res={status(code:number){status=code;return res;},json(){},setHeader(){}};await handler({method:'POST',body:{id,title,version:2,messages:messages()},headers:{authorization:'Bearer '+'x'.repeat(40)}},res);return status;};

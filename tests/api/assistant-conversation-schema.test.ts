@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
+import {newConversationId} from '../../src/services/assistantConversationId.js';
 
 const original = readFileSync(new URL('../../supabase/migrations/20261112120000_assistant_conversations.sql', import.meta.url), 'utf8');
 const replacement = readFileSync(new URL('../../supabase/migrations/20261112190000_assistant_conversation_content_limit.sql', import.meta.url), 'utf8');
@@ -63,21 +64,25 @@ test('execution grants remain authenticated-only and the migration contains no o
   assert.equal(remaining.replace(/^\s*--[^\n]*(?:\n|$)/gm, '').trim(), '');
 });
 
-test('deletion and saving share the existing lock and only an owner-bound receipt can veto a save', () => {
+test('the protected protocol limits new IDs to a short UUIDv7 creation window',()=>{
+  const now=1794700000123,ids=Array.from({length:8},()=>newConversationId(now));
+  for(const id of ids){
+    assert.match(id,/^[a-f0-9]{8}-[a-f0-9]{4}-7[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/);
+    assert.equal(Number.parseInt(id.replaceAll('-','').slice(0,12),16),now);
+  }
+  assert.equal(new Set(ids).size,ids.length);
+});
+
+test('versioned APIs share an account lock and legacy access cannot affect v7 rows',()=>{
   const migration=readFileSync(new URL('../../supabase/migrations/20261115230000_assistant_conversation_delete_receipts.sql',import.meta.url),'utf8');
-  const lock="  perform pg_advisory_xact_lock(hashtextextended('affairs-chat:'||v_uid::text,0));\n";
-  const guard="  if exists(select 1 from private.affairs_conversation_tombstones where user_id=v_uid and conversation_id=p_id)\n    then raise exception 'Conversation was deleted' using errcode='PT409'; end if;\n";
-  assert.equal(extractFunction(migration),extractFunction(replacement).replace(lock,lock+guard));
-  const deleteDefinition=migration.slice(migration.indexOf('create function public.affairs_delete_conversation'),migration.indexOf('create or replace function public.affairs_save_conversation'));
-  assert.ok(deleteDefinition.includes('v_uid is null or not private.affairs_google_identity()'));
-  assert.ok(deleteDefinition.includes("language plpgsql security definer set search_path=''"));
-  const insertion='  insert into private.affairs_conversation_tombstones(user_id,conversation_id) values(v_uid,p_id)';
-  const deletion='  delete from public.affairs_conversations where id=p_id and user_id=v_uid;';
-  assert.ok(deleteDefinition.includes(lock+insertion));
-  assert.ok(deleteDefinition.includes('on conflict (user_id,conversation_id) do nothing;\n'+deletion));
-  assert.ok(deleteDefinition.includes("return jsonb_build_object('deleted',true)"));
-  assert.ok(deleteDefinition.includes('revoke all on function public.affairs_delete_conversation(uuid) from public,anon;'));
-  assert.ok(deleteDefinition.includes('grant execute on function public.affairs_delete_conversation(uuid) to authenticated;'));
-  assert.match(migration,/user_id uuid not null references auth\.users\(id\) on delete cascade,\s+conversation_id uuid not null,\s+primary key \(user_id,conversation_id\)/u);
-  assert.match(migration,/revoke all on private\.affairs_conversation_tombstones from public,anon,authenticated;/u);
+  const lock="perform pg_advisory_xact_lock(hashtextextended('affairs-chat:'||v_uid::text,0));";
+  assert.equal(migration.split(lock).length-1,2);
+  assert.equal(migration.split('and private.affairs_conversation_creation_time(id) is null').length-1,2);
+  assert.match(migration,/select private\.affairs_save_conversation\(p_id,p_title,p_messages,p_expected_version,false\)/);
+  assert.match(migration,/if not p_protected and v_created is not null/);
+  assert.match(migration,/where user_id=v_uid and conversation_id=p_id/);
+  assert.match(migration,/delete from public\.affairs_conversations where id=p_id and user_id=v_uid/);
+  assert.match(migration,/return jsonb_build_object\('deleted',true,'protection','conversation-delete-v2'\)/);
+  assert.match(migration,/revoke all on private\.affairs_conversation_delete_markers from public,anon,authenticated/);
+  assert.match(migration,/revoke all on private\.affairs_conversation_creation_floors from public,anon,authenticated/);
 });

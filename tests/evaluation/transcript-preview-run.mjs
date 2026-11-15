@@ -1,3 +1,4 @@
+import {newConversationId} from '../../src/services/assistantConversationId.js';
 import {randomUUID} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
@@ -83,7 +84,7 @@ export function assessTranscriptPreview(report,{reviews=[]}={}){
  * disposable fixture lifecycle, and owner-only durable report writer.
  */
 export async function runTranscriptPreview({
-  runId=randomUUID(),conversationId=randomUUID(),origin,approvedPreviewOrigin,sourceRevision,
+  runId=randomUUID(),conversationId=newConversationId(),origin,approvedPreviewOrigin,sourceRevision,
   now=new Date().toISOString(),fetchImpl,signal,simulation=false,
 }={},{
   fixture,createJournal,writeReport,wait=ms=>delay(ms,undefined,{signal}),
