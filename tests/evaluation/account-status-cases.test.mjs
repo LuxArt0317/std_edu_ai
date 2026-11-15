@@ -5,6 +5,7 @@ import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {createResearchAssistantHandler} from '../../server/researchAssistantHandler.js';
+import {campusEntryIntent} from '../../server/campusEntryContract.js';
 import {accountStatusIntent} from '../../server/accountStatusIntent.js';
 import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
 import {gradeCase} from './grading.mjs';
@@ -104,6 +105,7 @@ test('compiled client sends the status question to the authenticated API and sto
   const exports={},requests=[];
   let owner=accountStatusOwners.first.id;
   runInNewContext(code,{exports,require:specifier=>{
+    if(specifier.endsWith('campusEntryContract.js'))return {campusEntryIntent};
     if(specifier.endsWith('accountStatusIntent.js'))return {accountStatusIntent};
     if(specifier.endsWith('assistantStreamReader.js'))return {readAssistantReply};
     if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{

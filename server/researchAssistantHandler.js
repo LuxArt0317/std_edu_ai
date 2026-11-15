@@ -5,6 +5,7 @@ import {clubAttendanceBoundary,clubAttendanceRoute,clubAttendanceSelection} from
 import {parseExplicitAccountAction} from './accountActionIntent.js';
 import {internshipAssistantPlan,internshipGuestAnswer} from './internshipAssistantPlan.js';
 import {accountStatusIntent} from './accountStatusIntent.js';
+import {answerCampusEntry,campusEntryIntent} from './campusEntryContract.js';
 import {answerLearningEntry,learningEntryIntent} from './learningEntryContract.js';
 import {guestAccountStatusAnswer} from './accountStatusAnswer.js';
 import {studentConductScope} from './studentConductEvidenceScope.js';
@@ -147,7 +148,7 @@ function parse(body) {
     }) : [];
     const catalogRoute=elearningCatalogGuestRoute(source.route), metadataRoute=elearningMetadataGuestRoute(source.route);
     const offeringRoute=catalogDetailGuestRoute(source.route);
-    const entryRoute=learningEntryIntent(question,source.route)?.context;
+    const entryRoute=campusEntryIntent(question,source.route)?.path??learningEntryIntent(question,source.route)?.context;
     const route = source.route==='/account-status'?source.route:entryRoute??(offeringRoute?offeringRoute:isElearningMetadataQuestion(question,metadataRoute)?metadataRoute:
         isElearningCatalogPageQuestion(question,catalogRoute)?catalogRoute:typeof source.route === 'string' && (/^\/school-affairs(?:\/search|\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/leave(?:\/(?:index|history|archive|periods)|\/edit\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})?\/?$/.test(source.route)||
@@ -370,6 +371,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const stream = createAssistantStream(input.stream, response);
+        const campusEntry=campusEntryIntent(input.question,input.route);
+        if(campusEntry){stream.send(200,answerCampusEntry(input.question,campusEntry,false));return;}
         if(accountStatusIntent(input.question,input.route)){
             stream.send(200,guestAccountStatusAnswer(input.question));
             return;

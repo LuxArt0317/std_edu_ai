@@ -5,6 +5,7 @@ import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {createResearchAssistantHandler} from '../../server/researchAssistantHandler.js';
+import {campusEntryIntent} from '../../server/campusEntryContract.js';
 import {accountStatusIntent} from '../../server/accountStatusIntent.js';
 import {learningEntryIntent,learningEntryRoute,learningLoginReturnFromQuery,legacyElearningDestination} from '../../server/learningEntryContract.js';
 import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
@@ -100,6 +101,7 @@ test('the compiled signed-in client dispatches only a verified learning-help que
   const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
   const exports={},calls=[];
   runInNewContext(code,{exports,require:specifier=>{
+    if(specifier.endsWith('campusEntryContract.js'))return {campusEntryIntent};
     if(specifier.endsWith('accountStatusIntent.js'))return {accountStatusIntent};
     if(specifier.endsWith('learningEntryContract.js'))return {learningEntryIntent};
     if(specifier.endsWith('assistantStreamReader.js'))return {readAssistantReply};

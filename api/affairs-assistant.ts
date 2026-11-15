@@ -8,6 +8,7 @@ import {parseExplicitAccountAction} from '../server/accountActionIntent.js';
 import {answerRequestedAffairsAction} from '../server/answerRequestedAffairsAction.js';
 import type {VerificationProgress} from '../server/answerVerification.js';
 import {accountStatusIntent} from '../server/accountStatusIntent.js';
+import {answerCampusEntry,campusEntryIntent} from '../server/campusEntryContract.js';
 import {answerLearningEntry,learningEntryIntent} from '../server/learningEntryContract.js';
 import {answerAccountStatus} from '../server/accountStatusAnswer.js';
 import {answerElearningCatalog,answerElearningMetadata,elearningCatalogBoundary,elearningMetadataBoundary} from '../server/accountElearningCatalogAnswer.js';
@@ -252,6 +253,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const correlationId=randomUUID();
   response.setHeader('X-Assistant-Request-Id',correlationId);
   const stream=createAssistantStream(input?.stream===true,response);
+  const campusEntry=campusEntryIntent(question,route);
+  if(campusEntry){stream.send(200,answerCampusEntry(question,campusEntry,true));return;}
   if(accountStatusIntent(question,route)){
     if(Array.isArray(input?.images)&&input.images.length){
       stream.send(400,{error:'Ask about your current sign-in using text.'});
