@@ -1,6 +1,6 @@
 import {academicGradeReadSources,mapAcademicGrades} from './academicGrades.js';
 import {graduationReviewReadSource,isGraduationReviewKind,mapGraduationReview,validateGraduationReviewContent} from './graduationReview.js';
-import {academicAttendanceFields,academicAttendanceReadSources,mapAcademicAttendance,validateAcademicAttendancePayload} from './academicAttendance.js';
+import {academicAttendanceFields,academicAttendanceReadSources,mapAcademicAttendance,validateAcademicAttendancePayload,academicAttendanceQuery} from './academicAttendance.js';
 
 const sources=[...academicGradeReadSources,graduationReviewReadSource,...academicAttendanceReadSources];
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&[Object.prototype,null].includes(Object.getPrototypeOf(value));
@@ -119,4 +119,26 @@ export async function loadNativeGradeView(userId,view,readRows){
   const values=await loadRows(userId,false,readRows,selected);
   const byKey=new Map(selected.map((source,index)=>[source.key,values[index]]));
   return mapAcademicGrades(...academicGradeReadSources.map(source=>byKey.get(source.key)??[]));
+}
+
+/** The caller's designation and the selected term/view are read separately.
+ * Unsupported scopes never fetch attendance rows as substitutes. */
+export async function loadNativeAttendanceView(userId,question,route,readRows){
+  if(!uuid(userId)||typeof readRows!=='function')throw new Error('Academic attendance access is unavailable.');
+  let selection=academicAttendanceQuery(question,[],route),metadata=[];
+  if(selection.reason==='current_term_missing'){
+    [metadata]=await loadRows(userId,false,readRows,academicAttendanceReadSources.filter(source=>source.key==='metadata'));
+    selection=academicAttendanceQuery(question,mapAcademicAttendance([],[],metadata).metadata,route);
+  }
+  const selected=academicAttendanceReadSources.find(source=>source.key===selection.view);
+  let rows=[];
+  if(!selection.reason){
+    const filters={academic_year:'eq.'+selection.academicYear,semester:'eq.'+selection.semester,
+      ...(selection.courseDate?{course_date:'eq.'+selection.courseDate}:{})};
+    const reader=(table,query)=>readRows(table,{...query,...filters});
+    [rows]=await loadRows(userId,false,reader,[selected]);
+    if(rows.some(row=>row.academic_year!==selection.academicYear||row.semester!==selection.semester||selection.courseDate&&row.course_date!==selection.courseDate))
+      throw new Error('Academic attendance returned rows outside the selected term or date.');
+  }
+  return {selection,records:mapAcademicAttendance(selection.view==='statistics'?rows:[],selection.view==='details'?rows:[],metadata)};
 }

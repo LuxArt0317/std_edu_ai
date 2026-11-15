@@ -134,6 +134,8 @@ Grades run `679298e5-822e-429d-8d59-e305d82270d9` passed all four groups, includ
 Attendance run `1b97e0d5-de4d-4628-a1fb-415c6cbc2d77` still failed its initial missing-current-term question: the actual model withheld the answer after two evidence checks with `unsupported_claims`. Cleanup and the owner's final fingerprint check passed. Live provider-log metadata reported one unsupported claim on each review, with `answersQuestion:true` and no unmatched references; the specific rejected claim was not retained. This remains a real answerability failure; the harness has not been relaxed to accept a generic refusal.
 
 
+The 14-1 assistant now verifies explicit attendance answers using the signed-in caller's saved term and selected view. A missing designation can be answered after checking the metadata alone. Dated detail questions filter by the course date and preserve the separately recorded roll-call timestamp. Weekly-hour requests explain the stored term scope without looking up unrelated rows. The six original attendance questions pass the independent rubric against the actual HTTP handler with controlled source responses and provider calls disabled. This is local evidence. A fresh protected Preview replay is pending.
+
 ## November 14 candidate and acceptance
 
 The candidate adds scoped conduct and loan readers, preserves an explicitly named academic term, and keeps a prior user-named course consistent across evidence, review, correction and record cards. General career coaching reads no student records. Mixed course catalog and Moodle questions compose from both selected sources before the first review. Correlation IDs join private evaluator reports to count-only model diagnostics.

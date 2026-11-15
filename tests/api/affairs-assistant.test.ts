@@ -190,6 +190,11 @@ test('personal School Affairs question reads only the caller site records, never
     assert.ok(['eq.academic_services','eq.legacy'].includes(selected.get('report_kind')??''));
     return range([]);
   }
+  if(path==='/rest/v1/affairs_academic_attendance_metadata'&&new Headers(init?.headers).get('prefer')==='count=exact'){
+    assert.equal(init?.method,'GET');
+    assert.equal(selected.get('user_id'),'eq.'+userId);
+    return range([]);
+  }
   if(overview){
     const params=new URL(url).searchParams;
     if(init?.method==='HEAD'){

@@ -5,6 +5,8 @@
 
 - Answer saved graduation credit totals, a named requirement’s course matches and the recorded status from the selected owner’s report. Keep the official eligibility decision separate. [#100]
 
+- Verify standalone Academic Attendance replies from the selected term and view. Distinguish a missing current-term setting, an empty result and an unavailable read. [#100]
+
 - Read only the selected Academic Services or Legacy graduation review status when the student asks for it. [#100]
 
 - Keep the campus assistant available while the Teaching Assistant report and grant receipt notices are open. Explain each displayed notice and where Confirm returns. [#100]
