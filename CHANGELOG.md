@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Verify combined health-record and tuition replies against independently fetched owned records on protected Preview. Include the second-page case and explicit health exclusion. [#100]
+
 - Verify a selected health-record page and a separately named tuition charge against their own saved records. Respect explicit requests to leave health records unread. [#100]
 
 - Add a protected Moodle material evaluation with caller-owned detail and list readbacks, crossed denials, and exact fixture cleanup. [#100]
