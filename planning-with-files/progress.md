@@ -16,3 +16,5 @@ Earlier entries are preserved in [the November 16 archive](archive/progress_2026
 - 2026-11-16 [#100] Exact `ebc5092` passed all certificate, confirmed tracker and portable clock packets with cleanup. All four original turns passed after independent review on the same release. Chromium passed 561 comparisons over 265 routes. Added scoped course/coaching reads, a separate published-sample test, 13 original Teaching Feedback cases and Counseling/tuition local acceptance.
 
 - 2026-11-16 [#100] Integrated fallback for the mixed course/coaching provider outage. Local scoped and route-contract verification passed 29 checks. The protected run at `7868e8e` keeps its original revision.
+
+- 2026-11-16 [#100] Exact `7868e8e` completed the frozen teaching packet 13/13 and Quality. The published coaching baseline withheld after a correct course-only read and a provider-quota failure. Exact `1fc093f` verified and passed the same case with the scoped recovery and separate guidance review.

@@ -1055,8 +1055,8 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify all 265 browser inventory routes and the specific Group Insurance saved-note and sign-in return.
 - [x] Keep the original course/coaching DB301 case and its setup result. Bind a separate published-sample case and scope current-course plus coaching retrieval.
 - [x] Mount 13 original Teaching Feedback questions without shared catalog changes. Exercise all original local cases and both independent empty histories.
-- [ ] Replay the original Teaching Feedback subset and published coaching on the next exact protected release.
+- [x] Pass the 13 original Teaching Feedback questions on protected `7868e8e`. Preserve the published coaching quota failure from that revision.
 - [x] Verify local course-and-coaching recovery on provider composition outage, and preserve the normal generated-draft review gate.
-- [ ] Replay the provider-outage fallback as part of the next scoped candidate.
+- [x] Pass and independently review the published course/coaching rerun on exact `1fc093f` after the provider outage.
 - [x] Verify the three original Counseling and tuition compounds against migrated local PostgreSQL and actual handlers.
 - [ ] Mount and verify a combined protected Counseling and tuition lease with exact joint journal cleanup.
