@@ -217,7 +217,7 @@ export function buildAccountCases({now=DEFAULT_EVAL_NOW,includePlannedFeeRemissi
   // readers, and advice that never masquerades as recorded qualifications.
   const toolPolicy=(names,completed=names)=>({requiredTools:completed,requiredAttemptedTools:names,allowedTools:names,maxDistinctAttemptedTools:names.length,requireToolExecution:true,forbidPublicResearch:true,localLinksOnly:true});
   const remoteRoute='/elearning/my-courses',remoteTitle='111-1遠距教學研習_20220902';
-  const remoteCases={route:remoteRoute,fixtureKey:'elearningEnrollments',requiredLinks:[remoteRoute],
+  const remoteCases={route:remoteRoute,fixtureKey:'elearningEnrollments',requiredLinks:[remoteRoute],executionContract:'live-native',
     ...toolPolicy(['elearningEnrollments']),provenance:'local',forbiddenText:['一般安全衛生教育訓練-1100330','You are officially enrolled']};
   add('elearning-enrollment','elearningEnrollments','What are my remote-learning Moodle enrollments?',{
     ...remoteCases,facts:[fact('course',remoteTitle,'text',[remoteTitle])],

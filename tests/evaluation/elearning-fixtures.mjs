@@ -10,6 +10,18 @@ export const elearningFixtureManifest=Object.freeze({
   table,courseA:Object.freeze(courseA),courseB:Object.freeze(courseB),joinedAt,
   keys:Object.freeze(['elearningEnrollments','empty:elearningEnrollments']),
 });
+const nativeEnrollmentCases=new Set(['enrollment','enrollment-mixed','enrollment-empty','grades-unlinked']
+  .map(suffix=>'account:elearning-'+suffix));
+export const isNativeElearningEnrollmentCase=testCase=>testCase?.domain==='elearningEnrollments'&&nativeEnrollmentCases.has(testCase.id);
+export function verifiedElearningEnrollmentRun(testCase,envelope){
+  const before=envelope?.stateBefore?.ownedRecordsDigest,after=envelope?.stateAfterProposal?.ownedRecordsDigest;
+  const readback=envelope?.fixtureReadback,proof=readback?.elearningEnrollment,activity=envelope?.body?.activity;
+  return isNativeElearningEnrollmentCase(testCase)&&envelope?.execution==='live-native'&&envelope.deploymentCheck?.verified===true
+    &&readback?.verified===true&&readback.independentGolden===true
+    &&proof?.caseId===testCase.id&&proof?.twoOwnersVerified===true
+    &&/^[a-f0-9]{64}$/u.test(before??'')&&before===after
+    &&Array.isArray(activity)&&activity.filter(step=>step?.kind==='elearning-evidence-check'&&step.status==='complete').length===1;
+}
 const normalizeTime=value=>{
   const raw=value instanceof Date?value.toISOString():value;
   const match=typeof raw==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.(\d{1,6}))?(?:Z|[+-]\d{2}:\d{2})$/u.exec(raw);

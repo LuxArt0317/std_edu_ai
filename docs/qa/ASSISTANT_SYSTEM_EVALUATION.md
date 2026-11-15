@@ -162,6 +162,24 @@ The signed-in browser previously returned a separate remote-learning reply befor
 
 The four new signed-in cases cover saved enrollment, a compound assignment question, an empty enrollment list and an unlinked-grades answer. The fixture checks its saved catalog references, the two disposable owners' distinct enrolled course IDs, exact readback, and the before/after digest without changing shared catalog rows. The release runner verifies the exact manifest before fixtures or assistant requests and checks it again after each request and cleanup. A protected preview counts only once the runner can read and verify it through authorized access.
 
+The actual assistant handler can verify these four unchanged questions without a
+model. It checks the saved enrollment through the caller's remote-learning
+workspace. The mixed request separately validates the DTM course and unfinished
+assignment rows. A failed source is reread once within the request deadline,
+while the other verified source remains available. An unavailable source is
+described as unavailable. A grade request verifies the connector's capability
+without loading a DTM grade report or enrollment rows.
+
+```sh
+node tests/evaluation/run.mjs --mode live --domain elearningEnrollments \
+  --fixture-module tests/evaluation/live-fixtures.mjs --preview-auth oidc \
+  --origin "$PREVIEW_ORIGIN" --approved-preview-origin "$PREVIEW_ORIGIN"
+```
+
+The four-case run requires a clean checkout matching the exact protected
+Preview. Paired caller readback, unchanged records, a completed native check
+and verified cleanup are mandatory. The hosted packet still needs to run.
+
 With mocked Auth and HTTP responses, the School Affairs Chromium suite reopened the combined answer after reload and expanded both recorded checks. The remote-learning Chromium suite observed the authenticated graph request for courses and grades from My courses. A separate planner regression verifies that the page supplies the remote-learning scope for unqualified course wording. The independent formatter test rejects enrollment dates attached to an unrelated course, unsupported grades from DTM or Academic Services, and a response that treats a failed lookup as a confirmed empty list.
 
 The combined worktree passed 1,219 API/source tests and 612 evaluator tests. The inventory now contains 980 cases, 72 route omissions out of 576 routes, and 40 direct-reader questions awaiting live browser acceptance. The facility repair packet exercises owned status, handling notes and a compound timetable question offline. Its reader still needs mounting through the graph. Course-outline activity questions also require a separate evidence reader. The protected `c77b3c7` preview verified the earlier public first-week reply with three links. Its signed-in model gate and the combined candidate's live evaluation remain open.

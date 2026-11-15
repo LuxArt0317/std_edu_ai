@@ -5,6 +5,7 @@ import {learningEntryCases,learningEntrySetupRequired,assertLearningEntryCaseRea
 import {campusEntryCases,campusEntrySetupRequired,assertCampusEntryCaseReady} from './campus-entry-cases.mjs';
 import {assertClubEquipmentCaseReady,clubEquipmentSetupRequired} from './club-equipment-runner.mjs';
 import {assertElearningCatalogCaseReady,elearningCatalogRunnerCases,elearningCatalogSetupRequired,gradeElearningCatalogCase,isElearningCatalogReadbackCase,isElearningMetadataCase,isElearningPublishedReadbackCase} from './elearning-catalog-runner.mjs';
+import {isNativeElearningEnrollmentCase} from './elearning-fixtures.mjs';
 import {assertNativeInternshipCaseReady,internshipRunnerCases,nativeInternshipSetupRequired} from './internship-native-runner.mjs';
 import {assertNativeStudentLeaveCaseReady,nativeStudentLeaveSetupRequired,studentLeaveRunnerCases} from './student-leave-runner.mjs';
 import assert from 'node:assert/strict';
@@ -322,6 +323,7 @@ test('catalog runner blocks pending/unavailable fixtures before adapter or model
       assertLearningEntryCaseReady,learningEntrySetupRequired,
       assertCampusEntryCaseReady,campusEntrySetupRequired,
       assertClubEquipmentCaseReady,clubEquipmentSetupRequired,
+      isNativeElearningEnrollmentCase,
       persist:async()=>{},out:'unused',log(){},identity:{sourceRevision:'a'.repeat(40)},
     });
     await execute();assert.equal(report.results.length,1);assert.equal(report.results[0].caseId,testCase.id);

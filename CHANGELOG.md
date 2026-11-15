@@ -1,12 +1,15 @@
 # Changelog
 ## Unreleased
 
-- Keep the campus assistant available while the Teaching Assistant report and grant receipt notices are open. Explain each displayed notice and where Confirm returns. [#100]
+- Read only the selected Academic Services or Legacy graduation review status when the student asks for it. [#100]
 
+- Keep the campus assistant available while the Teaching Assistant report and grant receipt notices are open. Explain each displayed notice and where Confirm returns. [#100]
 
 - Recover verified appointment details and a named fee balance after the automatic reviewer rejects the first answer or is unavailable. Keep either verified result when the other read fails. [#100]
 
 - Add a protected Preview check for both Counseling and tuition question orders and explicit appointment exclusion. Verify the two record sources separately for both fixture accounts. [#100]
+
+- Verify saved remote-learning Moodle enrollments and unfinished DTM assignments as separate owned sources without calling the model. [#100]
 
 - Keep verified course and year results when tailored interview wording is temporarily unavailable. Offer a clearly separated interview practice guide. [#100]
 

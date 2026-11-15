@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {elearningFixtureManifest,elearningFixturePlan,verifyElearningFixtureWorkspace} from './elearning-fixtures.mjs';
+import {elearningFixtureManifest,elearningFixturePlan,isNativeElearningEnrollmentCase,verifiedElearningEnrollmentRun,
+  verifyElearningFixtureWorkspace} from './elearning-fixtures.mjs';
 import {changeElearningFixtureRows,readElearningFixtureScopes,reconcileElearningFixtureRows} from './live-fixtures.mjs';
+import {buildAccountCases} from './account-cases.mjs';
+import {main} from './run.mjs';
 import {EVAL_USER_ID,EVAL_OTHER_USER_ID,evalId} from './fixtures.mjs';
 
 const owners=[EVAL_USER_ID,EVAL_OTHER_USER_ID],runId=evalId(906);
@@ -65,4 +68,24 @@ test('caller workspace readback verifies exact enrollment facts, complete owned 
   assert.throws(()=>verifyElearningFixtureWorkspace(full,owners[0],payload(owners[1])),/does not match the caller/);
   const tampered=payload(owners[0]);tampered.enrollments[0].joinedAt='2026-11-14T00:00:00.000001Z';
   assert.throws(()=>verifyElearningFixtureWorkspace(full,owners[0],tampered),/facts differ/);
+});
+
+test('native enrollment runner can select the four frozen cases and refuses unprotected live setup',async()=>{
+  const cases=buildAccountCases().filter(isNativeElearningEnrollmentCase);
+  assert.equal(cases.length,4);
+  assert.ok(cases.every(row=>row.executionContract==='live-native'));
+  const dependencies={sourceIdentity:async()=>({}),evaluationSuite:async()=>({cases}),
+    loadFixtureAdapter:()=>assert.fail('Unprotected request must fail before any fixture is opened.')};
+  await assert.rejects(main(['--mode','live','--domain','elearningEnrollments','--fixture-module','tests/evaluation/live-fixtures.mjs'],
+    dependencies),/require an authorized exact protected Preview/u);
+  const [testCase]=cases,digest='a'.repeat(64),state={ownedRecordsDigest:digest};
+  const event={kind:'elearning-evidence-check',status:'complete'};
+  const verified={execution:'live-native',deploymentCheck:{verified:true},stateBefore:state,stateAfterProposal:state,
+    body:{activity:[event]},fixtureReadback:{verified:true,independentGolden:true,
+      elearningEnrollment:{caseId:testCase.id,twoOwnersVerified:true}}};
+  assert.equal(verifiedElearningEnrollmentRun(testCase,verified),true);
+  for(const override of [{execution:'live-model'},{deploymentCheck:{}},{fixtureReadback:null},{body:{activity:[event,event]}},
+    {stateAfterProposal:{ownedRecordsDigest:'b'.repeat(64)}},{body:{activity:{}}}])
+    assert.equal(verifiedElearningEnrollmentRun(testCase,{...verified,...override}),false);
+  assert.equal(verifiedElearningEnrollmentRun(cases[1],verified),false);
 });

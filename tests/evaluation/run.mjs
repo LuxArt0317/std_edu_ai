@@ -23,6 +23,7 @@ import {markLegacyDtmAssignmentListFixture} from './dtm-assignment-list-cases.mj
 import {nativeDtmRunnerCases,nativeDtmSetupRequired,assertNativeDtmCaseReady} from './dtm-native-runner.mjs';
 import {elearningCatalogRunnerCases,assertElearningCatalogCaseReady,elearningCatalogSetupRequired,elearningCatalogSetupSummary,gradeElearningCatalogCase,isElearningCatalogReadbackCase,isElearningMetadataCase,isElearningPublishedReadbackCase} from './elearning-catalog-runner.mjs';
 import {metadataDispatchObservation as assistantDispatchObservation} from './elearning-metadata-live.mjs';
+import {isNativeElearningEnrollmentCase,verifiedElearningEnrollmentRun} from './elearning-fixtures.mjs';
 import {assertHealthMetadataLiveCases,gradeHealthMetadataLiveCase,healthMetadataDispatch,healthMetadataFamily,
   healthMetadataFixtureMode,healthMetadataLiveCases,verifiedHealthMetadataReadback} from './health-examination-live.mjs';
 import {assertDtmAssignmentListClock,assertDtmAssignmentListLiveCases,dtmAssignmentListDispatch,dtmAssignmentListFamilies,dtmAssignmentListFixtureMode,
@@ -485,6 +486,9 @@ export async function main(args=process.argv.slice(2),dependencies={}){
   }
   let selected=suite.cases.filter(row=>(!opt.only||row.id.startsWith(opt.only))&&(!opt.domain||row.domain===opt.domain)).slice(0,opt.maxCases);
   if(!selected.length)throw new Error('No cases match.');
+  if(opt.mode==='live'&&selected.some(isNativeElearningEnrollmentCase)
+    &&(!opt.fixtureModule||opt.previewAuth!=='oidc'||opt.approvedPreviewOrigin!==opt.origin||!isEvaluationPreviewOrigin(opt.origin)))
+    throw new Error('Native remote-learning enrollment cases require an authorized exact protected Preview and fixture adapter.');
   // Do not pass an unmounted native case into the legacy adapter: prepare
   // may initialize accounts and seed unrelated data before forCase is called.
   const fixtureCases=selected.filter(row=>!teachingFeedbackCaseAdmission(row)&&!nativeDtmSetupRequired(row)&&!nativeStudentLeaveSetupRequired(row)&&!nativeInternshipSetupRequired(row)&&!elearningCatalogSetupRequired(row)&&!nativeVenueSetupRequired(row)&&!accountStatusSetupRequired(row)&&!serviceNoteSetupRequired(row)&&!learningEntrySetupRequired(row)&&!campusEntrySetupRequired(row)&&!clubEquipmentSetupRequired(row));
@@ -715,6 +719,12 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       const guidanceReviewBinding=testCase.expected.guidanceRubric&&/^[a-f0-9]{40}$/.test(envelope.sourceRevision||'')&&/^[a-f0-9]{64}$/.test(report.suiteHash||'')?buildGuidanceReviewBinding({runId:report.runId,finalSuiteHash:report.suiteHash,sourceRevision:envelope.sourceRevision,testCase,envelope}):null;
       const independentReview=guidanceReviewBinding?validateGuidanceReview({testCase,envelope,binding:guidanceReviewBinding,artifact:undefined}):undefined;
       const result=healthMetadataOnly?gradeHealthMetadataLiveCase(testCase,envelope):assignmentListOnly?gradeDtmAssignmentListLiveCase(testCase,envelope):serviceNotes?gradeLiveServiceNoteCase(testCase,envelope):nativeClub?gradeClubAttendanceCase(testCase,envelope):testCase.catalogOracle||testCase.metadataOracle?gradeElearningCatalogCase(testCase,envelope,{independentReview}):gradeEvaluationCase(testCase,envelope,{independentReview});
+      if(opt.mode==='live'&&executed&&isNativeElearningEnrollmentCase(testCase)){
+        const check={id:'elearning.pairedNativeEvidence',passed:verifiedElearningEnrollmentRun(testCase,envelope),
+          detail:'The pinned reply retained an exact check and both independent caller projections stayed unchanged.'};
+        result.checks.push(check);
+        if(!check.passed){result.passed=false;result.failures.push(check);}
+      }
       for(const [flag,id] of [['deploymentIntegrityFailed','run.deploymentDrift'],['fixtureIntegrityFailed','run.fixtureReadbackFailed']])if(envelope[flag]){
         const check={id,passed:false,detail:'The original response is retained but its execution integrity was not verified.'};
         result.passed=false;result.checks.push(check);result.failures.push(check);

@@ -1452,8 +1452,8 @@ function sectionFor(parsed,question,zh){
       return section;
     }
     if(!p.selection.enrollment)return section;
-    section.lead.push(t('Saved stu.best enrollments. These records cannot establish official university enrollment.',
-      '以下是 stu.best 已儲存的選課紀錄，無法據此判定校方正式選課。'));
+    section.lead.push(t('Saved stu.best enrollments.','以下是 stu.best 已儲存的選課紀錄。'));
+    if(asksAboutOfficialRecords(question))section.lead.push(t('These records cannot establish official university enrollment.','無法據此判定校方正式選課。'));
     if(p.counts.available===0){section.lead.push(t('There are no saved remote-learning Moodle enrollments for this account.','此帳戶沒有已儲存的數位學園選課紀錄。'));return section;}
     section.lead.push(t('Saved local enrollments: '+p.counts.available,'已儲存站內選課：'+p.counts.available+' 筆'));
     if(p.counts.omitted>0){section.limited=true;section.lead.push(t('This answer displays a selection. Open My courses for the complete list.','此答案僅顯示部分紀錄，請開啟我的課程查看完整清單。'));}

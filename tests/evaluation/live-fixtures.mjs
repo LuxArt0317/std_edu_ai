@@ -4427,6 +4427,8 @@ export async function afterCase(testCase,envelope,{signal,fixtureMode,fixtureFam
     envelope.stateAfterProposal={ownedRecordsDigest:afterHash};
     if(afterHash!==current.beforeHash)fail('fixture-unapproved-write','Generating an answer or proposal changed the fixture records before confirmation.');
     envelope.fixtureReadback={verified:true,projectRef:PROJECT,independentGolden:true,
+      ...(elearning&&Object.keys(elearning).length===2
+        ?{elearningEnrollment:{caseId:testCase.id,twoOwnersVerified:true}}:{}),
       ...(current.housingBedPeriodBinding?{publishedHousingBedPeriod:{...current.housingBedPeriodBinding,otherCallerEmpty:true}}:{})};
     if(s.applicationFetch&&envelope.statusCode===200){
       s.transcriptFixture.nextIndex++;
