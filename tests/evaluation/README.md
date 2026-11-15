@@ -12,7 +12,14 @@ System-wide question bank, independent grading, discovered coverage and per-case
 
 `*.test.mjs` tests grade integrity and retrieval behavior. No evaluation imports private university captures or uses a real student's records. A model's own verification result is never sufficient for passing.
 
-`academic-grades-handler.test.mjs` replays 11 frozen Academic Services questions through the streaming handler and native row validator with controlled transport. It checks compact semester selectors, named courses, saved summaries and rankings, null versus zero, English requirement metadata, and records owned by another student. This controlled run does not establish hosted acceptance.
+`academic-grades-handler.test.mjs` replays 11 frozen Academic Services questions through the streaming handler and native row validator with controlled transport. It checks compact semester selectors, named courses, saved summaries and rankings, null versus zero, English requirement metadata, and records owned by another student. Standalone requests read only the tables for the selected view. Unsupported grade views use the capability description without a database read.
+
+The protected Academic Services operator binds those 11 questions to two disposable callers. It checks the four native grade tables against the journaled rows and verifies both owned and crossed JWT scopes before and after every pinned answer. The null and zero case uses the second caller. Cleanup proves the reserved rows and identities are absent. The operator checks that neither fixture acquires a School Affairs student record or a Moodle course.
+
+```sh
+node tests/evaluation/run-academic-grades-preview.mjs --preflight
+node tests/evaluation/run-academic-grades-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVISION"
+```
 
 `dtm-native-runner.mjs` registers 18 assignment and 14 native grade questions. Controlled handler tests cover exact RPCs, caller ownership, excluded fields, nulls and blanks, grade and assignment clauses in both orders, and verification retries. The runner records these cases as pending until a caller-bound live fixture and independent observations are available.
 

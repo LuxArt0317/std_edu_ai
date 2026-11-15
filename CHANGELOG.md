@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Read standalone Academic Services grades without initializing School Affairs or Moodle records. Add a protected evaluation of the 11 frozen grade questions with both caller scopes and exact cleanup. [#100]
+
 - Explain which public notice details could not be checked when the relevant source requires school sign-in. Keep its direct link in the reply. [#100]
 
 - Add a protected graduation-clearance status and notes evaluation using disposable callers and two reviewed existing terms. [#100]
