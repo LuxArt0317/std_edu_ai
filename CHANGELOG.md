@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Answer public library questions alongside a registrar contact or Wi-Fi setup request. Keep the verified directory details when library research cannot verify the second part. [#100]
+
 - Verify standalone tutor evaluation questions directly against the saved submission status, requested fields and questionnaire link. Preserve saved-record attribution and an exact answer when no submission exists. [#100]
 
 - Try a different school publication when a deeper, unsuccessful check has already reviewed distinct sources. Read unvisited leads first and verify again only when the alternate search adds usable evidence. [#100]

@@ -80,7 +80,7 @@ import { questionKind, publicSchoolQuestion, safeWebSource, searchSchoolWeb } fr
 import { searchAssistantKnowledge } from "./assistantKnowledge.js";
 import { inferKnowledgeLanguage } from "./knowledgePipeline.js";
 import { recordResearchOperation, safeOperationalCode } from "./researchOperations.js";
-import { answerCampusNavigation, answerDirectoryQuestion, directoryEntries } from "./schoolAffairsDirectory.js";
+import { answerCampusNavigation, answerDirectoryQuestion, campusDirectoryResearch, directoryEntries } from "./schoolAffairsDirectory.js";
 import { createAssistantStream } from "./assistantStream.js";
 import { normalizeMissingDetails, runAnswerVerification, unverifiedAnswer, verificationStopActivity } from "./answerVerification.js";
 import { composeEvidenceAnswer, validEvidence, verifyEvidenceAnswer, repairEvidenceAnswer } from "./answerVerificationModel.js";
@@ -644,7 +644,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 citations:[],suggestedQuestions:[],grounding:{source:"assistant-help",webSearched:false}});
             return;
         }
-        const kind = questionKind(input.question);
+        let kind = questionKind(input.question);
         const officer = !kind.irrelevant && !input.images.length ? clubOfficerQuestion(input.question) : null;
         if (officer) {
             stream.send(200,clubOfficerGuide(input.question,officer));
@@ -797,6 +797,38 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const personalQuestion = personalPublicQuestion(input.question);
+        const publicDirectory = !input.images.length && !personalQuestion ? campusDirectoryResearch(input.question) : null;
+        function sendWithDirectory(status, result) {
+            if (!publicDirectory) { stream.send(status, result); return; }
+            const { directory, directoryFirst } = publicDirectory;
+            const chinese = libraryAnswerLanguage(publicDirectory.question) === 'zh-Hant';
+            // Directory facts already have exact local grounding. Give the
+            // research verdict to its own portion and retain the directory even
+            // when an evidence reader or model is unavailable.
+            const researched = typeof result.answer === 'string' && result.answer ? result.answer
+                : chinese ? '這次無法核實您詢問的圖書館資訊。' : 'I could not verify the library details you asked about.';
+            const answers = directoryFirst ? [directory.answer, researched] : [researched, directory.answer];
+            const citations = result.citations || [];
+            // The trace token describes only the separately researched clause.
+            const { feedback: _feedback, ...reply } = result;
+            stream.send(200, {
+                ...reply,
+                status: result.status === 'answered' ? 'answered' : 'handoff',
+                answer: answers.join('\n\n'),
+                citations: directoryFirst ? [...directory.citations, ...citations] : [...citations, ...directory.citations],
+                suggestedQuestions: result.suggestedQuestions || [],
+                grounding: result.grounding || directory.grounding,
+                activity: [...directory.activity, ...(result.activity || [])],
+            });
+        }
+        if (publicDirectory) {
+            input.question = publicDirectory.question;
+            input.route = '';
+            input.history = [];
+            kind = questionKind(input.question);
+            const step = publicDirectory.directory.activity[0];
+            stream.progress(step.kind, step.label, step.detail, step.status);
+        }
         const publicStudyGuidance = !input.images.length && !personalQuestion && !kind.irrelevant && publicStudyPlanningQuestion(input.question);
         const firstWeekPlan = !input.images.length && !personalQuestion && !kind.irrelevant
             ? publicFirstWeekPlan(input.question)
@@ -878,7 +910,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             process.env.SUPABASE_ANON_KEY ||
             process.env.SUPABASE_PUBLISHABLE_KEY;
         if (!openAiKey || !supabaseUrl || !publishableKey) {
-            stream.send(503, { error: "The research assistant is not configured." });
+            sendWithDirectory(503, publicDirectory ? {} : { error: "The research assistant is not configured." });
             return;
         }
         const started = Date.now();
@@ -889,7 +921,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
         if (deadline - started < 500) {
             const stop = verificationStopActivity(verificationQuestion, 'time_budget');
             verificationProgress(stop);
-            stream.send(200, unverifiedAnswer(verificationQuestion, { grounding: { source: 'helpful-fallback' } }, [stop], 0, 'timeout'));
+            sendWithDirectory(200, unverifiedAnswer(verificationQuestion, { grounding: { source: 'helpful-fallback' } }, [stop], 0, 'timeout'));
             return;
         }
         const needsPublicEvidence = reason => ['unsupported_claims', 'evidence_unavailable', 'no_supported_answer', 'verified_partial'].includes(reason)
@@ -1046,7 +1078,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     reply = annotated.reply;
                 }
             }
-            stream.send(200, reply);
+            sendWithDirectory(200, reply);
         }
         let knowledgeWebSwitch, publicStop, firstWebMiss, targetedWebStep, noticeAlternateStep, bootstrapRead, bootstrapDiscovery;
         async function tryWebAnswer(earlierReview, managedPartial) {

@@ -87,7 +87,7 @@ import { readCatalogEvidence } from '../server/accountCatalogEvidence.js';
 import { readCertificateEvidence } from '../server/accountCertificateEvidence.js';
 import { readSubmissionEvidence } from '../server/accountSubmissionEvidence.js';
 import { readTuitionEvidence } from '../server/accountTuitionEvidence.js';
-import { answerCampusNavigation,answerSchoolSystemSearch } from '../server/schoolAffairsDirectory.js';
+import { answerCampusNavigation,answerSchoolSystemSearch,campusDirectoryResearch } from '../server/schoolAffairsDirectory.js';
 import { isDtmRecordQuestion } from '../server/dtmAnswer.js';
 import { isScholarshipRecordQuestion } from '../server/scholarshipRecords.js';
 import { isStudentAidRecordQuestion } from '../server/studentAidRecords.js';
@@ -784,9 +784,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const textOnly=input?.images===undefined||(Array.isArray(input.images)&&!hasImages);
   const publicFollowup=textOnly&&question===requestedQuestion
     ?publicServiceFollowup(question,input?.history):null;
-  const personalQuestion=!publicFollowup&&personal(question,history);
+  const publicDirectory=textOnly&&question===requestedQuestion&&campusDirectoryResearch(question);
+  const personalQuestion=!publicFollowup&&!publicDirectory&&personal(question,history);
   const needsRecords=Boolean(dtmCompound||housingSelection||applicationSelection||teachingSelection||aid.selection) || conduct.selected || notes.keys.length>0 || chargesOnly || timetableOnly || intent.baseTools.length>0 || personalQuestion || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
-  const navigation=!needsRecords && !hasImages && !questionKind(question).irrelevant
+  const navigation=!needsRecords && !publicDirectory && !hasImages && !questionKind(question).irrelevant
     ? answerCampusNavigation(publicFollowup??question) : null;
   if(navigation) {
     stream.progress('directory','Checked campus services','Found a verified service link.','complete');
@@ -804,7 +805,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
           if(!image||typeof image!=='object'||Array.isArray(image))return image;
           const attachment=image as Record<string,unknown>;
           return {name:attachment.name,dataUrl:attachment.dataUrl};
-        }):input?.images,route:publicFollowup?'/':route,consentedResearchUse:false,stream:stream.enabled},
+        }):input?.images,route:publicFollowup||publicDirectory?'/':route,consentedResearchUse:false,stream:stream.enabled},
       },deadline,step=>stream.progress(step.kind,step.label,step.detail,step.status));
       const result=research.result as Record<string,unknown>|null;
       if(!result || typeof result!=='object' || Array.isArray(result) || (!research.ok && typeof result.error!=='string')) {stream.send(502,{error:'School research returned an invalid response.'});return;}
