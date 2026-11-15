@@ -138,7 +138,8 @@ test('accessors, array subclasses and oversized payloads never execute or enter 
 });
 
 test('unsafe directories, symlink/hardlink files and foreign binding are rejected without overwriting',async t=>{
-  const env=await local(t);await mkdir(env.directory,{mode:0o755});await assert.rejects(createTranscriptDurableJournal({...env,binding}),{code:'unsafe_path'});
+  const env=await local(t);await mkdir(env.directory,{mode:0o700});await chmod(env.directory,0o755);
+  await assert.rejects(createTranscriptDurableJournal({...env,binding}),{code:'unsafe_path'});
   await chmod(env.directory,0o700);const journal=await createTranscriptDurableJournal({...env,binding});journal.close();
   await assert.rejects(readTranscriptDurableJournal({...env,binding:{...binding,ownerId:correlationId}}),{code:'journal_drift'});
   const original=await readFile(env.path);await rename(env.path,env.path+'.actual');await symlink(env.path+'.actual',env.path);await assert.rejects(readTranscriptDurableJournal({...env,binding}));

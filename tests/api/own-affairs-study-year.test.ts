@@ -98,17 +98,25 @@ test('inherited/request deadlines expire before transport, including attempted d
   await denied(read({...account,requestDeadline:NaN},{},io));assert.equal(io.calls.length,0);
 });
 
-test('deadline bounds uncooperative fetch and stalled streams; a late response is cancelled',async()=>{
+test('deadline bounds uncooperative fetch and stalled streams; a late response is cancelled',async t=>{
+  t.mock.timers.enable({apis:['Date','setTimeout'],now:Date.now()});
+  const processPending=()=>new Promise<void>(resolve=>setImmediate(resolve));
+  const expire=async(pending:ReturnType<typeof load>)=>{
+    const rejected=denied(pending);
+    await processPending();
+    t.mock.timers.tick(30);
+    await rejected;
+  };
   let signal:AbortSignal|undefined;
   const never:typeof fetch=async(_input,init)=>{signal=init?.signal??undefined;return new Promise(()=>{});};
-  await denied(load(account,{deadline:Date.now()+30},{fetchImpl:never}));assert.equal(signal?.aborted,true);
+  await expire(load(account,{deadline:Date.now()+30},{fetchImpl:never}));assert.equal(signal?.aborted,true);
   let cancelled=false;
-  await denied(read(account,{deadline:Date.now()+30},transport(()=>new Response(new ReadableStream({cancel(){cancelled=true;}})))));assert.equal(cancelled,true);
+  await expire(read(account,{deadline:Date.now()+30},transport(()=>new Response(new ReadableStream({cancel(){cancelled=true;}})))));assert.equal(cancelled,true);
   let settle:(value:Response)=>void=()=>{};let lateCancelled=false;
   const pending=load(account,{deadline:Date.now()+30},{fetchImpl:async()=>new Promise(resolve=>{settle=resolve;})});
-  await denied(pending);
+  await expire(pending);
   settle(new Response(new ReadableStream({cancel(){lateCancelled=true;}})));
-  await new Promise(resolve=>setTimeout(resolve,0));assert.equal(lateCancelled,true);
+  await processPending();assert.equal(lateCancelled,true);
 });
 
 test('transport exceptions and redirects cannot disclose internal errors or credential text',async()=>{
