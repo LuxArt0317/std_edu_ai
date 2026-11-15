@@ -110,6 +110,8 @@ test('the announcement email profile starts at the pinned 2-1 shell and selects 
   assert.deepEqual(f.paths.slice(0,2),['/release.json',route]);
   assert.equal(f.paths.at(-1),'/release.json');
   assert.ok(result.assets.includes(signInElsewhere)&&result.assets.includes('/favicon.png'));
+  assert.deepEqual(result.assets.filter(path=>path.startsWith('/stu-reference/')),
+    ['/stu-reference/28ec5c3cdf33ed43.png','/stu-reference/ee1f2bb8f7f5a9dd.svg']);
   assert.ok(!result.assets.includes(certificateBrowserHeading)&&!result.assets.includes(dtm));
 });
 

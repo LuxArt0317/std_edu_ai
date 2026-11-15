@@ -5,7 +5,7 @@ import {certificateBrowserHeading,certificateBrowserIcon,certificateBrowserProfi
 import {isEvaluationPreviewOrigin} from './vercel-preview-transport.mjs';
 import {certificateAwardPath} from '../../server/certificateAwardsContract.js';
 import {announcementEmailPath} from '../../server/announcementEmailContract.js';
-import {announcementEmailBrowserProfile} from './announcement-email-browser-turn.mjs';
+import {announcementEmailBrowserMedia,announcementEmailBrowserProfile} from './announcement-email-browser-turn.mjs';
 import {studentProfilePath} from '../../server/studentProfileContract.js';
 import {studentProfileBrowserHeading,studentProfileBrowserProfile} from './student-profile-browser-turn.mjs';
 
@@ -25,7 +25,7 @@ const browserAssetsProfiles=new Map([
     extraEdges:['DigitalMaterials:authClient','useAffairsRecords:authClient','researchAssistant:supabase'],
     homeMedia:['/dtm-theme/page.svg','/dtm-theme/url.svg','/dtm-theme/user-small.png']}],
   [certificateBrowserProfile,{...schoolAffairsAssets,shell:certificateAwardPath,homeMedia:[certificateBrowserHeading]}],
-  [announcementEmailBrowserProfile,{...schoolAffairsAssets,shell:announcementEmailPath,homeMedia:[]}],
+  [announcementEmailBrowserProfile,{...schoolAffairsAssets,shell:announcementEmailPath,homeMedia:announcementEmailBrowserMedia}],
   [studentProfileBrowserProfile,{...schoolAffairsAssets,shell:studentProfilePath,homeMedia:[studentProfileBrowserHeading]}],
 ]);
 class AssetDiscoveryError extends Error{

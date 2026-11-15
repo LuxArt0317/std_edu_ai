@@ -8,7 +8,7 @@ import {previewTrustedHeader} from './vercel-preview-transport.mjs';
 import {ProtectedBrowserDiagnostic} from './protected-browser-diagnostics.mjs';
 import {verifyProtectedCertificateBrowserEgress,verifyProtectedCertificateBrowserSave} from './certificate-browser-turn.mjs';
 import {announcementEmailBrowserCases,announcementEmailBrowserAnswerPath,announcementEmailBrowserBootstrap,announcementEmailBrowserProfile,
-  verifyProtectedAnnouncementEmailBrowserEgress} from './announcement-email-browser-turn.mjs';
+  announcementEmailBrowserMedia,verifyProtectedAnnouncementEmailBrowserEgress} from './announcement-email-browser-turn.mjs';
 import {sanitizeStoredConversation} from '../../server/assistantConversationData.js';
 import {certificateAwardBankReceiptNote} from '../../server/certificateAwardsContract.js';
 import {announcementEmailInboxLimit,announcementEmailPath} from '../../server/announcementEmailContract.js';
@@ -155,10 +155,16 @@ test('announcement email admits one reserved inbox answer and journaled save wit
     {id:'u-'+otherId,role:'user',content:question,images:[]},
     {id:'a-'+otherId,role:'assistant',phase:'complete',content:response.answer,result:response,activity},
   ])};
-  const h=harness({profile:announcementEmailBrowserProfile,assets:[assets[0]],
-    authorizeSave:command=>command.inbox===true&&command.requestSequence===4&&command.expected.answer===response.answer,
+  const answerSequence=6;
+  assert.throws(()=>harness({profile:announcementEmailBrowserProfile,assets:[assets[0]]}),{code:'invalid-resource-allowlist'});
+  const h=harness({profile:announcementEmailBrowserProfile,assets:[assets[0],...announcementEmailBrowserMedia],
+    authorizeSave:command=>command.inbox===true&&command.requestSequence===answerSequence&&command.expected.answer===response.answer,
     respond(url,init){
       if(url.pathname===announcementEmailPath)return new Response('Pinned email page',{headers:{'Content-Type':'text/html'}});
+      if(announcementEmailBrowserMedia.includes(url.pathname)){
+        assert.equal(init.headers.has('authorization'),false);
+        return new Response('Public School Affairs image');
+      }
       if(url.pathname==='/api/affairs-conversations')return Response.json(init.method==='GET'?{conversations:[]}:
         {...JSON.parse(init.body),version:1,created_at:certUpdatedAt,updated_at:certUpdatedAt});
       return Response.json(url.searchParams.has('answer')?response:
@@ -168,18 +174,21 @@ test('announcement email admits one reserved inbox answer and journaled save wit
   const own=path=>certificateGet(path,ownerId,announcementEmailPath);
   await h.dispatch(get(announcementEmailPath));
   await h.dispatch(own(announcementEmailBrowserBootstrap));
+  for(const path of announcementEmailBrowserMedia)assert.equal((await h.dispatch(get(path))).status,200);
   await h.dispatch(own('/api/affairs-conversations'));
   h.reserve({id:target,mode:'turn',route:announcementEmailPath,question});
   await h.dispatch(own(scope));
   const saved=await h.dispatch({...certificatePost(payload),frameUrl:origin+announcementEmailPath});
   assert.deepEqual(saved.announcementEmailReceipt,{id:target,version:1,updatedAt:certUpdatedAt});
-  assert.deepEqual(verifyProtectedAnnouncementEmailBrowserEgress({evidence:h.egress(),mode:'turn',requestSequence:4}),
+  assert.deepEqual(verifyProtectedAnnouncementEmailBrowserEgress({evidence:h.egress(),mode:'turn',requestSequence:answerSequence}),
     {mode:'turn',answerRequests:1,saveRequests:1,restoreRequests:0});
   const before=h.calls.length;
+  await assert.rejects(h.dispatch(get(announcementEmailBrowserMedia[0],ownedHeaders())),{code:'caller-credential-on-a-public-resource'});
+  await assert.rejects(h.dispatch(own('/stu-reference/unlisted.svg')),{code:'unapproved-request-operation'});
   for(const path of [scope,announcementEmailBrowserAnswerPath(false),certificateAnswer,scope+'&user_id='+otherId])
     await assert.rejects(h.dispatch(own(path)),/unapproved request operation/u);
   assert.equal(h.calls.length,before);
-  assert.throws(()=>verifyProtectedAnnouncementEmailBrowserEgress({evidence:h.egress(),mode:'turn',requestSequence:4}),
+  assert.throws(()=>verifyProtectedAnnouncementEmailBrowserEgress({evidence:h.egress(),mode:'turn',requestSequence:answerSequence}),
     {code:'certificate-egress-mismatch'});
 });
 

@@ -1,10 +1,16 @@
 import {isDeepStrictEqual} from 'node:util';
 import {announcementEmailInboxLimit,announcementEmailPath,announcementEmailScope,parseAnnouncementEmail} from '../../server/announcementEmailContract.js';
+import siteAssets from '../../src/features/public/site/assets.json' with {type:'json'};
 import {verifyProtectedNativeBrowserEgress,verifyProtectedNativeBrowserSave} from './certificate-browser-turn.mjs';
 import {requireProtectedBrowser as check} from './protected-browser-diagnostics.mjs';
 
 export const announcementEmailBrowserProfile='announcement-email';
 export const announcementEmailBrowserBootstrap='/api/affairs-data?scope='+announcementEmailScope;
+// The 2-1 settings render inside the shared School Affairs masthead.
+export const announcementEmailBrowserMedia=Object.freeze([
+  siteAssets['https://info.stu.edu.tw/ePortal/assets/img/stu/stuBanner.svg'],
+  siteAssets['https://info.stu.edu.tw/ePortal/assets/images/stuUser.png'],
+]);
 const prefix='client:announcement-email:';
 const question='Is my announcement email preference enabled and active yet?';
 const inboxQuestion=question+' Also confirm whether an announcement has arrived in my Gmail inbox.';

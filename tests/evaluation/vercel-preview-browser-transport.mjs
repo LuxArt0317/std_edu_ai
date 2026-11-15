@@ -7,7 +7,8 @@ import {certificateAwardPreviewManifest} from './certificate-award-preview.mjs';
 import {inspectProtectedCertificateBrowserReply,verifyProtectedCertificateBrowserReceipt,verifyProtectedCertificateBrowserSave} from './certificate-browser-turn.mjs';
 import {announcementEmailPath} from '../../server/announcementEmailContract.js';
 import {announcementEmailBrowserAnswerPath,announcementEmailBrowserBootstrap,announcementEmailBrowserCases,announcementEmailBrowserProfile,
-  inspectAnnouncementEmailBrowserBootstrap,inspectAnnouncementEmailBrowserReply,verifyProtectedAnnouncementEmailBrowserSave} from './announcement-email-browser-turn.mjs';
+  announcementEmailBrowserMedia,inspectAnnouncementEmailBrowserBootstrap,inspectAnnouncementEmailBrowserReply,
+  verifyProtectedAnnouncementEmailBrowserSave} from './announcement-email-browser-turn.mjs';
 import {studentProfilePath} from '../../server/studentProfileContract.js';
 import {studentProfileBrowserAnswerPath,studentProfileBrowserBootstrap,studentProfileBrowserCases,studentProfileBrowserHeading,
   studentProfileBrowserProfile,inspectStudentProfileBrowserBootstrap,inspectStudentProfileBrowserReply,
@@ -33,7 +34,7 @@ const nativeProfiles=new Map([
     inspectReply:inspectProtectedCertificateBrowserReply,verifySave:verifyProtectedCertificateBrowserSave,
     inspectBootstrap(value,ownerId){check(value?.userId===ownerId&&Array.isArray(value.rows)&&Array.isArray(value.files),'wrong fixture caller');}}],
   [announcementEmailBrowserProfile,{label:'announcement-email',route:announcementEmailPath,bootstrap:announcementEmailBrowserBootstrap,
-    answers:announcementAnswers,requiredMedia:[],receiptKey:'announcementEmailReceipt',
+    answers:announcementAnswers,requiredMedia:announcementEmailBrowserMedia,receiptKey:'announcementEmailReceipt',
     inspectReply:inspectAnnouncementEmailBrowserReply,verifySave:verifyProtectedAnnouncementEmailBrowserSave,
     inspectBootstrap:inspectAnnouncementEmailBrowserBootstrap}],
   [studentProfileBrowserProfile,{label:'student-profile',route:studentProfilePath,bootstrap:studentProfileBrowserBootstrap,
