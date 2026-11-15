@@ -3,6 +3,7 @@ import {tutorEvaluationFamily} from './tutor-evaluation-hosted.mjs';
 import {healthMetadataFixtureMode,healthMetadataRequirement} from './health-examination-live.mjs';
 import {dtmAssignmentListFixtureMode,dtmAssignmentListRequirement} from './dtm-assignment-list-live.mjs';
 import {tuitionLedgerFixtureMode} from './tuition-ledger-preview.mjs';
+import {dtmTimingFixtureMode} from './dtm-submission-timing-preview.mjs';
 import {nativeVenueSetupRequired} from './venue-native-runner.mjs';
 import {nativeInternshipSetupRequired} from './internship-native-runner.mjs';
 import {nativeStudentLeaveSetupRequired} from './student-leave-runner.mjs';
@@ -63,7 +64,7 @@ function lifecycle({requests=[],users=[],rows=[],owned=true,locked=true,files:in
       events.push({kind:'delete',id});deleted.push(id);
       if(deleteFails)throw new Error('PROVIDER_SECRET_BODY');records.delete(id);return {error:null};
     }}}}};
-  const context={tuitionLedgerFixtureMode,clubEquipmentFamily,clubEquipmentRequirement,tutorEvaluationFamily,healthMetadataFixtureMode,healthMetadataRequirement,dtmAssignmentListFixtureMode,dtmAssignmentListRequirement,nativeVenueSetupRequired,nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,isElearningPublishedReadbackCase,state,PROJECT:'synthetic-project',UUID:/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i,
+  const context={dtmTimingFixtureMode,tuitionLedgerFixtureMode,clubEquipmentFamily,clubEquipmentRequirement,tutorEvaluationFamily,healthMetadataFixtureMode,healthMetadataRequirement,dtmAssignmentListFixtureMode,dtmAssignmentListRequirement,nativeVenueSetupRequired,nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,isElearningPublishedReadbackCase,state,PROJECT:'synthetic-project',UUID:/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i,
     PRIVATE_DIR:'/synthetic',readdir:async directory=>{assert.equal(directory,'/synthetic');events.push({kind:'scan'});return [...files.keys()].filter(path=>path.startsWith(directory+'/')).map(path=>path.slice(directory.length+1));},
     LiveFixtureError,readProtectedOwnerFingerprint,assertProtectedOwnerUnchanged,protectedOwnerFingerprintDigest,ownTables:[],fail:(code,message)=>{throw new LiveFixtureError(code,message);},query:async work=>work(),
     randomBytes:()=>({toString:()=> 'PASSWORD_SECRET'}),

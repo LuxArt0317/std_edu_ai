@@ -69,6 +69,8 @@ import {checkConfirmedTaskRoundTrip,readConfirmedTaskRows} from './confirmed-tas
 import {checkTuitionLedgerPreview,deleteTuitionLedgerPreviewState,isEmptyTuitionLedgerPreviewState,readTuitionLedgerAccountScopes,readTuitionLedgerPreviewState,
   seedTuitionLedgerPreviewState,tuitionLedgerFixtureMode,tuitionLedgerHistoryPath,tuitionLedgerPlan,tuitionLedgerPreviewDates,
   TuitionLedgerPreviewAssertion} from './tuition-ledger-preview.mjs';
+import {buildDtmTimingPlan,deleteDtmTimingRows,dtmTimingFixtureMode,dtmTimingPreviewCases,dtmTimingRequest,emptyDtmTimingState,
+  gradeDtmTimingCase,observeDtmTimingCallers,observeDtmTimingRows,readDtmTimingState,seedDtmTimingRows} from './dtm-submission-timing-preview.mjs';
 import {clubAttendanceOracle} from './club-attendance-cases.mjs';
 import {serviceNoteRunnerOracle,serviceNoteSetupRequired} from './service-note-runner.mjs';
 import {buildServiceNotePlan,changeServiceNoteRows,observeServiceNoteRows} from './service-note-live-fixture.mjs';
@@ -325,6 +327,7 @@ async function saveLedger(){
       protectedOwner,fixtureUserIds:s.users.map(user=>user.id),identityRequests:s.identityRequests,ownedRecordIds:[...s.recordIds].sort(),supplementalTables:[...(s.supplementalTables||[])].sort(),activeCaseId:s.current?.caseId??null,
       ...(s.taskActionJournal?{confirmedTaskJournal:s.taskActionJournal}:{}),
       ...(s.tuitionLedgerPlan?{tuitionLedgerFixture:s.tuitionLedgerPlan}:{}),
+      ...(s.dtmTimingPlan?{dtmSubmissionTimingFixture:s.dtmTimingPlan}:{}),
       ...(s.feeFixture?{feeRemissionFixture:{students:s.feeFixture.students,journal:s.feeFixture.journal}}:{}),
       ...(s.studentLeaveData?{studentLeaveDataFixture:studentLeaveJournalBinding(s.studentLeaveData.binding)}:{}),
       ...(s.counselingFixture||s.pendingCounselingFixture?{counselingAppointments:{
@@ -413,13 +416,17 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const counselingOnly=caseFamily==='counseling-appointments';
   const taskActionOnly=fixtureMode==='confirmed-task-actions';
   const tuitionLedgerOnly=fixtureMode===tuitionLedgerFixtureMode;
-  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly&&!tuitionLedgerOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
+  const dtmTimingOnly=fixtureMode===dtmTimingFixtureMode;
+  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
   if(taskActionOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Confirmed task checks require the exact protected Preview and isolated disposable owners.');
   if(tuitionLedgerOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Tuition ledger checks require the exact protected Preview and isolated disposable owners.');
+  if(dtmTimingOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
+    ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
+    fail('fixture-config','Moodle timing checks require the exact protected Preview and isolated disposable owners.');
   if(leaveDataOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Student Leave data preflight requires an exact protected Preview and no assistant cases.');
@@ -501,7 +508,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       ||!approvedPreviewOrigin||origin!==approvedPreviewOrigin)fail('fixture-config','The injected transport requires the exact approved Preview four-turn packet.');
     transcriptCaseIds=cases.map((testCase,index)=>assertTranscriptFixtureCase(testCase,index));
   }
-  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&!clubEquipmentOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
+  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&!clubEquipmentOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
     const expected=feeRemissionLivePlanManifest.eligibleCaseIds;
     if(fixtureMode!==FEE_FIXTURE_MODE||caseFamily!=='fee-remission'||!approvedPreviewOrigin||cases.length!==expected.length
       ||new Set(cases.map(row=>row?.id)).size!==expected.length||!expected.every(id=>cases.some(row=>row?.id===id)))
@@ -568,6 +575,10 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       state.prepared=true;
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['paymentHistory']};
     }
+    if(dtmTimingOnly){
+      state.prepared=true;
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['dtmSubmissionTiming']};
+    }
     if(leaveDataOnly){
       await prepareStudentLeaveDataFixture(state,expectedReleaseRevision,previewGate,serviceKey);
       state.prepared=true;
@@ -626,7 +637,12 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     // reports explicit recovery instead of attempting an invalid closed retry.
     if(tuitionLedgerOnly){
       const reason=error instanceof LiveFixtureError?error:new LiveFixtureError('fixture-prepare','Tuition ledger fixture preparation failed.');
-      reason.tuitionLedgerCleanupProof=await tuitionLedgerCleanupProof();
+      reason.tuitionLedgerCleanupProof=await captureFixtureCleanup();
+      throw reason;
+    }
+    if(dtmTimingOnly){
+      const reason=error instanceof LiveFixtureError?error:new LiveFixtureError('fixture-prepare','Moodle timing fixture preparation failed.');
+      reason.dtmTimingCleanupProof=await captureFixtureCleanup();
       throw reason;
     }
     try{await cleanup();}catch{/* The original error is safe; ledger remains. */}
@@ -776,7 +792,7 @@ export async function runConfirmedTaskPreview({origin,sourceRevision,previewToke
   return {runId,sourceRevision,origin,...result,deployment:previewGate.status(),cleanup:cleanupProof};
 }
 
-async function tuitionLedgerCleanupProof(){
+async function captureFixtureCleanup(){
   try{return {...await cleanup(),status:'verified'};}
   catch(error){return {verified:false,status:'unverified',code:error instanceof LiveFixtureError?error.code:'unexpected'};}
 }
@@ -851,10 +867,82 @@ export async function runTuitionLedgerPreview({origin,sourceRevision,previewToke
     failure=error instanceof TuitionLedgerPreviewAssertion
       ?{phase,code:'fixture-assertion',assertion:error.stage,failedFields:error.failedFields}
       :{phase,code:error instanceof LiveFixtureError?error.code:'unexpected'};
-  }finally{if(prepared)cleanupProof=await tuitionLedgerCleanupProof();}
+  }finally{if(prepared)cleanupProof=await captureFixtureCleanup();}
   return {runId,sourceRevision,origin,staffHttpVerified:false,...result,...(failure?{failure}:{}),
     deployment:previewGate?.status()??null,cleanup:cleanupProof,
     liveAcceptance:!failure&&result?.passed===true&&cleanupProof.verified&&cleanupProof.tuitionLedgerCleanup===true};
+}
+
+export async function runDtmTimingPreview({origin,sourceRevision,previewToken,signal}={}){
+  if(!isEvaluationPreviewOrigin(origin)||!(/^[a-f0-9]{40}$/u.test(sourceRevision??'')))
+    fail('fixture-config','Moodle timing checks require an exact protected Preview and source revision.');
+  const runId=randomUUID(),results=[],correlationIds=new Set();
+  let previewGate,prepared=false,failure,phase='preflight',cleanupProof={verified:false,status:'not-started'};
+  let expectedCount=0;
+  try{
+    const {readReply,sourceIdentity}=await import('./run.mjs');
+    const identity=await sourceIdentity();
+    if(identity.dirty||identity.sourceRevision!==sourceRevision)
+      fail('fixture-target','Moodle timing checks require the exact clean deployed source.');
+    const readback=createTrustedPreviewFetch({origin,token:previewToken});
+    phase='prepare';
+    await prepare({runId,cases:[],now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
+      signal,fixtureMode:dtmTimingFixtureMode,previewReadbackFetch:readback});
+    prepared=true;
+    const s=ready();
+    ({previewGate}=s);
+    phase='seed';
+    if(s.users.some(user=>user.id===s.protectedOwnerBefore.id
+      ||!s.identityRequests.some(row=>row.id===user.id&&row.runId===runId&&row.state==='created')))
+      fail('fixture-isolation','Moodle timing callers are outside the disposable lease.');
+    const plan=buildDtmTimingPlan(runId,s.users),cases=dtmTimingPreviewCases(plan);
+    expectedCount=cases.length;
+    await assertRecordedFixtureLease(s,'Moodle timing seed');
+    await previewGate.assertCurrent();
+    s.dtmTimingPlan=plan;
+    await saveLedger();
+    await query(()=>feeTransaction(s,()=>seedDtmTimingRows(s.sql,plan)),'Could not save exact disposable Moodle timing records.');
+    async function observe(){
+      await assertRecordedFixtureLease(s,'Moodle timing readback');
+      await previewGate.assertCurrent();
+      const rows=await query(()=>observeDtmTimingRows(s.sql,plan),'Could not verify the exact Moodle timing records.');
+      await Promise.all(s.users.map(user=>user.renewSession({signal})));
+      const callers=await observeDtmTimingCallers(plan,{users:s.users,origin,fetchImpl:readback,
+        readResponse:readBoundedFixtureResponse,signal:signals(signal,15000)});
+      return {rows,callers};
+    }
+    for(const testCase of cases){
+      phase=testCase.id;
+      const before=await observe();
+      const ticket=await previewGate.beforeRequest();
+      const user=testCase.actor==='guest'?null:s.users[testCase.actor==='A'?0:1];
+      const request=dtmTimingRequest(testCase);
+      const response=await readback(new URL(request.path,origin),{method:'POST',body:request.body,
+        headers:{'Content-Type':'application/json',...(user?{Authorization:'Bearer '+user.token}:{})},signal:signals(signal,65000)});
+      const correlationId=response.headers.get('x-assistant-request-id');
+      const parsed=await readReply(response);
+      await previewGate.afterRequest(ticket);
+      const after=await observe();
+      const graded=gradeDtmTimingCase(plan,testCase,{...parsed,status:response.status,correlationId},before,after);
+      if(user&&(correlationIds.has(correlationId)||!correlationId)){
+        graded.passed=false;
+        if(!graded.failedFields.includes('correlation'))graded.failedFields.push('correlation');
+      }
+      if(correlationId)correlationIds.add(correlationId);
+      results.push({...graded,requestIndex:ticket.requestIndex,before,after});
+    }
+    phase='release-verification';
+    const final=await sourceIdentity();
+    if(final.dirty||final.sourceRevision!==identity.sourceRevision||final.workingTreeHash!==identity.workingTreeHash)
+      fail('fixture-target','Moodle timing source changed during verification.');
+    await previewGate.finish();
+  }catch(error){
+    if(error instanceof LiveFixtureError&&error.dtmTimingCleanupProof)cleanupProof=error.dtmTimingCleanupProof;
+    failure={phase,code:error instanceof LiveFixtureError?error.code:'unexpected'};
+  }finally{if(prepared)cleanupProof=await captureFixtureCleanup();}
+  return {runId,sourceRevision,origin,results,...(failure?{failure}:{}),deployment:previewGate?.status()??null,
+    cleanup:cleanupProof,storageObjectWrites:false,liveAcceptance:!failure&&expectedCount>0&&results.length===expectedCount
+      &&results.every(row=>row.passed)&&cleanupProof.verified&&cleanupProof.dtmTimingCleanup===true};
 }
 
 export async function runCounselingHostedEvaluation({origin,sourceRevision,previewToken,signal,onCheckpoint}={}){
@@ -2978,6 +3066,10 @@ export async function cleanup(){
       await query(()=>feeTransaction(s,()=>deleteTuitionLedgerPreviewState(s.sql,s.tuitionLedgerPlan)),
         'Could not remove the exact disposable tuition ledger rows.');
     }
+    if(s.dtmTimingPlan){
+      await assertRecordedFixtureLease(s,'Moodle timing cleanup');
+      await query(()=>feeTransaction(s,()=>deleteDtmTimingRows(s.sql,s.dtmTimingPlan)),'Could not remove the exact disposable Moodle timing records.');
+    }
     for(const user of [...s.users].reverse().filter(user=>deletable.has(user.id))){
       let deleted=false;
       for(let attempt=0;attempt<3;attempt++){
@@ -3032,6 +3124,15 @@ export async function cleanup(){
         fail('fixture-cleanup','An exact tuition ledger row or disposable identity remains.');
       s.tuitionLedgerCleanup=true;
     }
+    if(s.dtmTimingPlan){
+      const remaining=await query(()=>readDtmTimingState(s.sql,s.dtmTimingPlan),'Could not verify Moodle timing cleanup.');
+      const ids=s.dtmTimingPlan.owners.map(owner=>owner.id);
+      const identities=await query(()=>s.sql`select 1 from auth.identities where user_id in ${s.sql(ids)} limit 1`,
+        'Could not verify Moodle timing identity cleanup.');
+      if(!emptyDtmTimingState(remaining)||identities.length)
+        fail('fixture-cleanup','An exact Moodle timing row, queue entry or disposable identity remains.');
+      s.dtmTimingCleanup=true;
+    }
     if(s.healthMetadataFixture)await s.healthMetadataFixture.verifyAbsent();
     if(s.clubEquipmentFixture){
       await s.clubEquipmentFixture.verifyAbsent();
@@ -3080,6 +3181,7 @@ export async function cleanup(){
   return {verified:true,createdUsers:s.users.length,projectRef:PROJECT,protectedOwnerUnchanged,
     ...(s.taskActionCleanup?{taskActionCleanup:true}:{}),
     ...(s.tuitionLedgerCleanup?{tuitionLedgerCleanup:true}:{}),
+    ...(s.dtmTimingCleanup?{dtmTimingCleanup:true}:{}),
     ...(s.tutorEvaluationCleanup?{tutorEvaluationCleanup:true}:{}),
     ...(s.clubEquipmentCleanup?{clubEquipmentCleanup:true}:{}),
     ...(s.studentLeaveData?{studentLeaveDataCleanup:s.studentLeaveDataCleanup}:{}),

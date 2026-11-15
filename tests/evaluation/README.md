@@ -127,6 +127,14 @@ The School Affairs directory adds 22 bilingual catalog cases and an explicit bro
 
 The isolated `dtm-assignment-list` family mounts nine of those cases on a protected Preview. It checks all assignments from a course and from the signed-in account, one fixed Taipei due date, open/completed/graded/submitted filters, titles only, and the exact count. The fixture records two independent signed-in owner projections before and after each assistant request. It also checks that the pinned request emitted the selected Moodle read and completed verification, and that cleanup removed the reserved courses and assignments. Relative-date, unavailable and legacy cases keep their existing evaluation coverage.
 
+### Saved Moodle submission timing
+
+```sh
+node tests/evaluation/run-dtm-submission-timing-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVISION"
+```
+
+Run from the exact clean deployed revision with the existing disposable-fixture environment and an authorized Development `VERCEL_OIDC_TOKEN`. The runner journals a two-owner fixture under the shared lease. It compares the saved submission time with the deadline captured at that upload, including an edited current due date, a missing historical due date, and a UTC follow-up. The paired authenticated workspace reads exercise all three exact assignments for each caller. The assistant tests cover the crossed caller and a guest sign-in return. SQL before and after each case verifies that the fixture metadata, audit scope, queue and Storage state are unchanged. The fixture creates submission metadata without a Storage object. Cleanup removes the exact generated rows, their trigger-created queue paths, and the two disposable accounts. The private report contains case verdicts, safe failure codes, digests, and cleanup status.
+
 ```sh
 node tests/evaluation/run.mjs --mode live --case-family dtm-assignment-list \
   --origin "$PREVIEW_ORIGIN" --approved-preview-origin "$PREVIEW_ORIGIN" --preview-auth oidc \
