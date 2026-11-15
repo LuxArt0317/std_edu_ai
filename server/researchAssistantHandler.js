@@ -1043,7 +1043,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             }
             stream.send(200, reply);
         }
-        let knowledgeWebSwitch, publicStop, firstWebMiss, targetedWebStep, noticeAlternateStep, bootstrapRead;
+        let knowledgeWebSwitch, publicStop, firstWebMiss, targetedWebStep, noticeAlternateStep, bootstrapRead, bootstrapDiscovery;
         async function tryWebAnswer(earlierReview) {
             const recoveringEmptySearch = Boolean(earlierReview && firstWebMiss && !targetedWebStep);
             if (!publicQuestion || personalQuestion || (webAttempted && !recoveringEmptySearch))
@@ -1190,6 +1190,19 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     return [source];
                 });
             }
+            const followUpQuestion = capture ? publicSchoolQuestion(verificationQuestion) : publicQuestion;
+            const canRecover = Boolean(followUpQuestion && !input.images.length);
+            async function discoverEvidence({ searchUntil, readUntil, alternate, deeper }) {
+                // Only the sanitized public question reaches search. The
+                // search response supplies URLs, then we read each page.
+                const followUp = await searchSchoolWeb(followUpQuestion, {
+                    deadline: searchUntil, followUp: true, deeperDiscovery: deeper, alternateDiscovery: alternate, ...librarySearch,
+                }).catch(() => null);
+                if ((capture || librarySources.length) && followUp?.attempted) webAttempted = true;
+                const discovered = followUp?.discoveredSources || [];
+                for (const lead of discovered) pendingLeads.set(canonicalUrl(lead.url), lead);
+                return checkNewSources(discovered, Math.min(readUntil, Date.now() + 4_000), 2);
+            }
             if (composeFromSources) {
                 // Links from the search tool are leads. Start a new draft only
                 // from independently read contents, with time left to verify it.
@@ -1199,7 +1212,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     return false;
                 }
                 evidence = await checkNewSources([...leads, ...candidate.citations], readUntil, 4);
-                if (!evidence.length && previousChecks === maxAnswerVerificationChecks - 1) {
+                if (!evidence.length && canRecover) {
                     // One bounded attempt can reach an unread lead or recover a
                     // transient read failure before this draft is composed.
                     const attempts = lead => readAttempts.get(canonicalUrl(lead.url)) || 0;
@@ -1220,8 +1233,22 @@ export function createResearchAssistantHandler(dependencies = {}) {
                         progress(bootstrapRead);
                     }
                 }
+                if (!evidence.length && canRecover) {
+                    const searchUntil = Math.min(deadline - 12_500, Date.now() + 5_500);
+                    if (searchUntil - Date.now() < 2_500) {
+                        publicStop = verificationStopActivity(verificationQuestion, 'time_budget');
+                        return false;
+                    }
+                    const step = { kind: 'web-bootstrap-discovery', label: 'Looking for a different school publication',
+                        detail: 'Looking for the requested detail in another official source.', status: 'running' };
+                    progress(step);
+                    evidence = await discoverEvidence({ searchUntil, readUntil: deadline - 11_000, alternate: true });
+                    bootstrapDiscovery = { ...step, status: evidence.length ? 'complete' : 'unavailable',
+                        detail: evidence.length ? 'Read usable contents from a different school page.' : 'This search found no new readable evidence.' };
+                    progress(bootstrapDiscovery);
+                }
                 if (!evidence.length) {
-                    publicStop = verificationStopActivity(verificationQuestion, bootstrapRead && deadline - Date.now() < 12_000 ? 'time_budget' : 'no_usable_evidence');
+                    publicStop = verificationStopActivity(verificationQuestion, 'no_usable_evidence');
                     return false;
                 }
                 if (evidence.some(source => leads.some(lead => lead.chunkId === source.id))) progress({kind:'web-alternate-source',label:'Read another school source',
@@ -1244,8 +1271,6 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 }
                 candidate = composed;
             }
-            const followUpQuestion = capture ? publicSchoolQuestion(verificationQuestion) : publicQuestion;
-            const canRecover = Boolean(followUpQuestion && !input.images.length);
             let addedEvidenceOnLastPass = false;
             const canExtendReview = () => canRecover && (
                 addedEvidenceOnLastPass || [...pendingLeads.keys()].some(canRead)
@@ -1282,14 +1307,9 @@ export function createResearchAssistantHandler(dependencies = {}) {
                                 ? { kind: 'web-deeper-discovery', label: 'Searching for the original notice or policy' }
                                 : { kind: 'web-follow-up', label: 'Looking for a more specific school source' };
                         progress({ ...step, detail: 'Looking for the missing detail on official school pages.', status: 'running' });
-                        // Review feedback, draft text and private records never enter web search.
-                        const followUp = await searchSchoolWeb(followUpQuestion, {
-                            deadline: searchUntil, followUp: true, deeperDiscovery: deeper, alternateDiscovery: extended, ...librarySearch,
-                        }).catch(() => null);
-                        if ((capture || librarySources.length) && followUp?.attempted) webAttempted = true;
-                        const discovered = followUp?.discoveredSources || [];
-                        for (const lead of discovered) pendingLeads.set(canonicalUrl(lead.url), lead);
-                        fresh = newEvidence(await checkNewSources(discovered, Math.min(until - 8_500, Date.now() + 4_000), 2));
+                        fresh = newEvidence(await discoverEvidence({
+                            searchUntil, readUntil: until - 8_500, deeper, alternate: extended,
+                        }));
                         progress({ ...step, detail: fresh.length ? 'Read additional official source contents.' : 'This search found no new readable evidence.',
                             status: fresh.length ? 'complete' : 'unavailable' });
                     }
@@ -1608,6 +1628,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     ...(targetedWebStep ? [firstWebMiss, ...checkedActivity, knowledgeWebSwitch, targetedWebStep, ...(noticeAlternateStep ? [noticeAlternateStep] : [])]
                         : knowledgeWebSwitch ? [...checkedActivity, knowledgeWebSwitch, ...failedWebActivity] : [...failedWebActivity, ...checkedActivity]),
                     ...(bootstrapRead ? [bootstrapRead] : []),
+                    ...(bootstrapDiscovery ? [bootstrapDiscovery] : []),
                     ...(stop ? [stop] : [])],
             });
         }

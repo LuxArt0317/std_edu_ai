@@ -67,7 +67,7 @@ async function invoke(input: Record<string,unknown>, run: ReturnType<typeof crea
   return responseBody;
 }
 
-function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link'|'unused-tool-lead'|'third-pass-discovery'|'incomplete-office'|'fourth-check'|'fourth-rejected'|'fourth-budget'|'mirror'|'transient-lead'|'transient-initial') {
+function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link'|'unused-tool-lead'|'third-pass-discovery'|'incomplete-office'|'fourth-check'|'fourth-rejected'|'fourth-budget'|'mirror'|'transient-lead'|'transient-initial'|'transient-uncited') {
   configured();
   const started = Date.now();
   let elapsed = 0;
@@ -87,7 +87,7 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
     if (name === 'stu_web_answer') {
       searchRequests.push(request);
       searchCalls++;
-      if (outcome === 'tool-links' || outcome === 'unreadable-tool-link') {
+      if (outcome === 'tool-links' || outcome === 'unreadable-tool-link' || outcome === 'transient-uncited') {
         return Response.json(searchCalls === 1
           ? searchPayload([officialNotice,'https://outside.example.org/campus/'],unsafeDraft,['https://invented.example.org/'])
           : {output:[]});
@@ -156,7 +156,7 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
       captures:[],
       acquire: async url=>{
         acquiredUrls.push(url);
-        if (outcome === 'unreadable-tool-link' || ((outcome === 'transient-lead' || outcome === 'transient-initial') && url === officialNotice
+        if (outcome === 'unreadable-tool-link' || ((outcome === 'transient-lead' || outcome === 'transient-initial' || outcome === 'transient-uncited') && url === officialNotice
           && acquiredUrls.filter(visited => visited === officialNotice).length === 1)) throw Error('Controlled source read failure');
         const content = new Map([
           [officialDirectory,directoryContent], [officialNotice,noticeContent], [officialOffice,officeContent],
@@ -340,6 +340,17 @@ test('a timed-out initially cited page can be reread without a duplicate search'
   assert.deepEqual(answer.citations.map(({url}: {url:string})=>url),[officialNotice]);
 });
 
+test('a source discovered before the first draft remains eligible after a transient read failure',async()=>{
+  const attempt=harness('transient-uncited');
+  const progress:Progress[]=[];
+  const answer=await invoke({question:testQuestion},attempt.run,'web-transient-before-first-draft',progress);
+  assert.deepEqual(attempt.acquiredUrls,[officialNotice,officialNotice]);
+  assert.deepEqual(answer.verification,{status:'verified',attempts:1});
+  assert.deepEqual(answer.citations.map(({url}: {url:string})=>url),[officialNotice]);
+  assert.ok(answer.activity.some(({kind,status}:Progress)=>kind==='web-bootstrap-reread'&&status==='complete'));
+  assert.equal(progress.some(({kind})=>kind==='verification-stop'),false);
+});
+
 test('a duplicate result or exhausted follow-up budget cannot turn missing evidence into an answer',async()=>{
   for (const outcome of ['same-source','budget'] as const) {
     const attempt = harness(outcome);
@@ -379,7 +390,7 @@ test('an unreadable tool-returned page cannot become an answer or an invented ci
   const attempt=harness('unreadable-tool-link');
   const progress:Progress[]=[];
   const answer=await invoke({question:testQuestion},attempt.run,'web-unreadable-tool-link',progress);
-  assert.deepEqual(attempt.acquiredUrls,[officialNotice]);
+  assert.deepEqual(attempt.acquiredUrls,[officialNotice,officialNotice]);
   assert.deepEqual(attempt.scopes,[]);
   assert.ok(['abstained','handoff'].includes(answer.status));
   assert.deepEqual(answer.citations,[]);
@@ -416,7 +427,7 @@ const managedExcerpt = {
   exact_score:0.8,keyword_score:0.7,vector_score:0.6,fused_score:0.2,
   document_version:1,content_checksum:'a'.repeat(64),
 };
-function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review-outage'|'early-web'|'early-web-recovery'|'verified-knowledge'|'source-switch-repair'|'source-switch-stall'|'final-check-lead'|'bootstrap-reread'|'bootstrap-next-lead'|'bootstrap-unreadable'|'bootstrap-budget') {
+function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review-outage'|'early-web'|'early-web-recovery'|'verified-knowledge'|'source-switch-repair'|'source-switch-stall'|'final-check-lead'|'bootstrap-reread'|'bootstrap-next-lead'|'bootstrap-unreadable'|'bootstrap-budget'|'bootstrap-alternate') {
   configured();
   const started = Date.now();
   let elapsed = 0;
@@ -435,6 +446,10 @@ function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review
       calls.push('read-public-page');
       const urls=citations.map(citation=>citation.url);
       reads.push(urls);
+      if(outcome==='bootstrap-alternate'){
+        assert.deepEqual(urls,reads.length<=2?[eventCalendar,officialDirectory]:[officialNotice]);
+        return citations.filter(citation=>citation.url===officialNotice).map(citation=>({id:citation.chunkId,url:citation.url,content:noticeContent}));
+      }
       if(outcome==='bootstrap-next-lead'){
         if(reads.length===1){assert.deepEqual(urls,otherLeads);return [];}
         assert.deepEqual(urls,[officialNotice,officialDirectory,...otherLeads.slice(0,2)]);
@@ -488,6 +503,14 @@ function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review
           assert.match(request.instructions,/Change the search approach/u);
           assert.doesNotMatch(request.input,/PRIVATE_REVIEW_FEEDBACK|NOT_PUBLIC_SEARCH_INPUT/u);
         }
+        if (outcome==='bootstrap-alternate') {
+          if (searches.length===1)
+            return Response.json(searchPayload([officialDirectory,eventCalendar],unsafeDraft,[officialDirectory]));
+          assert.match(request.instructions,/independent official publication/u);
+          assert.doesNotMatch(request.input,/PRIVATE_REVIEW_FEEDBACK|NOT_PUBLIC_SEARCH_INPUT/u);
+          return Response.json(searchPayload([officialNotice],unsafeDraft));
+        }
+        if (outcome==='bootstrap-unreadable'&&searches.length>1) return Response.json({output:[]});
         if (leadOnly) return Response.json(searchPayload([officialDirectory,...(outcome==='bootstrap-next-lead'?otherLeads:[]),officialNotice],unsafeDraft,[officialDirectory]));
         if (failedRefresh && searches.length===1) return Response.json(searchPayload([officialDirectory],unsafeDraft));
         if (outcome==='source-switch-stall') return Response.json(searchPayload([officialDirectory+'?utm_source=retry'],unsafeDraft));
@@ -514,7 +537,7 @@ function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review
               claim:'Exhibition time and date',supported:true,evidenceId:review.evidence[0].id,quotes:[noticeContent],jsonPaths:[],
             }]});
           }
-          assert.equal(review.evidence.length,leadOnly&&outcome!=='bootstrap-next-lead'?2:1);
+          assert.equal(review.evidence.length,leadOnly&&outcome!=='bootstrap-next-lead'&&outcome!=='bootstrap-alternate'?2:1);
           assert.equal(review.evidence[0].content,noticeContent);
           return provider({supported:true,answersQuestion:true,claims:[{
             claim:'Exhibition time and date',supported:true,evidenceId:review.evidence[0].id,quotes:[noticeContent],jsonPaths:[],
@@ -602,11 +625,26 @@ test('the last managed recovery check can retry the safe source read or advance 
   }
 });
 
+test('two rejected managed drafts can reach an alternate publication after rereading an unreadable lead',async()=>{
+  const attempt=managedHarness('bootstrap-alternate'),progress:Progress[]=[];
+  const answer=await invoke({question:knowledgeQuestion},attempt.run,'knowledge-bootstrap-alternate',progress);
+  assert.deepEqual(attempt.searches.map(({question})=>question),[knowledgeQuestion,knowledgeQuestion]);
+  assert.deepEqual(attempt.reads,[[eventCalendar,officialDirectory],[eventCalendar,officialDirectory],[officialNotice]]);
+  assert.deepEqual(answer.verification,{status:'verified',attempts:3});
+  assert.match(answer.answer,/opens at 10:30 a\.m\./u);
+  assert.deepEqual(answer.citations.map(({url}: {url:string})=>url),[officialNotice]);
+  assert.doesNotMatch(answer.answer,/supposedly|PRIVATE_REVIEW_FEEDBACK/u);
+  assert.equal(answer.activity.filter(({kind,status}:Progress)=>kind==='web-bootstrap-discovery'&&status==='complete').length,1);
+  const saved=sanitizeStoredConversation([{id:'new-publication',role:'assistant',content:answer.answer,activity:answer.activity,result:answer}]);
+  assert.equal(saved[0].activity.filter((step:Progress)=>step.kind==='web-bootstrap-discovery'&&step.status==='complete').length,1);
+  assert.equal(progress.some(({kind})=>kind==='verification-stop'),false);
+});
+
 test('bootstrap recovery stops truthfully when its second read is empty or the verification reserve is exhausted',async()=>{
   for(const scenario of ['bootstrap-unreadable','bootstrap-budget'] as const){
     const attempt=managedHarness(scenario),progress:Progress[]=[];
     const answer=await invoke({question:knowledgeQuestion},attempt.run,'knowledge-'+scenario,progress);
-    assert.equal(attempt.searches.length,1);
+    assert.equal(attempt.searches.length,scenario==='bootstrap-unreadable'?2:1);
     assert.equal(attempt.reads.length,scenario==='bootstrap-unreadable'?2:1);
     assert.equal(answer.status,'abstained');
     assert.equal(answer.verification.attempts,2);
