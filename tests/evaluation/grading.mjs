@@ -1,6 +1,6 @@
 /** Independent, declarative acceptance checks. Never use the runtime verdict as the oracle. */
 import {buildGuidanceReviewBinding} from './guidance-rubric.mjs';
-import {maxAnswerVerificationChecks} from '../../src/services/assistantVerificationLimits.js';
+import {maxAnswerVerificationChecks,maxPublicAnswerVerificationChecks} from '../../src/services/assistantVerificationLimits.js';
 const normalize = value => String(value ?? '').normalize('NFKC').replace(/\*\*|__|`/g, '').replace(/\s+/g, ' ').trim().toLocaleLowerCase();
 const word = /[\p{L}\p{N}_]/u;
 
@@ -645,16 +645,30 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
     check('answer.verification',body.verification?.status==='verified','Runtime evidence verification completed; independent checks still apply.');
   }
   if (expected.verification) check('answer.verification.expected',body.verification?.status===expected.verification,'Declared verification outcome matches.');
-  if (body.verification) check('answer.verification.bound',Number.isInteger(body.verification.attempts) && body.verification.attempts>=0 && body.verification.attempts<=maxAnswerVerificationChecks,'Verification stays within the allowed number of checks.');
-  if(body.verification?.attempts===maxAnswerVerificationChecks){
+  if (body.verification) {
     const events=Array.isArray(envelope.events)?envelope.events:[];
     const observed=(kind,status)=>events.some(step=>step?.kind===kind&&step.status===status);
-    const publicSourceSwitch=body.grounding?.source==='web'&&body.grounding.webSearched===true
-      && observed('verification-source-switch','complete')&&observed('verification-1','unavailable')&&observed('verification-2','unavailable');
-    const thirdCheckObserved=(observed('verification-deeper-review','complete')||publicSourceSwitch)
-      && observed('verification-3',body.verification.status==='verified'?'complete':'unavailable');
-    check('answer.verification.deeperObserved',thirdCheckObserved&&!events.some(step=>/^account-read:[^:]+:3$/u.test(step?.kind??'')),
-      'Observed the deeper review or the public evidence switch and its terminal check within authorized read scope.');
+    const publicCase=testCase.mode==='public';
+    const limit=publicCase?maxPublicAnswerVerificationChecks:maxAnswerVerificationChecks;
+    const attempts=body.verification.attempts;
+    const terminal=body.verification.status==='verified'?'complete':'unavailable';
+    check('answer.verification.bound',Number.isInteger(attempts)&&attempts>=0&&attempts<=limit,'Verification stays within the allowed number of checks.');
+    const fourthChecked=observed('verification-4','complete')||observed('verification-4','unavailable');
+    if(publicCase&&(fourthChecked||attempts===maxPublicAnswerVerificationChecks)){
+      const reviews=new Set(events.filter(step=>/^verification-[1-4]$/u.test(step?.kind??'')
+        && ['complete','unavailable'].includes(step.status)).map(step=>step.kind));
+      const fresh=observed('web-extended-source','complete')||observed('web-alternate-discovery','complete');
+      check('answer.verification.extendedObserved',reviews.size===attempts&&observed('verification-extended-review','complete')
+        && fresh&&observed('verification-4',terminal)&&body.grounding?.webSearched===true,
+        'Observed new public evidence and the extended verdict within the reported check count.');
+    }else if(attempts===maxAnswerVerificationChecks){
+      const publicSourceSwitch=body.grounding?.source==='web'&&body.grounding.webSearched===true
+        && observed('verification-source-switch','complete')&&observed('verification-1','unavailable')&&observed('verification-2','unavailable');
+      const thirdCheckObserved=(observed('verification-deeper-review','complete')||publicSourceSwitch)
+        && observed('verification-3',terminal);
+      check('answer.verification.deeperObserved',thirdCheckObserved&&!events.some(step=>/^account-read:[^:]+:3$/u.test(step?.kind??'')),
+        'Observed the deeper review or the public evidence switch and its terminal check within authorized read scope.');
+    }
   }
   for (const [index,value] of (expected.requiredText || []).entries()) check(`text.required.${index}`,matches(text,value),'Required independent text is present with token boundaries.');
   for (const [index,value] of [...(expected.forbiddenText || []),...(expected.forbiddenAccountMarkers || [])].entries()) check(`text.forbidden.${index}`,!outputFields.some(field=>matches(field,value)),'No forbidden contradiction, foreign-account value or unsupported claim appears in prose, cards, citations or actions.');

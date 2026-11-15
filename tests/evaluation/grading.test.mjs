@@ -40,6 +40,27 @@ test('an observed third check can use new public evidence after two failed manag
   envelope.events.splice(1,1);
   failure(gradeCase(testCase,envelope),'answer.verification.deeperObserved');
 });
+test('a fourth public check requires distinct observed evidence and an accurate check count',()=>{
+  const testCase={id:'public.extended',domain:'announcements',mode:'public',expected:{behavior:'answer',requiredText:['Public notice']}};
+  const envelope=response('The Public notice confirms the date.',{verification:{status:'verified',attempts:4},
+    citations:[],grounding:{source:'web',webSearched:true}});
+  envelope.events=[
+    {kind:'verification-1',status:'unavailable'},
+    {kind:'verification-2',status:'unavailable'},
+    {kind:'verification-3',status:'unavailable'},
+    {kind:'verification-extended-review',status:'complete'},
+    {kind:'web-alternate-discovery',status:'complete'},
+    {kind:'verification-4',status:'complete'},
+  ];
+  assert.equal(gradeCase(testCase,envelope).passed,true);
+  failure(gradeCase(record,envelope),'answer.verification.bound');
+  envelope.events[1].kind='verification-preparation-2';
+  failure(gradeCase(testCase,envelope),'answer.verification.extendedObserved');
+  envelope.body.verification.attempts=3;
+  assert.equal(gradeCase(testCase,envelope).passed,true);
+  envelope.events[4].status='unavailable';
+  failure(gradeCase(testCase,envelope),'answer.verification.extendedObserved');
+});
 test('self-reported verified and the right substring cannot hide a contradiction',()=>{
   const result=gradeCase(record,response('Your sample QA tuition balance is NT$23,000. Your remaining balance is 999999.'));
   assert.equal(result.passed,false);failure(result,'text.forbidden.0');failure(result,'fact.0');

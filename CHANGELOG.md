@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Follow new public evidence after a rejected draft. An incomplete office page can lead to a more specific notice, and a further independent source can support a fourth check within the request budget. Preserve the stop reason and activity after reload. [#100]
+
 - Add a protected Preview evaluator for eleven tutor questionnaire reads with two-caller RLS proof and exact no-submission and cleanup checks. [#100]
 
 - Answer straightforward student payroll questions from the exact saved period, net amount and tax fields. Preserve separate salary and claim links, omit unrelated payroll values when bank settlement is requested, and show the account boundary in Activity. [#100]

@@ -1000,7 +1000,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             const canonicalUrl = url => safeWebSource(url)?.replace(/\/(?=\?|$)/u, '');
             const seenUrls = new Set(capture ? [canonicalUrl(capture.originalUrl)] : []);
             const readAttempts = new Map();
-            const pendingLeads = new Map(leads.map(lead => [canonicalUrl(lead.url), lead]));
+            const pendingLeads = new Map([...leads, ...candidate.citations].map(lead => [canonicalUrl(lead.url), lead]));
             const canRead = url => Boolean(url) && !seenUrls.has(url) && (readAttempts.get(url) || 0) < 2;
             const steps = new Map();
             let evidence = [];
@@ -1085,8 +1085,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     const readUntil = Math.min(until - 8_500, Date.now() + 4_000);
                     if (readUntil - Date.now() >= 1_000) {
                         fresh = newEvidence(await checkNewSources([...pendingLeads.values()], readUntil, 3));
-                        if (fresh.length) progress({ kind: 'web-alternate-source', label: 'Read another school source',
-                            detail: 'Checked additional school pages.', status: 'complete' });
+                        if (fresh.length) progress({ kind: extended ? 'web-extended-source' : 'web-alternate-source',
+                            label: 'Read another school source', detail: 'Checked additional school pages.', status: 'complete' });
                     }
                     const searchUntil = Math.min(until - 11_000, Date.now() + (deeper ? 8_000 : 6_500));
                     if (!fresh.length && searchUntil - Date.now() >= 2_500) {

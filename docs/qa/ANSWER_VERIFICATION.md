@@ -3,9 +3,10 @@
 The campus assistant uses a request-local LangGraph workflow in
 `server/answerVerification.js`. It retrieves evidence, drafts a reply and
 checks the draft. A failed review can refresh the relevant evidence and revise
-the draft. It can run a third check when actionable feedback or independently
-read new evidence gives it a way to resolve the gap. Unsupported drafts and
-actions stay withheld when the available evidence or time runs out.
+the draft. If an independently read school page leaves a fact unresolved, the
+public branch looks for the primary notice or policy. It can make a fourth check
+when another lead yields new evidence and the request still has time.
+Unsupported drafts and actions stay withheld.
 
 ## Acceptance criteria
 
@@ -14,7 +15,9 @@ actions stay withheld when the available evidence or time runs out.
 2. A rejected draft can refresh relevant, permitted evidence. When the remaining
    gap is resolvable within the deadline, the graph can deepen the review or
    independently retrieve a more relevant school source. The full request
-   allows at most three checks, including source changes.
+   allows up to four public checks, including source changes. The fourth requires
+   newly read content and a matching observed verdict. Account and fixed-evidence
+   paths allow up to three checks.
 3. A supported partial answer identifies its missing fields without repeating
    unsupported values. An exhausted or unavailable verification path releases
    no unsupported draft or action proposal.
@@ -84,7 +87,10 @@ npm run verify:client
 ```
 
 The first command uses provider fixtures and checks real graph transitions,
-source references, fresh reads, conditional third checks and evidence/provider failures.
+source references, fresh reads, conditional checks and evidence/provider failures.
+Run `node --import tsx --test tests/api/research-assistant-web-follow-up.test.ts
+tests/evaluation/grading.test.mjs` for the incomplete-office, fourth-check,
+mirrored-source, transient-read and deadline cases.
 The UI command requires the local app and uses explicit fixture replies.
 Production commands use actual providers and the exact configured client project;
 run database checks serially. Live private QA creates disposable identities,

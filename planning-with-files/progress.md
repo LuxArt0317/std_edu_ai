@@ -47,3 +47,5 @@
 - 2026-11-15 [#100] Hosted payroll passed 7/8 and dormitory passed 9/10 on `0f3ac28` with cleanup. Verified the remaining payroll empty answer locally and recorded the housing-companion period dependency. Hosted `6c76997` passed nine guest route/outcome checks, including the club equipment handoff. Continued Health Exam and Counseling replay under the same serialized lease.
 
 - 2026-11-15 [#100] Integrated eleven tutor questionnaire cases. Rechecked the merged branch with 1,806 API/source successes, 1,354 evaluator successes and one optional skip. Continued the pinned Health Exam run and started a separate correction for two interim failures. The dated tuition ledger and HTTP adapter have local proof, with app integration and database release pending.
+
+- 2026-11-15 [#100] Matched the reported wording to production `076c79a`, implemented evidence-driven third and fourth public checks, and integrated the observed Activity presentation. Retained existing private-record review scope.

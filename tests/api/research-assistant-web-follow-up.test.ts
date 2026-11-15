@@ -67,7 +67,7 @@ async function invoke(input: Record<string,unknown>, run: ReturnType<typeof crea
   return responseBody;
 }
 
-function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link'|'unused-tool-lead'|'third-pass-discovery'|'incomplete-office'|'fourth-check'|'fourth-rejected'|'fourth-budget'|'mirror'|'transient-lead') {
+function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link'|'unused-tool-lead'|'third-pass-discovery'|'incomplete-office'|'fourth-check'|'fourth-rejected'|'fourth-budget'|'mirror'|'transient-lead'|'transient-initial') {
   configured();
   const started = Date.now();
   let elapsed = 0;
@@ -91,6 +91,10 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
         return Response.json(searchCalls === 1
           ? searchPayload([officialNotice,'https://outside.example.org/campus/'],unsafeDraft,['https://invented.example.org/'])
           : {output:[]});
+      }
+      if (outcome === 'transient-initial') {
+        assert.equal(searchCalls,1);
+        return Response.json(searchPayload([officialNotice],unsafeDraft));
       }
       if (searchCalls === 1) return Response.json(outcome === 'unused-tool-lead'
         ? searchPayload([officialDirectory,officialNotice,'https://outside.example.org/campus/'],unsafeDraft,[officialDirectory])
@@ -152,7 +156,7 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
       captures:[],
       acquire: async url=>{
         acquiredUrls.push(url);
-        if (outcome === 'unreadable-tool-link' || (outcome === 'transient-lead' && url === officialNotice
+        if (outcome === 'unreadable-tool-link' || ((outcome === 'transient-lead' || outcome === 'transient-initial') && url === officialNotice
           && acquiredUrls.filter(visited => visited === officialNotice).length === 1)) throw Error('Controlled source read failure');
         const content = new Map([
           [officialDirectory,directoryContent], [officialNotice,noticeContent], [officialOffice,officeContent],
@@ -310,6 +314,15 @@ test('a transient read failure does not discard the safe notice URL permanently'
   const attempt = harness('transient-lead');
   const answer=await invoke({question:testQuestion},attempt.run,'web-transient-lead');
   assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialNotice,officialNotice]);
+  assert.equal(answer.verification.status,'verified');
+  assert.deepEqual(answer.citations.map(({url}: {url:string})=>url),[officialNotice]);
+});
+
+test('a timed-out initially cited page can be reread without a duplicate search', async () => {
+  const attempt = harness('transient-initial');
+  const answer=await invoke({question:testQuestion},attempt.run,'web-transient-initial');
+  assert.equal(attempt.searchRequests.length,1);
+  assert.deepEqual(attempt.acquiredUrls,[officialNotice,officialNotice]);
   assert.equal(answer.verification.status,'verified');
   assert.deepEqual(answer.citations.map(({url}: {url:string})=>url),[officialNotice]);
 });
