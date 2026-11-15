@@ -72,6 +72,10 @@ test('exact Supabase Auth may continue untouched and an incoming OIDC credential
     assert.deepEqual(await h.dispatch({method,url:project+path}),{kind:'supabase-auth'});
     await assert.rejects(h.dispatch({method,url:project+path,headers:{[previewTrustedHeader]:token}}),/inherited Preview credential/u);
   }
+  await assert.rejects(h.dispatch({method:'GET',url:project+'/auth/v1/user',headers:{Authorization:'Bearer '+token}}),
+    /inherited Preview credential/u);
+  await assert.rejects(h.dispatch({method:'POST',url:project+'/auth/v1/token?grant_type=refresh_token',body:JSON.stringify({refresh_token:token})}),
+    /inherited Preview credential/u);
   for(const path of ['/auth/v1/logout?scope=global','/auth/v1/user?x=1','/rest/v1/affairs_conversations'])
     await assert.rejects(h.dispatch({method:'GET',url:project+path}),/unapproved request origin/u);
   for(const url of ['https://www.stu.edu.tw/dtm',origin+'.example.invalid/dtm',origin+'/dtm#fragment',origin+'/auth/../dtm'])
