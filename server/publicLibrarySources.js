@@ -9,7 +9,7 @@ const library=/\blibrar(?:y|ies)\b|圖書館|图书馆/iu;
 const entry=/\b(?:enter|entry|visitors?|university id|guest access)\b|入館|入馆|校外人士|換證|换证|訪客|访客/iu;
 const reservation=/\b(?:discussion|study|group) rooms?\b|討論室|讨论室|研討室|研讨室|研究小間/iu;
 const databases=/\b(?:databases?|electronic resources?|e-resources?|off[- ]campus)\b|資料庫|数据库|電子資源|电子资源|校外連線|校外连线/iu;
-const openingHours=/\b(?:(?:opening|office|business|service|weekday|weekend|holiday) hours|hours of operation|librar(?:y|ies)(?:['’]s)? hours|library (?:opens?|closes?|closed) (?:today|tomorrow|this weekend|on|at|during)|library (?:open|close)(?=[?.!]|$))\b|開館時間|開放時間|服務時間|閉館|(?:今天|明天|週末|星期[六日天]|假日).{0,12}(?:開館|開放|關門|有開)|幾點(?:開館|關門)/iu;
+const openingHours=/\b(?:(?:opening|office|business|service|weekday|weekend|holiday)[ -]hours|hours of operation|librar(?:y|ies)(?:['’]s)? hours|library (?:opens?|closes?|closed) (?:today|tomorrow|this weekend|on|at|during)|library (?:open|close)(?=[?.!]|$))\b|開館時間|開放時間|服務時間|閉館|(?:今天|明天|週末|星期[六日天]|假日).{0,12}(?:開館|開放|關門|有開)|幾點(?:開館|關門)/iu;
 
 /** Known navigation only. The wording of these pages must be read to support facts. */
 export function findOfficialLibraryServiceLeads(question){

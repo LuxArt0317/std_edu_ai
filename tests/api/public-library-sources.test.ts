@@ -64,7 +64,8 @@ test('the specific library subjects select bilingual official navigation before 
   assert.deepEqual(findOfficialLibraryServiceLeads('Please find the STU library discussion room rules').map(source=>source.url),[rooms,faq]);
   assert.deepEqual(findOfficialLibraryServiceLeads('How old is the university library building?'),[]);
   assert.deepEqual(findOfficialLibraryServiceLeads('When does the STU library archive exhibition open?'),[]);
-  for (const inquiry of ['When does the STU library open?','Is the STU library open this weekend?','樹德圖書館星期日有開嗎？'])
+  for (const inquiry of ['When does the STU library open?','Is the STU library open this weekend?','樹德圖書館星期日有開嗎？',
+    'Does the Shu-Te University library opening-hours notice list a closure on December 25, 2026?'])
     assert.deepEqual(findOfficialLibraryServiceLeads(inquiry).map(source=>source.url),[hours]);
   assert.deepEqual(findOfficialLibraryServiceLeads('What are the library opening hours and discussion room rules?').map(source=>source.url),
     [hours,rooms,faq]);
@@ -154,7 +155,7 @@ for (const scenario of ['guest English','guest Chinese','signed-in follow-up'] a
   },loadSnapshot:async()=>assert.fail('Public follow-up must not read account records')}):research;
   const {result,events}=await request(handler,signedIn?'And what are the opening hours?':chinese
     ?'樹德科技大學圖書館平日的開館時間是幾點？12 月 25 日照常開館嗎？'
-    :'What are the opening hours for the Shu-Te University library on weekdays, and is it closed on December 25?',
+    :'What does the Shu-Te University library opening-hours notice say about weekdays and a closure on December 25?',
     signedIn?[{role:'user',content:'Where can I find the Shu-Te University library?'},{role:'assistant',content:'PRIVATE_HISTORY'}]:[],
     signedIn?'Bearer '+auth:undefined);
   assert.equal(result.verification.status,'verified',JSON.stringify(result));
