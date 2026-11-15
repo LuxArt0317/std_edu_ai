@@ -6,6 +6,10 @@
 
 - 2026-11-15 [#100] The exact library run passed both weekday languages and exposed the hyphenated holiday selector. Preserved all three responses and corrected the exact wording. Disposable PostgreSQL and the application serializer reproduced 28-1's key-order mismatch. Fixed the grader's validated projection hashing and directly verified exact standalone Tutor ratings. The combined protected candidate `85b4bdc` passed all 80 focused tests and was pushed to the dedicated Preview branch.
 
+- 2026-11-15 [#100] Verified the Ready `85b4bdc` protected deployment. All three library questions passed with exact cited schedule, check-one completions and release pin. Integrated the 27-1 one-shot versioned confirmation transport and verified all 15 focused access and workflow tests.
+
+- 2026-11-15 [#100] Completed the second Tutor evaluation on `85b4bdc`: nine of 11 passing answers, every paired readback and all 51 pin checks, verified cleanup and unchanged protected owner. Selected ratings passed. Published the completely typed standalone Questionnaire follow-up as protected candidate `1f082b9` after 34 local checks, retaining both prior model answer failures for comparison. Quality 43717028089 passed.
+
 Prior signed-in and public evaluation evidence is in [the November 15 archive](archive/progress_2026-11-15_hosted-preview.md).
 
 - 2026-11-15 [#100] Corrected the strict test fixture declarations and queued the public and serialized signed-in replays on exact protected `0b88ca1`. The prior candidate ended before any fixture writes.

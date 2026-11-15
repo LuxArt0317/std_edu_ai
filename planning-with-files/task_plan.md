@@ -959,6 +959,10 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify complete standalone Tutor Evaluation ratings directly against the selected saved fields and the original answer rubric. Pass all 33 targeted controlled checks.
 - [x] Reproduce JSONB ordering with real scratch PostgreSQL. Hash the validated Tutor Evaluation projection consistently and reject switched owner proofs.
 - [x] Pass the hosted Library's English and Traditional Chinese weekday questions on `f8ebca2`. Preserve its holiday failure and fix the exact hyphenated question locally.
-- [ ] Rerun all 11 Tutor Evaluation questions and the library holiday question on protected `85b4bdc` after Ready.
+- [x] Pass the English and Traditional Chinese weekday questions and the December 25 library closure question on protected `85b4bdc` with independently read schedule text and exact source.
+- [x] Bind the 27-1 hosted confirmation transport to one exact native withdrawal, and test a lost receipt, a deliberate identical replay and rejection of alternate callers or payloads.
+- [x] Complete the 11-case protected `85b4bdc` Tutor run. All paired native readbacks, selected ratings, pinning and cleanup passed. Preserve the saved-comment attribution and empty-submission failures.
+- [x] Verify all 11 Tutor answers directly against the typed owned questionnaire in the controlled real handler while keeping the original independent scope and meaning tests.
+- [ ] Complete the 11-case hosted Tutor replay on exact `1f082b9` after Ready.
 - [ ] Finish broader service and browser acceptance before production promotion.
 - [x] Replay four public questions on exact protected `0b88ca1`. Confirm primary library links, English fallback, further search when sources are unreadable, the OneDrive partial retained after three checks, and both archived-page languages. The gated-publisher recovery branch also passed its controlled live-handler conditions.
