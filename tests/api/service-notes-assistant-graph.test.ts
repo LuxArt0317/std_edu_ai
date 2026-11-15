@@ -3,12 +3,13 @@ import {test} from 'node:test';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {createResearchAssistantHandler} from '../../server/researchAssistantHandler.js';
 import {accountEvidence} from '../../server/answerVerificationAccount.js';
-import {serviceNoteKeys,serviceNoteLookup} from '../../server/serviceNoteIntent.js';
+import {isServiceNoteEvidenceQuestion,serviceNoteContextRoute,serviceNoteKeys,serviceNoteLookup} from '../../server/serviceNoteIntent.js';
+import {clubIntent} from '../../server/clubServicesContract.js';
 
 const origin='https://xiftudmvxphxcjtmfmib.supabase.co';
 const owner='70000000-0000-4000-8000-000000000001',other='70000000-0000-4000-8000-000000000002';
 const record='70000000-0000-4000-8000-000000000003',student='70000000-0000-4000-8000-000000000004';
-let activeOwner=owner,testOwner=0;
+let activeOwner=owner,testOwner=0,requestNumber=0;
 const account={url:origin,user:{id:owner},key:'LOCAL_NOTE_TEST_KEY',token:'LOCAL_NOTE_TEST_TOKEN'};
 const fee='QA Notes Tuition instalment';
 const path=(key:string)=>'/school-affairs/services/'+key;
@@ -18,7 +19,7 @@ type History=Array<{role:string;content:string}>;
 async function ask(question:string,route=path('27-1'),history:History=[],serve=handler){
   const output:{status:number;body:any}={status:200,body:null};
   const response={setHeader(){},status(code:number){output.status=code;return response;},json(body:unknown){output.body=body;}};
-  await serve({method:'POST',headers:{authorization:'Bearer '+account.token,'x-forwarded-for':'192.0.2.70'},body:{question,route,history}},response);
+  await serve({method:'POST',headers:{authorization:'Bearer '+account.token,'x-forwarded-for':'2001:db8::'+(++requestNumber).toString(16)},body:{question,route,history}},response);
   assert.equal(output.status,200,JSON.stringify(output.body));
   return output.body;
 }
@@ -107,6 +108,52 @@ test('foreign, excluded, official status and note writes never touch private rec
     assert.equal(result.proposedAction,undefined);
     if(kind==='someone')assert.deepEqual(result.citations,[]);
   });
+});
+
+test('natural injury, equipment, rental and insurance outcome questions keep their service and read no notes',async()=>{
+  const cases=[
+    ['30-1','Was my emergency injury report filed?'],['30-1','我的緊急傷病是否已通報？'],
+    ['30-2','Did they approve my equipment borrowing request?'],['30-2','我的物品借用核准了嗎？'],
+    ['31-2','Was my rental reported?'],['31-2','我的租屋是否已登記？'],
+    ['35-1','Does my student group insurance cover the emergency?'],['35-1','我的學生團體保險是否給付？'],
+  ];
+  for(const [key,question] of cases)await fakeSources({},async()=>{
+    for(const serve of [handler,createResearchAssistantHandler()]){
+      const reply=await ask(question,path(key),[],serve);
+      assert.equal(reply.status,'handoff',question);
+      assert.equal(reply.grounding.webSearched,false);
+      assert.deepEqual(reply.citations.map((item:{url:string})=>item.url),[path(key)]);
+      assert.match(reply.answer,/can’t verify|無法在此確認/u);
+      assert.equal(reply.proposedAction,undefined);
+      assert.doesNotMatch(JSON.stringify(reply),/40-1|QA-NOTE-14/u);
+    }
+  });
+});
+
+test('service navigation uses the exact local route and preserves genuine club equipment navigation',async()=>{
+  const cases=[['30-1','Where can I file the emergency injury report?'],['30-2','Where can I find equipment borrowing?'],
+    ['31-2','租屋登記在哪個頁面？'],['35-1','學生團體保險查詢在哪裡？']];
+  for(const [key,question] of cases)await fakeSources({},async()=>{
+    assert.equal(isServiceNoteEvidenceQuestion(question,path(key)),true);
+    const signed=await ask(question,path(key));
+    const guest=await ask(question,path(key),[],createResearchAssistantHandler());
+    for(const [reply,url] of [[signed,path(key)],[guest,'/school-affairs/login?next='+encodeURIComponent(path(key))]] as const){
+      assert.equal(reply.status,'answered',question);
+      assert.deepEqual(reply.citations.map((citation:{url:string})=>citation.url),[url]);
+      assert.equal(reply.grounding.webSearched,false);
+      assert.equal(reply.proposedAction,undefined);
+    }
+  });
+  await fakeSources({},async()=>{
+    const question='Where can I find club equipment borrowing?';
+    const reply=await ask(question,path('30-2'),[],createResearchAssistantHandler());
+    assert.equal(reply.citations[0].url,'/school-affairs/login?next='+encodeURIComponent(path('40-1')+'/equipment'));
+    assert.equal(clubIntent(question,path('30-2')),'equipment');
+    assert.equal(clubIntent('Where can I find equipment borrowing?',path('30-2')),null);
+    assert.equal(clubIntent('Where can I find equipment borrowing?',path('40-1')),'equipment');
+  });
+  assert.equal(serviceNoteContextRoute(path('30-2')+'?lang=en&user_id='+other),path('30-2'));
+  assert.equal(serviceNoteContextRoute('https://unrelated.example'+path('30-2')),null);
 });
 
 test('fee and next-class compounds preserve both selected collections in either order',async()=>{

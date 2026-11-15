@@ -1,4 +1,5 @@
 import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel} from './pendingFeesAnswer.js';
+import {mentionsClub} from './clubServicesContract.js';
 
 /** Private local tracking notes supported by these School Affairs pages. */
 const topics = {
@@ -8,7 +9,7 @@ const topics = {
   '31-1': /\b(?:international|foreign|overseas)[- ]student.{0,30}\b(?:work|employment)|\bwork permits?\b|工作證|境外(?:學生|生)工作/iu,
   '31-2': /\b(?:rentals?|renting|lease)\b|租屋/iu,
   '32-1': /\b(?:campus|school)[- ]service(?: (?:hours?|notes?|track\w*|records?|tasks?|participation))?\b|愛校服務|爱校服务/iu,
-  '35-1': /\b(?:(?:group|student)[- ]insurance|insurance (?:notes?|track\w*|claim|coverage)|my insurance)\b|團體保險|团体保险/iu,
+  '35-1': /\b(?:(?:student(?:[- ]group)?|group)[- ]insurance|insurance (?:notes?|track\w*|claim|coverage)|my insurance)\b|團體保險|团体保险/iu,
 };
 export const serviceNoteKeys = Object.freeze(Object.keys(topics));
 const otherTopic = /\b(?:insurance|notes? on|housing|dorm(?:itory)?|room(?:s)?|leave|internship|counseling|tutor|scholarship|graduation|grades?|class|course|assignment|meeting|medical|clinic|health|tuition|fees?)\b|宿舍|請假|實習|諮商|導師|學費|成績|課表|作業|學習資料|健康/iu;
@@ -24,8 +25,9 @@ const negative = /^(?:(?:please|and|then|also)\s+)*(?:do not|don['’]t|never|no
 const navigation = /\b(?:where|how) (?:can|do|should) i (?:find|open|view|access|file|apply|submit|check)|\b(?:give|send|show) me (?:the |a )?link|\b(?:open|link to) (?:my |the )|在哪|哪個(?:頁面|連結)|如何(?:開啟|申請|填寫|提交)|給我.*連結/iu;
 const serviceCode=/(?<![\p{L}\d_-])\d{1,3}-\d{1,3}(?![\p{L}\d_-])/gu;
 const pageDestination=/\b(?:page|link|url)\b|頁面|页面|連結|链接/iu;
+const healthEquipment=/\b30-2\b|\bstudent health\b|物品借用/iu;
 const universitySubmissionContinuation=/^(?:(?:and|also|then|please)\s+)*(?:submit|file|send)\s+(?:it|this|that|the note)\s+(?:to|with)\s+(?:the\s+)?(?:university|school)(?:\s+(?:now|for me))?$|^(?:也|再|並|并|請|请|幫我|帮我|把|將|将)*(?:它|這則備註|这条备注)?(?:送出|提交|送件)(?:給|给|至|到)(?:校方|學校|学校)$/iu;
-const status = /\b(?:records?|history|policy|provider|insurer|expir\w*|reimburse\w*|approval|approved|official|eligib\w*|award|paid|payment|coverage|covered|claim|balance|validat\w*|verified|authorization|authorized|valid|diagnos\w*|scheduled|reserved|available|returned|submitted|complete|completed|status|check[- ]out)\b|紀錄|記錄|历史|歷史|校方|正式|核准|資格|理賠|理赔|保障|薪資|診斷|預約|已歸還|狀態|完成/iu;
+const status = /\b(?:records?|history|policy|provider|insurer|expir\w*|reimburse\w*|approv(?:e|es|ed|al)|official|eligib\w*|award|paid|payment|cover(?:s|ed|age)?|claim|balance|validat\w*|verified|authorization|authorized|valid|diagnos\w*|scheduled|reserved|available|returned|submitted|filed|reported|complete|completed|status|check[- ]out)\b|紀錄|記錄|历史|歷史|校方|正式|核准|資格|理賠|理赔|保障|給付|薪資|診斷|預約|已歸還|已通報|已送件|已登記|狀態|完成/iu;
 const actual = /\b(?:approval|approved|official|eligib\w*|covered|coverage|paid|payment|payout|validat\w*|verified|authoriz\w*|diagnos\w*|inventory|available|reserved|returned|university)\b|校方|正式|核准|資格|理賠|理赔|保障|薪資|診斷|庫存/iu;
 const write = /^(?:(?:please|then|also|can you|could you|would you|help me)\s+)*(?:submit|file|send|create|save|update|edit|delete|cancel|withdraw|approve|pay|apply|change|mark)\b|^(?:請|请|幫我|帮我|請幫我)?(?:提交|送出|送件|新增|儲存|保存|修改|刪除|取消|撤回|核准|支付|繳費|申請|標記)/iu;
 const actionTarget = /\b(?:application|claim|injury|borrowing|rental|permit|hours?|record|notes?)\b|申請|事故|借用|租屋|工時|紀錄|備註/iu;
@@ -48,12 +50,17 @@ function mentionedKeys(value) {
   const subject=value.split(/\s(?:titled|named|called)\s|(?:標題|名稱)為/iu,1)[0].replace(/["“][^"”]+["”]/gu,'');
   const codes=subject.match(serviceCode)||[];
   const explicit=serviceNoteKeys.filter(key=>codes.includes(key));
-  return codes.length?explicit:serviceNoteKeys.filter(key=>topics[key].test(subject));
+  return codes.length?explicit:serviceNoteKeys.filter(key=>topics[key].test(subject)&&(key!=='30-2'||!mentionsClub(subject)));
 }
 function pathKey(route) {
   if(typeof route!=='string'||route.length>3100||/[\p{Cc}\p{Cs}\s\\#]/u.test(route))return null;
   const key=/^(?:https:\/\/stu\.best)?\/school-affairs\/services\/(\d{1,3}-\d{1,3})\/?(?:\?[^#]*)?$/u.exec(route)?.[1];
   return serviceNoteKeys.includes(key)?key:null;
+}
+
+export function serviceNoteContextRoute(route){
+  const key=pathKey(route);
+  return key?'/school-affairs/services/'+key:null;
 }
 function foreign(value) {
   const text=value.replace(/\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*-\d+(?:-[A-Z0-9]+)*\b/gu,'')
@@ -76,6 +83,20 @@ export function serviceNotePageNavigation(question,route=''){
   return keys.length===1?keys[0]:keys.length===0&&!clause.match(serviceCode)&&!otherTopic.test(clause)?pathKey(route):null;
 }
 
+/** A service link can be identified without opening the account's notes. */
+export function serviceOperationPageNavigation(question,route=''){
+  const clauses=sentenceParts(clean(question));
+  if(clauses.length!==1)return null;
+  const [clause]=clauses;
+  if(!navigation.test(clause)||note.test(clause)||negative.test(clause)||foreign(clause))return null;
+  const keys=mentionedKeys(clause),scope=pathKey(route);
+  if(keys.length!==1)return null;
+  const [key]=keys;
+  // Unqualified English equipment borrowing can describe the separate club system.
+  if(key==='30-2'&&scope!==key&&!healthEquipment.test(clause))return null;
+  return key;
+}
+
 /** Route/history can resolve an explicit note request, never change its owner. */
 export function serviceNoteLookup(question,route='',history=[]) {
   const current=clean(question),clauses=sentenceParts(current),routeScope=pathKey(route);
@@ -88,7 +109,8 @@ export function serviceNoteLookup(question,route='',history=[]) {
     const followsNoteWrite=noteWriteJustSeen;
     noteWriteJustSeen=false;
     if(followsNoteWrite&&universitySubmissionContinuation.test(clause))continue;
-    const direct=mentionedKeys(clause),matchesFollow=follow.test(clause);
+    const direct=mentionedKeys(clause).filter(key=>key!=='30-2'||routeScope===key||note.test(clause)||healthEquipment.test(clause));
+    const matchesFollow=follow.test(clause);
     if(!direct.length&&note.test(clause)&&/(?:\bservice(?:\s+(?:id|number|code))?\s*#?\s*|服務(?:編號)?)\d{1,3}-\d{1,3}\b/iu.test(clause)){
       invalidService=true;continue;
     }
@@ -124,7 +146,8 @@ export function serviceNoteLookup(question,route='',history=[]) {
 }
 export function isServiceNoteEvidenceQuestion(question,route='',history=[]) {
   const lookup=serviceNoteLookup(question,route,history);
-  return lookup.foreign||lookup.invalidService||lookup.excluded||lookup.keys.length>0||lookup.officialOnly;
+  return lookup.foreign||lookup.invalidService||lookup.excluded||lookup.keys.length>0||lookup.officialOnly
+    ||Boolean(serviceNotePageNavigation(question,route)||serviceOperationPageNavigation(question,route));
 }
 
 export const isServiceNoteNextClass = value => /^(?:(?:(?:please|show me|tell me|what(?: time)?(?: is|['’]s)|when is)\s+)*(?:my\s+)?next (?:scheduled )?class|(?:what|which) class do i have next)$|^(?:告訴我|請問|查詢|我的)*(?:下一堂課|下堂課)(?:是什麼|是甚麼|的時間)?$/iu.test(value);

@@ -29,7 +29,7 @@ import {readDtmAssignmentEvidence} from '../server/accountDtmAssignmentEvidence.
 import {studentConductScope} from '../server/studentConductEvidenceScope.js';
 import {boundedAssistantText} from '../src/services/assistantActivityBudget.js';
 import {studentConductGuide} from '../server/studentConductGuide.js';
-import {isServiceNoteNextClass,serviceNoteLookup,serviceNotePageNavigation} from '../server/serviceNoteIntent.js';
+import {isServiceNoteNextClass,serviceNoteLookup,serviceNotePageNavigation,serviceOperationPageNavigation} from '../server/serviceNoteIntent.js';
 import {serviceNoteGuide,serviceNoteNavigationAnswer} from '../server/serviceNoteGuide.js';
 import {readTutorEvaluationEvidence} from '../server/accountTutorEvaluationEvidence.js';
 import {tutorEvaluationNavigation} from '../server/tutorEvaluationEvidenceIntent.js';
@@ -539,9 +539,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     question=ownCoursesBesideForeignYear;history=[];
   }
   const noteDestination=!(Array.isArray(input?.images)&&input.images.length)
-    ?serviceNoteNavigationAnswer(question,serviceNotePageNavigation(question,route),true):null;
+    ?serviceNoteNavigationAnswer(question,serviceNotePageNavigation(question,route),true)
+      ??serviceNoteNavigationAnswer(question,serviceOperationPageNavigation(question,route),true,false):null;
   if(noteDestination){
-    stream.progress('service-note-navigation','Found the local note page','The service directory confirmed the page link.','complete');
+    stream.progress('service-note-navigation','Found the local service page','The service directory confirmed the page link.','complete');
     stream.send(200,noteDestination);
     return;
   }

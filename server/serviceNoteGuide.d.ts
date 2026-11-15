@@ -8,5 +8,5 @@ type ServiceNoteReply={
 
 export function serviceNoteGuide(question:string,scope:ServiceNoteLookup,signedIn:boolean):
   ServiceNoteReply&{status:'handoff';grounding:{source:'account'|'assistant-help';webSearched:false}};
-export function serviceNoteNavigationAnswer(question:string,key:string|null,signedIn:boolean):
+export function serviceNoteNavigationAnswer(question:string,key:string|null,signedIn:boolean,trackingNotes?:boolean):
   (ServiceNoteReply&{status:'answered';grounding:{source:'directory';webSearched:false}})|null;

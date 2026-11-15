@@ -9,12 +9,13 @@ function serviceNoteCitation(entry,zh,requestSignIn){
   return {chunkId:'directory:service-note:'+entry.id,title,url,claim:title,sourceName:'School Affairs',locator:null,effectiveAt:null,reviewedAt:null};
 }
 
-export function serviceNoteNavigationAnswer(question,key,signedIn){
+export function serviceNoteNavigationAnswer(question,key,signedIn,trackingNotes=true){
   const entry=services.get(key);
   if(!entry||entry.localUrl!=='/school-affairs/services/'+key)return null;
   const zh=/[\u3400-\u9fff]/u.test(question);
   const citation=serviceNoteCitation(entry,zh,!signedIn);
-  const intro=zh?'您可以在此開啟服務頁面並管理私人備註。':'Open the service page to manage your private tracking notes.';
+  const intro=trackingNotes?(zh?'您可以在此開啟服務頁面並管理私人備註。':'Open the service page to manage your private tracking notes.')
+    :(zh?'開啟此服務頁面，查看校方入口及私人追蹤備註。':'Open this service page to find the school service and manage your private tracking notes.');
   return {status:'answered',answer:intro+'\n\n['+citation.title+']('+citation.url+')',citations:[citation],
     suggestedQuestions:[],grounding:{source:'directory',webSearched:false}};
 }

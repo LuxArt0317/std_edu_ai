@@ -20,7 +20,7 @@ import {elearningCatalogBoundary,elearningMetadataBoundary} from './accountElear
 import {elearningCatalogGuestRoute,isElearningCatalogPageQuestion,selectElearningCatalogPage} from './elearningCatalogPageIntent.js';
 import {elearningMetadataGuestRoute,isElearningMetadataQuestion,selectElearningMetadata} from './elearningMetadataIntent.js';
 import {studentLeaveAssistantPlan,studentLeaveGuestAnswer} from './studentLeaveAssistantPlan.js';
-import {serviceNoteLookup,serviceNotePageNavigation} from './serviceNoteIntent.js';
+import {serviceNoteContextRoute,serviceNoteLookup,serviceNotePageNavigation,serviceOperationPageNavigation} from './serviceNoteIntent.js';
 import {serviceNoteGuide,serviceNoteNavigationAnswer} from './serviceNoteGuide.js';
 import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel} from './pendingFeesAnswer.js';
 import { calendarPath, schoolSubjectRecordsPath, wifiGuidePath } from '../src/features/public/affairs/studentServices.js';
@@ -150,7 +150,7 @@ function parse(body) {
     const catalogRoute=elearningCatalogGuestRoute(source.route), metadataRoute=elearningMetadataGuestRoute(source.route);
     const offeringRoute=catalogDetailGuestRoute(source.route);
     const entryRoute=campusEntryIntent(question,source.route)?.path??learningEntryIntent(question,source.route)?.context;
-    const route = source.route==='/account-status'?source.route:entryRoute??(offeringRoute?offeringRoute:isElearningMetadataQuestion(question,metadataRoute)?metadataRoute:
+    const route = source.route==='/account-status'?source.route:entryRoute??serviceNoteContextRoute(source.route)??(offeringRoute?offeringRoute:isElearningMetadataQuestion(question,metadataRoute)?metadataRoute:
         isElearningCatalogPageQuestion(question,catalogRoute)?catalogRoute:typeof source.route === 'string' && (/^\/school-affairs(?:\/search|\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/leave(?:\/(?:index|history|archive|periods)|\/edit\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/internship(?:\/(?:contract|self_assessment|company|directory))?\/?$/.test(source.route)||
@@ -491,9 +491,10 @@ export function createResearchAssistantHandler(dependencies = {}) {
         const internship=!input.images.length&&internshipAssistantPlan(input.question,input.route,input.history);
         if(internship){stream.send(200,internshipGuestAnswer(internship,input.question));return;}
         const noteDestination=!input.images.length
-            ?serviceNoteNavigationAnswer(input.question,serviceNotePageNavigation(input.question,input.route),false):null;
+            ?serviceNoteNavigationAnswer(input.question,serviceNotePageNavigation(input.question,input.route),false)
+                ??serviceNoteNavigationAnswer(input.question,serviceOperationPageNavigation(input.question,input.route),false,false):null;
         if(noteDestination){
-            stream.progress('service-note-navigation','Found the local note page','The service directory confirmed where to sign in.','complete');
+            stream.progress('service-note-navigation','Found the local service page','The service directory confirmed where to sign in.','complete');
             stream.send(200,noteDestination);
             return;
         }
@@ -628,12 +629,16 @@ export function createResearchAssistantHandler(dependencies = {}) {
             stream.send(200,clubOfficerGuide(input.question,officer));
             return;
         }
+        const clubs = !kind.irrelevant && !input.images.length ? clubIntent(input.question,input.route) : null;
+        if (clubs === 'equipment') {
+            stream.send(200,clubGuide(input.question,clubs));
+            return;
+        }
         const studentClub = !kind.irrelevant && !input.images.length ? clubStudentQuestion(input.question) : null;
         if (studentClub && studentClub!=='my-attendance') {
             stream.send(200,clubStudentGuide(input.question,studentClub));
             return;
         }
-        const clubs = !kind.irrelevant && !input.images.length ? clubIntent(input.question) : null;
         if (clubs) {
             stream.send(200,clubGuide(input.question,clubs));
             return;

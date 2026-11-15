@@ -86,12 +86,13 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
     return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress);
   const officer = !images.length ? clubOfficerQuestion(question) : null;
   if (officer) return clubOfficerGuide(question,officer,true);
+  const clubs = !images.length ? clubIntent(question,route) : null;
+  if (clubs === 'equipment') return clubGuide(question, clubs, true);
   const studentClub = !images.length ? clubStudentQuestion(question) : null;
   if (studentClub && studentClub!=='my-attendance') {
     onProgress?.({kind:'student-clubs',label:'Checking club records',detail:'Using your School Affairs session.',status:'running'});
     return answerStudentClubs(data.session.user.id,question,studentClub,signal);
   }
-  const clubs = !images.length ? clubIntent(question) : null;
   if (clubs) return clubGuide(question, clubs, true);
   const elearning=elearningQuestion(question,route);
   if(elearning)return elearningGuide(question,elearning,true);
