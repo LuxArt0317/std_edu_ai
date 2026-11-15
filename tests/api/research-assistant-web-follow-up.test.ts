@@ -160,12 +160,14 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
     }]});
   };
   const run = createResearchAssistantHandler({
-    readSources: (citations,deadline) => readVerificationSources(citations,deadline,{
+    readSources: (citations,deadline,options) => readVerificationSources(citations,deadline,{
+      ...options,
       captures:[],
       acquire: async url=>{
         acquiredUrls.push(url);
         if (outcome === 'unreadable-tool-link' || ((outcome === 'transient-lead' || outcome === 'transient-initial' || outcome === 'transient-uncited') && url === officialNotice
-          && acquiredUrls.filter(visited => visited === officialNotice).length === 1)) throw Error('Controlled source read failure');
+          && acquiredUrls.filter(visited => visited === officialNotice).length === 1))
+          throw Object.assign(new Error('Controlled source read failure'),{code:'ECONNRESET'});
         const content = new Map([
           [officialDirectory,directoryContent], [officialNotice,noticeContent], [officialOffice,officeContent],
           [eventCalendar,outcome.startsWith('mirror') ? officeContent : calendarContent],
@@ -502,17 +504,25 @@ function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review
       }
       if(outcome==='bootstrap-alternate'){
         assert.deepEqual(urls,reads.length<=2?[eventCalendar,officialDirectory]:[officialNotice]);
+        if(reads.length<=2)urls.forEach(url=>options?.onRetryableFailure?.(url));
         return citations.filter(citation=>citation.url===officialNotice).map(citation=>({id:citation.chunkId,url:citation.url,content:noticeContent}));
       }
       if(outcome==='bootstrap-next-lead'){
-        if(reads.length===1){assert.deepEqual(urls,otherLeads);return [];}
+        if(reads.length===1){
+          assert.deepEqual(urls,otherLeads);
+          urls.forEach(url=>options?.onRetryableFailure?.(url));
+          return [];
+        }
         assert.deepEqual(urls,[officialNotice,officialDirectory,...otherLeads.slice(0,2)]);
         return citations.filter(citation=>citation.url===officialNotice).map(citation=>({id:citation.chunkId,url:citation.url,content:noticeContent}));
       }
       assert.deepEqual(urls,leadOnly?[officialNotice,officialDirectory]:
         [failedRefresh && searches.length === 1 ? officialDirectory : officialNotice]);
-      if(outcome==='bootstrap-budget'){elapsed=44_001;return [];}
-      if(outcome==='bootstrap-unreadable'||outcome==='bootstrap-reread'&&reads.length===1)return [];
+      if(outcome==='bootstrap-budget'||outcome==='bootstrap-unreadable'||outcome==='bootstrap-reread'&&reads.length===1){
+        if(outcome==='bootstrap-budget')elapsed=44_001;
+        urls.forEach(url=>options?.onRetryableFailure?.(url));
+        return [];
+      }
       return citations.map(citation=>({id:citation.chunkId,url:citation.url,content:citation.url===officialDirectory?directoryContent:noticeContent}));
     },
   });
@@ -975,6 +985,81 @@ test('a verified public limitation can advance with a fresh school source and ke
     assert.equal(answer.citations[0].url,complete?officialNotice:officialDirectory);
     assert.doesNotMatch(JSON.stringify(answer),/PRIVATE_GAP_LABEL/u);
     assert.ok(!progress.some(step=>step.kind==='verification-stop'));
+  }
+});
+
+test('an evergreen omission gets another review after a bounded temporary source reread',async()=>{
+  const urls=[officialDirectory,officialOffice,eventCalendar];
+  const facts=['The STU library archive exhibition has free admission.',
+    'Visitors enter through the North Reading Room.','Visitors bring school identification.'];
+  const question='For the STU library archive exhibition, what are the admission, entrance, and visitor identification requirements?';
+  const outcomes=['reset','server-busy','still-unavailable','time','forbidden','missing','rate-limit','login',
+    'malformed','duplicate','unclassified'] as const;
+  for(const outcome of outcomes){
+    configured();
+    const started=originalNow();
+    let elapsed=0,searches=0,reviews=0,corrections=0;
+    Date.now=()=>started+elapsed;
+    const reads=[0,0,0];
+    const encode=(text:string)=>new TextEncoder().encode('<html><main><p>'+text+'</p></main></html>');
+    const recovered=outcome==='reset'||outcome==='server-busy';
+    const run=createResearchAssistantHandler({
+      readSources:(citations,deadline,options)=>readVerificationSources(citations,deadline,{
+        ...options,captures:[],acquire:async url=>{
+          const index=urls.indexOf(url);
+          assert.ok(index>=0);
+          reads[index]++;
+          if(index!==2||(recovered&&reads[index]===2))return {bytes:encode(facts[index]),mimeType:'text/html',finalUrl:url};
+          if(outcome==='duplicate')return {bytes:encode(facts[1]),mimeType:'text/html',finalUrl:url};
+          if(outcome==='malformed')return {bytes:encode(facts[index]),mimeType:'image/png',finalUrl:url};
+          if(outcome==='login')return {bytes:encode(facts[index]),mimeType:'text/html',finalUrl:'https://www.lib.stu.edu.tw/login/'};
+          const unavailable:Partial<Record<(typeof outcomes)[number],number>>={'server-busy':503,forbidden:403,missing:404,'rate-limit':429};
+          const statusCode=unavailable[outcome];
+          if(statusCode)throw Object.assign(new Error('Controlled HTTP failure'),{statusCode});
+          if(outcome==='unclassified')throw new Error('Controlled unclassified failure');
+          throw Object.assign(new Error('Controlled network failure'),{code:'ECONNRESET'});
+        },
+      }),
+    });
+    globalThis.fetch=async(input,init)=>{
+      const url=String(input);
+      if(url.endsWith('/embeddings'))return Response.json({data:[{embedding:Array(1536).fill(0)}]});
+      if(url.includes('/rpc/'))return Response.json([]);
+      assert.ok(url.endsWith('/v1/responses'),url);
+      const call=JSON.parse(String(init?.body)),name=call.text.format.name;
+      if(name==='stu_web_answer'){
+        searches++;
+        return Response.json(searches===1?searchPayload(urls,facts[0]+' The entrance and identification requirements remain unverified.',[urls[0]]):{output:[]});
+      }
+      const evidence=JSON.parse(call.input[0].content[0].text).evidence as Array<{url:string;id:string;content:string}>;
+      const ordered=evidence.slice().sort((a,b)=>urls.indexOf(a.url)-urls.indexOf(b.url));
+      if(name==='correct_grounded_answer'){
+        corrections++;
+        assert.equal(ordered.length,corrections+1);
+        const limitation=ordered.length===2?' I could not verify the visitor identification requirement.':'';
+        return provider({status:'answered',answer:ordered.map(source=>facts[urls.indexOf(source.url)]).join(' ')+limitation,
+          sourceIds:ordered.map(source=>source.id)});
+      }
+      assert.equal(name,'answer_evidence_review');
+      reviews++;
+      assert.equal(ordered.length,reviews);
+      if(outcome==='time'&&reviews===2)elapsed=43_000;
+      const missing=[['entrance','visitor identification'],['visitor identification'],[]][reviews-1];
+      return provider({supported:true,answersQuestion:true,missingRequestedDetails:missing,
+        claims:ordered.map(source=>({claim:facts[urls.indexOf(source.url)],supported:true,evidenceId:source.id,quotes:[source.content],jsonPaths:[]}))});
+    };
+    const progress:Progress[]=[];
+    const answer=await invoke({question},run,'controlled-evergreen-reread-'+outcome,progress);
+    assert.deepEqual(reads,[1,1,recovered||outcome==='still-unavailable'?2:1],outcome);
+    assert.equal(searches,outcome==='still-unavailable'?2:1,outcome);
+    assert.equal(reviews,recovered?3:2,outcome);
+    assert.equal(corrections,reviews-1,outcome);
+    assert.deepEqual(answer.verification,{status:'verified',attempts:reviews},outcome);
+    assert.ok(answer.answer.includes(facts[1]),outcome);
+    assert.equal(answer.answer.includes(facts[2]),recovered,outcome);
+    assert.equal(answer.answer.includes('I could not verify the visitor identification requirement.'),!recovered,outcome);
+    assert.deepEqual(answer.citations.map((citation:{url:string})=>citation.url).sort(),urls.slice(0,reviews).sort(),outcome);
+    assert.equal(progress.some(step=>step.kind==='verification-partial-follow-up-3'),recovered||outcome==='still-unavailable',outcome);
   }
 });
 

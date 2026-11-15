@@ -6,6 +6,14 @@ import { isSchoolSignInDestination, officialSchoolLeadUrl } from './publicSchool
 import { isOfficialLibraryHoursLead, isOfficialLibraryLead } from './publicLibrarySources.js';
 
 const accessRequired = Symbol('school sign-in required');
+const temporaryHttpStatuses = new Set([408, 500, 502, 503, 504]);
+const temporaryNetworkCodes = new Set(['ABORT_ERR', 'EAI_AGAIN', 'ECONNRESET', 'ETIMEDOUT']);
+
+function isTemporaryAcquisitionFailure(error) {
+  if (Number.isInteger(error?.statusCode)) return temporaryHttpStatuses.has(error.statusCode);
+  return error?.name === 'AbortError' || temporaryNetworkCodes.has(error?.code);
+}
+
 function stopAtSignIn(destination) {
   if (isSchoolSignInDestination(destination)) throw accessRequired;
 }
@@ -48,8 +56,10 @@ export async function readVerificationSources(citations, deadline, dependencies=
     const url=safeWebSource(citation.url);
     if(!url||isSchoolSignInDestination(url)||deadline-Date.now()<1500)throw new Error('No public source');
     let contents;
+    let acquiredLive = false;
     try {
       const acquired=await (dependencies.acquire||acquireHttpsSource)(url,{timeoutMs:Math.min(5000,deadline-Date.now()),onRedirect:stopAtSignIn});
+      acquiredLive = true;
       stopAtSignIn(acquired.finalUrl);
       if(isSchoolLoginDocument(acquired,url))throw accessRequired;
       if(isLibraryChallenge(acquired.bytes,acquired.mimeType,url))throw new Error('Public source requires browser verification');
@@ -62,7 +72,14 @@ export async function readVerificationSources(citations, deadline, dependencies=
       if(error===accessRequired&&officialSchoolLeadUrl(url)) {
         dependencies.onAccessRequired?.({url,title:citation.title});
       }
-      contents=await capturedSource(url,deadline,dependencies);
+      try {
+        contents=await capturedSource(url,deadline,dependencies);
+      } catch (captureError) {
+        // A page that was extracted unsuccessfully is different from a failed connection.
+        if (!acquiredLive && isTemporaryAcquisitionFailure(error) && officialSchoolLeadUrl(url))
+          dependencies.onRetryableFailure?.(url);
+        throw captureError;
+      }
     }
     return {id:citation.chunkId,...contents,url:citation.url,title:citation.title};
   }));

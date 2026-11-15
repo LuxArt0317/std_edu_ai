@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Reread a school page once after a temporary connection or server failure when an unanswered detail could still be verified. Keep checked facts when the reread cannot resolve the detail. [#100]
+
 - Follow an unread school source when a draft leaves the same details unanswered. Keep the best checked reply until new evidence verifies more. [#100]
 
 - Verify Student Leave dates and Moodle grades as separate records within one answer. Preserve the verified portion when one source is incomplete. [#100]
