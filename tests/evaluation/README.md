@@ -378,6 +378,9 @@ Use the authorized Development OIDC identity from the clean checkout of the pinn
 
 Run `node --experimental-strip-types tests/evaluation/run-certificate-award-preview.mjs --browser "$PREVIEW_ORIGIN" "$SOURCE_REVISION"` for the two original signed-in 52-1 browser questions. Each case owns a separate disposable-account lease and starts in Chromium on the independently pinned 52-1 page. It captures the exact native JSON GET, grades the saved rows and bank receipt limitation, journals the browser's own conversation save, then compares the rendered and restored answer, exact Activity, own HTTP readback, crossed HTTP denial, and SQL. A private report and verified cleanup are required for each case. This packet covers just those original browser case IDs and does not constitute the full assistant release gate.
 
+On a live exact OIDC Preview, `run.mjs --client-dispatch certificate-awards` can collect these two cases in-process after the release pin and before the regular account fixtures. It counts only current, independently graded browser results in that invocation. Reports remain available as historical evidence. Reading a report, running an offline harness, or collecting two cases from the 30-case bank cannot mark the system ready.
+
+
 
 ### Protected Preview club equipment readback
 

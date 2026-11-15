@@ -1,4 +1,4 @@
-import {readFile,writeFile,mkdir,rename,stat} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,mkdtemp,rename,stat} from 'node:fs/promises';
 import {createReadStream} from 'node:fs';
 import {resolve,relative,dirname} from 'node:path';
 import {pathToFileURL,fileURLToPath} from 'node:url';
@@ -38,6 +38,9 @@ import {buildGuidanceReviewBinding,validateGuidanceReview} from './guidance-rubr
 import {createPinnedDeploymentVerifier} from './pinned-deployment.mjs';
 import {createTrustedPreviewFetch,isEvaluationPreviewOrigin} from './vercel-preview-transport.mjs';
 import {assertPublishedNextClassClock} from './published-next-class.mjs';
+import {certificateAwardPreviewHash,certificateBrowserCaseIds} from './certificate-award-preview.mjs';
+
+const liveClientObservations=new WeakMap();
 
 process.umask(0o077);
 const root=fileURLToPath(new URL('../../',import.meta.url));
@@ -46,8 +49,8 @@ export function options(args){
   const result={mode:'inventory',only:'',domain:'',now:new Date().toISOString(),origin:'https://stu.best',maxCases:Infinity,intervalMs:5500};
   for(let i=0;i<args.length;i++){
     const key=args[i];
-    if(!['--mode','--case-family','--only','--domain','--now','--origin','--approved-preview-origin','--preview-auth','--out','--fixture-module','--max-cases','--browser-acceptance','--interval-ms','--review-report','--guidance-reviews','--reviewer'].includes(key)||!args[i+1]||args[i+1].startsWith('--'))throw new Error('Unknown or incomplete option: '+key);
-    const value=args[++i];result[{'--case-family':'caseFamily','--fixture-module':'fixtureModule','--max-cases':'maxCases','--browser-acceptance':'browserAcceptance','--interval-ms':'intervalMs','--review-report':'reviewReport','--guidance-reviews':'guidanceReviews','--approved-preview-origin':'approvedPreviewOrigin','--preview-auth':'previewAuth'}[key]||key.slice(2)]=value;
+    if(!['--mode','--case-family','--only','--domain','--now','--origin','--approved-preview-origin','--preview-auth','--out','--fixture-module','--max-cases','--browser-acceptance','--client-dispatch','--interval-ms','--review-report','--guidance-reviews','--reviewer'].includes(key)||!args[i+1]||args[i+1].startsWith('--'))throw new Error('Unknown or incomplete option: '+key);
+    const value=args[++i];result[{'--case-family':'caseFamily','--fixture-module':'fixtureModule','--max-cases':'maxCases','--browser-acceptance':'browserAcceptance','--client-dispatch':'clientDispatch','--interval-ms':'intervalMs','--review-report':'reviewReport','--guidance-reviews':'guidanceReviews','--approved-preview-origin':'approvedPreviewOrigin','--preview-auth':'previewAuth'}[key]||key.slice(2)]=value;
   }
   if(!['inventory','retrieval','draft','live','review'].includes(result.mode))throw new Error('Mode must be inventory, retrieval, draft, live or review.');
   if(result.caseFamily!==undefined){
@@ -72,6 +75,8 @@ export function options(args){
   if(result.approvedPreviewOrigin&&(result.mode!=='live'||result.origin!==result.approvedPreviewOrigin||result.origin==='https://stu.best'))throw new Error('An approved Preview origin must equal the live target origin.');
   if(result.previewAuth!==undefined&&(result.previewAuth!=='oidc'||result.mode!=='live'
     ||result.approvedPreviewOrigin!==result.origin||!isEvaluationPreviewOrigin(result.origin)))throw new Error('Preview OIDC requires an explicitly approved exact project Preview.');
+  if(result.clientDispatch!==undefined&&(result.clientDispatch!=='certificate-awards'||result.mode!=='live'||result.previewAuth!=='oidc'))
+    throw new Error('Certificate browser dispatch requires a live, exact protected Preview with OIDC.');
   if(!Number.isFinite(Date.parse(result.now)))throw new Error('Provide an ISO evaluation time.');
   if(result.maxCases!==Infinity){result.maxCases=Number(result.maxCases);if(!Number.isInteger(result.maxCases)||result.maxCases<1)throw new Error('max-cases must be a positive integer.');}
   result.intervalMs=Number(result.intervalMs);
@@ -297,6 +302,29 @@ export function gradeRetrievalCase(testCase,evidence,metadata={}){
   }
   return {caseId:testCase.id,domain:testCase.domain,...metadata,execution:'deterministic',executed:true,passed:checks.every(row=>row.passed),failureKind:checks.some(row=>!row.passed)?'behavior':null,checks,failures:checks.filter(row=>!row.passed)};
 }
+export function verifiedCertificateBrowserObservation({result,question,sourceRevision,origin}){
+  const [row]=result.results;
+  const {cleanup,deployment}=result;
+  const dispatched=result.browserDiagnostics?.some(context=>context.observations.some(event=>
+    event.request==='certificate-answer'&&event.method==='GET'&&event.forwarded===true))===true;
+  const sha=value=>typeof value==='string'&&/^[a-f0-9]{64}$/u.test(value);
+  const passed=dispatched&&result.origin===origin&&result.sourceRevision===sourceRevision&&result.execution==='live-browser'
+    &&result.terminal===true&&result.caseIds.length===1&&result.caseIds[0]===question.id
+    &&result.suiteDigest===certificateAwardPreviewHash([question])&&sha(result.boundSuiteDigest)
+    &&result.liveAcceptance===true&&result.browserDispatchAcceptance===true&&deployment?.status==='finished'
+    &&deployment.sourceRevision===sourceRevision&&deployment.origin===origin&&deployment.completed===2
+    &&row?.caseId===question.id&&result.results.length===1&&row.passed===true
+    &&row.native?.passed===true&&row.native.requestDigest===row.requestDigest&&row.native.responseDigest===row.responseDigest
+    &&sha(row.requestDigest)&&sha(row.responseDigest)&&row.browserTurn?.answerRequests===1&&row.browserTurn.saveRequests===1
+    &&row.browserRestore?.restoreRequests===1&&row.readback?.own===true&&row.readback.crossed===true
+    &&row.readback.version===1&&sha(row.readback.messageDigest)&&isDeepStrictEqual(row.before,row.after)
+    &&cleanup.verified===true&&cleanup.protectedOwnerUnchanged===true&&cleanup.certificateAwardPreviewCleanup===true
+    &&cleanup.certificateAwardCatalogUnchanged===true&&cleanup.conversationCleanup?.verified===true
+    &&cleanup.conversationCleanup.conversationRows===0;
+  return {id:question.id,dispatched,passed:Boolean(passed),cleanupVerified:cleanup.verified===true,
+    reportDigest:hash(result),requestDigest:row?.requestDigest??null,responseDigest:row?.responseDigest??null};
+}
+
 export function assessRun(report,{cases,inventory,requestedSuite,sourceRevision,browserAcceptance}){
   const assessment=assessCoverage({cases,results:report.results,inventory,requestedSuite,sourceRevision,browserAcceptance,requireLive:true});
   const integrity=[];
@@ -355,12 +383,17 @@ export function assessRun(report,{cases,inventory,requestedSuite,sourceRevision,
   if(noteSetup.unboundCaseIds.length)integrity.push({id:'run.serviceNoteFixtureUnbound',
     detail:'Service-note companion and source-failure cases retain their independent fixture requirements.'});
   if(inventory.clientDispatch?.questions.length){
-    const missing=inventory.clientDispatch.questions.map(item=>item.id);
-    assessment.clientDispatch={total:missing.length,executed:0,passed:0,missing};
-    assessment.releaseReady=false;
-    assessment.passed=false;
-    assessment.releaseBlockers.push('client_dispatch_acceptance_missing');
-    assessment.failures.push({id:'client_dispatch_acceptance_missing',detail:'The native browser dispatch questions require independent end-to-end execution. Graph API results do not satisfy them.'});
+    const questions=inventory.clientDispatch.questions.map(item=>item.id);
+    const observations=liveClientObservations.get(report)??[];
+    const passed=observations.filter(item=>item.passed);
+    const missing=questions.filter(id=>!passed.some(item=>item.id===id));
+    assessment.clientDispatch={total:questions.length,executed:observations.filter(item=>item.dispatched).length,passed:passed.length,missing};
+    if(missing.length){
+      assessment.releaseReady=false;
+      assessment.passed=false;
+      assessment.releaseBlockers.push('client_dispatch_acceptance_missing');
+      assessment.failures.push({id:'client_dispatch_acceptance_missing',detail:'The native browser dispatch questions require independent end-to-end execution. Graph API results do not satisfy them.'});
+    }
   }
   if(report.runFailure)integrity.push({id:'run.executionFailed',detail:report.runFailure});
   if(report.results.some(row=>row.response?.fixtureIntegrityFailed))integrity.push({id:'run.fixtureReadbackFailed',detail:'Post-request fixture integrity could not be verified.'});
@@ -468,6 +501,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
     persist=dependencies.saveReport||saveReport,
     loadAdapter=dependencies.loadFixtureAdapter||(path=>import(pathToFileURL(path).href)),log=dependencies.log||console.log;
   const opt=options(args),identity=await identify();
+  if(opt.clientDispatch&&Object.keys(dependencies).length)throw new Error('Signed browser dispatch cannot run with injected dependencies.');
   if(opt.mode==='review'&&Object.keys(dependencies).length)throw new Error('Saved live reports cannot be reviewed with injected dependencies.');
   if(opt.mode==='review')return reviewSavedReport(opt,identity);
   const feeOnly=opt.caseFamily==='fee-remission',assignmentListOnly=dtmAssignmentListFamilies.includes(opt.caseFamily);
@@ -521,7 +555,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
     await persist(out,report);log(JSON.stringify({mode:opt.mode,cases:suite.cases.length,services:suite.inventory.services.length,tools:suite.inventory.tools.length,publicPages:suite.inventory.publicPages.length,report:relative(root,out),releaseReady:false}));return report;
   }
   const controller=new AbortController();const interrupt=()=>controller.abort();process.once('SIGINT',interrupt);process.once('SIGTERM',interrupt);
-  let adapter,deploymentGate;const pace=dependencies.pace||createLiveRequestPacer(opt.intervalMs);
+  let adapter,deploymentGate,browserCleanupPending=false;const pace=dependencies.pace||createLiveRequestPacer(opt.intervalMs);
   let fetchImpl=dependencies.fetchImpl||globalThis.fetch;
   try{
     if(opt.mode==='live'){
@@ -544,6 +578,28 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       report.bindingPending=selected.some(row=>row.fixtureRequirement==='published_catalog_binding');
       if(report.bindingPending){report.templateSuiteHash=report.suiteHash;report.suiteHash=null;}
       await persist(out,report);
+      if(opt.clientDispatch){
+        const {runCertificateAwardPreview}=await import('./live-fixtures.mjs');
+        const observations=[];
+        liveClientObservations.set(report,observations);
+        for(const id of certificateBrowserCaseIds){
+          const question=suite.inventory.clientDispatch.questions.find(item=>item.id===id);
+          if(!question)throw new Error('A frozen certificate browser case is missing from the inventory.');
+          await deploymentGate.assertCurrent();
+          await mkdir(dirname(out),{recursive:true,mode:0o700});
+          const directory=await mkdtemp(resolve(dirname(out),'client-certificate-'));
+          browserCleanupPending=true;
+          const result=await runCertificateAwardPreview({origin:opt.origin,sourceRevision:identity.sourceRevision,
+            previewToken:process.env.VERCEL_OIDC_TOKEN,browserCase:id,artifactDirectory:directory,
+            signal:AbortSignal.any([controller.signal,AbortSignal.timeout(5*60_000)]),
+            onCheckpoint:value=>saveReport(resolve(directory,'report.json'),value)});
+          browserCleanupPending=result.cleanup.verified!==true;
+          observations.push(verifiedCertificateBrowserObservation({result,question,sourceRevision:identity.sourceRevision,origin:opt.origin}));
+          report.clientDispatchRun=observations.map(item=>({...item}));
+          await persist(out,report);
+          if(browserCleanupPending)throw new Error('Certificate browser fixture disposal needs reconciliation before another fixture starts.');
+        }
+      }
       if(opt.fixtureModule&&fixtureCases.length&&!fixtureCases.every(row=>isClubAttendanceCase(row)&&row.fixtureKey==='anonymous')){
         const modulePath=resolve(root,opt.fixtureModule);
         if(relative(resolve(root,'tests/evaluation'),modulePath).startsWith('..'))throw new Error('Fixture adapters must be repository evaluation modules.');
@@ -751,7 +807,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
     throw error;
   }finally{
     if(adapter?.cleanup){try{const proof=await adapter.cleanup();report.cleanup.complete=proof?.verified===true;report.cleanup.proof=proof?.verified===true?{verified:true}:null;}catch(error){report.cleanup.complete=false;report.cleanup.error=error instanceof Error?error.message:'Fixture cleanup failed';}}
-    else report.cleanup.complete=true;
+    else report.cleanup.complete=!browserCleanupPending;
     if(deploymentGate){
       try{await deploymentGate.finish();}catch(error){report.deploymentFailure??=error.message;}
       report.deploymentPin=deploymentGate.status();

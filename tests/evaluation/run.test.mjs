@@ -13,7 +13,7 @@ import {test} from 'node:test';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {createHash} from 'node:crypto';
-import {options,readReply,sourceIdentity,validateFixtureAdapter,deploymentIdentity,evaluationSuite,createLiveRequestPacer,validateCatalogCaseBinding,assertCatalogCaseBound,applyGuidanceReviews,assessRun} from './run.mjs';
+import {options,readReply,sourceIdentity,validateFixtureAdapter,deploymentIdentity,evaluationSuite,createLiveRequestPacer,validateCatalogCaseBinding,assertCatalogCaseBound,applyGuidanceReviews,assessRun,main} from './run.mjs';
 import {buildGuidanceReviewBinding} from './guidance-rubric.mjs';
 import {buildPublicCases} from './public-cases.mjs';
 import {buildAccountCases} from './account-cases.mjs';
@@ -41,6 +41,16 @@ test('CLI rejects unknown modes, malformed limits, missing values and invalid da
   assert.equal(options(['--mode','live','--max-cases','3']).maxCases,3);
   for(const args of [['--unsafe','yes'],['--mode'],['--mode','--only','x'],['--mode','pretend'],['--max-cases','0'],['--max-cases','2.5'],['--max-cases','Infinity'],['--now','not-a-date']])assert.throws(()=>options(args),Error);
 });
+test('certificate dispatch is available only in the protected, non-injected live runner',async()=>{
+  const origin='https://stdedu-aaabbb111-v1-d286.vercel.app';
+  const args=['--mode','live','--origin',origin,'--approved-preview-origin',origin,'--preview-auth','oidc'];
+  const flag=['--client-dispatch','certificate-awards'];
+  assert.equal(options([...args,...flag]).clientDispatch,'certificate-awards');
+  for(const invalid of [['--mode','inventory'],['--mode','live'],args.slice(0,-2)])assert.throws(()=>options([...invalid,...flag]));
+  assert.throws(()=>options([...args,'--client-dispatch','arbitrary.json']));
+  await assert.rejects(main([...args,...flag],{sourceIdentity:async()=>({dirty:false})}),/injected dependencies/u);
+});
+
 test('independent review mode requires an explicit reviewer and separate report without executing a new selection',()=>{
   const args=['--mode','review','--review-report','artifacts/assistant-evaluation/original.json','--guidance-reviews','artifacts/assistant-evaluation/reviews.json','--reviewer','independent-qa','--out','artifacts/assistant-evaluation/reviewed.json'];
   assert.equal(options(args).mode,'review');
@@ -398,7 +408,9 @@ test('full bank includes every source page and catalog entry without duplicate c
   assert.deepEqual(suite.inventory.clientDispatch.verifiedDispatch.map(({graphTool})=>graphTool),['accountIdentity','clubAttendance','clubEquipment','courseCatalog','elearningCatalog','elearningMetadata','dtmAssignmentList','dtmMaterials','dtmSubmissionTiming','leaveRecords','venueRequests','internshipRecords','dtmAssignment','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation','learningSupport','studentConduct','serviceRecords','teachingFeedback','housing','housingApplications']);
   assert.ok(suite.inventory.clientDispatch.questions.every(row=>row.executed===false));
   assert.ok(suite.inventory.clientDispatch.questions.every(row=>!suite.cases.some(apiCase=>apiCase.id===row.id)));
-  const assessment=assessRun({results:[],cleanup:{complete:true},sourceUnchanged:true,dirty:false},{...suite,requestedSuite:'full',sourceRevision:'offline'});
+  const forged=suite.inventory.clientDispatch.questions.map(({id})=>({id,dispatched:true,passed:true,cleanupVerified:true}));
+  const assessment=assessRun({results:[],cleanup:{complete:true},sourceUnchanged:true,dirty:false,clientDispatchRun:forged},
+    {...suite,requestedSuite:'full',sourceRevision:'offline'});
   assert.equal(assessment.clientDispatch.executed,0);
   assert.equal(assessment.accountIdentitySetup.registered,7);
   assert.equal(assessment.accountIdentitySetup.liveEligible,0);

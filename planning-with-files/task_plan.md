@@ -1080,7 +1080,8 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Repair the specific named-course term absence hours failure, the original compact November payment question, and the 12 frozen Course Selection questions in controlled and migrated tests.
 - [x] Replay all ten Attendance cases, all 12 Course Selection cases and six funded or verified-empty signed monthly answers on protected `5e6af59` with 33 exact pins and three verified cleanups.
 - [ ] Verify the migration-dependent rental action and Learning Support in isolated hosting.
-- [ ] Mount the first genuine 52-1 signed browser dispatch packet using the existing published certificate fixture and a fixed protected transport profile. Require exact JSON answer, rendered reply and persisted write binding with independent database readback.
+- [x] Mount and pass the two original 52-1 signed browser cases on exact `186f495`. Verify displayed text and Activity, the browser save, fresh-context restore, independent own/crossed readbacks and cleanup.
+- [ ] Verify the consolidated live evaluator records just the two protected certificate dispatch results in the full 30-case bank.
 - [ ] Complete signed browser dispatch observations before production acceptance. Use request-scoped server observation for zero-private-read assertions once a graph request is sent.
 
 ### Tutor Evaluation and tuition [Issue #100]

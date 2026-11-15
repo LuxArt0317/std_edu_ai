@@ -38,3 +38,5 @@ Earlier entries are preserved in [the November 16 archive](archive/progress_2026
 - 2026-11-16 [#100] Both `b156471` browser startup attempts stopped at a denied asset; no answer was sent and both fixture leases were cleared. An isolated shell probe confirmed the declared favicon, now admitted only as a same-origin PNG. 24 transport and asset checks passed.
 
 - 2026-11-16 [#100] Integrated the three frozen Tutor and named tuition questions plus the isolated paired record operator. All 1,970 API tests and both TypeScript checks passed. Protected replay will use a separate exact candidate after the active certificate lease.
+
+- 2026-11-16 [#100] Protected `186f495` passed both original certificate browser cases with exact answers, one save and one fresh restore per case, paired readback and exact disposal. The consolidated evaluator now has a proof-aware opt-in for the two cases. Focused runner checks passed 66/66.
