@@ -1071,14 +1071,19 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     ?exactClearanceVerification(question,fullRoute,history):null;
   if(exactClearance&&firstSupplemental.length===1){
     let current=firstSupplemental[0];
+    const matchesSelection=()=>{
+      try { return isDeepStrictEqual(JSON.parse(current?.evidence?.content??'null')?.selection,exactClearance.selection); }
+      catch(error){if(!(error instanceof SyntaxError))throw error;return false;}
+    };
     const render=()=>{
+      if(!matchesSelection())return null;
       try{
-        const candidate=formatExactClearanceAnswer(current,question,exactClearance);
+        const candidate=formatExactClearanceAnswer(current,question,exactClearance.refusal);
         return candidate&&answerLinksSupported(candidate.answer,[current.evidence])?candidate:null;
       }catch(error){if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;return null;}
     };
     const initial=render(),failed=current.readState==='unavailable';
-    const wrongSelection=!failed&&!isDeepStrictEqual(JSON.parse(current.evidence.content).selection,exactClearance.selection);
+    const wrongSelection=!failed&&!matchesSelection();
     if(initial||failed||wrongSelection){
       const fallback={status:'abstained',answer:'',citations:[],views:[]};
       const zh=supplementalAnswerLanguage(question)==='zh-TW';
