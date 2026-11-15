@@ -5,6 +5,7 @@ import {createResearchAssistantHandler} from '../../server/researchAssistantHand
 import {nativePageLookupContext} from '../../server/accountSupplementalLookup.js';
 import {planAccountLookup} from '../../server/answerVerificationAccount.js';
 import {buildAccountCases} from '../evaluation/account-cases.mjs';
+import {buildHealthExaminationCases} from '../evaluation/health-examination-cases.mjs';
 import {gradeCase} from '../evaluation/grading.mjs';
 
 const path='/school-affairs/services/36-1';
@@ -225,6 +226,67 @@ test('both compound orders and unavailable halves use two independently scoped c
       assert.ok(result.steps.some(step=>step.kind==='account-read:healthExaminations:1'&&step.status===(healthUnavailable?'unavailable':'complete')));
       assert.ok(result.steps.some(step=>step.kind==='account-read:charges:1'&&step.status===(chargeUnavailable?'unavailable':'complete')));
     },{mixed:true,healthUnavailable,chargeUnavailable});
+  }
+});
+
+test('named charges keep the exact health page, question order and deliberate health exclusions',async t=>{
+  const cases=buildHealthExaminationCases();
+  const calls:string[]=[],errors:unknown[]=[];
+  const priorKey=process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY='HEALTH_TEST_MODEL';
+  t.after(()=>{if(priorKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=priorKey;});
+  let targetPage=1;
+  const intercept:typeof fetch=async(input,init)=>{
+    const url=new URL(String(input));
+    if(url.hostname==='api.openai.com'){
+      assert.equal(targetPage,0,'Both exact mixed orders verify without the model.');
+      const request=JSON.parse(String(init?.body));
+      assert.equal(request.text.format.name,'answer_evidence_review');
+      const input=JSON.parse(request.input[0].content[0].text);
+      assert.deepEqual(input.evidence.map((row:{id:string})=>row.id),['account-scope','account:charges']);
+      assert.doesNotMatch(JSON.stringify(input),/health examination|Unrelated charge/u);
+      calls.push('review');
+      return Response.json({error:{code:'insufficient_quota',type:'insufficient_quota'}},{status:429});
+    }
+    assert.equal(url.origin,account.url,'No public research or external file call for an exact pair');
+    assert.equal(new Headers(init?.headers).get('authorization'),'Bearer '+account.token);
+    calls.push(url.pathname);
+    if(url.pathname.endsWith('/affairs_read_health_examinations')){
+      assert.ok(targetPage>0,'An explicit health exclusion forbids a metadata read.');
+      assert.equal(init?.body,JSON.stringify({p_offset:(targetPage-1)*25}));
+      const codes=targetPage===1?['QA HEALTH A-01','QA HEALTH A-02','QA HEALTH A-03']:['QA HEALTH PAGE 26'];
+      return Response.json({userId:owner,total:targetPage===1?3:26,rows:codes.map((examination_code,index)=>({
+        id:'36000000-0000-4000-8000-'+String(index+200).padStart(12,'0'),examination_code,
+        student_number:'PRIVATE HEALTH NUMBER A',student_name:'PRIVATE HEALTH NAME A',class_label:'PRIVATE HEALTH CLASS A',report_available:false,
+      }))});
+    }
+    assert.equal(init?.method,'GET');
+    if(url.pathname.endsWith('/affairs_students')){
+      assert.equal(url.searchParams.get('user_id'),'eq.'+owner);
+      return Response.json([{id:student,user_id:owner}]);
+    }
+    assert.equal(url.pathname,'/rest/v1/affairs_charges');
+    assert.equal(url.searchParams.get('student_id'),'eq.'+student);
+    const due={id:charge,student_id:student,label:'QA Health Tuition instalment',amount_due:28000,amount_paid:5000,currency:'TWD',due_on:null,source_mode:'sample'};
+    return Response.json([due,{...due,id:'37000000-0000-4000-8000-000000000002',label:'Unrelated charge',amount_due:123456}]);
+  };
+  t.mock.method(globalThis,'fetch',(...args:Parameters<typeof fetch>)=>intercept(...args).catch(error=>{errors.push(error);throw error;}));
+  for(const suffix of ['mixed-tuition','mixed-reversed','negative-health']){
+    const testCase=cases.find(row=>row.id==='account:health-examinations-'+suffix);
+    assert.ok(testCase);
+    targetPage=suffix==='negative-health'?0:suffix==='mixed-reversed'?2:1;
+    calls.length=0;
+    const actual=await call(handler(),testCase.question,testCase.route);
+    assert.equal(actual.status,200);
+    assert.deepEqual(actual.body.verification,{status:'verified',attempts:targetPage?1:2});
+    const graded=gradeCase(testCase,{body:actual.body,statusCode:actual.status,events:actual.steps,execution:'deterministic',fixtureKey:testCase.fixtureKey});
+    assert.equal(graded.passed,true,JSON.stringify(graded.failures));
+    const ownedReads=['/rest/v1/affairs_charges','/rest/v1/affairs_students'];
+    const expected=targetPage?[...ownedReads,'/rest/v1/rpc/affairs_read_health_examinations']:[...ownedReads,...ownedReads,'review'];
+    assert.deepEqual(calls.sort(),expected.sort());
+    assert.doesNotMatch(JSON.stringify(actual.body),/Unrelated charge|123,456|PRIVATE HEALTH/u);
+    assert.deepEqual(actual.body.views.map((view:{id:string})=>view.id),targetPage?['healthExaminations','charges']:['charges']);
+    assert.deepEqual(errors,[]);
   }
 });
 
