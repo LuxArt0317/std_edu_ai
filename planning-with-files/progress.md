@@ -18,3 +18,5 @@ Earlier entries are preserved in [the November 16 archive](archive/progress_2026
 - 2026-11-16 [#100] Integrated fallback for the mixed course/coaching provider outage. Local scoped and route-contract verification passed 29 checks. The protected run at `7868e8e` keeps its original revision.
 
 - 2026-11-16 [#100] Exact `7868e8e` completed the frozen teaching packet 13/13 and Quality. The published coaching baseline withheld after a correct course-only read and a provider-quota failure. Exact `1fc093f` verified and passed the same case with the scoped recovery and separate guidance review.
+
+- 2026-11-16 [#100] The scoped Counseling/tuition fallback, four native remote-enrollment scenarios, selected graduation status, and assistant access on two service notices passed local focused checks. Quality 43749820197 completed for `1fc093f`. Prepared a protected deployment to exercise the new routes and record readers in serial.

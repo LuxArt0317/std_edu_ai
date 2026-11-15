@@ -1,3 +1,7 @@
+## Staged signed-in recovery [Issue #100]
+
+The protected course/coaching recovery Quality run 43749820197 completed successfully. The next Preview stages exact reads for both Counseling and named tuition, Digital Academy enrollments plus unfinished DTM assignments, and graduation review status. Local acceptance covers reviewer rejection and quota loss, a partial account-source outage and crossed owners. Both School Affairs acknowledgment notices launched the assistant and restored focus in eight controlled desktop and phone cases. The protected packets remain separate from local acceptance. The Learning Support migration, positive housing and survey fixtures, fixed Taipei assignment windows and the complete production gate remain open.
+
 ## Cumulative signed-in Preview [Issue #100]
 
 The protected Teaching Feedback replay on `7868e8e` passed all 13 frozen questions, 56 release checks and verified fixture cleanup. Eleven cases made zero private reads, and two verified their exact empty saved histories. Quality 43749133851 passed. Report SHA-256 `a82412ab96622545133b0791f44043b229deb665ea23a510736e3be1113163d7`.
