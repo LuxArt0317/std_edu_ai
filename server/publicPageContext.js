@@ -85,6 +85,46 @@ export function institutionalPublicCapture(question) {
   return institution.test(text)&&facts.test(text)&&!otherScope.test(text) ? publicPageForRoute('/關於樹德/') : null;
 }
 
+/** Exact questions whose complete answer can be projected from the About page. */
+export function institutionalFactRequest(question) {
+  const text=String(question).normalize('NFKC').toLowerCase().trim().replace(/[?.。]+$/u,'');
+  if(/^(?:what does shu[- ]te university say about its founding and educational mission|when was shu[- ]te university founded and what is its educational mission)$/u.test(text))return 'founding-and-mission';
+  if(/^(?:what is (?:the motto of shu[- ]te university|shu[- ]te university['’]s motto)|(?:請問\s*)?樹德(?:科技大學|科大)的?校訓(?:是)?什麼)$/u.test(text))return 'motto';
+  return null;
+}
+
+export function institutionalFactAnswer(context,question) {
+  const request=institutionalFactRequest(question);
+  const page=publicPageForRoute('/關於樹德/');
+  if(!request||!context?.contentAvailable||!page||context.page.route!==page.route||context.page.source!==page.source
+    ||context.page.capturedOn!==page.capturedOn||context.evidence.url!==page.route
+    ||context.evidence.id!=='public-page:'+createHash('sha256').update(page.route).digest('hex').slice(0,24))return null;
+  let snapshot;
+  try{snapshot=JSON.parse(context.evidence.content);}catch{return null;}
+  if(snapshot?.contentStatus!=='verified_snapshot'||snapshot.localUrl!==page.route||snapshot.originalSource!==page.source
+    ||snapshot.capturedOn!==page.capturedOn||typeof snapshot.excerpt!=='string')return null;
+  const chinese=/\p{Script=Han}/u.test(question);
+  let answer;
+  if(request==='motto'){
+    const mottos=[...snapshot.excerpt.matchAll(/「([\p{Script=Han}、]{4,32})」的校訓/gu)];
+    if(mottos.length!==1)return null;
+    const [,motto]=mottos[0];
+    answer=chinese?`樹德科技大學的校訓是「${motto}」。`:`Shu-Te University lists its motto as 「${motto}」.`;
+  }else{
+    const approvals=[...snapshot.excerpt.matchAll(/民國([1-9]\d{1,2})年奉准設校招生/gu)];
+    if(approvals.length!==1||!snapshot.excerpt.includes('培養兼具人文與科技、組織領導與問題解決能力的專業人才')
+      ||!snapshot.excerpt.includes('落實現代大學理論與實務之平衡發展'))return null;
+    const rocYear=Number(approvals[0][1]);
+    answer=`Shu-Te University says it received approval to establish the school and admit students in ${rocYear+1911} (ROC year ${rocYear}). Its educational mission emphasizes the humanities, technology, leadership, and problem-solving, and balancing theory with practice.`;
+  }
+  const title=chinese?'關於樹德':'About Shu-Te University';
+  const provenance=chinese?`擷取日期：${page.capturedOn}`:`Source snapshot: ${page.capturedOn}.`;
+  return {status:'answered',answer:`${answer}\n\n[${title}](${page.route}) · ${provenance}`,
+    citations:[{chunkId:context.evidence.id,claim:answer,title,sourceName:`Public page snapshot · ${page.capturedOn}`,
+      url:page.route,locator:null,effectiveAt:null,reviewedAt:null}],
+    suggestedQuestions:[],grounding:{source:'public-page-context',webSearched:false,capturedOn:page.capturedOn,contentAvailable:true}};
+}
+
 async function captureBytes(response) {
   if(!response.body||Number(response.headers.get('content-length'))>maxCaptureBytes)throw new Error('capture_size');
   const reader=response.body.getReader(),chunks=[];
