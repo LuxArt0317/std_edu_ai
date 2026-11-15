@@ -2,6 +2,12 @@ import {schoolServiceEntries} from '../src/features/public/affairs/studentServic
 
 const services=new Map(schoolServiceEntries.map(entry=>[entry.id,entry]));
 const recordPaths=keys=>keys.map(key=>services.get(key)).filter(Boolean);
+const internationalLimits={
+  '31-1': {status:['此服務在 stu.best 備有私人追蹤備註。工作證效期、申請結果及續辦狀態無法在此確認。','This service stores private tracking notes in stu.best. I can’t verify your work permit expiry, application result or renewal here.'],
+    action:['這次未代您送出工作證續辦申請。','No work permit renewal was submitted.']},
+  '32-1': {status:['此服務在 stu.best 備有私人追蹤備註。愛校服務已認列時數、剩餘時數及登錄結果無法在此確認。','This service stores private tracking notes in stu.best. I can’t verify credited or remaining campus service hours, or an hours submission here.'],
+    action:['這次未代您登錄愛校服務時數。','No campus service hours were logged.']},
+};
 
 function serviceNoteCitation(entry,zh,requestSignIn){
   const url=requestSignIn?'/school-affairs/login?next='+encodeURIComponent(entry.localUrl):entry.localUrl;
@@ -26,6 +32,7 @@ export function serviceNoteGuide(question,scope,signedIn){
   const entries=recordPaths(scope.officialOnly?scope.boundaryKeys:scope.keys);
   const citations=scope.foreign?[]:entries.map(entry=>serviceNoteCitation(entry,zh,!signedIn&&!scope.officialOnly));
   const links=citations.map(({title,url})=>'['+title+']('+url+')').join(' · ');
+  const internationalLimit=scope.boundaryKeys.length===1?internationalLimits[scope.boundaryKeys[0]]:null;
   const answer=scope.foreign
     ?(zh?'我只能查詢您登入的 stu.best 帳戶，無法存取其他學生的私人備註。':'I can only check your signed-in stu.best account. I can’t show another student’s private notes.')
     :scope.invalidService
@@ -33,10 +40,11 @@ export function serviceNoteGuide(question,scope,signedIn){
     :scope.officialOnly
       ?scope.operation
         ?(zh?'我無法在對話中修改備註或代您向校方提交。您可在服務頁面管理私人備註。':'I cannot change the note in chat, and I cannot submit it to the university. You can edit your private note on the service page.')
-        :(zh?'這些服務在 stu.best 備有私人追蹤備註。校方結果、資格、核准或送件狀態無法在此確認。':'These services store private tracking notes in stu.best. I can’t verify an official decision, eligibility, approval or submission here.')
+        :(internationalLimit?.status[zh?0:1]??(zh?'這些服務在 stu.best 備有私人追蹤備註。校方結果、資格、核准或送件狀態無法在此確認。':'These services store private tracking notes in stu.best. I can’t verify an official decision, eligibility, approval or submission here.'))
       :scope.keys.length
         ?(zh?'登入 School Affairs 後，我可以查看您儲存的私人追蹤備註。':'Sign in to School Affairs and I can check the private tracking notes you saved.')
         :(zh?'已略過您要求不要查看的私人備註。':'I skipped the private notes you asked me to leave out.');
-  return {status:'handoff',answer:[answer,links].filter(Boolean).join('\n\n'),citations,suggestedQuestions:[],
+  const actionLimit=scope.officialOnly&&!scope.foreign&&scope.externalServiceAction?internationalLimit?.action[zh?0:1]:null;
+  return {status:'handoff',answer:[answer,actionLimit,links].filter(Boolean).join('\n\n'),citations,suggestedQuestions:[],
     grounding:{source:signedIn?'account':'assistant-help',webSearched:false}};
 }

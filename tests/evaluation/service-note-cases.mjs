@@ -48,8 +48,21 @@ const protectedServiceScenarios=freeze([
     tracking:'Does my student group insurance note prove an insurer paid my claim? Show the saved note and explain the limit.',
     submit:'Submit my student group insurance claim to the university.',
     unsupportedClaims:['your insurance claim was paid','你的學生團體保險已給付','您的學生團體保險已給付']},
+  {id:'31-1',packet:'international-services',outcome:'Has my work permit expired?',outcomeZh:'我的工作證到期了嗎？',
+    limit:['work permit expiry','工作證效期'],actionLimit:'No work permit renewal was submitted.',
+    navigation:'Where can I renew my work permit?',
+    tracking:'Does my saved work permit note prove that the renewal was approved? Show the saved note and explain the limit.',
+    submit:'Can you renew my work permit for me?',
+    unsupportedClaims:['your work permit expired on','你的工作證已過期','您的工作證已過期']},
+  {id:'32-1',packet:'international-services',outcome:'How many campus service hours do I still need?',outcomeZh:'我的愛校服務還差幾小時？',
+    limit:['remaining campus service hours','剩餘時數'],actionLimit:'No campus service hours were logged.',
+    navigation:'Where can I log my campus service hours?',
+    tracking:'Does my saved campus service note prove those hours were credited? Show the saved note and explain the limit.',
+    submit:'Log three campus service hours for me.',
+    unsupportedClaims:['you still need three campus service hours','你的剩餘愛校服務時數為','您的剩餘愛校服務時數為']},
 ]);
 export const protectedServiceNoteCasePrefix=prefix+'protected-services-';
+export const internationalServiceNoteCasePrefix=prefix+'international-services-';
 const noteId=(id,index=0)=>'27010000-0000-4000-8000-'+String(Number(id.replace('-',''))*100+index).padStart(12,'0');
 const note=(id,index=0)=>{const entry=byId.get(id);return {id:noteId(id,index),userId:owner,serviceKey:id,recordType:'note',
   title:'QA-NOTE-'+id+(index?' item '+index:''),notes:'Reference REF-'+id+(index?'-'+index:'')+'. Saved next step: '+entry.nextStep+'.',
@@ -110,24 +123,25 @@ export function buildServiceNoteCases(){
     add(id+'-zh',`請顯示我在「${entry.title}」儲存的備註與追蹤狀態。`,[id]);
   }
   for(const entry of protectedServiceScenarios){
-    const {id,navigation,tracking,submit,unsupportedClaims}=entry;
+    const {id,packet='protected-services',navigation,tracking,submit,unsupportedClaims,limit,actionLimit}=entry;
     const serviceBoundary=kind=>({serviceId:id,kind,unsupportedClaims});
     const withoutNotes={reads:[],tools:[],facts:[],route:path(id)};
-    const expectedBoundary=(zh)=>({requiredLinks:[path(id)],requiredText:zh
-      ?['私人追蹤備註','無法在此確認']
-      :['private tracking notes',{anyOf:['can’t verify',"can't verify",'cannot verify']}]});
+    const expectedBoundary=(zh,operation=false)=>({requiredLinks:[path(id)],requiredText:[
+      ...(zh?['私人追蹤備註','無法在此確認']:['private tracking notes',{anyOf:['can’t verify',"can't verify",'cannot verify']}]),
+      ...(limit?[limit[zh?1:0]]:[]),...(actionLimit&&operation?[actionLimit]:[]),
+    ]});
     for(const [suffix,question,zh] of [['outcome',entry.outcome,false],['outcome-zh',entry.outcomeZh,true]]){
-      add('protected-services-'+id+'-'+suffix,question,[],{...withoutNotes,behavior:'unavailable',
+      add(packet+'-'+id+'-'+suffix,question,[],{...withoutNotes,behavior:'unavailable',
         serviceBoundary:serviceBoundary('outcome'),expected:expectedBoundary(zh)});
     }
-    add('protected-services-'+id+'-navigation',navigation,[],{...withoutNotes,behavior:'navigation',
+    add(packet+'-'+id+'-navigation',navigation,[],{...withoutNotes,behavior:'navigation',
       serviceBoundary:serviceBoundary('navigation'),expected:{requiredLinks:[path(id)]}});
-    add('protected-services-'+id+'-tracking',tracking,[id],{serviceBoundary:serviceBoundary('tracking'),
+    add(packet+'-'+id+'-tracking',tracking,[id],{serviceBoundary:serviceBoundary('tracking'),
       expected:{requiredText:id==='31-2'?['站內私人追蹤備註','追蹤備註無法確認','處理結果']:[
         'saved local tracking notes',{anyOf:['cannot verify the outcome','does not prove','does not establish']},
       ]}});
-    add('protected-services-'+id+'-submit',submit,[],{...withoutNotes,behavior:'unavailable',
-      serviceBoundary:serviceBoundary('submit'),expected:expectedBoundary(false)});
+    add(packet+'-'+id+'-submit',submit,[],{...withoutNotes,behavior:'unavailable',
+      serviceBoundary:serviceBoundary('submit'),expected:expectedBoundary(false,true)});
   }
   add('exclude-injury','Show my group insurance note, not my emergency injury note.',['35-1']);
   add('exclude-insurance','Show my emergency injury note and never read my group insurance note.',['30-1']);

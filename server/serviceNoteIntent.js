@@ -31,6 +31,15 @@ const status = /\b(?:records?|history|policy|provider|insurer|expir\w*|reimburse
 const actual = /\b(?:approval|approved|official|eligib\w*|covered|coverage|paid|payment|payout|validat\w*|verified|authoriz\w*|diagnos\w*|inventory|available|reserved|returned|university)\b|校方|正式|核准|資格|理賠|理赔|保障|薪資|診斷|庫存/iu;
 const write = /^(?:(?:please|then|also|can you|could you|would you|help me)\s+)*(?:submit|file|send|create|save|update|edit|delete|cancel|withdraw|approve|pay|apply|change|mark)\b|^(?:請|请|幫我|帮我|請幫我)?(?:提交|送出|送件|新增|儲存|保存|修改|刪除|取消|撤回|核准|支付|繳費|申請|標記)/iu;
 const actionTarget = /\b(?:application|claim|injury|borrowing|rental|permit|hours?|record|notes?)\b|申請|事故|借用|租屋|工時|紀錄|備註/iu;
+const officeNavigation = /\b(?:where|how) (?:can|do|should) i (?:log|record|register|renew)\b|(?:去哪裡|去哪裏|去哪里|在哪裡|在哪里).{0,10}(?:登錄|登記|續辦|更新)/iu;
+const hours = /\b(?:campus|school)[- ]service hours?\b|(?:愛校服務|爱校服务).{0,12}(?:時數|时数|小時|小时)|(?:小時|小时).{0,6}(?:愛校服務|爱校服务)/iu;
+const internationalOutcome=(key,clause)=>key==='31-1'
+  ?/\brenew(?:ed|al)\b|有效(?:期(?:限)?)?|到期|過期|过期|期限|效期|展延|續辦/iu.test(clause)
+  :key==='32-1'&&hours.test(clause)&&/\b(?:how many|remaining|still need|left|credited|counted|logged)\b|還差|还差|還缺|还缺|剩餘|剩余|認列|認定|登錄|幾小時|几小时/iu.test(clause);
+const internationalOperation=(key,clause)=>key==='31-1'
+  ?/^(?:(?:please|can you|could you|would you|help me)\s+)*renew\b|^(?:請|请|幫我|帮我|替我)*(?:續辦|续办|展延|延長)/iu.test(clause)
+  :key==='32-1'&&hours.test(clause)
+    &&/^(?:(?:please|can you|could you|would you|help me)\s+)*(?:log|record|register)\b|^(?:請|请|幫我|帮我|替我)*(?:登錄|登录|登記|登记)/iu.test(clause);
 const follow = /^(?:(?:and|also|then)\s+)?(?:(?:what|how) about (?:the |my |its )?(?:status|reference|notes?|next step)|(?:what|which) (?:did i (?:save|record|write)|(?:note|reference|status) did i (?:save|record|write))|show (?:its|the|my) (?:notes?|saved reference|tracking status)|what is (?:its|the) (?:status|reference)|what (?:status|reference) did i (?:set|save|write|record) for it)$|^(?:那|還有)?(?:備註|筆記|追蹤狀態|編號|下一步)(?:呢|是什麼)?$/iu;
 const command = '(?:my|our|the|show|list|read|check|tell|include|what|which|when|how|where|is|am|do|did|can|never|do not|don[\'’]t|not|without|excluding|except|submit|create|delete|change|mark)';
 const split = new RegExp('[;；。!?！？\\n]|\\.(?=\\s|$)|[,，]\\s*(?='+command+'\\b)|\\b(?:also|but|then)\\s+(?='+command+'\\b)|\\s+(?:and|plus)\\s+(?='+command+'\\b)|(?<!\\bdo)\\s+(?=(?:not(?!\\s+only)|without|excluding|except)\\s+)|以及|還有|並且|但是|(?=排除|不含|不要)', 'iu');
@@ -88,10 +97,11 @@ export function serviceOperationPageNavigation(question,route=''){
   const clauses=sentenceParts(clean(question));
   if(clauses.length!==1)return null;
   const [clause]=clauses;
-  if(!navigation.test(clause)||note.test(clause)||negative.test(clause)||foreign(clause))return null;
+  if(note.test(clause)||negative.test(clause)||foreign(clause))return null;
   const keys=mentionedKeys(clause),scope=pathKey(route);
   if(keys.length!==1)return null;
   const [key]=keys;
+  if(!navigation.test(clause)&&!(['31-1','32-1'].includes(key)&&officeNavigation.test(clause)))return null;
   // Unqualified English equipment borrowing can describe the separate club system.
   if(key==='30-2'&&scope!==key&&!healthEquipment.test(clause))return null;
   return key;
@@ -104,7 +114,7 @@ export function serviceNoteLookup(question,route='',history=[]) {
   const antecedent=sentenceParts(latest).filter(clause=>note.test(clause)&&!negative.test(clause)&&!navigation.test(clause));
   const linked=antecedent.length===1?mentionedKeys(antecedent[0]):[];
   const keys=new Set(),boundaryKeys=new Set(),noteClauses=[],rest=[];
-  let foreignRequest=false,excluded=false,operation=false,invalidService=false,statusProjection=false,noteWriteJustSeen=false;
+  let foreignRequest=false,excluded=false,operation=false,externalServiceAction=false,invalidService=false,statusProjection=false,noteWriteJustSeen=false;
   for(const clause of clauses){
     const followsNoteWrite=noteWriteJustSeen;
     noteWriteJustSeen=false;
@@ -118,17 +128,21 @@ export function serviceNoteLookup(question,route='',history=[]) {
     if(savedOnly.test(clause)||keys.size&&sameNoteDetail.test(clause))continue;
     if(!direct.length&&(isOwnFeeBalanceQuestion(clause)||ownFeeBalanceLabel(clause)!==null)){rest.push(clause);continue;}
     const selected=direct.length?direct:matchesFollow&&linked.length?linked:(note.test(clause)&&!otherTopic.test(clause)||matchesFollow)&&routeScope?[routeScope]:[];
-    if(!selected.length||navigation.test(clause)){rest.push(clause);continue;}
+    if(!selected.length||navigation.test(clause)||selected.some(key=>['31-1','32-1'].includes(key))&&officeNavigation.test(clause)){rest.push(clause);continue;}
     if(negative.test(clause)){
       excluded=true;
       for(const key of selected)keys.delete(key);
       continue;
     }
-    if((note.test(clause)||status.test(clause)||write.test(clause)||matchesFollow)&&foreign(clause)||matchesFollow&&linked.length&&!direct.length&&foreign(antecedent[0])){foreignRequest=true;continue;}
-    if(write.test(clause)&&actionTarget.test(clause)||!note.test(clause)&&!matchesFollow&&own.test(clause)&&status.test(clause)){
+    const outcome=status.test(clause)||selected.some(key=>internationalOutcome(key,clause));
+    const externalAction=selected.some(key=>internationalOperation(key,clause));
+    const writes=write.test(clause)&&actionTarget.test(clause)||externalAction;
+    if((note.test(clause)||outcome||writes||matchesFollow)&&foreign(clause)||matchesFollow&&linked.length&&!direct.length&&foreign(antecedent[0])){foreignRequest=true;continue;}
+    if(writes||!note.test(clause)&&!matchesFollow&&own.test(clause)&&outcome){
       for(const key of selected)boundaryKeys.add(key);
-      noteWriteJustSeen=write.test(clause)&&note.test(clause);
+      noteWriteJustSeen=writes&&note.test(clause);
       operation ||= noteWriteJustSeen;
+      externalServiceAction ||= externalAction&&!noteWriteJustSeen;
       continue;
     }
     if((note.test(clause)||matchesFollow)&&(own.test(clause)||direct.length||matchesFollow||routeScope)){
@@ -142,7 +156,8 @@ export function serviceNoteLookup(question,route='',history=[]) {
   const selected=foreignRequest?[]:[...keys];
   const boundary=[...boundaryKeys];
   return {keys:selected,noteQuestion:noteClauses.filter(row=>row.selected.some(key=>keys.has(key))).map(row=>row.clause).join('\n'),
-    otherQuestion:rest.join('. ').replace(/[,，]+$/u,'').trim(),foreign:foreignRequest,excluded,invalidService,statusOnly:statusProjection,officialOnly:boundary.length>0&&!selected.length,operation,boundaryKeys:boundary};
+    otherQuestion:rest.join('. ').replace(/[,，]+$/u,'').trim(),foreign:foreignRequest,excluded,invalidService,statusOnly:statusProjection,
+    officialOnly:boundary.length>0&&!selected.length,operation,boundaryKeys:boundary,...(externalServiceAction?{externalServiceAction}:{})};
 }
 export function isServiceNoteEvidenceQuestion(question,route='',history=[]) {
   const lookup=serviceNoteLookup(question,route,history);

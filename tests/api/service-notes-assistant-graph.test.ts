@@ -130,9 +130,32 @@ test('natural injury, equipment, rental and insurance outcome questions keep the
   });
 });
 
+test('work permit and campus service questions keep their own destinations and require no account reads',async()=>{
+  const cases=[
+    ['31-1','我的工作證到期了嗎？',/工作證效期/u],
+    ['31-1','Was my work permit renewed?',/application result or renewal/u],
+    ['31-1','Can you renew my work permit for me?',/No work permit renewal was submitted/u],
+    ['32-1','How many campus service hours do I still need?',/remaining campus service hours/u],
+    ['32-1','我的愛校服務還差幾小時？',/剩餘時數/u],
+    ['32-1','Log three campus service hours for me.',/No campus service hours were logged/u],
+    ['32-1','幫我登錄 3 小時愛校服務。',/未代您登錄愛校服務時數/u],
+  ] as const;
+  for(const [key,question,phrase] of cases)await fakeSources({},async()=>{
+    for(const serve of [handler,createResearchAssistantHandler()]){
+      const reply=await ask(question,'/',[],serve);
+      assert.equal(reply.status,'handoff',question);
+      assert.match(reply.answer,phrase);
+      assert.equal(reply.grounding.webSearched,false);
+      assert.deepEqual(reply.citations.map((row:{url:string})=>row.url),[path(key)]);
+      assert.equal(reply.proposedAction,undefined);
+    }
+  });
+});
+
 test('service navigation uses the exact local route and preserves genuine club equipment navigation',async()=>{
   const cases=[['30-1','Where can I file the emergency injury report?'],['30-2','Where can I find equipment borrowing?'],
-    ['31-2','租屋登記在哪個頁面？'],['35-1','學生團體保險查詢在哪裡？']];
+    ['31-2','租屋登記在哪個頁面？'],['35-1','學生團體保險查詢在哪裡？'],
+    ['31-1','Where can I renew my work permit?'],['32-1','Where can I log my campus service hours?']];
   for(const [key,question] of cases)await fakeSources({},async()=>{
     assert.equal(isServiceNoteEvidenceQuestion(question,path(key)),true);
     const signed=await ask(question,path(key));

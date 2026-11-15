@@ -22,7 +22,7 @@ const fails=(row,answer)=>assert.equal(result(row,answer).passed,false,answer);
 
 test('standalone generator covers exactly seven current generic services and declares no mounted/live capability',()=>{
   const ids=['27-1','30-1','30-2','31-1','31-2','32-1','35-1'];
-  assert.deepEqual(manifest.services.map(row=>row.id),ids);assert.equal(cases.length,100);
+  assert.deepEqual(manifest.services.map(row=>row.id),ids);assert.equal(cases.length,110);
   assert.equal(new Set(cases.map(row=>row.id)).size,cases.length);
   for(const id of ids){const entry=schoolServiceEntries.find(row=>row.id===id);assert.equal(entry.localUrl,'/school-affairs/services/'+id);
     assert.equal(entry.title,manifest.services.find(row=>row.id===id).title);
