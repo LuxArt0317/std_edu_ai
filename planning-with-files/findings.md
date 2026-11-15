@@ -348,3 +348,9 @@ The housing application receipt and bed readers can both contribute evidence in 
 ## Moodle assignment-list sources [Issue #100]
 
 The course list uses the exact course in the URL. My assignments uses personal courses if any exist, including when those courses have zero matches. If none exist, it uses the saved sample courses. The UI renders tracker rows from School Affairs assignments with a Moodle course. The separate native assignment detail, submission workspace and grade report supply their own fields. The assistant's two owner qualifications match the course and student to the verified caller, even for an administrator.
+
+## Public recovery and exact grade facts [Issue #100]
+
+A passing review can still leave a requested detail unresolved. LangGraph keeps the best verified answer and can follow a distinct source when coverage improves or a proposed correction is rejected for a specific reason. The same four-check and deadline bounds apply. The third real review recovered after two failed checks in a pinned OneDrive replay. Another pinned replay used the known gated link when searches returned no usable evidence. A subsequent recovery uses a distinct publisher only when the exact indexed notice is gated and sufficient time remains.
+
+The library’s own FAQ and reservations are useful navigation even when an automated read is gated. Source contents support factual claims only after an independent read. Complete native Moodle availability, overview, totals and requested feedback/weights can be verified directly against the typed authorized record and exact response location. Hosted variability in prose motivated the direct projection. Separate hosted packets verify the case outcomes and paired fixture cleanup.
