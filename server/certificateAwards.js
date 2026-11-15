@@ -1,6 +1,6 @@
 import {AffairsWorkspaceError} from './affairsWorkspace.js';
 import {feeRemissionUuid as uuid,readFeeRemissionJson} from './feeRemissionContract.js';
-import {certificateAwardPath,certificateAwardScope,certificateAwardLabels,certificateAwardManagerOps,
+import {certificateAwardBankReceiptNote,certificateAwardBankReceiptQuestion,certificateAwardPath,certificateAwardScope,certificateAwardLabels,certificateAwardManagerOps,
   certificateAwardStudentOps} from './certificateAwardsContract.js';
 
 const invalid=()=>new AffairsWorkspaceError('請檢查證照申請欄位。',400);
@@ -18,10 +18,10 @@ async function rpc(account,method,body){
   return readFeeRemissionJson(response);
 }
 export async function readCertificateAward(account,query){
-  const {scope,view,user_id,id,answer,code,name,level,issuer,page,...extra}=query;
+  const {scope,view,user_id,id,answer,bank_receipt,code,name,level,issuer,page,...extra}=query;
   if(scope!==certificateAwardScope||Object.keys(extra).length)throw invalid();
   if(view==='catalog'){
-    if(user_id!==undefined||id!==undefined||answer!==undefined||
+    if(user_id!==undefined||id!==undefined||answer!==undefined||bank_receipt!==undefined||
       ![code,name,level,issuer,page].every(value=>value===undefined||typeof value==='string'&&value.length<=160)||
       !/^\d{0,12}$/u.test(code??'')||!/^(?:0|[1-9]\d{0,2})$/u.test(page??'0')||Number(page??0)>200)throw invalid();
     return rpc(account,'affairs_certificate_catalog_search',{
@@ -30,7 +30,7 @@ export async function readCertificateAward(account,query){
   }
   if([code,name,level,issuer,page].some(value=>value!==undefined)||!['mine','manage'].includes(view)||
     id!==undefined&&!uuid(id)||(view==='manage'?(!uuid(user_id)||answer!==undefined):user_id!==undefined)||
-    answer!==undefined&&!['zh','en'].includes(answer))throw invalid();
+    answer!==undefined&&!['zh','en'].includes(answer)||bank_receipt!==undefined&&(bank_receipt!=='requested'||answer===undefined))throw invalid();
   const selectedAnswer=answer!==undefined&&id!==undefined;
   // The existing status-only RPC projection is for the account-wide list.
   // A selected answer uses the private record read and projects only status here.
@@ -52,10 +52,12 @@ export async function readCertificateAward(account,query){
     return '- '+row.name.replace(/[\r\n[\]<>]/gu,' ')+' · '+certificateAwardLabels[row.status][lang]+
       (row.wants_award&&row.award_amount!==null?' · NT$'+Number(row.award_amount).toLocaleString('en-US'):'');
   });
-  return {status:'answered',answer:[summary,items.join('\n'),`[${title}](${url})`].filter(Boolean).join('\n\n'),
+  const bankNote=bank_receipt==='requested'?certificateAwardBankReceiptNote[lang]:null;
+  const activity=[{kind:'certificate-awards',label:title,detail:summary,status:'complete'}];
+  if(bankNote)activity.push({kind:'certificate-awards-bank-receipt',label:zh?'入帳確認':'Bank receipt confirmation',detail:bankNote,status:'unavailable'});
+  return {status:'answered',answer:[summary,items.join('\n'),bankNote,`[${title}](${url})`].filter(Boolean).join('\n\n'),
     citations:[{chunkId:'account:certificate-awards',claim:summary,title,url,sourceName:'My stu.best records'}],
-    suggestedQuestions:[],grounding:{source:'account',webSearched:false},
-    activity:[{kind:'certificate-awards',label:title,detail:summary,status:'complete'}]};
+    suggestedQuestions:[],grounding:{source:'account',webSearched:false},activity};
 }
 export async function changeCertificateAward(account,operation,payload,admin=false){
   if(!(admin?certificateAwardManagerOps:certificateAwardStudentOps).includes(operation)||!payload||
@@ -67,7 +69,8 @@ export function certificateAwardGuide(question,intent){
   const url=intent==='status'?'/school-affairs/login?next='+encodeURIComponent(certificateAwardPath):certificateAwardPath;
   const summary=intent==='status'?(zh?'登入後可查詢您的證照申請狀態。':'Sign in to check your certificate application status.'):
     (zh?'選擇證照，填寫取得日期，上傳 JPG 或 PDF 證明，再確認申請。':'Select the certificate, enter the date earned, attach JPG or PDF proof, and confirm the application.');
-  return {status:intent==='status'?'handoff':'answered',answer:summary+'\n\n'+`[${title}](${url})`,
+  const bankNote=intent==='status'&&certificateAwardBankReceiptQuestion(question)?certificateAwardBankReceiptNote[zh?0:1]:null;
+  return {status:intent==='status'?'handoff':'answered',answer:[summary,bankNote,`[${title}](${url})`].filter(Boolean).join('\n\n'),
     citations:[{chunkId:'directory:certificate-awards',claim:summary,title,url,sourceName:'School Affairs'}],
     suggestedQuestions:[],grounding:{source:'directory',webSearched:false}};
 }

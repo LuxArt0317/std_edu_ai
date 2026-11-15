@@ -7,6 +7,8 @@
 
 - Verify the selected certificate award separately from the aggregate menu and check both owned and crossed status requests. [#100]
 
+- Answer certificate award status and saved amounts from the selected record. Explicitly mark bank receipt as unverified when asked. [#100]
+
 - Evaluate both question orders that combine Student Leave and Moodle grades with independently checked ownership and source evidence. [#100]
 
 - Verify capped teaching feedback and mixed course questions against separate saved records. Ask for clarification before reading ambiguous requests, and confirm explicit exclusions without reading records. [#100]

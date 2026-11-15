@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {certificateAwardPath,certificateAwardQuestion,certificateAwardRecordId,certificateAwardScope} from '../../server/certificateAwardsContract.js';
+import {certificateAwardBankReceiptNote,certificateAwardBankReceiptQuestion,certificateAwardPath,certificateAwardQuestion,certificateAwardRecordId,certificateAwardScope} from '../../server/certificateAwardsContract.js';
 import {certificateAwardGuide} from '../../server/certificateAwards.js';
 import dataHandler from '../../api/affairs-data.ts';
 
@@ -10,6 +10,20 @@ test('certificate award queries distinguish navigation from private records',()=
   assert.equal(certificateAwardQuestion('我的證照獎助金審核狀態？'),'status');
   assert.equal(certificateAwardQuestion('How can I get an enrollment certificate?'),null);
   assert.equal(certificateAwardQuestion('write code for a certificate grant'),null);
+  const paired='What is the status of my professional certificate subsidy application? Also tell me whether its payout has reached my bank.';
+  assert.equal(certificateAwardQuestion(paired),'status');
+  assert.equal(certificateAwardBankReceiptQuestion(paired),true);
+  assert.equal(certificateAwardBankReceiptQuestion('Has my certificate award been paid into my bank account?'),true);
+  assert.equal(certificateAwardBankReceiptQuestion('我的證照獎助金審核狀態？獎助金入帳了嗎？'),true);
+  assert.equal(certificateAwardBankReceiptQuestion('Show my certificate award status and bank profile details.'),false);
+  assert.equal(certificateAwardQuestion('Show another student’s certificate subsidy status.'),null);
+  assert.equal(certificateAwardQuestion('Has its payout reached my bank?',certificateAwardPath),'status');
+  assert.equal(certificateAwardQuestion('Has its payout reached my bank?','/dtm'),null);
+  const publicPair=certificateAwardGuide(paired,'status');
+  assert.ok(publicPair&&typeof publicPair==='object');
+  assert.ok('status' in publicPair&&publicPair.status==='handoff');
+  assert.ok('answer' in publicPair&&typeof publicPair.answer==='string'&&publicPair.answer.includes(certificateAwardBankReceiptNote[1]));
+
   assert.match(JSON.stringify(certificateAwardGuide('my certificate award status','status')),/%2Fschool-affairs%2Fservices%2F52-1/u);
 });
 
@@ -78,6 +92,23 @@ test('selected certificate answers use the actual handler and one caller-owned r
   assert.match(String(aggregate.body.answer),/Selected certificate · Under review/u);
   assert.equal((aggregate.body.citations as Array<{url:string}>)[0].url,certificateAwardPath);
 
+  const paired=await read(tokenA,{id:otherOwn,bank_receipt:'requested'});
+  assert.equal(paired.status,200);
+  assert.match(String(paired.body.answer),/Newer unrelated certificate · Approved · NT\$900/u);
+  assert.ok(String(paired.body.answer).includes(certificateAwardBankReceiptNote[1]));
+  assert.doesNotMatch(JSON.stringify(paired.body),/PRIVATE_|Selected certificate|Another owner/u);
+  assert.equal((paired.body.citations as Array<{url:string}>)[0].url,recordPath(otherOwn));
+  assert.equal((paired.body.activity as Array<{status:string}>).at(-1)?.status,'unavailable');
+  assert.doesNotMatch(String(exact.body.answer),/reached your bank/u);
+  assert.equal((await read(tokenA,{bank_receipt:'yes'})).status,400);
+  assert.equal((await read(tokenA,{bank_receipt:['requested','requested']})).status,400);
+  assert.equal((await read(tokenA,{view:'catalog',bank_receipt:'requested'})).status,400);
+  const localizedPair=await read(tokenB,{id:foreign,answer:'zh',bank_receipt:'requested'});
+  assert.equal(localizedPair.status,200);
+  assert.ok(String(localizedPair.body.answer).includes(certificateAwardBankReceiptNote[0]));
+  assert.doesNotMatch(JSON.stringify(localizedPair.body),/PRIVATE_|Selected certificate/u);
+
+
   const ownB=await read(tokenB,{id:foreign,answer:'zh'});
   assert.equal(ownB.status,200);
   assert.match(String(ownB.body.answer),/Another owner certificate · 申請中/u);
@@ -91,6 +122,6 @@ test('selected certificate answers use the actual handler and one caller-owned r
   assert.equal((await read(tokenA,{id:selected})).status,503);
   incorrectSelection='different';
   assert.equal((await read(tokenA,{id:selected})).status,503);
-  assert.deepEqual(reads,[[ownerA,selected],[ownerA,null],[ownerB,foreign],[ownerB,selected],[ownerA,selected],[ownerA,selected]]
+  assert.deepEqual(reads,[[ownerA,selected],[ownerA,null],[ownerA,otherOwn],[ownerB,foreign],[ownerB,foreign],[ownerB,selected],[ownerA,selected],[ownerA,selected]]
     .map(([owner,p_id])=>({owner,p_target:null,p_id,p_status_only:p_id===null})));
 });
