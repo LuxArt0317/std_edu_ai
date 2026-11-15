@@ -250,3 +250,7 @@ A protected Preview request can attest an Internship lookup for a reserved dispo
 ### Club memberships and current subjects
 
 `clubMembershipIntent.js` routes membership questions to the signed-in verification graph and refuses another student's records before any lookup. `accountClubMembershipAnswer.js` reads the caller's first page of saved roles. Its status column describes the club. A question that also asks about this semester reads the caller's saved enrollments separately. Each source can be retried independently, and the result identifies what remains unavailable.
+
+### Campus Wi-Fi and leave guidance
+
+`studentSupportGuidance.js` answers three standalone service intents from the Computing Center, the Registrar and the university Student Leave portal. Both assistant handlers resolve these questions before account tools or conversational follow-up routing. Class absence and taking a semester off have separate destinations. Mixed questions and requests to view or change private leave records still reach their existing handlers. The sources and relevant limits are included in each reply.

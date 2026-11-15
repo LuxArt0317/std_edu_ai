@@ -1118,3 +1118,9 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Implement separate Club Student membership and current-semester evidence. Preserve the original questions, distinguish club status and the student's saved role, and refuse other-owner queries before a read. Verify the real handler and controlled Chromium save and restore.
 - [ ] Bind and run the five original Club Membership browser cases on an exact protected Preview. Preserve the independent outage, empty and crossed-owner conditions.
 - [ ] Verify the follow-up `7461124` on protected Preview, including its different-publication continuation after an unread indexed notice.
+
+### Reported Wi-Fi and leave failures [Issue #100]
+
+- [x] Reproduce the three exact prompts on protected `2616472` in sequence, including the class-absence question diverted to private leave history.
+- [x] Route all three to evidence-backed public guidance in guest and signed endpoints, including signed-in Moodle and an existing private transcript. Confirm that these turns read no records or provider.
+- [ ] Replay the exact sequence against the fixed protected Preview. Continue signed Browser Membership and the broader release evaluation independently.

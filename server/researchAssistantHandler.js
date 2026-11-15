@@ -1,3 +1,4 @@
+import {answerStudentSupportGuidance} from './studentSupportGuidance.js';
 import {learningSupportGuest} from './learningSupportAssistant.js';
 import {learningSupportQuestion} from './learningSupportAssistantIntent.js';
 import {catalogDetailGuestAnswer} from './accountCatalogDetailAnswer.js';
@@ -387,6 +388,13 @@ export function createResearchAssistantHandler(dependencies = {}) {
         }
         response.setHeader('X-Assistant-Request-Id', randomUUID());
         const stream = createAssistantStream(input.stream, response);
+        const supportGuidance=!input.images.length?answerStudentSupportGuidance(input.question):null;
+        if(supportGuidance){
+            const [step]=supportGuidance.activity;
+            stream.progress(step.kind,step.label,step.detail,step.status);
+            stream.send(200,supportGuidance);
+            return;
+        }
         const action=parseExplicitAccountAction(input.question);
         function handoffAction(selection){
             const zh=/[\u3400-\u9fff]/u.test(input.question);

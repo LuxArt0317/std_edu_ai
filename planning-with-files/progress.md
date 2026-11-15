@@ -64,3 +64,5 @@ Earlier entries are preserved in [the November 16 archive](archive/progress_2026
 - 2026-11-16 [#100] Verified exact `2616472` reached Ready and passed all four pinned public probes. The combined focused verification and membership run passed 58/58. The scoped Student Profile replay has an active fixture and needs terminal cleanup before any additional hosted run.
 
 - 2026-11-16 [#100] Closed the protected `2616472` Student Profile replay with three approved answers, fresh browser restore and verified exact disposal for each. The public Leave comparison passed. No fixtures remain and the separate signed-in Club Membership check is still due.
+
+- 2026-11-16 [#100] Paused the new paired Membership fixture implementation when the user supplied three acute Preview misses and preserved the draft outside the worktree. Reproduced all three misses on the protected Preview, checked the school sources, and corrected both handler paths. Passed the exact prompts after a prior private history, bilingual variants, both TypeScript checks, 1,994 API tests and 1,658 evaluator checks with 21 opt-in skips.

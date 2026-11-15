@@ -1,3 +1,4 @@
+import {answerStudentSupportGuidance} from '../server/studentSupportGuidance.js';
 import {answerLearningSupport} from '../server/learningSupportAssistant.js';
 import {learningSupportQuestion} from '../server/learningSupportAssistantIntent.js';
 import {answerVenueRequests} from '../server/accountVenueRequestAnswer.js';
@@ -330,6 +331,13 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   if(active.length>24){response.status(429).json({error:'Too many questions. Please wait a moment.'});return;}
   response.setHeader('X-Assistant-Request-Id',correlationId);
   const stream=createAssistantStream(input?.stream===true,response);
+  const supportGuidance=!hasProbe&&!(Array.isArray(input?.images)&&input.images.length)
+    ?answerStudentSupportGuidance(requestedQuestion):null;
+  if(supportGuidance){
+    for(const step of supportGuidance.activity??[])stream.progress(step.kind,step.label,step.detail,step.status);
+    stream.send(200,supportGuidance);
+    return;
+  }
   async function replyVenue(venue:NonNullable<ReturnType<typeof venueRequestPlan>>,asOf:number,observation?:NonNullable<typeof venueObservation>){
     if(!venue.selection.reason&&Array.isArray(input?.images)&&input.images.length){
       stream.send(400,{error:'Ask about private venue requests using text, without an image.'});

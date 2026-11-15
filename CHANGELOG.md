@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Answer campus Wi-Fi access, semester leave and withdrawal, and the class-absence form from the matching school guidance. Keep earlier private chat context out of these lookups. [#100]
+
 - Verify saved club membership roles and club status together with current semester subjects when requested. Retry the missing source and retain any verified section. [#100]
 
 - When the indexed notice remains unreadable, try a different school publication if the targeted lookup came back empty and time remains. [#100]
