@@ -12,7 +12,7 @@ import {isOwnTutorEvaluationTrackingNoteQuestion,selectTutorEvaluationEvidence} 
 import {clearanceTimetableQuestion} from './clearanceEvidenceIntent.js';
 import {schoolSubjectRecordsPath} from '../src/features/public/affairs/studentServices.js';
 import {isOwnCounselingTrackingNoteQuestion} from './counselingEvidenceIntent.js';
-import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel,savedFeeBalanceFollowup} from './pendingFeesAnswer.js';
+import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel,savedFeeBalanceFollowup,standaloneFeeBalanceLabel} from './pendingFeesAnswer.js';
 import { answerPrivateAffairsQuestion, accountQuestionIntent,composeAccountOverviewEvidence,composeCurrentStudyEvidence,isAccountOverviewQuestion,isCurrentStudyRecordQuestion } from './affairsAnswer.js';
 import { runAnswerVerification } from './answerVerification.js';
 import {generalCoachingGuide} from './generalCoachingGuide.js';
@@ -820,6 +820,7 @@ async function answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadl
   const emit=step=>{observed.set(step.kind,step);onProgress?.(step);};
   const language=supplementalAnswerLanguage(question),zh=language==='zh-TW';
   const userId=snapshot.profile?.userId;
+  const selectedLabel=standaloneFeeBalanceLabel(question)??undefined;
   let current=snapshot;
   const readEvidence=()=>accountEvidence(current,['charges'],{question,scopedReadOnly:true});
   const grounding=degraded=>({source:'account',webSearched:false,checkedAt:current.checkedAt,degraded});
@@ -827,7 +828,7 @@ async function answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadl
     const [scope,charges]=sources;
     if(sources.length!==2||scope.id!=='account-scope'||charges.id!=='account:charges')return null;
     const payload=JSON.parse(charges.content);
-    if(payload.checkedAt!==current.checkedAt||payload.unavailableReason||payload.selectionLabel!==undefined
+    if(payload.checkedAt!==current.checkedAt||payload.unavailableReason||payload.selectionLabel!==selectedLabel
       ||typeof payload.studentRecordFound!=='boolean')return null;
     try{
       const charge=formatSelectedChargeEvidence(charges,{language,exactBalance:true});
@@ -873,7 +874,7 @@ async function answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadl
 }
 
 export async function answerAccountWithVerification({question,snapshot,history=[],route='',loadSnapshot,onProgress,deadline=Date.now()+55000,supplementalReaders={},correlationId,leavePlan,internshipPlan,onProviderCompleted,onNativeLeaveVerified,onNativeInternshipVerified,onNativeTeachingVerified,allowNativeTeachingVerification=true}) {
-  if(snapshot.feeBalanceScope===true&&snapshot.profile?.userId&&isOwnFeeBalanceQuestion(question)&&!leavePlan&&!internshipPlan)
+  if(snapshot.feeBalanceScope===true&&snapshot.profile?.userId&&(isOwnFeeBalanceQuestion(question)||standaloneFeeBalanceLabel(question))&&!leavePlan&&!internshipPlan)
     return answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadline,onProgress,correlationId});
   // Capture the complete route, including its query; native account routing below
   // intentionally drops queries. The public loader receives no account data.

@@ -96,7 +96,7 @@ import { isStudentAidRecordQuestion } from '../server/studentAidRecords.js';
 import { isHousingRecordQuestion } from '../server/housingRecords.js';
 import {readChargePaymentHistory} from '../server/chargePaymentHistory.js';
 import {answerChargePaymentHistory,chargePaymentHistoryBoundary,selectChargePaymentHistory} from '../server/accountChargePaymentHistory.js';
-import { answerDirectTuitionPayment, isOwnFeeBalanceQuestion, isPendingFeeQuestion, ownFeeBalanceLabel, savedFeeBalanceFollowup } from '../server/pendingFeesAnswer.js';
+import { answerDirectTuitionPayment, isOwnFeeBalanceQuestion, isPendingFeeQuestion, ownFeeBalanceLabel, savedFeeBalanceFollowup, standaloneFeeBalanceLabel } from '../server/pendingFeesAnswer.js';
 import { isCreditLoadHistoryQuestion } from '../server/creditLoadHistory.js';
 import { isCourseSelectionQuestion } from '../server/courseSelection.js';
 import { AffairsWorkspaceError, loadAffairsSnapshot, loadOwnAffairsCharges, loadOwnServiceNotes, verifyAffairsToken, type AffairsAccount } from '../server/affairsWorkspace.js';
@@ -784,11 +784,13 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const noteFees=notes.keys.length>0&&(isOwnFeeBalanceQuestion(notes.otherQuestion)||ownFeeBalanceLabel(notes.otherQuestion)!==null);
   const noteNext=notes.keys.length>0&&isServiceNoteNextClass(notes.otherQuestion);
   const excludedNoteFeeLabel=notes.excluded&&!notes.keys.length&&!notes.officialOnly?ownFeeBalanceLabel(notes.otherQuestion):null;
-  const chargeLabel=excludedNoteFeeLabel??pageContext.feeChargeLabel??(assignmentFees?ownFeeBalanceLabel(assignment.otherQuestion):housingFees?ownFeeBalanceLabel(housing.otherQuestion):teachingFees?ownFeeBalanceLabel(studyQuestion):noteFees?ownFeeBalanceLabel(notes.otherQuestion):aidFees?ownFeeBalanceLabel(aid.otherQuestion):aid.excluded?ownFeeBalanceLabel(question):scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):null);
+  const standaloneChargeLabel=question===requestedQuestion?standaloneFeeBalanceLabel(question):null;
+  const chargeLabel=excludedNoteFeeLabel??pageContext.feeChargeLabel??(assignmentFees?ownFeeBalanceLabel(assignment.otherQuestion):housingFees?ownFeeBalanceLabel(housing.otherQuestion):teachingFees?ownFeeBalanceLabel(studyQuestion):noteFees?ownFeeBalanceLabel(notes.otherQuestion):aidFees?ownFeeBalanceLabel(aid.otherQuestion):aid.excluded?ownFeeBalanceLabel(question):scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):standaloneChargeLabel);
   const chargesOnly=assignmentFees||isOwnFeeBalanceQuestion(aid.excluded?question:scopedQuestion)||pageContext.feeAndBalance||aidFees||teachingFees||housingFees||chargeLabel!==null&&!noteFees;
-  const exactBalance=(question===requestedQuestion||question===resolvedFee)&&isOwnFeeBalanceQuestion(question)
-    &&/\b(?:balance|owe)\b|還要繳|還有|尚欠|剩餘|餘額|還剩/iu.test(question.normalize('NFKC'))
-    &&!chargeLabel&&!pageContext.selected&&!notes.keys.length
+  const exactBalance=(question===requestedQuestion||question===resolvedFee)
+    &&(chargeLabel?chargeLabel===standaloneChargeLabel:isOwnFeeBalanceQuestion(question)
+      &&/\b(?:balance|owe|remain(?:s)? unpaid)\b|還要繳|還有|尚欠|剩餘|餘額|還剩/iu.test(question.normalize('NFKC')))
+    &&!pageContext.selected&&!notes.keys.length
     &&!dtmCompound&&!assignment.selection&&!aid.selection&&!teachingSelection&&!housingSelection&&!applicationSelection;
   const timetableOnly=Boolean(clearanceTimetableQuestion(question,pageContext))||aidNext||teachingNext||housingNext;
   const hasImages=Array.isArray(input?.images)&&input.images.length>0;
@@ -845,9 +847,9 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const loadCharges=async()=>{
       try{
         const saved=await loadOwnAffairsCharges(account,{deadline});
-        if(exactBalance)return {...saved,feeBalanceScope:true};
         const normalize=(value:string)=>value.normalize('NFKC').trim().toLowerCase();
-        return chargeLabel?{...saved,chargeSelectionLabel:chargeLabel,charges:saved.charges.filter(row=>normalize(row.label)===normalize(chargeLabel))}:saved;
+        const selected=chargeLabel?{...saved,chargeSelectionLabel:chargeLabel,charges:saved.charges.filter(row=>normalize(row.label)===normalize(chargeLabel))}:saved;
+        return exactBalance?{...selected,feeBalanceScope:true}:selected;
       }catch(error){
         if(!exactBalance&&!assignmentFees&&!pageContext.feeAndBalance&&!noteFees&&!excludedNoteFeeLabel&&!aidFees&&!teachingFees&&!housingFees)throw error;
         const charges:Awaited<ReturnType<typeof loadOwnAffairsCharges>>['charges']=[];

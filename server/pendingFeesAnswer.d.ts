@@ -8,5 +8,6 @@ export function isPendingFeeQuestion(question:string,route?:string,history?:Arra
 
 export function isOwnFeeBalanceQuestion(question:string):boolean;
 export function ownFeeBalanceLabel(question:string):string|null;
+export function standaloneFeeBalanceLabel(question:string):string|null;
 
 export function savedFeeBalanceFollowup(question:string,history?:Array<{role:string;content:string}>):string|null;

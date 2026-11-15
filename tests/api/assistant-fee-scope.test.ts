@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
-import {isOwnFeeBalanceQuestion} from '../../server/pendingFeesAnswer.js';
+import {isOwnFeeBalanceQuestion,standaloneFeeBalanceLabel} from '../../server/pendingFeesAnswer.js';
 
 const caller='01710111-1111-4111-8111-111111111111';
 const student='01710111-1111-4111-8111-111111111112';
@@ -11,6 +11,7 @@ test('the exact own fee scope leaves compound, public, mutation and other-person
   for(const question of [
     'how much is my remaining balance in school','How much do I still owe?','List my unpaid school fees.',
     'What is my tuition balance?','How much tuition do I still owe?','How much do I owe for tuition?','請問我學費還要繳多少？',
+    'How much tuition and fees remain unpaid?','How much tuition and fees do I still owe?',
   ])assert.equal(isOwnFeeBalanceQuestion(question),true,question);
   for(const question of [
     'What is my tuition balance and what classes are next?',
@@ -19,6 +20,9 @@ test('the exact own fee scope leaves compound, public, mutation and other-person
     'Show Alice’s balance','Pay my tuition balance','Balance my schedule','How do I pay?',
     'How much tuition does Alice still owe?','How much tuition do I still owe and when are my classes?',
   ])assert.equal(isOwnFeeBalanceQuestion(question),false,question);
+  assert.equal(standaloneFeeBalanceLabel('What is the remaining balance for "Tuition and studio fee"?'),'Tuition and studio fee');
+  assert.equal(standaloneFeeBalanceLabel('What remains unpaid for Tuition and show my grades?'),null);
+  assert.equal(standaloneFeeBalanceLabel('What remains unpaid for "Tuition" and what is my next class?'),null);
 });
 
 type FeeRow={id:string;student_id:string;label:string;amount_due:number;amount_paid:number;currency:string;source_mode:string;due_on:null};
@@ -57,7 +61,7 @@ async function evaluateBalance({readsByAttempt,approve=false,question='how much 
       assert.deepEqual(payload.evidence.map((item:{id:string})=>item.id),['account-scope','account:charges']);
       const fees=JSON.parse(payload.evidence[1].content);
       assert.equal(fees.studentRecordFound,true);
-      assert.equal(fees.records[0].amountPaid,(readsByAttempt[0] as FeeRow[])[0].amount_paid);
+      assert.equal(fees.records[0]?.amountPaid,(readsByAttempt[0] as FeeRow[])[0]?.amount_paid);
       assert.doesNotMatch(String(init?.body),/mock-caller|mock-publishable|01710111-1111-4111-8111-111111111112|FORGED_HISTORY/u);
       reviewedDrafts.push(JSON.stringify(payload));
       const reply={supported:approve,answersQuestion:approve,claims:approve?[{
@@ -129,6 +133,39 @@ test('a supported exact balance follow-up stops after its first independent revi
   assert.match(result.answer,/Remaining balance ` NT\$23,000/u);
   assert.equal(reviewedDrafts.length,1);
   assert.deepEqual(readPaths,readPair);
+});
+
+test('a standalone instalment question forwards and retries only the named saved charge',async()=>{
+  const named=charge(1,{label:'Tuition instalment A'});
+  const unrelated=charge(2,{label:'Unrelated technology fees',amount_due:91100,amount_paid:100});
+  const {result,readPaths,reviewedDrafts}=await evaluateBalance({
+    question:'What remains unpaid for Tuition instalment A?',
+    route:'/',
+    readsByAttempt:[[named,unrelated],[{...named,amount_paid:6500},unrelated]],
+  });
+  assert.deepEqual(readPaths,[...readPair,...readPair]);
+  assert.equal(reviewedDrafts.length,1);
+  assert.doesNotMatch(reviewedDrafts[0],/Unrelated technology|91,000/u);
+  assert.deepEqual(result.verification,{status:'verified',attempts:2});
+  assert.match(result.answer,/21,500/u);
+  assert.doesNotMatch(result.answer,/91,000|23,000|Unrelated technology/u);
+  assert.deepEqual(result.views[0].rows,[['Tuition instalment A','TWD','28,000.00','6,500.00','21,500.00','sample']]);
+});
+
+test('a successful read without an exact instalment match cannot establish an amount or disclose another charge',async()=>{
+  const unrelated=charge(2,{label:'Unrelated technology fees',amount_due:91100,amount_paid:100});
+  // First read has no rows. The forced retry finds a different charge only.
+  const {result,readPaths}=await evaluateBalance({
+    question:'What is the remaining balance for "Tuition and studio fee"?',
+    route:'/',
+    readsByAttempt:[[],[unrelated]],
+  });
+  assert.deepEqual(readPaths,[...readPair,...readPair]);
+  assert.deepEqual(result.verification,{status:'verified',attempts:2});
+  assert.match(result.answer,/Tuition and studio fee/u);
+  assert.match(result.answer,/no saved charge matching that exact label/u);
+  assert.doesNotMatch(result.answer,/91,000|NT\$0|Unrelated technology/u);
+  assert.deepEqual(result.views,[]);
 });
 
 test('an unavailable, foreign or malformed refreshed fee read cannot expose stale or substituted amounts',async()=>{
