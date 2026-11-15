@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Let model-reviewed signed-in answers take a third verification pass using the same refreshed records, including single-source and fixed-scope questions. [#100]
+
 - Ask drafts to identify the missing field and omit unsupported quantities and dates. Verify the same boundary independently. [#100]
 - Verify private notes alongside the next saved class or named tuition balance. Cover both question orders and honor requests to skip notes. [#100]
 - Route private tracking note links to their local service pages and give an explicit handoff when a chat request combines editing a note with submitting it. [#100]

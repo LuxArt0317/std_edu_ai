@@ -26,11 +26,11 @@ async function invoke(handler:any,body:RequestBody,host=process.env.VERCEL_URL){
 
 async function check(
   body:RequestBody,{fields=['startsOn','endsOn','status'],fail=false,review='normal',charges=false,timetable=false,grades=false,model=true,identity=account.user}
-    :{fields?:string[];fail?:boolean;review?:'normal'|'retry'|'reject';charges?:boolean;timetable?:boolean;grades?:boolean;model?:boolean;identity?:typeof account.user&{email?:string;user_metadata?:Record<string,unknown>}}={},
+    :{fields?:string[];fail?:boolean;review?:'normal'|'retry'|'deeper'|'reject';charges?:boolean;timetable?:boolean;grades?:boolean;model?:boolean;identity?:typeof account.user&{email?:string;user_metadata?:Record<string,unknown>}}={},
 ){
   const calls:URL[]=[],stages:string[]=[],errors:unknown[]=[];
   const originalFetch=globalThis.fetch,originalKey=process.env.OPENAI_API_KEY;
-  let reviewed=0,lastAnswer='';
+  let reviewed=0,lastAnswer='',refreshedEvidence:string|undefined;
   process.env.OPENAI_API_KEY='OFFLINE_PROVIDER_KEY';
   globalThis.fetch=async (input,init)=>{
     try{
@@ -92,6 +92,10 @@ async function check(
       assert.equal(url.origin,'https://api.openai.com');
       const wire=JSON.parse(String(init?.body)),stage=wire.text.format.name,packet=JSON.parse(wire.input[0].content[0].text);
       stages.push(stage);
+      const deeper=reviewed>=2;
+      assert.equal(wire.reasoning.effort,deeper?'medium':'low');
+      if(deeper)assert.equal(JSON.stringify(packet.evidence),refreshedEvidence);
+      if(stage==='answer_evidence_review'&&reviewed===1)refreshedEvidence=JSON.stringify(packet.evidence);
       const tools=['leaveRecords',...(charges?['charges']:[]),...(timetable?['courses']:[]),...(grades?['dtmGradeReport']:[])];
       assert.deepEqual(packet.evidence.map((item:any)=>item.id).sort(),['account-scope',...tools.map(key=>'account:'+key)].sort());
       assert.doesNotMatch(JSON.stringify(packet),/OFFLINE_CALLER_TOKEN|contact_phone|PRIVATE_REASON|evaluationLeaveProbe|assistant_evaluation_run/);
@@ -104,7 +108,7 @@ async function check(
       if(stage==='answer_evidence_review'){
         reviewed++;
         lastAnswer=packet.answer;
-        const supported=review!=='retry'||reviewed>1;
+        const supported=review==='retry'?reviewed>1:review==='deeper'?reviewed>2:true;
         const leavePaths=fail?['/readState']:review==='reject'?['/provenance/sourceMode']:fields.map(key=>'/records/0/'+key);
         const claims=[{claim:'Saved leave values',supported,evidenceId:'account:leaveRecords',jsonPaths:leavePaths,quotes:[]}];
         if(charges)claims.push({claim:'Saved remaining fees',supported,evidenceId:'account:charges',jsonPaths:['/records/0/amountDue','/records/0/amountPaid'],quotes:[]});
@@ -113,7 +117,7 @@ async function check(
         output={supported,answersQuestion:supported,claims};
       }else{
         assert.equal(stage,'correct_grounded_answer');
-        const answer=review==='retry'?'Your signed-in stu.best leave record ran from 2026-11-09 to 2026-11-10. Its saved tracking status is withdrawn.':lastAnswer;
+        const answer=review==='retry'||review==='deeper'?'Your signed-in stu.best leave record ran from 2026-11-09 to 2026-11-10. Its saved tracking status is withdrawn.':lastAnswer;
         output={status:'answered',answer,sourceIds:tools.map(key=>'account:'+key)};
       }
       return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify(output)}]}]});
@@ -171,9 +175,22 @@ test('retries reread the same scoped leave query and withhold unchecked table co
   assert.doesNotMatch(recovered.body.answer,/filed/);
   const rejected=await check({question:'Show my leave dates and status.',route:service+'/history'},{review:'reject'});
   assert.equal(rejected.body.verification.status,'unverified');
-  assert.equal(rejected.body.verification.attempts,2);
+  assert.equal(rejected.body.verification.attempts,3);
   assert.doesNotMatch(rejected.body.answer,/2026-11-09/);
   assert.deepEqual(rejected.body.views,[]);
+});
+
+test('a second actionable rejection can recover a single fixed-scope leave answer from the same records',async()=>{
+  const result=await check({question:'Show my leave dates and status.',route:service+'/history'},{review:'deeper'});
+  assert.deepEqual(result.body.verification,{status:'verified',attempts:3});
+  assert.deepEqual(result.stages,['answer_evidence_review','correct_grounded_answer','answer_evidence_review','correct_grounded_answer','answer_evidence_review']);
+  assert.equal(result.calls.length,2);
+  assert.equal(result.calls[0].href,result.calls[1].href);
+  assert.ok(result.body.activity.some((step:{kind:string})=>step.kind==='verification-deeper-review'));
+  assert.ok(!result.body.activity.some((step:{kind:string})=>step.kind==='account-read:leaveRecords:3'));
+  assert.match(result.body.answer,/withdrawn/u);
+  assert.doesNotMatch(result.body.answer,/filed/u);
+  assert.equal(result.body.proposedAction,undefined);
 });
 
 test('failed leave reads preserve a verified fee answer and do not claim leave absence',async()=>{
