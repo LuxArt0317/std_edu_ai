@@ -23,10 +23,18 @@ export function studentLeaveAssistantPlan(question, route, history) {
     }
     else if (!/^(?:use|format) YYYY-MM-DD for dates[.!]?$/iu.test(clause)) unknown.push(clause);
   }
+  const {selection}=lookup;
+  const dateWording=selection?.from==='history'
+    ?history.findLast(item=>item?.role==='user')?.content?.normalize('NFKC')??''
+    :selection?.question??'';
+  const fixedRange=!selection?.range||[selection.range.from,selection.range.through].every(date=>dateWording.includes(date));
+  const deterministicRead=Boolean(selection&&!selection.reason&&!selection.title&&!selection.countOnly
+    &&fixedRange&&!lookup.foreign&&!lookup.navigation&&!lookup.excluded
+    &&!feeQuestion&&!classQuestion&&!gradeQuestion&&!unknown.length);
   return {
     ...lookup,
     feeQuestion, feeLabel: feeQuestion ? ownFeeBalanceLabel(feeQuestion) : null,
-    classQuestion, gradeQuestion, hasOtherQuestion: unknown.length > 0,
+    classQuestion, gradeQuestion, hasOtherQuestion: unknown.length > 0, deterministicRead,
   };
 }
 

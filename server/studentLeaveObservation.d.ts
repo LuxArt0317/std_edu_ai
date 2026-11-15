@@ -10,6 +10,7 @@ export function openStudentLeaveObservation(input:{
 }):null|{
   observe(reader:(dependency:{observeRead(digest:string):void})=>Promise<StudentLeaveEvidenceResult>):Promise<StudentLeaveEvidenceResult>;
   modelCompleted(operation:string):void;
+  nativeCheckCompleted():void;
   finish(payload:unknown):string|null;
 };
 
@@ -23,5 +24,5 @@ export function verifyStudentLeaveObservation(input:{
   receipt:string|null;binding:StudentLeaveProbeBinding;correlationId:string|null;body:unknown;
 },key:string):null|{
   binding:StudentLeaveProbeBinding;correlationId:string;attempts:Array<{reads:string[];evidenceDigest:string}>;
-  completedModelOperations:string[];responseDigest:string;
+  completedModelOperations:string[];verificationMethod:'native-exact'|'model';responseDigest:string;
 };

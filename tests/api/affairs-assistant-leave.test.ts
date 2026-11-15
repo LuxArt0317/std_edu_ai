@@ -15,6 +15,8 @@ const reviewId='11900000-0000-4000-8000-000000000202';
 const service='/school-affairs/services/leave';
 const base='https://xiftudmvxphxcjtmfmib.supabase.co';
 const account={user:{id:owner},url:base,key:'OFFLINE_PUBLIC_KEY',token:'OFFLINE_CALLER_TOKEN'};
+const namedQuestion='Show the dates and tracking status of my Clinic leave request. Use YYYY-MM-DD for dates.';
+const namedFields=['title','startsOn','endsOn','status','reviewStatus','reviewState'];
 type RequestBody={question:string;route?:string;history?:ReadonlyArray<{role:string;content:string}>};
 async function invoke(handler:any,body:RequestBody,host=process.env.VERCEL_URL){
   const headers=new Headers();
@@ -117,7 +119,7 @@ async function check(
         output={supported,answersQuestion:supported,claims};
       }else{
         assert.equal(stage,'correct_grounded_answer');
-        const answer=review==='retry'||review==='deeper'?'Your signed-in stu.best leave record ran from 2026-11-09 to 2026-11-10. Its saved tracking status is withdrawn.':lastAnswer;
+        const answer=review==='retry'||review==='deeper'?'Your saved Clinic leave record ran from 2026-11-09 to 2026-11-10. Its saved tracking status is withdrawn. The local review status is in_review.':lastAnswer;
         output={status:'answered',answer,sourceIds:tools.map(key=>'account:'+key)};
       }
       return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify(output)}]}]});
@@ -137,24 +139,25 @@ async function check(
   }
 }
 
-test('leave lookup uses the exact owner and fields, and displays a verified scoped table',async()=>{
-  const response=await check({question:'Show my leave dates and status.',route:service+'/history'});
+test('simple leave lookup checks the exact owner, fields and table without a model',async()=>{
+  const response=await check({question:'Show my leave dates and status.',route:service+'/history'},{model:false});
   assert.deepEqual(response.calls.map(url=>url.pathname),['/rest/v1/affairs_service_records']);
-  assert.deepEqual(response.stages,['answer_evidence_review']);
+  assert.deepEqual(response.stages,[]);
   assert.equal(response.body.verification.status,'verified');
+  assert.ok(response.body.activity.some((step:{kind:string})=>step.kind==='student-leave-evidence-check'));
   assert.match(response.body.answer,/2026-11-09.*2026-11-10/s);
   assert.equal(response.body.views[0].url,service+'/history');
   assert.deepEqual(response.body.views[0].rows,[['2026-11-09','2026-11-10','filed']]);
 });
 
 test('the existing named leave question scopes the row title and exact local review',async()=>{
-  const response=await check({question:'Show the dates and tracking status of my Clinic leave request. Use YYYY-MM-DD for dates.',route:service+'/history'},
-    {fields:['title','startsOn','endsOn','status','reviewStatus','reviewState']});
+  const response=await check({question:namedQuestion,route:service+'/history'},{fields:namedFields});
   assert.equal(response.body.verification.status,'verified');
   assert.match(response.body.answer,/Clinic leave/);
   assert.match(response.body.answer,/Saved tracking status: .*filed/);
   assert.match(response.body.answer,/Local review status: .*in_review/);
   assert.deepEqual(response.calls.map(url=>url.pathname),['/rest/v1/affairs_service_records','/rest/v1/affairs_service_requests']);
+  assert.deepEqual(response.stages,['answer_evidence_review']);
 });
 
 test('leave record link and leave periods use their exact scopes',async()=>{
@@ -165,27 +168,27 @@ test('leave record link and leave periods use their exact scopes',async()=>{
   assert.deepEqual(periods.body.views[0].rows,[['3-4']]);
 });
 
-test('retries reread the same scoped leave query and withhold unchecked table contents',async()=>{
-  const recovered=await check({question:'Show my leave dates and status.',route:service+'/history'},{review:'retry'});
+test('named-query retries reread the same scoped leave and review rows and withhold unchecked table contents',async()=>{
+  const recovered=await check({question:namedQuestion,route:service+'/history'},{fields:namedFields,review:'retry'});
   assert.deepEqual(recovered.stages,['answer_evidence_review','correct_grounded_answer','answer_evidence_review']);
-  assert.deepEqual(recovered.calls.map(url=>url.href),[recovered.calls[0].href,recovered.calls[0].href]);
+  assert.deepEqual(recovered.calls.slice(0,2).map(url=>url.href),recovered.calls.slice(2).map(url=>url.href));
   assert.equal(recovered.body.verification.attempts,2);
   assert.equal(recovered.body.verification.status,'verified');
   assert.match(recovered.body.answer,/withdrawn/);
   assert.doesNotMatch(recovered.body.answer,/filed/);
-  const rejected=await check({question:'Show my leave dates and status.',route:service+'/history'},{review:'reject'});
+  const rejected=await check({question:namedQuestion,route:service+'/history'},{fields:namedFields,review:'reject'});
   assert.equal(rejected.body.verification.status,'unverified');
   assert.equal(rejected.body.verification.attempts,3);
   assert.doesNotMatch(rejected.body.answer,/2026-11-09/);
   assert.deepEqual(rejected.body.views,[]);
 });
 
-test('a second actionable rejection can recover a single fixed-scope leave answer from the same records',async()=>{
-  const result=await check({question:'Show my leave dates and status.',route:service+'/history'},{review:'deeper'});
+test('a second actionable rejection can recover a named leave answer from the same records',async()=>{
+  const result=await check({question:namedQuestion,route:service+'/history'},{fields:namedFields,review:'deeper'});
   assert.deepEqual(result.body.verification,{status:'verified',attempts:3});
   assert.deepEqual(result.stages,['answer_evidence_review','correct_grounded_answer','answer_evidence_review','correct_grounded_answer','answer_evidence_review']);
-  assert.equal(result.calls.length,2);
-  assert.equal(result.calls[0].href,result.calls[1].href);
+  assert.equal(result.calls.length,4);
+  assert.deepEqual(result.calls.slice(0,2).map(url=>url.href),result.calls.slice(2).map(url=>url.href));
   assert.ok(result.body.activity.some((step:{kind:string})=>step.kind==='verification-deeper-review'));
   assert.ok(!result.body.activity.some((step:{kind:string})=>step.kind==='account-read:leaveRecords:3'));
   assert.match(result.body.answer,/withdrawn/u);
@@ -264,7 +267,7 @@ test('foreign and requested leave writes stop early, and guests get exact local 
   assert.ok(guest.body.citations.some((row:any)=>new URL(row.url,'https://stu.best').searchParams.get('next')===service+'/archive'));
 });
 
-test('protected Preview leave receipt attests real read and provider completion, and rejects changed or ordinary requests',async t=>{
+test('protected Preview leave receipt attests the real read and exact check, and rejects changed or ordinary requests',async t=>{
   const key='OFFLINE_OBSERVATION_TEST_KEY_'+randomUUID(),origin='https://stdedu-1234abcde-v1-d286.vercel.app';
   const sourceRevision='2'.repeat(40);
   const env={VERCEL_ENV:'preview',VERCEL_URL:new URL(origin).hostname,VERCEL_GIT_COMMIT_SHA:sourceRevision,SUPABASE_SERVICE_ROLE_KEY:key};
@@ -285,7 +288,8 @@ test('protected Preview leave receipt attests real read and provider completion,
   assert.ok(observed);
   assert.equal(observed.attempts.length,1);
   assert.equal(observed.attempts[0].reads.length,1);
-  assert.deepEqual(observed.completedModelOperations,['answer_evidence_review']);
+  assert.equal(observed.verificationMethod,'native-exact');
+  assert.deepEqual(observed.completedModelOperations,[]);
   const publicPayload=Buffer.from(receipt.split('.')[0],'base64url').toString('utf8');
   assert.doesNotMatch(publicPayload,/OFFLINE|example\.invalid|2026-11-09|filed|answer"/u);
   const reject=(options:Record<string,unknown>)=>assert.equal(verifyStudentLeaveObservation({receipt,binding,correlationId,body:result.body,...options},key),null);

@@ -556,7 +556,7 @@ export function runStudentLeaveDataPreflight(options){
   });
 }
 
-/** Exact caller-owned native cases with hosted request, reader and model proof. */
+/** Exact caller-owned native cases with hosted request, reader and check proof. */
 export function runStudentLeaveHostedEvaluation({caseIds,...options}={}){
   const selection=studentLeaveHostedSelection(caseIds);
   return runPreparedStudentLeave(options,async({binding,lifecycle,previewGate,observe})=>{
@@ -576,6 +576,7 @@ export function runStudentLeaveHostedEvaluation({caseIds,...options}={}){
       }
     }
     return {results,requestObservationsMounted:true,hostedCases:selection.length,
+      completedNativeChecks:results.filter(row=>row.completedNativeCheck).length,
       completedModelCalls:results.reduce((count,row)=>count+row.completedModelCalls,0),
       liveAcceptance:results.every(result=>result.passed)};
   });

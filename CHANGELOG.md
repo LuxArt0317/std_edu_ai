@@ -10,6 +10,7 @@
 
 - Verify direct saved-note answers from the exact scoped records and keep each note title, text and tracking status together. [#100]
 - Add a protected Preview evaluator for 18 caller-owned Student Leave questions, with signed native read, completed provider review and response proofs. [#100]
+- Verify simple saved Student Leave answers by checking the exact native fields, table and link. The 18-case Preview suite distinguishes deterministic checks from model reviews. [#100]
 
 - Deploy the compatible UUIDv7 chat protocol and verify exact saved answers on the protected Preview. [#100]
 - Apply the authenticated Digital Academy metadata reader and verify Student Leave fixture data on the protected Preview. [#100]

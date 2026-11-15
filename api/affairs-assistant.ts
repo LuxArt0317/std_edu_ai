@@ -465,7 +465,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       const snapshot=await loadServiceCompanions();
       const answer=await answerAccount({question:selectedQuestion,history:[],route,snapshot,loadSnapshot:loadServiceCompanions,deadline,correlationId,
         leavePlan:leavePlan??undefined,internshipPlan:internshipPlan??undefined,supplementalReaders,
-        ...(observation?{onProviderCompleted:observation.modelCompleted}:{}),onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
+        ...(observation?{onProviderCompleted:observation.modelCompleted,onNativeLeaveVerified:observation.nativeCheckCompleted}:{}),
+        onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
       const payload={...answer,answer:[answer.answer,boundary].filter(Boolean).join('\n\n'),citations:[...answer.citations,...(nav?.citations??[])]};
       const receipt=observation?.finish(payload);
       if(receipt)response.setHeader(leaveObservationHeader,receipt);

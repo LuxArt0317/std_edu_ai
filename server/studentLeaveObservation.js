@@ -76,7 +76,7 @@ export function openStudentLeaveObservation({body,identity,correlationId},env=pr
     ||!Number.isSafeInteger(binding.issuedAt)||!Number.isSafeInteger(now)||binding.issuedAt>now+5000||now-binding.issuedAt>lifetimeMs
     ||binding.requestDigest!==requestDigest(binding.origin,request))return null;
   const attempts=[],completedModelOperations=[];
-  let invalid=false;
+  let invalid=false,nativeChecked=false;
   return {
     async observe(reader){
       const reads=[];
@@ -91,12 +91,16 @@ export function openStudentLeaveObservation({body,identity,correlationId},env=pr
       return value;
     },
     modelCompleted(operation){
-      if(completedModelOperations.length>=maxModelOperations||!modelOperations.has(operation))invalid=true;
+      if(nativeChecked||completedModelOperations.length>=maxModelOperations||!modelOperations.has(operation))invalid=true;
       else completedModelOperations.push(operation);
+    },
+    nativeCheckCompleted(){
+      if(nativeChecked||completedModelOperations.length)invalid=true;
+      else nativeChecked=true;
     },
     finish(payload){
       if(invalid||!attempts.length||attempts.some(row=>!row.reads.length||!sha.test(row.evidenceDigest)))return null;
-      return seal('receipt',{binding,correlationId,attempts,completedModelOperations,
+      return seal('receipt',{binding,correlationId,attempts,completedModelOperations,verificationMethod:nativeChecked?'native-exact':'model',
         responseDigest:studentLeaveObservationDigest({statusCode:200,body:payload})},key);
     },
   };
@@ -104,7 +108,7 @@ export function openStudentLeaveObservation({body,identity,correlationId},env=pr
 
 export function verifyStudentLeaveObservation({receipt,binding,correlationId,body},key){
   const observed=unseal('receipt',receipt,key);
-  if(!exact(observed,['binding','correlationId','attempts','completedModelOperations','responseDigest'])
+  if(!exact(observed,['binding','correlationId','attempts','completedModelOperations','verificationMethod','responseDigest'])
     ||!exact(observed.binding,[...scopeKeys,'issuedAt','requestDigest'])
     ||Object.keys(observed.binding).some(name=>observed.binding[name]!==binding?.[name])
     ||!uuid.test(correlationId)||observed.correlationId!==correlationId
@@ -112,6 +116,8 @@ export function verifyStudentLeaveObservation({receipt,binding,correlationId,bod
     ||!Array.isArray(observed.attempts)||observed.attempts.length<1||observed.attempts.length>maxAnswerVerificationChecks
     ||!Array.isArray(observed.completedModelOperations)||observed.completedModelOperations.length>maxModelOperations
     ||observed.completedModelOperations.some(operation=>!modelOperations.has(operation))
+    ||!['native-exact','model'].includes(observed.verificationMethod)
+    ||observed.verificationMethod==='native-exact'&&observed.completedModelOperations.length!==0
     ||observed.attempts.some(row=>!exact(row,attemptKeys)||!sha.test(row.evidenceDigest)
       ||!Array.isArray(row.reads)||row.reads.length<1||row.reads.length>2||row.reads.some(read=>!sha.test(read))))return null;
   return observed;

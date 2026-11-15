@@ -1,5 +1,7 @@
 import {internshipAssistantPlan,internshipSelectedTools} from './internshipAssistantPlan.js';
 import {studentLeaveAssistantPlan,studentLeaveSelectedTools} from './studentLeaveAssistantPlan.js';
+import {studentLeaveBasePath,studentLeaveFieldNames} from './studentLeaveEvidenceIntent.js';
+import {isDeepStrictEqual} from 'node:util';
 import {dtmNativeClauseScope,dtmNativeClauseNotice} from './dtmNativeClauseScope.js';
 import {dtmAssignmentLookupContext} from './dtmAssignmentEvidenceIntent.js';
 import {studentConductScope} from './studentConductEvidenceScope.js';
@@ -843,7 +845,7 @@ async function answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadl
   return {...result,answer:unavailable+'\n\n['+title+']('+urls.charges+')',views:[],grounding:grounding(true),activity:[...observed.values()]};
 }
 
-export async function answerAccountWithVerification({question,snapshot,history=[],route='',loadSnapshot,onProgress,deadline=Date.now()+55000,supplementalReaders={},correlationId,leavePlan,internshipPlan,onProviderCompleted}) {
+export async function answerAccountWithVerification({question,snapshot,history=[],route='',loadSnapshot,onProgress,deadline=Date.now()+55000,supplementalReaders={},correlationId,leavePlan,internshipPlan,onProviderCompleted,onNativeLeaveVerified}) {
   if(snapshot.feeBalanceScope===true&&snapshot.profile?.userId&&isOwnFeeBalanceQuestion(question)&&!leavePlan&&!internshipPlan)
     return answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadline,onProgress,correlationId});
   // Capture the complete route, including its query; native account routing below
@@ -937,6 +939,45 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     readSupplemental(snapshot,1),
   ]);
   if(publicPageRoute)emit({kind:'page-context',label:'Checked the current public page',detail:pageContext?.contentAvailable?'Read the checksum-verified public snapshot; account records remain separate.':'Only available public page metadata can be used; no account records were sent to the capture host.',status:pageContext?.contentAvailable?'complete':'unavailable'});
+  if(leavePlan?.deterministicRead&&activeTools.length===1&&activeTools[0]==='leaveRecords'
+    &&firstSupplemental.length===1&&['ok','empty'].includes(firstSupplemental[0].readState)){
+    const selection=leavePlan.selection;
+    const url=studentLeaveBasePath+(selection.view==='record'?'/edit/'+selection.id:'/'+selection.view);
+    const selected={view:selection.view,range:selection.range,filters:selection.filters,
+      fields:studentLeaveFieldNames.filter(field=>selection.fields.includes(field)),countOnly:false};
+    const canonical=results=>{
+      if(results.length!==1)return null;
+      const [result]=results,source=result.evidence;
+      if(source?.id!=='account:leaveRecords'||source.url!==url||!['ok','empty'].includes(result.readState))return null;
+      try {
+        if(!isDeepStrictEqual(JSON.parse(source.content).selection,selected))return null;
+        const formatted=formatSupplementalAccountAnswers(results,{question});
+        return formatted.status==='answered'&&answerLinksSupported(formatted.answer,[source])?formatted:null;
+      }catch{return null;}
+    };
+    const withheld={status:'abstained',answer:'',citations:[],views:[]};
+    let results=firstSupplemental;
+    const checked=await runAnswerVerification({question,deadline,onProgress:emit,
+      initialAnswer:canonical(results)??withheld,
+      async loadEvidence({attempt}){
+        if(attempt>1)results=await readSupplemental(snapshot,attempt);
+        return results.map(result=>result.evidence);
+      },
+      verify({candidate,evidence}){
+        const expected=evidence.length===1&&evidence[0]===results[0]?.evidence?canonical(results):null;
+        if(!expected||!isDeepStrictEqual(candidate,expected))return {ok:false,reason:'evidence_unavailable'};
+        emit({kind:'student-leave-evidence-check',label:'Verified your saved leave records',
+          detail:'Matched the answer, table and record link to the exact fields read for this account.',status:'complete'});
+        return {ok:true};
+      },
+      repair:async()=>canonical(results)??withheld,
+    });
+    const verified=checked.verification?.status==='verified';
+    if(verified)onNativeLeaveVerified?.();
+    return {...checked,views:checked.views??[],suggestedQuestions:[],
+      grounding:{source:'account',webSearched:false,checkedAt:snapshot.checkedAt,degraded:!verified},
+      activity:[...new Map(observed.map(step=>[step.kind,step])).values()]};
+  }
   let current=snapshot,supplemental=firstSupplemental,needsComposition=false;
   let initial;
   if((scopedTimetable||scopedNotes||housingSelected||applicationSelected)&&!supplemental.length)initial={status:'answered',answer:'',citations:[],suggestedQuestions:[],activity:[]};
