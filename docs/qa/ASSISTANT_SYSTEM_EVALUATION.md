@@ -461,3 +461,5 @@ The protected baseline withheld six repair replies after successful owned reads 
 ```sh
 node --experimental-strip-types --test tests/evaluation/facility-repair-native-handler.test.mjs
 ```
+
+Exact protected `fc357c6` passed all 15 mounted Facility Repair questions after the direct verification change. The evaluator completed all 15 request pairs and 46 release checks. It verified the saved note, no-event and blank-note distinctions, selected and list scopes, both next-class question orders, exact absence, and action and other-caller boundaries. Two disposable accounts were removed. The separate protected cancellation replay `c123fd5` passed 13 checks. [Issue #100](https://github.com/LuxArt0317/std_edu_ai/issues/100#issuecomment-6898834727)
