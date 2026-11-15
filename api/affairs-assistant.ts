@@ -29,8 +29,8 @@ import {readDtmAssignmentEvidence} from '../server/accountDtmAssignmentEvidence.
 import {studentConductScope} from '../server/studentConductEvidenceScope.js';
 import {boundedAssistantText} from '../src/services/assistantActivityBudget.js';
 import {studentConductGuide} from '../server/studentConductGuide.js';
-import {isServiceNoteNextClass,serviceNoteLookup} from '../server/serviceNoteIntent.js';
-import {serviceNoteGuide} from '../server/serviceNoteGuide.js';
+import {isServiceNoteNextClass,serviceNoteLookup,serviceNotePageNavigation} from '../server/serviceNoteIntent.js';
+import {serviceNoteGuide,serviceNoteNavigationAnswer} from '../server/serviceNoteGuide.js';
 import {readTutorEvaluationEvidence} from '../server/accountTutorEvaluationEvidence.js';
 import {tutorEvaluationNavigation} from '../server/tutorEvaluationEvidenceIntent.js';
 import {tutorEvaluationGuide} from '../server/tutorEvaluationGuide.js';
@@ -535,8 +535,17 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     }
     question=ownCoursesBesideForeignYear;history=[];
   }
+  const noteDestination=!(Array.isArray(input?.images)&&input.images.length)
+    ?serviceNoteNavigationAnswer(question,serviceNotePageNavigation(question,route),true):null;
+  if(noteDestination){
+    stream.progress('service-note-navigation','Found the local note page','The service directory confirmed the page link.','complete');
+    stream.send(200,noteDestination);
+    return;
+  }
   const notes=serviceNoteLookup(question,route,history);
   if(notes.foreign||notes.invalidService||!notes.otherQuestion&&!notes.keys.length&&(notes.excluded||notes.officialOnly)){
+    if(notes.operation&&!notes.foreign)stream.progress('service-note-write-boundary','Checked note actions',
+      'This service allows editing on its page. The chat request ended at the read-only boundary.','complete');
     stream.send(200,serviceNoteGuide(question,notes,true));
     return;
   }

@@ -19,8 +19,8 @@ import {elearningCatalogBoundary,elearningMetadataBoundary} from './accountElear
 import {elearningCatalogGuestRoute,isElearningCatalogPageQuestion,selectElearningCatalogPage} from './elearningCatalogPageIntent.js';
 import {elearningMetadataGuestRoute,isElearningMetadataQuestion,selectElearningMetadata} from './elearningMetadataIntent.js';
 import {studentLeaveAssistantPlan,studentLeaveGuestAnswer} from './studentLeaveAssistantPlan.js';
-import {serviceNoteLookup} from './serviceNoteIntent.js';
-import {serviceNoteGuide} from './serviceNoteGuide.js';
+import {serviceNoteLookup,serviceNotePageNavigation} from './serviceNoteIntent.js';
+import {serviceNoteGuide,serviceNoteNavigationAnswer} from './serviceNoteGuide.js';
 import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel} from './pendingFeesAnswer.js';
 import { calendarPath, schoolSubjectRecordsPath, wifiGuidePath } from '../src/features/public/affairs/studentServices.js';
 import { clubStudentGuide,clubStudentQuestion } from './clubStudentContract.js';
@@ -489,6 +489,13 @@ export function createResearchAssistantHandler(dependencies = {}) {
         if(leave){stream.send(200,studentLeaveGuestAnswer(leave,input.question));return;}
         const internship=!input.images.length&&internshipAssistantPlan(input.question,input.route,input.history);
         if(internship){stream.send(200,internshipGuestAnswer(internship,input.question));return;}
+        const noteDestination=!input.images.length
+            ?serviceNoteNavigationAnswer(input.question,serviceNotePageNavigation(input.question,input.route),false):null;
+        if(noteDestination){
+            stream.progress('service-note-navigation','Found the local note page','The service directory confirmed where to sign in.','complete');
+            stream.send(200,noteDestination);
+            return;
+        }
         const notes=serviceNoteLookup(input.question,input.route,input.history);
         if(notes.foreign||notes.invalidService||notes.officialOnly||notes.keys.length||notes.excluded&&!notes.otherQuestion){
             stream.send(200,serviceNoteGuide(input.question,notes,false));

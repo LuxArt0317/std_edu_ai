@@ -1,4 +1,5 @@
 import {isDeepStrictEqual} from 'node:util';
+import {extractAnswerLinks} from './grading.mjs';
 import {buildServiceNoteCases,gradeServiceNoteCase,serviceNoteCaseManifest,serviceNoteFixtureForCase} from './service-note-cases.mjs';
 
 const prefix='account:service-notes-';
@@ -18,9 +19,7 @@ export const foreignServiceNoteMarkers=Object.freeze(serviceNoteCaseManifest.ser
 function buildRunnerCase(source){
   const row=structuredClone(source),suffix=row.id.slice(prefix.length);
   const guest=row.auth==='anonymous',readsNotes=row.toolPolicy.required.includes('serviceRecords');
-  const reason=outsideFixture[suffix]??(suffix.endsWith('-write')
-    ?'The combined note change and official submission requires a verified no-write boundary beyond note retrieval.'
-    :suffix.endsWith('-link')?'The current phrasing reaches the general navigation handler; its separate tool and source contract remains unbound.':null);
+  const reason=outsideFixture[suffix];
   if(reason)return {...row,fixtureRequirement:unbound,setupReason:reason};
   row.fixtureRequirement=bound;
   row.fixtureKey=guest?'anonymous':row.fixtureKey.replace(/^offline:/u,'');
@@ -41,11 +40,25 @@ function buildRunnerCase(source){
     row.expected.requiredText[0].anyOf.push('skipped');
   }
   if(suffix.endsWith('-official-only'))row.expected.requiredText[0].anyOf.push('can’t verify');
+  const boundary=serviceNoteEndpointBoundary(row);
+  if(boundary){
+    row.expected.requiredEvents=[boundary.event];
+    row.expected.requiredSourceBindings=[{sourceId:'directory:service-note:'+boundary.serviceId,url:boundary.url}];
+    if(boundary.event==='service-note-write-boundary')row.expected.requiredText=['cannot change','cannot submit'];
+  }
   if(guest){
     row.expected.behavior='unavailable';row.expected.limitation=true;row.expected.requiredLinks=[anonymousLink];
   }
   return row;
 }
+function serviceNoteEndpointBoundary(row){
+  const match=/^(\d{2}-\d)-(link|write)$/u.exec(row.id.slice(prefix.length));
+  if(!match)return null;
+  const [,serviceId,kind]=match;
+  return {serviceId,url:'/school-affairs/services/'+serviceId,
+    event:kind==='link'?'service-note-navigation':'service-note-write-boundary'};
+}
+
 export const serviceNoteRunnerCases=()=>original.map(buildRunnerCase);
 export const isServiceNoteCase=row=>typeof row?.id==='string'&&row.id.startsWith(prefix)||row?.fixtureRequirement===bound||row?.fixtureRequirement===unbound;
 export const serviceNoteSetupRequired=row=>isServiceNoteCase(row)&&row.fixtureRequirement!==bound;
@@ -69,5 +82,16 @@ export function gradeLiveServiceNoteCase(row,envelope){
   const observation=envelope.fixtureReadback?.serviceNotes;
   const paired=observation?.twoOwnersVerified===true&&observation.caseId===row.id&&observation.method==='caller RLS and persisted notes'
     &&envelope.fixtureReadback?.projectRef===projectRef;
-  return gradeServiceNoteCase(source,envelope,{hosted:{testCase:row,paired:row.auth==='anonymous'||paired}});
+  const result=gradeServiceNoteCase(source,envelope,{hosted:{testCase:row,paired:row.auth==='anonymous'||paired}});
+  const boundary=serviceNoteEndpointBoundary(row);
+  if(boundary){
+    const response=Array.isArray(envelope.events)?envelope.events:[];
+    const links=extractAnswerLinks(envelope.body??{});
+    const check={id:'notes.exactReadOnlyRoute',passed:response.length===1&&response[0]?.kind===boundary.event
+      &&response[0]?.status==='complete'&&links.length>0&&links.every(link=>link===boundary.url),
+    detail:'The endpoint emits one local boundary event and only the exact service destination.'};
+    result.checks.push(check);
+    if(!check.passed){result.passed=false;result.failures.push(check);}
+  }
+  return result;
 }

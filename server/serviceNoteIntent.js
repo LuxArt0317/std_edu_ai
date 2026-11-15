@@ -22,6 +22,9 @@ const statusOnly = /\b(?:status only|only (?:the |my )?(?:tracking )?status|just
 const nominal = /^(?:my |our |the |saved |local |private |own )*(?:[\p{L}\p{N} -]+\s)?(?:notes?|tracking records?)\s*$/iu;
 const negative = /^(?:(?:please|and|then|also)\s+)*(?:do not|don['’]t|never|not(?!\s+only)|without|excluding|except)\b|^(?:請|请)?(?:不要|不含|排除|不用|不查)/iu;
 const navigation = /\b(?:where|how) (?:can|do|should) i (?:find|open|view|access|file|apply|submit|check)|\b(?:give|send|show) me (?:the |a )?link|\b(?:open|link to) (?:my |the )|在哪|哪個(?:頁面|連結)|如何(?:開啟|申請|填寫|提交)|給我.*連結/iu;
+const serviceCode=/(?<![\p{L}\d_-])\d{1,3}-\d{1,3}(?![\p{L}\d_-])/gu;
+const pageDestination=/\b(?:page|link|url)\b|頁面|页面|連結|链接/iu;
+const universitySubmissionContinuation=/^(?:(?:and|also|then|please)\s+)*(?:submit|file|send)\s+(?:it|this|that|the note)\s+(?:to|with)\s+(?:the\s+)?(?:university|school)(?:\s+(?:now|for me))?$|^(?:也|再|並|并|請|请|幫我|帮我|把|將|将)*(?:它|這則備註|这条备注)?(?:送出|提交|送件)(?:給|给|至|到)(?:校方|學校|学校)$/iu;
 const status = /\b(?:records?|history|policy|provider|insurer|expir\w*|reimburse\w*|approval|approved|official|eligib\w*|award|paid|payment|coverage|covered|claim|balance|validat\w*|verified|authorization|authorized|valid|diagnos\w*|scheduled|reserved|available|returned|submitted|complete|completed|status|check[- ]out)\b|紀錄|記錄|历史|歷史|校方|正式|核准|資格|理賠|理赔|保障|薪資|診斷|預約|已歸還|狀態|完成/iu;
 const actual = /\b(?:approval|approved|official|eligib\w*|covered|coverage|paid|payment|payout|validat\w*|verified|authoriz\w*|diagnos\w*|inventory|available|reserved|returned|university)\b|校方|正式|核准|資格|理賠|理赔|保障|薪資|診斷|庫存/iu;
 const write = /^(?:(?:please|then|also|can you|could you|would you|help me)\s+)*(?:submit|file|send|create|save|update|edit|delete|cancel|withdraw|approve|pay|apply|change|mark)\b|^(?:請|请|幫我|帮我|請幫我)?(?:提交|送出|送件|新增|儲存|保存|修改|刪除|取消|撤回|核准|支付|繳費|申請|標記)/iu;
@@ -43,7 +46,7 @@ const sentenceParts = value => value.split(/[;；。!?！？\n]|\.(?=\s|$)/u).fl
 
 function mentionedKeys(value) {
   const subject=value.split(/\s(?:titled|named|called)\s|(?:標題|名稱)為/iu,1)[0].replace(/["“][^"”]+["”]/gu,'');
-  const codes=subject.match(/(?<![\p{L}\d_-])\d{1,3}-\d{1,3}(?![\p{L}\d_-])/gu)||[];
+  const codes=subject.match(serviceCode)||[];
   const explicit=serviceNoteKeys.filter(key=>codes.includes(key));
   return codes.length?explicit:serviceNoteKeys.filter(key=>topics[key].test(subject));
 }
@@ -62,6 +65,17 @@ function foreign(value) {
       .some(match=>! /^(?:(?:請|请)?(?:顯示|显示|查看|查詢|查询|查|列出|檢查|检查|提供|看看|給我|给我|我想|想看|幫我|帮我))*?(?:我(?:自己|本人)?|本人|自己)(?:已儲存|已保存|私人|站內)?$/u.test(match[1])&&!/^(?:已)?(?:儲存|保存|記錄|記下|標記|留下|填寫|寫下|寫|填)$/u.test(match[1]));
 }
 
+/** A destination question can use the local service directory without reading notes. */
+export function serviceNotePageNavigation(question,route=''){
+  const clauses=sentenceParts(clean(question));
+  if(clauses.length!==1)return null;
+  const [clause]=clauses;
+  if(!navigation.test(clause)||!note.test(clause)||!pageDestination.test(clause)
+    ||negative.test(clause)||foreign(clause))return null;
+  const keys=mentionedKeys(clause);
+  return keys.length===1?keys[0]:keys.length===0&&!clause.match(serviceCode)&&!otherTopic.test(clause)?pathKey(route):null;
+}
+
 /** Route/history can resolve an explicit note request, never change its owner. */
 export function serviceNoteLookup(question,route='',history=[]) {
   const current=clean(question),clauses=sentenceParts(current),routeScope=pathKey(route);
@@ -69,8 +83,11 @@ export function serviceNoteLookup(question,route='',history=[]) {
   const antecedent=sentenceParts(latest).filter(clause=>note.test(clause)&&!negative.test(clause)&&!navigation.test(clause));
   const linked=antecedent.length===1?mentionedKeys(antecedent[0]):[];
   const keys=new Set(),boundaryKeys=new Set(),noteClauses=[],rest=[];
-  let foreignRequest=false,excluded=false,operation=false,invalidService=false,statusProjection=false;
+  let foreignRequest=false,excluded=false,operation=false,invalidService=false,statusProjection=false,noteWriteJustSeen=false;
   for(const clause of clauses){
+    const followsNoteWrite=noteWriteJustSeen;
+    noteWriteJustSeen=false;
+    if(followsNoteWrite&&universitySubmissionContinuation.test(clause))continue;
     const direct=mentionedKeys(clause),matchesFollow=follow.test(clause);
     if(!direct.length&&note.test(clause)&&/(?:\bservice(?:\s+(?:id|number|code))?\s*#?\s*|服務(?:編號)?)\d{1,3}-\d{1,3}\b/iu.test(clause)){
       invalidService=true;continue;
@@ -88,7 +105,8 @@ export function serviceNoteLookup(question,route='',history=[]) {
     if((note.test(clause)||status.test(clause)||write.test(clause)||matchesFollow)&&foreign(clause)||matchesFollow&&linked.length&&!direct.length&&foreign(antecedent[0])){foreignRequest=true;continue;}
     if(write.test(clause)&&actionTarget.test(clause)||!note.test(clause)&&!matchesFollow&&own.test(clause)&&status.test(clause)){
       for(const key of selected)boundaryKeys.add(key);
-      operation ||= write.test(clause)&&note.test(clause);
+      noteWriteJustSeen=write.test(clause)&&note.test(clause);
+      operation ||= noteWriteJustSeen;
       continue;
     }
     if((note.test(clause)||matchesFollow)&&(own.test(clause)||direct.length||matchesFollow||routeScope)){

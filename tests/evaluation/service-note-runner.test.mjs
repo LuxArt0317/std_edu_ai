@@ -3,7 +3,8 @@ import {test} from 'node:test';
 import {buildServiceNoteCases,serviceNoteCaseManifest} from './service-note-cases.mjs';
 import {buildServiceNotePlan,observeServiceNoteRows,readCallerServiceNotes} from './service-note-live-fixture.mjs';
 import {gradeLiveServiceNoteCase,serviceNoteRunnerCases,serviceNoteRunnerOracle,serviceNoteSetupRequired,serviceNoteSetupSummary} from './service-note-runner.mjs';
-import {evaluationSuite} from './run.mjs';
+import {evaluationSuite,readReply} from './run.mjs';
+import {serviceNoteLookup,serviceNotePageNavigation} from '../../server/serviceNoteIntent.js';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {createResearchAssistantHandler} from '../../server/researchAssistantHandler.js';
 
@@ -27,8 +28,10 @@ function statusProof(row,extra={}){
 test('the main suite preserves every note question and explicitly fences off the unbound cases',async()=>{
   const standalone=buildServiceNoteCases(),summary=serviceNoteSetupSummary(cases);
   assert.equal(cases.length,80);
-  assert.equal(summary.liveEligible,61);
-  assert.equal(summary.unboundCaseIds.length,19);
+  assert.equal(summary.liveEligible,75);
+  assert.deepEqual(summary.unboundCaseIds.map(id=>id.slice(prefix.length)),[
+    'mixed-next-class','mixed-next-class-reversed','mixed-tuition','negative-notes-positive-tuition','read-unavailable',
+  ]);
   const suite=await evaluationSuite('2026-11-15T02:00:00.000Z');
   assert.deepEqual(suite.cases.filter(row=>row.id.startsWith(prefix)),cases);
   assert.deepEqual(cases.map(row=>[row.id,row.question]),standalone.map(row=>[row.id,row.question]));
@@ -43,13 +46,14 @@ test('the main suite preserves every note question and explicitly fences off the
 });
 
 test('real handlers satisfy all mounted note and access cases using only the selected note reads',async()=>{
-  const fetch=globalThis.fetch,now=Date.now;let reads=0,unexpectedSnapshots=0,verifiedAccounts=0,index=0,current;
+  const fetch=globalThis.fetch,now=Date.now;let reads=0,unexpectedSnapshots=0,unexpectedResearch=0,verifiedAccounts=0,index=0,current;
   Date.now=()=>now()+index*3000;
   const unexpected=[];
   globalThis.fetch=async(input,options)=>{
     const url=new URL(input);
     try{
       assert.ok(current.toolPolicy.required.includes('serviceRecords'));
+      assert.equal(options.method,'GET');
       assert.equal(url.origin,'https://'+projectRef+'.supabase.co');
       assert.equal(url.pathname,'/rest/v1/affairs_service_records');
       assert.equal(url.searchParams.get('user_id'),'eq.'+owners[0]);
@@ -68,32 +72,78 @@ test('real handlers satisfy all mounted note and access cases using only the sel
       return {url:'https://'+projectRef+'.supabase.co',user:{id:owners[0]},key:'SYNTHETIC_KEY',token};
     },
     loadSnapshot:async()=>{unexpectedSnapshots++;throw new Error('Native note boundary read a snapshot.');},
-    publicResearch:async()=>{throw new Error('Native note boundary requested public research.');},
+    publicResearch:async()=>{unexpectedResearch++;throw new Error('Native note boundary requested public research.');},
   });
   try{
     const native=cases.filter(row=>row.executionContract==='live-native');
-    assert.equal(native.length,61);
+    assert.equal(native.length,75);
     for(const row of native){
       current=row;
       const guest=row.auth==='anonymous';
       const before=reads;
-      const response={setHeader(){},status(code){this.code=code;return this;},json(body){this.body=body;}};
+      const responseHeaders=new Headers(),chunks=[];
+      const response={setHeader(name,value){responseHeaders.set(name,value);},status(code){this.code=code;return this;},
+        write(chunk){chunks.push(chunk);},end(){},json(){assert.fail('The real handler must emit a terminal stream event.');}};
       await (guest?research:handler)({method:'POST',
         headers:{...(guest?{}:{authorization:'Bearer '+users[0].token}),'x-forwarded-for':'192.0.2.'+(++index)},
-        body:{question:row.question,route:row.route,history:row.history??[]}},response);
-      const envelope=statusProof(row,{body:response.body,statusCode:response.code,...(guest?{fixtureReadback:undefined,stateBefore:undefined,stateAfterProposal:undefined}:{})});
+        body:{question:row.question,route:row.route,history:row.history??[],stream:true}},response);
+      const reply=await readReply(new Response(chunks.join(''),{headers:responseHeaders}));
+      const envelope=statusProof(row,{...reply,statusCode:response.code,...(guest?{fixtureReadback:undefined,stateBefore:undefined,stateAfterProposal:undefined}:{})});
       const result=gradeLiveServiceNoteCase(row,envelope);
       assert.deepEqual(unexpected,[]);
       assert.deepEqual(result.failures,[],row.id+' '+JSON.stringify(result.failures));
       assert.equal(reads-before,row.toolPolicy.required.includes('serviceRecords')?1:0,row.id);
+      if(/-(?:link|write)$/u.test(row.id)){
+        assert.equal(reads,before,row.id);
+        assert.equal(envelope.events.length,1);
+        assert.equal(envelope.body.citations.length,1);
+        const plan=buildServiceNotePlan(row,owners);
+        assert.equal(plan.rows.filter(item=>item.user_id===owners[0]).length,7);
+        for(const mutate of [
+          copy=>{copy.events=[];},
+          copy=>{copy.events.push({kind:'account-read:serviceRecords:1',status:'complete'});},
+          copy=>{copy.body.answer+=' [Other service](/school-affairs/services/999-1)';},
+          copy=>{copy.stateAfterProposal.ownedRecordsDigest='f'.repeat(64);},
+        ]){
+          const bad=structuredClone(envelope);mutate(bad);
+          assert.equal(gradeLiveServiceNoteCase(row,bad).passed,false,row.id);
+        }
+      }
       if(!guest){
         assert.ok(gradeLiveServiceNoteCase(row,{...envelope,fixtureReadback:undefined}).failures.some(check=>check.id==='notes.pairedFixture'));
         const corrupted=structuredClone(envelope);corrupted.body.answer+=' FOREIGN SERVICE NOTE 35-1';
         assert.ok(gradeLiveServiceNoteCase(row,corrupted).failures.some(check=>check.id==='notes.noForeignOrExcluded'));
       }
     }
-    assert.equal(verifiedAccounts,60);assert.equal(unexpectedSnapshots,0);
+    assert.equal(verifiedAccounts,74);assert.equal(unexpectedSnapshots,0);assert.equal(unexpectedResearch,0);
   }finally{globalThis.fetch=fetch;Date.now=now;}
+});
+
+test('local note navigation and unsupported continuations stay narrowly scoped',async t=>{
+  const route='/school-affairs/services/35-1';
+  assert.equal(serviceNotePageNavigation('Where can I open my notes page?',route),'35-1');
+  assert.equal(serviceNotePageNavigation('我的團體保險備註頁面在哪裡？','/'),'35-1');
+  assert.equal(serviceNotePageNavigation('Where can I open the group insurance notes page and show my tuition balance?','/'),null);
+  assert.equal(serviceNotePageNavigation('Where can I open Alice’s group insurance notes page?','/'),null);
+  assert.equal(serviceNotePageNavigation('Where can I open the housing notes page?',route),null);
+  assert.equal(serviceNotePageNavigation('Where can I open the notes page for service 99-1?',route),null);
+  assert.equal(serviceNotePageNavigation('Where can I open the equipment borrowing and group insurance notes page?','/'),null);
+  const write='Change my group insurance note to filed and submit it to the university.';
+  const withIndependentRead=serviceNoteLookup(write+' What is my next class?',route);
+  assert.equal(withIndependentRead.operation,true);
+  assert.equal(withIndependentRead.otherQuestion,'What is my next class');
+  const independentSubmission=serviceNoteLookup('Change my group insurance note to filed and submit my leave application.',route);
+  assert.match(independentSubmission.otherQuestion,/submit my leave application/iu);
+  assert.equal(serviceNoteLookup('Submit it to the university.',route).otherQuestion,'Submit it to the university');
+
+  t.mock.method(globalThis,'fetch',async()=>assert.fail('A guest destination requires no network.'));
+  const handler=createResearchAssistantHandler();
+  const response={setHeader(){},status(code){this.code=code;return this;},json(body){this.body=body;}};
+  await handler({method:'POST',headers:{'x-forwarded-for':'192.0.2.99'},
+    body:{question:'Where can I open the student group insurance notes page on stu.best?',route:'/'}},response);
+  assert.equal(response.code,200);
+  assert.equal(response.body.status,'answered');
+  assert.deepEqual(response.body.citations.map(row=>row.url),['/school-affairs/login?next='+encodeURIComponent(route)]);
 });
 
 test('a readback uses only the exact project, two caller tokens, and never accepts truncated or redirected replies',async()=>{
