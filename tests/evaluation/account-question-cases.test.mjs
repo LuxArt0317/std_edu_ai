@@ -94,8 +94,10 @@ test('published sample coaching keeps its own literal course binding, rubric and
   assert.equal(reviewedGrade(sample,item).passed,true);
   fail(gradeCase(sample,item),'guidance.independentReview');
   fail(reviewedGrade(sample,envelope(sample,answer.replace('Student Services Practice (SAMP103)','Study Skills Foundations (SAMP090)'))),'list.0.exclude.0');
-  const enrollmentClaim=sample.expected.forbiddenText.indexOf('officially enrolled');
+  const enrollmentClaim=sample.expected.forbiddenText.indexOf('You are officially enrolled');
   fail(reviewedGrade(sample,envelope(sample,answer+' You are officially enrolled.')),'text.forbidden.'+enrollmentClaim);
+  const limited=answer+' The sample records do not establish whether you’re officially enrolled.';
+  assert.equal(reviewedGrade(sample,envelope(sample,limited)).passed,true);
   fail(reviewedGrade(sample,envelope(sample,answer.replace('saved sample','saved local'))),'source.provenance');
   const overbroad=structuredClone(item);
   overbroad.events.push({kind:'account-read:charges:1',status:'complete'});

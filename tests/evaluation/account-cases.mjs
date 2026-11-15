@@ -444,7 +444,8 @@ export function buildAccountCases({now=DEFAULT_EVAL_NOW,includePlannedFeeRemissi
     route:'/',fixtureKey:sampleFixture,...toolPolicy(['courses']),provenance:'sample',
     facts:[fact('Campus Orientation','SAMP101'),fact('Digital Learning Basics','SAMP102'),fact('Student Services Practice','SAMP103')],
     exactLists:[{label:'current School Affairs subjects',expected:sampleCurrent,forbidden:sampleNoncurrent}],
-    requiredLinks:['/school-affairs/records/subjects'],forbiddenText:[...noPrivateDump,...qualificationClaims,'DB301','officially enrolled'],
+    requiredLinks:['/school-affairs/records/subjects'],
+    forbiddenText:[...noPrivateDump,...qualificationClaims,'DB301','You are officially enrolled','Your official enrollment is confirmed'],
     guidanceRubric:coachingRubric,
   });
   add('reproduction-completed-subject','courses','Which historical subjects have I completed?',{
