@@ -1,3 +1,4 @@
+import {learningSupportScope,parseLearningSupportQuery,readLearningSupport} from '../server/learningSupport.js';
 import { readClubStudent } from '../server/clubStudent.js';
 import { clubStudentScope } from '../server/clubStudentContract.js';
 import { clubDocumentScope,readClubDocuments } from '../server/clubActivityDocuments.js';
@@ -76,6 +77,14 @@ export default async function handler(request:Request,response:Response) {
     response.status(400).json({error:'Invalid payment history filters.'});
     return;
   }
+  const learningSupportRequested=scopes.some(scope=>typeof scope==='string'&&scope.startsWith(learningSupportScope));
+  const learningSupport=learningSupportRequested?parseLearningSupportQuery(request.query):null;
+  if(learningSupportRequested&&!learningSupport){
+    response.setHeader('Cache-Control','no-store, max-age=0');
+    response.setHeader('X-Content-Type-Options','nosniff');
+    response.status(400).json({error:'Invalid learning support query.'});
+    return;
+  }
   if (scopes.includes(clubStudentScope) &&
       (scopes.length!==1 || Object.keys(request.query ?? {}).some(key=>!['scope','view','q','page'].includes(key)))) {
     response.setHeader('Cache-Control','no-store, max-age=0');
@@ -117,7 +126,7 @@ export default async function handler(request:Request,response:Response) {
   if (scopes.includes('curriculum-plan')) return serveCurriculumPlan(request,response);
   if (scopes.includes('interdisciplinary-programs')) return serveInterdisciplinaryPrograms(request,response);
   const strictStudentScope=scopes.some(scope=>typeof scope==='string'&&(scope===elearningScope||scope===elearningCatalogScope||scope===elearningOutlineScope||scope===counselingScope||scope===certificateAwardScope||scope===announcementEmailScope||scope===studentProfileScope||scope===programRegistrationScope||scope.startsWith('tutor-evaluation')||scope.startsWith('exchange-grant')||scope.startsWith('fee-remission')||scope.startsWith('student-conduct')||scope.startsWith('student-loan')||scope.startsWith('dormitory-conduct')||scope.startsWith('dtm-dashboard-layout')||scope.startsWith('dtm-grade-report')||scope.startsWith('dtm-course-content')||scope.startsWith('dtm-course-resource')||scope.startsWith('teaching-feedback')||scope.startsWith(clearanceScope)));
-  if(first(request.query?.resource)==='conversations'&&!strictStudentScope&&!scopes.includes(aidPaymentsScope)&&!scopes.includes('venue-requests')&&!scopes.includes('facility-repairs')&&!scopes.some(scope=>typeof scope==='string'&&(scope.startsWith(adjustmentScope)||scope.startsWith(withdrawalScope)||scope.startsWith(creditTransferScope)||scope.startsWith(earlyGraduationScope))))return conversations(request,response);
+  if(first(request.query?.resource)==='conversations'&&!learningSupportRequested&&!strictStudentScope&&!scopes.includes(aidPaymentsScope)&&!scopes.includes('venue-requests')&&!scopes.includes('facility-repairs')&&!scopes.some(scope=>typeof scope==='string'&&(scope.startsWith(adjustmentScope)||scope.startsWith(withdrawalScope)||scope.startsWith(creditTransferScope)||scope.startsWith(earlyGraduationScope))))return conversations(request,response);
   const requestDeadline=Date.now()+17000;
   response.setHeader('Cache-Control','no-store, max-age=0');
   response.setHeader('X-Content-Type-Options','nosniff');
@@ -125,6 +134,10 @@ export default async function handler(request:Request,response:Response) {
   try {
     const authorization=first(request.headers.authorization);
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
+    if(learningSupport){
+      response.status(200).json(await readLearningSupport({...account,requestDeadline},learningSupport));
+      return;
+    }
     if(chargePaymentAdminSelection){
       response.status(200).json(await readChargePaymentAdminHistory({...account,requestDeadline},chargePaymentAdminSelection));
       return;

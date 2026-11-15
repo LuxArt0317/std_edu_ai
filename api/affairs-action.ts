@@ -1,3 +1,4 @@
+import {changeLearningSupport,learningSupportMaxPayloadBytes,learningSupportReviewAction,learningSupportStudentActions} from '../server/learningSupport.js';
 import { writeClubFoundation } from '../server/clubStudent.js';
 import { clubDocumentActions,clubDocumentJsonLimit,writeClubDocument } from '../server/clubActivityDocuments.js';
 import { clubOfficerActions } from '../server/clubOfficerContract.js';
@@ -53,6 +54,7 @@ export default async function handler(request:Request,response:Response) {
   const earlyGraduation = earlyGraduationStudentActions.find(kind=>kind===input?.kind);
   const teachingFeedback=teachingFeedbackStudentActions.find(kind=>kind===input?.kind);
   const clearance=input?.kind===clearanceSubmit;
+  const learningSupport=learningSupportStudentActions.find(kind=>kind===input?.kind);
   const venue=input?.kind==='submit_venue_request'||input?.kind==='cancel_venue_request';
   const repair=input?.kind==='submit_facility_repair'||input?.kind==='cancel_facility_repair';
   const confirmProfile=input?.kind==='confirm_student_profile';
@@ -64,8 +66,8 @@ export default async function handler(request:Request,response:Response) {
   const counseling=typeof input?.kind==='string'&&input.kind.startsWith('counseling_');
   const certificateAward=typeof input?.kind==='string'&&input.kind.startsWith('certificate_award_');
   const saveEmail=input?.kind===announcementEmailAction;
-  const dedicatedPayloadLimit = clubDocument ? clubDocumentJsonLimit : foundation ? 4500 : clubOfficer ? 11000 : enroll ? 200 : clubEquipment ? 3000 : counseling ? 2000 : certificateAward ? 9000 : saveEmail || confirmProfile ? 1024 : repair ? 7000 : venue ? 3600 : clearance ? 1024 : teachingFeedback ? teachingFeedbackMaxBytes : earlyGraduation ? 2400 : transfer ? 36000 : programRegistration || withdrawal ? 1024 : tutorEvaluation ? tutorEvaluationMaxBytes : grantKind ? exchangeGrantMaxPayloadBytes : dashboardKind ? dtmDashboardLayoutMaxPayloadBytes : undefined;
-  if(!input || typeof input.kind!=='string' || !input.payload || typeof input.payload!=='object'
+  const dedicatedPayloadLimit = learningSupport ? learningSupportMaxPayloadBytes : clubDocument ? clubDocumentJsonLimit : foundation ? 4500 : clubOfficer ? 11000 : enroll ? 200 : clubEquipment ? 3000 : counseling ? 2000 : certificateAward ? 9000 : saveEmail || confirmProfile ? 1024 : repair ? 7000 : venue ? 3600 : clearance ? 1024 : teachingFeedback ? teachingFeedbackMaxBytes : earlyGraduation ? 2400 : transfer ? 36000 : programRegistration || withdrawal ? 1024 : tutorEvaluation ? tutorEvaluationMaxBytes : grantKind ? exchangeGrantMaxPayloadBytes : dashboardKind ? dtmDashboardLayoutMaxPayloadBytes : undefined;
+  if(!input || typeof input.kind!=='string' || input.kind===learningSupportReviewAction || !input.payload || typeof input.payload!=='object'
     || Array.isArray(input.payload) || (dedicatedPayloadLimit?Buffer.byteLength(JSON.stringify(input),'utf8')>dedicatedPayloadLimit+1024:submissionAction?Buffer.byteLength(JSON.stringify(input),'utf8')>14000:JSON.stringify(input).length>(input.kind==='import_dtm_deadlines'?50000:4000))
     || dedicatedPayloadLimit&&(Object.keys(input).length!==2||!Object.hasOwn(input,'kind')||!Object.hasOwn(input,'payload'))){
     response.status(400).json({error:'Invalid action request.'});return;
@@ -84,6 +86,7 @@ export default async function handler(request:Request,response:Response) {
     if(saveEmail){response.status(200).json(await saveAnnouncementEmail(bounded,input.payload));return;}
     if(confirmProfile){response.status(200).json(await changeStudentProfile(bounded,'confirm',input.payload));return;}
     if(repair){response.status(200).json(await changeFacilityRepair(bounded,input.kind,input.payload));return;}
+    if(learningSupport){response.status(200).json(await changeLearningSupport(bounded,learningSupport,input.payload));return;}
     if(venue){response.status(200).json(await changeVenueRequest(bounded,input.kind,input.payload));return;}
     if(clearance){response.status(200).json(await changeGraduationClearance(bounded,clearanceSubmit,input.payload));return;}
     if(teachingFeedback){response.status(200).json(await changeTeachingFeedback(bounded,teachingFeedback,input.payload));return;}

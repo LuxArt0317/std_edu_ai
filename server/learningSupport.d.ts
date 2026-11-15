@@ -1,0 +1,17 @@
+import type {AffairsAccount} from './affairsWorkspace.js';
+type Account=AffairsAccount&{requestDeadline?:number};
+export type LearningSupportStatus='submitted'|'in_review'|'reviewed'|'withdrawn';
+export type LearningSupportRow={id:string;ownerId:string;topic:string;details:string;status:LearningSupportStatus;
+  reviewNote:string;version:number;submittedAt:string;updatedAt:string};
+export type LearningSupportSelector={view:'mine'|'review';page:number};
+export type LearningSupportView=LearningSupportSelector&{userId:string;canReview:boolean;total:number;rows:LearningSupportRow[]};
+export type LearningSupportReceipt={id:string;requestId:string;status:LearningSupportStatus;version:number};
+export const learningSupportScope:'learning-support';
+export const learningSupportReviewScope:'learning-support-review';
+export const learningSupportStudentActions:readonly ['submit_learning_support','withdraw_learning_support'];
+export const learningSupportReviewAction:'review_learning_support';
+export const learningSupportMaxPayloadBytes:7000;
+export const learningSupportPageSize:25;
+export function parseLearningSupportQuery(query:unknown):LearningSupportSelector|null;
+export function readLearningSupport(account:Account,selector:LearningSupportSelector):Promise<LearningSupportView>;
+export function changeLearningSupport(account:Account,kind:typeof learningSupportStudentActions[number]|typeof learningSupportReviewAction,payload:unknown):Promise<LearningSupportReceipt>;
