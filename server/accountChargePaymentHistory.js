@@ -6,11 +6,15 @@ const sourceId='account:paymentHistory';
 const localClock=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'numeric',day:'numeric'});
 const moneyFormat=new Intl.NumberFormat('en-US');
 const monthNames='jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?';
+const englishMonthPattern=new RegExp('\\b('+monthNames+')\\.?(?: +(\\d{1,2})(?:st|nd|rd|th)?(?!\\d),?)?(?:(?: +of +| *)(\\d+))?\\b','giu');
 const monthIndex=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const chineseMonthIndex=['一','二','三','四','五','六','七','八','九','十','十一','十二'];
 const tuition=/\btuition\b|[學学][雜杂]?[費费]/u;
 const chargeTopic=/\b(?:tuition|(?:school|student) fees?|my (?:fee|charge) payments?|my (?:payment|fee|charge) (?:history|ledger|transactions?|records?))\b|[學学][雜杂]?[費费]|校務繳費|校务缴费/u;
 const historyTopic=/\b(?:payments? (?:history|records?|ledger|transactions?|dates?)|payment history|(?:latest|last|recent|previous|recorded|saved|dated) (?:tuition )?payments?|payments? (?:did|have) (?:i|we) (?:make|made)|payments? (?:to|for) (?:my )?tuition|tuition payments? (?:did|have) i|payments? (?:did i make|i made)|payments? were (?:made|recorded)|did (?:i|we) (?:pay|make)|(?:i|we) (?:paid|have paid)|how much (?:have )?i (?:paid|pay)|when (?:was|were) (?:my|the|i) (?:tuition |school )?(?:payments?|paid)|(?:monthly|past) (?:tuition )?payments?)\b|[繳缴][費费](?:[紀记記][錄录]|明[細细]|[歷历]史|日期|[時时][間间])|[付缴繳]了多少|付過|付过|已[繳缴]|我.{0,10}(?:何[時时]|哪天|[什甚][麼么][時时]候).{0,8}[繳缴][費费]?/u;
+const datedOwnPayment=/\b(?:(?:how much|when) did i (?:(?:actually|last) )?pay|(?:what|which) payments? did i make|my (?:last|latest|recent) payment)\b|我.{0,16}(?:繳了多少|缴了多少|最近一筆付款)/u;
+const otherPaymentTopic=/\b(?:salary|aid|scholarship|payroll|rent|shopping|groceries)\b|薪資|薪资|獎學金|奖学金|房租/u;
+const monthlyFollowup=new RegExp('^(?:(?:and|also|what about|how about|show me|for|in)\\s+)*\\s*(?:today|yesterday|(?:this|last|previous|next) month|(?:上|下|本)(?:個|个)?月|(?:民國|民国)?\\s*\\d{1,4}(?:[-年]\\d{1,2})?[-月日\\d]*|(?:'+monthNames+')\\.?(?: *\\d+)?)[?.!？。]*$','u');
 const foreign=/\b(?:another|other) (?:student|person|user)|\b(?:his|her|their|someone else's) (?:\w+ ){0,3}(?:tuition|payments?|fees?)\b|\b(?:student|account) (?:number|id)\b|(?:[他她]人|其他[學生学]|別人|别人|他的|她的|帳號|账号)/iu;
 const namedOwner=/\b[\p{L}\p{N}]+['’]s\s+(?:(?:last|latest|recent|previous|saved|dated|school)\s+){0,3}(?:tuition|payment|payments|fees?)\b/iu;
 const writeRequest=/^(?:(?:please|could you|can you|would you)\s+)?(?:pay|settle|send|transfer|submit|process|record|reverse|delete|refund|cancel)\b|^(?:請|请)?(?:幫我|帮我|替我|代我)?(?:[繳缴]清|付款|支付|[轉转][帳账]|登記|登记|退款|刪除|删除|撤銷|撤销)/iu;
@@ -34,7 +38,7 @@ function periodSelection(question,now){
   const parts=Object.fromEntries(localClock.formatToParts(now).map(item=>[item.type,Number(item.value)]));
   const dates=[...question.matchAll(/(?<!\d)\d{4}-\d{2}-\d{2}(?!\d)/gu)];
   const numericMonths=[...question.matchAll(/(?<!\d)(\d{4})-(\d{2})(?![-\d])/gu)];
-  const englishMonths=[...question.matchAll(new RegExp('\\b('+monthNames+')\\.?(?: +(\\d{1,2})(?:st|nd|rd|th)?(?!\\d),?)?(?: +(?:of +)?(\\d{4}))?\\b','giu'))];
+  const englishMonths=[...question.matchAll(englishMonthPattern)];
   const chineseMonths=[...question.matchAll(/(?:(?:民國|民国)?\s*(\d{2,4})\s*年\s*)?(\d{1,2}|[一二三四五六七八九十]{1,2})\s*月(?:\s*(\d{1,2})\s*[日號号])?/gu)];
   const relativeMonths=[...question.matchAll(/\b(last|previous|this|current|next) month\b|上(?:個|个)?月|本月|[這这](?:個|个)?月|下(?:個|个)?月/gu)];
   const relativeDays=[...question.matchAll(/\b(?:today|yesterday|tomorrow)\b|今天|昨天|明天/gu)];
@@ -52,6 +56,7 @@ function periodSelection(question,now){
   for(const match of englishMonths){
     const [,month,day,year]=match;
     if(month==='may'&&!year&&!day&&/^\s+(?:i|we|you)\b/u.test(question.slice(match.index+month.length)))continue;
+    if(year&&year.length!==4)return null;
     const y=Number(year||parts.year),m=monthIndex.indexOf(month.slice(0,3))+1;
     const selected=day&&isoDay(y,m,Number(day));
     ranges.push(day?(selected?{from:selected,through:selected}:null):monthRange(y,m));
@@ -84,16 +89,15 @@ export function selectChargePaymentHistory(question,route='',history=[],now=Date
   const q=question.normalize('NFKC').trim().toLowerCase();
   const pathname=typeof route==='string'?route.split(/[?#]/u,1)[0]:'';
   const privateRoute=pathname===chargePaymentHistoryPath||pathname==='/school-affairs/services/39-1';
-  const otherPaymentTopic=/\b(?:salary|aid|scholarship|payroll|rent|shopping|groceries)\b|薪資|薪资|獎學金|奖学金|房租/u.test(q);
-  const datedOwnPayment=/\b(?:(?:how much|when) did i (?:last )?pay|(?:what|which) payments? did i make|my (?:last|latest|recent) payment)\b|我.{0,16}(?:繳了多少|缴了多少|最近一筆付款)/u.test(q);
-  const topic=tuition.test(q)||!otherPaymentTopic&&(chargeTopic.test(q)||privateRoute||datedOwnPayment);
-  const followup=/^(?:(?:and|also|what about|how about|show me|for|in)\s+)*\s*(?:today|yesterday|(?:this|last|previous|next) month|(?:上|下|本)(?:個|个)?月|(?:民國|民国)?\s*\d{1,4}(?:[-年]\d{1,2})?[-月日\d]*|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[\p{L}.]*(?: +\d{4})?)[?.!？。]*$/u.test(q);
+  const ownedPayment=datedOwnPayment.test(q),topic=tuition.test(q)||!otherPaymentTopic.test(q)&&(chargeTopic.test(q)||privateRoute||ownedPayment);
+  const followup=monthlyFollowup.test(q);
   const prior=followup&&history.findLast(item=>item?.role==='user')?.content;
   const antecedent=typeof prior==='string'?prior.normalize('NFKC').toLowerCase():'';
   const ledgerOperation=writeRequest.test(q)&&(/\b(?:record|reverse|delete|refund|cancel)\b.{0,80}\bpayments?\b/u.test(q)
     ||/(?:登記|登记|退款|刪除|删除|撤銷|撤销).{0,18}(?:繳費|缴费|付款)/u.test(q));
-  if(!(topic&&(historyTopic.test(q)||ledgerOperation))
-    &&!(followup&&chargeTopic.test(antecedent)&&historyTopic.test(antecedent)&&!foreign.test(antecedent)&&!namedOwner.test(antecedent)&&!writeRequest.test(antecedent)))return null;
+  const priorPayment=chargeTopic.test(antecedent)&&historyTopic.test(antecedent)||datedOwnPayment.test(antecedent)&&!otherPaymentTopic.test(antecedent);
+  if(!(topic&&(ownedPayment||historyTopic.test(q)||ledgerOperation))
+    &&!(followup&&priorPayment&&!foreign.test(antecedent)&&!namedOwner.test(antecedent)&&!writeRequest.test(antecedent)))return null;
   const zh=/\p{Script=Han}/u.test(q);
   const namedTarget=/payment (?:history|records|ledger) (?:for|of) ([\p{Lu}][\p{L}'’-]+)\b/u.exec(question)?.[1];
   if(namedTarget&&!monthIndex.includes(namedTarget.toLowerCase().slice(0,3))||foreign.test(q)||namedOwner.test(q.replace(/\b(?:what|when|where|who|that|it)['’]s\b/gu,'')))return {reason:'foreign',zh};

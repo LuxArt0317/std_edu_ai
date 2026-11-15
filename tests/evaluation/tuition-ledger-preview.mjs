@@ -5,6 +5,9 @@ export const tuitionLedgerFixtureMode='tuition-ledger-student-preview';
 export const tuitionLedgerPreviewDates=Object.freeze({from:'2026-09-01',through:'2026-09-30'});
 export const tuitionLedgerHistoryPath='/school-affairs/services/39-1/payment-history';
 export const tuitionLedgerPreviewQuestion='How much tuition did I pay in September 2026?';
+export const compactPaidQuestion='How much did I actually pay during September2026?';
+export const compactEmptyQuestion='How much did I actually pay during November2026?';
+const emptyDates=Object.freeze({from:'2026-11-01',through:'2026-11-30'});
 
 const uuid4=value=>typeof value==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(value);
 const newest=(a,b)=>b.paidOn.localeCompare(a.paidOn)||b.id.localeCompare(a.id);
@@ -78,7 +81,9 @@ export async function readTuitionLedgerAccountScopes(sql,plan){
   const rows=await sql`select s.id as "studentId",exists(select 1 from public.affairs_charges c
       where c.student_id=s.id and coalesce(c.legacy_amount_paid,c.amount_paid)>0) as "hasUndatedPaidAmount",
     (select count(*)::integer from public.affairs_charge_payment_entries e
-      where e.student_id=s.id and e.paid_on between ${from}::date and ${through}::date) as "total"
+      where e.student_id=s.id and e.paid_on between ${from}::date and ${through}::date) as "total",
+    (select count(*)::integer from public.affairs_charge_payment_entries e
+      where e.student_id=s.id and e.paid_on between ${emptyDates.from}::date and ${emptyDates.through}::date) as "emptyPeriodTotal"
     from public.affairs_students s where s.id in ${sql(studentIds)} order by s.id`;
   return [...rows];
 }
@@ -146,44 +151,56 @@ export async function checkTuitionLedgerPreview({plan,observe,observeAccountScop
   const scopesByStudent=new Map(accountScopes.map(scope=>[scope.studentId,scope]));
   need(accountScopes.length===plan.accounts.length&&plan.accounts.every(account=>{
     const scope=scopesByStudent.get(account.studentId);
-    return typeof scope?.hasUndatedPaidAmount==='boolean'&&scope.total===account.entries.length;
+    return typeof scope?.hasUndatedPaidAmount==='boolean'&&scope.total===account.entries.length&&scope.emptyPeriodTotal===0;
   }),'exact unfiltered account scope and independent dated rows');
   const [a,b]=plan.accounts;
   const sides=[['A',a,b,'43.05','13.25','29.80'],['B',b,a,'72.36','0.00','72.36']];
-  const expectedUrl=tuitionLedgerHistoryPath+'?'+new URLSearchParams(tuitionLedgerPreviewDates);
-  const correlationIds=[];
+  const correlationIds=new Set();
+  const prompts=[
+    {question:tuitionLedgerPreviewQuestion,route:tuitionLedgerHistoryPath,dates:tuitionLedgerPreviewDates},
+    {question:compactPaidQuestion,route:'/',dates:tuitionLedgerPreviewDates},
+    {question:compactEmptyQuestion,route:'/',dates:emptyDates},
+  ];
   for(const [side,account,foreign,gross,reversed,net] of sides){
     const own=await history(side,account.chargeId);
     const crossed=await history(side,foreign.chargeId);
     need(own.status===200&&isDeepStrictEqual(own.body,expectedHistory(account,false)),side+' own ledger HTTP');
     need(crossed.status===200&&isDeepStrictEqual(crossed.body,expectedHistory(account,true)),side+' foreign charge HTTP');
-    const reply=await ask(side,tuitionLedgerPreviewQuestion);
-    const {body,status,correlationId}=reply;
-    const answer=typeof body?.answer==='string'?body.answer:'';
-    const checks={
-      httpStatus:status===200,
-      requestCorrelation:uuid4(correlationId)&&!correlationIds.includes(correlationId),
-      resultStatus:body?.status==='answered',
-      verified:body?.verification?.status==='verified',
-      verificationAttempts:Number.isInteger(body?.verification?.attempts)&&body.verification.attempts>=1,
-      privateGrounding:body?.grounding?.webSearched===false,
-      exactCitation:Array.isArray(body?.citations)&&body.citations.some(cite=>cite?.chunkId==='account:paymentHistory'&&cite.url===expectedUrl),
-      grossAmount:answer.includes('Recorded payments: TWD '+gross),
-      reversalAndNet:reversed==='0.00'?!answer.includes('Reversals:'):answer.includes('Reversals: TWD '+reversed+' · Net recorded change: TWD '+net),
-      chargeLabel:answer.includes(account.chargeLabel),
-      undatedBalanceDisclosure:answer.includes('Some saved paid amounts have no payment date')===scopesByStudent.get(account.studentId).hasUndatedPaidAmount,
-    };
-    const failedFields=Object.keys(checks).filter(field=>!checks[field]);
-    if(failedFields.length)throw new TuitionLedgerPreviewAssertion(side+' monthly assistant grounding',failedFields);
-    need(![foreign.chargeLabel,foreign.userId,foreign.studentId,foreign.chargeId,...foreign.entries.map(row=>row.id),
-      account.userId,account.studentId,account.chargeId,...account.entries.map(row=>row.id)]
-      .some(value=>JSON.stringify(body).includes(value)),side+' assistant data boundary');
-    correlationIds.push(correlationId);
+    for(const {question,route,dates} of prompts){
+      const {body,status,correlationId}=await ask(side,question,route);
+      const answer=typeof body?.answer==='string'?body.answer:'';
+      const expectedUrl=tuitionLedgerHistoryPath+'?'+new URLSearchParams(dates);
+      const checks={
+        httpStatus:status===200,
+        requestCorrelation:uuid4(correlationId)&&!correlationIds.has(correlationId),
+        resultStatus:body?.status==='answered',
+        verified:body?.verification?.status==='verified',
+        verificationAttempts:Number.isInteger(body?.verification?.attempts)&&body.verification.attempts>=1,
+        privateGrounding:body?.grounding?.webSearched===false,
+        exactCitation:Array.isArray(body?.citations)&&body.citations.some(cite=>cite?.chunkId==='account:paymentHistory'&&cite.url===expectedUrl),
+        noAction:!body?.proposedAction,
+        undatedBalanceDisclosure:answer.includes('Some saved paid amounts have no payment date')===scopesByStudent.get(account.studentId).hasUndatedPaidAmount,
+        ...(dates===emptyDates?{
+          datedAbsence:answer.includes('No dated payment entries were found')&&!answer.includes(account.chargeLabel),
+          noInferredTotal:!answer.includes('Recorded payments:')&&!answer.includes('TWD'),
+        }:{
+          grossAmount:answer.includes('Recorded payments: TWD '+gross),
+          reversalAndNet:reversed==='0.00'?!answer.includes('Reversals:'):answer.includes('Reversals: TWD '+reversed+' · Net recorded change: TWD '+net),
+          chargeLabel:answer.includes(account.chargeLabel),
+        }),
+      };
+      const failedFields=Object.keys(checks).filter(field=>!checks[field]);
+      if(failedFields.length)throw new TuitionLedgerPreviewAssertion(side+' monthly assistant grounding',failedFields);
+      need(![foreign.chargeLabel,foreign.userId,foreign.studentId,foreign.chargeId,...foreign.entries.map(row=>row.id),
+        account.userId,account.studentId,account.chargeId,...account.entries.map(row=>row.id)]
+        .some(value=>JSON.stringify(body).includes(value)),side+' assistant data boundary');
+      correlationIds.add(correlationId);
+    }
   }
-  const guest=await ask('guest',tuitionLedgerPreviewQuestion);
+  const guest=await ask('guest',compactPaidQuestion,'/');
   need(guest.status===401&&!guest.body?.answer,'anonymous assistant denial');
   need(isDeepStrictEqual(await observe(),baseline),'student reads left ledger, audits and receipts unchanged');
   need(isDeepStrictEqual(await observeAccountScopes(),accountScopes),'student reads left account scope unchanged');
-  return {passed:true,ownHistoryReads:2,crossedHistoryReads:2,verifiedMonthlyAnswers:2,anonymousDenial:true,
+  return {passed:true,ownHistoryReads:2,crossedHistoryReads:2,verifiedMonthlyAnswers:4,verifiedEmptyMonthAnswers:2,anonymousDenial:true,
     readbackDigest:digest({baseline,accountScopes}),staffHttpVerified:false};
 }

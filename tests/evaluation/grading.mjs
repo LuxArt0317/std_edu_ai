@@ -636,6 +636,7 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
       ||testCase.domain==='graduationClearance'&&/\b(?:no (?:matching office|submitted clearance applications|assigned (?:application )?periods)|clearance lookup failed)\b|未找到已送出的離校申請|離校查詢失敗/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='housingApplications'&&/\bno saved housing application(?:s)? matching (?:this|the) selection\b/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='feeRemission'&&/\bno matching saved remission records\b/iu.test(visibleMarkdown(answer))
+      ||testCase.domain==='paymentHistory'&&/\bno dated (?:tuition-tagged )?payment (?:entries were|event was) found\b|未找到.{0,50}有日期繳費紀錄/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='leaveRecords'&&/\bno matching saved leave (?:records|rows)\b|\b(?:cannot|can['’]t|could not|couldn['’]t|failed to)\s+read\b[^.!?\n]{0,64}\bleave\b|沒有相符的已儲存請假紀錄|找不到符合的請假紀錄|沒有符合條件的已儲存假單|無法讀取.{0,20}請假紀錄/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='facilityRepairs'&&limitedFacilityRepair.test(visibleMarkdown(answer)),'The answer explicitly states missing records, inability or unsupported capability.');
     if(expected.limitation && expected.limitation!==true)check('answer.limitation.specific',matches(text,expected.limitation),'The specific required limitation is stated.');

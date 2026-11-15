@@ -13,8 +13,8 @@ import {buildAccountCases} from './account-cases.mjs';
 test('evaluation fixtures are fresh and preserve independent oracles and explicit backend gaps',()=>{
   const a=buildAccountFixture(),b=buildAccountFixture();a.profile.displayName='Modified fixture';assert.equal(b.profile.displayName,'Evaluation Student');
   const cases=buildAccountCases();assert.equal(new Set(cases.map(row=>row.id)).size,cases.length);
-  const registered={...accountTools,...supplementalAccountTools};
-  for(const item of cases.filter(row=>!Object.hasOwn(registered,row.domain))){
+  const registered=[...Object.keys(accountTools),...Object.keys(supplementalAccountTools),'paymentHistory'];
+  for(const item of cases.filter(row=>!registered.includes(row.domain))){
     if(item.domain==='assistant-guidance'){
       assert.equal(item.mode,'coaching');assert.deepEqual(item.expected.requiredTools,[]);assert.deepEqual(item.expected.allowedTools,[]);
       assert.equal(item.expected.maxDistinctAttemptedTools,0);assert.equal(item.expected.guidanceRubric.version,'stu-guidance-v1');assert.equal(item.expected.verification,'verified');
@@ -25,7 +25,7 @@ test('evaluation fixtures are fresh and preserve independent oracles and explici
   assert.throws(()=>fixtureForCase('unknown-domain'));assert.throws(()=>fixtureForCase('unavailable:unknown'));
 });
 test('the bank declares all registered tools while actual DTM file fixtures remain unexecutable',()=>{
-  const base=Object.keys(accountTools),supplemental=Object.keys(supplementalAccountTools),registered=[...base,...supplemental,'dtmMaterials','dtmAssignmentList'];
+  const base=Object.keys(accountTools),supplemental=Object.keys(supplementalAccountTools),registered=[...base,...supplemental,'dtmMaterials','dtmAssignmentList','paymentHistory'];
   assert.equal(base.length,18);
   assert.ok(base.includes('housingApplications'));
   assert.deepEqual(supplemental.sort(),['aidPayments','counselingAppointments','courseCatalog','dormitoryConduct','dtmAssignment','dtmGradeReport','dtmSubmissions','elearningEnrollments','elearningOutline','enrollmentCertificate','facilityRepairs','feeRemission','graduationClearance','healthExaminations','internshipRecords','leaveRecords','studentConduct','studentLoan','teachingFeedback','tuition','tutorEvaluation'].sort());
@@ -56,11 +56,15 @@ test('the bank declares all registered tools while actual DTM file fixtures rema
 });
 test('declared supplemental tools do not erase unavailable workflows or unbound catalog fixtures',()=>{
   const cases=buildAccountCases();
-  for(const id of ['fees-monthly-history-gap','academic-gpa-gap','academic-current-gap','academic-transfer-gap','academic-cycle-gap','attendance-weekly-gap','enrollment-certificate-gap','tuition-summer-file-gap','tuition-extended-gap','action-upload-gap']){
+  for(const id of ['academic-gpa-gap','academic-current-gap','academic-transfer-gap','academic-cycle-gap','attendance-weekly-gap','enrollment-certificate-gap','tuition-summer-file-gap','tuition-extended-gap','action-upload-gap']){
     const item=cases.find(row=>row.id==='account:'+id);assert.ok(item,id);
     assert.equal(item.capability.gap,true,id);assert.equal(item.expected.behavior,'unavailable',id);
     assert.equal(item.expected.limitation,true,id);assert.ok(item.capability.limitation,id);
   }
+  const datedPayments=cases.find(row=>row.id==='account:fees-monthly-history-gap');
+  assert.equal(datedPayments.capability.gap,false);
+  assert.equal(datedPayments.expected.behavior,'unavailable','An empty period is verified without inferring a total.');
+  assert.deepEqual(datedPayments.expected.requiredTools,['paymentHistory']);
   const pendingCatalog=cases.filter(row=>row.domain==='courseCatalog');assert.equal(pendingCatalog.length,5);
   for(const item of pendingCatalog){
     assert.equal(item.fixtureRequirement,'published_catalog_binding',item.id);

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import test from 'node:test';
 import {runTuitionLedgerPreview} from './live-fixtures.mjs';
-import {checkTuitionLedgerPreview,deleteTuitionLedgerPreviewState,tuitionLedgerHistoryPath,tuitionLedgerPlan,
+import {checkTuitionLedgerPreview,compactEmptyQuestion,compactPaidQuestion,deleteTuitionLedgerPreviewState,tuitionLedgerHistoryPath,tuitionLedgerPlan,
   tuitionLedgerPreviewDates,tuitionLedgerPreviewQuestion} from './tuition-ledger-preview.mjs';
 
 function fixture({seededUndated=false}={}){
@@ -23,17 +23,19 @@ function fixture({seededUndated=false}={}){
     return {status:200,body:{userId:a.userId,studentRecordFound:true,rows,total:rows.length,
       hasUndatedPaidAmount:rows.length>0&&side==='A'}};
   };
-  const ask=async(side,question)=>{
-    assert.equal(question,tuitionLedgerPreviewQuestion);
+  const ask=async(side,question,route)=>{
+    assert.ok([tuitionLedgerPreviewQuestion,compactPaidQuestion,compactEmptyQuestion].includes(question));
+    assert.equal(route,question===tuitionLedgerPreviewQuestion?tuitionLedgerHistoryPath:'/');
     if(side==='guest')return {status:401,body:{error:'Sign in'}};
-    const summary=side==='A'
-      ?'Recorded payments: TWD 43.05 · Reversals: TWD 13.25 · Net recorded change: TWD 29.80\nSome saved paid amounts have no payment date'
-      :'Recorded payments: TWD 72.36'+(seededUndated?'\nSome saved paid amounts have no payment date':'');
-    return {status:200,correlationId:randomUUID(),body:{status:'answered',answer:expected.get(side).chargeLabel+'\n'+summary,
-      citations:[{chunkId:'account:paymentHistory',url:tuitionLedgerHistoryPath+'?'+new URLSearchParams(tuitionLedgerPreviewDates)}],
+    const empty=question===compactEmptyQuestion;
+    const summary=empty?'No dated payment entries were found for 2026-11-01 to 2026-11-30.'
+      :expected.get(side).chargeLabel+'\n'+(side==='A'?'Recorded payments: TWD 43.05 · Reversals: TWD 13.25 · Net recorded change: TWD 29.80'
+        :'Recorded payments: TWD 72.36');
+    return {status:200,correlationId:randomUUID(),body:{status:'answered',answer:summary+(side==='A'||seededUndated?'\nSome saved paid amounts have no payment date':''),
+      citations:[{chunkId:'account:paymentHistory',url:tuitionLedgerHistoryPath+'?'+new URLSearchParams(empty?{from:'2026-11-01',through:'2026-11-30'}:tuitionLedgerPreviewDates)}],
       verification:{status:'verified',attempts:1},grounding:{webSearched:false}}};
   };
-  const observeAccountScopes=async()=>plan.accounts.map((account,index)=>({studentId:account.studentId,total:account.entries.length,
+  const observeAccountScopes=async()=>plan.accounts.map((account,index)=>({studentId:account.studentId,total:account.entries.length,emptyPeriodTotal:0,
     hasUndatedPaidAmount:index===0||seededUndated}));
   return {plan,baseline,observe:async()=>structuredClone(baseline),observeAccountScopes,history,ask};
 }
@@ -41,7 +43,7 @@ function fixture({seededUndated=false}={}){
 test('the Preview acceptance requires distinct, complete paired answers and denies the guest',async()=>{
   const result=await checkTuitionLedgerPreview(fixture());
   assert.deepEqual({...result,readbackDigest:undefined},{passed:true,ownHistoryReads:2,crossedHistoryReads:2,
-    verifiedMonthlyAnswers:2,anonymousDenial:true,staffHttpVerified:false,readbackDigest:undefined});
+    verifiedMonthlyAnswers:4,verifiedEmptyMonthAnswers:2,anonymousDenial:true,staffHttpVerified:false,readbackDigest:undefined});
   assert.match(result.readbackDigest,/^[a-f0-9]{64}$/u);
 });
 
@@ -74,18 +76,18 @@ test('the acceptance rejects crossed student data, wrong summary, stale result, 
   const f=fixture();
   await assert.rejects(checkTuitionLedgerPreview({...f,history:(side)=>f.history(side,f.plan.accounts[side==='A'?0:1].chargeId)}),
     /foreign charge HTTP/u);
-  await assert.rejects(checkTuitionLedgerPreview({...f,ask:async(side,question)=>{
-    const response=await f.ask(side,question);
+  await assert.rejects(checkTuitionLedgerPreview({...f,ask:async(side,question,route)=>{
+    const response=await f.ask(side,question,route);
     return side==='A'?{...response,body:{...response.body,answer:response.body.answer.replace('29.80','33.80')}}:response;
   }}),/monthly assistant grounding/u);
-  await assert.rejects(checkTuitionLedgerPreview({...f,ask:async(side,question)=>{
-    const response=await f.ask(side,question);
+  await assert.rejects(checkTuitionLedgerPreview({...f,ask:async(side,question,route)=>{
+    const response=await f.ask(side,question,route);
     return side==='B'?{...response,body:{...response.body,debug:f.plan.accounts[0].entries[0].id}}:response;
   }}),/assistant data boundary/u);
   const repeated=randomUUID();
   await assert.rejects(checkTuitionLedgerPreview({...f,ask:async(...args)=>({...await f.ask(...args),correlationId:repeated})}),
-    /B monthly assistant grounding/u);
-  await assert.rejects(checkTuitionLedgerPreview({...f,ask:(side,question)=>f.ask(side==='guest'?'A':side,question)}),
+    /A monthly assistant grounding/u);
+  await assert.rejects(checkTuitionLedgerPreview({...f,ask:(side,...args)=>f.ask(side==='guest'?'A':side,...args)}),
     /anonymous assistant denial/u);
   let count=0;
   await assert.rejects(checkTuitionLedgerPreview({...f,observe:async()=>{
@@ -93,6 +95,16 @@ test('the acceptance rejects crossed student data, wrong summary, stale result, 
     if(++count>1)snapshot.audits.push({id:randomUUID()});
     return snapshot;
   }}),/student reads left ledger/u);
+});
+
+test('a verified empty month needs independent zero dated entries and cannot report an inferred amount',async()=>{
+  const f=fixture();
+  await assert.rejects(checkTuitionLedgerPreview({...f,observeAccountScopes:async()=>
+    (await f.observeAccountScopes()).map(scope=>({...scope,emptyPeriodTotal:1}))}),/independent dated rows/u);
+  await assert.rejects(checkTuitionLedgerPreview({...f,ask:async(side,question,route)=>{
+    const reply=await f.ask(side,question,route);
+    return question===compactEmptyQuestion?{...reply,body:{...reply.body,answer:reply.body.answer+' Recorded payments: TWD 4.00'}}:reply;
+  }}),error=>error.failedFields.includes('noInferredTotal'));
 });
 
 test('cleanup refuses any extra event and performs no deletion on a changed fingerprint',async()=>{

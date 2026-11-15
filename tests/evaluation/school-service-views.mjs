@@ -34,7 +34,7 @@ export const schoolServiceViews=[
   courseSubstitutionPath+'/results/110/1/01',
   ...views(exchangeGrantPath,['conference','exchange','reports','conference/application','notes']),
   feeRemissionPath+'/notes',learningSupportPath+'/review',teachingAssistantPath+'/evaluation',
-  chargePaymentHistoryPath,chargePaymentHistoryPath+'?page=:page',
+  chargePaymentHistoryPath,chargePaymentHistoryPath+'?from=:from&through=:through',chargePaymentHistoryPath+'?page=:page',
   ...clubStudentViews.filter(view=>view!=='my-attendance').map(view=>clubPath+'/'+view),
   ...views(clubPath,['activities','equipment/review','officer/new','officer/review']),
   ...clubOfficerMenu.map(([path])=>clubPath+'/'+path),

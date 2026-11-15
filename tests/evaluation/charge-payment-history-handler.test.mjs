@@ -3,6 +3,8 @@ import test from 'node:test';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {chargePaymentHistoryPath,selectChargePaymentHistory} from '../../server/accountChargePaymentHistory.js';
 import {readReply} from './run.mjs';
+import {buildAccountCases} from './account-cases.mjs';
+import {gradeCase} from './grading.mjs';
 
 const project='https://xiftudmvxphxcjtmfmib.supabase.co', token='TEST_PAYMENT_HISTORY_TOKEN';
 const owner='34000000-0000-4000-8000-000000000001', outsider='34000000-0000-4000-8000-000000000002';
@@ -170,4 +172,32 @@ test('a dated personal payment question on the homepage can read school charge h
   assert.match(item.body.answer,/Recorded payments: TWD 8,889\.08/u);
   assert.doesNotMatch(item.body.answer,/tuition-tagged/u);
   assert.equal(selectChargePaymentHistory('How much did I pay for groceries last month?'),null);
+});
+
+test('the original natural monthly question reads the exact named month and treats an undated balance separately',async()=>{
+  const question='How much did I actually pay during November2026?';
+  const date=Date.parse('2027-01-03T08:00:00Z');
+  const november={from:'2026-11-01',through:'2026-11-30'};
+  assert.deepEqual(selectChargePaymentHistory(question,'/',[],date)?.filter,november);
+  assert.deepEqual(selectChargePaymentHistory('What about November2026?','/',known,date)?.filter,november);
+  assert.equal(selectChargePaymentHistory('How much did I actually pay for rent during November2026?','/',[],date),null);
+  for(const bad of ['November123','November20266','November 2201']){
+    assert.equal(selectChargePaymentHistory(`How much did I actually pay during ${bad}?`,'/',[],date)?.reason,'period',bad);
+  }
+  const rpc={...expectedSeptember,p_from:november.from,p_through:november.through};
+  const populated=await exercise(question,[dto([row(2,{paidOn:'2026-11-27',amount:'1250.50'})],{hasUndatedPaidAmount:true})]);
+  assert.deepEqual(populated.calls,[rpc]);
+  assert.equal(populated.body.verification.status,'verified');
+  assert.match(populated.body.answer,/Recorded payments: TWD 1,250\.50/u);
+  assert.match(populated.body.answer,/Some saved paid amounts have no payment date/u);
+  const empty=await exercise(question,[dto([],{hasUndatedPaidAmount:true})]);
+  assert.deepEqual(empty.calls,[rpc]);
+  assert.equal(empty.body.verification.status,'verified');
+  assert.match(empty.body.answer,/No dated payment entries were found/u);
+  assert.match(empty.body.answer,/Some saved paid amounts have no payment date/u);
+  assert.doesNotMatch(empty.body.answer,/Recorded payments:|TWD 0\.00/u);
+  const frozen=buildAccountCases().find(item=>item.id==='account:fees-monthly-history-gap');
+  assert.equal(frozen.question,question);
+  const grade=gradeCase(frozen,{...empty,statusCode:empty.code,fixtureKey:frozen.fixtureKey,execution:'deterministic'});
+  assert.deepEqual(grade.failures,[]);
 });

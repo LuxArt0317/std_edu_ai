@@ -125,6 +125,7 @@ export async function discoverSurfaces() {
       clubAttendance:'Caller-owned saved student club attendance, selected page, activity location and Taipei times.',
       clubEquipment:'Caller-owned saved club equipment requests, selected status, pickup or scheduled return dates, and item names.',
       elearningCatalog:'The verified Digital Academy catalog search or category result page, with local course links.',
+      paymentHistory:'Caller-owned dated school payments and reversals, with exact date filters and separate undated cumulative amounts.',
       elearningMetadata:'The saved Digital Academy category hierarchy or exact notice title and body.'}).map(([id,description])=>({id,description})),routeFamilies,publicPages,
     coverageLimits:[
       'A route appearing in an API question or link is semantic/navigation coverage, not browser acceptance.',

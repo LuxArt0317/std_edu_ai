@@ -246,7 +246,7 @@ test('route coverage retains only unresolved semantic cases after adding public 
     'follow-up','chinese-empty','mixed-housing','mixed-tuition'].map(id=>'account:dormitory-conduct-'+id);
   const receiptIds=['housing-receipt-metadata','housing-receipt-term-prefix','housing-receipt-and-bed','housing-bed-and-receipt','housing-receipt-and-balance','housing-receipt-excluded','housing-receipt-foreign','empty-housingApplications'].map(id=>'account:'+id);
   const addedPrivacyIds=['anonymous-records-studentConduct','anonymous-records-studentLoan','anonymous-records-aidPayments','anonymous-records-dtmGradeReport','anonymous-records-dtmAssignment',
-    'anonymous-records-elearningEnrollments','anonymous-records-facilityRepairs','anonymous-records-elearningOutline','anonymous-records-dormitoryConduct','anonymous-records-feeRemission','anonymous-records-healthExaminations','anonymous-records-counselingAppointments','anonymous-records-graduationClearance','anonymous-records-tutorEvaluation','anonymous-records-teachingFeedback','anonymous-records-housingApplications'];
+    'anonymous-records-elearningEnrollments','anonymous-records-facilityRepairs','anonymous-records-elearningOutline','anonymous-records-dormitoryConduct','anonymous-records-feeRemission','anonymous-records-healthExaminations','anonymous-records-counselingAppointments','anonymous-records-graduationClearance','anonymous-records-tutorEvaluation','anonymous-records-teachingFeedback','anonymous-records-housingApplications','anonymous-records-paymentHistory'];
   const menuIds=['public-affairs-system-search','public-affairs-facilities-input','public-affairs-facilities-query','public-custom-menu-browser-only',...buildSchoolMenuNativeCases().map(row=>row.id)];
   const newIds=[...reproductionIds,...nativeIds,...aidIds,...dtmIds,...elearningIds,...facilityIds,...outlineIds,...dormitoryIds,...receiptIds,...addedPrivacyIds,...menuIds,...leaveCases.map(row=>row.id),'public-study-first-week','anonymous-records-leaveRecords','anonymous-records-dtmMaterials','anonymous-records-internshipRecords',...internshipCases.map(row=>row.id),...buildDtmMaterialCases().map(row=>row.id),...assignmentList.map(row=>row.id),'anonymous-records-dtmAssignmentList'];
   newIds.push(...catalogCases.map(row=>row.id),'anonymous-records-elearningCatalog','anonymous-records-elearningMetadata');
@@ -261,16 +261,16 @@ test('route coverage retains only unresolved semantic cases after adding public 
   for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,outlineIds,dormitoryIds,receiptIds,addedPrivacyIds,menuIds,institutionalIds,publishedCoachingIds,noticeIds])
     assert.deepEqual(cases.filter(row=>ids.includes(row.id)).map(row=>row.id).sort(),[...ids].sort());
   const alreadyCoveredServiceViews=new Set(['/school-affairs/services/45-1/history','/school-affairs/services/45-1/history/:id',
-    '/school-affairs/services/29-1/appointments','/school-affairs/services/37-1/salary']);
+    '/school-affairs/services/29-1/appointments','/school-affairs/services/37-1/salary','/school-affairs/services/39-1/payment-history?from=:from&through=:through']);
   const missingServiceViews=schoolServiceViews.filter(route=>!alreadyCoveredServiceViews.has(route)).map(route=>
-    route.replace('?page=:page','?page=%3Apage'));
+    route.replace('?page=:page','?page=%3Apage').replace('?from=:from&through=:through','?from=%3Afrom&through=%3Athrough'));
   const unresolved=[...expected,...added,...missingServiceViews,
     '/school-affairs/course-selection','/school-affairs/course-selection/review/tutor','/school-affairs/course-selection/review/dean',
     '/school-affairs/course-selection/review/academic','/school-affairs/admin/records','/dtm/course/:id/grades/overview'];
-  assert.equal(report.coverage.routes.total,675);
+  assert.equal(report.coverage.routes.total,676);
   assert.equal(expected.length,20);assert.equal(added.length,5);
   assert.deepEqual([...report.coverage.routes.missing].sort(),unresolved.sort());
-  assert.equal(report.browserAcceptance.total,675);assert.equal(report.browserAcceptance.requiredScenarios,685);
+  assert.equal(report.browserAcceptance.total,676);assert.equal(report.browserAcceptance.requiredScenarios,686);
   assert.equal(report.coverage.routeFamilies.total,57);
   assert.deepEqual(report.coverage.routeFamilies.missing,['student-club-equipment','dtm-submissions',
     'elearning-authentication','elearning-entry-transitions','legacy-route-aliases','authentication-transitions','campus-navigation']);

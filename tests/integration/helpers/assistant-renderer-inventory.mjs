@@ -26,7 +26,8 @@ function resolveTemplate(family,template){
       :template.includes('/category/')?fixtureIds.elearningCategory:template.includes('/notice/')?fixtureIds.elearningNotice
       :family==='elearning'?fixtureIds.elearningCourse:fixtureIds.course;
   const replacements={id,materialId:fixtureIds.material,assignmentId:fixtureIds.assignment,
-    courseId:family==='elearning'?fixtureIds.elearningCourse:fixtureIds.course,activityId:fixtureIds.elearningActivity,query:'safety',page:'2'};
+    courseId:family==='elearning'?fixtureIds.elearningCourse:fixtureIds.course,activityId:fixtureIds.elearningActivity,query:'safety',page:'2',
+    from:'2026-11-01',through:'2026-11-30'};
   const path=template.replace(/:([a-zA-Z]+)/gu,(_match,name)=>{
     if(!Object.hasOwn(replacements,name))throw new Error('unbound-renderer-route-variable:'+name);
     return replacements[name];

@@ -3,6 +3,8 @@
 
 - Verify named-course term absence hours directly against the caller's saved attendance statistics. [#100]
 
+- Answer natural monthly payment questions with the exact dated ledger, including compact month and year wording and verified empty periods. [#100]
+
 - Leave time to read a known school page when an earlier public review may time out. Verify any recovered detail against the new page and persist the observed checks. [#100]
 
 - Answer saved graduation credit totals, a named requirement’s course matches and the recorded status from the selected owner’s report. Keep the official eligibility decision separate. [#100]

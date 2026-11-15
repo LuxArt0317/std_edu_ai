@@ -18,7 +18,7 @@ try{
   const path=resolve(directory,`tuition-ledger-preview-${sourceRevision.slice(0,12)}-${result.runId}.json`);
   await writeFile(path,JSON.stringify(result,null,2)+'\n',{mode:0o600,flag:'wx'});
   console.log(JSON.stringify({path,passed:result.liveAcceptance,ownReads:result.ownHistoryReads,
-    crossedReads:result.crossedHistoryReads,monthlyAnswers:result.verifiedMonthlyAnswers,anonymousDenial:result.anonymousDenial,
+    crossedReads:result.crossedHistoryReads,monthlyAnswers:result.verifiedMonthlyAnswers,emptyMonthAnswers:result.verifiedEmptyMonthAnswers,anonymousDenial:result.anonymousDenial,
     cleanup:result.cleanup.tuitionLedgerCleanup===true,cleanupProof:result.cleanup,
     staffHttpVerified:result.staffHttpVerified,...(result.failure?{failure:result.failure}:{})}));
   if(!result.liveAcceptance)process.exitCode=1;

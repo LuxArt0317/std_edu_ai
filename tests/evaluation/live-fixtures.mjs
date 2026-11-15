@@ -110,7 +110,7 @@ import {ConfirmedAssignmentTrackerAssertion,assertConfirmedAssignmentTrackerSche
   confirmedAssignmentTrackerMode,confirmedAssignmentTrackerPlan,deleteConfirmedAssignmentTrackerRows,observeConfirmedAssignmentTrackerCallers,
   readConfirmedAssignmentTrackerRows,seedConfirmedAssignmentTrackerRows,verifyConfirmedAssignmentTrackerAbsent} from './confirmed-assignment-tracker-preview.mjs';
 import {checkTuitionLedgerPreview,deleteTuitionLedgerPreviewState,isEmptyTuitionLedgerPreviewState,readTuitionLedgerAccountScopes,readTuitionLedgerPreviewState,
-  seedTuitionLedgerPreviewState,tuitionLedgerFixtureMode,tuitionLedgerHistoryPath,tuitionLedgerPlan,tuitionLedgerPreviewDates,
+  seedTuitionLedgerPreviewState,tuitionLedgerFixtureMode,tuitionLedgerPlan,tuitionLedgerPreviewDates,
   TuitionLedgerPreviewAssertion} from './tuition-ledger-preview.mjs';
 import {buildDtmTimingPlan,deleteDtmTimingRows,dtmTimingFixtureMode,dtmTimingPreviewCases,dtmTimingRequest,emptyDtmTimingState,
   gradeDtmTimingCase,observeDtmTimingCallers,observeDtmTimingRows,readDtmTimingState,seedDtmTimingRows} from './dtm-submission-timing-preview.mjs';
@@ -1493,8 +1493,8 @@ export async function runTuitionLedgerPreview({origin,sourceRevision,previewToke
       history:(side,chargeId)=>request(side,'/api/affairs-data?'+new URLSearchParams({
         scope:'fee-payment-history',charge_id:chargeId,...tuitionLedgerPreviewDates,
       })),
-      ask:(side,question)=>request(side,'/api/affairs-assistant',{
-        question,route:tuitionLedgerHistoryPath,stream:false,consentedResearchUse:false,
+      ask:(side,question,route)=>request(side,'/api/affairs-assistant',{
+        question,route,stream:false,consentedResearchUse:false,
       }),
     });
     phase='release-verification';
