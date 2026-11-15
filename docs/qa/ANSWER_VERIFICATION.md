@@ -36,7 +36,9 @@ rewrite, the graph checks later queued pages when an early batch is unreadable
 or contains mirrored text. Every batch shares the page-read deadline. An
 independent check of the revised answer follows when a page supplies distinct,
 readable contents. The Activity list records the interruption and the source
-check as separate events. This applies the same
+check as separate events. If the read window expires with eligible pages still
+queued, Activity records the time limit and preserves any previously verified
+answer and citations. This applies the same
 evaluator feedback and explicit exit conditions described in the
 [Anthropic agent workflow guide](https://www.anthropic.com/research/building-effective-agents)
 and [OpenAI agent guide](https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/).

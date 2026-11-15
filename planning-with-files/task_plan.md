@@ -1102,3 +1102,9 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify all four original signed transcript turns independently on protected `87d5847`, with one check on each of the three record answers.
 - [x] Prove exact cleanup of the Announcement Email staging failure and preserve the original failed report.
 - [ ] Exercise no-profile cleanup and common profile staging in the evaluator, then run the six Announcement Email and Student Profile browser cases on an exact protected Preview.
+
+### Later queued public sources [Issue #100]
+
+- [x] Reproduce the two-check stop after a transient second review with the first three eligible queued leads unreadable or mirrored.
+- [x] Continue through the bounded queue and independently verify the new notice on check three. Persist the time-limit reason if another page remains unread when the source window closes, and preserve any verified partial answer.
+- [ ] Confirm the protected deployment, public smoke and Quality for `f2f73e0`. Keep production acceptance separate.
