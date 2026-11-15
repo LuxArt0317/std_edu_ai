@@ -39,7 +39,7 @@ export function formatExactDtmGradeAvailability(result:DtmGradeReportEvidenceRes
 export function formatExactDtmGradeAnswer(result:DtmGradeReportEvidenceResult,question:string):
   Pick<SupplementalAnswerCandidate,'status'|'answer'|'citations'|'views'>|null;
 export function formatExactClearanceAnswer(result:ClearanceEvidenceResult,question:string,scope:NonNullable<ReturnType<typeof exactClearanceVerification>>):
-  Pick<SupplementalAnswerCandidate,'status'|'answer'|'citations'|'views'>|null;
+  (Pick<SupplementalAnswerCandidate,'answer'|'citations'|'views'>&{status:'answered'|'handoff'})|null;
 export function formatExactTeachingFeedbackAnswer(result:TeachingFeedbackEvidenceResult,question:string,selection:TeachingEvidenceSelection):
   Pick<SupplementalAnswerCandidate,'status'|'answer'|'citations'|'views'>|null;
 export function formatRequestedAidPaymentDetails(result:AidPaymentsEvidenceResult,question:string,
