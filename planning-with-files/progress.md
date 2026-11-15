@@ -8,3 +8,5 @@ Earlier entries are preserved in [the November 16 archive](archive/progress_2026
 - 2026-11-16 [#100] The unchanged sample assignment question passed on `fc357c6` with exact cleanup. The selected certificate and facility replays use the same protected candidate. Integrated the Leave/Moodle grade receipt binding, and API and evaluator suites passed.
 
 - 2026-11-16 [#100] Quality 43743140916 passed. Exact `fc357c6` passed all seven certificate cases and all 15 facility read cases, including both next-class orders and the explicit action/access limits. Their separate disposal reports passed and the shared fixture lease is clear.
+
+- 2026-11-16 [#100] Both pinned Leave and Moodle orders passed on protected `d89152a` with native confirmation and disposal. Preview `fe340f3` now follows an unread page after an unchanged review. Its fourth-check regression and Chrome reload checks passed. Three public smoke requests matched the deployment. The local certificate receipt, portable timing and tracker packets passed their migrated checks.

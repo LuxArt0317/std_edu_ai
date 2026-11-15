@@ -1033,6 +1033,15 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Bind the exact 52-1 selected, aggregate and crossed status packet. Pass seven native scoped cases in isolated PostgreSQL and eight separate synthetic browser checks.
 - [x] Replay the seven certificate cases on protected `fc357c6`. Verify both caller scopes, the selected and aggregate responses, all 32 release checks and exact disposal.
 - [x] Implement the two-source Student Leave and Moodle grade evaluation binding, with actual handler, ownership and migrated PostgreSQL acceptance in isolation.
-- [ ] Verify both companion orders with a pinned protected deployment and completed provider review.
+- [x] Verify both companion orders on protected `d89152a` with independently checked native records and exact disposal.
 - [x] Run all 40 original teaching prompts against isolated PostgreSQL and the actual handlers. Correct the no-read rubric and keep all cases in the denominator.
 - [ ] Bind independent hosted teaching evidence and finish the signed-in release evaluation.
+
+
+### Public unread-source continuation and scoped record checks [Issue #100]
+
+- [x] Reproduce the stale two-check release and show the next unread evidence source can resolve a stalled draft.
+- [x] Verify the fourth-check regression and the reloaded browser activity. Pin three public smoke requests to protected `fe340f3`.
+- [x] Run the eight local certificate cases and the local Moodle timing and confirmed tracker packets against migrated PostgreSQL.
+- [ ] Run the certificate receipt, assignment timing and confirmed tracker packets on a protected exact release. Evaluate the original fixed assignment cases inside their expected dates.
+- [ ] Complete broader signed-in service replay and production release acceptance.
