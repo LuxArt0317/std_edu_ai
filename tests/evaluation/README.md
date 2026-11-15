@@ -123,7 +123,14 @@ The housing cases distinguish application receipts at 26-1 from bed assignments 
 
 The [teaching feedback evaluation](../../docs/qa/TEACHING_FEEDBACK_LIVE_EVALUATION.md) registers forty independent cases in the main suite. Each remains a setup failure until the native fixtures and request-bound observations are mounted.
 
-The 12 native Moodle material cases are in `dtm-material-cases.mjs`. `dtm-material-assistant.test.ts` grades replies from the actual account handler with controlled PostgREST responses and exact route, ownership, projection, and retry checks. Hosted evaluation still requires a caller-bound disposable fixture. A passed controlled check supplies no live acceptance credit.
+The 12 native Moodle material cases are in `dtm-material-cases.mjs`. The protected operator mounts 11 unchanged cases for detail, list, missing link and record, bounded lists, and access and action boundaries. The simulated reader outage stays in the controlled handler evaluation. The file-content question checks only the explanation that the linked file was never opened.
+
+```sh
+node tests/evaluation/run-dtm-material-preview.mjs --preflight
+node tests/evaluation/run-dtm-material-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVISION"
+```
+
+Use the exact clean deployed source and the authorized fixture environment with the Development `VERCEL_OIDC_TOKEN`. The operator journals two disposable Google callers and every reserved course and material ID under the common database lease. Before and after each assistant request, exact SQL checks the fixture rows, both caller JWTs query the same material ID domain under RLS, and both callers read their native app view and receive an app-specific denial for the other caller’s course. The frozen grader also checks the response and account Activity. A passing report needs all 11 cases, a finished deployment pin, exact row and identity cleanup, and the unchanged protected owner. Reports store proof hashes in an owner-only directory. No Storage fixture or file download is part of this packet.
 ### Native internship
 
 Complete Internship answers verify the selected typed fields, text, tables and record links directly, including an independently readable tuition balance or a unique next meeting with a saved room. Protected Preview receipts distinguish that native check from model review and from requests that perform no read. The grader still verifies raw paired reads, the selected projection and the same row-level facts in the answer. Partial, unclear, failed and other compound reads retain the regular verification path. A tied next meeting or missing saved room also stays outside the exact timetable path.
