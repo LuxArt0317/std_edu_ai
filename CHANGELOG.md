@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Keep looking after a failed public source read when an unread lead or retry can still fit the deadline. Recheck questions about archived pages against the same capture. [#100]
+
 - Review and confirm an exact saved club equipment cancellation in the School Affairs assistant. The chat verifies the revision and receipt before showing the updated record. [#100]
 
 - The School Affairs assistant verifies the signed-in student’s club equipment status, pickup and return dates, and item names against saved borrowing requests. Add protected Preview checks for record ownership, eligibility, guest boundaries and cleanup. [#100]

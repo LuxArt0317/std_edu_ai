@@ -869,3 +869,7 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Follow a new source after evidence gaps and allow an additional review only after an independent read.
 - [x] Cover incomplete pages, repeated content, transient read failures, expired time and stored activity with endpoint and evaluator tests.
 - [x] Verify protected Preview `57540ae` with four live streamed answers, including successful recovery on the third check.
+
+- [x] Recover when the first batch of fresh public sources is unreadable after two managed checks. Cover a transient reread, a previously unread lead, and a timed stop.
+- [x] Allow a deeper check for the same archived page, with a regression proving identical capture contents and no web search.
+- [ ] Replay both paths on the new protected Preview and verify the public manifest before promotion.

@@ -7,7 +7,10 @@ the draft. If an independently read school page leaves a fact unresolved, the
 public branch looks for the primary notice or policy. It can make a fourth check
 when another lead yields new evidence and the request still has time. An empty
 initial search can switch to a targeted official publication after managed
-verification fails. The signed-in public bridge sends the child's remaining
+verification fails. If the first batch of live leads cannot be read, the handler
+can read an unused lead or retry a transient read once before composing the next
+draft. A question about the current archived page can take a third pass
+against that exact capture when readable content is available. The signed-in public bridge sends the child's remaining
 deadline separately from browser input so it can report a timed stop.
 Unsupported drafts and actions stay withheld.
 

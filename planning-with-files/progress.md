@@ -63,3 +63,5 @@
 - 2026-11-15 [#100] Integrated both independent grading corrections. Protected `db78083` passed GitHub Quality. Corrected Counseling `bb5f650` and combined tuition `da77afd` are queued for exact protected replays in that order, with verified cleanup required between them. Club equipment records are the next identified private reader gap.
 
 - 2026-11-15 [#100] Exact protected `bb5f650` passed all nine Counseling checks and cleanup. Exact `da77afd` passed both tuition accounts' scoped and crossed reads, both monthly replies, anonymous denial and exact fixture cleanup. Started the four-turn pinned transcript. Added explicit caller-owned club equipment cancellation to the existing chat confirmation and scoped service, with passing controlled handler and Chromium checks.
+
+- 2026-11-15 [#100] Integrated source recovery for empty public reads after two rejections and same-capture rechecks for archived pages. Collected all four protected transcript replies on `da77afd` with durable verification and exact cleanup. Mounted the paired equipment fixture and retained the overlapping tuition harness contracts.
