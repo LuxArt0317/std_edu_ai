@@ -1,5 +1,9 @@
 # Progress
 
+- 2026-11-16 [#100] Added five directly verified caller-owned Moodle course and meeting answers and a protected paired replay. Staged exact `69bc307`. Separately fixed survey phases, dates and course completion handling. Five original answers passed actual handlers and isolated SQL in the 67-case focused run.
+
+- 2026-11-16 [#100] Exact protected `a8d8fb9` passed Quality 43732809859 and 11 Academic Services checks with exact automatic cleanup. Its 16 clearance answers passed. Reconciled a retained cleanup ledger and proved both disposable Auth identities and all scoped records absent, with shared terms and the protected owner unchanged. Added cleanup backoff and fresh ownership checks. All three positive windows passed isolated PostgreSQL and 13 previously unavailable club observations passed targeted synthetic Chromium.
+
 - 2026-11-15 [#100] Protected `5430bd5` passed Quality 43719599905 and one of two public companion cases. The repaired 21-3 fixture sent six requests. Five evaluated responses withheld their draft during the live provider quota outage. A deliberate stop interrupted the sixth check and verified cleanup. Integrated direct weekday library and fee-remission evidence checks, a separate named-charge companion, and explicit quota handling. Pinned `54319c0` passed 114 focused tests and a 62-case adaptive repair and source suite. Added 18 controlled protected browser transport checks.
 
 - 2026-11-15 [#100] Protected `1f082b9` passed 11/11 Tutor Evaluation replies with paired readbacks, exact pin and cleanup, then all four original conversation answers with independent reviews, four saved revisions and exact cleanup. Reproduced the original 21-3 setup failure in disposable PostgreSQL and fixed the insert/delete JSONB binding. Its first exact hosted run sent zero requests. Staged `5430bd5` after 70 focused checks.

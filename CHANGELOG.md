@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Answer teaching survey status, dates, course completion, and phase comparisons from saved survey records. Verify the same course and section before comparing its completion across phases. [#100]
+
 - Verify standalone Moodle questions about the student's saved courses, course role, meeting notes, next meeting, and attendance directly against their owned records. Add a protected evaluation of the five original questions with two callers. [#100]
 
 - Reconcile disposable Auth users after uncertain deletion responses and space out transient cleanup retries. [#100]
