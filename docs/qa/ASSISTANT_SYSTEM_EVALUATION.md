@@ -417,3 +417,9 @@ The controlled endpoint regression checks visitor entry, discussion room booking
 ```sh
 node --test tests/api/public-library-sources.test.ts
 ```
+
+### Public recovery after unreadable sources
+
+When search supplies a legitimate lead without a usable draft, the handler independently reads the page. After an empty read it can try an unread lead or retry a transient read once. If both reads are empty, one different official publication may be searched while the time budget can still cover independent composition and review. Repeated or blocked URLs remain ineligible after the read limit. The preparatory steps remain visible in saved activity and do not count as completed reviews. Managed reviewer output truncation can also switch to public evidence with time left for a deeper check. Fixed archived page, private account and confirmed action paths use their existing scopes.
+
+`node --experimental-strip-types --test tests/api/research-assistant-web-follow-up.test.ts` reproduces the two-check stop, checks recovery on the third verification and tests the initial transient read, unavailable evidence, expired time, duplicate content, reviewer outage and saved-activity behavior.

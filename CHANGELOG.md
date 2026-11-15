@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Continue public verification when initial school pages cannot be read or the managed reviewer runs out of output. Recheck a transient read, look for a different official publication, and preserve the search outcome in the conversation. [#100]
+
 - Add a separate protected Internship and published sample timetable packet, with exact owned-enrollment receipts and independently dated meeting facts. [#100]
 
 - Use the saved bed-assignment reader for short housing questions on 34-1 and directly verify complete empty results. [#100]
