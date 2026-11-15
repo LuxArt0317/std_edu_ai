@@ -110,6 +110,10 @@ test('a known index link on timeout remains useful without claiming sign-in, and
   const blocked=findings.append(reply);
   assert.match(blocked.reply.answer,/School sign-in is required/u);
   assert.doesNotMatch(blocked.reply.answer,/Any title/u);
+  const zh=createPublicSchoolSourceLeads('樹德學生的 OneDrive 儲存空間配額與公告日期是什麼？');
+  zh.recordAccessRequired({url:notice,title:''});
+  assert.match(zh.append({...reply,status:'handoff',grounding:{source:'helpful-fallback'}}).reply.answer,
+    /無法從可讀取的公開資料核實儲存空間配額與日期.*需校方登入/su);
   findings.recordReadable(notice);
   assert.equal(findings.append(reply).step,null);
 });
@@ -120,8 +124,9 @@ const provider=(body:unknown)=>Response.json({output:[{type:'message',content:[{
 const search=(url:string,answer:string)=>Response.json({output:[{type:'web_search_call',status:'completed',action:{sources:[{url,title:'STU Cloud Storage'}]}},
   {type:'message',content:[{text:JSON.stringify({status:'answered',source_urls:[url],answer})}]}]});
 
-for(const scenario of ['unavailable','verified','needs-copy-repair'] as const)test(`the OneDrive response preserves its original login-gated lead with ${scenario}`,async t=>{
-  const verifiedPartial=scenario!=='unavailable';
+for(const scenario of ['unavailable','verified','needs-copy-repair','no-source-answer'] as const)test(`the OneDrive response preserves its original login-gated lead with ${scenario}`,async t=>{
+  const verifiedPartial=scenario==='verified'||scenario==='needs-copy-repair';
+  const noSourceAnswer=scenario==='no-source-answer';
   const old={key:process.env.OPENAI_API_KEY,url:process.env.VITE_SUPABASE_URL,publish:process.env.VITE_SUPABASE_PUBLISHABLE_KEY};
   process.env.OPENAI_API_KEY='controlled-public-leads-key';process.env.VITE_SUPABASE_URL='https://controlled-public-leads.supabase.co';
   process.env.VITE_SUPABASE_PUBLISHABLE_KEY='controlled-publishable-key';
@@ -138,7 +143,7 @@ for(const scenario of ['unavailable','verified','needs-copy-repair'] as const)te
     if(!url.endsWith('/v1/responses'))return Response.json(null);
     const request=JSON.parse(String(init?.body)),name=request.text.format.name;
     if(name==='stu_web_answer'){
-      if(++searches>1)return Response.json({output:[]});
+      if(++searches>1||noSourceAnswer)return Response.json({output:[]});
       return verifiedPartial?search(support,scenario==='needs-copy-repair'
         ?`${content} The missing details are the announcement’s URL or text and its student quota.`
         :`${content} The student quota and announcement date could not be verified.`)
@@ -173,14 +178,19 @@ for(const scenario of ['unavailable','verified','needs-copy-repair'] as const)te
     const [,event,value]=/^event: (\w+)\ndata: (.+)\n\n$/u.exec(raw)??[];
     if(event==='progress')events.push(JSON.parse(value));if(event==='result')body=JSON.parse(value);
   },end(){}};
-  await handler({method:'POST',body:{question,stream:true},headers:{'x-forwarded-for':scenario==='needs-copy-repair'?'192.0.2.48':verifiedPartial?'192.0.2.47':'192.0.2.46'}},sink);
+  await handler({method:'POST',body:{question,stream:true},headers:{'x-forwarded-for':scenario==='needs-copy-repair'?'192.0.2.48':verifiedPartial?'192.0.2.47':noSourceAnswer?'192.0.2.49':'192.0.2.46'}},sink);
   assert.match(body.answer,/Microsoft 365 and OneDrive storage quotas\]\(https:\/\/dtm\.stu\.edu\.tw\/mod\/page\/view\.php\?id=625803\)/u);
   assert.match(body.answer,/School sign-in is required\. I could not verify the notice contents/u);
   assert.doesNotMatch(JSON.stringify(body),/LOGIN_MARKER|login\/index|987 GB|November 31/u);
   assert.doesNotMatch(body.answer,/Please try again or specify the course|URL or text/u);
   assert.equal(corrections,scenario==='needs-copy-repair'?1:0);
   assert.deepEqual(body.citations.map((citation:{url:string})=>citation.url),verifiedPartial?[support]:[],JSON.stringify({activity:body.activity,verification:body.verification,direct}));
-  assert.equal(body.verification?.status,verifiedPartial?'verified':'unverified');
+  if(noSourceAnswer){
+    assert.equal(body.status,'handoff');
+    assert.equal(body.verification,undefined);
+    assert.match(body.answer,/couldn’t verify the storage quota or the date you asked about from public sources/u);
+    assert.doesNotMatch(body.answer,/Tell me the office|still browse|I will not guess/u);
+  }else assert.equal(body.verification?.status,verifiedPartial?'verified':'unverified');
   assert.equal(events.filter(step=>step.kind==='school-source-lead'&&step.status==='complete').length,1);
   assert.deepEqual(direct,verifiedPartial?[notice,support]:[notice]);
   const messages=sanitizeStoredConversation([{id:'saved-lead',role:'assistant',content:body.answer,activity:body.activity,result:body}]);
