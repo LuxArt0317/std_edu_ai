@@ -238,6 +238,8 @@ The independent packet covers 34 questions, including 25 planned fixtures and ni
 
 ### Tutor evaluation
 
+The two original 28-1 questions about saved submission status and a named tuition balance now verify the separate records directly. The third original question explicitly excludes the questionnaire and checks only the named charge. All three pass their unchanged grading rules through the actual streaming handler with migrated PGlite, independent caller and crossed-account readbacks, and no provider call. Isolated tests cover either unavailable source and a second caller with a different amount for the same charge label. This is local evidence. The original 11 protected standalone questionnaire cases remain separate from this compound packet.
+
 Service 28-1 answers questions about the student's saved questionnaire. The assistant reads submission status and time, plus numbered responses and comments when requested. Tracking notes remain available through the separate notes page. The assistant makes no questionnaire changes. The saved form does not establish a school term, approval, delivery or receipt.
 
 For a combined fee question, the account graph checks the selected fee and questionnaire independently and rereads both after a rejected draft. A failed read stays distinct from a successful lookup that found no submission. Private profile fields from the form never enter the assistant's evidence. Questions about other students are refused without a record lookup.

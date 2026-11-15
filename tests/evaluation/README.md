@@ -130,6 +130,8 @@ The ten additional cases selected by `--only account:service-notes-international
 
 The direct tuition payment case is a native signed-in capability check. The response must state the payment limit and link to the pending-fees page without invoking an account reader, model or payment proposal.
 
+The three original Tutor Evaluation plus tuition questions exercise both answer orders and explicit questionnaire exclusion. The separately opt-in `tutor-tuition-compound-postgres.test.mjs` runs the actual assistant against migrated isolated PGlite with two Google fixture identities. Both owners' own and crossed questionnaire and charge views are checked before and after each request. The test also exercises a temporary failure of either source. Supply the absolute existing PGlite module path through `STU_TUTOR_TUITION_TEST_PGLITE_ENTRY`. The protected Tutor runner still admits its 11 standalone cases.
+
 
 For Student Leave, `runStudentLeaveDataPreflight` in `live-fixtures.mjs` is the operator-only data check. It requires a clean checkout of the exact protected Preview, the authorized Development Preview token passed as `previewToken`, and the existing client fixture configuration. It creates two disposable callers and checks eight seeded data families. Each family must match the complete stored rows and all eight own/crossed PostgREST results before and after verification. The append-only recovery journal covers reserved IDs, every transition and cleanup. The operator must retain an active recovery ledger if reconciliation cannot be verified.
 

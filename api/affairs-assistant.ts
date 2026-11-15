@@ -44,7 +44,7 @@ import {studentConductGuide} from '../server/studentConductGuide.js';
 import {isServiceNoteNextClass,serviceNoteLookup,serviceNotePageNavigation,serviceOperationPageNavigation} from '../server/serviceNoteIntent.js';
 import {serviceNoteGuide,serviceNoteNavigationAnswer} from '../server/serviceNoteGuide.js';
 import {readTutorEvaluationEvidence} from '../server/accountTutorEvaluationEvidence.js';
-import {tutorEvaluationNavigation} from '../server/tutorEvaluationEvidenceIntent.js';
+import {tutorEvaluationNavigation,withoutExcludedTutorEvaluationClause} from '../server/tutorEvaluationEvidenceIntent.js';
 import {tutorEvaluationGuide} from '../server/tutorEvaluationGuide.js';
 import {readClearanceEvidence} from '../server/accountClearanceEvidence.js';
 import {clearanceNavigationView,clearanceTimetableQuestion} from '../server/clearanceEvidenceIntent.js';
@@ -877,21 +877,24 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const excludedNoteFeeLabel=notes.excluded&&!notes.keys.length&&!notes.officialOnly?ownFeeBalanceLabel(notes.otherQuestion):null;
   const hasImages=Array.isArray(input?.images)&&input.images.length>0;
   const textOnly=input?.images===undefined||(Array.isArray(input.images)&&!hasImages);
-  const excludedHealthOrCounselingFee=textOnly&&scopedQuestion!==question
-    &&(withoutExcludedHealthClause(question)===scopedQuestion||withoutExcludedCounselingClause(question)===scopedQuestion)
+  const excludedTutorFee=withoutExcludedTutorEvaluationClause(question)===scopedQuestion;
+  const excludedNativePageFee=textOnly&&scopedQuestion!==question
+    &&(withoutExcludedHealthClause(question)===scopedQuestion||withoutExcludedCounselingClause(question)===scopedQuestion||excludedTutorFee)
     &&standaloneFeeBalanceLabel(scopedQuestion)!==null?scopedQuestion:null;
-  const standaloneChargeLabel=question===requestedQuestion?standaloneFeeBalanceLabel(excludedHealthOrCounselingFee??question):null;
+  const standaloneChargeLabel=question===requestedQuestion?standaloneFeeBalanceLabel(excludedNativePageFee??question):null;
   const chargeLabel=excludedNoteFeeLabel??pageContext.feeChargeLabel??(assignmentFees?ownFeeBalanceLabel(assignment.otherQuestion):housingFees?ownFeeBalanceLabel(housing.otherQuestion):teachingFees?ownFeeBalanceLabel(studyQuestion):noteFees?ownFeeBalanceLabel(notes.otherQuestion):aidFees?ownFeeBalanceLabel(aid.otherQuestion):aid.excluded?ownFeeBalanceLabel(question):scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):standaloneChargeLabel);
   const pairedChargeTool=pageContext.feeAndBalance&&chargeLabel!==null&&chargeLabel===pageContext.feeChargeLabel
     &&pageContext.tools.length===1?pageContext.tools[0]:null;
   const pairedHealthCharge=pairedChargeTool==='healthExaminations';
   const pairedCounselingCharge=pairedChargeTool==='counselingAppointments';
+  const pairedTutorCharge=pairedChargeTool==='tutorEvaluation';
   const chargesOnly=assignmentFees||isOwnFeeBalanceQuestion(aid.excluded?question:scopedQuestion)||pageContext.feeAndBalance||aidFees||teachingFees||housingFees||chargeLabel!==null&&!noteFees;
   const exactBalance=(question===requestedQuestion||question===resolvedFee)
     &&(chargeLabel?chargeLabel===standaloneChargeLabel:isOwnFeeBalanceQuestion(question)
       &&/^how much\b|\b(?:balance|owe|remain(?:s)? unpaid)\b|還要繳|還有|尚欠|剩餘|餘額|還剩/iu.test(question.normalize('NFKC')))
     &&!pageContext.selected&&!notes.keys.length
     &&!dtmCompound&&!assignment.selection&&!aid.selection&&!teachingSelection&&!housingSelection&&!applicationSelection;
+  const exactExcludedTutorCharge=Boolean(exactBalance&&chargeLabel&&excludedNativePageFee&&excludedTutorFee);
   const timetableOnly=Boolean(clearanceTimetableQuestion(question,pageContext))||aidNext||teachingNext||housingNext;
   const publicFollowup=textOnly&&question===requestedQuestion
     ?publicServiceFollowup(question,input?.history):null;
@@ -953,15 +956,15 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     else stream.progress('account','Loading your account records',currentStudyScope==='courses_and_year'?'Checking your School Affairs subjects and recorded year level.':currentStudyScope||timetableOnly?'Checking the timetable linked to this Google account.':chargesOnly?'Checking only the fees linked to this Google account.':'Checking School Affairs and DTM records for this signed-in Google account.');
     const loadCharges=async()=>{
       try{
-        const saved=await loadOwnAffairsCharges(account,{deadline,requireExactProjection:pairedHealthCharge});
+        const saved=await loadOwnAffairsCharges(account,{deadline,requireExactProjection:pairedHealthCharge||pairedTutorCharge||exactExcludedTutorCharge});
         const normalize=(value:string)=>value.normalize('NFKC').trim().toLowerCase();
         const selected=chargeLabel?{...saved,chargeSelectionLabel:chargeLabel,charges:saved.charges.filter(row=>normalize(row.label)===normalize(chargeLabel))}:saved;
-        return exactBalance?{...selected,feeBalanceScope:true}:selected;
+        return exactBalance?{...selected,feeBalanceScope:true,...(exactExcludedTutorCharge?{exactNamedChargeOnly:true}:{})}:selected;
       }catch(error){
         if(!exactBalance&&!assignmentFees&&!pageContext.feeAndBalance&&!noteFees&&!excludedNoteFeeLabel&&!aidFees&&!teachingFees&&!housingFees)throw error;
         const charges:Awaited<ReturnType<typeof loadOwnAffairsCharges>>['charges']=[];
         return {...scopedSnapshot(),charges,chargeReadUnavailable:true,...(exactBalance?{feeBalanceScope:true}:{}),
-          ...((pairedHealthCharge||pairedCounselingCharge)&&error instanceof AffairsWorkspaceReadUnavailableError?{chargeReadFailed:true}:{}),
+          ...((pairedHealthCharge||pairedCounselingCharge||pairedTutorCharge)&&error instanceof AffairsWorkspaceReadUnavailableError?{chargeReadFailed:true}:{}),
           ...(chargeLabel?{chargeSelectionLabel:chargeLabel}:{})};
       }
     };
@@ -1064,7 +1067,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       },
     };
     const graphQuestion=teachingSelection&&foreignYear?[teaching.question,studyQuestion].filter(Boolean).join('\n')
-      :excludedNoteFeeLabel?noteQuestion:exactBalance&&excludedHealthOrCounselingFee?excludedHealthOrCounselingFee:question;
+      :excludedNoteFeeLabel?noteQuestion:exactBalance&&excludedNativePageFee?excludedNativePageFee:question;
     const answer=await answerAccount({question:graphQuestion,correlationId,snapshot,history,route,deadline,supplementalReaders,
       allowNativeTeachingVerification:graphQuestion===question,
       loadSnapshot:()=>loadSelectedSnapshot(false),

@@ -25,7 +25,7 @@ async function ask(question:string,{serve=handler,page=route,history=[] as Histo
   await serve({method:'POST',headers:{authorization:'Bearer '+ownerAccount.token},body:{question,route:page,history}},reply);
   assert.equal(output.status,200,JSON.stringify(output.body));return output.body;
 }
-type Fixture={tutor?:'status'|'ratings'|'comment'|'blank'|'empty'|'failed'|'write';fee?:'ok'|'failed';reject?:number};
+type Fixture={tutor?:'status'|'ratings'|'comment'|'blank'|'empty'|'failed'|'write';fee?:'ok'|'failed';reject?:number;nativePair?:boolean};
 async function offline(fixture:Fixture,exercise:()=>Promise<void>){
   const original=globalThis.fetch,key=process.env.OPENAI_API_KEY;
   const stages:string[]=[],errors:unknown[]=[];
@@ -121,7 +121,7 @@ async function offline(fixture:Fixture,exercise:()=>Promise<void>){
     const attempts=fixture.reject?2:1;
     assert.equal(tutorReads,fixture.tutor&&fixture.tutor!=='write'?attempts:0);
     assert.equal(feeReads,fixture.fee?attempts:0);
-    const exactRecord=fixture.tutor&&fixture.tutor!=='failed'&&fixture.tutor!=='write'&&!fixture.fee;
+    const exactRecord=fixture.nativePair||fixture.tutor&&fixture.tutor!=='failed'&&fixture.tutor!=='write'&&!fixture.fee;
     assert.deepEqual(stages,exactRecord?[]:['answer_evidence_review',
       ...(fixture.reject?['correct_grounded_answer','answer_evidence_review']:[]),
       ...((fixture.reject??0)>1?['correct_grounded_answer','answer_evidence_review']:[]),
@@ -165,13 +165,19 @@ test('answers own saved submission, selected numbered ratings and explicit saved
   }
 });
 
-test('answers both fee/questionnaire orders and refreshes each source when its first draft is rejected',async()=>{
-  for(const question of combined)await offline({tutor:'status',fee:'ok'},async()=>{
+test('checks both named fee and questionnaire orders directly against the saved records',async()=>{
+  for(const question of combined)await offline({tutor:'status',fee:'ok',nativePair:true},async()=>{
     const result=await ask(question);
     assert.equal(result.verification.status,'verified');assert.match(result.answer,/23,000/u);assert.match(result.answer,/saved in stu.best/u);
+    assert.equal(result.verification.attempts,1);
+    assert.match(result.activity.find((step:{kind:string})=>step.kind==='tutor-evaluation-evidence-check')?.detail??'',/separate records/u);
+    assert.deepEqual(result.citations.map((citation:{url:string})=>citation.url).sort(),[route,'/school-affairs/services/39-1']);
   });
-  for(const reject of [1,3])await offline({tutor:'status',fee:'ok',reject},async()=>{
-    const result=await ask(combined[0]);
+});
+
+test('still refreshes both sources after a rejected prose draft about a requested questionnaire comment',async()=>{
+  for(const reject of [1,3])await offline({tutor:'comment',fee:'ok',reject},async()=>{
+    const result=await ask(comment+' '+charges);
     assert.equal(result.verification.attempts,reject===1?2:3);
     assert.doesNotMatch(result.answer,/23,000|16:15:37/u);
     if(reject===1){assert.equal(result.verification.status,'verified');assert.match(result.answer,/22,000/u);assert.match(result.answer,/16:15:38/u);}
@@ -181,7 +187,7 @@ test('answers both fee/questionnaire orders and refreshes each source when its f
 
 test('retains verified partial answers, distinguishes empty from failed, and does not mutate',async()=>{
   for(const [tutor,fee,expected]of [['failed','ok',/submission status is unknown/u],['empty','ok',/no saved submission/u],['status','failed',/saved in stu.best/u]] as const){
-    await offline({tutor,fee},async()=>{
+    await offline({tutor,fee,nativePair:true},async()=>{
       const result=await ask(combined[1]);
       assert.equal(result.verification.status,'verified');assert.match(result.answer,expected);
       assert.equal(result.proposedAction,undefined);

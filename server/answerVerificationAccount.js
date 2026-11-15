@@ -889,10 +889,14 @@ async function answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadl
       const expected=candidateFrom(context.evidence);
       if(!expected||JSON.stringify(context.candidate)!==JSON.stringify(expected))return {ok:false,reason:'evidence_unavailable'};
       const linked=current.studentRecordFound===true;
-      if(context.attempt===1&&linked)return verifyEvidenceAnswer({...context,responseIntent:'records',
+      const payload=JSON.parse(context.evidence[1].content);
+      const exactNamedCharge=Boolean(linked&&current.exactNamedChargeOnly===true&&selectedLabel!==undefined
+        &&payload.excerpted===false&&payload.records?.length===1&&payload.counts?.[0]?.matchingRows===1&&expected.complete);
+      if(context.attempt===1&&linked&&!exactNamedCharge)return verifyEvidenceAnswer({...context,responseIntent:'records',
         diagnosticContext:correlationId?{correlationId,attempt:context.attempt}:undefined});
       emit({kind:'fee-balance-evidence-check',label:linked?'Recalculated your saved fee balance':'Checked for a linked student record',
-        detail:linked?'Checked the amounts, currencies, source labels and read limits against the refreshed fee records.'
+        detail:exactNamedCharge?'Matched the named record and independently checked the saved amounts and currency.'
+          :linked?'Checked the amounts, currencies, source labels and read limits against the refreshed fee records.'
           :'The scoped read found no linked student record for this account.',status:'complete'});
       return {ok:true};
     },
@@ -1079,12 +1083,15 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     ?selectCounselingEvidence(question,fullRoute,history):null;
   const pairedCounseling=Boolean(counselingSelection&&!counselingSelection.reason&&!counselingSelection.operation
     &&!counselingSelection.clinical&&!counselingSelection.document&&!counselingSelection.identity&&!resolvedUserQuestion);
-  const pairedChargeLabel=pageLookup.feeAndBalance&&(singlePageTool==='feeRemission'||pairedHealth||pairedCounseling)
+  const tutorSelection=singlePageTool==='tutorEvaluation'?selectTutorEvaluationEvidence(question,fullRoute,history):null;
+  const pairedTutor=Boolean(tutorSelection&&pageLookup.feeChargeLabel!==null&&!tutorSelection.reason&&!tutorSelection.unavailableDetails
+    &&tutorSelection.from==='question'&&!tutorSelection.positions.length&&!tutorSelection.commentRequested&&!resolvedUserQuestion);
+  const pairedChargeLabel=pageLookup.feeAndBalance&&(singlePageTool==='feeRemission'||pairedHealth||pairedCounseling||pairedTutor)
     ?pageLookup.feeChargeLabel:null;
+  const pairedPageSelection=pairedHealth?healthSelection:pairedCounseling?counselingSelection:pairedTutor?tutorSelection:null;
   const scopedSupplementalTool=(pageLookup.readerOnly||pairedChargeLabel!==null)&&singlePageTool;
   const withScopedBed=scopedSupplementalTool==='dormitoryConduct'&&dormitoryWithBed;
   const conductCount=scopedSupplementalTool==='studentConduct'&&isStudentConductCountQuestion(pageLookup.questions.studentConduct);
-  const tutorSelection=scopedSupplementalTool==='tutorEvaluation'?selectTutorEvaluationEvidence(question,fullRoute,history):null;
   const remissionSelection=scopedSupplementalTool==='feeRemission'?selectFeeRemissionEvidence(question,fullRoute,history):null;
   const scopedTimetable=Boolean(clearanceTimetableQuestion(question,pageLookup));
   const scopedClearance=pageLookup.tools.includes('graduationClearance')&&pageLookup.readerOnly;
@@ -1109,7 +1116,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     publicPageRoute?loadPublicPageContext(publicPageRoute,Math.min(deadline-24000,Date.now()+5000)).catch(()=>null):Promise.resolve(null),
     readSupplemental(snapshot,1),
   ]);
-  const exactTutorRecord=Boolean(tutorSelection&&!tutorSelection.reason&&!tutorSelection.unavailableDetails
+  const exactTutorRecord=Boolean(scopedSupplementalTool==='tutorEvaluation'&&pairedChargeLabel===null&&tutorSelection&&!tutorSelection.reason&&!tutorSelection.unavailableDetails
     &&firstSupplemental.length===1&&['ok','empty'].includes(firstSupplemental[0].readState));
   const remissionDisposition=remissionSelection?.reason
     ?(['invalid_period','ambiguous_period'].includes(remissionSelection.reason)?remissionSelection.reason:null)
@@ -1119,7 +1126,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     &&(remissionDisposition?result.readState==='unavailable'&&result.reason===remissionDisposition
       :!remissionSelection.reason&&['ok','empty','partial'].includes(result.readState)));
   const exactFeeRemission=firstSupplemental.length===1&&supportedRemissionRead(firstSupplemental[0]);
-  let exactSupplemental=(conductCount||exactTutorRecord||exactFeeRemission||['dormitoryConduct','healthExaminations','counselingAppointments'].includes(scopedSupplementalTool))
+  let exactSupplemental=(conductCount||exactTutorRecord||pairedTutor||exactFeeRemission||['dormitoryConduct','healthExaminations','counselingAppointments'].includes(scopedSupplementalTool))
     &&!plan.publicTopics.length&&!publicPageRoute&&intent.kind==='records'
     &&activeTools.includes(scopedSupplementalTool)&&(withScopedBed
       ?activeTools.length===2&&activeTools.includes('housing')
@@ -1613,17 +1620,18 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     if(pairedChargeLabel!==null){
       const source=sources.find(item=>item.id==='account:charges');
       const charge=JSON.parse(source.content);
-      const page=pairedHealth||pairedCounseling?JSON.parse(supplemental[0].evidence.content):null;
-      const exactPage=page&&isDeepStrictEqual(page.selection,pairedHealth?healthSelection:counselingSelection);
+      const page=pairedPageSelection?JSON.parse(supplemental[0].evidence.content):null;
+      const exactPage=page&&isDeepStrictEqual(page.selection,pairedPageSelection);
       // A bounded read can verify all returned rows while leaving the full history unknown.
-      const supportedPage=page?exactPage&&['ok','empty','partial'].includes(page.readState)&&!page.reason&&page.counts?.omitted===0
-        &&!rendered.formatting.limited
+      const supportedPage=page?exactPage&&!page.reason&&!rendered.formatting.limited
+        &&(pairedTutor?['ok','empty'].includes(page.readState)&&rendered.complete
+          :['ok','empty','partial'].includes(page.readState)&&page.counts?.omitted===0)
         :supplemental[0].readState==='ok'&&rendered.complete;
       const pageReadFailed=Boolean(exactPage&&page.readState==='unavailable'&&page.reason==='read_failed');
       if(rendered.status!=='answered'||charge.checkedAt!==current.checkedAt||charge.selectionLabel!==pairedChargeLabel||charge.excerpted!==false)return null;
       const supportedCharge=!charge.unavailableReason&&charge.studentRecordFound===true
         &&charge.records?.length===1&&charge.counts?.[0]?.matchingRows===1;
-      const chargeReadFailed=(pairedHealth||pairedCounseling)&&current.chargeReadFailed===true&&charge.unavailableReason==='read_failed'&&charge.studentRecordFound===undefined;
+      const chargeReadFailed=Boolean(pairedPageSelection)&&current.chargeReadFailed===true&&charge.unavailableReason==='read_failed'&&charge.studentRecordFound===undefined;
       if(!(supportedPage&&(supportedCharge||chargeReadFailed)||pageReadFailed&&supportedCharge))return null;
       try{
         const language=supplementalAnswerLanguage(question);
@@ -1706,7 +1714,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   }
   const fees=boundedFeeAnswer(evidence);
   if((noteFees||aidFees||teachingFees||housingFees||serviceFees)&&!fees)needsComposition=true;
-  if(fees&&!directNoteCompanion&&!(pairedCounseling&&exactSupplemental)){
+  if(fees&&!directNoteCompanion&&!((pairedCounseling||pairedTutor)&&exactSupplemental)){
     const combined={...initial,answer:[initial.answer,fees.answer].filter(Boolean).join('\n\n'),views:[...(initial.views||[]),...fees.views]};
     if(combined.answer.length<=selectedChargeAnswerLimits.answerCharacters
       &&Buffer.byteLength(JSON.stringify(combined),'utf8')<=selectedChargeAnswerLimits.resultBytes){
@@ -1827,6 +1835,15 @@ export async function answerAccountWithVerification({question,snapshot,history=[
           const zh=supplementalAnswerLanguage(question)==='zh-TW';
           emit({kind:'tutor-evaluation-evidence-check',label:zh?'已核對導師評量紀錄':'Verified the tutor evaluation record',
             detail:zh?'比對送出狀態、所查詢的已儲存欄位和問卷連結。':'Matched the saved submission status, requested fields and questionnaire link.',status:'complete'});
+          return {ok:true};
+        }
+        if(pairedTutor&&pairedChargeLabel!==null){
+          const zh=supplementalAnswerLanguage(question)==='zh-TW';
+          const detail=supported.grounding?.degraded
+            ?(current.chargeReadFailed===true?(zh?'已比對問卷儲存狀態；費用餘額無法讀取。':'Matched the saved questionnaire status. The fee balance could not be read.')
+              :(zh?'已核對選定費用的餘額；問卷儲存狀態無法讀取。':'Verified the named fee balance. The questionnaire status could not be read.'))
+            :(zh?'分別比對已儲存問卷與選定費用的帳戶紀錄。':'Matched the saved questionnaire status and the named fee against their separate records.');
+          emit({kind:'tutor-evaluation-evidence-check',label:zh?'已核對可讀取的紀錄':'Verified the selected records',detail,status:'complete'});
           return {ok:true};
         }
         if(exactFeeRemission){

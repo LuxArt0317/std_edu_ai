@@ -108,7 +108,7 @@ export function isTutorEvaluationFieldClause(clause){const value=clean(clause);r
 export function withoutExcludedTutorEvaluationClause(question){
   const value=clean(question);if(!value||!topic.test(value))return question;
   const sections=parts(value),remaining=sections.filter(part=>!negative.test(part)||!topic.test(part));
-  return remaining.length===1&&remaining.length<sections.length?remaining[0]:question;
+  return remaining.length===1&&remaining.length<sections.length?remaining[0].replace(/[,，]\s*$/u,'').trimEnd():question;
 }
 /** Pure local form navigation. It performs no read and cannot swallow a second
  * question about a private record or a different service. */
