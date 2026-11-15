@@ -35,6 +35,12 @@ async function ask(question:string,{handler=signedIn,route=path,history=[] as {r
 
 test('the actual handler passes the independent period, net pay, tax, bank and account-boundary cases',async()=>{
   const original=globalThis.fetch,calls:string[]=[];
+  const fixtureUser='37000000-0000-4000-8000-000000000030';
+  const handler=createAffairsAssistantHandler({verifyToken:async token=>{
+    assert.equal(token,account.token);
+    return {...account,user:{id:fixtureUser}};
+  },loadSnapshot:blocked,publicResearch:blocked});
+  let empty=false;
   globalThis.fetch=async(input,init)=>{
     assert.equal(String(input),origin+'/rest/v1/rpc/affairs_read_aid_payments');
     assert.equal(new Headers(init?.headers).get('authorization'),'Bearer '+account.token);
@@ -42,18 +48,19 @@ test('the actual handler passes the independent period, net pay, tax, bank and a
     const view=request.p_view as 'salary'|'claims';
     assert.deepEqual(request,{p_view:view,p_offset:0,p_summary:false});
     calls.push(view);
-    const actual=aidPaymentFixtureManifest.A[view];
-    return Response.json({view,userId,total:actual.length,rows:actual.map((row:unknown,index:number)=>({
+    const actual=empty?[]:aidPaymentFixtureManifest.A[view];
+    return Response.json({view,userId:fixtureUser,total:actual.length,rows:actual.map((row:unknown,index:number)=>({
       id:'37000000-0000-4000-8000-00000000000'+String(index+2),...(row as object)}))});
   };
   try{
     const bank=buildAccountCases();
-    for(const id of ['salary-multipart','salary-tax','both','bank-unavailable','foreign']){
+    for(const id of ['salary-multipart','salary-tax','both','bank-unavailable','foreign','empty']){
+      empty=id==='empty';
       const testCase=bank.find(row=>row.id==='account:aid-payments-'+id);
       assert.ok(testCase);
       const events:unknown[]=[];
       const before=calls.length;
-      const body=await ask(testCase.question,{route:testCase.route,events});
+      const body=await ask(testCase.question,{handler,route:testCase.route,events});
       const result=gradeCase(testCase,{statusCode:200,execution:'recorded',fixtureKey:testCase.fixtureKey,events,body});
       assert.equal(result.passed,true,JSON.stringify({id,answer:body.answer,failures:result.failures}));
       assert.equal(calls.length-before,id==='foreign'?0:id==='both'?2:1,id);

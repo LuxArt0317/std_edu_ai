@@ -709,19 +709,23 @@ export function formatRequestedAidPaymentDetails(result,question,selection){
   const narrow=/\b(?:current|latest|earliest|before|between|after|today|yesterday|last month|this month|last year|this year|January|February|March|April|May|June|July|August|September|October|November|December|gross|subtotal|deductions?|rate|contribution|units?|average|sum|total net|currency|bank suffix)\b|最新|最早|上月|本月|去年|今年|小計|扣款|提繳|加總|幣別|銀行末碼|\b20\d{2}\b/iu.test(text);
   const hasClaims=payload.selection.views.includes('claims');
   if(bank&&(payload.selection.views.length!==1||tax||net||period))return null;
-  if(!bank&&(narrow||(!tax&&!net&&!period)||hasClaims&&(!reason||/\b(?:approval|claim amount|approved|status)\b|簽核|請領金額/iu.test(text))))return null;
+  if(!bank&&payload.readState!=='empty'&&(narrow||(!tax&&!net&&!period)
+    ||hasClaims&&(!reason||/\b(?:approval|claim amount|approved|status)\b|簽核|請領金額/iu.test(text))))return null;
   const citations=payload.views.map(({view,url})=>{
     const title=view==='salary'?t('Student salary records','學生薪資紀錄'):t('Student aid claims','助學請款紀錄');
     return {chunkId:id,claim:title,title,sourceName:'School Affairs',url,locator:null,effectiveAt:null,reviewedAt:null};
   });
   const format=value=>value===null?t('not recorded','未記錄'):typeof value==='number'?String(value):literalRecordText(value||t('(blank)','（空白）'));
   const views=[];
-  const sections=bank?[t('Saved payroll rows describe local amounts. They cannot establish bank settlement.','站內薪資紀錄只列出已儲存的金額，無法確認是否已入帳。')]
+  const sections=bank?[hasClaims
+    ?t('Saved claim records describe the amounts requested. They cannot establish bank settlement.','已儲存的請款紀錄只列出請領金額，無法確認是否已入帳。')
+    :t('Saved payroll rows describe local amounts. They cannot establish bank settlement.','站內薪資紀錄只列出已儲存的金額，無法確認是否已入帳。')]
     :payload.views.map(view=>{
       const salary=view.view==='salary';
       const name=salary?t('student salary records','學生薪資紀錄'):t('student aid claims','助學請款紀錄');
       if(view.readState==='unavailable')return t(`I could not read your saved ${name}.`,`無法讀取已儲存的${name}。`);
-      if(view.counts.available===0)return t(`No saved ${name} were found.`,`沒有已儲存的${name}。`);
+      if(view.counts.available===0)return salary?t('I found no saved records for your student salary.','沒有已儲存的學生薪資紀錄。')
+        :t('I found no saved records for your student aid claims.','沒有已儲存的助學請款紀錄。');
       const rows=view.records.filter(row=>!salary||!zeroOrMissing||row.tax===0||row.tax===null);
       const fields=salary?[
         ['payment_period',t('Saved period','已儲存期間')],...(tax?[['tax',t('Tax','所得稅')]]:[]),...(net?[['net',t('Net pay','淨額')]]:[]),
@@ -735,7 +739,8 @@ export function formatRequestedAidPaymentDetails(result,question,selection){
         const details=fields.slice(1).map(([key,label])=>`${label}: ${format(row[key])}`);
         return `- ${format(row.payment_period)}${details.length?' — '+details.join('. '):''}`;
       });
-      return [count?t(`You have ${view.counts.available} saved ${name}.`,`已儲存 ${view.counts.available} 筆${name}。`):null,
+      const countLabel=view.counts.available===1?(salary?'student salary record':'student aid claim'):name;
+      return [count?t(`You have ${view.counts.available} saved ${countLabel}.`,`已儲存 ${view.counts.available} 筆${name}。`):null,
         lines.join('\n')||t(`Page ${view.page} has no matching saved rows.`,`第 ${view.page} 頁沒有相符的紀錄。`),
         view.counts.omitted?t(`Only the saved rows included from page ${view.page} were checked.`,`僅查閱第 ${view.page} 頁納入的紀錄。`):null].filter(Boolean).join('\n\n');
     });
