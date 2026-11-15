@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Let authorized School Affairs managers record and reverse dated payments from the selected student's charge. Preserve the same request when a receipt goes missing, including after reopening the page. [#100]
+
 - Follow new public evidence after a rejected draft. An incomplete office page can lead to a more specific notice, and a further independent source can support a fourth check within the request budget. Preserve the stop reason and activity after reload. [#100]
 
 - Add a protected Preview evaluator for eleven tutor questionnaire reads with two-caller RLS proof and exact no-submission and cleanup checks. [#100]

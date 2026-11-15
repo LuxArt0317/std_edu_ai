@@ -14,6 +14,7 @@ import { catalogDetailRoute } from '../../../../server/catalogDetailIntent.js';
 const url = import.meta.env.VITE_SUPABASE_URL?.trim();
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
 export const affairsStorageKey = 'stu-school-affairs-auth';
+export const chargePaymentOperationStoragePrefix = 'school-payment-operation:';
 export const affairsCallbackPath = '/school-affairs/auth/callback';
 const returnKey = 'stu-school-affairs-return';
 export function safeSchoolReturnPath(value:string|null,fallback='/school-affairs') {
@@ -122,6 +123,12 @@ export function signOutAffairs() {
     const { error } = await client.auth.signOut({ scope: 'local' });
     if (error) throw new Error('Sign out failed. Check your connection and try again.');
     clearAssistantConversation();
+    try {
+      for (let index=sessionStorage.length-1;index>=0;index--) {
+        const key=sessionStorage.key(index);
+        if (key?.startsWith(chargePaymentOperationStoragePrefix)) sessionStorage.removeItem(key);
+      }
+    } catch { /* A blocked storage API cannot prevent sign-out. */ }
   })().finally(() => { signOutTask = null; });
   return signOutTask;
 }

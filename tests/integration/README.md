@@ -135,3 +135,5 @@ The student profile browser, database and actual-JWT HTTP suites cover 8-1, prot
 Announcement email tests cover source-shaped browser controls, real caller JWT persistence, private queue eligibility and cleanup.
 
 Certificate award suites cover the observed geometry, catalog and form, protected lifecycle, caller-JWT Storage isolation and disposable fixture cleanup.
+
+With the synthetic local Vite environment used by the student payment history test, run `PUBLIC_SITE_ORIGIN=http://127.0.0.1:5309 node tests/integration/charge-payment-manager-ui.mjs`. It opens the real manager route, commits one synthetic entry behind a failed response, replays the same request after reload, then reverses the saved payment. It checks the legacy editor, foreign response rejection, mobile sizing, accessibility and sign-out cleanup.

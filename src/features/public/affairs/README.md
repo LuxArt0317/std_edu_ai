@@ -117,3 +117,5 @@ Service 8-1 uses the observed student information confirmation table, a saved mo
 Service 2-1 uses the source-shaped checkbox, confirm/cancel controls, and next-day activation. The form reports when sending is unavailable.
 
 Service 52-1 mounts the certificate application, catalog and record views. The protected administration panel maintains catalog, verified payout reference and review state.
+
+The School Affairs records manager opens dated payments from the selected student's charge. A manager records a received amount and date or selects a saved payment for reversal. A lost receipt retains the exact request in this tab across reload, scoped to the signed-in manager, student and charge. Confirmation or sign-out clears it. Once a charge uses dated entries, the existing editor takes the amount paid from the current charge and the ledger handles changes to it.
