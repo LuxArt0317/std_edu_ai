@@ -247,7 +247,7 @@ test('retry rereads the same owned notice, distinguishes missing from failure, a
     loadSnapshot:async()=>{refreshes++;return snapshot();},supplementalReaders:{dormitoryConduct:context=>readDormitoryConductEvidence(account,context,{load:async()=>{reads++;return reads===1?dormNative():{snapshot:null};}})}});
   assert.equal(result.verification.status,'verified');assert.equal(result.verification.attempts,2);assert.equal(reads,2);assert.equal(refreshes,1);
   assert.match(result.answer,/No saved notice metadata/u);assert.deepEqual(calls,['answer_evidence_review']);
-  assert.ok(result.activity.some(step=>step.kind==='dormitory-conduct-evidence-check'&&step.status==='complete'));
+  assert.ok(result.activity?.some(step=>step.kind==='dormitory-conduct-evidence-check'&&step.status==='complete'));
 },{rejectFirst:true}));
 
 test('the actual handler keeps labels, availability and scope for every standalone dormitory case after a rejected review',async()=>{

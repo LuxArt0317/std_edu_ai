@@ -144,22 +144,11 @@ test('authenticated endpoint reads the native Moodle report and verifies its sav
   assert.deepEqual(calls,['answer_evidence_review']);
 });
 
-test('graph uses the native aid detail read and checks literal net and zero tax against the same rows',async()=>{
+test('graph verifies literal net and zero tax from the same native aid read without a model call',async()=>{
   const question='How many student salary records are saved for my account? Also show net pay and tax for each period.';
   const route='/school-affairs/services/37-1/salary';
-  let reads=0,reviews=0;
-  await model(({name,payload})=>{
-    if(name==='account_lookup_plan')return {tools:['charges'],publicTopics:[],catalogQuery:null};
-    const aid=payload.evidence.find((source:any)=>source.id==='account:aidPayments');
-    assert.ok(aid);assert.doesNotMatch(JSON.stringify(payload),/6543|SECRET-CALLER/);
-    const body=JSON.parse(aid.content);
-    assert.deepEqual(body.views[0].counts,{available:1,returned:1,included:1,omitted:0});
-    assert.ok(payload.evidence.every((source:any)=>source.id!=='account:charges'&&source.id!=='account:studentAid'));
-    if(name==='compose_grounded_answer')return {status:'answered',answer:'There is 1 saved local salary record. 2026-09 local period: net pay 5400, tax 0.',sourceIds:['account:aidPayments']};
-    assert.equal(name,'answer_evidence_review');reviews++;
-    return {supported:true,answersQuestion:true,claims:[{claim:'One salary record with net pay 5400 and tax 0',supported:true,
-      evidenceId:'account:aidPayments',jsonPaths:['/views/0/counts/available','/views/0/records/0/net','/views/0/records/0/tax'],quotes:[]}]};
-  },async()=>{
+  let reads=0;
+  await model(({name})=>assert.fail('This scoped numeric lookup does not require '+name),async()=>{
     const data=snapshot();
     const result=await answerAccountWithVerification({question,route,snapshot:data,loadSnapshot:async()=>data,supplementalReaders:{
       aidPayments:({question,route,history,deadline})=>readAidPaymentsEvidence(account,{question,route,history,deadline},{read:async(_selected,query)=>{
@@ -170,12 +159,14 @@ test('graph uses the native aid detail read and checks literal net and zero tax 
         return {userId:account.user.id,view:'salary',total:1,rows:[row]};
       }}),
     }});
-    assert.equal(result.verification?.status,'verified');
-    assert.match(result.answer,/net pay 5400, tax 0/);
-    assert.doesNotMatch(JSON.stringify(result),/6543/);
+    assert.deepEqual(result.verification,{status:'verified',attempts:1});
+    assert.match(result.answer,/1 saved student salary/u);
+    assert.match(result.answer,/2026-09 local period[^\n]*Tax: 0\. Net pay: 5400/u);
+    assert.doesNotMatch(JSON.stringify(result),/6543|account-read:(?:charges|studentAid)/);
     assert.equal(result.views?.[0]?.url,route);
+    assert.deepEqual(result.views?.[0]?.rows,[['2026-09 local period','0','5400']]);
   });
-  assert.equal(reads,1);assert.equal(reviews,1);
+  assert.equal(reads,1);
 });
 
 test('non-catalog transient query parameters never enter the model planner',async()=>{

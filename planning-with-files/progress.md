@@ -39,3 +39,5 @@
 - 2026-11-15 [#100] Verified 9 Moodle and 16 Academy native signed-in Preview replies with release pin, separate readback evidence and fixture cleanup. GitHub Quality 43685077545 passed for the public recovery build. Replayed the actual protected OneDrive reply in desktop and mobile Chrome and checked saved Activity after reload.
 
 - 2026-11-15 [#100] Built the isolated confirmed-task Preview evaluator and tested transport binding, no write before confirmation, replay, ownership and cleanup checks offline. The dormitory conduct Preview packet found four answer-precision regressions and a published housing-period fixture mismatch.
+
+- 2026-11-15 [#100] Completed protected baseline reads on `aa31201`: dormitory 5/10, aid payroll 3/8 and student conduct 3/3, all cleaned up. Corrected the first task operator’s URL argument, mounted 16 health and 9 counseling cases, and fixed the exact payroll and dormitory answer paths. Full API/source checks passed 1,804, evaluator passed 1,338 with one optional skip, and both TypeScript modes passed after resolving fixture declarations for the failed Preview build.

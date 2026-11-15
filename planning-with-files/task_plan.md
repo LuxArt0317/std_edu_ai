@@ -831,6 +831,10 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Run the 18 Student Leave cases on protected `9e43792` with signed reader and provider receipts. Eight answers passed and ten exposed formatting or verification failures.
 - [x] Verify all 18 Student Leave cases on the exact-field recovery Preview with signed reader and deterministic verification receipts.
 - [ ] Confirm both task actions on protected Preview, including no write from a proposal, exact replays, crossed-owner denial and cleanup.
+- [x] Verify all three student-conduct queries on `aa31201` with caller scope and fixture cleanup.
+- [x] Replay the identified payroll and dormitory precision regressions through the real local handlers with independent facts and scoped reads.
+- [ ] Replay the payroll and dormitory fixes on a matching protected build. Rebind the exact published academic period before the housing-companion case.
+- [ ] Verify the protected Health Exam and Counseling packets, each with two independent caller views and fixture cleanup.
 
 - [x] Save and independently read back each of the four exact prompts in the offline endpoint replay.
 - [x] Journal request and conversation commitments and reconcile disposable account cleanup.

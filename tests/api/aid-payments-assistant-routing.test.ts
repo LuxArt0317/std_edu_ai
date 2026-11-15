@@ -49,7 +49,8 @@ test('the actual handler passes the independent period, net pay, tax, bank and a
   try{
     const bank=buildAccountCases();
     for(const id of ['salary-multipart','salary-tax','both','bank-unavailable','foreign']){
-      const testCase=bank.find((row:{id:string})=>row.id==='account:aid-payments-'+id);
+      const testCase=bank.find(row=>row.id==='account:aid-payments-'+id);
+      assert.ok(testCase);
       const events:unknown[]=[];
       const before=calls.length;
       const body=await ask(testCase.question,{route:testCase.route,events});
