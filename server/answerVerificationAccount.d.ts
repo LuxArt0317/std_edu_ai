@@ -1,3 +1,4 @@
+import type {StudentLeaveAssistantPlan} from './studentLeaveAssistantPlan.js';
 import type {VerificationCandidate,VerificationEvidence,VerificationProgress} from './answerVerification.js';
 import type {SupplementalAccountReaders} from './accountSupplementalLookup.js';
 import type {CatalogEvidenceQuery} from './accountCatalogEvidence.js';
@@ -10,4 +11,4 @@ export function planAccountLookup(question:string,history:Array<{role:string;con
 export type AccountReadContext={question?:string;route?:string;history?:Array<{role:string;content:string}>;budget?:number;resolvedUserQuestion?:string;scopedReadOnly?:boolean};
 export function accountEvidence(snapshot:Record<string,any>,tools?:string[],context?:AccountReadContext):VerificationEvidence[];
 export function lookupPublicTopics(topics:string[],deadline:number,onProgress?:(step:VerificationProgress)=>void):Promise<VerificationEvidence[]>;
-export function answerAccountWithVerification(options:{question:string;snapshot:Record<string,any>;history?:Array<{role:string;content:string}>;route?:string;loadSnapshot:()=>Promise<Record<string,any>>;onProgress?:(step:VerificationProgress)=>void;deadline?:number;correlationId?:string;supplementalReaders?:SupplementalAccountReaders}):Promise<VerificationCandidate>;
+export function answerAccountWithVerification(options:{question:string;snapshot:Record<string,any>;history?:Array<{role:string;content:string}>;route?:string;loadSnapshot:()=>Promise<Record<string,any>>;onProgress?:(step:VerificationProgress)=>void;deadline?:number;correlationId?:string;leavePlan?:StudentLeaveAssistantPlan;supplementalReaders?:SupplementalAccountReaders}):Promise<VerificationCandidate>;

@@ -1,6 +1,10 @@
 # Changelog
 ## Unreleased
 
+- Verify saved leave history, archived dates, periods, exact forms and local review status in the signed-in assistant. Check explicitly requested balances, the next class and native Moodle grades through their respective sources. [#100]
+
+- Serve the legacy Moodle sign-in URL in local preview and improve contrast for the signed-in Moodle header. [#100]
+
 - Verify the saved Moodle assignment title, instructions, deadline and tracker fields from its exact course and assignment. Check native grade questions independently in the same reply, and withhold these results when verification fails. [#100]
 - Register 32 native Moodle assignment and grade questions in the systemwide evaluation. Report missing live fixture coverage explicitly. [#100]
 

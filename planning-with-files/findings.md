@@ -1,3 +1,7 @@
+## Student leave evidence [Issue #100]
+
+An archived date is bound to the native cutoff and the queried date range. The reader verifies saved row state and requested linked review state independently. Scoped queries and retries avoid account initialization. When a compound question exceeds the supported leave, balance, timetable and native grade readers, the answer identifies the part that still needs a separate lookup.
+
 ## Native Moodle assignment context [Issue #100]
 
 An assignment URL identifies two records. The caller-bound RPC validates both the parent course and assignment before any result reaches the assistant. Assignment metadata, native grade cells and committed file reviews come from separate sources. A grade citation must point to a grade cell or the recorded availability of that grade data. An unverified response withholds the scoped result cards.

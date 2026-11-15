@@ -40,6 +40,7 @@ Runtime and question-bank fingerprints accompany reports. A source change during
 
 ## Repairs under evaluation
 
+- The signed-in leave reader covers saved history, archive, periods and an exact form. The test bank maps all four previously untested leave routes. Forty-two new native cases and nine retained legacy cases require pinned live fixture coverage before release acceptance.
 - Native Moodle assignment and grade clauses select distinct readers and use field-level references. Failed verification withholds the new scoped result cards. The 32 native Moodle questions count toward the suite, and their independent live fixture remains pending.
 - The LangGraph retry can reconsider omitted read tools, refresh owned records, and perform one correction followed by a second verification. Retry cannot change the original proposed action or initiate a new public search.
 - Question, record reference, course, academic term and route selection happen before byte budgeting. Whole records, ownership, parent/child lineage and explicit omission counts survive the bounded evidence projection. Citation destinations come only from included records.

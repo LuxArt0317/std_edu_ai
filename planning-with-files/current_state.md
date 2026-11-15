@@ -1,8 +1,14 @@
 ## Assistant evaluation resumed [Issue #100]
 
+The student leave candidate uses the signed-in caller's history, archive, periods and exact saved record independently of tuition, the next class and native Moodle grades. The handler consumes no full account snapshot for these scoped questions. Protected Preview `20298f1` serves the assignment checkpoint. The signed-in four-prompt and leave evaluations still require authorized Preview access and live fixture proof.
+
+Local checks passed 1,692 API, 541 unit and 990 evaluator tests. The compiled browser passed eight synthetic route/width combinations. The inventory contains 1,147 questions across 94 services, 38 tools and 395 public pages. Fifty-seven routes still lack semantic cases. The 42 native and nine retained leave cases still require live fixture bindings.
+
 The Moodle assignment checkpoint extends protected Preview `eac8ecf0` in an isolated disk-backed checkout. It uses the existing assignment RPC and holds the grade report to its own evidence in combined questions. The 32 native Moodle cases are registered and their live fixtures remain pending. Production remains `076c79a`. The pinned four-turn signed-in replay still requires authorized access to the protected Preview.
 
 Local checks passed 1,683 API tests, 541 unit tests and 935 evaluator tests, plus API type checking, build assets and handoff. The inventory discovered 1,104 questions across 94 services, 37 tools and 395 public pages. Its release-readiness result is false until live coverage and browser acceptance are verified.
+
+The committed inventory still has 61 concrete route gaps. The local Moodle browser follow-up serves the legacy sign-in alias, improves header contrast and updates the synthetic course fixture to match the exact content endpoint. The compiled browser suite verifies five viewports and shared sign-in, course materials, assignments and assistant opening with controlled transport. This follow-up is separate from the protected assignment Preview.
 
 The housing receipt and native Moodle grade checkpoint builds on protected Preview `4be7b0c`. Receipt and bed scopes are separate and the combined receipt/Moodle test exercises both selected readers without loading the general snapshot. Receipt cards retain count, time and scope on save. Production remains `076c79a`. Teaching feedback contributes 40 independent questions to the full runner, with fixture setup blocked until trusted observations are available. The 14 native DTM grade cases use offline observations. The live four-turn replay, fixture cleanup and full browser/semantic acceptance remain open.
 

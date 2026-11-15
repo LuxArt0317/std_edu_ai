@@ -1,4 +1,5 @@
 import {nativeDtmRunnerCases,nativeDtmSetupRequired,assertNativeDtmCaseReady} from './dtm-native-runner.mjs';
+import {studentLeaveRunnerCases} from './student-leave-runner.mjs';
 import {buildTeachingFeedbackNativeCases,teachingFeedbackNativeManifest} from './teaching-feedback-native-cases.mjs';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
@@ -26,9 +27,9 @@ test('the bank declares all registered tools while actual DTM file fixtures rema
   const base=Object.keys(accountTools),supplemental=Object.keys(supplementalAccountTools),registered=[...base,...supplemental];
   assert.equal(base.length,18);
   assert.ok(base.includes('housingApplications'));
-  assert.deepEqual(supplemental.sort(),['aidPayments','counselingAppointments','courseCatalog','dormitoryConduct','dtmAssignment','dtmGradeReport','dtmSubmissions','elearningEnrollments','elearningOutline','enrollmentCertificate','facilityRepairs','feeRemission','graduationClearance','healthExaminations','studentConduct','studentLoan','teachingFeedback','tuition','tutorEvaluation'].sort());
+  assert.deepEqual(supplemental.sort(),['aidPayments','counselingAppointments','courseCatalog','dormitoryConduct','dtmAssignment','dtmGradeReport','dtmSubmissions','elearningEnrollments','elearningOutline','enrollmentCertificate','facilityRepairs','feeRemission','graduationClearance','healthExaminations','leaveRecords','studentConduct','studentLoan','teachingFeedback','tuition','tutorEvaluation'].sort());
   assert.equal(new Set(registered).size,registered.length,'Base and supplemental registrations must not shadow each other.');
-  const cases=buildAccountCases({includePlannedFeeRemission:true,includePlannedHealthExaminations:true,includePlannedCounselingAppointments:true,includePlannedClearanceApplications:true,includePlannedTutorEvaluation:true}),declared=[...new Set([...cases,...nativeDtmRunnerCases()].flatMap(row=>row.expected.requiredTools))];
+  const cases=buildAccountCases({includePlannedFeeRemission:true,includePlannedHealthExaminations:true,includePlannedCounselingAppointments:true,includePlannedClearanceApplications:true,includePlannedTutorEvaluation:true}),declared=[...new Set([...cases,...nativeDtmRunnerCases(),...studentLeaveRunnerCases()].flatMap(row=>row.expected.requiredTools))];
   assert.deepEqual(declared.sort(),registered.filter(key=>key!=='teachingFeedback').sort());
   const nativeDtm=nativeDtmRunnerCases();
   assert.equal(nativeDtm.length,32);

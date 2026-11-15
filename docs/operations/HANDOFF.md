@@ -604,3 +604,7 @@ The isolated candidate extends the protected menu-context revision `4be7b0c`. Ve
 ### Issue #100 native Moodle assignment checkpoint
 
 Use the frozen assignment manifest against protected Preview base `eac8ecf0`. The change reuses the deployed assignment and grade RPCs. Verify Quality on the exact protected candidate and record the signed-in live replay separately. The native Moodle fixture and trusted reader observations must be present before the new cases can count as live coverage.
+
+### Issue #100 student leave checkpoint
+
+The leave checkpoint extends assignment Preview `20298f1` and includes the separate Moodle browser repair. It uses the existing account-owned leave and request tables. The scoped handler, fixture admissions and local browser tests use controlled data. Use disposable accounts and an independently pinned request observer for actual signed-in leave and transcript replay.

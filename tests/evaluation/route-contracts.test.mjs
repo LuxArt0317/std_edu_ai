@@ -6,6 +6,7 @@ import {discoverSurfaces} from './surface-inventory.mjs';
 import {buildAccountCases} from './account-cases.mjs';
 import {buildServiceCases} from './service-cases.mjs';
 import {buildPublicCases} from './public-cases.mjs';
+import {studentLeaveRunnerCases} from './student-leave-runner.mjs';
 
 const revision='offline-route-contract';
 const observe=(route,extra={})=>({route,status:'passed',assistantPresent:true,keyboardUsable:true,sessionVerified:true,authenticated:true,...extra});
@@ -172,7 +173,8 @@ test('remote-learning inventory follows the authenticated workspace and distinct
 
 test('route coverage retains only unresolved semantic cases after adding public assistant guidance',async()=>{
   const inventory=await discoverSurfaces();
-  const cases=[...buildServiceCases(),...buildAccountCases({now:'2026-11-13T02:00:00Z'}),...buildPublicCases(inventory)];
+  const leaveCases=studentLeaveRunnerCases();
+  const cases=[...buildServiceCases(),...buildAccountCases({now:'2026-11-13T02:00:00Z'}),...leaveCases,...buildPublicCases(inventory)];
   const report=assessCoverage({cases,results:[],inventory,sourceRevision:revision,requireLive:false});
   const join=(prefix,suffixes)=>suffixes.map(suffix=>prefix+suffix);
   const expected=[
@@ -183,10 +185,9 @@ test('route coverage retains only unresolved semantic cases after adding public 
     ...join('/school-affairs/menu/rdd/',['all','input','query','portal']),
     ...join('/school-affairs/menu/personal/',['all','input']),
     ...join('/school-affairs/menu/infoSystem/',['all','library']),
-    ...join('/school-affairs/services/leave/',['index','archive','periods','edit/:id']),
     ...join('/school-affairs/services/internship/',['contract','self_assessment','company','directory']),
     '/school-affairs/services/12-4?course=%3Aid','/school-affairs/services/12-4?syllabus=%3Aid',
-    '/dtm/dashboard','/dtm/my','/dtm/grades','/dtm/course/:id/materials','/dtm/course/:id/assignments',
+    '/dtm/dashboard','/dtm/my','/dtm/course/:id/materials','/dtm/course/:id/assignments',
     '/dtm/course/:courseId/assignment/:assignmentId','/dtm/course/:courseId/assignment/:assignmentId/edit',
     '/ePortal/index.asp','/ePortal/apMenu.asp','/school-sites/dtm.stu.edu.tw',
     '/school-affairs/login','/dtm/login','/dtm/login/index.php','/ePortal/login.asp','/auth/realms/stuarm/protocol/saml',
@@ -216,18 +217,18 @@ test('route coverage retains only unresolved semantic cases after adding public 
   const addedPrivacyIds=['anonymous-records-studentConduct','anonymous-records-studentLoan','anonymous-records-aidPayments','anonymous-records-dtmGradeReport','anonymous-records-dtmAssignment',
     'anonymous-records-elearningEnrollments','anonymous-records-facilityRepairs','anonymous-records-elearningOutline','anonymous-records-dormitoryConduct','anonymous-records-feeRemission','anonymous-records-healthExaminations','anonymous-records-counselingAppointments','anonymous-records-graduationClearance','anonymous-records-tutorEvaluation','anonymous-records-teachingFeedback','anonymous-records-housingApplications'];
   const menuIds=['public-affairs-system-search','public-affairs-facilities-input','public-affairs-facilities-query'];
-  const newIds=[...reproductionIds,...nativeIds,...aidIds,...dtmIds,...elearningIds,...facilityIds,...outlineIds,...dormitoryIds,...receiptIds,...addedPrivacyIds,...menuIds,'public-study-first-week'];
+  const newIds=[...reproductionIds,...nativeIds,...aidIds,...dtmIds,...elearningIds,...facilityIds,...outlineIds,...dormitoryIds,...receiptIds,...addedPrivacyIds,...menuIds,...leaveCases.map(row=>row.id),'public-study-first-week','anonymous-records-leaveRecords'];
   assert.equal(cases.filter(row=>!newIds.includes(row.id)).length,945);
   for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,outlineIds,dormitoryIds,receiptIds,addedPrivacyIds,menuIds])
     assert.deepEqual(cases.filter(row=>ids.includes(row.id)).map(row=>row.id).sort(),[...ids].sort());
   assert.equal(report.coverage.routes.total,576);
-  assert.equal(expected.length,55);assert.equal(added.length,12);
+  assert.equal(expected.length,50);assert.equal(added.length,12);
   assert.deepEqual(report.coverage.routes.missing.filter(route=>!added.includes(route)),expected);
   assert.deepEqual(report.coverage.routes.missing.filter(route=>added.includes(route)),added);
-  assert.equal(report.coverage.routes.missing.length,67);
+  assert.equal(report.coverage.routes.missing.length,62);
   assert.equal(report.browserAcceptance.total,576);assert.equal(report.browserAcceptance.requiredScenarios,586);
   assert.equal(report.coverage.routeFamilies.total,53);
   assert.deepEqual(report.coverage.routeFamilies.missing,['dtm-submissions','elearning-authentication','elearning-entry-transitions','legacy-route-aliases','authentication-transitions','account-information','assistant-sessions','campus-navigation']);
   assert.equal(report.releaseReady,false);assert.equal(report.totals.executed,0);
-  assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,67);
+  assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,62);
 });

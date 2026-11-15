@@ -1,5 +1,9 @@
 # Progress
 
+- 2026-11-15 [#100] Connected student leave to the signed-in assistant and validated the exact named form, linked local review, public navigation, exclusions and separate companion readers through the real handler with controlled transport.
+
+- 2026-11-15 [#100] Reproduced the legacy Moodle sign-in failure in local preview and a contrast failure on the signed-in header. Fixed both and updated the existing browser test to exercise the native course-content endpoint. All five synthetic browser widths pass.
+
 - 2026-11-15 [#100] Recovered the assignment and combined Moodle evaluation work after a restart, verified source hashes, and moved the candidate to a disk-backed checkout. Checked scoped routing and verification through the actual handler with controlled records and reviewers.
 
 - 2026-11-14 [#98] Measured the university aid and salary tables. Applied the scoped migration after rollback verification and verified local navigation, pagination, masking, retry and account boundaries.

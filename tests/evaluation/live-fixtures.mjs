@@ -36,6 +36,7 @@ import {buildFeeRemissionFixturePlan,feeRemissionLiveFamilyForCase,feeRemissionL
 import {createFeeRemissionFixtureLifecycle} from './fee-remission-fixture-lifecycle.mjs';
 import {readRows as readFeeRows,deleteRows as deleteFeeRows,insertRows as insertFeeRows} from './fee-remission-fixture-sql.mjs';
 import {createTranscriptConversationFixture} from './transcript-conversation-fixture.mjs';
+import {nativeStudentLeaveSetupRequired} from './student-leave-runner.mjs';
 
 const ROOT=fileURLToPath(new URL('../../',import.meta.url));
 const PROJECT='xiftudmvxphxcjtmfmib';
@@ -354,6 +355,8 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     fail('fixture-unsupported','Native DTM route cases require the isolated fixture and observation adapter.');
   if(cases.some(row=>row?.fixtureRequirement==='offline_native_teaching_feedback'||typeof row?.id==='string'&&row.id.startsWith('account:teaching-native-')))
     fail('fixture-unsupported','Teaching feedback requires an isolated fixture and trusted request observation; the legacy adapter cannot prepare this offline packet.');
+  if(cases.some(nativeStudentLeaveSetupRequired))
+    fail('fixture-unsupported','Native Student Leave requires an isolated fixture and trusted request observations.');
   let transcriptCaseIds;
   if(applicationFetch!==undefined){
     if(typeof applicationFetch!=='function'||cases.length!==transcriptFixtureCases.length||fixtureMode!==undefined||caseFamily!==undefined
@@ -1636,6 +1639,8 @@ function ownState(snapshot){
 
 /** Persists golden facts, then proves the application's actual auth/RLS read path. */
 export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
+  if(nativeStudentLeaveSetupRequired(testCase))
+    fail('fixture-unsupported','Native Student Leave requires an isolated fixture and trusted request observations.');
   const s=ready();if(s.current)fail('fixture-state','afterCase() must complete before selecting another fixture.');
   const transcript=s.applicationFetch?s.transcriptFixture??null:null;
   if(s.applicationFetch){

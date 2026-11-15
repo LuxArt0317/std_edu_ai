@@ -322,7 +322,7 @@ function unsupportedClaimDiagnostics(review){
   });
 }
 
-const diagnosticCollections=new Set(['account-scope','profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements',
+const diagnosticCollections=new Set(['account-scope','profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','leaveRecords','announcements',
   'scholarship','studentAid','housing','housingApplications','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance',
   'courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation','teachingFeedback']);
 const diagnosticReasons=new Set(['no_supported_answer','unsupported_claims','evidence_unavailable','snapshot_provenance_missing','invalid_generated_answer','generated_abstention']);

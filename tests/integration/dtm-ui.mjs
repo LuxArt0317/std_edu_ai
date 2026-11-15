@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright-core';
 import AxeBuilder from '@axe-core/playwright';
@@ -8,7 +9,21 @@ const base = process.env.PUBLIC_SITE_ORIGIN || 'http://127.0.0.1:5173';
 if (!['localhost','127.0.0.1'].includes(new URL(base).hostname)) throw Error('Local fixture only');
 const browser = await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
 await mkdir('artifacts/dtm', {recursive:true});
-const sample = {checkedAt:'2026-11-05T00:00:00Z',officialUniversityData:false,profile:{userId:affairsTestUser.id,email:affairsTestUser.email,displayName:'QA Student',role:'student'},student:null,courses:[],charges:[],assignments:[{id:'assignment-qa',title:'Practice reflection',details:'Sample work',dueAt:'2026-11-18T15:59:00Z',status:'open',submittedAt:null,sourceMode:'sample',enrollmentId:null,dtmCourseId:'course-qa',course:'DTM-SAMPLE-101'}],announcements:[],tasks:[],requests:[],dtm:{sourceMode:'sample',courses:[{id:'course-qa',code:'DTM-SAMPLE-101',title:'Digital Learning Orientation',term:'115學年度第1學期',role:'student',sourceMode:'sample',materials:[{id:'material-qa',title:'Getting started guide',kind:'file',summary:'Sample guide.',position:1,sourceMode:'sample'}]}],notices:[{id:'notice-qa',title:'Welcome to DTM',body:'Sample notice.',publishedAt:'2026-11-05T00:00:00Z',sourceMode:'sample'}]}};
+const course={id:'b9ba580e-8e56-4df3-b151-dadcfcd777a1',userId:affairsTestUser.id,code:'DTM-SAMPLE-101',
+  title:'Digital Learning Orientation',term:'115學年度第1學期'};
+const material={id:'b9ba580e-8e56-4df3-b151-dadcfcd777a2',title:'Getting started guide',kind:'file',
+  summary:'Sample guide.',position:1,sourceMode:'sample'};
+const assignment={id:'b9ba580e-8e56-4df3-b151-dadcfcd777a3',title:'Practice reflection',details:'Sample work',
+  dueAt:'2026-11-18T15:59:00Z',status:'open',submittedAt:null,sourceMode:'sample',enrollmentId:null,dtmCourseId:course.id,course:course.code};
+const activities=[{kind:'assignment',id:assignment.id,title:assignment.title,details:assignment.details,dueAt:assignment.dueAt},
+  {...material,kind:'material',materialKind:material.kind,sourceUrl:null}];
+const content={course,content:null,activities,total:activities.length,limit:100,nextCursor:null,
+  revision:createHash('sha256').update(JSON.stringify(activities)).digest('hex'),unavailableReferenceCount:0};
+const sample={checkedAt:'2026-11-05T00:00:00Z',officialUniversityData:false,
+  profile:{userId:affairsTestUser.id,email:affairsTestUser.email,displayName:'QA Student',role:'student'},
+  student:null,courses:[],charges:[],assignments:[assignment],announcements:[],tasks:[],requests:[],
+  dtm:{sourceMode:'sample',courses:[{...course,role:'student',sourceMode:'sample',materials:[material]}],
+    notices:[{id:'notice-qa',title:'Welcome to DTM',body:'Sample notice.',publishedAt:'2026-11-05T00:00:00Z',sourceMode:'sample'}]}};
 try {
   const guest = await browser.newContext();
   await mockAffairsAuth(guest,{signedIn:false});
@@ -43,6 +58,11 @@ try {
   await mockAffairsAuth(signed);
   await signed.route('**/api/affairs-data*',route=>{
     assert.match(route.request().headers().authorization || '',/^Bearer /);
+    const query=new URL(route.request().url()).searchParams;
+    if(query.get('scope')==='dtm-course-content'){
+      assert.equal(query.get('course_id'),course.id);
+      return route.fulfill({json:content});
+    }
     return route.fulfill({json:sample});
   });
   const page = await signed.newPage();
@@ -77,7 +97,7 @@ try {
   await page.getByRole('button',{name:'課程選單',exact:true}).click();
   await page.getByRole('menuitem',{name:'作業',exact:true}).click();
   await page.getByText('Practice reflection',{exact:true}).waitFor();
-  assert.equal(new URL(page.url()).pathname,'/dtm/course/course-qa/assignments');
+  assert.equal(new URL(page.url()).pathname,'/dtm/course/'+course.id+'/assignments');
   await page.locator('.dtm-user').click();
   await page.getByRole('menuitem',{name:'校園助理',exact:true}).click();
   await page.getByRole('dialog',{name:/Assistant/}).waitFor();

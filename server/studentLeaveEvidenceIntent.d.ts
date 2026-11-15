@@ -1,0 +1,14 @@
+export const studentLeaveBasePath: '/school-affairs/services/leave';
+export const studentLeaveArchiveCutoff: '2019-08-01';
+export type StudentLeaveField = 'title'|'dates'|'status'|'category'|'periods'|'reviewStatus';
+export type StudentLeaveView = 'history'|'archive'|'periods'|'record';
+export type StudentLeaveDateRange = {from:string;through:string};
+export type StudentLeaveIntentReason = 'invalid_route'|'foreign_request'|'unsupported_operation'|'unsupported_field'|'requires_attendance_source'|'ambiguous_selector';
+export type StudentLeaveFilters = {categories:{included:string[];excluded:string[]};statuses:{included:string[];excluded:string[]}};
+export const studentLeaveFieldNames: readonly StudentLeaveField[];
+export function isStudentLeaveUuid(value:unknown): value is string;
+export function isStudentLeaveDate(value:unknown): value is string;
+export function isStudentLeaveTitle(value:unknown): value is string;
+export type StudentLeaveSelection = {from:'question'|'history'|'route';question:string;view:StudentLeaveView;id:string|null;range:StudentLeaveDateRange|null;filters:StudentLeaveFilters;fields:StudentLeaveField[];countOnly:boolean;reason:StudentLeaveIntentReason|null;title?:string};
+export function studentLeaveLookupContext(question:unknown,route?:unknown,history?:unknown,now?:number): {selection:StudentLeaveSelection|null;otherQuestion:string;navigation:boolean;excluded:boolean;foreign?:boolean};
+export function isStudentLeaveEvidenceQuestion(question:unknown,route?:unknown,history?:unknown): boolean;

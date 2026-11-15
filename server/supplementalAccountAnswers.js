@@ -1,4 +1,5 @@
 import {parseDtmAssignmentEvidence} from './dtmAssignmentEvidenceContract.js';
+import {isStudentLeaveDate,isStudentLeaveTitle,isStudentLeaveUuid,studentLeaveArchiveCutoff,studentLeaveBasePath,studentLeaveFieldNames} from './studentLeaveEvidenceIntent.js';
 /** Pure presentation of already validated, caller-scoped reader
  * envelopes. This is not an authorization boundary or a verification verdict.
  * Never pass raw RPC results, a workspace snapshot, or browser input here. */
@@ -11,6 +12,7 @@ import {teachingFeedbackImmediateFields,selectTeachingFeedbackEvidence} from './
 import {validateTeachingFeedbackAnswerEvidence} from './teachingFeedbackAnswerEvidence.js';
 export const supplementalAnswerLimits=Object.freeze({answerCharacters:8000,resultBytes:24000,views:3,viewRows:12});
 const definitions={
+  'account:leaveRecords':{title:['Saved student leave records','已儲存請假紀錄'],path:studentLeaveBasePath+'/history'},
   'account:teachingFeedback':{title:['Saved teaching evaluation and immediate feedback','已儲存教學評量與即時教學意見'],path:teachingFeedbackPaths.survey},
   'account:tutorEvaluation':{title:['Tutor evaluation','導師評量問卷'],path:tutorEvaluationPath},
   'account:graduationClearance':{title:['Saved graduation clearance records','已儲存畢業離校紀錄'],path:'/school-affairs/services/16-1'},
@@ -51,6 +53,60 @@ const outlineCourse=id=>'/elearning/course/'+id;
 const outlineActivity=(course,id)=>outlineCourse(course)+'/activity/'+id;
 const outlineText=(value,max)=>gradeString(value,max)&&value.trim().length>0&&!/[\p{Cc}]/u.test(value);
 const sameText=(left,right)=>left.normalize('NFKC').trim().toLowerCase()===right.normalize('NFKC').trim().toLowerCase();
+const leaveViews=['history','archive','periods','record'];
+const leaveCategories=['personal','sick','official','bereavement','nursing','mental_health','maternity','menstrual','other'];
+const leaveStates=['draft','filed','withdrawn'];
+const leaveColumns={title:['title'],dates:['startsOn','endsOn'],status:['status'],category:['category'],
+  periods:['periods'],reviewStatus:['reviewStatus','reviewState']};
+function allowedLeaveUrl(url,view){
+  if(typeof url!=='string'||!url.startsWith(studentLeaveBasePath+'/'))return false;
+  const suffix=url.slice(studentLeaveBasePath.length+1);
+  return leaveViews.filter(key=>key!=='record'&&(!view||key===view)).includes(suffix)
+    ||(!view||view==='record')&&suffix.startsWith('edit/')&&isStudentLeaveUuid(suffix.slice(5));
+}
+function validateLeavePayload(envelope,p,evidence){
+  const {selection:s,counts:c,records}=p;
+  if(!exact(p,['collection','readState','reason','checkedAt','selection','counts','records','complete','provenance','rules'])
+    ||p.collection!=='leaveRecords'||p.readState!==envelope.readState||p.reason!==envelope.reason
+    ||!exact(s,['view','range','filters','fields','countOnly',...(own(s??{},'title')?['title']:[])])||own(s,'title')&&!isStudentLeaveTitle(s.title)||!leaveViews.includes(s.view)||!allowedLeaveUrl(evidence.url,s.view)
+    ||!Array.isArray(evidence.urls)||evidence.urls.length!==1||evidence.urls[0]!==evidence.url||evidence.provenance!=='saved_local'
+    ||!exact(p.provenance,['sourceMode','system','officialUniversityData','synchronized'])||p.provenance.sourceMode!=='saved_local'
+    ||p.provenance.system!=='stu.best School Affairs'||p.provenance.officialUniversityData!==false||p.provenance.synchronized!==false
+    ||!Array.isArray(s.fields)||new Set(s.fields).size!==s.fields.length||s.fields.some(field=>!studentLeaveFieldNames.includes(field))
+    ||typeof s.countOnly!=='boolean'||!Array.isArray(records)||records.length>80||!exact(c,['matching','returned','included','unread','omitted','reviewUnavailable'])
+    ||c.included!==records.length||typeof p.complete!=='boolean'||!gradeString(p.rules,2000))invalid();
+  if(s.range!==null&&(!exact(s.range,['from','through'])||!isStudentLeaveDate(s.range.from)||!isStudentLeaveDate(s.range.through)||s.range.from>s.range.through))invalid();
+  const validFilter=(filter,values)=>exact(filter,['included','excluded'])
+    &&['included','excluded'].every(key=>Array.isArray(filter[key])&&new Set(filter[key]).size===filter[key].length&&filter[key].every(item=>values.includes(item)))
+    &&!filter.included.some(item=>filter.excluded.includes(item));
+  if(s.filters!==null&&(!exact(s.filters,['categories','statuses'])||!validFilter(s.filters.categories,leaveCategories)||!validFilter(s.filters.statuses,leaveStates)))invalid();
+  if(envelope.readState==='unavailable'){
+    if(!['invalid_options','invalid_account','invalid_records','read_failed','access_denied','deadline_exceeded','reader_unavailable'].includes(p.reason)
+      ||p.complete||records.length||c.matching!==null||c.returned!==null||c.unread!==null||c.omitted!==null||c.reviewUnavailable!==null)invalid();
+    return;
+  }
+  const reason=c.omitted?'response_budget':c.unread?'row_limit':c.reviewUnavailable?'review_unavailable':null;
+  if(!s.filters||Object.values(c).some(value=>!integer(value))||c.returned!==Math.min(c.matching,s.countOnly?1:80)
+    ||s.view==='record'&&c.matching>1||p.reason!==reason||(envelope.readState==='partial')!==Boolean(reason)
+    ||s.countOnly!==!s.fields.length
+    ||(s.countOnly?records.length||c.unread!==0||c.omitted!==0:c.matching!==c.returned+c.unread||c.returned!==c.included+c.omitted)
+    ||p.complete!==(envelope.readState!=='partial')||(p.complete&&(c.unread||c.omitted||c.reviewUnavailable))
+    ||(envelope.readState==='empty')!==(c.matching===0))invalid();
+  const keys=s.fields.flatMap(field=>leaveColumns[field]);
+  const matches=(value,filter,values)=>values.includes(value)&&(!filter.included.length||filter.included.includes(value))&&!filter.excluded.includes(value);
+  for(const row of records){
+    if(!exact(row,keys)||s.fields.includes('title')&&(!isStudentLeaveTitle(row.title)||s.title&&row.title!==s.title)
+      ||s.fields.includes('dates')&&(!isStudentLeaveDate(row.startsOn)||!isStudentLeaveDate(row.endsOn)||row.startsOn>row.endsOn
+        ||s.view==='archive'&&row.startsOn>=studentLeaveArchiveCutoff||s.range&&(row.startsOn>s.range.through||row.endsOn<s.range.from))
+      ||s.fields.includes('status')&&!matches(row.status,s.filters.statuses,leaveStates)
+      ||s.fields.includes('category')&&!matches(row.category,s.filters.categories,leaveCategories)
+      ||s.fields.includes('periods')&&!outlineText(row.periods,160)
+      ||s.fields.includes('reviewStatus')&&(!['saved','no_request','unavailable'].includes(row.reviewState)
+        ||(row.reviewState==='saved'?!['open','in_review','resolved'].includes(row.reviewStatus):row.reviewStatus!==null)))invalid();
+  }
+  const missingReviews=records.filter(row=>row.reviewState==='unavailable').length;
+  if(c.reviewUnavailable<missingReviews||c.reviewUnavailable>missingReviews+c.omitted)invalid();
+}
 const remissionCell=(value,max)=>value===null||gradeString(value,max*2)&&[...value].length<=max;
 const clearanceApplyPath='/school-affairs/services/10-1';
 const clearanceOfficeLabels={library:['Library circulation','圖書館典閱組'],academic:['Academic Affairs','教務處'],department:['Department','系所'],cashier:['Cashier','出納組'],career:['Career and alumni','職涯發展暨校友服務中心'],advisor:['Advisor','指導教授'],thesis:['Library thesis review','圖書館論文審核'],international:['International and housing services','僑外陸生暨住宿服務組']};
@@ -493,6 +549,7 @@ function allowedUrl(id,url){
   }
   if(id==='account:elearningEnrollments')return url===definitions[id].path||typeof url==='string'&&/^\/elearning\/course\/[1-9]\d{0,9}$/u.test(url)&&Number(url.split('/').at(-1))<=2147483647;
   if(id==='account:dtmAssignment')return url==='/dtm/assignments'||typeof url==='string'&&detailRoute.test(url);
+  if(id==='account:leaveRecords')return allowedLeaveUrl(url);
   if(id==='account:dtmGradeReport')return url==='/dtm/grades'||typeof url==='string'&&gradeRoute.test(url);
   if(id==='account:aidPayments'){
     if(typeof url!=='string')return false;
@@ -514,6 +571,7 @@ function parse(envelope){
   let payload;try{payload=JSON.parse(evidence.content);}catch{invalid();}
   if(!object(payload)||typeof payload.checkedAt!=='string'||!Number.isFinite(Date.parse(payload.checkedAt)))invalid();
   if(id==='account:dtmAssignment'){if(!parseDtmAssignmentEvidence(envelope))invalid();}
+  else if(id==='account:leaveRecords')validateLeavePayload(envelope,payload,evidence);
   else if(id==='account:tutorEvaluation')validateTutorEvaluationPayload(envelope,payload,evidence);
   else if(id==='account:teachingFeedback'){if(!validateTeachingFeedbackAnswerEvidence(envelope,payload))invalid();}
   else if(id==='account:graduationClearance')validateClearancePayload(envelope,payload,evidence);
@@ -647,6 +705,49 @@ function sectionFor(parsed,question,zh){
     if(!integer(total))invalid();
     section.view={id:id.slice(8),title,url:evidence.url,columns,rows:[],total,checkedAt:p.checkedAt,note};
   };
+  if(id==='account:leaveRecords'){
+    section.usable=true;
+    if(envelope.readState==='unavailable'){
+      section.lead.push(t('I couldn’t read the saved leave records. The result is unknown.','目前無法讀取已儲存的請假紀錄，結果未知。'));
+      return section;
+    }
+    const {selection:s,counts:c}=p;
+    section.complete=p.complete;
+    section.limited=!p.complete;
+    section.lead.push(t('These are your saved stu.best leave records. The local tracking and review states don’t establish university approval or class attendance.',
+      '以下是你在 stu.best 已儲存的請假紀錄。站內追蹤與審核狀態無法證明校方核准或課堂出席。'));
+    if(s.view==='archive')section.lead.push(t('Archived records started before 2019-08-01.','舊紀錄的起日早於 2019-08-01。'));
+    if(s.range)section.lead.push(t('Date range ', '日期範圍 ')+s.range.from+' – '+s.range.through);
+    if(envelope.readState==='empty'){
+      section.lead.push(t('No matching saved leave records were returned.','沒有相符的已儲存請假紀錄。'));
+      return section;
+    }
+    section.lead.push(t('Matching saved leave records: ','相符的請假紀錄筆數：')+c.matching+'.');
+    if(s.countOnly)return section;
+    if(c.unread||c.omitted)section.lead.push(t('The lookup included ','本次查詢納入 ')+c.included+' / '+c.matching+t(' rows. Open the record list for more.',' 筆。請開啟紀錄清單查看其餘資料。'));
+    if(c.reviewUnavailable)section.lead.push(t('Some linked review requests couldn’t be checked.','部分連結的站內審核請求無法查核。'));
+    const fields={
+      title:[['title',t('Saved form','表單名稱')]],
+      dates:[['startsOn',t('Start date','起日')],['endsOn',t('End date','迄日')]],
+      status:[['status',t('Saved tracking status','站內追蹤狀態')]],
+      category:[['category',t('Leave category','假別')]],
+      periods:[['periods',t('Saved periods','已儲存節次')]],
+      reviewStatus:[['reviewStatus',t('Local review status','站內審核狀態')]],
+    };
+    const columns=s.fields.flatMap(field=>fields[field]);
+    view(columns.map(([,label])=>label),c.matching,t('Only columns selected for this lookup.','僅顯示本次所選欄位。'));
+    for(const [index,record] of p.records.entries()){
+      group(t('Record','紀錄'),index+1);
+      const values=columns.map(([key,label])=>{
+        const value=key==='reviewStatus'&&record.reviewState!=='saved'
+          ?record.reviewState==='unavailable'?t('Unavailable','無法查核'):t('No linked request','沒有連結的審核請求')
+          :record[key];
+        item(label,value);return value;
+      });
+      section.viewCandidates.push(row(...values));
+    }
+    return section;
+  }
   if(id==='account:teachingFeedback'){
     section.lead.push(t('These are your saved stu.best teaching feedback records.','以下是你在 stu.best 已儲存的教學意見紀錄。'));
     section.complete&&=p.complete;
@@ -1366,7 +1467,7 @@ export function formatSupplementalAccountAnswers(results,{question='',language:r
     const groups=new Map();for(const item of section.items){if(!groups.has(item.group))groups.set(item.group,[]);groups.get(item.group).push(item);}
     section.items=[...groups.values()].flatMap(items=>items.sort((a,b)=>Number(b.header)-Number(a.header)||preferred(a.label)-preferred(b.label)));
   }
-  const topics={'account:tutorEvaluation':/tutor|advisor|mentor|導師/iu,'account:graduationClearance':/graduation.clearance|畢業離校|離校(?:申請|審核)/iu,'account:counselingAppointments':/counseling|counselling|psychological|諮商|心理測驗/iu,'account:healthExaminations':/health|medical|健檢|健康檢查/iu,'account:feeRemission':/fee.remission|tuition.reduction|減免|减免/iu,'account:dormitoryConduct':/dormitory|dorm|宿舍/iu,'account:elearningOutline':/outline|video|slides|activities|section|feedback|大綱|影片|簡報|活動|章節|回饋/iu,'account:facilityRepairs':/repair|maintenance|報修|报修|修繕/iu,'account:dtmGradeReport':/moodle|dtm|grade report|gradebook|成績報告|成绩报告/iu,'account:aidPayments':/student aid|financial aid|salary|payroll|助學|薪資|工讀/iu,'account:studentConduct':/conduct|disciplin|獎懲/iu,'account:studentLoan':/loan|貸款|學貸/iu,'account:courseCatalog':/catalog|syllabus|offering|課綱|大綱|開課/iu,'account:enrollmentCertificate':/certificate|enrolment|enrollment|在學|在籍|學籍證明/iu,'account:dtmSubmissions':/file|upload|submission|assignment|feedback|作業|檔案|評語|上傳/iu,'account:tuition':/tuition|settlement|statement|summer|evening|學費|結算|暑修|進修部|延修/iu};
+  const topics={'account:leaveRecords':/leave|請假|假單|假單/iu,'account:tutorEvaluation':/tutor|advisor|mentor|導師/iu,'account:graduationClearance':/graduation.clearance|畢業離校|離校(?:申請|審核)/iu,'account:counselingAppointments':/counseling|counselling|psychological|諮商|心理測驗/iu,'account:healthExaminations':/health|medical|健檢|健康檢查/iu,'account:feeRemission':/fee.remission|tuition.reduction|減免|减免/iu,'account:dormitoryConduct':/dormitory|dorm|宿舍/iu,'account:elearningOutline':/outline|video|slides|activities|section|feedback|大綱|影片|簡報|活動|章節|回饋/iu,'account:facilityRepairs':/repair|maintenance|報修|报修|修繕/iu,'account:dtmGradeReport':/moodle|dtm|grade report|gradebook|成績報告|成绩报告/iu,'account:aidPayments':/student aid|financial aid|salary|payroll|助學|薪資|工讀/iu,'account:studentConduct':/conduct|disciplin|獎懲/iu,'account:studentLoan':/loan|貸款|學貸/iu,'account:courseCatalog':/catalog|syllabus|offering|課綱|大綱|開課/iu,'account:enrollmentCertificate':/certificate|enrolment|enrollment|在學|在籍|學籍證明/iu,'account:dtmSubmissions':/file|upload|submission|assignment|feedback|作業|檔案|評語|上傳/iu,'account:tuition':/tuition|settlement|statement|summer|evening|學費|結算|暑修|進修部|延修/iu};
   const rankedViews=sections.filter(section=>section.view).map((section,index)=>({section,index,match:question.search(topics[section.id])})).sort((a,b)=>Number(b.match>=0)-Number(a.match>=0)||Number(b.section.viewCandidates.length>0)-Number(a.section.viewCandidates.length>0)||(a.match>=0&&b.match>=0?a.match-b.match:0)||a.index-b.index);
   const selectedSet=new Set(rankedViews.slice(0,supplementalAnswerLimits.views).map(value=>value.section));
   const selectedViews=sections.filter(section=>selectedSet.has(section));

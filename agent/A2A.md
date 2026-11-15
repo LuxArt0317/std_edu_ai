@@ -791,3 +791,9 @@ The isolated receipt, Moodle and teaching admission checkpoint is based on `4be7
 ### Native Moodle assignment checkpoint [Issue #100]
 
 The integration checkout is `std_edu_ai-issue100` on disk, based on protected Preview `eac8ecf0`. The frozen change includes assignment detail and combined native grade routing, plus offline case registration. It changes no migration or hosted records. The release coordinator owns publication, provider access and the serialized live evaluation. Leave records and the teaching fixture/observation modules are separate follow-ups.
+
+The local Moodle browser follow-up is a separate commit after the assignment checkpoint. Its fixture uses an exact UUID course and native course-content response. Keep it out of the already-published assignment tree. The next record candidates cover student leave and internship subtypes.
+
+### Student leave checkpoint [Issue #100]
+
+The integration checkout is based on published assignment Preview `20298f1` and includes the local Moodle browser follow-up. Root owns the API and verification wiring. The leave evaluator agent owns registration and independent grading. The internship packet remains separately frozen. The release coordinator owns protected publication and the serialized live run.

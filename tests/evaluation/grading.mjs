@@ -383,6 +383,18 @@ function evidenceBoundaryResult(answer,kind) {
     const prefix=clause.slice(Math.max(0,match.index-55),match.index);
     return !isNegative(match[0]) && !qualifyingPrefix.test(prefix);
   });
+  if(kind==='leave_local_metadata_only') {
+    const official=/\b(?:leave\s+(?:record\s+|request\s+|form\s+)?(?:is|was|has been)\s+(?:officially\s+)?(?:approved|accepted|rejected|filed with the university)|(?:university|school|registrar|advisor|teacher)\s+(?:has\s+)?(?:approved|accepted|rejected)\s+(?:your|this|the)\s+leave|(?:your\s+)?(?:absence|attendance)\s+(?:is|was|has been)\s+(?:officially\s+)?(?:marked\s+)?(?:excused|cleared|corrected)|(?:official\s+)?(?:university|school)\s+approval(?:\s+status)?\s*[:：]\s*(?:approved|confirmed|verified))\b|(?:校方|學校|学校|導師|导师)已(?:核准|批准|駁回|驳回)|缺席已(?:更正|核銷|核销)/gu;
+    const qualifier=/\b(?:cannot|can't|can’t|could not|unable to|does not|doesn’t)\s+(?:establish|confirm|verify|infer|prove|show)(?:\s+(?:that|whether|if|your|the|this)){0,4}\s*$|(?:無法|无法|不能|尚未)(?:確認|确认|證明|证明|查證|查证)(?:是否|您的)?$/u;
+    const asserted=clauses.some(clause=>[...clause.matchAll(official)].some(match=>!qualifier.test(clause.slice(0,match.index))));
+    return {passed:!asserted,detail:'Saved metadata never establishes university approval, official filing or attendance correction.'};
+  }
+  if(kind==='leave_read_failure_not_empty'){
+    const absence=/\b(?:no|zero|0)\s+(?:(?:saved|matching|local|student)\s+){0,4}(?:leave (?:records?|forms?|rows?|requests?)|leave history)|(?:leave history|leave records?)\s+(?:is|are)\s+empty\b|沒有(?:已儲存的|符合條件的)?(?:請假紀錄|假單)|沒有(?:已保存的|符合条件的)?(?:请假记录|假单)/gu;
+    const qualifier=/\b(?:cannot|can't|can’t|could not|unable to)\s+(?:infer|conclude|establish|determine|know|confirm|verify)(?:\s+(?:that|whether|if|there|are|is)){0,5}\s*$/u;
+    const asserted=clauses.some(clause=>[...clause.matchAll(absence)].some(match=>!qualifier.test(clause.slice(0,match.index))));
+    return {passed:!asserted,detail:'A failed leave lookup preserves unknown record existence.'};
+  }
   if(kind==='housing_receipt_no_official_approval'||kind==='housing_receipt_record_not_absent') {
     const qualifier=/\b(?:cannot|can't|can’t|could not|unable to)\s+(?:infer|conclude|establish|determine|say|claim|know|confirm|verify)(?:\s+(?:that|whether|if|there|are|is|it|was)){0,5}\s*$|\b(?:does not|doesn't|do not|don't)\s+(?:mean|prove|establish|imply)(?:\s+(?:that|whether|if|there|are|is)){0,4}\s*$|\bnot\s+(?:proof|evidence|true)\s+that\s*$/u;
     const approval=/\b(?:(?:(?:your|my|the|this|saved)\s+)?(?:(?:housing|dormitory|accommodation)\s+)?applications?(?:\s+receipt)?\b[^,]{0,70}\b(?:approved|accepted)|(?:this|your|the|saved)\s+receipt\b[^,]{0,45}\b(?:confirms?|proves?|establishes?)\b[^,]{0,30}\b(?:official |university )?approval|(?:official |university )?approval(?:\s+status)?\s*[:：]\s*(?:approved|confirmed|verified|complete))\b/gu;
@@ -502,7 +514,7 @@ function recordLinkMatches(answer, binding, allBindings) {
 }
 
 // This test-side allowlist is deliberately independent of the runtime planner.
-const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','housingApplications','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmAssignment','dtmGradeReport','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation']);
+const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','leaveRecords','announcements','scholarship','studentAid','housing','housingApplications','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmAssignment','dtmGradeReport','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation']);
 const toolStatusAliases={success:'complete',succeeded:'complete',failed:'error',started:'running',start:'running'};
 const toolStatuses=new Set(['running','complete','unavailable','error','cancelled','skipped']);
 const terminalStatuses=new Set(['complete','unavailable','error','cancelled','skipped']);
@@ -599,6 +611,7 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
       ||testCase.domain==='graduationClearance'&&/\b(?:no (?:matching office|submitted clearance applications|assigned (?:application )?periods)|clearance lookup failed)\b|未找到已送出的離校申請|離校查詢失敗/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='housingApplications'&&/\bno saved housing application(?:s)? matching (?:this|the) selection\b/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='feeRemission'&&/\bno matching saved remission records\b/iu.test(visibleMarkdown(answer))
+      ||testCase.domain==='leaveRecords'&&/\bno matching saved leave (?:records|rows)\b|\b(?:cannot|can['’]t|could not|couldn['’]t|failed to)\s+read\b[^.!?\n]{0,64}\bleave\b|沒有相符的已儲存請假紀錄|找不到符合的請假紀錄|沒有符合條件的已儲存假單|無法讀取.{0,20}請假紀錄/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='facilityRepairs'&&limitedFacilityRepair.test(visibleMarkdown(answer)),'The answer explicitly states missing records, inability or unsupported capability.');
     if(expected.limitation && expected.limitation!==true)check('answer.limitation.specific',matches(text,expected.limitation),'The specific required limitation is stated.');
   }
@@ -617,7 +630,7 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
     const result=visibleRecordFactsResult(body.views,expected.visibleRecordFacts);check('views.recordFacts',result.passed,result.detail);
   }
   for(const [index,kind] of (expected.evidenceBoundaries || []).entries()) {
-    const boundaryAnswer=typeof kind==='string'&&kind.startsWith('housing_receipt_')?visibleBoundaryText(body):answer;
+    const boundaryAnswer=typeof kind==='string'&&/^(?:housing_receipt_|leave_)/u.test(kind)?visibleBoundaryText(body):answer;
     const result=evidenceBoundaryResult(boundaryAnswer,kind);check(`evidence.boundary.${index}`,result.passed,result.detail);
   }
   for (const [index,list] of (expected.exactLists || []).entries()) {

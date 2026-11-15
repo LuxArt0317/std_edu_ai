@@ -16,6 +16,8 @@
 
 ## Verified account assistant (Issue #99)
 
+`studentLeaveEvidenceIntent` resolves the requested view, date, field or exact form. `accountStudentLeaveEvidence` reads the signed-in user's records and requested linked local review state. The fixed request plan keeps unrelated records out of both the initial review and one fresh retry.
+
 `dtmAssignmentEvidenceIntent` selects the assignment and requested fields. `accountDtmAssignmentEvidence` uses the existing caller-scoped assignment RPC and bounds the projection before model input. `dtmNativeClauseScope` keeps independent assignment and native grade clauses separate. The reviewer must cite the requested assignment fields and a grade value or recorded availability when applicable.
 
 `answerVerification.js` runs the LangGraph retrieve → draft → verify → (fresh retrieval → one correction → verify) flow. Account records and drafts stay in request-local closures rather than graph traces/checkpoints. `answerVerificationModel` requires independently referenced evidence and approved links; `answerVerificationSources` reads actual web pages through the acquisition safeguards. The endpoint has a shared 55-second deadline and withholds unverified drafts/actions. A verifier is fallible; this is not proof of perfect factual accuracy.

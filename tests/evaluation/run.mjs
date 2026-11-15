@@ -17,6 +17,7 @@ import {fixtureForCase} from './fixtures.mjs';
 import {teachingFeedbackRunnerCases,teachingFeedbackCaseAdmission,assertTeachingFeedbackCaseReady,gradeEvaluationCase,teachingFeedbackSetupSummary} from './teaching-feedback-runner.mjs';
 import {assessCoverage} from './coverage.mjs';
 import {nativeDtmRunnerCases,nativeDtmSetupRequired,assertNativeDtmCaseReady} from './dtm-native-runner.mjs';
+import {studentLeaveRunnerCases,markLegacyStudentLeaveFixture,nativeStudentLeaveSetupRequired,assertNativeStudentLeaveCaseReady,studentLeaveSetupSummary} from './student-leave-runner.mjs';
 import {buildGuidanceReviewBinding,validateGuidanceReview} from './guidance-rubric.mjs';
 import {createPinnedDeploymentVerifier} from './pinned-deployment.mjs';
 import {assertPublishedNextClassClock} from './published-next-class.mjs';
@@ -103,7 +104,9 @@ export async function evaluationSuite(now,{caseFamily}={}){
   if(caseFamily!==undefined&&caseFamily!=='fee-remission')throw new Error('Unknown case family.');
   const [graphInventory,clientDispatch]=await Promise.all([discoverSurfaces(),discoverClientDispatchSurfaces()]);
   const inventory={...graphInventory,clientDispatch,hash:hash({graph:graphInventory.hash,clientDispatch})};
-  const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases():[...buildServiceCases(),...buildAccountCases({now}),...teachingFeedbackRunnerCases(),...nativeDtmRunnerCases(),...buildPublicCases(inventory)];
+  const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases()
+    :[...[...buildServiceCases(),...buildAccountCases({now})].map(markLegacyStudentLeaveFixture),
+      ...teachingFeedbackRunnerCases(),...nativeDtmRunnerCases(),...studentLeaveRunnerCases(),...buildPublicCases(inventory)];
   if(caseFamily==='fee-remission')validateFeeRemissionRunnerCases(cases);
   const ids=new Set();
   for(const item of cases){if(!item.id||ids.has(item.id))throw new Error('Duplicate or missing case ID: '+item.id);ids.add(item.id);}
@@ -278,6 +281,11 @@ export function assessRun(report,{cases,inventory,requestedSuite,sourceRevision,
     assessment.nativeDtmSetup={registered:nativeDtmSetup.length,liveEligible:0,caseIds:nativeDtmSetup};
     integrity.push({id:'run.nativeDtmFixtureUnbound',detail:'Native DTM record cases require caller-bound fixture and request observations before live execution.'});
   }
+  const leaveSetup=studentLeaveSetupSummary(cases);
+  if(leaveSetup.registered){
+    assessment.studentLeaveSetup=leaveSetup;
+    integrity.push({id:'run.studentLeaveFixtureUnbound',detail:'Registered Student Leave cases require independent caller-bound fixtures and request observations before live execution.'});
+  }
   if(inventory.clientDispatch?.questions.length){
     const missing=inventory.clientDispatch.questions.map(item=>item.id);
     assessment.clientDispatch={total:missing.length,executed:0,passed:0,missing};
@@ -399,9 +407,9 @@ export async function main(args=process.argv.slice(2),dependencies={}){
   if(feeOnly){validateFeeRemissionRunnerCases(suite.cases);if(suite.suiteHash!==hash(suite.cases))throw new Error('Fee remission suite hash does not match its frozen cases.');}
   let selected=suite.cases.filter(row=>(!opt.only||row.id.startsWith(opt.only))&&(!opt.domain||row.domain===opt.domain)).slice(0,opt.maxCases);
   if(!selected.length)throw new Error('No cases match.');
-  // Do not pass an unmounted teaching case into the legacy adapter: prepare
+  // Do not pass an unmounted native case into the legacy adapter: prepare
   // may initialize accounts and seed unrelated data before forCase is called.
-  const fixtureCases=selected.filter(row=>!teachingFeedbackCaseAdmission(row)&&!nativeDtmSetupRequired(row));
+  const fixtureCases=selected.filter(row=>!teachingFeedbackCaseAdmission(row)&&!nativeDtmSetupRequired(row)&&!nativeStudentLeaveSetupRequired(row));
   const out=resolve(root,opt.out||`artifacts/assistant-evaluation/${opt.mode}-${runId}.json`);
   if(relative(resolve(root,'artifacts/assistant-evaluation'),out).startsWith('..')||!out.endsWith('.json'))throw new Error('Reports must be JSON under artifacts/assistant-evaluation.');
   let browserAcceptance;
@@ -416,6 +424,8 @@ export async function main(args=process.argv.slice(2),dependencies={}){
     browserEvidence:browserAcceptance?{sha256:hash(browserAcceptance),sourceRevision:browserAcceptance.sourceRevision}:null,
     selectedCases:selected.map(row=>row.id),totalCases:suite.cases.length,inventory:suite.inventory,results:[],cleanup:{required:opt.mode==='live',complete:opt.mode!=='live'}};
   if(selected.some(row=>teachingFeedbackCaseAdmission(row)))report.teachingFeedbackSetup=teachingFeedbackSetupSummary(selected);
+  const leaveSetup=studentLeaveSetupSummary(selected);
+  if(leaveSetup.registered)report.studentLeaveSetup=leaveSetup;
   if(opt.mode==='inventory'){
     report.cases=suite.cases;report.assessment=assessRun({...report,sourceUnchanged:true},{cases:suite.cases,inventory:suite.inventory,sourceRevision:identity.sourceRevision,requestedSuite:feeOnly?'subset':'full'});
     await persist(out,report);log(JSON.stringify({mode:opt.mode,cases:suite.cases.length,services:suite.inventory.services.length,tools:suite.inventory.tools.length,publicPages:suite.inventory.publicPages.length,report:relative(root,out),releaseReady:false}));return report;
@@ -461,6 +471,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       try{
         assertTeachingFeedbackCaseReady(testCase);
         assertNativeDtmCaseReady(testCase);
+        assertNativeStudentLeaveCaseReady(testCase);
         if(opt.mode==='live'){
           assertCatalogCaseBound(testCase,report);
           if(feeOnly||testCase.fixtureKey!=='anonymous'){
@@ -504,7 +515,11 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           const body=testCase.mode==='navigation'?modules[2].answerDirectoryQuestion(testCase.question,testCase.route):await modules[0].answerPrivateAffairsQuestion(testCase.question,snapshot,testCase.history||[],testCase.route,{draftOnly:true});
           envelope={statusCode:200,body:body||{status:'abstained',answer:'No deterministic answer'},events:[],execution:'deterministic',fixtureKey:testCase.fixtureKey,sourceRevision:identity.sourceRevision};
         }
-      }catch(error){envelope={statusCode:0,body:{error:error instanceof Error?error.message:'Evaluation request failed'},events:[],failureKind:phase,execution:opt.mode==='live'?'live-model':'deterministic',fixtureKey:testCase.fixtureKey,sourceRevision:opt.mode==='live'?report.deployment?.sourceRevision||'unknown':identity.sourceRevision};}
+      }catch(error){
+        const execution=phase==='setup'&&nativeStudentLeaveSetupRequired(testCase)?'not-run':opt.mode==='live'?'live-model':'deterministic';
+        envelope={statusCode:0,body:{error:error instanceof Error?error.message:'Evaluation request failed'},events:[],failureKind:phase,execution,
+          fixtureKey:testCase.fixtureKey,sourceRevision:opt.mode==='live'?report.deployment?.sourceRevision||'unknown':identity.sourceRevision};
+      }
       finally{
         if(requestTicket){
           try{await deploymentGate.afterRequest(requestTicket);envelope.deploymentCheck={requestIndex:requestTicket.requestIndex,sourceRevision:requestTicket.sourceRevision,verified:true};}

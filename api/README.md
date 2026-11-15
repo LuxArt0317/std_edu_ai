@@ -12,6 +12,8 @@
 
 ## Account conversations and verified replies
 
+Student leave history, archive, periods and exact-form questions select the caller's leave reader before any broad account load. Requested fee balances, the next class and native Moodle grades use their own scoped sources. Guest requests receive local sign-in return links.
+
 Focused Moodle assignment questions use the signed-in caller's exact course and assignment route, including the edit page. A combined assignment and native grade question dispatches separate scoped readers. The retry reuses the same scope and cannot perform a write.
 
 `affairs-data.ts?resource=conversations` (public alias `/api/affairs-conversations`) supports owner-only list/read/save/delete with the School Affairs Google session. Saves enforce a 190KB request limit, bounded text/history and database version checks. `affairs-assistant.ts` selects account evidence and runs the bounded LangGraph verification loop; `research-assistant.ts` verifies generated knowledge/web/image answers. `affairs-action.ts` accepts an optional reviewed-action `requestId` and uses durable receipts for replay protection. None of these endpoints borrow Nexus credentials or execute a write during answer verification.

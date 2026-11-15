@@ -3,6 +3,7 @@ import {boundedAssistantText} from '../src/services/assistantActivityBudget.js';
 import {currentStudyForeignYearQuestion} from './currentStudyOwnerScope.js';
 import {accountQuestionIntent,isAccountOverviewQuestion,isCurrentStudyRecordQuestion} from './affairsAnswer.js';
 import {studentConductGuide} from './studentConductGuide.js';
+import {studentLeaveAssistantPlan,studentLeaveGuestAnswer} from './studentLeaveAssistantPlan.js';
 import {serviceNoteLookup} from './serviceNoteIntent.js';
 import {serviceNoteGuide} from './serviceNoteGuide.js';
 import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel} from './pendingFeesAnswer.js';
@@ -131,6 +132,7 @@ function parse(body) {
         return ['user', 'assistant'].includes(String(item.role)) && typeof item.content === 'string' ? [{ role: String(item.role), content: boundedAssistantText(item.content, 2000) }] : [];
     }) : [];
     const route = typeof source.route === 'string' && (/^\/school-affairs(?:\/search|\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?\/?$/.test(source.route)||
+        /^\/school-affairs\/services\/leave(?:\/(?:index|history|archive|periods)|\/edit\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/21-3\/?$/.test(source.route)||
         /^\/school-affairs\/services\/37-1(?:\/salary)?\/?(?:\?page=[0-9]{1,4}(?:&page=[0-9]{1,4})?)?$/.test(source.route)||
         (source.route.startsWith(healthExaminationPath)&&selectHealthExaminationEvidence('Show my health records.',source.route)?.reason===null&&
@@ -416,6 +418,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 citations:[...citations,...(teachingGuide?.citations??[])],suggestedQuestions:[],grounding:{source:'directory',webSearched:false}});
             return;
         }
+        const leave=!input.images.length&&studentLeaveAssistantPlan(input.question,input.route,input.history);
+        if(leave){stream.send(200,studentLeaveGuestAnswer(leave,input.question));return;}
         const notes=serviceNoteLookup(input.question,input.route,input.history);
         if(notes.foreign||notes.invalidService||notes.officialOnly||notes.keys.length||notes.excluded&&!notes.otherQuestion){
             stream.send(200,serviceNoteGuide(input.question,notes,false));

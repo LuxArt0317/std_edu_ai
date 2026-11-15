@@ -1,3 +1,4 @@
+import {nativeStudentLeaveSetupRequired} from './student-leave-runner.mjs';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {test} from 'node:test';
@@ -171,7 +172,7 @@ test('actual forCase renews before fixture writes and again after readbacks, nev
   const user=attachFixtureSession({id:owner,studentId:foreign},session(),options({clock:()=>now,fetchImpl:async(input)=>{assert.equal(String(input),url+'/auth/v1/token?grant_type=refresh_token');refreshes++;calls.push('refresh');return Response.json(session(now,refreshes+1));}}));
   now+=3500_000;const binding={},testCase={id:'catalog-only',fixtureRequirement:'published_catalog_binding',expected:{requiredTools:['courseCatalog']}};
   const state={users:[user,{id:foreign,token:'SYNTHETIC_OTHER_TOKEN'}],origin:'https://stu.best',now:'2026-11-13',current:null,catalogBindings:new Map([[testCase.id,binding]]),supplementalTables:new Set()};
-  const context={state,ready:()=>state,fixtureForCase:()=>({}),assertSupported:()=>{},readNativeBindings:async()=>{throw new Error('No private seeding for catalog-only');},planSupplementalFixture:()=>({domains:[]}),
+  const context={nativeStudentLeaveSetupRequired,state,ready:()=>state,fixtureForCase:()=>({}),assertSupported:()=>{},readNativeBindings:async()=>{throw new Error('No private seeding for catalog-only');},planSupplementalFixture:()=>({domains:[]}),
     readSnapshot:async()=>{calls.push('read');return {};},readSupplementalFixtureScopes:async()=>({}),verifySupplementalFixtureReadback:()=>{},SUPPLEMENTAL_TABLES:{},SUPPLEMENTAL_SCOPES:{},
     ownState:x=>x,hash:()=> 'hash',saveLedger:async()=>{calls.push('ledger');now+=3500_000;},verifyPublishedCatalogBinding:async()=>{calls.push('catalog');return 'digest';},
     fail:(code,message)=>{throw new LiveFixtureError(code,message);}};

@@ -1,3 +1,5 @@
+import {readStudentLeaveEvidence} from '../server/accountStudentLeaveEvidence.js';
+import {studentLeaveAssistantPlan,studentLeaveBoundary,studentLeaveNavigation,studentLeaveSelectedTools} from '../server/studentLeaveAssistantPlan.js';
 import {dtmNativeClauseScope,dtmNativeClauseNotice} from '../server/dtmNativeClauseScope.js';
 import {dtmAssignmentLookupContext} from '../server/dtmAssignmentEvidenceIntent.js';
 import {readDtmAssignmentEvidence} from '../server/accountDtmAssignmentEvidence.js';
@@ -175,11 +177,11 @@ export function createAffairsAssistantHandler(dependencies:{
   verifyToken?:typeof verifyAffairsToken;
   loadSnapshot?:typeof loadAffairsSnapshot;
   answerAccount?:typeof answerAccountWithVerification;
-  readers?:{dtmAssignment?:typeof readDtmAssignmentEvidence;courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence;healthExaminations?:typeof readHealthExaminationEvidence;counselingAppointments?:typeof readCounselingEvidence;graduationClearance?:typeof readClearanceEvidence;tutorEvaluation?:typeof readTutorEvaluationEvidence;teachingFeedback?:typeof readTeachingFeedbackEvidence;housingBed?:typeof readHousingBedEvidence;housingApplications?:typeof readHousingApplicationEvidence};
+  readers?:{leaveRecords?:typeof readStudentLeaveEvidence;dtmAssignment?:typeof readDtmAssignmentEvidence;courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence;healthExaminations?:typeof readHealthExaminationEvidence;counselingAppointments?:typeof readCounselingEvidence;graduationClearance?:typeof readClearanceEvidence;tutorEvaluation?:typeof readTutorEvaluationEvidence;teachingFeedback?:typeof readTeachingFeedbackEvidence;housingBed?:typeof readHousingBedEvidence;housingApplications?:typeof readHousingApplicationEvidence};
 }={}) {
 const publicResearch=dependencies.publicResearch??researchHandler;
 const verifyToken=dependencies.verifyToken??verifyAffairsToken,loadSnapshot=dependencies.loadSnapshot??loadAffairsSnapshot,answerAccount=dependencies.answerAccount??answerAccountWithVerification;
-const readers={dtmAssignment:dependencies.readers?.dtmAssignment??readDtmAssignmentEvidence,courseCatalog:dependencies.readers?.courseCatalog??readCatalogEvidence,enrollmentCertificate:dependencies.readers?.enrollmentCertificate??readCertificateEvidence,
+const readers={leaveRecords:dependencies.readers?.leaveRecords??readStudentLeaveEvidence,dtmAssignment:dependencies.readers?.dtmAssignment??readDtmAssignmentEvidence,courseCatalog:dependencies.readers?.courseCatalog??readCatalogEvidence,enrollmentCertificate:dependencies.readers?.enrollmentCertificate??readCertificateEvidence,
   dtmSubmissions:dependencies.readers?.dtmSubmissions??readSubmissionEvidence,tuition:dependencies.readers?.tuition??readTuitionEvidence,
   studentConduct:dependencies.readers?.studentConduct??readStudentConductEvidence,studentLoan:dependencies.readers?.studentLoan??readStudentLoanEvidence,
   aidPayments:dependencies.readers?.aidPayments??readAidPaymentsEvidence,
@@ -235,6 +237,50 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const [step]=searchGuide.activity;
     stream.progress(step.kind,step.label,step.detail,step.status);
     stream.send(200,searchGuide);
+    return;
+  }
+  const leavePlan=studentLeaveAssistantPlan(question,route,history);
+  if(leavePlan){
+    const {selection,feeQuestion,feeLabel,classQuestion,gradeQuestion}=leavePlan;
+    const tools=studentLeaveSelectedTools(leavePlan);
+    const nav=studentLeaveNavigation(leavePlan,question);
+    const boundary=nav?.answer??studentLeaveBoundary(leavePlan,question);
+    if(!tools.length){
+      stream.send(200,nav??{status:leavePlan.foreign?'handoff':'clarification',answer:boundary,citations:[],
+        suggestedQuestions:[],grounding:{source:'account',webSearched:false}});
+      return;
+    }
+    if(Array.isArray(input?.images)&&input.images.length){
+      stream.send(400,{error:'For private account questions, remove the image and ask using text. Images are not stored as account records.'});
+      return;
+    }
+    const loadLeaveCompanions=async()=>{
+      const base={checkedAt:new Date().toISOString(),profile:{userId:account.user.id}};
+      const [fees,timetable]=await Promise.all([
+        feeQuestion?loadOwnAffairsCharges(account,{deadline}).then(saved=>{
+          const normalize=(value:string)=>value.normalize('NFKC').trim().toLowerCase();
+          return feeLabel?{...saved,chargeSelectionLabel:feeLabel,charges:saved.charges.filter(row=>normalize(row.label)===normalize(feeLabel))}:saved;
+        },()=>({charges:[],chargeReadUnavailable:true})):null,
+        classQuestion?loadOwnAffairsTimetable(account,{deadline}).catch(()=>({courses:[],timetableReadUnavailable:true})):null,
+      ]);
+      if(fees&&timetable&&'studentRecordFound' in fees&&'studentRecordFound' in timetable&&fees.studentRecordFound!==timetable.studentRecordFound)
+        return {...base,charges:[],courses:[],chargeReadUnavailable:true,timetableReadUnavailable:true};
+      return {...fees,...timetable,...base};
+    };
+    const supplementalReaders:SupplementalAccountReaders={};
+    if(selection&&!selection.reason)supplementalReaders.leaveRecords=context=>
+      readers.leaveRecords(account,{selection,deadline:Math.min(deadline,context.deadline)});
+    if(gradeQuestion)supplementalReaders.dtmGradeReport=context=>
+      readers.dtmGradeReport(account,{question:gradeQuestion,route:'/dtm/grades',history:[],deadline:Math.min(deadline,context.deadline)});
+    const selectedQuestion=[selection&&!selection.reason?selection.question:'',feeQuestion,classQuestion,gradeQuestion].filter(Boolean).join('. ');
+    try{
+      const snapshot=await loadLeaveCompanions();
+      const answer=await answerAccount({question:selectedQuestion,history:[],route,snapshot,loadSnapshot:loadLeaveCompanions,deadline,correlationId,
+        leavePlan,supplementalReaders,onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
+      stream.send(200,{...answer,answer:[answer.answer,boundary].filter(Boolean).join('\n\n'),citations:[...answer.citations,...(nav?.citations??[])]});
+    }catch{
+      stream.send(503,{error:'The selected School Affairs records could not be checked.'});
+    }
     return;
   }
   const nativeDtm=dtmNativeClauseScope(question,route,history);

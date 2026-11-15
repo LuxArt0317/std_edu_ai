@@ -1,3 +1,5 @@
+import {studentLeaveLookupContext} from './studentLeaveEvidenceIntent.js';
+import {unavailableStudentLeaveEvidence} from './accountStudentLeaveEvidence.js';
 import {isDtmAssignmentEvidenceQuestion} from './dtmAssignmentEvidenceIntent.js';
 import {dtmAssignmentEvidenceMaxBytes,unavailableDtmAssignmentEvidence} from './accountDtmAssignmentEvidence.js';
 import {studentConductScope} from './studentConductEvidenceScope.js';
@@ -35,6 +37,7 @@ import {elearningOutlineEvidenceMaxBytes,unavailableElearningOutlineEvidence} fr
 import {facilityRepairEvidenceMaxBytes,unavailableFacilityRepairEvidence} from './accountFacilityRepairEvidence.js';
 
 export const supplementalAccountTools=Object.freeze({
+  leaveRecords:'Own saved student leave history, archived records, class periods, exact record fields and requested linked local review state. Read-only.',
   courseCatalog:'Published local sample course offerings and syllabus plans, independent of enrollment. Supports exact offering IDs and validated keyword/term/department/theme search.',
   enrollmentCertificate:'Own saved enrollment-certificate assessment, literal independent pending-fee flag/status and individually requested identity fields; no issuance/download capability.',
   dtmSubmissions:'Own saved DTM assignment file metadata and revision-specific reviews; current files, retained older reviews and pending reservations are distinct. No file content or upload action.',
@@ -55,11 +58,14 @@ export const supplementalAccountTools=Object.freeze({
   healthExaminations:'Own saved health examination codes and report availability, scoped to the selected page at service 36-1. No clinical results, dates, identity details, file access or writes.',
   elearningOutline:'Authorized local remote-learning course outline, section/activity titles and local video/slides/feedback/attendance-form links. No personal attendance, grades, submissions, video contents or completion records. Read-only.',
 });
-const predicates={dtmAssignment:isDtmAssignmentEvidenceQuestion,courseCatalog:isCatalogEvidenceQuestion,enrollmentCertificate:isCertificateEvidenceQuestion,dtmSubmissions:isSubmissionEvidenceQuestion,tuition:isTuitionEvidenceQuestion,studentConduct:isStudentConductEvidenceQuestion,studentLoan:isStudentLoanEvidenceQuestion,aidPayments:isAidPaymentsEvidenceQuestion,dtmGradeReport:shouldReadNativeDtmGrades,elearningEnrollments:isElearningEvidenceQuestion,facilityRepairs:isFacilityRepairEvidenceQuestion,dormitoryConduct:isDormitoryConductEvidenceQuestion,elearningOutline:isElearningOutlineEvidenceQuestion,feeRemission:selectFeeRemissionEvidence,healthExaminations:selectHealthExaminationEvidence,counselingAppointments:selectCounselingEvidence,graduationClearance:selectClearanceEvidence,tutorEvaluation:selectTutorEvaluationEvidence,
+const predicates={leaveRecords:(question,route,history)=>{
+  const {selection}=studentLeaveLookupContext(question,route,history);
+  return Boolean(selection&&!selection.reason);
+},dtmAssignment:isDtmAssignmentEvidenceQuestion,courseCatalog:isCatalogEvidenceQuestion,enrollmentCertificate:isCertificateEvidenceQuestion,dtmSubmissions:isSubmissionEvidenceQuestion,tuition:isTuitionEvidenceQuestion,studentConduct:isStudentConductEvidenceQuestion,studentLoan:isStudentLoanEvidenceQuestion,aidPayments:isAidPaymentsEvidenceQuestion,dtmGradeReport:shouldReadNativeDtmGrades,elearningEnrollments:isElearningEvidenceQuestion,facilityRepairs:isFacilityRepairEvidenceQuestion,dormitoryConduct:isDormitoryConductEvidenceQuestion,elearningOutline:isElearningOutlineEvidenceQuestion,feeRemission:selectFeeRemissionEvidence,healthExaminations:selectHealthExaminationEvidence,counselingAppointments:selectCounselingEvidence,graduationClearance:selectClearanceEvidence,tutorEvaluation:selectTutorEvaluationEvidence,
   teachingFeedback:(question,route,history)=>Boolean(selectTeachingFeedbackEvidence(question,route,history)?.views.length)};
 const keys=Object.keys(supplementalAccountTools),plain=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&[Object.prototype,null].includes(Object.getPrototypeOf(value));
 const bytes=value=>Buffer.byteLength(JSON.stringify(value),'utf8');
-const sourceLimits={dtmAssignment:dtmAssignmentEvidenceMaxBytes,courseCatalog:18000,enrollmentCertificate:12000,dtmSubmissions:24000,tuition:16000,studentConduct:studentConductEvidenceMaxBytes,studentLoan:studentLoanEvidenceMaxBytes,aidPayments:aidPaymentsEvidenceMaxBytes,dtmGradeReport:dtmGradeReportEvidenceMaxBytes,elearningEnrollments:elearningEvidenceMaxBytes,facilityRepairs:facilityRepairEvidenceMaxBytes,dormitoryConduct:dormitoryConductEvidenceMaxBytes,elearningOutline:elearningOutlineEvidenceMaxBytes,feeRemission:feeRemissionEvidenceMaxBytes,healthExaminations:healthExaminationEvidenceMaxBytes,counselingAppointments:counselingEvidenceMaxBytes,graduationClearance:clearanceEvidenceMaxBytes,tutorEvaluation:tutorEvaluationEvidenceMaxBytes,
+const sourceLimits={leaveRecords:16000,dtmAssignment:dtmAssignmentEvidenceMaxBytes,courseCatalog:18000,enrollmentCertificate:12000,dtmSubmissions:24000,tuition:16000,studentConduct:studentConductEvidenceMaxBytes,studentLoan:studentLoanEvidenceMaxBytes,aidPayments:aidPaymentsEvidenceMaxBytes,dtmGradeReport:dtmGradeReportEvidenceMaxBytes,elearningEnrollments:elearningEvidenceMaxBytes,facilityRepairs:facilityRepairEvidenceMaxBytes,dormitoryConduct:dormitoryConductEvidenceMaxBytes,elearningOutline:elearningOutlineEvidenceMaxBytes,feeRemission:feeRemissionEvidenceMaxBytes,healthExaminations:healthExaminationEvidenceMaxBytes,counselingAppointments:counselingEvidenceMaxBytes,graduationClearance:clearanceEvidenceMaxBytes,tutorEvaluation:tutorEvaluationEvidenceMaxBytes,
   teachingFeedback:teachingFeedbackEvidenceLimits.responseBytes};
 export const supplementalEvidenceBudget=54000;
 export const withoutExcludedNativePageClause=question=>withoutExcludedTutorEvaluationClause(withoutExcludedClearanceClause(withoutExcludedCounselingClause(withoutExcludedHealthClause(question))));
@@ -230,6 +236,7 @@ function catalogRouteContext(route,question){
   return /^(?:show|list|browse)\s+(?:me\s+)?(?:all\s+)?(?:the\s+)?(?:course\s+)?(?:catalog(?:ue)?|offerings?|available courses)\s*[.!?]?$/i.test(question.trim())||/\b(?:this page|this catalog|these offerings)\b|這個頁面|本頁|這些課程/.test(question);
 }
 function unavailable(key,reason){
+  if(key==='leaveRecords')return unavailableStudentLeaveEvidence(reason);
   if(key==='teachingFeedback')return unavailableTeachingFeedbackEvidence(reason);
   if(key==='tutorEvaluation')return unavailableTutorEvaluationEvidence(reason);
   if(key==='graduationClearance')return unavailableClearanceEvidence(reason);
