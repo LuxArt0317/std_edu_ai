@@ -989,3 +989,9 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Correct the three offline fixture harness bindings introduced by the materials replay. Verify all 30 affected tests, then check the Ready manifest of exact test-only `b0068ad` and re-run its 43 adaptive verification checks.
 - [x] Verify 10-1 and 16-1 clearance reads and denials in isolated PostgreSQL and the actual handler. Preserve existing grading predicates and verify no action receipts.
 - [ ] Review hosted term and period bindings, then mount the remaining Graduation Clearance cases on the protected release.
+- [x] Run the three frozen health and tuition combinations against exact protected `a69d553`, including page two and health exclusion. Verify per-caller native comparison and disposal.
+- [x] Rerun the absent DTM and academic browser fixtures in focused local Chromium and record the 17 observed record checks separately from the prior full matrix.
+- [x] Scope Academic Services 13-1 exact semester and course selection, verify all 11 frozen handler cases, and exercise six against isolated PostgreSQL.
+- [x] Bind a 16-case clearance status packet without creating shared terms or periods. Verify isolated PostgreSQL and an unmodified pre-existing term state.
+- [ ] Run the status and notes clearance packet on exact protected `639f81b`. Run positive window cases after a suitable isolated fixture is available.
+- [ ] Mount and replay outstanding Academic Services 13-1 cases on the exact protected app.

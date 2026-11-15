@@ -6,6 +6,8 @@ Production 076c79a is live as Vercel 4Gi741acYjhLKPYZiw4y9Af4FFNt. Migration 202
 
 ### Latest protected acceptance
 
+Current exact `a69d553` passed all three health and tuition questions, 41 release checks and disposal. Original adaptive `b0068ad` Quality 43728223238 passed. `639f81b` stages the clearance status operator and 13-1 selection fixes. Only root can run the next protected packet. The database has no open or closed clearance periods, so bind the selected two existing terms only for statuses and notes. No Learning Support migration or account change. Latest browser fixtures cover 17 of the prior 39 missing observations through the UI with synthetic sessions.
+
 `53a7599` passed CI and all 16 protected health metadata checks. `6e819f5` passed the protected PDF availability case, 11 Moodle material cases and both disposal checks. Its first Quality attempt found ten offline fixture-adapter failures involving a new setup flag. The clean renderer on `959c417` passed 552 comparisons, 16 guest returns and four menus. It leaves 39 native observations ungraded. Local `eabba1c` adds verified one-source health and tuition partials. Local confirmed Learning Support passes on isolated PostgreSQL. Keep its pending shared migration out of the Preview deploy. Root keeps ownership of the protected fixture, release, and production paths.
 
 
