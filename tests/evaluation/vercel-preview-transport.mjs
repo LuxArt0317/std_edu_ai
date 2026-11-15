@@ -65,7 +65,7 @@ function boundCancellation(command,kind,label,versionKey='expected_version',maxi
 
 /** Relay one operator-supplied identity only to the exact approved deployment.
  * Vercel validates the signature and trust rule. Caller Auth is independent. */
-export function createTrustedPreviewFetch({origin,token,conversationId,conversationDeleteFixtures,confirmedTaskCommand,confirmedClubCommand,confirmedCounselingCommand,confirmedRepairCommand,fetchImpl=globalThis.fetch,now=Date.now}={}){
+export function createTrustedPreviewFetch({origin,token,conversationId,conversationDeleteFixtures,confirmedTaskCommand,confirmedClubCommand,confirmedCounselingCommand,confirmedRepairCommand,confirmedLearningSupportCommand,fetchImpl=globalThis.fetch,now=Date.now}={}){
   if(!isEvaluationPreviewOrigin(origin)||typeof fetchImpl!=='function'||typeof now!=='function'
     ||conversationId!==undefined&&!isConversationId(conversationId))fail('invalid Preview target');
   const deleteProbe=conversationDeleteFixtures!==undefined,deleteQueries=new Set(),deleteBodies=new Set();
@@ -73,7 +73,9 @@ export function createTrustedPreviewFetch({origin,token,conversationId,conversat
   const clubCommand=confirmedClubCommand===undefined?null:boundCancellation(confirmedClubCommand,'cancel_club_equipment','club');
   const counselingCommand=confirmedCounselingCommand===undefined?null:boundCancellation(confirmedCounselingCommand,'counseling_cancel','counseling');
   const repairCommand=confirmedRepairCommand===undefined?null:boundCancellation(confirmedRepairCommand,'cancel_facility_repair','repair','version',10000);
-  const commands=[taskCommand,clubCommand,counselingCommand,repairCommand].filter(Boolean);
+  const learningSupportCommand=confirmedLearningSupportCommand===undefined?null:
+    boundCancellation(confirmedLearningSupportCommand,'withdraw_learning_support','learning support','expected_version',2);
+  const commands=[taskCommand,clubCommand,counselingCommand,repairCommand,learningSupportCommand].filter(Boolean);
   const [actionCommand]=commands;
   if(actionCommand&&(commands.length!==1||deleteProbe||conversationId!==undefined))fail('invalid confirmed action fixture');
   let actionCommandUsed=false;

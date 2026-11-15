@@ -30,3 +30,14 @@ npm run typecheck:api
 ```
 
 The actual-handler evaluator verifies own and manager query boundaries, rejected fields and stale or crossed request handling through controlled transport. The disposable PostgreSQL check also verifies RLS, trusted role enforcement, replay after a subsequent transition, operation audit cardinality and rollback. Publishing requires applying the additive migration before enabling the workspace.
+
+## Protected Preview evaluation
+
+The 17-case packet in `tests/evaluation/learning-support-native-packet.mjs` is ready for a protected operator to supply four adapters.
+
+- `readRaw` uses `readLearningSupportNativeRows` and the two exact disposable owners. Seed the three reserved requests and record their identity lease, row IDs and original values in the private fixture journal before evaluating.
+- `readNative` reads the paired `/api/affairs-data?scope=learning-support&page=1` pages with each account’s own token. The packet compares the two pages to the independent SQL snapshot.
+- `ask` uses the signed-in endpoint for A or B and the public endpoint for the guest handoff. Pass the response status, JSON thread activity, and signed-in correlation ID to the packet.
+- `confirm` dispatches the oracle’s exact native action to `/api/affairs-action`. Bind one `confirmedLearningSupportCommand` per deliberate POST to that caller token and unchanged JSON body. Persist the proposed row ID, expected version and operation ID before the first action probe. A repeated attempt gets a fresh relay for the same command.
+
+An operator must hold the existing client fixture lease, verify the exact clean deployment and applied migration, and recheck the pinned origin and release throughout the run. Cleanup must compare the full original or once-withdrawn fixture snapshot under the native actor locks, then remove the exact synthetic rows, receipts and identities. Keep credentials, raw fixtures and real caller fields out of the report. Hosted acceptance requires the 17 case results and verified cleanup. The transport and paired oracle run offline with `node --test tests/evaluation/vercel-preview-transport.test.mjs tests/evaluation/learning-support-native-packet.test.mjs`.

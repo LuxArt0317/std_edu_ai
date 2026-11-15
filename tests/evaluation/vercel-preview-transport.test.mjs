@@ -242,3 +242,65 @@ test('confirmed repair transport binds the exact numeric revision and allows one
   await assert.rejects(relay(endpoint,init),/unapproved request operation/u);
   assert.equal(sent.length,1);
 });
+
+test('the learning support Preview relay admits one exact versioned withdrawal for only its bound caller',async()=>{
+  const payload={id:'79085090-0000-4000-8000-000000000001',request_id:'79085090-0000-4000-8000-000000000002',expected_version:2};
+  const body={kind:'withdraw_learning_support',payload},command={callerToken:caller.slice(7),body};
+  const sent=[];
+  const config={origin,token:tokenAt(time),now:()=>time*1000,fetchImpl:async(url,init)=>{
+    sent.push({url:url.href,init});return Response.json({id:payload.id,status:'withdrawn',version:3,requestId:payload.request_id});
+  }};
+  const relayFor=body=>createTrustedPreviewFetch({...config,confirmedLearningSupportCommand:{...command,body}});
+  for(const bad of [
+    {...body,kind:'submit_learning_support'},
+    {...body,kind:'review_learning_support'},
+    {...body,requestId:payload.request_id},
+    ...[{...payload,expected_version:'2'},{...payload,expected_version:3},{...payload,expected_version:0},
+      {...payload,id:payload.request_id},{...payload,owner_id:payload.id}].map(payload=>({...body,payload})),
+  ])assert.throws(()=>relayFor(bad),/invalid learning support cancellation fixture/u);
+  assert.throws(()=>createTrustedPreviewFetch({...config,confirmedLearningSupportCommand:command,
+    confirmedTaskCommand:{callerToken:command.callerToken,body:{kind:'create_task',requestId:payload.request_id,
+      payload:{title:'QA assistant task 1234abcd7890'}}}}),/invalid confirmed action fixture/u);
+  assert.throws(()=>createTrustedPreviewFetch({...config,confirmedLearningSupportCommand:command,conversationId:payload.id}),
+    /invalid confirmed action fixture/u);
+
+  const relay=relayFor(body),endpoint=origin+'/api/affairs-action',init={...post,body:JSON.stringify(body)};
+  for(const path of [origin+'/api/affairs-manage',origin+'/api/affairs-assistant',endpoint+'?scope=learning-support'])
+    await assert.rejects(relay(path,init),/unapproved request operation/u);
+  await assert.rejects(relay(endpoint,{...init,headers:{...post.headers,Authorization:'Bearer another.caller.signature'}}),
+    /unapproved request operation/u);
+  await assert.rejects(relay(endpoint,{...init,body:JSON.stringify({...body,payload:{...payload,expected_version:1}})}),
+    /unapproved request operation/u);
+  assert.equal(sent.length,0);
+
+  const result=await relay(endpoint,init);
+  assert.deepEqual(await result.json(),{id:payload.id,status:'withdrawn',version:3,requestId:payload.request_id});
+  assert.equal(sent[0].url,endpoint);
+  assert.equal(sent[0].init.body,init.body);
+  assert.equal(sent[0].init.redirect,'error');
+  assert.equal(sent[0].init.headers.get('authorization'),caller);
+  assert.equal(sent[0].init.headers.get(trusted),config.token);
+  await assert.rejects(relay(endpoint,init),/unapproved request operation/u);
+  assert.equal(sent.length,1);
+  assert.equal((await relayFor(body)(endpoint,init)).status,200);
+  assert.equal(sent.length,2);
+
+  // Each deliberate probe needs its own one-use relay. The stale control may
+  // carry version 1, but it may not change the already bound relay body.
+  assert.doesNotThrow(()=>relayFor({...body,payload:{...payload,expected_version:1}}));
+});
+
+test('a lost learning support confirmation response spends its relay before transport',async()=>{
+  const endpoint=origin+'/api/affairs-action';
+  const body={kind:'withdraw_learning_support',payload:{id:'79085090-0000-4000-8000-000000000001',
+    request_id:'79085090-0000-4000-8000-000000000002',expected_version:2}};
+  let sent=0;
+  const relay=createTrustedPreviewFetch({origin,token:tokenAt(time),now:()=>time*1000,
+    confirmedLearningSupportCommand:{callerToken:caller.slice(7),body},
+    fetchImpl:async()=>{sent++;throw new Error('simulated lost response');},
+  });
+  const init={...post,body:JSON.stringify(body)};
+  await assert.rejects(relay(endpoint,init),/request could not reach the pinned Preview/u);
+  await assert.rejects(relay(endpoint,init),/unapproved request operation/u);
+  assert.equal(sent,1);
+});
