@@ -7,6 +7,7 @@ import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {AffairsWorkspaceError} from '../../server/affairsWorkspace.js';
 import {selectExactCourseSelection} from '../../server/accountCourseSelectionAnswer.js';
 import {buildAccountCases} from './account-cases.mjs';
+import {buildServiceCases} from './service-cases.mjs';
 import {EVAL_OTHER_USER_ID,evalId,fixtureForCase} from './fixtures.mjs';
 import {gradeCase} from './grading.mjs';
 
@@ -17,6 +18,7 @@ const base='/school-affairs/services/11-1',timetable='/school-affairs/services/1
 const endpoint='/rest/v1/affairs_course_selection_records';
 const order='academic_year.desc,semester.desc,selection_phase.asc,row_order.asc,id.asc';
 const frozen=buildAccountCases().filter(row=>row.domain==='courseSelection');
+const serviceCases=buildServiceCases().filter(row=>row.domain==='courseSelection');
 const initial=frozen.find(row=>row.id==='account:selection-initial');
 const meeting=frozen.find(row=>row.id==='account:selection-timetable');
 const remark=frozen.find(row=>row.id==='account:selection-no-enrollment-inference');
@@ -25,8 +27,14 @@ const expectedScope={
   'account:selection-timetable':{academic_year:'eq.115',semester:'eq.1',selection_phase:'eq.initial',timetable_included:'eq.true'},
   'account:selection-no-enrollment-inference':{},
   'account:empty-courseSelection':{},
+  'service:11-1:record':{academic_year:'eq.115',semester:'eq.1'},
+  'service:11-2:record':{timetable_included:'eq.true'},
+  'service:11-2:empty':{timetable_included:'eq.true'},
 };
 const token=owner=>'isolated-selection-fixture-'+owner;
+
+const requiresRead=({mode})=>['record','empty'].includes(mode);
+const readScope=({id})=>expectedScope[id]??{};
 
 function persisted(row){
   return Object.fromEntries(Object.entries(row).map(([field,value])=>[field.replace(/[A-Z]/gu,letter=>'_'+letter.toLowerCase()),value]));
@@ -83,6 +91,30 @@ test('actual School Affairs handler verifies four unchanged selection questions 
     const observed=await reply(t,{...row,owner:fixture.profile.userId,scope,read:()=>records.filter(record=>selected(record,scope))});
     accepted(row,observed);
     assert.deepEqual(observed.calls,[endpoint]);assert.deepEqual(records,before);
+  });
+});
+
+test('actual School Affairs handler passes the eight frozen challenges on 11-1 and 11-2',async t=>{
+  assert.equal(serviceCases.length,8);
+  for(const row of serviceCases)await t.test(row.id,async t=>{
+    const fixture=fixtureForCase(row.fixtureKey,{userId:evalId(1976)}),records=fixture.courseSelection.records.map(persisted);
+    const hasRead=requiresRead(row),scope=readScope(row);
+    const observed=await reply(t,{...row,owner:fixture.profile.userId,scope,read:()=>{
+      assert.ok(hasRead,'A route boundary attempted a private read.');
+      return records.filter(record=>selected(record,scope));
+    }});
+    if(hasRead)accepted(row,observed);
+    else{
+      assert.equal(observed.statusCode,200);
+      assert.deepEqual(gradeCase(row,{...observed,execution:'deterministic',fixtureKey:row.fixtureKey}).failures,[],observed.body.answer);
+    }
+    assert.deepEqual(observed.calls,hasRead?[endpoint]:[]);
+    assert.equal(observed.body.proposedAction,undefined);
+    if(row.id==='service:11-1:record')assert.doesNotMatch(observed.body.answer,/Teacher Chen|credits|Selected for local review/u);
+    if(row.id==='service:11-2:record'){
+      assert.match(observed.body.answer,/Wednesday/u);
+      assert.doesNotMatch(observed.body.answer,/period 3|10:10/u);
+    }
   });
 });
 
@@ -159,7 +191,7 @@ test('migrated course-selection records preserve the frozen replies for two RLS 
     grant usage on schema public,auth,private to authenticated; set timezone='UTC';`);
   for(const name of ['20261105010000_school_affairs_workspace.sql','20261112100000_course_selection_history.sql'])
     await db.exec(await readFile(new URL('../../supabase/migrations/'+name,import.meta.url),'utf8'));
-  const fixture=fixtureForCase(initial.fixtureKey),owner=fixture.profile.userId,other=EVAL_OTHER_USER_ID;
+  const fixture=fixtureForCase(initial.fixtureKey,{userId:evalId(1977)}),owner=fixture.profile.userId,other=EVAL_OTHER_USER_ID;
   for(const caller of [owner,other]){
     await db.query("insert into auth.users values($1,$2,now(),'{}'::jsonb)",[caller,caller+'@example.invalid']);
     await db.query("insert into auth.identities values($1,'google')",[caller]);
@@ -180,23 +212,37 @@ test('migrated course-selection records preserve the frozen replies for two RLS 
     return result.rows;
   });
   assert.deepEqual(await rest(owner,{}),[]);
-  const empty=frozen.find(row=>row.id==='account:empty-courseSelection');
-  accepted(empty,await reply(t,{...empty,owner,read:()=>rest(owner,{})}));
+  const bank=[...frozen,...serviceCases];
+  for(const empty of bank.filter(row=>row.mode==='empty')){
+    const scope=readScope(empty);
+    accepted(empty,await reply(t,{...empty,owner,scope,read:()=>rest(owner,scope)}));
+  }
   const records=[record,
     {...record,id:evalId(1901),timetable_included:false,term_course_code:'EXCLUDED-A',course_title:'Excluded by timetable flag'},
     {...record,id:evalId(1902),selection_phase:'add_drop',term_course_code:'OTHER-PHASE',course_title:'Other Phase Control'},
-    {...record,id:evalId(1903),user_id:other,term_course_code:'OTHER-OWNER',course_title:'FOREIGN SELECTION CONTROL',remark_text:'Foreign remark'}];
+    {...record,id:evalId(1903),user_id:other,term_course_code:'OTHER-OWNER',course_title:'FOREIGN SELECTION CONTROL',remark_text:'Foreign remark'},
+    {...record,id:evalId(1904),academic_year:114,term_course_code:'OTHER-YEAR',course_title:'Other Year Control'}];
   for(const row of records)await db.query('insert into public.affairs_course_selection_records select (jsonb_populate_record(null::public.affairs_course_selection_records,$1::jsonb)).*',[JSON.stringify(row)]);
   const fingerprint=async()=>(await db.query(`select jsonb_agg(to_jsonb(r) order by id) as rows,
     (select count(*)::int from private.affairs_course_selection_operations) as operations,
     (select count(*)::int from public.affairs_agent_audit) as audits from public.affairs_course_selection_records r`)).rows[0];
   const before=await fingerprint();
   assert.deepEqual(await rest(other,{},owner),[]);assert.deepEqual(await rest(owner,{},other),[]);
-  for(const row of frozen.filter(row=>row!==empty)){
-    const scope=expectedScope[row.id],observed=await reply(t,{...row,owner,scope,read:()=>rest(owner,scope)});
-    accepted(row,observed);
-    assert.doesNotMatch(observed.body.answer,/FOREIGN SELECTION CONTROL|Other Phase Control/u);
-    if(row===meeting)assert.doesNotMatch(observed.body.answer,/Excluded by timetable flag/u);
+  for(const row of bank.filter(row=>row.mode!=='empty')){
+    const scope=readScope(row),observed=await reply(t,{...row,owner,scope,read:()=>{
+      assert.ok(requiresRead(row),'A boundary must not call the migrated read.');
+      return rest(owner,scope);
+    }});
+    if(requiresRead(row))accepted(row,observed);
+    else{
+      assert.equal(observed.statusCode,200);
+      assert.deepEqual(gradeCase(row,{...observed,execution:'deterministic',fixtureKey:row.fixtureKey}).failures,[],observed.body.answer);
+      assert.deepEqual(observed.calls,[]);
+    }
+    assert.doesNotMatch(observed.body.answer,/FOREIGN SELECTION CONTROL|Other Year Control/u);
+    if(row.id==='service:11-1:record')assert.match(observed.body.answer,/Other Phase Control/u);
+    else assert.doesNotMatch(observed.body.answer,/Other Phase Control/u);
+    if(row===meeting||row.id==='service:11-2:record')assert.doesNotMatch(observed.body.answer,/Excluded by timetable flag/u);
   }
   const scoped=expectedScope[initial.id];
   const second=await reply(t,{...initial,owner:other,scope:scoped,read:()=>rest(other,scoped)});

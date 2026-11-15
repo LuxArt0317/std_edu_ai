@@ -65,7 +65,7 @@ import {readDtmGradeReportEvidence} from '../server/accountDtmGradeReportEvidenc
 import {isForeignDtmGradesQuestion,isNativeDtmGradeOnlyQuestion} from '../server/dtmGradeEvidenceIntent.js';
 import {independentElearningQuestion,isElearningEvidenceQuestion,isForeignElearningRecordsQuestion} from '../server/elearningEvidenceIntent.js';
 import {readElearningEvidence} from '../server/accountElearningEvidence.js';
-import {answerExactCourseSelection,selectExactCourseSelection} from '../server/accountCourseSelectionAnswer.js';
+import {answerExactCourseSelection,courseSelectionPageDisposition,courseSelectionWriteBoundary,selectExactCourseSelection} from '../server/accountCourseSelectionAnswer.js';
 import {answerExactAcademicAttendance,selectExactAcademicAttendance} from '../server/accountAcademicAttendanceAnswer.js';
 import {answerExactElearning,selectExactElearningReply} from '../server/accountElearningExactAnswer.js';
 import {readFacilityRepairEvidence} from '../server/accountFacilityRepairEvidence.js';
@@ -486,6 +486,17 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));
     }catch{stream.send(503,{error:'The selected Moodle records could not be checked.'});}
     return;
+  }
+  const selectionDisposition=courseSelectionPageDisposition(question,route);
+  if(selectionDisposition?.kind==='unsupported-write'){
+    stream.send(200,courseSelectionWriteBoundary(selectionDisposition.url));return;
+  }
+  if(selectionDisposition?.kind==='navigation'&&!(Array.isArray(input?.images)&&input.images.length)){
+    const navigation=answerCampusNavigation(question);
+    if(navigation?.citations[0]?.url===selectionDisposition.url){
+      stream.progress('directory','Checked campus services','Found the local course-selection page.','complete');
+      stream.send(200,navigation);return;
+    }
   }
   const exactSelection=selectExactCourseSelection(question,route,history);
   if(exactSelection){

@@ -4,7 +4,8 @@
 - Verify named-course term absence hours directly against the caller's saved attendance statistics. [#100]
 
 - Answer natural monthly payment questions with the exact dated ledger, including compact month and year wording and verified empty periods. [#100]
-- Verify signed-in course-selection history, saved timetable slots and exact review remarks from the selected account records. [#100]
+
+- Verify signed-in course-selection history, saved timetable slots and exact review remarks. Resolve the 11-1 and 11-2 page links and unsupported changes without loading private records. [#100]
 
 - Leave time to read a known school page when an earlier public review may time out. Verify any recovered detail against the new page and persist the observed checks. [#100]
 
