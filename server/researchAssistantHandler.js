@@ -898,8 +898,13 @@ export function createResearchAssistantHandler(dependencies = {}) {
             stream.progress('page-context', 'Reading the current public page', 'Checking the saved page and its capture date.');
             const context = await loadPublicPage(input.route, deadline).catch(() => null);
             if (context) {
+                // A question about this page remains pinned to its saved
+                // contents, including during a deeper correction.
                 const checked = await runAnswerVerification({ question: verificationQuestion, initialAnswer: publicPageCandidate(context, input.question), deadline, onProgress: verificationProgress,
-                    loadEvidence: async () => [context.evidence], verify: verifyEvidenceAnswer, repair: repairEvidenceAnswer });
+                    allowDeeperReview: context.contentAvailable,
+                    loadEvidence: async () => [context.evidence],
+                    verify: review => verifyEvidenceAnswer({ ...review, deeperReview: review.attempt >= maxAnswerVerificationChecks }),
+                    repair: repair => repairEvidenceAnswer({ ...repair, deeperReview: repair.attempt >= maxAnswerVerificationChecks }) });
                 stream.send(200, checked);
                 return;
             }
@@ -953,7 +958,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
         const captureActivity = [];
         const publicQuestion = publicSchoolQuestion(input.question, publicGuidanceHistory.filter(item =>
             item.role === 'user' && !personalPublicQuestion(item.content)));
-        let knowledgeWebSwitch, publicStop, firstWebMiss, targetedWebStep;
+        let knowledgeWebSwitch, publicStop, firstWebMiss, targetedWebStep, bootstrapRead;
         async function tryWebAnswer(earlierReview) {
             const recoveringEmptySearch = Boolean(earlierReview && firstWebMiss && !targetedWebStep);
             if (!publicQuestion || personalQuestion || (webAttempted && !recoveringEmptySearch))
@@ -1067,8 +1072,29 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     return false;
                 }
                 evidence = await checkNewSources([...leads, ...candidate.citations], readUntil, 4);
+                if (!evidence.length && previousChecks === maxAnswerVerificationChecks - 1) {
+                    // One bounded attempt can reach an unread lead or recover a
+                    // transient read failure before this draft is composed.
+                    const attempts = lead => readAttempts.get(canonicalUrl(lead.url)) || 0;
+                    const remaining = [...pendingLeads.values()].filter(lead => canRead(canonicalUrl(lead.url)))
+                        .sort((first, second) => attempts(first) - attempts(second));
+                    if (remaining.length) {
+                        const retryUntil = Math.min(deadline - 11_000, Date.now() + 3_000);
+                        if (retryUntil - Date.now() < 1_000) {
+                            publicStop = verificationStopActivity(verificationQuestion, 'time_budget');
+                            return false;
+                        }
+                        const step = { kind: 'web-bootstrap-reread', label: 'Checking another available page',
+                            detail: 'The first read returned no usable page contents.', status: 'running' };
+                        progress(step);
+                        evidence = await checkNewSources(remaining, retryUntil, 4);
+                        bootstrapRead = { ...step, status: evidence.length ? 'complete' : 'unavailable',
+                            detail: evidence.length ? 'Read usable contents from a school page.' : 'The remaining pages did not provide usable contents.' };
+                        progress(bootstrapRead);
+                    }
+                }
                 if (!evidence.length) {
-                    publicStop = verificationStopActivity(verificationQuestion, 'no_usable_evidence');
+                    publicStop = verificationStopActivity(verificationQuestion, bootstrapRead && deadline - Date.now() < 12_000 ? 'time_budget' : 'no_usable_evidence');
                     return false;
                 }
                 if (evidence.some(source => leads.some(lead => lead.chunkId === source.id))) progress({kind:'web-alternate-source',label:'Read another school source',
@@ -1447,6 +1473,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     { kind: 'knowledge', label: 'Checked managed school knowledge', detail: `${retrieved.length} matching evidence excerpts`, status: 'complete' },
                     ...(targetedWebStep ? [firstWebMiss, ...checkedActivity, knowledgeWebSwitch, targetedWebStep]
                         : knowledgeWebSwitch ? [...checkedActivity, knowledgeWebSwitch, ...failedWebActivity] : [...failedWebActivity, ...checkedActivity]),
+                    ...(bootstrapRead ? [bootstrapRead] : []),
                     ...(stop ? [stop] : [])],
             });
         }

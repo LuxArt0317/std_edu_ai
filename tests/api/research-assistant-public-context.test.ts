@@ -59,6 +59,53 @@ test('content questions can be corrected once from the captured page without a w
   assert.match(result.body.answer,/Source snapshot: 2026-11-03/);assert.equal(calls,3);
 });
 
+test('a third correction for this page uses only the same immutable archived capture',async()=>{
+  configure();
+  const saved=await context(),data=JSON.parse(saved.evidence.content);
+  data.contentAvailable=true;
+  data.contentStatus='verified_snapshot';
+  data.excerpt='The help desk opens at 08:30.';
+  saved.contentAvailable=true;
+  saved.evidence.content=JSON.stringify(data);
+  const before=structuredClone(saved);
+  const calls:string[]=[];
+  let loads=0,reviews=0,corrections=0;
+  globalThis.fetch=async(url,init)=>{
+    assert.equal(String(url),'https://api.openai.com/v1/responses');
+    const request=JSON.parse(String(init?.body)),name=request.text.format.name;
+    const input=JSON.parse(request.input[0].content[0].text);
+    calls.push(name);
+    assert.deepEqual(input.evidence,[saved.evidence]);
+    if(name==='correct_grounded_answer'){
+      corrections++;
+      if(corrections===2)assert.equal(request.reasoning.effort,'medium');
+      return modelResponse({status:'answered',answer:corrections===1?'The help desk opens at 09:30.':'The help desk opens at 08:30.',sourceIds:[saved.evidence.id]});
+    }
+    assert.equal(name,'answer_evidence_review');
+    reviews++;
+    if(reviews<=2)return modelResponse(review(saved.evidence,false));
+    assert.equal(request.reasoning.effort,'medium');
+    return modelResponse({supported:true,answersQuestion:true,claims:[{
+      claim:'The stored excerpt gives 08:30.',supported:true,evidenceId:saved.evidence.id,quotes:['The help desk opens at 08:30.'],jsonPaths:['/excerpt','/capturedOn'],
+    }]});
+  };
+  const result=await invoke({question:'What opening time is given on this page?',route:page.route},async()=>{
+    loads++;
+    return saved;
+  },async()=>assert.fail('No acquisition of general web sources for an archived page question'));
+  assert.equal(result.statusCode,200);
+  assert.equal(loads,1);
+  assert.deepEqual(saved,before);
+  assert.deepEqual(calls,['answer_evidence_review','correct_grounded_answer','answer_evidence_review','correct_grounded_answer','answer_evidence_review']);
+  assert.deepEqual(result.body.verification,{status:'verified',attempts:3});
+  assert.equal(result.body.grounding.source,'public-page-context');
+  assert.equal(result.body.grounding.webSearched,false);
+  assert.match(result.body.answer,/08:30/u);
+  assert.doesNotMatch(result.body.answer,/09:30/u);
+  assert.deepEqual(result.body.citations.map((citation:{url:string})=>citation.url),[page.route]);
+  assert.equal(result.body.activity.filter((step:{kind:string;status:string})=>step.kind==='verification-3'&&step.status==='complete').length,1);
+});
+
 test('unverified corrections stay withheld even when public page metadata exists',async()=>{
   configure();const saved=await context();let calls=0;
   globalThis.fetch=async(_url,init)=>{

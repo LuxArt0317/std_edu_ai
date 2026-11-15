@@ -416,7 +416,7 @@ const managedExcerpt = {
   exact_score:0.8,keyword_score:0.7,vector_score:0.6,fused_score:0.2,
   document_version:1,content_checksum:'a'.repeat(64),
 };
-function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review-outage'|'early-web'|'early-web-recovery'|'verified-knowledge'|'source-switch-repair'|'source-switch-stall'|'final-check-lead') {
+function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review-outage'|'early-web'|'early-web-recovery'|'verified-knowledge'|'source-switch-repair'|'source-switch-stall'|'final-check-lead'|'bootstrap-reread'|'bootstrap-next-lead'|'bootstrap-unreadable'|'bootstrap-budget') {
   configured();
   const started = Date.now();
   let elapsed = 0;
@@ -424,13 +424,26 @@ function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review
   let knowledgeReviews = 0;
   let knowledgeReads = 0;
   const failedRefresh = outcome === 'source-switch-repair' || outcome === 'source-switch-stall';
+  const bootstrap = outcome.startsWith('bootstrap-');
+  const leadOnly = outcome === 'final-check-lead' || bootstrap;
+  const otherLeads = [1,2,3,4].map(number => 'https://lib.stu.edu.tw/news/secondary-' + number);
+  const reads: string[][] = [];
   const calls: string[] = [];
   const searches: Array<{question:string}> = [];
   const run = createResearchAssistantHandler({
     readSources: async citations => {
       calls.push('read-public-page');
-      assert.deepEqual(citations.map(citation=>citation.url),outcome==='final-check-lead'?[officialNotice,officialDirectory]:
+      const urls=citations.map(citation=>citation.url);
+      reads.push(urls);
+      if(outcome==='bootstrap-next-lead'){
+        if(reads.length===1){assert.deepEqual(urls,otherLeads);return [];}
+        assert.deepEqual(urls,[officialNotice,officialDirectory,...otherLeads.slice(0,2)]);
+        return citations.filter(citation=>citation.url===officialNotice).map(citation=>({id:citation.chunkId,url:citation.url,content:noticeContent}));
+      }
+      assert.deepEqual(urls,leadOnly?[officialNotice,officialDirectory]:
         [failedRefresh && searches.length === 1 ? officialDirectory : officialNotice]);
+      if(outcome==='bootstrap-budget'){elapsed=44_001;return [];}
+      if(outcome==='bootstrap-unreadable'||outcome==='bootstrap-reread'&&reads.length===1)return [];
       return citations.map(citation=>({id:citation.chunkId,url:citation.url,content:citation.url===officialDirectory?directoryContent:noticeContent}));
     },
   });
@@ -475,12 +488,12 @@ function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review
           assert.match(request.instructions,/Change the search approach/u);
           assert.doesNotMatch(request.input,/PRIVATE_REVIEW_FEEDBACK|NOT_PUBLIC_SEARCH_INPUT/u);
         }
-        if (outcome==='final-check-lead') return Response.json(searchPayload([officialDirectory,officialNotice],unsafeDraft,[officialDirectory]));
+        if (leadOnly) return Response.json(searchPayload([officialDirectory,...(outcome==='bootstrap-next-lead'?otherLeads:[]),officialNotice],unsafeDraft,[officialDirectory]));
         if (failedRefresh && searches.length===1) return Response.json(searchPayload([officialDirectory],unsafeDraft));
         if (outcome==='source-switch-stall') return Response.json(searchPayload([officialDirectory+'?utm_source=retry'],unsafeDraft));
         return Response.json(searchPayload([officialNotice],noticeContent));
       case 'compose_grounded_answer': {
-        assert.ok(outcome==='final-check-lead'||outcome==='early-web-recovery');
+        assert.ok(leadOnly||outcome==='early-web-recovery');
         const local=JSON.parse(request.input[0].content[0].text);
         assert.equal(local.evidence[0].content,noticeContent);
         assert.doesNotMatch(JSON.stringify(local),/NOT_PUBLIC_SEARCH_INPUT/);
@@ -501,7 +514,7 @@ function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review
               claim:'Exhibition time and date',supported:true,evidenceId:review.evidence[0].id,quotes:[noticeContent],jsonPaths:[],
             }]});
           }
-          assert.equal(review.evidence.length,outcome==='final-check-lead'?2:1);
+          assert.equal(review.evidence.length,leadOnly&&outcome!=='bootstrap-next-lead'?2:1);
           assert.equal(review.evidence[0].content,noticeContent);
           return provider({supported:true,answersQuestion:true,claims:[{
             claim:'Exhibition time and date',supported:true,evidenceId:review.evidence[0].id,quotes:[noticeContent],jsonPaths:[],
@@ -523,7 +536,7 @@ function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review
         throw Error('Unexpected controlled provider request '+name);
     }
   };
-  return {run,searches,calls};
+  return {run,searches,calls,reads};
 }
 
 test('two failed managed checks can switch to separately read public evidence within the same check budget',async()=>{
@@ -567,6 +580,47 @@ test('the last remaining check uses an uncited lead instead of repeating the sea
   assert.match(answer.answer,/opens at 10:30 a\.m\./u);
   assert.deepEqual(answer.citations.map(({url}: {url:string})=>url),[officialNotice]);
   assert.equal(answer.activity.find(({kind}: Progress)=>kind==='web-alternate-source').status,'complete');
+});
+
+test('the last managed recovery check can retry the safe source read or advance to the next uncited lead',async()=>{
+  for(const scenario of ['bootstrap-reread','bootstrap-next-lead'] as const){
+    const attempt=managedHarness(scenario),progress:Progress[]=[];
+    const answer=await invoke({question:knowledgeQuestion},attempt.run,'knowledge-'+scenario,progress);
+    assert.equal(attempt.searches.length,1,scenario);
+    assert.equal(attempt.reads.length,2,scenario);
+    assert.deepEqual(attempt.calls,[
+      'public_grounded_answer','answer_evidence_review','correct_grounded_answer','answer_evidence_review',
+      'stu_web_answer','read-public-page','read-public-page','compose_grounded_answer','answer_evidence_review',
+    ],scenario);
+    assert.deepEqual(answer.verification,{status:'verified',attempts:3},scenario);
+    assert.match(answer.answer,/opens at 10:30 a\.m\./u);
+    assert.doesNotMatch(answer.answer,/supposedly/u);
+    assert.deepEqual(answer.citations.map((citation:{url:string})=>citation.url),[officialNotice]);
+    assert.equal(progress.filter(step=>step.kind==='web-bootstrap-reread'&&step.status==='complete').length,1);
+    const saved=sanitizeStoredConversation([{id:'bootstrap',role:'assistant',content:answer.answer,activity:answer.activity,result:answer}]);
+    assert.equal(saved[0].activity.filter((step:Progress)=>step.kind==='web-bootstrap-reread'&&step.status==='complete').length,1);
+  }
+});
+
+test('bootstrap recovery stops truthfully when its second read is empty or the verification reserve is exhausted',async()=>{
+  for(const scenario of ['bootstrap-unreadable','bootstrap-budget'] as const){
+    const attempt=managedHarness(scenario),progress:Progress[]=[];
+    const answer=await invoke({question:knowledgeQuestion},attempt.run,'knowledge-'+scenario,progress);
+    assert.equal(attempt.searches.length,1);
+    assert.equal(attempt.reads.length,scenario==='bootstrap-unreadable'?2:1);
+    assert.equal(answer.status,'abstained');
+    assert.equal(answer.verification.attempts,2);
+    assert.deepEqual(answer.citations,[]);
+    assert.doesNotMatch(answer.answer,/supposedly/u);
+    const stops=progress.filter(step=>step.kind==='verification-stop');
+    assert.equal(stops.length,1);
+    assert.match(stops[0].detail,scenario==='bootstrap-budget'?/time left/u:/usable evidence/u);
+    assert.deepEqual(answer.activity.at(-1),stops[0]);
+    if(scenario==='bootstrap-unreadable'){
+      const saved=sanitizeStoredConversation([{id:'empty-bootstrap',role:'assistant',content:answer.answer,activity:answer.activity,result:answer}]);
+      assert.equal(saved[0].activity.filter((step:Progress)=>step.kind==='web-bootstrap-reread'&&step.status==='unavailable').length,1);
+    }
+  }
 });
 
 test('an attempted evidence switch preserves both managed checks when the web search finds no candidate',async()=>{
