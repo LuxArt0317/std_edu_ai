@@ -2,3 +2,4 @@ export type FacilityRepairSelection={id:string|null;idSource:'question'|'route'|
 export function selectFacilityRepairEvidence(question:unknown,route?:string,history?:{role:string;content:string}[]):FacilityRepairSelection|null;
 export function isFacilityRepairEvidenceQuestion(question:unknown,route?:string,history?:{role:string;content:string}[]):boolean;
 export function isForeignFacilityRepairQuestion(question:unknown):boolean;
+export function requestsFacilityRepairTechnicianMessage(question:unknown):boolean;

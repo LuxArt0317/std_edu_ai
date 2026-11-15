@@ -40,6 +40,9 @@ export function formatExactDtmGradeAnswer(result:DtmGradeReportEvidenceResult,qu
   Pick<SupplementalAnswerCandidate,'status'|'answer'|'citations'|'views'>|null;
 export function formatExactClearanceAnswer(result:ClearanceEvidenceResult,question:string,refusal:NonNullable<ReturnType<typeof exactClearanceVerification>>['refusal']):
   (Pick<SupplementalAnswerCandidate,'answer'|'citations'|'views'>&{status:'answered'|'handoff'})|null;
+export function formatExactFacilityRepairAnswer(result:FacilityRepairEvidenceResult,question:string,
+  selection:import('./facilityRepairEvidenceIntent.js').FacilityRepairSelection):
+  {status:'answered'|'abstained'|'clarification';answer:string;citations:SupplementalAnswerCandidate['citations'];views:SupplementalAnswerCandidate['views']}|null;
 export function formatExactTeachingFeedbackAnswer(result:TeachingFeedbackEvidenceResult,question:string,selection:TeachingEvidenceSelection):
   Pick<SupplementalAnswerCandidate,'status'|'answer'|'citations'|'views'>|null;
 export function formatRequestedAidPaymentDetails(result:AidPaymentsEvidenceResult,question:string,

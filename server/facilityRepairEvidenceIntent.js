@@ -112,3 +112,9 @@ export function selectFacilityRepairEvidence(question,route='',history=[]){
   }catch{return null;}
 }
 export function isFacilityRepairEvidenceQuestion(question,route='',history=[]){return selectFacilityRepairEvidence(question,route,history)!==null;}
+
+/** A technician message is outside the checked cancellation action. */
+export function requestsFacilityRepairTechnicianMessage(question){
+  const value=unquoted(text(question));
+  return /\b(?:and|then|also)\s+(?:(?:please|also)\s+)*(?:tell|notify|message)\s+(?:the\s+)?(?:(?:school|university)\s+)?(?:technician|maintenance (?:staff|team)|repair team)\b|(?:並|以及|然後|然后|同時|同时)(?:通知|傳訊給|传讯给)(?:校方)?(?:技師|技师|維修人員|维修人员)/iu.test(value);
+}

@@ -429,3 +429,13 @@ node --test tests/api/public-library-sources.test.ts
 When search supplies a legitimate lead without a usable draft, the handler independently reads the page. After an empty read it can try an unread lead or retry a transient read once. If both reads are empty, one different official publication may be searched while the time budget can still cover independent composition and review. Repeated or blocked URLs remain ineligible after the read limit. The preparatory steps remain visible in saved activity and do not count as completed reviews. Managed reviewer output truncation can also switch to public evidence with time left for a deeper check. Fixed archived page, private account and confirmed action paths use their existing scopes.
 
 `node --experimental-strip-types --test tests/api/research-assistant-web-follow-up.test.ts` reproduces the two-check stop, checks recovery on the third verification and tests the initial transient read, unavailable evidence, expired time, duplicate content, reviewer outage and saved-activity behavior.
+
+### Facility Repair reads during reviewer outages
+
+The exact repair path checks saved status, handling-note state, report counts, and links against the selected caller-owned evidence. A next-class request alongside a repair question uses the dedicated enrollment timetable read. A failed source leaves that part unavailable while the assistant retains independently verified records from the other source. A request to cancel a report and message the technician stays read-only and explains both action limits.
+
+The protected baseline withheld six repair replies after successful owned reads because the model reviewer had exhausted its quota. Paired fixture readbacks and cleanup passed. The local regression uses the actual request handler and native transport contract against all 18 unchanged reference cases, plus two independent source outages. It simulates provider quota exhaustion and asserts zero provider requests, zero writes, and no broad account snapshot or public research. Hosted replay remains separate.
+
+```sh
+node --experimental-strip-types --test tests/evaluation/facility-repair-native-handler.test.mjs
+```

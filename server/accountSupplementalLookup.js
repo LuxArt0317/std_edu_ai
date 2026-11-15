@@ -77,7 +77,7 @@ export const withoutExcludedNativePageClause=question=>withoutExcludedTutorEvalu
  * Preserve unknown independent clauses for normal planning, never silently
  * claim a repair-only answer covers them. This text is query context, not fact. */
 export function facilityRepairLookupContext(question,route='',history=[]){
-  if(!isFacilityRepairEvidenceQuestion(question,route,history))return {selected:false,repairOnly:false,scheduleOnly:false,otherQuestion:question,repairQuestion:question};
+  if(!isFacilityRepairEvidenceQuestion(question,route,history))return {selected:false,repairOnly:false,scheduleOnly:false,nextClassOnly:false,otherQuestion:question,repairQuestion:question};
   const independent=/\b(?:salary|tuition|fees?|grades?|courses?|class(?:es)?|assignments?|scholarships?|loans?|leave|enrollments?|certificates?|clubs?|housing|dormitory|tasks?|announcements?|profile)\b|薪資|學費|成績|課程|作業|請假|社團|住宿|獎學金|下一堂|課表/iu;
   const repairContext=[{role:'user',content:question}];
   const other=[],repairParts=[];let priorScope='repair';
@@ -96,7 +96,8 @@ export function facilityRepairLookupContext(question,route='',history=[]){
   const schedule=/\b(?:class(?:es)?|timetable|schedule)\b|下一堂|課表/iu.test(otherQuestion);
   const scheduleWords=/^(?:(?:when|where|what|which|is|are|does|do|i|my|me|the|a|an|next|scheduled|school|affairs|class|classes|course|courses|timetable|schedule|date|day|time|start|starts|room|location|in|on|at|have|show|tell|remind|please|also|and)\b|[\s,:-])+$/iu;
   const scheduleOnly=schedule&&(scheduleWords.test(otherQuestion)||/^(?:請問|請|顯示|告訴我|我|的|下一堂|課|課表|時間|教室|在哪裡|幾點|以及|和|[，、\s])+$/u.test(otherQuestion));
-  return {selected:true,repairOnly:!otherQuestion,scheduleOnly,otherQuestion,repairQuestion:otherQuestion&&repairParts.length?repairParts.join(' and '):question};
+  const nextClassOnly=scheduleOnly&&/\bnext\b|下一堂/iu.test(otherQuestion)&&!/\b(?:timetable|schedule|classes|courses)\b|課表/iu.test(otherQuestion);
+  return {selected:true,repairOnly:!otherQuestion,scheduleOnly,nextClassOnly,otherQuestion,repairQuestion:otherQuestion&&repairParts.length?repairParts.join(' and '):question};
 }
 function isFeeRemissionFollowup(part,operation){
   const [field,period]=part.split(/\s+(?=(?:for|in|during)\s+)/iu);
