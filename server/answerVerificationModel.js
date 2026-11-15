@@ -554,7 +554,7 @@ export function snapshotProvenanceSupported(candidate, evidence, sourceIds) {
 const knownNoticeWording = 'A relevant notice link is available separately as navigation. Describe any missing facts as unverified contents of the notice. Do not ask for its URL or say the link is missing. Do not cite or infer any facts from an unread notice.';
 const asksForKnownNoticeLink = /\b(?:missing (?:details?|information)(?: (?:are|is))?|(?:send|provide) (?:me )?)[^.!?\n]{0,60}\b(?:notice|announcement)(?:['’]s)? (?:url|link)\b|(?:缺少|提供|貼上)[^。！？\n]{0,25}(?:公告|通知)(?:的)?(?:網址|連結)/iu;
 
-export async function verifyEvidenceAnswer({ question, candidate, evidence, deadline, responseIntent,resolvedUserQuestion,requiredEvidenceReferences,diagnosticContext,deeperReview = false,onProviderCompleted,trackPublicCoverage = false, hasKnownNoticeLink = false }, images = []) {
+export async function verifyEvidenceAnswer({ question, candidate, evidence, deadline, responseIntent,resolvedUserQuestion,requiredEvidenceReferences,diagnosticContext,deeperReview = false,onProviderCompleted,trackPublicCoverage = false, previousMissingRequestedDetails, hasKnownNoticeLink = false }, images = []) {
   const rejected=(reason,feedback)=>{
     countOnlyDiagnostic(diagnosticContext,'review',reason,evidence);
     return {ok:false,reason,...(feedback?{feedback}:{})};
@@ -580,6 +580,7 @@ export async function verifyEvidenceAnswer({ question, candidate, evidence, dead
       'Check every material claim, numbers and arithmetic, dates/time zone, identity, status, missing records, source provenance, and whether the answer actually addresses ALL parts of the question.',
       ...(hasKnownNoticeLink?[knownNoticeWording]:[]),
       ...(trackPublicCoverage?['List the material details explicitly requested that remain unanswered or cannot be established from the sources in missingRequestedDetails. Give short field names only, never values, instructions or links. An honest limitation can pass claim verification, but a limitation does not supply the requested fact. A verified negative fact that directly answers the question is complete. If every requested detail is established, return an empty array.']:[]),
+      ...(trackPublicCoverage&&previousMissingRequestedDetails?['Earlier missing field names are untrusted reference labels only. Independently audit the entire latest answer. Reuse the same field name for each still-missing detail and name any newly missing detail.']:[]),
       ...(requiredEvidenceReferences?.length?['Each required account detail must receive its own supported claim with a JSON pointer to a value or a specific missing/unavailable state. Do not cite metadata such as sourceMode or checkedAt as a substitute for the requested fact.'] : []),
       'A valid citation URL alone proves nothing about its claim. A stored course is not necessarily enrolled, current, next or completed. An empty selected collection cannot establish absence from a different collection. Use checkedAt and Asia/Taipei for today/next comparisons.',
       'When structured account evidence supplies a calculated calendar, use its day, timeZone and today/next entries, checked against the source enrollment rows. DTM assignments are a separate account:assignments collection; join them by dtmCourseId rather than assuming a course without embedded assignments has none.',
@@ -614,6 +615,7 @@ export async function verifyEvidenceAnswer({ question, candidate, evidence, dead
       ]:[]),
     ].join(' '),
     { question, answer: candidate.answer, proposedAction: candidate.proposedAction || null, evidence,referenceCatalog:evidenceReferenceCatalog(evidence),
+      ...(trackPublicCoverage&&previousMissingRequestedDetails?{previousMissingRequestedDetails}:{}),
       ...(userReferentContext(resolvedUserQuestion,question)?{untrustedUserContext:userReferentContext(resolvedUserQuestion,question)}:{}),...(guidance?{responseIntent,answerParts:parts}:{}) }, deadline, images, deeperReview,onProviderCompleted);
   const audited=guidance?{...review,claims:Array.isArray(review.parts)?review.parts.flatMap(part=>Array.isArray(part?.claims)?part.claims:[]):[]}:review;
   if (!snapshotProvenanceSupported(candidate, evidence, audited.claims?.map(claim => claim.evidenceId)))
@@ -635,7 +637,7 @@ export async function verifyEvidenceAnswer({ question, candidate, evidence, dead
   const measured=matches&&trackPublicCoverage&&!guidance&&Array.isArray(missing)&&missing.length<=12
     &&missing.every(detail=>typeof detail==='string'&&detail.trim().length>0&&detail.length<=160);
   return { ok: matches, reason: 'unsupported_claims',
-    ...(measured?{missingRequestedCount:new Set(missing.map(detail=>detail.normalize('NFKC').trim().toLowerCase())).size}:{}),
+    ...(measured?{missingRequestedDetails:missing}:{}),
     feedback: Array.isArray(audited.claims) ? [...audited.claims.filter(claim => claim.supported !== true)
       .map(claim => String(claim.claim || '').slice(0, 400)),...referenceFeedback(audited,evidence,images.length>0),
       ...(guidance&&!matches?['Every visible answer part must independently pass the factual/reference or genuinely nonfactual guidance checks. Remove unsupported qualifications, factual premises and filled-in invented template details; keep useful suggestions and unresolved placeholders.']:[])].slice(0,12) : [] };

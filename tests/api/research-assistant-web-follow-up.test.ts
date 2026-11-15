@@ -769,3 +769,96 @@ test('a verified public limitation can advance with a fresh school source and ke
     assert.ok(!progress.some(step=>step.kind==='verification-stop'));
   }
 });
+
+test('verified public detail can advance through four checks and survives stalled or rejected follow-ups',async()=>{
+  const admissible='The STU library archive exhibition has free admission.';
+  const entrance='Visitors enter the STU archive exhibition through the North Reading Room.';
+  const identity='Visitors bring school identification to the STU archive exhibition. The venue has step-free access.';
+  const mirror=officialDirectory+'archive-mirror/';
+  const sourceUrls=[officialDirectory,officialOffice,eventCalendar,officialNotice];
+  const gaps=[['entrance PRIVATE_GAP_LABEL','visitor identification','step-free access','opening time'],
+    ['visitor identification','step-free access','opening time'],['opening time'],[]];
+  const statements=[admissible,entrance,identity,noticeContent];
+  const question=testQuestion+' Please also confirm admission, the entrance, visitor identification, and step-free access.';
+  for(const outcome of ['complete','still-partial','mirror','swapped-gaps','relabeled','outage','time'] as const){
+    configured();
+    const unresolved=outcome==='still-partial'?['guide handouts']:[];
+    const missingAt=(index:number)=>[...gaps[index],...unresolved];
+    const started=originalNow();
+    let elapsed=0,searches=0,reviews=0,corrections=0;
+    Date.now=()=>started+elapsed;
+    const acquired:string[]=[];
+    const claimIndices=(count:number)=>Array.from({length:count},(_,index)=>index);
+    const run=createResearchAssistantHandler({readSources:async citations=>citations.map(citation=>{
+      const index=sourceUrls.indexOf(citation.url);
+      assert.ok(index>=0||citation.url===mirror, citation.url);
+      acquired.push(citation.url);
+      return {id:citation.chunkId,url:citation.url,content:citation.url===mirror?'  '+entrance.replace('North','North   ')+'  ':statements[index]};
+    })});
+    globalThis.fetch=async(input,init)=>{
+      const url=String(input);
+      if(url.includes('/embeddings'))return Response.json({data:[{embedding:Array(1536).fill(0)}]});
+      if(url.includes('/rpc/search_public_knowledge'))return Response.json([]);
+      if(!url.endsWith('/v1/responses'))return Response.json(null);
+      const call=JSON.parse(String(init?.body)),name=call.text.format.name;
+      if(name==='stu_web_answer'){
+        const index=searches++;
+        assert.doesNotMatch(call.input,/PRIVATE_GAP_LABEL|previousMissingRequestedDetails/u);
+        assert.ok(index<4,'No fifth discovery pass.');
+        const source=outcome==='mirror'&&index===2?mirror:sourceUrls[index];
+        return Response.json(searchPayload([source],admissible+' The entrance, identification, step-free access, and opening time remain unresolved.'));
+      }
+      const context=JSON.parse(call.input[0].content[0].text);
+      const evidence=context.evidence as Array<{url:string;id:string;content:string}>;
+      const found=(index:number)=>evidence.find(source=>source.url===sourceUrls[index])!;
+      if(name==='correct_grounded_answer'){
+        corrections++;
+        assert.match(call.instructions,/The prior answer verified/u);
+        const facts=claimIndices(evidence.length).filter(index=>!(outcome==='swapped-gaps'&&evidence.length===3&&index===0));
+        return provider({status:'answered',answer:facts.map(index=>statements[index]).join(' ')
+          +(evidence.length===4?unresolved.length?' I could not verify whether guide handouts are available.':'':' Some requested details remain unverified.'),
+          sourceIds:facts.map(index=>found(index).id)});
+      }
+      assert.equal(name,'answer_evidence_review');
+      assert.equal(call.text.format.schema.required.includes('missingRequestedDetails'),true);
+      const index=reviews++;
+      const resolveGap=(name:string)=>name.toLowerCase();
+      assert.deepEqual(context.previousMissingRequestedDetails,index?missingAt(index-1).map(resolveGap):undefined);
+      if(outcome==='outage'&&index===2)return Response.json({error:{code:'service_unavailable'}},{status:503});
+      if(outcome==='time'&&index===1)elapsed=44_000;
+      const swapped=outcome==='swapped-gaps'&&index===2;
+      const claims=claimIndices(index+1).filter(fact=>!swapped||fact!==0).map(fact=>({claim:statements[fact],supported:true,
+        evidenceId:found(fact).id,quotes:[found(fact).content],jsonPaths:[]}));
+      let missing=missingAt(index);
+      if(swapped)missing=['admission','opening time'];
+      else if(index===2)missing=[outcome==='relabeled'?'start time':' Ｏｐｅｎｉｎｇ   Ｔｉｍｅ ',...unresolved];
+      return provider({supported:true,answersQuestion:true,missingRequestedDetails:missing,claims});
+    };
+    const progress:Progress[]=[];
+    const answer=await invoke({question:question+(unresolved.length?' Are guide handouts available?':'')},run,'verified-public-continuation-'+outcome,progress);
+    const reachedFourth=['complete','still-partial'].includes(outcome),expectedReviews=reachedFourth?4:['outage','swapped-gaps','relabeled'].includes(outcome)?3:2;
+    assert.deepEqual(answer.verification,{status:'verified',attempts:expectedReviews},outcome);
+    assert.equal(reviews,expectedReviews,outcome);
+    assert.equal(corrections,expectedReviews-1,outcome);
+    assert.equal(searches,reachedFourth?4:outcome==='time'?2:3,outcome);
+    assert.deepEqual(acquired,reachedFourth?sourceUrls:[...sourceUrls.slice(0,2),...(outcome==='time'?[]:[outcome==='mirror'?mirror:eventCalendar])]);
+    assert.doesNotMatch(JSON.stringify(answer),/PRIVATE_GAP_LABEL/u);
+    assert.ok(answer.answer.includes(entrance),outcome);
+    assert.ok(answer.answer.includes(admissible),outcome);
+    assert.equal(answer.answer.includes(noticeContent),reachedFourth,outcome);
+    assert.equal(answer.answer.includes(identity),reachedFourth,outcome);
+    assert.equal(answer.answer.includes('whether guide handouts are available'),Boolean(unresolved.length),outcome);
+    assert.deepEqual(answer.citations.map((source:{url:string})=>source.url).sort(),(reachedFourth?[...sourceUrls]:sourceUrls.slice(0,2)).sort());
+    assert.equal(progress.some(step=>step.kind==='verification-partial-follow-up-3'),outcome!=='time',outcome);
+    assert.equal(progress.some(step=>step.kind==='verification-extended-review'),reachedFourth,outcome);
+    assert.equal(progress.some(step=>step.kind==='web-alternate-discovery'&&step.status==='complete'),reachedFourth,outcome);
+    assert.equal(progress.some(step=>step.kind==='verification-kept-partial'),!reachedFourth&&outcome!=='time',outcome);
+    assert.equal(progress.filter(step=>/^verification-[1-4]$/u.test(step.kind)&&step.status!=='running').length,expectedReviews,outcome);
+    if(reachedFourth){
+      const restored=sanitizeStoredConversation([{id:'verified-continuation',role:'assistant',content:answer.answer,activity:answer.activity,result:answer}]);
+      assert.ok(restored[0].activity.some((step:Progress)=>step.kind==='verification-partial-follow-up-3'));
+      assert.ok(restored[0].activity.some((step:Progress)=>step.kind==='verification-4'&&step.status==='complete'));
+      assert.doesNotMatch(JSON.stringify(restored),/PRIVATE_GAP_LABEL/u);
+    }
+  }
+});
