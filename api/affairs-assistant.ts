@@ -67,6 +67,7 @@ import {isForeignFacilityRepairQuestion} from '../server/facilityRepairEvidenceI
 import {readDormitoryConductEvidence} from '../server/accountDormitoryConductEvidence.js';
 import {readElearningOutlineEvidence} from '../server/accountElearningOutlineEvidence.js';
 import {facilityRepairLookupContext,nativePageLookupContext,withoutExcludedNativePageClause} from '../server/accountSupplementalLookup.js';
+import {selectDormitoryConductEvidence} from '../server/dormitoryConductEvidenceIntent.js';
 import {randomUUID} from 'node:crypto';
 import { questionKind } from '../server/schoolWebSearch.js';
 import { accountQuestionIntent,isAccountOverviewQuestion,isCurrentStudyRecordQuestion } from '../server/affairsAnswer.js';
@@ -682,6 +683,17 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const foreignRepair=isForeignFacilityRepairQuestion(question);
   const pageContext=nativePageLookupContext(housingSelection||applicationSelection?housing.otherQuestion:notes.keys.length?notes.otherQuestion:question,
     housingSelection||applicationSelection||notes.keys.length?'':route,housingSelection||applicationSelection||notes.keys.length?[]:history);
+  const dormitoryAction=pageContext.readerOnly&&pageContext.tools.length===1&&pageContext.questions.dormitoryConduct
+    ?selectDormitoryConductEvidence(pageContext.questions.dormitoryConduct,route,history):null;
+  if(dormitoryAction?.operation&&!dormitoryAction.reason&&!housingSelection&&!applicationSelection&&!notes.keys.length){
+    const chinese=/\p{Script=Han}/u.test(question),url='/school-affairs/services/34-2';
+    const title=chinese?'宿舍獎懲查詢':'Dormitory conduct notice';
+    const message=chinese?'助理無法修改或刪除宿舍獎懲紀錄。':'I cannot change or delete a dormitory conduct record.';
+    stream.send(200,{status:'handoff',answer:`${message}\n\n[${title}](${url})`,
+      citations:[{chunkId:'directory:dormitory-conduct',title,url,claim:title,sourceName:'School Affairs'}],
+      suggestedQuestions:[],grounding:{source:'directory',webSearched:false}});
+    return;
+  }
   const scopedQuestion=withoutExcludedNativePageClause(question);
   const aidQuestion=notes.keys.length?notes.otherQuestion:scopedQuestion;
   const aid=aidPaymentsLookupContext(aidQuestion,notes.keys.length?'':route,notes.keys.length?[]:history);

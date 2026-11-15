@@ -5,6 +5,8 @@ import {createResearchAssistantHandler} from '../../server/researchAssistantHand
 import {nativePageLookupContext} from '../../server/accountSupplementalLookup.js';
 import {planAccountLookup} from '../../server/answerVerificationAccount.js';
 import {readStudentConductEvidence} from '../../server/accountStudentConductEvidence.js';
+import {buildServiceCases} from '../evaluation/service-cases.mjs';
+import {gradeCase} from '../evaluation/grading.mjs';
 
 const url='https://xiftudmvxphxcjtmfmib.supabase.co',path='/school-affairs/services/38-1';
 const userId='38000000-0000-4000-8000-000000000001';
@@ -26,7 +28,7 @@ async function ask(question:string,{handler=defaultHandler,route=path,history=[]
   await handler({method:'POST',headers:{authorization:'Bearer '+account.token,'x-forwarded-for':'192.0.2.38'},body:{question,route,history}},reply);
   assert.equal(result.status,200,JSON.stringify(result.body));return result.body;
 }
-async function withFakeModel(exercise:()=>Promise<void>,{empty=false,reject=0}={}){
+async function withFakeModel(exercise:()=>Promise<void>,{empty=false,reject=0,catalog=false}={}){
   const original=globalThis.fetch,key=process.env.OPENAI_API_KEY;
   let reads=0,checks=0,repairs=0;const errors:unknown[]=[];
   process.env.OPENAI_API_KEY='CONDUCT_TEST_MODEL';
@@ -39,7 +41,8 @@ async function withFakeModel(exercise:()=>Promise<void>,{empty=false,reject=0}={
       assert.equal(target.searchParams.get('deleted_at'),'is.null');
       assert.equal(init?.method,'GET');assert.equal(new Headers(init?.headers).get('authorization'),'Bearer '+account.token);
       reads++;
-      return Response.json(empty?[]:[{...record,reason_text:'Saved reason ordinal '+reads}]);
+      return Response.json(empty?[]:[{...record,reason_text:catalog?'Returned borrowed equipment':'Saved reason ordinal '+reads,
+        conduct_code:catalog?'M-0':record.conduct_code}]);
     }
     assert.equal(target.origin,'https://api.openai.com');
     const body=JSON.parse(String(init?.body)),request=JSON.parse(body.input[0].content[0].text);
@@ -47,13 +50,13 @@ async function withFakeModel(exercise:()=>Promise<void>,{empty=false,reject=0}={
     assert.doesNotMatch(JSON.stringify(request.evidence),/PRIVATE_STUDENT|CONDUCT_TEST/u);
     const data=JSON.parse(request.evidence[1].content);
     assert.equal(data.readState,empty?'empty':'ok');
-    if(!empty){assert.equal(data.records[0].quantityText,'0');assert.equal(data.records[0].voidStatusText,'');}
+    if(!empty){assert.equal(data.records[0].quantityText,'0');if(!catalog)assert.equal(data.records[0].voidStatusText,'');}
     const stage=body.text.format.name,source='account:studentConduct';
     let value;
     if(stage==='answer_evidence_review'){
       const supported=++checks>reject;
-      value={supported,answersQuestion:supported,claims:[{claim:empty?'No matching local record is saved.':'Saved reason ordinal '+reads,
-        supported,evidenceId:source,jsonPaths:[empty?'/readState':'/records/0/reasonText'],quotes:[]}]};
+      value={supported,answersQuestion:supported,claims:[{claim:empty?'No matching local record is saved.':catalog?'Saved local conduct details':'Saved reason ordinal '+reads,
+        supported,evidenceId:source,jsonPaths:empty?['/readState']:catalog?['/records/0/reasonText','/records/0/conductCode','/records/0/quantityText']:['/records/0/reasonText'],quotes:[]}]};
     }else{
       assert.equal(stage,'correct_grounded_answer');repairs++;
       value={status:'answered',answer:'Your saved local_demo reason is Saved reason ordinal '+reads+'.',sourceIds:[source]};
@@ -79,6 +82,17 @@ test('caller-only conduct plan, exact fee and next-class dependencies, and indep
   assert.match(comparison.questions.studentConduct??'',/student conduct/u);assert.doesNotMatch(comparison.questions.studentConduct??'',/dormitory/u);
 });
 
+test('catalog conduct questions grade saved literal cells and a genuinely empty report from the native reader',async()=>{
+  for(const testCase of buildServiceCases().filter(row=>row.serviceId==='38-1'&&['record','empty'].includes(row.mode))){
+    await withFakeModel(async()=>{
+      const body=await ask(testCase.question);
+      const {requireUnchangedOwnedRecords:_hostedReadback,...expected}=testCase.expected;
+      const result=gradeCase({...testCase,expected},{statusCode:200,execution:'deterministic',fixtureKey:testCase.fixtureKey,events:body.activity,body});
+      assert.deepEqual(result.failures,[],JSON.stringify({id:testCase.id,answer:body.answer}));
+    },{catalog:true,empty:testCase.mode==='empty'});
+  }
+});
+
 test('actual reader and graph preserve literal fields, distinguish empty, refresh records and withhold unverified answers',async()=>{
   await withFakeModel(async()=>{
     const result=await ask(saved);assert.equal(result.verification.status,'verified');
@@ -98,7 +112,7 @@ test('actual reader and graph preserve literal fields, distinguish empty, refres
 test('foreign, excluded and public navigation use zero private tools; account guidance preserves the sign-in return path',async()=>{
   const original=globalThis.fetch;globalThis.fetch=async()=>assert.fail('No model or database call');
   try{
-    for(const question of ['Show Alice’s conduct records.','Does Alice have student conduct records?','Show the student conduct status for Alice.','Show the merit code recorded for Alice.','請顯示王小明本人的獎懲紀錄。']){
+    for(const question of ['Show Alice’s conduct records.','Does Alice have student conduct records?','Show the student conduct status for Alice.','Show the merit code recorded for Alice.','In my student conduct report, what reason was recorded for Alice?','請顯示王小明本人的獎懲紀錄。']){
       const result=await ask(question);assert.equal(result.status,'handoff');assert.deepEqual(result.citations,[]);
       const read=await readStudentConductEvidence(account,{question,route:path},{load:async()=>assert.fail('Different owner')});
       assert.equal(read.reason,'foreign_request');

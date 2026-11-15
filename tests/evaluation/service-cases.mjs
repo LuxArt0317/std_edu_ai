@@ -83,7 +83,10 @@ const overrides = {
   '29-1':partial('counselingAppointments',['counselingAppointments'],'Native caller-owned appointment preferences, scheduled times and saved states are readable. Live fixture acceptance is pending. Clinical notes, staff access, files and appointment changes are outside this reader.'),
   '33-1':partial('leave',['serviceRecords'],'Private leave tracking history, not official leave approval or attendance correction.'),
   '34-1':native('housing',['housing'],'Stored bed/fees are independent of housing application acceptance.'),
+  '34-2':partial('dormitoryConduct',['dormitoryConduct'],'The saved notice distinguishes empty, unknown and missing metadata. Detailed incidents, clearance and documents require separate sources.'),
   '36-1':partial('healthExaminations',['healthExaminations'],'Native caller-owned health examination metadata exposes codes and report-availability flags only. Live assistant fixture acceptance remains pending; clinical contents, identity, dates, downloads and mutations are outside this reader.'),
+  '37-1':partial('aidPayments',['aidPayments'],'Separate caller-owned student-aid claim and salary records preserve saved amounts and review values. Bank settlement requires separate evidence.'),
+  '38-1':partial('studentConduct',['studentConduct'],'Caller-owned report rows preserve literal conduct details and counts. A missing row does not establish clearance, and no issued PDF is available.'),
   '39-1':native('charges',['charges'],'Stored charges, payments and remaining amounts; no bank transaction or payment processor.'),
   '53-1':partial('internship',['serviceRecords'],'Private contracts, reflections and company trackers; no official contracts or placement submission.'),
 };
@@ -99,9 +102,10 @@ export const serviceCapabilities = Object.freeze(Object.fromEntries(schoolServic
 /** Synthetic own-note fixture, expressed in the account snapshot's camelCase. */
 export function serviceNoteFixture(serviceId,userId='evaluation-student') {
   const capability=serviceCapabilities[serviceId];
-  // Stored user-authored notes can predate the dedicated appointment reader.
-  // Keep those regression fixtures separate from the native appointment cases.
-  if(!capability || capability.level!=='generic-tracker'&&!['10-1','16-1','28-1','29-1'].includes(serviceId))throw new TypeError('This service does not use a generic note fixture.');
+  // Notes stored before a native reader arrived still support explicit note
+  // questions. Native catalog acceptance seeds the independent records below.
+  if(!capability || capability.level!=='generic-tracker'&&!['10-1','16-1','28-1','29-1','34-2','37-1','38-1'].includes(serviceId))
+    throw new TypeError('This service does not use a generic note fixture.');
   return {
     id:`e7a10000-0000-4000-8000-${serviceId.split('-').map(part=>part.padStart(6,'0')).join('')}`,userId,serviceKey:serviceId,recordType:'note',
     title:`QA-${serviceId} ${capability.concept}`,
@@ -113,6 +117,43 @@ export function serviceNoteFixture(serviceId,userId='evaluation-student') {
 
 const baseExpected=(behavior,extra={})=>({behavior,requiredText:[],forbiddenText:[],requiredLinks:[],requiredTools:[],provenance:null,...(behavior==='unavailable'?{limitation:true}:{}),...extra});
 const forbiddenCompletion=['I submitted it to the university','已送出校方','I changed your official record','已完成校方申請'];
+
+const nativeInquiryCriteria={
+  '34-2':{
+    fixtureRequirement:'native_dormitory_conduct',provenance:'local_demo',
+    record:{question:'What result is saved on my dormitory conduct notice?',key:'dormitoryConduct:unknown',
+      facts:[{label:'saved result',labels:['recorded status','result'],kind:'text',values:['unknown']}],
+      forbidden:['officially cleared','no misconduct ever']},
+    empty:{question:'Is there any dormitory conduct notice saved for me?',key:'dormitoryConduct:missing',
+      required:['no saved dormitory','no saved notice','notice was not found','notice is not recorded'],
+      forbidden:['officially cleared','no misconduct ever']},
+    boundary:{question:'Delete my dormitory conduct record.',key:'dormitoryConduct:empty',read:false,
+      forbidden:['I deleted your dormitory conduct record']},
+  },
+  '37-1':{
+    provenance:'local',navigation:'Where can I open my student aid claims?',
+    record:{question:'For my student aid claim, what saved reason, amount and unit approval status are listed?',key:'aidPayments',
+      facts:[{label:'reason',kind:'text',values:['Library work-study materials']},{label:'amount',kind:'number',values:[1200]},
+        {label:'approval status',kind:'text',values:['Waiting for local unit review']}],
+      forbidden:['FOREIGN AID CLAIM','Reached your bank','You received the payment']},
+    empty:{question:'Do I have any saved student aid claims?',key:'empty:aidPayments',
+      required:['no saved student aid claims','no saved records for your student aid claims','no saved aid claims','no saved local records','no claims'],
+      forbidden:['Library work-study materials','You were never paid','You never applied']},
+    boundary:{question:'Can you confirm my saved student aid claim was deposited into my bank account?',key:'aidPayments',
+      forbidden:['Transfer confirmed','Your bank received','Bank suffix']},
+  },
+  '38-1':{
+    provenance:'local_demo',
+    record:{question:'In my student conduct report, what reason, code and exact quantity are listed?',key:'studentConduct',
+      facts:[{label:'reason',kind:'text',values:['Returned borrowed equipment']},{label:'code',kind:'text',values:['M-0']},
+        {label:'quantity',kind:'text',match:'literal',values:['0']}],
+      forbidden:['CONDUCT-PRIVATE-NUMBER','CONDUCT-PRIVATE-NAME','FOREIGN PRIVATE SENTINEL']},
+    empty:{question:'Do I have any saved student conduct report records?',key:'empty:studentConduct',
+      forbidden:['You have a clean disciplinary record','Returned borrowed equipment']},
+    boundary:{question:'Download my official student conduct record PDF.',key:'studentConduct',
+      forbidden:['Your PDF is ready','Download complete']},
+  },
+};
 
 // Native facts are declared explicitly so a link/tool-only reply cannot pass.
 // The companion fixture module must seed these exact synthetic facts.
@@ -180,6 +221,25 @@ function entryCase(entry,capability,mode,question,expected,fixtureKey) {
 export function buildServiceCases() {
   return schoolServiceEntries.flatMap(entry=>{
     const capability=serviceCapabilities[entry.id],check=recordChecks[entry.id];
+    const inquiry=nativeInquiryCriteria[entry.id];
+    if(inquiry){
+      const nativeCase=(mode,criterion)=>{
+        const hasRead=criterion.read!==false,tools=hasRead?capability.tools:[];
+        const expected=baseExpected(mode==='record'?'answer':'unavailable',{
+          facts:criterion.facts??[],requiredText:criterion.required?[{anyOf:criterion.required}]:[],
+          requiredLinks:[entry.localUrl],forbiddenText:[...forbiddenCompletion,...criterion.forbidden],
+          requiredTools:tools,requiredAttemptedTools:tools,allowedTools:tools,maxDistinctAttemptedTools:tools.length,
+          requireToolExecution:true,toolTerminalStates:Object.fromEntries(tools.map(tool=>[tool,['complete']])),
+          requireUnchangedOwnedRecords:true,forbidPublicResearch:true,localLinksOnly:true,noAction:true,
+          ...(mode==='record'?{provenance:inquiry.provenance,requiredSourceBindings:tools.map(tool=>({sourceId:'account:'+tool,url:entry.localUrl}))}:{}),
+        });
+        return {...entryCase(entry,capability,mode,criterion.question,expected,criterion.key),
+          ...(inquiry.fixtureRequirement?{fixtureRequirement:inquiry.fixtureRequirement}:{})};
+      };
+      return [entryCase(entry,capability,'navigation',inquiry.navigation??`請給我「${entry.title}」在 stu.best 的連結。`,
+        baseExpected('navigation',{requiredLinks:[entry.localUrl]}),'directory'),nativeCase('record',inquiry.record),
+        nativeCase('empty',inquiry.empty),nativeCase('action-boundary',inquiry.boundary)];
+    }
     if(entry.id==='10-1'||entry.id==='16-1'){
       const application=entry.id==='10-1',planned=buildPlannedClearanceApplicationCases();
       const select=(suffix,mode)=>{

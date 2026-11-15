@@ -11,7 +11,7 @@ const negative=/^(?:(?:please|and|then|also)\s+)*(?:do not|don['’]t|never|not(
 const navigation=/\b(?:where|how) (?:can|do|should) i (?:find|open|view|access|check|download|print)|\b(?:give|send|show) me (?:the |a )?link|\b(?:open|link to) (?:my |the )|在哪|哪個(?:頁面|連結)|哪儿|如何(?:開啟|查詢|下載)|給我.*連結/iu;
 const follow=/^(?:(?:and|also|then)\s+)?(?:what (?:about|is|are|does|do)|how (?:about|many)|show|list|read|check|tell me).{0,90}\b(?:it|its|this|that|these|those|records?|status|details?|name|number|code|quantity|void|history|date|term|semester|year|reason)\b|^(?:那|還有|还有)?(?:這些|这些|它|該|该|紀錄|记录|記錄|狀態|状态|代碼|代码|數量|数量|事由|學號|学号|姓名|日期|學期|学期).{0,30}$/iu;
 const independent=/\b(?:tuition|fees?|balance|salary|payroll|loan|scholarship|next class|classes|courses?|timetable|assignments?|grades?|attendance|leave|wifi|library|housing|dormitory|counseling|certificate|health|repair|rental|insurance|profile|basic information)\b|學費|学费|餘額|余额|薪資|貸款|奖学金|獎學金|課程|课程|課表|课表|下一堂|下堂|作業|作业|成績|成绩|出勤|請假|请假|宿舍|住宿|諮商|证书|證書|健檢|報修|保險|基本資料/iu;
-const field=/^(?:(?:and|also|then|please|show|list|read|check|include|tell me|what is|what are|what about|how many|not|without|excluding|exclude|omit|do not (?:show|include)|don['’]t (?:show|include))\s+)*(?:(?:my|the|its|their|saved|recorded|student|academic|full|current|previous|last|this)\s+)*(?:name|number|id|reason|quantity|code|void status|status|date|year|semester|term|rows?|records?|details?|history)(?:\b|$)|^(?:還有|还有|以及|顯示|显示|列出|不要(?:顯示|显示)?|不顯示|不显示|不含|排除)?(?:我的|學生|学生|已存)?(?:姓名|學號|学号|事由|數量|数量|代碼|代码|狀態|状态|日期|學年|学年|學期|学期|紀錄|记录)/iu;
+const field=/^(?:(?:and|also|then|please|show|list|read|check|include|tell me|what is|what are|what about|what|which|how many|not|without|excluding|exclude|omit|do not (?:show|include)|don['’]t (?:show|include))\s+)*(?:(?:my|the|its|their|saved|recorded|student|academic|full|exact|current|previous|last|this)\s+)*(?:name|number|id|reason|quantity|code|void status|status|date|year|semester|term|rows?|records?|details?|history)(?:\b|$)|^(?:還有|还有|以及|顯示|显示|列出|不要(?:顯示|显示)?|不顯示|不显示|不含|排除)?(?:我的|學生|学生|已存)?(?:姓名|學號|学号|事由|數量|数量|代碼|代码|狀態|状态|日期|學年|学年|學期|学期|紀錄|记录)/iu;
 const split=/[;；。!?！？\n]|\.(?=\s|$)|[,，]\s*(?=(?:show|list|read|check|tell|what|which|when|how|where|do not|don['’]t|never)\b)|\s+(?:and|plus|also|but|then)\s+(?=(?:my|show|list|read|check|tell|include|what|which|when|how|where|do not|don['’]t|never|not|without|excluding|tuition|fees?|balance|salary|next class|classes|courses?|timetable|assignments?|grades?|attendance|leave|wifi|library|housing|dormitory|counseling|certificate|health|repair|rental|insurance|student conduct)\b)|(?<!\bdo)\s+(?=(?:without|excluding|not(?!\s+only))\s+)|\s+(?:together\s+)?with\s+(?=my\s+(?:student|dormitory)\s+conduct)|以及|還有|还有|並且|但是|(?=排除|不含|不要)/iu;
 const bounded=value=>typeof value==='string'&&value.length<=4000&&!/[\p{Cc}\p{Cs}]/u.test(value.replace(/[\r\n\t]/gu,''))?value.normalize('NFKC').trim():'';
 // This matches a whole row-count question. Period filters and quantities are
@@ -100,7 +100,12 @@ export function studentConductScope(question,route='',history=[]){
   // native clause, never treating an independent profile/finance request as one.
   if(positive.length){
     const remaining=[];
-    for(const clause of rest){if(!independent.test(clause)&&field.test(clause)&&!navigation.test(clause))positive.push(clause);else remaining.push(clause);}
+    for(const clause of rest){
+      if(!independent.test(clause)&&field.test(clause)&&!navigation.test(clause)){
+        if(foreignSubject(clause))return {...result,foreign:true,reason:'foreign_request',otherQuestion:'',from:'question'};
+        positive.push(clause);
+      }else remaining.push(clause);
+    }
     return {...result,selected:true,question:positive.join('. '),otherQuestion:remaining.join('. '),from:'question'};
   }
   if(anchored)return {...result,otherQuestion:rest.join('. '),from:'question'};

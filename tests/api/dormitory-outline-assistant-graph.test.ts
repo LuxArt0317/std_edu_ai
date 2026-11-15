@@ -17,6 +17,7 @@ import * as feeIntent from '../../server/feeRemissionEvidenceIntent.js';
 import * as outlineIntent from '../../server/elearningOutlineEvidenceIntent.js';
 import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
 import {buildAccountCases} from '../evaluation/account-cases.mjs';
+import {buildServiceCases} from '../evaluation/service-cases.mjs';
 import {gradeCase} from '../evaluation/grading.mjs';
 
 const owner='52000000-0000-4000-8000-000000000001';
@@ -24,7 +25,7 @@ const account={url:'https://xiftudmvxphxcjtmfmib.supabase.co',key:'PRIVATE_KEY',
 const dormRoute='/school-affairs/services/34-2',outlineRoute='/elearning/course/9408';
 const dormQuestion='Show my dormitory conduct record.',outlineQuestion='Which videos are linked in this remote-learning course? List all four with their local links.';
 const dormitoryCases=buildAccountCases().filter(testCase=>testCase.id.startsWith('account:dormitory-conduct-'));
-function gradeLocalDormitoryReply(testCase:typeof dormitoryCases[number],result:{status:number;body:unknown;events:unknown[]}){
+function gradeLocalDormitoryReply(testCase:typeof dormitoryCases[number]|ReturnType<typeof buildServiceCases>[number],result:{status:number;body:unknown;events:unknown[]}){
   // The protected run separately checks persistent state before and after the request.
   const {requireUnchangedOwnedRecords: _requiresHostedReadback,...expected}=testCase.expected;
   const graded=gradeCase({...testCase,expected},{statusCode:result.status,execution:'deterministic',fixtureKey:testCase.fixtureKey,
@@ -253,7 +254,8 @@ test('retry rereads the same owned notice, distinguishes missing from failure, a
 test('the actual handler keeps labels, availability and scope for every standalone dormitory case after a rejected review',async()=>{
   const cases=dormitoryCases.filter(testCase=>testCase.expected.requiredTools.length===1);
   assert.equal(cases.length,8);
-  for(const testCase of cases)await provider(async calls=>{
+  const catalogCases=buildServiceCases().filter(row=>row.serviceId==='34-2'&&['record','empty'].includes(row.mode));
+  for(const testCase of [...cases,...catalogCases])await provider(async calls=>{
     const value=testCase.fixtureKey.split(':')[1];
     const saved=value==='missing'?{snapshot:null}:dormNative(value);
     let reads=0;
@@ -261,11 +263,19 @@ test('the actual handler keeps labels, availability and scope for every standalo
       dormitoryConduct:(caller,options={})=>readDormitoryConductEvidence(caller,options,{load:async captured=>{
         reads++;assert.equal(captured.user.id,owner);assert.equal(captured.token,account.token);return structuredClone(saved);
       }}),
-    }},{question:testCase.question,route:testCase.route,history:testCase.history,stream:true});
+    }},{question:testCase.question,route:testCase.route,history:'history' in testCase?testCase.history:undefined,stream:true});
     assert.deepEqual(calls,['answer_evidence_review']);
     assert.equal(reads,2);
     gradeLocalDormitoryReply(testCase,result);
   },{rejectFirst:true});
+});
+
+test('the dormitory conduct catalog change boundary reads no private rows',async()=>{
+  const boundary=buildServiceCases().find(row=>row.id==='service:34-2:action-boundary')!;
+  const result=await invoke({loadSnapshot:async()=>assert.fail('No snapshot'),readers:{
+    dormitoryConduct:async()=>assert.fail('A change request must not read the notice'),
+  }},{question:boundary.question,route:boundary.route,stream:true});
+  gradeLocalDormitoryReply(boundary,result);
 });
 
 test('honest failure and ambiguous course keep unavailable progress and cannot become absent records',async()=>{
@@ -285,9 +295,10 @@ test('honest failure and ambiguous course keep unavailable progress and cannot b
 
 test('foreign and anonymous requests never load, read, plan or research; guests get local sign-in',async()=>{
   const forbidden=async()=>assert.fail('Must stop before account work');
+  const verifyToken=async()=>({...account,user:{id:'52000000-0000-4000-8000-000000000002'}});
   for(const [question,route] of [["Show Alice's dormitory conduct record.",dormRoute],['Show her remote-learning feedback form.',outlineRoute],
     ['Show their attendance register and my tuition balance.',outlineRoute],['請顯示王小明的宿舍獎懲紀錄。',dormRoute]]){
-    const result=await invoke({loadSnapshot:forbidden,answerAccount:forbidden,readers:{dormitoryConduct:forbidden,elearningOutline:forbidden}}, {question,route});
+    const result=await invoke({verifyToken,loadSnapshot:forbidden,answerAccount:forbidden,readers:{dormitoryConduct:forbidden,elearningOutline:forbidden}}, {question,route});
     assert.equal(result.body.status,'handoff');assert.doesNotMatch(result.body.answer,/First video|unknown|1300/u);
   }
   const denied=await invoke({loadSnapshot:forbidden,answerAccount:forbidden},{question:dormQuestion,route:dormRoute},false);assert.equal(denied.status,401);
