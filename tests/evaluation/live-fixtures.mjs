@@ -102,7 +102,7 @@ import {buildInternshipTimetableFixture,cleanupInternshipTimetable,observeIntern
   readInternshipNextMeeting,stageInternshipTimetable,verifyInternshipTimetableAbsent} from './internship-timetable-fixture.mjs';
 import {buildInternshipChargeFixture,cleanupInternshipCharges,observeInternshipChargeCallers,observeInternshipChargeRows,
   stageInternshipCharges,verifyInternshipChargesAbsent,buildTutorChargeFixture,cleanupOwnedChargeRows,observeOwnedChargeCallers,observeOwnedChargeRows,
-  verifyOwnedChargeRowsAbsent} from './internship-charge-fixture.mjs';
+  verifyOwnedChargeRowsAbsent,buildClubAttendanceChargeFixture,stageOwnedChargeRows} from './internship-charge-fixture.mjs';
 import {buildTeachingSampleFixture,createTeachingSampleFixture,observeTeachingSampleCallers,readTeachingSampleCatalog} from './teaching-feedback-sample-fixture.mjs';
 import {requestTeachingSampleCase,teachingOriginalProtectedCases,teachingSampleCases} from './teaching-feedback-sample-hosted.mjs';
 import {requestObservedStudentLeave,studentLeaveHostedSelection} from './student-leave-hosted-observation.mjs';
@@ -127,11 +127,11 @@ import {buildDtmTimingPlan,deleteDtmTimingRows,dtmTimingFixtureMode,dtmTimingPre
 import {assertStudentLeaveGradePairSchema,buildDtmGradeOverviewPreview,buildDtmGradePreview,buildStudentLeaveGradePairFixture,deleteDtmGradeOverviewRows,deleteDtmGradePreview,dtmGradeOverviewPreviewCases,
   dtmGradePreviewCases,dtmGradePreviewDigest,dtmGradePreviewMode,gradeDtmGradePreview,observeDtmGradeOverviewRows,observeDtmGradePreviewRows,
   readDtmGradeOverviewScopes,seedDtmGradeOverviewRows,seedDtmGradePreviewCompanion,unmountedDtmNativeGradeCases,verifyDtmGradePreviewAbsent} from './dtm-grade-report-preview.mjs';
-import {clubAttendanceOracle} from './club-attendance-cases.mjs';
+import {clubAttendanceOracle,clubAttendanceRunnerCases} from './club-attendance-cases.mjs';
 import {serviceNoteRunnerOracle,serviceNoteSetupRequired} from './service-note-runner.mjs';
 import {buildServiceNotePlan,changeServiceNoteRows,observeServiceNoteRows} from './service-note-live-fixture.mjs';
 import {observeNoteCompanion,serviceNoteCompanionPlan} from './service-note-companion-fixture.mjs';
-import {buildClubAttendancePlan,changeClubAttendanceFixture,observeClubAttendanceFixture} from './club-attendance-fixtures.mjs';
+import {buildClubAttendancePlan,changeClubAttendanceFixture,observeClubAttendanceFixture,verifyClubAttendanceFixtureAbsent} from './club-attendance-fixtures.mjs';
 
 const ROOT=fileURLToPath(new URL('../../',import.meta.url));
 const PROJECT='xiftudmvxphxcjtmfmib';
@@ -420,6 +420,7 @@ async function saveLedger(){
       ...(s.tutorChargePlan?{tutorChargeFixture:s.tutorChargePlan}:{}),
       ...(s.clubEquipmentJournal?{clubEquipmentFixture:s.clubEquipmentJournal}:{}),
       ...(s.clubAttendancePlan?{clubAttendanceFixture:{plan:s.clubAttendancePlan,setupPending:!!s.clubAttendancePending}}:{}),
+      ...(s.clubAttendanceChargePlan?{clubAttendanceChargeFixture:s.clubAttendanceChargePlan}:{}),
       ...(s.serviceNotePlan||s.pendingServiceNotePlan?{serviceNoteFixture:{
         caseId:s.serviceNotePlan?.caseId??null,pendingCaseId:s.pendingServiceNotePlan?.caseId??null,
         companionChargeIds:[s.serviceNotePlan,s.pendingServiceNotePlan].flatMap(plan=>plan?.companion?.rows.map(row=>row.id)??[]).sort(),
@@ -2556,6 +2557,159 @@ export async function runCertificateAwardPreview({origin,sourceRevision,previewT
   }finally{
     if(prepared)cleanupProof=await captureFixtureCleanup();
     conversationJournal?.close();
+    await onCheckpoint?.(report(true));
+  }
+  return report(true);
+}
+
+export async function runClubAttendancePreview({origin,sourceRevision,previewToken,signal,onCheckpoint,browserCase,artifactDirectory}={}){
+  if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??'')||typeof artifactDirectory!=='string'
+    ||!artifactDirectory.startsWith('/')||onCheckpoint!==undefined&&typeof onCheckpoint!=='function')
+    fail('fixture-config','Club Attendance requires the exact protected Preview and source revision.');
+  const browser=await import('./club-attendance-browser-preview.mjs');
+  const testCase=await browser.findClubAttendanceBrowserCase(browserCase);
+  const runId=randomUUID(),diagnostics=[],results=[];
+  let prepared=false,verifiedDeployment=false,gate,journal,phase='preflight',failure;
+  let cleanupProof={verified:false,status:'not-started'};
+  const report=terminal=>{
+    const passed=Boolean(terminal&&verifiedDeployment&&!failure&&results.length===1&&results[0].passed&&cleanupProof.verified
+      &&cleanupProof.protectedOwnerUnchanged&&cleanupProof.clubAttendanceBrowserCleanup&&cleanupProof.conversationCleanup?.verified===true);
+    return structuredClone({version:1,origin,sourceRevision,runId,terminal,execution:'live-browser',caseIds:[browserCase],
+    suiteDigest:certificateAwardPreviewHash([testCase]),
+    results,browserDiagnostics:diagnostics,deployment:gate?.status()??null,cleanup:cleanupProof,
+    ...(failure?{failure}:{}),modelAcceptance:false,liveAcceptance:passed,browserDispatchAcceptance:passed});
+  };
+  try{
+    const {sourceIdentity}=await import('./run.mjs');
+    const initial=await sourceIdentity();
+    if(initial.dirty||initial.sourceRevision!==sourceRevision)fail('fixture-target','Club Attendance requires the exact clean deployed source.');
+    const readback=createTrustedPreviewFetch({origin,token:previewToken});
+    phase='browser-assets';
+    const {assets}=await browser.deriveClubAttendanceBrowserAssets({origin,revision:sourceRevision,token:previewToken,signal});
+    phase='prepare';
+    const lifecycleCase=clubAttendanceRunnerCases().find(row=>row.id==='account:club-attendance-native-first-page');
+    await prepare({runId,cases:[lifecycleCase],now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,
+      expectedReleaseRevision:sourceRevision,signal,previewReadbackFetch:readback});
+    prepared=true;
+    const s=ready();
+    gate=s.previewGate;
+    const assertScoped=async()=>{
+      await assertRecordedFixtureLease(s,'Club Attendance browser fixture');
+      await gate.assertCurrent();
+      assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+    };
+    const paired=s.users;
+    if(paired.length!==2||paired.some(user=>user.id===s.protectedOwnerBefore.id))fail('fixture-isolation','Club Attendance requires two disposable callers.');
+    const [A,B]=paired.map(user=>user.id),caller=paired[testCase.mode==='empty'?1:0],crossed=paired.find(user=>user!==caller);
+    phase='seed';
+    await assertScoped();
+    s.clubAttendancePlan=buildClubAttendancePlan({runId,owners:[A,B],browserMode:testCase.mode});
+    s.clubAttendancePending=true;
+    if(testCase.mode==='multipart'){
+      const programs=await s.sql`select id from public.affairs_programs where code='SAMPLE-GEN' and source_mode='sample' limit 2`;
+      if(programs.length!==1)fail('fixture-state','The single synthetic program is required for isolated tuition.');
+      s.clubAttendanceChargePlan=buildClubAttendanceChargeFixture({runId,owners:{A,B},programId:programs[0].id});
+    }
+    await saveLedger();
+    await query(()=>feeTransaction(s,async()=>{
+      await changeClubAttendanceFixture(s.sql,s.clubAttendancePlan,s.identityRequests);
+      if(s.clubAttendanceChargePlan)await stageOwnedChargeRows(s.sql,s.clubAttendanceChargePlan);
+    }),'Could not seed exact disposable Club Attendance records.');
+    s.clubAttendancePending=false;
+    await saveLedger();
+    const observe=async()=>{
+      await assertScoped();
+      const attendance=await observeClubAttendanceFixture({sql:s.sql,plan:s.clubAttendancePlan,identities:s.identityRequests,
+        users:paired,origin,page:1,includeRaw:true,signal:signals(signal),async read(url,token,active){
+          const ticket=await gate.beforeRequest();
+          try{return await readBoundedFixtureResponse(await readback(url,{headers:{Authorization:'Bearer '+token},signal:active}),url,65536);}
+          finally{await gate.afterRequest(ticket);}
+        }});
+      const directUrl=new URL('/rest/v1/rpc/affairs_read_club_student',s.url);
+      for(const [index,user] of paired.entries()){
+        const direct=await s.boundedFetch(directUrl,{method:'POST',redirect:'error',credentials:'omit',cache:'no-store',
+          headers:{apikey:s.publishable,Authorization:'Bearer '+user.token,'Content-Type':'application/json'},
+          body:JSON.stringify({p_view:'my-attendance',p_search:'',p_page:1}),signal:signals(signal)});
+        if(!isDeepStrictEqual(await readBoundedFixtureResponse(direct,directUrl,65536),attendance.raw[index]))
+          fail('fixture-state','Direct caller attendance differed from the independently compared SQL and browser bootstrap data.');
+      }
+      const plan=s.clubAttendanceChargePlan;
+      const persisted=plan?await observeOwnedChargeRows(s.sql,plan):null;
+      const charges=plan?await observeOwnedChargeCallers(plan,{callers:paired,publishableKey:s.publishable,fetchImpl:s.boundedFetch,
+        readResponse:readBoundedFixtureResponse,signal:signals(signal),includeOwnReads:true}):null;
+      await assertScoped();
+      return {digest:[attendance.digest,persisted,charges?.digest??null],readbacks:Object.fromEntries(['A','B'].map((role,index)=>
+        [role,{ownerId:paired[index].id,attendance:attendance.raw[index],...(charges?{tuitionReads:charges.ownReads[role]}:{})}]))};
+    };
+    phase='before-readback';
+    const starting=await observe();
+    const env=deploymentEnvironment(),observationKey=env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_SECRET_KEY;
+    let conversation;
+    phase='browser-turn';
+    let afterDigest=null;
+    const result=await browser.runClubAttendanceBrowserTurn({origin,sourceRevision,token:previewToken,assets,
+      caseId:browserCase,readbacks:starting.readbacks,observationKey,runId,directory:artifactDirectory,signal,
+      onDiagnostic:row=>diagnostics.push(row),assertLease:assertScoped,verifyPin:()=>gate.assertCurrent(),
+      async getSession(){
+        await caller.renewSession({signal});
+        const auth=new URL('/auth/v1/user',s.url),access_token=caller.token;
+        const reply=await s.boundedFetch(auth,{headers:{apikey:s.publishable,Authorization:'Bearer '+access_token},signal:signals(signal)});
+        const user=await readBoundedFixtureResponse(reply,auth,32768,200);
+        if(user.id!==caller.id||user.user_metadata?.assistant_evaluation_run!==runId
+          ||!user.identities?.some(identity=>identity.provider==='google'))
+          fail('fixture-session','The disposable Club Attendance browser account could not be verified.');
+        const {exp:expires_at}=JSON.parse(Buffer.from(access_token.split('.')[1],'base64url').toString('utf8'));
+        return {access_token,refresh_token:'node-owned-qa-session',expires_at,token_type:'bearer',user};
+      },
+      async reserveConversation(id,reservation){
+        journal=reservation;
+        conversation=await reserveScopedFixtureConversation(s,caller.id,{conversationId:id,journal});
+      },
+      async pinReadback(read){
+        await assertScoped();
+        const verified=await read();
+        await assertScoped();
+        return verified;
+      },
+      async readConversation({id,expected}){
+        const independent=await conversation.readback();
+        const fetchScoped=createTrustedPreviewFetch({origin,token:previewToken,conversationId:id});
+        const url=new URL('/api/affairs-conversations?id='+id,origin);
+        const read=async(user,status)=>{
+          await user.renewSession({signal});
+          const ticket=await gate.beforeRequest();
+          try{return await readBoundedFixtureResponse(await fetchScoped(url,{headers:{Authorization:'Bearer '+user.token},
+            signal:signals(signal)}),url,65536,status);}
+          finally{await gate.afterRequest(ticket);}
+        };
+        const saved=await read(caller,200),denial=await read(crossed,404);
+        if(saved.id!==id||saved.version!==1||saved.title!==expected.title||saved.updated_at!==expected.updatedAt
+          ||!isDeepStrictEqual(saved.messages,expected.messages)||!isDeepStrictEqual(denial,{error:'Conversation not found.'})
+          ||independent.version!==1||independent.messageDigest!==certificateAwardPreviewHash(expected.messages))
+          fail('fixture-state','The saved attendance conversation differed from the independent readback.');
+        return {own:true,crossed:true,version:independent.version,messageDigest:independent.messageDigest};
+      },
+      async observeAfter(){
+        const after=await observe();
+        if(!isDeepStrictEqual(starting.digest,after.digest))fail('fixture-state','The exact attendance or tuition records changed.');
+        afterDigest=certificateAwardPreviewHash(after.digest);
+        return after.readbacks;
+      },
+    });
+    results.push({...result,before:certificateAwardPreviewHash(starting.digest),after:afterDigest});
+    await onCheckpoint?.(report(false));
+    phase='release-verification';
+    const final=await sourceIdentity();
+    if(final.dirty||final.sourceRevision!==sourceRevision||final.workingTreeHash!==initial.workingTreeHash)
+      fail('fixture-target','Club Attendance source changed during evaluation.');
+    await gate.finish();
+    verifiedDeployment=true;
+  }catch(error){
+    failure={phase,code:error instanceof LiveFixtureError?error.code:'unexpected',
+      ...(typeof error?.code==='string'&&/^[a-z-]{3,80}$/u.test(error.code)?{browserDiagnostic:error.code}:{})};
+  }finally{
+    if(prepared)cleanupProof=await captureFixtureCleanup();
+    journal?.close();
     await onCheckpoint?.(report(true));
   }
   return report(true);
@@ -4801,6 +4955,7 @@ async function reserveScopedFixtureConversation(s,ownerId,{conversationId,journa
     if(matches.length!==1)fail('fixture-state','The transcript owner is not an exact disposable identity.');
     return {id:user.id,email:matches[0].email};
   });
+  if(second)owners.reverse();
   const fixture=createTranscriptConversationFixture({runId:s.runId,owners,conversationId,journal,sql:s.sql,
     assertLease:async()=>{
       if(state!==s||!s.locked||s.closed||!s.ledgerOwned)fail('fixture-lease','The transcript fixture lease is unavailable.');
@@ -4909,9 +5064,13 @@ export async function cleanup(){
     if(s.serviceNotePlan||s.serviceNotePending)await changeServiceNoteFixture(s,null,{recovering:true});
     if(s.clubAttendancePlan){
       await assertRecordedFixtureLease(s);
-      await query(()=>feeTransaction(s,()=>changeClubAttendanceFixture(s.sql,s.clubAttendancePlan,s.identityRequests,{cleanup:true})),
+      await query(()=>feeTransaction(s,async()=>{
+        await changeClubAttendanceFixture(s.sql,s.clubAttendancePlan,s.identityRequests,{cleanup:true});
+        if(s.clubAttendanceChargePlan)await cleanupOwnedChargeRows(s.sql,s.clubAttendanceChargePlan);
+      }),
         'Could not reconcile the exact disposable club attendance rows; the cleanup ledger is retained.');
-      s.clubAttendancePlan=null;s.clubAttendancePending=false;
+      if(!s.clubAttendancePlan.browserMode)s.clubAttendancePlan=null;
+      s.clubAttendancePending=false;
       await saveLedger();
     }
     if(s.counselingCompound){
@@ -5219,6 +5378,13 @@ export async function cleanup(){
       await verifyInternshipChargesAbsent(s.sql,s.internshipChargePlan);
       s.internshipChargeCleanup=true;
     }
+    if(s.clubAttendancePlan?.browserMode){
+      await query(()=>verifyClubAttendanceFixtureAbsent(s.sql,s.clubAttendancePlan),'Could not prove exact attendance cleanup.');
+      if(s.clubAttendanceChargePlan)await verifyOwnedChargeRowsAbsent(s.sql,s.clubAttendanceChargePlan);
+      const identities=await s.sql`select 1 from auth.identities where user_id in ${s.sql(s.clubAttendancePlan.owners)} limit 1`;
+      if(identities.length)fail('fixture-cleanup','A disposable Club Attendance identity remains.');
+      s.clubAttendanceBrowserCleanup=true;
+    }
     if(s.counselingCompound){
       const {appointmentPlan,chargePlan}=s.counselingCompound;
       await verifyCounselingFixtureAbsent(s.sql,appointmentPlan);
@@ -5298,6 +5464,7 @@ export async function cleanup(){
     ...(s.tutorEvaluationCleanup?{tutorEvaluationCleanup:true}:{}),
     ...(s.tutorChargeCleanup?{tutorChargeCleanup:true}:{}),
     ...(s.clubEquipmentCleanup?{clubEquipmentCleanup:true}:{}),
+    ...(s.clubAttendanceBrowserCleanup?{clubAttendanceBrowserCleanup:true}:{}),
     ...(s.counselingCancellationCleanup?{counselingCancellationCleanup:true}:{}),
     ...(s.counselingCompoundCleanup?{counselingCompoundCleanup:true}:{}),
     ...(s.venueProtectedCleanup?{venueProtectedCleanup:true}:{}),

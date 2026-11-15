@@ -3,9 +3,17 @@ import {randomUUID} from 'node:crypto';
 import test from 'node:test';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {sanitizeStoredConversation} from '../../server/assistantConversationData.js';
+import {clubAttendancePath} from '../../server/clubAttendanceIntent.js';
 import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
+import {verifyProtectedNativeBrowserEgress} from './certificate-browser-turn.mjs';
 import {discoverClientDispatchSurfaces} from './client-dispatch-inventory.mjs';
-import {createProtectedClubAttendanceBrowserTurn} from './club-attendance-browser-turn.mjs';
+import {buildClubAttendancePlan,expectedClubAttendancePage} from './club-attendance-fixtures.mjs';
+import {findClubAttendanceBrowserCase,verifiedClubAttendanceBrowserObservation} from './club-attendance-browser-preview.mjs';
+import {certificateAwardPreviewHash} from './certificate-award-preview.mjs';
+import {clubAttendanceBrowserBootstrap,clubAttendanceBrowserMark,clubAttendanceBrowserProfile,
+  createProtectedClubAttendanceBrowserTurn} from './club-attendance-browser-turn.mjs';
+import {createProtectedConversationBrowserRelay} from './vercel-preview-browser-transport.mjs';
+import {previewTrustedHeader} from './vercel-preview-transport.mjs';
 
 const project='https://xiftudmvxphxcjtmfmib.supabase.co';
 const origin='https://stdedu-abcd12345-v1-d286.vercel.app';
@@ -81,7 +89,7 @@ function setup(t,testCase){
     await handler({method:'POST',body,headers:{host,authorization:'Bearer '+token}},sink);
     return {status,bytes:Buffer.from(output),correlationId:headers.get('x-assistant-request-id'),json};
   }
-  return {create,reserve,initial,readbacks,scope,ask,reads,rejectOwner:()=>{wrongOwner=true;},
+  return {create,reserve,initial,readbacks,scope,ask,reads,caller,rejectOwner:()=>{wrongOwner=true;},
     invalidateTransport:()=>{invalidTransport=true;}};
 }
 
@@ -171,4 +179,110 @@ test('ordinary callers get no proof and malformed rows do not attest an unavaila
   assert.doesNotMatch(normal.bytes.toString(),/evaluation-club-attendance/u);
   assert.doesNotMatch(observed.bytes.toString(),/evaluation-club-attendance/u);
   assert.throws(()=>turn.receive(observed),{code:'invalid-assistant-stream-result'});
+});
+
+test('browser SQL plans make empty B distinct from failure, retain owned A and keep every event private',()=>{
+  const owners=[randomUUID(),randomUUID()],runId=randomUUID();
+  for(const {mode} of cases){
+    const plan=buildClubAttendancePlan({runId,owners,browserMode:mode});
+    assert.equal(plan.browserMode,mode);
+    assert.deepEqual(buildClubAttendancePlan(plan),plan);
+    assert.equal(expectedClubAttendancePage(plan,owners[0],1).rows.length,25);
+    assert.equal(expectedClubAttendancePage(plan,owners[1],1).rows.length,mode==='empty'?0:1);
+    assert.ok(plan.clubs.every(club=>!club.active));
+    assert.ok(plan.applications.every(application=>application.calendar_activity_id===null));
+  }
+  assert.throws(()=>buildClubAttendancePlan({runId,owners,browserMode:'staff'}),/could not be verified/u);
+});
+
+test('protected graph relay runs the real signed handler, journals one turn, and opens only its reserved transcript',async t=>{
+  const testCase=cases[1],fixture=setup(t,testCase),turn=fixture.create(),ownerId=fixture.scope.ownerId;
+  const epoch=Math.floor(Date.now()/1000),encode=claims=>['synthetic',Buffer.from(JSON.stringify(claims)).toString('base64url'),'signature'].join('.');
+  const previewToken=encode({iss:'https://oidc.vercel.com/v1-d286',sub:'owner:v1-d286:project:std_edu_ai:environment:development',
+    aud:'https://vercel.com/v1-d286',owner:'v1-d286',project:'std_edu_ai',environment:'development',nbf:epoch-2,exp:epoch+100});
+  const auth=encode({sub:ownerId,iss:project+'/auth/v1',aud:'authenticated',role:'authenticated',exp:epoch+100});
+  const id='12345678-1234-7123-8123-123456789012',updated_at='2026-11-16T07:10:05Z';
+  const api='/api/affairs-assistant',conversations='/api/affairs-conversations';
+  const trace=[];
+  let stored,expectedSave;
+  const relay=()=>createProtectedConversationBrowserRelay({origin,revision:sourceRevision,token:previewToken,
+    ownerId,getCallerToken:()=>auth,profile:clubAttendanceBrowserProfile,graphTurn:turn,assets:[clubAttendanceBrowserMark],
+    verifyPin:async()=>({origin,sourceRevision,manifest:{revision:sourceRevision,environment:'preview',source:'vercel-git'}}),
+    async authorizeSave(input){trace.push('journal');assert.ok(input.expected);expectedSave=input.expected;return true;},
+    async fetchImpl(url,init){
+      assert.equal(new Headers(init.headers).get(previewTrustedHeader),previewToken);
+      trace.push(url.pathname);
+      const path=url.pathname+url.search;
+      if(path===clubAttendancePath)return new Response('<html/>',{headers:{'content-type':'text/html'}});
+      assert.equal(new Headers(init.headers).get('authorization'),'Bearer '+auth);
+      if(path===clubAttendanceBrowserBootstrap)return Response.json(fixture.caller.attendance);
+      if(path===api){
+        const signed=JSON.parse(init.body);
+        assert.ok(signed.evaluationClubAttendanceProbe);
+        const actual=await fixture.ask(signed);
+        return new Response(actual.bytes,{status:actual.status,headers:{'content-type':'text/event-stream','x-assistant-request-id':actual.correlationId}});
+      }
+      if(path===conversations&&init.method==='POST'){
+        assert.equal(trace.at(-2),'journal');
+        stored={...JSON.parse(init.body),version:1,updated_at};
+        return Response.json({...stored,created_at:updated_at});
+      }
+      if(path===conversations)return Response.json({conversations:stored?[{id,title:stored.title,version:1,updated_at}]:[]});
+      assert.equal(path,conversations+'?id='+id);
+      return Response.json(stored);
+    },
+  });
+  const call=(dispatch,path,method='GET',body)=>dispatch({url:origin+path,method,frameUrl:origin+clubAttendancePath,
+    headers:{...(path===clubAttendancePath?{}:{Authorization:'Bearer '+auth}),...(body?{'Content-Type':'application/json'}:{})},
+    ...(body?{body:JSON.stringify(body)}:{})});
+  const boot=async({dispatch})=>{
+    await call(dispatch,clubAttendancePath);
+    await call(dispatch,clubAttendanceBrowserBootstrap);
+    await call(dispatch,conversations);
+  };
+  const live=relay();await boot(live);
+  live.reserve({id,mode:'turn',route:testCase.route,question:testCase.question});
+  const reply=await call(live.dispatch,api,'POST',fixture.initial);
+  assert.doesNotMatch(reply.body.toString(),/evaluation-club-attendance/u);
+  const terminal=await readAssistantReply(new Response(reply.body,{headers:{'content-type':'text/event-stream'}}));
+  const save=await call(live.dispatch,conversations,'POST',autosave(terminal,testCase.question));
+  assert.equal(save.clubAttendanceReceipt.id,id);
+  assert.equal(verifyProtectedNativeBrowserEgress({evidence:live.egress(),mode:'turn',requestSequence:expectedSave.requestSequence,
+    scope:clubAttendanceBrowserProfile,answerMethod:'POST'}).saveRequests,1);
+  const fresh=relay();
+  fresh.reserve({id,mode:'read',expected:{...expectedSave,updatedAt:updated_at}});
+  await boot(fresh);
+  const restored=await call(fresh.dispatch,conversations+'?id='+id);
+  assert.equal(restored.clubAttendanceReceipt.version,1);
+  assert.equal(verifyProtectedNativeBrowserEgress({evidence:fresh.egress(),mode:'restore',
+    scope:clubAttendanceBrowserProfile,answerMethod:'POST'}).restoreRequests,1);
+  assert.equal(turn.confirmUnchanged(fixture.readbacks).caseId,testCase.id);
+  await assert.rejects(call(fresh.dispatch,api,'POST',fixture.initial),{code:'unreserved-assistant-turn-or-frame'});
+  assert.equal(trace.filter(path=>path===api).length,1);
+});
+
+test('coverage requires pinned browser egress, unchanged records and verified absence after cleanup',async()=>{
+  const question=await findClubAttendanceBrowserCase(cases[1].id),sha='c'.repeat(64);
+  const report={origin,sourceRevision,execution:'live-browser',terminal:true,caseIds:[question.id],suiteDigest:certificateAwardPreviewHash([question]),
+    liveAcceptance:true,browserDispatchAcceptance:true,modelAcceptance:false,
+    browserDiagnostics:[{observations:[{request:clubAttendanceBrowserProfile+'-answer',method:'POST',forwarded:true}]}],
+    deployment:{status:'finished',origin,sourceRevision,completed:6},
+    cleanup:{verified:true,protectedOwnerUnchanged:true,clubAttendanceBrowserCleanup:true,
+      conversationCleanup:{verified:true,conversationRows:0}},
+    results:[{caseId:question.id,passed:true,native:{passed:true,requestDigest:sha,responseDigest:sha},
+      proofDigest:sha,scopeDigest:sha,requestDigest:sha,responseDigest:sha,before:sha,after:sha,
+      browserTurn:{answerRequests:1,saveRequests:1},browserRestore:{restoreRequests:1},readback:{own:true,crossed:true,version:1,messageDigest:sha}}]};
+  const assess=result=>verifiedClubAttendanceBrowserObservation({result,question,origin,sourceRevision});
+  assert.equal(assess(report).passed,true);
+  for(const mutate of [
+    result=>{result.cleanup.conversationCleanup.conversationRows=1;},
+    result=>{result.results[0].readback.crossed=false;},
+    result=>{result.results[0].after='d'.repeat(64);},
+    result=>{result.results[0].proofDigest=null;},
+    result=>{result.deployment.completed=5;},
+    result=>{result.browserDiagnostics[0].observations[0].method='GET';},
+  ]){
+    const changed=structuredClone(report);mutate(changed);
+    assert.equal(assess(changed).passed,false);
+  }
 });

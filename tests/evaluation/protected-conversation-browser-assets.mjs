@@ -8,6 +8,8 @@ import {announcementEmailPath} from '../../server/announcementEmailContract.js';
 import {announcementEmailBrowserMedia,announcementEmailBrowserProfile} from './announcement-email-browser-turn.mjs';
 import {studentProfilePath} from '../../server/studentProfileContract.js';
 import {studentProfileBrowserHeading,studentProfileBrowserProfile} from './student-profile-browser-turn.mjs';
+import {clubAttendanceBrowserMark,clubAttendanceBrowserProfile} from './club-attendance-browser-turn.mjs';
+import {clubAttendancePath} from '../../server/clubAttendanceIntent.js';
 
 const assetLimit=256, fileLimit=4_000_000, totalLimit=24_000_000;
 const generated=/^\/assets\/[a-zA-Z0-9_.-]+\.(?:js|css)$/u;
@@ -27,6 +29,7 @@ const browserAssetsProfiles=new Map([
   [certificateBrowserProfile,{...schoolAffairsAssets,shell:certificateAwardPath,homeMedia:[certificateBrowserHeading]}],
   [announcementEmailBrowserProfile,{...schoolAffairsAssets,shell:announcementEmailPath,homeMedia:announcementEmailBrowserMedia}],
   [studentProfileBrowserProfile,{...schoolAffairsAssets,shell:studentProfilePath,homeMedia:[studentProfileBrowserHeading]}],
+  [clubAttendanceBrowserProfile,{...schoolAffairsAssets,shell:clubAttendancePath,homeMedia:[clubAttendanceBrowserMark]}],
 ]);
 class AssetDiscoveryError extends Error{
   constructor(reason){super('Protected browser assets: '+reason+'.');}

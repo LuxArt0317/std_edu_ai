@@ -90,7 +90,7 @@ export function runCertificateBrowserTurn(options){
 }
 
 export async function runProtectedNativeBrowserTurn({origin,sourceRevision,token,assets,bound,getSession,assertLease,verifyPin,
-    reserveConversation,pinReadback,readConversation,directory,runId,signal,onDiagnostic=()=>{}},browserProfile){
+    reserveConversation,pinReadback,readConversation,directory,runId,signal,onDiagnostic=()=>{},graphTurn},browserProfile){
   signal?.throwIfAborted();
   const {chromium}=await import('playwright-core');
   const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH||
@@ -114,7 +114,7 @@ export async function runProtectedNativeBrowserTurn({origin,sourceRevision,token
         }
       },{session,origin});
       relay=createProtectedConversationBrowserRelay({origin,revision:sourceRevision,token,ownerId:session.user.id,
-        getCallerToken:()=>session.access_token,verifyPin,assets,profile:browserProfile.profile,
+        getCallerToken:()=>session.access_token,verifyPin,assets,profile:browserProfile.profile,graphTurn,
         async authorizeSave({ownerId,payload,assistantResponse,requestSequence,expected}){
           check(!restore&&ownerId===session.user.id&&savedJournal&&savedId===payload.id
             &&capture&&capture.body.equals(assistantResponse),'save fixture owner mismatch');
@@ -127,9 +127,9 @@ export async function runProtectedNativeBrowserTurn({origin,sourceRevision,token
       drain=await installProtectedConversationBrowserRoute(context,{relay,async onReply({url,method,reply}){
         const destination=new URL(url);
         if(url===origin+browserProfile.bootstrap)browserProfile.verifyBootstrap?.(bound,decode(reply.body));
-        if(destination.pathname==='/api/affairs-data'&&destination.searchParams.has('answer')){
+        if(graphTurn?destination.pathname==='/api/affairs-assistant'&&method==='POST':destination.pathname==='/api/affairs-data'&&destination.searchParams.has('answer')){
           check(!restore&&!capture,'unexpected application response');
-          capture={path:destination.pathname+destination.search,body:reply.body};
+          capture={path:destination.pathname+destination.search,body:reply.graphTranscript??reply.body};
         }
         if(url===responseUrl&&method==='POST')await savedJournal.receiveSave(reply);
       },onDenied({error}){denial??=error;}});
@@ -169,7 +169,8 @@ export async function runProtectedNativeBrowserTurn({origin,sourceRevision,token
     }
   }
   try{
-    const {verifyRenderedCertificateBrowserTurn}=await import('../integration/helpers/protected-conversation-browser.mjs');
+    const verifyRendered=browserProfile.verifyRendered??
+      (await import('../integration/helpers/protected-conversation-browser.mjs')).verifyRenderedCertificateBrowserTurn;
     const live=await open();
     let turnNetwork;
     try{
@@ -189,7 +190,7 @@ export async function runProtectedNativeBrowserTurn({origin,sourceRevision,token
       await live.dialog.getByText('Conversation saved to your private account.',{exact:true}).waitFor();
       beforeSave=savedJournal.expected();
       check(beforeSave?.grade.passed,'save receipt mismatch');
-      await verifyRenderedCertificateBrowserTurn({page:live.page,dialog:live.dialog,expected:beforeSave});
+      await verifyRendered({page:live.page,dialog:live.dialog,expected:beforeSave});
     }finally{turnNetwork=await live.close();}
     if(turnNetwork.denial)throw turnNetwork.denial;
     check(turnNetwork.pageErrors===0,'unexpected application response');
@@ -204,7 +205,7 @@ export async function runProtectedNativeBrowserTurn({origin,sourceRevision,token
     try{
       await fresh.dialog.getByLabel('Conversations',{exact:true}).selectOption(savedId);
       await fresh.dialog.getByText('Conversation saved to your private account.',{exact:true}).waitFor();
-      await verifyRenderedCertificateBrowserTurn({page:fresh.page,dialog:fresh.dialog,expected:beforeSave});
+      await verifyRendered({page:fresh.page,dialog:fresh.dialog,expected:beforeSave});
     }finally{restoreNetwork=await fresh.close();}
     if(restoreNetwork.denial)throw restoreNetwork.denial;
     check(restoreNetwork.pageErrors===0,'unexpected application response');

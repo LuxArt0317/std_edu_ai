@@ -20,6 +20,9 @@ const chargeScenarios={
   tutor:{name:'Tutor',firstStudent:811,currency:tutorTuition.currency,charges:[
     [tutorTuition.label,tutorTuition.amountDue,tutorTuition.amountPaid],[tutorTuition.label,19500,3000],
   ]},
+  club:{name:'Club Attendance',firstStudent:911,currency:'TWD',category:'tuition',charges:[
+    ['Club Fixture Tuition',28000,5000],['Crossed Club Tuition Control',11850,1850],
+  ]},
 };
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u;
 const roles=['A','B'];
@@ -45,9 +48,13 @@ export function buildTutorChargeFixture({runId,owners,programId}){
   return buildOwnedChargeFixture({runId,owners,programId},'tutor');
 }
 
-function buildOwnedChargeFixture({runId,owners,programId},purpose='internship'){
+export function buildClubAttendanceChargeFixture({runId,owners,programId}){
+  return buildOwnedChargeFixture({runId,owners,programId},'club');
+}
+
+function buildOwnedChargeFixture({runId,owners,programId}={},purpose='internship'){
   if(![runId,owners?.A,owners?.B,programId].every(value=>uuid.test(value??''))
-    ||new Set([runId,owners.A,owners.B,programId]).size!==4)fail('invalid identities or sample program');
+    ||new Set([runId,owners.A,owners.B,programId]).size!==4||!Object.hasOwn(chargeScenarios,purpose))fail('invalid identities or sample program');
   const scenario=chargeScenarios[purpose];
   const id=suffix=>runId.slice(0,24)+'000000000'+suffix;
   const students=roles.map((role,index)=>({
@@ -58,7 +65,7 @@ function buildOwnedChargeFixture({runId,owners,programId},purpose='internship'){
   const charges=scenario.charges.map(([label,due,paid],index)=>({
     id:id(scenario.firstStudent+10+index),student_id:students[index].id,
     label,amount_due:due,amount_paid:paid,currency:scenario.currency,
-    due_on:null,source_mode:'sample',occurrence_on:null,category:null,contact_unit:null,contact_extension:null,payment_unit:null,
+    due_on:null,source_mode:'sample',occurrence_on:null,category:scenario.category??null,contact_unit:null,contact_extension:null,payment_unit:null,
   }));
   const recordIds=[...students,...charges].map(row=>row.id);
   if(recordIds.some(value=>[runId,owners.A,owners.B,programId].includes(value)))fail('reserved identity collision');
@@ -66,7 +73,7 @@ function buildOwnedChargeFixture({runId,owners,programId},purpose='internship'){
 }
 
 function checked(plan){
-  const rebuilt=plan?.purpose==='tutor'?buildTutorChargeFixture(plan):plan?.purpose==='counseling'?buildCounselingChargeFixture(plan):buildInternshipChargeFixture(plan);
+  const rebuilt=buildOwnedChargeFixture(plan??undefined,plan?.purpose??'internship');
   if(!isDeepStrictEqual(plan,rebuilt))fail('invalid fixture plan');
   return rebuilt;
 }
@@ -91,7 +98,7 @@ export async function stageInternshipCharges(sql,plan){
   for(const student of plan.students){
     const [charge,...extra]=await sql`select ${sql(chargeFields)} from public.affairs_charges where student_id=${student.id} limit 2`;
     if(!charge||extra.length||!uuid.test(charge.id)||!isDeepStrictEqual(normalizeCharge(charge),{...plan.charges[0],id:charge.id,
-      student_id:student.id,label:'Sample Fall 2026 tuition',due_on:'2026-12-15'}))fail('unrecognized sample charge');
+      student_id:student.id,label:'Sample Fall 2026 tuition',due_on:'2026-12-15',category:null}))fail('unrecognized sample charge');
     const deleted=await sql`delete from public.affairs_charges where id=${charge.id} and student_id=${student.id} returning id`;
     if(deleted.length!==1||deleted[0].id!==charge.id)fail('sample charge deletion was not exact');
   }
@@ -143,21 +150,24 @@ export function expectedInternshipChargeRead(plan){
     evidenceDigest:digest(projection)};
 }
 
-export async function observeInternshipChargeCallers(plan,{callers,publishableKey,fetchImpl,readResponse,signal}){
+export async function observeInternshipChargeCallers(plan,{callers,publishableKey,fetchImpl,readResponse,signal,includeOwnReads=false}){
   plan=checked(plan);
   if(!Array.isArray(callers)||callers.length!==2||callers.some((user,index)=>user.id!==plan.students[index].user_id
     ||typeof user.token!=='string'||!user.token)||callers[0].token===callers[1].token||typeof publishableKey!=='string'||!publishableKey)
     fail('independent caller binding is invalid');
-  const proof=await Promise.all(callers.flatMap(caller=>plan.students.flatMap((target,index)=>
+  const ownReads={A:[],B:[]};
+  const proof=await Promise.all(callers.flatMap((caller,callerIndex)=>plan.students.flatMap((target,index)=>
     selector(target,plan.charges[index]).map(async ([url,expected])=>{
       const owned=caller.id===target.user_id;
       const response=await fetchImpl(url,{method:'GET',redirect:'error',cache:'no-store',credentials:'omit',signal,
         headers:{apikey:publishableKey,Authorization:'Bearer '+caller.token}});
       const rows=await readResponse(response,url,16000);
       if(!isDeepStrictEqual(rows,owned?expected:[]))fail('own or crossed caller rows differ');
+      if(owned&&includeOwnReads)ownReads[roles[callerIndex]].push({ownerId:caller.id,method:'GET',url:url.href,rows});
       return digest({url:url.href,caller:caller.id,owned,rows});
     }))));
-  return {checks:proof.length,digest:digest(proof)};
+  for(const reads of Object.values(ownReads))reads.sort((a,b)=>b.url.localeCompare(a.url));
+  return {checks:proof.length,digest:digest(proof),...(includeOwnReads?{ownReads}:{})};
 }
 
 export {stageInternshipCharges as stageOwnedChargeRows,cleanupInternshipCharges as cleanupOwnedChargeRows,

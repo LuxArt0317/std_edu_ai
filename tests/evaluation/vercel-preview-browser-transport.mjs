@@ -13,6 +13,8 @@ import {studentProfilePath} from '../../server/studentProfileContract.js';
 import {studentProfileBrowserAnswerPath,studentProfileBrowserBootstrap,studentProfileBrowserCases,studentProfileBrowserHeading,
   studentProfileBrowserProfile,inspectStudentProfileBrowserBootstrap,inspectStudentProfileBrowserReply,
   verifyProtectedStudentProfileBrowserSave} from './student-profile-browser-turn.mjs';
+import {clubAttendanceBrowserBootstrap,clubAttendanceBrowserMark,clubAttendanceBrowserProfile,clubAttendanceBrowserQuestions} from './club-attendance-browser-turn.mjs';
+import {clubAttendancePath} from '../../server/clubAttendanceIntent.js';
 
 const project='https://xiftudmvxphxcjtmfmib.supabase.co';
 const conversationPath='/api/affairs-conversations',assistantPath='/api/affairs-assistant';
@@ -41,6 +43,11 @@ const nativeProfiles=new Map([
     answers:profileAnswers,requiredMedia:[studentProfileBrowserHeading],receiptKey:'studentProfileReceipt',
     inspectReply:inspectStudentProfileBrowserReply,verifySave:verifyProtectedStudentProfileBrowserSave,
     inspectBootstrap:inspectStudentProfileBrowserBootstrap}],
+  [clubAttendanceBrowserProfile,{label:clubAttendanceBrowserProfile,route:clubAttendancePath,bootstrap:clubAttendanceBrowserBootstrap,
+    answers:new Map(clubAttendanceBrowserQuestions.map(question=>[question,{answerPath:assistantPath,selection:{}}])),
+    requiredMedia:[clubAttendanceBrowserMark],receiptKey:'clubAttendanceReceipt',stream:true,
+    inspectBootstrap(value,ownerId){check(value?.userId===ownerId&&value.page===1&&value.view==='my-attendance'
+      &&Array.isArray(value.rows),'wrong fixture caller');}}],
 ]);
 const sha=/^[a-f0-9]{40}$/u,uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u;
 const asset=/^\/(?:assets|stu-reference|school-assets|dtm-theme)\/[a-zA-Z0-9._/-]+\.[a-zA-Z0-9]+$/u;
@@ -104,10 +111,12 @@ export function validateProtectedConversationBrowserResources({origin,assets,dat
 /** Node-side prerequisite for an isolated browser operator. Supabase Auth stays
  * on the original browser request. The OIDC header exists only in Node fetch. */
 export function createProtectedConversationBrowserRelay({origin,revision,token,ownerId,getCallerToken,verifyPin,authorizeSave,
-  assets=[],dataPaths,profile='dtm',fetchImpl=globalThis.fetch,now=Date.now}={}){
+  assets=[],dataPaths,profile='dtm',graphTurn,fetchImpl=globalThis.fetch,now=Date.now}={}){
   const native=nativeProfiles.get(profile);
   check(isEvaluationPreviewOrigin(origin)&&sha.test(revision??'')&&uuid.test(ownerId??'')&&typeof getCallerToken==='function'
     &&typeof verifyPin==='function'&&(native||typeof authorizeSave==='function')&&typeof fetchImpl==='function','invalid fixture config');
+  check(native?.stream?graphTurn&&['request','receive','save','receiveSave','receiveRestore'].every(method=>typeof graphTurn[method]==='function')
+    :graphTurn===undefined,'invalid fixture config');
   const tokenGuard=createPreviewDevelopmentTokenGuard(token,now);
   const checkToken=()=>{try{tokenGuard();}catch{check(false,'Preview credential expired');}};
   const {staticPaths,ownDataPaths}=validateProtectedConversationBrowserResources({origin,assets,dataPaths,profile});
@@ -174,7 +183,7 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
     const get=method==='GET'&&body===undefined,post=method==='POST'&&received.get('content-type')==='application/json';
     const document=get&&permittedPages.has(path),staticAsset=get&&staticPaths.has(path),publicResource=document||staticAsset;
     const headers=new Headers({Accept:received.get('accept')||'*/*'});
-    let ask,answer,save,readId,index=false,caller=null,transaction,expectedSave,nativeReceipt;
+    let ask,answer,save,readId,index=false,caller=null,transaction,expectedSave,nativeReceipt,postBody=body;
     if(publicResource){
       check(!received.has('authorization'),'caller credential on a public resource');
       if(native&&document){
@@ -190,7 +199,7 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
           check(nativeDocumentLoaded&&!nativeBootstrapRequested&&frameUrl===origin+native.route,'unapproved request operation');
           nativeBootstrapRequested=true;
         }
-      }else if(native&&get&&path===nativeTurn?.answerPath){
+      }else if(native&&!native.stream&&get&&path===nativeTurn?.answerPath){
         check(!nativeTurn.requested&&frameUrl===origin+native.route,'unapproved request operation');
         nativeTurn.requested=true;
       }else if(get&&url.pathname===conversationPath){
@@ -202,7 +211,7 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
           check(nativeRestoration&&!nativeRestoration.requested&&readId===nativeRestoration.expected.id,'unreserved conversation read');
           nativeRestoration.requested=true;
         }
-      }else if(!native&&post&&path===assistantPath){
+      }else if((!native||native.stream)&&post&&path===assistantPath){
         const envelope=decode(body,60000);
         check(exact(envelope,'history,images,question,route,stream')&&envelope.stream===true
           &&Array.isArray(envelope.images)&&!envelope.images.length&&Array.isArray(envelope.history)&&!envelope.history.length,
@@ -210,6 +219,11 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
         ask=[...reservations.values()].find(item=>item.mode==='turn'&&item.question===envelope.question&&item.route===envelope.route);
         check(ask&&!ask.requested&&frameUrl===origin+ask.route,'unreserved assistant turn or frame');
         ask.requested=true;
+        if(native?.stream){
+          check(nativeTurn&&!nativeTurn.requested,'unreserved assistant turn or frame');
+          nativeTurn.requested=true;
+          postBody=JSON.stringify(graphTurn.request({payload:envelope,frameUrl,ownerId}));
+        }
       }else if(post&&path===conversationPath&&(!native||typeof authorizeSave==='function'&&nativeTurn)){
         transaction=decode(body,190000);
         save=reservations.get(transaction?.id);
@@ -230,7 +244,8 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
         assistantResponse:Buffer.from(nativeTurn.response.bytes),requestSequence:nativeTurn.response.requestSequence,
         ...nativeTurn.selection,question:save.question,
       }:null;
-      if(nativeCommand)expectedSave=native.verifySave({payload:transaction,...nativeCommand});
+      if(nativeCommand)expectedSave=native.stream?graphTurn.save({payload:transaction,...nativeCommand})
+        :native.verifySave({payload:transaction,...nativeCommand});
       let approved;
       try{
         approved=await authorizeSave({ownerId,payload:structuredClone(transaction),...(nativeCommand
@@ -247,7 +262,7 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
     let response;
     const deadline=AbortSignal.timeout(65000),active=signal?AbortSignal.any([signal,deadline]):deadline;
     if(observation)observation.forwarded=true;
-    try{response=await fetchImpl(url,{method,headers,...(post?{body}:{}),signal:active,redirect:'error',credentials:'omit',cache:'no-store'});}
+    try{response=await fetchImpl(url,{method,headers,...(post?{body:postBody}:{}),signal:active,redirect:'error',credentials:'omit',cache:'no-store'});}
     catch{throw new ProtectedBrowserDiagnostic('request could not reach the pinned deployment');}
     if(observation)observation.status=response.status;
     if(response.redirected||response.url&&response.url!==url.href||response.status>=300&&response.status<400){
@@ -258,13 +273,17 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
     if(native&&document)check(/^text\/html(?:\s*;|$)/iu.test(response.headers.get('content-type')??''),'unexpected application response');
     const limit=publicResource?4_000_000:ownDataPaths.has(path)?1_000_000:ask?300000:
       native&&path===nativeTurn?.answerPath?32768:220000;
-    const bytes=await capture(response,limit);
+    let bytes=await capture(response,limit),graphTranscript;
     check(!bytes.includes(token)&&(!caller||!bytes.includes(caller)),'credential in response');
     if(!publicResource){
       const contentType=response.headers.get('content-type')?.split(';')[0];
       if(ask){
         const correlationId=response.headers.get('x-assistant-request-id');
         check(contentType==='text/event-stream'&&uuid.test(correlationId??'')&&!correlations.has(correlationId),'invalid assistant stream correlation');
+        if(native?.stream){
+          const verified=graphTurn.receive({bytes,correlationId});
+          bytes=verified.body;graphTranscript=verified.terminalBytes;
+        }
         let terminal;
         try{terminal=await readAssistantReply(new Response(bytes,{headers:{'Content-Type':'text/event-stream'}}));}
         catch{/* Preserve only bounded route diagnostics. */}
@@ -281,8 +300,9 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
           &&new Set(value.conversations.map(row=>row?.id)).size===value.conversations.length
           &&value.conversations.every(row=>reservations.has(row?.id)),'unreserved conversation in index');
         if(readId||transaction)check(value?.id===(readId??transaction.id),'wrong conversation response');
-        if(expectedSave)nativeReceipt=verifyProtectedCertificateBrowserReceipt({row:value,expected:expectedSave,mode:'save'});
-        if(native&&readId)nativeReceipt=verifyProtectedCertificateBrowserReceipt({row:value,expected:nativeRestoration.expected,mode:'read'});
+        if(expectedSave)nativeReceipt=native.stream?graphTurn.receiveSave(value):verifyProtectedCertificateBrowserReceipt({row:value,expected:expectedSave,mode:'save'});
+        if(native&&readId)nativeReceipt=native.stream?graphTurn.receiveRestore(value)
+          :verifyProtectedCertificateBrowserReceipt({row:value,expected:nativeRestoration.expected,mode:'read'});
       }
     }
     if(!staticAsset)await pin();
@@ -291,8 +311,9 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
     if(ask)ask.answer=answer;
     if(native&&document)nativeDocumentLoaded=true;
     if(native&&path===native.bootstrap)nativeLoaded=true;
-    if(native&&path===nativeTurn?.answerPath)nativeTurn.response={bytes:Buffer.from(bytes),requestSequence:observation.sequence};
-    return {kind:'preview',status:response.status,headers:visibleHeaders,body:bytes,...(nativeReceipt?{[native.receiptKey]:nativeReceipt}:{})};
+    if(native&&path===nativeTurn?.answerPath)nativeTurn.response={bytes:Buffer.from(graphTranscript??bytes),requestSequence:observation.sequence};
+    return {kind:'preview',status:response.status,headers:visibleHeaders,body:bytes,...(graphTranscript?{graphTranscript}:{}),
+      ...(nativeReceipt?{[native.receiptKey]:nativeReceipt}:{})};
   }
   if(!native)return {reserve,dispatch:dispatchRequest};
   const nativeAnswerPaths=new Set([...native.answers.values()].map(turn=>turn.answerPath));

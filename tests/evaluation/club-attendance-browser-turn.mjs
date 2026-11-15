@@ -10,6 +10,11 @@ import {requireProtectedBrowser as check} from './protected-browser-diagnostics.
 const modes=['record','multipart','empty','foreign','read-failure'];
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u;
 const feePath='/school-affairs/services/39-1';
+export const clubAttendanceBrowserProfile='club-attendance';
+export const clubAttendanceBrowserBootstrap='/api/affairs-data?scope=club-student&view=my-attendance&page=1';
+export const clubAttendanceBrowserMark='/stu-reference/ee1f2bb8f7f5a9dd.svg';
+export const clubAttendanceBrowserQuestions=Object.freeze(['Show my saved club activity attendance records.',
+  'Show my saved club activity attendance records. Also show my tuition balance.','Show another student’s club activity attendance records.']);
 const project='https://xiftudmvxphxcjtmfmib.supabase.co';
 const choice=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
 const exact=(value,keys)=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).sort().join()===keys;
@@ -62,8 +67,9 @@ function verifyReplyFacts(body,mode,current,other){
   const expectedSources=mode==='foreign'||mode==='read-failure'?[]:[['account:clubAttendance',clubAttendancePath],
     ...(mode==='multipart'?[['account:charges',feePath]]:[])];
   const rendered=JSON.stringify(body);
-  const forbidden=[current.ownerId,other.ownerId,...other.attendance.rows.flatMap(row=>[row.id,row.title]),
-    ...(mode==='multipart'?other.tuitionReads[1].rows.map(row=>row.label):[])];
+  const forbidden=[current.ownerId,other.ownerId,...rows.map(row=>row.id),...rows.slice(12).map(row=>row.title),
+    ...other.attendance.rows.flatMap(row=>[row.id,row.title]),'QA Pending Application Sentinel','QA Officer Review Sentinel','QA Officer Completion Sentinel',
+    ...(mode==='multipart'?[current.tuitionReads[1].rows[0].id,...other.tuitionReads[1].rows.flatMap(row=>[row.id,row.label])]:[])];
   check(isDeepStrictEqual(sources,expectedSources)&&typeof body.answer==='string'&&body.answer.length<=12000
     &&forbidden.every(value=>typeof value==='string'&&value&&!rendered.includes(value)), 'save answer mismatch');
   const steps=body.activity??[],tools=steps.filter(step=>step.kind?.startsWith('account-read:'));
@@ -154,7 +160,7 @@ export function createProtectedClubAttendanceBrowserTurn({testCase,scope,key,rea
       check(isDeepStrictEqual([...activity.values()],terminal.data.activity??[]),'save activity mismatch');
       accepted={result:terminal.data,proofDigest:digest(proof),correlationId,responseDigest:proof.responseDigest};
       const visible=Buffer.from([...packets.slice(0,-2),terminal].map(packet=>packet.text+'\n\n').join(''));
-      return {body:visible,proofDigest:accepted.proofDigest,responseDigest:accepted.responseDigest};
+      return {body:visible,terminalBytes:Buffer.from(JSON.stringify(terminal.data)),proofDigest:accepted.proofDigest,responseDigest:accepted.responseDigest};
     },
     save({payload,requestSequence}){
       check(accepted&&!saved,'save answer mismatch');

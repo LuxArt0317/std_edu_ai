@@ -82,7 +82,7 @@ export function verifyProtectedCertificateBrowserEgress({evidence,mode,requestSe
   return verifyProtectedNativeBrowserEgress({evidence,mode,requestSequence,scope:'certificate'});
 }
 
-export function verifyProtectedNativeBrowserEgress({evidence,mode,requestSequence,scope}){
+export function verifyProtectedNativeBrowserEgress({evidence,mode,requestSequence,scope,answerMethod='GET'}){
   const turn=mode==='turn';
   const bootstrap=scope+'-bootstrap',answer=scope+'-answer';
   check((turn||mode==='restore')&&evidence?.overflow===false&&Array.isArray(evidence.observations)
@@ -98,7 +98,7 @@ export function verifyProtectedNativeBrowserEgress({evidence,mode,requestSequenc
     const turnRequest=turn&&(row.request===answer||row.request==='conversation-save');
     const restoreRequest=!turn&&row.request==='conversation-detail';
     check((startup||turnRequest||restoreRequest)&&row.forwarded===true&&row.result==='accepted'&&row.status===200
-      &&row.method===(row.request==='conversation-save'?'POST':'GET')
+      &&row.method===(row.request==='conversation-save'?'POST':row.request===answer?answerMethod:'GET')
       &&(turn?startup?row.phase==='bootstrap'||row.phase==='turn':row.phase==='turn':row.phase==='restore'),
       'certificate egress mismatch');
     counts.set(row.request,(counts.get(row.request)??0)+1);

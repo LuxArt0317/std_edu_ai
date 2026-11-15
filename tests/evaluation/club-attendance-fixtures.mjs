@@ -16,9 +16,12 @@ const freeze=value=>{
 
 // Values expected by the model grader are explicit and separate from random
 // SQL IDs. Use a private inactive club with no public calendar entry.
-export function buildClubAttendancePlan({runId,owners,ids}){
+export function buildClubAttendancePlan({runId,owners,ids,browserMode}){
   if(!uuid.test(runId??'')||!Array.isArray(owners)||owners.length!==2||owners.some(id=>!uuid.test(id))||owners[0]===owners[1])fail();
-  const {clubName,excludedTitle,A,B}=clubAttendancePayloads();
+  if(browserMode!==undefined&&!['record','multipart','empty','foreign','read-failure'].includes(browserMode))fail();
+  const {clubName:baseName,excludedTitle,A,B:crossed}=clubAttendancePayloads();
+  const clubName=browserMode?baseName+' '+runId.slice(0,8):baseName;
+  const B=browserMode==='empty'?[]:crossed;
   const count=2+A.length+B.length;
   const generated=ids??Array.from({length:count},()=>randomUUID());
   if(!Array.isArray(generated)||generated.length!==count||generated.some(id=>!uuid.test(id)||owners.includes(id)||id===runId)
@@ -35,7 +38,7 @@ export function buildClubAttendancePlan({runId,owners,ids}){
   // The second caller's visible row was applied for by caller A. A read must
   // follow attendance.student_id, not the club application creator.
   const attendance=eventRows.map((row,index)=>({application_id:applicationIds[index],student_id:owners[index===A.length?1:0],recorded_at:row.recorded_at}));
-  return freeze({runId,owners:[...owners],ids:[...generated],clubName,clubs,applications,attendance});
+  return freeze({runId,owners:[...owners],ids:[...generated],clubName,clubs,applications,attendance,...(browserMode?{browserMode}:{})});
 }
 
 function instant(value){
@@ -52,7 +55,7 @@ const dbRows=(rows,kind)=>ordered(rows, keyOrders[kind]).map(row=>{
   return {...row,starts_at:instant(row.starts_at),ends_at:instant(row.ends_at),updated_at:instant(row.updated_at)};
 });
 function verifyPlan(plan){
-  if(!same(plan,buildClubAttendancePlan({runId:plan?.runId,owners:plan?.owners,ids:plan?.ids})))fail();
+  if(!same(plan,buildClubAttendancePlan({runId:plan?.runId,owners:plan?.owners,ids:plan?.ids,browserMode:plan?.browserMode})))fail();
 }
 
 export async function readClubAttendanceTargets(sql,plan){
@@ -119,6 +122,11 @@ export async function changeClubAttendanceFixture(sql,plan,identities,{cleanup=f
   assertRows(plan,await readClubAttendanceTargets(sql,plan));
 }
 
+export async function verifyClubAttendanceFixtureAbsent(sql,plan){
+  verifyPlan(plan);
+  if(!allAbsent(await readClubAttendanceTargets(sql,plan)))fail();
+}
+
 export function expectedClubAttendancePage(plan,owner,page){
   if(!plan.owners.includes(owner)||!Number.isInteger(page)||page<1||page>1000)fail();
   const attendees=new Map(plan.attendance.filter(row=>row.student_id===owner).map(row=>[row.application_id,row.recorded_at]));
@@ -131,7 +139,7 @@ export function expectedClubAttendancePage(plan,owner,page){
       ({id,title,club_name:plan.clubs[0].name,starts_at:instant(starts_at),location,academic_year,term,recorded_at:instant(attendees.get(id))}))};
 }
 
-export async function observeClubAttendanceFixture({sql,plan,identities,users,origin,page,read,signal,tuitionUnlinked=false}){
+export async function observeClubAttendanceFixture({sql,plan,identities,users,origin,page,read,signal,tuitionUnlinked=false,includeRaw=false}){
   await verifiedIdentities(sql,plan,identities);
   if(!projectPreview.test(origin??'')||users.length!==2||!plan.owners.every(id=>users.some(user=>user.id===id)))fail();
   const persisted=await readClubAttendanceTargets(sql,plan);
@@ -141,7 +149,7 @@ export async function observeClubAttendanceFixture({sql,plan,identities,users,or
     const linked=await sql`select 1 from public.affairs_students where user_id in ${sql(plan.owners)} limit 1`;
     if(linked.length)fail();
   }
-  const observations=[];
+  const observations=[],raw=[];
   for(const owner of plan.owners){
     const user=users.find(candidate=>candidate.id===owner);
     await user.renewSession?.({signal});
@@ -155,6 +163,7 @@ export async function observeClubAttendanceFixture({sql,plan,identities,users,or
       const normalized={...actual,rows:actual.rows.map(row=>({...row,starts_at:instant(row.starts_at),recorded_at:instant(row.recorded_at)}))};
       if(!same(normalized,expectedClubAttendancePage(plan,owner,selectedPage)))fail();
       observations.push(normalized);
+      if(includeRaw)raw.push(actual);
     }
   }
   // JSONB member order is irrelevant. Preserve row order, literal fields and
@@ -162,5 +171,5 @@ export async function observeClubAttendanceFixture({sql,plan,identities,users,or
   const stable=Object.fromEntries(Object.keys(keyOrders).map(kind=>[kind,dbRows(persisted[kind],kind)]));
   const digest=createHash('sha256').update(JSON.stringify({persisted:stable,observations,...(tuitionUnlinked?{tuitionUnlinked:true}:{})},(_key,value)=>
     value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(key=>[key,value[key]])):value)).digest('hex');
-  return digest;
+  return includeRaw?{digest,raw}:digest;
 }
