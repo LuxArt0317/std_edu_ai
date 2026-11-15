@@ -17,3 +17,7 @@ export type AccountOverviewSnapshot={checkedAt:string;source:'stu.best School Af
  * I/O. Concurrent reads are not an atomic snapshot. No runtime mount is implied. */
 export function loadAccountOverviewSnapshot(account:AffairsAccount&{requestDeadline?:number},options?:{deadline?:number},
   dependencies?:{fetchImpl?:typeof fetch}):Promise<AccountOverviewSnapshot>;
+/** Reads only the verified caller's stored effective display name. A successful
+ * absence returns null. Invalid, foreign or failed responses throw. */
+export function loadOwnAffairsDisplayName(account:AffairsAccount&{requestDeadline?:number},options?:{deadline?:number},
+  dependencies?:{fetchImpl?:typeof fetch}):Promise<string|null>;
