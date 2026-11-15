@@ -285,9 +285,19 @@ function formatAccountOverview(question,{overview,profile,student,profileRecordF
   const zh=/[\u3400-\u9fff]/u.test(question),t=(en,zhText)=>zh?zhText:en;
   const rows=[t('Your saved stu.best records','你的 stu.best 帳戶紀錄')];
   const sample=mode=>['sample','local_demo'].includes(mode)?t(' (sample)','（範例）'):'';
-  if(hasLiteral(profile.displayName))rows.push(t('Account name: ','帳戶名稱：')+inlineRecord(profile.displayName)+'.');
+  const recordText=value=>{
+    const literal=String(value).replace(/\s+/gu,' ').trim();
+    if(!/https?:\/\//iu.test(literal))return inlineRecord(literal).replace(/&/gu,'\\&');
+    // A URL within a saved label is literal text. The link audit still checks
+    // the answer's actual navigation links. Pad the span so stored backticks
+    // remain visible without closing it.
+    let delimiter='`';
+    while(literal.includes(delimiter))delimiter+='`';
+    return `${delimiter} ${literal} ${delimiter}`;
+  };
+  if(hasLiteral(profile.displayName))rows.push(t('Account name: ','帳戶名稱：')+recordText(profile.displayName)+'.');
   if(student){
-    rows.push(t('Program: ','學程：')+inlineRecord(student.program)+sample(student.programSourceMode??student.sourceMode)+'. '
+    rows.push(t('Program: ','學程：')+recordText(student.program)+sample(student.programSourceMode??student.sourceMode)+'. '
       +t('Year level: ','年級：')+inlineRecord(student.yearLevel)+sample(student.sourceMode)+'.');
   }else rows.push(studentRecordFound===false
     ?t('No School Affairs student record is linked to this account.','此帳戶沒有連結校務學生紀錄。')
@@ -297,7 +307,7 @@ function formatAccountOverview(question,{overview,profile,student,profileRecordF
     const values=[];
     let length=0;
     for(const row of list.slice(0,limit)){
-      const label=inlineRecord(row.code)+' '+inlineRecord(row.title)+' ('+inlineRecord(row.term)
+      const label=recordText(row.code)+' '+recordText(row.title)+' ('+recordText(row.term)
         +(row.sourceMode==='sample'?t(', sample','，示範'):'')+')';
       if(length+label.length>2200)break;
       values.push(label);length+=label.length+2;

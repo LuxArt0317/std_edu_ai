@@ -172,7 +172,7 @@ In public web answers, a missing or insufficient initial source can trigger a fo
 
 ### Saved account overview
 
-`accountOverviewEvidence.js` projects seven bounded account sources with separate totals, excerpt and failure states. The assistant checks each source in LangGraph and refreshes the same scope on retry. The overview does not assign a current term to DTM or interpret tracker counts as official outcomes.
+`accountOverviewEvidence.js` projects seven bounded account sources with separate totals, excerpt and failure states. The assistant checks each source in LangGraph and refreshes the same scope on retry. URL text inside a saved label displays literally, and the answer's navigation links still need matching sources. The overview does not assign a current term to DTM or interpret tracker counts as official outcomes.
 
 ### Accommodation bed evidence
 

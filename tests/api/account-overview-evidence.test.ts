@@ -163,10 +163,16 @@ test('overview route uses exact counts and verifies the requested parts after a 
   const original=globalThis.fetch,key=process.env.OPENAI_API_KEY,question='what do you know about my records';
   process.env.OPENAI_API_KEY='OVERVIEW_LOCAL_TEST_ONLY';
   try{
-    for(const kind of ['direct','refresh','unavailable','omitted']){
+    for(const kind of ['direct','refresh','unavailable','omitted','url-like']){
       let reads=0,reviews=0;
       const errors:unknown[]=[];
+      const savedName='Student <https://example.com/portfolio>';
+      const savedTitle='``Course title https://example.com/notes``';
+      const savedEntityTitle='Course title https&colon;//example.com/wiki';
       const io=transport(request=>{
+        if(kind==='url-like'&&request.url.pathname.endsWith('/affairs_profiles'))return json([{...profile(),preferred_name:savedName}]);
+        if(kind==='url-like'&&request.url.pathname.endsWith('/dtm_courses'))
+          return json([{...dtmCourse(),title:savedTitle},{...dtmCourse(9),title:savedEntityTitle}]);
         if(request.url.pathname.endsWith('/affairs_tasks')&&kind==='unavailable')return new Response(null,{status:503});
         if(request.url.pathname.endsWith('/affairs_service_requests')&&reads>1&&kind==='refresh')
           return new Response(null,{headers:{'content-range':'*/2'}});
@@ -186,6 +192,11 @@ test('overview route uses exact counts and verifies the requested parts after a 
         const data=Object.fromEntries(payload.evidence.slice(1).map((source:{id:string;content:string})=>[source.id.slice(8),JSON.parse(source.content)]));
         assert.equal(data.courses.records[0].code,'DB301');
         assert.equal(data.dtm.records[0].code,'DTM301');
+        if(kind==='url-like'){
+          assert.equal(data.profile.records.profile.displayName,savedName);
+          assert.equal(data.dtm.records[0].title,savedTitle);
+          assert.equal(data.dtm.records[1].title,savedEntityTitle);
+        }
         assert.equal(data.assignments.overview.total,3);
         assert.equal(data.charges.overview.total,2);
         assert.equal(data.tasks.overview.total,kind==='unavailable'?null:2);
@@ -194,7 +205,7 @@ test('overview route uses exact counts and verifies the requested parts after a 
         const claim=(key:string,path:string,claim:string,supported=true)=>({claim,evidenceId:'account:'+key,jsonPaths:[path],quotes:[],supported});
         if(stage==='answer_evidence_review'){
           reviews++;
-          const supported=kind!=='refresh';
+          const supported=kind!=='refresh'&&kind!=='url-like';
           const fields=[
             claim('profile','/records/student/program','Your saved program is Information Studies.',supported),
             claim('profile','/records/student/yearLevel','Your saved year level is 3.',supported),
@@ -218,7 +229,7 @@ test('overview route uses exact counts and verifies the requested parts after a 
       await handler({method:'POST',headers:{authorization:'Bearer '+account().token},body:{route:'/dtm',question}},reply);
       assert.deepEqual(errors,[]);
       assert.equal(result.verification.status,'verified');
-      const refreshed=kind==='omitted'||kind==='refresh';
+      const refreshed=kind==='omitted'||kind==='refresh'||kind==='url-like';
       assert.equal(reads,refreshed?2:1);assert.equal(reviews,1);
       assert.equal(result.verification.attempts,reads);
       assert.equal(result.activity.some((step:{kind:string})=>step.kind==='account-overview-evidence-check'),refreshed);
@@ -226,6 +237,12 @@ test('overview route uses exact counts and verifies the requested parts after a 
       if(kind==='unavailable')assert.match(result.answer,/saved tasks: count unavailable/u);
       if(kind==='refresh')assert.match(result.answer,/2 service requests/u);
       if(kind==='omitted')assert.match(result.answer,/1 service requests/u);
+      if(kind==='url-like'){
+        assert.ok(result.answer.includes('` '+savedName+' `'));
+        assert.ok(result.answer.includes('``` '+savedTitle+' ```'));
+        assert.ok(result.answer.includes('https\\&colon;//example.com/wiki'));
+        assert.ok(result.citations.every((citation:{url:string})=>citation.url.startsWith('/')));
+      }
       assert.equal(result.proposedAction,undefined);
       assert.ok(result.views.every((view:{id:string})=>['courses','dtm'].includes(view.id)),JSON.stringify(result.views));
       assert.deepEqual(result.views.find((view:{id:string})=>view.id==='dtm')?.columns,['Course','Term','Data']);
