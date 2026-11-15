@@ -910,4 +910,5 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify all twenty protected service boundary cases on `2427eee`, with exact pinning and verified cleanup.
 - [x] Continue a verified partial reply when exact missing-detail coverage improves and another distinct source is available. Recover actionable rejected drafts within the same cap and keep the best verified reply on terminal failure.
 - [x] Exercise four observed checks, a third-draft rejection followed by verified recovery, a duplicate source, a lost detail, reviewer outage, time, and persisted activity through the actual public endpoint with controlled providers.
-- [ ] Replay public questions on the exact protected candidate and independently grade the outcomes.
+- [x] Replay four pinned public questions on exact protected `0c0ac77`. Verify the OneDrive reply recovered on check three, pursued another lead and kept its verified partial. Confirm both archive languages.
+- [ ] Fix the independent live library source selection and default language findings. Verify primary links and a clear access result without attributing current facts to unread pages.
