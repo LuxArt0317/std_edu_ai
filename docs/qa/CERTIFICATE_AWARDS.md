@@ -8,7 +8,7 @@ At [stu.best service 52-1](https://stu.best/school-affairs/services/52-1), selec
 
 Uploading creates a versioned draft with a unique proof reservation. The private Supabase bucket limits each file to 5 MiB. The student can remove a proof before submitting or while supplying requested documents. The submission waits for an attached proof and, for an award, verified payout details. Managers can request documents, approve, or record the review amount. The account details and proof files are accessible only to the record owner and authorized reviewer as appropriate. The assistant reads a narrow status response and links to the application. It receives no contact phone, bank details, proof path or attachment.
 
-Asking for certificate award status from a saved record page checks that exact application and links back to it. The main certificate menu keeps the recent-application summary. A missing or inaccessible selection leaves the status unavailable.
+Asking for certificate award status from a saved record page checks that exact application and links back to it. The main certificate menu keeps the recent-application summary. A missing or inaccessible selection leaves the status unavailable. When asked about payment to the bank, the assistant retains the verified saved status and award amount and marks bank receipt as unavailable separately.
 
 The school-facing manager stores only the last four account digits and administrative reference. No payment transfer or university-side application takes place from the stu.best form. The 30 captured catalog records are the initial source view, and protected results beyond the initial view and official handling remain open.
 
@@ -34,7 +34,7 @@ node tests/evaluation/run-certificate-award-preview.mjs --preflight
 node tests/evaluation/run-certificate-award-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVISION"
 ```
 
-The preflight lists seven frozen cases without provider access. The protected run seeds two disposable profiles and three owned applications. It grades English and Traditional Chinese selected status, a newer application under the same owner, the second owner's selected status, both crossed reads, a missing record, and the existing aggregate status. Independent paired RPC checks and SQL readbacks bracket each request. The report records exact release pins, case verdicts, digests, cleanup, and protected-owner and catalog preservation. Application writes and proof Storage operations are outside this packet. Browser dispatch, model acceptance and the base multipart bank-settlement question remain separate evaluation scopes.
+The preflight lists eight frozen cases without provider access. The protected run seeds two disposable profiles and three owned applications. It grades English and Traditional Chinese selected status, the second owner's selected status, both crossed reads, a missing record, the aggregate status, and the approved newer application's saved amount and bank receipt limitation. Independent paired RPC checks and SQL readbacks bracket each request. The report records exact release pins, case verdicts, digests, cleanup, and protected-owner and catalog preservation. Browser dispatch, model acceptance, application writes, proof Storage and actual bank settlement have separate evidence requirements.
 
 Run the same packet through the actual handler and migrations in an isolated local database with an installed PGlite runtime.
 
@@ -46,3 +46,5 @@ STU_CERTIFICATE_TEST_PGLITE_ENTRY=/absolute/path/to/@electric-sql/pglite/dist/in
 ## Deployed evidence
 
 Production `014def8` is live as Vercel `C57h6aW36V71tBftNhFu9LLg3g11`. Migration 20261114230000 brings the client to 157 migrations and 187 RLS-protected public tables with a private proof bucket. The pinned browser, actual-JWT HTTP and Storage test with exact cleanup, four bilingual guest assistant checks, eight shell routes and Quality 43550501226 passed. The 94-destination local audit reports 31 generic and 23 partial entries. The first 30 observed catalog entries are available. Official review and bank transfer remain outside the verified workflow. Payout references store the final four digits only.
+
+The eighth bank receipt case passed through the actual handler and migrations locally. Its protected replay is pending.

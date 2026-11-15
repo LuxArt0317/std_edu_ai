@@ -13,6 +13,7 @@ const catalog=[{code:'3345',name:'(MOS)Excel Associate Microsoft 365 Apps'},
 const recordPath=id=>certificateAwardPath+'/record/'+id;
 const sorted=rows=>rows.slice().sort((a,b)=>a.id.localeCompare(b.id));
 const privateFields=['phone','teacher_code','review_note','payout','object_path','files','bank','account_last_four'];
+const bankReceiptLimit='I can’t verify whether the payout reached your bank. The saved award amount reflects the application record.';
 const requireExact=(condition,message)=>{if(!condition)throw new Error(message);};
 
 export function certificateAwardPreviewManifest(){
@@ -24,6 +25,8 @@ export function certificateAwardPreviewManifest(){
     {id:'crossed-b',role:'B',target:'selected',language:'zh',question:'我的這筆證照獎助金審核狀態？',denied:true},
     {id:'missing',role:'A',target:'missing',language:'en',question:'What is the status of this certificate award?',denied:true},
     {id:'aggregate-control',role:'A',target:null,language:'en',question:'What is the status of my professional certificate subsidy application?'},
+    {id:'bank-receipt',role:'A',target:'newer',language:'en',bankReceipt:true,
+      question:'What is the status of my professional certificate subsidy application? Also tell me whether its payout has reached my bank.'},
   ].map(row=>({...row,id:prefix+row.id}));
 }
 
@@ -152,17 +155,18 @@ const selectedRows=(plan,role)=>plan.rows.filter(row=>row.user_id===plan.owners[
 
 export function bindCertificateAwardPreviewCases(plan){
   assertPlan(plan);
-  return certificateAwardPreviewManifest().map(({role,target,language,denied=false,id,question})=>{
+  return certificateAwardPreviewManifest().map(({role,target,language,denied=false,bankReceipt=false,id,question})=>{
     const recordId=target?plan.targets[target]:null,route=recordId?recordPath(recordId):certificateAwardPath;
     const list=denied?[]:selectedRows(plan,role).filter(row=>!recordId||row.id===recordId);
     requireExact(denied||list.length===(recordId?1:2),'Independently bound certificate row count is incorrect.');
     const expected={behavior:denied?'denial':'answer',statusCode:denied?404:200,noAction:true,forbidPublicResearch:true,localLinksOnly:true,
       ...(denied?{}:{requiredLinks:[route],requiredSourceBindings:[{sourceId:source,url:route}]}),
-      forbiddenText:[...privateFields,...plan.profiles.flatMap(row=>[row.email,row.user_id]),...plan.rows.flatMap(row=>[row.phone,row.review_note]),
+      forbiddenText:[...(bankReceipt?privateFields.filter(field=>field!=='bank'&&field!=='payout'):privateFields),
+        ...plan.profiles.flatMap(row=>[row.email,row.user_id]),...plan.rows.flatMap(row=>[row.phone,row.review_note]),
         ...plan.rows.filter(row=>!list.includes(row)).map(localizedName)]};
     const testCase={id,domain:'certificate-awards',mode:'native-status',route,question,language,
       executionContract:'live-native',fixtureKey:certificateAwardPreviewMode,expected};
-    return {testCase,role,recordId,expectedRows:list.map(row=>renderedRow(row,language))};
+    return {testCase,role,recordId,expectedRows:list.map(row=>renderedRow(row,language)),...(bankReceipt?{bankReceipt}:{})};
   });
 }
 
@@ -173,7 +177,7 @@ export async function observeCertificateAwardPreviewCallers(plan,{users,origin,p
     const owner=plan.owners[role],user=users.find(item=>item.id===owner.id);
     requireExact(typeof user?.token==='string'&&user.token,'The independent certificate read needs the exact disposable caller.');
     const native=new URL('/rest/v1/rpc/affairs_read_certificate_awards',origin);
-    for(const target of ['selected','second']){
+    for(const target of ['selected','second','newer']){
       const recordId=plan.targets[target],row=selectedRows(plan,role).find(item=>item.id===recordId);
       const request={p_target:null,p_id:recordId,p_status_only:false};
       const reply=await fetchImpl(native,{method:'POST',headers:{apikey:publishable,Authorization:'Bearer '+user.token,'Content-Type':'application/json'},
@@ -197,10 +201,11 @@ export async function observeCertificateAwardPreviewCallers(plan,{users,origin,p
 function expectedWithoutTimestamp({updated_at,...row}) {return row;}
 
 export async function requestCertificateAwardPreviewCase({bound,token,origin,fetchImpl,readResponse,signal}){
-  const {testCase,recordId}=bound,language=testCase.language;
+  const {testCase,recordId,bankReceipt}=bound,language=testCase.language;
   requireExact(typeof token==='string'&&token,'A protected certificate status request requires an authenticated caller.');
   const url=new URL('/api/affairs-data',origin);
-  url.search=new URLSearchParams({scope,view:'mine',answer:language,...(recordId?{id:recordId}:{})});
+  url.search=new URLSearchParams({scope,view:'mine',answer:language,...(recordId?{id:recordId}:{}),
+    ...(bankReceipt?{bank_receipt:'requested'}:{})});
   const reply=await fetchImpl(url,{method:'GET',headers:{Authorization:'Bearer '+token},redirect:'error',credentials:'omit',signal});
   const statusCode=reply.status;
   // Retain a behavioral result when a valid fixture receives the wrong status.
@@ -215,12 +220,20 @@ export async function requestCertificateAwardPreviewCase({bound,token,origin,fet
   else{
     const summary=recordId?(language==='zh'?'這筆已儲存的證照申請：':'Your selected saved certificate application:'):'Your recent certificate applications:';
     const title=recordId?(language==='zh'?'這筆證照獎補助金申請':'Certificate award application'):'Certificate award applications';
-    const visible=[summary,bound.expectedRows.join('\n'),`[${title}](${testCase.route})`].join('\n\n');
+    const visible=[summary,bound.expectedRows.join('\n'),...(bankReceipt?[bankReceiptLimit]:[]),`[${title}](${testCase.route})`].join('\n\n');
     check('certificate.answer',body?.answer===visible,'The exact selected saved name, status and award value match the independent rows in the requested language.');
     check('certificate.scope',body?.grounding?.source==='account'&&body.grounding.webSearched===false
       &&extractAnswerLinks(body).every(link=>link===testCase.route)&&body.citations?.length===1
       &&Object.keys(body).sort().join(',')==='activity,answer,citations,grounding,status,suggestedQuestions',
     'The response uses one exact caller-owned status citation and omits unrelated record data.');
+    if(bankReceipt){
+      check('certificate.receipt-limit',isDeepStrictEqual(body?.activity,[
+        {kind:'certificate-awards',label:title,detail:summary,status:'complete'},
+        {kind:'certificate-awards-bank-receipt',label:'Bank receipt confirmation',detail:bankReceiptLimit,status:'unavailable'},
+      ])&&isDeepStrictEqual(body?.citations,[
+        {chunkId:source,claim:summary,title,url:testCase.route,sourceName:'My stu.best records'},
+      ]),'The exact saved award remains verified and the separate bank receipt remains unavailable.');
+    }
   }
   return {caseId:testCase.id,role:bound.role,statusCode,passed:checks.every(check=>check.passed),checks,
     requestDigest:digest({method:'GET',path:url.pathname+url.search,role:bound.role,question:testCase.question}),responseDigest:digest(body)};

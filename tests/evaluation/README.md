@@ -341,7 +341,7 @@ Use the authorized Development OIDC identity from the clean checkout of the pinn
 
 ### Protected Preview certificate award status
 
-`node tests/evaluation/run-certificate-award-preview.mjs --preflight` lists seven independently bound native HTTP cases. Run the same command with `"$PREVIEW_ORIGIN" "$SOURCE_REVISION"` using the existing fixture lease and Development OIDC. The two disposable callers have different saved records, and one has a newer application that must stay outside the selected answer. Both caller scopes and SQL are checked before and after each request. The owner-only report records grades and cleanup. See [Certificate awards](../../docs/qa/CERTIFICATE_AWARDS.md#protected-selected-status-evaluation) for existing schema requirements and the isolated SQL test.
+`node tests/evaluation/run-certificate-award-preview.mjs --preflight` lists eight independently bound native HTTP cases. Run the same command with `"$PREVIEW_ORIGIN" "$SOURCE_REVISION"` using the existing fixture lease and Development OIDC. The two disposable callers have different saved records. The bank receipt case selects the newer approved application and requires its saved amount and an explicit receipt limitation. Both caller scopes and SQL are checked before and after each request. The owner-only report records grades and cleanup. See [Certificate awards](../../docs/qa/CERTIFICATE_AWARDS.md#protected-selected-status-evaluation) for existing schema requirements and the isolated SQL test.
 
 ### Protected Preview club equipment readback
 

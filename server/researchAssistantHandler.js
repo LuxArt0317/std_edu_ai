@@ -683,7 +683,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
         if(elearning){stream.send(200,elearningGuide(input.question,elearning));return;}
         const counseling=!kind.irrelevant&&counselingQuestion(input.question);
         if(counseling){stream.send(200,counselingGuide(input.question,counseling));return;}
-        const certificateAward=!input.images.length&&!kind.irrelevant&&certificateAwardQuestion(input.question);
+        const certificateAward=!input.images.length&&!kind.irrelevant&&certificateAwardQuestion(input.question,input.route);
         if(certificateAward){stream.send(200,certificateAwardGuide(input.question,certificateAward));return;}
         const announcementEmail=!input.images.length&&!kind.irrelevant&&announcementEmailQuestion(input.question);
         if(announcementEmail){stream.send(200,announcementEmailGuide(input.question,announcementEmail));return;}

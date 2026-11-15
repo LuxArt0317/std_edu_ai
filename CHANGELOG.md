@@ -9,6 +9,8 @@
 
 - Check Certificate Awards status against the selected application. Evaluate the selected, aggregate and crossed-account responses on protected Preview. [#100]
 
+- Answer certificate award status and saved amounts from the selected record. Explicitly mark bank receipt as unverified when asked. [#100]
+
 - Show teaching-feedback submission and review times in the requested time zone. Verify both requested views separately, honor exclusions, and keep saved review status distinct from teacher delivery. [#100]
 
 - Exercise Moodle assignment empty lists, sample fallback, foreign-course requests, and the display limit with both caller readbacks in protected evaluation. [#100]

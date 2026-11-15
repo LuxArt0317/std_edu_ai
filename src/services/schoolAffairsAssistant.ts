@@ -98,7 +98,7 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
   if (clubs) return clubGuide(question, clubs, true);
   const elearning=elearningQuestion(question,route);
   if(elearning)return elearningGuide(question,elearning,true);
-  const certificate=!images.length&&certificateAwardQuestion(question);
+  const certificate=!images.length&&certificateAwardQuestion(question,route);
   if(certificate==='guide')return askCampusAssistant(question,[],signal,[],route,onProgress);
   if(certificate==='status'){
     onProgress?.({kind:'certificate-awards',label:'Checking certificate applications',detail:'Reading your saved application status.',status:'running'});

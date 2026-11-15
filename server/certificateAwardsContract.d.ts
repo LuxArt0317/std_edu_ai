@@ -16,4 +16,6 @@ export type CertificatePayout={bank:string;branch:string;account_last_four:strin
 export type CertificateWorkspace={userId:string;identity:{studentNumber:string;name:string}|null;payout:CertificatePayout|null;rows:CertificateAwardRow[];files:CertificateProof[]};
 export type CertificateAwardReceipt={id:string;version:number;status?:AwardStatus;fileId?:string;path?:string};
 export function certificateAwardRecordId(route:string):string|null;
-export function certificateAwardQuestion(question:string):'guide'|'status'|null;
+export const certificateAwardBankReceiptNote: readonly [string,string];
+export function certificateAwardBankReceiptQuestion(question:string):boolean;
+export function certificateAwardQuestion(question:string,route?:string):'guide'|'status'|null;

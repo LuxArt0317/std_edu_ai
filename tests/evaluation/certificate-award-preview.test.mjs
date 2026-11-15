@@ -27,16 +27,19 @@ test('the packet freezes caller, route, language and positive and denied status 
   const plan=buildCertificateAwardPreviewPlan(runId,owners,'d'.repeat(64)),cases=bindCertificateAwardPreviewCases(plan);
   assert.deepEqual(cases.map(row=>[row.role,row.testCase.language,row.testCase.expected.statusCode,row.recordId]),[
     ['A','en',200,plan.targets.selected],['A','zh',200,plan.targets.selected],['B','en',200,plan.targets.second],
-    ['A','en',404,plan.targets.second],['B','zh',404,plan.targets.selected],['A','en',404,plan.targets.missing],['A','en',200,null],
+    ['A','en',404,plan.targets.second],['B','zh',404,plan.targets.selected],['A','en',404,plan.targets.missing],
+    ['A','en',200,null],['A','en',200,plan.targets.newer],
   ]);
   assert.deepEqual(cases.map(row=>row.testCase.id),certificateAwardPreviewManifest().map(row=>row.id));
   for(const {testCase,recordId} of cases){
     assert.equal(certificateAwardQuestion(testCase.question),'status');
     assert.equal(certificateAwardRecordId(testCase.route),recordId);
   }
-  assert.equal(cases.at(-1).expectedRows.length,2);
+  assert.equal(cases.at(-2).expectedRows.length,2);
   assert.match(cases[0].expectedRows[0],/Under review · NT\$0$/u);
-  assert.match(cases.at(-1).expectedRows[0],/Approved · NT\$900$/u);
+  assert.match(cases.at(-2).expectedRows[0],/Approved · NT\$900$/u);
+  assert.deepEqual(cases.filter(row=>row.bankReceipt),[cases.at(-1)]);
+  assert.deepEqual(cases.at(-1).expectedRows,['- 財產保險業務員專業科目資格測驗 · Approved · NT$900']);
   assert.throws(()=>bindCertificateAwardPreviewCases({...plan,targets:{...plan.targets,selected:plan.targets.newer}}));
 });
 
@@ -67,7 +70,7 @@ function pgliteSql(db){
   };
 }
 
-test('migrated PostgreSQL and the actual handler pass all seven frozen observations with exact disposal', {skip:!runtime}, async t=>{
+test('migrated PostgreSQL and the actual handler pass all eight frozen observations with exact disposal', {skip:!runtime}, async t=>{
   assert.ok(isAbsolute(runtime),'Supply an existing PGlite runtime entry. This test never installs a package.');
   const {PGlite}=await import(pathToFileURL(runtime).href),db=new PGlite();
   const previousUrl=process.env.VITE_SUPABASE_URL,previousKey=process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -132,7 +135,7 @@ test('migrated PostgreSQL and the actual handler pass all seven frozen observati
     {users,origin:project,publishable:key,fetchImpl:directFetch,readResponse})});
   const initial=await observe();
   assert.deepEqual(initial.callers.map(({role,target,status})=>[role,target,status]),[
-    ['A','selected',200],['A','second',404],['B','selected',404],['B','second',200],
+    ['A','selected',200],['A','second',404],['A','newer',200],['B','selected',404],['B','second',200],['B','newer',404],
   ]);
   for(const bound of bindCertificateAwardPreviewCases(plan)){
     const token=users.find(user=>user.id===owners[bound.role].id).token,checkpoint=calls.length;
