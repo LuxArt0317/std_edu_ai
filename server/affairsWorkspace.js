@@ -145,6 +145,13 @@ function ownChargeAmount(value){
   const amount=Number(value);
   return Number.isFinite(amount)&&amount>=0&&amount<=9999999999.99&&Number(amount.toFixed(2))===amount;
 }
+function validExactOwnCharge(row){
+  const validText=value=>typeof value==='string'&&!/[\0\ud800-\udfff]/u.test(value);
+  return ['sample','verified'].includes(row.source_mode)&&[row.amount_due,row.amount_paid].every(ownChargeAmount)
+    &&Number(row.amount_paid)<=Number(row.amount_due)&&validText(row.label)
+    &&row.currency.length<=32&&!/[\p{Cc}\ud800-\udfff]/u.test(row.currency)
+    &&['due_on','occurrence_on','category','contact_unit','contact_extension','payment_unit'].every(key=>row[key]==null||validText(row[key]));
+}
 function mapAffairsCharge(row) {
   return {id:row.id,label:row.label,amountDue:Number(row.amount_due),amountPaid:Number(row.amount_paid),
     currency:row.currency,dueOn:row.due_on,sourceMode:row.source_mode,occurrenceOn:row.occurrence_on??null,
@@ -228,8 +235,9 @@ export async function loadOwnAffairsActionContext(account,selection,{deadline=Da
   return context;
 }
 
-/** Read only the caller's charges. First-use provisioning belongs to the workspace. */
-export async function loadOwnAffairsCharges(account,{deadline=Date.now()+12000,observeRead}={}) {
+/** Read only the caller's charges. Exact paired answers require evidence that
+ * satisfies the charge formatter before it can reach fallback composition. */
+export async function loadOwnAffairsCharges(account,{deadline=Date.now()+12000,observeRead,requireExactProjection=false}={}) {
   const userId=account?.user?.id;
   if(typeof userId!=='string'||!chargeUuid.test(userId)||account.url!=='https://xiftudmvxphxcjtmfmib.supabase.co'
     ||typeof account.token!=='string'||!account.token.trim()||typeof account.key!=='string'||!account.key.trim())
@@ -249,8 +257,8 @@ export async function loadOwnAffairsCharges(account,{deadline=Date.now()+12000,o
   for(const row of rows){
     if(row?.student_id!==student.id||typeof row.id!=='string'||!chargeUuid.test(row.id)||ids.has(row.id)
       ||typeof row.label!=='string'||!row.label.trim()||typeof row.currency!=='string'||!row.currency.trim()
-      ||!['sample','verified'].includes(row.source_mode)||![row.amount_due,row.amount_paid].every(ownChargeAmount)
-      ||Number(row.amount_paid)>Number(row.amount_due))
+      ||![row.amount_due,row.amount_paid].every(amount=>(typeof amount==='number'||typeof amount==='string'&&amount.trim())&&Number.isFinite(Number(amount)))
+      ||requireExactProjection&&!validExactOwnCharge(row))
       throw new AffairsWorkspaceError('The fee records could not be verified.');
     ids.add(row.id);
   }

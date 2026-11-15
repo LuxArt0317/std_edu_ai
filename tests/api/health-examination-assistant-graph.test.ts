@@ -318,10 +318,17 @@ test('malformed, denied, ambiguous, or doubly unavailable paired reads cannot us
   t.after(()=>{if(originalKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=originalKey;});
   let scenario='wrong-health-owner';
   let providerCalls=0;
+  const invalidChargeModes=['wrong-charge-owner','invalid-charge-shape','invalid-charge-amount','invalid-charge-source','invalid-charge-metadata'];
+  const modelChargeStates:Array<{records:unknown;unavailableReason?:string}>=[];
   t.mock.method(globalThis,'fetch',async(input:URL,init:RequestInit)=>{
     const url=new URL(input);
     if(url.hostname==='api.openai.com'){
       providerCalls++;
+      if(invalidChargeModes.includes(scenario)){
+        const request=JSON.parse(String(init.body)),payload=JSON.parse(request.input[0].content[0].text);
+        const source=payload.evidence.find((item:{id:string})=>item.id==='account:charges');
+        if(source)modelChargeStates.push(JSON.parse(source.content));
+      }
       return Response.json({error:{code:'insufficient_quota',type:'insufficient_quota'}},{status:429});
     }
     assert.equal(url.origin,account.url);
@@ -339,18 +346,24 @@ test('malformed, denied, ambiguous, or doubly unavailable paired reads cannot us
     if(scenario==='wrong-charge-owner')return Response.json([{...due,student_id:owner}]);
     if(scenario==='invalid-charge-shape')return Response.json({records:[due]});
     if(scenario==='invalid-charge-amount')return Response.json([{...due,amount_paid:50000}]);
+    if(scenario==='invalid-charge-source')return Response.json([{...due,source_mode:'unknown'}]);
+    if(scenario==='invalid-charge-metadata')return Response.json([{...due,contact_unit:{value:'Unvalidated field'}}]);
     if(scenario==='duplicate-charge')return Response.json([due,{...due,id:'37000000-0000-4000-8000-000000000002'}]);
     return Response.json(scenario==='empty-charge'?[]:[due]);
   });
-  for(const mode of ['wrong-health-owner','invalid-health-shape','health-denied','wrong-charge-owner','invalid-charge-shape',
-    'charge-denied','double-outage','empty-charge','duplicate-charge','invalid-charge-amount']){
+  for(const mode of ['wrong-health-owner','invalid-health-shape','health-denied','charge-denied','double-outage','empty-charge','duplicate-charge',...invalidChargeModes]){
     scenario=mode;
+    modelChargeStates.length=0;
     const before=providerCalls;
     const result=await call(handler(caller),frozen.question,frozen.route);
     assert.equal(result.status,200,mode);
     assert.ok(result.steps.every(step=>step.kind!=='health-examination-evidence-check'),mode);
     assert.notEqual(result.body.verification.status,'verified',mode);
     assert.ok(providerCalls>before,mode);
+    if(invalidChargeModes.includes(mode)){
+      assert.ok(modelChargeStates.length,mode);
+      for(const evidence of modelChargeStates){assert.deepEqual(evidence.records,[],mode);assert.equal(evidence.unavailableReason,'read_failed',mode);}
+    }
     assert.doesNotMatch(JSON.stringify(result.body),/PRIVATE_NUMBER|PRIVATE_NAME|PRIVATE_CLASS|36000000|37000000/u,mode);
     assert.ok(result.body.views.every((view:{id:string})=>view.id!=='charges'),mode);
   }

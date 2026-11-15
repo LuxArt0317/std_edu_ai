@@ -795,6 +795,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     &&standaloneFeeBalanceLabel(scopedQuestion)!==null?scopedQuestion:null;
   const standaloneChargeLabel=question===requestedQuestion?standaloneFeeBalanceLabel(excludedHealthFee??question):null;
   const chargeLabel=excludedNoteFeeLabel??pageContext.feeChargeLabel??(assignmentFees?ownFeeBalanceLabel(assignment.otherQuestion):housingFees?ownFeeBalanceLabel(housing.otherQuestion):teachingFees?ownFeeBalanceLabel(studyQuestion):noteFees?ownFeeBalanceLabel(notes.otherQuestion):aidFees?ownFeeBalanceLabel(aid.otherQuestion):aid.excluded?ownFeeBalanceLabel(question):scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):standaloneChargeLabel);
+  const pairedHealthCharge=pageContext.feeAndBalance&&chargeLabel!==null&&chargeLabel===pageContext.feeChargeLabel
+    &&pageContext.tools.length===1&&pageContext.tools[0]==='healthExaminations';
   const chargesOnly=assignmentFees||isOwnFeeBalanceQuestion(aid.excluded?question:scopedQuestion)||pageContext.feeAndBalance||aidFees||teachingFees||housingFees||chargeLabel!==null&&!noteFees;
   const exactBalance=(question===requestedQuestion||question===resolvedFee)
     &&(chargeLabel?chargeLabel===standaloneChargeLabel:isOwnFeeBalanceQuestion(question)
@@ -860,7 +862,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     else stream.progress('account','Loading your account records',currentStudyScope==='courses_and_year'?'Checking your School Affairs subjects and recorded year level.':currentStudyScope||timetableOnly?'Checking the timetable linked to this Google account.':chargesOnly?'Checking only the fees linked to this Google account.':'Checking School Affairs and DTM records for this signed-in Google account.');
     const loadCharges=async()=>{
       try{
-        const saved=await loadOwnAffairsCharges(account,{deadline});
+        const saved=await loadOwnAffairsCharges(account,{deadline,requireExactProjection:pairedHealthCharge});
         const normalize=(value:string)=>value.normalize('NFKC').trim().toLowerCase();
         const selected=chargeLabel?{...saved,chargeSelectionLabel:chargeLabel,charges:saved.charges.filter(row=>normalize(row.label)===normalize(chargeLabel))}:saved;
         return exactBalance?{...selected,feeBalanceScope:true}:selected;
@@ -868,7 +870,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         if(!exactBalance&&!assignmentFees&&!pageContext.feeAndBalance&&!noteFees&&!excludedNoteFeeLabel&&!aidFees&&!teachingFees&&!housingFees)throw error;
         const charges:Awaited<ReturnType<typeof loadOwnAffairsCharges>>['charges']=[];
         return {...scopedSnapshot(),charges,chargeReadUnavailable:true,...(exactBalance?{feeBalanceScope:true}:{}),
-          ...(pageContext.feeChargeLabel!==null&&pageContext.tools.includes('healthExaminations')&&error instanceof AffairsWorkspaceReadUnavailableError?{chargeReadFailed:true}:{}),
+          ...(pairedHealthCharge&&error instanceof AffairsWorkspaceReadUnavailableError?{chargeReadFailed:true}:{}),
           ...(chargeLabel?{chargeSelectionLabel:chargeLabel}:{})};
       }
     };
