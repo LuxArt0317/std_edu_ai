@@ -41,7 +41,7 @@ function cleanResult(value: unknown): AssistantResponse | undefined {
     if (!value || typeof value !== 'object') return [];
     const citation = value as Record<string,unknown>;
     if (typeof citation.url !== 'string' || !(/^(https?:\/\/|\/(?!\/))/.test(citation.url)) || typeof citation.title !== 'string') return [];
-    return [{chunkId:boundedAssistantText(String(citation.chunkId||citation.url),200),claim:boundedAssistantText(String(citation.claim||''),300),title:boundedAssistantText(citation.title,200),sourceName:boundedAssistantText(String(citation.sourceName||''),160),url:boundedAssistantText(citation.url,2000),locator:typeof citation.locator==='string'?boundedAssistantText(citation.locator,500):null,effectiveAt:typeof citation.effectiveAt==='string'?boundedAssistantText(citation.effectiveAt,50):null,reviewedAt:typeof citation.reviewedAt==='string'?boundedAssistantText(citation.reviewedAt,50):null}];
+    return [{chunkId:boundedAssistantText(String(citation.chunkId||citation.url),200),claim:boundedAssistantText(String(citation.claim||''),300),title:boundedAssistantText(citation.title,200),sourceName:boundedAssistantText(String(citation.sourceName||''),160),url:boundedAssistantText(citation.url,2000),locator:boundedAssistantText(citation.locator,500)||null,effectiveAt:boundedAssistantText(citation.effectiveAt,50)||null,reviewedAt:boundedAssistantText(citation.reviewedAt,50)||null}];
   }) : [];
   return {
     answer:boundedAssistantText(result.answer,8000),status:result.status as AssistantResponse['status'],citations,
@@ -55,7 +55,7 @@ function cleanResult(value: unknown): AssistantResponse | undefined {
     activity:mergeAssistantActivity([],Array.isArray(result.activity)?result.activity:[]),
     ...(verification && ['verified','unverified'].includes(String(verification.status)) && Number.isInteger(verification.attempts) && Number(verification.attempts)>=0 && Number(verification.attempts)<=2
       ? {verification:{status:verification.status as 'verified'|'unverified',attempts:Number(verification.attempts)}} : {}),
-    ...(grounding?{grounding:{source:typeof grounding.source==='string'?boundedAssistantText(grounding.source,80):undefined,webSearched:grounding.webSearched===true,checkedAt:typeof grounding.checkedAt==='string'?boundedAssistantText(grounding.checkedAt,50):undefined,degraded:grounding.degraded===true}}:{}),
+    ...(grounding?{grounding:{source:boundedAssistantText(grounding.source,80),webSearched:grounding.webSearched===true,checkedAt:boundedAssistantText(grounding.checkedAt,50),degraded:grounding.degraded===true}}:{}),
   };
 }
 
