@@ -115,22 +115,22 @@ export function clearanceApplicationFixtureForCase(testCase){
 const clean=value=>String(value).replace(/\[([^\]]+)\]\([^)]*\)/gu,'$1').replace(/[`*]/gu,'').normalize('NFKC').trim().toLowerCase();
 const contains=(text,label)=>{const escaped=label.replace(/[.*+?^${}()|[\]\\]/gu,'\\$&');return new RegExp('(?<![\\p{L}\\p{N}])'+escaped+'(?![\\p{L}\\p{N}])','iu').test(text);};
 /** A parent heading may supply the term; every office starts its own record. */
-function reviewBlocks(answer){
+function reviewBlocks(answer,termLabels){
   const blocks=[];let term=null,current=null;const flush=()=>{if(current)blocks.push(current);current=null;};
   for(const raw of String(answer).split(/\r?\n/u)){
     const line=clean(raw);if(!line){flush();continue;}
-    const named=terms.filter(t=>contains(line,t.toLowerCase()));if(named.length>1){flush();term=null;continue;}if(named.length){flush();term=named[0];}
+    const named=termLabels.filter(t=>contains(line,clean(t)));if(named.length>1){flush();term=null;continue;}if(named.length){flush();term=named[0];}
     const found=Object.entries(officeLabels).filter(([,aliases])=>aliases.some(alias=>contains(line,alias))).map(([office])=>office);
     if(found.length===1&&term){if(current?.term===term&&current.office===found[0])current.text+='; '+line;else{flush();current={term,office:found[0],text:line};}}else if(found.length>1)flush();
     else if(current&&/^\s+/u.test(raw))current.text+='; '+line;else if(!named.length)flush();
   }flush();return blocks;
 }
 function visibleValues(value){const result=[];const visit=item=>{if(typeof item==='string')result.push(item);else if(Array.isArray(item)){if(item.length>1&&item.every(cell=>['string','number','boolean'].includes(typeof cell)))result.push(item.join(': '));item.forEach(visit);}else if(item&&typeof item==='object')Object.values(item).forEach(visit);};visit(value);return result;}
-function viewReviewBlocks(views){return (Array.isArray(views)?views:[]).flatMap(view=>{
+function viewReviewBlocks(views,termLabels){return (Array.isArray(views)?views:[]).flatMap(view=>{
   if(!view||!Array.isArray(view.columns)||!Array.isArray(view.rows))return [];
   const parent=typeof view.title==='string'?view.title:'';
   return view.rows.flatMap(row=>Array.isArray(row)&&row.length===view.columns.length
-    ?reviewBlocks(parent+'\n'+row.map((cell,index)=>String(view.columns[index])+': '+String(cell)).join('; ')):[]);
+    ?reviewBlocks(parent+'\n'+row.map((cell,index)=>String(view.columns[index])+': '+String(cell)).join('; '),termLabels):[]);
 });}
 
 export function gradeClearanceApplicationCase(testCase,envelope,{observation,now}={}){
@@ -168,7 +168,13 @@ export function gradeClearanceApplicationCase(testCase,envelope,{observation,now
     }
     check('clearance.noHiddenProjection',Boolean(payload)&&!/(?:16100000|PRIVATE|FOREIGN|"(?:candidate|track|international|version|userId|targetId)":)/u.test(JSON.stringify(payload)),'No identity, staff or candidate projection.');
   }
-  const blocks=[...reviewBlocks(envelope?.body?.answer??''),...viewReviewBlocks(envelope?.body?.views)];
+  checkVisibleClearanceFacts(canonical,envelope,check,terms);
+  if(canonical.clockBinding){let valid=false;try{valid=assertPublishedNextClassClock(canonical.clockBinding,{now}).valid;}catch{/* Setup failure; do not rebase after the answer. */}check('clearance.clock',valid,'Immutable pre-request next-class clock remains valid.');}
+  const all=[...base.checks,...checks];return {...base,checks:all,failures:all.filter(row=>!row.passed),passed:all.every(row=>row.passed)};
+}
+
+function checkVisibleClearanceFacts(canonical,envelope,check,termLabels){
+  const blocks=[...reviewBlocks(envelope?.body?.answer??'',termLabels),...viewReviewBlocks(envelope?.body?.views,termLabels)];
   for(const [index,pair]of canonical.clearancePairs.entries()){
     const contexts=blocks.filter(row=>row.term===pair.term&&row.office===pair.office),match=context=>{
       if(/\b(?:another|other|foreign) (?:student|account|person)|\balice(?:['’]s)?\b/iu.test(context.text))return false;
@@ -187,6 +193,26 @@ export function gradeClearanceApplicationCase(testCase,envelope,{observation,now
   check('clearance.unrequestedNotes',notes.filter(note=>!canonical.allowedNotes.includes(note)).every(note=>!visible.some(value=>value.includes(note))),'Unrequested notes stay absent from prose/cards/citations.');
   check('clearance.noOfficialInference',!visible.flatMap(value=>value.split(/[.!?\n]/u)).some(value=>!/\b(?:not|no|cannot|can't|doesn't|unavailable|unsupported|do not|don't)\b|不|無法|沒有|未/iu.test(value)
     &&/\b(?:eligible to graduate|degree (?:is |was )?(?:awarded|issued)|university (?:has )?confirmed|officially cleared|successfully (?:submitted|approved|cancelled)|(?:I|we) (?:have |just )?(?:submitted|approved|cancelled|changed)|certificate (?:is )?ready|download (?:your|the) (?:official )?certificate)\b/iu.test(value)),'Local status is not an official outcome, performed action or document.');
-  if(canonical.clockBinding){let valid=false;try{valid=assertPublishedNextClassClock(canonical.clockBinding,{now}).valid;}catch{/* Setup failure; do not rebase after the answer. */}check('clearance.clock',valid,'Immutable pre-request next-class clock remains valid.');}
-  const all=[...base.checks,...checks];return {...base,checks:all,failures:all.filter(row=>!row.passed),passed:all.every(row=>row.passed)};
+}
+
+
+/** Score response evidence only. The protected operator separately proves native page and SQL state. */
+export function gradeBoundClearanceStatusReply(caseId,envelope,termLabels){
+  const canonical=buildClearanceApplicationCases().find(row=>row.id===caseId);
+  if(!canonical||canonical.clockBinding
+    ||canonical.nativeExpectation.periodsSelected&&canonical.nativeExpectation.periodsReturned!==0
+    ||canonical.nativeExpectation.calls!==1||termLabels.length!==2)throw new Error('Unknown clearance status case.');
+  const labels=new Map(terms.map((term,index)=>[term,termLabels[index]]));
+  const bound=structuredClone(canonical);
+  bound.clearancePairs=bound.clearancePairs.map(pair=>({...pair,term:labels.get(pair.term)}));
+  bound.expected.exactLists=bound.expected.exactLists.map(list=>({...list,expected:list.expected.map(label=>labels.get(label))}));
+  bound.expected.forbiddenText=bound.expected.forbiddenText.map(value=>labels.get(value)??value);
+  bound.expected.requiredAttemptedTools=['graduationClearance'];
+  bound.expected.requiredTools=['graduationClearance'];
+  bound.expected.allowedTools=['graduationClearance'];
+  bound.expected.requireToolExecution=true;
+  bound.expected.forbidPublicResearch=true;
+  const base=gradeCase(bound,{...envelope,fixtureKey:bound.fixtureKey}),checks=[];
+  checkVisibleClearanceFacts(bound,envelope,(id,passed)=>checks.push({id,passed}),termLabels);
+  return [...base.failures,...checks.filter(row=>!row.passed)].map(row=>row.id);
 }
