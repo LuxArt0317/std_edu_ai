@@ -1,3 +1,4 @@
+import * as actions from '../../server/accountActionIntent.js';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
@@ -56,6 +57,7 @@ test('compiled client selects account verification before older direct readers a
   let caller=leaveFixtureOwner;
   const exports={},requests=[];
   runInNewContext(code,{exports,require:specifier=>{
+    if(specifier.endsWith('accountActionIntent.js'))return actions;
     if(specifier.endsWith('dtmMaterialIntent.js'))return materialIntent;
     if(specifier.endsWith('internshipEvidenceIntent.js'))return internshipIntent;
     if(specifier.endsWith('studentLeaveEvidenceIntent.js'))return leaveIntent;

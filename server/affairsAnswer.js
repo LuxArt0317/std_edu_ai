@@ -1,3 +1,4 @@
+import {prepareAccountAction} from './accountAssistantActions.js';
 import {studyCalendar} from './affairsSchedule.js';
 import {answerDtmRecords,answerStudentServiceRecords} from './dtmAnswer.js';
 import {accountQueryByService,schoolSubjectRecordsPath} from '../src/features/public/affairs/studentServices.js';
@@ -343,35 +344,6 @@ export function fallbackPrivateAnswer(question,snapshot) {
   return prefix+`You are signed in as ${snapshot.profile.displayName} (${snapshot.profile.email}). ${student?`Your sample student number is ${student.studentNumber}; program: ${student.program}; year ${student.yearLevel}.`:'No student record is linked.'} You can ask about courses, timetable, practice grades, fees, notices, tasks, or requests.`;
 }
 
-function proposalFromModel(result,snapshot) {
-  const kind=result?.action_kind;
-  const title=typeof result?.action_title==='string'?result.action_title.trim():'';
-  const details=typeof result?.action_details==='string'?result.action_details.trim():'';
-  if (kind==='create_task' && title.length>=3 && title.length<=160)
-    return {kind,label:`Create task: ${title}`,payload:{title}};
-  if (kind==='complete_task' && snapshot.tasks.some(row=>row.id===result.action_id && !row.completedAt))
-    return {kind,label:`Complete task: ${snapshot.tasks.find(row=>row.id===result.action_id).title}`,payload:{task_id:result.action_id}};
-  if (kind==='create_service_request' && title.length>=3 && title.length<=160 && details.length>=5 && details.length<=2000 && ['records','registration','general'].includes(result.request_type))
-    return {kind,label:`Submit stu.best request: ${title}`,payload:{title,details,request_type:result.request_type}};
-  if (kind==='publish_announcement' && snapshot.profile.role==='admin' && title.length>=3 && title.length<=160 && details.length>=5 && details.length<=2000)
-    return {kind,label:`Publish stu.best announcement: ${title}`,payload:{title,body:details}};
-  return null;
-}
-function fallbackProposal(question,snapshot) {
-  const create=question.match(/^(?:please\s+)?(?:remind me to|add (?:a )?task(?: to|:)?|create (?:a )?task(?: to|:)?|新增待辦[:：]?|建立任務[:：]?)\s+(.+)$/i);
-  if (create) {
-    const title=create[1].trim().replace(/[.!。！]+$/,'');
-    if (title.length>=3 && title.length<=160) return {kind:'create_task',label:`Create task: ${title}`,payload:{title}};
-  }
-  const complete=question.match(/^(?:please\s+)?(?:complete|finish|mark done)\s+(?:my |the )?(?:task\s+)?["“]?(.+?)["”]?[.!]?$/i);
-  if (complete) {
-    const title=complete[1].trim().replace(/[.!]+$/,'').toLowerCase();
-    const matches=snapshot.tasks.filter(row=>!row.completedAt && row.title.toLowerCase()===title);
-    if (matches.length===1) return {kind:'complete_task',label:`Complete task: ${matches[0].title}`,payload:{task_id:matches[0].id}};
-  }
-  return null;
-}
-
 export async function answerPrivateAffairsQuestion(question,snapshot,history=[],route='',options={}) {
   route=route.replace(/\/+$/,'');
   const intent=accountQuestionIntent(question,history,route);
@@ -393,7 +365,7 @@ export async function answerPrivateAffairsQuestion(question,snapshot,history=[],
   const savedNotes=answerSavedServiceRecords(question,snapshot,route,history);
   if(savedNotes)return {...savedNotes,grounding:{...savedNotes.grounding,degraded:false},
     activity:[{kind:'account',label:'Checked your saved service notes',detail:'Only selected account-owned local notes and tracking statuses were read; no official submission or approval is implied.',status:'complete'}]};
-  let answer=fallbackPrivateAnswer(question,snapshot),proposedAction=fallbackProposal(question,snapshot),modelUsed=false;
+  let answer=fallbackPrivateAnswer(question,snapshot),proposedAction=options.draftOnly?undefined:prepareAccountAction(question,snapshot).action,modelUsed=false;
   const deterministic=/\b(?:subjects?|classes|courses|lessons|timetable|schedule|assignments?|homework|submissions?|coursework|tuition|fees?|charges?|balance|payments?|grades?|attendance|notices?|announcements?|tasks?|requests?|moodle|dtm|digital teaching|tomorrow|next semester|next term|what can you do|what do you know about me|what details do you know about me)\b|課程|科目|課表|下堂課|下一門課|明天|下學期|作業|功課|繳交|學費|費用|繳費|成績|出席|公告|任務|待辦|申請|數位教材|教材網|我的.{0,12}(?:資料|資訊|詳情)|關於我/i.test(question);
   const apiKey=process.env.OPENAI_API_KEY;
   if (apiKey && !deterministic && !options.draftOnly) {
@@ -419,12 +391,12 @@ export async function answerPrivateAffairsQuestion(question,snapshot,history=[],
       if (response.ok) {
         const parsed=JSON.parse(outputText(await response.json()));
         if (typeof parsed.answer==='string' && parsed.answer.trim() && parsed.answer.length<=4000) {
-          answer=parsed.answer.trim();proposedAction=proposalFromModel(parsed,snapshot)||proposedAction;modelUsed=true;
+          answer=parsed.answer.trim();modelUsed=true;
         }
       }
     } catch { /* The database-backed answer remains available during model outages. */ }
   }
-  if (!modelUsed && proposedAction) answer=`I can ${proposedAction.label.toLowerCase()} in your stu.best workspace after you confirm. This does not change an official university record.`;
+  if (proposedAction) answer='Review the proposed change below. I’ll apply it to your stu.best account after you confirm.';
   if (!/sample|範例|示範|模擬/i.test(answer)) answer=`Sample stu.best workspace (not official university data): ${answer}`;
   return {status:'answered',answer,citations:[{chunkId:'affairs-account',claim:'Account-scoped stu.best School Affairs and DTM preview records',title:'My stu.best records',sourceName:'stu.best account',url:proposedAction ? '/school-affairs/records' : privateRecordPath(question),locator:null,effectiveAt:null,reviewedAt:snapshot.checkedAt}],suggestedQuestions:['What subjects do I have today?','When is my next class?','What assignments are due?','How much is my tuition balance?'],grounding:{source:'account',webSearched:false,checkedAt:snapshot.checkedAt,degraded:!modelUsed&&!deterministic},activity:[{kind:'account',label:'Read your stu.best account records',detail:'Only this Google account\'s School Affairs and DTM sample records were queried; official university and Nexus systems were not accessed.',status:'complete'}],...(proposedAction?{proposedAction}:{})};
 }

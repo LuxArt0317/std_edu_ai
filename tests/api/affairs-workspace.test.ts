@@ -61,7 +61,7 @@ test('model receives only the account snapshot and its action remains a proposal
   const result=await answerPrivateAffairsQuestion('Please help me remember to review orientation',snapshot);
   assert.equal(calls,1);
   assert.equal(result.proposedAction?.kind,'create_task');
-  assert.equal(result.proposedAction?.payload.title,'Review orientation');
+  assert.equal(result.proposedAction?.payload.title,'review orientation');
   assert.match(result.answer,/after you confirm/);
 });
 

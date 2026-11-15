@@ -1,3 +1,4 @@
+import {parseExplicitAccountAction} from './accountActionIntent.js';
 import {internshipAssistantPlan,internshipGuestAnswer} from './internshipAssistantPlan.js';
 import {studentConductScope} from './studentConductEvidenceScope.js';
 import {boundedAssistantText} from '../src/services/assistantActivityBudget.js';
@@ -354,6 +355,16 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const stream = createAssistantStream(input.stream, response);
+        const action=!input.images.length&&parseExplicitAccountAction(input.question);
+        if(action){
+            const zh=/[\u3400-\u9fff]/u.test(input.question);
+            const path=action.kind==='set_assignment_status'?'/dtm/assignments':'/school-affairs/records';
+            const url='/school-affairs/login?next='+encodeURIComponent(path);
+            const title=zh?'登入後確認變更':'Sign in to review a change';
+            stream.send(200,{status:'handoff',answer:'['+title+']('+url+')',citations:[{title,url}],suggestedQuestions:[],
+                grounding:{source:'directory',webSearched:false}});
+            return;
+        }
         const application=!input.images.length&&housingApplicationLookupContext(input.question,input.route,input.history);
         if(application&&(application.selection||application.navigation||application.foreign||application.excluded)){
             const guide=housingApplicationGuide(input.question,application);

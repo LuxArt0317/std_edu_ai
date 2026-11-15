@@ -1,3 +1,5 @@
+import {parseExplicitAccountAction} from '../server/accountActionIntent.js';
+import {answerRequestedAffairsAction} from '../server/answerRequestedAffairsAction.js';
 import type {VerificationProgress} from '../server/answerVerification.js';
 import {answerDtmMaterial} from '../server/accountDtmMaterialAnswer.js';
 import {dtmMaterialBoundary,dtmMaterialIntent} from '../server/dtmMaterialIntent.js';
@@ -242,6 +244,21 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const [step]=searchGuide.activity;
     stream.progress(step.kind,step.label,step.detail,step.status);
     stream.send(200,searchGuide);
+    return;
+  }
+  const actionRequest=parseExplicitAccountAction(question);
+  if(actionRequest){
+    if(Array.isArray(input?.images)&&input.images.length){
+      stream.send(400,{error:'Describe the requested change as text before reviewing it.'});
+      return;
+    }
+    try{
+      const result=await answerRequestedAffairsAction({account,question,selection:actionRequest,deadline,
+        onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
+      stream.send(200,result);
+    }catch{
+      stream.send(503,{error:'The requested change could not be checked.'});
+    }
     return;
   }
   const material=dtmMaterialIntent(question,route);

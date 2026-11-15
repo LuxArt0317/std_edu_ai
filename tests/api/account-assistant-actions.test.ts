@@ -5,16 +5,15 @@ import {accountRecordViews} from '../../server/accountRecordViews.js';
 import {sanitizeStoredConversation} from '../../server/assistantConversationData.js';
 const snapshot={profile:{role:'student',displayName:'Test'},tasks:[{id:'own-task',title:'Read chapter',completedAt:null}],assignments:[{id:'own-assignment',title:'Lab reflection',sourceMode:'personal',dtmCourseId:'own-course',status:'open'}]};
 test('action planner only prepares exact owned targets and asks on ambiguity or protected records',()=>{
-  assert.equal(prepareAccountAction({kind:'complete_task',target:'Read chapter'},'Complete Read chapter',snapshot).action?.payload.task_id,'own-task');
-  assert.match(prepareAccountAction({kind:'complete_task',target:'unknown'},'Complete unknown',snapshot).clarification!,/Which open task/);
-  assert.ok(prepareAccountAction({kind:'complete_task',target:'Read chapter'},'Complete Read chapter',{...snapshot,tasks:[...snapshot.tasks,...snapshot.tasks]}).clarification);
-  assert.ok(prepareAccountAction({kind:'publish_announcement',title:'Notice',details:'A notice'},'Publish notice',snapshot).clarification);
-  const plan={kind:'set_assignment_status',target:'Lab reflection',status:'submitted'};
-  const proposed=prepareAccountAction(plan,'Mark Lab reflection as submitted',snapshot).action!;
+  assert.equal(prepareAccountAction('Complete my task Read chapter',snapshot).action?.payload.task_id,'own-task');
+  assert.match(prepareAccountAction('Complete my task unknown',snapshot).clarification!,/Which open stu.best task/);
+  assert.ok(prepareAccountAction('Complete my task Read chapter',{...snapshot,tasks:[...snapshot.tasks,...snapshot.tasks]}).clarification);
+  assert.ok(prepareAccountAction('Publish an announcement titled Notice with body A notice.',snapshot).clarification);
+  const proposed=prepareAccountAction('Mark my personal assignment Lab reflection as submitted',snapshot).action!;
   assert.deepEqual(proposed.payload,{id:'own-assignment',status:'submitted',expected_status:'open'});assert.ok(proposed.requestId);assert.equal(proposed.url,'/dtm/course/own-course/assignments');
-  assert.ok(prepareAccountAction(plan,'Mark Lab reflection as submitted',{...snapshot,assignments:[{...snapshot.assignments[0],sourceMode:'sample'}]}).clarification);
-  assert.deepEqual(prepareAccountAction({kind:'update_display_name',title:'Surprise'},'What is my display name?',snapshot),{});
-  assert.equal(prepareAccountAction({kind:'update_display_name',title:'New name'},'Change my display name to New name',snapshot).action?.payload.expected_name,'Test');
+  assert.ok(prepareAccountAction('Mark my personal assignment Lab reflection as submitted',{...snapshot,assignments:[{...snapshot.assignments[0],sourceMode:'sample'}]}).clarification);
+  assert.deepEqual(prepareAccountAction('What is my display name?',snapshot),{});
+  assert.equal(prepareAccountAction('Change my display name to New name',snapshot).action?.payload.expected_name,'Test');
 });
 test('persisted messages remove executable proposals, image bytes, arbitrary fields and private reasoning',()=>{
   const messages=sanitizeStoredConversation([{id:'u',role:'user',content:'question',images:[{name:'photo.png',dataUrl:'data:image/png;base64,secret'}],token:'secret'},
