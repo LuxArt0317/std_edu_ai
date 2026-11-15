@@ -8,6 +8,7 @@ const date='\\d{4}-\\d{2}-\\d{2}';
 const courseTitle="[\\p{L}\\p{N}][\\p{L}\\p{N} '\\u2019.-]{0,79}";
 const detailQuestion=new RegExp(`^when and which periods was i absent for (${courseTitle})$`,'iu');
 const rollCallQuestion=new RegExp(`^what is the roll[- ]call timestamp for my (${date}) (${courseTitle}) absence$`,'iu');
+const termHoursQuestion=new RegExp(`^how many (?:term|semester) (absence|unexcused absence) hours (?:are (?:recorded|saved|stored)|do i have) (?:for|in) (?:my )?(${courseTitle})$`,'iu');
 const hours=/^(?:how many (?:absence and unexcused absence|unexcused absence|absence) hours (?:are recorded this term|did i have (?:this term|(?:last|this) (?:day|week|month)))|how many hours was i absent (?:last|this) (?:day|week|month)|what are my recorded absence and unexcused hours this term)$/iu;
 const plain=/^(?:(?:show(?: me)?|list|check) my (?:saved |current )?(?:(?:academic )?attendance (?:statistics|records)|absence details)|what attendance records are saved|my (?:academic )?attendance)(?: (?:for |in )?academic year\s*\d{1,4}\s+semester\s*(?:[123]|one|two|summer))?$/iu;
 const datedDetails=new RegExp(`^show(?: me)? my absence details on ${date}$`,'iu');
@@ -25,14 +26,14 @@ export function selectExactAcademicAttendance(question,route,history=[]){
   const selected=question.trim().replace(/\s+Use YYYY-MM-DD for dates\.$/iu,'').replace(/[?？。.!！]+$/u,'')
     .normalize('NFKC').replace(/\bmy(?=\d{4}-\d{2}-\d{2}\b)/iu,'my ');
   if(!isAcademicAttendanceQuestion(selected,path)||/[;；\n]|[.!?]\s+\S|\b(?:and|also|plus)\s+(?:my|show|can|make|delete|send|post)\b|並且|另外|其他學生|別人/iu.test(selected))return null;
-  const detail=detailQuestion.exec(selected),rollCall=rollCallQuestion.exec(selected);
-  if(!detail&&!rollCall&&!hours.test(selected)&&!plain.test(selected)&&!datedDetails.test(selected)&&!zhPlain.test(selected))return null;
-  const namedCourse=detail?.[1]??rollCall?.[2]??null;
+  const detail=detailQuestion.exec(selected),rollCall=rollCallQuestion.exec(selected),termHours=termHoursQuestion.exec(selected);
+  if(!detail&&!rollCall&&!termHours&&!hours.test(selected)&&!plain.test(selected)&&!datedDetails.test(selected)&&!zhPlain.test(selected))return null;
+  const namedCourse=detail?.[1]??rollCall?.[2]??termHours?.[2]??null;
   if(namedCourse&&/\b(?:and|or|also) (?:what|how|where|who|when|which|is|will|tell)\b|以及|還有/u.test(namedCourse.toLowerCase()))return null;
-  return {question:selected,route:path,courseTitle:namedCourse,rollCallOnly:Boolean(rollCall),
+  return {question:selected,route:termHours?academicAttendancePaths.statistics:path,courseTitle:namedCourse,rollCallOnly:Boolean(rollCall),
     fullStatistics:/\bstatistics\b|統計/iu.test(selected),
-    unexcusedOnly:/^how many unexcused|曠課時數$/iu.test(selected),
-    absenceOnly:/^how many absence hours |缺課時數$/iu.test(selected)};
+    unexcusedOnly:termHours?.[1].toLowerCase()==='unexcused absence'||/^how many unexcused|曠課時數$/iu.test(selected),
+    absenceOnly:termHours?.[1].toLowerCase()==='absence'||/^how many absence hours |缺課時數$/iu.test(selected)};
 }
 
 function buildCandidate(plan,result,checkedAt){
@@ -71,8 +72,8 @@ function buildCandidate(plan,result,checkedAt){
     lines.push(say('Specify a valid course date in YYYY-MM-DD format.','請輸入有效的 YYYY-MM-DD 課程日期。'));
   }else if(selection.reason)return null;
   else{
-    lines.push(say(`Saved local attendance records for academic year ${selection.academicYear}, semester ${selection.semester}.`,
-      `已儲存的 ${selection.academicYear} 學年第 ${selection.semester} 學期站內紀錄。`));
+    lines.push(say(`Saved local ${selected.length?'demonstration ':''}attendance records for academic year ${selection.academicYear}, semester ${selection.semester}.`,
+      `已儲存的 ${selection.academicYear} 學年第 ${selection.semester} 學期站內紀錄${selected.length?'（示範資料）':''}。`));
     if(!selected.length)lines.push(say('No saved attendance records match this selection.','沒有符合此查詢範圍的已儲存缺曠課紀錄。'));
     for(const row of selected){
       const name=display(row.courseTitle)+' ('+display(row.courseCode)+')';

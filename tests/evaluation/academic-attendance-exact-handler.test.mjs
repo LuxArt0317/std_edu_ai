@@ -4,6 +4,7 @@ import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {AffairsWorkspaceError} from '../../server/affairsWorkspace.js';
 import {selectExactAcademicAttendance} from '../../server/accountAcademicAttendanceAnswer.js';
 import {buildAccountCases} from './account-cases.mjs';
+import {buildServiceCases} from './service-cases.mjs';
 import {fixtureForCase,EVAL_OTHER_USER_ID,evalId} from './fixtures.mjs';
 import {gradeCase} from './grading.mjs';
 
@@ -77,6 +78,20 @@ test('actual 14-1 handler passes six frozen attendance case rubrics without a pr
     assert.equal(observed.body.proposedAction,undefined);
     assert.ok(observed.activity.some(({kind,status})=>kind==='academic-attendance-evidence-check'&&status==='complete'));
   });
+});
+
+test('the frozen named course term hours prompt uses the scoped statistics instead of the provider',async t=>{
+  const row=buildServiceCases().find(item=>item.id==='service:14-1:record');
+  const observed=await replay(t,{question:row.question,path:row.route,fixtureKey:row.fixtureKey,edit(records){
+    records.statistics.push({...records.statistics[0],id:evalId(1355),rowOrder:1,courseCode:'ST500',courseTitle:'Other saved studio',absenceHours:99});
+  }});
+  assert.deepEqual(observed.calls,[metadata,statistics]);
+  assert.deepEqual(observed.body.verification,{status:'verified',attempts:1});
+  const grade=gradeCase(row,{...observed,events:observed.activity,execution:'deterministic',fixtureKey:row.fixtureKey});
+  assert.deepEqual(grade.failures,[],observed.body.answer);
+  assert.doesNotMatch(observed.body.answer,/Other saved studio|Unexcused absence hours/u);
+  assert.equal(selectExactAcademicAttendance('How many term absence hours are stored for my Database Design and what is my tuition balance?',route),null);
+  assert.equal(selectExactAcademicAttendance('How many term unexcused absence hours are stored for my Database Design?',route+'/detail').route,route);
 });
 
 test('missing designation, failed reads and successful empty selection remain distinct',async t=>{
