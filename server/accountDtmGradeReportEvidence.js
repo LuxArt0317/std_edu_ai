@@ -125,11 +125,15 @@ export async function readDtmGradeReportEvidence(account,options={},dependencies
     const refersBack=followup.test(question)&&!nativeTopic.test(question)&&!otherDomain.test(question)&&! /\b[A-Z]{2,}[ -]?\d{2,}[A-Za-z]?\b/u.test(question)
       &&currentIntent(previous,{path:'/dtm',courseId:null});
     const userId=readAccount.user.id,context=refersBack||!currentIntent(question,route)?previous+'\n'+question:question;
+    let deadlineReached=false;
+    const checkDeadline=()=>{if(deadlineReached||Date.now()>=deadline)throw {evidenceDeadline:true};};
     const work=async()=>{
-      const check=()=>{if(Date.now()>=deadline)throw {evidenceDeadline:true};};
       const courses=[];let afterId,complete=false;
       for(let pageIndex=0;pageIndex<maxPages;pageIndex++){
-        check();const page=parseOverview(await loadOverview(readAccount,afterId?{afterId}:{}),userId,afterId);check();
+        checkDeadline();
+        const rawPage=await loadOverview(readAccount,afterId?{afterId}:{});
+        checkDeadline();
+        const page=parseOverview(rawPage,userId,afterId);
         courses.push(...page.courses);if(page.nextCursor===null){complete=true;break;}afterId=page.nextCursor;
       }
       const coverage={loaded:courses.length,complete,moreAvailable:!complete};
@@ -151,10 +155,20 @@ export async function readDtmGradeReportEvidence(account,options={},dependencies
       if(!courseId&&!detail)return projectOverview(courses,coverage,complete?null:'course_limit');
       if(!courseId&&complete&&courses.length===1){course=courses[0];courseId=course.id;}
       if(!courseId)return projectOverview(courses,coverage,complete?'choose_course':'course_limit',true);
-      selection={view:'report',courseId};check();const data=parseReport(await loadReport(readAccount,{courseId}),userId,courseId);check();
-      return projectReport(data,courseId,course||null,coverage,resolved);
+      selection={view:'report',courseId};
+      checkDeadline();
+      const rawReport=await loadReport(readAccount,{courseId});
+      checkDeadline();
+      return projectReport(parseReport(rawReport,userId,courseId),courseId,course||null,coverage,resolved);
     };
-    const result=await Promise.race([Promise.resolve().then(work),new Promise((_,reject)=>{timer=setTimeout(()=>reject({evidenceDeadline:true}),Math.max(1,deadline-Date.now()));})]);
-    return Date.now()>=deadline?reply('unavailable','deadline_exceeded'):result;
+    const timeout=new Promise((_,reject)=>{
+      timer=setTimeout(()=>{
+        deadlineReached=true;
+        reject({evidenceDeadline:true});
+      },Math.max(1,deadline-Date.now()));
+    });
+    const result=await Promise.race([Promise.resolve().then(work),timeout]);
+    checkDeadline();
+    return result;
   }catch(error){return reply('unavailable',failureReason(error));}finally{clearTimeout(timer);}
 }

@@ -200,13 +200,35 @@ test('caller credentials, target and history are captured before any deferred re
   assert.deepEqual(seen[1].query,{courseId});assert.doesNotMatch(result.evidence.content,/PRIVATE_CHANGED/);
 });
 
-test('expired, hung and consumed shared deadlines cannot issue a later report read',async()=>{
+test('expired, hung and consumed shared deadlines cannot issue a later page or report read',async t=>{
   let calls=0;const deps={loadOverview:async()=>{calls++;return page();}};
   assert.equal((await readDtmGradeReportEvidence(account,{...options,deadline:Date.now()-1},deps)).reason,'deadline_exceeded');assert.equal(calls,0);
   const expired=await readDtmGradeReportEvidence({...account,requestDeadline:Date.now()-1},options,deps);assert.equal(expired.reason,'deadline_exceeded');assert.equal(calls,0);
-  let resolvePage!:(value:DtmGradeReportOverviewData)=>void,reports=0;
-  const pending=readDtmGradeReportEvidence(account,{...options,deadline:Date.now()+30},{loadOverview:()=>new Promise(resolve=>{resolvePage=resolve;}),loadReport:async()=>{reports++;return report();}});
-  const result=await pending;assert.equal(result.reason,'deadline_exceeded');resolvePage(page());await new Promise(resolve=>setTimeout(resolve,2));assert.equal(reports,0);
+  let reports=0;
+  const started=Date.now();
+  const frozenClock=t.mock.method(Date,'now',()=>started);
+  t.mock.timers.enable({apis:['setTimeout']});
+  try{
+    for(const latePage of [page(),{...page(),nextCursor:courseId}]){
+      let resolvePage!:(value:DtmGradeReportOverviewData)=>void,overviewReads=0;
+      const pending=readDtmGradeReportEvidence(account,{...options,deadline:started+30},{
+        loadOverview:()=>{overviewReads++;return new Promise(resolve=>{resolvePage=resolve;});},
+        loadReport:async()=>{reports++;return report();},
+      });
+      await Promise.resolve();
+      assert.equal(overviewReads,1);
+      // A timer may fire while the wall clock still reads before the deadline.
+      t.mock.timers.tick(30);
+      assert.equal((await pending).reason,'deadline_exceeded');
+      resolvePage(latePage);
+      await Promise.resolve();
+      assert.equal(overviewReads,1);
+      assert.equal(reports,0);
+    }
+  }finally{
+    t.mock.timers.reset();
+    frozenClock.mock.restore();
+  }
   const savedNow=Date.now;let clock=1000;Date.now=()=>clock;
   try{const result=await readDtmGradeReportEvidence({...account,requestDeadline:1010},{...options,deadline:50000},{loadOverview:async caller=>{assert.equal(caller.requestDeadline,1010);clock=1011;return page();},loadReport:async()=>{reports++;return report();}});
     assert.equal(result.reason,'deadline_exceeded');assert.equal(reports,0);
