@@ -986,3 +986,6 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Replay 265 signed-in routes in local Chromium, including admin denial and canonical Moodle links. Track missing native fixture coverage separately.
 - [x] Verify the confirmed Learning Support submit flow in isolated PostgreSQL and simulated app hosting, including lost-response and receipt retries.
 - [ ] Stage the pending Learning Support schema in an isolated hosted environment, test mounted real-data cases, and continue the wider semantic gates before promotion.
+- [x] Correct the three offline fixture harness bindings introduced by the materials replay. Verify all 30 affected tests, then check the Ready manifest of exact test-only `b0068ad` and re-run its 43 adaptive verification checks.
+- [x] Verify 10-1 and 16-1 clearance reads and denials in isolated PostgreSQL and the actual handler. Preserve existing grading predicates and verify no action receipts.
+- [ ] Review hosted term and period bindings, then mount the remaining Graduation Clearance cases on the protected release.
