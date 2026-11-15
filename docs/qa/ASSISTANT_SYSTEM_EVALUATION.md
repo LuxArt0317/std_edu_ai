@@ -279,3 +279,11 @@ The conversation migration was exercised in scratch PostgreSQL with two concurre
 The combined build passed 1,731 API and source checks, 1,153 offline evaluation checks, 541 unit tests, and both focused compiled Chromium suites. These tests cannot satisfy the pinned hosted transcript and live fixture gates.
 
 The compiled School Affairs inventory followed all 94 menu destinations under synthetic authentication and observed one enabled, visible launcher at every destination. The DTM and Digital Academy browser suites also passed. The menu inventory verifies navigation and launcher presence. It does not exercise each destination's records or workflow.
+
+## Selected records and protected conversation IDs
+
+The course catalog and syllabus reader uses the exact selected offering. Controlled requests distinguish a saved zero, a blank field and a failed lookup. Compiled Chromium completes synthetic Google sign-in from both selected routes and returns to the same record. The Digital Academy metadata reader checks the selected category or notice through the bounded read-only RPC. A signed-in attendance question reads the selected club-attendance page. Saved venue and tuition facts have independent verification so a temporary failure in one source can preserve the other.
+
+The new conversation runtime passed local Chromium and PostgreSQL checks alongside the previous production runtime. Both write orderings, caller isolation, bounded markers and replay of a late save were exercised. The four-prompt evaluator now uses a generated UUIDv7 through planning, journaling, reads, saves and reconciliation. Run `node --test tests/evaluation/transcript-*.test.mjs` for the offline contracts. The isolated PostgreSQL cutover test checks revocation and the insert guard after the old runtime drains. The cutover is a separate release step.
+
+The integrated candidate passed 1,763 API/source checks, 1,173 offline evaluator checks, 541 unit checks, and the compiled course catalog, Digital Academy and conversation suites. The evaluation inventory registers 1,277 questions, 94 services, 44 tools and 395 captures. Nineteen paths still lack semantic cases. The two additive migrations, live fixture bindings, the protected four-turn replay, independent review and systemwide hosted acceptance remain pending.

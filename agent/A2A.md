@@ -824,3 +824,9 @@ Root integrated catalog list and exact-search answers and checked both signed-in
 The ignored operator transport was corrected and verified against synthetic request and identity data, including the actual four-turn runner. The approved connection and fixture lease are still required for hosted replay. The original operator module remains untouched.
 
 Root integrated the scoped venue reader and local conversation ordering fix. Migration `20261115230000` must precede the new DELETE handler. Both orderings were verified with real PostgreSQL in a private scratch cluster, with no client schema change. Follow-up work for exact Digital Academy metadata and independent venue companion answers remains on separate lanes.
+
+### Scoped records and protected conversation handoff [Issue #100]
+
+Root integrated exact offering, Digital Academy category and notice, venue-plus-tuition and club attendance, plus the shared teaching timeout fix. The updated `20261115230000` is the additive versioned candidate. Use the preflight for its exact current SQL. Verify zero existing UUIDv7 conversation IDs with a count only and keep the verified legacy v4 behavior through Preview. The post-drain cutover is a separately reviewed change. Scratch QA fingerprints and exact SQL/browser logs are frozen in `/private/var/tmp/stu100-delete-v2-pg.vorsKm/SHA256SUMS`.
+
+The four-turn replay uses a generated protected chat ID through its durable journal and exact readbacks. The updated owner-only Preview adapter is `.stu100-recovery/preview-oidc-transport-v2.mjs` outside the source checkout. It passed a synthetic four-turn request and preserves the exact origin, operations, caller and conversation scope. Use only the authorized operator session and reserved fixture process for hosted execution. Current evidence leaves both client migrations and hosted replay open.

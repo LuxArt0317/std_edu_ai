@@ -1,6 +1,8 @@
 # Database migrations
 
-`20261115230000_assistant_conversation_delete_receipts.sql` serializes conversation deletion and saving under the existing per-account advisory lock. It records only the deleting account and conversation ID in a private table with no application grants. A late save for that account and deleted ID returns a conflict. The migration must run before releasing the new DELETE handler.
+`20261115230000_assistant_conversation_delete_receipts.sql` adds versioned conversation read, save and delete RPCs. The protected protocol serializes writes by account, bounds the number of private deletion markers, and closes the creation window for expired time-stamped IDs even if the database clock moves backward. Preflight must establish that the migration is pending and the existing table contains zero valid UUIDv7 IDs before the new policies hide that ID family from legacy direct reads. The migration must precede the v2 runtime. It keeps the currently deployed v4 direct read and delete behavior during coexistence. Removing legacy direct deletion and preventing fresh legacy inserts require a separate cutover after old runtimes have drained. Never edit an applied migration.
+
+`20261115110100_elearning_page_metadata.sql` adds a read-only, Google-session-gated RPC for the saved Digital Academy category tree and exact notices. It exposes a bounded projection of the published catalog and notice fields.
 
 `20261114150000_graduation_clearance.sql` adds term periods, account assignments, applications, office review rows and private replay receipts. It seeds no student records or dates.
 

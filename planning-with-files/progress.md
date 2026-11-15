@@ -82,3 +82,5 @@
 - 2026-11-15 [#100] Integrated the scoped venue request reader and fixed a TypeScript error in its acceptance test. Independently reproduced the late save and verified both fixed transaction orderings in scratch PostgreSQL. Integrated the owner-scoped deletion RPC and kept its migration local. Reran 1,731 API/source cases, 1,153 offline evaluation cases, 541 unit checks, build and both focused browser checks.
 
 - 2026-11-15 [#100] Verified an enabled assistant launcher at 94 of 94 School Affairs catalog destinations in the compiled local browser and passed the compiled DTM and Digital Academy suites. Recorded navigation separately from signed-in model and workflow acceptance.
+
+- 2026-11-15 [#100] Integrated scoped catalog, Digital Academy, venue-plus-tuition and attendance changes. Reproduced and fixed a shared teaching deadline issue and verified 1,763 API/source, 1,173 evaluator and 541 unit checks. Tested the protected conversation protocol beside the previous runtime in scratch PostgreSQL and Chromium. Corrected the evaluator's generated chat ID admission and replayed all four turns offline. Kept hosted validation and the eventual legacy cutover separate.

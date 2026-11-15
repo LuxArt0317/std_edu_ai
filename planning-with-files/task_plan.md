@@ -798,7 +798,9 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 
 - [x] Save and independently read back each of the four exact prompts in the offline endpoint replay.
 - [x] Journal request and conversation commitments and reconcile disposable account cleanup.
+- [x] Verify generated protected chat IDs from transcript preparation to stored readback and cleanup.
 - [x] Prevent unrelated companion reads on the reproduced housing scope failures and preserve Unicode follow-up history.
+- [ ] Verify and stage the two additive migrations on the exact client project, then validate legacy coexistence and the new RPCs against the protected candidate.
 - [ ] Execute the exact protected Preview with real model responses and verify cleanup.
 - [ ] Record independent helpfulness decisions and resolve failures before progressing to full-suite acceptance.
 
