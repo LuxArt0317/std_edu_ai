@@ -174,3 +174,13 @@ node tests/evaluation/run.mjs --mode live --case-family health-examination-metad
 ```
 
 The packet uses no report files, real student records or tuition fixtures. The controlled real-handler test intercepts transport and verifies zero report authorization or Storage requests. A hosted result grades the visible response and account-tool events and does not supply private provider or Storage telemetry. True-report availability, forced reader failures and tuition companions remain separate controlled or unmounted cases. This subset does not establish full release acceptance.
+
+### Protected Preview tutor evaluation
+
+The isolated 28-1 packet grades 11 current questionnaire reads. It covers saved and unsaved states, the submission time, exact numbered scores in English and Chinese, a literal or blank comment, comment exclusion, no verified student profile, and a conversation follow-up. The two disposable accounts have distinct submissions. An independent table query asks for both owners with each caller's credential and must return only that caller's row. A separate protected API read verifies the native questionnaire for each caller. The exact synthetic rows and request keys must match before and after every assistant question.
+
+```sh
+node tests/evaluation/run-tutor-evaluation-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVISION"
+```
+
+Use the authorized Development OIDC identity from the clean checkout of the pinned Preview revision. The operator uses only synthetic database fixtures and calls no submission or file endpoint. Cleanup reconciles the exact disposable questionnaire rows, request keys and linked identities. Its report retains case IDs, results and hashes without raw questionnaire replies. Unsupported semester/history, approval, delivery, identity and receipt requests have no corresponding native source. Separate action, guest/navigation, tuition companion and simulated read failure cases retain their own coverage status. The controlled handler test intercepts transport to verify no form submission or Storage request, while the hosted operator checks the response stream and unchanged saved rows.

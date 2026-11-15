@@ -29,7 +29,7 @@ export const tutorEvaluationCaseManifest=freeze({version:1,mounted:false,liveAcc
     'One row per owner/version; same request ID and identical payload replay, changed submission conflicts. The assistant packet is read-only.',
     'A null student profile does not erase an existing evaluation; profile data is never assistant evidence.',
     'Generic private notes at 28-1/notes are a separate collection, not the native ratings/comment submission.',
-    'Any future executor must use two fresh verified disposable owners, exact reserved row keys, independent readback and cleanup. No live adapter is provided.'],
+    'Hosted acceptance requires two fresh verified disposable owners, exact reserved row keys, independent readback and cleanup.'],
 });
 
 export function buildTutorEvaluationCases(){
@@ -165,12 +165,22 @@ export function gradeTutorEvaluationCase(testCase,envelope,{observation}={}){
     const raw=JSON.stringify(payload)||'';
     check('tutor.noProfile',!tutorEvaluationCaseManifest.forbiddenProjection.some(key=>new RegExp('"'+key+'"\\s*:','u').test(raw))&&!identity.some(value=>raw.includes(value)),'UI profile fields and owner IDs are excluded.');
   }
-  const visible=strings(envelope?.body);
+  checks.push(...tutorEvaluationVisibleChecks(row,envelope?.body));
+  return {...result,checks:[...result.checks,...checks],failures:[...result.failures,...checks.filter(item=>!item.passed)],passed:result.passed&&checks.every(item=>item.passed)};
+}
+
+/** Shared output checks keep hosted and controlled privacy/rating grading aligned. */
+export function tutorEvaluationVisibleChecks(testCase,body){
+  const row=buildTutorEvaluationCases().find(candidate=>candidate.id===testCase?.id);
+  if(!row)throw new Error('Unknown tutor-evaluation case.');
+  const checks=[],expected=row.nativeExpectation;
+  const check=(id,passed,detail)=>checks.push({id,passed:passed===true,detail});
+  const visible=strings(body);
   check('tutor.noUnrequestedComment',expected.commentRequested||!visible.some(text=>text.includes(comment)),'A saved comment is not disclosed merely because the native DTO contains it.');
-  const ratings=ratingClaims(envelope?.body);
+  const ratings=ratingClaims(body);
   check('tutor.ratingClaims',ratings.every(claim=>expected.positions.includes(claim.questionNumber)&&claim.rating===scores[claim.questionNumber-1]),'Every displayed rating remains paired with its explicitly requested question, in prose and cards.');
   check('tutor.requiredRatingClaims',expected.positions.every(number=>ratings.some(claim=>claim.questionNumber===number&&claim.rating===scores[number-1])),'Each requested rating has an explicit question-number/value assertion.');
   check('tutor.noUnsupportedClaims',!visible.some(text=>affirmative(text,/\b(?:i|we) (?:have )?(?:submitted|changed|deleted|edited|downloaded|sent|approved)\b|(?:university|tutor) (?:has )?(?:approved|received) your (?:evaluation|questionnaire)|official (?:receipt|approval)\s*:\s*(?:issued|approved|ready)/iu)),'No action, approval or official delivery is fabricated, including in cards.');
   check('tutor.noFileURLs',!visible.some(text=>/storage\/v1\/|object\/sign\/|[?&](?:token|signature)=/iu.test(text)),'No file capability or token is returned.');
-  return {...result,checks:[...result.checks,...checks],failures:[...result.failures,...checks.filter(item=>!item.passed)],passed:result.passed&&checks.every(item=>item.passed)};
+  return checks;
 }

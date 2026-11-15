@@ -38,6 +38,9 @@ import {createFeeRemissionFixtureLifecycle} from './fee-remission-fixture-lifecy
 import {readRows as readFeeRows,deleteRows as deleteFeeRows,insertRows as insertFeeRows} from './fee-remission-fixture-sql.mjs';
 import {createTranscriptConversationFixture} from './transcript-conversation-fixture.mjs';
 import {isDeepStrictEqual} from 'node:util';
+import {createTutorEvaluationFixture,gradeHostedTutorEvaluation,observeTutorEvaluationCallers,requestTutorEvaluation,
+  tutorEvaluationFamily,tutorEvaluationFixtureMode,tutorEvaluationHostedCases,tutorEvaluationHostedGaps,
+  validateTutorEvaluationHostedCases} from './tutor-evaluation-hosted.mjs';
 import {assertHealthMetadataLiveCases,bindHealthMetadataReadback,healthMetadataCase,healthMetadataFamily,
   healthMetadataFixtureMode,healthMetadataRequirement,readHealthMetadataPages} from './health-examination-live.mjs';
 import {createHealthMetadataFixture} from './health-examination-live-fixture.mjs';
@@ -321,6 +324,7 @@ async function saveLedger(){
       }}:{}),
       ...(s.transcriptConversationRecovery?{transcriptConversation:s.transcriptConversationRecovery}:{}),
       ...(s.healthMetadataJournal?{healthMetadataFixture:s.healthMetadataJournal}:{}),
+      ...(s.tutorEvaluationJournal?{tutorEvaluationFixture:s.tutorEvaluationJournal}:{}),
       ...(s.clubAttendancePlan?{clubAttendanceFixture:{plan:s.clubAttendancePlan,setupPending:!!s.clubAttendancePending}}:{}),
       ...(s.serviceNotePlan||s.pendingServiceNotePlan?{serviceNoteFixture:{
         caseId:s.serviceNotePlan?.caseId??null,pendingCaseId:s.pendingServiceNotePlan?.caseId??null,
@@ -387,7 +391,7 @@ async function createFixtureUser(index){
   let signed;try{signed=await auth.auth.signInWithPassword({email,password});}catch{fail('fixture-signin','Synthetic account sign-in did not complete.');}
   if(signed.error||signed.data?.session?.user?.id!==user.id)fail('fixture-signin','Synthetic account session could not be verified.');
   attachFixtureSession(user,signed.data.session,{url:s.url,publishable:s.publishable,signal:s.signal,fetchImpl:s.boundedFetch});
-  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly)return user;
+  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly||s.tutorEvaluationOnly)return user;
   const initial=await readSnapshot(user);user.studentId=initial.student?.id;
   if(!UUID.test(user.studentId||''))fail('fixture-readback','Synthetic School Affairs student initialization failed.');
   return user;
@@ -413,6 +417,14 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     validateCounselingHostedCases(cases);
   }else if(cases.some(row=>row?.fixtureRequirement==='counseling_appointments_disposable'))
     fail('fixture-target','Counseling fixture cases must run in the isolated evaluator.');
+  const tutorEvaluationOnly=caseFamily===tutorEvaluationFamily;
+  if(tutorEvaluationOnly){
+    if(fixtureMode!==tutorEvaluationFixtureMode||origin!==approvedPreviewOrigin||!isEvaluationPreviewOrigin(origin)
+      ||typeof previewReadbackFetch!=='function'||applicationFetch!==undefined)
+      fail('fixture-target','Tutor evaluation requires the exact protected Preview and its isolated fixture.');
+    validateTutorEvaluationHostedCases(cases);
+  }else if(cases.some(row=>row?.fixtureRequirement==='tutor_evaluation_disposable'))
+    fail('fixture-target','Tutor evaluation cases must run in their isolated evaluator.');
   const assignmentListOnly=fixtureMode===dtmAssignmentListFixtureMode;
   const healthMetadataOnly=fixtureMode===healthMetadataFixtureMode;
   if(healthMetadataOnly){
@@ -468,7 +480,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       ||!approvedPreviewOrigin||origin!==approvedPreviewOrigin)fail('fixture-config','The injected transport requires the exact approved Preview four-turn packet.');
     transcriptCaseIds=cases.map((testCase,index)=>assertTranscriptFixtureCase(testCase,index));
   }
-  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!healthMetadataOnly&&!counselingOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
+  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
     const expected=feeRemissionLivePlanManifest.eligibleCaseIds;
     if(fixtureMode!==FEE_FIXTURE_MODE||caseFamily!=='fee-remission'||!approvedPreviewOrigin||cases.length!==expected.length
       ||new Set(cases.map(row=>row?.id)).size!==expected.length||!expected.every(id=>cases.some(row=>row?.id===id)))
@@ -510,7 +522,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const ignore=await readFile(resolve(ROOT,'.gitignore'),'utf8');if(!/^\/?artifacts\/$/m.test(ignore))fail('fixture-ledger','Private fixture ledger directory must be ignored by Git.');
   await mkdir(PRIVATE_DIR,{recursive:true,mode:0o700});await chmod(PRIVATE_DIR,0o700);
   const boundedFetch=(input,init={})=>fetch(input,{...init,signal:signals(init.signal,15000)});
-  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,counselingOnly,clubOnly,healthMetadataOnly,elearningPublishedReadbackOnly,previewGate,
+  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,counselingOnly,clubOnly,healthMetadataOnly,tutorEvaluationOnly,elearningPublishedReadbackOnly,previewGate,
     ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),admin:createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})};
   try{
     state.sql=postgres(connection,{max:1,connect_timeout:10,idle_timeout:10,max_lifetime:0,
@@ -549,6 +561,10 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     if(counselingOnly){
       state.prepared=true;
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['counselingAppointments']};
+    }
+    if(tutorEvaluationOnly){
+      state.prepared=true;
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['tutorEvaluation']};
     }
     if(assignmentListOnly){
       await prepareDtmAssignmentListFixture(state,cases);
@@ -783,6 +799,68 @@ export async function runCounselingHostedEvaluation({origin,sourceRevision,previ
   return {runId,origin,sourceRevision,results,deployment:s.previewGate.status(),cleanup:cleanupProof,
     noFileActivityObserved:results.every(row=>!row.failures.includes('counseling.file_activity')),
     egressObservation:false,liveAcceptance:results.length===cases.length&&results.every(row=>row.passed)&&cleanupProof.verified};
+}
+
+export async function runTutorEvaluationPreview({origin,sourceRevision,previewToken,signal}={}){
+  if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??''))
+    fail('fixture-config','Tutor evaluation requires an exact protected Preview and source revision.');
+  const {createLiveRequestPacer,sourceIdentity}=await import('./run.mjs');
+  const identity=await sourceIdentity();
+  if(identity.dirty||identity.sourceRevision!==sourceRevision)fail('fixture-target','Tutor evaluation requires the exact clean deployed source.');
+  const readback=createTrustedPreviewFetch({origin,token:previewToken}),runId=randomUUID(),cases=tutorEvaluationHostedCases();
+  await prepare({runId,cases,now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
+    signal,fixtureMode:tutorEvaluationFixtureMode,caseFamily:tutorEvaluationFamily,previewReadbackFetch:readback});
+  const s=ready(),pace=createLiveRequestPacer(),results=[],correlationIds=new Set();
+  let cleanupProof;
+  try{
+    const owners=Object.fromEntries(s.users.map((user,index)=>{
+      const requests=s.identityRequests.filter(row=>row.id===user.id&&row.runId===runId&&row.state==='created');
+      if(requests.length!==1||user.id===s.protectedOwnerBefore.id)fail('fixture-isolation','Tutor evaluation callers are outside the fixture lease.');
+      return [index===0?'A':'B',{id:user.id,email:requests[0].email,runMarker:runId}];
+    }));
+    s.tutorEvaluationFixture=createTutorEvaluationFixture({sql:s.sql,runId,owners,
+      assertLease:async({cleanup})=>{
+        await assertRecordedFixtureLease(s,'Tutor evaluation');
+        assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+        if(!cleanup)await s.previewGate.assertCurrent();
+      },
+      persist:async journal=>{
+        s.tutorEvaluationJournal=journal;
+        await saveLedger();
+      },
+      transaction:work=>feeTransaction(s,work),
+    });
+    const observe=async()=>{
+      const rowsDigest=await s.tutorEvaluationFixture.observe();
+      await Promise.all(s.users.map(user=>user.renewSession({signal})));
+      const callers=await observeTutorEvaluationCallers(s.tutorEvaluationFixture.current(),{
+        users:s.users,publishable:s.publishable,origin,previewFetch:readback,directFetch:s.boundedFetch,
+        readResponse:readBoundedFixtureResponse,signal:signals(signal),
+      });
+      return {rowsDigest,callers};
+    };
+    for(const testCase of cases){
+      await s.tutorEvaluationFixture.transition(testCase.fixtureKey.slice('live:'.length));
+      const before=await observe();
+      const markers=[...s.users.flatMap(user=>[user.id,user.token]),...s.identityRequests.map(row=>row.email),
+        ...s.tutorEvaluationJournal.requestIds];
+      let ticket,request;
+      try{
+        request=await pace(()=>requestTutorEvaluation({testCase,origin,token:s.users[0].token,signal:signals(signal,65000),
+          fetchImpl:readback,privateMarkers:markers,correlationIds}),signal,async()=>{ticket=await s.previewGate.beforeRequest();});
+      }finally{if(ticket)await s.previewGate.afterRequest(ticket);}
+      const after=await observe();
+      const {envelope,...requestProof}=request;
+      results.push({...gradeHostedTutorEvaluation(testCase,envelope,before,after),...requestProof,requestIndex:ticket.requestIndex});
+    }
+    const final=await sourceIdentity();
+    if(final.dirty||final.sourceRevision!==sourceRevision||final.workingTreeHash!==identity.workingTreeHash)
+      fail('fixture-target','Tutor evaluation source changed during verification.');
+    await s.previewGate.finish();
+  }finally{cleanupProof=await cleanup();}
+  return {runId,origin,sourceRevision,results,unmounted:tutorEvaluationHostedGaps(),deployment:s.previewGate.status(),
+    cleanup:cleanupProof,egressObservation:false,
+    liveAcceptance:results.length===cases.length&&results.every(row=>row.passed)&&cleanupProof.verified&&cleanupProof.tutorEvaluationCleanup===true};
 }
 
 async function feeTransaction(s,work){
@@ -2604,6 +2682,10 @@ export async function cleanup(){
       await s.healthMetadataFixture.cleanup();
       await s.healthMetadataFixture.verifyAbsent();
     }
+    if(s.tutorEvaluationFixture){
+      await s.tutorEvaluationFixture.cleanup();
+      await s.tutorEvaluationFixture.verifyAbsent();
+    }
     if(s.serviceNotePlan||s.serviceNotePending)await changeServiceNoteFixture(s,null,{recovering:true});
     if(s.clubAttendancePlan){
       await assertRecordedFixtureLease(s);
@@ -2730,6 +2812,14 @@ export async function cleanup(){
       s.taskActionCleanup=true;
     }
     if(s.healthMetadataFixture)await s.healthMetadataFixture.verifyAbsent();
+    if(s.tutorEvaluationFixture){
+      await s.tutorEvaluationFixture.verifyAbsent();
+      const ids=s.users.map(user=>user.id);
+      const identities=await query(()=>s.sql`select 1 from auth.identities where user_id in ${s.sql(ids)}`,
+        'Could not verify tutor evaluation fixture identity cleanup.');
+      if(identities.length)fail('fixture-cleanup','A tutor evaluation fixture identity remains.');
+      s.tutorEvaluationCleanup=true;
+    }
     if(s.transcriptConversation)s.transcriptConversationCleanup=await s.transcriptConversation.verifyAbsent();
     // A timed-out create with no row yet may still commit later. Keep the
     // exact private recovery intent and never turn an absent row into success.
@@ -2760,6 +2850,7 @@ export async function cleanup(){
   if(cleanupError){if(cleanupError instanceof LiveFixtureError)throw cleanupError;fail('fixture-cleanup','Cleanup could not be verified; the private ledger is retained.');}
   return {verified:true,createdUsers:s.users.length,projectRef:PROJECT,protectedOwnerUnchanged,
     ...(s.taskActionCleanup?{taskActionCleanup:true}:{}),
+    ...(s.tutorEvaluationCleanup?{tutorEvaluationCleanup:true}:{}),
     ...(s.studentLeaveData?{studentLeaveDataCleanup:s.studentLeaveDataCleanup}:{}),
     ...(s.transcriptConversation?{conversationCleanup:s.transcriptConversationCleanup}:{})};
 }

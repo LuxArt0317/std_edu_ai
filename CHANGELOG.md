@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Add a protected Preview evaluator for eleven tutor questionnaire reads with two-caller RLS proof and exact no-submission and cleanup checks. [#100]
+
 - Answer straightforward student payroll questions from the exact saved period, net amount and tax fields. Preserve separate salary and claim links, omit unrelated payroll values when bank settlement is requested, and show the account boundary in Activity. [#100]
 
 - Add a protected Preview evaluator for confirmed task creation and completion. Check two-account isolation, exact replay, audit receipts and cleanup against independent database reads. [#100]
