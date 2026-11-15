@@ -181,11 +181,11 @@ export function composeCurrentStudyEvidence(question,evidence){
       const shown=[];
       let length=0;
       for(const row of rows.slice(0,12)){
-        const line=`- ${inlineRecord(row.code)} · ${inlineRecord(row.title)} (${inlineRecord(row.term)})${row.sourceMode==='sample'?sample:''}`;
+        const line=`${inlineRecord(row.code)} · ${inlineRecord(row.title)} (${inlineRecord(row.term)})${row.sourceMode==='sample'?sample:''}`;
         if(length+line.length>5500)break;
         shown.push(line);length+=line.length+1;
       }
-      if(shown.length)courseLines.push(t('**本學期已儲存的校務課程**','**Your saved School Affairs courses this semester**')+'\n\n'+shown.join('\n'));
+      if(shown.length)courseLines.push([t('**本學期已儲存的校務課程**','**Current subjects**'),...shown].join('  \n  '));
       if(shown.length<matching)courseLines.push(t(`顯示 ${matching} 筆符合修課中的 ${shown.length} 筆。`,`Showing ${shown.length} of ${matching} matching saved enrollments.`));
     }
   }else courseLines.push(unlinkedCourses?t('此帳戶沒有連結可查詢修課的學生紀錄。','No student record is linked to this account for checking subjects.')

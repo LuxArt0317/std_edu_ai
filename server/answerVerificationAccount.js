@@ -541,7 +541,7 @@ export function accountEvidence(snapshot,tools=toolNames,context={}) {
   const resolvedFollowup=intent.contextQuestion!==(context.question||'').trim();
   if(resolvedFollowup)context={...context,question:intent.contextQuestion,history:[],resolvedUserQuestion:intent.contextQuestion};
   const requestedMeeting=requestedScheduleProjection(snapshot,context);
-  const evidence=[{id:'account-scope',title:'Account access and record provenance',url:'/school-affairs/records',content:JSON.stringify({
+  const evidence=[{id:'account-scope',title:'Account access and record provenance',...(context.teachingScopeOnly?{}:{url:'/school-affairs/records'}),content:JSON.stringify({
     checkedAt:snapshot.checkedAt,timeZone:'Asia/Taipei',source:'stu.best account records',officialUniversityData:false,
     role:context.scopedReadOnly?undefined:snapshot.profile?.role,selectedTools,
     availableTools:Object.fromEntries(selectedTools.map(key=>[key,accountTools[key]||supplementalAccountTools[key]])),
@@ -1357,7 +1357,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     if(intent.kind==='coaching'&&!activeTools.length)return [];
     const extra=supplemental.map(result=>result.evidence),budget=70000-Buffer.byteLength(JSON.stringify(extra),'utf8')-4;
     const scopeContext=scopedStudy&&teachingSelected?{...context,question:studyQuestion,history:[]}:scopedTimetable?{...context,question,history}:context;
-    const sources=[...accountEvidence(current,activeTools,{...scopeContext,budget,scopedReadOnly:Boolean(servicePlan)||scopedAssignment||scopedOverview||scopedCounseling||scopedTutor||scopedConduct||scopedTimetable||scopedClearance||scopedNotes||scopedAid||scopedStudy||scopedTeaching||scopedHousing}),...extra];
+    const sources=[...accountEvidence(current,activeTools,{...scopeContext,budget,teachingScopeOnly:scopedTeaching&&activeTools.length===1,scopedReadOnly:Boolean(servicePlan)||scopedAssignment||scopedOverview||scopedCounseling||scopedTutor||scopedConduct||scopedTimetable||scopedClearance||scopedNotes||scopedAid||scopedStudy||scopedTeaching||scopedHousing}),...extra];
     if(Buffer.byteLength(JSON.stringify(sources),'utf8')>70000)throw new RangeError('Private evidence exceeds its shared budget.');
     return sources;
   };

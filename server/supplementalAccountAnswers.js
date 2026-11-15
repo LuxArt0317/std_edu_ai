@@ -1053,7 +1053,8 @@ function sectionFor(parsed,question,zh){
     return section;
   }
   if(id==='account:teachingFeedback'){
-    section.lead.push(t('These are your saved stu.best teaching feedback records.','以下是你在 stu.best 已儲存的教學意見紀錄。'));
+    if(p.views.some(source=>source.readState!=='unavailable'))
+      section.lead.push(t('These are your saved stu.best teaching feedback records.','以下是你在 stu.best 已儲存的教學意見紀錄。'));
     section.complete&&=p.complete;
     section.usable=true;
     section.limited=p.views.some(source=>source.readState==='partial');
@@ -1068,7 +1069,9 @@ function sectionFor(parsed,question,zh){
       const label=name(source.view);
       section.lead.push(`[${t('Open '+label,'開啟'+label)}](${teachingFeedbackPaths[source.view]})`);
       if(source.readState==='unavailable'){
-        section.lead.push(t(`${label} could not be read.`,`無法讀取${label}。`));
+        section.lead.push(source.view==='survey'
+          ?t('The teaching evaluation survey could not be read. Its saved records are unavailable.','無法讀取教學評量問卷，暫時無法取得已儲存的紀錄。')
+          :t('Immediate teaching feedback could not be read. Its saved records are unavailable.','無法讀取即時教學意見，暫時無法取得已儲存的紀錄。'));
         continue;
       }
       if(source.readState==='partial')section.lead.push(t('The retrieved records are incomplete. The omitted history remains unknown.','本次只查到部分紀錄，尚無法確認略去的歷史資料。'));

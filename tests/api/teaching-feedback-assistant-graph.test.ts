@@ -210,7 +210,7 @@ test('teaching plus current courses and year keeps independent sources and parti
       assert.equal(result.verification.status,'verified');
       assert.match(result.answer,/SAVED1/u);
       assert.match(result.answer,unavailable==='year'?/couldn’t verify your recorded year level/u:/Year level: 3/u);
-      assert.match(result.answer,unavailable==='survey'?/Teaching evaluation could not be read/u:/DB701 Database Design/u);
+      assert.match(result.answer,unavailable==='survey'?/teaching evaluation survey could not be read/u:/DB701 Database Design/u);
     });
     assert.deepEqual(transport.slice().sort(),['student','year','timetable','survey','answer_evidence_review'].sort());
   }
