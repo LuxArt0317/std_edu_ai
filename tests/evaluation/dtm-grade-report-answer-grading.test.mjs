@@ -4,7 +4,7 @@ import {buildAccountCases} from './account-cases.mjs';
 import {buildDtmGradeReportFixturePlan,dtmGradeReportFixtureManifest} from './dtm-grade-report-fixture-plan.mjs';
 import {gradeCase} from './grading.mjs';
 import {readDtmGradeReportEvidence} from '../../server/accountDtmGradeReportEvidence.js';
-import {formatSupplementalAccountAnswers} from '../../server/supplementalAccountAnswers.js';
+import {formatExactDtmGradeAvailability,formatSupplementalAccountAnswers} from '../../server/supplementalAccountAnswers.js';
 
 // No lifecycle, credentials, provider or network. The actual immutable fixture,
 // validated native reader and formatter supply an independent grading contract.
@@ -26,7 +26,7 @@ async function rendered(suffix){
   const body=formatSupplementalAccountAnswers([evidence],{question:testCase.question});
   const envelope={statusCode:200,execution:'deterministic',fixtureKey:testCase.fixtureKey,events:event('dtmGradeReport'),
     body:{...body,verification:{status:'verified',attempts:1}}};
-  return {testCase,envelope};
+  return {testCase,envelope,evidence};
 }
 const passes=({testCase,envelope})=>{const result=gradeCase(testCase,envelope);assert.equal(result.passed,true,testCase.id+': '+JSON.stringify(result.failures));};
 const failsFacts=({testCase,envelope})=>{const result=gradeCase(testCase,envelope);assert.equal(result.passed,false);assert.ok(result.failures.some(item=>item.id.startsWith('fact.')),JSON.stringify(result.failures));};
@@ -38,6 +38,47 @@ test('all five native report cases accept their exact real fixture-reader-format
     assert.equal(gradeCase(actual.testCase,actual.envelope).execution,'deterministic');
     if(['feedback','saved-total','tail'].includes(suffix))assert.match(actual.envelope.body.answer,/- Report row: [^\n]+\n  - /u);
   }
+});
+
+test('exact missing report and total answers satisfy the existing grade packet without reporting omitted or unrelated fields',async()=>{
+  const absent=await rendered('absent'),total=await rendered('total');
+  for(const actual of [absent,total]){
+    const body=formatExactDtmGradeAvailability(actual.evidence,actual.testCase.question);
+    assert.ok(body);
+    passes({...actual,envelope:{...actual.envelope,body:{...body,verification:actual.envelope.body.verification}}});
+    assert.equal(body.citations[0].url,actual.evidence.evidence.url);
+    assert.deepEqual(body.views,[]);
+  }
+  assert.equal(formatExactDtmGradeAvailability(total.evidence,
+    'What course total is recorded in my native DTM grade report and what feedback was saved?'),null);
+  const saved=await rendered('saved-total');
+  assert.equal(formatExactDtmGradeAvailability(saved.evidence,total.testCase.question),null);
+  const omitted=structuredClone(saved.evidence),payload=JSON.parse(omitted.evidence.content);
+  Object.assign(payload.report,{total:null,totalIncluded:false});
+  Object.assign(payload,{complete:false,excerpted:true});
+  omitted.evidence.content=JSON.stringify(payload);
+  assert.equal(formatExactDtmGradeAvailability(omitted,total.testCase.question),null);
+});
+
+test('partial course coverage and a failed grade read do not establish an exact absence',async()=>{
+  const account={url:'https://xiftudmvxphxcjtmfmib.supabase.co',key:'SYNTHETIC',token:'SYNTHETIC',user:{id:a}};
+  const question='Show my Moodle grade report for ZZ999.';
+  const fullOptions={question,route:'/dtm/grades'};
+  let pages=0;
+  const partial=await readDtmGradeReportEvidence(account,fullOptions,{loadOverview:async()=>{
+    const courses=Array.from({length:100},(_,index)=>({
+      id:'50000000-0000-4000-8000-'+String(pages*100+index+1).padStart(12,'0'),
+      userId:a,title:'Sample Math '+index,code:'SM'+(100+index),term:'115',gradeText:null,
+    }));
+    pages++;
+    return {courses,limit:100,nextCursor:courses.at(-1).id};
+  },loadReport:async()=>assert.fail('An unread course cannot select a report')});
+  assert.equal(pages,5);
+  assert.equal(partial.reason,'course_not_in_loaded_pages');
+  assert.equal(formatExactDtmGradeAvailability(partial,question),null);
+  const failed=await readDtmGradeReportEvidence(account,fullOptions,{loadOverview:async()=>{throw Error('Synthetic read failed');}});
+  assert.equal(failed.readState,'unavailable');
+  assert.equal(formatExactDtmGradeAvailability(failed,question),null);
 });
 
 test('feedback and weight remain attached to the named native item and preserve literal values',async()=>{

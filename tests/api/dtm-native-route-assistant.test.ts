@@ -11,6 +11,7 @@ import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
 import {boundedAssistantText} from '../../src/services/assistantActivityBudget.js';
 import {buildDtmNativeRouteCases,dtmNativeRouteFixture,dtmNativeRouteManifest,gradeDtmNativeRouteCase} from '../evaluation/dtm-native-route-cases.mjs';
 
+const exactAvailability=new Set(['null-total','absent','unknown-course'].map(value=>'account:dtm-native-route-'+value));
 const bank=buildDtmNativeRouteCases(),origin='https://xiftudmvxphxcjtmfmib.supabase.co',owner=dtmNativeRouteManifest.ownerId;
 const account={url:origin,key:'OFFLINE_DTM_KEY',token:'OFFLINE_DTM_TOKEN',user:{id:owner}};
 type Case=ReturnType<typeof buildDtmNativeRouteCases>[number];
@@ -54,7 +55,7 @@ async function actual(row:Case,{rejectOnce=false}={}){
       assert.deepEqual(packet.evidence.map((source:any)=>source.id),['account-scope','account:dtmGradeReport']);
       assert.deepEqual(JSON.parse(packet.evidence[0].content).selectedTools,['dtmGradeReport']);
       assert.doesNotMatch(JSON.stringify(packet),/OFFLINE_DTM|78000000-0000-4000-8000-00000000000[12]|TRACKER|INVENTED_PRIVATE/u);
-      const data=JSON.parse(packet.evidence[1].content);observation.evidence=data;
+      const data=JSON.parse(packet.evidence[1].content);assert.deepEqual(data,observation.evidence);
       assert.equal(data.readState,row.nativeExpectation.read);
       if(stage==='correct_grounded_answer')return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({status:'answered',
         answer:row.nativeExpectation.fixture==='failed'?'The native grade-report lookup is unavailable. I cannot determine the saved grades.':lastDraft,sourceIds:['account:dtmGradeReport']})}]}]});
@@ -74,7 +75,12 @@ async function actual(row:Case,{rejectOnce=false}={}){
   };
   const handler=createAffairsAssistantHandler({verifyToken:async()=>account,
     loadSnapshot:async()=>{observation.broadReads++;throw Error('Unrelated snapshot forbidden.');},
-    publicResearch:async()=>{observation.publicReads++;throw Error('Public research forbidden.');}});
+    publicResearch:async()=>{observation.publicReads++;throw Error('Public research forbidden.');},
+    readers:{dtmGradeReport:async(caller,options)=>{
+      const result=await readDtmGradeReportEvidence(caller,options);
+      observation.evidence=JSON.parse(result.evidence.content);
+      return result;
+    }}});
   try{
     const envelope=await invoke(handler,row);assert.deepEqual(errors,[]);return {envelope:{...envelope,execution:'deterministic',fixtureKey:row.fixtureKey,events:envelope.body?.activity??[]},observation,wire,stages};
   }finally{globalThis.fetch=previous;if(key===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=key;}
@@ -85,10 +91,33 @@ test('actual authenticated native transport and graph answer the independent rou
     const value=await actual(row);assert.equal(value.envelope.statusCode,200,row.id);
     const graded=gradeDtmNativeRouteCase(row,value.envelope,value.observation);
     assert.equal(graded.passed,true,row.id+': '+JSON.stringify(graded.failures));assert.equal(graded.modelAcceptance,false);
-    assert.equal(value.envelope.body.verification.status,'verified');assert.deepEqual(value.stages,['answer_evidence_review']);
+    assert.equal(value.envelope.body.verification.status,'verified');
+    assert.deepEqual(value.stages,exactAvailability.has(row.id)?[]:['answer_evidence_review']);
+    if(exactAvailability.has(row.id)){
+      assert.match(value.envelope.body.answer,/^(?:No saved course matches|There is no saved native grade report|No course total is saved)/u);
+      assert.equal(value.envelope.body.verification.attempts,1);
+      assert.deepEqual(value.envelope.body.citations.map((item:any)=>item.chunkId),['account:dtmGradeReport']);
+      assert.ok(value.envelope.events.some((event:any)=>event.kind==='dtm-grade-availability-check'&&event.status==='complete'));
+    }
     assert.ok(value.wire.every((request:any)=>['/rest/v1/rpc/dtm_grade_report_overview','/rest/v1/dtm_courses','/rest/v1/dtm_grade_reports'].includes(request.path)));
   }
 });
+test('the native unavailable outcomes localize without borrowing a saved report from the current course',async()=>{
+  for(const [caseId,question,statement] of [
+    ['null-total','我的 Moodle 成績報告中儲存的課程總分是多少？',/^這份 Moodle 成績報告沒有已儲存的課程總分/u],
+    ['absent','這門課有已儲存的 Moodle 成績報告嗎？',/^這門課沒有已儲存的 Moodle 成績報告/u],
+    ['unknown-course','請顯示 Moodle 課程「ZZ999」的成績報告。',/^找不到符合您提供的代碼或名稱的已儲存課程/u],
+  ] as const){
+    const row=bank.find((item:Case)=>item.id.endsWith('-'+caseId))!;
+    assert.equal(nativeIntent.isNativeDtmGradeOnlyQuestion(question,row.route),true,caseId);
+    const value=await actual({...row,question});
+    assert.equal(value.envelope.body.verification.status,'verified',caseId);
+    assert.match(value.envelope.body.answer,statement);
+    assert.deepEqual(value.stages,[]);
+    assert.equal(value.observation.reads.filter(read=>read.operation==='report').length,caseId==='unknown-course'?0:1);
+  }
+});
+
 test('foreign requests perform no native, snapshot, planner or public transport',async()=>{
   const row=bank.find((item:Case)=>item.id.endsWith('-foreign'))!,value=await actual(row);
   assert.equal(value.envelope.statusCode,200);assert.equal(value.envelope.body.status,'handoff');assert.deepEqual(value.wire,[]);assert.deepEqual(value.stages,[]);

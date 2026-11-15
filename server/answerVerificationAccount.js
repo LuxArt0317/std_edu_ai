@@ -31,7 +31,7 @@ import {selectAccountEvidence,boundSelectedEvidence,ownEvidenceRows} from './acc
 import {selectedEvidenceLinks} from './accountEvidenceLinks.js';
 import {boundedPublicPageEvidence,isPublicPageQuestion,loadPublicPageContext,normalizePublicPageRoute,publicPageCandidate} from './publicPageContext.js';
 import {supplementalAccountTools,requiredSupplementalTools,facilityRepairLookupContext,nativePageLookupContext,withoutExcludedNativePageClause,catalogReadPlanSchema,validateCatalogReadPlan,readSupplementalLookups} from './accountSupplementalLookup.js';
-import {formatRequestedAidPaymentDetails,formatSupplementalAccountAnswers,supplementalAnswerLanguage,supplementalAnswerLimits} from './supplementalAccountAnswers.js';
+import {formatExactDtmGradeAvailability,formatRequestedAidPaymentDetails,formatSupplementalAccountAnswers,supplementalAnswerLanguage,supplementalAnswerLimits} from './supplementalAccountAnswers.js';
 import {formatSelectedChargeEvidence,selectedChargeAnswerLimits} from './selectedChargeEvidenceAnswer.js';
 import {asksAboutOfficialRecords} from './accountAnswerLanguage.js';
 import {aidPaymentsLookupContext,isAidPaymentsEvidenceQuestion} from './aidPaymentsEvidenceIntent.js';
@@ -946,6 +946,37 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     readSupplemental(snapshot,1),
   ]);
   if(publicPageRoute)emit({kind:'page-context',label:'Checked the current public page',detail:pageContext?.contentAvailable?'Read the checksum-verified public snapshot; account records remain separate.':'Only available public page metadata can be used; no account records were sent to the capture host.',status:pageContext?.contentAvailable?'complete':'unavailable'});
+  if(!dtmCompound&&!plan.publicTopics.length&&!publicPageRoute&&activeTools.length===1&&activeTools[0]==='dtmGradeReport'
+    &&isNativeDtmGradeOnlyQuestion(question,fullRoute,history)){
+    let results=firstSupplemental;
+    const render=()=>{
+      if(results.length!==1)return null;
+      try{
+        const answer=formatExactDtmGradeAvailability(results[0],question);
+        return answer&&answerLinksSupported(answer.answer,[results[0].evidence])?answer:null;
+      }catch(error){if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;return null;}
+    };
+    const initial=render();
+    if(initial){
+      const checked=await runAnswerVerification({question,deadline,initialAnswer:initial,onProgress:emit,
+        async loadEvidence({attempt}){
+          if(attempt>1)results=await readSupplemental(snapshot,attempt);
+          return results.map(result=>result.evidence);
+        },
+        verify({candidate,evidence}){
+          const expected=evidence.length===1&&evidence[0]===results[0]?.evidence?render():null;
+          if(!expected||!isDeepStrictEqual(candidate,expected))return {ok:false,reason:'evidence_unavailable'};
+          emit({kind:'dtm-grade-availability-check',label:'Verified the saved grade-report result',
+            detail:'Matched the course, report or total availability and its link to the selected account evidence.',status:'complete'});
+          return {ok:true};
+        },
+        repair:async()=>render()??{status:'abstained',answer:'',citations:[]},
+      });
+      return {...checked,views:checked.views??[],suggestedQuestions:[],
+        grounding:{source:'account',webSearched:false,checkedAt:snapshot.checkedAt,degraded:checked.verification?.status!=='verified'},
+        activity:[...new Map(observed.map(step=>[step.kind,step])).values()]};
+    }
+  }
   if(scopedAid&&!aidNext&&!aidFees&&activeTools.length===1&&activeTools[0]==='aidPayments'){
     let results=firstSupplemental;
     const render=()=>{

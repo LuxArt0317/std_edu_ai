@@ -21,6 +21,11 @@ const unsafeReportQualifier=/\b(?:and|also|plus|then|but|except|without|with|inc
 const concept=/^(?:what (?:is|are)|define|explain)\s+(?:(?:a|the)\s+)?(?:moodle |dtm )?(?:grades?|grade reports?|gradebook|weighted grades?)\s*[?.!]*$/iu;
 const implicitDetail=/^(?:and\s+)?(?:(?:what|which)\s+)?(?:(?:is|was|are|were)\s+)?(?:(?:my|the|its|that|this)\s+)?(?:feedback|weights?|rank|percentage|(?:course )?total)(?:\s+(?:did I (?:get|receive)|(?:was|is|were|are) (?:saved|recorded)|(?:does|did) it (?:say|show)))?\s*[?.!]*$|^(?:那|還有)?(?:評語|评语|權重|权重|總分|总分)(?:呢|是什麼|是甚麼)?[？?。！!]*$/iu;
 export const dtmGradeFollowup=/\b(?:it|its|this|that|these|those|report|feedback|weight|percentage|rank|total|say|show|record)\b|這|这|該|该|報告|报告|評語|评语|權重|权重|總分|总分/iu;
+const chineseCourseTotal=/^(?:我的)?(?:Moodle|DTM|數位教材網)(?:的)?成績報告(?:中|裡)?(?:儲存的)?課程總分(?:是多少|是什麼|是甚麼|有記錄嗎)[？?。！!]*$/iu;
+const chineseReportAvailability=/^(?:這門課有(?:已儲存的)?(?:Moodle|DTM|數位教材網)成績報告嗎|請(?:顯示|查詢)(?:我的)?(?:Moodle|DTM|數位教材網)課程[「『][^」』\n]+[」』]的成績報告)[？?。！!]*$/iu;
+const englishCourseTotal=/^(?:(?:please )?(?:show|check) (?:my |the )?(?:saved |recorded )?course total|what (?:course )?total (?:is|was) (?:saved|recorded)|what is (?:my |the )?course total)(?: (?:in|for) (?!.*\b(?:and|also|plus|with|including|but)\b)[^.!?;]+)?[.?!]*$/iu;
+const withoutSpaces=value=>value.replace(/ +/gu,'');
+export const asksOnlyDtmCourseTotal=question=>englishCourseTotal.test(text(question))||chineseCourseTotal.test(withoutSpaces(text(question)));
 export const explicitDtmGradeOverview=/\boverview\b|\b(?:all|every)\s+(?:(?:of|my|the|saved|moodle|dtm)\s+){0,4}(?:courses?|subjects?)\b|綜覽|综览|總覽|总览|(?:所有|全部).{0,8}(?:課程|课程|科目)/iu;
 export function dtmGradeRouteInfo(route){
   if(route===undefined||route==='')return {path:'',courseId:null};
@@ -94,6 +99,8 @@ export function isNativeDtmGradeOnlyQuestion(question,route='',history=[]){
   const current=text(question);
   if(!shouldReadNativeDtmGrades(current,route,history)||needsSeparateDtmTracker(current,route,history)
     ||dtmGradeOtherDomain.test(current))return false;
+  const compact=withoutSpaces(current);
+  if(chineseCourseTotal.test(compact)||chineseReportAvailability.test(compact))return true;
   const parts=current.split(/[;；。!?！？\n]|\.(?:\s+|$)/u).map(part=>part.trim()).filter(Boolean);
   if(!parts.length)return false;
   return parts.every(part=>{

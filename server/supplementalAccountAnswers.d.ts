@@ -32,6 +32,8 @@ export type SupplementalAnswerCandidate={
   formatting:{limited:boolean;omittedItems:number;omittedViewRows:number;omittedViews:number};
 };
 export function supplementalAnswerLanguage(question:string):'en'|'zh-TW';
+export function formatExactDtmGradeAvailability(result:DtmGradeReportEvidenceResult,question:string):
+  Pick<SupplementalAnswerCandidate,'status'|'answer'|'citations'|'views'>|null;
 export function formatRequestedAidPaymentDetails(result:AidPaymentsEvidenceResult,question:string,
   selection:{views:readonly ('salary'|'claims')[];pages:Partial<Record<'salary'|'claims',number>>;reason:string|null}):
   Pick<SupplementalAnswerCandidate,'status'|'answer'|'citations'|'views'>|null;

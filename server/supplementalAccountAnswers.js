@@ -1,3 +1,4 @@
+import {asksOnlyDtmCourseTotal} from './dtmGradeEvidenceIntent.js';
 import {parseInternshipEvidence} from './internshipEvidenceContract.js';
 import {asksAboutOfficialRecords} from './accountAnswerLanguage.js';
 import {internshipEvidenceUrls} from './internshipAssistantPlan.js';
@@ -687,6 +688,30 @@ function literalRecordText(value){
   const text=value.replace(/\r\n|[\r\n\u0085\u2028\u2029]/gu,'\\n');
   const fence='`'.repeat(Math.max(0,...(text.match(/`+/g)||[]).map(run=>run.length))+1);
   return `${fence} ${text} ${fence}`;
+}
+
+export function formatExactDtmGradeAvailability(result,question){
+  if(result?.evidence?.id!=='account:dtmGradeReport')return null;
+  const {envelope,evidence,payload:p}=parse(result);
+  const zh=supplementalAnswerLanguage(question)==='zh-TW';
+  const t=(en,zhTw)=>zh?zhTw:en;
+  let answer,link;
+  if(envelope.readState==='ok'&&p.selection.view==='choose_course'&&p.courseCoverage.complete
+    &&p.counts.matching===0&&envelope.reason==='course_not_found'&&p.unavailableReason===envelope.reason){
+    answer=t('No saved course matches the code or title you gave. Choose a course from the grade overview.',
+      '找不到符合您提供的代碼或名稱的已儲存課程。請在成績綜覽選擇課程。');
+    link=t('Open sample Moodle grade overview','開啟 Moodle 範例成績綜覽');
+  }else if(envelope.readState==='empty'&&p.selection.view==='report'&&p.reportPresent===false){
+    answer=t('There is no saved native grade report for this course.','這門課沒有已儲存的 Moodle 成績報告。');
+    link=t('Open sample Moodle grade report','開啟 Moodle 範例成績報告');
+  }else if(envelope.readState==='ok'&&p.selection.view==='report'&&p.reportPresent===true
+    &&p.report.totalIncluded&&p.report.totalPresent===false&&asksOnlyDtmCourseTotal(question)){
+    answer=t('No course total is saved in this Moodle grade report.','這份 Moodle 成績報告沒有已儲存的課程總分。');
+    link=t('Open sample Moodle grade report','開啟 Moodle 範例成績報告');
+  }else return null;
+  const title=t('Moodle grade report','Moodle 成績報告');
+  return {status:'answered',answer:answer+'\n\n['+link+']('+evidence.url+')',
+    citations:[{chunkId:evidence.id,claim:answer,title,sourceName:title,url:evidence.url,locator:null,effectiveAt:null,reviewedAt:null}],views:[]};
 }
 
 // Report an exact projection for ordinary period, net pay and tax queries.
