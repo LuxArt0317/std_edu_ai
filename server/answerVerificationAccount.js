@@ -1121,7 +1121,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     ||scopedClearance||scopedTimetable||scopedAid||scopedStudy||scopedTeaching||housingSelected||applicationSelected;
   // Fixed scope limits refresh and replanning. A deeper model review reuses
   // the refreshed evidence even when it comes from one scoped reader.
-  const modelRepairs=activeTools.length>0&&!directServiceNotes&&!scopedOverview&&!directStudy;
+  const modelRepairs=activeTools.length>0&&!directServiceNotes&&!directNoteCompanion&&!scopedOverview&&!directStudy;
   const result=await runAnswerVerification({question,initialAnswer:initial,deadline,onProgress:emit,
     allowDeeperReview:modelRepairs,
     loadEvidence:async({attempt,feedback=[]})=>{

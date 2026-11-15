@@ -819,10 +819,10 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [ ] Observe the managed-knowledge-to-web switch with real providers on the exact protected Preview.
 - [x] Observe a deeper third review with a real provider before comparing review model settings.
 - [x] Compare the existing verification model with a stronger available model on three frozen evidence pairs. Record factual quality, observed calls, latency and remaining budget. Keep the current default.
-- [ ] Recheck whether requiring precise missing details without echoing unsupported values improves the paired result.
+- [x] Recheck whether requiring precise missing details without echoing unsupported values improves the paired result. Both models still failed the missing-quota rubric; the protected live question correctly identified the missing quota and date.
 - [ ] Confirm routine positive responses use concise saved-record wording and preserve exact limits when a user asks about official data.
-- [x] Exercise all 75 mounted private-note questions through the real handler using controlled caller-scoped reads and independent grading.
-- [ ] Re-run the 75 mounted note questions on the protected combined Preview after removing model rewrites of exact saved note fields and binding exact portal links.
+- [x] Exercise all 79 mounted private-note questions through the real handler using controlled caller-scoped reads and independent grading.
+- [ ] Re-run the 79 mounted note questions on the protected combined Preview after removing model rewrites, binding exact links and verifying the four timetable and charge companions.
 - [ ] Run the 18 Student Leave cases on the protected combined Preview with signed actual reader and provider completion receipts.
 
 - [x] Save and independently read back each of the four exact prompts in the offline endpoint replay.
@@ -832,7 +832,7 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Prevent unrelated companion reads on the reproduced housing scope failures and preserve Unicode follow-up history.
 - [x] Stage the compatible conversation schema on the exact client and verify legacy coexistence and the new save/read protocol.
 - [x] Verify and apply the Digital Academy metadata migration on the exact client.
-- [ ] Verify the six signed-in Digital Academy category and notice cases with trusted hosted readbacks.
+- [x] Verify the six signed-in Digital Academy category and notice cases with trusted hosted readbacks on `9e43792`.
 - [x] Execute the four exact prompts on the previous protected baseline, read back every saved reply and verify the scoped fixture cleanup.
 - [x] Repair the current-course and year response, preserve fee source labels, and recover useful record-free interview guidance in the combined local candidate.
 - [ ] Execute the exact protected candidate with real model responses and automatic fixture cleanup.
