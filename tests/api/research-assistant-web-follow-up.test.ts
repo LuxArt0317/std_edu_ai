@@ -704,3 +704,68 @@ test('an empty follow-up, expired reserve or verifier outage stops without repea
     if (outcome==='review-outage') assert.match(answer.activity.at(-1).detail,/checker could not complete/u);
   }
 });
+
+test('a verified public limitation can advance with a fresh school source and keep its supported answer if no source helps',async()=>{
+  for(const scenario of ['new-fact','unreadable','same-coverage','no-time','already-complete'] as const){
+    configured();
+    const started=originalNow();
+    let elapsed=0,searches=0,reviews=0,corrections=0;
+    Date.now=()=>started+elapsed;
+    const urls:string[]=[];
+    const initialUrl=scenario==='already-complete'?officialNotice:officialDirectory;
+    const partial='The STU library visitor directory explains how to contact staff. It does not give the exhibition opening time.';
+    const run=createResearchAssistantHandler({readSources:async citations=>citations.flatMap(citation=>{
+      urls.push(citation.url);
+      if(citation.url===officialDirectory)return [{id:citation.chunkId,url:citation.url,content:directoryContent}];
+      assert.equal(citation.url,officialNotice);
+      return scenario==='unreadable'?[]:[{id:citation.chunkId,url:citation.url,content:noticeContent}];
+    })});
+    globalThis.fetch=async(input,init)=>{
+      const url=String(input);
+      if(url.includes('/embeddings'))return Response.json({data:[{embedding:Array(1536).fill(0)}]});
+      if(url.includes('/rpc/search_public_knowledge'))return Response.json([]);
+      if(!url.endsWith('/v1/responses'))return Response.json(null);
+      const call=JSON.parse(String(init?.body));
+      const name=call.text.format.name;
+      if(name==='stu_web_answer'){
+        searches++;
+        assert.doesNotMatch(call.input,/NOT_PUBLIC_SEARCH_INPUT|PRIVATE_GAP_LABEL/u);
+        return Response.json(searches===1?searchPayload([officialDirectory,officialNotice],scenario==='already-complete'?noticeContent:partial,[initialUrl]):{output:[]});
+      }
+      const context=JSON.parse(call.input[0].content[0].text);
+      if(name==='correct_grounded_answer'){
+        corrections++;
+        assert.match(call.instructions,/prior answer verified/u);
+        assert.ok(context.evidence.some((item:{content:string})=>item.content===noticeContent));
+        const selected=context.evidence.find((item:{url:string})=>item.url===(scenario==='same-coverage'?officialDirectory:officialNotice));
+        return provider({status:'answered',answer:scenario==='same-coverage'?'The visitor directory gives contact options and no opening time.':noticeContent,
+          sourceIds:[selected.id]});
+      }
+      assert.equal(name,'answer_evidence_review');
+      assert.ok(call.text.format.schema.required.includes('missingRequestedDetails'));
+      reviews++;
+      if(scenario==='no-time')elapsed=43_000;
+      const found=context.evidence.find((item:{url:string})=>item.url===(reviews===1?initialUrl:scenario==='same-coverage'?officialDirectory:officialNotice));
+      const full=scenario==='already-complete'||reviews===2&&scenario==='new-fact';
+      return provider({supported:true,answersQuestion:true,
+        missingRequestedDetails:full?[]:['exhibition opening time PRIVATE_GAP_LABEL'],
+        claims:[{claim:full?'Opening time':'Directory scope',supported:true,evidenceId:found.id,
+          quotes:[found.content],jsonPaths:[]}]});
+    };
+    const progress:Progress[]=[];
+    const answer=await invoke({question:testQuestion},run,'partial-verified-'+scenario,progress);
+    const retried=!['already-complete','no-time'].includes(scenario);
+    assert.equal(progress.some(step=>step.kind==='verification-partial-follow-up'),retried,scenario);
+    const kept=['unreadable','same-coverage'].includes(scenario);
+    assert.equal(progress.some(step=>step.kind==='verification-kept-partial'),kept,scenario);
+    assert.equal(reviews,['new-fact','same-coverage'].includes(scenario)?2:1,scenario);
+    assert.equal(corrections,reviews-1,scenario);
+    assert.equal(urls.includes(officialNotice),retried||scenario==='already-complete',scenario);
+    assert.deepEqual(answer.verification,{status:'verified',attempts:reviews},scenario);
+    const complete=['new-fact','already-complete'].includes(scenario);
+    assert.equal(answer.answer.split('\n\n')[0],complete?noticeContent:partial,scenario);
+    assert.equal(answer.citations[0].url,complete?officialNotice:officialDirectory);
+    assert.doesNotMatch(JSON.stringify(answer),/PRIVATE_GAP_LABEL/u);
+    assert.ok(!progress.some(step=>step.kind==='verification-stop'));
+  }
+});

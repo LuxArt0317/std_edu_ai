@@ -883,7 +883,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             stream.send(200, unverifiedAnswer(verificationQuestion, { grounding: { source: 'helpful-fallback' } }, [stop], 0, 'timeout'));
             return;
         }
-        const needsPublicEvidence = reason => ['unsupported_claims', 'evidence_unavailable', 'no_supported_answer'].includes(reason)
+        const needsPublicEvidence = reason => ['unsupported_claims', 'evidence_unavailable', 'no_supported_answer', 'verified_partial'].includes(reason)
             || (reason === 'snapshot_provenance_missing' && kind.fresh);
         const verifyPublicAnswer = context => {
             // A source-free generic plan cannot satisfy an explicit request for
@@ -1175,9 +1175,9 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     validEvidence([...merged, source]) ? [...merged, source] : merged, []);
                 // The stronger third review can fix a drafting problem. A fourth
                 // review is only useful when it can evaluate different evidence.
-                if (!fresh.length && (extended || !usefulFeedback)) {
+                if (!fresh.length && (extended || previousFailure==='verified_partial' || !usefulFeedback)) {
                     throw Object.assign(new Error('No further verification evidence'), {
-                        code: extended ? 'NO_MORE_EVIDENCE' : 'EVIDENCE_UNAVAILABLE',
+                        code: extended || previousFailure==='verified_partial' ? 'NO_MORE_EVIDENCE' : 'EVIDENCE_UNAVAILABLE',
                     });
                 }
                 return evidence;
@@ -1185,6 +1185,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             const checked = await runAnswerVerification({ question: verificationQuestion, initialAnswer: candidate, deadline, onProgress: progress, allowDeeperReview: true, previousChecks,
                 ...(canRecover ? {
                     loadDeeperEvidence: recoverPublicEvidence, maxChecks: maxPublicAnswerVerificationChecks, canExtendReview,
+                    lookForMissingPublicDetails: () => !publicStudyGuidance&&([...pendingLeads.keys()].some(url=>canRead(url)&&!readAttempts.has(url))||kind.fresh),
                 } : {}),
                 async loadEvidence(context) {
                     if (context.attempt > 1) return recoverPublicEvidence(context);
@@ -1193,7 +1194,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     addedEvidenceOnLastPass = Boolean(evidence.length);
                     return evidence;
                 },
-                verify: context => verifyPublicAnswer({ ...context, deeperReview: context.attempt + previousChecks >= maxAnswerVerificationChecks }),
+                verify: context => verifyPublicAnswer({ ...context, trackPublicCoverage: canRecover&&!publicStudyGuidance,
+                    deeperReview: context.attempt + previousChecks >= maxAnswerVerificationChecks }),
                 repair: context => repairPublicAnswer({ ...context, deeperReview: context.attempt + previousChecks >= maxAnswerVerificationChecks,
                     candidate: { ...context.candidate, citations: context.evidence.map(source => checkedSources.get(source.id)).filter(Boolean) } }),
             });

@@ -52,7 +52,7 @@ export function unverifiedAnswer(question, candidate, activity, attempts, reason
 /** Request-local graph. Its retry edge only reads evidence and revises text. */
 export async function runAnswerVerification({
   question, initialAnswer, loadEvidence, loadDeeperEvidence, verify, repair, onProgress, allowDeeperReview = false, deferTerminalProgress = false,
-  previousChecks = 0, maxChecks = maxAnswerVerificationChecks, canExtendReview, deadline = Date.now() + 50_000,
+  previousChecks = 0, maxChecks = maxAnswerVerificationChecks, canExtendReview, lookForMissingPublicDetails, deadline = Date.now() + 50_000,
 }) {
   if (maxChecks !== maxAnswerVerificationChecks && maxChecks !== maxPublicAnswerVerificationChecks)
     throw new RangeError('Invalid verification check limit');
@@ -62,6 +62,7 @@ export async function runAnswerVerification({
   // evidence and draft; the graph state contains only bounded control metadata.
   let candidate = initialAnswer, evidence = [], feedback = [], checks = previousChecks;
   const activity = [];
+  let verifiedPartial;
   const emit = (kind, label, detail, status = 'complete') => {
     const step = { kind, label, detail, status };
     const existing = activity.findIndex(item => item.kind === kind);
@@ -127,7 +128,8 @@ export async function runAnswerVerification({
       try {
         const deeperAttempt = state.attempt > standardChecks || previousChecks > 0;
         const repairDeadline = deeperAttempt ? deadline - (publicRecovery ? 6_000 : 8_000) : deadline;
-        candidate = await bounded(()=>repair({ question, candidate, evidence, deadline:repairDeadline, feedback, attempt:state.attempt }),repairDeadline);
+        candidate = await bounded(()=>repair({ question, candidate, evidence, deadline:repairDeadline, feedback, attempt:state.attempt,
+          ...(state.previousFailure==='verified_partial'?{afterVerifiedPartial:true}:{}) }),repairDeadline);
         return {};
       } catch (error) {
         // Missing sources or invented correction links are evidence failures,
@@ -147,7 +149,9 @@ export async function runAnswerVerification({
         try {
           const review = await bounded(()=>verify({ question, candidate, evidence, deadline, feedback, attempt:state.attempt }));
           feedback = Array.isArray(review.feedback) ? review.feedback.slice(0, 12) : [];
-          verdict = { ok: review.ok === true, reason: review.reason || 'unsupported_claims' };
+          const missingRequestedCount=review.missingRequestedCount;
+          verdict = { ok: review.ok === true, reason: review.reason || 'unsupported_claims',
+            ...(Number.isSafeInteger(missingRequestedCount)&&missingRequestedCount>=0&&missingRequestedCount<=12?{missingRequestedCount}:{}) };
         } catch (error) {
           const reason = error?.code === 'VERIFICATION_OUTPUT_LIMIT' ? 'verification_output_limit'
             : error?.code === 'VERIFICATION_TIMEOUT' ? 'verification_timeout' : 'verifier_unavailable';
@@ -166,37 +170,50 @@ export async function runAnswerVerification({
     })
     .addNode('retry', state => {
       const nextCheck = state.attempt + previousChecks + 1;
-      if (nextCheck > maxAnswerVerificationChecks) emit('verification-extended-review', 'Following another source lead',
+      if(state.verdict.ok)emit('verification-partial-follow-up','Checking a source for the missing details',
+        'The current answer has supported information. Looking for evidence that can answer the rest.');
+      else if (nextCheck > maxAnswerVerificationChecks) emit('verification-extended-review', 'Following another source lead',
         'Checking new source content for the remaining detail.');
       else if(previousChecks>0)emit('verification-source-retry','Checking the new evidence again',
         'Looking for the missing detail and revising the answer if the evidence supports it.');
       else if(state.attempt===standardChecks)emit('verification-deeper-review','Taking a closer look at the answer',
         loadDeeperEvidence ? 'Checking whether a more specific source can resolve the missing detail.' : 'Reconsidering the unresolved claims using the same authorized evidence.');
       else emit('verification-retry', 'Rechecking and correcting the answer', 'Checking the available evidence again and preparing a correction.');
-      return { attempt: state.attempt + 1, verdict: null, previousFailure:state.verdict.reason };
+      return { attempt: state.attempt + 1, verdict: null, previousFailure:state.verdict.ok?'verified_partial':state.verdict.reason };
     })
     .addEdge(START, 'retrieve')
     .addEdge('retrieve', 'draft')
     .addEdge('draft', 'verify')
     .addConditionalEdges('verify', state => {
-      if(state.verdict.ok || state.attempt + previousChecks >= maxChecks || !withinBudget() || state.verdict.reason === 'source_exhausted'
-        || !canFollowLead(state.attempt))return END;
+      if(state.attempt + previousChecks >= maxChecks || !withinBudget() || state.verdict.reason === 'source_exhausted')return END;
+      if(state.verdict.ok){
+        const missing=state.verdict.missingRequestedCount;
+        if(!publicRecovery||verifiedPartial||!missing||!safeToContinue()||!enoughTimeToContinue(state.attempt)
+          ||lookForMissingPublicDetails?.()!==true)return END;
+        verifiedPartial={candidate,missing};
+        return 'retry';
+      }
+      if(!canFollowLead(state.attempt))return END;
       if(previousChecks>0)return canRetryAfterSourceSwitch(state.verdict) && enoughTimeToContinue(state.attempt) ? 'retry' : END;
       return (state.attempt < standardChecks && (!publicRecovery || enoughTimeToContinue(state.attempt))) || (shouldDeepen(state.verdict) && enoughTimeToContinue(state.attempt)) ? 'retry' : END;
     })
     .addEdge('retry', 'retrieve')
     .compile();
+  function verified(candidate,attempts){
+    return {...candidate,verification:{status:'verified',attempts},activity:[...(candidate.activity||[]),...activity]};
+  }
+  function keepPartial(){
+    emit('verification-kept-partial','Kept the verified details','The extra lookup did not verify more of the requested information.');
+    return verified(verifiedPartial.candidate,checks);
+  }
   let result;
   try {
     result = await graph.invoke({ attempt: 1, verdict: null }, { recursionLimit: maxChecks * 4 + 3, callbacks: [] });
   } catch {
-    return stop(checks, 'verification_unavailable', maxChecks);
+    return verifiedPartial?keepPartial():stop(checks, 'verification_unavailable', maxChecks);
   }
   const attempts=allowDeeperReview || previousChecks > 0 ? checks : result.attempt;
+  if(verifiedPartial&&(!result.verdict.ok||!(result.verdict.missingRequestedCount<verifiedPartial.missing)))return keepPartial();
   if (!result.verdict.ok) return stop(attempts, result.verdict.reason, result.attempt);
-  return {
-    ...candidate,
-    verification: { status: 'verified', attempts },
-    activity: [...(candidate.activity || []), ...activity],
-  };
+  return verified(candidate,attempts);
 }
