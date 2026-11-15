@@ -24,6 +24,12 @@ The Activity list shows this separately from a rejected draft. For an
 explicit question about an archived page, a requested summary must cite the
 saved page text. The title, link and capture date come from the manifest.
 
+When a verified draft resolves part of the question, the handler can reread an
+official lead once after a classified temporary connection or server failure
+if enough time remains to verify its contents. Sign-in and permanent failures
+end reads for the affected lead, and an exact dated capture can supply the
+evidence in place of a live reread.
+
 ## Acceptance criteria
 
 1. An incorrect amount, date, enrollment claim or unsupported source claim must
