@@ -44,6 +44,7 @@ import {createTutorEvaluationFixture,gradeHostedTutorEvaluation,observeTutorEval
 import {buildClubEquipmentHostedPlan,clubEquipmentFamily,clubEquipmentFixtureMode,clubEquipmentHostedCases,clubEquipmentRequirement,
   createClubEquipmentFixture,gradeClubEquipmentHosted,observeClubEquipmentCallers,requestClubEquipment,
   validateClubEquipmentHostedCases} from './club-equipment-hosted.mjs';
+import {requestClubEquipmentCancellation,verifyClubEquipmentCancellation} from './club-equipment-cancellation-preview.mjs';
 import {assertHealthMetadataLiveCases,bindHealthMetadataReadback,healthMetadataCase,healthMetadataFamily,
   healthMetadataFixtureMode,healthMetadataRequirement,readHealthMetadataPages} from './health-examination-live.mjs';
 import {createHealthMetadataFixture} from './health-examination-live-fixture.mjs';
@@ -983,7 +984,7 @@ export async function runTutorEvaluationPreview({origin,sourceRevision,previewTo
     liveAcceptance:results.length===cases.length&&results.every(row=>row.passed)&&cleanupProof.verified&&cleanupProof.tutorEvaluationCleanup===true};
 }
 
-export async function runClubEquipmentPreview({origin,sourceRevision,previewToken,signal}={}){
+export async function runClubEquipmentPreview({origin,sourceRevision,previewToken,signal,confirmedCancellation=false}={}){
   if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??''))
     fail('fixture-config','Club equipment requires an exact protected Preview and source revision.');
   const {createLiveRequestPacer,sourceIdentity}=await import('./run.mjs');
@@ -993,7 +994,7 @@ export async function runClubEquipmentPreview({origin,sourceRevision,previewToke
   await prepare({runId,cases,now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
     signal,fixtureMode:clubEquipmentFixtureMode,caseFamily:clubEquipmentFamily,previewReadbackFetch:readback});
   const s=ready(),pace=createLiveRequestPacer(),results=[],correlationIds=new Set();
-  let cleanupProof;
+  let cleanupProof,cancellation=[];
   try{
     const owners=Object.fromEntries(s.users.map((user,index)=>{
       const requests=s.identityRequests.filter(row=>row.id===user.id&&row.runId===runId&&row.state==='created');
@@ -1030,13 +1031,40 @@ export async function runClubEquipmentPreview({origin,sourceRevision,previewToke
       const {envelope,...requestProof}=request;
       results.push({...gradeClubEquipmentHosted(testCase,{...requestProof,envelope},before,after),...requestProof,requestIndex:ticket.requestIndex});
     }
+    if(confirmedCancellation){
+      if(!results.every(result=>result.passed))fail('fixture-readback','Club equipment reads did not pass before the mutation check.');
+      cancellation=await verifyClubEquipmentCancellation({plan,markCancellation:payload=>s.clubEquipmentFixture.markCancellation(payload),
+        observe:async state=>{
+          if(state==='initial')return observe();
+          const {rows,rowsDigest}=await s.clubEquipmentFixture.observeCancelled();
+          await Promise.all(s.users.map(user=>user.renewSession({signal})));
+          const callers=await observeClubEquipmentCallers(plan,{users:s.users,origin,previewFetch:readback,expectedRows:rows,
+            readResponse:readBoundedFixtureResponse,signal:signals(signal)});
+          return {rowsDigest,callers};
+        },request:async command=>{
+          const caller=s.users[command.actor==='A'?0:1];
+          const actionFetch=command.action?createTrustedPreviewFetch({origin,token:previewToken,
+            confirmedClubCommand:{callerToken:caller.token,body:command.action}}):undefined;
+          let ticket,value;
+          try{
+            value=await pace(()=>requestClubEquipmentCancellation({origin,command,token:caller.token,previewFetch:readback,
+              actionFetch,readResponse:readBoundedFixtureResponse,signal:signals(signal,65000),correlationIds,
+              privateMarkers:[...s.users.flatMap(user=>[user.id,user.token]),...s.identityRequests.map(row=>row.email),
+                ...plan.rows.flatMap(row=>[row.phone,row.student_name,row.student_number,row.other_purpose,row.collateral])]}),
+              signal,async()=>{ticket=await s.previewGate.beforeRequest();});
+          }finally{if(ticket)await s.previewGate.afterRequest(ticket);}
+          return {...value,requestIndex:ticket.requestIndex};
+        },
+      });
+    }
     const final=await sourceIdentity();
     if(final.dirty||final.sourceRevision!==sourceRevision||final.workingTreeHash!==identity.workingTreeHash)
       fail('fixture-target','Club equipment source changed during verification.');
     await s.previewGate.finish();
   }finally{cleanupProof=await cleanup();}
-  return {runId,origin,sourceRevision,results,deployment:s.previewGate.status(),cleanup:cleanupProof,
-    liveAcceptance:results.length===cases.length&&results.every(row=>row.passed)&&cleanupProof.verified&&cleanupProof.clubEquipmentCleanup===true};
+  return {runId,origin,sourceRevision,results,...(confirmedCancellation?{cancellation}:{}),deployment:s.previewGate.status(),cleanup:cleanupProof,
+    liveAcceptance:results.length===cases.length&&results.every(row=>row.passed)&&(!confirmedCancellation||cancellation.length===9)
+      &&cleanupProof.verified&&cleanupProof.clubEquipmentCleanup===true};
 }
 
 async function feeTransaction(s,work){

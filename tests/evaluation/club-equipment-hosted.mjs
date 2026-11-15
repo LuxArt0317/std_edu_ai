@@ -59,10 +59,14 @@ function assertPlan(plan){
   if(!isDeepStrictEqual(plan,buildClubEquipmentHostedPlan(plan)))throw error();
 }
 const ordered=rows=>[...rows].sort((a,b)=>a.id.localeCompare(b.id));
-const instant=value=>typeof value==='string'&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.0{1,6})?(?:Z|\+00:00)$/u.test(value)
-  ?new Date(value).toISOString().replace('.000Z','Z'):null;
+function instant(value){
+  const match=typeof value==='string'&&/^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(?:\.(\d{1,6}))?(?:Z|\+00:00)$/u.exec(value);
+  if(!match||!Number.isFinite(Date.parse(value)))return null;
+  const fraction=(match[2]||'').replace(/0+$/u,'');
+  return match[1]+(fraction?'.'+fraction:'')+'Z';
+}
 const normalizedRows=rows=>ordered(rows.map(row=>({...row,updated_at:instant(row.updated_at)})));
-const empty={club:[],rows:[],dependents:[]};
+const empty={club:[],rows:[],dependents:[],operations:[]};
 const ownIds=plan=>roles.map(role=>plan.owners[role].id);
 
 async function readTargets(sql,plan){
@@ -76,11 +80,21 @@ async function readTargets(sql,plan){
     union all select 'activity' from public.affairs_club_activities where club_id=${plan.club.id}
     union all select 'profile' from public.affairs_student_profiles where user_id in ${sql(owners)}
     union all select 'application' from public.affairs_club_applications where club_id=${plan.club.id} or applicant_id in ${sql(owners)}
-    union all select 'foundation' from private.affairs_club_foundations where club_id=${plan.club.id}
-    union all select 'equipment-write' from private.affairs_club_equipment_operations where actor in ${sql(owners)} limit 1`;
-  return {club:[...club],rows:normalizedRows(rows),dependents:[...dependents]};
+    union all select 'foundation' from private.affairs_club_foundations where club_id=${plan.club.id} limit 1`;
+  const operations=await sql`select actor,request_id,encode(digest,'hex') as digest,receipt
+    from private.affairs_club_equipment_operations where actor in ${sql(owners)} limit 2`;
+  return {club:[...club],rows:normalizedRows(rows),dependents:[...dependents],operations:[...operations]};
 }
-const expectedRows=plan=>({club:[plan.club],rows:normalizedRows(plan.rows),dependents:[]});
+const expectedRows=plan=>({club:[plan.club],rows:normalizedRows(plan.rows),dependents:[],operations:[]});
+
+function cancelledRows(actual,plan,operation){
+  if(!operation||!isDeepStrictEqual(actual.operations,[operation]))return null;
+  const changed=actual.rows.find(row=>row.id===operation.receipt.id);
+  const original=plan.rows[2];
+  if(!changed?.updated_at||!(Date.parse(changed.updated_at)>Date.parse(original.updated_at)))return null;
+  const rows=plan.rows.map(row=>row.id===original.id?{...row,status:'cancelled',version:row.version+1,updated_at:changed.updated_at}:row);
+  return isDeepStrictEqual(actual,{...expectedRows(plan),rows:normalizedRows(rows),operations:[operation]})?rows:null;
+}
 
 async function verifyIdentity(sql,plan){
   assertPlan(plan);
@@ -91,7 +105,8 @@ async function verifyIdentity(sql,plan){
 
 export function createClubEquipmentFixture({sql,plan,assertLease,persist,transaction}){
   assertPlan(plan);
-  let journaled=false,active=false;
+  let journaled=false,active=false,operation;
+  const envelope=state=>({state,clubId:plan.club.id,rows:plan.rows.map(({id,user_id})=>({id,user_id})),...(operation?{operation}:{})});
   async function cleanup(){
     if(!journaled)return;
     await assertLease({cleanup:true});
@@ -100,7 +115,13 @@ export function createClubEquipmentFixture({sql,plan,assertLease,persist,transac
       const actual=await readTargets(sql,plan);
       // A failed setup transaction can leave the journal in place with no rows.
       if(isDeepStrictEqual(actual,empty))return;
-      if(!isDeepStrictEqual(actual,expectedRows(plan)))throw error();
+      if(!isDeepStrictEqual(actual,expectedRows(plan))){
+        if(!cancelledRows(actual,plan,operation))throw error();
+        const removed=await sql`delete from private.affairs_club_equipment_operations
+          where actor=${operation.actor} and request_id=${operation.request_id} and encode(digest,'hex')=${operation.digest}
+          returning actor,request_id`;
+        if(!isDeepStrictEqual([...removed],[{actor:operation.actor,request_id:operation.request_id}]))throw error();
+      }
       for(const row of plan.rows){
         const removed=await sql`delete from public.affairs_club_equipment_requests where id=${row.id} and user_id=${row.user_id}
           and club_id=${plan.club.id} returning id`;
@@ -110,14 +131,14 @@ export function createClubEquipmentFixture({sql,plan,assertLease,persist,transac
       if(!isDeepStrictEqual([...removed],[{id:plan.club.id}])||!isDeepStrictEqual(await readTargets(sql,plan),empty))throw error();
     });
     active=false;
-    await persist({state:'rows-removed',clubId:plan.club.id,rows:plan.rows.map(({id,user_id})=>({id,user_id}))});
+    await persist(envelope('rows-removed'));
   }
   return {cleanup,async setup(){
     if(journaled)throw error();
     await assertLease({cleanup:false});
     await verifyIdentity(sql,plan);
     if(!isDeepStrictEqual(await readTargets(sql,plan),empty))throw error();
-    await persist({state:'setup-pending',clubId:plan.club.id,rows:plan.rows.map(({id,user_id})=>({id,user_id}))});
+    await persist(envelope('setup-pending'));
     journaled=true;
     await transaction(async()=>{
       await verifyIdentity(sql,plan);
@@ -128,7 +149,27 @@ export function createClubEquipmentFixture({sql,plan,assertLease,persist,transac
       if(!isDeepStrictEqual(await readTargets(sql,plan),expectedRows(plan)))throw error();
     });
     active=true;
-    await persist({state:'ready',clubId:plan.club.id,rows:plan.rows.map(({id,user_id})=>({id,user_id}))});
+    await persist(envelope('ready'));
+  },async markCancellation(payload){
+    const target=plan.rows[2];
+    if(!active||operation||!uuid.test(payload?.request_id)||plan.ids.includes(payload.request_id)||ownIds(plan).includes(payload.request_id)
+      ||payload.request_id===plan.runId||!isDeepStrictEqual(payload,{request_id:payload.request_id,id:target.id,expected_version:target.version}))throw error();
+    await assertLease({cleanup:false});
+    await verifyIdentity(sql,plan);
+    if(!isDeepStrictEqual(await readTargets(sql,plan),expectedRows(plan)))throw error();
+    const hashes=await sql`select encode(extensions.digest('cancel:'||${sql.json(payload)}::jsonb::text,'sha256'),'hex') as digest`;
+    if(hashes.length!==1||!/^[a-f0-9]{64}$/u.test(hashes[0].digest??''))throw error();
+    operation={actor:target.user_id,request_id:payload.request_id,digest:hashes[0].digest,
+      receipt:{id:target.id,status:'cancelled',version:target.version+1}};
+    await persist(envelope('cancel-pending'));
+  },async observeCancelled(){
+    if(!active||!operation)throw error();
+    await assertLease({cleanup:false});
+    await verifyIdentity(sql,plan);
+    const actual=await readTargets(sql,plan);
+    const rows=cancelledRows(actual,plan,operation);
+    if(!rows)throw error();
+    return {rows,rowsDigest:digest(actual)};
   },async observe(){
     if(!active)throw error();
     await assertLease({cleanup:false});
@@ -141,7 +182,7 @@ export function createClubEquipmentFixture({sql,plan,assertLease,persist,transac
   }};
 }
 
-export async function observeClubEquipmentCallers(plan,{users,origin,previewFetch,readResponse,signal}){
+export async function observeClubEquipmentCallers(plan,{users,origin,previewFetch,readResponse,signal,expectedRows=plan.rows}){
   assertPlan(plan);
   if(users.length!==2||users.some((user,index)=>user.id!==ownIds(plan)[index]||typeof user.token!=='string'||!user.token)
     ||users[0].token===users[1].token)throw error();
@@ -151,7 +192,7 @@ export async function observeClubEquipmentCallers(plan,{users,origin,previewFetc
     const url=new URL('/api/affairs-data?scope=student-clubs&view=equipment',origin);
     const init={method:'GET',headers:{Authorization:'Bearer '+user.token},signal};
     const actual=await readResponse(await previewFetch(url,init),url,32768);
-    const owned=plan.rows.filter(row=>row.user_id===user.id).map(({user_id,...row})=>row);
+    const owned=expectedRows.filter(row=>row.user_id===user.id).map(({user_id,...row})=>row);
     if(Object.keys(actual??{}).sort().join(',')!=='clubs,equipment,manager,rows,student,today,userId,view'
       ||actual.userId!==user.id||actual.view!=='equipment'||actual.manager!==false||actual.student!==null
       ||!/^\d{4}-\d\d-\d\d$/u.test(actual.today)||!isDeepStrictEqual(actual.clubs,[])||!isDeepStrictEqual(actual.equipment,[])

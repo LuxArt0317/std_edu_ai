@@ -5,6 +5,7 @@ import {createResearchAssistantHandler} from '../../server/researchAssistantHand
 import {buildClubEquipmentHostedPlan,clubEquipmentFamily,clubEquipmentFixtureMode,clubEquipmentHostedCases,
   createClubEquipmentFixture,gradeClubEquipmentHosted,observeClubEquipmentCallers,requestClubEquipment,
   validateClubEquipmentHostedCases} from './club-equipment-hosted.mjs';
+import {verifyClubEquipmentCancellation} from './club-equipment-cancellation-preview.mjs';
 import {prepare,runClubEquipmentPreview} from './live-fixtures.mjs';
 
 const id=last=>'b4851266-8cab-4567-abcd-'+String(last).padStart(12,'0');
@@ -19,7 +20,7 @@ const dto=(owner)=>({userId:owner,view:'equipment',manager:false,student:null,to
 const readResponse=(response,_url,_size,status=200)=>{assert.equal(response.status,status);return response.json();};
 
 function store({failInsert=false}={}){
-  const state={club:[],rows:[],dependents:[]},writes=[],journal=[],leases=[];
+  const state={club:[],rows:[],dependents:[],operations:[]},writes=[],journal=[],leases=[];
   const sql=(source,...args)=>{
     if(!Array.isArray(source)||!Object.hasOwn(source,'raw'))return {source,args};
     const command=source.join(' ').trim();
@@ -27,6 +28,13 @@ function store({failInsert=false}={}){
     if(command.startsWith('select id,name,active'))return structuredClone(state.club);
     if(command.startsWith('select id,user_id,club_id'))return structuredClone(state.rows);
     if(command.startsWith("select 'club-membership'"))return structuredClone(state.dependents);
+    if(command.startsWith('select actor,request_id'))return structuredClone(state.operations);
+    if(command.startsWith('select encode'))return [{digest:'a'.repeat(64)}];
+    if(command.startsWith('delete from private.affairs_club_equipment_operations')){
+      const previous=state.operations.filter(item=>item.actor===args[0]&&item.request_id===args[1]&&item.digest===args[2]);
+      state.operations=state.operations.filter(item=>!previous.includes(item));
+      writes.push(command);return previous.map(({actor,request_id})=>({actor,request_id}));
+    }
     if(command.startsWith('insert into public.affairs_clubs')){assert.equal(journal.at(-1).state,'setup-pending');state.club=[args[0].source];}
     else if(command.startsWith('insert into public.affairs_club_equipment_requests')){
       if(failInsert)throw new Error('Fixture transaction stopped');
@@ -76,7 +84,7 @@ test('the journal precedes setup and exact cleanup verifies rows and dependencie
   assert.equal(h.state.club[0].active,false);assert.equal(h.state.rows.length,3);
   await h.fixture.cleanup();await h.fixture.verifyAbsent();
   assert.equal(h.writes.length,6);assert.equal(h.journal.at(-1).state,'rows-removed');assert.ok(h.leases.includes(true));
-  assert.deepEqual(h.state,{club:[],rows:[],dependents:[]});
+  assert.deepEqual(h.state,{club:[],rows:[],dependents:[],operations:[]});
 });
 
 test('an interrupted setup keeps its recorded intent and safely reconciles an empty transaction',async()=>{
@@ -85,7 +93,7 @@ test('an interrupted setup keeps its recorded intent and safely reconciles an em
   assert.equal(h.journal.at(-1).state,'setup-pending');
   await h.fixture.cleanup();await h.fixture.verifyAbsent();
   assert.equal(h.journal.at(-1).state,'rows-removed');
-  assert.deepEqual(h.state,{club:[],rows:[],dependents:[]});
+  assert.deepEqual(h.state,{club:[],rows:[],dependents:[],operations:[]});
 });
 
 test('unrecorded dependencies or changed rows block cleanup and preserve the exact recovery journal',async()=>{
@@ -155,4 +163,66 @@ test('the exact protected packet grades against the real signed-in and guest han
   }
   assert.deepEqual(calls,[owners.A.id,owners.A.id,owners.A.id,owners.A.id,owners.B.id,owners.A.id]);
   assert.equal(correlationIds.size,7);
+});
+
+test('confirmed club packet independently catches proposals or retries that write and checks nine outcomes',async()=>{
+  const base=()=>store();
+  async function run({mutateOnProposal=false}={}){
+    const {fixture,state,journal}=base();
+    await fixture.setup();
+    const requestId=id(901),target=plan.rows[2],receipt={id:target.id,status:'cancelled',version:3},sent=[];
+    const read=async stage=>stage==='initial'?{rowsDigest:await fixture.observe()}:await fixture.observeCancelled();
+    const mutate=()=>{
+      const row=state.rows.find(item=>item.id===target.id);
+      assert.equal(row.version,2);
+      Object.assign(row,receipt,{updated_at:'2026-11-15T07:01:23.182342+00:00'});
+      state.operations.push({actor:owners.B.id,request_id:requestId,digest:'a'.repeat(64),receipt});
+    };
+    try{
+      return await verifyClubEquipmentCancellation({plan,observe:read,markCancellation:payload=>fixture.markCancellation(payload),request:async command=>{
+        sent.push(command);
+        const finish=(body,activity=[])=>({body,activity,requestIndex:sent.length});
+        if(command.caseId==='equipment-cancel-other-proposal')return finish({status:'clarification'});
+        if(command.caseId==='equipment-cancel-owner-proposal'){
+          if(mutateOnProposal)mutate();
+          return finish({status:'answered',grounding:{source:'account',webSearched:false},verification:{status:'verified',attempts:1},
+            proposedAction:{kind:'cancel_club_equipment',label:'Cancel '+target.club_name+' · Pickup '+target.pickup_on+' · '+target.items[0].label,
+              payload:{id:target.id,expected_version:'2'},requestId,url:'/school-affairs/services/40-1/equipment'}},
+          [{kind:'account-read:clubEquipment:1',status:'complete'}]);
+        }
+        if(command.caseId==='equipment-cancel-status-after')
+          return finish({status:'answered',grounding:{source:'account'},verification:{status:'verified',attempts:1},answer:'Saved status: Cancelled'});
+        assert.equal(journal.at(-1).state,'cancel-pending');
+        if(command.caseId==='equipment-cancel-confirmed')mutate();
+        if(command.status===200)return finish(receipt);
+        return finish({error:'No changes made'});
+      }});
+    }finally{
+      if(mutateOnProposal){
+        await assert.rejects(fixture.cleanup(),/did not match/u);
+        assert.equal(journal.at(-1).state,'ready');
+      }else{
+        await fixture.cleanup();await fixture.verifyAbsent();
+        assert.equal(journal.at(-1).state,'rows-removed');
+        assert.deepEqual(state.operations,[]);
+      }
+    }
+  }
+  const report=await run();
+  assert.equal(report.length,9);
+  assert.deepEqual(report.filter(result=>result.beforeDigest!==result.afterDigest).map(result=>result.caseId),['equipment-cancel-confirmed']);
+  await assert.rejects(run({mutateOnProposal:true}),/did not match/u);
+});
+
+test('cancel cleanup reconciles an acknowledged intent even when the confirmation transport loses its receipt',async()=>{
+  const {fixture,state,journal}=store();
+  await fixture.setup();
+  const target=plan.rows[2],requestId=id(902);
+  await fixture.markCancellation({request_id:requestId,id:target.id,expected_version:target.version});
+  const op=journal.at(-1).operation;
+  Object.assign(state.rows.find(row=>row.id===target.id),op.receipt,{updated_at:'2026-11-15T07:01:23.182342+00:00'});
+  state.operations.push(op);
+  await fixture.cleanup();
+  await fixture.verifyAbsent();
+  assert.deepEqual(state,{club:[],rows:[],dependents:[],operations:[]});
 });

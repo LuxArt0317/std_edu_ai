@@ -52,15 +52,28 @@ function boundTaskCommand(command){
   return {authorization:'Bearer '+callerToken,body:JSON.stringify(body)};
 }
 
+function boundClubCancellation(command){
+  const {callerToken,body}=command??{};
+  if(typeof callerToken!=='string'||callerToken.length>16000||!jwt.test(callerToken)||!body
+    ||Object.keys(body).sort().join(',')!=='kind,payload'||body.kind!=='cancel_club_equipment'
+    ||!body.payload||Object.keys(body.payload).sort().join(',')!=='expected_version,id,request_id')fail('invalid club cancellation fixture');
+  const {request_id,id,expected_version}=body.payload;
+  if(!isConversationId(request_id)||request_id[14]!=='4'||!isConversationId(id)||id[14]!=='4'||id===request_id
+    ||!Number.isInteger(expected_version)||expected_version<1||expected_version>=1000000)fail('invalid club cancellation fixture');
+  return {authorization:'Bearer '+callerToken,body:JSON.stringify(body)};
+}
+
 /** Relay one operator-supplied identity only to the exact approved deployment.
  * Vercel validates the signature and trust rule. Caller Auth is independent. */
-export function createTrustedPreviewFetch({origin,token,conversationId,conversationDeleteFixtures,confirmedTaskCommand,fetchImpl=globalThis.fetch,now=Date.now}={}){
+export function createTrustedPreviewFetch({origin,token,conversationId,conversationDeleteFixtures,confirmedTaskCommand,confirmedClubCommand,fetchImpl=globalThis.fetch,now=Date.now}={}){
   if(!isEvaluationPreviewOrigin(origin)||typeof fetchImpl!=='function'||typeof now!=='function'
     ||conversationId!==undefined&&!isConversationId(conversationId))fail('invalid Preview target');
   const deleteProbe=conversationDeleteFixtures!==undefined,deleteQueries=new Set(),deleteBodies=new Set();
   const taskCommand=confirmedTaskCommand===undefined?null:boundTaskCommand(confirmedTaskCommand);
-  if(taskCommand&&(deleteProbe||conversationId!==undefined))fail('invalid confirmed task fixture');
-  let taskCommandUsed=false;
+  const clubCommand=confirmedClubCommand===undefined?null:boundClubCancellation(confirmedClubCommand);
+  const actionCommand=taskCommand??clubCommand;
+  if(actionCommand&&(taskCommand&&clubCommand||deleteProbe||conversationId!==undefined))fail('invalid confirmed action fixture');
+  let actionCommandUsed=false;
   if(deleteProbe){
     if(conversationId!==undefined||!Array.isArray(conversationDeleteFixtures)||conversationDeleteFixtures.length!==2)
       fail('invalid conversation deletion probe');
@@ -103,10 +116,10 @@ export function createTrustedPreviewFetch({origin,token,conversationId,conversat
     const remove=method==='DELETE'&&init.body===undefined&&!headers.has('content-type');
     const probeConversation=deleteProbe&&caller&&url.pathname==='/api/affairs-conversations'
       &&((get||remove)&&deleteQueries.has(url.search)||post&&deleteBodies.has(init.body));
-    const probeTask=taskCommand&&!taskCommandUsed&&post&&url.pathname==='/api/affairs-action'
-      &&auth===taskCommand.authorization&&init.body===taskCommand.body;
-    if(!manifest&&!(taskCommand?probeTask:deleteProbe?probeConversation:readback||assistant||conversation))fail('unapproved request operation');
-    if(probeTask)taskCommandUsed=true;
+    const probeAction=actionCommand&&!actionCommandUsed&&post&&url.pathname==='/api/affairs-action'
+      &&auth===actionCommand.authorization&&init.body===actionCommand.body;
+    if(!manifest&&!(actionCommand?probeAction:deleteProbe?probeConversation:readback||assistant||conversation))fail('unapproved request operation');
+    if(probeAction)actionCommandUsed=true;
     headers.set(trustedHeader,token);
     let response;
     try{response=await fetchImpl(url,{method,headers,body:init.body,signal:init.signal,redirect:'error',credentials:'omit',cache:'no-store'});}

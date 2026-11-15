@@ -83,6 +83,23 @@ test('confirmed task transport grants one exact POST to its bound caller and rej
   assert.equal(sent[0].init.headers.get('authorization'),caller);
 });
 
+test('confirmed club cancellation relays one exact pending command to its bound caller',async()=>{
+  const target='10000000-0000-4000-8000-000000000012',requestId='10000000-0000-4000-8000-000000000013';
+  const body={kind:'cancel_club_equipment',payload:{request_id:requestId,id:target,expected_version:2}};
+  const command={callerToken:caller.slice(7),body},sent=[];
+  const opts={origin,token:tokenAt(time),now:()=>time*1000,fetchImpl:async(url,init)=>{sent.push({url,init});return Response.json({ok:true});}};
+  assert.throws(()=>createTrustedPreviewFetch({...opts,confirmedClubCommand:{...command,body:{...body,payload:{...body.payload,expected_version:'2'}}}}),/invalid club cancellation/u);
+  const endpoint=origin+'/api/affairs-action',init={...post,body:JSON.stringify(body)};
+  await assert.rejects(createTrustedPreviewFetch(opts)(endpoint,init),/unapproved request operation/u);
+  const relay=createTrustedPreviewFetch({...opts,confirmedClubCommand:command});
+  await assert.rejects(relay(endpoint,{...init,headers:{...init.headers,Authorization:'Bearer another.caller.signature'}}),/unapproved request operation/u);
+  await assert.rejects(relay(endpoint,{...init,body:JSON.stringify({...body,payload:{...body.payload,expected_version:1}})}),/unapproved request operation/u);
+  await relay(endpoint,init);
+  await assert.rejects(relay(endpoint,init),/unapproved request operation/u);
+  assert.equal(sent.length,1);
+  assert.equal(sent[0].init.headers.get('authorization'),caller);
+});
+
 test('CLI enables OIDC only on the approved exact project Preview',()=>{
   assert.equal(options(argv).previewAuth,'oidc');
   for(const rejected of [argv.map(value=>value==='live'?'inventory':value),argv.map(value=>value===origin?'https://stu.best':value),
