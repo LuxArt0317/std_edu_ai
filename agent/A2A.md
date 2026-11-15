@@ -822,3 +822,5 @@ Root joined the explicit action and browser receipt work with the isolated Moodl
 Root integrated catalog list and exact-search answers and checked both signed-in and guest browser dispatch. A delegate owns the six remaining category and notice metadata cases. The browser verifies save receipts and sends a delete for a signed-in chat even without a confirmed earlier save. A separate delegate owns the database race between an in-flight version-zero save and a delete. No migration is part of this checkpoint.
 
 The ignored operator transport was corrected and verified against synthetic request and identity data, including the actual four-turn runner. The approved connection and fixture lease are still required for hosted replay. The original operator module remains untouched.
+
+Root integrated the scoped venue reader and local conversation ordering fix. Migration `20261115230000` must precede the new DELETE handler. Both orderings were verified with real PostgreSQL in a private scratch cluster, with no client schema change. Follow-up work for exact Digital Academy metadata and independent venue companion answers remains on separate lanes.

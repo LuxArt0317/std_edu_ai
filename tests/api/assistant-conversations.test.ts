@@ -39,7 +39,7 @@ test('conversation DELETE acknowledges only the owner-scoped database receipt',a
     assert.equal(url.pathname,'/rest/v1/rpc/affairs_delete_conversation');
     assert.equal(url.search,'');
     assert.equal(init?.method,'POST');
-    assert.equal((init?.headers as Record<string,string>).Authorization,'Bearer '+token);
+    assert.equal(new Headers(init?.headers).get('authorization'),'Bearer '+token);
     assert.deepEqual(JSON.parse(String(init?.body)),{p_id:id});
     rpcCalls++;
     return Response.json(receipt,{status:rpcStatus});

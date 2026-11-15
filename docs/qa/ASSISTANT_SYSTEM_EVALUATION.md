@@ -269,3 +269,13 @@ The exact Digital Academy search and category reader uses the same filter, page 
 The compiled conversation test rejects a successful response that omits saved activity, retries with the same conversation ID and version, and restores the activity by reading the saved chat. It also removes a row that already committed before its save response failed. An original create that commits after the delete still needs a database ordering guard.
 
 The integrated local checkpoint passed 1,717 API/source, 1,153 offline evaluation and 541 unit checks. The inventory registers 1,266 questions, 94 services, 42 reader tools and 395 captured pages. Twenty-one paths still have no registered semantic case. Some registered cases, including the six metadata cases, remain pending implementation or fixture admission. The signed-in hosted transcript and end-to-end site acceptance remain pending.
+
+## Venue requests and conversation ordering
+
+The signed-in venue reader checks the exact saved room, dates, periods, status and count. It retries once after a failed or mismatched read. The account answer excludes availability, review notes, and university booking confirmation. The five existing venue browser cases now identify the account assistant as their source. Combined venue and fee or timetable questions still need independent source selection.
+
+The conversation migration was exercised in scratch PostgreSQL with two concurrent sessions. The test reproduced a late insert after a legacy delete, then checked both concurrent orderings with the new lock and private deletion ID. It also checked the preexisting replay behavior, cross-account isolation, denied direct receipt access and receipt cleanup when a fixture user was removed. The migration is pending client preflight and deployment.
+
+The combined build passed 1,731 API and source checks, 1,153 offline evaluation checks, 541 unit tests, and both focused compiled Chromium suites. These tests cannot satisfy the pinned hosted transcript and live fixture gates.
+
+The compiled School Affairs inventory followed all 94 menu destinations under synthetic authentication and observed one enabled, visible launcher at every destination. The DTM and Digital Academy browser suites also passed. The menu inventory verifies navigation and launcher presence. It does not exercise each destination's records or workflow.

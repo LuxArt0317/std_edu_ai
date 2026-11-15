@@ -2,6 +2,8 @@
 ## Unreleased
 
 - Check the returned conversation and its activity before reporting an account save. Deleting a signed-in chat also requests account deletion when its save response was lost. [#100]
+- Serialize account conversation saves and deletes so a delayed first save cannot recreate a deleted chat. [#100]
+- Verify saved venue request counts, dates, periods and status through caller-scoped reads. [#100]
 - Verify Digital Academy search and category course results from the exact open page. Preserve its filter and page through Google sign-in and retry a failed catalog read once. [#100]
 - Verify requested stu.best task, nickname, tracker, service-request and announcement changes before showing the confirmation button. Check the action receipt before showing success. [#100]
 - Answer saved Moodle assignment-list questions from the caller’s exact list and selected course. [#100]

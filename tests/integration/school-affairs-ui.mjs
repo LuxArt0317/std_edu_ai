@@ -388,6 +388,11 @@ try {
       await page.locator(entry.selector).waitFor({timeout:8000});
       await page.waitForLoadState('networkidle',{timeout:8000});
       assert.equal(await page.locator(entry.selector).count(),1,'Unique route-specific root.');
+      const launcher=page.getByRole('button',{name:'開啟 AI 校園助理',exact:true});
+      await launcher.waitFor({timeout:8000});
+      assert.equal(await launcher.count(),1,'Each service has a usable assistant launcher.');
+      assert.ok(await launcher.isEnabled());
+      result.assistantLauncher='visible';
       assert.equal(await page.getByRole('heading',{name:/Service not found|Page not copied yet|Copied page available/}).count(),0);
       assert.equal(await page.getByRole('alert').count(),0,'Loaded destination must not hide a fixture/read failure.');
       if(entry.heading)assert.equal(await page.locator(entry.selector).textContent(),entry.heading);
@@ -412,6 +417,7 @@ try {
     await page.waitForURL(base+`/school-affairs/services/${path}?qa=space%20value&second=1#menu-context`);
   }
   assert.deepEqual(routeResults.filter(row=>row.navigation==='failed').map(({id,kind,error})=>({id,kind,error})),[],'Catalog navigation failures; generic gaps remain gaps even when navigation passes.');
+  assert.equal(routeResults.filter(row=>row.assistantLauncher==='visible').length,94);
   await context.close();
   if(!inventoryOnly) {
   const blocked = await browser.newContext({

@@ -254,7 +254,10 @@ HTML block creation, Administration block behavior and unobserved Move interacti
 - [x] Route exact Digital Academy catalog searches and categories through the verified account reader and register the 25 catalog cases.
 - [ ] Complete scoped category-index and notice reads and bind live Digital Academy catalog observations.
 - [x] Compare the saved chat and activity to the submitted transcript. Send an account-scoped delete for an already committed but unacknowledged save.
-- [ ] Prevent an in-flight first save from recreating a deleted conversation and verify the ordering at the database boundary.
+- [x] Prevent an in-flight first save from recreating a deleted conversation and verify both transaction orderings in scratch PostgreSQL.
+- [ ] Apply the conversation migration after client preflight and verify the deployed save/delete behavior.
+- [x] Replace the venue history shortcut with a caller-scoped reader and LangGraph verification.
+- [ ] Bind venue history live fixtures and support separate, independently verified answers for combined venue and fee/timetable questions.
 - [x] Connect the four internship views and independent tuition and timetable lookup to the verified account endpoint. Register the 30-case native bank.
 - [ ] Bind the internship cases to disposable accounts and trusted request observations. Rebind four earlier internship cases against their original requirements.
 - [ ] Execute student leave and native Moodle cases with exact caller-bound fixtures on the protected Preview. Verify the live four-turn conversation and signed-in browser paths.

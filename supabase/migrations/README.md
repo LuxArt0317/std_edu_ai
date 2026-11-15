@@ -1,5 +1,7 @@
 # Database migrations
 
+`20261115230000_assistant_conversation_delete_receipts.sql` serializes conversation deletion and saving under the existing per-account advisory lock. It records only the deleting account and conversation ID in a private table with no application grants. A late save for that account and deleted ID returns a conflict. The migration must run before releasing the new DELETE handler.
+
 `20261114150000_graduation_clearance.sql` adds term periods, account assignments, applications, office review rows and private replay receipts. It seeds no student records or dates.
 
 `20261114140000_teaching_feedback.sql` adds survey windows, separated completion and response storage, and immediate feedback with review status. Access is limited to the verified student or administrator RPC scope.
