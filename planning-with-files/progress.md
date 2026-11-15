@@ -1,5 +1,7 @@
 # Progress
 
+- 2026-11-16 [#100] `fe576ac` passed Quality, all 15 Moodle assignment and 11 teaching sample cases. The integrated Chromium sweep passed 561 comparisons across 265 routes. Preserved the two hosted About failures, added checksum-bound answers, and reproduced and repaired the three-check stop after a truncated review of a verified partial. The 212-test scoped integration, 94-test retry suite and 1,965-test API suite passed. Exact `1e17255` passed both hosted About questions. The `c123fd5` follow-up passed all 94 exact focused checks. It is Ready and passed both pinned public smoke requests. Quality 43740337322 is active. Issue post 6898339036 records the distinct evidence levels.
+
 - 2026-11-16 [#100] Exact `c089be2` passed Quality 43736218648, nine hosted Moodle assignment cases and all 18 hosted club attendance cases with paired evidence and exact cleanup. A disk-interrupted club attempt was preserved, then a read-only check verified zero fixture residue before the successful replay. Added the fourth-check truncation recovery, six more hosted assignment cases, and isolated SQL evidence for 26 original teaching questions. The combined candidate passed 289 exact focused checks and API type checking.
 
 - 2026-11-16 [#100] Reproduced five evaluator VM cleanup failures from Quality 43735328137. Moved the identity read inside cleanup and supplied the session fixture's retry stubbing. All 63 affected tests and the full 1,480-case evaluator passed locally with seven opt-in skips. Staged test-only `c089be2` and triggered 43736218648.

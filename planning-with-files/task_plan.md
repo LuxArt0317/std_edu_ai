@@ -1011,3 +1011,13 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [ ] Run the positive window cases after a suitable isolated fixture is available.
 - [x] Mount and replay all 11 selected Academic Services 13-1 cases on exact protected `b9aa9b3`. Verify the native Activity event, scoped readbacks and disposal.
 - [ ] Finish exact follow-up Quality and broader release acceptance before production promotion.
+
+### Adaptive lookup follow-through [Issue #100]
+
+- [x] Verify 15 mounted Moodle assignment questions and 11 teaching-feedback sample questions on exact protected `fe576ac`. Retain paired caller readback, distinct original teaching cases and verified cleanup evidence.
+- [x] Pass all 561 compiled Chromium comparisons across 265 routes on one clean revision using synthetic login and record data.
+- [x] Preserve the 0/2 hosted public About failure and verify the two audited fact answers locally against the checksum-pinned source.
+- [x] Recheck both frozen About questions on exact protected `1e17255` and independently verify the deployment manifest. Both passed with one verification and one bound citation. The newer CI superseded the original run.
+- [x] Reproduce and repair the third-check stop when the model reviewer truncates after a verified partial. Require a fresh official page for the fourth check and keep prior verified content under the time limit.
+- [x] Stage the retained-partial change as protected `c123fd5`. Pass 94 focused controlled tests on the exact revision, then verify the Ready release and both unchanged public About smoke cases.
+- [ ] Verify the complete Quality run, continue the remaining 11 original teaching cases and mount the remaining hosted service acceptance cases.
