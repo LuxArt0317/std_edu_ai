@@ -335,3 +335,7 @@ The separate answer-only signed-in replay on the same SHA found that the overvie
 ### Verified correction from saved records
 
 A rejected account overview refreshes the same seven caller-owned projections, checks the exact fields, counts and source links, and reconstructs the overview. A rejected remaining-balance answer rereads only saved charges, validates the amounts and displays totals grouped by currency and source label. Failed refreshes withhold stale values. The four-turn local replay uses a deliberately rejected first review. A separate browser check at 1,440 and 390 pixels verifies that all three review events and the reason for each rejection remain visible after a reload.
+
+### Switch sources after a failed knowledge check
+
+If managed excerpts still leave an evidence gap and time remains, the public handler can switch to official pages. It submits only the screened public question to search, reads the returned page independently, and spends the remaining verification check on that evidence. The earlier checks and source switch stay in the Activity timeline. Controlled handler cases verify a recovered answer, missing web results, expiring budget, a prior web attempt and a provider outage. No search is sent for a private question or image in this path.
