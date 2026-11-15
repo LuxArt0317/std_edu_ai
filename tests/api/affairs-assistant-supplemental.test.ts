@@ -55,7 +55,7 @@ test('required supplemental domains and page followups use account routing witho
     ['What does this say?','/school-affairs/services/49-1'],['Show saved assignment files.','/dtm'],['What feedback was recorded?','/dtm/course/20000000-0000-4000-8000-000000000001/assignment/20000000-0000-4000-8000-000000000002'],
     ['What tax is recorded?','/school-affairs/services/37-1/salary'],['List saved student aid claims.','/dtm'],
     ['Show saved Moodle grades.','/'],['What is on this page?','/dtm/grades'],
-    ['Which remote-learning Moodle courses am I enrolled in?','/elearning/my-courses'],['What are my courses?','/elearning/my-courses'],
+    ['What are my current courses?','/elearning/my-courses'],
     ['What about reports?','/school-affairs/services/36-1?page=2'],['What is the status?','/school-affairs/services/29-1/appointments']];
   for(const [question,route]of cases){let calls=0;
     const result=await invoke(base({answerAccount:async options=>{calls++;assert.equal(options.question,question);assert.equal(options.route,route);
@@ -76,20 +76,37 @@ test('foreign salary, aid and DTM grade requests are denied after auth with zero
   }
 });
 
-test('remote-learning-only answers avoid loading unrelated School Affairs and DTM snapshots',async()=>{
-  let verified=0;
-  const result=await invoke(base({
-    loadSnapshot:async()=>assert.fail('No broader account snapshot expected'),
-    answerAccount:async options=>{
-      assert.deepEqual(Object.keys(options.snapshot).sort(),['checkedAt','profile']);
-      assert.equal((await options.loadSnapshot()).profile.userId,options.snapshot.profile.userId);
-      assert.equal(typeof options.supplementalReaders?.elearningEnrollments,'function');
-      verified++;
-      return answer;
-    },
-  }),{question:'What are my courses?',route:'/elearning/my-courses'});
-  assert.equal(result.status,200);
-  assert.equal(verified,1);
+test('explicit and contextual remote enrollment questions verify the owned workspace without a planner or unrelated reads',async()=>{
+  const originalFetch=globalThis.fetch,verified=account(),paths:string[]=[];
+  const route='/elearning/my-courses';
+  const deps=base({verifyToken:async()=>verified,
+    loadSnapshot:async()=>assert.fail('No broader account snapshot expected.'),
+    answerAccount:async()=>assert.fail('The exact remote scope must not enter the general account planner.')});
+  globalThis.fetch=async(input,init)=>{
+    const url=new URL(String(input)),headers=new Headers(init?.headers);
+    paths.push(url.pathname);
+    assert.equal(url.href,verified.url+'/rest/v1/rpc/elearning_workspace');
+    assert.equal(init?.method,'POST');assert.equal(init?.redirect,'error');assert.deepEqual(JSON.parse(String(init?.body)),{});
+    assert.equal(headers.get('Authorization'),'Bearer '+verified.token);assert.equal(headers.get('apikey'),verified.key);
+    return Response.json({userId:verified.user.id,categories:[],notices:[],
+      courses:[{id:41,category_id:1,position:1,title:'Saved workshop',self_enroll:false},
+        {id:42,category_id:1,position:2,title:'Unrelated catalog workshop',self_enroll:false}],
+      enrollments:[{courseId:41,joinedAt:'2026-11-14T00:00:00Z'}]});
+  };
+  try{
+    for(const question of ['Which remote-learning Moodle courses am I enrolled in?','What are my courses?']){
+      paths.length=0;
+      const result=await invoke(deps,{question,route});
+      assert.equal(result.status,200,question);
+      assert.deepEqual(paths,['/rest/v1/rpc/elearning_workspace'],question);
+      assert.deepEqual(result.body.verification,{status:'verified',attempts:1},question);
+      assert.match(result.body.answer,/Saved workshop/u);
+      assert.doesNotMatch(JSON.stringify(result.body),/Unrelated catalog workshop|SYNTHETIC-VERIFIED/u);
+      assert.deepEqual(result.body.citations.map((item:{chunkId:string;url:string})=>[item.chunkId,item.url]),
+        [['account:elearningEnrollments',route]]);
+      assert.ok(result.body.activity.some((step:{kind:string;status:string})=>step.kind==='elearning-evidence-check'&&step.status==='complete'));
+    }
+  }finally{globalThis.fetch=originalFetch;}
 });
 
 test('callbacks capture verified credentials, preserve full selectors and use fresh graph snapshots with bounded deadlines',async()=>{
