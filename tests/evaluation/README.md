@@ -245,3 +245,24 @@ Use `node tests/evaluation/run-club-equipment-preview.mjs <protected-preview-ori
 The two accounts see distinct borrowing records from an inactive fixture club. The readback checks that both can see their saved rows while both lack eligibility to book new equipment and both are denied manager review. Each request produces an independent before-and-after database digest. Cleanup verifies absence of the exact club, three borrowing rows, operation receipts, and the two disposable Auth identities. A successful report requires all nine cases and `liveAcceptance: true`. Run `node --test tests/evaluation/club-equipment-hosted.test.mjs` for the local contracts and controlled end-to-end replay.
 
 Pass `--confirmed-cancellation` to continue with the disposable owner's submitted equipment request. The operator requires verified assistant proposals, records the exact cancellation intent before calling the action endpoint, and checks both owners and the private operation receipt after every request. It verifies crossed-owner denial, stale revision denial, one confirmed transition, stable replay, changed-payload denial, the final assistant status, exact cleanup, and the pinned release. Keep the operator's structured report owner-readable.
+
+### Housing and dormitory conduct in scratch PostgreSQL
+
+The replay grades the existing positive 34-1 bed and costs questions and the combined 34-2 conduct and housing question against fixed facts. The actual HTTP handlers read two synthetic Google student accounts under the real ownership policies. SQL verifies both crossed-owner denials and checks that the published period, records, receipts and audit rows stay unchanged. The transport uses a controlled answer reviewer and a private Unix socket. Hosted and model acceptance require separate runs.
+
+The test skips unless you opt in. With PostgreSQL's `initdb` and `pg_ctl` on PATH, run this from the repository root:
+
+```sh
+(
+  set -eu
+  housing_pg=$(mktemp -d /var/tmp/stu100-housing-pg.XXXXXX)
+  housing_pg=$(cd "$housing_pg" && pwd -P)
+  mkdir -m 700 "$housing_pg/socket"
+  trap 'pg_ctl -D "$housing_pg/data" -m fast stop >/dev/null 2>&1 || true; rm -rf "$housing_pg"' EXIT
+  initdb -D "$housing_pg/data" --no-locale --encoding=UTF8 --username=postgres --auth=trust
+  pg_ctl -D "$housing_pg/data" -l "$housing_pg/postgres.log" -w \
+    -o "-k $housing_pg/socket -c listen_addresses='' -c unix_socket_permissions=0700" start
+  STU_HOUSING_TEST_PG_SOCKET="$housing_pg/socket" \
+    node --experimental-strip-types --test tests/evaluation/housing-scratch-postgres-replay.test.mjs
+)
+```

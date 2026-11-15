@@ -3,6 +3,8 @@
 
 - Verify complete standalone internship answers directly against the selected saved records. Keep each tracking or review status with its own record in English and Traditional Chinese. [#100]
 
+- Replay saved housing bed, costs and dormitory notice questions against a published term in scratch PostgreSQL, with paired owner isolation and unchanged-record checks. [#100]
+
 - Try a distinct public school publication when the indexed notice requires sign-in and targeted discovery comes up empty. Keep the discovered source separate from the unpublished notice content. [#100]
 
 - Verify complete Moodle grade overviews and all-item feedback directly against saved course and report rows. Preserve exact values beside their course or item. [#100]
