@@ -304,3 +304,44 @@ test('a lost learning support confirmation response spends its relay before tran
   await assert.rejects(relay(endpoint,init),/unapproved request operation/u);
   assert.equal(sent,1);
 });
+
+
+test('the learning support submission relay permits one exact caller, endpoint, nonce and payload',async()=>{
+  const endpoint=origin+'/api/affairs-action';
+  const payload={request_id:'79085090-0000-4000-8000-000000000002',topic:'QA learning support topic',details:'QA request details'};
+  const body={kind:'submit_learning_support',payload};
+  const makeCommand=(value=body)=>({callerToken:caller.slice(7),body:value});
+  const sent=[];
+  const config={origin,token:tokenAt(time),now:()=>time*1000,fetchImpl:async(url,init)=>{
+    sent.push({url:url.href,init});return Response.json({version:1});
+  }};
+  const relayFor=value=>createTrustedPreviewFetch({...config,confirmedLearningSupportSubmissionCommand:makeCommand(value)});
+  for(const bad of [
+    {...body,kind:'withdraw_learning_support'},
+    {...body,requestId:payload.request_id},
+    ...[{...payload,request_id:'79085090-0000-7000-8000-000000000002'},
+      {...payload,topic:' '},{...payload,details:'x'.repeat(1201)},{...payload,owner_id:payload.request_id}]
+      .map(payload=>({...body,payload})),
+  ])assert.throws(()=>relayFor(bad),/invalid learning support submission fixture/u);
+  assert.throws(()=>createTrustedPreviewFetch({...config,confirmedLearningSupportSubmissionCommand:makeCommand(),
+    conversationId:payload.request_id}),/invalid confirmed action fixture/u);
+
+  const relay=relayFor(body),init={...post,body:JSON.stringify(body)};
+  const changed={...body,payload:{...payload,details:payload.details+' changed'}};
+  for(const path of [origin+'/api/affairs-assistant',endpoint+'?scope=learning-support'])
+    await assert.rejects(relay(path,init),/unapproved request operation/u);
+  await assert.rejects(relay(endpoint,{...init,headers:{...post.headers,Authorization:'Bearer second.caller.signature'}}),
+    /unapproved request operation/u);
+  await assert.rejects(relay(endpoint,{...init,body:JSON.stringify(changed)}),/unapproved request operation/u);
+  assert.equal(sent.length,0);
+
+  assert.equal((await relay(endpoint,init)).status,200);
+  assert.equal(sent[0].url,endpoint);
+  assert.equal(sent[0].init.body,init.body);
+  assert.equal(sent[0].init.headers.get('authorization'),caller);
+  assert.equal(sent[0].init.headers.get(trusted),config.token);
+  await assert.rejects(relay(endpoint,init),/unapproved request operation/u);
+  assert.equal(sent.length,1);
+  assert.equal((await relayFor(body)(endpoint,init)).status,200);
+  assert.equal(sent.length,2);
+});

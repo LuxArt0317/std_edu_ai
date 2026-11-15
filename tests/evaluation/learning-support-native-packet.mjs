@@ -3,10 +3,11 @@ import {isDeepStrictEqual} from 'node:util';
 import {learningSupportPath} from '../../src/features/public/affairs/studentServices.js';
 
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u;
-const kind='withdraw_learning_support';
+const kind='withdraw_learning_support',submitKind='submit_learning_support';
 const times=['2024-11-18T16:40:00+00:00','2024-11-19T16:41:00+00:00','2024-11-20T16:42:00+00:00'];
 const checks=['owner-count','owner-status','foreign-count','foreign-status','guest','ambiguous','held','foreign-proposal',
-  'owner-proposal','foreign-confirm','stale-confirm','confirmed','replay','changed-replay','foreign-replay','owner-updated-status','foreign-unchanged'];
+  'owner-proposal','foreign-confirm','stale-confirm','confirmed','replay','changed-replay','foreign-replay','owner-updated-status','foreign-unchanged',
+  'submit-proposal','submit-confirmed','submit-replay','submit-changed-replay','submit-foreign-unchanged'];
 export const learningSupportNativeCaseIds=Object.freeze(checks.map(name=>'learning-support:'+name));
 const page=learningSupportPath;
 const labels={submitted:'Submitted',in_review:'In site review',reviewed:'Site review complete',withdrawn:'Withdrawn'};
@@ -27,13 +28,38 @@ export function learningSupportWithdrawalSnapshot(plan,raw,command){
     &&payload.id===target.id&&payload.expected_version===target.version&&uuid.test(payload.request_id)
     &&![plan.runId,plan.staleRequestId,...Object.values(plan.owners),...plan.rows.map(row=>row.id)].includes(payload.request_id),
     'journaled-withdrawal-binding');
-  const changedRow=raw.rows.find(row=>row.id===target.id),operation=raw.operations[0];
+  const changedRow=raw.rows.find(row=>row.id===target.id);
+  const operation=raw.operations.find(row=>row.actor===owner&&row.request_id===payload.request_id);
   check(timestamp(changedRow?.updated_at)&&Date.parse(changedRow.updated_at)>Date.parse(target.updated_at)
     &&timestamp(operation?.occurred_at)&&Date.parse(operation.occurred_at)>Date.parse(target.updated_at)
     &&Date.parse(operation.occurred_at)<=Date.parse(changedRow.updated_at),'confirmed-row-and-operation-time');
   const version=target.version+1,receipt={id:target.id,requestId:payload.request_id,status:'withdrawn',version};
   return {rows:ordered(plan.rows.map(row=>row.id===target.id?{...row,status:'withdrawn',version,updated_at:changedRow.updated_at}:row),row=>row.id),
     operations:[{actor:owner,request_id:payload.request_id,target_id:target.id,kind:'withdraw',payload,result:receipt,occurred_at:operation.occurred_at}]};
+}
+
+function submissionFields(plan){
+  return {topic:'QA confirmed support topic '+plan.runId,details:'QA request for help planning weekly study time '+plan.runId};
+}
+
+export function learningSupportSubmissionSnapshot(plan,raw,command,baseline){
+  const owner=plan.owners.A,payload=command?.payload,fields=submissionFields(plan);
+  const fixtureIds=[plan.runId,plan.staleRequestId,...Object.values(plan.owners),...plan.rows.map(row=>row.id)];
+  const reserved=[...fixtureIds,...baseline.operations.map(row=>row.request_id)];
+  check(uuid.test(payload?.request_id??'')&&!reserved.includes(payload.request_id)
+    &&isDeepStrictEqual(command,{kind:submitKind,payload:{request_id:payload.request_id,...fields}}),'journaled-submission-binding');
+  const created=raw.rows.filter(row=>!baseline.rows.some(original=>original.id===row.id));
+  check(created.length===1,'confirmed-submission-cardinality');
+  const {id,submitted_at}=created[0];
+  const operation=raw.operations.find(row=>row.actor===owner&&row.request_id===payload.request_id);
+  check(uuid.test(id)&&!reserved.includes(id)&&id!==payload.request_id&&timestamp(submitted_at)
+    &&baseline.rows.every(row=>Date.parse(submitted_at)>=Date.parse(row.updated_at))
+    &&operation?.occurred_at===submitted_at,'confirmed-submission-id-and-time');
+  const request={id,user_id:owner,...fields,status:'submitted',review_note:'',version:1,submitted_at,updated_at:submitted_at};
+  const result={id,requestId:payload.request_id,status:'submitted',version:1};
+  const audit={actor:owner,request_id:payload.request_id,target_id:id,kind:'submit',payload,result,occurred_at:submitted_at};
+  return {rows:ordered([...baseline.rows,request],row=>row.id),
+    operations:ordered([...baseline.operations,audit],row=>row.actor+'/'+row.request_id)};
 }
 
 export function learningSupportNativeBaseline(plan){
@@ -61,10 +87,12 @@ export async function readLearningSupportNativeRows(sql,plan){
   const [value]=await sql`select
     coalesce((select jsonb_agg(to_jsonb(row) order by row.id)
       from (select * from public.affairs_learning_support_requests
-        where user_id in ${sql(owners)} or id in ${sql(ids)} limit 4) row),'[]'::jsonb) as rows,
+        where user_id in ${sql(owners)} or id in ${sql(ids)} limit 5) row),'[]'::jsonb) as rows,
     coalesce((select jsonb_agg(to_jsonb(operation) order by operation.actor,operation.request_id)
       from (select * from private.affairs_learning_support_operations
-        where actor in ${sql(owners)} or target_id in ${sql(ids)} limit 2) operation),'[]'::jsonb) as operations`;
+        where actor in ${sql(owners)} or target_id in ${sql(ids)}
+          or target_id in (select id from public.affairs_learning_support_requests where user_id in ${sql(owners)})
+        limit 3) operation),'[]'::jsonb) as operations`;
   check(Array.isArray(value?.rows)&&Array.isArray(value?.operations),'raw-database-shape');
   return value;
 }
@@ -83,13 +111,13 @@ const statusQuestion='What is the status of my learning support request?';
 const selectQuestion='Withdraw my learning support request.';
 const requestById=id=>'Withdraw my learning support request with ID '+id+'.';
 
-export async function verifyLearningSupportNativePacket({plan,readRaw,readNative,ask,confirm,markWithdrawal,onResult}){
+export async function verifyLearningSupportNativePacket({plan,readRaw,readNative,ask,confirm,markWithdrawal,markSubmission,onResult}){
   const owner=plan.owners.A,other=plan.owners.B,target=plan.target;
   const baseline=await readRaw();
   check(isDeepStrictEqual(baseline,learningSupportNativeBaseline(plan)),'independent-owner-fixture-baseline');
   let expected=baseline,command;
-  const results=[],correlations=new Set();
-  const privateValues=[owner,other,plan.runId,plan.staleRequestId,...plan.rows.flatMap(row=>[row.id,row.topic,row.details,row.review_note])].filter(Boolean);
+  const results=[],correlations=new Set(),fields=submissionFields(plan);
+  const privateValues=[owner,other,plan.runId,plan.staleRequestId,...Object.values(fields),...plan.rows.flatMap(row=>[row.id,row.topic,row.details,row.review_note])].filter(Boolean);
   const observe=async stage=>{
     const raw=await readRaw();
     check(isDeepStrictEqual(raw,expected),stage+'-exact-raw-state');
@@ -97,7 +125,7 @@ export async function verifyLearningSupportNativePacket({plan,readRaw,readNative
     const nativeB=verifyNativeRowScope(await readNative('B'),raw,other);
     return {raw,nativeA,nativeB};
   };
-  async function grade(stage,{actor,query,action,status=200,changes=false},verify){
+  async function grade(stage,{actor,query,action,status=200,mutation},verify){
     const caseId='learning-support:'+stage;
     check(caseId===learningSupportNativeCaseIds[results.length],'case-order');
     const before=await observe(stage+'-before');
@@ -108,17 +136,21 @@ export async function verifyLearningSupportNativePacket({plan,readRaw,readNative
       check(uuid.test(correlationId??'')&&!correlations.has(correlationId),stage+'-request-correlation');
       correlations.add(correlationId);
     }
+    if(mutation)expected=mutation(await readRaw(),expected);
+    check(verify(body,activity??[],before,expected),stage+'-answer-or-receipt');
     const masked=structuredClone({body,activity});
-    if(stage==='owner-proposal'&&masked.body?.proposedAction?.payload?.id===target.id)
-      masked.body.proposedAction.payload.id='[validated selector]';
-    if(action&&status===200&&masked.body?.id===target.id)masked.body.id='[validated receipt]';
-    check(privateValues.every(value=>!JSON.stringify(masked).includes(value)),stage+'-privacy');
-    check(verify(body,activity??[],before),stage+'-answer-or-receipt');
-    if(changes)expected=learningSupportWithdrawalSnapshot(plan,await readRaw(),command);
+    if(stage==='owner-proposal')masked.body.proposedAction.payload.id='[validated selector]';
+    if(stage==='submit-proposal')masked.body.proposedAction.payload='[validated submission fields]';
+    if(action&&status===200)masked.body.id='[validated receipt]';
+    if(stage==='submit-confirmed')privateValues.push(body.id);
+    const serialized=JSON.stringify(masked);
+    check(privateValues.every(value=>!serialized.includes(value)),stage+'-privacy');
     const after=await observe(stage+'-after');
+    if(stage.startsWith('submit-'))
+      check(isDeepStrictEqual(before.nativeB,after.nativeB),stage+'-other-caller-unchanged');
     const row={caseId,passed:true,before:digest(before),after:digest(after),request:digest(action??{query,page}),
       ...(action&&status===200?{receipt:digest(body)}:{})};
-    check((row.before!==row.after)===changes,stage+'-change-cardinality');
+    check((row.before!==row.after)===Boolean(mutation),stage+'-change-cardinality');
     results.push(row);await onResult?.(row);return body;
   }
 
@@ -164,11 +196,33 @@ export async function verifyLearningSupportNativePacket({plan,readRaw,readNative
   const exactReceipt=body=>isDeepStrictEqual(body,receipt);
   await grade('foreign-confirm',{actor:'B',action:command,status:404},deny);
   await grade('stale-confirm',{actor:'A',action:stale,status:409},deny);
-  await grade('confirmed',{actor:'A',action:command,changes:true},exactReceipt);
+  await grade('confirmed',{actor:'A',action:command,mutation:raw=>learningSupportWithdrawalSnapshot(plan,raw,command)},exactReceipt);
   await grade('replay',{actor:'A',action:command},exactReceipt);
   await grade('changed-replay',{actor:'A',action:{kind,payload:{...command.payload,expected_version:1}},status:409},deny);
   await grade('foreign-replay',{actor:'B',action:command,status:404},deny);
   await grade('owner-updated-status',{actor:'A',query:statusQuestion},savedAnswer('A',true));
   await grade('foreign-unchanged',{actor:'B',query:statusQuestion},savedAnswer('B',true));
+  const submitQuestion='Submit a learning support request titled "'+fields.topic+'" with details "'+fields.details+'".';
+  const submission=await grade('submit-proposal',{actor:'A',query:submitQuestion},(body,activity)=>{
+    const action=body?.proposedAction;
+    return body?.status==='answered'&&body.grounding?.source==='account'&&body.grounding.webSearched===false
+      &&isDeepStrictEqual(body.verification,{status:'verified',attempts:1})&&uuid.test(action?.requestId??'')
+      &&![command.payload.request_id,...privateValues].includes(action.requestId)
+      &&isDeepStrictEqual(action,{kind:submitKind,label:'Submit learning support request',payload:fields,requestId:action.requestId,url:page})
+      &&isDeepStrictEqual(body.citations?.map(citation=>citation.url),[page])
+      &&activity.some(step=>step.kind==='action-context:1'&&step.status==='complete')
+      &&activity.every(step=>!String(step.kind).startsWith('account-read:'));
+  });
+  const submit={kind:submitKind,payload:{request_id:submission.proposedAction.requestId,...fields}};
+  check(typeof markSubmission==='function','submission-journal-required');
+  await markSubmission(structuredClone(submit));
+  const exactSubmitReceipt=(body,_activity,_before,state)=>isDeepStrictEqual(body,
+    state.operations.find(row=>row.actor===owner&&row.request_id===submit.payload.request_id)?.result);
+  await grade('submit-confirmed',{actor:'A',action:submit,
+    mutation:(raw,state)=>learningSupportSubmissionSnapshot(plan,raw,submit,state)},exactSubmitReceipt);
+  await grade('submit-replay',{actor:'A',action:submit},exactSubmitReceipt);
+  const changedSubmit={...submit,payload:{...submit.payload,details:fields.details+' revised'}};
+  await grade('submit-changed-replay',{actor:'A',action:changedSubmit,status:409},deny);
+  await grade('submit-foreign-unchanged',{actor:'B',query:statusQuestion},savedAnswer('B',true));
   return {passed:true,cases:results};
 }

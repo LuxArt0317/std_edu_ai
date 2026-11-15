@@ -2,7 +2,7 @@ import {isDeepStrictEqual} from 'node:util';
 import {validateAidPaymentFixtureOwners} from './aid-payment-fixture-plan.mjs';
 import {createTrustedPreviewFetch} from './vercel-preview-transport.mjs';
 import {buildLearningSupportNativePlan,learningSupportNativeBaseline,learningSupportWithdrawalSnapshot,
-  readLearningSupportNativeRows} from './learning-support-native-packet.mjs';
+  learningSupportSubmissionSnapshot,readLearningSupportNativeRows} from './learning-support-native-packet.mjs';
 
 export const learningSupportPreviewMode='learning-support-native-preview';
 const empty={rows:[],operations:[]};
@@ -46,7 +46,7 @@ export async function assertLearningSupportPreviewSchema(sql){
 export function bindLearningSupportPreview(runId,owners){
   const binding=validateAidPaymentFixtureOwners({runId,owners});
   const plan=buildLearningSupportNativePlan(runId,{A:owners.A.id,B:owners.B.id});
-  return {binding,plan,command:null};
+  return {binding,plan,command:null,submission:null};
 }
 
 async function verifyLearningSupportOwners(sql,fixture){
@@ -73,15 +73,23 @@ export async function seedLearningSupportPreview(sql,fixture){
 /** Acquire the real actor locks and validate the entire private fixture before any deletion. */
 export async function cleanupLearningSupportPreview(sql,fixture){
   await verifyLearningSupportOwners(sql,fixture);
-  const {plan,command}=fixture;
+  const {plan,command,submission}=fixture;
   for(const id of Object.values(plan.owners).sort())
     await sql`select pg_advisory_xact_lock(hashtextextended('learning-support-actor:'||${id},0))`;
-  await sql`select id from public.affairs_learning_support_requests where id in ${sql(plan.rows.map(row=>row.id))} order by id for update`;
+  await sql`select id from public.affairs_learning_support_requests
+    where user_id in ${sql(Object.values(plan.owners))} or id in ${sql(plan.rows.map(row=>row.id))} order by id for update`;
   const current=await readLearningSupportNativeRows(sql,plan);
   if(isDeepStrictEqual(current,empty))return;
-  const expected=current.operations.length?learningSupportWithdrawalSnapshot(plan,current,command):learningSupportNativeBaseline(plan);
+  let expected=learningSupportNativeBaseline(plan);
+  const withdrawn=current.operations.some(row=>row.kind==='withdraw');
+  const submitted=current.operations.some(row=>row.kind==='submit');
+  if(withdrawn)expected=learningSupportWithdrawalSnapshot(plan,current,command);
+  if(submitted){
+    check(withdrawn,'cleanup-submission-sequence');
+    expected=learningSupportSubmissionSnapshot(plan,current,submission,expected);
+  }
   check(isDeepStrictEqual(current,expected),'cleanup-exact-learning-support-scope');
-  for(const row of plan.rows){
+  for(const row of expected.rows){
     const removed=await sql`delete from public.affairs_learning_support_requests
       where id=${row.id} and user_id=${row.user_id} returning id`;
     check(removed.length===1&&removed[0].id===row.id,'exact-learning-support-delete');
@@ -105,7 +113,9 @@ export function learningSupportPreviewHttp({origin,previewToken,readback,readRes
       :callerToken?'/api/affairs-assistant':'/api/research-assistant';
     const endpoint=new URL(path,origin);
     const body=action?command:{question,route,stream:false,consentedResearchUse:false};
-    const transport=action?createTrustedPreviewFetch({origin,token:previewToken,confirmedLearningSupportCommand:{callerToken,body},
+    const actionBinding=command?.kind==='submit_learning_support'?{confirmedLearningSupportSubmissionCommand:{callerToken,body}}
+      :{confirmedLearningSupportCommand:{callerToken,body}};
+    const transport=action?createTrustedPreviewFetch({origin,token:previewToken,...actionBinding,
       ...(fetchImpl?{fetchImpl}:{})}):readback;
     const response=await transport(endpoint,{method:native?'GET':'POST',
       headers:{Accept:'application/json',...(callerToken?{Authorization:'Bearer '+callerToken}:{}),

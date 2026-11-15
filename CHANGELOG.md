@@ -32,6 +32,7 @@
 - Let students review and confirm withdrawal of one owned learning-support request in chat. The withdrawal uses the native versioned receipt and preserves the exact command on retry. [#100]
 
 - Let signed-in students review and confirm a local learning-support submission in chat. The assistant verifies the quoted topic and details, and retries with the same native request ID after an uncertain receipt. [#100]
+- Extend protected learning support evaluation to verify submission drafts, one confirmed row and receipt, safe replay, and exact cleanup with two disposable callers. [#100]
 
 - Add a signed zero-read check for 14 Student Leave navigation and access questions while preserving the separate 18-case owned-record evaluation. [#100]
 

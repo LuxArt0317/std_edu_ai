@@ -1,3 +1,4 @@
+import {learningSupportMaxPayloadBytes,validLearningSupportSubmission} from '../../server/learningSupport.js';
 import {isConversationId} from '../../src/services/assistantConversationId.js';
 
 // The client uses the generated `stdedu` deployment stem. Branch aliases
@@ -74,9 +75,21 @@ function boundCancellation(command,kind,label,versionKey='expected_version',maxi
   return {authorization:'Bearer '+callerToken,body:JSON.stringify(body)};
 }
 
+function boundLearningSupportSubmission(command){
+  const {callerToken,body}=command??{},payload=body?.payload;
+  if(typeof callerToken!=='string'||callerToken.length>16000||!jwt.test(callerToken)
+    ||!body||Object.keys(body).sort().join(',')!=='kind,payload'||body.kind!=='submit_learning_support'
+    ||!payload||Object.keys(payload).sort().join(',')!=='details,request_id,topic'
+    ||!isConversationId(payload.request_id)||payload.request_id[14]!=='4'
+    ||!validLearningSupportSubmission(payload.topic,payload.details))fail('invalid learning support submission fixture');
+  const serialized=JSON.stringify(body);
+  if(Buffer.byteLength(serialized)>learningSupportMaxPayloadBytes)fail('invalid learning support submission fixture');
+  return {authorization:'Bearer '+callerToken,body:serialized};
+}
+
 /** Relay one operator-supplied identity only to the exact approved deployment.
  * Vercel validates the signature and trust rule. Caller Auth is independent. */
-export function createTrustedPreviewFetch({origin,token,conversationId,conversationDeleteFixtures,confirmedTaskCommand,confirmedClubCommand,confirmedCounselingCommand,confirmedRepairCommand,confirmedLearningSupportCommand,fetchImpl=globalThis.fetch,now=Date.now}={}){
+export function createTrustedPreviewFetch({origin,token,conversationId,conversationDeleteFixtures,confirmedTaskCommand,confirmedClubCommand,confirmedCounselingCommand,confirmedRepairCommand,confirmedLearningSupportCommand,confirmedLearningSupportSubmissionCommand,fetchImpl=globalThis.fetch,now=Date.now}={}){
   if(!isEvaluationPreviewOrigin(origin)||typeof fetchImpl!=='function'||typeof now!=='function'
     ||conversationId!==undefined&&!isConversationId(conversationId))fail('invalid Preview target');
   const deleteProbe=conversationDeleteFixtures!==undefined,deleteQueries=new Set(),deleteBodies=new Set();
@@ -86,7 +99,9 @@ export function createTrustedPreviewFetch({origin,token,conversationId,conversat
   const repairCommand=confirmedRepairCommand===undefined?null:boundCancellation(confirmedRepairCommand,'cancel_facility_repair','repair','version',10000);
   const learningSupportCommand=confirmedLearningSupportCommand===undefined?null:
     boundCancellation(confirmedLearningSupportCommand,'withdraw_learning_support','learning support','expected_version',2);
-  const commands=[taskCommand,clubCommand,counselingCommand,repairCommand,learningSupportCommand].filter(Boolean);
+  const learningSupportSubmission=confirmedLearningSupportSubmissionCommand===undefined?null:
+    boundLearningSupportSubmission(confirmedLearningSupportSubmissionCommand);
+  const commands=[taskCommand,clubCommand,counselingCommand,repairCommand,learningSupportCommand,learningSupportSubmission].filter(Boolean);
   const [actionCommand]=commands;
   if(actionCommand&&(commands.length!==1||deleteProbe||conversationId!==undefined))fail('invalid confirmed action fixture');
   let actionCommandUsed=false;

@@ -1918,6 +1918,12 @@ export async function runLearningSupportPreview({origin,sourceRevision,previewTo
         fixture.command=command;
         await saveLedger();
       },
+      markSubmission:async command=>{
+        await assertRecordedFixtureLease(s,'Learning support submission journal');
+        await previewGate.assertCurrent();
+        fixture.submission=command;
+        await saveLedger();
+      },
       onResult:async row=>{results.push(row);await onCheckpoint?.(report(false));},
     });
     phase='release-verification';
@@ -3997,7 +4003,7 @@ export async function cleanup(){
       await assertRecordedFixtureLease(s,'Learning support fixture cleanup');
       assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
       await query(()=>feeTransaction(s,()=>cleanupLearningSupportPreview(s.sql,s.learningSupportPreview)),
-        'Could not remove the exact disposable learning support rows and operation.');
+        'Could not remove the exact disposable learning support rows and operations.');
     }
     if(s.facilityRepairCancellation){
       await assertRecordedFixtureLease(s,'Facility repair cancellation cleanup');

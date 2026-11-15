@@ -33,7 +33,7 @@ test('learning support preflight requires every schema and permission finding be
 });
 
 test('the learning support runtime sends only the paired page, assistant and exact native confirmation requests',async()=>{
-  const token=previewToken(),A='synthetic.owner.signature',B='synthetic.other.signature',sent=[];
+  const token=previewToken(),A='synthetic.owner.signature',B='synthetic.other.signature',sent=[],submittedId=randomUUID();
   const fetchImpl=async(target,init)=>{
     const url=new URL(target),body=init.body&&JSON.parse(init.body),headers=init.headers;
     sent.push({url:pathOf(url),method:init.method,actor:headers.get('authorization'),body});
@@ -41,8 +41,12 @@ test('the learning support runtime sends only the paired page, assistant and exa
     assert.equal(headers.get(trusted),token);
     assert.equal(init.redirect,'error');
     const correlationId=randomUUID();
-    return url.pathname==='/api/affairs-action'?Response.json({id:body.payload.id,requestId:body.payload.request_id,status:'withdrawn',version:3}):
-      Response.json({status:'answer',activity:[{status:'complete'}]},{headers:{'x-assistant-request-id':correlationId}});
+    if(url.pathname==='/api/affairs-action'){
+      const submit=body.kind==='submit_learning_support';
+      return Response.json({id:submit?submittedId:body.payload.id,requestId:body.payload.request_id,
+        status:submit?'submitted':'withdrawn',version:submit?1:3});
+    }
+    return Response.json({status:'answer',activity:[{status:'complete'}]},{headers:{'x-assistant-request-id':correlationId}});
   };
   const pathOf=url=>url.pathname+url.search;
   const readback=createTrustedPreviewFetch({origin,token,fetchImpl});
@@ -66,8 +70,11 @@ test('the learning support runtime sends only the paired page, assistant and exa
     activity:[],correlationId:null};
   assert.deepEqual(await http({mode:'confirm',callerToken:A,command}),expected);
   assert.deepEqual(await http({mode:'confirm',callerToken:A,command}),expected);
+  const submit={kind:'submit_learning_support',payload:{request_id:randomUUID(),topic:'QA support topic',details:'QA support request details'}};
+  assert.deepEqual(await http({mode:'confirm',callerToken:A,command:submit}),{status:200,
+    body:{id:submittedId,requestId:submit.payload.request_id,status:'submitted',version:1},activity:[],correlationId:null});
   await assert.rejects(http({mode:'read'}),/request-scope/u);
-  await assert.rejects(http({mode:'confirm',callerToken:A,command:{...command,kind:'submit_learning_support'}}),/invalid learning support cancellation/u);
+  await assert.rejects(http({mode:'confirm',callerToken:A,command:{...command,kind:'submit_learning_support'}}),/invalid learning support submission/u);
   assert.deepEqual(sent.map(({url,method,actor})=>[url,method,actor]),[
     ['/api/affairs-data?scope=learning-support&page=1','GET','Bearer '+A],
     ['/api/affairs-data?scope=learning-support&page=1','GET','Bearer '+B],
@@ -75,7 +82,8 @@ test('the learning support runtime sends only the paired page, assistant and exa
     ['/api/research-assistant','POST',null],
     ['/api/affairs-action','POST','Bearer '+A],
     ['/api/affairs-action','POST','Bearer '+A],
+    ['/api/affairs-action','POST','Bearer '+A],
   ]);
   assert.deepEqual(sent[2].body,{question,route,stream:false,consentedResearchUse:false});
-  assert.deepEqual(sent.slice(-2).map(row=>row.body),[command,command]);
+  assert.deepEqual(sent.slice(-3).map(row=>row.body),[command,command,submit]);
 });
