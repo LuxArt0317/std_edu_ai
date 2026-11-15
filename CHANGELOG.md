@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Use already-read school pages when time is too short for a new search, and try a different publication when a newly found page repeats existing evidence. Carry only checked school domains and page types into deeper public searches, and save the actual checks and outcomes in chat. [#100]
+
 - Read the school page behind a verified knowledge excerpt when discovery finds it again and the answer still has gaps. Repeated page contents leave the original answer in place. [#100]
 
 - Verify complete standalone teaching-feedback records and clearly scoped empty results directly against the saved fields. Retain their existing links and the student's comment choice. [#100]

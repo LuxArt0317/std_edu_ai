@@ -13,6 +13,9 @@ const calendarContent = 'The library lists the archive exhibition on November 24
 const directoryContent = 'The library visitor directory lists the exhibits and explains how to contact staff.';
 const noticeContent = 'The archive exhibition opens at 10:30 a.m. on November 24, 2026.';
 const testQuestion = 'When does the STU library archive exhibition open in November 2026?';
+const storageQuestion = 'What does the official Shu-Te University Microsoft Office 365 OneDrive storage quota notice say about the per-account student limit and announcement date?';
+const storageNotice = 'https://dtm.stu.edu.tw/mod/page/view.php?id=625803';
+const storageContent = 'The OneDrive quota is 25 GB per student account. This notice was published on October 7, 2026.';
 const unsafeDraft = 'The exhibition supposedly opens at 8:00 a.m. Draft marker: NOT_PUBLIC_SEARCH_INPUT.';
 const rejectedClaim = 'Reviewer says 8:00 a.m. is not established. PRIVATE_REVIEW_FEEDBACK.';
 const searchPayload = (sources: string[], answer: string, claimedSources = sources) => ({
@@ -67,7 +70,7 @@ async function invoke(input: Record<string,unknown>, run: ReturnType<typeof crea
   return responseBody;
 }
 
-function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link'|'unused-tool-lead'|'third-pass-discovery'|'incomplete-office'|'fourth-check'|'fourth-rejected'|'fourth-budget'|'mirror'|'transient-lead'|'transient-initial'|'transient-uncited') {
+function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link'|'unused-tool-lead'|'third-pass-discovery'|'incomplete-office'|'fourth-check'|'fourth-rejected'|'fourth-budget'|'mirror'|'mirror-then-primary'|'transient-lead'|'transient-initial'|'transient-uncited') {
   configured();
   const started = Date.now();
   let elapsed = 0;
@@ -101,9 +104,9 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
         : searchPayload([officialDirectory],unsafeDraft));
       if (outcome === 'transient-lead' || (outcome === 'deeper-review' && searchCalls === 3))
         return Response.json(searchPayload([officialDirectory,officialNotice],unsafeDraft));
-      if (outcome === 'incomplete-office' || outcome === 'fourth-check' || outcome === 'fourth-rejected' || outcome === 'fourth-budget' || outcome === 'mirror') {
+      if (outcome === 'incomplete-office' || outcome === 'fourth-check' || outcome === 'fourth-rejected' || outcome === 'fourth-budget' || outcome === 'mirror' || outcome === 'mirror-then-primary') {
         const source = searchCalls === 2 ? officialOffice
-          : searchCalls === 3 && outcome !== 'incomplete-office' ? eventCalendar : officialNotice;
+          : (searchCalls === 3 && outcome !== 'incomplete-office') || outcome === 'mirror' ? eventCalendar : officialNotice;
         return Response.json(searchPayload([source],unsafeDraft));
       }
       if (outcome === 'same-source' || (outcome === 'third-pass-discovery' && searchCalls === 2))
@@ -160,7 +163,7 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
           && acquiredUrls.filter(visited => visited === officialNotice).length === 1)) throw Error('Controlled source read failure');
         const content = new Map([
           [officialDirectory,directoryContent], [officialNotice,noticeContent], [officialOffice,officeContent],
-          [eventCalendar,outcome === 'mirror' ? officeContent : calendarContent],
+          [eventCalendar,outcome.startsWith('mirror') ? officeContent : calendarContent],
         ]).get(url);
         assert.ok(content);
         return {bytes:new TextEncoder().encode(`<html><title>STU Library</title><main><p>${content}</p></main></html>`),mimeType:'text/html',finalUrl:url};
@@ -309,18 +312,39 @@ test('an additional source never bypasses the fourth verdict or the remaining ti
   }
 });
 
-test('a mirrored page supplies no new lead for a fourth review', async () => {
+test('a mirrored page can prompt different discovery but cannot earn a fourth review by itself', async () => {
   const attempt = harness('mirror');
   const progress: Progress[] = [];
   const answer=await invoke({question:testQuestion},attempt.run,'web-mirrored-evidence',progress);
   assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialOffice,eventCalendar]);
-  assert.equal(attempt.searchRequests.length,3);
+  assert.equal(attempt.searchRequests.length,4);
+  assert.match(String(attempt.searchRequests[3].instructions), /independent official publication/u);
+  assert.deepEqual(JSON.parse(String(attempt.searchRequests[1].input)).checkedSchoolSources,
+    [{host:'www.lib.stu.edu.tw',kind:'directory'}]);
+  assert.deepEqual(JSON.parse(String(attempt.searchRequests[3].input)).checkedSchoolSources,
+    [{host:'www.lib.stu.edu.tw',kind:'directory'},{host:'www.lib.stu.edu.tw',kind:'school_page'},{host:'www.lib.stu.edu.tw',kind:'calendar'}]);
   assert.equal(answer.verification.status,'unverified');
   assert.equal(answer.verification.attempts,3);
   assert.deepEqual(answer.citations,[]);
   const stops = progress.filter(({kind})=>kind==='verification-stop');
   assert.equal(stops.length,1);
   assert.match(stops[0].detail,/additional usable evidence/u);
+});
+
+test('after a mirror supplies no new facts, a different discovery strategy can locate the primary notice', async () => {
+  const attempt = harness('mirror-then-primary');
+  const progress: Progress[] = [];
+  const answer = await invoke({question:testQuestion},attempt.run,'web-mirror-then-primary',progress);
+  assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialOffice,eventCalendar,officialNotice]);
+  assert.equal(attempt.searchRequests.length,4);
+  assert.match(String(attempt.searchRequests[3].instructions), /independent official publication/u);
+  assert.deepEqual(answer.verification,{status:'verified',attempts:4});
+  assert.match(answer.answer,/opens at 10:30 a\.m\./u);
+  assert.deepEqual(answer.citations.map(({url}: {url:string})=>url),[officialNotice]);
+  assert.ok(progress.some(({kind,status})=>kind==='web-alternate-discovery'&&status==='complete'));
+  assert.ok(answer.activity.some(({kind,status}: Progress)=>kind==='verification-4'&&status==='complete'));
+  const saved = sanitizeStoredConversation([{id:'alternate',role:'assistant',content:answer.answer,activity:answer.activity,result:answer}]);
+  assert.ok(saved[0].activity.some(({kind,status}: Progress)=>kind==='web-alternate-discovery'&&status==='complete'));
 });
 
 test('a transient read failure does not discard the safe notice URL permanently', async () => {
@@ -427,7 +451,7 @@ const managedExcerpt = {
   exact_score:0.8,keyword_score:0.7,vector_score:0.6,fused_score:0.2,
   document_version:1,content_checksum:'a'.repeat(64),
 };
-function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review-outage'|'early-web'|'early-web-recovery'|'verified-knowledge'|'source-switch-repair'|'source-switch-stall'|'final-check-lead'|'bootstrap-reread'|'bootstrap-next-lead'|'bootstrap-unreadable'|'bootstrap-budget'|'bootstrap-alternate') {
+function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review-outage'|'early-web'|'early-web-recovery'|'verified-knowledge'|'source-switch-repair'|'source-switch-stall'|'final-check-lead'|'bootstrap-reread'|'bootstrap-next-lead'|'bootstrap-unreadable'|'bootstrap-budget'|'bootstrap-alternate'|'indexed-budget'|'indexed-gated'|'indexed-too-late') {
   configured();
   const started = Date.now();
   let elapsed = 0;
@@ -437,15 +461,24 @@ function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review
   const failedRefresh = outcome === 'source-switch-repair' || outcome === 'source-switch-stall';
   const bootstrap = outcome.startsWith('bootstrap-');
   const leadOnly = outcome === 'final-check-lead' || bootstrap;
+  const indexed = outcome.startsWith('indexed-');
   const otherLeads = [1,2,3,4].map(number => 'https://lib.stu.edu.tw/news/secondary-' + number);
   const reads: string[][] = [];
   const calls: string[] = [];
   const searches: Array<{question:string}> = [];
   const run = createResearchAssistantHandler({
-    readSources: async citations => {
+    readSources: async (citations, _deadline, options) => {
       calls.push('read-public-page');
       const urls=citations.map(citation=>citation.url);
       reads.push(urls);
+      if (indexed) {
+        assert.deepEqual(urls, [storageNotice]);
+        if (outcome === 'indexed-gated') {
+          options?.onAccessRequired?.({ url: storageNotice, title: 'OneDrive quota' });
+          return [];
+        }
+        return [{ id: citations[0].chunkId, url: storageNotice, content: storageContent }];
+      }
       if(outcome==='bootstrap-alternate'){
         assert.deepEqual(urls,reads.length<=2?[eventCalendar,officialDirectory]:[officialNotice]);
         return citations.filter(citation=>citation.url===officialNotice).map(citation=>({id:citation.chunkId,url:citation.url,content:noticeContent}));
@@ -497,6 +530,7 @@ function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review
       }
       case 'stu_web_answer':
         searches.push(JSON.parse(request.input));
+        assert.ok(!indexed, 'There is no budget for open-ended search');
         if (outcome==='no-web-result'||outcome==='early-web'||(outcome==='early-web-recovery'&&searches.length<3))
           return Response.json({output:[]});
         if (outcome==='early-web-recovery') {
@@ -516,11 +550,12 @@ function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review
         if (outcome==='source-switch-stall') return Response.json(searchPayload([officialDirectory+'?utm_source=retry'],unsafeDraft));
         return Response.json(searchPayload([officialNotice],noticeContent));
       case 'compose_grounded_answer': {
-        assert.ok(leadOnly||outcome==='early-web-recovery');
+        assert.ok(leadOnly||outcome==='early-web-recovery'||indexed);
         const local=JSON.parse(request.input[0].content[0].text);
-        assert.equal(local.evidence[0].content,noticeContent);
+        const contents = indexed ? storageContent : noticeContent;
+        assert.equal(local.evidence[0].content,contents);
         assert.doesNotMatch(JSON.stringify(local),/NOT_PUBLIC_SEARCH_INPUT/);
-        return provider({status:'answered',answer:noticeContent,sourceIds:[local.evidence[0].id]});
+        return provider({status:'answered',answer:contents,sourceIds:[local.evidence[0].id]});
       }
       case 'answer_evidence_review': {
         const review=JSON.parse(request.input[0].content[0].text);
@@ -538,12 +573,15 @@ function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review
             }]});
           }
           assert.equal(review.evidence.length,leadOnly&&outcome!=='bootstrap-next-lead'&&outcome!=='bootstrap-alternate'?2:1);
-          assert.equal(review.evidence[0].content,noticeContent);
+          const contents = indexed ? storageContent : noticeContent;
+          assert.equal(review.evidence[0].content,contents);
           return provider({supported:true,answersQuestion:true,claims:[{
-            claim:'Exhibition time and date',supported:true,evidenceId:review.evidence[0].id,quotes:[noticeContent],jsonPaths:[],
+            claim:indexed?'Storage quota and publication date':'Exhibition time and date',
+            supported:true,evidenceId:review.evidence[0].id,quotes:[contents],jsonPaths:[],
           }]});
         }
         knowledgeReviews++;
+        if (indexed && knowledgeReviews === 2) elapsed = outcome === 'indexed-too-late' ? 48_000 : 37_000;
         if(outcome==='budget'&&knowledgeReviews===2)elapsed=32_000;
         if(outcome==='verified-web'&&knowledgeReviews===2)elapsed=25_000;
         if(outcome==='early-web-recovery'&&knowledgeReviews===2)elapsed=32_000;
@@ -561,6 +599,33 @@ function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review
   };
   return {run,searches,calls,reads};
 }
+
+test('a checked indexed notice can resolve a third review with 18 seconds left and no open web search', async () => {
+  const attempt = managedHarness('indexed-budget');
+  const progress: Progress[] = [];
+  const answer = await invoke({ question: storageQuestion }, attempt.run, 'indexed-notice-budget', progress);
+  assert.deepEqual(attempt.reads, [[storageNotice]]);
+  assert.equal(attempt.searches.length, 0);
+  assert.deepEqual(answer.verification, { status: 'verified', attempts: 3 });
+  assert.match(answer.answer, /25 GB/u);
+  assert.deepEqual(answer.citations.map(({url}: {url: string}) => url), [storageNotice]);
+  assert.ok(progress.some(({kind,status}) => kind === 'verification-3' && status === 'complete'));
+  assert.ok(answer.activity.some(({kind}: Progress) => kind === 'web-known-source'));
+});
+
+test('a gated indexed notice or insufficient review time cannot release an unsupported third answer', async () => {
+  for (const scenario of ['indexed-gated', 'indexed-too-late'] as const) {
+    const attempt = managedHarness(scenario);
+    const answer = await invoke({ question: storageQuestion }, attempt.run, scenario);
+    assert.deepEqual(attempt.reads, [[storageNotice]]);
+    assert.equal(attempt.searches.length, 0);
+    assert.equal(answer.verification.status, 'unverified');
+    assert.equal(answer.verification.attempts, 2);
+    assert.deepEqual(answer.citations, []);
+    assert.doesNotMatch(answer.answer, /25 GB/u);
+    assert.match(answer.activity.find(({kind}: Progress) => kind === 'verification-stop').detail, /too little time/u);
+  }
+});
 
 test('two failed managed checks can switch to separately read public evidence within the same check budget',async()=>{
   const attempt=managedHarness('verified-web');

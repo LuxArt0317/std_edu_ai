@@ -1029,6 +1029,11 @@ export function createResearchAssistantHandler(dependencies = {}) {
             } finally { clearTimeout(timer); }
         }
         const indexedRead = readIndexedSources();
+        async function readableIndexedCitations(citations) {
+            const sources = await indexedRead;
+            return citations.filter(citation => !sourceLeads?.isBlocked(citation.url) && sources.some(source =>
+                source.id === citation.chunkId && source.url === citation.url && validEvidence([source])));
+        }
         async function sendPublicReply(reply) {
             if (sourceLeads) {
                 // The indexed destination remains useful when the independent
@@ -1056,14 +1061,20 @@ export function createResearchAssistantHandler(dependencies = {}) {
             const previousChecks = priorActivity.filter(step => /^verification-[0-9]+$/u.test(step.kind)
                 && step.status !== 'running').length;
             const recordPartialProgress = step => managedPartial?.progress.set(step.kind, step);
+            let checkedPages = [];
             if (earlierReview) {
                 const reason = managedPartial ? 'verified_partial' : earlierReview.verification?.reason;
                 const canSwitchSource = needsPublicEvidence(reason) || reason === 'verification_output_limit';
                 if (input.images.length || !previousChecks || !canSwitchSource)
                     return false;
                 if (deadline - Date.now() < (recoveringEmptySearch ? 16_000 : 24_000)) {
-                    publicStop = verificationStopActivity(verificationQuestion, 'time_budget');
-                    return false;
+                    // An indexed page was already read in parallel. It can still
+                    // support a fresh draft when a full web search would run out of time.
+                    if (deadline - Date.now() >= 15_000) checkedPages = await readableIndexedCitations(indexedSources);
+                    if (!checkedPages.length || deadline - Date.now() < 15_000) {
+                        publicStop = verificationStopActivity(verificationQuestion, 'time_budget');
+                        return false;
+                    }
                 }
                 knowledgeWebSwitch = { kind: 'verification-source-switch', label: 'Checking public school sources',
                     detail: managedPartial ? 'Checking public pages for details still missing from the verified answer.'
@@ -1071,9 +1082,19 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 recordPartialProgress(knowledgeWebSwitch);
                 verificationProgress(knowledgeWebSwitch);
             }
+            if (checkedPages.length) {
+                const step = { kind: 'web-known-source', label: chinese ? '核對已讀取的校方頁面' : 'Checked an already-read school page',
+                    detail: chinese ? '使用已查閱的頁面內文核對缺少的資訊。' : 'Used available page contents to check the missing information.', status: 'complete' };
+                recordPartialProgress(step);
+                verificationProgress(step);
+                return verifyPublicSources({ status: 'answered', answer: '', citations: checkedPages, suggestedQuestions: [],
+                    grounding: { source: 'web', webSearched: webAttempted, officialOnly: true, checkedAt: new Date().toISOString(),
+                        retrieverVersion: 'school-web@1', responseMs: Date.now() - started },
+                    activity: [...captureActivity, ...priorActivity, knowledgeWebSwitch, step] },
+                { previousChecks, composeFromSources: true, leads: checkedPages, managedPartial });
+            }
             if (librarySources.length && !earlierReview && !captureActivity.some(step => step.kind === 'library-primary-source')) {
-                const read = await indexedRead;
-                const exact = librarySources.filter(citation => read.some(source => source.id === citation.chunkId && validEvidence([source])));
+                const exact = await readableIndexedCitations(librarySources);
                 const direct = { kind: 'library-primary-source',
                     label: chinese ? '核對圖書館原始頁面' : 'Checked the library’s own pages',
                     detail: exact.length
@@ -1110,8 +1131,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 return false;
             }
             webAttempted ||= web.attempted;
-            const indexedEvidence = indexedSources.length ? await indexedRead : [];
-            const availableIndexed = indexedSources.filter(citation => indexedEvidence.some(source => source.id === citation.chunkId && source.url === citation.url && validEvidence([source])));
+            const availableIndexed = indexedSources.length ? await readableIndexedCitations(indexedSources) : [];
             let sourceLinks = web.result?.citations || [...(web.discoveredSources || []), ...availableIndexed];
             const hasGatedNotice = indexedSources.some(source => source.chunkId.startsWith('notice:') && sourceLeads?.isBlocked(source.url));
             const alternateUntil = Math.min(deadline - 12_500, Date.now() + 5_500);
@@ -1169,6 +1189,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             const retainedCitations = managedPartial?.candidate.citations ?? [];
             const retainedIds = new Set(retainedSources.map(source => source.id));
             const checkedSources = new Map((capture ? candidate.citations : retainedCitations).map(citation => [citation.chunkId, citation]));
+            const checkedLiveUrls = new Set();
             const canonicalUrl = url => safeWebSource(url)?.replace(/\/(?=\?|$)/u, '');
             // A reviewed excerpt is not a read of the original page. A safe,
             // tool-discovered school URL can still provide missing details.
@@ -1233,16 +1254,20 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     if (!source || !validEvidence([source])) return [];
                     seenUrls.add(canonicalUrl(citation.url));
                     checkedSources.set(source.id, citation);
+                    if (!source.capturedOn) checkedLiveUrls.add(source.url);
                     return [source];
                 });
             }
             const followUpQuestion = capture ? publicSchoolQuestion(verificationQuestion) : publicQuestion;
             const canRecover = Boolean(followUpQuestion && !input.images.length);
+            let triedAlternateSearch = false;
             async function discoverEvidence({ searchUntil, readUntil, alternate, deeper }) {
                 // Only the sanitized public question reaches search. The
                 // search response supplies URLs, then we read each page.
+                triedAlternateSearch ||= alternate === true;
                 const followUp = await searchSchoolWeb(followUpQuestion, {
                     deadline: searchUntil, followUp: true, deeperDiscovery: deeper, alternateDiscovery: alternate, ...librarySearch,
+                    checkedSchoolUrls: [...checkedLiveUrls],
                 }).catch(() => null);
                 if ((capture || librarySources.length) && followUp?.attempted) webAttempted = true;
                 const discovered = followUp?.discoveredSources || [];
@@ -1326,8 +1351,10 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 candidate = composed;
             }
             let addedEvidenceOnLastPass = false;
+            let foundOnlyMirroredContent = false;
             const canExtendReview = () => canRecover && (
                 addedEvidenceOnLastPass || [...pendingLeads.keys()].some(canRead)
+                || (foundOnlyMirroredContent && !triedAlternateSearch)
             );
             async function recoverPublicEvidence({ attempt, previousFailure, feedback, deadline: until }) {
                 const ordinal = attempt + previousChecks;
@@ -1335,23 +1362,29 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 const extended = ordinal === maxPublicAnswerVerificationChecks;
                 const usefulFeedback = evidence.length > 0 && (feedback.some(detail => typeof detail === 'string' && detail.trim())
                     || previousFailure === 'verification_output_limit');
+                foundOnlyMirroredContent = false;
+                function retainDifferentContents(sources) {
+                    const different = newEvidence(sources);
+                    foundOnlyMirroredContent ||= sources.length > 0 && different.length === 0;
+                    return different;
+                }
                 let fresh = [];
                 if (needsPublicEvidence(previousFailure) && canRecover) {
                     const readUntil = Math.min(until - 8_500, Date.now() + 4_000);
                     if (readUntil - Date.now() >= 1_000) {
-                        fresh = newEvidence(await checkNewSources([...pendingLeads.values()], readUntil, 3));
+                        fresh = retainDifferentContents(await checkNewSources([...pendingLeads.values()], readUntil, 3));
                         if (fresh.length) progress({ kind: extended ? 'web-extended-source' : 'web-alternate-source',
                             label: 'Read another school source', detail: 'Checked additional school pages.', status: 'complete' });
                     }
                     const searchUntil = Math.min(until - 11_000, Date.now() + (deeper ? 8_000 : 6_500));
-                    if (!fresh.length && searchUntil - Date.now() >= 2_500) {
+                    if (!fresh.length && (!extended || !triedAlternateSearch) && searchUntil - Date.now() >= 2_500) {
                         const step = extended
                             ? { kind: 'web-alternate-discovery', label: 'Checking a different official publication' }
                             : deeper
                                 ? { kind: 'web-deeper-discovery', label: 'Searching for the original notice or policy' }
                                 : { kind: 'web-follow-up', label: 'Looking for a more specific school source' };
                         progress({ ...step, detail: 'Looking for the missing detail on official school pages.', status: 'running' });
-                        fresh = newEvidence(await discoverEvidence({
+                        fresh = retainDifferentContents(await discoverEvidence({
                             searchUntil, readUntil: until - 8_500, deeper, alternate: extended,
                         }));
                         progress({ ...step, detail: fresh.length ? 'Read additional official source contents.' : 'This search found no new readable evidence.',
