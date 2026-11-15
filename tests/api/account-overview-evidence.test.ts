@@ -119,10 +119,18 @@ test('caller credentials and transport are captured before asynchronous reads',a
   assert.ok(io.seen.every(row=>row.headers.get('authorization')==='Bearer OFFLINE_CALLER_TOKEN'));
 });
 
-test('shared inherited deadline bounds hung readers and preserves unavailable states without retry',async()=>{
-  let calls=0;const caller={...account(),requestDeadline:Date.now()+25};
-  const result=await load(caller,{deadline:Date.now()+5000},{fetchImpl:async()=>{calls++;return new Promise<Response>(()=>{});}});
+test('shared inherited deadline bounds hung readers and preserves unavailable states without retry',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
+  let calls=0;const caller={...account(),requestDeadline:Date.now()+1000};
+  const pending=load(caller,{deadline:Date.now()+5000},{fetchImpl:async()=>{
+    assert.ok(++calls<=5,'A timed-out student read cannot start another timetable read.');
+    return new Promise<Response>(()=>{});
+  }});
+  await Promise.resolve();
+  t.mock.timers.tick(1000);
+  const result=await pending;
   assert.equal(calls,5);assert.equal(result.studentRecordFound,null);assert.equal(result.overview.dtm.reason,'deadline_exceeded');
+  assert.equal(result.overview.courses.reason,'deadline_exceeded');
   assert.equal(result.overview.tasks.total,null);assert.equal(result.overview.assignments.reason,'student_lookup_unavailable');
   assert.ok(Object.values(result.overview).every(row=>!row.complete));
 });

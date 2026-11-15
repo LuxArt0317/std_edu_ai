@@ -122,6 +122,7 @@ export async function loadAccountOverviewSnapshot(account,options={},dependencie
     studentPromise,
     settle(async()=>{
       const verifiedStudent=await studentPromise;
+      if(!verifiedStudent.ok&&verifiedStudent.reason==='deadline_exceeded')fail('deadline_exceeded');
       return loadOwnAffairsTimetable(scoped,{deadline:captured.deadline,...(verifiedStudent.ok?{expectedStudentId:verifiedStudent.value?.id??null}:{})},{fetchImpl});
     }),
     settle(async()=>dtmRows(await read(captured,fetchImpl,'dtm_courses',{...own('id,user_id,code,title,term,source_mode',accountOverviewLimits.dtmCourses),order:'id.asc'}),captured.userId)),
