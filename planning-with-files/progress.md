@@ -1,5 +1,7 @@
 # Progress
 
+- 2026-11-16 [#100] Reproduced five evaluator VM cleanup failures from Quality 43735328137. Moved the identity read inside cleanup and supplied the session fixture's retry stubbing. All 63 affected tests and the full 1,480-case evaluator passed locally with seven opt-in skips. Staged test-only `c089be2` and triggered 43736218648.
+
 - 2026-11-16 [#100] Exact protected `69bc307` passed all five Moodle course and meeting questions with 24 release checks, paired database and caller evidence, and verified cleanup. The original four-turn conversation passed on the same revision with 13 pinned requests, four saved versions, two independent reviews and exact cleanup.
 
 - 2026-11-16 [#100] Added five directly verified caller-owned Moodle course and meeting answers and a protected paired replay. Staged exact `69bc307`. Separately fixed survey phases, dates and course completion handling. Five original answers passed actual handlers and isolated SQL in the 67-case focused run.
