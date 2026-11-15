@@ -31,7 +31,7 @@ The read-only integrations are:
 - Tuition: read the caller's literal settlement statements separately from charge balances. Null, blank text and the literal text `0` have distinct meanings; none proves a payment, issued receipt or completed refund.
 - Tuition remission uses the saved history at School Affairs service 21-3. The independent case bank checks exact literal periods, amount and status, missing fields, unauthorized account references and combined charge requests. Its fixture plan verifies both callers' complete remission and charge records independently. The planned cases remain outside default live execution.
 
-The health and counseling packets include exact own-account fixture plans. The normal evaluator reports their live cases as pending until the corresponding adapters are mounted. Counseling uses the private appointments page and reads tuition separately when requested.
+The health and counseling packets include exact own-account fixture plans. The isolated health metadata evaluator uses the fixture described below. Counseling awaits scoped live acceptance. Counseling uses the private appointments page and reads tuition separately when requested.
 
 To list the isolated fee packet without contacting a provider, run:
 
@@ -155,3 +155,16 @@ node tests/evaluation/run.mjs --mode live --origin "$PREVIEW_ORIGIN" \
 ```
 
 For the six metadata questions, use `--only account:elearning-catalog-pending-` and omit the course domain and limit. Supply the authorized Vercel Development OIDC identity for the exact client project. A passing subset does not establish full release acceptance.
+
+### Protected Preview health-examination metadata
+
+The isolated 36-1 packet exercises 16 independent questions about saved codes and availability, selected and empty pages, ambiguous selectors, and access or capability limits. Two disposable callers read the native metadata-only endpoint before and after each assistant request. The runner checks those results against the frozen oracle, the exact pinned assistant request, and unchanged synthetic rows. Inserts and deletes are limited to the independently reconciled synthetic metadata rows with false report flags. The cleanup journal retains the reserved IDs until absence is verified.
+
+```sh
+node tests/evaluation/run.mjs --mode live --case-family health-examination-metadata \
+  --origin "$PREVIEW_ORIGIN" --approved-preview-origin "$PREVIEW_ORIGIN" --preview-auth oidc \
+  --fixture-module tests/evaluation/live-fixtures.mjs \
+  --out artifacts/assistant-evaluation/health-metadata-live.json
+```
+
+The packet uses no report files, real student records or tuition fixtures. The controlled real-handler test intercepts transport and verifies zero report authorization or Storage requests. A hosted result grades the visible response and account-tool events and does not supply private provider or Storage telemetry. True-report availability, forced reader failures and tuition companions remain separate controlled or unmounted cases. This subset does not establish full release acceptance.

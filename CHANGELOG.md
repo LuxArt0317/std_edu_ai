@@ -2,6 +2,7 @@
 ## Unreleased
 
 - Add a protected Preview evaluator for confirmed task creation and completion. Check two-account isolation, exact replay, audit receipts and cleanup against independent database reads. [#100]
+- Mount 16 health-examination metadata evaluations on protected Preview with two disposable callers, exact scoped page readbacks and synthetic cleanup. [#100]
 
 - Keep public search leads beyond the initial draft's citations. After stalled verification the assistant can find and read a more specific source, then verify the revised answer and save the observed steps in chat. [#100]
 - Bind sixteen Digital Academy catalog evaluations to two disposable callers, frozen published course projections and exact protected Preview assistant requests. [#100]

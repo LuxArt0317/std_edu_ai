@@ -23,6 +23,8 @@ import {markLegacyDtmAssignmentListFixture} from './dtm-assignment-list-cases.mj
 import {nativeDtmRunnerCases,nativeDtmSetupRequired,assertNativeDtmCaseReady} from './dtm-native-runner.mjs';
 import {elearningCatalogRunnerCases,assertElearningCatalogCaseReady,elearningCatalogSetupRequired,elearningCatalogSetupSummary,gradeElearningCatalogCase,isElearningCatalogReadbackCase,isElearningMetadataCase,isElearningPublishedReadbackCase} from './elearning-catalog-runner.mjs';
 import {metadataDispatchObservation as assistantDispatchObservation} from './elearning-metadata-live.mjs';
+import {assertHealthMetadataLiveCases,gradeHealthMetadataLiveCase,healthMetadataDispatch,healthMetadataFamily,
+  healthMetadataFixtureMode,healthMetadataLiveCases,verifiedHealthMetadataReadback} from './health-examination-live.mjs';
 import {assertDtmAssignmentListLiveCases,dtmAssignmentListDispatch,dtmAssignmentListFamily,dtmAssignmentListFixtureMode,
   dtmAssignmentListLiveCases,gradeDtmAssignmentListLiveCase,verifiedDtmAssignmentListReadback} from './dtm-assignment-list-live.mjs';
 import {internshipRunnerCases,markLegacyInternshipFixture,nativeInternshipSetupRequired,assertNativeInternshipCaseReady,internshipSetupSummary} from './internship-native-runner.mjs';
@@ -47,16 +49,16 @@ export function options(args){
   }
   if(!['inventory','retrieval','draft','live','review'].includes(result.mode))throw new Error('Mode must be inventory, retrieval, draft, live or review.');
   if(result.caseFamily!==undefined){
-    const supported=['fee-remission',dtmAssignmentListFamily];
+    const supported=['fee-remission',dtmAssignmentListFamily,healthMetadataFamily];
     if(!supported.includes(result.caseFamily))throw new Error('Unknown case family.');
-    const label=result.caseFamily===dtmAssignmentListFamily?'Moodle assignment-list':'Fee remission';
+    const label=result.caseFamily===healthMetadataFamily?'Health metadata':result.caseFamily===dtmAssignmentListFamily?'Moodle assignment-list':'Fee remission';
     if(!['inventory','live'].includes(result.mode)||result.only||result.domain||result.maxCases!==Infinity)throw new Error(label+' runs require the complete isolated family in inventory or live mode; case filters are not permitted.');
     if(result.mode==='live'&&!result.fixtureModule)throw new Error(label+' live runs require an explicit isolated fixture adapter.');
-    const projectPreview=result.caseFamily===dtmAssignmentListFamily?isEvaluationPreviewOrigin(result.origin)
+    const projectPreview=result.caseFamily!=='fee-remission'?isEvaluationPreviewOrigin(result.origin)
       :/^https:\/\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?-v1-d286\.vercel\.app$/u.test(result.origin);
     if(result.mode==='live'&&(!result.approvedPreviewOrigin||result.origin!==result.approvedPreviewOrigin||!projectPreview))throw new Error(label+' live runs require an explicitly approved exact project Preview origin.');
-    if(result.mode==='live'&&result.caseFamily===dtmAssignmentListFamily&&result.previewAuth!=='oidc')
-      throw new Error('Moodle assignment-list live runs require protected Preview OIDC.');
+    if(result.mode==='live'&&result.caseFamily!=='fee-remission'&&result.previewAuth!=='oidc')
+      throw new Error(label+' live runs require protected Preview OIDC.');
   }
   if(result.mode==='review'){
     if(!result.reviewReport||!result.guidanceReviews||!result.reviewer||!result.out)throw new Error('Review requires the saved report, independent reviews, reviewer identity and a separate output path.');
@@ -122,10 +124,10 @@ export function validateFeeRemissionRunnerCases(cases){
   return true;
 }
 export async function evaluationSuite(now,{caseFamily}={}){
-  if(caseFamily!==undefined&&!['fee-remission',dtmAssignmentListFamily].includes(caseFamily))throw new Error('Unknown case family.');
+  if(caseFamily!==undefined&&!['fee-remission',dtmAssignmentListFamily,healthMetadataFamily].includes(caseFamily))throw new Error('Unknown case family.');
   const [graphInventory,clientDispatch]=await Promise.all([discoverSurfaces(),discoverClientDispatchSurfaces()]);
   const inventory={...graphInventory,clientDispatch,hash:hash({graph:graphInventory.hash,clientDispatch})};
-  const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases():caseFamily===dtmAssignmentListFamily?dtmAssignmentListLiveCases()
+  const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases():caseFamily===dtmAssignmentListFamily?dtmAssignmentListLiveCases():caseFamily===healthMetadataFamily?healthMetadataLiveCases()
     :[...serviceNoteRunnerCases({now}),...[...buildServiceCases(),...buildAccountCases({now})].map(markLegacyStudentLeaveFixture).map(markLegacyInternshipFixture).map(markLegacyDtmAssignmentListFixture).map(markLegacyVenueFixture),
       ...teachingFeedbackRunnerCases(),...nativeDtmRunnerCases(),...studentLeaveRunnerCases(),...internshipRunnerCases(),...venueRunnerCases(),
       ...elearningCatalogRunnerCases(),...accountStatusCases(),...clubAttendanceRunnerCases(),...learningEntryCases(),...campusEntryCases(),...buildPublicCases(inventory)];
@@ -459,13 +461,18 @@ export async function main(args=process.argv.slice(2),dependencies={}){
   if(opt.mode==='review'&&Object.keys(dependencies).length)throw new Error('Saved live reports cannot be reviewed with injected dependencies.');
   if(opt.mode==='review')return reviewSavedReport(opt,identity);
   const feeOnly=opt.caseFamily==='fee-remission',assignmentListOnly=opt.caseFamily===dtmAssignmentListFamily;
-  const fixtureMode=feeOnly?'fee-remission-only':assignmentListOnly?dtmAssignmentListFixtureMode:undefined;
+  const healthMetadataOnly=opt.caseFamily===healthMetadataFamily;
+  const fixtureMode=feeOnly?'fee-remission-only':assignmentListOnly?dtmAssignmentListFixtureMode:healthMetadataOnly?healthMetadataFixtureMode:undefined;
   const isolatedFixture=fixtureMode?{fixtureMode,caseFamily:opt.caseFamily}:{};
   const suite=await buildSuite(opt.now,{caseFamily:opt.caseFamily}),runId=randomUUID();
   if(feeOnly){validateFeeRemissionRunnerCases(suite.cases);if(suite.suiteHash!==hash(suite.cases))throw new Error('Fee remission suite hash does not match its frozen cases.');}
   if(assignmentListOnly){
     assertDtmAssignmentListLiveCases(suite.cases);
     if(suite.suiteHash!==hash(suite.cases))throw new Error('Moodle assignment-list suite hash does not match the frozen cases.');
+  }
+  if(healthMetadataOnly){
+    assertHealthMetadataLiveCases(suite.cases);
+    if(suite.suiteHash!==hash(suite.cases))throw new Error('Health metadata suite hash does not match the frozen packet.');
   }
   let selected=suite.cases.filter(row=>(!opt.only||row.id.startsWith(opt.only))&&(!opt.domain||row.domain===opt.domain)).slice(0,opt.maxCases);
   if(!selected.length)throw new Error('No cases match.');
@@ -544,6 +551,8 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           throw new Error('Digital Academy course catalog requires paired disposable caller readbacks.');
         if(assignmentListOnly&&(adapter.dtmAssignmentListFixtureVersion!==1||!adapter.fixtureModes?.includes(fixtureMode)||typeof adapter.afterCase!=='function'))
           throw new Error('Moodle assignment-list evaluation requires paired disposable caller readbacks.');
+        if(healthMetadataOnly&&(adapter.healthMetadataFixtureVersion!==1||!adapter.fixtureModes?.includes(fixtureMode)||typeof adapter.afterCase!=='function'))
+          throw new Error('Health metadata requires the isolated two-caller fixture and protected readbacks.');
         const previewReadbackFetch=opt.previewAuth?async(input,init={})=>{
           if((init.method??'GET')!=='GET')throw new Error('Protected fixture transport is read-only.');
           return fetchImpl(input,init);
@@ -571,7 +580,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       const publishedAcademyReadback=nativeMetadata||nativeCatalog;
       const liveExecution=testCase.executionContract==='live-native'?'live-native':'live-model';
       if(controller.signal.aborted)break;
-      const started=Date.now();let envelope,fixtureReady=false,executed=false,phase='setup',pacingWaitMs=0,requestTicket,academyDispatch,assignmentListDispatch;
+      const started=Date.now();let envelope,fixtureReady=false,executed=false,phase='setup',pacingWaitMs=0,requestTicket,academyDispatch,assignmentListDispatch,healthDispatch;
       try{
         assertTeachingFeedbackCaseReady(testCase);
         assertNativeDtmCaseReady(testCase);
@@ -594,18 +603,18 @@ export async function main(args=process.argv.slice(2),dependencies={}){
         }
         if(opt.mode==='live'){
           assertCatalogCaseBound(testCase,report);
-          if(feeOnly||testCase.fixtureKey!=='anonymous'){
+          if(feeOnly||healthMetadataOnly||testCase.fixtureKey!=='anonymous'){
             // A prior response check cannot authorize the next fixture write:
             // aliases can change between cases even when local source is fixed.
             await deploymentGate.assertCurrent();report.deploymentPin=deploymentGate.status();
           }
           const fixtureContext={signal:controller.signal,...(fixtureMode?{fixtureMode,
             fixtureFamily:feeOnly?feeRemissionLiveFamilyForCase(testCase):opt.caseFamily}:{})};
-          const context=!feeOnly&&testCase.fixtureKey==='anonymous'?{}:await adapter.forCase(feeOnly?structuredClone(testCase):testCase,fixtureContext);
-          fixtureReady=feeOnly||testCase.fixtureKey!=='anonymous';
+          const context=!feeOnly&&!healthMetadataOnly&&testCase.fixtureKey==='anonymous'?{}:await adapter.forCase(feeOnly?structuredClone(testCase):testCase,fixtureContext);
+          fixtureReady=feeOnly||healthMetadataOnly||testCase.fixtureKey!=='anonymous';
           if(!context||typeof context!=='object')throw new Error('Live fixture did not supply a valid request context.');
           if(testCase.fixtureKey!=='anonymous'&&(typeof context.token!=='string'||!context.token.trim()))throw new Error('Private live fixture did not supply its own session.');
-          if(feeOnly&&testCase.fixtureKey==='anonymous'&&context.token!==undefined)throw new Error('Anonymous fee remission must not receive a session token.');
+          if((feeOnly||healthMetadataOnly)&&testCase.fixtureKey==='anonymous'&&context.token!==undefined)throw new Error('Anonymous private-account cases must not receive a session token.');
           const endpoint=testCase.endpoint||(testCase.fixtureKey==='anonymous'?'/api/research-assistant':'/api/affairs-assistant');
           if(!['/api/research-assistant','/api/affairs-assistant'].includes(endpoint))throw new Error('Unsupported evaluation endpoint.');
           const requestBody=JSON.stringify({question:testCase.question,history:testCase.history||[],route:testCase.route,
@@ -619,6 +628,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
             pacingWaitMs=waited;executed=true;
             if(publishedAcademyReadback)academyDispatch=assistantDispatchObservation(endpoint,requestBody);
             if(assignmentListOnly)assignmentListDispatch=dtmAssignmentListDispatch(endpoint,requestBody);
+            if(healthMetadataOnly)healthDispatch=healthMetadataDispatch(endpoint,requestBody);
             return fetchImpl(new URL(endpoint,opt.origin),{method:'POST',redirect:'error',credentials:'omit',headers:{'Content-Type':'application/json',...(context.token?{Authorization:'Bearer '+context.token}:{})},
               body:requestBody,signal:AbortSignal.any([controller.signal,AbortSignal.timeout(65000)])});
           },controller.signal,async()=>{
@@ -629,7 +639,8 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           const correlationId=requestId&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(requestId)?requestId:undefined;
           envelope={statusCode:response.status,...await readReply(response),...(correlationId?{correlationId}:{}),
             execution:liveExecution,fixtureKey:testCase.fixtureKey,sourceRevision:report.deployment.sourceRevision,
-            ...(academyDispatch?{[nativeMetadata?'metadataDispatch':'catalogDispatch']:academyDispatch}:{}),...(assignmentListDispatch?{assignmentListDispatch}:{})};
+            ...(academyDispatch?{[nativeMetadata?'metadataDispatch':'catalogDispatch']:academyDispatch}:{}),...(assignmentListDispatch?{assignmentListDispatch}:{}),
+            ...(healthDispatch?{healthMetadataDispatch:healthDispatch}:{})};
           const expectedStatus=testCase.expected.expectedStatusCode||testCase.expected.statusCode;
           if(response.status>=500||response.status===429||envelope.body?.error&&response.status!==expectedStatus)envelope.failureKind='infrastructure';
         }else{
@@ -645,7 +656,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           envelope={statusCode:200,body:body||{status:'abstained',answer:'No deterministic answer'},events:[],execution:'deterministic',fixtureKey:testCase.fixtureKey,sourceRevision:identity.sourceRevision};
         }
       }catch(error){
-        const execution=phase==='setup'&&(assignmentListOnly||publishedAcademyReadback||nativeClub||serviceNotes||nativeStudentLeaveSetupRequired(testCase)||nativeInternshipSetupRequired(testCase)||nativeDtmSetupRequired(testCase)||elearningCatalogSetupRequired(testCase)||nativeVenueSetupRequired(testCase)||accountStatusSetupRequired(testCase)||learningEntrySetupRequired(testCase)||campusEntrySetupRequired(testCase))?'not-run':opt.mode==='live'?liveExecution:'deterministic';
+        const execution=phase==='setup'&&(healthMetadataOnly||assignmentListOnly||publishedAcademyReadback||nativeClub||serviceNotes||nativeStudentLeaveSetupRequired(testCase)||nativeInternshipSetupRequired(testCase)||nativeDtmSetupRequired(testCase)||elearningCatalogSetupRequired(testCase)||nativeVenueSetupRequired(testCase)||accountStatusSetupRequired(testCase)||learningEntrySetupRequired(testCase)||campusEntrySetupRequired(testCase))?'not-run':opt.mode==='live'?liveExecution:'deterministic';
         envelope={statusCode:0,body:{error:error instanceof Error?error.message:'Evaluation request failed'},events:[],failureKind:phase,execution,
           fixtureKey:testCase.fixtureKey,sourceRevision:opt.mode==='live'?report.deployment?.sourceRevision||'unknown':identity.sourceRevision};
       }
@@ -669,6 +680,8 @@ export async function main(args=process.argv.slice(2),dependencies={}){
             if(feeOnly)assertFeeRemissionReadback(envelope);
             if(assignmentListOnly&&!verifiedDtmAssignmentListReadback(testCase,envelope))
               throw new Error('The pinned Moodle assignment-list readback is missing or changed.');
+            if(healthMetadataOnly&&!verifiedHealthMetadataReadback(testCase,envelope))
+              throw new Error('The pinned Health metadata readback is missing or changed.');
             if(serviceNotes&&(!envelope.fixtureReadback?.serviceNotes?.twoOwnersVerified
               ||envelope.fixtureReadback.serviceNotes.caseId!==testCase.id))throw new Error('Exact service-note readback is missing.');
 
@@ -681,7 +694,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       envelope.executed=executed;
       const guidanceReviewBinding=testCase.expected.guidanceRubric&&/^[a-f0-9]{40}$/.test(envelope.sourceRevision||'')&&/^[a-f0-9]{64}$/.test(report.suiteHash||'')?buildGuidanceReviewBinding({runId:report.runId,finalSuiteHash:report.suiteHash,sourceRevision:envelope.sourceRevision,testCase,envelope}):null;
       const independentReview=guidanceReviewBinding?validateGuidanceReview({testCase,envelope,binding:guidanceReviewBinding,artifact:undefined}):undefined;
-      const result=assignmentListOnly?gradeDtmAssignmentListLiveCase(testCase,envelope):serviceNotes?gradeLiveServiceNoteCase(testCase,envelope):nativeClub?gradeClubAttendanceCase(testCase,envelope):testCase.catalogOracle||testCase.metadataOracle?gradeElearningCatalogCase(testCase,envelope,{independentReview}):gradeEvaluationCase(testCase,envelope,{independentReview});
+      const result=healthMetadataOnly?gradeHealthMetadataLiveCase(testCase,envelope):assignmentListOnly?gradeDtmAssignmentListLiveCase(testCase,envelope):serviceNotes?gradeLiveServiceNoteCase(testCase,envelope):nativeClub?gradeClubAttendanceCase(testCase,envelope):testCase.catalogOracle||testCase.metadataOracle?gradeElearningCatalogCase(testCase,envelope,{independentReview}):gradeEvaluationCase(testCase,envelope,{independentReview});
       for(const [flag,id] of [['deploymentIntegrityFailed','run.deploymentDrift'],['fixtureIntegrityFailed','run.fixtureReadbackFailed']])if(envelope[flag]){
         const check={id,passed:false,detail:'The original response is retained but its execution integrity was not verified.'};
         result.passed=false;result.checks.push(check);result.failures.push(check);
@@ -698,8 +711,10 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       if(academySetupFailed)report.runFailure='Digital Academy setup failed before dispatch; the runner stopped before another request.';
       const assignmentListSetupFailed=assignmentListOnly&&opt.mode==='live'&&envelope.failureKind==='setup';
       if(assignmentListSetupFailed)report.runFailure='Moodle assignment-list fixture setup failed before dispatch.';
+      const healthSetupFailed=healthMetadataOnly&&opt.mode==='live'&&envelope.failureKind==='setup';
+      if(healthSetupFailed)report.runFailure='Health metadata fixture setup failed before dispatch.';
       await persist(out,report);
-      if(envelope.deploymentIntegrityFailed||envelope.fixtureIntegrityFailed||feeSetupFailed||clubSetupFailed||noteSetupFailed||academySetupFailed||assignmentListSetupFailed)break;
+      if(envelope.deploymentIntegrityFailed||envelope.fixtureIntegrityFailed||feeSetupFailed||clubSetupFailed||noteSetupFailed||academySetupFailed||assignmentListSetupFailed||healthSetupFailed)break;
     }
   }catch(error){
     report.runFailure=error instanceof Error?error.message:'Evaluation initialization failed';

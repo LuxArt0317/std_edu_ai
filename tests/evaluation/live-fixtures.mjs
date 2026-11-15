@@ -38,6 +38,9 @@ import {createFeeRemissionFixtureLifecycle} from './fee-remission-fixture-lifecy
 import {readRows as readFeeRows,deleteRows as deleteFeeRows,insertRows as insertFeeRows} from './fee-remission-fixture-sql.mjs';
 import {createTranscriptConversationFixture} from './transcript-conversation-fixture.mjs';
 import {isDeepStrictEqual} from 'node:util';
+import {assertHealthMetadataLiveCases,bindHealthMetadataReadback,healthMetadataCase,healthMetadataFamily,
+  healthMetadataFixtureMode,healthMetadataRequirement,readHealthMetadataPages} from './health-examination-live.mjs';
+import {createHealthMetadataFixture} from './health-examination-live-fixture.mjs';
 import {assertDtmAssignmentListLiveCases,bindDtmAssignmentListReadback,buildDtmAssignmentListFixture,dtmAssignmentListFamily,
   dtmAssignmentListFixtureMode,dtmAssignmentListRequirement,readDtmAssignmentListFixture} from './dtm-assignment-list-live.mjs';
 import {nativeVenueSetupRequired} from './venue-native-runner.mjs';
@@ -70,10 +73,11 @@ const SUPPLEMENTAL_TABLES=Object.freeze({enrollmentCertificate:'affairs_enrollme
 const SUPPORTED_TOOLS=new Set(['profile','charges','tasks','requests','serviceRecords','dtm','assignments','aidPayments','dtmGradeReport','elearningEnrollments','elearningOutline','facilityRepairs','dormitoryConduct','housingApplications',...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS,...Object.keys(SUPPLEMENTAL_SCOPES)]);
 const FOREIGN_MARKER='FOREIGN PRIVATE SENTINEL';
 const FEE_FIXTURE_MODE='fee-remission-only';
-export const fixtureModes=Object.freeze([FEE_FIXTURE_MODE,dtmAssignmentListFixtureMode]);
+export const fixtureModes=Object.freeze([FEE_FIXTURE_MODE,dtmAssignmentListFixtureMode,healthMetadataFixtureMode]);
 export const clubAttendanceFixtureVersion=1;
 export const protectedPreviewReadbackVersion=1;
 export const dtmAssignmentListFixtureVersion=1;
+export const healthMetadataFixtureVersion=1;
 export const elearningMetadataFixtureVersion=1;
 export const elearningCatalogFixtureVersion=1;
 export const serviceNoteFixtureVersion=1;
@@ -310,6 +314,7 @@ async function saveLedger(){
       ...(s.feeFixture?{feeRemissionFixture:{students:s.feeFixture.students,journal:s.feeFixture.journal}}:{}),
       ...(s.studentLeaveData?{studentLeaveDataFixture:studentLeaveJournalBinding(s.studentLeaveData.binding)}:{}),
       ...(s.transcriptConversationRecovery?{transcriptConversation:s.transcriptConversationRecovery}:{}),
+      ...(s.healthMetadataJournal?{healthMetadataFixture:s.healthMetadataJournal}:{}),
       ...(s.clubAttendancePlan?{clubAttendanceFixture:{plan:s.clubAttendancePlan,setupPending:!!s.clubAttendancePending}}:{}),
       ...(s.serviceNotePlan||s.pendingServiceNotePlan?{serviceNoteFixture:{
         caseId:s.serviceNotePlan?.caseId??null,pendingCaseId:s.pendingServiceNotePlan?.caseId??null,
@@ -376,7 +381,7 @@ async function createFixtureUser(index){
   let signed;try{signed=await auth.auth.signInWithPassword({email,password});}catch{fail('fixture-signin','Synthetic account sign-in did not complete.');}
   if(signed.error||signed.data?.session?.user?.id!==user.id)fail('fixture-signin','Synthetic account session could not be verified.');
   attachFixtureSession(user,signed.data.session,{url:s.url,publishable:s.publishable,signal:s.signal,fetchImpl:s.boundedFetch});
-  if(s.fixtureMode===FEE_FIXTURE_MODE||s.clubOnly||s.elearningPublishedReadbackOnly)return user;
+  if(s.fixtureMode===FEE_FIXTURE_MODE||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly)return user;
   const initial=await readSnapshot(user);user.studentId=initial.student?.id;
   if(!UUID.test(user.studentId||''))fail('fixture-readback','Synthetic School Affairs student initialization failed.');
   return user;
@@ -395,6 +400,14 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Student Leave data preflight requires an exact protected Preview and no assistant cases.');
   const assignmentListOnly=fixtureMode===dtmAssignmentListFixtureMode;
+  const healthMetadataOnly=fixtureMode===healthMetadataFixtureMode;
+  if(healthMetadataOnly){
+    if(caseFamily!==healthMetadataFamily||origin!==approvedPreviewOrigin||!isEvaluationPreviewOrigin(origin)
+      ||typeof previewReadbackFetch!=='function'||applicationFetch!==undefined)
+      fail('fixture-target','Health metadata requires the exact protected Preview and read-only fixture transport.');
+    assertHealthMetadataLiveCases(cases);
+  }else if(cases.some(row=>row?.fixtureRequirement===healthMetadataRequirement))
+    fail('fixture-unsupported','Health metadata requires its complete isolated fixture mode.');
   if(assignmentListOnly){
     if(caseFamily!==dtmAssignmentListFamily||origin!==approvedPreviewOrigin||!isEvaluationPreviewOrigin(origin)
       ||typeof previewReadbackFetch!=='function'||applicationFetch!==undefined)
@@ -441,7 +454,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       ||!approvedPreviewOrigin||origin!==approvedPreviewOrigin)fail('fixture-config','The injected transport requires the exact approved Preview four-turn packet.');
     transcriptCaseIds=cases.map((testCase,index)=>assertTranscriptFixtureCase(testCase,index));
   }
-  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
+  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!healthMetadataOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
     const expected=feeRemissionLivePlanManifest.eligibleCaseIds;
     if(fixtureMode!==FEE_FIXTURE_MODE||caseFamily!=='fee-remission'||!approvedPreviewOrigin||cases.length!==expected.length
       ||new Set(cases.map(row=>row?.id)).size!==expected.length||!expected.every(id=>cases.some(row=>row?.id===id)))
@@ -483,7 +496,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const ignore=await readFile(resolve(ROOT,'.gitignore'),'utf8');if(!/^\/?artifacts\/$/m.test(ignore))fail('fixture-ledger','Private fixture ledger directory must be ignored by Git.');
   await mkdir(PRIVATE_DIR,{recursive:true,mode:0o700});await chmod(PRIVATE_DIR,0o700);
   const boundedFetch=(input,init={})=>fetch(input,{...init,signal:signals(init.signal,15000)});
-  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,clubOnly,elearningPublishedReadbackOnly,previewGate,
+  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,clubOnly,healthMetadataOnly,elearningPublishedReadbackOnly,previewGate,
     ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),admin:createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})};
   try{
     state.sql=postgres(connection,{max:1,connect_timeout:10,idle_timeout:10,max_lifetime:0,
@@ -513,6 +526,11 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       await prepareFeeFixture(state);
       state.prepared=true;
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['feeRemission','charges']};
+    }
+    if(healthMetadataOnly){
+      prepareHealthMetadataFixture(state);
+      state.prepared=true;
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['healthExaminations']};
     }
     if(assignmentListOnly){
       await prepareDtmAssignmentListFixture(state,cases);
@@ -1097,6 +1115,36 @@ async function assertRecordedFixtureLease(s,label='Club attendance'){
   const locks=await s.sql`select 1 from pg_locks where locktype='advisory' and pid=pg_backend_pid()
     and classid=23101314 and objid=115100 and objsubid=2 and granted`;
   if(locks.length!==1)fail('fixture-lease',label+' could not verify its reserved database connection.');
+}
+
+function prepareHealthMetadataFixture(s){
+  const owners=Object.fromEntries(s.users.map((user,index)=>{
+    const matches=s.identityRequests.filter(request=>request.id===user.id&&request.runId===s.runId&&request.state==='created');
+    if(matches.length!==1||user.id===s.protectedOwnerBefore.id)fail('fixture-state','Health metadata needs exactly two fresh disposable identities.');
+    return [index===0?'A':'B',{id:user.id,email:matches[0].email,runMarker:s.runId}];
+  }));
+  s.healthMetadataFixture=createHealthMetadataFixture({sql:s.sql,runId:s.runId,owners,
+    assertLease:async({cleanup})=>{
+      await assertRecordedFixtureLease(s,'Health metadata');
+      assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+      if(!cleanup)await s.previewGate.assertCurrent();
+    },
+    persist:async journal=>{
+      s.healthMetadataJournal=journal;
+      for(const id of journal.reservedIds)s.recordIds.add(id);
+      await saveLedger();
+    },
+    transaction:work=>feeTransaction(s,work),
+  });
+}
+
+async function healthMetadataObservation(s,page,signal){
+  const rowsSha256=await s.healthMetadataFixture.observe();
+  const active=signal||s.signal;
+  await Promise.all(s.users.map(user=>user.renewSession({signal:active})));
+  const pages=await readHealthMetadataPages(s.healthMetadataFixture.current(),page,s.users,{origin:s.origin,
+    fetchImpl:s.previewReadbackFetch,readResponse:readBoundedFixtureResponse,signal:active});
+  return {rowsSha256,pages};
 }
 
 async function prepareDtmAssignmentListFixture(s,cases){
@@ -1991,6 +2039,15 @@ export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
     try{await saveLedger();}catch(error){s.current=null;throw error;}
     return anonymous?{}:{token:s.users[0].token};
   }
+  if(s.healthMetadataFixture){
+    if(fixtureMode!==healthMetadataFixtureMode||fixtureFamily!==healthMetadataFamily||!s.caseIds.has(testCase.id))
+      fail('fixture-case','Health metadata is outside the prepared isolated fixture.');
+    const oracle=healthMetadataCase(testCase);
+    await s.healthMetadataFixture.transition(oracle.family);
+    const before=await healthMetadataObservation(s,oracle.page,signal);
+    s.current={caseId:testCase.id,healthMetadata:before};
+    return testCase.fixtureKey==='anonymous'?{}:{token:s.users[0].token};
+  }
   if(s.dtmAssignmentListPlan){
     if(fixtureMode!==dtmAssignmentListFixtureMode||fixtureFamily!==dtmAssignmentListFamily
       ||!isDeepStrictEqual(testCase,s.dtmAssignmentListCases.get(testCase.id)))
@@ -2163,6 +2220,24 @@ export async function afterCase(testCase,envelope,{signal,fixtureMode,fixtureFam
   const s=ready();if(s.current?.caseId!==testCase.id)fail('fixture-state','afterCase() does not match the prepared case.');
   const current=s.current;
   try{
+    if(current.healthMetadata){
+      if(fixtureMode!==healthMetadataFixtureMode||fixtureFamily!==healthMetadataFamily)
+        fail('fixture-case','Health metadata is outside the prepared isolated fixture.');
+      const oracle=healthMetadataCase(testCase);
+      const plan=s.healthMetadataFixture.current();
+      const sensitive=[...plan.recordIds,...s.users.flatMap(user=>[user.id,user.token]),...s.identityRequests.map(request=>request.email)];
+      const output=JSON.stringify([envelope.body,envelope.events]).toLowerCase();
+      if(sensitive.some(marker=>marker&&output.includes(marker.toLowerCase()))){
+        envelope.body={error:'Health metadata identity isolation failed.'};envelope.events=[];
+        fail('fixture-isolation','The assistant exposed a disposable identity, credential or record ID.');
+      }
+      const after=await healthMetadataObservation(s,oracle.page,signal);
+      envelope.fixtureReadback={verified:true,projectRef:PROJECT,independentGolden:true,
+        healthMetadata:bindHealthMetadataReadback(testCase,envelope,{before:current.healthMetadata,after})};
+      envelope.stateBefore={ownedRecordsDigest:current.healthMetadata.rowsSha256};
+      envelope.stateAfterProposal={ownedRecordsDigest:after.rowsSha256};
+      return;
+    }
     if(current.dtmAssignmentList){
       if(fixtureMode!==dtmAssignmentListFixtureMode||fixtureFamily!==dtmAssignmentListFamily
         ||!isDeepStrictEqual(testCase,s.dtmAssignmentListCases.get(testCase.id)))
@@ -2371,6 +2446,10 @@ export async function cleanup(){
       s.studentLeaveDataCleanup=await s.studentLeaveData.lifecycle.cleanup();
       await saveLedger();
     }
+    if(s.healthMetadataFixture){
+      await s.healthMetadataFixture.cleanup();
+      await s.healthMetadataFixture.verifyAbsent();
+    }
     if(s.serviceNotePlan||s.serviceNotePending)await changeServiceNoteFixture(s,null,{recovering:true});
     if(s.clubAttendancePlan){
       await assertRecordedFixtureLease(s);
@@ -2489,6 +2568,7 @@ export async function cleanup(){
         fail('fixture-cleanup','A task fixture identity, task, audit or receipt remains.');
       s.taskActionCleanup=true;
     }
+    if(s.healthMetadataFixture)await s.healthMetadataFixture.verifyAbsent();
     if(s.transcriptConversation)s.transcriptConversationCleanup=await s.transcriptConversation.verifyAbsent();
     // A timed-out create with no row yet may still commit later. Keep the
     // exact private recovery intent and never turn an absent row into success.
