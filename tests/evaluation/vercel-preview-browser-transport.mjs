@@ -43,13 +43,8 @@ async function capture(response,max){
   return Buffer.concat(parts);
 }
 
-/** Node-side prerequisite for an isolated browser operator. Supabase Auth stays
- * on the original browser request. The OIDC header exists only in Node fetch. */
-export function createProtectedConversationBrowserRelay({origin,revision,token,ownerId,getCallerToken,verifyPin,authorizeSave,
-  assets=[],dataPaths=['/api/affairs-data'],fetchImpl=globalThis.fetch,now=Date.now}={}){
-  check(isEvaluationPreviewOrigin(origin)&&sha.test(revision??'')&&uuid.test(ownerId??'')&&typeof getCallerToken==='function'
-    &&typeof verifyPin==='function'&&typeof authorizeSave==='function'&&typeof fetchImpl==='function','invalid fixture config');
-  const checkToken=createPreviewDevelopmentTokenGuard(token,now);
+export function validateProtectedConversationBrowserResources({origin,assets,dataPaths=['/api/affairs-data']}){
+  check(isEvaluationPreviewOrigin(origin),'invalid resource origin');
   check(Array.isArray(assets)&&assets.length<=256&&assets.every(path=>asset.test(path)&&target(origin+path).pathname===path),'invalid resource allowlist');
   check(Array.isArray(dataPaths)&&dataPaths.length<=8&&dataPaths.every(path=>{
     if(typeof path!=='string'||path.length>512)return false;
@@ -57,7 +52,18 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
     return destination.pathname==='/api/affairs-data'&&keys.length===new Set(keys).size
       &&!keys.some(key=>['resource','user_id','owner_id'].includes(key));
   }),'invalid data route allowlist');
-  const staticPaths=new Set(assets),ownDataPaths=new Set(dataPaths),reservations=new Map(),correlations=new Set();
+  return {staticPaths:new Set(assets),ownDataPaths:new Set(dataPaths)};
+}
+
+/** Node-side prerequisite for an isolated browser operator. Supabase Auth stays
+ * on the original browser request. The OIDC header exists only in Node fetch. */
+export function createProtectedConversationBrowserRelay({origin,revision,token,ownerId,getCallerToken,verifyPin,authorizeSave,
+  assets=[],dataPaths=['/api/affairs-data'],fetchImpl=globalThis.fetch,now=Date.now}={}){
+  check(isEvaluationPreviewOrigin(origin)&&sha.test(revision??'')&&uuid.test(ownerId??'')&&typeof getCallerToken==='function'
+    &&typeof verifyPin==='function'&&typeof authorizeSave==='function'&&typeof fetchImpl==='function','invalid fixture config');
+  const checkToken=createPreviewDevelopmentTokenGuard(token,now);
+  const {staticPaths,ownDataPaths}=validateProtectedConversationBrowserResources({origin,assets,dataPaths});
+  const reservations=new Map(),correlations=new Set();
   let releaseChecked=false,pinFailed=false,pinQueue=Promise.resolve();
   function pin(){
     const work=pinQueue.then(async()=>{
@@ -150,7 +156,8 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
       void response.body?.cancel().catch(()=>{});check(false,'unexpected redirect or response URL');
     }
     check(response.status===200,'unexpected application response');
-    const bytes=await capture(response,publicResource?4_000_000:ask?300000:220000);
+    const limit=publicResource?4_000_000:ownDataPaths.has(path)?1_000_000:ask?300000:220000;
+    const bytes=await capture(response,limit);
     check(!bytes.includes(token)&&(!caller||!bytes.includes(caller)),'credential in response');
     if(!publicResource){
       const contentType=response.headers.get('content-type')?.split(';')[0];
@@ -164,7 +171,7 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
         correlations.add(correlationId);answer={correlationId,bytes};
       }else{
         check(contentType==='application/json','unexpected application response');
-        const value=decode(bytes.toString('utf8'),220000);
+        const value=decode(bytes.toString('utf8'),limit);
         if(index)check(Array.isArray(value?.conversations)&&value.conversations.length<=reservations.size
           &&new Set(value.conversations.map(row=>row?.id)).size===value.conversations.length
           &&value.conversations.every(row=>reservations.has(row?.id)),'unreserved conversation in index');

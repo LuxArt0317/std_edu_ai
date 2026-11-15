@@ -11,6 +11,10 @@ import {readFile,readdir,mkdir,open,rename,rm,writeFile,lstat,realpath} from 'no
 import {readNativeHttpResponse} from './helpers/native-http-response.mjs';
 import {createPinnedDeploymentVerifier} from '../evaluation/pinned-deployment.mjs';
 import {conversationDeleteProbeTitles,createTrustedPreviewFetch,isEvaluationPreviewOrigin} from '../evaluation/vercel-preview-transport.mjs';
+import {createProtectedConversationBrowserRelay,validateProtectedConversationBrowserResources} from '../evaluation/vercel-preview-browser-transport.mjs';
+import {installProtectedConversationBrowserRoute,runProtectedConversationBrowser,verifyProtectedBrowserSave}
+  from './helpers/protected-conversation-browser.mjs';
+
 
 const ROOT=fileURLToPath(new URL('../../',import.meta.url));
 const PROJECT='xiftudmvxphxcjtmfmib',ORIGIN='https://stu.best';
@@ -169,17 +173,18 @@ export async function boundedConversationDiagnostic(work,timeoutMs=3000){
 
 export async function main(){
   const previewDelete=process.argv.length===3&&process.argv[2]==='--preview-delete';
-  assert.ok(previewDelete||process.argv.length===2,'Use explicit origin/revision environment variables.');
+  const previewBrowser=process.argv.length===3&&process.argv[2]==='--preview-browser',protectedPreview=previewDelete||previewBrowser;
+  assert.ok(protectedPreview||process.argv.length===2,'Use explicit origin/revision environment variables.');
   const requestedTarget={origin:process.env.ASSISTANT_ORIGIN,revision:process.env.EXPECTED_RELEASE_REVISION};
-  const target=previewDelete?validatePreviewConversationDeleteTarget({
+  const target=protectedPreview?validatePreviewConversationDeleteTarget({
     ...requestedTarget,approvedPreviewOrigin:process.env.APPROVED_PREVIEW_ORIGIN,
   }):validateConversationTarget(requestedTarget);
   const probeFixtures=previewDelete?Object.values(conversationDeleteProbeTitles).map(title=>conversationFixture(newConversationId(),title)):null;
-  if(previewDelete)assertExactPreviewCheckout(target.revision);
-  const fetchTarget=previewDelete?createTrustedPreviewFetch({
-    origin:target.origin,token:process.env.VERCEL_OIDC_TOKEN,conversationDeleteFixtures:probeFixtures,
+  if(protectedPreview)assertExactPreviewCheckout(target.revision);
+  const fetchTarget=protectedPreview?createTrustedPreviewFetch({
+    origin:target.origin,token:process.env.VERCEL_OIDC_TOKEN,...(previewDelete?{conversationDeleteFixtures:probeFixtures}:{}),
   }):fetch;
-  const previewPin=previewDelete?createPinnedDeploymentVerifier({
+  const previewPin=protectedPreview?createPinnedDeploymentVerifier({
     origin:target.origin,approvedPreviewOrigin:target.approvedPreviewOrigin,expectedRevision:target.revision,fetchImpl:fetchTarget,
   }):null;
   const manifest=async()=>{
@@ -190,6 +195,17 @@ export async function main(){
   };
   // Neither secrets nor clients are loaded before exact public release checks.
   await manifest();
+  let browserAssets;
+  if(previewBrowser){
+    const file=process.env.ASSISTANT_PREVIEW_BROWSER_ASSETS;
+    assert.ok(typeof file==='string'&&file.length>0,'A build asset allowlist is required for protected browser acceptance.');
+    const metadata=await lstat(file);
+    assert.ok(metadata.isFile()&&metadata.size<=64000);
+    browserAssets=JSON.parse(await readFile(file,'utf8'));
+    assert.equal(browserAssets.revision,target.revision);
+    assert.ok(Array.isArray(browserAssets.assets)&&browserAssets.assets.length>0);
+    validateProtectedConversationBrowserResources({origin:target.origin,assets:browserAssets.assets,dataPaths:browserAssets.dataPaths});
+  }
   const deployment=JSON.parse(await readFile(resolve(ROOT,'deployment.json'),'utf8'));
   assert.equal(deployment.repository,'LuxArt0317/std_edu_ai');assert.equal(deployment.supabase.projectRef,PROJECT);assert.equal(deployment.vercel.productionUrl,ORIGIN);
   const [{deploymentEnvironment},{createClient},{default:postgres},{chromium},{sanitizeStoredConversation}]=await Promise.all([
@@ -205,7 +221,7 @@ export async function main(){
   process.umask(0o077);
   const runId=randomUUID(),directory=resolve(ROOT,'artifacts/assistant-conversation-http'),ledgerPath=directory+'/active-fixtures-'+runId+'.json';
   await mkdir(directory,{recursive:true,mode:0o700});
-  if(previewDelete){
+  if(protectedPreview){
     const folder=await lstat(directory);
     assert.ok(folder.isDirectory()&&folder.uid===process.getuid()&&(folder.mode&0o777)===0o700&&await realpath(directory)===directory);
   }
@@ -217,7 +233,7 @@ export async function main(){
     return fetch(input,{...init,redirect:'error',signal:AbortSignal.timeout(15000)});};
   const admin=createClient(projectOrigin,serviceKey,{auth,global:{fetch:projectFetch}});
   const users=[],operations=[],deletions=[],sessions=new Map(),reservedConversations=new Map(),checks=[],browserErrors=[],activeBrowserWrites=new Set();
-  let sql,locked=false,ledgerOwned=false,browser,activePage,ownerId,ownerBefore,phase='preflight',failure=null,cleanupVerified=false,passed=false;
+  let sql,locked=false,ledgerOwned=false,browser,activePage,ownerId,ownerBefore,phase='preflight',failure=null,cleanupVerified=false,passed=false,browserAcceptance;
   const browserResponses=[];
   let httpRequests=0,browserRequests=0,modelRequests=0,officialRequests=0,ledgerQueue=Promise.resolve();
   const ledger=()=>ledgerQueue=ledgerQueue.then(async()=>{
@@ -229,7 +245,7 @@ export async function main(){
       await handle.sync();
     }finally{await handle.close();}
     await rename(temp,ledgerPath);
-    if(previewDelete){
+    if(protectedPreview){
       const folder=await open(directory,'r');
       try{await folder.sync();}finally{await folder.close();}
     }
@@ -276,6 +292,8 @@ export async function main(){
     });
   };
   const request=async(user,{method='GET',id,body,status=200}={})=>{
+    if(previewBrowser)assert.ok(method==='GET'&&body===undefined&&user&&users.includes(user)&&reservedConversations.has(id));
+    const dispatch=previewBrowser?createTrustedPreviewFetch({origin:target.origin,token:process.env.VERCEL_OIDC_TOKEN,conversationId:id}):fetchTarget;
     const ticket=previewPin?await previewPin.beforeRequest():null;
     let op;if(method==='POST')op=await recordWrite(user,body);
     let deletion;
@@ -285,7 +303,7 @@ export async function main(){
       deletions.push(deletion);await ledger();
     }
     let response;httpRequests++;
-    try{response=await readNativeHttpResponse(await fetchTarget(target.origin+'/api/affairs-conversations'+(id?'?id='+id:''),{
+    try{response=await readNativeHttpResponse(await dispatch(target.origin+'/api/affairs-conversations'+(id?'?id='+id:''),{
       method,redirect:'error',cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(20000),
       headers:{...(user?{Authorization:'Bearer '+sessions.get(user.id).access_token}:{}),...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})}));
       if(ticket)await previewPin.afterRequest(ticket);
@@ -307,13 +325,13 @@ export async function main(){
   try{
     sql=await pool.reserve();assert.equal((await sql`select pg_try_advisory_lock(23101314,115100) as held`)[0].held,true);locked=true;
     assert.ok((await sql`select version from supabase_migrations.schema_migrations where version='20261112190000'`).length,'190000 must be applied by release owner first.');
-    if(previewDelete)assert.ok((await sql`select version from supabase_migrations.schema_migrations where version='20261115230000'`).length,'The protected conversation migration is required.');
+    if(protectedPreview)assert.ok((await sql`select version from supabase_migrations.schema_migrations where version='20261115230000'`).length,'The protected conversation migration is required.');
     await assertConversationRecoveryClear([directory,resolve(ROOT,'artifacts/assistant-evaluation')]);
     const owners=await sql`select id from auth.users where lower(email)=lower(${deployment.supabase.ownerEmail})`;assert.equal(owners.length,1);ownerId=owners[0].id;ownerBefore=await fingerprint();
     const file=await open(ledgerPath,'wx',0o600);ledgerOwned=true;await file.close();await ledger();
     if(previewPin){assertExactPreviewCheckout(target.revision);await previewPin.assertCurrent();}
     phase='actual JWT identities';const first=await createUser(),second=await createUser();
-    if(previewPin){
+    if(previewDelete){
       phase='protected HTTP deletion and late saves';
       const [saved,pending]=probeFixtures;
       for(const payload of probeFixtures)reservedConversations.set(payload.id,{userId:first.id,payload});
@@ -321,6 +339,87 @@ export async function main(){
         expectedMessages:sanitizeStoredConversation(saved.messages)});
       checks.push('Protected Preview UUIDv7: exact owner save; cross-account GET, POST and DELETE isolation; exact deletion marker; late first-save and stale replay rejected; delete replay idempotent');
       assertExactPreviewCheckout(target.revision);await previewPin.finish();passed=true;return;
+    }
+    if(previewBrowser){
+      phase='protected browser initialisation';
+      browser=await chromium.launch({headless:true,executablePath:env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
+      const openContext=async(side,knownIds)=>{
+        const user=side==='owner'?first:second,session=sessions.get(user.id);
+        const context=await browser.newContext({viewport:{width:390,height:900},serviceWorkers:'block'});
+        const reads=new Set();
+        await context.addInitScript(({session,origin})=>{
+          if(location.origin===origin&&!sessionStorage.getItem('conversation-qa-init')){
+            localStorage.setItem('stu-school-affairs-auth',JSON.stringify(session));
+            sessionStorage.setItem('conversation-qa-init','1');
+          }
+        },{session,origin:target.origin});
+        const relay=createProtectedConversationBrowserRelay({origin:target.origin,revision:target.revision,token:process.env.VERCEL_OIDC_TOKEN,
+          ownerId:user.id,getCallerToken:()=>sessions.get(user.id)?.access_token,verifyPin:previewPin.assertCurrent,
+          assets:browserAssets.assets,dataPaths:browserAssets.dataPaths,
+          authorizeSave:async({ownerId,payload,...observed})=>{
+            const reservation=reservedConversations.get(payload.id);
+            assert.equal(ownerId,user.id);assert.equal(reservation?.userId,user.id);
+            const expected=await verifyProtectedBrowserSave({payload,question:reservation.question,...observed});
+            assert.equal((await sql`select id from public.affairs_conversations where id=${payload.id}`).length,0);
+            await recordWrite(user,payload);
+            reservation.expected=expected;
+            return true;
+          },
+        });
+        for(const id of knownIds){
+          assert.equal(reservedConversations.get(id)?.userId,user.id);
+          relay.reserve({id,mode:'read'});
+        }
+        const drain=await installProtectedConversationBrowserRoute(context,{relay,async onReply({url,method,reply}){
+          const destination=new URL(url),path=destination.pathname;
+          if(!path.startsWith('/api/'))return;
+          browserRequests++;
+          if(path==='/api/affairs-assistant')modelRequests++;
+          if(browserResponses.length<80)browserResponses.push({method,path,status:reply.status});
+          if(path!=='/api/affairs-conversations')return;
+          if(method==='GET'){reads.add(destination.searchParams.get('id')||'index');return;}
+          const body=JSON.parse(reply.body.toString('utf8'));
+          const op=operations.find(item=>item.userId===user.id&&item.payload.id===body.id&&item.state==='pending');
+          assert.ok(op,'A protected browser response must match one journaled save.');
+          await finishWrite(op,{status:reply.status,body});
+          assert.equal(op.state,'saved');
+        },onDenied({url}){
+          const destination=new URL(url);
+          if(destination.origin===target.origin&&destination.pathname.startsWith('/api/'))browserErrors.push('Protected browser application request denied.');
+        }});
+        const close=async()=>{await context.close();await drain();};
+        try{
+          const page=await context.newPage();activePage=page;page.setDefaultTimeout(30000);
+          page.on('pageerror',()=>browserErrors.push('Protected browser runtime exception.'));
+          const index=page.waitForResponse(response=>response.url()===target.origin+'/api/affairs-conversations'
+            &&response.request().method()==='GET'&&response.ok(),{timeout:45000}).then(()=>null,error=>error);
+          await page.goto(target.origin+'/dtm',{waitUntil:'domcontentloaded'});
+          await openVerifiedConversationAssistant(page,value=>{phase=value;});
+          const failed=await index;if(failed)throw failed;
+          return {page,dialog:page.getByRole('dialog',{name:/Assistant/}),reads,close,reserve(reservation){
+            assert.equal(side,'owner');assert.ok(!reservedConversations.has(reservation.id));
+            relay.reserve(reservation);
+            reservedConversations.set(reservation.id,{userId:user.id,question:reservation.question});
+          }};
+        }catch(error){await close();throw error;}
+      };
+      browserAcceptance=await runProtectedConversationBrowser({origin:target.origin,openContext,mark:value=>{phase=value;},
+        async verifyPersisted({id,question}){
+          const reservation=reservedConversations.get(id);
+          assert.equal(reservation?.userId,first.id);assert.equal(reservation.question,question);
+          const op=operations.find(row=>row.userId===first.id&&row.payload.id===id&&row.state==='saved');
+          assert.ok(op&&reservation.expected);
+          const wire=await request(first,{id});
+          assert.ok(conversationResponseMatches(op,{status:200,body:wire}));
+          assert.ok(reconcileConversationWrite(op,await sql`select id,user_id,title,messages,version from public.affairs_conversations where id=${id}`));
+          assert.deepEqual(await request(second,{id,status:404}),{error:'Conversation not found.'});
+          return reservation.expected;
+        },
+      });
+      assert.deepEqual(browserErrors,[]);assert.equal(modelRequests,2);assert.equal(operations.length,2);
+      assertExactPreviewCheckout(target.revision);await previewPin.finish();
+      checks.push('Protected Preview browser: two actual account turns, independently verified Activity and stored answers, cache-empty second conversation restoration and account isolation');
+      passed=true;return;
     }
     phase='deployed HTTP save and isolation';
     const primary=conversationFixture(newConversationId(),'HTTP durable activity'),secondary=conversationFixture(newConversationId(),'Other account private activity');
@@ -431,7 +530,7 @@ export async function main(){
     assert.deepEqual(browserErrors,[]);assert.equal(modelRequests,0);assert.equal(officialRequests,0);await manifest();passed=true;
   }catch(error){
     failure={phase,type:error instanceof assert.AssertionError?'assertion':error?.name==='TimeoutError'?'TimeoutError':'Error'};
-    if(activePage&&!activePage.isClosed()&&new URL(activePage.url()).origin===ORIGIN){
+    if(activePage&&!activePage.isClosed()&&new URL(activePage.url()).origin===target.origin){
       // This context contains only fresh disposable identities and synthetic
       // records. Save a viewport image before teardown; never storage/headers.
       try{
@@ -477,9 +576,10 @@ export async function main(){
         }
         const ids=users.flatMap(user=>user.id?[user.id]:[]);
         if(ids.length)assert.equal((await sql`select id from auth.users where id in ${sql(ids)} union all select id from public.affairs_conversations where user_id in ${sql(ids)} union all select user_id from public.affairs_profiles where user_id in ${sql(ids)}`).length,0);
-        if(previewDelete&&ids.length){
-          const reservedIds=probeFixtures.map(fixture=>fixture.id);
+        if(protectedPreview&&ids.length&&reservedConversations.size){
+          const reservedIds=[...reservedConversations.keys()];
           assert.equal((await sql`select id from public.affairs_conversations where id in ${sql(reservedIds)}
+            union all select user_id from auth.identities where user_id in ${sql(ids)}
             union all select user_id from private.affairs_conversation_delete_markers where user_id in ${sql(ids)} or conversation_id in ${sql(reservedIds)}
             union all select user_id from private.affairs_conversation_creation_floors where user_id in ${sql(ids)}`).length,0);
         }
@@ -495,7 +595,8 @@ export async function main(){
     if(cleanupVerified&&ledgerOwned)try{await rm(ledgerPath);}catch{cleanupVerified=false;}
     const report={runId,origin:target.origin,revision:target.revision,status:passed&&cleanupVerified?'passed':'failed',checks,failure,cleanupVerified,
       httpRequests,browserRequests,modelRequests,officialRequests,modelAcceptance:false,browserErrors,browserResponses,
-      ...(previewPin?{probe:'uuidv7-conversation-delete',deployment:previewPin.status()}:{}),
+      ...(previewPin?{probe:previewBrowser?'protected-conversation-browser':'uuidv7-conversation-delete',deployment:previewPin.status()}:{}),
+      ...(browserAcceptance?{browserAcceptance,incrementalActivityAcceptance:false}:{}),
     };
     await writeFile(directory+'/report-'+runId+'.json',JSON.stringify(report,null,2),{mode:0o600});
     console.log(JSON.stringify(report));if(report.status!=='passed')process.exitCode=1;
