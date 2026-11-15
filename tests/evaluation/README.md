@@ -187,6 +187,14 @@ The separate `--published-timetable` packet checks both orders of an Internship 
 
 The isolated `dtm-assignment-list` family mounts 16 cases on protected Preview. It exercises course and account scope, a fixed Taipei due date, tracker filters, titles, exact counts, the selected sample course and signed-in and guest access boundaries. A selected foreign course must have two unavailable reads, an unverified reply and no links or records. The `dtm-assignment-list-empty`, `dtm-assignment-list-sample` and `dtm-assignment-list-partial` families add four independent scenarios. They check an empty course, sample rows hidden by existing personal courses, accurate sample fallback with no personal courses, and exactly 20 displayed links for 21 matching rows. Each family uses a separate fixture lease. Both caller projections must match the independently specified rows before and after each request. Fixture setup provisions School Affairs only so the normal Moodle bootstrap cannot add rehearsal rows. The readback includes all Moodle assignments and courses belonging to either disposable account. Cleanup verifies that the reserved courses and assignments are gone. The reader outage and four older tracker cases retain separate fixture requirements.
 
+#### Protected signed-in replay order
+
+Run the certificate status, confirmed Moodle tracker, and assignment clock
+packets serially against a single exact protected Preview. Each uses the shared
+disposable fixture lease. Review the terminal report and its cleanup proof
+before opening the next packet. Portable clock cases can run independently of
+the original fixed-date cases and keep their own acceptance results.
+
 #### Moodle assignment-list clock families
 
 The original fixed-date prompts, durable rows and literal rubric are mounted in two families. The three `dtm-assignment-list-relative-fixed` cases run on November 17, 2026, Taipei time (UTC `[2026-11-16T16:00:00Z, 2026-11-17T16:00:00Z)`). The `dtm-assignment-list-overdue-fixed` case runs strictly after November 16 at 18:00 Taipei time and before November 17 at 09:10 Taipei time (UTC `(2026-11-16T10:00:00Z, 2026-11-17T01:10:00Z)`). Start with enough time for paired readback. The pre-dispatch check reserves the final 65 seconds of the window.
