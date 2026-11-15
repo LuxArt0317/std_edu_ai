@@ -18,6 +18,8 @@ import {rendererDtmContextProbes,rendererDtmExpectation,rendererDtmRead,renderer
 import {curriculumPdfApiPath,rendererAcademicExpectation,rendererAcademicRead,rendererCurriculumPdf} from './helpers/assistant-renderer-academic.mjs';
 import {rendererRepairContextProbe,rendererRepairExpectation,rendererRepairRead,verifyRendererRepair} from './helpers/assistant-renderer-facility.mjs';
 import {rendererClubContextProbes,rendererClubExpectation,rendererClubRead,verifyRendererClub} from './helpers/assistant-renderer-clubs.mjs';
+import {rendererCertificateContextProbes,rendererCertificateExpectation,rendererCertificateRead,verifyRendererCertificate} from './helpers/assistant-renderer-certificates.mjs';
+import {certificateAwardScope} from '../../server/certificateAwardsContract.js';
 
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const git=args=>execFileSync('git',args,{cwd:root,encoding:'utf8'}).trim();
@@ -34,6 +36,7 @@ const {hash,cases}=await rendererInventory();
 const family=args.length===2&&args[0]==='--family'?args[1]:null;
 const readbackFamilies=new Map([
   ['academic-document-readback',rendererAcademicExpectation],
+  ['certificate-award-readback',rendererCertificateExpectation],
   ['facility-repair-readback',rendererRepairExpectation],
   ['student-clubs-readback',rendererClubExpectation],
 ]);
@@ -45,9 +48,11 @@ const artifact=join(root,'artifacts/assistant-renderer',fileId+'.json');
 const viewports={desktop:{width:1280,height:800},phone:{width:390,height:740}};
 const contextualPhoneRoutes=new Set(['/school-affairs','/school-affairs/services/leave','/school-affairs/services/40-1/my-attendance?page=2',
   '/school-affairs/services/36-1','/school-affairs/services/27-1','/school-affairs/services/39-1/payment-history',
-  '/school-affairs/services/40-1/officer/applications','/dtm','/dtm/course/'+ids.course+'/grades','/elearning','/elearning/course/9408/activity/293395']);
+  '/school-affairs/services/40-1/officer/applications','/dtm','/dtm/course/'+ids.course+'/grades','/elearning','/elearning/course/9408/activity/293395',
+  ...rendererCertificateContextProbes.keys()]);
 const syntheticDtmReply='The renderer received the exact saved Moodle page context.';
-const rendererContextProbes=new Map([...rendererDtmContextProbes,...rendererClubContextProbes,[rendererRepairContextProbe.route,rendererRepairContextProbe]]);
+const rendererContextProbes=new Map([...rendererDtmContextProbes,...rendererClubContextProbes,...rendererCertificateContextProbes,
+  [rendererRepairContextProbe.route,rendererRepairContextProbe]]);
 const academyCourse={id:Number(ids.elearningCourse),category_id:Number(ids.elearningCategory),title:'Renderer safety course',self_enroll:false,position:1};
 const academyCategory={id:Number(ids.elearningCategory),parent_id:null,title:'Renderer safety category',source_count:1,position:1};
 const publicScopes=new Set(['permanent-courses','interdisciplinary-programs','first-selection-notice','late-add-notice',
@@ -61,6 +66,8 @@ const fixture=(url,parent,authorization)=>{
   if(dtm)return dtm;
   const academic=rendererAcademicRead(url,authorization);
   if(academic)return academic;
+  const certificate=rendererCertificateRead(url,user.id);
+  if(certificate)return certificate;
   if(scope==='summer-selection-notice'){
     const year=url.searchParams.get('year');
     assert.match(year??'',/^[1-9][0-9]{2}$/u);
@@ -204,11 +211,13 @@ async function checkRoute(page,contextState,row,mode,device,origin){
   contextState.api.length=0;contextState.security.length=0;contextState.pageErrors=0;contextState.externalBlocked=0;contextState.authVerified=0;
   const dtmExpectation=mode.state?rendererDtmExpectation(row.route):null;
   const academicExpectation=mode.state?rendererAcademicExpectation(row.route):null;
+  const certificateView=mode.state?rendererCertificateExpectation(row.route):null;
   const repairExpectation=mode.state?rendererRepairExpectation(row.route):null;
   const clubExpectation=mode.state?rendererClubExpectation(row.route):null;
   const probe=mode.state&&!mode.manager?rendererContextProbes.get(row.route):null;
   contextState.activeProbe=null;contextState.assistantCalls=0;contextState.conversationSaves=0;
-  let stage='navigate',finalPath=null,nativeDataRendered=false,academicDataRendered=false,repairViewVerified=false,clubView=null,readbackRoute,assistantPageContextPassed=false;
+  let stage='navigate',finalPath=null,nativeDataRendered=false,academicDataRendered=false,certificateDataRendered=false,repairViewVerified=false,
+    clubView=null,readbackRoute,assistantPageContextPassed=false;
   const checks={navigationSucceeded:false,workspaceMounted:false,sessionVerified:false,assistantPresent:false,keyboardUsable:false};
   try{
     const [pdfResponse,response]=await Promise.all([
@@ -257,6 +266,13 @@ async function checkRoute(page,contextState,row,mode,device,origin){
       assert.ok(contextState.api.some(read=>read.path==='/api/affairs-data'&&read.scope===academicExpectation.scope&&read.status===200));
       assert.ok(contextState.api.every(read=>read.path!=='/api/affairs-data'||read.status===200));
       academicDataRendered=true;
+    }
+    if(certificateView){
+      stage='certificate-award-readback';
+      await verifyRendererCertificate(page,certificateView);
+      assert.deepEqual(contextState.api.filter(read=>read.path==='/api/affairs-data'),
+        [{path:'/api/affairs-data',scope:certificateAwardScope,status:200}]);
+      certificateDataRendered=true;
     }
     if(repairExpectation){
       stage='facility-repair-readback';
@@ -328,11 +344,12 @@ async function checkRoute(page,contextState,row,mode,device,origin){
   return {route:row.route,expectedRoute:mode.state?row.final:row.guest,finalPath,families:row.families,evidenceScope:row.evidenceScope,
     auth:mode.manager?'synthetic-club-manager':mode.state?'synthetic-signed-in':'guest',device,checks,passed:stage===null,failureStage:stage,reads,
     ...(dtmExpectation?{nativeDataRendered}:{}),...(academicExpectation?{academicDataRendered}:{}),
+    ...(certificateView?{certificateView,certificateDataRendered}:{}),
     ...(repairExpectation?{repairView:repairExpectation.kind,repairViewVerified}:{}),
     ...(clubExpectation?{clubView:clubExpectation.review?(mode.manager?'manager-review':'student-denied'):'signed-in-records',
       clubViewVerified:clubView!==null&&stage===null,...(readbackRoute?{readbackRoute}:{})}:{}),
     ...(probe?{assistantContext:probe===rendererRepairContextProbe?'facility-repair':
-      rendererClubContextProbes.has(row.route)?'student-clubs':'dtm',assistantPageContextPassed}:{}),
+      rendererClubContextProbes.has(row.route)?'student-clubs':certificateView?'certificate-awards':'dtm',assistantPageContextPassed}:{}),
     nativeData:verifiedDenial?'synthetic-denial-verified':
       workspaceReads.some(read=>read.status!==200)?'fixture-unavailable':workspaceReads.length?'synthetic-response-sent':'no-observed-read',
     externalRequestsBlocked:contextState.externalBlocked,securityFailures:contextState.security.length,pageErrors:contextState.pageErrors};
@@ -439,6 +456,10 @@ try{
     fixtureUnavailable:outcomes.filter(row=>row.nativeData==='fixture-unavailable').length,
     academicReadbackChecks:outcomes.filter(row=>row.academicDataRendered!==undefined).length,
     academicReadbackPassed:outcomes.filter(row=>row.academicDataRendered).length,
+    certificateReadbackChecks:outcomes.filter(row=>row.certificateDataRendered!==undefined).length,
+    certificateReadbackPassed:outcomes.filter(row=>row.certificateDataRendered).length,
+    certificateContextChecks:outcomes.filter(row=>row.assistantContext==='certificate-awards').length,
+    certificateContextPassed:outcomes.filter(row=>row.assistantContext==='certificate-awards'&&row.assistantPageContextPassed).length,
     dtmReadbackChecks:outcomes.filter(row=>row.nativeDataRendered!==undefined).length,
     dtmReadbackPassed:outcomes.filter(row=>row.nativeDataRendered).length,
     dtmContextChecks:outcomes.filter(row=>row.assistantContext==='dtm').length,
