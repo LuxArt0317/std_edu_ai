@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {buildServiceNoteCases,serviceNoteCaseManifest} from './service-note-cases.mjs';
+import {buildServiceNoteCases,protectedServiceNoteCasePrefix,serviceNoteCaseManifest} from './service-note-cases.mjs';
 import {serviceNoteCompanionPlan} from './service-note-companion-fixture.mjs';
 import {sampleEnrollmentManifest} from './published-sample-enrollments.mjs';
 import {buildServiceNotePlan,observeServiceNoteRows,readCallerServiceNotes} from './service-note-live-fixture.mjs';
@@ -29,12 +29,26 @@ function statusProof(row,extra={}){
 
 test('the main suite preserves every note question and explicitly fences off the unbound cases',async()=>{
   const standalone=buildServiceNoteCases(),summary=serviceNoteSetupSummary(cases);
-  assert.equal(cases.length,80);
-  assert.equal(summary.liveEligible,79);
+  assert.equal(cases.length,100);
+  assert.equal(summary.liveEligible,99);
   assert.deepEqual(summary.unboundCaseIds.map(id=>id.slice(prefix.length)),['read-unavailable']);
   const suite=await evaluationSuite('2026-11-15T02:00:00.000Z');
   assert.deepEqual(suite.cases.filter(row=>row.id.startsWith(prefix)),cases);
   assert.deepEqual(cases.map(row=>[row.id,row.question]),standalone.map(row=>[row.id,row.question]));
+  const protectedPacket=cases.filter(row=>row.id.startsWith(protectedServiceNoteCasePrefix));
+  assert.equal(protectedPacket.length,20);
+  for(const id of ['30-1','30-2','31-2','35-1']){
+    const packet=protectedPacket.filter(row=>row.serviceBoundary.serviceId===id);
+    assert.deepEqual(packet.map(row=>row.serviceBoundary.kind),['outcome','outcome','navigation','tracking','submit']);
+    assert.deepEqual(packet.slice(0,2).map(row=>row.language),['en','zh-TW']);
+    for(const row of packet){
+      assert.equal(row.endpoint,'/api/affairs-assistant');
+      assert.equal(row.executionContract,'live-native');
+      assert.equal(row.expected.noAction,true);
+      assert.equal(row.expected.requireUnchangedOwnedRecords,true);
+      assert.equal(serviceNoteSetupRequired(row),false);
+    }
+  }
   for(const id of summary.unboundCaseIds){
     const row=cases.find(item=>item.id===id);
     assert.equal(serviceNoteSetupRequired(row),true);
@@ -69,7 +83,7 @@ test('a hosted next-class oracle uses the requested Taipei clock and keeps the e
     assert.throws(()=>serviceNoteRunnerOracle({...row,companionClock:'2026-11-17T03:30:00.000Z'}),/differs/u);
   }
   const outside=serviceNoteSetupSummary(serviceNoteRunnerCases({now:'2027-02-15T02:00:00.000Z'}));
-  assert.equal(outside.liveEligible,77);
+  assert.equal(outside.liveEligible,97);
   assert.equal(outside.unboundCaseIds.length,3);
 });
 
@@ -130,7 +144,7 @@ test('real handlers satisfy all mounted note and access cases using only the sel
   });
   try{
     const native=cases.filter(row=>row.executionContract==='live-native');
-    assert.equal(native.length,79);
+    assert.equal(native.length,99);
     for(const row of native){
       current=row;companionCalls=[];
       const guest=row.auth==='anonymous';
@@ -175,13 +189,35 @@ test('real handlers satisfy all mounted note and access cases using only the sel
           assert.equal(gradeLiveServiceNoteCase(row,bad).passed,false,row.id);
         }
       }
+      if(row.id.startsWith(protectedServiceNoteCasePrefix)){
+        const {kind,serviceId,unsupportedClaims}=row.serviceBoundary;
+        const plan=buildServiceNotePlan(row,owners);
+        for(const [leg,owner] of owners.entries()){
+          assert.ok(plan.rows.some(item=>item.user_id===owner&&item.service_key===serviceId),`seeded control ${leg}`);
+        }
+        for(const [mutate,failedCheck] of [
+          [copy=>{copy.body.grounding.webSearched=true;},'notes.serviceBoundary.scope'],
+          [copy=>{copy.body.answer+=' [Club link](/school-affairs/services/40-1/equipment)';},'notes.serviceBoundary.destination'],
+          [copy=>{copy.body.answer+=' '+unsupportedClaims[row.language==='zh-TW'?1:0]+'.';},'notes.serviceBoundary.outcome'],
+          [copy=>{copy.events.push({kind:'account-tools',detail:'FOREIGN SERVICE NOTE '+serviceId,status:'complete'});},'notes.serviceBoundary.outcome'],
+          [copy=>{copy.body.proposedAction={kind:'submit_service'};},'action.none'],
+        ]){
+          const bad=structuredClone(envelope);mutate(bad);
+          assert.ok(gradeLiveServiceNoteCase(row,bad).failures.some(check=>check.id===failedCheck),row.id+' '+failedCheck);
+        }
+        if(kind!=='tracking'){
+          const bad=structuredClone(envelope);
+          bad.events.push({kind:'account-read:serviceRecords:1',status:'complete'});
+          assert.ok(gradeLiveServiceNoteCase(row,bad).failures.some(check=>check.id==='notes.telemetry'));
+        }
+      }
       if(!guest){
         assert.ok(gradeLiveServiceNoteCase(row,{...envelope,fixtureReadback:undefined}).failures.some(check=>check.id==='notes.pairedFixture'));
         const corrupted=structuredClone(envelope);corrupted.body.answer+=' FOREIGN SERVICE NOTE 35-1';
         assert.ok(gradeLiveServiceNoteCase(row,corrupted).failures.some(check=>check.id==='notes.noForeignOrExcluded'));
       }
     }
-    assert.equal(verifiedAccounts,78);assert.equal(unexpectedSnapshots,0);assert.equal(unexpectedResearch,0);
+    assert.equal(verifiedAccounts,98);assert.equal(unexpectedSnapshots,0);assert.equal(unexpectedResearch,0);
   }finally{globalThis.fetch=fetch;globalThis.Date=RealDate;}
 });
 

@@ -57,7 +57,7 @@ function buildRunnerCase(source,now){
   if(suffix.endsWith('-official-only'))row.expected.requiredText[0].anyOf.push('can’t verify');
   const boundary=serviceNoteEndpointBoundary(row);
   if(boundary){
-    row.expected.requiredEvents=[boundary.event];
+    if(boundary.event)row.expected.requiredEvents=[boundary.event];
     row.expected.requiredSourceBindings=[{sourceId:'directory:service-note:'+boundary.serviceId,url:boundary.url}];
     if(boundary.event==='service-note-write-boundary')row.expected.requiredText=['cannot change','cannot submit'];
   }
@@ -67,6 +67,10 @@ function buildRunnerCase(source,now){
   return row;
 }
 function serviceNoteEndpointBoundary(row){
+  if(row.serviceBoundary&&row.serviceBoundary.kind!=='tracking'){
+    const {serviceId,kind}=row.serviceBoundary;
+    return {serviceId,url:'/school-affairs/services/'+serviceId,event:kind==='navigation'?'service-note-navigation':null};
+  }
   const match=/^(\d{2}-\d)-(link|write)$/u.exec(row.id.slice(prefix.length));
   if(!match)return null;
   const [,serviceId,kind]=match;
@@ -102,11 +106,30 @@ export function gradeLiveServiceNoteCase(row,envelope){
   if(boundary){
     const response=Array.isArray(envelope.events)?envelope.events:[];
     const links=extractAnswerLinks(envelope.body??{});
-    const check={id:'notes.exactReadOnlyRoute',passed:response.length===1&&response[0]?.kind===boundary.event
-      &&response[0]?.status==='complete'&&links.length>0&&links.every(link=>link===boundary.url),
+    const activity=boundary.event?response.length===1&&response[0]?.kind===boundary.event&&response[0]?.status==='complete'
+      :response.length===0;
+    const check={id:'notes.exactReadOnlyRoute',passed:activity&&links.length===1&&links[0]===boundary.url,
     detail:'The endpoint emits one local boundary event and only the exact service destination.'};
     result.checks.push(check);
     if(!check.passed){result.passed=false;result.failures.push(check);}
+  }
+  if(row.serviceBoundary){
+    const {kind,serviceId,unsupportedClaims}=row.serviceBoundary;
+    const body=envelope.body??{},output=JSON.stringify([body,envelope.events]).toLowerCase();
+    const expectedSource=kind==='navigation'?'directory':'account';
+    const checks=[
+      {id:'notes.serviceBoundary.scope',passed:body.grounding?.source===expectedSource&&body.grounding?.webSearched===false
+        &&body.status===(kind==='navigation'||kind==='tracking'?'answered':'handoff'),
+        detail:'The terminal answer stays in the requested local directory or authenticated account scope without public research.'},
+      {id:'notes.serviceBoundary.outcome',passed:![...unsupportedClaims,...row.expected.forbiddenAccountMarkers].some(marker=>output.includes(marker.toLowerCase())),
+        detail:'Neither a seeded unrelated or crossed-owner note nor a service-specific unsupported outcome appears in the response.'},
+      {id:'notes.serviceBoundary.destination',passed:isDeepStrictEqual(extractAnswerLinks(body),['/school-affairs/services/'+serviceId]),
+        detail:'All displayed destinations point to the exact requested service, including health equipment on 30-2.'},
+    ];
+    for(const check of checks){
+      result.checks.push(check);
+      if(!check.passed){result.passed=false;result.failures.push(check);}
+    }
   }
   if(row.serviceNoteCompanion){
     const companion=observation?.companion;

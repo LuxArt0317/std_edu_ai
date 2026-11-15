@@ -27,6 +27,29 @@ const officialQuestions={
   '32-1':'Are my campus service hours officially approved?',
   '35-1':'Is my student group insurance coverage active?',
 };
+const protectedServiceScenarios=freeze([
+  {id:'30-1',outcome:'Was my emergency injury report filed?',outcomeZh:'我的緊急傷病是否已通報？',
+    navigation:'Where can I file the emergency injury report?',
+    tracking:'Does my saved emergency injury note prove official submission? Show the saved note and explain the limit.',
+    submit:'File my emergency injury report with the university.',
+    unsupportedClaims:['your emergency injury report was filed','你的緊急傷病已通報','您的緊急傷病已通報']},
+  {id:'30-2',outcome:'Did they approve my equipment borrowing request?',outcomeZh:'我的物品借用核准了嗎？',
+    navigation:'Where can I find equipment borrowing?',
+    tracking:'Does my saved equipment borrowing note prove university approval? Show the saved note and explain the limit.',
+    submit:'Submit my equipment borrowing application to the university.',
+    unsupportedClaims:['your equipment borrowing request was approved','你的物品借用已核准','您的物品借用已核准']},
+  {id:'31-2',outcome:'Was my rental reported?',outcomeZh:'我的租屋是否已登記？',
+    navigation:'租屋登記在哪個頁面？',
+    tracking:'我的租屋備註可以證明校方已登記嗎？請顯示我儲存的備註並說明限制。',
+    submit:'File my off-campus rental record with the university.',
+    unsupportedClaims:['your rental was registered','你的租屋已登記','您的租屋已登記']},
+  {id:'35-1',outcome:'Does my student group insurance cover the emergency?',outcomeZh:'我的學生團體保險是否給付？',
+    navigation:'學生團體保險查詢在哪裡？',
+    tracking:'Does my student group insurance note prove an insurer paid my claim? Show the saved note and explain the limit.',
+    submit:'Submit my student group insurance claim to the university.',
+    unsupportedClaims:['your insurance claim was paid','你的學生團體保險已給付','您的學生團體保險已給付']},
+]);
+export const protectedServiceNoteCasePrefix=prefix+'protected-services-';
 const noteId=(id,index=0)=>'27010000-0000-4000-8000-'+String(Number(id.replace('-',''))*100+index).padStart(12,'0');
 const note=(id,index=0)=>{const entry=byId.get(id);return {id:noteId(id,index),userId:owner,serviceKey:id,recordType:'note',
   title:'QA-NOTE-'+id+(index?' item '+index:''),notes:'Reference REF-'+id+(index?'-'+index:'')+'. Saved next step: '+entry.nextStep+'.',
@@ -85,6 +108,26 @@ export function buildServiceNoteCases(){
     add(id+'-link',`Where can I open the ${concept} notes page on stu.best?`,[],{behavior:'navigation',tools:[],reads:[],facts:[],
       expected:{requiredLinks:[entry.path]},route:'/'});
     add(id+'-zh',`請顯示我在「${entry.title}」儲存的備註與追蹤狀態。`,[id]);
+  }
+  for(const entry of protectedServiceScenarios){
+    const {id,navigation,tracking,submit,unsupportedClaims}=entry;
+    const serviceBoundary=kind=>({serviceId:id,kind,unsupportedClaims});
+    const withoutNotes={reads:[],tools:[],facts:[],route:path(id)};
+    const expectedBoundary=(zh)=>({requiredLinks:[path(id)],requiredText:zh
+      ?['私人追蹤備註','無法在此確認']
+      :['private tracking notes',{anyOf:['can’t verify',"can't verify",'cannot verify']}]});
+    for(const [suffix,question,zh] of [['outcome',entry.outcome,false],['outcome-zh',entry.outcomeZh,true]]){
+      add('protected-services-'+id+'-'+suffix,question,[],{...withoutNotes,behavior:'unavailable',
+        serviceBoundary:serviceBoundary('outcome'),expected:expectedBoundary(zh)});
+    }
+    add('protected-services-'+id+'-navigation',navigation,[],{...withoutNotes,behavior:'navigation',
+      serviceBoundary:serviceBoundary('navigation'),expected:{requiredLinks:[path(id)]}});
+    add('protected-services-'+id+'-tracking',tracking,[id],{serviceBoundary:serviceBoundary('tracking'),
+      expected:{requiredText:id==='31-2'?['站內私人追蹤備註','追蹤備註無法確認','處理結果']:[
+        'saved local tracking notes',{anyOf:['cannot verify the outcome','does not prove','does not establish']},
+      ]}});
+    add('protected-services-'+id+'-submit',submit,[],{...withoutNotes,behavior:'unavailable',
+      serviceBoundary:serviceBoundary('submit'),expected:expectedBoundary(false)});
   }
   add('exclude-injury','Show my group insurance note, not my emergency injury note.',['35-1']);
   add('exclude-insurance','Show my emergency injury note and never read my group insurance note.',['30-1']);
@@ -187,6 +230,8 @@ export function gradeServiceNoteCase(input,envelope,{observation,hosted}={}){
   const boundary=hosted?.paired===true&&(!wanted.readTools.length)&&
     (row.id.endsWith('-negative')||row.auth==='anonymous')&&
     /\b(?:sign in|log in|not (?:read|open)|skipped)\b|登入|不會讀取|未讀取/iu.test(envelope?.body?.answer||'');
-  const inherited=base.checks.map(item=>item.id==='answer.limitation'&&(absence||boundary)?{...item,passed:true,detail:'The response states the exact saved-note or access boundary.'}:item);
+  const localServiceLimit=Boolean(row.serviceBoundary)&&['outcome','submit'].includes(row.serviceBoundary.kind)
+    &&/無法在此確認/u.test(envelope?.body?.answer||'');
+  const inherited=base.checks.map(item=>item.id==='answer.limitation'&&(absence||boundary||localServiceLimit)?{...item,passed:true,detail:'The response states the exact saved-note or access boundary.'}:item);
   const all=[...inherited,...checks];return {...base,checks:all,failures:all.filter(item=>!item.passed),passed:all.every(item=>item.passed)};
 }

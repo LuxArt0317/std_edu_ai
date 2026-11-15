@@ -90,7 +90,7 @@ The main evaluation runner also accepts `--preview-auth oidc` with `--mode live`
 
 Club attendance has 18 independently specified cases. The live fixture verifies disposable caller-owned attendance for two accounts before and after the request. Native reader results can satisfy the corresponding live case contract without earning model execution credit. See `node --test tests/evaluation/club-attendance-runner.test.mjs` for the local runner and grading contracts.
 
-The service-note runner registers all 80 questions for the seven local-note services and separates the 79 cases eligible for hosted testing from the single controlled note-reader failure case. The two next-class cases require an independently bound Taipei occurrence and verify it through the end of the request. The signed-in fixture verifies exact owned rows and crossed access directly against Supabase for two disposable callers, alongside the pinned assistant response. The companion fixtures also verify the complete published initial timetable or exact billing rows for both disposable students. The fourteen navigation and write-boundary cases require the exact local destination, one streamed boundary event and unchanged notes. Run `node --test tests/evaluation/service-note-runner.test.mjs` to exercise the real handler with controlled transports and verify the fixture contracts.
+The service-note runner registers 100 questions for the seven local-note services and separates the 99 cases eligible for hosted testing from the single controlled note-reader failure case. The two next-class cases require an independently bound Taipei occurrence and verify it through the end of the request. The signed-in fixture verifies exact owned rows and crossed access directly against Supabase for two disposable callers, alongside the pinned assistant response. The companion fixtures also verify the complete published initial timetable or exact billing rows for both disposable students. The fourteen navigation and write-boundary cases require the exact local destination, one streamed boundary event and unchanged notes. Run `node --test tests/evaluation/service-note-runner.test.mjs` to exercise the real handler with controlled transports and verify the fixture contracts.
 
 The direct tuition payment case is a native signed-in capability check. The response must state the payment limit and link to the pending-fees page without invoking an account reader, model or payment proposal.
 
@@ -185,6 +185,20 @@ node tests/evaluation/run.mjs --mode live --origin "$PREVIEW_ORIGIN" \
 ```
 
 For the six metadata questions, use `--only account:elearning-catalog-pending-` and omit the course domain and limit. Supply the authorized Vercel Development OIDC identity for the exact client project. A passing subset does not establish full release acceptance.
+
+### Protected Preview School Affairs service boundaries
+
+Run the 20 signed-in cases from the clean checkout of the exact Preview release. Use the existing disposable-fixture environment and the authorized Development `VERCEL_OIDC_TOKEN`.
+
+```sh
+node tests/evaluation/run.mjs --mode live --only account:service-notes-protected-services- \
+  --origin "$PREVIEW_ORIGIN" --approved-preview-origin "$PREVIEW_ORIGIN" --preview-auth oidc \
+  --fixture-module tests/evaluation/live-fixtures.mjs
+```
+
+Each of emergency injury (30-1), Student Health equipment (30-2), rental (31-2) and student insurance (35-1) has five cases. They check English and Traditional Chinese outcome requests, the exact service link, caller-owned tracking details without a university outcome, and direct requests to submit to the university. The fixture confirms distinct notes for two disposable identities and both crossed-owner denials independently through SQL and RLS before and after every request. The grader also requires unchanged rows, no proposed write, and no public research. Outcome, navigation and submission cases must emit zero account-read events. The four tracking cases must read the selected caller-owned note.
+
+The runner saves an owner-only report under `artifacts/assistant-evaluation`. A complete packet needs 20 passing results, a finished matching deployment pin and verified cleanup. The full-suite release gate still reports an incomplete run for this subset, even when every selected case passes. A successful packet verifies local navigation, tracking and safe limits. No external approval, submission, rental registration or insurance payout is part of the fixture.
 
 ### Protected Preview health-examination metadata
 

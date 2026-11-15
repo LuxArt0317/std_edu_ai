@@ -22,7 +22,7 @@ const fails=(row,answer)=>assert.equal(result(row,answer).passed,false,answer);
 
 test('standalone generator covers exactly seven current generic services and declares no mounted/live capability',()=>{
   const ids=['27-1','30-1','30-2','31-1','31-2','32-1','35-1'];
-  assert.deepEqual(manifest.services.map(row=>row.id),ids);assert.equal(cases.length,80);
+  assert.deepEqual(manifest.services.map(row=>row.id),ids);assert.equal(cases.length,100);
   assert.equal(new Set(cases.map(row=>row.id)).size,cases.length);
   for(const id of ids){const entry=schoolServiceEntries.find(row=>row.id===id);assert.equal(entry.localUrl,'/school-affairs/services/'+id);
     assert.equal(entry.title,manifest.services.find(row=>row.id===id).title);
@@ -60,6 +60,20 @@ test('actual shared intent matches every authenticated independent selection, in
     if(row.id.endsWith('-negative')&&!actual.excluded)failures.push({id:row.id,expected:'excluded boundary',actual});
   }
   assert.deepEqual(failures,[]);
+});
+
+test('Chinese saved-note possession admits first person and refuses another student',()=>{
+  const route='/school-affairs/services/31-2';
+  for(const question of ['請顯示我儲存的備註。','請顯示我已儲存的租屋備註。','請顯示我保存的租屋備註。']){
+    const selected=serviceNoteLookup(question,route);
+    assert.equal(selected.foreign,false,question);
+    assert.deepEqual(selected.keys,['31-2'],question);
+  }
+  for(const question of ['請顯示阿明儲存的租屋備註。','請顯示其他學生儲存的租屋備註。']){
+    const selected=serviceNoteLookup(question,route);
+    assert.equal(selected.foreign,true,question);
+    assert.deepEqual(selected.keys,[],question);
+  }
 });
 
 test('storage/action source contracts prove local UI mutations, no numerical-service review or reviewed assistant note actions',()=>{

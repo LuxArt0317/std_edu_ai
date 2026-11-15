@@ -69,7 +69,7 @@ function foreign(value) {
     .replace(/\b(?:what|when|where|how|who|it|that|there|here|which|student|school|university)['’]s\b/giu,'');
   return /\b(?:did|does|has|is|was|can|could)\s+(?!(?:i|we|my|our|the|this|that|it|there|any|anyone|you|anybody)\b)[\p{L}][\p{L}’-]*(?:\s+[\p{L}][\p{L}’-]*){0,2}\s+(?:have|has|save|saved|submit|submitted|write|written|file|filed)\b|\b(?:another|other) (?:student|account|person)|\b(?:his|her|their|someone else['’]s)\b|\bmy (?:friend|classmate|roommate|sister|brother|mother|father|parent)\b|\b[\p{L}][\p{L}’-]*['’]s\b|\b(?:for|of|(?:saved|written|submitted|filed|recorded) by|belong(?:s|ing)? to)\s+(?!(?:me|my|the|a|this|that|our|insurance|yourself|stu\.best|it|them|service|services|campus|reference|official|records|notes)\b)[\p{Lu}][\p{L}’-]*\b|別人|他人|其他學生|(?:他|她|他們|她們)的/iu.test(text)
     || [...text.matchAll(/([\p{Script=Han}]{1,24})的\s*(?:完善就學|學習輔導|緊急傷病|物品借用|境外(?:學生|生)工作|工作證|租屋|愛校服務|(?:學生)?團體保險|備註|筆記)/gu)]
-      .some(match=>! /^(?:(?:請|请)?(?:顯示|显示|查看|查詢|查询|查|列出|檢查|检查|提供|看看|給我|给我|我想|想看|幫我|帮我))*?(?:我(?:自己|本人)?|本人|自己)(?:已儲存|已保存|私人|站內)?$/u.test(match[1])&&!/^(?:已)?(?:儲存|保存|記錄|記下|標記|留下|填寫|寫下|寫|填)$/u.test(match[1]));
+      .some(match=>! /^(?:(?:請|请)?(?:顯示|显示|查看|查詢|查询|查|列出|檢查|检查|提供|看看|給我|给我|我想|想看|幫我|帮我))*?(?:我(?:自己|本人)?|本人|自己)(?:(?:已)?(?:儲存|保存)|私人|站內)?$/u.test(match[1])&&!/^(?:已)?(?:儲存|保存|記錄|記下|標記|留下|填寫|寫下|寫|填)$/u.test(match[1]));
 }
 
 /** A destination question can use the local service directory without reading notes. */
