@@ -91,7 +91,7 @@ import {buildInternshipTimetableFixture,cleanupInternshipTimetable,observeIntern
 import {buildInternshipChargeFixture,cleanupInternshipCharges,observeInternshipChargeCallers,observeInternshipChargeRows,
   stageInternshipCharges,verifyInternshipChargesAbsent} from './internship-charge-fixture.mjs';
 import {buildTeachingSampleFixture,createTeachingSampleFixture,observeTeachingSampleCallers,readTeachingSampleCatalog} from './teaching-feedback-sample-fixture.mjs';
-import {requestTeachingSampleCase,teachingSampleCases} from './teaching-feedback-sample-hosted.mjs';
+import {requestTeachingSampleCase,teachingOriginalProtectedCases,teachingSampleCases} from './teaching-feedback-sample-hosted.mjs';
 import {requestObservedStudentLeave,studentLeaveHostedSelection} from './student-leave-hosted-observation.mjs';
 import {nativeStudentLeaveSetupRequired} from './student-leave-runner.mjs';
 import {assertElearningCatalogCaseReady,isElearningMetadataCase,isElearningPublishedReadbackCase} from './elearning-catalog-runner.mjs';
@@ -1183,14 +1183,15 @@ export async function runInternshipPreview({origin,sourceRevision,previewToken,s
   return report();
 }
 
-export async function runTeachingSamplePreview({origin,sourceRevision,previewToken,signal,caseIds,onCheckpoint}={}){
+export async function runTeachingSamplePreview({origin,sourceRevision,previewToken,signal,caseIds,onCheckpoint,original=false}={}){
   if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??''))
     fail('fixture-config','Teaching feedback requires the exact protected Preview and source revision.');
-  const cases=teachingSampleCases(caseIds),runId=randomUUID(),results=[],correlations=new Set();
+  const cases=(original?teachingOriginalProtectedCases:teachingSampleCases)(caseIds),runId=randomUUID(),results=[],correlations=new Set();
   let phase='preflight',prepared=false,previewGate,failure,suiteDigest=null;
   let cleanupProof={verified:false,status:'not-started'};
   const report=()=>({runId,origin,sourceRevision,selectedCases:cases.map(row=>row.id),results,
-    coverage:'additional-sample-teaching-feedback',suiteDigest,...(failure?{failure}:{}),deployment:previewGate?.status()??null,cleanup:cleanupProof,
+    coverage:original?'frozen-teaching-boundaries-and-empty':'additional-sample-teaching-feedback',
+    suiteDigest,...(failure?{failure}:{}),deployment:previewGate?.status()??null,cleanup:cleanupProof,
     liveAcceptance:!failure&&suiteDigest!==null&&results.length===cases.length&&results.every(row=>row.passed)
       &&previewGate?.status().status==='finished'&&cleanupProof.verified&&cleanupProof.teachingSampleCleanup===true});
   try{

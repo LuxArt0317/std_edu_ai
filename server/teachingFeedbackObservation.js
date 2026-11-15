@@ -18,9 +18,17 @@ const keyValid=key=>typeof key==='string'&&/^[^\s\p{Cc}]{40,4096}$/u.test(key);
 const scopeValid=scope=>exact(scope,scopeKeys)&&scopeKeys.every(name=>typeof scope[name]==='string')
   &&[scope.ownerId,scope.runId,scope.nonce].every(value=>uuid.test(value))
   &&preview.test(scope.origin)&&/^[a-f0-9]{40}$/u.test(scope.sourceRevision);
+function requestRouteValid(request){
+  if(routes.includes(request.route))return true;
+  if(request.route!=='/'&&request.route!=='/dtm')return false;
+  // The two entry points can prove a direct link only, with no private or companion query.
+  const {navigation,selection,otherQuestion,foreign,excluded}=teachingFeedbackLookupContext(request.question,request.route,request.history);
+  return navigation.length===1&&!selection&&!otherQuestion&&!foreign&&!excluded;
+}
 const requestValid=request=>exact(request,requestKeys)&&typeof request.question==='string'
-  &&request.question.length>=2&&request.question.length<=2000&&routes.includes(request.route)
-  &&Array.isArray(request.history)&&request.history.length===0&&request.stream===false&&request.consentedResearchUse===false;
+  &&request.question.length>=2&&request.question.length<=2000
+  &&Array.isArray(request.history)&&request.history.length===0&&request.stream===false&&request.consentedResearchUse===false
+  &&requestRouteValid(request);
 
 function canonical(value){
   if(Array.isArray(value))return value.map(canonical);

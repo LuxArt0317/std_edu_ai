@@ -14,8 +14,10 @@ fixture or arbitrary options.
 
 ## Current executable boundary
 
-Every teaching case is currently an **unexecuted setup failure** in live, draft
-and retrieval modes. The report includes the reason and `liveEligible: 0`.
+The default suite records the original teaching cases as **unexecuted setup
+failures** in live, draft and retrieval modes. Its report includes the reason
+and `liveEligible: 0`. A separately scoped protected operator can select 13
+original prompts with the existing sample fixture.
 Teaching cases are excluded from the legacy adapter's `prepare` input and are
 rejected again at the direct adapter entry before credentials or network work.
 A teaching-only selection performs no fixture initialization or assistant POST.
@@ -84,9 +86,31 @@ saved local history, empty reads and restricted actions. Published survey
 windows, survey completion, eligibility, companion sources, caps and service
 failures retain their original evaluation requirements.
 
+### Original boundaries and verified empty records
+
+```sh
+node tests/evaluation/run-teaching-sample-preview.mjs --original --preflight
+node tests/evaluation/run-teaching-sample-preview.mjs --original <protected-preview-origin> <source-revision>
+```
+
+The preflight lists 13 original prompts within the 40-case bank. Eleven use a
+signed zero-read disposition for navigation, exclusions, other-user requests,
+privacy or unsupported writes. The other two require native checks of empty
+survey and immediate-feedback DTOs for the exact disposable caller. Both counts
+are separate from the 11 additional sample questions.
+
+The operator takes the original question, route and answer rubric unchanged. It
+compares the native empty DTO to the original fixture after binding the real
+disposable caller and still requires exact signed raw and selected evidence
+digests. The homepage and DTM proof routes allow only a single direct teaching
+link; private reads remain limited to the service routes. The lease, paired SQL
+and caller readbacks, revision pins, exact cleanup and protected-owner checks
+apply to the full packet. This operator does not create shared survey windows or
+provide acceptance for the other 27 original cases.
+
 ### Original teaching-feedback questions in scratch PostgreSQL
 
-Thirty-nine of the forty original prompts pass their unchanged answer rubrics against the actual assistant handlers in the scratch replay. The replay covers survey state, completion, windows and phase comparison, immediate status, timestamps and opt-in comments, separate and mixed sources, explicit exclusions, access boundaries, navigation, empty results, and controlled outages. The four ambiguous or unrelated prompts and the signed-out prompt verify zero account reads. The harness pins time inside the authored survey interval. It validates caller-bound RPC arguments, raw order and records, typed projection counters, independent answer verdicts and unchanged stored rows.
+All forty original prompts pass their independent rubrics against the actual assistant handlers in the scratch replay. The replay covers survey state, completion, windows and phase comparison, immediate status, timestamps and opt-in comments, separate and mixed sources, explicit exclusions, access boundaries, navigation, empty results, and controlled outages. The four ambiguous or unrelated prompts and the signed-out prompt verify zero account reads. The harness pins time inside the authored survey interval. It validates caller-bound RPC arguments, raw order and records, typed projection counters, independent answer verdicts and unchanged stored rows.
 
 The two outage cases inject an HTTP 503 for the selected failed transport only. Healthy sibling reads use PostgreSQL. Each cap scenario inserts one extra row beyond the native 50-survey, 100-feedback or 200-eligible-course limit and requires an unknown total. For the two mixed prompts, historical DB701/WS702 feedback retains its authored states, while the separate current timetable and immediate eligibility both contain CUR301/CUR302. The original offline fixture still exists. The scratch evaluator explicitly opts into this reviewed SQL scenario, with the original prompt, answer facts and rubric intact. Those two mixed cases, the exclusion with current subjects and year, the three cap cases and the two outages exercise the verifier with a controlled reviewer response referencing the observed evidence paths. All other replayed cases use deterministic verification or zero-read guidance.
 
