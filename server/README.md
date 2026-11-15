@@ -68,7 +68,7 @@ Shared server-only retrieval, authorization and validation helpers for `api/`. `
 
 `assistantConversations.js` handles owner-only chat storage behind the existing account-data function. The public `/api/affairs-conversations` rewrite preserves the client URL without exceeding the verified 12-function Hobby deployment limit.
 
-Web verification uses independently fetched source text. If a source is unavailable, an exact URL match to the versioned public-capture manifest may supply checksum-verified, explicitly dated text from stu.best; it is never represented as a live page.
+Web verification uses independently fetched source text. If a source is unavailable, an exact URL match to the versioned public-capture manifest may supply checksum-verified, explicitly dated text from stu.best; it is never represented as a live page. The library-hours source includes the regular hours table and separately labeled, public weekend and holiday tabs. The verifier reads both from the original URL or its exact capture.
 
 If a search draft is unusable, the research handler can read official links returned by the search tool and compose a fresh draft from their contents. Checks across a managed-to-web source switch share the three-check limit. A remaining check can use more specific evidence or actionable reviewer feedback when time permits. The final Activity entry records the reason a request stopped.
 
