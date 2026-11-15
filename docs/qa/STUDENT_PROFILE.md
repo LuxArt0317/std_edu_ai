@@ -8,6 +8,10 @@ Only the final four characters of an identity number can be stored. The read and
 
 When the signed-in student also asks for their recorded year, the assistant separately reads the year from that caller’s student record. It keeps the confirmed part of the reply if either read fails. A question about another student's profile is declined before dispatch. The controlled original-prompt replay runs with `node --experimental-strip-types --test tests/evaluation/student-profile-dispatch.test.mjs`.
 
+Issue #100 adds the three unchanged Student Profile browser cases for confirmed, confirmed plus year, and empty accounts. The protected relay allows one scoped workspace bootstrap, one exact answer request, one journaled conversation write, and one read on fresh restoration. The answer and saved conversation include only confirmation status and any requested year. The fixture checks both callers and both crossed credentials against the status RPC and the narrow year read. It removes the reserved profile and student and verifies the sample rows created by the enrollment trigger are gone.
+
+For controlled verification, run `node --experimental-strip-types --test tests/evaluation/student-profile-browser.test.mjs tests/evaluation/vercel-preview-browser-transport.test.mjs`. Set `STU_STUDENT_PROFILE_TEST_PGLITE_ENTRY` to the absolute PGlite module path for the migrated PostgreSQL checks, and `STU_STUDENT_PROFILE_TEST_CHROME` to Chrome’s executable for the compiled client dispatch check. These checks use disposable local records and controlled transport. Record protected Preview browser execution separately.
+
 ## Verification
 
 ```sh

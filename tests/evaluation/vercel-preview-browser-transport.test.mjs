@@ -12,6 +12,9 @@ import {announcementEmailBrowserCases,announcementEmailBrowserAnswerPath,announc
 import {sanitizeStoredConversation} from '../../server/assistantConversationData.js';
 import {certificateAwardBankReceiptNote} from '../../server/certificateAwardsContract.js';
 import {announcementEmailInboxLimit,announcementEmailPath} from '../../server/announcementEmailContract.js';
+import {studentProfilePath} from '../../server/studentProfileContract.js';
+import {studentProfileBrowserAnswerPath,studentProfileBrowserBootstrap,studentProfileBrowserCases,studentProfileBrowserHeading,
+  studentProfileBrowserProfile,verifyProtectedStudentProfileBrowserEgress} from './student-profile-browser-turn.mjs';
 
 const epoch=1800000000,origin='https://stdedu-abcdef123-v1-d286.vercel.app',project='https://xiftudmvxphxcjtmfmib.supabase.co';
 const revision='a'.repeat(40),ownerId=randomUUID(),otherId=randomUUID();
@@ -178,6 +181,65 @@ test('announcement email admits one reserved inbox answer and journaled save wit
   assert.equal(h.calls.length,before);
   assert.throws(()=>verifyProtectedAnnouncementEmailBrowserEgress({evidence:h.egress(),mode:'turn',requestSequence:4}),
     {code:'certificate-egress-mismatch'});
+});
+
+test('the exact Student Profile multipart GET binds both citations to one save and one fresh restore',async()=>{
+  const {question}=studentProfileBrowserCases.find(row=>row.year);
+  const summary='Your current student information has been confirmed.',title='Student information confirmation';
+  const year='Your recorded year level is 3 (sample data).',yearTitle='Recorded School Affairs year level';
+  const activity=[
+    {kind:'student-profile',label:'Checked student information confirmation',detail:summary,status:'complete'},
+    {kind:'account-read:profile:1',label:yearTitle,detail:year,status:'complete'},
+  ];
+  const reply={status:'answered',answer:[summary,year,'['+title+']('+studentProfilePath+')'].join('\n\n'),
+    activity,suggestedQuestions:[],grounding:{source:'account',webSearched:false},
+    citations:[['account:student-profile-status',title,summary],['account:profile',yearTitle,year]].map(([chunkId,title,claim])=>
+      ({chunkId,title,claim,url:studentProfilePath,sourceName:'My stu.best records',locator:null,effectiveAt:null,reviewedAt:null})),
+  };
+  const target=id(),messageId=randomUUID(),payload={id:target,title:question.slice(0,80),version:0,messages:sanitizeStoredConversation([
+    {id:'u-'+messageId,role:'user',content:question,images:[]},
+    {id:'a-'+messageId,role:'assistant',phase:'complete',content:reply.answer,result:reply,activity},
+  ])};
+  const saved={...payload,version:1,created_at:certUpdatedAt,updated_at:certUpdatedAt};
+  const assetPaths=[assets[0],studentProfileBrowserHeading];
+  const frameRequest=path=>certificateGet(path,ownerId,studentProfilePath);
+  let expected;
+  const relay=(restore=false)=>harness({profile:studentProfileBrowserProfile,assets:assetPaths,
+    authorizeSave(command){expected=command.expected;return !restore&&command.year&&command.expected.display.sourceLinks.length===2;},
+    respond(url,init){
+      if(url.pathname===studentProfilePath)return new Response('Pinned student profile page',{headers:{'Content-Type':'text/html'}});
+      if(url.pathname==='/api/affairs-conversations'){
+        if(init.method==='POST')return Response.json(saved);
+        if(!url.search)return Response.json({conversations:restore?[{id:target}]:[]});
+        const {created_at,...detail}=saved;
+        return Response.json(detail);
+      }
+      return Response.json(url.searchParams.has('answer')?reply:{userId:ownerId,record:null});
+    },
+  });
+  const live=relay();
+  await live.dispatch(get(studentProfilePath));
+  await live.dispatch(frameRequest(studentProfileBrowserBootstrap));
+  await live.dispatch(frameRequest('/api/affairs-conversations'));
+  live.reserve({id:target,mode:'turn',route:studentProfilePath,question});
+  const answerPath=studentProfileBrowserAnswerPath(true);
+  await live.dispatch(frameRequest(answerPath));
+  assert.deepEqual((await live.dispatch({...certificatePost(payload),frameUrl:origin+studentProfilePath})).studentProfileReceipt,
+    {id:target,version:1,updatedAt:certUpdatedAt});
+  assert.deepEqual(verifyProtectedStudentProfileBrowserEgress({evidence:live.egress(),mode:'turn',requestSequence:4}),
+    {mode:'turn',answerRequests:1,saveRequests:1,restoreRequests:0});
+  const fresh=relay(true);
+  fresh.reserve({id:target,mode:'read',expected:{...expected,updatedAt:certUpdatedAt}});
+  await fresh.dispatch(get(studentProfilePath));
+  await fresh.dispatch(frameRequest(studentProfileBrowserBootstrap));
+  await fresh.dispatch(frameRequest('/api/affairs-conversations'));
+  await fresh.dispatch(frameRequest('/api/affairs-conversations?id='+target));
+  assert.deepEqual(verifyProtectedStudentProfileBrowserEgress({evidence:fresh.egress(),mode:'restore'}),
+    {mode:'restore',answerRequests:0,saveRequests:0,restoreRequests:1});
+  const before=fresh.calls.length;
+  for(const path of [answerPath,studentProfileBrowserAnswerPath(false),answerPath+'&user_id='+otherId])
+    await assert.rejects(fresh.dispatch(frameRequest(path)),/unapproved request operation/u);
+  assert.equal(fresh.calls.length,before);
 });
 
 test('certificate profiles cannot broaden data paths and malformed replies cannot hide forwarded reads',async()=>{

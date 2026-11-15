@@ -100,7 +100,9 @@ export async function verifyRenderedCertificateBrowserTurn({dialog,expected}){
     links:[...element.querySelectorAll('a')].map(row=>({title:row.textContent,url:row.getAttribute('href')})),
     names:[...element.querySelectorAll('li > span')].map(row=>row.textContent),
   }));
-  check(isDeepStrictEqual(sources,{links,names:[display.sourceName]}),'rendered certificate transcript mismatch');
+  const sourceLinks=display.sourceLinks??[{...links[0],sourceName:display.sourceName}];
+  check(isDeepStrictEqual(sources,{links:sourceLinks.map(({title,url})=>({title,url})),
+    names:sourceLinks.map(({sourceName})=>sourceName)}),'rendered certificate transcript mismatch');
   const activity=reply.locator('details').filter({hasText:'Activity'});
   check(await activity.count()===1&&await activity.locator('summary').getByText('Activity',{exact:true}).isVisible(),
     'rendered certificate activity mismatch');

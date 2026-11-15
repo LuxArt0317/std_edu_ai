@@ -6,6 +6,8 @@ import {isEvaluationPreviewOrigin} from './vercel-preview-transport.mjs';
 import {certificateAwardPath} from '../../server/certificateAwardsContract.js';
 import {announcementEmailPath} from '../../server/announcementEmailContract.js';
 import {announcementEmailBrowserProfile} from './announcement-email-browser-turn.mjs';
+import {studentProfilePath} from '../../server/studentProfileContract.js';
+import {studentProfileBrowserHeading,studentProfileBrowserProfile} from './student-profile-browser-turn.mjs';
 
 const assetLimit=256, fileLimit=4_000_000, totalLimit=24_000_000;
 const generated=/^\/assets\/[a-zA-Z0-9_.-]+\.(?:js|css)$/u;
@@ -24,6 +26,7 @@ const browserAssetsProfiles=new Map([
     homeMedia:['/dtm-theme/page.svg','/dtm-theme/url.svg','/dtm-theme/user-small.png']}],
   [certificateBrowserProfile,{...schoolAffairsAssets,shell:certificateAwardPath,homeMedia:[certificateBrowserHeading]}],
   [announcementEmailBrowserProfile,{...schoolAffairsAssets,shell:announcementEmailPath,homeMedia:[]}],
+  [studentProfileBrowserProfile,{...schoolAffairsAssets,shell:studentProfilePath,homeMedia:[studentProfileBrowserHeading]}],
 ]);
 class AssetDiscoveryError extends Error{
   constructor(reason){super('Protected browser assets: '+reason+'.');}
@@ -207,7 +210,7 @@ export async function deriveProtectedConversationBrowserAssets({origin,approvedP
     if(type==='js')javascriptAssets(source,file,origin,add,seenEdges,lazyEdges);
     else stylesheetAssets(source,file,origin,add,record);
   }
-  const routeName=profile===certificateBrowserProfile?'certificate':profile==='dtm'?'DTM':'announcement email';
+  const routeName=profile===certificateBrowserProfile?'certificate':profile==='dtm'?'DTM':profile.replaceAll('-',' ');
   check(requiredEdges.every(edge=>seenEdges.has(edge)),'missing required '+routeName+' route');
   validateProtectedConversationBrowserResources({origin,assets:[...assets],profile});
   await pin.finish();

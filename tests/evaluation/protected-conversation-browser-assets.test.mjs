@@ -3,6 +3,8 @@ import {test} from 'node:test';
 import {deriveProtectedConversationBrowserAssets} from './protected-conversation-browser-assets.mjs';
 import {certificateBrowserHeading,certificateBrowserProfile} from './vercel-preview-browser-transport.mjs';
 import {announcementEmailBrowserProfile} from './announcement-email-browser-turn.mjs';
+import {studentProfilePath} from '../../server/studentProfileContract.js';
+import {studentProfileBrowserHeading,studentProfileBrowserProfile} from './student-profile-browser-turn.mjs';
 
 const origin='https://stdedu-abcdef123-v1-d286.vercel.app';
 const revision='6'.repeat(40);
@@ -108,6 +110,17 @@ test('the announcement email profile starts at the pinned 2-1 shell and selects 
   assert.deepEqual(f.paths.slice(0,2),['/release.json',route]);
   assert.equal(f.paths.at(-1),'/release.json');
   assert.ok(result.assets.includes(signInElsewhere)&&result.assets.includes('/favicon.png'));
+  assert.ok(!result.assets.includes(certificateBrowserHeading)&&!result.assets.includes(dtm));
+});
+
+test('the Student Profile profile admits its own crest and only the School Affairs entry graph',async()=>{
+  const f=fixture();
+  f.files.set(studentProfilePath,f.files.get('/dtm'));
+  f.files.set(signInElsewhere,'import '+JSON.stringify(relative(auth))+';');
+  const result=await f.derive({profile:studentProfileBrowserProfile});
+  assert.deepEqual(f.paths.slice(0,2),['/release.json',studentProfilePath]);
+  assert.equal(f.paths.at(-1),'/release.json');
+  assert.ok(result.assets.includes(signInElsewhere)&&result.assets.includes(studentProfileBrowserHeading));
   assert.ok(!result.assets.includes(certificateBrowserHeading)&&!result.assets.includes(dtm));
 });
 

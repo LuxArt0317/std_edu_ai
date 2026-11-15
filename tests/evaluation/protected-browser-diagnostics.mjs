@@ -17,6 +17,7 @@ const categories=new Set([
   'rendered certificate transcript mismatch','rendered certificate activity mismatch',
   'certificate egress mismatch',
   'invalid announcement email response','announcement fixture mismatch',
+  'invalid student profile response','student profile fixture mismatch',
 ]);
 const codes=new Set([...categories].map(category=>category.toLowerCase().replaceAll(' ','-')));
 const paths=new Set(['/api/affairs-data','/api/affairs-assistant','/api/affairs-conversations']);

@@ -8,6 +8,10 @@ import {inspectProtectedCertificateBrowserReply,verifyProtectedCertificateBrowse
 import {announcementEmailPath} from '../../server/announcementEmailContract.js';
 import {announcementEmailBrowserAnswerPath,announcementEmailBrowserBootstrap,announcementEmailBrowserCases,announcementEmailBrowserProfile,
   inspectAnnouncementEmailBrowserBootstrap,inspectAnnouncementEmailBrowserReply,verifyProtectedAnnouncementEmailBrowserSave} from './announcement-email-browser-turn.mjs';
+import {studentProfilePath} from '../../server/studentProfileContract.js';
+import {studentProfileBrowserAnswerPath,studentProfileBrowserBootstrap,studentProfileBrowserCases,studentProfileBrowserHeading,
+  studentProfileBrowserProfile,inspectStudentProfileBrowserBootstrap,inspectStudentProfileBrowserReply,
+  verifyProtectedStudentProfileBrowserSave} from './student-profile-browser-turn.mjs';
 
 const project='https://xiftudmvxphxcjtmfmib.supabase.co';
 const conversationPath='/api/affairs-conversations',assistantPath='/api/affairs-assistant';
@@ -22,6 +26,7 @@ const certificateAnswers=new Map(certificateAwardPreviewManifest().filter(row=>r
   .map(({question,bankReceipt})=>[question,{selection:{bankReceipt:Boolean(bankReceipt)},
     answerPath:certificateBootstrap+'&answer=en'+(bankReceipt?'&bank_receipt=requested':'')}]));
 const announcementAnswers=new Map(announcementEmailBrowserCases.map(({question,inbox})=>[question,{selection:{inbox},answerPath:announcementEmailBrowserAnswerPath(inbox)}]));
+const profileAnswers=new Map(studentProfileBrowserCases.map(({question,year})=>[question,{selection:{year},answerPath:studentProfileBrowserAnswerPath(year)}]));
 const nativeProfiles=new Map([
   [certificateBrowserProfile,{label:'certificate',route:certificateAwardPath,bootstrap:certificateBootstrap,answers:certificateAnswers,
     requiredMedia:[certificateBrowserHeading],receiptKey:'certificateReceipt',
@@ -31,6 +36,10 @@ const nativeProfiles=new Map([
     answers:announcementAnswers,requiredMedia:[],receiptKey:'announcementEmailReceipt',
     inspectReply:inspectAnnouncementEmailBrowserReply,verifySave:verifyProtectedAnnouncementEmailBrowserSave,
     inspectBootstrap:inspectAnnouncementEmailBrowserBootstrap}],
+  [studentProfileBrowserProfile,{label:'student-profile',route:studentProfilePath,bootstrap:studentProfileBrowserBootstrap,
+    answers:profileAnswers,requiredMedia:[studentProfileBrowserHeading],receiptKey:'studentProfileReceipt',
+    inspectReply:inspectStudentProfileBrowserReply,verifySave:verifyProtectedStudentProfileBrowserSave,
+    inspectBootstrap:inspectStudentProfileBrowserBootstrap}],
 ]);
 const sha=/^[a-f0-9]{40}$/u,uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u;
 const asset=/^\/(?:assets|stu-reference|school-assets|dtm-theme)\/[a-zA-Z0-9._/-]+\.[a-zA-Z0-9]+$/u;
