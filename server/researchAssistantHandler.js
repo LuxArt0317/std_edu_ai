@@ -993,6 +993,11 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     candidate: { ...context.candidate, citations: context.evidence.map(source => checkedSources.get(source.id)).filter(Boolean) } }),
             });
             checked.activity = [...candidate.activity, ...steps.values()];
+            if (checked.verification?.status === 'unverified') {
+                checked.answer = chinese
+                    ? '目前查閱的頁面無法確認你要找的資訊。若你有公告標題或連結，請提供給我，我可以查那份資料。'
+                    : 'I could not verify that detail in the pages I checked. If you have the notice title or a link, send it and I can check that source.';
+            }
             stream.send(200, checked);
             return true;
         }

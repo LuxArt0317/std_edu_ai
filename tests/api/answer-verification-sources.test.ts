@@ -27,7 +27,8 @@ test('captured evidence cannot pass as live; correction visibly dates both answe
  globalThis.fetch=async()=>Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({status:'answered',answer:candidate.answer,sourceIds:['source-one']})}]}]});
  try {
   const result=await repairEvidenceAnswer(context);
-  assert.match(result.answer,/Source snapshot: 2026-11-03 \(not a live source\)/);
+  assert.match(result.answer,/Source snapshot: 2026-11-03\./);
+  assert.equal(result.answer.match(/Source snapshot:/g)?.length,1);
   assert.equal(result.citations[0].sourceName,'Public page snapshot · 2026-11-03');
   assert.equal(result.citations[0].reviewedAt,null);
   assert.equal(snapshotProvenanceSupported(result,evidence),true);

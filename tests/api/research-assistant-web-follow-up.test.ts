@@ -174,6 +174,7 @@ test('a duplicate result or exhausted follow-up budget cannot turn missing evide
     assert.equal(answer.status,'abstained');
     assert.equal(answer.verification.status,'unverified');
     assert.deepEqual(answer.citations,[]);
+    assert.match(answer.answer,/notice title or a link/);
     assert.doesNotMatch(answer.answer,/supposedly|FORGED|10:30/);
     assert.deepEqual(attempt.acquiredUrls,[officialDirectory]);
     if (outcome === 'same-source') {
