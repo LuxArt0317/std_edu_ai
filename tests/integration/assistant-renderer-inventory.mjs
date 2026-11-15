@@ -16,6 +16,7 @@ import {clubEquipmentNewPath} from '../../server/clubServicesContract.js';
 import {fixtureIds as ids,rendererInventory} from './helpers/assistant-renderer-inventory.mjs';
 import {rendererDtmContextProbes,rendererDtmExpectation,rendererDtmRead,rendererDtmSnapshotCourse} from './helpers/assistant-renderer-dtm.mjs';
 import {curriculumPdfApiPath,rendererAcademicExpectation,rendererAcademicRead,rendererCurriculumPdf} from './helpers/assistant-renderer-academic.mjs';
+import {rendererRepairContextProbe,rendererRepairExpectation,rendererRepairRead,verifyRendererRepair} from './helpers/assistant-renderer-facility.mjs';
 
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const git=args=>execFileSync('git',args,{cwd:root,encoding:'utf8'}).trim();
@@ -26,7 +27,12 @@ const roleAccount={state:true,name:'School Affairs account'},roleGuest={state:fa
 const args=process.argv.slice(2);
 const {hash,cases}=await rendererInventory();
 const family=args.length===2&&args[0]==='--family'?args[1]:null;
-const selected=cases.filter(row=>family==='academic-document-readback'?rendererAcademicExpectation(row.route):!family||row.families.includes(family));
+const readbackFamilies=new Map([
+  ['academic-document-readback',rendererAcademicExpectation],
+  ['facility-repair-readback',rendererRepairExpectation],
+]);
+const readback=readbackFamilies.get(family);
+const selected=cases.filter(row=>readback?readback(row.route):!family||row.families.includes(family));
 assert.ok((!args.length||family)&&selected.length,'Use --family followed by a signed-in route family.');
 const fileId=randomUUID(),cache=await mkdtemp(join(tmpdir(),'stu100-renderer-'));
 const artifact=join(root,'artifacts/assistant-renderer',fileId+'.json');
@@ -35,6 +41,7 @@ const contextualPhoneRoutes=new Set(['/school-affairs','/school-affairs/services
   '/school-affairs/services/36-1','/school-affairs/services/27-1','/school-affairs/services/39-1/payment-history',
   '/school-affairs/services/40-1/officer/applications','/dtm','/dtm/course/'+ids.course+'/grades','/elearning','/elearning/course/9408/activity/293395']);
 const syntheticDtmReply='The renderer received the exact saved Moodle page context.';
+const rendererContextProbes=new Map([...rendererDtmContextProbes,[rendererRepairContextProbe.route,rendererRepairContextProbe]]);
 const academyCourse={id:Number(ids.elearningCourse),category_id:Number(ids.elearningCategory),title:'Renderer safety course',self_enroll:false,position:1};
 const academyCategory={id:Number(ids.elearningCategory),parent_id:null,title:'Renderer safety category',source_count:1,position:1};
 const publicScopes=new Set(['permanent-courses','interdisciplinary-programs','first-selection-notice','late-add-notice',
@@ -86,7 +93,7 @@ const outcomes=[],returnPathChecks=[],accountMenuChecks=[];
 let server,browser;
 
 async function wire(context,mode,origin){
-  const observed={api:[],security:[],externalBlocked:0,pageErrors:0,authVerified:0,dtmProbe:null,assistantCalls:0,conversationSaves:0};
+  const observed={api:[],security:[],externalBlocked:0,pageErrors:0,authVerified:0,activeProbe:null,assistantCalls:0,conversationSaves:0};
   const conversations=new Map();
   await context.route('**/*',async route=>{
     const req=route.request(),url=new URL(req.url());
@@ -99,14 +106,14 @@ async function wire(context,mode,origin){
     catch{/* Malformed authorization continues into the fixture denial. */}
     // Synthetic assistant transport and its matching conversation receipt. No
     // other POST or external request can reach an application or provider.
-    if(mode.state&&caller===user.id&&req.method()==='POST'&&!url.search&&observed.dtmProbe){
-      const probe=observed.dtmProbe;
+    if(mode.state&&caller===user.id&&req.method()==='POST'&&!url.search&&observed.activeProbe){
+      const {probe,reply}=observed.activeProbe;
       try{
         if(url.pathname==='/api/affairs-assistant'){
           observed.assistantCalls++;
           assert.equal(observed.assistantCalls,1);
           assert.deepEqual(req.postDataJSON(),{question:probe.question,route:probe.route,images:[],history:[],stream:true});
-          return route.fulfill({json:{answer:syntheticDtmReply,status:'answered',citations:[],suggestedQuestions:[]}});
+          return route.fulfill({json:{answer:reply,status:'answered',citations:[],suggestedQuestions:[]}});
         }
         if(url.pathname==='/api/affairs-conversations'){
           observed.conversationSaves++;
@@ -117,14 +124,14 @@ async function wire(context,mode,origin){
           assert.equal(body.version,0);
           assert.equal(body.title,probe.question);
           assert.deepEqual(body.messages.map(({role,content})=>({role,content})),
-            [{role:'user',content:probe.question},{role:'assistant',content:syntheticDtmReply}]);
+            [{role:'user',content:probe.question},{role:'assistant',content:reply}]);
           const receipt={...body,version:1,updated_at:'2026-11-16T00:00:00Z'};
           conversations.set(body.id,receipt);
           return route.fulfill({json:receipt});
         }
       }catch{
-        observed.security.push('unexpected-dtm-context-payload');
-        return route.fulfill({status:400,json:{error:'Synthetic Moodle context assertion failed.'}});
+        observed.security.push('unexpected-page-context-payload');
+        return route.fulfill({status:400,json:{error:'Synthetic page context assertion failed.'}});
       }
     }
     if(req.method()!=='GET'){observed.security.push('non-read-request');return route.abort();}
@@ -138,6 +145,11 @@ async function wire(context,mode,origin){
         observed.api.push({path:url.pathname,scope,status:200});
         return route.fulfill({status:200,contentType:'application/pdf',body:rendererCurriculumPdf,
           headers:{'Content-Disposition':'inline; filename="curriculum-115101.pdf"','Content-Security-Policy':"default-src 'none'; frame-ancestors 'self'"}});
+      }
+      const repair=url.pathname==='/api/affairs-data'?rendererRepairRead(url,user.id):null;
+      if(repair){
+        observed.api.push({path:url.pathname,scope,status:repair.status});
+        return route.fulfill(repair);
       }
       const json=url.pathname==='/api/affairs-conversations'&&!url.search?{conversations:[...conversations.values()]}:fixture(url,origin,auth);
       observed.api.push({path:url.pathname,scope,status:200});return route.fulfill({json});
@@ -177,9 +189,10 @@ async function checkRoute(page,contextState,row,mode,device,origin){
   contextState.api.length=0;contextState.security.length=0;contextState.pageErrors=0;contextState.externalBlocked=0;contextState.authVerified=0;
   const dtmExpectation=mode.state?rendererDtmExpectation(row.route):null;
   const academicExpectation=mode.state?rendererAcademicExpectation(row.route):null;
-  const dtmProbe=mode.state?rendererDtmContextProbes.get(row.route):null;
-  contextState.dtmProbe=null;contextState.assistantCalls=0;contextState.conversationSaves=0;
-  let stage='navigate',finalPath=null,nativeDataRendered=false,academicDataRendered=false,assistantPageContextPassed=false;
+  const repairExpectation=mode.state?rendererRepairExpectation(row.route):null;
+  const probe=mode.state?rendererContextProbes.get(row.route):null;
+  contextState.activeProbe=null;contextState.assistantCalls=0;contextState.conversationSaves=0;
+  let stage='navigate',finalPath=null,nativeDataRendered=false,academicDataRendered=false,repairViewVerified=false,assistantPageContextPassed=false;
   const checks={navigationSucceeded:false,workspaceMounted:false,sessionVerified:false,assistantPresent:false,keyboardUsable:false};
   try{
     const [pdfResponse,response]=await Promise.all([
@@ -229,6 +242,13 @@ async function checkRoute(page,contextState,row,mode,device,origin){
       assert.ok(contextState.api.every(read=>read.path!=='/api/affairs-data'||read.status===200));
       academicDataRendered=true;
     }
+    if(repairExpectation){
+      stage='facility-repair-readback';
+      await verifyRendererRepair(page,repairExpectation);
+      assert.deepEqual(contextState.api.filter(read=>read.path==='/api/affairs-data'),
+        [{path:'/api/affairs-data',scope:'facility-repairs',status:repairExpectation.status}]);
+      repairViewVerified=true;
+    }
     stage='launcher';
     const launcher=page.getByRole('button',{name:launcherName,exact:true});
     await launcher.waitFor();
@@ -252,12 +272,13 @@ async function checkRoute(page,contextState,row,mode,device,origin){
     await settledFocus(page,'.public-assistant-surface');
     await page.keyboard.press('Tab');await settledFocus(page,'.public-assistant-surface');
     await page.keyboard.press('Shift+Tab');await settledFocus(page,'.public-assistant-surface');
-    if(dtmProbe){
-      stage='dtm-assistant-page-context';
-      contextState.dtmProbe=dtmProbe;
-      await dialog.getByPlaceholder('Ask a school question…').fill(dtmProbe.question);
+    if(probe){
+      stage='assistant-page-context';
+      const reply=probe.reply??syntheticDtmReply;
+      contextState.activeProbe={probe,reply};
+      await dialog.getByPlaceholder('Ask a school question…').fill(probe.question);
       await dialog.getByRole('button',{name:'Send',exact:true}).click();
-      await dialog.getByText(syntheticDtmReply,{exact:true}).waitFor();
+      await dialog.getByText(reply,{exact:true}).waitFor();
       await dialog.getByText('Conversation saved to your private account.',{exact:true}).waitFor();
       assert.equal(contextState.assistantCalls,1);assert.equal(contextState.conversationSaves,1);
       assistantPageContextPassed=true;
@@ -278,10 +299,14 @@ async function checkRoute(page,contextState,row,mode,device,origin){
   }
   const reads=[...new Map(contextState.api.map(read=>[read.path+':'+read.scope+':'+read.status,read])).values()];
   const workspaceReads=reads.filter(read=>read.path==='/api/affairs-data');
+  const verifiedDenial=stage===null&&repairViewVerified&&repairExpectation?.kind==='student-denied';
   return {route:row.route,expectedRoute:mode.state?row.final:row.guest,finalPath,families:row.families,evidenceScope:row.evidenceScope,
     auth:mode.state?'synthetic-signed-in':'guest',device,checks,passed:stage===null,failureStage:stage,reads,
-    ...(dtmExpectation?{nativeDataRendered}:{}),...(academicExpectation?{academicDataRendered}:{}),...(dtmProbe?{assistantPageContextPassed}:{}),
-    nativeData:workspaceReads.some(read=>read.status!==200)?'fixture-unavailable':workspaceReads.length?'synthetic-response-sent':'no-observed-read',
+    ...(dtmExpectation?{nativeDataRendered}:{}),...(academicExpectation?{academicDataRendered}:{}),
+    ...(repairExpectation?{repairView:repairExpectation.kind,repairViewVerified}:{}),
+    ...(probe?{assistantContext:probe===rendererRepairContextProbe?'facility-repair':'dtm',assistantPageContextPassed}:{}),
+    nativeData:verifiedDenial?'synthetic-denial-verified':
+      workspaceReads.some(read=>read.status!==200)?'fixture-unavailable':workspaceReads.length?'synthetic-response-sent':'no-observed-read',
     externalRequestsBlocked:contextState.externalBlocked,securityFailures:contextState.security.length,pageErrors:contextState.pageErrors};
 }
 async function checkAccountMenu(page,origin,route,device){
@@ -350,7 +375,7 @@ try{
         for(const row of selected.filter(row=>device==='desktop'||contextualPhoneRoutes.has(row.route))){
           // A fresh tab gives the synthetic question an empty conversation while
           // retaining the same authenticated browser and native page code.
-          const probePage=mode.state&&rendererDtmContextProbes.has(row.route)?await openPage():null;
+          const probePage=mode.state&&rendererContextProbes.has(row.route)?await openPage():null;
           try{
             const outcome=await checkRoute(probePage??page,observation,row,mode,device,origin);
             outcomes.push(outcome);
@@ -384,8 +409,14 @@ try{
     academicReadbackPassed:outcomes.filter(row=>row.academicDataRendered).length,
     dtmReadbackChecks:outcomes.filter(row=>row.nativeDataRendered!==undefined).length,
     dtmReadbackPassed:outcomes.filter(row=>row.nativeDataRendered).length,
-    dtmContextChecks:outcomes.filter(row=>row.assistantPageContextPassed!==undefined).length,
-    dtmContextPassed:outcomes.filter(row=>row.assistantPageContextPassed).length,
+    dtmContextChecks:outcomes.filter(row=>row.assistantContext==='dtm').length,
+    dtmContextPassed:outcomes.filter(row=>row.assistantContext==='dtm'&&row.assistantPageContextPassed).length,
+    facilityOwnReadbackChecks:outcomes.filter(row=>row.repairView?.startsWith('owned-')).length,
+    facilityOwnReadbackPassed:outcomes.filter(row=>row.repairView?.startsWith('owned-')&&row.repairViewVerified&&row.passed).length,
+    facilityStudentDenialChecks:outcomes.filter(row=>row.repairView==='student-denied').length,
+    facilityStudentDenialPassed:outcomes.filter(row=>row.nativeData==='synthetic-denial-verified').length,
+    facilityContextChecks:outcomes.filter(row=>row.assistantContext==='facility-repair').length,
+    facilityContextPassed:outcomes.filter(row=>row.assistantContext==='facility-repair'&&row.assistantPageContextPassed).length,
     returnPathChecks:returnPathChecks.length,failedReturnPathChecks:returnPathChecks.filter(row=>!row.passed).length,
     accountMenuChecks:accountMenuChecks.length,failedAccountMenuChecks:accountMenuChecks.filter(row=>!row.passed).length};
   await writeFile(artifact,JSON.stringify({version:1,scope:'local Chromium renderer and synthetic authentication only',inventoryHash:hash,sourceRevision,workingTreeDirty,

@@ -14,6 +14,8 @@ Across `--family dtm`, `--family dtm-submissions` and `--family legacy-route-ali
 
 Use `--family academic-document-readback` to replay the four academic detail routes. It checks rendered catalog and syllabus values from an exact account request, the selected curriculum iframe and PDF response, and the selected course substitution with its replacement row opened by keyboard. The fixtures use the existing offering validator and substitution parser. The PDF and substitution endpoints remain unauthenticated reads inside the signed-in page checks.
 
+Use `--family facility-repair-readback` for the four repair history and management routes. The signed-in student fixture verifies the owned list and detail, including a status, history note, and exact assistant request from the detail. Both management routes must render the expected student refusal and keep the assistant available. The report counts those two denials separately from owned-record rendering. A successful manager view requires its own manager fixture.
+
 [Remote-learning Moodle QA](../../docs/qa/ELEARNING.md) covers the browser flow, exact-client enrollment and retry checks.
 
 Counseling checks cover the scoped database rollback, actual authenticated API requests with disposable-account cleanup, and menu-to-appointment browser flow. See [counseling QA](../../docs/qa/COUNSELING.md).

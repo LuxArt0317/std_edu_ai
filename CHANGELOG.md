@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Verify the student’s owned repair list and detail, the assistant’s exact repair context, and student access denials on management routes. [#100]
+
 - Verify complete standalone Academic Services answers directly from their selected saved records. Match the answer, table and link without calling a model, and check unsupported grade views against their capability limits. [#100]
 
 - Read standalone Academic Services grades without initializing School Affairs or Moodle records. Add a protected evaluation of the 11 frozen grade questions with both caller scopes and exact cleanup. [#100]
