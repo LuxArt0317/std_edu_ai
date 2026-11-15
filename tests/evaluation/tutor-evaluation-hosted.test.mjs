@@ -109,7 +109,11 @@ function observations(fixture,{directLeak=false,nativeLeak=false,extraVersion=fa
       assert.equal(url.href,origin+'/api/affairs-data?scope=tutor-evaluation');
       assert.equal(init.method,'GET');assert.equal(init.headers.apikey,undefined);
       const expected=structuredClone(fixture.expected[identify(init)]);
-      if(expected.evaluation)expected.evaluation.submittedAt=dbFormat(expected.evaluation.submittedAt);
+      if(expected.evaluation){
+        // The jsonb RPC response and the hosted API preserve this key order.
+        const {ratings,comment,submittedAt}=expected.evaluation;
+        expected.evaluation={comment,ratings,submittedAt:dbFormat(submittedAt)};
+      }
       if(nativeLeak)expected.student={number:'PRIVATE STUDENT PROFILE'};
       return Response.json(expected);
     },
@@ -198,5 +202,11 @@ test('actual assistant handles all mounted questions without broad, cross-accoun
     const altered=gradeHostedTutorEvaluation(item,changed,proof,{...proof,rowsDigest:'b'.repeat(64)});
     assert.ok(altered.failures.includes('tutor.ratingClaims'));
     assert.ok(altered.failures.includes('tutor.readback'));
+    const wrongOwner={...proof,callers:proof.callers.map((caller,index)=>({
+      ...caller,projectionSha256:proof.callers[1-index].projectionSha256,
+    }))};
+    const swapped=gradeHostedTutorEvaluation(item,request.envelope,wrongOwner,structuredClone(wrongOwner));
+    assert.ok(swapped.failures.includes('tutor.readback'));
+    assert.ok(swapped.failures.includes('action.ownedRecordsUnchanged'));
   });
 });
