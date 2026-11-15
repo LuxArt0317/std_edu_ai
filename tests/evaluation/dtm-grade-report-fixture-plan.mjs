@@ -91,7 +91,7 @@ export function dtmGradeReportFixtureReadContract(plan,options){
   return freeze({ownerId,method:'GET',path:'/api/affairs-data',query:{scope:'dtm-grade-report',course_id:courseId},
     localUrl:'/dtm/course/'+courseId+'/grades',expected:clone(plan.expectedByOwner[ownerId])});
 }
-function samePlannedInstant(value,expected){
+export function samePlannedInstant(value,expected){
   if(typeof value!=='string')return false;
   const parts=/^(\d{4})-(\d{2})-(\d{2})T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.(\d{1,6}))?(?:Z|[+-](?:0\d|1[0-5]):[0-5]\d)$/u.exec(value);
   if(!parts)return false;

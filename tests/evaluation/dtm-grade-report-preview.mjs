@@ -1,8 +1,9 @@
 import {createHash,randomUUID} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
 import {buildAccountCases} from './account-cases.mjs';
-import {buildDtmNativeRouteCases} from './dtm-native-route-cases.mjs';
-import {buildDtmGradeReportFixturePlan,dtmGradeReportFixtureManifest,verifyDtmGradeReportFixtureReadback} from './dtm-grade-report-fixture-plan.mjs';
+import {buildDtmNativeRouteCases,dtmNativeRouteFixture} from './dtm-native-route-cases.mjs';
+import {buildDtmGradeReportFixturePlan,dtmGradeReportFixtureManifest,samePlannedInstant,
+  validateDtmGradeReportFixtureOwners,verifyDtmGradeReportFixtureReadback} from './dtm-grade-report-fixture-plan.mjs';
 import {gradeCase} from './grading.mjs';
 
 export const dtmGradePreviewMode='dtm-grade-report-protected';
@@ -45,17 +46,19 @@ export function buildDtmGradePreview(runId,owners){
 async function observeCompanion(sql,fixture){
   const ownerIds=roles.map(role=>fixture.owners[role].id),ids=fixture.courses.map(row=>row.id);
   const recordIds=fixture.trackers.map(row=>row.id);
-  const rows=await sql`select u.id,u.email,p.role,u.raw_user_meta_data->>'assistant_evaluation_run' as marker,
+  const rows=await sql`select u.id,u.email,p.role,p.email as profile_email,p.display_name,u.raw_user_meta_data->>'assistant_evaluation_run' as marker,
     u.email_confirmed_at is not null and exists(select 1 from auth.identities i where i.user_id=u.id and i.provider='google') as google
-    from auth.users u join public.affairs_profiles p on p.user_id=u.id where u.id in ${sql(ownerIds)} limit 3`;
+    from auth.users u left join public.affairs_profiles p on p.user_id=u.id where u.id in ${sql(ownerIds)} limit 3`;
   need(rows.length===2&&roles.every(role=>rows.some(row=>row.id===fixture.owners[role].id&&row.email===fixture.owners[role].email
-    &&row.marker===fixture.runId&&row.role==='student'&&row.google)),'disposable owner bindings');
-  const courses=await sql`select id,user_id,code,title,term,role,source_mode from public.dtm_courses where id in ${sql(ids)} order by id`;
+    &&row.marker===fixture.runId&&row.google&&(row.role==='student'||fixture.completeCourses&&row.role===null))),'disposable owner bindings');
+  const profiles=rows.filter(row=>row.role!==null).map(row=>({user_id:row.id,email:row.profile_email,display_name:row.display_name,role:row.role}));
+  const courses=await sql`select id,user_id,code,title,term,role,source_mode from public.dtm_courses
+    where id in ${sql(ids)} or (${fixture.completeCourses===true} and user_id in ${sql(ownerIds)}) order by id limit ${ids.length+1}`;
   const trackers=await sql`select id,course_id,label,score::text,maximum::text,graded_on::text,feedback from public.dtm_grade_items
-    where course_id in ${sql(ids)} or id in ${sql(recordIds)} order by id limit 3`;
+    where course_id in ${sql(ids)} or id in ${sql(recordIds)} order by id limit ${recordIds.length+1}`;
   const reports=await sql`select id,user_id,course_id,report,source_mode,version,
     pg_catalog.to_jsonb(created_at)#>>'{}' as created_at,pg_catalog.to_jsonb(updated_at)#>>'{}' as updated_at,deleted_at
-    from public.dtm_grade_reports where user_id in ${sql(ownerIds)} or course_id in ${sql(ids)} order by id limit 3`;
+    from public.dtm_grade_reports where user_id in ${sql(ownerIds)} or course_id in ${sql(ids)} order by id limit ${ids.length+1}`;
   const operations=await sql`select 1 from private.dtm_grade_report_operations
     where user_id in ${sql(ownerIds)} or actor_id in ${sql(ownerIds)} or course_id in ${sql(ids)} limit 1`;
   const audits=await sql`select 1 from public.affairs_agent_audit where user_id in ${sql(ownerIds)} limit 1`;
@@ -66,9 +69,10 @@ async function observeCompanion(sql,fixture){
     or exists(select 1 from public.dtm_assignment_submissions where course_id in ${sql(ids)})
     or exists(select 1 from public.dtm_course_contents where course_id in ${sql(ids)})
     or exists(select 1 from private.dtm_course_content_operations where course_id in ${sql(ids)})
+    or (${fixture.completeCourses===true} and exists(select 1 from public.affairs_students where user_id in ${sql(ownerIds)}))
   ) as present`;
   need(!operations.length&&!audits.length&&linked?.present===false,'no unrelated course rows, audit events or operation receipts');
-  return {courses:[...courses],trackers:[...trackers],reports:[...reports]};
+  return {courses:[...courses],trackers:[...trackers],reports:[...reports],...(fixture.completeCourses?{profiles}:{})};
 }
 
 function assertCompanion(fixture,state,plan){
@@ -113,6 +117,11 @@ export async function deleteDtmGradePreview(sql,fixture,{prior,pending,remove}){
   need(matched!==undefined,'reconcile only the prior or pending report state');
   if(matched)await remove(sql,matched,'remove');
   await observeDtmGradePreviewRows(sql,fixture,null);
+  await deleteGradeCourseRows(sql,fixture);
+  return true;
+}
+
+async function deleteGradeCourseRows(sql,fixture){
   for(const row of fixture.trackers){
     const removed=await sql`delete from public.dtm_grade_items where id=${row.id} and course_id=${row.course_id} returning id`;
     need(removed.length===1,'exact tracker deletion');
@@ -121,15 +130,15 @@ export async function deleteDtmGradePreview(sql,fixture,{prior,pending,remove}){
     const removed=await sql`delete from public.dtm_courses where id=${course.id} and user_id=${course.user_id} and code=${course.code} returning id`;
     need(removed.length===1,'exact course deletion');
   }
-  need(Object.values(await observeCompanion(sql,fixture)).every(rows=>rows.length===0),'exact fixture cleanup');
-  return true;
+  const {courses,trackers,reports}=await observeCompanion(sql,fixture);
+  need(courses.length===0&&trackers.length===0&&reports.length===0,'exact fixture cleanup');
 }
 
 export async function verifyDtmGradePreviewAbsent(sql,fixture){
   const userIds=roles.map(role=>fixture.owners[role].id);
   const courseIds=fixture.courses.map(row=>row.id);
   const ids=fixture.trackers.map(row=>row.id);
-  const reportIds=[...new Set(Object.values(fixture.plans).flatMap(plan=>plan.recordIds))];
+  const reportIds=fixture.reports?.map(row=>row.id)??[...new Set(Object.values(fixture.plans).flatMap(plan=>plan.recordIds))];
   const [row]=await sql`select (
     exists(select 1 from auth.users where id in ${sql(userIds)})
     or exists(select 1 from auth.identities where user_id in ${sql(userIds)})
@@ -141,6 +150,125 @@ export async function verifyDtmGradePreviewAbsent(sql,fixture){
   ) as remains`;
   need(row?.remains===false,'absent disposable rows and Auth identities');
   return true;
+}
+
+const overviewCaseSuffixes=['dashboard','my','grades','course-overview','all-feedback','empty'];
+
+export function buildDtmGradeOverviewPreview(runId,owners){
+  ({owners}=validateDtmGradeReportFixtureOwners({runId,owners}));
+  const {overview,report}=dtmNativeRouteFixture();
+  const profiles=roles.map(role=>({user_id:owners[role].id,email:owners[role].email,display_name:'Moodle Grade Evaluation '+role,role:'student'}));
+  const courses=overview.courses.map(({code,title,term})=>({id:randomUUID(),user_id:owners.A.id,code,title,term,role:'student',source_mode:'personal'}));
+  const reports=courses.map((course,index)=>{
+    const gradeText=overview.courses[index].gradeText;
+    const total=gradeText===null?null:{...dtmGradeReportFixtureManifest.B.total,score:gradeText==='0'?0:null,gradeText,feedbackText:null};
+    const items=index===0?report.report.items.map(item=>({...item,id:randomUUID()})):[];
+    const stamp=dtmGradeReportFixtureManifest.timestamp;
+    return {id:randomUUID(),user_id:owners.A.id,course_id:course.id,report:{items,total},source_mode:'local_demo',version:1,
+      created_at:stamp,updated_at:stamp,deleted_at:null};
+  });
+  const trackers=reports[0].report.items.map((item,index)=>({id:randomUUID(),course_id:courses[0].id,label:item.label,
+    score:index===0?'8.25':'4.75',maximum:'10.00',graded_on:'2026-11-12',feedback:'QA overview tracker '+runId.slice(0,8)+' '+index}));
+  const overviews={A:{courses:sort(courses.map(({id,user_id,code,title,term},index)=>({id,userId:user_id,code,title,term,
+    gradeText:overview.courses[index].gradeText}))),limit:100,nextCursor:null},B:{courses:[],limit:100,nextCursor:null}};
+  return {runId,owners,profiles,courses,reports,trackers,overviews,completeCourses:true};
+}
+
+function sameReport(row,wanted,createdAt,updatedAt){
+  return samePlannedInstant(row?.[createdAt],wanted?.[createdAt])&&samePlannedInstant(row?.[updatedAt],wanted?.[updatedAt])
+    &&isDeepStrictEqual({...row,[createdAt]:wanted[createdAt],[updatedAt]:wanted[updatedAt]},wanted);
+}
+
+export async function observeDtmGradeOverviewRows(sql,fixture){
+  const state=await observeCompanion(sql,fixture);
+  const profileOrder=entries=>entries.slice().sort((left,right)=>left.user_id.localeCompare(right.user_id));
+  need(isDeepStrictEqual(profileOrder(state.profiles),profileOrder(fixture.profiles))
+    &&isDeepStrictEqual(state.courses,sort(fixture.courses))&&isDeepStrictEqual(state.trackers,sort(fixture.trackers)),
+  'exact complete courses, profiles and tracker rows');
+  need(state.reports.length===fixture.reports.length&&state.reports.every(row=>
+    sameReport(row,fixture.reports.find(wanted=>wanted.id===row.id),'created_at','updated_at')),'exact overview report rows');
+  return digest({...state,profiles:profileOrder(state.profiles)});
+}
+
+export async function seedDtmGradeOverviewRows(sql,fixture){
+  const state=await observeCompanion(sql,fixture);
+  need(Object.values(state).every(rows=>rows.length===0),'uninitialized disposable overview owners');
+  await sql`insert into public.affairs_profiles ${sql(fixture.profiles)}`;
+  await sql`insert into public.dtm_courses ${sql(fixture.courses)}`;
+  await sql`insert into public.dtm_grade_items ${sql(fixture.trackers)}`;
+  await sql`insert into public.dtm_grade_reports ${sql(fixture.reports.map(row=>({...row,report:sql.json(row.report)})))}`;
+  return observeDtmGradeOverviewRows(sql,fixture);
+}
+
+export async function deleteDtmGradeOverviewRows(sql,fixture){
+  const courseIds=fixture.courses.map(row=>row.id),ownerIds=fixture.profiles.map(row=>row.user_id);
+  await sql`select user_id from public.affairs_profiles where user_id in ${sql(ownerIds)} order by user_id for update`;
+  await sql`select id from public.dtm_courses where id in ${sql(courseIds)} order by id for update`;
+  if(Object.values(await observeCompanion(sql,fixture)).every(rows=>rows.length===0))return true;
+  await observeDtmGradeOverviewRows(sql,fixture);
+  for(const row of fixture.reports){
+    const removed=await sql`delete from public.dtm_grade_reports where id=${row.id} and user_id=${row.user_id} and course_id=${row.course_id} returning id`;
+    need(removed.length===1&&removed[0].id===row.id,'exact overview report deletion');
+  }
+  await deleteGradeCourseRows(sql,fixture);
+  for(const row of fixture.profiles){
+    const removed=await sql`delete from public.affairs_profiles where user_id=${row.user_id} and email=${row.email} and role='student' returning user_id`;
+    need(removed.length===1&&removed[0].user_id===row.user_id,'exact overview profile deletion');
+  }
+  need(Object.values(await observeCompanion(sql,fixture)).every(rows=>rows.length===0),'clean disposable overview scope');
+  return true;
+}
+
+export async function readDtmGradeOverviewScopes(fixture,users,{origin,signal,fetchImpl,readResponse}){
+  const evidence={};
+  for(const role of roles){
+    const user=users.find(row=>row.id===fixture.owners[role].id);
+    await user?.renewSession?.({signal});
+    need(user?.token,'authenticated overview caller');
+    const read=async(query,status)=>{
+      const url=new URL('/api/affairs-data',origin);
+      url.search=new URLSearchParams(query).toString();
+      const timeout=AbortSignal.timeout(15000);
+      const options={method:'GET',redirect:'error',cache:'no-store',headers:{Authorization:'Bearer '+user.token},
+        signal:signal?AbortSignal.any([signal,timeout]):timeout};
+      return readResponse(await fetchImpl(url,options),url,131072,status);
+    };
+    const overview=await read({scope:'dtm-grade-report-overview'},200);
+    need(isDeepStrictEqual(overview,fixture.overviews[role]),'exact caller overview null, blank and literal zero');
+    const reports=[];
+    for(const expected of fixture.reports){
+      const own=role==='A';
+      const payload=await read({scope:'dtm-grade-report',course_id:expected.course_id},own?200:403);
+      const report={id:expected.id,userId:expected.user_id,courseId:expected.course_id,sourceMode:expected.source_mode,
+        version:expected.version,createdAt:expected.created_at,updatedAt:expected.updated_at,...expected.report};
+      need(own?Object.keys(payload??{}).length===1&&sameReport(payload.report,report,'createdAt','updatedAt')
+        :isDeepStrictEqual(payload,{error:'This course is not available to your account.'}),'exact owned or crossed overview report read');
+      reports.push(payload);
+    }
+    evidence[role]={overview,reports};
+  }
+  return digest(evidence);
+}
+
+export function dtmGradeOverviewPreviewCases(fixture){
+  const native=buildDtmNativeRouteCases();
+  const reportPath='/dtm/course/'+fixture.courses[0].id+'/grades';
+  const forbidden=roles.flatMap(role=>[fixture.owners[role].id,fixture.owners[role].email])
+    .concat(fixture.trackers.flatMap(row=>[row.feedback,row.score]));
+  return overviewCaseSuffixes.map(suffix=>{
+    const row=structuredClone(native.find(item=>item.id==='account:dtm-native-route-'+suffix));
+    const role=suffix==='empty'?'B':'A';
+    if(suffix==='all-feedback'){
+      row.route=reportPath;
+      row.expected.requiredLinks=[reportPath];
+      row.expected.requiredSourceBindings=[{sourceId:'account:dtmGradeReport',url:reportPath}];
+    }
+    if(suffix==='course-overview')row.route=reportPath+'/overview';
+    row.expected.forbiddenAccountMarkers=forbidden;
+    if(role==='B')row.expected.forbiddenText.push(...fixture.courses.flatMap(course=>[course.title,course.code]),
+      ...fixture.reports[0].report.items.flatMap(item=>[item.label,item.feedbackText]));
+    return {...row,role,fixtureKey:'dtmGradeReportOverview',executionContract:'live-native',nativeCase:row.id};
+  });
 }
 
 export function dtmGradePreviewCases(fixture){

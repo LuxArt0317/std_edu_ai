@@ -71,8 +71,9 @@ import {checkTuitionLedgerPreview,deleteTuitionLedgerPreviewState,isEmptyTuition
   TuitionLedgerPreviewAssertion} from './tuition-ledger-preview.mjs';
 import {buildDtmTimingPlan,deleteDtmTimingRows,dtmTimingFixtureMode,dtmTimingPreviewCases,dtmTimingRequest,emptyDtmTimingState,
   gradeDtmTimingCase,observeDtmTimingCallers,observeDtmTimingRows,readDtmTimingState,seedDtmTimingRows} from './dtm-submission-timing-preview.mjs';
-import {buildDtmGradePreview,deleteDtmGradePreview,dtmGradePreviewCases,dtmGradePreviewDigest,dtmGradePreviewMode,gradeDtmGradePreview,
-  observeDtmGradePreviewRows,seedDtmGradePreviewCompanion,unmountedDtmNativeGradeCases,verifyDtmGradePreviewAbsent} from './dtm-grade-report-preview.mjs';
+import {buildDtmGradeOverviewPreview,buildDtmGradePreview,deleteDtmGradeOverviewRows,deleteDtmGradePreview,dtmGradeOverviewPreviewCases,
+  dtmGradePreviewCases,dtmGradePreviewDigest,dtmGradePreviewMode,gradeDtmGradePreview,observeDtmGradeOverviewRows,observeDtmGradePreviewRows,
+  readDtmGradeOverviewScopes,seedDtmGradeOverviewRows,seedDtmGradePreviewCompanion,unmountedDtmNativeGradeCases,verifyDtmGradePreviewAbsent} from './dtm-grade-report-preview.mjs';
 import {clubAttendanceOracle} from './club-attendance-cases.mjs';
 import {serviceNoteRunnerOracle,serviceNoteSetupRequired} from './service-note-runner.mjs';
 import {buildServiceNotePlan,changeServiceNoteRows,observeServiceNoteRows} from './service-note-live-fixture.mjs';
@@ -330,7 +331,8 @@ async function saveLedger(){
       ...(s.taskActionJournal?{confirmedTaskJournal:s.taskActionJournal}:{}),
       ...(s.tuitionLedgerPlan?{tuitionLedgerFixture:s.tuitionLedgerPlan}:{}),
       ...(s.dtmTimingPlan?{dtmSubmissionTimingFixture:s.dtmTimingPlan}:{}),
-      ...(s.dtmGradePreview?{dtmGradePreview:{courses:s.dtmGradePreview.courses,trackers:s.dtmGradePreview.trackers}}:{}),
+      ...(s.dtmGradePreview?{dtmGradePreview:{courses:s.dtmGradePreview.courses,trackers:s.dtmGradePreview.trackers,
+        ...(s.dtmGradeOverview?{profiles:s.dtmGradePreview.profiles,reports:s.dtmGradePreview.reports}:{})}}:{}),
       ...(s.feeFixture?{feeRemissionFixture:{students:s.feeFixture.students,journal:s.feeFixture.journal}}:{}),
       ...(s.studentLeaveData?{studentLeaveDataFixture:studentLeaveJournalBinding(s.studentLeaveData.binding)}:{}),
       ...(s.counselingFixture||s.pendingCounselingFixture?{counselingAppointments:{
@@ -406,14 +408,14 @@ async function createFixtureUser(index){
   let signed;try{signed=await auth.auth.signInWithPassword({email,password});}catch{fail('fixture-signin','Synthetic account sign-in did not complete.');}
   if(signed.error||signed.data?.session?.user?.id!==user.id)fail('fixture-signin','Synthetic account session could not be verified.');
   attachFixtureSession(user,signed.data.session,{url:s.url,publishable:s.publishable,signal:s.signal,fetchImpl:s.boundedFetch});
-  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly||s.tutorEvaluationOnly||s.clubEquipmentOnly)return user;
+  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly||s.tutorEvaluationOnly||s.clubEquipmentOnly||s.dtmGradeOverview)return user;
   const initial=await readSnapshot(user);user.studentId=initial.student?.id;
   if(!UUID.test(user.studentId||''))fail('fixture-readback','Synthetic School Affairs student initialization failed.');
   return user;
 }
 
 /** No mutation occurs until this explicit lifecycle entry point is invoked. */
-export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expectedReleaseRevision,signal,fixtureMode,caseFamily,applicationFetch,previewReadbackFetch}={}){
+export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expectedReleaseRevision,signal,fixtureMode,caseFamily,applicationFetch,previewReadbackFetch,dtmGradeOverview=false}={}){
   if(state)fail('fixture-state','This fixture adapter cannot run overlapping lifecycles.');
   const leaveDataOnly=fixtureMode===runStudentLeaveDataPreflight;
   const counselingOnly=caseFamily==='counseling-appointments';
@@ -421,6 +423,8 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const tuitionLedgerOnly=fixtureMode===tuitionLedgerFixtureMode;
   const dtmTimingOnly=fixtureMode===dtmTimingFixtureMode;
   const dtmGradePreviewOnly=fixtureMode===dtmGradePreviewMode;
+  if(typeof dtmGradeOverview!=='boolean'||dtmGradeOverview&&!dtmGradePreviewOnly)
+    fail('fixture-config','Moodle grade overview requires its isolated fixture.');
   if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmGradePreviewOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
   if(taskActionOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
@@ -557,7 +561,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const ignore=await readFile(resolve(ROOT,'.gitignore'),'utf8');if(!/^\/?artifacts\/$/m.test(ignore))fail('fixture-ledger','Private fixture ledger directory must be ignored by Git.');
   await mkdir(PRIVATE_DIR,{recursive:true,mode:0o700});await chmod(PRIVATE_DIR,0o700);
   const boundedFetch=(input,init={})=>fetch(input,{...init,signal:signals(init.signal,15000)});
-  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,counselingOnly,clubOnly,healthMetadataOnly,tutorEvaluationOnly,clubEquipmentOnly,elearningPublishedReadbackOnly,previewGate,
+  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,counselingOnly,clubOnly,healthMetadataOnly,tutorEvaluationOnly,clubEquipmentOnly,elearningPublishedReadbackOnly,previewGate,dtmGradeOverview,
     ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),admin:createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})};
   try{
     state.sql=postgres(connection,{max:1,connect_timeout:10,idle_timeout:10,max_lifetime:0,
@@ -961,9 +965,10 @@ export async function runDtmTimingPreview({origin,sourceRevision,previewToken,si
       &&results.every(row=>row.passed)&&cleanupProof.verified&&cleanupProof.dtmTimingCleanup===true};
 }
 
-export async function runDtmGradeReportPreview({origin,sourceRevision,previewToken,signal}={}){
-  if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??''))
+export async function runDtmGradeReportPreview({origin,sourceRevision,previewToken,signal,suite='report'}={}){
+  if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??'')||!['report','overview'].includes(suite))
     fail('fixture-config','Moodle grade checks require an exact protected Preview and source revision.');
+  const overview=suite==='overview';
   const runId=randomUUID(),results=[],correlationIds=new Set();
   let previewGate,prepared=false,failure,phase='preflight',expectedCount=0;
   let cleanupProof={verified:false,status:'not-started'};
@@ -975,7 +980,7 @@ export async function runDtmGradeReportPreview({origin,sourceRevision,previewTok
     const readback=createTrustedPreviewFetch({origin,token:previewToken}),pace=createLiveRequestPacer();
     phase='prepare';
     await prepare({runId,cases:[],now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
-      signal,fixtureMode:dtmGradePreviewMode,previewReadbackFetch:readback});
+      signal,fixtureMode:dtmGradePreviewMode,previewReadbackFetch:readback,dtmGradeOverview:overview});
     prepared=true;
     const s=ready();
     ({previewGate}=s);
@@ -987,27 +992,33 @@ export async function runDtmGradeReportPreview({origin,sourceRevision,previewTok
       const recorded=s.identityRequests.find(row=>row.id===id&&row.runId===runId&&row.state==='created');
       return [index===0?'A':'B',{id,email:recorded.email,runMarker:runId}];
     }));
-    const fixture=buildDtmGradePreview(runId,owners),cases=dtmGradePreviewCases(fixture);
+    const fixture=overview?buildDtmGradeOverviewPreview(runId,owners):buildDtmGradePreview(runId,owners);
+    const cases=overview?dtmGradeOverviewPreviewCases(fixture):dtmGradePreviewCases(fixture);
     expectedCount=cases.length;
     await assertRecordedFixtureLease(s,'Moodle grade seed');
     await previewGate.assertCurrent();
     s.dtmGradePreview=fixture;
     await saveLedger();
-    await query(()=>feeTransaction(s,()=>seedDtmGradePreviewCompanion(s.sql,fixture)),'Could not seed the disposable Moodle grade course rows.');
+    const seed=overview?seedDtmGradeOverviewRows:seedDtmGradePreviewCompanion;
+    await query(()=>feeTransaction(s,()=>seed(s.sql,fixture)),'Could not seed the disposable Moodle grade course rows.');
 
     async function observe(plan){
       await assertRecordedFixtureLease(s,'Moodle grade readback');
       await previewGate.assertCurrent();
-      const rows=await query(()=>observeDtmGradePreviewRows(s.sql,fixture,plan),'Could not verify the exact Moodle grade report and tracker rows.');
-      const callers=dtmGradePreviewDigest(await readDtmReportFixtureScopes(plan,s.users,{origin,signal,fetchImpl:readback}));
+      const observeRows=overview?()=>observeDtmGradeOverviewRows(s.sql,fixture):()=>observeDtmGradePreviewRows(s.sql,fixture,plan);
+      const rows=await query(observeRows,'Could not verify the exact Moodle grade report and tracker rows.');
+      let callers;
+      try{callers=overview?await readDtmGradeOverviewScopes(fixture,s.users,{origin,signal,fetchImpl:readback,readResponse:readBoundedFixtureResponse})
+        :dtmGradePreviewDigest(await readDtmReportFixtureScopes(plan,s.users,{origin,signal,fetchImpl:readback}));}
+      catch(error){if(error instanceof LiveFixtureError)throw error;fail('fixture-readback','Could not verify the paired Moodle grade endpoint readback.');}
       return {rows,callers};
     }
 
     for(const testCase of cases){
-      const plan=fixture.plans[testCase.fixtureKey];
+      const plan=fixture.plans?.[testCase.fixtureKey];
       phase=testCase.id;
-      if(!plan)fail('fixture-state','The Moodle grade case has no leased report plan.');
-      if(s.dtmReportPlan!==plan){
+      if(!overview&&!plan)fail('fixture-state','The Moodle grade case has no leased report plan.');
+      if(plan&&s.dtmReportPlan!==plan){
         await assertRecordedFixtureLease(s,'Moodle grade report transition');
         await previewGate.assertCurrent();
         s.pendingDtmReportPlan=plan;
@@ -1056,7 +1067,8 @@ export async function runDtmGradeReportPreview({origin,sourceRevision,previewTok
     if(error instanceof LiveFixtureError&&error.dtmGradePreviewCleanupProof)cleanupProof=error.dtmGradePreviewCleanupProof;
     failure={phase,code:error instanceof LiveFixtureError?error.code:'unexpected'};
   }finally{if(prepared)cleanupProof=await captureFixtureCleanup();}
-  return {runId,sourceRevision,origin,results,unmounted:unmountedDtmNativeGradeCases,...(failure?{failure}:{}),
+  const unmounted=overview?unmountedDtmNativeGradeCases.filter(row=>row.id.endsWith('-failed')):unmountedDtmNativeGradeCases;
+  return {runId,sourceRevision,origin,suite,results,unmounted,...(failure?{failure}:{}),
     deployment:previewGate?.status()??null,cleanup:cleanupProof,liveAcceptance:!failure&&expectedCount>0&&results.length===expectedCount
       &&results.every(row=>row.passed)&&cleanupProof.verified&&cleanupProof.dtmGradePreviewCleanup===true};
 }
@@ -3164,9 +3176,10 @@ export async function cleanup(){
     }
     if(s.dtmGradePreview){
       await assertRecordedFixtureLease(s,'Moodle grade cleanup');
-      await query(()=>feeTransaction(s,()=>deleteDtmGradePreview(s.sql,s.dtmGradePreview,{
+      const remove=()=>s.dtmGradeOverview?deleteDtmGradeOverviewRows(s.sql,s.dtmGradePreview):deleteDtmGradePreview(s.sql,s.dtmGradePreview,{
         prior:s.dtmReportPlan??null,pending:s.pendingDtmReportPlan,remove:changeDtmReportFixtureRows,
-      })),'Could not remove the exact disposable Moodle grade and tracker records.');
+      });
+      await query(()=>feeTransaction(s,remove),'Could not remove the exact disposable Moodle grade and tracker records.');
       s.dtmReportPlan=null;s.pendingDtmReportPlan=null;s.dtmReportTransitionPending=false;
       await saveLedger();
     }else if(s.dtmReportPlan||s.pendingDtmReportPlan){
