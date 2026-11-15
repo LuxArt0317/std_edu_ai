@@ -1028,6 +1028,11 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Preserve the separate six-case hosted read failure and prove cleanup after stopping quota-exhausted requests.
 - [ ] Verify local facility repair answers without the unavailable model reviewer, then replay the unchanged hosted packet.
 - [x] Add independent fixture variants for the five non-clock Moodle gaps and pass 119 focused checks on exact `8d74216`.
-- [ ] Verify the exact protected 20-case Moodle run and preserve its four separately cleaned-up snapshots.
+- [x] Preserve the four independently cleaned-up Moodle packets on protected `8d74216`, including the accurate extra practice assignment and resulting 19/20 frozen grades.
+- [x] Replay the same sample-only question with isolated School Affairs setup on protected `fc357c6`. Verify one match, no extra practice row and exact cleanup.
+- [x] Bind the exact 52-1 selected, aggregate and crossed status packet. Pass seven native scoped cases in isolated PostgreSQL and eight separate synthetic browser checks.
+- [ ] Replay the seven certificate cases on protected `fc357c6`.
+- [x] Implement the two-source Student Leave and Moodle grade evaluation binding, with actual handler, ownership and migrated PostgreSQL acceptance in isolation.
+- [ ] Verify both companion orders with a pinned protected deployment and completed provider review.
 - [x] Run all 40 original teaching prompts against isolated PostgreSQL and the actual handlers. Correct the no-read rubric and keep all cases in the denominator.
 - [ ] Bind independent hosted teaching evidence and finish the signed-in release evaluation.

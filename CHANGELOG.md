@@ -1,6 +1,12 @@
 # Changelog
 ## Unreleased
 
+- Answer facility repair status and notes directly from saved records. Verify the next-class portion separately and keep the supported details if one read fails. [#100]
+
+- Verify the selected certificate award separately from the aggregate menu and check both owned and crossed status requests. [#100]
+
+- Evaluate both question orders that combine Student Leave and Moodle grades with independently checked ownership and source evidence. [#100]
+
 - Verify capped teaching feedback and mixed course questions against separate saved records. Ask for clarification before reading ambiguous requests, and confirm explicit exclusions without reading records. [#100]
 
 - Exercise Moodle assignment empty lists, sample fallback, foreign-course requests, and the display limit with both caller readbacks in protected evaluation. [#100]
