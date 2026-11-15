@@ -101,6 +101,12 @@ export function exactClearanceVerification(question,route,history){
   return eligible?{selection,refusal:null}:null;
 }
 
+export function isClearanceWindowSubmissionQuestion(value){
+  const clause=text(value);
+  return /^(?:do|does) (?:they|it|(?:these|those|the) (?:assigned )?(?:windows?|periods?)) (?:prove|mean|show) (?:that )?(?:i (?:have )?submitted (?:an? |my |the )?application|(?:my|the|an?) application was submitted)[.?!]*$/iu.test(clause)
+    ||/^(?:這|这)(?:些|個|个)?(?:指定)?(?:期間|期间|時段|时段)?(?:是否)?(?:表示|代表|證明|证明)我(?:已|已經|已经)?(?:送出|提交)(?:畢業)?(?:離校|离校)?(?:申請|申请)(?:嗎|吗)?[。？！?]*$/u.test(clause);
+}
+
 export function isClearanceFieldClause(value){return Boolean(text(value))&&!other.test(value)&&!negative.test(value)&&continuation(value);}
 
 export function clearanceNavigationView(question){

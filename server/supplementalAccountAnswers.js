@@ -1113,7 +1113,7 @@ function sectionFor(parsed,question,zh){
     }
     if(p.selection.applicationsRequested&&p.counts.applications.returned===0)section.lead.push(t('No submitted clearance applications were found in this successful local lookup.','這次成功的站內查詢未找到已送出的離校申請。'));
     if(p.selection.periodsRequested&&p.counts.periods.returned===0)section.lead.push(t('No assigned application periods were found in your saved records.','在已儲存的紀錄中未找到指定申請期間。'));
-    if(p.selection.periodsRequested)section.lead.push(t('An assigned open period does not prove that an application was submitted or any office cleared it.','指定期間開放不代表已送出申請，也不代表任何單位審核通過。'));
+    if(p.selection.periodsRequested)section.lead.push(t('An assigned open period does not prove an application was submitted or that any office cleared it.','指定期間開放不代表已送出申請，也不代表任何單位審核通過。'));
     if(p.selection.applicationsRequested){
       const count=p.applications.reduce((sum,application)=>sum+application.reviews.length,0),notes=p.selection.notesRequested;
       view([t('Application','申請'),t('Term','學期'),t('Office','單位'),t('Status','狀態'),t('Reviewed at','審核時間'),...(notes?[t('Note','備註')]:[])],count,

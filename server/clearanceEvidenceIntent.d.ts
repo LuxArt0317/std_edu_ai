@@ -3,6 +3,7 @@ export type ClearanceEvidenceSelection={from:'question'|'route'|'history';notesR
 export function selectClearanceEvidence(question?:string,route?:string,history?:Array<{role:string;content:string}>):ClearanceEvidenceSelection|null;
 export function isClearanceEvidenceQuestion(question?:string,route?:string,history?:Array<{role:string;content:string}>):boolean;
 export function isClearanceFieldClause(value:string):boolean;
+export function isClearanceWindowSubmissionQuestion(value:string):boolean;
 export function clearanceNavigationView(question:string):'apply'|'status'|null;
 export function withoutExcludedClearanceClause(question:string):string;
 export function isExactClearanceNextClassQuestion(question:string):boolean;
