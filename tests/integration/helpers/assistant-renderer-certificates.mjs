@@ -14,8 +14,9 @@ const certificateRoutes=new Map([[catalogRoute,'catalog'],[recordRoute,'record']
 export const rendererCertificateContextProbes=new Map([
   [catalogRoute,{route:catalogRoute,question:'What certificate information is displayed on this page?',
     reply:'The renderer received the certificate catalog page context.'}],
-  [recordRoute,{route:recordRoute,question:'What details are displayed for this saved certificate?',
-    reply:'The renderer received the selected certificate record page context.'}],
+  [recordRoute,{route:recordRoute,question:'What is the status of this certificate award?',
+    read:'/api/affairs-data?'+new URLSearchParams({scope:certificateAwardScope,view:'mine',answer:'en',id:ids.leave}),
+    reply:certificate.name+' · Under review'}],
 ]);
 
 export function rendererCertificateExpectation(route) {

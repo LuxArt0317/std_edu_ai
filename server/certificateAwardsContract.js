@@ -1,3 +1,5 @@
+import {feeRemissionUuid} from './feeRemissionContract.js';
+
 export const certificateAwardPath='/school-affairs/services/52-1';
 export const certificateAwardScope='certificate-awards';
 export const certificateProofBucket='affairs-certificate-proofs';
@@ -8,6 +10,13 @@ export const certificateAwardLabels={
   draft:['草稿','Draft'],submitted:['申請中','Submitted'],reviewing:['審查中','Under review'],
   needs_documents:['需補件','Documents required'],approved:['通過','Approved'],
 };
+export function certificateAwardRecordId(route){
+  const prefix=certificateAwardPath+'/record/';
+  const path=route.split(/[?#]/u,1)[0].replace(/\/$/u,'');
+  if(!path.startsWith(prefix))return null;
+  const id=path.slice(prefix.length);
+  return feeRemissionUuid(id)?id:null;
+}
 export function certificateAwardQuestion(question){
   const text=question.normalize('NFKC').toLowerCase();
   if(/password|write code|javascript|python|密碼|他人/u.test(text))return null;

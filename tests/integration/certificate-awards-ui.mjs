@@ -53,8 +53,11 @@ async function session(user,admin=false){
         }
         assert.equal(url.searchParams.get('view'),admin?'manage':'mine');
         assert.equal(url.searchParams.get('user_id'),admin?student.id:null);
-        if(url.searchParams.get('answer')==='en')return route.fulfill({json:{status:'answered',answer:'Microsoft Excel Associate · Submitted',
-          citations:[],suggestedQuestions:[],activity:[],grounding:{source:'account',webSearched:false}}});
+        if(url.searchParams.get('answer')==='en'){
+          assert.equal(url.searchParams.get('id'),id);
+          return route.fulfill({json:{status:'answered',answer:'Microsoft Excel Associate · Submitted',
+            citations:[],suggestedQuestions:[],activity:[],grounding:{source:'account',webSearched:false}}});
+        }
         return route.fulfill({json:{userId:student.id,identity,payout,rows:record?[record]:[],
           files:proof&&url.searchParams.get('id')===id?[proof]:[]}});
       }

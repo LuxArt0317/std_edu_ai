@@ -32,7 +32,7 @@ import {isElearningOutlineEvidenceQuestion} from '../../server/elearningOutlineE
 import {isHealthExaminationEvidenceQuestion} from '../../server/healthExaminationEvidenceIntent.js';
 import {counselingQuestion} from '../../server/counselingContract.js';
 import {isCounselingEvidenceQuestion} from '../../server/counselingEvidenceIntent.js';
-import {certificateAwardQuestion} from '../../server/certificateAwardsContract.js';
+import {certificateAwardQuestion,certificateAwardRecordId} from '../../server/certificateAwardsContract.js';
 import {readCertificateAwardAnswer} from './certificateAwards';
 import {announcementEmailQuestion} from '../../server/announcementEmailContract.js';
 import {readAnnouncementEmailAnswer} from './announcementEmail';
@@ -103,7 +103,7 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
   if(certificate==='guide')return askCampusAssistant(question,[],signal,[],route,onProgress);
   if(certificate==='status'){
     onProgress?.({kind:'certificate-awards',label:'Checking certificate applications',detail:'Reading your saved application status.',status:'running'});
-    return readCertificateAwardAnswer(data.session.user.id,question,signal);
+    return readCertificateAwardAnswer(data.session.user.id,question,signal,certificateAwardRecordId(route)??undefined);
   }
   const email=!images.length&&announcementEmailQuestion(question);
   if(email==='guide')return askCampusAssistant(question,[],signal,[],route,onProgress);

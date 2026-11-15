@@ -141,6 +141,7 @@ async function wire(context,mode,origin){
       const {probe,reply}=observed.activeProbe;
       try{
         if(url.pathname==='/api/affairs-assistant'){
+          assert.equal(probe.read,undefined);
           observed.assistantCalls++;
           assert.equal(observed.assistantCalls,1);
           assert.deepEqual(req.postDataJSON(),{question:probe.question,route:probe.route,images:[],history:[],stream:true});
@@ -164,6 +165,15 @@ async function wire(context,mode,origin){
         observed.security.push('unexpected-page-context-payload');
         return route.fulfill({status:400,json:{error:'Synthetic page context assertion failed.'}});
       }
+    }
+    if(mode.state&&caller===actor.id&&req.method()==='GET'&&url.pathname==='/api/affairs-data'&&observed.activeProbe?.probe.read){
+      const {probe,reply}=observed.activeProbe;
+      observed.assistantCalls++;
+      if(observed.assistantCalls!==1||url.pathname+url.search!==probe.read){
+        observed.security.push('unexpected-page-context-read');
+        return route.fulfill({status:400,json:{error:'Synthetic selected record assertion failed.'}});
+      }
+      return route.fulfill({json:{answer:reply,status:'answered',citations:[],suggestedQuestions:[],grounding:{source:'account'}}});
     }
     if(req.method()!=='GET'){observed.security.push('non-read-request');return route.abort();}
     if(!mode.state||(!publicScopes.has(scope)&&caller!==actor.id)
