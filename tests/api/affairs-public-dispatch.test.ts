@@ -147,6 +147,18 @@ test('throwing, incomplete and oversized handlers fail rather than hanging or fo
   }
 });
 
+test('public research receives an internal deadline before the outer bridge expires',async()=>{
+  const deadline=Date.now()+5_000;
+  let received:number|undefined;
+  const result=await dispatchPublicResearch(async (request,response,context)=>{
+    assert.equal((request.body as {deadline:number}).deadline,1);
+    received=context?.deadline;
+    response.status(200).json(answer);
+  },{method:'POST',headers:{},body:{deadline:1}},deadline,()=>{});
+  assert.equal(received,deadline-1_250);
+  assert.deepEqual(result.result,answer);
+});
+
 test('in-process deadline closes the bridge and ignores late public progress and completion',async()=>{
   let release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve;});const progress:unknown[]=[];
   const handler:PublicHandler=async(_request,response)=>{

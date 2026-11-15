@@ -47,7 +47,7 @@ function configured() {
 }
 
 type Progress = {kind:string;label:string;detail:string;status:string};
-async function invoke(input: Record<string,unknown>, run: ReturnType<typeof createResearchAssistantHandler>, address: string, progress?: Progress[]) {
+async function invoke(input: Record<string,unknown>, run: ReturnType<typeof createResearchAssistantHandler>, address: string, progress?: Progress[], deadline?:number) {
   let responseBody: any;
   const response = {
     status(code: number) {
@@ -63,7 +63,7 @@ async function invoke(input: Record<string,unknown>, run: ReturnType<typeof crea
     },
     end() {},
   };
-  await run({method:'POST',body:{...input,stream:Boolean(progress)},headers:{'x-forwarded-for':address,'user-agent':'research-web-follow-up-test'}},response);
+  await run({method:'POST',body:{...input,stream:Boolean(progress)},headers:{'x-forwarded-for':address,'user-agent':'research-web-follow-up-test'}},response,deadline===undefined?undefined:{deadline});
   return responseBody;
 }
 
@@ -279,6 +279,19 @@ test('the fourth check follows a different strategy after three incomplete draft
   assert.equal(restored[0].activity.find(({kind}:Progress)=>kind==='verification-4').status,'complete');
 });
 
+test('a public handler with an expired caller budget reports the stop without calling a provider',async()=>{
+  configured();
+  let requests=0;
+  globalThis.fetch=async()=>{requests++;return Response.json(null);};
+  const progress:Progress[]=[];
+  const answer=await invoke({question:testQuestion,deadline:Date.now()+120_000},createResearchAssistantHandler(),
+    'web-outer-deadline',progress,Date.now()+1);
+  assert.equal(requests,0);
+  assert.deepEqual(answer.verification,{status:'unverified',attempts:0,reason:'timeout'});
+  assert.deepEqual(progress.filter(({kind})=>kind==='verification-stop'),answer.activity);
+  assert.match(answer.activity.at(-1).detail,/too little time/u);
+});
+
 test('an additional source never bypasses the fourth verdict or the remaining time', async () => {
   for (const scenario of ['fourth-rejected','fourth-budget'] as const) {
     const attempt = harness(scenario);
@@ -403,7 +416,7 @@ const managedExcerpt = {
   exact_score:0.8,keyword_score:0.7,vector_score:0.6,fused_score:0.2,
   document_version:1,content_checksum:'a'.repeat(64),
 };
-function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review-outage'|'early-web'|'verified-knowledge'|'source-switch-repair'|'source-switch-stall'|'final-check-lead') {
+function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review-outage'|'early-web'|'early-web-recovery'|'verified-knowledge'|'source-switch-repair'|'source-switch-stall'|'final-check-lead') {
   configured();
   const started = Date.now();
   let elapsed = 0;
@@ -456,13 +469,18 @@ function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review
       }
       case 'stu_web_answer':
         searches.push(JSON.parse(request.input));
-        if (outcome==='no-web-result'||outcome==='early-web') return Response.json({output:[]});
+        if (outcome==='no-web-result'||outcome==='early-web'||(outcome==='early-web-recovery'&&searches.length<3))
+          return Response.json({output:[]});
+        if (outcome==='early-web-recovery') {
+          assert.match(request.instructions,/Change the search approach/u);
+          assert.doesNotMatch(request.input,/PRIVATE_REVIEW_FEEDBACK|NOT_PUBLIC_SEARCH_INPUT/u);
+        }
         if (outcome==='final-check-lead') return Response.json(searchPayload([officialDirectory,officialNotice],unsafeDraft,[officialDirectory]));
         if (failedRefresh && searches.length===1) return Response.json(searchPayload([officialDirectory],unsafeDraft));
         if (outcome==='source-switch-stall') return Response.json(searchPayload([officialDirectory+'?utm_source=retry'],unsafeDraft));
         return Response.json(searchPayload([officialNotice],noticeContent));
       case 'compose_grounded_answer': {
-        assert.equal(outcome,'final-check-lead');
+        assert.ok(outcome==='final-check-lead'||outcome==='early-web-recovery');
         const local=JSON.parse(request.input[0].content[0].text);
         assert.equal(local.evidence[0].content,noticeContent);
         assert.doesNotMatch(JSON.stringify(local),/NOT_PUBLIC_SEARCH_INPUT/);
@@ -492,6 +510,7 @@ function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review
         knowledgeReviews++;
         if(outcome==='budget'&&knowledgeReviews===2)elapsed=32_000;
         if(outcome==='verified-web'&&knowledgeReviews===2)elapsed=25_000;
+        if(outcome==='early-web-recovery'&&knowledgeReviews===2)elapsed=32_000;
         if(outcome==='review-outage')return new Response(null,{status:503});
         if(outcome==='verified-knowledge')return provider({supported:true,answersQuestion:true,claims:[{
           claim:'Verified managed content',supported:true,evidenceId:managedExcerpt.chunk_id,quotes:[],jsonPaths:['/content'],
@@ -604,14 +623,29 @@ test('duplicate pages and no actionable feedback stop a source switch without sp
   assert.deepEqual(restored[0].result.activity.at(-1),stops[0]);
 });
 
-test('an already attempted web lookup, expired reserve or verifier outage does not trigger a new source switch',async()=>{
+test('an empty early search keeps a targeted source switch after two failed managed checks',async()=>{
+  const attempt=managedHarness('early-web-recovery');
+  const progress:Progress[]=[];
+  const answer=await invoke({question:testQuestion},attempt.run,'knowledge-web-without-leads',progress);
+  assert.deepEqual(attempt.calls,[
+    'stu_web_answer','stu_web_answer','public_grounded_answer','answer_evidence_review','correct_grounded_answer',
+    'answer_evidence_review','stu_web_answer','read-public-page','compose_grounded_answer','answer_evidence_review',
+  ]);
+  assert.deepEqual(answer.verification,{status:'verified',attempts:3});
+  assert.deepEqual(answer.citations.map(({url}:{url:string})=>url),[officialNotice]);
+  assert.equal(answer.activity.find(({kind}:Progress)=>kind==='web').status,'unavailable');
+  assert.equal(answer.activity.find(({kind}:Progress)=>kind==='web-after-empty').status,'complete');
+  assert.equal(progress.some(({kind})=>kind==='verification-stop'),false);
+});
+
+test('an empty follow-up, expired reserve or verifier outage stops without repeated source switches',async()=>{
   for(const outcome of ['early-web','budget','review-outage','verified-knowledge'] as const){
     const attempt=managedHarness(outcome);
     const answer=await invoke({question:outcome==='early-web'?testQuestion:knowledgeQuestion},attempt.run,'knowledge-'+outcome);
     assert.equal(answer.grounding.source,'knowledge',outcome);
     assert.equal(answer.status,outcome==='verified-knowledge'?'answered':'abstained',outcome);
-    assert.equal(attempt.searches.length,outcome==='early-web'?2:0,outcome);
-    assert.equal(answer.activity.some((step:Progress)=>step.kind==='verification-source-switch'),false,outcome);
+    assert.equal(attempt.searches.length,outcome==='early-web'?3:0,outcome);
+    assert.equal(answer.activity.some((step:Progress)=>step.kind==='verification-source-switch'),outcome==='early-web',outcome);
     if (outcome==='budget') assert.match(answer.activity.at(-1).detail,/too little time/u);
     if (outcome==='review-outage') assert.match(answer.activity.at(-1).detail,/checker could not complete/u);
   }

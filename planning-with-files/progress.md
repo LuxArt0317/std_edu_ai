@@ -49,3 +49,5 @@
 - 2026-11-15 [#100] Integrated eleven tutor questionnaire cases. Rechecked the merged branch with 1,806 API/source successes, 1,354 evaluator successes and one optional skip. Continued the pinned Health Exam run and started a separate correction for two interim failures. The dated tuition ledger and HTTP adapter have local proof, with app integration and database release pending.
 
 - 2026-11-15 [#100] Matched the reported wording to production `076c79a`, implemented evidence-driven third and fourth public checks, and integrated the observed Activity presentation. Retained existing private-record review scope.
+
+- 2026-11-15 [#100] Pinned protected `201ff75` and observed the remaining early-search stop in a real storage request. Added a bounded targeted lookup after a first search returned no leads and passed the remaining parent request budget to the public handler.

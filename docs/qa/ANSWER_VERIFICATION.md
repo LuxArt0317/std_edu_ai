@@ -5,7 +5,10 @@ The campus assistant uses a request-local LangGraph workflow in
 checks the draft. A failed review can refresh the relevant evidence and revise
 the draft. If an independently read school page leaves a fact unresolved, the
 public branch looks for the primary notice or policy. It can make a fourth check
-when another lead yields new evidence and the request still has time.
+when another lead yields new evidence and the request still has time. An empty
+initial search can switch to a targeted official publication after managed
+verification fails. The signed-in public bridge sends the child's remaining
+deadline separately from browser input so it can report a timed stop.
 Unsupported drafts and actions stay withheld.
 
 ## Acceptance criteria

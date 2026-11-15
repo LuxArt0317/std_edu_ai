@@ -90,11 +90,11 @@ import { AffairsWorkspaceError, loadAffairsSnapshot, loadOwnAffairsCharges, load
 import {loadOwnAffairsTimetable} from '../server/ownAffairsTimetable.js';
 import { createAssistantStream } from '../server/assistantStream.js';
 import { readAssistantReply } from '../src/services/assistantStreamReader.js';
-import researchHandler from '../server/researchAssistantHandler.js';
+import researchHandler, {type ResearchApiHandler} from '../server/researchAssistantHandler.js';
 
 type ApiRequest = {method?:string;body?:unknown;headers:Record<string,string|string[]|undefined>};
 type ApiResponse = {status:(code:number)=>ApiResponse;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void;write?:(chunk:string)=>void;end?:()=>void;flushHeaders?:()=>void};
-type PublicResearchHandler = (request:ApiRequest,response:ApiResponse)=>Promise<void>;
+type PublicResearchHandler = ResearchApiHandler;
 type PublicProgress = Parameters<NonNullable<Parameters<typeof readAssistantReply>[1]>>[0];
 export const config = {maxDuration:60};
 const requestWindows = new Map<string,number[]>();
@@ -177,7 +177,9 @@ export async function dispatchPublicResearch(handler:PublicResearchHandler,reque
     ended=true;rejectResponse(error);controller.error(error);
   }
   // Observe rejection even if the deadline expires before the child finishes.
-  void Promise.resolve().then(()=>handler(request,response)).then(()=>{
+  // Leave time for the child to report why it stopped and for the bridge to
+  // deliver that final response before the outer request expires.
+  void Promise.resolve().then(()=>handler(request,response,{deadline:deadline-1_250})).then(()=>{
     if(!ended)fail(new Error('School research ended without a response.'));
   },fail);
   let timer:ReturnType<typeof setTimeout>|undefined;
