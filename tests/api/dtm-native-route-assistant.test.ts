@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test,{afterEach,beforeEach} from 'node:test';
 import {readFile} from 'node:fs/promises';
 import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
@@ -10,20 +10,31 @@ import * as nativeIntent from '../../server/dtmGradeEvidenceIntent.js';
 import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
 import {boundedAssistantText} from '../../src/services/assistantActivityBudget.js';
 import {buildDtmNativeRouteCases,dtmNativeRouteFixture,dtmNativeRouteManifest,gradeDtmNativeRouteCase} from '../evaluation/dtm-native-route-cases.mjs';
+import {buildDtmGradePreview,dtmGradePreviewCases} from '../evaluation/dtm-grade-report-preview.mjs';
+import {gradeCase} from '../evaluation/grading.mjs';
 
 const exactAvailability=new Set(['null-total','absent','unknown-course'].map(value=>'account:dtm-native-route-'+value));
-const exactFields=new Set(['dashboard','my','grades','course-overview','all-feedback'].map(value=>'account:dtm-native-route-'+value));
+const exactFields=new Set(['dashboard','my','grades','course-overview','all-feedback','item-feedback','followup','saved-total'].map(value=>'account:dtm-native-route-'+value));
 const bank=buildDtmNativeRouteCases(),origin='https://xiftudmvxphxcjtmfmib.supabase.co',owner=dtmNativeRouteManifest.ownerId;
 const account={url:origin,key:'OFFLINE_DTM_KEY',token:'OFFLINE_DTM_TOKEN',user:{id:owner}};
+const wallClock=Date.now;
+let elapsedTestWindows=0;
+beforeEach(()=>{
+  elapsedTestWindows+=61_000;
+  Date.now=()=>wallClock()+elapsedTestWindows;
+});
+afterEach(()=>{Date.now=wallClock;});
 type Case=ReturnType<typeof buildDtmNativeRouteCases>[number];
-async function invoke(handler:ReturnType<typeof createAffairsAssistantHandler>,row:Case){
+type TransportCase=Pick<Case,'id'|'question'|'route'|'history'|'fixtureKey'>&Partial<Pick<Case,'nativeExpectation'>>;
+async function invoke(handler:ReturnType<typeof createAffairsAssistantHandler>,row:TransportCase){
   const output:{statusCode:number;body:any}={statusCode:200,body:null};
   const response={setHeader(){},status(code:number){output.statusCode=code;return response;},json(body:unknown){output.body=body;}};
   await handler({method:'POST',headers:{authorization:'Bearer '+account.token},body:{question:row.question,route:row.route,history:row.history}},response);
   return output;
 }
-async function actual(row:Case,{rejectOnce=false,providerAvailable=true}={}){
-  const fixture=dtmNativeRouteFixture(row.nativeExpectation.fixture),reads:any[]=[],wire:any[]=[],errors:unknown[]=[],stages:string[]=[];
+async function actual(row:TransportCase,{rejectOnce=false,providerAvailable=true,fixtureOverride=undefined as ReturnType<typeof dtmNativeRouteFixture>|undefined}={}){
+  const fixture=fixtureOverride??dtmNativeRouteFixture(row.nativeExpectation?.fixture),reads:any[]=[],wire:any[]=[],errors:unknown[]=[],stages:string[]=[];
+  const selectedCourseId=fixture.report.report?.courseId??dtmNativeRouteManifest.courseId,sourceFailed=row.nativeExpectation?.fixture==='failed';
   const observation={ownerId:owner,execution:'mocked',reads,evidence:null as any,broadReads:0,publicReads:0,writes:0};
   const previous=globalThis.fetch,key=process.env.OPENAI_API_KEY;let reviews=0,lastDraft='';
   if(providerAvailable)process.env.OPENAI_API_KEY='OFFLINE_DTM_MODEL';else delete process.env.OPENAI_API_KEY;
@@ -35,31 +46,31 @@ async function actual(row:Case,{rejectOnce=false,providerAvailable=true}={}){
         assert.equal(headers.get('authorization'),'Bearer '+account.token);assert.equal(init?.redirect,'error');
         if(url.pathname==='/rest/v1/rpc/dtm_grade_report_overview'){
           assert.equal(init?.method,'POST');assert.deepEqual(body,{});
-          reads.push({operation:'overview',ownerId:owner,query:{},...(row.nativeExpectation.fixture==='failed'?{failed:true}:{data:structuredClone(fixture.overview)})});
-          return row.nativeExpectation.fixture==='failed'?Response.json({}, {status:503}):Response.json(fixture.overview);
+          reads.push({operation:'overview',ownerId:owner,query:{},...(sourceFailed?{failed:true}:{data:structuredClone(fixture.overview)})});
+          return sourceFailed?Response.json({}, {status:503}):Response.json(fixture.overview);
         }
         assert.equal(init?.method,'GET');assert.equal(url.searchParams.get('user_id'),'eq.'+owner);
         if(url.pathname==='/rest/v1/dtm_courses'){
-          assert.equal(url.searchParams.get('id'),'eq.'+dtmNativeRouteManifest.courseId);assert.equal(url.searchParams.get('select'),'id,user_id');
-          return Response.json([{id:dtmNativeRouteManifest.courseId,user_id:owner}]);
+          assert.equal(url.searchParams.get('id'),'eq.'+selectedCourseId);assert.equal(url.searchParams.get('select'),'id,user_id');
+          return Response.json([{id:selectedCourseId,user_id:owner}]);
         }
-        assert.equal(url.pathname,'/rest/v1/dtm_grade_reports');assert.equal(url.searchParams.get('course_id'),'eq.'+dtmNativeRouteManifest.courseId);
+        assert.equal(url.pathname,'/rest/v1/dtm_grade_reports');assert.equal(url.searchParams.get('course_id'),'eq.'+selectedCourseId);
         assert.equal(url.searchParams.get('deleted_at'),'is.null');assert.equal(url.searchParams.get('limit'),'2');
-        reads.push({operation:'report',ownerId:owner,courseId:dtmNativeRouteManifest.courseId,data:structuredClone(fixture.report)});
+        reads.push({operation:'report',ownerId:owner,courseId:selectedCourseId,data:structuredClone(fixture.report)});
         const saved=fixture.report.report;
         return Response.json(saved?[{id:saved.id,user_id:owner,course_id:saved.courseId,source_mode:saved.sourceMode,version:saved.version,
           created_at:saved.createdAt,updated_at:saved.updatedAt,deleted_at:null,report:{items:saved.items,total:saved.total}}]:[]);
       }
       assert.equal(url.origin,'https://api.openai.com','Every external transport must be intercepted.');
       const stage=body.text.format.name,packet=JSON.parse(body.input[0].content[0].text);stages.push(stage);
-      assert.ok(stage==='answer_evidence_review'||stage==='correct_grounded_answer'&&(row.nativeExpectation.fixture==='failed'||rejectOnce),row.id+': unexpected '+stage);
+      assert.ok(stage==='answer_evidence_review'||stage==='correct_grounded_answer'&&(sourceFailed||rejectOnce),row.id+': unexpected '+stage);
       assert.deepEqual(packet.evidence.map((source:any)=>source.id),['account-scope','account:dtmGradeReport']);
       assert.deepEqual(JSON.parse(packet.evidence[0].content).selectedTools,['dtmGradeReport']);
       assert.doesNotMatch(JSON.stringify(packet),/OFFLINE_DTM|78000000-0000-4000-8000-00000000000[12]|TRACKER|INVENTED_PRIVATE/u);
       const data=JSON.parse(packet.evidence[1].content);assert.deepEqual(data,observation.evidence);
-      assert.equal(data.readState,row.nativeExpectation.read);
+      assert.equal(data.readState,row.nativeExpectation?.read);
       if(stage==='correct_grounded_answer')return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({status:'answered',
-        answer:row.nativeExpectation.fixture==='failed'?'The native grade-report lookup is unavailable. I cannot determine the saved grades.':lastDraft,sourceIds:['account:dtmGradeReport']})}]}]});
+        answer:sourceFailed?'The native grade-report lookup is unavailable. I cannot determine the saved grades.':lastDraft,sourceIds:['account:dtmGradeReport']})}]}]});
       lastDraft=typeof packet.answer==='string'?packet.answer:packet.answer.answer;
       const paths=['/readState','/courseCoverage/complete','/counts/included'];
       if(data.selection.view==='overview')data.courses.forEach((_:unknown,index:number)=>paths.push('/courses/'+index+'/title','/courses/'+index+'/gradeText'));
@@ -102,7 +113,7 @@ test('actual authenticated native transport and graph answer the independent rou
     if(exactFields.has(row.id)){
       assert.equal(value.envelope.body.verification.attempts,1);
       assert.equal(value.envelope.body.views.length,1);
-      assert.match(value.envelope.body.answer,/^- (?:Report row|Saved course): .+\n  - (?:Saved feedback text|Saved total grade text): /mu);
+      assert.match(value.envelope.body.answer,/^- (?:Report row|Saved course): .+\n  - (?:Saved feedback text|Saved total grade text|Displayed grade text): /mu);
       assert.doesNotMatch(value.envelope.body.answer,/rank|numeric score metadata|independent saved cells|term label/iu);
     }
     if(exactAvailability.has(row.id)||exactFields.has(row.id))
@@ -123,6 +134,46 @@ test('the native unavailable outcomes localize without borrowing a saved report 
     assert.match(value.envelope.body.answer,statement);
     assert.deepEqual(value.stages,[]);
     assert.equal(value.observation.reads.filter(read=>read.operation==='report').length,caseId==='unknown-course'?0:1);
+  }
+});
+
+test('the exact protected item, follow-up and total cases retain every existing oracle without a model key',async()=>{
+  const runId='20000000-0000-4000-8000-000000000001';
+  const fixture=buildDtmGradePreview(runId,{A:{id:owner,email:'grade-a@example.invalid',runMarker:runId},
+    B:{id:dtmNativeRouteManifest.foreignOwnerId,email:'grade-b@example.invalid',runMarker:runId}});
+  const wanted=['account:dtm-native-report-feedback','account:dtm-native-route-followup','account:dtm-native-report-saved-total','account:dtm-native-report-tail'];
+  const cases=dtmGradePreviewCases(fixture).filter(testCase=>wanted.includes(testCase.id));
+  assert.equal(cases.length,wanted.length);
+  for(const row of cases){
+    const plan=fixture.plans[row.fixtureKey],course=plan.courseBindings.A,report=plan.expectedByOwner[owner];
+    const native=dtmNativeRouteFixture();
+    native.report=report;
+    native.overview.courses=[{id:course.id,userId:owner,title:course.title,code:course.code,term:course.term,gradeText:report.report.total?.gradeText??null}];
+    const result=await actual(row,{fixtureOverride:native,providerAvailable:false});
+    const verdict=gradeCase(row,{...result.envelope,execution:'live-native'});
+    assert.equal(verdict.passed,true,row.id+': '+JSON.stringify(verdict.failures));
+    assert.equal(result.observation.broadReads+result.observation.publicReads+result.observation.writes,0);
+    assert.equal(result.envelope.body.verification.attempts,1);
+    assert.deepEqual(result.observation.reads.map(read=>read.operation),['overview','report']);
+    assert.deepEqual(result.stages,[]);
+    assert.equal(result.envelope.body.views[0].rows.length,1);
+    assert.doesNotMatch(result.envelope.body.answer,/Numeric score metadata|Displayed rank text|Untrusted invented report content/u);
+  }
+});
+
+test('same-route feedback-only follow-ups reveal no weight or grade cells in either supported language',async()=>{
+  const row=bank.find(item=>item.id.endsWith('-followup'))!;
+  const route='/dtm/course/'+dtmNativeRouteManifest.courseId+'/grades';
+  for(const question of ['What feedback?','評語呢？']){
+    const value=await actual({...row,question,route},{providerAvailable:false});
+    assert.equal(value.envelope.body.verification.status,'verified',question);
+    assert.equal(value.envelope.body.verification.attempts,1);
+    assert.deepEqual(value.stages,[]);
+    assert.match(value.envelope.body.answer,/Explain the sampling choice\./u);
+    assert.match(value.envelope.body.answer,/Compare the two approaches\./u);
+    assert.doesNotMatch(value.envelope.body.answer,/Displayed (?:grade|weight) text|顯示(?:權重|成績)文字|0\.00 %|Untrusted invented report content/u);
+    assert.ok(value.envelope.body.views[0].rows.every((cells:string[])=>cells.length===2));
+    assert.equal(value.envelope.body.citations[0].url,route);
   }
 });
 
@@ -150,7 +201,9 @@ test('unavailable native read stays unavailable and cannot borrow tracker grades
   assert.doesNotMatch(value.envelope.body.answer??'',/no saved courses|grade is zero|TRACKER|INVENTED_PRIVATE/iu);
 });
 test('a rejected review refreshes the same caller-only native source before its one correction',async()=>{
-  const row=bank.find((item:Case)=>item.id.endsWith('-item-feedback'))!,value=await actual(row,{rejectOnce:true});
+  const original=bank.find((item:Case)=>item.id.endsWith('-item-feedback'))!;
+  const row={...original,question:original.question.replace('feedback and weight','feedback, weight and rank')};
+  const value=await actual(row,{rejectOnce:true});
   assert.equal(value.envelope.statusCode,200);assert.equal(value.envelope.body.verification.status,'verified');
   assert.equal(value.envelope.body.verification.attempts,2);
   assert.deepEqual(value.stages,['answer_evidence_review','correct_grounded_answer','answer_evidence_review']);

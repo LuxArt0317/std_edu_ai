@@ -19,13 +19,39 @@ const nativeRoute=/^\/dtm\/(?:grades|course\/[0-9a-f-]+\/grades(?:\/overview)?)$
 const leadingReportScope=/^in\s+(?:(?:my|the|this)\s+)?(?:(?:native|saved|local)\s+){0,2}(?:(?:moodle|dtm)\s+)?grade report(?:\s+for\s+([^,，]+))?[,，]\s*(.+)$/iu;
 const unsafeReportQualifier=/\b(?:and|also|plus|then|but|except|without|with|including|show|list|read|check|tell|what|which)\b|[,，:：/;；。!?！？\n]/iu;
 const concept=/^(?:what (?:is|are)|define|explain)\s+(?:(?:a|the)\s+)?(?:moodle |dtm )?(?:grades?|grade reports?|gradebook|weighted grades?)\s*[?.!]*$/iu;
-const implicitDetail=/^(?:and\s+)?(?:(?:what|which)\s+)?(?:(?:is|was|are|were)\s+)?(?:(?:my|the|its|that|this)\s+)?(?:feedback|weights?|rank|percentage|(?:course )?total)(?:\s+(?:did I (?:get|receive)|(?:was|is|were|are) (?:saved|recorded)|(?:does|did) it (?:say|show)))?\s*[?.!]*$|^(?:那|還有)?(?:評語|评语|權重|权重|總分|总分)(?:呢|是什麼|是甚麼)?[？?。！!]*$/iu;
+const implicitDetail=/^(?:and\s+)?(?:(?:what|which)\s+)?(?:(?:is|was|are|were)\s+)?(?:(?:my|the|its|that|this)\s+)?(?:feedback(?:\s+and\s+weight)?|weights?|rank|percentage|(?:course )?total)(?:\s+(?:did I (?:get|receive)|(?:was|is|were|are) (?:saved|recorded)|(?:does|did) it (?:say|show)))?\s*[?.!]*$|^(?:那|還有)?(?:評語|评语|權重|权重|總分|总分)(?:呢|是什麼|是甚麼)?[？?。！!]*$/iu;
 export const dtmGradeFollowup=/\b(?:it|its|this|that|these|those|report|feedback|weight|percentage|rank|total|say|show|record)\b|這|这|該|该|報告|报告|評語|评语|權重|权重|總分|总分/iu;
 const chineseCourseTotal=/^(?:我的)?(?:Moodle|DTM|數位教材網)(?:的)?成績報告(?:中|裡)?(?:儲存的)?課程總分(?:是多少|是什麼|是甚麼|有記錄嗎)[？?。！!]*$/iu;
 const chineseReportAvailability=/^(?:這門課有(?:已儲存的)?(?:Moodle|DTM|數位教材網)成績報告嗎|請(?:顯示|查詢)(?:我的)?(?:Moodle|DTM|數位教材網)課程[「『][^」』\n]+[」』]的成績報告)[？?。！!]*$/iu;
 const englishCourseTotal=/^(?:(?:please )?(?:show|check) (?:my |the )?(?:saved |recorded )?course total|what (?:course )?total (?:is|was) (?:saved|recorded)|what is (?:my |the )?course total)(?: (?:in|for) (?!.*\b(?:and|also|plus|with|including|but)\b)[^.!?;]+)?[.?!]*$/iu;
 const withoutSpaces=value=>value.replace(/ +/gu,'');
+const chineseFeedbackFollowup=/^(?:那|還有)?(?:評語|评语)(?:呢|是什麼|是甚麼)?[？?。！!]*$/u;
 export const asksOnlyDtmCourseTotal=question=>englishCourseTotal.test(text(question))||chineseCourseTotal.test(withoutSpaces(text(question)));
+
+export function selectExactDtmGradeReportFields(question){
+  const current=text(question).normalize('NFKC').replace(/[.?!]+$/u,'');
+  if(chineseFeedbackFollowup.test(withoutSpaces(current)))return {scope:'followup',fields:['feedbackText']};
+  if(/[.?!;；\n]/u.test(current))return null;
+  const leading=leadingReportScope.exec(current);
+  if(leading?.[1]&&unsafeReportQualifier.test(leading[1]))return null;
+  const request=(leading?.[2]??current).replace(/^(?:please\s+)?(?:show(?:\s+me)?|list|what(?:\s+(?:is|are|was|were))?|and)\s+/iu,'');
+  const boundary=request.search(/\s+(?:is|are|was|were|do|does|did|for|in|from)\s+/iu);
+  const phrase=request.slice(0,boundary<0?undefined:boundary).replace(/^(?:the|my)\s+/iu,'');
+  const scope=boundary<0?'':request.slice(boundary);
+  if(/\b(?:and|also|plus|then|but|except|with|including|rank(?:s|ing)?)\b|[,，:：]/iu.test(scope))return null;
+  if(/^all\s+(?:the\s+)?(?:saved\s+)?(?:report\s+)?feedback$/iu.test(phrase))return {scope:'all',fields:['feedbackText']};
+  const fields=phrase.toLowerCase().split(/\s*,\s*(?:and\s+)?|\s+and\s+/u).map(field=>{
+    if(/^(?:saved |literal )?feedback(?: text)?$/u.test(field))return 'feedbackText';
+    if(/^(?:saved |literal |displayed )?weight(?: text)?$/u.test(field))return 'weightText';
+    if(/^(?:literal |displayed |saved )grade(?: text)?$|^grade text$/u.test(field))return 'gradeText';
+    return null;
+  });
+  if(fields.some(field=>field===null)||new Set(fields).size!==fields.length)return null;
+  if(!scope&&fields.includes('feedbackText')&&!fields.includes('gradeText'))return {scope:'followup',fields};
+  const total=/\b(?:in|for|from)\s+(?:(?:my|the|this|saved)\s+){0,3}course total(?=\s+(?:of|in)\b|$)/iu.test(scope);
+  if(total&&fields.includes('weightText'))return null;
+  return {scope:total?'total':'named',fields};
+}
 export const explicitDtmGradeOverview=/\boverview\b|\b(?:all|every)\s+(?:(?:of|my|the|saved|moodle|dtm)\s+){0,4}(?:courses?|subjects?)\b|綜覽|综览|總覽|总览|(?:所有|全部).{0,8}(?:課程|课程|科目)/iu;
 export function dtmGradeRouteInfo(route){
   if(route===undefined||route==='')return {path:'',courseId:null};
@@ -100,7 +126,7 @@ export function isNativeDtmGradeOnlyQuestion(question,route='',history=[]){
   if(!shouldReadNativeDtmGrades(current,route,history)||needsSeparateDtmTracker(current,route,history)
     ||dtmGradeOtherDomain.test(current))return false;
   const compact=withoutSpaces(current);
-  if(chineseCourseTotal.test(compact)||chineseReportAvailability.test(compact))return true;
+  if(chineseCourseTotal.test(compact)||chineseReportAvailability.test(compact)||chineseFeedbackFollowup.test(compact))return true;
   const parts=current.split(/[;；。!?！？\n]|\.(?:\s+|$)/u).map(part=>part.trim()).filter(Boolean);
   if(!parts.length)return false;
   return parts.every(part=>{

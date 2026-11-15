@@ -102,18 +102,9 @@ test('authenticated endpoint reads the native Moodle report and verifies its sav
   const emptyCells={score:null,maximum:null,gradeText:null,rangeText:null,percentageText:null,weightText:null,weightNote:null,
     rankText:null,feedbackText:null,contributionText:null};
   let reads=0;
-  await model(({name,payload})=>{
+  await model(({name})=>{
     calls.push(name);
-    assert.equal(name,'answer_evidence_review');
-    assert.deepEqual(payload.evidence.map((source:any)=>source.id).sort(),['account-scope','account:dtmGradeReport']);
-    const evidence=JSON.parse(payload.evidence.find((row:any)=>row.id==='account:dtmGradeReport').content);
-    assert.equal(evidence.report.items[0].feedbackText,'Explain the index choice');
-    assert.equal(evidence.report.items[0].weightText,'0.00 %');
-    assert.match(payload.answer,/Explain the index choice/);
-    assert.match(payload.answer,/0\.00 %/);
-    assert.doesNotMatch(JSON.stringify(payload),/SECRET-CALLER|SECRET-KEY/);
-    return {supported:true,answersQuestion:true,claims:[{claim:'Recorded assessment feedback and weight',supported:true,
-      evidenceId:'account:dtmGradeReport',jsonPaths:['/report/items/0/feedbackText','/report/items/0/weightText'],quotes:[]}]};
+    return assert.fail('An exact item question should check the typed row without a model');
   },async()=>{
     let body:any,status=200;
     const handler=createAffairsAssistantHandler({
@@ -137,11 +128,14 @@ test('authenticated endpoint reads the native Moodle report and verifies its sav
     assert.equal(status,200);
     assert.equal(body.verification.status,'verified');
     assert.equal(body.verification.attempts,1);
+    assert.match(body.answer,/Explain the index choice/u);
+    assert.match(body.answer,/0\.00 %/u);
+    assert.doesNotMatch(JSON.stringify(body),/SECRET-CALLER|SECRET-KEY|Displayed grade text/u);
     assert.ok(body.citations.some((citation:any)=>citation.chunkId==='account:dtmGradeReport'&&citation.url===route));
     assert.equal(body.views[0]?.url,route);
   });
   assert.equal(reads,1);
-  assert.deepEqual(calls,['answer_evidence_review']);
+  assert.deepEqual(calls,[]);
 });
 
 test('graph verifies literal net and zero tax from the same native aid read without a model call',async()=>{

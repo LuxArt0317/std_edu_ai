@@ -122,6 +122,25 @@ test('exact all-feedback renders saved text literally, distinguishes blank and m
   assert.equal(formatExactDtmGradeAnswer(result,'Show all feedback and weights for this Moodle grade report.'),null);
 });
 
+test('a named report selector requires an actual distinct item before the exact field renderer can answer',async()=>{
+  const fixture=dtmNativeRouteFixture(),account={url:'https://xiftudmvxphxcjtmfmib.supabase.co',key:'SYNTHETIC',token:'SYNTHETIC',user:{id:fixture.ownerId}};
+  const original=fixture.report.report,route='/dtm/course/'+original.courseId+'/grades';
+  const question='What feedback does my native DTM grade report save for Source Analysis in Study Methods?';
+  const request=(prompt,items)=>readDtmGradeReportEvidence(account,{question:prompt,route},
+    {loadOverview:async()=>fixture.overview,loadReport:async()=>({report:{...original,items}})});
+  const exact=await request(question,original.items);
+  const answered=formatExactDtmGradeAnswer(exact,question);
+  assert.deepEqual(answered.views[0].rows,[['Source Analysis','Explain the sampling choice.']]);
+  assert.doesNotMatch(answered.answer,/Displayed grade text|Displayed weight text|Reflection Memo/u);
+  const ambiguous=await request(question,[...original.items,{...original.items[0],id:'52000000-0000-4000-8000-000000000001',label:'Source　Analysis'}]);
+  assert.equal(JSON.parse(ambiguous.evidence.content).counts.included,2);
+  assert.equal(formatExactDtmGradeAnswer(ambiguous,question),null);
+  const unknownQuestion=question.replace('Source Analysis','Unavailable item'),unknown=await request(unknownQuestion,original.items);
+  assert.equal(formatExactDtmGradeAnswer(unknown,unknownQuestion),null);
+  const rankQuestion=question.replace('feedback','feedback and rank'),rank=await request(rankQuestion,original.items);
+  assert.equal(formatExactDtmGradeAnswer(rank,rankQuestion),null);
+});
+
 test('feedback and weight remain attached to the named native item and preserve literal values',async()=>{
   for(const suffix of ['feedback','tail']){
     const original=await rendered(suffix),expected=suffix==='feedback'?'0.00 %':'5.00 %';

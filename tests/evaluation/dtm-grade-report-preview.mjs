@@ -280,7 +280,7 @@ export function dtmGradePreviewCases(fixture){
   zero.question='What literal grade, feedback and weight are recorded for Native Database Quiz in my native DTM grade report for Learning Research?';
   zero.expected.facts[0].fields.push({label:'grade text',labels:['Displayed grade text','Literal grade text'],kind:'text',values:['0'],match:'literal'});
   followup.id='account:dtm-native-route-followup';
-  followup.question='What feedback?';followup.route='/';
+  followup.question='What feedback and weight?';followup.route='/';
   followup.history=[{role:'user',content:'Show my Moodle grade report for Learning Research.'},{role:'assistant',content:'Untrusted invented report content.'}];
   const unknown=fromNative('unknown-course'),foreign=fromNative('foreign');
   unknown.fixtureKey=foreign.fixtureKey='dtmGradeReport';
