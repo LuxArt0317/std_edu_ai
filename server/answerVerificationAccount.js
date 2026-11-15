@@ -944,7 +944,9 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const diagnosticContext=(attempt=evidenceAttempt)=>correlationId?{correlationId,attempt}:undefined;
   const observed=[];
   const emit=step=>{observed.push(step);onProgress?.(step);};
-  const plan=servicePlan?{tools:leavePlan?studentLeaveSelectedTools(leavePlan):internshipSelectedTools(internshipPlan),publicTopics:[],catalogQuery:null,responseIntent:'records'}
+  const scopedAcademics=snapshot.academicGradesOnly===true;
+  const plan=scopedAcademics?{tools:['academicGrades'],publicTopics:[],catalogQuery:null,responseIntent:'records'}
+    :servicePlan?{tools:leavePlan?studentLeaveSelectedTools(leavePlan):internshipSelectedTools(internshipPlan),publicTopics:[],catalogQuery:null,responseIntent:'records'}
     :dtmCompound?{tools:dtmCompound.tools,publicTopics:[],catalogQuery:null,responseIntent:'records'}
     :scopedOverview||studyTools?{tools:scopedOverview?intent.baseTools:studyTools,publicTopics:[],catalogQuery:null,responseIntent:'records'}
     :await planAccountLookup(question,history,fullRoute,deadline);
@@ -1468,7 +1470,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       emit({kind:'account-compose',label:'Answer preparation incomplete',detail:'A fresh evidence-based correction will be attempted within the remaining budget.',status:'unavailable'});
     }
   }
-  const fixedEvidenceScope=directNoteCompanion||exactSupplemental||servicePlan||scopedAssignment||scopedOverview||scopedNotes||scopedCounseling||scopedTutor||scopedConduct
+  const fixedEvidenceScope=scopedAcademics||directNoteCompanion||exactSupplemental||servicePlan||scopedAssignment||scopedOverview||scopedNotes||scopedCounseling||scopedTutor||scopedConduct
     ||scopedClearance||scopedTimetable||scopedAid||scopedStudy||scopedTeaching||housingSelected||applicationSelected
     ||Boolean(remissionSelection);
   // Fixed scope limits refresh and replanning. A deeper model review reuses

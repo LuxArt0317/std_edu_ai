@@ -5,7 +5,7 @@ import {mapHousingRecords} from './housingRecords.js';
 import {mapCreditLoadHistory} from './creditLoadHistory.js';
 import {mapCourseSelection} from './courseSelection.js';
 import {serviceNoteKeys} from './serviceNoteIntent.js';
-import {loadNativeAcademicRecords} from './nativeAcademicWorkspace.js';
+import {loadNativeAcademicRecords,loadNativeGradeView} from './nativeAcademicWorkspace.js';
 import {readFeeRemissionJson} from './feeRemissionContract.js';
 export class AffairsWorkspaceError extends Error {
   constructor(message, status = 503) { super(message); this.status = status; }
@@ -263,6 +263,18 @@ export async function loadOwnAffairsCharges(account,{deadline=Date.now()+12000,o
     ids.add(row.id);
   }
   return {checkedAt:new Date().toISOString(),profile:{userId},studentRecordFound:true,charges:rows.map(mapAffairsCharge)};
+}
+
+export async function loadOwnAcademicGrades(account,view,{deadline=Date.now()+12000}={}){
+  const userId=account?.user?.id;
+  if(!chargeUuid.test(userId??'')||account.url!=='https://xiftudmvxphxcjtmfmib.supabase.co'
+    ||typeof account.token!=='string'||!account.token.trim()||typeof account.key!=='string'||!account.key.trim())
+    throw new AffairsWorkspaceError('Verified School Affairs access is required.',403);
+  if(!['transcript','warning','ranking','english','gpa','current','transfer','cycle'].includes(view)||!Number.isFinite(deadline))
+    throw new AffairsWorkspaceError('Invalid academic grades inquiry.',400);
+  const scoped={user:{id:userId},url:account.url,key:account.key,token:account.token,requestDeadline:Math.min(deadline,Date.now()+12000)};
+  const academicGrades=await loadNativeGradeView(userId,view,(table,query)=>readAccountRows(scoped,table,query));
+  return {checkedAt:new Date().toISOString(),profile:{userId},academicGrades,academicGradesOnly:true};
 }
 
 /** Narrow read for explicitly selected private notes. A capped, inconsistent
