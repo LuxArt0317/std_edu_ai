@@ -682,6 +682,67 @@ function language(question,requested){
   return /[\u3400-\u9fff]/u.test(question);
 }
 export const supplementalAnswerLanguage=question=>language(question)?'zh-TW':'en';
+
+function literalRecordText(value){
+  const text=value.replace(/\r\n|[\r\n\u0085\u2028\u2029]/gu,'\\n');
+  const fence='`'.repeat(Math.max(0,...(text.match(/`+/g)||[]).map(run=>run.length))+1);
+  return `${fence} ${text} ${fence}`;
+}
+
+// Report an exact projection for ordinary period, net pay and tax queries.
+// Questions about a named time range or other payroll fields still need the
+// regular evidence composer, since this view selects pages rather than dates.
+export function formatRequestedAidPaymentDetails(result,question,selection){
+  const {id,payload}=parse(result);
+  if(id!=='account:aidPayments'||!selection||selection.reason||!payload.views.length
+    ||payload.views.some((view,index)=>view.view!==selection.views[index]||view.page!==selection.pages[view.view]))return null;
+  const text=question.normalize('NFKC');
+  const zh=language(question),t=(en,cn)=>zh?cn:en;
+  const bank=/\bbank (?:account|transfer|deposit|settlement)\b|匯入.{0,8}(?:銀行|帳戶)|銀行.{0,6}(?:入帳|轉帳)/iu.test(text)
+    &&/\b(?:confirm|verify|received|reached|credited)\b|確認|查證|入帳/iu.test(text);
+  const tax=/\btax\b|所得稅|稅額/iu.test(text);
+  const net=/\bnet (?:pay|amounts?|salary|earnings)\b|淨額|實領/iu.test(text);
+  const period=/\b(?:periods?|dates?)\b|給付期間|給付起迄/iu.test(text);
+  const reason=/\breason\b|事由|原因/iu.test(text);
+  const count=/\b(?:how many|record count|number of)\b|幾筆|筆數/iu.test(text);
+  const zeroOrMissing=tax&&/\b(?:zero tax|no tax value|missing tax)\b|零稅|沒有稅額|未記錄稅額/iu.test(text)&&/\b(?:which|list)\b|哪些|列出/iu.test(text);
+  const narrow=/\b(?:current|latest|earliest|before|between|after|today|yesterday|last month|this month|last year|this year|January|February|March|April|May|June|July|August|September|October|November|December|gross|subtotal|deductions?|rate|contribution|units?|average|sum|total net|currency|bank suffix)\b|最新|最早|上月|本月|去年|今年|小計|扣款|提繳|加總|幣別|銀行末碼|\b20\d{2}\b/iu.test(text);
+  const hasClaims=payload.selection.views.includes('claims');
+  if(bank&&(payload.selection.views.length!==1||tax||net||period))return null;
+  if(!bank&&(narrow||(!tax&&!net&&!period)||hasClaims&&(!reason||/\b(?:approval|claim amount|approved|status)\b|簽核|請領金額/iu.test(text))))return null;
+  const citations=payload.views.map(({view,url})=>{
+    const title=view==='salary'?t('Student salary records','學生薪資紀錄'):t('Student aid claims','助學請款紀錄');
+    return {chunkId:id,claim:title,title,sourceName:'School Affairs',url,locator:null,effectiveAt:null,reviewedAt:null};
+  });
+  const format=value=>value===null?t('not recorded','未記錄'):typeof value==='number'?String(value):literalRecordText(value||t('(blank)','（空白）'));
+  const views=[];
+  const sections=bank?[t('Saved payroll rows describe local amounts. They cannot establish bank settlement.','站內薪資紀錄只列出已儲存的金額，無法確認是否已入帳。')]
+    :payload.views.map(view=>{
+      const salary=view.view==='salary';
+      const name=salary?t('student salary records','學生薪資紀錄'):t('student aid claims','助學請款紀錄');
+      if(view.readState==='unavailable')return t(`I could not read your saved ${name}.`,`無法讀取已儲存的${name}。`);
+      if(view.counts.available===0)return t(`No saved ${name} were found.`,`沒有已儲存的${name}。`);
+      const rows=view.records.filter(row=>!salary||!zeroOrMissing||row.tax===0||row.tax===null);
+      const fields=salary?[
+        ['payment_period',t('Saved period','已儲存期間')],...(tax?[['tax',t('Tax','所得稅')]]:[]),...(net?[['net',t('Net pay','淨額')]]:[]),
+      ]:[['reason',t('Reason','事由')]];
+      const cell=value=>Array.from(value===null?t('not recorded','未記錄'):String(value)).slice(0,160).join('');
+      if(rows.length)views.push({id:`aidPayments:${view.view}`,title:name,url:view.url,columns:fields.map(([,label])=>label),
+        rows:rows.slice(0,supplementalAnswerLimits.viewRows).map(row=>fields.map(([key])=>cell(row[key]))),
+        total:rows.length,checkedAt:payload.checkedAt,note:t(`Matching saved rows included from page ${view.page}.`,`第 ${view.page} 頁納入的相符紀錄。`)});
+      const lines=rows.map(row=>{
+        if(!salary)return `- ${t('Reason','事由')}: ${format(row.reason)}`;
+        const details=fields.slice(1).map(([key,label])=>`${label}: ${format(row[key])}`);
+        return `- ${format(row.payment_period)}${details.length?' — '+details.join('. '):''}`;
+      });
+      return [count?t(`You have ${view.counts.available} saved ${name}.`,`已儲存 ${view.counts.available} 筆${name}。`):null,
+        lines.join('\n')||t(`Page ${view.page} has no matching saved rows.`,`第 ${view.page} 頁沒有相符的紀錄。`),
+        view.counts.omitted?t(`Only the saved rows included from page ${view.page} were checked.`,`僅查閱第 ${view.page} 頁納入的紀錄。`):null].filter(Boolean).join('\n\n');
+    });
+  const answer=[bank?null:t('Saved local records','站內已儲存紀錄'),...sections,...citations.map(({title,url})=>`[${title}](${url})`)].filter(Boolean).join('\n\n');
+  return answer.length<=supplementalAnswerLimits.answerCharacters?{status:'answered',answer,citations,views}:null;
+}
+
 function sectionFor(parsed,question,zh){
   const {envelope,evidence,id,payload:p}=parsed,title=definitions[id].title[Number(zh)];
   const section={id,title,lead:[],items:[],shown:[],view:null,viewCandidates:[],complete:['ok','empty'].includes(envelope.readState),limited:false,usable:envelope.readState!=='unavailable',evidence,group:0,retainedGroups:new Set(),viewSelected:false};
@@ -701,8 +762,7 @@ function sectionFor(parsed,question,zh){
     // A blank line terminates a Markdown paragraph even inside apparent code
     // fences. Render newlines visibly instead of allowing record text to create
     // a new paragraph, link, HTML block, list or fake source citation.
-    const valueText=display(value,limit).replace(/\r\n|[\r\n\u0085\u2028\u2029]/gu,'\\n'),runs=valueText.match(/`+/g)||[],fence='`'.repeat(Math.max(0,...runs.map(run=>run.length))+1);
-    return fence+' '+valueText+' '+fence;
+    return literalRecordText(display(value,limit));
   };
   const item=(label,value,header=false,limit=360)=>section.items.push({text:`${label}: ${literal(value,limit)}`,label,group:section.group,header});
   const group=(label,value)=>{section.group++;item(label,value,true);};

@@ -32,6 +32,9 @@ export type SupplementalAnswerCandidate={
   formatting:{limited:boolean;omittedItems:number;omittedViewRows:number;omittedViews:number};
 };
 export function supplementalAnswerLanguage(question:string):'en'|'zh-TW';
+export function formatRequestedAidPaymentDetails(result:AidPaymentsEvidenceResult,question:string,
+  selection:{views:readonly ('salary'|'claims')[];pages:Partial<Record<'salary'|'claims',number>>;reason:string|null}):
+  Pick<SupplementalAnswerCandidate,'status'|'answer'|'citations'|'views'>|null;
 export const supplementalAnswerLimits:Readonly<{answerCharacters:8000;resultBytes:24000;views:3;viewRows:12}>;
 /** Accept only already validated, own-account reader envelopes.
  * Pure candidate/view formatting; performs no authorization, reads, writes,

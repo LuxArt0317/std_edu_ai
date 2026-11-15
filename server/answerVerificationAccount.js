@@ -31,7 +31,7 @@ import {selectAccountEvidence,boundSelectedEvidence,ownEvidenceRows} from './acc
 import {selectedEvidenceLinks} from './accountEvidenceLinks.js';
 import {boundedPublicPageEvidence,isPublicPageQuestion,loadPublicPageContext,normalizePublicPageRoute,publicPageCandidate} from './publicPageContext.js';
 import {supplementalAccountTools,requiredSupplementalTools,facilityRepairLookupContext,nativePageLookupContext,withoutExcludedNativePageClause,catalogReadPlanSchema,validateCatalogReadPlan,readSupplementalLookups} from './accountSupplementalLookup.js';
-import {formatSupplementalAccountAnswers,supplementalAnswerLanguage,supplementalAnswerLimits} from './supplementalAccountAnswers.js';
+import {formatRequestedAidPaymentDetails,formatSupplementalAccountAnswers,supplementalAnswerLanguage,supplementalAnswerLimits} from './supplementalAccountAnswers.js';
 import {formatSelectedChargeEvidence,selectedChargeAnswerLimits} from './selectedChargeEvidenceAnswer.js';
 import {asksAboutOfficialRecords} from './accountAnswerLanguage.js';
 import {aidPaymentsLookupContext,isAidPaymentsEvidenceQuestion} from './aidPaymentsEvidenceIntent.js';
@@ -939,6 +939,32 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     readSupplemental(snapshot,1),
   ]);
   if(publicPageRoute)emit({kind:'page-context',label:'Checked the current public page',detail:pageContext?.contentAvailable?'Read the checksum-verified public snapshot; account records remain separate.':'Only available public page metadata can be used; no account records were sent to the capture host.',status:pageContext?.contentAvailable?'complete':'unavailable'});
+  if(scopedAid&&!aidNext&&!aidFees&&activeTools.length===1&&activeTools[0]==='aidPayments'){
+    let results=firstSupplemental;
+    const render=()=>{
+      if(results.length!==1||results[0].evidence.id!=='account:aidPayments')return null;
+      try{
+        const answer=formatRequestedAidPaymentDetails(results[0],question,aidScope.selection);
+        return answer&&answerLinksSupported(answer.answer,[results[0].evidence])?answer:null;
+      }catch{return null;}
+    };
+    const initial=render();
+    if(initial){
+      const checked=await runAnswerVerification({question,deadline,initialAnswer:initial,onProgress:emit,
+        async loadEvidence({attempt}){
+          if(attempt>1)results=await readSupplemental(snapshot,attempt);
+          return results.map(result=>result.evidence);
+        },
+        async verify({candidate,evidence}){
+          const expected=evidence.length===1&&evidence[0]===results[0]?.evidence?render():null;
+          return {ok:expected!==null&&isDeepStrictEqual(candidate,expected),reason:'evidence_unavailable'};
+        },
+        repair:async()=>render()??{status:'abstained',answer:'',citations:[]},
+      });
+      return {...checked,suggestedQuestions:[],views:checked.views??[],grounding:{source:'account',webSearched:false,
+        checkedAt:snapshot.checkedAt,degraded:checked.verification?.status!=='verified'},activity:[...new Map(observed.map(step=>[step.kind,step])).values()]};
+    }
+  }
   if(leavePlan?.deterministicRead&&activeTools.length===1&&activeTools[0]==='leaveRecords'
     &&firstSupplemental.length===1&&['ok','empty'].includes(firstSupplemental[0].readState)){
     const selection=leavePlan.selection;

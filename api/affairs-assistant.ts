@@ -577,7 +577,12 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const aid=aidPaymentsLookupContext(aidQuestion,notes.keys.length?'':route,notes.keys.length?[]:history);
   const aidLink=notes.keys.length?null:aidPaymentsNavigation(aidQuestion);
   if(aid.foreign||!aid.otherQuestion&&(aid.excluded||aid.selection?.reason)||aidLink&&!(Array.isArray(input?.images)&&input.images.length)){
-    stream.send(200,aidPaymentsGuide(scopedQuestion,aid,aidLink));
+    const guidance=aidPaymentsGuide(scopedQuestion,aid,aidLink);
+    if(aid.foreign){
+      const chinese=/[\u3400-\u9fff]/u.test(question);
+      stream.progress('account-access',chinese?'已確認帳戶範圍':'Checked account access',guidance.answer,'complete');
+    }
+    stream.send(200,guidance);
     return;
   }
   const aidAction=notes.keys.length?null:aidPaymentsUnsupportedAction(aidQuestion,aid);

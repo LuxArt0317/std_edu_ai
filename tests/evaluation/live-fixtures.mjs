@@ -694,7 +694,7 @@ export async function runConfirmedTaskPreview({origin,sourceRevision,previewToke
       await user.renewSession?.({signal});
       const ticket=await previewGate.beforeRequest();
       const taskWrite=stage!==undefined;
-      const target=origin+path;
+      const target=new URL(path,origin);
       let journal;
       if(taskWrite){
         journal={stage,userId:user.id,requestId:body.requestId,kind:body.kind,payloadDigest:hash(body.payload),status:'pending'};

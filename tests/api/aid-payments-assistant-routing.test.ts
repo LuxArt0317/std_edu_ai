@@ -4,6 +4,9 @@ import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {createResearchAssistantHandler} from '../../server/researchAssistantHandler.js';
 import {aidPaymentsFields,aidPaymentsPaths} from '../../server/aidPaymentsContract.js';
 import {planAccountLookup} from '../../server/answerVerificationAccount.js';
+import {buildAccountCases} from '../evaluation/account-cases.mjs';
+import {aidPaymentFixtureManifest} from '../evaluation/aid-payment-fixture-plan.mjs';
+import {gradeCase} from '../evaluation/grading.mjs';
 
 const path=aidPaymentsPaths.salary;
 const origin='https://xiftudmvxphxcjtmfmib.supabase.co';
@@ -15,13 +18,56 @@ const signedIn=createAffairsAssistantHandler({
 });
 const guest=createResearchAssistantHandler();
 let address=10;
-async function ask(question:string,{handler=signedIn,route=path,history=[] as {role:string;content:string}[]}={}){
+async function ask(question:string,{handler=signedIn,route=path,history=[] as {role:string;content:string}[],events}: {
+  handler?:typeof signedIn;route?:string;history?:{role:string;content:string}[];events?:unknown[];
+}={}){
   const result:{body:any;status:number}={body:null,status:200};
-  const response={setHeader(){},status(status:number){result.status=status;return response;},json(body:unknown){result.body=body;}};
-  await handler({method:'POST',headers:{authorization:'Bearer '+account.token,'x-forwarded-for':'192.0.2.'+(address++)},body:{question,route,history}},response);
+  const response={setHeader(){},status(status:number){result.status=status;return response;},json(body:unknown){result.body=body;},end(){},
+    write(packet:string){
+      const [,type,text]=/^event: (\w+)\ndata: (.+)\n\n$/u.exec(packet)??[];
+      if(type==='progress')events?.push(JSON.parse(text));
+      if(type==='result'||type==='error')result.body=JSON.parse(text);
+    }};
+  await handler({method:'POST',headers:{authorization:'Bearer '+account.token,'x-forwarded-for':'192.0.2.'+(address++)},body:{question,route,history,stream:!!events}},response);
   assert.equal(result.status,200,JSON.stringify(result.body));
   return result.body;
 }
+
+test('the actual handler passes the independent period, net pay, tax, bank and account-boundary cases',async()=>{
+  const original=globalThis.fetch,calls:string[]=[];
+  globalThis.fetch=async(input,init)=>{
+    assert.equal(String(input),origin+'/rest/v1/rpc/affairs_read_aid_payments');
+    assert.equal(new Headers(init?.headers).get('authorization'),'Bearer '+account.token);
+    const request=JSON.parse(String(init?.body));
+    const view=request.p_view as 'salary'|'claims';
+    assert.deepEqual(request,{p_view:view,p_offset:0,p_summary:false});
+    calls.push(view);
+    const actual=aidPaymentFixtureManifest.A[view];
+    return Response.json({view,userId,total:actual.length,rows:actual.map((row:unknown,index:number)=>({
+      id:'37000000-0000-4000-8000-00000000000'+String(index+2),...(row as object)}))});
+  };
+  try{
+    const bank=buildAccountCases();
+    for(const id of ['salary-multipart','salary-tax','both','bank-unavailable','foreign']){
+      const testCase=bank.find((row:{id:string})=>row.id==='account:aid-payments-'+id);
+      const events:unknown[]=[];
+      const before=calls.length;
+      const body=await ask(testCase.question,{route:testCase.route,events});
+      const result=gradeCase(testCase,{statusCode:200,execution:'recorded',fixtureKey:testCase.fixtureKey,events,body});
+      assert.equal(result.passed,true,JSON.stringify({id,answer:body.answer,failures:result.failures}));
+      assert.equal(calls.length-before,id==='foreign'?0:id==='both'?2:1,id);
+      assert.doesNotMatch(JSON.stringify(body),/bank_last4|0101|AID_TEST_TOKEN/);
+      if(id==='bank-unavailable'){
+        assert.doesNotMatch(body.answer,/5400|6200/);
+        assert.deepEqual(body.views,[]);
+      }
+      if(id==='salary-tax')assert.deepEqual(body.views[0].rows,[
+        ['2026-09 local period','0'],['2026-10 local period','not recorded'],
+      ]);
+      if(id==='both')assert.deepEqual(body.views.map((view:{columns:string[]})=>view.columns),[['Reason'],['Saved period','Net pay']]);
+    }
+  }finally{globalThis.fetch=original;}
+});
 
 test('privacy, skip, direct navigation and invalid pages avoid all transport',async()=>{
   const original=globalThis.fetch;

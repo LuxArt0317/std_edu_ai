@@ -342,7 +342,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
                   aria-label="Sources"
                 >
                   {message.result.citations.map((citation) => (
-                    <li key={citation.chunkId}>
+                    <li key={`${citation.chunkId}:${citation.url}`}>
                       <a
                         href={citation.url}
                         target="_blank"

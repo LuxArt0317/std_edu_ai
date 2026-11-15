@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Answer straightforward student payroll questions from the exact saved period, net amount and tax fields. Preserve separate salary and claim links, omit unrelated payroll values when bank settlement is requested, and show the account boundary in Activity. [#100]
+
 - Add a protected Preview evaluator for confirmed task creation and completion. Check two-account isolation, exact replay, audit receipts and cleanup against independent database reads. [#100]
 - Mount 16 health-examination metadata evaluations on protected Preview with two disposable callers, exact scoped page readbacks and synthetic cleanup. [#100]
 
