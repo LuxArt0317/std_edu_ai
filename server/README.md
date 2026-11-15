@@ -216,6 +216,8 @@ A focused native DTM grade request selects its reader directly. The reader valid
 `elearningCatalogPageIntent` binds the question and Google sign-in return to the exact Digital Academy search or category URL. `accountElearningCatalogAnswer` uses the caller's verified `elearning_catalog` RPC result, renders literal titles and local links, and checks the answer in the shared LangGraph. A retry uses the same page and filter. Category names and trees and saved notice bodies require narrower sources than the workspace query.
 ### Verified internship evidence
 
+A protected Preview request can attest an Internship lookup for a reserved disposable owner. A short-lived signed request binds the exact release, caller, route and question. The receipt binds the exact response and digests of the caller REST query, returned rows and selected field projection. Ordinary requests have no attestation. The diagnostics count completed model operations separately from record reads, including zero-read ownership and operation boundaries.
+
 `accountInternshipEvidence.js` reads exact internship rows using the verified caller's token and requested fields. Review status comes from an explicitly requested caller-owned linked service request. `internshipEvidenceContract.js` validates the active subtype, count and availability state before formatting. The verifier checks the selected evidence and refreshes the same scopes once. The local directory contains the caller's own company tracker records. See the [native internship evaluation](../docs/qa/INTERNSHIP_NATIVE_READ.md).
 
 ### Verified Moodle assignment lists

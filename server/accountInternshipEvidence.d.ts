@@ -4,4 +4,4 @@ export {internshipEvidenceMaxBytes,unavailableInternshipEvidence} from './intern
 export type InternshipEvidenceAccount={url:string;key:string;token:string;user:{id:string};requestDeadline?:number};
 export type InternshipEvidenceOptions={question?:unknown;route?:string;history?:InternshipHistory;deadline?:number};
 export function readInternshipEvidence(account:InternshipEvidenceAccount,options?:InternshipEvidenceOptions,
-  dependencies?:{fetchImpl?:typeof fetch}):Promise<InternshipEvidenceResult>;
+  dependencies?:{fetchImpl?:typeof fetch;observeRead?:(read:unknown)=>void}):Promise<InternshipEvidenceResult>;

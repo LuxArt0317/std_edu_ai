@@ -25,6 +25,7 @@ import {dtmSubmissionTimingBoundary,selectDtmSubmissionTiming} from '../server/d
 import {readInternshipEvidence} from '../server/accountInternshipEvidence.js';
 import {internshipAssistantPlan,internshipBoundary,internshipSelectedTools,internshipUnavailable} from '../server/internshipAssistantPlan.js';
 import {readStudentLeaveEvidence} from '../server/accountStudentLeaveEvidence.js';
+import {internshipObservationHeader,openInternshipObservation} from '../server/internshipObservation.js';
 import {leaveObservationHeader,openStudentLeaveObservation} from '../server/studentLeaveObservation.js';
 import {studentLeaveAssistantPlan,studentLeaveBoundary,studentLeaveNavigation,studentLeaveSelectedTools} from '../server/studentLeaveAssistantPlan.js';
 import {dtmNativeClauseScope,dtmNativeClauseNotice} from '../server/dtmNativeClauseScope.js';
@@ -236,9 +237,13 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   if(request.method!=='POST') {response.setHeader('Allow','POST');response.status(405).json({error:'Method not allowed'});return;}
   const body=typeof request.body==='string' ? (()=>{try{return JSON.parse(request.body);}catch{return null;}})() : request.body;
   const input=body && typeof body==='object' && !Array.isArray(body) ? body as Record<string,unknown> : null;
-  const hasProbe=Boolean(input&&Object.hasOwn(input,'evaluationLeaveProbe'));
-  const rejectProbe=()=>response.status(404).json({error:'Student Leave observation unavailable.'});
-  if(hasProbe&&(process.env.VERCEL_ENV!=='preview'||value(request.headers.host)!==process.env.VERCEL_URL)){rejectProbe();return;}
+  const hasLeaveProbe=Boolean(input&&Object.hasOwn(input,'evaluationLeaveProbe'));
+  const hasInternshipProbe=Boolean(input&&Object.hasOwn(input,'evaluationInternshipProbe'));
+  const hasProbe=hasLeaveProbe||hasInternshipProbe;
+  const rejectProbe=()=>response.status(404).json({error:hasInternshipProbe?'Internship observation unavailable.':'Student Leave observation unavailable.'});
+  if(hasProbe&&(hasLeaveProbe&&hasInternshipProbe||process.env.VERCEL_ENV!=='preview'||value(request.headers.host)!==process.env.VERCEL_URL)){
+    rejectProbe();return;
+  }
   const requestedQuestion=typeof input?.question==='string'?input.question.trim():'';
   let question=requestedQuestion;
   if(question.length<2||question.length>2000) {if(hasProbe)rejectProbe();else response.status(400).json({error:'Provide a question between 2 and 2,000 characters.'});return;}
@@ -264,10 +269,16 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     return ['user','assistant'].includes(String(entry.role))&&typeof entry.content==='string'?[{role:String(entry.role),content:boundedAssistantText(entry.content,1000)}]:[];
   }):[];
   const correlationId=randomUUID();
-  const observation=hasProbe?openStudentLeaveObservation({body,identity:probeIdentity,correlationId}):null;
+  const observation=hasLeaveProbe?openStudentLeaveObservation({body,identity:probeIdentity,correlationId}):null;
   const observedPlan=observation?studentLeaveAssistantPlan(question,route,history):null;
-  if(hasProbe&&(!observedPlan?.selection||observedPlan.selection.reason||observedPlan.hasOtherQuestion||
+  if(hasLeaveProbe&&(!observedPlan?.selection||observedPlan.selection.reason||observedPlan.hasOtherQuestion||
     studentLeaveSelectedTools(observedPlan).join()!=='leaveRecords')){
+    rejectProbe();return;
+  }
+  const internshipObservation=hasInternshipProbe?openInternshipObservation({body,identity:probeIdentity,correlationId}):null;
+  const observedInternship=internshipObservation?internshipAssistantPlan(question,route,history):null;
+  if(hasInternshipProbe&&(!internshipObservation||!observedInternship||observedInternship.selection&&observedInternship.hasOtherQuestion
+    ||internshipSelectedTools(observedInternship).some(tool=>tool!=='internshipRecords'))){
     rejectProbe();return;
   }
   const now=Date.now(),active=(requestWindows.get(account.user.id)||[]).filter(time=>time>now-60_000);
@@ -464,7 +475,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     return;
   }
   const leavePlan=observedPlan??studentLeaveAssistantPlan(question,route,history);
-  const internshipPlan=leavePlan?null:internshipAssistantPlan(question,route,history);
+  const internshipPlan=leavePlan?null:observedInternship??internshipAssistantPlan(question,route,history);
   const servicePlan=leavePlan??internshipPlan;
   if(servicePlan){
     const {feeQuestion,feeLabel,classQuestion,gradeQuestion}=servicePlan;
@@ -474,8 +485,11 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const boundary=nav?.answer??(leavePlan?studentLeaveBoundary(leavePlan,question):internshipBoundary(internshipPlan!,question));
     const unavailable=leavePlan?.foreign||Boolean(internshipPlan&&internshipUnavailable(internshipPlan));
     if(!tools.length){
-      stream.send(200,nav??{status:unavailable?'handoff':'clarification',answer:boundary,citations:[],
-        suggestedQuestions:[],grounding:{source:'account',webSearched:false}});
+      const payload=nav??{status:unavailable?'handoff':'clarification',answer:boundary,citations:[],
+        suggestedQuestions:[],grounding:{source:'account',webSearched:false}};
+      const receipt=internshipObservation?.finish(payload,false);
+      if(receipt)response.setHeader(internshipObservationHeader,receipt);
+      stream.send(200,payload);
       return;
     }
     if(Array.isArray(input?.images)&&input.images.length){
@@ -500,8 +514,11 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       const options={selection:leaveSelection,deadline:Math.min(deadline,context.deadline)};
       return observation?observation.observe(dependencies=>readers.leaveRecords(account,options,dependencies)):readers.leaveRecords(account,options);
     };
-    if(internshipPlan?.selection)supplementalReaders.internshipRecords=context=>
-      readers.internshipRecords(account,{question,route,history,deadline:Math.min(deadline,context.deadline)});
+    if(internshipPlan?.selection)supplementalReaders.internshipRecords=context=>{
+      const options={question,route,history,deadline:Math.min(deadline,context.deadline)};
+      return internshipObservation?internshipObservation.observe(dependencies=>readers.internshipRecords(account,options,dependencies))
+        :readers.internshipRecords(account,options);
+    };
     if(gradeQuestion)supplementalReaders.dtmGradeReport=context=>
       readers.dtmGradeReport(account,{question:gradeQuestion,route:'/dtm/grades',history:[],deadline:Math.min(deadline,context.deadline)});
     const nativeQuestion=leaveSelection&&!leaveSelection.reason?leaveSelection.question:internshipPlan?.selection?internshipPlan.question:'';
@@ -510,11 +527,14 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       const snapshot=await loadServiceCompanions();
       const answer=await answerAccount({question:selectedQuestion,history:[],route,snapshot,loadSnapshot:loadServiceCompanions,deadline,correlationId,
         leavePlan:leavePlan??undefined,internshipPlan:internshipPlan??undefined,supplementalReaders,
-        ...(observation?{onProviderCompleted:observation.modelCompleted,onNativeLeaveVerified:observation.nativeCheckCompleted}:{}),
+        ...(observation?{onProviderCompleted:observation.modelCompleted,onNativeLeaveVerified:observation.nativeCheckCompleted}:
+          internshipObservation?{onProviderCompleted:internshipObservation.modelCompleted}:{}),
         onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
       const payload={...answer,answer:[answer.answer,boundary].filter(Boolean).join('\n\n'),citations:[...answer.citations,...(nav?.citations??[])]};
       const receipt=observation?.finish(payload);
       if(receipt)response.setHeader(leaveObservationHeader,receipt);
+      const internshipReceipt=internshipObservation?.finish(payload,true);
+      if(internshipReceipt)response.setHeader(internshipObservationHeader,internshipReceipt);
       stream.send(200,payload);
     }catch{
       stream.send(503,{error:'The selected School Affairs records could not be checked.'});

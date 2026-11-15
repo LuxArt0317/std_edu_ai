@@ -39,7 +39,7 @@ function verifyRange(header,length,limit){
   return total;
 }
 
-async function readSelectedRows(account,selection,deadline,fetchImpl){
+async function readSelectedRows(account,selection,deadline,fetchImpl,observeRead){
   const readReview=selection.fields.includes('reviewStatus');
   const keys=[...requiredColumns,...selection.fields.filter(field=>field!=='reviewStatus').map(field=>wireColumns[field])];
   const select=[...keys,...(readReview?['review_request_id',joinedReview]:[])].join(',');
@@ -66,6 +66,7 @@ async function readSelectedRows(account,selection,deadline,fetchImpl){
         if(!Array.isArray(value))fail('invalid_records');
         const available=verifyRange(response.headers.get('content-range'),value.length,limit);
         if(selection.recordId&&available>1)fail('invalid_records');
+        observeRead?.({method:'GET',url:url.href,ownerId:account.userId,available,rows:value});
         return {rows:value,keys,available};
       })(),
       new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(Object.assign(new Error('Internship read timed out.'),{code:'deadline_exceeded'}));},remaining);}),
@@ -121,7 +122,8 @@ export async function readInternshipEvidence(account,options={},dependencies={})
   const unavailable=reason=>internshipEnvelope('unavailable',reason,selection);
   try{
     if(!internshipDataObject(options)||Object.keys(options).some(key=>!['question','route','history','deadline'].includes(key))
-      ||!internshipDataObject(dependencies)||Object.keys(dependencies).some(key=>key!=='fetchImpl')
+      ||!internshipDataObject(dependencies)||Object.keys(dependencies).some(key=>!['fetchImpl','observeRead'].includes(key))
+      ||dependencies.observeRead!==undefined&&typeof dependencies.observeRead!=='function'
       ||dependencies.fetchImpl!==undefined&&typeof dependencies.fetchImpl!=='function')return unavailable('invalid_context');
     if(!internshipDataObject(account)||!internshipDataObject(account.user)||!internshipUuid(account.user.id)
       ||typeof account.url!=='string'||account.url.replace(/\/$/u,'')!==databaseOrigin
@@ -134,7 +136,7 @@ export async function readInternshipEvidence(account,options={},dependencies={})
     if([options.deadline,account.requestDeadline].some(value=>value!==undefined&&!Number.isFinite(value)))return unavailable('invalid_deadline');
     const deadline=Math.min(options.deadline??Infinity,account.requestDeadline??Infinity,Date.now()+8000);
     const captured={userId:account.user.id,key:account.key,token:account.token};
-    const result=await readSelectedRows(captured,selection,deadline,dependencies.fetchImpl??fetch);
+    const result=await readSelectedRows(captured,selection,deadline,dependencies.fetchImpl??fetch,dependencies.observeRead);
     return boundedEvidence(selection,projectRows(result,selection,captured.userId),result.available);
   }catch(error){return unavailable(readErrors.includes(error?.code)?error.code:'read_failed');}
 }

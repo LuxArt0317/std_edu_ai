@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
+import {
+  createInternshipProbe,internshipObservationDigest,internshipObservationHeader,verifyInternshipObservation,
+} from '../../server/internshipObservation.js';
 import researchHandler from '../../api/research-assistant.ts';
 import {buildInternshipNativeCases,internshipNativeFixtureForCase,internshipNativeManifest} from '../evaluation/internship-native-cases.mjs';
 
@@ -12,24 +15,29 @@ const base='https://xiftudmvxphxcjtmfmib.supabase.co';
 const owner=internshipNativeManifest.owners.A;
 const account={user:{id:owner},url:base,key:'OFFLINE_PUBLIC_KEY',token:'OFFLINE_CALLER_TOKEN'};
 const student='53010000-0000-4000-8000-000000000601';
+const previewOrigin='https://stdedu-abcdef012-v1-d286.vercel.app';
+const previewRevision='a'.repeat(40),operatorKey='SYNTHETIC_INTERN_OBSERVATION_TEST_KEY_'.repeat(2);
+const runId='53010000-0000-4000-8000-000000000731',nonce='53010000-0000-4000-8000-000000000732';
+const scope={ownerId:owner,origin:previewOrigin,sourceRevision:previewRevision,runId,nonce};
+const previewEnv={VERCEL_ENV:'preview',VERCEL_URL:new URL(previewOrigin).host,VERCEL_GIT_COMMIT_SHA:previewRevision,SUPABASE_SERVICE_ROLE_KEY:operatorKey};
 const columns:Record<string,string>={title:'title',status:'status',startsOn:'starts_on',endsOn:'ends_on',notes:'notes'};
 const bank=buildInternshipNativeCases();
 const rowFor=(suffix:string)=>bank.find(row=>row.id==='account:internship-native-'+suffix)!;
 type Body={question:string;route:string;history?:Array<{role:string;content:string}>};
 
-async function invoke(handler:any,body:Body){
-  const captured={status:200,body:null as any};
-  const response={setHeader(){},status(status:number){captured.status=status;return response;},json(result:unknown){captured.body=result;}};
-  await handler({method:'POST',headers:{authorization:'Bearer '+account.token},body},response);
+async function invoke(handler:any,body:Body,host?:string){
+  const captured={status:200,body:null as any,headers:new Headers()};
+  const response={setHeader(name:string,value:string){captured.headers.set(name,value);},status(status:number){captured.status=status;return response;},json(result:unknown){captured.body=result;}};
+  await handler({method:'POST',headers:{authorization:'Bearer '+account.token,...(host?{host}:{})},body},response);
   return captured;
 }
 
-async function exercise(suffix:string,{retry=false,unverifiable=false}={}){
+async function exercise(suffix:string,{retry=false,unverifiable=false,observed=false}={}){
   const row=rowFor(suffix);assert.ok(row,suffix);
   const {sourceRead,rows,requests,forbidden}=internshipNativeFixtureForCase(row);
   const companion=row.observationExpectation.companion;
   const originalFetch=globalThis.fetch,oldKey=process.env.OPENAI_API_KEY;
-  const calls:string[]=[],model:string[]=[],errors:unknown[]=[];
+  const calls:string[]=[],model:string[]=[],errors:unknown[]=[],readDigests:string[]=[];
   let checked=0,lastDraft='',broadReads=0;
   process.env.OPENAI_API_KEY='OFFLINE_PROVIDER_KEY';
   globalThis.fetch=async(input,init)=>{
@@ -54,6 +62,7 @@ async function exercise(suffix:string,{retry=false,unverifiable=false}={}){
           const projected=rows.filter((item:any)=>item.service_key==='internship'&&item.user_id===owner&&item.record_type===sourceRead.recordType)
             .map((item:any)=>({ ...Object.fromEntries(selected.map(key=>[key,key==='status'&&checked&&item.status==='filed'?'withdrawn':item[key]])),
               ...(review?{review_request_id:item.review_request_id,site_review:requests.find((request:any)=>request.id===item.review_request_id)??null}:{})}));
+          readDigests.push(internshipObservationDigest({method:'GET',url:url.href,ownerId:owner,available:projected.length,rows:projected}));
           return Response.json(projected,{headers:{'content-range':projected.length?'0-'+(projected.length-1)+'/'+projected.length:'*/0'}});
         }
         assert.ok(companion,'Unexpected independent reader');
@@ -110,15 +119,32 @@ async function exercise(suffix:string,{retry=false,unverifiable=false}={}){
       })}]}]});
     }catch(error){errors.push(error);throw error;}
   };
-  const handler=createAffairsAssistantHandler({verifyToken:async()=>account as any,
+  const envBefore=Object.fromEntries(Object.keys(previewEnv).map(name=>[name,process.env[name]]));
+  if(observed)Object.assign(process.env,previewEnv);
+  const handler=createAffairsAssistantHandler({verifyToken:async()=>observed?{...account,user:{id:owner,email:'evaluation.student@example.invalid',
+    user_metadata:{assistant_evaluation_run:runId}}}:account as any,
     loadSnapshot:async()=>{broadReads++;throw Error('Broad account snapshot is forbidden.');},
     publicResearch:async()=>{broadReads++;throw Error('Public research cannot support private records.');}});
   try{
-    const result=await invoke(handler,row);
+    assert.equal(observed&&row.history.length>0,false);
+    const probe=observed?createInternshipProbe(scope,{question:row.question,route:row.route,history:[],stream:false,consentedResearchUse:false},operatorKey):null;
+    const result=await invoke(handler,probe?.body??row,probe?previewEnv.VERCEL_URL:undefined);
     assert.deepEqual(errors,[]);
     assert.equal(broadReads,0);
+    if(probe){
+      const receipt=result.headers.get(internshipObservationHeader);
+      const correlationId=result.headers.get('x-assistant-request-id');
+      const binding={receipt,correlationId,binding:probe.binding,body:result.body};
+      const observation=verifyInternshipObservation(binding,operatorKey);
+      assert.ok(observation,suffix+' returned '+result.status);
+      assert.deepEqual(observation.attempts.flatMap(attempt=>attempt.reads),readDigests);
+      assert.deepEqual(observation.modelOperations,model);
+      assert.equal(verifyInternshipObservation({...binding,body:{...result.body,answer:'Tampered'}},operatorKey),null);
+      assert.doesNotMatch(Buffer.from(receipt!.split('.')[0],'base64url').toString('utf8'),/QA private|OFFLINE_|QA Harbor Analytics/iu);
+    }
     return {result,calls,model};
   }finally{
+    if(observed)for(const [name,value] of Object.entries(envBefore))if(value===undefined)delete process.env[name];else process.env[name]=value;
     globalThis.fetch=originalFetch;
     if(oldKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=oldKey;
   }
@@ -226,4 +252,41 @@ test('an unsupported mutation cannot authorize a read of coordinated objects',as
   assert.equal(response.body.status,'handoff');
   assert.match(response.body.answer,/No action was taken/u);
   assert.equal(response.body.proposedAction,undefined);
+});
+
+test('protected internship receipts bind exact native reads, bounded model operations, and zero-read branches',async t=>{
+  t.mock.timers.enable({apis:['Date'],now:new Date(internshipNativeManifest.asOf)});
+  for(const row of bank.filter(row=>row.auth!=='anonymous'&&!row.observationExpectation.companion&&row.observationExpectation.read?.state!=='unavailable')){
+    t.mock.timers.setTime(Date.now()+61_000);
+    await exercise(row.id.replace(/^account:internship-native-/u,''),{observed:true});
+  }
+  t.mock.timers.setTime(Date.now()+61_000);
+  await exercise('contract-list',{observed:true,retry:true});
+});
+
+test('an internship probe cannot reach a different release, caller, route or malformed request',async t=>{
+  const bankRow=rowFor('contract-list');
+  const request={question:bankRow.question,route:bankRow.route,history:[],stream:false,consentedResearchUse:false} as const;
+  const {body}=createInternshipProbe(scope,{...request,history:[]},operatorKey);
+  for(const [env,altered,host,identity] of [
+    [{...previewEnv,VERCEL_ENV:'production'},body,previewEnv.VERCEL_URL,owner],
+    [previewEnv,body,'invalid.example',owner],
+    [{...previewEnv,VERCEL_GIT_COMMIT_SHA:'b'.repeat(40)},body,previewEnv.VERCEL_URL,owner],
+    [previewEnv,body,previewEnv.VERCEL_URL,internshipNativeManifest.owners.B],
+    [previewEnv,{...body,route:rowFor('company-list').route},previewEnv.VERCEL_URL,owner],
+    [previewEnv,{...body,evaluationLeaveProbe:'other'},previewEnv.VERCEL_URL,owner],
+  ] as const){
+    const before=Object.fromEntries(Object.keys(previewEnv).map(name=>[name,process.env[name]]));
+    Object.assign(process.env,env);
+    t.mock.method(globalThis,'fetch',async()=>assert.fail('Rejected probe used transport.'));
+    try{
+      const handler=createAffairsAssistantHandler({verifyToken:async()=>({...account,user:{id:identity,email:'evaluation.student@example.invalid',
+        user_metadata:{assistant_evaluation_run:runId}}})});
+      const result=await invoke(handler,altered,host);
+      assert.equal(result.status,404);
+      assert.equal(result.headers.get(internshipObservationHeader),null);
+    }finally{
+      for(const [name,value] of Object.entries(before))if(value===undefined)delete process.env[name];else process.env[name]=value;
+    }
+  }
 });
