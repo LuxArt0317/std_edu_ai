@@ -820,6 +820,9 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Observe a deeper third review with a real provider before comparing review model settings.
 - [ ] Compare the existing verification model with a stronger available model on difficult cases. Record factual quality, observed tools, latency and remaining budget before changing the deployed default.
 - [ ] Confirm routine positive responses use concise saved-record wording and preserve exact limits when a user asks about official data.
+- [x] Exercise all 61 mounted private-note questions through the real handler using controlled caller-scoped reads and independent grading.
+- [ ] Re-run the 61 mounted note questions on the protected combined Preview after removing model rewrites of exact saved note fields.
+- [ ] Run the 18 Student Leave cases on the protected combined Preview with signed actual reader and provider completion receipts.
 
 - [x] Save and independently read back each of the four exact prompts in the offline endpoint replay.
 - [x] Journal request and conversation commitments and reconcile disposable account cleanup.
