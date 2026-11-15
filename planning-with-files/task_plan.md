@@ -1042,6 +1042,7 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 
 - [x] Reproduce the stale two-check release and show the next unread evidence source can resolve a stalled draft.
 - [x] Verify the fourth-check regression and the reloaded browser activity. Pin three public smoke requests to protected `fe340f3`.
+- [x] Retry one classified temporary acquisition failure. Verify the third-check recovery and bounded-stop cases. Pin three public smoke requests to protected `85133e4`.
 - [x] Run the eight local certificate cases and the local Moodle timing and confirmed tracker packets against migrated PostgreSQL.
 - [ ] Run the certificate receipt, assignment timing and confirmed tracker packets on a protected exact release. Evaluate the original fixed assignment cases inside their expected dates.
 - [ ] Complete broader signed-in service replay and production release acceptance.
