@@ -904,7 +904,8 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Pass both published timetable orders on protected `b6eab93` with the independent Taipei clock, caller-bound rows, zero model calls and verified cleanup.
 - [x] Bind separate teaching feedback and venue packets to scoped disposable records. Test the signed observations and both caller boundaries.
 - [x] Replay all 11 isolated teaching feedback cases and seven venue cases on exact protected `b6eab93` with signed reads and verified cleanup. Venue passes all seven. Teaching passed nine and exposed the missing-comment and empty-history answers.
-- [ ] Correct and replay the two Teaching Feedback answering failures, then bind the 40 original cases to the appropriate school data.
+- [x] Fix missing-comment and empty-history Teaching Feedback in the typed standalone path. All 11 controlled questions use the original factual rubric.
+- [ ] Replay the exact corrected Teaching Feedback packet on protected Preview and bind the 40 original cases to the appropriate school data.
 - [x] Preserve the safe equipment edit selector through Google login. Verify 396 local browser route checks and both valid and malformed return selectors. Add three independent equipment route-context cases and two conduct count questions to the default inventory.
 - [ ] Replay the protected equipment route-context, conduct count and verified-partial public changes.
 
