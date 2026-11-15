@@ -1012,7 +1012,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     progress({ ...step, detail: 'Checking the requested detail on official school pages.', status: 'running' });
                     // Use only the same screened public question. Review feedback and
                     // the earlier draft can contain details that must never enter a search.
-                    const followUp = await searchSchoolWeb(capture ? verificationQuestion : publicQuestion, { deadline: searchUntil, followUp: true }).catch(() => null);
+                    const followUpQuestion = capture ? publicSchoolQuestion(verificationQuestion) : publicQuestion;
+                    const followUp = await searchSchoolWeb(followUpQuestion, { deadline: searchUntil, followUp: true }).catch(() => null);
                     if (capture && followUp?.attempted) webAttempted = true;
                     const fresh = await checkNewSources(followUp?.discoveredSources || [], Math.min(until - 11_000, Date.now() + 4_000), 2);
                     if (fresh.length) {
