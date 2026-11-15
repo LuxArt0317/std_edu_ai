@@ -72,7 +72,7 @@ async function settle(fn){try{return {ok:true,value:await fn()};}catch(error){re
 function profileRow(result,owner){
   if(result.total>1)fail();const row=result.rows[0];if(!row)return null;
   if(!exact(row,['user_id','display_name','preferred_name'])||row.user_id!==owner||!text(row.display_name,600)
-    ||row.preferred_name!==null&&(!text(row.preferred_name,80)||!row.preferred_name.length))fail();
+    ||row.preferred_name!==null&&(!text(row.preferred_name,160)||!row.preferred_name.length||[...row.preferred_name].length>80))fail();
   return {displayName:row.preferred_name||row.display_name};
 }
 function studentRow(result,owner){
@@ -91,11 +91,7 @@ function dtmRows(result,owner){
   return {courses,total:result.total};
 }
 
-/** Only the already verified caller can be selected. No initializer, POST, RPC,
- * role lookup, shared catalog scan, grade/material/note read, or private request
- * payload is allowed. Every source has explicit completeness and failure state.
- * Counts are separate from arrays: consumers MUST NOT infer them from .length. */
-export async function loadAccountOverviewSnapshot(account,options={},dependencies={}){
+function captureAccountRead(account,options,dependencies){
   if(!object(options)||Object.keys(options).some(key=>key!=='deadline')||!object(dependencies)||Object.keys(dependencies).some(key=>key!=='fetchImpl')
     ||dependencies.fetchImpl!==undefined&&typeof dependencies.fetchImpl!=='function')fail('invalid_records');
   if(!object(account)||!object(account.user)||!uuid(account.user.id)||account.url!==origin
@@ -104,6 +100,30 @@ export async function loadAccountOverviewSnapshot(account,options={},dependencie
   if(![options.deadline,account.requestDeadline].every(value=>value===undefined||Number.isFinite(value)))fail();
   const captured=Object.freeze({userId:account.user.id,token:account.token,key:account.key,deadline:Math.min(options.deadline??Infinity,account.requestDeadline??Infinity,Date.now()+accountOverviewLimits.deadlineMs)});
   const fetchImpl=dependencies.fetchImpl??globalThis.fetch;if(typeof fetchImpl!=='function')fail();
+  return {captured,fetchImpl};
+}
+
+async function readOwnProfile(captured,fetchImpl){
+  return profileRow(await read(captured,fetchImpl,'affairs_profiles',{
+    select:'user_id,display_name,preferred_name',user_id:'eq.'+captured.userId,limit:1,
+  }),captured.userId);
+}
+
+/** Same owned profile projection as the overview, without its other sources. */
+export async function loadOwnAffairsDisplayName(account,options={},dependencies={}){
+  const {captured,fetchImpl}=captureAccountRead(account,options,dependencies);
+  const profile=await readOwnProfile(captured,fetchImpl);
+  if(!profile?.displayName.trim())return null;
+  if(/[\u2028\u2029]/u.test(profile.displayName))fail();
+  return profile.displayName;
+}
+
+/** Only the already verified caller can be selected. No initializer, POST, RPC,
+ * role lookup, shared catalog scan, grade/material/note read, or private request
+ * payload is allowed. Every source has explicit completeness and failure state.
+ * Counts are separate from arrays: consumers MUST NOT infer them from .length. */
+export async function loadAccountOverviewSnapshot(account,options={},dependencies={}){
+  const {captured,fetchImpl}=captureAccountRead(account,options,dependencies);
   const scoped=Object.freeze({user:Object.freeze({id:captured.userId}),url:origin,token:captured.token,key:captured.key,requestDeadline:captured.deadline});
   const own=(fields,limit)=>({select:fields,user_id:'eq.'+captured.userId,limit});
   const count=(table,field,id)=>settle(async()=>{
@@ -118,7 +138,7 @@ export async function loadAccountOverviewSnapshot(account,options={},dependencie
     return count(table,'student_id',student.value.id);
   };
   const [profile,student,timetable,dtm,assignments,charges,tasks,requests]=await Promise.all([
-    settle(async()=>profileRow(await read(captured,fetchImpl,'affairs_profiles',own('user_id,display_name,preferred_name',1)),captured.userId)),
+    settle(()=>readOwnProfile(captured,fetchImpl)),
     studentPromise,
     settle(async()=>{
       const verifiedStudent=await studentPromise;

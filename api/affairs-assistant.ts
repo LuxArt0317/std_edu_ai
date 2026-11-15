@@ -344,15 +344,18 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   }
   const campusEntry=campusEntryIntent(question,route);
   if(campusEntry){stream.send(200,answerCampusEntry(question,campusEntry,true));return;}
-  if(accountStatusIntent(question,route)){
+  const accountStatus=accountStatusIntent(question,route);
+  if(accountStatus){
     if(Array.isArray(input?.images)&&input.images.length){
-      stream.send(400,{error:'Ask about your current sign-in using text.'});
+      stream.send(400,{error:accountStatus==='displayName'?'Ask about your display name using text.':'Ask about your current sign-in using text.'});
       return;
     }
     try{
       stream.send(200,await answerAccountStatus({account,question,route,deadline,
         onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));
-    }catch{stream.send(503,{error:'The current School Affairs sign-in could not be checked.'});}
+    }catch{stream.send(503,{error:accountStatus==='displayName'
+      ?(/[㐀-鿿]/u.test(question)?'無法查詢已儲存的顯示名稱。':'Your saved display name could not be checked.')
+      :'The current School Affairs sign-in could not be checked.'});}
     return;
   }
   const learningEntry=learningEntryIntent(question,route);
