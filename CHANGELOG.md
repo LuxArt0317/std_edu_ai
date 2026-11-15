@@ -1,6 +1,10 @@
 # Changelog
 ## Unreleased
 
+- Let students review and confirm withdrawal of one owned learning-support request in chat. The withdrawal uses the native versioned receipt and preserves the exact command on retry. [#100]
+
+- Add a signed zero-read check for 14 Student Leave navigation and access questions while preserving the separate 18-case owned-record evaluation. [#100]
+
 - Verify saved aid-claim fields directly against the selected claim page, preserve conduct field questions that follow the report name, and return the dormitory notice link without reading records for a delete or change request. Catalog acceptance now checks the native sources for 34-2, 37-1 and 38-1. [#100]
 
 - Keep the subject of signed-in public campus contact follow-ups across turns, including English and Traditional Chinese. Account history and page selectors stay out of public research. [#100]

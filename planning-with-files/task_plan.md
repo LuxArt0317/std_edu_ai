@@ -944,5 +944,12 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Follow another eligible publisher after a known notice sign-in gate and an empty targeted search. Verify exact recovery, exhausted search, deadline, and non-gated controls.
 - [x] Reproduce the hard two-check stop on the production code revision. Verify a third check using already-read evidence in the remaining time and a fourth after discovering a different publication. Preserve actual review counts, saved activity and the final stop reason.
 - [x] Verify the revised Teaching Feedback, equipment routes and Conduct counts on the same protected revision with exact scoped read and cleanup proofs.
+- [x] Grade dormitory notices, aid claims and student conduct catalog destinations against their native records. Test the exact saved fields, empty result and unsupported change or settlement boundary with controlled handler and independent grading.
+- [x] Replay all 99 eligible private service-note and guest questions on an exact protected deployment, with 98 unchanged paired readbacks, matched mixed timetable and tuition results, and verified cleanup. Keep the injected read outage in the local suite.
+- [x] Mount signed proof of zero private reads for the 14 frozen Student Leave navigation and access questions in controlled handlers.
+- [x] Pass all 14 Student Leave boundary/navigation questions on an exact protected deployment with signed zero-read evidence and verified fixture cleanup.
+- [ ] Pass the corrected native catalog questions on the exact protected deployment with paired readbacks and verified cleanup.
+- [x] Support safe same-topic public contact follow-ups from a signed-in chat and a separately confirmed 27-1 withdrawal in local tests.
+- [ ] Verify the 27-1 workflow and withdrawal on a hosted test deployment with its exact additive migration and real owned confirmation receipts.
 - [ ] Finish broader service and browser acceptance before production promotion.
 - [x] Replay four public questions on exact protected `0b88ca1`. Confirm primary library links, English fallback, further search when sources are unreadable, the OneDrive partial retained after three checks, and both archived-page languages. The gated-publisher recovery branch also passed its controlled live-handler conditions.
