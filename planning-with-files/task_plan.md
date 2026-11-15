@@ -898,7 +898,9 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Complete the first native Moodle grade report replay on protected `f5b37da`. Ten authenticated requests and cleanup completed. Seven passed, with three answer text criteria to correct.
 - [x] Preserve verified native course totals, missing reports and complete no-course lookups in bilingual deterministic answers. Keep the original grader.
 - [x] Run the six Moodle overview cases on protected `2427eee`. The grade index, selected course and empty-account cases passed. Three aggregate or feedback cases need their exact facts preserved. Verified cleanup of both accounts and all report rows.
-- [ ] Replay the ten default Moodle grade cases with the three corrected availability answers.
+- [x] Confirm the three corrected Moodle availability cases on exact protected `0c0ac77`. Four previously passing model-written fact answers fluctuated. All ten requests retained exact readbacks and cleanup.
+- [x] Verify named item feedback/weight, a scoped follow-up, a saved course total, and the final report item directly against typed records. Preserve feedback-only scope. Confirm both local SQL-backed packets with the original factual rubrics.
+- [ ] Replay the ten grade report cases after the exact report field fix.
 - [x] Preserve course totals and all-item feedback directly from typed Moodle responses for complete exact lookups.
 - [ ] Replay all six protected Moodle overview cases.
 - [x] Mount 24 of 30 existing Student Internship cases with signed native observations and paired own/crossed reads. Verify the disposable fixture and cleanup on scratch PostgreSQL.
