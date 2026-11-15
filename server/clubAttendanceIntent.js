@@ -3,7 +3,7 @@ import {clubStudentQuestion} from './clubStudentContract.js';
 
 export const clubAttendancePath=clubPath+'/my-attendance';
 export const clubAttendanceRoute=/^\/school-affairs\/services\/40-1\/my-attendance\/?(?:\?[A-Za-z0-9_%=&.+-]{1,80})?$/u;
-const pagePattern=/^(?:[1-9]\d{0,2}|1000)$/u;
+export const clubAttendancePagePattern=/^(?:[1-9]\d{0,2}|1000)$/u;
 const event=/\b(?:club|student club)\s+(?:events?|activit(?:y|ies))\b|社團活動/iu;
 const attending=/\b(?:attend(?:ed|ance)?|participat(?:ed|ion|ing)|joined)\b|參與|參加|出席|签到|簽到/iu;
 const foreign=/\b(?:another|other|different) (?:students?|users?|people|person)\b|\b(?:everyone|all (?:students|members|attendees)|their|his|her)\b|\bwho (?:has |had )?(?:attended|participated)\b|\b(?:student|user|account) (?:id|number|email)\b|他人|其他學生|別人|同學的|所有學生|誰(?:參與|參加|出席)/iu;
@@ -38,7 +38,7 @@ export function clubAttendanceSelection(question,route=''){
   const fromRoute=here?url.searchParams.getAll('page'):[];
   const mentioned=[...new Set([...text.matchAll(/\bpage\s+([+-]?\d+(?:\.\d+)?)\b|第\s*([+-]?\d+(?:\.\d+)?)\s*[頁页]/giu)].map(match=>match[1]??match[2]))];
   if(here&&(url.hash||url.username||url.password||[...url.searchParams.keys()].some(key=>key!=='page'))||fromRoute.length>1||mentioned.length>1
-    ||fromRoute.concat(mentioned).some(value=>!pagePattern.test(value))||fromRoute.length&&mentioned.length&&fromRoute[0]!==mentioned[0])return boundary('scope');
+    ||fromRoute.concat(mentioned).some(value=>!clubAttendancePagePattern.test(value))||fromRoute.length&&mentioned.length&&fromRoute[0]!==mentioned[0])return boundary('scope');
   const page=Number(mentioned[0]??fromRoute[0]??'1');
   if(exclude.test(text))return boundary('excluded',page);
   if(nav.test(text))return boundary('navigation',page);

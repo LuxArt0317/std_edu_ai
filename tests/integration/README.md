@@ -6,6 +6,8 @@
 
 `school-affairs-ui.mjs --inventory-only` follows each of the 94 catalog links and checks for an enabled, visible assistant launcher. The result records launcher presence separately from navigation and does not count as live workflow evidence.
 
+`node tests/integration/assistant-renderer-inventory.mjs` exercises the signed-in routes declared by the assistant inventory and a small set of additional mounted routes. It starts the actual application in its own loopback Vite server. Use `--family student-club-attendance`, `--family dtm`, or another family ID for a focused run. It checks each listed route at desktop width with and without a synthetic Google session, and repeats selected high-use paths on a narrow viewport. It records exact navigation, workspace shell, account state, visible launcher, keyboard activation, modal focus, Escape and focus restoration separately. School Affairs and DTM account-menu entry and selected login-return guards have their own outcomes. The JSON report under ignored `artifacts/assistant-renderer/` identifies routes with missing response fixtures. OAuth, semantic answers, private data authorization, and hosted behavior require their separate suites.
+
 [Remote-learning Moodle QA](../../docs/qa/ELEARNING.md) covers the browser flow, exact-client enrollment and retry checks.
 
 Counseling checks cover the scoped database rollback, actual authenticated API requests with disposable-account cleanup, and menu-to-appointment browser flow. See [counseling QA](../../docs/qa/COUNSELING.md).
