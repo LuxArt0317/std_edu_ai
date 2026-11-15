@@ -108,7 +108,7 @@ test('a rejected balance draft rereads only caller-owned fee records and checks 
   assert.match(reviewedDrafts[0],/23,000/u);
   assert.equal(reviewedDrafts.length,1);
   assert.match(result.answer,/Remaining balance ` NT\$22,000/u);
-  assert.match(result.answer,/stu\.best.+\n\n.+sample/u);
+  assert.match(result.answer,/stu\.best.+\n\nSample charge: ` Sample tuition `/u);
   assert.doesNotMatch(result.answer,/23,000|official|bank/u);
   assert.deepEqual(result.citations.map(({chunkId,url})=>({chunkId,url})),[{chunkId:'account:charges',url:path}]);
   assert.equal(result.citations[0].reviewedAt,result.grounding.checkedAt);

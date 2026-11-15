@@ -88,8 +88,8 @@ export function formatSelectedChargeEvidence(source,options={}){
   const shown=[],columns=[t('Charge','費用'),t('Currency','幣別'),t('Saved amount due','已儲存應繳金額'),t('Saved amount paid','已儲存已繳金額'),t('Calculated remaining','計算餘額'),t('Source mode','來源標記')];
   function result(){
     const omitted=rows.length-shown.length,complete=state==='records'&&p.studentRecordFound===true&&!p.excerpted&&c.availableRows===c.matchingRows&&!omitted;
-    const rowMode=row=>options.exactBalance?(row.sourceMode==='sample'?t(' (sample)','（範例）'):t(' (saved source marked verified)','（儲存來源標記為 verified）')):'';
-    const lines=shown.map(row=>(shown.length>1?'- ':'')+literal(row.label)+rowMode(row)+t('\n  Remaining balance ','\n  待繳金額：')+literal(money(row.remaining,row.currency))
+    const rowMode=row=>options.exactBalance?(row.sourceMode==='sample'?t('Sample charge: ','範例費用：'):t('Charge with saved verified label: ','儲存來源標記為 verified 的費用：')):'';
+    const lines=shown.map(row=>(shown.length>1?'- ':'')+rowMode(row)+literal(row.label)+t('\n  Remaining balance ','\n  待繳金額：')+literal(money(row.remaining,row.currency))
       +t('\n  Saved amount due ','\n  已儲存應繳金額：')+literal(money(row.due,row.currency))
       +t('\n  Saved amount paid ','\n  已儲存已繳金額：')+literal(money(row.paid,row.currency)));
     const notes=[];
