@@ -2,9 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {buildAccountCases} from './account-cases.mjs';
 import {buildDtmGradeReportFixturePlan,dtmGradeReportFixtureManifest} from './dtm-grade-report-fixture-plan.mjs';
+import {dtmNativeRouteFixture} from './dtm-native-route-cases.mjs';
 import {gradeCase} from './grading.mjs';
 import {readDtmGradeReportEvidence} from '../../server/accountDtmGradeReportEvidence.js';
-import {formatExactDtmGradeAvailability,formatSupplementalAccountAnswers} from '../../server/supplementalAccountAnswers.js';
+import {formatExactDtmGradeAnswer,formatExactDtmGradeAvailability,formatSupplementalAccountAnswers} from '../../server/supplementalAccountAnswers.js';
 
 // No lifecycle, credentials, provider or network. The actual immutable fixture,
 // validated native reader and formatter supply an independent grading contract.
@@ -79,6 +80,46 @@ test('partial course coverage and a failed grade read do not establish an exact 
   const failed=await readDtmGradeReportEvidence(account,fullOptions,{loadOverview:async()=>{throw Error('Synthetic read failed');}});
   assert.equal(failed.readState,'unavailable');
   assert.equal(formatExactDtmGradeAvailability(failed,question),null);
+});
+
+test('the exact grade renderer gives no complete answer credit to expired or omitted overview and feedback records',async()=>{
+  const fixture=dtmNativeRouteFixture(),account={url:'https://xiftudmvxphxcjtmfmib.supabase.co',key:'SYNTHETIC',token:'SYNTHETIC',user:{id:fixture.ownerId}};
+  const question='Show all my saved Moodle course grades.',route='/dtm/grades';
+  const expired=await readDtmGradeReportEvidence(account,{question,route,deadline:Date.now()-1},
+    {loadOverview:async()=>assert.fail('An expired request cannot read grades')});
+  assert.equal(expired.reason,'deadline_exceeded');
+  assert.equal(formatExactDtmGradeAnswer(expired,question),null);
+  const rowId=index=>'52000000-0000-4000-8000-'+String(index+1).padStart(12,'0');
+  const clipped=await readDtmGradeReportEvidence(account,{question,route},{loadOverview:async()=>({...fixture.overview,
+    courses:Array.from({length:28},(_,i)=>({...fixture.overview.courses[0],id:rowId(i),title:'Long saved course '+i+' '+'.'.repeat(520)})),
+  })});
+  assert.equal(JSON.parse(clipped.evidence.content).excerpted,true);
+  assert.equal(formatExactDtmGradeAnswer(clipped,question),null);
+  const feedback='Show all report feedback in my Moodle grade report for Study Methods.';
+  const report=fixture.report.report;
+  const result=await readDtmGradeReportEvidence(account,{question:feedback,route:'/dtm/course/'+report.courseId+'/grades'},{
+    loadOverview:async()=>fixture.overview,loadReport:async()=>({report:{...report,items:Array.from({length:12},(_,i)=>({
+      ...report.items[0],id:rowId(i),label:'Saved item '+i,feedbackText:'x'.repeat(1800),
+    }))}}),
+  });
+  assert.equal(JSON.parse(result.evidence.content).counts.omitted>0,true);
+  assert.equal(formatExactDtmGradeAnswer(result,feedback),null);
+});
+
+test('exact all-feedback renders saved text literally, distinguishes blank and missing, and skips mixed fields',async()=>{
+  const fixture=dtmNativeRouteFixture(),account={url:'https://xiftudmvxphxcjtmfmib.supabase.co',key:'SYNTHETIC',token:'SYNTHETIC',user:{id:fixture.ownerId}};
+  const report=fixture.report.report,route='/dtm/course/'+report.courseId+'/grades';
+  const question='Show all report feedback in my Moodle grade report for Study Methods.';
+  const text='Read `memo`\n[untrusted](https://outside.example/)';
+  const items=report.items.map((row,index)=>({...row,feedbackText:index===0?null:''}));
+  const result=await readDtmGradeReportEvidence(account,{question,route},{loadOverview:async()=>fixture.overview,
+    loadReport:async()=>({report:{...report,items:[...items,{...items[0],id:'52000000-0000-4000-8000-000000000001',label:'Stored text',feedbackText:text}]}}),
+  });
+  const answer=formatExactDtmGradeAnswer(result,question);
+  assert.deepEqual(answer.views[0].rows,[['Source Analysis','not recorded'],['Reflection Memo','(blank)'],['Stored text',text]]);
+  assert.match(answer.answer,/Report row: ` Stored text `\n  - Saved feedback text: `` Read `memo`\\n\[untrusted\]\(https:\/\/outside\.example\/\) ``/u);
+  assert.deepEqual(answer.citations.map(source=>source.url),[route]);
+  assert.equal(formatExactDtmGradeAnswer(result,'Show all feedback and weights for this Moodle grade report.'),null);
 });
 
 test('feedback and weight remain attached to the named native item and preserve literal values',async()=>{

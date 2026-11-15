@@ -12,6 +12,7 @@ import {boundedAssistantText} from '../../src/services/assistantActivityBudget.j
 import {buildDtmNativeRouteCases,dtmNativeRouteFixture,dtmNativeRouteManifest,gradeDtmNativeRouteCase} from '../evaluation/dtm-native-route-cases.mjs';
 
 const exactAvailability=new Set(['null-total','absent','unknown-course'].map(value=>'account:dtm-native-route-'+value));
+const exactFields=new Set(['dashboard','my','grades','course-overview','all-feedback'].map(value=>'account:dtm-native-route-'+value));
 const bank=buildDtmNativeRouteCases(),origin='https://xiftudmvxphxcjtmfmib.supabase.co',owner=dtmNativeRouteManifest.ownerId;
 const account={url:origin,key:'OFFLINE_DTM_KEY',token:'OFFLINE_DTM_TOKEN',user:{id:owner}};
 type Case=ReturnType<typeof buildDtmNativeRouteCases>[number];
@@ -21,11 +22,11 @@ async function invoke(handler:ReturnType<typeof createAffairsAssistantHandler>,r
   await handler({method:'POST',headers:{authorization:'Bearer '+account.token},body:{question:row.question,route:row.route,history:row.history}},response);
   return output;
 }
-async function actual(row:Case,{rejectOnce=false}={}){
+async function actual(row:Case,{rejectOnce=false,providerAvailable=true}={}){
   const fixture=dtmNativeRouteFixture(row.nativeExpectation.fixture),reads:any[]=[],wire:any[]=[],errors:unknown[]=[],stages:string[]=[];
   const observation={ownerId:owner,execution:'mocked',reads,evidence:null as any,broadReads:0,publicReads:0,writes:0};
   const previous=globalThis.fetch,key=process.env.OPENAI_API_KEY;let reviews=0,lastDraft='';
-  process.env.OPENAI_API_KEY='OFFLINE_DTM_MODEL';
+  if(providerAvailable)process.env.OPENAI_API_KEY='OFFLINE_DTM_MODEL';else delete process.env.OPENAI_API_KEY;
   globalThis.fetch=async(input,init)=>{
     try{
       const url=new URL(String(input)),headers=new Headers(init?.headers),body=init?.body?JSON.parse(String(init.body)):null;
@@ -88,17 +89,24 @@ async function actual(row:Case,{rejectOnce=false}={}){
 
 test('actual authenticated native transport and graph answer the independent route packet without the general snapshot',async()=>{
   for(const row of bank.filter((item:Case)=>!['failed','foreign'].includes(item.id.split('-').at(-1)!))){
-    const value=await actual(row);assert.equal(value.envelope.statusCode,200,row.id);
+    const value=await actual(row,{providerAvailable:!exactFields.has(row.id)});assert.equal(value.envelope.statusCode,200,row.id);
     const graded=gradeDtmNativeRouteCase(row,value.envelope,value.observation);
     assert.equal(graded.passed,true,row.id+': '+JSON.stringify(graded.failures));assert.equal(graded.modelAcceptance,false);
     assert.equal(value.envelope.body.verification.status,'verified');
-    assert.deepEqual(value.stages,exactAvailability.has(row.id)?[]:['answer_evidence_review']);
+    assert.deepEqual(value.stages,exactAvailability.has(row.id)||exactFields.has(row.id)?[]:['answer_evidence_review']);
     if(exactAvailability.has(row.id)){
       assert.match(value.envelope.body.answer,/^(?:No saved course matches|There is no saved native grade report|No course total is saved)/u);
       assert.equal(value.envelope.body.verification.attempts,1);
       assert.deepEqual(value.envelope.body.citations.map((item:any)=>item.chunkId),['account:dtmGradeReport']);
-      assert.ok(value.envelope.events.some((event:any)=>event.kind==='dtm-grade-availability-check'&&event.status==='complete'));
     }
+    if(exactFields.has(row.id)){
+      assert.equal(value.envelope.body.verification.attempts,1);
+      assert.equal(value.envelope.body.views.length,1);
+      assert.match(value.envelope.body.answer,/^- (?:Report row|Saved course): .+\n  - (?:Saved feedback text|Saved total grade text): /mu);
+      assert.doesNotMatch(value.envelope.body.answer,/rank|numeric score metadata|independent saved cells|term label/iu);
+    }
+    if(exactAvailability.has(row.id)||exactFields.has(row.id))
+      assert.ok(value.envelope.events.some((event:any)=>event.kind==='dtm-grade-evidence-check'&&event.status==='complete'));
     assert.ok(value.wire.every((request:any)=>['/rest/v1/rpc/dtm_grade_report_overview','/rest/v1/dtm_courses','/rest/v1/dtm_grade_reports'].includes(request.path)));
   }
 });

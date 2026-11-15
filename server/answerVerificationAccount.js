@@ -31,7 +31,7 @@ import {selectAccountEvidence,boundSelectedEvidence,ownEvidenceRows} from './acc
 import {selectedEvidenceLinks} from './accountEvidenceLinks.js';
 import {boundedPublicPageEvidence,isPublicPageQuestion,loadPublicPageContext,normalizePublicPageRoute,publicPageCandidate} from './publicPageContext.js';
 import {supplementalAccountTools,requiredSupplementalTools,facilityRepairLookupContext,nativePageLookupContext,withoutExcludedNativePageClause,catalogReadPlanSchema,validateCatalogReadPlan,readSupplementalLookups} from './accountSupplementalLookup.js';
-import {formatExactDtmGradeAvailability,formatRequestedAidPaymentDetails,formatSupplementalAccountAnswers,supplementalAnswerLanguage,supplementalAnswerLimits} from './supplementalAccountAnswers.js';
+import {formatExactDtmGradeAnswer,formatRequestedAidPaymentDetails,formatSupplementalAccountAnswers,supplementalAnswerLanguage,supplementalAnswerLimits} from './supplementalAccountAnswers.js';
 import {formatSelectedChargeEvidence,selectedChargeAnswerLimits} from './selectedChargeEvidenceAnswer.js';
 import {asksAboutOfficialRecords} from './accountAnswerLanguage.js';
 import {aidPaymentsLookupContext,isAidPaymentsEvidenceQuestion} from './aidPaymentsEvidenceIntent.js';
@@ -952,7 +952,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     const render=()=>{
       if(results.length!==1)return null;
       try{
-        const answer=formatExactDtmGradeAvailability(results[0],question);
+        const answer=formatExactDtmGradeAnswer(results[0],question);
         return answer&&answerLinksSupported(answer.answer,[results[0].evidence])?answer:null;
       }catch(error){if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;return null;}
     };
@@ -966,8 +966,8 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         verify({candidate,evidence}){
           const expected=evidence.length===1&&evidence[0]===results[0]?.evidence?render():null;
           if(!expected||!isDeepStrictEqual(candidate,expected))return {ok:false,reason:'evidence_unavailable'};
-          emit({kind:'dtm-grade-availability-check',label:'Verified the saved grade-report result',
-            detail:'Matched the course, report or total availability and its link to the selected account evidence.',status:'complete'});
+          emit({kind:'dtm-grade-evidence-check',label:'Verified the saved grade-report result',
+            detail:'Matched the displayed grade-report fields or availability and their links to the selected account evidence.',status:'complete'});
           return {ok:true};
         },
         repair:async()=>render()??{status:'abstained',answer:'',citations:[]},

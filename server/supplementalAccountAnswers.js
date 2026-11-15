@@ -692,7 +692,10 @@ function literalRecordText(value){
 
 export function formatExactDtmGradeAvailability(result,question){
   if(result?.evidence?.id!=='account:dtmGradeReport')return null;
-  const {envelope,evidence,payload:p}=parse(result);
+  return exactDtmGradeAvailability(parse(result),question);
+}
+
+function exactDtmGradeAvailability({envelope,evidence,payload:p},question){
   const zh=supplementalAnswerLanguage(question)==='zh-TW';
   const t=(en,zhTw)=>zh?zhTw:en;
   let answer,link;
@@ -712,6 +715,51 @@ export function formatExactDtmGradeAvailability(result,question){
   const title=t('Moodle grade report','Moodle 成績報告');
   return {status:'answered',answer:answer+'\n\n['+link+']('+evidence.url+')',
     citations:[{chunkId:evidence.id,claim:answer,title,sourceName:title,url:evidence.url,locator:null,effectiveAt:null,reviewedAt:null}],views:[]};
+}
+
+export function formatExactDtmGradeAnswer(result,question){
+  if(result?.evidence?.id!=='account:dtmGradeReport')return null;
+  const parsed=parse(result),{envelope,evidence,payload:p}=parsed;
+  const availability=exactDtmGradeAvailability(parsed,question);
+  if(availability)return availability;
+  if(envelope.readState!=='ok'||envelope.reason!==null||!p.complete||p.excerpted||p.requiresClarification)return null;
+  const overview=p.selection.view==='overview'&&p.courseCoverage.complete
+    &&p.counts.matching===p.courseCoverage.loaded&&p.counts.included===p.counts.matching;
+  const feedback=p.selection.view==='report'&&p.course&&p.reportPresent===true&&p.report.totalIncluded
+    &&p.selection.itemScope==='all_saved_items'&&p.counts.available===p.counts.included
+    &&/\ball\s+(?:the\s+)?(?:saved\s+)?(?:report\s+)?feedback\b/iu.test(question)
+    &&!/\b(?:and|also|plus|marks?|scores?|weights?|rank(?:s|ing)?|percentages?|ranges?|totals?|contributions?)\b|[;；\n]/iu.test(question);
+  if(!overview&&!feedback)return null;
+
+  const zh=supplementalAnswerLanguage(question)==='zh-TW',t=(en,zhTw)=>zh?zhTw:en;
+  const display=value=>value===null?t('not recorded','未記錄'):value===''?t('(blank)','（空白）'):value;
+  const title=overview?t('Saved Moodle course grades','已儲存的 Moodle 課程成績'):t('Saved Moodle report feedback','已儲存的 Moodle 報告評語');
+  const field=overview?t('Saved total grade text','儲存總成績文字'):t('Saved feedback text','儲存評語原文');
+  const group=overview?t('Saved course','已儲存課程'):t('Report row','報告列');
+  const rows=overview?p.courses.map(course=>({label:course.title,value:display(course.gradeText),url:course.url}))
+    :p.report.items.map(item=>({label:item.label,value:display(item.feedbackText)}));
+  if(feedback&&p.report.totalPresent&&p.report.total.feedbackText!==null)
+    rows.push({label:t('Explicitly saved course total','明確儲存的課程總分'),value:display(p.report.total.feedbackText)});
+  if(!rows.length)return null;
+  const lines=[t('Saved Moodle sample records.','已儲存的 Moodle 範例紀錄。')];
+  if(overview)lines.push(t(`Saved courses: ${rows.length}.`,`已儲存課程：${rows.length} 筆。`));
+  else lines.push(t('Course','課程')+': '+literalRecordText(p.course.title));
+  for(const row of rows){
+    lines.push(`- ${group}: ${literalRecordText(row.label)}`,`  - ${field}: ${literalRecordText(row.value)}`);
+    if(row.url)lines.push(`  - [${t('Open this grade report','開啟此成績報告')}](${row.url})`);
+  }
+  lines.push(`[${t('Open saved Moodle records','開啟已儲存的 Moodle 紀錄')}](${evidence.url})`);
+  const answer=lines.join('\n');
+  const tableRows=rows.slice(0,supplementalAnswerLimits.viewRows);
+  // A card only includes rows whose cells can be displayed without truncation.
+  const views=tableRows.every(row=>row.label.length<=160&&row.value.length<=160)?[{
+    id:'dtmGradeReport',title,url:evidence.url,columns:[overview?t('Course','課程'):t('Report item','報告項目'),field],
+    rows:tableRows.map(row=>[row.label,row.value]),total:rows.length,checkedAt:p.checkedAt,
+    note:tableRows.length<rows.length?t(`First ${tableRows.length} rows. The answer lists all saved rows.`,`前 ${tableRows.length} 筆。回答列出所有已儲存項目。`):'',
+  }]:[];
+  const candidate={status:'answered',answer,citations:[{chunkId:evidence.id,claim:title,title,sourceName:title,url:evidence.url,
+    locator:null,effectiveAt:null,reviewedAt:null}],views};
+  return answer.length<=supplementalAnswerLimits.answerCharacters&&bytes(candidate)<=supplementalAnswerLimits.resultBytes?candidate:null;
 }
 
 // Report an exact projection for ordinary period, net pay and tax queries.
