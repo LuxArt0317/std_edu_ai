@@ -21,6 +21,19 @@ test('detailed report reviews have capacity for independent claims without chang
   assert.equal(requests[0].store,false);
   await verificationModelCall('account_lookup_plan',{},'Plan only',{},Date.now()+5000);
   assert.equal(requests[1].max_output_tokens,2400);
+  assert.equal(requests[1].reasoning.effort,'low');
+  const previousEscalation=process.env.OPENAI_VERIFICATION_ESCALATION_MODEL;
+  process.env.OPENAI_VERIFICATION_ESCALATION_MODEL='test-deeper-model';
+  try{
+    await verificationModelCall('correct_grounded_answer',{},'Use the same evidence',{},Date.now()+5000,[],true);
+    assert.equal(requests[2].model,'test-deeper-model');
+    assert.equal(requests[2].reasoning.effort,'medium');
+    assert.equal(requests[2].max_output_tokens,4096);
+    assert.equal(requests[2].store,false);
+  }finally{
+    if(previousEscalation===undefined)delete process.env.OPENAI_VERIFICATION_ESCALATION_MODEL;
+    else process.env.OPENAI_VERIFICATION_ESCALATION_MODEL=previousEscalation;
+  }
  } finally {globalThis.fetch=savedFetch;if(savedKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=savedKey;}
 });
 

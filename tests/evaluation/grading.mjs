@@ -1,5 +1,6 @@
 /** Independent, declarative acceptance checks. Never use the runtime verdict as the oracle. */
 import {buildGuidanceReviewBinding} from './guidance-rubric.mjs';
+import {maxAnswerVerificationChecks} from '../../src/services/assistantVerificationLimits.js';
 const normalize = value => String(value ?? '').normalize('NFKC').replace(/\*\*|__|`/g, '').replace(/\s+/g, ' ').trim().toLocaleLowerCase();
 const word = /[\p{L}\p{N}_]/u;
 
@@ -644,7 +645,14 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
     check('answer.verification',body.verification?.status==='verified','Runtime evidence verification completed; independent checks still apply.');
   }
   if (expected.verification) check('answer.verification.expected',body.verification?.status===expected.verification,'Declared verification outcome matches.');
-  if (body.verification) check('answer.verification.bound',Number.isInteger(body.verification.attempts) && body.verification.attempts>=0 && body.verification.attempts<=2,'Verification uses at most two checks.');
+  if (body.verification) check('answer.verification.bound',Number.isInteger(body.verification.attempts) && body.verification.attempts>=0 && body.verification.attempts<=maxAnswerVerificationChecks,'Verification stays within the allowed number of checks.');
+  if(body.verification?.attempts===maxAnswerVerificationChecks){
+    const events=Array.isArray(envelope.events)?envelope.events:[];
+    const observed=events.some(step=>step?.kind==='verification-deeper-review'&&step.status==='complete')
+      && events.some(step=>step?.kind==='verification-3'&&step.status===(body.verification.status==='verified'?'complete':'unavailable'));
+    check('answer.verification.deeperObserved',observed&&!events.some(step=>/^account-read:[^:]+:3$/u.test(step?.kind??'')),
+      'Observed the deeper check and its terminal result within the existing account read scope.');
+  }
   for (const [index,value] of (expected.requiredText || []).entries()) check(`text.required.${index}`,matches(text,value),'Required independent text is present with token boundaries.');
   for (const [index,value] of [...(expected.forbiddenText || []),...(expected.forbiddenAccountMarkers || [])].entries()) check(`text.forbidden.${index}`,!outputFields.some(field=>matches(field,value)),'No forbidden contradiction, foreign-account value or unsupported claim appears in prose, cards, citations or actions.');
   for (const [index,fact] of (expected.facts || []).entries()) {

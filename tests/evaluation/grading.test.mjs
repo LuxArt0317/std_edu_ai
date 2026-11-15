@@ -15,6 +15,17 @@ test('independent amount, provenance, local link and selected evidence pass',()=
   const result=gradeCase(record,response());assert.equal(result.passed,true,JSON.stringify(result));
   assert.deepEqual(result.toolEvidence,{attempted:[],observed:[],claimed:['charges'],terminalStates:{}});
 });
+test('a reported third check needs matching observed activity and the same read scope',()=>{
+  const envelope=response(undefined,{verification:{status:'verified',attempts:3}});
+  failure(gradeCase(record,envelope),'answer.verification.deeperObserved');
+  envelope.events=[
+    {kind:'verification-deeper-review',status:'complete'},
+    {kind:'verification-3',status:'complete'},
+  ];
+  assert.equal(gradeCase(record,envelope).passed,true);
+  envelope.events.push({kind:'account-read:charges:3',status:'complete'});
+  failure(gradeCase(record,envelope),'answer.verification.deeperObserved');
+});
 test('self-reported verified and the right substring cannot hide a contradiction',()=>{
   const result=gradeCase(record,response('Your sample QA tuition balance is NT$23,000. Your remaining balance is 999999.'));
   assert.equal(result.passed,false);failure(result,'text.forbidden.0');failure(result,'fact.0');

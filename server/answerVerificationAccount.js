@@ -844,7 +844,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const context={question:resolvedUserQuestion||question,route,history:resolvedUserQuestion?[]:history,serviceNoteScope,aidNext,teachingNext,housingNext,serviceNext,
     ...(resolvedUserQuestion?{resolvedUserQuestion}:{})};
   let evidenceAttempt=1;
-  const diagnosticContext=()=>correlationId?{correlationId,attempt:evidenceAttempt}:undefined;
+  const diagnosticContext=(attempt=evidenceAttempt)=>correlationId?{correlationId,attempt}:undefined;
   const observed=[];
   const emit=step=>{observed.push(step);onProgress?.(step);};
   const plan=servicePlan?{tools:leavePlan?studentLeaveSelectedTools(leavePlan):internshipSelectedTools(internshipPlan),publicTopics:[],catalogQuery:null,responseIntent:'records'}
@@ -997,8 +997,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   }
   // Compose multipart answers from the exact bounded evidence the reviewer
   // receives, instead of trusting a first-match draft from the full snapshot.
-  // This replaces the optional retry-planner call, keeping the existing maximum
-  // of five provider calls and two independent checks per request.
+  // The deeper review, when useful, works from the same verified read scope.
   const recordFreeCoaching=intent.recognized&&intent.kind==='coaching'&&!activeTools.length&&!evidence.length;
   const coachingGuide=recordFreeCoaching?generalCoachingGuide(question):null;
   const composeInitially=servicePlan||dtmCompound||scopedOverview||scopedTimetable||scopedNotes||scopedAid||scopedStudy||scopedTeaching||scopedHousing?needsComposition:needsComposition||(repairLookup.selected||pageLookup.selected)&&plan.publicTopics.length>0||Boolean(resolvedUserQuestion)||intent.kind!=='records'||intent.overview||intent.currentCourses&&intent.year||intent.courseTerms.length>0&&!intent.recognized||!activeTools.length;
@@ -1015,7 +1014,10 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       emit({kind:'account-compose',label:'Answer preparation incomplete',detail:'A fresh evidence-based correction will be attempted within the remaining budget.',status:'unavailable'});
     }
   }
+  const fixedEvidenceScope=servicePlan||scopedAssignment||scopedOverview||scopedNotes||scopedCounseling||scopedTutor||scopedConduct
+    ||scopedClearance||scopedTimetable||scopedAid||scopedStudy||scopedTeaching||housingSelected||applicationSelected;
   const result=await runAnswerVerification({question,initialAnswer:initial,deadline,onProgress:emit,
+    allowDeeperReview:!fixedEvidenceScope&&!recordFreeCoaching&&!pageLookup.selected&&activeTools.length>1,
     loadEvidence:async({attempt,feedback=[]})=>{
       evidenceAttempt=attempt;
       if (attempt>1&&!recordFreeCoaching) {
@@ -1024,7 +1026,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         current=refreshed;
         // Reconsider omitted read capabilities while reserving time for the one
         // correction and second verification. Retry never changes the action.
-        if(!composeInitially&&!servicePlan&&!scopedAssignment&&!scopedOverview&&!scopedNotes&&!scopedCounseling&&!scopedTutor&&!scopedConduct&&!scopedClearance&&!scopedTimetable&&!scopedAid&&!scopedStudy&&!scopedTeaching&&!housingSelected&&!applicationSelected&&Date.now()<deadline-24000){
+        if(!composeInitially&&!fixedEvidenceScope&&Date.now()<deadline-24000){
           emit({kind:'account-replan',label:'Rechecking needed account records',detail:'Checking whether another record collection is needed; no new action or web search runs.',status:'running'});
           const retry=await planAccountLookup(question,history,fullRoute,Math.min(deadline-21000,Date.now()+3000),{previousTools:activeTools,feedback});
           if(!retry.degraded){activeTools=retry.tools;if(retry.catalogQuery!==null)activeCatalogQuery=retry.catalogQuery;}
@@ -1057,7 +1059,8 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         :servicePlan||scopedAssignment||scopedStudy||scopedTeaching||housingSelected||applicationSelected
           ?scopedReviewReferences(context.evidence,activeTools,teaching.selection?.question,Boolean(dtmCompound||leavePlan?.gradeQuestion))
           :activeTools.includes('dtmAssignment')?scopedReviewReferences(context.evidence,['dtmAssignment']):undefined;
-      return verifyEvidenceAnswer({...context,responseIntent:intent.kind,resolvedUserQuestion,requiredEvidenceReferences,diagnosticContext:diagnosticContext()});
+      return verifyEvidenceAnswer({...context,responseIntent:intent.kind,resolvedUserQuestion,requiredEvidenceReferences,
+        deeperReview:context.attempt>2,diagnosticContext:diagnosticContext(context.attempt)});
     },repair:context=>{
       if(coachingGuide&&context.evidence.length===0){
         emit({kind:'general-coaching-guide',label:'Used a general coaching guide',
@@ -1068,7 +1071,8 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         const answer=composeCurrentStudyEvidence(question,context.evidence);
         return {...context.candidate,status:answer?'answered':'abstained',answer:answer??'',citations:answer?evidenceCitations(context.evidence):[]};
       }
-      return repairEvidenceAnswer({...context,responseIntent:intent.kind,resolvedUserQuestion,diagnosticContext:diagnosticContext()});
+      return repairEvidenceAnswer({...context,responseIntent:intent.kind,resolvedUserQuestion,
+        deeperReview:context.attempt>2,diagnosticContext:diagnosticContext(context.attempt)});
     },
   });
   const verified=result.verification?.status==='verified';

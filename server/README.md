@@ -164,7 +164,11 @@ Certificate awards use a bounded caller-JWT reader and send status fields only t
 
 ### Teaching feedback evidence
 
-The account graph reads only the selected student teaching feedback views for focused questions. It checks the literal course, status, questionnaire window and requested comment against each view. A combined teaching feedback, semester and year question requires a reviewer reference to each requested field or its precise missing or failed record state. The graph keeps the two-attempt limit.
+The account graph reads only the selected student teaching feedback views for focused questions. It checks the literal course, status, questionnaire window and requested comment against each view. A combined teaching feedback, semester and year question requires a reviewer reference to each requested field or its precise missing or failed record state.
+
+For eligible read-only account questions, the graph may reconsider a rejected correction with the deeper verification model. This step needs actionable review feedback or a review-output limit, selected evidence, and sufficient time for both a revision and an independent check. It reuses the authorized evidence and stops after the third check. The deterministic course/year repair, record-free coaching guide and proposed-action validation retain their existing paths.
+
+In public web answers, a missing or insufficient initial source can trigger a focused search of official school pages before the correction. The search uses the screened public question. The draft from the search provider supplies no evidence. The response verifies independently fetched page content, deduplicates sources, and can use a deeper check on the collected sources within the request deadline.
 
 ### Saved account overview
 

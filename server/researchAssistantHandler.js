@@ -73,14 +73,14 @@ import { courseSubstitutionQuestion } from '../src/features/public/affairs/cours
 import { createHash } from "node:crypto";
 import { answerInterdisciplinaryPrograms } from "./interdisciplinaryPrograms.js";
 import { isProgramRegistrationQuestion, programRegistrationPath } from "./programRegistrationContract.js";
-import { questionKind, publicSchoolQuestion, searchSchoolWeb } from "./schoolWebSearch.js";
+import { questionKind, publicSchoolQuestion, safeWebSource, searchSchoolWeb } from "./schoolWebSearch.js";
 import { searchAssistantKnowledge } from "./assistantKnowledge.js";
 import { inferKnowledgeLanguage } from "./knowledgePipeline.js";
 import { recordResearchOperation, safeOperationalCode } from "./researchOperations.js";
 import { answerCampusNavigation, answerDirectoryQuestion, directoryEntries } from "./schoolAffairsDirectory.js";
 import { createAssistantStream } from "./assistantStream.js";
 import { runAnswerVerification } from "./answerVerification.js";
-import { verifyEvidenceAnswer, repairEvidenceAnswer } from "./answerVerificationModel.js";
+import { validEvidence, verifyEvidenceAnswer, repairEvidenceAnswer } from "./answerVerificationModel.js";
 import { readVerificationSources } from "./answerVerificationSources.js";
 import { isPublicPageQuestion, loadPublicPageContext, normalizePublicPageRoute, publicPageCandidate } from "./publicPageContext.js";
 export function detectEvidenceConflict(retrieved) {
@@ -916,7 +916,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
             .update(input.question.normalize("NFKC").toLowerCase())
             .digest("hex");
         let webAttempted = false;
-        const publicQuestion = publicSchoolQuestion(input.question, publicGuidanceHistory);
+        const publicQuestion = publicSchoolQuestion(input.question, publicGuidanceHistory.filter(item =>
+            item.role === 'user' && !personalPublicQuestion(item.content)));
         async function tryWebAnswer() {
             if (webAttempted || !publicQuestion || personalQuestion)
                 return false;
@@ -937,8 +938,61 @@ export function createResearchAssistantHandler(dependencies = {}) {
             // Web references are not approved corpus chunk IDs or research-evaluation evidence.
             stream.progress('web', 'Found school sources', `${web.result.citations.length} source links found; checking their contents.`, 'complete');
             const candidate = { status: "answered", answer: web.result.answer, citations: web.result.citations, suggestedQuestions: [], grounding: { source: "web", webSearched: true, checkedAt: web.result.checkedAt, officialOnly: web.result.officialOnly, retrieverVersion: "school-web@1", responseMs: Date.now() - started }, activity: [{ kind: 'knowledge', label: 'Checked managed school knowledge', detail: 'No sufficient current answer found', status: 'complete' }, { kind: 'web', label: 'Searched public school sources', detail: `${web.result.citations.length} source links found`, status: 'complete' }] };
-            const checked = await runAnswerVerification({ question: verificationQuestion, initialAnswer: candidate, deadline, onProgress: verificationProgress,
-                loadEvidence: () => readSources(web.result.citations, deadline), verify: verifyPublicAnswer, repair: repairPublicAnswer });
+            const checkedSources = new Map();
+            const seenUrls = new Set();
+            const steps = new Map();
+            let evidence = [];
+            const progress = (step) => {
+                steps.set(step.kind, step);
+                verificationProgress(step);
+            };
+            async function checkNewSources(citations, until, limit) {
+                const candidates = [];
+                for (const citation of citations) {
+                    const url = safeWebSource(citation.url)?.replace(/\/(?=\?|$)/u, '');
+                    if (!url || seenUrls.has(url)) continue;
+                    seenUrls.add(url);
+                    candidates.push(citation);
+                    if (candidates.length === limit) break;
+                }
+                if (!candidates.length) return [];
+                const fetched = await readSources(candidates, until).catch(() => []);
+                return candidates.flatMap(citation => {
+                    const source = fetched.find(item => item.id === citation.chunkId && item.url === citation.url);
+                    if (!source || !validEvidence([source])) return [];
+                    checkedSources.set(source.id, citation);
+                    return [source];
+                });
+            }
+            const checked = await runAnswerVerification({ question: verificationQuestion, initialAnswer: candidate, deadline, onProgress: progress, allowDeeperReview: true,
+                async loadEvidence({ attempt, previousFailure, deadline: until }) {
+                    if (attempt === 1) {
+                        evidence = await checkNewSources(web.result.citations, until, 4);
+                        return evidence;
+                    }
+                    const needsEvidence = ['unsupported_claims', 'evidence_unavailable', 'no_supported_answer'].includes(previousFailure)
+                        || (previousFailure === 'snapshot_provenance_missing' && kind.fresh);
+                    const searchUntil = Math.min(until - 15_000, Date.now() + 6_500);
+                    if (attempt !== 2 || !needsEvidence || input.images.length || searchUntil - Date.now() < 2_500) return evidence;
+                    const step = { kind: 'web-follow-up', label: 'Looking for a more specific school source' };
+                    progress({ ...step, detail: 'Checking the requested detail on official school pages.', status: 'running' });
+                    // Use only the same screened public question. Review feedback and
+                    // the earlier draft can contain details that must never enter a search.
+                    const followUp = await searchSchoolWeb(publicQuestion, { deadline: searchUntil, followUp: true }).catch(() => null);
+                    const fresh = await checkNewSources(followUp?.discoveredSources || [], Math.min(until - 11_000, Date.now() + 4_000), 2);
+                    if (fresh.length) {
+                        evidence = [...fresh, ...evidence].reduce((merged, source) =>
+                            validEvidence([...merged, source]) ? [...merged, source] : merged, []);
+                    }
+                    progress({ ...step, detail: fresh.length ? 'Read additional official source contents.' : 'No additional official source could be independently read.',
+                        status: fresh.length ? 'complete' : 'unavailable' });
+                    return evidence;
+                },
+                verify: context => verifyPublicAnswer({ ...context, deeperReview: context.attempt > 2 }),
+                repair: context => repairPublicAnswer({ ...context, deeperReview: context.attempt > 2,
+                    candidate: { ...context.candidate, citations: context.evidence.map(source => checkedSources.get(source.id)).filter(Boolean) } }),
+            });
+            checked.activity = [...candidate.activity, ...steps.values()];
             stream.send(200, checked);
             return true;
         }

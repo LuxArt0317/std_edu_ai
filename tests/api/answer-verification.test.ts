@@ -44,6 +44,60 @@ test('a second unsupported draft is withheld together with its proposed action',
   assert.equal(result.proposedAction,undefined);assert.deepEqual(result.citations,[]);
 });
 
+test('a meaningful read-only rejection can trigger a deeper revision without another retrieval',async()=>{
+  const steps:string[]=[];
+  const initialAnswer={status:'answered',answer:'Incorrect balance',citations:[]};
+  const result=await runAnswerVerification({question:'What do I owe?',initialAnswer,allowDeeperReview:true,
+    loadEvidence:async({attempt})=>{steps.push('read:'+attempt);return evidence;},
+    repair:async({attempt,candidate,feedback,evidence:current})=>{
+      steps.push('repair:'+attempt);
+      assert.equal(current,evidence);
+      assert.deepEqual(feedback,['Subtract the saved amount paid.']);
+      return {...candidate,answer:attempt===3?'NT$600 remains.':'Incorrect revision'};
+    },
+    verify:async({attempt,candidate})=>{
+      steps.push('verify:'+attempt);
+      return {ok:candidate.answer==='NT$600 remains.',reason:'unsupported_claims',feedback:['Subtract the saved amount paid.']};
+    },
+  });
+  assert.deepEqual(steps,['read:1','verify:1','read:2','repair:2','verify:2','repair:3','verify:3']);
+  assert.deepEqual(result.verification,{status:'verified',attempts:3});
+  assert.equal(result.answer,'NT$600 remains.');
+  assert.ok(result.activity?.some(step=>step.kind==='verification-deeper-review'));
+});
+
+test('lack of evidence, time, actionable feedback or safe read scope prevents a deeper review',async()=>{
+  for(const discriminator of ['unavailable','deadline','action','no-feedback','no-evidence','three-failures']){
+    const attempts:number[]=[];
+    const initialAnswer={...draft,proposedAction:discriminator==='action'?draft.proposedAction:undefined};
+    const result=await runAnswerVerification({question:'What do I owe?',initialAnswer,allowDeeperReview:true,
+      deadline:Date.now()+(discriminator==='deadline'?10_000:45_000),
+      loadEvidence:async()=>discriminator==='no-evidence'?[]:evidence,repair:async()=>initialAnswer,
+      verify:async({attempt})=>{
+        attempts.push(attempt);
+        return {ok:false,reason:discriminator==='unavailable'?'evidence_unavailable':'unsupported_claims',
+          feedback:discriminator==='no-feedback'?[]:['Match the saved charge only.']};
+      },
+    });
+    assert.deepEqual(attempts,discriminator==='three-failures'?[1,2,3]:[1,2],discriminator);
+    assert.equal(result.status,'abstained');
+    assert.equal(result.proposedAction,undefined);
+    assert.doesNotMatch(result.answer,/NT\$900/);
+  }
+});
+
+test('a failed deeper revision is reported separately from checks that ran',async()=>{
+  const initialAnswer={status:'answered',answer:'Bad fee amount',citations:[]};
+  const result=await runAnswerVerification({question:'Fees?',initialAnswer,allowDeeperReview:true,
+    loadEvidence:async()=>evidence,
+    verify:async()=>({ok:false,reason:'unsupported_claims',feedback:['Check the paid amount.']}),
+    repair:async({attempt})=>{if(attempt===3)throw new Error('No revised draft');return initialAnswer;},
+  });
+  assert.deepEqual(result.verification,{status:'unverified',attempts:2,reason:'repair_unavailable'});
+  assert.ok(result.activity?.some(step=>step.kind==='verification-preparation-3'));
+  assert.ok(result.activity?.every(step=>step.kind!=='verification-3'));
+});
+
 test('supported answers finish without a correction or duplicate read',async()=>{
   let reads=0;
   const result=await runAnswerVerification({question:'Fees?',initialAnswer:draft,loadEvidence:async()=>{reads++;return evidence;},verify:async()=>({ok:true}),repair:async()=>{throw new Error('must not repair');}});

@@ -3,10 +3,12 @@ import {test} from 'node:test';
 import handler from '../../server/assistantConversations.js';
 import {newConversationId} from '../../src/services/assistantConversationId.js';
 
-const steps=Array.from({length:40},(_,index)=>({kind:`account-read:record${index}:2`,label:`Checked record ${index}`,detail:'Read the owned record; checked its source.',status:'complete' as const}));
+const steps=[...Array.from({length:38},(_,index)=>({kind:`account-read:record${index}:2`,label:`Checked record ${index}`,detail:'Read the owned record; checked its source.',status:'complete' as const})),
+  {kind:'verification-deeper-review',label:'Taking a closer look',detail:'Used the same evidence.',status:'complete' as const},
+  {kind:'verification-3',label:'Answer checked against evidence',detail:'The answer passed the evidence checks.',status:'complete' as const}];
 const messages=()=>[{id:'u',role:'user' as const,content:'What is in my records?'},
   {id:'a',role:'assistant' as const,content:'Your checked answer.',phase:'complete' as const,activity:steps,
-    result:{answer:'Your checked answer.',status:'answered' as const,citations:[],suggestedQuestions:[],activity:steps,verification:{status:'verified' as const,attempts:2}}}];
+    result:{answer:'Your checked answer.',status:'answered' as const,citations:[],suggestedQuestions:[],activity:steps,verification:{status:'verified' as const,attempts:3}}}];
 
 test('authenticated persistence sends all normal activity steps and rejects oversized UTF-8 before RPC',async()=>{
   const savedFetch=globalThis.fetch,urlKey=process.env.VITE_SUPABASE_URL,publicKey=process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -25,6 +27,7 @@ test('authenticated persistence sends all normal activity steps and rejects over
   try{
     assert.equal((await call('POST',{id,title:'Records',version:0,messages:messages()})).status,200);
     const read=await call('GET');assert.equal(read.status,200);assert.deepEqual(read.value.messages[1].activity,steps);
+    assert.deepEqual(read.value.messages[1].result.verification,{status:'verified',attempts:3});
     assert.equal((await call('POST',{id,title:'Records',version:1,messages:[{id:'u',role:'user',content:'課'.repeat(65000)}]})).status,400);
     assert.equal(writes,1);
   }finally{globalThis.fetch=savedFetch;if(urlKey===undefined)delete process.env.VITE_SUPABASE_URL;else process.env.VITE_SUPABASE_URL=urlKey;if(publicKey===undefined)delete process.env.VITE_SUPABASE_PUBLISHABLE_KEY;else process.env.VITE_SUPABASE_PUBLISHABLE_KEY=publicKey;}

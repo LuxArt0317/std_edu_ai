@@ -2,7 +2,7 @@
 
 ## Account assistant verification and conversations
 
-The existing server-only `OPENAI_API_KEY` powers drafting and independent verification. Optional `OPENAI_VERIFICATION_MODEL` selects the verifier/correction/planner model; it otherwise uses `OPENAI_PUBLIC_MODEL`, then `OPENAI_MODEL`, then the existing default. Never use a `VITE_` variable for the provider key. There is no separate MCP server or LangSmith tracing/checkpoint requirement.
+The existing server-only `OPENAI_API_KEY` powers drafting and independent verification. Optional `OPENAI_VERIFICATION_MODEL` selects the standard verifier, correction and planner model. It otherwise uses `OPENAI_PUBLIC_MODEL`, `OPENAI_MODEL`, or `gpt-5.6-terra` in that order. A deeper revision uses medium reasoning with the configured standard model. Set the server-only `OPENAI_VERIFICATION_ESCALATION_MODEL` to compare a stronger model such as `gpt-6.1-sol` on the protected Preview. Measure verified answer quality, provider access and response time before rollout. Keep the provider key in server-only environment variables. There is no separate MCP server or LangSmith tracing/checkpoint requirement.
 
 Apply the independent assistant migration using `npm run db:plan -- --only=20261112120000` followed by `npm run db:deploy -- --only=20261112120000` after checking the exact client project. Account chats require this schema. Guest chats remain tab-local; signed-in conversations use the existing School Affairs Google session. Limits: 100 account conversations, 20 cached tab conversations, 24 messages per chat, no saved image bytes or executable action payloads. Conflicting edits require an explicit reload; action confirmation uses durable replay IDs.
 

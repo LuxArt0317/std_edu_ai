@@ -1,9 +1,12 @@
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
+import { maxAnswerVerificationChecks } from '../src/services/assistantVerificationLimits.js';
 
 const VerificationState = Annotation.Root({
-  attempt: Annotation(), verdict: Annotation(),
+  attempt: Annotation(), verdict: Annotation(), previousFailure: Annotation(),
 });
-const maxAttempts = 2;
+const standardChecks = 2;
+const deeperReviewBudgetMs = 18_000;
+const deeperReviewReasons = new Set(['unsupported_claims', 'no_supported_answer', 'snapshot_provenance_missing', 'verification_output_limit']);
 
 export function unverifiedAnswer(question, candidate, activity, attempts, reason) {
   const chinese = /[\u3400-\u9fff]/.test(question);
@@ -21,11 +24,11 @@ export function unverifiedAnswer(question, candidate, activity, attempts, reason
 
 /** Request-local graph. Its retry edge only reads evidence and revises text. */
 export async function runAnswerVerification({
-  question, initialAnswer, loadEvidence, verify, repair, onProgress, deadline = Date.now() + 50_000,
+  question, initialAnswer, loadEvidence, verify, repair, onProgress, allowDeeperReview = false, deadline = Date.now() + 50_000,
 }) {
   // Keep account data out of graph traces/checkpoints. Every invocation owns its
   // evidence and draft; the graph state contains only bounded control metadata.
-  let candidate = initialAnswer, evidence = [], feedback = [];
+  let candidate = initialAnswer, evidence = [], feedback = [], checks = 0;
   const activity = [];
   const emit = (kind, label, detail, status = 'complete') => {
     const step = { kind, label, detail, status };
@@ -34,19 +37,25 @@ export async function runAnswerVerification({
     try { onProgress?.(step); } catch { /* A closed stream cannot approve a draft. */ }
   };
   const withinBudget = () => Date.now() < deadline - 500;
-  const bounded = async work => {
+  const shouldDeepen = verdict => allowDeeperReview && !initialAnswer?.proposedAction && !candidate?.proposedAction
+    && evidence.length > 0 && deeperReviewReasons.has(verdict.reason)
+    && (feedback.length > 0 || verdict.reason === 'verification_output_limit') && deadline - Date.now() >= deeperReviewBudgetMs;
+  const bounded = async (work, until = deadline) => {
     let timer;
     try {
       return await Promise.race([work(),new Promise((_,reject)=>{
-        timer=setTimeout(()=>reject(new Error('Verification time limit')),Math.max(1,deadline-Date.now()));
+        timer=setTimeout(()=>reject(new Error('Verification time limit')),Math.max(1,until-Date.now()));
       })]);
     } finally { clearTimeout(timer); }
   };
   const graph = new StateGraph(VerificationState)
     .addNode('retrieve', async state => {
       if (!withinBudget()) return { verdict: { ok: false, reason: 'timeout' } };
+      // A deeper review changes how the draft is reasoned through. It has no
+      // authority to search again, widen the account scope or execute a write.
+      if (state.attempt > standardChecks) return { verdict: null };
       try {
-        evidence = await bounded(()=>loadEvidence({ attempt: state.attempt, deadline, feedback }));
+        evidence = await bounded(()=>loadEvidence({ attempt: state.attempt, deadline, feedback, previousFailure:state.previousFailure }));
         return { verdict: null };
       } catch {
         evidence = [];
@@ -56,7 +65,8 @@ export async function runAnswerVerification({
     .addNode('draft', async state => {
       if (state.attempt === 1 || state.verdict || !withinBudget()) return {};
       try {
-        candidate = await bounded(()=>repair({ question, candidate, evidence, deadline, feedback }));
+        const repairDeadline=state.attempt>standardChecks?deadline-8_000:deadline;
+        candidate = await bounded(()=>repair({ question, candidate, evidence, deadline:repairDeadline, feedback, attempt:state.attempt }),repairDeadline);
         return {};
       } catch (error) {
         // Missing sources or invented correction links are evidence failures,
@@ -67,13 +77,12 @@ export async function runAnswerVerification({
       }
     })
     .addNode('verify', async state => {
-      emit(`verification-${state.attempt}`, 'Checking answer against evidence', `Verification attempt ${state.attempt} of ${maxAttempts}.`, 'running');
       let verdict = state.verdict;
-      if (!verdict) {
+      if (!verdict && withinBudget()) {
+        checks++;
+        emit(`verification-${state.attempt}`, 'Checking answer against evidence', `Verification check ${checks}.`, 'running');
         try {
-          const review = withinBudget()
-            ? await bounded(()=>verify({ question, candidate, evidence, deadline, feedback }))
-            : { ok: false, reason: 'timeout' };
+          const review = await bounded(()=>verify({ question, candidate, evidence, deadline, feedback, attempt:state.attempt }));
           feedback = Array.isArray(review.feedback) ? review.feedback.slice(0, 12) : [];
           verdict = { ok: review.ok === true, reason: review.reason || 'unsupported_claims' };
         } catch (error) {
@@ -81,32 +90,42 @@ export async function runAnswerVerification({
             : error?.code === 'VERIFICATION_TIMEOUT' ? 'verification_timeout' : 'verifier_unavailable';
           verdict = { ok: false, reason };
         }
+        emit(`verification-${state.attempt}`, verdict.ok ? 'Answer checked against evidence' : 'Answer could not be verified',
+          verdict.ok ? 'The answer passed the evidence checks.' : 'The current draft was withheld.', verdict.ok ? 'complete' : 'unavailable');
+      } else {
+        verdict ||= { ok: false, reason: 'timeout' };
+        emit(`verification-preparation-${state.attempt}`, 'Could not prepare an answer to check',
+          'This attempt ended before a draft could be checked.', 'unavailable');
       }
       if (verdict?.ok !== true) verdict = { ok: false, reason: verdict?.reason || 'unsupported_claims' };
-      emit(`verification-${state.attempt}`, verdict.ok ? 'Answer checked against evidence' : 'Answer could not be verified',
-        verdict.ok ? 'The answer passed the evidence checks.' : 'The current draft was withheld.', verdict.ok ? 'complete' : 'unavailable');
       return { verdict };
     })
     .addNode('retry', state => {
-      emit('verification-retry', 'Rechecking and correcting the answer', 'Reloading the evidence and preparing one corrected draft.');
-      return { attempt: state.attempt + 1, verdict: null };
+      if(state.attempt===standardChecks)emit('verification-deeper-review','Taking a closer look at the answer',
+        'Reconsidering the unresolved claims using the same authorized evidence.');
+      else emit('verification-retry', 'Rechecking and correcting the answer', 'Reloading the evidence and preparing one corrected draft.');
+      return { attempt: state.attempt + 1, verdict: null, previousFailure:state.verdict.reason };
     })
     .addEdge(START, 'retrieve')
     .addEdge('retrieve', 'draft')
     .addEdge('draft', 'verify')
-    .addConditionalEdges('verify', state => state.verdict.ok || state.attempt >= maxAttempts || !withinBudget() ? END : 'retry')
+    .addConditionalEdges('verify', state => {
+      if(state.verdict.ok || state.attempt >= maxAnswerVerificationChecks || !withinBudget())return END;
+      return state.attempt < standardChecks || shouldDeepen(state.verdict) ? 'retry' : END;
+    })
     .addEdge('retry', 'retrieve')
     .compile();
   let result;
   try {
-    result = await graph.invoke({ attempt: 1, verdict: null }, { recursionLimit: 12, callbacks: [] });
+    result = await graph.invoke({ attempt: 1, verdict: null }, { recursionLimit: 15, callbacks: [] });
   } catch {
-    return unverifiedAnswer(question, candidate, activity, 0, 'verification_unavailable');
+    return unverifiedAnswer(question, candidate, activity, checks, 'verification_unavailable');
   }
-  if (!result.verdict.ok) return unverifiedAnswer(question, candidate, activity, result.attempt, result.verdict.reason);
+  const attempts=allowDeeperReview?checks:result.attempt;
+  if (!result.verdict.ok) return unverifiedAnswer(question, candidate, activity, attempts, result.verdict.reason);
   return {
     ...candidate,
-    verification: { status: 'verified', attempts: result.attempt },
+    verification: { status: 'verified', attempts },
     activity: [...(candidate.activity || []), ...activity],
   };
 }
