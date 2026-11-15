@@ -249,7 +249,7 @@ Run `node --experimental-strip-types --test tests/api/aid-payments-assistant-rou
 
 ## Teaching feedback coverage
 
-The independent 40-question offline packet models both student teaching feedback views, caller ownership, exact course filters, anonymous-response limitations and companion School Affairs requests. Intercepted API tests exercise the verification graph, including deliberate rejection and a draft that omits a requested part. The packet is outside the live fixture manifest and carries no live model acceptance.
+The independent 40-question packet models both student teaching feedback views, caller ownership, exact course filters, anonymous-response limitations and companion School Affairs requests. The isolated PostgreSQL replay now passes 26 original questions through the actual handlers, including exact UTC timestamps, explicit exclusions, empty views and separate review and delivery meanings. A combined answer requires evidence from both requested views. The frozen packet still needs its own hosted fixture and companion coverage. See the [case guide](TEACHING_FEEDBACK_LIVE_EVALUATION.md).
 
 ### Native internship views
 

@@ -238,6 +238,11 @@ HTML block creation, Administration block behavior and unobserved Move interacti
 
 ## Phase Next: systemwide assistant evaluation [Issue #100]
 
+- [x] Verify the full Quality rerun and replay the nine mounted Moodle assignment and 18 club-attendance cases on exact `c089be2` with verified cleanup.
+- [x] Reproduce and fix a third-check review truncation that skipped an unread source. Verify the fourth review and its exact citation through the public handler.
+- [x] Expand independently graded teaching-feedback replay to 26 original questions on isolated PostgreSQL and add two selected certificate routes and the 27-1 review role split to browser coverage.
+- [ ] Verify the new 15-case Moodle assignment report and teaching sample compatibility on the exact protected candidate.
+
 - [x] Verify exact protected `a8d8fb9` CI and replay 16 clearance and 11 Academic Services questions. Recover the clearance fixture separately and preserve the original cleanup result.
 - [x] Check all three positive clearance-window cases through isolated SQL and actual handlers, plus 13 previously unavailable Student Clubs browser observations with separate manager and student outcomes.
 - [x] Check five unchanged teaching-survey prompts against actual isolated PostgreSQL and the API. Keep the remaining teaching questions and hosted evidence visible.
