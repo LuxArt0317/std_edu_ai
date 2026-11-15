@@ -1045,7 +1045,7 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Retry one classified temporary acquisition failure. Verify the third-check recovery and bounded-stop cases. Pin three public smoke requests to protected `85133e4`.
 - [x] Run the eight local certificate cases and the local Moodle timing and confirmed tracker packets against migrated PostgreSQL.
 - [x] Run the certificate receipt, portable assignment timing and confirmed tracker packets on protected `ebc5092` with exact fixture disposal.
-- [ ] Evaluate the four original fixed assignment cases inside their expected Taipei windows.
+- [ ] Evaluate the overdue original on November 16 from 18:00:00.001 Taipei time and start strictly before November 17 at 09:08:55. Run the three fixed calendar originals on November 17, starting before 23:58:55. Use the exact approved protected build and one fixture lease per family. Keep portable results separate.
 - [ ] Complete broader signed-in service replay and production release acceptance.
 
 
@@ -1081,11 +1081,11 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Replay all ten Attendance cases, all 12 Course Selection cases and six funded or verified-empty signed monthly answers on protected `5e6af59` with 33 exact pins and three verified cleanups.
 - [ ] Verify the migration-dependent rental action and Learning Support in isolated hosting.
 - [x] Mount and pass the two original 52-1 signed browser cases on exact `186f495`. Verify displayed text and Activity, the browser save, fresh-context restore, independent own/crossed readbacks and cleanup.
-- [ ] Verify the consolidated live evaluator records just the two protected certificate dispatch results in the full 30-case bank.
+- [x] Verify the consolidated live evaluator counts both protected certificate results and retains the full release blocker for the other 28 browser cases.
 - [ ] Complete signed browser dispatch observations before production acceptance. Use request-scoped server observation for zero-private-read assertions once a graph request is sent.
 
 ### Tutor Evaluation and tuition [Issue #100]
 
 - [x] Verify both frozen compound wording orders and explicit questionnaire exclusion through the actual graph and migrated two-account PostgreSQL.
 - [x] Bind the three frozen cases to a protected fixture with two independent unchanged scoped records and exact disposal.
-- [ ] Replay the three original questions on the protected Tutor/tuition revision after the certificate browser lease settles.
+- [x] Pass all three original Tutor and named tuition questions on exact protected `41a7dbe` with three matching release pins and verified two-owner disposal.
