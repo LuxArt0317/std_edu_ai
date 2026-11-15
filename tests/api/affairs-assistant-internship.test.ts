@@ -27,7 +27,7 @@ const previewEnv={VERCEL_ENV:'preview',VERCEL_URL:new URL(previewOrigin).host,VE
 const columns:Record<string,string>={title:'title',status:'status',startsOn:'starts_on',endsOn:'ends_on',notes:'notes'};
 const bank=buildInternshipNativeCases();
 const rowFor=(suffix:string)=>bank.find(row=>row.id==='account:internship-native-'+suffix)!;
-type Body={question:string;route:string;history?:Array<{role:string;content:string}>};
+type Body={question:string;route:string;evaluationLeaveProbe?:string;history?:Array<{role:string;content:string}>};
 
 async function invoke(handler:any,body:Body,host?:string){
   const captured={status:200,body:null as any,headers:new Headers()};
