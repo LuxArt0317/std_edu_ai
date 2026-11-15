@@ -82,7 +82,8 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
   async function dispatch({url:raw,method,headers:input,body,frameUrl,signal}={}){
     const url=target(raw),path=url.pathname+url.search,received=new Headers(input);
     check(signal===undefined||signal instanceof AbortSignal&&!signal.aborted,'invalid request signal');
-    check(!received.has(previewTrustedHeader),'inherited Preview credential');
+    check(!received.has(previewTrustedHeader)&&![...received.values()].some(value=>value.includes(token))
+      &&(typeof body!=='string'||!body.includes(token)),'inherited Preview credential');
     if(url.origin===project&&authPaths.has(path)&&
       (authPaths.get(path)===method||method==='OPTIONS'&&body===undefined&&!received.has('authorization')))
       return {kind:'supabase-auth'};
