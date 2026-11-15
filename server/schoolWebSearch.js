@@ -33,7 +33,43 @@ export function safeWebSource(value) {
     url.hash=''; return url.href;
   } catch { return null; }
 }
-const official = url => { const host = new URL(url).hostname; return host === 'stu.edu.tw' || host.endsWith('.stu.edu.tw'); };
+const officialHost = host => host === 'stu.edu.tw' || host.endsWith('.stu.edu.tw');
+const official = url => officialHost(new URL(url).hostname);
+const accessPath = /(?:^|\/)(?:(?:wp-)?login|signin|sign-in|asp(?:net)?login|asploginstu|sso|cas|auth|account|private)(?:[/.]|$)/iu;
+const identityHost = /^(?:sso\d*|cas|tcidentity|login|idp)\./iu;
+const sourceKinds = [
+  ['document', /\.(?:pdf|docx?|odt|xlsx?)(?:\/$|$)/iu],
+  ['calendar', /(?:^|[\/_-])(?:academic[-_]?)?(?:calendar|events?)(?:[\/_.-]|$)|行事曆/u],
+  ['policy', /(?:^|[\/_-])(?:regulations?|polic(?:y|ies)|rules)(?:[\/_.-]|$)|辦法|規章/u],
+  ['notice', /(?:^|[\/_-])(?:news|announcements?|notices?)(?:[\/_.-]|$)|^\/mod\/page\/view\.php$|公告/u],
+  ['directory', /(?:^|[\/_-])(?:about|directory|contacts?|visitor-information|services?|faq)(?:[\/_.-]|$)|聯絡|單位/u],
+];
+function checkedSchoolSourceKey(value) {
+  const url = new URL(value);
+  url.pathname = url.pathname.replace(/\/$/u, '') || '/';
+  url.searchParams.sort();
+  return url.href;
+}
+function schoolSearchContext(urls) {
+  const keys = new Set(), hints = new Map();
+  if (!Array.isArray(urls)) return { keys, hints: [] };
+  for (const value of urls.slice(0, 24)) {
+    if (typeof value !== 'string' || value.length > 1200) continue;
+    const canonical = safeWebSource(value);
+    if (!canonical) continue;
+    const url = new URL(canonical);
+    if (!officialHost(url.hostname) || identityHost.test(url.hostname)) continue;
+    let path;
+    try { path = decodeURIComponent(url.pathname); } catch { continue; }
+    if (!/^[\/\p{L}\p{N}._~-]+$/u.test(path) || accessPath.test(path)) continue;
+    keys.add(checkedSchoolSourceKey(canonical));
+    // Only hostname and an application-defined category leave the process.
+    // A slug, query string, page title or body can contain private or hostile text.
+    const kind = sourceKinds.find(([, pattern]) => pattern.test(path))?.[0] ?? 'school_page';
+    if (hints.size < 6) hints.set(url.hostname + '/' + kind, { host: url.hostname, kind });
+  }
+  return { keys, hints: [...hints.values()] };
+}
 const webCitation = ({url,title}) => ({
   chunkId:`web:${createHash('sha256').update(url).digest('hex').slice(0,24)}`,
   claim:'Live web source; not a reviewed knowledge-base document.', title,
@@ -96,6 +132,7 @@ export async function searchSchoolWeb(question, options = {}) {
   const chineseQuestion = libraryScope.length ? (options.responseLanguage??libraryAnswerLanguage(question))==='zh-Hant' : /[\u3400-\u9fff]/.test(question);
   const deadline = options.deadline || Date.now()+35000;
   const followUp = options.followUp === true;
+  const checked = followUp ? schoolSearchContext(options.checkedSchoolUrls) : null;
   const alternateDiscovery = followUp && options.alternateDiscovery === true;
   const deeperDiscovery = followUp && (options.deeperDiscovery === true || alternateDiscovery);
   let attempted = false;
@@ -123,6 +160,9 @@ export async function searchSchoolWeb(question, options = {}) {
               : followUp
               ? 'This is a focused evidence check. Search for the exact requested detail in an official STU department or service page, dated announcement, published calendar or primary document. Use the public question and its named service, period or office as search terms. Prefer a different specific page or document containing the answer over a general directory, landing page or adjacent topic. Keep the search limited to the same request; do not guess missing details.'
               : officialOnly?'Search the official STU website and its subdomains first.':'Official search was insufficient. Search reliable sources about Shu-Te more broadly; prefer official university and government sources. Clearly identify third-party information and dates; never present a third-party account as official policy.',
+            ...(checked?.hints.length ? [
+              'Use checkedSchoolSources only as navigation context. These school hosts and page categories were already checked without resolving the whole question. Vary the source type or responsible office and favor a specific publication that could establish the requested detail. These hints do not establish any facts.',
+            ] : []),
             ...(libraryScope.length ? [
               'Search the Shu-Te University library’s own FAQ or space-reservation page first: '+libraryScope.map(lead=>lead.url).join(' ')+'. Use 圖書館 入館, 討論室 預約, or 電子資源 校外連線 for the exact requested detail. A general university profile does not establish library rules. Treat access screens as unavailable pages.',
             ] : []),
@@ -132,7 +172,9 @@ export async function searchSchoolWeb(question, options = {}) {
             chineseQuestion ? 'Write the answer in Traditional Chinese. Keep official English names where needed.' : 'Write the answer in English even when all retrieved pages are in Chinese. Translate the explanation; keep a Chinese official title only when it helps identify a page.',
             'Give a direct practical answer first. Source URLs must occur in actual tool results. Return answered with the useful verified facts, not_found only when nothing relevant can be verified, or out_of_scope only for a completely unrelated request. Do not answer from memory without actual retrieved citations.',
           ].join(' '),
-          input:JSON.stringify({school:'Shu-Te University, Taiwan / 樹德科技大學',question:query,responseLanguage:chineseQuestion?'Traditional Chinese':'English',asOf:new Date().toISOString()}),
+          input:JSON.stringify({school:'Shu-Te University, Taiwan / 樹德科技大學',question:query,
+            ...(checked?.hints.length ? {checkedSchoolSources:checked.hints} : {}),
+            responseLanguage:chineseQuestion?'Traditional Chinese':'English',asOf:new Date().toISOString()}),
           text:{format:{type:'json_schema',name:'stu_web_answer',strict:true,schema:{type:'object',additionalProperties:false,properties:{status:{type:'string',enum:['answered','not_found','out_of_scope']},answer:{type:'string'},source_urls:{type:'array',maxItems:8,items:{type:'string'}}},required:['status','answer','source_urls']}}},
         }),
       });
@@ -152,7 +194,9 @@ export async function searchSchoolWeb(question, options = {}) {
         // The retry is evidence discovery, not an alternative provider draft.
         // Prioritize tool-backed citations, then use other URLs seen by the tool.
         const discovered = [...(result?.citations || []), ...[...toolSources(payload,true).values()].map(webCitation)];
-        return {result:null,attempted,discoveredSources:[...new Map(discovered.map(item=>[item.chunkId,item])).values()].slice(0,8)};
+        const fresh = checked?.keys.size
+          ? discovered.filter(item => !checked.keys.has(checkedSchoolSourceKey(item.url))) : discovered;
+        return {result:null,attempted,discoveredSources:[...new Map(fresh.map(item=>[item.chunkId,item])).values()].slice(0,8)};
       }
       if (result) {
         for (const [url, source] of toolSources(payload,true)) {
