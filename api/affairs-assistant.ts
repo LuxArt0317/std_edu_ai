@@ -19,6 +19,7 @@ import {isElearningCatalogPageQuestion,selectElearningCatalogPage} from '../serv
 import {isElearningMetadataQuestion,selectElearningMetadata} from '../server/elearningMetadataIntent.js';
 import {answerDtmMaterial} from '../server/accountDtmMaterialAnswer.js';
 import {answerDtmAssignmentList} from '../server/accountDtmAssignmentListAnswer.js';
+import {answerDtmStudyRecords,dtmStudySelection} from '../server/accountDtmStudyAnswer.js';
 import {dtmAssignmentListBoundary,dtmAssignmentListSelection} from '../server/dtmAssignmentListIntent.js';
 import {dtmMaterialBoundary,dtmMaterialIntent} from '../server/dtmMaterialIntent.js';
 import {answerDtmSubmissionTiming} from '../server/accountDtmSubmissionTiming.js';
@@ -451,6 +452,17 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       stream.send(200,await answerDtmSubmissionTiming({account,selection:submissionTiming,question,deadline,
         onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));
     }catch{stream.send(503,{error:'The selected submission timing could not be checked.'});}
+    return;
+  }
+  const dtmStudy=!history.length?dtmStudySelection(question,route):null;
+  if(dtmStudy){
+    if(Array.isArray(input?.images)&&input.images.length){
+      stream.send(400,{error:'Ask about your saved Moodle records using text, without an image.'});return;
+    }
+    try{
+      stream.send(200,await answerDtmStudyRecords({account,selection:dtmStudy,question,route,deadline,
+        onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));
+    }catch{stream.send(503,{error:'The selected Moodle records could not be checked.'});}
     return;
   }
   const assignmentList=dtmAssignmentListSelection(question,route);

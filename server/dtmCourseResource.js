@@ -80,6 +80,44 @@ export async function loadDtmCourseResource(account,options){
     material:item?{id:item.id,userId:row.user_id,courseId:item.course_id,title:item.title,kind:item.kind,summary:item.summary,position:item.position,sourceMode:item.source_mode,sourceUrl:item.source_url,targetUrl:item.target_url}:null},caller.userId,courseId,materialId);
 }
 
+const studyLimit=40;
+const studyCourseFields=['id','user_id','code','title','term','source_mode','role'];
+const studyMeetingFields=['id','course_id','meeting_on','starts_at','title','attendance','notes','dtm_courses'];
+const studyText=(value,max,required=false)=>unicode(value)&&[...value].length<=max&&(!required||value.trim().length>0);
+const studyDate=value=>typeof value==='string'&&/^20\d\d-\d\d-\d\d$|^2100-\d\d-\d\d$/u.test(value)
+  &&Number.isFinite(Date.parse(value))&&new Date(value).toISOString().slice(0,10)===value;
+
+export function parseDtmStudyRecords(value,userId,courseId){
+  budget(value);
+  if(!exact(value,['courses','meetings','courseTotal','meetingTotal'])||!uuid(userId)||courseId!==null&&!uuid(courseId))throw malformed();
+  const {courses,meetings,courseTotal,meetingTotal}=value;
+  const counts=(rows,total)=>Array.isArray(rows)&&Number.isSafeInteger(total)&&total>=0&&rows.length===Math.min(studyLimit,total);
+  if(!counts(courses,courseTotal)||!counts(meetings,meetingTotal)||courseId!==null&&courseTotal>1
+    ||(courseId===null||courses.length===0)&&meetingTotal!==0
+    ||new Set(courses.map(row=>row?.id)).size!==courses.length||new Set(meetings.map(row=>row?.id)).size!==meetings.length
+    ||new Set(meetings.map(row=>row?.meeting_on+'T'+row?.starts_at)).size!==meetings.length)throw malformed();
+  if(courses.some(row=>!exact(row,studyCourseFields)||!uuid(row.id)||row.user_id!==userId||courseId!==null&&row.id!==courseId
+    ||!mode(row.source_mode)||!['student','teacher'].includes(row.role)||!['code','title','term'].every(key=>studyText(row[key],200,true))))throw malformed();
+  if(meetings.some(row=>!exact(row,studyMeetingFields)||!uuid(row.id)||row.course_id!==courseId
+    ||!exact(row.dtm_courses,['id','user_id'])||row.dtm_courses.id!==courseId||row.dtm_courses.user_id!==userId
+    ||!studyDate(row.meeting_on)||!/^([01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,6})?$/u.test(row.starts_at)
+    ||!studyText(row.title,160,true)||!studyText(row.notes,2000)||!['unknown','present','absent','late','excused'].includes(row.attendance)))throw malformed();
+  return structuredClone(value);
+}
+
+/** Exact own course and meeting metadata. No app provisioning or unrelated reader. */
+export async function loadDtmStudyRecords(account,courseId){
+  if(courseId!==null&&!uuid(courseId))throw new DtmCourseResourceError('Choose one saved Moodle course.',400);
+  const caller=capture(account),limit=String(studyLimit);
+  const courses=await request(caller,'dtm_courses',{exactCount:true,query:{select:studyCourseFields.join(','),user_id:'eq.'+caller.userId,
+    ...(courseId?{id:'eq.'+courseId}:{}),limit,order:'id.asc'}});
+  const scope=parseDtmStudyRecords({courses:courses.rows,courseTotal:courses.total,meetings:[],meetingTotal:0},caller.userId,courseId);
+  if(!courseId||!scope.courses.length)return scope;
+  const meetings=await request(caller,'dtm_meetings',{exactCount:true,query:{select:'id,course_id,meeting_on,starts_at,title,attendance,notes,dtm_courses!inner(id,user_id)',
+    course_id:'eq.'+courseId,'dtm_courses.user_id':'eq.'+caller.userId,order:'meeting_on.asc,starts_at.asc,id.asc',limit}});
+  return parseDtmStudyRecords({...scope,meetings:meetings.rows,meetingTotal:meetings.total},caller.userId,courseId);
+}
+
 export const dtmMaterialListLimit = 12;
 
 /** Read only the named caller-owned course's teaching-material rows.

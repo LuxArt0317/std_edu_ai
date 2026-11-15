@@ -174,6 +174,15 @@ The separate `--published-timetable` packet checks both orders of an Internship 
 
 The isolated `dtm-assignment-list` family mounts nine of those cases on a protected Preview. It checks all assignments from a course and from the signed-in account, one fixed Taipei due date, open/completed/graded/submitted filters, titles only, and the exact count. The fixture records two independent signed-in owner projections before and after each assistant request. It also checks that the pinned request emitted the selected Moodle read and completed verification, and that cleanup removed the reserved courses and assignments. Relative-date, unavailable and legacy cases keep their existing evaluation coverage.
 
+### Saved Moodle courses and meetings
+
+```sh
+node tests/evaluation/run-dtm-study-preview.mjs --preflight
+node tests/evaluation/run-dtm-study-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVISION"
+```
+
+Preflight lists the mounted count without accessing credentials. Run the protected command from the exact deployed revision with the disposable-fixture environment and an authorized Development `VERCEL_OIDC_TOKEN`. It mounts the five original questions about courses for a term, course roles, meeting notes, the next meeting, and attendance. It uses the original independent answer grader and requires that the assistant verify each answer from the caller's native records. Two separate JWTs verify owned and crossed reads of the exact courses and meetings before and after each pinned request. Independent SQL checks the same rows, and cleanup verifies the disposable rows and identities are gone. The local test also covers unavailable reads, invalid owner lineage, and missing meeting start times.
+
 ### Native Moodle grade reports
 
 ```sh
