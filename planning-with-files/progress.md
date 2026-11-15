@@ -35,3 +35,5 @@
 - 2026-11-15 [#100] The four remaining mounted note companions and the tuition-payment boundary passed on protected `3f706aa`. Protected `59585be` passed Quality 43682944242. The first exact-field Student Leave attempt reached the evaluation deadline during a release check and wrote a cleaned journal with no active fixture rows. The retry uses three separately reported batches with more time for independent ownership and release checks.
 
 - 2026-11-15 [#100] Protected `16787a5` passed four live public checks, including third-check recovery after two rejected OneDrive drafts. Independently checked the cited capture and FAQ excerpts. API/source checks passed 1,802. Integrated the two new signed-in learning evaluation packets at `aa31201` and started their pinned Preview acceptance sequence.
+
+- 2026-11-15 [#100] Verified 9 Moodle and 16 Academy native signed-in Preview replies with release pin, separate readback evidence and fixture cleanup. GitHub Quality 43685077545 passed for the public recovery build. Replayed the actual protected OneDrive reply in desktop and mobile Chrome and checked saved Activity after reload.

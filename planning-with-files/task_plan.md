@@ -816,7 +816,7 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify through the actual handler that two rejected drafts can recover using a newly read primary source on check three, even with no new reviewer feedback.
 - [x] Verify all 18 exact signed-in Student Leave replies and fixture cleanup on the pinned `59585be` Preview.
 - [x] Verify the new public search paths with the provider on immutable protected Preview `16787a5`.
-- [ ] Verify the nine Moodle assignment-list and 16 Digital Academy catalog readbacks on protected `aa31201` with fixture cleanup.
+- [x] Verify the nine Moodle assignment-list and 16 Digital Academy catalog readbacks on protected `aa31201` with fixture cleanup.
 - [x] Verify overview and balance recovery from refreshed saved fields with deliberately rejected first reviews.
 - [x] Replay the repaired account replies through the exact protected Preview and verify fixture cleanup.
 - [x] Independently grade all four reported replies on the protected source recovery Preview.
