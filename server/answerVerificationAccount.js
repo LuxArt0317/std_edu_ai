@@ -1049,7 +1049,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     const notes=answerSavedServiceRecords(serviceNoteScope.noteQuestion,{profile:current.profile,checkedAt:payload.checkedAt??current.checkedAt},route,history,{serviceNoteScope,
       selectedEvidence:{records:unavailable?[]:payload.records,selection},unavailable,excerpted:payload.excerpted});
     if(notes&&serviceNoteScope.boundaryKeys.length){
-      const boundary=supplementalAnswerLanguage(question)==='zh-TW'?'站內備註無法確認校方的處理結果。':'I cannot verify an official outcome from a saved tracking note.';
+      const boundary=supplementalAnswerLanguage(question)==='zh-TW'?'這則追蹤備註無法確認您詢問的處理結果。':'This tracking note cannot verify the outcome you asked about.';
       notes.answer+='\n\n'+boundary;
     }
     return notes;

@@ -214,7 +214,7 @@ test('direct note answers distinguish a saved-only qualifier from an explicit re
     const result=await ask('Does the tracking status in my group insurance note prove insurer approval? Show the saved note and explain the limit.',path('35-1'));
     assert.deepEqual(result.verification,{status:'verified',attempts:1});
     assert.match(result.answer,/\*\*Saved reference\*\*: filed \\?\(self-marked\\?\)/u);
-    assert.match(result.answer,/cannot verify an official outcome/u);
+    assert.match(result.answer,/cannot verify the outcome/u);
   });
   await fakeSources({key:'35-1'},async()=>{
     const result=await ask('請顯示我在「學生團體保險查詢」儲存的備註與追蹤狀態。',path('35-1'));

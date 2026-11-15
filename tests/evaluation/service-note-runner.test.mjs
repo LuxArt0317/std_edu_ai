@@ -42,9 +42,26 @@ test('the main suite preserves every note question and explicitly fences off the
   assert.deepEqual(serviceNoteCaseManifest.assistantMutations,[]);
 });
 
-test('real boundary handlers satisfy twenty-two mounted cases without network, model or storage',async()=>{
-  const fetch=globalThis.fetch;let network=0,unexpectedSnapshots=0,verifiedAccounts=0,index=0;
-  globalThis.fetch=async()=>{network++;throw new Error('Network is unavailable in this test.');};
+test('real handlers satisfy all mounted note and access cases using only the selected note reads',async()=>{
+  const fetch=globalThis.fetch,now=Date.now;let reads=0,unexpectedSnapshots=0,verifiedAccounts=0,index=0,current;
+  Date.now=()=>now()+index*3000;
+  const unexpected=[];
+  globalThis.fetch=async(input,options)=>{
+    const url=new URL(input);
+    try{
+      assert.ok(current.toolPolicy.required.includes('serviceRecords'));
+      assert.equal(url.origin,'https://'+projectRef+'.supabase.co');
+      assert.equal(url.pathname,'/rest/v1/affairs_service_records');
+      assert.equal(url.searchParams.get('user_id'),'eq.'+owners[0]);
+      assert.equal(url.searchParams.get('record_type'),'eq.note');
+      assert.equal(new Headers(options.headers).get('authorization'),'Bearer '+users[0].token);
+      assert.equal(url.searchParams.get('service_key'),current.serviceIds.length===1
+        ?'eq.'+current.serviceIds[0]:'in.('+current.serviceIds.join(',')+')');
+      const rows=buildServiceNotePlan(current,owners).rows.filter(row=>row.user_id===owners[0]&&current.serviceIds.includes(row.service_key));
+      reads++;
+      return Response.json(rows,{headers:{...headers,'content-range':rows.length?'0-'+(rows.length-1)+'/'+rows.length:'*/0'}});
+    }catch(error){unexpected.push(error);throw error;}
+  };
   const research=createResearchAssistantHandler(),handler=createAffairsAssistantHandler({
     verifyToken:async token=>{
       verifiedAccounts++;assert.equal(token,users[0].token);
@@ -55,24 +72,28 @@ test('real boundary handlers satisfy twenty-two mounted cases without network, m
   });
   try{
     const native=cases.filter(row=>row.executionContract==='live-native');
-    assert.equal(native.length,22);
+    assert.equal(native.length,61);
     for(const row of native){
+      current=row;
       const guest=row.auth==='anonymous';
+      const before=reads;
       const response={setHeader(){},status(code){this.code=code;return this;},json(body){this.body=body;}};
       await (guest?research:handler)({method:'POST',
         headers:{...(guest?{}:{authorization:'Bearer '+users[0].token}),'x-forwarded-for':'192.0.2.'+(++index)},
         body:{question:row.question,route:row.route,history:row.history??[]}},response);
       const envelope=statusProof(row,{body:response.body,statusCode:response.code,...(guest?{fixtureReadback:undefined,stateBefore:undefined,stateAfterProposal:undefined}:{})});
       const result=gradeLiveServiceNoteCase(row,envelope);
-      assert.deepEqual(result.failures,[],row.id);
+      assert.deepEqual(unexpected,[]);
+      assert.deepEqual(result.failures,[],row.id+' '+JSON.stringify(result.failures));
+      assert.equal(reads-before,row.toolPolicy.required.includes('serviceRecords')?1:0,row.id);
       if(!guest){
         assert.ok(gradeLiveServiceNoteCase(row,{...envelope,fixtureReadback:undefined}).failures.some(check=>check.id==='notes.pairedFixture'));
         const corrupted=structuredClone(envelope);corrupted.body.answer+=' FOREIGN SERVICE NOTE 35-1';
         assert.ok(gradeLiveServiceNoteCase(row,corrupted).failures.some(check=>check.id==='notes.noForeignOrExcluded'));
       }
     }
-    assert.equal(verifiedAccounts,21);assert.equal(network,0);assert.equal(unexpectedSnapshots,0);
-  }finally{globalThis.fetch=fetch;}
+    assert.equal(verifiedAccounts,60);assert.equal(unexpectedSnapshots,0);
+  }finally{globalThis.fetch=fetch;Date.now=now;}
 });
 
 test('a readback uses only the exact project, two caller tokens, and never accepts truncated or redirected replies',async()=>{

@@ -17,6 +17,7 @@ const own = /\b(?:my|mine|our|i|me|own)\b|我|本人|自己/iu;
 const omitText = /^(?:(?:please|also|then)\s+)*(?:do not|don['’]t|never|without|not)\s+(?:(?:show|display|include|read|repeat|quote)\s+)?(?:the |my |its |their )?(?:note (?:text|content|contents|body)|text|details|contents|body)\b|^(?:請)?(?:不要|不顯示|不含).{0,6}(?:備註|筆記)?內容$/iu;
 const savedOnly = /^(?:please\s+)?(?:do not|don['’]t|never)\s+infer\s+(?:any\s+)?(?:official|university)\s+records?$|^(?:請)?(?:不要|不得)(?:推斷|推測)(?:校方|官方|正式)(?:的)?(?:紀錄|記錄)$/iu;
 const sameNoteDetail = /^(?:what (?:tracking )?status did i (?:set|save|record)|their references?)$/iu;
+const asksWhatNoteProves = /^(?:does|can|could)\s+.+\b(?:prove|establish|confirm)\s+\S|(?:備註|追蹤狀態).{0,8}(?:能否|是否|可以)(?:證明|確認)/iu;
 const statusOnly = /\b(?:status only|only (?:the |my )?(?:tracking )?status|just (?:the |my )?(?:tracking )?status)\b|只(?:顯示|查詢|要).{0,5}狀態/iu;
 const nominal = /^(?:my |our |the |saved |local |private |own )*(?:[\p{L}\p{N} -]+\s)?(?:notes?|tracking records?)\s*$/iu;
 const negative = /^(?:(?:please|and|then|also)\s+)*(?:do not|don['’]t|never|not(?!\s+only)|without|excluding|except)\b|^(?:請|请)?(?:不要|不含|排除|不用|不查)/iu;
@@ -94,7 +95,7 @@ export function serviceNoteLookup(question,route='',history=[]) {
       for(const key of selected)keys.add(key);
       statusProjection ||= statusOnly.test(clause);
       noteClauses.push({clause,selected});
-      if(actual.test(clause)&&!(/\b(?:what did i (?:save|write|record)|what (?:does|did) (?:my|the) note say)\b/iu.test(clause)))
+      if(asksWhatNoteProves.test(clause)||actual.test(clause)&&!(/\b(?:what did i (?:save|write|record)|what (?:does|did) (?:my|the) note say)\b/iu.test(clause)))
         for(const key of selected)boundaryKeys.add(key);
     }else rest.push(clause);
   }
