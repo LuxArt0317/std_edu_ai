@@ -113,7 +113,7 @@ export async function readDtmGradeReportEvidence(account,options={},dependencies
   const reply=(state,reason)=>envelope(state,reason,selection);
   try{
     if(!dataObject(options)||Reflect.ownKeys(options).some(key=>!['question','route','history','deadline'].includes(key))||!dataObject(dependencies)
-      ||Reflect.ownKeys(dependencies).some(key=>!['loadOverview','loadReport'].includes(key)||typeof dependencies[key]!=='function'))return reply('unavailable','invalid_context');
+      ||Reflect.ownKeys(dependencies).some(key=>!['loadOverview','loadReport','observeOverview'].includes(key)||typeof dependencies[key]!=='function'))return reply('unavailable','invalid_context');
     const readAccount=captureAccount(account);if(!readAccount)return reply('unavailable','unauthorized');
     const question=text(options.question),route=routeInfo(options.route),previous=previousQuestion(options.history);
     if(!isDtmGradeReportEvidenceQuestion(question,options.route,options.history))return reply('unavailable','unrelated_question');
@@ -131,7 +131,7 @@ export async function readDtmGradeReportEvidence(account,options={},dependencies
       const courses=[];let afterId,complete=false;
       for(let pageIndex=0;pageIndex<maxPages;pageIndex++){
         checkDeadline();
-        const rawPage=await loadOverview(readAccount,afterId?{afterId}:{});
+        const rawPage=await loadOverview(readAccount,afterId?{afterId}:{},dependencies.observeOverview);
         checkDeadline();
         const page=parseOverview(rawPage,userId,afterId);
         courses.push(...page.courses);if(page.nextCursor===null){complete=true;break;}afterId=page.nextCursor;

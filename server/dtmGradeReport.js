@@ -158,11 +158,15 @@ export async function loadDtmGradeReportCoursesAdmin(account,options){
   const {userId,afterId}=options;account=boundedAccount(account);await requireAdmin(account);
   return parseDtmGradeReportCoursesData(await request(account,'dtm_grade_report_courses_admin',{body:{p_user_id:userId,...(afterId?{p_after_id:afterId}:{})}}),userId,afterId);
 }
-export async function loadDtmGradeReportOverview(account,options={}){
+export async function loadDtmGradeReportOverview(account,options={},observeRead){
   const keys=object(options)&&Object.hasOwn(options,'afterId')?['afterId']:[];
   if(!exact(options,keys)||(keys.length&&!uuid(options.afterId)))throw new DtmGradeReportError('Use a valid optional grade overview cursor.',400);
   const {afterId}=options;account=boundedAccount(account);
-  return parseDtmGradeReportOverviewData(await request(account,'dtm_grade_report_overview',{body:afterId?{p_after_id:afterId}:{}}),account.user.id,afterId);
+  const body=afterId?{p_after_id:afterId}:{};
+  const raw=await request(account,'dtm_grade_report_overview',{body});
+  const parsed=parseDtmGradeReportOverviewData(raw,account.user.id,afterId);
+  observeRead?.({callerId:account.user.id,method:'POST',path:'/rest/v1/rpc/dtm_grade_report_overview',body,raw});
+  return parsed;
 }
 export async function manageDtmGradeReport(account,kind,input){
   const invalid=validateDtmGradeReportPayload(kind,input);if(invalid)throw new DtmGradeReportError(invalid,400);

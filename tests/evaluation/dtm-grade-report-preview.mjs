@@ -174,6 +174,38 @@ export function buildDtmGradeOverviewPreview(runId,owners){
   return {runId,owners,profiles,courses,reports,trackers,overviews,completeCourses:true};
 }
 
+export async function assertStudentLeaveGradePairSchema(sql){
+  const [schema]=await sql`select (
+    select count(*)=2 and bool_and(c.relrowsecurity and has_table_privilege('authenticated',c.oid,'select'))
+    from pg_catalog.pg_class c where c.oid in (to_regclass('public.dtm_courses'),to_regclass('public.dtm_grade_reports'))
+  ) as private_reads,
+  has_function_privilege('authenticated',to_regprocedure('public.dtm_grade_report_overview(uuid)'),'execute') as overview,
+  not has_function_privilege('anon',to_regprocedure('public.dtm_grade_report_overview(uuid)'),'execute') as no_guest,
+  to_regclass('private.dtm_grade_report_operations') is not null as protected_operations`;
+  need(schema?.private_reads===true&&schema.overview===true&&schema.no_guest===true
+    &&schema.protected_operations===true,'paired grade schema and RLS');
+  return true;
+}
+
+/** Fixture facts independently authored for the two frozen Leave/grade turns. */
+export function buildStudentLeaveGradePairFixture(runId,owners){
+  ({owners}=validateDtmGradeReportFixtureOwners({runId,owners}));
+  const grades=['87.00','41.25'],stamp=dtmGradeReportFixtureManifest.timestamp;
+  const profiles=roles.map(role=>({user_id:owners[role].id,email:owners[role].email,display_name:'Leave Grade Evaluation '+role,role:'student'}));
+  const courses=roles.map((role,index)=>({id:randomUUID(),user_id:owners[role].id,code:index?'CROSSED-LEAVE-GRADE':'LEAVE-GRADE-QA',
+    title:index?'Crossed leave grade fixture':'Leave Grade Evaluation',term:'Synthetic Grade Term',role:'student',source_mode:'personal'}));
+  const reports=courses.map((course,index)=>({id:randomUUID(),user_id:course.user_id,course_id:course.id,
+    report:{items:[],total:{...dtmGradeReportFixtureManifest.B.total,score:null,gradeText:grades[index],feedbackText:null}},
+    source_mode:'local_demo',version:1,created_at:stamp,updated_at:stamp,deleted_at:null}));
+  const trackers=courses.map(course=>({id:randomUUID(),course_id:course.id,label:'Unrelated numeric tracker marker',
+    score:'19.25',maximum:'100.00',graded_on:'2026-11-12',feedback:'Unrelated tracker marker'}));
+  const overviews=Object.fromEntries(roles.map((role,index)=>{
+    const {id,user_id,code,title,term}=courses[index];
+    return [role,{courses:[{id,userId:user_id,code,title,term,gradeText:grades[index]}],limit:100,nextCursor:null}];
+  }));
+  return {runId,owners,profiles,courses,reports,trackers,overviews,completeCourses:true};
+}
+
 function sameReport(row,wanted,createdAt,updatedAt){
   return samePlannedInstant(row?.[createdAt],wanted?.[createdAt])&&samePlannedInstant(row?.[updatedAt],wanted?.[updatedAt])
     &&isDeepStrictEqual({...row,[createdAt]:wanted[createdAt],[updatedAt]:wanted[updatedAt]},wanted);
@@ -237,7 +269,7 @@ export async function readDtmGradeOverviewScopes(fixture,users,{origin,signal,fe
     need(isDeepStrictEqual(overview,fixture.overviews[role]),'exact caller overview null, blank and literal zero');
     const reports=[];
     for(const expected of fixture.reports){
-      const own=role==='A';
+      const own=expected.user_id===user.id;
       const payload=await read({scope:'dtm-grade-report',course_id:expected.course_id},own?200:403);
       const report={id:expected.id,userId:expected.user_id,courseId:expected.course_id,sourceMode:expected.source_mode,
         version:expected.version,createdAt:expected.created_at,updatedAt:expected.updated_at,...expected.report};

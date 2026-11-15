@@ -139,6 +139,9 @@ export function checkedStudentLeaveFixturePlan(raw){
   return expected;
 }
 
+export const studentLeaveGradeCompanionCaseIds=Object.freeze([
+  'account:student-leave-native-leave-and-moodle-grades','account:student-leave-native-moodle-grades-and-leave',
+]);
 const knownNative=studentLeaveRunnerCases();
 const knownLegacy=[...buildServiceCases(),...buildAccountCases()].filter(nativeStudentLeaveSetupRequired).map(markLegacyStudentLeaveFixture);
 const archiveCases=new Set(['archive','archive-route','archived-english-dates']);
@@ -180,12 +183,15 @@ function translateText(value,plan){
   }
   return value;
 }
-export function bindStudentLeaveFixtureCase(plan,testCase){
+export function bindStudentLeaveFixtureCase(plan,testCase,{gradeCompanion=false}={}){
   plan=checkedStudentLeaveFixturePlan(plan);
   const row=knownNative.find(candidate=>candidate.id===testCase?.id);
   assertLeaveFixture(row&&isDeepStrictEqual(testCase,row),'invalid_case_definition');
   const scope=classify(row);
-  assertLeaveFixture(scope.family===plan.family&&['leave_state_available','boundary_setup_available','request_clock_required'].includes(scope.availability),'invalid_case_binding');
+  const gradeCase=scope.availability==='companion_fixture_required'&&scope.additionallyRequired.join()==='dtmGradeReport'
+    &&studentLeaveGradeCompanionCaseIds.includes(scope.caseId);
+  assertLeaveFixture(scope.family===plan.family&&(gradeCompanion===true?gradeCase:gradeCompanion===false
+    &&['leave_state_available','boundary_setup_available','request_clock_required'].includes(scope.availability)),'invalid_case_binding');
   const {question,route,history,expected}=row;
   const boundExpected={
     ...clone(expected),
