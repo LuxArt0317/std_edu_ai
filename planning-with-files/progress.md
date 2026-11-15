@@ -1,5 +1,11 @@
 # Progress
 
+- 2026-11-15 [#100] All 12 corrected 34-2, 37-1 and 38-1 questions passed on exact protected `f74c3bf` with final pin and cleanup. Tutor Evaluation separately completed all 11 pinned requests with verified cleanup and unchanged protected owner. The evaluator lost its paired readback match after native JSONB field reordering and one reply failed saved provenance. Retained the failed result. Standalone exact tutor ratings passed 33 controlled tests.
+
+- 2026-11-15 [#100] Continued alternate school discovery after a deeper evidence gap and mounted dated library-hours and holiday content. Exact schema-independent Preview `f8ebca2` passed 99 focused cases and is Ready. The 17-case 27-1 paired read/write oracle passed scratch PostgreSQL and checks exact version, receipt replay and unchanged foreign rows.
+
+- 2026-11-15 [#100] The exact library run passed both weekday languages and exposed the hyphenated holiday selector. Preserved all three responses and corrected the exact wording. Disposable PostgreSQL and the application serializer reproduced 28-1's key-order mismatch. Fixed the grader's validated projection hashing and directly verified exact standalone Tutor ratings. The combined protected candidate `85b4bdc` passed all 80 focused tests and was pushed to the dedicated Preview branch.
+
 Prior signed-in and public evaluation evidence is in [the November 15 archive](archive/progress_2026-11-15_hosted-preview.md).
 
 - 2026-11-15 [#100] Corrected the strict test fixture declarations and queued the public and serialized signed-in replays on exact protected `0b88ca1`. The prior candidate ended before any fixture writes.
