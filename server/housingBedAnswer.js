@@ -67,7 +67,7 @@ export function formatHousingBedAnswer(source,question,unsupported=[]){
       :data.readState==='empty'
         ?t('I found no saved records for accommodation beds in the stu.best sample data'+countLabel+'.','沒有找到你在 stu.best 儲存的住宿床位紀錄'+countLabel+'。')
         :t('I couldn’t confirm a matching saved accommodation assignment'+countLabel+' from the available records.','現有資料無法確認是否有符合的住宿床位紀錄'+countLabel+'。');
-  const lines=showRows.map(row=>'- **'+markdownText(displayValue('bedNumber',row.bedNumber,zh))+'**'
+  const lines=showRows.map(row=>'- '+fieldNames.bedNumber[Number(zh)]+t(': ','：')+'**'+markdownText(displayValue('bedNumber',row.bedNumber,zh))+'**'
     +fields.filter(key=>key!=='bedNumber').map(key=>'\n  '+fieldNames[key][Number(zh)]+(zh?'：':' ') +markdownText(displayValue(key,row[key],zh))).join(''));
   const limited=data.readState==='partial'||data.excerpted||count>showRows.length;
   const coverage=limited&&count?t('Showing '+showRows.length+' saved rows. Other assignments or period metadata may be unavailable here.','目前顯示 '+showRows.length+' 筆已儲存紀錄。其他紀錄或學期資訊可能未能讀取。'):'';

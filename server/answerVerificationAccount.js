@@ -896,6 +896,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     housingSelected||applicationSelected||scopedNotes?'':fullRoute,housingSelected||applicationSelected||scopedNotes?[]:history);
   const scopedHousing=(housingSelected||applicationSelected)&&(!housing.otherQuestion||housing.companionOnly||pageLookup.readerOnly
     ||isNativeDtmGradeOnlyQuestion(housing.otherQuestion,'',[]));
+  const dormitoryWithBed=housingSelected&&!applicationSelected&&scopedHousing&&!housingFees&&!housingNext;
   const aidScope=aidPaymentsLookupContext(pageLookup.selected?pageLookup.otherQuestion:scopedNotes?serviceNoteScope.otherQuestion:question,
     pageLookup.selected||scopedNotes?'':fullRoute,pageLookup.selected||scopedNotes?[]:history);
   const aidNext=Boolean(aidScope.selection&&!pageLookup.selected&&!scopedNotes&&isServiceNoteNextClass(aidScope.otherQuestion));
@@ -916,6 +917,10 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     :scopedOverview||studyTools?{tools:scopedOverview?intent.baseTools:studyTools,publicTopics:[],catalogQuery:null,responseIntent:'records'}
     :await planAccountLookup(question,history,fullRoute,deadline);
   let activeTools=plan.tools,activeCatalogQuery=plan.catalogQuery;
+  const directDormitory=pageLookup.readerOnly&&pageLookup.tools.length===1&&pageLookup.tools[0]==='dormitoryConduct'
+    &&!plan.publicTopics.length&&!publicPageRoute&&intent.kind==='records'
+    &&activeTools.includes('dormitoryConduct')&&(dormitoryWithBed
+      ?activeTools.length===2&&activeTools.includes('housing'):activeTools.length===1);
   const scopedTimetable=Boolean(clearanceTimetableQuestion(question,pageLookup));
   const scopedClearance=pageLookup.tools.includes('graduationClearance')&&pageLookup.readerOnly;
   const scopedCounseling=pageLookup.tools.includes('counselingAppointments')&&(pageLookup.readerOnly||pageLookup.feeAndBalance);
@@ -1102,6 +1107,21 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   if(appAnswer)initial.answer=[initial.answer,appAnswer.answer].filter(Boolean).join('\n\n');
   const bedAnswer=housingAnswer(evidence);
   if(bedAnswer)initial.answer=[initial.answer,bedAnswer.answer].filter(Boolean).join('\n\n');
+  const renderScopedDormitory=sources=>{
+    const wanted=['account-scope','account:dormitoryConduct',...(dormitoryWithBed?['account:housing']:[])];
+    if(sources.length!==wanted.length||!wanted.every(id=>sources.some(source=>source.id===id))||supplemental.length!==1
+      ||supplemental[0].evidence!==sources.find(source=>source.id==='account:dormitoryConduct'))return null;
+    const notice=formatSupplementalAccountAnswers(supplemental,{question});
+    const bed=dormitoryWithBed?housingAnswer(sources):null;
+    if(dormitoryWithBed&&!bed)return null;
+    const answer=[notice.answer,bed?.answer].filter(Boolean).join('\n\n');
+    if(answer.length>supplementalAnswerLimits.answerCharacters||!answerLinksSupported(answer,sources))return null;
+    return {...notice,status:bed?'answered':notice.status,answer,citations:evidenceCitations(sources),views:[...notice.views,...(bed?.views??[])]};
+  };
+  if(directDormitory){
+    initial={...initial,...(renderScopedDormitory(evidence)??{status:'abstained',answer:'',citations:[]})};
+    needsComposition=false;
+  }
   const directServiceNotes=scopedNotes&&!serviceNoteScope.otherQuestion&&!serviceNoteScope.operation
     &&activeTools.length===1&&activeTools[0]==='serviceRecords';
   const noteCompanionTool=noteNext?'courses':noteFees||excludedNoteFees?'charges':null;
@@ -1170,7 +1190,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   // The deeper review, when useful, works from the same verified read scope.
   const recordFreeCoaching=intent.recognized&&intent.kind==='coaching'&&!activeTools.length&&!evidence.length;
   const coachingGuide=recordFreeCoaching?generalCoachingGuide(question):null;
-  const composeInitially=directNoteCompanion?false:servicePlan||dtmCompound||scopedOverview||scopedTimetable||scopedNotes||scopedAid||scopedStudy||scopedTeaching||scopedHousing?needsComposition:needsComposition||(repairLookup.selected||pageLookup.selected)&&plan.publicTopics.length>0||Boolean(resolvedUserQuestion)||intent.kind!=='records'||intent.overview||intent.currentCourses&&intent.year||intent.courseTerms.length>0&&!intent.recognized||!activeTools.length;
+  const composeInitially=directNoteCompanion||directDormitory?false:servicePlan||dtmCompound||scopedOverview||scopedTimetable||scopedNotes||scopedAid||scopedStudy||scopedTeaching||scopedHousing?needsComposition:needsComposition||(repairLookup.selected||pageLookup.selected)&&plan.publicTopics.length>0||Boolean(resolvedUserQuestion)||intent.kind!=='records'||intent.overview||intent.currentCourses&&intent.year||intent.courseTerms.length>0&&!intent.recognized||!activeTools.length;
   if(composeInitially){
     emit({kind:'account-compose',label:'Preparing your answer',detail:'Combining the requested details and clearly separating recorded facts from suggestions.',status:'running'});
     try{
@@ -1184,11 +1204,11 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       emit({kind:'account-compose',label:'Answer preparation incomplete',detail:'A fresh evidence-based correction will be attempted within the remaining budget.',status:'unavailable'});
     }
   }
-  const fixedEvidenceScope=directNoteCompanion||servicePlan||scopedAssignment||scopedOverview||scopedNotes||scopedCounseling||scopedTutor||scopedConduct
+  const fixedEvidenceScope=directNoteCompanion||directDormitory||servicePlan||scopedAssignment||scopedOverview||scopedNotes||scopedCounseling||scopedTutor||scopedConduct
     ||scopedClearance||scopedTimetable||scopedAid||scopedStudy||scopedTeaching||housingSelected||applicationSelected;
   // Fixed scope limits refresh and replanning. A deeper model review reuses
   // the refreshed evidence even when it comes from one scoped reader.
-  const modelRepairs=activeTools.length>0&&!directServiceNotes&&!directNoteCompanion&&!scopedOverview&&!directStudy;
+  const modelRepairs=activeTools.length>0&&!directServiceNotes&&!directNoteCompanion&&!directDormitory&&!scopedOverview&&!directStudy;
   const result=await runAnswerVerification({question,initialAnswer:initial,deadline,onProgress:emit,
     allowDeeperReview:modelRepairs,
     loadEvidence:async({attempt,feedback=[]})=>{
@@ -1220,6 +1240,16 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     verify:async context=>{
       // The fixed coaching guide contains no sourced facts or user-supplied text.
       if(coachingGuide&&context.candidate===coachingGuide&&context.evidence.length===0)return {ok:true};
+      if(directDormitory){
+        const supported=renderScopedDormitory(context.evidence);
+        if(!supported||context.candidate.proposedAction||!Object.keys(supported).every(key=>isDeepStrictEqual(context.candidate[key],supported[key])))
+          return {ok:false,reason:'evidence_unavailable'};
+        if(context.attempt>1){
+          emit({kind:'dormitory-conduct-evidence-check',label:'Verified the refreshed dormitory lookup',
+            detail:'Matched the notice state and any separately requested bed information to the returned account records.',status:'complete'});
+          return {ok:true};
+        }
+      }
       if(directNoteCompanion){
         const supported=renderNoteCompanion(context.evidence);
         return supported&&context.candidate.status==='answered'&&!context.candidate.proposedAction
@@ -1271,6 +1301,9 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       }
       if(directNoteCompanion){
         return {...context.candidate,...(renderNoteCompanion(context.evidence)??{status:'abstained',answer:'',citations:[]})};
+      }
+      if(directDormitory){
+        return {...context.candidate,...(renderScopedDormitory(context.evidence)??{status:'abstained',answer:'',citations:[]})};
       }
       if(directServiceNotes){
         const notes=renderScopedServiceNotes(context.evidence);

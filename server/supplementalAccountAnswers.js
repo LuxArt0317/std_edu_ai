@@ -1107,8 +1107,8 @@ function sectionFor(parsed,question,zh){
     return section;
   }
   if(id==='account:dormitoryConduct'){
-    section.lead.push(t('This is the saved local_demo dormitory-conduct notice at service 34-2, separate from housing and general student conduct. It does not establish official clearance, eligibility or an absence of misconduct.',
-      '這是 34-2 服務儲存的 local_demo 宿舍獎懲通知，與住宿資料及學生個人獎懲分開；不能據此認定校方證明、資格或從未違規。'));
+    section.lead.push(t('This lookup checks the local_demo dormitory-conduct notice at service 34-2. The notice does not establish official clearance or eligibility.',
+      '此查詢核對 34-2 服務的 local_demo 宿舍獎懲通知。此通知無法確認校方證明或資格。'));
     if(envelope.readState==='unavailable'){
       section.lead.push(envelope.reason==='foreign_request'?t('I cannot access another student’s dormitory-conduct records. No other account was read.','無法存取其他學生的宿舍獎懲紀錄；未讀取其他帳戶。')
         :envelope.reason==='unauthorized'?t('Sign in to read your own saved notice. No account records were read.','請先登入以讀取自己的通知；尚未讀取帳戶紀錄。')

@@ -115,6 +115,7 @@
 - Verify saved tutor evaluation submissions in chat. Show only requested ratings and comments, and check any requested tuition balance through the separate fee ledger. [#100]
 - Answer signed-in health examination questions with the saved examination codes and report availability from the selected page. Preserve tuition as a separate source in combined questions. [#100]
 - Verify saved dormitory notices and remote-learning activity links in signed-in chat. Preserve separate housing, tuition and enrollment answers when requested together. [#100]
+- Keep the exact saved dormitory notice result and its limits after a rejected review. Reread the selected records, check the rebuilt reply, and label bed numbers when housing is requested too. [#100]
 
 - Add student club and activity search, private participation history, and new-club applications with administrator review and assistant links. [#98]
 

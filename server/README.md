@@ -110,6 +110,8 @@ Verifier diagnostics may include fixed lexical topic categories and local claim 
 
 `dormitoryConduct.js` provides strict caller-owned empty/unknown snapshots and separately authorized administrator save/delete operations. It never infers a populated disciplinary history. See [Dormitory Conduct QA](../docs/qa/DORMITORY_CONDUCT.md).
 
+The account verification graph renders standalone dormitory notices and exact notice-plus-bed questions from their selected evidence. After an initial rejected review it repeats the scoped reads, rebuilds the answer and compares the result, table and links with the refreshed evidence.
+
 The supplemental-answer correction separates coordinated student identity requests from class/document numbers, preserves explicit tuition-settlement intent across season labels, and cites attendance detail for unavailable weekly/monthly hours. These are evidence-selection repairs; they do not create records, payment confirmation, issued documents or new permissions.
 
 `dtmDashboardLayout.js` reads and validates owner-only dashboard preferences for the three observed built-in blocks. The dedicated data scope and save/reset actions use caller JWTs, bounded transport and exact versioned snapshots. Reset is a persisted version increment; durable command receipts preserve retries after later edits. No administrator cross-account access, HTML, arbitrary content or course mutation is added. Migration `20261113230000_dtm_dashboard_layout.sql` is an unapplied draft pending separate SQL and live acceptance.

@@ -16,11 +16,21 @@ import * as dormIntent from '../../server/dormitoryConductEvidenceIntent.js';
 import * as feeIntent from '../../server/feeRemissionEvidenceIntent.js';
 import * as outlineIntent from '../../server/elearningOutlineEvidenceIntent.js';
 import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
+import {buildAccountCases} from '../evaluation/account-cases.mjs';
+import {gradeCase} from '../evaluation/grading.mjs';
 
 const owner='52000000-0000-4000-8000-000000000001';
 const account={url:'https://xiftudmvxphxcjtmfmib.supabase.co',key:'PRIVATE_KEY',token:'PRIVATE_TOKEN',user:{id:owner}};
 const dormRoute='/school-affairs/services/34-2',outlineRoute='/elearning/course/9408';
 const dormQuestion='Show my dormitory conduct record.',outlineQuestion='Which videos are linked in this remote-learning course? List all four with their local links.';
+const dormitoryCases=buildAccountCases().filter(testCase=>testCase.id.startsWith('account:dormitory-conduct-'));
+function gradeLocalDormitoryReply(testCase:typeof dormitoryCases[number],result:{status:number;body:unknown;events:unknown[]}){
+  // The protected run separately checks persistent state before and after the request.
+  const {requireUnchangedOwnedRecords: _requiresHostedReadback,...expected}=testCase.expected;
+  const graded=gradeCase({...testCase,expected},{statusCode:result.status,execution:'deterministic',fixtureKey:testCase.fixtureKey,
+    body:result.body,events:result.events});
+  assert.deepEqual(graded.failures,[],testCase.id);
+}
 const dormNative=(result='unknown')=>({snapshot:{userId:owner,sourceMode:'local_demo',version:1,result}});
 const outlineNative=()=>({userId:owner,courseId:9408,sections:[{position:1,title:'Orientation',activities:[
   {id:11,title:'First video',kind:'url',purpose:'video'},{id:12,title:'Lecture slides',kind:'url',purpose:'slides'},
@@ -120,8 +130,9 @@ test('native page tools preserve requested clauses, exclusions and independent d
   });
 });
 
-test('mixed dormitory notice and bed/fee question uses exact assignment source and card, never the application route',async()=>provider(async()=>{
+test('mixed dormitory notice and bed/fee question recovers from a rejected review using the two exact sources',async()=>provider(async calls=>{
   const assignmentId='52000000-0000-4000-8000-000000000002',periodId='52000000-0000-4000-8000-000000000003';
+  const testCase=dormitoryCases.find(row=>row.id==='account:dormitory-conduct-mixed-housing')!;
   const result=await invoke({loadSnapshot:async()=>assert.fail('Both native readers need no broad snapshot'),readers:{
     dormitoryConduct:(caller,options)=>readDormitoryConductEvidence(caller,options,{load:async()=>dormNative()}),
     housingBed:(caller,options)=>readHousingBedEvidence(caller,options,{fetchImpl:async(input,init)=>{
@@ -137,13 +148,15 @@ test('mixed dormitory notice and bed/fee question uses exact assignment source a
       assert.equal(url.searchParams.get('id'),'in.('+periodId+')');
       return Response.json([{id:periodId,academic_year:115,semester:1,source_mode:'local_demo',version:1}],{headers});
     }}),
-  }},{question:'Show my dormitory conduct record and my saved bed number and housing fee.',route:dormRoute,stream:true});
+  }},{question:testCase.question,route:testCase.route,stream:true});
   assert.equal(result.body.verification.status,'verified');assert.match(result.body.answer,/E-305-2/u);assert.match(result.body.answer,/8500/u);
+  assert.equal(result.body.verification.attempts,2);assert.deepEqual(calls,['answer_evidence_review']);
   assert.ok(result.body.citations.some((citation:{url:string})=>citation.url==='/school-affairs/services/34-1'));
   assert.ok(result.body.citations.every((citation:{url:string})=>citation.url!=='/school-affairs/services/26-1'));
   const view=result.body.views.find((item:{id:string})=>item.id==='housing');assert.equal(view.url,'/school-affairs/services/34-1');assert.deepEqual(view.rows,[['115','1','E-305-2','QA Hall','upper','8500']]);
   assert.doesNotMatch(JSON.stringify(result.body),/FOREIGN_BED|99999/u);
-}));
+  gradeLocalDormitoryReply(testCase,result);
+},{rejectFirst:true}));
 
 test('two native page readers coexist without a broad snapshot and preserve each own question scope',async()=>provider(async calls=>{
   const readQuestions:string[]=[];
@@ -233,8 +246,27 @@ test('retry rereads the same owned notice, distinguishes missing from failure, a
   const result=await answerAccountWithVerification({question:dormQuestion,route:dormRoute,snapshot:snapshot(),
     loadSnapshot:async()=>{refreshes++;return snapshot();},supplementalReaders:{dormitoryConduct:context=>readDormitoryConductEvidence(account,context,{load:async()=>{reads++;return reads===1?dormNative():{snapshot:null};}})}});
   assert.equal(result.verification.status,'verified');assert.equal(result.verification.attempts,2);assert.equal(reads,2);assert.equal(refreshes,1);
-  assert.match(result.answer,/No dormitory notice metadata/u);assert.deepEqual(calls,['answer_evidence_review','correct_grounded_answer','answer_evidence_review']);
+  assert.match(result.answer,/No saved notice metadata/u);assert.deepEqual(calls,['answer_evidence_review']);
+  assert.ok(result.activity.some(step=>step.kind==='dormitory-conduct-evidence-check'&&step.status==='complete'));
 },{rejectFirst:true}));
+
+test('the actual handler keeps labels, availability and scope for every standalone dormitory case after a rejected review',async()=>{
+  const cases=dormitoryCases.filter(testCase=>testCase.expected.requiredTools.length===1);
+  assert.equal(cases.length,8);
+  for(const testCase of cases)await provider(async calls=>{
+    const value=testCase.fixtureKey.split(':')[1];
+    const saved=value==='missing'?{snapshot:null}:dormNative(value);
+    let reads=0;
+    const result=await invoke({loadSnapshot:async()=>assert.fail('Only the dormitory reader is needed'),readers:{
+      dormitoryConduct:(caller,options={})=>readDormitoryConductEvidence(caller,options,{load:async captured=>{
+        reads++;assert.equal(captured.user.id,owner);assert.equal(captured.token,account.token);return structuredClone(saved);
+      }}),
+    }},{question:testCase.question,route:testCase.route,history:testCase.history,stream:true});
+    assert.deepEqual(calls,['answer_evidence_review']);
+    assert.equal(reads,2);
+    gradeLocalDormitoryReply(testCase,result);
+  },{rejectFirst:true});
+});
 
 test('honest failure and ambiguous course keep unavailable progress and cannot become absent records',async()=>{
   await provider(async()=>{
