@@ -432,7 +432,9 @@ test('full bank includes every source page and catalog entry without duplicate c
   for(const service of suite.inventory.services)assert.equal(suite.cases.filter(row=>row.serviceId===service.id&&row.id.startsWith('service:')).length,4,service.id);
   assert.equal(suite.cases.filter(row=>row.domain==='facilityRepairs'&&row.fixtureRequirement==='native_facility_repair').length,15);
   assert.equal(suite.cases.filter(row=>row.domain==='elearningOutline'&&row.fixtureRequirement==='native_elearning_outline').length,5);
-  assert.equal(suite.cases.filter(row=>row.domain==='dormitoryConduct'&&row.fixtureRequirement==='native_dormitory_conduct').length,10);
+  const dormitoryCases=suite.cases.filter(row=>row.domain==='dormitoryConduct'&&row.fixtureRequirement==='native_dormitory_conduct');
+  assert.equal(dormitoryCases.filter(row=>row.id.startsWith('account:dormitory-conduct-')).length,10);
+  assert.deepEqual(dormitoryCases.filter(row=>row.serviceId==='34-2').map(row=>row.mode),['record','empty','action-boundary']);
   assert.ok(suite.cases.filter(row=>row.domain==='public-page-context').every(row=>row.coveragePurpose?.includes('not proof')),'Metadata questions must not claim complete content QA.');
 });
 
