@@ -4,6 +4,9 @@ import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {createResearchAssistantHandler} from '../../server/researchAssistantHandler.js';
 import {nativePageLookupContext} from '../../server/accountSupplementalLookup.js';
 import {planAccountLookup} from '../../server/answerVerificationAccount.js';
+import {readFeeRemissionEvidence} from '../../server/accountFeeRemissionEvidence.js';
+// @ts-expect-error Independently authored offline case bank has no TypeScript declaration.
+import {buildFeeRemissionCases,feeRemissionFixtureForCase,gradeFeeRemissionCase} from '../evaluation/fee-remission-cases.mjs';
 
 const route='/school-affairs/services/21-3';
 const owner='22000000-0000-4000-8000-000000000001';
@@ -145,16 +148,64 @@ test('a fee-remission change and submit request reaches the read-only boundary w
   }finally{globalThis.fetch=original;}
 });
 
-test('the signed-in graph rereads only the caller’s remission rows after a rejected answer',async()=>{
+test('the mixed signed-in graph rereads only the same two authorized sources after a rejected answer',async()=>{
   await withOfflineProviders(async()=>{
-    const result=await call(handler(),feeOnly);
+    const result=await call(handler(),namedBoth);
     assert.equal(result.status,200);
     assert.equal(result.body.verification.status,'verified');
     assert.equal(result.body.verification.attempts,2);
     assert.match(result.body.answer,/001,000/u);
     assert.ok(result.body.citations.some((row:{url:string})=>row.url===route));
     assert.equal(result.body.proposedAction,undefined);
-  },{retry:true});
+  },{withCharges:true,retry:true});
+});
+
+const directCases=['all-history','historical-period','zero-amount','null-not-zero','blank-not-null','leading-zero-period','exact-period-absent',
+  'student-number-explicit','student-number-not-requested','payout-not-proved','eligibility-not-proved','document-not-created','empty','bounded-omission'];
+test('the actual handler verifies standalone literal history against the independent fee-remission case bank without a provider',async()=>{
+  const selected=buildFeeRemissionCases().filter((item:{id:string})=>directCases.includes(item.id.slice('account:fee-remission-'.length)));
+  assert.equal(selected.length,directCases.length);
+  const original=globalThis.fetch;
+  try{
+    for(const item of selected){
+      const fixture=feeRemissionFixtureForCase(item);
+      let reads=0;
+      const transportErrors:unknown[]=[];
+      globalThis.fetch=async(input,init)=>{
+        try{
+          assert.equal(String(input),account.url+'/rest/v1/rpc/affairs_read_fee_remission');
+          assert.equal(new Headers(init?.headers).get('authorization'),'Bearer '+account.token);
+          assert.equal(init?.method,'POST');assert.equal(init?.body,'{}');
+          reads++;
+          return Response.json(fixture.response);
+        }catch(error){transportErrors.push(error);throw error;}
+      };
+      const result=await call(handler(),item.question);
+      assert.deepEqual(transportErrors,[],item.id);
+      assert.equal(reads,1,item.id);assert.equal(result.status,200,item.id);
+      assert.deepEqual(result.body.verification,{status:'verified',attempts:1},item.id);
+      assert.equal(result.events.filter(event=>event.kind==='fee-remission-evidence-check'&&event.status==='complete').length,1,item.id);
+      const grade=gradeFeeRemissionCase(item,{statusCode:result.status,body:result.body,events:result.events,fixtureKey:item.fixtureKey,execution:'deterministic'});
+      assert.deepEqual(grade.failures,[],item.id);
+    }
+  }finally{globalThis.fetch=original;}
+});
+
+test('a mismatched literal fee-remission selector cannot verify or display the returned rows',async()=>{
+  const original=globalThis.fetch,calls:string[]=[];
+  globalThis.fetch=async(input)=>{calls.push(String(input));return Promise.reject(new Error('unexpected network call'));};
+  try{
+    const mismatched=createAffairsAssistantHandler({verifyToken:async()=>account,loadSnapshot:async()=>assert.fail('No workspace load'),
+      publicResearch:async()=>assert.fail('No web research for personal rows'),
+      readers:{feeRemission:(current,context)=>readFeeRemissionEvidence(current,{...context,
+        question:'Show my fee remission for academic year 114 semester 2.'},{load:async()=>native('0')})}});
+    const result=await call(mismatched,feeOnly);
+    assert.equal(result.status,200);
+    assert.equal(result.body.verification?.status,'unverified');
+    assert.equal(result.events.some(event=>event.kind==='fee-remission-evidence-check'),false);
+    assert.doesNotMatch(JSON.stringify({answer:result.body.answer,views:result.body.views}),/PREVIOUS_PERIOD/u);
+    assert.deepEqual(calls,[]);
+  }finally{globalThis.fetch=original;}
 });
 
 test('mixed balance and remission use separate checked sources and retain the answer when balance is unavailable',async()=>{
